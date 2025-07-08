@@ -317,10 +317,10 @@ integration thereof with their own frontend(s) and backend.</p>
 <section id="step-by-step">
 <h2>Step-by-step<a class="headerlink" href="#step-by-step" title="Link to this heading"></a></h2>
 <p>As a relying party you want to verify certain attributes of a natural person
-which are contained in the NL wallet. To be able to do so there are a few
-things you must do. Roughly these are a couple of onboarding steps and the
-actual configuration of the “Ontvangende Voorziening” (which can be translated
-as “Receiving Facility”, a facility that receives attributes to verify):</p>
+which are contained in the NL wallet. To be able to do so there are a few things
+you must do. Roughly these are a couple of onboarding steps and the actual
+configuration of the “Ontvangende Voorziening” (which can be translated as
+“Receiving Facility”, a facility that receives attributes to verify):</p>
 <ol class="arabic simple">
 <li><p>Determine which attributes you need to verify</p></li>
 <li><p>Provide required relying party data</p></li>
@@ -350,21 +350,20 @@ session. The main components are:</p>
 <ul class="simple">
 <li><p><a class="reference external" href="https://www.logius.nl/domeinen/toegang/digid">DigiD</a>: Digitale Identiteit, a digital identification system;</p></li>
 <li><p><a class="reference external" href="https://www.logius.nl/domeinen/toegang/bsnk-pp">Pseudonym Service</a>: A service that pseudonimizes BSN numbers;</p></li>
-<li><p><a class="reference external" href="https://www.rvig.nl/basisregistratie-personen">(BRP-V) Authentic Source</a>: A source of attributes, made accessible by
-a so-called Verstrekkende Voorziening (VV);</p></li>
+<li><p><a class="reference external" href="https://www.rvig.nl/basisregistratie-personen">(BRP-V) Authentic Source</a>: A source of attributes, made accessible by a
+so-called Verstrekkende Voorziening (VV);</p></li>
 <li><p>VV: Verstrekkende Voorziening, the party that issues attributes;</p></li>
-<li><p>OV: Ontvangende Voorziening, an application that runs on-premises or
-in-cloud of a relying party that can verify attributes, which this document
-is about;</p></li>
-<li><p>Relying Party Application: An app running on-premises or in-cloud of
-the relying party that needs to do something with the result of a
-verification of attributes;</p></li>
+<li><p>OV: Ontvangende Voorziening, an application that runs on-premises or in-cloud
+of a relying party that can verify attributes, which this document is about;</p></li>
+<li><p>Relying Party Application: An app running on-premises or in-cloud of the
+relying party that needs to do something with the result of a verification of
+attributes;</p></li>
 <li><p><a class="reference external" href="https://edi.pleio.nl/news/view/93f40956-3671-49c9-9c82-2dab636b59bf/psasad-documenten-nl-wallet">Wallet App</a>: The wallet app running on a mobile device;</p></li>
 </ul>
 <p>Missing from the above diagram, but worth mentioning:</p>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/MinBZK/nl-wallet/tree/main/wallet_web">Wallet Web</a> The frontend helper JavaScript/TypeScript library which
-helps relying parties integrate their application with the Wallet platform.</p></li>
+<li><p><a class="reference external" href="https://github.com/MinBZK/nl-wallet/tree/main/wallet_web">Wallet Web</a> The frontend helper JavaScript/TypeScript library which helps
+relying parties integrate their application with the Wallet platform.</p></li>
 </ul>
 <p>For the purpose of this document, we won’t go into all components mentioned
 above, in particular, “DigiD” and “Pseudonym Service” are out-of-scope with
@@ -379,21 +378,21 @@ maintain on their own premises or cloud environments, which they integrate with
 their own application, and which interacts with the Wallet app, in order to
 verify attributes and attestations for usage in their own application.</p>
 <p>This document is about configuring an “Ontvangende Voorziening”. To have a
-broader view on the Wallet platform, you can have a look at the
-<a class="reference external" href="https://edi.pleio.nl/news/view/93f40956-3671-49c9-9c82-2dab636b59bf/psasad-documenten-nl-wallet">Architecture Documents</a>. Specifically, the Project Start Architecture, the
-Solution Architecture Document and the Design Considerations (all of which can
-be found at the aforementioned link).</p>
+broader view on the Wallet platform, you can have a look at the <a class="reference external" href="https://edi.pleio.nl/news/view/93f40956-3671-49c9-9c82-2dab636b59bf/psasad-documenten-nl-wallet">Architecture
+Documents</a>. Specifically, the Project Start Architecture, the Solution
+Architecture Document and the Design Considerations (all of which can be found
+at the aforementioned link).</p>
 <p>The Wallet platform is fully open-source; you can find the project on GitHub:
-<a class="reference external" href="https://github.com/MinBZK/nl-wallet">nl-wallet</a> (note: we currently have a dependency on <a class="reference external" href="https://github.com/minvws/nl-rdo-max">nl-rdo-max</a> which
-is also open-source but lags behind a bit in updates - we’re intending on
-getting some currently-private changes upstreamed, work in progress).</p>
+<a class="reference external" href="https://github.com/MinBZK/nl-wallet">nl-wallet</a> (note: we currently have a dependency on <a class="reference external" href="https://github.com/minvws/nl-rdo-max">nl-rdo-max</a> which is
+also open-source but lags behind a bit in updates - we’re intending on getting
+some currently-private changes upstreamed, work in progress).</p>
 </section>
 <section id="preparations-and-onboarding">
 <h2>Preparations and Onboarding<a class="headerlink" href="#preparations-and-onboarding" title="Link to this heading"></a></h2>
-<p>The subsections below describe the decisions you need to make as a relying
-party with regards to attributes you want to verify, what data we require from
-you, how to create a certificate request for a certificate (which is configured
-for usage within the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code>), and how to file all of that with us.</p>
+<p>The subsections below describe the decisions you need to make as a relying party
+with regards to attributes you want to verify, what data we require from you,
+how to create a certificate request for a certificate (which is configured for
+usage within the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code>), and how to file all of that with us.</p>
 </section>
 <section id="decisions">
 <h2>Decisions<a class="headerlink" href="#decisions" title="Link to this heading"></a></h2>
@@ -407,17 +406,17 @@ purpose of the verification. So:</p>
 <p>Attributes in the wallet are grouped in things called attestations and the
 wallet app displays these attestations as cards. The attestations are stored in
 the <code class="docutils literal notranslate"><span class="pre">mdoc</span></code> format (see <a class="reference external" href="https://www.iso.org/standard/69084.html">ISO/IEC 18013-5:2021</a> and <a class="reference external" href="https://www.iso.org/standard/86785.html">ISO/IEC 23220-4</a>).</p>
-<p>In the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> we have the concept of <code class="docutils literal notranslate"><span class="pre">usecases</span></code>, which encapsulate what
-you want to use a disclosure for, for example to verify a legal age or to login
-to a website. Essentially, every certificate that you create to be able to
-verify attributes for some purpose, represent a certificate/key-pair, and the
-<code class="docutils literal notranslate"><span class="pre">verification_server</span></code> can support multiple <code class="docutils literal notranslate"><span class="pre">usecases</span></code>. In this guide we will be
-creating a single certificate (so, for a single <code class="docutils literal notranslate"><span class="pre">usecase</span></code>), but there’s nothing
-stopping you from creating/requesting multiple certificates for different
-<code class="docutils literal notranslate"><span class="pre">usecases</span></code>.</p>
-<p>We currently (as of 2024-08-08) support two <code class="docutils literal notranslate"><span class="pre">mdoc</span></code> doctypes: <code class="docutils literal notranslate"><span class="pre">PID_DOCTYPE</span></code>
-and <code class="docutils literal notranslate"><span class="pre">ADDRESS_DOCTYPE</span></code>. An <code class="docutils literal notranslate"><span class="pre">mdoc</span></code> contains one or multiple attributes that you
-can verify. For your convenience, we list the attributes for both doctypes here:</p>
+<p>In the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> we have the concept of <code class="docutils literal notranslate"><span class="pre">usecases</span></code>, which
+encapsulate what you want to use a disclosure for, for example to verify a legal
+age or to login to a website. Essentially, every certificate that you create to
+be able to verify attributes for some purpose, represent a certificate/key-pair,
+and the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> can support multiple <code class="docutils literal notranslate"><span class="pre">usecases</span></code>. In this guide we
+will be creating a single certificate (so, for a single <code class="docutils literal notranslate"><span class="pre">usecase</span></code>), but there’s
+nothing stopping you from creating/requesting multiple certificates for
+different <code class="docutils literal notranslate"><span class="pre">usecases</span></code>.</p>
+<p>We currently (as of 2024-08-08) support two <code class="docutils literal notranslate"><span class="pre">mdoc</span></code> doctypes: <code class="docutils literal notranslate"><span class="pre">PID_DOCTYPE</span></code> and
+<code class="docutils literal notranslate"><span class="pre">ADDRESS_DOCTYPE</span></code>. An <code class="docutils literal notranslate"><span class="pre">mdoc</span></code> contains one or multiple attributes that you can
+verify. For your convenience, we list the attributes for both doctypes here:</p>
 <section id="what-a-pid-doctype-looks-like">
 <h3>What a PID_DOCTYPE looks like<a class="headerlink" href="#what-a-pid-doctype-looks-like" title="Link to this heading"></a></h3>
 <table class="docutils align-default">
@@ -491,7 +490,8 @@ can verify. For your convenience, we list the attributes for both doctypes here:
 </tr>
 </tbody>
 </table>
-<p>_* <code class="docutils literal notranslate"><span class="pre">birth_place</span></code> is a combination of <code class="docutils literal notranslate"><span class="pre">birth_country</span></code>, <code class="docutils literal notranslate"><span class="pre">birth_state</span></code> and <code class="docutils literal notranslate"><span class="pre">birth_city_</span></code></p>
+<p>_* <code class="docutils literal notranslate"><span class="pre">birth_place</span></code> is a combination of <code class="docutils literal notranslate"><span class="pre">birth_country</span></code>, <code class="docutils literal notranslate"><span class="pre">birth_state</span></code> and
+<code class="docutils literal notranslate"><span class="pre">birth_city_</span></code></p>
 </section>
 <section id="what-an-address-doctype-looks-like">
 <h3>What an ADDRESS_DOCTYPE looks like<a class="headerlink" href="#what-an-address-doctype-looks-like" title="Link to this heading"></a></h3>
@@ -541,7 +541,8 @@ can verify. For your convenience, we list the attributes for both doctypes here:
 </tr>
 </tbody>
 </table>
-<p>_* <code class="docutils literal notranslate"><span class="pre">resident_address</span></code> is a combination of <code class="docutils literal notranslate"><span class="pre">resident_street</span></code>, <code class="docutils literal notranslate"><span class="pre">house_number</span></code>, <code class="docutils literal notranslate"><span class="pre">postal_code</span></code>, <code class="docutils literal notranslate"><span class="pre">city</span></code>, <code class="docutils literal notranslate"><span class="pre">state</span></code> and <code class="docutils literal notranslate"><span class="pre">country_</span></code></p>
+<p>_* <code class="docutils literal notranslate"><span class="pre">resident_address</span></code> is a combination of <code class="docutils literal notranslate"><span class="pre">resident_street</span></code>, <code class="docutils literal notranslate"><span class="pre">house_number</span></code>,
+<code class="docutils literal notranslate"><span class="pre">postal_code</span></code>, <code class="docutils literal notranslate"><span class="pre">city</span></code>, <code class="docutils literal notranslate"><span class="pre">state</span></code> and <code class="docutils literal notranslate"><span class="pre">country_</span></code></p>
 <p>Collect the attributes you want to verify and describe the purpose, they are
 needed when we file the request later on.</p>
 </section>
@@ -632,62 +633,58 @@ on.</p>
 provide both a dutch and an english answer.</p>
 <section id="example-reader-auth-json">
 <h3>Example reader_auth.json<a class="headerlink" href="#example-reader-auth-json" title="Link to this heading"></a></h3>
-<p>To give you an idea with regards to how we format this data, here’s an
-example of the JSON data (a so-called <code class="docutils literal notranslate"><span class="pre">reader_auth.json</span></code>) we produce from your
-answers (this is an example for the municipality of Amsterdam):</p>
+<p>To give you an idea with regards to how we format this data, here’s an example
+of the JSON data (a so-called <code class="docutils literal notranslate"><span class="pre">reader_auth.json</span></code>) we produce from your answers
+(this is an example for the municipality of Amsterdam):</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;purposeStatement&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;nl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Inloggen&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;en&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Login&quot;</span>
-<span class="w">  </span><span class="p">},</span>
-<span class="w">  </span><span class="nt">&quot;retentionPolicy&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;intentToRetain&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;maxDurationInMinutes&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">525600</span>
-<span class="w">  </span><span class="p">},</span>
-<span class="w">  </span><span class="nt">&quot;sharingPolicy&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;intentToShare&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span>
-<span class="w">  </span><span class="p">},</span>
-<span class="w">  </span><span class="nt">&quot;deletionPolicy&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;deleteable&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span>
-<span class="w">  </span><span class="p">},</span>
-<span class="w">  </span><span class="nt">&quot;organization&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;displayName&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="nt">&quot;nl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Gemeente Amsterdam&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;en&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Municipality of Amsterdam&quot;</span>
+<span class="w">    </span><span class="nt">&quot;purposeStatement&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;nl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Inloggen&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;en&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Login&quot;</span>
 <span class="w">    </span><span class="p">},</span>
-<span class="w">    </span><span class="nt">&quot;legalName&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="nt">&quot;nl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Gemeente Amsterdam&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;en&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Municipality of Amsterdam&quot;</span>
+<span class="w">    </span><span class="nt">&quot;retentionPolicy&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;intentToRetain&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;maxDurationInMinutes&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">525600</span>
 <span class="w">    </span><span class="p">},</span>
-<span class="w">    </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="nt">&quot;nl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Alles wat we doen, doen we voor de stad en de Amsterdammers.&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;en&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Everything we do, we do for the city and the people of Amsterdam.&quot;</span>
+<span class="w">    </span><span class="nt">&quot;sharingPolicy&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;intentToShare&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span>
 <span class="w">    </span><span class="p">},</span>
-<span class="w">    </span><span class="nt">&quot;webUrl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://amsterdam.nl&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;city&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="nt">&quot;nl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Amsterdam&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;en&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Amsterdam&quot;</span>
+<span class="w">    </span><span class="nt">&quot;deletionPolicy&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;deleteable&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span>
 <span class="w">    </span><span class="p">},</span>
-<span class="w">    </span><span class="nt">&quot;category&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="nt">&quot;nl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Gemeente&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;en&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Municipality&quot;</span>
+<span class="w">    </span><span class="nt">&quot;organization&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;displayName&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;nl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Gemeente Amsterdam&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;en&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Municipality of Amsterdam&quot;</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="nt">&quot;legalName&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;nl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Gemeente Amsterdam&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;en&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Municipality of Amsterdam&quot;</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;nl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Alles wat we doen, doen we voor de stad en de Amsterdammers.&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;en&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Everything we do, we do for the city and the people of Amsterdam.&quot;</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="nt">&quot;webUrl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://amsterdam.nl&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;city&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;nl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Amsterdam&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;en&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Amsterdam&quot;</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="nt">&quot;category&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;nl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Gemeente&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;en&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Municipality&quot;</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="nt">&quot;logo&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;mimeType&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;image/svg+xml&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;imageData&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;svg width=\&quot;64\&quot; height=\&quot;64\&quot; viewBox=\&quot;0 0 64 64\&quot; fill=\&quot;none\&quot; xmlns=\&quot;http://www.w3.org/2000/svg\&quot;&gt;&lt;rect width=\&quot;64\&quot; height=\&quot;64\&quot; rx=\&quot;12\&quot; fill=\&quot;#FF0000\&quot;/&gt;&lt;path d=\&quot;M25 53.1823L29.1985 48.9481L25 44.7139L27.8015 41.8886L32 46.1228L36.1985 41.8886L39 44.7139L34.8015 48.9481L39 53.1823L36.191 56L31.9925 51.7658L27.794 56L25 53.1823ZM25 19.2861L29.1985 15.0519L25 10.8253L27.8015 8L32 12.2342L36.191 8L38.9925 10.8253L34.794 15.0595L38.9925 19.2937L36.191 22.1114L31.9925 17.8772L27.794 22.1114L25 19.2861ZM25 36.2455L29.1985 32.0114L25 27.7848L27.8015 24.9594L32 29.1936L36.1985 24.9594L39 27.7848L34.8015 32.0189L39 36.2531L36.191 39.0709L31.9925 34.8367L27.794 39.0709L25 36.2455Z\&quot; fill=\&quot;white\&quot;/&gt;&lt;/svg&gt;&quot;</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="nt">&quot;countryCode&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;nl&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;kvk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;1234-1234&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;privacyPolicyUrl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://amsterdam.nl/privacy&quot;</span>
 <span class="w">    </span><span class="p">},</span>
-<span class="w">    </span><span class="nt">&quot;logo&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="nt">&quot;mimeType&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;image/svg+xml&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;imageData&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;svg width=\&quot;64\&quot; height=\&quot;64\&quot; viewBox=\&quot;0 0 64 64\&quot; fill=\&quot;none\&quot; xmlns=\&quot;http://www.w3.org/2000/svg\&quot;&gt;&lt;rect width=\&quot;64\&quot; height=\&quot;64\&quot; rx=\&quot;12\&quot; fill=\&quot;#FF0000\&quot;/&gt;&lt;path d=\&quot;M25 53.1823L29.1985 48.9481L25 44.7139L27.8015 41.8886L32 46.1228L36.1985 41.8886L39 44.7139L34.8015 48.9481L39 53.1823L36.191 56L31.9925 51.7658L27.794 56L25 53.1823ZM25 19.2861L29.1985 15.0519L25 10.8253L27.8015 8L32 12.2342L36.191 8L38.9925 10.8253L34.794 15.0595L38.9925 19.2937L36.191 22.1114L31.9925 17.8772L27.794 22.1114L25 19.2861ZM25 36.2455L29.1985 32.0114L25 27.7848L27.8015 24.9594L32 29.1936L36.1985 24.9594L39 27.7848L34.8015 32.0189L39 36.2531L36.191 39.0709L31.9925 34.8367L27.794 39.0709L25 36.2455Z\&quot; fill=\&quot;white\&quot;/&gt;&lt;/svg&gt;&quot;</span>
-<span class="w">    </span><span class="p">},</span>
-<span class="w">    </span><span class="nt">&quot;countryCode&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;nl&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;kvk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;1234-1234&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;privacyPolicyUrl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://amsterdam.nl/privacy&quot;</span>
-<span class="w">  </span><span class="p">},</span>
-<span class="w">  </span><span class="nt">&quot;requestOriginBaseUrl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://amsterdam.nl&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;attributes&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;com.example.pid&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="nt">&quot;com.example.pid&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;bsn&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{}</span>
-<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="nt">&quot;requestOriginBaseUrl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://amsterdam.nl&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;authorizedAttributes&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;urn:eudi:pid:nl:1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[[</span><span class="s2">&quot;urn:eudi:pid:nl:1&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;bsn&quot;</span><span class="p">]]</span>
 <span class="w">    </span><span class="p">}</span>
-<span class="w">  </span><span class="p">}</span>
 <span class="p">}</span>
 </pre></div>
 </div>
@@ -820,15 +817,14 @@ optionally, som SVG data for your logo&gt;
 time being) and we will pick up the request from there.</p>
 <p>What you’ll receive from us in reply to the above is:</p>
 <ol class="arabic simple">
-<li><p>A <code class="docutils literal notranslate"><span class="pre">DER</span></code> format certificate based on your certificate-request with an
-X509v3 extension with OID 2.1.123.1 containing the aforementioned
-<code class="docutils literal notranslate"><span class="pre">reader_auth.json</span></code> populated with your provided required data.</p></li>
+<li><p>A <code class="docutils literal notranslate"><span class="pre">DER</span></code> format certificate based on your certificate-request with an X509v3
+extension with OID 2.1.123.1 containing the aforementioned <code class="docutils literal notranslate"><span class="pre">reader_auth.json</span></code>
+populated with your provided required data.</p></li>
 <li><p>A so-called trust-anchor certificate, also in <code class="docutils literal notranslate"><span class="pre">DER</span></code> format which represents
-the issuer(s) you as a relying party trust as a party that issues
-attributes.</p></li>
+the issuer(s) you as a relying party trust as a party that issues attributes.</p></li>
 <li><p>A universal link base URL for one of our environments, which you need to
-configure when setting up the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> (covered in
-the <a class="reference internal" href="#universal-link-base-url">Universal link base URL</a> section of the
+configure when setting up the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> (covered in the
+<a class="reference internal" href="#universal-link-base-url">Universal link base URL</a> section of the
 installation chapter).</p></li>
 </ol>
 </section>
@@ -1024,8 +1020,8 @@ certificates called <code class="docutils literal notranslate"><span class="pre"
 file contains the root certificate for issuer certificates and the
 <code class="docutils literal notranslate"><span class="pre">reader_ta.crt</span></code> file contains the root certificate for reader certificates.</p>
 <p>Finally, you’ll have to come up with some name for your <code class="docutils literal notranslate"><span class="pre">usecase</span></code>; in the
-settings below, we assume the name <code class="docutils literal notranslate"><span class="pre">login-mijn-amsterdam</span></code>. Note that the name
-is only used as an identifier, it can be freely chosen.</p>
+settings below, we assume the name <code class="docutils literal notranslate"><span class="pre">login-mijn-amsterdam</span></code>. Note that the name is
+only used as an identifier, it can be freely chosen.</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">WAUSECASENAME</span><span class="o">=</span><span class="s2">&quot;login-mijn-amsterdam&quot;</span>
 <span class="nb">export</span><span class="w"> </span><span class="nv">WAUSECASECERT</span><span class="o">=</span><span class="s2">&quot;</span><span class="k">$(</span>cat<span class="w"> </span>rp.crt<span class="w"> </span><span class="p">|</span><span class="w"> </span>openssl<span class="w"> </span>base64<span class="w"> </span>-e<span class="w"> </span>-A<span class="k">)</span><span class="s2">&quot;</span>
 <span class="nb">export</span><span class="w"> </span><span class="nv">WAUSECASEKEY</span><span class="o">=</span><span class="s2">&quot;</span><span class="k">$(</span>cat<span class="w"> </span>rp.key<span class="w"> </span><span class="p">|</span><span class="w"> </span>openssl<span class="w"> </span>base64<span class="w"> </span>-e<span class="w"> </span>-A<span class="k">)</span><span class="s2">&quot;</span>
@@ -1082,9 +1078,9 @@ the following structure.</p>
 </div>
 <p>It is possible to use both hardware and software private keys in the same
 verification server instance. When the <code class="docutils literal notranslate"><span class="pre">private_key</span></code> contains a Base64 DER-
-encoded private key, it’s used as software key, otherwise it will use the
-value of <code class="docutils literal notranslate"><span class="pre">private_key</span></code> as the HSM key label. The configuration is verified
-at startup, so invalid (key) configuration will be reported immediately.</p>
+encoded private key, it’s used as software key, otherwise it will use the value
+of <code class="docutils literal notranslate"><span class="pre">private_key</span></code> as the HSM key label. The configuration is verified at startup,
+so invalid (key) configuration will be reported immediately.</p>
 <p>You should now have a configuration file in the current directory called
 <code class="docutils literal notranslate"><span class="pre">verification_server.toml</span></code>. Feel free to check the file to see if everything
 looks like you’d expect.</p>
@@ -1159,8 +1155,9 @@ an error and abort. For more insights into this process, enable debug logging.</
 <p>If all went well, the server is now running and ready to serve requests. To test
 the service, you can send session initiation requests and status requests to it.</p>
 <p>Check out the <a class="reference internal" href="#example-calls">Example calls</a> section for how to do that. For
-example, when you <a class="reference internal" href="#initiate-a-disclosure-session">initiate a disclosure session</a>,
-you will see something like the following output from the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code>:</p>
+example, when you
+<a class="reference internal" href="#initiate-a-disclosure-session">initiate a disclosure session</a>, you will see
+something like the following output from the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code>:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mi">2024</span><span class="o">-</span><span class="mi">08</span><span class="o">-</span><span class="mi">09</span><span class="n">T14</span><span class="p">:</span><span class="mi">30</span><span class="p">:</span><span class="mf">55.016412</span><span class="n">Z</span>  <span class="n">INFO</span> <span class="n">openid4vc</span><span class="p">::</span><span class="n">verifier</span><span class="p">:</span> <span class="n">create</span> <span class="n">verifier</span> <span class="n">session</span><span class="p">:</span> <span class="n">some_usecase</span>
 <span class="mi">2024</span><span class="o">-</span><span class="mi">08</span><span class="o">-</span><span class="mi">09</span><span class="n">T14</span><span class="p">:</span><span class="mi">30</span><span class="p">:</span><span class="mf">55.019806</span><span class="n">Z</span>  <span class="n">INFO</span> <span class="n">openid4vc</span><span class="p">::</span><span class="n">verifier</span><span class="p">:</span> <span class="n">Session</span><span class="p">(</span><span class="n">XH32jw4jRSnQsLNiJxryDCqArmWfv5Fi</span><span class="p">):</span> <span class="n">session</span> <span class="n">created</span>
 </pre></div>
@@ -1172,10 +1169,10 @@ the <a class="reference internal" href="#api-specifications">API specifications<
 <h2>Background<a class="headerlink" href="#background" title="Link to this heading"></a></h2>
 <p>Now that you can interact with the wallet platform, you are ready to start
 working on integration your own application with your “Ontvangende Voorziening”.</p>
-<p>An “Ontvangende Voorziening” is realized by the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code>,
-which is a software component developed by the NL wallet team
-which you as a relying party run on-premises or within your cloud environment
-in order to interact with the wallet platform.</p>
+<p>An “Ontvangende Voorziening” is realized by the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code>, which is
+a software component developed by the NL wallet team which you as a relying
+party run on-premises or within your cloud environment in order to interact with
+the wallet platform.</p>
 <p>In the following subsections we’ll give you a high-level overview of what an
 “Ontvangende Voorziening” looks like, how to integrate it with your application
 and some directions with regards to the API specifications.</p>
@@ -1187,8 +1184,8 @@ session. Except for the “PID Issuer (VV)” and the “Wallet App”, these ru
 premises or within cloud environment(s) of the relying party (i.e., you).</p>
 <p>Let’s walk through a typical (cross-device, note on same-device flows in
 following section) disclosure session (for full details, have a look at the
-VV/OV SAD and our <a class="reference internal" href="diagrams/disclosure.html"><span class="std std-doc">component interaction flow for
-disclosures</span></a>).</p>
+VV/OV SAD and our
+<a class="reference internal" href="diagrams/disclosure.html"><span class="std std-doc">component interaction flow for disclosures</span></a>).</p>
 <p>Note the possible session states:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">CREATED</span></code>: <em>session created</em></p></li>
@@ -1216,8 +1213,8 @@ Application”).</p>
 <li><p><code class="docutils literal notranslate"><span class="pre">user</span></code> initiates action (i.e., clicks a button on web page of relying party
 in their desktop or mobile webbrowser);</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">rp_frontend</span></code> receives action, asks <code class="docutils literal notranslate"><span class="pre">rp_backend</span></code> to initiate session;</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">rp_backend</span></code> in turn calls <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> with a session initialization
-request, receiving a <code class="docutils literal notranslate"><span class="pre">session_url</span></code>, an <code class="docutils literal notranslate"><span class="pre">engagement_url</span></code>, and a
+<li><p><code class="docutils literal notranslate"><span class="pre">rp_backend</span></code> in turn calls <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> with a session
+initialization request, receiving a <code class="docutils literal notranslate"><span class="pre">session_url</span></code>, an <code class="docutils literal notranslate"><span class="pre">engagement_url</span></code>, and a
 <code class="docutils literal notranslate"><span class="pre">disclosed_attributes_url</span></code> as a response. The session initially has a
 <code class="docutils literal notranslate"><span class="pre">CREATED</span></code> status;</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">rp_backend</span></code> keeps <code class="docutils literal notranslate"><span class="pre">disclosed_attributes_url</span></code> for itself, and returns
@@ -1233,34 +1230,34 @@ navigate to the universal link (UL). In parallel, <code class="docutils literal 
 <li><p><code class="docutils literal notranslate"><span class="pre">rp_frontend</span></code> polls <code class="docutils literal notranslate"><span class="pre">session_url</span></code> for status. It will re-poll for a
 configured time-limit when receiving a <code class="docutils literal notranslate"><span class="pre">CREATED</span></code> or <code class="docutils literal notranslate"><span class="pre">WAITING_FOR_RESPONSE</span></code>
 status. The poll will terminate on <code class="docutils literal notranslate"><span class="pre">DONE</span></code>;</p></li>
-<li><p>After <code class="docutils literal notranslate"><span class="pre">user</span></code> completes the scanning of the QR or followed the universal
-link, <code class="docutils literal notranslate"><span class="pre">wallet_app</span></code> parses/extracts the QR/UL and starts a device engagement
-session with <code class="docutils literal notranslate"><span class="pre">verification_server</span></code>, which in turn returns the relying party
-details and the requested attributes to the <code class="docutils literal notranslate"><span class="pre">wallet_app</span></code>;</p></li>
-<li><p>The <code class="docutils literal notranslate"><span class="pre">wallet_app</span></code> shows the relying party details and the requested
-attributes to the <code class="docutils literal notranslate"><span class="pre">user</span></code> and gives the <code class="docutils literal notranslate"><span class="pre">user</span></code> the option to consent or
-abort;</p></li>
+<li><p>After <code class="docutils literal notranslate"><span class="pre">user</span></code> completes the scanning of the QR or followed the universal link,
+<code class="docutils literal notranslate"><span class="pre">wallet_app</span></code> parses/extracts the QR/UL and starts a device engagement session
+with <code class="docutils literal notranslate"><span class="pre">verification_server</span></code>, which in turn returns the relying party details
+and the requested attributes to the <code class="docutils literal notranslate"><span class="pre">wallet_app</span></code>;</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">wallet_app</span></code> shows the relying party details and the requested attributes
+to the <code class="docutils literal notranslate"><span class="pre">user</span></code> and gives the <code class="docutils literal notranslate"><span class="pre">user</span></code> the option to consent or abort;</p></li>
 </ol>
 <p>The <code class="docutils literal notranslate"><span class="pre">user</span></code> can abort, which will terminate the session with a <code class="docutils literal notranslate"><span class="pre">CANCELED</span></code> status.
 The <code class="docutils literal notranslate"><span class="pre">user</span></code> can also wait too long, which would result in an <code class="docutils literal notranslate"><span class="pre">EXPIRED</span></code> status.
 The <code class="docutils literal notranslate"><span class="pre">FAILED</span></code> status can occur when other, infrastructural and/or network-related
 problems are encountered. Assuming the <code class="docutils literal notranslate"><span class="pre">user</span></code> consented, let’s continue:</p>
 <ol class="arabic simple" start="9">
-<li><p><code class="docutils literal notranslate"><span class="pre">wallet_app</span></code> sends a device response containing the disclosed
-attributes and proofs_of_possession to the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code>;</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">verification_server</span></code> validates if attributes are authentic and valid and if they
-belong together and returns an indication of success back to the
+<li><p><code class="docutils literal notranslate"><span class="pre">wallet_app</span></code> sends a device response containing the disclosed attributes and
+proofs_of_possession to the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">verification_server</span></code> validates if attributes are authentic and valid and if
+they belong together and returns an indication of success back to the
 <code class="docutils literal notranslate"><span class="pre">wallet_app</span></code>, which in turn confirms the success by displaying a dialog to
-the <code class="docutils literal notranslate"><span class="pre">user</span></code>. <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> additionally updates the status of the session
-to <code class="docutils literal notranslate"><span class="pre">DONE</span></code> with the <code class="docutils literal notranslate"><span class="pre">SUCCESS</span></code> substate (assuming validation went fine);</p></li>
+the <code class="docutils literal notranslate"><span class="pre">user</span></code>. <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> additionally updates the status of the
+session to <code class="docutils literal notranslate"><span class="pre">DONE</span></code> with the <code class="docutils literal notranslate"><span class="pre">SUCCESS</span></code> substate (assuming validation went
+fine);</p></li>
 <li><p>The poll running on the <code class="docutils literal notranslate"><span class="pre">rp_frontend</span></code> will terminate due to the <code class="docutils literal notranslate"><span class="pre">DONE</span></code>
 session state;</p></li>
 <li><p>The <code class="docutils literal notranslate"><span class="pre">rp_frontend</span></code> returns the result of the session to the <code class="docutils literal notranslate"><span class="pre">rp_backend</span></code>;</p></li>
 <li><p>The <code class="docutils literal notranslate"><span class="pre">rp_backend</span></code> checks the status of the session. On <code class="docutils literal notranslate"><span class="pre">DONE</span></code> with substate
 <code class="docutils literal notranslate"><span class="pre">SUCCESS</span></code>, it will call the associated <code class="docutils literal notranslate"><span class="pre">disclosed_attributes_url</span></code> which it
 kept around (saved) in step 4 to retrieve the disclosed attributes. When
-substate is not <code class="docutils literal notranslate"><span class="pre">SUCCESS</span></code>, it will not retrieve the disclosed attributes
-but invoke an error_handler of sorts (for example) which displays the error
+substate is not <code class="docutils literal notranslate"><span class="pre">SUCCESS</span></code>, it will not retrieve the disclosed attributes but
+invoke an error_handler of sorts (for example) which displays the error
 condition;</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">rp_backend</span></code> handles disclosed attributes, returns status to <code class="docutils literal notranslate"><span class="pre">rp_frontend</span></code>
 (for example: user is authenticated, here have a token);</p></li>
@@ -1272,8 +1269,8 @@ condition;</p></li>
 The <code class="docutils literal notranslate"><span class="pre">rp_frontend</span></code> detects the user-agent and from that determines if a
 Cross-device or Same-device flow is appropiate. When it encodes for a
 Same-device flow, the resulting Universal link can be directly opened by the
-<code class="docutils literal notranslate"><span class="pre">wallet_app</span></code> on the same device, which then starts device engagement towards
-the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> (see step 7 above).</p>
+<code class="docutils literal notranslate"><span class="pre">wallet_app</span></code> on the same device, which then starts device engagement towards the
+<code class="docutils literal notranslate"><span class="pre">verification_server</span></code> (see step 7 above).</p>
 </section>
 </section>
 <section id="notes-on-requirements-applicable-to-your-application">
@@ -1287,11 +1284,12 @@ standard using the <a class="reference external" href="https://www.iso.org/stand
 <li><p>Any disclosure session initiation request must include the reason why the
 relying party is requesting the attributes;</p></li>
 <li><p>A relying party <strong>MUST NOT</strong> track, in the broadest sense of the word;</p></li>
-<li><p>A relying party needs to adhere to the EU-GDPR (Nederlands: EU-AVG) <a class="reference external" href="https://europa.eu/youreurope/business/dealing-with-customers/data-protection/data-protection-gdpr/index_en.htm">GDPR</a>;</p></li>
+<li><p>A relying party needs to adhere to the EU-GDPR (Nederlands: EU-AVG)
+<a class="reference external" href="https://europa.eu/youreurope/business/dealing-with-customers/data-protection/data-protection-gdpr/index_en.htm">GDPR</a>;</p></li>
 <li><p>It is required to follow accessibility guidelines set forth in the <a class="reference external" href="https://www.w3.org/WAI/WCAG21/Understanding/intro">WCAG</a>;</p></li>
 <li><p>It is expected that you use the <code class="docutils literal notranslate"><span class="pre">wallet_web</span></code> frontend helper library;</p></li>
-<li><p>The standard buttons for login and sharing should be used, but one can
-use custom button text (within reason);</p></li>
+<li><p>The standard buttons for login and sharing should be used, but one can use
+custom button text (within reason);</p></li>
 <li><p>Button styling and call-to-action can be customized by relying party;</p></li>
 <li><p>The text “NL Wallet” should always be visible in the call-to-action;</p></li>
 <li><p>Logo of “NL Wallet” should be visible next to the call-to-action.</p></li>
@@ -1306,8 +1304,8 @@ verification of identity and/or certain specific attributes, in order to allow
 or disallow usage of (a part of) said application).</p>
 <p>To integrate with the “Ontvangende Voorziening”, you modify your frontend and
 backend application, using the <code class="docutils literal notranslate"><span class="pre">wallet_web</span></code> frontend library, integrating with
-the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> (the implementation of the “Ontvangende Voorziening” on
-your premises or in your cloud environment).</p>
+the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> (the implementation of the “Ontvangende Voorziening”
+on your premises or in your cloud environment).</p>
 <p>In the disclosure flow diagram, on the right, where the “Relying Party
 Application” is shown, you see a four integration/call points: “Configure
 Verifier”, “Initiate Disclosure Session”, “Start Result Poll Loop” and “Retrieve
@@ -1319,33 +1317,34 @@ component of the OV;</p></li>
 <li><p>Initiation of a disclosure session, executed by your backend application;</p></li>
 <li><p>The status check loop, executed by your frontend application, where we check
 for a status result, which indicates success or failure of the session.</p></li>
-<li><p>Result retrieval, executed by your backend, which is a final conditional
-step dependent on a succesful completion status, which contains the
+<li><p>Result retrieval, executed by your backend, which is a final conditional step
+dependent on a succesful completion status, which contains the
 disclosed_attributes.</p></li>
 </ul>
-<p>The above is described in more detail in the previous section <a class="reference internal" href="#what-a-disclosure-session-looks-like">detailing an
-example disclosure flow</a>.</p>
+<p>The above is described in more detail in the previous section
+<a class="reference internal" href="#what-a-disclosure-session-looks-like">detailing an example disclosure flow</a>.</p>
 <p>It’s worth noting that the NL-Wallet team has developed a JavaScript library
 (called <code class="docutils literal notranslate"><span class="pre">wallet_web</span></code>) that handles the status check loop and status return for
 you.</p>
 </section>
 <section id="api-specifications">
 <h2>API Specifications<a class="headerlink" href="#api-specifications" title="Link to this heading"></a></h2>
-<p>The API specifications for the <a class="reference download internal" download="" href="_downloads/8162ceeab69c5efcc795f9abc7a37537/wallet-disclosure-private.openapi.yaml"><span class="xref download myst">private</span></a> (also known as the <code class="docutils literal notranslate"><span class="pre">requester</span></code>)
-and <a class="reference download internal" download="" href="_downloads/69f58550378e6434951f56f7ba51d661/wallet-disclosure-public.openapi.yaml"><span class="xref download myst">public</span></a> (also known as the <code class="docutils literal notranslate"><span class="pre">wallet</span></code>) endpoints are available in the
+<p>The API specifications for the <a class="reference download internal" download="" href="_downloads/8162ceeab69c5efcc795f9abc7a37537/wallet-disclosure-private.openapi.yaml"><span class="xref download myst">private</span></a> (also known as the <code class="docutils literal notranslate"><span class="pre">requester</span></code>) and
+<a class="reference download internal" download="" href="_downloads/69f58550378e6434951f56f7ba51d661/wallet-disclosure-public.openapi.yaml"><span class="xref download myst">public</span></a> (also known as the <code class="docutils literal notranslate"><span class="pre">wallet</span></code>) endpoints are available in the
 <code class="docutils literal notranslate"><span class="pre">/documentation</span></code> part of of the git repository.</p>
 </section>
 <section id="example-calls">
 <h2>Example calls<a class="headerlink" href="#example-calls" title="Link to this heading"></a></h2>
-<p>The <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> has two ports: a “wallet server” port, which is a a “public”
-endpoint that can be queried for session status, usually running on TCP port
-<code class="docutils literal notranslate"><span class="pre">8001</span></code>, and a so-called “requester port” which is a “private” endpoint that can
-optionally be configured to have authentication mechanisms (or otherwise bind to
-a private/trusted/internal network), used to initiate sessions and retrieve
-sensitive data, usually running on TCP port <code class="docutils literal notranslate"><span class="pre">8002</span></code>.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> has two ports: a “wallet server” port, which is a a
+“public” endpoint that can be queried for session status, usually running on TCP
+port <code class="docutils literal notranslate"><span class="pre">8001</span></code>, and a so-called “requester port” which is a “private” endpoint that
+can optionally be configured to have authentication mechanisms (or otherwise
+bind to a private/trusted/internal network), used to initiate sessions and
+retrieve sensitive data, usually running on TCP port <code class="docutils literal notranslate"><span class="pre">8002</span></code>.</p>
 <p>Following is a collection of sample calls that illustrate how you interact with
 the OV. Note that we’re using <code class="docutils literal notranslate"><span class="pre">localhost</span></code>, in your case it might be another
-hostname, FQDN or IP address, depending on how you’ve set-up <code class="docutils literal notranslate"><span class="pre">verification_server</span></code>:</p>
+hostname, FQDN or IP address, depending on how you’ve set-up
+<code class="docutils literal notranslate"><span class="pre">verification_server</span></code>:</p>
 <section id="initiate-a-disclosure-session">
 <h3>Initiate a Disclosure Session<a class="headerlink" href="#initiate-a-disclosure-session" title="Link to this heading"></a></h3>
 <div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>curl<span class="w"> </span>--silent<span class="w"> </span>--request<span class="w"> </span>POST<span class="w"> </span>--json<span class="w"> </span><span class="s1">&#39;{</span>
@@ -1368,7 +1367,7 @@ hostname, FQDN or IP address, depending on how you’ve set-up <code class="docu
 </div>
 <p>Example response:</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;session_token&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;387f8vMgeE1NunRPqn55Tha1761EC54i&quot;</span>
+<span class="w">    </span><span class="nt">&quot;session_token&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;387f8vMgeE1NunRPqn55Tha1761EC54i&quot;</span>
 <span class="p">}</span>
 </pre></div>
 </div>
@@ -1380,8 +1379,8 @@ hostname, FQDN or IP address, depending on how you’ve set-up <code class="docu
 </div>
 <p>Example responses:</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;CREATED&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;ul&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;walletdebuginteraction://wallet.edi.rijksoverheid.nl/disclosure/sessions?request_uri=http%3A%2F%2Flocalhost%3A33245%2Fdisclosure%2Fsessions%2F387f8vMgeE1NunRPqn55Tha1761EC54i%2Frequest_uri%3Fsession_type%3Dsame_device%26ephemeral_id%3D6f169a2e10b9733d2fd5d83acb169753506a37d6a49b0abcc6790ba23300ed74%26time%3D2024-07-20T14%253A00%253A58.471204138Z&amp;request_uri_method=post&amp;client_id=mijn.amsterdam.nl&quot;</span>
+<span class="w">    </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;CREATED&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;ul&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;walletdebuginteraction://wallet.edi.rijksoverheid.nl/disclosure/sessions?request_uri=http%3A%2F%2Flocalhost%3A33245%2Fdisclosure%2Fsessions%2F387f8vMgeE1NunRPqn55Tha1761EC54i%2Frequest_uri%3Fsession_type%3Dsame_device%26ephemeral_id%3D6f169a2e10b9733d2fd5d83acb169753506a37d6a49b0abcc6790ba23300ed74%26time%3D2024-07-20T14%253A00%253A58.471204138Z&amp;request_uri_method=post&amp;client_id=mijn.amsterdam.nl&quot;</span>
 <span class="p">}</span>
 </pre></div>
 </div>
@@ -1390,12 +1389,12 @@ hostname, FQDN or IP address, depending on how you’ve set-up <code class="docu
 <em>environments, you see a universal link based on the <code class="docutils literal notranslate"><span class="pre">universal_link_base_url</span></code></em>
 <em>setting in the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> configuration file.)</em></p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;WAITING_FOR_RESPONSE&quot;</span>
+<span class="w">    </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;WAITING_FOR_RESPONSE&quot;</span>
 <span class="p">}</span>
 </pre></div>
 </div>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;DONE&quot;</span>
+<span class="w">    </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;DONE&quot;</span>
 <span class="p">}</span>
 </pre></div>
 </div>
@@ -1411,38 +1410,38 @@ hostname, FQDN or IP address, depending on how you’ve set-up <code class="docu
 </div>
 <p>Example responses:</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;session_state&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Session is not in the required state&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">400</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;detail&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;disclosed attributes requested for disclosure session with status other than &#39;Done&#39;&quot;</span>
+<span class="w">    </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;session_state&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Session is not in the required state&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">400</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;detail&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;disclosed attributes requested for disclosure session with status other than &#39;Done&#39;&quot;</span>
 <span class="p">}</span>
 </pre></div>
 </div>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;nonce&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Redirect URI nonce incorrect or missing&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">401</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;detail&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;missing nonce in redirect URI&quot;</span>
+<span class="w">    </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;nonce&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Redirect URI nonce incorrect or missing&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">401</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;detail&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;missing nonce in redirect URI&quot;</span>
 <span class="p">}</span>
 </pre></div>
 </div>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;com.example.pid&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;attributes&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="nt">&quot;com.example.pid&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;family_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;De Bruijn&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;own_family_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Molenaar&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;given_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Willeke Liselotte&quot;</span>
-<span class="w">      </span><span class="p">}</span>
-<span class="w">    </span><span class="p">},</span>
-<span class="w">    </span><span class="nt">&quot;issuer&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;pid.example.com&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;ca&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ca.example.com&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;validityInfo&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="nt">&quot;signed&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2024-07-20T14:00:58Z&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;validFrom&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2024-07-20T14:00:58Z&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;validUntil&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2025-07-20T14:00:58Z&quot;</span>
+<span class="w">    </span><span class="nt">&quot;com.example.pid&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;attributes&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;com.example.pid&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="nt">&quot;family_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;De Bruijn&quot;</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;own_family_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Molenaar&quot;</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;given_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Willeke Liselotte&quot;</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="nt">&quot;issuer&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;pid.example.com&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;ca&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ca.example.com&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;validityInfo&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;signed&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2024-07-20T14:00:58Z&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;validFrom&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2024-07-20T14:00:58Z&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;validUntil&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2025-07-20T14:00:58Z&quot;</span>
+<span class="w">        </span><span class="p">}</span>
 <span class="w">    </span><span class="p">}</span>
-<span class="w">  </span><span class="p">}</span>
 <span class="p">}</span>
 </pre></div>
 </div>

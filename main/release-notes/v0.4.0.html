@@ -311,6 +311,9 @@
 <li><p>This release changes the identifiers used by the wallet and Wallet Provider to
 refer to the wallet’s keys, invalidating existing keys and their identifiers.
 The WP’s database will therefore have to be cleared when deploying this.</p></li>
+<li><p>Specifying for which attributes a relying party is authorized in a certificate
+has been made attestation format agnostic, meaning all existing certificates
+are invalid and should be regenerated to accomodate the new structure.</p></li>
 </ul>
 </section>
 <section id="new-features">
@@ -324,6 +327,12 @@ non-repudiable.</p></li>
 </section>
 <section id="code-improvements">
 <h2>Code improvements<a class="headerlink" href="#code-improvements" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">ReaderRegistration</span></code> has been made attestation format agnostic, meaning the
+attributes specified in the reader certificate for which the relying party is
+authorized to request them are specified in a manner that works for both mdoc
+and SD-JWT attestations.</p></li>
+</ul>
 </section>
 <section id="wallet-app-improvements">
 <h2>Wallet app improvements<a class="headerlink" href="#wallet-app-improvements" title="Link to this heading"></a></h2>
