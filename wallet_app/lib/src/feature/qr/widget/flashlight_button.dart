@@ -21,7 +21,6 @@ class FlashlightButton extends StatelessWidget {
       button: true,
       onTap: onPressed,
       excludeSemantics: true,
-      onTapHint: context.l10n.flashlightButtonTapHint,
       attributedLabel: (isOn ? context.l10n.generalOn : context.l10n.generalOff).toAttributedString(context),
       child: OutlinedButton(
         onPressed: onPressed,

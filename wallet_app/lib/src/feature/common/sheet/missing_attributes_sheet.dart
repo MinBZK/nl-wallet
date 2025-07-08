@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../domain/model/attribute/attribute.dart';
 import '../../../util/extension/build_context_extension.dart';
+import '../../../util/extension/string_extension.dart';
 import '../widget/bullet_list.dart';
 import '../widget/button/tertiary_button.dart';
 import '../widget/text/title_text.dart';
@@ -49,7 +50,7 @@ class MissingAttributesSheet extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: TertiaryButton(
               onPressed: () => Navigator.pop(context),
-              text: Text(context.l10n.generalClose),
+              text: Text.rich(context.l10n.generalClose.toTextSpan(context)),
               icon: const Icon(Icons.close),
             ),
           ),

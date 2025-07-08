@@ -1,7 +1,10 @@
 part of 'disclosure_bloc.dart';
 
-const kNormalDisclosureSteps = 4;
-const kLoginDisclosureSteps = 3;
+// Normal amount of steps for disclosure for the same device flow
+const kDisclosureSteps = 3;
+
+// The extra steps the user has to perform in cross device flows
+const kExtraCrossDeviceSteps = 1;
 
 sealed class DisclosureState extends Equatable {
   bool get showStopConfirmation => true;
@@ -10,7 +13,7 @@ sealed class DisclosureState extends Equatable {
 
   bool get didGoBack => false;
 
-  FlowProgress get stepperProgress => const FlowProgress(currentStep: 0, totalSteps: kNormalDisclosureSteps);
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: 0, totalSteps: kDisclosureSteps);
 
   const DisclosureState();
 
@@ -152,7 +155,8 @@ class DisclosureCheckUrl extends DisclosureState {
   final bool afterBackPressed;
 
   @override
-  FlowProgress get stepperProgress => const FlowProgress(currentStep: 1, totalSteps: kNormalDisclosureSteps);
+  FlowProgress get stepperProgress =>
+      const FlowProgress(currentStep: 1, totalSteps: kDisclosureSteps + kExtraCrossDeviceSteps);
 
   @override
   bool get didGoBack => afterBackPressed;
@@ -189,7 +193,9 @@ class DisclosureCheckOrganizationForLogin extends DisclosureState {
   final bool afterBackPressed;
 
   @override
-  FlowProgress get stepperProgress => const FlowProgress(currentStep: 1, totalSteps: kLoginDisclosureSteps);
+  FlowProgress get stepperProgress => canGoBack
+      ? const FlowProgress(currentStep: 2, totalSteps: kDisclosureSteps + kExtraCrossDeviceSteps)
+      : const FlowProgress(currentStep: 1, totalSteps: kDisclosureSteps);
 
   @override
   bool get didGoBack => afterBackPressed;
@@ -224,7 +230,7 @@ class DisclosureMissingAttributes extends DisclosureState {
   final List<MissingAttribute> missingAttributes;
 
   @override
-  FlowProgress get stepperProgress => const FlowProgress(currentStep: 2, totalSteps: kNormalDisclosureSteps);
+  final FlowProgress stepperProgress;
 
   @override
   bool get canGoBack => true;
@@ -232,10 +238,14 @@ class DisclosureMissingAttributes extends DisclosureState {
   @override
   bool get showStopConfirmation => false;
 
-  const DisclosureMissingAttributes({
+  DisclosureMissingAttributes({
     required this.relyingParty,
     required this.missingAttributes,
-  });
+    required bool isCrossDevice,
+  }) : stepperProgress = FlowProgress(
+          currentStep: isCrossDevice ? 2 : 1,
+          totalSteps: kDisclosureSteps + (isCrossDevice ? kExtraCrossDeviceSteps : 0),
+        );
 
   @override
   List<Object?> get props => [
@@ -265,7 +275,9 @@ class DisclosureConfirmDataAttributes extends DisclosureState {
   final DisclosureSessionType sessionType;
 
   @override
-  FlowProgress get stepperProgress => const FlowProgress(currentStep: 2, totalSteps: kNormalDisclosureSteps);
+  FlowProgress get stepperProgress => sessionType == DisclosureSessionType.crossDevice
+      ? const FlowProgress(currentStep: 2, totalSteps: kDisclosureSteps + kExtraCrossDeviceSteps)
+      : const FlowProgress(currentStep: 1, totalSteps: kDisclosureSteps);
 
   @override
   bool get didGoBack => afterBackPressed;
@@ -321,19 +333,24 @@ class DisclosureConfirmPin extends DisclosureState {
   final Organization relyingParty;
   final bool isLoginFlow;
 
-  const DisclosureConfirmPin({
-    required this.relyingParty,
-    this.isLoginFlow = false,
-  });
-
   @override
-  FlowProgress get stepperProgress => FlowProgress(
-        currentStep: isLoginFlow ? 2 : 3,
-        totalSteps: isLoginFlow ? kLoginDisclosureSteps : kNormalDisclosureSteps,
-      );
+  final FlowProgress stepperProgress;
 
   @override
   bool get canGoBack => true;
+
+  static FlowProgress _calculateStepperProgress({required bool isCrossDevice}) {
+    final extraSteps = isCrossDevice ? kExtraCrossDeviceSteps : 0;
+    final totalSteps = kDisclosureSteps + extraSteps;
+    final currentStep = 2 + extraSteps;
+    return FlowProgress(currentStep: currentStep, totalSteps: totalSteps);
+  }
+
+  DisclosureConfirmPin({
+    required this.relyingParty,
+    this.isLoginFlow = false,
+    required bool isCrossDevice,
+  }) : stepperProgress = _calculateStepperProgress(isCrossDevice: isCrossDevice);
 
   @override
   List<Object?> get props => [relyingParty, isLoginFlow, ...super.props];
@@ -346,20 +363,24 @@ class DisclosureSuccess extends DisclosureState {
   final bool isLoginFlow;
 
   @override
-  FlowProgress get stepperProgress => FlowProgress(
-        currentStep: isLoginFlow ? kLoginDisclosureSteps : kNormalDisclosureSteps,
-        totalSteps: isLoginFlow ? kLoginDisclosureSteps : kNormalDisclosureSteps,
-      );
+  final FlowProgress stepperProgress;
 
   @override
   bool get showStopConfirmation => false;
 
-  const DisclosureSuccess({
+  static FlowProgress _calculateStepperProgress({required bool isCrossDevice}) {
+    final extraSteps = isCrossDevice ? kExtraCrossDeviceSteps : 0;
+    final totalSteps = kDisclosureSteps + extraSteps;
+    return FlowProgress(currentStep: totalSteps, totalSteps: totalSteps);
+  }
+
+  DisclosureSuccess({
     required this.relyingParty,
     this.event,
     this.returnUrl,
     this.isLoginFlow = false,
-  });
+    required bool isCrossDevice,
+  }) : stepperProgress = _calculateStepperProgress(isCrossDevice: isCrossDevice);
 
   @override
   List<Object?> get props => [relyingParty, returnUrl, isLoginFlow, ...super.props];
@@ -371,10 +392,7 @@ class DisclosureStopped extends DisclosureState {
   final String? returnUrl;
 
   @override
-  FlowProgress get stepperProgress => FlowProgress(
-        currentStep: isLoginFlow ? kLoginDisclosureSteps : kNormalDisclosureSteps,
-        totalSteps: isLoginFlow ? kLoginDisclosureSteps : kNormalDisclosureSteps,
-      );
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: kDisclosureSteps, totalSteps: kDisclosureSteps);
 
   @override
   bool get showStopConfirmation => false;
@@ -387,8 +405,7 @@ class DisclosureStopped extends DisclosureState {
 
 class DisclosureLeftFeedback extends DisclosureState {
   @override
-  FlowProgress get stepperProgress =>
-      const FlowProgress(currentStep: kNormalDisclosureSteps, totalSteps: kNormalDisclosureSteps);
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: kDisclosureSteps, totalSteps: kDisclosureSteps);
 
   @override
   bool get showStopConfirmation => false;
