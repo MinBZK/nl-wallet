@@ -50,7 +50,7 @@ test-ios:
     - set -euo pipefail
     - MATCH_PASSWORD="$(kubectl get secret nl-wallet-fastlane-match -o jsonpath='{.data.password}' | base64 --decode)"
     - export MATCH_PASSWORD
-    - (git config --global url.https://repo-certificates-deploy-token:${REPO_CERTIFICATES_DEPLOY_TOKEN}@$CI_SERVER_HOST.insteadOf https://$CI_SERVER_HOST)
+    - git config --global url.https://repo-certificates-deploy-token:${REPO_CERTIFICATES_DEPLOY_TOKEN}@$CI_SERVER_HOST.insteadOf https://$CI_SERVER_HOST
     - bundle install
     - |
       bundle exec fastlane ios ci_build \
