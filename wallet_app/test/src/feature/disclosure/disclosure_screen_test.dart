@@ -63,7 +63,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
           MockDisclosureBloc(),
-          const DisclosureLoadInProgress(FlowProgress(currentStep: 0, totalSteps: kNormalDisclosureSteps)),
+          const DisclosureLoadInProgress(FlowProgress(currentStep: 0, totalSteps: kDisclosureSteps)),
         ),
       );
       await screenMatchesGolden('load_in_progress.light');
@@ -171,7 +171,7 @@ void main() {
           child: const DisclosureScreen()
               .withState<DisclosureBloc, DisclosureState>(
                 MockDisclosureBloc(),
-                DisclosureConfirmPin(relyingParty: WalletMockData.organization),
+                DisclosureConfirmPin(relyingParty: WalletMockData.organization, isCrossDevice: false),
               )
               .withState<PinBloc, PinState>(
                 MockPinBloc(),
@@ -189,7 +189,7 @@ void main() {
           child: const DisclosureScreen()
               .withState<DisclosureBloc, DisclosureState>(
                 MockDisclosureBloc(),
-                DisclosureConfirmPin(relyingParty: WalletMockData.organization),
+                DisclosureConfirmPin(relyingParty: WalletMockData.organization, isCrossDevice: false),
               )
               .withState<PinBloc, PinState>(
                 MockPinBloc(),
@@ -208,6 +208,7 @@ void main() {
           DisclosureMissingAttributes(
             relyingParty: WalletMockData.organization,
             missingAttributes: [MissingAttribute(label: 'missing'.untranslated)],
+            isCrossDevice: false,
           ),
         ),
       );
@@ -259,7 +260,11 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
           MockDisclosureBloc(),
-          DisclosureSuccess(relyingParty: WalletMockData.organization, event: WalletMockData.disclosureEvent),
+          DisclosureSuccess(
+            relyingParty: WalletMockData.organization,
+            event: WalletMockData.disclosureEvent,
+            isCrossDevice: false,
+          ),
         ),
       );
       await screenMatchesGolden('success.light');
@@ -273,6 +278,7 @@ void main() {
             relyingParty: WalletMockData.organization,
             event: WalletMockData.disclosureEvent,
             returnUrl: 'https://example.org',
+            isCrossDevice: false,
           ),
         ),
       );
@@ -395,7 +401,11 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
           MockDisclosureBloc(),
-          DisclosureSuccess(relyingParty: WalletMockData.organization, event: WalletMockData.disclosureEvent),
+          DisclosureSuccess(
+            relyingParty: WalletMockData.organization,
+            event: WalletMockData.disclosureEvent,
+            isCrossDevice: false,
+          ),
         ),
       );
       final l10n = await TestUtils.englishLocalizations;
@@ -549,7 +559,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
           MockDisclosureBloc(),
-          const DisclosureLoadInProgress(FlowProgress(currentStep: 0, totalSteps: kNormalDisclosureSteps)),
+          const DisclosureLoadInProgress(FlowProgress(currentStep: 0, totalSteps: kDisclosureSteps)),
         ),
       );
 
@@ -693,6 +703,7 @@ void main() {
                 MissingAttribute.untranslated(key: 'text_key', label: 'Label'),
                 MissingAttribute.untranslated(key: 'text_key', label: 'Label'),
               ],
+              isCrossDevice: false,
             ),
           ),
         );
@@ -740,7 +751,7 @@ void main() {
         await tester.pumpWidgetWithAppWrapper(
           const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
             MockDisclosureBloc(),
-            DisclosureConfirmPin(relyingParty: WalletMockData.organization),
+            DisclosureConfirmPin(relyingParty: WalletMockData.organization, isCrossDevice: false),
           ),
           providers: [
             RepositoryProvider<AcceptDisclosureUseCase>(create: (c) => MockAcceptDisclosureUseCase()),
@@ -773,7 +784,7 @@ void main() {
         await tester.pumpWidgetWithAppWrapper(
           const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
             mockDisclosureBloc,
-            const DisclosureLoadInProgress(FlowProgress(currentStep: 0, totalSteps: kNormalDisclosureSteps)),
+            const DisclosureLoadInProgress(FlowProgress(currentStep: 0, totalSteps: kDisclosureSteps)),
           ),
         );
 

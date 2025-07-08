@@ -24,14 +24,17 @@ class HorizontalListItem extends StatelessWidget {
           icon ?? const SizedBox.shrink(),
           SizedBox(width: icon == null ? 0 : 16),
           Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                DefaultTextStyle(style: context.textTheme.titleMedium!, child: label),
-                const SizedBox(height: 8),
-                DefaultTextStyle(style: context.textTheme.bodyLarge!, child: subtitle),
-              ],
+            child: Semantics(
+              explicitChildNodes: true,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  DefaultTextStyle(style: context.textTheme.titleMedium!, child: label),
+                  const SizedBox(height: 8),
+                  DefaultTextStyle(style: context.textTheme.bodyLarge!, child: subtitle),
+                ],
+              ),
             ),
           ),
         ],

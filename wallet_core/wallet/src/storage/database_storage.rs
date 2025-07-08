@@ -321,7 +321,7 @@ impl<K> DatabaseStorage<K> {
 
             let wallet_event = WalletEvent::Disclosure {
                 id: event.id,
-                attestations: attestations,
+                attestations,
                 timestamp: event.timestamp,
                 reader_certificate: Box::new(reader_certificate),
                 reader_registration: Box::new(reader_registration),

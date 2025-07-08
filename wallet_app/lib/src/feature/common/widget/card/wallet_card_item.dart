@@ -292,7 +292,7 @@ class _WalletCardItemState extends State<WalletCardItem> {
         alignment: Alignment.centerLeft,
         child: IntrinsicWidth(
           child: ShowDetailsCta(
-            text: Text(context.l10n.showDetailsCta),
+            text: Text.rich(context.l10n.showDetailsCta.toTextSpan(context)),
             textColor: widget.textColor,
             onPressed: widget.onPressed,
             statesController: _statesController,

@@ -107,7 +107,7 @@ class BiometricSettingScreen extends StatelessWidget {
             description: context.l10n.biometricSettingsScreenSuccessDescription(supportedBiometricsText),
             illustration: illustration,
             secondaryButton: TertiaryButton(
-              text: Text(context.l10n.biometricSettingsScreenSuccessToSettingsCta),
+              text: Text.rich(context.l10n.biometricSettingsScreenSuccessToSettingsCta.toTextSpan(context)),
               onPressed: () {
                 Navigator.popUntil(
                   context,
@@ -130,16 +130,17 @@ class BiometricSettingScreen extends StatelessWidget {
       builder: (BuildContext context) {
         return AlertDialog(
           scrollable: true,
-          semanticLabel: title,
-          title: Text(title),
-          content: Text(context.l10n.biometricSettingsScreenSetupDialogDescription(supportedBiometricsText)),
+          title: Text.rich(title.toTextSpan(context)),
+          content: Text.rich(
+            context.l10n.biometricSettingsScreenSetupDialogDescription(supportedBiometricsText).toTextSpan(context),
+          ),
           actions: <Widget>[
             TextButton(
-              child: Text(context.l10n.generalDialogCloseCta),
+              child: Text.rich(context.l10n.generalDialogCloseCta.toTextSpan(context)),
               onPressed: () => Navigator.of(context).pop(),
             ),
             TextButton(
-              child: Text(context.l10n.biometricSettingsScreenSetupDialogOpenSettingsCta),
+              child: Text.rich(context.l10n.biometricSettingsScreenSetupDialogOpenSettingsCta.toTextSpan(context)),
               onPressed: () {
                 // NOTE: Plugins to open biometric settings seem flaky (i.e. don't work on my Pixel 6 Pro),
                 // NOTE: we could likely roll our own but falling back to generic settings for now.
@@ -223,7 +224,7 @@ class BiometricSettingScreen extends StatelessWidget {
       title: context.l10n.errorScreenGenericHeadline,
       description: context.l10n.errorScreenGenericDescription,
       primaryButton: PrimaryButton(
-        text: Text(context.l10n.generalRetry),
+        text: Text.rich(context.l10n.generalRetry.toTextSpan(context)),
         onPressed: () => context.bloc.add(const BiometricLoadTriggered()),
       ),
     );
