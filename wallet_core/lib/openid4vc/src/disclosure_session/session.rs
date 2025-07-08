@@ -558,9 +558,9 @@ mod tests {
         let reader_registration = match certificate_kind {
             ReaderCertificateKind::NoReaderRegistration => None,
             ReaderCertificateKind::WithReaderRegistration => ReaderRegistration {
-                attributes: ReaderRegistration::create_attributes(
+                authorized_attributes: ReaderRegistration::create_attributes(
                     EXAMPLE_DOC_TYPE.to_string(),
-                    EXAMPLE_NAMESPACE.to_string(),
+                    EXAMPLE_NAMESPACE,
                     EXAMPLE_ATTRIBUTES.iter().copied(),
                 ),
                 ..ReaderRegistration::new_mock()
@@ -620,7 +620,7 @@ mod tests {
             .items_requests
             .as_ref()
             .iter()
-            .flat_map(|items_request| items_request.attribute_identifiers())
+            .flat_map(|items_request| items_request.mdoc_attribute_identifiers().unwrap())
             .collect::<IndexSet<_>>();
 
         // Make sure starting the session resulted in a proposal.
@@ -1335,9 +1335,9 @@ mod tests {
         let key_pair = generate_reader_mock(
             &ca,
             Some(ReaderRegistration {
-                attributes: ReaderRegistration::create_attributes(
+                authorized_attributes: ReaderRegistration::create_attributes(
                     EXAMPLE_DOC_TYPE.to_string(),
-                    EXAMPLE_NAMESPACE.to_string(),
+                    EXAMPLE_NAMESPACE,
                     EXAMPLE_ATTRIBUTES.iter().copied(),
                 ),
                 ..ReaderRegistration::new_mock()
