@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../domain/model/pin/pin_validation_error.dart';
 import '../../util/extension/build_context_extension.dart';
+import '../../util/extension/string_extension.dart';
 
 class PinValidationErrorDialog extends StatelessWidget {
   final PinValidationError reason;
@@ -29,7 +30,7 @@ class PinValidationErrorDialog extends StatelessWidget {
       content: Text(body),
       actions: <Widget>[
         TextButton(
-          child: Text(context.l10n.generalOkCta),
+          child: Text.rich(context.l10n.generalOkCta.toTextSpan(context)),
           onPressed: () => Navigator.pop(context),
         ),
       ],

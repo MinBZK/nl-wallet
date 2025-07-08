@@ -97,7 +97,7 @@ void main() {
         i++;
       }
 
-      final expected = const WalletInstructionResult.instructionError(
+      const expected = WalletInstructionResult.instructionError(
         error: WalletInstructionError.incorrectPin(
           attemptsLeftInRound: 1,
           isFinalRound: true,
@@ -114,7 +114,7 @@ void main() {
         pinManager.checkPin(kTestInvalidPin);
         i++;
       }
-      final expected = const WalletInstructionResult.instructionError(
+      const expected = WalletInstructionResult.instructionError(
         error: WalletInstructionError.blocked(),
       );
       expect(pinManager.checkPin(kTestValidPin), expected);

@@ -114,7 +114,7 @@ impl InstructionAndResult for ChangePinRollback {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GenerateKey {
-    pub identifiers: Vec<String>,
+    pub count: u64,
 }
 
 #[serde_as]
@@ -132,8 +132,10 @@ impl InstructionAndResult for GenerateKey {
 
 // Sign instruction.
 
+#[serde_as]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Sign {
+    #[serde_as(as = "Vec<(Base64, _)>")]
     pub messages_with_identifiers: Vec<(Vec<u8>, Vec<String>)>,
 }
 
@@ -153,12 +155,11 @@ impl InstructionAndResult for Sign {
 // IssueWte instruction.
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct IssueWte {
-    pub key_identifier: String,
-}
+pub struct IssueWte;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct IssueWteResult {
+    pub key_id: String,
     pub wte: Jwt<JwtCredentialClaims<WteClaims>>,
 }
 

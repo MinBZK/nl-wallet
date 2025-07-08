@@ -44,11 +44,9 @@
     "privacyPolicyUrl": "https://www.amsterdam.nl/privacy"
   },
   "requestOriginBaseUrl": "https://www.amsterdam.nl",
-  "attributes": {
-    "urn:eudi:pid:nl:1": {
-      "urn:eudi:pid:nl:1": {
-        "bsn": {}
-      }
-    }
+  "authorizedAttributes": {
+    "urn:eudi:pid:nl:1": [
+      ["urn:eudi:pid:nl:1", "bsn"]
+    ]
   }
 }

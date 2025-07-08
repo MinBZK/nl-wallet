@@ -117,22 +117,17 @@ class _$AttestationIdentity_FixedCopyWithImpl<$Res> implements $AttestationIdent
 
 /// @nodoc
 mixin _$AttributeValue {
-  Object get value;
-
   @override
   bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is AttributeValue &&
-            const DeepCollectionEquality().equals(other.value, value));
+    return identical(this, other) || (other.runtimeType == runtimeType && other is AttributeValue);
   }
 
   @override
-  int get hashCode => Object.hash(runtimeType, const DeepCollectionEquality().hash(value));
+  int get hashCode => runtimeType.hashCode;
 
   @override
   String toString() {
-    return 'AttributeValue(value: $value)';
+    return 'AttributeValue()';
   }
 }
 
@@ -146,7 +141,6 @@ class $AttributeValueCopyWith<$Res> {
 class AttributeValue_String extends AttributeValue {
   const AttributeValue_String({required this.value}) : super._();
 
-  @override
   final String value;
 
   /// Create a copy of AttributeValue
@@ -208,7 +202,6 @@ class _$AttributeValue_StringCopyWithImpl<$Res> implements $AttributeValue_Strin
 class AttributeValue_Boolean extends AttributeValue {
   const AttributeValue_Boolean({required this.value}) : super._();
 
-  @override
   final bool value;
 
   /// Create a copy of AttributeValue
@@ -270,7 +263,6 @@ class _$AttributeValue_BooleanCopyWithImpl<$Res> implements $AttributeValue_Bool
 class AttributeValue_Number extends AttributeValue {
   const AttributeValue_Number({required this.value}) : super._();
 
-  @override
   final int value;
 
   /// Create a copy of AttributeValue
@@ -332,7 +324,6 @@ class _$AttributeValue_NumberCopyWithImpl<$Res> implements $AttributeValue_Numbe
 class AttributeValue_Date extends AttributeValue {
   const AttributeValue_Date({required this.value}) : super._();
 
-  @override
   final String value;
 
   /// Create a copy of AttributeValue
@@ -386,6 +377,25 @@ class _$AttributeValue_DateCopyWithImpl<$Res> implements $AttributeValue_DateCop
           : value // ignore: cast_nullable_to_non_nullable
               as String,
     ));
+  }
+}
+
+/// @nodoc
+
+class AttributeValue_Null extends AttributeValue {
+  const AttributeValue_Null() : super._();
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) || (other.runtimeType == runtimeType && other is AttributeValue_Null);
+  }
+
+  @override
+  int get hashCode => runtimeType.hashCode;
+
+  @override
+  String toString() {
+    return 'AttributeValue.null_()';
   }
 }
 

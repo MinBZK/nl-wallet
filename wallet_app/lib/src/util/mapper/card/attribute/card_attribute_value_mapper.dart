@@ -13,6 +13,7 @@ class CardAttributeValueMapper extends Mapper<core.AttributeValue, AttributeValu
       core.AttributeValue_Boolean(:final value) => BooleanValue(value),
       core.AttributeValue_Number(:final value) => NumberValue(value),
       core.AttributeValue_Date(:final value) => DateValue(DateTime.parse(value)),
+      core.AttributeValue_Null() => NullValue(),
     };
   }
 }

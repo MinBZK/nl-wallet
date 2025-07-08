@@ -40,7 +40,6 @@ use jwt::error::JwtError;
 use jwt::jwk::jwk_to_p256;
 use jwt::pop::JwtPopClaims;
 use jwt::wte::WteClaims;
-use jwt::EcdsaDecodingKey;
 use jwt::Jwt;
 use mdoc::holder::Mdoc;
 use mdoc::utils::cose::CoseError;
@@ -51,7 +50,7 @@ use poa::factory::PoaFactory;
 use poa::Poa;
 use sd_jwt::hasher::Sha256Hasher;
 use sd_jwt::key_binding_jwt_claims::RequiredKeyBinding;
-use sd_jwt::sd_jwt::SdJwt;
+use sd_jwt::sd_jwt::VerifiedSdJwt;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::SortedTypeMetadataDocuments;
 use sd_jwt_vc_metadata::TypeMetadataChainError;
@@ -225,8 +224,8 @@ pub enum IssuanceSessionError {
 
 #[derive(Clone, Debug)]
 pub enum IssuedCredential {
-    MsoMdoc(Box<Mdoc>),
-    SdJwt(Box<SdJwt>),
+    MsoMdoc(Box<Mdoc>), // TODO: Wrap in similar VerifiedMdoc type (PVW-4132)
+    SdJwt(Box<VerifiedSdJwt>),
 }
 
 #[derive(Clone, Debug, Constructor)]
@@ -830,6 +829,8 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
                             mdoc.type_metadata_integrity().map_err(IssuanceSessionError::Metadata)
                         }
                         IssuedCredential::SdJwt(sd_jwt) => sd_jwt
+                            .as_ref()
+                            .as_ref()
                             .claims()
                             .vct_integrity
                             .as_ref()
@@ -993,18 +994,22 @@ impl CredentialResponse {
                 Ok(IssuedCredential::MsoMdoc(Box::new(mdoc)))
             }
             CredentialResponse::SdJwt { credential } => {
-                let issuer_pubkey = preview.content.issuer_certificate.public_key();
-
-                let sd_jwt =
-                    SdJwt::parse_and_verify(&credential, &EcdsaDecodingKey::from(issuer_pubkey), &Sha256Hasher)?;
-
-                // TODO: validate issuer certificate against trust anchors (PVW-4507)
+                let sd_jwt = VerifiedSdJwt::parse_and_verify_against_trust_anchors(
+                    &credential,
+                    &Sha256Hasher,
+                    &TimeGenerator,
+                    trust_anchors,
+                )?;
 
                 let credential_issuer_certificate = sd_jwt
+                    .as_ref()
                     .issuer_certificate()
                     .ok_or(IssuanceSessionError::MissingIssuerCertificate)?;
 
-                let issued_credential_payload = sd_jwt.clone().into_credential_payload(&preview.normalized_metadata)?;
+                let issued_credential_payload = sd_jwt
+                    .clone()
+                    .into_inner()
+                    .into_credential_payload(&preview.normalized_metadata)?;
 
                 Self::validate_credential(
                     preview,

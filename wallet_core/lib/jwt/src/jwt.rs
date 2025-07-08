@@ -82,6 +82,19 @@ where
         Ok(Self { header, payload, jwt })
     }
 
+    pub fn try_new_against_trust_anchors(
+        jwt: Jwt<T>,
+        validation_options: &Validation,
+        time: &impl Generator<DateTime<Utc>>,
+        certificate_usage: CertificateUsage,
+        trust_anchors: &[TrustAnchor],
+    ) -> Result<(Self, BorrowingCertificate), JwtX5cError> {
+        let (header, payload, certificate) =
+            jwt.parse_and_verify_against_trust_anchors(trust_anchors, time, certificate_usage, validation_options)?;
+
+        Ok((Self { header, payload, jwt }, certificate))
+    }
+
     pub fn new_dangerous(jwt: Jwt<T>) -> Result<Self> {
         let (header, payload) = jwt.dangerous_parse_unverified()?;
 
@@ -224,21 +237,23 @@ where
 
     /// Verify the JWS against the provided trust anchors, using the X.509 certificate(s) present in the `x5c` JWT
     /// header.
-    pub fn verify_against_trust_anchors<A: ToString>(
+    pub fn parse_and_verify_against_trust_anchors(
         &self,
-        audience: &[A],
         trust_anchors: &[TrustAnchor],
         time: &impl Generator<DateTime<Utc>>,
-    ) -> Result<(T, BorrowingCertificate), JwtX5cError> {
+        certificate_usage: CertificateUsage,
+        validation_options: &Validation,
+    ) -> Result<(Header, T, BorrowingCertificate), JwtX5cError> {
         let mut certs = self.extract_x5c_certificates()?;
 
         // Verify the certificate chain against the trust anchors.
         let leaf_cert = certs.pop_front().ok_or(JwtX5cError::MissingCertificates)?;
         // The `VecDeque` containing the certificates will be contiguous at this point, so the second value is empty.
         let (intermediates, _) = certs.as_slices();
+
         leaf_cert
             .verify(
-                CertificateUsage::ReaderAuth,
+                certificate_usage,
                 &intermediates
                     .iter()
                     .map(AsRef::as_ref)
@@ -252,6 +267,19 @@ where
         // The leaf certificate is trusted, we can now use its public key to verify the JWS.
         let pubkey = leaf_cert.public_key();
 
+        let (header, payload) = self.parse_and_verify_with_header(&pubkey.into(), validation_options)?;
+
+        Ok((header, payload, leaf_cert))
+    }
+
+    /// Verify the JWS against the provided trust anchors, using the X.509 certificate(s) present in the `x5c` JWT
+    /// header. The required audience claim is verified as well.
+    pub fn verify_against_trust_anchors_and_audience<A: ToString>(
+        &self,
+        audience: &[A],
+        trust_anchors: &[TrustAnchor],
+        time: &impl Generator<DateTime<Utc>>,
+    ) -> Result<(T, BorrowingCertificate), JwtX5cError> {
         let validation_options = {
             let mut validation = Validation::new(Algorithm::ES256);
 
@@ -261,9 +289,14 @@ where
             validation
         };
 
-        let payload = self.parse_and_verify(&pubkey.into(), &validation_options)?;
+        let (_, payload, certificate) = self.parse_and_verify_against_trust_anchors(
+            trust_anchors,
+            time,
+            CertificateUsage::ReaderAuth,
+            &validation_options,
+        )?;
 
-        Ok((payload, leaf_cert))
+        Ok((payload, certificate))
     }
 }
 
@@ -752,7 +785,7 @@ mod tests {
 
         let audience: &[String] = &[];
         let (deserialized, leaf_cert) = jwt
-            .verify_against_trust_anchors(audience, &[ca.to_trust_anchor()], &TimeGenerator)
+            .verify_against_trust_anchors_and_audience(audience, &[ca.to_trust_anchor()], &TimeGenerator)
             .unwrap();
 
         assert_eq!(deserialized, payload);
@@ -814,7 +847,7 @@ mod tests {
         // Verifying this JWT against the CA's trust anchor should succeed.
         let audience: &[String] = &[];
         let (deserialized, leaf_cert) = jwt
-            .verify_against_trust_anchors(audience, &[ca.to_trust_anchor()], &TimeGenerator)
+            .verify_against_trust_anchors_and_audience(audience, &[ca.to_trust_anchor()], &TimeGenerator)
             .unwrap();
 
         assert_eq!(deserialized, payload);
@@ -833,7 +866,7 @@ mod tests {
 
         let audience: &[String] = &[];
         let err = jwt
-            .verify_against_trust_anchors(audience, &[other_ca.to_trust_anchor()], &TimeGenerator)
+            .verify_against_trust_anchors_and_audience(audience, &[other_ca.to_trust_anchor()], &TimeGenerator)
             .unwrap_err();
         assert_matches!(
             err,

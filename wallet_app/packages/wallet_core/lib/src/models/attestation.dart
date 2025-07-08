@@ -95,6 +95,7 @@ sealed class AttributeValue with _$AttributeValue {
   const factory AttributeValue.date({
     required String value,
   }) = AttributeValue_Date;
+  const factory AttributeValue.null_() = AttributeValue_Null;
 }
 
 class ClaimDisplayMetadata {

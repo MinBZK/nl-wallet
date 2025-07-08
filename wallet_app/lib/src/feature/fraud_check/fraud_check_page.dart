@@ -45,7 +45,7 @@ class FraudCheckPage extends StatelessWidget {
             SliverToBoxAdapter(
               child: ListButton(
                 onPressed: () => PlaceholderScreen.showGeneric(context),
-                text: Text(context.l10n.fraudCheckPageAboutCta),
+                text: Text.rich(context.l10n.fraudCheckPageAboutCta.toTextSpan(context)),
                 icon: const Icon(Icons.help_outline_outlined),
               ),
             ),
