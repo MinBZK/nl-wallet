@@ -27,11 +27,15 @@ class IssuanceStopSheet extends StatelessWidget {
     return ConfirmActionSheet(
       title: context.l10n.issuanceStopSheetTitle,
       description: context.l10n.issuanceStopSheetDescription(organizationName ?? context.l10n.organizationFallbackName),
-      confirmButtonText: context.l10n.issuanceStopSheetPositiveCta,
-      confirmButtonColor: context.colorScheme.error,
-      confirmIcon: Icons.block_flipped,
-      cancelButtonText: context.l10n.issuanceStopSheetNegativeCta,
-      cancelIcon: Icons.arrow_back,
+      confirmButton: ConfirmSheetButtonStyle(
+        cta: context.l10n.issuanceStopSheetPositiveCta,
+        color: context.colorScheme.error,
+        icon: Icons.block_flipped,
+      ),
+      cancelButton: ConfirmSheetButtonStyle(
+        cta: context.l10n.issuanceStopSheetNegativeCta,
+        icon: Icons.arrow_back,
+      ),
       extraContent: ListButton(
         dividerSide: DividerSide.none,
         onPressed: onReportIssuePressed,

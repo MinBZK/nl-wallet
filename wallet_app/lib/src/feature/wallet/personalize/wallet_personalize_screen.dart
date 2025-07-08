@@ -354,9 +354,11 @@ class WalletPersonalizeScreen extends StatelessWidget {
       context,
       title: context.l10n.walletPersonalizeScreenExitSheetTitle,
       description: context.l10n.walletPersonalizeScreenExitSheetDescription,
-      cancelButtonText: context.l10n.walletPersonalizeScreenExitSheetCancelCta,
-      confirmButtonText: context.l10n.walletPersonalizeScreenExitSheetConfirmCta,
-      confirmButtonColor: context.colorScheme.error,
+      confirmButton: ConfirmSheetButtonStyle(
+        cta: context.l10n.walletPersonalizeScreenExitSheetConfirmCta,
+        color: context.colorScheme.error,
+      ),
+      cancelButton: ConfirmSheetButtonStyle(cta: context.l10n.walletPersonalizeScreenExitSheetCancelCta),
     );
     if (confirmed && context.mounted) {
       if (Platform.isAndroid) {

@@ -42,13 +42,17 @@ class DisclosureStopSheet extends StatelessWidget {
     return ConfirmActionSheet(
       title: context.l10n.disclosureStopSheetTitle,
       description: _resolveDescription(context),
-      cancelButtonText: context.l10n.disclosureStopSheetNegativeCta,
-      confirmButtonText: context.l10n.disclosureStopSheetPositiveCta,
-      confirmButtonColor: context.colorScheme.error,
+      confirmButton: ConfirmSheetButtonStyle(
+        cta: context.l10n.disclosureStopSheetPositiveCta,
+        color: context.colorScheme.error,
+        icon: Icons.not_interested,
+      ),
+      cancelButton: ConfirmSheetButtonStyle(
+        cta: context.l10n.disclosureStopSheetNegativeCta,
+        icon: Icons.arrow_back,
+      ),
       onCancelPressed: onCancelPressed,
       onConfirmPressed: onConfirmPressed,
-      confirmIcon: Icons.not_interested,
-      cancelIcon: Icons.arrow_back,
       extraContent: onReportIssuePressed == null
           ? null
           : ListButton(
