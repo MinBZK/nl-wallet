@@ -8,28 +8,46 @@ import '../widget/button/secondary_button.dart';
 import '../widget/text/body_text.dart';
 import '../widget/text/title_text.dart';
 
+/// A widget that displays a modal bottom sheet for confirming an action.
+///
+/// It typically includes a title, a descriptive message, and two buttons:
+/// one for confirming the action and one for canceling it.
+///
+/// This widget is usually displayed via the static [show] method, which
+/// handles the presentation of the modal bottom sheet.
 class ConfirmActionSheet extends StatelessWidget {
-  final VoidCallback? onCancelPressed;
-  final VoidCallback? onConfirmPressed;
+  /// The text displayed as the main heading of the action sheet.
   final String title;
+
+  /// The detailed message displayed below the title, explaining the action.
   final String description;
-  final String cancelButtonText;
-  final IconData? cancelIcon;
-  final String confirmButtonText;
-  final IconData? confirmIcon;
-  final Color? confirmButtonColor;
+
+  /// Configuration for the primary (confirm) button.
+  final ConfirmSheetButtonStyle confirmButton;
+
+  /// Callback executed when the confirm button is pressed.
+  ///
+  /// Typically, this will pop the navigator with a `true` value.
+  final VoidCallback? onConfirmPressed;
+
+  /// Configuration for the secondary (cancel) button.
+  final ConfirmSheetButtonStyle cancelButton;
+
+  /// Callback executed when the cancel button is pressed.
+  ///
+  /// Typically, this will pop the navigator with a `false` value.
+  final VoidCallback? onCancelPressed;
+
+  /// An optional widget to display between the description and the buttons.
   final Widget? extraContent;
 
   const ConfirmActionSheet({
-    this.onCancelPressed,
-    this.onConfirmPressed,
-    this.confirmButtonColor,
     required this.title,
     required this.description,
-    required this.cancelButtonText,
-    this.cancelIcon,
-    required this.confirmButtonText,
-    this.confirmIcon,
+    required this.confirmButton,
+    this.onConfirmPressed,
+    required this.cancelButton,
+    this.onCancelPressed,
     this.extraContent,
     super.key,
   });
@@ -37,7 +55,10 @@ class ConfirmActionSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Theme(
-      data: context.theme.copyWith(elevatedButtonTheme: buttonTheme(context)),
+      data: context.theme.copyWith(
+        elevatedButtonTheme: _generatePrimaryButtonTheme(context),
+        outlinedButtonTheme: _generateSecondaryButtonTheme(context),
+      ), // Custom theme override to provide (optional) background color
       child: SafeArea(
         minimum: const EdgeInsets.symmetric(vertical: 24),
         child: Column(
@@ -72,14 +93,14 @@ class ConfirmActionSheet extends StatelessWidget {
               primaryButton: PrimaryButton(
                 key: const Key('acceptButton'),
                 onPressed: onConfirmPressed,
-                text: Text.rich(confirmButtonText.toTextSpan(context)),
-                icon: confirmIcon == null ? null : Icon(confirmIcon),
+                text: Text.rich(confirmButton.cta.toTextSpan(context)),
+                icon: confirmButton.icon == null ? null : Icon(confirmButton.icon),
               ),
               secondaryButton: SecondaryButton(
                 key: const Key('rejectButton'),
                 onPressed: onCancelPressed,
-                text: Text.rich(cancelButtonText.toTextSpan(context)),
-                icon: cancelIcon == null ? null : Icon(cancelIcon),
+                text: Text.rich(cancelButton.cta.toTextSpan(context)),
+                icon: cancelButton.icon == null ? null : Icon(cancelButton.icon),
               ),
             ),
           ],
@@ -97,22 +118,16 @@ class ConfirmActionSheet extends StatelessWidget {
   /// The [context] is the `BuildContext` from which to show the sheet.
   /// The [title] is the text displayed at the top of the sheet.
   /// The [description] is the text displayed below the title.
-  /// The [confirmButtonText] is the text for the confirm button.
-  /// The [confirmButtonColor] (optional) is the background color for the confirm button.
-  /// The [confirmIcon] (optional) is an icon to display next to the confirm button text.
-  /// The [cancelButtonText] is the text for the cancel button.
-  /// The [cancelIcon] (optional) is an icon to display next to the cancel button text.
+  /// The [confirmButton] is a [ConfirmSheetButtonStyle] to configure the confirm button.
+  /// The [cancelButton] is a [ConfirmSheetButtonStyle] to configure the cancel button.
   /// The [extraContent] (optional) is a widget to display between the description and the buttons,
   /// typically used for additional options or information.
   static Future<bool> show(
     BuildContext context, {
     required String title,
     required String description,
-    required String confirmButtonText,
-    Color? confirmButtonColor,
-    IconData? confirmIcon,
-    required String cancelButtonText,
-    IconData? cancelIcon,
+    required ConfirmSheetButtonStyle confirmButton,
+    required ConfirmSheetButtonStyle cancelButton,
     Widget? extraContent,
   }) async {
     final confirmed = await showModalBottomSheet<bool>(
@@ -123,12 +138,9 @@ class ConfirmActionSheet extends StatelessWidget {
         return ConfirmActionSheet(
           title: title,
           description: description,
-          confirmButtonText: confirmButtonText,
-          confirmButtonColor: confirmButtonColor,
-          confirmIcon: confirmIcon,
+          confirmButton: confirmButton,
           onConfirmPressed: () => Navigator.pop(context, true),
-          cancelButtonText: cancelButtonText,
-          cancelIcon: cancelIcon,
+          cancelButton: cancelButton,
           onCancelPressed: () => Navigator.pop(context, false),
           extraContent: extraContent,
         );
@@ -137,12 +149,40 @@ class ConfirmActionSheet extends StatelessWidget {
     return confirmed ?? false;
   }
 
-  ElevatedButtonThemeData? buttonTheme(BuildContext context) {
-    if (confirmButtonColor == null) return null;
+  ElevatedButtonThemeData? _generatePrimaryButtonTheme(BuildContext context) {
+    if (confirmButton.color == null) return null;
     return ElevatedButtonThemeData(
       style: ElevatedButtonTheme.of(context).style?.copyWith(
-            backgroundColor: WidgetStatePropertyAll(confirmButtonColor!),
+            backgroundColor: WidgetStatePropertyAll(confirmButton.color!),
           ),
     );
   }
+
+  OutlinedButtonThemeData? _generateSecondaryButtonTheme(BuildContext context) {
+    if (cancelButton.color == null) return null;
+    return OutlinedButtonThemeData(
+      style: OutlinedButtonTheme.of(context).style?.copyWith(
+            backgroundColor: WidgetStatePropertyAll(cancelButton.color!),
+          ),
+    );
+  }
+}
+
+/// A configuration object for a button in a [ConfirmActionSheet].
+class ConfirmSheetButtonStyle {
+  /// The text displayed on the button.
+  final String cta;
+
+  /// The icon displayed next to the text on the button (optional).
+  final IconData? icon;
+
+  /// The background color of the button (optional).
+  /// If not provided, the default theme color will be used.
+  final Color? color;
+
+  const ConfirmSheetButtonStyle({
+    required this.cta,
+    this.icon,
+    this.color,
+  });
 }
