@@ -23,6 +23,7 @@ use utils::generator::mock::MockTimeGenerator;
 
 use crate::holder::Mdoc;
 use crate::identifiers::AttributeIdentifier;
+use crate::identifiers::AttributeIdentifierError;
 use crate::identifiers::AttributeIdentifierHolder;
 use crate::iso::device_retrieval::DeviceRequest;
 use crate::iso::device_retrieval::DocRequest;
@@ -389,8 +390,9 @@ impl From<TestDocuments> for DeviceRequest {
 }
 
 impl AttributeIdentifierHolder for TestDocuments {
-    fn mdoc_attribute_identifiers(&self) -> IndexSet<AttributeIdentifier> {
-        self.0
+    fn mdoc_attribute_identifiers(&self) -> Result<IndexSet<AttributeIdentifier>, AttributeIdentifierError> {
+        Ok(self
+            .0
             .iter()
             .flat_map(|document| {
                 document.namespaces.iter().flat_map(|(namespace, attributes)| {
@@ -401,7 +403,7 @@ impl AttributeIdentifierHolder for TestDocuments {
                     })
                 })
             })
-            .collect()
+            .collect())
     }
 }
 

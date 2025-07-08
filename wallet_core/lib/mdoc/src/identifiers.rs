@@ -1,8 +1,21 @@
 use derive_more::Display;
 use indexmap::IndexSet;
 
+use error_category::ErrorCategory;
+use sd_jwt_vc_metadata::ClaimPath;
+use utils::vec_at_least::VecNonEmpty;
+
 use crate::DataElementIdentifier;
 use crate::NameSpace;
+
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+pub enum AttributeIdentifierError {
+    #[error("unable to extract attribute identifiers from reader registration: {authorized_attributes:?}")]
+    #[category(critical)]
+    ExtractFromReaderRegistration {
+        authorized_attributes: VecNonEmpty<ClaimPath>,
+    },
+}
 
 #[derive(Debug, Display, PartialEq, Eq, Hash, Clone)]
 #[display("{credential_type}/{namespace}/{attribute}")]
@@ -13,14 +26,18 @@ pub struct AttributeIdentifier {
 }
 
 pub trait AttributeIdentifierHolder {
-    fn mdoc_attribute_identifiers(&self) -> IndexSet<AttributeIdentifier>;
+    fn mdoc_attribute_identifiers(&self) -> Result<IndexSet<AttributeIdentifier>, AttributeIdentifierError>;
 
-    fn difference(&self, other: &impl AttributeIdentifierHolder) -> IndexSet<AttributeIdentifier> {
-        let other_attributes = other.mdoc_attribute_identifiers();
-        self.mdoc_attribute_identifiers()
+    fn difference(
+        &self,
+        other: &impl AttributeIdentifierHolder,
+    ) -> Result<IndexSet<AttributeIdentifier>, AttributeIdentifierError> {
+        let other_attributes = other.mdoc_attribute_identifiers()?;
+        Ok(self
+            .mdoc_attribute_identifiers()?
             .into_iter()
             .filter(|attribute| !other_attributes.contains(attribute))
-            .collect()
+            .collect())
     }
 }
 
@@ -29,11 +46,12 @@ where
     I: IntoIterator<Item = &'a T> + Clone,
     T: AttributeIdentifierHolder + 'a,
 {
-    fn mdoc_attribute_identifiers(&self) -> IndexSet<AttributeIdentifier> {
-        self.clone()
-            .into_iter()
-            .flat_map(AttributeIdentifierHolder::mdoc_attribute_identifiers)
-            .collect()
+    fn mdoc_attribute_identifiers(&self) -> Result<IndexSet<AttributeIdentifier>, AttributeIdentifierError> {
+        self.clone().into_iter().try_fold(IndexSet::new(), |mut acc, holder| {
+            let mut identifiers = holder.mdoc_attribute_identifiers()?;
+            acc.append(&mut identifiers);
+            Ok(acc)
+        })
     }
 }
 
@@ -75,6 +93,7 @@ pub mod mock {
     use indexmap::IndexSet;
 
     use super::AttributeIdentifier;
+    use super::AttributeIdentifierError;
     use super::AttributeIdentifierHolder;
 
     #[derive(Debug, thiserror::Error, PartialEq, Eq)]
@@ -92,8 +111,8 @@ pub mod mock {
     }
 
     impl AttributeIdentifierHolder for MockAttributeIdentifierHolder {
-        fn mdoc_attribute_identifiers(&self) -> IndexSet<AttributeIdentifier> {
-            self.0.clone()
+        fn mdoc_attribute_identifiers(&self) -> Result<IndexSet<AttributeIdentifier>, AttributeIdentifierError> {
+            Ok(self.0.clone())
         }
     }
 

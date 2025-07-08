@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use indexmap::IndexMap;
 use indexmap::IndexSet;
+use itertools::Itertools;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
@@ -12,6 +13,7 @@ use x509_parser::der_parser::Oid;
 use crypto::x509::BorrowingCertificateExtension;
 use error_category::ErrorCategory;
 use mdoc::identifiers::AttributeIdentifier;
+use mdoc::identifiers::AttributeIdentifierError;
 use mdoc::identifiers::AttributeIdentifierHolder;
 use sd_jwt_vc_metadata::ClaimPath;
 use utils::vec_at_least::VecNonEmpty;
@@ -25,6 +27,10 @@ pub enum ValidationError {
     #[error("requested unregistered attributes: {0:?}")]
     #[category(critical)] // RP data, no user data
     UnregisteredAttributes(Vec<AttributeIdentifier>),
+
+    #[error("Unable to verify the requested attributes: {0}")]
+    #[category(critical)]
+    RequestedAttributeVerification(#[from] AttributeIdentifierError),
 }
 
 #[skip_serializing_none]
@@ -47,7 +53,7 @@ impl ReaderRegistration {
         &self,
         requested_attributes: &impl AttributeIdentifierHolder,
     ) -> Result<(), ValidationError> {
-        let difference: Vec<AttributeIdentifier> = requested_attributes.difference(self).into_iter().collect();
+        let difference: Vec<AttributeIdentifier> = requested_attributes.difference(self)?.into_iter().collect();
 
         if !difference.is_empty() {
             return Err(ValidationError::UnregisteredAttributes(difference));
@@ -69,25 +75,27 @@ impl TryFrom<ReaderRegistration> for Vec<rcgen::CustomExtension> {
 }
 
 impl AttributeIdentifierHolder for ReaderRegistration {
-    fn mdoc_attribute_identifiers(&self) -> IndexSet<AttributeIdentifier> {
+    fn mdoc_attribute_identifiers(&self) -> Result<IndexSet<AttributeIdentifier>, AttributeIdentifierError> {
         self.authorized_attributes
             .iter()
             .flat_map(|(doc_type, paths)| {
-                paths.iter().filter_map(|paths| {
+                paths.iter().map(|paths| {
                     if paths.len().get() != 2 {
-                        return None;
+                        return Err(AttributeIdentifierError::ExtractFromReaderRegistration {
+                            authorized_attributes: paths.clone(),
+                        });
                     }
 
                     let namespace = paths.first().to_string();
                     let attribute = paths.last().to_string();
-                    Some(AttributeIdentifier {
+                    Ok(AttributeIdentifier {
                         credential_type: doc_type.to_owned(),
                         namespace,
                         attribute,
                     })
                 })
             })
-            .collect()
+            .try_collect()
     }
 }
 
@@ -315,9 +323,9 @@ mod test {
     }
 
     #[test]
-    fn attribute_identifiers_for_single_claimpath() {
+    fn attribute_identifiers_for_single_claimpath_should_err_for_mdoc() {
         let registration = create_registration(vec![("some_doctype", vec![vec!["some_attribute"]])]);
-        assert!(registration.mdoc_attribute_identifiers().is_empty());
+        assert!(registration.mdoc_attribute_identifiers().is_err());
     }
 
     #[test]
@@ -361,7 +369,10 @@ mod test {
         .into();
         let registration = create_registration(vec![(
             "some_doctype",
-            vec![vec!["some_namespace", "some_attribute", "another_attribute"]],
+            vec![
+                vec!["some_namespace", "some_attribute"],
+                vec!["some_namespace", "another_attribute"],
+            ],
         )]);
 
         let result = registration.verify_requested_attributes(&request);
@@ -380,7 +391,10 @@ mod test {
         .into();
         let registration = create_registration(vec![(
             "some_doctype",
-            vec![vec!["some_namespace", "some_attribute", "another_attribute"]],
+            vec![
+                vec!["some_namespace", "some_attribute"],
+                vec!["some_namespace", "another_attribute"],
+            ],
         )]);
 
         let result = registration.verify_requested_attributes(&request);
