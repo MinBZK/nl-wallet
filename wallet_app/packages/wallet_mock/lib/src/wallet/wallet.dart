@@ -61,7 +61,7 @@ class Wallet {
 
   unlock() => _isLockedSubject.add(false);
 
-  /// Adds the cards to the wallet, if a card with the same docType already exists, it is replaced with the new card.
+  /// Adds the cards to the wallet, if a card with the same attestationType already exists, it is replaced with the new card.
   void add(List<AttestationPresentation> attestations) {
     final currentCards = List.of(_attestations);
     final newAttestationTypes = attestations.map((e) => e.attestationType);
@@ -69,5 +69,10 @@ class Wallet {
         currentCards.whereNot((attestation) => newAttestationTypes.contains(attestation.attestationType));
     final newCardList = List.of(cardsToKeep)..addAll(attestations);
     _attestationsSubject.add(newCardList);
+  }
+
+  /// Checks whether the attestion already exists in the user's wallet. Currently solely based on the (legacy / mock) attestationType attribute.
+  bool containsAttestation(AttestationPresentation attestation) {
+    return _attestations.any((it) => it.attestationType == attestation.attestationType);
   }
 }

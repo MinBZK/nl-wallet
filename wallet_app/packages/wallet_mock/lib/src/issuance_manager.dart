@@ -91,10 +91,23 @@ class IssuanceManager {
             const LocalizedString(language: 'en', value: 'Uitgave'),
           ],
         );
-        return _activeIssuanceResponse!.attestations;
+        return _activeIssuanceResponse!.attestations.map(_assignIdIfAlreadyInWallet).toList();
       case WalletInstructionResult_InstructionError():
         throw result.error;
     }
+  }
+
+  /// Assign an id to the [AttestationPresentation]. This makes it so that the UI will
+  /// register this card as 'already in wallet' and thus display it as a renewal.
+  AttestationPresentation _assignIdIfAlreadyInWallet(AttestationPresentation attestation) {
+    if (!_wallet.containsAttestation(attestation)) return attestation;
+    return AttestationPresentation(
+      identity: AttestationIdentity.fixed(id: attestation.attestationType),
+      attestationType: attestation.attestationType,
+      displayMetadata: attestation.displayMetadata,
+      issuer: attestation.issuer,
+      attributes: attestation.attributes,
+    );
   }
 
   Future<WalletInstructionResult> acceptIssuance(String pin, Iterable<String> cardDocTypes /* empty = all */) async {
