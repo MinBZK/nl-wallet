@@ -5,6 +5,7 @@ import 'package:store_redirect/store_redirect.dart';
 
 import '../../../navigation/wallet_routes.dart';
 import '../../../util/extension/build_context_extension.dart';
+import '../../../util/extension/string_extension.dart';
 import '../widget/text/body_text.dart';
 import '../widget/text/title_text.dart';
 
@@ -20,19 +21,21 @@ class UpdateNotificationDialog extends StatelessWidget {
       content: BodyText(_resolveDescription(context)),
       actions: <Widget>[
         TextButton(
-          child: Text(context.l10n.generalClose.toUpperCase()),
+          child: Text.rich(context.l10n.generalClose.toUpperCase().toTextSpan(context)),
           onPressed: () => Navigator.pop(context),
         ),
         TextButton(
-          child: Text(context.l10n.generalNeedHelpCta.toUpperCase()),
+          child: Text.rich(context.l10n.generalNeedHelpCta.toUpperCase().toTextSpan(context)),
           onPressed: () async {
             final navigator = Navigator.of(context);
             await navigator.pushNamed(WalletRoutes.updateInfoRoute);
           },
         ),
         TextButton(
-          child: Text(
-            (Platform.isIOS ? context.l10n.generalToAppStoreCta : context.l10n.generalToPlayStoreCta).toUpperCase(),
+          child: Text.rich(
+            (Platform.isIOS ? context.l10n.generalToAppStoreCta : context.l10n.generalToPlayStoreCta)
+                .toUpperCase()
+                .toTextSpan(context),
           ),
           onPressed: () => StoreRedirect.redirect,
         ),

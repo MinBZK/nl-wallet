@@ -228,22 +228,27 @@ class PinPage extends StatelessWidget {
   }
 
   Widget _buildHeader(PinHeaderBuilder builder) {
-    return WalletScrollbar(
-      child: CustomScrollView(
-        slivers: [
-          SliverFillRemaining(
-            hasScrollBody: false,
-            child: BlocBuilder<PinBloc, PinState>(
-              builder: (context, state) {
-                if (state is PinValidateFailure) {
-                  return builder(context, state.attemptsLeftInRound, state.isFinalRound);
-                } else {
-                  return builder(context, null, false);
-                }
-              },
+    // FIXME: Remove [MergeSemantics] once flutter issue is fixed.
+    // Merging semantics fixes the (iOS) issue where only the scrollview can gain focus (without any announcement)
+    // Can be removed if the related framework bug is fixed. https://github.com/flutter/flutter/issues/164483
+    return MergeSemantics(
+      child: WalletScrollbar(
+        child: CustomScrollView(
+          slivers: [
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: BlocBuilder<PinBloc, PinState>(
+                builder: (context, state) {
+                  if (state is PinValidateFailure) {
+                    return builder(context, state.attemptsLeftInRound, state.isFinalRound);
+                  } else {
+                    return builder(context, null, false);
+                  }
+                },
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -357,19 +362,18 @@ class PinPage extends StatelessWidget {
       builder: (BuildContext context) {
         return AlertDialog(
           scrollable: true,
-          semanticLabel: title,
-          title: Text(title),
-          content: Text(description),
+          title: Text.rich(title.toTextSpan(context)),
+          content: Text.rich(description.toTextSpan(context)),
           actions: <Widget>[
             TextButton(
-              child: Text(context.l10n.pinErrorDialogForgotCodeCta.toUpperCase()),
+              child: Text.rich(context.l10n.pinErrorDialogForgotCodeCta.toUpperCase().toTextSpan(context)),
               onPressed: () {
                 Navigator.of(context).pop();
                 ForgotPinScreen.show(context);
               },
             ),
             TextButton(
-              child: Text(context.l10n.pinErrorDialogCloseCta.toUpperCase()),
+              child: Text.rich(context.l10n.pinErrorDialogCloseCta.toUpperCase().toTextSpan(context)),
               onPressed: () => Navigator.of(context).pop(),
             ),
           ],

@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2025-07-03T15:54:37+02:00",
+    "@@last_modified": "2025-07-04T16:45:17+02:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -106,7 +106,6 @@
     "cardDetailScreenCardDataCta": "Details in this card",
     "cardDetailScreenCardDeleteCta": "Delete card",
     "cardDetailScreenCardHistoryCta": "Card activities",
-    "cardDetailScreenCardImageWCAGLabel": "{name} card",
     "cardDetailScreenCardUpdateCta": "Renew data",
     "cardDetailScreenCardValidUntil": "Valid until {dateTime}",
     "@cardDetailScreenCardValidUntil": {
@@ -322,18 +321,6 @@
     "disclosureGenericErrorPageTitle": "Something went wrong",
     "disclosureLoadingSubtitle": "Your request is being retrieved",
     "disclosureLoadingTitle": "Please wait",
-    "disclosureMissingAttributesPageCloseCta": "Stop request",
-    "disclosureMissingAttributesPageDescription": "{organization} is requesting data which is not yet in your Wallet.",
-    "@disclosureMissingAttributesPageDescription": {
-        "placeholders": {
-            "organization": {
-                "example": "DUO",
-                "type": "String"
-            }
-        }
-    },
-    "disclosureMissingAttributesPageReportIssueCta": "Report an issue?",
-    "disclosureMissingAttributesPageTitle": "You're missing data",
     "disclosureRelyingPartyErrorCloseCta": "Close",
     "disclosureRelyingPartyErrorDescription": "This action was unsuccessful. This may have several reasons.\n\nGo back to the organization's website where you started and try again. If it still doesn’t work, contact the organization.",
     "disclosureRelyingPartyErrorDescriptionWithOrganizationName": "This action was unsuccessful. This may have several reasons.\n\nGo back to the {organization} website where you started and try again. If it still doesn’t work, contact {organization}.",
@@ -421,7 +408,6 @@
     "errorScreenSessionExpiredDescriptionCloseVariant": "This action has stopped because too much time has passed. This is intended to keep your data secure. Close the app and try again later.",
     "errorScreenSessionExpiredHeadline": "Sorry, you're out of time",
     "errorScreenSessionExpiredReturnUrlCta": "Go to website",
-    "flashlightButtonTapHint": "toggle flashlight",
     "flashlightDisabledWCAGAnnouncement": "Flashlight turned off",
     "flashlightEnabledWCAGAnnouncement": "Flashlight turned on",
     "forgotPinScreenCta": "Delete Wallet",
@@ -435,7 +421,7 @@
     "@fraudCheckPageTitle": {
         "placeholders": {
             "url": {
-                "example": "https://example.org",
+                "example": "https:\/\/example.org",
                 "type": "String"
             }
         }
@@ -694,25 +680,10 @@
     "issuanceCheckDataOfferingPagePositiveCta": "Yes, add",
     "issuanceCheckDataOfferingPageSubtitle": "If the data is correct you can add it.",
     "issuanceCheckDataOfferingPageTitle": "Is the retrieved data correct?",
-    "issuanceConfirmPinPageDescription": "By entering your PIN you agree to exchange your data.",
-    "issuanceConfirmPinPageErrorDescription": "{count, plural, one {You can try {count} more time} other {You can try {count} more times}}",
-    "@issuanceConfirmPinPageErrorDescription": {
-        "placeholders": {
-            "count": {
-                "example": "3",
-                "type": "int"
-            }
-        }
-    },
-    "issuanceConfirmPinPageErrorTitle": "Invalid PIN",
     "issuanceConfirmPinPageTitle": "Agree with your PIN",
     "issuanceGenericErrorPageCloseCta": "Close",
     "issuanceGenericErrorPageDescription": "Something went wrong. Try again later.",
     "issuanceGenericErrorPageTitle": "Something went wrong",
-    "issuanceIdentityValidationFailedPageCloseCta": "Close",
-    "issuanceIdentityValidationFailedPageDescription": "It seems like the data you're trying to retrieve belongs to someone else.",
-    "issuanceIdentityValidationFailedPageSomethingNotRightCta": "Is something not right?",
-    "issuanceIdentityValidationFailedPageTitle": "Your identity check did not match.",
     "issuanceLoadingCardsDescription": "Cards are being retrieved",
     "issuanceLoadingCardsTitle": "Please wait",
     "issuanceLoadingRequestDescription": "Your request is being retrieved",
@@ -727,28 +698,6 @@
         }
     },
     "issuanceNoCardsPageTitle": "No cards found",
-    "issuanceProofIdentityPageIncorrectCta": "Is something not right?",
-    "issuanceProofIdentityPageNegativeCta": "No",
-    "issuanceProofIdentityPagePositiveCta": "Share",
-    "issuanceProofIdentityPageRefreshDataSubtitle": "Share your identity with {organization} to refresh your data.",
-    "@issuanceProofIdentityPageRefreshDataSubtitle": {
-        "placeholders": {
-            "organization": {
-                "example": "RvIG",
-                "type": "String"
-            }
-        }
-    },
-    "issuanceProofIdentityPageSubtitle": "Share your identity with {organization} to retrieve your data.",
-    "@issuanceProofIdentityPageSubtitle": {
-        "placeholders": {
-            "organization": {
-                "example": "RvIG",
-                "type": "String"
-            }
-        }
-    },
-    "issuanceProofIdentityPageTitle": "Proof who you are",
     "issuanceRelyingPartyErrorCloseCta": "Close",
     "issuanceRelyingPartyErrorDescription": "The card(s) couldn’t be added. This may have several reasons.\n\nGo back to the organization's website where you started and try again. If it still doesn’t work, contact the organization.",
     "issuanceRelyingPartyErrorDescriptionWithOrganizationName": "The cards couldn’t be added. This may have several reasons.\n\nGo back to the {organization} website where you started and try again. If it still doesn’t work, contact {organization}.",
@@ -849,8 +798,6 @@
         }
     },
     "issuanceReviewCardsPageToggleAddCta": "Check details",
-    "issuanceScreenRefreshTitle": "Refresh data",
-    "issuanceScreenTitle": "Retrieve data",
     "issuanceSelectCardsPageAddCta": "Add",
     "issuanceSelectCardsPageDataIncorrectCta": "Is something not right?",
     "issuanceSelectCardsPageDescription": "Select the ones you would like to add",
@@ -884,17 +831,7 @@
             }
         }
     },
-    "issuanceSuccessPageCardsUpdatedSubtitle": "{cards, plural, one {Card updated} other {Cards updated}}",
-    "@issuanceSuccessPageCardsUpdatedSubtitle": {
-        "placeholders": {
-            "cards": {
-                "example": "2",
-                "type": "int"
-            }
-        }
-    },
     "issuanceSuccessPageCloseCta": "To my overview",
-    "issuanceSuccessPageOpenWebCta": "Back to website",
     "issuanceSuccessPageTitle": "{cards, plural, one {Card added} other {Cards added}}",
     "@issuanceSuccessPageTitle": {
         "placeholders": {
@@ -953,7 +890,6 @@
             }
         }
     },
-    "missingAttributesPageReportIssueCta": "Report an issue?",
     "missingAttributesPageShowDetailsCta": "See details",
     "missingAttributesPageTitle": "Missing data",
     "missingAttributesSheetAttributesTitle": "Requested attributes",
@@ -1058,7 +994,6 @@
     "pinFieldAnnouncementLabel": "{count, plural, one {Access PIN, {count} digit left} other {Access PIN, {count} digits left}}",
     "pinKeyboardWCAGBackspaceLabel": "Delete",
     "pinKeyboardWCAGBackspaceLongPressHint": "Delete all",
-    "pinKeyboardWCAGDigitKeyTapHint": "select",
     "pinScreenForgotPinCta": "Forgot PIN?",
     "pinScreenHeader": "Open with your PIN",
     "pinTimeoutScreenClearWalletCta": "Delete wallet",
@@ -1287,6 +1222,7 @@
     "signSuccessPageHistoryCta": "Activities",
     "signSuccessPageTitle": "Success!",
     "tourBannerTitle": "Discover everything in short videos",
+    "tourOverviewScreenItemWCAGLabel": "Play video \"{name}\"",
     "tourOverviewScreenSubtitle": "Discover how the app works in short videos.",
     "tourOverviewScreenTitle": "App tour videos",
     "tourOverviewVideo1BulletPoints": "Log in on a website.\nShare data online.\nSign electronic documents.",
@@ -1344,10 +1280,19 @@
         }
     },
     "updateNotificationDialogTitle": "Update urgently needed",
+    "videoPlayerCloseTooltip": "Close",
     "videoPlayerControlAudioOffToggleButton": "Turn off audio",
     "videoPlayerControlAudioOnToggleButton": "Turn on audio",
     "videoPlayerControlCaptionOffToggleButton": "Turn off subtitles",
     "videoPlayerControlCaptionOnToggleButton": "Turn on subtitles",
+    "videoPlayerControlsTooltip": "Video controls",
+    "videoPlayerPauseTooltip": "Pause",
+    "videoPlayerPercentageIndicatorWCAGLabel": "Video at {percentage}%",
+    "videoPlayerPlayTooltip": "Video {title} is paused. Play",
+    "videoPlayerReplayTooltip": "Replay video",
+    "videoPlayerSeekBackwardTooltip": "Seek backward by 10 seconds",
+    "videoPlayerSeekForwardTooltip": "Seek forward by 10 seconds",
+    "videoPlayerTimeIndicatorWCAGLabel": "{currentSeconds} out of {totalSeconds} seconds. Hide video controls",
     "walletPersonalizeCheckDataOfferingPageAcceptCta": "Add",
     "walletPersonalizeCheckDataOfferingPageDeclineCta": "No",
     "walletPersonalizeCheckDataOfferingPageDeclineCtaSemanticsLabel": "No, something is not right",

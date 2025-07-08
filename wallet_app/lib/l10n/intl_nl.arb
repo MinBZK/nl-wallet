@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2025-07-03T15:54:37+02:00",
+    "@@last_modified": "2025-07-04T16:45:17+02:00",
     "aboutScreenDescription": "De NL Wallet wordt gemaakt door de Nederlandse overheid, zodat iedereen digitale diensten veilig en gemakkelijk kan gebruiken.\n\nJe kunt de ontwikkelingen volgen op {url}.",
     "aboutScreenPrivacyCta": "Privacyverklaring",
     "aboutScreenTitle": "Over de NL Wallet",
@@ -102,7 +102,6 @@
     "cardDetailScreenCardDataCta": "Gegevens in deze kaart",
     "cardDetailScreenCardDeleteCta": "Kaart verwijderen",
     "cardDetailScreenCardHistoryCta": "Kaartactiviteiten",
-    "cardDetailScreenCardImageWCAGLabel": "{name} kaart",
     "cardDetailScreenCardUpdateCta": "Opnieuw ophalen",
     "cardDetailScreenCardValidUntil": "Geldig tot en met {dateTime}",
     "@cardDetailScreenCardValidUntil": {
@@ -318,18 +317,6 @@
     "disclosureGenericErrorPageTitle": "Er ging iets mis",
     "disclosureLoadingSubtitle": "De aanvraag wordt opgehaald",
     "disclosureLoadingTitle": "Even geduld",
-    "disclosureMissingAttributesPageCloseCta": "Aanvraag stoppen",
-    "disclosureMissingAttributesPageDescription": "{organization} vraagt om gegevens die nog niet in je Wallet staan.",
-    "@disclosureMissingAttributesPageDescription": {
-        "placeholders": {
-            "organization": {
-                "example": "DUO",
-                "type": "String"
-            }
-        }
-    },
-    "disclosureMissingAttributesPageReportIssueCta": "Wil je een probleem melden?",
-    "disclosureMissingAttributesPageTitle": "Je mist gegevens",
     "disclosureRelyingPartyErrorCloseCta": "Sluiten",
     "disclosureRelyingPartyErrorDescription": "Deze actie is niet gelukt. Dit kan verschillende redenen hebben.\n\nGa terug naar de website van de organisatie waar je begon en probeer het opnieuw. Lukt het nog steeds niet? Neem contact op met de organisatie.",
     "disclosureRelyingPartyErrorDescriptionWithOrganizationName": "Deze actie is niet gelukt. Dit kan verschillende redenen hebben.\n\nGa terug naar de website van {organization} waar je begon en probeer het opnieuw. Lukt het nog steeds niet? Neem contact op met {organization}.",
@@ -417,7 +404,6 @@
     "errorScreenSessionExpiredDescriptionCloseVariant": "Deze actie is gestopt omdat er te veel tijd voorbij is gegaan. Dit is bedoeld om je gegevens veilig te houden. Sluit de app en probeer het later opnieuw.",
     "errorScreenSessionExpiredHeadline": "Sorry, de tijd is voorbij",
     "errorScreenSessionExpiredReturnUrlCta": "Ga naar website",
-    "flashlightButtonTapHint": "zaklamp te schakelen",
     "flashlightDisabledWCAGAnnouncement": "Zaklamp is uitgezet",
     "flashlightEnabledWCAGAnnouncement": "Zaklamp is aangezet",
     "forgotPinScreenCta": "Verwijder Wallet",
@@ -431,7 +417,7 @@
     "@fraudCheckPageTitle": {
         "placeholders": {
             "url": {
-                "example": "https://example.org",
+                "example": "https:\/\/example.org",
                 "type": "String"
             }
         }
@@ -690,25 +676,10 @@
     "issuanceCheckDataOfferingPagePositiveCta": "Ja, toevoegen",
     "issuanceCheckDataOfferingPageSubtitle": "Als de gegevens kloppen kun je ze toevoegen.",
     "issuanceCheckDataOfferingPageTitle": "Kloppen de opgehaalde gegevens?",
-    "issuanceConfirmPinPageDescription": "Hiermee geef je toestemming om gegevens uit te wisselen.",
-    "issuanceConfirmPinPageErrorDescription": "{count, plural, one {Je kunt het nog {count} keer proberen} other {Je kunt het nog {count} keer proberen}}",
-    "@issuanceConfirmPinPageErrorDescription": {
-        "placeholders": {
-            "count": {
-                "example": "3",
-                "type": "int"
-            }
-        }
-    },
-    "issuanceConfirmPinPageErrorTitle": "Ongeldige pincode",
     "issuanceConfirmPinPageTitle": "Geef akkoord met je pincode",
     "issuanceGenericErrorPageCloseCta": "Sluiten",
     "issuanceGenericErrorPageDescription": "Er ging iets mis. Probeer het later nog eens",
     "issuanceGenericErrorPageTitle": "Er ging iets mis",
-    "issuanceIdentityValidationFailedPageCloseCta": "Sluiten",
-    "issuanceIdentityValidationFailedPageDescription": "Het lijkt er op dat de gegevens die je probeert op te halen van iemand anders zijn.",
-    "issuanceIdentityValidationFailedPageSomethingNotRightCta": "Klopt er iets niet?",
-    "issuanceIdentityValidationFailedPageTitle": "Je identiteitscontrole kwam niet overeen",
     "issuanceLoadingCardsDescription": "Kaarten worden opgehaald",
     "issuanceLoadingCardsTitle": "Even geduld",
     "issuanceLoadingRequestDescription": "De aanvraag wordt opgehaald",
@@ -723,28 +694,6 @@
         }
     },
     "issuanceNoCardsPageTitle": "Geen kaarten gevonden",
-    "issuanceProofIdentityPageIncorrectCta": "Klopt er iets niet?",
-    "issuanceProofIdentityPageNegativeCta": "Nee",
-    "issuanceProofIdentityPagePositiveCta": "Delen",
-    "issuanceProofIdentityPageRefreshDataSubtitle": "Deel je identiteit met {organization} om opnieuw je gegevens op te halen.",
-    "@issuanceProofIdentityPageRefreshDataSubtitle": {
-        "placeholders": {
-            "organization": {
-                "example": "RvIG",
-                "type": "String"
-            }
-        }
-    },
-    "issuanceProofIdentityPageSubtitle": "Deel je identiteit met {organization} om gegevens op te halen.",
-    "@issuanceProofIdentityPageSubtitle": {
-        "placeholders": {
-            "organization": {
-                "example": "RvIG",
-                "type": "String"
-            }
-        }
-    },
-    "issuanceProofIdentityPageTitle": "Bewijs wie je bent",
     "issuanceRelyingPartyErrorCloseCta": "Sluiten",
     "issuanceRelyingPartyErrorDescription": "De kaart(en) kunnen niet worden toegevoegd. Dit kan meerdere redenen hebben.\n\nGa terug naar de website van de organisatie waar je begon en probeer het opnieuw. Lukt het nog steeds niet? Neem contact op met de organisatie.",
     "issuanceRelyingPartyErrorDescriptionWithOrganizationName": "De kaarten kunnen niet worden toegevoegd. Dit kan meerdere redenen hebben.\n\nGa terug naar de website van {organization} waar je begon en probeer het opnieuw. Lukt het nog steeds niet? Neem contact op met {organization}.",
@@ -845,8 +794,6 @@
         }
     },
     "issuanceReviewCardsPageToggleAddCta": "Bekijk details",
-    "issuanceScreenRefreshTitle": "Opnieuw ophalen",
-    "issuanceScreenTitle": "Gegevens ophalen",
     "issuanceSelectCardsPageAddCta": "Toevoegen",
     "issuanceSelectCardsPageDataIncorrectCta": "Klopt er iets niet?",
     "issuanceSelectCardsPageDescription": "Kies welke je wilt toevoegen.",
@@ -880,17 +827,7 @@
             }
         }
     },
-    "issuanceSuccessPageCardsUpdatedSubtitle": "{cards, plural, one {Kaart vernieuwd} other {Kaarten vernieuwd}}",
-    "@issuanceSuccessPageCardsUpdatedSubtitle": {
-        "placeholders": {
-            "cards": {
-                "example": "2",
-                "type": "int"
-            }
-        }
-    },
     "issuanceSuccessPageCloseCta": "Naar mijn overzicht",
-    "issuanceSuccessPageOpenWebCta": "Terug naar website",
     "issuanceSuccessPageTitle": "{cards, plural, one {Kaart toegevoegd} other {Kaarten toegevoegd}}",
     "@issuanceSuccessPageTitle": {
         "placeholders": {
@@ -949,7 +886,6 @@
             }
         }
     },
-    "missingAttributesPageReportIssueCta": "Wil je een probleem melden?",
     "missingAttributesPageShowDetailsCta": "Bekijk details",
     "missingAttributesPageTitle": "Je mist gegevens",
     "missingAttributesSheetAttributesTitle": "Gevraagde attributen",
@@ -1054,7 +990,6 @@
     "pinFieldAnnouncementLabel": "{count, plural, one {Toegangscode, {count} cijfer over} other {Toeganscode, {count} cijfers over}}",
     "pinKeyboardWCAGBackspaceLabel": "Verwijder",
     "pinKeyboardWCAGBackspaceLongPressHint": "Alles te verwijderen",
-    "pinKeyboardWCAGDigitKeyTapHint": "kiezen",
     "pinScreenForgotPinCta": "Pincode vergeten?",
     "pinScreenHeader": "Open met je pincode",
     "pinTimeoutScreenClearWalletCta": "Wallet wissen",
@@ -1283,6 +1218,7 @@
     "signSuccessPageHistoryCta": "Activiteiten",
     "signSuccessPageTitle": "Gelukt!",
     "tourBannerTitle": "Ontdek alles in korte video's",
+    "tourOverviewScreenItemWCAGLabel": "Speel \"{name}\" video af",
     "tourOverviewScreenSubtitle": "Ontdek in korte video's hoe de app werkt.",
     "tourOverviewScreenTitle": "Uitleg-video’s",
     "tourOverviewVideo1BulletPoints": "Inloggen op een website.\nOnline gegevens delen.\nElektronische documenten ondertekenen.",
@@ -1340,10 +1276,19 @@
         }
     },
     "updateNotificationDialogTitle": "Update nodig",
+    "videoPlayerCloseTooltip": "Sluiten",
     "videoPlayerControlAudioOffToggleButton": "Zet geluid uit",
     "videoPlayerControlAudioOnToggleButton": "Zet geluid aan",
     "videoPlayerControlCaptionOffToggleButton": "Zet ondertitels uit",
     "videoPlayerControlCaptionOnToggleButton": "Zet ondertitels aan",
+    "videoPlayerControlsTooltip": "Video bediening",
+    "videoPlayerPauseTooltip": "Pauze",
+    "videoPlayerPercentageIndicatorWCAGLabel": "Video op {percentage}%",
+    "videoPlayerPlayTooltip": "Video {title} staat op pauze. Speel af",
+    "videoPlayerReplayTooltip": "Video opnieuw afspelen",
+    "videoPlayerSeekBackwardTooltip": "Spoel 10 seconden terug",
+    "videoPlayerSeekForwardTooltip": "Spoel 10 seconden vooruit",
+    "videoPlayerTimeIndicatorWCAGLabel": "{currentSeconds} van {totalSeconds} seconden. Verberg video bediening",
     "walletPersonalizeCheckDataOfferingPageAcceptCta": "Toevoegen",
     "walletPersonalizeCheckDataOfferingPageDeclineCta": "Nee",
     "walletPersonalizeCheckDataOfferingPageDeclineCtaSemanticsLabel": "Nee, er klopt iets niet",
