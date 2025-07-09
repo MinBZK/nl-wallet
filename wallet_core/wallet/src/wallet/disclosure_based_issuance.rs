@@ -182,6 +182,7 @@ mod tests {
     use openid4vc::credential::CredentialOffer;
     use openid4vc::credential::CredentialOfferContainer;
     use openid4vc::credential::GrantPreAuthorizedCode;
+    use openid4vc::credential::Grants;
     use openid4vc::credential::OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME;
     use openid4vc::disclosure_session;
     use openid4vc::disclosure_session::mock::MockDisclosureSession;
@@ -243,7 +244,7 @@ mod tests {
             credential_offer: CredentialOffer {
                 credential_issuer: "https://issuer.example.com".parse().unwrap(),
                 credential_configuration_ids: vec![],
-                grants: Some(openid4vc::credential::Grants::PreAuthorizedCode {
+                grants: Some(Grants::PreAuthorizedCode {
                     pre_authorized_code: GrantPreAuthorizedCode::new("123".to_string().into()),
                 }),
             },
