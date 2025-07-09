@@ -53,8 +53,7 @@ impl<H> VpDisclosureClient<H> {
             | VpVerifierError::IncorrectClientId { .. }
             | VpVerifierError::RpCertificate(_)
             | VpVerifierError::MissingReaderRegistration
-            | VpVerifierError::RequestedAttributesValidation(_)
-            | VpVerifierError::EmptyRequest(_) => {
+            | VpVerifierError::RequestedAttributesValidation(_) => {
                 let error_code = VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::InvalidRequest);
 
                 let error_response = ErrorResponse {
@@ -104,12 +103,11 @@ impl<H> VpDisclosureClient<H> {
             .verify_requested_attributes(&items_requests.as_ref().iter())
             .map_err(VpVerifierError::RequestedAttributesValidation)?;
 
-        // Convert the request into a generic representation.
+        // Convert the request into a generic representation. Note that the unwrap is safe here, as the absence of
+        // attestation types and paths in the request is already checked by `VpAuthorizationRequest::validate()`.
         let requested_attribute_paths = items_requests
             .try_into_attribute_paths()
-            // Note that this error is never returned, as `VpAuthorizationRequest::validate()`
-            // already catches this specific error condition.
-            .map_err(VpVerifierError::EmptyRequest)?;
+            .expect("disclosure requested attestation attribute paths should not be empty");
 
         Ok((requested_attribute_paths, verifier_certificate))
     }
