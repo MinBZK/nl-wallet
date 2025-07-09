@@ -12,6 +12,7 @@ use super::AttestationPresentation;
 
 impl AttestationPresentation {
     pub(crate) fn create_for_disclosure(
+        attestation_id: String,
         metadata: NormalizedTypeMetadata,
         issuer_organization: Organization,
         mdoc_attributes: IndexMap<NameSpace, Vec<Entry>>,
@@ -19,7 +20,7 @@ impl AttestationPresentation {
         let nested_attributes = Attributes::from_mdoc_attributes(&metadata, mdoc_attributes)?;
 
         Self::create_from_attributes(
-            AttestationIdentity::Ephemeral,
+            AttestationIdentity::Fixed { id: attestation_id },
             metadata,
             issuer_organization,
             &nested_attributes,
@@ -77,6 +78,7 @@ mod test {
         )]);
 
         let attestation = AttestationPresentation::create_for_disclosure(
+            String::from("id123"),
             example_metadata(),
             Organization::new_mock(),
             mdoc_attributes,
@@ -115,6 +117,7 @@ mod test {
         )]);
 
         let attestation = AttestationPresentation::create_for_disclosure(
+            String::from("id123"),
             example_metadata(),
             Organization::new_mock(),
             mdoc_attributes,
@@ -151,8 +154,12 @@ mod test {
             ],
         )]);
 
-        let attestation =
-            AttestationPresentation::create_for_disclosure(metadata, Organization::new_mock(), mdoc_attributes);
+        let attestation = AttestationPresentation::create_for_disclosure(
+            String::from("id123"),
+            metadata,
+            Organization::new_mock(),
+            mdoc_attributes,
+        );
 
         assert_matches!(
             attestation,
