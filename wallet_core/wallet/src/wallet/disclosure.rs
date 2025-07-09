@@ -867,6 +867,7 @@ mod tests {
     use attestation_data::attributes::AttributeValue;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::auth::reader_auth::ReaderRegistration;
+    use attestation_data::auth::Organization;
     use attestation_data::disclosure_type::DisclosureType;
     use attestation_data::x509::generate::mock::generate_reader_mock;
     use attestation_types::attribute_paths::AttestationAttributePaths;
@@ -1894,6 +1895,25 @@ mod tests {
         VpVerifier,
     }
 
+    impl ClientErrorType {
+        fn check_error(self, error: &DisclosureError, expected_organization: &Organization) {
+            match self {
+                ClientErrorType::VpClient => {
+                    assert_matches!(error, DisclosureError::VpClient(VpClientError::Request(_)));
+                }
+                ClientErrorType::VpVerifier => {
+                    assert_matches!(
+                        error,
+                        DisclosureError::VpVerifierServer {
+                            organization,
+                            error: VpVerifierError::Request(_)
+                        } if organization.as_deref() == Some(expected_organization)
+                    );
+                }
+            }
+        }
+    }
+
     #[rstest]
     #[case(
         || DisclosureErrorResponse {
@@ -1973,20 +1993,7 @@ mod tests {
             .expect_err("accepting disclosure should not succeed");
 
         // Check the error type and its return URL and check if the wallet still has an active disclosure session.
-        match expected_error_type {
-            ClientErrorType::VpClient => {
-                assert_matches!(&error, DisclosureError::VpClient(VpClientError::Request(_)));
-            }
-            ClientErrorType::VpVerifier => {
-                assert_matches!(
-                    &error,
-                    DisclosureError::VpVerifierServer {
-                        organization,
-                        error: VpVerifierError::Request(_)
-                    } if organization.as_deref() == Some(&verifier_certificate.registration().organization)
-                );
-            }
-        }
+        expected_error_type.check_error(&error, &verifier_certificate.registration().organization);
         if expect_return_url {
             assert_eq!(error.return_url(), Some(RETURN_URL.as_ref()));
         } else {
@@ -2054,20 +2061,7 @@ mod tests {
             .await
             .expect_err("accepting disclosure should not succeed");
 
-        match expected_error_type {
-            ClientErrorType::VpClient => {
-                assert_matches!(&error, DisclosureError::VpClient(VpClientError::Request(_)));
-            }
-            ClientErrorType::VpVerifier => {
-                assert_matches!(
-                    &error,
-                    DisclosureError::VpVerifierServer {
-                        organization,
-                        error: VpVerifierError::Request(_)
-                    } if organization.as_deref() == Some(&verifier_certificate.registration().organization)
-                );
-            }
-        }
+        expected_error_type.check_error(&error, &verifier_certificate.registration().organization);
         if expect_return_url {
             assert_eq!(error.return_url(), Some(RETURN_URL.as_ref()));
         } else {
