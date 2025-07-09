@@ -33,6 +33,7 @@ pub use poa::factory::mock::MOCK_WALLET_CLIENT_ID;
 // traits using generic methods, and "impl trait" arguments, so we use `mockall::mock!` to make an indirection.
 
 mockall::mock! {
+    #[derive(Debug)]
     pub IssuanceSession {
         pub fn start() -> Result<Self, IssuanceSessionError>
         where
@@ -154,12 +155,11 @@ where
     (issuer_signed, key)
 }
 
-pub async fn test_document_to_mdoc<KF>(doc: TestDocument, ca: &Ca, key_factory: &KF) -> (Mdoc, KF::Key)
+pub async fn test_document_to_mdoc<KF>(doc: TestDocument, ca: &Ca, key_factory: &KF) -> Mdoc
 where
     KF: KeyFactory,
 {
     let key = key_factory.generate_new().await.unwrap();
 
-    let mdoc = doc.sign(ca, &key).await;
-    (mdoc, key)
+    doc.sign(ca, &key).await
 }
