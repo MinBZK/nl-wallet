@@ -3,11 +3,11 @@ use indexmap::IndexMap;
 use reqwest::StatusCode;
 use tracing::instrument;
 use url::Url;
-use uuid::Uuid;
 
+use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::tls::pinning::TlsPinningConfig;
 use mdoc::ItemsRequest;
-use openid4vc::disclosure_session::VpDisclosureSession;
+use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::issuance_session::HttpIssuanceSession;
 use openid4vc::verifier::SessionType;
 use openid4vc::verifier::StatusResponse;
@@ -44,7 +44,7 @@ type PerformanceTestWallet = Wallet<
     HttpAccountProviderClient,
     HttpDigidSession,
     HttpIssuanceSession,
-    VpDisclosureSession<Uuid>,
+    VpDisclosureClient,
     WpWteIssuanceClient,
 >;
 
@@ -83,6 +83,7 @@ async fn main() {
         MockStorage::default(),
         MockHardwareAttestedKeyHolder::new_apple_mock(default::attestation_environment(), default::app_identifier()),
         HttpAccountProviderClient::default(),
+        VpDisclosureClient::new_http(default_reqwest_client_builder()).unwrap(),
     )
     .await
     .expect("Could not create test wallet");

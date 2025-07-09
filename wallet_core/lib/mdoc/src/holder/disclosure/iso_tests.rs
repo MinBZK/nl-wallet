@@ -1,57 +1,56 @@
+use futures::FutureExt;
 use indexmap::IndexMap;
+use itertools::Itertools;
 
 use crypto::examples::Examples;
 use crypto::mock_remote::MockRemoteKeyFactory;
 use crypto::server_keys::generate::Ca;
 
-use crate::errors::Result;
 use crate::examples::Example;
 use crate::examples::IsoCertTimeGenerator;
 use crate::examples::EXAMPLE_ATTR_NAME;
 use crate::examples::EXAMPLE_ATTR_VALUE;
 use crate::examples::EXAMPLE_DOC_TYPE;
 use crate::examples::EXAMPLE_NAMESPACE;
+use crate::holder::Mdoc;
 use crate::iso::device_retrieval::DeviceRequest;
 use crate::iso::device_retrieval::ItemsRequest;
 use crate::iso::device_retrieval::ReaderAuthenticationBytes;
 use crate::iso::disclosure::DeviceResponse;
 use crate::iso::engagement::DeviceAuthenticationBytes;
+use crate::iso::engagement::SessionTranscript;
 use crate::test;
 use crate::test::DebugCollapseBts;
 use crate::utils::serialization::CborSeq;
 use crate::utils::serialization::TaggedBytes;
-use crate::SessionTranscript;
 
-use super::mock::MockMdocDataSource;
-use super::DisclosureRequestMatch;
+use super::attribute_paths_to_mdoc_paths;
 
-/// This function uses the `MockMdocDataSource` to provide the mdoc from the example
-/// `DeviceResponse` in the standard. This is used to match against a `DeviceRequest`
-/// and produce a `ProposedDocument`, which in turn is converted to a `DeviceResponse`
-/// by signing it.
-async fn create_example_device_response(
-    device_request: &DeviceRequest,
+fn create_example_device_response(
+    device_request: DeviceRequest,
     session_transcript: &SessionTranscript,
     ca: &Ca,
-) -> Result<DeviceResponse> {
-    let mdoc_data_source = MockMdocDataSource::new_example_resigned(ca).await;
-    let request_match =
-        DisclosureRequestMatch::new(device_request.items_requests(), &mdoc_data_source, session_transcript)
-            .await
-            .unwrap();
-    let proposed_document = match request_match {
-        DisclosureRequestMatch::Candidates(mut candidates) => {
-            candidates.swap_remove(EXAMPLE_DOC_TYPE).unwrap().pop().unwrap()
-        }
-        _ => panic!("should have found a valid candidate in DeviceRequest"),
-    };
+) -> DeviceResponse {
+    let mut mdoc = Mdoc::new_example_resigned(ca).now_or_never().unwrap();
+
+    let attribute_paths = device_request.into_items_requests().try_into_attribute_paths().unwrap();
+
+    assert_eq!(
+        attribute_paths.as_ref().keys().exactly_one().ok(),
+        Some(&mdoc.mso.doc_type)
+    );
+
+    mdoc.issuer_signed = mdoc
+        .issuer_signed
+        .into_attribute_subset(&attribute_paths_to_mdoc_paths(&attribute_paths, &mdoc.mso.doc_type));
 
     let (device_response, _) =
-        DeviceResponse::from_proposed_documents(vec![proposed_document], &MockRemoteKeyFactory::new_example())
-            .await
+        DeviceResponse::sign_from_mdocs(vec![mdoc], session_transcript, &MockRemoteKeyFactory::new_example())
+            .now_or_never()
+            .unwrap()
             .unwrap();
 
-    Ok(device_response)
+    device_response
 }
 
 /// Construct the example mdoc from the standard and disclose attributes
@@ -90,9 +89,7 @@ async fn do_and_verify_iso_example_disclosure() {
 
     // Construct a new `DeviceResponse`, based on the mdoc from the example device response in the standard.
     let ca = Ca::generate_issuer_mock_ca().unwrap();
-    let resp = create_example_device_response(&device_request, &session_transcript, &ca)
-        .await
-        .unwrap();
+    let resp = create_example_device_response(device_request, &session_transcript, &ca);
     println!("DeviceResponse: {:#?}", DebugCollapseBts::from(&resp));
 
     // Verify this second `DeviceResponse`.
@@ -131,9 +128,7 @@ async fn iso_examples_custom_disclosure() {
 
     let session_transcript = DeviceAuthenticationBytes::example().0 .0.session_transcript;
     let ca = Ca::generate_issuer_mock_ca().unwrap();
-    let resp = create_example_device_response(&request, &session_transcript, &ca)
-        .await
-        .unwrap();
+    let resp = create_example_device_response(request, &session_transcript, &ca);
     println!("My DeviceResponse: {:#?}", DebugCollapseBts::from(&resp));
 
     let disclosed_attrs = resp

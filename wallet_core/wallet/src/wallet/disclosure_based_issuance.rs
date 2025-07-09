@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
+use openid4vc::disclosure_session::DisclosureSession;
 use tracing::info;
 use tracing::instrument;
-use uuid::Uuid;
 
 use attestation_data::auth::Organization;
 use error_category::sentry_capture_error;
@@ -10,7 +10,7 @@ use error_category::ErrorCategory;
 use http_utils::tls::pinning::TlsPinningConfig;
 use openid4vc::credential::CredentialOfferContainer;
 use openid4vc::credential::OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME;
-use openid4vc::disclosure_session::DisclosureSession;
+use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::VpClientError;
 use openid4vc::disclosure_session::VpMessageClientError;
 use openid4vc::issuance_session::IssuanceSession as Openid4vcIssuanceSession;
@@ -71,7 +71,7 @@ pub enum DisclosureBasedIssuanceError {
 // However, the `flutter_api` already knows which flow it is in anyway, because it displays
 // different things to the user in each flow. So keeping this a distinct method is more
 // pragmatic.
-impl<CR, UR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, MDS, WIC>
+impl<CR, UR, S, AKH, APC, DS, IS, DC, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, DC, WIC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
     UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
@@ -80,7 +80,7 @@ where
     APC: AccountProviderClient,
     DS: DigidSession,
     IS: Openid4vcIssuanceSession,
-    MDS: DisclosureSession<Uuid>,
+    DC: DisclosureClient,
     WIC: Default,
 {
     #[instrument(skip_all)]
@@ -96,7 +96,12 @@ where
             return Err(DisclosureBasedIssuanceError::Disclosure(DisclosureError::SessionState));
         };
 
-        let organization = session.protocol_state().reader_registration().organization.clone();
+        let organization = session
+            .protocol_state
+            .verifier_certificate()
+            .registration()
+            .organization
+            .clone();
 
         let redirect_uri = match self
             .perform_disclosure(pin, RedirectUriPurpose::Issuance, config.as_ref())
@@ -165,14 +170,23 @@ where
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
-    use parking_lot::lock_api::Mutex;
+    use futures::FutureExt;
+    use uuid::Uuid;
 
     use attestation_data::auth::issuer_auth::IssuerRegistration;
+    use attestation_data::auth::reader_auth::ReaderRegistration;
+    use attestation_data::disclosure_type::DisclosureType;
+    use attestation_data::x509::generate::mock::generate_reader_mock;
+    use crypto::server_keys::generate::Ca;
+    use mdoc::holder::Mdoc;
     use openid4vc::credential::CredentialOffer;
     use openid4vc::credential::CredentialOfferContainer;
     use openid4vc::credential::GrantPreAuthorizedCode;
+    use openid4vc::credential::Grants;
     use openid4vc::credential::OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME;
-    use openid4vc::disclosure_session::DisclosureSessionState;
+    use openid4vc::disclosure_session;
+    use openid4vc::disclosure_session::mock::MockDisclosureSession;
+    use openid4vc::disclosure_session::VerifierCertificate;
     use openid4vc::disclosure_session::VpClientError;
     use openid4vc::disclosure_session::VpSessionError;
     use openid4vc::mock::MockIssuanceSession;
@@ -182,18 +196,43 @@ mod tests {
     use openid4vc::DisclosureErrorResponse;
     use openid4vc::PostAuthResponseErrorCode;
 
-    use crate::disclosure::mock::MockDisclosureProposal;
-    use crate::disclosure::mock::MockDisclosureSession;
-    use crate::wallet::disclosure::RedirectUriPurpose;
-    use crate::wallet::disclosure::WalletDisclosureSession;
-    use crate::wallet::test::create_example_preview_data;
-    use crate::wallet::test::WalletDeviceVendor;
-    use crate::wallet::test::WalletWithMocks;
-    use crate::wallet::DisclosureBasedIssuanceError;
-    use crate::wallet::DisclosureError;
-    use crate::wallet::Session;
+    use crate::attestation::AttestationPresentation;
+
+    use super::super::disclosure::DisclosureAttestation;
+    use super::super::disclosure::DisclosureError;
+    use super::super::disclosure::RedirectUriPurpose;
+    use super::super::disclosure::WalletDisclosureSession;
+    use super::super::test::create_example_preview_data;
+    use super::super::test::WalletDeviceVendor;
+    use super::super::test::WalletWithMocks;
+    use super::super::DisclosureBasedIssuanceError;
+    use super::super::Session;
 
     const PIN: &str = "051097";
+
+    fn setup_wallet_disclosure_session() -> WalletDisclosureSession<MockDisclosureSession> {
+        let reader_ca = Ca::generate_reader_mock_ca().unwrap();
+        let reader_key_pair = generate_reader_mock(&reader_ca, Some(ReaderRegistration::new_mock())).unwrap();
+        let verifier_certificate = VerifierCertificate::try_new(reader_key_pair.into()).unwrap().unwrap();
+
+        let mut disclosure_session = MockDisclosureSession::new();
+        disclosure_session
+            .expect_verifier_certificate()
+            .return_const(verifier_certificate);
+
+        let attestation = DisclosureAttestation::new(
+            Uuid::new_v4(),
+            Mdoc::new_mock().now_or_never().unwrap(),
+            AttestationPresentation::new_mock(),
+        );
+
+        WalletDisclosureSession::new_proposal(
+            RedirectUriPurpose::Issuance,
+            DisclosureType::Regular,
+            vec![attestation].try_into().unwrap(),
+            disclosure_session,
+        )
+    }
 
     #[tokio::test]
     async fn test_wallet_accept_disclosure_based_issuance() {
@@ -205,7 +244,7 @@ mod tests {
             credential_offer: CredentialOffer {
                 credential_issuer: "https://issuer.example.com".parse().unwrap(),
                 credential_configuration_ids: vec![],
-                grants: Some(openid4vc::credential::Grants::PreAuthorizedCode {
+                grants: Some(Grants::PreAuthorizedCode {
                     pre_authorized_code: GrantPreAuthorizedCode::new("123".to_string().into()),
                 }),
             },
@@ -214,16 +253,13 @@ mod tests {
         let credential_offer = format!("{OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME}://?{credential_offer}")
             .parse()
             .unwrap();
-        wallet.session = Some(Session::Disclosure(WalletDisclosureSession::new(
-            RedirectUriPurpose::Issuance,
-            MockDisclosureSession {
-                session_state: DisclosureSessionState::Proposal(MockDisclosureProposal {
-                    disclose_return_url: Some(credential_offer),
-                    ..Default::default()
-                }),
-                ..Default::default()
-            },
-        )));
+
+        let mut disclosure_session = setup_wallet_disclosure_session();
+        disclosure_session
+            .protocol_state
+            .expect_disclose()
+            .return_once(|_| Ok(Some(credential_offer)));
+        wallet.session = Some(Session::Disclosure(disclosure_session));
 
         // Setup wallet issuance state
         let credential_preview = create_example_preview_data();
@@ -265,11 +301,13 @@ mod tests {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // Setup an disclosure based issuance session returning an error that means there are no attestations to offer.
-        wallet.session = Some(Session::Disclosure(WalletDisclosureSession::new(
-            RedirectUriPurpose::Issuance,
-            MockDisclosureSession {
-                session_state: DisclosureSessionState::Proposal(MockDisclosureProposal {
-                    next_error: Mutex::new(Some(VpSessionError::Client(VpClientError::Request(
+        let mut disclosure_session = setup_wallet_disclosure_session();
+        disclosure_session.protocol_state.expect_disclose().return_once(|_| {
+            Err((
+                MockDisclosureSession::new(),
+                disclosure_session::DisclosureError::new(
+                    true,
+                    VpSessionError::Client(VpClientError::Request(
                         DisclosureErrorResponse {
                             error_response: PostAuthResponseError::HandlingDisclosureResult(
                                 DisclosureResultHandlerError::new(MockError),
@@ -278,12 +316,11 @@ mod tests {
                             redirect_uri: None,
                         }
                         .into(),
-                    )))),
-                    ..Default::default()
-                }),
-                ..Default::default()
-            },
-        )));
+                    )),
+                ),
+            ))
+        });
+        wallet.session = Some(Session::Disclosure(disclosure_session));
 
         let previews = wallet
             .continue_disclosure_based_issuance(PIN.to_owned())
@@ -299,11 +336,9 @@ mod tests {
         // Prepare a registered and unlocked wallet with an active disclosure session.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
-        let disclosure_session = MockDisclosureSession::default();
-        wallet.session = Some(Session::Disclosure(WalletDisclosureSession::new(
-            RedirectUriPurpose::Browser,
-            disclosure_session,
-        )));
+        let mut disclosure_session = setup_wallet_disclosure_session();
+        disclosure_session.redirect_uri_purpose = RedirectUriPurpose::Browser;
+        wallet.session = Some(Session::Disclosure(disclosure_session));
 
         let error = wallet
             .continue_disclosure_based_issuance(PIN.to_owned())
