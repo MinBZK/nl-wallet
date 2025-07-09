@@ -1691,7 +1691,7 @@ mod tests {
     /// This contains a lightweight test of `accept_disclosure()`.
     /// For a more thorough test see `test_wallet_disclosure()`
     #[tokio::test]
-    async fn test_wallet_accept_disclosure() {
+    async fn test_wallet_accept_disclosure_abridged() {
         // Prepare a registered and unlocked wallet with an active disclosure session.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
         let (session, _verifier_certificate) = setup_wallet_disclosure_session();

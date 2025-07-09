@@ -287,7 +287,7 @@ mod tests {
     /// This contains a lightweight test of `VpDisclosureSession::disclose()`. For a more
     /// thorough test see `test_vp_disclosure_client_full()` in the `client` submodule.
     #[rstest]
-    fn test_disclosure_session_disclose(
+    fn test_disclosure_session_disclose_abridged(
         #[values(None, Some("http://example.com/redirect".parse().unwrap()))] redirect_uri: Option<BaseUrl>,
     ) {
         let (disclosure_session, verifier_session) = setup_disclosure_session(redirect_uri.clone());
