@@ -10,6 +10,7 @@ use sea_orm::DbErr;
 use uuid::Uuid;
 
 use attestation_data::auth::reader_auth::ReaderRegistration;
+use attestation_data::disclosure_type::DisclosureType;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::BorrowingCertificateExtension;
 use openid4vc::issuance_session::CredentialWithMetadata;
@@ -17,7 +18,6 @@ use openid4vc::issuance_session::IssuedCredential;
 
 use crate::AttestationPresentation;
 use crate::DisclosureStatus;
-use crate::DisclosureType;
 
 use super::data::KeyedData;
 use super::data::RegistrationData;

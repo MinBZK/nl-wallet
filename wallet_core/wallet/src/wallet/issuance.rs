@@ -19,6 +19,7 @@ use http_utils::tls::pinning::TlsPinningConfig;
 use http_utils::urls;
 use http_utils::urls::BaseUrl;
 use jwt::error::JwtError;
+use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::issuance_session::HttpVcMessageClient;
 use openid4vc::issuance_session::IssuanceSession;
 use openid4vc::issuance_session::IssuanceSessionError;
@@ -129,14 +130,15 @@ pub struct WalletIssuanceSession<IS> {
     protocol_state: IS,
 }
 
-impl<CR, UR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, MDS, WIC>
+impl<CR, UR, S, AKH, APC, DS, IS, DC, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, DC, WIC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
     UR: Repository<VersionState>,
+    S: Storage,
     AKH: AttestedKeyHolder,
     DS: DigidSession,
     IS: IssuanceSession,
-    S: Storage,
+    DC: DisclosureClient,
     APC: AccountProviderClient,
 {
     #[instrument(skip_all)]

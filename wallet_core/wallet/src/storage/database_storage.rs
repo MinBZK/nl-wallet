@@ -31,6 +31,7 @@ use tracing::warn;
 use uuid::Uuid;
 
 use attestation_data::auth::reader_auth::ReaderRegistration;
+use attestation_data::disclosure_type::DisclosureType;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::BorrowingCertificateExtension;
 use entity::attestation;
@@ -67,7 +68,6 @@ use super::StoredMdocCopy;
 use crate::AttestationIdentity;
 use crate::AttestationPresentation;
 use crate::DisclosureStatus;
-use crate::DisclosureType;
 
 const DATABASE_NAME: &str = "wallet";
 const KEY_FILE_SUFFIX: &str = "_db";
@@ -326,7 +326,7 @@ impl<K> DatabaseStorage<K> {
                 reader_certificate: Box::new(reader_certificate),
                 reader_registration: Box::new(reader_registration),
                 status: event.status,
-                r#type: event.r#type,
+                r#type: event.r#type.into(),
             };
 
             disclosure_wallet_events.push(wallet_event);
@@ -634,7 +634,7 @@ where
             timestamp: Set(timestamp),
             relying_party_certificate: Set(reader_certificate.to_vec()),
             status: Set(status),
-            r#type: Set(r#type),
+            r#type: Set(r#type.into()),
         };
 
         let disclosure_event_attestations = proposed_attestation_presentations

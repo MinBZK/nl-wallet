@@ -628,8 +628,12 @@ dependencies = [
 name = "attestation_types"
 version = "0.4.0-dev"
 dependencies = [
+ "derive_more",
+ "itertools 0.14.0",
  "serde_with",
  "strum 0.26.3",
+ "thiserror 2.0.11",
+ "utils",
 ]
 
 [[package]]
@@ -2042,6 +2046,7 @@ dependencies = [
 name = "entity"
 version = "0.4.0-dev"
 dependencies = [
+ "attestation_data",
  "chrono",
  "derive_more",
  "sd_jwt_vc_metadata",
@@ -6621,7 +6626,6 @@ dependencies = [
  "update_policy_server",
  "url",
  "utils",
- "uuid",
  "verification_server",
  "wallet",
  "wallet_configuration",
@@ -7544,6 +7548,7 @@ dependencies = [
  "apple_app_attest",
  "assert_matches",
  "attestation_data",
+ "attestation_types",
  "base64 0.22.1",
  "cfg-if",
  "chrono",

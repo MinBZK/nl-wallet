@@ -14,6 +14,7 @@ use chrono::Utc;
 use http::StatusCode;
 use indexmap::IndexMap;
 use itertools::Itertools;
+use mdoc::holder::Mdoc;
 use parking_lot::RwLock;
 use reqwest::Client;
 use reqwest::Response;
@@ -39,13 +40,11 @@ use http_utils::urls::BaseUrl;
 use mdoc::examples::EXAMPLE_ATTR_NAME;
 use mdoc::examples::EXAMPLE_DOC_TYPE;
 use mdoc::examples::EXAMPLE_NAMESPACE;
-use mdoc::holder::mock::MockMdocDataSource;
 use mdoc::ItemsRequest;
-use openid4vc::disclosure_session::DisclosureProposal;
+use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::DisclosureSession;
 use openid4vc::disclosure_session::DisclosureUriSource;
-use openid4vc::disclosure_session::HttpVpMessageClient;
-use openid4vc::disclosure_session::VpDisclosureSession;
+use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
 use openid4vc::server_state::MemorySessionStore;
 use openid4vc::server_state::SessionStore;
@@ -59,7 +58,6 @@ use openid4vc::verifier::StatusResponse;
 use openid4vc_server::verifier::StartDisclosureRequest;
 use openid4vc_server::verifier::StartDisclosureResponse;
 use openid4vc_server::verifier::StatusParams;
-use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use sd_jwt_vc_metadata::UncheckedTypeMetadata;
@@ -938,21 +936,19 @@ mod db_test {
     }
 }
 
-async fn prepare_example_holder_mocks(issuer_ca: &Ca) -> (MockMdocDataSource, MockRemoteKeyFactory) {
+async fn prepare_example_holder_mocks(issuer_ca: &Ca) -> (Mdoc, MockRemoteKeyFactory) {
     let payload_preview = pid_example_payload().previewable_payload;
 
     let issuer_key_pair = generate_issuer_mock(issuer_ca, Some(IssuerRegistration::new_mock())).unwrap();
-
-    let unchecked_metadata = UncheckedTypeMetadata::pid_example();
 
     // Generate a new private key and use that and the issuer key to sign the Mdoc.
     let mdoc_private_key_id = crypto::utils::random_string(16);
     let mdoc_private_key = MockRemoteEcdsaKey::new_random(mdoc_private_key_id.clone());
     let mdoc_public_key = mdoc_private_key.verifying_key();
 
+    let unchecked_metadata = UncheckedTypeMetadata::pid_example();
     let type_metadata = TypeMetadata::try_new(unchecked_metadata.clone()).unwrap();
     let (_, metadata_integrity, _) = TypeMetadataDocuments::from_single_example(type_metadata);
-    let normalized_metadata = NormalizedTypeMetadata::from_single_example(unchecked_metadata);
 
     let mdoc = payload_preview
         .into_signed_mdoc_unverified::<MockRemoteEcdsaKey>(
@@ -964,11 +960,10 @@ async fn prepare_example_holder_mocks(issuer_ca: &Ca) -> (MockMdocDataSource, Mo
         .await
         .unwrap();
 
-    // Place the Mdoc in a MockMdocDataSource and the private key in a SoftwareKeyFactory and return them.
-    let mdoc_data_source = MockMdocDataSource::new(vec![(mdoc, normalized_metadata)]);
+    // Place the private key in a SoftwareKeyFactory and return it, along with the mdoc.
     let key_factory = MockRemoteKeyFactory::new(vec![mdoc_private_key]);
 
-    (mdoc_data_source, key_factory)
+    (mdoc, key_factory)
 }
 
 async fn perform_full_disclosure(session_type: SessionType) -> (Client, SessionToken, BaseUrl, Option<BaseUrl>) {
@@ -986,26 +981,18 @@ async fn perform_full_disclosure(session_type: SessionType) -> (Client, SessionT
     // Prepare a holder with a valid example Mdoc. Use the query portion of the
     // universal link to have holder code contact the wallet_sever and start disclosure.
     // This should result in a proposal to disclosure for the holder.
-    let (mdoc_data_source, key_factory) = prepare_example_holder_mocks(&issuer_ca).await;
+    let (mdoc, key_factory) = prepare_example_holder_mocks(&issuer_ca).await;
 
     let request_uri_query = ul.as_ref().query().unwrap().to_string();
     let uri_source = match session_type {
         SessionType::SameDevice => DisclosureUriSource::Link,
         SessionType::CrossDevice => DisclosureUriSource::QrCode,
     };
-    let disclosure_session = VpDisclosureSession::start(
-        HttpVpMessageClient::new(default_reqwest_client_builder()).unwrap(),
-        &request_uri_query,
-        uri_source,
-        &mdoc_data_source,
-        &[rp_trust_anchor],
-    )
-    .await
-    .expect("disclosure session should start at client side");
-
-    let VpDisclosureSession::Proposal(proposal) = disclosure_session else {
-        panic!("should have received a disclosure proposal")
-    };
+    let disclosure_client = VpDisclosureClient::new_http(default_reqwest_client_builder()).unwrap();
+    let disclosure_session = disclosure_client
+        .start(&request_uri_query, uri_source, &[rp_trust_anchor])
+        .await
+        .expect("disclosure session should start at client side");
 
     // The status endpoint should now respond that the session is in the WaitingForResponse state.
     assert_matches!(
@@ -1015,8 +1002,8 @@ async fn perform_full_disclosure(session_type: SessionType) -> (Client, SessionT
 
     // Have the holder actually disclosure the example attributes to the verification_server,
     // after which the status endpoint should report that the session is Done.
-    let return_url = proposal
-        .disclose(&key_factory)
+    let return_url = disclosure_session
+        .disclose(vec![mdoc].try_into().unwrap(), &key_factory)
         .await
         .expect("should disclose attributes successfully");
 
@@ -1123,26 +1110,17 @@ async fn test_disclosed_attributes_failed_session() {
         panic!("session should be in CREATED state and a universal link should be provided")
     };
 
-    // Start a disclosure session with the default MockMdocDataSource, which contains expired
-    // attestations from the examples in the ISO specifications, then disclose those.
     let request_uri_query = ul.as_ref().query().unwrap().to_string();
-    let mdocs = MockMdocDataSource::new_example_resigned(&issuer_ca).await;
-    let disclosure_session = VpDisclosureSession::start(
-        HttpVpMessageClient::new(default_reqwest_client_builder()).unwrap(),
-        &request_uri_query,
-        DisclosureUriSource::QrCode,
-        &mdocs,
-        &[rp_trust_anchor],
-    )
-    .await
-    .expect("disclosure session should start at client side");
+    let disclosure_client = VpDisclosureClient::new_http(default_reqwest_client_builder()).unwrap();
+    let disclosure_session = disclosure_client
+        .start(&request_uri_query, DisclosureUriSource::QrCode, &[rp_trust_anchor])
+        .await
+        .expect("disclosure session should start at client side");
 
-    let VpDisclosureSession::Proposal(proposal) = disclosure_session else {
-        panic!("should have received a disclosure proposal")
-    };
-
-    proposal
-        .disclose(&MockRemoteKeyFactory::new_example())
+    // Disclose the expired attestation from the examples in the ISO specification.
+    let mdoc = Mdoc::new_example_resigned(&issuer_ca).await;
+    disclosure_session
+        .disclose(vec![mdoc].try_into().unwrap(), &MockRemoteKeyFactory::new_example())
         .await
         .expect_err("disclosing attributes should result in an error");
 

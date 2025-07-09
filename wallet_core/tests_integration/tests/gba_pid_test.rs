@@ -1,8 +1,8 @@
 use indexmap::IndexMap;
 use rstest::rstest;
-use uuid::Uuid;
 
-use openid4vc::disclosure_session::VpDisclosureSession;
+use http_utils::reqwest::default_reqwest_client_builder;
+use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::issuance_session::HttpIssuanceSession;
 use openid4vc::issuance_session::IssuanceSessionError;
 use openid4vc::ErrorResponse;
@@ -123,7 +123,7 @@ type TestWallet = Wallet<
     HttpAccountProviderClient,
     HttpDigidSession,
     HttpIssuanceSession,
-    VpDisclosureSession<Uuid>,
+    VpDisclosureClient,
     WpWteIssuanceClient,
 >;
 
@@ -137,6 +137,7 @@ async fn gba_pid(bsn: &str) -> Result<(), TestError> {
         StorageStub::default(),
         MockHardwareAttestedKeyHolder::new_apple_mock(default::attestation_environment(), default::app_identifier()),
         HttpAccountProviderClient::default(),
+        VpDisclosureClient::new_http(default_reqwest_client_builder()).unwrap(),
     )
     .await
     .expect("Could not create test wallet");

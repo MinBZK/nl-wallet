@@ -6,24 +6,22 @@ use tracing::info;
 use tracing::instrument;
 use uuid::Uuid;
 
-use attestation_data::auth::issuer_auth::IssuerRegistration;
+use attestation_data::disclosure_type::DisclosureType;
 use crypto::x509::BorrowingCertificate;
-use crypto::x509::BorrowingCertificateExtension;
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
-use mdoc::holder::ProposedAttributes;
+use openid4vc::disclosure_session::DisclosureClient;
 use platform_support::attested_key::AttestedKeyHolder;
 use update_policy_model::update_policy::VersionState;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::errors::StorageError;
 use crate::repository::Repository;
-use crate::storage::disclosure_type_for_proposed_attributes;
 use crate::storage::DataDisclosureStatus;
 use crate::storage::Storage;
 use crate::storage::WalletEvent;
 use crate::AttestationPresentation;
 use crate::DisclosureStatus;
-use crate::DisclosureType;
 
 use super::Wallet;
 
@@ -54,49 +52,29 @@ type HistoryResult<T> = Result<T, HistoryError>;
 
 pub type RecentHistoryCallback = Box<dyn FnMut(Vec<WalletEvent>) + Send + Sync>;
 
-impl<CR, UR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, MDS, WIC>
+impl<CR, UR, S, AKH, APC, DS, IS, DC, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, DC, WIC>
 where
     S: Storage,
     UR: Repository<VersionState>,
     AKH: AttestedKeyHolder,
+    DC: DisclosureClient,
 {
     pub(super) async fn store_disclosure_event(
         &mut self,
         timestamp: DateTime<Utc>,
-        proposed_attributes: Option<ProposedAttributes>,
+        attestations: Option<VecNonEmpty<AttestationPresentation>>,
         reader_certificate: BorrowingCertificate,
+        r#type: DisclosureType,
         status: DisclosureStatus,
         data_status: DataDisclosureStatus,
     ) -> Result<(), StorageError> {
         info!("Storing history event");
 
-        // If no attributes are available, do not record that this disclosure was for the purposes of logging in.
-        let r#type = proposed_attributes
-            .as_ref()
-            .map(disclosure_type_for_proposed_attributes)
-            .unwrap_or(DisclosureType::Regular);
-
         let attestations = match data_status {
-            DataDisclosureStatus::Disclosed => proposed_attributes,
+            DataDisclosureStatus::Disclosed => attestations.map(VecNonEmpty::into_inner),
             DataDisclosureStatus::NotDisclosed => None,
         }
-        .unwrap_or_default()
-        .into_values()
-        .map(|document_attributes| {
-            // As the proposed attributes come from the database, we can make assumptions about them and use `expect()`.
-            // TODO (PVW-4132): Use the type system to codify these assumptions.
-            let issuer_registration = IssuerRegistration::from_certificate(&document_attributes.issuer)
-                .expect("proposed attributes should contain valid issuer registration")
-                .expect("proposed attributes should contain issuer registration");
-
-            AttestationPresentation::create_for_disclosure(
-                document_attributes.type_metadata,
-                issuer_registration.organization,
-                document_attributes.attributes,
-            )
-            .expect("proposed attributes should succesfully be transformed for display by metadata")
-        })
-        .collect();
+        .unwrap_or_default();
 
         self.storage
             .write()
@@ -210,6 +188,7 @@ mod tests {
     use uuid::Uuid;
 
     use attestation_data::auth::reader_auth::ReaderRegistration;
+    use attestation_data::disclosure_type::DisclosureType;
     use attestation_data::x509::generate::mock::generate_reader_mock;
     use crypto::server_keys::generate::Ca;
 
@@ -281,6 +260,7 @@ mod tests {
                 timestamp_older,
                 None,
                 reader_key.certificate().clone(),
+                DisclosureType::Regular,
                 DisclosureStatus::Success,
                 DataDisclosureStatus::Disclosed,
             )
@@ -292,6 +272,7 @@ mod tests {
                 timestamp_older + Duration::days(1),
                 None,
                 reader_key.certificate().clone(),
+                DisclosureType::Regular,
                 DisclosureStatus::Cancelled,
                 DataDisclosureStatus::NotDisclosed,
             )
@@ -303,6 +284,7 @@ mod tests {
                 timestamp_older + Duration::days(2),
                 None,
                 reader_key.certificate().clone(),
+                DisclosureType::Regular,
                 DisclosureStatus::Error,
                 DataDisclosureStatus::NotDisclosed,
             )
@@ -314,6 +296,7 @@ mod tests {
                 timestamp_newer,
                 None,
                 reader_key.certificate().clone(),
+                DisclosureType::Regular,
                 DisclosureStatus::Success,
                 DataDisclosureStatus::Disclosed,
             )
