@@ -43,9 +43,11 @@ axum = { workspace = true, features = ["form", "http1", "json", "query", "tokio"
 chrono = { workspace = true, features = ["serde", "std"] }
 config = { workspace = true, features = ["toml", "preserve_order"] }
 futures = { workspace = true, features = ["std", "async-await"] }
+hex.workspace = true
 indexmap = { workspace = true, features = ["serde"] }
 p256 = { workspace = true, features = ["ecdsa", "pkcs8"] }
 reqwest = { workspace = true, features = ["rustls-tls-webpki-roots"] }
+ring.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 serde_with = { workspace = true, features = ["base64"] }
@@ -72,6 +74,7 @@ jwt.path = "../../lib/jwt"
 openid4vc = { path = "../../lib/openid4vc", features = ["axum"] }
 openid4vc_server = { path = "../../lib/openid4vc_server", features = ["issuance"] }
 utils = { path = "../../lib/utils" }
+sd_jwt_vc_metadata.path = "../../lib/sd_jwt_vc_metadata"
 server_utils.path = "../server_utils"
 
 [dev-dependencies]

@@ -91,6 +91,22 @@
         }
       ],
       "sd": "always"
+    },
+    {
+      "path": ["recovery_code"],
+      "display": [
+        {
+          "lang": "en-US",
+          "label": "Recovery code",
+          "description": "Recovery code of the person"
+        },
+        {
+          "lang": "nl-NL",
+          "label": "Herstelcode",
+          "description": "Herstelcode van de persoon"
+        }
+      ],
+      "sd": "always"
     }
   ],
   "schema": {

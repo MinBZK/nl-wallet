@@ -12,10 +12,12 @@ use http_utils::urls::BaseUrl;
 use issuer_settings::settings::IssuerSettings;
 use issuer_settings::settings::IssuerSettingsError;
 use openid4vc::server_state::SessionStoreTimeouts;
+use server_utils::settings::SecretKey;
 use server_utils::settings::ServerSettings;
 use server_utils::settings::Settings;
 use server_utils::settings::NL_WALLET_CLIENT_ID;
 use utils::path::prefix_local_path;
+use utils::vec_at_least::VecNonEmpty;
 
 #[serde_as]
 #[derive(Clone, Deserialize)]
@@ -26,8 +28,20 @@ pub struct PidIssuerSettings {
     #[serde_as(as = "Base64")]
     pub wte_issuer_pubkey: DerVerifyingKey,
 
+    pub recovery_code: RecoveryCode,
+
     #[serde(flatten)]
     pub issuer_settings: IssuerSettings,
+}
+
+#[derive(Clone, Deserialize)]
+pub struct RecoveryCode {
+    #[serde(flatten)]
+    pub hmac_secret: SecretKey,
+
+    pub attestation_type: String,
+    pub recovery_code_claim_paths: VecNonEmpty<String>,
+    pub bsn_claim_paths: VecNonEmpty<String>,
 }
 
 #[derive(Clone, Deserialize)]

@@ -4,6 +4,7 @@ use anyhow::Result;
 
 use hsm::service::Pkcs11Hsm;
 use pid_issuer::pid::attributes::BrpPidAttributeService;
+use pid_issuer::pid::attributes::RecoveryCodeConfig;
 use pid_issuer::pid::brp::client::HttpBrpClient;
 use pid_issuer::server;
 use pid_issuer::settings::PidIssuerSettings;
@@ -36,6 +37,7 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
         HttpBrpClient::new(settings.brp_server),
         &settings.digid.bsn_privkey,
         settings.digid.http_config,
+        RecoveryCodeConfig::from_settings(settings.recovery_code, hsm.clone())?,
     )?;
 
     // This will block until the server shuts down.

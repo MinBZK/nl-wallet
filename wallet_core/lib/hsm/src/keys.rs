@@ -30,3 +30,15 @@ impl EcdsaKey for HsmEcdsaKey {
 }
 
 impl SecureEcdsaKey for HsmEcdsaKey {}
+
+#[derive(Constructor)]
+pub struct HsmHmacKey {
+    identifier: String,
+    hsm: Pkcs11Hsm,
+}
+
+impl HsmHmacKey {
+    pub async fn sign_hmac(&self, msg: &[u8]) -> Result<Vec<u8>, HsmError> {
+        Hsm::sign_hmac(&self.hsm, &self.identifier, Arc::new(msg.into())).await
+    }
+}

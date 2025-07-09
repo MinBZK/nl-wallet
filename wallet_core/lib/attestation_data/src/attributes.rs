@@ -329,17 +329,106 @@ impl Attributes {
         traverse_depth_first(&[], self.as_ref(), &mut result);
         result
     }
+
+    /// Retrieve the attribute value at the specified location, if it exists.
+    ///
+    /// NB: for now only all claim paths must be strings.
+    pub fn get(
+        &self,
+        claim_paths: &VecNonEmpty<ClaimPath>,
+    ) -> Result<Option<&AttributeValue>, AttributesHandlingError> {
+        let Some(mut attr) = self.as_ref().get(
+            claim_paths
+                .first()
+                .try_key_path()
+                .ok_or(AttributesHandlingError::InvalidClaimPath)?,
+        ) else {
+            return Ok(None);
+        };
+
+        // We already handled the first element above, so skip it here
+        for claim_path in &claim_paths[1..] {
+            let claim_path = claim_path
+                .try_key_path()
+                .ok_or(AttributesHandlingError::InvalidClaimPath)?;
+
+            attr = match attr {
+                Attribute::Single(_) => return Ok(None),
+                Attribute::Nested(map) => match map.get(claim_path) {
+                    Some(map) => map,
+                    None => return Ok(None),
+                },
+            };
+        }
+
+        let attr = match attr {
+            Attribute::Single(value) => value,
+            _ => return Ok(None),
+        };
+
+        Ok(Some(attr))
+    }
+
+    /// Insert the specified attribute at the specified location.
+    ///
+    /// NB: for now only all claim paths must be strings.
+    pub fn insert(
+        &mut self,
+        claim_paths: &VecNonEmpty<ClaimPath>,
+        attr: &Attribute,
+    ) -> Result<(), AttributesHandlingError> {
+        let len = claim_paths.as_ref().len();
+
+        // Traverse down the tree structure until we arrive at the location specified by the claim paths.
+        let mut selected = &mut Attribute::Single(AttributeValue::Bool(false)); // dummy assignment for the loop below
+        for (index, claim_path) in claim_paths.iter().enumerate() {
+            let claim_path = claim_path
+                .try_key_path()
+                .ok_or(AttributesHandlingError::InvalidClaimPath)?;
+
+            let map = if index == 0 {
+                &mut self.0
+            } else {
+                match selected {
+                    Attribute::Single(_) => return Err(AttributesHandlingError::ClaimAlreadyExists),
+                    Attribute::Nested(map) => map,
+                }
+            };
+
+            if index == len - 1 && map.contains_key(claim_path) {
+                return Err(AttributesHandlingError::ClaimAlreadyExists);
+            }
+
+            selected = map.entry(claim_path.to_string()).or_insert(if index == len - 1 {
+                attr.clone()
+            } else {
+                Attribute::Nested(IndexMap::new())
+            });
+        }
+
+        Ok(())
+    }
+}
+
+#[derive(Debug, thiserror::Error, PartialEq)]
+pub enum AttributesHandlingError {
+    #[error("invalid claim path")]
+    InvalidClaimPath,
+    #[error("cannot insert claim: already exists")]
+    ClaimAlreadyExists,
 }
 
 #[cfg(test)]
 pub mod test {
     use assert_matches::assert_matches;
     use indexmap::IndexMap;
+    use rstest::rstest;
     use serde_json::json;
     use serde_valid::json::ToJsonString;
 
     use mdoc::Entry;
     use mdoc::NameSpace;
+    use sd_jwt_vc_metadata::ClaimPath;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use utils::vec_at_least::VecNonEmpty;
 
@@ -347,6 +436,7 @@ pub mod test {
     use crate::attributes::AttributeValue;
     use crate::attributes::Attributes;
     use crate::attributes::AttributesError;
+    use crate::attributes::AttributesHandlingError;
 
     pub fn complex_attributes() -> IndexMap<String, Attribute> {
         IndexMap::from([
@@ -655,6 +745,85 @@ pub mod test {
                 }
             })
         );
+    }
+
+    #[rstest]
+    #[case(
+        vec![ClaimPath::SelectByKey("house".to_string()), ClaimPath::SelectByKey("number".to_string())],
+        Ok(Some(&AttributeValue::Integer(1))))
+    ]
+    #[case(
+        vec![ClaimPath::SelectByKey("house".to_string()), ClaimPath::SelectByKey("foobar".to_string())],
+        Ok(None))
+    ]
+    #[case(
+        vec![ClaimPath::SelectByKey("foobar".to_string())],
+        Ok(None))
+    ]
+    #[case(
+        vec![ClaimPath::SelectByKey("city".to_string()), ClaimPath::SelectByKey("number".to_string())],
+        Ok(None))
+    ]
+    #[case(vec![ClaimPath::SelectByKey("house".to_string())], Ok(None))]
+    #[case(vec![ClaimPath::SelectByIndex(1)], Err(AttributesHandlingError::InvalidClaimPath))]
+    #[case(vec![ClaimPath::SelectAll], Err(AttributesHandlingError::InvalidClaimPath))]
+    fn test_attributes_get(
+        #[case] claim_paths: Vec<ClaimPath>,
+        #[case] expected: Result<Option<&AttributeValue>, AttributesHandlingError>,
+    ) {
+        let attributes = setup_issuable_attributes();
+        let claim_paths = &claim_paths.try_into().unwrap();
+
+        assert_eq!(attributes.get(claim_paths), expected);
+    }
+
+    #[rstest]
+    #[case(
+        vec![ClaimPath::SelectByKey("foo".to_string())],
+        Ok(json!({
+            "outer": { "inner": "value" },
+            "foo": true
+        }))
+    )]
+    #[case(
+        vec![ClaimPath::SelectByKey("outer".to_string()), ClaimPath::SelectByKey("foo".to_string())],
+        Ok(json!({
+            "outer": { "inner": "value", "foo": true },
+        }))
+    )]
+    #[case(
+        vec![ClaimPath::SelectByKey("outer".to_string())],
+        Err(AttributesHandlingError::ClaimAlreadyExists)
+    )]
+    #[case(
+        vec![ClaimPath::SelectByIndex(0)],
+        Err(AttributesHandlingError::InvalidClaimPath)
+    )]
+    #[case(
+        vec![ClaimPath::SelectAll],
+        Err(AttributesHandlingError::InvalidClaimPath)
+    )]
+    fn test_attributes_insert(
+        #[case] claim_paths: Vec<ClaimPath>,
+        #[case] expected: Result<serde_json::Value, AttributesHandlingError>,
+    ) {
+        let mut attributes: Attributes = IndexMap::from_iter([(
+            "outer".to_string(),
+            Attribute::Nested(IndexMap::from_iter([(
+                "inner".to_string(),
+                Attribute::Single(AttributeValue::Text("value".to_string())),
+            )])),
+        )])
+        .into();
+
+        let result = attributes
+            .insert(
+                &claim_paths.try_into().unwrap(),
+                &Attribute::Single(AttributeValue::Bool(true)),
+            )
+            .map(|_| serde_json::to_value(attributes).unwrap());
+
+        assert_eq!(result, expected);
     }
 
     fn readable_mdoc_attributes(

@@ -114,6 +114,20 @@ pub enum PrivateKey {
     },
 }
 
+#[serde_as]
+#[derive(Clone, Deserialize)]
+#[serde(rename_all = "snake_case")]
+#[serde(tag = "secret_key_type")]
+pub enum SecretKey {
+    Software {
+        #[serde_as(as = "Base64")]
+        secret_key: Vec<u8>,
+    },
+    Hsm {
+        secret_key: String,
+    },
+}
+
 impl From<&Storage> for SessionStoreTimeouts {
     fn from(value: &Storage) -> Self {
         SessionStoreTimeouts {

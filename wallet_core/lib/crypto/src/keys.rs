@@ -47,6 +47,13 @@ impl EcdsaKeySend for p256::ecdsa::SigningKey {
     }
 }
 
+#[trait_variant::make(HmacKeySend: Send)]
+pub trait HmacKey {
+    type Error: Error + Send + Sync + 'static;
+
+    async fn sign_hmac(&self, msg: &[u8]) -> Result<Vec<u8>, Self::Error>;
+}
+
 pub trait EncryptionKey {
     type Error: Error + Send + Sync + 'static;
 

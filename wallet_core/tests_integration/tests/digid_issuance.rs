@@ -9,7 +9,10 @@ use openid4vc::issuance_session::HttpVcMessageClient;
 use openid4vc::issuance_session::IssuanceSession;
 use openid4vc::oidc::HttpOidcClient;
 use pid_issuer::pid::attributes::BrpPidAttributeService;
+use pid_issuer::pid::attributes::RecoveryCodeConfig;
 use pid_issuer::pid::brp::client::HttpBrpClient;
+use pid_issuer::settings::RecoveryCode;
+use server_utils::settings::SecretKey;
 use server_utils::settings::NL_WALLET_CLIENT_ID;
 use tests_integration::common::*;
 use tests_integration::fake_digid::fake_digid_auth;
@@ -48,8 +51,21 @@ async fn test_pid_issuance_digid_bridge() {
         HttpBrpClient::new(settings.brp_server.clone()),
         &settings.digid.bsn_privkey,
         settings.digid.http_config.clone(),
+        RecoveryCodeConfig::from_settings(
+            RecoveryCode {
+                hmac_secret: SecretKey::Software {
+                    secret_key: vec![1, 2, 3],
+                },
+                attestation_type: "urn:eudi:pid:nl:1".to_string(),
+                bsn_claim_paths: vec!["bsn".to_string()].try_into().unwrap(),
+                recovery_code_claim_paths: vec!["recovery_code".to_string()].try_into().unwrap(),
+            },
+            None,
+        )
+        .unwrap(),
     )
     .unwrap();
+
     let port = start_pid_issuer_server(settings.clone(), hsm, attr_service).await;
 
     start_gba_hc_converter(gba_hc_converter_settings()).await;
