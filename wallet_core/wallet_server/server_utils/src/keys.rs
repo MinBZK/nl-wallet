@@ -8,7 +8,6 @@ use ring::hmac::HMAC_SHA256;
 use crypto::keys::EcdsaKey;
 use crypto::keys::EcdsaKeySend;
 use crypto::x509::CertificateError;
-use crypto::HmacKey;
 use hsm::keys::HsmEcdsaKey;
 use hsm::keys::HsmHmacKey;
 use hsm::service::HsmError;
@@ -86,10 +85,8 @@ pub enum SecretKeyVariantError {
     Hardware(#[from] HsmError),
 }
 
-impl HmacKey for SecretKeyVariant {
-    type Error = SecretKeyVariantError;
-
-    async fn sign_hmac(&self, msg: &[u8]) -> Result<Vec<u8>, Self::Error> {
+impl SecretKeyVariant {
+    pub async fn sign_hmac(&self, msg: &[u8]) -> Result<Vec<u8>, SecretKeyVariantError> {
         match self {
             SecretKeyVariant::Software(key) => Ok(hmac::sign(key, msg).as_ref().to_vec()),
             SecretKeyVariant::Hsm(key) => Ok(key.sign_hmac(msg).await?),

@@ -8,7 +8,6 @@ use attestation_data::attributes::Attributes;
 use attestation_data::attributes::AttributesHandlingError;
 use attestation_data::issuable_document::IssuableDocument;
 use crypto::x509::CertificateError;
-use crypto::HmacKey;
 use hsm::service::Pkcs11Hsm;
 use http_utils::tls::pinning::TlsPinningConfig;
 use http_utils::urls::BaseUrl;
