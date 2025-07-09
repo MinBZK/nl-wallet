@@ -10,6 +10,7 @@ use nutype::nutype;
 use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde_with::base64::Base64;
+use serde_with::hex::Hex;
 use serde_with::serde_as;
 use url::Url;
 
@@ -121,7 +122,7 @@ pub enum PrivateKey {
 #[serde(tag = "secret_key_type")]
 pub enum SecretKey {
     Software {
-        #[serde_as(as = "Base64")]
+        #[serde_as(as = "Hex")]
         secret_key: SecretKeyBytes,
     },
     Hsm {

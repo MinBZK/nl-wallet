@@ -24,8 +24,9 @@ max_sessions = 3
 max_session_lifetime_in_sec = 900
 
 [recovery_code]
-secret_key_type = "software"                                # or `hsm`, in which case `secret_key` is the key identifier
-secret_key = "uVb+eHfB1qCWSb2S1M3/HY5nDPA002qzbjsKmCiWOt8=" # Min 32 bytes. Create using e.g. `openssl rand 32 | base64`
+# Minimally 32 bytes. Generate with e.g. `openssl rand 32 | xxd -p -c64`
+secret_key = "fb34c5a3e40a818197ed866e4a38dafcf2158bd1fda2cbe1ff22e40e77b4f4f9"
+secret_key_type = "software"                                                    # or `hsm`
 attestation_type = "eudi:pid:nl:1.json"
 recovery_code_claim_paths = ["bsn"]
 bsn_claim_paths = ["recovery_code"]
