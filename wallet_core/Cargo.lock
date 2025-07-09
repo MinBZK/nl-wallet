@@ -6015,6 +6015,7 @@ dependencies = [
  "hsm",
  "http",
  "http_utils",
+ "nutype",
  "openid4vc",
  "p256",
  "ring",

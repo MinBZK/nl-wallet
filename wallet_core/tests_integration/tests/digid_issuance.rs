@@ -54,7 +54,7 @@ async fn test_pid_issuance_digid_bridge() {
         RecoveryCodeConfig::from_settings(
             RecoveryCode {
                 hmac_secret: SecretKey::Software {
-                    secret_key: vec![1, 2, 3],
+                    secret_key: (0..32).collect::<Vec<_>>().try_into().unwrap(),
                 },
                 attestation_type: "urn:eudi:pid:nl:1".to_string(),
                 bsn_claim_paths: vec!["bsn".to_string()].try_into().unwrap(),

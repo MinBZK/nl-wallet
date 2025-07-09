@@ -6,6 +6,7 @@ use std::time::Duration;
 use chrono::DateTime;
 use chrono::Utc;
 use config::ConfigError;
+use nutype::nutype;
 use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde_with::base64::Base64;
@@ -121,12 +122,17 @@ pub enum PrivateKey {
 pub enum SecretKey {
     Software {
         #[serde_as(as = "Base64")]
-        secret_key: Vec<u8>,
+        secret_key: SecretKeyBytes,
     },
     Hsm {
         secret_key: String,
     },
 }
+
+const MIN_SECRET_KEY_LENGTH_BYTES: usize = 32;
+
+#[nutype(validate(predicate = |v| v.len() >= MIN_SECRET_KEY_LENGTH_BYTES), derive(Clone, TryFrom, AsRef, Deserialize))]
+pub struct SecretKeyBytes(Vec<u8>);
 
 impl From<&Storage> for SessionStoreTimeouts {
     fn from(value: &Storage) -> Self {

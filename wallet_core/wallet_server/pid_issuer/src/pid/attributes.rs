@@ -199,14 +199,14 @@ mod tests {
     #[tokio::test]
     async fn test_recovery_code() {
         let bsn = "123";
-        let key = vec![1, 2, 3];
+        let key: Vec<_> = (0..32).collect();
 
         let mut attrs = attributes(bsn);
 
         let config = RecoveryCodeConfig::from_settings(
             RecoveryCode {
                 hmac_secret: SecretKey::Software {
-                    secret_key: key.clone(),
+                    secret_key: key.clone().try_into().unwrap(),
                 },
                 attestation_type: "pid".to_string(),
                 bsn_claim_paths: vec!["bsn".to_string()].try_into().unwrap(),
@@ -224,7 +224,7 @@ mod tests {
         let expected_hmac = hex::encode(hmac::sign(hmac_key, bsn.as_bytes()));
         assert_eq!(
             expected_hmac,
-            "0d671cfdc738a504e724bb7e573be624cb4ff6fa43c40b0bf4aff85006a59650"
+            "e7c5538a4b15664ed667e05be3c25040fe6e433fbbc33c0cb5a85dfc09d9766c"
         );
 
         // The result should be the attributes we started with, with a recovery_code attribute added to it.

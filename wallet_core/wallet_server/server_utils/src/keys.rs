@@ -103,7 +103,9 @@ pub enum SecretKeySettingsError {
 impl SecretKeyVariant {
     pub fn from_settings(settings: SecretKey, hsm: Option<Pkcs11Hsm>) -> Result<Self, SecretKeySettingsError> {
         let key = match settings {
-            SecretKey::Software { secret_key } => SecretKeyVariant::Software(hmac::Key::new(HMAC_SHA256, &secret_key)),
+            SecretKey::Software { secret_key } => {
+                SecretKeyVariant::Software(hmac::Key::new(HMAC_SHA256, secret_key.as_ref()))
+            }
             SecretKey::Hsm { secret_key } => {
                 let hsm = hsm.ok_or(SecretKeySettingsError::MissingHsmSettings(secret_key.clone()))?;
                 SecretKeyVariant::Hsm(HsmHmacKey::new(secret_key, hsm))
