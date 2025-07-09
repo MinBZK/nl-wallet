@@ -11,7 +11,7 @@ workspace = true
 examples = []
 example_credential_payloads = ["dep:rand_core"]
 generate = ["dep:rcgen", "crypto/generate"]
-mock = ["crypto/mock", "mdoc/test"]
+mock = ["dep:rand_core", "crypto/mock", "mdoc/test"]
 test = ["derive_more/unwrap"]
 
 [dependencies]

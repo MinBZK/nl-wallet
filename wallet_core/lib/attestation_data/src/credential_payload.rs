@@ -285,7 +285,7 @@ impl CredentialPayload {
     }
 }
 
-#[cfg(any(test, feature = "example_credential_payloads"))]
+#[cfg(any(test, feature = "example_credential_payloads", feature = "mock"))]
 mod examples {
     use chrono::Duration;
     use chrono::Utc;
