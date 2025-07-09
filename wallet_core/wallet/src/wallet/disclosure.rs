@@ -442,6 +442,8 @@ where
                 let attestations = stored_mdocs
                     .into_iter()
                     .map(|stored_mdoc| {
+                        // TODO (PVW-4132): Mdoc attestations contained in the database should be assumed to be valid.
+                        //                  Once this is expressed within the type system, these errors can be removed.
                         let mdoc_certificate = stored_mdoc
                             .mdoc
                             .issuer_certificate()
@@ -1433,9 +1435,11 @@ mod tests {
         assert!(wallet.session.is_some());
     }
 
-    // Attestations that are stored in the database should be assumed to contain valid certificates and metadata.
-    // Codifying these assumptions in to the type system should be implemented in PVW-4132. For that reason tests are
-    // not included for the following error cases:
+    // TODO (PVW-4132): Attestations that are stored in the database should be assumed to contain valid certificates and
+    //                  metadata. Codifying these assumptions in to the type system should be implemented in PVW-4132.
+    //                  This comment should be removed once that is implemented.
+    //
+    // For the above reason tests are not included for the following error cases:
     // * DisclosureError::MdocCertificate
     // * DisclosureError::IssuerRegistration
     // * DisclosureError::MissingIssuerRegistration
