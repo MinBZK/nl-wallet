@@ -523,19 +523,26 @@ pub mod data {
         .into()
     }
 
-    pub fn pid_example_items_requests() -> ItemsRequests {
-        vec![ItemsRequest {
-            doc_type: PID.to_string(),
-            name_spaces: IndexMap::from_iter([(
-                PID.to_string(),
-                IndexMap::from_iter([
-                    ("bsn".to_string(), false),
-                    ("given_name".to_string(), false),
-                    ("family_name".to_string(), false),
-                ]),
-            )]),
-            request_info: None,
-        }]
-        .into()
+    impl ItemsRequest {
+        pub fn new_pid_example() -> Self {
+            Self {
+                doc_type: PID.to_string(),
+                name_spaces: IndexMap::from_iter([(
+                    PID.to_string(),
+                    IndexMap::from_iter([
+                        ("bsn".to_string(), false),
+                        ("given_name".to_string(), false),
+                        ("family_name".to_string(), false),
+                    ]),
+                )]),
+                request_info: None,
+            }
+        }
+    }
+
+    impl ItemsRequests {
+        pub fn new_pid_example() -> Self {
+            vec![ItemsRequest::new_pid_example()].into()
+        }
     }
 }

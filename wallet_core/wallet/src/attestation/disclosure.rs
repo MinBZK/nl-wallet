@@ -46,6 +46,7 @@ mod test {
     use crate::attestation::AttestationAttributeValue;
     use crate::attestation::AttestationError;
     use crate::attestation::AttestationPresentation;
+    use crate::AttestationIdentity;
 
     fn example_metadata() -> NormalizedTypeMetadata {
         NormalizedTypeMetadata::from_single_example(UncheckedTypeMetadata {
@@ -84,6 +85,8 @@ mod test {
             mdoc_attributes,
         )
         .unwrap();
+
+        assert_matches!(attestation.identity, AttestationIdentity::Fixed { .. });
 
         let attrs = attestation
             .attributes

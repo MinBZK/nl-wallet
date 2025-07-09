@@ -24,6 +24,9 @@ use crypto::trust_anchor::BorrowingTrustAnchor;
 use jwt::Jwt;
 use mdoc::holder::Mdoc;
 use openid4vc::disclosure_session::mock::MockDisclosureClient;
+use openid4vc::issuance_session::CredentialWithMetadata;
+use openid4vc::issuance_session::IssuedCredential;
+use openid4vc::issuance_session::IssuedCredentialCopies;
 use openid4vc::issuance_session::NormalizedCredentialPreview;
 use openid4vc::mock::MockIssuanceSession;
 use openid4vc::token::CredentialPreviewContent;
@@ -176,30 +179,44 @@ pub fn create_example_preview_data() -> NormalizedCredentialPreview {
 
 /// Generates a valid `Mdoc` that contains a full PID.
 pub fn create_example_pid_mdoc() -> Mdoc {
-    let (payload_preview, metadata) = issuance::mock::create_example_payload_preview();
+    let mdoc_credential = create_example_pid_mdoc_credential_with_key(&ISSUER_KEY);
+    let IssuedCredential::MsoMdoc(mdoc) = mdoc_credential.copies.into_inner().into_first() else {
+        unreachable!();
+    };
 
-    mdoc_from_unsigned(payload_preview, metadata, &ISSUER_KEY)
+    *mdoc
 }
 
-/// Generates a valid `Mdoc` that contains a full PID, with an unauthenticated issuer certificate.
-pub fn create_example_pid_mdoc_unauthenticated() -> Mdoc {
+/// Generates a valid `CredentialWithMetadata` that contains a full mdoc PID.
+pub fn create_example_pid_mdoc_credential() -> CredentialWithMetadata {
+    create_example_pid_mdoc_credential_with_key(&ISSUER_KEY)
+}
+
+/// Generates a valid `CredentialWithMetadata` that contains a
+/// full mdoc PID, with an unauthenticated issuer certificate.
+pub fn create_example_pid_mdoc_credential_unauthenticated() -> CredentialWithMetadata {
+    create_example_pid_mdoc_credential_with_key(&ISSUER_KEY_UNAUTHENTICATED)
+}
+
+fn create_example_pid_mdoc_credential_with_key(issuer_key: &IssuerKey) -> CredentialWithMetadata {
     let (payload_preview, metadata) = issuance::mock::create_example_payload_preview();
 
-    mdoc_from_unsigned(payload_preview, metadata, &ISSUER_KEY_UNAUTHENTICATED)
+    mdoc_credential_from_unsigned(payload_preview, metadata, issuer_key)
 }
 
 /// Generates a valid `Mdoc`, based on an `PreviewableCredentialPayload`, the `TypeMetadata` and issuer key.
-pub fn mdoc_from_unsigned(
+fn mdoc_credential_from_unsigned(
     payload: PreviewableCredentialPayload,
     metadata: TypeMetadata,
     issuer_key: &IssuerKey,
-) -> Mdoc {
+) -> CredentialWithMetadata {
     let private_key_id = crypto::utils::random_string(16);
     let mdoc_remote_key = MockRemoteEcdsaKey::new_random(private_key_id.clone());
     let mdoc_public_key = mdoc_remote_key.verifying_key();
-    let (_, metadata_integrity, _) = TypeMetadataDocuments::from_single_example(metadata);
+    let (attestation_type, metadata_integrity, metadata_documents) =
+        TypeMetadataDocuments::from_single_example(metadata);
 
-    payload
+    let mdoc = payload
         .into_signed_mdoc_unverified::<MockRemoteEcdsaKey>(
             metadata_integrity,
             private_key_id,
@@ -208,7 +225,13 @@ pub fn mdoc_from_unsigned(
         )
         .now_or_never()
         .unwrap()
-        .unwrap()
+        .unwrap();
+
+    CredentialWithMetadata::new(
+        IssuedCredentialCopies::new_or_panic(vec![IssuedCredential::MsoMdoc(Box::new(mdoc))].try_into().unwrap()),
+        attestation_type,
+        metadata_documents.into(),
+    )
 }
 
 pub fn generate_key_holder(vendor: WalletDeviceVendor) -> MockHardwareAttestedKeyHolder {
@@ -343,6 +366,10 @@ impl WalletWithMocks {
             MockDisclosureClient::default(),
         )
         .await
+    }
+
+    pub fn mut_storage(&mut self) -> &mut StorageStub {
+        Arc::get_mut(&mut self.storage).unwrap().get_mut()
     }
 }
 

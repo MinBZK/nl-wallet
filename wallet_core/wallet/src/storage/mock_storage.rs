@@ -168,6 +168,8 @@ impl Storage for StorageStub {
     }
 
     async fn increment_attestation_copies_usage_count(&mut self, attestation_copy_ids: Vec<Uuid>) -> StorageResult<()> {
+        self.check_query_error()?;
+
         attestation_copy_ids.into_iter().for_each(|mdoc_copy_id| {
             self.attestation_copies_usage_counts
                 .entry(mdoc_copy_id)
