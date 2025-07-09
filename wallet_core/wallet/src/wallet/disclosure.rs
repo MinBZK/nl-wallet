@@ -855,14 +855,11 @@ mod tests {
 
     use assert_matches::assert_matches;
     use itertools::Itertools;
-    use mdoc::utils::cose::CoseError;
     use mockall::predicate::always;
     use mockall::predicate::eq;
-    use openid4vc::disclosure_session::VpSessionError;
     use rstest::rstest;
     use serde::de::Error;
     use url::Url;
-    use utils::vec_at_least::VecNonEmpty;
     use uuid::Uuid;
 
     use attestation_data::attributes::AttributeValue;
@@ -875,6 +872,7 @@ mod tests {
     use crypto::x509::BorrowingCertificateExtension;
     use http_utils::urls;
     use http_utils::urls::BaseUrl;
+    use mdoc::utils::cose::CoseError;
     use openid4vc::disclosure_session;
     use openid4vc::disclosure_session::mock::MockDisclosureClient;
     use openid4vc::disclosure_session::mock::MockDisclosureSession;
@@ -882,6 +880,7 @@ mod tests {
     use openid4vc::disclosure_session::VerifierCertificate;
     use openid4vc::disclosure_session::VpClientError;
     use openid4vc::disclosure_session::VpMessageClientError;
+    use openid4vc::disclosure_session::VpSessionError;
     use openid4vc::disclosure_session::VpVerifierError;
     use openid4vc::errors::DisclosureErrorResponse;
     use openid4vc::errors::ErrorResponse;
@@ -891,6 +890,7 @@ mod tests {
     use openid4vc::verifier::SessionType;
     use openid4vc::PostAuthResponseErrorCode;
     use update_policy_model::update_policy::VersionState;
+    use utils::vec_at_least::VecNonEmpty;
 
     use crate::attestation::AttestationAttributeValue;
     use crate::attestation::AttestationIdentity;
