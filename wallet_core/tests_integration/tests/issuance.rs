@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use assert_matches::assert_matches;
+
 use indexmap::IndexMap;
 use serial_test::serial;
 use url::Url;
@@ -61,15 +63,27 @@ async fn test_pid_ok() {
     let pid_attestation = attestations.first().unwrap();
     assert_eq!(pid_attestation.attestation_type, PID_DOCTYPE);
 
-    let bsn_attr = pid_attestation.attributes.iter().find(|a| a.key == vec![BSN_ATTR_NAME]);
+    let bsn_attr = pid_attestation
+        .attributes
+        .iter()
+        .find(|a| a.key == vec![BSN_ATTR_NAME])
+        .unwrap();
 
-    match bsn_attr {
-        Some(bsn_attr) => assert_eq!(
-            bsn_attr.value,
-            AttestationAttributeValue::Basic(AttributeValue::Text("999991772".to_string()))
-        ),
-        None => panic!("BSN attribute not found"),
-    }
+    assert_eq!(
+        bsn_attr.value,
+        AttestationAttributeValue::Basic(AttributeValue::Text("999991772".to_string()))
+    );
+
+    let recovery_code_attr = pid_attestation
+        .attributes
+        .iter()
+        .find(|a| a.key == vec!["recovery_code"])
+        .unwrap();
+
+    assert_matches!(
+        recovery_code_attr.value,
+        AttestationAttributeValue::Basic(AttributeValue::Text(_))
+    );
 }
 
 fn universal_link(issuance_server_url: &BaseUrl) -> Url {
