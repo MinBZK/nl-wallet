@@ -2,7 +2,6 @@
 gba-pid = { max-threads = 2 }
 db-hsm = { max-threads = 1 }
 mock-oidc = { max-threads = 1 }
-mock-digid-session = { max-threads = 1 }
 mock-issuance-session = { max-threads = 1 }
 
 [[profile.default.overrides]]
@@ -14,12 +13,8 @@ filter = 'package(tests_integration*) | (kind(test) & (package(wallet_provider*)
 test-group = 'db-hsm'
 
 [[profile.default.overrides]]
-filter = 'package(wallet) & test(/^issuance::app2app/)'
+filter = 'package(wallet) & test(/^digid::http::/)'
 test-group = 'mock-oidc'
-
-[[profile.default.overrides]]
-filter = 'package(wallet) & test(/test_create_pid_issuance_auth_url(|_error_digid_session_start)$/)'
-test-group = 'mock-digid-session'
 
 [[profile.default.overrides]]
 filter = 'package(wallet) & test(/test_continue_pid_issuance(|_error_(pid_issuer|document))$/)'

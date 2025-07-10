@@ -49,8 +49,6 @@ pub async fn wallet_attestations(wallet: &mut WalletWithMocks) -> Vec<Attestatio
 #[tokio::test]
 #[serial(hsm)]
 async fn test_pid_ok() {
-    let _retain = setup_digid_context();
-
     let pin = "112233";
     let mut wallet = setup_wallet_and_default_env(WalletDeviceVendor::Apple).await;
     wallet = do_wallet_registration(wallet, pin).await;
@@ -150,8 +148,6 @@ fn pid_missing_required() -> IssuableDocument {
 #[tokio::test]
 #[serial(hsm)]
 async fn test_pid_optional_attributes() {
-    let _retain = setup_digid_context();
-
     let pin = "112233";
     let (mut wallet, _, _) = setup_wallet_and_env(
         WalletDeviceVendor::Apple,
@@ -193,8 +189,6 @@ async fn test_pid_optional_attributes() {
 #[tokio::test]
 #[serial(hsm)]
 async fn test_pid_missing_required_attributes() {
-    let _retain = setup_digid_context();
-
     let pin = "112233";
     let (mut wallet, _, _) = setup_wallet_and_env(
         WalletDeviceVendor::Apple,
@@ -237,8 +231,6 @@ async fn test_pid_missing_required_attributes() {
 #[tokio::test]
 #[serial(hsm)]
 async fn test_disclosure_based_issuance_ok() {
-    let _context = setup_digid_context();
-
     let pin = "112233";
     let (mut wallet, _, issuance_url) = setup_wallet_and_env(
         WalletDeviceVendor::Apple,
@@ -280,8 +272,6 @@ async fn test_disclosure_based_issuance_ok() {
 #[tokio::test]
 #[serial(hsm)]
 async fn test_disclosure_based_issuance_error_no_attributes() {
-    let _context = setup_digid_context();
-
     let (issuance_server_settings, _, di_trust_anchor, di_tls_config) = issuance_server_settings();
 
     let pin = "112233";

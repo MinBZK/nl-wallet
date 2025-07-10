@@ -15,6 +15,7 @@ use platform_support::attested_key::AttestedKeyHolder;
 use update_policy_model::update_policy::VersionState;
 use utils::vec_at_least::VecNonEmpty;
 
+use crate::digid::DigidClient;
 use crate::errors::StorageError;
 use crate::repository::Repository;
 use crate::storage::DataDisclosureStatus;
@@ -52,12 +53,13 @@ type HistoryResult<T> = Result<T, HistoryError>;
 
 pub type RecentHistoryCallback = Box<dyn FnMut(Vec<WalletEvent>) + Send + Sync>;
 
-impl<CR, UR, S, AKH, APC, DS, IS, DC, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, DC, WIC>
+impl<CR, UR, S, AKH, APC, DC, IS, DCC, WIC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC, WIC>
 where
     S: Storage,
     UR: Repository<VersionState>,
     AKH: AttestedKeyHolder,
-    DC: DisclosureClient,
+    DC: DigidClient,
+    DCC: DisclosureClient,
 {
     pub(super) async fn store_disclosure_event(
         &mut self,

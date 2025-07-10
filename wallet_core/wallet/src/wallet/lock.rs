@@ -12,6 +12,7 @@ use update_policy_model::update_policy::VersionState;
 use wallet_account::messages::instructions::CheckPin;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
+use crate::digid::DigidClient;
 pub use crate::lock::LockCallback;
 pub use crate::storage::UnlockMethod;
 
@@ -55,10 +56,11 @@ pub enum WalletUnlockError {
     UpdatePolicy(#[from] UpdatePolicyError),
 }
 
-impl<CR, UR, S, AKH, APC, DS, IS, DC, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, DC, WIC>
+impl<CR, UR, S, AKH, APC, DC, IS, DCC, WIC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC, WIC>
 where
     AKH: AttestedKeyHolder,
-    DC: DisclosureClient,
+    DC: DigidClient,
+    DCC: DisclosureClient,
 {
     pub fn is_locked(&self) -> bool {
         self.lock.is_locked()

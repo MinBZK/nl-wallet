@@ -21,6 +21,7 @@ use crypto::p256_der::DerVerifyingKey;
 use crypto::server_keys::generate::Ca;
 use crypto::server_keys::KeyPair;
 use crypto::trust_anchor::BorrowingTrustAnchor;
+use http_utils::tls::pinning::TlsPinningConfig;
 use jwt::Jwt;
 use mdoc::holder::Mdoc;
 use openid4vc::disclosure_session::mock::MockDisclosureClient;
@@ -48,8 +49,8 @@ use crate::config::default_config_server_config;
 use crate::config::default_wallet_config;
 use crate::config::LocalConfigurationRepository;
 use crate::config::UpdatingConfigurationRepository;
+use crate::digid::MockDigidClient;
 use crate::issuance;
-use crate::issuance::MockDigidSession;
 use crate::issuance::PID_DOCTYPE;
 use crate::pin::key as pin_key;
 use crate::storage::KeyedData;
@@ -60,6 +61,7 @@ use crate::storage::StorageState;
 use crate::storage::StorageStub;
 use crate::update_policy::MockUpdatePolicyRepository;
 use crate::wallet::attestations::AttestationsError;
+use crate::wallet::init::WalletClients;
 use crate::wte::tests::MockWteIssuanceClient;
 use crate::AttestationPresentation;
 use crate::WalletEvent;
@@ -95,7 +97,7 @@ pub type WalletWithMocks = Wallet<
     StorageStub,
     MockHardwareAttestedKeyHolder,
     MockAccountProviderClient,
-    MockDigidSession,
+    MockDigidClient<TlsPinningConfig>,
     MockIssuanceSession,
     MockDisclosureClient,
     MockWteIssuanceClient,
@@ -108,7 +110,7 @@ pub type WalletWithStorageMock = Wallet<
     MockStorage,
     MockHardwareAttestedKeyHolder,
     MockAccountProviderClient,
-    MockDigidSession,
+    MockDigidClient<TlsPinningConfig>,
     MockIssuanceSession,
     MockDisclosureClient,
     MockWteIssuanceClient,
@@ -280,7 +282,7 @@ impl<S>
         S,
         MockHardwareAttestedKeyHolder,
         MockAccountProviderClient,
-        MockDigidSession,
+        MockDigidClient<TlsPinningConfig>,
         MockIssuanceSession,
         MockDisclosureClient,
         MockWteIssuanceClient,
@@ -303,8 +305,7 @@ where
             MockUpdatePolicyRepository::default(),
             S::default(),
             generate_key_holder(vendor),
-            MockAccountProviderClient::default(),
-            MockDisclosureClient::default(),
+            WalletClients::default(),
             RegistrationStatus::Unregistered,
         )
     }
@@ -398,8 +399,7 @@ impl WalletWithMocks {
             MockUpdatePolicyRepository::default(),
             storage,
             key_holder,
-            MockAccountProviderClient::default(),
-            MockDisclosureClient::default(),
+            WalletClients::default(),
         )
         .await
     }
