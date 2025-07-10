@@ -6,6 +6,7 @@ class MenuScreen : MobileActions() {
 
     private val screen = find.byValueKey("menuScreen")
 
+    private val appTourVideoButton = find.byText(l10n.getString("menuScreenTourCta"))
     private val helpButton = find.byText(l10n.getString("menuScreenHelpCta"))
     private val historyButton = find.byText(l10n.getString("menuScreenHistoryCta"))
     private val settingsButton = find.byText(l10n.getString("menuScreenSettingsCta"))
@@ -49,4 +50,6 @@ class MenuScreen : MobileActions() {
         clickElement(browserTestButton)
         switchToWebViewContext()
     }
+
+    fun clickAppTourVideoButton()= clickElement(appTourVideoButton)
 }
