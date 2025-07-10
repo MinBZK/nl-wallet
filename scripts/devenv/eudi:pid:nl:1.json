@@ -160,6 +160,9 @@
       },
       "bsn": {
         "type": "string"
+      },
+      "recovery_code": {
+        "type": "string"
       }
     },
     "required": ["vct", "iss", "attestation_qualification", "given_name", "family_name", "birthdate", "bsn"]
