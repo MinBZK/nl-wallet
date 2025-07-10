@@ -43,15 +43,19 @@ private_key_type = "hsm"                      # or "software"
 private_key = "disclosure_based_issuance_key" # label for the private key in the HSM, in case of "hsm"
 certificate = "MIJ..."
 
+# Attributes that have to be disclosed for `disclosure_based_issuance` in DCQL format
+[[disclosure_settings.disclosure_based_issuance.to_disclose.credentials]]
+id = "my_credential"
+format = "mso_mdoc"
+meta = { doctype_value = "com.example.pid" },
+claims = [
+  { path = ["com.example.pid", "bsn"], intent_to_retain: true },
+]
+
 [disclosure_settings.degree.attestation_url_config]
 # URL to the attestation server
 base_url = "https://attestation_server.example.com"
 trust_anchors = ["MIJ..."]
-
-# Attributes that have to be disclosed for `disclosure_based_issuance`
-[[disclosure_settings.disclosure_based_issuance.to_disclose]]
-docType = "com.example.pid"
-nameSpaces = { "com.example.pid" = { bsn = true } }
 
 [attestation_settings."com.example.address"]
 valid_days = 365

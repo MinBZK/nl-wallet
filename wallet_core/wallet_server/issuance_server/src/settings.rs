@@ -4,6 +4,7 @@ use config::Config;
 use config::ConfigError;
 use config::Environment;
 use config::File;
+use dcql::Query;
 use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde_with::base64::Base64;
@@ -17,7 +18,6 @@ use http_utils::urls::BaseUrl;
 use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
 use issuer_settings::settings::IssuerSettings;
 use issuer_settings::settings::IssuerSettingsError;
-use mdoc::verifier::ItemsRequests;
 use openid4vc::server_state::SessionStoreTimeouts;
 use server_utils::settings::verify_key_pairs;
 use server_utils::settings::KeyPair;
@@ -47,7 +47,7 @@ pub struct IssuanceServerSettings {
 pub struct AttestationSettings {
     #[serde(flatten)]
     pub key_pair: KeyPair,
-    pub to_disclose: ItemsRequests,
+    pub to_disclose: Query,
 
     /// Endpoint to which the disclosed attributes get sent and which has to respond with the attestations to be issued
     /// (or an empty JSON array if none).

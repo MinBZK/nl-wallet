@@ -24,3 +24,5 @@ utils.path = "../utils"
 
 [dev-dependencies]
 rstest.workspace = true
+
+dcql = { path = "../dcql", features = ["examples"] }

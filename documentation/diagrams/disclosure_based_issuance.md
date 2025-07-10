@@ -85,15 +85,19 @@ private_key = "my_issuer_key"
 # RP certificate
 certificate = "MIJ..."
 
+# Attributes that have to be disclosed for `degree` in DCQL format
+[[disclosure_settings.degree.to_disclose.credentials]]
+id = "my_credential"
+format = "mso_mdoc"
+meta = { doctype_value = "com.example.pid" }
+claims = [
+    { path = ["com.example.pid", "bsn"], intent_to_retain = true }
+]
+
 [disclosure_settings.degree.attestation_url_config]
 # URL to the attestation server
 base_url = "https://attestation_server.example.com"
 trust_anchors = ["MIJ..."]
-
-# Attributes that have to be disclosed for `degree`
-[[disclosure_settings.degree.to_disclose]]
-docType = "com.example.pid"
-nameSpaces = { "com.example.pid" = { bsn = true } }
 
 # A block like this has to be present for each attestation type that gets issued
 [attestation_settings."com.example.degree"]
@@ -144,7 +148,7 @@ Finally, the issuer issues the attestations using OpenID4VCI in the pre-authoriz
 
 During OpenID4VCI, the issuer requires the wallet to include the keys of the attestations that it disclosed earlier in its Proof of Association (PoA) when it sends its Proofs of Possession (PoPs) for the keys of the attestation (copies). This enforces that the newly issued attestations are bound to the same WSCD as the one that disclosed the attestations in the first part of the protocol.
 
-```{mermaid} 
+```{mermaid}
 sequenceDiagram
     autonumber
     actor User
