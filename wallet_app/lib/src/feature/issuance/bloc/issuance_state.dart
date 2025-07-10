@@ -141,7 +141,7 @@ class IssuanceReviewCards extends IssuanceState {
 
   /// Create a IssuanceReviewCards state where all provided cards default to being selected
   factory IssuanceReviewCards.init({required List<WalletCard> cards, bool afterBackPressed = false}) {
-    final selectableCards = cards.asMap().map((_, card) => MapEntry(card, true));
+    final selectableCards = cards.toMap((card) => true);
     return IssuanceReviewCards(selectableCards: selectableCards, afterBackPressed: afterBackPressed);
   }
 
