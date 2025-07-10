@@ -12,6 +12,7 @@ use chrono::SecondsFormat;
 use chrono::Utc;
 use derive_more::AsRef;
 use derive_more::Constructor;
+use derive_more::Debug;
 use derive_more::From;
 use indexmap::IndexMap;
 use josekit::jwk::alg::ec::EcCurve;
@@ -546,7 +547,7 @@ pub struct RpInitiatedUseCase<K> {
     return_url_template: Option<ReturnUrlTemplate>,
 }
 
-#[derive(Constructor)]
+#[derive(Debug, Constructor)]
 pub struct RpInitiatedUseCases<K, S> {
     disclosures: HashMap<String, RpInitiatedUseCase<K>>,
     ephemeral_id_secret: hmac::Key,
@@ -726,7 +727,7 @@ pub struct WalletInitiatedUseCase<K> {
     return_url_template: ReturnUrlTemplate,
 }
 
-#[derive(Constructor)]
+#[derive(Debug, Constructor)]
 pub struct WalletInitiatedUseCases<K> {
     disclosures: HashMap<String, WalletInitiatedUseCase<K>>,
 }
@@ -847,11 +848,13 @@ pub trait DisclosureResultHandler {
     ) -> Result<HashMap<String, String>, DisclosureResultHandlerError>;
 }
 
+#[derive(Debug)]
 pub struct Verifier<S, US> {
     use_cases: US,
     sessions: Arc<S>,
     cleanup_task: JoinHandle<()>,
     trust_anchors: Vec<TrustAnchor<'static>>,
+    #[debug(skip)]
     result_handler: Option<Box<dyn DisclosureResultHandler + Send + Sync>>,
     accepted_wallet_client_ids: Vec<String>,
 }

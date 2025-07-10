@@ -188,10 +188,9 @@ impl HandleInstruction for GenerateKey {
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
         H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
     {
-        let identifiers: Vec<&str> = self.identifiers.iter().map(|i| i.as_str()).collect();
         let keys = user_state
             .wallet_user_hsm
-            .generate_wrapped_keys(&user_state.wrapping_key_identifier, &identifiers)
+            .generate_wrapped_keys(&user_state.wrapping_key_identifier, self.count)
             .await?;
 
         let (public_keys, wrapped_keys) = keys
@@ -284,7 +283,7 @@ impl HandleInstruction for IssueWte {
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
         H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
     {
-        let (wrapped_privkey, wte) = user_state
+        let (wrapped_privkey, key_id, wte) = user_state
             .wte_issuer
             .issue_wte()
             .await
@@ -295,7 +294,7 @@ impl HandleInstruction for IssueWte {
             wallet_user_id: wallet_user.id,
             keys: vec![WalletUserKey {
                 wallet_user_key_id: uuid_generator.generate(),
-                key_identifier: self.key_identifier,
+                key_identifier: key_id.clone(),
                 key: wrapped_privkey,
             }],
         };
@@ -306,7 +305,7 @@ impl HandleInstruction for IssueWte {
             .await?;
         tx.commit().await?;
 
-        Ok(IssueWteResult { wte })
+        Ok(IssueWteResult { key_id, wte })
     }
 }
 
@@ -451,8 +450,9 @@ mod tests {
     use rand::rngs::OsRng;
     use rstest::rstest;
 
+    use crypto::p256_der::verifying_key_sha256;
     use crypto::utils::random_bytes;
-    use crypto::utils::random_string;
+
     use hsm::model::wrapped_key::WrappedKey;
     use jwt::validations;
     use jwt::Jwt;
@@ -501,9 +501,7 @@ mod tests {
         let wallet_user = wallet_user::mock::wallet_user_1();
         let wrapping_key_identifier = "my_wrapping_key_identifier";
 
-        let instruction = GenerateKey {
-            identifiers: vec!["key1".to_string(), "key2".to_string()],
-        };
+        let instruction = GenerateKey { count: 2 };
 
         let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
         wallet_user_repo
@@ -520,12 +518,10 @@ mod tests {
             .await
             .unwrap();
 
-        let generated_keys: Vec<String> = result
+        result
             .public_keys
-            .into_iter()
-            .map(|(identifier, _key)| identifier)
-            .collect();
-        assert_eq!(vec!["key1", "key2"], generated_keys);
+            .iter()
+            .for_each(|(identifier, key)| assert_eq!(verifying_key_sha256(key.as_inner()), *identifier));
     }
 
     #[tokio::test]
@@ -598,9 +594,7 @@ mod tests {
         let wallet_user = wallet_user::mock::wallet_user_1();
         let wrapping_key_identifier = "my-wrapping-key-identifier";
 
-        let instruction = IssueWte {
-            key_identifier: random_string(32),
-        };
+        let instruction = IssueWte;
 
         let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
 
@@ -633,9 +627,7 @@ mod tests {
             ..wallet_user::mock::wallet_user_1()
         };
 
-        let instruction = IssueWte {
-            key_identifier: random_string(32),
-        };
+        let instruction = IssueWte;
 
         let result = instruction.validate_instruction(&wallet_user).unwrap_err();
 

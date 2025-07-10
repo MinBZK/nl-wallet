@@ -748,6 +748,10 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
       wireObj.kind.Date.value = pre_value;
       return;
     }
+    if (apiObj is AttributeValue_Null) {
+      wireObj.tag = 4;
+      return;
+    }
   }
 
   @protected

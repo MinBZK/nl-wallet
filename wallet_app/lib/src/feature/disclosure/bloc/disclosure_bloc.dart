@@ -100,6 +100,7 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
               DisclosureMissingAttributes(
                 relyingParty: result.relyingParty,
                 missingAttributes: result.missingAttributes,
+                isCrossDevice: isCrossDeviceFlow,
               ),
             );
         }
@@ -171,7 +172,12 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
       case DisclosureConfirmDataAttributes():
       case DisclosureCheckOrganizationForLogin():
         if (isCrossDeviceFlow) {
-          emit(DisclosureCheckUrl(originUrl: startDisclosureResult.originUrl, afterBackPressed: true));
+          emit(
+            DisclosureCheckUrl(
+              originUrl: startDisclosureResult.originUrl,
+              afterBackPressed: true,
+            ),
+          );
         }
       case DisclosureConfirmPin():
         assert(
@@ -219,6 +225,7 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
           DisclosureMissingAttributes(
             relyingParty: startDisclosureResult.relyingParty,
             missingAttributes: startDisclosureResult.missingAttributes,
+            isCrossDevice: isCrossDeviceFlow,
           ),
         );
     }
@@ -230,7 +237,7 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
       state is DisclosureConfirmDataAttributes || state is DisclosureCheckOrganizationForLogin,
       'Invalid UI state to move to pin entry',
     );
-    emit(DisclosureConfirmPin(relyingParty: relyingParty!));
+    emit(DisclosureConfirmPin(relyingParty: relyingParty!, isCrossDevice: isCrossDeviceFlow));
   }
 
   void _onAlternativeCardSelected(DisclosureAlternativeCardSelected event, Emitter<DisclosureState> emit) {
@@ -254,6 +261,7 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
         event: lastEvent,
         returnUrl: event.returnUrl,
         isLoginFlow: isLoginFlow,
+        isCrossDevice: isCrossDeviceFlow,
       ),
     );
   }

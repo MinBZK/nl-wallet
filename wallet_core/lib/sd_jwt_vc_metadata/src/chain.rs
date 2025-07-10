@@ -410,6 +410,14 @@ mod example_constructors {
             )
         }
     }
+
+    impl From<TypeMetadataDocuments> for VerifiedTypeMetadataDocuments {
+        fn from(value: TypeMetadataDocuments) -> Self {
+            let TypeMetadataDocuments(chain) = value;
+
+            Self(chain)
+        }
+    }
 }
 
 #[cfg(test)]

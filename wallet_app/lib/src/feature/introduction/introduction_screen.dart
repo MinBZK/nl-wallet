@@ -273,10 +273,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
         await context.read<SetupMockedWalletUseCase>().invoke();
         await navigator.pushReplacementNamed(WalletRoutes.dashboardRoute);
       },
-      icon: const Icon(
-        Icons.skip_next_outlined,
-        semanticLabel: 'Skip Setup',
-      ),
+      icon: const Icon(Icons.skip_next_outlined, semanticLabel: 'Skip Setup'),
     );
   }
 

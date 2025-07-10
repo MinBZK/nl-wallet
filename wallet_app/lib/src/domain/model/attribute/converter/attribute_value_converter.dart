@@ -11,6 +11,7 @@ const _kStringValue = 'string';
 const _kBooleanValue = 'bool';
 const _kNumberValue = 'number';
 const _kDateValue = 'date';
+const _kNullValue = 'null';
 
 class AttributeValueConverter extends JsonConverter<AttributeValue, Map<String, dynamic>> {
   const AttributeValueConverter();
@@ -26,6 +27,8 @@ class AttributeValueConverter extends JsonConverter<AttributeValue, Map<String, 
         return NumberValue(int.parse(json[_kValueKey]!));
       case _kDateValue:
         return DateValue(_decodeDateTime(json[_kValueKey]!));
+      case _kNullValue:
+        return NullValue();
     }
     throw UnsupportedError('Unknown type: ${json[_kTypeKey]}');
   }
@@ -41,6 +44,8 @@ class AttributeValueConverter extends JsonConverter<AttributeValue, Map<String, 
         return {_kTypeKey: _kNumberValue, _kValueKey: object.value.toString()};
       case DateValue():
         return {_kTypeKey: _kDateValue, _kValueKey: _encodeDateTime(object.value)};
+      case NullValue():
+        return {_kTypeKey: _kNullValue, _kValueKey: null};
     }
   }
 

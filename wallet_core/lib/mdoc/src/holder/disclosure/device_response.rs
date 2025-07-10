@@ -108,5 +108,65 @@ impl DeviceResponse {
 
 #[cfg(test)]
 mod tests {
-    // TODO: Implement test for DeviceResponse::sign_from_mdocs().
+
+    use futures::FutureExt;
+    use p256::ecdsa::SigningKey;
+    use rand_core::OsRng;
+
+    use crypto::mock_remote::MockRemoteEcdsaKey;
+    use crypto::mock_remote::MockRemoteKeyFactory;
+    use crypto::server_keys::generate::Ca;
+
+    use crate::holder::Mdoc;
+    use crate::iso::disclosure::DeviceResponse;
+    use crate::iso::engagement::DeviceAuthenticationKeyed;
+    use crate::iso::engagement::SessionTranscript;
+    use crate::utils::cose::ClonePayload;
+    use crate::DeviceAuth;
+
+    #[test]
+    fn test_device_response_sign_from_mdocs() {
+        // Generate and sign some mdocs.
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
+        let (mdocs, keys): (Vec<_>, Vec<_>) = (0..3)
+            .map(|index| {
+                let key = MockRemoteEcdsaKey::new(format!("key_{index}"), SigningKey::random(&mut OsRng));
+                let mdoc = Mdoc::new_mock_with_ca_and_key(&ca, &key).now_or_never().unwrap();
+
+                (mdoc, key)
+            })
+            .unzip();
+        let key_factory = MockRemoteKeyFactory::new(keys);
+
+        // Create a `SessionTranscript`, its contents do not matter.
+        let session_transcript = SessionTranscript::new_mock();
+
+        // Sign a `DeviceResponse` that contains the attributes from the generated mdocs.
+        let (device_response, _keys) =
+            DeviceResponse::sign_from_mdocs(mdocs.clone(), &session_transcript, &key_factory)
+                .now_or_never()
+                .unwrap()
+                .expect("signing DeviceResponse from mdocs should succeed");
+
+        for (document, mdoc) in device_response.documents.as_deref().unwrap_or(&[]).iter().zip(&mdocs) {
+            // For each created `Document`, check the contents against the input mdoc.
+            assert_eq!(document.doc_type, mdoc.mso.doc_type);
+            assert!(document.device_signed.name_spaces.0.is_empty());
+            assert_eq!(document.issuer_signed, mdoc.issuer_signed);
+
+            // Re-create the device authentication challenge and validate that
+            // each document has a valid device authentication signature.
+            let device_auth_bytes =
+                DeviceAuthenticationKeyed::challenge(&document.doc_type, &session_transcript).unwrap();
+
+            if let DeviceAuth::DeviceSignature(signature) = &document.device_signed.device_auth {
+                signature
+                    .clone_with_payload(device_auth_bytes)
+                    .verify(&(&mdoc.mso.device_key_info.device_key).try_into().unwrap())
+                    .expect("device authentication in DeviceResponse should be valid");
+            } else {
+                panic!("device authentication in DeviceResponse should be of signature type");
+            }
+        }
+    }
 }

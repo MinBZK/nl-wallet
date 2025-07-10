@@ -1,12 +1,9 @@
 import 'package:flutter/services.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mockito/mockito.dart';
 import 'package:wallet/src/domain/usecase/update/observe_version_state_usecase.dart';
 import 'package:wallet/src/feature/update/widget/update_banner.dart';
 
 import '../../../../wallet_app_test_widget.dart';
-import '../../../mocks/wallet_mocks.mocks.dart';
 import '../../../test_util/golden_utils.dart';
 import '../../../test_util/test_utils.dart';
 
@@ -21,17 +18,8 @@ void main() {
     double textScaleSize = 1.0,
   }) async {
     await tester.pumpWidgetWithAppWrapper(
-      const UpdateBanner(),
+      UpdateBanner(versionState: state),
       surfaceSize: surfaceSize,
-      providers: [
-        RepositoryProvider<ObserveVersionStateUsecase>(
-          create: (c) {
-            final usecase = MockObserveVersionStateUsecase();
-            when(usecase.invoke()).thenAnswer((_) => Stream.value(state));
-            return usecase;
-          },
-        ),
-      ],
       brightness: brightness,
       textScaleSize: textScaleSize,
     );

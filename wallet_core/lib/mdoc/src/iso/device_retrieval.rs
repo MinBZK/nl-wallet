@@ -13,6 +13,7 @@ use serde_with::skip_serializing_none;
 use url::Url;
 
 use crate::identifiers::AttributeIdentifier;
+use crate::identifiers::AttributeIdentifierError;
 use crate::identifiers::AttributeIdentifierHolder;
 use crate::iso::engagement::*;
 use crate::iso::mdocs::*;
@@ -90,8 +91,9 @@ pub struct ItemsRequest {
 }
 
 impl AttributeIdentifierHolder for ItemsRequest {
-    fn attribute_identifiers(&self) -> IndexSet<AttributeIdentifier> {
-        self.name_spaces
+    fn mdoc_attribute_identifiers(&self) -> Result<IndexSet<AttributeIdentifier>, AttributeIdentifierError> {
+        Ok(self
+            .name_spaces
             .iter()
             .flat_map(|(namespace, attributes)| {
                 attributes.into_iter().map(|(attribute, _)| AttributeIdentifier {
@@ -100,7 +102,7 @@ impl AttributeIdentifierHolder for ItemsRequest {
                     attribute: attribute.to_owned(),
                 })
             })
-            .collect()
+            .collect())
     }
 }
 
