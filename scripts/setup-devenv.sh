@@ -333,7 +333,7 @@ export DEMO_ISSUER_KEY_INSURANCE_ISSUER
 DEMO_ISSUER_CRT_INSURANCE_ISSUER=$(< "${TARGET_DIR}/demo_issuer/insurance.issuer.crt.der" ${BASE64})
 export DEMO_ISSUER_CRT_INSURANCE_ISSUER
 
-render_template "${DEVENV}/demo_issuer.toml.template" "${DEMO_ISSUER_DIR}/demo_issuer.toml"
+render_template "${DEVENV}/demo_issuer.json.template" "${DEMO_ISSUER_DIR}/demo_issuer.json"
 
 
 # Generate relying party ephemeral ID secret

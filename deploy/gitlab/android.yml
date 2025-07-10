@@ -31,7 +31,7 @@ test-android:
 ### Android building
 .build-android-app:
   image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-android:${BUILD_TAG}"
-  extends: .ruby-cache
+  extends: [.sentry-env, .ruby-cache]
   tags:
     - linux
   needs:
@@ -94,12 +94,6 @@ build-android-app-ont:
   variables:
     APP_FILE_FORMAT: "aab"
     APP_BUILD_MODE: "release"
-    SENTRY_DSN: "${SENTRY_DSN_ONT}"
-    SENTRY_ENVIRONMENT: "ont"
-    SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_ONT}"
-    SENTRY_ORG: "${SENTRY_ORG_ONT}"
-    SENTRY_PROJECT: "${SENTRY_PROJECT_ONT}"
-    SENTRY_URL: "https://sentry.io/"
 
 build-android-app-ont-profile:
   extends: .build-android-app-ont
@@ -125,12 +119,7 @@ build-android-app-mock:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "mock"
     APP_NAME: "NL Wallet (mock)"
     CONFIG_ENV: "dev"
-    SENTRY_DSN: "${SENTRY_DSN_MOCK}"
     SENTRY_ENVIRONMENT: "mock"
-    SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_MOCK}"
-    SENTRY_ORG: "${SENTRY_ORG_MOCK}"
-    SENTRY_PROJECT: "${SENTRY_PROJECT_MOCK}"
-    SENTRY_URL: "https://sentry.io/"
 
 build-android-app-demo:
   extends: .build-android-app-release-tag
@@ -144,12 +133,6 @@ build-android-app-demo:
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "demo"
     APP_NAME: "NL Wallet (demo)"
-    SENTRY_DSN: "${SENTRY_DSN_DEMO}"
-    SENTRY_ENVIRONMENT: "demo"
-    SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_DEMO}"
-    SENTRY_ORG: "${SENTRY_ORG_DEMO}"
-    SENTRY_PROJECT: "${SENTRY_PROJECT_DEMO}"
-    SENTRY_URL: "https://sentry.io/"
 
 build-android-app-acceptance:
   extends: .build-android-app-release-tag
@@ -162,12 +145,6 @@ build-android-app-acceptance:
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "acceptance"
     APP_NAME: "NL Wallet (acceptance)"
-    SENTRY_DSN: "${SENTRY_DSN_ACC}"
-    SENTRY_ENVIRONMENT: "acceptance"
-    SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_ACC}"
-    SENTRY_ORG: "${SENTRY_ORG_ACC}"
-    SENTRY_PROJECT: "${SENTRY_PROJECT_ACC}"
-    SENTRY_URL: "https://sentry.io/"
 
 build-android-app-preproduction:
   extends: .build-android-app-release-tag
@@ -180,12 +157,6 @@ build-android-app-preproduction:
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "preproduction"
     APP_NAME: "NL Wallet (pre-production)"
-    SENTRY_DSN: "${SENTRY_DSN_PREPROD}"
-    SENTRY_ENVIRONMENT: "preproduction"
-    SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_PREPROD}"
-    SENTRY_ORG: "${SENTRY_ORG_PREPROD}"
-    SENTRY_PROJECT: "${SENTRY_PROJECT_PREPROD}"
-    SENTRY_URL: "https://sentry.io/"
 
 build-android-app-production:
   extends: .build-android-app-release-tag
@@ -198,12 +169,6 @@ build-android-app-production:
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: ""
     APP_NAME: "NL Wallet (production)"
-    SENTRY_DSN: "${SENTRY_DSN_PROD}"
-    SENTRY_ENVIRONMENT: "production"
-    SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_PROD}"
-    SENTRY_ORG: "${SENTRY_ORG_PROD}"
-    SENTRY_PROJECT: "${SENTRY_PROJECT_PROD}"
-    SENTRY_URL: "https://sentry.io/"
 
 ### Android deploying
 .deploy-android-app:

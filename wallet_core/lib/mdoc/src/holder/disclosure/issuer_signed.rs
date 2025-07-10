@@ -61,5 +61,145 @@ impl IssuerSigned {
 
 #[cfg(test)]
 mod tests {
-    // TODO: Implement tests for IssuerSigned::matches_attribute_paths() and IssuerSigned::into_attribute_subset().
+    use std::collections::HashSet;
+
+    use itertools::Itertools;
+    use rstest::rstest;
+
+    use crate::examples::Example;
+    use crate::iso::disclosure::DeviceResponse;
+    use crate::iso::disclosure::IssuerSigned;
+    use crate::utils::serialization::TaggedBytes;
+    use crate::IssuerNameSpaces;
+
+    fn issuer_signed_example() -> IssuerSigned {
+        DeviceResponse::example()
+            .documents
+            .unwrap()
+            .into_iter()
+            .next()
+            .unwrap()
+            .issuer_signed
+    }
+
+    #[rstest]
+    #[case(HashSet::new(), true)]
+    #[case(HashSet::from([("org.iso.18013.5.1", "family_name")]), true)]
+    #[case(
+        HashSet::from([
+            ("org.iso.18013.5.1", "family_name"),
+            ("org.iso.18013.5.1", "issue_date"),
+            ("org.iso.18013.5.1", "expiry_date"),
+            ("org.iso.18013.5.1", "document_number"),
+            ("org.iso.18013.5.1", "portrait"),
+            ("org.iso.18013.5.1", "driving_privileges"),
+        ]),
+        true
+    )]
+    #[case(HashSet::from([("org.iso.18013.5.1", "is_rich")]), false)]
+    #[case(HashSet::from([("org.iso.18013.5.1", "family_name"), ("org.iso.18013.5.1", "is_rich")]), false)]
+    #[case(HashSet::from([("org.iso.18013.5.1", "family_name"), ("vroom", "driving_privileges")]), false)]
+    fn test_issuer_signed_matches_attribute_paths(
+        #[case] attribute_paths: HashSet<(&str, &str)>,
+        #[case] expected_matches: bool,
+    ) {
+        let matches = issuer_signed_example().matches_attribute_paths(&attribute_paths);
+
+        assert_eq!(matches, expected_matches);
+    }
+
+    #[rstest]
+    #[case(HashSet::new(), HashSet::new())]
+    #[case(HashSet::from([("foo", "bar"), ("bleh", "blah")]), HashSet::new())]
+    #[case(
+        HashSet::from([("org.iso.18013.5.1", "family_name")]),
+        HashSet::from([("org.iso.18013.5.1", "family_name")]),
+    )]
+    #[case(
+        HashSet::from([
+            ("org.iso.18013.5.1", "family_name"),
+            ("org.iso.18013.5.1", "issue_date"),
+            ("org.iso.18013.5.1", "expiry_date"),
+            ("org.iso.18013.5.1", "document_number"),
+            ("org.iso.18013.5.1", "portrait"),
+            ("org.iso.18013.5.1", "driving_privileges")
+        ]),
+        HashSet::from([
+            ("org.iso.18013.5.1", "family_name"),
+            ("org.iso.18013.5.1", "issue_date"),
+            ("org.iso.18013.5.1", "expiry_date"),
+            ("org.iso.18013.5.1", "document_number"),
+            ("org.iso.18013.5.1", "portrait"),
+            ("org.iso.18013.5.1", "driving_privileges"),
+        ]),
+    )]
+    #[case(
+        HashSet::from([("org.iso.18013.5.1", "family_name"), ("foo", "bar")]),
+        HashSet::from([("org.iso.18013.5.1", "family_name")]),
+    )]
+    fn test_issuer_signed_into_attribute_subset(
+        #[case] attribute_paths: HashSet<(&str, &str)>,
+        #[case] expected_attribute_paths: HashSet<(&str, &str)>,
+    ) {
+        let source_issuer_signed = issuer_signed_example();
+        let dest_issuer_signed = source_issuer_signed.clone().into_attribute_subset(&attribute_paths);
+
+        assert_eq!(source_issuer_signed.issuer_auth, dest_issuer_signed.issuer_auth);
+
+        let (source_name_spaces, dest_name_spaces) = [source_issuer_signed, dest_issuer_signed]
+            .into_iter()
+            .map(|issuer_signed| {
+                issuer_signed
+                    .name_spaces
+                    .map(IssuerNameSpaces::into_inner)
+                    .unwrap_or_default()
+            })
+            .collect_tuple()
+            .unwrap();
+
+        // Determine the set of paths present in the destination, while checking
+        // that each item is present in the source and matches that item exactly.
+        let dest_attribute_paths = dest_name_spaces
+            .iter()
+            .flat_map(|(name_space, attributes)| {
+                attributes.as_ref().iter().map(|TaggedBytes(item)| {
+                    let path = (name_space.as_str(), item.element_identifier.as_str());
+
+                    let source_item = source_name_spaces.get(name_space.as_str()).and_then(|attributes| {
+                        attributes.as_ref().iter().find_map(|TaggedBytes(source_item)| {
+                            (source_item.element_identifier == item.element_identifier).then_some(source_item)
+                        })
+                    });
+
+                    assert_eq!(source_item, Some(item));
+
+                    path
+                })
+            })
+            .collect::<HashSet<_>>();
+
+        // Check that all paths present in the destination were actually
+        // requested and that this matches the expected paths.
+        assert!(dest_attribute_paths.is_subset(&attribute_paths));
+        assert_eq!(dest_attribute_paths, expected_attribute_paths);
+
+        // Of all the items that were not moved from the source to the destination,
+        // check that they were indeed not present in the source.
+        let contains_unmoved_item =
+            attribute_paths
+                .difference(&dest_attribute_paths)
+                .any(|(name_space, element_id)| {
+                    source_name_spaces
+                        .get(*name_space)
+                        .map(|attributes| {
+                            attributes
+                                .as_ref()
+                                .iter()
+                                .any(|TaggedBytes(item)| item.element_identifier == *element_id)
+                        })
+                        .unwrap_or(false)
+                });
+
+        assert!(!contains_unmoved_item);
+    }
 }

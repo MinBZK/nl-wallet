@@ -18,8 +18,8 @@ android {
 
     defaultConfig {
         minSdk = 24
-        lint { targetSdk = 34 }
-        testOptions { targetSdk = 34 }
+        lint { targetSdk = 35 }
+        testOptions { targetSdk = 35 }
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")

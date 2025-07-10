@@ -7,6 +7,7 @@ import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/card/wallet_card.dart';
 import '../../../theme/wallet_theme.dart';
 import '../../../util/extension/build_context_extension.dart';
+import '../../../util/extension/string_extension.dart';
 import '../../../wallet_constants.dart';
 import '../../card/preview/card_preview_screen.dart';
 import '../../common/widget/button/confirm/confirm_buttons.dart';
@@ -111,7 +112,7 @@ class IssuanceReviewCardsPage extends StatelessWidget {
     final checkDetailsButton = TertiaryButton(
       onPressed: () => CardPreviewScreen.show(context, card: card),
       mainAxisAlignment: MainAxisAlignment.start,
-      text: Text(context.l10n.issuanceReviewCardsPageShowDetailsCta),
+      text: Text.rich(context.l10n.issuanceReviewCardsPageShowDetailsCta.toTextSpan(context)),
       icon: const Icon(Icons.info_outline_rounded),
     );
 
@@ -121,7 +122,7 @@ class IssuanceReviewCardsPage extends StatelessWidget {
         child: TertiaryButton(
           mainAxisAlignment: MainAxisAlignment.start,
           onPressed: () {},
-          text: Text(context.l10n.issuanceReviewCardsPageToggleAddCta),
+          text: Text.rich(context.l10n.issuanceReviewCardsPageToggleAddCta.toTextSpan(context)),
           icon: Checkbox(
             value: true,
             onChanged: null /* avoid it grabbing individual focus */,
@@ -196,12 +197,12 @@ class IssuanceReviewCardsPage extends StatelessWidget {
             primaryButton: PrimaryButton(
               key: kReviewCardsAcceptButtonKey,
               onPressed: () => onAccept(allCards),
-              text: Text(context.l10n.issuanceReviewCardsPageAcceptCta(allCards.length)),
+              text: Text.rich(context.l10n.issuanceReviewCardsPageAcceptCta(allCards.length).toTextSpan(context)),
             ),
             secondaryButton: SecondaryButton(
               key: kReviewCardsDeclineButtonKey,
               onPressed: onDecline,
-              text: Text(context.l10n.issuanceReviewCardsPageDeclineCta),
+              text: Text.rich(context.l10n.issuanceReviewCardsPageDeclineCta.toTextSpan(context)),
               icon: const Icon(Icons.block_flipped),
             ),
           ),
@@ -228,8 +229,12 @@ class IssuanceReviewCardsPage extends StatelessWidget {
       slivers: [
         SliverToBoxAdapter(
           child: ListItem.vertical(
-            label: Text(context.l10n.issuanceReviewCardsPageRenewSectionTitle(renewedCards.length)),
-            subtitle: Text(context.l10n.issuanceReviewCardsPageRenewSectionSubtitle(renewedCards.length)),
+            label: Text.rich(
+              context.l10n.issuanceReviewCardsPageRenewSectionTitle(renewedCards.length).toTextSpan(context),
+            ),
+            subtitle: Text.rich(
+              context.l10n.issuanceReviewCardsPageRenewSectionSubtitle(renewedCards.length).toTextSpan(context),
+            ),
             icon: const Icon(Icons.credit_card_outlined),
             dividerSide: DividerSide.top,
           ),

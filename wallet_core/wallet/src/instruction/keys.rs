@@ -1,6 +1,5 @@
 use std::hash::Hash;
 use std::hash::Hasher;
-use std::iter;
 
 use derive_more::Constructor;
 use itertools::Itertools;
@@ -16,7 +15,6 @@ use crypto::keys::EcdsaKey;
 use crypto::keys::SecureEcdsaKey;
 use crypto::keys::WithIdentifier;
 use crypto::p256_der::DerSignature;
-use crypto::utils::random_string;
 use platform_support::attested_key::AppleAttestedKey;
 use platform_support::attested_key::GoogleAttestedKey;
 use poa::factory::PoaFactory;
@@ -81,8 +79,7 @@ where
     type Error = RemoteEcdsaKeyError;
 
     async fn generate_new_multiple(&self, count: u64) -> Result<Vec<Self::Key>, Self::Error> {
-        let identifiers = iter::repeat_with(|| random_string(32)).take(count as usize).collect();
-        let result: GenerateKeyResult = self.instruction_client.send(GenerateKey { identifiers }).await?;
+        let result: GenerateKeyResult = self.instruction_client.send(GenerateKey { count }).await?;
 
         let keys = result
             .public_keys

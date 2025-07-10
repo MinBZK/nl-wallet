@@ -128,8 +128,11 @@ class PolicyScreen extends StatelessWidget {
     return Column(
       children: [
         const Divider(),
-        ListItem(
-          label: Text(context.l10n.policyScreenPolicySectionTitle),
+        ListItem.horizontal(
+          label: Semantics(
+            header: true,
+            child: Text.rich(context.l10n.policyScreenPolicySectionTitle.toTextSpan(context)),
+          ),
           subtitle: Semantics(
             onTap: () => launchUrlStringCatching(policyUrl, mode: LaunchMode.externalApplication),
             onTapHint: context.l10n.generalWCAGOpenLink,
@@ -138,7 +141,6 @@ class PolicyScreen extends StatelessWidget {
               semanticsLabel: descriptionSemanticLabel,
             ),
           ),
-          style: ListItemStyle.horizontal,
         ),
       ],
     );

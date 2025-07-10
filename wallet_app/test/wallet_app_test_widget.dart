@@ -82,7 +82,7 @@ extension TestWidgetExtensions on Widget {
   Widget withState<B extends BlocBase<S>, S>(B bloc, S initialState, {List<S> streamStates = const []}) =>
       BlocProvider<B>(
         create: (c) {
-          assert(bloc is MockBloc, 'Can only provide mocked state on MockBloc');
+          assert(bloc is MockBloc || bloc is MockCubit, 'Can only provide mocked state on MockBloc/MockCubit');
 
           final Stream<S> statesStream =
               streamStates.isNotEmpty ? Stream<S>.fromIterable(streamStates) : Stream<S>.value(initialState);

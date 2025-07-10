@@ -850,6 +850,7 @@ mod tests {
     use crypto::server_keys::KeyPair;
     use dcql::CredentialQueryFormat;
     use jwt::Jwt;
+    use mdoc::examples::example_items_requests;
     use mdoc::examples::Example;
     use mdoc::holder::Mdoc;
     use mdoc::test::data::addr_street;
@@ -859,6 +860,7 @@ mod tests {
     use mdoc::utils::serialization::CborBase64;
     use mdoc::utils::serialization::CborSeq;
     use mdoc::utils::serialization::TaggedBytes;
+    use mdoc::verifier::ItemsRequests;
     use mdoc::DeviceAuthenticationKeyed;
     use mdoc::DeviceResponse;
     use mdoc::DeviceResponseVersion;
@@ -1241,7 +1243,7 @@ mod tests {
         let ca = Ca::generate_issuer_mock_ca().unwrap();
 
         let mdoc_key = MockRemoteEcdsaKey::new(String::from("mdoc_key"), SigningKey::random(&mut OsRng));
-        let mdoc = Mdoc::new_mock_with_key_and_ca(&ca, &mdoc_key).await;
+        let mdoc = Mdoc::new_mock_with_ca_and_key(&ca, &mdoc_key).await;
 
         let (device_response, poa) = setup_device_response(
             &auth_request,

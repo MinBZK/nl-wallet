@@ -8,7 +8,7 @@ SCRIPTS_DIR=$(dirname "$(realpath "$(command -v "${BASH_SOURCE[0]}")")")
 # Download 'nl-wallet-showcase-app.zip'
 curl --request POST \
      --url https://api.lokalise.com/api2/projects/SSSS:branch/files/download \
-     --header 'X-Api-Token: '"$LOKALISE_API_KEY"'' \
+     --header "X-Api-Token: $LOKALISE_API_KEY" \
      --header 'accept: application/json' \
      --header 'content-type: application/json' \
      --data '

@@ -41,3 +41,11 @@ class DateValue extends AttributeValue {
 
   const DateValue(this.value);
 }
+
+class NullValue extends AttributeValue {
+  @override
+  get value => null;
+
+  @override
+  String toString() => 'Not available';
+}

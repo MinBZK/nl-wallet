@@ -21,7 +21,7 @@ test-ios:
 
 ### iOS Building
 .build-ios-app:
-  extends: [.env-k8s, .env-macos-runner, .ruby-cache-macos]
+  extends: [.sentry-env, .env-k8s, .env-macos-runner, .ruby-cache-macos]
   needs:
     - job: test-flutter
       artifacts: false
@@ -50,7 +50,7 @@ test-ios:
     - set -euo pipefail
     - MATCH_PASSWORD="$(kubectl get secret nl-wallet-fastlane-match -o jsonpath='{.data.password}' | base64 --decode)"
     - export MATCH_PASSWORD
-    - (git config --global url.https://repo-certificates-deploy-token:${REPO_CERTIFICATES_DEPLOY_TOKEN}@$CI_SERVER_HOST.insteadOf https://$CI_SERVER_HOST)
+    - git config --global url.https://repo-certificates-deploy-token:${REPO_CERTIFICATES_DEPLOY_TOKEN}@$CI_SERVER_HOST.insteadOf https://$CI_SERVER_HOST
     - bundle install
     - |
       bundle exec fastlane ios ci_build \
@@ -82,12 +82,6 @@ build-ios-app-ont:
   extends: .build-ios-app-ont
   variables:
     APP_BUILD_MODE: "release"
-    SENTRY_DSN: "${SENTRY_DSN_ONT}"
-    SENTRY_ENVIRONMENT: "ont"
-    SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_ONT}"
-    SENTRY_ORG: "${SENTRY_ORG_ONT}"
-    SENTRY_PROJECT: "${SENTRY_PROJECT_ONT}"
-    SENTRY_URL: "https://sentry.io/"
 
 build-ios-app-ont-profile:
   extends: .build-ios-app-ont
@@ -112,12 +106,7 @@ build-ios-app-mock:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "mock"
     APP_NAME: "NL Wallet (mock)"
     CONFIG_ENV: "dev"
-    SENTRY_DSN: "${SENTRY_DSN_MOCK}"
     SENTRY_ENVIRONMENT: "mock"
-    SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_MOCK}"
-    SENTRY_ORG: "${SENTRY_ORG_MOCK}"
-    SENTRY_PROJECT: "${SENTRY_PROJECT_MOCK}"
-    SENTRY_URL: "https://sentry.io/"
 
 build-ios-app-demo:
   extends: .build-ios-app-release-tag
@@ -131,12 +120,6 @@ build-ios-app-demo:
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "demo"
     APP_NAME: "NL Wallet (demo)"
-    SENTRY_DSN: "${SENTRY_DSN_DEMO}"
-    SENTRY_ENVIRONMENT: "demo"
-    SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_DEMO}"
-    SENTRY_ORG: "${SENTRY_ORG_DEMO}"
-    SENTRY_PROJECT: "${SENTRY_PROJECT_DEMO}"
-    SENTRY_URL: "https://sentry.io/"
 
 build-ios-app-acceptance:
   extends: .build-ios-app-release-tag
@@ -149,12 +132,6 @@ build-ios-app-acceptance:
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "acceptance"
     APP_NAME: "NL Wallet (acceptance)"
-    SENTRY_DSN: "${SENTRY_DSN_ACC}"
-    SENTRY_ENVIRONMENT: "acceptance"
-    SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_ACC}"
-    SENTRY_ORG: "${SENTRY_ORG_ACC}"
-    SENTRY_PROJECT: "${SENTRY_PROJECT_ACC}"
-    SENTRY_URL: "https://sentry.io/"
 
 build-ios-app-preproduction:
   extends: .build-ios-app-release-tag
@@ -167,12 +144,6 @@ build-ios-app-preproduction:
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "preproduction"
     APP_NAME: "NL Wallet (pre-production)"
-    SENTRY_DSN: "${SENTRY_DSN_PREPROD}"
-    SENTRY_ENVIRONMENT: "preproduction"
-    SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_PREPROD}"
-    SENTRY_ORG: "${SENTRY_ORG_PREPROD}"
-    SENTRY_PROJECT: "${SENTRY_PROJECT_PREPROD}"
-    SENTRY_URL: "https://sentry.io/"
 
 build-ios-app-production:
   extends: .build-ios-app-release-tag
@@ -185,12 +156,6 @@ build-ios-app-production:
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: ""
     APP_NAME: "NL Wallet"
-    SENTRY_DSN: "${SENTRY_DSN_PROD}"
-    SENTRY_ENVIRONMENT: "production"
-    SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_PROD}"
-    SENTRY_ORG: "${SENTRY_ORG_PROD}"
-    SENTRY_PROJECT: "${SENTRY_PROJECT_PROD}"
-    SENTRY_URL: "https://sentry.io/"
 
 ## iOS Deploying
 .deploy-ios-app:

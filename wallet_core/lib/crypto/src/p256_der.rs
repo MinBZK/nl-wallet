@@ -1,6 +1,7 @@
 use std::hash::Hash;
 use std::hash::Hasher;
 
+use base64::prelude::*;
 use derive_more::AsRef;
 use derive_more::From;
 use p256::ecdsa::Signature;
@@ -9,6 +10,8 @@ use p256::ecdsa::VerifyingKey;
 use p256::pkcs8::DecodePrivateKey;
 use p256::pkcs8::DecodePublicKey;
 use p256::pkcs8::EncodePublicKey;
+
+use crate::utils::sha256;
 
 /// Wraps a [`SigningKey`] and implements `TryFrom<Vec<u8>>` for deserialization using `serde_with`.
 #[derive(Debug, Clone, From)]
@@ -130,4 +133,8 @@ impl TryFrom<Vec<u8>> for DerSignature {
 
         Ok(DerSignature(signature, value))
     }
+}
+
+pub fn verifying_key_sha256(key: &VerifyingKey) -> String {
+    BASE64_STANDARD.encode(sha256(key.to_encoded_point(false).as_bytes()))
 }

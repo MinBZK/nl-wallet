@@ -52,6 +52,7 @@ pub enum MessageSignature {
         signature: DerSignature,
     },
     AppleAssertion {
+        #[serde_as(as = "Base64")]
         assertion: AppleAssertion,
     },
 }

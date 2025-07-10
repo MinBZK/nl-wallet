@@ -42,8 +42,8 @@ spec:
               containerPort: 8002
           volumeMounts:
             - name: config-volume
-              mountPath: /demo_issuer.toml
-              subPath: config.toml
+              mountPath: /demo_issuer.json
+              subPath: config.json
           env:
             - name: DEMO_ISSUER__ISSUANCE_SERVER__IP
               value: "0.0.0.0"

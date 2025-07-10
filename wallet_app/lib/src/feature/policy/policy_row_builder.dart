@@ -43,11 +43,10 @@ class PolicyRowBuilder {
     required String description,
     required IconData icon,
   }) {
-    return ListItem(
-      label: Text(title),
+    return ListItem.horizontal(
+      label: Semantics(header: true, child: Text(title)),
       subtitle: Text(description),
       icon: Icon(icon),
-      style: ListItemStyle.horizontal,
     );
   }
 

@@ -17,8 +17,8 @@ void main() {
           const ConfirmActionSheet(
             title: 'Title',
             description: 'Description',
-            cancelButtonText: 'Cancel CTA',
-            confirmButtonText: 'Confirm CTA',
+            confirmButton: ConfirmSheetButtonStyle(cta: 'Confirm CTA'),
+            cancelButton: ConfirmSheetButtonStyle(cta: 'Cancel CTA'),
           ),
           surfaceSize: kGoldenSize,
         );
@@ -32,8 +32,8 @@ void main() {
           const ConfirmActionSheet(
             title: 'Title',
             description: 'Description',
-            cancelButtonText: 'Cancel CTA',
-            confirmButtonText: 'Confirm CTA',
+            confirmButton: ConfirmSheetButtonStyle(cta: 'Confirm CTA'),
+            cancelButton: ConfirmSheetButtonStyle(cta: 'Cancel CTA'),
           ),
           surfaceSize: kGoldenSize,
           brightness: Brightness.dark,
@@ -41,6 +41,7 @@ void main() {
         await screenMatchesGolden('confirm_action_sheet/dark');
       },
     );
+
     testGoldens(
       'light confirm action sheet with extra content and icons and custom color',
       (tester) async {
@@ -48,8 +49,8 @@ void main() {
           ConfirmActionSheet(
             title: 'Title',
             description: 'Description',
-            cancelButtonText: 'No',
-            confirmButtonText: 'Yes',
+            confirmButton: const ConfirmSheetButtonStyle(cta: 'Yes', icon: Icons.check, color: Colors.green),
+            cancelButton: const ConfirmSheetButtonStyle(cta: 'No', icon: Icons.close),
             extraContent: Container(
               color: Colors.black12,
               padding: const EdgeInsets.all(16),
@@ -57,13 +58,27 @@ void main() {
                 'All content within this gray box is extra content. The `extraContent` widget is responsible for its own margins.',
               ),
             ),
-            cancelIcon: Icons.close,
-            confirmIcon: Icons.check,
-            confirmButtonColor: Colors.green,
           ),
           surfaceSize: const Size(350, 342),
         );
         await screenMatchesGolden('confirm_action_sheet/light.custom');
+      },
+    );
+
+    testGoldens(
+      'dark confirm action sheet with custom cancel color',
+      (tester) async {
+        await tester.pumpWidgetWithAppWrapper(
+          const ConfirmActionSheet(
+            title: 'Title',
+            description: 'Description',
+            confirmButton: ConfirmSheetButtonStyle(cta: 'Yes'),
+            cancelButton: ConfirmSheetButtonStyle(cta: 'No', color: Colors.white),
+          ),
+          brightness: Brightness.dark,
+          surfaceSize: const Size(350, 217),
+        );
+        await screenMatchesGolden('confirm_action_sheet/dark.custom');
       },
     );
   });
@@ -74,8 +89,8 @@ void main() {
         const ConfirmActionSheet(
           title: 'T',
           description: 'D',
-          cancelButtonText: 'CancelCTA',
-          confirmButtonText: 'ConfirmCTA',
+          confirmButton: ConfirmSheetButtonStyle(cta: 'ConfirmCTA'),
+          cancelButton: ConfirmSheetButtonStyle(cta: 'CancelCTA'),
           extraContent: Text('EC'),
         ),
       );
@@ -100,8 +115,8 @@ void main() {
         ConfirmActionSheet(
           title: 'T',
           description: 'D',
-          cancelButtonText: 'CancelCTA',
-          confirmButtonText: 'ConfirmCTA',
+          confirmButton: const ConfirmSheetButtonStyle(cta: 'ConfirmCTA'),
+          cancelButton: const ConfirmSheetButtonStyle(cta: 'CancelCTA'),
           onConfirmPressed: () => confirmPressed = true,
           onCancelPressed: () => cancelPressed = true,
         ),

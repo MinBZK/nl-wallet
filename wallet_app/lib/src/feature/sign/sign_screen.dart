@@ -163,9 +163,11 @@ class SignScreen extends StatelessWidget {
         context,
         title: context.l10n.signScreenCancelSheetTitle,
         description: context.l10n.signScreenCancelSheetDescription,
-        cancelButtonText: context.l10n.signScreenCancelSheetNegativeCta,
-        confirmButtonText: context.l10n.signScreenCancelSheetPositiveCta,
-        confirmButtonColor: context.colorScheme.error,
+        confirmButton: ConfirmSheetButtonStyle(
+          cta: context.l10n.signScreenCancelSheetPositiveCta,
+          color: context.colorScheme.error,
+        ),
+        cancelButton: ConfirmSheetButtonStyle(cta: context.l10n.signScreenCancelSheetNegativeCta),
       );
       if (stopped) bloc.add(const SignStopRequested());
     } else {

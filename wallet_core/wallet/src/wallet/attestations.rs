@@ -202,9 +202,7 @@ mod tests {
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let issuance_keypair = generate_issuer_mock(&ca, IssuerRegistration::new_mock().into()).unwrap();
 
-        let mdoc = test::create_example_pid_mdoc();
         let sd_jwt = SdJwt::example_pid_sd_jwt(&issuance_keypair);
-
         let attestation_type = sd_jwt
             .claims()
             .properties
@@ -213,28 +211,27 @@ mod tests {
             .as_str()
             .unwrap()
             .to_string();
+        let mdoc_credential = test::create_example_pid_mdoc_credential();
 
-        wallet.storage.write().await.issued_credential_copies.insert(
-            attestation_type.clone(),
-            vec![
-                CredentialWithMetadata::new(
-                    IssuedCredentialCopies::new_or_panic(
-                        vec![IssuedCredential::SdJwt(Box::new(sd_jwt.into()))]
-                            .try_into()
-                            .unwrap(),
+        Arc::get_mut(&mut wallet.storage)
+            .unwrap()
+            .get_mut()
+            .issued_credential_copies
+            .insert(
+                mdoc_credential.attestation_type.clone(),
+                vec![
+                    CredentialWithMetadata::new(
+                        IssuedCredentialCopies::new_or_panic(
+                            vec![IssuedCredential::SdJwt(Box::new(sd_jwt.into()))]
+                                .try_into()
+                                .unwrap(),
+                        ),
+                        attestation_type.clone(),
+                        VerifiedTypeMetadataDocuments::nl_pid_example(),
                     ),
-                    attestation_type.clone(),
-                    VerifiedTypeMetadataDocuments::nl_pid_example(),
-                ),
-                CredentialWithMetadata::new(
-                    IssuedCredentialCopies::new_or_panic(
-                        vec![IssuedCredential::MsoMdoc(Box::new(mdoc))].try_into().unwrap(),
-                    ),
-                    attestation_type.clone(),
-                    VerifiedTypeMetadataDocuments::nl_pid_example(),
-                ),
-            ],
-        );
+                    mdoc_credential,
+                ],
+            );
 
         // Register mock document_callback
         let attestations = test::setup_mock_attestations_callback(&mut wallet)
@@ -272,17 +269,12 @@ mod tests {
         let mut wallet = Wallet::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // The database contains a single `Mdoc`, without Issuer registration.
-        let mdoc = test::create_example_pid_mdoc_unauthenticated();
-        let credential = IssuedCredential::MsoMdoc(Box::new(mdoc.clone()));
-
-        wallet.storage.write().await.issued_credential_copies.insert(
-            mdoc.doc_type().clone(),
-            vec![CredentialWithMetadata::new(
-                IssuedCredentialCopies::new_or_panic(vec![credential].try_into().unwrap()),
-                mdoc.doc_type().clone(),
-                VerifiedTypeMetadataDocuments::nl_pid_example(),
-            )],
-        );
+        let mdoc_credential = test::create_example_pid_mdoc_credential_unauthenticated();
+        Arc::get_mut(&mut wallet.storage)
+            .unwrap()
+            .get_mut()
+            .issued_credential_copies
+            .insert(mdoc_credential.attestation_type.clone(), vec![mdoc_credential]);
 
         // Register mock attestation_callback
         let (attestations, error) = test::setup_mock_attestations_callback(&mut wallet)

@@ -6,7 +6,7 @@ use crate::keys::EcdsaKey;
 use crate::x509::BorrowingCertificate;
 use crate::x509::CertificateError;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct KeyPair<S = SigningKey> {
     #[debug(skip)]
     private_key: S,

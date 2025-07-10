@@ -134,7 +134,7 @@ trivy-scan:
     - set -euo pipefail
   script:
     - |
-      BASIC_AUTH="${HARBOR_GN2_ROBOT_NAME}:$(base64 --decode <<< ${HARBOR_GN2_ROBOT_SECRET})"
+      BASIC_AUTH="${HARBOR_ROBOT_NAME}:$(base64 --decode <<< ${HARBOR_ROBOT_SECRET})"
 
       vulnerability_url_last_push() {
         local image=$1

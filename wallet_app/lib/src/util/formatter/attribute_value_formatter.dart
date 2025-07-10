@@ -14,6 +14,7 @@ class AttributeValueFormatter {
       BooleanValue() => attributeValue.value ? context.l10n.cardValueTrue : context.l10n.cardValueFalse,
       NumberValue() => attributeValue.value.toString(),
       DateValue() => _prettyPrintDateTime(context.activeLocale, attributeValue.value),
+      NullValue() => context.l10n.cardValueNull
     };
   }
 
@@ -30,6 +31,7 @@ class AttributeValueFormatter {
       BooleanValue() => attributeValue.value ? l10n.cardValueTrue : l10n.cardValueFalse,
       NumberValue() => attributeValue.value.toString(),
       DateValue() => _prettyPrintDateTime(locale, attributeValue.value),
+      NullValue() => l10n.cardValueNull,
     };
   }
 

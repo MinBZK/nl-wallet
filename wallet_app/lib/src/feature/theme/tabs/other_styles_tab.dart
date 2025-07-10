@@ -220,8 +220,8 @@ class OtherStylesTab extends StatelessWidget {
               context,
               title: 'Title goes here',
               description: 'Description goes here. This is a demo of the ConfirmActionSheet!',
-              cancelButtonText: 'cancel',
-              confirmButtonText: 'confirm',
+              confirmButton: const ConfirmSheetButtonStyle(cta: 'confirm'),
+              cancelButton: const ConfirmSheetButtonStyle(cta: 'cancel'),
             );
           },
           child: const Text('Confirm Action Sheet'),
@@ -270,7 +270,7 @@ class OtherStylesTab extends StatelessWidget {
         TextButton(
           onPressed: () {
             // Simulate a network error from the personalize flow
-            final networkError = const WalletPersonalizeNetworkError(
+            const networkError = WalletPersonalizeNetworkError(
               hasInternet: false,
               error: NetworkError(hasInternet: false, sourceError: 'sourceError'),
             );

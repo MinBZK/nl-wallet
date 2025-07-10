@@ -75,6 +75,12 @@ import '../domain/usecase/sign/impl/reject_sign_agreement_usecase_impl.dart';
 import '../domain/usecase/sign/impl/start_sign_usecase_impl.dart';
 import '../domain/usecase/sign/reject_sign_agreement_usecase.dart';
 import '../domain/usecase/sign/start_sign_usecase.dart';
+import '../domain/usecase/tour/fetch_tour_videos_usecase.dart';
+import '../domain/usecase/tour/impl/fetch_tour_videos_usecase_impl.dart';
+import '../domain/usecase/tour/impl/observe_show_tour_banner_usecase_impl.dart';
+import '../domain/usecase/tour/impl/tour_overview_viewed_usecase_impl.dart';
+import '../domain/usecase/tour/observe_show_tour_banner_usecase.dart';
+import '../domain/usecase/tour/tour_overview_viewed_usecase.dart';
 import '../domain/usecase/update/impl/observe_version_state_usecase_impl.dart';
 import '../domain/usecase/update/observe_version_state_usecase.dart';
 import '../domain/usecase/uri/decode_uri_usecase.dart';
@@ -180,7 +186,7 @@ class WalletUseCaseProvider extends StatelessWidget {
           create: (context) => AcceptOfferedPidUseCaseImpl(context.read()),
         ),
         RepositoryProvider<ResetWalletUseCase>(
-          create: (context) => ResetWalletUseCaseImpl(context.read()),
+          create: (context) => ResetWalletUseCaseImpl(context.read(), context.read()),
         ),
         RepositoryProvider<CheckNavigationPrerequisitesUseCase>(
           create: (context) => CheckNavigationPrerequisitesUseCaseImpl(context.read()),
@@ -279,6 +285,15 @@ class WalletUseCaseProvider extends StatelessWidget {
         ),
         RepositoryProvider<GetVersionStringUseCase>(
           create: (context) => GetVersionStringUseCaseImpl(context.read()),
+        ),
+        RepositoryProvider<ObserveShowTourBannerUseCase>(
+          create: (context) => ObserveShowTourBannerUseCaseImpl(context.read()),
+        ),
+        RepositoryProvider<TourOverviewViewedUseCase>(
+          create: (context) => TourOverviewViewedUseCaseImpl(context.read()),
+        ),
+        RepositoryProvider<FetchTourVideosUseCase>(
+          create: (context) => FetchTourVideosUseCaseImpl(context.read()),
         ),
       ],
       child: child,

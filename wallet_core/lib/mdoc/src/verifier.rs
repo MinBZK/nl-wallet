@@ -4,6 +4,7 @@ use chrono::DateTime;
 use chrono::Utc;
 use derive_more::AsRef;
 use indexmap::IndexMap;
+use itertools::Itertools;
 use p256::ecdsa::VerifyingKey;
 use p256::SecretKey;
 use rustls_pki_types::TrustAnchor;
@@ -32,6 +33,7 @@ use crate::utils::crypto::cbor_digest;
 use crate::utils::crypto::dh_hmac_key;
 use crate::utils::serialization::cbor_serialize;
 use crate::utils::serialization::TaggedBytes;
+use crate::Error;
 use crate::Result;
 
 /// Attributes of an mdoc that was disclosed in a [`DeviceResponse`], as computed by [`DeviceResponse::verify()`].
@@ -99,11 +101,12 @@ impl ItemsRequests {
                     .and_then(|docs| docs.iter().find(|doc| doc.doc_type == items_request.doc_type))
                     .map_or_else(
                         // If the entire document is missing then all requested attributes are missing
-                        || items_request.attribute_identifiers().into_iter().collect(),
+                        || Ok::<_, Error>(items_request.mdoc_attribute_identifiers()?.into_iter().collect_vec()),
                         |doc| items_request.match_against_issuer_signed(doc),
                     )
             })
-            .collect();
+            .flatten()
+            .collect_vec();
 
         if not_found.is_empty() {
             Ok(())
@@ -578,7 +581,7 @@ mod tests {
         items_requests
             .0
             .iter()
-            .flat_map(AttributeIdentifierHolder::attribute_identifiers)
+            .flat_map(|request| request.mdoc_attribute_identifiers().unwrap())
             .collect()
     }
 

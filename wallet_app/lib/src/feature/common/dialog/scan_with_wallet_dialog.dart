@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../navigation/wallet_routes.dart';
 import '../../../util/extension/build_context_extension.dart';
+import '../../../util/extension/string_extension.dart';
 import '../widget/text/body_text.dart';
 import '../widget/text/title_text.dart';
 
@@ -15,11 +16,11 @@ class ScanWithWalletDialog extends StatelessWidget {
       content: BodyText(context.l10n.scanWithWalletDialogBody),
       actions: <Widget>[
         TextButton(
-          child: Text(context.l10n.generalClose.toUpperCase()),
+          child: Text.rich(context.l10n.generalClose.toUpperCase().toTextSpan(context)),
           onPressed: () => Navigator.pop(context),
         ),
         TextButton(
-          child: Text(context.l10n.scanWithWalletDialogScanCta.toUpperCase()),
+          child: Text.rich(context.l10n.scanWithWalletDialogScanCta.toUpperCase().toTextSpan(context)),
           onPressed: () async {
             final navigator = Navigator.of(context);
             await navigator.pushNamedAndRemoveUntil(

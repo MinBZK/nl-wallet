@@ -1,6 +1,5 @@
 use p256::ecdsa::VerifyingKey;
 
-use crypto::utils::random_string;
 use jwt::credential::JwtCredential;
 use jwt::wte::WteClaims;
 use platform_support::attested_key::AppleAttestedKey;
@@ -41,12 +40,7 @@ impl WteIssuanceClient for WpWteIssuanceClient {
         GK: GoogleAttestedKey,
         A: AccountProviderClient,
     {
-        let key_id = random_string(32);
-        let IssueWteResult { wte } = remote_instruction
-            .send(IssueWte {
-                key_identifier: key_id.clone(),
-            })
-            .await?;
+        let IssueWteResult { key_id, wte } = remote_instruction.send(IssueWte).await?;
         let (wte, _) = JwtCredential::new::<RemoteEcdsaKey<S, AK, GK, A>>(key_id, wte, wte_issuer_pubkey)?;
         Ok(wte)
     }

@@ -88,21 +88,22 @@ test-rust-gba-pid:
     - cd wallet_core/tests_integration
     - |
       set +x
-      GBA_JSON=$(kubectl get secret nl-wallet-gba-hc-converter-secrets -o json | jq -r '.data | map_values(@base64d)')
+      GBA_VARS=$(kubectl get secret nl-wallet-gba-hc-converter-secrets -o json | jq -r '.data | to_entries | map("gba_\(.key)=\(.value | @base64d)") | .[]')
+      eval $GBA_VARS
+
       cat <<EOD > gba_hc_converter.toml
       ip = "0.0.0.0"
       port = 3008
 
       [run_mode.gbav]
-      adhoc_url = "https://lap.gbav.idm.diginetwerk.net/gba-v/online/lo3services/adhoc"
-      username = "$(jq -r '.username' <<< "$GBA_JSON")"
-      password = "$(jq -r '.password' <<< "$GBA_JSON")"
-      client_cert = "$(jq -r '.client_cert' <<< "$GBA_JSON")"
-      client_cert_key = "$(jq -r '.client_cert_key' <<< "$GBA_JSON")"
-      trust_anchor = "$(jq -r '.trust_anchor' <<< "$GBA_JSON")"
+      adhoc_url = "$gba_adhoc_url"
+      username = "$gba_username"
+      password = "$gba_password"
+      client_cert = "$gba_client_cert"
+      client_cert_key = "$gba_client_cert_key"
+      trust_anchor = "$gba_trust_anchor"
       EOD
       sha256sum gba_hc_converter.toml
-      unset $GBA_JSON
       set -x
     - RUST_BACKTRACE=1 cargo llvm-cov nextest --features gba_pid_test --locked --lcov --output-path ../lcov-gba-pid.info --fail-fast
     - cargo llvm-cov report --locked --cobertura --output-path ../rust-gba-pid-coverage.xml

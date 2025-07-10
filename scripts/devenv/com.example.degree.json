@@ -158,7 +158,7 @@
         "format": "date"
       },
       "grade": {
-        "type": "string"
+        "type": ["string", "null"]
       },
       "cum_laude": {
         "type": "boolean"

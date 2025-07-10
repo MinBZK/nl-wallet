@@ -30,16 +30,6 @@ private_lane :get_local_version_and_build do
   version_parts
 end
 
-private_lane :ci_get_basic_auth do
-  registry_user = ENV["CI_REGISTRY_USER"]
-  UI.user_error!("No CI_REGISTRY_USER environment variable set") if registry_user.blank?
-
-  job_token = ENV["CI_JOB_TOKEN"]
-  UI.user_error!("No CI_JOB_TOKEN environment variable set") if job_token.blank?
-
-  Base64.strict_encode64("#{registry_user}:#{job_token}")
-end
-
 private_lane :flutter_cmd do
   sh "which", "fvm" do |status|
     if status.success?
@@ -219,10 +209,7 @@ platform :ios do
       )
     end
 
-    match_basic_auth = ci_get_basic_auth
-
     options[:app_store] = true
-    options[:match_basic_auth] = match_basic_auth
 
     build(options)
   end
@@ -330,7 +317,6 @@ platform :ios do
     match(
       type: options[:app_store] ? "appstore" : "adhoc",
       readonly: true,
-      git_basic_authorization: options[:match_basic_auth],
     )
 
     # Update the Xcode project so that Flutter can produce a signed build archive

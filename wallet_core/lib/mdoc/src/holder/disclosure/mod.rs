@@ -55,5 +55,52 @@ pub fn credential_request_to_mdoc_paths<'a>(
 
 #[cfg(test)]
 mod tests {
-    // TODO: Implement test for attribute_paths_to_mdoc_paths().
+    use std::collections::HashMap;
+    use std::collections::HashSet;
+
+    use rstest::rstest;
+
+    use attestation_types::attribute_paths::AttestationAttributePaths;
+
+    use super::attribute_paths_to_mdoc_paths;
+
+    #[rstest]
+    #[case("att_1", HashSet::from([("path2", "path3"), ("path7", "path8")]))]
+    #[case("att_2", HashSet::new())]
+    #[case("att_3", HashSet::new())]
+    fn test_attribute_paths_to_mdoc_paths(
+        #[case] attestation_type: &str,
+        #[case] expected_mdoc_mpaths: HashSet<(&str, &str)>,
+    ) {
+        assert_eq!(
+            attribute_paths_to_mdoc_paths(&attribute_paths(), attestation_type),
+            expected_mdoc_mpaths
+        );
+    }
+
+    fn attribute_paths() -> AttestationAttributePaths {
+        AttestationAttributePaths::try_new(HashMap::from([
+            (
+                "att_1".to_string(),
+                HashSet::from([
+                    vec!["path1".to_string()].try_into().unwrap(),
+                    vec!["path2".to_string(), "path3".to_string()].try_into().unwrap(),
+                    vec!["path4".to_string(), "path5".to_string(), "path6".to_string()]
+                        .try_into()
+                        .unwrap(),
+                    vec!["path7".to_string(), "path8".to_string()].try_into().unwrap(),
+                ]),
+            ),
+            (
+                "att_2".to_string(),
+                HashSet::from([
+                    vec!["path1".to_string(), "path2".to_string(), "path3".to_string()]
+                        .try_into()
+                        .unwrap(),
+                    vec!["path4".to_string()].try_into().unwrap(),
+                ]),
+            ),
+        ]))
+        .unwrap()
+    }
 }

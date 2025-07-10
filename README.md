@@ -466,6 +466,10 @@ Next to these configuration files the build can be configured with:
 | UNIVERSAL_LINK_BASE           | Env         | Cargo option_env                    | Universal Link base URL used in Wallet Core. |
 | ALLOW_INSECURE_URL            | _Dart only_ | Cargo feature                       | Whether to allow http urls in Wallet Core (passed via Dart define as ALLOW_INSECURE_URL via Xcode / build.gradle as `wallet/allow_insecure_url`). Defaults to `false`. |
 | CONFIG_ENV                    | Env         | Cargo build                         | The configuration environment name (should match the environment in `config-server-config.json` and `wallet-config.json`). Defaults to `dev`. |
+| SENTRY_AUTH_TOKEN             | Env         | Flutter                             | [Sentry Auth Token](https://docs.sentry.io/account/auth-tokens/), empty if not enabled (read by Dart plugin via environment). |
+| SENTRY_PROJECT                | Env         | Flutter                             | [Sentry Project](https://docs.sentry.io/concepts/key-terms/key-terms/), empty if not enabled (read by Dart plugin via environment). |
+| SENTRY_ORG                    | Env         | Flutter                             | Sentry Organization slug, empty if not enabled (read by Dart plugin via environment). |
+| SENTRY_URL                    | Env         | Flutter                             | Sentry URL, empty if not enabled (read by Dart plugin via environment). |
 | SENTRY_DSN                    | Env         | Flutter                             | [Sentry Data Source Name](https://docs.sentry.io/concepts/key-terms/dsn-explainer/), empty if not enabled (passed via Dart define as SENTRY_DSN). |
 | SENTRY_ENVIRONMENT            | Env         | Flutter                             | [Sentry Environment](https://docs.sentry.io/concepts/key-terms/environments/) (passed via Dart define as SENTRY_ENVIRONMENT). |
 | SENTRY_RELEASE                | Env         | Flutter                             | [Sentry Release](https://docs.sentry.io/product/releases/) (passed via Dart define as SENTRY_RELEASE). |

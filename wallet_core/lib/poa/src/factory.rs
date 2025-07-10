@@ -23,10 +23,10 @@ pub trait PoaFactory {
 pub mod mock {
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::mock_remote::MockRemoteKeyFactory;
+    use crypto::mock_remote::MockRemoteKeyFactoryError;
     use jwt::pop::JwtPopClaims;
     use utils::vec_at_least::VecAtLeastTwoUnique;
 
-    use crate::error::PoaError;
     use crate::poa::Poa;
 
     use super::PoaFactory;
@@ -35,7 +35,7 @@ pub mod mock {
 
     impl PoaFactory for MockRemoteKeyFactory {
         type Key = MockRemoteEcdsaKey;
-        type Error = PoaError;
+        type Error = MockRemoteKeyFactoryError;
 
         async fn poa(
             &self,
@@ -43,7 +43,13 @@ pub mod mock {
             aud: String,
             nonce: Option<String>,
         ) -> Result<Poa, Self::Error> {
-            let poa = Poa::new(keys, JwtPopClaims::new(nonce, MOCK_WALLET_CLIENT_ID.to_string(), aud)).await?;
+            if self.has_poa_error {
+                return Err(MockRemoteKeyFactoryError::Poa);
+            }
+
+            let poa = Poa::new(keys, JwtPopClaims::new(nonce, MOCK_WALLET_CLIENT_ID.to_string(), aud))
+                .await
+                .unwrap();
 
             Ok(poa)
         }

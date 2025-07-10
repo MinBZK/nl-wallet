@@ -44,11 +44,9 @@
     "privacyPolicyUrl": "https://university.example.com/privacy"
   },
   "requestOriginBaseUrl": "https://university.example.com",
-  "attributes": {
-    "urn:eudi:pid:nl:1": {
-      "urn:eudi:pid:nl:1": {
-        "bsn": {}
-      }
-    }
+  "authorizedAttributes": {
+    "urn:eudi:pid:nl:1": [
+      ["urn:eudi:pid:nl:1", "bsn"]
+    ]
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../navigation/secured_page_route.dart';
 import '../../../util/extension/build_context_extension.dart';
+import '../../../util/extension/string_extension.dart';
 import '../widget/button/confirm/confirm_buttons.dart';
 import '../widget/button/icon/help_icon_button.dart';
 import '../widget/button/primary_button.dart';
@@ -77,7 +78,7 @@ class TerminalScreen extends StatelessWidget {
       illustration: config.illustration,
       primaryButton: config.primaryButton ??
           PrimaryButton(
-            text: Text(context.l10n.generalClose),
+            text: Text.rich(context.l10n.generalClose.toTextSpan(context)),
             icon: const Icon(Icons.close_outlined),
             onPressed: () => Navigator.maybePop(context),
           ),

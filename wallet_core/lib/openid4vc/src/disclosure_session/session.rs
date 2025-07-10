@@ -182,5 +182,336 @@ where
 
 #[cfg(test)]
 mod tests {
-    // TODO: Implement tests for VpDisclosureSession().
+    use std::sync::Arc;
+    use std::sync::LazyLock;
+
+    use assert_matches::assert_matches;
+    use futures::FutureExt;
+    use http::StatusCode;
+    use p256::ecdsa::SigningKey;
+    use rand_core::OsRng;
+    use rstest::rstest;
+    use serde::de::Error;
+
+    use attestation_data::auth::reader_auth::ReaderRegistration;
+    use crypto::mock_remote::MockRemoteEcdsaKey;
+    use crypto::mock_remote::MockRemoteKeyFactory;
+    use http_utils::urls::BaseUrl;
+    use mdoc::holder::Mdoc;
+    use serde_json::json;
+
+    use crate::errors::AuthorizationErrorCode;
+    use crate::errors::VpAuthorizationErrorCode;
+    use crate::openid4vp::RequestUriMethod;
+    use crate::verifier::SessionType;
+
+    use super::super::error::DisclosureError;
+    use super::super::error::VpClientError;
+    use super::super::error::VpSessionError;
+    use super::super::error::VpVerifierError;
+    use super::super::message_client::mock::MockErrorFactoryVpMessageClient;
+    use super::super::message_client::mock::MockVerifierSession;
+    use super::super::message_client::mock::MockVerifierVpMessageClient;
+    use super::super::message_client::mock::WalletMessage;
+    use super::super::message_client::VpMessageClientError;
+    use super::super::verifier_certificate::VerifierCertificate;
+    use super::super::DisclosureSession;
+    use super::VpDisclosureSession;
+
+    static VERIFIER_URL: LazyLock<BaseUrl> = LazyLock::new(|| "http://example.com/disclosure".parse().unwrap());
+
+    /// Creates a `VpDisclosureSession` that has already been started, along with a `MockVerifierSession`.
+    fn setup_disclosure_session(
+        redirect_uri: Option<BaseUrl>,
+    ) -> (
+        VpDisclosureSession<MockVerifierVpMessageClient>,
+        Arc<MockVerifierSession>,
+    ) {
+        let session_type = SessionType::SameDevice;
+
+        let verifier_session = Arc::new(MockVerifierSession::new(
+            &VERIFIER_URL,
+            session_type,
+            RequestUriMethod::GET,
+            redirect_uri,
+            Some(ReaderRegistration::new_mock()),
+        ));
+
+        let mock_client = MockVerifierVpMessageClient::new(Arc::clone(&verifier_session));
+        let disclosure_session = VpDisclosureSession {
+            client: mock_client,
+            session_type,
+            requested_attribute_paths: verifier_session
+                .items_requests
+                .clone()
+                .try_into_attribute_paths()
+                .unwrap(),
+            verifier_certificate: VerifierCertificate::try_new(verifier_session.key_pair.certificate().clone())
+                .unwrap()
+                .unwrap(),
+            auth_request: verifier_session.iso_auth_request(None),
+        };
+
+        (disclosure_session, verifier_session)
+    }
+
+    /// Creates a `VpDisclosureSession` that has already been started where the verified will return a HTTP error.
+    fn setup_disclosure_session_http_error<F>(
+        response_factory: F,
+    ) -> VpDisclosureSession<MockErrorFactoryVpMessageClient<F>>
+    where
+        F: Fn() -> VpMessageClientError,
+    {
+        let (disclosure_session, _verifier_session) = setup_disclosure_session(None);
+
+        // Replace the `VpDisclosureSession`'s client with one that returns errors.
+        let error_client = MockErrorFactoryVpMessageClient::new(response_factory, true);
+
+        VpDisclosureSession {
+            client: error_client,
+            session_type: disclosure_session.session_type,
+            requested_attribute_paths: disclosure_session.requested_attribute_paths,
+            verifier_certificate: disclosure_session.verifier_certificate,
+            auth_request: disclosure_session.auth_request,
+        }
+    }
+
+    fn setup_disclosure_mdoc() -> (Mdoc, MockRemoteKeyFactory) {
+        let mdoc_key = MockRemoteEcdsaKey::new("mdoc_key".to_string(), SigningKey::random(&mut OsRng));
+        let mdoc = Mdoc::new_mock_with_key(&mdoc_key).now_or_never().unwrap();
+        let key_factory = MockRemoteKeyFactory::new(vec![mdoc_key]);
+
+        (mdoc, key_factory)
+    }
+
+    /// This contains a lightweight test of `VpDisclosureSession::disclose()`. For a more
+    /// thorough test see `test_vp_disclosure_client_full()` in the `client` submodule.
+    #[rstest]
+    fn test_disclosure_session_disclose_abridged(
+        #[values(None, Some("http://example.com/redirect".parse().unwrap()))] redirect_uri: Option<BaseUrl>,
+    ) {
+        let (disclosure_session, verifier_session) = setup_disclosure_session(redirect_uri.clone());
+        let (mdoc, key_factory) = setup_disclosure_mdoc();
+
+        let disclosure_redirect_uri = disclosure_session
+            .disclose(vec![mdoc].try_into().unwrap(), &key_factory)
+            .now_or_never()
+            .unwrap()
+            .expect("disclosing mdoc using VpDisclosureSession should succeed");
+
+        assert_eq!(disclosure_redirect_uri, redirect_uri);
+
+        let wallet_messages = verifier_session.wallet_messages.lock();
+
+        assert_eq!(wallet_messages.len(), 1);
+        assert_matches!(wallet_messages.last().unwrap(), WalletMessage::Disclosure(_));
+    }
+
+    #[test]
+    fn test_disclosure_session_disclose_error_device_response() {
+        // Calling `VPDisclosureSession::disclose()` with a malfunctioning key factory should result in an error.
+        let (disclosure_session, _verifier_session) = setup_disclosure_session(None);
+        let (mdoc, mut key_factory) = setup_disclosure_mdoc();
+
+        key_factory.has_multi_key_signing_error = true;
+
+        let (_disclosure_session, error) = disclosure_session
+            .disclose(vec![mdoc].try_into().unwrap(), &key_factory)
+            .now_or_never()
+            .unwrap()
+            .expect_err("disclosing mdoc using VpDisclosureSession should not succeed");
+
+        assert_matches!(
+            error,
+            DisclosureError {
+                data_shared,
+                error: VpSessionError::Client(VpClientError::DeviceResponse(_))
+            } if !data_shared
+        );
+    }
+
+    #[test]
+    fn test_disclosure_session_disclose_error_poa() {
+        // Calling `VPDisclosureSession::disclose()` with a malfunctioning PoA factory should result in an error.
+        let (disclosure_session, _verifier_session) = setup_disclosure_session(None);
+        let (mdoc, mut key_factory) = setup_disclosure_mdoc();
+
+        let mdoc_key2 = MockRemoteEcdsaKey::new("mdoc_key2".to_string(), SigningKey::random(&mut OsRng));
+        let mdoc2 = Mdoc::new_mock_with_key(&mdoc_key2).now_or_never().unwrap();
+
+        key_factory.add_key(mdoc_key2);
+        key_factory.has_poa_error = true;
+
+        let (_disclosure_session, error) = disclosure_session
+            .disclose(vec![mdoc, mdoc2].try_into().unwrap(), &key_factory)
+            .now_or_never()
+            .unwrap()
+            .expect_err("disclosing mdoc using VpDisclosureSession should not succeed");
+
+        assert_matches!(
+            error,
+            DisclosureError {
+                data_shared,
+                error: VpSessionError::Client(VpClientError::Poa(_))
+            } if !data_shared
+        );
+    }
+
+    #[test]
+    fn test_disclosure_session_disclose_error_auth_response_encryption() {
+        // Calling `VPDisclosureSession::disclose()` with a malformed encryption key should result in an error.
+        let (mut disclosure_session, _verifier_session) = setup_disclosure_session(None);
+        let (mdoc, key_factory) = setup_disclosure_mdoc();
+
+        disclosure_session
+            .auth_request
+            .encryption_pubkey
+            .set_parameter("kty", Some(json!("invalid_value")))
+            .unwrap();
+
+        let (_disclosure_session, error) = disclosure_session
+            .disclose(vec![mdoc].try_into().unwrap(), &key_factory)
+            .now_or_never()
+            .unwrap()
+            .expect_err("disclosing mdoc using VpDisclosureSession should not succeed");
+
+        assert_matches!(
+            error,
+            DisclosureError {
+                data_shared,
+                error: VpSessionError::Client(VpClientError::AuthResponseEncryption(_))
+            } if !data_shared
+        );
+    }
+
+    /// Helper function for testing `VpDisclosureSession::disclose()` HTTP errors.
+    fn test_disclosure_session_disclose_http_error<F>(response_factory: F) -> VpSessionError
+    where
+        F: Fn() -> VpMessageClientError,
+    {
+        let disclosure_session = setup_disclosure_session_http_error(response_factory);
+        let (mdoc, key_factory) = setup_disclosure_mdoc();
+        let wallet_messages = Arc::clone(&disclosure_session.client.wallet_messages);
+
+        let (_disclosure_session, error) = disclosure_session
+            .disclose(vec![mdoc].try_into().unwrap(), &key_factory)
+            .now_or_never()
+            .unwrap()
+            .expect_err("disclosing mdoc using VpDisclosureSession should not succeed");
+
+        let wallet_messages = wallet_messages.lock();
+
+        assert_eq!(wallet_messages.len(), 1);
+        assert_matches!(wallet_messages.last().unwrap(), WalletMessage::Disclosure(_));
+
+        assert!(error.data_shared);
+
+        error.error
+    }
+
+    #[test]
+    fn test_disclosure_session_disclose_error_verifier_request() {
+        let error = test_disclosure_session_disclose_http_error(|| serde_json::Error::custom("").into());
+
+        assert_matches!(
+            error,
+            VpSessionError::Verifier(VpVerifierError::Request(VpMessageClientError::Json(_)))
+        );
+    }
+
+    #[test]
+    fn test_disclosure_session_disclose_error_client_request() {
+        let error = test_disclosure_session_disclose_http_error(|| {
+            let response = http::Response::builder()
+                .status(StatusCode::NOT_FOUND)
+                .body("")
+                .unwrap();
+
+            reqwest::Response::from(response).error_for_status().unwrap_err().into()
+        });
+
+        assert_matches!(
+            error,
+            VpSessionError::Client(VpClientError::Request(VpMessageClientError::Http(_)))
+        );
+    }
+
+    #[rstest]
+    fn test_disclosure_session_terminate(
+        #[values(None, Some("http://example.com/redirect".parse().unwrap()))] redirect_uri: Option<BaseUrl>,
+    ) {
+        let (disclosure_session, verifier_session) = setup_disclosure_session(redirect_uri.clone());
+
+        let terminate_redirect_uri = disclosure_session
+            .terminate()
+            .now_or_never()
+            .unwrap()
+            .expect("terminating VpDisclosureSession should succeed");
+
+        assert_eq!(terminate_redirect_uri, redirect_uri);
+
+        // Terminating the session should result in the verified receiving an access denied error.
+        let wallet_messages = verifier_session.wallet_messages.lock();
+
+        assert_eq!(wallet_messages.len(), 1);
+        let expected_error_code = VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::AccessDenied);
+        assert_matches!(
+            wallet_messages.last().unwrap(),
+            WalletMessage::Error(response) if response.error == expected_error_code
+        );
+    }
+
+    /// Helper function for testing `VpDisclosureSession::terminate()` HTTP errors.
+    fn test_disclosure_session_terminate_http_error<F>(response_factory: F) -> VpSessionError
+    where
+        F: Fn() -> VpMessageClientError,
+    {
+        let disclosure_session = setup_disclosure_session_http_error(response_factory);
+        let wallet_messages = Arc::clone(&disclosure_session.client.wallet_messages);
+
+        // Terminate the session, which should result in the verified receiving an access denied error.
+        let error = disclosure_session
+            .terminate()
+            .now_or_never()
+            .unwrap()
+            .expect_err("terminating VpDisclosureSession should not succeed");
+
+        let wallet_messages = wallet_messages.lock();
+
+        assert_eq!(wallet_messages.len(), 1);
+        let expected_error_code = VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::AccessDenied);
+        assert_matches!(
+            wallet_messages.last().unwrap(),
+            WalletMessage::Error(response) if response.error == expected_error_code
+        );
+
+        error
+    }
+
+    #[test]
+    fn test_disclosure_session_terminate_error_verifier_request() {
+        let error = test_disclosure_session_terminate_http_error(|| serde_json::Error::custom("").into());
+
+        assert_matches!(
+            error,
+            VpSessionError::Verifier(VpVerifierError::Request(VpMessageClientError::Json(_)))
+        );
+    }
+
+    #[test]
+    fn test_disclosure_session_terminate_error_client_request() {
+        let error = test_disclosure_session_terminate_http_error(|| {
+            let response = http::Response::builder()
+                .status(StatusCode::NOT_FOUND)
+                .body("")
+                .unwrap();
+
+            reqwest::Response::from(response).error_for_status().unwrap_err().into()
+        });
+
+        assert_matches!(
+            error,
+            VpSessionError::Client(VpClientError::Request(VpMessageClientError::Http(_)))
+        );
+    }
 }

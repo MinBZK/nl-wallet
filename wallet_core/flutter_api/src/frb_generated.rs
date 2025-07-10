@@ -1163,6 +1163,9 @@ impl SseDecode for crate::models::attestation::AttributeValue {
                 let mut var_value = <String>::sse_decode(deserializer);
                 return crate::models::attestation::AttributeValue::Date { value: var_value };
             }
+            4 => {
+                return crate::models::attestation::AttributeValue::Null;
+            }
             _ => {
                 unimplemented!("");
             }
@@ -1973,6 +1976,7 @@ impl flutter_rust_bridge::IntoDart for crate::models::attestation::AttributeValu
             crate::models::attestation::AttributeValue::Date { value } => {
                 [3.into_dart(), value.into_into_dart().into_dart()].into_dart()
             }
+            crate::models::attestation::AttributeValue::Null => [4.into_dart()].into_dart(),
             _ => {
                 unimplemented!("");
             }
@@ -2646,6 +2650,9 @@ impl SseEncode for crate::models::attestation::AttributeValue {
             crate::models::attestation::AttributeValue::Date { value } => {
                 <i32>::sse_encode(3, serializer);
                 <String>::sse_encode(value, serializer);
+            }
+            crate::models::attestation::AttributeValue::Null => {
+                <i32>::sse_encode(4, serializer);
             }
             _ => {
                 unimplemented!("");
@@ -3433,6 +3440,7 @@ mod io {
                         value: ans.value.cst_decode(),
                     }
                 }
+                4 => crate::models::attestation::AttributeValue::Null,
                 _ => unreachable!(),
             }
         }

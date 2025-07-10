@@ -1119,6 +1119,8 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         return AttributeValue_Date(
           value: dco_decode_String(raw[1]),
         );
+      case 4:
+        return AttributeValue_Null();
       default:
         throw Exception("unreachable");
     }
@@ -1730,6 +1732,8 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       case 3:
         var var_value = sse_decode_String(deserializer);
         return AttributeValue_Date(value: var_value);
+      case 4:
+        return AttributeValue_Null();
       default:
         throw UnimplementedError('');
     }
@@ -2516,6 +2520,8 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       case AttributeValue_Date(value: final value):
         sse_encode_i_32(3, serializer);
         sse_encode_String(value, serializer);
+      case AttributeValue_Null():
+        sse_encode_i_32(4, serializer);
     }
   }
 

@@ -15,11 +15,13 @@ use crate::verifier::SessionType;
 use super::error::DisclosureError;
 use super::error::VpSessionError;
 use super::uri_source::DisclosureUriSource;
+use super::AttestationAttributePaths;
 use super::DisclosureClient;
 use super::DisclosureSession;
 use super::VerifierCertificate;
 
 mockall::mock! {
+    #[derive(Debug)]
     pub DisclosureClient {}
 
     impl DisclosureClient for DisclosureClient {
@@ -35,13 +37,14 @@ mockall::mock! {
 }
 
 mockall::mock! {
+    #[derive(Debug)]
     pub DisclosureSession {
-        fn session_type(&self) -> SessionType;
-        fn credential_requests(&self) -> &NormalizedCredentialRequests;
-        fn verifier_certificate(&self) -> &VerifierCertificate;
+        pub fn session_type(&self) -> SessionType;
+        pub fn credential_requests(&self) -> &NormalizedCredentialRequests;
+        pub fn verifier_certificate(&self) -> &VerifierCertificate;
 
-        async fn terminate(self) -> Result<Option<BaseUrl>, VpSessionError>;
-        async fn disclose(
+        pub async fn terminate(self) -> Result<Option<BaseUrl>, VpSessionError>;
+        pub async fn disclose(
             self,
             mdocs: VecNonEmpty<Mdoc>,
         ) -> Result<Option<BaseUrl>, (Self, DisclosureError<VpSessionError>)>;

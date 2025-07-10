@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:store_redirect/store_redirect.dart';
 
 import '../../util/extension/build_context_extension.dart';
+import '../../util/extension/string_extension.dart';
 import '../../util/launch_util.dart';
 import '../../wallet_assets.dart';
 import '../common/widget/button/confirm/confirm_buttons.dart';
@@ -70,12 +71,15 @@ class AppBlockedScreen extends StatelessWidget {
         alignment: Alignment.bottomCenter,
         child: ConfirmButtons(
           primaryButton: PrimaryButton(
-            text: Text(Platform.isIOS ? context.l10n.generalToAppStoreCta : context.l10n.generalToPlayStoreCta),
+            text: Text.rich(
+              (Platform.isIOS ? context.l10n.generalToAppStoreCta : context.l10n.generalToPlayStoreCta)
+                  .toTextSpan(context),
+            ),
             icon: const Icon(Icons.north_east_outlined),
             onPressed: () => StoreRedirect.redirect,
           ),
           secondaryButton: TertiaryButton(
-            text: Text(context.l10n.generalNeedHelpCta),
+            text: Text.rich(context.l10n.generalNeedHelpCta.toTextSpan(context)),
             icon: const Icon(Icons.help_outline_rounded),
             onPressed: () => launchUrlStringCatching('https://edi.pleio.nl/'),
           ),

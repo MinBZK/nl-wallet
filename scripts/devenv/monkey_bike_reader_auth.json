@@ -43,22 +43,18 @@
     "privacyPolicyUrl": "https://www.monkeybike.nl/privacy"
   },
   "requestOriginBaseUrl": "https://www.monkeybike.nl",
-  "attributes": {
-    "urn:eudi:pid:nl:1": {
-      "urn:eudi:pid:nl:1": {
-        "given_name": {},
-        "family_name": {},
-        "birthdate": {},
-        "gender": {}
-      }
-    },
-    "urn:eudi:pid-address:nl:1": {
-      "urn:eudi:pid-address:nl:1.address": {
-        "street_address": {},
-        "house_number": {},
-        "postal_code": {},
-        "locality": {}
-      }
-    }
+  "authorizedAttributes": {
+    "urn:eudi:pid:nl:1": [
+      ["urn:eudi:pid:nl:1", "given_name"],
+      ["urn:eudi:pid:nl:1", "family_name"],
+      ["urn:eudi:pid:nl:1", "birthdate"],
+      ["urn:eudi:pid:nl:1", "gender"]
+    ],
+    "urn:eudi:pid-address:nl:1": [
+      ["urn:eudi:pid-address:nl:1.address", "street_address"],
+      ["urn:eudi:pid-address:nl:1.address", "house_number"],
+      ["urn:eudi:pid-address:nl:1.address", "postal_code"],
+      ["urn:eudi:pid-address:nl:1.address", "locality"]
+    ]
   }
 }

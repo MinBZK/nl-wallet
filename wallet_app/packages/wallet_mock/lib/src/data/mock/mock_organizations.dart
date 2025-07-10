@@ -236,7 +236,7 @@ final _kMunicipalityTheHagueOrganization = Organization(
   webUrl: 'https://www.denhaag.nl',
 );
 
-final _kBankOrganization = const Organization(
+const _kBankOrganization = Organization(
   //id: kBankId,
   legalName: [
     LocalizedString(language: 'en', value: 'XYZ Bank N.V.'),
@@ -264,7 +264,7 @@ final _kBankOrganization = const Organization(
   webUrl: 'https://jouwbank.nl',
 );
 
-final _kMonkeyBikeOrganization = const Organization(
+const _kMonkeyBikeOrganization = Organization(
   //id: kMonkeyBikeId,
   legalName: [
     LocalizedString(language: 'en', value: 'MonkeyBike Bezorgdiensten B.V.'),

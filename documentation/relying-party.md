@@ -13,10 +13,10 @@ integration thereof with their own frontend(s) and backend.
 ## Step-by-step
 
 As a relying party you want to verify certain attributes of a natural person
-which are contained in the NL wallet. To be able to do so there are a few
-things you must do. Roughly these are a couple of onboarding steps and the
-actual configuration of the "Ontvangende Voorziening" (which can be translated
-as "Receiving Facility", a facility that receives attributes to verify):
+which are contained in the NL wallet. To be able to do so there are a few things
+you must do. Roughly these are a couple of onboarding steps and the actual
+configuration of the "Ontvangende Voorziening" (which can be translated as
+"Receiving Facility", a facility that receives attributes to verify):
 
 1. Determine which attributes you need to verify
 2. Provide required relying party data
@@ -51,21 +51,20 @@ session. The main components are:
 
 - [DigiD][1]: Digitale Identiteit, a digital identification system;
 - [Pseudonym Service][2]: A service that pseudonimizes BSN numbers;
-- [(BRP-V) Authentic Source][3]: A source of attributes, made accessible by
-  a so-called Verstrekkende Voorziening (VV);
+- [(BRP-V) Authentic Source][3]: A source of attributes, made accessible by a
+  so-called Verstrekkende Voorziening (VV);
 - VV: Verstrekkende Voorziening, the party that issues attributes;
-- OV: Ontvangende Voorziening, an application that runs on-premises or
-  in-cloud of a relying party that can verify attributes, which this document
-  is about;
-- Relying Party Application: An app running on-premises or in-cloud of
-  the relying party that needs to do something with the result of a
-  verification of attributes;
+- OV: Ontvangende Voorziening, an application that runs on-premises or in-cloud
+  of a relying party that can verify attributes, which this document is about;
+- Relying Party Application: An app running on-premises or in-cloud of the
+  relying party that needs to do something with the result of a verification of
+  attributes;
 - [Wallet App][5]: The wallet app running on a mobile device;
 
 Missing from the above diagram, but worth mentioning:
 
-- [Wallet Web][14] The frontend helper JavaScript/TypeScript library which
-  helps relying parties integrate their application with the Wallet platform.
+- [Wallet Web][14] The frontend helper JavaScript/TypeScript library which helps
+  relying parties integrate their application with the Wallet platform.
 
 For the purpose of this document, we won't go into all components mentioned
 above, in particular, "DigiD" and "Pseudonym Service" are out-of-scope with
@@ -83,22 +82,22 @@ their own application, and which interacts with the Wallet app, in order to
 verify attributes and attestations for usage in their own application.
 
 This document is about configuring an "Ontvangende Voorziening". To have a
-broader view on the Wallet platform, you can have a look at the
-[Architecture Documents][5]. Specifically, the Project Start Architecture, the
-Solution Architecture Document and the Design Considerations (all of which can
-be found at the aforementioned link).
+broader view on the Wallet platform, you can have a look at the [Architecture
+Documents][5]. Specifically, the Project Start Architecture, the Solution
+Architecture Document and the Design Considerations (all of which can be found
+at the aforementioned link).
 
 The Wallet platform is fully open-source; you can find the project on GitHub:
-[nl-wallet][6] (note: we currently have a dependency on [nl-rdo-max][7] which
-is also open-source but lags behind a bit in updates - we're intending on
-getting some currently-private changes upstreamed, work in progress).
+[nl-wallet][6] (note: we currently have a dependency on [nl-rdo-max][7] which is
+also open-source but lags behind a bit in updates - we're intending on getting
+some currently-private changes upstreamed, work in progress).
 
 ## Preparations and Onboarding
 
-The subsections below describe the decisions you need to make as a relying
-party with regards to attributes you want to verify, what data we require from
-you, how to create a certificate request for a certificate (which is configured
-for usage within the `verification_server`), and how to file all of that with us.
+The subsections below describe the decisions you need to make as a relying party
+with regards to attributes you want to verify, what data we require from you,
+how to create a certificate request for a certificate (which is configured for
+usage within the `verification_server`), and how to file all of that with us.
 
 ## Decisions
 
@@ -113,18 +112,18 @@ Attributes in the wallet are grouped in things called attestations and the
 wallet app displays these attestations as cards. The attestations are stored in
 the `mdoc` format (see [ISO/IEC 18013-5:2021][8] and [ISO/IEC 23220-4][9]).
 
-In the `verification_server` we have the concept of `usecases`, which encapsulate what
-you want to use a disclosure for, for example to verify a legal age or to login
-to a website. Essentially, every certificate that you create to be able to
-verify attributes for some purpose, represent a certificate/key-pair, and the
-`verification_server` can support multiple `usecases`. In this guide we will be
-creating a single certificate (so, for a single `usecase`), but there's nothing
-stopping you from creating/requesting multiple certificates for different
-`usecases`.
+In the `verification_server` we have the concept of `usecases`, which
+encapsulate what you want to use a disclosure for, for example to verify a legal
+age or to login to a website. Essentially, every certificate that you create to
+be able to verify attributes for some purpose, represent a certificate/key-pair,
+and the `verification_server` can support multiple `usecases`. In this guide we
+will be creating a single certificate (so, for a single `usecase`), but there's
+nothing stopping you from creating/requesting multiple certificates for
+different `usecases`.
 
-We currently (as of 2024-08-08) support two `mdoc` doctypes: `PID_DOCTYPE`
-and `ADDRESS_DOCTYPE`. An `mdoc` contains one or multiple attributes that you
-can verify. For your convenience, we list the attributes for both doctypes here:
+We currently (as of 2024-08-08) support two `mdoc` doctypes: `PID_DOCTYPE` and
+`ADDRESS_DOCTYPE`. An `mdoc` contains one or multiple attributes that you can
+verify. For your convenience, we list the attributes for both doctypes here:
 
 ### What a PID_DOCTYPE looks like
 
@@ -143,7 +142,8 @@ can verify. For your convenience, we list the attributes for both doctypes here:
 | `birth_country`     |              | unimplemented | Country of birth (geboorteland)                          |
 | `bsn`               | 10120        | haal_centraal | Citizen service number (burgerservicenummer)             |
 
-_\* `birth_place` is a combination of `birth_country`, `birth_state` and `birth_city_`
+_\* `birth_place` is a combination of `birth_country`, `birth_state` and
+`birth_city_`
 
 ### What an ADDRESS_DOCTYPE looks like
 
@@ -157,7 +157,8 @@ _\* `birth_place` is a combination of `birth_country`, `birth_state` and `birth_
 | `resident_state`        |                     | unimplemented | State or province (staat of provincie)                                |
 | `resident_country`      |                     | unimplemented | Country (land)                                                        |
 
-_\* `resident_address` is a combination of `resident_street`, `house_number`, `postal_code`, `city`, `state` and `country_`
+_\* `resident_address` is a combination of `resident_street`, `house_number`,
+`postal_code`, `city`, `state` and `country_`
 
 Collect the attributes you want to verify and describe the purpose, they are
 needed when we file the request later on.
@@ -197,64 +198,60 @@ provide both a dutch and an english answer.
 
 ### Example reader_auth.json
 
-To give you an idea with regards to how we format this data, here's an
-example of the JSON data (a so-called `reader_auth.json`) we produce from your
-answers (this is an example for the municipality of Amsterdam):
+To give you an idea with regards to how we format this data, here's an example
+of the JSON data (a so-called `reader_auth.json`) we produce from your answers
+(this is an example for the municipality of Amsterdam):
 
 ```json
 {
-  "purposeStatement": {
-    "nl": "Inloggen",
-    "en": "Login"
-  },
-  "retentionPolicy": {
-    "intentToRetain": true,
-    "maxDurationInMinutes": 525600
-  },
-  "sharingPolicy": {
-    "intentToShare": false
-  },
-  "deletionPolicy": {
-    "deleteable": false
-  },
-  "organization": {
-    "displayName": {
-      "nl": "Gemeente Amsterdam",
-      "en": "Municipality of Amsterdam"
+    "purposeStatement": {
+        "nl": "Inloggen",
+        "en": "Login"
     },
-    "legalName": {
-      "nl": "Gemeente Amsterdam",
-      "en": "Municipality of Amsterdam"
+    "retentionPolicy": {
+        "intentToRetain": true,
+        "maxDurationInMinutes": 525600
     },
-    "description": {
-      "nl": "Alles wat we doen, doen we voor de stad en de Amsterdammers.",
-      "en": "Everything we do, we do for the city and the people of Amsterdam."
+    "sharingPolicy": {
+        "intentToShare": false
     },
-    "webUrl": "https://amsterdam.nl",
-    "city": {
-      "nl": "Amsterdam",
-      "en": "Amsterdam"
+    "deletionPolicy": {
+        "deleteable": false
     },
-    "category": {
-      "nl": "Gemeente",
-      "en": "Municipality"
+    "organization": {
+        "displayName": {
+            "nl": "Gemeente Amsterdam",
+            "en": "Municipality of Amsterdam"
+        },
+        "legalName": {
+            "nl": "Gemeente Amsterdam",
+            "en": "Municipality of Amsterdam"
+        },
+        "description": {
+            "nl": "Alles wat we doen, doen we voor de stad en de Amsterdammers.",
+            "en": "Everything we do, we do for the city and the people of Amsterdam."
+        },
+        "webUrl": "https://amsterdam.nl",
+        "city": {
+            "nl": "Amsterdam",
+            "en": "Amsterdam"
+        },
+        "category": {
+            "nl": "Gemeente",
+            "en": "Municipality"
+        },
+        "logo": {
+            "mimeType": "image/svg+xml",
+            "imageData": "<svg width=\"64\" height=\"64\" viewBox=\"0 0 64 64\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><rect width=\"64\" height=\"64\" rx=\"12\" fill=\"#FF0000\"/><path d=\"M25 53.1823L29.1985 48.9481L25 44.7139L27.8015 41.8886L32 46.1228L36.1985 41.8886L39 44.7139L34.8015 48.9481L39 53.1823L36.191 56L31.9925 51.7658L27.794 56L25 53.1823ZM25 19.2861L29.1985 15.0519L25 10.8253L27.8015 8L32 12.2342L36.191 8L38.9925 10.8253L34.794 15.0595L38.9925 19.2937L36.191 22.1114L31.9925 17.8772L27.794 22.1114L25 19.2861ZM25 36.2455L29.1985 32.0114L25 27.7848L27.8015 24.9594L32 29.1936L36.1985 24.9594L39 27.7848L34.8015 32.0189L39 36.2531L36.191 39.0709L31.9925 34.8367L27.794 39.0709L25 36.2455Z\" fill=\"white\"/></svg>"
+        },
+        "countryCode": "nl",
+        "kvk": "1234-1234",
+        "privacyPolicyUrl": "https://amsterdam.nl/privacy"
     },
-    "logo": {
-      "mimeType": "image/svg+xml",
-      "imageData": "<svg width=\"64\" height=\"64\" viewBox=\"0 0 64 64\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><rect width=\"64\" height=\"64\" rx=\"12\" fill=\"#FF0000\"/><path d=\"M25 53.1823L29.1985 48.9481L25 44.7139L27.8015 41.8886L32 46.1228L36.1985 41.8886L39 44.7139L34.8015 48.9481L39 53.1823L36.191 56L31.9925 51.7658L27.794 56L25 53.1823ZM25 19.2861L29.1985 15.0519L25 10.8253L27.8015 8L32 12.2342L36.191 8L38.9925 10.8253L34.794 15.0595L38.9925 19.2937L36.191 22.1114L31.9925 17.8772L27.794 22.1114L25 19.2861ZM25 36.2455L29.1985 32.0114L25 27.7848L27.8015 24.9594L32 29.1936L36.1985 24.9594L39 27.7848L34.8015 32.0189L39 36.2531L36.191 39.0709L31.9925 34.8367L27.794 39.0709L25 36.2455Z\" fill=\"white\"/></svg>"
-    },
-    "countryCode": "nl",
-    "kvk": "1234-1234",
-    "privacyPolicyUrl": "https://amsterdam.nl/privacy"
-  },
-  "requestOriginBaseUrl": "https://amsterdam.nl",
-  "attributes": {
-    "com.example.pid": {
-      "com.example.pid": {
-        "bsn": {}
-      }
+    "requestOriginBaseUrl": "https://amsterdam.nl",
+    "authorizedAttributes": {
+        "urn:eudi:pid:nl:1": [["urn:eudi:pid:nl:1", "bsn"]]
     }
-  }
 }
 ```
 
@@ -394,17 +391,16 @@ time being) and we will pick up the request from there.
 
 What you'll receive from us in reply to the above is:
 
-1. A `DER` format certificate based on your certificate-request with an
-   X509v3 extension with OID 2.1.123.1 containing the aforementioned
-   `reader_auth.json` populated with your provided required data.
+1. A `DER` format certificate based on your certificate-request with an X509v3
+   extension with OID 2.1.123.1 containing the aforementioned `reader_auth.json`
+   populated with your provided required data.
 
 2. A so-called trust-anchor certificate, also in `DER` format which represents
-   the issuer(s) you as a relying party trust as a party that issues
-   attributes.
+   the issuer(s) you as a relying party trust as a party that issues attributes.
 
 3. A universal link base URL for one of our environments, which you need to
-   configure when setting up the `verification_server` (covered in
-   the [Universal link base URL](#universal-link-base-url) section of the
+   configure when setting up the `verification_server` (covered in the
+   [Universal link base URL](#universal-link-base-url) section of the
    installation chapter).
 
 ## Wallet server installation
@@ -615,8 +611,8 @@ file contains the root certificate for issuer certificates and the
 `reader_ta.crt` file contains the root certificate for reader certificates.
 
 Finally, you'll have to come up with some name for your `usecase`; in the
-settings below, we assume the name `login-mijn-amsterdam`. Note that the name
-is only used as an identifier, it can be freely chosen.
+settings below, we assume the name `login-mijn-amsterdam`. Note that the name is
+only used as an identifier, it can be freely chosen.
 
 ```shell
 export WAUSECASENAME="login-mijn-amsterdam"
@@ -678,9 +674,9 @@ max_session_lifetime_in_sec = "${HSM_SESSION_LIFETIME}"
 
 It is possible to use both hardware and software private keys in the same
 verification server instance. When the `private_key` contains a Base64 DER-
-encoded private key, it's used as software key, otherwise it will use the
-value of `private_key` as the HSM key label. The configuration is verified
-at startup, so invalid (key) configuration will be reported immediately.
+encoded private key, it's used as software key, otherwise it will use the value
+of `private_key` as the HSM key label. The configuration is verified at startup,
+so invalid (key) configuration will be reported immediately.
 
 You should now have a configuration file in the current directory called
 `verification_server.toml`. Feel free to check the file to see if everything
@@ -765,8 +761,9 @@ If all went well, the server is now running and ready to serve requests. To test
 the service, you can send session initiation requests and status requests to it.
 
 Check out the [Example calls](#example-calls) section for how to do that. For
-example, when you [initiate a disclosure session](#initiate-a-disclosure-session),
-you will see something like the following output from the `verification_server`:
+example, when you
+[initiate a disclosure session](#initiate-a-disclosure-session), you will see
+something like the following output from the `verification_server`:
 
 ```
 2024-08-09T14:30:55.016412Z  INFO openid4vc::verifier: create verifier session: some_usecase
@@ -781,10 +778,10 @@ the [API specifications](#api-specifications) section.
 Now that you can interact with the wallet platform, you are ready to start
 working on integration your own application with your "Ontvangende Voorziening".
 
-An "Ontvangende Voorziening" is realized by the `verification_server`,
-which is a software component developed by the NL wallet team
-which you as a relying party run on-premises or within your cloud environment
-in order to interact with the wallet platform.
+An "Ontvangende Voorziening" is realized by the `verification_server`, which is
+a software component developed by the NL wallet team which you as a relying
+party run on-premises or within your cloud environment in order to interact with
+the wallet platform.
 
 In the following subsections we'll give you a high-level overview of what an
 "Ontvangende Voorziening" looks like, how to integrate it with your application
@@ -800,8 +797,8 @@ premises or within cloud environment(s) of the relying party (i.e., you).
 
 Let's walk through a typical (cross-device, note on same-device flows in
 following section) disclosure session (for full details, have a look at the
-VV/OV SAD and our [component interaction flow for
-disclosures](diagrams/disclosure.md)).
+VV/OV SAD and our
+[component interaction flow for disclosures](diagrams/disclosure.md)).
 
 Note the possible session states:
 
@@ -831,8 +828,8 @@ Overview of a flow for cross device attribute disclosure:
 1. `user` initiates action (i.e., clicks a button on web page of relying party
    in their desktop or mobile webbrowser);
 2. `rp_frontend` receives action, asks `rp_backend` to initiate session;
-3. `rp_backend` in turn calls `verification_server` with a session initialization
-   request, receiving a `session_url`, an `engagement_url`, and a
+3. `rp_backend` in turn calls `verification_server` with a session
+   initialization request, receiving a `session_url`, an `engagement_url`, and a
    `disclosed_attributes_url` as a response. The session initially has a
    `CREATED` status;
 4. `rp_backend` keeps `disclosed_attributes_url` for itself, and returns
@@ -848,34 +845,34 @@ navigate to the universal link (UL). In parallel, `rp_frontend` will poll the
 6. `rp_frontend` polls `session_url` for status. It will re-poll for a
    configured time-limit when receiving a `CREATED` or `WAITING_FOR_RESPONSE`
    status. The poll will terminate on `DONE`;
-7. After `user` completes the scanning of the QR or followed the universal
-   link, `wallet_app` parses/extracts the QR/UL and starts a device engagement
-   session with `verification_server`, which in turn returns the relying party
-   details and the requested attributes to the `wallet_app`;
-8. The `wallet_app` shows the relying party details and the requested
-   attributes to the `user` and gives the `user` the option to consent or
-   abort;
+7. After `user` completes the scanning of the QR or followed the universal link,
+   `wallet_app` parses/extracts the QR/UL and starts a device engagement session
+   with `verification_server`, which in turn returns the relying party details
+   and the requested attributes to the `wallet_app`;
+8. The `wallet_app` shows the relying party details and the requested attributes
+   to the `user` and gives the `user` the option to consent or abort;
 
 The `user` can abort, which will terminate the session with a `CANCELED` status.
 The `user` can also wait too long, which would result in an `EXPIRED` status.
 The `FAILED` status can occur when other, infrastructural and/or network-related
 problems are encountered. Assuming the `user` consented, let's continue:
 
-9. `wallet_app` sends a device response containing the disclosed
-   attributes and proofs_of_possession to the `verification_server`;
-10. `verification_server` validates if attributes are authentic and valid and if they
-    belong together and returns an indication of success back to the
+9. `wallet_app` sends a device response containing the disclosed attributes and
+   proofs_of_possession to the `verification_server`;
+10. `verification_server` validates if attributes are authentic and valid and if
+    they belong together and returns an indication of success back to the
     `wallet_app`, which in turn confirms the success by displaying a dialog to
-    the `user`. `verification_server` additionally updates the status of the session
-    to `DONE` with the `SUCCESS` substate (assuming validation went fine);
+    the `user`. `verification_server` additionally updates the status of the
+    session to `DONE` with the `SUCCESS` substate (assuming validation went
+    fine);
 11. The poll running on the `rp_frontend` will terminate due to the `DONE`
     session state;
 12. The `rp_frontend` returns the result of the session to the `rp_backend`;
 13. The `rp_backend` checks the status of the session. On `DONE` with substate
     `SUCCESS`, it will call the associated `disclosed_attributes_url` which it
     kept around (saved) in step 4 to retrieve the disclosed attributes. When
-    substate is not `SUCCESS`, it will not retrieve the disclosed attributes
-    but invoke an error_handler of sorts (for example) which displays the error
+    substate is not `SUCCESS`, it will not retrieve the disclosed attributes but
+    invoke an error_handler of sorts (for example) which displays the error
     condition;
 14. `rp_backend` handles disclosed attributes, returns status to `rp_frontend`
     (for example: user is authenticated, here have a token);
@@ -886,8 +883,8 @@ Same-device flows differ from cross-device flows in how the QR/UL is encoded.
 The `rp_frontend` detects the user-agent and from that determines if a
 Cross-device or Same-device flow is appropiate. When it encodes for a
 Same-device flow, the resulting Universal link can be directly opened by the
-`wallet_app` on the same device, which then starts device engagement towards
-the `verification_server` (see step 7 above).
+`wallet_app` on the same device, which then starts device engagement towards the
+`verification_server` (see step 7 above).
 
 ## Notes on Requirements Applicable to Your Application
 
@@ -900,11 +897,12 @@ identification or verification of attributes with your application:
 - Any disclosure session initiation request must include the reason why the
   relying party is requesting the attributes;
 - A relying party **MUST NOT** track, in the broadest sense of the word;
-- A relying party needs to adhere to the EU-GDPR (Nederlands: EU-AVG) [GDPR][12];
+- A relying party needs to adhere to the EU-GDPR (Nederlands: EU-AVG)
+  [GDPR][12];
 - It is required to follow accessibility guidelines set forth in the [WCAG][13];
 - It is expected that you use the `wallet_web` frontend helper library;
-- The standard buttons for login and sharing should be used, but one can
-  use custom button text (within reason);
+- The standard buttons for login and sharing should be used, but one can use
+  custom button text (within reason);
 - Button styling and call-to-action can be customized by relying party;
 - The text "NL Wallet" should always be visible in the call-to-action;
 - Logo of "NL Wallet" should be visible next to the call-to-action.
@@ -919,8 +917,8 @@ or disallow usage of (a part of) said application).
 
 To integrate with the "Ontvangende Voorziening", you modify your frontend and
 backend application, using the `wallet_web` frontend library, integrating with
-the `verification_server` (the implementation of the "Ontvangende Voorziening" on
-your premises or in your cloud environment).
+the `verification_server` (the implementation of the "Ontvangende Voorziening"
+on your premises or in your cloud environment).
 
 In the disclosure flow diagram, on the right, where the "Relying Party
 Application" is shown, you see a four integration/call points: "Configure
@@ -933,12 +931,12 @@ OV Result":
 - Initiation of a disclosure session, executed by your backend application;
 - The status check loop, executed by your frontend application, where we check
   for a status result, which indicates success or failure of the session.
-- Result retrieval, executed by your backend, which is a final conditional
-  step dependent on a succesful completion status, which contains the
+- Result retrieval, executed by your backend, which is a final conditional step
+  dependent on a succesful completion status, which contains the
   disclosed_attributes.
 
-The above is described in more detail in the previous section [detailing an
-example disclosure flow](#what-a-disclosure-session-looks-like).
+The above is described in more detail in the previous section
+[detailing an example disclosure flow](#what-a-disclosure-session-looks-like).
 
 It's worth noting that the NL-Wallet team has developed a JavaScript library
 (called `wallet_web`) that handles the status check loop and status return for
@@ -946,22 +944,23 @@ you.
 
 ## API Specifications
 
-The API specifications for the [private][15] (also known as the `requester`)
-and [public][16] (also known as the `wallet`) endpoints are available in the
+The API specifications for the [private][15] (also known as the `requester`) and
+[public][16] (also known as the `wallet`) endpoints are available in the
 `/documentation` part of of the git repository.
 
 ## Example calls
 
-The `verification_server` has two ports: a "wallet server" port, which is a a "public"
-endpoint that can be queried for session status, usually running on TCP port
-`8001`, and a so-called "requester port" which is a "private" endpoint that can
-optionally be configured to have authentication mechanisms (or otherwise bind to
-a private/trusted/internal network), used to initiate sessions and retrieve
-sensitive data, usually running on TCP port `8002`.
+The `verification_server` has two ports: a "wallet server" port, which is a a
+"public" endpoint that can be queried for session status, usually running on TCP
+port `8001`, and a so-called "requester port" which is a "private" endpoint that
+can optionally be configured to have authentication mechanisms (or otherwise
+bind to a private/trusted/internal network), used to initiate sessions and
+retrieve sensitive data, usually running on TCP port `8002`.
 
 Following is a collection of sample calls that illustrate how you interact with
 the OV. Note that we're using `localhost`, in your case it might be another
-hostname, FQDN or IP address, depending on how you've set-up `verification_server`:
+hostname, FQDN or IP address, depending on how you've set-up
+`verification_server`:
 
 ### Initiate a Disclosure Session
 
@@ -988,7 +987,7 @@ Example response:
 
 ```json
 {
-  "session_token": "387f8vMgeE1NunRPqn55Tha1761EC54i"
+    "session_token": "387f8vMgeE1NunRPqn55Tha1761EC54i"
 }
 ```
 
@@ -1002,8 +1001,8 @@ Example responses:
 
 ```json
 {
-  "status": "CREATED",
-  "ul": "walletdebuginteraction://wallet.edi.rijksoverheid.nl/disclosure/sessions?request_uri=http%3A%2F%2Flocalhost%3A33245%2Fdisclosure%2Fsessions%2F387f8vMgeE1NunRPqn55Tha1761EC54i%2Frequest_uri%3Fsession_type%3Dsame_device%26ephemeral_id%3D6f169a2e10b9733d2fd5d83acb169753506a37d6a49b0abcc6790ba23300ed74%26time%3D2024-07-20T14%253A00%253A58.471204138Z&request_uri_method=post&client_id=mijn.amsterdam.nl"
+    "status": "CREATED",
+    "ul": "walletdebuginteraction://wallet.edi.rijksoverheid.nl/disclosure/sessions?request_uri=http%3A%2F%2Flocalhost%3A33245%2Fdisclosure%2Fsessions%2F387f8vMgeE1NunRPqn55Tha1761EC54i%2Frequest_uri%3Fsession_type%3Dsame_device%26ephemeral_id%3D6f169a2e10b9733d2fd5d83acb169753506a37d6a49b0abcc6790ba23300ed74%26time%3D2024-07-20T14%253A00%253A58.471204138Z&request_uri_method=post&client_id=mijn.amsterdam.nl"
 }
 ```
 
@@ -1014,13 +1013,13 @@ _setting in the `verification_server` configuration file.)_
 
 ```json
 {
-  "status": "WAITING_FOR_RESPONSE"
+    "status": "WAITING_FOR_RESPONSE"
 }
 ```
 
 ```json
 {
-  "status": "DONE"
+    "status": "DONE"
 }
 ```
 
@@ -1040,40 +1039,40 @@ Example responses:
 
 ```json
 {
-  "type": "session_state",
-  "title": "Session is not in the required state",
-  "status": 400,
-  "detail": "disclosed attributes requested for disclosure session with status other than 'Done'"
+    "type": "session_state",
+    "title": "Session is not in the required state",
+    "status": 400,
+    "detail": "disclosed attributes requested for disclosure session with status other than 'Done'"
 }
 ```
 
 ```json
 {
-  "type": "nonce",
-  "title": "Redirect URI nonce incorrect or missing",
-  "status": 401,
-  "detail": "missing nonce in redirect URI"
+    "type": "nonce",
+    "title": "Redirect URI nonce incorrect or missing",
+    "status": 401,
+    "detail": "missing nonce in redirect URI"
 }
 ```
 
 ```json
 {
-  "com.example.pid": {
-    "attributes": {
-      "com.example.pid": {
-        "family_name": "De Bruijn",
-        "own_family_name": "Molenaar",
-        "given_name": "Willeke Liselotte"
-      }
-    },
-    "issuer": "pid.example.com",
-    "ca": "ca.example.com",
-    "validityInfo": {
-      "signed": "2024-07-20T14:00:58Z",
-      "validFrom": "2024-07-20T14:00:58Z",
-      "validUntil": "2025-07-20T14:00:58Z"
+    "com.example.pid": {
+        "attributes": {
+            "com.example.pid": {
+                "family_name": "De Bruijn",
+                "own_family_name": "Molenaar",
+                "given_name": "Willeke Liselotte"
+            }
+        },
+        "issuer": "pid.example.com",
+        "ca": "ca.example.com",
+        "validityInfo": {
+            "signed": "2024-07-20T14:00:58Z",
+            "validFrom": "2024-07-20T14:00:58Z",
+            "validUntil": "2025-07-20T14:00:58Z"
+        }
     }
-  }
 }
 ```
 
@@ -1089,14 +1088,16 @@ TODO: Link to VV/OV SAD, which are still in draft and not published yet.
 [2]: https://www.logius.nl/domeinen/toegang/bsnk-pp
 [3]: https://www.rvig.nl/basisregistratie-personen
 [4]: link-to-vvov-sad-tbd
-[5]: https://edi.pleio.nl/news/view/93f40956-3671-49c9-9c82-2dab636b59bf/psasad-documenten-nl-wallet
+[5]:
+    https://edi.pleio.nl/news/view/93f40956-3671-49c9-9c82-2dab636b59bf/psasad-documenten-nl-wallet
 [6]: https://github.com/MinBZK/nl-wallet
 [7]: https://github.com/minvws/nl-rdo-max
 [8]: https://www.iso.org/standard/69084.html
 [9]: https://www.iso.org/standard/86785.html
 [10]: https://openid.net/specs/openid-4-verifiable-presentations-1_0.html
 [11]: REMOVED
-[12]: https://europa.eu/youreurope/business/dealing-with-customers/data-protection/data-protection-gdpr/index_en.htm
+[12]:
+    https://europa.eu/youreurope/business/dealing-with-customers/data-protection/data-protection-gdpr/index_en.htm
 [13]: https://www.w3.org/WAI/WCAG21/Understanding/intro
 [14]: https://github.com/MinBZK/nl-wallet/tree/main/wallet_web
 [15]: ../documentation/_static/openapi/wallet-disclosure-private.openapi.yaml

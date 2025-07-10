@@ -17,10 +17,10 @@ use utils::vec_at_least::VecNonEmpty;
 #[derive(Debug, Clone, Display, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum AttributeValue {
+    Null,
     Integer(i64),
     Bool(bool),
     Text(String),
-
     #[display("[{}]", _0.iter().join(", "))]
     Array(Vec<AttributeValue>),
 }
@@ -52,6 +52,7 @@ impl From<AttributeValue> for ciborium::Value {
             AttributeValue::Integer(number) => ciborium::Value::Integer(number.into()),
             AttributeValue::Bool(boolean) => ciborium::Value::Bool(boolean),
             AttributeValue::Text(text) => ciborium::Value::Text(text),
+            AttributeValue::Null => ciborium::Value::Null,
             AttributeValue::Array(elements) => ciborium::Value::Array(elements.into_iter().map(Self::from).collect()),
         }
     }
@@ -65,6 +66,7 @@ impl TryFrom<ciborium::Value> for AttributeValue {
             ciborium::Value::Text(text) => Ok(AttributeValue::Text(text)),
             ciborium::Value::Bool(bool) => Ok(AttributeValue::Bool(bool)),
             ciborium::Value::Integer(integer) => Ok(AttributeValue::Integer(integer.try_into()?)),
+            ciborium::Value::Null => Ok(AttributeValue::Null),
             ciborium::Value::Array(elements) => Ok(AttributeValue::Array(
                 elements.into_iter().map(Self::try_from).try_collect()?,
             )),
@@ -619,6 +621,7 @@ pub mod test {
                 "city".to_string(),
                 Attribute::Single(AttributeValue::Text("The Capital".to_string())),
             ),
+            ("postal_code".to_string(), Attribute::Single(AttributeValue::Null)),
             (
                 "street".to_string(),
                 Attribute::Single(AttributeValue::Text("Main St.".to_string())),
@@ -645,6 +648,7 @@ pub mod test {
             json!({
                 "city": "The Capital",
                 "street": "Main St.",
+                "postal_code": null,
                 "house": {
                     "number": 1,
                     "letter": "A"
@@ -676,6 +680,7 @@ pub mod test {
             json!({
                 "com.example.address": {
                     "city": "The Capital",
+                    "postal_code": null,
                     "street": "Main St.",
                 },
                 "com.example.address.house": {

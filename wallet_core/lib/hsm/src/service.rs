@@ -25,6 +25,7 @@ use r2d2_cryptoki::SessionManager;
 use r2d2_cryptoki::SessionType;
 use sec1::EcParameters;
 
+use crypto::p256_der::verifying_key_sha256;
 use crypto::utils::sha256;
 use utils::spawn;
 
@@ -128,11 +129,11 @@ pub trait Pkcs11Client {
     async fn generate_wrapped_keys(
         &self,
         wrapping_key_identifier: &str,
-        identifiers: &[&str],
+        count: u64,
     ) -> Result<Vec<(String, VerifyingKey, WrappedKey)>> {
-        future::try_join_all(identifiers.iter().map(|identifier| async move {
+        future::try_join_all((0..count).map(|_| async move {
             let result = self.generate_wrapped_key(wrapping_key_identifier).await;
-            result.map(|(pub_key, wrapped)| (String::from(*identifier), pub_key, wrapped))
+            result.map(|(pub_key, wrapped)| (verifying_key_sha256(&pub_key), pub_key, wrapped))
         }))
         .await
     }

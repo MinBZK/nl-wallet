@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../domain/model/attribute/attribute.dart';
+import '../../../../util/extension/build_context_extension.dart';
 import '../../../../util/extension/string_extension.dart';
 import '../../../../util/formatter/attribute_value_formatter.dart';
 import '../../../../util/helper/bsn_helper.dart';
@@ -20,6 +21,7 @@ class DataAttributeRow extends StatelessWidget {
       subtitle: Text.rich(
         prettyValue.toTextSpan(context),
         semanticsLabel: BsnHelper.isValidBsnFormat(prettyValue) ? SemanticsHelper.splitNumberString(prettyValue) : null,
+        style: attribute.value is NullValue ? context.textTheme.bodyLarge : null,
       ),
     );
   }
