@@ -8,7 +8,6 @@ import '../../../../data/service/semantics_event_service.dart';
 import '../../../../util/extension/build_context_extension.dart';
 import '../../../../util/extension/string_extension.dart';
 import '../../../common/widget/centered_loading_indicator.dart';
-import '../../../lock/widget/interaction_detector.dart';
 import 'video_caption.dart';
 import 'video_control_icon_button.dart';
 import 'video_control_text_button.dart';
@@ -82,30 +81,33 @@ class _VideoOverlayState extends State<VideoOverlay> {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: <Widget>[
-        AnimatedContainer(
-          duration: kControlAnimationDuration,
-          color: fullscreenControlsEnabled ? _overlayBgColor : Colors.transparent,
-          child: Column(
-            children: [
-              const SizedBox(height: 24),
-              _buildTopControls(context),
-              const Spacer(),
-              if (captionEnabled)
-                Opacity(
-                  opacity: fullscreenControlsEnabled ? 0.6 : 1,
-                  child: VideoCaption(caption: videoPlayerState.caption.text),
-                ),
-              SizedBox(height: fullscreenControlsEnabled ? 4 : 24),
-              _buildBottomControls(context),
-            ],
+    return GestureDetector(
+      excludeFromSemantics: true,
+      onTap: _toggleFullscreenControls,
+      child: Stack(
+        children: <Widget>[
+          AnimatedContainer(
+            duration: kControlAnimationDuration,
+            color: fullscreenControlsEnabled ? _overlayBgColor : Colors.transparent,
+            child: Column(
+              children: [
+                const SizedBox(height: 24),
+                _buildTopControls(context),
+                const Spacer(),
+                if (captionEnabled)
+                  Opacity(
+                    opacity: fullscreenControlsEnabled ? 0.6 : 1,
+                    child: VideoCaption(caption: videoPlayerState.caption.text),
+                  ),
+                SizedBox(height: fullscreenControlsEnabled ? 4 : 24),
+                _buildBottomControls(context),
+              ],
+            ),
           ),
-        ),
-        InteractionDetector(onInteraction: _toggleFullscreenControls),
-        if (fullscreenControlsEnabled) _buildCenterControls(),
-        if (_showBufferIndicator()) _buildBufferIndicator(),
-      ],
+          if (fullscreenControlsEnabled) _buildCenterControls(),
+          if (_showBufferIndicator()) _buildBufferIndicator(),
+        ],
+      ),
     );
   }
 
