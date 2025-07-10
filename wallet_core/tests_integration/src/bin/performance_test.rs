@@ -23,13 +23,14 @@ use wallet::wallet_deps::default_config_server_config;
 use wallet::wallet_deps::default_wallet_config;
 use wallet::wallet_deps::HttpAccountProviderClient;
 use wallet::wallet_deps::HttpConfigurationRepository;
-use wallet::wallet_deps::HttpDigidSession;
+use wallet::wallet_deps::HttpDigidClient;
 use wallet::wallet_deps::Repository;
 use wallet::wallet_deps::UpdatePolicyRepository;
 use wallet::wallet_deps::UpdateableRepository;
 use wallet::wallet_deps::WpWteIssuanceClient;
 use wallet::DisclosureUriSource;
 use wallet::Wallet;
+use wallet::WalletClients;
 
 #[ctor]
 fn init() {
@@ -42,7 +43,7 @@ type PerformanceTestWallet = Wallet<
     StorageStub,
     MockHardwareAttestedKeyHolder,
     HttpAccountProviderClient,
-    HttpDigidSession,
+    HttpDigidClient,
     HttpIssuanceSession,
     VpDisclosureClient,
     WpWteIssuanceClient,
@@ -76,14 +77,14 @@ async fn main() {
         .unwrap();
     let pid_issuance_config = &config_repository.get().pid_issuance;
     let update_policy_repository = UpdatePolicyRepository::init();
+    let wallet_clients = WalletClients::new_http(default_reqwest_client_builder()).unwrap();
 
     let mut wallet: PerformanceTestWallet = Wallet::init_registration(
         config_repository,
         update_policy_repository,
         StorageStub::default(),
         MockHardwareAttestedKeyHolder::new_apple_mock(default::attestation_environment(), default::app_identifier()),
-        HttpAccountProviderClient::default(),
-        VpDisclosureClient::new_http(default_reqwest_client_builder()).unwrap(),
+        wallet_clients,
     )
     .await
     .expect("Could not create test wallet");

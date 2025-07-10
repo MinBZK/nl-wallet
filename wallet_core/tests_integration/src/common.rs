@@ -1,4 +1,3 @@
-use std::any::Any;
 use std::io;
 use std::net::IpAddr;
 use std::process;
@@ -23,6 +22,7 @@ use sea_orm::PaginatorTrait;
 use tokio::net::TcpListener;
 use tokio::time;
 use url::Url;
+use wallet::WalletClients;
 use wiremock::MockServer;
 
 use android_attest::android_crl::RevocationStatusList;
@@ -61,6 +61,7 @@ use server_utils::store::SessionStoreVariant;
 use update_policy_server::settings::Settings as UpsSettings;
 use utils::vec_at_least::VecNonEmpty;
 use verification_server::settings::VerifierSettings;
+use wallet::mock::MockDigidClient;
 use wallet::mock::MockDigidSession;
 use wallet::mock::StorageStub;
 use wallet::wallet_deps::default_config_server_config;
@@ -131,7 +132,7 @@ pub type WalletWithMocks = Wallet<
     StorageStub,
     MockHardwareAttestedKeyHolder,
     HttpAccountProviderClient,
-    MockDigidSession,
+    MockDigidClient<TlsPinningConfig>,
     HttpIssuanceSession,
     VpDisclosureClient,
     WpWteIssuanceClient,
@@ -284,14 +285,15 @@ pub async fn setup_wallet_and_env(
         .unwrap();
 
     let update_policy_repository = UpdatePolicyRepository::init();
+    let mut wallet_clients = WalletClients::new_http(default_reqwest_client_builder()).unwrap();
+    setup_mock_digid_client(&mut wallet_clients.digid_client);
 
     let wallet = Wallet::init_registration(
         config_repository,
         update_policy_repository,
         StorageStub::default(),
         key_holder,
-        HttpAccountProviderClient::default(),
-        VpDisclosureClient::new_http(default_reqwest_client_builder()).unwrap(),
+        wallet_clients,
     )
     .await
     .expect("Could not create test wallet");
@@ -710,25 +712,33 @@ pub async fn do_pid_issuance(mut wallet: WalletWithMocks, pin: String) -> Wallet
     wallet
 }
 
-// The type of MockDigidSession::Context is too complex, but keeping ownership is important.
-#[must_use = "ownership of MockDigidSession::Context must be retained for the duration of the test"]
-pub fn setup_digid_context() -> Box<dyn Any> {
-    let digid_context = MockDigidSession::start_context();
-    digid_context.expect().return_once(|_, _: TlsPinningConfig, _| {
-        let mut session = MockDigidSession::default();
+/// Configure [`MockDigidClient`] to return a [`MockDigidClient`] that returns some arbitrary token.
+pub fn setup_mock_digid_client(digid_client: &mut MockDigidClient<TlsPinningConfig>) {
+    digid_client
+        .expect_start_session()
+        .returning(|_digid_config, _http_config, _redirect_uri| {
+            let mut session = MockDigidSession::new();
 
-        session.expect_into_token_request().return_once(|_url| {
-            Ok(TokenRequest {
-                grant_type: openid4vc::token::TokenRequestGrantType::PreAuthorizedCode {
-                    pre_authorized_code: crypto::utils::random_string(32).into(),
-                },
-                code_verifier: Some("my_code_verifier".to_string()),
-                client_id: Some("my_client_id".to_string()),
-                redirect_uri: Some("redirect://here".parse().unwrap()),
-            })
+            session
+                .expect_auth_url()
+                .return_const(Url::parse("http://localhost/").unwrap());
+
+            session
+                .expect_into_token_request()
+                .times(1)
+                .return_once(|_http_config, _redirect_uri| {
+                    let token_request = TokenRequest {
+                        grant_type: openid4vc::token::TokenRequestGrantType::PreAuthorizedCode {
+                            pre_authorized_code: crypto::utils::random_string(32).into(),
+                        },
+                        code_verifier: Some("my_code_verifier".to_string()),
+                        client_id: Some("my_client_id".to_string()),
+                        redirect_uri: Some("redirect://here".parse().unwrap()),
+                    };
+
+                    Ok(token_request)
+                });
+
+            Ok(session)
         });
-
-        Ok((session, Url::parse("http://localhost/").unwrap()))
-    });
-    Box::new(digid_context)
 }

@@ -9,7 +9,6 @@ use url::Url;
 
 use attestation_data::disclosure::DisclosedAttestations;
 use http_utils::error::HttpJsonErrorBody;
-use http_utils::tls::pinning::TlsPinningConfig;
 use mdoc::test::data::addr_street;
 use mdoc::test::data::pid_family_name;
 use mdoc::test::data::pid_full_name;
@@ -25,7 +24,6 @@ use openid4vc_server::verifier::StartDisclosureResponse;
 use openid4vc_server::verifier::StatusParams;
 use tests_integration::common::*;
 use wallet::errors::DisclosureError;
-use wallet::mock::MockDigidSession;
 use wallet::DisclosureUriSource;
 
 async fn get_verifier_status(client: &reqwest::Client, status_url: Url) -> StatusResponse {
@@ -106,8 +104,6 @@ async fn test_disclosure_usecases_ok(
         // contained in the certificate, so we have to specify a return URL prefixed with that.
         return_url_template,
     };
-
-    let _retain = setup_digid_context();
 
     let pin = "112233";
     let (mut wallet, urls, _) = setup_wallet_and_env(
@@ -235,12 +231,6 @@ async fn test_disclosure_usecases_ok(
 #[tokio::test]
 #[serial(hsm)]
 async fn test_disclosure_without_pid() {
-    let digid_context = MockDigidSession::start_context();
-    digid_context.expect().return_once(|_, _: TlsPinningConfig, _| {
-        let session = MockDigidSession::default();
-        Ok((session, Url::parse("http://localhost/").unwrap()))
-    });
-
     let pin = "112233";
     let (mut wallet, urls, _) = setup_wallet_and_env(
         WalletDeviceVendor::Apple,

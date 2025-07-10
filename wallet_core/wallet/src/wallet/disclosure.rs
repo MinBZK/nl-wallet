@@ -42,6 +42,7 @@ use wallet_configuration::wallet_config::WalletConfiguration;
 use crate::account_provider::AccountProviderClient;
 use crate::attestation::AttestationError;
 use crate::attestation::AttestationPresentation;
+use crate::digid::DigidClient;
 use crate::errors::ChangePinError;
 use crate::errors::UpdatePolicyError;
 use crate::instruction::InstructionError;
@@ -267,12 +268,13 @@ impl RedirectUriPurpose {
     }
 }
 
-impl<CR, UR, S, AKH, APC, DS, IS, DC, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, DC, WIC>
+impl<CR, UR, S, AKH, APC, DC, IS, DCC, WIC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC, WIC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
     UR: Repository<VersionState>,
     AKH: AttestedKeyHolder,
-    DC: DisclosureClient,
+    DC: DigidClient,
+    DCC: DisclosureClient,
     S: Storage,
 {
     #[instrument(skip_all)]
@@ -541,7 +543,7 @@ where
 
     async fn terminate_disclosure_session(
         &mut self,
-        session: WalletDisclosureSession<DC::Session>,
+        session: WalletDisclosureSession<DCC::Session>,
     ) -> Result<Option<Url>, DisclosureError> {
         let attestations = session.attestations.map(|attestations| {
             attestations
@@ -880,6 +882,7 @@ mod tests {
     use std::sync::LazyLock;
 
     use assert_matches::assert_matches;
+    use http_utils::tls::pinning::TlsPinningConfig;
     use itertools::Itertools;
     use mockall::predicate::always;
     use mockall::predicate::eq;
@@ -923,9 +926,9 @@ mod tests {
     use crate::attestation::AttestationIdentity;
     use crate::attestation::AttestationPresentation;
     use crate::config::UNIVERSAL_LINK_BASE_URL;
+    use crate::digid::MockDigidSession;
     use crate::errors::InstructionError;
     use crate::errors::RemoteEcdsaKeyError;
-    use crate::issuance::MockDigidSession;
     use crate::issuance::PID_DOCTYPE;
     use crate::storage::DisclosureStatus;
     use crate::storage::WalletEvent;
@@ -1009,7 +1012,7 @@ mod tests {
     }
 
     fn setup_wallet_disclosure_session_missing_attributes() -> (
-        Session<MockDigidSession, MockIssuanceSession, MockDisclosureSession>,
+        Session<MockDigidSession<TlsPinningConfig>, MockIssuanceSession, MockDisclosureSession>,
         VerifierCertificate,
     ) {
         let (disclosure_session, verifier_certificate) = setup_disclosure_session(DEFAULT_REQUESTED_PID_PATH.clone());
@@ -1024,7 +1027,7 @@ mod tests {
     }
 
     fn setup_wallet_disclosure_session() -> (
-        Session<MockDigidSession, MockIssuanceSession, MockDisclosureSession>,
+        Session<MockDigidSession<TlsPinningConfig>, MockIssuanceSession, MockDisclosureSession>,
         VerifierCertificate,
     ) {
         let (disclosure_session, verifier_certificate) = setup_disclosure_session(DEFAULT_REQUESTED_PID_PATH.clone());
