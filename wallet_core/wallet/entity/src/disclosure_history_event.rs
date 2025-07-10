@@ -2,6 +2,8 @@ use chrono::DateTime;
 use chrono::Utc;
 use sea_orm::entity::prelude::*;
 
+use attestation_data::disclosure_type::DisclosureType;
+
 use crate::disclosure_history_event_attestation_type;
 use crate::history_attestation_type;
 
@@ -23,6 +25,24 @@ pub enum EventType {
     Login,
     #[sea_orm(string_value = "Regular")]
     Regular,
+}
+
+impl From<DisclosureType> for EventType {
+    fn from(value: DisclosureType) -> Self {
+        match value {
+            DisclosureType::Login => Self::Login,
+            DisclosureType::Regular => Self::Regular,
+        }
+    }
+}
+
+impl From<EventType> for DisclosureType {
+    fn from(value: EventType) -> Self {
+        match value {
+            EventType::Login => DisclosureType::Login,
+            EventType::Regular => DisclosureType::Regular,
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]

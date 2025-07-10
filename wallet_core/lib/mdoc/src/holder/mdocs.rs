@@ -2,7 +2,6 @@ use std::result::Result;
 
 use chrono::DateTime;
 use chrono::Utc;
-use indexmap::IndexSet;
 use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde::Serialize;
@@ -14,7 +13,6 @@ use crypto::x509::BorrowingCertificate;
 use utils::generator::Generator;
 
 use crate::errors::Error;
-use crate::identifiers::AttributeIdentifier;
 use crate::iso::*;
 use crate::utils::cose::CoseError;
 use crate::verifier::ValidityRequirement;
@@ -58,10 +56,6 @@ impl Mdoc {
 
     pub fn issuer_certificate(&self) -> Result<BorrowingCertificate, CoseError> {
         self.issuer_signed.issuer_auth.signing_cert()
-    }
-
-    pub fn issuer_signed_attribute_identifiers(&self) -> IndexSet<AttributeIdentifier> {
-        self.issuer_signed.attribute_identifiers(self.doc_type())
     }
 
     pub fn doc_type(&self) -> &String {

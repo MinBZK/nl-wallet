@@ -46,7 +46,7 @@ dependencies:
   permission_handler: ^12.0.0+1
   provider: ^6.1.2
   qr_flutter: ^4.1.0
-  root_jailbreak_sniffer: ^1.1.0
+  root_jailbreak_sniffer: ^1.1.1
   rxdart: ^0.28.0
   screen_brightness: ^2.1.4
   sensors_plus: ^6.1.1
@@ -56,6 +56,7 @@ dependencies:
   url_launcher: ^6.3.1
   vector_graphics: any # explicit transitive dependency to satisfy sonarqube
   vibration: ^3.1.3
+  video_player: ^2.9.5
   visibility_detector: ^0.4.0+2
   wallet_core:
     path: ./packages/wallet_core

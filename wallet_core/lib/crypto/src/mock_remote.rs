@@ -28,6 +28,8 @@ pub enum MockRemoteKeyFactoryError {
     Generating,
     #[error("signing error")]
     Signing,
+    #[error("poa error")]
+    Poa,
     #[error("ECDSA error: {0}")]
     Ecdsa(#[source] <MockRemoteEcdsaKey as EcdsaKey>::Error),
 }
@@ -99,6 +101,7 @@ pub struct MockRemoteKeyFactory {
     signing_keys: Mutex<HashMap<String, SigningKey>>,
     pub has_generating_error: bool,
     pub has_multi_key_signing_error: bool,
+    pub has_poa_error: bool,
 }
 
 impl MockRemoteKeyFactory {
@@ -113,7 +116,12 @@ impl MockRemoteKeyFactory {
             signing_keys: Mutex::new(signing_keys),
             has_generating_error: false,
             has_multi_key_signing_error: false,
+            has_poa_error: false,
         }
+    }
+
+    pub fn add_key(&mut self, key: MockRemoteEcdsaKey) {
+        self.signing_keys.get_mut().insert(key.identifier, key.key);
     }
 
     #[cfg(feature = "examples")]

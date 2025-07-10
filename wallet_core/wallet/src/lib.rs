@@ -1,7 +1,6 @@
 mod account_provider;
 mod attestation;
 mod config;
-mod disclosure;
 mod instruction;
 mod issuance;
 mod lock;
@@ -21,7 +20,6 @@ pub use crate::attestation::AttestationIdentity;
 pub use crate::attestation::AttestationPresentation;
 pub use crate::pin::validation::validate_pin;
 pub use crate::storage::DisclosureStatus;
-pub use crate::storage::DisclosureType;
 pub use crate::storage::WalletEvent;
 pub use crate::wallet::DisclosureProposalPresentation;
 pub use crate::wallet::DisclosureUriSource;
@@ -40,6 +38,7 @@ pub mod attestation_data {
     pub use attestation_data::auth::Image;
     pub use attestation_data::auth::LocalizedStrings;
     pub use attestation_data::auth::Organization;
+    pub use attestation_data::disclosure_type::DisclosureType;
 }
 
 pub mod configuration {

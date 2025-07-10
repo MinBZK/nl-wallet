@@ -1,44 +1,88 @@
 use std::collections::HashSet;
-use std::error::Error;
 
-use sd_jwt_vc_metadata::NormalizedTypeMetadata;
+use itertools::Itertools;
 
-use super::Mdoc;
+use attestation_types::attribute_paths::AttestationAttributePaths;
 
-pub use disclosure_request_match::DisclosureRequestMatch;
-pub use proposed_document::ProposedAttributes;
-pub use proposed_document::ProposedDocument;
-pub use proposed_document::ProposedDocumentAttributes;
-
+mod device_response;
 mod device_signed;
-mod disclosure_request_match;
+mod document;
 mod issuer_signed;
-mod proposed_document;
-mod request;
-mod response;
+mod items_requests;
+mod mdoc;
 
 #[cfg(test)]
+mod doc_request;
+#[cfg(test)]
 mod iso_tests;
-#[cfg(any(test, feature = "mock"))]
-pub mod mock;
 
-#[derive(Debug, Clone)]
-pub struct StoredMdoc<I> {
-    pub id: I,
-    pub mdoc: Mdoc,
-    pub normalized_metadata: NormalizedTypeMetadata,
+/// Return the mdoc-specific paths for a particular attestation type in [`AttestationAttributePaths`], which is always
+/// a pair of namespace and element (i.e. attribute) identifier. Note that this may return an empty set, either when
+/// the attestation type is not present or when none of the paths can be represented as a 2-tuple.
+pub fn attribute_paths_to_mdoc_paths<'a>(
+    attribute_paths: &'a AttestationAttributePaths,
+    attestation_type: &str,
+) -> HashSet<(&'a str, &'a str)> {
+    attribute_paths
+        .as_ref()
+        .get(attestation_type)
+        .map(|paths| {
+            paths
+                .iter()
+                .filter_map(|path| path.iter().map(String::as_str).collect_tuple())
+                .collect()
+        })
+        .unwrap_or_default()
 }
 
-/// This trait needs to be implemented by an entity that stores mdocs.
-pub trait MdocDataSource {
-    type MdocIdentifier;
-    type Error: Error + Send + Sync + 'static;
+#[cfg(test)]
+mod tests {
+    use std::collections::HashMap;
+    use std::collections::HashSet;
 
-    /// Return all `Mdoc` entries from storage that match a set of doc types.
-    /// The result is a `Vec` of `Vec<Mdoc>` with the same `doc_type`. The order
-    /// of the result is determined by the implementor.
-    async fn mdoc_by_doc_types(
-        &self,
-        doc_types: &HashSet<&str>,
-    ) -> Result<Vec<Vec<StoredMdoc<Self::MdocIdentifier>>>, Self::Error>;
+    use rstest::rstest;
+
+    use attestation_types::attribute_paths::AttestationAttributePaths;
+
+    use super::attribute_paths_to_mdoc_paths;
+
+    #[rstest]
+    #[case("att_1", HashSet::from([("path2", "path3"), ("path7", "path8")]))]
+    #[case("att_2", HashSet::new())]
+    #[case("att_3", HashSet::new())]
+    fn test_attribute_paths_to_mdoc_paths(
+        #[case] attestation_type: &str,
+        #[case] expected_mdoc_mpaths: HashSet<(&str, &str)>,
+    ) {
+        assert_eq!(
+            attribute_paths_to_mdoc_paths(&attribute_paths(), attestation_type),
+            expected_mdoc_mpaths
+        );
+    }
+
+    fn attribute_paths() -> AttestationAttributePaths {
+        AttestationAttributePaths::try_new(HashMap::from([
+            (
+                "att_1".to_string(),
+                HashSet::from([
+                    vec!["path1".to_string()].try_into().unwrap(),
+                    vec!["path2".to_string(), "path3".to_string()].try_into().unwrap(),
+                    vec!["path4".to_string(), "path5".to_string(), "path6".to_string()]
+                        .try_into()
+                        .unwrap(),
+                    vec!["path7".to_string(), "path8".to_string()].try_into().unwrap(),
+                ]),
+            ),
+            (
+                "att_2".to_string(),
+                HashSet::from([
+                    vec!["path1".to_string(), "path2".to_string(), "path3".to_string()]
+                        .try_into()
+                        .unwrap(),
+                    vec!["path4".to_string()].try_into().unwrap(),
+                ]),
+            ),
+        ]))
+        .unwrap()
+    }
 }

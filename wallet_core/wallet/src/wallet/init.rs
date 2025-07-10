@@ -6,7 +6,10 @@ use tokio::sync::RwLock;
 
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
+use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::tls::pinning::TlsPinningConfig;
+use openid4vc::disclosure_session::DisclosureClient;
+use openid4vc::disclosure_session::VpDisclosureClient;
 use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::hw_keystore::hardware::HardwareEncryptionKey;
 use platform_support::utils::hardware::HardwareUtilities;
@@ -45,6 +48,9 @@ pub enum WalletInitError {
     Utilities(#[from] UtilitiesError),
     #[error("could not initialize database: {0}")]
     Database(#[from] StorageError),
+    #[error("could not initialize HTTP client: {0}")]
+    #[category(critical)]
+    HttpClient(#[from] reqwest::Error),
 }
 
 #[cfg(feature = "fake_attestation")]
@@ -80,7 +86,7 @@ async fn init_mock_key_holder() -> platform_support::attested_key::mock::Persist
     PersistentMockAttestedKeyHolder::new_mock_xcode(apple_attestation_environment)
 }
 
-impl<APC, DS, IS, MDS, WIC>
+impl<APC, DS, IS, WIC>
     Wallet<
         WalletConfigurationRepository,
         UpdatePolicyRepository,
@@ -89,7 +95,7 @@ impl<APC, DS, IS, MDS, WIC>
         APC,
         DS,
         IS,
-        MDS,
+        VpDisclosureClient,
         WIC,
     >
 where
@@ -120,20 +126,24 @@ where
         )
         .await?;
 
+        let disclosure_client = VpDisclosureClient::new_http(default_reqwest_client_builder())?;
+
         Self::init_registration(
             config_repository,
             update_policy_repository,
             storage,
             key_holder,
             APC::default(),
+            disclosure_client,
         )
         .await
     }
 }
 
-impl<CR, UR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, MDS, WIC>
+impl<CR, UR, S, AKH, APC, DS, IS, DC, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, DC, WIC>
 where
     AKH: AttestedKeyHolder,
+    DC: DisclosureClient,
     WIC: Default,
 {
     pub(super) fn new(
@@ -142,6 +152,7 @@ where
         storage: S,
         key_holder: AKH,
         account_provider_client: APC,
+        disclosure_client: DC,
         registration_status: RegistrationStatus,
     ) -> Self {
         let registration = match registration_status {
@@ -172,6 +183,7 @@ where
             key_holder,
             registration,
             account_provider_client: Arc::new(account_provider_client),
+            disclosure_client,
             session: None,
             wte_issuance_client: WIC::default(),
             lock: WalletLock::new(true),
@@ -187,6 +199,7 @@ where
         mut storage: S,
         key_holder: AKH,
         account_provider_client: APC,
+        disclosure_client: DC,
     ) -> Result<Self, WalletInitError>
     where
         CR: Repository<Arc<WalletConfiguration>>,
@@ -204,6 +217,7 @@ where
             storage,
             key_holder,
             account_provider_client,
+            disclosure_client,
             registration_status,
         );
 
@@ -211,10 +225,11 @@ where
     }
 }
 
-impl<CR, UR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, MDS, WIC>
+impl<CR, UR, S, AKH, APC, DS, IS, DC, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, DC, WIC>
 where
     S: Storage,
     AKH: AttestedKeyHolder,
+    DC: DisclosureClient,
 {
     /// Attempts to fetch the initial data from storage, without creating a database if there is none.
     async fn fetch_registration_status(storage: &mut S) -> Result<RegistrationStatus, StorageError> {

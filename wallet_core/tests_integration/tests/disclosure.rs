@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use assert_matches::assert_matches;
 use indexmap::IndexMap;
 use reqwest::StatusCode;
@@ -321,12 +323,12 @@ async fn test_disclosure_without_pid() {
     assert_matches!(
         error,
         DisclosureError::AttributesNotAvailable {
-            missing_attributes,
+            requested_attributes,
             ..
-        } if missing_attributes == vec![
-            "urn:eudi:pid:nl:1/urn:eudi:pid:nl:1/given_name",
-            "urn:eudi:pid:nl:1/urn:eudi:pid:nl:1/family_name"
-        ]
+        } if requested_attributes == HashSet::from([
+            "urn:eudi:pid:nl:1/urn:eudi:pid:nl:1/given_name".to_string(),
+            "urn:eudi:pid:nl:1/urn:eudi:pid:nl:1/family_name".to_string(),
+        ])
     );
 
     wallet.cancel_disclosure().await.expect("Could not cancel disclosure");

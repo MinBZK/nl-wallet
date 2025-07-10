@@ -33,8 +33,9 @@ pub struct DeviceResponse {
     pub status: u64,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub enum DeviceResponseVersion {
+    #[default]
     #[serde(rename = "1.0")]
     V1_0,
 }

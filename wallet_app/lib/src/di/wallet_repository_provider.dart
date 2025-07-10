@@ -29,6 +29,8 @@ import '../data/repository/qr/core/core_qr_repository.dart';
 import '../data/repository/qr/qr_repository.dart';
 import '../data/repository/sign/core/core_sign_repository.dart';
 import '../data/repository/sign/sign_repository.dart';
+import '../data/repository/tour/impl/tour_repository_impl.dart';
+import '../data/repository/tour/tour_repository.dart';
 import '../data/repository/uri/core/core_uri_repository.dart';
 import '../data/repository/uri/uri_repository.dart';
 import '../data/repository/version/core/core_version_string_repository.dart';
@@ -89,6 +91,9 @@ class WalletRepositoryProvider extends StatelessWidget {
         ),
         RepositoryProvider<LanguageRepository>(
           create: (context) => LanguageRepositoryImpl(context.read(), AppLocalizations.supportedLocales),
+        ),
+        RepositoryProvider<TourRepository>(
+          create: (context) => TourRepositoryImpl(context.read()),
         ),
         RepositoryProvider<PidRepository>(
           create: (context) => CorePidRepository(context.read(), context.read()),

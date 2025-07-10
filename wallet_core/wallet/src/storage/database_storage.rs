@@ -110,7 +110,7 @@ impl WalletEventModel {
                 attestations: (!attestations.is_empty())
                     .then(|| serde_json::to_value(attestations))
                     .transpose()?,
-                r#type,
+                r#type: r#type.into(),
             }),
         };
         Ok(result)
@@ -147,7 +147,7 @@ impl WalletEvent {
             reader_certificate: Box::new(reader_certificate),
             reader_registration: Box::new(reader_registration),
             status: event.status,
-            r#type: event.r#type,
+            r#type: event.r#type.into(),
         };
 
         Ok(wallet_event)

@@ -89,7 +89,6 @@ test_common = [
     "dep:tokio",
     "dep:update_policy_server",
     "dep:url",
-    "dep:uuid",
     "dep:verification_server",
     "dep:wallet",
     "dep:utils",
@@ -148,7 +147,6 @@ performance_test = [
     "dep:tokio",
     "dep:tracing",
     "dep:url",
-    "dep:uuid",
     "dep:mdoc",
     "dep:openid4vc",
     "dep:openid4vc_server",
@@ -174,7 +172,6 @@ gba_pid_test = [
     "dep:reqwest",
     "dep:tracing",
     "dep:url",
-    "dep:uuid",
     "dep:mdoc",
     "dep:openid4vc",
     "dep:pid_issuer",
@@ -231,7 +228,6 @@ tracing-subscriber = { workspace = true, optional = true, features = [
     "ansi",
 ] }
 url = { workspace = true, optional = true }
-uuid = { workspace = true, optional = true }
 wiremock = { workspace = true, optional = true }
 
 android_attest = { path = "../lib/android_attest", optional = true }

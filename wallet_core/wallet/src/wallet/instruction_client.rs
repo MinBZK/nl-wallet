@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use http_utils::tls::pinning::TlsPinningConfig;
 use jwt::EcdsaDecodingKey;
+use openid4vc::disclosure_session::DisclosureClient;
 use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
 use update_policy_model::update_policy::VersionState;
@@ -17,13 +18,14 @@ use crate::storage::Storage;
 
 use super::Wallet;
 
-impl<CR, UR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, MDS, WIC>
+impl<CR, UR, S, AKH, APC, DS, IS, DC, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, DC, WIC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
     UR: Repository<VersionState>,
     S: Storage,
     AKH: AttestedKeyHolder,
     APC: AccountProviderClient,
+    DC: DisclosureClient,
     WIC: Default,
 {
     /// Construct an [`InstructionClient`] for this [`Wallet`].

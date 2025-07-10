@@ -6,6 +6,7 @@ use std::sync::Arc;
 use tracing::info;
 
 use http_utils::tls::pinning::TlsPinningConfig;
+use openid4vc::disclosure_session::DisclosureClient;
 use platform_support::attested_key::AttestedKeyHolder;
 use update_policy_model::update_policy::VersionState;
 use wallet_configuration::wallet_config::WalletConfiguration;
@@ -25,13 +26,14 @@ use super::WalletRegistration;
 
 const CHANGE_PIN_RETRIES: u8 = 3;
 
-impl<CR, UR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, MDS, WIC>
+impl<CR, UR, S, AKH, APC, DS, IS, DC, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, DC, WIC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
     UR: Repository<VersionState>,
     S: Storage,
     AKH: AttestedKeyHolder,
     APC: AccountProviderClient,
+    DC: DisclosureClient,
     WIC: Default,
 {
     pub async fn begin_change_pin(&mut self, old_pin: String, new_pin: String) -> Result<(), ChangePinError>

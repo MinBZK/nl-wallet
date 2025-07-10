@@ -18,8 +18,10 @@ use serde_with::skip_serializing_none;
 use crypto::utils::sha256;
 use http_utils::urls::BaseUrl;
 
+use crate::errors::Result;
 use crate::iso::disclosure::*;
 use crate::utils::cose::CoseKey;
+use crate::utils::serialization;
 use crate::utils::serialization::cbor_serialize;
 use crate::utils::serialization::CborIntMap;
 use crate::utils::serialization::CborSeq;
@@ -58,6 +60,13 @@ impl<'a> DeviceAuthenticationKeyed<'a> {
             doc_type: Cow::Borrowed(doc_type),
             device_name_spaces_bytes: Default::default(),
         }
+    }
+
+    pub fn challenge(doc_type: &'a str, session_transcript: &'a SessionTranscript) -> Result<Vec<u8>> {
+        let device_auth = Self::new(doc_type, session_transcript);
+        let challenge = serialization::cbor_serialize(&TaggedBytes(CborSeq(device_auth)))?;
+
+        Ok(challenge)
     }
 }
 

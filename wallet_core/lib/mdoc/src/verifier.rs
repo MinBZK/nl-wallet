@@ -5,6 +5,7 @@ use chrono::Utc;
 use derive_more::AsRef;
 use indexmap::IndexMap;
 use itertools::Itertools;
+use p256::ecdsa::VerifyingKey;
 use p256::SecretKey;
 use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
@@ -25,7 +26,6 @@ use crate::utils::cose::ClonePayload;
 use crate::utils::crypto::cbor_digest;
 use crate::utils::crypto::dh_hmac_key;
 use crate::utils::serialization::cbor_serialize;
-use crate::utils::serialization::CborSeq;
 use crate::utils::serialization::TaggedBytes;
 use crate::Error;
 use crate::Result;
@@ -191,6 +191,17 @@ impl ValidityInfo {
 }
 
 impl IssuerSigned {
+    pub fn public_key(&self) -> Result<VerifyingKey> {
+        let public_key = self
+            .issuer_auth
+            .dangerous_parse_unverified()?
+            .0
+            .device_key_info
+            .try_into()?;
+
+        Ok(public_key)
+    }
+
     pub fn verify(
         &self,
         validity: ValidityRequirement,
@@ -302,9 +313,8 @@ impl Document {
 
         debug!("serializing session transcript");
         let session_transcript_bts = cbor_serialize(&TaggedBytes(session_transcript))?;
-        let device_authentication = DeviceAuthenticationKeyed::new(&self.doc_type, session_transcript);
         debug!("serializing device_authentication");
-        let device_authentication_bts = cbor_serialize(&TaggedBytes(CborSeq(device_authentication)))?;
+        let device_authentication_bts = DeviceAuthenticationKeyed::challenge(&self.doc_type, session_transcript)?;
 
         debug!("extracting device_key");
         let device_key = (&mso.device_key_info.device_key).try_into()?;
@@ -351,9 +361,12 @@ mod tests {
 
     use chrono::Duration;
     use chrono::Utc;
+    use p256::ecdsa::SigningKey;
+    use rand_core::OsRng;
     use rstest::rstest;
 
     use crypto::examples::Examples;
+    use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
 
     use crate::examples::example_items_requests;
@@ -363,6 +376,7 @@ mod tests {
     use crate::examples::EXAMPLE_ATTR_VALUE;
     use crate::examples::EXAMPLE_DOC_TYPE;
     use crate::examples::EXAMPLE_NAMESPACE;
+    use crate::holder::Mdoc;
     use crate::identifiers::AttributeIdentifierHolder;
     use crate::test;
     use crate::test::DebugCollapseBts;
@@ -412,6 +426,21 @@ mod tests {
         validity
             .verify_is_valid_at(now, ValidityRequirement::AllowNotYetValid)
             .unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_issuer_signed_public_key() {
+        let key = SigningKey::random(&mut OsRng);
+        let key = MockRemoteEcdsaKey::new("identifier".to_string(), key);
+        let mdoc = Mdoc::new_mock_with_key(&key).await;
+
+        let public_key = mdoc
+            .issuer_signed
+            .public_key()
+            .expect("Could not get public key from from IssuerSigned");
+
+        // The example mdoc should contain the generated key.
+        assert_eq!(public_key, *key.verifying_key());
     }
 
     /// Verify the example disclosure from the standard.

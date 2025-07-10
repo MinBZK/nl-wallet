@@ -7,6 +7,7 @@ use url::Url;
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
 use http_utils::urls;
+use openid4vc::disclosure_session::DisclosureClient;
 use platform_support::attested_key::AttestedKeyHolder;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
@@ -59,11 +60,12 @@ pub(super) fn identify_uri(uri: &Url) -> Option<UriType> {
     None
 }
 
-impl<CR, UR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, MDS, WIC>
+impl<CR, UR, S, AKH, APC, DS, IS, DC, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, DC, WIC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
     AKH: AttestedKeyHolder,
     DS: DigidSession,
+    DC: DisclosureClient,
 {
     #[instrument(skip_all)]
     #[sentry_capture_error]

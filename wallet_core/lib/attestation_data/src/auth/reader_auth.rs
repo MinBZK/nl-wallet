@@ -159,11 +159,12 @@ pub mod mock {
         pub fn create_attributes(
             doc_type: String,
             namespace: &str,
-            attributes: impl Iterator<Item = impl Into<String>>,
+            attributes: impl IntoIterator<Item = impl Into<String>>,
         ) -> HashMap<String, Vec<VecNonEmpty<ClaimPath>>> {
             [(
                 doc_type,
                 attributes
+                    .into_iter()
                     .map(|attribute| {
                         vec![
                             ClaimPath::SelectByKey(String::from(namespace)),

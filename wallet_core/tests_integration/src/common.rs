@@ -23,7 +23,6 @@ use sea_orm::PaginatorTrait;
 use tokio::net::TcpListener;
 use tokio::time;
 use url::Url;
-use uuid::Uuid;
 use wiremock::MockServer;
 
 use android_attest::android_crl::RevocationStatusList;
@@ -35,6 +34,7 @@ use configuration_server::settings::Settings as CsSettings;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use gba_hc_converter::settings::Settings as GbaSettings;
 use hsm::service::Pkcs11Hsm;
+use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::reqwest::trusted_reqwest_client_builder;
 use http_utils::reqwest::ReqwestTrustAnchor;
 use http_utils::tls::pinning::TlsPinningConfig;
@@ -43,7 +43,7 @@ use http_utils::urls::BaseUrl;
 use issuance_server::disclosure::AttributesFetcher;
 use issuance_server::disclosure::HttpAttributesFetcher;
 use issuance_server::settings::IssuanceServerSettings;
-use openid4vc::disclosure_session::VpDisclosureSession;
+use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::issuance_session::HttpIssuanceSession;
 use openid4vc::issuer::AttributeService;
 use openid4vc::token::TokenRequest;
@@ -133,7 +133,7 @@ pub type WalletWithMocks = Wallet<
     HttpAccountProviderClient,
     MockDigidSession,
     HttpIssuanceSession,
-    VpDisclosureSession<Uuid>,
+    VpDisclosureClient,
     WpWteIssuanceClient,
 >;
 
@@ -291,6 +291,7 @@ pub async fn setup_wallet_and_env(
         MockStorage::default(),
         key_holder,
         HttpAccountProviderClient::default(),
+        VpDisclosureClient::new_http(default_reqwest_client_builder()).unwrap(),
     )
     .await
     .expect("Could not create test wallet");

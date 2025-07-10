@@ -11,7 +11,7 @@ use super::UpdatePolicyError;
 
 #[derive(Default, Constructor)]
 pub struct MockUpdatePolicyRepository {
-    state: VersionState,
+    pub state: VersionState,
 }
 
 impl Repository<VersionState> for MockUpdatePolicyRepository {
