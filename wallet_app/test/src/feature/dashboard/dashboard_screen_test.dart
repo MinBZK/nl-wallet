@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wallet/src/data/service/navigation_service.dart';
 import 'package:wallet/src/domain/usecase/update/observe_version_state_usecase.dart';
+import 'package:wallet/src/feature/banner/cubit/banner_cubit.dart';
 import 'package:wallet/src/feature/dashboard/bloc/dashboard_bloc.dart';
 import 'package:wallet/src/feature/dashboard/dashboard_screen.dart';
 import 'package:wallet/src/util/extension/localized_text_extension.dart';
@@ -161,6 +162,12 @@ void main() {
         providers: [
           RepositoryProvider<NavigationService>(create: (c) => MockNavigationService()),
           RepositoryProvider<ObserveVersionStateUsecase>(create: (c) => MockObserveVersionStateUsecase()),
+          RepositoryProvider<BannerCubit>(
+            create: (c) => BannerCubit(
+              MockObserveShowTourBannerUseCase(),
+              MockObserveVersionStateUsecase(),
+            ),
+          ),
         ],
       );
 
@@ -194,6 +201,15 @@ Future<void> _pumpSuccessWithVersionState(
           final mockObserveVersionStateUsecase = MockObserveVersionStateUsecase();
           when(mockObserveVersionStateUsecase.invoke()).thenAnswer((_) => Stream.value(state));
           return mockObserveVersionStateUsecase;
+        },
+      ),
+      RepositoryProvider<BannerCubit>(
+        create: (c) {
+          final versionStateUseCase = MockObserveVersionStateUsecase();
+          when(versionStateUseCase.invoke()).thenAnswer((_) => Stream.value(state));
+          final mockShowBannerUseCase = MockObserveShowTourBannerUseCase();
+          when(mockShowBannerUseCase.invoke()).thenAnswer((_) => Stream.value(false));
+          return BannerCubit(mockShowBannerUseCase, versionStateUseCase);
         },
       ),
     ],

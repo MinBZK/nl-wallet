@@ -37,3 +37,19 @@ class DashboardLoadFailure extends DashboardState {
   @override
   List<Object> get props => [];
 }
+
+sealed class DashboardBanner extends Equatable {}
+
+class UpdateAvailableBanner extends DashboardBanner {
+  final VersionState state;
+
+  UpdateAvailableBanner({required this.state});
+
+  @override
+  List<Object?> get props => [state];
+}
+
+class TourSuggestionBanner extends DashboardBanner {
+  @override
+  List<Object?> get props => [];
+}

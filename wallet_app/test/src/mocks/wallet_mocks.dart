@@ -1,8 +1,10 @@
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
+import 'package:internet_connection_checker/internet_connection_checker.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
+import 'package:video_player/video_player.dart';
 import 'package:wallet/src/data/repository/biometric/biometric_repository.dart';
 import 'package:wallet/src/data/repository/card/wallet_card_repository.dart';
 import 'package:wallet/src/data/repository/configuration/configuration_repository.dart';
@@ -11,10 +13,12 @@ import 'package:wallet/src/data/repository/issuance/issuance_repository.dart';
 import 'package:wallet/src/data/repository/language/language_repository.dart';
 import 'package:wallet/src/data/repository/network/network_repository.dart';
 import 'package:wallet/src/data/repository/pid/pid_repository.dart';
+import 'package:wallet/src/data/repository/tour/tour_repository.dart';
 import 'package:wallet/src/data/repository/version/version_state_repository.dart';
 import 'package:wallet/src/data/repository/wallet/wallet_repository.dart';
 import 'package:wallet/src/data/service/app_lifecycle_service.dart';
 import 'package:wallet/src/data/service/navigation_service.dart';
+import 'package:wallet/src/data/service/semantics_event_service.dart';
 import 'package:wallet/src/data/store/active_locale_provider.dart';
 import 'package:wallet/src/domain/model/configuration/flutter_app_configuration.dart';
 import 'package:wallet/src/domain/usecase/app/check_is_app_initialized_usecase.dart';
@@ -53,6 +57,9 @@ import 'package:wallet/src/domain/usecase/qr/decode_qr_usecase.dart';
 import 'package:wallet/src/domain/usecase/sign/accept_sign_agreement_usecase.dart';
 import 'package:wallet/src/domain/usecase/sign/reject_sign_agreement_usecase.dart';
 import 'package:wallet/src/domain/usecase/sign/start_sign_usecase.dart';
+import 'package:wallet/src/domain/usecase/tour/fetch_tour_videos_usecase.dart';
+import 'package:wallet/src/domain/usecase/tour/observe_show_tour_banner_usecase.dart';
+import 'package:wallet/src/domain/usecase/tour/tour_overview_viewed_usecase.dart';
 import 'package:wallet/src/domain/usecase/update/observe_version_state_usecase.dart';
 import 'package:wallet/src/domain/usecase/uri/decode_uri_usecase.dart';
 import 'package:wallet/src/domain/usecase/version/get_version_string_usecase.dart';
@@ -84,6 +91,8 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<NavigatorState>()])
 @GenerateNiceMocks([MockSpec<GlobalKey<NavigatorState>>(as: Symbol('MockNavigatorKey'))])
 @GenerateNiceMocks([MockSpec<BuildContext>()])
+@GenerateNiceMocks([MockSpec<VideoPlayerController>()])
+@GenerateNiceMocks([MockSpec<InternetConnectionChecker>()])
 
 /// Mock mappers
 @GenerateNiceMocks([MockSpec<Mapper>()])
@@ -99,6 +108,7 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<LanguageRepository>()])
 @GenerateNiceMocks([MockSpec<BiometricRepository>()])
 @GenerateNiceMocks([MockSpec<VersionStateRepository>()])
+@GenerateNiceMocks([MockSpec<TourRepository>()])
 @GenerateNiceMocks([MockSpec<IssuanceRepository>()])
 
 /// Mock services
@@ -107,6 +117,7 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<LocalAuthentication>()])
 @GenerateNiceMocks([MockSpec<ActiveLocaleProvider>()])
 @GenerateNiceMocks([MockSpec<BiometricUnlockManager>()])
+@GenerateNiceMocks([MockSpec<SemanticsEventService>()])
 
 /// Mock use cases
 @GenerateNiceMocks([MockSpec<DecodeUriUseCase>()])
@@ -126,6 +137,7 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<CancelDisclosureUseCase>()])
 @GenerateNiceMocks([MockSpec<ObserveWalletCardsUseCase>()])
 @GenerateNiceMocks([MockSpec<ObserveRecentWalletEventsUseCase>()])
+@GenerateNiceMocks([MockSpec<ObserveShowTourBannerUseCase>()])
 @GenerateNiceMocks([MockSpec<GetMostRecentWalletEventUseCase>()])
 @GenerateNiceMocks([MockSpec<CheckIsValidPinUseCase>()])
 @GenerateNiceMocks([MockSpec<CreateWalletUseCase>()])
@@ -156,6 +168,8 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<ObserveVersionStateUsecase>()])
 @GenerateNiceMocks([MockSpec<GetVersionStringUseCase>()])
 @GenerateNiceMocks([MockSpec<RequestBiometricsUseCase>()])
+@GenerateNiceMocks([MockSpec<TourOverviewViewedUseCase>()])
+@GenerateNiceMocks([MockSpec<FetchTourVideosUseCase>()])
 
 /// Core
 @GenerateNiceMocks([MockSpec<WalletCoreApi>()])
@@ -210,7 +224,8 @@ class Mocks {
     sl.registerFactory<CancelDisclosureUseCase>(MockCancelDisclosureUseCase.new);
     sl.registerFactory<ObserveWalletCardsUseCase>(MockObserveWalletCardsUseCase.new);
     sl.registerFactory<ObserveRecentWalletEventsUseCase>(MockObserveRecentWalletEventsUseCase.new);
-    sl.registerFactory<MockGetMostRecentWalletEventUseCase>(MockGetMostRecentWalletEventUseCase.new);
+    sl.registerFactory<ObserveShowTourBannerUseCase>(MockObserveShowTourBannerUseCase.new);
+    sl.registerFactory<GetMostRecentWalletEventUseCase>(MockGetMostRecentWalletEventUseCase.new);
     sl.registerFactory<CheckIsValidPinUseCase>(MockCheckIsValidPinUseCase.new);
     sl.registerFactory<CreateWalletUseCase>(MockCreateWalletUseCase.new);
     sl.registerFactory<UnlockWalletWithPinUseCase>(MockUnlockWalletWithPinUseCase.new);
@@ -247,6 +262,7 @@ class Mocks {
     sl.registerFactory<WalletEventRepository>(MockWalletEventRepository.new);
     sl.registerFactory<BiometricRepository>(MockBiometricRepository.new);
     sl.registerFactory<VersionStateRepository>(MockVersionStateRepository.new);
+    sl.registerFactory<TourRepository>(MockTourRepository.new);
     sl.registerFactory<ConfigurationRepository>(() {
       final repository = MockConfigurationRepository();
       when(repository.appConfiguration).thenAnswer(
