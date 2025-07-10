@@ -20,4 +20,13 @@ extension ListExtension<T extends Object> on List<T> {
     // Create a new list with the updated element to ensure immutability.
     return List<T>.from(this)..[index] = replacement;
   }
+
+  /// Converts a list into a map where the keys are the elements of the list
+  /// and the values are derived from these elements using the provided mapper function.
+  ///
+  /// @param mapper A function that takes an element of type `T` from the list
+  ///               and returns a value of type `V` to be used as the value in the map.
+  /// @return A new map where each element from the original list is a key,
+  ///         and the corresponding value is the result of applying the `mapper` function to that element.
+  Map<T, V> toMap<V extends Object>(V Function(T) mapper) => {for (final item in this) item: mapper(item)};
 }

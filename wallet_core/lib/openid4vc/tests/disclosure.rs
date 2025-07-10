@@ -1,18 +1,15 @@
 use std::collections::HashMap;
-use std::collections::HashSet;
-use std::convert::Infallible;
 use std::str::FromStr;
 use std::sync::Arc;
 
 use assert_matches::assert_matches;
 use async_trait::async_trait;
 use chrono::Utc;
-use futures::future;
+use futures::FutureExt;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use josekit::jwk::alg::ec::EcCurve;
 use josekit::jwk::alg::ec::EcKeyPair;
-use openid4vc::mock::test_document_to_mdoc;
 use p256::ecdsa::Signature;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
@@ -36,14 +33,8 @@ use crypto::server_keys::generate::Ca;
 use crypto::server_keys::KeyPair;
 use http_utils::urls::BaseUrl;
 use jwt::Jwt;
-use mdoc::holder::mock::MockMdocDataSource as IsoMockMdocDataSource;
-use mdoc::holder::DisclosureRequestMatch;
 use mdoc::holder::Mdoc;
-use mdoc::holder::MdocDataSource;
-use mdoc::holder::StoredMdoc;
 use mdoc::test::data::addr_street;
-use mdoc::test::data::pid_example;
-use mdoc::test::data::pid_example_items_requests;
 use mdoc::test::data::pid_full_name;
 use mdoc::test::data::pid_given_name;
 use mdoc::test::data::PID;
@@ -51,14 +42,16 @@ use mdoc::test::TestDocuments;
 use mdoc::verifier::ItemsRequests;
 use mdoc::DeviceResponse;
 use mdoc::SessionTranscript;
-use openid4vc::disclosure_session::DisclosureProposal;
+use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::DisclosureSession;
 use openid4vc::disclosure_session::DisclosureUriSource;
 use openid4vc::disclosure_session::VpClientError;
+use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::disclosure_session::VpDisclosureSession;
 use openid4vc::disclosure_session::VpMessageClient;
 use openid4vc::disclosure_session::VpMessageClientError;
 use openid4vc::disclosure_session::VpSessionError;
+use openid4vc::mock::test_document_to_mdoc;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
 use openid4vc::openid4vp::IsoVpAuthorizationRequest;
 use openid4vc::openid4vp::RequestUriMethod;
@@ -92,11 +85,10 @@ use openid4vc::PostAuthResponseErrorCode;
 use openid4vc::VpAuthorizationErrorCode;
 use poa::factory::PoaFactory;
 use poa::Poa;
-use poa::PoaError;
-use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use utils::generator::mock::MockTimeGenerator;
 use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecAtLeastTwoUnique;
+use utils::vec_at_least::VecNonEmpty;
 
 #[tokio::test]
 async fn disclosure_direct() {
@@ -108,7 +100,7 @@ async fn disclosure_direct() {
     let response_uri: BaseUrl = "https://example.com/response_uri".parse().unwrap();
     let encryption_keypair = EcKeyPair::generate(EcCurve::P256).unwrap();
     let iso_auth_request = IsoVpAuthorizationRequest::new(
-        &pid_example_items_requests(),
+        &ItemsRequests::new_pid_example(),
         auth_keypair.certificate(),
         nonce.clone(),
         encryption_keypair.to_jwk_public_key().try_into().unwrap(),
@@ -141,44 +133,29 @@ async fn disclosure_direct() {
     );
 }
 
-/// The wallet side: verify the Authorization Request, compute the disclosure, and encrypt it into a JWE.
+/// The wallet side: verify the Authorization Request, gather the attestations and encrypt it into a JWE.
 async fn disclosure_jwe(
     auth_request: Jwt<VpAuthorizationRequest>,
     trust_anchors: &[TrustAnchor<'_>],
     issuer_ca: &Ca,
 ) -> String {
     let mdoc_key = MockRemoteEcdsaKey::new(String::from("mdoc_key"), SigningKey::random(&mut OsRng));
-    let mdocs = IsoMockMdocDataSource::new(vec![(
-        Mdoc::new_mock_with_key_and_ca(issuer_ca, &mdoc_key).await,
-        pid_example().into_first().unwrap().normalized_metadata(),
-    )]);
+    let mdocs = vec![Mdoc::new_mock_with_ca_and_key(issuer_ca, &mdoc_key).await];
     let mdoc_nonce = "mdoc_nonce".to_string();
 
     // Verify the Authorization Request JWE and read the requested attributes.
     let (auth_request, cert) = VpAuthorizationRequest::try_new(&auth_request, trust_anchors).unwrap();
     let auth_request = auth_request.validate(&cert, None).unwrap();
 
-    // Check if we have the requested attributes.
+    // Compute the disclosure.
     let session_transcript = SessionTranscript::new_oid4vp(
         &auth_request.response_uri,
         &auth_request.client_id,
         auth_request.nonce.clone(),
         &mdoc_nonce,
     );
-    let DisclosureRequestMatch::Candidates(candidates) =
-        DisclosureRequestMatch::new(auth_request.items_requests.as_ref().iter(), &mdocs, &session_transcript)
-            .await
-            .unwrap()
-    else {
-        panic!("should have found requested attributes")
-    };
-
-    // For each doctype, just choose the first candidate.
-    let to_disclose = candidates.into_values().map(|mut docs| docs.pop().unwrap()).collect();
-
-    // Compute the disclosure.
     let key_factory = MockRemoteKeyFactory::new(vec![mdoc_key]);
-    let (device_response, keys) = DeviceResponse::from_proposed_documents(to_disclose, &key_factory)
+    let (device_response, keys) = DeviceResponse::sign_from_mdocs(mdocs, &session_transcript, &key_factory)
         .await
         .unwrap();
 
@@ -203,7 +180,7 @@ async fn disclosure_using_message_client() {
     let ca = Ca::generate("myca", Default::default()).unwrap();
     let rp_keypair = generate_reader_mock(
         &ca,
-        Some(ReaderRegistration::mock_from_requests(&pid_example_items_requests())),
+        Some(ReaderRegistration::mock_from_requests(&ItemsRequests::new_pid_example())),
     )
     .unwrap();
 
@@ -211,37 +188,29 @@ async fn disclosure_using_message_client() {
     let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
 
     let mdoc_key = MockRemoteEcdsaKey::new(String::from("mdoc_key"), SigningKey::random(&mut OsRng));
-    let mdocs = IsoMockMdocDataSource::new(vec![(
-        Mdoc::new_mock_with_key_and_ca(&issuer_ca, &mdoc_key).await,
-        pid_example().into_first().unwrap().normalized_metadata(),
-    )]);
+    let mdocs = vec![Mdoc::new_mock_with_ca_and_key(&issuer_ca, &mdoc_key).await]
+        .try_into()
+        .unwrap();
 
     // Start a session at the "RP"
     let message_client = DirectMockVpMessageClient::new(rp_keypair, vec![issuer_ca.to_trust_anchor().to_owned()]);
     let request_uri = message_client.start_session();
 
-    // Perform the first part of the session, resulting in the proposed disclosure.
-    let session = VpDisclosureSession::start(
-        message_client,
-        &request_uri,
-        DisclosureUriSource::Link,
-        &mdocs,
-        &[ca.to_trust_anchor()],
-    )
-    .await
-    .unwrap();
+    // Perform the first part, which creates the disclosure session.
+    let client = VpDisclosureClient::new(message_client);
+    let session = client
+        .start(&request_uri, DisclosureUriSource::Link, &[ca.to_trust_anchor()])
+        .await
+        .unwrap();
 
-    let VpDisclosureSession::Proposal(proposal) = session else {
-        panic!("should have requested attributes")
-    };
-
-    // Finish the disclosure.
+    // Finish the disclosure by sending the attestations to the "RP".
     let key_factory = MockRemoteKeyFactory::new(vec![mdoc_key]);
-    proposal.disclose(&key_factory).await.unwrap();
+    session.disclose(mdocs, &key_factory).await.unwrap();
 }
 
-// A mock implementation of the `VpMessageClient` trait that implements the RP side of OpenID4VP
-// directly in its methods.
+/// A mock implementation of the `VpMessageClient` trait that implements the RP side of OpenID4VP
+/// directly in its methods.
+#[derive(Debug, Clone)]
 struct DirectMockVpMessageClient {
     nonce: String,
     encryption_keypair: EcKeyPair,
@@ -271,7 +240,7 @@ impl DirectMockVpMessageClient {
         let encryption_keypair = EcKeyPair::generate(EcCurve::P256).unwrap();
 
         let auth_request = IsoVpAuthorizationRequest::new(
-            &pid_example_items_requests(),
+            &ItemsRequests::new_pid_example(),
             auth_keypair.certificate(),
             nonce.clone(),
             encryption_keypair.to_jwk_public_key().try_into().unwrap(),
@@ -356,50 +325,6 @@ const NO_RETURN_URL_USE_CASE: &str = "no_return_url";
 const DEFAULT_RETURN_URL_USE_CASE: &str = "default_return_url";
 const ALL_RETURN_URL_USE_CASE: &str = "all_return_url";
 const WALLET_INITIATED_RETURN_URL_USE_CASE: &str = "wallet_initiated_return_url";
-
-struct MockMdocDataSource(HashMap<String, (Mdoc, NormalizedTypeMetadata)>);
-
-impl MockMdocDataSource {
-    fn new(mdocs: Vec<(Mdoc, NormalizedTypeMetadata)>) -> Self {
-        Self(
-            mdocs
-                .into_iter()
-                .map(|(mdoc, normalized_metadata)| (mdoc.doc_type().clone(), (mdoc, normalized_metadata)))
-                .collect(),
-        )
-    }
-}
-
-impl MdocDataSource for MockMdocDataSource {
-    type MdocIdentifier = String;
-    type Error = Infallible;
-
-    async fn mdoc_by_doc_types(
-        &self,
-        doc_types: &HashSet<&str>,
-    ) -> Result<Vec<Vec<StoredMdoc<Self::MdocIdentifier>>>, Self::Error> {
-        let mdoc_by_doc_type = self
-            .0
-            .iter()
-            .chunk_by(|(doc_type, _)| *doc_type)
-            .into_iter()
-            .filter_map(|(doc_type, mdocs)| {
-                doc_types.contains(doc_type.as_str()).then(|| {
-                    mdocs
-                        .into_iter()
-                        .map(|(_, (mdoc, normalized_metadata))| StoredMdoc {
-                            id: doc_type.clone(),
-                            mdoc: mdoc.clone(),
-                            normalized_metadata: normalized_metadata.clone(),
-                        })
-                        .collect()
-                })
-            })
-            .collect();
-
-        Ok(mdoc_by_doc_type)
-    }
-}
 
 #[derive(Debug)]
 pub struct MockDisclosureResultHandler {
@@ -562,24 +487,13 @@ async fn test_client_and_server(
 
     // Start session in the wallet
     let key_factory = MockRemoteKeyFactory::default();
-    let session = start_disclosure_session(
-        Arc::clone(&verifier),
-        stored_documents,
-        &issuer_ca,
-        uri_source,
-        &request_uri,
-        rp_trust_anchor,
-        &key_factory,
-    )
-    .await
-    .unwrap();
-
-    let VpDisclosureSession::Proposal(proposal) = session else {
-        panic!("should have requested attributes")
-    };
+    let session = start_disclosure_session(Arc::clone(&verifier), uri_source, &request_uri, rp_trust_anchor)
+        .await
+        .unwrap();
 
     // Finish the disclosure.
-    let redirect_uri = proposal.disclose(&key_factory).await.unwrap();
+    let mdocs = test_documents_to_mdocs(stored_documents, &issuer_ca, &key_factory);
+    let redirect_uri = session.disclose(mdocs, &key_factory).await.unwrap();
 
     // Check if we received a redirect URI when we should have, based on the use case and session type.
     let should_have_redirect_uri = match (use_case, session_type) {
@@ -642,11 +556,10 @@ async fn test_client_and_server(
 
 #[tokio::test]
 async fn test_client_and_server_cancel_after_created() {
-    let stored_documents = pid_full_name();
     let items_requests = pid_full_name().into();
     let session_type = SessionType::SameDevice;
 
-    let (verifier, trust_anchor, issuer_ca) = setup_verifier(&items_requests, None);
+    let (verifier, trust_anchor, _issuer_ca) = setup_verifier(&items_requests, None);
 
     // Start the session
     let session_token = verifier
@@ -676,12 +589,9 @@ async fn test_client_and_server_cancel_after_created() {
     // Starting the session in the wallet should result in an error
     let Err(error) = start_disclosure_session(
         Arc::clone(&verifier),
-        stored_documents,
-        &issuer_ca,
         DisclosureUriSource::Link,
         &request_uri,
         trust_anchor,
-        &MockRemoteKeyFactory::default(),
     )
     .await
     else {
@@ -721,12 +631,9 @@ async fn test_client_and_server_cancel_after_wallet_start() {
     let key_factory = MockRemoteKeyFactory::default();
     let session = start_disclosure_session(
         Arc::clone(&verifier),
-        stored_documents,
-        &issuer_ca,
         DisclosureUriSource::Link,
         &request_uri,
         trust_anchor,
-        &key_factory,
     )
     .await
     .unwrap();
@@ -743,12 +650,9 @@ async fn test_client_and_server_cancel_after_wallet_start() {
     assert_matches!(status_response, StatusResponse::Cancelled);
 
     // Disclosing attributes at this point should result in an error.
-    let VpDisclosureSession::Proposal(proposal) = session else {
-        panic!("should have requested attributes")
-    };
-
-    let error = proposal
-        .disclose(&key_factory)
+    let mdocs = test_documents_to_mdocs(stored_documents, &issuer_ca, &key_factory);
+    let (_session, error) = session
+        .disclose(mdocs, &key_factory)
         .await
         .expect_err("should not be able to disclose attributes");
 
@@ -790,7 +694,7 @@ async fn test_disclosure_invalid_poa() {
 
     impl PoaFactory for WrongPoaKeyFactory {
         type Key = MockRemoteEcdsaKey;
-        type Error = PoaError;
+        type Error = MockRemoteKeyFactoryError;
 
         async fn poa(
             &self,
@@ -826,25 +730,14 @@ async fn test_disclosure_invalid_poa() {
 
     // Start session in the wallet
     let key_factory = WrongPoaKeyFactory::default();
-    let session = start_disclosure_session(
-        Arc::clone(&verifier),
-        stored_documents,
-        &issuer_ca,
-        uri_source,
-        &request_uri,
-        rp_trust_anchor,
-        &key_factory,
-    )
-    .await
-    .unwrap();
-
-    let VpDisclosureSession::Proposal(proposal) = session else {
-        panic!("should have requested attributes")
-    };
+    let session = start_disclosure_session(Arc::clone(&verifier), uri_source, &request_uri, rp_trust_anchor)
+        .await
+        .unwrap();
 
     // Finish the disclosure.
-    let error = proposal
-        .disclose(&key_factory)
+    let mdocs = test_documents_to_mdocs(stored_documents, &issuer_ca, &key_factory);
+    let (_session, error) = session
+        .disclose(mdocs, &key_factory)
         .await
         .expect_err("should not be able to disclose attributes");
     assert_matches!(
@@ -880,27 +773,21 @@ async fn test_wallet_initiated_usecase_verifier() {
 
     let session = start_disclosure_session(
         verifier,
-        pid_full_name(),
-        &issuer_ca,
         DisclosureUriSource::Link,
         &universal_link_query,
         rp_trust_anchor,
-        &key_factory,
     )
     .await
     .unwrap();
 
-    let VpDisclosureSession::Proposal(proposal) = session else {
-        panic!("should have requested attributes")
-    };
-
     // Do the disclosure
-    proposal.disclose(&key_factory).await.unwrap().unwrap();
+    let mdocs = test_documents_to_mdocs(pid_full_name(), &issuer_ca, &key_factory);
+    session.disclose(mdocs, &key_factory).await.unwrap().unwrap();
 }
 
 #[tokio::test]
 async fn test_wallet_initiated_usecase_verifier_cancel() {
-    let (verifier, rp_trust_anchor, issuer_ca) = setup_wallet_initiated_usecase_verifier();
+    let (verifier, rp_trust_anchor, _issuer_ca) = setup_wallet_initiated_usecase_verifier();
 
     let mut request_uri: Url = format!("https://example.com/{WALLET_INITIATED_RETURN_URL_USE_CASE}/request_uri")
         .parse()
@@ -920,16 +807,11 @@ async fn test_wallet_initiated_usecase_verifier_cancel() {
     })
     .unwrap();
 
-    let key_factory = MockRemoteKeyFactory::default();
-
     let session = start_disclosure_session(
         verifier,
-        pid_full_name(),
-        &issuer_ca,
         DisclosureUriSource::Link,
         &universal_link_query,
         rp_trust_anchor,
-        &key_factory,
     )
     .await
     .unwrap();
@@ -940,10 +822,9 @@ async fn test_wallet_initiated_usecase_verifier_cancel() {
 
 #[tokio::test]
 async fn test_rp_initiated_usecase_verifier_cancel() {
-    let stored_documents = pid_full_name();
     let items_requests = pid_full_name().into();
 
-    let (verifier, rp_trust_anchor, issuer_ca) = setup_verifier(&items_requests, None);
+    let (verifier, rp_trust_anchor, _issuer_ca) = setup_verifier(&items_requests, None);
 
     // Start the session
     let session_token = verifier
@@ -960,15 +841,11 @@ async fn test_rp_initiated_usecase_verifier_cancel() {
     let request_uri = request_uri_from_status_endpoint(&verifier, &session_token, SessionType::SameDevice).await;
 
     // Start session in the wallet
-    let key_factory = MockRemoteKeyFactory::default();
     let session = start_disclosure_session(
         Arc::clone(&verifier),
-        stored_documents,
-        &issuer_ca,
         DisclosureUriSource::Link,
         &request_uri,
         rp_trust_anchor,
-        &key_factory,
     )
     .await
     .unwrap();
@@ -1068,41 +945,36 @@ fn setup_verifier(
     (verifier, rp_ca.to_trust_anchor().to_owned(), issuer_ca)
 }
 
-async fn start_disclosure_session<KF, K, US, UC>(
+fn test_documents_to_mdocs<KF>(stored_documents: TestDocuments, issuer_ca: &Ca, key_factory: &KF) -> VecNonEmpty<Mdoc>
+where
+    KF: KeyFactory,
+{
+    stored_documents
+        .into_iter()
+        .map(|doc| {
+            test_document_to_mdoc(doc, issuer_ca, key_factory)
+                .now_or_never()
+                .unwrap()
+        })
+        .collect_vec()
+        .try_into()
+        .unwrap()
+}
+
+async fn start_disclosure_session<US, UC>(
     verifier: Arc<MockVerifier<US>>,
-    stored_documents: TestDocuments,
-    issuer_ca: &Ca,
     uri_source: DisclosureUriSource,
     request_uri: &str,
     trust_anchor: TrustAnchor<'static>,
-    key_factory: &KF,
-) -> Result<VpDisclosureSession<String, VerifierMockVpMessageClient<MockVerifier<US>>>, VpSessionError>
+) -> Result<VpDisclosureSession<VerifierMockVpMessageClient<MockVerifier<US>>>, VpSessionError>
 where
-    KF: KeyFactory<Key = K>,
     US: UseCases<UseCase = UC, Key = SigningKey>,
     UC: UseCase<Key = SigningKey>,
 {
-    // Populate the wallet with the specified test documents
-    let mdocs = future::join_all(stored_documents.into_iter().map(|doc| async {
-        let normalized_metadata = doc.normalized_metadata();
-
-        (
-            test_document_to_mdoc(doc, issuer_ca, key_factory).await.0,
-            normalized_metadata,
-        )
-    }))
-    .await;
-    let mdocs = MockMdocDataSource::new(mdocs);
+    let client = VpDisclosureClient::new(VerifierMockVpMessageClient::new(verifier));
 
     // Start session in the wallet
-    VpDisclosureSession::start(
-        VerifierMockVpMessageClient::new(verifier),
-        request_uri,
-        uri_source,
-        &mdocs,
-        &[trust_anchor],
-    )
-    .await
+    client.start(request_uri, uri_source, &[trust_anchor]).await
 }
 
 async fn request_uri_from_status_endpoint(
@@ -1142,6 +1014,7 @@ type MockRpInitiatedUseCaseVerifier = MockVerifier<RpInitiatedUseCases<SigningKe
 type MockWalletInitiatedUseCaseVerifier = MockVerifier<WalletInitiatedUseCases<SigningKey>>;
 type MockVerifier<T> = Verifier<MemorySessionStore<DisclosureData>, T>;
 
+#[derive(Debug)]
 struct VerifierMockVpMessageClient<T> {
     verifier: Arc<T>,
 }
@@ -1149,6 +1022,14 @@ struct VerifierMockVpMessageClient<T> {
 impl<T> VerifierMockVpMessageClient<T> {
     pub fn new(verifier: Arc<T>) -> Self {
         VerifierMockVpMessageClient { verifier }
+    }
+}
+
+impl<T> Clone for VerifierMockVpMessageClient<T> {
+    fn clone(&self) -> Self {
+        Self {
+            verifier: Arc::clone(&self.verifier),
+        }
     }
 }
 

@@ -6,6 +6,7 @@ import '../data/service/app_lifecycle_service.dart';
 import '../data/service/country_code_service.dart';
 import '../data/service/deeplink_service.dart';
 import '../data/service/navigation_service.dart';
+import '../data/service/semantics_event_service.dart';
 import '../util/manager/biometric_unlock_manager.dart';
 
 class WalletServiceProvider extends StatelessWidget {
@@ -24,6 +25,10 @@ class WalletServiceProvider extends StatelessWidget {
       providers: [
         RepositoryProvider<AppLifecycleService>(
           create: (context) => AppLifecycleService(),
+        ),
+        RepositoryProvider<SemanticsEventService>(
+          lazy: false,
+          create: (context) => SemanticsEventService(),
         ),
         RepositoryProvider<CountryCodeService>(
           create: (context) => CountryCodeService(context.read()),
