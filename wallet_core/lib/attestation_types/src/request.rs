@@ -5,7 +5,11 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use dcql::ClaimPath;
+use dcql::ClaimsQuery;
+use dcql::ClaimsSelection;
+use dcql::CredentialQuery;
 use dcql::CredentialQueryFormat;
+use dcql::Query;
 use utils::vec_at_least::VecNonEmpty;
 
 #[nutype(
@@ -54,14 +58,111 @@ impl AttributeRequest {
     }
 }
 
+#[derive(Debug, thiserror::Error)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
+pub enum UnsupportedDcqlFeatures {
+    #[error("'credential_sets' are not supported")]
+    CredentialSets,
+    #[error("multiple credential querys are not supported")]
+    MultipleCredentialQueries,
+    #[error("'claim_sets' are not supported")]
+    MultipleClaimSets,
+    #[error("claim query with 'values' is not supported")]
+    ClaimValues,
+    #[error("'trusted_authorities' not suported")]
+    TrustedAuthorities,
+    // TODO: PVW-4139 support SdJwt
+    #[error("format 'dc+sd-jwt' not supported")]
+    SdJwt,
+    #[error("empty query not supported")]
+    EmptyQuery,
+    #[error("invalid claim path length ({0}), mdoc requires 2")]
+    InvalidClaimPathLength(NonZero<usize>),
+}
+
+impl TryFrom<Query> for NormalizedCredentialRequests {
+    type Error = UnsupportedDcqlFeatures;
+
+    fn try_from(source: Query) -> Result<Self, Self::Error> {
+        if !source.credential_sets.is_empty() {
+            return Err(UnsupportedDcqlFeatures::CredentialSets);
+        }
+        let requests = source
+            .credentials
+            .into_iter()
+            .map(TryInto::try_into)
+            .collect::<Result<Vec<_>, _>>()?;
+        requests.try_into().map_err(|_| UnsupportedDcqlFeatures::EmptyQuery)
+    }
+}
+
+impl TryFrom<CredentialQuery> for NormalizedCredentialRequest {
+    type Error = UnsupportedDcqlFeatures;
+
+    fn try_from(source: CredentialQuery) -> Result<Self, Self::Error> {
+        if source.multiple {
+            return Err(UnsupportedDcqlFeatures::MultipleCredentialQueries);
+        }
+        if !source.trusted_authorities.is_empty() {
+            return Err(UnsupportedDcqlFeatures::TrustedAuthorities);
+        }
+        if !source.require_cryptographic_holder_binding {
+            todo!()
+        }
+
+        let CredentialQueryFormat::MsoMdoc { doctype_value } = source.format else {
+            return Err(UnsupportedDcqlFeatures::SdJwt);
+        };
+        let claims = match source.claims_selection {
+            ClaimsSelection::NoSelectivelyDisclosable => {
+                vec![]
+            }
+            ClaimsSelection::Combinations { .. } => {
+                return Err(UnsupportedDcqlFeatures::MultipleClaimSets);
+            }
+            ClaimsSelection::All { claims } => claims.into_iter().map(TryInto::try_into).collect::<Result<_, _>>()?,
+        };
+
+        let request = Self {
+            format: CredentialQueryFormat::MsoMdoc { doctype_value },
+            claims,
+        };
+        Ok(request)
+    }
+}
+
+impl TryFrom<ClaimsQuery> for AttributeRequest {
+    type Error = UnsupportedDcqlFeatures;
+
+    fn try_from(source: ClaimsQuery) -> Result<Self, Self::Error> {
+        if !source.values.is_empty() {
+            return Err(UnsupportedDcqlFeatures::ClaimValues);
+        }
+        if source.path.len().get() != 2 {
+            return Err(UnsupportedDcqlFeatures::InvalidClaimPathLength(source.path.len()));
+        }
+
+        let request = AttributeRequest {
+            path: source.path,
+            intent_to_retain: source.intent_to_retain.unwrap_or_default(),
+        };
+        Ok(request)
+    }
+}
+
 #[cfg(test)]
 mod test {
     use rstest::rstest;
 
-    use dcql::ClaimPath;
+    use dcql::{ClaimPath, ClaimsQuery, ClaimsSelection, CredentialQuery, CredentialQueryFormat, Query};
     use utils::vec_at_least::VecNonEmpty;
 
-    use super::{AttributeRequest, MdocCredentialRequestError};
+    use crate::request::{NormalizedCredentialRequest, UnsupportedDcqlFeatures};
+
+    use super::{
+        mock::{EXAMPLE_ATTR_NAME, EXAMPLE_DOC_TYPE, EXAMPLE_NAMESPACE},
+        AttributeRequest, MdocCredentialRequestError, NormalizedCredentialRequests,
+    };
 
     #[rstest]
     #[case(
@@ -104,6 +205,52 @@ mod test {
         };
         let actual = test_subject.to_namespace_and_attribute();
         assert_eq!(actual, expected);
+    }
+
+    #[rstest]
+    #[case(Query::example_with_multiple_credentials(), Err(UnsupportedDcqlFeatures::SdJwt))]
+    #[case(Query::example_with_credential_sets(), Err(UnsupportedDcqlFeatures::CredentialSets))]
+    #[case(Query::example_with_claim_sets(), Err(UnsupportedDcqlFeatures::SdJwt))]
+    #[case(Query::example_with_values(), Err(UnsupportedDcqlFeatures::SdJwt))]
+    #[case(mdoc_example_query(), Ok(vec![NormalizedCredentialRequest::new_example()].try_into().unwrap()))]
+    fn test_conversion(
+        #[case] query: Query,
+        #[case] expected: Result<NormalizedCredentialRequests, UnsupportedDcqlFeatures>,
+    ) {
+        let result: Result<NormalizedCredentialRequests, _> = query.try_into();
+        assert_eq!(result, expected);
+    }
+
+    fn mdoc_example_query() -> Query {
+        Query {
+            credentials: vec![CredentialQuery {
+                id: "my_credential".to_string(),
+                format: CredentialQueryFormat::MsoMdoc {
+                    doctype_value: EXAMPLE_DOC_TYPE.to_string(),
+                },
+                multiple: false,
+                trusted_authorities: vec![],
+                require_cryptographic_holder_binding: true,
+                claims_selection: ClaimsSelection::All {
+                    claims: vec![ClaimsQuery {
+                        id: None,
+                        path: vec![
+                            ClaimPath::SelectByKey(EXAMPLE_NAMESPACE.to_string()),
+                            ClaimPath::SelectByKey(EXAMPLE_ATTR_NAME.to_string()),
+                        ]
+                        .try_into()
+                        .unwrap(),
+                        values: vec![],
+                        intent_to_retain: Some(true),
+                    }]
+                    .try_into()
+                    .unwrap(),
+                },
+            }]
+            .try_into()
+            .unwrap(),
+            credential_sets: vec![],
+        }
     }
 }
 

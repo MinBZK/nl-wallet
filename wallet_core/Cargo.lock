@@ -3396,6 +3396,7 @@ dependencies = [
  "chrono",
  "config",
  "crypto",
+ "dcql",
  "futures",
  "hsm",
  "http_utils",
