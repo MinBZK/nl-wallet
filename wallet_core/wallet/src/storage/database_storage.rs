@@ -566,8 +566,6 @@ where
 
         let transaction = self.database()?.connection().begin().await?;
 
-        dbg!(&issuance_event_attestations);
-
         attestation::Entity::insert_many(attestation_models)
             .exec(&transaction)
             .await?;
@@ -730,7 +728,6 @@ where
             .all(connection);
 
         let (issuance_events, disclosure_events) = try_join!(fetch_issuance_events, fetch_disclosure_events)?;
-        dbg!(&issuance_events);
 
         Self::combine_events(issuance_events, disclosure_events)
     }
@@ -768,9 +765,12 @@ where
 
 #[cfg(test)]
 pub(crate) mod tests {
+    use std::ops::Add;
+    use std::ops::Sub;
     use std::sync::LazyLock;
 
     use assert_matches::assert_matches;
+    use chrono::Duration;
     use chrono::TimeZone;
     use chrono::Utc;
     use itertools::Itertools;
@@ -1254,8 +1254,9 @@ pub(crate) mod tests {
         let state = storage.state().await.unwrap();
         assert!(matches!(state, StorageState::Opened));
 
-        let issuance_timestamp = Utc.with_ymd_and_hms(2023, 11, 28, 10, 50, 44).unwrap();
-        let disclosure_timestamp = Utc.with_ymd_and_hms(2023, 11, 29, 10, 50, 45).unwrap();
+        let issuance_timestamp = Utc::now();
+        let disclosure_timestamp = Utc::now().add(Duration::days(1));
+        let earlier_disclosure_timestamp = Utc::now().sub(Duration::days(32));
 
         // No data shared with RP
         assert!(!storage
@@ -1329,6 +1330,16 @@ pub(crate) mod tests {
         storage
             .log_disclosure_event(
                 disclosure_timestamp,
+                vec![attestation.clone()],
+                READER_KEY.certificate().clone(),
+                DisclosureStatus::Error,
+                DisclosureType::Regular,
+            )
+            .await
+            .unwrap();
+        storage
+            .log_disclosure_event(
+                earlier_disclosure_timestamp,
                 vec![attestation],
                 READER_KEY.certificate().clone(),
                 DisclosureStatus::Error,
@@ -1340,8 +1351,10 @@ pub(crate) mod tests {
         let fetched_events = storage.fetch_wallet_events().await.unwrap();
 
         // Error event should exist
-        assert_eq!(fetched_events.len(), 2);
-        assert_eq!(fetched_events.first().unwrap().timestamp(), &disclosure_timestamp);
+        assert_eq!(fetched_events.len(), 3);
+        assert_eq!(fetched_events[0].timestamp(), &disclosure_timestamp);
+        assert_eq!(fetched_events[1].timestamp(), &issuance_timestamp);
+        assert_eq!(fetched_events[2].timestamp(), &earlier_disclosure_timestamp);
 
         // Still no data has been shared with RP, because we only consider Successful events
         assert!(!storage
@@ -1353,7 +1366,13 @@ pub(crate) mod tests {
             .fetch_wallet_events_by_attestation_id(attestation_id)
             .await
             .unwrap();
-        assert_eq!(events_by_attestation_id.len(), 2);
+        assert_eq!(events_by_attestation_id.len(), 3);
+
+        // Recent events should not include the disclosure event with the 'earlier_disclosure_timestamp'
+        let events = storage.fetch_recent_wallet_events().await.unwrap();
+        assert_eq!(events.len(), 2);
+        assert_eq!(fetched_events[0].timestamp(), &disclosure_timestamp);
+        assert_eq!(fetched_events[1].timestamp(), &issuance_timestamp);
     }
 
     #[tokio::test]
