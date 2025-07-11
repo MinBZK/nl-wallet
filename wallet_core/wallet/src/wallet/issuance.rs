@@ -544,19 +544,32 @@ where
             _ => unreachable!(),
         };
 
+        let all_previews = issued_credentials_with_metadata
+            .into_iter()
+            .zip_eq(issuance_session.preview_attestations)
+            .collect_vec();
+
+        let (existing, new): (Vec<_>, Vec<_>) = all_previews
+            .into_iter()
+            .partition(|(_, preview)| matches!(preview.identity, AttestationIdentity::Fixed { .. }));
+
         info!("Attestations accepted, storing credentials in database");
-        self.storage
-            .write()
-            .await
-            .insert_credentials(
-                Utc::now(),
-                issued_credentials_with_metadata
-                    .into_iter()
-                    .zip_eq(issuance_session.preview_attestations)
-                    .collect_vec(),
-            )
-            .await
-            .map_err(IssuanceError::AttestationStorage)?;
+        if !existing.is_empty() {
+            self.storage
+                .write()
+                .await
+                .update_credentials(Utc::now(), existing)
+                .await
+                .map_err(IssuanceError::AttestationStorage)?;
+        }
+        if !new.is_empty() {
+            self.storage
+                .write()
+                .await
+                .insert_credentials(Utc::now(), new)
+                .await
+                .map_err(IssuanceError::AttestationStorage)?;
+        }
 
         self.emit_attestations().await.map_err(IssuanceError::Attestations)?;
         self.emit_recent_history().await.map_err(IssuanceError::EventStorage)?;
@@ -1052,10 +1065,10 @@ mod tests {
             .unwrap()
             .unwrap();
 
-        let attestation_id = Uuid::new_v4();
+        let attestation_copy_id = Uuid::new_v4();
         let stored = StoredAttestationCopy {
-            attestation_id,
-            attestation_copy_id: Uuid::new_v4(),
+            attestation_id: Uuid::new_v4(),
+            attestation_copy_id,
             attestation: StoredAttestationFormat::SdJwt {
                 sd_jwt: Box::new(sd_jwt.into()),
             },
@@ -1087,7 +1100,9 @@ mod tests {
 
         assert_eq!(attestations.len(), 3);
 
-        assert_matches!(&attestations[0].identity, AttestationIdentity::Fixed { id } if id == &attestation_id.to_string());
+        assert_matches!(
+            &attestations[0].identity,
+            AttestationIdentity::Fixed { id } if id == &attestation_copy_id.to_string());
         assert_matches!(&attestations[1].identity, AttestationIdentity::Ephemeral);
         assert_matches!(&attestations[2].identity, AttestationIdentity::Ephemeral);
     }
@@ -1408,10 +1423,10 @@ mod tests {
             .unwrap()
             .unwrap();
 
-        let attestation_id = Uuid::new_v4();
+        let attestation_copy_id = Uuid::new_v4();
         let stored = StoredAttestationCopy {
-            attestation_id,
-            attestation_copy_id: Uuid::new_v4(),
+            attestation_id: Uuid::new_v4(),
+            attestation_copy_id,
             attestation: StoredAttestationFormat::SdJwt {
                 sd_jwt: Box::new(sd_jwt.into()),
             },
@@ -1423,7 +1438,7 @@ mod tests {
         let result =
             match_preview_and_stored_attestations(&previews, vec![stored.clone()], &MockTimeGenerator::epoch());
         let (_, identities): (Vec<_>, Vec<_>) = multiunzip(result);
-        assert_eq!(vec![Some(attestation_id.to_string())], identities);
+        assert_eq!(vec![Some(attestation_copy_id.to_string())], identities);
 
         // When the attestation already exists in the database, but the preview has a newer nbf, it should be considered
         // as a new attestation and the identity is None.

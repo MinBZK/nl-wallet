@@ -32,6 +32,6 @@ impl StoredAttestationCopy {
                 .expect("conversion from SD-JWT to CredentialPayload has been done before"),
         };
 
-        (payload, self.attestation_id)
+        (payload, self.attestation_copy_id)
     }
 }
