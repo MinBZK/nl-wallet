@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../theme/base_wallet_theme.dart';
 import '../../../../theme/wallet_theme.dart';
 import '../../../../util/extension/build_context_extension.dart';
+import '../../../../util/extension/string_extension.dart';
 import '../text/body_text.dart';
 
 /// A reusable notification banner widget with configurable content and styling.
@@ -59,7 +60,11 @@ class _NotificationBannerState extends State<NotificationBanner> {
 
   @override
   Widget build(BuildContext context) {
-    return MergeSemantics(
+    return Semantics(
+      button: true,
+      onTap: widget.onTap,
+      excludeSemantics: true,
+      attributedLabel: '${widget.title} ${widget.subtitle ?? ''}'.toAttributedString(context),
       child: Material(
         color: context.colorScheme.tertiaryContainer,
         shape: RoundedRectangleBorder(
