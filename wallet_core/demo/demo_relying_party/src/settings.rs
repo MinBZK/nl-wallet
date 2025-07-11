@@ -1,16 +1,16 @@
 use std::net::IpAddr;
 
+use indexmap::IndexMap;
+use serde::Deserialize;
+
 use config::Config;
 use config::ConfigError;
 use config::Environment;
 use config::File;
-use http_utils::urls::ConnectSource;
-use indexmap::IndexMap;
-use serde::Deserialize;
-
+use dcql::Query;
 use http_utils::urls::BaseUrl;
+use http_utils::urls::ConnectSource;
 use http_utils::urls::CorsOrigin;
-use mdoc::verifier::ItemsRequests;
 use utils::path::prefix_local_path;
 
 #[derive(Deserialize, Clone)]
@@ -46,7 +46,7 @@ pub enum ReturnUrlMode {
 pub struct Usecase {
     #[serde(default)]
     pub return_url: ReturnUrlMode,
-    pub items_requests: ItemsRequests,
+    pub request: Query,
 }
 
 impl Settings {
