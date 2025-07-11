@@ -143,7 +143,7 @@ impl BrpPidAttributeService {
         let recovery_code = AttributeValue::Text(hex::encode(config.hmac_secret.sign_hmac(bsn.as_bytes()).await?));
 
         attributes
-            .insert(&config.recovery_code_claim_paths, &Attribute::Single(recovery_code))
+            .insert(&config.recovery_code_claim_paths, Attribute::Single(recovery_code))
             .map_err(Error::InsertingRecoveryCode)?;
 
         Ok(())

@@ -375,38 +375,50 @@ impl Attributes {
     pub fn insert(
         &mut self,
         claim_paths: &VecNonEmpty<ClaimPath>,
-        attr: &Attribute,
+        attribute: Attribute,
     ) -> Result<(), AttributesHandlingError> {
-        let len = claim_paths.as_ref().len();
+        let Self(root_map) = self;
 
-        // Traverse down the tree structure until we arrive at the location specified by the claim paths.
-        let mut selected = &mut Attribute::Single(AttributeValue::Bool(false)); // dummy assignment for the loop below
-        for (index, claim_path) in claim_paths.iter().enumerate() {
-            let claim_path = claim_path
-                .try_key_path()
-                .ok_or(AttributesHandlingError::InvalidClaimPath)?;
+        // Traverse the tree using all but the last claim path. This should always result
+        // in a nested attribute, which we create if the attribute is entirely absent.
+        let leaf_map = claim_paths
+            .iter()
+            // This is guaranteed to be at least 0 because `claims_paths` is not empty.
+            .take(claim_paths.len().get() - 1)
+            .try_fold(root_map, |map, claim_path| {
+                let claim_path = claim_path
+                    .try_key_path()
+                    .ok_or(AttributesHandlingError::InvalidClaimPath)?;
 
-            let map = if index == 0 {
-                &mut self.0
-            } else {
-                match selected {
-                    Attribute::Single(_) => return Err(AttributesHandlingError::ClaimAlreadyExists),
+                // Find the attribute at the path or create a new nested attribute.
+                let attribute = map
+                    .entry(claim_path.to_string())
+                    .or_insert_with(|| Attribute::Nested(IndexMap::new()));
+
+                // If the attribute is a leaf the claim path is longer than expected and thus invalid.
+                let child_map = match attribute {
+                    Attribute::Single(_) => return Err(AttributesHandlingError::InvalidClaimPath),
                     Attribute::Nested(map) => map,
-                }
-            };
+                };
 
-            if index == len - 1 && map.contains_key(claim_path) {
-                return Err(AttributesHandlingError::ClaimAlreadyExists);
+                Ok(child_map)
+            })?;
+
+        // If the last claim path is not already present, insert the attribute.
+        let last_claim_path = claim_paths
+            .last()
+            .try_key_path()
+            .ok_or(AttributesHandlingError::InvalidClaimPath)?;
+
+        match leaf_map.get(last_claim_path) {
+            Some(Attribute::Single(_)) => Err(AttributesHandlingError::ClaimAlreadyExists),
+            Some(Attribute::Nested(_)) => Err(AttributesHandlingError::InvalidClaimPath),
+            None => {
+                leaf_map.insert(last_claim_path.to_string(), attribute);
+
+                Ok(())
             }
-
-            selected = map.entry(claim_path.to_string()).or_insert(if index == len - 1 {
-                attr.clone()
-            } else {
-                Attribute::Nested(IndexMap::new())
-            });
         }
-
-        Ok(())
     }
 }
 
@@ -793,6 +805,10 @@ pub mod test {
     )]
     #[case(
         vec![ClaimPath::SelectByKey("outer".to_string())],
+        Err(AttributesHandlingError::InvalidClaimPath)
+    )]
+    #[case(
+        vec![ClaimPath::SelectByKey("outer".to_string()), ClaimPath::SelectByKey("inner".to_string())],
         Err(AttributesHandlingError::ClaimAlreadyExists)
     )]
     #[case(
@@ -819,7 +835,7 @@ pub mod test {
         let result = attributes
             .insert(
                 &claim_paths.try_into().unwrap(),
-                &Attribute::Single(AttributeValue::Bool(true)),
+                Attribute::Single(AttributeValue::Bool(true)),
             )
             .map(|_| serde_json::to_value(attributes).unwrap());
 
