@@ -42,4 +42,10 @@ impl Related<disclosure_event::Entity> for Entity {
     }
 }
 
+impl Related<attestation::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Attestation.def()
+    }
+}
+
 impl ActiveModelBehavior for ActiveModel {}
