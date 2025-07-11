@@ -107,7 +107,7 @@ class _MenuScreenState extends State<MenuScreen> with LockStateMixin<MenuScreen>
       MenuItem(
         label: Text.rich(context.l10n.menuScreenTourCta.toTextSpan(context)),
         leftIcon: const Icon(Icons.play_arrow),
-        onPressed: () => Navigator.restorablePushNamed(context, WalletRoutes.tourRoute),
+        onPressed: () => Navigator.restorablePushNamed(context, WalletRoutes.tourOverviewRoute),
       ),
       MenuItem(
         label: Text.rich(context.l10n.menuScreenHelpCta.toTextSpan(context)),

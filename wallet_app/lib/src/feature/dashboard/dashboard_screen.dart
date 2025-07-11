@@ -14,6 +14,7 @@ import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/string_extension.dart';
 import '../../wallet_constants.dart';
+import '../banner/banner_list.dart';
 import '../card/detail/argument/card_detail_screen_argument.dart';
 import '../card/detail/card_detail_screen.dart';
 import '../common/widget/activity_summary.dart';
@@ -28,7 +29,6 @@ import '../common/widget/spacer/sliver_sized_box.dart';
 import '../common/widget/text_with_link.dart';
 import '../common/widget/wallet_app_bar.dart';
 import '../common/widget/wallet_scrollbar.dart';
-import '../update/widget/update_banner.dart';
 import 'argument/dashboard_screen_argument.dart';
 import 'bloc/dashboard_bloc.dart';
 
@@ -118,17 +118,8 @@ class DashboardScreen extends StatelessWidget {
     return WalletScrollbar(
       child: CustomScrollView(
         slivers: [
-          SliverToBoxAdapter(
-            child: StreamBuilder<bool>(
-              stream: context.read<NavigationService>().observeUpdateNotificationDialogVisible(),
-              builder: (context, snapshot) {
-                // Only show the update banner when stream returns data and the dialog is not visible.
-                final dialogVisibleData = snapshot.data;
-                return (dialogVisibleData != null && dialogVisibleData)
-                    ? const SizedBox.shrink()
-                    : const UpdateBanner(padding: EdgeInsets.only(left: 16, right: 16, top: 16));
-              },
-            ),
+          const SliverToBoxAdapter(
+            child: BannerList(),
           ),
           const SliverSizedBox(height: 16),
           SliverToBoxAdapter(

@@ -1,6 +1,5 @@
-import 'package:shared_preferences/shared_preferences.dart';
-
 import '../../store/language_store.dart';
+import '../shared_preferences_provider.dart';
 
 const _kPreferredLanguageCodeKey = 'preferred_language_code';
 
@@ -25,5 +24,3 @@ class LanguageStoreImpl extends LanguageStore {
     }
   }
 }
-
-typedef PreferenceProvider = Future<SharedPreferences> Function();

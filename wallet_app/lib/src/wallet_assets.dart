@@ -72,20 +72,7 @@ class WalletAssets {
   static const svg_icon_face_id = 'assets/non-free/svg/icon_face_id.svg';
 
   // IMAGES
-  static const image_tour_video_thumb_1_nl = 'assets/non-free/images/tour_video_thumb_1_nl.png';
-  static const image_tour_video_thumb_1_en = 'assets/non-free/images/tour_video_thumb_1_en.png';
-  static const image_tour_video_thumb_2_nl = 'assets/non-free/images/tour_video_thumb_2_nl.png';
-  static const image_tour_video_thumb_2_en = 'assets/non-free/images/tour_video_thumb_2_en.png';
-  static const image_tour_video_thumb_3_nl = 'assets/non-free/images/tour_video_thumb_3_nl.png';
-  static const image_tour_video_thumb_3_en = 'assets/non-free/images/tour_video_thumb_3_en.png';
-  static const image_tour_video_thumb_4_nl = 'assets/non-free/images/tour_video_thumb_4_nl.png';
-  static const image_tour_video_thumb_4_en = 'assets/non-free/images/tour_video_thumb_4_en.png';
-  static const image_tour_video_thumb_5_nl = 'assets/non-free/images/tour_video_thumb_5_nl.png';
-  static const image_tour_video_thumb_5_en = 'assets/non-free/images/tour_video_thumb_5_en.png';
-  static const image_tour_video_thumb_6_nl = 'assets/non-free/images/tour_video_thumb_6_nl.png';
-  static const image_tour_video_thumb_6_en = 'assets/non-free/images/tour_video_thumb_6_en.png';
-  static const image_tour_video_thumb_7_nl = 'assets/non-free/images/tour_video_thumb_7_nl.png';
-  static const image_tour_video_thumb_7_en = 'assets/non-free/images/tour_video_thumb_7_en.png';
+  static const image_tour_video_thumb_template = 'assets/non-free/images/tour_video_thumb_{index}_{languageCode}.png';
   static const image_bg_diploma = 'assets/non-free/images/bg_diploma.png';
   static const image_bg_nl_driving_license = 'assets/non-free/images/bg_nl_driving_license.png';
   static const image_bg_health_insurance = 'assets/non-free/images/bg_health_insurance.png';
@@ -122,4 +109,20 @@ class WalletAssets {
 
   // ICONS
   static const icon_card_share = 'assets/non-free/icons/card_share.png';
+
+  // VIDEOS
+  static const supported_video_language_codes = ['en', 'nl'];
+  static const video_slugs = [
+    'intro',
+    'cards-insight',
+    'share-personal-information',
+    'login',
+    'share-from-another-device',
+    'insight-activities',
+    'dark-mode-and-language',
+  ];
+  static const video_tour_thumbnail_asset_placeholder =
+      'assets/non-free/images/tour_video_thumb_{slug}_{languageCode}.png';
+  static const video_tour_video_url_placeholder = 'videos/{languageCode}-{slug}.mp4';
+  static const video_tour_subtitle_url_placeholder = 'videos/{languageCode}-{slug}.srt';
 }

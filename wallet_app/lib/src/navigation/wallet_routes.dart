@@ -57,7 +57,10 @@ import '../feature/sign/sign_screen.dart';
 import '../feature/splash/bloc/splash_bloc.dart';
 import '../feature/splash/splash_screen.dart';
 import '../feature/theme/theme_screen.dart';
+import '../feature/tour/overview/bloc/tour_overview_bloc.dart';
 import '../feature/tour/overview/tour_overview_screen.dart';
+import '../feature/tour/video/argument/tour_video_screen_argument.dart';
+import '../feature/tour/video/tour_video_screen.dart';
 import '../feature/update/update_info_screen.dart';
 import '../feature/wallet/personalize/bloc/wallet_personalize_bloc.dart';
 import '../feature/wallet/personalize/wallet_personalize_screen.dart';
@@ -117,7 +120,8 @@ class WalletRoutes {
   static const biometricsSettingsRoute = '/settings/biometrics';
   static const privacyPolicyRoute = '/privacy_policy';
   static const updateInfoRoute = '/update_info';
-  static const tourRoute = '/tour';
+  static const tourOverviewRoute = '/tour';
+  static const tourVideoRoute = '/tour/video';
 
   static Route<dynamic> routeFactory(RouteSettings settings) {
     final WidgetBuilder builder = _widgetBuilderFactory(settings);
@@ -202,8 +206,10 @@ class WalletRoutes {
         return _createPrivacyPolicyScreenBuilder;
       case WalletRoutes.updateInfoRoute:
         return _createUpdateInfoScreenBuilder;
-      case WalletRoutes.tourRoute:
-        return _tourScreenBuilder;
+      case WalletRoutes.tourOverviewRoute:
+        return _createTourOverviewScreenBuilder;
+      case WalletRoutes.tourVideoRoute:
+        return _createTourVideoScreenBuilder(settings);
       default:
         throw UnsupportedError('Unknown route: ${settings.name}');
     }
@@ -472,4 +478,22 @@ Widget _createPrivacyPolicyScreenBuilder(BuildContext context) => const PrivacyP
 
 Widget _createUpdateInfoScreenBuilder(BuildContext context) => const UpdateInfoScreen();
 
-Widget _tourScreenBuilder(BuildContext context) => const TourOverviewScreen();
+Widget _createTourOverviewScreenBuilder(BuildContext context) {
+  return BlocProvider<TourOverviewBloc>(
+    create: (BuildContext context) {
+      return TourOverviewBloc(context.read(), context.read())..add(const FetchVideosEvent());
+    },
+    child: const TourOverviewScreen(),
+  );
+}
+
+WidgetBuilder _createTourVideoScreenBuilder(RouteSettings settings) {
+  return (context) {
+    final TourVideoScreenArgument argument = TourVideoScreen.getArgument(settings);
+    return TourVideoScreen(
+      videoTitle: argument.videoTitle,
+      videoUrl: argument.videoUrl,
+      subtitleUrl: argument.subtitleUrl,
+    );
+  };
+}

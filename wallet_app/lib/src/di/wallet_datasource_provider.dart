@@ -7,7 +7,9 @@ import '../data/source/wallet_datasource.dart';
 import '../data/store/active_locale_provider.dart';
 import '../data/store/impl/active_localization_delegate.dart';
 import '../data/store/impl/language_store_impl.dart';
+import '../data/store/impl/tour_store_impl.dart';
 import '../data/store/language_store.dart';
+import '../data/store/tour_store.dart';
 import '../wallet_core/typed/typed_wallet_core.dart';
 
 class WalletDataSourceProvider extends StatelessWidget {
@@ -30,6 +32,9 @@ class WalletDataSourceProvider extends StatelessWidget {
         RepositoryProvider<TypedWalletCore>(create: (context) => TypedWalletCore(context.read())),
         RepositoryProvider<LanguageStore>(
           create: (context) => LanguageStoreImpl(SharedPreferences.getInstance),
+        ),
+        RepositoryProvider<TourStore>(
+          create: (context) => TourStoreImpl(SharedPreferences.getInstance),
         ),
         RepositoryProvider<WalletDataSource>(
           create: (context) => WalletDataSourceImpl(context.read(), context.read()),

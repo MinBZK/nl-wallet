@@ -3,14 +3,15 @@ import 'dart:ui';
 
 import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:rxdart/rxdart.dart';
 
 import '../../data/service/navigation_service.dart';
+import '../../data/service/semantics_event_service.dart';
 import '../../domain/model/configuration/flutter_app_configuration.dart';
 import '../../domain/usecase/wallet/is_wallet_registered_and_unlocked_usecase.dart';
 import '../../domain/usecase/wallet/lock_wallet_usecase.dart';
+import 'auto_lock_provider.dart';
 import 'widget/interaction_detector.dart';
 
 class AutoLockObserver extends StatefulWidget {
@@ -30,6 +31,7 @@ class AutoLockObserver extends StatefulWidget {
 class _AutoLockObserverState extends State<AutoLockObserver> with WidgetsBindingObserver {
   final PublishSubject<void> _userInteractionStream = PublishSubject();
   final Stopwatch _backgroundStopwatch = Stopwatch();
+  StreamSubscription? _semanticsSubscription;
   StreamSubscription? _inactiveWarningSubscription;
   StreamSubscription? _inactiveSubscription;
 
@@ -42,9 +44,12 @@ class _AutoLockObserverState extends State<AutoLockObserver> with WidgetsBinding
 
   @override
   Widget build(BuildContext context) {
-    return InteractionDetector(
-      onInteraction: _resetIdleTimeout,
-      child: widget.child,
+    return AutoLockProvider(
+      resetIdleTimeout: _resetIdleTimeout,
+      child: InteractionDetector(
+        onInteraction: _resetIdleTimeout,
+        child: widget.child,
+      ),
     );
   }
 
@@ -64,19 +69,9 @@ class _AutoLockObserverState extends State<AutoLockObserver> with WidgetsBinding
   }
 
   void _setupSemanticActionListener() {
-    PlatformDispatcher.instance.onSemanticsActionEvent = (SemanticsActionEvent action) {
+    _semanticsSubscription = context.read<SemanticsEventService>().actionEventStream.listen((action) {
       if (_semanticsTimerResetEnabled && action.type != SemanticsAction.didLoseAccessibilityFocus) _resetIdleTimeout();
-      try {
-        final Object? arguments = action.arguments;
-        // Decode the [SemanticsActionEvent] before passing it on. Needed to avoid ex. & support scroll like events.
-        final SemanticsActionEvent decodedAction = arguments is ByteData
-            ? action.copyWith(arguments: const StandardMessageCodec().decodeMessage(arguments))
-            : action;
-        WidgetsBinding.instance.performSemanticsAction(decodedAction);
-      } catch (ex) {
-        Fimber.e('Failed to propagate semantics action: $action', ex: ex);
-      }
-    };
+    });
   }
 
   void _setupNoInteractionListener() {
@@ -144,6 +139,7 @@ class _AutoLockObserverState extends State<AutoLockObserver> with WidgetsBinding
 
   @override
   void dispose() {
+    _semanticsSubscription?.cancel();
     _inactiveWarningSubscription?.cancel();
     _inactiveSubscription?.cancel();
     WidgetsBinding.instance.removeObserver(this);
