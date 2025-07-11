@@ -6,6 +6,7 @@ use std::str::FromStr;
 use chrono::DateTime;
 use chrono::Utc;
 use futures::try_join;
+use itertools::Itertools;
 use sea_orm::sea_query::Alias;
 use sea_orm::sea_query::BinOper;
 use sea_orm::sea_query::Expr;
@@ -273,16 +274,13 @@ impl<K> DatabaseStorage<K> {
     }
 
     fn combine_events(
-        issuance_events: Vec<(issuance_event::Model, Option<issuance_event_attestation::Model>)>,
+        issuance_events: Vec<(issuance_event::Model, issuance_event_attestation::Model)>,
         disclosure_events: Vec<(disclosure_event::Model, Option<disclosure_event_attestation::Model>)>,
     ) -> StorageResult<Vec<WalletEvent>> {
         // Collect into list of WalletEvent enum
         let mut wallet_events: Vec<WalletEvent> = Vec::new();
 
         for (event, event_attestation) in issuance_events {
-            // Unwrap is safe here because of inner join
-            let event_attestation = event_attestation.unwrap();
-
             let attestation =
                 serde_json::from_value::<AttestationPresentation>(event_attestation.attestation_presentation)?;
 
@@ -685,6 +683,13 @@ where
 
         let (issuance_events, disclosure_events) = try_join!(fetch_issuance_events, fetch_disclosure_events)?;
 
+        let issuance_events = issuance_events
+            .into_iter()
+            .map(|(event, att)|
+                // Unwrap is safe here because of the inner join above
+                (event, att.unwrap()))
+            .collect_vec();
+
         Self::combine_events(issuance_events, disclosure_events)
     }
 
@@ -707,6 +712,13 @@ where
 
         let (issuance_events, disclosure_events) = try_join!(fetch_issuance_events, fetch_disclosure_events)?;
 
+        let issuance_events = issuance_events
+            .into_iter()
+            .map(|(event, att)|
+                // Unwrap is safe here because of the inner join above
+                (event, att.unwrap()))
+            .collect_vec();
+
         Self::combine_events(issuance_events, disclosure_events)
     }
 
@@ -728,6 +740,13 @@ where
             .all(connection);
 
         let (issuance_events, disclosure_events) = try_join!(fetch_issuance_events, fetch_disclosure_events)?;
+
+        let issuance_events = issuance_events
+            .into_iter()
+            .map(|(event, att)|
+                // Unwrap is safe here because of the inner join above
+                (event, att.unwrap()))
+            .collect_vec();
 
         Self::combine_events(issuance_events, disclosure_events)
     }
