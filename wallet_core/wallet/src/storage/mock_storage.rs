@@ -205,6 +205,18 @@ impl Storage for StorageStub {
         Ok(attestations)
     }
 
+    async fn fetch_unique_attestations_by_type<'a>(
+        &'a self,
+        attestation_types: &HashSet<&'a str>,
+    ) -> StorageResult<Vec<StoredAttestationCopy>> {
+        Ok(self
+            .fetch_unique_attestations()
+            .await?
+            .into_iter()
+            .filter(|attestation| attestation_types.contains(attestation.attestation_id.to_string().as_str()))
+            .collect_vec())
+    }
+
     async fn has_any_attestations_with_type(&self, attestation_type: &str) -> StorageResult<bool> {
         Ok(!self
             .fetch_unique_attestations()

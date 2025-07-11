@@ -599,6 +599,18 @@ where
         self.query_unique_attestations(identity).await
     }
 
+    async fn fetch_unique_attestations_by_type<'a>(
+        &'a self,
+        attestation_types: &HashSet<&'a str>,
+    ) -> StorageResult<Vec<StoredAttestationCopy>> {
+        self.query_unique_attestations(move |select| {
+            let attestation_types_iter = attestation_types.iter().copied();
+
+            select.filter(attestation::Column::AttestationType.is_in(attestation_types_iter))
+        })
+        .await
+    }
+
     async fn fetch_unique_mdocs_by_doctypes<'a>(
         &'a self,
         doc_types: &HashSet<&'a str>,
@@ -1181,6 +1193,20 @@ pub(crate) mod tests {
 
         // One matching attestation should be returned
         assert_eq!(attestations.len(), 1);
+
+        // Fetching by attestation type should return the same attestation
+        let attestations = storage
+            .fetch_unique_attestations_by_type(&HashSet::from([attestation_type.as_str()]))
+            .await
+            .unwrap();
+        assert_eq!(attestations.len(), 1);
+
+        // Fetching by a different attestation type should return an empty list
+        let attestations = storage
+            .fetch_unique_attestations_by_type(&HashSet::from(["does_not_exist"]))
+            .await
+            .unwrap();
+        assert!(attestations.is_empty());
     }
 
     #[tokio::test]

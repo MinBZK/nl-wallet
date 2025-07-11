@@ -1,3 +1,4 @@
+mod credential_payload;
 mod data;
 mod database;
 mod database_storage;
@@ -163,6 +164,11 @@ pub trait Storage {
     async fn has_any_attestations_with_type(&self, attestation_type: &str) -> StorageResult<bool>;
 
     async fn fetch_unique_attestations(&self) -> StorageResult<Vec<StoredAttestationCopy>>;
+
+    async fn fetch_unique_attestations_by_type<'a>(
+        &'a self,
+        attestation_types: &HashSet<&'a str>,
+    ) -> StorageResult<Vec<StoredAttestationCopy>>;
 
     async fn fetch_unique_mdocs_by_doctypes<'a>(
         &'a self,

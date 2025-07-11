@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use chrono::DateTime;
+use chrono::Utc;
 use indexmap::IndexMap;
 use jsonwebtoken::Algorithm;
 use p256::ecdsa::VerifyingKey;
@@ -30,6 +32,7 @@ use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataError;
 use sd_jwt_vc_metadata::TypeMetadataValidationError;
 use utils::date_time_seconds::DateTimeSeconds;
+use utils::generator::Generator;
 
 use crate::attributes::Attributes;
 use crate::attributes::AttributesError;
@@ -108,6 +111,35 @@ pub struct PreviewableCredentialPayload {
 
     #[serde(flatten)]
     pub attributes: Attributes,
+}
+
+impl PreviewableCredentialPayload {
+    pub fn matches_existing(
+        &self,
+        existing: &PreviewableCredentialPayload,
+        time: &impl Generator<DateTime<Utc>>,
+    ) -> bool {
+        if self.attestation_type == existing.attestation_type
+            && self.issuer == existing.issuer
+            && self.attestation_qualification == existing.attestation_qualification
+            && self.attributes == existing.attributes
+        {
+            if self.not_before == existing.not_before {
+                return true;
+            }
+
+            if let Some(self_nbf) = self.not_before {
+                let is_nbf_in_future = self_nbf.as_ref() > &time.generate();
+                if is_nbf_in_future && self.not_before != existing.not_before {
+                    return false;
+                }
+
+                return true;
+            }
+        }
+
+        false
+    }
 }
 
 pub trait IntoCredentialPayload {
@@ -385,12 +417,14 @@ mod test {
     use chrono::TimeZone;
     use chrono::Utc;
     use futures::FutureExt;
+    use indexmap::IndexMap;
     use jsonwebtoken::Algorithm;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
     use serde_json::json;
     use ssri::Integrity;
 
+    use attestation_types::qualification::AttestationQualification;
     use crypto::server_keys::generate::Ca;
     use crypto::EcdsaKey;
     use jwt::jwk::jwk_from_p256;
@@ -402,8 +436,10 @@ mod test {
     use sd_jwt_vc_metadata::JsonSchemaPropertyType;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::UncheckedTypeMetadata;
+    use utils::generator::mock::MockTimeGenerator;
 
     use crate::attributes::test::complex_attributes;
+    use crate::attributes::Attribute;
     use crate::attributes::AttributeValue;
     use crate::auth::issuer_auth::IssuerRegistration;
     use crate::credential_payload::IntoCredentialPayload;
@@ -629,5 +665,60 @@ mod test {
             Duration::days(36500),
         )
         .unwrap();
+    }
+
+    #[test]
+    fn test_matches_existing() {
+        let epoch_generator = MockTimeGenerator::epoch();
+
+        let mut new = PreviewableCredentialPayload {
+            attestation_type: String::from("att_type_1"),
+            issuer: "https://issuer.example.com".parse().unwrap(),
+            expires: Some(Utc.with_ymd_and_hms(2000, 1, 1, 0, 1, 1).unwrap().into()),
+            not_before: Some(Utc.with_ymd_and_hms(1969, 1, 1, 0, 1, 1).unwrap().into()),
+            attestation_qualification: AttestationQualification::PubEAA,
+            attributes: IndexMap::from([(
+                String::from("attr1"),
+                Attribute::Single(AttributeValue::Text(String::from("val1"))),
+            )])
+            .into(),
+        };
+
+        let mut existing = new.clone();
+        assert!(new.matches_existing(&existing, &epoch_generator));
+
+        existing.attestation_type = String::from("att_type_2");
+        assert!(!new.matches_existing(&existing, &epoch_generator));
+
+        let mut existing = new.clone();
+        existing.issuer = "https://other_issuer.example.com".parse().unwrap();
+        assert!(!new.matches_existing(&existing, &epoch_generator));
+
+        let mut existing = new.clone();
+        existing.attestation_qualification = AttestationQualification::QEAA;
+        assert!(!new.matches_existing(&existing, &epoch_generator));
+
+        let mut existing = new.clone();
+        existing.attributes = IndexMap::from([(
+            String::from("attr1"),
+            Attribute::Single(AttributeValue::Text(String::from("val2"))),
+        )])
+        .into();
+        assert!(!new.matches_existing(&existing, &epoch_generator));
+
+        let mut existing = new.clone();
+        existing.not_before = Some(Utc.with_ymd_and_hms(1970, 1, 1, 0, 1, 1).unwrap().into());
+        assert!(
+            new.matches_existing(&existing, &epoch_generator),
+            "the payloads should match if the nbf of the new payload is in the past and the rest is the same"
+        );
+
+        let existing = new.clone();
+        new.not_before = Some(Utc.with_ymd_and_hms(1980, 1, 1, 0, 1, 1).unwrap().into());
+        assert!(
+            !new.matches_existing(&existing, &epoch_generator),
+            "the payloads should not match if the nbf of the new payload is in the future and different from the \
+             existing payload"
+        );
     }
 }
