@@ -3,7 +3,6 @@ mod attestation;
 mod config;
 mod digid;
 mod instruction;
-mod issuance;
 mod lock;
 mod pin;
 mod repository;
@@ -94,11 +93,11 @@ pub mod wallet_deps {
 #[cfg(feature = "mock")]
 pub mod mock {
     pub use crate::account_provider::MockAccountProviderClient;
+    pub use crate::attestation::BSN_ATTR_NAME;
+    pub use crate::attestation::PID_DOCTYPE;
     pub use crate::config::LocalConfigurationRepository;
     pub use crate::digid::MockDigidClient;
     pub use crate::digid::MockDigidSession;
-    pub use crate::issuance::BSN_ATTR_NAME;
-    pub use crate::issuance::PID_DOCTYPE;
     pub use crate::storage::StorageStub;
     pub use crate::update_policy::MockUpdatePolicyRepository;
 }
