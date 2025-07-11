@@ -2,7 +2,7 @@ use attestation_types::request::NormalizedCredentialRequests;
 use dcql::CredentialQueryFormat;
 use itertools::Itertools;
 
-use mdoc::holder::disclosure::credential_request_to_mdoc_paths;
+use mdoc::holder::disclosure::credential_requests_to_mdoc_paths;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DisclosureType {
@@ -26,7 +26,7 @@ impl DisclosureType {
                     == CredentialQueryFormat::MsoMdoc {
                         doctype_value: login_attestation_type.to_string(),
                     })
-                .then(|| credential_request_to_mdoc_paths(credential_requests, login_attestation_type))
+                .then(|| credential_requests_to_mdoc_paths(credential_requests, login_attestation_type))
             })
             .and_then(|paths| paths.into_iter().exactly_one().ok())
             .and_then(|path| (path == login_attribute_path).then_some(DisclosureType::Login))

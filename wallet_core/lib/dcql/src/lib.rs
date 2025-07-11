@@ -181,6 +181,22 @@ pub enum ClaimPath {
     SelectByIndex(usize),
 }
 
+impl ClaimPath {
+    pub fn try_key_path(&self) -> Option<&str> {
+        match self {
+            ClaimPath::SelectByKey(key) => Some(key.as_str()),
+            _ => None,
+        }
+    }
+
+    pub fn try_into_key_path(self) -> Option<String> {
+        match self {
+            ClaimPath::SelectByKey(key) => Some(key),
+            _ => None,
+        }
+    }
+}
+
 impl Display for ClaimPath {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {

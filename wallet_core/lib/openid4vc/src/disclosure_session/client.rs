@@ -3,13 +3,10 @@ use reqwest::ClientBuilder;
 use tracing::info;
 use tracing::warn;
 
-use attestation_data::auth::reader_auth::ReaderRegistration;
-use attestation_data::x509::CertificateType;
 use attestation_types::request::NormalizedCredentialRequests;
 use crypto::utils as crypto_utils;
 use crypto::x509::BorrowingCertificate;
 use http_utils::urls::BaseUrl;
-use mdoc::verifier::ItemsRequests;
 
 use crate::errors::AuthorizationErrorCode;
 use crate::errors::ErrorResponse;
@@ -27,7 +24,6 @@ use super::message_client::VpMessageClient;
 use super::message_client::VpMessageClientError;
 use super::session::VpDisclosureSession;
 use super::uri_source::DisclosureUriSource;
-use super::AttestationAttributePaths;
 use super::DisclosureClient;
 use super::VerifierCertificate;
 
@@ -85,7 +81,7 @@ impl<H> VpDisclosureClient<H> {
         auth_request_client_id: &str,
         credential_requests: NormalizedCredentialRequests,
         certificate: BorrowingCertificate,
-    ) -> Result<(AttestationAttributePaths, ReaderRegistration), VpVerifierError> {
+    ) -> Result<(NormalizedCredentialRequests, VerifierCertificate), VpVerifierError> {
         // The `client_id` in the Authorization Request, which has been authenticated, has to equal
         // the `client_id` that the RP sent in the Request URI object at the start of the session.
         if auth_request_client_id != request_uri_client_id {
@@ -106,13 +102,7 @@ impl<H> VpDisclosureClient<H> {
             .verify_requested_attributes(&credential_requests.as_ref().as_slice())
             .map_err(VpVerifierError::RequestedAttributesValidation)?;
 
-        // Convert the request into a generic representation. Note that the unwrap is safe here, as the absence of
-        // attestation types and paths in the request is already checked by `VpAuthorizationRequest::validate()`.
-        let requested_attribute_paths = items_requests
-            .try_into_attribute_paths()
-            .expect("disclosure requested attestation attribute paths should not be empty");
-
-        Ok((requested_attribute_paths, verifier_certificate))
+        Ok((credential_requests, verifier_certificate))
     }
 }
 
@@ -200,12 +190,12 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
-    use std::collections::HashSet;
     use std::sync::Arc;
     use std::sync::LazyLock;
 
     use assert_matches::assert_matches;
+    use attestation_types::request::AttributeRequest;
+    use attestation_types::request::NormalizedCredentialRequest;
     use futures::FutureExt;
     use http::StatusCode;
     use itertools::Itertools;
@@ -216,7 +206,6 @@ mod tests {
 
     use attestation_data::auth::reader_auth::ReaderRegistration;
     use attestation_data::auth::reader_auth::ValidationError;
-    use attestation_types::attribute_paths::AttestationAttributePaths;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::mock_remote::MockRemoteKeyFactory;
     use crypto::server_keys::generate::Ca;
@@ -354,19 +343,19 @@ mod tests {
         // Check all of the data the new `VpDisclosureSession` exposes.
         assert_eq!(disclosure_session.session_type(), session_type);
 
-        let expected_attribute_paths = AttestationAttributePaths::try_new(HashMap::from([(
-            PID.to_string(),
-            HashSet::from([
-                vec![PID.to_string(), "bsn".to_string()].try_into().unwrap(),
-                vec![PID.to_string(), "given_name".to_string()].try_into().unwrap(),
-                vec![PID.to_string(), "family_name".to_string()].try_into().unwrap(),
-            ]),
-        )]))
+        let expected_credential_requests = vec![NormalizedCredentialRequest {
+            format: dcql::CredentialQueryFormat::MsoMdoc {
+                doctype_value: PID.to_string(),
+            },
+            claims: vec![
+                AttributeRequest::new_with_keys(vec![PID.to_string(), "bsn".to_string()], false),
+                AttributeRequest::new_with_keys(vec![PID.to_string(), "given_name".to_string()], false),
+                AttributeRequest::new_with_keys(vec![PID.to_string(), "family_name".to_string()], false),
+            ],
+        }]
+        .try_into()
         .unwrap();
-        assert_eq!(
-            *disclosure_session.requested_attribute_paths(),
-            expected_attribute_paths
-        );
+        assert_eq!(*disclosure_session.credential_requests(), expected_credential_requests,);
 
         assert_eq!(
             disclosure_session.verifier_certificate().certificate(),

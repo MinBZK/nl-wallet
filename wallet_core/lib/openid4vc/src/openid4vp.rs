@@ -850,17 +850,14 @@ mod tests {
     use crypto::server_keys::KeyPair;
     use dcql::CredentialQueryFormat;
     use jwt::Jwt;
-    use mdoc::examples::example_items_requests;
     use mdoc::examples::Example;
     use mdoc::holder::Mdoc;
     use mdoc::test::data::addr_street;
-    use mdoc::test::data::pid_example_items_requests;
     use mdoc::test::data::pid_full_name;
     use mdoc::utils::serialization::cbor_serialize;
     use mdoc::utils::serialization::CborBase64;
     use mdoc::utils::serialization::CborSeq;
     use mdoc::utils::serialization::TaggedBytes;
-    use mdoc::verifier::ItemsRequests;
     use mdoc::DeviceAuthenticationKeyed;
     use mdoc::DeviceResponse;
     use mdoc::DeviceResponseVersion;
@@ -900,10 +897,10 @@ mod tests {
     }
 
     fn setup() -> (TrustAnchor<'static>, KeyPair, EcKeyPair, VpAuthorizationRequest) {
-        setup_with_items_requests(&NormalizedCredentialRequests::example())
+        setup_with_credential_requests(&NormalizedCredentialRequests::example())
     }
 
-    fn setup_with_items_requests(
+    fn setup_with_credential_requests(
         credential_requests: &NormalizedCredentialRequests,
     ) -> (TrustAnchor<'static>, KeyPair, EcKeyPair, VpAuthorizationRequest) {
         let ca = Ca::generate("myca", Default::default()).unwrap();
@@ -1235,7 +1232,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_verify_authorization_response() {
-        let (_, _, _, auth_request) = setup_with_items_requests(&pid_example_items_requests().into());
+        let (_, _, _, auth_request) = setup_with_credential_requests(&NormalizedCredentialRequests::new_pid_example());
         let mdoc_nonce = "mdoc_nonce";
 
         let time_generator = MockTimeGenerator::default();
@@ -1288,7 +1285,7 @@ mod tests {
         let stored_documents = pid_full_name() + addr_street();
         let items_request = stored_documents.clone().into();
 
-        let (_, _, _, auth_request) = setup_with_items_requests(&items_request);
+        let (_, _, _, auth_request) = setup_with_credential_requests(&items_request);
 
         let auth_request = IsoVpAuthorizationRequest::try_from(auth_request).unwrap();
 

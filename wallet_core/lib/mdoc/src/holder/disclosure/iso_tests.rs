@@ -13,7 +13,7 @@ use crate::examples::EXAMPLE_ATTR_NAME;
 use crate::examples::EXAMPLE_ATTR_VALUE;
 use crate::examples::EXAMPLE_DOC_TYPE;
 use crate::examples::EXAMPLE_NAMESPACE;
-use crate::holder::disclosure::credential_request_to_mdoc_paths;
+use crate::holder::disclosure::credential_requests_to_mdoc_paths;
 use crate::holder::Mdoc;
 use crate::iso::device_retrieval::DeviceRequest;
 use crate::iso::device_retrieval::ItemsRequest;
@@ -45,7 +45,7 @@ fn create_example_device_response(
 
     mdoc.issuer_signed = mdoc
         .issuer_signed
-        .into_attribute_subset(&credential_request_to_mdoc_paths(
+        .into_attribute_subset(&credential_requests_to_mdoc_paths(
             &credential_requests,
             &mdoc.mso.doc_type,
         ));
