@@ -19,10 +19,10 @@ abstract class WalletMockData {
   static Locale testLocale = const Locale('en');
 
   static WalletCard card = WalletCard(
-    docType: 'com.example.docType',
+    attestationType: 'com.example.docType',
     issuer: WalletMockData.organization,
     attributes: [textDataAttribute],
-    id: 'id',
+    attestationId: 'id',
     metadata: [
       CardDisplayMetadata(
         language: testLocale,
@@ -38,7 +38,7 @@ abstract class WalletMockData {
   );
 
   static WalletCard simpleRenderingCard = WalletCard(
-    docType: 'com.example.docType',
+    attestationType: 'com.example.docType',
     issuer: WalletMockData.organization,
     attributes: [textDataAttribute],
     metadata: [
@@ -50,14 +50,14 @@ abstract class WalletMockData {
         rendering: const SimpleCardRendering(textColor: Colors.white, bgColor: Colors.deepPurple),
       ),
     ],
-    id: 'id',
+    attestationId: 'id',
   );
 
   static WalletCard altCard = WalletCard(
     issuer: WalletMockData.organization,
-    docType: 'com.example.alt.docType',
+    attestationType: 'com.example.alt.docType',
     attributes: [textDataAttribute, textDataAttribute, textDataAttribute],
-    id: 'id2',
+    attestationId: 'id2',
     metadata: [
       CardDisplayMetadata(
         language: testLocale,
@@ -99,7 +99,7 @@ abstract class WalletMockData {
     svgId: 'text_svgId',
     label: 'Label',
     value: const StringValue('Value'),
-    sourceCardDocType: 'com.example.docType',
+    sourceCardId: 'com.example.docType',
   );
 
   static const Policy policy = Policy(

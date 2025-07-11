@@ -22,7 +22,7 @@ class CardDetailScreenArgument extends Equatable {
     );
     return CardDetailScreenArgument(
       card: card,
-      cardId: card.id ?? '',
+      cardId: card.attestationId ?? '',
       cardTitle: card.title,
     );
   }

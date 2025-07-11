@@ -13,11 +13,11 @@ part 'wallet_card.g.dart';
 
 @JsonSerializable(explicitToJson: true)
 class WalletCard extends Equatable {
-  /// ID of the card, null when the card is not persisted in the database
-  final String? id;
+  /// ID of the attestation, null when the card is not persisted in the database
+  final String? attestationId;
 
   /// Type of document
-  final String docType;
+  final String attestationType;
 
   /// Organization that issued this card
   final Organization issuer;
@@ -32,7 +32,7 @@ class WalletCard extends Equatable {
   final CardConfig config;
 
   /// Indicates whether the card is persisted in the database.
-  bool get isPersisted => id != null;
+  bool get isPersisted => attestationId != null;
 
   LocalizedText get title => metadata.name ?? ''.untranslated;
 
@@ -41,8 +41,8 @@ class WalletCard extends Equatable {
   LocalizedText get summary => CardSummaryMapper().map(this);
 
   const WalletCard({
-    required this.id,
-    required this.docType,
+    required this.attestationId,
+    required this.attestationType,
     required this.issuer,
     required this.attributes,
     this.metadata = const [],
@@ -55,8 +55,8 @@ class WalletCard extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        docType,
+        attestationId,
+        attestationType,
         issuer,
         attributes,
         metadata,
@@ -64,16 +64,16 @@ class WalletCard extends Equatable {
       ];
 
   WalletCard copyWith({
-    String? Function()? id,
-    String? docType,
+    String? Function()? attestationId,
+    String? attestationType,
     Organization? issuer,
     List<DataAttribute>? attributes,
     List<CardDisplayMetadata>? metadata,
     CardConfig? config,
   }) {
     return WalletCard(
-      id: id != null ? id() : this.id,
-      docType: docType ?? this.docType,
+      attestationId: attestationId != null ? attestationId() : this.attestationId,
+      attestationType: attestationType ?? this.attestationType,
       issuer: issuer ?? this.issuer,
       attributes: attributes ?? this.attributes,
       metadata: metadata ?? this.metadata,

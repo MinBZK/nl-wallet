@@ -256,7 +256,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
     assert(Environment.mockRepositories, 'This flow is only intended for mock builds');
     final bloc = context.bloc;
     final walletCore = context.read<TypedWalletCore>();
-    final Mapper<CardAttributeWithDocType, DataAttribute> attributeMapper = context.read();
+    final Mapper<CardAttributeWithCardId, DataAttribute> attributeMapper = context.read();
 
     // Perform the mock DigiD flow
     final loginSucceeded = (await MockDigidScreen.mockLogin(context)) ?? false;
@@ -265,8 +265,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
       final attestations = await walletCore.continuePidIssuance(MockConstants.pidIssuanceRedirectUri);
       final mockPidCardAttributes = attestations
           .map(
-            (attestation) =>
-                attestation.attributes.map((e) => CardAttributeWithDocType(attestation.attestationType, e)),
+            (attestation) => attestation.attributes.map((e) => CardAttributeWithCardId(attestation.attestationType, e)),
           )
           .flattened
           .toList();

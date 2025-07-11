@@ -12,8 +12,8 @@ use tests_integration::default;
 use tests_integration::fake_digid::fake_digid_auth;
 use wallet::errors::IssuanceError;
 use wallet::mock::LocalConfigurationRepository;
-use wallet::mock::MockStorage;
 use wallet::mock::MockUpdatePolicyRepository;
+use wallet::mock::StorageStub;
 use wallet::wallet_deps::default_wallet_config;
 use wallet::wallet_deps::HttpAccountProviderClient;
 use wallet::wallet_deps::HttpDigidSession;
@@ -118,7 +118,7 @@ async fn test_gba_pid_success(
 type TestWallet = Wallet<
     LocalConfigurationRepository,
     MockUpdatePolicyRepository,
-    MockStorage,
+    StorageStub,
     MockHardwareAttestedKeyHolder,
     HttpAccountProviderClient,
     HttpDigidSession,
@@ -134,7 +134,7 @@ async fn gba_pid(bsn: &str) -> Result<(), TestError> {
     let mut wallet: TestWallet = Wallet::init_registration(
         config_repository,
         MockUpdatePolicyRepository::default(),
-        MockStorage::default(),
+        StorageStub::default(),
         MockHardwareAttestedKeyHolder::new_apple_mock(default::attestation_environment(), default::app_identifier()),
         HttpAccountProviderClient::default(),
         VpDisclosureClient::new_http(default_reqwest_client_builder()).unwrap(),

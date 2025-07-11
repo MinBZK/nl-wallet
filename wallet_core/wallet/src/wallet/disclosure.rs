@@ -2,6 +2,7 @@ use std::collections::HashSet;
 use std::iter;
 use std::sync::Arc;
 
+use chrono::Utc;
 use derive_more::Constructor;
 use itertools::Either;
 use itertools::Itertools;
@@ -19,6 +20,7 @@ use attestation_data::auth::Organization;
 use attestation_data::disclosure_type::DisclosureType;
 use crypto::x509::BorrowingCertificateExtension;
 use crypto::x509::CertificateError;
+use entity::disclosure_event::EventStatus;
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
 use http_utils::tls::pinning::TlsPinningConfig;
@@ -52,7 +54,6 @@ use crate::repository::UpdateableRepository;
 use crate::storage::DataDisclosureStatus;
 use crate::storage::Storage;
 use crate::storage::StorageError;
-use crate::storage::WalletEvent;
 use crate::wallet::Session;
 
 use super::uri::identify_uri;
@@ -460,7 +461,7 @@ where
                             .into_attribute_subset(&mdoc_paths);
 
                         let attestation_presentation = AttestationPresentation::create_for_disclosure(
-                            stored_mdoc.mdoc_id,
+                            stored_mdoc.mdoc_id.to_string(),
                             stored_mdoc.normalized_metadata.clone(),
                             issuer_registration.organization,
                             issuer_signed.into_entries_by_namespace(),
@@ -506,8 +507,8 @@ where
         // This unwrap is guaranteed to succeed as:
         // 1. The `RequestedAttributePaths` type inherently guarantees that it contains at least one attestation type.
         // 2. We check above if there is at least one candidate for every attestation type.
-        // 3. We then check above that none of the attestation types have multiple candidates, so the
-        //    length of disclosure_attestations is the same as attestations_by_type, which is at least 1.
+        // 3. We then check above that none of the attestation types have multiple candidates, so the length of
+        //    disclosure_attestations is the same as attestations_by_type, which is at least 1.
         let disclosure_attestations = VecNonEmpty::try_from(disclosure_attestations).unwrap();
 
         info!("All attributes in the disclosure request are present in the database, return a proposal to the user");
@@ -552,17 +553,24 @@ where
                 .unwrap()
         });
 
-        let event = WalletEvent::new_disclosure_cancel(
-            attestations,
-            session.protocol_state.verifier_certificate().clone(),
-            session.disclosure_type,
-        );
+        let (reader_certificate, _) = session
+            .protocol_state
+            .verifier_certificate()
+            .clone()
+            .into_certificate_and_registration();
 
         let return_url = session.protocol_state.terminate().await?.map(BaseUrl::into_inner);
 
-        self.store_history_event(event)
-            .await
-            .map_err(DisclosureError::EventStorage)?;
+        self.store_disclosure_event(
+            Utc::now(),
+            attestations,
+            reader_certificate,
+            session.disclosure_type,
+            EventStatus::Cancelled,
+            DataDisclosureStatus::NotDisclosed,
+        )
+        .await
+        .map_err(DisclosureError::EventStorage)?;
 
         Ok(return_url)
     }
@@ -719,20 +727,31 @@ where
             )
             .await;
 
-        if let Err(error) = result {
-            let event = WalletEvent::new_disclosure_error(
-                attestations
-                    .iter()
-                    .map(|attestation| attestation.presentation.clone())
-                    .collect_vec()
-                    .try_into()
-                    .unwrap(),
-                session.protocol_state.verifier_certificate().clone(),
-                session.disclosure_type,
-                DataDisclosureStatus::NotDisclosed,
-            );
+        let (reader_certificate, reader_registration) = session
+            .protocol_state
+            .verifier_certificate()
+            .clone()
+            .into_certificate_and_registration();
 
-            if let Err(e) = self.store_history_event(event).await {
+        if let Err(error) = result {
+            if let Err(e) = self
+                .store_disclosure_event(
+                    Utc::now(),
+                    Some(
+                        attestations
+                            .iter()
+                            .map(|attestation| attestation.presentation.clone())
+                            .collect_vec()
+                            .try_into()
+                            .unwrap(),
+                    ),
+                    reader_certificate,
+                    session.disclosure_type,
+                    EventStatus::Error,
+                    DataDisclosureStatus::NotDisclosed,
+                )
+                .await
+            {
                 error!("Could not store error in history: {e}");
             }
 
@@ -747,7 +766,6 @@ where
             .try_into()
             // Safe, as the source of the iterator is `VecNonEmpty`.
             .unwrap();
-        let verifier_certificate = session.protocol_state.verifier_certificate().clone();
 
         // Take ownership of the disclosure session and actually perform disclosure, casting any
         // `InstructionError` that occurs during signing to `RemoteEcdsaKeyError::Instruction`.
@@ -759,8 +777,8 @@ where
         let return_url = match result {
             Ok(return_url) => return_url.map(BaseUrl::into_inner),
             Err((protocol_state, error)) => {
-                let organization = verifier_certificate.registration().organization.clone();
-                let disclosure_error = DisclosureError::with_organization(error.error, organization);
+                let disclosure_error =
+                    DisclosureError::with_organization(error.error, reader_registration.organization);
 
                 // IncorrectPin is a functional error and does not need to be recorded.
                 if !matches!(
@@ -772,24 +790,27 @@ where
                     } else {
                         DataDisclosureStatus::NotDisclosed
                     };
-                    let event = WalletEvent::new_disclosure_error(
-                        // These unwraps are safe, as session.attestations was checked to be
-                        // present above and the source of the iterator is also `VecNonEmpty`.
-                        session
-                            .attestations
-                            .as_ref()
-                            .unwrap()
-                            .iter()
-                            .map(|attestation| attestation.presentation.clone())
-                            .collect_vec()
-                            .try_into()
-                            .unwrap(),
-                        verifier_certificate,
-                        session.disclosure_type,
-                        data_status,
-                    );
-
-                    if let Err(e) = self.store_history_event(event).await {
+                    if let Err(e) = self
+                        .store_disclosure_event(
+                            Utc::now(),
+                            Some(
+                                session
+                                    .attestations
+                                    .as_ref()
+                                    .unwrap()
+                                    .iter()
+                                    .map(|attestation| attestation.presentation.clone())
+                                    .collect_vec()
+                                    .try_into()
+                                    .unwrap(),
+                            ),
+                            reader_certificate,
+                            session.disclosure_type,
+                            EventStatus::Error,
+                            data_status,
+                        )
+                        .await
+                    {
                         error!("Could not store error in history: {e}");
                     }
                 }
@@ -827,22 +848,25 @@ where
         // Disclosure is now successful. Any errors that occur after this point will result in the `Wallet` not having
         // an active disclosure session anymore. Note that these unwraps are safe, as session.attestations was checked
         // to be present above and the source of the iterator is also `VecNonEmpty`.
-        let event = WalletEvent::new_disclosure_success(
-            session
-                .attestations
-                .unwrap()
-                .into_iter()
-                .map(|attestation| attestation.presentation)
-                .collect_vec()
-                .try_into()
-                .unwrap(),
-            verifier_certificate,
+        self.store_disclosure_event(
+            Utc::now(),
+            Some(
+                session
+                    .attestations
+                    .unwrap()
+                    .into_iter()
+                    .map(|attestation| attestation.presentation)
+                    .collect_vec()
+                    .try_into()
+                    .unwrap(),
+            ),
+            reader_certificate,
             session.disclosure_type,
-        );
-
-        self.store_history_event(event)
-            .await
-            .map_err(DisclosureError::EventStorage)?;
+            EventStatus::Success,
+            DataDisclosureStatus::Disclosed,
+        )
+        .await
+        .map_err(DisclosureError::EventStorage)?;
 
         Ok(return_url)
     }
@@ -1015,7 +1039,7 @@ mod tests {
             .unwrap();
         let attributes = mdoc.clone().issuer_signed.into_entries_by_namespace();
         let presentation = AttestationPresentation::create_for_disclosure(
-            Uuid::new_v4(),
+            String::from("id123"),
             metadata,
             issuer_registration.organization,
             attributes,

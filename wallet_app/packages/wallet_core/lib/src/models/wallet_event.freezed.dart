@@ -15,6 +15,7 @@ T _$identity<T>(T value) => value;
 
 /// @nodoc
 mixin _$WalletEvent {
+  String get id;
   String get dateTime;
 
   /// Create a copy of WalletEvent
@@ -29,15 +30,16 @@ mixin _$WalletEvent {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is WalletEvent &&
+            (identical(other.id, id) || other.id == id) &&
             (identical(other.dateTime, dateTime) || other.dateTime == dateTime));
   }
 
   @override
-  int get hashCode => Object.hash(runtimeType, dateTime);
+  int get hashCode => Object.hash(runtimeType, id, dateTime);
 
   @override
   String toString() {
-    return 'WalletEvent(dateTime: $dateTime)';
+    return 'WalletEvent(id: $id, dateTime: $dateTime)';
   }
 }
 
@@ -45,7 +47,7 @@ mixin _$WalletEvent {
 abstract mixin class $WalletEventCopyWith<$Res> {
   factory $WalletEventCopyWith(WalletEvent value, $Res Function(WalletEvent) _then) = _$WalletEventCopyWithImpl;
   @useResult
-  $Res call({String dateTime});
+  $Res call({String id, String dateTime});
 }
 
 /// @nodoc
@@ -60,9 +62,14 @@ class _$WalletEventCopyWithImpl<$Res> implements $WalletEventCopyWith<$Res> {
   @pragma('vm:prefer-inline')
   @override
   $Res call({
+    Object? id = null,
     Object? dateTime = null,
   }) {
     return _then(_self.copyWith(
+      id: null == id
+          ? _self.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
       dateTime: null == dateTime
           ? _self.dateTime
           : dateTime // ignore: cast_nullable_to_non_nullable
@@ -75,7 +82,8 @@ class _$WalletEventCopyWithImpl<$Res> implements $WalletEventCopyWith<$Res> {
 
 class WalletEvent_Disclosure extends WalletEvent {
   const WalletEvent_Disclosure(
-      {required this.dateTime,
+      {required this.id,
+      required this.dateTime,
       required this.relyingParty,
       required final List<LocalizedString> purpose,
       final List<AttestationPresentation>? sharedAttestations,
@@ -86,6 +94,8 @@ class WalletEvent_Disclosure extends WalletEvent {
         _sharedAttestations = sharedAttestations,
         super._();
 
+  @override
+  final String id;
   @override
   final String dateTime;
   final Organization relyingParty;
@@ -122,6 +132,7 @@ class WalletEvent_Disclosure extends WalletEvent {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is WalletEvent_Disclosure &&
+            (identical(other.id, id) || other.id == id) &&
             (identical(other.dateTime, dateTime) || other.dateTime == dateTime) &&
             (identical(other.relyingParty, relyingParty) || other.relyingParty == relyingParty) &&
             const DeepCollectionEquality().equals(other._purpose, _purpose) &&
@@ -132,12 +143,20 @@ class WalletEvent_Disclosure extends WalletEvent {
   }
 
   @override
-  int get hashCode => Object.hash(runtimeType, dateTime, relyingParty, const DeepCollectionEquality().hash(_purpose),
-      const DeepCollectionEquality().hash(_sharedAttestations), requestPolicy, status, typ);
+  int get hashCode => Object.hash(
+      runtimeType,
+      id,
+      dateTime,
+      relyingParty,
+      const DeepCollectionEquality().hash(_purpose),
+      const DeepCollectionEquality().hash(_sharedAttestations),
+      requestPolicy,
+      status,
+      typ);
 
   @override
   String toString() {
-    return 'WalletEvent.disclosure(dateTime: $dateTime, relyingParty: $relyingParty, purpose: $purpose, sharedAttestations: $sharedAttestations, requestPolicy: $requestPolicy, status: $status, typ: $typ)';
+    return 'WalletEvent.disclosure(id: $id, dateTime: $dateTime, relyingParty: $relyingParty, purpose: $purpose, sharedAttestations: $sharedAttestations, requestPolicy: $requestPolicy, status: $status, typ: $typ)';
   }
 }
 
@@ -148,7 +167,8 @@ abstract mixin class $WalletEvent_DisclosureCopyWith<$Res> implements $WalletEve
   @override
   @useResult
   $Res call(
-      {String dateTime,
+      {String id,
+      String dateTime,
       Organization relyingParty,
       List<LocalizedString> purpose,
       List<AttestationPresentation>? sharedAttestations,
@@ -169,6 +189,7 @@ class _$WalletEvent_DisclosureCopyWithImpl<$Res> implements $WalletEvent_Disclos
   @override
   @pragma('vm:prefer-inline')
   $Res call({
+    Object? id = null,
     Object? dateTime = null,
     Object? relyingParty = null,
     Object? purpose = null,
@@ -178,6 +199,10 @@ class _$WalletEvent_DisclosureCopyWithImpl<$Res> implements $WalletEvent_Disclos
     Object? typ = null,
   }) {
     return _then(WalletEvent_Disclosure(
+      id: null == id
+          ? _self.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
       dateTime: null == dateTime
           ? _self.dateTime
           : dateTime // ignore: cast_nullable_to_non_nullable
@@ -213,8 +238,12 @@ class _$WalletEvent_DisclosureCopyWithImpl<$Res> implements $WalletEvent_Disclos
 /// @nodoc
 
 class WalletEvent_Issuance extends WalletEvent {
-  const WalletEvent_Issuance({required this.dateTime, required this.attestation, required this.renewed}) : super._();
+  const WalletEvent_Issuance(
+      {required this.id, required this.dateTime, required this.attestation, required this.renewed})
+      : super._();
 
+  @override
+  final String id;
   @override
   final String dateTime;
   final AttestationPresentation attestation;
@@ -233,17 +262,18 @@ class WalletEvent_Issuance extends WalletEvent {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is WalletEvent_Issuance &&
+            (identical(other.id, id) || other.id == id) &&
             (identical(other.dateTime, dateTime) || other.dateTime == dateTime) &&
             (identical(other.attestation, attestation) || other.attestation == attestation) &&
             (identical(other.renewed, renewed) || other.renewed == renewed));
   }
 
   @override
-  int get hashCode => Object.hash(runtimeType, dateTime, attestation, renewed);
+  int get hashCode => Object.hash(runtimeType, id, dateTime, attestation, renewed);
 
   @override
   String toString() {
-    return 'WalletEvent.issuance(dateTime: $dateTime, attestation: $attestation, renewed: $renewed)';
+    return 'WalletEvent.issuance(id: $id, dateTime: $dateTime, attestation: $attestation, renewed: $renewed)';
   }
 }
 
@@ -253,7 +283,7 @@ abstract mixin class $WalletEvent_IssuanceCopyWith<$Res> implements $WalletEvent
       _$WalletEvent_IssuanceCopyWithImpl;
   @override
   @useResult
-  $Res call({String dateTime, AttestationPresentation attestation, bool renewed});
+  $Res call({String id, String dateTime, AttestationPresentation attestation, bool renewed});
 }
 
 /// @nodoc
@@ -268,11 +298,16 @@ class _$WalletEvent_IssuanceCopyWithImpl<$Res> implements $WalletEvent_IssuanceC
   @override
   @pragma('vm:prefer-inline')
   $Res call({
+    Object? id = null,
     Object? dateTime = null,
     Object? attestation = null,
     Object? renewed = null,
   }) {
     return _then(WalletEvent_Issuance(
+      id: null == id
+          ? _self.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
       dateTime: null == dateTime
           ? _self.dateTime
           : dateTime // ignore: cast_nullable_to_non_nullable

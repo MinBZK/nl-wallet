@@ -1,8 +1,8 @@
 import '../../../domain/model/card/card_config.dart';
 import '../mapper.dart';
 
-/// Mapper that creates a [CardConfig] based on the provided docType
-class CardConfigMapper extends Mapper<String /* docType */, CardConfig> {
+/// Mapper that creates a [CardConfig] based on the provided attestationId
+class CardConfigMapper extends Mapper<String /* attestationId */, CardConfig> {
   CardConfigMapper();
 
   @override

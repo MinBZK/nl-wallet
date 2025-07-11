@@ -18,7 +18,7 @@ use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
 use tests_integration::default;
 use tests_integration::fake_digid::fake_digid_auth;
 use tests_integration::logging::init_logging;
-use wallet::mock::MockStorage;
+use wallet::mock::StorageStub;
 use wallet::wallet_deps::default_config_server_config;
 use wallet::wallet_deps::default_wallet_config;
 use wallet::wallet_deps::HttpAccountProviderClient;
@@ -39,7 +39,7 @@ fn init() {
 type PerformanceTestWallet = Wallet<
     HttpConfigurationRepository<TlsPinningConfig>,
     UpdatePolicyRepository,
-    MockStorage,
+    StorageStub,
     MockHardwareAttestedKeyHolder,
     HttpAccountProviderClient,
     HttpDigidSession,
@@ -80,7 +80,7 @@ async fn main() {
     let mut wallet: PerformanceTestWallet = Wallet::init_registration(
         config_repository,
         update_policy_repository,
-        MockStorage::default(),
+        StorageStub::default(),
         MockHardwareAttestedKeyHolder::new_apple_mock(default::attestation_environment(), default::app_identifier()),
         HttpAccountProviderClient::default(),
         VpDisclosureClient::new_http(default_reqwest_client_builder()).unwrap(),

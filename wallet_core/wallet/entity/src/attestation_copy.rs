@@ -1,6 +1,8 @@
 use sea_orm::entity::prelude::*;
 use uuid::Uuid;
 
+use super::attestation;
+
 #[derive(Clone, Debug, Eq, PartialEq, DeriveEntityModel)]
 #[sea_orm(table_name = "attestation_copy")]
 pub struct Model {
@@ -21,17 +23,22 @@ pub enum AttestationFormat {
     Mdoc,
 }
 
-#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+#[derive(Copy, Clone, Debug, EnumIter)]
 pub enum Relation {
-    #[sea_orm(
-        belongs_to = "super::attestation::Entity",
-        from = "Column::AttestationId",
-        to = "super::attestation::Column::Id"
-    )]
     AttestationType,
 }
 
-impl Related<super::attestation::Entity> for Entity {
+impl RelationTrait for Relation {
+    fn def(&self) -> RelationDef {
+        match self {
+            Self::AttestationType => Entity::belongs_to(attestation::Entity)
+                .from(Column::AttestationId)
+                .to(attestation::Column::Id)
+                .into(),
+        }
+    }
+}
+impl Related<attestation::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::AttestationType.def()
     }

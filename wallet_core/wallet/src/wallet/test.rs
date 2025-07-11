@@ -53,9 +53,9 @@ use crate::issuance::PID_DOCTYPE;
 use crate::pin::key as pin_key;
 use crate::storage::KeyedData;
 use crate::storage::KeyedDataResult;
-use crate::storage::MockStorage;
 use crate::storage::RegistrationData;
 use crate::storage::StorageState;
+use crate::storage::StorageStub;
 use crate::update_policy::MockUpdatePolicyRepository;
 use crate::wallet::attestations::AttestationsError;
 use crate::wte::tests::MockWteIssuanceClient;
@@ -90,7 +90,7 @@ pub enum WalletDeviceVendor {
 pub type WalletWithMocks = Wallet<
     UpdatingConfigurationRepository<LocalConfigurationRepository>,
     MockUpdatePolicyRepository,
-    MockStorage,
+    StorageStub,
     MockHardwareAttestedKeyHolder,
     MockAccountProviderClient,
     MockDigidSession,
@@ -272,7 +272,7 @@ impl WalletWithMocks {
         Wallet::new(
             config_repository,
             MockUpdatePolicyRepository::default(),
-            MockStorage::default(),
+            StorageStub::default(),
             generate_key_holder(vendor),
             MockAccountProviderClient::default(),
             MockDisclosureClient::default(),
@@ -344,13 +344,13 @@ impl WalletWithMocks {
 
     /// Creates all mocks and calls `Wallet::init_registration()`.
     pub async fn new_init_registration(vendor: WalletDeviceVendor) -> Result<Self, WalletInitError> {
-        Self::new_init_registration_with_mocks(MockStorage::default(), generate_key_holder(vendor)).await
+        Self::new_init_registration_with_mocks(StorageStub::default(), generate_key_holder(vendor)).await
     }
 
     /// Creates mocks and calls `Wallet::init_registration()`, except for
     /// the `MockStorage` and `MockHardwareAttestedKeyHolder` instances.
     pub async fn new_init_registration_with_mocks(
-        storage: MockStorage,
+        storage: StorageStub,
         key_holder: MockHardwareAttestedKeyHolder,
     ) -> Result<Self, WalletInitError> {
         let config_server_config = default_config_server_config();
@@ -368,7 +368,7 @@ impl WalletWithMocks {
         .await
     }
 
-    pub fn mut_storage(&mut self) -> &mut MockStorage {
+    pub fn mut_storage(&mut self) -> &mut StorageStub {
         Arc::get_mut(&mut self.storage).unwrap().get_mut()
     }
 }
