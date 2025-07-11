@@ -1,9 +1,8 @@
 use std::collections::HashSet;
 
-use dcql::CredentialQueryFormat;
-
 use attestation_types::request::AttributeRequest;
 use attestation_types::request::NormalizedCredentialRequests;
+use dcql::CredentialQueryFormat;
 
 use crate::identifiers::AttributeIdentifier;
 use crate::identifiers::AttributeIdentifierError;
@@ -61,10 +60,7 @@ mod tests {
 
     use rstest::rstest;
 
-    use attestation_types::request::AttributeRequest;
-    use attestation_types::request::NormalizedCredentialRequest;
     use attestation_types::request::NormalizedCredentialRequests;
-    use dcql::CredentialQueryFormat;
 
     use crate::holder::disclosure::credential_requests_to_mdoc_paths;
 
@@ -82,35 +78,27 @@ mod tests {
     }
 
     fn credential_requests() -> NormalizedCredentialRequests {
-        vec![
-            NormalizedCredentialRequest {
-                format: CredentialQueryFormat::MsoMdoc {
-                    doctype_value: "att_1".to_string(),
-                },
-                claims: vec![
-                    AttributeRequest::new_with_keys(vec!["path1".to_string()], false),
-                    AttributeRequest::new_with_keys(vec!["path2".to_string(), "path3".to_string()], false),
-                    AttributeRequest::new_with_keys(
-                        vec!["path4".to_string(), "path5".to_string(), "path6".to_string()],
-                        false,
-                    ),
-                    AttributeRequest::new_with_keys(vec!["path7".to_string(), "path8".to_string()], false),
+        NormalizedCredentialRequests::mock_from_vecs(vec![
+            (
+                "att_1".to_string(),
+                vec![
+                    vec!["path1".to_string()].try_into().unwrap(),
+                    vec!["path2".to_string(), "path3".to_string()].try_into().unwrap(),
+                    vec!["path4".to_string(), "path5".to_string(), "path6".to_string()]
+                        .try_into()
+                        .unwrap(),
+                    vec!["path7".to_string(), "path8".to_string()].try_into().unwrap(),
                 ],
-            },
-            NormalizedCredentialRequest {
-                format: CredentialQueryFormat::MsoMdoc {
-                    doctype_value: "att_2".to_string(),
-                },
-                claims: vec![
-                    AttributeRequest::new_with_keys(
-                        vec!["path1".to_string(), "path2".to_string(), "path3".to_string()],
-                        false,
-                    ),
-                    AttributeRequest::new_with_keys(vec!["path4".to_string()], false),
+            ),
+            (
+                "att_2".to_string(),
+                vec![
+                    vec!["path1".to_string(), "path2".to_string(), "path3".to_string()]
+                        .try_into()
+                        .unwrap(),
+                    vec!["path4".to_string()].try_into().unwrap(),
                 ],
-            },
-        ]
-        .try_into()
-        .unwrap()
+            ),
+        ])
     }
 }

@@ -194,8 +194,6 @@ mod tests {
     use std::sync::LazyLock;
 
     use assert_matches::assert_matches;
-    use attestation_types::request::AttributeRequest;
-    use attestation_types::request::NormalizedCredentialRequest;
     use futures::FutureExt;
     use http::StatusCode;
     use itertools::Itertools;
@@ -206,6 +204,7 @@ mod tests {
 
     use attestation_data::auth::reader_auth::ReaderRegistration;
     use attestation_data::auth::reader_auth::ValidationError;
+    use attestation_types::request::NormalizedCredentialRequests;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::mock_remote::MockRemoteKeyFactory;
     use crypto::server_keys::generate::Ca;
@@ -343,19 +342,15 @@ mod tests {
         // Check all of the data the new `VpDisclosureSession` exposes.
         assert_eq!(disclosure_session.session_type(), session_type);
 
-        let expected_credential_requests = vec![NormalizedCredentialRequest {
-            format: dcql::CredentialQueryFormat::MsoMdoc {
-                doctype_value: PID.to_string(),
-            },
-            claims: vec![
-                AttributeRequest::new_with_keys(vec![PID.to_string(), "bsn".to_string()], false),
-                AttributeRequest::new_with_keys(vec![PID.to_string(), "given_name".to_string()], false),
-                AttributeRequest::new_with_keys(vec![PID.to_string(), "family_name".to_string()], false),
+        let expected_credential_requests = NormalizedCredentialRequests::mock_from_vecs(vec![(
+            PID.to_string(),
+            vec![
+                vec![PID.to_string(), "bsn".to_string()].try_into().unwrap(),
+                vec![PID.to_string(), "given_name".to_string()].try_into().unwrap(),
+                vec![PID.to_string(), "family_name".to_string()].try_into().unwrap(),
             ],
-        }]
-        .try_into()
-        .unwrap();
-        assert_eq!(*disclosure_session.credential_requests(), expected_credential_requests,);
+        )]);
+        assert_eq!(*disclosure_session.credential_requests(), expected_credential_requests);
 
         assert_eq!(
             disclosure_session.verifier_certificate().certificate(),

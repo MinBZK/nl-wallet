@@ -109,9 +109,6 @@ mod test {
 
 #[cfg(any(test, feature = "mock"))]
 mod mock {
-    use std::collections::HashMap;
-    use std::collections::HashSet;
-
     use dcql::ClaimPath;
     use dcql::CredentialQueryFormat;
     use utils::vec_at_least::VecNonEmpty;
@@ -147,15 +144,6 @@ mod mock {
                     vec![EXAMPLE_NAMESPACE.to_string(), EXAMPLE_ATTR_NAME.to_string()],
                     true,
                 )],
-            }
-        }
-
-        pub fn new_empty() -> Self {
-            Self {
-                format: CredentialQueryFormat::MsoMdoc {
-                    doctype_value: EXAMPLE_DOC_TYPE.to_string(),
-                },
-                claims: vec![],
             }
         }
 
@@ -205,7 +193,7 @@ mod mock {
             vec![NormalizedCredentialRequest::new_pid_example()].try_into().unwrap()
         }
 
-        pub fn mock_from_hashmap(input: HashMap<String, HashSet<VecNonEmpty<String>>>) -> Self {
+        pub fn mock_from_vecs(input: Vec<(String, Vec<VecNonEmpty<String>>)>) -> Self {
             let requests = input
                 .into_iter()
                 .map(|(doc_type, paths)| {
