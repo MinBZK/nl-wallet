@@ -177,7 +177,7 @@ async fn create_session(
         .client
         .start(
             options.usecase.clone(),
-            usecase.items_requests.clone().into(),
+            usecase.request.clone().try_into().map_err(anyhow::Error::new)?,
             return_url_template,
         )
         .await?;
