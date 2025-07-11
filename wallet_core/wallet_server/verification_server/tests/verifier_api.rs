@@ -12,7 +12,6 @@ use assert_matches::assert_matches;
 use chrono::DateTime;
 use chrono::Utc;
 use http::StatusCode;
-use indexmap::IndexMap;
 use itertools::Itertools;
 use mdoc::holder::Mdoc;
 use parking_lot::RwLock;
@@ -20,6 +19,7 @@ use reqwest::Client;
 use reqwest::Response;
 use rstest::rstest;
 use rustls_pki_types::TrustAnchor;
+use sd_jwt_vc_metadata::ClaimPath;
 use tokio::net::TcpListener;
 use tokio::time;
 use url::Url;
@@ -30,9 +30,12 @@ use attestation_data::credential_payload::mock::pid_example_payload;
 use attestation_data::disclosure::DisclosedAttestations;
 use attestation_data::x509::generate::mock::generate_issuer_mock;
 use attestation_data::x509::generate::mock::generate_reader_mock;
+use attestation_types::request::AttributeRequest;
+use attestation_types::request::NormalizedCredentialRequest;
 use crypto::mock_remote::MockRemoteEcdsaKey;
 use crypto::mock_remote::MockRemoteKeyFactory;
 use crypto::server_keys::generate::Ca;
+use dcql::CredentialQueryFormat;
 use hsm::service::Pkcs11Hsm;
 use http_utils::error::HttpJsonErrorBody;
 use http_utils::reqwest::default_reqwest_client_builder;
@@ -40,7 +43,6 @@ use http_utils::urls::BaseUrl;
 use mdoc::examples::EXAMPLE_ATTR_NAME;
 use mdoc::examples::EXAMPLE_DOC_TYPE;
 use mdoc::examples::EXAMPLE_NAMESPACE;
-use mdoc::ItemsRequest;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::DisclosureSession;
 use openid4vc::disclosure_session::DisclosureUriSource;
@@ -78,19 +80,20 @@ static EXAMPLE_START_DISCLOSURE_REQUEST: LazyLock<StartDisclosureRequest> = Lazy
     usecase: USECASE_NAME.to_string(),
     return_url_template: Some("https://return.url/{session_token}".parse().unwrap()),
     credential_requests: Some(
-        vec![ItemsRequest {
-            doc_type: EXAMPLE_DOC_TYPE.to_string(),
-            request_info: None,
-            name_spaces: IndexMap::from([(
-                EXAMPLE_NAMESPACE.to_string(),
-                IndexMap::from_iter(
-                    [(EXAMPLE_ATTR_NAME.to_string(), true)]
-                        .into_iter()
-                        .map(|(name, intent_to_retain)| (name.to_string(), intent_to_retain)),
-                ),
-            )]),
-        }
-        .into()]
+        vec![NormalizedCredentialRequest {
+            format: CredentialQueryFormat::MsoMdoc {
+                doctype_value: EXAMPLE_DOC_TYPE.to_string(),
+            },
+            claims: vec![AttributeRequest {
+                path: vec![
+                    ClaimPath::SelectByKey(EXAMPLE_NAMESPACE.to_string()),
+                    ClaimPath::SelectByKey(EXAMPLE_ATTR_NAME.to_string()),
+                ]
+                .try_into()
+                .unwrap(),
+                intent_to_retain: true,
+            }],
+        }]
         .try_into()
         .unwrap(),
     ),
@@ -101,19 +104,20 @@ static EXAMPLE_PID_START_DISCLOSURE_REQUEST: LazyLock<StartDisclosureRequest> =
         usecase: USECASE_NAME.to_string(),
         return_url_template: Some("https://return.url/{session_token}".parse().unwrap()),
         credential_requests: Some(
-            vec![ItemsRequest {
-                doc_type: PID_ATTESTATION_TYPE.to_string(),
-                request_info: None,
-                name_spaces: IndexMap::from([(
-                    PID_ATTESTATION_TYPE.to_string(),
-                    IndexMap::from_iter(
-                        [(EXAMPLE_ATTR_NAME.to_string(), true)]
-                            .into_iter()
-                            .map(|(name, intent_to_retain)| (name.to_string(), intent_to_retain)),
-                    ),
-                )]),
-            }
-            .into()]
+            vec![NormalizedCredentialRequest {
+                format: CredentialQueryFormat::MsoMdoc {
+                    doctype_value: PID_ATTESTATION_TYPE.to_string(),
+                },
+                claims: vec![AttributeRequest {
+                    path: vec![
+                        ClaimPath::SelectByKey(PID_ATTESTATION_TYPE.to_string()),
+                        ClaimPath::SelectByKey(EXAMPLE_ATTR_NAME.to_string()),
+                    ]
+                    .try_into()
+                    .unwrap(),
+                    intent_to_retain: true,
+                }],
+            }]
             .try_into()
             .unwrap(),
         ),
