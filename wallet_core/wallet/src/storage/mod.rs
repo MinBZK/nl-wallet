@@ -146,6 +146,13 @@ pub trait Storage {
         timestamp: DateTime<Utc>,
         credentials: Vec<(CredentialWithMetadata, AttestationPresentation)>,
     ) -> StorageResult<()>;
+
+    async fn update_credentials(
+        &mut self,
+        timestamp: DateTime<Utc>,
+        credentials: Vec<(CredentialWithMetadata, AttestationPresentation)>,
+    ) -> StorageResult<()>;
+
     async fn increment_attestation_copies_usage_count(&mut self, attestation_copy_ids: Vec<Uuid>) -> StorageResult<()>;
 
     async fn has_any_attestations_with_type(&self, attestation_type: &str) -> StorageResult<bool>;
