@@ -102,7 +102,7 @@ impl ItemsRequests {
                     .map_or_else(
                         // If the entire document is missing then all requested attributes are missing
                         || Ok::<_, Error>(items_request.mdoc_attribute_identifiers()?.into_iter().collect_vec()),
-                        |doc| items_request.match_against_issuer_signed(doc),
+                        |doc| Ok(items_request.match_against_issuer_signed(doc)?),
                     )
             })
             .flatten()

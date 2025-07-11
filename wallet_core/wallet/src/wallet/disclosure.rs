@@ -24,7 +24,7 @@ use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
 use http_utils::tls::pinning::TlsPinningConfig;
 use http_utils::urls::BaseUrl;
-use mdoc::holder::disclosure::credential_request_to_mdoc_paths;
+use mdoc::holder::disclosure::credential_requests_to_mdoc_paths;
 use mdoc::holder::Mdoc;
 use mdoc::utils::cose::CoseError;
 use openid4vc::disclosure_session::DisclosureClient;
@@ -352,7 +352,7 @@ where
             .into_iter()
             .filter_map(|(attestation_type, stored_mdoc_iter)| {
                 // Get the requested paths for this attestation type.
-                let mdoc_paths = credential_request_to_mdoc_paths(session.credential_requests(), attestation_type);
+                let mdoc_paths = credential_requests_to_mdoc_paths(session.credential_requests(), attestation_type);
 
                 // If none of the requested paths map to a 2-tuple, there can be no mdoc candidates.
                 if mdoc_paths.is_empty() {
@@ -444,7 +444,7 @@ where
         let attestations_by_type = stored_mdocs_by_type
             .into_iter()
             .map(|stored_mdocs| {
-                let mdoc_paths = credential_request_to_mdoc_paths(
+                let mdoc_paths = credential_requests_to_mdoc_paths(
                     session.credential_requests(),
                     &stored_mdocs.first().mdoc.mso.doc_type,
                 );
@@ -860,12 +860,12 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
     use std::collections::HashSet;
     use std::str::FromStr;
     use std::sync::LazyLock;
 
     use assert_matches::assert_matches;
+    use attestation_types::request::AttributeRequest;
     use itertools::Itertools;
     use mockall::predicate::always;
     use mockall::predicate::eq;
@@ -880,7 +880,7 @@ mod tests {
     use attestation_data::auth::Organization;
     use attestation_data::disclosure_type::DisclosureType;
     use attestation_data::x509::generate::mock::generate_reader_mock;
-    use attestation_types::attribute_paths::AttestationAttributePaths;
+    use attestation_types::request;
     use crypto::server_keys::generate::Ca;
     use crypto::x509::BorrowingCertificateExtension;
     use http_utils::urls;
@@ -943,10 +943,13 @@ mod tests {
         verifier_certificate: VerifierCertificate,
         requested_pid_path: VecNonEmpty<String>,
     ) -> MockDisclosureSession {
-        let requested_attribute_paths = AttestationAttributePaths::try_new(HashMap::from([(
-            PID_DOCTYPE.to_string(),
-            HashSet::from([requested_pid_path]),
-        )]))
+        let credential_requests = vec![request::NormalizedCredentialRequest {
+            format: dcql::CredentialQueryFormat::MsoMdoc {
+                doctype_value: PID_DOCTYPE.to_string(),
+            },
+            claims: vec![AttributeRequest::new_with_keys(requested_pid_path.into_inner(), false)],
+        }]
+        .try_into()
         .unwrap();
 
         let mut disclosure_session = MockDisclosureSession::new();
@@ -957,8 +960,8 @@ mod tests {
             .expect_verifier_certificate()
             .return_const(verifier_certificate);
         disclosure_session
-            .expect_requested_attribute_paths()
-            .return_const(requested_attribute_paths);
+            .expect_credential_requests()
+            .return_const(credential_requests);
 
         disclosure_session
     }

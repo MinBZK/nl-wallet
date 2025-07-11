@@ -1,13 +1,13 @@
 use derive_more::Display;
 use indexmap::IndexSet;
 
-use error_category::ErrorCategory;
-use sd_jwt_vc_metadata::ClaimPath;
-use utils::vec_at_least::VecNonEmpty;
 use attestation_types::request::AttributeRequest;
 use attestation_types::request::MdocCredentialRequestError;
 use attestation_types::request::NormalizedCredentialRequest;
 use dcql::CredentialQueryFormat;
+use error_category::ErrorCategory;
+use sd_jwt_vc_metadata::ClaimPath;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::DataElementIdentifier;
 use crate::Document;
@@ -61,6 +61,19 @@ pub trait AttributeIdentifierHolder {
             .filter(|attribute| !other_attributes.contains(attribute))
             .collect())
     }
+
+    /// Returns requested attributes, if any, that are not present in the `issuer_signed`.
+    fn match_against_issuer_signed(
+        &self,
+        document: &Document,
+    ) -> Result<Vec<AttributeIdentifier>, AttributeIdentifierError> {
+        let document_identifiers = document.issuer_signed_attribute_identifiers();
+        Ok(self
+            .mdoc_attribute_identifiers()?
+            .into_iter()
+            .filter(|attribute| !document_identifiers.contains(attribute))
+            .collect())
+    }
 }
 
 impl<T> AttributeIdentifierHolder for &[T]
@@ -73,18 +86,20 @@ where
             acc.append(&mut identifiers);
             Ok(acc)
         })
+    }
 }
 
 impl AttributeIdentifierHolder for NormalizedCredentialRequest {
-    fn attribute_identifiers(&self) -> IndexSet<AttributeIdentifier> {
+    fn mdoc_attribute_identifiers(&self) -> Result<IndexSet<AttributeIdentifier>, AttributeIdentifierError> {
         let CredentialQueryFormat::MsoMdoc { doctype_value } = &self.format else {
             // This function should never be called for an sd-jwt request, as this is mdoc specific
             panic!("sd-jwt not supported");
         };
-        self.claims
+        Ok(self
+            .claims
             .iter()
             .map(|claim| AttributeIdentifier::from_attribute_request(doctype_value, claim).unwrap())
-            .collect()
+            .collect())
     }
 }
 
@@ -286,7 +301,7 @@ mod tests {
         use super::AttributeIdentifierHolder;
 
         let difference = a.difference(&b);
-        assert_eq!(difference, expected.attribute_identifiers())
+        assert_eq!(difference.unwrap(), expected.mdoc_attribute_identifiers().unwrap())
     }
 
     #[rstest]
@@ -307,7 +322,7 @@ mod tests {
         #[case] input: NormalizedCredentialRequest,
         #[case] expected: MockAttributeIdentifierHolder,
     ) {
-        let actual = input.attribute_identifiers();
-        assert_eq!(actual, expected.attribute_identifiers());
+        let actual = input.mdoc_attribute_identifiers();
+        assert_eq!(actual.unwrap(), expected.mdoc_attribute_identifiers().unwrap());
     }
 }

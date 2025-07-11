@@ -102,6 +102,7 @@ wiremock.workspace = true
 
 apple_app_attest = { path = "../lib/apple_app_attest", features = ["mock"] }
 attestation_data = { path = "../lib/attestation_data", features = ["example_credential_payloads", "generate", "mock"] }
+attestation_types = { path = "../lib/attestation_types", features = ["mock"] }
 crypto = { path = "../lib/crypto", features = ["mock_secure_keys", "mock_remote_key"] }
 http_utils = { path = "../lib/http_utils", features = ["insecure_http_client"] }
 jwt = { path = "../lib/jwt", features = ["test"] }
