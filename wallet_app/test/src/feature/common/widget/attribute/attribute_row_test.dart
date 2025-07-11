@@ -39,7 +39,7 @@ void main() {
               attribute: DataAttribute.untranslated(
                 label: 'Label',
                 value: const StringValue('Value'),
-                sourceCardDocType: '',
+                sourceCardId: '',
                 key: 'mock_other',
               ),
             ),
@@ -57,7 +57,7 @@ void main() {
               attribute: DataAttribute.untranslated(
                 label: 'Label',
                 value: NullValue(),
-                sourceCardDocType: '',
+                sourceCardId: '',
                 key: 'mock_other',
               ),
             ),
@@ -78,7 +78,7 @@ void main() {
             key: 'K',
             label: 'L',
             value: const StringValue('V'),
-            sourceCardDocType: '',
+            sourceCardId: '',
           ),
         ),
       );
@@ -97,7 +97,7 @@ void main() {
             key: 'K',
             label: 'Null',
             value: NullValue(),
-            sourceCardDocType: '',
+            sourceCardId: '',
           ),
         ),
       );

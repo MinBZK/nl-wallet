@@ -9,10 +9,10 @@ class GetWalletCardUseCaseImpl extends GetWalletCardUseCase {
   GetWalletCardUseCaseImpl(this._walletCardRepository);
 
   @override
-  Future<Result<WalletCard>> invoke(String docType) async {
+  Future<Result<WalletCard>> invoke(String attestationId) async {
     return tryCatch(
-      () async => _walletCardRepository.read(docType),
-      'Failed to load card with id: $docType',
+      () async => _walletCardRepository.read(attestationId),
+      'Failed to load card with id: $attestationId',
     );
   }
 }

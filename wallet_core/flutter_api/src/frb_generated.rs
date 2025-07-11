@@ -409,7 +409,7 @@ fn wire__crate__api__full__get_history_impl(port_: flutter_rust_bridge::for_gene
 }
 fn wire__crate__api__full__get_history_for_card_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
-    attestation_type: impl CstDecode<String>,
+    attestation_id: impl CstDecode<String>,
 ) {
     FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
@@ -418,11 +418,11 @@ fn wire__crate__api__full__get_history_for_card_impl(
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
-            let api_attestation_type = attestation_type.cst_decode();
+            let api_attestation_id = attestation_id.cst_decode();
             move |context| async move {
                 transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || async move {
-                        let output_ok = crate::api::full::get_history_for_card(api_attestation_type).await?;
+                        let output_ok = crate::api::full::get_history_for_card(api_attestation_id).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -1759,6 +1759,7 @@ impl SseDecode for crate::models::wallet_event::WalletEvent {
         let mut tag_ = <i32>::sse_decode(deserializer);
         match tag_ {
             0 => {
+                let mut var_id = <String>::sse_decode(deserializer);
                 let mut var_dateTime = <String>::sse_decode(deserializer);
                 let mut var_relyingParty = <crate::models::disclosure::Organization>::sse_decode(deserializer);
                 let mut var_purpose = <Vec<crate::models::localize::LocalizedString>>::sse_decode(deserializer);
@@ -1768,6 +1769,7 @@ impl SseDecode for crate::models::wallet_event::WalletEvent {
                 let mut var_status = <crate::models::wallet_event::DisclosureStatus>::sse_decode(deserializer);
                 let mut var_typ = <crate::models::disclosure::DisclosureType>::sse_decode(deserializer);
                 return crate::models::wallet_event::WalletEvent::Disclosure {
+                    id: var_id,
                     date_time: var_dateTime,
                     relying_party: var_relyingParty,
                     purpose: var_purpose,
@@ -1778,11 +1780,13 @@ impl SseDecode for crate::models::wallet_event::WalletEvent {
                 };
             }
             1 => {
+                let mut var_id = <String>::sse_decode(deserializer);
                 let mut var_dateTime = <String>::sse_decode(deserializer);
                 let mut var_attestation =
                     <crate::models::attestation::AttestationPresentation>::sse_decode(deserializer);
                 let mut var_renewed = <bool>::sse_decode(deserializer);
                 return crate::models::wallet_event::WalletEvent::Issuance {
+                    id: var_id,
                     date_time: var_dateTime,
                     attestation: var_attestation,
                     renewed: var_renewed,
@@ -2410,6 +2414,7 @@ impl flutter_rust_bridge::IntoDart for crate::models::wallet_event::WalletEvent 
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         match self {
             crate::models::wallet_event::WalletEvent::Disclosure {
+                id,
                 date_time,
                 relying_party,
                 purpose,
@@ -2419,6 +2424,7 @@ impl flutter_rust_bridge::IntoDart for crate::models::wallet_event::WalletEvent 
                 typ,
             } => [
                 0.into_dart(),
+                id.into_into_dart().into_dart(),
                 date_time.into_into_dart().into_dart(),
                 relying_party.into_into_dart().into_dart(),
                 purpose.into_into_dart().into_dart(),
@@ -2429,11 +2435,13 @@ impl flutter_rust_bridge::IntoDart for crate::models::wallet_event::WalletEvent 
             ]
             .into_dart(),
             crate::models::wallet_event::WalletEvent::Issuance {
+                id,
                 date_time,
                 attestation,
                 renewed,
             } => [
                 1.into_dart(),
+                id.into_into_dart().into_dart(),
                 date_time.into_into_dart().into_dart(),
                 attestation.into_into_dart().into_dart(),
                 renewed.into_into_dart().into_dart(),
@@ -3175,6 +3183,7 @@ impl SseEncode for crate::models::wallet_event::WalletEvent {
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         match self {
             crate::models::wallet_event::WalletEvent::Disclosure {
+                id,
                 date_time,
                 relying_party,
                 purpose,
@@ -3184,6 +3193,7 @@ impl SseEncode for crate::models::wallet_event::WalletEvent {
                 typ,
             } => {
                 <i32>::sse_encode(0, serializer);
+                <String>::sse_encode(id, serializer);
                 <String>::sse_encode(date_time, serializer);
                 <crate::models::disclosure::Organization>::sse_encode(relying_party, serializer);
                 <Vec<crate::models::localize::LocalizedString>>::sse_encode(purpose, serializer);
@@ -3196,11 +3206,13 @@ impl SseEncode for crate::models::wallet_event::WalletEvent {
                 <crate::models::disclosure::DisclosureType>::sse_encode(typ, serializer);
             }
             crate::models::wallet_event::WalletEvent::Issuance {
+                id,
                 date_time,
                 attestation,
                 renewed,
             } => {
                 <i32>::sse_encode(1, serializer);
+                <String>::sse_encode(id, serializer);
                 <String>::sse_encode(date_time, serializer);
                 <crate::models::attestation::AttestationPresentation>::sse_encode(attestation, serializer);
                 <bool>::sse_encode(renewed, serializer);
@@ -3796,6 +3808,7 @@ mod io {
                 0 => {
                     let ans = unsafe { self.kind.Disclosure };
                     crate::models::wallet_event::WalletEvent::Disclosure {
+                        id: ans.id.cst_decode(),
                         date_time: ans.date_time.cst_decode(),
                         relying_party: ans.relying_party.cst_decode(),
                         purpose: ans.purpose.cst_decode(),
@@ -3808,6 +3821,7 @@ mod io {
                 1 => {
                     let ans = unsafe { self.kind.Issuance };
                     crate::models::wallet_event::WalletEvent::Issuance {
+                        id: ans.id.cst_decode(),
                         date_time: ans.date_time.cst_decode(),
                         attestation: ans.attestation.cst_decode(),
                         renewed: ans.renewed.cst_decode(),
@@ -4255,9 +4269,9 @@ mod io {
     #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__get_history_for_card(
         port_: i64,
-        attestation_type: *mut wire_cst_list_prim_u_8_strict,
+        attestation_id: *mut wire_cst_list_prim_u_8_strict,
     ) {
-        wire__crate__api__full__get_history_for_card_impl(port_, attestation_type)
+        wire__crate__api__full__get_history_for_card_impl(port_, attestation_id)
     }
 
     #[unsafe(no_mangle)]
@@ -4894,6 +4908,7 @@ mod io {
     #[repr(C)]
     #[derive(Clone, Copy)]
     pub struct wire_cst_WalletEvent_Disclosure {
+        id: *mut wire_cst_list_prim_u_8_strict,
         date_time: *mut wire_cst_list_prim_u_8_strict,
         relying_party: *mut wire_cst_organization,
         purpose: *mut wire_cst_list_localized_string,
@@ -4905,6 +4920,7 @@ mod io {
     #[repr(C)]
     #[derive(Clone, Copy)]
     pub struct wire_cst_WalletEvent_Issuance {
+        id: *mut wire_cst_list_prim_u_8_strict,
         date_time: *mut wire_cst_list_prim_u_8_strict,
         attestation: *mut wire_cst_attestation_presentation,
         renewed: bool,

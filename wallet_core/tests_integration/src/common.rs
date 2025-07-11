@@ -62,7 +62,7 @@ use update_policy_server::settings::Settings as UpsSettings;
 use utils::vec_at_least::VecNonEmpty;
 use verification_server::settings::VerifierSettings;
 use wallet::mock::MockDigidSession;
-use wallet::mock::MockStorage;
+use wallet::mock::StorageStub;
 use wallet::wallet_deps::default_config_server_config;
 use wallet::wallet_deps::default_wallet_config;
 use wallet::wallet_deps::HttpAccountProviderClient;
@@ -128,7 +128,7 @@ pub enum WalletDeviceVendor {
 pub type WalletWithMocks = Wallet<
     HttpConfigurationRepository<TlsPinningConfig>,
     UpdatePolicyRepository,
-    MockStorage,
+    StorageStub,
     MockHardwareAttestedKeyHolder,
     HttpAccountProviderClient,
     MockDigidSession,
@@ -288,7 +288,7 @@ pub async fn setup_wallet_and_env(
     let wallet = Wallet::init_registration(
         config_repository,
         update_policy_repository,
-        MockStorage::default(),
+        StorageStub::default(),
         key_holder,
         HttpAccountProviderClient::default(),
         VpDisclosureClient::new_http(default_reqwest_client_builder()).unwrap(),

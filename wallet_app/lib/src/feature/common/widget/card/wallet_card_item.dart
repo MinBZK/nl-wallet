@@ -99,7 +99,7 @@ class WalletCardItem extends StatefulWidget {
       textColor: card.getL10nTextColor(context),
       onPressed: onPressed,
       ctaAnimation: ctaAnimation,
-      holograph: MockCardHolograph(docType: card.docType),
+      holograph: MockCardHolograph(attestationType: card.attestationType),
       scaleText: scaleText,
       showText: showText,
       key: key,
@@ -370,7 +370,7 @@ extension WalletCardRenderExtension on WalletCard {
   }
 
   Widget getL10nBackground(BuildContext context) {
-    if (Environment.mockRepositories) return MockCardBackground(docType: docType);
+    if (Environment.mockRepositories) return MockCardBackground(attestationType: attestationType);
     final rendering = getL10nRendering(context);
     switch (rendering) {
       case null:

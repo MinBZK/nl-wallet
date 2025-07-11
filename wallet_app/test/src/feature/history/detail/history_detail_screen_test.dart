@@ -30,7 +30,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const HistoryDetailScreen().withState<HistoryDetailBloc, HistoryDetailState>(
           MockHistoryDetailBloc(),
-          HistoryDetailLoadSuccess(WalletMockData.disclosureEvent, [WalletMockData.card]),
+          HistoryDetailLoadSuccess(WalletMockData.disclosureEvent),
         ),
         providers: [
           RepositoryProvider<ContextMapper<OrganizationPolicy, String>>(
@@ -45,7 +45,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const HistoryDetailScreen().withState<HistoryDetailBloc, HistoryDetailState>(
           MockHistoryDetailBloc(),
-          HistoryDetailLoadSuccess(WalletMockData.issuanceEvent, [WalletMockData.card]),
+          HistoryDetailLoadSuccess(WalletMockData.issuanceEvent),
         ),
         providers: [
           RepositoryProvider<ContextMapper<OrganizationPolicy, String>>(
@@ -60,7 +60,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const HistoryDetailScreen().withState<HistoryDetailBloc, HistoryDetailState>(
           MockHistoryDetailBloc(),
-          HistoryDetailLoadSuccess(WalletMockData.renewEvent, [WalletMockData.card]),
+          HistoryDetailLoadSuccess(WalletMockData.renewEvent),
         ),
         providers: [
           RepositoryProvider<ContextMapper<OrganizationPolicy, String>>(
@@ -75,7 +75,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const HistoryDetailScreen().withState<HistoryDetailBloc, HistoryDetailState>(
           MockHistoryDetailBloc(),
-          HistoryDetailLoadSuccess(WalletMockData.disclosureEvent, [WalletMockData.card]),
+          HistoryDetailLoadSuccess(WalletMockData.disclosureEvent),
         ),
         brightness: Brightness.dark,
         providers: [
@@ -91,7 +91,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const HistoryDetailScreen().withState<HistoryDetailBloc, HistoryDetailState>(
           MockHistoryDetailBloc(),
-          HistoryDetailLoadSuccess(WalletMockData.disclosureEvent, [WalletMockData.card]),
+          HistoryDetailLoadSuccess(WalletMockData.disclosureEvent),
         ),
         brightness: Brightness.dark,
         providers: [
@@ -128,7 +128,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const HistoryDetailScreen().withState<HistoryDetailBloc, HistoryDetailState>(
           MockHistoryDetailBloc(),
-          HistoryDetailLoadSuccess(WalletMockData.cancelledDisclosureEvent, [WalletMockData.card]),
+          HistoryDetailLoadSuccess(WalletMockData.cancelledDisclosureEvent),
         ),
         providers: [
           RepositoryProvider<ContextMapper<OrganizationPolicy, String>>(
@@ -143,7 +143,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const HistoryDetailScreen().withState<HistoryDetailBloc, HistoryDetailState>(
           MockHistoryDetailBloc(),
-          HistoryDetailLoadSuccess(WalletMockData.cancelledDisclosureEvent, [WalletMockData.card]),
+          HistoryDetailLoadSuccess(WalletMockData.cancelledDisclosureEvent),
         ),
         brightness: Brightness.dark,
         providers: [
@@ -159,7 +159,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const HistoryDetailScreen().withState<HistoryDetailBloc, HistoryDetailState>(
           MockHistoryDetailBloc(),
-          HistoryDetailLoadSuccess(WalletMockData.failedDisclosureEvent, [WalletMockData.card]),
+          HistoryDetailLoadSuccess(WalletMockData.failedDisclosureEvent),
         ),
         providers: [
           RepositoryProvider<ContextMapper<OrganizationPolicy, String>>(
@@ -176,7 +176,6 @@ void main() {
           MockHistoryDetailBloc(),
           HistoryDetailLoadSuccess(
             WalletMockData.failedDisclosureEventNothingShared,
-            const [],
           ),
         ),
         providers: [
@@ -192,7 +191,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const HistoryDetailScreen().withState<HistoryDetailBloc, HistoryDetailState>(
           MockHistoryDetailBloc(),
-          HistoryDetailLoadSuccess(WalletMockData.failedDisclosureEvent, [WalletMockData.card]),
+          HistoryDetailLoadSuccess(WalletMockData.failedDisclosureEvent),
         ),
         brightness: Brightness.dark,
         providers: [
@@ -208,7 +207,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const HistoryDetailScreen().withState<HistoryDetailBloc, HistoryDetailState>(
           MockHistoryDetailBloc(),
-          HistoryDetailLoadSuccess(WalletMockData.failedLoginEvent, [WalletMockData.card]),
+          HistoryDetailLoadSuccess(WalletMockData.failedLoginEvent),
         ),
         providers: [
           RepositoryProvider<ContextMapper<OrganizationPolicy, String>>(
@@ -223,7 +222,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const HistoryDetailScreen().withState<HistoryDetailBloc, HistoryDetailState>(
           MockHistoryDetailBloc(),
-          HistoryDetailLoadSuccess(WalletMockData.failedLoginEventNothingShared, [WalletMockData.card]),
+          HistoryDetailLoadSuccess(WalletMockData.failedLoginEventNothingShared),
         ),
         providers: [
           RepositoryProvider<ContextMapper<OrganizationPolicy, String>>(
@@ -241,7 +240,7 @@ void main() {
         const HistoryDetailScreen()
             .withState<HistoryDetailBloc, HistoryDetailState>(
               MockHistoryDetailBloc(),
-              HistoryDetailLoadSuccess(WalletMockData.disclosureEvent, [WalletMockData.card]),
+              HistoryDetailLoadSuccess(WalletMockData.disclosureEvent),
             )
             .withDependency<ContextMapper<OrganizationPolicy, String>>((context) => PolicyBodyTextMapper()),
         surfaceSize: _kVeryTallScreen,
@@ -270,7 +269,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const HistoryDetailScreen().withState<HistoryDetailBloc, HistoryDetailState>(
           MockHistoryDetailBloc(),
-          HistoryDetailLoadSuccess(WalletMockData.issuanceEvent, [WalletMockData.card]),
+          HistoryDetailLoadSuccess(WalletMockData.issuanceEvent),
         ),
       );
       final l10n = await TestUtils.englishLocalizations;
@@ -288,7 +287,7 @@ void main() {
         const HistoryDetailScreen()
             .withState<HistoryDetailBloc, HistoryDetailState>(
               MockHistoryDetailBloc(),
-              HistoryDetailLoadSuccess(WalletMockData.loginEvent, [WalletMockData.card]),
+              HistoryDetailLoadSuccess(WalletMockData.loginEvent),
             )
             .withDependency<ContextMapper<OrganizationPolicy, String>>((context) => PolicyBodyTextMapper()),
         surfaceSize: _kVeryTallScreen,
@@ -319,7 +318,7 @@ void main() {
         const HistoryDetailScreen()
             .withState<HistoryDetailBloc, HistoryDetailState>(
               MockHistoryDetailBloc(),
-              HistoryDetailLoadSuccess(WalletMockData.signEvent, [WalletMockData.card]),
+              HistoryDetailLoadSuccess(WalletMockData.signEvent),
             )
             .withDependency<ContextMapper<OrganizationPolicy, String>>((context) => PolicyBodyTextMapper()),
       );

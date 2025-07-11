@@ -1732,8 +1732,8 @@ class MockWalletCardRepository extends _i1.Mock implements _i27.WalletCardReposi
       ) as _i10.Stream<List<_i9.WalletCard>>);
 
   @override
-  _i10.Future<bool> exists(String? docType) => (super.noSuchMethod(
-        Invocation.method(#exists, [docType]),
+  _i10.Future<bool> exists(String? attestationId) => (super.noSuchMethod(
+        Invocation.method(#exists, [attestationId]),
         returnValue: _i10.Future<bool>.value(false),
         returnValueForMissingStub: _i10.Future<bool>.value(false),
       ) as _i10.Future<bool>);
@@ -1750,13 +1750,19 @@ class MockWalletCardRepository extends _i1.Mock implements _i27.WalletCardReposi
       ) as _i10.Future<List<_i9.WalletCard>>);
 
   @override
-  _i10.Future<_i9.WalletCard> read(String? docType) => (super.noSuchMethod(
-        Invocation.method(#read, [docType]),
+  _i10.Future<_i9.WalletCard> read(String? attestationId) => (super.noSuchMethod(
+        Invocation.method(#read, [attestationId]),
         returnValue: _i10.Future<_i9.WalletCard>.value(
-          _FakeWalletCard_11(this, Invocation.method(#read, [docType])),
+          _FakeWalletCard_11(
+            this,
+            Invocation.method(#read, [attestationId]),
+          ),
         ),
         returnValueForMissingStub: _i10.Future<_i9.WalletCard>.value(
-          _FakeWalletCard_11(this, Invocation.method(#read, [docType])),
+          _FakeWalletCard_11(
+            this,
+            Invocation.method(#read, [attestationId]),
+          ),
         ),
       ) as _i10.Future<_i9.WalletCard>);
 }
@@ -1775,8 +1781,8 @@ class MockWalletEventRepository extends _i1.Mock implements _i28.WalletEventRepo
       ) as _i10.Future<List<_i29.WalletEvent>>);
 
   @override
-  _i10.Future<List<_i29.WalletEvent>> getEventsForCard(String? docType) => (super.noSuchMethod(
-        Invocation.method(#getEventsForCard, [docType]),
+  _i10.Future<List<_i29.WalletEvent>> getEventsForCard(String? attestationId) => (super.noSuchMethod(
+        Invocation.method(#getEventsForCard, [attestationId]),
         returnValue: _i10.Future<List<_i29.WalletEvent>>.value(
           <_i29.WalletEvent>[],
         ),
@@ -1792,12 +1798,12 @@ class MockWalletEventRepository extends _i1.Mock implements _i28.WalletEventRepo
 
   @override
   _i10.Future<_i29.DisclosureEvent?> readMostRecentDisclosureEvent(
-    String? docType,
+    String? attestationId,
     _i29.EventStatus? status,
   ) =>
       (super.noSuchMethod(
         Invocation.method(#readMostRecentDisclosureEvent, [
-          docType,
+          attestationId,
           status,
         ]),
         returnValue: _i10.Future<_i29.DisclosureEvent?>.value(),
@@ -1806,11 +1812,14 @@ class MockWalletEventRepository extends _i1.Mock implements _i28.WalletEventRepo
 
   @override
   _i10.Future<_i29.IssuanceEvent?> readMostRecentIssuanceEvent(
-    String? docType,
+    String? attestationId,
     _i29.EventStatus? status,
   ) =>
       (super.noSuchMethod(
-        Invocation.method(#readMostRecentIssuanceEvent, [docType, status]),
+        Invocation.method(#readMostRecentIssuanceEvent, [
+          attestationId,
+          status,
+        ]),
         returnValue: _i10.Future<_i29.IssuanceEvent?>.value(),
         returnValueForMissingStub: _i10.Future<_i29.IssuanceEvent?>.value(),
       ) as _i10.Future<_i29.IssuanceEvent?>);
@@ -2286,10 +2295,10 @@ class MockTypedWalletCore extends _i1.Mock implements _i38.TypedWalletCore {
 
   @override
   _i10.Future<List<_i23.WalletEvent>> getHistoryForCard(
-    String? attestationType,
+    String? attestationId,
   ) =>
       (super.noSuchMethod(
-        Invocation.method(#getHistoryForCard, [attestationType]),
+        Invocation.method(#getHistoryForCard, [attestationId]),
         returnValue: _i10.Future<List<_i23.WalletEvent>>.value(
           <_i23.WalletEvent>[],
         ),
@@ -3637,18 +3646,18 @@ class MockObserveWalletCardDetailUseCase extends _i1.Mock implements _i77.Observ
 /// See the documentation for Mockito's code generation for more information.
 class MockGetWalletCardUseCase extends _i1.Mock implements _i79.GetWalletCardUseCase {
   @override
-  _i10.Future<_i50.Result<_i9.WalletCard>> invoke(String? docType) => (super.noSuchMethod(
-        Invocation.method(#invoke, [docType]),
+  _i10.Future<_i50.Result<_i9.WalletCard>> invoke(String? attestationId) => (super.noSuchMethod(
+        Invocation.method(#invoke, [attestationId]),
         returnValue: _i10.Future<_i50.Result<_i9.WalletCard>>.value(
           _i14.dummyValue<_i50.Result<_i9.WalletCard>>(
             this,
-            Invocation.method(#invoke, [docType]),
+            Invocation.method(#invoke, [attestationId]),
           ),
         ),
         returnValueForMissingStub: _i10.Future<_i50.Result<_i9.WalletCard>>.value(
           _i14.dummyValue<_i50.Result<_i9.WalletCard>>(
             this,
-            Invocation.method(#invoke, [docType]),
+            Invocation.method(#invoke, [attestationId]),
           ),
         ),
       ) as _i10.Future<_i50.Result<_i9.WalletCard>>);
@@ -3723,18 +3732,21 @@ class MockGetWalletEventsUseCase extends _i1.Mock implements _i80.GetWalletEvent
 /// See the documentation for Mockito's code generation for more information.
 class MockGetWalletEventsForCardUseCase extends _i1.Mock implements _i81.GetWalletEventsForCardUseCase {
   @override
-  _i10.Future<_i50.Result<List<_i29.WalletEvent>>> invoke(String? docType) => (super.noSuchMethod(
-        Invocation.method(#invoke, [docType]),
+  _i10.Future<_i50.Result<List<_i29.WalletEvent>>> invoke(
+    String? attestationId,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(#invoke, [attestationId]),
         returnValue: _i10.Future<_i50.Result<List<_i29.WalletEvent>>>.value(
           _i14.dummyValue<_i50.Result<List<_i29.WalletEvent>>>(
             this,
-            Invocation.method(#invoke, [docType]),
+            Invocation.method(#invoke, [attestationId]),
           ),
         ),
         returnValueForMissingStub: _i10.Future<_i50.Result<List<_i29.WalletEvent>>>.value(
           _i14.dummyValue<_i50.Result<List<_i29.WalletEvent>>>(
             this,
-            Invocation.method(#invoke, [docType]),
+            Invocation.method(#invoke, [attestationId]),
           ),
         ),
       ) as _i10.Future<_i50.Result<List<_i29.WalletEvent>>>);
@@ -4772,11 +4784,11 @@ class MockWalletCoreApi extends _i1.Mock implements _i23.WalletCoreApi {
 
   @override
   _i10.Future<List<_i23.WalletEvent>> crateApiFullGetHistoryForCard({
-    required String? attestationType,
+    required String? attestationId,
   }) =>
       (super.noSuchMethod(
         Invocation.method(#crateApiFullGetHistoryForCard, [], {
-          #attestationType: attestationType,
+          #attestationId: attestationId,
         }),
         returnValue: _i10.Future<List<_i23.WalletEvent>>.value(
           <_i23.WalletEvent>[],

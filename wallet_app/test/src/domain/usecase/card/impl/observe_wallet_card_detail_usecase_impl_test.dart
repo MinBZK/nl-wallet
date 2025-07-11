@@ -33,7 +33,7 @@ void main() {
   group('invoke', () {
     test('card detail usecase should enrich card data through event repository', () async {
       // Create a test card with a known ID for deterministic results
-      final WalletCard mockCard = WalletMockData.card.copyWith(id: () => 'mock');
+      final WalletCard mockCard = WalletMockData.card.copyWith(attestationId: () => 'mock');
       // Define the expected enriched card detail with mocked events
       final mockDetail = WalletCardDetail(
         card: mockCard,
@@ -46,24 +46,26 @@ void main() {
 
       // Event repository returns predefined events for the card's document type
       when(
-        mockWalletEventRepository.readMostRecentDisclosureEvent(mockCard.docType, EventStatus.success),
+        mockWalletEventRepository.readMostRecentDisclosureEvent(mockCard.attestationId!, EventStatus.success),
       ).thenAnswer((_) async => mockDetail.mostRecentSuccessfulDisclosure);
       when(
-        mockWalletEventRepository.readMostRecentIssuanceEvent(mockCard.docType, EventStatus.success),
+        mockWalletEventRepository.readMostRecentIssuanceEvent(mockCard.attestationId!, EventStatus.success),
       ).thenAnswer((_) async => mockDetail.mostRecentIssuance);
 
       // Emit cards through the stream to simulate real-time updates
       mockWalletCardsStream.add([WalletMockData.altCard, mockCard]);
 
       // Execute the use case and capture the result
-      final detail = await usecase.invoke(mockCard.id!).first;
+      final detail = await usecase.invoke(mockCard.attestationId!).first;
 
       // Assert the output combines card with correct events
       expect(detail, mockDetail);
 
       // Verify repositories were consulted for the events
-      verify(mockWalletEventRepository.readMostRecentDisclosureEvent(mockCard.docType, EventStatus.success)).called(1);
-      verify(mockWalletEventRepository.readMostRecentIssuanceEvent(mockCard.docType, EventStatus.success)).called(1);
+      verify(mockWalletEventRepository.readMostRecentDisclosureEvent(mockCard.attestationId!, EventStatus.success))
+          .called(1);
+      verify(mockWalletEventRepository.readMostRecentIssuanceEvent(mockCard.attestationId!, EventStatus.success))
+          .called(1);
     });
   });
 }
