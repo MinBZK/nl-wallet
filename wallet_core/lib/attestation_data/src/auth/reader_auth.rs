@@ -148,7 +148,6 @@ pub mod mock {
 
     use attestation_types::request::NormalizedCredentialRequests;
     use dcql::CredentialQueryFormat;
-    use mdoc::verifier::ItemsRequests;
 
     use super::*;
 
@@ -204,6 +203,24 @@ pub mod mock {
                 ..Self::new_mock()
             }
         }
+
+        pub fn new_mock() -> Self {
+            let organization = Organization::new_mock();
+
+            ReaderRegistration {
+                purpose_statement: vec![("nl", "Beschrijving van mijn dienst"), ("en", "My Service Description")]
+                    .into(),
+                retention_policy: RetentionPolicy {
+                    intent_to_retain: true,
+                    max_duration_in_minutes: Some(60 * 24 * 365),
+                },
+                sharing_policy: SharingPolicy { intent_to_share: true },
+                deletion_policy: DeletionPolicy { deleteable: true },
+                organization,
+                request_origin_base_url: "https://example.com/".parse().unwrap(),
+                authorized_attributes: Default::default(),
+            }
+        }
     }
 
     pub fn create_some_registration() -> ReaderRegistration {
@@ -249,54 +266,6 @@ pub mod mock {
         ReaderRegistration {
             authorized_attributes,
             ..ReaderRegistration::new_mock()
-        }
-    }
-
-    impl ReaderRegistration {
-        pub fn new_mock() -> Self {
-            let organization = Organization::new_mock();
-
-            ReaderRegistration {
-                purpose_statement: vec![("nl", "Beschrijving van mijn dienst"), ("en", "My Service Description")]
-                    .into(),
-                retention_policy: RetentionPolicy {
-                    intent_to_retain: true,
-                    max_duration_in_minutes: Some(60 * 24 * 365),
-                },
-                sharing_policy: SharingPolicy { intent_to_share: true },
-                deletion_policy: DeletionPolicy { deleteable: true },
-                organization,
-                request_origin_base_url: "https://example.com/".parse().unwrap(),
-                authorized_attributes: Default::default(),
-            }
-        }
-
-        pub fn mock_from_requests(authorized_requests: &ItemsRequests) -> Self {
-            let authorized_attributes = HashMap::from_iter(authorized_requests.0.iter().map(|items_request| {
-                let paths = items_request
-                    .name_spaces
-                    .iter()
-                    .flat_map(|(namespace, attributes)| {
-                        attributes
-                            .iter()
-                            .map(|(attribute, _)| {
-                                vec![
-                                    ClaimPath::SelectByKey(namespace.clone()),
-                                    ClaimPath::SelectByKey(attribute.clone()),
-                                ]
-                                .try_into()
-                                .unwrap()
-                            })
-                            .collect_vec()
-                    })
-                    .collect_vec();
-                (items_request.doc_type.clone(), paths)
-            }));
-
-            Self {
-                authorized_attributes,
-                ..Self::new_mock()
-            }
         }
     }
 }

@@ -40,7 +40,6 @@ use mdoc::test::data::pid_full_name;
 use mdoc::test::data::pid_given_name;
 use mdoc::test::data::PID;
 use mdoc::test::TestDocuments;
-use mdoc::verifier::ItemsRequests;
 use mdoc::DeviceResponse;
 use mdoc::SessionTranscript;
 use openid4vc::disclosure_session::DisclosureClient;
@@ -181,7 +180,9 @@ async fn disclosure_using_message_client() {
     let ca = Ca::generate("myca", Default::default()).unwrap();
     let rp_keypair = generate_reader_mock(
         &ca,
-        Some(ReaderRegistration::mock_from_requests(&ItemsRequests::new_pid_example())),
+        Some(ReaderRegistration::mock_from_credential_requests(
+            &NormalizedCredentialRequests::new_pid_example(),
+        )),
     )
     .unwrap();
 

@@ -36,9 +36,6 @@ impl DisclosureType {
 
 #[cfg(test)]
 mod test {
-    use std::collections::HashMap;
-    use std::collections::HashSet;
-
     use rstest::rstest;
 
     use utils::vec_at_least::VecNonEmpty;
@@ -69,54 +66,44 @@ mod test {
     }
 
     fn pid_bsn_attribute_paths() -> NormalizedCredentialRequests {
-        NormalizedCredentialRequests::mock_from_hashmap(HashMap::from([(
+        NormalizedCredentialRequests::mock_from_vecs(vec![(
             LOGIN_ATTESTATION_TYPE.to_string(),
-            HashSet::from([
-                VecNonEmpty::try_from(vec![LOGIN_NAMESPACE.to_string(), LOGIN_ATTRIBUTE_ID.to_string()]).unwrap(),
-            ]),
-        )]))
+            vec![VecNonEmpty::try_from(vec![LOGIN_NAMESPACE.to_string(), LOGIN_ATTRIBUTE_ID.to_string()]).unwrap()],
+        )])
     }
 
     fn pid_bsn_and_other_attribute_paths() -> NormalizedCredentialRequests {
-        NormalizedCredentialRequests::mock_from_hashmap(HashMap::from([(
+        NormalizedCredentialRequests::mock_from_vecs(vec![(
             LOGIN_ATTESTATION_TYPE.to_string(),
-            HashSet::from([
+            vec![
                 VecNonEmpty::try_from(vec![LOGIN_NAMESPACE.to_string(), LOGIN_ATTRIBUTE_ID.to_string()]).unwrap(),
                 VecNonEmpty::try_from(vec![LOGIN_NAMESPACE.to_string(), "other".to_string()]).unwrap(),
-            ]),
-        )]))
+            ],
+        )])
     }
 
     fn pid_and_other_bsn_attribute_paths() -> NormalizedCredentialRequests {
-        NormalizedCredentialRequests::mock_from_hashmap(HashMap::from([
+        NormalizedCredentialRequests::mock_from_vecs(vec![
             (
                 LOGIN_ATTESTATION_TYPE.to_string(),
-                HashSet::from([VecNonEmpty::try_from(vec![
-                    LOGIN_NAMESPACE.to_string(),
-                    LOGIN_ATTRIBUTE_ID.to_string(),
-                ])
-                .unwrap()]),
+                vec![VecNonEmpty::try_from(vec![LOGIN_NAMESPACE.to_string(), LOGIN_ATTRIBUTE_ID.to_string()]).unwrap()],
             ),
             (
                 "other".to_string(),
-                HashSet::from([VecNonEmpty::try_from(vec![
-                    LOGIN_NAMESPACE.to_string(),
-                    LOGIN_ATTRIBUTE_ID.to_string(),
-                ])
-                .unwrap()]),
+                vec![VecNonEmpty::try_from(vec![LOGIN_NAMESPACE.to_string(), LOGIN_ATTRIBUTE_ID.to_string()]).unwrap()],
             ),
-        ]))
+        ])
     }
 
     fn pid_too_long_attribute_paths() -> NormalizedCredentialRequests {
-        NormalizedCredentialRequests::mock_from_hashmap(HashMap::from([(
+        NormalizedCredentialRequests::mock_from_vecs(vec![(
             LOGIN_ATTESTATION_TYPE.to_string(),
-            HashSet::from([VecNonEmpty::try_from(vec![
+            vec![VecNonEmpty::try_from(vec![
                 LOGIN_NAMESPACE.to_string(),
                 LOGIN_NAMESPACE.to_string(),
                 LOGIN_ATTRIBUTE_ID.to_string(),
             ])
-            .unwrap()]),
-        )]))
+            .unwrap()],
+        )])
     }
 }
