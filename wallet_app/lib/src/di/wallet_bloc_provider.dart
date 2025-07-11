@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../feature/banner/cubit/banner_cubit.dart';
 import '../localization/preferred_locale_cubit.dart';
 
 /// This widget provides the BLoCs and Cubits that should be
@@ -16,6 +17,9 @@ class WalletBlocProvider extends StatelessWidget {
       providers: [
         BlocProvider<PreferredLocaleCubit>(
           create: (context) => PreferredLocaleCubit(context.read()),
+        ),
+        BlocProvider<BannerCubit>(
+          create: (context) => BannerCubit(context.read(), context.read()),
         ),
       ],
       child: child,

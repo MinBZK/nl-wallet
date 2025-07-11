@@ -168,6 +168,7 @@ class _Sides {
   static final BorderSide outlineButtonBorderSideDefault = BaseWalletTheme.outlineButtonBorderSideDefault.copyWith(
     color: _Colors.primary,
   );
+
   static final BorderSide outlineButtonBorderSidePressed = BaseWalletTheme.outlineButtonBorderSideDefault.copyWith(
     color: _Colors.actionPrimaryHover,
   );

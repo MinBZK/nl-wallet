@@ -16,6 +16,8 @@ class DashboardScreen : MobileActions() {
     private val showDetailsText = find.byText(l10n.getString("showDetailsCta"))
     private val scanQRButton = find.byText(l10n.getString("menuScreenScanQrCta"))
 
+    private val appTourBannerTitle = find.byText(l10n.getString("tourBannerTitle"))
+
     fun visible() = isElementVisible(screen, false)
 
     fun pidCardsVisible(): Boolean {
@@ -34,9 +36,11 @@ class DashboardScreen : MobileActions() {
     fun clickMenuButton() = clickElement(menuButton, false)
 
     fun clickPidCard() {
-        scrollToEnd(ScrollableType.CustomScrollView)
+        scrollToEndOnDashBoard()
         clickElement(pidIdCard, false)
     }
+
+    fun appTourBannerVisible() = isElementVisible(appTourBannerTitle)
 
     fun cardTitlesVisible() = isElementVisible(pidIdTitleText, false) && isElementVisible(pidAddressTitleText, false)
 
@@ -49,7 +53,7 @@ class DashboardScreen : MobileActions() {
     fun openQRScanner() = clickElement(scanQRButton)
 
     fun cardVisible(vct: String): Boolean {
-        scrollToEnd(ScrollableType.CustomScrollView)
+        scrollToEndOnDashBoard()
         return isElementVisible(find.byValueKey(vct))
     }
 }

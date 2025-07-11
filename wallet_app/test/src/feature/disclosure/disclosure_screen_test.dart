@@ -14,6 +14,7 @@ import 'package:wallet/src/domain/usecase/app/check_is_app_initialized_usecase.d
 import 'package:wallet/src/domain/usecase/biometrics/is_biometric_login_enabled_usecase.dart';
 import 'package:wallet/src/domain/usecase/disclosure/accept_disclosure_usecase.dart';
 import 'package:wallet/src/domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
+import 'package:wallet/src/feature/banner/cubit/banner_cubit.dart';
 import 'package:wallet/src/feature/common/page/missing_attributes_page.dart';
 import 'package:wallet/src/feature/common/widget/button/icon/close_icon_button.dart';
 import 'package:wallet/src/feature/common/widget/centered_loading_indicator.dart';
@@ -251,6 +252,12 @@ void main() {
         brightness: Brightness.light,
         providers: [
           RepositoryProvider<ContextMapper<OrganizationPolicy, String>>(create: (c) => PolicyBodyTextMapper()),
+          RepositoryProvider<BannerCubit>(
+            create: (c) => BannerCubit(
+              MockObserveShowTourBannerUseCase(),
+              MockObserveVersionStateUsecase(),
+            ),
+          ),
         ],
       );
       await screenMatchesGolden('confirm_data_attributes');
