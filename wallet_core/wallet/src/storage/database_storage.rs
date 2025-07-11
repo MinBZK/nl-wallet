@@ -53,6 +53,10 @@ use platform_support::hw_keystore::PlatformEncryptionKey;
 use sd_jwt::hasher::Sha256Hasher;
 use sd_jwt::sd_jwt::VerifiedSdJwt;
 
+use crate::AttestationIdentity;
+use crate::AttestationPresentation;
+use crate::DisclosureStatus;
+
 use super::data::KeyedData;
 use super::database::Database;
 use super::database::SqliteUrl;
@@ -66,9 +70,6 @@ use super::StorageState;
 use super::StoredAttestationCopy;
 use super::StoredAttestationFormat;
 use super::StoredMdocCopy;
-use crate::AttestationIdentity;
-use crate::AttestationPresentation;
-use crate::DisclosureStatus;
 
 const DATABASE_NAME: &str = "wallet";
 const KEY_FILE_SUFFIX: &str = "_db";
