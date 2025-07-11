@@ -81,6 +81,7 @@ class DisclosureBasedIssuanceTests : TestBase() {
             { assertTrue(cardIssuanceScreen.organizationInSubtitleVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", UNIVERSITY)), "Subtitle is not visible") },
             { assertTrue(cardIssuanceScreen.labelVisible(tasData.getDiplomaClaimLabel("graduation_date")), "Label is not visible") },
             { assertTrue(cardIssuanceScreen.labelVisible(tasData.getDiplomaClaimLabel("grade")), "Label is not visible") },
+            { assertTrue(cardIssuanceScreen.dataVisible(l10n.getString("cardValueNull")), "data is not visible") },
             { assertTrue(cardIssuanceScreen.dataVisible(issuanceData.getAttributeValues("university", "999991772", "university").first()), "data is not visible") },
             { assertTrue(cardIssuanceScreen.dataVisible(issuanceData.getAttributeValues("university", "999991772", "education").first()), "data is not visible") },
         )
