@@ -1,8 +1,24 @@
+use uuid::Uuid;
+
 use attestation_data::credential_payload::CredentialPayload;
 use attestation_data::credential_payload::IntoCredentialPayload;
+use mdoc::holder::Mdoc;
+use sd_jwt::sd_jwt::VerifiedSdJwt;
+use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 
-use crate::storage::StoredAttestationCopy;
-use crate::storage::StoredAttestationFormat;
+#[derive(Debug, Clone)]
+pub enum StoredAttestationFormat {
+    MsoMdoc { mdoc: Box<Mdoc> }, // TODO: Wrap in similar VerifiedMdoc type (PVW-4132)
+    SdJwt { sd_jwt: Box<VerifiedSdJwt> },
+}
+
+#[derive(Debug, Clone)]
+pub struct StoredAttestationCopy {
+    pub attestation_id: Uuid,
+    pub attestation_copy_id: Uuid,
+    pub attestation: StoredAttestationFormat,
+    pub normalized_metadata: NormalizedTypeMetadata,
+}
 
 impl From<StoredAttestationCopy> for CredentialPayload {
     fn from(value: StoredAttestationCopy) -> Self {
