@@ -1341,7 +1341,7 @@ mod tests {
         let result =
             match_preview_and_stored_attestations(&previews, vec![stored.clone()], &MockTimeGenerator::epoch());
         let (_, identities): (Vec<_>, Vec<_>) = multiunzip(result);
-        assert_eq!(vec![Some(attestation_id.to_string())], identities,);
+        assert_eq!(vec![Some(attestation_id.to_string())], identities);
 
         // When the attestation already exists in the database, but the preview has a newer nbf, it should be considered
         // as a new attestation and the identity is None.
@@ -1351,7 +1351,7 @@ mod tests {
         let result =
             match_preview_and_stored_attestations(&previews, vec![stored.clone()], &MockTimeGenerator::epoch());
         let (_, identities): (Vec<_>, Vec<_>) = multiunzip(result);
-        assert_eq!(vec![None], identities,);
+        assert_eq!(vec![None], identities);
 
         // When the attestation doesn't exists in the database, the identity is None.
         let mut preview = create_example_preview_data();
@@ -1359,6 +1359,6 @@ mod tests {
         let previews = [preview];
         let result = match_preview_and_stored_attestations(&previews, vec![stored], &MockTimeGenerator::epoch());
         let (_, identities): (Vec<_>, Vec<_>) = multiunzip(result);
-        assert_eq!(vec![None], identities,);
+        assert_eq!(vec![None], identities);
     }
 }
