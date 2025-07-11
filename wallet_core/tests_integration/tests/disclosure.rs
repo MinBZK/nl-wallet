@@ -1,13 +1,15 @@
 use std::collections::HashSet;
 
 use assert_matches::assert_matches;
-use indexmap::IndexMap;
 use reqwest::StatusCode;
 use rstest::rstest;
 use serial_test::serial;
 use url::Url;
 
 use attestation_data::disclosure::DisclosedAttestations;
+use attestation_types::request::AttributeRequest;
+use attestation_types::request::NormalizedCredentialRequest;
+use dcql::CredentialQueryFormat;
 use http_utils::error::HttpJsonErrorBody;
 use http_utils::tls::pinning::TlsPinningConfig;
 use mdoc::test::data::addr_street;
@@ -15,7 +17,6 @@ use mdoc::test::data::pid_family_name;
 use mdoc::test::data::pid_full_name;
 use mdoc::test::data::pid_given_name;
 use mdoc::test::TestDocuments;
-use mdoc::ItemsRequest;
 use openid4vc::return_url::ReturnUrlTemplate;
 use openid4vc::verifier::SessionType;
 use openid4vc::verifier::StatusResponse;
@@ -256,19 +257,21 @@ async fn test_disclosure_without_pid() {
     let start_request = StartDisclosureRequest {
         usecase: "xyz_bank_no_return_url".to_owned(),
         credential_requests: Some(
-            vec![ItemsRequest {
-                doc_type: "urn:eudi:pid:nl:1".to_owned(),
-                request_info: None,
-                name_spaces: IndexMap::from([(
-                    "urn:eudi:pid:nl:1".to_owned(),
-                    IndexMap::from_iter(
-                        [("given_name", true), ("family_name", false)]
-                            .into_iter()
-                            .map(|(name, intent_to_retain)| (name.to_string(), intent_to_retain)),
+            vec![NormalizedCredentialRequest {
+                format: CredentialQueryFormat::MsoMdoc {
+                    doctype_value: "urn:eudi:pid:nl:1".to_string(),
+                },
+                claims: vec![
+                    AttributeRequest::new_with_keys(
+                        vec!["urn:eudi:pid:nl:1".to_string(), "given_name".to_string()],
+                        true,
                     ),
-                )]),
-            }
-            .into()]
+                    AttributeRequest::new_with_keys(
+                        vec!["urn:eudi:pid:nl:1".to_string(), "family_name".to_string()],
+                        false,
+                    ),
+                ],
+            }]
             .try_into()
             .unwrap(),
         ),
