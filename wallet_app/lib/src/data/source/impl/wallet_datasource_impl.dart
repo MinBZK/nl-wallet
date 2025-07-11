@@ -19,9 +19,9 @@ class WalletDataSourceImpl implements WalletDataSource {
   }
 
   @override
-  Future<WalletCard?> read(String docType) async {
+  Future<WalletCard?> read(String attestationId) async {
     final cards = await readAll();
-    return cards.firstWhereOrNull((element) => element.docType == docType);
+    return cards.firstWhereOrNull((element) => element.attestationId == attestationId);
   }
 
   @override

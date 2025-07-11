@@ -10,10 +10,10 @@ class GetWalletEventsForCardUseCaseImpl extends GetWalletEventsForCardUseCase {
 
   /// Returns all wallet cards [WalletEvent]s, sorted by date DESC (newest first)
   @override
-  Future<Result<List<WalletEvent>>> invoke(String docType) async {
+  Future<Result<List<WalletEvent>>> invoke(String attestationId) async {
     return tryCatch(
-      () async => _walletEventRepository.getEventsForCard(docType),
-      'Failed to resolve events for card: $docType',
+      () async => _walletEventRepository.getEventsForCard(attestationId),
+      'Failed to resolve events for card: $attestationId',
     );
   }
 }

@@ -4,7 +4,7 @@ import 'package:wallet/src/feature/issuance/bloc/issuance_bloc.dart';
 import '../../../mocks/wallet_mock_data.dart';
 
 void main() {
-  final newCard = WalletMockData.card.copyWith(id: () => null);
+  final newCard = WalletMockData.card.copyWith(attestationId: () => null);
   final updatedCard = WalletMockData.altCard;
 
   group('IssuanceReviewCards', () {

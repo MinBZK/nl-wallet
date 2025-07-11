@@ -217,6 +217,7 @@ typedef struct wire_cst_list_missing_attribute {
 } wire_cst_list_missing_attribute;
 
 typedef struct wire_cst_WalletEvent_Disclosure {
+  struct wire_cst_list_prim_u_8_strict *id;
   struct wire_cst_list_prim_u_8_strict *date_time;
   struct wire_cst_organization *relying_party;
   struct wire_cst_list_localized_string *purpose;
@@ -227,6 +228,7 @@ typedef struct wire_cst_WalletEvent_Disclosure {
 } wire_cst_WalletEvent_Disclosure;
 
 typedef struct wire_cst_WalletEvent_Issuance {
+  struct wire_cst_list_prim_u_8_strict *id;
   struct wire_cst_list_prim_u_8_strict *date_time;
   struct wire_cst_attestation_presentation *attestation;
   bool renewed;
@@ -388,7 +390,7 @@ void frbgen_wallet_core_wire__crate__api__full__create_pid_issuance_redirect_uri
 void frbgen_wallet_core_wire__crate__api__full__get_history(int64_t port_);
 
 void frbgen_wallet_core_wire__crate__api__full__get_history_for_card(int64_t port_,
-                                                                     struct wire_cst_list_prim_u_8_strict *attestation_type);
+                                                                     struct wire_cst_list_prim_u_8_strict *attestation_id);
 
 void frbgen_wallet_core_wire__crate__api__full__get_version_string(int64_t port_);
 

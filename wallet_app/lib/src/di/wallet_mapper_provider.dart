@@ -68,7 +68,7 @@ class WalletMapperProvider extends StatelessWidget {
         RepositoryProvider<Mapper<core.AttributeValue, AttributeValue>>(
           create: (context) => CardAttributeValueMapper(),
         ),
-        RepositoryProvider<Mapper<CardAttributeWithDocType, DataAttribute>>(
+        RepositoryProvider<Mapper<CardAttributeWithCardId, DataAttribute>>(
           create: (context) => CardAttributeMapper(context.read(), context.read()),
         ),
         RepositoryProvider<Mapper<core.MissingAttribute, MissingAttribute>>(

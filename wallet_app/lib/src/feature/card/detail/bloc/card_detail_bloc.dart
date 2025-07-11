@@ -30,9 +30,9 @@ class CardDetailBloc extends Bloc<CardDetailEvent, CardDetailState> {
     bool loadTriggeredForVisibleCard = false;
     switch (state) {
       case CardDetailLoadInProgress():
-        loadTriggeredForVisibleCard = state.card?.id == event.cardId;
+        loadTriggeredForVisibleCard = state.card?.attestationId == event.cardId;
       case CardDetailLoadSuccess():
-        loadTriggeredForVisibleCard = state.detail.card.id == event.cardId;
+        loadTriggeredForVisibleCard = state.detail.card.attestationId == event.cardId;
       default:
     }
     if (!loadTriggeredForVisibleCard) {

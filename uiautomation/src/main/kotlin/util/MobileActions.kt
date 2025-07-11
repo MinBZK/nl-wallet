@@ -106,6 +106,21 @@ open class MobileActions {
         driver.executeScript("flutter:scroll", find.byType(scrollableType.toString()), args)
     }
 
+    protected fun scrollToEndOnDashBoard() {
+        val dashboardFinder = find.byType("DashboardScreen")
+        val customScrollFinder = find.byDescendant(
+            dashboardFinder,
+            find.byType("CustomScrollView"),
+            true, true
+        )
+        val args = mapOf(
+            "dx" to 0,
+            "dy" to -300,
+            "durationMilliseconds" to 500
+        )
+        driver.executeScript("flutter:scroll", customScrollFinder, args)
+    }
+
     protected fun clickElement(element: FlutterElement, frameSync: Boolean = true) {
         // First wait and check if the element is visible, then perform the click action;
         // this prevents clicking on an element that is not visible, which results in a (BrowserStack) timeout.

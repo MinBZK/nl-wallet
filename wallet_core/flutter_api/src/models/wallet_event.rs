@@ -11,6 +11,7 @@ pub struct WalletEvents(Vec<WalletEvent>);
 
 pub enum WalletEvent {
     Disclosure {
+        id: String,
         // ISO8601
         date_time: String,
         relying_party: Organization,
@@ -21,6 +22,7 @@ pub enum WalletEvent {
         typ: DisclosureType,
     },
     Issuance {
+        id: String,
         // ISO8601
         date_time: String,
         attestation: AttestationPresentation,
@@ -42,22 +44,22 @@ impl IntoIterator for WalletEvents {
     }
 }
 
-impl From<wallet::WalletEvent> for WalletEvents {
+impl From<wallet::WalletEvent> for WalletEvent {
     fn from(source: wallet::WalletEvent) -> Self {
-        let result = match source {
+        match source {
             wallet::WalletEvent::Issuance {
-                attestations,
+                id,
+                attestation,
                 timestamp,
                 ..
-            } => attestations
-                .into_iter()
-                .map(|attestation| WalletEvent::Issuance {
-                    date_time: timestamp.to_rfc3339(),
-                    attestation: attestation.into(),
-                    renewed: false,
-                })
-                .collect(),
+            } => WalletEvent::Issuance {
+                id: id.to_string(),
+                date_time: timestamp.to_rfc3339(),
+                attestation: (*attestation).into(),
+                renewed: false,
+            },
             wallet::WalletEvent::Disclosure {
+                id,
                 attestations,
                 timestamp,
                 reader_registration,
@@ -72,7 +74,8 @@ impl From<wallet::WalletEvent> for WalletEvents {
                     .map(AttestationPresentation::from)
                     .collect_vec();
 
-                vec![WalletEvent::Disclosure {
+                WalletEvent::Disclosure {
+                    id: id.to_string(),
                     date_time: timestamp.to_rfc3339(),
                     relying_party: Organization::from(reader_registration.organization),
                     purpose: RPLocalizedStrings(reader_registration.purpose_statement).into(),
@@ -80,10 +83,9 @@ impl From<wallet::WalletEvent> for WalletEvents {
                     shared_attestations: (!attestations.is_empty()).then_some(attestations),
                     status: status.into(),
                     typ: r#type.into(),
-                }]
+                }
             }
-        };
-        WalletEvents(result)
+        }
     }
 }
 
