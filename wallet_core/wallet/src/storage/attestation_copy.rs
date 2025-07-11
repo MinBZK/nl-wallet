@@ -25,11 +25,11 @@ impl From<StoredAttestationCopy> for CredentialPayload {
         match value.attestation {
             StoredAttestationFormat::MsoMdoc { mdoc } => mdoc
                 .into_credential_payload(&value.normalized_metadata)
-                .expect("conversion to CredentialPayload has been done before"),
+                .expect("conversion from mdoc to CredentialPayload has been done before"),
             StoredAttestationFormat::SdJwt { sd_jwt } => sd_jwt
                 .into_inner()
                 .into_credential_payload(&value.normalized_metadata)
-                .expect("conversion to CredentialPayload has been done before"),
+                .expect("conversion from SD-JWT to CredentialPayload has been done before"),
         }
     }
 }
