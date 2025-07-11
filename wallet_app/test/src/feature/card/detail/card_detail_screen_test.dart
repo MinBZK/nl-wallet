@@ -80,7 +80,7 @@ void main() {
           cardTitle: WalletMockData.card.title.testValue,
         ).withState<CardDetailBloc, CardDetailState>(
           MockCardSummaryBloc(),
-          CardDetailLoadFailure(WalletMockData.card.id!),
+          CardDetailLoadFailure(WalletMockData.card.attestationId!),
         ),
       );
       await screenMatchesGolden('error.light');
@@ -150,7 +150,7 @@ void main() {
           cardTitle: WalletMockData.card.title.testValue,
         ).withState<CardDetailBloc, CardDetailState>(
           MockCardSummaryBloc(),
-          CardDetailLoadFailure(WalletMockData.card.id!),
+          CardDetailLoadFailure(WalletMockData.card.attestationId!),
         ),
       );
 
@@ -169,10 +169,10 @@ void main() {
         CardDetailLoadSuccess(
           WalletCardDetail(
             card: WalletCard(
-              docType: 'com.example.docType',
+              attestationType: 'com.example.docType',
               issuer: WalletMockData.organization,
               attributes: const [],
-              id: 'id',
+              attestationId: 'id',
               config: const CardConfig(updatable: true),
               metadata: WalletMockData.simpleRenderingCard.metadata,
             ),
@@ -198,10 +198,10 @@ void main() {
         CardDetailLoadSuccess(
           WalletCardDetail(
             card: WalletCard(
-              docType: 'com.example.docType',
+              attestationType: 'com.example.docType',
               issuer: WalletMockData.organization,
               attributes: const [],
-              id: 'id',
+              attestationId: 'id',
               config: const CardConfig(removable: true),
             ),
             mostRecentIssuance: WalletMockData.issuanceEvent,
@@ -226,10 +226,10 @@ void main() {
         CardDetailLoadSuccess(
           WalletCardDetail(
             card: WalletCard(
-              docType: 'com.example.docType',
+              attestationType: 'com.example.docType',
               issuer: WalletMockData.organization,
               attributes: const [],
-              id: 'id',
+              attestationId: 'id',
               config: const CardConfig(removable: true),
             ),
             mostRecentIssuance: WalletMockData.issuanceEvent,
@@ -271,10 +271,10 @@ void main() {
         CardDetailLoadSuccess(
           WalletCardDetail(
             card: WalletCard(
-              docType: 'com.example.docType',
+              attestationType: 'com.example.docType',
               issuer: WalletMockData.organization,
               attributes: const [],
-              id: 'id',
+              attestationId: 'id',
               config: const CardConfig(updatable: true),
             ),
             mostRecentIssuance: WalletMockData.issuanceEvent,
@@ -298,15 +298,15 @@ void main() {
   group('unit', () {
     test('CardDetailScreenArgument can be extracted from RouteSettings', () async {
       final inputCard = WalletCard(
-        docType: 'com.example.docType',
+        attestationType: 'com.example.docType',
         issuer: WalletMockData.organization,
         attributes: const [],
-        id: 'id',
+        attestationId: 'id',
         config: const CardConfig(updatable: true),
       );
       final CardDetailScreenArgument inputArgument = CardDetailScreenArgument(
         card: inputCard,
-        cardId: inputCard.id!,
+        cardId: inputCard.attestationId!,
         cardTitle: ''.untranslated,
       );
       final resultArgument = CardDetailScreen.getArgument(RouteSettings(arguments: inputArgument.toJson()));

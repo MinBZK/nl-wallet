@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
+use chrono::Utc;
 use derive_more::Constructor;
+use itertools::Itertools;
 use p256::ecdsa::signature;
 use rustls_pki_types::TrustAnchor;
 use tracing::info;
@@ -46,7 +48,6 @@ use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
 use crate::storage::Storage;
 use crate::storage::StorageError;
-use crate::storage::WalletEvent;
 use crate::wallet::attestations::AttestationsError;
 use crate::wallet::Session;
 use crate::wte::WteIssuanceClient;
@@ -493,15 +494,18 @@ where
         self.storage
             .write()
             .await
-            .insert_credentials(issued_credentials_with_metadata)
+            .insert_credentials(
+                Utc::now(),
+                issued_credentials_with_metadata
+                    .into_iter()
+                    .zip_eq(issuance_session.preview_attestations)
+                    .collect_vec(),
+            )
             .await
             .map_err(IssuanceError::AttestationStorage)?;
 
-        self.store_history_event(WalletEvent::new_issuance(issuance_session.preview_attestations))
-            .await
-            .map_err(IssuanceError::EventStorage)?;
-
         self.emit_attestations().await.map_err(IssuanceError::Attestations)?;
+        self.emit_recent_history().await.map_err(IssuanceError::EventStorage)?;
 
         Ok(())
     }
@@ -534,6 +538,7 @@ mod tests {
     use crate::issuance::MockDigidSession;
     use crate::storage::StorageState;
     use crate::wallet::test::create_example_preview_data;
+    use crate::WalletEvent;
 
     use super::super::test;
     use super::super::test::WalletDeviceVendor;

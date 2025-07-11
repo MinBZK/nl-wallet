@@ -1,7 +1,5 @@
 use indexmap::IndexMap;
 
-use uuid::Uuid;
-
 use attestation_data::attributes::Attributes;
 use attestation_data::auth::Organization;
 use mdoc::Entry;
@@ -14,7 +12,7 @@ use super::AttestationPresentation;
 
 impl AttestationPresentation {
     pub(crate) fn create_for_disclosure(
-        id: Uuid,
+        attestation_id: String,
         metadata: NormalizedTypeMetadata,
         issuer_organization: Organization,
         mdoc_attributes: IndexMap<NameSpace, Vec<Entry>>,
@@ -22,7 +20,7 @@ impl AttestationPresentation {
         let nested_attributes = Attributes::from_mdoc_attributes(&metadata, mdoc_attributes)?;
 
         Self::create_from_attributes(
-            AttestationIdentity::Fixed { id: id.to_string() },
+            AttestationIdentity::Fixed { id: attestation_id },
             metadata,
             issuer_organization,
             &nested_attributes,
@@ -34,7 +32,6 @@ impl AttestationPresentation {
 mod test {
     use assert_matches::assert_matches;
     use indexmap::IndexMap;
-    use uuid::Uuid;
 
     use attestation_data::attributes::AttributeValue;
     use attestation_data::attributes::AttributesError;
@@ -48,8 +45,8 @@ mod test {
     use crate::attestation::attribute::test::claim_metadata;
     use crate::attestation::AttestationAttributeValue;
     use crate::attestation::AttestationError;
-    use crate::attestation::AttestationIdentity;
     use crate::attestation::AttestationPresentation;
+    use crate::AttestationIdentity;
 
     fn example_metadata() -> NormalizedTypeMetadata {
         NormalizedTypeMetadata::from_single_example(UncheckedTypeMetadata {
@@ -82,7 +79,7 @@ mod test {
         )]);
 
         let attestation = AttestationPresentation::create_for_disclosure(
-            Uuid::new_v4(),
+            String::from("id123"),
             example_metadata(),
             Organization::new_mock(),
             mdoc_attributes,
@@ -123,7 +120,7 @@ mod test {
         )]);
 
         let attestation = AttestationPresentation::create_for_disclosure(
-            Uuid::new_v4(),
+            String::from("id123"),
             example_metadata(),
             Organization::new_mock(),
             mdoc_attributes,
@@ -161,7 +158,7 @@ mod test {
         )]);
 
         let attestation = AttestationPresentation::create_for_disclosure(
-            Uuid::new_v4(),
+            String::from("id123"),
             metadata,
             Organization::new_mock(),
             mdoc_attributes,

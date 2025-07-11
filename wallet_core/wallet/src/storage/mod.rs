@@ -11,13 +11,15 @@ mod mock_storage;
 #[cfg(test)]
 pub use mock_storage::KeyedDataResult;
 
+use chrono::DateTime;
+use chrono::Utc;
+use sea_orm::DbErr;
 use std::array::TryFromSliceError;
 use std::collections::HashSet;
 use std::io;
-
-use sea_orm::DbErr;
 use uuid::Uuid;
 
+use attestation_data::disclosure_type::DisclosureType;
 use crypto::x509::BorrowingCertificate;
 use error_category::ErrorCategory;
 use mdoc::holder::Mdoc;
@@ -26,6 +28,8 @@ use openid4vc::issuance_session::CredentialWithMetadata;
 use sd_jwt::sd_jwt::VerifiedSdJwt;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataChainError;
+
+use crate::AttestationPresentation;
 
 pub use self::data::ChangePinData;
 pub use self::data::InstructionData;
@@ -41,7 +45,7 @@ pub use self::event_log::WalletEvent;
 pub use self::key_file::KeyFileError;
 
 #[cfg(any(test, feature = "mock"))]
-pub use self::mock_storage::MockStorage;
+pub use self::mock_storage::StorageStub;
 
 /// This represents the current start of [`Storage`].
 #[derive(Debug, Clone, Copy)]
@@ -88,6 +92,14 @@ pub enum StorageError {
     #[category(pd)]
     SdJwt(#[from] sd_jwt::error::Error),
 
+    #[error("cannot store attestation event having an ephemeral identity")]
+    #[category(critical)]
+    EventEphemeralIdentity,
+
+    #[error("error constructing UUID: {0}")]
+    #[category(pd)]
+    UuidConstruction(#[from] uuid::Error),
+
     #[error("storage database SQLCipher key error: {0}")]
     #[category(pd)] // we don't want to leak the key
     SqlCipherKey(#[from] TryFromSliceError),
@@ -121,6 +133,7 @@ pub enum StoredAttestationFormat {
 }
 
 /// This trait abstracts the persistent storage for the wallet.
+#[cfg_attr(test, mockall::automock)]
 pub trait Storage {
     async fn state(&self) -> StorageResult<StorageState>;
 
@@ -135,26 +148,38 @@ pub trait Storage {
         Ok(())
     }
 
-    async fn fetch_data<D: KeyedData>(&self) -> StorageResult<Option<D>>;
-    async fn insert_data<D: KeyedData>(&mut self, data: &D) -> StorageResult<()>;
-    async fn upsert_data<D: KeyedData>(&mut self, data: &D) -> StorageResult<()>;
-    async fn delete_data<D: KeyedData>(&mut self) -> StorageResult<()>;
+    async fn fetch_data<D: KeyedData + 'static>(&self) -> StorageResult<Option<D>>;
+    async fn insert_data<D: KeyedData + 'static>(&mut self, data: &D) -> StorageResult<()>;
+    async fn upsert_data<D: KeyedData + 'static>(&mut self, data: &D) -> StorageResult<()>;
+    async fn delete_data<D: KeyedData + 'static>(&mut self) -> StorageResult<()>;
 
-    async fn insert_credentials(&mut self, credentials: Vec<CredentialWithMetadata>) -> StorageResult<()>;
+    async fn insert_credentials(
+        &mut self,
+        timestamp: DateTime<Utc>,
+        credentials: Vec<(CredentialWithMetadata, AttestationPresentation)>,
+    ) -> StorageResult<()>;
     async fn increment_attestation_copies_usage_count(&mut self, attestation_copy_ids: Vec<Uuid>) -> StorageResult<()>;
 
-    async fn fetch_unique_attestations(&self) -> StorageResult<Vec<StoredAttestationCopy>>;
-    async fn fetch_unique_attestations_by_type(
-        &self,
-        attestation_types: &HashSet<&str>,
-    ) -> StorageResult<Vec<StoredAttestationCopy>>;
     async fn has_any_attestations_with_type(&self, attestation_type: &str) -> StorageResult<bool>;
 
-    async fn fetch_unique_mdocs_by_doctypes(&self, doc_types: &HashSet<&str>) -> StorageResult<Vec<StoredMdocCopy>>;
+    async fn fetch_unique_attestations(&self) -> StorageResult<Vec<StoredAttestationCopy>>;
 
-    async fn log_wallet_event(&mut self, event: WalletEvent) -> StorageResult<()>;
+    async fn fetch_unique_mdocs_by_doctypes<'a>(
+        &'a self,
+        doc_types: &HashSet<&'a str>,
+    ) -> StorageResult<Vec<StoredMdocCopy>>;
+
+    async fn log_disclosure_event(
+        &mut self,
+        timestamp: DateTime<Utc>,
+        proposed_attestation_presentations: Vec<AttestationPresentation>,
+        reader_certificate: BorrowingCertificate,
+        status: DisclosureStatus,
+        r#type: DisclosureType,
+    ) -> StorageResult<()>;
+
     async fn fetch_wallet_events(&self) -> StorageResult<Vec<WalletEvent>>;
     async fn fetch_recent_wallet_events(&self) -> StorageResult<Vec<WalletEvent>>;
-    async fn fetch_wallet_events_by_attestation_type(&self, attestation_type: &str) -> StorageResult<Vec<WalletEvent>>;
+    async fn fetch_wallet_events_by_attestation_id(&self, attestation_id: Uuid) -> StorageResult<Vec<WalletEvent>>;
     async fn did_share_data_with_relying_party(&self, certificate: &BorrowingCertificate) -> StorageResult<bool>;
 }

@@ -24,6 +24,7 @@ sealed class WalletEvent with _$WalletEvent {
   const WalletEvent._();
 
   const factory WalletEvent.disclosure({
+    required String id,
     required String dateTime,
     required Organization relyingParty,
     required List<LocalizedString> purpose,
@@ -33,6 +34,7 @@ sealed class WalletEvent with _$WalletEvent {
     required DisclosureType typ,
   }) = WalletEvent_Disclosure;
   const factory WalletEvent.issuance({
+    required String id,
     required String dateTime,
     required AttestationPresentation attestation,
     required bool renewed,

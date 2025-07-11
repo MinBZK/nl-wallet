@@ -1,16 +1,27 @@
+use std::str::FromStr;
+
+use chrono::DateTime;
+use chrono::Utc;
 use tracing::info;
 use tracing::instrument;
+use uuid::Uuid;
 
+use attestation_data::disclosure_type::DisclosureType;
+use crypto::x509::BorrowingCertificate;
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
 use openid4vc::disclosure_session::DisclosureClient;
 use platform_support::attested_key::AttestedKeyHolder;
 use update_policy_model::update_policy::VersionState;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::errors::StorageError;
 use crate::repository::Repository;
+use crate::storage::DataDisclosureStatus;
 use crate::storage::Storage;
 use crate::storage::WalletEvent;
+use crate::AttestationPresentation;
+use crate::DisclosureStatus;
 
 use super::Wallet;
 
@@ -20,14 +31,21 @@ pub enum HistoryError {
     #[category(expected)]
     #[error("app version is blocked")]
     VersionBlocked,
+
     #[error("wallet is not registered")]
     #[category(expected)]
     NotRegistered,
+
     #[error("wallet is locked")]
     #[category(expected)]
     Locked,
+
     #[error("could not access history database: {0}")]
     EventStorage(#[from] StorageError),
+
+    #[error("error creating Uuid from string: {0}")]
+    #[category(critical)]
+    UuidCreation(#[from] uuid::Error),
 }
 
 type HistoryResult<T> = Result<T, HistoryError>;
@@ -41,9 +59,28 @@ where
     AKH: AttestedKeyHolder,
     DC: DisclosureClient,
 {
-    pub(super) async fn store_history_event(&mut self, event: WalletEvent) -> Result<(), StorageError> {
+    pub(super) async fn store_disclosure_event(
+        &mut self,
+        timestamp: DateTime<Utc>,
+        attestations: Option<VecNonEmpty<AttestationPresentation>>,
+        reader_certificate: BorrowingCertificate,
+        r#type: DisclosureType,
+        status: DisclosureStatus,
+        data_status: DataDisclosureStatus,
+    ) -> Result<(), StorageError> {
         info!("Storing history event");
-        self.storage.write().await.log_wallet_event(event).await?;
+
+        let attestations = match data_status {
+            DataDisclosureStatus::Disclosed => attestations.map(VecNonEmpty::into_inner),
+            DataDisclosureStatus::NotDisclosed => None,
+        }
+        .unwrap_or_default();
+
+        self.storage
+            .write()
+            .await
+            .log_disclosure_event(timestamp, attestations, reader_certificate, status, r#type)
+            .await?;
 
         info!("Emitting recent history");
         self.emit_recent_history().await
@@ -78,7 +115,7 @@ where
 
     #[instrument(skip_all)]
     #[sentry_capture_error]
-    pub async fn get_history_for_card(&self, attestation_type: &str) -> HistoryResult<Vec<WalletEvent>> {
+    pub async fn get_history_for_card(&self, attestation_id: &str) -> HistoryResult<Vec<WalletEvent>> {
         info!("Retrieving Card history");
 
         info!("Checking if blocked");
@@ -99,13 +136,13 @@ where
         info!("Retrieving Card history from storage");
         let storage = self.storage.read().await;
         let events = storage
-            .fetch_wallet_events_by_attestation_type(attestation_type)
+            .fetch_wallet_events_by_attestation_id(Uuid::from_str(attestation_id)?)
             .await?;
 
         Ok(events)
     }
 
-    async fn emit_recent_history(&mut self) -> Result<(), StorageError> {
+    pub async fn emit_recent_history(&mut self) -> Result<(), StorageError> {
         info!("Emit recent history from storage");
 
         let storage = self.storage.read().await;
@@ -147,23 +184,26 @@ mod tests {
     use chrono::Duration;
     use chrono::TimeZone;
     use chrono::Utc;
+    use itertools::Itertools;
+    use uuid::Uuid;
 
     use attestation_data::auth::reader_auth::ReaderRegistration;
+    use attestation_data::disclosure_type::DisclosureType;
     use attestation_data::x509::generate::mock::generate_reader_mock;
     use crypto::server_keys::generate::Ca;
 
-    use crate::attestation::AttestationPresentation;
-    use crate::storage::WalletEvent;
+    use crate::storage::DataDisclosureStatus;
+    use crate::AttestationPresentation;
+    use crate::DisclosureStatus;
+    use crate::WalletEvent;
 
     use super::super::test;
     use super::super::test::WalletDeviceVendor;
     use super::super::test::WalletWithMocks;
-    use super::super::test::ISSUER_KEY;
     use super::HistoryError;
     use super::Wallet;
 
     const PID_DOCTYPE: &str = "com.example.pid";
-    const ADDRESS_DOCTYPE: &str = "com.example.address";
 
     #[tokio::test]
     async fn test_history_fails_when_not_registered() {
@@ -215,53 +255,66 @@ mod tests {
         let timestamp_older = Utc.with_ymd_and_hms(2023, 11, 11, 11, 11, 00).unwrap();
         let timestamp_newer = Utc.with_ymd_and_hms(2023, 11, 21, 13, 37, 00).unwrap();
 
-        let pid_doc_type_event =
-            WalletEvent::issuance_from_str(&[PID_DOCTYPE], timestamp_older, ISSUER_KEY.issuance_key.certificate());
-        wallet.store_history_event(pid_doc_type_event.clone()).await.unwrap();
-
-        let disclosure_cancelled_event =
-            WalletEvent::disclosure_cancel(timestamp_older + Duration::days(1), reader_key.certificate().clone());
         wallet
-            .store_history_event(disclosure_cancelled_event.clone())
+            .store_disclosure_event(
+                timestamp_older,
+                None,
+                reader_key.certificate().clone(),
+                DisclosureType::Regular,
+                DisclosureStatus::Success,
+                DataDisclosureStatus::Disclosed,
+            )
             .await
             .unwrap();
 
-        let disclosure_error_event =
-            WalletEvent::disclosure_error(timestamp_older + Duration::days(2), reader_key.certificate().clone());
         wallet
-            .store_history_event(disclosure_error_event.clone())
+            .store_disclosure_event(
+                timestamp_older + Duration::days(1),
+                None,
+                reader_key.certificate().clone(),
+                DisclosureType::Regular,
+                DisclosureStatus::Cancelled,
+                DataDisclosureStatus::NotDisclosed,
+            )
             .await
             .unwrap();
 
-        let address_doc_type_event = WalletEvent::disclosure_from_str(
-            &[ADDRESS_DOCTYPE],
-            timestamp_newer,
-            reader_key.certificate().clone(),
-            ISSUER_KEY.issuance_key.certificate(),
-        );
         wallet
-            .store_history_event(address_doc_type_event.clone())
+            .store_disclosure_event(
+                timestamp_older + Duration::days(2),
+                None,
+                reader_key.certificate().clone(),
+                DisclosureType::Regular,
+                DisclosureStatus::Error,
+                DataDisclosureStatus::NotDisclosed,
+            )
+            .await
+            .unwrap();
+
+        wallet
+            .store_disclosure_event(
+                timestamp_newer,
+                None,
+                reader_key.certificate().clone(),
+                DisclosureType::Regular,
+                DisclosureStatus::Success,
+                DataDisclosureStatus::Disclosed,
+            )
             .await
             .unwrap();
 
         // get history should return both events, in correct order, newest first
         let history = wallet.get_history().await.unwrap();
+        let timestamps = history.iter().map(|event| event.timestamp()).collect_vec();
         assert_eq!(
-            history,
+            timestamps,
             vec![
-                address_doc_type_event.clone(),
-                disclosure_error_event,
-                disclosure_cancelled_event,
-                pid_doc_type_event.clone()
+                &timestamp_newer,
+                &(timestamp_older + Duration::days(2)),
+                &(timestamp_older + Duration::days(1)),
+                &timestamp_older,
             ]
         );
-
-        // get history for card should return single event
-        let history = wallet.get_history_for_card(PID_DOCTYPE).await.unwrap();
-        assert_eq!(history, vec![pid_doc_type_event]);
-
-        let history = wallet.get_history_for_card(ADDRESS_DOCTYPE).await.unwrap();
-        assert_eq!(history, vec![address_doc_type_event]);
     }
 
     // Tests both setting and clearing the recent_history callback on an unregistered `Wallet`.
@@ -297,8 +350,12 @@ mod tests {
         let mut wallet = Wallet::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // The database contains a single Issuance Event
-        let attestations = vec![AttestationPresentation::new_mock()].try_into().unwrap();
-        let event = WalletEvent::new_issuance(attestations);
+        let event = WalletEvent::Issuance {
+            id: Uuid::new_v4(),
+            attestation: Box::new(AttestationPresentation::new_mock()),
+            timestamp: Utc::now(),
+            renewed: false,
+        };
         wallet.storage.write().await.event_log.push(event);
 
         // Register mock recent history callback

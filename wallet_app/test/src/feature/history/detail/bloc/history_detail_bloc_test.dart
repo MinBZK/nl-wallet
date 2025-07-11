@@ -2,7 +2,6 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wallet/src/domain/model/card/wallet_card.dart';
-import 'package:wallet/src/domain/model/result/application_error.dart';
 import 'package:wallet/src/domain/model/result/result.dart';
 import 'package:wallet/src/feature/history/detail/bloc/history_detail_bloc.dart';
 
@@ -24,15 +23,6 @@ void main() {
   );
 
   blocTest(
-    'verify transition to HistoryDetailLoadFailure when cards can not be loaded',
-    build: () => HistoryDetailBloc(getWalletCardsUseCase),
-    setUp: () => when(getWalletCardsUseCase.invoke())
-        .thenAnswer((_) async => const Result.error(GenericError('Could not load cards', sourceError: 'test'))),
-    act: (bloc) => bloc.add(HistoryDetailLoadTriggered(event: WalletMockData.disclosureEvent)),
-    expect: () => [const HistoryDetailLoadInProgress(), const HistoryDetailLoadFailure()],
-  );
-
-  blocTest(
     'verify transition to HistoryDetailLoadSuccess when cards can be loaded',
     build: () => HistoryDetailBloc(getWalletCardsUseCase),
     setUp: () => when(getWalletCardsUseCase.invoke())
@@ -40,7 +30,7 @@ void main() {
     act: (bloc) => bloc.add(HistoryDetailLoadTriggered(event: WalletMockData.disclosureEvent)),
     expect: () => [
       const HistoryDetailLoadInProgress(),
-      HistoryDetailLoadSuccess(WalletMockData.disclosureEvent, [WalletMockData.card]),
+      HistoryDetailLoadSuccess(WalletMockData.disclosureEvent),
     ],
   );
 }

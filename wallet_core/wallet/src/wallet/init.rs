@@ -262,7 +262,7 @@ mod tests {
     use rand_core::OsRng;
 
     use crate::pin::key as pin_key;
-    use crate::storage::MockStorage;
+    use crate::storage::StorageStub;
 
     use super::super::test;
     use super::super::test::WalletDeviceVendor;
@@ -302,7 +302,7 @@ mod tests {
     #[tokio::test]
     async fn test_wallet_init_fetch_registration_no_registration() {
         let wallet = WalletWithMocks::new_init_registration_with_mocks(
-            MockStorage::new(StorageState::Unopened, None),
+            StorageStub::new(StorageState::Unopened, None),
             test::generate_key_holder(WalletDeviceVendor::Apple),
         )
         .await
@@ -326,7 +326,7 @@ mod tests {
         let pin_salt = pin_key::new_pin_salt();
 
         let wallet = WalletWithMocks::new_init_registration_with_mocks(
-            MockStorage::new(
+            StorageStub::new(
                 StorageState::Unopened,
                 Some(RegistrationData {
                     attested_key_identifier: "key_id_123".to_string(),
@@ -357,7 +357,7 @@ mod tests {
     #[should_panic]
     async fn test_wallet_init_fetch_with_registration_panic() {
         let _ = WalletWithMocks::new_init_registration_with_mocks(
-            MockStorage::new(
+            StorageStub::new(
                 StorageState::Unopened,
                 Some(RegistrationData {
                     attested_key_identifier: "key_id_321".to_string(),
