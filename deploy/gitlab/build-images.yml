@@ -1,0 +1,31 @@
+.build-image:
+  rules: !reference [.default-or-release-or-merge-request, rules]
+
+build-images-tag:
+  extends: .build-image
+  image: "${HARBOR_REGISTRY}/docker-hub-proxy/library/bash:5.3.0"
+  when: manual
+  allow_failure: true
+  before_script:
+    - |
+      if [[ -z CI_MERGE_REQUEST_SOURCE_BRANCH_SHA ]]; then
+        COMMIT_SHORT_SHA="${CI_COMMIT_SHORT_SHA}"
+      else
+        COMMIT_SHORT_SHA="${CI_MERGE_REQUEST_SOURCE_BRANCH_SHA:0:8}"
+      fi
+  script:
+    - echo IMAGE_TAG="$(date +'%y%m%d')-${COMMIT_SHORT_SHA}" | tee build.env
+  artifacts:
+    reports:
+      dotenv: build.env
+
+build-images-trigger:
+  extends: .build-image
+  needs:
+    - job: build-images-tag
+      artifacts: true
+  trigger:
+    include: deploy/docker-images/build.yml
+  variables:
+    IMAGE_TAG: $IMAGE_TAG
+    PARENT_PIPELINE_ID: $CI_PIPELINE_ID

@@ -1,0 +1,62 @@
+# Global variables, used by all jobs
+variables:
+  IMAGE_PREFIX:
+    value: "nl-wallet-app-builder"
+    description: "Prefix to use for Docker image name"
+  IMAGE_TAG:
+    value: null
+    description: "Tag of all build images"
+  KANIKO_IMAGE_TAG:
+    value: "v1.23.2-debug"
+    description: "The version of kaniko, a container image builder, to use"
+  KANIKO_VERBOSITY:
+    value: "info"
+    description: "The log verbosity level of the kaniko executor"
+  KANIKO_CACHE:
+    value: "false"
+    description: "Enable or disable storing intermediate layers within a container image registry"
+
+# The default image to use for each job
+default:
+  image:
+    name: "$HARBOR_REGISTRY/gcr-io-proxy/kaniko-project/executor:${KANIKO_IMAGE_TAG}"
+    entrypoint: [""]
+
+.build:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "parent_pipeline"
+  before_script:
+    - echo $DOCKER_AUTH_CONFIG > /kaniko/.docker/config.json
+  script: sh "deploy/docker-images/build-ci.sh" "$CI_JOB_NAME"
+
+# Build ci Dockerfiles
+ci-base:
+  extends: .build
+ci-ansible:
+  extends: .build
+  needs: [{job: ci-base, artifacts: false}]
+ci-node:
+  extends: .build
+  needs: [{job: ci-base, artifacts: false}]
+ci-rust:
+  extends: .build
+  needs: [{job: ci-node, artifacts: false}]
+ci-flutter:
+  extends: .build
+  needs: [{job: ci-rust, artifacts: false}]
+ci-android:
+  extends: .build
+  needs: [{job: ci-flutter, artifacts: false}]
+ci-android-emulator:
+  extends: .build
+  needs: [{job: ci-android, artifacts: false}]
+ci-playwright:
+  extends: .build
+  needs: [{job: ci-node, artifacts: false}]
+ci-quality:
+  extends: .build
+  needs: [{job: ci-android, artifacts: false}]
+
+# Build postgres.Dockerfile
+postgres:
+  extends: .build
