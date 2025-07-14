@@ -116,6 +116,7 @@ impl ItemsRequests {
     }
 }
 
+#[cfg(any(test, feature = "test"))]
 impl TryFrom<NormalizedCredentialRequest> for ItemsRequest {
     type Error = MdocCredentialRequestError;
 

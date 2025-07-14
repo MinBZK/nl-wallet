@@ -11,7 +11,7 @@ workspace = true
 examples = []
 example_credential_payloads = ["dep:rand_core"]
 generate = ["dep:rcgen", "crypto/generate"]
-mock = ["crypto/mock", "mdoc/examples", "mdoc/test"]
+mock = ["crypto/mock", "mdoc/test"]
 test = ["derive_more/unwrap"]
 
 [dependencies]
@@ -22,7 +22,6 @@ derive_more = { workspace = true, features = ["debug", "display"] }
 indexmap = { workspace = true, features = ["serde"] }
 itertools.workspace = true
 jsonwebtoken.workspace = true
-nutype.workspace = true
 p256.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
