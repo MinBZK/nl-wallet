@@ -70,18 +70,17 @@ async fn get_policy(State(state): State<Arc<ApplicationState>>, headers: HeaderM
     let policy = state.update_policy.clone().into_response(&TimeGenerator);
     let policy_entity_tag = EntityTag::from_data(&postcard::to_allocvec(&policy).unwrap());
 
-    if let Some(etag) = headers.get(header::IF_NONE_MATCH) {
-        let entity_tag = etag
+    if let Some(etag) = headers.get(header::IF_NONE_MATCH)
+        // Comparing etags using the If-None-Match header uses the weak comparison algorithm.
+        && etag
             .to_str()
             .ok()
-            .and_then(|etag| etag.parse().ok())
-            .ok_or(StatusCode::BAD_REQUEST)?;
-
-        // Comparing etags using the If-None-Match header uses the weak comparison algorithm.
-        if policy_entity_tag.weak_eq(&entity_tag) {
-            debug!("Policy is not modified");
-            return Err(StatusCode::NOT_MODIFIED);
-        }
+            .and_then(|etag| etag.parse::<EntityTag>().ok())
+            .ok_or(StatusCode::BAD_REQUEST)?
+            .weak_eq(&policy_entity_tag)
+    {
+        debug!("Policy is not modified");
+        return Err(StatusCode::NOT_MODIFIED);
     }
 
     let mut resp: Response = Json(policy).into_response();
