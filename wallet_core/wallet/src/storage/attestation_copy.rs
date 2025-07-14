@@ -20,16 +20,18 @@ pub struct StoredAttestationCopy {
     pub normalized_metadata: NormalizedTypeMetadata,
 }
 
-impl From<StoredAttestationCopy> for CredentialPayload {
-    fn from(value: StoredAttestationCopy) -> Self {
-        match value.attestation {
+impl StoredAttestationCopy {
+    pub fn into_credential_payload_and_id(self) -> (CredentialPayload, Uuid) {
+        let payload = match self.attestation {
             StoredAttestationFormat::MsoMdoc { mdoc } => mdoc
-                .into_credential_payload(&value.normalized_metadata)
+                .into_credential_payload(&self.normalized_metadata)
                 .expect("conversion from mdoc to CredentialPayload has been done before"),
             StoredAttestationFormat::SdJwt { sd_jwt } => sd_jwt
                 .into_inner()
-                .into_credential_payload(&value.normalized_metadata)
+                .into_credential_payload(&self.normalized_metadata)
                 .expect("conversion from SD-JWT to CredentialPayload has been done before"),
-        }
+        };
+
+        (payload, self.attestation_id)
     }
 }
