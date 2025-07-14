@@ -628,6 +628,7 @@ mod tests {
     use crate::storage::StoredAttestationFormat;
     use crate::wallet::test::create_example_credential_payload;
     use crate::wallet::test::create_example_preview_data;
+    use crate::wallet::test::WalletWithStorageMock;
     use crate::WalletEvent;
 
     use super::super::test;
@@ -953,29 +954,36 @@ mod tests {
         assert_matches!(error, IssuanceError::SessionState);
     }
 
+    fn mock_digid_session() -> MockDigidSession {
+        // Set up a mock DigiD session that returns a token request.
+        let mut session = MockDigidSession::default();
+
+        session.expect_into_token_request().return_once(|_uri| {
+            Ok(TokenRequest {
+                grant_type: TokenRequestGrantType::PreAuthorizedCode {
+                    pre_authorized_code: "123".to_string().into(),
+                },
+                code_verifier: None,
+                client_id: None,
+                redirect_uri: None,
+            })
+        });
+
+        session
+    }
+
     fn setup_wallet_with_digid_session() -> WalletWithMocks {
         // Prepare a registered wallet.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
+        wallet.session = Some(Session::Digid(mock_digid_session()));
+        wallet
+    }
 
-        // Set up a mock DigiD session that returns a token request.
-        let digid_session = {
-            let mut session = MockDigidSession::default();
-
-            session.expect_into_token_request().return_once(|_uri| {
-                Ok(TokenRequest {
-                    grant_type: TokenRequestGrantType::PreAuthorizedCode {
-                        pre_authorized_code: "123".to_string().into(),
-                    },
-                    code_verifier: None,
-                    client_id: None,
-                    redirect_uri: None,
-                })
-            });
-
-            session
-        };
-        wallet.session = Some(Session::Digid(digid_session));
-
+    fn setup_wallet_with_digid_session_and_database_mock() -> WalletWithStorageMock {
+        // Prepare a registered wallet.
+        let mut wallet =
+            WalletWithStorageMock::new_registered_and_unlocked_with_storage_mock(WalletDeviceVendor::Apple);
+        wallet.session = Some(Session::Digid(mock_digid_session()));
         wallet
     }
 
@@ -997,6 +1005,78 @@ mod tests {
             .expect_err("Continuing PID issuance should have resulted in error");
 
         assert_matches!(error, IssuanceError::IssuanceSession { .. });
+    }
+
+    #[tokio::test]
+    #[serial(MockIssuanceSession)]
+    async fn test_continue_pid_issuance_with_renewed_attestation() {
+        let mut wallet = setup_wallet_with_digid_session_and_database_mock();
+
+        // When the attestation already exists in the database, we expect the identity to be known
+        let mut previews = vec![create_example_preview_data()];
+
+        // When the attestation already exists in the database, but the preview has a newer nbf, it should be
+        // considered as a new attestation and the identity is None.
+        let mut preview = create_example_preview_data();
+        preview.content.credential_payload.not_before = Some(Utc::now().add(Duration::days(365)).into());
+        previews.push(preview);
+
+        // When the attestation_type is different from the one stored in the database, it should be
+        // considered as a new attestation and the identity is None.
+        let mut preview = create_example_preview_data();
+        preview.content.credential_payload.attestation_type = String::from("att_type_1");
+        previews.push(preview);
+
+        let holder_key = SigningKey::random(&mut OsRng);
+        let ca = Ca::generate("myca", Default::default()).unwrap();
+        let cert_type = CertificateType::from(IssuerRegistration::new_mock());
+        let issuer_key_pair = ca.generate_key_pair("mycert", cert_type, Default::default()).unwrap();
+
+        let (payload, _, normalized_metadata) = create_example_credential_payload();
+        let sd_jwt = payload
+            .into_sd_jwt(&normalized_metadata, holder_key.verifying_key(), &issuer_key_pair)
+            .now_or_never()
+            .unwrap()
+            .unwrap();
+
+        let attestation_id = Uuid::new_v4();
+        let stored = StoredAttestationCopy {
+            attestation_id,
+            attestation_copy_id: Uuid::new_v4(),
+            attestation: StoredAttestationFormat::SdJwt {
+                sd_jwt: Box::new(sd_jwt.into()),
+            },
+            normalized_metadata,
+        };
+
+        let storage = Arc::get_mut(&mut wallet.storage).unwrap().get_mut();
+        storage
+            .expect_fetch_unique_attestations_by_type()
+            .return_once(move |_attestation_types| Ok(vec![stored]));
+
+        // Set up the `MockIssuanceSession` to return one `CredentialPreviewState`.
+        let start_context = MockIssuanceSession::start_context();
+        start_context.expect().return_once(|| {
+            let mut client = MockIssuanceSession::new();
+
+            client.expect_normalized_credential_previews().return_const(previews);
+
+            client.expect_issuer().return_const(IssuerRegistration::new_mock());
+
+            Ok(client)
+        });
+
+        // Continuing PID issuance should result in one preview `Attestation`.
+        let attestations = wallet
+            .continue_pid_issuance(Url::parse(REDIRECT_URI).unwrap())
+            .await
+            .expect("Could not continue PID issuance");
+
+        assert_eq!(attestations.len(), 3);
+
+        assert_matches!(&attestations[0].identity, AttestationIdentity::Fixed { id } if id == &attestation_id.to_string());
+        assert_matches!(&attestations[1].identity, AttestationIdentity::Ephemeral);
+        assert_matches!(&attestations[2].identity, AttestationIdentity::Ephemeral);
     }
 
     #[tokio::test]
