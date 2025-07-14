@@ -13,6 +13,16 @@ class WalletTheme {
     useMaterial3: true,
     fontFamily: BaseWalletTheme.fontFamily,
     floatingActionButtonTheme: BaseWalletTheme.floatingActionButtonTheme,
+    sliderTheme: const SliderThemeData(
+      inactiveTrackColor: Color(0xFFABABAB),
+      activeTrackColor: Colors.white,
+      thumbColor: Colors.white,
+      trackHeight: 4,
+      thumbShape: RoundSliderThumbShape(enabledThumbRadius: 24 / 2),
+      overlayShape: RoundSliderOverlayShape(overlayRadius: 50 / 2),
+      overlayColor: Color(0xE61C1E25),
+      padding: EdgeInsets.symmetric(horizontal: 2 /* provide tiny spacing for focused state */),
+    ),
   );
 
   static ThemeData light = _baseTheme.copyWith(

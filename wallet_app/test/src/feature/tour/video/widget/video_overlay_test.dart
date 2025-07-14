@@ -12,7 +12,8 @@ import 'package:wallet/src/feature/tour/video/widget/video_overlay.dart';
 import 'package:wallet/src/feature/tour/video/widget/video_time_seek_bar.dart';
 
 import '../../../../../wallet_app_test_widget.dart';
-import '../../../../mocks/wallet_mocks.mocks.dart';
+import '../../../../mocks/wallet_mocks.mocks.dart'; // Import the golden test utilities (ensure you have this or a similar utility)
+import '../../../../test_util/golden_utils.dart';
 
 // Helper to pump the widget with necessary wrappers
 Future<void> pumpVideoOverlay(
@@ -20,6 +21,7 @@ Future<void> pumpVideoOverlay(
   required VideoPlayerController controller,
   VoidCallback? onClosePressed,
   bool autoPlay = false,
+  Size screenSize = iphoneXSizeLandscape,
 }) async {
   await tester.pumpWidgetWithAppWrapper(
     VideoOverlay(
@@ -28,8 +30,10 @@ Future<void> pumpVideoOverlay(
       onClosePressed: onClosePressed ?? () {},
       autoPlay: autoPlay,
     ),
+    surfaceSize: screenSize,
     providers: [RepositoryProvider<SemanticsEventService>(create: (_) => MockSemanticsEventService())],
   );
+  await tester.pumpAndSettle(); // Ensure layout is complete
 }
 
 // Default VideoPlayerValue for tests
@@ -393,8 +397,97 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // Controls should now be visible
-        expect(find.byIcon(Icons.replay), findsOneWidget); // Replay icon indicates completion
+        expect(find.byIcon(Icons.replay), findsOneWidget);
+      });
+    });
+
+    // Golden Test Group
+    group('goldens', () {
+      testGoldens('initial paused state', (WidgetTester tester) async {
+        // Ensure the mock controller is set to the initial paused state
+        when(mockController.value).thenReturn(initialVideoValue.copyWith(isPlaying: false));
+
+        await pumpVideoOverlay(tester, controller: mockController, autoPlay: false);
+
+        // Let animations and UI settle.
+        await tester.pumpAndSettle(const Duration(milliseconds: 500)); // Adjust delay if needed
+
+        // The name here will be used for the golden file, e.g., video_overlay_initial_paused_state.png
+        await screenMatchesGolden('initial.paused.controls');
+      });
+
+      testGoldens('playing state with controls hidden', (WidgetTester tester) async {
+        // Set the controller to a playing state
+        when(mockController.value).thenReturn(initialVideoValue.copyWith(isPlaying: true));
+        await pumpVideoOverlay(tester, controller: mockController, autoPlay: true, screenSize: const Size(420, 250));
+        await tester.pumpAndSettle(); // Initial pump, controls visible
+
+        // Wait for controls to auto-hide
+        await tester.pumpAndSettle(kAutoHideFullScreenControlsDelay + const Duration(milliseconds: 200));
+
+        await screenMatchesGolden('playing.no_controls');
+      });
+
+      testGoldens('video completed state', (WidgetTester tester) async {
+        when(mockController.value).thenReturn(
+          initialVideoValue.copyWith(
+            isPlaying: false,
+            position: initialVideoValue.duration,
+            isCompleted: true,
+          ),
+        );
+        await pumpVideoOverlay(tester, controller: mockController);
+        await tester.pumpAndSettle(); // Controls should show up
+
+        await screenMatchesGolden('completed');
+      });
+
+      testGoldens('controls and captions visible', (WidgetTester tester) async {
+        when(mockController.value).thenReturn(
+          initialVideoValue.copyWith(
+            isPlaying: true, // Let's make it playing for this test
+            caption: const Caption(
+              number: 0,
+              start: Duration.zero,
+              end: Duration(seconds: 5),
+              text: 'Hello Golden Test! This is a caption.',
+            ),
+          ),
+        );
+        await pumpVideoOverlay(tester, controller: mockController, autoPlay: true);
+
+        // Tap to enable captions
+        await tester.tap(find.byIcon(Icons.subtitles));
+        await tester.pumpAndSettle(); // Settle after tap and state update
+
+        await tester.pumpAndSettle();
+
+        await screenMatchesGolden('playing.controls.captions');
+      });
+
+      testGoldens('no controls and captions visible', (WidgetTester tester) async {
+        when(mockController.value).thenReturn(
+          initialVideoValue.copyWith(
+            isPlaying: true, // Let's make it playing for this test
+            caption: const Caption(
+              number: 0,
+              start: Duration.zero,
+              end: Duration(seconds: 5),
+              text: 'Hello Golden Test! This is a caption.',
+            ),
+          ),
+        );
+        await pumpVideoOverlay(tester, controller: mockController, autoPlay: true);
+
+        // Tap to enable captions
+        await tester.tap(find.byIcon(Icons.subtitles));
+        await tester.pumpAndSettle(); // Settle after tap and state update
+
+        // Tap to instantly hide controls
+        await tester.tapAt(const Offset(10, 10));
+        await tester.pumpAndSettle();
+
+        await screenMatchesGolden('playing.no_controls.captions');
       });
     });
   });
