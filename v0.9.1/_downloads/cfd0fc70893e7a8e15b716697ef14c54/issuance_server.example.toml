@@ -1,0 +1,61 @@
+# The wallet must be able to reach the server at this URL
+public_url = 'http://localhost:8001/'
+
+issuer_trust_anchors = ["MII..."] # CAs for issuer certificates
+reader_trust_anchors = ["MII..."] # CAs for RP certificates
+
+# Files containing SD-JWT Type Metadata documents for attestations that will be issued
+metadata = ["com_example_address_metadata.json"]
+
+# The base of the Universal Link (UL) of the wallet, used in QRs/ULs
+# Production value is "https://app.test.voorbeeldwallet.nl/deeplink/"
+universal_link_base_url = "walletdebuginteraction://wallet.edi.rijksoverheid.nl/" # default value
+
+# Whether HTTP requests/responses should be logged
+log_requests = false # default value
+
+# Emit logs in JSON format
+structured_logging = false # default value
+
+# `client_id` values that this server accepts, identifying the wallet implementation (not individual instances,
+# i.e., the `client_id` value of a wallet implementation is constant across all wallets of that implementation).
+wallet_client_ids = ["https://wallet.edi.rijksoverheid.nl"] # default value
+
+[storage]
+url = 'postgres://postgres:postgres@localhost:5432/pid_issuer' # or 'memory://'
+
+[wallet_server]
+ip = '127.0.0.1'
+port = 8001
+
+# Optional, for securing private keys
+[hsm]
+library_path = "/path/to/hsm.so"
+user_pin = "12345678"
+max_sessions = 3
+max_session_lifetime_in_sec = 900
+
+# Here, `disclosure_based_issuance` is an example of a freely choosable identifier that has to be present in the QR/UL
+# that starts the session.
+[disclosure_settings.disclosure_based_issuance]
+# URL of a server that will receive the disclosed attributes and has to respond with a JSON array of `IssuableDocument`s
+private_key_type = "hsm"                      # or "software"
+private_key = "disclosure_based_issuance_key" # label for the private key in the HSM, in case of "hsm"
+certificate = "MIJ..."
+
+[disclosure_settings.degree.attestation_url_config]
+# URL to the attestation server
+base_url = "https://attestation_server.example.com"
+trust_anchors = ["MIJ..."]
+
+# Attributes that have to be disclosed for `disclosure_based_issuance`
+[[disclosure_settings.disclosure_based_issuance.to_disclose]]
+docType = "com.example.pid"
+nameSpaces = { "com.example.pid" = { bsn = true } }
+
+[attestation_settings."com.example.address"]
+valid_days = 365
+copies_per_format = { "mso_mdoc" = 4, "dc+sd-jwt" = 4 }
+private_key_type = "software" # or "hsm"
+private_key = "MIG..."        # DER-encoded private key, in case of "software"
+certificate = "MIJ..."
