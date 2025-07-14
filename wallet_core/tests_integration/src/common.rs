@@ -660,14 +660,14 @@ pub async fn start_gba_hc_converter(settings: GbaSettings) {
 
     tokio::spawn(async {
         if let Err(error) = gba_hc_converter::app::serve_from_settings(settings).await {
-            if let Some(io_error) = error.downcast_ref::<io::Error>() {
-                if io_error.kind() == io::ErrorKind::AddrInUse {
-                    println!(
-                        "TCP address/port for gba_hc_converter is already in use, assuming you started it yourself, \
-                         continuing..."
-                    );
-                    return;
-                }
+            if let Some(io_error) = error.downcast_ref::<io::Error>()
+                && io_error.kind() == io::ErrorKind::AddrInUse
+            {
+                println!(
+                    "TCP address/port for gba_hc_converter is already in use, assuming you started it yourself, \
+                     continuing..."
+                );
+                return;
             }
             println!("Could not start gba_hc_converter: {error:?}");
             process::exit(1);
