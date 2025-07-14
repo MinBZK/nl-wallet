@@ -164,15 +164,15 @@ impl RecoveryCodeConfig {
             attestation_type: settings.attestation_type,
             recovery_code_claim_paths: settings
                 .recovery_code_claim_paths
-                .iter()
-                .map(|key| ClaimPath::SelectByKey(key.clone()))
+                .into_iter()
+                .map(|key| ClaimPath::SelectByKey(key))
                 .collect::<Vec<_>>()
                 .try_into()
                 .unwrap(), // safe because we iterated over a VecNonEmpty
             bsn_claim_paths: settings
                 .bsn_claim_paths
-                .iter()
-                .map(|key| ClaimPath::SelectByKey(key.clone()))
+                .into_iter()
+                .map(|key| ClaimPath::SelectByKey(key))
                 .collect::<Vec<_>>()
                 .try_into()
                 .unwrap(), // safe because we iterated over a VecNonEmpty
