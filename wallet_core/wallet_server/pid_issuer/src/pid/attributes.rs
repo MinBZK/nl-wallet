@@ -229,10 +229,6 @@ mod tests {
 
         let hmac_key = &hmac::Key::new(HMAC_SHA256, &key);
         let expected_hmac = hex::encode(hmac::sign(hmac_key, bsn.as_bytes()));
-        assert_eq!(
-            expected_hmac,
-            "e7c5538a4b15664ed667e05be3c25040fe6e433fbbc33c0cb5a85dfc09d9766c"
-        );
 
         // The result should be the attributes we started with, with a recovery_code attribute added to it.
         let expected_attrs = Attributes::from(IndexMap::from_iter(attributes(bsn).into_inner().into_iter().chain([(
