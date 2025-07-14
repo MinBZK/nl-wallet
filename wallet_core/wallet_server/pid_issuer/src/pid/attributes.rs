@@ -182,12 +182,13 @@ impl RecoveryCodeConfig {
 
 #[cfg(test)]
 mod tests {
-    use attestation_data::attributes::Attribute;
-    use attestation_data::attributes::AttributeValue;
-    use attestation_data::attributes::Attributes;
     use indexmap::IndexMap;
     use ring::hmac;
     use ring::hmac::HMAC_SHA256;
+
+    use attestation_data::attributes::Attribute;
+    use attestation_data::attributes::AttributeValue;
+    use attestation_data::attributes::Attributes;
     use server_utils::settings::SecretKey;
 
     use crate::pid::attributes::BrpPidAttributeService;
