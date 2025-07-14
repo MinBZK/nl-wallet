@@ -165,6 +165,15 @@
         "type": "string"
       }
     },
-    "required": ["vct", "iss", "attestation_qualification", "given_name", "family_name", "birthdate", "bsn"]
+    "required": [
+      "vct",
+      "iss",
+      "attestation_qualification",
+      "given_name",
+      "family_name",
+      "birthdate",
+      "bsn",
+      "recovery_code"
+    ]
   }
 }
