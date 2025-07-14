@@ -6,7 +6,7 @@ public_url = 'http://localhost:8001/'
 issuer_trust_anchors = ["MII..."] # CAs for trusted issuers
 reader_trust_anchors = ["MII..."] # CAs for RP certificates
 
-ephemeral_id_secret = "" # hex encoded, minimally 16 bytes (32 characters)
+ephemeral_id_secret = "" # hex encoded, minimally 32 bytes (64 characters)
 
 allow_origins = ["http://localhost:8080"] # or allow_origins = "*"
 
