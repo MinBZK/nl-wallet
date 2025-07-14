@@ -111,6 +111,8 @@ class WalletAssets {
   static const icon_card_share = 'assets/non-free/icons/card_share.png';
 
   // VIDEOS
+  static const slug_placeholder = '{slug}';
+  static const language_placeholder = '{languageCode}';
   static const supported_video_language_codes = ['en', 'nl'];
   static const video_slugs = [
     'intro',
@@ -122,7 +124,7 @@ class WalletAssets {
     'dark-mode-and-language',
   ];
   static const video_tour_thumbnail_asset_placeholder =
-      'assets/non-free/images/tour_video_thumb_{slug}_{languageCode}.png';
-  static const video_tour_video_url_placeholder = 'videos/{languageCode}-{slug}.mp4';
-  static const video_tour_subtitle_url_placeholder = 'videos/{languageCode}-{slug}.srt';
+      'assets/non-free/images/tour_video_thumb_${slug_placeholder}_$language_placeholder.png';
+  static const video_tour_video_url_placeholder = 'videos/$language_placeholder-$slug_placeholder.mp4';
+  static const video_tour_subtitle_url_placeholder = 'videos/$language_placeholder-$slug_placeholder.srt';
 }

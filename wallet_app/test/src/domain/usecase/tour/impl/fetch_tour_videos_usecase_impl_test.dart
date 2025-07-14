@@ -51,27 +51,27 @@ void main() {
 
       // Check video URLs
       final expectedVideoUrlEn =
-          '$testBaseUrl${WalletAssets.video_tour_video_url_placeholder.replaceAll('{languageCode}', 'en').replaceAll('{slug}', slug)}';
+          '$testBaseUrl${WalletAssets.video_tour_video_url_placeholder.replaceAll(WalletAssets.language_placeholder, 'en').replaceAll(WalletAssets.slug_placeholder, slug)}';
       final expectedVideoUrlNl =
-          '$testBaseUrl${WalletAssets.video_tour_video_url_placeholder.replaceAll('{languageCode}', 'nl').replaceAll('{slug}', slug)}';
+          '$testBaseUrl${WalletAssets.video_tour_video_url_placeholder.replaceAll(WalletAssets.language_placeholder, 'nl').replaceAll(WalletAssets.slug_placeholder, slug)}';
       expect(video.videoUrl[const Locale('en')], expectedVideoUrlEn);
       expect(video.videoUrl[const Locale('nl')], expectedVideoUrlNl);
 
       // Check thumbnail URLs
       final expectedThumbUrlEn = WalletAssets.video_tour_thumbnail_asset_placeholder
-          .replaceAll('{languageCode}', 'en')
-          .replaceAll('{slug}', slug);
+          .replaceAll(WalletAssets.language_placeholder, 'en')
+          .replaceAll(WalletAssets.slug_placeholder, slug);
       final expectedThumbUrlNl = WalletAssets.video_tour_thumbnail_asset_placeholder
-          .replaceAll('{languageCode}', 'nl')
-          .replaceAll('{slug}', slug);
+          .replaceAll(WalletAssets.language_placeholder, 'nl')
+          .replaceAll(WalletAssets.slug_placeholder, slug);
       expect(video.videoThumb[const Locale('en')], expectedThumbUrlEn);
       expect(video.videoThumb[const Locale('nl')], expectedThumbUrlNl);
 
       // Check subtitle URLs
       final expectedSubtitleUrlEn =
-          '$testBaseUrl${WalletAssets.video_tour_subtitle_url_placeholder.replaceAll('{languageCode}', 'en').replaceAll('{slug}', slug)}';
+          '$testBaseUrl${WalletAssets.video_tour_subtitle_url_placeholder.replaceAll(WalletAssets.language_placeholder, 'en').replaceAll(WalletAssets.slug_placeholder, slug)}';
       final expectedSubtitleUrlNl =
-          '$testBaseUrl${WalletAssets.video_tour_subtitle_url_placeholder.replaceAll('{languageCode}', 'nl').replaceAll('{slug}', slug)}';
+          '$testBaseUrl${WalletAssets.video_tour_subtitle_url_placeholder.replaceAll(WalletAssets.language_placeholder, 'nl').replaceAll(WalletAssets.slug_placeholder, slug)}';
       expect(video.subtitleUrl[const Locale('en')], expectedSubtitleUrlEn);
       expect(video.subtitleUrl[const Locale('nl')], expectedSubtitleUrlNl);
     }
