@@ -1,11 +1,11 @@
 use ctor::ctor;
-use dcql::CredentialQueryFormat;
 use reqwest::StatusCode;
 use tracing::instrument;
 use url::Url;
 
 use attestation_types::request::AttributeRequest;
 use attestation_types::request::NormalizedCredentialRequest;
+use dcql::CredentialQueryFormat;
 use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::tls::pinning::TlsPinningConfig;
 use openid4vc::disclosure_session::VpDisclosureClient;

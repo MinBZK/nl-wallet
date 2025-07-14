@@ -605,7 +605,6 @@ dependencies = [
  "jsonwebtoken",
  "jwt",
  "mdoc",
- "nutype",
  "p256",
  "rand_core",
  "rcgen",

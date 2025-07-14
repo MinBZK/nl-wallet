@@ -1,7 +1,7 @@
-use attestation_types::request::NormalizedCredentialRequests;
-use dcql::CredentialQueryFormat;
 use itertools::Itertools;
 
+use attestation_types::request::NormalizedCredentialRequests;
+use dcql::CredentialQueryFormat;
 use mdoc::holder::disclosure::credential_requests_to_mdoc_paths;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
