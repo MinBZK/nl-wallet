@@ -214,7 +214,7 @@ pub mod mock {
                     intent_to_retain: true,
                     max_duration_in_minutes: Some(60 * 24 * 365),
                 },
-                sharing_policy: SharingPolicy { intent_to_share: true },
+                sharing_policy: SharingPolicy { intent_to_share: false },
                 deletion_policy: DeletionPolicy { deleteable: true },
                 organization,
                 request_origin_base_url: "https://example.com/".parse().unwrap(),
