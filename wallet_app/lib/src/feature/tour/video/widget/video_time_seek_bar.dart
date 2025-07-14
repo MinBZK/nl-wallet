@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import '../../../../theme/base_wallet_theme.dart';
 import '../../../../theme/dark_wallet_theme.dart';
 import '../../../../util/extension/build_context_extension.dart';
+import '../../../common/widget/focus_builder.dart';
+
+const double _kSeekbarHeight = 56;
 
 class VideoTimeSeekBar extends StatelessWidget {
   final Duration position;
@@ -23,23 +26,36 @@ class VideoTimeSeekBar extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildTime(context),
-        const SizedBox(height: 8),
         _buildSeekBar(context),
       ],
     );
   }
 
   Widget _buildSeekBar(BuildContext context) {
+    final BorderSide focusedBorderSide = BaseWalletTheme.buttonBorderSideFocused.copyWith(color: Colors.white);
     final value = _calculateSliderValue(position, duration);
-    return Slider(
-      semanticFormatterCallback: (value) => context.l10n.videoPlayerPercentageIndicatorWCAGLabel((value * 100).toInt()),
-      activeColor: Colors.white,
-      inactiveColor: const Color(0xFFABABAB),
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      value: value,
-      min: 0,
-      max: 1,
-      onChanged: _isEnabled ? _handleSliderChanged : null,
+    return FocusBuilder(
+      canRequestFocus: false,
+      builder: (BuildContext context, bool hasFocus) {
+        // Not using container as that intercepts extra focus
+        return DecoratedBox(
+          decoration: hasFocus
+              ? BoxDecoration(
+                  border: BoxBorder.fromBorderSide(focusedBorderSide),
+                  borderRadius: BorderRadius.circular(4),
+                )
+              : const BoxDecoration(),
+          child: SizedBox(
+            height: _kSeekbarHeight,
+            child: Slider(
+              semanticFormatterCallback: (value) =>
+                  context.l10n.videoPlayerPercentageIndicatorWCAGLabel((value * 100).toInt()),
+              value: value,
+              onChanged: _isEnabled ? _handleSliderChanged : null,
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -62,13 +78,16 @@ class VideoTimeSeekBar extends StatelessWidget {
     return Semantics(
       label: context.l10n.videoPlayerTimeIndicatorWCAGLabel(position.inSeconds, duration.inSeconds),
       excludeSemantics: true,
-      child: Text.rich(
-        TextSpan(
-          children: [
-            TextSpan(text: positionFormatted, style: timeBoldTextStyle),
-            TextSpan(text: ' / $durationFormatted'),
-          ],
-          style: timeDefaultTextStyle,
+      child: Padding(
+        padding: context.theme.sliderTheme.padding ?? EdgeInsets.zero,
+        child: Text.rich(
+          TextSpan(
+            children: [
+              TextSpan(text: positionFormatted, style: timeBoldTextStyle),
+              TextSpan(text: ' / $durationFormatted'),
+            ],
+            style: timeDefaultTextStyle,
+          ),
         ),
       ),
     );
