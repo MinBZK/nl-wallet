@@ -56,7 +56,7 @@ async fn test_pid_issuance_digid_bridge() {
                 hmac_secret: SecretKey::Software {
                     secret_key: (0..32).collect::<Vec<_>>().try_into().unwrap(),
                 },
-                attestation_type: "urn:eudi:pid:nl:1".to_string(),
+                attestation_types: vec!["urn:eudi:pid:nl:1".to_string()].try_into().unwrap(),
                 bsn_claim_paths: vec!["bsn".to_string()].try_into().unwrap(),
                 recovery_code_claim_paths: vec!["recovery_code".to_string()].try_into().unwrap(),
             },

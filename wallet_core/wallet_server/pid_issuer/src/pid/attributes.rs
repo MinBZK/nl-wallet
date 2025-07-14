@@ -99,17 +99,24 @@ impl AttributeService for BrpPidAttributeService {
         let person = persons.persons.remove(0);
 
         let attestations = person.into_issuable().into_inner();
-        if !attestations
-            .iter()
-            .any(|(attestation_type, _)| attestation_type == &self.recovery_code_config.attestation_type)
-        {
+        if !attestations.iter().any(|(attestation_type, _)| {
+            self.recovery_code_config
+                .attestation_types
+                .as_ref()
+                .contains(attestation_type)
+        }) {
             return Err(Error::NoBsnFound);
         }
 
         let issuable_documents = try_join_all(attestations.into_iter().map(|(attestation_type, attributes)| async {
             let mut attributes = Attributes::from(attributes);
 
-            if attestation_type == self.recovery_code_config.attestation_type {
+            if self
+                .recovery_code_config
+                .attestation_types
+                .as_ref()
+                .contains(&attestation_type)
+            {
                 Self::insert_recovery_code(&mut attributes, &self.recovery_code_config).await?;
             }
 
@@ -152,7 +159,7 @@ impl BrpPidAttributeService {
 
 pub struct RecoveryCodeConfig {
     pub hmac_secret: SecretKeyVariant,
-    pub attestation_type: String,
+    pub attestation_types: VecNonEmpty<String>,
     pub recovery_code_claim_paths: VecNonEmpty<ClaimPath>,
     pub bsn_claim_paths: VecNonEmpty<ClaimPath>,
 }
@@ -161,7 +168,7 @@ impl RecoveryCodeConfig {
     pub fn from_settings(settings: RecoveryCode, hsm: Option<Pkcs11Hsm>) -> Result<Self, SecretKeySettingsError> {
         Ok(Self {
             hmac_secret: SecretKeyVariant::from_settings(settings.hmac_secret, hsm)?,
-            attestation_type: settings.attestation_type,
+            attestation_types: settings.attestation_types,
             recovery_code_claim_paths: settings
                 .recovery_code_claim_paths
                 .into_iter()
@@ -215,7 +222,7 @@ mod tests {
                 hmac_secret: SecretKey::Software {
                     secret_key: key.clone().try_into().unwrap(),
                 },
-                attestation_type: "pid".to_string(),
+                attestation_types: vec!["pid".to_string()].try_into().unwrap(),
                 bsn_claim_paths: vec!["bsn".to_string()].try_into().unwrap(),
                 recovery_code_claim_paths: vec!["recovery_code".to_string()].try_into().unwrap(),
             },

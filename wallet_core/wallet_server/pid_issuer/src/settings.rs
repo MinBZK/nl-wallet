@@ -39,7 +39,7 @@ pub struct RecoveryCode {
     #[serde(flatten)]
     pub hmac_secret: SecretKey,
 
-    pub attestation_type: String,
+    pub attestation_types: VecNonEmpty<String>,
     pub recovery_code_claim_paths: VecNonEmpty<String>,
     pub bsn_claim_paths: VecNonEmpty<String>,
 }
