@@ -47,6 +47,8 @@ pub enum Error {
     UnexpectedIssuerSanDnsNameOrUrisCount(NonZero<usize>),
     #[error("could not find BSN attribute")]
     NoBsnFound,
+    #[error("could not find PID attestation")]
+    NoPidAttestationFound,
     #[error("error retrieving BSN: {0}")]
     RetrievingBsn(#[source] AttributesHandlingError),
     #[error("BSN attribute had unexpected type (expected string)")]
@@ -105,7 +107,7 @@ impl AttributeService for BrpPidAttributeService {
                 .as_ref()
                 .contains(attestation_type)
         }) {
-            return Err(Error::NoBsnFound);
+            return Err(Error::NoPidAttestationFound);
         }
 
         let issuable_documents = try_join_all(attestations.into_iter().map(|(attestation_type, attributes)| async {
