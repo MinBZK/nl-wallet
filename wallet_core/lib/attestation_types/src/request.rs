@@ -31,7 +31,7 @@ pub struct AttributeRequest {
 #[derive(Debug, thiserror::Error)]
 #[cfg_attr(any(test, feature = "mock"), derive(PartialEq, Eq))]
 pub enum MdocCredentialRequestError {
-    #[error("unexpected amount of claim paths: {0}")]
+    #[error("unexpected amount of claim paths: expected 2, found {0}")]
     UnexpectedClaimsPathAmount(NonZero<usize>),
     #[error("unexpected claim path type, expected key string")]
     UnexpectedClaimsPathType,
@@ -41,7 +41,7 @@ pub enum MdocCredentialRequestError {
 
 impl AttributeRequest {
     pub fn to_namespace_and_attribute(&self) -> Result<(&str, &str), MdocCredentialRequestError> {
-        if self.path.len() != 2.try_into().unwrap() {
+        if self.path.len().get() != 2 {
             return Err(MdocCredentialRequestError::UnexpectedClaimsPathAmount(self.path.len()));
         }
         let ClaimPath::SelectByKey(namespace) = &self.path[0] else {

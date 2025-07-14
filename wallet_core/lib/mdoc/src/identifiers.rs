@@ -223,7 +223,7 @@ mod tests {
 
     use attestation_types::request::MdocCredentialRequestError;
     use attestation_types::request::NormalizedCredentialRequest;
-    use attestation_types::request::{self};
+    use attestation_types::request::self;
     use dcql::ClaimPath;
     use utils::vec_at_least::VecNonEmpty;
 
