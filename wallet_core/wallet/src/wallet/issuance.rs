@@ -9,6 +9,7 @@ use rustls_pki_types::TrustAnchor;
 use tracing::info;
 use tracing::instrument;
 use url::Url;
+use uuid::Uuid;
 
 use attestation_data::auth::Organization;
 use attestation_data::credential_payload::CredentialPayload;
@@ -564,12 +565,9 @@ fn match_preview_and_stored_attestations<'a>(
     stored_attestations: Vec<StoredAttestationCopy>,
     time_generator: &impl Generator<DateTime<Utc>>,
 ) -> Vec<(&'a NormalizedCredentialPreview, Option<String>)> {
-    let stored_credential_payloads: Vec<(CredentialPayload, String)> = stored_attestations
+    let stored_credential_payloads: Vec<(CredentialPayload, Uuid)> = stored_attestations
         .into_iter()
-        .map(|copy| {
-            let identity = copy.attestation_id.to_string();
-            (copy.into(), identity)
-        })
+        .map(|copy| copy.into_credential_payload_and_id())
         .collect_vec();
 
     previews
@@ -583,7 +581,7 @@ fn match_preview_and_stored_attestations<'a>(
                         .credential_payload
                         .matches_existing(&stored_preview.previewable_payload, time_generator)
                 })
-                .map(|(_, id)| id.clone());
+                .map(|(_, id)| id.to_string());
 
             (preview, identity)
         })
