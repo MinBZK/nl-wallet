@@ -119,18 +119,21 @@ impl PreviewableCredentialPayload {
         existing: &PreviewableCredentialPayload,
         time: &impl Generator<DateTime<Utc>>,
     ) -> bool {
+        // Compare all fields except `not_before`
         if self.attestation_type == existing.attestation_type
             && self.issuer == existing.issuer
             && self.attestation_qualification == existing.attestation_qualification
             && self.attributes == existing.attributes
         {
+            // If `not_before` matches as well, they definitely match
             if self.not_before == existing.not_before {
                 return true;
             }
 
+            // If not, it is only considered a match if `not_before` from the new preview (self) is in the past
             if let Some(self_nbf) = self.not_before {
                 let is_nbf_in_future = self_nbf.as_ref() > &time.generate();
-                if is_nbf_in_future && self.not_before != existing.not_before {
+                if is_nbf_in_future {
                     return false;
                 }
 
