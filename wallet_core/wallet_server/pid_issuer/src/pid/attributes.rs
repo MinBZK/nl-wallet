@@ -8,6 +8,7 @@ use attestation_data::attributes::Attributes;
 use attestation_data::attributes::AttributesHandlingError;
 use attestation_data::issuable_document::IssuableDocument;
 use crypto::x509::CertificateError;
+use hsm::service::HsmError;
 use hsm::service::Pkcs11Hsm;
 use http_utils::tls::pinning::TlsPinningConfig;
 use http_utils::urls::BaseUrl;
@@ -18,7 +19,6 @@ use openid4vc::token::TokenRequestGrantType;
 use sd_jwt_vc_metadata::ClaimPath;
 use server_utils::keys::SecretKeySettingsError;
 use server_utils::keys::SecretKeyVariant;
-use server_utils::keys::SecretKeyVariantError;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::pid::brp::client::BrpClient;
@@ -52,7 +52,7 @@ pub enum Error {
     #[error("BSN attribute had unexpected type (expected string)")]
     BsnUnexpectedType,
     #[error("failed to compute BSN HMAC: {0}")]
-    Hmac(#[from] SecretKeyVariantError),
+    Hmac(#[from] HsmError),
     #[error("error inserting recovery code: {0}")]
     InsertingRecoveryCode(#[source] AttributesHandlingError),
 }
