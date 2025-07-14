@@ -28,8 +28,8 @@ max_session_lifetime_in_sec = 900
 secret_key = "fb34c5a3e40a818197ed866e4a38dafcf2158bd1fda2cbe1ff22e40e77b4f4f9"
 secret_key_type = "software"                                                    # or `hsm`
 attestation_type = "eudi:pid:nl:1.json"
-recovery_code_claim_paths = ["bsn"]
-bsn_claim_paths = ["recovery_code"]
+recovery_code_claim_paths = ["recovery_code"]
+bsn_claim_paths = ["bsn"]
 
 [digid]
 bsn_privkey = ""
