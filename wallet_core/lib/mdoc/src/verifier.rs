@@ -146,6 +146,7 @@ impl TryFrom<NormalizedCredentialRequest> for ItemsRequest {
     }
 }
 
+// TODO: Remove in PVW-4530
 impl From<ItemsRequest> for NormalizedCredentialRequest {
     fn from(source: ItemsRequest) -> Self {
         let doctype_value = source.doc_type;

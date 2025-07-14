@@ -221,9 +221,9 @@ pub mod mock {
 mod tests {
     use rstest::rstest;
 
+    use attestation_types::request;
     use attestation_types::request::MdocCredentialRequestError;
     use attestation_types::request::NormalizedCredentialRequest;
-    use attestation_types::request::self;
     use dcql::ClaimPath;
     use utils::vec_at_least::VecNonEmpty;
 
