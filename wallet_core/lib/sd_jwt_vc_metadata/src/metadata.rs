@@ -22,6 +22,7 @@ use serde_with::MapSkipError;
 use serde_with::TryFromInto;
 use ssri::Integrity;
 
+// TODO: remove in PVW-4421
 pub use dcql::ClaimPath;
 
 use http_utils::data_uri::DataUri;
