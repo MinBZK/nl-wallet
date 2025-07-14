@@ -107,7 +107,7 @@ impl AttributeService for BrpPidAttributeService {
         }
 
         let issuable_documents = try_join_all(attestations.into_iter().map(|(attestation_type, attributes)| async {
-            let mut attributes: Attributes = attributes.into();
+            let mut attributes = Attributes::from(attributes);
 
             if attestation_type == self.recovery_code_config.attestation_type {
                 Self::insert_recovery_code(&mut attributes, &self.recovery_code_config).await?;
