@@ -89,7 +89,7 @@ impl SecretKeyVariant {
     pub async fn sign_hmac(&self, msg: &[u8]) -> Result<Vec<u8>, SecretKeyVariantError> {
         match self {
             SecretKeyVariant::Software(key) => Ok(hmac::sign(key, msg).as_ref().to_vec()),
-            SecretKeyVariant::Hsm(key) => Ok(key.sign_hmac(msg).await?),
+            SecretKeyVariant::Hsm(key) => Ok(key.sign_hmac(msg.to_vec()).await?),
         }
     }
 }

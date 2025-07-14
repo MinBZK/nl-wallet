@@ -38,7 +38,7 @@ pub struct HsmHmacKey {
 }
 
 impl HsmHmacKey {
-    pub async fn sign_hmac(&self, msg: &[u8]) -> Result<Vec<u8>, HsmError> {
-        Hsm::sign_hmac(&self.hsm, &self.identifier, Arc::new(msg.into())).await
+    pub async fn sign_hmac(&self, msg: Vec<u8>) -> Result<Vec<u8>, HsmError> {
+        Hsm::sign_hmac(&self.hsm, &self.identifier, Arc::new(msg)).await
     }
 }
