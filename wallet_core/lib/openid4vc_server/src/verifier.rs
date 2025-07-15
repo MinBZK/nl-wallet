@@ -23,7 +23,7 @@ use tracing::info;
 use tracing::warn;
 
 use attestation_data::disclosure::DisclosedAttestations;
-use attestation_types::request::NormalizedCredentialRequests;
+use attestation_types::request::NormalizedCredentialRequest;
 use crypto::keys::EcdsaKeySend;
 use http_utils::error::HttpJsonError;
 use http_utils::urls;
@@ -48,6 +48,7 @@ use openid4vc::GetRequestErrorCode;
 use openid4vc::PostAuthResponseErrorCode;
 use openid4vc::VerificationErrorCode;
 use utils::generator::TimeGenerator;
+use utils::vec_at_least::VecNonEmpty;
 
 struct ApplicationState<S, US> {
     verifier: Verifier<S, US>,
@@ -295,7 +296,7 @@ where
 pub struct StartDisclosureRequest {
     pub usecase: String,
     // TODO: replace with dcql::Query (PVW-4530)
-    pub credential_requests: Option<NormalizedCredentialRequests>,
+    pub credential_requests: Option<VecNonEmpty<NormalizedCredentialRequest>>,
     pub return_url_template: Option<ReturnUrlTemplate>,
 }
 

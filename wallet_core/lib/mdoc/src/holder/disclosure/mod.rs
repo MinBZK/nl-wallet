@@ -1,8 +1,9 @@
 use std::collections::HashSet;
 
 use attestation_types::request::AttributeRequest;
-use attestation_types::request::NormalizedCredentialRequests;
+use attestation_types::request::NormalizedCredentialRequest;
 use dcql::CredentialQueryFormat;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::identifiers::AttributeIdentifier;
 use crate::identifiers::AttributeIdentifierError;
@@ -28,11 +29,11 @@ pub enum ResponseValidationError {
     AttributeIdentifier(#[from] AttributeIdentifierError),
 }
 
-/// Return the mdoc-specific paths for a particular attestation type in [`NormalizedCredentialRequests`], which is
+/// Return the mdoc-specific paths for a particular attestation type in [`VecNonEmpty<NormalizedCredentialRequest>`], which is
 /// always a pair of namespace and element (i.e. attribute) identifier. Note that this may return an empty set, either
 /// when the attestation type is not present or when none of the paths can be represented as a 2-tuple.
 pub fn credential_requests_to_mdoc_paths<'a>(
-    credential_requests: &'a NormalizedCredentialRequests,
+    credential_requests: &'a VecNonEmpty<NormalizedCredentialRequest>,
     attestation_type: &str,
 ) -> HashSet<(&'a str, &'a str)> {
     credential_requests
@@ -60,7 +61,9 @@ mod tests {
 
     use rstest::rstest;
 
-    use attestation_types::request::NormalizedCredentialRequests;
+    use attestation_types::request;
+    use attestation_types::request::NormalizedCredentialRequest;
+    use utils::vec_at_least::VecNonEmpty;
 
     use crate::holder::disclosure::credential_requests_to_mdoc_paths;
 
@@ -77,8 +80,8 @@ mod tests {
         assert_eq!(actual, expected_mdoc_mpaths);
     }
 
-    fn credential_requests() -> NormalizedCredentialRequests {
-        NormalizedCredentialRequests::mock_from_vecs(vec![
+    fn credential_requests() -> VecNonEmpty<NormalizedCredentialRequest> {
+        request::mock::mock_from_vecs(vec![
             (
                 "att_1".to_string(),
                 vec![

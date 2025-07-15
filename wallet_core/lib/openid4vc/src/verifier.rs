@@ -35,7 +35,7 @@ use tracing::warn;
 
 use attestation_data::disclosure::DisclosedAttestation;
 use attestation_data::disclosure::DisclosedAttestations;
-use attestation_types::request::NormalizedCredentialRequests;
+use attestation_types::request::NormalizedCredentialRequest;
 use crypto::keys::EcdsaKey;
 use crypto::server_keys::KeyPair;
 use crypto::utils::random_string;
@@ -45,6 +45,7 @@ use http_utils::urls::BaseUrl;
 use jwt::error::JwtError;
 use jwt::Jwt;
 use utils::generator::Generator;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::openid4vp::AuthRequestError;
 use crate::openid4vp::AuthResponseError;
@@ -208,7 +209,7 @@ pub struct Session<S: DisclosureState> {
 /// State for a session that has just been created.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Created {
-    credential_requests: NormalizedCredentialRequests,
+    credential_requests: VecNonEmpty<NormalizedCredentialRequest>,
     usecase_id: String,
     client_id: String,
     redirect_uri_template: Option<RedirectUriTemplate>,
@@ -514,7 +515,7 @@ pub trait UseCase {
     fn new_session(
         &self,
         id: String,
-        credential_requests: Option<NormalizedCredentialRequests>,
+        credential_requests: Option<VecNonEmpty<NormalizedCredentialRequest>>,
         return_url_template: Option<ReturnUrlTemplate>,
     ) -> Result<Session<Created>, NewSessionError>;
 }
@@ -543,7 +544,7 @@ pub trait UseCases {
 #[derive(Debug)]
 pub struct RpInitiatedUseCase<K> {
     data: UseCaseData<K>,
-    credential_requests: Option<NormalizedCredentialRequests>,
+    credential_requests: Option<VecNonEmpty<NormalizedCredentialRequest>>,
     return_url_template: Option<ReturnUrlTemplate>,
 }
 
@@ -564,7 +565,7 @@ impl<K> RpInitiatedUseCase<K> {
     pub fn try_new(
         key_pair: KeyPair<K>,
         session_type_return_url: SessionTypeReturnUrl,
-        credential_requests: Option<NormalizedCredentialRequests>,
+        credential_requests: Option<VecNonEmpty<NormalizedCredentialRequest>>,
         return_url_template: Option<ReturnUrlTemplate>,
     ) -> Result<Self, NewDisclosureUseCaseError> {
         let client_id = client_id_from_key_pair(&key_pair)?;
@@ -592,7 +593,7 @@ impl<K: EcdsaKeySend> UseCase for RpInitiatedUseCase<K> {
     fn new_session(
         &self,
         id: String,
-        credential_requests: Option<NormalizedCredentialRequests>,
+        credential_requests: Option<VecNonEmpty<NormalizedCredentialRequest>>,
         return_url_template: Option<ReturnUrlTemplate>,
     ) -> Result<Session<Created>, NewSessionError> {
         // If the caller passes a `return_url_template` then we use that,
@@ -723,7 +724,7 @@ impl<K, S> RpInitiatedUseCases<K, S> {
 #[derive(Debug, Constructor)]
 pub struct WalletInitiatedUseCase<K> {
     data: UseCaseData<K>,
-    credential_requests: NormalizedCredentialRequests,
+    credential_requests: VecNonEmpty<NormalizedCredentialRequest>,
     return_url_template: ReturnUrlTemplate,
 }
 
@@ -736,7 +737,7 @@ impl<K> WalletInitiatedUseCase<K> {
     pub fn try_new(
         key_pair: KeyPair<K>,
         session_type_return_url: SessionTypeReturnUrl,
-        credential_requests: NormalizedCredentialRequests,
+        credential_requests: VecNonEmpty<NormalizedCredentialRequest>,
         return_url_template: ReturnUrlTemplate,
     ) -> Result<Self, UseCaseCertificateError> {
         let client_id = client_id_from_key_pair(&key_pair)?;
@@ -764,7 +765,7 @@ impl<K: EcdsaKeySend> UseCase for WalletInitiatedUseCase<K> {
     fn new_session(
         &self,
         id: String,
-        _credential_requests: Option<NormalizedCredentialRequests>,
+        _credential_requests: Option<VecNonEmpty<NormalizedCredentialRequest>>,
         _return_url_template: Option<ReturnUrlTemplate>,
     ) -> Result<Session<Created>, NewSessionError> {
         let session = Session::<Created>::new(
@@ -911,7 +912,7 @@ where
     pub async fn new_session(
         &self,
         usecase_id: String,
-        credential_requests: Option<NormalizedCredentialRequests>,
+        credential_requests: Option<VecNonEmpty<NormalizedCredentialRequest>>,
         return_url_template: Option<ReturnUrlTemplate>,
     ) -> Result<SessionToken, NewSessionError> {
         info!("create verifier session: {usecase_id}");
@@ -1184,7 +1185,7 @@ impl<T: DisclosureState> Session<T> {
 impl Session<Created> {
     /// Create a new disclosure session.
     fn new(
-        credential_requests: NormalizedCredentialRequests,
+        credential_requests: VecNonEmpty<NormalizedCredentialRequest>,
         usecase_id: String,
         client_id: String,
         redirect_uri_template: Option<RedirectUriTemplate>,
@@ -1512,12 +1513,12 @@ mod tests {
     use attestation_data::x509::generate::mock::generate_reader_mock;
     use attestation_types::request::AttributeRequest;
     use attestation_types::request::NormalizedCredentialRequest;
-    use attestation_types::request::NormalizedCredentialRequests;
     use crypto::server_keys::generate::Ca;
     use dcql::ClaimPath;
     use dcql::CredentialQueryFormat;
     use utils::generator::Generator;
     use utils::generator::TimeGenerator;
+    use utils::vec_at_least::VecNonEmpty;
 
     use crate::mock::MOCK_WALLET_CLIENT_ID;
     use crate::server_state::MemorySessionStore;
@@ -1560,7 +1561,7 @@ mod tests {
     const DISCLOSURE_USECASE: &str = "example_usecase";
     const DISCLOSURE_USECASE_ALL_REDIRECT_URI: &str = "example_usecase_all_redirect_uri";
 
-    fn new_disclosure_request() -> NormalizedCredentialRequests {
+    fn new_disclosure_request() -> VecNonEmpty<NormalizedCredentialRequest> {
         vec![NormalizedCredentialRequest {
             format: CredentialQueryFormat::MsoMdoc {
                 doctype_value: DISCLOSURE_DOC_TYPE.to_string(),

@@ -17,7 +17,6 @@ use tracing::warn;
 use attestation_types::request::AttributeRequest;
 use attestation_types::request::MdocCredentialRequestError;
 use attestation_types::request::NormalizedCredentialRequest;
-use attestation_types::request::NormalizedCredentialRequests;
 use crypto::x509::CertificateUsage;
 use dcql::ClaimPath;
 use dcql::CredentialQueryFormat;
@@ -177,7 +176,7 @@ impl From<ItemsRequest> for NormalizedCredentialRequest {
     }
 }
 
-impl From<ItemsRequests> for NormalizedCredentialRequests {
+impl From<ItemsRequests> for VecNonEmpty<NormalizedCredentialRequest> {
     fn from(source: ItemsRequests) -> Self {
         source
             .0

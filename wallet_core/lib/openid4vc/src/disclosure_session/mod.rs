@@ -1,8 +1,8 @@
 use std::hash::Hash;
 
-use attestation_types::request::NormalizedCredentialRequests;
 use rustls_pki_types::TrustAnchor;
 
+use attestation_types::request::NormalizedCredentialRequest;
 use crypto::factory::KeyFactory;
 use crypto::CredentialEcdsaKey;
 use http_utils::urls::BaseUrl;
@@ -49,7 +49,7 @@ pub trait DisclosureClient {
 
 pub trait DisclosureSession {
     fn session_type(&self) -> SessionType;
-    fn credential_requests(&self) -> &NormalizedCredentialRequests;
+    fn credential_requests(&self) -> &VecNonEmpty<NormalizedCredentialRequest>;
     fn verifier_certificate(&self) -> &VerifierCertificate;
 
     async fn terminate(self) -> Result<Option<BaseUrl>, VpSessionError>;

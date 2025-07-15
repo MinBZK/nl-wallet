@@ -417,10 +417,10 @@ impl MdocCose<CoseSign1, TaggedBytes<MobileSecurityObject>> {
 pub mod data {
     use attestation_types::request::AttributeRequest;
     use attestation_types::request::NormalizedCredentialRequest;
-    use attestation_types::request::NormalizedCredentialRequests;
     use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
     use dcql::ClaimPath;
     use dcql::CredentialQueryFormat;
+    use utils::vec_at_least::VecNonEmpty;
 
     use super::*;
 
@@ -578,9 +578,15 @@ pub mod data {
         }
     }
 
-    impl From<TestDocuments> for NormalizedCredentialRequests {
+    impl From<TestDocuments> for VecNonEmpty<NormalizedCredentialRequest> {
         fn from(source: TestDocuments) -> Self {
-            NormalizedCredentialRequests::try_new(source.0.into_iter().map(Into::into).collect()).unwrap()
+            source
+                .0
+                .into_iter()
+                .map(Into::into)
+                .collect::<Vec<_>>()
+                .try_into()
+                .unwrap()
         }
     }
 }

@@ -146,8 +146,9 @@ impl BorrowingCertificateExtension for ReaderRegistration {
 pub mod mock {
     use itertools::Itertools;
 
-    use attestation_types::request::NormalizedCredentialRequests;
+    use attestation_types::request::NormalizedCredentialRequest;
     use dcql::CredentialQueryFormat;
+    use utils::vec_at_least::VecNonEmpty;
 
     use super::*;
 
@@ -179,7 +180,7 @@ pub mod mock {
             .into()
         }
 
-        pub fn mock_from_credential_requests(authorized_requests: &NormalizedCredentialRequests) -> Self {
+        pub fn mock_from_credential_requests(authorized_requests: &VecNonEmpty<NormalizedCredentialRequest>) -> Self {
             let authorized_attributes = authorized_requests.as_ref().iter().fold(
                 HashMap::new(),
                 |mut acc: HashMap<String, Vec<VecNonEmpty<ClaimPath>>>, credential_request| {

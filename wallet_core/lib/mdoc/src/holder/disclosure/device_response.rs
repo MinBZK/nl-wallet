@@ -1,9 +1,10 @@
 use itertools::Itertools;
 
-use attestation_types::request::NormalizedCredentialRequests;
+use attestation_types::request::NormalizedCredentialRequest;
 use crypto::factory::KeyFactory;
 use crypto::CredentialEcdsaKey;
 use dcql::CredentialQueryFormat;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::errors::Error;
 use crate::errors::Result;
@@ -72,7 +73,7 @@ impl DeviceResponse {
 
     pub fn match_against_request(
         &self,
-        credential_requests: &NormalizedCredentialRequests,
+        credential_requests: &VecNonEmpty<NormalizedCredentialRequest>,
     ) -> Result<(), ResponseValidationError> {
         let not_found = credential_requests
             .as_ref()

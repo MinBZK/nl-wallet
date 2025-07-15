@@ -12,12 +12,12 @@ use serde::Serialize;
 
 use attestation_types::request::AttributeRequest;
 use attestation_types::request::NormalizedCredentialRequest;
-use attestation_types::request::NormalizedCredentialRequests;
 use crypto::utils::random_string;
 use dcql::ClaimPath;
 use dcql::CredentialQueryFormat;
 use error_category::ErrorCategory;
 use mdoc::Document;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::openid4vp::FormatAlg;
 use crate::openid4vp::VpFormat;
@@ -98,8 +98,8 @@ impl Field {
     }
 }
 
-impl From<&NormalizedCredentialRequests> for PresentationDefinition {
-    fn from(requested_creds: &NormalizedCredentialRequests) -> Self {
+impl From<&VecNonEmpty<NormalizedCredentialRequest>> for PresentationDefinition {
+    fn from(requested_creds: &VecNonEmpty<NormalizedCredentialRequest>) -> Self {
         PresentationDefinition {
             id: random_string(16),
             input_descriptors: requested_creds
@@ -144,7 +144,7 @@ pub struct PresentationSubmission {
     pub descriptor_map: Vec<InputDescriptorMappingObject>,
 }
 
-impl TryFrom<&PresentationDefinition> for NormalizedCredentialRequests {
+impl TryFrom<&PresentationDefinition> for VecNonEmpty<NormalizedCredentialRequest> {
     type Error = PdConversionError;
 
     fn try_from(pd: &PresentationDefinition) -> Result<Self, Self::Error> {
@@ -252,7 +252,9 @@ mod tests {
     use rstest::rstest;
     use serde_json::json;
 
-    use attestation_types::request::NormalizedCredentialRequests;
+    use attestation_types::request;
+    use attestation_types::request::NormalizedCredentialRequest;
+    use utils::vec_at_least::VecNonEmpty;
 
     use super::FormatAlg;
     use super::LimitDisclosure;
@@ -275,9 +277,9 @@ mod tests {
 
     #[test]
     fn convert_pd_credential_requests() {
-        let orginal: NormalizedCredentialRequests = NormalizedCredentialRequests::example();
+        let orginal: VecNonEmpty<NormalizedCredentialRequest> = request::mock::example();
         let pd: PresentationDefinition = (&orginal).into();
-        let converted: NormalizedCredentialRequests = (&pd).try_into().unwrap();
+        let converted: VecNonEmpty<NormalizedCredentialRequest> = (&pd).try_into().unwrap();
 
         assert_eq!(orginal, converted);
     }

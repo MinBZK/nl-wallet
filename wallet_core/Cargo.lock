@@ -632,7 +632,6 @@ dependencies = [
  "dcql",
  "derive_more",
  "itertools 0.14.0",
- "nutype",
  "rstest",
  "serde",
  "serde_with",

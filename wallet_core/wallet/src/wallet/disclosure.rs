@@ -889,7 +889,6 @@ mod tests {
     use std::sync::LazyLock;
 
     use assert_matches::assert_matches;
-    use attestation_types::request::NormalizedCredentialRequests;
     use itertools::Itertools;
     use mockall::predicate::always;
     use mockall::predicate::eq;
@@ -904,6 +903,7 @@ mod tests {
     use attestation_data::auth::Organization;
     use attestation_data::disclosure_type::DisclosureType;
     use attestation_data::x509::generate::mock::generate_reader_mock;
+    use attestation_types::request;
     use crypto::server_keys::generate::Ca;
     use crypto::x509::BorrowingCertificateExtension;
     use http_utils::urls;
@@ -967,7 +967,7 @@ mod tests {
         requested_pid_path: VecNonEmpty<String>,
     ) -> MockDisclosureSession {
         let credential_requests =
-            NormalizedCredentialRequests::mock_from_vecs(vec![(PID_DOCTYPE.to_string(), vec![requested_pid_path])]);
+            request::mock::mock_from_vecs(vec![(PID_DOCTYPE.to_string(), vec![requested_pid_path])]);
 
         let mut disclosure_session = MockDisclosureSession::new();
         disclosure_session

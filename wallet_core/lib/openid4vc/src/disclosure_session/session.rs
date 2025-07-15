@@ -1,10 +1,10 @@
 use std::hash::Hash;
 
-use attestation_types::request::NormalizedCredentialRequests;
 use itertools::Itertools;
 use tracing::info;
 use tracing::warn;
 
+use attestation_types::request::NormalizedCredentialRequest;
 use crypto::factory::KeyFactory;
 use crypto::utils::random_string;
 use crypto::CredentialEcdsaKey;
@@ -32,7 +32,7 @@ use super::VerifierCertificate;
 pub struct VpDisclosureSession<H> {
     client: H,
     session_type: SessionType,
-    credential_requests: NormalizedCredentialRequests,
+    credential_requests: VecNonEmpty<NormalizedCredentialRequest>,
     verifier_certificate: VerifierCertificate,
     auth_request: IsoVpAuthorizationRequest,
 }
@@ -41,7 +41,7 @@ impl<H> VpDisclosureSession<H> {
     pub(super) fn new(
         client: H,
         session_type: SessionType,
-        credential_requests: NormalizedCredentialRequests,
+        credential_requests: VecNonEmpty<NormalizedCredentialRequest>,
         verifier_certificate: VerifierCertificate,
         auth_request: IsoVpAuthorizationRequest,
     ) -> Self {
@@ -63,7 +63,7 @@ where
         self.session_type
     }
 
-    fn credential_requests(&self) -> &NormalizedCredentialRequests {
+    fn credential_requests(&self) -> &VecNonEmpty<NormalizedCredentialRequest> {
         &self.credential_requests
     }
 
