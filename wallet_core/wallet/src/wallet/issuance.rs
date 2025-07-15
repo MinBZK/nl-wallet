@@ -1049,7 +1049,7 @@ mod tests {
             normalized_metadata,
         };
 
-        let storage = Arc::get_mut(&mut wallet.storage).unwrap().get_mut();
+        let storage = wallet.mut_storage();
         storage
             .expect_fetch_unique_attestations_by_type()
             .return_once(move |_attestation_types| Ok(vec![stored]));
