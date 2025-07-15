@@ -15,19 +15,19 @@ use derive_more::Constructor;
 use derive_more::Debug;
 use derive_more::From;
 use indexmap::IndexMap;
+use josekit::JoseError;
+use josekit::jwk::Jwk;
 use josekit::jwk::alg::ec::EcCurve;
 use josekit::jwk::alg::ec::EcKeyPair;
-use josekit::jwk::Jwk;
-use josekit::JoseError;
 use ring::hmac;
 use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde::Serialize;
+use serde_with::DeserializeFromStr;
+use serde_with::SerializeDisplay;
 use serde_with::hex::Hex;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
-use serde_with::DeserializeFromStr;
-use serde_with::SerializeDisplay;
 use tokio::task::JoinHandle;
 use tracing::debug;
 use tracing::info;
@@ -36,17 +36,21 @@ use tracing::warn;
 use attestation_data::disclosure::DisclosedAttestation;
 use attestation_data::disclosure::DisclosedAttestations;
 use attestation_types::request::NormalizedCredentialRequest;
+use crypto::EcdsaKeySend;
 use crypto::keys::EcdsaKey;
 use crypto::server_keys::KeyPair;
 use crypto::utils::random_string;
 use crypto::x509::CertificateError;
-use crypto::EcdsaKeySend;
 use http_utils::urls::BaseUrl;
-use jwt::error::JwtError;
 use jwt::Jwt;
+use jwt::error::JwtError;
 use utils::generator::Generator;
 use utils::vec_at_least::VecNonEmpty;
 
+use crate::AuthorizationErrorCode;
+use crate::ErrorResponse;
+use crate::PostAuthResponseErrorCode;
+use crate::VpAuthorizationErrorCode;
 use crate::openid4vp::AuthRequestError;
 use crate::openid4vp::AuthResponseError;
 use crate::openid4vp::NormalizedVpAuthorizationRequest;
@@ -56,6 +60,7 @@ use crate::openid4vp::VpAuthorizationResponse;
 use crate::openid4vp::VpRequestUriObject;
 use crate::openid4vp::VpResponse;
 use crate::return_url::ReturnUrlTemplate;
+use crate::server_state::CLEANUP_INTERVAL_SECONDS;
 use crate::server_state::Expirable;
 use crate::server_state::HasProgress;
 use crate::server_state::Progress;
@@ -64,11 +69,6 @@ use crate::server_state::SessionState;
 use crate::server_state::SessionStore;
 use crate::server_state::SessionStoreError;
 use crate::server_state::SessionToken;
-use crate::server_state::CLEANUP_INTERVAL_SECONDS;
-use crate::AuthorizationErrorCode;
-use crate::ErrorResponse;
-use crate::PostAuthResponseErrorCode;
-use crate::VpAuthorizationErrorCode;
 
 pub const EPHEMERAL_ID_VALIDITY_SECONDS: Duration = Duration::from_secs(10);
 
@@ -710,13 +710,12 @@ impl<K, S> RpInitiatedUseCases<K, S> {
         session_token: &SessionToken,
         time: &DateTime<Utc>,
     ) -> Vec<u8> {
-        let ephemeral_id = hmac::sign(
+        hmac::sign(
             ephemeral_id_secret,
             &Self::format_ephemeral_id_payload(session_token, time),
         )
         .as_ref()
-        .to_vec();
-        ephemeral_id
+        .to_vec()
     }
 }
 
@@ -1529,6 +1528,7 @@ mod tests {
     use super::DisclosedAttributesError;
     use super::DisclosureData;
     use super::Done;
+    use super::EPHEMERAL_ID_VALIDITY_SECONDS;
     use super::EphemeralIdParameters;
     use super::ErrorResponse;
     use super::GetAuthRequestError;
@@ -1551,7 +1551,6 @@ mod tests {
     use super::WalletAuthResponse;
     use super::WalletInitiatedUseCase;
     use super::WalletInitiatedUseCases;
-    use super::EPHEMERAL_ID_VALIDITY_SECONDS;
 
     const DISCLOSURE_DOC_TYPE: &str = "example_doctype";
     const DISCLOSURE_NAME_SPACE: &str = "example_namespace";
@@ -1864,24 +1863,30 @@ mod tests {
 
         // The finished session without a return URL should return the
         // attributes, regardless of the return URL nonce provided.
-        assert!(verifier
-            .disclosed_attributes(&"token1".into(), None)
-            .await
-            .expect("should return disclosed attributes")
-            .is_empty());
-        assert!(verifier
-            .disclosed_attributes(&"token1".into(), "nonsense".to_string().into())
-            .await
-            .expect("should return disclosed attributes")
-            .is_empty());
+        assert!(
+            verifier
+                .disclosed_attributes(&"token1".into(), None)
+                .await
+                .expect("should return disclosed attributes")
+                .is_empty()
+        );
+        assert!(
+            verifier
+                .disclosed_attributes(&"token1".into(), "nonsense".to_string().into())
+                .await
+                .expect("should return disclosed attributes")
+                .is_empty()
+        );
 
         // The finished session with a return URL should only return the
         // disclosed attributes when given the correct return URL nonce.
-        assert!(verifier
-            .disclosed_attributes(&"token2".into(), "this-is-the-nonce".to_string().into())
-            .await
-            .expect("should return disclosed attributes")
-            .is_empty());
+        assert!(
+            verifier
+                .disclosed_attributes(&"token2".into(), "this-is-the-nonce".to_string().into())
+                .await
+                .expect("should return disclosed attributes")
+                .is_empty()
+        );
         assert_matches!(
             verifier
                 .disclosed_attributes(&"token2".into(), "incorrect".to_string().into())
