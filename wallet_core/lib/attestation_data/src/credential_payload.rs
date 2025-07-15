@@ -132,12 +132,8 @@ impl PreviewableCredentialPayload {
 
             // If not, it is only considered a match if `not_before` from the new preview (self) is in the past
             if let Some(self_nbf) = self.not_before {
-                let is_nbf_in_future = self_nbf.as_ref() > &time.generate();
-                if is_nbf_in_future {
-                    return false;
-                }
-
-                return true;
+                let is_nbf_in_the_past = self_nbf.as_ref() <= &time.generate();
+                return is_nbf_in_the_past;
             }
         }
 
