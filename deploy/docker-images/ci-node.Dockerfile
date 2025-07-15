@@ -3,5 +3,8 @@ ARG TAG="latest"
 FROM ${FROM_IMAGE_PREFIX}ci-base:${TAG}
 
 # Node
-COPY node.sh /dockerfiles/
-RUN /dockerfiles/node.sh
+COPY node.sh /tmp/
+RUN /tmp/node.sh
+
+# Cleanup
+RUN rm -rf /tmp/*
