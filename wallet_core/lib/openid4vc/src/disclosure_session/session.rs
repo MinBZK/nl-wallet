@@ -32,7 +32,6 @@ use super::VerifierCertificate;
 pub struct VpDisclosureSession<H> {
     client: H,
     session_type: SessionType,
-    credential_requests: VecNonEmpty<NormalizedCredentialRequest>,
     verifier_certificate: VerifierCertificate,
     auth_request: IsoVpAuthorizationRequest,
 }
@@ -41,14 +40,12 @@ impl<H> VpDisclosureSession<H> {
     pub(super) fn new(
         client: H,
         session_type: SessionType,
-        credential_requests: VecNonEmpty<NormalizedCredentialRequest>,
         verifier_certificate: VerifierCertificate,
         auth_request: IsoVpAuthorizationRequest,
     ) -> Self {
         Self {
             client,
             session_type,
-            credential_requests,
             verifier_certificate,
             auth_request,
         }
@@ -64,7 +61,7 @@ where
     }
 
     fn credential_requests(&self) -> &VecNonEmpty<NormalizedCredentialRequest> {
-        &self.credential_requests
+        &self.auth_request.credential_requests
     }
 
     fn verifier_certificate(&self) -> &VerifierCertificate {
@@ -101,7 +98,8 @@ where
         let filtered_mdocs = mdocs
             .into_iter()
             .filter_map(|mut mdoc| {
-                let paths = credential_requests_to_mdoc_paths(&self.credential_requests, &mdoc.mso.doc_type);
+                let paths =
+                    credential_requests_to_mdoc_paths(&self.auth_request.credential_requests, &mdoc.mso.doc_type);
 
                 (!paths.is_empty()).then(|| {
                     mdoc.issuer_signed = mdoc.issuer_signed.into_attribute_subset(&paths);
@@ -241,7 +239,6 @@ mod tests {
         let disclosure_session = VpDisclosureSession {
             client: mock_client,
             session_type,
-            credential_requests: verifier_session.credential_requests.clone(),
             verifier_certificate: VerifierCertificate::try_new(verifier_session.key_pair.certificate().clone())
                 .unwrap()
                 .unwrap(),
@@ -266,7 +263,6 @@ mod tests {
         VpDisclosureSession {
             client: error_client,
             session_type: disclosure_session.session_type,
-            credential_requests: disclosure_session.credential_requests,
             verifier_certificate: disclosure_session.verifier_certificate,
             auth_request: disclosure_session.auth_request,
         }
