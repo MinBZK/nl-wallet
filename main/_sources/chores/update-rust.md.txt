@@ -3,42 +3,36 @@
 The below chore documents how you can update Rust in the macos image we use. It
 is mostly specifically about Rust, but the below guide has also succesfully been
 used to upgrade Flutter for example (since essentially all changes you would
-want to do are contained in the `wallet.pkr.hcl` file).
+want to do are contained in the `flutter.sh` and `wallet.pkr.hcl` file).
 
 ## Update Rust images
 
-In the `nl-wallet-app-builder-dockerfiles` repository:
+### Docker image
 
-- In `rust-user.sh` update Rust to the desired version (see
-  `nl-wallet-app-builder-dockerfiles` MR 60, as an example).
+- Update Rust for docker images to the desired version in:
+  `deploy/docker-images/ci/rust-user.sh`
 - Optional: update Rust-related dependencies in `rust-user.sh`, `cyclonedx.sh`
-  to the desired version (beware for yanked versions).
-- Run the pipeline manually and test out in your nl-wallet MR.
-- Get your MR approved and merged, images will be created and uploaded to Harbor
-  registry on merge to main.
-- Update your MR with the new build image tag.
+  to the desired version (beware for yanked versions)
 
-## Update Rust macOS Runner
+### macOS image
 
-In the `macos-runner` repository:
+- Updat Rust for macOS image to the desired version in:
+  `deploy/macos-image/wallet.pkr.hcl`
+- Optional: update Rust-related dependencies too
+- Don't forget to bump the version of the image
 
-- In `wallet.pkr.hcl` update Rust to the desired version (see `macos-runner` MR
-  4 as an example).
-- Optional: update Rust-related dependencies too.
-- Don't forget to bump the version of the image (see `macos-runner` MR 5 as an
-  example).
-- Get your MR approved and merged.
-- Build the image via the CI pipeline.
+### Build images
 
-## Update Rust workspace version
+- Create commit and MR and run the build images jobs: `build-images-tag` and
+  `macos-image-trigger`
 
-In the `nl-wallet` repository:
+### Use build images and update Rust workspace
 
 - Update all `Cargo.toml` files to the desired version (see commit
-  `b72338fa25a4081678d7e5a0cf686ae6fa2f52c1`)
-- Update the CI image in `.gitlab-ci.yml`
-- Update the version of the macOS image in `.gitlab-ci.yml`
-- Make sure the pipelines in your MR run successfully
+  `1f0a26d1ac49947ed1da2abbc828d2f22ba7554f`)
+- Change the image tags in `.gitlab-ci.yml` (`BUILD_TAG` and the `image` tag in
+  `.env-macos-runner`)
+- Commit and push again
 - Get your MR approved and merged
 
 And you're done! 🎉

@@ -208,9 +208,13 @@
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">How to update Rust (or anything really) for NL Wallet</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#update-rust-images">Update Rust images</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#update-rust-macos-runner">Update Rust macOS Runner</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#update-rust-workspace-version">Update Rust workspace version</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#update-rust-images">Update Rust images</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#docker-image">Docker image</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#macos-image">macOS image</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#build-images">Build images</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#use-build-images-and-update-rust-workspace">Use build images and update Rust workspace</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../wow/definition-of-done.html">Definition of done</a><ul>
@@ -308,46 +312,46 @@
 <p>The below chore documents how you can update Rust in the macos image we use. It
 is mostly specifically about Rust, but the below guide has also succesfully been
 used to upgrade Flutter for example (since essentially all changes you would
-want to do are contained in the <code class="docutils literal notranslate"><span class="pre">wallet.pkr.hcl</span></code> file).</p>
+want to do are contained in the <code class="docutils literal notranslate"><span class="pre">flutter.sh</span></code> and <code class="docutils literal notranslate"><span class="pre">wallet.pkr.hcl</span></code> file).</p>
 <section id="update-rust-images">
 <h2>Update Rust images<a class="headerlink" href="#update-rust-images" title="Link to this heading"></a></h2>
-<p>In the <code class="docutils literal notranslate"><span class="pre">nl-wallet-app-builder-dockerfiles</span></code> repository:</p>
+<section id="docker-image">
+<h3>Docker image<a class="headerlink" href="#docker-image" title="Link to this heading"></a></h3>
 <ul class="simple">
-<li><p>In <code class="docutils literal notranslate"><span class="pre">rust-user.sh</span></code> update Rust to the desired version (see
-<code class="docutils literal notranslate"><span class="pre">nl-wallet-app-builder-dockerfiles</span></code> MR 60, as an example).</p></li>
+<li><p>Update Rust for docker images to the desired version in:
+<code class="docutils literal notranslate"><span class="pre">deploy/docker-images/ci/rust-user.sh</span></code></p></li>
 <li><p>Optional: update Rust-related dependencies in <code class="docutils literal notranslate"><span class="pre">rust-user.sh</span></code>, <code class="docutils literal notranslate"><span class="pre">cyclonedx.sh</span></code>
-to the desired version (beware for yanked versions).</p></li>
-<li><p>Run the pipeline manually and test out in your nl-wallet MR.</p></li>
-<li><p>Get your MR approved and merged, images will be created and uploaded to Harbor
-registry on merge to main.</p></li>
-<li><p>Update your MR with the new build image tag.</p></li>
+to the desired version (beware for yanked versions)</p></li>
 </ul>
 </section>
-<section id="update-rust-macos-runner">
-<h2>Update Rust macOS Runner<a class="headerlink" href="#update-rust-macos-runner" title="Link to this heading"></a></h2>
-<p>In the <code class="docutils literal notranslate"><span class="pre">macos-runner</span></code> repository:</p>
+<section id="macos-image">
+<h3>macOS image<a class="headerlink" href="#macos-image" title="Link to this heading"></a></h3>
 <ul class="simple">
-<li><p>In <code class="docutils literal notranslate"><span class="pre">wallet.pkr.hcl</span></code> update Rust to the desired version (see <code class="docutils literal notranslate"><span class="pre">macos-runner</span></code> MR
-4 as an example).</p></li>
-<li><p>Optional: update Rust-related dependencies too.</p></li>
-<li><p>Don’t forget to bump the version of the image (see <code class="docutils literal notranslate"><span class="pre">macos-runner</span></code> MR 5 as an
-example).</p></li>
-<li><p>Get your MR approved and merged.</p></li>
-<li><p>Build the image via the CI pipeline.</p></li>
+<li><p>Updat Rust for macOS image to the desired version in:
+<code class="docutils literal notranslate"><span class="pre">deploy/macos-image/wallet.pkr.hcl</span></code></p></li>
+<li><p>Optional: update Rust-related dependencies too</p></li>
+<li><p>Don’t forget to bump the version of the image</p></li>
 </ul>
 </section>
-<section id="update-rust-workspace-version">
-<h2>Update Rust workspace version<a class="headerlink" href="#update-rust-workspace-version" title="Link to this heading"></a></h2>
-<p>In the <code class="docutils literal notranslate"><span class="pre">nl-wallet</span></code> repository:</p>
+<section id="build-images">
+<h3>Build images<a class="headerlink" href="#build-images" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p>Create commit and MR and run the build images jobs: <code class="docutils literal notranslate"><span class="pre">build-images-tag</span></code> and
+<code class="docutils literal notranslate"><span class="pre">macos-image-trigger</span></code></p></li>
+</ul>
+</section>
+<section id="use-build-images-and-update-rust-workspace">
+<h3>Use build images and update Rust workspace<a class="headerlink" href="#use-build-images-and-update-rust-workspace" title="Link to this heading"></a></h3>
 <ul class="simple">
 <li><p>Update all <code class="docutils literal notranslate"><span class="pre">Cargo.toml</span></code> files to the desired version (see commit
-<code class="docutils literal notranslate"><span class="pre">b72338fa25a4081678d7e5a0cf686ae6fa2f52c1</span></code>)</p></li>
-<li><p>Update the CI image in <code class="docutils literal notranslate"><span class="pre">.gitlab-ci.yml</span></code></p></li>
-<li><p>Update the version of the macOS image in <code class="docutils literal notranslate"><span class="pre">.gitlab-ci.yml</span></code></p></li>
-<li><p>Make sure the pipelines in your MR run successfully</p></li>
+<code class="docutils literal notranslate"><span class="pre">1f0a26d1ac49947ed1da2abbc828d2f22ba7554f</span></code>)</p></li>
+<li><p>Change the image tags in <code class="docutils literal notranslate"><span class="pre">.gitlab-ci.yml</span></code> (<code class="docutils literal notranslate"><span class="pre">BUILD_TAG</span></code> and the <code class="docutils literal notranslate"><span class="pre">image</span></code> tag in
+<code class="docutils literal notranslate"><span class="pre">.env-macos-runner</span></code>)</p></li>
+<li><p>Commit and push again</p></li>
 <li><p>Get your MR approved and merged</p></li>
 </ul>
 <p>And you’re done! 🎉</p>
+</section>
 </section>
 </section>
 
