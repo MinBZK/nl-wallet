@@ -121,7 +121,7 @@ impl UseCaseSettings {
         let use_case = RpInitiatedUseCase::try_new(
             self.key_pair.parse(hsm).await?,
             self.session_type_return_url,
-            self.items_requests,
+            self.items_requests.map(Into::into),
             self.return_url_template,
         )?;
 

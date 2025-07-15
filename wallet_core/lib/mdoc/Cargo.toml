@@ -67,6 +67,7 @@ rstest = { workspace = true, optional = true }
 
 attestation_types.path = "../attestation_types"
 crypto.path = "../crypto"
+dcql.path = "../dcql"
 error_category.path = "../error_category"
 http_utils.path = "../http_utils"
 jwt.path = "../jwt"
@@ -82,6 +83,7 @@ rstest.workspace = true
 serde_json.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 
+attestation_types = { path = "../attestation_types", features = ["mock"] }
 crypto = { path = "../crypto", features = ["examples", "generate", "mock", "mock_secure_keys", "mock_remote_key"] }
 sd_jwt_vc_metadata = { path = "../sd_jwt_vc_metadata", features = ["example_constructors"] }
 utils = { path = "../utils", features = ["mock_time"] }

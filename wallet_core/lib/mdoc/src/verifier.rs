@@ -14,7 +14,11 @@ use serde_with::serde_as;
 use tracing::debug;
 use tracing::warn;
 
+use attestation_types::request::AttributeRequest;
+use attestation_types::request::NormalizedCredentialRequest;
 use crypto::x509::CertificateUsage;
+use dcql::ClaimPath;
+use dcql::CredentialQueryFormat;
 use http_utils::urls::HttpsUri;
 use utils::generator::Generator;
 use utils::vec_at_least::VecNonEmpty;
@@ -96,7 +100,7 @@ impl ItemsRequests {
                     .map_or_else(
                         // If the entire document is missing then all requested attributes are missing
                         || Ok::<_, Error>(items_request.mdoc_attribute_identifiers()?.into_iter().collect_vec()),
-                        |doc| items_request.match_against_issuer_signed(doc),
+                        |doc| Ok(items_request.match_against_issuer_signed(doc)?),
                     )
             })
             .flatten()
@@ -107,6 +111,48 @@ impl ItemsRequests {
         } else {
             Err(VerificationError::MissingAttributes(not_found).into())
         }
+    }
+}
+
+// TODO: Remove in PVW-4530
+impl From<ItemsRequest> for NormalizedCredentialRequest {
+    fn from(source: ItemsRequest) -> Self {
+        let doctype_value = source.doc_type;
+
+        let format = CredentialQueryFormat::MsoMdoc { doctype_value };
+
+        // unwrap below is safe because claims path is not empty
+        let claims = source
+            .name_spaces
+            .into_iter()
+            .flat_map(|(namespace, attrs)| {
+                attrs
+                    .into_iter()
+                    .map(move |(attribute, intent_to_retain)| AttributeRequest {
+                        path: vec![
+                            ClaimPath::SelectByKey(namespace.clone()),
+                            ClaimPath::SelectByKey(attribute.clone()),
+                        ]
+                        .try_into()
+                        .unwrap(),
+                        intent_to_retain,
+                    })
+            })
+            .collect();
+
+        NormalizedCredentialRequest { format, claims }
+    }
+}
+
+impl From<ItemsRequests> for VecNonEmpty<NormalizedCredentialRequest> {
+    fn from(source: ItemsRequests) -> Self {
+        source
+            .0
+            .into_iter()
+            .map(Into::into)
+            .collect::<Vec<_>>()
+            .try_into()
+            .unwrap()
     }
 }
 
@@ -343,18 +389,6 @@ impl Document {
     }
 }
 
-impl ItemsRequest {
-    /// Returns requested attributes, if any, that are not present in the `issuer_signed`.
-    pub fn match_against_issuer_signed(&self, document: &Document) -> Result<Vec<AttributeIdentifier>> {
-        let document_identifiers = document.issuer_signed_attribute_identifiers();
-        Ok(self
-            .mdoc_attribute_identifiers()?
-            .into_iter()
-            .filter(|attribute| !document_identifiers.contains(attribute))
-            .collect())
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use std::ops::Add;
@@ -379,6 +413,8 @@ mod tests {
     use crate::holder::Mdoc;
     use crate::identifiers::AttributeIdentifierHolder;
     use crate::test;
+    use crate::test::data::addr_street;
+    use crate::test::data::pid_full_name;
     use crate::test::DebugCollapseBts;
     use crate::DeviceAuthenticationBytes;
     use crate::DeviceResponse;
@@ -619,5 +655,22 @@ mod tests {
         items_requests.0.reverse();
 
         (device_response, items_requests, Ok(()))
+    }
+
+    #[rstest]
+    #[case(
+        pid_full_name().into_first().unwrap().into(),
+        NormalizedCredentialRequest::pid_full_name(),
+    )]
+    #[case(
+        addr_street().into_first().unwrap().into(),
+        NormalizedCredentialRequest::addr_street(),
+    )]
+    fn items_requests_to_and_from_credential_requests(
+        #[case] input: ItemsRequest,
+        #[case] expected: NormalizedCredentialRequest,
+    ) {
+        let actual: NormalizedCredentialRequest = input.into();
+        assert_eq!(actual, expected);
     }
 }

@@ -415,13 +415,18 @@ impl MdocCose<CoseSign1, TaggedBytes<MobileSecurityObject>> {
 
 #[cfg(any(test, feature = "mock"))]
 pub mod data {
+    use attestation_types::request::AttributeRequest;
+    use attestation_types::request::NormalizedCredentialRequest;
     use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
+    use dcql::ClaimPath;
+    use dcql::CredentialQueryFormat;
+    use utils::vec_at_least::VecNonEmpty;
 
     use super::*;
 
     pub const PID: &str = "urn:eudi:pid:nl:1";
-    const ADDR: &str = "urn:eudi:pid-address:nl:1";
-    const ADDR_NS: &str = "urn:eudi:pid-address:nl:1.address";
+    pub const ADDR: &str = "urn:eudi:pid-address:nl:1";
+    pub const ADDR_NS: &str = "urn:eudi:pid-address:nl:1.address";
 
     pub fn empty() -> TestDocuments {
         vec![].into()
@@ -543,6 +548,45 @@ pub mod data {
     impl ItemsRequests {
         pub fn new_pid_example() -> Self {
             vec![ItemsRequest::new_pid_example()].into()
+        }
+    }
+
+    impl From<TestDocument> for NormalizedCredentialRequest {
+        fn from(source: TestDocument) -> Self {
+            let format = CredentialQueryFormat::MsoMdoc {
+                doctype_value: source.doc_type,
+            };
+
+            // unwrap below is safe because claims path is not empty
+            let claims = source
+                .namespaces
+                .into_iter()
+                .flat_map(|(namespace, attrs)| {
+                    attrs.into_iter().map(move |entry| AttributeRequest {
+                        path: vec![
+                            ClaimPath::SelectByKey(namespace.clone()),
+                            ClaimPath::SelectByKey(entry.name),
+                        ]
+                        .try_into()
+                        .unwrap(),
+                        intent_to_retain: true,
+                    })
+                })
+                .collect();
+
+            NormalizedCredentialRequest { format, claims }
+        }
+    }
+
+    impl From<TestDocuments> for VecNonEmpty<NormalizedCredentialRequest> {
+        fn from(source: TestDocuments) -> Self {
+            source
+                .0
+                .into_iter()
+                .map(Into::into)
+                .collect::<Vec<_>>()
+                .try_into()
+                .unwrap()
         }
     }
 }

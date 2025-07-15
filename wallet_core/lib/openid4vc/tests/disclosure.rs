@@ -24,6 +24,8 @@ use attestation_data::attributes::AttributeValue;
 use attestation_data::auth::reader_auth::ReaderRegistration;
 use attestation_data::disclosure::DisclosedAttestation;
 use attestation_data::x509::generate::mock::generate_reader_mock;
+use attestation_types::request;
+use attestation_types::request::NormalizedCredentialRequest;
 use crypto::factory::KeyFactory;
 use crypto::mock_remote::MockRemoteEcdsaKey;
 use crypto::mock_remote::MockRemoteKeyFactory;
@@ -39,7 +41,6 @@ use mdoc::test::data::pid_full_name;
 use mdoc::test::data::pid_given_name;
 use mdoc::test::data::PID;
 use mdoc::test::TestDocuments;
-use mdoc::verifier::ItemsRequests;
 use mdoc::DeviceResponse;
 use mdoc::SessionTranscript;
 use openid4vc::disclosure_session::DisclosureClient;
@@ -53,7 +54,7 @@ use openid4vc::disclosure_session::VpMessageClientError;
 use openid4vc::disclosure_session::VpSessionError;
 use openid4vc::mock::test_document_to_mdoc;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
-use openid4vc::openid4vp::IsoVpAuthorizationRequest;
+use openid4vc::openid4vp::NormalizedVpAuthorizationRequest;
 use openid4vc::openid4vp::RequestUriMethod;
 use openid4vc::openid4vp::VpAuthorizationRequest;
 use openid4vc::openid4vp::VpAuthorizationResponse;
@@ -99,8 +100,8 @@ async fn disclosure_direct() {
     let nonce = "nonce".to_string();
     let response_uri: BaseUrl = "https://example.com/response_uri".parse().unwrap();
     let encryption_keypair = EcKeyPair::generate(EcCurve::P256).unwrap();
-    let iso_auth_request = IsoVpAuthorizationRequest::new(
-        &ItemsRequests::new_pid_example(),
+    let iso_auth_request = NormalizedVpAuthorizationRequest::new(
+        request::mock::new_pid_example(),
         auth_keypair.certificate(),
         nonce.clone(),
         encryption_keypair.to_jwk_public_key().try_into().unwrap(),
@@ -180,7 +181,9 @@ async fn disclosure_using_message_client() {
     let ca = Ca::generate("myca", Default::default()).unwrap();
     let rp_keypair = generate_reader_mock(
         &ca,
-        Some(ReaderRegistration::mock_from_requests(&ItemsRequests::new_pid_example())),
+        Some(ReaderRegistration::mock_from_credential_requests(
+            &request::mock::new_pid_example(),
+        )),
     )
     .unwrap();
 
@@ -239,8 +242,8 @@ impl DirectMockVpMessageClient {
         let response_uri: BaseUrl = "https://example.com/response_uri".parse().unwrap();
         let encryption_keypair = EcKeyPair::generate(EcCurve::P256).unwrap();
 
-        let auth_request = IsoVpAuthorizationRequest::new(
-            &ItemsRequests::new_pid_example(),
+        let auth_request = NormalizedVpAuthorizationRequest::new(
+            request::mock::new_pid_example(),
             auth_keypair.certificate(),
             nonce.clone(),
             encryption_keypair.to_jwk_public_key().try_into().unwrap(),
@@ -464,7 +467,7 @@ async fn test_client_and_server(
     #[case] return_url_template: Option<ReturnUrlTemplate>,
     #[case] use_case: &str,
     #[case] stored_documents: TestDocuments,
-    #[case] requested_documents: ItemsRequests,
+    #[case] requested_documents: VecNonEmpty<NormalizedCredentialRequest>,
     #[case] expected_documents: TestDocuments,
     #[values(None, Some("query_param".to_string()))] result_query_param: Option<String>,
 ) {
@@ -859,14 +862,14 @@ fn setup_wallet_initiated_usecase_verifier() -> (Arc<MockWalletInitiatedUseCaseV
     let rp_ca = Ca::generate_reader_mock_ca().unwrap();
 
     // Initialize the verifier
-    let items_requests: ItemsRequests = pid_full_name().into();
-    let reader_registration = Some(ReaderRegistration::mock_from_requests(&items_requests));
+    let credential_requests: VecNonEmpty<NormalizedCredentialRequest> = pid_full_name().into();
+    let reader_registration = Some(ReaderRegistration::mock_from_credential_requests(&credential_requests));
     let usecases = HashMap::from([(
         WALLET_INITIATED_RETURN_URL_USE_CASE.to_string(),
         WalletInitiatedUseCase::try_new(
             generate_reader_mock(&rp_ca, reader_registration.clone()).unwrap(),
             SessionTypeReturnUrl::SameDevice,
-            items_requests,
+            credential_requests,
             "https://example.com/redirect_uri".parse().unwrap(),
         )
         .unwrap(),
@@ -884,7 +887,7 @@ fn setup_wallet_initiated_usecase_verifier() -> (Arc<MockWalletInitiatedUseCaseV
 }
 
 fn setup_verifier(
-    items_requests: &ItemsRequests,
+    credential_requests: &VecNonEmpty<NormalizedCredentialRequest>,
     session_result_query_param: Option<String>,
 ) -> (Arc<MockRpInitiatedUseCaseVerifier>, TrustAnchor<'static>, Ca) {
     // Initialize key material
@@ -892,7 +895,7 @@ fn setup_verifier(
     let rp_ca = Ca::generate_reader_mock_ca().unwrap();
 
     // Initialize the verifier
-    let reader_registration = Some(ReaderRegistration::mock_from_requests(items_requests));
+    let reader_registration = Some(ReaderRegistration::mock_from_credential_requests(credential_requests));
     let usecases = HashMap::from([
         (
             NO_RETURN_URL_USE_CASE.to_string(),
