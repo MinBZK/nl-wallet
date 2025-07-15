@@ -6,16 +6,16 @@ use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
 
-use axum::routing::post;
 use axum::Json;
 use axum::Router;
+use axum::routing::post;
 use ctor::ctor;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::EncodingKey;
 use jsonwebtoken::Header;
 use reqwest::Certificate;
-use rustls::crypto::ring;
 use rustls::crypto::CryptoProvider;
+use rustls::crypto::ring;
 use sea_orm::Database;
 use sea_orm::DatabaseConnection;
 use sea_orm::EntityTrait;
@@ -34,9 +34,9 @@ use configuration_server::settings::Settings as CsSettings;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use gba_hc_converter::settings::Settings as GbaSettings;
 use hsm::service::Pkcs11Hsm;
+use http_utils::reqwest::ReqwestTrustAnchor;
 use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::reqwest::trusted_reqwest_client_builder;
-use http_utils::reqwest::ReqwestTrustAnchor;
 use http_utils::tls::pinning::TlsPinningConfig;
 use http_utils::tls::server::TlsServerConfig;
 use http_utils::urls::BaseUrl;
@@ -47,9 +47,9 @@ use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::issuance_session::HttpIssuanceSession;
 use openid4vc::issuer::AttributeService;
 use openid4vc::token::TokenRequest;
+use pid_issuer::pid::mock::MockAttributeService;
 use pid_issuer::pid::mock::mock_issuable_document_address;
 use pid_issuer::pid::mock::mock_issuable_document_pid;
-use pid_issuer::pid::mock::MockAttributeService;
 use pid_issuer::settings::PidIssuerSettings;
 use pid_issuer::wte_tracker::WteTrackerVariant;
 use platform_support::attested_key::mock::KeyHolderType;
@@ -61,16 +61,16 @@ use server_utils::store::SessionStoreVariant;
 use update_policy_server::settings::Settings as UpsSettings;
 use utils::vec_at_least::VecNonEmpty;
 use verification_server::settings::VerifierSettings;
+use wallet::Wallet;
 use wallet::mock::MockDigidSession;
 use wallet::mock::StorageStub;
-use wallet::wallet_deps::default_config_server_config;
-use wallet::wallet_deps::default_wallet_config;
 use wallet::wallet_deps::HttpAccountProviderClient;
 use wallet::wallet_deps::HttpConfigurationRepository;
 use wallet::wallet_deps::UpdatePolicyRepository;
 use wallet::wallet_deps::UpdateableRepository;
 use wallet::wallet_deps::WpWteIssuanceClient;
-use wallet::Wallet;
+use wallet::wallet_deps::default_config_server_config;
+use wallet::wallet_deps::default_wallet_config;
 use wallet_configuration::config_server_config::ConfigServerConfiguration;
 use wallet_configuration::wallet_config::WalletConfiguration;
 use wallet_provider::settings::AppleEnvironment;
@@ -585,8 +585,7 @@ pub async fn start_verification_server(mut settings: VerifierSettings, hsm: Opti
 
     let requester_listener = match &mut settings.requester_server {
         RequesterAuth::Authentication(_) => None,
-        RequesterAuth::ProtectedInternalEndpoint { ref mut server, .. }
-        | RequesterAuth::InternalEndpoint(ref mut server) => {
+        RequesterAuth::ProtectedInternalEndpoint { server, .. } | RequesterAuth::InternalEndpoint(server) => {
             let listener = TcpListener::bind(("localhost", 0)).await.unwrap();
             server.port = listener.local_addr().unwrap().port();
             Some(listener)
