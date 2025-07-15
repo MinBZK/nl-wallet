@@ -130,6 +130,10 @@ fn pid_without_optionals() -> IssuableDocument {
                 PID_BSN.to_string(),
                 Attribute::Single(AttributeValue::Text("999991772".to_string())),
             ),
+            (
+                PID_RECOVERY_CODE.to_string(),
+                Attribute::Single(AttributeValue::Text("123".to_string())),
+            ),
         ])
         .into(),
     )
