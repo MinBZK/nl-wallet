@@ -24,6 +24,9 @@ use utils::vec_at_least::VecNonEmpty;
 use crate::pid::brp::client::BrpClient;
 use crate::pid::brp::client::BrpError;
 use crate::pid::brp::client::HttpBrpClient;
+use crate::pid::constants::PID_ATTESTATION_TYPE;
+use crate::pid::constants::PID_BSN;
+use crate::pid::constants::PID_RECOVERY_CODE;
 use crate::settings::RecoveryCode;
 
 use super::digid;
@@ -101,24 +104,17 @@ impl AttributeService for BrpPidAttributeService {
         let person = persons.persons.remove(0);
 
         let attestations = person.into_issuable().into_inner();
-        if !attestations.iter().any(|(attestation_type, _)| {
-            self.recovery_code_config
-                .attestation_types
-                .as_ref()
-                .contains(attestation_type)
-        }) {
+        if !attestations
+            .iter()
+            .any(|(attestation_type, _)| attestation_type == PID_ATTESTATION_TYPE)
+        {
             return Err(Error::NoPidAttestationFound);
         }
 
         let issuable_documents = try_join_all(attestations.into_iter().map(|(attestation_type, attributes)| async {
             let mut attributes = Attributes::from(attributes);
 
-            if self
-                .recovery_code_config
-                .attestation_types
-                .as_ref()
-                .contains(&attestation_type)
-            {
+            if attestation_type == PID_ATTESTATION_TYPE {
                 Self::insert_recovery_code(&mut attributes, &self.recovery_code_config).await?;
             }
 
@@ -141,7 +137,7 @@ impl AttributeService for BrpPidAttributeService {
 impl BrpPidAttributeService {
     async fn insert_recovery_code(attributes: &mut Attributes, config: &RecoveryCodeConfig) -> Result<(), Error> {
         let bsn = match attributes
-            .get(&config.bsn_claim_paths)
+            .get(&vec![ClaimPath::SelectByKey(PID_BSN.to_string())].try_into().unwrap())
             .map_err(Error::RetrievingBsn)?
             .ok_or(Error::NoBsnFound)?
         {
@@ -152,7 +148,12 @@ impl BrpPidAttributeService {
         let recovery_code = AttributeValue::Text(hex::encode(config.hmac_secret.sign_hmac(bsn.as_bytes()).await?));
 
         attributes
-            .insert(&config.recovery_code_claim_paths, Attribute::Single(recovery_code))
+            .insert(
+                &vec![ClaimPath::SelectByKey(PID_RECOVERY_CODE.to_string())]
+                    .try_into()
+                    .unwrap(),
+                Attribute::Single(recovery_code),
+            )
             .map_err(Error::InsertingRecoveryCode)?;
 
         Ok(())
@@ -161,30 +162,12 @@ impl BrpPidAttributeService {
 
 pub struct RecoveryCodeConfig {
     pub hmac_secret: SecretKeyVariant,
-    pub attestation_types: VecNonEmpty<String>,
-    pub recovery_code_claim_paths: VecNonEmpty<ClaimPath>,
-    pub bsn_claim_paths: VecNonEmpty<ClaimPath>,
 }
 
 impl RecoveryCodeConfig {
     pub fn from_settings(settings: RecoveryCode, hsm: Option<Pkcs11Hsm>) -> Result<Self, SecretKeySettingsError> {
         Ok(Self {
             hmac_secret: SecretKeyVariant::from_settings(settings.hmac_secret, hsm)?,
-            attestation_types: settings.attestation_types,
-            recovery_code_claim_paths: settings
-                .recovery_code_claim_paths
-                .into_iter()
-                .map(ClaimPath::SelectByKey)
-                .collect::<Vec<_>>()
-                .try_into()
-                .unwrap(), // safe because we iterated over a VecNonEmpty
-            bsn_claim_paths: settings
-                .bsn_claim_paths
-                .into_iter()
-                .map(ClaimPath::SelectByKey)
-                .collect::<Vec<_>>()
-                .try_into()
-                .unwrap(), // safe because we iterated over a VecNonEmpty
         })
     }
 }
@@ -224,9 +207,6 @@ mod tests {
                 hmac_secret: SecretKey::Software {
                     secret_key: key.clone().try_into().unwrap(),
                 },
-                attestation_types: vec!["pid".to_string()].try_into().unwrap(),
-                bsn_claim_paths: vec!["bsn".to_string()].try_into().unwrap(),
-                recovery_code_claim_paths: vec!["recovery_code".to_string()].try_into().unwrap(),
             },
             None,
         )
