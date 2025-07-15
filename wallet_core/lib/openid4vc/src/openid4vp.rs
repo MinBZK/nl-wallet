@@ -334,7 +334,7 @@ impl VpAuthorizationRequest {
         self,
         rp_cert: &BorrowingCertificate,
         wallet_nonce: Option<&str>,
-    ) -> Result<IsoVpAuthorizationRequest, AuthRequestValidationError> {
+    ) -> Result<NormalizedVpAuthorizationRequest, AuthRequestValidationError> {
         let dns_san = rp_cert.san_dns_name()?.ok_or(AuthRequestValidationError::MissingSAN)?;
         if dns_san != self.oauth_request.client_id {
             return Err(AuthRequestValidationError::UnauthorizedClientId {
@@ -347,7 +347,7 @@ impl VpAuthorizationRequest {
             return Err(AuthRequestValidationError::WalletNonceMismatch);
         }
 
-        let validated_auth_request = IsoVpAuthorizationRequest::try_from(self)?;
+        let validated_auth_request = NormalizedVpAuthorizationRequest::try_from(self)?;
 
         Ok(validated_auth_request)
     }
@@ -361,7 +361,7 @@ impl VpAuthorizationRequest {
 /// the session store.
 #[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct IsoVpAuthorizationRequest {
+pub struct NormalizedVpAuthorizationRequest {
     pub client_id: String,
     pub nonce: String,
     pub encryption_pubkey: Jwk,
@@ -373,9 +373,9 @@ pub struct IsoVpAuthorizationRequest {
     pub wallet_nonce: Option<String>,
 }
 
-impl IsoVpAuthorizationRequest {
+impl NormalizedVpAuthorizationRequest {
     pub fn new(
-        credential_requests: &VecNonEmpty<NormalizedCredentialRequest>,
+        credential_requests: VecNonEmpty<NormalizedCredentialRequest>,
         rp_certificate: &BorrowingCertificate,
         nonce: String,
         encryption_pubkey: JwePublicKey,
@@ -394,8 +394,8 @@ impl IsoVpAuthorizationRequest {
             nonce,
             encryption_pubkey: encryption_pubkey.clone(),
             response_uri,
-            presentation_definition: credential_requests.into(),
-            credential_requests: credential_requests.clone(),
+            presentation_definition: (&credential_requests).into(),
+            credential_requests,
             client_metadata: ClientMetadata {
                 jwks: VpJwks::Direct {
                     keys: vec![encryption_pubkey.clone()],
@@ -412,8 +412,8 @@ impl IsoVpAuthorizationRequest {
     }
 }
 
-impl From<IsoVpAuthorizationRequest> for VpAuthorizationRequest {
-    fn from(value: IsoVpAuthorizationRequest) -> Self {
+impl From<NormalizedVpAuthorizationRequest> for VpAuthorizationRequest {
+    fn from(value: NormalizedVpAuthorizationRequest) -> Self {
         Self {
             aud: VpAuthorizationRequestAudience::SelfIssued,
             oauth_request: AuthorizationRequest {
@@ -437,7 +437,7 @@ impl From<IsoVpAuthorizationRequest> for VpAuthorizationRequest {
     }
 }
 
-impl TryFrom<VpAuthorizationRequest> for IsoVpAuthorizationRequest {
+impl TryFrom<VpAuthorizationRequest> for NormalizedVpAuthorizationRequest {
     type Error = AuthRequestValidationError;
 
     fn try_from(vp_auth_request: VpAuthorizationRequest) -> Result<Self, Self::Error> {
@@ -528,7 +528,7 @@ impl TryFrom<VpAuthorizationRequest> for IsoVpAuthorizationRequest {
             return Err(AuthRequestValidationError::NoAttributesRequested);
         }
 
-        Ok(IsoVpAuthorizationRequest {
+        Ok(NormalizedVpAuthorizationRequest {
             client_id: vp_auth_request.oauth_request.client_id,
             nonce: vp_auth_request.oauth_request.nonce.unwrap(),
             encryption_pubkey: jwk,
@@ -618,7 +618,7 @@ pub enum VerifiablePresentation {
 }
 
 impl VpAuthorizationResponse {
-    fn new(device_response: DeviceResponse, auth_request: &IsoVpAuthorizationRequest, poa: Option<Poa>) -> Self {
+    fn new(device_response: DeviceResponse, auth_request: &NormalizedVpAuthorizationRequest, poa: Option<Poa>) -> Self {
         let presentation_submission = PresentationSubmission {
             id: random_string(16),
             definition_id: auth_request.presentation_definition.id.clone(),
@@ -646,14 +646,18 @@ impl VpAuthorizationResponse {
     /// Create a JWE containing a new encrypted Authorization Request.
     pub fn new_encrypted(
         device_response: DeviceResponse,
-        auth_request: &IsoVpAuthorizationRequest,
+        auth_request: &NormalizedVpAuthorizationRequest,
         mdoc_nonce: &str,
         poa: Option<Poa>,
     ) -> Result<String, AuthResponseError> {
         Self::new(device_response, auth_request, poa).encrypt(auth_request, mdoc_nonce)
     }
 
-    fn encrypt(&self, auth_request: &IsoVpAuthorizationRequest, mdoc_nonce: &str) -> Result<String, AuthResponseError> {
+    fn encrypt(
+        &self,
+        auth_request: &NormalizedVpAuthorizationRequest,
+        mdoc_nonce: &str,
+    ) -> Result<String, AuthResponseError> {
         let mut header = JweHeader::new();
         header.set_token_type("JWT");
 
@@ -687,7 +691,7 @@ impl VpAuthorizationResponse {
     pub fn decrypt_and_verify(
         jwe: &str,
         private_key: &EcKeyPair,
-        auth_request: &IsoVpAuthorizationRequest,
+        auth_request: &NormalizedVpAuthorizationRequest,
         accepted_wallet_client_ids: &[String],
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
@@ -761,7 +765,7 @@ impl VpAuthorizationResponse {
 
     pub fn verify(
         &self,
-        auth_request: &IsoVpAuthorizationRequest,
+        auth_request: &NormalizedVpAuthorizationRequest,
         accepted_wallet_client_ids: &[String],
         mdoc_nonce: &str,
         time: &impl Generator<DateTime<Utc>>,
@@ -878,7 +882,7 @@ mod tests {
     use crate::mock::test_document_to_issuer_signed;
     use crate::mock::MOCK_WALLET_CLIENT_ID;
     use crate::openid4vp::AuthResponseError;
-    use crate::openid4vp::IsoVpAuthorizationRequest;
+    use crate::openid4vp::NormalizedVpAuthorizationRequest;
     use crate::AuthorizationErrorCode;
     use crate::VpAuthorizationErrorCode;
 
@@ -900,11 +904,11 @@ mod tests {
     }
 
     fn setup() -> (TrustAnchor<'static>, KeyPair, EcKeyPair, VpAuthorizationRequest) {
-        setup_with_credential_requests(&request::mock::example())
+        setup_with_credential_requests(request::mock::example())
     }
 
     fn setup_with_credential_requests(
-        credential_requests: &VecNonEmpty<NormalizedCredentialRequest>,
+        credential_requests: VecNonEmpty<NormalizedCredentialRequest>,
     ) -> (TrustAnchor<'static>, KeyPair, EcKeyPair, VpAuthorizationRequest) {
         let ca = Ca::generate("myca", Default::default()).unwrap();
         let trust_anchor = ca.to_trust_anchor().to_owned();
@@ -912,7 +916,7 @@ mod tests {
 
         let encryption_privkey = EcKeyPair::generate(EcCurve::P256).unwrap();
 
-        let auth_request = IsoVpAuthorizationRequest::new(
+        let auth_request = NormalizedVpAuthorizationRequest::new(
             credential_requests,
             rp_keypair.certificate(),
             "nonce".to_string(),
@@ -936,7 +940,7 @@ mod tests {
         // an Authorization Response JWE.
         let mdoc_nonce = "mdoc_nonce".to_string();
         let device_response = DeviceResponse::example();
-        let auth_request = IsoVpAuthorizationRequest::try_from(auth_request).unwrap();
+        let auth_request = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap();
         // the ISO examples only use one Mdoc and therefore there is no need for a PoA
         let auth_response = VpAuthorizationResponse::new(device_response, &auth_request, None);
         let jwe = auth_response.encrypt(&auth_request, &mdoc_nonce).unwrap();
@@ -1017,7 +1021,7 @@ mod tests {
         );
 
         let auth_request: VpAuthorizationRequest = serde_json::from_value(example_json).unwrap();
-        IsoVpAuthorizationRequest::try_from(auth_request).unwrap();
+        NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap();
     }
 
     #[test]
@@ -1123,7 +1127,10 @@ mod tests {
         assert_eq!(decrypted_document.doc_type, "org.iso.18013.5.1.mDL".to_string());
     }
 
-    fn challenges(auth_request: &IsoVpAuthorizationRequest, session_transcript: &SessionTranscript) -> Vec<Vec<u8>> {
+    fn challenges(
+        auth_request: &NormalizedVpAuthorizationRequest,
+        session_transcript: &SessionTranscript,
+    ) -> Vec<Vec<u8>> {
         auth_request
             .credential_requests
             .as_ref()
@@ -1186,7 +1193,7 @@ mod tests {
     /// Manually construct a mock `DeviceResponse` and PoA using the given `auth_request`, `issuer_signed` and
     /// `mdoc_nonce`.
     async fn setup_device_response(
-        auth_request: &IsoVpAuthorizationRequest,
+        auth_request: &NormalizedVpAuthorizationRequest,
         mdoc_nonce: &str,
         issuer_signed_and_keys: &[(IssuerSigned, MockRemoteEcdsaKey)],
         cas: &[TrustAnchor<'_>],
@@ -1235,11 +1242,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_verify_authorization_response() {
-        let (_, _, _, auth_request) = setup_with_credential_requests(&request::mock::new_pid_example());
+        let (_, _, _, auth_request) = setup_with_credential_requests(request::mock::new_pid_example());
         let mdoc_nonce = "mdoc_nonce";
 
         let time_generator = MockTimeGenerator::default();
-        let auth_request = IsoVpAuthorizationRequest::try_from(auth_request).unwrap();
+        let auth_request = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap();
         let ca = Ca::generate_issuer_mock_ca().unwrap();
 
         let mdoc_key = MockRemoteEcdsaKey::new(String::from("mdoc_key"), SigningKey::random(&mut OsRng));
@@ -1284,13 +1291,18 @@ mod tests {
         );
     }
 
-    async fn setup_poa_test(ca: &Ca) -> (Vec<(IssuerSigned, MockRemoteEcdsaKey)>, IsoVpAuthorizationRequest) {
+    async fn setup_poa_test(
+        ca: &Ca,
+    ) -> (
+        Vec<(IssuerSigned, MockRemoteEcdsaKey)>,
+        NormalizedVpAuthorizationRequest,
+    ) {
         let stored_documents = pid_full_name() + addr_street();
         let items_request = stored_documents.clone().into();
 
-        let (_, _, _, auth_request) = setup_with_credential_requests(&items_request);
+        let (_, _, _, auth_request) = setup_with_credential_requests(items_request);
 
-        let auth_request = IsoVpAuthorizationRequest::try_from(auth_request).unwrap();
+        let auth_request = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap();
 
         let key_factory = MockRemoteKeyFactory::default();
         let issuer_signed_and_keys = join_all(

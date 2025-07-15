@@ -54,7 +54,7 @@ use openid4vc::disclosure_session::VpMessageClientError;
 use openid4vc::disclosure_session::VpSessionError;
 use openid4vc::mock::test_document_to_mdoc;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
-use openid4vc::openid4vp::IsoVpAuthorizationRequest;
+use openid4vc::openid4vp::NormalizedVpAuthorizationRequest;
 use openid4vc::openid4vp::RequestUriMethod;
 use openid4vc::openid4vp::VpAuthorizationRequest;
 use openid4vc::openid4vp::VpAuthorizationResponse;
@@ -100,8 +100,8 @@ async fn disclosure_direct() {
     let nonce = "nonce".to_string();
     let response_uri: BaseUrl = "https://example.com/response_uri".parse().unwrap();
     let encryption_keypair = EcKeyPair::generate(EcCurve::P256).unwrap();
-    let iso_auth_request = IsoVpAuthorizationRequest::new(
-        &request::mock::new_pid_example(),
+    let iso_auth_request = NormalizedVpAuthorizationRequest::new(
+        request::mock::new_pid_example(),
         auth_keypair.certificate(),
         nonce.clone(),
         encryption_keypair.to_jwk_public_key().try_into().unwrap(),
@@ -242,8 +242,8 @@ impl DirectMockVpMessageClient {
         let response_uri: BaseUrl = "https://example.com/response_uri".parse().unwrap();
         let encryption_keypair = EcKeyPair::generate(EcCurve::P256).unwrap();
 
-        let auth_request = IsoVpAuthorizationRequest::new(
-            &request::mock::new_pid_example(),
+        let auth_request = NormalizedVpAuthorizationRequest::new(
+            request::mock::new_pid_example(),
             auth_keypair.certificate(),
             nonce.clone(),
             encryption_keypair.to_jwk_public_key().try_into().unwrap(),

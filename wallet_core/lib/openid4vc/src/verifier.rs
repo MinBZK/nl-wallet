@@ -49,7 +49,7 @@ use utils::vec_at_least::VecNonEmpty;
 
 use crate::openid4vp::AuthRequestError;
 use crate::openid4vp::AuthResponseError;
-use crate::openid4vp::IsoVpAuthorizationRequest;
+use crate::openid4vp::NormalizedVpAuthorizationRequest;
 use crate::openid4vp::RequestUriMethod;
 use crate::openid4vp::VpAuthorizationRequest;
 use crate::openid4vp::VpAuthorizationResponse;
@@ -218,7 +218,7 @@ pub struct Created {
 /// State for a session that is waiting for the user's disclosure, i.e., the device has contacted us at the session URL.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct WaitingForResponse {
-    auth_request: IsoVpAuthorizationRequest,
+    auth_request: NormalizedVpAuthorizationRequest,
     usecase_id: String,
     encryption_key: EncryptionPrivateKey,
     redirect_uri: Option<RedirectUri>,
@@ -1259,7 +1259,7 @@ impl Session<Created> {
     ) -> Result<
         (
             Jwt<VpAuthorizationRequest>,
-            IsoVpAuthorizationRequest,
+            NormalizedVpAuthorizationRequest,
             Option<RedirectUri>,
             EcKeyPair,
         ),
@@ -1297,8 +1297,8 @@ impl Session<Created> {
                     .and_then(|u| u.share_on_error.then_some(u.uri.clone())),
             )
         })?;
-        let auth_request = IsoVpAuthorizationRequest::new(
-            &self.state.data.credential_requests.clone(),
+        let auth_request = NormalizedVpAuthorizationRequest::new(
+            self.state.data.credential_requests.clone(),
             usecase.key_pair.certificate(),
             nonce.clone(),
             encryption_keypair.to_jwk_public_key().try_into().unwrap(), // safe because we just constructed this key

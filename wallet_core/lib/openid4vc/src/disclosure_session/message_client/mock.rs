@@ -23,7 +23,7 @@ use utils::vec_at_least::VecNonEmpty;
 
 use crate::errors::ErrorResponse;
 use crate::errors::VpAuthorizationErrorCode;
-use crate::openid4vp::IsoVpAuthorizationRequest;
+use crate::openid4vp::NormalizedVpAuthorizationRequest;
 use crate::openid4vp::RequestUriMethod;
 use crate::openid4vp::VpAuthorizationRequest;
 use crate::openid4vp::VpRequestUriObject;
@@ -203,9 +203,9 @@ impl MockVerifierSession {
             .unwrap_or(serde_urlencoded::to_string(&self.request_uri_object).unwrap())
     }
 
-    pub fn iso_auth_request(&self, wallet_nonce: Option<String>) -> IsoVpAuthorizationRequest {
-        IsoVpAuthorizationRequest::new(
-            &self.credential_requests,
+    pub fn normalized_auth_request(&self, wallet_nonce: Option<String>) -> NormalizedVpAuthorizationRequest {
+        NormalizedVpAuthorizationRequest::new(
+            self.credential_requests.clone(),
             self.key_pair.certificate(),
             self.nonce.clone(),
             self.encryption_keypair.to_jwk_public_key().try_into().unwrap(),
@@ -217,7 +217,7 @@ impl MockVerifierSession {
 
     /// Generate the first protocol message of the verifier.
     fn signed_auth_request(&self, wallet_request: WalletRequest) -> Jwt<VpAuthorizationRequest> {
-        let request = self.iso_auth_request(wallet_request.wallet_nonce).into();
+        let request = self.normalized_auth_request(wallet_request.wallet_nonce).into();
 
         Jwt::sign_with_certificate(&request, &self.key_pair)
             .now_or_never()
