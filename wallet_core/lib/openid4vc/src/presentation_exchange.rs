@@ -6,6 +6,7 @@
 use std::sync::LazyLock;
 
 use indexmap::IndexSet;
+use itertools::Itertools;
 use regex::Regex;
 use serde::Deserialize;
 use serde::Serialize;
@@ -98,6 +99,7 @@ impl Field {
     }
 }
 
+// TODO: Remove in PVW-4419
 impl From<&VecNonEmpty<NormalizedCredentialRequest>> for PresentationDefinition {
     fn from(requested_creds: &VecNonEmpty<NormalizedCredentialRequest>) -> Self {
         PresentationDefinition {
@@ -120,9 +122,9 @@ impl From<&VecNonEmpty<NormalizedCredentialRequest>> for PresentationDefinition 
                                 .claims
                                 .iter()
                                 .map(|attr_req| {
-                                    let (namespace, attr) = attr_req.to_namespace_and_attribute().unwrap(); // TODO: error handling, TryFrom?
+                                    let path = attr_req.path.iter().map(|p| format!("['{p}']")).join("");
                                     Field {
-                                        path: vec![format!("$['{}']['{}']", namespace, attr)],
+                                        path: vec![format!("${path}")],
                                         intent_to_retain: attr_req.intent_to_retain,
                                     }
                                 })
