@@ -1,3 +1,4 @@
+mod attestation_copy;
 mod data;
 mod database;
 mod database_storage;
@@ -25,12 +26,13 @@ use error_category::ErrorCategory;
 use mdoc::holder::Mdoc;
 use mdoc::utils::serialization::CborError;
 use openid4vc::issuance_session::CredentialWithMetadata;
-use sd_jwt::sd_jwt::VerifiedSdJwt;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataChainError;
 
 use crate::AttestationPresentation;
 
+pub use self::attestation_copy::StoredAttestationCopy;
+pub use self::attestation_copy::StoredAttestationFormat;
 pub use self::data::ChangePinData;
 pub use self::data::InstructionData;
 pub use self::data::KeyData;
@@ -118,20 +120,6 @@ pub struct StoredMdocCopy {
     pub normalized_metadata: NormalizedTypeMetadata,
 }
 
-#[derive(Debug, Clone)]
-pub struct StoredAttestationCopy {
-    pub attestation_id: Uuid,
-    pub attestation_copy_id: Uuid,
-    pub attestation: StoredAttestationFormat,
-    pub normalized_metadata: NormalizedTypeMetadata,
-}
-
-#[derive(Debug, Clone)]
-pub enum StoredAttestationFormat {
-    MsoMdoc { mdoc: Box<Mdoc> }, // TODO: Wrap in similar VerifiedMdoc type (PVW-4132)
-    SdJwt { sd_jwt: Box<VerifiedSdJwt> },
-}
-
 /// This trait abstracts the persistent storage for the wallet.
 #[cfg_attr(test, mockall::automock)]
 pub trait Storage {
@@ -163,6 +151,11 @@ pub trait Storage {
     async fn has_any_attestations_with_type(&self, attestation_type: &str) -> StorageResult<bool>;
 
     async fn fetch_unique_attestations(&self) -> StorageResult<Vec<StoredAttestationCopy>>;
+
+    async fn fetch_unique_attestations_by_type<'a>(
+        &'a self,
+        attestation_types: &HashSet<&'a str>,
+    ) -> StorageResult<Vec<StoredAttestationCopy>>;
 
     async fn fetch_unique_mdocs_by_doctypes<'a>(
         &'a self,
