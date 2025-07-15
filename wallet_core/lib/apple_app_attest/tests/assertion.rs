@@ -87,14 +87,12 @@ impl AssertionParameters {
 #[once]
 fn assertion_data() -> Vec<u8> {
     let parameters = AssertionParameters::default();
-    let assertion_bytes = Assertion::new_mock_bytes(
+    Assertion::new_mock_bytes(
         &parameters.private_key,
         &parameters.app_identifier,
         parameters.counter,
         parameters.client_data.hash_data().unwrap().as_ref(),
-    );
-
-    assertion_bytes
+    )
 }
 
 // Vary the default parameters for different error scenarios.
