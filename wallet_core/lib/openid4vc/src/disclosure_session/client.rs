@@ -80,9 +80,9 @@ impl<H> VpDisclosureClient<H> {
     fn process_auth_request(
         request_uri_client_id: &str,
         auth_request_client_id: &str,
-        credential_requests: VecNonEmpty<NormalizedCredentialRequest>,
+        credential_requests: &VecNonEmpty<NormalizedCredentialRequest>,
         certificate: BorrowingCertificate,
-    ) -> Result<(VecNonEmpty<NormalizedCredentialRequest>, VerifierCertificate), VpVerifierError> {
+    ) -> Result<VerifierCertificate, VpVerifierError> {
         // The `client_id` in the Authorization Request, which has been authenticated, has to equal
         // the `client_id` that the RP sent in the Request URI object at the start of the session.
         if auth_request_client_id != request_uri_client_id {
@@ -103,7 +103,7 @@ impl<H> VpDisclosureClient<H> {
             .verify_requested_attributes(&credential_requests.as_ref())
             .map_err(VpVerifierError::RequestedAttributesValidation)?;
 
-        Ok((credential_requests, verifier_certificate))
+        Ok(verifier_certificate)
     }
 }
 
@@ -169,21 +169,15 @@ where
         let process_request_result = Self::process_auth_request(
             &request_uri_object.client_id,
             &auth_request.client_id,
-            auth_request.credential_requests.clone(),
+            &auth_request.credential_requests,
             certificate,
         );
-        let (requested_attribute_paths, verifier_certificate) = match process_request_result {
+        let verifier_certificate = match process_request_result {
             Ok(value) => value,
             Err(error) => return Err(self.report_error_back(auth_request.response_uri, error).await)?,
         };
 
-        let session = VpDisclosureSession::new(
-            self.client.clone(),
-            session_type,
-            requested_attribute_paths,
-            verifier_certificate,
-            auth_request,
-        );
+        let session = VpDisclosureSession::new(self.client.clone(), session_type, verifier_certificate, auth_request);
 
         Ok(session)
     }
