@@ -1,11 +1,12 @@
 use futures::FutureExt;
 use indexmap::IndexMap;
 
-use attestation_types::request::NormalizedCredentialRequests;
+use attestation_types::request::NormalizedCredentialRequest;
 use crypto::examples::Examples;
 use crypto::mock_remote::MockRemoteKeyFactory;
 use crypto::server_keys::generate::Ca;
 use dcql::CredentialQueryFormat;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::examples::Example;
 use crate::examples::IsoCertTimeGenerator;
@@ -33,7 +34,7 @@ fn create_example_device_response(
 ) -> DeviceResponse {
     let mut mdoc = Mdoc::new_example_resigned(ca).now_or_never().unwrap();
 
-    let credential_requests: NormalizedCredentialRequests = device_request.into_items_requests().into();
+    let credential_requests: VecNonEmpty<NormalizedCredentialRequest> = device_request.into_items_requests().into();
 
     assert_eq!(
         match &credential_requests.as_ref().first().unwrap().format {

@@ -24,7 +24,7 @@ use serde_with::OneOrMany;
 
 use attestation_data::disclosure::DisclosedAttestationError;
 use attestation_data::disclosure::DisclosedAttestations;
-use attestation_types::request::NormalizedCredentialRequests;
+use attestation_types::request::NormalizedCredentialRequest;
 use crypto::utils::random_string;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateError;
@@ -42,6 +42,7 @@ use poa::PoaVerificationError;
 use serde_with::SerializeDisplay;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::authorization::AuthorizationRequest;
 use crate::authorization::ResponseMode;
@@ -365,7 +366,7 @@ pub struct IsoVpAuthorizationRequest {
     pub nonce: String,
     pub encryption_pubkey: Jwk,
     pub response_uri: BaseUrl,
-    pub credential_requests: NormalizedCredentialRequests,
+    pub credential_requests: VecNonEmpty<NormalizedCredentialRequest>,
     pub presentation_definition: PresentationDefinition,
     pub client_metadata: ClientMetadata,
     pub state: Option<String>,
@@ -374,7 +375,7 @@ pub struct IsoVpAuthorizationRequest {
 
 impl IsoVpAuthorizationRequest {
     pub fn new(
-        credential_requests: &NormalizedCredentialRequests,
+        credential_requests: &VecNonEmpty<NormalizedCredentialRequest>,
         rp_certificate: &BorrowingCertificate,
         nonce: String,
         encryption_pubkey: JwePublicKey,
@@ -843,7 +844,8 @@ mod tests {
 
     use attestation_data::disclosure::DisclosedAttributes;
     use attestation_data::x509::generate::mock::generate_reader_mock;
-    use attestation_types::request::NormalizedCredentialRequests;
+    use attestation_types::request;
+    use attestation_types::request::NormalizedCredentialRequest;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::mock_remote::MockRemoteKeyFactory;
     use crypto::server_keys::generate::Ca;
@@ -871,6 +873,7 @@ mod tests {
     use utils::generator::Generator;
     use utils::generator::TimeGenerator;
     use utils::vec_at_least::VecAtLeastTwoUnique;
+    use utils::vec_at_least::VecNonEmpty;
 
     use crate::mock::test_document_to_issuer_signed;
     use crate::mock::MOCK_WALLET_CLIENT_ID;
@@ -897,11 +900,11 @@ mod tests {
     }
 
     fn setup() -> (TrustAnchor<'static>, KeyPair, EcKeyPair, VpAuthorizationRequest) {
-        setup_with_credential_requests(&NormalizedCredentialRequests::example())
+        setup_with_credential_requests(&request::mock::example())
     }
 
     fn setup_with_credential_requests(
-        credential_requests: &NormalizedCredentialRequests,
+        credential_requests: &VecNonEmpty<NormalizedCredentialRequest>,
     ) -> (TrustAnchor<'static>, KeyPair, EcKeyPair, VpAuthorizationRequest) {
         let ca = Ca::generate("myca", Default::default()).unwrap();
         let trust_anchor = ca.to_trust_anchor().to_owned();
@@ -1232,7 +1235,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_verify_authorization_response() {
-        let (_, _, _, auth_request) = setup_with_credential_requests(&NormalizedCredentialRequests::new_pid_example());
+        let (_, _, _, auth_request) = setup_with_credential_requests(&request::mock::new_pid_example());
         let mdoc_nonce = "mdoc_nonce";
 
         let time_generator = MockTimeGenerator::default();

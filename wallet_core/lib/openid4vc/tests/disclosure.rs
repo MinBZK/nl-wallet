@@ -24,7 +24,8 @@ use attestation_data::attributes::AttributeValue;
 use attestation_data::auth::reader_auth::ReaderRegistration;
 use attestation_data::disclosure::DisclosedAttestation;
 use attestation_data::x509::generate::mock::generate_reader_mock;
-use attestation_types::request::NormalizedCredentialRequests;
+use attestation_types::request;
+use attestation_types::request::NormalizedCredentialRequest;
 use crypto::factory::KeyFactory;
 use crypto::mock_remote::MockRemoteEcdsaKey;
 use crypto::mock_remote::MockRemoteKeyFactory;
@@ -100,7 +101,7 @@ async fn disclosure_direct() {
     let response_uri: BaseUrl = "https://example.com/response_uri".parse().unwrap();
     let encryption_keypair = EcKeyPair::generate(EcCurve::P256).unwrap();
     let iso_auth_request = IsoVpAuthorizationRequest::new(
-        &NormalizedCredentialRequests::new_pid_example(),
+        &request::mock::new_pid_example(),
         auth_keypair.certificate(),
         nonce.clone(),
         encryption_keypair.to_jwk_public_key().try_into().unwrap(),
@@ -181,7 +182,7 @@ async fn disclosure_using_message_client() {
     let rp_keypair = generate_reader_mock(
         &ca,
         Some(ReaderRegistration::mock_from_credential_requests(
-            &NormalizedCredentialRequests::new_pid_example(),
+            &request::mock::new_pid_example(),
         )),
     )
     .unwrap();
@@ -242,7 +243,7 @@ impl DirectMockVpMessageClient {
         let encryption_keypair = EcKeyPair::generate(EcCurve::P256).unwrap();
 
         let auth_request = IsoVpAuthorizationRequest::new(
-            &NormalizedCredentialRequests::new_pid_example(),
+            &request::mock::new_pid_example(),
             auth_keypair.certificate(),
             nonce.clone(),
             encryption_keypair.to_jwk_public_key().try_into().unwrap(),
@@ -466,7 +467,7 @@ async fn test_client_and_server(
     #[case] return_url_template: Option<ReturnUrlTemplate>,
     #[case] use_case: &str,
     #[case] stored_documents: TestDocuments,
-    #[case] requested_documents: NormalizedCredentialRequests,
+    #[case] requested_documents: VecNonEmpty<NormalizedCredentialRequest>,
     #[case] expected_documents: TestDocuments,
     #[values(None, Some("query_param".to_string()))] result_query_param: Option<String>,
 ) {
@@ -861,7 +862,7 @@ fn setup_wallet_initiated_usecase_verifier() -> (Arc<MockWalletInitiatedUseCaseV
     let rp_ca = Ca::generate_reader_mock_ca().unwrap();
 
     // Initialize the verifier
-    let credential_requests: NormalizedCredentialRequests = pid_full_name().into();
+    let credential_requests: VecNonEmpty<NormalizedCredentialRequest> = pid_full_name().into();
     let reader_registration = Some(ReaderRegistration::mock_from_credential_requests(&credential_requests));
     let usecases = HashMap::from([(
         WALLET_INITIATED_RETURN_URL_USE_CASE.to_string(),
@@ -886,7 +887,7 @@ fn setup_wallet_initiated_usecase_verifier() -> (Arc<MockWalletInitiatedUseCaseV
 }
 
 fn setup_verifier(
-    credential_requests: &NormalizedCredentialRequests,
+    credential_requests: &VecNonEmpty<NormalizedCredentialRequest>,
     session_result_query_param: Option<String>,
 ) -> (Arc<MockRpInitiatedUseCaseVerifier>, TrustAnchor<'static>, Ca) {
     // Initialize key material

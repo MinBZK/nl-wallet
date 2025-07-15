@@ -1,18 +1,11 @@
 use std::num::NonZero;
 
-use nutype::nutype;
 use serde::Deserialize;
 use serde::Serialize;
 
 use dcql::ClaimPath;
 use dcql::CredentialQueryFormat;
 use utils::vec_at_least::VecNonEmpty;
-
-#[nutype(
-    derive(Debug, Clone, PartialEq, Eq, AsRef, TryFrom, Into, IntoIterator, Serialize, Deserialize),
-    validate(predicate = |items| !items.is_empty()),
-)]
-pub struct NormalizedCredentialRequests(Vec<NormalizedCredentialRequest>);
 
 /// Request for a credential.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -108,14 +101,13 @@ mod test {
 }
 
 #[cfg(any(test, feature = "mock"))]
-mod mock {
+pub mod mock {
     use dcql::ClaimPath;
     use dcql::CredentialQueryFormat;
     use utils::vec_at_least::VecNonEmpty;
 
     use super::AttributeRequest;
     use super::NormalizedCredentialRequest;
-    use super::NormalizedCredentialRequests;
 
     pub const EXAMPLE_DOC_TYPE: &str = "org.iso.18013.5.1.mDL";
     pub const EXAMPLE_NAMESPACE: &str = "org.iso.18013.5.1";
@@ -188,68 +180,57 @@ mod mock {
         }
     }
 
-    impl NormalizedCredentialRequests {
-        pub fn new_pid_example() -> Self {
-            vec![NormalizedCredentialRequest::new_pid_example()].try_into().unwrap()
-        }
+    pub fn new_pid_example() -> VecNonEmpty<NormalizedCredentialRequest> {
+        vec![NormalizedCredentialRequest::new_pid_example()].try_into().unwrap()
+    }
 
-        pub fn mock_from_vecs(input: Vec<(String, Vec<VecNonEmpty<String>>)>) -> Self {
-            let requests = input
-                .into_iter()
-                .map(|(doc_type, paths)| {
-                    let format = CredentialQueryFormat::MsoMdoc {
-                        doctype_value: doc_type.to_string(),
-                    };
-                    let claims = paths
-                        .into_iter()
-                        .map(|path| {
-                            let claim_path: Vec<_> = path
-                                .into_iter()
-                                .map(|element| ClaimPath::SelectByKey(element.to_string()))
-                                .collect();
-                            AttributeRequest {
-                                path: VecNonEmpty::try_from(claim_path).expect("empy path not allowed"),
-                                intent_to_retain: false,
-                            }
-                        })
-                        .collect();
-                    NormalizedCredentialRequest { format, claims }
-                })
-                .collect();
-            Self::try_new(requests).expect("should contain at least 1 request")
-        }
+    pub fn mock_from_vecs(input: Vec<(String, Vec<VecNonEmpty<String>>)>) -> VecNonEmpty<NormalizedCredentialRequest> {
+        let requests: Vec<_> = input
+            .into_iter()
+            .map(|(doc_type, paths)| {
+                let format = CredentialQueryFormat::MsoMdoc {
+                    doctype_value: doc_type.to_string(),
+                };
+                let claims = paths
+                    .into_iter()
+                    .map(|path| {
+                        let claim_path: Vec<_> = path
+                            .into_iter()
+                            .map(|element| ClaimPath::SelectByKey(element.to_string()))
+                            .collect();
+                        AttributeRequest {
+                            path: VecNonEmpty::try_from(claim_path).expect("empy path not allowed"),
+                            intent_to_retain: false,
+                        }
+                    })
+                    .collect();
+                NormalizedCredentialRequest { format, claims }
+            })
+            .collect();
+        requests.try_into().expect("should contain at least 1 request")
+    }
 
-        pub fn example() -> Self {
-            vec![NormalizedCredentialRequest {
-                format: CredentialQueryFormat::MsoMdoc {
-                    doctype_value: EXAMPLE_DOC_TYPE.to_string(),
-                },
-                claims: vec![
-                    AttributeRequest::new_with_keys(
-                        vec![EXAMPLE_NAMESPACE.to_string(), "family_name".to_string()],
-                        false,
-                    ),
-                    AttributeRequest::new_with_keys(
-                        vec![EXAMPLE_NAMESPACE.to_string(), "issue_date".to_string()],
-                        false,
-                    ),
-                    AttributeRequest::new_with_keys(
-                        vec![EXAMPLE_NAMESPACE.to_string(), "expiry_date".to_string()],
-                        false,
-                    ),
-                    AttributeRequest::new_with_keys(
-                        vec![EXAMPLE_NAMESPACE.to_string(), "document_number".to_string()],
-                        false,
-                    ),
-                    AttributeRequest::new_with_keys(vec![EXAMPLE_NAMESPACE.to_string(), "portrait".to_string()], false),
-                    AttributeRequest::new_with_keys(
-                        vec![EXAMPLE_NAMESPACE.to_string(), "driving_privileges".to_string()],
-                        false,
-                    ),
-                ],
-            }]
-            .try_into()
-            .unwrap()
-        }
+    pub fn example() -> VecNonEmpty<NormalizedCredentialRequest> {
+        vec![NormalizedCredentialRequest {
+            format: CredentialQueryFormat::MsoMdoc {
+                doctype_value: EXAMPLE_DOC_TYPE.to_string(),
+            },
+            claims: vec![
+                AttributeRequest::new_with_keys(vec![EXAMPLE_NAMESPACE.to_string(), "family_name".to_string()], false),
+                AttributeRequest::new_with_keys(vec![EXAMPLE_NAMESPACE.to_string(), "issue_date".to_string()], false),
+                AttributeRequest::new_with_keys(vec![EXAMPLE_NAMESPACE.to_string(), "expiry_date".to_string()], false),
+                AttributeRequest::new_with_keys(
+                    vec![EXAMPLE_NAMESPACE.to_string(), "document_number".to_string()],
+                    false,
+                ),
+                AttributeRequest::new_with_keys(vec![EXAMPLE_NAMESPACE.to_string(), "portrait".to_string()], false),
+                AttributeRequest::new_with_keys(
+                    vec![EXAMPLE_NAMESPACE.to_string(), "driving_privileges".to_string()],
+                    false,
+                ),
+            ],
+        }]
+        .try_into()
+        .unwrap()
     }
 }

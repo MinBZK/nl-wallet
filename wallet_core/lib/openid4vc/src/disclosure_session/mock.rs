@@ -2,7 +2,7 @@ use std::hash::Hash;
 
 use rustls_pki_types::TrustAnchor;
 
-use attestation_types::request::NormalizedCredentialRequests;
+use attestation_types::request::NormalizedCredentialRequest;
 use crypto::factory::KeyFactory;
 use crypto::CredentialEcdsaKey;
 use http_utils::urls::BaseUrl;
@@ -39,7 +39,7 @@ mockall::mock! {
     #[derive(Debug)]
     pub DisclosureSession {
         pub fn session_type(&self) -> SessionType;
-        pub fn credential_requests(&self) -> &NormalizedCredentialRequests;
+        pub fn credential_requests(&self) -> &VecNonEmpty<NormalizedCredentialRequest>;
         pub fn verifier_certificate(&self) -> &VerifierCertificate;
 
         pub async fn terminate(self) -> Result<Option<BaseUrl>, VpSessionError>;
@@ -55,7 +55,7 @@ impl DisclosureSession for MockDisclosureSession {
         self.session_type()
     }
 
-    fn credential_requests(&self) -> &NormalizedCredentialRequests {
+    fn credential_requests(&self) -> &VecNonEmpty<NormalizedCredentialRequest> {
         self.credential_requests()
     }
 
