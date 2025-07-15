@@ -9,9 +9,8 @@ use openid4vc::issuance_session::HttpVcMessageClient;
 use openid4vc::issuance_session::IssuanceSession;
 use openid4vc::oidc::HttpOidcClient;
 use pid_issuer::pid::attributes::BrpPidAttributeService;
-use pid_issuer::pid::attributes::RecoveryCodeConfig;
 use pid_issuer::pid::brp::client::HttpBrpClient;
-use pid_issuer::settings::RecoveryCode;
+use server_utils::keys::SecretKeyVariant;
 use server_utils::settings::SecretKey;
 use server_utils::settings::NL_WALLET_CLIENT_ID;
 use tests_integration::common::*;
@@ -51,11 +50,9 @@ async fn test_pid_issuance_digid_bridge() {
         HttpBrpClient::new(settings.brp_server.clone()),
         &settings.digid.bsn_privkey,
         settings.digid.http_config.clone(),
-        RecoveryCodeConfig::from_settings(
-            RecoveryCode {
-                hmac_secret: SecretKey::Software {
-                    secret_key: (0..32).collect::<Vec<_>>().try_into().unwrap(),
-                },
+        SecretKeyVariant::from_settings(
+            SecretKey::Software {
+                secret_key: (0..32).collect::<Vec<_>>().try_into().unwrap(),
             },
             None,
         )

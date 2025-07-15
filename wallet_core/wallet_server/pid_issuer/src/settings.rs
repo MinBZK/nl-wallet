@@ -27,16 +27,10 @@ pub struct PidIssuerSettings {
     #[serde_as(as = "Base64")]
     pub wte_issuer_pubkey: DerVerifyingKey,
 
-    pub recovery_code: RecoveryCode,
+    pub recovery_code: SecretKey,
 
     #[serde(flatten)]
     pub issuer_settings: IssuerSettings,
-}
-
-#[derive(Clone, Deserialize)]
-pub struct RecoveryCode {
-    #[serde(flatten)]
-    pub hmac_secret: SecretKey,
 }
 
 #[derive(Clone, Deserialize)]
