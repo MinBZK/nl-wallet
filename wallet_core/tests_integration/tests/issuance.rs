@@ -1,8 +1,6 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use assert_matches::assert_matches;
-
 use indexmap::IndexMap;
 use serial_test::serial;
 use url::Url;
@@ -80,9 +78,9 @@ async fn test_pid_ok() {
         .find(|a| a.key == vec![PID_RECOVERY_CODE])
         .unwrap();
 
-    assert_matches!(
+    assert_eq!(
         recovery_code_attr.value,
-        AttestationAttributeValue::Basic(AttributeValue::Text(_))
+        AttestationAttributeValue::Basic(AttributeValue::Text("123".to_string()))
     );
 }
 
