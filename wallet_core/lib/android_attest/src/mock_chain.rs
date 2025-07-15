@@ -65,7 +65,7 @@ impl MockCaChain {
                     };
 
                     let mut params = CertificateParams::default();
-                    params.serial_number = Some((rng.gen::<u64>()).into());
+                    params.serial_number = Some((rng.r#gen::<u64>()).into());
                     params.is_ca = IsCa::Ca(BasicConstraints::Constrained(constrained_count));
 
                     // Create a SubjectDN using the constrained_count to make it uniquely recognizable.
