@@ -29,3 +29,14 @@ build-images-trigger:
   variables:
     IMAGE_TAG: $IMAGE_TAG
     PARENT_PIPELINE_ID: $CI_PIPELINE_ID
+
+macos-image-trigger:
+  extends: .build-image
+  when: manual
+  allow_failure: true
+  trigger:
+    include:
+      - project: logius/wallet/macos-runner
+        file: .gitlab-ci.yml
+  variables:
+    WALLET_COMMIT: ${CI_COMMIT_SHA}
