@@ -183,7 +183,7 @@ async fn wallet_server_settings_and_listener(
         UseCaseSettings {
             session_type_return_url: SessionTypeReturnUrl::SameDevice,
             key_pair: usecase_keypair.into(),
-            credential_requests: None,
+            items_requests: None,
             return_url_template: None,
         },
     )])
