@@ -17,7 +17,7 @@ use poa::factory::PoaFactory;
 use utils::vec_at_least::VecAtLeastTwoUnique;
 use utils::vec_at_least::VecNonEmpty;
 
-use crate::openid4vp::IsoVpAuthorizationRequest;
+use crate::openid4vp::NormalizedVpAuthorizationRequest;
 use crate::openid4vp::VpAuthorizationResponse;
 use crate::verifier::SessionType;
 
@@ -33,7 +33,7 @@ pub struct VpDisclosureSession<H> {
     client: H,
     session_type: SessionType,
     verifier_certificate: VerifierCertificate,
-    auth_request: IsoVpAuthorizationRequest,
+    auth_request: NormalizedVpAuthorizationRequest,
 }
 
 impl<H> VpDisclosureSession<H> {
@@ -41,7 +41,7 @@ impl<H> VpDisclosureSession<H> {
         client: H,
         session_type: SessionType,
         verifier_certificate: VerifierCertificate,
-        auth_request: IsoVpAuthorizationRequest,
+        auth_request: NormalizedVpAuthorizationRequest,
     ) -> Self {
         Self {
             client,
@@ -242,7 +242,7 @@ mod tests {
             verifier_certificate: VerifierCertificate::try_new(verifier_session.key_pair.certificate().clone())
                 .unwrap()
                 .unwrap(),
-            auth_request: verifier_session.iso_auth_request(None),
+            auth_request: verifier_session.normalized_auth_request(None),
         };
 
         (disclosure_session, verifier_session)
