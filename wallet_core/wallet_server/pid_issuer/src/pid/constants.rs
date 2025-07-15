@@ -1,5 +1,5 @@
-pub const MOCK_PID_DOCTYPE: &str = "urn:eudi:pid:nl:1";
-pub const MOCK_ADDRESS_DOCTYPE: &str = "urn:eudi:pid-address:nl:1";
+pub const PID_ATTESTATION_TYPE: &str = "urn:eudi:pid:nl:1";
+pub const ADDRESS_ATTESTATION_TYPE: &str = "urn:eudi:pid-address:nl:1";
 
 pub const PID_FAMILY_NAME: &str = "family_name";
 pub const PID_GIVEN_NAME: &str = "given_name";

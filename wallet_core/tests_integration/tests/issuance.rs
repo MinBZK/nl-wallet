@@ -111,7 +111,7 @@ fn universal_link(issuance_server_url: &BaseUrl) -> Url {
 
 fn pid_without_optionals() -> IssuableDocument {
     IssuableDocument::try_new(
-        MOCK_PID_DOCTYPE.to_string(),
+        PID_ATTESTATION_TYPE.to_string(),
         IndexMap::from_iter(vec![
             (
                 PID_FAMILY_NAME.to_string(),
@@ -142,7 +142,7 @@ fn pid_without_optionals() -> IssuableDocument {
 
 fn pid_missing_required() -> IssuableDocument {
     IssuableDocument::try_new(
-        MOCK_PID_DOCTYPE.to_string(),
+        PID_ATTESTATION_TYPE.to_string(),
         IndexMap::from_iter(vec![
             (
                 PID_FAMILY_NAME.to_string(),
