@@ -9,7 +9,6 @@ use attestation_data::attributes::AttributesHandlingError;
 use attestation_data::issuable_document::IssuableDocument;
 use crypto::x509::CertificateError;
 use hsm::service::HsmError;
-use hsm::service::Pkcs11Hsm;
 use http_utils::tls::pinning::TlsPinningConfig;
 use http_utils::urls::BaseUrl;
 use openid4vc::issuer::AttributeService;
@@ -17,7 +16,6 @@ use openid4vc::oidc;
 use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenRequestGrantType;
 use sd_jwt_vc_metadata::ClaimPath;
-use server_utils::keys::SecretKeySettingsError;
 use server_utils::keys::SecretKeyVariant;
 use utils::vec_at_least::VecNonEmpty;
 
@@ -27,7 +25,6 @@ use crate::pid::brp::client::HttpBrpClient;
 use crate::pid::constants::PID_ATTESTATION_TYPE;
 use crate::pid::constants::PID_BSN;
 use crate::pid::constants::PID_RECOVERY_CODE;
-use crate::settings::RecoveryCode;
 
 use super::digid;
 use super::digid::OpenIdClient;
@@ -65,7 +62,7 @@ pub enum Error {
 pub struct BrpPidAttributeService {
     brp_client: HttpBrpClient,
     openid_client: OpenIdClient,
-    recovery_code_config: RecoveryCodeConfig,
+    recovery_code_secret_key: SecretKeyVariant,
 }
 
 impl BrpPidAttributeService {
@@ -73,12 +70,12 @@ impl BrpPidAttributeService {
         brp_client: HttpBrpClient,
         bsn_privkey: &str,
         http_config: TlsPinningConfig,
-        recovery_code_config: RecoveryCodeConfig,
+        recovery_code_secret_key: SecretKeyVariant,
     ) -> Result<Self, Error> {
         Ok(Self {
             brp_client,
             openid_client: OpenIdClient::try_new(bsn_privkey, http_config)?,
-            recovery_code_config,
+            recovery_code_secret_key,
         })
     }
 }
@@ -115,7 +112,7 @@ impl AttributeService for BrpPidAttributeService {
             let mut attributes = Attributes::from(attributes);
 
             if attestation_type == PID_ATTESTATION_TYPE {
-                Self::insert_recovery_code(&mut attributes, &self.recovery_code_config).await?;
+                Self::insert_recovery_code(&mut attributes, &self.recovery_code_secret_key).await?;
             }
 
             IssuableDocument::try_new(attestation_type, attributes).map_err(|_| Error::InvalidIssuableDocuments)
@@ -135,7 +132,7 @@ impl AttributeService for BrpPidAttributeService {
 }
 
 impl BrpPidAttributeService {
-    async fn insert_recovery_code(attributes: &mut Attributes, config: &RecoveryCodeConfig) -> Result<(), Error> {
+    async fn insert_recovery_code(attributes: &mut Attributes, secret_key: &SecretKeyVariant) -> Result<(), Error> {
         let bsn = match attributes
             .get(&vec![ClaimPath::SelectByKey(PID_BSN.to_string())].try_into().unwrap())
             .map_err(Error::RetrievingBsn)?
@@ -145,7 +142,7 @@ impl BrpPidAttributeService {
             _ => return Err(Error::BsnUnexpectedType),
         };
 
-        let recovery_code = AttributeValue::Text(hex::encode(config.hmac_secret.sign_hmac(bsn.as_bytes()).await?));
+        let recovery_code = AttributeValue::Text(hex::encode(secret_key.sign_hmac(bsn.as_bytes()).await?));
 
         attributes
             .insert(
@@ -160,18 +157,6 @@ impl BrpPidAttributeService {
     }
 }
 
-pub struct RecoveryCodeConfig {
-    pub hmac_secret: SecretKeyVariant,
-}
-
-impl RecoveryCodeConfig {
-    pub fn from_settings(settings: RecoveryCode, hsm: Option<Pkcs11Hsm>) -> Result<Self, SecretKeySettingsError> {
-        Ok(Self {
-            hmac_secret: SecretKeyVariant::from_settings(settings.hmac_secret, hsm)?,
-        })
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use indexmap::IndexMap;
@@ -181,11 +166,10 @@ mod tests {
     use attestation_data::attributes::Attribute;
     use attestation_data::attributes::AttributeValue;
     use attestation_data::attributes::Attributes;
+    use server_utils::keys::SecretKeyVariant;
     use server_utils::settings::SecretKey;
 
     use crate::pid::attributes::BrpPidAttributeService;
-    use crate::pid::attributes::RecoveryCode;
-    use crate::pid::attributes::RecoveryCodeConfig;
 
     fn attributes(bsn: &str) -> Attributes {
         IndexMap::from_iter([(
@@ -202,17 +186,15 @@ mod tests {
 
         let mut attrs = attributes(bsn);
 
-        let config = RecoveryCodeConfig::from_settings(
-            RecoveryCode {
-                hmac_secret: SecretKey::Software {
-                    secret_key: key.clone().try_into().unwrap(),
-                },
+        let recovery_code_secret_key = SecretKeyVariant::from_settings(
+            SecretKey::Software {
+                secret_key: key.clone().try_into().unwrap(),
             },
             None,
         )
         .unwrap();
 
-        BrpPidAttributeService::insert_recovery_code(&mut attrs, &config)
+        BrpPidAttributeService::insert_recovery_code(&mut attrs, &recovery_code_secret_key)
             .await
             .unwrap();
 
