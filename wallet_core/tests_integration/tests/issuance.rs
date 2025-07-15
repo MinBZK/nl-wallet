@@ -77,7 +77,7 @@ async fn test_pid_ok() {
     let recovery_code_attr = pid_attestation
         .attributes
         .iter()
-        .find(|a| a.key == vec!["recovery_code"])
+        .find(|a| a.key == vec![PID_RECOVERY_CODE])
         .unwrap();
 
     assert_matches!(
