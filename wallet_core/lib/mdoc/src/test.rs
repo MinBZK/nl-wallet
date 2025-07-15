@@ -590,28 +590,3 @@ pub mod data {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use rstest::rstest;
-
-    use attestation_types::request::NormalizedCredentialRequest;
-
-    use crate::ItemsRequest;
-
-    use super::data::addr_street;
-    use super::data::pid_full_name;
-    use super::TestDocuments;
-
-    #[rstest]
-    #[case(NormalizedCredentialRequest::pid_full_name(), pid_full_name())]
-    #[case(NormalizedCredentialRequest::addr_street(), addr_street())]
-    fn try_from_credential_request_for_items_request(
-        #[case] input: NormalizedCredentialRequest,
-        #[case] expected: TestDocuments,
-    ) {
-        let actual: ItemsRequest = input.try_into().unwrap();
-
-        assert_eq!(actual, expected.into_first().unwrap().into());
-    }
-}

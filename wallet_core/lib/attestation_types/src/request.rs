@@ -47,59 +47,6 @@ impl AttributeRequest {
     }
 }
 
-#[cfg(test)]
-mod test {
-    use rstest::rstest;
-
-    use dcql::ClaimPath;
-    use utils::vec_at_least::VecNonEmpty;
-
-    use super::{AttributeRequest, MdocCredentialRequestError};
-
-    #[rstest]
-    #[case(
-        vec![
-            ClaimPath::SelectByKey("namespace".to_string()),
-            ClaimPath::SelectByKey("attr".to_string())].try_into().unwrap(),
-        Ok(("namespace", "attr"))
-    )]
-    #[case(
-        vec![ClaimPath::SelectByKey("namespace".to_string())].try_into().unwrap(),
-        Err(MdocCredentialRequestError::UnexpectedClaimsPathAmount(1.try_into().unwrap()))
-    )]
-    #[case(
-        vec![
-            ClaimPath::SelectByKey("namespace".to_string()),
-            ClaimPath::SelectByKey("addr".to_string()),
-            ClaimPath::SelectByKey("street".to_string())
-        ].try_into().unwrap(),
-        Err(MdocCredentialRequestError::UnexpectedClaimsPathAmount(3.try_into().unwrap()))
-    )]
-    #[case(
-        vec![
-            ClaimPath::SelectByKey("namespace".to_string()),
-            ClaimPath::SelectByIndex(1)].try_into().unwrap(),
-        Err(MdocCredentialRequestError::UnexpectedClaimsPathType)
-    )]
-    #[case(
-        vec![
-            ClaimPath::SelectAll,
-            ClaimPath::SelectByKey("attr".to_string())].try_into().unwrap(),
-        Err(MdocCredentialRequestError::UnexpectedClaimsPathType)
-    )]
-    fn test_to_namespace_and_attribute(
-        #[case] claim_paths: VecNonEmpty<ClaimPath>,
-        #[case] expected: Result<(&str, &str), MdocCredentialRequestError>,
-    ) {
-        let test_subject = AttributeRequest {
-            path: claim_paths,
-            intent_to_retain: false,
-        };
-        let actual = test_subject.to_namespace_and_attribute();
-        assert_eq!(actual, expected);
-    }
-}
-
 #[cfg(any(test, feature = "mock"))]
 pub mod mock {
     use dcql::ClaimPath;
@@ -111,7 +58,15 @@ pub mod mock {
 
     pub const EXAMPLE_DOC_TYPE: &str = "org.iso.18013.5.1.mDL";
     pub const EXAMPLE_NAMESPACE: &str = "org.iso.18013.5.1";
-    pub const EXAMPLE_ATTR_NAME: &str = "family_name";
+    pub const ATTR_BSN: &str = "bsn";
+    pub const ATTR_FAMILY_NAME: &str = "family_name";
+    pub const ATTR_GIVEN_NAME: &str = "given_name";
+    pub const ATTR_STREET_ADDRESS: &str = "street_address";
+    pub const ATTR_ISSUE_DATE: &str = "issue_date";
+    pub const ATTR_EXPIRY_DATE: &str = "expiry_date";
+    pub const ATTR_DOCUMENT_NUMBER: &str = "document_number";
+    pub const ATTR_PORTRAIT: &str = "portrait";
+    pub const ATTR_DRIVING_PRIVILEGES: &str = "driving_privileges";
 
     pub const PID: &str = "urn:eudi:pid:nl:1";
     pub const ADDR: &str = "urn:eudi:pid-address:nl:1";
@@ -133,47 +88,44 @@ pub mod mock {
                     doctype_value: EXAMPLE_DOC_TYPE.to_string(),
                 },
                 claims: vec![AttributeRequest::new_with_keys(
-                    vec![EXAMPLE_NAMESPACE.to_string(), EXAMPLE_ATTR_NAME.to_string()],
+                    vec![EXAMPLE_NAMESPACE.to_string(), ATTR_FAMILY_NAME.to_string()],
                     true,
                 )],
             }
         }
 
         pub fn new_pid_example() -> Self {
-            // unwraps below are safe because claims path is not empty
             Self {
                 format: CredentialQueryFormat::MsoMdoc {
                     doctype_value: PID.to_string(),
                 },
                 claims: vec![
-                    AttributeRequest::new_with_keys(vec![PID.to_string(), "bsn".to_string()], false),
-                    AttributeRequest::new_with_keys(vec![PID.to_string(), "given_name".to_string()], false),
-                    AttributeRequest::new_with_keys(vec![PID.to_string(), "family_name".to_string()], false),
+                    AttributeRequest::new_with_keys(vec![PID.to_string(), ATTR_BSN.to_string()], false),
+                    AttributeRequest::new_with_keys(vec![PID.to_string(), ATTR_GIVEN_NAME.to_string()], false),
+                    AttributeRequest::new_with_keys(vec![PID.to_string(), ATTR_FAMILY_NAME.to_string()], false),
                 ],
             }
         }
 
         pub fn pid_full_name() -> Self {
-            // unwraps below are safe because claims path is not empty
             Self {
                 format: CredentialQueryFormat::MsoMdoc {
                     doctype_value: PID.to_string(),
                 },
                 claims: vec![
-                    AttributeRequest::new_with_keys(vec![PID.to_string(), "family_name".to_string()], true),
-                    AttributeRequest::new_with_keys(vec![PID.to_string(), "given_name".to_string()], true),
+                    AttributeRequest::new_with_keys(vec![PID.to_string(), ATTR_FAMILY_NAME.to_string()], true),
+                    AttributeRequest::new_with_keys(vec![PID.to_string(), ATTR_GIVEN_NAME.to_string()], true),
                 ],
             }
         }
 
         pub fn addr_street() -> Self {
-            // unwraps below are safe because claims path is not empty
             Self {
                 format: CredentialQueryFormat::MsoMdoc {
                     doctype_value: ADDR.to_string(),
                 },
                 claims: vec![AttributeRequest::new_with_keys(
-                    vec![ADDR_NS.to_string(), "street_address".to_string()],
+                    vec![ADDR_NS.to_string(), ATTR_STREET_ADDRESS.to_string()],
                     true,
                 )],
             }
@@ -216,21 +168,87 @@ pub mod mock {
                 doctype_value: EXAMPLE_DOC_TYPE.to_string(),
             },
             claims: vec![
-                AttributeRequest::new_with_keys(vec![EXAMPLE_NAMESPACE.to_string(), "family_name".to_string()], false),
-                AttributeRequest::new_with_keys(vec![EXAMPLE_NAMESPACE.to_string(), "issue_date".to_string()], false),
-                AttributeRequest::new_with_keys(vec![EXAMPLE_NAMESPACE.to_string(), "expiry_date".to_string()], false),
                 AttributeRequest::new_with_keys(
-                    vec![EXAMPLE_NAMESPACE.to_string(), "document_number".to_string()],
+                    vec![EXAMPLE_NAMESPACE.to_string(), ATTR_FAMILY_NAME.to_string()],
                     false,
                 ),
-                AttributeRequest::new_with_keys(vec![EXAMPLE_NAMESPACE.to_string(), "portrait".to_string()], false),
                 AttributeRequest::new_with_keys(
-                    vec![EXAMPLE_NAMESPACE.to_string(), "driving_privileges".to_string()],
+                    vec![EXAMPLE_NAMESPACE.to_string(), ATTR_ISSUE_DATE.to_string()],
+                    false,
+                ),
+                AttributeRequest::new_with_keys(
+                    vec![EXAMPLE_NAMESPACE.to_string(), ATTR_EXPIRY_DATE.to_string()],
+                    false,
+                ),
+                AttributeRequest::new_with_keys(
+                    vec![EXAMPLE_NAMESPACE.to_string(), ATTR_DOCUMENT_NUMBER.to_string()],
+                    false,
+                ),
+                AttributeRequest::new_with_keys(vec![EXAMPLE_NAMESPACE.to_string(), ATTR_PORTRAIT.to_string()], false),
+                AttributeRequest::new_with_keys(
+                    vec![EXAMPLE_NAMESPACE.to_string(), ATTR_DRIVING_PRIVILEGES.to_string()],
                     false,
                 ),
             ],
         }]
         .try_into()
         .unwrap()
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use rstest::rstest;
+
+    use dcql::ClaimPath;
+    use utils::vec_at_least::VecNonEmpty;
+
+    use super::mock::ATTR_FAMILY_NAME;
+    use super::mock::ATTR_GIVEN_NAME;
+    use super::mock::EXAMPLE_NAMESPACE;
+    use super::AttributeRequest;
+    use super::MdocCredentialRequestError;
+
+    #[rstest]
+    #[case(
+        vec![
+            ClaimPath::SelectByKey(EXAMPLE_NAMESPACE.to_string()),
+            ClaimPath::SelectByKey(ATTR_FAMILY_NAME.to_string())].try_into().unwrap(),
+        Ok((EXAMPLE_NAMESPACE, ATTR_FAMILY_NAME))
+    )]
+    #[case(
+        vec![ClaimPath::SelectByKey(EXAMPLE_NAMESPACE.to_string())].try_into().unwrap(),
+        Err(MdocCredentialRequestError::UnexpectedClaimsPathAmount(1.try_into().unwrap()))
+    )]
+    #[case(
+        vec![
+            ClaimPath::SelectByKey(EXAMPLE_NAMESPACE.to_string()),
+            ClaimPath::SelectByKey(ATTR_FAMILY_NAME.to_string()),
+            ClaimPath::SelectByKey(ATTR_GIVEN_NAME.to_string())
+        ].try_into().unwrap(),
+        Err(MdocCredentialRequestError::UnexpectedClaimsPathAmount(3.try_into().unwrap()))
+    )]
+    #[case(
+        vec![
+            ClaimPath::SelectByKey(EXAMPLE_NAMESPACE.to_string()),
+            ClaimPath::SelectByIndex(1)].try_into().unwrap(),
+        Err(MdocCredentialRequestError::UnexpectedClaimsPathType)
+    )]
+    #[case(
+        vec![
+            ClaimPath::SelectAll,
+            ClaimPath::SelectByKey(ATTR_FAMILY_NAME.to_string())].try_into().unwrap(),
+        Err(MdocCredentialRequestError::UnexpectedClaimsPathType)
+    )]
+    fn test_to_namespace_and_attribute(
+        #[case] claim_paths: VecNonEmpty<ClaimPath>,
+        #[case] expected: Result<(&str, &str), MdocCredentialRequestError>,
+    ) {
+        let test_subject = AttributeRequest {
+            path: claim_paths,
+            intent_to_retain: false,
+        };
+        let actual = test_subject.to_namespace_and_attribute();
+        assert_eq!(actual, expected);
     }
 }

@@ -15,7 +15,6 @@ use tracing::debug;
 use tracing::warn;
 
 use attestation_types::request::AttributeRequest;
-use attestation_types::request::MdocCredentialRequestError;
 use attestation_types::request::NormalizedCredentialRequest;
 use crypto::x509::CertificateUsage;
 use dcql::ClaimPath;
@@ -112,37 +111,6 @@ impl ItemsRequests {
         } else {
             Err(VerificationError::MissingAttributes(not_found).into())
         }
-    }
-}
-
-#[cfg(any(test, feature = "test"))]
-impl TryFrom<NormalizedCredentialRequest> for ItemsRequest {
-    type Error = MdocCredentialRequestError;
-
-    fn try_from(source: NormalizedCredentialRequest) -> Result<Self, Self::Error> {
-        let CredentialQueryFormat::MsoMdoc { doctype_value } = &source.format else {
-            return Err(MdocCredentialRequestError::SdJwtNotSupported);
-        };
-
-        let name_spaces = source
-            .claims
-            .into_iter()
-            .map(|req| {
-                let (ns, attr) = req.to_namespace_and_attribute().unwrap(); // TODO: error handling
-                (ns.to_owned(), attr.to_owned(), req.intent_to_retain)
-            })
-            .fold(IndexMap::new(), |mut acc, (ns, attr, intent_to_retain)| {
-                let entry: &mut IndexMap<_, _> = acc.entry(ns).or_default();
-                entry.insert(attr, intent_to_retain);
-                acc
-            });
-
-        let items_request = ItemsRequest {
-            doc_type: doctype_value.clone(),
-            name_spaces,
-            request_info: None,
-        };
-        Ok(items_request)
     }
 }
 
@@ -691,20 +659,18 @@ mod tests {
 
     #[rstest]
     #[case(
+        pid_full_name().into_first().unwrap().into(),
         NormalizedCredentialRequest::pid_full_name(),
-        pid_full_name().into_first().unwrap().into()
     )]
     #[case(
+        addr_street().into_first().unwrap().into(),
         NormalizedCredentialRequest::addr_street(),
-        addr_street().into_first().unwrap().into()
     )]
     fn items_requests_to_and_from_credential_requests(
-        #[case] original: NormalizedCredentialRequest,
-        #[case] expected: ItemsRequest,
+        #[case] input: ItemsRequest,
+        #[case] expected: NormalizedCredentialRequest,
     ) {
-        let actual: ItemsRequest = original.clone().try_into().unwrap();
+        let actual: NormalizedCredentialRequest = input.into();
         assert_eq!(actual, expected);
-        let converted: NormalizedCredentialRequest = actual.into();
-        assert_eq!(converted, original);
     }
 }
