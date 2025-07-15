@@ -273,8 +273,21 @@ fn create_wallet_configuration() -> WalletConfiguration {
     config
 }
 
-// Implement a number of methods on the the `Wallet<>` alias that can be used during testing.
-impl WalletWithMocks {
+impl<S>
+    Wallet<
+        UpdatingConfigurationRepository<LocalConfigurationRepository>,
+        MockUpdatePolicyRepository,
+        S,
+        MockHardwareAttestedKeyHolder,
+        MockAccountProviderClient,
+        MockDigidSession,
+        MockIssuanceSession,
+        MockDisclosureClient,
+        MockWteIssuanceClient,
+    >
+where
+    S: Default,
+{
     /// Creates an unregistered `Wallet` with mock dependencies.
     pub fn new_unregistered(vendor: WalletDeviceVendor) -> Self {
         let config_server_config = default_config_server_config();
@@ -288,7 +301,7 @@ impl WalletWithMocks {
         Wallet::new(
             config_repository,
             MockUpdatePolicyRepository::default(),
-            StorageStub::default(),
+            S::default(),
             generate_key_holder(vendor),
             MockAccountProviderClient::default(),
             MockDisclosureClient::default(),
@@ -296,6 +309,38 @@ impl WalletWithMocks {
         )
     }
 
+    /// Generates a valid certificate for the `Wallet`.
+    pub fn valid_certificate(wallet_id: Option<String>, hw_pubkey: VerifyingKey) -> WalletCertificate {
+        Jwt::sign_with_sub(
+            &Self::valid_certificate_claims(wallet_id, hw_pubkey),
+            &ACCOUNT_SERVER_KEYS.certificate_signing_key,
+        )
+        .now_or_never()
+        .unwrap()
+        .unwrap()
+    }
+
+    /// Generates valid certificate claims for the `Wallet`.
+    pub fn valid_certificate_claims(wallet_id: Option<String>, hw_pubkey: VerifyingKey) -> WalletCertificateClaims {
+        let wallet_id = wallet_id.unwrap_or_else(|| crypto::utils::random_string(32));
+
+        WalletCertificateClaims {
+            wallet_id,
+            hw_pubkey: DerVerifyingKey::from(hw_pubkey),
+            pin_pubkey_hash: crypto::utils::random_bytes(32),
+            version: 0,
+            iss: "wallet_unit_test".to_string(),
+            iat: jsonwebtoken::get_current_timestamp(),
+        }
+    }
+
+    pub fn mut_storage(&mut self) -> &mut S {
+        Arc::get_mut(&mut self.storage).unwrap().get_mut()
+    }
+}
+
+// Implement a number of methods on the the `Wallet<>` alias that can be used during testing.
+impl WalletWithMocks {
     /// Creates a registered and unlocked `Wallet` with mock dependencies.
     pub fn new_registered_and_unlocked(vendor: WalletDeviceVendor) -> Self {
         let mut wallet = Self::new_unregistered(vendor);
@@ -333,31 +378,6 @@ impl WalletWithMocks {
         wallet
     }
 
-    /// Generates a valid certificate for the `Wallet`.
-    pub fn valid_certificate(wallet_id: Option<String>, hw_pubkey: VerifyingKey) -> WalletCertificate {
-        Jwt::sign_with_sub(
-            &Self::valid_certificate_claims(wallet_id, hw_pubkey),
-            &ACCOUNT_SERVER_KEYS.certificate_signing_key,
-        )
-        .now_or_never()
-        .unwrap()
-        .unwrap()
-    }
-
-    /// Generates valid certificate claims for the `Wallet`.
-    pub fn valid_certificate_claims(wallet_id: Option<String>, hw_pubkey: VerifyingKey) -> WalletCertificateClaims {
-        let wallet_id = wallet_id.unwrap_or_else(|| crypto::utils::random_string(32));
-
-        WalletCertificateClaims {
-            wallet_id,
-            hw_pubkey: DerVerifyingKey::from(hw_pubkey),
-            pin_pubkey_hash: crypto::utils::random_bytes(32),
-            version: 0,
-            iss: "wallet_unit_test".to_string(),
-            iat: jsonwebtoken::get_current_timestamp(),
-        }
-    }
-
     /// Creates all mocks and calls `Wallet::init_registration()`.
     pub async fn new_init_registration(vendor: WalletDeviceVendor) -> Result<Self, WalletInitError> {
         Self::new_init_registration_with_mocks(StorageStub::default(), generate_key_holder(vendor)).await
@@ -383,44 +403,19 @@ impl WalletWithMocks {
         )
         .await
     }
-
-    pub fn mut_storage(&mut self) -> &mut StorageStub {
-        Arc::get_mut(&mut self.storage).unwrap().get_mut()
-    }
 }
 
 impl WalletWithStorageMock {
-    /// Creates an unregistered `Wallet` with mock dependencies.
-    pub fn new_unregistered_with_storage_mock(vendor: WalletDeviceVendor) -> Self {
-        let config_server_config = default_config_server_config();
-        let config_repository = UpdatingConfigurationRepository::new(
-            LocalConfigurationRepository::new(create_wallet_configuration()),
-            config_server_config,
-        )
-        .now_or_never()
-        .unwrap();
-
-        Wallet::new(
-            config_repository,
-            MockUpdatePolicyRepository::default(),
-            MockStorage::new(),
-            generate_key_holder(vendor),
-            MockAccountProviderClient::default(),
-            MockDisclosureClient::default(),
-            RegistrationStatus::Unregistered,
-        )
-    }
-
     /// Creates a registered and unlocked `Wallet` with mock dependencies.
     pub fn new_registered_and_unlocked_with_storage_mock(vendor: WalletDeviceVendor) -> Self {
-        let mut wallet = Self::new_unregistered_with_storage_mock(vendor);
+        let mut wallet = Self::new_unregistered(vendor);
 
         let (attested_key, attested_key_identifier) = wallet.key_holder.random_key();
         let verifying_key = match &attested_key {
             AttestedKey::Apple(key) => *key.verifying_key(),
             AttestedKey::Google(key) => *key.verifying_key(),
         };
-        let wallet_certificate = WalletWithMocks::valid_certificate(None, verifying_key);
+        let wallet_certificate = Self::valid_certificate(None, verifying_key);
         let wallet_id = wallet_certificate.dangerous_parse_unverified().unwrap().1.wallet_id;
 
         // Generate registration data.
