@@ -361,7 +361,7 @@ impl From<&NewSessionError> for VerificationErrorCode {
     fn from(error: &NewSessionError) -> Self {
         match error {
             NewSessionError::Session(session_error) => session_error.into(),
-            NewSessionError::NoItemsRequests
+            NewSessionError::NoCredentialRequests
             | NewSessionError::UnknownUseCase(_)
             | NewSessionError::ReturnUrlConfigurationMismatch => VerificationErrorCode::InvalidRequest,
         }

@@ -5,17 +5,20 @@
 //! Presentation Exchange that are always used by the ISO 18013-7 profile are mandatory here.
 use std::sync::LazyLock;
 
-use indexmap::IndexMap;
 use indexmap::IndexSet;
+use itertools::Itertools;
 use regex::Regex;
 use serde::Deserialize;
 use serde::Serialize;
 
+use attestation_types::request::AttributeRequest;
+use attestation_types::request::NormalizedCredentialRequest;
 use crypto::utils::random_string;
+use dcql::ClaimPath;
+use dcql::CredentialQueryFormat;
 use error_category::ErrorCategory;
-use mdoc::verifier::ItemsRequests;
 use mdoc::Document;
-use mdoc::ItemsRequest;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::openid4vp::FormatAlg;
 use crate::openid4vp::VpFormat;
@@ -81,7 +84,7 @@ static FIELD_PATH_REGEX: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r#"^\$\[['"]([^'"]*)['"]\]\[['"]([^'"]*)['"]\]$"#).unwrap());
 
 impl Field {
-    fn parse_paths(&self) -> Result<(String, String), PdConversionError> {
+    pub(crate) fn parse_paths(&self) -> Result<(String, String), PdConversionError> {
         if self.path.len() != 1 {
             return Err(PdConversionError::TooManyPaths);
         }
@@ -96,68 +99,41 @@ impl Field {
     }
 }
 
-impl From<&ItemsRequests> for PresentationDefinition {
-    fn from(items_requests: &ItemsRequests) -> Self {
+// TODO: Remove in PVW-4419
+impl From<&VecNonEmpty<NormalizedCredentialRequest>> for PresentationDefinition {
+    fn from(requested_creds: &VecNonEmpty<NormalizedCredentialRequest>) -> Self {
         PresentationDefinition {
             id: random_string(16),
-            input_descriptors: items_requests
-                .0
+            input_descriptors: requested_creds
+                .as_ref()
                 .iter()
-                .map(|items_request| InputDescriptor {
-                    id: items_request.doc_type.clone(),
-                    format: VpFormat::MsoMdoc {
-                        alg: IndexSet::from([FormatAlg::ES256]),
-                    },
-                    constraints: Constraints {
-                        limit_disclosure: LimitDisclosure::Required,
-                        fields: items_request
-                            .name_spaces
-                            .iter()
-                            .flat_map(|(namespace, attrs)| {
-                                attrs.iter().map(|(attr, intent_to_retain)| Field {
-                                    path: vec![format!("$['{}']['{}']", namespace.as_str(), attr.as_str())],
-                                    intent_to_retain: *intent_to_retain,
+                .map(|request| {
+                    let CredentialQueryFormat::MsoMdoc { doctype_value } = &request.format else {
+                        panic!("SdJwt not supported yet");
+                    };
+                    InputDescriptor {
+                        id: doctype_value.clone(),
+                        format: VpFormat::MsoMdoc {
+                            alg: IndexSet::from([FormatAlg::ES256]),
+                        },
+                        constraints: Constraints {
+                            limit_disclosure: LimitDisclosure::Required,
+                            fields: request
+                                .claims
+                                .iter()
+                                .map(|attr_req| {
+                                    let path = attr_req.path.iter().map(|p| format!("['{p}']")).join("");
+                                    Field {
+                                        path: vec![format!("${path}")],
+                                        intent_to_retain: attr_req.intent_to_retain,
+                                    }
                                 })
-                            })
-                            .collect(),
-                    },
+                                .collect(),
+                        },
+                    }
                 })
                 .collect(),
         }
-    }
-}
-
-impl TryFrom<&PresentationDefinition> for ItemsRequests {
-    type Error = PdConversionError;
-
-    fn try_from(pd: &PresentationDefinition) -> Result<Self, Self::Error> {
-        let items_requests = pd
-            .input_descriptors
-            .iter()
-            .map(|input_descriptor| {
-                let VpFormat::MsoMdoc { alg } = &input_descriptor.format;
-                if !alg.contains(&FormatAlg::ES256) {
-                    return Err(PdConversionError::UnsupportedAlgs);
-                }
-
-                let mut name_spaces: IndexMap<String, IndexMap<String, bool>> = IndexMap::new();
-                for field in &input_descriptor.constraints.fields {
-                    let (namespace, attr) = field.parse_paths()?;
-                    name_spaces
-                        .entry(namespace)
-                        .or_default()
-                        .insert(attr, field.intent_to_retain);
-                }
-
-                Ok(ItemsRequest {
-                    doc_type: input_descriptor.id.clone(),
-                    request_info: None,
-                    name_spaces,
-                })
-            })
-            .collect::<Result<Vec<_>, Self::Error>>()?;
-
-        Ok(items_requests.into())
     }
 }
 
@@ -168,6 +144,48 @@ pub struct PresentationSubmission {
     /// Must be the id value of a valid presentation definition
     pub definition_id: String,
     pub descriptor_map: Vec<InputDescriptorMappingObject>,
+}
+
+impl TryFrom<&PresentationDefinition> for VecNonEmpty<NormalizedCredentialRequest> {
+    type Error = PdConversionError;
+
+    fn try_from(pd: &PresentationDefinition) -> Result<Self, Self::Error> {
+        let credential_requests = pd
+            .input_descriptors
+            .iter()
+            .map(|input_descriptor| {
+                let VpFormat::MsoMdoc { alg } = &input_descriptor.format;
+                if !alg.contains(&FormatAlg::ES256) {
+                    return Err(PdConversionError::UnsupportedAlgs);
+                }
+
+                let claims = input_descriptor
+                    .constraints
+                    .fields
+                    .iter()
+                    .map(|field| {
+                        let (namespace, attr) = field.parse_paths()?;
+                        // The unwrap below is safe because we know the vec is non-empty.
+                        Ok(AttributeRequest {
+                            path: vec![ClaimPath::SelectByKey(namespace), ClaimPath::SelectByKey(attr)]
+                                .try_into()
+                                .unwrap(),
+                            intent_to_retain: field.intent_to_retain,
+                        })
+                    })
+                    .collect::<Result<_, _>>()?;
+
+                Ok(NormalizedCredentialRequest {
+                    format: CredentialQueryFormat::MsoMdoc {
+                        doctype_value: input_descriptor.id.clone(),
+                    },
+                    claims,
+                })
+            })
+            .collect::<Result<Vec<_>, Self::Error>>()?;
+
+        Ok(credential_requests.try_into().unwrap()) // TODO: Error Handling
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -236,8 +254,9 @@ mod tests {
     use rstest::rstest;
     use serde_json::json;
 
-    use mdoc::examples::example_items_requests;
-    use mdoc::verifier::ItemsRequests;
+    use attestation_types::request;
+    use attestation_types::request::NormalizedCredentialRequest;
+    use utils::vec_at_least::VecNonEmpty;
 
     use super::FormatAlg;
     use super::LimitDisclosure;
@@ -259,12 +278,12 @@ mod tests {
     }
 
     #[test]
-    fn convert_pd_itemsrequests() {
-        let items_requests: ItemsRequests = example_items_requests();
-        let pd: PresentationDefinition = (&items_requests).into();
-        let converted: ItemsRequests = (&pd).try_into().unwrap();
+    fn convert_pd_credential_requests() {
+        let orginal: VecNonEmpty<NormalizedCredentialRequest> = request::mock::example();
+        let pd: PresentationDefinition = (&orginal).into();
+        let converted: VecNonEmpty<NormalizedCredentialRequest> = (&pd).try_into().unwrap();
 
-        assert_eq!(items_requests, converted);
+        assert_eq!(orginal, converted);
     }
 
     #[test]

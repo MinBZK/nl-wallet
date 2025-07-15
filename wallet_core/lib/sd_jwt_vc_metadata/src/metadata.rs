@@ -22,6 +22,9 @@ use serde_with::MapSkipError;
 use serde_with::TryFromInto;
 use ssri::Integrity;
 
+// TODO: remove in PVW-4421
+pub use dcql::ClaimPath;
+
 use http_utils::data_uri::DataUri;
 use http_utils::urls::BaseUrl;
 use utils::spec::SpecOptional;
@@ -547,40 +550,6 @@ impl ClaimMetadata {
 impl Display for ClaimMetadata {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", Self::path_to_string(self.path.as_ref()))
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum ClaimPath {
-    SelectByKey(String),
-    SelectAll,
-    SelectByIndex(usize),
-}
-
-impl ClaimPath {
-    pub fn try_key_path(&self) -> Option<&str> {
-        match self {
-            ClaimPath::SelectByKey(key) => Some(key.as_str()),
-            _ => None,
-        }
-    }
-
-    pub fn try_into_key_path(self) -> Option<String> {
-        match self {
-            ClaimPath::SelectByKey(key) => Some(key),
-            _ => None,
-        }
-    }
-}
-
-impl Display for ClaimPath {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ClaimPath::SelectByKey(key) => write!(f, "{key}"),
-            ClaimPath::SelectAll => f.write_str("*"),
-            ClaimPath::SelectByIndex(index) => write!(f, "{index}"),
-        }
     }
 }
 

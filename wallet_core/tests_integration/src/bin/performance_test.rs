@@ -1,12 +1,13 @@
 use ctor::ctor;
-use indexmap::IndexMap;
 use reqwest::StatusCode;
 use tracing::instrument;
 use url::Url;
 
+use attestation_types::request::AttributeRequest;
+use attestation_types::request::NormalizedCredentialRequest;
+use dcql::CredentialQueryFormat;
 use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::tls::pinning::TlsPinningConfig;
-use mdoc::ItemsRequest;
 use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::issuance_session::HttpIssuanceSession;
 use openid4vc::verifier::SessionType;
@@ -118,20 +119,24 @@ async fn main() {
 
     let start_request = StartDisclosureRequest {
         usecase: "xyz_bank".to_owned(),
-        items_requests: Some(
-            vec![ItemsRequest {
-                doc_type: "urn:eudi:pid:nl:1".to_owned(),
-                request_info: None,
-                name_spaces: IndexMap::from([(
-                    "urn:eudi:pid:nl:1".to_owned(),
-                    IndexMap::from_iter(
-                        [("given_name", true), ("family_name", false)]
-                            .iter()
-                            .map(|(name, intent_to_retain)| (name.to_string(), *intent_to_retain)),
+        credential_requests: Some(
+            vec![NormalizedCredentialRequest {
+                format: CredentialQueryFormat::MsoMdoc {
+                    doctype_value: "urn:eudi:pid:nl:1".to_string(),
+                },
+                claims: vec![
+                    AttributeRequest::new_with_keys(
+                        vec!["urn:eudi:pid:nl:1".to_string(), "given_name".to_string()],
+                        true,
                     ),
-                )]),
+                    AttributeRequest::new_with_keys(
+                        vec!["urn:eudi:pid:nl:1".to_string(), "family_name".to_string()],
+                        false,
+                    ),
+                ],
             }]
-            .into(),
+            .try_into()
+            .unwrap(),
         ),
         return_url_template: Some(relying_party_url.parse().unwrap()),
     };

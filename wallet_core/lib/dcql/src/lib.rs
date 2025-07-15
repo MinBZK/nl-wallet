@@ -82,7 +82,7 @@ pub enum ClaimsSelection {
     },
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "format", content = "meta", rename_all = "snake_case")]
 pub enum CredentialQueryFormat {
     MsoMdoc {
@@ -179,6 +179,22 @@ pub enum ClaimPath {
 
     /// Select an element in an array.
     SelectByIndex(usize),
+}
+
+impl ClaimPath {
+    pub fn try_key_path(&self) -> Option<&str> {
+        match self {
+            ClaimPath::SelectByKey(key) => Some(key.as_str()),
+            _ => None,
+        }
+    }
+
+    pub fn try_into_key_path(self) -> Option<String> {
+        match self {
+            ClaimPath::SelectByKey(key) => Some(key),
+            _ => None,
+        }
+    }
 }
 
 impl Display for ClaimPath {

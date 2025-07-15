@@ -4,11 +4,12 @@ use itertools::Itertools;
 use tracing::info;
 use tracing::warn;
 
+use attestation_types::request::NormalizedCredentialRequest;
 use crypto::factory::KeyFactory;
 use crypto::utils::random_string;
 use crypto::CredentialEcdsaKey;
 use http_utils::urls::BaseUrl;
-use mdoc::holder::disclosure::attribute_paths_to_mdoc_paths;
+use mdoc::holder::disclosure::credential_requests_to_mdoc_paths;
 use mdoc::holder::Mdoc;
 use mdoc::iso::disclosure::DeviceResponse;
 use mdoc::iso::engagement::SessionTranscript;
@@ -16,7 +17,7 @@ use poa::factory::PoaFactory;
 use utils::vec_at_least::VecAtLeastTwoUnique;
 use utils::vec_at_least::VecNonEmpty;
 
-use crate::openid4vp::IsoVpAuthorizationRequest;
+use crate::openid4vp::NormalizedVpAuthorizationRequest;
 use crate::openid4vp::VpAuthorizationResponse;
 use crate::verifier::SessionType;
 
@@ -24,7 +25,6 @@ use super::error::DisclosureError;
 use super::error::VpClientError;
 use super::error::VpSessionError;
 use super::message_client::VpMessageClient;
-use super::AttestationAttributePaths;
 use super::DisclosureSession;
 use super::VerifierCertificate;
 
@@ -32,23 +32,20 @@ use super::VerifierCertificate;
 pub struct VpDisclosureSession<H> {
     client: H,
     session_type: SessionType,
-    requested_attribute_paths: AttestationAttributePaths,
     verifier_certificate: VerifierCertificate,
-    auth_request: IsoVpAuthorizationRequest,
+    auth_request: NormalizedVpAuthorizationRequest,
 }
 
 impl<H> VpDisclosureSession<H> {
     pub(super) fn new(
         client: H,
         session_type: SessionType,
-        requested_attribute_paths: AttestationAttributePaths,
         verifier_certificate: VerifierCertificate,
-        auth_request: IsoVpAuthorizationRequest,
+        auth_request: NormalizedVpAuthorizationRequest,
     ) -> Self {
         Self {
             client,
             session_type,
-            requested_attribute_paths,
             verifier_certificate,
             auth_request,
         }
@@ -63,8 +60,8 @@ where
         self.session_type
     }
 
-    fn requested_attribute_paths(&self) -> &AttestationAttributePaths {
-        &self.requested_attribute_paths
+    fn credential_requests(&self) -> &VecNonEmpty<NormalizedCredentialRequest> {
+        &self.auth_request.credential_requests
     }
 
     fn verifier_certificate(&self) -> &VerifierCertificate {
@@ -101,7 +98,8 @@ where
         let filtered_mdocs = mdocs
             .into_iter()
             .filter_map(|mut mdoc| {
-                let paths = attribute_paths_to_mdoc_paths(&self.requested_attribute_paths, &mdoc.mso.doc_type);
+                let paths =
+                    credential_requests_to_mdoc_paths(&self.auth_request.credential_requests, &mdoc.mso.doc_type);
 
                 (!paths.is_empty()).then(|| {
                     mdoc.issuer_signed = mdoc.issuer_signed.into_attribute_subset(&paths);
@@ -241,15 +239,10 @@ mod tests {
         let disclosure_session = VpDisclosureSession {
             client: mock_client,
             session_type,
-            requested_attribute_paths: verifier_session
-                .items_requests
-                .clone()
-                .try_into_attribute_paths()
-                .unwrap(),
             verifier_certificate: VerifierCertificate::try_new(verifier_session.key_pair.certificate().clone())
                 .unwrap()
                 .unwrap(),
-            auth_request: verifier_session.iso_auth_request(None),
+            auth_request: verifier_session.normalized_auth_request(None),
         };
 
         (disclosure_session, verifier_session)
@@ -270,7 +263,6 @@ mod tests {
         VpDisclosureSession {
             client: error_client,
             session_type: disclosure_session.session_type,
-            requested_attribute_paths: disclosure_session.requested_attribute_paths,
             verifier_certificate: disclosure_session.verifier_certificate,
             auth_request: disclosure_session.auth_request,
         }
