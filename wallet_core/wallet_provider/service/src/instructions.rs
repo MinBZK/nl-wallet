@@ -324,7 +324,7 @@ impl HandleInstruction for ConstructPoa {
         H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
     {
         let tx = user_state.repositories.begin_transaction().await?;
-        let mut keys = user_state
+        let keys = user_state
             .repositories
             .find_keys_by_identifiers(&tx, wallet_user.id, self.key_identifiers.as_slice())
             .await?;
@@ -336,7 +336,7 @@ impl HandleInstruction for ConstructPoa {
             .iter()
             .map(|key_identifier| {
                 let wrapped_key = keys
-                    .remove(key_identifier) // remove() is like get() but lets us take ownership, avoiding a clone
+                    .get(key_identifier)
                     .ok_or(InstructionError::NonexistingKey(key_identifier.clone()))?;
                 Ok(HsmCredentialSigningKey {
                     hsm: &user_state.wallet_user_hsm,
@@ -357,7 +357,7 @@ impl HandleInstruction for ConstructPoa {
 
 struct HsmCredentialSigningKey<'a, H> {
     hsm: &'a H,
-    wrapped_key: WrappedKey,
+    wrapped_key: &'a WrappedKey,
     wrapping_key_identifier: &'a str,
 }
 
