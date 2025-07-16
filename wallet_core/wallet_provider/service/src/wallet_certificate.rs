@@ -25,6 +25,7 @@ use crate::wte_issuer::WteIssuer;
 
 const WALLET_CERTIFICATE_VERSION: u32 = 0;
 
+#[allow(clippy::too_many_arguments, reason = "Constructor of WalletCertificate")]
 pub async fn new_wallet_certificate<H>(
     issuer: String,
     pin_public_disclosure_protection_key_identifier: &str,
