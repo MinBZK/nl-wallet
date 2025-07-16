@@ -18,6 +18,7 @@ use crate::gba::encryption::HmacSha256;
 use crate::gba::encryption::decrypt_bytes_from_dir;
 use crate::gba::error::Error;
 use crate::haal_centraal::Bsn;
+use crate::settings::KeyPair;
 use crate::settings::SymmetricKey;
 
 #[trait_variant::make(Send)]
@@ -42,12 +43,11 @@ impl HttpGbavClient {
         username: String,
         password: String,
         trust_anchor: Certificate,
-        client_cert: Vec<u8>,
-        client_cert_key: Vec<u8>,
+        client_keypair: KeyPair,
         ca_api_key: Option<String>,
     ) -> Result<Self, Error> {
-        let cert = Pem::new("CERTIFICATE", client_cert);
-        let key = Pem::new("PRIVATE KEY", client_cert_key);
+        let cert = Pem::new("CERTIFICATE", client_keypair.certificate);
+        let key = Pem::new("PRIVATE KEY", client_keypair.key);
         let cert_buf = pem::encode(&key) + &pem::encode(&cert);
 
         let vraag_request_template_path = prefix_local_path("resources/remote/bsn_zoeken_template.xml".as_ref());
