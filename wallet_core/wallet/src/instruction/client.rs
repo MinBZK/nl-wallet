@@ -58,9 +58,11 @@ impl<S, AK, GK, A> InstructionClient<S, AK, GK, A> {
         storage: Arc<RwLock<S>>,
         attested_key: Arc<AttestedKey<AK, GK>>,
         account_provider_client: Arc<A>,
-        registration: RegistrationData,
-        client_config: TlsPinningConfig,
-        instruction_result_public_key: EcdsaDecodingKey,
+        (registration, client_config, instruction_result_public_key): (
+            RegistrationData,
+            TlsPinningConfig,
+            EcdsaDecodingKey,
+        ),
     ) -> Self {
         Self {
             pin,
