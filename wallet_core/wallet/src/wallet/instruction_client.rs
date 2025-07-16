@@ -52,9 +52,7 @@ where
             Arc::clone(&self.storage),
             attested_key,
             Arc::clone(&self.account_provider_client),
-            registration_data,
-            client_config,
-            instruction_result_public_key,
+            (registration_data, client_config, instruction_result_public_key),
         );
 
         Ok(client)
