@@ -1,7 +1,7 @@
-import 'dart:ui';
-
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wallet/src/feature/common/page/generic_loading_page.dart';
+import 'package:wallet/src/wallet_assets.dart';
 
 import '../../../../wallet_app_test_widget.dart';
 import '../../../test_util/golden_utils.dart';
@@ -18,6 +18,19 @@ void main() {
         ),
       );
       await screenMatchesGolden('generic_loading_page/light');
+    });
+
+    testGoldens('generic loading light - with context logo', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        GenericLoadingPage(
+          title: 'Title',
+          description: 'Description',
+          onCancel: () {},
+          contextImage: Image.asset(WalletAssets.logo_wallet, height: 64, width: 64),
+          cancelCta: 'Cancel',
+        ),
+      );
+      await screenMatchesGolden('generic_loading_page/context_image.light');
     });
 
     testGoldens('generic loading dark', (tester) async {
