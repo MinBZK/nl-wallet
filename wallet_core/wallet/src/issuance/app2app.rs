@@ -1,16 +1,16 @@
 use std::sync::LazyLock;
 
 use derive_more::AsRef;
-use http::header::LOCATION;
 use http::StatusCode;
+use http::header::LOCATION;
 use regex::Regex;
-use reqwest::redirect::Policy;
 use reqwest::Response;
+use reqwest::redirect::Policy;
 use serde::Deserialize;
 use serde::Serialize;
-use serde_with::serde_as;
 use serde_with::DeserializeFromStr;
 use serde_with::NoneAsEmptyString;
+use serde_with::serde_as;
 use tracing::info;
 use tracing::warn;
 use url::Url;
@@ -267,17 +267,17 @@ impl<OIC> HttpDigidSession<OIC> {
 }
 
 mod json_base64 {
-    use serde::de;
-    use serde::de::DeserializeOwned;
-    use serde::ser;
     use serde::Deserializer;
     use serde::Serialize;
     use serde::Serializer;
+    use serde::de;
+    use serde::de::DeserializeOwned;
+    use serde::ser;
+    use serde_with::DeserializeAs;
+    use serde_with::SerializeAs;
     use serde_with::base64::Base64;
     use serde_with::base64::Standard;
     use serde_with::formats::Padded;
-    use serde_with::DeserializeAs;
-    use serde_with::SerializeAs;
 
     pub fn serialize<S: Serializer, T: Serialize>(input: T, serializer: S) -> Result<S::Ok, S::Error> {
         Base64::<Standard, Padded>::serialize_as(&serde_json::to_vec(&input).map_err(ser::Error::custom)?, serializer)
@@ -297,13 +297,13 @@ mod test {
     use serde::de::Error;
     use serde_json::json;
     use serial_test::serial;
+    use wiremock::Mock;
+    use wiremock::MockServer;
+    use wiremock::ResponseTemplate;
     use wiremock::http::HeaderValue;
     use wiremock::matchers::method;
     use wiremock::matchers::path;
     use wiremock::matchers::query_param;
-    use wiremock::Mock;
-    use wiremock::MockServer;
-    use wiremock::ResponseTemplate;
 
     use http_utils::tls::insecure::InsecureHttpConfig;
     use http_utils::urls::BaseUrl;

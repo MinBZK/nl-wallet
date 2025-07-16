@@ -2,12 +2,12 @@ use std::future::Future;
 use std::path::Path;
 use std::path::PathBuf;
 
-use aes_gcm::aead::Aead;
-use aes_gcm::aead::Nonce;
 use aes_gcm::AeadCore;
 use aes_gcm::Aes256Gcm;
 use aes_gcm::Key;
 use aes_gcm::KeyInit;
+use aes_gcm::aead::Aead;
+use aes_gcm::aead::Nonce;
 use hmac::Hmac;
 use hmac::Mac;
 use rand_core::OsRng;
@@ -128,9 +128,9 @@ mod tests {
     use crypto::utils::random_bytes;
     use crypto::utils::random_string;
 
+    use crate::gba::encryption::HmacSha256;
     use crate::gba::encryption::name_to_encoded_hash;
     use crate::gba::encryption::verify_name;
-    use crate::gba::encryption::HmacSha256;
     use crate::settings::SymmetricKey;
 
     #[test]

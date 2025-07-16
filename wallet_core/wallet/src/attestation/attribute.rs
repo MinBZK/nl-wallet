@@ -161,11 +161,11 @@ pub mod test {
     use sd_jwt_vc_metadata::JsonSchemaPropertyType;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 
-    use crate::attestation::AttestationAttributeValue;
-    use crate::attestation::AttestationError;
     use crate::AttestationAttribute;
     use crate::AttestationIdentity;
     use crate::AttestationPresentation;
+    use crate::attestation::AttestationAttributeValue;
+    use crate::attestation::AttestationError;
 
     pub fn claim_metadata(keys: &[&str]) -> ClaimMetadata {
         ClaimMetadata {

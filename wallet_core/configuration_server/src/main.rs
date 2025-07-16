@@ -1,7 +1,7 @@
 use std::error::Error;
 
-use rustls::crypto::ring;
 use rustls::crypto::CryptoProvider;
+use rustls::crypto::ring;
 
 use crate::settings::Settings;
 

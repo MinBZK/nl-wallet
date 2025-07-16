@@ -3,7 +3,7 @@ use crate::hw_keystore::hardware::HardwareEncryptionKey;
 use crate::hw_keystore::test;
 
 // this is the starting point for the ECDSA key integration test performed from Android / iOS.
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn hw_keystore_test_hardware_signature() {
     let payload = b"This is a message that will be signed.";
     let identifier = "hw_keystore_test_hardware_signature";
@@ -19,7 +19,7 @@ extern "C" fn hw_keystore_test_hardware_signature() {
 }
 
 // this is the starting point for the encryption key integration test performed from Android / iOS.
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn hw_keystore_test_hardware_encryption() {
     let payload = b"This is a message that will be encrypted.";
     let identifier = "hw_keystore_test_hardware_encryption";
@@ -38,11 +38,11 @@ extern "C" fn hw_keystore_test_hardware_encryption() {
 
 #[cfg(target_os = "android")]
 mod android {
-    use jni::objects::JClass;
     use jni::JNIEnv;
+    use jni::objects::JClass;
 
     #[rustfmt::skip]
-    #[no_mangle]
+    #[unsafe(no_mangle)]
     extern "C" fn Java_nl_rijksoverheid_edi_wallet_platform_1support_keystore_signing_SigningKeyBridgeInstrumentedTest_hw_1keystore_1test_1hardware_1signature(
         _env: JNIEnv,
         _: JClass,
@@ -51,7 +51,7 @@ mod android {
     }
 
     #[rustfmt::skip]
-    #[no_mangle]
+    #[unsafe(no_mangle)]
     extern "C" fn Java_nl_rijksoverheid_edi_wallet_platform_1support_keystore_encryption_EncryptionKeyBridgeInstrumentedTest_hw_1keystore_1test_1hardware_1encryption(
         _env: JNIEnv,
         _: JClass,

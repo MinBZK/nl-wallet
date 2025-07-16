@@ -1,7 +1,7 @@
 use axum::extract::Request;
-use axum::http::header::CACHE_CONTROL;
 use axum::http::HeaderValue;
 use axum::http::Method;
+use axum::http::header::CACHE_CONTROL;
 use axum::middleware::Next;
 use axum::response::Response;
 use tower_http::cors::Any;

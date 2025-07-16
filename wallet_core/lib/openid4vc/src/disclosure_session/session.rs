@@ -5,12 +5,12 @@ use tracing::info;
 use tracing::warn;
 
 use attestation_types::request::NormalizedCredentialRequest;
+use crypto::CredentialEcdsaKey;
 use crypto::factory::KeyFactory;
 use crypto::utils::random_string;
-use crypto::CredentialEcdsaKey;
 use http_utils::urls::BaseUrl;
-use mdoc::holder::disclosure::credential_requests_to_mdoc_paths;
 use mdoc::holder::Mdoc;
+use mdoc::holder::disclosure::credential_requests_to_mdoc_paths;
 use mdoc::iso::disclosure::DeviceResponse;
 use mdoc::iso::engagement::SessionTranscript;
 use poa::factory::PoaFactory;
@@ -21,12 +21,12 @@ use crate::openid4vp::NormalizedVpAuthorizationRequest;
 use crate::openid4vp::VpAuthorizationResponse;
 use crate::verifier::SessionType;
 
+use super::DisclosureSession;
+use super::VerifierCertificate;
 use super::error::DisclosureError;
 use super::error::VpClientError;
 use super::error::VpSessionError;
 use super::message_client::VpMessageClient;
-use super::DisclosureSession;
-use super::VerifierCertificate;
 
 #[derive(Debug)]
 pub struct VpDisclosureSession<H> {
@@ -119,7 +119,7 @@ where
                 return Err((
                     self,
                     DisclosureError::before_sharing(VpClientError::DeviceResponse(error).into()),
-                ))
+                ));
             }
         };
 
@@ -142,7 +142,7 @@ where
                 return Err((
                     self,
                     DisclosureError::before_sharing(VpClientError::Poa(Box::new(error)).into()),
-                ))
+                ));
             }
         };
 
@@ -154,7 +154,7 @@ where
                 return Err((
                     self,
                     DisclosureError::before_sharing(VpClientError::AuthResponseEncryption(error).into()),
-                ))
+                ));
             }
         };
 
@@ -203,17 +203,17 @@ mod tests {
     use crate::openid4vp::RequestUriMethod;
     use crate::verifier::SessionType;
 
+    use super::super::DisclosureSession;
     use super::super::error::DisclosureError;
     use super::super::error::VpClientError;
     use super::super::error::VpSessionError;
     use super::super::error::VpVerifierError;
+    use super::super::message_client::VpMessageClientError;
     use super::super::message_client::mock::MockErrorFactoryVpMessageClient;
     use super::super::message_client::mock::MockVerifierSession;
     use super::super::message_client::mock::MockVerifierVpMessageClient;
     use super::super::message_client::mock::WalletMessage;
-    use super::super::message_client::VpMessageClientError;
     use super::super::verifier_certificate::VerifierCertificate;
-    use super::super::DisclosureSession;
     use super::VpDisclosureSession;
 
     static VERIFIER_URL: LazyLock<BaseUrl> = LazyLock::new(|| "http://example.com/disclosure".parse().unwrap());

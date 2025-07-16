@@ -16,9 +16,9 @@ use reqwest_middleware::ClientBuilder;
 use reqwest_middleware::ClientWithMiddleware;
 use serde::Deserialize;
 use serde::Serialize;
+use serde_with::FromInto;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
-use serde_with::FromInto;
 use url::ParseError;
 use x509_parser::certificate::X509Certificate;
 
@@ -166,11 +166,11 @@ mod tests {
     use assert_matches::assert_matches;
     use chrono::NaiveDate;
     use rstest::rstest;
-    use wiremock::matchers::method;
-    use wiremock::matchers::path;
     use wiremock::Mock;
     use wiremock::MockServer;
     use wiremock::ResponseTemplate;
+    use wiremock::matchers::method;
+    use wiremock::matchers::path;
     use x509_parser::pem;
     use x509_parser::prelude::FromDer;
     use x509_parser::prelude::X509Certificate;

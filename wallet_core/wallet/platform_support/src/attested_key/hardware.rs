@@ -6,10 +6,10 @@ use p256::pkcs8::DecodePublicKey;
 use crypto::keys::EcdsaKey;
 use crypto::keys::SecureEcdsaKey;
 
-use crate::bridge::attested_key::get_attested_key_bridge;
 use crate::bridge::attested_key::AttestationData;
 use crate::bridge::attested_key::AttestedKeyBridge;
 use crate::bridge::attested_key::AttestedKeyType;
+use crate::bridge::attested_key::get_attested_key_bridge;
 
 pub use crate::bridge::attested_key::AttestedKeyError;
 
@@ -177,7 +177,7 @@ impl AttestedKeyHolder for HardwareAttestedKeyHolder {
                 return Err(AttestationError {
                     error: HardwareAttestedKeyError::IdentifierInUse(identifier),
                     retryable: false,
-                })
+                });
             }
         };
 
@@ -200,7 +200,7 @@ impl AttestedKeyHolder for HardwareAttestedKeyHolder {
         let inner_key = match HardwareAttestedKey::new(self.bridge, key_identifier) {
             UniqueCreatedResult::Created(inner_key) => inner_key,
             UniqueCreatedResult::Duplicate(identifier) => {
-                return Err(HardwareAttestedKeyError::IdentifierInUse(identifier))
+                return Err(HardwareAttestedKeyError::IdentifierInUse(identifier));
             }
         };
 

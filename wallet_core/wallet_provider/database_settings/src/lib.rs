@@ -7,8 +7,8 @@ use config::ConfigError;
 use config::Environment;
 use config::File;
 use serde::Deserialize;
-use serde_with::serde_as;
 use serde_with::DurationSeconds;
+use serde_with::serde_as;
 
 #[derive(Clone, Deserialize)]
 pub struct Settings {

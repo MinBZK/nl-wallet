@@ -127,9 +127,9 @@ impl<T> Drop for UpdatingConfigurationRepository<T> {
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
     use std::sync::atomic::AtomicU64;
     use std::sync::atomic::Ordering;
-    use std::sync::Arc;
     use std::time::Duration;
 
     use parking_lot::RwLock;
@@ -138,10 +138,10 @@ mod tests {
 
     use wallet_configuration::wallet_config::WalletConfiguration;
 
-    use crate::config::default_config_server_config;
-    use crate::config::default_wallet_config;
     use crate::config::ConfigurationError;
     use crate::config::UpdatingConfigurationRepository;
+    use crate::config::default_config_server_config;
+    use crate::config::default_wallet_config;
     use crate::repository::ObservableRepository;
     use crate::repository::Repository;
     use crate::repository::RepositoryUpdateState;

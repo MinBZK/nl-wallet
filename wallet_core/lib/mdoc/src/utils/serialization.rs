@@ -7,13 +7,13 @@ use core::fmt::Debug;
 use coset::AsCborValue;
 use indexmap::IndexMap;
 use nutype::nutype;
+use serde::Deserialize;
+use serde::Serialize;
 use serde::de;
 use serde::de::DeserializeOwned;
 use serde::de::Deserializer;
 use serde::ser;
 use serde::ser::Serializer;
-use serde::Deserialize;
-use serde::Serialize;
 use serde_aux::serde_introspection::serde_introspect;
 use serde_bytes::ByteBuf;
 use std::borrow::Cow;
@@ -361,7 +361,7 @@ struct OriginInfoWebsiteDetails {
 impl Serialize for Tdate {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         if serializer.is_human_readable() {
-            self.0 .0.serialize(serializer)
+            self.0.0.serialize(serializer)
         } else {
             self.0.serialize(serializer)
         }
@@ -444,8 +444,8 @@ mod tests {
     use ciborium::value::Value::Text;
     use hex_literal::hex;
     use serde_json::json;
-    use serde_with::serde_as;
     use serde_with::FromInto;
+    use serde_with::serde_as;
 
     use crate::examples::Example;
 
