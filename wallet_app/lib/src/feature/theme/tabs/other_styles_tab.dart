@@ -91,20 +91,18 @@ final _kSampleAttributes = [
     svgId: 'key1',
     label: 'Sample #1'.untranslated,
     value: const StringValue('1'),
-    sourceCardId: 'sourceCardDocType',
   ),
   DataAttribute(
     key: 'key2',
     svgId: 'key2',
     label: 'Sample #2'.untranslated,
     value: const StringValue('2'),
-    sourceCardId: 'sourceCardDocType',
   ),
 ];
 
 final _kSampleCard = WalletCard(
   attestationId: 'id',
-  attestationType: 'docType',
+  attestationType: 'attestationType',
   metadata: _kSampleCardMetaData,
   attributes: _kSampleAttributes,
   issuer: _kSampleOrganization,
@@ -112,7 +110,7 @@ final _kSampleCard = WalletCard(
 
 final _kAltSampleCard = WalletCard(
   attestationId: 'alt_id',
-  attestationType: 'alt_docType',
+  attestationType: 'alt_attestationType',
   metadata: _kAltSampleCardMetaData,
   attributes: _kSampleAttributes,
   issuer: _kSampleOrganization,
@@ -326,7 +324,6 @@ class OtherStylesTab extends StatelessWidget {
           attribute: DataAttribute.untranslated(
             value: const StringValue('This is a DataAttributeRow with type text'),
             label: 'Label',
-            sourceCardId: 'id',
             key: _kMockOtherKey,
           ),
         ),
@@ -345,19 +342,16 @@ class OtherStylesTab extends StatelessWidget {
               DataAttribute.untranslated(
                 label: 'Voornaam',
                 value: const StringValue(''),
-                sourceCardId: '',
                 key: '',
               ),
               DataAttribute.untranslated(
                 label: 'Achternaam',
                 value: const StringValue(''),
-                sourceCardId: '',
                 key: '',
               ),
               DataAttribute.untranslated(
                 label: 'Postcode',
                 value: const StringValue(''),
-                sourceCardId: '',
                 key: '',
               ),
             ],
@@ -419,7 +413,7 @@ class OtherStylesTab extends StatelessWidget {
             cards: [
               WalletCard(
                 attestationId: 'id',
-                attestationType: 'docType',
+                attestationType: 'attestationType',
                 metadata: _kSampleCardMetaData,
                 attributes: const [],
                 issuer: _kSampleOrganization,
@@ -446,7 +440,7 @@ class OtherStylesTab extends StatelessWidget {
             cards: [
               WalletCard(
                 attestationId: 'id',
-                attestationType: 'docType',
+                attestationType: 'attestationType',
                 metadata: _kSampleCardMetaData,
                 attributes: const [],
                 issuer: _kSampleOrganization,
@@ -505,7 +499,7 @@ class OtherStylesTab extends StatelessWidget {
           onPressed: () {},
           card: WalletCard(
             attestationId: 'row_id',
-            attestationType: 'docType',
+            attestationType: 'attestationType',
             metadata: _kSampleCardMetaData,
             attributes: const [],
             issuer: _kSampleOrganization,
