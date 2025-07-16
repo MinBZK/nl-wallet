@@ -23,7 +23,6 @@ void main() {
         key: 'key',
         label: 'label',
         value: const StringValue('value'),
-        sourceCardId: 'sourceCardId',
       );
       const samplePidIssuanceUri = 'https://example.org';
       when(mockRepo.continuePidIssuance(samplePidIssuanceUri)).thenAnswer((_) async => [sampleAttribute]);
