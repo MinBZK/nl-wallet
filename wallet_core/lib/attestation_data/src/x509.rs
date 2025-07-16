@@ -77,10 +77,10 @@ pub mod generate {
 
     #[cfg(any(test, feature = "mock"))]
     pub mod mock {
+        use crypto::server_keys::KeyPair;
+        use crypto::server_keys::generate::Ca;
         use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
         use crypto::server_keys::generate::mock::RP_CERT_CN;
-        use crypto::server_keys::generate::Ca;
-        use crypto::server_keys::KeyPair;
 
         use crate::auth::issuer_auth::IssuerRegistration;
         use crate::auth::reader_auth::ReaderRegistration;
@@ -116,8 +116,8 @@ mod test {
     use chrono::DateTime;
     use chrono::Duration;
     use chrono::Utc;
-    use time::macros::datetime;
     use time::OffsetDateTime;
+    use time::macros::datetime;
     use x509_parser::certificate::X509Certificate;
 
     use crypto::server_keys::generate::Ca;

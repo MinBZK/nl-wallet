@@ -2,11 +2,11 @@ use std::fmt::Display;
 use std::fmt::Formatter;
 
 use indexmap::IndexMap;
+use quick_xml::DeError;
+use quick_xml::NsReader;
 use quick_xml::events::Event;
 use quick_xml::name::Namespace;
 use quick_xml::name::ResolveResult::Bound;
-use quick_xml::DeError;
-use quick_xml::NsReader;
 use serde::Deserialize;
 use serde::Deserializer;
 

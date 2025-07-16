@@ -16,12 +16,12 @@ use jsonwebtoken::Validation;
 use p256::ecdsa::VerifyingKey;
 use rustls_pki_types::CertificateDer;
 use rustls_pki_types::TrustAnchor;
-use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use serde::Serialize;
+use serde::de::DeserializeOwned;
 use serde_with::serde_as;
-use x509_parser::der_parser::asn1_rs::BitString;
 use x509_parser::der_parser::Oid;
+use x509_parser::der_parser::asn1_rs::BitString;
 use x509_parser::prelude::FromDer;
 use x509_parser::x509::AlgorithmIdentifier;
 

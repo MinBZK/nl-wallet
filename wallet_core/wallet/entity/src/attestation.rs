@@ -1,6 +1,6 @@
 use derive_more::Constructor;
-use sea_orm::entity::prelude::*;
 use sea_orm::FromJsonQueryResult;
+use sea_orm::entity::prelude::*;
 use serde::Deserialize;
 use serde::Serialize;
 use uuid::Uuid;

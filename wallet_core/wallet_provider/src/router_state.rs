@@ -3,8 +3,8 @@ use std::error::Error;
 use chrono::DateTime;
 use chrono::Duration;
 use chrono::Utc;
-use serde::de::DeserializeOwned;
 use serde::Serialize;
+use serde::de::DeserializeOwned;
 use tracing::info;
 use uuid::Uuid;
 

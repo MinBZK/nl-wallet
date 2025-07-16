@@ -29,9 +29,9 @@ pub enum ResponseValidationError {
     AttributeIdentifier(#[from] AttributeIdentifierError),
 }
 
-/// Return the mdoc-specific paths for a particular attestation type in [`VecNonEmpty<NormalizedCredentialRequest>`], which is
-/// always a pair of namespace and element (i.e. attribute) identifier. Note that this may return an empty set, either
-/// when the attestation type is not present or when none of the paths can be represented as a 2-tuple.
+/// Return the mdoc-specific paths for a particular attestation type in [`VecNonEmpty<NormalizedCredentialRequest>`],
+/// which is always a pair of namespace and element (i.e. attribute) identifier. Note that this may return an empty set,
+/// either when the attestation type is not present or when none of the paths can be represented as a 2-tuple.
 pub fn credential_requests_to_mdoc_paths<'a>(
     credential_requests: &'a VecNonEmpty<NormalizedCredentialRequest>,
     attestation_type: &str,

@@ -17,6 +17,8 @@ use crate::openid4vp::VpAuthorizationRequest;
 use crate::openid4vp::VpRequestUriObject;
 use crate::verifier::VerifierUrlParameters;
 
+use super::DisclosureClient;
+use super::VerifierCertificate;
 use super::error::VpClientError;
 use super::error::VpSessionError;
 use super::error::VpVerifierError;
@@ -25,8 +27,6 @@ use super::message_client::VpMessageClient;
 use super::message_client::VpMessageClientError;
 use super::session::VpDisclosureSession;
 use super::uri_source::DisclosureUriSource;
-use super::DisclosureClient;
-use super::VerifierCertificate;
 
 #[derive(Debug, Constructor)]
 pub struct VpDisclosureClient<H = HttpVpMessageClient> {
@@ -221,19 +221,19 @@ mod tests {
     use crate::openid4vp::WalletRequest;
     use crate::verifier::SessionType;
 
+    use super::super::DisclosureClient;
+    use super::super::DisclosureSession;
+    use super::super::DisclosureUriSource;
     use super::super::client::VpMessageClientError;
     use super::super::error::VpClientError;
     use super::super::error::VpSessionError;
     use super::super::error::VpVerifierError;
-    use super::super::message_client::mock::request_uri_object;
     use super::super::message_client::mock::MockErrorFactoryVpMessageClient;
     use super::super::message_client::mock::MockVerifierSession;
     use super::super::message_client::mock::MockVerifierVpMessageClient;
     use super::super::message_client::mock::WalletMessage;
+    use super::super::message_client::mock::request_uri_object;
     use super::super::session::VpDisclosureSession;
-    use super::super::DisclosureClient;
-    use super::super::DisclosureSession;
-    use super::super::DisclosureUriSource;
     use super::VpDisclosureClient;
 
     static VERIFIER_URL: LazyLock<BaseUrl> = LazyLock::new(|| "http://example.com/disclosure".parse().unwrap());

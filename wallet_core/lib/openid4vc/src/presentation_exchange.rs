@@ -20,9 +20,9 @@ use error_category::ErrorCategory;
 use mdoc::Document;
 use utils::vec_at_least::VecNonEmpty;
 
+use crate::Format;
 use crate::openid4vp::FormatAlg;
 use crate::openid4vp::VpFormat;
-use crate::Format;
 
 /// As specified in https://identity.foundation/presentation-exchange/spec/v2.0.0/#presentation-definition.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -258,11 +258,11 @@ mod tests {
     use attestation_types::request::NormalizedCredentialRequest;
     use utils::vec_at_least::VecNonEmpty;
 
+    use super::FIELD_PATH_REGEX;
     use super::FormatAlg;
     use super::LimitDisclosure;
     use super::PresentationDefinition;
     use super::VpFormat;
-    use super::FIELD_PATH_REGEX;
 
     #[rstest]
     #[case("$['namespace']['attribute_name']", true)]

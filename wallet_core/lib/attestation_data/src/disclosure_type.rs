@@ -100,12 +100,14 @@ mod test {
     fn pid_too_long_attribute_paths() -> VecNonEmpty<NormalizedCredentialRequest> {
         request::mock::mock_from_vecs(vec![(
             LOGIN_ATTESTATION_TYPE.to_string(),
-            vec![VecNonEmpty::try_from(vec![
-                LOGIN_NAMESPACE.to_string(),
-                LOGIN_NAMESPACE.to_string(),
-                LOGIN_ATTRIBUTE_ID.to_string(),
-            ])
-            .unwrap()],
+            vec![
+                VecNonEmpty::try_from(vec![
+                    LOGIN_NAMESPACE.to_string(),
+                    LOGIN_NAMESPACE.to_string(),
+                    LOGIN_ATTRIBUTE_ID.to_string(),
+                ])
+                .unwrap(),
+            ],
         )])
     }
 }

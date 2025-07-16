@@ -3,17 +3,17 @@ use std::net::TcpListener;
 use std::sync::Arc;
 
 use anyhow::Result;
+use axum::Json;
+use axum::Router;
 use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::response::Response;
 use axum::routing::get;
-use axum::Json;
-use axum::Router;
 use etag::EntityTag;
-use http::header;
 use http::HeaderMap;
 use http::HeaderValue;
+use http::header;
 use tracing::debug;
 use tracing::info;
 

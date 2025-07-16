@@ -1,16 +1,16 @@
 use derive_more::Constructor;
-use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use serde::Serialize;
+use serde::de::DeserializeOwned;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
 
 use crypto::p256_der::DerSignature;
 use crypto::p256_der::DerVerifyingKey;
-use jwt::credential::JwtCredentialClaims;
-use jwt::wte::WteClaims;
 use jwt::Jwt;
 use jwt::JwtSubject;
+use jwt::credential::JwtCredentialClaims;
+use jwt::wte::WteClaims;
 use poa::Poa;
 use utils::vec_at_least::VecAtLeastTwoUnique;
 
@@ -191,8 +191,8 @@ impl InstructionAndResult for ConstructPoa {
 
 #[cfg(feature = "client")]
 mod client {
-    use serde::de::DeserializeOwned;
     use serde::Serialize;
+    use serde::de::DeserializeOwned;
 
     use crypto::keys::EphemeralEcdsaKey;
     use crypto::keys::SecureEcdsaKey;

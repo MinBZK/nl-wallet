@@ -10,9 +10,9 @@ use crypto::server_keys::generate::Ca;
 use http_utils::urls::BaseUrl;
 use jwt::credential::JwtCredential;
 use jwt::wte::WteClaims;
+use mdoc::IssuerSigned;
 use mdoc::holder::Mdoc;
 use mdoc::test::TestDocument;
-use mdoc::IssuerSigned;
 
 use crate::issuance_session::CredentialWithMetadata;
 use crate::issuance_session::HttpVcMessageClient;

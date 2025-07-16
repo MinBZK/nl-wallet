@@ -1,8 +1,8 @@
 use std::error::Error;
 
 use cfg_if::cfg_if;
-use rustls::crypto::ring;
 use rustls::crypto::CryptoProvider;
+use rustls::crypto::ring;
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::EnvFilter;
 

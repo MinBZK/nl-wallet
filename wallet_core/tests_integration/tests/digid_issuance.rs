@@ -13,9 +13,9 @@ use pid_issuer::pid::brp::client::HttpBrpClient;
 use server_utils::settings::NL_WALLET_CLIENT_ID;
 use tests_integration::common::*;
 use tests_integration::fake_digid::fake_digid_auth;
-use wallet::wallet_deps::default_wallet_config;
 use wallet::wallet_deps::DigidSession;
 use wallet::wallet_deps::HttpDigidSession;
+use wallet::wallet_deps::default_wallet_config;
 
 /// Test the full PID issuance flow, i.e. including OIDC with nl-rdo-max and retrieving the PID from BRP
 /// (Haal-Centraal). This test depends on part of the internal API of the DigiD bridge, so it may break when nl-rdo-max

@@ -77,9 +77,9 @@ impl Mdoc {
 mod test {
     use crypto::CredentialKeyType;
 
-    use crate::iso::mdocs::IssuerSignedItemBytes;
     use crate::IssuerSigned;
     use crate::MobileSecurityObject;
+    use crate::iso::mdocs::IssuerSignedItemBytes;
 
     use super::Mdoc;
 

@@ -7,8 +7,8 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
 use url::Url;
-use x509_parser::der_parser::asn1_rs::oid;
 use x509_parser::der_parser::Oid;
+use x509_parser::der_parser::asn1_rs::oid;
 
 use crypto::x509::BorrowingCertificateExtension;
 use error_category::ErrorCategory;

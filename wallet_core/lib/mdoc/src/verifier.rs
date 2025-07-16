@@ -5,8 +5,8 @@ use chrono::Utc;
 use derive_more::AsRef;
 use indexmap::IndexMap;
 use itertools::Itertools;
-use p256::ecdsa::VerifyingKey;
 use p256::SecretKey;
+use p256::ecdsa::VerifyingKey;
 use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde::Serialize;
@@ -23,16 +23,16 @@ use http_utils::urls::HttpsUri;
 use utils::generator::Generator;
 use utils::vec_at_least::VecNonEmpty;
 
+use crate::Error;
+use crate::Result;
 use crate::identifiers::AttributeIdentifier;
 use crate::identifiers::AttributeIdentifierHolder;
 use crate::iso::*;
 use crate::utils::cose::ClonePayload;
 use crate::utils::crypto::cbor_digest;
 use crate::utils::crypto::dh_hmac_key;
-use crate::utils::serialization::cbor_serialize;
 use crate::utils::serialization::TaggedBytes;
-use crate::Error;
-use crate::Result;
+use crate::utils::serialization::cbor_serialize;
 
 /// Attributes of an mdoc that was disclosed in a [`DeviceResponse`], as computed by [`DeviceResponse::verify()`].
 /// Grouped per namespace. Validity information and the attributes issuer's common_name is also included.
@@ -227,9 +227,9 @@ impl ValidityInfo {
         validity: ValidityRequirement,
     ) -> std::result::Result<(), ValidityError> {
         if matches!(validity, ValidityRequirement::Valid) && time < DateTime::<Utc>::try_from(&self.valid_from)? {
-            Err(ValidityError::NotYetValid(self.valid_from.0 .0.clone()))
+            Err(ValidityError::NotYetValid(self.valid_from.0.0.clone()))
         } else if time > DateTime::<Utc>::try_from(&self.valid_until)? {
-            Err(ValidityError::Expired(self.valid_from.0 .0.clone()))
+            Err(ValidityError::Expired(self.valid_from.0.0.clone()))
         } else {
             Ok(())
         }
@@ -403,24 +403,24 @@ mod tests {
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
 
-    use crate::examples::example_items_requests;
-    use crate::examples::Example;
-    use crate::examples::IsoCertTimeGenerator;
-    use crate::examples::EXAMPLE_ATTR_NAME;
-    use crate::examples::EXAMPLE_ATTR_VALUE;
-    use crate::examples::EXAMPLE_DOC_TYPE;
-    use crate::examples::EXAMPLE_NAMESPACE;
-    use crate::holder::Mdoc;
-    use crate::identifiers::AttributeIdentifierHolder;
-    use crate::test;
-    use crate::test::data::addr_street;
-    use crate::test::data::pid_full_name;
-    use crate::test::DebugCollapseBts;
     use crate::DeviceAuthenticationBytes;
     use crate::DeviceResponse;
     use crate::Document;
     use crate::Error;
     use crate::ValidityInfo;
+    use crate::examples::EXAMPLE_ATTR_NAME;
+    use crate::examples::EXAMPLE_ATTR_VALUE;
+    use crate::examples::EXAMPLE_DOC_TYPE;
+    use crate::examples::EXAMPLE_NAMESPACE;
+    use crate::examples::Example;
+    use crate::examples::IsoCertTimeGenerator;
+    use crate::examples::example_items_requests;
+    use crate::holder::Mdoc;
+    use crate::identifiers::AttributeIdentifierHolder;
+    use crate::test;
+    use crate::test::DebugCollapseBts;
+    use crate::test::data::addr_street;
+    use crate::test::data::pid_full_name;
 
     use super::*;
 
@@ -503,7 +503,7 @@ mod tests {
         let disclosed_attrs = device_response
             .verify(
                 Some(&eph_reader_key),
-                &DeviceAuthenticationBytes::example().0 .0.session_transcript,
+                &DeviceAuthenticationBytes::example().0.0.session_transcript,
                 &IsoCertTimeGenerator,
                 &[ca.to_trust_anchor()],
             )

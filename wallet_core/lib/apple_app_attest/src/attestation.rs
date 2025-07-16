@@ -5,8 +5,8 @@ use p256::ecdsa::VerifyingKey;
 use passkey_types::ctap2::Aaguid;
 use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
-use serde_with::serde_as;
 use serde_with::TryFromInto;
+use serde_with::serde_as;
 use sha2::Digest;
 use sha2::Sha256;
 
@@ -240,8 +240,8 @@ impl VerifiedAttestation {
 
 #[cfg(feature = "mock")]
 pub mod mock {
-    use coset::iana::EllipticCurve;
     use coset::CoseKeyBuilder;
+    use coset::iana::EllipticCurve;
     use derive_more::Debug;
     use p256::ecdsa::SigningKey;
     use p256::pkcs8::DecodePrivateKey;
@@ -263,8 +263,8 @@ pub mod mock {
 
     use crate::app_identifier::AppIdentifier;
     use crate::auth_data::FullAuthenticatorDataWithSource;
-    use crate::certificates::AppleAnonymousAttestationExtension;
     use crate::certificates::APPLE_ANONYMOUS_ATTESTATION_OID;
+    use crate::certificates::AppleAnonymousAttestationExtension;
 
     use super::Attestation;
     use super::AttestationEnvironment;
