@@ -1,7 +1,7 @@
 use std::sync::LazyLock;
 
-use const_decoder::decode;
 use const_decoder::Pem;
+use const_decoder::decode;
 use rustls_pki_types::CertificateDer;
 use rustls_pki_types::TrustAnchor;
 

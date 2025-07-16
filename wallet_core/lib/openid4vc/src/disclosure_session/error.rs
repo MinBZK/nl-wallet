@@ -10,8 +10,8 @@ use crate::openid4vp::AuthRequestValidationError;
 use crate::openid4vp::AuthResponseError;
 use crate::verifier::SessionType;
 
-use super::uri_source::DisclosureUriSource;
 use super::VpMessageClientError;
+use super::uri_source::DisclosureUriSource;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]

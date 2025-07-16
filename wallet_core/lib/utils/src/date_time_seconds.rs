@@ -5,8 +5,8 @@ use derive_more::AsRef;
 use derive_more::Into;
 use serde::Deserialize;
 use serde::Serialize;
-use serde_with::serde_as;
 use serde_with::TimestampSeconds;
+use serde_with::serde_as;
 
 /// Newtype around `DateTime<Utc>` having only seconds precision.
 #[serde_as]

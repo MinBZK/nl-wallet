@@ -6,24 +6,24 @@ use derive_more::AsRef;
 use nutype::nutype;
 use p256::ecdsa::VerifyingKey;
 use p256::pkcs8::DecodePublicKey;
-use rasn::types::OctetString;
 use rasn::AsnType;
 use rasn::Decode;
 use rasn::Decoder;
 #[cfg(feature = "serialize")]
 use rasn::Encoder;
+use rasn::types::OctetString;
 use rustls_pki_types::CertificateDer;
 use rustls_pki_types::TrustAnchor;
 use rustls_pki_types::UnixTime;
+use webpki::EndEntityCert;
+use webpki::KeyUsage;
 use webpki::ring::ECDSA_P256_SHA256;
 use webpki::ring::ECDSA_P256_SHA384;
 use webpki::ring::ECDSA_P384_SHA256;
 use webpki::ring::ECDSA_P384_SHA384;
-use webpki::EndEntityCert;
-use webpki::KeyUsage;
 use x509_parser::certificate::X509Certificate;
-use x509_parser::der_parser::oid;
 use x509_parser::der_parser::Oid;
+use x509_parser::der_parser::oid;
 use x509_parser::error::X509Error;
 use x509_parser::prelude::FromDer;
 

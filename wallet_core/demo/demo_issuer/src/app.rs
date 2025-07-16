@@ -4,6 +4,8 @@ use std::sync::LazyLock;
 
 use askama::Template;
 use askama_web::WebTemplate;
+use axum::Json;
+use axum::Router;
 use axum::extract::Path;
 use axum::extract::State;
 use axum::handler::HandlerWithoutStateExt;
@@ -13,8 +15,6 @@ use axum::response::IntoResponse;
 use axum::response::Response;
 use axum::routing::get;
 use axum::routing::post;
-use axum::Json;
-use axum::Router;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use server_utils::log_requests::log_request_response;
@@ -25,16 +25,16 @@ use tower_http::trace::TraceLayer;
 use url::Url;
 
 use attestation_data::issuable_document::IssuableDocument;
+use demo_utils::LANGUAGE_JS_SHA256;
+use demo_utils::WALLET_WEB_CSS_SHA256;
+use demo_utils::WALLET_WEB_JS_SHA256;
 use demo_utils::disclosure::DemoDisclosedAttestations;
 use demo_utils::error::Result;
 use demo_utils::headers::set_content_security_policy;
 use demo_utils::headers::set_static_cache_control;
 use demo_utils::language::Language;
-use demo_utils::LANGUAGE_JS_SHA256;
-use demo_utils::WALLET_WEB_CSS_SHA256;
-use demo_utils::WALLET_WEB_JS_SHA256;
-use http_utils::urls::disclosure_based_issuance_base_uri;
 use http_utils::urls::BaseUrl;
+use http_utils::urls::disclosure_based_issuance_base_uri;
 use openid4vc::openid4vp::RequestUriMethod;
 use openid4vc::openid4vp::VpRequestUriObject;
 use openid4vc::verifier::SessionType;
@@ -43,8 +43,8 @@ use utils::path::prefix_local_path;
 
 use crate::settings::Settings;
 use crate::settings::Usecase;
-use crate::translations::Words;
 use crate::translations::TRANSLATIONS;
+use crate::translations::Words;
 
 struct ApplicationState {
     usecases: IndexMap<String, Usecase>,

@@ -26,7 +26,7 @@
 // Section: imports
 
 use flutter_rust_bridge::for_generated::byteorder::{NativeEndian, ReadBytesExt, WriteBytesExt};
-use flutter_rust_bridge::for_generated::{transform_result_dco, Lifetimeable, Lockable};
+use flutter_rust_bridge::for_generated::{Lifetimeable, Lockable, transform_result_dco};
 use flutter_rust_bridge::{Handler, IntoIntoDart};
 
 // Section: boilerplate
@@ -3277,7 +3277,7 @@ mod io {
 
     use super::*;
     use flutter_rust_bridge::for_generated::byteorder::{NativeEndian, ReadBytesExt, WriteBytesExt};
-    use flutter_rust_bridge::for_generated::{transform_result_dco, Lifetimeable, Lockable};
+    use flutter_rust_bridge::for_generated::{Lifetimeable, Lockable, transform_result_dco};
     use flutter_rust_bridge::{Handler, IntoIntoDart};
 
     // Section: boilerplate
@@ -4411,8 +4411,8 @@ mod io {
     }
 
     #[unsafe(no_mangle)]
-    pub extern "C" fn frbgen_wallet_core_cst_new_box_autoadd_attestation_presentation(
-    ) -> *mut wire_cst_attestation_presentation {
+    pub extern "C" fn frbgen_wallet_core_cst_new_box_autoadd_attestation_presentation()
+    -> *mut wire_cst_attestation_presentation {
         flutter_rust_bridge::for_generated::new_leak_box_ptr(wire_cst_attestation_presentation::new_with_null_ptr())
     }
 
@@ -4448,8 +4448,8 @@ mod io {
     }
 
     #[unsafe(no_mangle)]
-    pub extern "C" fn frbgen_wallet_core_cst_new_box_autoadd_wallet_instruction_error(
-    ) -> *mut wire_cst_wallet_instruction_error {
+    pub extern "C" fn frbgen_wallet_core_cst_new_box_autoadd_wallet_instruction_error()
+    -> *mut wire_cst_wallet_instruction_error {
         flutter_rust_bridge::for_generated::new_leak_box_ptr(wire_cst_wallet_instruction_error::new_with_null_ptr())
     }
 

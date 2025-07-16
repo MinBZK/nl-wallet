@@ -3,8 +3,8 @@ use std::hash::Hash;
 use rustls_pki_types::TrustAnchor;
 
 use attestation_types::request::NormalizedCredentialRequest;
-use crypto::factory::KeyFactory;
 use crypto::CredentialEcdsaKey;
+use crypto::factory::KeyFactory;
 use http_utils::urls::BaseUrl;
 use mdoc::holder::Mdoc;
 use poa::factory::PoaFactory;
@@ -12,12 +12,12 @@ use utils::vec_at_least::VecNonEmpty;
 
 use crate::verifier::SessionType;
 
-use super::error::DisclosureError;
-use super::error::VpSessionError;
-use super::uri_source::DisclosureUriSource;
 use super::DisclosureClient;
 use super::DisclosureSession;
 use super::VerifierCertificate;
+use super::error::DisclosureError;
+use super::error::VpSessionError;
+use super::uri_source::DisclosureUriSource;
 
 mockall::mock! {
     #[derive(Debug)]

@@ -3,8 +3,8 @@ use std::sync::Arc;
 use tracing::info;
 use tracing::instrument;
 
-use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
+use error_category::sentry_capture_error;
 use http_utils::tls::pinning::TlsPinningConfig;
 use openid4vc::disclosure_session::DisclosureClient;
 use platform_support::attested_key::AttestedKeyHolder;
@@ -289,10 +289,10 @@ mod tests {
     use crate::storage::InstructionData;
     use crate::storage::KeyedData;
 
+    use super::super::WalletRegistration;
+    use super::super::test::ACCOUNT_SERVER_KEYS;
     use super::super::test::WalletDeviceVendor;
     use super::super::test::WalletWithMocks;
-    use super::super::test::ACCOUNT_SERVER_KEYS;
-    use super::super::WalletRegistration;
     use super::*;
 
     const PIN: &str = "051097";

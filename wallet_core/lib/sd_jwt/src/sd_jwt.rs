@@ -20,13 +20,13 @@ use serde::Serialize;
 use serde_with::skip_serializing_none;
 use ssri::Integrity;
 
+use crypto::EcdsaKeySend;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateUsage;
-use crypto::EcdsaKeySend;
-use jwt::jwk::jwk_to_p256;
 use jwt::EcdsaDecodingKey;
 use jwt::Jwt;
 use jwt::VerifiedJwt;
+use jwt::jwk::jwk_to_p256;
 use utils::generator::Generator;
 use utils::spec::SpecOptional;
 
@@ -400,16 +400,16 @@ mod test {
     use assert_matches::assert_matches;
     use chrono::Duration;
     use chrono::Utc;
-    use jsonwebtoken::errors::ErrorKind;
     use jsonwebtoken::Algorithm;
+    use jsonwebtoken::errors::ErrorKind;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
     use rstest::rstest;
     use serde_json::json;
     use ssri::Integrity;
 
-    use jwt::error::JwtError;
     use jwt::EcdsaDecodingKey;
+    use jwt::error::JwtError;
 
     use crate::builder::SdJwtBuilder;
     use crate::examples::*;

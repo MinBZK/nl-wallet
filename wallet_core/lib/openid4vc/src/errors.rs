@@ -494,9 +494,9 @@ pub enum AuthorizationErrorCode {
 mod axum {
     use std::fmt::Debug;
 
+    use axum::Json;
     use axum::response::IntoResponse;
     use axum::response::Response;
-    use axum::Json;
     use serde::Serialize;
     use tracing::warn;
 

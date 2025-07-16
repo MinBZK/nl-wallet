@@ -8,20 +8,20 @@ use uuid::Uuid;
 
 use attestation_data::disclosure_type::DisclosureType;
 use crypto::x509::BorrowingCertificate;
-use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
+use error_category::sentry_capture_error;
 use openid4vc::disclosure_session::DisclosureClient;
 use platform_support::attested_key::AttestedKeyHolder;
 use update_policy_model::update_policy::VersionState;
 use utils::vec_at_least::VecNonEmpty;
 
+use crate::AttestationPresentation;
+use crate::DisclosureStatus;
 use crate::errors::StorageError;
 use crate::repository::Repository;
 use crate::storage::DataDisclosureStatus;
 use crate::storage::Storage;
 use crate::storage::WalletEvent;
-use crate::AttestationPresentation;
-use crate::DisclosureStatus;
 
 use super::Wallet;
 
@@ -192,10 +192,10 @@ mod tests {
     use attestation_data::x509::generate::mock::generate_reader_mock;
     use crypto::server_keys::generate::Ca;
 
-    use crate::storage::DataDisclosureStatus;
     use crate::AttestationPresentation;
     use crate::DisclosureStatus;
     use crate::WalletEvent;
+    use crate::storage::DataDisclosureStatus;
 
     use super::super::test;
     use super::super::test::WalletDeviceVendor;

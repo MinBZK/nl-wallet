@@ -18,11 +18,12 @@ use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::x509::generate::mock::generate_issuer_mock;
 use crypto::mock_remote::MockRemoteEcdsaKey;
 use crypto::p256_der::DerVerifyingKey;
-use crypto::server_keys::generate::Ca;
 use crypto::server_keys::KeyPair;
+use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use jwt::Jwt;
 use mdoc::holder::Mdoc;
+use openid4vc::Format;
 use openid4vc::disclosure_session::mock::MockDisclosureClient;
 use openid4vc::issuance_session::CredentialWithMetadata;
 use openid4vc::issuance_session::IssuedCredential;
@@ -30,9 +31,8 @@ use openid4vc::issuance_session::IssuedCredentialCopies;
 use openid4vc::issuance_session::NormalizedCredentialPreview;
 use openid4vc::mock::MockIssuanceSession;
 use openid4vc::token::CredentialPreviewContent;
-use openid4vc::Format;
-use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
 use platform_support::attested_key::AttestedKey;
+use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
 use sd_jwt_vc_metadata::JsonSchemaPropertyFormat;
 use sd_jwt_vc_metadata::JsonSchemaPropertyType;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
@@ -43,11 +43,13 @@ use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::messages::registration::WalletCertificateClaims;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
+use crate::AttestationPresentation;
+use crate::WalletEvent;
 use crate::account_provider::MockAccountProviderClient;
-use crate::config::default_config_server_config;
-use crate::config::default_wallet_config;
 use crate::config::LocalConfigurationRepository;
 use crate::config::UpdatingConfigurationRepository;
+use crate::config::default_config_server_config;
+use crate::config::default_wallet_config;
 use crate::issuance;
 use crate::issuance::MockDigidSession;
 use crate::issuance::PID_DOCTYPE;
@@ -61,14 +63,12 @@ use crate::storage::StorageStub;
 use crate::update_policy::MockUpdatePolicyRepository;
 use crate::wallet::attestations::AttestationsError;
 use crate::wte::tests::MockWteIssuanceClient;
-use crate::AttestationPresentation;
-use crate::WalletEvent;
 
-use super::init::RegistrationStatus;
 use super::HistoryError;
 use super::Wallet;
 use super::WalletInitError;
 use super::WalletRegistration;
+use super::init::RegistrationStatus;
 
 /// This contains key material that is used to generate valid account server responses.
 pub struct AccountServerKeys {

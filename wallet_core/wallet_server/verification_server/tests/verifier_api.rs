@@ -48,11 +48,11 @@ use openid4vc::disclosure_session::DisclosureSession;
 use openid4vc::disclosure_session::DisclosureUriSource;
 use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
+use openid4vc::server_state::CLEANUP_INTERVAL_SECONDS;
 use openid4vc::server_state::MemorySessionStore;
 use openid4vc::server_state::SessionStore;
 use openid4vc::server_state::SessionStoreTimeouts;
 use openid4vc::server_state::SessionToken;
-use openid4vc::server_state::CLEANUP_INTERVAL_SECONDS;
 use openid4vc::verifier::DisclosureData;
 use openid4vc::verifier::SessionType;
 use openid4vc::verifier::SessionTypeReturnUrl;
@@ -300,8 +300,7 @@ fn internal_url(settings: &VerifierSettings) -> BaseUrl {
 async fn test_requester_authentication(#[case] mut auth: RequesterAuth) {
     let requester_listener = match &mut auth {
         RequesterAuth::Authentication(_) => None,
-        RequesterAuth::ProtectedInternalEndpoint { ref mut server, .. }
-        | RequesterAuth::InternalEndpoint(ref mut server) => {
+        RequesterAuth::ProtectedInternalEndpoint { server, .. } | RequesterAuth::InternalEndpoint(server) => {
             let listener = TcpListener::bind(("localhost", 0)).await.unwrap();
             server.port = listener.local_addr().unwrap().port();
             Some(listener)
@@ -1142,12 +1141,14 @@ async fn test_disclosed_attributes_failed_session() {
         &serde_json::Value::from("FAILED")
     );
     // Simply check for the presence of the word "expired" to avoid fully matching the error string.
-    assert!(error_body
-        .extra
-        .get("session_error")
-        .unwrap()
-        .as_str()
-        .unwrap()
-        .to_lowercase()
-        .contains("expired"));
+    assert!(
+        error_body
+            .extra
+            .get("session_error")
+            .unwrap()
+            .as_str()
+            .unwrap()
+            .to_lowercase()
+            .contains("expired")
+    );
 }

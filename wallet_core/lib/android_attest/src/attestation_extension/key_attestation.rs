@@ -15,13 +15,13 @@ use chrono::DateTime;
 use chrono::Utc;
 use derive_more::Constructor;
 use int_enum::IntEnum;
+use rasn::AsnType;
+use rasn::Decode;
+use rasn::Decoder;
 use rasn::error::DecodeError;
 use rasn::types::Integer;
 use rasn::types::OctetString;
 use rasn::types::SetOf;
-use rasn::AsnType;
-use rasn::Decode;
-use rasn::Decoder;
 
 cfg_if::cfg_if! {
     if #[cfg(feature = "serialize_key_attestation")] {

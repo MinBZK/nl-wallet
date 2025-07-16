@@ -15,8 +15,8 @@ use crypto::trust_anchor::BorrowingTrustAnchor;
 use http_utils::tls::pinning::TlsPinningConfig;
 use http_utils::urls::BaseUrl;
 
-use crate::digid::DigidApp2AppConfiguration;
 use crate::EnvironmentSpecific;
+use crate::digid::DigidApp2AppConfiguration;
 
 #[serde_as]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]

@@ -5,22 +5,22 @@ use chrono::DateTime;
 use chrono::Utc;
 use indexmap::IndexSet;
 use itertools::Itertools;
-use josekit::jwe::alg::ecdh_es::EcdhEsJweAlgorithm;
-use josekit::jwe::JweHeader;
-use josekit::jwk::alg::ec::EcKeyPair;
-use josekit::jwk::Jwk;
-use josekit::jwt::JwtPayload;
 use josekit::JoseError;
+use josekit::jwe::JweHeader;
+use josekit::jwe::alg::ecdh_es::EcdhEsJweAlgorithm;
+use josekit::jwk::Jwk;
+use josekit::jwk::alg::ec::EcKeyPair;
+use josekit::jwt::JwtPayload;
 use nutype::nutype;
 use p256::ecdsa::VerifyingKey;
 use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde::Serialize;
+use serde_with::DeserializeFromStr;
+use serde_with::OneOrMany;
 use serde_with::formats::PreferOne;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
-use serde_with::DeserializeFromStr;
-use serde_with::OneOrMany;
 
 use attestation_data::disclosure::DisclosedAttestationError;
 use attestation_data::disclosure::DisclosedAttestations;
@@ -30,13 +30,13 @@ use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateError;
 use error_category::ErrorCategory;
 use http_utils::urls::BaseUrl;
-use jwt::error::JwtX5cError;
 use jwt::Jwt;
+use jwt::error::JwtX5cError;
+use mdoc::DeviceResponse;
+use mdoc::SessionTranscript;
 use mdoc::errors::Error as MdocError;
 use mdoc::holder::disclosure::ResponseValidationError;
 use mdoc::utils::serialization::CborBase64;
-use mdoc::DeviceResponse;
-use mdoc::SessionTranscript;
 use poa::Poa;
 use poa::PoaVerificationError;
 use serde_with::SerializeDisplay;
@@ -44,6 +44,7 @@ use utils::generator::Generator;
 use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 
+use crate::Format;
 use crate::authorization::AuthorizationRequest;
 use crate::authorization::ResponseMode;
 use crate::authorization::ResponseType;
@@ -52,7 +53,6 @@ use crate::presentation_exchange::PdConversionError;
 use crate::presentation_exchange::PresentationDefinition;
 use crate::presentation_exchange::PresentationSubmission;
 use crate::presentation_exchange::PsError;
-use crate::Format;
 
 #[derive(Debug, thiserror::Error)]
 pub enum AuthRequestError {
@@ -748,8 +748,8 @@ impl VpAuthorizationResponse {
                     .map(|docs| {
                         docs.iter()
                             .map(|doc| {
-                                doc.issuer_signed.public_key() // VerifyingKey implements Copy, thereby saving use a
-                                                               // clone here
+                                // VerifyingKey implements Copy, thereby saving use a clone here
+                                doc.issuer_signed.public_key()
                             })
                             .collect::<Result<Vec<_>, MdocError>>()
                     })
@@ -852,18 +852,10 @@ mod tests {
     use attestation_types::request::NormalizedCredentialRequest;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::mock_remote::MockRemoteKeyFactory;
-    use crypto::server_keys::generate::Ca;
     use crypto::server_keys::KeyPair;
+    use crypto::server_keys::generate::Ca;
     use dcql::CredentialQueryFormat;
     use jwt::Jwt;
-    use mdoc::examples::Example;
-    use mdoc::holder::Mdoc;
-    use mdoc::test::data::addr_street;
-    use mdoc::test::data::pid_full_name;
-    use mdoc::utils::serialization::cbor_serialize;
-    use mdoc::utils::serialization::CborBase64;
-    use mdoc::utils::serialization::CborSeq;
-    use mdoc::utils::serialization::TaggedBytes;
     use mdoc::DeviceAuthenticationKeyed;
     use mdoc::DeviceResponse;
     use mdoc::DeviceResponseVersion;
@@ -871,20 +863,28 @@ mod tests {
     use mdoc::Document;
     use mdoc::IssuerSigned;
     use mdoc::SessionTranscript;
-    use poa::factory::PoaFactory;
+    use mdoc::examples::Example;
+    use mdoc::holder::Mdoc;
+    use mdoc::test::data::addr_street;
+    use mdoc::test::data::pid_full_name;
+    use mdoc::utils::serialization::CborBase64;
+    use mdoc::utils::serialization::CborSeq;
+    use mdoc::utils::serialization::TaggedBytes;
+    use mdoc::utils::serialization::cbor_serialize;
     use poa::Poa;
-    use utils::generator::mock::MockTimeGenerator;
+    use poa::factory::PoaFactory;
     use utils::generator::Generator;
     use utils::generator::TimeGenerator;
+    use utils::generator::mock::MockTimeGenerator;
     use utils::vec_at_least::VecAtLeastTwoUnique;
     use utils::vec_at_least::VecNonEmpty;
 
-    use crate::mock::test_document_to_issuer_signed;
-    use crate::mock::MOCK_WALLET_CLIENT_ID;
-    use crate::openid4vp::AuthResponseError;
-    use crate::openid4vp::NormalizedVpAuthorizationRequest;
     use crate::AuthorizationErrorCode;
     use crate::VpAuthorizationErrorCode;
+    use crate::mock::MOCK_WALLET_CLIENT_ID;
+    use crate::mock::test_document_to_issuer_signed;
+    use crate::openid4vp::AuthResponseError;
+    use crate::openid4vp::NormalizedVpAuthorizationRequest;
 
     use super::VerifiablePresentation;
     use super::VpAuthorizationRequest;
@@ -1137,7 +1137,7 @@ mod tests {
             .iter()
             .map(|it| {
                 match &it.format {
-                    CredentialQueryFormat::MsoMdoc { ref doctype_value } => {
+                    CredentialQueryFormat::MsoMdoc { doctype_value } => {
                         // Assemble the challenge (serialized Device Authentication) to sign with the mdoc key
                         let device_authentication = TaggedBytes(CborSeq(DeviceAuthenticationKeyed {
                             device_authentication: Default::default(),

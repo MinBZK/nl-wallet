@@ -16,18 +16,18 @@
 //! - The [`PinKey<'a>`] struct, which contains the salt and the PIN, and has methods to compute signatures and the
 //!   public key (by first converting the user's PIN and salt to an ECDSA private key).
 
-use p256::ecdsa::Signature;
-use p256::ecdsa::SigningKey;
-use p256::ecdsa::VerifyingKey;
-use p256::elliptic_curve::bigint::Limb;
-use p256::elliptic_curve::bigint::NonZero;
-use p256::elliptic_curve::bigint::U384;
-use p256::elliptic_curve::ops::Reduce;
-use p256::elliptic_curve::Curve;
 use p256::NistP256;
 use p256::Scalar;
 use p256::SecretKey;
 use p256::U256;
+use p256::ecdsa::Signature;
+use p256::ecdsa::SigningKey;
+use p256::ecdsa::VerifyingKey;
+use p256::elliptic_curve::Curve;
+use p256::elliptic_curve::bigint::Limb;
+use p256::elliptic_curve::bigint::NonZero;
+use p256::elliptic_curve::bigint::U384;
+use p256::elliptic_curve::ops::Reduce;
 use ring::error::Unspecified as UnspecifiedRingError;
 
 use crypto::keys::EcdsaKey;

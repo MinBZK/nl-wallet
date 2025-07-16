@@ -227,9 +227,9 @@ mod tests {
     use dcql::ClaimPath;
     use utils::vec_at_least::VecNonEmpty;
 
-    use super::mock::*;
     use super::AttributeIdentifier;
     use super::AttributeIdentifierHolder;
+    use super::mock::*;
 
     #[rstest]
     #[case(

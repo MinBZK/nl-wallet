@@ -187,9 +187,9 @@ pub mod client {
 
 #[cfg(feature = "server")]
 pub mod server {
-    use p256::ecdsa::signature::Verifier;
     use p256::ecdsa::Signature;
     use p256::ecdsa::VerifyingKey;
+    use p256::ecdsa::signature::Verifier;
     use serde::de::DeserializeOwned;
 
     use apple_app_attest::AppIdentifier;
@@ -432,12 +432,12 @@ mod tests {
 
     use crate::error::DecodeError;
 
-    use super::server::ContainsChallenge;
     use super::EcdsaSignatureType;
     use super::SignatureType;
     use super::SignedMessage;
     use super::SignedSubjectMessage;
     use super::SubjectPayload;
+    use super::server::ContainsChallenge;
 
     #[derive(Debug, Clone, Serialize, Deserialize)]
     struct ToyPayload {

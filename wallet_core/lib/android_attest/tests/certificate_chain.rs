@@ -16,8 +16,8 @@ use android_attest::attestation_extension::key_attestation::KeyAttestationVerifi
 use android_attest::attestation_extension::key_description::KeyDescription;
 #[cfg(not(feature = "allow_emulator_keys"))]
 use android_attest::attestation_extension::key_description::SecurityLevel;
-use android_attest::certificate_chain::verify_google_key_attestation;
 use android_attest::certificate_chain::GoogleKeyAttestationError;
+use android_attest::certificate_chain::verify_google_key_attestation;
 use android_attest::mock_chain::MockCaChain;
 use android_attest::root_public_key::RootPublicKey;
 use webpki::ring::ECDSA_P256_SHA256;
