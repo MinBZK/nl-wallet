@@ -186,7 +186,7 @@ class BiometricSettingScreen extends StatelessWidget {
         SliverPadding(
           padding: const EdgeInsets.all(16),
           sliver: ParagraphedSliverList.splitContent(
-            context.l10n.biometricSettingsScreenDescription(supportedBiometricsText),
+            context.l10n.biometricSettingsScreenDescription(supportedBiometricsText.capitalize),
             splitPattern: '\n',
           ),
         ),
