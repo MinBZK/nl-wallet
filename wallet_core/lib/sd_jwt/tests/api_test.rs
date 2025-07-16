@@ -108,7 +108,7 @@ async fn concealing_property_of_concealable_value_works() -> anyhow::Result<()> 
     let signing_key = SigningKey::random(&mut OsRng);
 
     sd_jwt
-        .into_presentation(
+        .into_presentation_builder(
             &hasher,
             DateTime::from_timestamp_millis(1458304832).unwrap(),
             String::from("https://example.com"),
@@ -144,7 +144,7 @@ async fn sd_jwt_without_disclosures_works() -> anyhow::Result<()> {
 
     let disclosed = sd_jwt
         .clone()
-        .into_presentation(
+        .into_presentation_builder(
             &hasher,
             DateTime::from_timestamp_millis(1458304832).unwrap(),
             String::from("https://example.com"),
@@ -152,8 +152,7 @@ async fn sd_jwt_without_disclosures_works() -> anyhow::Result<()> {
             Algorithm::ES256,
         )?
         .finish(&holder_signing_key)
-        .await?
-        .0;
+        .await?;
 
     // Try to serialize & deserialize `with_kb`.
     let with_kb = {
@@ -189,7 +188,7 @@ async fn sd_jwt_sd_hash() -> anyhow::Result<()> {
 
     let disclosed = sd_jwt
         .clone()
-        .into_presentation(
+        .into_presentation_builder(
             &hasher,
             DateTime::from_timestamp_millis(1458304832).unwrap(),
             String::from("https://example.com"),
@@ -197,8 +196,7 @@ async fn sd_jwt_sd_hash() -> anyhow::Result<()> {
             Algorithm::ES256,
         )?
         .finish(&signing_key)
-        .await?
-        .0;
+        .await?;
 
     let encoded_kb_jwt = disclosed.to_string();
     let (issued_sd_jwt, _kb) = encoded_kb_jwt.rsplit_once("~").unwrap();
@@ -271,8 +269,8 @@ async fn test_presentation() -> anyhow::Result<()> {
     let hasher = Sha256Hasher::new();
 
     // The holder can withhold from a verifier any concealable claim by calling `conceal`.
-    let (presented_sd_jwt, _) = sd_jwt
-        .into_presentation(
+    let presented_sd_jwt = sd_jwt
+        .into_presentation_builder(
             &hasher,
             DateTime::from_timestamp_millis(1458304832).unwrap(),
             String::from("https://example.com"),
