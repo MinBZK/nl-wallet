@@ -3,6 +3,7 @@
 
 use std::collections::HashSet;
 use std::fmt::Display;
+use std::iter::Peekable;
 
 use chrono::DateTime;
 use chrono::Duration;
@@ -32,6 +33,9 @@ use utils::spec::SpecOptional;
 
 use crate::decoder::SdObjectDecoder;
 use crate::disclosure::Disclosure;
+use crate::disclosure::DisclosureContent;
+use crate::encoder::ARRAY_DIGEST_KEY;
+use crate::encoder::DIGESTS_KEY;
 use crate::error::Error;
 use crate::error::Result;
 use crate::hasher::Hasher;
@@ -256,7 +260,7 @@ impl SdJwt {
     /// ## Errors
     /// - [`Error::InvalidHasher`] is returned if the provided `hasher`'s algorithm doesn't match the algorithm
     ///   specified by SD-JWT's `_sd_alg` claim. "sha-256" is used if the claim is missing.
-    pub fn into_presentation(
+    pub fn into_presentation_builder(
         self,
         hasher: &dyn Hasher,
         key_binding_iat: DateTime<Utc>,
@@ -335,7 +339,8 @@ pub struct SdJwtPresentationBuilder<'a> {
     sd_jwt: SdJwt,
     kb_jwt_builder: KeyBindingJwtBuilder,
     disclosures: IndexMap<String, Disclosure>,
-    removed_disclosures: Vec<Disclosure>,
+    included_disclosures: IndexMap<String, Disclosure>,
+    object: serde_json::Value,
     hasher: &'a dyn Hasher,
 }
 
@@ -349,30 +354,58 @@ impl<'a> SdJwtPresentationBuilder<'a> {
             )));
         }
 
+        let object = {
+            let payload = sd_jwt.issuer_signed_jwt.payload();
+            let sd = payload._sd.clone().into_iter().map(serde_json::Value::String).collect();
+            let mut object = serde_json::Value::Object(payload.properties.clone());
+            object
+                .as_object_mut()
+                .unwrap()
+                .insert(DIGESTS_KEY.to_string(), serde_json::Value::Array(sd));
+
+            object
+        };
+
         let disclosures = sd_jwt.disclosures.clone();
 
         Ok(Self {
             sd_jwt,
             kb_jwt_builder,
             disclosures,
-            removed_disclosures: vec![],
+            included_disclosures: IndexMap::new(),
+            object,
             hasher,
         })
     }
 
-    /// Returns the resulting [`SdJwtPresentation`] together with all removed disclosures.
-    /// ## Errors
-    /// - Fails with [`Error::MissingKeyBindingJwt`] if this [`SdJwt`] requires a key binding but none was provided.
-    pub async fn finish(self, signing_key: &impl EcdsaKeySend) -> Result<(SdJwtPresentation, Vec<Disclosure>)> {
+    pub fn disclose(mut self, path: &str) -> Result<Self> {
+        let path_segments = path.trim_start_matches('/').split('/').peekable();
+        let digests_to_include = conceal(&self.object, path_segments, &self.disclosures)?
+            .into_iter()
+            // needed, since some strings are borrowed for the lifetime of the borrow of `self.disclosures`.
+            .map(ToOwned::to_owned)
+            // needed, to drop borrow `self.disclosures`.
+            .collect_vec();
+
+        digests_to_include.into_iter().for_each(|digest| {
+            if let Some(disclosure) = self.disclosures.shift_remove(&digest) {
+                self.included_disclosures.insert(digest, disclosure);
+            }
+        });
+
+        Ok(self)
+    }
+
+    /// Returns the resulting [`SdJwtPresentation`].
+    pub async fn finish(self, signing_key: &impl EcdsaKeySend) -> Result<SdJwtPresentation> {
         // Put everything back in its place.
         let SdJwtPresentationBuilder {
             mut sd_jwt,
-            disclosures,
-            removed_disclosures,
+            included_disclosures,
             kb_jwt_builder,
             ..
         } = self;
-        sd_jwt.disclosures = disclosures;
+        sd_jwt.disclosures = included_disclosures;
 
         let key_binding_jwt = kb_jwt_builder.finish(&sd_jwt, self.hasher, signing_key).await?;
 
@@ -381,7 +414,7 @@ impl<'a> SdJwtPresentationBuilder<'a> {
             key_binding_jwt: key_binding_jwt.into(),
         };
 
-        Ok((sd_jwt_presentation, removed_disclosures))
+        Ok(sd_jwt_presentation)
     }
 }
 
@@ -394,12 +427,168 @@ pub(crate) fn sd_jwt_validation() -> Validation {
     validation
 }
 
-// TODO: [PVW-4138] Add tests for conceal functionality (and probably refactor)
+fn conceal<'p, 'o, 'd, I>(
+    object: &'o serde_json::Value,
+    mut path: Peekable<I>,
+    disclosures: &'d IndexMap<String, Disclosure>,
+) -> Result<Vec<&'o str>>
+where
+    I: Iterator<Item = &'p str>,
+    'd: 'o,
+{
+    let element_key = path
+        .next()
+        .ok_or_else(|| Error::InvalidPath("element at path doesn't exist or is not disclosable".to_string()))?;
+    let has_next = path.peek().is_some();
+    match object {
+        // We are just traversing to a deeper part of the object.
+        serde_json::Value::Object(object) if has_next => {
+            let next_object = object
+                .get(element_key)
+                .or_else(|| {
+                    find_disclosure(object, element_key, disclosures)
+                        .and_then(|digest| disclosures.get(digest))
+                        .map(|disclosure| disclosure.claim_value())
+                })
+                .ok_or_else(|| {
+                    Error::InvalidPath("the referenced element doesn't exist or is not concealable".to_string())
+                })?;
+
+            conceal(next_object, path, disclosures)
+        }
+        // We reached the parent of the value we want to conceal.
+        // Make sure its concealable by finding its disclosure.
+        serde_json::Value::Object(object) => {
+            let digest = find_disclosure(object, element_key, disclosures).ok_or_else(|| {
+                Error::InvalidPath("the referenced element doesn't exist or is not concealable".to_string())
+            })?;
+            let disclosure = disclosures.get(digest).unwrap();
+            let mut sub_disclosures: Vec<&str> =
+                get_all_sub_disclosures(disclosure.claim_value(), disclosures).collect();
+            sub_disclosures.push(digest);
+            Ok(sub_disclosures)
+        }
+        // Traversing an array
+        serde_json::Value::Array(arr) if has_next => {
+            let index = element_key
+                .parse::<usize>()
+                .ok()
+                .filter(|idx| arr.len() > *idx)
+                .ok_or_else(|| Error::InvalidPath(String::default()))?;
+            let next_object = arr.get(index).ok_or_else(|| {
+                Error::InvalidPath("the referenced element doesn't exist or is not concealable".to_string())
+            })?;
+
+            conceal(next_object, path, disclosures)
+        }
+        // Concealing an array's entry.
+        serde_json::Value::Array(arr) => {
+            let index = element_key
+                .parse::<usize>()
+                .ok()
+                .filter(|idx| arr.len() > *idx)
+                .ok_or_else(|| Error::InvalidPath(String::default()))?;
+            let digest = arr
+                .get(index)
+                .unwrap()
+                .as_object()
+                .and_then(|entry| find_disclosure(entry, "", disclosures))
+                .ok_or_else(|| {
+                    Error::InvalidPath("the referenced element doesn't exist or is not concealable".to_string())
+                })?;
+            let disclosure = disclosures.get(digest).unwrap();
+            let mut sub_disclosures: Vec<&str> =
+                get_all_sub_disclosures(disclosure.claim_value(), disclosures).collect();
+            sub_disclosures.push(digest);
+            Ok(sub_disclosures)
+        }
+        _ => Err(Error::InvalidPath(String::default())),
+    }
+}
+
+fn find_disclosure<'o>(
+    object: &'o serde_json::Map<String, serde_json::Value>,
+    key: &str,
+    disclosures: &IndexMap<String, Disclosure>,
+) -> Option<&'o str> {
+    let maybe_disclosable_array_entry = || {
+        object
+            .get(ARRAY_DIGEST_KEY)
+            .and_then(|value| value.as_str())
+            .filter(|_| object.len() == 1)
+    };
+    // Try to find the digest for disclosable property `key` in
+    // the `_sd` field of `object`.
+    object
+        .get(DIGESTS_KEY)
+        .and_then(|value| value.as_array())
+        .iter()
+        .flat_map(|values| values.iter())
+        .flat_map(|value| value.as_str())
+        .find(|digest| {
+            disclosures
+                .get(*digest)
+                .and_then(|disclosure| match &disclosure.content {
+                    DisclosureContent::ObjectProperty(_, name, _) => Some(name),
+                    _ => None,
+                })
+                .is_some_and(|name| name == key)
+        })
+        // If no result is found try checking `object` as a disclosable array entry.
+        .or_else(maybe_disclosable_array_entry)
+}
+
+fn get_all_sub_disclosures<'v, 'd>(
+    start: &'v serde_json::Value,
+    disclosures: &'d IndexMap<String, Disclosure>,
+) -> Box<dyn Iterator<Item = &'v str> + 'v>
+where
+    'd: 'v,
+{
+    match start {
+        // `start` is a JSON object, check if it has a "_sd" array + recursively
+        // check all its properties
+        serde_json::Value::Object(object) => {
+            let direct_sds = object
+                .get(DIGESTS_KEY)
+                .and_then(|sd| sd.as_array())
+                .map(|sd| sd.iter())
+                .unwrap_or_default()
+                .flat_map(|value| value.as_str())
+                .filter(|digest| disclosures.contains_key(*digest));
+            let sub_sds = object
+                .values()
+                .flat_map(|value| get_all_sub_disclosures(value, disclosures));
+            Box::new(itertools::chain!(direct_sds, sub_sds))
+        }
+        // `start` is a JSON array, check for disclosable values `{"...", <digest>}` +
+        // recursively check all its values.
+        serde_json::Value::Array(arr) => {
+            let mut digests = vec![];
+            for value in arr {
+                if let Some(serde_json::Value::String(digest)) = value.get(ARRAY_DIGEST_KEY) {
+                    if disclosures.contains_key(digest) {
+                        digests.push(digest.as_str());
+                    }
+                } else {
+                    get_all_sub_disclosures(value, disclosures).for_each(|digest| digests.push(digest));
+                }
+            }
+            Box::new(digests.into_iter())
+        }
+        _ => Box::new(std::iter::empty()),
+    }
+}
+
 #[cfg(test)]
 mod test {
+    use std::collections::HashSet;
+
     use assert_matches::assert_matches;
     use chrono::Duration;
     use chrono::Utc;
+    use futures::FutureExt;
+    use itertools::Itertools;
     use jsonwebtoken::Algorithm;
     use jsonwebtoken::errors::ErrorKind;
     use p256::ecdsa::SigningKey;
@@ -412,6 +601,7 @@ mod test {
     use jwt::error::JwtError;
 
     use crate::builder::SdJwtBuilder;
+    use crate::disclosure::DisclosureContent;
     use crate::examples::*;
     use crate::hasher::Sha256Hasher;
     use crate::sd_jwt::Error;
@@ -488,5 +678,165 @@ mod test {
         let sd_jwt =
             SdJwt::parse_and_verify(SIMPLE_STRUCTURED_SD_JWT, &examples_sd_jwt_decoding_key(), &Sha256Hasher).unwrap();
         assert_eq!(&sd_jwt.to_string(), SIMPLE_STRUCTURED_SD_JWT);
+    }
+
+    fn create_presentation(
+        object: serde_json::Value,
+        conceal_paths: &[&str],
+        disclose_paths: &[&str],
+    ) -> SdJwtPresentation {
+        let issuer_privkey = SigningKey::random(&mut OsRng);
+        let holder_privkey = SigningKey::random(&mut OsRng);
+
+        let sd_jwt = conceal_paths
+            .iter()
+            .fold(SdJwtBuilder::new(object).unwrap(), |builder, path| {
+                builder.make_concealable(path).unwrap()
+            })
+            .finish(
+                Algorithm::ES256,
+                Integrity::from(""),
+                &issuer_privkey,
+                vec![],
+                holder_privkey.verifying_key(),
+            )
+            .now_or_never()
+            .unwrap()
+            .unwrap();
+
+        disclose_paths
+            .iter()
+            .fold(
+                sd_jwt
+                    .into_presentation_builder(
+                        &Sha256Hasher,
+                        Utc::now(),
+                        "aud".to_string(),
+                        "nonce".to_string(),
+                        Algorithm::ES256,
+                    )
+                    .unwrap(),
+                |builder, path| builder.disclose(path).unwrap(),
+            )
+            .finish(&holder_privkey)
+            .now_or_never()
+            .unwrap()
+            .unwrap()
+    }
+
+    #[rstest]
+    #[case(
+        json!({"given_name": "John", "family_name": "Doe"}),
+        &["/given_name", "/family_name"],
+        &[],
+        &[],
+        &[],
+    )]
+    #[case(
+        json!({"given_name": "John", "family_name": "Doe"}),
+        &["/given_name", "/family_name"],
+        &["/given_name"],
+        &["given_name"],
+        &[],
+    )]
+    #[case(
+        json!({"given_name": "John", "family_name": "Doe"}),
+        &["/given_name", "/family_name"],
+        &["/given_name", "/family_name"],
+        &["given_name", "family_name"],
+        &[],
+    )]
+    #[case(
+        json!({"given_name": "John", "family_name": "Doe"}),
+        &["/given_name"],
+        &["/given_name"],
+        &["given_name"],
+        &["/family_name"],
+    )]
+    #[case(
+        json!({"given_name": "John", "family_name": "Doe"}),
+        &[],
+        &[],
+        &[],
+        &["/family_name", "/given_name"],
+    )]
+    #[case(
+        json!({"address": {"street": "Main st.", "house_number": 4 }}),
+        &["/address/street"],
+        &["/address/street"],
+        &["street"],
+        &["/address", "/address/house_number"],
+    )]
+    #[case(
+        json!({"address": {"street": "Main st.", "house_number": 4 }}),
+        &["/address"],
+        &["/address"],
+        &["address"],
+        &[],
+    )]
+    #[case(
+        json!({"nationalities": ["NL", "DE"]}),
+        &["/nationalities"],
+        &["/nationalities"],
+        &["nationalities"],
+        &[],
+    )]
+    fn test_selectively_disclosable_attributes_in_presentation(
+        #[case] object: serde_json::Value,
+        #[case] conceal_paths: &[&str],
+        #[case] disclose_paths: &[&str],
+        #[case] expected_selectively_disclosable_paths: &[&str],
+        #[case] expected_not_selectively_disclosable_paths: &[&str],
+    ) {
+        let presentation = create_presentation(object, conceal_paths, disclose_paths);
+
+        fn get_paths(object: &serde_json::Map<String, serde_json::Value>) -> HashSet<String> {
+            fn traverse(value: &serde_json::Value, current_path: &str, paths: &mut HashSet<String>) {
+                if let serde_json::Value::Object(map) = value {
+                    for (key, val) in map {
+                        let new_path = if current_path.is_empty() {
+                            format!("/{key}")
+                        } else {
+                            format!("{current_path}/{key}")
+                        };
+
+                        if key != "_sd" {
+                            paths.insert(new_path.clone());
+                            if let serde_json::Value::Object(_) = val {
+                                traverse(val, &new_path, paths)
+                            }
+                        }
+                    }
+                }
+            }
+
+            let mut paths = HashSet::new();
+            traverse(&serde_json::Value::Object(object.clone()), "", &mut paths);
+            paths
+        }
+
+        let claims = presentation.sd_jwt.issuer_signed_jwt.payload();
+        let not_selectively_disclosable_paths = get_paths(&claims.properties);
+
+        assert_eq!(
+            expected_selectively_disclosable_paths,
+            &presentation
+                .sd_jwt
+                .disclosures
+                .into_iter()
+                .filter_map(|(_, disclosure)| match disclosure.content {
+                    DisclosureContent::ObjectProperty(_, name, _) => Some(name),
+                    _ => None,
+                })
+                .collect_vec()
+        );
+
+        assert_eq!(
+            expected_not_selectively_disclosable_paths
+                .iter()
+                .map(|path| String::from(*path))
+                .collect::<HashSet<_>>(),
+            not_selectively_disclosable_paths
+        );
     }
 }
