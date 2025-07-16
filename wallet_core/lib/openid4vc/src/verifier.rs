@@ -1970,8 +1970,7 @@ mod tests {
         )
         .unwrap();
 
-        let expected_url =
-            "https://app-ul.example.com/?request_uri=https%3A%2F%2Frp.example.com%2F%3Fsession_type%3Dcross_device\
+        let expected_url = "https://app-ul.example.com/?request_uri=https%3A%2F%2Frp.example.com%2F%3Fsession_type%3Dcross_device\
             &request_uri_method=post&client_id=client_id";
 
         assert_eq!(verifier_url.as_ref().as_str(), expected_url);
