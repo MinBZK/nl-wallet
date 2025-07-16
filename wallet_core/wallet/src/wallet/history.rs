@@ -61,6 +61,7 @@ where
     DC: DigidClient,
     DCC: DisclosureClient,
 {
+    #[allow(clippy::too_many_arguments, reason = "Indirect constructor of disclosure event")]
     pub(super) async fn store_disclosure_event(
         &mut self,
         timestamp: DateTime<Utc>,
