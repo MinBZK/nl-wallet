@@ -42,7 +42,11 @@ void _provideDefaultCheckHasInternetMock() {
 /// Configure some basic mockito dummies
 void _setupMockitoDummies() {
   provideDummy<DataAttribute>(
-    DataAttribute.untranslated(key: '', label: '', value: const StringValue(''), sourceCardId: ''),
+    DataAttribute.untranslated(
+      key: '',
+      label: '',
+      value: const StringValue(''),
+    ),
   );
   provideDummy<Organization>(WalletMockData.organization);
   provideDummy<AttributeValue>(const StringValue(''));

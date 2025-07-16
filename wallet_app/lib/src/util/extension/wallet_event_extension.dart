@@ -1,14 +1,11 @@
 import 'package:collection/collection.dart';
 
-import '../../domain/model/attribute/attribute.dart';
 import '../../domain/model/event/event_section.dart';
 import '../../domain/model/event/wallet_event.dart';
 import '../../domain/model/organization.dart';
 import 'date_time_extension.dart';
 
 extension WalletEventExtensions on WalletEvent {
-  Map<String, List<DataAttribute>> get attributesByCardId => groupBy(sharedAttributes, (attr) => attr.sourceCardId!);
-
   Organization get relyingPartyOrIssuer => switch (this) {
         DisclosureEvent() => (this as DisclosureEvent).relyingParty,
         IssuanceEvent() => (this as IssuanceEvent).card.issuer,

@@ -39,7 +39,6 @@ void main() {
         svgId: 'card.svgId',
         label: {const Locale('nl'): 'Test'},
         value: const StringValue('John Doe'),
-        sourceCardId: 'docType',
       );
 
       final actual = mapper.map(const CardAttributeWithCardId('docType', _kSampleCardAttribute));
