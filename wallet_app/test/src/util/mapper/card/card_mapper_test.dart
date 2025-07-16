@@ -13,7 +13,7 @@ import 'package:wallet_core/core.dart' as core;
 import '../../../mocks/core_mock_data.dart';
 import '../../../mocks/wallet_mocks.dart';
 
-const _kSampleDocType = 'pid_id';
+const _kSampleAttestationType = 'pid_id';
 const _kSampleAttributeName = CoreMockData.attestationAttributeName;
 const _kSampleAttributeCity = CoreMockData.attestationAttributeCity;
 const _kSampleIssuer = CoreMockData.organization;
@@ -59,7 +59,7 @@ void main() {
     test('card with `stored` persistence should return storage `id`', () {
       const input = core.AttestationPresentation(
         identity: core.AttestationIdentity.fixed(id: 'id-987'),
-        attestationType: _kSampleDocType,
+        attestationType: _kSampleAttestationType,
         displayMetadata: [CoreMockData.enDisplayMetadata],
         attributes: [],
         issuer: _kSampleIssuer,
