@@ -203,11 +203,11 @@ mod test {
     use dcql::ClaimPath;
     use utils::vec_at_least::VecNonEmpty;
 
+    use super::AttributeRequest;
+    use super::MdocCredentialRequestError;
     use super::mock::ATTR_FAMILY_NAME;
     use super::mock::ATTR_GIVEN_NAME;
     use super::mock::EXAMPLE_NAMESPACE;
-    use super::AttributeRequest;
-    use super::MdocCredentialRequestError;
 
     #[rstest]
     #[case(

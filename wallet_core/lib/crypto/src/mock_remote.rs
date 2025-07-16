@@ -6,10 +6,10 @@ use std::iter;
 use derive_more::Constructor;
 use derive_more::Debug;
 use futures::future;
-use p256::ecdsa::signature::Signer;
 use p256::ecdsa::Signature;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
+use p256::ecdsa::signature::Signer;
 use parking_lot::Mutex;
 use rand_core::OsRng;
 
@@ -126,8 +126,8 @@ impl MockRemoteKeyFactory {
 
     #[cfg(feature = "examples")]
     pub fn new_example() -> Self {
-        use crate::examples::Examples;
         use crate::examples::EXAMPLE_KEY_IDENTIFIER;
+        use crate::examples::Examples;
 
         let keys = HashMap::from([(EXAMPLE_KEY_IDENTIFIER.to_string(), Examples::static_device_key())]);
         Self::new_signing_keys(keys)

@@ -5,9 +5,10 @@ use tracing::info;
 use tracing::instrument;
 
 use attestation_data::auth::Organization;
-use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
+use error_category::sentry_capture_error;
 use http_utils::tls::pinning::TlsPinningConfig;
+use openid4vc::PostAuthResponseErrorCode;
 use openid4vc::credential::CredentialOfferContainer;
 use openid4vc::credential::OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME;
 use openid4vc::disclosure_session::DisclosureClient;
@@ -16,7 +17,6 @@ use openid4vc::disclosure_session::VpMessageClientError;
 use openid4vc::issuance_session::IssuanceSession as Openid4vcIssuanceSession;
 use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenRequestGrantType;
-use openid4vc::PostAuthResponseErrorCode;
 use platform_support::attested_key::AttestedKeyHolder;
 use update_policy_model::update_policy::VersionState;
 use wallet_account::NL_WALLET_CLIENT_ID;
@@ -31,10 +31,10 @@ use crate::repository::UpdateableRepository;
 use crate::storage::Storage;
 use crate::wallet::Session;
 
-use super::disclosure::RedirectUriPurpose;
 use super::DisclosureError;
 use super::IssuanceError;
 use super::Wallet;
+use super::disclosure::RedirectUriPurpose;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
@@ -179,34 +179,34 @@ mod tests {
     use attestation_data::x509::generate::mock::generate_reader_mock;
     use crypto::server_keys::generate::Ca;
     use mdoc::holder::Mdoc;
+    use openid4vc::DisclosureErrorResponse;
+    use openid4vc::PostAuthResponseErrorCode;
     use openid4vc::credential::CredentialOffer;
     use openid4vc::credential::CredentialOfferContainer;
     use openid4vc::credential::GrantPreAuthorizedCode;
     use openid4vc::credential::Grants;
     use openid4vc::credential::OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME;
     use openid4vc::disclosure_session;
-    use openid4vc::disclosure_session::mock::MockDisclosureSession;
     use openid4vc::disclosure_session::VerifierCertificate;
     use openid4vc::disclosure_session::VpClientError;
     use openid4vc::disclosure_session::VpSessionError;
+    use openid4vc::disclosure_session::mock::MockDisclosureSession;
     use openid4vc::mock::MockIssuanceSession;
     use openid4vc::verifier::DisclosureResultHandlerError;
     use openid4vc::verifier::PostAuthResponseError;
     use openid4vc::verifier::ToPostAuthResponseErrorCode;
-    use openid4vc::DisclosureErrorResponse;
-    use openid4vc::PostAuthResponseErrorCode;
 
     use crate::attestation::AttestationPresentation;
 
+    use super::super::DisclosureBasedIssuanceError;
+    use super::super::Session;
     use super::super::disclosure::DisclosureAttestation;
     use super::super::disclosure::DisclosureError;
     use super::super::disclosure::RedirectUriPurpose;
     use super::super::disclosure::WalletDisclosureSession;
-    use super::super::test::create_example_preview_data;
     use super::super::test::WalletDeviceVendor;
     use super::super::test::WalletWithMocks;
-    use super::super::DisclosureBasedIssuanceError;
-    use super::super::Session;
+    use super::super::test::create_example_preview_data;
 
     const PIN: &str = "051097";
 

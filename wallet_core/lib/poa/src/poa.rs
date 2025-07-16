@@ -3,29 +3,29 @@ use std::collections::HashSet;
 use derive_more::AsRef;
 use derive_more::From;
 use futures::future::try_join_all;
-use jsonwebtoken::jwk;
-use jsonwebtoken::jwk::Jwk;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::Header;
+use jsonwebtoken::jwk;
+use jsonwebtoken::jwk::Jwk;
 use p256::ecdsa::VerifyingKey;
 use serde::Deserialize;
 use serde::Serialize;
 
 use crypto::keys::EcdsaKey;
+use jwt::JsonJwt;
+use jwt::Jwt;
 use jwt::error::JwtError;
 use jwt::jwk::jwk_alg_from_p256;
 use jwt::jwk::jwk_from_p256;
 use jwt::jwk::jwk_to_p256;
 use jwt::pop::JwtPopClaims;
 use jwt::validations;
-use jwt::JsonJwt;
-use jwt::Jwt;
 use utils::vec_at_least::VecAtLeastTwoUnique;
 use utils::vec_at_least::VecNonEmpty;
 
+use crate::POA_JWT_TYP;
 use crate::error::PoaError;
 use crate::error::PoaVerificationError;
-use crate::POA_JWT_TYP;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PoaPayload {
@@ -164,9 +164,9 @@ mod tests {
     use rstest::rstest;
 
     use crypto::mock_remote::MockRemoteEcdsaKey;
+    use jwt::Jwt;
     use jwt::pop::JwtPopClaims;
     use jwt::validations;
-    use jwt::Jwt;
     use utils::vec_at_least::VecNonEmpty;
 
     use super::Poa;

@@ -2,8 +2,8 @@ pub mod key_attestation;
 pub mod key_description;
 
 use x509_parser::certificate::X509Certificate;
-use x509_parser::der_parser::oid;
 use x509_parser::der_parser::Oid;
+use x509_parser::der_parser::oid;
 
 use key_attestation::KeyAttestation;
 use key_attestation::KeyDescriptionFieldError;

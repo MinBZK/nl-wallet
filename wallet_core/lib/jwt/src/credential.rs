@@ -1,9 +1,9 @@
-use jsonwebtoken::jwk::Jwk;
 use jsonwebtoken::Header;
+use jsonwebtoken::jwk::Jwk;
 use p256::ecdsa::VerifyingKey;
-use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use serde::Serialize;
+use serde::de::DeserializeOwned;
 use serde_with::skip_serializing_none;
 
 use crypto::factory::KeyFactory;
@@ -11,12 +11,12 @@ use crypto::keys::CredentialEcdsaKey;
 use crypto::keys::CredentialKeyType;
 use crypto::keys::EcdsaKey;
 
+use crate::Jwt;
 use crate::error::JwkConversionError;
 use crate::error::JwtError;
 use crate::jwk::jwk_from_p256;
 use crate::jwk::jwk_to_p256;
 use crate::validations;
-use crate::Jwt;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct JwtCredential<T> {

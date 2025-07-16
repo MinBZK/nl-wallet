@@ -66,11 +66,11 @@ mod tests {
     use itertools::Itertools;
     use rstest::rstest;
 
+    use crate::IssuerNameSpaces;
     use crate::examples::Example;
     use crate::iso::disclosure::DeviceResponse;
     use crate::iso::disclosure::IssuerSigned;
     use crate::utils::serialization::TaggedBytes;
-    use crate::IssuerNameSpaces;
 
     fn issuer_signed_example() -> IssuerSigned {
         DeviceResponse::example()

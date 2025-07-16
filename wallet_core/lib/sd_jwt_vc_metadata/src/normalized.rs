@@ -347,9 +347,9 @@ where
 
 #[cfg(any(test, feature = "example_constructors"))]
 mod example_constructors {
+    use crate::VerifiedTypeMetadataDocuments;
     use crate::metadata::SchemaOption;
     use crate::metadata::UncheckedTypeMetadata;
-    use crate::VerifiedTypeMetadataDocuments;
 
     use super::NormalizedTypeMetadata;
 
@@ -450,19 +450,23 @@ mod tests {
         );
 
         // All of the claims should have their selective disclosure state changed to a more strict option.
-        assert!(!normalized
-            .claims
-            .iter()
-            .any(|claim| claim.sd == ClaimSelectiveDisclosureMetadata::Allowed));
+        assert!(
+            !normalized
+                .claims
+                .iter()
+                .any(|claim| claim.sd == ClaimSelectiveDisclosureMetadata::Allowed)
+        );
 
         // All of the claims should have their "svg_id" property overwritten by the extension.
-        assert!(normalized
-            .claims
-            .iter()
-            .find(|claim| claim.path.as_ref() == vec![ClaimPath::SelectByKey("birth_date".to_string())])
-            .unwrap()
-            .svg_id
-            .is_none());
+        assert!(
+            normalized
+                .claims
+                .iter()
+                .find(|claim| claim.path.as_ref() == vec![ClaimPath::SelectByKey("birth_date".to_string())])
+                .unwrap()
+                .svg_id
+                .is_none()
+        );
         assert_eq!(
             normalized
                 .claims

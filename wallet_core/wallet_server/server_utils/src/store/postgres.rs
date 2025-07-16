@@ -2,8 +2,6 @@ use std::time::Duration;
 
 use chrono::DateTime;
 use chrono::Utc;
-use sea_orm::sea_query::Expr;
-use sea_orm::sea_query::OnConflict;
 use sea_orm::ActiveValue;
 use sea_orm::ColumnTrait;
 use sea_orm::ConnectOptions;
@@ -14,8 +12,10 @@ use sea_orm::EntityTrait;
 use sea_orm::QueryFilter;
 use sea_orm::SqlErr;
 use sea_orm::TransactionTrait;
-use serde::de::DeserializeOwned;
+use sea_orm::sea_query::Expr;
+use sea_orm::sea_query::OnConflict;
 use serde::Serialize;
+use serde::de::DeserializeOwned;
 use tracing::log::LevelFilter;
 use url::Url;
 

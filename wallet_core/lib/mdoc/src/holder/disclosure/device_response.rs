@@ -1,8 +1,8 @@
 use itertools::Itertools;
 
 use attestation_types::request::NormalizedCredentialRequest;
-use crypto::factory::KeyFactory;
 use crypto::CredentialEcdsaKey;
+use crypto::factory::KeyFactory;
 use dcql::CredentialQueryFormat;
 use utils::vec_at_least::VecNonEmpty;
 
@@ -118,12 +118,12 @@ mod tests {
     use crypto::mock_remote::MockRemoteKeyFactory;
     use crypto::server_keys::generate::Ca;
 
+    use crate::DeviceAuth;
     use crate::holder::Mdoc;
     use crate::iso::disclosure::DeviceResponse;
     use crate::iso::engagement::DeviceAuthenticationKeyed;
     use crate::iso::engagement::SessionTranscript;
     use crate::utils::cose::ClonePayload;
-    use crate::DeviceAuth;
 
     #[test]
     fn test_device_response_sign_from_mdocs() {

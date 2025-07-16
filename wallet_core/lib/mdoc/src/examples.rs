@@ -7,22 +7,22 @@ use chrono::TimeZone;
 use chrono::Utc;
 use ciborium::Value;
 use indexmap::IndexMap;
-use serde::de::DeserializeOwned;
 use serde::Serialize;
+use serde::de::DeserializeOwned;
 
 use crypto::server_keys::generate::Ca;
 use utils::generator::Generator;
 
-use crate::test::generate_issuer_mock;
-use crate::utils::serialization::cbor_deserialize;
-use crate::utils::serialization::cbor_serialize;
-use crate::verifier::ItemsRequests;
 use crate::DeviceAuthenticationBytes;
 use crate::DeviceRequest;
 use crate::DeviceResponse;
 use crate::IssuerSigned;
 use crate::ItemsRequest;
 use crate::ReaderAuthenticationBytes;
+use crate::test::generate_issuer_mock;
+use crate::utils::serialization::cbor_deserialize;
+use crate::utils::serialization::cbor_serialize;
+use crate::verifier::ItemsRequests;
 
 pub const EXAMPLE_DOC_TYPE: &str = "org.iso.18013.5.1.mDL";
 pub const EXAMPLE_NAMESPACE: &str = "org.iso.18013.5.1";

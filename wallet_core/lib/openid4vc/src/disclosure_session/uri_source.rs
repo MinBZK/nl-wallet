@@ -10,11 +10,7 @@ pub enum DisclosureUriSource {
 
 impl DisclosureUriSource {
     pub fn new(is_qr_code: bool) -> Self {
-        if is_qr_code {
-            Self::QrCode
-        } else {
-            Self::Link
-        }
+        if is_qr_code { Self::QrCode } else { Self::Link }
     }
 
     /// Returns the expected session type for a source of the received [`ReaderEngagement`].

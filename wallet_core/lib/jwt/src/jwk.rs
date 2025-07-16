@@ -1,11 +1,11 @@
 use base64::prelude::*;
+use jsonwebtoken::Algorithm;
+use jsonwebtoken::Header;
 use jsonwebtoken::jwk;
 use jsonwebtoken::jwk::EllipticCurve;
 use jsonwebtoken::jwk::Jwk;
-use jsonwebtoken::Algorithm;
-use jsonwebtoken::Header;
-use p256::ecdsa::VerifyingKey;
 use p256::EncodedPoint;
+use p256::ecdsa::VerifyingKey;
 
 use crypto::keys::EcdsaKey;
 

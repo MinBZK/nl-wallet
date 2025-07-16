@@ -1,6 +1,6 @@
+use rand::Rng;
 use rand::distributions::Alphanumeric;
 use rand::distributions::DistString;
-use rand::Rng;
 use ring::error::Unspecified as UnspecifiedRingError;
 use ring::hkdf;
 use sha2::Digest;

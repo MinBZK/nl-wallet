@@ -1,8 +1,8 @@
 use std::fs;
 use std::path::Path;
 
-use anyhow::anyhow;
 use anyhow::Result;
+use anyhow::anyhow;
 use clio::CachedInput;
 use p256::ecdsa::SigningKey;
 use p256::pkcs8::EncodePrivateKey;

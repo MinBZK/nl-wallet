@@ -1,10 +1,10 @@
-use base64::prelude::BASE64_URL_SAFE_NO_PAD;
 use base64::Engine;
+use base64::prelude::BASE64_URL_SAFE_NO_PAD;
 use chrono::Duration;
 use futures::FutureExt;
 use indexmap::IndexMap;
-use jsonwebtoken::jwk::Jwk;
 use jsonwebtoken::Algorithm;
+use jsonwebtoken::jwk::Jwk;
 use p256::ecdsa::SigningKey;
 use rand_core::OsRng;
 use serde_json::json;
@@ -12,8 +12,8 @@ use ssri::Integrity;
 
 use crypto::server_keys::KeyPair;
 use crypto::utils::random_string;
-use jwt::jwk::jwk_to_p256;
 use jwt::EcdsaDecodingKey;
+use jwt::jwk::jwk_to_p256;
 
 use crate::builder::SdJwtBuilder;
 use crate::disclosure::Disclosure;

@@ -62,8 +62,8 @@ impl DocRequest {
 mod tests {
     use assert_matches::assert_matches;
 
-    use crypto::server_keys::generate::Ca;
     use crypto::server_keys::KeyPair;
+    use crypto::server_keys::generate::Ca;
     use utils::generator::TimeGenerator;
 
     use crate::errors::Error;

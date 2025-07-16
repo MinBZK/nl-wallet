@@ -33,13 +33,13 @@ use openid4vc::verifier::RpInitiatedUseCase;
 use openid4vc::verifier::RpInitiatedUseCases;
 use openid4vc::verifier::SessionTypeReturnUrl;
 use server_utils::keys::PrivateKeyVariant;
-use server_utils::settings::verify_key_pairs;
 use server_utils::settings::CertificateVerificationError;
 use server_utils::settings::KeyPair;
+use server_utils::settings::NL_WALLET_CLIENT_ID;
 use server_utils::settings::RequesterAuth;
 use server_utils::settings::ServerSettings;
 use server_utils::settings::Settings;
-use server_utils::settings::NL_WALLET_CLIENT_ID;
+use server_utils::settings::verify_key_pairs;
 use utils::generator::TimeGenerator;
 use utils::path::prefix_local_path;
 

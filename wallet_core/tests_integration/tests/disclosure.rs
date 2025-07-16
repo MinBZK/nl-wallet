@@ -12,11 +12,11 @@ use attestation_types::request::NormalizedCredentialRequest;
 use dcql::CredentialQueryFormat;
 use http_utils::error::HttpJsonErrorBody;
 use http_utils::tls::pinning::TlsPinningConfig;
+use mdoc::test::TestDocuments;
 use mdoc::test::data::addr_street;
 use mdoc::test::data::pid_family_name;
 use mdoc::test::data::pid_full_name;
 use mdoc::test::data::pid_given_name;
-use mdoc::test::TestDocuments;
 use openid4vc::return_url::ReturnUrlTemplate;
 use openid4vc::verifier::SessionType;
 use openid4vc::verifier::StatusResponse;
@@ -25,9 +25,9 @@ use openid4vc_server::verifier::StartDisclosureRequest;
 use openid4vc_server::verifier::StartDisclosureResponse;
 use openid4vc_server::verifier::StatusParams;
 use tests_integration::common::*;
+use wallet::DisclosureUriSource;
 use wallet::errors::DisclosureError;
 use wallet::mock::MockDigidSession;
-use wallet::DisclosureUriSource;
 
 async fn get_verifier_status(client: &reqwest::Client, status_url: Url) -> StatusResponse {
     let response = client.get(status_url).send().await.unwrap();

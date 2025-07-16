@@ -9,13 +9,13 @@ use serde::Serialize;
 use serial_test::parallel;
 use serial_test::serial;
 
-use openid4vc::server_state::test;
-use openid4vc::server_state::test::RandomData;
 use openid4vc::server_state::Expirable;
 use openid4vc::server_state::HasProgress;
 use openid4vc::server_state::Progress;
 use openid4vc::server_state::SessionDataType;
 use openid4vc::server_state::SessionStoreTimeouts;
+use openid4vc::server_state::test;
+use openid4vc::server_state::test::RandomData;
 use server_utils::settings::ServerSettings;
 use server_utils::settings::Storage;
 use server_utils::store::postgres;

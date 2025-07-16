@@ -19,9 +19,6 @@ use openid4vc::issuance_session::IssuedCredential;
 use crate::AttestationPresentation;
 use crate::DisclosureStatus;
 
-use super::data::KeyedData;
-use super::data::RegistrationData;
-use super::event_log::WalletEvent;
 use super::Storage;
 use super::StorageError;
 use super::StorageResult;
@@ -29,6 +26,9 @@ use super::StorageState;
 use super::StoredAttestationCopy;
 use super::StoredAttestationFormat;
 use super::StoredMdocCopy;
+use super::data::KeyedData;
+use super::data::RegistrationData;
+use super::event_log::WalletEvent;
 
 #[derive(Debug)]
 pub enum KeyedDataResult {
@@ -336,9 +336,9 @@ impl Storage for StorageStub {
 
 #[cfg(test)]
 mod tests {
-    use crate::storage::database_storage::tests::test_history_ordering;
     use crate::storage::KeyedData;
     use crate::storage::Storage;
+    use crate::storage::database_storage::tests::test_history_ordering;
     use serde::Deserialize;
     use serde::Serialize;
 

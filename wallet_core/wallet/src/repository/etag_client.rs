@@ -5,9 +5,9 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use http::header;
 use http::HeaderValue;
 use http::StatusCode;
+use http::header;
 use parking_lot::Mutex;
 use tokio::fs;
 
@@ -139,13 +139,13 @@ mod test {
     use std::str::FromStr;
 
     use http::header;
+    use wiremock::Mock;
+    use wiremock::MockServer;
+    use wiremock::ResponseTemplate;
     use wiremock::matchers::header;
     use wiremock::matchers::header_exists;
     use wiremock::matchers::method;
     use wiremock::matchers::path;
-    use wiremock::Mock;
-    use wiremock::MockServer;
-    use wiremock::ResponseTemplate;
 
     use http_utils::tls::insecure::InsecureHttpConfig;
 
