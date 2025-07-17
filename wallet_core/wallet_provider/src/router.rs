@@ -31,6 +31,8 @@ use wallet_account::messages::instructions::InstructionChallengeRequest;
 use wallet_account::messages::instructions::InstructionResultMessage;
 use wallet_account::messages::instructions::IssueWte;
 use wallet_account::messages::instructions::IssueWteResult;
+use wallet_account::messages::instructions::PerformIssuance;
+use wallet_account::messages::instructions::PerformIssuanceResult;
 use wallet_account::messages::instructions::Sign;
 use wallet_account::messages::instructions::SignResult;
 use wallet_account::messages::registration::Certificate;
@@ -89,6 +91,10 @@ where
                 .route(&format!("/instructions/{}", Sign::NAME), post(sign))
                 .route(&format!("/instructions/{}", IssueWte::NAME), post(issue_wte))
                 .route(&format!("/instructions/{}", ConstructPoa::NAME), post(construct_poa))
+                .route(
+                    &format!("/instructions/{}", PerformIssuance::NAME),
+                    post(perform_issuance),
+                )
                 .layer(TraceLayer::new_for_http())
                 .with_state(Arc::clone(&state)),
         )
@@ -285,6 +291,19 @@ async fn construct_poa<GRC, PIC>(
         .handle_instruction(payload)
         .await
         .inspect_err(|error| warn!("handling ConstructPoa instruction failed: {}", error))?;
+
+    Ok((StatusCode::OK, body.into()))
+}
+
+async fn perform_issuance<GRC, PIC>(
+    State(state): State<Arc<RouterState<GRC, PIC>>>,
+    Json(payload): Json<Instruction<PerformIssuance>>,
+) -> Result<(StatusCode, Json<InstructionResultMessage<PerformIssuanceResult>>)> {
+    info!("Received perform_issuance request, handling the PerformIssuance instruction");
+    let body = state
+        .handle_instruction(payload)
+        .await
+        .inspect_err(|error| warn!("handling PerformIssuance instruction failed: {}", error))?;
 
     Ok((StatusCode::OK, body.into()))
 }
