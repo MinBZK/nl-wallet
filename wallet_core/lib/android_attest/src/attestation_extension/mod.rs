@@ -93,7 +93,6 @@ mod tests {
         cert_from_der(TEE_CERTIFICATE_BYTES)
     }
 
-    #[allow(clippy::octal_escapes)]
     fn emulator_key_attestation() -> KeyAttestation {
         KeyAttestation {
             attestation_version: AttestationVersion::V200,
