@@ -79,6 +79,7 @@ apple_app_attest.path = "../../lib/apple_app_attest"
 crypto.path = "../../lib/crypto"
 hsm.path = "../../lib/hsm"
 jwt.path = "../../lib/jwt"
+openid4vc.path = "../../lib/openid4vc"
 poa.path = "../../lib/poa"
 wallet_account = { path = "../wallet_account", features = ["server"] }
 wallet_provider_domain.path = "../domain"

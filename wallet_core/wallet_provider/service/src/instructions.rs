@@ -5,6 +5,8 @@ use std::sync::Arc;
 use base64::prelude::*;
 use futures::future;
 use itertools::Itertools;
+use jsonwebtoken::Algorithm;
+use jsonwebtoken::Header;
 use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
 use serde::Deserialize;
@@ -18,7 +20,10 @@ use crypto::p256_der::DerVerifyingKey;
 use hsm::model::encrypter::Encrypter;
 use hsm::model::wrapped_key::WrappedKey;
 use hsm::service::HsmError;
+use jwt::Jwt;
+use jwt::jwk::jwk_from_p256;
 use jwt::pop::JwtPopClaims;
+use openid4vc::credential::OPENID4VCI_VC_POP_JWT_TYPE;
 use poa::POA_JWT_TYP;
 use poa::Poa;
 use utils::generator::Generator;
@@ -33,6 +38,8 @@ use wallet_account::messages::instructions::GenerateKey;
 use wallet_account::messages::instructions::GenerateKeyResult;
 use wallet_account::messages::instructions::IssueWte;
 use wallet_account::messages::instructions::IssueWteResult;
+use wallet_account::messages::instructions::PerformIssuance;
+use wallet_account::messages::instructions::PerformIssuanceResult;
 use wallet_account::messages::instructions::Sign;
 use wallet_account::messages::instructions::SignResult;
 use wallet_provider_domain::model::hsm::WalletUserHsm;
@@ -62,6 +69,7 @@ impl ValidateInstruction for CheckPin {}
 impl ValidateInstruction for ChangePinStart {}
 impl ValidateInstruction for GenerateKey {}
 impl ValidateInstruction for ConstructPoa {}
+impl ValidateInstruction for PerformIssuance {}
 
 impl ValidateInstruction for Sign {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
@@ -221,6 +229,99 @@ impl HandleInstruction for GenerateKey {
         tx.commit().await?;
 
         Ok(GenerateKeyResult { public_keys })
+    }
+}
+
+impl HandleInstruction for PerformIssuance {
+    type Result = PerformIssuanceResult;
+
+    async fn handle<T, R, H>(
+        self,
+        wallet_user: &WalletUser,
+        uuid_generator: &impl Generator<Uuid>,
+        user_state: &UserState<R, H, impl WteIssuer>,
+    ) -> Result<Self::Result, InstructionError>
+    where
+        T: Committable,
+        R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
+        H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
+    {
+        let (key_identifiers, public_keys, wrapped_keys): (Vec<_>, Vec<_>, Vec<_>) = user_state
+            .wallet_user_hsm
+            .generate_wrapped_keys(&user_state.wrapping_key_identifier, self.key_count.get())
+            .await?
+            .into_iter()
+            .multiunzip();
+
+        let signing_keys = wrapped_keys
+            .iter()
+            .map(|wrapped_key| HsmCredentialSigningKey {
+                hsm: &user_state.wallet_user_hsm,
+                wrapped_key,
+                wrapping_key_identifier: &user_state.wrapping_key_identifier,
+            })
+            .collect_vec();
+
+        // The JWT claims to be signed in the PoPs and the PoA.
+        let claims = JwtPopClaims::new(self.nonce, NL_WALLET_CLIENT_ID.to_string(), self.aud);
+
+        let pops = future::try_join_all(
+            public_keys
+                .iter()
+                .zip(&signing_keys)
+                .map(|(public_key, signing_key)| async {
+                    let header = Header {
+                        typ: Some(OPENID4VCI_VC_POP_JWT_TYPE.to_string()),
+                        alg: Algorithm::ES256,
+                        jwk: Some(jwk_from_p256(public_key)?),
+                        ..Default::default()
+                    };
+
+                    let jwt = Jwt::sign(&claims, &header, signing_key)
+                        .await
+                        .map_err(InstructionError::PopSigning)?
+                        .into();
+
+                    Ok::<_, InstructionError>(jwt)
+                }),
+        )
+        .await?;
+
+        let poa = if self.key_count.get() > 1 {
+            // Unwrap is safe because there are `self.key_count` keys, which is a nonzero type
+            Some(Poa::new(signing_keys.iter().collect_vec().try_into().unwrap(), claims).await?)
+        } else {
+            None
+        };
+
+        // Save the new keys in the database
+        let tx = user_state.repositories.begin_transaction().await?;
+        user_state
+            .repositories
+            .save_keys(
+                &tx,
+                WalletUserKeys {
+                    wallet_user_id: wallet_user.id,
+                    keys: wrapped_keys
+                        .into_iter()
+                        .zip(&key_identifiers)
+                        .map(|(key, id)| WalletUserKey {
+                            wallet_user_key_id: uuid_generator.generate(),
+                            key_identifier: id.clone(),
+                            key,
+                        })
+                        .collect(),
+                },
+            )
+            .await?;
+        tx.commit().await?;
+
+        // Unwraps are safe because there are `self.key_count` keys and pops, which is a nonzero type
+        Ok(PerformIssuanceResult {
+            key_identifiers: key_identifiers.try_into().unwrap(),
+            pops: pops.try_into().unwrap(),
+            poa,
+        })
     }
 }
 
@@ -442,9 +543,14 @@ fn is_poa_message(message: &[u8]) -> bool {
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
+    use std::collections::HashSet;
 
     use assert_matches::assert_matches;
     use base64::prelude::*;
+    use chrono::Utc;
+    use itertools::Itertools;
+    use jsonwebtoken::Algorithm;
+    use jsonwebtoken::Validation;
     use p256::ecdsa::SigningKey;
     use p256::ecdsa::signature::Verifier;
     use rand::rngs::OsRng;
@@ -452,9 +558,9 @@ mod tests {
 
     use crypto::p256_der::verifying_key_sha256;
     use crypto::utils::random_bytes;
-
     use hsm::model::wrapped_key::WrappedKey;
     use jwt::Jwt;
+    use jwt::jwk::jwk_to_p256;
     use jwt::validations;
     use poa::PoaPayload;
     use wallet_account::NL_WALLET_CLIENT_ID;
@@ -462,6 +568,7 @@ mod tests {
     use wallet_account::messages::instructions::ConstructPoa;
     use wallet_account::messages::instructions::GenerateKey;
     use wallet_account::messages::instructions::IssueWte;
+    use wallet_account::messages::instructions::PerformIssuance;
     use wallet_account::messages::instructions::Sign;
     use wallet_provider_domain::FixedUuidGenerator;
     use wallet_provider_domain::model::wallet_user;
@@ -744,5 +851,62 @@ mod tests {
 
         let err = instruction.validate_instruction(&wallet_user).unwrap_err();
         assert_matches!(err, InstructionValidationError::PoaMessage);
+    }
+
+    #[tokio::test]
+    #[rstest]
+    #[case(1)]
+    #[case(2)]
+    async fn should_handle_perform_issuance(#[case] key_count: u64) {
+        let wallet_user = wallet_user::mock::wallet_user_1();
+        let wrapping_key_identifier = "my-wrapping-key-identifier";
+        let aud = "aud";
+        let nonce = "nonce";
+
+        let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
+        wallet_user_repo
+            .expect_begin_transaction()
+            .returning(|| Ok(MockTransaction));
+        wallet_user_repo.expect_save_keys().returning(|_, _| Ok(()));
+
+        let instruction = PerformIssuance {
+            key_count: key_count.try_into().unwrap(),
+            aud: aud.to_string(),
+            nonce: Some(nonce.to_string()),
+            iat: Utc::now(),
+        };
+
+        let result = instruction
+            .handle(
+                &wallet_user,
+                &FixedUuidGenerator,
+                &mock::user_state(wallet_user_repo, setup_hsm().await, wrapping_key_identifier.to_string()),
+            )
+            .await
+            .unwrap();
+
+        let keys = result
+            .pops
+            .iter()
+            .map(|pop| {
+                let pubkey = jwk_to_p256(&jsonwebtoken::decode_header(&pop.0).unwrap().jwk.unwrap()).unwrap();
+
+                let mut validation_options = Validation::new(Algorithm::ES256);
+                validation_options.required_spec_claims = HashSet::default();
+                validation_options.set_issuer(&[NL_WALLET_CLIENT_ID]);
+                validation_options.set_audience(&[aud]);
+                pop.parse_and_verify(&(&pubkey).into(), &validation_options).unwrap();
+
+                pubkey
+            })
+            .collect_vec();
+
+        if key_count > 1 {
+            result
+                .poa
+                .unwrap()
+                .verify(&keys, aud, &[NL_WALLET_CLIENT_ID.to_string()], nonce)
+                .unwrap();
+        }
     }
 }

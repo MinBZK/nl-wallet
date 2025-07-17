@@ -55,6 +55,7 @@ use hsm::service::HsmError;
 use jwt::EcdsaDecodingKey;
 use jwt::Jwt;
 use jwt::JwtSubject;
+use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
 use poa::PoaError;
 use utils::generator::Generator;
@@ -217,6 +218,10 @@ pub enum InstructionError {
     NonexistingKey(String),
     #[error("PoA construction error: {0}")]
     Poa(#[from] PoaError),
+    #[error("public key conversion error: {0}")]
+    JwkConversion(#[from] JwkConversionError),
+    #[error("error signing PoP: {0}")]
+    PopSigning(#[source] JwtError),
 }
 
 #[derive(Debug, thiserror::Error)]

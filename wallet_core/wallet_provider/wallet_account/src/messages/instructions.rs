@@ -1,3 +1,8 @@
+use std::num::NonZeroU64;
+
+use chrono::DateTime;
+use chrono::Utc;
+use chrono::serde::ts_seconds;
 use derive_more::Constructor;
 use serde::Deserialize;
 use serde::Serialize;
@@ -10,9 +15,11 @@ use crypto::p256_der::DerVerifyingKey;
 use jwt::Jwt;
 use jwt::JwtSubject;
 use jwt::credential::JwtCredentialClaims;
+use jwt::pop::JwtPopClaims;
 use jwt::wte::WteClaims;
 use poa::Poa;
 use utils::vec_at_least::VecAtLeastTwoUnique;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::signed::ChallengeRequest;
 use crate::signed::ChallengeResponse;
@@ -128,6 +135,32 @@ impl InstructionAndResult for GenerateKey {
     const NAME: &'static str = "generate_key";
 
     type Result = GenerateKeyResult;
+}
+
+// PerformIssuance instruction.
+
+#[serde_as]
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PerformIssuance {
+    pub key_count: NonZeroU64,
+    pub aud: String,
+    pub nonce: Option<String>,
+    #[serde(with = "ts_seconds")]
+    pub iat: DateTime<Utc>,
+}
+
+#[serde_as]
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PerformIssuanceResult {
+    pub key_identifiers: VecNonEmpty<String>,
+    pub pops: VecNonEmpty<Jwt<JwtPopClaims>>,
+    pub poa: Option<Poa>,
+}
+
+impl InstructionAndResult for PerformIssuance {
+    const NAME: &'static str = "perform_issuance";
+
+    type Result = PerformIssuanceResult;
 }
 
 // Sign instruction.
