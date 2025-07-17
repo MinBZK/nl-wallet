@@ -163,6 +163,28 @@ impl InstructionAndResult for PerformIssuance {
     type Result = PerformIssuanceResult;
 }
 
+#[serde_as]
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PerformIssuanceWithWua {
+    #[serde(flatten)]
+    pub issuance_instruction: PerformIssuance,
+}
+
+#[serde_as]
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PerformIssuanceWithWuaResult {
+    #[serde(flatten)]
+    pub issuance_result: PerformIssuanceResult,
+    pub wua: Jwt<JwtCredentialClaims<WteClaims>>,
+    pub wua_disclosure: Jwt<JwtPopClaims>,
+}
+
+impl InstructionAndResult for PerformIssuanceWithWua {
+    const NAME: &'static str = "perform_issuance_with_wua";
+
+    type Result = PerformIssuanceWithWuaResult;
+}
+
 // Sign instruction.
 
 #[serde_as]
