@@ -15,7 +15,7 @@ variable "vm_base_name" {
 
 variable "vm_name" {
   type = string
-  default = "sonoma-wallet:0.1.12"
+  default = "sonoma-wallet:0.1.13"
 }
 
 source "tart-cli" "tart" {
@@ -69,14 +69,14 @@ build {
       "source ~/.zprofile",
       "set -eux",
       "brew install rustup",
-      "rustup-init -y --default-toolchain 1.87.0 --profile minimal --component clippy,rustfmt",
+      "rustup-init -y --default-toolchain 1.88.0 --profile minimal --component clippy,rustfmt",
     ]
   }
 
   provisioner "shell" {
     inline = [
       "source ~/.zprofile",
-      "cargo install cargo-expand --version 1.0.110",
+      "cargo install cargo-expand --version 1.0.113",
       "rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios",
     ]
   }
