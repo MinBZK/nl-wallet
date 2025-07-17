@@ -517,10 +517,9 @@ async fn test_client_and_server(
         })
         .unwrap_or_default();
 
-    if let Some(result_query_param) = &result_query_param {
-        if redirect_uri.is_some() && !redirect_uri_query_pairs.contains_key(result_query_param) {
-            panic!("expected query parameter not found in redirect URI");
-        }
+    if redirect_uri.is_some() && result_query_param.is_some_and(|param| !redirect_uri_query_pairs.contains_key(&param))
+    {
+        panic!("expected query parameter not found in redirect URI");
     }
 
     let redirect_uri_nonce = redirect_uri_query_pairs.get("nonce").cloned();

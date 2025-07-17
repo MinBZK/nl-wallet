@@ -193,10 +193,11 @@ where
             Err(error) => {
                 // If the error indicates attestation is retryable and we did not do do so already,
                 // store the key identifier for later re-use, logging any potential errors.
-                if error.retryable && matches!(self.registration, WalletRegistration::Unregistered) {
-                    if let Err(storage_error) = self.set_registration_key_identifier(key_identifier.clone()).await {
-                        warn!("Could not store attested key identifier: {0}", storage_error);
-                    }
+                if error.retryable
+                    && matches!(self.registration, WalletRegistration::Unregistered)
+                    && let Err(storage_error) = self.set_registration_key_identifier(key_identifier.clone()).await
+                {
+                    warn!("Could not store attested key identifier: {0}", storage_error);
                 }
 
                 return Err(WalletRegistrationError::Attestation(Box::new(error.error)));

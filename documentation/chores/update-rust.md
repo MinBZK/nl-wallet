@@ -16,10 +16,10 @@ want to do are contained in the `flutter.sh` and `wallet.pkr.hcl` file).
 
 ### macOS image
 
-- Updat Rust for macOS image to the desired version in:
+- Update Rust for macOS image to the desired version in:
   `deploy/macos-image/wallet.pkr.hcl`
+- Bump the version of the image
 - Optional: update Rust-related dependencies too
-- Don't forget to bump the version of the image
 
 ### Build images
 
