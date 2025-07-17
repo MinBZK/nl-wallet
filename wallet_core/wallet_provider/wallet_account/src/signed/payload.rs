@@ -324,7 +324,7 @@ pub mod server {
             Ok(challenge_response)
         }
 
-        #[allow(clippy::too_many_arguments, reason = "Arguments needed for verification")]
+        #[expect(clippy::too_many_arguments, reason = "Arguments needed for verification")]
         pub fn parse_and_verify_apple(
             &self,
             challenge: &[u8],

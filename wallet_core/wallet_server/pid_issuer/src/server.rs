@@ -42,7 +42,7 @@ where
     .await
 }
 
-#[allow(clippy::too_many_arguments, reason = "Setup function")]
+#[expect(clippy::too_many_arguments, reason = "Setup function")]
 pub async fn serve_with_listener<A, IS, W>(
     listener: TcpListener,
     attr_service: A,

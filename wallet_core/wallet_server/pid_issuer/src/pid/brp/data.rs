@@ -22,7 +22,7 @@ pub struct BrpPerson {
     #[serde(rename = "burgerservicenummer")]
     bsn: String,
 
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     #[serde(rename = "geslacht")]
     gender: Option<BrpGender>,
 
@@ -126,10 +126,9 @@ impl BrpPerson {
     }
 }
 
-#[allow(dead_code)]
 #[derive(Deserialize)]
 pub struct BrpGender {
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     code: BrpGenderCode,
 }
 
@@ -179,11 +178,11 @@ pub struct BrpBirth {
     #[serde(rename = "datum")]
     date: BrpDate,
 
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     #[serde(rename = "land")]
     country: Option<BrpDescription>,
 
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     #[serde(rename = "plaats")]
     place: Option<BrpDescription>,
 }

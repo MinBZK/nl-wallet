@@ -164,7 +164,7 @@ pub struct IssuanceParameters {
 }
 
 /// Create an instance of [`Wallet`].
-#[allow(clippy::too_many_arguments, reason = "Test setup function")]
+#[expect(clippy::too_many_arguments, reason = "Test setup function")]
 pub async fn setup_wallet_and_env(
     vendor: WalletDeviceVendor,
     (mut cs_settings, cs_root_ca): (CsSettings, ReqwestTrustAnchor),
