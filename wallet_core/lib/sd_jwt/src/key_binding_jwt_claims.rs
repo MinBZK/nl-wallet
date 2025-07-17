@@ -181,6 +181,7 @@ mod test {
     use crate::key_binding_jwt_claims::KeyBindingJwtBuilder;
     use crate::key_binding_jwt_claims::KeyBindingJwtClaims;
     use crate::sd_jwt::SdJwt;
+    use crate::sd_jwt::SdJwtPresentation;
 
     async fn example_kb_jwt(signing_key: &SigningKey, header: Header) -> Jwt<KeyBindingJwtClaims> {
         Jwt::sign(
@@ -292,7 +293,7 @@ mod test {
 
     #[tokio::test]
     async fn test_algorithm_should_match_sd_jwt() {
-        let sd_jwt = SdJwt::spec_simple_structured();
+        let sd_jwt = SdJwtPresentation::spec_simple_structured();
 
         let signing_key = SigningKey::random(&mut OsRng);
 
