@@ -97,7 +97,7 @@ pub mod mock {
             let pubkey = privkey.verifying_key();
 
             let jwt = JwtCredentialClaims::new_signed(
-                &pubkey,
+                pubkey,
                 &privkey, // Sign the WTE with its own private key in this test
                 "iss".to_string(),
                 Some(WTE_JWT_TYP.to_string()),

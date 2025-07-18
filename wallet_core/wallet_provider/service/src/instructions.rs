@@ -344,9 +344,9 @@ where
     ))
 }
 
-async fn wua<'a, T, R, H>(
+async fn wua<T, R, H>(
     claims: &JwtPopClaims,
-    user_state: &'a UserState<R, H, impl WteIssuer>,
+    user_state: &UserState<R, H, impl WteIssuer>,
 ) -> Result<
     (
         WrappedKey,
@@ -373,8 +373,7 @@ where
         &attestation_key(&wua_wrapped_key, user_state),
     )
     .await
-    .map_err(InstructionError::PopSigning)?
-    .into();
+    .map_err(InstructionError::PopSigning)?;
 
     Ok((wua_wrapped_key, wua_key_id, wua, wua_disclosure))
 }
@@ -419,7 +418,7 @@ where
 {
     HsmCredentialSigningKey {
         hsm: &user_state.wallet_user_hsm,
-        wrapped_key: &wrapped_key,
+        wrapped_key,
         wrapping_key_identifier: &user_state.wrapping_key_identifier,
     }
 }
@@ -739,7 +738,6 @@ mod tests {
     use jwt::wte::WteClaims;
     use poa::Poa;
     use poa::PoaPayload;
-    use utils::vec_at_least::VecNonEmpty;
     use wallet_account::NL_WALLET_CLIENT_ID;
     use wallet_account::messages::instructions::CheckPin;
     use wallet_account::messages::instructions::ConstructPoa;
@@ -1051,7 +1049,7 @@ mod tests {
     }
 
     fn validate_issuance(
-        pops: VecNonEmpty<Jwt<JwtPopClaims>>,
+        pops: &[Jwt<JwtPopClaims>],
         poa: Option<Poa>,
         wua_with_disclosure: Option<(Jwt<JwtCredentialClaims<WteClaims>>, Jwt<JwtPopClaims>)>,
     ) {
@@ -1083,7 +1081,7 @@ mod tests {
                 .unwrap();
         });
 
-        let keys = keys.into_iter().chain(wua_key.into_iter()).collect_vec();
+        let keys = keys.into_iter().chain(wua_key).collect_vec();
         if keys.len() > 1 {
             poa.unwrap()
                 .verify(&keys, POP_AUD, &[NL_WALLET_CLIENT_ID.to_string()], POP_NONCE)
@@ -1107,7 +1105,7 @@ mod tests {
         })
         .await;
 
-        validate_issuance(result.pops, result.poa, None);
+        validate_issuance(result.pops.as_slice(), result.poa, None);
     }
 
     #[tokio::test]
@@ -1123,7 +1121,7 @@ mod tests {
         .await;
 
         validate_issuance(
-            result.issuance_result.pops,
+            result.issuance_result.pops.as_slice(),
             result.issuance_result.poa,
             Some((result.wua, result.wua_disclosure)),
         );
