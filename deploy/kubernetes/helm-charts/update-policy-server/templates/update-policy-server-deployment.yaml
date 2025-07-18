@@ -36,6 +36,7 @@ spec:
       containers:
         - name: {{ .Values.nameOverride | default .Chart.Name }}
           image: {{ .Values.global.imageRegistry }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - name: http
               containerPort: 8001
@@ -48,11 +49,11 @@ spec:
               value: "true"
             - name: RUST_LOG
               value: "debug,hyper=warn"
-          {{- with .Values.volumeMounts }}
           volumeMounts:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-      {{- with .Values.volumes }}
+            - name: config-volume
+              mountPath: /update_policy_server.toml
+              subPath: {{ .Values.updatePolicy.configMapKey }}
       volumes:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+        - name: config-volume
+          configMap:
+            name: {{ .Values.updatePolicy.configMapName }}
