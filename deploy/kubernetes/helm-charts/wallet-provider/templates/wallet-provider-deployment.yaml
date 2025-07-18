@@ -1,6 +1,3 @@
-{{ $configMapFile := (print $.Template.BasePath "/wallet-provider-configmap.yaml") }}
-{{ $configMapChecksum := sha256sum (tpl (print $configMapFile) .) }}
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -21,8 +18,6 @@ spec:
   progressDeadlineSeconds: 300
   template:
     metadata:
-      annotations:
-        checksum/config: "{{ $configMapChecksum }}"
       labels:
         {{- include "common.labels.componentSelectorLabels" (list "server" .) | nindent 8 }}
         {{- if .Values.extraPodlabels }}
@@ -48,11 +43,12 @@ spec:
           ports:
             - name: http
               containerPort: 8001
-          {{- with .Values.envFrom }}
-          envFrom:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
           env:
+            - name: TZ
+              value: "Europe/Amsterdam"
+            - name: RUST_LOG
+              value: "debug,hyper=warn"
+
             - name: WALLET_PROVIDER__DATABASE__NAME
               valueFrom:
                 secretKeyRef:
@@ -78,23 +74,51 @@ spec:
                 secretKeyRef:
                   name: nl-wallet-hsm-config
                   key: user_pin
+
+            # Sources:
+            # - https://www.apple.com/certificateauthority/Apple_App_Attestation_Root_CA.pem
+            # - wallet_core/lib/apple_app_attest/assets/mock_ca.crt.pem
+            - name: WALLET_PROVIDER__IOS__ROOT_CERTIFICATES
+              value: {{ .Values.ios.rootCertificates }}
             - name: WALLET_PROVIDER__IOS__TEAM_IDENTIFIER
               value: {{ .Values.ios.teamIdentifier }}
             - name: WALLET_PROVIDER__IOS__BUNDLE_IDENTIFIER
               value: {{ .Values.appIdentifier }}
+
+            # Source: https://developer.android.com/privacy-and-security/security-key-attestation#root_certificate
+            - name: WALLET_PROVIDER__ANDROID__ROOT_PUBLIC_KEYS
+              value: {{ .Values.android.rootPublicKeys }}
+            - name: WALLET_PROVIDER__ANDROID__PLAY_STORE_CERTIFICATE_HASHES
+              value: {{ .Values.configmap.playstoreCertificateHashes }}
+            - name: WALLET_PROVIDER__ANDROID__ALLOW_SIDELOADING
+              value: {{ .Values.android.allowSideLoading | quote }}
             - name: WALLET_PROVIDER__ANDROID__PACKAGE_NAME
               value: {{ .Values.appIdentifier }}
             - name: WALLET_PROVIDER__ANDROID__CREDENTIALS_FILE
               value: "/google-cloud-service-account.json"
+
+            - name: WALLET_PROVIDER__HSM__MAX_SESSIONS
+              value: {{ .Values.hsm.maxSessions | quote }}
+            - name: WALLET_PROVIDER__HSM__MAX_SESSION_LIFETIME_IN_SEC
+              value: {{ .Values.hsm.maxSessionLifeTimeInSec | quote }}
+
+            - name: WALLET_PROVIDER__STRUCTURED_LOGGING
+              value: "true"
+
             - name: CS_PKCS11_R3_CFG
               value: "/cs_pkcs11_R3.cfg"
 
-          {{- with .Values.volumeMounts }}
           volumeMounts:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-
-      {{- with .Values.volumes }}
+            - name: pkcs11-config-volume
+              mountPath: /cs_pkcs11_R3.cfg
+              subPath: {{ .Values.hsm.configMapKey }}
+            - name: gcloud-service-account
+              mountPath: /google-cloud-service-account.json
+              subPath: {{ .Values.android.serviceAccount.secretKey }}
       volumes:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+        - name: pkcs11-config-volume
+          configMap:
+            name: {{ .Values.hsm.configMapName }}
+        - name: gcloud-service-account
+          secret:
+            secretName: {{ .Values.android.serviceAccount.secretName }}

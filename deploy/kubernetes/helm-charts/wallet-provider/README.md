@@ -78,52 +78,31 @@
 | `resources.limits.memory`   | Memory limit                                                      | `64Mi` |
 | `database.secretName`       | The secret name that contains the connection url for the database | `nil`  |
 
-### Volumes
-
-| Name                           | Description                                | Value                                    |
-| ------------------------------ | ------------------------------------------ | ---------------------------------------- |
-| `volumes[0].name`              | Name of the first volume                   | `pkcs11-config-volume`                   |
-| `volumes[0].configMap.name`    | Name of the ConfigMap for the first volume | `nl-wallet-hsm-pkcs11`                   |
-| `volumes[1].name`              | Name of the second volume                  | `wallet-provider-gcloud-service-account` |
-| `volumes[1].secret.secretName` | Name of the secret for the second volume   | `nl-wallet-gcloud-service-account`       |
-
-### Volume mounts
-
-| Name                        | Description                             | Value                                    |
-| --------------------------- | --------------------------------------- | ---------------------------------------- |
-| `volumeMounts[0].name`      | Name of the first volume mount          | `pkcs11-config-volume`                   |
-| `volumeMounts[0].mountPath` | Mount path for the first volume mount   | `/cs_pkcs11_R3.cfg`                      |
-| `volumeMounts[0].subPath`   | Sub-path within the first volume mount  | `cs_pkcs11_R3.cfg`                       |
-| `volumeMounts[1].name`      | Name of the second volume mount         | `wallet-provider-gcloud-service-account` |
-| `volumeMounts[1].mountPath` | Mount path for the second volume mount  | `/google-cloud-service-account.json`     |
-| `volumeMounts[1].subPath`   | Sub-path within the second volume mount | `google-cloud-service-account.json`      |
-
-### Environment variables from ConfigMaps or Secrets
-
-| Name                           | Description                                               | Value                    |
-| ------------------------------ | --------------------------------------------------------- | ------------------------ |
-| `envFrom[0].configMapRef.name` | Name of the ConfigMap for the environment variable source | `wallet-provider-config` |
-
 ### HSM parameters
 
-| Name              | Description          | Value |
-| ----------------- | -------------------- | ----- |
-| `hsm.maxSessions` | Maximum HSM sessions | `10`  |
+| Name                          | Description                                              | Value                  |
+| ----------------------------- | -------------------------------------------------------- | ---------------------- |
+| `hsm.maxSessions`             | Maximum HSM sessions                                     | `10`                   |
+| `hsm.maxSessionLifeTimeInSec` | The maximum lifetime of a HSM session in seconds         | `900`                  |
+| `hsm.configMapName`           | Name to the the ConfigMap containing the hsm config file | `nl-wallet-hsm-pkcs11` |
+| `hsm.configMapKey`            | Key of the the ConfigMap containing the hsm config file  | `cs_pkcs11_R3.cfg`     |
 
-### ConfigMap parameters
+### Android parameters
 
-| Name                                   | Description                                                  | Value   |
-| -------------------------------------- | ------------------------------------------------------------ | ------- |
-| `configmap.iosRootCertificates`        | iOS root certificates override                               | `nil`   |
-| `configmap.rootPublicKeys`             | Android root public keys                                     | `nil`   |
-| `configmap.playstoreCertificateHashes` | Google Play Store certificate hashes                         | `nil`   |
-| `configmap.allowSideLoading`           | Allow installing apps from sources other than the Play Store | `false` |
+| Name                                 | Description                                                             | Value                               |
+| ------------------------------------ | ----------------------------------------------------------------------- | ----------------------------------- |
+| `android.rootPublicKeys`             | Android root public keys                                                | `nil`                               |
+| `android.playstoreCertificateHashes` | Google Play Store certificate hashes                                    | `nil`                               |
+| `android.allowSideLoading`           | Allow installing apps from sources other than the Play Store            | `false`                             |
+| `android.serviceAccount.secretName`  | Name to the the Secret containing the Google Cloud service account file | `nl-wallet-gcloud-service-account`  |
+| `android.serviceAccount.secretKey`   | Key of the the Secret containing the Google Cloud service account file  | `google-cloud-service-account.json` |
 
 ### iOS parameters
 
-| Name                 | Description             | Value |
-| -------------------- | ----------------------- | ----- |
-| `ios.teamIdentifier` | Team identifier for iOS | `nil` |
+| Name                   | Description             | Value |
+| ---------------------- | ----------------------- | ----- |
+| `ios.rootCertificates` | iOS root certificates   | `nil` |
+| `ios.teamIdentifier`   | Team identifier for iOS | `nil` |
 
 ### Application parameters
 
