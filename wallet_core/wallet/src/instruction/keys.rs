@@ -102,30 +102,6 @@ where
         }
     }
 
-    async fn sign_with_new_keys(
-        &self,
-        msg: Vec<u8>,
-        number_of_keys: u64,
-    ) -> Result<Vec<(Self::Key, Signature)>, Self::Error> {
-        let keys = self.generate_new_multiple(number_of_keys).await?;
-
-        let signatures = self
-            .sign_multiple_with_existing_keys(vec![(msg, keys.iter().collect())])
-            .await?;
-
-        let result = keys
-            .into_iter()
-            .zip(
-                signatures
-                    .first()
-                    .cloned()
-                    .ok_or_else(|| RemoteEcdsaKeyError::MissingSignature)?,
-            )
-            .collect::<Vec<_>>();
-
-        Ok(result)
-    }
-
     async fn sign_multiple_with_existing_keys(
         &self,
         messages_and_keys: Vec<(Vec<u8>, Vec<&Self::Key>)>,
