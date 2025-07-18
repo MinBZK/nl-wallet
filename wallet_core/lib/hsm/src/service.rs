@@ -173,8 +173,7 @@ impl Pkcs11Hsm {
             // This makes a pkcs11 call every time a connection is check out of the pool and should be evaluated in a
             // future performance test.
             .test_on_check_out(true)
-            .build(manager)
-            .unwrap();
+            .build(manager)?;
 
         Ok(Self { pool })
     }
