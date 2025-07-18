@@ -10,7 +10,9 @@ use openid4vc::issuance_session::IssuanceSession;
 use openid4vc::oidc::HttpOidcClient;
 use pid_issuer::pid::attributes::BrpPidAttributeService;
 use pid_issuer::pid::brp::client::HttpBrpClient;
+use server_utils::keys::SecretKeyVariant;
 use server_utils::settings::NL_WALLET_CLIENT_ID;
+use server_utils::settings::SecretKey;
 use tests_integration::common::*;
 use tests_integration::fake_digid::fake_digid_auth;
 use wallet::wallet_deps::DigidSession;
@@ -48,8 +50,16 @@ async fn test_pid_issuance_digid_bridge() {
         HttpBrpClient::new(settings.brp_server.clone()),
         &settings.digid.bsn_privkey,
         settings.digid.http_config.clone(),
+        SecretKeyVariant::from_settings(
+            SecretKey::Software {
+                secret_key: (0..32).collect::<Vec<_>>().try_into().unwrap(),
+            },
+            None,
+        )
+        .unwrap(),
     )
     .unwrap();
+
     let port = start_pid_issuer_server(settings.clone(), hsm, attr_service).await;
 
     start_gba_hc_converter(gba_hc_converter_settings()).await;

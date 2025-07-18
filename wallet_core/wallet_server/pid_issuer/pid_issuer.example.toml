@@ -23,6 +23,11 @@ user_pin = "12345678"
 max_sessions = 3
 max_session_lifetime_in_sec = 900
 
+[recovery_code]
+# Minimally 32 bytes. Generate with e.g. `openssl rand 32 | xxd -p -c64`
+secret_key = "fb34c5a3e40a818197ed866e4a38dafcf2158bd1fda2cbe1ff22e40e77b4f4f9"
+secret_key_type = "software"                                                    # or `hsm`
+
 [digid]
 bsn_privkey = ""
 
@@ -38,14 +43,14 @@ trust_anchors = [""]
 [attestation_settings."com.example.pid"]
 valid_days = 365
 copies_per_format = { "mso_mdoc" = 4, "dc+sd-jwt" = 4 }
-attestation_qualification = "QEAA" # QEAA, PuB-EAA or EAA (default)
+attestation_qualification = "QEAA"                      # QEAA, PuB-EAA or EAA (default)
 private_key_type = "hsm"
-private_key = "pid_issuer_key"     # label for the private key in the HSM
+private_key = "pid_issuer_key"                          # label for the private key in the HSM
 certificate = "MIJ..."
 
 [attestation_settings."com.example.address"]
 valid_days = 365
 copies_per_format = { "mso_mdoc" = 4, "dc+sd-jwt" = 4 }
 private_key_type = "software"
-private_key = "MIG..."        # DER-encoded private key
+private_key = "MIG..."                                  # DER-encoded private key
 certificate = "MIJ..."

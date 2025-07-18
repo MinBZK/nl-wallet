@@ -2,16 +2,20 @@ use p256::ecdsa;
 use p256::ecdsa::Signature;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
+use ring::hmac;
+use ring::hmac::HMAC_SHA256;
 
 use crypto::keys::EcdsaKey;
 use crypto::keys::EcdsaKeySend;
 use crypto::x509::CertificateError;
 use hsm::keys::HsmEcdsaKey;
+use hsm::keys::HsmHmacKey;
 use hsm::service::HsmError;
 use hsm::service::Pkcs11Hsm;
 use sd_jwt_vc_metadata::TypeMetadataChainError;
 
 use crate::settings::PrivateKey;
+use crate::settings::SecretKey;
 
 pub enum PrivateKeyVariant {
     Software(SigningKey),
@@ -67,5 +71,40 @@ impl PrivateKeyVariant {
             }
         };
         Ok(pk)
+    }
+}
+
+pub enum SecretKeyVariant {
+    Software(hmac::Key),
+    Hsm(HsmHmacKey),
+}
+
+impl SecretKeyVariant {
+    pub async fn sign_hmac(&self, msg: &[u8]) -> Result<Vec<u8>, HsmError> {
+        match self {
+            SecretKeyVariant::Software(key) => Ok(hmac::sign(key, msg).as_ref().to_vec()),
+            SecretKeyVariant::Hsm(key) => Ok(key.sign_hmac(msg.to_vec()).await?),
+        }
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum SecretKeySettingsError {
+    #[error("missing `hsm` settings for hardware key with identifier: {0}")]
+    MissingHsmSettings(String),
+}
+
+impl SecretKeyVariant {
+    pub fn from_settings(settings: SecretKey, hsm: Option<Pkcs11Hsm>) -> Result<Self, SecretKeySettingsError> {
+        let key = match settings {
+            SecretKey::Software { secret_key } => {
+                SecretKeyVariant::Software(hmac::Key::new(HMAC_SHA256, secret_key.as_ref()))
+            }
+            SecretKey::Hsm { secret_key } => {
+                let hsm = hsm.ok_or(SecretKeySettingsError::MissingHsmSettings(secret_key.clone()))?;
+                SecretKeyVariant::Hsm(HsmHmacKey::new(secret_key, hsm))
+            }
+        };
+        Ok(key)
     }
 }
