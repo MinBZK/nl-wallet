@@ -263,7 +263,6 @@ where
     H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
 {
     let key_count = key_count.get();
-    let key_count_including_wua = if issue_wua { key_count + 1 } else { key_count };
 
     let (key_ids, public_keys, wrapped_keys): (Vec<_>, Vec<_>, Vec<_>) = user_state
         .wallet_user_hsm
@@ -276,21 +275,7 @@ where
     let claims = JwtPopClaims::new(nonce, NL_WALLET_CLIENT_ID.to_string(), aud);
 
     let (wua_wrapped_key, wua_key_id, wua_with_disclosure) = if issue_wua {
-        let (wua_wrapped_key, wua_key_id, wua) = user_state
-            .wte_issuer
-            .issue_wte()
-            .await
-            .map_err(|e| InstructionError::WteIssuance(Box::new(e)))?;
-
-        let wua_disclosure = Jwt::sign(
-            &claims,
-            &Header::new(Algorithm::ES256),
-            &attestation_key(&wua_wrapped_key, user_state),
-        )
-        .await
-        .map_err(InstructionError::PopSigning)?
-        .into();
-
+        let (wua_wrapped_key, wua_key_id, wua, wua_disclosure) = wua(&claims, user_state).await?;
         (Some(wua_wrapped_key), Some(wua_key_id), Some((wua, wua_disclosure)))
     } else {
         (None, None, None)
@@ -301,25 +286,9 @@ where
         .map(|wrapped_key| attestation_key(wrapped_key, user_state))
         .collect_vec();
 
-    let pops = future::try_join_all(public_keys.iter().zip(&attestation_keys).map(
-        |(public_key, attestation_key)| async {
-            let header = Header {
-                typ: Some(OPENID4VCI_VC_POP_JWT_TYPE.to_string()),
-                alg: Algorithm::ES256,
-                jwk: Some(jwk_from_p256(public_key)?),
-                ..Default::default()
-            };
+    let pops = issuance_pops(&public_keys, &attestation_keys, &claims).await?;
 
-            let jwt = Jwt::sign(&claims, &header, attestation_key)
-                .await
-                .map_err(InstructionError::PopSigning)?
-                .into();
-
-            Ok::<_, InstructionError>(jwt)
-        },
-    ))
-    .await?;
-
+    let key_count_including_wua = if issue_wua { key_count + 1 } else { key_count };
     let poa = if key_count_including_wua > 1 {
         let wua_attestation_key = wua_wrapped_key.as_ref().map(|key| attestation_key(key, user_state));
         Some(
@@ -373,6 +342,70 @@ where
         poa,
         wua_with_disclosure,
     ))
+}
+
+async fn wua<'a, T, R, H>(
+    claims: &JwtPopClaims,
+    user_state: &'a UserState<R, H, impl WteIssuer>,
+) -> Result<
+    (
+        WrappedKey,
+        String,
+        Jwt<JwtCredentialClaims<WteClaims>>,
+        Jwt<JwtPopClaims>,
+    ),
+    InstructionError,
+>
+where
+    T: Committable,
+    R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
+    H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
+{
+    let (wua_wrapped_key, wua_key_id, wua) = user_state
+        .wte_issuer
+        .issue_wte()
+        .await
+        .map_err(|e| InstructionError::WteIssuance(Box::new(e)))?;
+
+    let wua_disclosure = Jwt::sign(
+        claims,
+        &Header::new(Algorithm::ES256),
+        &attestation_key(&wua_wrapped_key, user_state),
+    )
+    .await
+    .map_err(InstructionError::PopSigning)?
+    .into();
+
+    Ok((wua_wrapped_key, wua_key_id, wua, wua_disclosure))
+}
+
+async fn issuance_pops<H>(
+    public_keys: &[VerifyingKey],
+    attestation_keys: &[HsmCredentialSigningKey<'_, H>],
+    claims: &JwtPopClaims,
+) -> Result<Vec<Jwt<JwtPopClaims>>, InstructionError>
+where
+    H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
+{
+    let pops = future::try_join_all(public_keys.iter().zip(attestation_keys).map(
+        |(public_key, attestation_key)| async {
+            let header = Header {
+                typ: Some(OPENID4VCI_VC_POP_JWT_TYPE.to_string()),
+                alg: Algorithm::ES256,
+                jwk: Some(jwk_from_p256(public_key)?),
+                ..Default::default()
+            };
+
+            let jwt = Jwt::sign(claims, &header, attestation_key)
+                .await
+                .map_err(InstructionError::PopSigning)?;
+
+            Ok::<_, InstructionError>(jwt)
+        },
+    ))
+    .await?;
+
+    Ok(pops)
 }
 
 fn attestation_key<'a, T, R, H>(
