@@ -59,7 +59,7 @@ fn extract_location_header(res: &Response) -> Result<Url, DigidError> {
 #[derive(Debug)]
 pub struct HttpDigidClient<C = TlsPinningConfig, O = HttpOidcClient> {
     http_client: Arc<CachedReqwestClient<C>>,
-    oidc_client_type: PhantomData<O>,
+    _oidc_client_type: PhantomData<O>,
 }
 
 #[derive(Debug)]
@@ -79,7 +79,7 @@ impl<C, O> HttpDigidClient<C, O> {
     pub fn new() -> Self {
         Self {
             http_client: Arc::new(CachedReqwestClient::new()),
-            oidc_client_type: PhantomData,
+            _oidc_client_type: PhantomData,
         }
     }
 }
