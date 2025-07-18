@@ -13,6 +13,7 @@ use issuer_settings::settings::IssuerSettings;
 use issuer_settings::settings::IssuerSettingsError;
 use openid4vc::server_state::SessionStoreTimeouts;
 use server_utils::settings::NL_WALLET_CLIENT_ID;
+use server_utils::settings::SecretKey;
 use server_utils::settings::ServerSettings;
 use server_utils::settings::Settings;
 use utils::path::prefix_local_path;
@@ -25,6 +26,8 @@ pub struct PidIssuerSettings {
 
     #[serde_as(as = "Base64")]
     pub wte_issuer_pubkey: DerVerifyingKey,
+
+    pub recovery_code: SecretKey,
 
     #[serde(flatten)]
     pub issuer_settings: IssuerSettings,

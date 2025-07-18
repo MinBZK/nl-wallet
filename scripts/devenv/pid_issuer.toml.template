@@ -16,6 +16,10 @@ url = 'postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:5432/pid_issuer'
 ip = '0.0.0.0'
 port = ${PID_ISSUER_WS_PORT}
 
+[recovery_code]
+secret_key = "fb34c5a3e40a818197ed866e4a38dafcf2158bd1fda2cbe1ff22e40e77b4f4f9"
+secret_key_type = "software"
+
 [digid]
 bsn_privkey = '${BSN_PRIVKEY}'
 
