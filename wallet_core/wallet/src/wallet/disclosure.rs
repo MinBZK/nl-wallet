@@ -891,7 +891,6 @@ mod tests {
     use std::sync::LazyLock;
 
     use assert_matches::assert_matches;
-    use http_utils::tls::pinning::TlsPinningConfig;
     use itertools::Itertools;
     use mockall::predicate::always;
     use mockall::predicate::eq;
@@ -909,6 +908,7 @@ mod tests {
     use attestation_types::request;
     use crypto::server_keys::generate::Ca;
     use crypto::x509::BorrowingCertificateExtension;
+    use http_utils::tls::pinning::TlsPinningConfig;
     use http_utils::urls;
     use http_utils::urls::BaseUrl;
     use mdoc::utils::cose::CoseError;
