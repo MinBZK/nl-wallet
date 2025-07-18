@@ -318,6 +318,7 @@ impl CredentialPayload {
 
 #[cfg(any(test, feature = "example_credential_payloads"))]
 mod examples {
+    use chrono::DateTime;
     use chrono::Duration;
     use chrono::Utc;
     use indexmap::IndexMap;
@@ -328,6 +329,8 @@ mod examples {
 
     use jwt::jwk::jwk_from_p256;
     use sd_jwt::key_binding_jwt_claims::RequiredKeyBinding;
+    use utils::generator::Generator;
+    use utils::generator::TimeGenerator;
 
     use crate::attributes::Attribute;
     use crate::attributes::AttributeValue;
@@ -337,20 +340,21 @@ mod examples {
     use super::PreviewableCredentialPayload;
 
     impl CredentialPayload {
-        pub fn example_empty(verifying_key: &VerifyingKey) -> Self {
-            let now = Utc::now();
+        pub fn example_empty(verifying_key: &VerifyingKey, time_generator: &impl Generator<DateTime<Utc>>) -> Self {
+            let time = time_generator.generate();
+
             let confirmation_key = jwk_from_p256(verifying_key).unwrap();
 
             Self {
-                issued_at: now.into(),
+                issued_at: time.into(),
                 confirmation_key: RequiredKeyBinding::Jwk(confirmation_key.clone()),
                 vct_integrity: Integrity::from(""),
                 status: None,
                 previewable_payload: PreviewableCredentialPayload {
                     attestation_type: String::from("urn:eudi:pid:nl:1"),
                     issuer: "https://cert.issuer.example.com".parse().unwrap(),
-                    expires: Some((now + Duration::days(365)).into()),
-                    not_before: Some((now - Duration::days(1)).into()),
+                    expires: Some((time + Duration::days(365)).into()),
+                    not_before: Some((time - Duration::days(1)).into()),
                     attestation_qualification: Default::default(),
                     attributes: Attributes::default(),
                 },
@@ -362,15 +366,25 @@ mod examples {
                 "family_name",
                 AttributeValue::Text(String::from("De Bruijn")),
                 SigningKey::random(&mut OsRng).verifying_key(),
+                &TimeGenerator,
             )
         }
 
-        pub fn example_with_attribute(key: &str, attr_value: AttributeValue, verifying_key: &VerifyingKey) -> Self {
-            Self::example_with_attributes(vec![(key, attr_value)], verifying_key)
+        pub fn example_with_attribute(
+            key: &str,
+            attr_value: AttributeValue,
+            verifying_key: &VerifyingKey,
+            time_generator: &impl Generator<DateTime<Utc>>,
+        ) -> Self {
+            Self::example_with_attributes(vec![(key, attr_value)], verifying_key, time_generator)
         }
 
-        pub fn example_with_attributes(attrs: Vec<(&str, AttributeValue)>, verifying_key: &VerifyingKey) -> Self {
-            let empty = CredentialPayload::example_empty(verifying_key);
+        pub fn example_with_attributes(
+            attrs: Vec<(&str, AttributeValue)>,
+            verifying_key: &VerifyingKey,
+            time_generator: &impl Generator<DateTime<Utc>>,
+        ) -> Self {
+            let empty = CredentialPayload::example_empty(verifying_key, time_generator);
             CredentialPayload {
                 previewable_payload: PreviewableCredentialPayload {
                     attributes: IndexMap::from_iter(
@@ -392,6 +406,8 @@ pub mod mock {
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
 
+    use utils::generator::TimeGenerator;
+
     use crate::attributes::AttributeValue;
 
     use super::*;
@@ -404,6 +420,7 @@ pub mod mock {
                 ("family_name", AttributeValue::Text("De Bruijn".to_string())),
             ],
             SigningKey::random(&mut OsRng).verifying_key(),
+            &TimeGenerator,
         )
     }
 }
@@ -435,6 +452,7 @@ mod test {
     use sd_jwt_vc_metadata::JsonSchemaPropertyType;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::UncheckedTypeMetadata;
+    use utils::generator::TimeGenerator;
     use utils::generator::mock::MockTimeGenerator;
 
     use crate::attributes::Attribute;
@@ -634,6 +652,7 @@ mod test {
             "family_name",
             AttributeValue::Text(String::from("De Bruijn")),
             holder_key.verifying_key(),
+            &TimeGenerator,
         );
 
         let sd_jwt = credential_payload

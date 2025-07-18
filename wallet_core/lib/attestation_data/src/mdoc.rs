@@ -146,6 +146,7 @@ mod tests {
                 ("family_name", AttributeValue::Text("Doe".to_string())),
             ],
             &issuance_key.verifying_key().await.unwrap(),
+            &TimeGenerator,
         )
         .previewable_payload;
 

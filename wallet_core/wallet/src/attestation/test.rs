@@ -9,6 +9,7 @@ use mdoc::Entry;
 use sd_jwt_vc_metadata::JsonSchemaPropertyFormat;
 use sd_jwt_vc_metadata::JsonSchemaPropertyType;
 use sd_jwt_vc_metadata::TypeMetadata;
+use utils::generator::TimeGenerator;
 
 use crate::attestation::BSN_ATTR_NAME;
 use crate::attestation::PID_DOCTYPE;
@@ -17,6 +18,7 @@ pub fn create_bsn_only_payload_preview() -> (PreviewableCredentialPayload, TypeM
     let payload = CredentialPayload::example_with_attributes(
         vec![("bsn", AttributeValue::Text("999999999".to_string()))],
         SigningKey::random(&mut OsRng).verifying_key(),
+        &TimeGenerator,
     );
 
     let metadata =
@@ -45,6 +47,7 @@ pub fn create_example_payload_preview() -> (PreviewableCredentialPayload, TypeMe
             ("age_over_18", AttributeValue::Bool(true)),
         ],
         SigningKey::random(&mut OsRng).verifying_key(),
+        &TimeGenerator,
     );
 
     let metadata = TypeMetadata::example_with_claim_names(
