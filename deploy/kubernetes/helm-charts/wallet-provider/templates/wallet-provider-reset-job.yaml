@@ -31,6 +31,10 @@ spec:
             - name: {{ $name }}-migrations
               image: "{{ .Values.global.imageRegistry }}/{{ .Values.imageMigrations.repository }}:{{ .Values.image.tag }}"
               args: ["fresh"]
+              {{- with .Values.resources }}
+              resources:
+                {{- toYaml . | nindent 16 }}
+              {{- end }}
               env:
                 - name: WALLET_PROVIDER__DATABASE__HOST
                   valueFrom:
