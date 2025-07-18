@@ -187,6 +187,7 @@ class CardDetailScreen extends StatelessWidget {
       MenuItem(
         leftIcon: const Icon(Icons.description_outlined),
         label: Text.rich(context.l10n.cardDetailScreenCardDataCta.toTextSpan(context)),
+        subtitle: Text.rich(context.l10n.cardDetailScreenCardDataPrivacyWarning.toTextSpan(context)),
         onPressed: () => _onCardDataPressed(context, card),
       ),
       MenuItem(

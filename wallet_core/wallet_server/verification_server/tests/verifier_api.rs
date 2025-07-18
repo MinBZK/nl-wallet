@@ -13,13 +13,11 @@ use chrono::DateTime;
 use chrono::Utc;
 use http::StatusCode;
 use itertools::Itertools;
-use mdoc::holder::Mdoc;
 use parking_lot::RwLock;
 use reqwest::Client;
 use reqwest::Response;
 use rstest::rstest;
 use rustls_pki_types::TrustAnchor;
-use sd_jwt_vc_metadata::ClaimPath;
 use tokio::net::TcpListener;
 use tokio::time;
 use url::Url;
@@ -35,6 +33,7 @@ use attestation_types::request::NormalizedCredentialRequest;
 use crypto::mock_remote::MockRemoteEcdsaKey;
 use crypto::mock_remote::MockRemoteKeyFactory;
 use crypto::server_keys::generate::Ca;
+use dcql::ClaimPath;
 use dcql::CredentialQueryFormat;
 use hsm::service::Pkcs11Hsm;
 use http_utils::error::HttpJsonErrorBody;
@@ -43,16 +42,17 @@ use http_utils::urls::BaseUrl;
 use mdoc::examples::EXAMPLE_ATTR_NAME;
 use mdoc::examples::EXAMPLE_DOC_TYPE;
 use mdoc::examples::EXAMPLE_NAMESPACE;
+use mdoc::holder::Mdoc;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::DisclosureSession;
 use openid4vc::disclosure_session::DisclosureUriSource;
 use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
+use openid4vc::server_state::CLEANUP_INTERVAL_SECONDS;
 use openid4vc::server_state::MemorySessionStore;
 use openid4vc::server_state::SessionStore;
 use openid4vc::server_state::SessionStoreTimeouts;
 use openid4vc::server_state::SessionToken;
-use openid4vc::server_state::CLEANUP_INTERVAL_SECONDS;
 use openid4vc::verifier::DisclosureData;
 use openid4vc::verifier::SessionType;
 use openid4vc::verifier::SessionTypeReturnUrl;
@@ -183,7 +183,7 @@ async fn wallet_server_settings_and_listener(
         UseCaseSettings {
             session_type_return_url: SessionTypeReturnUrl::SameDevice,
             key_pair: usecase_keypair.into(),
-            credential_requests: None,
+            items_requests: None,
             return_url_template: None,
         },
     )])
@@ -300,8 +300,7 @@ fn internal_url(settings: &VerifierSettings) -> BaseUrl {
 async fn test_requester_authentication(#[case] mut auth: RequesterAuth) {
     let requester_listener = match &mut auth {
         RequesterAuth::Authentication(_) => None,
-        RequesterAuth::ProtectedInternalEndpoint { ref mut server, .. }
-        | RequesterAuth::InternalEndpoint(ref mut server) => {
+        RequesterAuth::ProtectedInternalEndpoint { server, .. } | RequesterAuth::InternalEndpoint(server) => {
             let listener = TcpListener::bind(("localhost", 0)).await.unwrap();
             server.port = listener.local_addr().unwrap().port();
             Some(listener)
@@ -1142,12 +1141,14 @@ async fn test_disclosed_attributes_failed_session() {
         &serde_json::Value::from("FAILED")
     );
     // Simply check for the presence of the word "expired" to avoid fully matching the error string.
-    assert!(error_body
-        .extra
-        .get("session_error")
-        .unwrap()
-        .as_str()
-        .unwrap()
-        .to_lowercase()
-        .contains("expired"));
+    assert!(
+        error_body
+            .extra
+            .get("session_error")
+            .unwrap()
+            .as_str()
+            .unwrap()
+            .to_lowercase()
+            .contains("expired")
+    );
 }

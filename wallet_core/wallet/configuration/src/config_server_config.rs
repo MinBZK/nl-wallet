@@ -1,9 +1,9 @@
 use std::time::Duration;
 
 use serde::Deserialize;
+use serde_with::DurationSeconds;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
-use serde_with::DurationSeconds;
 
 use crypto::p256_der::DerVerifyingKey;
 use http_utils::tls::pinning::TlsPinningConfig;

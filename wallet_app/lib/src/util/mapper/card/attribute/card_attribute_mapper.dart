@@ -17,7 +17,6 @@ class CardAttributeMapper extends Mapper<CardAttributeWithCardId, DataAttribute>
       svgId: input.attribute.svgId,
       label: _localizedLabelsMapper.map(input.attribute.labels),
       value: _attributeValueMapper.map(input.attribute.value),
-      sourceCardId: input.cardId,
     );
   }
 }

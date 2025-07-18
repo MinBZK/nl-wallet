@@ -22,12 +22,12 @@ use crate::errors::Result;
 use crate::iso::disclosure::*;
 use crate::utils::cose::CoseKey;
 use crate::utils::serialization;
-use crate::utils::serialization::cbor_serialize;
 use crate::utils::serialization::CborIntMap;
 use crate::utils::serialization::CborSeq;
 use crate::utils::serialization::DeviceAuthenticationString;
 use crate::utils::serialization::RequiredValue;
 use crate::utils::serialization::TaggedBytes;
+use crate::utils::serialization::cbor_serialize;
 
 /// The data structure that the holder signs with the mdoc private key when disclosing attributes out of that mdoc.
 /// Contains a.o. transcript of the session so far, acting as the challenge in a challenge-response mechanism,
@@ -216,8 +216,8 @@ mod test {
 
 #[cfg(test)]
 mod tests {
-    use crate::examples::Example;
     use crate::examples::EXAMPLE_DOC_TYPE;
+    use crate::examples::Example;
     use crate::utils::serialization;
     use crate::utils::serialization::TaggedBytes;
 

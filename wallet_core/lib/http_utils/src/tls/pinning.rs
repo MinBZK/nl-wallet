@@ -8,10 +8,10 @@ use serde::Serialize;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
 
-use crate::reqwest::tls_pinned_client_builder;
 use crate::reqwest::IntoPinnedReqwestClient;
 use crate::reqwest::PinnedReqwestClient;
 use crate::reqwest::ReqwestTrustAnchor;
+use crate::reqwest::tls_pinned_client_builder;
 use crate::urls::BaseUrl;
 
 #[derive(Clone, Copy, PartialEq, Eq)]

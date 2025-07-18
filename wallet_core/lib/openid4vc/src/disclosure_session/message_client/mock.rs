@@ -13,17 +13,17 @@ use url::Url;
 use attestation_data::auth::reader_auth::ReaderRegistration;
 use attestation_data::x509::generate::mock::generate_reader_mock;
 use attestation_types::request::NormalizedCredentialRequest;
-use attestation_types::request::NormalizedCredentialRequests;
-use crypto::server_keys::generate::Ca;
 use crypto::server_keys::KeyPair;
-use crypto::utils;
+use crypto::server_keys::generate::Ca;
+use crypto::utils as crypto_utils;
 use http_utils::urls::BaseUrl;
 use jwt::Jwt;
 use mdoc::SessionTranscript;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::errors::ErrorResponse;
 use crate::errors::VpAuthorizationErrorCode;
-use crate::openid4vp::IsoVpAuthorizationRequest;
+use crate::openid4vp::NormalizedVpAuthorizationRequest;
 use crate::openid4vp::RequestUriMethod;
 use crate::openid4vp::VpAuthorizationRequest;
 use crate::openid4vp::VpRequestUriObject;
@@ -139,7 +139,7 @@ pub struct MockVerifierSession {
     pub redirect_uri: Option<BaseUrl>,
     pub reader_registration: Option<ReaderRegistration>,
     pub trust_anchors: Vec<TrustAnchor<'static>>,
-    pub credential_requests: NormalizedCredentialRequests,
+    pub credential_requests: VecNonEmpty<NormalizedCredentialRequest>,
     pub nonce: String,
     pub encryption_keypair: EcKeyPair,
     pub request_uri_object: VpRequestUriObject,
@@ -163,7 +163,7 @@ impl MockVerifierSession {
         let key_pair = generate_reader_mock(&ca, reader_registration.clone()).unwrap();
 
         // Generate some OpenID4VP specific session material.
-        let nonce = utils::random_string(32);
+        let nonce = crypto_utils::random_string(32);
         let encryption_keypair = EcKeyPair::generate(EcCurve::P256).unwrap();
         let response_uri = verifier_url.join_base_url("response_uri");
         let request_uri_object = request_uri_object(
@@ -203,9 +203,9 @@ impl MockVerifierSession {
             .unwrap_or(serde_urlencoded::to_string(&self.request_uri_object).unwrap())
     }
 
-    pub fn iso_auth_request(&self, wallet_nonce: Option<String>) -> IsoVpAuthorizationRequest {
-        IsoVpAuthorizationRequest::new(
-            &self.credential_requests,
+    pub fn normalized_auth_request(&self, wallet_nonce: Option<String>) -> NormalizedVpAuthorizationRequest {
+        NormalizedVpAuthorizationRequest::new(
+            self.credential_requests.clone(),
             self.key_pair.certificate(),
             self.nonce.clone(),
             self.encryption_keypair.to_jwk_public_key().try_into().unwrap(),
@@ -217,7 +217,7 @@ impl MockVerifierSession {
 
     /// Generate the first protocol message of the verifier.
     fn signed_auth_request(&self, wallet_request: WalletRequest) -> Jwt<VpAuthorizationRequest> {
-        let request = self.iso_auth_request(wallet_request.wallet_nonce).into();
+        let request = self.normalized_auth_request(wallet_request.wallet_nonce).into();
 
         Jwt::sign_with_certificate(&request, &self.key_pair)
             .now_or_never()

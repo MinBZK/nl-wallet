@@ -5,8 +5,8 @@ use chrono::Utc;
 use derive_more::AsRef;
 use indexmap::IndexMap;
 use itertools::Itertools;
-use p256::ecdsa::VerifyingKey;
 use p256::SecretKey;
+use p256::ecdsa::VerifyingKey;
 use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde::Serialize;
@@ -15,9 +15,7 @@ use tracing::debug;
 use tracing::warn;
 
 use attestation_types::request::AttributeRequest;
-use attestation_types::request::MdocCredentialRequestError;
 use attestation_types::request::NormalizedCredentialRequest;
-use attestation_types::request::NormalizedCredentialRequests;
 use crypto::x509::CertificateUsage;
 use dcql::ClaimPath;
 use dcql::CredentialQueryFormat;
@@ -25,16 +23,16 @@ use http_utils::urls::HttpsUri;
 use utils::generator::Generator;
 use utils::vec_at_least::VecNonEmpty;
 
+use crate::Error;
+use crate::Result;
 use crate::identifiers::AttributeIdentifier;
 use crate::identifiers::AttributeIdentifierHolder;
 use crate::iso::*;
 use crate::utils::cose::ClonePayload;
 use crate::utils::crypto::cbor_digest;
 use crate::utils::crypto::dh_hmac_key;
-use crate::utils::serialization::cbor_serialize;
 use crate::utils::serialization::TaggedBytes;
-use crate::Error;
-use crate::Result;
+use crate::utils::serialization::cbor_serialize;
 
 /// Attributes of an mdoc that was disclosed in a [`DeviceResponse`], as computed by [`DeviceResponse::verify()`].
 /// Grouped per namespace. Validity information and the attributes issuer's common_name is also included.
@@ -116,36 +114,7 @@ impl ItemsRequests {
     }
 }
 
-impl TryFrom<NormalizedCredentialRequest> for ItemsRequest {
-    type Error = MdocCredentialRequestError;
-
-    fn try_from(source: NormalizedCredentialRequest) -> Result<Self, Self::Error> {
-        let CredentialQueryFormat::MsoMdoc { doctype_value } = &source.format else {
-            return Err(MdocCredentialRequestError::SdJwtNotSupported);
-        };
-
-        let name_spaces = source
-            .claims
-            .into_iter()
-            .map(|req| {
-                let (ns, attr) = req.to_namespace_and_attribute().unwrap(); // TODO: error handling
-                (ns.to_owned(), attr.to_owned(), req.intent_to_retain)
-            })
-            .fold(IndexMap::new(), |mut acc, (ns, attr, intent_to_retain)| {
-                let entry: &mut IndexMap<_, _> = acc.entry(ns).or_default();
-                entry.insert(attr, intent_to_retain);
-                acc
-            });
-
-        let items_request = ItemsRequest {
-            doc_type: doctype_value.clone(),
-            name_spaces,
-            request_info: None,
-        };
-        Ok(items_request)
-    }
-}
-
+// TODO: Remove in PVW-4530
 impl From<ItemsRequest> for NormalizedCredentialRequest {
     fn from(source: ItemsRequest) -> Self {
         let doctype_value = source.doc_type;
@@ -175,7 +144,7 @@ impl From<ItemsRequest> for NormalizedCredentialRequest {
     }
 }
 
-impl From<ItemsRequests> for NormalizedCredentialRequests {
+impl From<ItemsRequests> for VecNonEmpty<NormalizedCredentialRequest> {
     fn from(source: ItemsRequests) -> Self {
         source
             .0
@@ -258,9 +227,9 @@ impl ValidityInfo {
         validity: ValidityRequirement,
     ) -> std::result::Result<(), ValidityError> {
         if matches!(validity, ValidityRequirement::Valid) && time < DateTime::<Utc>::try_from(&self.valid_from)? {
-            Err(ValidityError::NotYetValid(self.valid_from.0 .0.clone()))
+            Err(ValidityError::NotYetValid(self.valid_from.0.0.clone()))
         } else if time > DateTime::<Utc>::try_from(&self.valid_until)? {
-            Err(ValidityError::Expired(self.valid_from.0 .0.clone()))
+            Err(ValidityError::Expired(self.valid_from.0.0.clone()))
         } else {
             Ok(())
         }
@@ -434,24 +403,24 @@ mod tests {
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
 
-    use crate::examples::example_items_requests;
-    use crate::examples::Example;
-    use crate::examples::IsoCertTimeGenerator;
-    use crate::examples::EXAMPLE_ATTR_NAME;
-    use crate::examples::EXAMPLE_ATTR_VALUE;
-    use crate::examples::EXAMPLE_DOC_TYPE;
-    use crate::examples::EXAMPLE_NAMESPACE;
-    use crate::holder::Mdoc;
-    use crate::identifiers::AttributeIdentifierHolder;
-    use crate::test;
-    use crate::test::data::addr_street;
-    use crate::test::data::pid_full_name;
-    use crate::test::DebugCollapseBts;
     use crate::DeviceAuthenticationBytes;
     use crate::DeviceResponse;
     use crate::Document;
     use crate::Error;
     use crate::ValidityInfo;
+    use crate::examples::EXAMPLE_ATTR_NAME;
+    use crate::examples::EXAMPLE_ATTR_VALUE;
+    use crate::examples::EXAMPLE_DOC_TYPE;
+    use crate::examples::EXAMPLE_NAMESPACE;
+    use crate::examples::Example;
+    use crate::examples::IsoCertTimeGenerator;
+    use crate::examples::example_items_requests;
+    use crate::holder::Mdoc;
+    use crate::identifiers::AttributeIdentifierHolder;
+    use crate::test;
+    use crate::test::DebugCollapseBts;
+    use crate::test::data::addr_street;
+    use crate::test::data::pid_full_name;
 
     use super::*;
 
@@ -534,7 +503,7 @@ mod tests {
         let disclosed_attrs = device_response
             .verify(
                 Some(&eph_reader_key),
-                &DeviceAuthenticationBytes::example().0 .0.session_transcript,
+                &DeviceAuthenticationBytes::example().0.0.session_transcript,
                 &IsoCertTimeGenerator,
                 &[ca.to_trust_anchor()],
             )
@@ -690,20 +659,18 @@ mod tests {
 
     #[rstest]
     #[case(
+        pid_full_name().into_first().unwrap().into(),
         NormalizedCredentialRequest::pid_full_name(),
-        pid_full_name().into_first().unwrap().into()
     )]
     #[case(
+        addr_street().into_first().unwrap().into(),
         NormalizedCredentialRequest::addr_street(),
-        addr_street().into_first().unwrap().into()
     )]
     fn items_requests_to_and_from_credential_requests(
-        #[case] original: NormalizedCredentialRequest,
-        #[case] expected: ItemsRequest,
+        #[case] input: ItemsRequest,
+        #[case] expected: NormalizedCredentialRequest,
     ) {
-        let actual: ItemsRequest = original.clone().try_into().unwrap();
+        let actual: NormalizedCredentialRequest = input.into();
         assert_eq!(actual, expected);
-        let converted: NormalizedCredentialRequest = actual.into();
-        assert_eq!(converted, original);
     }
 }

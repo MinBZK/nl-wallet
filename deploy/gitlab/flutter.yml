@@ -67,6 +67,8 @@ test-codegen:
     - flutter pub get --enforce-lockfile
     - flutter_rust_bridge_codegen generate --config-file flutter_rust_bridge.yaml
     - flutter pub run build_runner build --delete-conflicting-outputs
+    # `flutter_rust_bridge_codegen` already formats the generated code, but it apparently doesn't match our style
     - dart format . --line-length 120
+    - cargo fmt --manifest-path ../wallet_core/flutter_api/Cargo.toml
     - git diff
     - if [[ $(git diff --shortstat | wc -l) -gt 0 ]]; then echo "Code generation results in different files!"; exit 1; fi

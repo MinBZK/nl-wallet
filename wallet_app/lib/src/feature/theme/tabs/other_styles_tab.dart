@@ -15,7 +15,6 @@ import '../../../theme/light_wallet_theme.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
 import '../../../wallet_assets.dart';
-import '../../card/data/widget/data_privacy_banner.dart';
 import '../../common/screen/placeholder_screen.dart';
 import '../../common/sheet/confirm_action_sheet.dart';
 import '../../common/sheet/error_details_sheet.dart';
@@ -92,20 +91,18 @@ final _kSampleAttributes = [
     svgId: 'key1',
     label: 'Sample #1'.untranslated,
     value: const StringValue('1'),
-    sourceCardId: 'sourceCardDocType',
   ),
   DataAttribute(
     key: 'key2',
     svgId: 'key2',
     label: 'Sample #2'.untranslated,
     value: const StringValue('2'),
-    sourceCardId: 'sourceCardDocType',
   ),
 ];
 
 final _kSampleCard = WalletCard(
   attestationId: 'id',
-  attestationType: 'docType',
+  attestationType: 'attestationType',
   metadata: _kSampleCardMetaData,
   attributes: _kSampleAttributes,
   issuer: _kSampleOrganization,
@@ -113,7 +110,7 @@ final _kSampleCard = WalletCard(
 
 final _kAltSampleCard = WalletCard(
   attestationId: 'alt_id',
-  attestationType: 'alt_docType',
+  attestationType: 'alt_attestationType',
   metadata: _kAltSampleCardMetaData,
   attributes: _kSampleAttributes,
   issuer: _kSampleOrganization,
@@ -327,7 +324,6 @@ class OtherStylesTab extends StatelessWidget {
           attribute: DataAttribute.untranslated(
             value: const StringValue('This is a DataAttributeRow with type text'),
             label: 'Label',
-            sourceCardId: 'id',
             key: _kMockOtherKey,
           ),
         ),
@@ -346,19 +342,16 @@ class OtherStylesTab extends StatelessWidget {
               DataAttribute.untranslated(
                 label: 'Voornaam',
                 value: const StringValue(''),
-                sourceCardId: '',
                 key: '',
               ),
               DataAttribute.untranslated(
                 label: 'Achternaam',
                 value: const StringValue(''),
-                sourceCardId: '',
                 key: '',
               ),
               DataAttribute.untranslated(
                 label: 'Postcode',
                 value: const StringValue(''),
-                sourceCardId: '',
                 key: '',
               ),
             ],
@@ -420,7 +413,7 @@ class OtherStylesTab extends StatelessWidget {
             cards: [
               WalletCard(
                 attestationId: 'id',
-                attestationType: 'docType',
+                attestationType: 'attestationType',
                 metadata: _kSampleCardMetaData,
                 attributes: const [],
                 issuer: _kSampleOrganization,
@@ -447,7 +440,7 @@ class OtherStylesTab extends StatelessWidget {
             cards: [
               WalletCard(
                 attestationId: 'id',
-                attestationType: 'docType',
+                attestationType: 'attestationType',
                 metadata: _kSampleCardMetaData,
                 attributes: const [],
                 issuer: _kSampleOrganization,
@@ -491,8 +484,6 @@ class OtherStylesTab extends StatelessWidget {
       children: [
         const ThemeSectionHeader(title: 'Miscellaneous'),
         const SizedBox(height: 12),
-        const ThemeSectionSubHeader(title: 'DataPrivacyBanner'),
-        const DataPrivacyBanner(),
         const ThemeSectionSubHeader(title: 'StepperIndicator'),
         const StepperIndicator(padding: EdgeInsets.zero),
         const ThemeSectionSubHeader(title: 'AnimatedVisibilityBackButton'),
@@ -508,7 +499,7 @@ class OtherStylesTab extends StatelessWidget {
           onPressed: () {},
           card: WalletCard(
             attestationId: 'row_id',
-            attestationType: 'docType',
+            attestationType: 'attestationType',
             metadata: _kSampleCardMetaData,
             attributes: const [],
             issuer: _kSampleOrganization,

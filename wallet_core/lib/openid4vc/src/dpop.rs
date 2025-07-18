@@ -40,9 +40,9 @@
 
 use std::collections::HashSet;
 
-use chrono::serde::ts_seconds;
 use chrono::DateTime;
 use chrono::Utc;
+use chrono::serde::ts_seconds;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::TokenData;
 use jsonwebtoken::Validation;
@@ -60,12 +60,12 @@ use url::Url;
 use crypto::keys::EcdsaKey;
 use crypto::utils::random_string;
 use error_category::ErrorCategory;
+use jwt::EcdsaDecodingKey;
+use jwt::Jwt;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
 use jwt::jwk::jwk_jwt_header;
 use jwt::jwk::jwk_to_p256;
-use jwt::EcdsaDecodingKey;
-use jwt::Jwt;
 
 use crate::token::AccessToken;
 
@@ -133,7 +133,7 @@ pub struct Dpop(Jwt<DpopPayload>);
 
 impl AsRef<str> for Dpop {
     fn as_ref(&self) -> &str {
-        &self.0 .0
+        &self.0.0
     }
 }
 
@@ -145,7 +145,7 @@ impl From<String> for Dpop {
 
 impl From<Dpop> for String {
     fn from(value: Dpop) -> Self {
-        value.0 .0
+        value.0.0
     }
 }
 
@@ -178,7 +178,7 @@ impl Dpop {
         let mut validation_options = Validation::new(Algorithm::ES256);
         validation_options.required_spec_claims = HashSet::default();
         let token_data = jsonwebtoken::decode::<DpopPayload>(
-            &self.0 .0,
+            &self.0.0,
             &EcdsaDecodingKey::from(verifying_key).0,
             &validation_options,
         )?;
@@ -224,7 +224,7 @@ impl Dpop {
     /// [`Dpop::verify_expecting_key()`] should be used with the public key that this method returns.
     pub fn verify(&self, url: &Url, method: &Method, access_token: Option<&AccessToken>) -> Result<VerifyingKey> {
         // Grab the public key from the JWT header
-        let header = jsonwebtoken::decode_header(&self.0 .0)?;
+        let header = jsonwebtoken::decode_header(&self.0.0)?;
         let verifying_key = jwk_to_p256(&header.jwk.ok_or(DpopError::MissingJwk)?)?;
 
         let token_data = self.verify_signature(&verifying_key)?;
@@ -287,11 +287,11 @@ mod tests {
             .unwrap();
 
         // Check the `typ` of the Header
-        let header: Header = part(0, &dpop.0 .0);
+        let header: Header = part(0, &dpop.0.0);
         assert_eq!(header.typ, Some(OPENID4VCI_DPOP_JWT_TYPE.to_string()));
 
         // Examine some fields in the claims
-        let claims: DpopPayload = part(1, &dpop.0 .0);
+        let claims: DpopPayload = part(1, &dpop.0.0);
         assert_eq!(claims.access_token_hash, access_token.as_ref().map(AccessToken::sha256));
         assert_eq!(claims.http_url, url);
         assert_eq!(claims.http_method, method.to_string());

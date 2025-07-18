@@ -1,6 +1,6 @@
+use jwt::VerifiedJwt;
 use jwt::credential::JwtCredentialClaims;
 use jwt::wte::WteClaims;
-use jwt::VerifiedJwt;
 use openid4vc::server_state::MemoryWteTracker;
 use openid4vc::server_state::WteTracker;
 use server_utils::store::DatabaseConnection;
@@ -63,9 +63,9 @@ mod postgres {
     use sea_orm::SqlErr;
 
     use crypto::utils::sha256;
+    use jwt::VerifiedJwt;
     use jwt::credential::JwtCredentialClaims;
     use jwt::wte::WteClaims;
-    use jwt::VerifiedJwt;
     use server_utils::entity::used_wtes;
     use utils::generator::Generator;
     use utils::generator::TimeGenerator;

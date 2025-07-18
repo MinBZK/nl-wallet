@@ -6,8 +6,8 @@ use semver::Op;
 use semver::Version;
 use serde::Deserialize;
 use serde::Serialize;
-use serde_with::serde_as;
 use serde_with::DurationSeconds;
+use serde_with::serde_as;
 
 #[derive(Debug, thiserror::Error)]
 pub enum VersionReqError {

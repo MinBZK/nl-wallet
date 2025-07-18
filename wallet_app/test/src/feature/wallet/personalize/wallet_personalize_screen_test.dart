@@ -31,81 +31,67 @@ class MockWalletPersonalizeBloc extends MockBloc<WalletPersonalizeEvent, WalletP
     implements WalletPersonalizeBloc {}
 
 void main() {
-  const kPidId = 'id';
-
   /// All attributes here are needed to satisfy the [PidAttributeMapper] used when rendering the [WalletPersonalizeCheckData] state.
   final sampleMaleAttributes = [
     DataAttribute.untranslated(
       label: 'Voornamen',
       value: const StringValue('John'),
       key: 'mock_firstNames',
-      sourceCardId: kPidId,
     ),
     DataAttribute.untranslated(
       label: 'Achternaam',
       value: const StringValue('Doe'),
       key: 'mock_lastName',
-      sourceCardId: kPidId,
     ),
     DataAttribute.untranslated(
       label: 'Naam bij geboorte',
       value: const StringValue('John'),
       key: 'mock_birthName',
-      sourceCardId: kPidId,
     ),
     DataAttribute.untranslated(
       label: 'Geboortedatum',
       value: const StringValue('01-01-2023'),
       key: 'mock_birthDate',
-      sourceCardId: kPidId,
     ),
     DataAttribute.untranslated(
       label: 'Geboorteplaats',
       value: const StringValue('Amsterdam'),
       key: 'mock_birthPlace',
-      sourceCardId: kPidId,
     ),
     DataAttribute.untranslated(
       label: 'Geboorteland',
       value: const StringValue('Nederland'),
       key: 'mock_birthCountry',
-      sourceCardId: kPidId,
     ),
     DataAttribute.untranslated(
       label: 'Getrouwd of geregistreerd partnerschap',
       value: const StringValue('Nee'),
       key: 'mock_hasSpouseOrPartner',
-      sourceCardId: kPidId,
     ),
     DataAttribute.untranslated(
       label: 'Burger­service­nummer (BSN)',
       value: const StringValue('111222333'),
       key: 'mock_citizenshipNumber',
-      sourceCardId: kPidId,
     ),
     DataAttribute.untranslated(
       label: 'Stad',
       value: const StringValue('Amsterdam'),
       key: 'mock_city',
-      sourceCardId: kPidId,
     ),
     DataAttribute.untranslated(
       label: 'Postcode',
       value: const StringValue('1234AB'),
       key: 'mock_postalCode',
-      sourceCardId: kPidId,
     ),
     DataAttribute.untranslated(
       label: 'Straatnaam',
       value: const StringValue('Dorpsstraat'),
       key: 'mock_streetName',
-      sourceCardId: kPidId,
     ),
     DataAttribute.untranslated(
       label: 'Huisnummer',
       value: const StringValue('1A'),
       key: 'mock_houseNumber',
-      sourceCardId: kPidId,
     ),
   ];
 

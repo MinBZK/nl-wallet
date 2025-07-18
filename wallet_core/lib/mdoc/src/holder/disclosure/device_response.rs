@@ -1,9 +1,10 @@
 use itertools::Itertools;
 
-use attestation_types::request::NormalizedCredentialRequests;
-use crypto::factory::KeyFactory;
+use attestation_types::request::NormalizedCredentialRequest;
 use crypto::CredentialEcdsaKey;
+use crypto::factory::KeyFactory;
 use dcql::CredentialQueryFormat;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::errors::Error;
 use crate::errors::Result;
@@ -72,7 +73,7 @@ impl DeviceResponse {
 
     pub fn match_against_request(
         &self,
-        credential_requests: &NormalizedCredentialRequests,
+        credential_requests: &VecNonEmpty<NormalizedCredentialRequest>,
     ) -> Result<(), ResponseValidationError> {
         let not_found = credential_requests
             .as_ref()
@@ -117,12 +118,12 @@ mod tests {
     use crypto::mock_remote::MockRemoteKeyFactory;
     use crypto::server_keys::generate::Ca;
 
+    use crate::DeviceAuth;
     use crate::holder::Mdoc;
     use crate::iso::disclosure::DeviceResponse;
     use crate::iso::engagement::DeviceAuthenticationKeyed;
     use crate::iso::engagement::SessionTranscript;
     use crate::utils::cose::ClonePayload;
-    use crate::DeviceAuth;
 
     #[test]
     fn test_device_response_sign_from_mdocs() {

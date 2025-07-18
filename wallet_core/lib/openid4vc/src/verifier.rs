@@ -15,19 +15,19 @@ use derive_more::Constructor;
 use derive_more::Debug;
 use derive_more::From;
 use indexmap::IndexMap;
+use josekit::JoseError;
+use josekit::jwk::Jwk;
 use josekit::jwk::alg::ec::EcCurve;
 use josekit::jwk::alg::ec::EcKeyPair;
-use josekit::jwk::Jwk;
-use josekit::JoseError;
 use ring::hmac;
 use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde::Serialize;
+use serde_with::DeserializeFromStr;
+use serde_with::SerializeDisplay;
 use serde_with::hex::Hex;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
-use serde_with::DeserializeFromStr;
-use serde_with::SerializeDisplay;
 use tokio::task::JoinHandle;
 use tracing::debug;
 use tracing::info;
@@ -35,26 +35,32 @@ use tracing::warn;
 
 use attestation_data::disclosure::DisclosedAttestation;
 use attestation_data::disclosure::DisclosedAttestations;
-use attestation_types::request::NormalizedCredentialRequests;
+use attestation_types::request::NormalizedCredentialRequest;
+use crypto::EcdsaKeySend;
 use crypto::keys::EcdsaKey;
 use crypto::server_keys::KeyPair;
 use crypto::utils::random_string;
 use crypto::x509::CertificateError;
-use crypto::EcdsaKeySend;
 use http_utils::urls::BaseUrl;
-use jwt::error::JwtError;
 use jwt::Jwt;
+use jwt::error::JwtError;
 use utils::generator::Generator;
+use utils::vec_at_least::VecNonEmpty;
 
+use crate::AuthorizationErrorCode;
+use crate::ErrorResponse;
+use crate::PostAuthResponseErrorCode;
+use crate::VpAuthorizationErrorCode;
 use crate::openid4vp::AuthRequestError;
 use crate::openid4vp::AuthResponseError;
-use crate::openid4vp::IsoVpAuthorizationRequest;
+use crate::openid4vp::NormalizedVpAuthorizationRequest;
 use crate::openid4vp::RequestUriMethod;
 use crate::openid4vp::VpAuthorizationRequest;
 use crate::openid4vp::VpAuthorizationResponse;
 use crate::openid4vp::VpRequestUriObject;
 use crate::openid4vp::VpResponse;
 use crate::return_url::ReturnUrlTemplate;
+use crate::server_state::CLEANUP_INTERVAL_SECONDS;
 use crate::server_state::Expirable;
 use crate::server_state::HasProgress;
 use crate::server_state::Progress;
@@ -63,11 +69,6 @@ use crate::server_state::SessionState;
 use crate::server_state::SessionStore;
 use crate::server_state::SessionStoreError;
 use crate::server_state::SessionToken;
-use crate::server_state::CLEANUP_INTERVAL_SECONDS;
-use crate::AuthorizationErrorCode;
-use crate::ErrorResponse;
-use crate::PostAuthResponseErrorCode;
-use crate::VpAuthorizationErrorCode;
 
 pub const EPHEMERAL_ID_VALIDITY_SECONDS: Duration = Duration::from_secs(10);
 
@@ -208,7 +209,7 @@ pub struct Session<S: DisclosureState> {
 /// State for a session that has just been created.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Created {
-    credential_requests: NormalizedCredentialRequests,
+    credential_requests: VecNonEmpty<NormalizedCredentialRequest>,
     usecase_id: String,
     client_id: String,
     redirect_uri_template: Option<RedirectUriTemplate>,
@@ -217,7 +218,7 @@ pub struct Created {
 /// State for a session that is waiting for the user's disclosure, i.e., the device has contacted us at the session URL.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct WaitingForResponse {
-    auth_request: IsoVpAuthorizationRequest,
+    auth_request: NormalizedVpAuthorizationRequest,
     usecase_id: String,
     encryption_key: EncryptionPrivateKey,
     redirect_uri: Option<RedirectUri>,
@@ -514,7 +515,7 @@ pub trait UseCase {
     fn new_session(
         &self,
         id: String,
-        credential_requests: Option<NormalizedCredentialRequests>,
+        credential_requests: Option<VecNonEmpty<NormalizedCredentialRequest>>,
         return_url_template: Option<ReturnUrlTemplate>,
     ) -> Result<Session<Created>, NewSessionError>;
 }
@@ -543,7 +544,7 @@ pub trait UseCases {
 #[derive(Debug)]
 pub struct RpInitiatedUseCase<K> {
     data: UseCaseData<K>,
-    credential_requests: Option<NormalizedCredentialRequests>,
+    credential_requests: Option<VecNonEmpty<NormalizedCredentialRequest>>,
     return_url_template: Option<ReturnUrlTemplate>,
 }
 
@@ -564,7 +565,7 @@ impl<K> RpInitiatedUseCase<K> {
     pub fn try_new(
         key_pair: KeyPair<K>,
         session_type_return_url: SessionTypeReturnUrl,
-        credential_requests: Option<NormalizedCredentialRequests>,
+        credential_requests: Option<VecNonEmpty<NormalizedCredentialRequest>>,
         return_url_template: Option<ReturnUrlTemplate>,
     ) -> Result<Self, NewDisclosureUseCaseError> {
         let client_id = client_id_from_key_pair(&key_pair)?;
@@ -592,7 +593,7 @@ impl<K: EcdsaKeySend> UseCase for RpInitiatedUseCase<K> {
     fn new_session(
         &self,
         id: String,
-        credential_requests: Option<NormalizedCredentialRequests>,
+        credential_requests: Option<VecNonEmpty<NormalizedCredentialRequest>>,
         return_url_template: Option<ReturnUrlTemplate>,
     ) -> Result<Session<Created>, NewSessionError> {
         // If the caller passes a `return_url_template` then we use that,
@@ -709,13 +710,12 @@ impl<K, S> RpInitiatedUseCases<K, S> {
         session_token: &SessionToken,
         time: &DateTime<Utc>,
     ) -> Vec<u8> {
-        let ephemeral_id = hmac::sign(
+        hmac::sign(
             ephemeral_id_secret,
             &Self::format_ephemeral_id_payload(session_token, time),
         )
         .as_ref()
-        .to_vec();
-        ephemeral_id
+        .to_vec()
     }
 }
 
@@ -723,7 +723,7 @@ impl<K, S> RpInitiatedUseCases<K, S> {
 #[derive(Debug, Constructor)]
 pub struct WalletInitiatedUseCase<K> {
     data: UseCaseData<K>,
-    credential_requests: NormalizedCredentialRequests,
+    credential_requests: VecNonEmpty<NormalizedCredentialRequest>,
     return_url_template: ReturnUrlTemplate,
 }
 
@@ -736,7 +736,7 @@ impl<K> WalletInitiatedUseCase<K> {
     pub fn try_new(
         key_pair: KeyPair<K>,
         session_type_return_url: SessionTypeReturnUrl,
-        credential_requests: NormalizedCredentialRequests,
+        credential_requests: VecNonEmpty<NormalizedCredentialRequest>,
         return_url_template: ReturnUrlTemplate,
     ) -> Result<Self, UseCaseCertificateError> {
         let client_id = client_id_from_key_pair(&key_pair)?;
@@ -764,7 +764,7 @@ impl<K: EcdsaKeySend> UseCase for WalletInitiatedUseCase<K> {
     fn new_session(
         &self,
         id: String,
-        _credential_requests: Option<NormalizedCredentialRequests>,
+        _credential_requests: Option<VecNonEmpty<NormalizedCredentialRequest>>,
         _return_url_template: Option<ReturnUrlTemplate>,
     ) -> Result<Session<Created>, NewSessionError> {
         let session = Session::<Created>::new(
@@ -911,7 +911,7 @@ where
     pub async fn new_session(
         &self,
         usecase_id: String,
-        credential_requests: Option<NormalizedCredentialRequests>,
+        credential_requests: Option<VecNonEmpty<NormalizedCredentialRequest>>,
         return_url_template: Option<ReturnUrlTemplate>,
     ) -> Result<SessionToken, NewSessionError> {
         info!("create verifier session: {usecase_id}");
@@ -1184,7 +1184,7 @@ impl<T: DisclosureState> Session<T> {
 impl Session<Created> {
     /// Create a new disclosure session.
     fn new(
-        credential_requests: NormalizedCredentialRequests,
+        credential_requests: VecNonEmpty<NormalizedCredentialRequest>,
         usecase_id: String,
         client_id: String,
         redirect_uri_template: Option<RedirectUriTemplate>,
@@ -1258,7 +1258,7 @@ impl Session<Created> {
     ) -> Result<
         (
             Jwt<VpAuthorizationRequest>,
-            IsoVpAuthorizationRequest,
+            NormalizedVpAuthorizationRequest,
             Option<RedirectUri>,
             EcKeyPair,
         ),
@@ -1296,8 +1296,8 @@ impl Session<Created> {
                     .and_then(|u| u.share_on_error.then_some(u.uri.clone())),
             )
         })?;
-        let auth_request = IsoVpAuthorizationRequest::new(
-            &self.state.data.credential_requests.clone(),
+        let auth_request = NormalizedVpAuthorizationRequest::new(
+            self.state.data.credential_requests.clone(),
             usecase.key_pair.certificate(),
             nonce.clone(),
             encryption_keypair.to_jwk_public_key().try_into().unwrap(), // safe because we just constructed this key
@@ -1512,12 +1512,12 @@ mod tests {
     use attestation_data::x509::generate::mock::generate_reader_mock;
     use attestation_types::request::AttributeRequest;
     use attestation_types::request::NormalizedCredentialRequest;
-    use attestation_types::request::NormalizedCredentialRequests;
     use crypto::server_keys::generate::Ca;
     use dcql::ClaimPath;
     use dcql::CredentialQueryFormat;
     use utils::generator::Generator;
     use utils::generator::TimeGenerator;
+    use utils::vec_at_least::VecNonEmpty;
 
     use crate::mock::MOCK_WALLET_CLIENT_ID;
     use crate::server_state::MemorySessionStore;
@@ -1528,6 +1528,7 @@ mod tests {
     use super::DisclosedAttributesError;
     use super::DisclosureData;
     use super::Done;
+    use super::EPHEMERAL_ID_VALIDITY_SECONDS;
     use super::EphemeralIdParameters;
     use super::ErrorResponse;
     use super::GetAuthRequestError;
@@ -1550,7 +1551,6 @@ mod tests {
     use super::WalletAuthResponse;
     use super::WalletInitiatedUseCase;
     use super::WalletInitiatedUseCases;
-    use super::EPHEMERAL_ID_VALIDITY_SECONDS;
 
     const DISCLOSURE_DOC_TYPE: &str = "example_doctype";
     const DISCLOSURE_NAME_SPACE: &str = "example_namespace";
@@ -1560,7 +1560,7 @@ mod tests {
     const DISCLOSURE_USECASE: &str = "example_usecase";
     const DISCLOSURE_USECASE_ALL_REDIRECT_URI: &str = "example_usecase_all_redirect_uri";
 
-    fn new_disclosure_request() -> NormalizedCredentialRequests {
+    fn new_disclosure_request() -> VecNonEmpty<NormalizedCredentialRequest> {
         vec![NormalizedCredentialRequest {
             format: CredentialQueryFormat::MsoMdoc {
                 doctype_value: DISCLOSURE_DOC_TYPE.to_string(),
@@ -1863,24 +1863,30 @@ mod tests {
 
         // The finished session without a return URL should return the
         // attributes, regardless of the return URL nonce provided.
-        assert!(verifier
-            .disclosed_attributes(&"token1".into(), None)
-            .await
-            .expect("should return disclosed attributes")
-            .is_empty());
-        assert!(verifier
-            .disclosed_attributes(&"token1".into(), "nonsense".to_string().into())
-            .await
-            .expect("should return disclosed attributes")
-            .is_empty());
+        assert!(
+            verifier
+                .disclosed_attributes(&"token1".into(), None)
+                .await
+                .expect("should return disclosed attributes")
+                .is_empty()
+        );
+        assert!(
+            verifier
+                .disclosed_attributes(&"token1".into(), "nonsense".to_string().into())
+                .await
+                .expect("should return disclosed attributes")
+                .is_empty()
+        );
 
         // The finished session with a return URL should only return the
         // disclosed attributes when given the correct return URL nonce.
-        assert!(verifier
-            .disclosed_attributes(&"token2".into(), "this-is-the-nonce".to_string().into())
-            .await
-            .expect("should return disclosed attributes")
-            .is_empty());
+        assert!(
+            verifier
+                .disclosed_attributes(&"token2".into(), "this-is-the-nonce".to_string().into())
+                .await
+                .expect("should return disclosed attributes")
+                .is_empty()
+        );
         assert_matches!(
             verifier
                 .disclosed_attributes(&"token2".into(), "incorrect".to_string().into())
@@ -1964,8 +1970,7 @@ mod tests {
         )
         .unwrap();
 
-        let expected_url =
-            "https://app-ul.example.com/?request_uri=https%3A%2F%2Frp.example.com%2F%3Fsession_type%3Dcross_device\
+        let expected_url = "https://app-ul.example.com/?request_uri=https%3A%2F%2Frp.example.com%2F%3Fsession_type%3Dcross_device\
             &request_uri_method=post&client_id=client_id";
 
         assert_eq!(verifier_url.as_ref().as_str(), expected_url);

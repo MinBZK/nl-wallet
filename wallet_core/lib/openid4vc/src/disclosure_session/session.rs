@@ -1,54 +1,51 @@
 use std::hash::Hash;
 
-use attestation_types::request::NormalizedCredentialRequests;
 use itertools::Itertools;
 use tracing::info;
 use tracing::warn;
 
+use attestation_types::request::NormalizedCredentialRequest;
+use crypto::CredentialEcdsaKey;
 use crypto::factory::KeyFactory;
 use crypto::utils::random_string;
-use crypto::CredentialEcdsaKey;
 use http_utils::urls::BaseUrl;
-use mdoc::holder::disclosure::credential_requests_to_mdoc_paths;
 use mdoc::holder::Mdoc;
+use mdoc::holder::disclosure::credential_requests_to_mdoc_paths;
 use mdoc::iso::disclosure::DeviceResponse;
 use mdoc::iso::engagement::SessionTranscript;
 use poa::factory::PoaFactory;
 use utils::vec_at_least::VecAtLeastTwoUnique;
 use utils::vec_at_least::VecNonEmpty;
 
-use crate::openid4vp::IsoVpAuthorizationRequest;
+use crate::openid4vp::NormalizedVpAuthorizationRequest;
 use crate::openid4vp::VpAuthorizationResponse;
 use crate::verifier::SessionType;
 
+use super::DisclosureSession;
+use super::VerifierCertificate;
 use super::error::DisclosureError;
 use super::error::VpClientError;
 use super::error::VpSessionError;
 use super::message_client::VpMessageClient;
-use super::DisclosureSession;
-use super::VerifierCertificate;
 
 #[derive(Debug)]
 pub struct VpDisclosureSession<H> {
     client: H,
     session_type: SessionType,
-    credential_requests: NormalizedCredentialRequests,
     verifier_certificate: VerifierCertificate,
-    auth_request: IsoVpAuthorizationRequest,
+    auth_request: NormalizedVpAuthorizationRequest,
 }
 
 impl<H> VpDisclosureSession<H> {
     pub(super) fn new(
         client: H,
         session_type: SessionType,
-        credential_requests: NormalizedCredentialRequests,
         verifier_certificate: VerifierCertificate,
-        auth_request: IsoVpAuthorizationRequest,
+        auth_request: NormalizedVpAuthorizationRequest,
     ) -> Self {
         Self {
             client,
             session_type,
-            credential_requests,
             verifier_certificate,
             auth_request,
         }
@@ -63,8 +60,8 @@ where
         self.session_type
     }
 
-    fn credential_requests(&self) -> &NormalizedCredentialRequests {
-        &self.credential_requests
+    fn credential_requests(&self) -> &VecNonEmpty<NormalizedCredentialRequest> {
+        &self.auth_request.credential_requests
     }
 
     fn verifier_certificate(&self) -> &VerifierCertificate {
@@ -101,7 +98,8 @@ where
         let filtered_mdocs = mdocs
             .into_iter()
             .filter_map(|mut mdoc| {
-                let paths = credential_requests_to_mdoc_paths(&self.credential_requests, &mdoc.mso.doc_type);
+                let paths =
+                    credential_requests_to_mdoc_paths(&self.auth_request.credential_requests, &mdoc.mso.doc_type);
 
                 (!paths.is_empty()).then(|| {
                     mdoc.issuer_signed = mdoc.issuer_signed.into_attribute_subset(&paths);
@@ -121,7 +119,7 @@ where
                 return Err((
                     self,
                     DisclosureError::before_sharing(VpClientError::DeviceResponse(error).into()),
-                ))
+                ));
             }
         };
 
@@ -144,7 +142,7 @@ where
                 return Err((
                     self,
                     DisclosureError::before_sharing(VpClientError::Poa(Box::new(error)).into()),
-                ))
+                ));
             }
         };
 
@@ -156,7 +154,7 @@ where
                 return Err((
                     self,
                     DisclosureError::before_sharing(VpClientError::AuthResponseEncryption(error).into()),
-                ))
+                ));
             }
         };
 
@@ -205,17 +203,17 @@ mod tests {
     use crate::openid4vp::RequestUriMethod;
     use crate::verifier::SessionType;
 
+    use super::super::DisclosureSession;
     use super::super::error::DisclosureError;
     use super::super::error::VpClientError;
     use super::super::error::VpSessionError;
     use super::super::error::VpVerifierError;
+    use super::super::message_client::VpMessageClientError;
     use super::super::message_client::mock::MockErrorFactoryVpMessageClient;
     use super::super::message_client::mock::MockVerifierSession;
     use super::super::message_client::mock::MockVerifierVpMessageClient;
     use super::super::message_client::mock::WalletMessage;
-    use super::super::message_client::VpMessageClientError;
     use super::super::verifier_certificate::VerifierCertificate;
-    use super::super::DisclosureSession;
     use super::VpDisclosureSession;
 
     static VERIFIER_URL: LazyLock<BaseUrl> = LazyLock::new(|| "http://example.com/disclosure".parse().unwrap());
@@ -241,11 +239,10 @@ mod tests {
         let disclosure_session = VpDisclosureSession {
             client: mock_client,
             session_type,
-            credential_requests: verifier_session.credential_requests.clone(),
             verifier_certificate: VerifierCertificate::try_new(verifier_session.key_pair.certificate().clone())
                 .unwrap()
                 .unwrap(),
-            auth_request: verifier_session.iso_auth_request(None),
+            auth_request: verifier_session.normalized_auth_request(None),
         };
 
         (disclosure_session, verifier_session)
@@ -266,7 +263,6 @@ mod tests {
         VpDisclosureSession {
             client: error_client,
             session_type: disclosure_session.session_type,
-            credential_requests: disclosure_session.credential_requests,
             verifier_certificate: disclosure_session.verifier_certificate,
             auth_request: disclosure_session.auth_request,
         }

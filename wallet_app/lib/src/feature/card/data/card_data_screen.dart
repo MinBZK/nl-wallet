@@ -12,15 +12,12 @@ import '../../common/widget/button/icon/help_icon_button.dart';
 import '../../common/widget/button/list_button.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/sliver_wallet_app_bar.dart';
+import '../../common/widget/spacer/sliver_divider.dart';
 import '../../common/widget/spacer/sliver_sized_box.dart';
 import '../../common/widget/wallet_scrollbar.dart';
 import 'argument/card_data_screen_argument.dart';
 import 'bloc/card_data_bloc.dart';
 import 'card_data_incorrect_screen.dart';
-import 'widget/data_privacy_banner.dart';
-
-@visibleForTesting
-const kDataPrivacyBannerKey = Key('dataPrivacyBanner');
 
 class CardDataScreen extends StatelessWidget {
   static CardDataScreenArgument getArgument(RouteSettings settings) {
@@ -63,6 +60,7 @@ class CardDataScreen extends StatelessWidget {
                 CardDataLoadInProgress() => _buildLoading(),
                 CardDataLoadSuccess() => SliverMainAxisGroup(
                     slivers: [
+                      const SliverDivider(),
                       const SliverSizedBox(height: 24),
                       _buildDataAttributes(context, state.card.attributes),
                       const SliverSizedBox(height: 24),
@@ -79,12 +77,6 @@ class CardDataScreen extends StatelessWidget {
                       title: _generateTitle(context, state),
                       scrollController: PrimaryScrollController.maybeOf(context),
                       actions: const [HelpIconButton()],
-                    ),
-                    const SliverToBoxAdapter(
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 16),
-                        child: DataPrivacyBanner(key: kDataPrivacyBannerKey),
-                      ),
                     ),
                     contentSliver,
                   ],

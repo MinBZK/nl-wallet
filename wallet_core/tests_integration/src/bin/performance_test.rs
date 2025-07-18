@@ -1,11 +1,11 @@
 use ctor::ctor;
-use dcql::CredentialQueryFormat;
 use reqwest::StatusCode;
 use tracing::instrument;
 use url::Url;
 
 use attestation_types::request::AttributeRequest;
 use attestation_types::request::NormalizedCredentialRequest;
+use dcql::CredentialQueryFormat;
 use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::tls::pinning::TlsPinningConfig;
 use openid4vc::disclosure_session::VpDisclosureClient;
@@ -19,9 +19,9 @@ use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
 use tests_integration::default;
 use tests_integration::fake_digid::fake_digid_auth;
 use tests_integration::logging::init_logging;
+use wallet::DisclosureUriSource;
+use wallet::Wallet;
 use wallet::mock::StorageStub;
-use wallet::wallet_deps::default_config_server_config;
-use wallet::wallet_deps::default_wallet_config;
 use wallet::wallet_deps::HttpAccountProviderClient;
 use wallet::wallet_deps::HttpConfigurationRepository;
 use wallet::wallet_deps::HttpDigidSession;
@@ -29,8 +29,8 @@ use wallet::wallet_deps::Repository;
 use wallet::wallet_deps::UpdatePolicyRepository;
 use wallet::wallet_deps::UpdateableRepository;
 use wallet::wallet_deps::WpWteIssuanceClient;
-use wallet::DisclosureUriSource;
-use wallet::Wallet;
+use wallet::wallet_deps::default_config_server_config;
+use wallet::wallet_deps::default_wallet_config;
 
 #[ctor]
 fn init() {

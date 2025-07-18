@@ -112,8 +112,8 @@ pub enum DisclosureContent {
 #[cfg(test)]
 mod test {
     use assert_matches::assert_matches;
-    use base64::prelude::BASE64_URL_SAFE_NO_PAD;
     use base64::Engine;
+    use base64::prelude::BASE64_URL_SAFE_NO_PAD;
     use serde_json::json;
 
     use crypto::utils::random_bytes;

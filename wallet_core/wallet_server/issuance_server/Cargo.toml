@@ -56,6 +56,7 @@ sea-orm = { workspace = true, optional = true, features = [
 ] }
 
 attestation_data.path = "../../lib/attestation_data"
+attestation_types.path = "../../lib/attestation_types"
 crypto.path = "../../lib/crypto"
 dcql.path = "../../lib/dcql"
 issuer_settings.path = "../issuer_settings"

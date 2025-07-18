@@ -8,10 +8,10 @@ use crypto::p256_der::verifying_key_sha256;
 use hsm::keys::HsmEcdsaKey;
 use hsm::model::wrapped_key::WrappedKey;
 use hsm::service::HsmError;
+use jwt::Jwt;
 use jwt::credential::JwtCredentialClaims;
 use jwt::error::JwtError;
 use jwt::wte::WteClaims;
-use jwt::Jwt;
 use wallet_provider_domain::model::hsm::WalletUserHsm;
 
 pub trait WteIssuer {
@@ -80,9 +80,9 @@ pub mod mock {
 
     use crypto::p256_der::verifying_key_sha256;
     use hsm::model::wrapped_key::WrappedKey;
+    use jwt::Jwt;
     use jwt::credential::JwtCredentialClaims;
     use jwt::wte::WteClaims;
-    use jwt::Jwt;
 
     use super::WteIssuer;
 

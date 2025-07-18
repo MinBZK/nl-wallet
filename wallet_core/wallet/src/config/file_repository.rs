@@ -11,9 +11,9 @@ use crate::repository::Repository;
 use crate::repository::RepositoryUpdateState;
 use crate::repository::UpdateableRepository;
 
-use super::config_file;
 use super::ConfigurationError;
 use super::HttpConfigurationRepository;
+use super::config_file;
 
 #[derive(Constructor)]
 pub struct FileStorageConfigurationRepository<T> {
@@ -84,11 +84,11 @@ mod tests {
     use jwt::EcdsaDecodingKey;
     use wallet_configuration::wallet_config::WalletConfiguration;
 
-    use crate::config::config_file;
-    use crate::config::default_wallet_config;
     use crate::config::ConfigurationError;
     use crate::config::FileStorageConfigurationRepository;
     use crate::config::HttpConfigurationRepository;
+    use crate::config::config_file;
+    use crate::config::default_wallet_config;
     use crate::repository::Repository;
     use crate::repository::RepositoryUpdateState;
     use crate::repository::UpdateableRepository;

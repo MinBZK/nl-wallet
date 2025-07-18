@@ -1,8 +1,9 @@
-use attestation_types::request::NormalizedCredentialRequests;
-use dcql::CredentialQueryFormat;
 use itertools::Itertools;
 
+use attestation_types::request::NormalizedCredentialRequest;
+use dcql::CredentialQueryFormat;
 use mdoc::holder::disclosure::credential_requests_to_mdoc_paths;
+use utils::vec_at_least::VecNonEmpty;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DisclosureType {
@@ -12,7 +13,7 @@ pub enum DisclosureType {
 
 impl DisclosureType {
     pub fn from_request_attribute_paths(
-        credential_requests: &NormalizedCredentialRequests,
+        credential_requests: &VecNonEmpty<NormalizedCredentialRequest>,
         login_attestation_type: &str,
         login_attribute_path: (&str, &str),
     ) -> Self {
@@ -38,6 +39,7 @@ impl DisclosureType {
 mod test {
     use rstest::rstest;
 
+    use attestation_types::request;
     use utils::vec_at_least::VecNonEmpty;
 
     use super::*;
@@ -52,7 +54,7 @@ mod test {
     #[case(pid_and_other_bsn_attribute_paths(), DisclosureType::Regular)]
     #[case(pid_too_long_attribute_paths(), DisclosureType::Regular)]
     fn test_disclosure_type_from_request_attribute_paths(
-        #[case] attribute_paths: NormalizedCredentialRequests,
+        #[case] attribute_paths: VecNonEmpty<NormalizedCredentialRequest>,
         #[case] expected: DisclosureType,
     ) {
         assert_eq!(
@@ -65,15 +67,15 @@ mod test {
         );
     }
 
-    fn pid_bsn_attribute_paths() -> NormalizedCredentialRequests {
-        NormalizedCredentialRequests::mock_from_vecs(vec![(
+    fn pid_bsn_attribute_paths() -> VecNonEmpty<NormalizedCredentialRequest> {
+        request::mock::mock_from_vecs(vec![(
             LOGIN_ATTESTATION_TYPE.to_string(),
             vec![VecNonEmpty::try_from(vec![LOGIN_NAMESPACE.to_string(), LOGIN_ATTRIBUTE_ID.to_string()]).unwrap()],
         )])
     }
 
-    fn pid_bsn_and_other_attribute_paths() -> NormalizedCredentialRequests {
-        NormalizedCredentialRequests::mock_from_vecs(vec![(
+    fn pid_bsn_and_other_attribute_paths() -> VecNonEmpty<NormalizedCredentialRequest> {
+        request::mock::mock_from_vecs(vec![(
             LOGIN_ATTESTATION_TYPE.to_string(),
             vec![
                 VecNonEmpty::try_from(vec![LOGIN_NAMESPACE.to_string(), LOGIN_ATTRIBUTE_ID.to_string()]).unwrap(),
@@ -82,8 +84,8 @@ mod test {
         )])
     }
 
-    fn pid_and_other_bsn_attribute_paths() -> NormalizedCredentialRequests {
-        NormalizedCredentialRequests::mock_from_vecs(vec![
+    fn pid_and_other_bsn_attribute_paths() -> VecNonEmpty<NormalizedCredentialRequest> {
+        request::mock::mock_from_vecs(vec![
             (
                 LOGIN_ATTESTATION_TYPE.to_string(),
                 vec![VecNonEmpty::try_from(vec![LOGIN_NAMESPACE.to_string(), LOGIN_ATTRIBUTE_ID.to_string()]).unwrap()],
@@ -95,15 +97,17 @@ mod test {
         ])
     }
 
-    fn pid_too_long_attribute_paths() -> NormalizedCredentialRequests {
-        NormalizedCredentialRequests::mock_from_vecs(vec![(
+    fn pid_too_long_attribute_paths() -> VecNonEmpty<NormalizedCredentialRequest> {
+        request::mock::mock_from_vecs(vec![(
             LOGIN_ATTESTATION_TYPE.to_string(),
-            vec![VecNonEmpty::try_from(vec![
-                LOGIN_NAMESPACE.to_string(),
-                LOGIN_NAMESPACE.to_string(),
-                LOGIN_ATTRIBUTE_ID.to_string(),
-            ])
-            .unwrap()],
+            vec![
+                VecNonEmpty::try_from(vec![
+                    LOGIN_NAMESPACE.to_string(),
+                    LOGIN_NAMESPACE.to_string(),
+                    LOGIN_ATTRIBUTE_ID.to_string(),
+                ])
+                .unwrap(),
+            ],
         )])
     }
 }

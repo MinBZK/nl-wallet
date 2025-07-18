@@ -28,7 +28,9 @@ impl MigratorTrait for Migrator {
 async fn main() -> Result<(), Box<dyn Error>> {
     let settings = Settings::new()?;
 
-    std::env::set_var("DATABASE_URL", settings.database.connection_string());
+    unsafe {
+        std::env::set_var("DATABASE_URL", settings.database.connection_string());
+    }
     cli::run_cli(Migrator).await;
 
     Ok(())

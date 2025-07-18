@@ -19,7 +19,7 @@ abstract class WalletMockData {
   static Locale testLocale = const Locale('en');
 
   static WalletCard card = WalletCard(
-    attestationType: 'com.example.docType',
+    attestationType: 'com.example.attestationType',
     issuer: WalletMockData.organization,
     attributes: [textDataAttribute],
     attestationId: 'id',
@@ -38,7 +38,7 @@ abstract class WalletMockData {
   );
 
   static WalletCard simpleRenderingCard = WalletCard(
-    attestationType: 'com.example.docType',
+    attestationType: 'com.example.attestationType',
     issuer: WalletMockData.organization,
     attributes: [textDataAttribute],
     metadata: [
@@ -55,7 +55,7 @@ abstract class WalletMockData {
 
   static WalletCard altCard = WalletCard(
     issuer: WalletMockData.organization,
-    attestationType: 'com.example.alt.docType',
+    attestationType: 'com.example.alt.attestationType',
     attributes: [textDataAttribute, textDataAttribute, textDataAttribute],
     attestationId: 'id2',
     metadata: [
@@ -99,7 +99,6 @@ abstract class WalletMockData {
     svgId: 'text_svgId',
     label: 'Label',
     value: const StringValue('Value'),
-    sourceCardId: 'com.example.docType',
   );
 
   static const Policy policy = Policy(

@@ -6,22 +6,23 @@
 use std::sync::LazyLock;
 
 use indexmap::IndexSet;
+use itertools::Itertools;
 use regex::Regex;
 use serde::Deserialize;
 use serde::Serialize;
 
 use attestation_types::request::AttributeRequest;
 use attestation_types::request::NormalizedCredentialRequest;
-use attestation_types::request::NormalizedCredentialRequests;
 use crypto::utils::random_string;
 use dcql::ClaimPath;
 use dcql::CredentialQueryFormat;
 use error_category::ErrorCategory;
 use mdoc::Document;
+use utils::vec_at_least::VecNonEmpty;
 
+use crate::Format;
 use crate::openid4vp::FormatAlg;
 use crate::openid4vp::VpFormat;
-use crate::Format;
 
 /// As specified in https://identity.foundation/presentation-exchange/spec/v2.0.0/#presentation-definition.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -98,8 +99,9 @@ impl Field {
     }
 }
 
-impl From<&NormalizedCredentialRequests> for PresentationDefinition {
-    fn from(requested_creds: &NormalizedCredentialRequests) -> Self {
+// TODO: Remove in PVW-4419
+impl From<&VecNonEmpty<NormalizedCredentialRequest>> for PresentationDefinition {
+    fn from(requested_creds: &VecNonEmpty<NormalizedCredentialRequest>) -> Self {
         PresentationDefinition {
             id: random_string(16),
             input_descriptors: requested_creds
@@ -120,9 +122,9 @@ impl From<&NormalizedCredentialRequests> for PresentationDefinition {
                                 .claims
                                 .iter()
                                 .map(|attr_req| {
-                                    let (namespace, attr) = attr_req.to_namespace_and_attribute().unwrap(); // TODO: error handling, TryFrom?
+                                    let path = attr_req.path.iter().map(|p| format!("['{p}']")).join("");
                                     Field {
-                                        path: vec![format!("$['{}']['{}']", namespace, attr)],
+                                        path: vec![format!("${path}")],
                                         intent_to_retain: attr_req.intent_to_retain,
                                     }
                                 })
@@ -144,7 +146,7 @@ pub struct PresentationSubmission {
     pub descriptor_map: Vec<InputDescriptorMappingObject>,
 }
 
-impl TryFrom<&PresentationDefinition> for NormalizedCredentialRequests {
+impl TryFrom<&PresentationDefinition> for VecNonEmpty<NormalizedCredentialRequest> {
     type Error = PdConversionError;
 
     fn try_from(pd: &PresentationDefinition) -> Result<Self, Self::Error> {
@@ -252,13 +254,15 @@ mod tests {
     use rstest::rstest;
     use serde_json::json;
 
-    use attestation_types::request::NormalizedCredentialRequests;
+    use attestation_types::request;
+    use attestation_types::request::NormalizedCredentialRequest;
+    use utils::vec_at_least::VecNonEmpty;
 
+    use super::FIELD_PATH_REGEX;
     use super::FormatAlg;
     use super::LimitDisclosure;
     use super::PresentationDefinition;
     use super::VpFormat;
-    use super::FIELD_PATH_REGEX;
 
     #[rstest]
     #[case("$['namespace']['attribute_name']", true)]
@@ -275,9 +279,9 @@ mod tests {
 
     #[test]
     fn convert_pd_credential_requests() {
-        let orginal: NormalizedCredentialRequests = NormalizedCredentialRequests::example();
+        let orginal: VecNonEmpty<NormalizedCredentialRequest> = request::mock::example();
         let pd: PresentationDefinition = (&orginal).into();
-        let converted: NormalizedCredentialRequests = (&pd).try_into().unwrap();
+        let converted: VecNonEmpty<NormalizedCredentialRequest> = (&pd).try_into().unwrap();
 
         assert_eq!(orginal, converted);
     }

@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use chrono::DateTime;
 use chrono::Utc;
 use derive_more::Constructor;
 use itertools::Itertools;
@@ -8,11 +9,13 @@ use rustls_pki_types::TrustAnchor;
 use tracing::info;
 use tracing::instrument;
 use url::Url;
+use uuid::Uuid;
 
 use attestation_data::auth::Organization;
+use attestation_data::credential_payload::CredentialPayload;
 use crypto::x509::CertificateError;
-use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
+use error_category::sentry_capture_error;
 use http_utils::reqwest::client_builder_accept_json;
 use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::tls::pinning::TlsPinningConfig;
@@ -23,10 +26,13 @@ use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::issuance_session::HttpVcMessageClient;
 use openid4vc::issuance_session::IssuanceSession;
 use openid4vc::issuance_session::IssuanceSessionError;
+use openid4vc::issuance_session::NormalizedCredentialPreview;
 use openid4vc::token::CredentialPreviewError;
 use openid4vc::token::TokenRequest;
 use platform_support::attested_key::AttestedKeyHolder;
 use update_policy_model::update_policy::VersionState;
+use utils::generator::Generator;
+use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 use wallet_account::NL_WALLET_CLIENT_ID;
 use wallet_configuration::wallet_config::WalletConfiguration;
@@ -48,8 +54,9 @@ use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
 use crate::storage::Storage;
 use crate::storage::StorageError;
-use crate::wallet::attestations::AttestationsError;
+use crate::storage::StoredAttestationCopy;
 use crate::wallet::Session;
+use crate::wallet::attestations::AttestationsError;
 use crate::wte::WteIssuanceClient;
 
 use super::Wallet;
@@ -60,24 +67,32 @@ pub enum IssuanceError {
     #[category(expected)]
     #[error("app version is blocked")]
     VersionBlocked,
+
     #[error("wallet is not registered")]
     #[category(expected)]
     NotRegistered,
+
     #[error("wallet is locked")]
     #[category(expected)]
     Locked,
+
     #[error("issuance session is not in the correct state")]
     #[category(expected)]
     SessionState,
+
     #[error("PID already present")]
     #[category(expected)]
     PidAlreadyPresent,
+
     #[error("could not start DigiD session: {0}")]
     DigidSessionStart(#[source] DigidSessionError),
+
     #[error("could not finish DigiD session: {0}")]
     DigidSessionFinish(#[source] DigidSessionError),
+
     #[error("could not retrieve attestations from issuer: {0}")]
     IssuanceSession(#[from] IssuanceSessionError),
+
     #[error("could not retrieve attestations from issuer: {error}")]
     IssuerServer {
         organization: Box<Organization>,
@@ -85,33 +100,46 @@ pub enum IssuanceError {
         #[source]
         error: IssuanceSessionError,
     },
+
     #[error("error sending instruction to Wallet Provider: {0}")]
     Instruction(#[from] InstructionError),
+
     #[error("invalid signature received from Wallet Provider: {0}")]
     #[category(critical)]
     Signature(#[from] signature::Error),
+
     #[error("no signature received from Wallet Provider")]
     #[category(critical)]
     MissingSignature,
+
     #[error("could not insert attestations in database: {0}")]
     AttestationStorage(#[source] StorageError),
+
     #[error("could not query attestations in database: {0}")]
     AttestationQuery(#[source] StorageError),
+
     #[error("could not store event in history database: {0}")]
     EventStorage(#[source] StorageError),
+
     #[error("key '{0}' not found in Wallet Provider")]
     #[category(pd)]
     KeyNotFound(String),
+
     #[error("could not read attestations from storage: {0}")]
     Attestations(#[source] AttestationsError),
+
     #[error("failed to read issuer registration from issuer certificate: {0}")]
     AttestationPreview(#[from] CredentialPreviewError),
+
     #[error("error finalizing pin change: {0}")]
     ChangePin(#[from] ChangePinError),
+
     #[error("JWT credential error: {0}")]
     JwtCredential(#[from] JwtError),
+
     #[error("error fetching update policy: {0}")]
     UpdatePolicy(#[from] UpdatePolicyError),
+
     #[error("error converting credential payload to attestation: {error}")]
     #[category(critical)]
     Attestation {
@@ -119,6 +147,7 @@ pub enum IssuanceError {
         #[source]
         error: AttestationError,
     },
+
     #[error("certificate error: {0}")]
     Certificate(#[from] CertificateError),
 }
@@ -337,14 +366,34 @@ where
         )
         .await?;
 
-        info!("successfully received token and previews from issuer");
-        let organization = &issuance_session.issuer_registration().organization;
-        let attestations = issuance_session
+        let preview_attestation_types = issuance_session
             .normalized_credential_preview()
             .iter()
-            .map(|preview_data| {
+            .map(|preview| preview.content.credential_payload.attestation_type.as_str())
+            .collect();
+
+        let stored = self
+            .storage
+            .read()
+            .await
+            .fetch_unique_attestations_by_type(&preview_attestation_types)
+            .await
+            .map_err(IssuanceError::AttestationQuery)?;
+
+        let previews_and_identity: Vec<(&NormalizedCredentialPreview, Option<String>)> =
+            match_preview_and_stored_attestations(
+                issuance_session.normalized_credential_preview(),
+                stored,
+                &TimeGenerator,
+            );
+
+        info!("successfully received token and previews from issuer");
+        let organization = &issuance_session.issuer_registration().organization;
+        let attestations = previews_and_identity
+            .into_iter()
+            .map(|(preview_data, identity)| {
                 let attestation = AttestationPresentation::create_from_attributes(
-                    AttestationIdentity::Ephemeral,
+                    identity.map_or(AttestationIdentity::Ephemeral, |id| AttestationIdentity::Fixed { id }),
                     preview_data.normalized_metadata.clone(),
                     organization.clone(),
                     &preview_data.content.credential_payload.attributes,
@@ -511,16 +560,54 @@ where
     }
 }
 
+fn match_preview_and_stored_attestations<'a>(
+    previews: &'a [NormalizedCredentialPreview],
+    stored_attestations: Vec<StoredAttestationCopy>,
+    time_generator: &impl Generator<DateTime<Utc>>,
+) -> Vec<(&'a NormalizedCredentialPreview, Option<String>)> {
+    let stored_credential_payloads: Vec<(CredentialPayload, Uuid)> = stored_attestations
+        .into_iter()
+        .map(|copy| copy.into_credential_payload_and_id())
+        .collect_vec();
+
+    previews
+        .iter()
+        .map(|preview| {
+            let identity = stored_credential_payloads
+                .iter()
+                .find(|(stored_preview, _)| {
+                    preview
+                        .content
+                        .credential_payload
+                        .matches_existing(&stored_preview.previewable_payload, time_generator)
+                })
+                .map(|(_, id)| id.to_string());
+
+            (preview, identity)
+        })
+        .collect_vec()
+}
+
 #[cfg(test)]
 mod tests {
+    use std::ops::Add;
+
     use assert_matches::assert_matches;
+    use chrono::Duration;
+    use futures::FutureExt;
+    use itertools::multiunzip;
     use mockall::predicate::*;
+    use p256::ecdsa::SigningKey;
+    use rand_core::OsRng;
     use rstest::rstest;
     use serial_test::serial;
     use url::Url;
+    use uuid::Uuid;
 
     use attestation_data::attributes::AttributeValue;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
+    use attestation_data::x509::CertificateType;
+    use crypto::server_keys::generate::Ca;
     use crypto::x509::BorrowingCertificateExtension;
     use http_utils::tls::pinning::TlsPinningConfig;
     use mdoc::holder::Mdoc;
@@ -531,14 +618,18 @@ mod tests {
     use openid4vc::oidc::OidcError;
     use openid4vc::token::TokenRequest;
     use openid4vc::token::TokenRequestGrantType;
-    use sd_jwt_vc_metadata::examples::VCT_EXAMPLE_CREDENTIAL;
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
+    use sd_jwt_vc_metadata::examples::VCT_EXAMPLE_CREDENTIAL;
+    use utils::generator::mock::MockTimeGenerator;
 
+    use crate::WalletEvent;
     use crate::attestation::AttestationAttributeValue;
     use crate::issuance::MockDigidSession;
     use crate::storage::StorageState;
+    use crate::storage::StoredAttestationFormat;
+    use crate::wallet::test::WalletWithStorageMock;
+    use crate::wallet::test::create_example_credential_payload;
     use crate::wallet::test::create_example_preview_data;
-    use crate::WalletEvent;
 
     use super::super::test;
     use super::super::test::WalletDeviceVendor;
@@ -557,13 +648,15 @@ mod tests {
             _ => IssuerRegistration::new_mock(),
         };
 
-        let attestations = vec![AttestationPresentation::create_for_issuance(
-            AttestationIdentity::Ephemeral,
-            type_metadata.to_normalized().unwrap(),
-            issuer_registration.organization.clone(),
-            mdoc.issuer_signed.clone().into_entries_by_namespace(),
-        )
-        .unwrap()]
+        let attestations = vec![
+            AttestationPresentation::create_for_issuance(
+                AttestationIdentity::Ephemeral,
+                type_metadata.to_normalized().unwrap(),
+                issuer_registration.organization.clone(),
+                mdoc.issuer_signed.clone().into_entries_by_namespace(),
+            )
+            .unwrap(),
+        ]
         .try_into()
         .unwrap();
 
@@ -863,29 +956,36 @@ mod tests {
         assert_matches!(error, IssuanceError::SessionState);
     }
 
+    fn mock_digid_session() -> MockDigidSession {
+        // Set up a mock DigiD session that returns a token request.
+        let mut session = MockDigidSession::default();
+
+        session.expect_into_token_request().return_once(|_uri| {
+            Ok(TokenRequest {
+                grant_type: TokenRequestGrantType::PreAuthorizedCode {
+                    pre_authorized_code: "123".to_string().into(),
+                },
+                code_verifier: None,
+                client_id: None,
+                redirect_uri: None,
+            })
+        });
+
+        session
+    }
+
     fn setup_wallet_with_digid_session() -> WalletWithMocks {
         // Prepare a registered wallet.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
+        wallet.session = Some(Session::Digid(mock_digid_session()));
+        wallet
+    }
 
-        // Set up a mock DigiD session that returns a token request.
-        let digid_session = {
-            let mut session = MockDigidSession::default();
-
-            session.expect_into_token_request().return_once(|_uri| {
-                Ok(TokenRequest {
-                    grant_type: TokenRequestGrantType::PreAuthorizedCode {
-                        pre_authorized_code: "123".to_string().into(),
-                    },
-                    code_verifier: None,
-                    client_id: None,
-                    redirect_uri: None,
-                })
-            });
-
-            session
-        };
-        wallet.session = Some(Session::Digid(digid_session));
-
+    fn setup_wallet_with_digid_session_and_database_mock() -> WalletWithStorageMock {
+        // Prepare a registered wallet.
+        let mut wallet =
+            WalletWithStorageMock::new_registered_and_unlocked_with_storage_mock(WalletDeviceVendor::Apple);
+        wallet.session = Some(Session::Digid(mock_digid_session()));
         wallet
     }
 
@@ -907,6 +1007,78 @@ mod tests {
             .expect_err("Continuing PID issuance should have resulted in error");
 
         assert_matches!(error, IssuanceError::IssuanceSession { .. });
+    }
+
+    #[tokio::test]
+    #[serial(MockIssuanceSession)]
+    async fn test_continue_pid_issuance_with_renewed_attestation() {
+        let mut wallet = setup_wallet_with_digid_session_and_database_mock();
+
+        // When the attestation already exists in the database, we expect the identity to be known
+        let mut previews = vec![create_example_preview_data()];
+
+        // When the attestation already exists in the database, but the preview has a newer nbf, it should be
+        // considered as a new attestation and the identity is None.
+        let mut preview = create_example_preview_data();
+        preview.content.credential_payload.not_before = Some(Utc::now().add(Duration::days(365)).into());
+        previews.push(preview);
+
+        // When the attestation_type is different from the one stored in the database, it should be
+        // considered as a new attestation and the identity is None.
+        let mut preview = create_example_preview_data();
+        preview.content.credential_payload.attestation_type = String::from("att_type_1");
+        previews.push(preview);
+
+        let holder_key = SigningKey::random(&mut OsRng);
+        let ca = Ca::generate("myca", Default::default()).unwrap();
+        let cert_type = CertificateType::from(IssuerRegistration::new_mock());
+        let issuer_key_pair = ca.generate_key_pair("mycert", cert_type, Default::default()).unwrap();
+
+        let (payload, _, normalized_metadata) = create_example_credential_payload();
+        let sd_jwt = payload
+            .into_sd_jwt(&normalized_metadata, holder_key.verifying_key(), &issuer_key_pair)
+            .now_or_never()
+            .unwrap()
+            .unwrap();
+
+        let attestation_id = Uuid::new_v4();
+        let stored = StoredAttestationCopy {
+            attestation_id,
+            attestation_copy_id: Uuid::new_v4(),
+            attestation: StoredAttestationFormat::SdJwt {
+                sd_jwt: Box::new(sd_jwt.into()),
+            },
+            normalized_metadata,
+        };
+
+        let storage = wallet.mut_storage();
+        storage
+            .expect_fetch_unique_attestations_by_type()
+            .return_once(move |_attestation_types| Ok(vec![stored]));
+
+        // Set up the `MockIssuanceSession` to return one `CredentialPreviewState`.
+        let start_context = MockIssuanceSession::start_context();
+        start_context.expect().return_once(|| {
+            let mut client = MockIssuanceSession::new();
+
+            client.expect_normalized_credential_previews().return_const(previews);
+
+            client.expect_issuer().return_const(IssuerRegistration::new_mock());
+
+            Ok(client)
+        });
+
+        // Continuing PID issuance should result in one preview `Attestation`.
+        let attestations = wallet
+            .continue_pid_issuance(Url::parse(REDIRECT_URI).unwrap())
+            .await
+            .expect("Could not continue PID issuance");
+
+        assert_eq!(attestations.len(), 3);
+
+        assert_matches!(&attestations[0].identity, AttestationIdentity::Fixed { id } if id == &attestation_id.to_string());
+        assert_matches!(&attestations[1].identity, AttestationIdentity::Ephemeral);
+        assert_matches!(&attestations[2].identity, AttestationIdentity::Ephemeral);
     }
 
     #[tokio::test]
@@ -1217,5 +1389,56 @@ mod tests {
 
         assert!(wallet.has_registration());
         assert!(!wallet.is_locked());
+    }
+
+    #[test]
+    fn test_match_preview_and_stored_attestations() {
+        let holder_key = SigningKey::random(&mut OsRng);
+
+        let ca = Ca::generate("myca", Default::default()).unwrap();
+        let cert_type = CertificateType::from(IssuerRegistration::new_mock());
+        let issuer_key_pair = ca.generate_key_pair("mycert", cert_type, Default::default()).unwrap();
+
+        let (payload, _, normalized_metadata) = create_example_credential_payload();
+        let sd_jwt = payload
+            .into_sd_jwt(&normalized_metadata, holder_key.verifying_key(), &issuer_key_pair)
+            .now_or_never()
+            .unwrap()
+            .unwrap();
+
+        let attestation_id = Uuid::new_v4();
+        let stored = StoredAttestationCopy {
+            attestation_id,
+            attestation_copy_id: Uuid::new_v4(),
+            attestation: StoredAttestationFormat::SdJwt {
+                sd_jwt: Box::new(sd_jwt.into()),
+            },
+            normalized_metadata,
+        };
+
+        // When the attestation already exists in the database, we expect the identity to be known
+        let previews = [create_example_preview_data()];
+        let result =
+            match_preview_and_stored_attestations(&previews, vec![stored.clone()], &MockTimeGenerator::epoch());
+        let (_, identities): (Vec<_>, Vec<_>) = multiunzip(result);
+        assert_eq!(vec![Some(attestation_id.to_string())], identities);
+
+        // When the attestation already exists in the database, but the preview has a newer nbf, it should be considered
+        // as a new attestation and the identity is None.
+        let mut preview = create_example_preview_data();
+        preview.content.credential_payload.not_before = Some(Utc::now().add(Duration::days(365)).into());
+        let previews = [preview];
+        let result =
+            match_preview_and_stored_attestations(&previews, vec![stored.clone()], &MockTimeGenerator::epoch());
+        let (_, identities): (Vec<_>, Vec<_>) = multiunzip(result);
+        assert_eq!(vec![None], identities);
+
+        // When the attestation doesn't exists in the database, the identity is None.
+        let mut preview = create_example_preview_data();
+        preview.content.credential_payload.attestation_type = String::from("att_type_1");
+        let previews = [preview];
+        let result = match_preview_and_stored_attestations(&previews, vec![stored], &MockTimeGenerator::epoch());
+        let (_, identities): (Vec<_>, Vec<_>) = multiunzip(result);
+        assert_eq!(vec![None], identities);
     }
 }
