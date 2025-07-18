@@ -1,8 +1,8 @@
 use futures::TryFutureExt;
-use reqwest::header::ACCEPT;
 use reqwest::ClientBuilder;
 use reqwest::Method;
 use reqwest::Response;
+use reqwest::header::ACCEPT;
 use serde::de::DeserializeOwned;
 
 use http_utils::reqwest::client_builder_accept_json;
@@ -19,9 +19,9 @@ use crate::openid4vp::VpResponse;
 use crate::openid4vp::WalletRequest;
 use crate::verifier::VpToken;
 
+use super::APPLICATION_OAUTH_AUTHZ_REQ_JWT;
 use super::VpMessageClient;
 use super::VpMessageClientError;
-use super::APPLICATION_OAUTH_AUTHZ_REQ_JWT;
 
 #[derive(Debug, Clone)]
 pub struct HttpVpMessageClient {

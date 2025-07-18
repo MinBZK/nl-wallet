@@ -1,6 +1,6 @@
-use assert_json_diff::assert_json_matches;
 use assert_json_diff::CompareMode;
 use assert_json_diff::Config;
+use assert_json_diff::assert_json_matches;
 use rstest::rstest;
 use serde_json::Value;
 

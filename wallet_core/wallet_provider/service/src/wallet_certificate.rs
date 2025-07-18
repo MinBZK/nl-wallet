@@ -4,9 +4,9 @@ use p256::ecdsa::VerifyingKey;
 use p256::pkcs8::EncodePublicKey;
 use tracing::debug;
 
+use hsm::model::Hsm;
 use hsm::model::encrypted::Encrypted;
 use hsm::model::encrypter::Decrypter;
-use hsm::model::Hsm;
 use hsm::service::HsmError;
 use jwt::EcdsaDecodingKey;
 use jwt::Jwt;
@@ -205,10 +205,10 @@ pub mod mock {
     use p256::ecdsa::SigningKey;
     use p256::ecdsa::VerifyingKey;
 
+    use hsm::model::Hsm;
     use hsm::model::encrypted::Encrypted;
     use hsm::model::encrypter::Encrypter;
     use hsm::model::mock::MockPkcs11Client;
-    use hsm::model::Hsm;
     use hsm::service::HsmError;
 
     pub const SIGNING_KEY_IDENTIFIER: &str = "certificate_signing_key_1";

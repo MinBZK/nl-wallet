@@ -5,9 +5,9 @@ use std::str::FromStr;
 
 use base64::display::Base64Display;
 use base64::engine::general_purpose::STANDARD;
-use data_url::forgiving_base64::InvalidBase64;
 use data_url::DataUrl;
 use data_url::DataUrlError;
+use data_url::forgiving_base64::InvalidBase64;
 use serde_with::DeserializeFromStr;
 use serde_with::SerializeDisplay;
 use url::Url;

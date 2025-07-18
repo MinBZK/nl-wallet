@@ -31,13 +31,13 @@ pub use crate::wallet::Wallet;
 pub mod attestation_data {
     pub use attestation_data::attributes::Attribute;
     pub use attestation_data::attributes::AttributeValue;
+    pub use attestation_data::auth::Image;
+    pub use attestation_data::auth::LocalizedStrings;
+    pub use attestation_data::auth::Organization;
     pub use attestation_data::auth::reader_auth::DeletionPolicy;
     pub use attestation_data::auth::reader_auth::ReaderRegistration;
     pub use attestation_data::auth::reader_auth::RetentionPolicy;
     pub use attestation_data::auth::reader_auth::SharingPolicy;
-    pub use attestation_data::auth::Image;
-    pub use attestation_data::auth::LocalizedStrings;
-    pub use attestation_data::auth::Organization;
     pub use attestation_data::disclosure_type::DisclosureType;
 }
 
@@ -71,11 +71,11 @@ pub mod utils {
 pub mod wallet_deps {
     pub use crate::account_provider::AccountProviderClient;
     pub use crate::account_provider::HttpAccountProviderClient;
-    pub use crate::config::default_config_server_config;
-    pub use crate::config::default_wallet_config;
     pub use crate::config::FileStorageConfigurationRepository;
     pub use crate::config::HttpConfigurationRepository;
     pub use crate::config::WalletConfigurationRepository;
+    pub use crate::config::default_config_server_config;
+    pub use crate::config::default_wallet_config;
     pub use crate::issuance::DigidSession;
     pub use crate::issuance::HttpDigidSession;
     pub use crate::repository::BackgroundUpdateableRepository;
@@ -92,9 +92,9 @@ pub mod wallet_deps {
 pub mod mock {
     pub use crate::account_provider::MockAccountProviderClient;
     pub use crate::config::LocalConfigurationRepository;
-    pub use crate::issuance::MockDigidSession;
     pub use crate::issuance::BSN_ATTR_NAME;
+    pub use crate::issuance::MockDigidSession;
     pub use crate::issuance::PID_DOCTYPE;
-    pub use crate::storage::MockStorage;
+    pub use crate::storage::StorageStub;
     pub use crate::update_policy::MockUpdatePolicyRepository;
 }

@@ -28,23 +28,23 @@ void main() {
   blocTest(
     'verify loading state without preloaded card',
     build: () => CardDetailBloc(observeWalletCardDetailUseCase, null),
-    act: (bloc) => bloc.add(CardDetailLoadTriggered(WalletMockData.card.id!)),
+    act: (bloc) => bloc.add(CardDetailLoadTriggered(WalletMockData.card.attestationId!)),
     expect: () => [const CardDetailLoadInProgress()],
   );
 
   blocTest(
     'verify loading state with mismatched preloaded card',
     build: () => CardDetailBloc(observeWalletCardDetailUseCase, WalletMockData.altCard),
-    act: (bloc) => bloc.add(CardDetailLoadTriggered(WalletMockData.card.id!)),
+    act: (bloc) => bloc.add(CardDetailLoadTriggered(WalletMockData.card.attestationId!)),
     expect: () => [const CardDetailLoadInProgress()],
   );
 
   blocTest(
     'verify success state with preloaded card',
     build: () => CardDetailBloc(observeWalletCardDetailUseCase, WalletMockData.card),
-    act: (bloc) => bloc.add(CardDetailLoadTriggered(WalletMockData.card.id!)),
+    act: (bloc) => bloc.add(CardDetailLoadTriggered(WalletMockData.card.attestationId!)),
     setUp: () {
-      when(observeWalletCardDetailUseCase.invoke(WalletMockData.card.id))
+      when(observeWalletCardDetailUseCase.invoke(WalletMockData.card.attestationId))
           .thenAnswer((_) => Stream.value(WalletMockData.cardDetail));
     },
     expect: () => [CardDetailLoadSuccess(WalletMockData.cardDetail)],
@@ -53,11 +53,11 @@ void main() {
   blocTest(
     'verify error state with preloaded card',
     build: () => CardDetailBloc(observeWalletCardDetailUseCase, WalletMockData.card),
-    act: (bloc) => bloc.add(CardDetailLoadTriggered(WalletMockData.card.id!)),
+    act: (bloc) => bloc.add(CardDetailLoadTriggered(WalletMockData.card.attestationId!)),
     setUp: () {
-      when(observeWalletCardDetailUseCase.invoke(WalletMockData.card.id))
+      when(observeWalletCardDetailUseCase.invoke(WalletMockData.card.attestationId))
           .thenAnswer((_) => Stream.error('Failed to load card details'));
     },
-    expect: () => [CardDetailLoadFailure(WalletMockData.card.id!)],
+    expect: () => [CardDetailLoadFailure(WalletMockData.card.attestationId!)],
   );
 }

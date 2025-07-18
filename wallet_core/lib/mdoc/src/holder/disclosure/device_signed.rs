@@ -1,7 +1,7 @@
-use coset::iana;
 use coset::CoseMac0Builder;
 use coset::Header;
 use coset::HeaderBuilder;
+use coset::iana;
 
 use indexmap::IndexMap;
 use p256::PublicKey;
@@ -12,11 +12,11 @@ use crypto::keys::CredentialEcdsaKey;
 
 use crate::errors::Result;
 use crate::iso::*;
-use crate::utils::cose::sign_coses;
 use crate::utils::cose::ClonePayload;
+use crate::utils::cose::sign_coses;
 use crate::utils::crypto::dh_hmac_key;
-use crate::utils::serialization::cbor_serialize;
 use crate::utils::serialization::TaggedBytes;
+use crate::utils::serialization::cbor_serialize;
 
 impl DeviceSigned {
     pub async fn new_signatures<K, KF>(
@@ -76,12 +76,12 @@ mod tests {
     use crypto::examples::Examples;
     use crypto::server_keys::generate::Ca;
 
-    use crate::examples::Example;
-    use crate::examples::IsoCertTimeGenerator;
-    use crate::holder::Mdoc;
     use crate::DeviceAuthenticationBytes;
     use crate::DeviceSigned;
     use crate::Document;
+    use crate::examples::Example;
+    use crate::examples::IsoCertTimeGenerator;
+    use crate::holder::Mdoc;
 
     #[tokio::test]
     async fn test_mac_device_signed() {
@@ -89,7 +89,7 @@ mod tests {
         let mdoc = Mdoc::new_example_resigned(&ca).await;
 
         let eph_reader_key = Examples::ephemeral_reader_key();
-        let session_transcript = DeviceAuthenticationBytes::example().0 .0.session_transcript;
+        let session_transcript = DeviceAuthenticationBytes::example().0.0.session_transcript;
 
         // We grab the private key directly from the `Examples` instead of obtaining a `LocalEcdsaKey` from `mdoc`,
         // because we need to access it directly in this test to convert it to a `SecretKey`.

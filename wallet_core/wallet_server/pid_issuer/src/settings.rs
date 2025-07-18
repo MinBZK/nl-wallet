@@ -12,10 +12,10 @@ use http_utils::urls::BaseUrl;
 use issuer_settings::settings::IssuerSettings;
 use issuer_settings::settings::IssuerSettingsError;
 use openid4vc::server_state::SessionStoreTimeouts;
+use server_utils::settings::NL_WALLET_CLIENT_ID;
 use server_utils::settings::SecretKey;
 use server_utils::settings::ServerSettings;
 use server_utils::settings::Settings;
-use server_utils::settings::NL_WALLET_CLIENT_ID;
 use utils::path::prefix_local_path;
 
 #[serde_as]

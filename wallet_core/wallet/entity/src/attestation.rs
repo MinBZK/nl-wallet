@@ -1,11 +1,13 @@
 use derive_more::Constructor;
-use sea_orm::entity::prelude::*;
 use sea_orm::FromJsonQueryResult;
+use sea_orm::entity::prelude::*;
 use serde::Deserialize;
 use serde::Serialize;
 use uuid::Uuid;
 
 use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
+
+use super::attestation_copy;
 
 #[derive(Debug, Clone, PartialEq, Eq, DeriveEntityModel)]
 #[sea_orm(table_name = "attestation")]
@@ -22,13 +24,20 @@ pub struct TypeMetadataModel {
     pub documents: VerifiedTypeMetadataDocuments,
 }
 
-#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+#[derive(Copy, Clone, Debug, EnumIter)]
 pub enum Relation {
-    #[sea_orm(has_many = "super::attestation_copy::Entity")]
     AttestationCopy,
 }
 
-impl Related<super::attestation_copy::Entity> for Entity {
+impl RelationTrait for Relation {
+    fn def(&self) -> RelationDef {
+        match self {
+            Self::AttestationCopy => Entity::has_many(attestation_copy::Entity).into(),
+        }
+    }
+}
+
+impl Related<attestation_copy::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::AttestationCopy.def()
     }

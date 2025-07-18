@@ -189,8 +189,8 @@ impl SdObjectDecoder {
         processed_digests: &mut Vec<String>,
     ) -> Result<Value, Error> {
         let decoded = match disclosure.claim_value() {
-            Value::Array(ref sub_arr) => Value::Array(self.decode_array(sub_arr, disclosures, processed_digests)?),
-            Value::Object(ref sub_obj) => Value::Object(self.decode_object(sub_obj, disclosures, processed_digests)?),
+            Value::Array(sub_arr) => Value::Array(self.decode_array(sub_arr, disclosures, processed_digests)?),
+            Value::Object(sub_obj) => Value::Object(self.decode_object(sub_obj, disclosures, processed_digests)?),
             _ => disclosure.claim_value().clone(),
         };
 

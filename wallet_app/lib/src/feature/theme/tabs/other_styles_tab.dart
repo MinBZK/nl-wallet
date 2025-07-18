@@ -15,7 +15,6 @@ import '../../../theme/light_wallet_theme.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
 import '../../../wallet_assets.dart';
-import '../../card/data/widget/data_privacy_banner.dart';
 import '../../common/screen/placeholder_screen.dart';
 import '../../common/sheet/confirm_action_sheet.dart';
 import '../../common/sheet/error_details_sheet.dart';
@@ -92,28 +91,26 @@ final _kSampleAttributes = [
     svgId: 'key1',
     label: 'Sample #1'.untranslated,
     value: const StringValue('1'),
-    sourceCardDocType: 'sourceCardDocType',
   ),
   DataAttribute(
     key: 'key2',
     svgId: 'key2',
     label: 'Sample #2'.untranslated,
     value: const StringValue('2'),
-    sourceCardDocType: 'sourceCardDocType',
   ),
 ];
 
 final _kSampleCard = WalletCard(
-  id: 'id',
-  docType: 'docType',
+  attestationId: 'id',
+  attestationType: 'attestationType',
   metadata: _kSampleCardMetaData,
   attributes: _kSampleAttributes,
   issuer: _kSampleOrganization,
 );
 
 final _kAltSampleCard = WalletCard(
-  id: 'alt_id',
-  docType: 'alt_docType',
+  attestationId: 'alt_id',
+  attestationType: 'alt_attestationType',
   metadata: _kAltSampleCardMetaData,
   attributes: _kSampleAttributes,
   issuer: _kSampleOrganization,
@@ -327,7 +324,6 @@ class OtherStylesTab extends StatelessWidget {
           attribute: DataAttribute.untranslated(
             value: const StringValue('This is a DataAttributeRow with type text'),
             label: 'Label',
-            sourceCardDocType: 'id',
             key: _kMockOtherKey,
           ),
         ),
@@ -346,19 +342,16 @@ class OtherStylesTab extends StatelessWidget {
               DataAttribute.untranslated(
                 label: 'Voornaam',
                 value: const StringValue(''),
-                sourceCardDocType: '',
                 key: '',
               ),
               DataAttribute.untranslated(
                 label: 'Achternaam',
                 value: const StringValue(''),
-                sourceCardDocType: '',
                 key: '',
               ),
               DataAttribute.untranslated(
                 label: 'Postcode',
                 value: const StringValue(''),
-                sourceCardDocType: '',
                 key: '',
               ),
             ],
@@ -419,8 +412,8 @@ class OtherStylesTab extends StatelessWidget {
             purpose: _kMockPurpose.untranslated,
             cards: [
               WalletCard(
-                id: 'id',
-                docType: 'docType',
+                attestationId: 'id',
+                attestationType: 'attestationType',
                 metadata: _kSampleCardMetaData,
                 attributes: const [],
                 issuer: _kSampleOrganization,
@@ -446,8 +439,8 @@ class OtherStylesTab extends StatelessWidget {
             purpose: _kMockPurpose.untranslated,
             cards: [
               WalletCard(
-                id: 'id',
-                docType: 'docType',
+                attestationId: 'id',
+                attestationType: 'attestationType',
                 metadata: _kSampleCardMetaData,
                 attributes: const [],
                 issuer: _kSampleOrganization,
@@ -491,8 +484,6 @@ class OtherStylesTab extends StatelessWidget {
       children: [
         const ThemeSectionHeader(title: 'Miscellaneous'),
         const SizedBox(height: 12),
-        const ThemeSectionSubHeader(title: 'DataPrivacyBanner'),
-        const DataPrivacyBanner(),
         const ThemeSectionSubHeader(title: 'StepperIndicator'),
         const StepperIndicator(padding: EdgeInsets.zero),
         const ThemeSectionSubHeader(title: 'AnimatedVisibilityBackButton'),
@@ -507,8 +498,8 @@ class OtherStylesTab extends StatelessWidget {
         SelectCardRow(
           onPressed: () {},
           card: WalletCard(
-            id: 'row_id',
-            docType: 'docType',
+            attestationId: 'row_id',
+            attestationType: 'attestationType',
             metadata: _kSampleCardMetaData,
             attributes: const [],
             issuer: _kSampleOrganization,

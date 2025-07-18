@@ -1,8 +1,8 @@
 // Copyright 2020-2024 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use base64::prelude::BASE64_STANDARD;
 use base64::Engine;
+use base64::prelude::BASE64_STANDARD;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use jsonwebtoken::Algorithm;
@@ -11,14 +11,14 @@ use p256::ecdsa::VerifyingKey;
 use serde::Serialize;
 use ssri::Integrity;
 
-use crypto::x509::BorrowingCertificate;
 use crypto::EcdsaKeySend;
-use jwt::jwk::jwk_from_p256;
+use crypto::x509::BorrowingCertificate;
 use jwt::VerifiedJwt;
+use jwt::jwk::jwk_from_p256;
 
 use crate::disclosure::Disclosure;
-use crate::encoder::SdObjectEncoder;
 use crate::encoder::DEFAULT_SALT_SIZE;
+use crate::encoder::SdObjectEncoder;
 use crate::error::Result;
 use crate::hasher::Hasher;
 use crate::hasher::Sha256Hasher;

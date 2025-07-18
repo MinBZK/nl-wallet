@@ -10,7 +10,6 @@ DataAttribute _$DataAttributeFromJson(Map<String, dynamic> json) => DataAttribut
       key: json['key'] as String,
       label: const LocalizedTextConverter().fromJson(json['label'] as Map<String, dynamic>),
       value: const AttributeValueConverter().fromJson(json['value'] as Map<String, dynamic>),
-      sourceCardDocType: json['sourceCardDocType'] as String,
       svgId: json['svgId'] as String?,
     );
 
@@ -18,6 +17,5 @@ Map<String, dynamic> _$DataAttributeToJson(DataAttribute instance) => <String, d
       'key': instance.key,
       'label': const LocalizedTextConverter().toJson(instance.label),
       'value': const AttributeValueConverter().toJson(instance.value),
-      'sourceCardDocType': instance.sourceCardDocType,
       'svgId': instance.svgId,
     };

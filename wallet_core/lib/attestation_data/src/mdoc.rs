@@ -5,9 +5,6 @@ use ssri::Integrity;
 
 use crypto::keys::EcdsaKey;
 use crypto::server_keys::KeyPair;
-use mdoc::utils::cose::CoseKey;
-use mdoc::utils::cose::MdocCose;
-use mdoc::utils::serialization::TaggedBytes;
 use mdoc::DigestAlgorithm;
 use mdoc::Error;
 use mdoc::IssuerNameSpaces;
@@ -16,6 +13,9 @@ use mdoc::MobileSecurityObject;
 use mdoc::MobileSecurityObjectVersion;
 use mdoc::Result;
 use mdoc::ValidityInfo;
+use mdoc::utils::cose::CoseKey;
+use mdoc::utils::cose::MdocCose;
+use mdoc::utils::serialization::TaggedBytes;
 
 use crate::credential_payload::PreviewableCredentialPayload;
 
@@ -79,9 +79,9 @@ mod test {
     use p256::ecdsa::VerifyingKey;
     use ssri::Integrity;
 
-    use crypto::server_keys::KeyPair;
     use crypto::CredentialEcdsaKey;
     use crypto::EcdsaKey;
+    use crypto::server_keys::KeyPair;
     use mdoc::holder::Mdoc;
 
     use crate::credential_payload::PreviewableCredentialPayload;
@@ -115,8 +115,8 @@ mod tests {
     use rand_core::OsRng;
     use ssri::Integrity;
 
-    use crypto::server_keys::generate::Ca;
     use crypto::EcdsaKey;
+    use crypto::server_keys::generate::Ca;
     use mdoc::holder::Mdoc;
     use mdoc::test::generate_issuer_mock;
     use mdoc::utils::serialization::TaggedBytes;

@@ -140,7 +140,7 @@ class IssuanceRequestDetailsScreen extends StatelessWidget {
         return AnimatedCardSwitcher(
           enableAnimation: !context.isScreenReaderEnabled,
           child: SharedAttributesCard(
-            key: ValueKey(request.selection.id),
+            key: ValueKey(request.selection.attestationId),
             card: request.selection,
             onPressed: () => _onShowCardDetailsPressed(context, request),
             onChangeCardPressed:

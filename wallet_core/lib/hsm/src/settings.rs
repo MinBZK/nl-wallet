@@ -2,8 +2,8 @@ use std::path::PathBuf;
 use std::time::Duration;
 
 use serde::Deserialize;
-use serde_with::serde_as;
 use serde_with::DurationSeconds;
+use serde_with::serde_as;
 
 #[serde_as]
 #[derive(Clone, Deserialize)]

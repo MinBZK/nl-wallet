@@ -4,26 +4,26 @@ use cfg_if::cfg_if;
 use futures::try_join;
 use tokio::sync::RwLock;
 
-use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
+use error_category::sentry_capture_error;
 use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::tls::pinning::TlsPinningConfig;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::VpDisclosureClient;
 use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::hw_keystore::hardware::HardwareEncryptionKey;
-use platform_support::utils::hardware::HardwareUtilities;
 use platform_support::utils::PlatformUtilities;
 use platform_support::utils::UtilitiesError;
+use platform_support::utils::hardware::HardwareUtilities;
 use update_policy_model::update_policy::VersionState;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
-use crate::config::default_config_server_config;
-use crate::config::default_wallet_config;
-use crate::config::init_universal_link_base_url;
 use crate::config::ConfigurationError;
 use crate::config::UpdatingConfigurationRepository;
 use crate::config::WalletConfigurationRepository;
+use crate::config::default_config_server_config;
+use crate::config::default_wallet_config;
+use crate::config::init_universal_link_base_url;
 use crate::lock::WalletLock;
 use crate::repository::BackgroundUpdateableRepository;
 use crate::repository::Repository;
@@ -262,7 +262,7 @@ mod tests {
     use rand_core::OsRng;
 
     use crate::pin::key as pin_key;
-    use crate::storage::MockStorage;
+    use crate::storage::StorageStub;
 
     use super::super::test;
     use super::super::test::WalletDeviceVendor;
@@ -302,7 +302,7 @@ mod tests {
     #[tokio::test]
     async fn test_wallet_init_fetch_registration_no_registration() {
         let wallet = WalletWithMocks::new_init_registration_with_mocks(
-            MockStorage::new(StorageState::Unopened, None),
+            StorageStub::new(StorageState::Unopened, None),
             test::generate_key_holder(WalletDeviceVendor::Apple),
         )
         .await
@@ -326,7 +326,7 @@ mod tests {
         let pin_salt = pin_key::new_pin_salt();
 
         let wallet = WalletWithMocks::new_init_registration_with_mocks(
-            MockStorage::new(
+            StorageStub::new(
                 StorageState::Unopened,
                 Some(RegistrationData {
                     attested_key_identifier: "key_id_123".to_string(),
@@ -357,7 +357,7 @@ mod tests {
     #[should_panic]
     async fn test_wallet_init_fetch_with_registration_panic() {
         let _ = WalletWithMocks::new_init_registration_with_mocks(
-            MockStorage::new(
+            StorageStub::new(
                 StorageState::Unopened,
                 Some(RegistrationData {
                     attested_key_identifier: "key_id_321".to_string(),

@@ -8,8 +8,8 @@ use tempfile::TempDir;
 
 use utils::path::prefix_local_path;
 
-use gba_hc_converter::gba::encryption::encrypt_bytes_to_dir;
 use gba_hc_converter::gba::encryption::HmacSha256;
+use gba_hc_converter::gba::encryption::encrypt_bytes_to_dir;
 use gba_hc_converter::settings::SymmetricKey;
 
 fn xml_resources_path() -> PathBuf {

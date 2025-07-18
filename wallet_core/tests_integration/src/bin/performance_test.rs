@@ -1,12 +1,13 @@
 use ctor::ctor;
-use indexmap::IndexMap;
 use reqwest::StatusCode;
 use tracing::instrument;
 use url::Url;
 
+use attestation_types::request::AttributeRequest;
+use attestation_types::request::NormalizedCredentialRequest;
+use dcql::CredentialQueryFormat;
 use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::tls::pinning::TlsPinningConfig;
-use mdoc::ItemsRequest;
 use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::issuance_session::HttpIssuanceSession;
 use openid4vc::verifier::SessionType;
@@ -18,9 +19,9 @@ use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
 use tests_integration::default;
 use tests_integration::fake_digid::fake_digid_auth;
 use tests_integration::logging::init_logging;
-use wallet::mock::MockStorage;
-use wallet::wallet_deps::default_config_server_config;
-use wallet::wallet_deps::default_wallet_config;
+use wallet::DisclosureUriSource;
+use wallet::Wallet;
+use wallet::mock::StorageStub;
 use wallet::wallet_deps::HttpAccountProviderClient;
 use wallet::wallet_deps::HttpConfigurationRepository;
 use wallet::wallet_deps::HttpDigidSession;
@@ -28,8 +29,8 @@ use wallet::wallet_deps::Repository;
 use wallet::wallet_deps::UpdatePolicyRepository;
 use wallet::wallet_deps::UpdateableRepository;
 use wallet::wallet_deps::WpWteIssuanceClient;
-use wallet::DisclosureUriSource;
-use wallet::Wallet;
+use wallet::wallet_deps::default_config_server_config;
+use wallet::wallet_deps::default_wallet_config;
 
 #[ctor]
 fn init() {
@@ -39,7 +40,7 @@ fn init() {
 type PerformanceTestWallet = Wallet<
     HttpConfigurationRepository<TlsPinningConfig>,
     UpdatePolicyRepository,
-    MockStorage,
+    StorageStub,
     MockHardwareAttestedKeyHolder,
     HttpAccountProviderClient,
     HttpDigidSession,
@@ -80,7 +81,7 @@ async fn main() {
     let mut wallet: PerformanceTestWallet = Wallet::init_registration(
         config_repository,
         update_policy_repository,
-        MockStorage::default(),
+        StorageStub::default(),
         MockHardwareAttestedKeyHolder::new_apple_mock(default::attestation_environment(), default::app_identifier()),
         HttpAccountProviderClient::default(),
         VpDisclosureClient::new_http(default_reqwest_client_builder()).unwrap(),
@@ -118,20 +119,24 @@ async fn main() {
 
     let start_request = StartDisclosureRequest {
         usecase: "xyz_bank".to_owned(),
-        items_requests: Some(
-            vec![ItemsRequest {
-                doc_type: "urn:eudi:pid:nl:1".to_owned(),
-                request_info: None,
-                name_spaces: IndexMap::from([(
-                    "urn:eudi:pid:nl:1".to_owned(),
-                    IndexMap::from_iter(
-                        [("given_name", true), ("family_name", false)]
-                            .iter()
-                            .map(|(name, intent_to_retain)| (name.to_string(), *intent_to_retain)),
+        credential_requests: Some(
+            vec![NormalizedCredentialRequest {
+                format: CredentialQueryFormat::MsoMdoc {
+                    doctype_value: "urn:eudi:pid:nl:1".to_string(),
+                },
+                claims: vec![
+                    AttributeRequest::new_with_keys(
+                        vec!["urn:eudi:pid:nl:1".to_string(), "given_name".to_string()],
+                        true,
                     ),
-                )]),
+                    AttributeRequest::new_with_keys(
+                        vec!["urn:eudi:pid:nl:1".to_string(), "family_name".to_string()],
+                        false,
+                    ),
+                ],
             }]
-            .into(),
+            .try_into()
+            .unwrap(),
         ),
         return_url_template: Some(relying_party_url.parse().unwrap()),
     };

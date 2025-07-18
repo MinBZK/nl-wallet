@@ -1,6 +1,6 @@
+use reqwest::Response;
 use reqwest::header::LOCATION;
 use reqwest::redirect::Policy;
-use reqwest::Response;
 use url::Url;
 
 use http_utils::reqwest::IntoPinnedReqwestClient;

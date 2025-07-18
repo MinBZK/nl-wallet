@@ -5,8 +5,8 @@ use std::sync::Arc;
 use derive_more::Debug;
 use rustls_pki_types::CertificateDer;
 use rustls_pki_types::TrustAnchor;
-use webpki::anchor_from_trusted_cert;
 use webpki::Error;
+use webpki::anchor_from_trusted_cert;
 use yoke::Yoke;
 use yoke::Yokeable;
 

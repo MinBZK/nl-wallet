@@ -148,7 +148,7 @@ pub trait AttestedKeyHolder {
     ///
     /// Only one instance can exist within the process, an error is returned if a second one is created.
     fn attested_key(&self, key_identifier: String)
-        -> Result<AttestedKey<Self::AppleKey, Self::GoogleKey>, Self::Error>;
+    -> Result<AttestedKey<Self::AppleKey, Self::GoogleKey>, Self::Error>;
 }
 
 /// Trait for an Apple attested key. Note that [`SecureEcdsaKey`] is not

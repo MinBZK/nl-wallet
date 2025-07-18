@@ -13,7 +13,7 @@ import 'package:wallet_core/core.dart' as core;
 import '../../../mocks/core_mock_data.dart';
 import '../../../mocks/wallet_mocks.dart';
 
-const _kSampleDocType = 'pid_id';
+const _kSampleAttestationType = 'pid_id';
 const _kSampleAttributeName = CoreMockData.attestationAttributeName;
 const _kSampleAttributeCity = CoreMockData.attestationAttributeCity;
 const _kSampleIssuer = CoreMockData.organization;
@@ -27,7 +27,7 @@ const _kSampleCard = core.AttestationPresentation(
 );
 
 void main() {
-  late Mapper<CardAttributeWithDocType, DataAttribute> mockCardAttributeMapper;
+  late Mapper<CardAttributeWithCardId, DataAttribute> mockCardAttributeMapper;
   late Mapper<String, CardConfig> mockCardConfigMapper;
   late Mapper<core.Organization, Organization> mockOrganizationMapper;
   late Mapper<core.DisplayMetadata, CardDisplayMetadata> mockDisplayMetadataMapper;
@@ -53,18 +53,18 @@ void main() {
   group('map', () {
     test('card with `InMemory` persistence should return null as `id`', () {
       final WalletCard actual = mapper.map(_kSampleCard);
-      expect(actual.id, isNull);
+      expect(actual.attestationId, isNull);
     });
 
     test('card with `stored` persistence should return storage `id`', () {
       const input = core.AttestationPresentation(
         identity: core.AttestationIdentity.fixed(id: 'id-987'),
-        attestationType: _kSampleDocType,
+        attestationType: _kSampleAttestationType,
         displayMetadata: [CoreMockData.enDisplayMetadata],
         attributes: [],
         issuer: _kSampleIssuer,
       );
-      expect(mapper.map(input).id, 'id-987');
+      expect(mapper.map(input).attestationId, 'id-987');
     });
 
     test('all card attributes should be mapped by the attributeMapper', () {
@@ -72,7 +72,7 @@ void main() {
 
       verify(
         mockCardAttributeMapper.mapList(
-          _kSampleCard.attributes.map((e) => CardAttributeWithDocType(_kSampleCard.attestationType, e)),
+          _kSampleCard.attributes.map((e) => CardAttributeWithCardId(null, e)),
         ),
       ).called(1);
     });

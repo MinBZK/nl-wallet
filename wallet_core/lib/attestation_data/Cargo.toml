@@ -38,6 +38,7 @@ rcgen = { workspace = true, optional = true, features = ["x509-parser", "aws_lc_
 
 attestation_types.path = "../attestation_types"
 crypto.path = "../crypto"
+dcql.path = "../dcql"
 error_category.path = "../error_category"
 http_utils.path = "../http_utils"
 jwt.path = "../jwt"
@@ -59,6 +60,7 @@ serde_valid.workspace = true
 time = { workspace = true, features = ["macros"] }
 tokio = { workspace = true, features = ["macros"] }
 
+attestation_types = { path = "../attestation_types", features = ["mock"] }
 crypto = { path = "../crypto", features = ["generate", "mock"] }
 jwt.path = "../jwt"
 mdoc = { path = "../mdoc", features = ["mock", "mock_example_constructors", "test"] }

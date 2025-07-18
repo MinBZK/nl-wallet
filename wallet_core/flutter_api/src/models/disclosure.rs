@@ -1,10 +1,10 @@
 use itertools::Itertools;
 use url::Url;
 
+use wallet::DisclosureProposalPresentation;
 use wallet::attestation_data::ReaderRegistration;
 use wallet::errors::DisclosureError;
 use wallet::openid4vc::SessionType;
-use wallet::DisclosureProposalPresentation;
 
 use super::attestation::AttestationPresentation;
 use super::image::Image;

@@ -1,8 +1,8 @@
 use std::fmt::Display;
 
 use cfg_if::cfg_if;
-use http::header::InvalidHeaderValue;
 use http::HeaderValue;
+use http::header::InvalidHeaderValue;
 use itertools::Itertools;
 use nutype::nutype;
 use serde::Deserialize;

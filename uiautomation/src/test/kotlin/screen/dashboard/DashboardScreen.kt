@@ -36,7 +36,7 @@ class DashboardScreen : MobileActions() {
     fun clickMenuButton() = clickElement(menuButton, false)
 
     fun clickPidCard() {
-        scrollToEnd(ScrollableType.CustomScrollView)
+        scrollToEndOnDashBoard()
         clickElement(pidIdCard, false)
     }
 
@@ -53,7 +53,7 @@ class DashboardScreen : MobileActions() {
     fun openQRScanner() = clickElement(scanQRButton)
 
     fun cardVisible(vct: String): Boolean {
-        scrollToEnd(ScrollableType.CustomScrollView)
+        scrollToEndOnDashBoard()
         return isElementVisible(find.byValueKey(vct))
     }
 }

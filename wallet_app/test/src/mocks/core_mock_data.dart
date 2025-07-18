@@ -4,7 +4,7 @@ import 'package:wallet_mock/mock.dart';
 abstract class CoreMockData {
   static const AttestationPresentation attestation = AttestationPresentation(
     identity: AttestationIdentity_Ephemeral(),
-    attestationType: MockConstants.pidDocType,
+    attestationType: MockAttestationTypes.pid,
     displayMetadata: [enDisplayMetadata, nlDisplayMetadata],
     issuer: organization,
     attributes: [attestationAttributeName],

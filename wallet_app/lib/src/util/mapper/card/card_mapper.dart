@@ -10,8 +10,8 @@ import 'attribute/card_attribute_mapper.dart';
 
 /// Maps a [Attestation] to a [WalletCard] and enriches with (currently) hardcoded data.
 class CardMapper extends Mapper<core.AttestationPresentation, WalletCard> {
-  final Mapper<String /*docType*/, CardConfig> _cardConfigMapper;
-  final Mapper<CardAttributeWithDocType, DataAttribute> _attributeMapper;
+  final Mapper<String /*attestationId*/, CardConfig> _cardConfigMapper;
+  final Mapper<CardAttributeWithCardId, DataAttribute> _attributeMapper;
   final Mapper<core.Organization, Organization> _organizationMapper;
   final Mapper<core.DisplayMetadata, CardDisplayMetadata> _displayMetadataMapper;
 
@@ -30,13 +30,13 @@ class CardMapper extends Mapper<core.AttestationPresentation, WalletCard> {
     };
 
     return WalletCard(
-      id: cardId,
-      docType: input.attestationType,
+      attestationId: cardId,
+      attestationType: input.attestationType,
       issuer: _organizationMapper.map(input.issuer),
       attributes: _attributeMapper.mapList(
         input.attributes.map(
-          (attribute) => CardAttributeWithDocType(
-            input.attestationType,
+          (attribute) => CardAttributeWithCardId(
+            cardId,
             attribute,
           ),
         ),
