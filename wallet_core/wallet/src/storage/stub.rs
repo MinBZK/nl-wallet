@@ -189,6 +189,14 @@ impl Storage for StorageStub {
         Ok(())
     }
 
+    async fn has_any_attestations_with_type(&self, attestation_type: &str) -> StorageResult<bool> {
+        self.check_query_error()?;
+
+        let has_attestations = self.issued_credential_copies.contains_key(attestation_type);
+
+        Ok(has_attestations)
+    }
+
     async fn fetch_unique_attestations(&self) -> StorageResult<Vec<StoredAttestationCopy>> {
         self.check_query_error()?;
 
@@ -224,22 +232,6 @@ impl Storage for StorageStub {
             .into_iter()
             .filter(|attestation| attestation_types.contains(attestation.attestation_id.to_string().as_str()))
             .collect_vec())
-    }
-
-    async fn has_any_attestations_with_type(&self, attestation_type: &str) -> StorageResult<bool> {
-        Ok(!self
-            .fetch_unique_attestations()
-            .await
-            .unwrap()
-            .into_iter()
-            .filter(|copy| match &copy.attestation {
-                StoredAttestationFormat::MsoMdoc { mdoc } => mdoc.doc_type() == attestation_type,
-                StoredAttestationFormat::SdJwt { sd_jwt } => {
-                    sd_jwt.as_ref().as_ref().claims().properties.get("vct").unwrap() == attestation_type
-                }
-            })
-            .collect_vec()
-            .is_empty())
     }
 
     async fn fetch_unique_mdocs_by_doctypes<'a>(
