@@ -4,7 +4,6 @@ use std::collections::HashSet;
 use chrono::DateTime;
 use chrono::Duration;
 use chrono::Utc;
-use indexmap::IndexMap;
 use itertools::Itertools;
 use sea_orm::DbErr;
 use uuid::Uuid;
@@ -21,7 +20,6 @@ use crate::AttestationPresentation;
 use crate::DisclosureStatus;
 
 use super::Storage;
-use super::StorageError;
 use super::StorageResult;
 use super::StorageState;
 use super::StoredAttestationCopy;
@@ -42,7 +40,7 @@ pub enum KeyedDataResult {
 pub struct StorageStub {
     pub state: StorageState,
     pub data: HashMap<&'static str, KeyedDataResult>,
-    pub issued_credential_copies: IndexMap<String, Vec<CredentialWithMetadata>>,
+    pub issued_credential_copies: HashMap<String, Vec<CredentialWithMetadata>>,
     pub attestation_copies_usage_counts: HashMap<Uuid, u32>,
     pub event_log: Vec<WalletEvent>,
     pub has_query_error: bool,
@@ -62,7 +60,7 @@ impl StorageStub {
         StorageStub {
             state,
             data,
-            issued_credential_copies: IndexMap::new(),
+            issued_credential_copies: HashMap::new(),
             attestation_copies_usage_counts: HashMap::new(),
             event_log: vec![],
             has_query_error: false,
@@ -210,14 +208,14 @@ impl Storage for StorageStub {
                     IssuedCredential::SdJwt(sd_jwt) => StoredAttestationFormat::SdJwt { sd_jwt: sd_jwt.clone() },
                 };
 
-                Ok::<_, StorageError>(StoredAttestationCopy {
+                StoredAttestationCopy {
                     attestation_id: Uuid::now_v7(),
                     attestation_copy_id: Uuid::now_v7(),
                     attestation,
-                    normalized_metadata: credential.metadata_documents.to_normalized()?,
-                })
+                    normalized_metadata: credential.metadata_documents.to_normalized().unwrap(),
+                }
             })
-            .try_collect()?;
+            .collect();
 
         Ok(attestations)
     }
