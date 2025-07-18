@@ -7,8 +7,8 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
 use url::Url;
-use x509_parser::der_parser::asn1_rs::oid;
 use x509_parser::der_parser::Oid;
+use x509_parser::der_parser::asn1_rs::oid;
 
 use crypto::x509::BorrowingCertificateExtension;
 use error_category::ErrorCategory;
@@ -146,8 +146,9 @@ impl BorrowingCertificateExtension for ReaderRegistration {
 pub mod mock {
     use itertools::Itertools;
 
-    use attestation_types::request::NormalizedCredentialRequests;
+    use attestation_types::request::NormalizedCredentialRequest;
     use dcql::CredentialQueryFormat;
+    use utils::vec_at_least::VecNonEmpty;
 
     use super::*;
 
@@ -179,7 +180,7 @@ pub mod mock {
             .into()
         }
 
-        pub fn mock_from_credential_requests(authorized_requests: &NormalizedCredentialRequests) -> Self {
+        pub fn mock_from_credential_requests(authorized_requests: &VecNonEmpty<NormalizedCredentialRequest>) -> Self {
             let authorized_attributes = authorized_requests.as_ref().iter().fold(
                 HashMap::new(),
                 |mut acc: HashMap<String, Vec<VecNonEmpty<ClaimPath>>>, credential_request| {
@@ -214,7 +215,7 @@ pub mod mock {
                     intent_to_retain: true,
                     max_duration_in_minutes: Some(60 * 24 * 365),
                 },
-                sharing_policy: SharingPolicy { intent_to_share: true },
+                sharing_policy: SharingPolicy { intent_to_share: false },
                 deletion_policy: DeletionPolicy { deleteable: true },
                 organization,
                 request_origin_base_url: "https://example.com/".parse().unwrap(),

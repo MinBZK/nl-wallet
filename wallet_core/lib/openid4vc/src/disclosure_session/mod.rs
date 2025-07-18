@@ -1,10 +1,10 @@
 use std::hash::Hash;
 
-use attestation_types::request::NormalizedCredentialRequests;
 use rustls_pki_types::TrustAnchor;
 
-use crypto::factory::KeyFactory;
+use attestation_types::request::NormalizedCredentialRequest;
 use crypto::CredentialEcdsaKey;
+use crypto::factory::KeyFactory;
 use http_utils::urls::BaseUrl;
 use mdoc::holder::Mdoc;
 use poa::factory::PoaFactory;
@@ -17,11 +17,11 @@ pub use self::error::DisclosureError;
 pub use self::error::VpClientError;
 pub use self::error::VpSessionError;
 pub use self::error::VpVerifierError;
+pub use self::message_client::APPLICATION_OAUTH_AUTHZ_REQ_JWT;
 pub use self::message_client::HttpVpMessageClient;
 pub use self::message_client::VpMessageClient;
 pub use self::message_client::VpMessageClientError;
 pub use self::message_client::VpMessageClientErrorType;
-pub use self::message_client::APPLICATION_OAUTH_AUTHZ_REQ_JWT;
 pub use self::session::VpDisclosureSession;
 pub use self::uri_source::DisclosureUriSource;
 pub use self::verifier_certificate::VerifierCertificate;
@@ -49,7 +49,7 @@ pub trait DisclosureClient {
 
 pub trait DisclosureSession {
     fn session_type(&self) -> SessionType;
-    fn credential_requests(&self) -> &NormalizedCredentialRequests;
+    fn credential_requests(&self) -> &VecNonEmpty<NormalizedCredentialRequest>;
     fn verifier_certificate(&self) -> &VerifierCertificate;
 
     async fn terminate(self) -> Result<Option<BaseUrl>, VpSessionError>;

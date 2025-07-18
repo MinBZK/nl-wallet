@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2025-07-09T17:12:22+02:00",
+    "@@last_modified": "2025-07-16T10:17:26+02:00",
     "aboutScreenDescription": "De NL Wallet wordt gemaakt door de Nederlandse overheid, zodat iedereen digitale diensten veilig en gemakkelijk kan gebruiken.\n\nJe kunt de ontwikkelingen volgen op {url}.",
     "aboutScreenPrivacyCta": "Privacyverklaring",
     "aboutScreenTitle": "Over de NL Wallet",
@@ -22,7 +22,7 @@
     "appBlockedScreenTitle": "Een nieuwe app versie is vereist",
     "appTitle": "NL Wallet",
     "applicationErrorDetailsTitle": "Technische details",
-    "biometricSettingsScreenDescription": "Hiermee open je de NL Wallet sneller. Je gebruikt jouw {supportedBiometrics} in plaats van jouw pincode.\nZet {supportedBiometrics} aan en bevestig met jouw pincode.",
+    "biometricSettingsScreenDescription": "Je pincode gebruik je voor het delen van gegevens. {supportedBiometrics} kun je alleen gebruiken om de app sneller te openen.\nZet {supportedBiometrics} aan en bevestig met jouw pincode.",
     "@biometricSettingsScreenDescription": {
         "placeholders": {
             "supportedBiometrics": {
@@ -50,7 +50,7 @@
             }
         }
     },
-    "biometricSettingsScreenSuccessDescription": "Je app is beveiligd met je pincode en {supportedBiometrics}.",
+    "biometricSettingsScreenSuccessDescription": "Vergeet je nieuwe pincode niet. Je hebt die nodig om gegevens te delen. Met {supportedBiometrics} kun je alleen de app openen.",
     "@biometricSettingsScreenSuccessDescription": {
         "placeholders": {
             "supportedBiometrics": {
@@ -100,6 +100,7 @@
     "cardDataScreenIncorrectCta": "Kloppen de gegevens niet?",
     "cardDataScreenTitle": "Gegevens uit {title}",
     "cardDetailScreenCardDataCta": "Gegevens in deze kaart",
+    "cardDetailScreenCardDataPrivacyWarning": "Houd je gegevens privé",
     "cardDetailScreenCardDeleteCta": "Kaart verwijderen",
     "cardDetailScreenCardHistoryCta": "Kaartactiviteiten",
     "cardDetailScreenCardUpdateCta": "Opnieuw ophalen",
@@ -324,6 +325,32 @@
     "disclosureReportSubmittedPageCloseCta": "Sluiten",
     "disclosureReportSubmittedPageSubtitle": "Je melding is anoniem verstuurd.\n\nDeel nooit je gegevens met een organisatie die je niet vertrouwt.",
     "disclosureReportSubmittedPageTitle": "Bedankt voor je feedback",
+    "disclosureRequestedAttributeDescription": "Om in te loggen, deel je je {attribute} zodat {organization} zeker weet dat jij het bent.",
+    "@disclosureRequestedAttributeDescription": {
+        "placeholders": {
+            "attribute": {
+                "example": "BSN",
+                "type": "String"
+            },
+            "organization": {
+                "example": "Organisatie XYZ",
+                "type": "String"
+            }
+        }
+    },
+    "disclosureRequestedAttributesDescription": "Om in te loggen, deel je {nrOfAttributes} gegevens zodat {organization} zeker weet dat jij het bent.",
+    "@disclosureRequestedAttributesDescription": {
+        "placeholders": {
+            "nrOfAttributes": {
+                "example": "4",
+                "type": "int"
+            },
+            "organization": {
+                "example": "Organisatie XYZ",
+                "type": "String"
+            }
+        }
+    },
     "disclosureStopSheetDescription": "Als je stopt worden er geen gegevens gedeeld met {organization}.",
     "@disclosureStopSheetDescription": {
         "placeholders": {
@@ -698,7 +725,7 @@
     "issuanceRelyingPartyErrorDescription": "De kaart(en) kunnen niet worden toegevoegd. Dit kan meerdere redenen hebben.\n\nGa terug naar de website van de organisatie waar je begon en probeer het opnieuw. Lukt het nog steeds niet? Neem contact op met de organisatie.",
     "issuanceRelyingPartyErrorDescriptionWithOrganizationName": "De kaarten kunnen niet worden toegevoegd. Dit kan meerdere redenen hebben.\n\nGa terug naar de website van {organization} waar je begon en probeer het opnieuw. Lukt het nog steeds niet? Neem contact op met {organization}.",
     "issuanceRelyingPartyErrorTitle": "Sorry, er gaat iets mis",
-    "issuanceRequestedAttributeDescription": "Om je kaarten te ontvangen, deel je je {attribute} zodat {organization} zeker weet dat jij het echt bent.",
+    "issuanceRequestedAttributeDescription": "Om je kaarten te ontvangen, deel je je {attribute} zodat {organization} zeker weet dat jij het bent.",
     "@issuanceRequestedAttributeDescription": {
         "placeholders": {
             "attribute": {
@@ -711,7 +738,7 @@
             }
         }
     },
-    "issuanceRequestedAttributesDescription": "Om je kaarten te ontvangen, deel je {nrOfAttributes} gegevens zodat {organization} zeker weet dat jij het echt bent.",
+    "issuanceRequestedAttributesDescription": "Om je kaarten te ontvangen, deel je {nrOfAttributes} gegevens zodat {organization} zeker weet dat jij het bent.",
     "@issuanceRequestedAttributesDescription": {
         "placeholders": {
             "nrOfAttributes": {
@@ -1138,7 +1165,7 @@
     },
     "settingsScreenSetupBiometricsNotSupportedSubtitle": "Niet beschikbaar op dit toestel",
     "settingsScreenTitle": "Instellingen",
-    "setupBiometricsPageDescription": "Hierdoor open je sneller je NL Wallet. Je gebruikt je gezicht of vingerafdruk in plaats van je pincode.",
+    "setupBiometricsPageDescription": "Je pincode gebruik je voor het delen van gegevens. Gezicht-scan of vingerafdruk kun je alleen gebruiken om de app sneller te openen.",
     "setupBiometricsPageEnableCta": "Aanzetten",
     "setupBiometricsPageLocalizedReason": "Om de app te openen",
     "setupBiometricsPageSkipCta": "Overslaan",

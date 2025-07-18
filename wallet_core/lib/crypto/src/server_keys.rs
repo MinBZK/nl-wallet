@@ -78,19 +78,19 @@ impl<S: EcdsaKey> EcdsaKey for KeyPair<S> {
 #[cfg(any(test, feature = "generate"))]
 pub mod generate {
     use p256::ecdsa::SigningKey;
-    use p256::pkcs8::der::asn1::SequenceOf;
-    use p256::pkcs8::der::Encode;
     use p256::pkcs8::DecodePrivateKey;
     use p256::pkcs8::ObjectIdentifier;
+    use p256::pkcs8::der::Encode;
+    use p256::pkcs8::der::asn1::SequenceOf;
     use rcgen::BasicConstraints;
     use rcgen::CertificateParams;
     use rcgen::CustomExtension;
     use rcgen::DnType;
     use rcgen::IsCa;
+    use rcgen::PKCS_ECDSA_P256_SHA256;
     use rcgen::PublicKeyData;
     use rcgen::SanType;
     use rcgen::SubjectPublicKeyInfo;
-    use rcgen::PKCS_ECDSA_P256_SHA256;
     use rustls_pki_types::CertificateDer;
     use rustls_pki_types::TrustAnchor;
     use time::OffsetDateTime;

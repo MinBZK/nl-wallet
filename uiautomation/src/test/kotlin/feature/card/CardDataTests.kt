@@ -44,12 +44,11 @@ class CardDataTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.1 The Card attributes page displays all attributes on the card. 3 The App displays a warning indicating that the shown data is only for the User to see. [${JIRA_ID}]")
+    @DisplayName("$USE_CASE.1 The Card attributes page displays all attributes on the card. [${JIRA_ID}]")
     fun verifyCardData(testInfo: TestInfo) {
         setUp(testInfo)
         assertAll(
             { assertTrue(cardDataScreen.visible(), "card data screen is not visible") },
-            { assertTrue(cardDataScreen.dataPrivacyBannerVisible(), "privacy banner is not visible") },
             { assertTrue(cardDataScreen.dataAttributeVisible(gbaData.getValueByField(FIRST_NAME, "999991772")), "data attribute are not visible") },
             { assertTrue(cardDataScreen.dataLabelVisible(cardMetadata.getPidClaimLabel("given_name")), "data label are not visible") },
             { assertTrue(cardDataScreen.dataAttributeVisible(gbaData.getValueByField(NAME, "999991772")), "data attribute are not visible") },

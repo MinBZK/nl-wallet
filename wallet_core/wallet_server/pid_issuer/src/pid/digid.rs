@@ -3,16 +3,16 @@ use serde::Serialize;
 
 use http_utils::tls::pinning::TlsPinningConfig;
 use openid4vc::oidc;
-use openid4vc::oidc::alg::rsaes::RsaesJweAlgorithm;
-use openid4vc::oidc::alg::rsaes::RsaesJweDecrypter;
-use openid4vc::oidc::enc::aescbc_hmac::AescbcHmacJweEncryption;
 use openid4vc::oidc::BiscuitError;
 use openid4vc::oidc::Empty;
+use openid4vc::oidc::JWT;
 use openid4vc::oidc::JoseError;
 use openid4vc::oidc::OidcError;
 use openid4vc::oidc::OidcReqwestClient;
 use openid4vc::oidc::SignatureAlgorithm;
-use openid4vc::oidc::JWT;
+use openid4vc::oidc::alg::rsaes::RsaesJweAlgorithm;
+use openid4vc::oidc::alg::rsaes::RsaesJweDecrypter;
+use openid4vc::oidc::enc::aescbc_hmac::AescbcHmacJweEncryption;
 use openid4vc::token::TokenRequest;
 
 #[derive(Serialize, Deserialize)]

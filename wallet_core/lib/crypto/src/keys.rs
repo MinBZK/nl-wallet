@@ -1,8 +1,8 @@
 use std::error::Error;
 
-use aes_gcm::aead::Aead;
 use aes_gcm::Aes256Gcm;
 use aes_gcm::Nonce;
+use aes_gcm::aead::Aead;
 use derive_more::AsRef;
 use derive_more::From;
 use derive_more::Into;

@@ -4,8 +4,8 @@ use assert_matches::assert_matches;
 
 use attestation_data::auth::reader_auth::ReaderRegistration;
 use attestation_data::x509::generate::mock::generate_reader_mock;
-use crypto::server_keys::generate::Ca;
 use crypto::server_keys::KeyPair;
+use crypto::server_keys::generate::Ca;
 use crypto::x509::CertificateError;
 use openid4vc::verifier::SessionTypeReturnUrl;
 use server_utils::settings::CertificateVerificationError;
@@ -17,7 +17,7 @@ fn to_use_case(key_pair: KeyPair) -> UseCaseSettings {
     UseCaseSettings {
         session_type_return_url: SessionTypeReturnUrl::Both,
         key_pair: key_pair.into(),
-        credential_requests: None,
+        items_requests: None,
         return_url_template: None,
     }
 }

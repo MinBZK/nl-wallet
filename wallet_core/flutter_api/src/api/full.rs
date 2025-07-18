@@ -5,11 +5,11 @@ use tokio::sync::RwLock;
 use url::Url;
 
 use flutter_api_macros::flutter_api_error;
-use wallet::errors::WalletInitError;
-use wallet::utils::version_string;
 use wallet::DisclosureUriSource;
 use wallet::UnlockMethod;
 use wallet::Wallet;
+use wallet::errors::WalletInitError;
+use wallet::utils::version_string;
 
 use crate::frb_generated::StreamSink;
 use crate::logging::init_logging;

@@ -13,7 +13,6 @@ mock = []
 [dependencies]
 derive_more = { workspace = true, features = ["as_ref"] }
 itertools.workspace = true
-nutype = { workspace = true, features = ["serde"] }
 serde = { workspace = true, features = ["derive"] }
 serde_with = { workspace = true, features = ["macros"] }
 strum = { workspace = true, features = ["derive"] }

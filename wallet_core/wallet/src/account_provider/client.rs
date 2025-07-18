@@ -2,13 +2,13 @@ use std::hash::Hash;
 
 use http::StatusCode;
 use reqwest::RequestBuilder;
-use serde::de::DeserializeOwned;
 use serde::Serialize;
+use serde::de::DeserializeOwned;
 
 use http_utils::error::HttpJsonErrorBody;
-use http_utils::reqwest::parse_content_type;
 use http_utils::reqwest::IntoPinnedReqwestClient;
 use http_utils::reqwest::ReqwestClientUrl;
+use http_utils::reqwest::parse_content_type;
 use http_utils::tls::pinning::TlsPinningConfig;
 use wallet_account::messages::errors::AccountError;
 use wallet_account::messages::errors::AccountErrorType;
@@ -203,18 +203,18 @@ impl AccountProviderClient for HttpAccountProviderClient<TlsPinningConfig> {
 /// of `RemoteAccountServerClient` and `AccountServerResponseError`.
 mod tests {
     use assert_matches::assert_matches;
-    use http::header;
     use http::HeaderValue;
+    use http::header;
     use reqwest::StatusCode;
     use serde::Deserialize;
     use serde::Serialize;
-    use serde_json::json;
     use serde_json::Value;
-    use wiremock::matchers::method;
-    use wiremock::matchers::path;
+    use serde_json::json;
     use wiremock::Mock;
     use wiremock::MockServer;
     use wiremock::ResponseTemplate;
+    use wiremock::matchers::method;
+    use wiremock::matchers::path;
 
     use http_utils::reqwest::IntoPinnedReqwestClient;
     use http_utils::tls::insecure::InsecureHttpConfig;

@@ -1,20 +1,21 @@
 use futures::FutureExt;
 use indexmap::IndexMap;
 
-use attestation_types::request::NormalizedCredentialRequests;
+use attestation_types::request::NormalizedCredentialRequest;
 use crypto::examples::Examples;
 use crypto::mock_remote::MockRemoteKeyFactory;
 use crypto::server_keys::generate::Ca;
 use dcql::CredentialQueryFormat;
+use utils::vec_at_least::VecNonEmpty;
 
-use crate::examples::Example;
-use crate::examples::IsoCertTimeGenerator;
 use crate::examples::EXAMPLE_ATTR_NAME;
 use crate::examples::EXAMPLE_ATTR_VALUE;
 use crate::examples::EXAMPLE_DOC_TYPE;
 use crate::examples::EXAMPLE_NAMESPACE;
-use crate::holder::disclosure::credential_requests_to_mdoc_paths;
+use crate::examples::Example;
+use crate::examples::IsoCertTimeGenerator;
 use crate::holder::Mdoc;
+use crate::holder::disclosure::credential_requests_to_mdoc_paths;
 use crate::iso::device_retrieval::DeviceRequest;
 use crate::iso::device_retrieval::ItemsRequest;
 use crate::iso::device_retrieval::ReaderAuthenticationBytes;
@@ -33,7 +34,7 @@ fn create_example_device_response(
 ) -> DeviceResponse {
     let mut mdoc = Mdoc::new_example_resigned(ca).now_or_never().unwrap();
 
-    let credential_requests: NormalizedCredentialRequests = device_request.into_items_requests().into();
+    let credential_requests: VecNonEmpty<NormalizedCredentialRequest> = device_request.into_items_requests().into();
 
     assert_eq!(
         match &credential_requests.as_ref().first().unwrap().format {
@@ -132,7 +133,7 @@ async fn iso_examples_custom_disclosure() {
     }]);
     println!("My Request: {:#?}", DebugCollapseBts::from(&request));
 
-    let session_transcript = DeviceAuthenticationBytes::example().0 .0.session_transcript;
+    let session_transcript = DeviceAuthenticationBytes::example().0.0.session_transcript;
     let ca = Ca::generate_issuer_mock_ca().unwrap();
     let resp = create_example_device_response(request, &session_transcript, &ca);
     println!("My DeviceResponse: {:#?}", DebugCollapseBts::from(&resp));

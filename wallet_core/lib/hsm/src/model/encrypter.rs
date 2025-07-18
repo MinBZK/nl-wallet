@@ -2,8 +2,8 @@ use std::error::Error;
 
 use p256::ecdsa::VerifyingKey;
 
-use crate::model::encrypted::Encrypted;
 use crate::model::Hsm;
+use crate::model::encrypted::Encrypted;
 use crate::service::HsmError;
 use crate::service::Pkcs11Hsm;
 

@@ -3,10 +3,11 @@ use reqwest::ClientBuilder;
 use tracing::info;
 use tracing::warn;
 
-use attestation_types::request::NormalizedCredentialRequests;
+use attestation_types::request::NormalizedCredentialRequest;
 use crypto::utils as crypto_utils;
 use crypto::x509::BorrowingCertificate;
 use http_utils::urls::BaseUrl;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::errors::AuthorizationErrorCode;
 use crate::errors::ErrorResponse;
@@ -16,6 +17,8 @@ use crate::openid4vp::VpAuthorizationRequest;
 use crate::openid4vp::VpRequestUriObject;
 use crate::verifier::VerifierUrlParameters;
 
+use super::DisclosureClient;
+use super::VerifierCertificate;
 use super::error::VpClientError;
 use super::error::VpSessionError;
 use super::error::VpVerifierError;
@@ -24,8 +27,6 @@ use super::message_client::VpMessageClient;
 use super::message_client::VpMessageClientError;
 use super::session::VpDisclosureSession;
 use super::uri_source::DisclosureUriSource;
-use super::DisclosureClient;
-use super::VerifierCertificate;
 
 #[derive(Debug, Constructor)]
 pub struct VpDisclosureClient<H = HttpVpMessageClient> {
@@ -79,9 +80,9 @@ impl<H> VpDisclosureClient<H> {
     fn process_auth_request(
         request_uri_client_id: &str,
         auth_request_client_id: &str,
-        credential_requests: NormalizedCredentialRequests,
+        credential_requests: &VecNonEmpty<NormalizedCredentialRequest>,
         certificate: BorrowingCertificate,
-    ) -> Result<(NormalizedCredentialRequests, VerifierCertificate), VpVerifierError> {
+    ) -> Result<VerifierCertificate, VpVerifierError> {
         // The `client_id` in the Authorization Request, which has been authenticated, has to equal
         // the `client_id` that the RP sent in the Request URI object at the start of the session.
         if auth_request_client_id != request_uri_client_id {
@@ -99,10 +100,10 @@ impl<H> VpDisclosureClient<H> {
         // Verify that the requested attributes are included in the reader authentication.
         verifier_certificate
             .registration()
-            .verify_requested_attributes(&credential_requests.as_ref().as_slice())
+            .verify_requested_attributes(&credential_requests.as_ref())
             .map_err(VpVerifierError::RequestedAttributesValidation)?;
 
-        Ok((credential_requests, verifier_certificate))
+        Ok(verifier_certificate)
     }
 }
 
@@ -168,21 +169,15 @@ where
         let process_request_result = Self::process_auth_request(
             &request_uri_object.client_id,
             &auth_request.client_id,
-            auth_request.credential_requests.clone(),
+            &auth_request.credential_requests,
             certificate,
         );
-        let (requested_attribute_paths, verifier_certificate) = match process_request_result {
+        let verifier_certificate = match process_request_result {
             Ok(value) => value,
             Err(error) => return Err(self.report_error_back(auth_request.response_uri, error).await)?,
         };
 
-        let session = VpDisclosureSession::new(
-            self.client.clone(),
-            session_type,
-            requested_attribute_paths,
-            verifier_certificate,
-            auth_request,
-        );
+        let session = VpDisclosureSession::new(self.client.clone(), session_type, verifier_certificate, auth_request);
 
         Ok(session)
     }
@@ -204,7 +199,7 @@ mod tests {
 
     use attestation_data::auth::reader_auth::ReaderRegistration;
     use attestation_data::auth::reader_auth::ValidationError;
-    use attestation_types::request::NormalizedCredentialRequests;
+    use attestation_types::request;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::mock_remote::MockRemoteKeyFactory;
     use crypto::server_keys::generate::Ca;
@@ -226,19 +221,19 @@ mod tests {
     use crate::openid4vp::WalletRequest;
     use crate::verifier::SessionType;
 
+    use super::super::DisclosureClient;
+    use super::super::DisclosureSession;
+    use super::super::DisclosureUriSource;
     use super::super::client::VpMessageClientError;
     use super::super::error::VpClientError;
     use super::super::error::VpSessionError;
     use super::super::error::VpVerifierError;
-    use super::super::message_client::mock::request_uri_object;
     use super::super::message_client::mock::MockErrorFactoryVpMessageClient;
     use super::super::message_client::mock::MockVerifierSession;
     use super::super::message_client::mock::MockVerifierVpMessageClient;
     use super::super::message_client::mock::WalletMessage;
+    use super::super::message_client::mock::request_uri_object;
     use super::super::session::VpDisclosureSession;
-    use super::super::DisclosureClient;
-    use super::super::DisclosureSession;
-    use super::super::DisclosureUriSource;
     use super::VpDisclosureClient;
 
     static VERIFIER_URL: LazyLock<BaseUrl> = LazyLock::new(|| "http://example.com/disclosure".parse().unwrap());
@@ -342,7 +337,7 @@ mod tests {
         // Check all of the data the new `VpDisclosureSession` exposes.
         assert_eq!(disclosure_session.session_type(), session_type);
 
-        let expected_credential_requests = NormalizedCredentialRequests::mock_from_vecs(vec![(
+        let expected_credential_requests = request::mock::mock_from_vecs(vec![(
             PID.to_string(),
             vec![
                 vec![PID.to_string(), "bsn".to_string()].try_into().unwrap(),

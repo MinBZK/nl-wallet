@@ -18,9 +18,9 @@ impl Generator<DateTime<Utc>> for TimeGenerator {
 pub mod mock {
     use std::sync::Arc;
 
-    use chrono::offset::TimeZone;
     use chrono::DateTime;
     use chrono::Utc;
+    use chrono::offset::TimeZone;
     use parking_lot::RwLock;
 
     use super::Generator;

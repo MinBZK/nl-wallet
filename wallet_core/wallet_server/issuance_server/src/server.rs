@@ -6,6 +6,7 @@ use axum::Router;
 use futures::future::try_join_all;
 use tokio::net::TcpListener;
 
+use attestation_types::request::NormalizedCredentialRequest;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use hsm::service::Pkcs11Hsm;
 use openid4vc::credential::OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME;
@@ -76,7 +77,7 @@ where
             WalletInitiatedUseCase::try_new(
                 s.key_pair.parse(hsm.clone()).await?,
                 SessionTypeReturnUrl::Both,
-                s.to_disclose.try_into()?,
+                NormalizedCredentialRequest::try_from_query(s.to_disclose)?,
                 format!("{OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME}://").parse().unwrap(),
             )?,
         ))

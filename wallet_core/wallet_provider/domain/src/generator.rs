@@ -1,11 +1,11 @@
 #[cfg(feature = "mock")]
 pub mod mock {
-    use chrono::offset::TimeZone;
     use chrono::DateTime;
     use chrono::Utc;
+    use chrono::offset::TimeZone;
     use utils::generator::Generator;
-    use uuid::uuid;
     use uuid::Uuid;
+    use uuid::uuid;
 
     pub struct FixedUuidGenerator;
 

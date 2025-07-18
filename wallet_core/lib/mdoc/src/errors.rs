@@ -1,6 +1,7 @@
 use crypto::x509::CertificateError;
 use error_category::ErrorCategory;
 
+use crate::IssuerNameSpacesPreConditionError;
 use crate::holder::HolderError;
 use crate::identifiers::AttributeIdentifierError;
 use crate::utils::cose::CoseError;
@@ -8,7 +9,6 @@ use crate::utils::cose::KeysError;
 use crate::utils::crypto::CryptoError;
 use crate::utils::serialization::CborError;
 use crate::verifier::VerificationError;
-use crate::IssuerNameSpacesPreConditionError;
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 

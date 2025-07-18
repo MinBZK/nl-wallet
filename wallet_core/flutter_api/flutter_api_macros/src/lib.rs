@@ -1,7 +1,7 @@
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::parse_macro_input;
 use syn::ItemFn;
+use syn::parse_macro_input;
 
 /// This macro is to be used for all API functions that are exposed to Flutter
 /// via `flutter-rust-bridge`. Unfortunately, the bridging code generated can only

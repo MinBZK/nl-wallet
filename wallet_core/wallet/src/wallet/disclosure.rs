@@ -14,20 +14,20 @@ use uuid::Uuid;
 
 pub use openid4vc::disclosure_session::DisclosureUriSource;
 
+use attestation_data::auth::Organization;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::auth::reader_auth::ReaderRegistration;
-use attestation_data::auth::Organization;
 use attestation_data::disclosure_type::DisclosureType;
 use crypto::x509::BorrowingCertificateExtension;
 use crypto::x509::CertificateError;
 use dcql::CredentialQueryFormat;
 use entity::disclosure_event::EventStatus;
-use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
+use error_category::sentry_capture_error;
 use http_utils::tls::pinning::TlsPinningConfig;
 use http_utils::urls::BaseUrl;
-use mdoc::holder::disclosure::credential_requests_to_mdoc_paths;
 use mdoc::holder::Mdoc;
+use mdoc::holder::disclosure::credential_requests_to_mdoc_paths;
 use mdoc::utils::cose::CoseError;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::DisclosureSession;
@@ -57,9 +57,9 @@ use crate::storage::Storage;
 use crate::storage::StorageError;
 use crate::wallet::Session;
 
-use super::uri::identify_uri;
 use super::UriType;
 use super::Wallet;
+use super::uri::identify_uri;
 
 #[derive(Debug, Clone)]
 pub struct DisclosureProposalPresentation {
@@ -325,7 +325,7 @@ where
             .as_ref()
             .iter()
             .map(|r| match &r.format {
-                CredentialQueryFormat::MsoMdoc { ref doctype_value } => doctype_value.as_str(),
+                CredentialQueryFormat::MsoMdoc { doctype_value } => doctype_value.as_str(),
                 CredentialQueryFormat::SdJwt { .. } => todo!("PVW-4139 support SdJwt"),
             })
             .collect();
@@ -408,7 +408,7 @@ where
                 .as_ref()
                 .iter()
                 .flat_map(|request| match &request.format {
-                    CredentialQueryFormat::MsoMdoc { ref doctype_value } => request
+                    CredentialQueryFormat::MsoMdoc { doctype_value } => request
                         .claims
                         .iter()
                         .map(|path| {
@@ -889,7 +889,6 @@ mod tests {
     use std::sync::LazyLock;
 
     use assert_matches::assert_matches;
-    use attestation_types::request::NormalizedCredentialRequests;
     use itertools::Itertools;
     use mockall::predicate::always;
     use mockall::predicate::eq;
@@ -899,32 +898,33 @@ mod tests {
     use uuid::Uuid;
 
     use attestation_data::attributes::AttributeValue;
+    use attestation_data::auth::Organization;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::auth::reader_auth::ReaderRegistration;
-    use attestation_data::auth::Organization;
     use attestation_data::disclosure_type::DisclosureType;
     use attestation_data::x509::generate::mock::generate_reader_mock;
+    use attestation_types::request;
     use crypto::server_keys::generate::Ca;
     use crypto::x509::BorrowingCertificateExtension;
     use http_utils::urls;
     use http_utils::urls::BaseUrl;
     use mdoc::utils::cose::CoseError;
+    use openid4vc::PostAuthResponseErrorCode;
     use openid4vc::disclosure_session;
-    use openid4vc::disclosure_session::mock::MockDisclosureClient;
-    use openid4vc::disclosure_session::mock::MockDisclosureSession;
     use openid4vc::disclosure_session::DisclosureUriSource;
     use openid4vc::disclosure_session::VerifierCertificate;
     use openid4vc::disclosure_session::VpClientError;
     use openid4vc::disclosure_session::VpMessageClientError;
     use openid4vc::disclosure_session::VpSessionError;
     use openid4vc::disclosure_session::VpVerifierError;
+    use openid4vc::disclosure_session::mock::MockDisclosureClient;
+    use openid4vc::disclosure_session::mock::MockDisclosureSession;
     use openid4vc::errors::DisclosureErrorResponse;
     use openid4vc::errors::ErrorResponse;
     use openid4vc::errors::GetRequestErrorCode;
     use openid4vc::issuance_session::IssuedCredential;
     use openid4vc::mock::MockIssuanceSession;
     use openid4vc::verifier::SessionType;
-    use openid4vc::PostAuthResponseErrorCode;
     use update_policy_model::update_policy::VersionState;
     use utils::vec_at_least::VecNonEmpty;
 
@@ -941,10 +941,10 @@ mod tests {
     use crate::wallet::disclosure::DisclosureAttestation;
     use crate::wallet::test::setup_mock_recent_history_callback;
 
-    use super::super::test::create_example_pid_mdoc_credential;
+    use super::super::Session;
     use super::super::test::WalletDeviceVendor;
     use super::super::test::WalletWithMocks;
-    use super::super::Session;
+    use super::super::test::create_example_pid_mdoc_credential;
     use super::DisclosureError;
     use super::DisclosureProposalPresentation;
     use super::RedirectUriPurpose;
@@ -967,7 +967,7 @@ mod tests {
         requested_pid_path: VecNonEmpty<String>,
     ) -> MockDisclosureSession {
         let credential_requests =
-            NormalizedCredentialRequests::mock_from_vecs(vec![(PID_DOCTYPE.to_string(), vec![requested_pid_path])]);
+            request::mock::mock_from_vecs(vec![(PID_DOCTYPE.to_string(), vec![requested_pid_path])]);
 
         let mut disclosure_session = MockDisclosureSession::new();
         disclosure_session

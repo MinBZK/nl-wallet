@@ -5,8 +5,8 @@ use std::io;
 use android_logger::LogId;
 use android_logger::PlatformLogWriter;
 use cstr::cstr;
-use tracing::log;
 use tracing::Metadata;
+use tracing::log;
 use tracing_subscriber::fmt::MakeWriter;
 
 /// Print "core" as the tag in Android logs, to differentiate from Flutter messages.

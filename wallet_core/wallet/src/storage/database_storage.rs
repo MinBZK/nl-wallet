@@ -7,11 +7,6 @@ use chrono::DateTime;
 use chrono::Utc;
 use futures::try_join;
 use itertools::Itertools;
-use sea_orm::sea_query::Alias;
-use sea_orm::sea_query::BinOper;
-use sea_orm::sea_query::Expr;
-use sea_orm::sea_query::IntoColumnRef;
-use sea_orm::sea_query::Query;
 use sea_orm::ActiveModelTrait;
 use sea_orm::ColumnTrait;
 use sea_orm::ConnectionTrait;
@@ -24,6 +19,11 @@ use sea_orm::Select;
 use sea_orm::Set;
 use sea_orm::StatementBuilder;
 use sea_orm::TransactionTrait;
+use sea_orm::sea_query::Alias;
+use sea_orm::sea_query::BinOper;
+use sea_orm::sea_query::Expr;
+use sea_orm::sea_query::IntoColumnRef;
+use sea_orm::sea_query::Query;
 use sea_query::OnConflict;
 use sea_query::Order;
 use sea_query::SimpleExpr;
@@ -53,12 +53,10 @@ use platform_support::hw_keystore::PlatformEncryptionKey;
 use sd_jwt::hasher::Sha256Hasher;
 use sd_jwt::sd_jwt::VerifiedSdJwt;
 
-use super::data::KeyedData;
-use super::database::Database;
-use super::database::SqliteUrl;
-use super::event_log::WalletEvent;
-use super::key_file;
-use super::sql_cipher_key::SqlCipherKey;
+use crate::AttestationIdentity;
+use crate::AttestationPresentation;
+use crate::DisclosureStatus;
+
 use super::Storage;
 use super::StorageError;
 use super::StorageResult;
@@ -66,9 +64,12 @@ use super::StorageState;
 use super::StoredAttestationCopy;
 use super::StoredAttestationFormat;
 use super::StoredMdocCopy;
-use crate::AttestationIdentity;
-use crate::AttestationPresentation;
-use crate::DisclosureStatus;
+use super::data::KeyedData;
+use super::database::Database;
+use super::database::SqliteUrl;
+use super::event_log::WalletEvent;
+use super::key_file;
+use super::sql_cipher_key::SqlCipherKey;
 
 const DATABASE_NAME: &str = "wallet";
 const KEY_FILE_SUFFIX: &str = "_db";
@@ -599,6 +600,18 @@ where
         self.query_unique_attestations(identity).await
     }
 
+    async fn fetch_unique_attestations_by_type<'a>(
+        &'a self,
+        attestation_types: &HashSet<&'a str>,
+    ) -> StorageResult<Vec<StoredAttestationCopy>> {
+        self.query_unique_attestations(move |select| {
+            let attestation_types_iter = attestation_types.iter().copied();
+
+            select.filter(attestation::Column::AttestationType.is_in(attestation_types_iter))
+        })
+        .await
+    }
+
     async fn fetch_unique_mdocs_by_doctypes<'a>(
         &'a self,
         doc_types: &HashSet<&'a str>,
@@ -800,18 +813,18 @@ pub(crate) mod tests {
     use attestation_data::credential_payload::IntoCredentialPayload;
     use attestation_data::x509::generate::mock::generate_issuer_mock;
     use attestation_data::x509::generate::mock::generate_reader_mock;
-    use crypto::server_keys::generate::Ca;
     use crypto::server_keys::KeyPair;
+    use crypto::server_keys::generate::Ca;
     use crypto::utils::random_bytes;
     use mdoc::holder::Mdoc;
     use openid4vc::issuance_session::IssuedCredentialCopies;
     use platform_support::hw_keystore::mock::MockHardwareEncryptionKey;
-    use platform_support::utils::mock::MockHardwareUtilities;
     use platform_support::utils::PlatformUtilities;
+    use platform_support::utils::mock::MockHardwareUtilities;
     use sd_jwt::sd_jwt::SdJwt;
-    use sd_jwt_vc_metadata::examples::VCT_EXAMPLE_CREDENTIAL;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
+    use sd_jwt_vc_metadata::examples::VCT_EXAMPLE_CREDENTIAL;
     use wallet_account::messages::registration::WalletCertificate;
 
     use crate::storage::data::RegistrationData;
@@ -863,10 +876,12 @@ pub(crate) mod tests {
             SqliteUrl::File(ref path) => path.clone(),
             _ => panic!("Unexpected database URL"),
         };
-        assert!(database_path
-            .to_str()
-            .unwrap()
-            .contains("test_open_encrypted_database.db"));
+        assert!(
+            database_path
+                .to_str()
+                .unwrap()
+                .contains("test_open_encrypted_database.db")
+        );
         assert!(fs::try_exists(&database_path).await.unwrap());
 
         // The key file encryption key should be present.
@@ -1181,6 +1196,20 @@ pub(crate) mod tests {
 
         // One matching attestation should be returned
         assert_eq!(attestations.len(), 1);
+
+        // Fetching by attestation type should return the same attestation
+        let attestations = storage
+            .fetch_unique_attestations_by_type(&HashSet::from([attestation_type.as_str()]))
+            .await
+            .unwrap();
+        assert_eq!(attestations.len(), 1);
+
+        // Fetching by a different attestation type should return an empty list
+        let attestations = storage
+            .fetch_unique_attestations_by_type(&HashSet::from(["does_not_exist"]))
+            .await
+            .unwrap();
+        assert!(attestations.is_empty());
     }
 
     #[tokio::test]
@@ -1194,10 +1223,12 @@ pub(crate) mod tests {
         let timestamp = Utc.with_ymd_and_hms(2023, 11, 29, 10, 50, 45).unwrap();
 
         // No data shared with RP
-        assert!(!storage
-            .did_share_data_with_relying_party(READER_KEY.certificate())
-            .await
-            .unwrap());
+        assert!(
+            !storage
+                .did_share_data_with_relying_party(READER_KEY.certificate())
+                .await
+                .unwrap()
+        );
 
         // Log cancel event
         storage
@@ -1218,10 +1249,12 @@ pub(crate) mod tests {
         assert_eq!(fetched_events.first().unwrap().timestamp(), &timestamp);
 
         // Still no data shared with RP
-        assert!(!storage
-            .did_share_data_with_relying_party(READER_KEY.certificate())
-            .await
-            .unwrap());
+        assert!(
+            !storage
+                .did_share_data_with_relying_party(READER_KEY.certificate())
+                .await
+                .unwrap()
+        );
     }
 
     #[tokio::test]
@@ -1235,10 +1268,12 @@ pub(crate) mod tests {
         let timestamp = Utc.with_ymd_and_hms(2023, 11, 29, 10, 50, 45).unwrap();
 
         // No data shared with RP
-        assert!(!storage
-            .did_share_data_with_relying_party(READER_KEY.certificate())
-            .await
-            .unwrap());
+        assert!(
+            !storage
+                .did_share_data_with_relying_party(READER_KEY.certificate())
+                .await
+                .unwrap()
+        );
 
         // Log error event
         storage
@@ -1259,10 +1294,12 @@ pub(crate) mod tests {
         assert_eq!(fetched_events.first().unwrap().timestamp(), &timestamp);
 
         // Still no data shared with RP
-        assert!(!storage
-            .did_share_data_with_relying_party(READER_KEY.certificate())
-            .await
-            .unwrap());
+        assert!(
+            !storage
+                .did_share_data_with_relying_party(READER_KEY.certificate())
+                .await
+                .unwrap()
+        );
     }
 
     #[tokio::test]
@@ -1278,10 +1315,12 @@ pub(crate) mod tests {
         let earlier_disclosure_timestamp = Utc::now().sub(Duration::days(32));
 
         // No data shared with RP
-        assert!(!storage
-            .did_share_data_with_relying_party(READER_KEY.certificate())
-            .await
-            .unwrap());
+        assert!(
+            !storage
+                .did_share_data_with_relying_party(READER_KEY.certificate())
+                .await
+                .unwrap()
+        );
 
         let sd_jwt = SdJwt::example_pid_sd_jwt(&ISSUER_KEY);
         let credential = IssuedCredential::SdJwt(Box::new(sd_jwt.clone().into()));
@@ -1376,10 +1415,12 @@ pub(crate) mod tests {
         assert_eq!(fetched_events[2].timestamp(), &earlier_disclosure_timestamp);
 
         // Still no data has been shared with RP, because we only consider Successful events
-        assert!(!storage
-            .did_share_data_with_relying_party(READER_KEY.certificate())
-            .await
-            .unwrap());
+        assert!(
+            !storage
+                .did_share_data_with_relying_party(READER_KEY.certificate())
+                .await
+                .unwrap()
+        );
 
         let events_by_attestation_id = storage
             .fetch_wallet_events_by_attestation_id(attestation_id)
@@ -1480,10 +1521,12 @@ pub(crate) mod tests {
             .collect_vec();
 
         // No data shared with RP
-        assert!(!storage
-            .did_share_data_with_relying_party(READER_KEY.certificate())
-            .await
-            .unwrap());
+        assert!(
+            !storage
+                .did_share_data_with_relying_party(READER_KEY.certificate())
+                .await
+                .unwrap()
+        );
 
         let attestation1 = attestations[0].clone();
         let attestation2 = attestations[1].clone();
@@ -1511,10 +1554,12 @@ pub(crate) mod tests {
             .unwrap();
 
         // Data has been shared with RP
-        assert!(storage
-            .did_share_data_with_relying_party(READER_KEY.certificate())
-            .await
-            .unwrap());
+        assert!(
+            storage
+                .did_share_data_with_relying_party(READER_KEY.certificate())
+                .await
+                .unwrap()
+        );
 
         // Fetch and verify events are sorted descending by timestamp
         assert_eq!(

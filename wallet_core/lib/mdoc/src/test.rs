@@ -9,18 +9,23 @@ use indexmap::IndexMap;
 use indexmap::IndexSet;
 use ssri::Integrity;
 
+use crypto::CredentialEcdsaKey;
+use crypto::server_keys::KeyPair;
+use crypto::server_keys::generate::Ca;
 use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
 use crypto::server_keys::generate::mock::RP_CERT_CN;
-use crypto::server_keys::generate::Ca;
-use crypto::server_keys::KeyPair;
 use crypto::x509::CertificateError;
 use crypto::x509::CertificateUsage;
-use crypto::CredentialEcdsaKey;
 use http_utils::urls::HttpsUri;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use utils::generator::mock::MockTimeGenerator;
 
+use crate::DigestAlgorithm;
+use crate::IssuerNameSpaces;
+use crate::MobileSecurityObject;
+use crate::MobileSecurityObjectVersion;
+use crate::ValidityInfo;
 use crate::holder::Mdoc;
 use crate::identifiers::AttributeIdentifier;
 use crate::identifiers::AttributeIdentifierError;
@@ -38,11 +43,6 @@ use crate::utils::serialization::TaggedBytes;
 use crate::verifier::DisclosedDocument;
 use crate::verifier::DisclosedDocuments;
 use crate::verifier::ItemsRequests;
-use crate::DigestAlgorithm;
-use crate::IssuerNameSpaces;
-use crate::MobileSecurityObject;
-use crate::MobileSecurityObjectVersion;
-use crate::ValidityInfo;
 
 /// Wrapper around `T` that implements `Debug` by using `T`'s implementation,
 /// but with byte sequences (which can take a lot of vertical space) replaced with
@@ -216,15 +216,13 @@ impl TestDocument {
         let now = Utc::now();
         let issuer_signed = self.issuer_signed(ca, device_key, now).await;
 
-        let mdoc = Mdoc::new::<KEY>(
+        Mdoc::new::<KEY>(
             device_key.identifier().to_string(),
             issuer_signed,
             &MockTimeGenerator::new(now),
             &[ca.to_trust_anchor()],
         )
-        .unwrap();
-
-        mdoc
+        .unwrap()
     }
 
     /// Generates an `IssuerSigned` for this `TestDocument`.
@@ -417,10 +415,10 @@ impl MdocCose<CoseSign1, TaggedBytes<MobileSecurityObject>> {
 pub mod data {
     use attestation_types::request::AttributeRequest;
     use attestation_types::request::NormalizedCredentialRequest;
-    use attestation_types::request::NormalizedCredentialRequests;
     use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
     use dcql::ClaimPath;
     use dcql::CredentialQueryFormat;
+    use utils::vec_at_least::VecNonEmpty;
 
     use super::*;
 
@@ -578,34 +576,15 @@ pub mod data {
         }
     }
 
-    impl From<TestDocuments> for NormalizedCredentialRequests {
+    impl From<TestDocuments> for VecNonEmpty<NormalizedCredentialRequest> {
         fn from(source: TestDocuments) -> Self {
-            NormalizedCredentialRequests::try_new(source.0.into_iter().map(Into::into).collect()).unwrap()
+            source
+                .0
+                .into_iter()
+                .map(Into::into)
+                .collect::<Vec<_>>()
+                .try_into()
+                .unwrap()
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use rstest::rstest;
-
-    use attestation_types::request::NormalizedCredentialRequest;
-
-    use crate::ItemsRequest;
-
-    use super::data::addr_street;
-    use super::data::pid_full_name;
-    use super::TestDocuments;
-
-    #[rstest]
-    #[case(NormalizedCredentialRequest::pid_full_name(), pid_full_name())]
-    #[case(NormalizedCredentialRequest::addr_street(), addr_street())]
-    fn try_from_credential_request_for_items_request(
-        #[case] input: NormalizedCredentialRequest,
-        #[case] expected: TestDocuments,
-    ) {
-        let actual: ItemsRequest = input.try_into().unwrap();
-
-        assert_eq!(actual, expected.into_first().unwrap().into());
     }
 }

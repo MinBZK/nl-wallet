@@ -3,8 +3,8 @@ pub mod postgres;
 #[cfg(feature = "postgres")]
 use postgres::PostgresSessionStore;
 
-use serde::de::DeserializeOwned;
 use serde::Serialize;
+use serde::de::DeserializeOwned;
 use url::Url;
 
 use openid4vc::server_state::Expirable;

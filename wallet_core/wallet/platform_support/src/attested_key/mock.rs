@@ -1,12 +1,12 @@
 use std::collections::HashMap;
-use std::sync::atomic::AtomicU32;
 use std::sync::Arc;
+use std::sync::atomic::AtomicU32;
 
 use cfg_if::cfg_if;
-use p256::ecdsa::signature::Signer;
 use p256::ecdsa::Signature;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
+use p256::ecdsa::signature::Signer;
 use parking_lot::RwLock;
 use rand_core::OsRng;
 use uuid::Uuid;
@@ -225,10 +225,10 @@ impl AttestedKeyHolder for MockHardwareAttestedKeyHolder {
     ) -> Result<KeyWithAttestation<Self::AppleKey, Self::GoogleKey>, AttestationError<Self::Error>> {
         match self.error_scenario {
             KeyHolderErrorScenario::UnretryableAttestationError => {
-                return Err(AttestationError::new_unretryable(MockHardwareAttestedKeyError::Mock))
+                return Err(AttestationError::new_unretryable(MockHardwareAttestedKeyError::Mock));
             }
             KeyHolderErrorScenario::RetryableAttestationError => {
-                return Err(AttestationError::new_retryable(MockHardwareAttestedKeyError::Mock))
+                return Err(AttestationError::new_retryable(MockHardwareAttestedKeyError::Mock));
             }
             _ => {}
         };
@@ -802,8 +802,8 @@ mod persistent {
         use crate::attested_key::test;
         use crate::utils::mock::MockHardwareUtilities;
 
-        use super::PersistentMockAttestedKeyHolder;
         use super::KEY_STATES_FILE;
+        use super::PersistentMockAttestedKeyHolder;
 
         #[tokio::test]
         async fn test_persistent_mock_attested_key_holder() {

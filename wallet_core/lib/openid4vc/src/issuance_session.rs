@@ -5,21 +5,21 @@ use std::hash::Hash;
 use derive_more::AsRef;
 use derive_more::Constructor;
 use derive_more::Debug;
-use futures::future::try_join_all;
-use futures::future::OptionFuture;
 use futures::TryFutureExt;
+use futures::future::OptionFuture;
+use futures::future::try_join_all;
 use itertools::Itertools;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::Header;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 use p256::elliptic_curve::rand_core::OsRng;
-use reqwest::header::ToStrError;
-use reqwest::header::AUTHORIZATION;
 use reqwest::Method;
+use reqwest::header::AUTHORIZATION;
+use reqwest::header::ToStrError;
 use rustls_pki_types::TrustAnchor;
-use serde::de::DeserializeOwned;
 use serde::Serialize;
+use serde::de::DeserializeOwned;
 use url::Url;
 
 use attestation_data::attributes::AttributesError;
@@ -34,20 +34,20 @@ use crypto::keys::CredentialEcdsaKey;
 use crypto::x509::BorrowingCertificate;
 use error_category::ErrorCategory;
 use http_utils::urls::BaseUrl;
+use jwt::Jwt;
 use jwt::credential::JwtCredential;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
 use jwt::jwk::jwk_to_p256;
 use jwt::pop::JwtPopClaims;
 use jwt::wte::WteClaims;
-use jwt::Jwt;
+use mdoc::ATTR_RANDOM_LENGTH;
 use mdoc::holder::Mdoc;
 use mdoc::utils::cose::CoseError;
 use mdoc::utils::serialization::CborBase64;
 use mdoc::utils::serialization::TaggedBytes;
-use mdoc::ATTR_RANDOM_LENGTH;
-use poa::factory::PoaFactory;
 use poa::Poa;
+use poa::factory::PoaFactory;
 use sd_jwt::hasher::Sha256Hasher;
 use sd_jwt::key_binding_jwt_claims::RequiredKeyBinding;
 use sd_jwt::sd_jwt::VerifiedSdJwt;
@@ -61,6 +61,10 @@ use utils::single_unique::SingleUnique;
 use utils::vec_at_least::VecAtLeastTwoUnique;
 use utils::vec_at_least::VecNonEmpty;
 
+use crate::CredentialErrorCode;
+use crate::ErrorResponse;
+use crate::Format;
+use crate::TokenErrorCode;
 use crate::credential::CredentialRequest;
 use crate::credential::CredentialRequestProof;
 use crate::credential::CredentialRequestType;
@@ -68,10 +72,10 @@ use crate::credential::CredentialRequests;
 use crate::credential::CredentialResponse;
 use crate::credential::CredentialResponses;
 use crate::credential::WteDisclosure;
-use crate::dpop::Dpop;
-use crate::dpop::DpopError;
 use crate::dpop::DPOP_HEADER_NAME;
 use crate::dpop::DPOP_NONCE_HEADER_NAME;
+use crate::dpop::Dpop;
+use crate::dpop::DpopError;
 use crate::metadata::IssuerMetadata;
 use crate::oidc;
 use crate::token::AccessToken;
@@ -80,10 +84,6 @@ use crate::token::CredentialPreviewContent;
 use crate::token::CredentialPreviewError;
 use crate::token::TokenRequest;
 use crate::token::TokenResponseWithPreviews;
-use crate::CredentialErrorCode;
-use crate::ErrorResponse;
-use crate::Format;
-use crate::TokenErrorCode;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
@@ -332,7 +332,7 @@ pub trait VcMessageClient {
     ) -> Result<CredentialResponses, IssuanceSessionError>;
 
     async fn reject(&self, url: &Url, dpop_header: &str, access_token_header: &str)
-        -> Result<(), IssuanceSessionError>;
+    -> Result<(), IssuanceSessionError>;
 }
 
 pub struct HttpVcMessageClient {
@@ -1113,15 +1113,15 @@ mod tests {
 
     use attestation_data::attributes::Attribute;
     use attestation_data::attributes::AttributeValue;
-    use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::auth::LocalizedStrings;
+    use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::credential_payload::CredentialPayload;
     use attestation_data::x509::generate::mock::generate_issuer_mock;
     use attestation_types::qualification::AttestationQualification;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::mock_remote::MockRemoteKeyFactory;
-    use crypto::server_keys::generate::Ca;
     use crypto::server_keys::KeyPair;
+    use crypto::server_keys::generate::Ca;
     use crypto::x509::CertificateError;
     use mdoc::utils::serialization::CborBase64;
     use mdoc::utils::serialization::TaggedBytes;
@@ -1129,10 +1129,10 @@ mod tests {
     use sd_jwt_vc_metadata::TypeMetadata;
     use sd_jwt_vc_metadata::TypeMetadataDocuments;
 
+    use crate::Format;
     use crate::mock::MOCK_WALLET_CLIENT_ID;
     use crate::token::CredentialPreview;
     use crate::token::TokenResponse;
-    use crate::Format;
 
     use super::*;
 

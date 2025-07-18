@@ -4,8 +4,8 @@ use tokio::runtime;
 
 use android_attest::root_public_key::EMULATOR_PUBKEYS;
 use android_attest::root_public_key::GOOGLE_ROOT_PUBKEYS;
-use apple_app_attest::AppIdentifier;
 use apple_app_attest::APPLE_TRUST_ANCHORS;
+use apple_app_attest::AppIdentifier;
 
 use crate::attested_key::hardware::HardwareAttestedKeyHolder;
 use crate::attested_key::test;
@@ -13,7 +13,7 @@ use crate::attested_key::test::AndroidTestData;
 use crate::attested_key::test::AppleTestData;
 use crate::attested_key::test::TestData;
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn attested_key_test(has_xcode_env: bool) {
     let challenge = b"this_is_a_challenge_string";
     let payload = b"This is a message that will be signed.";
@@ -53,12 +53,12 @@ extern "C" fn attested_key_test(has_xcode_env: bool) {
 #[cfg(target_os = "android")]
 mod android {
     use android_logger::Config;
-    use jni::objects::JClass;
     use jni::JNIEnv;
+    use jni::objects::JClass;
     use log::LevelFilter;
 
     #[rustfmt::skip]
-    #[no_mangle]
+    #[unsafe(no_mangle)]
     extern "C" fn Java_nl_rijksoverheid_edi_wallet_platform_1support_attested_1key_AttestedKeyBridgeInstrumentedTest_attested_1key_1test(
         _env: JNIEnv,
         _: JClass,

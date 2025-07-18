@@ -19,9 +19,10 @@ use hsm::model::encrypter::Encrypter;
 use hsm::model::wrapped_key::WrappedKey;
 use hsm::service::HsmError;
 use jwt::pop::JwtPopClaims;
-use poa::Poa;
 use poa::POA_JWT_TYP;
+use poa::Poa;
 use utils::generator::Generator;
+use wallet_account::NL_WALLET_CLIENT_ID;
 use wallet_account::messages::instructions::ChangePinCommit;
 use wallet_account::messages::instructions::ChangePinRollback;
 use wallet_account::messages::instructions::ChangePinStart;
@@ -34,7 +35,6 @@ use wallet_account::messages::instructions::IssueWte;
 use wallet_account::messages::instructions::IssueWteResult;
 use wallet_account::messages::instructions::Sign;
 use wallet_account::messages::instructions::SignResult;
-use wallet_account::NL_WALLET_CLIENT_ID;
 use wallet_provider_domain::model::hsm::WalletUserHsm;
 use wallet_provider_domain::model::wallet_user::WalletUser;
 use wallet_provider_domain::model::wallet_user::WalletUserKey;
@@ -445,8 +445,8 @@ mod tests {
 
     use assert_matches::assert_matches;
     use base64::prelude::*;
-    use p256::ecdsa::signature::Verifier;
     use p256::ecdsa::SigningKey;
+    use p256::ecdsa::signature::Verifier;
     use rand::rngs::OsRng;
     use rstest::rstest;
 
@@ -454,26 +454,26 @@ mod tests {
     use crypto::utils::random_bytes;
 
     use hsm::model::wrapped_key::WrappedKey;
-    use jwt::validations;
     use jwt::Jwt;
+    use jwt::validations;
     use poa::PoaPayload;
+    use wallet_account::NL_WALLET_CLIENT_ID;
     use wallet_account::messages::instructions::CheckPin;
     use wallet_account::messages::instructions::ConstructPoa;
     use wallet_account::messages::instructions::GenerateKey;
     use wallet_account::messages::instructions::IssueWte;
     use wallet_account::messages::instructions::Sign;
-    use wallet_account::NL_WALLET_CLIENT_ID;
+    use wallet_provider_domain::FixedUuidGenerator;
     use wallet_provider_domain::model::wallet_user;
     use wallet_provider_domain::model::wallet_user::WalletUser;
     use wallet_provider_domain::repository::MockTransaction;
-    use wallet_provider_domain::FixedUuidGenerator;
     use wallet_provider_persistence::repositories::mock::MockTransactionalWalletUserRepository;
 
-    use crate::account_server::mock;
     use crate::account_server::InstructionValidationError;
-    use crate::instructions::is_poa_message;
+    use crate::account_server::mock;
     use crate::instructions::HandleInstruction;
     use crate::instructions::ValidateInstruction;
+    use crate::instructions::is_poa_message;
     use crate::wallet_certificate::mock::setup_hsm;
 
     #[tokio::test]

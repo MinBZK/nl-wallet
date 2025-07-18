@@ -65,7 +65,7 @@ void main() {
             purpose: 'Sample where no attributes are available'.untranslated,
             cards: [
               WalletCard(
-                attestationType: 'com.example.docType',
+                attestationType: 'com.example.attestationType',
                 issuer: WalletMockData.organization,
                 attributes: [],
                 attestationId: 'id',

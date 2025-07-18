@@ -1,8 +1,8 @@
 use std::io::Read;
 
 use aes_gcm::Aes256Gcm;
-use anyhow::bail;
 use anyhow::Result;
+use anyhow::bail;
 use clap::Parser;
 use clio::ClioPath;
 use clio::Input;
@@ -10,8 +10,8 @@ use clio::Input;
 use utils::built_info::version_string;
 use utils::path::prefix_local_path;
 
-use gba_hc_converter::gba::encryption::encrypt_bytes_to_dir;
 use gba_hc_converter::gba::encryption::HmacSha256;
+use gba_hc_converter::gba::encryption::encrypt_bytes_to_dir;
 use gba_hc_converter::settings::RunMode;
 use gba_hc_converter::settings::Settings;
 

@@ -1,5 +1,5 @@
-use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
+use error_category::sentry_capture_error;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(expected)]

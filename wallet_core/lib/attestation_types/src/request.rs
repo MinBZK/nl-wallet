@@ -1,6 +1,5 @@
 use std::num::NonZero;
 
-use nutype::nutype;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -11,12 +10,6 @@ use dcql::CredentialQuery;
 use dcql::CredentialQueryFormat;
 use dcql::Query;
 use utils::vec_at_least::VecNonEmpty;
-
-#[nutype(
-    derive(Debug, Clone, PartialEq, Eq, AsRef, TryFrom, Into, IntoIterator, Serialize, Deserialize),
-    validate(predicate = |items| !items.is_empty()),
-)]
-pub struct NormalizedCredentialRequests(Vec<NormalizedCredentialRequest>);
 
 /// Request for a credential.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -35,7 +28,7 @@ pub struct AttributeRequest {
 #[derive(Debug, thiserror::Error)]
 #[cfg_attr(any(test, feature = "mock"), derive(PartialEq, Eq))]
 pub enum MdocCredentialRequestError {
-    #[error("unexpected amount of claim paths: {0}")]
+    #[error("unexpected amount of claim paths: expected 2, found {0}")]
     UnexpectedClaimsPathAmount(NonZero<usize>),
     #[error("unexpected claim path type, expected key string")]
     UnexpectedClaimsPathType,
@@ -45,7 +38,7 @@ pub enum MdocCredentialRequestError {
 
 impl AttributeRequest {
     pub fn to_namespace_and_attribute(&self) -> Result<(&str, &str), MdocCredentialRequestError> {
-        if self.path.len() != 2.try_into().unwrap() {
+        if self.path.len().get() != 2 {
             return Err(MdocCredentialRequestError::UnexpectedClaimsPathAmount(self.path.len()));
         }
         let ClaimPath::SelectByKey(namespace) = &self.path[0] else {
@@ -80,10 +73,8 @@ pub enum UnsupportedDcqlFeatures {
     UnsupportedClaimPathVariant,
 }
 
-impl TryFrom<Query> for NormalizedCredentialRequests {
-    type Error = UnsupportedDcqlFeatures;
-
-    fn try_from(source: Query) -> Result<Self, Self::Error> {
+impl NormalizedCredentialRequest {
+    pub fn try_from_query(source: Query) -> Result<VecNonEmpty<Self>, UnsupportedDcqlFeatures> {
         if !source.credential_sets.is_empty() {
             return Err(UnsupportedDcqlFeatures::CredentialSets);
         }
@@ -92,7 +83,7 @@ impl TryFrom<Query> for NormalizedCredentialRequests {
             .into_iter()
             .map(TryInto::try_into)
             .collect::<Result<Vec<_>, _>>()?;
-        // unwrap is safe, because source.credentials is [`VecNonEmpty`]
+        // unwrap is safe, because source.credentials is also [`VecNonEmpty`]
         Ok(requests.try_into().unwrap())
     }
 }
@@ -155,18 +146,25 @@ impl TryFrom<ClaimsQuery> for AttributeRequest {
 }
 
 #[cfg(any(test, feature = "mock"))]
-mod mock {
+pub mod mock {
     use dcql::ClaimPath;
     use dcql::CredentialQueryFormat;
     use utils::vec_at_least::VecNonEmpty;
 
     use super::AttributeRequest;
     use super::NormalizedCredentialRequest;
-    use super::NormalizedCredentialRequests;
 
     pub const EXAMPLE_DOC_TYPE: &str = "org.iso.18013.5.1.mDL";
     pub const EXAMPLE_NAMESPACE: &str = "org.iso.18013.5.1";
-    pub const EXAMPLE_ATTR_NAME: &str = "family_name";
+    pub const ATTR_BSN: &str = "bsn";
+    pub const ATTR_FAMILY_NAME: &str = "family_name";
+    pub const ATTR_GIVEN_NAME: &str = "given_name";
+    pub const ATTR_STREET_ADDRESS: &str = "street_address";
+    pub const ATTR_ISSUE_DATE: &str = "issue_date";
+    pub const ATTR_EXPIRY_DATE: &str = "expiry_date";
+    pub const ATTR_DOCUMENT_NUMBER: &str = "document_number";
+    pub const ATTR_PORTRAIT: &str = "portrait";
+    pub const ATTR_DRIVING_PRIVILEGES: &str = "driving_privileges";
 
     pub const PID: &str = "urn:eudi:pid:nl:1";
     pub const ADDR: &str = "urn:eudi:pid-address:nl:1";
@@ -188,116 +186,111 @@ mod mock {
                     doctype_value: EXAMPLE_DOC_TYPE.to_string(),
                 },
                 claims: vec![AttributeRequest::new_with_keys(
-                    vec![EXAMPLE_NAMESPACE.to_string(), EXAMPLE_ATTR_NAME.to_string()],
+                    vec![EXAMPLE_NAMESPACE.to_string(), ATTR_FAMILY_NAME.to_string()],
                     true,
                 )],
             }
         }
 
         pub fn new_pid_example() -> Self {
-            // unwraps below are safe because claims path is not empty
             Self {
                 format: CredentialQueryFormat::MsoMdoc {
                     doctype_value: PID.to_string(),
                 },
                 claims: vec![
-                    AttributeRequest::new_with_keys(vec![PID.to_string(), "bsn".to_string()], false),
-                    AttributeRequest::new_with_keys(vec![PID.to_string(), "given_name".to_string()], false),
-                    AttributeRequest::new_with_keys(vec![PID.to_string(), "family_name".to_string()], false),
+                    AttributeRequest::new_with_keys(vec![PID.to_string(), ATTR_BSN.to_string()], false),
+                    AttributeRequest::new_with_keys(vec![PID.to_string(), ATTR_GIVEN_NAME.to_string()], false),
+                    AttributeRequest::new_with_keys(vec![PID.to_string(), ATTR_FAMILY_NAME.to_string()], false),
                 ],
             }
         }
 
         pub fn pid_full_name() -> Self {
-            // unwraps below are safe because claims path is not empty
             Self {
                 format: CredentialQueryFormat::MsoMdoc {
                     doctype_value: PID.to_string(),
                 },
                 claims: vec![
-                    AttributeRequest::new_with_keys(vec![PID.to_string(), "family_name".to_string()], true),
-                    AttributeRequest::new_with_keys(vec![PID.to_string(), "given_name".to_string()], true),
+                    AttributeRequest::new_with_keys(vec![PID.to_string(), ATTR_FAMILY_NAME.to_string()], true),
+                    AttributeRequest::new_with_keys(vec![PID.to_string(), ATTR_GIVEN_NAME.to_string()], true),
                 ],
             }
         }
 
         pub fn addr_street() -> Self {
-            // unwraps below are safe because claims path is not empty
             Self {
                 format: CredentialQueryFormat::MsoMdoc {
                     doctype_value: ADDR.to_string(),
                 },
                 claims: vec![AttributeRequest::new_with_keys(
-                    vec![ADDR_NS.to_string(), "street_address".to_string()],
+                    vec![ADDR_NS.to_string(), ATTR_STREET_ADDRESS.to_string()],
                     true,
                 )],
             }
         }
     }
 
-    impl NormalizedCredentialRequests {
-        pub fn new_pid_example() -> Self {
-            vec![NormalizedCredentialRequest::new_pid_example()].try_into().unwrap()
-        }
+    pub fn new_pid_example() -> VecNonEmpty<NormalizedCredentialRequest> {
+        vec![NormalizedCredentialRequest::new_pid_example()].try_into().unwrap()
+    }
 
-        pub fn mock_from_vecs(input: Vec<(String, Vec<VecNonEmpty<String>>)>) -> Self {
-            let requests = input
-                .into_iter()
-                .map(|(doc_type, paths)| {
-                    let format = CredentialQueryFormat::MsoMdoc {
-                        doctype_value: doc_type.to_string(),
-                    };
-                    let claims = paths
-                        .into_iter()
-                        .map(|path| {
-                            let claim_path: Vec<_> = path
-                                .into_iter()
-                                .map(|element| ClaimPath::SelectByKey(element.to_string()))
-                                .collect();
-                            AttributeRequest {
-                                path: VecNonEmpty::try_from(claim_path).expect("empy path not allowed"),
-                                intent_to_retain: false,
-                            }
-                        })
-                        .collect();
-                    NormalizedCredentialRequest { format, claims }
-                })
-                .collect();
-            Self::try_new(requests).expect("should contain at least 1 request")
-        }
+    pub fn mock_from_vecs(input: Vec<(String, Vec<VecNonEmpty<String>>)>) -> VecNonEmpty<NormalizedCredentialRequest> {
+        let requests: Vec<_> = input
+            .into_iter()
+            .map(|(doc_type, paths)| {
+                let format = CredentialQueryFormat::MsoMdoc {
+                    doctype_value: doc_type.to_string(),
+                };
+                let claims = paths
+                    .into_iter()
+                    .map(|path| {
+                        let claim_path: Vec<_> = path
+                            .into_iter()
+                            .map(|element| ClaimPath::SelectByKey(element.to_string()))
+                            .collect();
+                        AttributeRequest {
+                            path: VecNonEmpty::try_from(claim_path).expect("empy path not allowed"),
+                            intent_to_retain: false,
+                        }
+                    })
+                    .collect();
+                NormalizedCredentialRequest { format, claims }
+            })
+            .collect();
+        requests.try_into().expect("should contain at least 1 request")
+    }
 
-        pub fn example() -> Self {
-            vec![NormalizedCredentialRequest {
-                format: CredentialQueryFormat::MsoMdoc {
-                    doctype_value: EXAMPLE_DOC_TYPE.to_string(),
-                },
-                claims: vec![
-                    AttributeRequest::new_with_keys(
-                        vec![EXAMPLE_NAMESPACE.to_string(), "family_name".to_string()],
-                        false,
-                    ),
-                    AttributeRequest::new_with_keys(
-                        vec![EXAMPLE_NAMESPACE.to_string(), "issue_date".to_string()],
-                        false,
-                    ),
-                    AttributeRequest::new_with_keys(
-                        vec![EXAMPLE_NAMESPACE.to_string(), "expiry_date".to_string()],
-                        false,
-                    ),
-                    AttributeRequest::new_with_keys(
-                        vec![EXAMPLE_NAMESPACE.to_string(), "document_number".to_string()],
-                        false,
-                    ),
-                    AttributeRequest::new_with_keys(vec![EXAMPLE_NAMESPACE.to_string(), "portrait".to_string()], false),
-                    AttributeRequest::new_with_keys(
-                        vec![EXAMPLE_NAMESPACE.to_string(), "driving_privileges".to_string()],
-                        false,
-                    ),
-                ],
-            }]
-            .try_into()
-            .unwrap()
-        }
+    pub fn example() -> VecNonEmpty<NormalizedCredentialRequest> {
+        vec![NormalizedCredentialRequest {
+            format: CredentialQueryFormat::MsoMdoc {
+                doctype_value: EXAMPLE_DOC_TYPE.to_string(),
+            },
+            claims: vec![
+                AttributeRequest::new_with_keys(
+                    vec![EXAMPLE_NAMESPACE.to_string(), ATTR_FAMILY_NAME.to_string()],
+                    false,
+                ),
+                AttributeRequest::new_with_keys(
+                    vec![EXAMPLE_NAMESPACE.to_string(), ATTR_ISSUE_DATE.to_string()],
+                    false,
+                ),
+                AttributeRequest::new_with_keys(
+                    vec![EXAMPLE_NAMESPACE.to_string(), ATTR_EXPIRY_DATE.to_string()],
+                    false,
+                ),
+                AttributeRequest::new_with_keys(
+                    vec![EXAMPLE_NAMESPACE.to_string(), ATTR_DOCUMENT_NUMBER.to_string()],
+                    false,
+                ),
+                AttributeRequest::new_with_keys(vec![EXAMPLE_NAMESPACE.to_string(), ATTR_PORTRAIT.to_string()], false),
+                AttributeRequest::new_with_keys(
+                    vec![EXAMPLE_NAMESPACE.to_string(), ATTR_DRIVING_PRIVILEGES.to_string()],
+                    false,
+                ),
+            ],
+        }]
+        .try_into()
+        .unwrap()
     }
 }
 
@@ -305,47 +298,57 @@ mod mock {
 mod test {
     use rstest::rstest;
 
-    use dcql::{
-        ClaimPath, ClaimsQuery, ClaimsSelection, CredentialQuery, CredentialQueryFormat, Query, TrustedAuthoritiesQuery,
-    };
+    use dcql::ClaimPath;
+    use dcql::ClaimsQuery;
+    use dcql::ClaimsSelection;
+    use dcql::CredentialQuery;
+    use dcql::CredentialQueryFormat;
+    use dcql::Query;
+    use dcql::TrustedAuthoritiesQuery;
     use utils::vec_at_least::VecNonEmpty;
 
-    use crate::request::{NormalizedCredentialRequest, UnsupportedDcqlFeatures};
+    use super::AttributeRequest;
+    use super::MdocCredentialRequestError;
+    use super::NormalizedCredentialRequest;
 
-    use super::{
-        mock::{EXAMPLE_ATTR_NAME, EXAMPLE_DOC_TYPE, EXAMPLE_NAMESPACE},
-        AttributeRequest, MdocCredentialRequestError, NormalizedCredentialRequests,
-    };
+    use super::UnsupportedDcqlFeatures;
+    use super::mock::ATTR_FAMILY_NAME;
+    use super::mock::ATTR_GIVEN_NAME;
+    use super::mock::EXAMPLE_DOC_TYPE;
+    use super::mock::EXAMPLE_NAMESPACE;
 
     #[rstest]
     #[case(
         vec![
-            ClaimPath::SelectByKey("namespace".to_string()),
-            ClaimPath::SelectByKey("attr".to_string())].try_into().unwrap(),
-        Ok(("namespace", "attr"))
+            ClaimPath::SelectByKey(EXAMPLE_NAMESPACE.to_string()),
+            ClaimPath::SelectByKey(ATTR_FAMILY_NAME.to_string()),
+        ].try_into().unwrap(),
+        Ok((EXAMPLE_NAMESPACE, ATTR_FAMILY_NAME))
     )]
     #[case(
-        vec![ClaimPath::SelectByKey("namespace".to_string())].try_into().unwrap(),
+        vec![ClaimPath::SelectByKey(EXAMPLE_NAMESPACE.to_string())].try_into().unwrap(),
         Err(MdocCredentialRequestError::UnexpectedClaimsPathAmount(1.try_into().unwrap()))
     )]
     #[case(
         vec![
-            ClaimPath::SelectByKey("namespace".to_string()),
-            ClaimPath::SelectByKey("addr".to_string()),
-            ClaimPath::SelectByKey("street".to_string())
+            ClaimPath::SelectByKey(EXAMPLE_NAMESPACE.to_string()),
+            ClaimPath::SelectByKey(ATTR_FAMILY_NAME.to_string()),
+            ClaimPath::SelectByKey(ATTR_GIVEN_NAME.to_string()),
         ].try_into().unwrap(),
         Err(MdocCredentialRequestError::UnexpectedClaimsPathAmount(3.try_into().unwrap()))
     )]
     #[case(
         vec![
-            ClaimPath::SelectByKey("namespace".to_string()),
-            ClaimPath::SelectByIndex(1)].try_into().unwrap(),
+            ClaimPath::SelectByKey(EXAMPLE_NAMESPACE.to_string()),
+            ClaimPath::SelectByIndex(1),
+        ].try_into().unwrap(),
         Err(MdocCredentialRequestError::UnexpectedClaimsPathType)
     )]
     #[case(
         vec![
             ClaimPath::SelectAll,
-            ClaimPath::SelectByKey("attr".to_string())].try_into().unwrap(),
+            ClaimPath::SelectByKey(ATTR_FAMILY_NAME.to_string()),
+        ].try_into().unwrap(),
         Err(MdocCredentialRequestError::UnexpectedClaimsPathType)
     )]
     fn test_to_namespace_and_attribute(
@@ -371,7 +374,7 @@ mod test {
     #[case(query_with_claim_sets(), Err(UnsupportedDcqlFeatures::MultipleClaimSets))]
     #[case(
         mdoc_query_with_invalid_claim_path_length(),
-        Err(UnsupportedDcqlFeatures::InvalidClaimPathLength(1.try_into().unwrap()))
+        Err(UnsupportedDcqlFeatures::InvalidClaimPathLength(1.try_into().unwrap())),
     )]
     #[case(
         mdoc_query_with_invalid_claim_path_variant_all(),
@@ -383,9 +386,10 @@ mod test {
     )]
     fn test_conversion(
         #[case] query: Query,
-        #[case] expected: Result<NormalizedCredentialRequests, UnsupportedDcqlFeatures>,
+        #[case] expected: Result<VecNonEmpty<NormalizedCredentialRequest>, UnsupportedDcqlFeatures>,
     ) {
-        let result: Result<NormalizedCredentialRequests, _> = query.try_into();
+        let result: Result<VecNonEmpty<NormalizedCredentialRequest>, _> =
+            NormalizedCredentialRequest::try_from_query(query);
         assert_eq!(result, expected);
     }
 
@@ -404,7 +408,7 @@ mod test {
                         id: None,
                         path: vec![
                             ClaimPath::SelectByKey(EXAMPLE_NAMESPACE.to_string()),
-                            ClaimPath::SelectByKey(EXAMPLE_ATTR_NAME.to_string()),
+                            ClaimPath::SelectByKey(ATTR_FAMILY_NAME.to_string()),
                         ]
                         .try_into()
                         .unwrap(),

@@ -19,11 +19,11 @@ use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
 use issuer_settings::settings::IssuerSettings;
 use issuer_settings::settings::IssuerSettingsError;
 use openid4vc::server_state::SessionStoreTimeouts;
-use server_utils::settings::verify_key_pairs;
 use server_utils::settings::KeyPair;
+use server_utils::settings::NL_WALLET_CLIENT_ID;
 use server_utils::settings::ServerSettings;
 use server_utils::settings::Settings;
-use server_utils::settings::NL_WALLET_CLIENT_ID;
+use server_utils::settings::verify_key_pairs;
 use utils::generator::TimeGenerator;
 use utils::path::prefix_local_path;
 

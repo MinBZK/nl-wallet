@@ -2,16 +2,16 @@ use std::error::Error;
 use std::net::SocketAddr;
 use std::net::TcpListener;
 
+use axum::Router;
 use axum::extract::State;
 use axum::response::IntoResponse;
 use axum::response::Response;
 use axum::routing::get;
-use axum::Router;
 use etag::EntityTag;
-use http::header;
 use http::HeaderMap;
 use http::HeaderValue;
 use http::StatusCode;
+use http::header;
 use tracing::debug;
 use tracing::info;
 

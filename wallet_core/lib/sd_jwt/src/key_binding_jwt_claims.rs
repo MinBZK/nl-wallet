@@ -2,12 +2,12 @@
 // SPDX-License-Identifier: Apache-2.0
 use std::fmt::Display;
 
-use chrono::serde::ts_seconds;
 use chrono::Duration;
-use jsonwebtoken::jwk::Jwk;
+use chrono::serde::ts_seconds;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::Header;
 use jsonwebtoken::Validation;
+use jsonwebtoken::jwk::Jwk;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::chrono::DateTime;
@@ -173,8 +173,8 @@ mod test {
     use jwt::Jwt;
 
     use crate::error::Error;
-    use crate::examples::examples_sd_jwt_decoding_key;
     use crate::examples::SIMPLE_STRUCTURED_SD_JWT;
+    use crate::examples::examples_sd_jwt_decoding_key;
     use crate::hasher::Hasher;
     use crate::hasher::Sha256Hasher;
     use crate::key_binding_jwt_claims::KeyBindingJwt;

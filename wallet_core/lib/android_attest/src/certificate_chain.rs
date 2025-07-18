@@ -6,6 +6,8 @@ use chrono::Utc;
 use rustls_pki_types::CertificateDer;
 use rustls_pki_types::SignatureVerificationAlgorithm;
 use rustls_pki_types::UnixTime;
+use webpki::EndEntityCert;
+use webpki::KeyUsage;
 use webpki::ring::ECDSA_P256_SHA256;
 use webpki::ring::ECDSA_P256_SHA384;
 use webpki::ring::ECDSA_P384_SHA256;
@@ -14,16 +16,14 @@ use webpki::ring::RSA_PKCS1_2048_8192_SHA256;
 use webpki::ring::RSA_PKCS1_2048_8192_SHA384;
 use webpki::ring::RSA_PKCS1_2048_8192_SHA512;
 use webpki::ring::RSA_PKCS1_3072_8192_SHA384;
-use webpki::EndEntityCert;
-use webpki::KeyUsage;
 use x509_parser::prelude::FromDer;
 use x509_parser::prelude::X509Certificate;
 use x509_parser::prelude::X509Error;
 
 use crate::android_crl::RevocationStatusList;
-use crate::attestation_extension::key_attestation::KeyAttestationVerificationError;
 use crate::attestation_extension::KeyAttestationExtension;
 use crate::attestation_extension::KeyAttestationExtensionError;
+use crate::attestation_extension::key_attestation::KeyAttestationVerificationError;
 use crate::root_public_key::RootPublicKey;
 use crate::sig_alg::ECDSA_P256_SHA256_WITH_NULL_PARAMETERS;
 

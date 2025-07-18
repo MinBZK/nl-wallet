@@ -6,8 +6,6 @@ use std::result::Result;
 use chrono::DateTime;
 use chrono::Utc;
 use ciborium::value::Value;
-use coset::iana;
-use coset::sig_structure_data;
 use coset::CoseMac0;
 use coset::CoseMac0Builder;
 use coset::CoseSign1;
@@ -17,13 +15,15 @@ use coset::HeaderBuilder;
 use coset::Label;
 use coset::ProtectedHeader;
 use coset::SignatureContext;
-use p256::ecdsa::signature::Verifier;
+use coset::iana;
+use coset::sig_structure_data;
 use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
+use p256::ecdsa::signature::Verifier;
 use ring::hmac;
 use rustls_pki_types::TrustAnchor;
-use serde::de::DeserializeOwned;
 use serde::Serialize;
+use serde::de::DeserializeOwned;
 
 use crypto::factory::KeyFactory;
 use crypto::keys::CredentialEcdsaKey;
@@ -34,9 +34,9 @@ use crypto::x509::CertificateUsage;
 use error_category::ErrorCategory;
 use utils::generator::Generator;
 
+use crate::utils::serialization::CborError;
 use crate::utils::serialization::cbor_deserialize;
 use crate::utils::serialization::cbor_serialize;
-use crate::utils::serialization::CborError;
 
 /// Trait for supported Cose variations ([`CoseSign1`] or [`CoseMac0`]).
 pub trait Cose {

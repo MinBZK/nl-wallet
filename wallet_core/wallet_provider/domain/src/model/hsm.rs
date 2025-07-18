@@ -78,8 +78,8 @@ pub mod mock {
     use p256::ecdsa::VerifyingKey;
     use rand::rngs::OsRng;
 
-    use hsm::model::mock::MockPkcs11Client;
     use hsm::model::Hsm;
+    use hsm::model::mock::MockPkcs11Client;
 
     use crate::model::hsm::WalletUserHsm;
     use crate::model::wallet_user::WalletId;

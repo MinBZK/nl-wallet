@@ -7,14 +7,14 @@ use jsonwebtoken::Algorithm;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 use rand_core::OsRng;
-use serde_json::json;
 use serde_json::Value;
+use serde_json::json;
 use ssri::Integrity;
 
 use crypto::server_keys::generate::Ca;
 use crypto::x509::BorrowingCertificate;
-use jwt::jwk::jwk_from_p256;
 use jwt::EcdsaDecodingKey;
+use jwt::jwk::jwk_from_p256;
 use sd_jwt::builder::SdJwtBuilder;
 use sd_jwt::hasher::Hasher;
 use sd_jwt::hasher::Sha256Hasher;
