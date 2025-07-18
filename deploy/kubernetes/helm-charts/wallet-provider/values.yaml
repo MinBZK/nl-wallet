@@ -151,3 +151,25 @@ migration:
 ## @param serviceMonitor.enabled Enable service monitor
 serviceMonitor:
   enabled: true
+
+## @section Log sidecar
+## @param logSidecar.image.repository Repository for the log container image
+## @param logSidecar.image.pullPolicy Image pull policy for the log container
+## @param logSidecar.image.tag Image tag for the log container
+## @param logSidecar.resources.requests.cpu CPU request of log sidecar
+## @param logSidecar.resources.requests.memory Memory request of log sidecar
+## @param logSidecar.resources.limits.cpu CPU limit of log sidecar
+## @param logSidecar.resources.limits.memory Memory limit of log sidecar
+##
+logSidecar:
+  image:
+    repository: null
+    pullPolicy: IfNotPresent
+    tag: null
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "16Mi"
+    limits:
+      cpu: "400m"
+      memory: "32Mi"
