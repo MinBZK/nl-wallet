@@ -1257,6 +1257,7 @@ mod tests {
             ca.to_trust_anchor(),
             vec![CredentialPayload::example_empty(
                 SigningKey::random(&mut OsRng).verifying_key(),
+                &TimeGenerator,
             )],
             TypeMetadata::empty_example_with_attestation_type("other_attestation_type"),
             vec![Format::MsoMdoc],
@@ -1275,6 +1276,7 @@ mod tests {
             ca.to_trust_anchor(),
             vec![CredentialPayload::example_empty(
                 SigningKey::random(&mut OsRng).verifying_key(),
+                &TimeGenerator,
             )],
             TypeMetadata::pid_example(),
             vec![Format::AcVc, Format::MsoMdoc, Format::JwtVc],
@@ -1297,7 +1299,7 @@ mod tests {
         different_org.organization.display_name = LocalizedStrings::from(vec![("en", "different org name")]);
         let different_issuance_key = generate_issuer_mock(&ca, different_org.into()).unwrap();
 
-        let payload = CredentialPayload::example_empty(SigningKey::random(&mut OsRng).verifying_key());
+        let payload = CredentialPayload::example_empty(SigningKey::random(&mut OsRng).verifying_key(), &TimeGenerator);
         let copies_per_format: IndexMap<Format, NonZeroU8> = IndexMap::from_iter([
             (Format::MsoMdoc, NonZeroU8::new(1).unwrap()),
             (Format::SdJwt, NonZeroU8::new(1).unwrap()),
@@ -1606,6 +1608,7 @@ mod tests {
                 "family_name",
                 AttributeValue::Integer(1),
                 SigningKey::random(&mut OsRng).verifying_key(),
+                &TimeGenerator,
             ),
         );
         let trust_anchor = signer.trust_anchor.clone();
@@ -1804,6 +1807,7 @@ mod tests {
                 ("family_name", AttributeValue::Text(String::from("De Bruijn"))),
             ],
             SigningKey::random(&mut OsRng).verifying_key(),
+            &TimeGenerator,
         )
         .previewable_payload
         .attributes;
