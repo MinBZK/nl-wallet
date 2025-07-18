@@ -102,6 +102,7 @@ pub struct KeyPair {
     pub private_key: PrivateKey,
 }
 
+/// An ECDSA private (i.e. asymmetric) key, either in the HSM or configured directly.
 #[serde_as]
 #[derive(Clone, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -116,6 +117,7 @@ pub enum PrivateKey {
     },
 }
 
+/// A secret (i.e. symmetric) key, e.g. for HMAC, either in the HSM or configured directly.
 #[serde_as]
 #[derive(Clone, Deserialize)]
 #[serde(rename_all = "snake_case")]
