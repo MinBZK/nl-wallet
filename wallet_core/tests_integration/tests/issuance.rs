@@ -58,15 +58,27 @@ async fn test_pid_ok() {
     let pid_attestation = attestations.first().unwrap();
     assert_eq!(pid_attestation.attestation_type, PID_DOCTYPE);
 
-    let bsn_attr = pid_attestation.attributes.iter().find(|a| a.key == vec![BSN_ATTR_NAME]);
+    let bsn_attr = pid_attestation
+        .attributes
+        .iter()
+        .find(|a| a.key == vec![BSN_ATTR_NAME])
+        .unwrap();
 
-    match bsn_attr {
-        Some(bsn_attr) => assert_eq!(
-            bsn_attr.value,
-            AttestationAttributeValue::Basic(AttributeValue::Text("999991772".to_string()))
-        ),
-        None => panic!("BSN attribute not found"),
-    }
+    assert_eq!(
+        bsn_attr.value,
+        AttestationAttributeValue::Basic(AttributeValue::Text("999991772".to_string()))
+    );
+
+    let recovery_code_attr = pid_attestation
+        .attributes
+        .iter()
+        .find(|a| a.key == vec![PID_RECOVERY_CODE])
+        .unwrap();
+
+    assert_eq!(
+        recovery_code_attr.value,
+        AttestationAttributeValue::Basic(AttributeValue::Text("123".to_string()))
+    );
 }
 
 fn universal_link(issuance_server_url: &BaseUrl) -> Url {
@@ -96,7 +108,7 @@ fn universal_link(issuance_server_url: &BaseUrl) -> Url {
 
 fn pid_without_optionals() -> IssuableDocument {
     IssuableDocument::try_new(
-        MOCK_PID_DOCTYPE.to_string(),
+        PID_ATTESTATION_TYPE.to_string(),
         IndexMap::from_iter(vec![
             (
                 PID_FAMILY_NAME.to_string(),
@@ -115,6 +127,10 @@ fn pid_without_optionals() -> IssuableDocument {
                 PID_BSN.to_string(),
                 Attribute::Single(AttributeValue::Text("999991772".to_string())),
             ),
+            (
+                PID_RECOVERY_CODE.to_string(),
+                Attribute::Single(AttributeValue::Text("123".to_string())),
+            ),
         ])
         .into(),
     )
@@ -123,7 +139,7 @@ fn pid_without_optionals() -> IssuableDocument {
 
 fn pid_missing_required() -> IssuableDocument {
     IssuableDocument::try_new(
-        MOCK_PID_DOCTYPE.to_string(),
+        PID_ATTESTATION_TYPE.to_string(),
         IndexMap::from_iter(vec![
             (
                 PID_FAMILY_NAME.to_string(),
