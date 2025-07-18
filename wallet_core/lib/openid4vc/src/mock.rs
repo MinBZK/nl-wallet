@@ -149,7 +149,7 @@ pub async fn test_document_to_issuer_signed<KF>(doc: TestDocument, ca: &Ca, key_
 where
     KF: KeyFactory,
 {
-    let key = key_factory.generate_new().await.unwrap();
+    let key = key_factory.generate_new_multiple(1).await.unwrap().pop().unwrap();
 
     let issuer_signed = doc.issuer_signed(ca, &key, Utc::now()).await;
     (issuer_signed, key)
@@ -159,7 +159,7 @@ pub async fn test_document_to_mdoc<KF>(doc: TestDocument, ca: &Ca, key_factory: 
 where
     KF: KeyFactory,
 {
-    let key = key_factory.generate_new().await.unwrap();
+    let key = key_factory.generate_new_multiple(1).await.unwrap().pop().unwrap();
 
     doc.sign(ca, &key).await
 }

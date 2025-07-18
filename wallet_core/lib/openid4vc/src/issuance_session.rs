@@ -1076,7 +1076,7 @@ where
     use crypto::keys::WithIdentifier;
     use jwt::credential::JwtCredentialClaims;
 
-    let wte_privkey = key_factory.generate_new().await.unwrap();
+    let wte_privkey = key_factory.generate_new_multiple(1).await.unwrap().pop().unwrap();
 
     let wte = JwtCredentialClaims::new_signed(
         &wte_privkey.verifying_key().await.unwrap(),
