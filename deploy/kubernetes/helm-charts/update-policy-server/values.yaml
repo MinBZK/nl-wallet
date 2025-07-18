@@ -80,23 +80,10 @@ resources:
     cpu: "200m"
     memory: "64Mi"
 
-## @section Volumes
-## Volumes for the container
-## @param volumes[0].name Name of the first volume
-## @param volumes[0].configMap.name Name of the ConfigMap for the first volume
+## @section Update policy
+## @param updatePolicy.configMapName Name to the the ConfigMap containing the update policy
+## @param updatePolicy.configMapKey Key of the the ConfigMap containing the update policy
 ##
-volumes:
-  - name: config-volume
-    configMap:
-      name: nl-wallet-update-policy-server-data
-
-## @section Volume mounts
-## Volume mounts for the container
-## @param volumeMounts[0].name Name of the first volume mount
-## @param volumeMounts[0].mountPath Mount path for the first volume mount
-## @param volumeMounts[0].subPath Sub-path within the first volume mount
-##
-volumeMounts:
-  - name: config-volume
-    mountPath: /update_policy_server.toml
-    subPath: config.toml
+updatePolicy:
+  configMapName: nl-wallet-update-policy-server-data
+  configMapKey: config.toml
