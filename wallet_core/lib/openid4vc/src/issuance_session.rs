@@ -1072,7 +1072,7 @@ pub async fn mock_wte<KF>(key_factory: &KF, privkey: &SigningKey) -> JwtCredenti
 where
     KF: KeyFactory,
 {
-    use crypto::keys::EcdsaKey;
+    use crypto::WithVerifyingKey;
     use crypto::keys::WithIdentifier;
     use jwt::credential::JwtCredentialClaims;
 

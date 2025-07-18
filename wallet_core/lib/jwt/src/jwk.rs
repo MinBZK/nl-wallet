@@ -7,7 +7,7 @@ use jsonwebtoken::jwk::Jwk;
 use p256::EncodedPoint;
 use p256::ecdsa::VerifyingKey;
 
-use crypto::keys::EcdsaKey;
+use crypto::WithVerifyingKey;
 
 use crate::error::JwkConversionError;
 
@@ -51,7 +51,7 @@ pub fn jwk_to_p256(value: &Jwk) -> Result<VerifyingKey, JwkConversionError> {
     Ok(key)
 }
 
-pub async fn jwk_jwt_header(typ: &str, key: &impl EcdsaKey) -> Result<Header, JwkConversionError> {
+pub async fn jwk_jwt_header(typ: &str, key: &impl WithVerifyingKey) -> Result<Header, JwkConversionError> {
     let header = Header {
         typ: Some(typ.to_string()),
         alg: Algorithm::ES256,
