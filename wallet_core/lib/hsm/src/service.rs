@@ -23,6 +23,7 @@ use p256::pkcs8::AssociatedOid;
 use r2d2_cryptoki::Pool;
 use r2d2_cryptoki::SessionManager;
 use r2d2_cryptoki::SessionType;
+use r2d2_cryptoki::r2d2::LoggingErrorHandler;
 use sec1::EcParameters;
 
 use crypto::p256_der::verifying_key_sha256;
@@ -173,6 +174,7 @@ impl Pkcs11Hsm {
             // This makes a pkcs11 call every time a connection is check out of the pool and should be evaluated in a
             // future performance test.
             .test_on_check_out(true)
+            .error_handler(Box::new(LoggingErrorHandler))
             .build(manager)?;
 
         Ok(Self { pool })
