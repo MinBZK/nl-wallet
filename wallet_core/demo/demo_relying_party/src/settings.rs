@@ -46,7 +46,7 @@ pub enum ReturnUrlMode {
 pub struct Usecase {
     #[serde(default)]
     pub return_url: ReturnUrlMode,
-    pub request: Query,
+    pub dcql_query: Query,
 }
 
 impl Settings {

@@ -44,7 +44,7 @@ private_key = "disclosure_based_issuance_key" # label for the private key in the
 certificate = "MIJ..."
 
 # Attributes that have to be disclosed for `disclosure_based_issuance` in DCQL format
-[[disclosure_settings.disclosure_based_issuance.to_disclose.credentials]]
+[[disclosure_settings.disclosure_based_issuance.dcql_query.credentials]]
 id = "my_credential"
 format = "mso_mdoc"
 meta = { doctype_value = "com.example.pid" },
