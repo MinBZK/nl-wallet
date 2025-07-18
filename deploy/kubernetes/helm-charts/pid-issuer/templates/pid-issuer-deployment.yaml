@@ -91,6 +91,10 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.database.secretName }}
                   key: url
+            - name: PID_ISSUER__RECOVERY_CODE__SECRET_KEY_TYPE
+              value: "hsm"
+            - name: PID_ISSUER__RECOVERY_CODE__SECRET_KEY
+              value: "recovery_code_key"
             - name: RUST_LOG
               value: "debug,hyper=warn"
       volumes:
