@@ -37,6 +37,7 @@ spec:
       containers:
         - name: {{ include "common.names.fullname" . }}
           image: "{{ .Values.global.imageRegistry }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
           {{- with .Values.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
@@ -124,6 +125,7 @@ spec:
       initContainers:
         - name: {{ include "common.names.fullname" . }}-log
           image: "{{ .Values.global.imageRegistry }}/{{ .Values.logSidecar.image.repository }}:{{ .Values.logSideCar.image.tag }}"
+          imagePullPolicy: {{ .Values.logSidecar.image.pullPolicy }}
           command: ['/bin/sh', '-c', 'mkfifo /shared/log && exec cat /shared/log']
           restartPolicy: Always # sidecar
           {{- with .Values.logResources }}

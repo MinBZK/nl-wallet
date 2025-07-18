@@ -36,6 +36,7 @@ spec:
       containers:
         - name: {{ .Values.nameOverride | default .Chart.Name }}
           image: {{ .Values.global.imageRegistry }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - name: http
               containerPort: 8001
