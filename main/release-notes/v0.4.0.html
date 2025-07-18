@@ -329,8 +329,8 @@ are invalid and should be regenerated to accomodate the new structure.</p></li>
 to the wallet’s keys, so that the wallet’s signing instructions to the WP are
 non-repudiable.</p></li>
 <li><p>The wallet now supports issued attributes containing ‘null’ values.</p></li>
-<li><p>The PID issuer now includes a new attribute called the recovery code, which
-is computed as the HMAC of the user’s BSN.</p></li>
+<li><p>The PID issuer now includes a new attribute called the recovery code, which is
+computed as the HMAC of the user’s BSN.</p></li>
 </ul>
 </section>
 <section id="code-improvements">
@@ -354,6 +354,14 @@ short video tutorials to learn about the functionalities of the app.</p></li>
 </section>
 <section id="ci-changes">
 <h2>CI changes<a class="headerlink" href="#ci-changes" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Configure volume mounts more naturally (and aligned with other charts) via
+Helm values for update-policy-server and wallet-provider.</p></li>
+<li><p>Configure wallet-provider directly via Deployment instead of separate
+ConfigMap.</p></li>
+<li><p>Capture stdout/stderr from PKCS#11 library and log lines via log library to
+get structured logging</p></li>
+</ul>
 </section>
 </section>
 
