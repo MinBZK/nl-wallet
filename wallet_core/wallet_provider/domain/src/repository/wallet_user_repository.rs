@@ -89,8 +89,8 @@ pub trait WalletUserRepository {
 
 #[cfg(feature = "mock")]
 pub mod mock {
-    use uuid::uuid;
     use uuid::Uuid;
+    use uuid::uuid;
 
     use crate::model::wallet_user;
 

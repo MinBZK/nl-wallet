@@ -6,9 +6,9 @@ use parking_lot::RwLock;
 use tracing::info;
 
 use http_utils::reqwest::IntoPinnedReqwestClient;
-use jwt::validations;
 use jwt::EcdsaDecodingKey;
 use jwt::Jwt;
+use jwt::validations;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::config::ConfigurationError;

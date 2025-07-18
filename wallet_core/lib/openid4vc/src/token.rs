@@ -8,12 +8,12 @@ use indexmap::IndexSet;
 use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde::Serialize;
+use serde_with::DurationSeconds;
+use serde_with::StringWithSeparator;
 use serde_with::base64::Base64;
 use serde_with::formats::SpaceSeparator;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
-use serde_with::DurationSeconds;
-use serde_with::StringWithSeparator;
 use url::Url;
 
 use attestation_data::auth::issuer_auth::IssuerRegistration;
@@ -30,9 +30,9 @@ use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 
+use crate::Format;
 use crate::authorization::AuthorizationDetails;
 use crate::server_state::SessionToken;
-use crate::Format;
 
 #[derive(Serialize, Deserialize, Debug, Clone, From)]
 pub struct AuthorizationCode(String);

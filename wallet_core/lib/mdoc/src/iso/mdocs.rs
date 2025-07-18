@@ -28,8 +28,8 @@ use http_utils::urls::HttpsUri;
 use utils::date_time_seconds::DateTimeSeconds;
 
 use crate::utils::cose::CoseKey;
-use crate::utils::crypto::cbor_digest;
 use crate::utils::crypto::CryptoError;
+use crate::utils::crypto::cbor_digest;
 use crate::utils::serialization::CborError;
 use crate::utils::serialization::TaggedBytes;
 

@@ -6,16 +6,16 @@ use tracing::instrument;
 use tracing::warn;
 
 use crypto::keys::EcdsaKey;
-use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
+use error_category::sentry_capture_error;
 use http_utils::tls::pinning::TlsPinningConfig;
 use jwt::error::JwtError;
 use openid4vc::disclosure_session::DisclosureClient;
-use platform_support::attested_key::hardware::AttestedKeyError;
-use platform_support::attested_key::hardware::HardwareAttestedKeyError;
 use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::attested_key::KeyWithAttestation;
+use platform_support::attested_key::hardware::AttestedKeyError;
+use platform_support::attested_key::hardware::HardwareAttestedKeyError;
 use update_policy_model::update_policy::VersionState;
 use utils::vec_at_least::VecAtLeastNError;
 use wallet_account::messages::registration::Registration;
@@ -28,8 +28,8 @@ use crate::digid::DigidClient;
 use crate::errors::UpdatePolicyError;
 use crate::pin::key::PinKey;
 use crate::pin::key::{self as pin_key};
-use crate::pin::validation::validate_pin;
 use crate::pin::validation::PinValidationError;
+use crate::pin::validation::validate_pin;
 use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
 use crate::storage::KeyData;
@@ -195,10 +195,11 @@ where
             Err(error) => {
                 // If the error indicates attestation is retryable and we did not do do so already,
                 // store the key identifier for later re-use, logging any potential errors.
-                if error.retryable && matches!(self.registration, WalletRegistration::Unregistered) {
-                    if let Err(storage_error) = self.set_registration_key_identifier(key_identifier.clone()).await {
-                        warn!("Could not store attested key identifier: {0}", storage_error);
-                    }
+                if error.retryable
+                    && matches!(self.registration, WalletRegistration::Unregistered)
+                    && let Err(storage_error) = self.set_registration_key_identifier(key_identifier.clone()).await
+                {
+                    warn!("Could not store attested key identifier: {0}", storage_error);
                 }
 
                 return Err(WalletRegistrationError::Attestation(Box::new(error.error)));
@@ -459,9 +460,11 @@ mod tests {
             stored_registration.wallet_certificate.0,
             generated_certificate.lock().as_ref().unwrap().0
         );
-        assert!(wallet
-            .key_holder
-            .is_attested(&stored_registration.attested_key_identifier));
+        assert!(
+            wallet
+                .key_holder
+                .is_attested(&stored_registration.attested_key_identifier)
+        );
     }
 
     #[tokio::test]

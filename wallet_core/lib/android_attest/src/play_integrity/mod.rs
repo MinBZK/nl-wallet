@@ -8,8 +8,8 @@ mod tests {
     use std::sync::LazyLock;
 
     use chrono::NaiveDate;
-    use serde_json::json;
     use serde_json::Value;
+    use serde_json::json;
 
     use super::integrity_verdict::*;
 

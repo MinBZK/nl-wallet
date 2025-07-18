@@ -9,10 +9,10 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde_json::Map;
 use serde_json::Value;
-use serde_with::serde_as;
-use serde_with::skip_serializing_none;
 use serde_with::DisplayFromStr;
 use serde_with::TryFromInto;
+use serde_with::serde_as;
+use serde_with::skip_serializing_none;
 
 pub static APPLICATION_PROBLEM_JSON: LazyLock<Mime> =
     LazyLock::new(|| "application/problem+json".parse().expect("could not parse MIME type"));
@@ -120,17 +120,17 @@ mod axum {
     use std::fmt::Display;
     use std::str::FromStr;
 
+    use axum::Json;
     use axum::response::IntoResponse;
     use axum::response::Response;
-    use axum::Json;
-    use http::header::CONTENT_TYPE;
     use http::HeaderValue;
     use http::StatusCode;
+    use http::header::CONTENT_TYPE;
 
+    use super::APPLICATION_PROBLEM_JSON;
     use super::HttpJsonError;
     use super::HttpJsonErrorBody;
     use super::HttpJsonErrorType;
-    use super::APPLICATION_PROBLEM_JSON;
 
     impl<T> IntoResponse for HttpJsonErrorBody<T>
     where
@@ -165,8 +165,8 @@ mod axum {
 #[cfg(test)]
 mod tests {
     use http::StatusCode;
-    use serde_json::json;
     use serde_json::Value;
+    use serde_json::json;
 
     use super::HttpJsonErrorBody;
     use super::HttpJsonErrorType;
@@ -260,8 +260,8 @@ mod tests {
         use axum::body;
         use axum::response::IntoResponse;
         use http::StatusCode;
-        use serde_json::json;
         use serde_json::Value;
+        use serde_json::json;
 
         use super::super::HttpJsonError;
         use super::super::HttpJsonErrorBody;

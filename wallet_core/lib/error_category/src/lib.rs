@@ -1,8 +1,8 @@
 #[cfg(feature = "sentry")]
 pub mod sentry;
 
-pub use error_category_derive::sentry_capture_error;
 pub use error_category_derive::ErrorCategory;
+pub use error_category_derive::sentry_capture_error;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, strum::EnumString, strum::Display)]
 #[strum(serialize_all = "snake_case")]

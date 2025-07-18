@@ -40,14 +40,12 @@ class DataAttribute extends Attribute {
   @override
   AttributeValue get value => super.value!;
 
-  final String? sourceCardId;
   final String? svgId;
 
   const DataAttribute({
     required super.key,
     required super.label,
     required AttributeValue super.value,
-    required this.sourceCardId,
     this.svgId,
   });
 
@@ -55,7 +53,6 @@ class DataAttribute extends Attribute {
     required super.key,
     required String label,
     required AttributeValue super.value,
-    required this.sourceCardId,
     this.svgId,
   }) : super(label: {const Locale('en'): label});
 
@@ -64,7 +61,7 @@ class DataAttribute extends Attribute {
   Map<String, dynamic> toJson() => _$DataAttributeToJson(this);
 
   @override
-  List<Object?> get props => [key, label, value, sourceCardId, svgId];
+  List<Object?> get props => [key, label, value, svgId];
 }
 
 /// A [MissingAttribute] is used to represent an attribute that was requested by a relying party, but is not (currently)

@@ -92,9 +92,7 @@ pub enum ChangePinError {
     )]
     #[category(critical)]
     PublicKeyMismatch,
-    #[error(
-        "wallet ID in new registration certificate received from Wallet Provider does not match current wallet ID"
-    )]
+    #[error("wallet ID in new registration certificate received from Wallet Provider does not match current wallet ID")]
     #[category(critical)]
     WalletIdMismatch,
 }
@@ -323,11 +321,11 @@ mod test {
     use super::*;
 
     use crate::errors::InstructionError;
-    use crate::pin::change::mock::ChangePinClientTestError;
     use crate::pin::change::ChangePinError;
     use crate::pin::change::MockChangePinClient;
     use crate::pin::change::MockChangePinStorage;
     use crate::pin::change::State;
+    use crate::pin::change::mock::ChangePinClientTestError;
 
     const CHANGE_PIN_RETRIES: u8 = 2;
 

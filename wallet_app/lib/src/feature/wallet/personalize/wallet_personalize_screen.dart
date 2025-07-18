@@ -173,6 +173,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
       description: description,
       cancelCta: context.l10n.walletPersonalizeScreenDigidLoadingStopCta,
       appBar: WalletAppBar(progress: progress),
+      contextImage: Image.asset(WalletAssets.logo_wallet, height: 64, width: 64),
       onCancel: () async {
         final bloc = context.bloc;
         final cancelled = await _showStopDigidLoginDialog(context);
@@ -260,17 +261,19 @@ class WalletPersonalizeScreen extends StatelessWidget {
 
     // Perform the mock DigiD flow
     final loginSucceeded = (await MockDigidScreen.mockLogin(context)) ?? false;
-    await Future.delayed(kDefaultMockDelay);
     if (loginSucceeded) {
+      // Emit state that shows "Data is being retrieved"
+      bloc.add(const WalletPersonalizeUpdateState(WalletPersonalizeAuthenticating()));
+      await Future.delayed(const Duration(milliseconds: 1500)); // Fake loading delay
+
+      // Process mock attestations and notify block
       final attestations = await walletCore.continuePidIssuance(MockConstants.pidIssuanceRedirectUri);
       final mockPidCardAttributes = attestations
-          .map(
-            (attestation) => attestation.attributes.map((e) => CardAttributeWithCardId(attestation.attestationType, e)),
-          )
-          .flattened
-          .toList();
+          .map((it) => it.attributes.map((attr) => CardAttributeWithCardId(it.attestationType, attr)))
+          .flattenedToList;
       bloc.add(WalletPersonalizeLoginWithDigidSucceeded(attributeMapper.mapList(mockPidCardAttributes)));
     } else {
+      await Future.delayed(kDefaultMockDelay);
       bloc.add(
         WalletPersonalizeLoginWithDigidFailed(
           error: GenericError('Mock login failed', sourceError: Exception('Mock exception')),

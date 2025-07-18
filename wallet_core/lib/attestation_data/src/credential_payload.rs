@@ -12,25 +12,25 @@ use serde_with::skip_serializing_none;
 use ssri::Integrity;
 
 use attestation_types::qualification::AttestationQualification;
-use crypto::server_keys::KeyPair;
 use crypto::EcdsaKeySend;
+use crypto::server_keys::KeyPair;
 use error_category::ErrorCategory;
 use http_utils::urls::HttpsUri;
 use jwt::error::JwkConversionError;
 use jwt::jwk::jwk_from_p256;
-use mdoc::holder::Mdoc;
-use mdoc::utils::crypto::CryptoError;
 use mdoc::Entry;
 use mdoc::MobileSecurityObject;
 use mdoc::NameSpace;
+use mdoc::holder::Mdoc;
+use mdoc::utils::crypto::CryptoError;
 use sd_jwt::builder::SdJwtBuilder;
 use sd_jwt::key_binding_jwt_claims::RequiredKeyBinding;
 use sd_jwt::sd_jwt::SdJwt;
-use sd_jwt_vc_metadata::claim_paths_to_json_path;
 use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataError;
 use sd_jwt_vc_metadata::TypeMetadataValidationError;
+use sd_jwt_vc_metadata::claim_paths_to_json_path;
 use utils::date_time_seconds::DateTimeSeconds;
 use utils::generator::Generator;
 
@@ -424,10 +424,10 @@ mod test {
     use ssri::Integrity;
 
     use attestation_types::qualification::AttestationQualification;
-    use crypto::server_keys::generate::Ca;
     use crypto::EcdsaKey;
-    use jwt::jwk::jwk_from_p256;
+    use crypto::server_keys::generate::Ca;
     use jwt::EcdsaDecodingKey;
+    use jwt::jwk::jwk_from_p256;
     use sd_jwt::builder::SdJwtBuilder;
     use sd_jwt::hasher::Sha256Hasher;
     use sd_jwt::key_binding_jwt_claims::RequiredKeyBinding;
@@ -437,9 +437,9 @@ mod test {
     use sd_jwt_vc_metadata::UncheckedTypeMetadata;
     use utils::generator::mock::MockTimeGenerator;
 
-    use crate::attributes::test::complex_attributes;
     use crate::attributes::Attribute;
     use crate::attributes::AttributeValue;
+    use crate::attributes::test::complex_attributes;
     use crate::auth::issuer_auth::IssuerRegistration;
     use crate::credential_payload::IntoCredentialPayload;
     use crate::credential_payload::SdJwtCredentialPayloadError;

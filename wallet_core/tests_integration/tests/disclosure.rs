@@ -1,20 +1,21 @@
 use std::collections::HashSet;
 
 use assert_matches::assert_matches;
-use indexmap::IndexMap;
 use reqwest::StatusCode;
 use rstest::rstest;
 use serial_test::serial;
 use url::Url;
 
 use attestation_data::disclosure::DisclosedAttestations;
+use attestation_types::request::AttributeRequest;
+use attestation_types::request::NormalizedCredentialRequest;
+use dcql::CredentialQueryFormat;
 use http_utils::error::HttpJsonErrorBody;
+use mdoc::test::TestDocuments;
 use mdoc::test::data::addr_street;
 use mdoc::test::data::pid_family_name;
 use mdoc::test::data::pid_full_name;
 use mdoc::test::data::pid_given_name;
-use mdoc::test::TestDocuments;
-use mdoc::ItemsRequest;
 use openid4vc::return_url::ReturnUrlTemplate;
 use openid4vc::verifier::SessionType;
 use openid4vc::verifier::StatusResponse;
@@ -23,8 +24,8 @@ use openid4vc_server::verifier::StartDisclosureRequest;
 use openid4vc_server::verifier::StartDisclosureResponse;
 use openid4vc_server::verifier::StatusParams;
 use tests_integration::common::*;
-use wallet::errors::DisclosureError;
 use wallet::DisclosureUriSource;
+use wallet::errors::DisclosureError;
 
 async fn get_verifier_status(client: &reqwest::Client, status_url: Url) -> StatusResponse {
     let response = client.get(status_url).send().await.unwrap();
@@ -42,15 +43,13 @@ async fn get_verifier_status(client: &reqwest::Client, status_url: Url) -> Statu
     pid_full_name(),
     pid_full_name()
 )]
-#[case(
-    SessionType::SameDevice,
+#[case(SessionType::SameDevice,
     Some("http://localhost:3004/return".parse().unwrap()),
     "xyz_bank",
     pid_full_name(),
-    pid_full_name())
-]
-#[case(
-    SessionType::SameDevice,
+    pid_full_name()
+)]
+#[case(SessionType::SameDevice,
     Some("http://localhost:3004/return".parse().unwrap()),
     "xyz_bank_all_return_url",
     pid_full_name(),
@@ -81,8 +80,7 @@ async fn get_verifier_status(client: &reqwest::Client, status_url: Url) -> Statu
     pid_family_name() + pid_given_name(),
     pid_full_name()
 )]
-#[case(
-    SessionType::SameDevice,
+#[case(SessionType::SameDevice,
     None,
     "multiple_cards",
     pid_given_name() + addr_street(),
@@ -99,7 +97,7 @@ async fn test_disclosure_usecases_ok(
 ) {
     let start_request = StartDisclosureRequest {
         usecase: usecase.clone(),
-        items_requests: Some(test_documents.into()),
+        credential_requests: Some(test_documents.into()),
         // The setup script is hardcoded to include "http://localhost:3004/" in the `ReaderRegistration`
         // contained in the certificate, so we have to specify a return URL prefixed with that.
         return_url_template,
@@ -248,20 +246,24 @@ async fn test_disclosure_without_pid() {
 
     let start_request = StartDisclosureRequest {
         usecase: "xyz_bank_no_return_url".to_owned(),
-        items_requests: Some(
-            vec![ItemsRequest {
-                doc_type: "urn:eudi:pid:nl:1".to_owned(),
-                request_info: None,
-                name_spaces: IndexMap::from([(
-                    "urn:eudi:pid:nl:1".to_owned(),
-                    IndexMap::from_iter(
-                        [("given_name", true), ("family_name", false)]
-                            .into_iter()
-                            .map(|(name, intent_to_retain)| (name.to_string(), intent_to_retain)),
+        credential_requests: Some(
+            vec![NormalizedCredentialRequest {
+                format: CredentialQueryFormat::MsoMdoc {
+                    doctype_value: "urn:eudi:pid:nl:1".to_string(),
+                },
+                claims: vec![
+                    AttributeRequest::new_with_keys(
+                        vec!["urn:eudi:pid:nl:1".to_string(), "given_name".to_string()],
+                        true,
                     ),
-                )]),
+                    AttributeRequest::new_with_keys(
+                        vec!["urn:eudi:pid:nl:1".to_string(), "family_name".to_string()],
+                        false,
+                    ),
+                ],
             }]
-            .into(),
+            .try_into()
+            .unwrap(),
         ),
         return_url_template: None,
     };

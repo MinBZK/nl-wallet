@@ -1,27 +1,31 @@
-pub use biscuit::errors::Error as BiscuitError;
-pub use biscuit::jwa;
-pub use biscuit::jwa::SignatureAlgorithm;
-pub use biscuit::jwk::JWKSet;
 pub use biscuit::ClaimsSet;
 pub use biscuit::CompactJson;
 pub use biscuit::CompactPart;
 pub use biscuit::Empty;
-pub use biscuit::ValidationOptions;
 pub use biscuit::JWT;
-pub use josekit::jwe::alg;
-pub use josekit::jwe::enc;
+pub use biscuit::ValidationOptions;
+pub use biscuit::errors::Error as BiscuitError;
+pub use biscuit::jwa;
+pub use biscuit::jwa::SignatureAlgorithm;
+pub use biscuit::jwk::JWKSet;
+pub use josekit::JoseError;
 pub use josekit::jwe::JweContentEncryption;
 pub use josekit::jwe::JweDecrypter;
-pub use josekit::JoseError;
+pub use josekit::jwe::alg;
+pub use josekit::jwe::enc;
 
 use base64::prelude::*;
 use error_category::ErrorCategory;
-use futures::try_join;
 use futures::TryFutureExt;
+use futures::try_join;
 use http_utils::reqwest::ReqwestClientUrl;
 use reqwest::header;
 use url::Url;
 
+use crate::AuthBearerErrorCode;
+use crate::AuthorizationErrorCode;
+use crate::ErrorResponse;
+use crate::TokenErrorCode;
 use crate::authorization::AuthorizationRequest;
 use crate::authorization::AuthorizationResponse;
 use crate::authorization::PkceCodeChallenge;
@@ -32,10 +36,6 @@ use crate::token::AuthorizationCode;
 use crate::token::TokenRequest;
 use crate::token::TokenRequestGrantType;
 use crate::token::TokenResponse;
-use crate::AuthBearerErrorCode;
-use crate::AuthorizationErrorCode;
-use crate::ErrorResponse;
-use crate::TokenErrorCode;
 
 use super::Config;
 use super::OidcReqwestClient;
@@ -337,11 +337,11 @@ mod tests {
     use http_utils::tls::insecure::InsecureHttpConfig;
     use http_utils::urls::BaseUrl;
 
+    use crate::AuthorizationErrorCode;
     use crate::oidc::tests::start_discovery_server;
     use crate::pkce::MockPkcePair;
     use crate::pkce::S256PkcePair;
     use crate::token::TokenRequestGrantType;
-    use crate::AuthorizationErrorCode;
 
     use super::Config;
     use super::HttpOidcClient;
