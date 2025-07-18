@@ -425,42 +425,53 @@ mod test {
         }
     }
 
-    fn mdoc_example_query_mutate_first_credential_query<F: FnOnce(&mut CredentialQuery)>(mutate: F) -> Query {
+    fn mdoc_example_query_mutate_first_credential_query<F>(mutate: F) -> Query
+    where
+        F: FnOnce(CredentialQuery) -> CredentialQuery,
+    {
         let mut query = mdoc_example_query();
-        query.credentials.as_mut().first_mut().map(mutate);
+        query.credentials = vec![mutate(query.credentials.into_first())].try_into().unwrap();
         query
     }
 
     fn query_multiple_queries() -> Query {
-        mdoc_example_query_mutate_first_credential_query(|c| c.multiple = true)
+        mdoc_example_query_mutate_first_credential_query(|mut c| {
+            c.multiple = true;
+            c
+        })
     }
 
     fn query_with_trusted_authorities() -> Query {
-        mdoc_example_query_mutate_first_credential_query(|c| {
+        mdoc_example_query_mutate_first_credential_query(|mut c| {
             c.trusted_authorities
-                .push(TrustedAuthoritiesQuery::Other("placeholder".to_string()))
+                .push(TrustedAuthoritiesQuery::Other("placeholder".to_string()));
+            c
         })
     }
 
     fn query_with_claim_sets() -> Query {
-        mdoc_example_query_mutate_first_credential_query(|c| {
+        mdoc_example_query_mutate_first_credential_query(|mut c| {
             c.claims_selection = ClaimsSelection::Combinations {
                 claims: vec![mdoc_claims_query()].try_into().unwrap(),
                 claim_sets: vec![vec!["1".to_string()].try_into().unwrap()].try_into().unwrap(),
             };
+            c
         })
     }
 
     fn mdoc_query_with_invalid_claim_path_length() -> Query {
         let claims_query = {
             let mut claims_query = mdoc_claims_query();
-            let _ = claims_query.path.as_mut().swap_remove(0);
+            let mut path = claims_query.path.into_inner();
+            path.swap_remove(0);
+            claims_query.path = path.try_into().unwrap();
             claims_query
         };
-        mdoc_example_query_mutate_first_credential_query(move |c| {
+        mdoc_example_query_mutate_first_credential_query(move |mut c| {
             c.claims_selection = ClaimsSelection::All {
                 claims: vec![claims_query].try_into().unwrap(),
             };
+            c
         })
     }
 
@@ -472,10 +483,11 @@ mod test {
                 .unwrap();
             claims_query
         };
-        mdoc_example_query_mutate_first_credential_query(move |c| {
+        mdoc_example_query_mutate_first_credential_query(move |mut c| {
             c.claims_selection = ClaimsSelection::All {
                 claims: vec![claims_query].try_into().unwrap(),
             };
+            c
         })
     }
 
@@ -487,10 +499,11 @@ mod test {
                 .unwrap();
             claims_query
         };
-        mdoc_example_query_mutate_first_credential_query(move |c| {
+        mdoc_example_query_mutate_first_credential_query(move |mut c| {
             c.claims_selection = ClaimsSelection::All {
                 claims: vec![claims_query].try_into().unwrap(),
             };
+            c
         })
     }
 
