@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:rxdart/rxdart.dart';
 
+import '../../../environment.dart';
 import '../../data/service/navigation_service.dart';
 import '../../data/service/semantics_event_service.dart';
 import '../../domain/model/configuration/flutter_app_configuration.dart';
@@ -56,6 +57,9 @@ class _AutoLockObserverState extends State<AutoLockObserver> with WidgetsBinding
   @override
   void initState() {
     super.initState();
+
+    // Avoid setting up the auto locking behaviour
+    if (Environment.disableAutoLock) return;
 
     _setupNoInteractionListener();
     _setupSemanticActionListener();
