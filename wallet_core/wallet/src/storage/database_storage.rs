@@ -254,26 +254,6 @@ impl<K> DatabaseStorage<K> {
         Ok(mdocs)
     }
 
-    async fn query_has_any_attestation_with_type(&self, attestation_type: &str) -> StorageResult<bool> {
-        let select_statement = Query::select()
-            .column((attestation::Entity, attestation::Column::Id))
-            .from(attestation::Entity)
-            .and_where(Expr::col(attestation::Column::AttestationType).eq(attestation_type))
-            .take();
-
-        let exists_query = Query::select()
-            .expr_as(Expr::exists(select_statement), Alias::new("attestation_type_exists"))
-            .to_owned();
-
-        let exists_result = self.execute_query(exists_query).await?;
-        let exists = exists_result
-            .map(|result| result.try_get("", "attestation_type_exists"))
-            .transpose()?
-            .unwrap_or(false);
-
-        Ok(exists)
-    }
-
     fn combine_events(
         issuance_events: Vec<(issuance_event::Model, issuance_event_attestation::Model)>,
         disclosure_events: Vec<(disclosure_event::Model, Option<disclosure_event_attestation::Model>)>,
@@ -648,7 +628,23 @@ where
     }
 
     async fn has_any_attestations_with_type(&self, attestation_type: &str) -> StorageResult<bool> {
-        self.query_has_any_attestation_with_type(attestation_type).await
+        let select_statement = Query::select()
+            .column((attestation::Entity, attestation::Column::Id))
+            .from(attestation::Entity)
+            .and_where(Expr::col(attestation::Column::AttestationType).eq(attestation_type))
+            .take();
+
+        let exists_query = Query::select()
+            .expr_as(Expr::exists(select_statement), Alias::new("attestation_type_exists"))
+            .to_owned();
+
+        let exists_result = self.execute_query(exists_query).await?;
+        let exists = exists_result
+            .map(|result| result.try_get("", "attestation_type_exists"))
+            .transpose()?
+            .unwrap_or(false);
+
+        Ok(exists)
     }
 
     async fn log_disclosure_event(
