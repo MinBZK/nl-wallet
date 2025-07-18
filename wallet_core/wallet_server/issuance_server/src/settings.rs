@@ -47,7 +47,7 @@ pub struct IssuanceServerSettings {
 pub struct AttestationSettings {
     #[serde(flatten)]
     pub key_pair: KeyPair,
-    pub to_disclose: Query,
+    pub dcql_query: Query,
 
     /// Endpoint to which the disclosed attributes get sent and which has to respond with the attestations to be issued
     /// (or an empty JSON array if none).

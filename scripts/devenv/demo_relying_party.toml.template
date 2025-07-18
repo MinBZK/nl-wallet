@@ -10,7 +10,7 @@ connect_src = ["'self'", "http://${SERVICES_HOST}:${VERIFICATION_SERVER_WS_PORT}
 ip = '0.0.0.0'
 port = ${DEMO_RP_PORT}
 
-[[usecases.mijn_amsterdam.request.credentials]]
+[[usecases.mijn_amsterdam.dcql_query.credentials]]
 id = "my_pid"
 format = "mso_mdoc"
 meta = { doctype_value = "urn:eudi:pid:nl:1" }
@@ -18,7 +18,7 @@ claims = [
     { path = ["urn:eudi:pid:nl:1", "bsn"], intent_to_retain = true }
 ]
 
-[[usecases.online_marketplace.request.credentials]]
+[[usecases.online_marketplace.dcql_query.credentials]]
 id = "my_pid"
 format = "mso_mdoc"
 meta = { doctype_value = "urn:eudi:pid:nl:1" }
@@ -28,7 +28,7 @@ claims = [
     { path = ["urn:eudi:pid:nl:1", "birthdate"], intent_to_retain = true }
 ]
 
-[[usecases.online_marketplace.request.credentials]]
+[[usecases.online_marketplace.dcql_query.credentials]]
 id = "my_address"
 format = "mso_mdoc"
 meta = { doctype_value = "urn:eudi:pid-address:nl:1" }
@@ -38,7 +38,7 @@ claims = [
     { path = ["urn:eudi:pid-address:nl:1.address", "postal_code"], intent_to_retain = true }
 ]
 
-[[usecases.xyz_bank.request.credentials]]
+[[usecases.xyz_bank.dcql_query.credentials]]
 id = "my_pid"
 format = "mso_mdoc"
 meta = { doctype_value = "urn:eudi:pid:nl:1" }
@@ -48,7 +48,7 @@ claims = [
     { path = ["urn:eudi:pid:nl:1", "birthdate"], intent_to_retain = true }
 ]
 
-[[usecases.xyz_bank.request.credentials]]
+[[usecases.xyz_bank.dcql_query.credentials]]
 id = "my_address"
 format = "mso_mdoc"
 meta = { doctype_value = "urn:eudi:pid-address:nl:1" }
@@ -58,7 +58,7 @@ claims = [
     { path = ["urn:eudi:pid-address:nl:1.address", "postal_code"], intent_to_retain = true }
 ]
 
-[[usecases.monkey_bike.request.credentials]]
+[[usecases.monkey_bike.dcql_query.credentials]]
 id = "my_pid"
 format = "mso_mdoc"
 meta = { doctype_value = "urn:eudi:pid:nl:1" }
@@ -69,7 +69,7 @@ claims = [
     { path = ["urn:eudi:pid:nl:1", "gender"], intent_to_retain = true }
 ]
 
-[[usecases.monkey_bike.request.credentials]]
+[[usecases.monkey_bike.dcql_query.credentials]]
 id = "my_address"
 format = "mso_mdoc"
 meta = { doctype_value = "urn:eudi:pid-address:nl:1" }
@@ -80,7 +80,7 @@ claims = [
     { path = ["urn:eudi:pid-address:nl:1.address", "locality"], intent_to_retain = true }
 ]
 
-[[usecases.job_finder.request.credentials]]
+[[usecases.job_finder.dcql_query.credentials]]
 id = "my_pid"
 format = "mso_mdoc"
 meta = { doctype_value = "urn:eudi:pid:nl:1" }
@@ -89,7 +89,7 @@ claims = [
     { path = ["urn:eudi:pid:nl:1", "family_name"], intent_to_retain = true }
 ]
 
-[[usecases.job_finder.request.credentials]]
+[[usecases.job_finder.dcql_query.credentials]]
 id = "my_pid"
 format = "mso_mdoc"
 meta = { doctype_value = "com.example.degree" }

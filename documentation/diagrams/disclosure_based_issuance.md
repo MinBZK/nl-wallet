@@ -86,7 +86,7 @@ private_key = "my_issuer_key"
 certificate = "MIJ..."
 
 # Attributes that have to be disclosed for `degree` in DCQL format
-[[disclosure_settings.degree.to_disclose.credentials]]
+[[disclosure_settings.degree.dcql_query.credentials]]
 id = "my_credential"
 format = "mso_mdoc"
 meta = { doctype_value = "com.example.pid" }

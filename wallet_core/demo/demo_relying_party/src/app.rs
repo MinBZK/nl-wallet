@@ -179,7 +179,7 @@ async fn create_session(
         .start(
             options.usecase.clone(),
             // TODO: Change to Query (PVW-4530)
-            NormalizedCredentialRequest::try_from_query(usecase.request.clone()).map_err(anyhow::Error::new)?,
+            NormalizedCredentialRequest::try_from_query(usecase.dcql_query.clone()).map_err(anyhow::Error::new)?,
             return_url_template,
         )
         .await?;
