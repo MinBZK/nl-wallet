@@ -103,7 +103,7 @@ extension TestWidgetExtensions on Widget {
 }
 
 const iphoneXSize = Size(375, 812);
-final iphoneXSizeLandscape = iphoneXSize.flipped;
+const iphoneXSizeLandscape = Size(812, 375);
 
 extension WidgetTesterExtensions on WidgetTester {
   /// Convenience method to pump any widget with the wrapped by the

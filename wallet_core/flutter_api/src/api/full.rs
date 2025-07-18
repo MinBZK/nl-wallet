@@ -5,11 +5,11 @@ use tokio::sync::RwLock;
 use url::Url;
 
 use flutter_api_macros::flutter_api_error;
-use wallet::errors::WalletInitError;
-use wallet::utils::version_string;
 use wallet::DisclosureUriSource;
 use wallet::UnlockMethod;
 use wallet::Wallet;
+use wallet::errors::WalletInitError;
+use wallet::utils::version_string;
 
 use crate::frb_generated::StreamSink;
 use crate::logging::init_logging;
@@ -23,7 +23,6 @@ use crate::models::pin::PinValidationResult;
 use crate::models::uri::IdentifyUriResult;
 use crate::models::version_state::FlutterVersionState;
 use crate::models::wallet_event::WalletEvent;
-use crate::models::wallet_event::WalletEvents;
 use crate::sentry::init_sentry;
 
 static WALLET: OnceCell<RwLock<Wallet>> = OnceCell::const_new();
@@ -45,7 +44,9 @@ pub async fn init() -> anyhow::Result<()> {
 
         // Setup logging to console and enable RUST_BACKTRACE to be caught on panics (but not errors) for Sentry.
         setup_default_user_utils();
-        std::env::set_var("RUST_LIB_BACKTRACE", "0");
+        unsafe {
+            std::env::set_var("RUST_LIB_BACKTRACE", "0");
+        }
 
         // Initialize Sentry for Rust panics.
         // This MUST be called before initializing the async runtime.
@@ -135,7 +136,7 @@ pub async fn set_recent_history_stream(sink: StreamSink<Vec<WalletEvent>>) -> an
         .write()
         .await
         .set_recent_history_callback(Box::new(move |events| {
-            let recent_history = events.into_iter().flat_map(WalletEvents::from).collect();
+            let recent_history = events.into_iter().map(WalletEvent::from).collect();
 
             let _ = sink.add(recent_history);
         }))
@@ -350,22 +351,15 @@ pub async fn unlock_wallet_with_biometrics() -> anyhow::Result<()> {
 pub async fn get_history() -> anyhow::Result<Vec<WalletEvent>> {
     let wallet = wallet().read().await;
     let history = wallet.get_history().await?;
-    let history = history.into_iter().flat_map(WalletEvents::from).collect();
+    let history = history.into_iter().map(WalletEvent::from).collect();
     Ok(history)
 }
 
 #[flutter_api_error]
-pub async fn get_history_for_card(attestation_type: String) -> anyhow::Result<Vec<WalletEvent>> {
+pub async fn get_history_for_card(attestation_id: String) -> anyhow::Result<Vec<WalletEvent>> {
     let wallet = wallet().read().await;
-    let history = wallet.get_history_for_card(&attestation_type).await?;
-    let history = history
-        .into_iter()
-        .flat_map(WalletEvents::from)
-        .filter(|e| match e {
-            WalletEvent::Disclosure { .. } => true,
-            WalletEvent::Issuance { attestation, .. } => attestation.attestation_type == attestation_type,
-        })
-        .collect();
+    let history = wallet.get_history_for_card(&attestation_id).await?;
+    let history = history.into_iter().map(WalletEvent::from).collect();
     Ok(history)
 }
 

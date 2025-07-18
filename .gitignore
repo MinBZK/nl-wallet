@@ -24,6 +24,9 @@ migrate_working_dir/
 *.sublime-project
 *.sublime-workspace
 
+# VScode related
+*.code-workspace
+
 # A saner location for emacs/vim tags files
 .tags
 

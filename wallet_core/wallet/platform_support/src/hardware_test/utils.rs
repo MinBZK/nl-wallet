@@ -2,7 +2,7 @@ use crate::utils::hardware::HardwareUtilities;
 use crate::utils::test;
 
 // this is the starting point for the integration test performed from Android / iOS.
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn utils_test_get_storage_path() {
     super::print_panic(|| {
         let rt = tokio::runtime::Builder::new_current_thread()
@@ -16,11 +16,11 @@ extern "C" fn utils_test_get_storage_path() {
 
 #[cfg(target_os = "android")]
 mod android {
-    use jni::objects::JClass;
     use jni::JNIEnv;
+    use jni::objects::JClass;
 
     #[rustfmt::skip]
-    #[no_mangle]
+    #[unsafe(no_mangle)]
     extern "C" fn Java_nl_rijksoverheid_edi_wallet_platform_1support_utilities_UtilitiesBridgeInstrumentedTest_utilities_1test_1storage_1path(
         _env: JNIEnv,
         _: JClass,

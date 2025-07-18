@@ -1,15 +1,15 @@
 use std::iter;
 use std::rc::Rc;
 
-use der::asn1::BitString;
-use der::asn1::ObjectIdentifier;
 use der::Any;
 use der::Decode;
 use der::Encode;
+use der::asn1::BitString;
+use der::asn1::ObjectIdentifier;
 use derive_more::Debug;
-use p256::ecdsa::signature::Signer;
 use p256::ecdsa::Signature;
 use p256::ecdsa::SigningKey;
+use p256::ecdsa::signature::Signer;
 use p256::pkcs8::DecodePrivateKey;
 use rand::Rng;
 use rcgen::BasicConstraints;
@@ -19,16 +19,16 @@ use rcgen::DistinguishedName;
 use rcgen::DnType;
 use rcgen::IsCa;
 use rcgen::KeyPair;
-use rcgen::RsaKeySize;
 use rcgen::PKCS_ECDSA_P256_SHA256;
 use rcgen::PKCS_RSA_SHA256;
+use rcgen::RsaKeySize;
 use rsa::RsaPublicKey;
 use spki::AlgorithmIdentifierOwned;
 use spki::DecodePublicKey;
 use x509_cert::certificate::Certificate;
 
-use crate::attestation_extension::key_description::KeyDescription;
 use crate::attestation_extension::KEY_ATTESTATION_EXTENSION_OID;
+use crate::attestation_extension::key_description::KeyDescription;
 
 /// Represents a Google CA with a variable number of intermediates. After creation,
 /// this can be used to generate leaf certificates to emulate Android key attestation.
@@ -65,7 +65,7 @@ impl MockCaChain {
                     };
 
                     let mut params = CertificateParams::default();
-                    params.serial_number = Some((rng.gen::<u64>()).into());
+                    params.serial_number = Some((rng.r#gen::<u64>()).into());
                     params.is_ca = IsCa::Ca(BasicConstraints::Constrained(constrained_count));
 
                     // Create a SubjectDN using the constrained_count to make it uniquely recognizable.
@@ -241,16 +241,16 @@ mod tests {
     use std::time::UNIX_EPOCH;
 
     use assert_matches::assert_matches;
-    use rsa::traits::PublicKeyParts;
     use rsa::BigUint;
+    use rsa::traits::PublicKeyParts;
     use rstest::rstest;
     use rustls_pki_types::CertificateDer;
     use rustls_pki_types::SignatureVerificationAlgorithm;
     use rustls_pki_types::UnixTime;
-    use webpki::ring::ECDSA_P256_SHA256;
-    use webpki::ring::RSA_PKCS1_2048_8192_SHA256;
     use webpki::EndEntityCert;
     use webpki::KeyUsage;
+    use webpki::ring::ECDSA_P256_SHA256;
+    use webpki::ring::RSA_PKCS1_2048_8192_SHA256;
     use x509_parser::prelude::FromDer;
     use x509_parser::prelude::X509Certificate;
     use x509_parser::public_key::PublicKey;

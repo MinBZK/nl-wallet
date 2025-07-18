@@ -4,6 +4,8 @@ use std::sync::OnceLock;
 
 use askama::Template;
 use askama_web::WebTemplate;
+use axum::Json;
+use axum::Router;
 use axum::extract::Path;
 use axum::extract::Query;
 use axum::extract::State;
@@ -14,8 +16,6 @@ use axum::response::IntoResponse;
 use axum::response::Response;
 use axum::routing::get;
 use axum::routing::post;
-use axum::Json;
-use axum::Router;
 use base64::prelude::*;
 use indexmap::IndexMap;
 use itertools::Itertools;
@@ -29,6 +29,9 @@ use tracing::warn;
 use url::Url;
 
 use attestation_data::attributes::AttributeValue;
+use demo_utils::LANGUAGE_JS_SHA256;
+use demo_utils::WALLET_WEB_CSS_SHA256;
+use demo_utils::WALLET_WEB_JS_SHA256;
 use demo_utils::disclosure::DemoDisclosedAttestations;
 use demo_utils::error::Result;
 use demo_utils::headers::cors_layer;
@@ -36,9 +39,6 @@ use demo_utils::headers::set_content_security_policy;
 use demo_utils::headers::set_static_cache_control;
 use demo_utils::language::Language;
 use demo_utils::language::LanguageParam;
-use demo_utils::LANGUAGE_JS_SHA256;
-use demo_utils::WALLET_WEB_CSS_SHA256;
-use demo_utils::WALLET_WEB_JS_SHA256;
 use http_utils::urls::BaseUrl;
 use http_utils::urls::ConnectSource;
 use http_utils::urls::SourceExpression;
@@ -50,8 +50,8 @@ use crate::client::WalletServerClient;
 use crate::settings::ReturnUrlMode;
 use crate::settings::Settings;
 use crate::settings::Usecase;
-use crate::translations::Words;
 use crate::translations::TRANSLATIONS;
+use crate::translations::Words;
 
 const RETURN_URL_SEGMENT: &str = "return";
 
@@ -177,7 +177,8 @@ async fn create_session(
         .client
         .start(
             options.usecase.clone(),
-            usecase.items_requests.clone(),
+            // TODO: Change to Query (PVW-4530)
+            usecase.items_requests.clone().into(),
             return_url_template,
         )
         .await?;

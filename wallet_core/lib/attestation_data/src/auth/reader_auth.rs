@@ -7,8 +7,8 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
 use url::Url;
-use x509_parser::der_parser::asn1_rs::oid;
 use x509_parser::der_parser::Oid;
+use x509_parser::der_parser::asn1_rs::oid;
 
 use crypto::x509::BorrowingCertificateExtension;
 use error_category::ErrorCategory;
@@ -124,10 +124,10 @@ pub struct DeletionPolicy {
     pub deleteable: bool,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AuthorizedMdoc(pub IndexMap<String, AuthorizedNamespace>);
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AuthorizedNamespace(pub IndexMap<String, AuthorizedAttribute>);
 
 // This struct could be extended in the future for attribute specific policies
@@ -146,7 +146,9 @@ impl BorrowingCertificateExtension for ReaderRegistration {
 pub mod mock {
     use itertools::Itertools;
 
-    use mdoc::verifier::ItemsRequests;
+    use attestation_types::request::NormalizedCredentialRequest;
+    use dcql::CredentialQueryFormat;
+    use utils::vec_at_least::VecNonEmpty;
 
     use super::*;
 
@@ -176,6 +178,49 @@ pub mod mock {
                     .collect_vec(),
             )]
             .into()
+        }
+
+        pub fn mock_from_credential_requests(authorized_requests: &VecNonEmpty<NormalizedCredentialRequest>) -> Self {
+            let authorized_attributes = authorized_requests.as_ref().iter().fold(
+                HashMap::new(),
+                |mut acc: HashMap<String, Vec<VecNonEmpty<ClaimPath>>>, credential_request| {
+                    match credential_request.format {
+                        CredentialQueryFormat::MsoMdoc { ref doctype_value } => {
+                            let claim_paths = credential_request
+                                .claims
+                                .iter()
+                                .map(|c| c.path.clone())
+                                .collect::<Vec<_>>();
+                            acc.entry(doctype_value.to_string()).or_default().extend(claim_paths);
+                        }
+                        CredentialQueryFormat::SdJwt { .. } => todo!("PVW-4139 support SdJwt"),
+                    }
+                    acc
+                },
+            );
+
+            Self {
+                authorized_attributes,
+                ..Self::new_mock()
+            }
+        }
+
+        pub fn new_mock() -> Self {
+            let organization = Organization::new_mock();
+
+            ReaderRegistration {
+                purpose_statement: vec![("nl", "Beschrijving van mijn dienst"), ("en", "My Service Description")]
+                    .into(),
+                retention_policy: RetentionPolicy {
+                    intent_to_retain: true,
+                    max_duration_in_minutes: Some(60 * 24 * 365),
+                },
+                sharing_policy: SharingPolicy { intent_to_share: false },
+                deletion_policy: DeletionPolicy { deleteable: true },
+                organization,
+                request_origin_base_url: "https://example.com/".parse().unwrap(),
+                authorized_attributes: Default::default(),
+            }
         }
     }
 
@@ -222,54 +267,6 @@ pub mod mock {
         ReaderRegistration {
             authorized_attributes,
             ..ReaderRegistration::new_mock()
-        }
-    }
-
-    impl ReaderRegistration {
-        pub fn new_mock() -> Self {
-            let organization = Organization::new_mock();
-
-            ReaderRegistration {
-                purpose_statement: vec![("nl", "Beschrijving van mijn dienst"), ("en", "My Service Description")]
-                    .into(),
-                retention_policy: RetentionPolicy {
-                    intent_to_retain: true,
-                    max_duration_in_minutes: Some(60 * 24 * 365),
-                },
-                sharing_policy: SharingPolicy { intent_to_share: true },
-                deletion_policy: DeletionPolicy { deleteable: true },
-                organization,
-                request_origin_base_url: "https://example.com/".parse().unwrap(),
-                authorized_attributes: Default::default(),
-            }
-        }
-
-        pub fn mock_from_requests(authorized_requests: &ItemsRequests) -> Self {
-            let authorized_attributes = HashMap::from_iter(authorized_requests.0.iter().map(|items_request| {
-                let paths = items_request
-                    .name_spaces
-                    .iter()
-                    .flat_map(|(namespace, attributes)| {
-                        attributes
-                            .iter()
-                            .map(|(attribute, _)| {
-                                vec![
-                                    ClaimPath::SelectByKey(namespace.clone()),
-                                    ClaimPath::SelectByKey(attribute.clone()),
-                                ]
-                                .try_into()
-                                .unwrap()
-                            })
-                            .collect_vec()
-                    })
-                    .collect_vec();
-                (items_request.doc_type.clone(), paths)
-            }));
-
-            Self {
-                authorized_attributes,
-                ..Self::new_mock()
-            }
         }
     }
 }

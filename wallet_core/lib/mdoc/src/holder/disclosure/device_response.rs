@@ -1,9 +1,14 @@
-use crypto::factory::KeyFactory;
-use crypto::CredentialEcdsaKey;
 use itertools::Itertools;
+
+use attestation_types::request::NormalizedCredentialRequest;
+use crypto::CredentialEcdsaKey;
+use crypto::factory::KeyFactory;
+use dcql::CredentialQueryFormat;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::errors::Error;
 use crate::errors::Result;
+use crate::identifiers::AttributeIdentifierHolder;
 use crate::iso::disclosure::DeviceResponse;
 use crate::iso::disclosure::DeviceResponseVersion;
 use crate::iso::disclosure::DeviceSigned;
@@ -12,6 +17,7 @@ use crate::iso::engagement::DeviceAuthenticationKeyed;
 use crate::iso::engagement::SessionTranscript;
 
 use super::super::Mdoc;
+use super::ResponseValidationError;
 
 impl DeviceResponse {
     pub fn new(documents: Vec<Document>) -> Self {
@@ -64,6 +70,41 @@ impl DeviceResponse {
 
         Ok((device_response, keys))
     }
+
+    pub fn match_against_request(
+        &self,
+        credential_requests: &VecNonEmpty<NormalizedCredentialRequest>,
+    ) -> Result<(), ResponseValidationError> {
+        let not_found = credential_requests
+            .as_ref()
+            .iter()
+            .map(|request| {
+                let CredentialQueryFormat::MsoMdoc { ref doctype_value } = request.format else {
+                    return Err(ResponseValidationError::ExpectedMdoc);
+                };
+
+                let not_found = self
+                    .documents
+                    .as_ref()
+                    .and_then(|docs| docs.iter().find(|doc| doc.doc_type == *doctype_value))
+                    .map_or_else(
+                        // If the entire document is missing then all requested attributes are missing
+                        || Ok(request.mdoc_attribute_identifiers()?.into_iter().collect()),
+                        |doc| request.match_against_issuer_signed(doc),
+                    )?;
+                Ok(not_found)
+            })
+            .collect::<Result<Vec<Vec<_>>, _>>()?
+            .into_iter()
+            .flatten()
+            .collect::<Vec<_>>();
+
+        if not_found.is_empty() {
+            Ok(())
+        } else {
+            Err(ResponseValidationError::MissingAttributes(not_found))
+        }
+    }
 }
 
 #[cfg(test)]
@@ -77,12 +118,12 @@ mod tests {
     use crypto::mock_remote::MockRemoteKeyFactory;
     use crypto::server_keys::generate::Ca;
 
+    use crate::DeviceAuth;
     use crate::holder::Mdoc;
     use crate::iso::disclosure::DeviceResponse;
     use crate::iso::engagement::DeviceAuthenticationKeyed;
     use crate::iso::engagement::SessionTranscript;
     use crate::utils::cose::ClonePayload;
-    use crate::DeviceAuth;
 
     #[test]
     fn test_device_response_sign_from_mdocs() {

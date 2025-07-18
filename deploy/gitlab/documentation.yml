@@ -73,7 +73,7 @@ publish-documentation:
     - job: build-documentation
       artifacts: true
   script:
-    - git clone --branch documentation --depth 1 https://$GITHUB_BOT_USER:$GH_TOKEN@github.com/MinBZK/nl-wallet.git public
+    - git clone --branch documentation --depth 1 https://$GITHUB_USER:$GITHUB_TOKEN@github.com/MinBZK/nl-wallet.git public
     - cd public
     - rm -rf *
     - mv ../documentation/_build/html/* .
@@ -86,7 +86,7 @@ publish-documentation:
     - |
       if [[ -n $(git status --porcelain) && $CI_COMMIT_BRANCH == "$CI_DEFAULT_BRANCH" ]]; then
         git config user.name 'NL Wallet'
-        git config user.email "$GITHUB_BOT_EMAIL"
+        git config user.email "$GITHUB_EMAIL"
         git commit -m "Update documentation"
         git push origin documentation;
       else

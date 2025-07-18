@@ -3,11 +3,11 @@ use std::collections::HashSet;
 use chrono::DateTime;
 use chrono::Utc;
 use serde::Deserialize;
+use serde_with::DeserializeFromStr;
+use serde_with::TimestampMilliSeconds;
 use serde_with::base64::Base64;
 use serde_with::base64::UrlSafe;
 use serde_with::serde_as;
-use serde_with::DeserializeFromStr;
-use serde_with::TimestampMilliSeconds;
 
 /// The decoded integrity verdict, as sent by the Google Play API. Note
 /// that this only supports "standard" API request, not "classic" requests.

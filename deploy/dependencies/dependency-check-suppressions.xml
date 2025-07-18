@@ -18,14 +18,14 @@
   </suppress>
   <!-- End group: [CRITICAL] https://ossindex.sonatype.org/component/pkg:cocoapods/Flutter@1.0.0 -->
 
-  <!-- Start group: [MEDIUM] -->
+  <!-- Start group: [LOW] -->
   <suppress>
     <notes><![CDATA[
-      file name: pkg:npm/vite@5.4.14
-      The CVE has been fixed in version 5.4.12, but somehow it is still reported for 5.4.14.
+      file name: video_player_avfoundation:0.0.1
+      False positive (Drupal)
     ]]></notes>
-    <packageUrl regex="true">^pkg:npm/vite@5.4.14$</packageUrl>
-    <vulnerabilityName>CVE-2025-24010</vulnerabilityName>
+    <packageUrl regex="true">^pkg:cocoapods/video_player_avfoundation@.*$</packageUrl>
+    <cve>CVE-2015-3362</cve>
   </suppress>
-  <!-- End group: [MEDIUM] -->
+  <!-- End group: [LOW] -->
 </suppressions>

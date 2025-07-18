@@ -1,11 +1,11 @@
-use assert_json_diff::assert_json_matches;
 use assert_json_diff::CompareMode;
 use assert_json_diff::Config;
+use assert_json_diff::assert_json_matches;
 use ctor::ctor;
 use http::StatusCode;
 use reqwest::Response;
-use serde_json::json;
 use serde_json::Value;
+use serde_json::json;
 use tokio::net::TcpListener;
 
 use gba_hc_converter::gba::client::GbavClient;

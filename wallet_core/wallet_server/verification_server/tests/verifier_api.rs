@@ -12,9 +12,7 @@ use assert_matches::assert_matches;
 use chrono::DateTime;
 use chrono::Utc;
 use http::StatusCode;
-use indexmap::IndexMap;
 use itertools::Itertools;
-use mdoc::holder::Mdoc;
 use parking_lot::RwLock;
 use reqwest::Client;
 use reqwest::Response;
@@ -30,9 +28,13 @@ use attestation_data::credential_payload::mock::pid_example_payload;
 use attestation_data::disclosure::DisclosedAttestations;
 use attestation_data::x509::generate::mock::generate_issuer_mock;
 use attestation_data::x509::generate::mock::generate_reader_mock;
+use attestation_types::request::AttributeRequest;
+use attestation_types::request::NormalizedCredentialRequest;
 use crypto::mock_remote::MockRemoteEcdsaKey;
 use crypto::mock_remote::MockRemoteKeyFactory;
 use crypto::server_keys::generate::Ca;
+use dcql::ClaimPath;
+use dcql::CredentialQueryFormat;
 use hsm::service::Pkcs11Hsm;
 use http_utils::error::HttpJsonErrorBody;
 use http_utils::reqwest::default_reqwest_client_builder;
@@ -40,17 +42,17 @@ use http_utils::urls::BaseUrl;
 use mdoc::examples::EXAMPLE_ATTR_NAME;
 use mdoc::examples::EXAMPLE_DOC_TYPE;
 use mdoc::examples::EXAMPLE_NAMESPACE;
-use mdoc::ItemsRequest;
+use mdoc::holder::Mdoc;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::DisclosureSession;
 use openid4vc::disclosure_session::DisclosureUriSource;
 use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
+use openid4vc::server_state::CLEANUP_INTERVAL_SECONDS;
 use openid4vc::server_state::MemorySessionStore;
 use openid4vc::server_state::SessionStore;
 use openid4vc::server_state::SessionStoreTimeouts;
 use openid4vc::server_state::SessionToken;
-use openid4vc::server_state::CLEANUP_INTERVAL_SECONDS;
 use openid4vc::verifier::DisclosureData;
 use openid4vc::verifier::SessionType;
 use openid4vc::verifier::SessionTypeReturnUrl;
@@ -77,20 +79,23 @@ const USECASE_NAME: &str = "usecase";
 static EXAMPLE_START_DISCLOSURE_REQUEST: LazyLock<StartDisclosureRequest> = LazyLock::new(|| StartDisclosureRequest {
     usecase: USECASE_NAME.to_string(),
     return_url_template: Some("https://return.url/{session_token}".parse().unwrap()),
-    items_requests: Some(
-        vec![ItemsRequest {
-            doc_type: EXAMPLE_DOC_TYPE.to_string(),
-            request_info: None,
-            name_spaces: IndexMap::from([(
-                EXAMPLE_NAMESPACE.to_string(),
-                IndexMap::from_iter(
-                    [(EXAMPLE_ATTR_NAME.to_string(), true)]
-                        .into_iter()
-                        .map(|(name, intent_to_retain)| (name.to_string(), intent_to_retain)),
-                ),
-            )]),
+    credential_requests: Some(
+        vec![NormalizedCredentialRequest {
+            format: CredentialQueryFormat::MsoMdoc {
+                doctype_value: EXAMPLE_DOC_TYPE.to_string(),
+            },
+            claims: vec![AttributeRequest {
+                path: vec![
+                    ClaimPath::SelectByKey(EXAMPLE_NAMESPACE.to_string()),
+                    ClaimPath::SelectByKey(EXAMPLE_ATTR_NAME.to_string()),
+                ]
+                .try_into()
+                .unwrap(),
+                intent_to_retain: true,
+            }],
         }]
-        .into(),
+        .try_into()
+        .unwrap(),
     ),
 });
 
@@ -98,20 +103,23 @@ static EXAMPLE_PID_START_DISCLOSURE_REQUEST: LazyLock<StartDisclosureRequest> =
     LazyLock::new(|| StartDisclosureRequest {
         usecase: USECASE_NAME.to_string(),
         return_url_template: Some("https://return.url/{session_token}".parse().unwrap()),
-        items_requests: Some(
-            vec![ItemsRequest {
-                doc_type: PID_ATTESTATION_TYPE.to_string(),
-                request_info: None,
-                name_spaces: IndexMap::from([(
-                    PID_ATTESTATION_TYPE.to_string(),
-                    IndexMap::from_iter(
-                        [(EXAMPLE_ATTR_NAME.to_string(), true)]
-                            .into_iter()
-                            .map(|(name, intent_to_retain)| (name.to_string(), intent_to_retain)),
-                    ),
-                )]),
+        credential_requests: Some(
+            vec![NormalizedCredentialRequest {
+                format: CredentialQueryFormat::MsoMdoc {
+                    doctype_value: PID_ATTESTATION_TYPE.to_string(),
+                },
+                claims: vec![AttributeRequest {
+                    path: vec![
+                        ClaimPath::SelectByKey(PID_ATTESTATION_TYPE.to_string()),
+                        ClaimPath::SelectByKey(EXAMPLE_ATTR_NAME.to_string()),
+                    ]
+                    .try_into()
+                    .unwrap(),
+                    intent_to_retain: true,
+                }],
             }]
-            .into(),
+            .try_into()
+            .unwrap(),
         ),
     });
 
@@ -164,8 +172,8 @@ async fn wallet_server_settings_and_listener(
     let rp_ca = Ca::generate_reader_mock_ca().unwrap();
     let reader_trust_anchors = vec![rp_ca.as_borrowing_trust_anchor().clone()];
     let rp_trust_anchor = rp_ca.to_trust_anchor().to_owned();
-    let reader_registration = Some(ReaderRegistration::mock_from_requests(
-        request.items_requests.as_ref().unwrap(),
+    let reader_registration = Some(ReaderRegistration::mock_from_credential_requests(
+        request.credential_requests.as_ref().unwrap(),
     ));
 
     // Set up the use case, based on RP CA and reader registration.
@@ -292,8 +300,7 @@ fn internal_url(settings: &VerifierSettings) -> BaseUrl {
 async fn test_requester_authentication(#[case] mut auth: RequesterAuth) {
     let requester_listener = match &mut auth {
         RequesterAuth::Authentication(_) => None,
-        RequesterAuth::ProtectedInternalEndpoint { ref mut server, .. }
-        | RequesterAuth::InternalEndpoint(ref mut server) => {
+        RequesterAuth::ProtectedInternalEndpoint { server, .. } | RequesterAuth::InternalEndpoint(server) => {
             let listener = TcpListener::bind(("localhost", 0)).await.unwrap();
             server.port = listener.local_addr().unwrap().port();
             Some(listener)
@@ -486,19 +493,13 @@ async fn test_new_session_parameters_error() {
         request
     };
 
-    let no_items_request = {
-        let mut request = EXAMPLE_START_DISCLOSURE_REQUEST.clone();
-        request.items_requests = Some(vec![].into());
-        request
-    };
-
     let bad_return_url_request = {
         let mut request = EXAMPLE_START_DISCLOSURE_REQUEST.clone();
         request.return_url_template = None;
         request
     };
 
-    for request in [bad_use_case_request, no_items_request, bad_return_url_request] {
+    for request in [bad_use_case_request, bad_return_url_request] {
         let response = client
             .post(internal_url.join("disclosure/sessions"))
             .json(&request)
@@ -1140,12 +1141,14 @@ async fn test_disclosed_attributes_failed_session() {
         &serde_json::Value::from("FAILED")
     );
     // Simply check for the presence of the word "expired" to avoid fully matching the error string.
-    assert!(error_body
-        .extra
-        .get("session_error")
-        .unwrap()
-        .as_str()
-        .unwrap()
-        .to_lowercase()
-        .contains("expired"));
+    assert!(
+        error_body
+            .extra
+            .get("session_error")
+            .unwrap()
+            .as_str()
+            .unwrap()
+            .to_lowercase()
+            .contains("expired")
+    );
 }

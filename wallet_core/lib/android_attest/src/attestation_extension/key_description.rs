@@ -6,14 +6,14 @@
 //! - 200
 //! - 300
 
-pub use rasn::types::Integer;
-pub use rasn::types::OctetString;
-pub use rasn::types::SetOf;
 use rasn::AsnType;
 use rasn::Decode;
 use rasn::Decoder;
 #[cfg(feature = "encode")]
 use rasn::Encoder;
+pub use rasn::types::Integer;
+pub use rasn::types::OctetString;
+pub use rasn::types::SetOf;
 #[cfg(feature = "serialize_key_attestation")]
 use serde::Serialize;
 

@@ -6,16 +6,19 @@ use serial_test::serial;
 use url::Url;
 
 use attestation_data::issuable_document::IssuableDocument;
-use http_utils::urls::disclosure_based_issuance_base_uri;
 use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
+use http_utils::urls::disclosure_based_issuance_base_uri;
+use openid4vc::ErrorResponse;
 use openid4vc::issuance_session::IssuanceSessionError;
 use openid4vc::openid4vp::RequestUriMethod;
 use openid4vc::openid4vp::VpRequestUriObject;
 use openid4vc::verifier::VerifierUrlParameters;
-use openid4vc::ErrorResponse;
 use pid_issuer::pid::constants::*;
 use pid_issuer::pid::mock::mock_issuable_document_address;
 use tests_integration::common::*;
+use wallet::AttestationAttributeValue;
+use wallet::AttestationPresentation;
+use wallet::DisclosureUriSource;
 use wallet::attestation_data::Attribute;
 use wallet::attestation_data::AttributeValue;
 use wallet::errors::IssuanceError;
@@ -23,9 +26,6 @@ use wallet::mock::BSN_ATTR_NAME;
 use wallet::mock::PID_DOCTYPE;
 use wallet::openid4vc::SessionType;
 use wallet::utils::BaseUrl;
-use wallet::AttestationAttributeValue;
-use wallet::AttestationPresentation;
-use wallet::DisclosureUriSource;
 
 pub async fn wallet_attestations(wallet: &mut WalletWithMocks) -> Vec<AttestationPresentation> {
     // Emit attestations into this local variable
@@ -42,8 +42,7 @@ pub async fn wallet_attestations(wallet: &mut WalletWithMocks) -> Vec<Attestatio
             .unwrap();
     }
 
-    let attestations = attestations.lock().unwrap().to_vec();
-    attestations
+    attestations.lock().unwrap().to_vec()
 }
 
 #[tokio::test]

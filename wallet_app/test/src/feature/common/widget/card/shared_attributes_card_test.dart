@@ -46,13 +46,11 @@ void main() {
           key: 'key1',
           label: 'First label',
           value: const StringValue('Value1'),
-          sourceCardDocType: 'com.example.docType',
         ),
         DataAttribute.untranslated(
           key: 'key2',
           label: 'Second label',
           value: const StringValue('Value2'),
-          sourceCardDocType: 'com.example.docType',
         ),
       ];
       await tester.pumpWidgetWithAppWrapper(

@@ -16,11 +16,14 @@ use nutype::nutype;
 use regex::Regex;
 use serde::Deserialize;
 use serde::Serialize;
-use serde_with::serde_as;
-use serde_with::skip_serializing_none;
 use serde_with::MapSkipError;
 use serde_with::TryFromInto;
+use serde_with::serde_as;
+use serde_with::skip_serializing_none;
 use ssri::Integrity;
+
+// TODO: remove in PVW-4421
+pub use dcql::ClaimPath;
 
 use http_utils::data_uri::DataUri;
 use http_utils::urls::BaseUrl;
@@ -550,40 +553,6 @@ impl Display for ClaimMetadata {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum ClaimPath {
-    SelectByKey(String),
-    SelectAll,
-    SelectByIndex(usize),
-}
-
-impl ClaimPath {
-    pub fn try_key_path(&self) -> Option<&str> {
-        match self {
-            ClaimPath::SelectByKey(key) => Some(key.as_str()),
-            _ => None,
-        }
-    }
-
-    pub fn try_into_key_path(self) -> Option<String> {
-        match self {
-            ClaimPath::SelectByKey(key) => Some(key),
-            _ => None,
-        }
-    }
-}
-
-impl Display for ClaimPath {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ClaimPath::SelectByKey(key) => write!(f, "{key}"),
-            ClaimPath::SelectAll => f.write_str("*"),
-            ClaimPath::SelectByIndex(index) => write!(f, "{index}"),
-        }
-    }
-}
-
 /// An indication whether the claim is selectively disclosable.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -840,8 +809,8 @@ mod test {
     use std::str::FromStr;
 
     use assert_matches::assert_matches;
-    use jsonschema::error::ValidationErrorKind;
     use jsonschema::ValidationError;
+    use jsonschema::error::ValidationErrorKind;
     use rstest::rstest;
     use serde_json::json;
 
@@ -946,22 +915,24 @@ mod test {
 
     #[test]
     fn test_embedded_schema_validation() {
-        assert!(serde_json::from_value::<TypeMetadata>(json!({
-            "vct": VCT_EXAMPLE_CREDENTIAL,
-            "extends": "https://sd_jwt_vc_metadata.example.com/other_schema",
-            "extends#integrity": "sha256-LmXfh-9cLlJNXN-TsMk-PmKjZ5t0WRL5ca_xGgX3c1V",
-            "display": [],
-            "schema": {
-                "$schema": "https://json-schema.org/draft/2020-12/schema",
-                "type": "flobject",
-                "properties": {
-                    "vct": {
-                        "type": "string"
+        assert!(
+            serde_json::from_value::<TypeMetadata>(json!({
+                "vct": VCT_EXAMPLE_CREDENTIAL,
+                "extends": "https://sd_jwt_vc_metadata.example.com/other_schema",
+                "extends#integrity": "sha256-LmXfh-9cLlJNXN-TsMk-PmKjZ5t0WRL5ca_xGgX3c1V",
+                "display": [],
+                "schema": {
+                    "$schema": "https://json-schema.org/draft/2020-12/schema",
+                    "type": "flobject",
+                    "properties": {
+                        "vct": {
+                            "type": "string"
+                        }
                     }
                 }
-            }
-        }))
-        .is_err());
+            }))
+            .is_err()
+        );
     }
 
     #[test]
@@ -1148,9 +1119,11 @@ mod test {
         let error = serde_json::from_value::<TypeMetadata>(duplicate_display_language_metadata_json())
             .expect_err("deserializing duplicate display metadata languages should result in an error");
 
-        assert!(error
-            .to_string()
-            .contains("detected duplicate display metadata language(s)"));
+        assert!(
+            error
+                .to_string()
+                .contains("detected duplicate display metadata language(s)")
+        );
     }
 
     fn duplicate_claim_display_language_metadata_json() -> serde_json::Value {
@@ -1192,9 +1165,11 @@ mod test {
         let error = serde_json::from_value::<TypeMetadata>(duplicate_claim_display_language_metadata_json())
             .expect_err("deserializing duplicate claim display metadata languages should result in an error");
 
-        assert!(error
-            .to_string()
-            .contains("detected duplicate claim display metadata language(s)"));
+        assert!(
+            error
+                .to_string()
+                .contains("detected duplicate claim display metadata language(s)")
+        );
     }
 
     #[rstest]

@@ -1,6 +1,9 @@
 use std::str::FromStr;
 use std::sync::Arc;
 
+use axum::Form;
+use axum::Json;
+use axum::Router;
 use axum::extract::State;
 use axum::http::HeaderMap;
 use axum::http::HeaderName;
@@ -10,25 +13,26 @@ use axum::http::Uri;
 use axum::routing::delete;
 use axum::routing::get;
 use axum::routing::post;
-use axum::Form;
-use axum::Json;
-use axum::Router;
+use axum_extra::TypedHeader;
 use axum_extra::headers;
-use axum_extra::headers::authorization::Credentials;
 use axum_extra::headers::Authorization;
 use axum_extra::headers::Header;
-use axum_extra::TypedHeader;
+use axum_extra::headers::authorization::Credentials;
 use serde::Serialize;
 use tracing::warn;
 
 use crypto::keys::EcdsaKeySend;
+use openid4vc::CredentialErrorCode;
+use openid4vc::ErrorResponse;
+use openid4vc::ErrorStatusCode;
+use openid4vc::TokenErrorCode;
 use openid4vc::credential::CredentialRequest;
 use openid4vc::credential::CredentialRequests;
 use openid4vc::credential::CredentialResponse;
 use openid4vc::credential::CredentialResponses;
-use openid4vc::dpop::Dpop;
 use openid4vc::dpop::DPOP_HEADER_NAME;
 use openid4vc::dpop::DPOP_NONCE_HEADER_NAME;
+use openid4vc::dpop::Dpop;
 use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
@@ -39,10 +43,6 @@ use openid4vc::server_state::WteTracker;
 use openid4vc::token::AccessToken;
 use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenResponseWithPreviews;
-use openid4vc::CredentialErrorCode;
-use openid4vc::ErrorResponse;
-use openid4vc::ErrorStatusCode;
-use openid4vc::TokenErrorCode;
 
 struct ApplicationState<A, K, S, W> {
     issuer: Arc<Issuer<A, K, S, W>>,

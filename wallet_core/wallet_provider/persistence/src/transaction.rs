@@ -7,8 +7,8 @@ use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::repository::PersistenceError;
 use wallet_provider_domain::repository::TransactionStarter;
 
-use crate::database::Db;
 use crate::PersistenceConnection;
+use crate::database::Db;
 
 /// This wraps a [`DatabaseTransaction`] in an [`Option`], which should always
 /// be present while the [`Transaction`] wrapper is alive. It will only ever be

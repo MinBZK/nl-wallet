@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
+use axum::Json;
+use axum::Router;
 use axum::extract::State;
 use axum::routing::get;
 use axum::routing::post;
-use axum::Json;
-use axum::Router;
 use http::StatusCode;
 use tokio::net::TcpListener;
 use tower_http::trace::TraceLayer;

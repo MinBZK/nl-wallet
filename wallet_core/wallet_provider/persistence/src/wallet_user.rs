@@ -3,12 +3,6 @@ use chrono::Utc;
 use p256::ecdsa::VerifyingKey;
 use p256::pkcs8::DecodePublicKey;
 use p256::pkcs8::EncodePublicKey;
-use sea_orm::prelude::DateTimeWithTimeZone;
-use sea_orm::sea_query::Expr;
-use sea_orm::sea_query::IntoIden;
-use sea_orm::sea_query::OnConflict;
-use sea_orm::sea_query::Query;
-use sea_orm::sea_query::SimpleExpr;
 use sea_orm::ActiveModelTrait;
 use sea_orm::ActiveValue::Set;
 use sea_orm::ColumnTrait;
@@ -19,6 +13,12 @@ use sea_orm::JoinType;
 use sea_orm::QueryFilter;
 use sea_orm::QuerySelect;
 use sea_orm::RelationTrait;
+use sea_orm::prelude::DateTimeWithTimeZone;
+use sea_orm::sea_query::Expr;
+use sea_orm::sea_query::IntoIden;
+use sea_orm::sea_query::OnConflict;
+use sea_orm::sea_query::Query;
+use sea_orm::sea_query::SimpleExpr;
 use uuid::Uuid;
 
 use apple_app_attest::AssertionCounter;
@@ -32,11 +32,11 @@ use wallet_provider_domain::model::wallet_user::WalletUserCreate;
 use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
 use wallet_provider_domain::repository::PersistenceError;
 
+use crate::PersistenceConnection;
 use crate::entity::wallet_user;
 use crate::entity::wallet_user_android_attestation;
 use crate::entity::wallet_user_apple_attestation;
 use crate::entity::wallet_user_instruction_challenge;
-use crate::PersistenceConnection;
 
 type Result<T> = std::result::Result<T, PersistenceError>;
 

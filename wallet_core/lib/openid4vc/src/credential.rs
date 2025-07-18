@@ -5,27 +5,27 @@ use std::fmt::Formatter;
 use futures::future::try_join_all;
 use serde::Deserialize;
 use serde::Serialize;
+use serde_with::TryFromInto;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
-use serde_with::TryFromInto;
 
 use crypto::factory::KeyFactory;
 use crypto::keys::CredentialEcdsaKey;
 use http_utils::urls::BaseUrl;
+use jwt::Jwt;
 use jwt::credential::JwtCredentialClaims;
 use jwt::jwk::jwk_jwt_header;
 use jwt::pop::JwtPopClaims;
 use jwt::wte::WteClaims;
-use jwt::Jwt;
-use mdoc::utils::serialization::CborBase64;
 use mdoc::IssuerSigned;
+use mdoc::utils::serialization::CborBase64;
 use poa::Poa;
 use utils::spec::SpecOptional;
 use utils::vec_at_least::VecNonEmpty;
 
+use crate::Format;
 use crate::issuance_session::IssuanceSessionError;
 use crate::token::AuthorizationCode;
-use crate::Format;
 
 /// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#section-8.1>.
 /// Sent JSON-encoded to `POST /batch_credential`.

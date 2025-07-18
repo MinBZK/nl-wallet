@@ -1,20 +1,20 @@
 use std::sync::Arc;
 
+use axum::Form;
+use axum::Json;
+use axum::Router;
 use axum::extract::Path;
 use axum::extract::Query;
 use axum::extract::State;
 use axum::routing::delete;
 use axum::routing::get;
 use axum::routing::post;
-use axum::Form;
-use axum::Json;
-use axum::Router;
-use http::header;
 use http::HeaderMap;
 use http::HeaderValue;
 use http::Method;
 use http::StatusCode;
 use http::Uri;
+use http::header;
 use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde::Serialize;
@@ -23,12 +23,16 @@ use tracing::info;
 use tracing::warn;
 
 use attestation_data::disclosure::DisclosedAttestations;
+use attestation_types::request::NormalizedCredentialRequest;
 use crypto::keys::EcdsaKeySend;
 use http_utils::error::HttpJsonError;
 use http_utils::urls;
 use http_utils::urls::BaseUrl;
 use http_utils::urls::CorsOrigin;
-use mdoc::verifier::ItemsRequests;
+use openid4vc::DisclosureErrorResponse;
+use openid4vc::GetRequestErrorCode;
+use openid4vc::PostAuthResponseErrorCode;
+use openid4vc::VerificationErrorCode;
 use openid4vc::disclosure_session::APPLICATION_OAUTH_AUTHZ_REQ_JWT;
 use openid4vc::openid4vp::VpResponse;
 use openid4vc::openid4vp::WalletRequest;
@@ -43,11 +47,8 @@ use openid4vc::verifier::UseCase;
 use openid4vc::verifier::UseCases;
 use openid4vc::verifier::Verifier;
 use openid4vc::verifier::WalletAuthResponse;
-use openid4vc::DisclosureErrorResponse;
-use openid4vc::GetRequestErrorCode;
-use openid4vc::PostAuthResponseErrorCode;
-use openid4vc::VerificationErrorCode;
 use utils::generator::TimeGenerator;
+use utils::vec_at_least::VecNonEmpty;
 
 struct ApplicationState<S, US> {
     verifier: Verifier<S, US>,
@@ -294,7 +295,8 @@ where
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StartDisclosureRequest {
     pub usecase: String,
-    pub items_requests: Option<ItemsRequests>,
+    // TODO: replace with dcql::Query (PVW-4530)
+    pub credential_requests: Option<VecNonEmpty<NormalizedCredentialRequest>>,
     pub return_url_template: Option<ReturnUrlTemplate>,
 }
 
@@ -317,7 +319,7 @@ where
         .verifier
         .new_session(
             start_request.usecase,
-            start_request.items_requests,
+            start_request.credential_requests,
             start_request.return_url_template,
         )
         .await

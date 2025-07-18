@@ -3,6 +3,7 @@ use std::sync::LazyLock;
 
 use askama::Template;
 use askama_web::WebTemplate;
+use axum::Router;
 use axum::extract::State;
 use axum::handler::HandlerWithoutStateExt;
 use axum::http::StatusCode;
@@ -10,7 +11,6 @@ use axum::middleware;
 use axum::response::IntoResponse;
 use axum::response::Response;
 use axum::routing::get;
-use axum::Router;
 use demo_utils::headers::set_content_security_policy;
 use itertools::Itertools;
 use server_utils::log_requests::log_request_response;
@@ -19,15 +19,15 @@ use tower::ServiceBuilder;
 use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
 
+use demo_utils::LANGUAGE_JS_SHA256;
 use demo_utils::headers::set_static_cache_control;
 use demo_utils::language::Language;
-use demo_utils::LANGUAGE_JS_SHA256;
 use utils::path::prefix_local_path;
 
 use crate::settings::DemoService;
 use crate::settings::Settings;
-use crate::translations::Words;
 use crate::translations::TRANSLATIONS;
+use crate::translations::Words;
 
 struct ApplicationState {
     demo_services: Vec<DemoService>,

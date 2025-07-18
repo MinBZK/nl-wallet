@@ -4,12 +4,12 @@ use std::sync::LazyLock;
 use std::time::Duration;
 
 use derive_more::AsRef;
-use http::header;
 use http::HeaderMap;
 use http::HeaderValue;
 use http::Method;
-use mime::Mime;
+use http::header;
 use mime::APPLICATION_JSON;
+use mime::Mime;
 use reqwest::Certificate;
 use reqwest::Client;
 use reqwest::ClientBuilder;

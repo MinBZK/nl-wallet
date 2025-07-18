@@ -65,10 +65,10 @@ void main() {
             purpose: 'Sample where no attributes are available'.untranslated,
             cards: [
               WalletCard(
-                docType: 'com.example.docType',
+                attestationType: 'com.example.attestationType',
                 issuer: WalletMockData.organization,
                 attributes: [],
-                id: 'id',
+                attestationId: 'id',
                 metadata: WalletMockData.card.metadata,
               ),
             ],

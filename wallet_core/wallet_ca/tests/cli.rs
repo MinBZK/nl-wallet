@@ -7,15 +7,15 @@ use std::process::Command;
 
 use anyhow::Result;
 use assert_cmd::prelude::*;
+use assert_fs::TempDir;
 use assert_fs::fixture::ChildPath;
 use assert_fs::prelude::*;
-use assert_fs::TempDir;
 use p256::ecdsa::SigningKey;
 use p256::elliptic_curve::rand_core::OsRng;
-use p256::pkcs8::spki::DynAssociatedAlgorithmIdentifier;
-use p256::pkcs8::spki::ObjectIdentifier;
 use p256::pkcs8::DecodePrivateKey;
 use p256::pkcs8::EncodePublicKey;
+use p256::pkcs8::spki::DynAssociatedAlgorithmIdentifier;
+use p256::pkcs8::spki::ObjectIdentifier;
 use pem::EncodeConfig;
 use pem::LineEnding;
 use pem::Pem;

@@ -11,11 +11,11 @@ class WalletCardRepositoryImpl implements WalletCardRepository {
   Stream<List<WalletCard>> observeWalletCards() => _dataSource.observeCards();
 
   @override
-  Future<bool> exists(String docType) async => await _dataSource.read(docType) != null;
+  Future<bool> exists(String attestationId) async => await _dataSource.read(attestationId) != null;
 
   @override
   Future<List<WalletCard>> readAll() async => _dataSource.readAll();
 
   @override
-  Future<WalletCard> read(String docType) async => (await _dataSource.read(docType))!;
+  Future<WalletCard> read(String attestationId) async => (await _dataSource.read(attestationId))!;
 }

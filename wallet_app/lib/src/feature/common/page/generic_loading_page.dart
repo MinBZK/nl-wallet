@@ -10,25 +10,49 @@ import '../widget/loading_indicator.dart';
 import '../widget/text/title_text.dart';
 import '../widget/wallet_app_bar.dart';
 
+const double _kContextLogoSpacing = 40;
+
+/// A reusable widget for displaying a loading state with optional cancellation.
+///
+/// This page includes a customizable title, description, app bar, and contextual image.
+/// A central loading indicator is shown by default, and a cancel button is displayed
+/// at the bottom if [onCancel] is provided. The widget manages accessibility focus
+/// for the title to ensure it's announced when the widget appears on screen.
 class GenericLoadingPage extends StatefulWidget {
-  /// The title shown above the loading indicator
+  /// The main title shown at the top of the loading page, displayed in large text and centered.
   final String title;
 
-  /// The description shown above the loading indicator
+  /// Supporting text displayed below the title, centered on the page.
   final String description;
 
-  /// The action to perform when the cancel button is pressed, button is hidden when null
+  /// Optional callback triggered when the cancel button is pressed.
+  ///
+  /// If null, no cancel button is shown.
   final VoidCallback? onCancel;
 
-  /// The text shown inside the cancel button, defaults to l10n.generalCancelCta
+  /// Text displayed in the cancel button.
+  ///
+  /// Defaults to [l10n.generalCancelCta] if not provided.
   final String? cancelCta;
 
-  /// Appbar (e.g. a [WalletAppBar]) to be shown at the top of the top of the loading page,
-  /// useful when the loading page should also render the stepperProgress.
+  /// App bar (e.g. [WalletAppBar]) shown at the top of the page.
+  ///
+  /// Used to display the progress of a multi-step flow if provided.
   final PreferredSizeWidget? appBar;
 
+  /// Optional contextual image (e.g., a logo) displayed above the title.
+  ///
+  /// Typically implemented as [Image.asset(WalletAssets.logo_wallet, height: 64, width: 64)].
+  final Widget? contextImage;
+
+  /// The loading indicator widget that shows progress during the operation.
+  ///
+  /// Defaults to [LoadingIndicator] but can be customized if needed.
   final Widget loadingIndicator;
 
+  /// Controls whether the title automatically requests accessibility focus.
+  ///
+  /// Set to false only if the page has its own focus management.
   final bool requestAccessibilityFocus;
 
   const GenericLoadingPage({
@@ -38,6 +62,7 @@ class GenericLoadingPage extends StatefulWidget {
     this.cancelCta,
     this.appBar,
     this.requestAccessibilityFocus = true,
+    this.contextImage,
     this.loadingIndicator = const LoadingIndicator(),
     super.key,
   });
@@ -82,6 +107,8 @@ class _GenericLoadingPageState extends State<GenericLoadingPage> {
                   mainAxisAlignment: MainAxisAlignment.end,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
+                    widget.contextImage ?? const SizedBox.shrink(),
+                    SizedBox(height: widget.contextImage == null ? 0 : _kContextLogoSpacing),
                     TitleText(
                       widget.title,
                       style: BaseWalletTheme.headlineExtraSmallTextStyle,

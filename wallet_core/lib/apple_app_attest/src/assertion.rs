@@ -3,12 +3,12 @@ use std::error::Error;
 use derive_more::AsRef;
 use derive_more::Deref;
 use derive_more::From;
-use p256::ecdsa::signature::Verifier;
 use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
+use p256::ecdsa::signature::Verifier;
 use serde::Deserialize;
-use serde_with::serde_as;
 use serde_with::TryFromInto;
+use serde_with::serde_as;
 use sha2::Digest;
 use sha2::Sha256;
 
@@ -179,8 +179,8 @@ impl VerifiedAssertion {
 
 #[cfg(feature = "mock")]
 mod mock {
-    use p256::ecdsa::signature::Signer;
     use p256::ecdsa::SigningKey;
+    use p256::ecdsa::signature::Signer;
     use passkey_types::ctap2::AuthenticatorData;
     use sha2::Digest;
     use sha2::Sha256;

@@ -35,22 +35,22 @@ class FetchTourVideosUseCaseImpl extends FetchTourVideosUseCase {
         bulletPoints: createLocalizedText(_bulletPointsMap(slug)),
         videoThumb: createLocalizedAsset(
           (locale) => WalletAssets.video_tour_thumbnail_asset_placeholder
-              .replaceAll('{languageCode}', locale.languageCode)
-              .replaceAll('{slug}', slug),
+              .replaceAll(WalletAssets.language_placeholder, locale.languageCode)
+              .replaceAll(WalletAssets.slug_placeholder, slug),
         ),
         videoUrl: createLocalizedAsset(
           (locale) =>
               baseUrl +
               WalletAssets.video_tour_video_url_placeholder
-                  .replaceAll('{languageCode}', locale.languageCode)
-                  .replaceAll('{slug}', slug),
+                  .replaceAll(WalletAssets.language_placeholder, locale.languageCode)
+                  .replaceAll(WalletAssets.slug_placeholder, slug),
         ),
         subtitleUrl: createLocalizedAsset(
           (locale) =>
               baseUrl +
               WalletAssets.video_tour_subtitle_url_placeholder
-                  .replaceAll('{languageCode}', locale.languageCode)
-                  .replaceAll('{slug}', slug),
+                  .replaceAll(WalletAssets.language_placeholder, locale.languageCode)
+                  .replaceAll(WalletAssets.slug_placeholder, slug),
         ),
       );
     });

@@ -1,9 +1,9 @@
 use derive_more::Constructor;
 use reqwest::ClientBuilder;
 
-use crate::reqwest::default_reqwest_client_builder;
 use crate::reqwest::IntoPinnedReqwestClient;
 use crate::reqwest::PinnedReqwestClient;
+use crate::reqwest::default_reqwest_client_builder;
 use crate::urls::BaseUrl;
 
 #[derive(Debug, Clone, Hash, Constructor)]
