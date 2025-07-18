@@ -188,32 +188,6 @@ impl KeyFactory for MockRemoteKeyFactory {
         MockRemoteEcdsaKey::new(identifier, signing_key)
     }
 
-    async fn sign_with_new_keys(
-        &self,
-        msg: Vec<u8>,
-        number_of_keys: u64,
-    ) -> Result<Vec<(Self::Key, Signature)>, Self::Error> {
-        let keys = self.generate_new_multiple(number_of_keys).await?;
-
-        if self.has_multi_key_signing_error {
-            return Err(MockRemoteKeyFactoryError::Signing);
-        }
-
-        let signatures_by_identifier = future::try_join_all(keys.into_iter().map(|key| async {
-            let signature = key
-                .try_sign(msg.as_slice())
-                .await
-                .map_err(MockRemoteKeyFactoryError::Ecdsa)?;
-
-            Ok::<_, MockRemoteKeyFactoryError>((key, signature))
-        }))
-        .await?
-        .into_iter()
-        .collect();
-
-        Ok(signatures_by_identifier)
-    }
-
     async fn sign_multiple_with_existing_keys(
         &self,
         messages_and_keys: Vec<(Vec<u8>, Vec<&Self::Key>)>,
