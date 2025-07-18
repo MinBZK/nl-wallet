@@ -28,6 +28,10 @@ spec:
         - name: {{ .Values.nameOverride | default .Chart.Name }}-migrations
           image: "{{ .Values.global.imageRegistry }}/{{ .Values.imageMigrations.repository }}:{{ .Values.image.tag }}"
           args: ["up"]
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           env:
             - name: DATABASE_URL
               valueFrom:
