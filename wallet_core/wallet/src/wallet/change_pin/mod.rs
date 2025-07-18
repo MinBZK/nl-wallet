@@ -11,6 +11,7 @@ use platform_support::attested_key::AttestedKeyHolder;
 use update_policy_model::update_policy::VersionState;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
+use crate::Wallet;
 use crate::account_provider::AccountProviderClient;
 use crate::digid::DigidClient;
 use crate::errors::UpdatePolicyError;
@@ -21,7 +22,6 @@ use crate::pin::change::FinishChangePinOperation;
 use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
 use crate::storage::Storage;
-use crate::Wallet;
 
 use super::WalletRegistration;
 
@@ -58,7 +58,7 @@ where
         let (attested_key, registration_data) = match &mut self.registration {
             WalletRegistration::Registered { attested_key, data } => (attested_key, data),
             WalletRegistration::Unregistered | WalletRegistration::KeyIdentifierGenerated(_) => {
-                return Err(ChangePinError::NotRegistered)
+                return Err(ChangePinError::NotRegistered);
             }
         };
 
@@ -149,8 +149,8 @@ mod tests {
 
     use assert_matches::assert_matches;
     use futures::FutureExt;
-    use serde::de::DeserializeOwned;
     use serde::Serialize;
+    use serde::de::DeserializeOwned;
 
     use jwt::Jwt;
     use platform_support::attested_key::AttestedKey;
@@ -161,9 +161,9 @@ mod tests {
 
     use crate::pin::change::ChangePinStorage;
     use crate::pin::change::State;
+    use crate::wallet::test::ACCOUNT_SERVER_KEYS;
     use crate::wallet::test::WalletDeviceVendor;
     use crate::wallet::test::WalletWithMocks;
-    use crate::wallet::test::ACCOUNT_SERVER_KEYS;
 
     fn create_wp_result<T>(result: T) -> Jwt<InstructionResultClaims<T>>
     where

@@ -6,6 +6,7 @@ import 'data/mock/mock_issuance_responses.dart';
 import 'data/model/issuance_response.dart';
 import 'log/wallet_event_log.dart';
 import 'pin/pin_manager.dart';
+import 'util/extension/attestation_presentation_extension.dart';
 import 'util/extension/string_extension.dart';
 import 'wallet/wallet.dart';
 
@@ -100,14 +101,8 @@ class IssuanceManager {
   /// Assign an id to the [AttestationPresentation]. This makes it so that the UI will
   /// register this card as 'already in wallet' and thus display it as a renewal.
   AttestationPresentation _assignIdIfAlreadyInWallet(AttestationPresentation attestation) {
-    if (!_wallet.containsAttestation(attestation)) return attestation;
-    return AttestationPresentation(
-      identity: AttestationIdentity.fixed(id: attestation.attestationType),
-      attestationType: attestation.attestationType,
-      displayMetadata: attestation.displayMetadata,
-      issuer: attestation.issuer,
-      attributes: attestation.attributes,
-    );
+    if (_wallet.containsAttestationType(attestation.attestationType)) return attestation.fixed();
+    return attestation;
   }
 
   Future<WalletInstructionResult> acceptIssuance(String pin, Iterable<String> cardDocTypes /* empty = all */) async {

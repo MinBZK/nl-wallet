@@ -381,9 +381,9 @@ mod tests {
 
     use crate::error::DecodeError;
 
-    use super::server::SequenceNumberComparison;
     use super::ChallengeRequest;
     use super::ChallengeResponse;
+    use super::server::SequenceNumberComparison;
 
     #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
     struct ToyMessage {

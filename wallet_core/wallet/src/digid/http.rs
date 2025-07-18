@@ -3,10 +3,10 @@ use std::marker::PhantomData;
 use std::sync::Arc;
 use std::sync::LazyLock;
 
-use http::header::LOCATION;
 use http::StatusCode;
-use reqwest::redirect::Policy;
+use http::header::LOCATION;
 use reqwest::Response;
+use reqwest::redirect::Policy;
 use tracing::info;
 use tracing::warn;
 use url::Url;
@@ -25,12 +25,12 @@ use wallet_configuration::wallet_config::DigidConfiguration;
 use crate::config::UNIVERSAL_LINK_BASE_URL;
 use crate::reqwest::CachedReqwestClient;
 
-use super::app2app::format_app2app_query;
-use super::app2app::DigidJsonRequest;
-use super::app2app::ReturnUrlParameters;
 use super::DigidClient;
 use super::DigidError;
 use super::DigidSession;
+use super::app2app::DigidJsonRequest;
+use super::app2app::ReturnUrlParameters;
+use super::app2app::format_app2app_query;
 
 fn build_app2app_http_client<C>(http_config: C) -> Result<PinnedReqwestClient, reqwest::Error>
 where
@@ -220,20 +220,20 @@ where
 mod test {
     use std::sync::Arc;
 
-    use http::header::LOCATION;
     use http::StatusCode;
+    use http::header::LOCATION;
     use rstest::rstest;
     use serde::de::Error;
     use serde_json::json;
     use serial_test::serial;
     use url::Url;
+    use wiremock::Mock;
+    use wiremock::MockServer;
+    use wiremock::ResponseTemplate;
     use wiremock::http::HeaderValue;
     use wiremock::matchers::method;
     use wiremock::matchers::path;
     use wiremock::matchers::query_param;
-    use wiremock::Mock;
-    use wiremock::MockServer;
-    use wiremock::ResponseTemplate;
 
     use http_utils::tls::insecure::InsecureHttpConfig;
     use http_utils::urls::BaseUrl;
@@ -246,11 +246,11 @@ mod test {
 
     use crate::reqwest::CachedReqwestClient;
 
-    use super::super::app2app::App2AppErrorMessage;
-    use super::super::test::base64;
     use super::super::DigidClient;
     use super::super::DigidError;
     use super::super::DigidSession;
+    use super::super::app2app::App2AppErrorMessage;
+    use super::super::test::base64;
     use super::DigidSessionType;
     use super::HttpDigidClient;
     use super::HttpDigidSession;

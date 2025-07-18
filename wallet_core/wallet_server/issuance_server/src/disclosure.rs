@@ -12,6 +12,7 @@ use http_utils::reqwest::PinnedReqwestClient;
 use http_utils::reqwest::ReqwestClientUrl;
 use http_utils::tls::pinning::TlsPinningConfig;
 use http_utils::urls::BaseUrl;
+use openid4vc::PostAuthResponseErrorCode;
 use openid4vc::credential::CredentialOffer;
 use openid4vc::credential::CredentialOfferContainer;
 use openid4vc::credential::GrantPreAuthorizedCode;
@@ -24,7 +25,6 @@ use openid4vc::server_state::SessionStoreError;
 use openid4vc::verifier::DisclosureResultHandler;
 use openid4vc::verifier::DisclosureResultHandlerError;
 use openid4vc::verifier::ToPostAuthResponseErrorCode;
-use openid4vc::PostAuthResponseErrorCode;
 use utils::vec_at_least::VecNonEmpty;
 
 #[derive(Debug, thiserror::Error)]
@@ -193,6 +193,7 @@ mod tests {
     use attestation_data::disclosure::DisclosedAttributes;
     use attestation_data::disclosure::ValidityInfo;
     use attestation_data::issuable_document::IssuableDocument;
+    use openid4vc::PostAuthResponseErrorCode;
     use openid4vc::credential::CredentialOffer;
     use openid4vc::issuer::AttestationTypeConfig;
     use openid4vc::issuer::IssuanceData;
@@ -205,7 +206,6 @@ mod tests {
     use openid4vc::server_state::SessionStoreTimeouts;
     use openid4vc::server_state::SessionToken;
     use openid4vc::verifier::DisclosureResultHandler;
-    use openid4vc::PostAuthResponseErrorCode;
 
     use super::AttributesFetcher;
     use super::IssuanceResultHandler;
@@ -240,15 +240,17 @@ mod tests {
             // issued attributes can depend on the disclosed attributes.
             let (attestation_type, _) = disclosed.first().unwrap();
 
-            Ok(vec![IssuableDocument::try_new(
-                attestation_type.clone(),
-                IndexMap::from([(
-                    "attr_name".to_string(),
-                    Attribute::Single(AttributeValue::Text("attrvalue".to_string())),
-                )])
-                .into(),
-            )
-            .unwrap()])
+            Ok(vec![
+                IssuableDocument::try_new(
+                    attestation_type.clone(),
+                    IndexMap::from([(
+                        "attr_name".to_string(),
+                        Attribute::Single(AttributeValue::Text("attrvalue".to_string())),
+                    )])
+                    .into(),
+                )
+                .unwrap(),
+            ])
         }
     }
 

@@ -14,8 +14,8 @@ use uuid::Uuid;
 use attestation_data::auth::Organization;
 use attestation_data::credential_payload::CredentialPayload;
 use crypto::x509::CertificateError;
-use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
+use error_category::sentry_capture_error;
 use http_utils::reqwest::client_builder_accept_json;
 use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::tls::pinning::TlsPinningConfig;
@@ -56,8 +56,8 @@ use crate::repository::UpdateableRepository;
 use crate::storage::Storage;
 use crate::storage::StorageError;
 use crate::storage::StoredAttestationCopy;
-use crate::wallet::attestations::AttestationsError;
 use crate::wallet::Session;
+use crate::wallet::attestations::AttestationsError;
 use crate::wte::WteIssuanceClient;
 
 use super::Wallet;
@@ -622,18 +622,18 @@ mod tests {
     use openid4vc::oidc::OidcError;
     use openid4vc::token::TokenRequest;
     use openid4vc::token::TokenRequestGrantType;
-    use sd_jwt_vc_metadata::examples::VCT_EXAMPLE_CREDENTIAL;
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
+    use sd_jwt_vc_metadata::examples::VCT_EXAMPLE_CREDENTIAL;
     use utils::generator::mock::MockTimeGenerator;
 
+    use crate::WalletEvent;
     use crate::attestation::AttestationAttributeValue;
     use crate::digid::MockDigidSession;
     use crate::storage::StorageState;
     use crate::storage::StoredAttestationFormat;
+    use crate::wallet::test::WalletWithStorageMock;
     use crate::wallet::test::create_example_credential_payload;
     use crate::wallet::test::create_example_preview_data;
-    use crate::wallet::test::WalletWithStorageMock;
-    use crate::WalletEvent;
 
     use super::super::test;
     use super::super::test::WalletDeviceVendor;
@@ -652,13 +652,15 @@ mod tests {
             _ => IssuerRegistration::new_mock(),
         };
 
-        let attestations = vec![AttestationPresentation::create_for_issuance(
-            AttestationIdentity::Ephemeral,
-            type_metadata.to_normalized().unwrap(),
-            issuer_registration.organization.clone(),
-            mdoc.issuer_signed.clone().into_entries_by_namespace(),
-        )
-        .unwrap()]
+        let attestations = vec![
+            AttestationPresentation::create_for_issuance(
+                AttestationIdentity::Ephemeral,
+                type_metadata.to_normalized().unwrap(),
+                issuer_registration.organization.clone(),
+                mdoc.issuer_signed.clone().into_entries_by_namespace(),
+            )
+            .unwrap(),
+        ]
         .try_into()
         .unwrap();
 

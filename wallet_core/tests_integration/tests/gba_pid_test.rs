@@ -2,25 +2,25 @@ use indexmap::IndexMap;
 use rstest::rstest;
 
 use http_utils::reqwest::default_reqwest_client_builder;
+use openid4vc::ErrorResponse;
+use openid4vc::TokenErrorCode;
 use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::issuance_session::HttpIssuanceSession;
 use openid4vc::issuance_session::IssuanceSessionError;
-use openid4vc::ErrorResponse;
-use openid4vc::TokenErrorCode;
 use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
 use tests_integration::default;
 use tests_integration::fake_digid::fake_digid_auth;
+use wallet::Wallet;
+use wallet::WalletClients;
 use wallet::errors::IssuanceError;
 use wallet::mock::LocalConfigurationRepository;
 use wallet::mock::MockUpdatePolicyRepository;
 use wallet::mock::StorageStub;
-use wallet::wallet_deps::default_wallet_config;
 use wallet::wallet_deps::HttpAccountProviderClient;
 use wallet::wallet_deps::HttpDigidClient;
 use wallet::wallet_deps::Repository;
 use wallet::wallet_deps::WpWteIssuanceClient;
-use wallet::Wallet;
-use wallet::WalletClients;
+use wallet::wallet_deps::default_wallet_config;
 
 #[derive(Debug, Eq, PartialEq)]
 enum TestError {
@@ -162,7 +162,7 @@ async fn gba_pid(bsn: &str) -> Result<(), TestError> {
             error_description: Some(description),
             ..
         }))) if description.contains("Error converting GBA-V XML to Haal-Centraal JSON: GBA-V error") => {
-            return Err(TestError::Conversion)
+            return Err(TestError::Conversion);
         }
         Err(IssuanceError::IssuanceSession(IssuanceSessionError::TokenRequest(ErrorResponse {
             error: TokenErrorCode::ServerError,

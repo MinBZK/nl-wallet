@@ -4,22 +4,22 @@ use std::time::Duration;
 
 use cryptoki::context::CInitializeArgs;
 use cryptoki::context::Pkcs11;
-use cryptoki::mechanism::aead::GcmParams;
 use cryptoki::mechanism::Mechanism;
+use cryptoki::mechanism::aead::GcmParams;
 use cryptoki::object::Attribute;
 use cryptoki::object::AttributeType;
 use cryptoki::object::KeyType;
 use cryptoki::object::ObjectClass;
 use cryptoki::object::ObjectHandle;
 use cryptoki::types::AuthPin;
-use der::asn1::OctetString;
 use der::Decode;
 use der::Encode;
+use der::asn1::OctetString;
 use futures::future;
+use p256::NistP256;
 use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
 use p256::pkcs8::AssociatedOid;
-use p256::NistP256;
 use r2d2_cryptoki::Pool;
 use r2d2_cryptoki::SessionManager;
 use r2d2_cryptoki::SessionType;
@@ -29,10 +29,10 @@ use crypto::p256_der::verifying_key_sha256;
 use crypto::utils::sha256;
 use utils::spawn;
 
+use crate::model::Hsm;
 use crate::model::encrypted::Encrypted;
 use crate::model::encrypted::InitializationVector;
 use crate::model::wrapped_key::WrappedKey;
-use crate::model::Hsm;
 
 #[derive(Debug, thiserror::Error)]
 pub enum HsmError {

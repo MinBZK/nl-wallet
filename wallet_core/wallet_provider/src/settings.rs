@@ -10,10 +10,10 @@ use config::File;
 use derive_more::From;
 use derive_more::Into;
 use serde::Deserialize;
+use serde_with::DurationMilliSeconds;
 use serde_with::base64::Base64;
 use serde_with::hex::Hex;
 use serde_with::serde_as;
-use serde_with::DurationMilliSeconds;
 
 use android_attest::play_integrity::verification::InstallationMethod;
 use android_attest::root_public_key::RootPublicKey;

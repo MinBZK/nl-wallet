@@ -14,19 +14,20 @@ use uuid::Uuid;
 
 pub use openid4vc::disclosure_session::DisclosureUriSource;
 
+use attestation_data::auth::Organization;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::auth::reader_auth::ReaderRegistration;
-use attestation_data::auth::Organization;
 use attestation_data::disclosure_type::DisclosureType;
 use crypto::x509::BorrowingCertificateExtension;
 use crypto::x509::CertificateError;
+use dcql::CredentialQueryFormat;
 use entity::disclosure_event::EventStatus;
-use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
+use error_category::sentry_capture_error;
 use http_utils::tls::pinning::TlsPinningConfig;
 use http_utils::urls::BaseUrl;
-use mdoc::holder::disclosure::attribute_paths_to_mdoc_paths;
 use mdoc::holder::Mdoc;
+use mdoc::holder::disclosure::credential_requests_to_mdoc_paths;
 use mdoc::utils::cose::CoseError;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::DisclosureSession;
@@ -57,9 +58,9 @@ use crate::storage::Storage;
 use crate::storage::StorageError;
 use crate::wallet::Session;
 
-use super::uri::identify_uri;
 use super::UriType;
 use super::Wallet;
+use super::uri::identify_uri;
 
 #[derive(Debug, Clone)]
 pub struct DisclosureProposalPresentation {
@@ -322,10 +323,13 @@ where
         // Retrieve all attestation with the requested attestation types from
         // the database, which are returned in original insertion order.
         let requested_attestation_types = session
-            .requested_attribute_paths()
+            .credential_requests()
             .as_ref()
-            .keys()
-            .map(String::as_str)
+            .iter()
+            .map(|r| match &r.format {
+                CredentialQueryFormat::MsoMdoc { doctype_value } => doctype_value.as_str(),
+                CredentialQueryFormat::SdJwt { .. } => todo!("PVW-4139 support SdJwt"),
+            })
             .collect();
         let stored_mdocs = self
             .storage
@@ -351,7 +355,7 @@ where
             .into_iter()
             .filter_map(|(attestation_type, stored_mdoc_iter)| {
                 // Get the requested paths for this attestation type.
-                let mdoc_paths = attribute_paths_to_mdoc_paths(session.requested_attribute_paths(), attestation_type);
+                let mdoc_paths = credential_requests_to_mdoc_paths(session.credential_requests(), attestation_type);
 
                 // If none of the requested paths map to a 2-tuple, there can be no mdoc candidates.
                 if mdoc_paths.is_empty() {
@@ -379,7 +383,7 @@ where
         // At this point, determine the disclosure type and if data was ever shared with this RP before, as the UI
         // needs this context both for when all requested attributes are present and for when attributes are missing.
         let disclosure_type = DisclosureType::from_request_attribute_paths(
-            session.requested_attribute_paths(),
+            session.credential_requests(),
             PID_DOCTYPE,
             (PID_DOCTYPE, BSN_ATTR_NAME),
         );
@@ -402,14 +406,20 @@ where
             // For now we simply represent the requested attribute paths by joining all elements with a slash.
             // TODO (PVW-3813): Attempt to translate the requested attributes using the TAS cache.
             let requested_attributes = session
-                .requested_attribute_paths()
+                .credential_requests()
                 .as_ref()
                 .iter()
-                .flat_map(|(attestation_type, paths)| {
-                    paths
+                .flat_map(|request| match &request.format {
+                    CredentialQueryFormat::MsoMdoc { doctype_value } => request
+                        .claims
                         .iter()
-                        .map(|path| iter::once(attestation_type).chain(path.iter()).join("/"))
-                        .collect_vec()
+                        .map(|path| {
+                            iter::once(doctype_value.to_string())
+                                .chain(path.path.iter().map(|path| format!("{path}")))
+                                .join("/")
+                        })
+                        .collect_vec(),
+                    CredentialQueryFormat::SdJwt { .. } => todo!("PVW-4139 support SdJwt"),
                 })
                 .collect();
             let session_type = session.session_type();
@@ -437,8 +447,8 @@ where
         let attestations_by_type = stored_mdocs_by_type
             .into_iter()
             .map(|stored_mdocs| {
-                let mdoc_paths = attribute_paths_to_mdoc_paths(
-                    session.requested_attribute_paths(),
+                let mdoc_paths = credential_requests_to_mdoc_paths(
+                    session.credential_requests(),
                     &stored_mdocs.first().mdoc.mso.doc_type,
                 );
 
@@ -876,7 +886,6 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
     use std::collections::HashSet;
     use std::str::FromStr;
     use std::sync::LazyLock;
@@ -892,33 +901,33 @@ mod tests {
     use uuid::Uuid;
 
     use attestation_data::attributes::AttributeValue;
+    use attestation_data::auth::Organization;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::auth::reader_auth::ReaderRegistration;
-    use attestation_data::auth::Organization;
     use attestation_data::disclosure_type::DisclosureType;
     use attestation_data::x509::generate::mock::generate_reader_mock;
-    use attestation_types::attribute_paths::AttestationAttributePaths;
+    use attestation_types::request;
     use crypto::server_keys::generate::Ca;
     use crypto::x509::BorrowingCertificateExtension;
     use http_utils::urls;
     use http_utils::urls::BaseUrl;
     use mdoc::utils::cose::CoseError;
+    use openid4vc::PostAuthResponseErrorCode;
     use openid4vc::disclosure_session;
-    use openid4vc::disclosure_session::mock::MockDisclosureClient;
-    use openid4vc::disclosure_session::mock::MockDisclosureSession;
     use openid4vc::disclosure_session::DisclosureUriSource;
     use openid4vc::disclosure_session::VerifierCertificate;
     use openid4vc::disclosure_session::VpClientError;
     use openid4vc::disclosure_session::VpMessageClientError;
     use openid4vc::disclosure_session::VpSessionError;
     use openid4vc::disclosure_session::VpVerifierError;
+    use openid4vc::disclosure_session::mock::MockDisclosureClient;
+    use openid4vc::disclosure_session::mock::MockDisclosureSession;
     use openid4vc::errors::DisclosureErrorResponse;
     use openid4vc::errors::ErrorResponse;
     use openid4vc::errors::GetRequestErrorCode;
     use openid4vc::issuance_session::IssuedCredential;
     use openid4vc::mock::MockIssuanceSession;
     use openid4vc::verifier::SessionType;
-    use openid4vc::PostAuthResponseErrorCode;
     use update_policy_model::update_policy::VersionState;
     use utils::vec_at_least::VecNonEmpty;
 
@@ -935,10 +944,10 @@ mod tests {
     use crate::wallet::disclosure::DisclosureAttestation;
     use crate::wallet::test::setup_mock_recent_history_callback;
 
-    use super::super::test::create_example_pid_mdoc_credential;
+    use super::super::Session;
     use super::super::test::WalletDeviceVendor;
     use super::super::test::WalletWithMocks;
-    use super::super::Session;
+    use super::super::test::create_example_pid_mdoc_credential;
     use super::DisclosureError;
     use super::DisclosureProposalPresentation;
     use super::RedirectUriPurpose;
@@ -960,11 +969,8 @@ mod tests {
         verifier_certificate: VerifierCertificate,
         requested_pid_path: VecNonEmpty<String>,
     ) -> MockDisclosureSession {
-        let requested_attribute_paths = AttestationAttributePaths::try_new(HashMap::from([(
-            PID_DOCTYPE.to_string(),
-            HashSet::from([requested_pid_path]),
-        )]))
-        .unwrap();
+        let credential_requests =
+            request::mock::mock_from_vecs(vec![(PID_DOCTYPE.to_string(), vec![requested_pid_path])]);
 
         let mut disclosure_session = MockDisclosureSession::new();
         disclosure_session
@@ -974,8 +980,8 @@ mod tests {
             .expect_verifier_certificate()
             .return_const(verifier_certificate);
         disclosure_session
-            .expect_requested_attribute_paths()
-            .return_const(requested_attribute_paths);
+            .expect_credential_requests()
+            .return_const(credential_requests);
 
         disclosure_session
     }

@@ -1,18 +1,21 @@
 use futures::FutureExt;
 use indexmap::IndexMap;
-use itertools::Itertools;
 
+use attestation_types::request::NormalizedCredentialRequest;
 use crypto::examples::Examples;
 use crypto::mock_remote::MockRemoteKeyFactory;
 use crypto::server_keys::generate::Ca;
+use dcql::CredentialQueryFormat;
+use utils::vec_at_least::VecNonEmpty;
 
-use crate::examples::Example;
-use crate::examples::IsoCertTimeGenerator;
 use crate::examples::EXAMPLE_ATTR_NAME;
 use crate::examples::EXAMPLE_ATTR_VALUE;
 use crate::examples::EXAMPLE_DOC_TYPE;
 use crate::examples::EXAMPLE_NAMESPACE;
+use crate::examples::Example;
+use crate::examples::IsoCertTimeGenerator;
 use crate::holder::Mdoc;
+use crate::holder::disclosure::credential_requests_to_mdoc_paths;
 use crate::iso::device_retrieval::DeviceRequest;
 use crate::iso::device_retrieval::ItemsRequest;
 use crate::iso::device_retrieval::ReaderAuthenticationBytes;
@@ -24,8 +27,6 @@ use crate::test::DebugCollapseBts;
 use crate::utils::serialization::CborSeq;
 use crate::utils::serialization::TaggedBytes;
 
-use super::attribute_paths_to_mdoc_paths;
-
 fn create_example_device_response(
     device_request: DeviceRequest,
     session_transcript: &SessionTranscript,
@@ -33,16 +34,22 @@ fn create_example_device_response(
 ) -> DeviceResponse {
     let mut mdoc = Mdoc::new_example_resigned(ca).now_or_never().unwrap();
 
-    let attribute_paths = device_request.into_items_requests().try_into_attribute_paths().unwrap();
+    let credential_requests: VecNonEmpty<NormalizedCredentialRequest> = device_request.into_items_requests().into();
 
     assert_eq!(
-        attribute_paths.as_ref().keys().exactly_one().ok(),
+        match &credential_requests.as_ref().first().unwrap().format {
+            CredentialQueryFormat::MsoMdoc { doctype_value } => Some(doctype_value),
+            _ => None,
+        },
         Some(&mdoc.mso.doc_type)
     );
 
     mdoc.issuer_signed = mdoc
         .issuer_signed
-        .into_attribute_subset(&attribute_paths_to_mdoc_paths(&attribute_paths, &mdoc.mso.doc_type));
+        .into_attribute_subset(&credential_requests_to_mdoc_paths(
+            &credential_requests,
+            &mdoc.mso.doc_type,
+        ));
 
     let (device_response, _) =
         DeviceResponse::sign_from_mdocs(vec![mdoc], session_transcript, &MockRemoteKeyFactory::new_example())
@@ -126,7 +133,7 @@ async fn iso_examples_custom_disclosure() {
     }]);
     println!("My Request: {:#?}", DebugCollapseBts::from(&request));
 
-    let session_transcript = DeviceAuthenticationBytes::example().0 .0.session_transcript;
+    let session_transcript = DeviceAuthenticationBytes::example().0.0.session_transcript;
     let ca = Ca::generate_issuer_mock_ca().unwrap();
     let resp = create_example_device_response(request, &session_transcript, &ca);
     println!("My DeviceResponse: {:#?}", DebugCollapseBts::from(&resp));

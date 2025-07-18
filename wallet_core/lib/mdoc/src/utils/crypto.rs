@@ -1,41 +1,41 @@
 //! Cryptographic utilities: SHA256, ECDSA, Diffie-Hellman, HKDF, and key conversion functions.
 
-use aes_gcm::aead::Aead;
-use aes_gcm::aead::Nonce;
 use aes_gcm::Aes256Gcm;
 use aes_gcm::Key;
 use aes_gcm::KeyInit;
+use aes_gcm::aead::Aead;
+use aes_gcm::aead::Nonce;
 use ciborium::value::Value;
-use coset::iana;
 use coset::CoseKeyBuilder;
 use coset::Label;
+use coset::iana;
 use derive_more::Debug;
 use nom::AsBytes;
-use p256::ecdh;
-use p256::ecdsa::VerifyingKey;
 use p256::EncodedPoint;
 use p256::PublicKey;
 use p256::SecretKey;
+use p256::ecdh;
+use p256::ecdsa::VerifyingKey;
 use ring::hmac;
-use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use serde::Serialize;
+use serde::de::DeserializeOwned;
 use serde_bytes::ByteBuf;
 
 use crypto::utils::hkdf;
 use crypto::utils::sha256;
 use error_category::ErrorCategory;
 
-use crate::utils::cose::CoseKey;
-use crate::utils::serialization::cbor_serialize;
-use crate::utils::serialization::CborError;
-use crate::utils::serialization::TaggedBytes;
 use crate::CipherSuiteIdentifier;
 use crate::Result;
 use crate::Security;
 use crate::SecurityKeyed;
 use crate::SessionData;
 use crate::SessionTranscript;
+use crate::utils::cose::CoseKey;
+use crate::utils::serialization::CborError;
+use crate::utils::serialization::TaggedBytes;
+use crate::utils::serialization::cbor_serialize;
 
 use super::serialization::cbor_deserialize;
 
@@ -257,9 +257,9 @@ mod test {
     use serde::Deserialize;
     use serde::Serialize;
 
-    use crate::examples::Example;
     use crate::DeviceAuthenticationBytes;
     use crate::SessionData;
+    use crate::examples::Example;
 
     use super::SessionKey;
     use super::SessionKeyUser;
@@ -288,7 +288,7 @@ mod test {
         let key = SessionKey::new(
             &device_privkey,
             &reader_pubkey,
-            &DeviceAuthenticationBytes::example().0 .0.session_transcript,
+            &DeviceAuthenticationBytes::example().0.0.session_transcript,
             SessionKeyUser::Device,
         )
         .unwrap();

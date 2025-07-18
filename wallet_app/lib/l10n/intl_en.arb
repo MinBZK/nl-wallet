@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2025-07-14T11:58:16+02:00",
+    "@@last_modified": "2025-07-16T10:17:26+02:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -26,7 +26,7 @@
     "appBlockedScreenTitle": "A new app version is needed",
     "appTitle": "NL Wallet",
     "applicationErrorDetailsTitle": "Technical details",
-    "biometricSettingsScreenDescription": "This will open your NL Wallet faster. You'll use your {supportedBiometrics} instead of your PIN.\nEnable {supportedBiometrics} and confirm with your PIN.",
+    "biometricSettingsScreenDescription": "You use your PIN code to share data. {supportedBiometrics} is only for opening the app faster.\nEnable {supportedBiometrics} and confirm with your PIN.",
     "@biometricSettingsScreenDescription": {
         "placeholders": {
             "supportedBiometrics": {
@@ -54,7 +54,7 @@
             }
         }
     },
-    "biometricSettingsScreenSuccessDescription": "Your app is secured with your PIN and {supportedBiometrics}.",
+    "biometricSettingsScreenSuccessDescription": "Remember your PIN. You need it to share data. {supportedBiometrics} only opens the app.",
     "@biometricSettingsScreenSuccessDescription": {
         "placeholders": {
             "supportedBiometrics": {
@@ -329,6 +329,32 @@
     "disclosureReportSubmittedPageCloseCta": "Close",
     "disclosureReportSubmittedPageSubtitle": "Your report has been sent anonymously. \n\nNever share any data with organizations you do not trust.",
     "disclosureReportSubmittedPageTitle": "Thanks for your feedback",
+    "disclosureRequestedAttributeDescription": "To login, you will share your {attribute} so {organization} can be sure it's really you.",
+    "@disclosureRequestedAttributeDescription": {
+        "placeholders": {
+            "attribute": {
+                "example": "BSN",
+                "type": "String"
+            },
+            "organization": {
+                "example": "Organisatie XYZ",
+                "type": "String"
+            }
+        }
+    },
+    "disclosureRequestedAttributesDescription": "To login, you will share your {nrOfAttributes} details so {organization} can be sure it's really you.",
+    "@disclosureRequestedAttributesDescription": {
+        "placeholders": {
+            "nrOfAttributes": {
+                "example": "4",
+                "type": "int"
+            },
+            "organization": {
+                "example": "Organisatie XYZ",
+                "type": "String"
+            }
+        }
+    },
     "disclosureStopSheetDescription": "If you stop, no data will be shared with {organization}.",
     "@disclosureStopSheetDescription": {
         "placeholders": {
@@ -1143,7 +1169,7 @@
     },
     "settingsScreenSetupBiometricsNotSupportedSubtitle": "Not supported on this device",
     "settingsScreenTitle": "Settings",
-    "setupBiometricsPageDescription": "This will open your NL Wallet faster. You'll use your face or fingerprint instead of your PIN.",
+    "setupBiometricsPageDescription": "You use your PIN code to share data. Face scan or fingerprint is only for opening the app faster.",
     "setupBiometricsPageEnableCta": "Enable",
     "setupBiometricsPageLocalizedReason": "To unlock the app",
     "setupBiometricsPageSkipCta": "Skip",

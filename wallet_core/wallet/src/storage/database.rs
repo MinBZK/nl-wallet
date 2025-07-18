@@ -188,8 +188,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_entities_database() {
-        use sea_orm::prelude::*;
         use sea_orm::Set;
+        use sea_orm::prelude::*;
         use serde::Deserialize;
         use serde::Serialize;
 

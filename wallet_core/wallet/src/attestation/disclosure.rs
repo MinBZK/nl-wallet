@@ -42,11 +42,11 @@ mod test {
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::UncheckedTypeMetadata;
 
-    use crate::attestation::attribute::test::claim_metadata;
+    use crate::AttestationIdentity;
     use crate::attestation::AttestationAttributeValue;
     use crate::attestation::AttestationError;
     use crate::attestation::AttestationPresentation;
-    use crate::AttestationIdentity;
+    use crate::attestation::attribute::test::claim_metadata;
 
     fn example_metadata() -> NormalizedTypeMetadata {
         NormalizedTypeMetadata::from_single_example(UncheckedTypeMetadata {

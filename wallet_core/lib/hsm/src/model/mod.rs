@@ -32,24 +32,24 @@ pub mod mock {
     use std::sync::Arc;
 
     use dashmap::DashMap;
-    use hmac::digest::MacError;
     use hmac::Hmac;
     use hmac::Mac;
-    use p256::ecdsa::signature::Signer;
+    use hmac::digest::MacError;
     use p256::ecdsa::Signature;
     use p256::ecdsa::SigningKey;
     use p256::ecdsa::VerifyingKey;
+    use p256::ecdsa::signature::Signer;
     use rand::rngs::OsRng;
     use sha2::Sha256;
 
     use crypto::utils::random_bytes;
 
+    use crate::model::Hsm;
     use crate::model::encrypted::Encrypted;
     use crate::model::encrypted::InitializationVector;
     use crate::model::encrypter::Decrypter;
     use crate::model::encrypter::Encrypter;
     use crate::model::wrapped_key::WrappedKey;
-    use crate::model::Hsm;
     use crate::service::HsmError;
     use crate::service::Pkcs11Client;
     use crate::service::PrivateKeyHandle;

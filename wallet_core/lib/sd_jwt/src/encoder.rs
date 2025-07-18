@@ -4,9 +4,9 @@
 use base64::prelude::*;
 use json_pointer::JsonPointer;
 use rand::Rng;
-use serde_json::json;
 use serde_json::Map;
 use serde_json::Value;
+use serde_json::json;
 
 use crypto::utils::random_bytes;
 
@@ -220,8 +220,8 @@ impl<H: Hasher> SdObjectEncoder<H> {
 
 #[cfg(test)]
 mod test {
-    use serde_json::json;
     use serde_json::Value;
+    use serde_json::json;
 
     use crate::error::Error;
 

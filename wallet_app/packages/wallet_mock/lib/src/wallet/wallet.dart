@@ -2,6 +2,8 @@ import 'package:collection/collection.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:wallet_core/core.dart';
 
+import '../util/extension/attestation_presentation_extension.dart';
+
 class Wallet {
   final BehaviorSubject<bool> _isLockedSubject = BehaviorSubject.seeded(true);
   final BehaviorSubject<List<AttestationPresentation>> _attestationsSubject = BehaviorSubject.seeded([]);
@@ -63,16 +65,16 @@ class Wallet {
 
   /// Adds the cards to the wallet, if a card with the same attestationType already exists, it is replaced with the new card.
   void add(List<AttestationPresentation> attestations) {
-    final currentCards = List.of(_attestations);
-    final newAttestationTypes = attestations.map((e) => e.attestationType);
-    final cardsToKeep =
-        currentCards.whereNot((attestation) => newAttestationTypes.contains(attestation.attestationType));
-    final newCardList = List.of(cardsToKeep)..addAll(attestations);
-    _attestationsSubject.add(newCardList);
+    final retainedAttestations = List.of(_attestations)
+      ..retainWhere((oldCard) => attestations.none((newCard) => oldCard.attestationType == newCard.attestationType));
+
+    /// Assign fixed identity to the cards that are now "in" the user's wallet.
+    final result = (retainedAttestations + attestations).map((it) => it.fixed());
+
+    _attestationsSubject.add(result.toList());
   }
 
-  /// Checks whether the attestion already exists in the user's wallet. Currently solely based on the (legacy / mock) attestationType attribute.
-  bool containsAttestation(AttestationPresentation attestation) {
-    return _attestations.any((it) => it.attestationType == attestation.attestationType);
-  }
+  /// Checks if the wallet already contains an attestation with the provided type.
+  bool containsAttestationType(String attestationType) =>
+      _attestations.any((it) => it.attestationType == attestationType);
 }

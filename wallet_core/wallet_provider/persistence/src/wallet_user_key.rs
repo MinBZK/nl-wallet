@@ -14,8 +14,8 @@ use hsm::model::wrapped_key::WrappedKey;
 use wallet_provider_domain::model::wallet_user::WalletUserKeys;
 use wallet_provider_domain::repository::PersistenceError;
 
-use crate::entity::wallet_user_key;
 use crate::PersistenceConnection;
+use crate::entity::wallet_user_key;
 
 type Result<T> = std::result::Result<T, PersistenceError>;
 

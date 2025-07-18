@@ -176,8 +176,8 @@ pub mod mock {
     use p256::ecdsa::SigningKey;
     use p256::ecdsa::VerifyingKey;
     use rand_core::OsRng;
-    use uuid::uuid;
     use uuid::Uuid;
+    use uuid::uuid;
 
     use apple_app_attest::AssertionCounter;
     use hsm::model::encrypted::Encrypted;

@@ -361,7 +361,7 @@ impl From<&NewSessionError> for VerificationErrorCode {
     fn from(error: &NewSessionError) -> Self {
         match error {
             NewSessionError::Session(session_error) => session_error.into(),
-            NewSessionError::NoItemsRequests
+            NewSessionError::NoCredentialRequests
             | NewSessionError::UnknownUseCase(_)
             | NewSessionError::ReturnUrlConfigurationMismatch => VerificationErrorCode::InvalidRequest,
         }
@@ -494,9 +494,9 @@ pub enum AuthorizationErrorCode {
 mod axum {
     use std::fmt::Debug;
 
+    use axum::Json;
     use axum::response::IntoResponse;
     use axum::response::Response;
-    use axum::Json;
     use serde::Serialize;
     use tracing::warn;
 

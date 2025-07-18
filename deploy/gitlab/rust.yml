@@ -135,17 +135,25 @@ test-rust-doctest:
   variables:
     RUSTFLAGS: "-D warnings"
     CONFIG_ENV: "dev"
+  before_script:
+    - cd wallet_core
 
 test-rust-compilation-android:
   image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-android:${BUILD_TAG}"
   extends: [.test-rust-compilation]
   script:
-    - (cd wallet_core; cargo ndk --target arm64-v8a check --package flutter_api --locked --release)
+    - cargo ndk --target arm64-v8a check --package flutter_api --locked --release
 
 test-rust-compilation-ios:
   extends: [.test-rust-compilation, .env-macos-runner]
   script:
-    - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package flutter_api --target aarch64-apple-ios
+    - cargo check --locked --release --package flutter_api --target aarch64-apple-ios
+
+test-compilation-performance-test:
+  extends: [.test-rust-compilation, .rust]
+  rules: !reference [.merge-request, rules]
+  script:
+    - cargo check --package "tests_integration" --bin performance_test --features performance_test,allow_insecure_url
 
 .build-binary:
   extends: .rust

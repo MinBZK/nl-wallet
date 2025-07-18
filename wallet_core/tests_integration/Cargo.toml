@@ -65,11 +65,13 @@ test_common = [
     "dep:android_attest",
     "dep:apple_app_attest",
     "dep:attestation_data",
+    "dep:attestation_types",
     "dep:axum",
     "dep:axum-server",
     "dep:chrono",
     "dep:configuration_server",
     "dep:ctor",
+    "dep:dcql",
     "dep:gba_hc_converter",
     "dep:http_utils",
     "dep:indexmap",
@@ -134,8 +136,9 @@ performance_test = [
     "fake_digid",
     "dep:ctor",
     "dep:apple_app_attest",
-    "dep:attestation_data",
+    "dep:attestation_types",
     "dep:indexmap",
+    "dep:dcql",
     "dep:reqwest",
     "dep:tokio",
     "dep:tracing",
@@ -228,8 +231,10 @@ attestation_data = { path = "../lib/attestation_data", optional = true, features
     "example_credential_payloads",
     "mock",
 ] }
+attestation_types = { path = "../lib/attestation_types", optional = true, features = ["mock"] }
 configuration_server = { path = "../configuration_server", optional = true }
 crypto = { path = "../lib/crypto", optional = true, features = ["mock_remote_key"] }
+dcql = { path = "../lib/dcql", optional = true }
 gba_hc_converter = { path = "../gba_hc_converter", optional = true }
 hsm = { path = "../lib/hsm", optional = true, features = ["test"] }
 http_utils = { path = "../lib/http_utils", optional = true, features = ["client", "server"] }

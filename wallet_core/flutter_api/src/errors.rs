@@ -7,14 +7,6 @@ use serde_with::skip_serializing_none;
 use url::Url;
 
 use wallet::attestation_data::LocalizedStrings;
-use wallet::errors::openid4vc::AuthorizationErrorCode;
-use wallet::errors::openid4vc::IssuanceSessionError;
-use wallet::errors::openid4vc::OidcError;
-use wallet::errors::openid4vc::VpClientError;
-use wallet::errors::openid4vc::VpMessageClientError;
-use wallet::errors::openid4vc::VpMessageClientErrorType;
-use wallet::errors::openid4vc::VpVerifierError;
-use wallet::errors::reqwest;
 use wallet::errors::AccountProviderError;
 use wallet::errors::ChangePinError;
 use wallet::errors::DigidError;
@@ -30,6 +22,14 @@ use wallet::errors::UriIdentificationError;
 use wallet::errors::WalletInitError;
 use wallet::errors::WalletRegistrationError;
 use wallet::errors::WalletUnlockError;
+use wallet::errors::openid4vc::AuthorizationErrorCode;
+use wallet::errors::openid4vc::IssuanceSessionError;
+use wallet::errors::openid4vc::OidcError;
+use wallet::errors::openid4vc::VpClientError;
+use wallet::errors::openid4vc::VpMessageClientError;
+use wallet::errors::openid4vc::VpMessageClientErrorType;
+use wallet::errors::openid4vc::VpVerifierError;
+use wallet::errors::reqwest;
 use wallet::openid4vc::SessionType;
 
 /// A type encapsulating data about a Flutter error that
@@ -490,11 +490,11 @@ mod tests {
     use rstest::rstest;
 
     use serde_json::json;
+    use wallet::errors::DigidError;
+    use wallet::errors::IssuanceError;
     use wallet::errors::openid4vc::AuthorizationErrorCode;
     use wallet::errors::openid4vc::ErrorResponse;
     use wallet::errors::openid4vc::OidcError;
-    use wallet::errors::DigidError;
-    use wallet::errors::IssuanceError;
 
     use super::FlutterApiError;
     use super::FlutterApiErrorType;

@@ -4,9 +4,9 @@ use std::sync::LazyLock;
 use regex::Regex;
 use serde::Deserialize;
 use serde::Serialize;
-use serde_with::serde_as;
 use serde_with::DeserializeFromStr;
 use serde_with::NoneAsEmptyString;
+use serde_with::serde_as;
 use url::Url;
 
 #[derive(Debug, Clone, PartialEq, Eq, DeserializeFromStr, strum::EnumString, strum::Display)]
@@ -98,17 +98,17 @@ pub(super) fn format_app2app_query(json_request: DigidJsonRequest) -> Result<Str
 }
 
 mod json_base64 {
-    use serde::de;
-    use serde::de::DeserializeOwned;
-    use serde::ser;
     use serde::Deserializer;
     use serde::Serialize;
     use serde::Serializer;
+    use serde::de;
+    use serde::de::DeserializeOwned;
+    use serde::ser;
+    use serde_with::DeserializeAs;
+    use serde_with::SerializeAs;
     use serde_with::base64::Base64;
     use serde_with::base64::Standard;
     use serde_with::formats::Padded;
-    use serde_with::DeserializeAs;
-    use serde_with::SerializeAs;
 
     pub fn serialize<S: Serializer, T: Serialize>(input: T, serializer: S) -> Result<S::Ok, S::Error> {
         Base64::<Standard, Padded>::serialize_as(&serde_json::to_vec(&input).map_err(ser::Error::custom)?, serializer)
@@ -126,11 +126,11 @@ mod test {
     use serde_json::json;
 
     use super::super::test::base64;
-    use super::format_app2app_query;
     use super::App2AppErrorMessage;
     use super::DigidJsonRequest;
     use super::ReturnUrlParameters;
     use super::SamlRedirectUrlParameters;
+    use super::format_app2app_query;
 
     #[rstest]
     #[case(

@@ -1,11 +1,7 @@
 use proc_macro2::Span;
 use proc_macro2::TokenStream;
-use quote::quote;
 use quote::ToTokens;
-use syn::parse_macro_input;
-use syn::punctuated::Punctuated;
-use syn::spanned::Spanned;
-use syn::token::Comma;
+use quote::quote;
 use syn::AttrStyle;
 use syn::Attribute;
 use syn::Block;
@@ -29,6 +25,10 @@ use syn::Result;
 use syn::Signature;
 use syn::Variant;
 use syn::Visibility;
+use syn::parse_macro_input;
+use syn::punctuated::Punctuated;
+use syn::spanned::Spanned;
+use syn::token::Comma;
 
 const CATEGORY: &str = "category";
 
