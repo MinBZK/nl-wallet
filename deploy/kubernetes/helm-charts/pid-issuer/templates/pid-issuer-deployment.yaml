@@ -92,9 +92,12 @@ spec:
                   name: {{ .Values.database.secretName }}
                   key: url
             - name: PID_ISSUER__RECOVERY_CODE__SECRET_KEY_TYPE
-              value: "hsm"
+              value: "software"
             - name: PID_ISSUER__RECOVERY_CODE__SECRET_KEY
-              value: "recovery_code_key"
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-pid-issuer-recovery-code-secret-key
+                  key: secret_key
             - name: RUST_LOG
               value: "debug,hyper=warn"
       volumes:
