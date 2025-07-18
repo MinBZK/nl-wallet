@@ -122,3 +122,15 @@
 | Name                     | Description            | Value  |
 | ------------------------ | ---------------------- | ------ |
 | `serviceMonitor.enabled` | Enable service monitor | `true` |
+
+### Log sidecar
+
+| Name                                   | Description                             | Value          |
+| -------------------------------------- | --------------------------------------- | -------------- |
+| `logSidecar.image.repository`          | Repository for the log container image  | `nil`          |
+| `logSidecar.image.pullPolicy`          | Image pull policy for the log container | `IfNotPresent` |
+| `logSidecar.image.tag`                 | Image tag for the log container         | `nil`          |
+| `logSidecar.resources.requests.cpu`    | CPU request of log sidecar              | `100m`         |
+| `logSidecar.resources.requests.memory` | Memory request of log sidecar           | `16Mi`         |
+| `logSidecar.resources.limits.cpu`      | CPU limit of log sidecar                | `400m`         |
+| `logSidecar.resources.limits.memory`   | Memory limit of log sidecar             | `32Mi`         |

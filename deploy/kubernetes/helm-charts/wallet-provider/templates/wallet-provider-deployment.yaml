@@ -33,6 +33,7 @@ spec:
       securityContext:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+
       containers:
         - name: {{ include "common.names.fullname" . }}
           image: "{{ .Values.global.imageRegistry }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -104,18 +105,40 @@ spec:
 
             - name: WALLET_PROVIDER__STRUCTURED_LOGGING
               value: "true"
+            - name: WALLET_PROVIDER__CAPTURE_AND_REDIRECT_LOGGING
+              value: "/shared/log"
 
             - name: CS_PKCS11_R3_CFG
               value: "/cs_pkcs11_R3.cfg"
 
           volumeMounts:
+            - mountPath: /shared
+              name: shared
             - name: pkcs11-config-volume
               mountPath: /cs_pkcs11_R3.cfg
               subPath: {{ .Values.hsm.configMapKey }}
             - name: gcloud-service-account
               mountPath: /google-cloud-service-account.json
               subPath: {{ .Values.android.serviceAccount.secretKey }}
+
+      initContainers:
+        - name: {{ include "common.names.fullname" . }}-log
+          image: "{{ .Values.global.imageRegistry }}/{{ .Values.logSidecar.image.repository }}:{{ .Values.logSideCar.image.tag }}"
+          command: ['/bin/sh', '-c', 'mkfifo /shared/log && exec cat /shared/log']
+          restartPolicy: Always # sidecar
+          {{- with .Values.logResources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - mountPath: /shared
+              name: shared
+
       volumes:
+        - name: shared
+          emptyDir:
+            medium: Memory
+            sizeLimit: 1Ki
         - name: pkcs11-config-volume
           configMap:
             name: {{ .Values.hsm.configMapName }}
