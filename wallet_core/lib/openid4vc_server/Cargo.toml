@@ -31,6 +31,7 @@ ring = { workspace = true, optional = true }
 attestation_data.path = "../attestation_data"
 attestation_types.path = "../attestation_types"
 crypto.path = "../crypto"
+dcql.path = "../dcql"
 http_utils = { path = "../http_utils", features = ["server"] }
 mdoc.path = "../mdoc"
 openid4vc = { path = "../openid4vc", features = ["axum"] }

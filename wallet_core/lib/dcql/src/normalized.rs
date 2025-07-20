@@ -3,9 +3,10 @@ use std::num::NonZero;
 use serde::Deserialize;
 use serde::Serialize;
 
-use dcql::ClaimPath;
-use dcql::CredentialQueryFormat;
 use utils::vec_at_least::VecNonEmpty;
+
+use crate::ClaimPath;
+use crate::CredentialQueryFormat;
 
 /// Request for a credential.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -49,9 +50,10 @@ impl AttributeRequest {
 
 #[cfg(any(test, feature = "mock"))]
 pub mod mock {
-    use dcql::ClaimPath;
-    use dcql::CredentialQueryFormat;
     use utils::vec_at_least::VecNonEmpty;
+
+    use crate::ClaimPath;
+    use crate::CredentialQueryFormat;
 
     use super::AttributeRequest;
     use super::NormalizedCredentialRequest;
@@ -200,8 +202,9 @@ pub mod mock {
 mod test {
     use rstest::rstest;
 
-    use dcql::ClaimPath;
     use utils::vec_at_least::VecNonEmpty;
+
+    use crate::ClaimPath;
 
     use super::AttributeRequest;
     use super::MdocCredentialRequestError;

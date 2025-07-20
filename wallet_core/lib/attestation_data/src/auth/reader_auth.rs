@@ -146,8 +146,8 @@ impl BorrowingCertificateExtension for ReaderRegistration {
 pub mod mock {
     use itertools::Itertools;
 
-    use attestation_types::request::NormalizedCredentialRequest;
     use dcql::CredentialQueryFormat;
+    use dcql::normalized::NormalizedCredentialRequest;
     use utils::vec_at_least::VecNonEmpty;
 
     use super::*;

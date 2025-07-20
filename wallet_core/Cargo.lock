@@ -671,7 +671,6 @@ dependencies = [
 name = "attestation_types"
 version = "0.4.0-dev"
 dependencies = [
- "dcql",
  "derive_more",
  "itertools 0.14.0",
  "rstest",
@@ -1715,6 +1714,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with",
+ "thiserror 2.0.11",
  "utils",
 ]
 
@@ -1825,6 +1825,7 @@ dependencies = [
  "ciborium",
  "config",
  "crypto",
+ "dcql",
  "demo_utils",
  "futures",
  "http",
@@ -4267,6 +4268,7 @@ dependencies = [
  "axum",
  "axum-extra",
  "crypto",
+ "dcql",
  "http",
  "http_utils",
  "mdoc",

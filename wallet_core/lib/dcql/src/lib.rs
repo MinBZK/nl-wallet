@@ -1,3 +1,5 @@
+pub mod normalized;
+
 use std::fmt::Display;
 use std::fmt::Formatter;
 use std::ops::Not;
