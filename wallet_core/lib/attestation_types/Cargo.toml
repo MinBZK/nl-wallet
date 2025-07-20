@@ -8,14 +8,6 @@ rust-version.workspace = true
 workspace = true
 
 [dependencies]
-derive_more = { workspace = true, features = ["as_ref"] }
-itertools.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_with = { workspace = true, features = ["macros"] }
 strum = { workspace = true, features = ["derive"] }
-thiserror.workspace = true
-
-utils.path = "../utils"
-
-[dev-dependencies]
-rstest.workspace = true

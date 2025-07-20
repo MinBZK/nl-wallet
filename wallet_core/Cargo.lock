@@ -671,14 +671,9 @@ dependencies = [
 name = "attestation_types"
 version = "0.4.0-dev"
 dependencies = [
- "derive_more",
- "itertools 0.14.0",
- "rstest",
  "serde",
  "serde_with",
  "strum 0.26.3",
- "thiserror 2.0.11",
- "utils",
 ]
 
 [[package]]
@@ -1819,7 +1814,6 @@ dependencies = [
  "askama 0.14.0",
  "askama_web",
  "attestation_data",
- "attestation_types",
  "axum",
  "base64 0.22.1",
  "ciborium",
@@ -4264,7 +4258,6 @@ name = "openid4vc_server"
 version = "0.4.0-dev"
 dependencies = [
  "attestation_data",
- "attestation_types",
  "axum",
  "axum-extra",
  "crypto",
@@ -6603,7 +6596,6 @@ dependencies = [
  "apple_app_attest",
  "assert_matches",
  "attestation_data",
- "attestation_types",
  "axum",
  "axum-server",
  "chrono",
@@ -7591,7 +7583,6 @@ dependencies = [
  "apple_app_attest",
  "assert_matches",
  "attestation_data",
- "attestation_types",
  "base64 0.22.1",
  "cfg-if",
  "chrono",
