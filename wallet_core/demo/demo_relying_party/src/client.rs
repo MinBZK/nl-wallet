@@ -2,7 +2,7 @@ use futures::TryFutureExt;
 use reqwest::Client;
 use reqwest::Response;
 
-use attestation_types::request::NormalizedCredentialRequest;
+use dcql::normalized::NormalizedCredentialRequest;
 use demo_utils::disclosure::DemoDisclosedAttestations;
 use http_utils::error::HttpJsonErrorBody;
 use http_utils::urls::BaseUrl;
