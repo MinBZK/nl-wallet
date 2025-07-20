@@ -8,6 +8,7 @@ use std::ops::Deref;
 use std::string::FromUtf8Error;
 use std::sync::LazyLock;
 
+use dcql::ClaimPath;
 use itertools::Itertools;
 use jsonschema::Draft;
 use jsonschema::ValidationError;
@@ -21,9 +22,6 @@ use serde_with::TryFromInto;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 use ssri::Integrity;
-
-// TODO: remove in PVW-4421
-pub use dcql::ClaimPath;
 
 use http_utils::data_uri::DataUri;
 use http_utils::urls::BaseUrl;
@@ -597,6 +595,7 @@ mod example_constructors {
     use serde_json::json;
 
     use crypto::utils::random_string;
+    use dcql::ClaimPath;
 
     use crate::examples::CREDENTIAL_PAYLOAD_SD_JWT_SPEC_METADATA_BYTES;
     use crate::examples::EUDI_PID_METADATA_BYTES;
@@ -610,7 +609,6 @@ mod example_constructors {
 
     use super::ClaimDisplayMetadata;
     use super::ClaimMetadata;
-    use super::ClaimPath;
     use super::ClaimSelectiveDisclosureMetadata;
     use super::DisplayMetadata;
     use super::JsonSchema;
@@ -809,6 +807,7 @@ mod test {
     use std::str::FromStr;
 
     use assert_matches::assert_matches;
+    use dcql::ClaimPath;
     use jsonschema::ValidationError;
     use jsonschema::error::ValidationErrorKind;
     use rstest::rstest;

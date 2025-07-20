@@ -8,9 +8,9 @@ use itertools::Itertools;
 use serde::Deserialize;
 use serde::Serialize;
 
+use dcql::ClaimPath;
 use mdoc::iso::mdocs::Entry;
 use mdoc::iso::mdocs::NameSpace;
-use sd_jwt_vc_metadata::ClaimPath;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use utils::vec_at_least::VecNonEmpty;
 
@@ -438,9 +438,9 @@ pub mod test {
     use serde_json::json;
     use serde_valid::json::ToJsonString;
 
+    use dcql::ClaimPath;
     use mdoc::Entry;
     use mdoc::NameSpace;
-    use sd_jwt_vc_metadata::ClaimPath;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use utils::vec_at_least::VecNonEmpty;
 
@@ -1047,7 +1047,7 @@ pub mod test {
     }
 
     mod test_claim_paths_from_attributes {
-        use sd_jwt_vc_metadata::ClaimPath;
+        use dcql::ClaimPath;
         use utils::vec_at_least::VecNonEmpty;
 
         use super::*;
