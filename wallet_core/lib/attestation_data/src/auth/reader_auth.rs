@@ -11,11 +11,11 @@ use x509_parser::der_parser::Oid;
 use x509_parser::der_parser::asn1_rs::oid;
 
 use crypto::x509::BorrowingCertificateExtension;
+use dcql::ClaimPath;
 use error_category::ErrorCategory;
 use mdoc::identifiers::AttributeIdentifier;
 use mdoc::identifiers::AttributeIdentifierError;
 use mdoc::identifiers::AttributeIdentifierHolder;
-use sd_jwt_vc_metadata::ClaimPath;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::auth::LocalizedStrings;

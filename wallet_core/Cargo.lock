@@ -4524,6 +4524,7 @@ dependencies = [
  "chrono",
  "config",
  "crypto",
+ "dcql",
  "derive_more",
  "futures",
  "hex",

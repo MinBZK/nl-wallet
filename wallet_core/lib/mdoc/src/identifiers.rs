@@ -4,9 +4,9 @@ use indexmap::IndexSet;
 use attestation_types::request::AttributeRequest;
 use attestation_types::request::MdocCredentialRequestError;
 use attestation_types::request::NormalizedCredentialRequest;
+use dcql::ClaimPath;
 use dcql::CredentialQueryFormat;
 use error_category::ErrorCategory;
-use sd_jwt_vc_metadata::ClaimPath;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::DataElementIdentifier;
