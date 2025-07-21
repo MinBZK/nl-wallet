@@ -7,7 +7,6 @@ use futures::future::try_join_all;
 use tokio::net::TcpListener;
 
 use crypto::trust_anchor::BorrowingTrustAnchor;
-use dcql::normalized::NormalizedCredentialRequest;
 use hsm::service::Pkcs11Hsm;
 use openid4vc::credential::OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME;
 use openid4vc::issuer::IssuanceData;
@@ -77,7 +76,7 @@ where
             WalletInitiatedUseCase::try_new(
                 s.key_pair.parse(hsm.clone()).await?,
                 SessionTypeReturnUrl::Both,
-                NormalizedCredentialRequest::try_from_query(s.dcql_query)?,
+                s.dcql_query.try_into()?,
                 format!("{OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME}://").parse().unwrap(),
             )?,
         ))
