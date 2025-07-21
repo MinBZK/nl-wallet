@@ -174,7 +174,6 @@ where
     DCC: DisclosureClient,
     WIC: Default,
 {
-    #[expect(clippy::too_many_arguments, reason = "Constructor for Wallet")]
     pub(super) fn new(
         config_repository: CR,
         update_policy_repository: UR,
