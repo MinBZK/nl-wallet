@@ -1069,10 +1069,10 @@ mod tests {
             .unwrap()
             .unwrap();
 
-        let attestation_copy_id = Uuid::new_v4();
+        let attestation_id = Uuid::new_v4();
         let stored = StoredAttestationCopy {
-            attestation_id: Uuid::new_v4(),
-            attestation_copy_id,
+            attestation_id,
+            attestation_copy_id: Uuid::new_v4(),
             attestation: StoredAttestationFormat::SdJwt {
                 sd_jwt: Box::new(sd_jwt.into()),
             },
@@ -1106,7 +1106,7 @@ mod tests {
 
         assert_matches!(
             &attestations[0].identity,
-            AttestationIdentity::Fixed { id } if id == &attestation_copy_id);
+            AttestationIdentity::Fixed { id } if id == &attestation_id);
         assert_matches!(&attestations[1].identity, AttestationIdentity::Ephemeral);
         assert_matches!(&attestations[2].identity, AttestationIdentity::Ephemeral);
     }
@@ -1427,10 +1427,10 @@ mod tests {
             .unwrap()
             .unwrap();
 
-        let attestation_copy_id = Uuid::new_v4();
+        let attestation_id = Uuid::new_v4();
         let stored = StoredAttestationCopy {
-            attestation_id: Uuid::new_v4(),
-            attestation_copy_id,
+            attestation_id,
+            attestation_copy_id: Uuid::new_v4(),
             attestation: StoredAttestationFormat::SdJwt {
                 sd_jwt: Box::new(sd_jwt.into()),
             },
@@ -1442,7 +1442,7 @@ mod tests {
         let result =
             match_preview_and_stored_attestations(&previews, vec![stored.clone()], &MockTimeGenerator::epoch());
         let (_, identities): (Vec<_>, Vec<_>) = multiunzip(result);
-        assert_eq!(vec![Some(attestation_copy_id)], identities);
+        assert_eq!(vec![Some(attestation_id)], identities);
 
         // When the attestation already exists in the database, but the preview has a newer nbf, it should be considered
         // as a new attestation and the identity is None.
