@@ -61,6 +61,7 @@ pub struct SdJwtClaims {
     #[serde(rename = "vct#integrity")]
     pub vct_integrity: Option<Integrity>,
 
+    /// Non-selectively disclosable claims of the SD-JWT.
     #[serde(flatten)]
     pub properties: serde_json::Map<String, serde_json::Value>,
 }
@@ -338,10 +339,18 @@ impl VerifiedSdJwt {
 pub struct SdJwtPresentationBuilder<'a> {
     sd_jwt: SdJwt,
     kb_jwt_builder: KeyBindingJwtBuilder,
-    disclosures: IndexMap<String, Disclosure>,
-    included_disclosures: IndexMap<String, Disclosure>,
-    object: serde_json::Value,
     hasher: &'a dyn Hasher,
+
+    /// Non-disclosed attributes. All attributes start here. Calling `disclose()` moves an attribute from here
+    /// to `disclosed`.
+    nondisclosed: IndexMap<String, Disclosure>,
+
+    /// Attributes to be disclosed.
+    disclosures: IndexMap<String, Disclosure>,
+
+    /// A helper object containing both non-selectively disclosable JWT claims and the `_sd` hashes,
+    /// used by `digests_to_disclose()`.
+    full_payload: serde_json::Value,
 }
 
 impl<'a> SdJwtPresentationBuilder<'a> {
@@ -354,42 +363,42 @@ impl<'a> SdJwtPresentationBuilder<'a> {
             )));
         }
 
-        let object = {
+        let full_payload = {
             let payload = sd_jwt.issuer_signed_jwt.payload();
             let sd = payload._sd.clone().into_iter().map(serde_json::Value::String).collect();
-            let mut object = serde_json::Value::Object(payload.properties.clone());
-            object
+            let mut full_payload = serde_json::Value::Object(payload.properties.clone());
+            full_payload
                 .as_object_mut()
                 .unwrap()
                 .insert(DIGESTS_KEY.to_string(), serde_json::Value::Array(sd));
 
-            object
+            full_payload
         };
 
-        let disclosures = sd_jwt.disclosures.clone();
+        let nondisclosed = sd_jwt.disclosures.clone();
 
         Ok(Self {
             sd_jwt,
             kb_jwt_builder,
-            disclosures,
-            included_disclosures: IndexMap::new(),
-            object,
+            nondisclosed,
+            disclosures: IndexMap::new(),
+            full_payload,
             hasher,
         })
     }
 
     pub fn disclose(mut self, path: &str) -> Result<Self> {
         let path_segments = path.trim_start_matches('/').split('/').peekable();
-        let digests_to_include = conceal(&self.object, path_segments, &self.disclosures)?
+        let digests = digests_to_disclose(&self.full_payload, path_segments, &self.nondisclosed)?
             .into_iter()
             // needed, since some strings are borrowed for the lifetime of the borrow of `self.disclosures`.
             .map(ToOwned::to_owned)
             // needed, to drop borrow `self.disclosures`.
             .collect_vec();
 
-        digests_to_include.into_iter().for_each(|digest| {
-            if let Some(disclosure) = self.disclosures.shift_remove(&digest) {
-                self.included_disclosures.insert(digest, disclosure);
+        digests.into_iter().for_each(|digest| {
+            if let Some(disclosure) = self.nondisclosed.shift_remove(&digest) {
+                self.disclosures.insert(digest, disclosure);
             }
         });
 
@@ -401,11 +410,11 @@ impl<'a> SdJwtPresentationBuilder<'a> {
         // Put everything back in its place.
         let SdJwtPresentationBuilder {
             mut sd_jwt,
-            included_disclosures,
+            disclosures,
             kb_jwt_builder,
             ..
         } = self;
-        sd_jwt.disclosures = included_disclosures;
+        sd_jwt.disclosures = disclosures;
 
         let key_binding_jwt = kb_jwt_builder.finish(&sd_jwt, self.hasher, signing_key).await?;
 
@@ -427,7 +436,11 @@ pub(crate) fn sd_jwt_validation() -> Validation {
     validation
 }
 
-fn conceal<'p, 'o, 'd, I>(
+/// Recursively searches for the specified path in the object and disclosures, returning the digests
+/// of objects which are to be disclosed in order to disclose the specified `path.`
+///
+/// The `object` must be the payload of an SD-JWT, containing an `_sd` array and other claims.
+fn digests_to_disclose<'p, 'o, 'd, I>(
     object: &'o serde_json::Value,
     mut path: Peekable<I>,
     disclosures: &'d IndexMap<String, Disclosure>,
@@ -446,7 +459,7 @@ where
             let next_object = object
                 .get(element_key)
                 .or_else(|| {
-                    find_disclosure(object, element_key, disclosures)
+                    find_disclosure_digest(object, element_key, disclosures)
                         .and_then(|digest| disclosures.get(digest))
                         .map(|disclosure| disclosure.claim_value())
                 })
@@ -454,12 +467,12 @@ where
                     Error::InvalidPath("the referenced element doesn't exist or is not concealable".to_string())
                 })?;
 
-            conceal(next_object, path, disclosures)
+            digests_to_disclose(next_object, path, disclosures)
         }
         // We reached the parent of the value we want to conceal.
         // Make sure its concealable by finding its disclosure.
         serde_json::Value::Object(object) => {
-            let digest = find_disclosure(object, element_key, disclosures).ok_or_else(|| {
+            let digest = find_disclosure_digest(object, element_key, disclosures).ok_or_else(|| {
                 Error::InvalidPath("the referenced element doesn't exist or is not concealable".to_string())
             })?;
             let disclosure = disclosures.get(digest).unwrap();
@@ -479,7 +492,7 @@ where
                 Error::InvalidPath("the referenced element doesn't exist or is not concealable".to_string())
             })?;
 
-            conceal(next_object, path, disclosures)
+            digests_to_disclose(next_object, path, disclosures)
         }
         // Concealing an array's entry.
         serde_json::Value::Array(arr) => {
@@ -492,7 +505,7 @@ where
                 .get(index)
                 .unwrap()
                 .as_object()
-                .and_then(|entry| find_disclosure(entry, "", disclosures))
+                .and_then(|entry| find_disclosure_digest(entry, "", disclosures))
                 .ok_or_else(|| {
                     Error::InvalidPath("the referenced element doesn't exist or is not concealable".to_string())
                 })?;
@@ -506,7 +519,8 @@ where
     }
 }
 
-fn find_disclosure<'o>(
+/// Find the digest of the given `key` in the `object` and `disclosures`.
+fn find_disclosure_digest<'o>(
     object: &'o serde_json::Map<String, serde_json::Value>,
     key: &str,
     disclosures: &IndexMap<String, Disclosure>,
@@ -785,7 +799,7 @@ mod test {
         #[case] object: serde_json::Value,
         #[case] conceal_paths: &[&str],
         #[case] disclose_paths: &[&str],
-        #[case] expected_selectively_disclosable_paths: &[&str],
+        #[case] expected_disclosed_paths: &[&str],
         #[case] expected_not_selectively_disclosable_paths: &[&str],
     ) {
         let presentation = create_presentation(object, conceal_paths, disclose_paths);
@@ -819,7 +833,7 @@ mod test {
         let not_selectively_disclosable_paths = get_paths(&claims.properties);
 
         assert_eq!(
-            expected_selectively_disclosable_paths,
+            expected_disclosed_paths,
             &presentation
                 .sd_jwt
                 .disclosures
