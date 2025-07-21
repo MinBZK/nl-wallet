@@ -18,7 +18,7 @@ use crate::gba::encryption::HmacSha256;
 use crate::gba::encryption::decrypt_bytes_from_dir;
 use crate::gba::error::Error;
 use crate::haal_centraal::Bsn;
-use crate::settings::KeyPair;
+use crate::settings::CertificateAndKey;
 use crate::settings::SymmetricKey;
 
 #[trait_variant::make(Send)]
@@ -43,7 +43,7 @@ impl HttpGbavClient {
         username: String,
         password: String,
         trust_anchor: Certificate,
-        client_keypair: KeyPair,
+        client_keypair: CertificateAndKey,
         ca_api_key: Option<String>,
     ) -> Result<Self, Error> {
         let cert = Pem::new("CERTIFICATE", client_keypair.certificate);
