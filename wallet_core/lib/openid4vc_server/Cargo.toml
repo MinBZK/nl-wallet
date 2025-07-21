@@ -32,6 +32,5 @@ attestation_data.path = "../attestation_data"
 crypto.path = "../crypto"
 dcql.path = "../dcql"
 http_utils = { path = "../http_utils", features = ["server"] }
-mdoc.path = "../mdoc"
 openid4vc = { path = "../openid4vc", features = ["axum"] }
 utils = { path = "../utils" }

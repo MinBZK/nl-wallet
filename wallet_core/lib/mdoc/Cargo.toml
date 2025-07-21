@@ -70,10 +70,9 @@ crypto.path = "../crypto"
 dcql.path = "../dcql"
 error_category.path = "../error_category"
 http_utils.path = "../http_utils"
-jwt.path = "../jwt"
-sd_jwt.path = "../sd_jwt"
-sd_jwt_vc_metadata.path = "../sd_jwt_vc_metadata"
 utils.path = "../utils"
+
+sd_jwt_vc_metadata = { path = "../sd_jwt_vc_metadata", optional = true, features = ["example_constructors"] }
 
 [dev-dependencies]
 assert_matches.workspace = true
