@@ -110,7 +110,6 @@ ts-rs.workspace = true
 wiremock.workspace = true
 
 attestation_data = { path = "../attestation_data", features = ["generate", "mock", "example_credential_payloads"] }
-attestation_types.path = "../attestation_types"
 crypto = { path = "../crypto", features = ["examples", "mock_remote_key"] }
 dcql = { path = "../dcql", features = ["mock"] }
 http_utils = { path = "../http_utils", features = ["insecure_http_client"] }
