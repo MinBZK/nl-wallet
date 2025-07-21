@@ -894,7 +894,7 @@ mod tests {
 
             client
                 .expect_normalized_credential_previews()
-                .return_const(vec![create_example_preview_data(&TimeGenerator)]);
+                .return_const(vec![create_example_preview_data(&MockTimeGenerator::default())]);
 
             client.expect_issuer().return_const(IssuerRegistration::new_mock());
 

@@ -43,6 +43,7 @@ use sd_jwt_vc_metadata::SortedTypeMetadataDocuments;
 use sd_jwt_vc_metadata::TypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use utils::generator::Generator;
+use utils::generator::mock::MockTimeGenerator;
 use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::messages::registration::WalletCertificateClaims;
 use wallet_configuration::wallet_config::WalletConfiguration;
@@ -222,7 +223,7 @@ pub fn create_example_pid_mdoc_credential_unauthenticated() -> CredentialWithMet
 }
 
 fn create_example_pid_mdoc_credential_with_key(issuer_key: &IssuerKey) -> CredentialWithMetadata {
-    let (payload_preview, metadata) = create_example_payload_preview();
+    let (payload_preview, metadata) = create_example_payload_preview(&MockTimeGenerator::default());
 
     mdoc_credential_from_unsigned(payload_preview, metadata, issuer_key)
 }
