@@ -1,8 +1,8 @@
 mod account_provider;
 mod attestation;
 mod config;
+mod digid;
 mod instruction;
-mod issuance;
 mod lock;
 mod pin;
 mod repository;
@@ -27,6 +27,7 @@ pub use crate::wallet::LockCallback;
 pub use crate::wallet::UnlockMethod;
 pub use crate::wallet::UriType;
 pub use crate::wallet::Wallet;
+pub use crate::wallet::WalletClients;
 
 pub mod attestation_data {
     pub use attestation_data::attributes::Attribute;
@@ -76,8 +77,9 @@ pub mod wallet_deps {
     pub use crate::config::WalletConfigurationRepository;
     pub use crate::config::default_config_server_config;
     pub use crate::config::default_wallet_config;
-    pub use crate::issuance::DigidSession;
-    pub use crate::issuance::HttpDigidSession;
+    pub use crate::digid::DigidClient;
+    pub use crate::digid::DigidSession;
+    pub use crate::digid::HttpDigidClient;
     pub use crate::repository::BackgroundUpdateableRepository;
     pub use crate::repository::Repository;
     pub use crate::repository::RepositoryUpdateState;
@@ -91,10 +93,11 @@ pub mod wallet_deps {
 #[cfg(feature = "mock")]
 pub mod mock {
     pub use crate::account_provider::MockAccountProviderClient;
+    pub use crate::attestation::BSN_ATTR_NAME;
+    pub use crate::attestation::PID_DOCTYPE;
     pub use crate::config::LocalConfigurationRepository;
-    pub use crate::issuance::BSN_ATTR_NAME;
-    pub use crate::issuance::MockDigidSession;
-    pub use crate::issuance::PID_DOCTYPE;
+    pub use crate::digid::MockDigidClient;
+    pub use crate::digid::MockDigidSession;
     pub use crate::storage::StorageStub;
     pub use crate::update_policy::MockUpdatePolicyRepository;
 }

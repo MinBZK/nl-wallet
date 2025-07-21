@@ -15,8 +15,9 @@ use server_utils::settings::NL_WALLET_CLIENT_ID;
 use server_utils::settings::SecretKey;
 use tests_integration::common::*;
 use tests_integration::fake_digid::fake_digid_auth;
+use wallet::wallet_deps::DigidClient;
 use wallet::wallet_deps::DigidSession;
-use wallet::wallet_deps::HttpDigidSession;
+use wallet::wallet_deps::HttpDigidClient;
 use wallet::wallet_deps::default_wallet_config;
 
 /// Test the full PID issuance flow, i.e. including OIDC with nl-rdo-max and retrieving the PID from BRP
@@ -67,22 +68,27 @@ async fn test_pid_issuance_digid_bridge() {
     let wallet_config = default_wallet_config();
 
     // Prepare DigiD flow
-    let (digid_session, authorization_url) = HttpDigidSession::<HttpOidcClient>::start(
-        wallet_config.pid_issuance.digid.clone(),
-        wallet_config.pid_issuance.digid_http_config.clone(),
-        urls::issuance_base_uri(&DEFAULT_UNIVERSAL_LINK_BASE.parse().unwrap()).into_inner(),
-    )
-    .await
-    .unwrap();
+    let digid_client = HttpDigidClient::<_, HttpOidcClient>::new();
+    let digid_session = digid_client
+        .start_session(
+            wallet_config.pid_issuance.digid.clone(),
+            wallet_config.pid_issuance.digid_http_config.clone(),
+            urls::issuance_base_uri(&DEFAULT_UNIVERSAL_LINK_BASE.parse().unwrap()).into_inner(),
+        )
+        .await
+        .unwrap();
 
     // Do fake DigiD authentication and parse the access token out of the redirect URL
     let redirect_url = fake_digid_auth(
-        authorization_url,
+        digid_session.auth_url().clone(),
         wallet_config.pid_issuance.digid_http_config.clone(),
         "999991772",
     )
     .await;
-    let token_request = digid_session.into_token_request(redirect_url).await.unwrap();
+    let token_request = digid_session
+        .into_token_request(&wallet_config.pid_issuance.digid_http_config, redirect_url)
+        .await
+        .unwrap();
 
     let server_url = local_pid_base_url(port);
 

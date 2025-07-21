@@ -1,16 +1,12 @@
+use std::hash::Hash;
+use std::marker::PhantomData;
+use std::sync::Arc;
 use std::sync::LazyLock;
 
-use derive_more::AsRef;
 use http::StatusCode;
 use http::header::LOCATION;
-use regex::Regex;
 use reqwest::Response;
 use reqwest::redirect::Policy;
-use serde::Deserialize;
-use serde::Serialize;
-use serde_with::DeserializeFromStr;
-use serde_with::NoneAsEmptyString;
-use serde_with::serde_as;
 use tracing::info;
 use tracing::warn;
 use url::Url;
@@ -18,7 +14,8 @@ use url::Url;
 use http_utils::reqwest::IntoPinnedReqwestClient;
 use http_utils::reqwest::PinnedReqwestClient;
 use http_utils::reqwest::ReqwestClientUrl;
-use http_utils::urls;
+use http_utils::tls::pinning::TlsPinningConfig;
+use http_utils::urls::issuance_base_uri;
 use openid4vc::oidc::HttpOidcClient;
 use openid4vc::oidc::OidcClient;
 use openid4vc::oidc::OidcReqwestClient;
@@ -26,199 +23,182 @@ use openid4vc::token::TokenRequest;
 use wallet_configuration::wallet_config::DigidConfiguration;
 
 use crate::config::UNIVERSAL_LINK_BASE_URL;
+use crate::reqwest::CachedReqwestClient;
 
+use super::DigidClient;
+use super::DigidError;
 use super::DigidSession;
-use super::DigidSessionError;
+use super::app2app::DigidJsonRequest;
+use super::app2app::ReturnUrlParameters;
+use super::app2app::format_app2app_query;
 
-#[derive(Debug, Serialize)]
-pub struct RedirectUrlParameters {
-    #[serde(rename = "app-app", with = "json_base64")]
-    app_app: DigidJsonRequest,
+fn build_app2app_http_client<C>(http_config: C) -> Result<PinnedReqwestClient, reqwest::Error>
+where
+    C: IntoPinnedReqwestClient,
+{
+    http_config.try_into_custom_client(|client_builder| client_builder.redirect(Policy::none()))
 }
 
-#[serde_as]
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "PascalCase")]
-pub struct DigidJsonRequest {
-    icon: Url,            // URL to the icon of the app, must be within the same domain as the return URL
-    return_url: Url,      // universal link of the wallet app
-    host: Option<String>, // on production this must be empty
-    #[serde(flatten)]
-    saml_parameters: SamlRedirectUrlParameters,
+fn extract_location_header(res: &Response) -> Result<Url, DigidError> {
+    if res.status() != StatusCode::TEMPORARY_REDIRECT {
+        return Err(DigidError::ExpectedRedirect(res.status()));
+    }
+
+    info!("Received redirect, extracting URL from location header");
+
+    let url = res
+        .headers()
+        .get(LOCATION)
+        .ok_or(DigidError::MissingLocation)?
+        .to_str()?
+        .parse()?;
+
+    Ok(url)
 }
 
-// As these parameters are constructed by rdo-max, they are opaque to us and passed as is to DigiD
-#[serde_as]
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "PascalCase")]
-pub struct SamlRedirectUrlParameters {
-    #[serde(rename = "SAMLRequest")]
-    saml_request: String,
-    relay_state: Option<String>,
-    sig_alg: String,   // technically optional
-    signature: String, // technically optional
+#[derive(Debug)]
+pub struct HttpDigidClient<C = TlsPinningConfig, O = HttpOidcClient> {
+    http_client: Arc<CachedReqwestClient<C>>,
+    _oidc_client_type: PhantomData<O>,
 }
 
-#[derive(Debug, Deserialize)]
-pub struct ReturnUrlParameters {
-    #[serde(rename = "app-app", with = "json_base64")]
-    app_app: DigidJsonResponse,
+#[derive(Debug)]
+enum DigidSessionType<C> {
+    Web,
+    App2App(Arc<CachedReqwestClient<C>>),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, DeserializeFromStr, strum::EnumString, strum::Display)]
-#[strum(serialize_all = "snake_case")]
-pub enum App2AppErrorMessage {
-    #[strum(to_string = "_by_user")]
-    ByUser,
-    NotActivated,
-    Timeout,
-    IconMissing,
-    #[strum(default)]
-    Other(String),
+#[derive(Debug)]
+pub struct HttpDigidSession<C = TlsPinningConfig, O = HttpOidcClient> {
+    session_type: DigidSessionType<C>,
+    oidc_client: O,
+    auth_url: Url,
 }
 
-#[serde_as]
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "PascalCase")]
-pub struct DigidJsonResponse {
-    #[serde(flatten)]
-    saml_parameters: SamlReturnUrlParameters,
-    #[serde_as(as = "NoneAsEmptyString")]
-    error_message: Option<App2AppErrorMessage>,
-}
-
-// As these parameters are constructed by DigiD, they are opaque to us and passed as is to rdo-max
-#[serde_as]
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "PascalCase")]
-pub struct SamlReturnUrlParameters {
-    #[serde(rename = "SAMLart")]
-    #[serde_as(as = "NoneAsEmptyString")]
-    saml_art: Option<String>,
-    #[serde_as(as = "NoneAsEmptyString")]
-    relay_state: Option<String>,
-}
-
-#[derive(Debug, Clone, AsRef)]
-pub struct App2AppReqwestClient(PinnedReqwestClient);
-
-impl App2AppReqwestClient {
-    pub fn try_new<C>(client_source: C) -> Result<Self, reqwest::Error>
-    where
-        C: IntoPinnedReqwestClient,
-    {
-        let client = client_source.try_into_custom_client(|client_builder| client_builder.redirect(Policy::none()))?;
-
-        Ok(Self(client))
+impl<C, O> HttpDigidClient<C, O> {
+    pub fn new() -> Self {
+        Self {
+            http_client: Arc::new(CachedReqwestClient::new()),
+            _oidc_client_type: PhantomData,
+        }
     }
 }
 
-struct App2AppSession {
-    http_client: App2AppReqwestClient,
+impl<C, O> Default for HttpDigidClient<C, O> {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
-pub struct HttpDigidSession<OIC = HttpOidcClient> {
-    oidc_client: OIC,
-    app2app_session: Option<App2AppSession>,
-}
-
-impl<OIC> DigidSession for HttpDigidSession<OIC>
+impl<C, O> DigidClient<C> for HttpDigidClient<C, O>
 where
-    OIC: OidcClient,
+    C: IntoPinnedReqwestClient + Clone + Hash,
+    O: OidcClient,
 {
-    async fn start<C>(
+    type Session = HttpDigidSession<C, O>;
+
+    async fn start_session(
+        &self,
         digid_config: DigidConfiguration,
         http_config: C,
         redirect_uri: Url,
-    ) -> Result<(Self, Url), DigidSessionError>
-    where
-        C: IntoPinnedReqwestClient + Clone + 'static,
-        Self: Sized,
-    {
+    ) -> Result<Self::Session, DigidError> {
         // the icon must be within the same domain as the return URL, but the path is stripped off the UL
         const LOGO_PATH: &str = "/.well-known/logo.png";
         static ICON_URL: LazyLock<Url> = LazyLock::new(|| UNIVERSAL_LINK_BASE_URL.as_ref().join(LOGO_PATH).unwrap());
 
-        let app2app_configs = digid_config
+        // Use a different HTTP client for the app2app requests than the one we use for OidcReqwestClient.
+        let app2app_config_http_client = digid_config
             .app2app
-            .map(|app2app_config| (app2app_config, http_config.clone()));
+            .map(|app2app_config| {
+                let http_client = self
+                    .http_client
+                    .get_or_try_init(&http_config, build_app2app_http_client)?;
+
+                Ok::<_, reqwest::Error>((app2app_config, http_client))
+            })
+            .transpose()?;
 
         // Note that http_config contains the TLS pinning configuration for both the OIDC discovery quest and any
         // subsequent requests, including potential app2app requests. This means that any TLS certificate presented to
         // the client should be issued under the same (set of) CA(s), even though the requests could in theory end up
         // connecting to different hosts. In practice however, this will most likely be the same host.
         let http_client = OidcReqwestClient::try_new(http_config)?;
-        let (oidc_client, mut auth_url) = OIC::start(&http_client, digid_config.client_id, redirect_uri).await?;
+        let (oidc_client, mut auth_url) = O::start(&http_client, digid_config.client_id, redirect_uri).await?;
 
-        let (app2app_session, auth_url) = match app2app_configs {
-            Some((app2app_config, http_config)) => {
+        let (session_type, auth_url) = match app2app_config_http_client {
+            Some((app2app_config, http_client)) => {
                 info!("Constructing DigiD universal link from Auth URL");
 
-                // this enforces DigiD, even if others are supported by rdo-max
+                // This enforces DigiD, even if others are supported by rdo-max.
                 auth_url.query_pairs_mut().append_pair("login_hint", "digid");
-
-                // Create a second HTTP client, based on the same configuration as the OidcReqwestClient.
-                let http_client = App2AppReqwestClient::try_new(http_config)?;
 
                 info!("Sending get request to Auth URL, expecting an HTTP Redirect");
                 let response = http_client
-                    .as_ref()
                     .send_get(ReqwestClientUrl::Absolute(auth_url))
                     .await?
                     .error_for_status()?;
-                let location = Self::extract_location_header(&response)?;
+                let location = extract_location_header(&response)?;
 
                 let saml_parameters =
-                    serde_urlencoded::from_str(location.query().ok_or(DigidSessionError::MissingLocationQuery)?)?;
+                    serde_urlencoded::from_str(location.query().ok_or(DigidError::MissingLocationQuery)?)?;
 
                 info!("Constructing DigiD universal link from redirect parameters");
                 let json_request = DigidJsonRequest {
                     icon: ICON_URL.to_owned(),
-                    return_url: urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).into_inner(),
+                    return_url: issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).into_inner(),
                     host: app2app_config.host().map(|h| h.to_string()),
                     saml_parameters,
                 };
 
-                let app2app_url = Self::format_app2app_url(app2app_config.universal_link().to_owned(), json_request)?;
+                let app2app_query = format_app2app_query(json_request)?;
+                let mut app2app_url = app2app_config.universal_link().clone();
+                app2app_url.set_query(Some(&app2app_query));
 
                 info!("DigiD app2app URL generated");
-                (Some(App2AppSession { http_client }), app2app_url)
+
+                (DigidSessionType::App2App(Arc::clone(&self.http_client)), app2app_url)
             }
-            _ => (None, auth_url),
+            _ => (DigidSessionType::Web, auth_url),
         };
 
-        let session = (
-            Self {
-                oidc_client,
-                app2app_session,
-            },
+        let session = HttpDigidSession {
+            session_type,
+            oidc_client,
             auth_url,
-        );
+        };
+
         Ok(session)
     }
+}
 
-    async fn into_token_request(self, received_redirect_uri: Url) -> Result<TokenRequest, DigidSessionError> {
-        let location = match self.app2app_session {
-            None => received_redirect_uri,
-            Some(app2app_session) => {
+impl<C, O> DigidSession<C> for HttpDigidSession<C, O>
+where
+    C: IntoPinnedReqwestClient + Clone + Hash,
+    O: OidcClient,
+{
+    fn auth_url(&self) -> &Url {
+        &self.auth_url
+    }
+
+    async fn into_token_request(self, http_config: &C, redirect_uri: Url) -> Result<TokenRequest, DigidError> {
+        let location = match self.session_type {
+            DigidSessionType::Web => redirect_uri,
+            DigidSessionType::App2App(http_client) => {
                 info!("Constructing redirect_uri from JsonResponse");
 
-                let ReturnUrlParameters { app_app } = serde_urlencoded::from_str(
-                    received_redirect_uri
-                        .query()
-                        .ok_or(DigidSessionError::MissingLocationQuery)?,
-                )?;
+                let ReturnUrlParameters { app_app } =
+                    serde_urlencoded::from_str(redirect_uri.query().ok_or(DigidError::MissingLocationQuery)?)?;
 
                 if let Some(error) = app_app.error_message {
                     warn!("Error message in JsonResponse: {error}");
-                    return Err(DigidSessionError::App2AppError(error));
+                    return Err(DigidError::App2AppError(error));
                 }
 
                 // pass saml artifact and relay_state to rdo-max, exchange for redirect_uri
                 info!("Sending SAML artifact and Relay State to acs URL, expecting a redirect");
-                let response = app2app_session
-                    .http_client
-                    .as_ref()
+                let response = http_client
+                    .get_or_try_init(http_config, build_app2app_http_client)?
                     // this route is standard for rdo-max
                     .send_custom_get(ReqwestClientUrl::Relative("acs"), |request_builder| {
                         request_builder.query(&app_app.saml_parameters)
@@ -226,77 +206,27 @@ where
                     .await?
                     .error_for_status()?;
 
-                Self::extract_location_header(&response)?
+                extract_location_header(&response)?
             }
         };
 
         let token_request = self.oidc_client.into_token_request(&location)?;
+
         Ok(token_request)
-    }
-}
-
-impl<OIC> HttpDigidSession<OIC> {
-    fn extract_location_header(res: &Response) -> Result<Url, DigidSessionError> {
-        if res.status() != StatusCode::TEMPORARY_REDIRECT {
-            return Err(DigidSessionError::ExpectedRedirect(res.status()));
-        }
-
-        info!("Received redirect, extracting URL from location header");
-        let url = res
-            .headers()
-            .get(LOCATION)
-            .ok_or(DigidSessionError::MissingLocation)?
-            .to_str()?
-            .parse()?;
-
-        Ok(url)
-    }
-
-    fn format_app2app_url(mut app2app_url: Url, json_request: DigidJsonRequest) -> Result<Url, DigidSessionError> {
-        static RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"%3[dD]").unwrap());
-        app2app_url.set_query(Some(
-            RE.replace_all(
-                &serde_urlencoded::to_string(RedirectUrlParameters { app_app: json_request })?,
-                "=",
-            )
-            .as_ref(), // DigiD fails to properly decode the URL parameter
-        ));
-
-        Ok(app2app_url)
-    }
-}
-
-mod json_base64 {
-    use serde::Deserializer;
-    use serde::Serialize;
-    use serde::Serializer;
-    use serde::de;
-    use serde::de::DeserializeOwned;
-    use serde::ser;
-    use serde_with::DeserializeAs;
-    use serde_with::SerializeAs;
-    use serde_with::base64::Base64;
-    use serde_with::base64::Standard;
-    use serde_with::formats::Padded;
-
-    pub fn serialize<S: Serializer, T: Serialize>(input: T, serializer: S) -> Result<S::Ok, S::Error> {
-        Base64::<Standard, Padded>::serialize_as(&serde_json::to_vec(&input).map_err(ser::Error::custom)?, serializer)
-    }
-
-    pub fn deserialize<'de, D: Deserializer<'de>, T: DeserializeOwned>(deserializer: D) -> Result<T, D::Error> {
-        let x: Vec<u8> = Base64::<Standard, Padded>::deserialize_as(deserializer)?;
-        serde_json::from_slice(&x).map_err(de::Error::custom)
     }
 }
 
 #[cfg(test)]
 mod test {
-    use base64::prelude::*;
+    use std::sync::Arc;
+
     use http::StatusCode;
+    use http::header::LOCATION;
     use rstest::rstest;
     use serde::de::Error;
     use serde_json::json;
     use serial_test::serial;
+    use url::Url;
     use wiremock::Mock;
     use wiremock::MockServer;
     use wiremock::ResponseTemplate;
@@ -309,11 +239,21 @@ mod test {
     use http_utils::urls::BaseUrl;
     use openid4vc::oidc::MockOidcClient;
     use openid4vc::oidc::OidcError;
+    use openid4vc::token::TokenRequest;
     use openid4vc::token::TokenRequestGrantType;
     use wallet_configuration::digid::DigidApp2AppConfiguration;
     use wallet_configuration::wallet_config::DigidConfiguration;
 
-    use super::*;
+    use crate::reqwest::CachedReqwestClient;
+
+    use super::super::DigidClient;
+    use super::super::DigidError;
+    use super::super::DigidSession;
+    use super::super::app2app::App2AppErrorMessage;
+    use super::super::test::base64;
+    use super::DigidSessionType;
+    use super::HttpDigidClient;
+    use super::HttpDigidSession;
 
     fn default_token_request() -> TokenRequest {
         TokenRequest {
@@ -329,22 +269,22 @@ mod test {
     #[tokio::test]
     #[serial(MockOidcClient)]
     async fn test_start_no_app2app() {
-        let client = MockOidcClient::start_context();
-        client
+        let oidc_client = MockOidcClient::start_context();
+        oidc_client
             .expect()
             .return_once(|_, _, _| Ok((MockOidcClient::default(), Url::parse("https://example.com/").unwrap())));
 
-        let session = HttpDigidSession::<MockOidcClient>::start(
-            DigidConfiguration::default(),
-            InsecureHttpConfig {
-                base_url: "https://digid.example.com".parse().unwrap(),
-            },
-            "https://app.example.com".parse().unwrap(),
-        )
-        .await
-        .unwrap();
+        let client = HttpDigidClient::<_, MockOidcClient>::new();
+        let session = client
+            .start_session(
+                DigidConfiguration::default(),
+                InsecureHttpConfig::new("https://digid.example.com".parse().unwrap()),
+                "https://app.example.com".parse().unwrap(),
+            )
+            .await
+            .expect("starting DigiD session should succeed");
 
-        assert_eq!(session.1, "https://example.com/".parse().unwrap());
+        assert_eq!(*session.auth_url(), "https://example.com/".parse().unwrap());
     }
 
     #[rstest]
@@ -423,7 +363,7 @@ mod test {
         ).ok(),
         None,
         Some("file://etc/passwd".parse().unwrap()),
-        Err(DigidSessionError::Http(
+        Err(DigidError::Http(
             reqwest::Client::new().get("file://etc/passwd?login_hint=digid").send().await.unwrap_err()
         ))
     )]
@@ -432,28 +372,16 @@ mod test {
         None,
         Some(OidcError::NoAuthCode),
         None,
-        Err(DigidSessionError::Oidc(OidcError::NoAuthCode))
+        Err(DigidError::Oidc(OidcError::NoAuthCode))
     )]
-    #[case(
-        StatusCode::OK,
-        None,
-        None,
-        None,
-        Err(DigidSessionError::ExpectedRedirect(StatusCode::OK))
-    )]
-    #[case(
-        StatusCode::TEMPORARY_REDIRECT,
-        None,
-        None,
-        None,
-        Err(DigidSessionError::MissingLocation)
-    )]
+    #[case(StatusCode::OK, None, None, None, Err(DigidError::ExpectedRedirect(StatusCode::OK)))]
+    #[case(StatusCode::TEMPORARY_REDIRECT, None, None, None, Err(DigidError::MissingLocation))]
     #[case(
         StatusCode::TEMPORARY_REDIRECT,
         HeaderValue::from_bytes("not_a_url".as_bytes()).ok(),
         None,
         None,
-        Err(DigidSessionError::NotAUrl(url::ParseError::RelativeUrlWithoutBase))
+        Err(DigidError::NotAUrl(url::ParseError::RelativeUrlWithoutBase))
     )]
     // this case is impossible to test without using unsafe, also the error cannot be created because of private fields
     #[case(
@@ -461,7 +389,7 @@ mod test {
         Some(unsafe { HeaderValue::from_maybe_shared_unchecked("🦀") }),
         None,
         None,
-        Err(DigidSessionError::HeaderNotAStr(
+        Err(DigidError::HeaderNotAStr(
             unsafe { http::header::HeaderValue::from_maybe_shared_unchecked("🦀") }.to_str().unwrap_err()
         ))
     )]
@@ -470,14 +398,14 @@ mod test {
         HeaderValue::from_bytes("https://preprod.example.com/saml/idp/request_authentication".as_bytes()).ok(),
         None,
         None,
-        Err(DigidSessionError::MissingLocationQuery)
+        Err(DigidError::MissingLocationQuery)
     )]
     #[case(
         StatusCode::TEMPORARY_REDIRECT,
         HeaderValue::from_bytes("https://preprod.example.com/saml/idp/request_authentication?hello".as_bytes()).ok(),
         None,
         None,
-        Err(DigidSessionError::UrlDeserialize(serde_urlencoded::de::Error::missing_field("SAMLRequest")))
+        Err(DigidError::UrlDeserialize(serde_urlencoded::de::Error::missing_field("SAMLRequest")))
     )]
     #[tokio::test]
     #[serial(MockOidcClient)]
@@ -486,7 +414,7 @@ mod test {
         #[case] location: Option<HeaderValue>,
         #[case] oidc_error: Option<OidcError>,
         #[case] auth_url: Option<Url>,
-        #[case] expected: Result<Url, DigidSessionError>,
+        #[case] expected: Result<Url, DigidError>,
     ) {
         let server = MockServer::start().await;
         let base_url = auth_url.unwrap_or(server.uri().parse().unwrap());
@@ -520,16 +448,16 @@ mod test {
             Ok((MockOidcClient::default(), auth_url))
         });
 
-        let session = HttpDigidSession::<MockOidcClient>::start(
-            digid_config,
-            InsecureHttpConfig {
-                base_url: "https://digid.example.com".parse().unwrap(),
-            },
-            "https://app.example.com".parse().unwrap(),
-        )
-        .await;
+        let client = HttpDigidClient::<_, MockOidcClient>::new();
+        let session_result = client
+            .start_session(
+                digid_config,
+                InsecureHttpConfig::new("https://digid.example.com".parse().unwrap()),
+                "https://app.example.com".parse().unwrap(),
+            )
+            .await;
 
-        match (session.map(|(_, x)| x), expected) {
+        match (session_result.map(|session| session.auth_url().clone()), expected) {
             (Ok(o), Ok(k)) => assert_eq!(o, k),
             // unfortunately some of the errors don't implement PartialEq
             (Err(e), Err(r)) => assert_eq!(e.to_string(), r.to_string()),
@@ -547,13 +475,17 @@ mod test {
             .return_once(|_| Ok(default_token_request()));
 
         // same as a call to `HttpDigidSession::start`
-        let session = HttpDigidSession::<MockOidcClient> {
+        let session = HttpDigidSession {
+            session_type: DigidSessionType::Web,
             oidc_client: client,
-            app2app_session: None,
+            auth_url: "https://example.com/".parse().unwrap(),
         };
 
         let token_request = session
-            .into_token_request("https://example.com/deeplink/return-from-digid".parse().unwrap())
+            .into_token_request(
+                &InsecureHttpConfig::new("https://digid.example.com".parse().unwrap()),
+                "https://example.com/deeplink/return-from-digid".parse().unwrap(),
+            )
             .await;
 
         assert!(token_request.is_ok());
@@ -603,34 +535,34 @@ mod test {
         "https://example.com/deeplink/return-from-digid?app-app=eyJTQU1MYXJ0IjoiIiwiUmVsYXlTdGF0ZSI6Ii8iLCJFcnJvck1lc\
          3NhZ2UiOm51bGx9".parse().unwrap(),
         Some(OidcError::StateTokenMismatch),
-        Err(DigidSessionError::Oidc(OidcError::StateTokenMismatch))
+        Err(DigidError::Oidc(OidcError::StateTokenMismatch))
     )]
     #[case(
         "https://example.com/deeplink/return-from-digid?app-app=eyJTQU1MYXJ0IjpudWxsLCJSZWxheVN0YXRlIjpudWxsLCJFcnJvc\
          k1lc3NhZ2UiOiJ0aW1lb3V0In0=".parse().unwrap(),
         None,
-        Err(DigidSessionError::App2AppError(App2AppErrorMessage::Timeout))
+        Err(DigidError::App2AppError(App2AppErrorMessage::Timeout))
     )]
     #[case(
         "https://example.com/deeplink/return-from-digid".parse().unwrap(),
         None,
-        Err(DigidSessionError::MissingLocationQuery)
+        Err(DigidError::MissingLocationQuery)
     )]
     #[case(
         "https://example.com/deeplink/return-from-digid?hello".parse().unwrap(),
         None,
-        Err(DigidSessionError::UrlDeserialize(serde_urlencoded::de::Error::missing_field("app-app")))
+        Err(DigidError::UrlDeserialize(serde_urlencoded::de::Error::missing_field("app-app")))
     )]
-    // case DigidSessionError::Http is much harder to trigger due to our implementation of BaseUrl and covered by
-    // test_start_app2app cases DigidSessionError::ExpectedRedirect, DigidSessionError::MissingLocation,
-    // DigidSessionError::NotAUrl and DigidSessionError::HeaderNotAStr in extract_location_header are covered by
+    // case DigidError::Http is much harder to trigger due to our implementation of BaseUrl and covered by
+    // test_start_app2app cases DigidError::ExpectedRedirect, DigidError::MissingLocation,
+    // DigidError::NotAUrl and DigidError::HeaderNotAStr in extract_location_header are covered by
     // test_start_app2app
     #[tokio::test]
     #[serial(MockOidcClient)]
     async fn test_into_token_request_app2app(
         #[case] redirect_uri: Url,
         #[case] oidc_error: Option<OidcError>,
-        #[case] expected: Result<(), DigidSessionError>,
+        #[case] expected: Result<(), DigidError>,
     ) {
         let server = MockServer::start().await;
         let base_url: BaseUrl = server.uri().parse().unwrap();
@@ -653,15 +585,16 @@ mod test {
             Ok(default_token_request())
         });
 
-        let http_client = App2AppReqwestClient::try_new(InsecureHttpConfig::new(base_url)).unwrap();
-
         // same as a call to `HttpDigidSession::start`
-        let session = HttpDigidSession::<MockOidcClient> {
+        let session = HttpDigidSession {
+            session_type: DigidSessionType::App2App(Arc::new(CachedReqwestClient::new())),
             oidc_client: client,
-            app2app_session: Some(App2AppSession { http_client }),
+            auth_url: "https://example.com/".parse().unwrap(),
         };
 
-        let token_request = session.into_token_request(redirect_uri).await;
+        let token_request = session
+            .into_token_request(&InsecureHttpConfig::new(base_url), redirect_uri)
+            .await;
 
         match (token_request, expected) {
             // unfortunately some of the errors don't implement PartialEq
@@ -671,105 +604,5 @@ mod test {
                 tr.unwrap();
             }
         };
-    }
-
-    #[rstest]
-    #[case(
-        Some("example.com/no_padding".to_owned()),
-        "https://app.example.com/app?app-app=".to_string() + &base64(json!({
-            "Icon": "https://example.com/logo.png",
-            "ReturnUrl": "https://example.com/return",
-            "Host": "example.com/no_padding",
-            "SAMLRequest": "",
-            "RelayState": null,
-            "SigAlg": "", "Signature": ""
-        }))
-    )]
-    #[case(
-        Some("example.com/padding__".to_owned()),
-        "https://app.example.com/app?app-app=".to_string() + &base64(json!({
-            "Icon": "https://example.com/logo.png",
-            "ReturnUrl": "https://example.com/return",
-            "Host": "example.com/padding__",
-            "SAMLRequest": "",
-            "RelayState": null,
-            "SigAlg": "",
-            "Signature": ""
-        }))
-    )]
-    #[case(
-        Some("example.com/more___padding".to_owned()),
-        "https://app.example.com/app?app-app=".to_string() + &base64(json!({
-            "Icon": "https://example.com/logo.png",
-            "ReturnUrl": "https://example.com/return",
-            "Host": "example.com/more___padding",
-            "SAMLRequest": "",
-            "RelayState": null,
-            "SigAlg": "",
-            "Signature": ""
-        }))
-    )]
-    #[case(
-        None,
-        "https://app.example.com/app?app-app=".to_string() + &base64(json!({
-            "Icon": "https://example.com/logo.png",
-            "ReturnUrl": "https://example.com/return",
-            "Host": null,
-            "SAMLRequest": "",
-            "RelayState": null,
-            "SigAlg": "",
-            "Signature": ""
-        }))
-    )]
-    fn test_format_app2app_url(#[case] host: Option<String>, #[case] expected: String) {
-        let expected = expected.parse().unwrap();
-        let url = HttpDigidSession::<HttpOidcClient>::format_app2app_url(
-            "https://app.example.com/app".parse().unwrap(),
-            DigidJsonRequest {
-                icon: "https://example.com/logo.png".parse().unwrap(),
-                return_url: "https://example.com/return".parse().unwrap(),
-                host,
-                saml_parameters: SamlRedirectUrlParameters {
-                    saml_request: Default::default(),
-                    relay_state: Default::default(),
-                    sig_alg: Default::default(),
-                    signature: Default::default(),
-                },
-            },
-        )
-        .unwrap();
-
-        assert_eq!(url, expected);
-    }
-
-    #[rstest]
-    #[case(
-        base64(json!({"SAMLart": null, "RelayState": null, "ErrorMessage": "_by_user"})),
-        Some(App2AppErrorMessage::ByUser)
-    )]
-    #[case(
-        base64(json!({"SAMLart": null, "RelayState": null, "ErrorMessage": "timeout"})),
-        Some(App2AppErrorMessage::Timeout)
-    )]
-    #[case(
-        base64(json!({"SAMLart": null, "RelayState": null, "ErrorMessage": "not_activated"})),
-        Some(App2AppErrorMessage::NotActivated)
-    )]
-    #[case(
-        base64(json!({"SAMLart": null, "RelayState": null, "ErrorMessage": "icon_missing"})),
-        Some(App2AppErrorMessage::IconMissing)
-    )]
-    #[case(
-        base64(json!({"SAMLart": null, "RelayState": null, "ErrorMessage": "Hello, World!"})),
-        Some(App2AppErrorMessage::Other("Hello, World!".to_owned()))
-    )]
-    #[case(base64(json!({"SAMLart": "", "RelayState": "/", "ErrorMessage": null})), None)]
-    fn test_digid_app2app_error_message(#[case] input: String, #[case] expected: Option<App2AppErrorMessage>) {
-        let res: ReturnUrlParameters = serde_urlencoded::from_str(&format!("app-app={input}")).unwrap();
-        assert_eq!(res.app_app.error_message, expected);
-    }
-
-    fn base64<T: Serialize>(input: T) -> String {
-        BASE64_URL_SAFE.encode(serde_json::to_string(&input).unwrap())
     }
 }
