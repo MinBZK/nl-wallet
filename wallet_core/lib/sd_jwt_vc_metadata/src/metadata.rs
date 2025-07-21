@@ -8,7 +8,6 @@ use std::ops::Deref;
 use std::string::FromUtf8Error;
 use std::sync::LazyLock;
 
-use dcql::ClaimPath;
 use itertools::Itertools;
 use jsonschema::Draft;
 use jsonschema::ValidationError;
@@ -23,6 +22,7 @@ use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 use ssri::Integrity;
 
+use dcql::ClaimPath;
 use http_utils::data_uri::DataUri;
 use http_utils::urls::BaseUrl;
 use utils::spec::SpecOptional;
@@ -807,12 +807,12 @@ mod test {
     use std::str::FromStr;
 
     use assert_matches::assert_matches;
-    use dcql::ClaimPath;
     use jsonschema::ValidationError;
     use jsonschema::error::ValidationErrorKind;
     use rstest::rstest;
     use serde_json::json;
 
+    use dcql::ClaimPath;
     use utils::vec_at_least::VecNonEmpty;
 
     use crate::examples::EXAMPLE_METADATA_BYTES;

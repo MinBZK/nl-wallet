@@ -222,7 +222,7 @@ mod tests {
     use rstest::rstest;
 
     use dcql::ClaimPath;
-    use dcql::normalized;
+    use dcql::normalized::AttributeRequest;
     use dcql::normalized::MdocCredentialRequestError;
     use dcql::normalized::NormalizedCredentialRequest;
     use utils::vec_at_least::VecNonEmpty;
@@ -249,7 +249,7 @@ mod tests {
     ) {
         let actual = AttributeIdentifier::from_attribute_request(
             "doc",
-            &normalized::AttributeRequest {
+            &AttributeRequest {
                 path,
                 intent_to_retain: false,
             },

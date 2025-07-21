@@ -167,7 +167,6 @@ pub struct ClaimsQuery {
 }
 
 /// Element of a claims path pointer.
-/// TODO: deduplicate this with the enum in the `sd_jwt_vc_metadata` crate (PVW-4421).
 ///
 /// <https://openid.net/specs/openid-4-verifiable-presentations-1_0-28.html#name-claims-path-pointer>
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
