@@ -21,7 +21,6 @@ use attestation_data::x509::CertificateType;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::x509::CertificateUsage;
 use dcql::Query;
-use dcql::normalized::NormalizedCredentialRequest;
 use hsm::service::Pkcs11Hsm;
 use http_utils::urls::BaseUrl;
 use http_utils::urls::CorsOrigin;
@@ -122,9 +121,7 @@ impl UseCaseSettings {
         let use_case = RpInitiatedUseCase::try_new(
             self.key_pair.parse(hsm).await?,
             self.session_type_return_url,
-            self.dcql_query
-                .map(NormalizedCredentialRequest::try_from_query)
-                .transpose()?,
+            self.dcql_query.map(TryInto::try_into).transpose()?,
             self.return_url_template,
         )?;
 

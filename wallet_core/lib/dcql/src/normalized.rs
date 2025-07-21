@@ -74,8 +74,10 @@ pub enum UnsupportedDcqlFeatures {
     UnsupportedClaimPathVariant,
 }
 
-impl NormalizedCredentialRequest {
-    pub fn try_from_query(source: Query) -> Result<VecNonEmpty<Self>, UnsupportedDcqlFeatures> {
+impl TryFrom<Query> for VecNonEmpty<NormalizedCredentialRequest> {
+    type Error = UnsupportedDcqlFeatures;
+
+    fn try_from(source: Query) -> Result<Self, Self::Error> {
         if !source.credential_sets.is_empty() {
             return Err(UnsupportedDcqlFeatures::CredentialSets);
         }
@@ -390,8 +392,7 @@ mod test {
         #[case] query: Query,
         #[case] expected: Result<VecNonEmpty<NormalizedCredentialRequest>, UnsupportedDcqlFeatures>,
     ) {
-        let result: Result<VecNonEmpty<NormalizedCredentialRequest>, _> =
-            NormalizedCredentialRequest::try_from_query(query);
+        let result: Result<VecNonEmpty<NormalizedCredentialRequest>, _> = query.try_into();
         assert_eq!(result, expected);
     }
 

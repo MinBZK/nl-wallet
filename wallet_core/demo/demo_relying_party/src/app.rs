@@ -29,7 +29,6 @@ use tracing::warn;
 use url::Url;
 
 use attestation_data::attributes::AttributeValue;
-use dcql::normalized::NormalizedCredentialRequest;
 use demo_utils::LANGUAGE_JS_SHA256;
 use demo_utils::WALLET_WEB_CSS_SHA256;
 use demo_utils::WALLET_WEB_JS_SHA256;
@@ -179,7 +178,7 @@ async fn create_session(
         .start(
             options.usecase.clone(),
             // TODO: Change to Query (PVW-4530)
-            NormalizedCredentialRequest::try_from_query(usecase.dcql_query.clone()).map_err(anyhow::Error::new)?,
+            usecase.dcql_query.clone().try_into().map_err(anyhow::Error::new)?,
             return_url_template,
         )
         .await?;
