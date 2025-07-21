@@ -385,6 +385,9 @@ where
             .await
             .map_err(IssuanceError::AttestationQuery)?;
 
+        // For every preview, try to find the first matching stored attestation to determine its database identity. If
+        // there are more candidates, the algorithm matches the first one based on the ascending order of the Uuidv7 of
+        // the list of stored attestations. This means the oldest attestation is matched first.
         let previews_and_identity: Vec<(&NormalizedCredentialPreview, Option<Uuid>)> =
             match_preview_and_stored_attestations(
                 issuance_session.normalized_credential_preview(),
@@ -588,6 +591,7 @@ fn match_preview_and_stored_attestations<'a>(
         .map(|copy| copy.into_credential_payload_and_id())
         .collect_vec();
 
+    // Find the first matching stored preview based on the ordering of `stored_credential_payloads`.
     previews
         .iter()
         .map(|preview| {
