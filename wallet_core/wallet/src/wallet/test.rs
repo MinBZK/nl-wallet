@@ -21,6 +21,7 @@ use crypto::p256_der::DerVerifyingKey;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::BorrowingTrustAnchor;
+use http_utils::tls::pinning::TlsPinningConfig;
 use jwt::Jwt;
 use mdoc::holder::Mdoc;
 use openid4vc::Format;
@@ -43,16 +44,15 @@ use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::messages::registration::WalletCertificateClaims;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
-use crate::AttestationPresentation;
-use crate::WalletEvent;
 use crate::account_provider::MockAccountProviderClient;
+use crate::attestation::AttestationPresentation;
+use crate::attestation::PID_DOCTYPE;
+use crate::attestation::test::create_example_payload_preview;
 use crate::config::LocalConfigurationRepository;
 use crate::config::UpdatingConfigurationRepository;
 use crate::config::default_config_server_config;
 use crate::config::default_wallet_config;
-use crate::issuance;
-use crate::issuance::MockDigidSession;
-use crate::issuance::PID_DOCTYPE;
+use crate::digid::MockDigidClient;
 use crate::pin::key as pin_key;
 use crate::storage::KeyedData;
 use crate::storage::KeyedDataResult;
@@ -60,8 +60,10 @@ use crate::storage::MockStorage;
 use crate::storage::RegistrationData;
 use crate::storage::StorageState;
 use crate::storage::StorageStub;
+use crate::storage::WalletEvent;
 use crate::update_policy::MockUpdatePolicyRepository;
 use crate::wallet::attestations::AttestationsError;
+use crate::wallet::init::WalletClients;
 use crate::wte::tests::MockWteIssuanceClient;
 
 use super::HistoryError;
@@ -95,7 +97,7 @@ pub type WalletWithMocks = Wallet<
     StorageStub,
     MockHardwareAttestedKeyHolder,
     MockAccountProviderClient,
-    MockDigidSession,
+    MockDigidClient<TlsPinningConfig>,
     MockIssuanceSession,
     MockDisclosureClient,
     MockWteIssuanceClient,
@@ -108,7 +110,7 @@ pub type WalletWithStorageMock = Wallet<
     MockStorage,
     MockHardwareAttestedKeyHolder,
     MockAccountProviderClient,
-    MockDigidSession,
+    MockDigidClient<TlsPinningConfig>,
     MockIssuanceSession,
     MockDisclosureClient,
     MockWteIssuanceClient,
@@ -214,7 +216,7 @@ pub fn create_example_pid_mdoc_credential_unauthenticated() -> CredentialWithMet
 }
 
 fn create_example_pid_mdoc_credential_with_key(issuer_key: &IssuerKey) -> CredentialWithMetadata {
-    let (payload_preview, metadata) = issuance::mock::create_example_payload_preview();
+    let (payload_preview, metadata) = create_example_payload_preview();
 
     mdoc_credential_from_unsigned(payload_preview, metadata, issuer_key)
 }
@@ -280,7 +282,7 @@ impl<S>
         S,
         MockHardwareAttestedKeyHolder,
         MockAccountProviderClient,
-        MockDigidSession,
+        MockDigidClient<TlsPinningConfig>,
         MockIssuanceSession,
         MockDisclosureClient,
         MockWteIssuanceClient,
@@ -303,8 +305,7 @@ where
             MockUpdatePolicyRepository::default(),
             S::default(),
             generate_key_holder(vendor),
-            MockAccountProviderClient::default(),
-            MockDisclosureClient::default(),
+            WalletClients::default(),
             RegistrationStatus::Unregistered,
         )
     }
@@ -398,8 +399,7 @@ impl WalletWithMocks {
             MockUpdatePolicyRepository::default(),
             storage,
             key_holder,
-            MockAccountProviderClient::default(),
-            MockDisclosureClient::default(),
+            WalletClients::default(),
         )
         .await
     }

@@ -9,6 +9,7 @@ use update_policy_model::update_policy::VersionState;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::account_provider::AccountProviderClient;
+use crate::digid::DigidClient;
 use crate::errors::ChangePinError;
 use crate::instruction::InstructionClient;
 use crate::pin::change::ChangePinStorage;
@@ -18,14 +19,15 @@ use crate::storage::Storage;
 
 use super::Wallet;
 
-impl<CR, UR, S, AKH, APC, DS, IS, DC, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, DC, WIC>
+impl<CR, UR, S, AKH, APC, DC, IS, DCC, WIC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC, WIC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
     UR: Repository<VersionState>,
     S: Storage,
     AKH: AttestedKeyHolder,
     APC: AccountProviderClient,
-    DC: DisclosureClient,
+    DC: DigidClient,
+    DCC: DisclosureClient,
     WIC: Default,
 {
     /// Construct an [`InstructionClient`] for this [`Wallet`].
