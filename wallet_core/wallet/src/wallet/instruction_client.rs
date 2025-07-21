@@ -12,6 +12,7 @@ use crate::account_provider::AccountProviderClient;
 use crate::digid::DigidClient;
 use crate::errors::ChangePinError;
 use crate::instruction::InstructionClient;
+use crate::instruction::InstructionClientParameters;
 use crate::pin::change::ChangePinStorage;
 use crate::repository::Repository;
 use crate::storage::RegistrationData;
@@ -52,9 +53,7 @@ where
             Arc::clone(&self.storage),
             attested_key,
             Arc::clone(&self.account_provider_client),
-            registration_data,
-            client_config,
-            instruction_result_public_key,
+            InstructionClientParameters::new(registration_data, client_config, instruction_result_public_key),
         );
 
         Ok(client)

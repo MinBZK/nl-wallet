@@ -28,11 +28,11 @@ pub struct HttpUpdatePolicyRepository {
 
 static CURRENT_VERSION: LazyLock<Version> =
     LazyLock::new(|| Version::parse(env!("CARGO_PKG_VERSION")).expect("should always be a valid semver"));
-#[allow(clippy::identity_op)]
+#[expect(clippy::identity_op)]
 static CACHE_DURATION: LazyLock<Duration> = LazyLock::new(|| Duration::from_secs(1 * 60 * 60)); // 1 hour
 
 impl HttpUpdatePolicyRepository {
-    #[allow(clippy::new_without_default)] // this will receive some parameters in the future
+    #[expect(clippy::new_without_default)] // this will receive some parameters in the future
     pub fn new() -> Self {
         LazyLock::force(&CURRENT_VERSION); // force a failure as early as possible
 

@@ -62,7 +62,7 @@ where
     }
 
     // This function is marked as async to force using a Tokio runtime and to prevent runtime panics if used without.
-    #[allow(clippy::unused_async)]
+    #[expect(clippy::unused_async)]
     async fn start_update_task(
         wrapped: Arc<T>,
         callback: Arc<Mutex<Option<RepositoryCallback<Arc<WalletConfiguration>>>>>,

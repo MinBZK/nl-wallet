@@ -1,3 +1,5 @@
+#![expect(clippy::too_many_arguments, reason = "Constructor")] // It seems impossible to set this only on the Constructor
+
 use std::collections::HashSet;
 use std::error::Error;
 use std::time::Duration;
