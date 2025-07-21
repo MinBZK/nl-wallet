@@ -358,6 +358,7 @@ pub struct AttestationTypeConfig<K> {
 
 impl<K> AttestationTypeConfig<K> {
     /// Create a new [`AttestationTypeConfig`] and decode and validate the type metadata documents.
+    #[expect(clippy::too_many_arguments, reason = "Constructor")]
     pub fn try_new(
         attestation_type: &str,
         key_pair: KeyPair<K>,
@@ -707,6 +708,7 @@ impl TryFrom<SessionState<IssuanceData>> for Session<Created> {
 }
 
 impl Session<Created> {
+    #[expect(clippy::too_many_arguments, reason = "Indirect constructor of a session")]
     pub async fn process_token_request(
         self,
         token_request: TokenRequest,

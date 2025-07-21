@@ -152,7 +152,7 @@ pub enum Digest {
 
 integer_int_enum_conversion_with_set!(Digest, u32, DigestError, InvalidDigest);
 
-#[allow(non_camel_case_types)]
+#[expect(non_camel_case_types)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, IntEnum)]
 #[cfg_attr(feature = "serialize_key_attestation", derive(Serialize))]
 #[repr(u32)]
@@ -882,7 +882,7 @@ mod test {
     }
 
     #[test]
-    #[allow(clippy::octal_escapes)]
+    #[expect(clippy::octal_escapes)]
     fn convert_key_description() {
         let input = KeyDescription {
             attestation_version: 200.into(),
