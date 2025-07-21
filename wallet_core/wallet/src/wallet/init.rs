@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use cfg_if::cfg_if;
 use futures::try_join;
+use reqwest::ClientBuilder;
 use tokio::sync::RwLock;
 
 use error_category::ErrorCategory;
@@ -24,6 +25,7 @@ use crate::config::WalletConfigurationRepository;
 use crate::config::default_config_server_config;
 use crate::config::default_wallet_config;
 use crate::config::init_universal_link_base_url;
+use crate::digid::DigidClient;
 use crate::lock::WalletLock;
 use crate::repository::BackgroundUpdateableRepository;
 use crate::repository::Repository;
@@ -86,20 +88,21 @@ async fn init_mock_key_holder() -> platform_support::attested_key::mock::Persist
     PersistentMockAttestedKeyHolder::new_mock_xcode(apple_attestation_environment)
 }
 
-impl<APC, DS, IS, WIC>
+impl<APC, DC, IS, WIC>
     Wallet<
         WalletConfigurationRepository,
         UpdatePolicyRepository,
         DatabaseStorage<HardwareEncryptionKey>,
         KeyHolderType,
         APC,
-        DS,
+        DC,
         IS,
         VpDisclosureClient,
         WIC,
     >
 where
     APC: Default,
+    DC: DigidClient + Default,
     WIC: Default,
 {
     #[sentry_capture_error]
@@ -126,24 +129,49 @@ where
         )
         .await?;
 
-        let disclosure_client = VpDisclosureClient::new_http(default_reqwest_client_builder())?;
+        let wallet_clients = WalletClients::new_http(default_reqwest_client_builder())?;
 
         Self::init_registration(
             config_repository,
             update_policy_repository,
             storage,
             key_holder,
-            APC::default(),
-            disclosure_client,
+            wallet_clients,
         )
         .await
     }
 }
 
-impl<CR, UR, S, AKH, APC, DS, IS, DC, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, DC, WIC>
+#[derive(Debug, Default)]
+pub struct WalletClients<APC, DC, DCC> {
+    pub account_provider_client: APC,
+    pub digid_client: DC,
+    pub disclosure_client: DCC,
+}
+
+impl<APC, DC> WalletClients<APC, DC, VpDisclosureClient>
+where
+    APC: Default,
+    DC: Default,
+{
+    pub fn new_http(disclosure_client_builder: ClientBuilder) -> Result<Self, reqwest::Error> {
+        let disclosure_client = VpDisclosureClient::new_http(disclosure_client_builder)?;
+
+        let clients = Self {
+            account_provider_client: APC::default(),
+            digid_client: DC::default(),
+            disclosure_client,
+        };
+
+        Ok(clients)
+    }
+}
+
+impl<CR, UR, S, AKH, APC, DC, IS, DCC, WIC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC, WIC>
 where
     AKH: AttestedKeyHolder,
-    DC: DisclosureClient,
+    DC: DigidClient,
+    DCC: DisclosureClient,
     WIC: Default,
 {
     pub(super) fn new(
@@ -151,8 +179,7 @@ where
         update_policy_repository: UR,
         storage: S,
         key_holder: AKH,
-        account_provider_client: APC,
-        disclosure_client: DC,
+        wallet_clients: WalletClients<APC, DC, DCC>,
         registration_status: RegistrationStatus,
     ) -> Self {
         let registration = match registration_status {
@@ -182,8 +209,9 @@ where
             storage: Arc::new(RwLock::new(storage)),
             key_holder,
             registration,
-            account_provider_client: Arc::new(account_provider_client),
-            disclosure_client,
+            account_provider_client: Arc::new(wallet_clients.account_provider_client),
+            digid_client: wallet_clients.digid_client,
+            disclosure_client: wallet_clients.disclosure_client,
             session: None,
             wte_issuance_client: WIC::default(),
             lock: WalletLock::new(true),
@@ -198,8 +226,7 @@ where
         update_policy_repository: UR,
         mut storage: S,
         key_holder: AKH,
-        account_provider_client: APC,
-        disclosure_client: DC,
+        wallet_clients: WalletClients<APC, DC, DCC>,
     ) -> Result<Self, WalletInitError>
     where
         CR: Repository<Arc<WalletConfiguration>>,
@@ -216,8 +243,7 @@ where
             update_policy_repository,
             storage,
             key_holder,
-            account_provider_client,
-            disclosure_client,
+            wallet_clients,
             registration_status,
         );
 
@@ -225,11 +251,12 @@ where
     }
 }
 
-impl<CR, UR, S, AKH, APC, DS, IS, DC, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, DC, WIC>
+impl<CR, UR, S, AKH, APC, DC, IS, DCC, WIC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC, WIC>
 where
     S: Storage,
     AKH: AttestedKeyHolder,
-    DC: DisclosureClient,
+    DC: DigidClient,
+    DCC: DisclosureClient,
 {
     /// Attempts to fetch the initial data from storage, without creating a database if there is none.
     async fn fetch_registration_status(storage: &mut S) -> Result<RegistrationStatus, StorageError> {

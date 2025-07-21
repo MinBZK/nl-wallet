@@ -2,9 +2,9 @@ use std::hash::Hash;
 
 use rustls_pki_types::TrustAnchor;
 
-use attestation_types::request::NormalizedCredentialRequest;
 use crypto::CredentialEcdsaKey;
 use crypto::factory::KeyFactory;
+use dcql::normalized::NormalizedCredentialRequest;
 use http_utils::urls::BaseUrl;
 use mdoc::holder::Mdoc;
 use poa::factory::PoaFactory;

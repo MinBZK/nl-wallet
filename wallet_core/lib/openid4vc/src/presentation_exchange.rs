@@ -11,11 +11,11 @@ use regex::Regex;
 use serde::Deserialize;
 use serde::Serialize;
 
-use attestation_types::request::AttributeRequest;
-use attestation_types::request::NormalizedCredentialRequest;
 use crypto::utils::random_string;
 use dcql::ClaimPath;
 use dcql::CredentialQueryFormat;
+use dcql::normalized::AttributeRequest;
+use dcql::normalized::NormalizedCredentialRequest;
 use error_category::ErrorCategory;
 use mdoc::Document;
 use utils::vec_at_least::VecNonEmpty;
@@ -254,8 +254,8 @@ mod tests {
     use rstest::rstest;
     use serde_json::json;
 
-    use attestation_types::request;
-    use attestation_types::request::NormalizedCredentialRequest;
+    use dcql::normalized;
+    use dcql::normalized::NormalizedCredentialRequest;
     use utils::vec_at_least::VecNonEmpty;
 
     use super::FIELD_PATH_REGEX;
@@ -279,7 +279,7 @@ mod tests {
 
     #[test]
     fn convert_pd_credential_requests() {
-        let orginal: VecNonEmpty<NormalizedCredentialRequest> = request::mock::example();
+        let orginal: VecNonEmpty<NormalizedCredentialRequest> = normalized::mock::example();
         let pd: PresentationDefinition = (&orginal).into();
         let converted: VecNonEmpty<NormalizedCredentialRequest> = (&pd).try_into().unwrap();
 

@@ -12,10 +12,10 @@ use url::Url;
 
 use attestation_data::auth::reader_auth::ReaderRegistration;
 use attestation_data::x509::generate::mock::generate_reader_mock;
-use attestation_types::request::NormalizedCredentialRequest;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::utils as crypto_utils;
+use dcql::normalized::NormalizedCredentialRequest;
 use http_utils::urls::BaseUrl;
 use jwt::Jwt;
 use mdoc::SessionTranscript;

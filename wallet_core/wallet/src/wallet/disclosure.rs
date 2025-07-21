@@ -43,13 +43,14 @@ use wallet_configuration::wallet_config::WalletConfiguration;
 use crate::account_provider::AccountProviderClient;
 use crate::attestation::AttestationError;
 use crate::attestation::AttestationPresentation;
+use crate::attestation::BSN_ATTR_NAME;
+use crate::attestation::PID_DOCTYPE;
+use crate::digid::DigidClient;
 use crate::errors::ChangePinError;
 use crate::errors::UpdatePolicyError;
 use crate::instruction::InstructionError;
 use crate::instruction::RemoteEcdsaKeyError;
 use crate::instruction::RemoteEcdsaKeyFactory;
-use crate::issuance::BSN_ATTR_NAME;
-use crate::issuance::PID_DOCTYPE;
 use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
 use crate::storage::DataDisclosureStatus;
@@ -268,12 +269,13 @@ impl RedirectUriPurpose {
     }
 }
 
-impl<CR, UR, S, AKH, APC, DS, IS, DC, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, DC, WIC>
+impl<CR, UR, S, AKH, APC, DC, IS, DCC, WIC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC, WIC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
     UR: Repository<VersionState>,
     AKH: AttestedKeyHolder,
-    DC: DisclosureClient,
+    DC: DigidClient,
+    DCC: DisclosureClient,
     S: Storage,
 {
     #[instrument(skip_all)]
@@ -551,7 +553,7 @@ where
 
     async fn terminate_disclosure_session(
         &mut self,
-        session: WalletDisclosureSession<DC::Session>,
+        session: WalletDisclosureSession<DCC::Session>,
     ) -> Result<Option<Url>, DisclosureError> {
         let attestations = session.attestations.map(|attestations| {
             attestations
@@ -903,9 +905,10 @@ mod tests {
     use attestation_data::auth::reader_auth::ReaderRegistration;
     use attestation_data::disclosure_type::DisclosureType;
     use attestation_data::x509::generate::mock::generate_reader_mock;
-    use attestation_types::request;
     use crypto::server_keys::generate::Ca;
     use crypto::x509::BorrowingCertificateExtension;
+    use dcql::normalized;
+    use http_utils::tls::pinning::TlsPinningConfig;
     use http_utils::urls;
     use http_utils::urls::BaseUrl;
     use mdoc::utils::cose::CoseError;
@@ -931,11 +934,11 @@ mod tests {
     use crate::attestation::AttestationAttributeValue;
     use crate::attestation::AttestationIdentity;
     use crate::attestation::AttestationPresentation;
+    use crate::attestation::PID_DOCTYPE;
     use crate::config::UNIVERSAL_LINK_BASE_URL;
+    use crate::digid::MockDigidSession;
     use crate::errors::InstructionError;
     use crate::errors::RemoteEcdsaKeyError;
-    use crate::issuance::MockDigidSession;
-    use crate::issuance::PID_DOCTYPE;
     use crate::storage::DisclosureStatus;
     use crate::storage::WalletEvent;
     use crate::wallet::disclosure::DisclosureAttestation;
@@ -967,7 +970,7 @@ mod tests {
         requested_pid_path: VecNonEmpty<String>,
     ) -> MockDisclosureSession {
         let credential_requests =
-            request::mock::mock_from_vecs(vec![(PID_DOCTYPE.to_string(), vec![requested_pid_path])]);
+            normalized::mock::mock_from_vecs(vec![(PID_DOCTYPE.to_string(), vec![requested_pid_path])]);
 
         let mut disclosure_session = MockDisclosureSession::new();
         disclosure_session
@@ -1015,7 +1018,7 @@ mod tests {
     }
 
     fn setup_wallet_disclosure_session_missing_attributes() -> (
-        Session<MockDigidSession, MockIssuanceSession, MockDisclosureSession>,
+        Session<MockDigidSession<TlsPinningConfig>, MockIssuanceSession, MockDisclosureSession>,
         VerifierCertificate,
     ) {
         let (disclosure_session, verifier_certificate) = setup_disclosure_session(DEFAULT_REQUESTED_PID_PATH.clone());
@@ -1030,7 +1033,7 @@ mod tests {
     }
 
     fn setup_wallet_disclosure_session() -> (
-        Session<MockDigidSession, MockIssuanceSession, MockDisclosureSession>,
+        Session<MockDigidSession<TlsPinningConfig>, MockIssuanceSession, MockDisclosureSession>,
         VerifierCertificate,
     ) {
         let (disclosure_session, verifier_certificate) = setup_disclosure_session(DEFAULT_REQUESTED_PID_PATH.clone());

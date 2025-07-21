@@ -36,6 +36,7 @@ spec:
       containers:
         - name: {{ .Values.frontend.name }}
           image: "{{ .Values.global.imageRegistry }}/{{ .Values.imageGbaFrontend.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.imageGbaFrontend.pullPolicy }}
           {{ with .Values.frontend.resources }}
           resources:
             {{- toYaml . | nindent 12 }}

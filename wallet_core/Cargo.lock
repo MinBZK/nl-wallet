@@ -658,7 +658,6 @@ dependencies = [
  "serde_valid",
  "serde_with",
  "ssri",
- "strum 0.26.3",
  "thiserror 2.0.11",
  "time",
  "tokio",
@@ -671,15 +670,9 @@ dependencies = [
 name = "attestation_types"
 version = "0.4.0-dev"
 dependencies = [
- "dcql",
- "derive_more",
- "itertools 0.14.0",
- "rstest",
  "serde",
  "serde_with",
  "strum 0.26.3",
- "thiserror 2.0.11",
- "utils",
 ]
 
 [[package]]
@@ -1715,6 +1708,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with",
+ "thiserror 2.0.11",
  "utils",
 ]
 
@@ -1796,7 +1790,6 @@ dependencies = [
  "http_utils",
  "indexmap 2.7.1",
  "itertools 0.14.0",
- "mdoc",
  "openid4vc",
  "serde",
  "serde_urlencoded",
@@ -1819,7 +1812,6 @@ dependencies = [
  "askama 0.14.0",
  "askama_web",
  "attestation_data",
- "attestation_types",
  "axum",
  "base64 0.22.1",
  "ciborium",
@@ -3691,9 +3683,9 @@ checksum = "830d08ce1d1d941e6b30645f1a0eb5643013d835ce3779a5fc208261dbe10f55"
 
 [[package]]
 name = "libc"
-version = "0.2.169"
+version = "0.2.174"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b5aba8db14291edd000dfcc4d620c7ebfb122c613afb886ca8803fa4e128a20a"
+checksum = "1171693293099992e19cddea4e8b849964e9846f4acee11b3948bcc337be8776"
 
 [[package]]
 name = "libgit2-sys"
@@ -3850,7 +3842,6 @@ dependencies = [
  "http_utils",
  "indexmap 2.7.1",
  "itertools 0.14.0",
- "jwt",
  "nom 8.0.0",
  "nutype",
  "p256",
@@ -3859,7 +3850,6 @@ dependencies = [
  "ring",
  "rstest",
  "rustls-pki-types",
- "sd_jwt",
  "sd_jwt_vc_metadata",
  "serde",
  "serde-aux",
@@ -4266,13 +4256,12 @@ name = "openid4vc_server"
 version = "0.4.0-dev"
 dependencies = [
  "attestation_data",
- "attestation_types",
  "axum",
  "axum-extra",
  "crypto",
+ "dcql",
  "http",
  "http_utils",
- "mdoc",
  "openid4vc",
  "ring",
  "rustls-pki-types",
@@ -4527,8 +4516,10 @@ dependencies = [
  "chrono",
  "config",
  "crypto",
+ "dcql",
  "derive_more",
  "futures",
+ "hex",
  "hsm",
  "http_utils",
  "indexmap 2.7.1",
@@ -4538,8 +4529,8 @@ dependencies = [
  "openid4vc_server",
  "p256",
  "reqwest",
+ "ring",
  "rstest",
- "sd_jwt_vc_metadata",
  "sea-orm",
  "serde",
  "serde_json",
@@ -6033,8 +6024,10 @@ dependencies = [
  "hsm",
  "http",
  "http_utils",
+ "nutype",
  "openid4vc",
  "p256",
+ "ring",
  "rustls-pki-types",
  "sd_jwt_vc_metadata",
  "sea-orm",
@@ -6599,7 +6592,6 @@ dependencies = [
  "apple_app_attest",
  "assert_matches",
  "attestation_data",
- "attestation_types",
  "axum",
  "axum-server",
  "chrono",
@@ -6626,6 +6618,7 @@ dependencies = [
  "rand_core",
  "regex",
  "reqwest",
+ "ring",
  "rstest",
  "rustls",
  "rustls-pki-types",
@@ -7511,7 +7504,6 @@ dependencies = [
  "anyhow",
  "assert_matches",
  "attestation_data",
- "attestation_types",
  "axum",
  "chrono",
  "config",
@@ -7586,7 +7578,6 @@ dependencies = [
  "apple_app_attest",
  "assert_matches",
  "attestation_data",
- "attestation_types",
  "base64 0.22.1",
  "cfg-if",
  "chrono",
@@ -7735,18 +7726,23 @@ dependencies = [
  "hsm",
  "http",
  "http_utils",
+ "libc",
+ "log",
  "p256",
  "rand_core",
+ "regex",
  "rustls",
  "serde",
  "serde_with",
  "serial_test",
  "spki",
+ "tempfile",
  "thiserror 2.0.11",
  "tokio",
  "tower-http",
  "tracing",
  "tracing-subscriber",
+ "tracing-test",
  "utils",
  "uuid",
  "wallet_account",

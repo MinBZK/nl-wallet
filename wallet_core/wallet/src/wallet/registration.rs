@@ -24,6 +24,7 @@ use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::account_provider::AccountProviderClient;
 use crate::account_provider::AccountProviderError;
+use crate::digid::DigidClient;
 use crate::errors::UpdatePolicyError;
 use crate::pin::key::PinKey;
 use crate::pin::key::{self as pin_key};
@@ -95,10 +96,11 @@ impl WalletRegistrationError {
     }
 }
 
-impl<CR, UR, S, AKH, APC, DS, IS, DC, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, DC, WIC>
+impl<CR, UR, S, AKH, APC, DC, IS, DCC, WIC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC, WIC>
 where
     AKH: AttestedKeyHolder,
-    DC: DisclosureClient,
+    DC: DigidClient,
+    DCC: DisclosureClient,
 {
     pub fn has_registration(&self) -> bool {
         self.registration.is_registered()
@@ -193,10 +195,11 @@ where
             Err(error) => {
                 // If the error indicates attestation is retryable and we did not do do so already,
                 // store the key identifier for later re-use, logging any potential errors.
-                if error.retryable && matches!(self.registration, WalletRegistration::Unregistered) {
-                    if let Err(storage_error) = self.set_registration_key_identifier(key_identifier.clone()).await {
-                        warn!("Could not store attested key identifier: {0}", storage_error);
-                    }
+                if error.retryable
+                    && matches!(self.registration, WalletRegistration::Unregistered)
+                    && let Err(storage_error) = self.set_registration_key_identifier(key_identifier.clone()).await
+                {
+                    warn!("Could not store attested key identifier: {0}", storage_error);
                 }
 
                 return Err(WalletRegistrationError::Attestation(Box::new(error.error)));

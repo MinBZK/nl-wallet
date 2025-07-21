@@ -1,12 +1,12 @@
 use derive_more::Display;
 use indexmap::IndexSet;
 
-use attestation_types::request::AttributeRequest;
-use attestation_types::request::MdocCredentialRequestError;
-use attestation_types::request::NormalizedCredentialRequest;
+use dcql::ClaimPath;
 use dcql::CredentialQueryFormat;
+use dcql::normalized::AttributeRequest;
+use dcql::normalized::MdocCredentialRequestError;
+use dcql::normalized::NormalizedCredentialRequest;
 use error_category::ErrorCategory;
-use sd_jwt_vc_metadata::ClaimPath;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::DataElementIdentifier;
@@ -221,10 +221,10 @@ pub mod mock {
 mod tests {
     use rstest::rstest;
 
-    use attestation_types::request;
-    use attestation_types::request::MdocCredentialRequestError;
-    use attestation_types::request::NormalizedCredentialRequest;
     use dcql::ClaimPath;
+    use dcql::normalized::AttributeRequest;
+    use dcql::normalized::MdocCredentialRequestError;
+    use dcql::normalized::NormalizedCredentialRequest;
     use utils::vec_at_least::VecNonEmpty;
 
     use super::AttributeIdentifier;
@@ -249,7 +249,7 @@ mod tests {
     ) {
         let actual = AttributeIdentifier::from_attribute_request(
             "doc",
-            &request::AttributeRequest {
+            &AttributeRequest {
                 path,
                 intent_to_retain: false,
             },

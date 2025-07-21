@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use attestation_types::request::NormalizedCredentialRequest;
 use config::Config;
 use config::ConfigError;
 use config::Environment;
@@ -22,6 +21,7 @@ use attestation_data::x509::CertificateType;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::x509::CertificateUsage;
 use dcql::Query;
+use dcql::normalized::NormalizedCredentialRequest;
 use hsm::service::Pkcs11Hsm;
 use http_utils::urls::BaseUrl;
 use http_utils::urls::CorsOrigin;
@@ -44,7 +44,7 @@ use server_utils::settings::verify_key_pairs;
 use utils::generator::TimeGenerator;
 use utils::path::prefix_local_path;
 
-const MIN_KEY_LENGTH_BYTES: usize = 16;
+const MIN_KEY_LENGTH_BYTES: usize = 32;
 
 #[serde_as]
 #[derive(Clone, Deserialize)]

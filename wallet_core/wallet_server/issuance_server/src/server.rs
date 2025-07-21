@@ -6,8 +6,8 @@ use axum::Router;
 use futures::future::try_join_all;
 use tokio::net::TcpListener;
 
-use attestation_types::request::NormalizedCredentialRequest;
 use crypto::trust_anchor::BorrowingTrustAnchor;
+use dcql::normalized::NormalizedCredentialRequest;
 use hsm::service::Pkcs11Hsm;
 use openid4vc::credential::OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME;
 use openid4vc::issuer::IssuanceData;
