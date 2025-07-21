@@ -98,10 +98,6 @@ pub enum StorageError {
     #[category(critical)]
     EventEphemeralIdentity,
 
-    #[error("error constructing UUID: {0}")]
-    #[category(pd)]
-    UuidConstruction(#[from] uuid::Error),
-
     #[error("storage database SQLCipher key error: {0}")]
     #[category(pd)] // we don't want to leak the key
     SqlCipherKey(#[from] TryFromSliceError),

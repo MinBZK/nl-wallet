@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::convert::identity;
 use std::path::PathBuf;
-use std::str::FromStr;
 
 use chrono::DateTime;
 use chrono::Utc;
@@ -607,8 +606,7 @@ where
                 else {
                     return Err(StorageError::EventEphemeralIdentity);
                 };
-                let attestation_copy_id = Uuid::from_str(attestation_copy_id.as_str())?;
-                Ok(attestation_copy_id)
+                Ok(*attestation_copy_id)
             })
             .try_collect()?;
 
@@ -743,14 +741,14 @@ where
             .map(|attestation_presentation| {
                 let attestation_id = match &attestation_presentation.identity {
                     AttestationIdentity::Ephemeral => None,
-                    AttestationIdentity::Fixed { id } => Some(id.clone()),
+                    AttestationIdentity::Fixed { id } => Some(*id),
                 }
                 .ok_or(StorageError::EventEphemeralIdentity)?;
 
                 Ok(disclosure_event_attestation::ActiveModel {
                     id: Set(Uuid::now_v7()),
                     disclosure_event_id: Set(event_id),
-                    attestation_id: Set(Some(Uuid::from_str(attestation_id.as_str())?)),
+                    attestation_id: Set(Some(attestation_id)),
                     attestation_presentation: Set(serde_json::to_value(attestation_presentation)?),
                 })
             })
@@ -1360,7 +1358,7 @@ pub(crate) mod tests {
         assert_eq!(fetched_events.len(), 1);
 
         attestation_presentation.identity = AttestationIdentity::Fixed {
-            id: attestations[0].attestation_copy_id.to_string(),
+            id: attestations[0].attestation_copy_id,
         };
         // Update sd_jwt
         storage
@@ -1556,9 +1554,7 @@ pub(crate) mod tests {
             .into_credential_payload(&normalized_metadata)
             .unwrap();
         let attestation = AttestationPresentation::create_from_attributes(
-            AttestationIdentity::Fixed {
-                id: attestation_id.to_string(),
-            },
+            AttestationIdentity::Fixed { id: attestation_id },
             normalized_metadata,
             issuer_registration.organization,
             &payload.previewable_payload.attributes,
@@ -1689,9 +1685,7 @@ pub(crate) mod tests {
                     .into_credential_payload(&normalized_metadata)
                     .unwrap();
                 AttestationPresentation::create_from_attributes(
-                    AttestationIdentity::Fixed {
-                        id: attestation_id.to_string(),
-                    },
+                    AttestationIdentity::Fixed { id: attestation_id },
                     normalized_metadata,
                     issuer_registration.organization,
                     &payload.previewable_payload.attributes,

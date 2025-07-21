@@ -10,6 +10,7 @@ use std::collections::HashSet;
 use chrono::NaiveDate;
 use serde::Deserialize;
 use serde::Serialize;
+use uuid::Uuid;
 
 use attestation_data::attributes::AttributeValue;
 use attestation_data::attributes::AttributesError;
@@ -62,7 +63,7 @@ pub struct AttestationPresentation {
 #[serde(untagged)]
 pub enum AttestationIdentity {
     Ephemeral,
-    Fixed { id: String },
+    Fixed { id: Uuid },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
