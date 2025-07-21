@@ -36,6 +36,7 @@ mod test {
     use sd_jwt_vc_metadata::JsonSchemaPropertyType;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::UncheckedTypeMetadata;
+    use utils::generator::mock::MockTimeGenerator;
 
     use super::super::AttestationAttributeValue;
     use super::super::AttestationError;
@@ -48,7 +49,7 @@ mod test {
 
     #[test]
     fn test_happy() {
-        let (mdoc_attributes, metadata) = create_example_mdoc_attributes();
+        let (mdoc_attributes, metadata) = create_example_mdoc_attributes(&MockTimeGenerator::default());
 
         let attestation = AttestationPresentation::create_for_issuance(
             AttestationIdentity::Ephemeral,
@@ -89,7 +90,7 @@ mod test {
 
     #[test]
     fn test_attribute_not_found() {
-        let (mdoc_attributes, _) = create_bsn_only_mdoc_attributes();
+        let (mdoc_attributes, _) = create_bsn_only_mdoc_attributes(&MockTimeGenerator::default());
 
         let metadata = NormalizedTypeMetadata::from_single_example(UncheckedTypeMetadata::example_with_claim_names(
             PID_DOCTYPE,
@@ -124,7 +125,7 @@ mod test {
 
     #[test]
     fn test_attribute_not_processed() {
-        let (mdoc_attributes, _) = create_example_mdoc_attributes();
+        let (mdoc_attributes, _) = create_example_mdoc_attributes(&MockTimeGenerator::default());
 
         let metadata = NormalizedTypeMetadata::from_single_example(UncheckedTypeMetadata::example_with_claim_names(
             PID_DOCTYPE,

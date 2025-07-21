@@ -330,7 +330,6 @@ mod examples {
     use jwt::jwk::jwk_from_p256;
     use sd_jwt::key_binding_jwt_claims::RequiredKeyBinding;
     use utils::generator::Generator;
-    use utils::generator::TimeGenerator;
 
     use crate::attributes::Attribute;
     use crate::attributes::AttributeValue;
@@ -361,12 +360,12 @@ mod examples {
             }
         }
 
-        pub fn example_family_name() -> Self {
+        pub fn example_family_name(time_generator: &impl Generator<DateTime<Utc>>) -> Self {
             Self::example_with_attribute(
                 "family_name",
                 AttributeValue::Text(String::from("De Bruijn")),
                 SigningKey::random(&mut OsRng).verifying_key(),
-                &TimeGenerator,
+                time_generator,
             )
         }
 
@@ -406,13 +405,13 @@ pub mod mock {
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
 
-    use utils::generator::TimeGenerator;
+    use utils::generator::Generator;
 
     use crate::attributes::AttributeValue;
 
     use super::*;
 
-    pub fn pid_example_payload() -> CredentialPayload {
+    pub fn pid_example_payload(time_generator: &impl Generator<DateTime<Utc>>) -> CredentialPayload {
         CredentialPayload::example_with_attributes(
             vec![
                 ("bsn", AttributeValue::Text("999999999".to_string())),
@@ -420,7 +419,7 @@ pub mod mock {
                 ("family_name", AttributeValue::Text("De Bruijn".to_string())),
             ],
             SigningKey::random(&mut OsRng).verifying_key(),
-            &TimeGenerator,
+            time_generator,
         )
     }
 }
@@ -452,7 +451,6 @@ mod test {
     use sd_jwt_vc_metadata::JsonSchemaPropertyType;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::UncheckedTypeMetadata;
-    use utils::generator::TimeGenerator;
     use utils::generator::mock::MockTimeGenerator;
 
     use crate::attributes::Attribute;
@@ -527,7 +525,7 @@ mod test {
             None,
         ));
 
-        let example_payload = CredentialPayload::example_family_name();
+        let example_payload = CredentialPayload::example_family_name(&MockTimeGenerator::default());
 
         let payload = CredentialPayload::from_previewable_credential_payload(
             example_payload.previewable_payload.clone(),
@@ -555,7 +553,7 @@ mod test {
             None,
         ));
 
-        let example_payload = CredentialPayload::example_family_name();
+        let example_payload = CredentialPayload::example_family_name(&MockTimeGenerator::default());
 
         let error = CredentialPayload::from_previewable_credential_payload(
             example_payload.previewable_payload.clone(),
@@ -652,7 +650,7 @@ mod test {
             "family_name",
             AttributeValue::Text(String::from("De Bruijn")),
             holder_key.verifying_key(),
-            &TimeGenerator,
+            &MockTimeGenerator::default(),
         );
 
         let sd_jwt = credential_payload

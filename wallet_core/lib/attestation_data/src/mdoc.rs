@@ -125,6 +125,7 @@ mod tests {
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::UncheckedTypeMetadata;
     use utils::generator::TimeGenerator;
+    use utils::generator::mock::MockTimeGenerator;
 
     use crate::attributes::Attribute;
     use crate::attributes::AttributeValue;
@@ -146,7 +147,7 @@ mod tests {
                 ("family_name", AttributeValue::Text("Doe".to_string())),
             ],
             &issuance_key.verifying_key().await.unwrap(),
-            &TimeGenerator,
+            &MockTimeGenerator::default(),
         )
         .previewable_payload;
 
