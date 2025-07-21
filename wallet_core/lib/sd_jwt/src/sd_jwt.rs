@@ -440,14 +440,13 @@ pub(crate) fn sd_jwt_validation() -> Validation {
 /// of objects which are to be disclosed in order to disclose the specified `path.`
 ///
 /// The `object` must be the payload of an SD-JWT, containing an `_sd` array and other claims.
-fn digests_to_disclose<'p, 'o, 'd, I>(
-    object: &'o serde_json::Value,
+fn digests_to_disclose<'a, I>(
+    object: &'a serde_json::Value,
     mut path: Peekable<I>,
-    disclosures: &'d IndexMap<String, Disclosure>,
-) -> Result<Vec<&'o str>>
+    disclosures: &'a IndexMap<String, Disclosure>,
+) -> Result<Vec<&'a str>>
 where
-    I: Iterator<Item = &'p str>,
-    'd: 'o,
+    I: Iterator<Item = &'a str>,
 {
     let element_key = path
         .next()
@@ -552,13 +551,10 @@ fn find_disclosure_digest<'o>(
         .or_else(maybe_disclosable_array_entry)
 }
 
-fn get_all_sub_disclosures<'v, 'd>(
-    start: &'v serde_json::Value,
-    disclosures: &'d IndexMap<String, Disclosure>,
-) -> Box<dyn Iterator<Item = &'v str> + 'v>
-where
-    'd: 'v,
-{
+fn get_all_sub_disclosures<'a>(
+    start: &'a serde_json::Value,
+    disclosures: &'a IndexMap<String, Disclosure>,
+) -> Box<dyn Iterator<Item = &'a str> + 'a> {
     match start {
         // `start` is a JSON object, check if it has a "_sd" array + recursively
         // check all its properties
@@ -780,6 +776,20 @@ mod test {
         &["/address/street"],
         &["street"],
         &["/address", "/address/house_number"],
+    )]
+    #[case(
+        json!({"address": {"street": "Main st.", "house_number": 4 }}),
+        &["/address/street", "/address"],
+        &["/address/street"],
+        &["street"],
+        &[],
+    )]
+    #[case(
+        json!({"address": {"street": "Main st.", "house_number": 4 }}),
+        &["/address/street", "/address/house_number", "/address"],
+        &["/address/street", "/address/house_number", "/address"],
+        &["street", "house_number", "address"],
+        &[],
     )]
     #[case(
         json!({"address": {"street": "Main st.", "house_number": 4 }}),
