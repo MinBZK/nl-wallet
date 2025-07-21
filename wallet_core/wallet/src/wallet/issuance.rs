@@ -385,7 +385,7 @@ where
             .await
             .map_err(IssuanceError::AttestationQuery)?;
 
-        let previews_and_identity: Vec<(&NormalizedCredentialPreview, Option<String>)> =
+        let previews_and_identity: Vec<(&NormalizedCredentialPreview, Option<Uuid>)> =
             match_preview_and_stored_attestations(
                 issuance_session.normalized_credential_preview(),
                 stored,
@@ -582,7 +582,7 @@ fn match_preview_and_stored_attestations<'a>(
     previews: &'a [NormalizedCredentialPreview],
     stored_attestations: Vec<StoredAttestationCopy>,
     time_generator: &impl Generator<DateTime<Utc>>,
-) -> Vec<(&'a NormalizedCredentialPreview, Option<String>)> {
+) -> Vec<(&'a NormalizedCredentialPreview, Option<Uuid>)> {
     let stored_credential_payloads: Vec<(CredentialPayload, Uuid)> = stored_attestations
         .into_iter()
         .map(|copy| copy.into_credential_payload_and_id())
@@ -599,7 +599,7 @@ fn match_preview_and_stored_attestations<'a>(
                         .credential_payload
                         .matches_existing(&stored_preview.previewable_payload, time_generator)
                 })
-                .map(|(_, id)| id.to_string());
+                .map(|(_, id)| *id);
 
             (preview, identity)
         })
@@ -1102,7 +1102,7 @@ mod tests {
 
         assert_matches!(
             &attestations[0].identity,
-            AttestationIdentity::Fixed { id } if id == &attestation_copy_id.to_string());
+            AttestationIdentity::Fixed { id } if id == &attestation_copy_id);
         assert_matches!(&attestations[1].identity, AttestationIdentity::Ephemeral);
         assert_matches!(&attestations[2].identity, AttestationIdentity::Ephemeral);
     }
@@ -1438,7 +1438,7 @@ mod tests {
         let result =
             match_preview_and_stored_attestations(&previews, vec![stored.clone()], &MockTimeGenerator::epoch());
         let (_, identities): (Vec<_>, Vec<_>) = multiunzip(result);
-        assert_eq!(vec![Some(attestation_copy_id.to_string())], identities);
+        assert_eq!(vec![Some(attestation_copy_id)], identities);
 
         // When the attestation already exists in the database, but the preview has a newer nbf, it should be considered
         // as a new attestation and the identity is None.
