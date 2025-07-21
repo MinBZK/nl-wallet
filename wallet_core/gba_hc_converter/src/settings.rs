@@ -40,7 +40,7 @@ pub struct GbavSettings {
     pub password: String,
 
     #[serde(flatten)]
-    pub client_keypair: KeyPair,
+    pub client_keypair: CertificateAndKey,
 
     #[serde_as(as = "Base64")]
     pub trust_anchor: ReqwestTrustAnchor,
@@ -50,7 +50,7 @@ pub struct GbavSettings {
 
 #[serde_as]
 #[derive(Deserialize)]
-pub struct KeyPair {
+pub struct CertificateAndKey {
     #[serde_as(as = "Base64")]
     pub certificate: Vec<u8>,
 
