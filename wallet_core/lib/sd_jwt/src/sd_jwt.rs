@@ -364,15 +364,13 @@ impl<'a> SdJwtPresentationBuilder<'a> {
         }
 
         let full_payload = {
-            let payload = sd_jwt.issuer_signed_jwt.payload();
-            let sd = payload._sd.clone().into_iter().map(serde_json::Value::String).collect();
-            let mut full_payload = serde_json::Value::Object(payload.properties.clone());
-            full_payload
-                .as_object_mut()
-                .unwrap()
-                .insert(DIGESTS_KEY.to_string(), serde_json::Value::Array(sd));
+            let claims = sd_jwt.issuer_signed_jwt.payload().clone();
+            let sd = claims._sd.into_iter().map(serde_json::Value::String).collect();
 
-            full_payload
+            let mut payload = claims.properties;
+            payload.insert(DIGESTS_KEY.to_string(), serde_json::Value::Array(sd));
+
+            serde_json::Value::Object(payload)
         };
 
         let nondisclosed = sd_jwt.disclosures.clone();
@@ -468,8 +466,8 @@ where
 
             digests_to_disclose(next_object, path, disclosures)
         }
-        // We reached the parent of the value we want to conceal.
-        // Make sure its concealable by finding its disclosure.
+        // We reached the parent of the value we want to disclose.
+        // Make sure it's disclosable by finding the digest of its disclosure.
         serde_json::Value::Object(object) => {
             let digest = find_disclosure_digest(object, element_key, disclosures).ok_or_else(|| {
                 Error::InvalidPath("the referenced element doesn't exist or is not concealable".to_string())
