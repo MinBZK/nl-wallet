@@ -13,6 +13,7 @@ use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::attested_key::GoogleAttestedKey;
 use update_policy_model::update_policy::VersionState;
 
+use crate::digid::DigidClient;
 use crate::repository::Repository;
 use crate::storage::Storage;
 
@@ -31,12 +32,13 @@ pub enum ResetError {
 
 type ResetResult<T> = Result<T, ResetError>;
 
-impl<CR, UR, S, AKH, APC, DS, IS, DC, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, DC, WIC>
+impl<CR, UR, S, AKH, APC, DC, IS, DCC, WIC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC, WIC>
 where
     UR: Repository<VersionState>,
     S: Storage,
     AKH: AttestedKeyHolder,
-    DC: DisclosureClient,
+    DC: DigidClient,
+    DCC: DisclosureClient,
 {
     pub(super) async fn reset_to_initial_state(&mut self) -> bool {
         // Only reset if we actually have a registration. If we did generate a key but never

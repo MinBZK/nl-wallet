@@ -37,14 +37,14 @@ mod test {
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::UncheckedTypeMetadata;
 
-    use crate::AttestationIdentity;
-    use crate::AttestationPresentation;
-    use crate::attestation::AttestationAttributeValue;
-    use crate::attestation::AttestationError;
-    use crate::issuance::BSN_ATTR_NAME;
-    use crate::issuance::PID_DOCTYPE;
-    use crate::issuance::mock::create_bsn_only_mdoc_attributes;
-    use crate::issuance::mock::create_example_mdoc_attributes;
+    use super::super::AttestationAttributeValue;
+    use super::super::AttestationError;
+    use super::super::AttestationIdentity;
+    use super::super::AttestationPresentation;
+    use super::super::BSN_ATTR_NAME;
+    use super::super::PID_DOCTYPE;
+    use super::super::test::create_bsn_only_mdoc_attributes;
+    use super::super::test::create_example_mdoc_attributes;
 
     #[test]
     fn test_happy() {
