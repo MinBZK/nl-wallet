@@ -43,9 +43,11 @@ axum = { workspace = true, features = ["form", "http1", "json", "query", "tokio"
 chrono = { workspace = true, features = ["serde", "std"] }
 config = { workspace = true, features = ["toml", "preserve_order"] }
 futures = { workspace = true, features = ["std", "async-await"] }
+hex.workspace = true
 indexmap = { workspace = true, features = ["serde"] }
 p256 = { workspace = true, features = ["ecdsa", "pkcs8"] }
 reqwest = { workspace = true, features = ["rustls-tls-webpki-roots"] }
+ring.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 serde_with = { workspace = true, features = ["base64"] }
@@ -65,6 +67,7 @@ sea-orm = { workspace = true, optional = true, features = [
 
 attestation_data.path = "../../lib/attestation_data"
 crypto.path = "../../lib/crypto"
+dcql.path = "../../lib/dcql"
 issuer_settings.path = "../issuer_settings"
 hsm = { path = "../../lib/hsm", features = ["settings"] }
 http_utils = { path = "../../lib/http_utils", features = ["server"] }
@@ -81,5 +84,4 @@ tokio = { workspace = true, features = ["macros", "test-util"] }
 
 attestation_data = { path = "../../lib/attestation_data", features = ["generate", "mock"] }
 crypto = { path = "../../lib/crypto", features = ["mock_remote_key"] }
-sd_jwt_vc_metadata = { path = "../../lib/sd_jwt_vc_metadata", features = ["example_constructors"] }
 utils = { path = "../../lib/utils", features = ["mock_time"] }

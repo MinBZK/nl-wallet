@@ -29,7 +29,7 @@ use tracing::warn;
 use url::Url;
 
 use attestation_data::attributes::AttributeValue;
-use attestation_types::request::NormalizedCredentialRequest;
+use dcql::normalized::NormalizedCredentialRequest;
 use demo_utils::LANGUAGE_JS_SHA256;
 use demo_utils::WALLET_WEB_CSS_SHA256;
 use demo_utils::WALLET_WEB_JS_SHA256;

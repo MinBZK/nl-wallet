@@ -7,21 +7,7 @@ rust-version.workspace = true
 [lints]
 workspace = true
 
-[features]
-mock = []
-
 [dependencies]
-derive_more = { workspace = true, features = ["as_ref"] }
-itertools.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_with = { workspace = true, features = ["macros"] }
 strum = { workspace = true, features = ["derive"] }
-thiserror.workspace = true
-
-dcql.path = "../dcql"
-utils.path = "../utils"
-
-[dev-dependencies]
-rstest.workspace = true
-
-dcql = { path = "../dcql", features = ["examples"] }

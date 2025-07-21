@@ -60,18 +60,10 @@
 | `resources.limits.cpu`      | CPU limit      | `200m` |
 | `resources.limits.memory`   | Memory limit   | `64Mi` |
 
-### Volumes
+### Update policy
 
-| Name                        | Description                                | Value                                 |
-| --------------------------- | ------------------------------------------ | ------------------------------------- |
-| `volumes[0].name`           | Name of the first volume                   | `config-volume`                       |
-| `volumes[0].configMap.name` | Name of the ConfigMap for the first volume | `nl-wallet-update-policy-server-data` |
-
-### Volume mounts
-
-| Name                        | Description                            | Value                        |
-| --------------------------- | -------------------------------------- | ---------------------------- |
-| `volumeMounts[0].name`      | Name of the first volume mount         | `config-volume`              |
-| `volumeMounts[0].mountPath` | Mount path for the first volume mount  | `/update_policy_server.toml` |
-| `volumeMounts[0].subPath`   | Sub-path within the first volume mount | `config.toml`                |
+| Name                         | Description                                            | Value                                 |
+| ---------------------------- | ------------------------------------------------------ | ------------------------------------- |
+| `updatePolicy.configMapName` | Name to the the ConfigMap containing the update policy | `nl-wallet-update-policy-server-data` |
+| `updatePolicy.configMapKey`  | Key of the the ConfigMap containing the update policy  | `config.toml`                         |
 

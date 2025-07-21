@@ -65,7 +65,6 @@ test_common = [
     "dep:android_attest",
     "dep:apple_app_attest",
     "dep:attestation_data",
-    "dep:attestation_types",
     "dep:axum",
     "dep:axum-server",
     "dep:chrono",
@@ -129,14 +128,20 @@ integration_test = [
     "tokio/sync",
 ]
 # Optional feature for running integration tests that depend on the DigiD connector
-digid_test = ["fake_digid", "test_common", "dep:gba_hc_converter", "dep:rustls-pki-types", "dep:serial_test"]
+digid_test = [
+    "fake_digid",
+    "test_common",
+    "dep:gba_hc_converter",
+    "dep:ring",
+    "dep:rustls-pki-types",
+    "dep:serial_test",
+]
 # Should be enabled when building the performance_test binary
 performance_test = [
     "logging",
     "fake_digid",
     "dep:ctor",
     "dep:apple_app_attest",
-    "dep:attestation_types",
     "dep:indexmap",
     "dep:dcql",
     "dep:reqwest",
@@ -205,6 +210,7 @@ serde_json = { workspace = true, optional = true }
 p256 = { workspace = true, optional = true, features = ["pkcs8"] }
 rand_core = { workspace = true, optional = true }
 regex = { workspace = true, optional = true }
+ring = { workspace = true, optional = true }
 rstest = { workspace = true, optional = true }
 rustls = { workspace = true, optional = true, features = ["ring"] }
 rustls-pki-types = { workspace = true, optional = true }
@@ -231,10 +237,9 @@ attestation_data = { path = "../lib/attestation_data", optional = true, features
     "example_credential_payloads",
     "mock",
 ] }
-attestation_types = { path = "../lib/attestation_types", optional = true, features = ["mock"] }
 configuration_server = { path = "../configuration_server", optional = true }
 crypto = { path = "../lib/crypto", optional = true, features = ["mock_remote_key"] }
-dcql = { path = "../lib/dcql", optional = true }
+dcql = { path = "../lib/dcql", optional = true, features = ["mock"] }
 gba_hc_converter = { path = "../gba_hc_converter", optional = true }
 hsm = { path = "../lib/hsm", optional = true, features = ["test"] }
 http_utils = { path = "../lib/http_utils", optional = true, features = ["client", "server"] }

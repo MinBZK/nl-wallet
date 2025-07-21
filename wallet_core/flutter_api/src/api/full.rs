@@ -44,7 +44,9 @@ pub async fn init() -> anyhow::Result<()> {
 
         // Setup logging to console and enable RUST_BACKTRACE to be caught on panics (but not errors) for Sentry.
         setup_default_user_utils();
-        std::env::set_var("RUST_LIB_BACKTRACE", "0");
+        unsafe {
+            std::env::set_var("RUST_LIB_BACKTRACE", "0");
+        }
 
         // Initialize Sentry for Rust panics.
         // This MUST be called before initializing the async runtime.

@@ -11,11 +11,11 @@ use x509_parser::der_parser::Oid;
 use x509_parser::der_parser::asn1_rs::oid;
 
 use crypto::x509::BorrowingCertificateExtension;
+use dcql::ClaimPath;
 use error_category::ErrorCategory;
 use mdoc::identifiers::AttributeIdentifier;
 use mdoc::identifiers::AttributeIdentifierError;
 use mdoc::identifiers::AttributeIdentifierHolder;
-use sd_jwt_vc_metadata::ClaimPath;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::auth::LocalizedStrings;
@@ -146,8 +146,8 @@ impl BorrowingCertificateExtension for ReaderRegistration {
 pub mod mock {
     use itertools::Itertools;
 
-    use attestation_types::request::NormalizedCredentialRequest;
     use dcql::CredentialQueryFormat;
+    use dcql::normalized::NormalizedCredentialRequest;
     use utils::vec_at_least::VecNonEmpty;
 
     use super::*;

@@ -11,12 +11,13 @@ use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
 use tests_integration::default;
 use tests_integration::fake_digid::fake_digid_auth;
 use wallet::Wallet;
+use wallet::WalletClients;
 use wallet::errors::IssuanceError;
 use wallet::mock::LocalConfigurationRepository;
 use wallet::mock::MockUpdatePolicyRepository;
 use wallet::mock::StorageStub;
 use wallet::wallet_deps::HttpAccountProviderClient;
-use wallet::wallet_deps::HttpDigidSession;
+use wallet::wallet_deps::HttpDigidClient;
 use wallet::wallet_deps::Repository;
 use wallet::wallet_deps::WpWteIssuanceClient;
 use wallet::wallet_deps::default_wallet_config;
@@ -121,7 +122,7 @@ type TestWallet = Wallet<
     StorageStub,
     MockHardwareAttestedKeyHolder,
     HttpAccountProviderClient,
-    HttpDigidSession,
+    HttpDigidClient,
     HttpIssuanceSession,
     VpDisclosureClient,
     WpWteIssuanceClient,
@@ -130,14 +131,14 @@ type TestWallet = Wallet<
 async fn gba_pid(bsn: &str) -> Result<(), TestError> {
     let config_repository = LocalConfigurationRepository::new(default_wallet_config());
     let pid_issuance_config = &config_repository.get().pid_issuance;
+    let wallet_clients = WalletClients::new_http(default_reqwest_client_builder()).unwrap();
 
     let mut wallet: TestWallet = Wallet::init_registration(
         config_repository,
         MockUpdatePolicyRepository::default(),
         StorageStub::default(),
         MockHardwareAttestedKeyHolder::new_apple_mock(default::attestation_environment(), default::app_identifier()),
-        HttpAccountProviderClient::default(),
-        VpDisclosureClient::new_http(default_reqwest_client_builder()).unwrap(),
+        wallet_clients,
     )
     .await
     .expect("Could not create test wallet");

@@ -2,6 +2,9 @@ mod attribute;
 mod disclosure;
 mod issuance;
 
+#[cfg(test)]
+pub mod test;
+
 use std::collections::HashSet;
 
 use chrono::NaiveDate;
@@ -16,6 +19,9 @@ use sd_jwt_vc_metadata::ClaimDisplayMetadata;
 use sd_jwt_vc_metadata::DisplayMetadata;
 use sd_jwt_vc_metadata::JsonSchemaPropertyType;
 use utils::vec_at_least::VecNonEmpty;
+
+pub const PID_DOCTYPE: &str = "urn:eudi:pid:nl:1";
+pub const BSN_ATTR_NAME: &str = "bsn";
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 pub enum AttestationError {

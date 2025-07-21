@@ -3,13 +3,14 @@ use std::num::NonZero;
 use serde::Deserialize;
 use serde::Serialize;
 
-use dcql::ClaimPath;
-use dcql::ClaimsQuery;
-use dcql::ClaimsSelection;
-use dcql::CredentialQuery;
-use dcql::CredentialQueryFormat;
-use dcql::Query;
 use utils::vec_at_least::VecNonEmpty;
+
+use crate::ClaimPath;
+use crate::ClaimsQuery;
+use crate::ClaimsSelection;
+use crate::CredentialQuery;
+use crate::CredentialQueryFormat;
+use crate::Query;
 
 /// Request for a credential.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -147,9 +148,10 @@ impl TryFrom<ClaimsQuery> for AttributeRequest {
 
 #[cfg(any(test, feature = "mock"))]
 pub mod mock {
-    use dcql::ClaimPath;
-    use dcql::CredentialQueryFormat;
     use utils::vec_at_least::VecNonEmpty;
+
+    use crate::ClaimPath;
+    use crate::CredentialQueryFormat;
 
     use super::AttributeRequest;
     use super::NormalizedCredentialRequest;
@@ -298,19 +300,19 @@ pub mod mock {
 mod test {
     use rstest::rstest;
 
-    use dcql::ClaimPath;
-    use dcql::ClaimsQuery;
-    use dcql::ClaimsSelection;
-    use dcql::CredentialQuery;
-    use dcql::CredentialQueryFormat;
-    use dcql::Query;
-    use dcql::TrustedAuthoritiesQuery;
     use utils::vec_at_least::VecNonEmpty;
+
+    use crate::ClaimPath;
+    use crate::ClaimsQuery;
+    use crate::ClaimsSelection;
+    use crate::CredentialQuery;
+    use crate::CredentialQueryFormat;
+    use crate::Query;
+    use crate::TrustedAuthoritiesQuery;
 
     use super::AttributeRequest;
     use super::MdocCredentialRequestError;
     use super::NormalizedCredentialRequest;
-
     use super::UnsupportedDcqlFeatures;
     use super::mock::ATTR_FAMILY_NAME;
     use super::mock::ATTR_GIVEN_NAME;

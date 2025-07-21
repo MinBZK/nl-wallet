@@ -40,6 +40,7 @@ pub struct Settings {
     pub hsm: Hsm,
     pub pin_policy: PinPolicySettings,
     pub structured_logging: bool,
+    pub capture_and_redirect_logging: Option<PathBuf>,
 
     #[serde(rename = "instruction_challenge_timeout_in_ms")]
     #[serde_as(as = "DurationMilliSeconds")]

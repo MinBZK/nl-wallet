@@ -956,21 +956,15 @@ impl CredentialResponse {
                 // Calculate the minimum of all the lengths of the random bytes
                 // included in the attributes of `IssuerSigned`. If this value
                 // is too low, we should not accept the attributes.
-                if let Some(name_spaces) = issuer_signed.name_spaces.as_ref() {
-                    let min_random_length = name_spaces
+                if let Some(min) = issuer_signed.name_spaces.as_ref().and_then(|namespaces| {
+                    namespaces
                         .as_ref()
                         .values()
                         .flat_map(|attributes| attributes.as_ref().iter().map(|TaggedBytes(item)| item.random.len()))
-                        .min();
-
-                    if let Some(min_random_length) = min_random_length {
-                        if min_random_length < ATTR_RANDOM_LENGTH {
-                            return Err(IssuanceSessionError::AttributeRandomLength(
-                                min_random_length,
-                                ATTR_RANDOM_LENGTH,
-                            ));
-                        }
-                    }
+                        .min()
+                }) && min < ATTR_RANDOM_LENGTH
+                {
+                    return Err(IssuanceSessionError::AttributeRandomLength(min, ATTR_RANDOM_LENGTH));
                 }
 
                 let credential_issuer_certificate = &issuer_signed

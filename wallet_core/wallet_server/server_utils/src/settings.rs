@@ -6,9 +6,11 @@ use std::time::Duration;
 use chrono::DateTime;
 use chrono::Utc;
 use config::ConfigError;
+use nutype::nutype;
 use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde_with::base64::Base64;
+use serde_with::hex::Hex;
 use serde_with::serde_as;
 use url::Url;
 
@@ -100,6 +102,7 @@ pub struct KeyPair {
     pub private_key: PrivateKey,
 }
 
+/// An ECDSA private (i.e. asymmetric) key, either in the HSM or configured directly.
 #[serde_as]
 #[derive(Clone, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -113,6 +116,26 @@ pub enum PrivateKey {
         private_key: String,
     },
 }
+
+/// A secret (i.e. symmetric) key, e.g. for HMAC, either in the HSM or configured directly.
+#[serde_as]
+#[derive(Clone, Deserialize)]
+#[serde(rename_all = "snake_case")]
+#[serde(tag = "secret_key_type")]
+pub enum SecretKey {
+    Software {
+        #[serde_as(as = "Hex")]
+        secret_key: SecretKeyBytes,
+    },
+    Hsm {
+        secret_key: String,
+    },
+}
+
+const MIN_SECRET_KEY_LENGTH_BYTES: usize = 32;
+
+#[nutype(validate(predicate = |v| v.len() >= MIN_SECRET_KEY_LENGTH_BYTES), derive(Clone, TryFrom, AsRef, Deserialize))]
+pub struct SecretKeyBytes(Vec<u8>);
 
 impl From<&Storage> for SessionStoreTimeouts {
     fn from(value: &Storage) -> Self {

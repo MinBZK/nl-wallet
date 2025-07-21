@@ -10,8 +10,8 @@ use sd_jwt_vc_metadata::JsonSchemaPropertyFormat;
 use sd_jwt_vc_metadata::JsonSchemaPropertyType;
 use sd_jwt_vc_metadata::TypeMetadata;
 
-use super::BSN_ATTR_NAME;
-use super::PID_DOCTYPE;
+use crate::attestation::BSN_ATTR_NAME;
+use crate::attestation::PID_DOCTYPE;
 
 pub fn create_bsn_only_payload_preview() -> (PreviewableCredentialPayload, TypeMetadata) {
     let payload = CredentialPayload::example_with_attributes(

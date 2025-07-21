@@ -22,9 +22,7 @@ use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 use ssri::Integrity;
 
-// TODO: remove in PVW-4421
-pub use dcql::ClaimPath;
-
+use dcql::ClaimPath;
 use http_utils::data_uri::DataUri;
 use http_utils::urls::BaseUrl;
 use utils::spec::SpecOptional;
@@ -597,6 +595,7 @@ mod example_constructors {
     use serde_json::json;
 
     use crypto::utils::random_string;
+    use dcql::ClaimPath;
 
     use crate::examples::CREDENTIAL_PAYLOAD_SD_JWT_SPEC_METADATA_BYTES;
     use crate::examples::EUDI_PID_METADATA_BYTES;
@@ -610,7 +609,6 @@ mod example_constructors {
 
     use super::ClaimDisplayMetadata;
     use super::ClaimMetadata;
-    use super::ClaimPath;
     use super::ClaimSelectiveDisclosureMetadata;
     use super::DisplayMetadata;
     use super::JsonSchema;
@@ -814,6 +812,7 @@ mod test {
     use rstest::rstest;
     use serde_json::json;
 
+    use dcql::ClaimPath;
     use utils::vec_at_least::VecNonEmpty;
 
     use crate::examples::EXAMPLE_METADATA_BYTES;

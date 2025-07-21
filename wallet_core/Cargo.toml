@@ -55,7 +55,7 @@ resolver = "2"
 [workspace.package]
 version = "0.4.0-dev"
 edition = "2024"
-rust-version = "1.87"
+rust-version = "1.88"
 
 [workspace.lints.rust]
 async_fn_in_trait = "allow"
@@ -136,6 +136,7 @@ josekit = "0.10.1"
 json-pointer = "0.3.4"
 jsonschema = { version = "0.29.0", default-features = false }
 jsonwebtoken = { version = "9.3.0", default-features = false }
+libc = "0.2.174"
 # held back by sea-orm / sqlx
 libsqlite3-sys = { version = "0.30.1", default-features = false }
 log = "0.4.25"
