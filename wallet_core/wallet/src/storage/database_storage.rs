@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::collections::HashSet;
 use std::convert::identity;
 use std::path::PathBuf;
@@ -49,6 +48,7 @@ use mdoc::utils::serialization::cbor_deserialize;
 use mdoc::utils::serialization::cbor_serialize;
 use openid4vc::issuance_session::CredentialWithMetadata;
 use openid4vc::issuance_session::IssuedCredential;
+use openid4vc::issuance_session::IssuedCredentialCopies;
 use platform_support::hw_keystore::PlatformEncryptionKey;
 use sd_jwt::hasher::Sha256Hasher;
 use sd_jwt::sd_jwt::VerifiedSdJwt;
@@ -517,34 +517,7 @@ where
                         type_metadata: Set(TypeMetadataModel::new(metadata_documents)),
                     };
 
-                    let copy_models = copies
-                        .into_inner()
-                        .into_iter()
-                        .map(|credential| match credential {
-                            IssuedCredential::MsoMdoc(mdoc) => {
-                                let model = attestation_copy::ActiveModel {
-                                    id: Set(Uuid::now_v7()),
-                                    attestation_id: Set(attestation_id),
-                                    attestation: Set(cbor_serialize(&mdoc)?),
-                                    attestation_format: Set(AttestationFormat::Mdoc),
-                                    ..Default::default()
-                                };
-
-                                Ok::<_, StorageError>(model)
-                            }
-                            IssuedCredential::SdJwt(sd_jwt) => {
-                                let model = attestation_copy::ActiveModel {
-                                    id: Set(Uuid::now_v7()),
-                                    attestation_id: Set(attestation_id),
-                                    attestation: Set(sd_jwt.into_inner().to_string().into_bytes()),
-                                    attestation_format: Set(AttestationFormat::SdJwt),
-                                    ..Default::default()
-                                };
-
-                                Ok(model)
-                            }
-                        })
-                        .collect::<Result<Vec<_>, _>>()?;
+                    let copy_models = create_attestation_copy_models(attestation_id, copies)?;
 
                     let issuance_event_attestation = issuance_event_attestation::ActiveModel {
                         id: Set(Uuid::now_v7()),
@@ -597,68 +570,30 @@ where
 
         let transaction = self.database()?.connection().begin().await?;
 
-        let attestation_copy_ids: Vec<Uuid> = credentials
-            .iter()
-            .map(|(_, attestation_presentation)| {
-                let AttestationIdentity::Fixed {
-                    id: attestation_copy_id,
-                } = &attestation_presentation.identity
-                else {
-                    return Err(StorageError::EventEphemeralIdentity);
-                };
-                Ok(*attestation_copy_id)
-            })
-            .try_collect()?;
-
-        let copies: HashMap<Uuid, Uuid> = attestation_copy::Entity::find()
-            .filter(attestation_copy::Column::Id.is_in(attestation_copy_ids.clone()))
-            .select_only()
-            .column(attestation_copy::Column::Id)
-            .column(attestation_copy::Column::AttestationId)
-            .into_tuple()
-            .all(&transaction)
-            .await?
-            .into_iter()
-            .collect();
-
         let mut issuance_event_attestations = vec![];
 
-        for ((credential, attestation_presentation), attestation_copy_id) in
-            credentials.into_iter().zip(attestation_copy_ids)
-        {
+        for (credential, attestation_presentation) in credentials {
+            let AttestationIdentity::Fixed { id: attestation_id } = attestation_presentation.identity.clone() else {
+                return Err(StorageError::EventEphemeralIdentity);
+            };
+
             let issuance_event_attestation = issuance_event_attestation::ActiveModel {
                 id: Set(Uuid::now_v7()),
                 issuance_event_id: Set(issuance_event_id),
-                attestation_id: Set(Some(
-                    *copies
-                        .get(&attestation_copy_id)
-                        .expect("attestation_copy_id must have a related attestation_id"),
-                )),
+                attestation_id: Set(Some(attestation_id)),
                 attestation_presentation: Set(serde_json::to_value(attestation_presentation)?),
                 renewed: Set(true),
             };
             issuance_event_attestations.push(issuance_event_attestation);
 
-            for copy in credential.copies.into_inner() {
-                match copy {
-                    IssuedCredential::MsoMdoc(mdoc) => attestation_copy::ActiveModel {
-                        id: Set(attestation_copy_id),
-                        disclosure_count: Set(0),
-                        attestation_format: Set(AttestationFormat::Mdoc),
-                        attestation: Set(cbor_serialize(&mdoc)?),
-                        ..Default::default()
-                    },
-                    IssuedCredential::SdJwt(sd_jwt) => attestation_copy::ActiveModel {
-                        id: Set(attestation_copy_id),
-                        disclosure_count: Set(0),
-                        attestation_format: Set(AttestationFormat::SdJwt),
-                        attestation: Set(sd_jwt.into_inner().to_string().into_bytes()),
-                        ..Default::default()
-                    },
-                }
-                .update(&transaction)
+            attestation_copy::Entity::delete_many()
+                .filter(attestation_copy::Column::AttestationId.eq(attestation_id))
+                .exec(&transaction)
                 .await?;
-            }
+
+            attestation_copy::Entity::insert_many(create_attestation_copy_models(attestation_id, credential.copies)?)
+                .exec(&transaction)
+                .await?;
         }
 
         issuance_event::Entity::insert(issuance_event)
@@ -883,6 +818,40 @@ where
 
         Ok(exists)
     }
+}
+
+fn create_attestation_copy_models(
+    attestation_id: Uuid,
+    copies: IssuedCredentialCopies,
+) -> StorageResult<Vec<attestation_copy::ActiveModel>> {
+    copies
+        .into_inner()
+        .into_iter()
+        .map(|credential| match credential {
+            IssuedCredential::MsoMdoc(mdoc) => {
+                let model = attestation_copy::ActiveModel {
+                    id: Set(Uuid::now_v7()),
+                    attestation_id: Set(attestation_id),
+                    attestation: Set(cbor_serialize(&mdoc)?),
+                    attestation_format: Set(AttestationFormat::Mdoc),
+                    ..Default::default()
+                };
+
+                Ok::<_, StorageError>(model)
+            }
+            IssuedCredential::SdJwt(sd_jwt) => {
+                let model = attestation_copy::ActiveModel {
+                    id: Set(Uuid::now_v7()),
+                    attestation_id: Set(attestation_id),
+                    attestation: Set(sd_jwt.into_inner().to_string().into_bytes()),
+                    attestation_format: Set(AttestationFormat::SdJwt),
+                    ..Default::default()
+                };
+
+                Ok(model)
+            }
+        })
+        .try_collect()
 }
 
 #[cfg(test)]
@@ -1309,9 +1278,9 @@ pub(crate) mod tests {
         let state = storage.state().await.unwrap();
         assert!(matches!(state, StorageState::Opened));
 
+        // Create issued_copies that will be inserted into the database
         let sd_jwt = SdJwt::example_pid_sd_jwt(&ISSUER_KEY);
         let credential = IssuedCredential::SdJwt(Box::new(sd_jwt.clone().into()));
-
         let issued_copies = IssuedCredentialCopies::new_or_panic(
             vec![credential.clone(), credential.clone(), credential.clone()]
                 .try_into()
@@ -1353,13 +1322,31 @@ pub(crate) mod tests {
         // One matching attestation should be returned
         assert_eq!(attestations.len(), 1);
 
+        let inserted_attestation_copy = attestations.first().unwrap();
+        let StoredAttestationFormat::SdJwt {
+            sd_jwt: inserted_attestation,
+        } = &inserted_attestation_copy.attestation
+        else {
+            panic!("Attestation is not an SD-JWT")
+        };
+
         // After insertion, there should be one issuance event
         let fetched_events = storage.fetch_wallet_events().await.unwrap();
         assert_eq!(fetched_events.len(), 1);
 
+        // Create new issued_copies that will be updated
+        let sd_jwt = SdJwt::example_pid_sd_jwt(&ISSUER_KEY);
+        let credential = IssuedCredential::SdJwt(Box::new(sd_jwt.clone().into()));
+        let issued_copies = IssuedCredentialCopies::new_or_panic(
+            vec![credential.clone(), credential.clone(), credential.clone()]
+                .try_into()
+                .unwrap(),
+        );
+
         attestation_presentation.identity = AttestationIdentity::Fixed {
-            id: attestations[0].attestation_copy_id,
+            id: attestations[0].attestation_id,
         };
+
         // Update sd_jwt
         storage
             .update_credentials(
@@ -1374,7 +1361,7 @@ pub(crate) mod tests {
                 )],
             )
             .await
-            .expect("Could not insert mdocs");
+            .expect("Could not update sd-jwts");
 
         let attestations = storage
             .fetch_unique_attestations()
@@ -1383,6 +1370,54 @@ pub(crate) mod tests {
 
         // After updating, there should still be one attestation
         assert_eq!(attestations.len(), 1);
+
+        let updated_attestation_copy = attestations.first().unwrap();
+        let StoredAttestationFormat::SdJwt {
+            sd_jwt: updated_attestation,
+        } = &updated_attestation_copy.attestation
+        else {
+            panic!("Attestation is not an SD-JWT")
+        };
+
+        assert_eq!(
+            inserted_attestation_copy.attestation_id,
+            updated_attestation_copy.attestation_id
+        );
+        assert_ne!(
+            inserted_attestation_copy.attestation_copy_id,
+            updated_attestation_copy.attestation_copy_id
+        );
+        assert_ne!(inserted_attestation, updated_attestation);
+
+        // Incrementing the usage_count of the attestation ensures a new copy is returned next time unique attestations
+        // are queried
+        storage
+            .increment_attestation_copies_usage_count(vec![updated_attestation_copy.attestation_copy_id])
+            .await
+            .expect("Could not increment usage count for attestation copy");
+
+        let attestations = storage
+            .fetch_unique_attestations()
+            .await
+            .expect("Could not fetch unique attestations");
+
+        let next_updated_attestation_copy = attestations.first().unwrap();
+        let StoredAttestationFormat::SdJwt {
+            sd_jwt: next_updated_attestation,
+        } = &next_updated_attestation_copy.attestation
+        else {
+            panic!("Attestation is not an SD-JWT")
+        };
+
+        assert_eq!(
+            updated_attestation_copy.attestation_id,
+            next_updated_attestation_copy.attestation_id,
+        );
+        assert_ne!(
+            updated_attestation_copy.attestation_copy_id,
+            next_updated_attestation_copy.attestation_copy_id,
+        );
+        assert_eq!(updated_attestation, next_updated_attestation);
 
         // And there should be two events, of which the most recent one should be a renew event
         let fetched_events = storage.fetch_wallet_events().await.unwrap();
