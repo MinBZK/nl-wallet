@@ -1,8 +1,8 @@
 use std::collections::HashSet;
 
-use attestation_types::request::AttributeRequest;
-use attestation_types::request::NormalizedCredentialRequest;
 use dcql::CredentialQueryFormat;
+use dcql::normalized::AttributeRequest;
+use dcql::normalized::NormalizedCredentialRequest;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::identifiers::AttributeIdentifier;
@@ -61,8 +61,8 @@ mod tests {
 
     use rstest::rstest;
 
-    use attestation_types::request;
-    use attestation_types::request::NormalizedCredentialRequest;
+    use dcql::normalized;
+    use dcql::normalized::NormalizedCredentialRequest;
     use utils::vec_at_least::VecNonEmpty;
 
     use crate::holder::disclosure::credential_requests_to_mdoc_paths;
@@ -81,7 +81,7 @@ mod tests {
     }
 
     fn credential_requests() -> VecNonEmpty<NormalizedCredentialRequest> {
-        request::mock::mock_from_vecs(vec![
+        normalized::mock::mock_from_vecs(vec![
             (
                 "att_1".to_string(),
                 vec![

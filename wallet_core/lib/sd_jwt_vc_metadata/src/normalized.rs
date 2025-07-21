@@ -6,12 +6,12 @@ use itertools::Either;
 use itertools::Itertools;
 use jsonschema::ValidationError;
 
+use dcql::ClaimPath;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::chain::SortedTypeMetadata;
 use crate::metadata::ClaimDisplayMetadata;
 use crate::metadata::ClaimMetadata;
-use crate::metadata::ClaimPath;
 use crate::metadata::ClaimSelectiveDisclosureMetadata;
 use crate::metadata::DisplayMetadata;
 use crate::metadata::JsonSchema;
@@ -390,12 +390,12 @@ mod tests {
     use serde_json::json;
     use ssri::Integrity;
 
+    use dcql::ClaimPath;
     use utils::vec_at_least::VecNonEmpty;
 
     use crate::chain::SortedTypeMetadata;
     use crate::metadata::ClaimDisplayMetadata;
     use crate::metadata::ClaimMetadata;
-    use crate::metadata::ClaimPath;
     use crate::metadata::ClaimSelectiveDisclosureMetadata;
     use crate::metadata::DisplayMetadata;
     use crate::metadata::JsonSchema;
