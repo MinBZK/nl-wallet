@@ -72,6 +72,8 @@ pub enum UnsupportedDcqlFeatures {
     InvalidClaimPathLength(NonZero<usize>),
     #[error("unsupported ClaimPath variant, only SelectByKey is supported")]
     UnsupportedClaimPathVariant,
+    #[error("'intent_to_retain' is mandatory for mso_mdoc format")]
+    MissingIntentToRetain,
 }
 
 impl TryFrom<Query> for VecNonEmpty<NormalizedCredentialRequest> {
@@ -139,10 +141,13 @@ impl TryFrom<ClaimsQuery> for AttributeRequest {
         if source.path.iter().any(|p| !matches!(p, ClaimPath::SelectByKey(_))) {
             return Err(UnsupportedDcqlFeatures::UnsupportedClaimPathVariant);
         }
+        if source.intent_to_retain.is_none() {
+            return Err(UnsupportedDcqlFeatures::MissingIntentToRetain);
+        }
 
         let request = AttributeRequest {
             path: source.path,
-            intent_to_retain: source.intent_to_retain.unwrap_or_default(),
+            intent_to_retain: source.intent_to_retain.unwrap_or(true),
         };
         Ok(request)
     }
@@ -376,17 +381,18 @@ mod test {
     #[case(query_multiple_queries(), Err(UnsupportedDcqlFeatures::MultipleCredentialQueries))]
     #[case(query_with_trusted_authorities(), Err(UnsupportedDcqlFeatures::TrustedAuthorities))]
     #[case(query_with_claim_sets(), Err(UnsupportedDcqlFeatures::MultipleClaimSets))]
+    #[case(query_with_invalid_claim_path_length(), Err(UnsupportedDcqlFeatures::InvalidClaimPathLength(1.try_into().unwrap())))]
     #[case(
-        mdoc_query_with_invalid_claim_path_length(),
-        Err(UnsupportedDcqlFeatures::InvalidClaimPathLength(1.try_into().unwrap())),
-    )]
-    #[case(
-        mdoc_query_with_invalid_claim_path_variant_all(),
+        query_with_invalid_claim_path_variant_all(),
         Err(UnsupportedDcqlFeatures::UnsupportedClaimPathVariant)
     )]
     #[case(
-        mdoc_query_with_invalid_claim_path_variant_by_index(),
+        query_with_invalid_claim_path_variant_by_index(),
         Err(UnsupportedDcqlFeatures::UnsupportedClaimPathVariant)
+    )]
+    #[case(
+        query_with_missing_intent_to_retain(),
+        Err(UnsupportedDcqlFeatures::MissingIntentToRetain)
     )]
     fn test_conversion(
         #[case] query: Query,
@@ -452,6 +458,15 @@ mod test {
         })
     }
 
+    fn query_with_missing_intent_to_retain() -> Query {
+        mdoc_example_query_mutate_first_credential_query(|mut c| {
+            c.claims_selection = ClaimsSelection::All {
+                claims: vec![mdoc_claims_query_missing_intent_to_retain()].try_into().unwrap(),
+            };
+            c
+        })
+    }
+
     fn query_with_claim_sets() -> Query {
         mdoc_example_query_mutate_first_credential_query(|mut c| {
             c.claims_selection = ClaimsSelection::Combinations {
@@ -462,7 +477,7 @@ mod test {
         })
     }
 
-    fn mdoc_query_with_invalid_claim_path_length() -> Query {
+    fn query_with_invalid_claim_path_length() -> Query {
         let claims_query = {
             let mut claims_query = mdoc_claims_query();
             let mut path = claims_query.path.into_inner();
@@ -478,7 +493,7 @@ mod test {
         })
     }
 
-    fn mdoc_query_with_invalid_claim_path_variant_all() -> Query {
+    fn query_with_invalid_claim_path_variant_all() -> Query {
         let claims_query = {
             let mut claims_query = mdoc_claims_query();
             claims_query.path = vec![ClaimPath::SelectByKey("ns".to_string()), ClaimPath::SelectAll]
@@ -494,7 +509,7 @@ mod test {
         })
     }
 
-    fn mdoc_query_with_invalid_claim_path_variant_by_index() -> Query {
+    fn query_with_invalid_claim_path_variant_by_index() -> Query {
         let claims_query = {
             let mut claims_query = mdoc_claims_query();
             claims_query.path = vec![ClaimPath::SelectByKey("ns".to_string()), ClaimPath::SelectByIndex(1)]
@@ -511,6 +526,20 @@ mod test {
     }
 
     fn mdoc_claims_query() -> ClaimsQuery {
+        ClaimsQuery {
+            id: None,
+            path: vec![
+                ClaimPath::SelectByKey("ns".to_string()),
+                ClaimPath::SelectByKey("attr".to_string()),
+            ]
+            .try_into()
+            .unwrap(),
+            values: vec![],
+            intent_to_retain: Some(true),
+        }
+    }
+
+    fn mdoc_claims_query_missing_intent_to_retain() -> ClaimsQuery {
         ClaimsQuery {
             id: None,
             path: vec![

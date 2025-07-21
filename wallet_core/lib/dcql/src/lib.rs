@@ -253,8 +253,8 @@ mod tests {
     use rstest::rstest;
     use serde_json::json;
 
-    use super::examples::*;
     use super::Query;
+    use super::examples::*;
 
     #[rstest]
     #[case(MULTIPLE_CREDENTIALS_DCQL_QUERY_BYTES)]
