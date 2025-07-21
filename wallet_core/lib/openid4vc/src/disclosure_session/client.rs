@@ -3,9 +3,9 @@ use reqwest::ClientBuilder;
 use tracing::info;
 use tracing::warn;
 
-use attestation_types::request::NormalizedCredentialRequest;
 use crypto::utils as crypto_utils;
 use crypto::x509::BorrowingCertificate;
+use dcql::normalized::NormalizedCredentialRequest;
 use http_utils::urls::BaseUrl;
 use utils::vec_at_least::VecNonEmpty;
 
@@ -199,11 +199,11 @@ mod tests {
 
     use attestation_data::auth::reader_auth::ReaderRegistration;
     use attestation_data::auth::reader_auth::ValidationError;
-    use attestation_types::request;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::mock_remote::MockRemoteKeyFactory;
     use crypto::server_keys::generate::Ca;
     use crypto::x509::BorrowingCertificateExtension;
+    use dcql::normalized;
     use http_utils::urls::BaseUrl;
     use mdoc::holder::Mdoc;
     use mdoc::identifiers::AttributeIdentifier;
@@ -337,7 +337,7 @@ mod tests {
         // Check all of the data the new `VpDisclosureSession` exposes.
         assert_eq!(disclosure_session.session_type(), session_type);
 
-        let expected_credential_requests = request::mock::mock_from_vecs(vec![(
+        let expected_credential_requests = normalized::mock::mock_from_vecs(vec![(
             PID.to_string(),
             vec![
                 vec![PID.to_string(), "bsn".to_string()].try_into().unwrap(),

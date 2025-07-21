@@ -8,6 +8,7 @@ use attestation_data::attributes::Attributes;
 use attestation_data::attributes::AttributesHandlingError;
 use attestation_data::issuable_document::IssuableDocument;
 use crypto::x509::CertificateError;
+use dcql::ClaimPath;
 use hsm::service::HsmError;
 use http_utils::tls::pinning::TlsPinningConfig;
 use http_utils::urls::BaseUrl;
@@ -15,7 +16,6 @@ use openid4vc::issuer::AttributeService;
 use openid4vc::oidc;
 use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenRequestGrantType;
-use sd_jwt_vc_metadata::ClaimPath;
 use server_utils::keys::SecretKeyVariant;
 use utils::vec_at_least::VecNonEmpty;
 

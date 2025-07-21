@@ -28,7 +28,6 @@ serde_json.workspace = true
 serde_valid.workspace = true
 serde_with = { workspace = true, features = ["base64", "chrono", "hex", "indexmap_2", "macros"] }
 ssri.workspace = true
-strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
 url = { workspace = true, features = ["serde"] }
 x509-parser = { workspace = true, features = ["verify", "validate"] }
@@ -60,9 +59,8 @@ serde_valid.workspace = true
 time = { workspace = true, features = ["macros"] }
 tokio = { workspace = true, features = ["macros"] }
 
-attestation_types = { path = "../attestation_types", features = ["mock"] }
 crypto = { path = "../crypto", features = ["generate", "mock"] }
-jwt.path = "../jwt"
+dcql = { path = "../dcql", features = ["mock"] }
 mdoc = { path = "../mdoc", features = ["mock", "mock_example_constructors", "test"] }
 sd_jwt_vc_metadata = { path = "../sd_jwt_vc_metadata", features = ["example_constructors"] }
 utils = { path = "../utils", features = ["mock_time"] }

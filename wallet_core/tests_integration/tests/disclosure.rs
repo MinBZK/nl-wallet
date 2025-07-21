@@ -7,9 +7,9 @@ use serial_test::serial;
 use url::Url;
 
 use attestation_data::disclosure::DisclosedAttestations;
-use attestation_types::request::AttributeRequest;
-use attestation_types::request::NormalizedCredentialRequest;
 use dcql::CredentialQueryFormat;
+use dcql::normalized::AttributeRequest;
+use dcql::normalized::NormalizedCredentialRequest;
 use http_utils::error::HttpJsonErrorBody;
 use mdoc::test::TestDocuments;
 use mdoc::test::data::addr_street;
