@@ -7,6 +7,7 @@ use utils::vec_at_least::VecNonEmpty;
 
 use crate::identifiers::AttributeIdentifier;
 use crate::identifiers::AttributeIdentifierError;
+use crate::verifier::ItemsRequests;
 
 mod device_response;
 mod device_signed;
@@ -27,6 +28,26 @@ pub enum ResponseValidationError {
     ExpectedMdoc,
     #[error("invalid attribute identifiers: {0}")]
     AttributeIdentifier(#[from] AttributeIdentifierError),
+}
+
+impl ItemsRequests {
+    /// Return the mdoc-specific paths for a particular attestation type in [`ItemsRequests`],
+    /// which is always a pair of namespace and element (i.e. attribute) identifier. Note that this may return an empty set,
+    /// either when the attestation type is not present or when none of the paths can be represented as a 2-tuple.
+    pub fn to_mdoc_paths<'a>(&'a self, attestation_type: &str) -> HashSet<(&'a str, &'a str)> {
+        self.0
+            .iter()
+            .filter(|request| request.doc_type == attestation_type)
+            .flat_map(|request| {
+                request.name_spaces.iter().fold(Vec::new(), |mut acc, (ns, attrs)| {
+                    for attr in attrs.keys() {
+                        acc.push((ns.as_str(), attr.as_str()));
+                    }
+                    acc
+                })
+            })
+            .collect()
+    }
 }
 
 /// Return the mdoc-specific paths for a particular attestation type in [`VecNonEmpty<NormalizedCredentialRequest>`],
