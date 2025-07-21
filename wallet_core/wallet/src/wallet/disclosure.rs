@@ -93,9 +93,6 @@ pub enum DisclosureError {
     #[error("disclosure URI is missing query parameter(s): {0}")]
     #[category(pd)]
     DisclosureUriQuery(Url),
-    #[error("could not create HTTP client: {0}")]
-    #[category(critical)]
-    HttpClient(#[source] reqwest::Error),
     #[error("error in OpenID4VP disclosure session: {0}")]
     VpClient(#[source] VpClientError),
     #[error("error in OpenID4VP disclosure session: {error}")]
