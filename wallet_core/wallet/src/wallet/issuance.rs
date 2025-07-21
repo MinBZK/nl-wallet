@@ -41,15 +41,16 @@ use crate::account_provider::AccountProviderClient;
 use crate::attestation::AttestationError;
 use crate::attestation::AttestationIdentity;
 use crate::attestation::AttestationPresentation;
+use crate::attestation::PID_DOCTYPE;
 use crate::config::UNIVERSAL_LINK_BASE_URL;
+use crate::digid::DigidClient;
+use crate::digid::DigidError;
+use crate::digid::DigidSession;
 use crate::errors::ChangePinError;
 use crate::errors::UpdatePolicyError;
 use crate::instruction::InstructionError;
 use crate::instruction::RemoteEcdsaKeyError;
 use crate::instruction::RemoteEcdsaKeyFactory;
-use crate::issuance::DigidSession;
-use crate::issuance::DigidSessionError;
-use crate::issuance::PID_DOCTYPE;
 use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
 use crate::storage::Storage;
@@ -85,10 +86,10 @@ pub enum IssuanceError {
     PidAlreadyPresent,
 
     #[error("could not start DigiD session: {0}")]
-    DigidSessionStart(#[source] DigidSessionError),
+    DigidSessionStart(#[source] DigidError),
 
     #[error("could not finish DigiD session: {0}")]
-    DigidSessionFinish(#[source] DigidSessionError),
+    DigidSessionFinish(#[source] DigidError),
 
     #[error("could not retrieve attestations from issuer: {0}")]
     IssuanceSession(#[from] IssuanceSessionError),
@@ -159,15 +160,15 @@ pub struct WalletIssuanceSession<IS> {
     protocol_state: IS,
 }
 
-impl<CR, UR, S, AKH, APC, DS, IS, DC, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, DC, WIC>
+impl<CR, UR, S, AKH, APC, DC, IS, DCC, WIC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC, WIC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
     UR: Repository<VersionState>,
     S: Storage,
     AKH: AttestedKeyHolder,
-    DS: DigidSession,
+    DC: DigidClient,
     IS: IssuanceSession,
-    DC: DisclosureClient,
+    DCC: DisclosureClient,
     APC: AccountProviderClient,
 {
     #[instrument(skip_all)]
@@ -208,15 +209,18 @@ where
         }
 
         let pid_issuance_config = &self.config_repository.get().pid_issuance;
-        let (session, auth_url) = DS::start(
-            pid_issuance_config.digid.clone(),
-            pid_issuance_config.digid_http_config.clone(),
-            urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().to_owned(),
-        )
-        .await
-        .map_err(IssuanceError::DigidSessionStart)?;
+        let session = self
+            .digid_client
+            .start_session(
+                pid_issuance_config.digid.clone(),
+                pid_issuance_config.digid_http_config.clone(),
+                urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().to_owned(),
+            )
+            .await
+            .map_err(IssuanceError::DigidSessionStart)?;
 
         info!("DigiD auth URL generated");
+        let auth_url = session.auth_url().clone();
         self.session.replace(Session::Digid(session));
 
         Ok(auth_url)
@@ -330,8 +334,9 @@ where
             panic!()
         };
 
+        let pid_issuance_config = &self.config_repository.get().pid_issuance;
         let token_request = session
-            .into_token_request(redirect_uri)
+            .into_token_request(&pid_issuance_config.digid_http_config, redirect_uri)
             .await
             .map_err(IssuanceError::DigidSessionFinish)?;
 
@@ -609,7 +614,6 @@ mod tests {
     use attestation_data::x509::CertificateType;
     use crypto::server_keys::generate::Ca;
     use crypto::x509::BorrowingCertificateExtension;
-    use http_utils::tls::pinning::TlsPinningConfig;
     use mdoc::holder::Mdoc;
     use openid4vc::issuance_session::CredentialWithMetadata;
     use openid4vc::issuance_session::IssuedCredential;
@@ -624,7 +628,7 @@ mod tests {
 
     use crate::WalletEvent;
     use crate::attestation::AttestationAttributeValue;
-    use crate::issuance::MockDigidSession;
+    use crate::digid::MockDigidSession;
     use crate::storage::StorageState;
     use crate::storage::StoredAttestationFormat;
     use crate::wallet::test::WalletWithStorageMock;
@@ -675,7 +679,6 @@ mod tests {
     }
 
     #[tokio::test]
-    #[serial(MockDigidSession)]
     async fn test_create_pid_issuance_auth_url() {
         const AUTH_URL: &str = "http://example.com/auth";
 
@@ -684,11 +687,15 @@ mod tests {
         assert!(wallet.session.is_none());
 
         // Set up a mock DigiD session.
-        let session_start_context = MockDigidSession::start_context();
-        session_start_context.expect().returning(|_, _: TlsPinningConfig, _| {
-            let client = MockDigidSession::default();
-            Ok((client, Url::parse(AUTH_URL).unwrap()))
-        });
+        wallet.digid_client.expect_start_session().times(1).return_once(
+            |_digid_config, _http_config, _redirect_uri| {
+                let mut session = MockDigidSession::new();
+
+                session.expect_auth_url().return_const(Url::parse(AUTH_URL).unwrap());
+
+                Ok(session)
+            },
+        );
 
         // Have the `Wallet` generate a DigiD authentication URL and test it.
         let auth_url = wallet
@@ -736,7 +743,7 @@ mod tests {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // Set up a mock DigiD session.
-        wallet.session = Some(Session::Digid(MockDigidSession::default()));
+        wallet.session = Some(Session::Digid(MockDigidSession::new()));
 
         // Creating a DigiD authentication URL on a `Wallet` that
         // has an active DigiD session should return an error.
@@ -770,15 +777,15 @@ mod tests {
     }
 
     #[tokio::test]
-    #[serial(MockDigidSession)]
     async fn test_create_pid_issuance_auth_url_error_digid_session_start() {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // Make DigiD session starting return an error.
-        let session_start_context = MockDigidSession::start_context();
-        session_start_context
-            .expect()
-            .return_once(|_, _: TlsPinningConfig, _| Err(OidcError::NoAuthCode.into()));
+        wallet
+            .digid_client
+            .expect_start_session()
+            .times(1)
+            .return_once(|_digid_config, _http_config, _redirect_uri| Err(OidcError::NoAuthCode.into()));
 
         // The error should be forwarded when attempting to create a DigiD authentication URL.
         let error = wallet
@@ -794,7 +801,7 @@ mod tests {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // Set up a mock DigiD session.
-        wallet.session = Some(Session::Digid(MockDigidSession::default()));
+        wallet.session = Some(Session::Digid(MockDigidSession::new()));
 
         assert!(wallet.session.is_some());
 
@@ -956,20 +963,24 @@ mod tests {
         assert_matches!(error, IssuanceError::SessionState);
     }
 
-    fn mock_digid_session() -> MockDigidSession {
+    fn mock_digid_session() -> MockDigidSession<TlsPinningConfig> {
         // Set up a mock DigiD session that returns a token request.
-        let mut session = MockDigidSession::default();
+        let mut session = MockDigidSession::new();
 
-        session.expect_into_token_request().return_once(|_uri| {
-            Ok(TokenRequest {
-                grant_type: TokenRequestGrantType::PreAuthorizedCode {
-                    pre_authorized_code: "123".to_string().into(),
-                },
-                code_verifier: None,
-                client_id: None,
-                redirect_uri: None,
-            })
-        });
+        session
+            .expect_into_token_request()
+            .return_once(|_http_config, _redirect_uri| {
+                let token_request = TokenRequest {
+                    grant_type: TokenRequestGrantType::PreAuthorizedCode {
+                        pre_authorized_code: "123".to_string().into(),
+                    },
+                    code_verifier: None,
+                    client_id: None,
+                    redirect_uri: None,
+                };
+
+                Ok(token_request)
+            });
 
         session
     }
@@ -1169,15 +1180,6 @@ mod tests {
             assert!(wallet.has_registration());
             assert!(!wallet.is_locked());
         }
-
-        // Starting another PID issuance should fail
-        const AUTH_URL: &str = "http://example.com/auth";
-        // Set up a mock DigiD session.
-        let session_start_context = MockDigidSession::start_context();
-        session_start_context.expect().returning(|_, _: TlsPinningConfig, _| {
-            let client = MockDigidSession::default();
-            Ok((client, Url::parse(AUTH_URL).unwrap()))
-        });
 
         let err = wallet
             .create_pid_issuance_auth_url()
