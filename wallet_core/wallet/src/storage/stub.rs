@@ -169,33 +169,10 @@ impl Storage for StorageStub {
 
     async fn update_credentials(
         &mut self,
-        timestamp: DateTime<Utc>,
-        credentials: Vec<(CredentialWithMetadata, AttestationPresentation)>,
+        _timestamp: DateTime<Utc>,
+        _credentials: Vec<(CredentialWithMetadata, AttestationPresentation)>,
     ) -> StorageResult<()> {
-        self.check_query_error()?;
-
-        // First clear all copies for a certain attestation_type
-        for (credential, _) in &credentials {
-            self.issued_credential_copies
-                .insert(credential.attestation_type.clone(), vec![]);
-        }
-
-        // Then re-add them
-        for (credential, attestation) in credentials {
-            self.issued_credential_copies
-                .entry(credential.attestation_type.clone())
-                .or_default()
-                .push(credential);
-
-            self.event_log.push(WalletEvent::Issuance {
-                id: Uuid::new_v4(),
-                attestation: Box::new(attestation),
-                timestamp,
-                renewed: true,
-            });
-        }
-
-        Ok(())
+        unimplemented!()
     }
 
     async fn increment_attestation_copies_usage_count(&mut self, attestation_copy_ids: Vec<Uuid>) -> StorageResult<()> {
