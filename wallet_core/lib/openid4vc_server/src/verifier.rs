@@ -295,7 +295,7 @@ where
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StartDisclosureRequest {
     pub usecase: String,
-    // TODO: replace with dcql::Query (PVW-4530)
+    // TODO: replace with dcql::Query (PVW-4419)
     pub credential_requests: Option<VecNonEmpty<NormalizedCredentialRequest>>,
     pub return_url_template: Option<ReturnUrlTemplate>,
 }

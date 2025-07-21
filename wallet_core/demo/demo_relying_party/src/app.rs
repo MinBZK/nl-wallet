@@ -177,7 +177,7 @@ async fn create_session(
         .client
         .start(
             options.usecase.clone(),
-            // TODO: Change to Query (PVW-4530)
+            // TODO: Change to Query (PVW-4419)
             usecase.dcql_query.clone().try_into().map_err(anyhow::Error::new)?,
             return_url_template,
         )
