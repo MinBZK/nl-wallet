@@ -46,7 +46,7 @@ pub enum ReturnUrlMode {
 pub struct Usecase {
     #[serde(default)]
     pub return_url: ReturnUrlMode,
-    pub items_requests: ItemsRequests,
+    pub items_requests: Option<ItemsRequests>,
 }
 
 impl Settings {
