@@ -216,6 +216,62 @@ pub mod mock {
             }
         }
 
+        pub fn new_pid_example() -> Self {
+            Self {
+                credentials: vec![CredentialQuery {
+                    id: "my_credential".to_string(),
+                    format: CredentialQueryFormat::MsoMdoc {
+                        doctype_value: PID.to_string(),
+                    },
+                    multiple: false,
+                    trusted_authorities: vec![],
+                    require_cryptographic_holder_binding: true,
+                    claims_selection: ClaimsSelection::All {
+                        claims: vec![
+                            ClaimsQuery {
+                                id: None,
+                                path: vec![
+                                    ClaimPath::SelectByKey(PID.to_string()),
+                                    ClaimPath::SelectByKey(ATTR_BSN.to_string()),
+                                ]
+                                .try_into()
+                                .unwrap(),
+                                values: vec![],
+                                intent_to_retain: Some(true),
+                            },
+                            ClaimsQuery {
+                                id: None,
+                                path: vec![
+                                    ClaimPath::SelectByKey(PID.to_string()),
+                                    ClaimPath::SelectByKey(ATTR_GIVEN_NAME.to_string()),
+                                ]
+                                .try_into()
+                                .unwrap(),
+                                values: vec![],
+                                intent_to_retain: Some(true),
+                            },
+                            ClaimsQuery {
+                                id: None,
+                                path: vec![
+                                    ClaimPath::SelectByKey(PID.to_string()),
+                                    ClaimPath::SelectByKey(ATTR_FAMILY_NAME.to_string()),
+                                ]
+                                .try_into()
+                                .unwrap(),
+                                values: vec![],
+                                intent_to_retain: Some(true),
+                            },
+                        ]
+                        .try_into()
+                        .unwrap(),
+                    },
+                }]
+                .try_into()
+                .unwrap(),
+                credential_sets: vec![],
+            }
+        }
+
         pub fn pid_full_name() -> Self {
             Self {
                 credentials: vec![CredentialQuery {

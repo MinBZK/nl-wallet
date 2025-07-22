@@ -35,7 +35,6 @@ use crypto::server_keys::generate::Ca;
 use crypto::server_keys::generate::mock::RP_CERT_CN;
 use dcql::Query;
 use dcql::normalized;
-use dcql::normalized::NormalizedCredentialRequest;
 use http_utils::urls::BaseUrl;
 use jwt::Jwt;
 use mdoc::DeviceResponse;
@@ -184,9 +183,7 @@ async fn disclosure_using_message_client() {
     let ca = Ca::generate("myca", Default::default()).unwrap();
     let rp_keypair = generate_reader_mock(
         &ca,
-        Some(ReaderRegistration::mock_from_credential_requests(
-            &normalized::mock::new_pid_example(),
-        )),
+        Some(ReaderRegistration::mock_from_dcql_query(&Query::new_pid_example())),
     )
     .unwrap();
 
@@ -474,8 +471,7 @@ async fn test_client_and_server(
     #[case] expected_documents: TestDocuments,
     #[values(None, Some("query_param".to_string()))] result_query_param: Option<String>,
 ) {
-    let (verifier, rp_trust_anchor, issuer_ca) =
-        setup_verifier(&dcql_query.clone().try_into().unwrap(), result_query_param.clone());
+    let (verifier, rp_trust_anchor, issuer_ca) = setup_verifier(&dcql_query, result_query_param.clone());
 
     // Start the session
     let session_token = verifier
@@ -565,7 +561,7 @@ async fn test_client_and_server_cancel_after_created() {
     let dcql_query = Query::pid_full_name();
     let session_type = SessionType::SameDevice;
 
-    let (verifier, trust_anchor, _issuer_ca) = setup_verifier(&dcql_query.clone().try_into().unwrap(), None);
+    let (verifier, trust_anchor, _issuer_ca) = setup_verifier(&dcql_query, None);
 
     // Start the session
     let session_token = verifier
@@ -617,7 +613,7 @@ async fn test_client_and_server_cancel_after_wallet_start() {
     let dcql_query = Query::pid_full_name();
     let session_type = SessionType::SameDevice;
 
-    let (verifier, trust_anchor, issuer_ca) = setup_verifier(&dcql_query.clone().try_into().unwrap(), None);
+    let (verifier, trust_anchor, issuer_ca) = setup_verifier(&dcql_query, None);
 
     // Start the session
     let session_token = verifier
@@ -717,7 +713,7 @@ async fn test_disclosure_invalid_poa() {
     let session_type = SessionType::SameDevice;
     let use_case = NO_RETURN_URL_USE_CASE;
 
-    let (verifier, rp_trust_anchor, issuer_ca) = setup_verifier(&dcql_query.clone().try_into().unwrap(), None);
+    let (verifier, rp_trust_anchor, issuer_ca) = setup_verifier(&dcql_query, None);
 
     // Start the session
     let session_token = verifier
@@ -830,7 +826,7 @@ async fn test_wallet_initiated_usecase_verifier_cancel() {
 async fn test_rp_initiated_usecase_verifier_cancel() {
     let dcql_query: Query = pid_full_name().into();
 
-    let (verifier, rp_trust_anchor, _issuer_ca) = setup_verifier(&dcql_query.clone().try_into().unwrap(), None);
+    let (verifier, rp_trust_anchor, _issuer_ca) = setup_verifier(&dcql_query, None);
 
     // Start the session
     let session_token = verifier
@@ -866,9 +862,7 @@ fn setup_wallet_initiated_usecase_verifier() -> (Arc<MockWalletInitiatedUseCaseV
 
     // Initialize the verifier
     let dcql_query: Query = pid_full_name().into();
-    let reader_registration = Some(ReaderRegistration::mock_from_credential_requests(
-        &dcql_query.clone().try_into().unwrap(),
-    ));
+    let reader_registration = Some(ReaderRegistration::mock_from_dcql_query(&dcql_query));
     let usecases = HashMap::from([(
         WALLET_INITIATED_RETURN_URL_USE_CASE.to_string(),
         WalletInitiatedUseCase::try_new(
@@ -892,7 +886,7 @@ fn setup_wallet_initiated_usecase_verifier() -> (Arc<MockWalletInitiatedUseCaseV
 }
 
 fn setup_verifier(
-    credential_requests: &VecNonEmpty<NormalizedCredentialRequest>,
+    dcql_query: &Query,
     session_result_query_param: Option<String>,
 ) -> (Arc<MockRpInitiatedUseCaseVerifier>, TrustAnchor<'static>, Ca) {
     // Initialize key material
@@ -900,7 +894,7 @@ fn setup_verifier(
     let rp_ca = Ca::generate_reader_mock_ca().unwrap();
 
     // Initialize the verifier
-    let reader_registration = Some(ReaderRegistration::mock_from_credential_requests(credential_requests));
+    let reader_registration = Some(ReaderRegistration::mock_from_dcql_query(dcql_query));
     let usecases = HashMap::from([
         (
             NO_RETURN_URL_USE_CASE.to_string(),
