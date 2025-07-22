@@ -12,10 +12,10 @@ use mdoc::holder::Mdoc;
 use mdoc::holder::disclosure::credential_requests_to_mdoc_paths;
 use mdoc::iso::disclosure::DeviceResponse;
 use mdoc::iso::engagement::SessionTranscript;
-use poa::factory::PoaFactory;
-use poa::keyfactory::KeyFactory;
 use utils::vec_at_least::VecAtLeastTwoUnique;
 use utils::vec_at_least::VecNonEmpty;
+use wscd::factory::PoaFactory;
+use wscd::keyfactory::KeyFactory;
 
 use crate::openid4vp::NormalizedVpAuthorizationRequest;
 use crate::openid4vp::VpAuthorizationResponse;
@@ -194,9 +194,9 @@ mod tests {
     use attestation_data::auth::reader_auth::ReaderRegistration;
     use http_utils::urls::BaseUrl;
     use mdoc::holder::Mdoc;
-    use poa::mock_remote::MockRemoteEcdsaKey;
-    use poa::mock_remote::MockRemoteKeyFactory;
     use serde_json::json;
+    use wscd::mock_remote::MockRemoteEcdsaKey;
+    use wscd::mock_remote::MockRemoteKeyFactory;
 
     use crate::errors::AuthorizationErrorCode;
     use crate::errors::VpAuthorizationErrorCode;

@@ -57,7 +57,6 @@ use jwt::Jwt;
 use jwt::JwtSubject;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
-use poa::PoaError;
 use utils::generator::Generator;
 use wallet_account::messages::errors::IncorrectPinData;
 use wallet_account::messages::errors::PinTimeoutData;
@@ -86,6 +85,7 @@ use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::repository::PersistenceError;
 use wallet_provider_domain::repository::TransactionStarter;
 use wallet_provider_domain::repository::WalletUserRepository;
+use wscd::PoaError;
 
 use crate::instructions::HandleInstruction;
 use crate::instructions::ValidateInstruction;

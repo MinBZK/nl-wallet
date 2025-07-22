@@ -401,7 +401,7 @@ mod tests {
 
     use crypto::examples::Examples;
     use crypto::server_keys::generate::Ca;
-    use poa::mock_remote::MockRemoteEcdsaKey;
+    use wscd::mock_remote::MockRemoteEcdsaKey;
 
     use crate::DeviceAuthenticationBytes;
     use crate::DeviceResponse;

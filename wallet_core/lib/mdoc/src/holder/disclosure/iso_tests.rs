@@ -5,8 +5,8 @@ use attestation_types::request::NormalizedCredentialRequest;
 use crypto::examples::Examples;
 use crypto::server_keys::generate::Ca;
 use dcql::CredentialQueryFormat;
-use poa::mock_remote::MockRemoteKeyFactory;
 use utils::vec_at_least::VecNonEmpty;
+use wscd::mock_remote::MockRemoteKeyFactory;
 
 use crate::examples::EXAMPLE_ATTR_NAME;
 use crate::examples::EXAMPLE_ATTR_VALUE;

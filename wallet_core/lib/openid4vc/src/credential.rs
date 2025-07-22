@@ -18,10 +18,10 @@ use jwt::pop::JwtPopClaims;
 use jwt::wte::WteClaims;
 use mdoc::IssuerSigned;
 use mdoc::utils::serialization::CborBase64;
-use poa::Poa;
-use poa::keyfactory::KeyFactory;
 use utils::spec::SpecOptional;
 use utils::vec_at_least::VecNonEmpty;
+use wscd::Poa;
+use wscd::keyfactory::KeyFactory;
 
 use crate::Format;
 use crate::issuance_session::IssuanceSessionError;

@@ -45,9 +45,6 @@ use mdoc::holder::Mdoc;
 use mdoc::utils::cose::CoseError;
 use mdoc::utils::serialization::CborBase64;
 use mdoc::utils::serialization::TaggedBytes;
-use poa::Poa;
-use poa::factory::PoaFactory;
-use poa::keyfactory::KeyFactory;
 use sd_jwt::hasher::Sha256Hasher;
 use sd_jwt::key_binding_jwt_claims::RequiredKeyBinding;
 use sd_jwt::sd_jwt::VerifiedSdJwt;
@@ -60,6 +57,9 @@ use utils::single_unique::MultipleItemsFound;
 use utils::single_unique::SingleUnique;
 use utils::vec_at_least::VecAtLeastTwoUnique;
 use utils::vec_at_least::VecNonEmpty;
+use wscd::Poa;
+use wscd::factory::PoaFactory;
+use wscd::keyfactory::KeyFactory;
 
 use crate::CredentialErrorCode;
 use crate::ErrorResponse;
@@ -1117,11 +1117,11 @@ mod tests {
     use crypto::x509::CertificateError;
     use mdoc::utils::serialization::CborBase64;
     use mdoc::utils::serialization::TaggedBytes;
-    use poa::mock_remote::MockRemoteEcdsaKey;
-    use poa::mock_remote::MockRemoteKeyFactory;
     use sd_jwt_vc_metadata::JsonSchemaPropertyType;
     use sd_jwt_vc_metadata::TypeMetadata;
     use sd_jwt_vc_metadata::TypeMetadataDocuments;
+    use wscd::mock_remote::MockRemoteEcdsaKey;
+    use wscd::mock_remote::MockRemoteKeyFactory;
 
     use crate::Format;
     use crate::mock::MOCK_WALLET_CLIENT_ID;

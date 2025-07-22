@@ -30,8 +30,8 @@ strum = { workspace = true, features = ["derive"] }
 
 crypto.path = "../../lib/crypto"
 jwt.path = "../../lib/jwt"
-poa.path = "../../lib/poa"
 utils.path = "../../lib/utils"
+wscd.path = "../../lib/wscd"
 
 futures = { workspace = true, optional = true, features = ["std"] }
 p256 = { workspace = true, optional = true, features = ["ecdsa", "pem", "std"] }

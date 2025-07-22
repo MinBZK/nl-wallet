@@ -31,8 +31,8 @@ use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateError;
 use crypto::x509::CertificateUsage;
 use error_category::ErrorCategory;
-use poa::keyfactory::KeyFactory;
 use utils::generator::Generator;
+use wscd::keyfactory::KeyFactory;
 
 use crate::utils::serialization::CborError;
 use crate::utils::serialization::cbor_deserialize;

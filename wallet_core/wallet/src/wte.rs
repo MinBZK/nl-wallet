@@ -61,7 +61,7 @@ pub(crate) mod tests {
     use jwt::wte::WteClaims;
     use platform_support::attested_key::AppleAttestedKey;
     use platform_support::attested_key::GoogleAttestedKey;
-    use poa::mock_remote::MockRemoteEcdsaKey;
+    use wscd::mock_remote::MockRemoteEcdsaKey;
 
     use crate::account_provider::AccountProviderClient;
     use crate::instruction::InstructionClient;

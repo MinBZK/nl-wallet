@@ -81,15 +81,15 @@ use openid4vc::verifier::VpToken;
 use openid4vc::verifier::WalletAuthResponse;
 use openid4vc::verifier::WalletInitiatedUseCase;
 use openid4vc::verifier::WalletInitiatedUseCases;
-use poa::Poa;
-use poa::factory::PoaFactory;
-use poa::keyfactory::KeyFactory;
-use poa::mock_remote::MockRemoteEcdsaKey;
-use poa::mock_remote::MockRemoteKeyFactory;
 use utils::generator::TimeGenerator;
 use utils::generator::mock::MockTimeGenerator;
 use utils::vec_at_least::VecAtLeastTwoUnique;
 use utils::vec_at_least::VecNonEmpty;
+use wscd::Poa;
+use wscd::factory::PoaFactory;
+use wscd::keyfactory::KeyFactory;
+use wscd::mock_remote::MockRemoteEcdsaKey;
+use wscd::mock_remote::MockRemoteKeyFactory;
 
 #[tokio::test]
 async fn disclosure_direct() {

@@ -6,9 +6,9 @@ use attestation_types::request::NormalizedCredentialRequest;
 use crypto::CredentialEcdsaKey;
 use http_utils::urls::BaseUrl;
 use mdoc::holder::Mdoc;
-use poa::factory::PoaFactory;
-use poa::keyfactory::KeyFactory;
 use utils::vec_at_least::VecNonEmpty;
+use wscd::factory::PoaFactory;
+use wscd::keyfactory::KeyFactory;
 
 use crate::verifier::SessionType;
 

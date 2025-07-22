@@ -77,7 +77,6 @@ jwt.path = "../lib/jwt"
 mdoc.path = "../lib/mdoc"
 openid4vc.path = "../lib/openid4vc"
 platform_support.path = "platform_support"
-poa.path = "../lib/poa"
 sd_jwt.path = "../lib/sd_jwt"
 sd_jwt_vc_metadata.path = "../lib/sd_jwt_vc_metadata"
 update_policy_model.path = "../update_policy/model"
@@ -85,6 +84,7 @@ wallet_account = { path = "../wallet_provider/wallet_account", features = ["clie
 utils.path = "../lib/utils"
 wallet_configuration.path = "configuration"
 wallet_migrations.path = "migrations"
+wscd.path = "../lib/wscd"
 
 apple_app_attest = { path = "../lib/apple_app_attest", optional = true }
 
@@ -115,10 +115,10 @@ openid4vc = { path = "../lib/openid4vc", features = [
 ] }
 # enable the "mock" feature for platform_support when running tests
 platform_support = { path = "platform_support", features = ["mock"] }
-poa = { path = "../lib/poa", features = ["mock_remote_key"] }
 sd_jwt = { path = "../lib/sd_jwt", features = ["examples"] }
 sd_jwt_vc_metadata = { path = "../lib/sd_jwt_vc_metadata", features = ["example_constructors"] }
 wallet_account = { path = "../wallet_provider/wallet_account", features = ["client", "server"] }
+wscd = { path = "../lib/wscd", features = ["mock_remote_key"] }
 
 [build-dependencies]
 serde.workspace = true

@@ -16,14 +16,14 @@ use crypto::keys::WithIdentifier;
 use crypto::p256_der::DerSignature;
 use platform_support::attested_key::AppleAttestedKey;
 use platform_support::attested_key::GoogleAttestedKey;
-use poa::Poa;
-use poa::factory::PoaFactory;
-use poa::keyfactory::KeyFactory;
 use utils::vec_at_least::VecAtLeastTwoUnique;
 use wallet_account::messages::instructions::ConstructPoa;
 use wallet_account::messages::instructions::GenerateKey;
 use wallet_account::messages::instructions::GenerateKeyResult;
 use wallet_account::messages::instructions::Sign;
+use wscd::Poa;
+use wscd::factory::PoaFactory;
+use wscd::keyfactory::KeyFactory;
 
 use crate::account_provider::AccountProviderClient;
 use crate::storage::Storage;

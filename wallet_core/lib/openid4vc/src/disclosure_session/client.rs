@@ -207,9 +207,9 @@ mod tests {
     use mdoc::identifiers::AttributeIdentifier;
     use mdoc::test::data::PID;
     use mdoc::utils::serialization::CborBase64;
-    use poa::mock_remote::MockRemoteEcdsaKey;
-    use poa::mock_remote::MockRemoteKeyFactory;
     use utils::generator::mock::MockTimeGenerator;
+    use wscd::mock_remote::MockRemoteEcdsaKey;
+    use wscd::mock_remote::MockRemoteKeyFactory;
 
     use crate::errors::AuthorizationErrorCode;
     use crate::errors::VpAuthorizationErrorCode;
