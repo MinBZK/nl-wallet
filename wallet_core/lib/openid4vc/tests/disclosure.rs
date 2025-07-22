@@ -33,6 +33,7 @@ use crypto::mock_remote::MockRemoteKeyFactoryError;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::server_keys::generate::mock::RP_CERT_CN;
+use dcql::Query;
 use dcql::normalized;
 use dcql::normalized::NormalizedCredentialRequest;
 use http_utils::urls::BaseUrl;
@@ -469,15 +470,16 @@ async fn test_client_and_server(
     #[case] return_url_template: Option<ReturnUrlTemplate>,
     #[case] use_case: &str,
     #[case] stored_documents: TestDocuments,
-    #[case] requested_documents: VecNonEmpty<NormalizedCredentialRequest>,
+    #[case] dcql_query: Query,
     #[case] expected_documents: TestDocuments,
     #[values(None, Some("query_param".to_string()))] result_query_param: Option<String>,
 ) {
-    let (verifier, rp_trust_anchor, issuer_ca) = setup_verifier(&requested_documents, result_query_param.clone());
+    let (verifier, rp_trust_anchor, issuer_ca) =
+        setup_verifier(&dcql_query.clone().try_into().unwrap(), result_query_param.clone());
 
     // Start the session
     let session_token = verifier
-        .new_session(use_case.to_string(), Some(requested_documents), return_url_template)
+        .new_session(use_case.to_string(), Some(dcql_query), return_url_template)
         .await
         .unwrap();
 
@@ -560,16 +562,16 @@ async fn test_client_and_server(
 
 #[tokio::test]
 async fn test_client_and_server_cancel_after_created() {
-    let items_requests = pid_full_name().into();
+    let dcql_query = Query::pid_full_name();
     let session_type = SessionType::SameDevice;
 
-    let (verifier, trust_anchor, _issuer_ca) = setup_verifier(&items_requests, None);
+    let (verifier, trust_anchor, _issuer_ca) = setup_verifier(&dcql_query.clone().try_into().unwrap(), None);
 
     // Start the session
     let session_token = verifier
         .new_session(
             DEFAULT_RETURN_URL_USE_CASE.to_string(),
-            Some(items_requests),
+            Some(dcql_query),
             Some(ReturnUrlTemplate::from_str("https://example.com/redirect_uri/{session_token}").unwrap()),
         )
         .await
@@ -612,16 +614,16 @@ async fn test_client_and_server_cancel_after_created() {
 #[tokio::test]
 async fn test_client_and_server_cancel_after_wallet_start() {
     let stored_documents = pid_full_name();
-    let items_requests = pid_full_name().into();
+    let dcql_query = Query::pid_full_name();
     let session_type = SessionType::SameDevice;
 
-    let (verifier, trust_anchor, issuer_ca) = setup_verifier(&items_requests, None);
+    let (verifier, trust_anchor, issuer_ca) = setup_verifier(&dcql_query.clone().try_into().unwrap(), None);
 
     // Start the session
     let session_token = verifier
         .new_session(
             DEFAULT_RETURN_URL_USE_CASE.to_string(),
-            Some(items_requests),
+            Some(dcql_query),
             Some(ReturnUrlTemplate::from_str("https://example.com/redirect_uri/{session_token}").unwrap()),
         )
         .await
@@ -711,15 +713,15 @@ async fn test_disclosure_invalid_poa() {
     }
 
     let stored_documents = pid_full_name() + addr_street();
-    let items_requests = (pid_given_name() + addr_street()).into();
+    let dcql_query: Query = (pid_given_name() + addr_street()).into();
     let session_type = SessionType::SameDevice;
     let use_case = NO_RETURN_URL_USE_CASE;
 
-    let (verifier, rp_trust_anchor, issuer_ca) = setup_verifier(&items_requests, None);
+    let (verifier, rp_trust_anchor, issuer_ca) = setup_verifier(&dcql_query.clone().try_into().unwrap(), None);
 
     // Start the session
     let session_token = verifier
-        .new_session(use_case.to_string(), Some(items_requests), None)
+        .new_session(use_case.to_string(), Some(dcql_query), None)
         .await
         .unwrap();
 
@@ -826,15 +828,15 @@ async fn test_wallet_initiated_usecase_verifier_cancel() {
 
 #[tokio::test]
 async fn test_rp_initiated_usecase_verifier_cancel() {
-    let items_requests = pid_full_name().into();
+    let dcql_query: Query = pid_full_name().into();
 
-    let (verifier, rp_trust_anchor, _issuer_ca) = setup_verifier(&items_requests, None);
+    let (verifier, rp_trust_anchor, _issuer_ca) = setup_verifier(&dcql_query.clone().try_into().unwrap(), None);
 
     // Start the session
     let session_token = verifier
         .new_session(
             DEFAULT_RETURN_URL_USE_CASE.to_string(),
-            Some(items_requests),
+            Some(dcql_query),
             Some(ReturnUrlTemplate::from_str("https://example.com/redirect_uri/{session_token}").unwrap()),
         )
         .await
@@ -863,14 +865,16 @@ fn setup_wallet_initiated_usecase_verifier() -> (Arc<MockWalletInitiatedUseCaseV
     let rp_ca = Ca::generate_reader_mock_ca().unwrap();
 
     // Initialize the verifier
-    let credential_requests: VecNonEmpty<NormalizedCredentialRequest> = pid_full_name().into();
-    let reader_registration = Some(ReaderRegistration::mock_from_credential_requests(&credential_requests));
+    let dcql_query: Query = pid_full_name().into();
+    let reader_registration = Some(ReaderRegistration::mock_from_credential_requests(
+        &dcql_query.clone().try_into().unwrap(),
+    ));
     let usecases = HashMap::from([(
         WALLET_INITIATED_RETURN_URL_USE_CASE.to_string(),
         WalletInitiatedUseCase::try_new(
             generate_reader_mock(&rp_ca, reader_registration.clone()).unwrap(),
             SessionTypeReturnUrl::SameDevice,
-            credential_requests,
+            dcql_query,
             "https://example.com/redirect_uri".parse().unwrap(),
         )
         .unwrap(),

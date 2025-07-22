@@ -24,7 +24,6 @@ use tracing::warn;
 
 use attestation_data::disclosure::DisclosedAttestations;
 use crypto::keys::EcdsaKeySend;
-use dcql::normalized::NormalizedCredentialRequest;
 use http_utils::error::HttpJsonError;
 use http_utils::urls;
 use http_utils::urls::BaseUrl;
@@ -48,7 +47,6 @@ use openid4vc::verifier::UseCases;
 use openid4vc::verifier::Verifier;
 use openid4vc::verifier::WalletAuthResponse;
 use utils::generator::TimeGenerator;
-use utils::vec_at_least::VecNonEmpty;
 
 struct ApplicationState<S, US> {
     verifier: Verifier<S, US>,
@@ -295,8 +293,7 @@ where
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StartDisclosureRequest {
     pub usecase: String,
-    // TODO: replace with dcql::Query (PVW-4419)
-    pub credential_requests: Option<VecNonEmpty<NormalizedCredentialRequest>>,
+    pub dcql_query: Option<dcql::Query>,
     pub return_url_template: Option<ReturnUrlTemplate>,
 }
 
@@ -319,7 +316,7 @@ where
         .verifier
         .new_session(
             start_request.usecase,
-            start_request.credential_requests,
+            start_request.dcql_query,
             start_request.return_url_template,
         )
         .await
