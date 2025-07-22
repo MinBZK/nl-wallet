@@ -2,10 +2,15 @@ use std::collections::HashMap;
 use std::hash::Hash;
 use std::hash::Hasher;
 use std::iter;
+use std::num::NonZeroU64;
 
 use derive_more::Constructor;
 use derive_more::Debug;
+use futures::FutureExt;
 use futures::future;
+use itertools::Itertools;
+use jsonwebtoken::Algorithm;
+use jsonwebtoken::Header;
 use p256::ecdsa::Signature;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
@@ -13,14 +18,22 @@ use p256::ecdsa::signature::Signer;
 use parking_lot::Mutex;
 use rand_core::OsRng;
 
-use crate::keyfactory::KeyFactory;
-
 use crypto::CredentialEcdsaKey;
 use crypto::CredentialKeyType;
 use crypto::EcdsaKey;
 use crypto::SecureEcdsaKey;
 use crypto::WithIdentifier;
+use crypto::p256_der::verifying_key_sha256;
 use crypto::utils;
+use jwt::Jwt;
+use jwt::credential::JwtCredentialClaims;
+use jwt::jwk::jwk_from_p256;
+use jwt::pop::JwtPopClaims;
+use jwt::wte::WteClaims;
+
+use crate::Poa;
+use crate::keyfactory::IssuanceResult;
+use crate::keyfactory::KeyFactory;
 
 #[derive(Debug, thiserror::Error)]
 pub enum MockRemoteKeyFactoryError {
@@ -216,5 +229,97 @@ impl KeyFactory for MockRemoteKeyFactory {
         .await?;
 
         Ok(result)
+    }
+
+    async fn perform_issuance(
+        &self,
+        count: NonZeroU64,
+        aud: String,
+        nonce: Option<String>,
+        include_wua: bool,
+    ) -> Result<IssuanceResult, Self::Error> {
+        let claims = JwtPopClaims::new(nonce, "wallet".to_string(), aud);
+
+        let mut keys = self.signing_keys.lock();
+        let attestation_keys = (0..count.get())
+            .map(|_| {
+                let key = SigningKey::random(&mut OsRng);
+                let identifier = verifying_key_sha256(key.verifying_key());
+                keys.insert(identifier.clone(), key.clone());
+                MockRemoteEcdsaKey::new(identifier, key)
+            })
+            .collect_vec();
+        drop(keys);
+
+        let pops = attestation_keys
+            .iter()
+            .map(|attestation_key| {
+                let header = Header {
+                    typ: Some("openid4vci-proof+jwt".to_string()),
+                    alg: Algorithm::ES256,
+                    jwk: Some(jwk_from_p256(attestation_key.verifying_key()).unwrap()),
+                    ..Default::default()
+                };
+
+                Jwt::sign(&claims, &header, attestation_key)
+                    .now_or_never()
+                    .unwrap()
+                    .unwrap()
+            })
+            .collect_vec()
+            .try_into()
+            .unwrap();
+
+        let wua_key = include_wua.then(|| {
+            let key = SigningKey::random(&mut OsRng);
+            MockRemoteEcdsaKey::new(verifying_key_sha256(key.verifying_key()), key)
+        });
+        let wua = include_wua.then(|| {
+            let wua = JwtCredentialClaims::new_signed(
+                wua_key.as_ref().unwrap().verifying_key(),
+                wua_key.as_ref().unwrap(), // Sign the WTE with its own private key in this test
+                "iss".to_string(),
+                Some("wte+jwt".to_string()),
+                WteClaims::new(),
+            )
+            .now_or_never()
+            .unwrap()
+            .unwrap();
+
+            let wua_disclosure = Jwt::sign(&claims, &Header::new(Algorithm::ES256), wua_key.as_ref().unwrap())
+                .now_or_never()
+                .unwrap()
+                .unwrap();
+
+            (wua, wua_disclosure)
+        });
+
+        let count_including_wua = if include_wua { count.get() + 1 } else { count.get() };
+        let poa = (count_including_wua > 1).then(|| {
+            Poa::new(
+                attestation_keys
+                    .iter()
+                    .chain(wua_key.as_ref())
+                    .collect_vec()
+                    .try_into()
+                    .unwrap(),
+                claims,
+            )
+            .now_or_never()
+            .unwrap()
+            .unwrap()
+        });
+
+        Ok(IssuanceResult {
+            key_identifiers: attestation_keys
+                .into_iter()
+                .map(|key| key.identifier)
+                .collect_vec()
+                .try_into()
+                .unwrap(),
+            pops,
+            wua,
+            poa,
+        })
     }
 }

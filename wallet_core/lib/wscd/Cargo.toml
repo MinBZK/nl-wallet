@@ -17,6 +17,7 @@ mock_remote_key = ["crypto/mock_remote_key", "dep:parking_lot", "dep:rand_core"]
 [dependencies]
 derive_more = { workspace = true, features = ["as_ref", "from"] }
 futures.workspace = true
+itertools.workspace = true
 jsonwebtoken.workspace = true
 parking_lot = { workspace = true, optional = true }
 p256 = { workspace = true, features = ["ecdsa"] }

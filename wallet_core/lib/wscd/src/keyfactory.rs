@@ -1,9 +1,17 @@
 use std::error::Error;
+use std::num::NonZeroU64;
 
 use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
 
 use crypto::CredentialEcdsaKey;
+use jwt::Jwt;
+use jwt::credential::JwtCredentialClaims;
+use jwt::pop::JwtPopClaims;
+use jwt::wte::WteClaims;
+use utils::vec_at_least::VecNonEmpty;
+
+use crate::Poa;
 
 pub trait KeyFactory {
     type Key: CredentialEcdsaKey;
@@ -16,4 +24,20 @@ pub trait KeyFactory {
         &self,
         messages_and_keys: Vec<(Vec<u8>, Vec<&Self::Key>)>,
     ) -> Result<Vec<Vec<Signature>>, Self::Error>;
+
+    async fn perform_issuance(
+        &self,
+        count: NonZeroU64,
+        aud: String,
+        nonce: Option<String>,
+        include_wua: bool,
+    ) -> Result<IssuanceResult, Self::Error>;
+}
+
+#[derive(Debug)]
+pub struct IssuanceResult {
+    pub key_identifiers: VecNonEmpty<String>,
+    pub pops: VecNonEmpty<Jwt<JwtPopClaims>>,
+    pub wua: Option<(Jwt<JwtCredentialClaims<WteClaims>>, Jwt<JwtPopClaims>)>,
+    pub poa: Option<Poa>,
 }
