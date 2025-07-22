@@ -47,9 +47,9 @@ certificate = "MIJ..."
 [[disclosure_settings.disclosure_based_issuance.dcql_query.credentials]]
 id = "my_credential"
 format = "mso_mdoc"
-meta = { doctype_value = "com.example.pid" },
+meta = { doctype_value = "com.example.pid" }
 claims = [
-  { path = ["com.example.pid", "bsn"], intent_to_retain: true },
+  { path = ["com.example.pid", "bsn"], intent_to_retain = true }
 ]
 
 [disclosure_settings.degree.attestation_url_config]
