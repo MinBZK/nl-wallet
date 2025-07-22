@@ -675,7 +675,7 @@ mod tests {
         };
 
         let attestations = vec![
-            AttestationPresentation::create_for_issuance(
+            AttestationPresentation::create_from_mdoc(
                 AttestationIdentity::Ephemeral,
                 type_metadata.to_normalized().unwrap(),
                 issuer_registration.organization.clone(),

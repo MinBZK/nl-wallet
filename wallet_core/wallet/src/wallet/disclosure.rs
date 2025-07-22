@@ -42,6 +42,7 @@ use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::account_provider::AccountProviderClient;
 use crate::attestation::AttestationError;
+use crate::attestation::AttestationIdentity;
 use crate::attestation::AttestationPresentation;
 use crate::attestation::BSN_ATTR_NAME;
 use crate::attestation::PID_DOCTYPE;
@@ -470,8 +471,10 @@ where
                             .clone()
                             .into_attribute_subset(&mdoc_paths);
 
-                        let attestation_presentation = AttestationPresentation::create_for_disclosure(
-                            stored_mdoc.mdoc_id,
+                        let attestation_presentation = AttestationPresentation::create_from_mdoc(
+                            AttestationIdentity::Fixed {
+                                id: stored_mdoc.mdoc_id,
+                            },
                             stored_mdoc.normalized_metadata.clone(),
                             issuer_registration.organization,
                             issuer_signed.into_entries_by_namespace(),
@@ -1039,8 +1042,8 @@ mod tests {
             .unwrap()
             .unwrap();
         let attributes = mdoc.clone().issuer_signed.into_entries_by_namespace();
-        let presentation = AttestationPresentation::create_for_disclosure(
-            Uuid::new_v4(),
+        let presentation = AttestationPresentation::create_from_mdoc(
+            AttestationIdentity::Fixed { id: Uuid::new_v4() },
             metadata,
             issuer_registration.organization,
             attributes,

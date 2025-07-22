@@ -86,7 +86,7 @@ where
                             let issuer_registration = IssuerRegistration::from_certificate(&issuer_certificate)?
                                 .ok_or(AttestationsError::MissingIssuerRegistration)?;
 
-                            let attestation = AttestationPresentation::create_for_issuance(
+                            let attestation = AttestationPresentation::create_from_mdoc(
                                 AttestationIdentity::Fixed { id: attestation_id },
                                 normalized_metadata,
                                 issuer_registration.organization,

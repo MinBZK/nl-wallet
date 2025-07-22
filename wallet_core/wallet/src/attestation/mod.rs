@@ -1,9 +1,4 @@
 mod attribute;
-mod disclosure;
-mod issuance;
-
-#[cfg(test)]
-pub mod test;
 
 use std::collections::HashSet;
 
