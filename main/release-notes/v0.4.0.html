@@ -331,6 +331,10 @@ non-repudiable.</p></li>
 <li><p>The wallet now supports issued attributes containing ‘null’ values.</p></li>
 <li><p>The PID issuer now includes a new attribute called the recovery code, which is
 computed as the HMAC of the user’s BSN.</p></li>
+<li><p>When identical attestations are issued, the wallet detects if the attestation
+already exists and renews the existing attestation. The only exception is that
+if the attestation will be valid in the future, the attestation will be
+treated as new.</p></li>
 </ul>
 </section>
 <section id="code-improvements">
