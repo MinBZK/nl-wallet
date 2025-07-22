@@ -570,10 +570,10 @@ where
 
         let transaction = self.database()?.connection().begin().await?;
 
-        let mut issuance_event_attestations = vec![];
+        let mut issuance_event_attestations = Vec::with_capacity(credentials.len());
 
         for (credential, attestation_presentation) in credentials {
-            let AttestationIdentity::Fixed { id: attestation_id } = attestation_presentation.identity.clone() else {
+            let AttestationIdentity::Fixed { id: attestation_id } = attestation_presentation.identity else {
                 return Err(StorageError::EventEphemeralIdentity);
             };
 
