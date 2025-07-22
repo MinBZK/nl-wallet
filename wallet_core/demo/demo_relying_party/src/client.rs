@@ -60,7 +60,8 @@ impl WalletServerClient {
     pub async fn start(
         &self,
         usecase: String,
-        credential_requests: VecNonEmpty<NormalizedCredentialRequest>,
+        // TODO: Change to Query (PVW-4419)
+        credential_requests: Option<VecNonEmpty<NormalizedCredentialRequest>>,
         return_url_template: Option<ReturnUrlTemplate>,
     ) -> Result<SessionToken, anyhow::Error> {
         let response = self
@@ -68,7 +69,7 @@ impl WalletServerClient {
             .post(self.base_url.join("/disclosure/sessions"))
             .json(&StartDisclosureRequest {
                 usecase,
-                credential_requests: Some(credential_requests),
+                credential_requests,
                 return_url_template,
             })
             .send()

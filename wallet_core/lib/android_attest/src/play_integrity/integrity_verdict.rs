@@ -77,7 +77,6 @@ pub struct DeviceIntegrity {
     pub device_attributes: Option<DeviceAttributes>,
 }
 
-#[allow(clippy::enum_variant_names)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize)]
 #[cfg_attr(feature = "encode", derive(serde::Serialize))]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]

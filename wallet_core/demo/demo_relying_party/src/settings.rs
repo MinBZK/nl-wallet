@@ -1,12 +1,12 @@
 use std::net::IpAddr;
 
-use indexmap::IndexMap;
-use serde::Deserialize;
-
 use config::Config;
 use config::ConfigError;
 use config::Environment;
 use config::File;
+use indexmap::IndexMap;
+use serde::Deserialize;
+
 use dcql::Query;
 use http_utils::urls::BaseUrl;
 use http_utils::urls::ConnectSource;
@@ -46,7 +46,7 @@ pub enum ReturnUrlMode {
 pub struct Usecase {
     #[serde(default)]
     pub return_url: ReturnUrlMode,
-    pub dcql_query: Query,
+    pub dcql_query: Option<Query>,
 }
 
 impl Settings {
