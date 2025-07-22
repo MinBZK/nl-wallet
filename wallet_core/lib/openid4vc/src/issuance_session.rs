@@ -1122,6 +1122,7 @@ mod tests {
     use sd_jwt_vc_metadata::JsonSchemaPropertyType;
     use sd_jwt_vc_metadata::TypeMetadata;
     use sd_jwt_vc_metadata::TypeMetadataDocuments;
+    use utils::generator::mock::MockTimeGenerator;
 
     use crate::Format;
     use crate::mock::MOCK_WALLET_CLIENT_ID;
@@ -1200,7 +1201,7 @@ mod tests {
         let session = test_start_issuance(
             &ca,
             ca.to_trust_anchor(),
-            vec![CredentialPayload::example_family_name()],
+            vec![CredentialPayload::example_family_name(&MockTimeGenerator::default())],
             TypeMetadata::pid_example(),
             vec![Format::MsoMdoc],
         )
@@ -1234,7 +1235,7 @@ mod tests {
         let error = test_start_issuance(
             &ca,
             other_ca.to_trust_anchor(),
-            vec![CredentialPayload::example_family_name()],
+            vec![CredentialPayload::example_family_name(&MockTimeGenerator::default())],
             TypeMetadata::pid_example(),
             vec![Format::MsoMdoc],
         )
@@ -1257,6 +1258,7 @@ mod tests {
             ca.to_trust_anchor(),
             vec![CredentialPayload::example_empty(
                 SigningKey::random(&mut OsRng).verifying_key(),
+                &MockTimeGenerator::default(),
             )],
             TypeMetadata::empty_example_with_attestation_type("other_attestation_type"),
             vec![Format::MsoMdoc],
@@ -1275,6 +1277,7 @@ mod tests {
             ca.to_trust_anchor(),
             vec![CredentialPayload::example_empty(
                 SigningKey::random(&mut OsRng).verifying_key(),
+                &MockTimeGenerator::default(),
             )],
             TypeMetadata::pid_example(),
             vec![Format::AcVc, Format::MsoMdoc, Format::JwtVc],
@@ -1297,7 +1300,10 @@ mod tests {
         different_org.organization.display_name = LocalizedStrings::from(vec![("en", "different org name")]);
         let different_issuance_key = generate_issuer_mock(&ca, different_org.into()).unwrap();
 
-        let payload = CredentialPayload::example_empty(SigningKey::random(&mut OsRng).verifying_key());
+        let payload = CredentialPayload::example_empty(
+            SigningKey::random(&mut OsRng).verifying_key(),
+            &MockTimeGenerator::default(),
+        );
         let copies_per_format: IndexMap<Format, NonZeroU8> = IndexMap::from_iter([
             (Format::MsoMdoc, NonZeroU8::new(1).unwrap()),
             (Format::SdJwt, NonZeroU8::new(1).unwrap()),
@@ -1375,7 +1381,7 @@ mod tests {
 
     impl MockCredentialSigner {
         pub fn new_with_preview_state() -> (Self, NormalizedCredentialPreview) {
-            let credential_payload = CredentialPayload::example_family_name();
+            let credential_payload = CredentialPayload::example_family_name(&MockTimeGenerator::default());
             let type_metadata = TypeMetadata::example_with_claim_name(
                 &credential_payload.previewable_payload.attestation_type,
                 "family_name",
@@ -1606,6 +1612,7 @@ mod tests {
                 "family_name",
                 AttributeValue::Integer(1),
                 SigningKey::random(&mut OsRng).verifying_key(),
+                &MockTimeGenerator::default(),
             ),
         );
         let trust_anchor = signer.trust_anchor.clone();
@@ -1804,6 +1811,7 @@ mod tests {
                 ("family_name", AttributeValue::Text(String::from("De Bruijn"))),
             ],
             SigningKey::random(&mut OsRng).verifying_key(),
+            &MockTimeGenerator::default(),
         )
         .previewable_payload
         .attributes;

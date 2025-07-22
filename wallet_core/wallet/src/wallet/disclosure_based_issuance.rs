@@ -195,6 +195,7 @@ mod tests {
     use openid4vc::verifier::DisclosureResultHandlerError;
     use openid4vc::verifier::PostAuthResponseError;
     use openid4vc::verifier::ToPostAuthResponseErrorCode;
+    use utils::generator::mock::MockTimeGenerator;
 
     use crate::attestation::AttestationPresentation;
 
@@ -262,7 +263,7 @@ mod tests {
         wallet.session = Some(Session::Disclosure(disclosure_session));
 
         // Setup wallet issuance state
-        let credential_preview = create_example_preview_data();
+        let credential_preview = create_example_preview_data(&MockTimeGenerator::default());
         let start_context = MockIssuanceSession::start_context();
         start_context.expect().return_once(|| {
             let mut client = MockIssuanceSession::new();
