@@ -342,7 +342,7 @@
             }
         }
     },
-    "disclosureRequestedAttributesDescription": "To login, you will share your {nrOfAttributes} details so {organization} can be sure it's really you.",
+    "disclosureRequestedAttributesDescription": "To login, you will share {nrOfAttributes} details so {organization} can be sure it's really you.",
     "@disclosureRequestedAttributesDescription": {
         "placeholders": {
             "nrOfAttributes": {
@@ -742,7 +742,7 @@
             }
         }
     },
-    "issuanceRequestedAttributesDescription": "To receive your cards, you will share your {nrOfAttributes} details so {organization} can be sure it's really you.",
+    "issuanceRequestedAttributesDescription": "To receive your cards, you will share {nrOfAttributes} details so {organization} can be sure it's really you.",
     "@issuanceRequestedAttributesDescription": {
         "placeholders": {
             "nrOfAttributes": {
