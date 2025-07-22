@@ -1101,7 +1101,6 @@ mod tests {
             key_count: key_count.try_into().unwrap(),
             aud: POP_AUD.to_string(),
             nonce: Some(POP_NONCE.to_string()),
-            iat: Utc::now(),
         })
         .await;
 
@@ -1115,7 +1114,6 @@ mod tests {
                 key_count: 1.try_into().unwrap(),
                 aud: POP_AUD.to_string(),
                 nonce: Some(POP_NONCE.to_string()),
-                iat: Utc::now(),
             },
         })
         .await;

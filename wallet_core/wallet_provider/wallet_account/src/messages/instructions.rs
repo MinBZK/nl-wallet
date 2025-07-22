@@ -1,8 +1,5 @@
 use std::num::NonZeroU64;
 
-use chrono::DateTime;
-use chrono::Utc;
-use chrono::serde::ts_seconds;
 use derive_more::Constructor;
 use serde::Deserialize;
 use serde::Serialize;
@@ -145,8 +142,6 @@ pub struct PerformIssuance {
     pub key_count: NonZeroU64,
     pub aud: String,
     pub nonce: Option<String>,
-    #[serde(with = "ts_seconds")]
-    pub iat: DateTime<Utc>,
 }
 
 #[serde_as]
