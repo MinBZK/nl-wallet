@@ -1,6 +1,5 @@
 use serial_test::serial;
 
-use crypto::mock_remote::MockRemoteKeyFactory;
 use hsm::service::Pkcs11Hsm;
 use http_utils::urls;
 use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
@@ -10,6 +9,7 @@ use openid4vc::issuance_session::IssuanceSession;
 use openid4vc::oidc::HttpOidcClient;
 use pid_issuer::pid::attributes::BrpPidAttributeService;
 use pid_issuer::pid::brp::client::HttpBrpClient;
+use poa::mock_remote::MockRemoteKeyFactory;
 use server_utils::settings::NL_WALLET_CLIENT_ID;
 use tests_integration::common::*;
 use tests_integration::fake_digid::fake_digid_auth;

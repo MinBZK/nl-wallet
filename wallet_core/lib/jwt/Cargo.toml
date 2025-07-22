@@ -35,5 +35,5 @@ rand_core.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 
 attestation_data = { path = "../attestation_data", features = ["generate", "mock"] }
-crypto = { path = "../crypto", features = ["mock_secure_keys", "mock_remote_key"] }
+crypto = { path = "../crypto", features = ["mock_secure_keys"] }
 utils.path = "../utils"

@@ -400,8 +400,8 @@ mod tests {
     use rstest::rstest;
 
     use crypto::examples::Examples;
-    use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
+    use poa::mock_remote::MockRemoteEcdsaKey;
 
     use crate::DeviceAuthenticationBytes;
     use crate::DeviceResponse;

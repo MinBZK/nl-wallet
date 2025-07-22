@@ -103,7 +103,7 @@ wiremock.workspace = true
 apple_app_attest = { path = "../lib/apple_app_attest", features = ["mock"] }
 attestation_data = { path = "../lib/attestation_data", features = ["example_credential_payloads", "generate", "mock"] }
 attestation_types = { path = "../lib/attestation_types", features = ["mock"] }
-crypto = { path = "../lib/crypto", features = ["mock_secure_keys", "mock_remote_key"] }
+crypto = { path = "../lib/crypto", features = ["mock_secure_keys"] }
 http_utils = { path = "../lib/http_utils", features = ["insecure_http_client"] }
 jwt = { path = "../lib/jwt", features = ["test"] }
 mdoc = { path = "../lib/mdoc", features = ["mock_example_constructors", "test"] }
@@ -115,6 +115,7 @@ openid4vc = { path = "../lib/openid4vc", features = [
 ] }
 # enable the "mock" feature for platform_support when running tests
 platform_support = { path = "platform_support", features = ["mock"] }
+poa = { path = "../lib/poa", features = ["mock_remote_key"] }
 sd_jwt = { path = "../lib/sd_jwt", features = ["examples"] }
 sd_jwt_vc_metadata = { path = "../lib/sd_jwt_vc_metadata", features = ["example_constructors"] }
 wallet_account = { path = "../wallet_provider/wallet_account", features = ["client", "server"] }

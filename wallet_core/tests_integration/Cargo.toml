@@ -80,6 +80,7 @@ test_common = [
     "dep:mdoc",
     "dep:openid4vc",
     "dep:openid4vc_server",
+    "dep:poa",
     "dep:pid_issuer",
     "dep:platform_support",
     "dep:reqwest",
@@ -233,7 +234,7 @@ attestation_data = { path = "../lib/attestation_data", optional = true, features
 ] }
 attestation_types = { path = "../lib/attestation_types", optional = true, features = ["mock"] }
 configuration_server = { path = "../configuration_server", optional = true }
-crypto = { path = "../lib/crypto", optional = true, features = ["mock_remote_key"] }
+crypto = { path = "../lib/crypto", optional = true }
 dcql = { path = "../lib/dcql", optional = true }
 gba_hc_converter = { path = "../gba_hc_converter", optional = true }
 hsm = { path = "../lib/hsm", optional = true, features = ["test"] }
@@ -243,6 +244,7 @@ jwt.path = "../lib/jwt"
 mdoc = { path = "../lib/mdoc", optional = true, features = ["test"] }
 openid4vc = { path = "../lib/openid4vc", optional = true }
 openid4vc_server = { path = "../lib/openid4vc_server", optional = true, features = ["issuance", "disclosure"] }
+poa = { path = "../lib/poa", optional = true, features = ["mock_remote_key"] }
 pid_issuer = { path = "../wallet_server/pid_issuer", optional = true, features = ["mock"] }
 platform_support = { path = "../wallet/platform_support", optional = true, features = ["mock"] }
 server_utils = { path = "../wallet_server/server_utils", optional = true, features = [] }

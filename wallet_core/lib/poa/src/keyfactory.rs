@@ -3,7 +3,7 @@ use std::error::Error;
 use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
 
-use crate::keys::CredentialEcdsaKey;
+use crypto::CredentialEcdsaKey;
 
 pub trait KeyFactory {
     type Key: CredentialEcdsaKey;

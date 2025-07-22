@@ -25,13 +25,13 @@ use rustls_pki_types::TrustAnchor;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 
-use crypto::factory::KeyFactory;
 use crypto::keys::CredentialEcdsaKey;
 use crypto::keys::EcdsaKey;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateError;
 use crypto::x509::CertificateUsage;
 use error_category::ErrorCategory;
+use poa::keyfactory::KeyFactory;
 use utils::generator::Generator;
 
 use crate::utils::serialization::CborError;

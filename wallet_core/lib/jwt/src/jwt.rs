@@ -25,8 +25,6 @@ use x509_parser::der_parser::asn1_rs::BitString;
 use x509_parser::prelude::FromDer;
 use x509_parser::x509::AlgorithmIdentifier;
 
-use crypto::factory::KeyFactory;
-use crypto::keys::CredentialEcdsaKey;
 use crypto::keys::EcdsaKey;
 use crypto::keys::SecureEcdsaKey;
 use crypto::server_keys::KeyPair;
@@ -328,53 +326,6 @@ where
         Ok([message, encoded_signature].join(".").into())
     }
 
-    /// Bulk-sign the keys and JWT payloads into JWTs.
-    pub async fn sign_bulk<K: CredentialEcdsaKey>(
-        keys_and_messages: Vec<(K, (T, Header))>,
-        key_factory: &impl KeyFactory<Key = K>,
-    ) -> Result<Vec<(K, Jwt<T>)>, JwtError> {
-        let (keys, to_sign): (Vec<_>, Vec<_>) = keys_and_messages.into_iter().unzip();
-
-        // Construct a Vec containing the strings to be signed with the private keys, i.e. schematically "header.body"
-        let messages = to_sign
-            .iter()
-            .map(|(message, header)| {
-                Ok([
-                    BASE64_URL_SAFE_NO_PAD.encode(serde_json::to_vec(header)?),
-                    BASE64_URL_SAFE_NO_PAD.encode(serde_json::to_vec(message)?),
-                ]
-                .join("."))
-            })
-            .collect::<Result<Vec<_>, JwtError>>()?;
-
-        // Have the WP sign our messages.
-        let signatures = key_factory
-            .sign_multiple_with_existing_keys(
-                messages
-                    .iter()
-                    .map(|msg| msg.clone().into_bytes())
-                    .zip(keys.iter().map(|key| vec![key]))
-                    .collect_vec(),
-            )
-            .await
-            .map_err(|err| JwtError::Signing(Box::new(err)))?;
-
-        let jwts = signatures
-            .into_iter()
-            .zip(keys)
-            .zip(messages)
-            .map(|((sigs, key), msg)| {
-                // unwrap: we sent `vec![key]` above, i.e. a single key, so we will get a single signature back
-                let jwt = [msg, BASE64_URL_SAFE_NO_PAD.encode(sigs.first().unwrap().to_vec())]
-                    .join(".")
-                    .into();
-                (key, jwt)
-            })
-            .collect();
-
-        Ok(jwts)
-    }
-
     /// Sign a payload into a JWS, and put the certificate of the provided keypair in the `x5c` JWT header.
     /// The resulting JWS can be verified using [`verify_against_trust_anchors()`].
     pub async fn sign_with_certificate<K: EcdsaKey>(payload: &T, keypair: &KeyPair<K>) -> Result<Self, JwtError> {
@@ -588,14 +539,12 @@ mod tests {
 
     use assert_matches::assert_matches;
     use base64::prelude::*;
-    use futures::StreamExt;
     use jsonwebtoken::Header;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
     use serde_json::json;
 
     use attestation_data::x509::generate::mock::generate_reader_mock;
-    use crypto::mock_remote::MockRemoteKeyFactory;
     use crypto::server_keys::generate::Ca;
     use crypto::x509::CertificateConfiguration;
     use crypto::x509::CertificateError;
@@ -690,45 +639,6 @@ mod tests {
             .decode(jwt.split('.').take((i + 1) as usize).last().unwrap())
             .unwrap();
         serde_json::from_slice(&bts).unwrap()
-    }
-
-    #[tokio::test]
-    async fn test_sign_jwts() {
-        bulk_jwt_sign(&MockRemoteKeyFactory::default()).await;
-    }
-
-    pub async fn bulk_jwt_sign<K: CredentialEcdsaKey>(key_factory: &impl KeyFactory<Key = K>) {
-        // Generate keys to sign with and messages to sign
-        let keys = key_factory.generate_new_multiple(4).await.unwrap();
-        let keys_and_messages = keys
-            .into_iter()
-            .enumerate()
-            .map(|(number, key)| {
-                (
-                    key,
-                    (
-                        ToyMessage {
-                            number: number as u8,
-                            ..Default::default()
-                        },
-                        Header::new(Algorithm::ES256),
-                    ),
-                )
-            })
-            .collect();
-
-        let jwts = Jwt::sign_bulk(keys_and_messages, key_factory).await.unwrap();
-
-        // Verify JWTs. (futures::stream supports async for_each closures.)
-        futures::stream::iter(jwts)
-            .for_each(|(key, jwt)| async move {
-                jwt.parse_and_verify(
-                    &EcdsaDecodingKey::from(&key.verifying_key().await.unwrap()),
-                    &validations(),
-                )
-                .unwrap();
-            })
-            .await;
     }
 
     #[tokio::test]

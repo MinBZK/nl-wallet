@@ -70,4 +70,4 @@ utils.path = "../../lib/utils"
 tokio = { workspace = true, features = ["macros", "test-util"] }
 p256 = { workspace = true, features = ["ecdsa"] }
 
-crypto = { path = "../../lib/crypto", features = ["mock_remote_key"] }
+poa = { path = "../../lib/poa", features = ["mock_remote_key"] }

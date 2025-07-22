@@ -80,6 +80,6 @@ rstest.workspace = true
 tokio = { workspace = true, features = ["macros", "test-util"] }
 
 attestation_data = { path = "../../lib/attestation_data", features = ["generate", "mock"] }
-crypto = { path = "../../lib/crypto", features = ["mock_remote_key"] }
 sd_jwt_vc_metadata = { path = "../../lib/sd_jwt_vc_metadata", features = ["example_constructors"] }
+poa = { path = "../../lib/poa", features = ["mock_remote_key"] }
 utils = { path = "../../lib/utils", features = ["mock_time"] }

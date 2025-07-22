@@ -25,7 +25,7 @@ allow_insecure_url = ["http_utils/allow_insecure_url"]
 # Include mock implementations for testing
 mock = ["dep:mockall", "poa/mock"]
 # Include miscellaneous test utilities
-test = ["jwt/test", "poa/mock", "crypto/mock_remote_key", "dep:assert_matches", "dep:parking_lot"]
+test = ["jwt/test", "poa/mock", "poa/mock_remote_key", "dep:assert_matches", "dep:parking_lot"]
 # All features needed to run the integration test
 integration = ["mock", "test", "example_constructors", "attestation_data/test"]
 # Credential payload examples
@@ -111,10 +111,10 @@ wiremock.workspace = true
 
 attestation_data = { path = "../attestation_data", features = ["generate", "mock", "example_credential_payloads"] }
 attestation_types = { path = "../attestation_types", features = ["mock"] }
-crypto = { path = "../crypto", features = ["examples", "mock_remote_key"] }
+crypto = { path = "../crypto", features = ["examples"] }
 http_utils = { path = "../http_utils", features = ["insecure_http_client"] }
 jwt = { path = "../jwt", features = ["test"] }
 mdoc = { path = "../mdoc", features = ["test", "mock_example_constructors"] }
-poa = { path = "../poa", features = ["mock"] }
+poa = { path = "../poa", features = ["mock", "mock_remote_key"] }
 sd_jwt_vc_metadata = { path = "../sd_jwt_vc_metadata", features = ["example_constructors"] }
 utils = { path = "../utils", features = ["mock_time"] }

@@ -850,8 +850,6 @@ mod tests {
     use attestation_data::x509::generate::mock::generate_reader_mock;
     use attestation_types::request;
     use attestation_types::request::NormalizedCredentialRequest;
-    use crypto::mock_remote::MockRemoteEcdsaKey;
-    use crypto::mock_remote::MockRemoteKeyFactory;
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
     use dcql::CredentialQueryFormat;
@@ -873,6 +871,8 @@ mod tests {
     use mdoc::utils::serialization::cbor_serialize;
     use poa::Poa;
     use poa::factory::PoaFactory;
+    use poa::mock_remote::MockRemoteEcdsaKey;
+    use poa::mock_remote::MockRemoteKeyFactory;
     use utils::generator::Generator;
     use utils::generator::TimeGenerator;
     use utils::generator::mock::MockTimeGenerator;

@@ -200,8 +200,6 @@ mod tests {
     use attestation_data::auth::reader_auth::ReaderRegistration;
     use attestation_data::auth::reader_auth::ValidationError;
     use attestation_types::request;
-    use crypto::mock_remote::MockRemoteEcdsaKey;
-    use crypto::mock_remote::MockRemoteKeyFactory;
     use crypto::server_keys::generate::Ca;
     use crypto::x509::BorrowingCertificateExtension;
     use http_utils::urls::BaseUrl;
@@ -209,6 +207,8 @@ mod tests {
     use mdoc::identifiers::AttributeIdentifier;
     use mdoc::test::data::PID;
     use mdoc::utils::serialization::CborBase64;
+    use poa::mock_remote::MockRemoteEcdsaKey;
+    use poa::mock_remote::MockRemoteKeyFactory;
     use utils::generator::mock::MockTimeGenerator;
 
     use crate::errors::AuthorizationErrorCode;
