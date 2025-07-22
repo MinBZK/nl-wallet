@@ -126,7 +126,7 @@ void main() {
       await screenMatchesGolden('stop_sheet.confirm_attributes.light');
     });
 
-    testGoldens('DisclosureCheckOrganizationForLogin Dark', (tester) async {
+    testGoldens('DisclosureCheckOrganizationForLogin Dark - single attribute', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
           MockDisclosureBloc(),
@@ -135,13 +135,34 @@ void main() {
             originUrl: 'https://origin.org',
             sharedDataWithOrganizationBefore: true,
             sessionType: DisclosureSessionType.crossDevice,
-            cardRequests: [],
+            cardRequests: [DiscloseCardRequest.fromCard(WalletMockData.card)],
             policy: WalletMockData.policy,
           ),
         ),
         brightness: Brightness.dark,
       );
-      await screenMatchesGolden('check_organization.dark');
+      await screenMatchesGolden('check_organization_single_attribute.dark');
+    });
+
+    testGoldens('DisclosureCheckOrganizationForLogin Dark - multiple attributes', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
+          MockDisclosureBloc(),
+          DisclosureCheckOrganizationForLogin(
+            relyingParty: WalletMockData.organization,
+            originUrl: 'https://origin.org',
+            sharedDataWithOrganizationBefore: true,
+            sessionType: DisclosureSessionType.crossDevice,
+            cardRequests: [
+              DiscloseCardRequest.fromCard(WalletMockData.card),
+              DiscloseCardRequest.fromCard(WalletMockData.altCard),
+            ],
+            policy: WalletMockData.policy,
+          ),
+        ),
+        brightness: Brightness.dark,
+      );
+      await screenMatchesGolden('check_organization_multiple_attributes.dark');
     });
 
     testGoldens('DisclosureCheckUrl Light - landscape', (tester) async {
