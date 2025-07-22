@@ -385,7 +385,10 @@ where
             .await
             .map_err(IssuanceError::AttestationQuery)?;
 
-        let previews_and_identity: Vec<(&NormalizedCredentialPreview, Option<String>)> =
+        // For every preview, try to find the first matching stored attestation to determine its database identity. If
+        // there are more candidates, the algorithm matches the first one based on the ascending order of the Uuidv7 of
+        // the list of stored attestations. This means the oldest attestation is matched first.
+        let previews_and_identity: Vec<(&NormalizedCredentialPreview, Option<Uuid>)> =
             match_preview_and_stored_attestations(
                 issuance_session.normalized_credential_preview(),
                 stored,
@@ -544,19 +547,38 @@ where
             _ => unreachable!(),
         };
 
+        let all_previews = issued_credentials_with_metadata
+            .into_iter()
+            .zip_eq(issuance_session.preview_attestations)
+            .collect_vec();
+
+        let (existing, new): (Vec<_>, Vec<_>) = all_previews
+            .into_iter()
+            .partition(|(_, preview)| matches!(preview.identity, AttestationIdentity::Fixed { .. }));
+
         info!("Attestations accepted, storing credentials in database");
-        self.storage
-            .write()
-            .await
-            .insert_credentials(
-                Utc::now(),
-                issued_credentials_with_metadata
-                    .into_iter()
-                    .zip_eq(issuance_session.preview_attestations)
-                    .collect_vec(),
-            )
-            .await
-            .map_err(IssuanceError::AttestationStorage)?;
+        if !existing.is_empty() {
+            self.storage
+                .write()
+                .await
+                .update_credentials(
+                    Utc::now(),
+                    existing
+                        .into_iter()
+                        .map(|(credential, preview)| (credential.copies, preview))
+                        .collect_vec(),
+                )
+                .await
+                .map_err(IssuanceError::AttestationStorage)?;
+        }
+        if !new.is_empty() {
+            self.storage
+                .write()
+                .await
+                .insert_credentials(Utc::now(), new)
+                .await
+                .map_err(IssuanceError::AttestationStorage)?;
+        }
 
         self.emit_attestations().await.map_err(IssuanceError::Attestations)?;
         self.emit_recent_history().await.map_err(IssuanceError::EventStorage)?;
@@ -569,12 +591,13 @@ fn match_preview_and_stored_attestations<'a>(
     previews: &'a [NormalizedCredentialPreview],
     stored_attestations: Vec<StoredAttestationCopy>,
     time_generator: &impl Generator<DateTime<Utc>>,
-) -> Vec<(&'a NormalizedCredentialPreview, Option<String>)> {
+) -> Vec<(&'a NormalizedCredentialPreview, Option<Uuid>)> {
     let stored_credential_payloads: Vec<(CredentialPayload, Uuid)> = stored_attestations
         .into_iter()
         .map(|copy| copy.into_credential_payload_and_id())
         .collect_vec();
 
+    // Find the first matching stored preview based on the ordering of `stored_credential_payloads`.
     previews
         .iter()
         .map(|preview| {
@@ -586,7 +609,7 @@ fn match_preview_and_stored_attestations<'a>(
                         .credential_payload
                         .matches_existing(&stored_preview.previewable_payload, time_generator)
                 })
-                .map(|(_, id)| id.to_string());
+                .map(|(_, id)| *id);
 
             (preview, identity)
         })
@@ -1087,7 +1110,9 @@ mod tests {
 
         assert_eq!(attestations.len(), 3);
 
-        assert_matches!(&attestations[0].identity, AttestationIdentity::Fixed { id } if id == &attestation_id.to_string());
+        assert_matches!(
+            &attestations[0].identity,
+            AttestationIdentity::Fixed { id } if id == &attestation_id);
         assert_matches!(&attestations[1].identity, AttestationIdentity::Ephemeral);
         assert_matches!(&attestations[2].identity, AttestationIdentity::Ephemeral);
     }
@@ -1423,7 +1448,7 @@ mod tests {
         let result =
             match_preview_and_stored_attestations(&previews, vec![stored.clone()], &MockTimeGenerator::epoch());
         let (_, identities): (Vec<_>, Vec<_>) = multiunzip(result);
-        assert_eq!(vec![Some(attestation_id.to_string())], identities);
+        assert_eq!(vec![Some(attestation_id)], identities);
 
         // When the attestation already exists in the database, but the preview has a newer nbf, it should be considered
         // as a new attestation and the identity is None.

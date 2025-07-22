@@ -7,10 +7,10 @@ mod key_file;
 mod sql_cipher_key;
 
 #[cfg(any(test, feature = "mock"))]
-mod mock_storage;
+mod stub;
 
 #[cfg(test)]
-pub use mock_storage::KeyedDataResult;
+pub use stub::KeyedDataResult;
 
 use chrono::DateTime;
 use chrono::Utc;
@@ -26,6 +26,7 @@ use error_category::ErrorCategory;
 use mdoc::holder::Mdoc;
 use mdoc::utils::serialization::CborError;
 use openid4vc::issuance_session::CredentialWithMetadata;
+use openid4vc::issuance_session::IssuedCredentialCopies;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataChainError;
 
@@ -47,7 +48,7 @@ pub use self::event_log::WalletEvent;
 pub use self::key_file::KeyFileError;
 
 #[cfg(any(test, feature = "mock"))]
-pub use self::mock_storage::StorageStub;
+pub use self::stub::StorageStub;
 
 /// This represents the current start of [`Storage`].
 #[derive(Debug, Clone, Copy)]
@@ -98,10 +99,6 @@ pub enum StorageError {
     #[category(critical)]
     EventEphemeralIdentity,
 
-    #[error("error constructing UUID: {0}")]
-    #[category(pd)]
-    UuidConstruction(#[from] uuid::Error),
-
     #[error("storage database SQLCipher key error: {0}")]
     #[category(pd)] // we don't want to leak the key
     SqlCipherKey(#[from] TryFromSliceError),
@@ -146,6 +143,13 @@ pub trait Storage {
         timestamp: DateTime<Utc>,
         credentials: Vec<(CredentialWithMetadata, AttestationPresentation)>,
     ) -> StorageResult<()>;
+
+    async fn update_credentials(
+        &mut self,
+        timestamp: DateTime<Utc>,
+        credentials: Vec<(IssuedCredentialCopies, AttestationPresentation)>,
+    ) -> StorageResult<()>;
+
     async fn increment_attestation_copies_usage_count(&mut self, attestation_copy_ids: Vec<Uuid>) -> StorageResult<()>;
 
     async fn has_any_attestations_with_type(&self, attestation_type: &str) -> StorageResult<bool>;
