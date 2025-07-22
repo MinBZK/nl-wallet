@@ -1,4 +1,3 @@
-#![allow(clippy::empty_line_after_doc_comments)] // the generated code included below has this issue
 mod bridge;
 
 pub mod attested_key;

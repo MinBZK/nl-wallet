@@ -1,3 +1,7 @@
+#![allow(
+    clippy::allow_attributes,
+    reason = "This file includes generated code that uses `allow` attributes."
+)]
 use std::env;
 
 // The file has been placed there by the build script.

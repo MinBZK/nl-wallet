@@ -16,6 +16,7 @@ use crate::account_provider::AccountProviderClient;
 use crate::digid::DigidClient;
 use crate::errors::UpdatePolicyError;
 use crate::instruction::InstructionClientFactory;
+use crate::instruction::InstructionClientParameters;
 use crate::pin::change::BeginChangePinOperation;
 use crate::pin::change::ChangePinError;
 use crate::pin::change::FinishChangePinOperation;
@@ -83,9 +84,11 @@ where
             Arc::clone(&self.storage),
             Arc::clone(attested_key),
             Arc::clone(&self.account_provider_client),
-            registration_data.clone(),
-            config.http_config.clone(),
-            instruction_result_public_key,
+            InstructionClientParameters::new(
+                registration_data.clone(),
+                config.http_config.clone(),
+                instruction_result_public_key,
+            ),
         );
 
         let session = BeginChangePinOperation::new(
@@ -128,9 +131,11 @@ where
             Arc::clone(&self.storage),
             Arc::clone(attested_key),
             Arc::clone(&self.account_provider_client),
-            registration_data.clone(),
-            config.http_config.clone(),
-            instruction_result_public_key,
+            InstructionClientParameters::new(
+                registration_data.clone(),
+                config.http_config.clone(),
+                instruction_result_public_key,
+            ),
         );
 
         let session = FinishChangePinOperation::new(&instruction_client, &self.storage, CHANGE_PIN_RETRIES);

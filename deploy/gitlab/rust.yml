@@ -99,9 +99,11 @@ test-rust-gba-pid:
       adhoc_url = "$gba_adhoc_url"
       username = "$gba_username"
       password = "$gba_password"
-      client_cert = "$gba_client_cert"
-      client_cert_key = "$gba_client_cert_key"
       trust_anchor = "$gba_trust_anchor"
+
+      [run_mode.gbav.client_keypair]
+      certificate = "$gba_client_cert"
+      key = "$gba_client_cert_key"
       EOD
       sha256sum gba_hc_converter.toml
       set -x
