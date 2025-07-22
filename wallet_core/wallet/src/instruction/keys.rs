@@ -1,5 +1,6 @@
 use std::hash::Hash;
 use std::hash::Hasher;
+use std::num::NonZeroU64;
 
 use derive_more::Constructor;
 use itertools::Itertools;
@@ -20,9 +21,12 @@ use utils::vec_at_least::VecAtLeastTwoUnique;
 use wallet_account::messages::instructions::ConstructPoa;
 use wallet_account::messages::instructions::GenerateKey;
 use wallet_account::messages::instructions::GenerateKeyResult;
+use wallet_account::messages::instructions::PerformIssuance;
+use wallet_account::messages::instructions::PerformIssuanceWithWua;
 use wallet_account::messages::instructions::Sign;
 use wscd::Poa;
 use wscd::factory::PoaFactory;
+use wscd::keyfactory::IssuanceResult;
 use wscd::keyfactory::KeyFactory;
 
 use crate::account_provider::AccountProviderClient;
@@ -126,6 +130,42 @@ where
             .collect();
 
         Ok(signatures)
+    }
+
+    async fn perform_issuance(
+        &self,
+        key_count: NonZeroU64,
+        aud: String,
+        nonce: Option<String>,
+        include_wua: bool,
+    ) -> Result<IssuanceResult, Self::Error> {
+        if !include_wua {
+            let result = self
+                .instruction_client
+                .send(PerformIssuance { key_count, aud, nonce })
+                .await?;
+
+            Ok(IssuanceResult {
+                key_identifiers: result.key_identifiers,
+                pops: result.pops,
+                poa: result.poa,
+                wua: None,
+            })
+        } else {
+            let result = self
+                .instruction_client
+                .send(PerformIssuanceWithWua {
+                    issuance_instruction: PerformIssuance { key_count, aud, nonce },
+                })
+                .await?;
+
+            Ok(IssuanceResult {
+                key_identifiers: result.issuance_result.key_identifiers,
+                pops: result.issuance_result.pops,
+                poa: result.issuance_result.poa,
+                wua: Some((result.wua, result.wua_disclosure)),
+            })
+        }
     }
 }
 
