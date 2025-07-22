@@ -175,16 +175,7 @@ async fn create_session(
 
     let session_token = state
         .client
-        .start(
-            options.usecase.clone(),
-            usecase
-                .dcql_query
-                .clone()
-                .map(TryInto::try_into)
-                .transpose()
-                .map_err(anyhow::Error::new)?,
-            return_url_template,
-        )
+        .start(options.usecase.clone(), usecase.dcql_query.clone(), return_url_template)
         .await?;
 
     let result = SessionResponse {

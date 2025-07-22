@@ -158,7 +158,11 @@ pub mod mock {
     use utils::vec_at_least::VecNonEmpty;
 
     use crate::ClaimPath;
+    use crate::ClaimsQuery;
+    use crate::ClaimsSelection;
+    use crate::CredentialQuery;
     use crate::CredentialQueryFormat;
+    use crate::Query;
 
     use super::AttributeRequest;
     use super::NormalizedCredentialRequest;
@@ -178,6 +182,117 @@ pub mod mock {
     pub const PID: &str = "urn:eudi:pid:nl:1";
     pub const ADDR: &str = "urn:eudi:pid-address:nl:1";
     pub const ADDR_NS: &str = "urn:eudi:pid-address:nl:1.address";
+
+    impl Query {
+        pub fn new_example() -> Self {
+            Self {
+                credentials: vec![CredentialQuery {
+                    id: "my_credential".to_string(),
+                    format: CredentialQueryFormat::MsoMdoc {
+                        doctype_value: EXAMPLE_DOC_TYPE.to_string(),
+                    },
+                    multiple: false,
+                    trusted_authorities: vec![],
+                    require_cryptographic_holder_binding: true,
+                    claims_selection: ClaimsSelection::All {
+                        claims: vec![ClaimsQuery {
+                            id: None,
+                            path: vec![
+                                ClaimPath::SelectByKey(EXAMPLE_NAMESPACE.to_string()),
+                                ClaimPath::SelectByKey(ATTR_FAMILY_NAME.to_string()),
+                            ]
+                            .try_into()
+                            .unwrap(),
+                            values: vec![],
+                            intent_to_retain: Some(true),
+                        }]
+                        .try_into()
+                        .unwrap(),
+                    },
+                }]
+                .try_into()
+                .unwrap(),
+                credential_sets: vec![],
+            }
+        }
+
+        pub fn pid_full_name() -> Self {
+            Self {
+                credentials: vec![CredentialQuery {
+                    id: "my_credential".to_string(),
+                    format: CredentialQueryFormat::MsoMdoc {
+                        doctype_value: PID.to_string(),
+                    },
+                    multiple: false,
+                    trusted_authorities: vec![],
+                    require_cryptographic_holder_binding: true,
+                    claims_selection: ClaimsSelection::All {
+                        claims: vec![
+                            ClaimsQuery {
+                                id: None,
+                                path: vec![
+                                    ClaimPath::SelectByKey(PID.to_string()),
+                                    ClaimPath::SelectByKey(ATTR_GIVEN_NAME.to_string()),
+                                ]
+                                .try_into()
+                                .unwrap(),
+                                values: vec![],
+                                intent_to_retain: Some(true),
+                            },
+                            ClaimsQuery {
+                                id: None,
+                                path: vec![
+                                    ClaimPath::SelectByKey(PID.to_string()),
+                                    ClaimPath::SelectByKey(ATTR_FAMILY_NAME.to_string()),
+                                ]
+                                .try_into()
+                                .unwrap(),
+                                values: vec![],
+                                intent_to_retain: Some(true),
+                            },
+                        ]
+                        .try_into()
+                        .unwrap(),
+                    },
+                }]
+                .try_into()
+                .unwrap(),
+                credential_sets: vec![],
+            }
+        }
+
+        pub fn pid_family_name() -> Self {
+            Self {
+                credentials: vec![CredentialQuery {
+                    id: "my_credential".to_string(),
+                    format: CredentialQueryFormat::MsoMdoc {
+                        doctype_value: PID.to_string(),
+                    },
+                    multiple: false,
+                    trusted_authorities: vec![],
+                    require_cryptographic_holder_binding: true,
+                    claims_selection: ClaimsSelection::All {
+                        claims: vec![ClaimsQuery {
+                            id: None,
+                            path: vec![
+                                ClaimPath::SelectByKey(PID.to_string()),
+                                ClaimPath::SelectByKey(ATTR_FAMILY_NAME.to_string()),
+                            ]
+                            .try_into()
+                            .unwrap(),
+                            values: vec![],
+                            intent_to_retain: Some(true),
+                        }]
+                        .try_into()
+                        .unwrap(),
+                    },
+                }]
+                .try_into()
+                .unwrap(),
+                credential_sets: vec![],
+            }
+        }
+    }
 
     impl AttributeRequest {
         pub fn new_with_keys(keys: Vec<String>, intent_to_retain: bool) -> Self {
@@ -313,7 +428,6 @@ mod test {
     use crate::ClaimsQuery;
     use crate::ClaimsSelection;
     use crate::CredentialQuery;
-    use crate::CredentialQueryFormat;
     use crate::Query;
     use crate::TrustedAuthoritiesQuery;
 
@@ -323,7 +437,6 @@ mod test {
     use super::UnsupportedDcqlFeatures;
     use super::mock::ATTR_FAMILY_NAME;
     use super::mock::ATTR_GIVEN_NAME;
-    use super::mock::EXAMPLE_DOC_TYPE;
     use super::mock::EXAMPLE_NAMESPACE;
 
     #[rstest]
@@ -377,7 +490,7 @@ mod test {
     #[case(Query::example_with_credential_sets(), Err(UnsupportedDcqlFeatures::CredentialSets))]
     #[case(Query::example_with_claim_sets(), Err(UnsupportedDcqlFeatures::SdJwt))]
     #[case(Query::example_with_values(), Err(UnsupportedDcqlFeatures::SdJwt))]
-    #[case(mdoc_example_query(), Ok(vec![NormalizedCredentialRequest::new_example()].try_into().unwrap()))]
+    #[case(Query::new_example(), Ok(vec![NormalizedCredentialRequest::new_example()].try_into().unwrap()))]
     #[case(query_multiple_queries(), Err(UnsupportedDcqlFeatures::MultipleCredentialQueries))]
     #[case(query_with_trusted_authorities(), Err(UnsupportedDcqlFeatures::TrustedAuthorities))]
     #[case(query_with_claim_sets(), Err(UnsupportedDcqlFeatures::MultipleClaimSets))]
@@ -402,43 +515,11 @@ mod test {
         assert_eq!(result, expected);
     }
 
-    fn mdoc_example_query() -> Query {
-        Query {
-            credentials: vec![CredentialQuery {
-                id: "my_credential".to_string(),
-                format: CredentialQueryFormat::MsoMdoc {
-                    doctype_value: EXAMPLE_DOC_TYPE.to_string(),
-                },
-                multiple: false,
-                trusted_authorities: vec![],
-                require_cryptographic_holder_binding: true,
-                claims_selection: ClaimsSelection::All {
-                    claims: vec![ClaimsQuery {
-                        id: None,
-                        path: vec![
-                            ClaimPath::SelectByKey(EXAMPLE_NAMESPACE.to_string()),
-                            ClaimPath::SelectByKey(ATTR_FAMILY_NAME.to_string()),
-                        ]
-                        .try_into()
-                        .unwrap(),
-                        values: vec![],
-                        intent_to_retain: Some(true),
-                    }]
-                    .try_into()
-                    .unwrap(),
-                },
-            }]
-            .try_into()
-            .unwrap(),
-            credential_sets: vec![],
-        }
-    }
-
     fn mdoc_example_query_mutate_first_credential_query<F>(mutate: F) -> Query
     where
         F: FnOnce(CredentialQuery) -> CredentialQuery,
     {
-        let mut query = mdoc_example_query();
+        let mut query = Query::new_example();
         query.credentials = vec![mutate(query.credentials.into_first())].try_into().unwrap();
         query
     }

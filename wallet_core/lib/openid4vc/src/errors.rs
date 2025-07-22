@@ -215,6 +215,7 @@ impl From<GetAuthRequestError> for ErrorResponse<GetRequestErrorCode> {
                 GetAuthRequestError::QueryParametersMissing
                 | GetAuthRequestError::QueryParametersDeserialization(_)
                 | GetAuthRequestError::InvalidEphemeralId(_)
+                | GetAuthRequestError::UnsupportedDcqlFeatures(_)
                 | GetAuthRequestError::Session(SessionError::UnexpectedState(_)) => GetRequestErrorCode::InvalidRequest,
             },
             error_description: Some(description),

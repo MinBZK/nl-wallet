@@ -415,7 +415,11 @@ impl MdocCose<CoseSign1, TaggedBytes<MobileSecurityObject>> {
 pub mod data {
     use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
     use dcql::ClaimPath;
+    use dcql::ClaimsQuery;
+    use dcql::ClaimsSelection;
+    use dcql::CredentialQuery;
     use dcql::CredentialQueryFormat;
+    use dcql::Query;
     use dcql::normalized::AttributeRequest;
     use dcql::normalized::NormalizedCredentialRequest;
     use utils::vec_at_least::VecNonEmpty;
@@ -585,6 +589,53 @@ pub mod data {
                 .collect::<Vec<_>>()
                 .try_into()
                 .unwrap()
+        }
+    }
+
+    fn credential_query_from((id, source): (usize, TestDocument)) -> CredentialQuery {
+        CredentialQuery {
+            id: format!("id-{id}"),
+            format: CredentialQueryFormat::MsoMdoc {
+                doctype_value: source.doc_type,
+            },
+            multiple: false,
+            trusted_authorities: vec![],
+            require_cryptographic_holder_binding: true,
+            claims_selection: ClaimsSelection::All {
+                claims: source
+                    .namespaces
+                    .into_iter()
+                    .flat_map(|(ns, entries)| {
+                        entries.into_iter().map(move |attr| ClaimsQuery {
+                            id: None,
+                            path: vec![ClaimPath::SelectByKey(ns.clone()), ClaimPath::SelectByKey(attr.name)]
+                                .try_into()
+                                .unwrap(),
+                            values: vec![],
+                            intent_to_retain: Some(true),
+                        })
+                    })
+                    .collect::<Vec<_>>()
+                    .try_into()
+                    .unwrap(),
+            },
+        }
+    }
+
+    impl From<TestDocuments> for Query {
+        fn from(source: TestDocuments) -> Self {
+            let credentials = source
+                .0
+                .into_iter()
+                .enumerate()
+                .map(credential_query_from)
+                .collect::<Vec<_>>()
+                .try_into()
+                .unwrap();
+            Self {
+                credentials,
+                credential_sets: vec![],
+            }
         }
     }
 }
