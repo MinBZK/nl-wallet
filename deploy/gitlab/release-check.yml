@@ -1,0 +1,30 @@
+.git-jira-check-base:
+  extends: .env-k8s
+  allow_failure: true
+  before_script:
+    - JIRA_PAT=$(kubectl get secret nl-wallet-git-jira-check-tokens -o jsonpath='{.data.JIRA_TOKEN}' | base64 --decode)
+    - export JIRA_PAT
+    - GITLAB_TOKEN=$(kubectl get secret nl-wallet-git-jira-check-tokens -o jsonpath='{.data.GITLAB_TOKEN}' | base64 --decode)
+    - export GITLAB_TOKEN
+    - export CURRENT_RELEASE="$(jq -r '"v" + .version | sub("-dev$"; "")' wallet_web/package.json) "
+    - echo "Using CURRENT_RELEASE = $CURRENT_RELEASE"
+    - python3 -m venv venv
+    - source venv/bin/activate
+    - pip3 install -r deploy/git-jira-check/requirements.txt
+
+nightly_git_jira_check:
+  extends: .git-jira-check-base
+  script:
+    - python3 deploy/git-jira-check/git_jira_sync.py sync-nightly
+  rules: !reference [ .on-schedule, rules ]
+
+verify_release_check:
+  extends: .git-jira-check-base
+  script:
+    - python3 deploy/git-jira-check/git_jira_sync.py verify-release
+  rules: !reference [.release-tag, rules]
+  artifacts:
+    name: mrs-missing-jira-key
+    when: always
+    paths:
+      - mrs_missing_jira.log
