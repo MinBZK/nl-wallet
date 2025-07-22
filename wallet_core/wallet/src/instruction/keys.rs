@@ -8,7 +8,6 @@ use p256::ecdsa::VerifyingKey;
 use p256::ecdsa::signature;
 use p256::ecdsa::signature::Verifier;
 
-use crypto::factory::KeyFactory;
 use crypto::keys::CredentialEcdsaKey;
 use crypto::keys::CredentialKeyType;
 use crypto::keys::EcdsaKey;
@@ -19,6 +18,7 @@ use platform_support::attested_key::AppleAttestedKey;
 use platform_support::attested_key::GoogleAttestedKey;
 use poa::Poa;
 use poa::factory::PoaFactory;
+use poa::keyfactory::KeyFactory;
 use utils::vec_at_least::VecAtLeastTwoUnique;
 use wallet_account::messages::instructions::ConstructPoa;
 use wallet_account::messages::instructions::GenerateKey;

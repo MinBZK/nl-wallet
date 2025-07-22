@@ -7,8 +7,8 @@ use indexmap::IndexMap;
 use p256::PublicKey;
 use p256::SecretKey;
 
-use crypto::factory::KeyFactory;
 use crypto::keys::CredentialEcdsaKey;
+use poa::keyfactory::KeyFactory;
 
 use crate::errors::Result;
 use crate::iso::*;

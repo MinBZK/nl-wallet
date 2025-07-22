@@ -163,11 +163,12 @@ mod tests {
     use rand_core::OsRng;
     use rstest::rstest;
 
-    use crypto::mock_remote::MockRemoteEcdsaKey;
     use jwt::Jwt;
     use jwt::pop::JwtPopClaims;
     use jwt::validations;
     use utils::vec_at_least::VecNonEmpty;
+
+    use crate::mock_remote::MockRemoteEcdsaKey;
 
     use super::Poa;
     use super::PoaPayload;

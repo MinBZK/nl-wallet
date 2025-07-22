@@ -4,10 +4,10 @@ use rustls_pki_types::TrustAnchor;
 
 use attestation_types::request::NormalizedCredentialRequest;
 use crypto::CredentialEcdsaKey;
-use crypto::factory::KeyFactory;
 use http_utils::urls::BaseUrl;
 use mdoc::holder::Mdoc;
 use poa::factory::PoaFactory;
+use poa::keyfactory::KeyFactory;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::verifier::SessionType;

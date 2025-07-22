@@ -9,7 +9,6 @@ use serde_with::TryFromInto;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 
-use crypto::factory::KeyFactory;
 use crypto::keys::CredentialEcdsaKey;
 use http_utils::urls::BaseUrl;
 use jwt::Jwt;
@@ -20,6 +19,7 @@ use jwt::wte::WteClaims;
 use mdoc::IssuerSigned;
 use mdoc::utils::serialization::CborBase64;
 use poa::Poa;
+use poa::keyfactory::KeyFactory;
 use utils::spec::SpecOptional;
 use utils::vec_at_least::VecNonEmpty;
 

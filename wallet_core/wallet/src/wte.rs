@@ -56,12 +56,12 @@ impl Default for WpWteIssuanceClient {
 pub(crate) mod tests {
     use p256::ecdsa::VerifyingKey;
 
-    use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::utils::random_string;
     use jwt::credential::JwtCredential;
     use jwt::wte::WteClaims;
     use platform_support::attested_key::AppleAttestedKey;
     use platform_support::attested_key::GoogleAttestedKey;
+    use poa::mock_remote::MockRemoteEcdsaKey;
 
     use crate::account_provider::AccountProviderClient;
     use crate::instruction::InstructionClient;

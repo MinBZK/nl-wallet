@@ -13,14 +13,14 @@ use p256::ecdsa::signature::Signer;
 use parking_lot::Mutex;
 use rand_core::OsRng;
 
-use crate::utils;
+use crate::keyfactory::KeyFactory;
 
-use crate::factory::KeyFactory;
-use crate::keys::CredentialEcdsaKey;
-use crate::keys::CredentialKeyType;
-use crate::keys::EcdsaKey;
-use crate::keys::SecureEcdsaKey;
-use crate::keys::WithIdentifier;
+use crypto::CredentialEcdsaKey;
+use crypto::CredentialKeyType;
+use crypto::EcdsaKey;
+use crypto::SecureEcdsaKey;
+use crypto::WithIdentifier;
+use crypto::utils;
 
 #[derive(Debug, thiserror::Error)]
 pub enum MockRemoteKeyFactoryError {
@@ -126,8 +126,8 @@ impl MockRemoteKeyFactory {
 
     #[cfg(feature = "examples")]
     pub fn new_example() -> Self {
-        use crate::examples::EXAMPLE_KEY_IDENTIFIER;
-        use crate::examples::Examples;
+        use crypto::examples::EXAMPLE_KEY_IDENTIFIER;
+        use crypto::examples::Examples;
 
         let keys = HashMap::from([(EXAMPLE_KEY_IDENTIFIER.to_string(), Examples::static_device_key())]);
         Self::new_signing_keys(keys)

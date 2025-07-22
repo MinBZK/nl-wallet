@@ -3,9 +3,9 @@ use indexmap::IndexMap;
 
 use attestation_types::request::NormalizedCredentialRequest;
 use crypto::examples::Examples;
-use crypto::mock_remote::MockRemoteKeyFactory;
 use crypto::server_keys::generate::Ca;
 use dcql::CredentialQueryFormat;
+use poa::mock_remote::MockRemoteKeyFactory;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::examples::EXAMPLE_ATTR_NAME;

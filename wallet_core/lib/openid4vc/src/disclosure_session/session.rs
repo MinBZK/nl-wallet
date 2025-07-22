@@ -6,7 +6,6 @@ use tracing::warn;
 
 use attestation_types::request::NormalizedCredentialRequest;
 use crypto::CredentialEcdsaKey;
-use crypto::factory::KeyFactory;
 use crypto::utils::random_string;
 use http_utils::urls::BaseUrl;
 use mdoc::holder::Mdoc;
@@ -14,6 +13,7 @@ use mdoc::holder::disclosure::credential_requests_to_mdoc_paths;
 use mdoc::iso::disclosure::DeviceResponse;
 use mdoc::iso::engagement::SessionTranscript;
 use poa::factory::PoaFactory;
+use poa::keyfactory::KeyFactory;
 use utils::vec_at_least::VecAtLeastTwoUnique;
 use utils::vec_at_least::VecNonEmpty;
 
@@ -192,10 +192,10 @@ mod tests {
     use serde::de::Error;
 
     use attestation_data::auth::reader_auth::ReaderRegistration;
-    use crypto::mock_remote::MockRemoteEcdsaKey;
-    use crypto::mock_remote::MockRemoteKeyFactory;
     use http_utils::urls::BaseUrl;
     use mdoc::holder::Mdoc;
+    use poa::mock_remote::MockRemoteEcdsaKey;
+    use poa::mock_remote::MockRemoteKeyFactory;
     use serde_json::json;
 
     use crate::errors::AuthorizationErrorCode;

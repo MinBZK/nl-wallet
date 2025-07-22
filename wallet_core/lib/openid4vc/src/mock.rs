@@ -5,7 +5,6 @@ use indexmap::IndexSet;
 use rustls_pki_types::TrustAnchor;
 
 use attestation_data::auth::issuer_auth::IssuerRegistration;
-use crypto::factory::KeyFactory;
 use crypto::server_keys::generate::Ca;
 use http_utils::urls::BaseUrl;
 use jwt::credential::JwtCredential;
@@ -13,6 +12,7 @@ use jwt::wte::WteClaims;
 use mdoc::IssuerSigned;
 use mdoc::holder::Mdoc;
 use mdoc::test::TestDocument;
+use poa::keyfactory::KeyFactory;
 
 use crate::issuance_session::CredentialWithMetadata;
 use crate::issuance_session::HttpVcMessageClient;
