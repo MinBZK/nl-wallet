@@ -59,7 +59,7 @@ pub struct AttestationPresentation {
     pub attributes: Vec<AttestationAttribute>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum AttestationIdentity {
     Ephemeral,
