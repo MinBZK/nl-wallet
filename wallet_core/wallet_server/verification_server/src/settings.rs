@@ -121,7 +121,7 @@ impl UseCaseSettings {
         let use_case = RpInitiatedUseCase::try_new(
             self.key_pair.parse(hsm).await?,
             self.session_type_return_url,
-            self.dcql_query.map(TryInto::try_into).transpose()?,
+            self.dcql_query,
             self.return_url_template,
         )?;
 
