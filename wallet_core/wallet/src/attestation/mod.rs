@@ -10,6 +10,7 @@ use std::collections::HashSet;
 use chrono::NaiveDate;
 use serde::Deserialize;
 use serde::Serialize;
+use uuid::Uuid;
 
 use attestation_data::attributes::AttributeValue;
 use attestation_data::attributes::AttributesError;
@@ -49,6 +50,7 @@ pub enum AttributeError {
     AttributeDateValue(#[from] chrono::ParseError),
 }
 
+// TODO: Separate various concerns: PVW-4675
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AttestationPresentation {
     pub identity: AttestationIdentity,
@@ -58,11 +60,11 @@ pub struct AttestationPresentation {
     pub attributes: Vec<AttestationAttribute>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum AttestationIdentity {
     Ephemeral,
-    Fixed { id: String },
+    Fixed { id: Uuid },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

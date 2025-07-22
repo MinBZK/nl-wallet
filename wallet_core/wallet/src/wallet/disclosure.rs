@@ -473,7 +473,7 @@ where
                             .into_attribute_subset(&mdoc_paths);
 
                         let attestation_presentation = AttestationPresentation::create_for_disclosure(
-                            stored_mdoc.mdoc_id.to_string(),
+                            stored_mdoc.mdoc_id,
                             stored_mdoc.normalized_metadata.clone(),
                             issuer_registration.organization,
                             issuer_signed.into_entries_by_namespace(),
@@ -1048,7 +1048,7 @@ mod tests {
             .unwrap();
         let attributes = mdoc.clone().issuer_signed.into_entries_by_namespace();
         let presentation = AttestationPresentation::create_for_disclosure(
-            String::from("id123"),
+            Uuid::new_v4(),
             metadata,
             issuer_registration.organization,
             attributes,

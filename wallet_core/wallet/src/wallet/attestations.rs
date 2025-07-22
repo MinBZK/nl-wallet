@@ -87,9 +87,7 @@ where
                                 .ok_or(AttestationsError::MissingIssuerRegistration)?;
 
                             let attestation = AttestationPresentation::create_for_issuance(
-                                AttestationIdentity::Fixed {
-                                    id: attestation_id.to_string(),
-                                },
+                                AttestationIdentity::Fixed { id: attestation_id },
                                 normalized_metadata,
                                 issuer_registration.organization,
                                 mdoc.issuer_signed.into_entries_by_namespace(),
@@ -108,9 +106,7 @@ where
 
                             let payload = sd_jwt.into_inner().into_credential_payload(&normalized_metadata)?;
                             let attestation = AttestationPresentation::create_from_attributes(
-                                AttestationIdentity::Fixed {
-                                    id: attestation_id.to_string(),
-                                },
+                                AttestationIdentity::Fixed { id: attestation_id },
                                 normalized_metadata,
                                 issuer_registration.organization,
                                 &payload.previewable_payload.attributes,
