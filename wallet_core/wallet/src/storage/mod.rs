@@ -26,6 +26,7 @@ use error_category::ErrorCategory;
 use mdoc::holder::Mdoc;
 use mdoc::utils::serialization::CborError;
 use openid4vc::issuance_session::CredentialWithMetadata;
+use openid4vc::issuance_session::IssuedCredentialCopies;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataChainError;
 
@@ -146,7 +147,7 @@ pub trait Storage {
     async fn update_credentials(
         &mut self,
         timestamp: DateTime<Utc>,
-        credentials: Vec<(CredentialWithMetadata, AttestationPresentation)>,
+        credentials: Vec<(IssuedCredentialCopies, AttestationPresentation)>,
     ) -> StorageResult<()>;
 
     async fn increment_attestation_copies_usage_count(&mut self, attestation_copy_ids: Vec<Uuid>) -> StorageResult<()>;

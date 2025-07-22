@@ -15,6 +15,7 @@ use crypto::x509::BorrowingCertificate;
 use crypto::x509::BorrowingCertificateExtension;
 use openid4vc::issuance_session::CredentialWithMetadata;
 use openid4vc::issuance_session::IssuedCredential;
+use openid4vc::issuance_session::IssuedCredentialCopies;
 
 use crate::AttestationPresentation;
 use crate::DisclosureStatus;
@@ -170,7 +171,7 @@ impl Storage for StorageStub {
     async fn update_credentials(
         &mut self,
         _timestamp: DateTime<Utc>,
-        _credentials: Vec<(CredentialWithMetadata, AttestationPresentation)>,
+        _credentials: Vec<(IssuedCredentialCopies, AttestationPresentation)>,
     ) -> StorageResult<()> {
         unimplemented!()
     }
