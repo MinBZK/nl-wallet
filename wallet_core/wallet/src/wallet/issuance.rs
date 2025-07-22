@@ -561,7 +561,13 @@ where
             self.storage
                 .write()
                 .await
-                .update_credentials(Utc::now(), existing)
+                .update_credentials(
+                    Utc::now(),
+                    existing
+                        .into_iter()
+                        .map(|(credential, preview)| (credential.copies, preview))
+                        .collect_vec(),
+                )
                 .await
                 .map_err(IssuanceError::AttestationStorage)?;
         }

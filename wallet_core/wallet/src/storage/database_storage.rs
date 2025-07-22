@@ -559,7 +559,7 @@ where
     async fn update_credentials(
         &mut self,
         timestamp: DateTime<Utc>,
-        credentials: Vec<(CredentialWithMetadata, AttestationPresentation)>,
+        credentials: Vec<(IssuedCredentialCopies, AttestationPresentation)>,
     ) -> StorageResult<()> {
         let issuance_event_id = Uuid::now_v7();
 
@@ -572,7 +572,7 @@ where
 
         let mut issuance_event_attestations = Vec::with_capacity(credentials.len());
 
-        for (credential, attestation_presentation) in credentials {
+        for (copies, attestation_presentation) in credentials {
             let AttestationIdentity::Fixed { id: attestation_id } = attestation_presentation.identity else {
                 return Err(StorageError::EventEphemeralIdentity);
             };
@@ -591,7 +591,7 @@ where
                 .exec(&transaction)
                 .await?;
 
-            attestation_copy::Entity::insert_many(create_attestation_copy_models(attestation_id, credential.copies)?)
+            attestation_copy::Entity::insert_many(create_attestation_copy_models(attestation_id, copies)?)
                 .exec(&transaction)
                 .await?;
         }
@@ -1349,17 +1349,7 @@ pub(crate) mod tests {
 
         // Update sd_jwt
         storage
-            .update_credentials(
-                Utc::now(),
-                vec![(
-                    CredentialWithMetadata::new(
-                        issued_copies,
-                        attestation_type.clone(),
-                        VerifiedTypeMetadataDocuments::nl_pid_example(),
-                    ),
-                    attestation_presentation,
-                )],
-            )
+            .update_credentials(Utc::now(), vec![(issued_copies, attestation_presentation)])
             .await
             .expect("Could not update sd-jwts");
 
