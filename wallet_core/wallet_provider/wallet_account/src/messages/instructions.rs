@@ -17,9 +17,9 @@ use jwt::JwtSubject;
 use jwt::credential::JwtCredentialClaims;
 use jwt::pop::JwtPopClaims;
 use jwt::wte::WteClaims;
-use poa::Poa;
 use utils::vec_at_least::VecAtLeastTwoUnique;
 use utils::vec_at_least::VecNonEmpty;
+use wscd::Poa;
 
 use crate::signed::ChallengeRequest;
 use crate::signed::ChallengeResponse;

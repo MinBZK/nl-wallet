@@ -58,8 +58,6 @@ use openid4vc::verifier::StatusResponse;
 use openid4vc_server::verifier::StartDisclosureRequest;
 use openid4vc_server::verifier::StartDisclosureResponse;
 use openid4vc_server::verifier::StatusParams;
-use poa::mock_remote::MockRemoteEcdsaKey;
-use poa::mock_remote::MockRemoteKeyFactory;
 use sd_jwt_vc_metadata::TypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use sd_jwt_vc_metadata::UncheckedTypeMetadata;
@@ -72,6 +70,8 @@ use utils::generator::mock::MockTimeGenerator;
 use verification_server::server;
 use verification_server::settings::UseCaseSettings;
 use verification_server::settings::VerifierSettings;
+use wscd::mock_remote::MockRemoteEcdsaKey;
+use wscd::mock_remote::MockRemoteKeyFactory;
 
 const PID_ATTESTATION_TYPE: &str = "urn:eudi:pid:nl:1";
 const USECASE_NAME: &str = "usecase";

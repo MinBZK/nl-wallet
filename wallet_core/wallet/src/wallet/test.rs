@@ -32,7 +32,6 @@ use openid4vc::mock::MockIssuanceSession;
 use openid4vc::token::CredentialPreviewContent;
 use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
-use poa::mock_remote::MockRemoteEcdsaKey;
 use sd_jwt_vc_metadata::JsonSchemaPropertyFormat;
 use sd_jwt_vc_metadata::JsonSchemaPropertyType;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
@@ -42,6 +41,7 @@ use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::messages::registration::WalletCertificateClaims;
 use wallet_configuration::wallet_config::WalletConfiguration;
+use wscd::mock_remote::MockRemoteEcdsaKey;
 
 use crate::AttestationPresentation;
 use crate::WalletEvent;

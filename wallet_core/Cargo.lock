@@ -3443,7 +3443,6 @@ dependencies = [
  "openid4vc",
  "openid4vc_server",
  "p256",
- "poa",
  "reqwest",
  "rustls-pki-types",
  "sea-orm",
@@ -3456,6 +3455,7 @@ dependencies = [
  "tokio",
  "trait-variant",
  "utils",
+ "wscd",
 ]
 
 [[package]]
@@ -3849,7 +3849,6 @@ dependencies = [
  "nom 8.0.0",
  "nutype",
  "p256",
- "poa",
  "rand_core",
  "regex",
  "ring",
@@ -3869,6 +3868,7 @@ dependencies = [
  "tracing",
  "url",
  "utils",
+ "wscd",
 ]
 
 [[package]]
@@ -4229,7 +4229,6 @@ dependencies = [
  "nutype",
  "p256",
  "parking_lot",
- "poa",
  "rand_core",
  "regex",
  "reqwest",
@@ -4255,6 +4254,7 @@ dependencies = [
  "url",
  "utils",
  "wiremock",
+ "wscd",
 ]
 
 [[package]]
@@ -4533,7 +4533,6 @@ dependencies = [
  "openid4vc",
  "openid4vc_server",
  "p256",
- "poa",
  "reqwest",
  "rstest",
  "sd_jwt_vc_metadata",
@@ -4547,6 +4546,7 @@ dependencies = [
  "tracing",
  "url",
  "utils",
+ "wscd",
 ]
 
 [[package]]
@@ -4644,26 +4644,6 @@ dependencies = [
  "uniffi",
  "utils",
  "uuid",
-]
-
-[[package]]
-name = "poa"
-version = "0.4.0-dev"
-dependencies = [
- "assert_matches",
- "crypto",
- "derive_more",
- "futures",
- "jsonwebtoken",
- "jwt",
- "p256",
- "parking_lot",
- "rand_core",
- "rstest",
- "serde",
- "thiserror 2.0.11",
- "tokio",
- "utils",
 ]
 
 [[package]]
@@ -6621,7 +6601,6 @@ dependencies = [
  "p256",
  "pid_issuer",
  "platform_support",
- "poa",
  "rand_core",
  "regex",
  "reqwest",
@@ -6649,6 +6628,7 @@ dependencies = [
  "wallet_provider_persistence",
  "wallet_provider_service",
  "wiremock",
+ "wscd",
 ]
 
 [[package]]
@@ -7528,7 +7508,6 @@ dependencies = [
  "openid4vc",
  "openid4vc_server",
  "parking_lot",
- "poa",
  "reqwest",
  "ring",
  "rstest",
@@ -7545,6 +7524,7 @@ dependencies = [
  "tracing",
  "url",
  "utils",
+ "wscd",
 ]
 
 [[package]]
@@ -7612,7 +7592,6 @@ dependencies = [
  "p256",
  "parking_lot",
  "platform_support",
- "poa",
  "rand_core",
  "regex",
  "reqwest",
@@ -7644,6 +7623,7 @@ dependencies = [
  "wallet_configuration",
  "wallet_migrations",
  "wiremock",
+ "wscd",
 ]
 
 [[package]]
@@ -7661,7 +7641,6 @@ dependencies = [
  "jwt",
  "p256",
  "platform_support",
- "poa",
  "rand_core",
  "rstest",
  "rustls-pki-types",
@@ -7671,6 +7650,7 @@ dependencies = [
  "strum 0.26.3",
  "thiserror 2.0.11",
  "utils",
+ "wscd",
 ]
 
 [[package]]
@@ -7843,7 +7823,6 @@ dependencies = [
  "openid4vc",
  "p256",
  "platform_support",
- "poa",
  "rand",
  "rand_core",
  "rstest",
@@ -7865,6 +7844,7 @@ dependencies = [
  "wallet_provider_database_settings",
  "wallet_provider_domain",
  "wallet_provider_persistence",
+ "wscd",
  "x509-parser 0.17.0",
 ]
 
@@ -8444,6 +8424,26 @@ name = "writeable"
 version = "0.5.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1e9df38ee2d2c3c5948ea468a8406ff0db0b29ae1ffde1bcf20ef305bcc95c51"
+
+[[package]]
+name = "wscd"
+version = "0.4.0-dev"
+dependencies = [
+ "assert_matches",
+ "crypto",
+ "derive_more",
+ "futures",
+ "jsonwebtoken",
+ "jwt",
+ "p256",
+ "parking_lot",
+ "rand_core",
+ "rstest",
+ "serde",
+ "thiserror 2.0.11",
+ "tokio",
+ "utils",
+]
 
 [[package]]
 name = "wyz"

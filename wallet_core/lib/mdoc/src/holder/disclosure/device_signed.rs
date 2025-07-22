@@ -8,7 +8,7 @@ use p256::PublicKey;
 use p256::SecretKey;
 
 use crypto::keys::CredentialEcdsaKey;
-use poa::keyfactory::KeyFactory;
+use wscd::keyfactory::KeyFactory;
 
 use crate::errors::Result;
 use crate::iso::*;

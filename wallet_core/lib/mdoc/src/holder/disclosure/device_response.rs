@@ -3,8 +3,8 @@ use itertools::Itertools;
 use attestation_types::request::NormalizedCredentialRequest;
 use crypto::CredentialEcdsaKey;
 use dcql::CredentialQueryFormat;
-use poa::keyfactory::KeyFactory;
 use utils::vec_at_least::VecNonEmpty;
+use wscd::keyfactory::KeyFactory;
 
 use crate::errors::Error;
 use crate::errors::Result;
@@ -115,8 +115,8 @@ mod tests {
     use rand_core::OsRng;
 
     use crypto::server_keys::generate::Ca;
-    use poa::mock_remote::MockRemoteEcdsaKey;
-    use poa::mock_remote::MockRemoteKeyFactory;
+    use wscd::mock_remote::MockRemoteEcdsaKey;
+    use wscd::mock_remote::MockRemoteKeyFactory;
 
     use crate::DeviceAuth;
     use crate::holder::Mdoc;

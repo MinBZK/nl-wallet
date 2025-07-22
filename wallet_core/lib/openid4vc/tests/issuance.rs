@@ -50,9 +50,6 @@ use openid4vc::server_state::MemoryWteTracker;
 use openid4vc::token::AccessToken;
 use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenResponseWithPreviews;
-use poa::Poa;
-use poa::PoaPayload;
-use poa::mock_remote::MockRemoteKeyFactory;
 use sd_jwt_vc_metadata::ClaimDisplayMetadata;
 use sd_jwt_vc_metadata::ClaimMetadata;
 use sd_jwt_vc_metadata::ClaimPath;
@@ -61,6 +58,9 @@ use sd_jwt_vc_metadata::TypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use sd_jwt_vc_metadata::UncheckedTypeMetadata;
 use utils::vec_at_least::VecNonEmpty;
+use wscd::Poa;
+use wscd::PoaPayload;
+use wscd::mock_remote::MockRemoteKeyFactory;
 
 type MockIssuer = Issuer<MockAttributeService, SigningKey, MemorySessionStore<IssuanceData>, MemoryWteTracker>;
 

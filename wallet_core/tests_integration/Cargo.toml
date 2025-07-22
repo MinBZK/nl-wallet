@@ -80,7 +80,6 @@ test_common = [
     "dep:mdoc",
     "dep:openid4vc",
     "dep:openid4vc_server",
-    "dep:poa",
     "dep:pid_issuer",
     "dep:platform_support",
     "dep:reqwest",
@@ -100,6 +99,7 @@ test_common = [
     "dep:wallet_provider_persistence",
     "dep:wallet_provider_service",
     "dep:wiremock",
+    "dep:wscd",
 ]
 # Include the fake_digid submodule
 fake_digid = ["dep:http_utils", "dep:reqwest", "dep:url", "dep:wallet_configuration"]
@@ -244,7 +244,7 @@ jwt.path = "../lib/jwt"
 mdoc = { path = "../lib/mdoc", optional = true, features = ["test"] }
 openid4vc = { path = "../lib/openid4vc", optional = true }
 openid4vc_server = { path = "../lib/openid4vc_server", optional = true, features = ["issuance", "disclosure"] }
-poa = { path = "../lib/poa", optional = true, features = ["mock_remote_key"] }
+wscd = { path = "../lib/wscd", optional = true, features = ["mock_remote_key"] }
 pid_issuer = { path = "../wallet_server/pid_issuer", optional = true, features = ["mock"] }
 platform_support = { path = "../wallet/platform_support", optional = true, features = ["mock"] }
 server_utils = { path = "../wallet_server/server_utils", optional = true, features = [] }

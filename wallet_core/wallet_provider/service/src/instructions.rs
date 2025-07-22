@@ -27,8 +27,6 @@ use jwt::jwk::jwk_from_p256;
 use jwt::pop::JwtPopClaims;
 use jwt::wte::WteClaims;
 use openid4vc::credential::OPENID4VCI_VC_POP_JWT_TYPE;
-use poa::POA_JWT_TYP;
-use poa::Poa;
 use utils::generator::Generator;
 use utils::vec_at_least::VecNonEmpty;
 use wallet_account::NL_WALLET_CLIENT_ID;
@@ -55,6 +53,8 @@ use wallet_provider_domain::model::wallet_user::WalletUserKeys;
 use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::repository::TransactionStarter;
 use wallet_provider_domain::repository::WalletUserRepository;
+use wscd::POA_JWT_TYP;
+use wscd::Poa;
 
 use crate::account_server::InstructionError;
 use crate::account_server::InstructionValidationError;
@@ -736,8 +736,6 @@ mod tests {
     use jwt::pop::JwtPopClaims;
     use jwt::validations;
     use jwt::wte::WteClaims;
-    use poa::Poa;
-    use poa::PoaPayload;
     use wallet_account::NL_WALLET_CLIENT_ID;
     use wallet_account::messages::instructions::CheckPin;
     use wallet_account::messages::instructions::ConstructPoa;
@@ -751,6 +749,8 @@ mod tests {
     use wallet_provider_domain::model::wallet_user::WalletUser;
     use wallet_provider_domain::repository::MockTransaction;
     use wallet_provider_persistence::repositories::mock::MockTransactionalWalletUserRepository;
+    use wscd::Poa;
+    use wscd::PoaPayload;
 
     use crate::account_server::InstructionValidationError;
     use crate::account_server::mock;

@@ -240,7 +240,7 @@ pub mod mock {
     use rand_core::OsRng;
 
     use crypto::examples::EXAMPLE_KEY_IDENTIFIER;
-    use poa::mock_remote::MockRemoteEcdsaKey;
+    use wscd::mock_remote::MockRemoteEcdsaKey;
 
     use crate::holder::Mdoc;
     use crate::test::data::pid_example;

@@ -49,12 +49,12 @@ use jwt::jwk::jwk_to_p256;
 use jwt::pop::JwtPopClaims;
 use jwt::validations;
 use jwt::wte::WteClaims;
-use poa::Poa;
-use poa::PoaVerificationError;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataChainError;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use utils::vec_at_least::VecNonEmpty;
+use wscd::Poa;
+use wscd::PoaVerificationError;
 
 use crate::Format;
 use crate::credential::CredentialRequest;
