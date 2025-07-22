@@ -237,7 +237,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#assumptions">Assumptions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#what-constitutes-a-release">What constitutes a release?</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#doing-a-release">Doing a release</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#step-1-make-sure-the-release-on-jira-is-green">Step 1: Make sure the release on Jira is green</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#step-1-make-sure-the-release-on-jira-is-green-and-complete">Step 1: Make sure the release on Jira is green and complete</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#step-2-make-sure-figma-links-are-up-to-date-in-readme-md">Step 2: Make sure Figma links are up-to-date in README.md</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#step-3-confirm-appropiate-tests-and-reports-have-been-done-for-this-release">Step 3: Confirm appropiate tests and reports have been done for this release</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#step-4-release-approval">Step 4: Release approval</a></li>
@@ -334,12 +334,13 @@ a release themselves.</p>
 <section id="doing-a-release">
 <h2>Doing a release<a class="headerlink" href="#doing-a-release" title="Link to this heading"></a></h2>
 <p>This section of the guide documents all the steps we do when we do a release.</p>
-<section id="step-1-make-sure-the-release-on-jira-is-green">
-<h3>Step 1: Make sure the release on Jira is green<a class="headerlink" href="#step-1-make-sure-the-release-on-jira-is-green" title="Link to this heading"></a></h3>
+<section id="step-1-make-sure-the-release-on-jira-is-green-and-complete">
+<h3>Step 1: Make sure the release on Jira is green and complete<a class="headerlink" href="#step-1-make-sure-the-release-on-jira-is-green-and-complete" title="Link to this heading"></a></h3>
 <p>We use [Jira Releases][2] (also sort-of interchangably called “versions”) to
-keep track of things we want to have in a release. When you go to our <code class="docutils literal notranslate"><span class="pre">PVW</span></code>
-project page on Jira, and click on the “boat” icon on the left, you’ll see our
-releases page.</p>
+keep track of things we want to have in a release and administrate for which
+Jira items code has been merged within the release period for that version. When
+you go to our <code class="docutils literal notranslate"><span class="pre">PVW</span></code> project page on Jira, and click on the “boat” icon on the
+left, you’ll see our releases page.</p>
 <p>For the version you want to release, have a look at the progress bar. When you
 click on the release, you’ll see all issues in it - essentially, you want all
 issues to be in the <code class="docutils literal notranslate"><span class="pre">Done</span></code> state (except possibly for the ones which are related
@@ -353,6 +354,21 @@ next release.</p>
 <p>When the release is “green” (i.e., all relevant issues are in the <code class="docutils literal notranslate"><span class="pre">Done</span></code> state)
 you know that the relevant features and fixes have been merged in the <code class="docutils literal notranslate"><span class="pre">main</span></code>
 branch, and you can create a release tag (which we do later on in this guide).</p>
+<p>The nightly_git_jira_check job automatically keeps Jira issues up-to-date with
+GitLab MRs by setting the correct fixVersion based on merged branches. So by the
+time you’re prepping the release, Jira should already reflect the correct state,
+but it is advised to verify the job log of nightly_git_jira_check. This job also
+checks and logs other inconsistencies:</p>
+<ul class="simple">
+<li><p>Issues with the wrong version</p></li>
+<li><p>Issues with multiple fixVersions</p></li>
+<li><p>MRs with source branches that do not contain an existing Jira item</p></li>
+</ul>
+<p>In the latter case this cannot be synced/corrected automatically. In job
+‘verify_release_check’, which runs in the release tag pipeline, an artifact is
+created in which all MRs that are misisng a Jira key are logged. Add this file
+to the release ticket in Jira or a separate ticket belonging to the release to
+ensure a quick way to determinate what has been released.</p>
 </section>
 <section id="step-2-make-sure-figma-links-are-up-to-date-in-readme-md">
 <h3>Step 2: Make sure Figma links are up-to-date in README.md<a class="headerlink" href="#step-2-make-sure-figma-links-are-up-to-date-in-readme-md" title="Link to this heading"></a></h3>
@@ -367,13 +383,13 @@ however still a few things we confirm. Most notably:</p>
 <ul class="simple">
 <li><p>Stable main pipeline (CI/CD pipeline for main is green)</p></li>
 <li><p>Automated nightly E2E testsuite succesful</p></li>
-<li><p>Manual E2E testsuite executed and green (there is a metric in our quality
-time instance that our software quality engineer uses for this, you can
-ask him for the link)</p></li>
+<li><p>Manual E2E testsuite executed and green (there is a metric in our quality time
+instance that our software quality engineer uses for this, you can ask him for
+the link)</p></li>
 <li><p>OSV scanner ran and results accepted (see <code class="docutils literal notranslate"><span class="pre">osv-scanner</span></code> job in pipeline)</p></li>
 <li><p>ZAP scanner ran and results accepted (see ZAP in Quality Time)</p></li>
-<li><p>No blocker or critical Sonar findings (you can check our Sonar instance
-for these findings, ask around for the link if you don’t have it)</p></li>
+<li><p>No blocker or critical Sonar findings (you can check our Sonar instance for
+these findings, ask around for the link if you don’t have it)</p></li>
 </ul>
 <p>The manual E2E tests are usually executed by the test automation engineer. We
 are working on getting automated ZAP tests as part of the pipeline that will
@@ -391,9 +407,9 @@ further release-steps can occur.</p>
 <p>The release in Jira is green, manual and automated testing is done and the other
 things we confirm in the previous step are all ok or accepted. The product owner
 <em>and</em> the software delivery manager now need to reply to the e-mail from the
-software quality engineer (see previous step) with an approval for release.
-The software delivery manager and the product owner CC the shared e-mail
-account and the technical team members who are executing the release.</p>
+software quality engineer (see previous step) with an approval for release. The
+software delivery manager and the product owner CC the shared e-mail account and
+the technical team members who are executing the release.</p>
 <p>When you have received this CC and it contains the approval from <em>both</em> the
 product owner and the software delivery manager, you can continue onwards with
 the steps to execute the release.</p>
@@ -404,8 +420,8 @@ release-steps can occur.</p>
 <section id="step-5-freeze-git-main-branch">
 <h3>Step 5: Freeze git main branch<a class="headerlink" href="#step-5-freeze-git-main-branch" title="Link to this heading"></a></h3>
 <p>To avoid someone accidentally or otherwise sniping in another change, you can
-temporarily “freeze” the main branch. To do this in GitLab, you can follow
-these steps:</p>
+temporarily “freeze” the main branch. To do this in GitLab, you can follow these
+steps:</p>
 <ol class="arabic simple">
 <li><p>Go to the project page, click <code class="docutils literal notranslate"><span class="pre">Settings</span></code>, go to <code class="docutils literal notranslate"><span class="pre">Repository</span> <span class="pre">settings</span></code>;</p></li>
 <li><p>Click <code class="docutils literal notranslate"><span class="pre">Expand</span></code> on <code class="docutils literal notranslate"><span class="pre">Protected</span> <span class="pre">branches</span></code> and see the <code class="docutils literal notranslate"><span class="pre">main</span></code> branch there;</p></li>
@@ -413,8 +429,8 @@ these steps:</p>
 <li><p>Set <code class="docutils literal notranslate"><span class="pre">Allowed</span> <span class="pre">to</span> <span class="pre">push</span> <span class="pre">and</span> <span class="pre">merge</span></code> to specifically <strong>your</strong> user account;</p></li>
 </ol>
 <p>After doing the above, no one except you can merge or push to the <code class="docutils literal notranslate"><span class="pre">main</span> <span class="pre">branch</span></code>.</p>
-<p>Don’t forget to undo the above when you’re done (at least after you’ve
-completed steps 6 and 7).</p>
+<p>Don’t forget to undo the above when you’re done (at least after you’ve completed
+steps 6 and 7).</p>
 </section>
 <section id="step-6-set-release-version-and-tag">
 <h3>Step 6: Set release version and tag<a class="headerlink" href="#step-6-set-release-version-and-tag" title="Link to this heading"></a></h3>
@@ -451,22 +467,21 @@ version tags.</p>
 <li><p><code class="docutils literal notranslate"><span class="pre">wallet-sbom_vX.Y.Z_generic.zip</span></code>: The software-bill-of-materials for this
 release.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">wallet-issuance-server_vX.Y.Z_x86_64-linux-glibc.zip</span></code>: The wallet issuance
-server for issuers, for glibc-based Linux systems built with Debian
-bookworm.</p></li>
+server for issuers, for glibc-based Linux systems built with Debian bookworm.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">wallet-issuance-server_vX.Y.Z_x86_64-linux-musl.zip</span></code>: The wallet issuance
 server for issuers using statically linked musl.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">wallet-verification-server_vX.Y.Z_x86_64-linux-glibc.zip</span></code>: The wallet
-verification server for relying parties, for glibc-based Linux systems
-built with Debian bookworm.</p></li>
+verification server for relying parties, for glibc-based Linux systems built
+with Debian bookworm.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">wallet-verification-server_vX.Y.Z_x86_64-linux-musl.zip</span></code>: The wallet
 verification server for relying parties using statically linked musl.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">wallet-web_vX.Y.Z_generic.zip</span></code>: The javascript helper library for issuers
-and relying parties, to assist with integrating issuers and relying party
+<li><p><code class="docutils literal notranslate"><span class="pre">wallet-web_vX.Y.Z_generic.zip</span></code>: The javascript helper library for issuers and
+relying parties, to assist with integrating issuers and relying party
 applications with the wallet platform.</p></li>
 </ul>
-<p>You can collect these artifacts from our GitLab CI/CD pipeline - you need to
-go to the relevant job and click on download artifact/zip. You might need to
-rename the zip file and/or repackage in the case of <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code>,
+<p>You can collect these artifacts from our GitLab CI/CD pipeline - you need to go
+to the relevant job and click on download artifact/zip. You might need to rename
+the zip file and/or repackage in the case of <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code>,
 <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> and <code class="docutils literal notranslate"><span class="pre">wallet_web</span></code>.</p>
 <p>Currently (2024-11-07) you need to create the sha256sums manually (in the future
 we would like to adjust the pipeline that creates the binary artifacts such that
@@ -481,12 +496,13 @@ the zip files and sha256sum texts as artifacts of the release.</p>
 <p>Note on other binaries like <code class="docutils literal notranslate"><span class="pre">wallet_server_migrations</span></code> and schema changes in
 general: When any of our binaries that use a database backend require schema
 changes in the database, we can provide either documentation that instruct how
-someone can effect the necessary changes, or a <code class="docutils literal notranslate"><span class="pre">wallet_server_migrations</span></code> utility
-and clear instructions with regards to how-to-use. When we as a team decide to
-provide a <code class="docutils literal notranslate"><span class="pre">wallet_server_migrations</span></code> binary, make sure that binary is included in
-the verification server zip files, with instructions on how to use (i.e., an
-end-user must be able to update the schema using the provided utility by
-following the additionally supplied read-me or other installation instructions).</p>
+someone can effect the necessary changes, or a <code class="docutils literal notranslate"><span class="pre">wallet_server_migrations</span></code>
+utility and clear instructions with regards to how-to-use. When we as a team
+decide to provide a <code class="docutils literal notranslate"><span class="pre">wallet_server_migrations</span></code> binary, make sure that binary is
+included in the verification server zip files, with instructions on how to use
+(i.e., an end-user must be able to update the schema using the provided utility
+by following the additionally supplied read-me or other installation
+instructions).</p>
 <p>Note about obtaining artifacts automatically: Currently the above is manual. We
 have an issue on Jira which is about creating an artifact uploader. This utility
 is called <code class="docutils literal notranslate"><span class="pre">uploader.mjs</span></code> and can talk to the GitHub releases API and add binary
@@ -555,8 +571,8 @@ and the version tag you’ve previously set to indicate the release. This versio
 tag will point to the head of the repository and will not have an associated
 release yet.</p>
 <ol class="arabic simple">
-<li><p>Go to the <em>Releases</em> page and click on the <em>Draft a new release</em> icon.
-You’ll be presented with a release creation page;</p></li>
+<li><p>Go to the <em>Releases</em> page and click on the <em>Draft a new release</em> icon. You’ll
+be presented with a release creation page;</p></li>
 <li><p>Click on <em>Choose a tag</em> and select the version you want to create a release
 for (normally the latest one for which you did all the previous steps);</p></li>
 <li><p>As title, write: <code class="docutils literal notranslate"><span class="pre">Wallet</span> <span class="pre">X.Y.Z</span></code>, where <code class="docutils literal notranslate"><span class="pre">X.Y.Z</span></code> is the version number you’re
@@ -569,8 +585,8 @@ of this release;</p></li>
 </ol>
 <p>Note on setting the pre-release flag: We always set this flag when doing an
 initial release. A versioned release like we’ve just created is also going
-through a larger scale testing and deployment phase through the operations
-team. When they have finished their testing phases and obtained their relevant
+through a larger scale testing and deployment phase through the operations team.
+When they have finished their testing phases and obtained their relevant
 approvals, a go-ahead could be given to unset the pre-release flag. This is an
 asynchronous process and never blocks the release itself (i.e., don’t wait, just
 leave the release marked as pre-release until someone comes around later on to
