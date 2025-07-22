@@ -50,6 +50,7 @@ pub enum AttributeError {
     AttributeDateValue(#[from] chrono::ParseError),
 }
 
+// TODO: Separate various concerns: PVW-4675
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AttestationPresentation {
     pub identity: AttestationIdentity,
