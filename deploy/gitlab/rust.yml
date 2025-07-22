@@ -101,7 +101,7 @@ test-rust-gba-pid:
       password = "$gba_password"
       trust_anchor = "$gba_trust_anchor"
 
-      [run_mode.gbav.client_keypair]
+      [run_mode.gbav.client_certificate_and_key]
       certificate = "$gba_client_cert"
       key = "$gba_client_cert_key"
       EOD

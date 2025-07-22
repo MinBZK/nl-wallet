@@ -10,7 +10,7 @@ password = ""
 # GBA-V server certificate trust anchor (BASE64 encoded DER certificate)
 trust_anchor = "MIIFhDCC..."
 
-[run_mode.all.gbav.client_keypair]
+[run_mode.all.gbav.client_certificate_and_key]
 # GBA-V client certificate (BASE64 encoded DER certificate)
 certificate = "MIIIBTCC..."
 # GBA-V client certificate key (BASE64 encoded DER key)
