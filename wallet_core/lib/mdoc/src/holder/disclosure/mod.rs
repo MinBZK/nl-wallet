@@ -1,12 +1,9 @@
 use std::collections::HashSet;
 
-use dcql::CredentialQueryFormat;
-use dcql::normalized::AttributeRequest;
-use dcql::normalized::NormalizedCredentialRequest;
-use utils::vec_at_least::VecNonEmpty;
+use itertools::Itertools;
 
-use crate::identifiers::AttributeIdentifier;
-use crate::verifier::ItemsRequests;
+use attestation_types::claim_path::ClaimPath;
+use utils::vec_at_least::VecNonEmpty;
 
 mod device_response;
 mod device_signed;
@@ -20,96 +17,26 @@ mod doc_request;
 mod iso_tests;
 
 #[derive(Debug, thiserror::Error)]
-pub enum ResponseValidationError {
-    #[error("attributes mismatch: {0:?}")]
-    MissingAttributes(Vec<AttributeIdentifier>),
-    #[error("expected an mdoc")]
-    ExpectedMdoc,
+#[cfg_attr(test, derive(PartialEq, Eq))]
+pub enum ResponseMatchingError {
+    #[error("attestation count in response does not match request: expected {expected}, found {found}")]
+    AttestationCountMismatch { expected: usize, found: usize },
+    #[error("at least one request was not for mdoc format")]
+    FormatNotMdoc,
+    #[error("received incorrect doc type: expected \"{expected}\", found \"{found}\"")]
+    DocTypeMismatch { expected: String, found: String },
+    #[error("requested attributes are missing for doc type(s): {}", .0.iter().map(|(attestation_type, paths)| {
+        format!("({}): {}", attestation_type, paths.iter().map(|path| {
+            format!("[{}]", path.iter().join(", "))
+        }).join(", "))
+    }).join(" / "))]
+    MissingAttributes(Vec<(String, HashSet<VecNonEmpty<ClaimPath>>)>),
 }
 
-impl ItemsRequests {
-    /// Return the mdoc-specific paths for a particular attestation type in [`ItemsRequests`],
-    /// which is always a pair of namespace and element (i.e. attribute) identifier. Note that this may return an empty set,
-    /// when the attestation type is not present.
-    pub fn to_mdoc_paths<'a>(&'a self, attestation_type: &str) -> HashSet<(&'a str, &'a str)> {
-        self.0
-            .iter()
-            .filter(|request| request.doc_type == attestation_type)
-            .flat_map(|request| {
-                request.name_spaces.iter().fold(Vec::new(), |mut acc, (ns, attrs)| {
-                    for attr in attrs.keys() {
-                        acc.push((ns.as_str(), attr.as_str()));
-                    }
-                    acc
-                })
-            })
-            .collect()
-    }
-}
-
-/// Return the mdoc-specific paths for a particular attestation type in [`VecNonEmpty<NormalizedCredentialRequest>`],
-/// which is always a pair of namespace and element (i.e. attribute) identifier. Note that this may return an empty set,
-/// either when the attestation type is not present or when none of the paths can be represented as a 2-tuple.
-pub fn credential_requests_to_mdoc_paths<'a>(
-    credential_requests: &'a VecNonEmpty<NormalizedCredentialRequest>,
-    attestation_type: &str,
-) -> HashSet<(&'a str, &'a str)> {
-    credential_requests
-        .as_ref()
-        .iter()
-        .filter(|request| {
-            request.format
-                == CredentialQueryFormat::MsoMdoc {
-                    doctype_value: attestation_type.to_string(),
-                }
-        })
-        .flat_map(|request| {
-            request
-                .claims
-                .iter()
-                .flat_map(AttributeRequest::to_namespace_and_attribute)
-                .collect::<HashSet<_>>()
-        })
-        .collect()
-}
-
-#[cfg(test)]
-mod tests {
-    use std::collections::HashSet;
-
-    use rstest::rstest;
-
-    use dcql::normalized;
-    use dcql::normalized::NormalizedCredentialRequest;
-    use utils::vec_at_least::VecNonEmpty;
-
-    use crate::holder::disclosure::credential_requests_to_mdoc_paths;
-
-    #[rstest]
-    #[case("att_1", HashSet::from([("path2", "path3"), ("path7", "path8")]))]
-    #[case("att_2", HashSet::new())]
-    #[case("att_3", HashSet::new())]
-    fn test_attribute_paths_to_mdoc_paths(
-        #[case] attestation_type: &str,
-        #[case] expected_mdoc_mpaths: HashSet<(&str, &str)>,
-    ) {
-        let credential_requests = credential_requests();
-        let actual = credential_requests_to_mdoc_paths(&credential_requests, attestation_type);
-        assert_eq!(actual, expected_mdoc_mpaths);
-    }
-
-    fn credential_requests() -> VecNonEmpty<NormalizedCredentialRequest> {
-        normalized::mock::mock_mdoc_from_slices(&[
-            (
-                "att_1",
-                &[
-                    &["path1"],
-                    &["path2", "path3"],
-                    &["path4", "path5", "path6"],
-                    &["path7", "path8"],
-                ],
-            ),
-            ("att_2", &[&["path1", "path2", "path3"], &["path4"]]),
-        ])
-    }
+#[derive(Debug, thiserror::Error)]
+pub enum IssuerSignedMatchingError {
+    #[error("requested attributes are missing: {}", .0.iter().map(|path| {
+        format!("[{}]", path.iter().join(", "))
+    }).join(", "))]
+    MissingAttributes(HashSet<VecNonEmpty<ClaimPath>>),
 }

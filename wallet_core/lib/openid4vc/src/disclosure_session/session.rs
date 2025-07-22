@@ -10,7 +10,6 @@ use crypto::utils::random_string;
 use dcql::normalized::NormalizedCredentialRequest;
 use http_utils::urls::BaseUrl;
 use mdoc::holder::Mdoc;
-use mdoc::holder::disclosure::credential_requests_to_mdoc_paths;
 use mdoc::iso::disclosure::DeviceResponse;
 use mdoc::iso::engagement::SessionTranscript;
 use poa::factory::PoaFactory;
@@ -85,6 +84,33 @@ where
     {
         info!("disclose mdoc documents");
 
+        let expected_attestation_count = self.auth_request.credential_requests.len();
+        if mdocs.len() != expected_attestation_count {
+            return Err((
+                self,
+                DisclosureError::before_sharing(
+                    VpClientError::AttestationCountMismatch {
+                        expected: expected_attestation_count.get(),
+                        found: mdocs.len().get(),
+                    }
+                    .into(),
+                ),
+            ));
+        }
+
+        let subset_mdocs = mdocs
+            .into_iter()
+            .zip_eq(self.auth_request.credential_requests.as_ref())
+            .map(|(mut mdoc, request)| {
+                mdoc.issuer_signed = mdoc.issuer_signed.into_attribute_subset(request.claim_paths());
+
+                mdoc
+            })
+            .collect_vec();
+
+        // Sign Document values based on the remaining contents of these mdocs and retain the keys used for signing.
+        info!("signing disclosed mdoc documents");
+
         let mdoc_nonce = random_string(32);
         let session_transcript = SessionTranscript::new_oid4vp(
             &self.auth_request.response_uri,
@@ -93,26 +119,7 @@ where
             &mdoc_nonce,
         );
 
-        // Remove the attributes from the modcs that were not requested
-        // and filter out any empty mdocs resulting from this.
-        let filtered_mdocs = mdocs
-            .into_iter()
-            .filter_map(|mut mdoc| {
-                let paths =
-                    credential_requests_to_mdoc_paths(&self.auth_request.credential_requests, &mdoc.mso.doc_type);
-
-                (!paths.is_empty()).then(|| {
-                    mdoc.issuer_signed = mdoc.issuer_signed.into_attribute_subset(&paths);
-
-                    mdoc
-                })
-            })
-            .collect_vec();
-
-        // Sign Document values based on the remaining contents of these mdocs and retain the keys used for signing.
-        info!("signing disclosed mdoc documents");
-
-        let result = DeviceResponse::sign_from_mdocs(filtered_mdocs, &session_transcript, key_factory).await;
+        let result = DeviceResponse::sign_from_mdocs(subset_mdocs, &session_transcript, key_factory).await;
         let (device_response, keys) = match result {
             Ok(value) => value,
             Err(error) => {
@@ -186,6 +193,7 @@ mod tests {
     use assert_matches::assert_matches;
     use futures::FutureExt;
     use http::StatusCode;
+    use itertools::Itertools;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
     use rstest::rstest;
@@ -194,6 +202,7 @@ mod tests {
     use attestation_data::auth::reader_auth::ReaderRegistration;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::mock_remote::MockRemoteKeyFactory;
+    use dcql::normalized::NormalizedCredentialRequest;
     use http_utils::urls::BaseUrl;
     use mdoc::holder::Mdoc;
     use serde_json::json;
@@ -221,19 +230,23 @@ mod tests {
     /// Creates a `VpDisclosureSession` that has already been started, along with a `MockVerifierSession`.
     fn setup_disclosure_session(
         redirect_uri: Option<BaseUrl>,
+        credential_request: impl IntoIterator<Item = NormalizedCredentialRequest>,
     ) -> (
         VpDisclosureSession<MockVerifierVpMessageClient>,
         Arc<MockVerifierSession>,
     ) {
         let session_type = SessionType::SameDevice;
 
-        let verifier_session = Arc::new(MockVerifierSession::new(
+        let mut verifier_session = MockVerifierSession::new(
             &VERIFIER_URL,
             session_type,
             RequestUriMethod::GET,
             redirect_uri,
             Some(ReaderRegistration::new_mock()),
-        ));
+        );
+        verifier_session.credential_requests = credential_request.into_iter().collect_vec().try_into().unwrap();
+
+        let verifier_session = Arc::new(verifier_session);
 
         let mock_client = MockVerifierVpMessageClient::new(Arc::clone(&verifier_session));
         let disclosure_session = VpDisclosureSession {
@@ -255,7 +268,8 @@ mod tests {
     where
         F: Fn() -> VpMessageClientError,
     {
-        let (disclosure_session, _verifier_session) = setup_disclosure_session(None);
+        let (disclosure_session, _verifier_session) =
+            setup_disclosure_session(None, [NormalizedCredentialRequest::new_pid_example()]);
 
         // Replace the `VpDisclosureSession`'s client with one that returns errors.
         let error_client = MockErrorFactoryVpMessageClient::new(response_factory, true);
@@ -282,7 +296,8 @@ mod tests {
     fn test_disclosure_session_disclose_abridged(
         #[values(None, Some("http://example.com/redirect".parse().unwrap()))] redirect_uri: Option<BaseUrl>,
     ) {
-        let (disclosure_session, verifier_session) = setup_disclosure_session(redirect_uri.clone());
+        let (disclosure_session, verifier_session) =
+            setup_disclosure_session(redirect_uri.clone(), [NormalizedCredentialRequest::new_pid_example()]);
         let (mdoc, key_factory) = setup_disclosure_mdoc();
 
         let disclosure_redirect_uri = disclosure_session
@@ -302,7 +317,8 @@ mod tests {
     #[test]
     fn test_disclosure_session_disclose_error_device_response() {
         // Calling `VPDisclosureSession::disclose()` with a malfunctioning key factory should result in an error.
-        let (disclosure_session, _verifier_session) = setup_disclosure_session(None);
+        let (disclosure_session, _verifier_session) =
+            setup_disclosure_session(None, [NormalizedCredentialRequest::new_pid_example()]);
         let (mdoc, mut key_factory) = setup_disclosure_mdoc();
 
         key_factory.has_multi_key_signing_error = true;
@@ -325,7 +341,13 @@ mod tests {
     #[test]
     fn test_disclosure_session_disclose_error_poa() {
         // Calling `VPDisclosureSession::disclose()` with a malfunctioning PoA factory should result in an error.
-        let (disclosure_session, _verifier_session) = setup_disclosure_session(None);
+        let (disclosure_session, _verifier_session) = setup_disclosure_session(
+            None,
+            [
+                NormalizedCredentialRequest::new_pid_example(),
+                NormalizedCredentialRequest::new_pid_example(),
+            ],
+        );
         let (mdoc, mut key_factory) = setup_disclosure_mdoc();
 
         let mdoc_key2 = MockRemoteEcdsaKey::new("mdoc_key2".to_string(), SigningKey::random(&mut OsRng));
@@ -352,7 +374,8 @@ mod tests {
     #[test]
     fn test_disclosure_session_disclose_error_auth_response_encryption() {
         // Calling `VPDisclosureSession::disclose()` with a malformed encryption key should result in an error.
-        let (mut disclosure_session, _verifier_session) = setup_disclosure_session(None);
+        let (mut disclosure_session, _verifier_session) =
+            setup_disclosure_session(None, [NormalizedCredentialRequest::new_pid_example()]);
         let (mdoc, key_factory) = setup_disclosure_mdoc();
 
         disclosure_session
@@ -432,7 +455,8 @@ mod tests {
     fn test_disclosure_session_terminate(
         #[values(None, Some("http://example.com/redirect".parse().unwrap()))] redirect_uri: Option<BaseUrl>,
     ) {
-        let (disclosure_session, verifier_session) = setup_disclosure_session(redirect_uri.clone());
+        let (disclosure_session, verifier_session) =
+            setup_disclosure_session(redirect_uri.clone(), [NormalizedCredentialRequest::new_pid_example()]);
 
         let terminate_redirect_uri = disclosure_session
             .terminate()

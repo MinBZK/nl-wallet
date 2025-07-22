@@ -1,11 +1,6 @@
 use derive_more::Display;
 use indexmap::IndexSet;
 
-use dcql::CredentialQueryFormat;
-use dcql::normalized::AttributeRequest;
-use dcql::normalized::MdocCredentialRequestError;
-use dcql::normalized::NormalizedCredentialRequest;
-
 use crate::DataElementIdentifier;
 use crate::Document;
 use crate::NameSpace;
@@ -16,23 +11,6 @@ pub struct AttributeIdentifier {
     pub credential_type: String,
     pub namespace: NameSpace,
     pub attribute: DataElementIdentifier,
-}
-
-impl AttributeIdentifier {
-    pub fn from_attribute_request(
-        doc_type: &str,
-        attribute_request: &AttributeRequest,
-    ) -> Result<Self, MdocCredentialRequestError> {
-        let (namespace, attribute) = attribute_request.to_namespace_and_attribute()?;
-
-        let identifier = Self {
-            credential_type: doc_type.to_owned(),
-            namespace: namespace.to_owned(),
-            attribute: attribute.to_owned(),
-        };
-
-        Ok(identifier)
-    }
 }
 
 pub trait AttributeIdentifierHolder {
@@ -66,19 +44,6 @@ where
             acc.append(&mut identifiers);
             acc
         })
-    }
-}
-
-impl AttributeIdentifierHolder for NormalizedCredentialRequest {
-    fn mdoc_attribute_identifiers(&self) -> IndexSet<AttributeIdentifier> {
-        let CredentialQueryFormat::MsoMdoc { doctype_value } = &self.format else {
-            // This function should never be called for an sd-jwt request, as this is mdoc specific
-            panic!("sd-jwt not supported");
-        };
-        self.claims
-            .iter()
-            .map(|claim| AttributeIdentifier::from_attribute_request(doctype_value, claim).unwrap())
-            .collect()
     }
 }
 
@@ -199,41 +164,7 @@ pub mod mock {
 mod tests {
     use rstest::rstest;
 
-    use attestation_types::claim_path::ClaimPath;
-    use dcql::normalized::AttributeRequest;
-    use dcql::normalized::MdocCredentialRequestError;
-    use dcql::normalized::NormalizedCredentialRequest;
-    use utils::vec_at_least::VecNonEmpty;
-
-    use super::AttributeIdentifier;
-    use super::AttributeIdentifierHolder;
     use super::mock::*;
-
-    #[rstest]
-    #[case(
-        vec![ClaimPath::SelectByKey("ns".to_string())].try_into().unwrap(),
-        Err(MdocCredentialRequestError::UnexpectedClaimsPathAmount(1.try_into().unwrap()))
-    )]
-    #[case(
-        vec![
-            ClaimPath::SelectByKey("ns".to_string()),
-            ClaimPath::SelectByKey("attr".to_string())
-        ].try_into().unwrap(),
-        Ok("doc/ns/attr".parse().unwrap())
-    )]
-    fn test_from_attribute_request(
-        #[case] path: VecNonEmpty<ClaimPath>,
-        #[case] expected: Result<AttributeIdentifier, MdocCredentialRequestError>,
-    ) {
-        let actual = AttributeIdentifier::from_attribute_request(
-            "doc",
-            &AttributeRequest {
-                path,
-                intent_to_retain: false,
-            },
-        );
-        assert_eq!(actual, expected);
-    }
 
     #[rstest]
     #[case(
@@ -280,27 +211,5 @@ mod tests {
 
         let difference = a.difference(&b);
         assert_eq!(difference, expected.mdoc_attribute_identifiers())
-    }
-
-    #[rstest]
-    #[case(
-        NormalizedCredentialRequest::pid_full_name(),
-        vec![
-            "urn:eudi:pid:nl:1/urn:eudi:pid:nl:1/family_name".parse().unwrap(),
-            "urn:eudi:pid:nl:1/urn:eudi:pid:nl:1/given_name".parse().unwrap(),
-        ].into(),
-    )]
-    #[case(
-        NormalizedCredentialRequest::addr_street(),
-        vec![
-            "urn:eudi:pid-address:nl:1/urn:eudi:pid-address:nl:1.address/street_address".parse().unwrap(),
-        ].into(),
-    )]
-    fn test_normalized_credential_request(
-        #[case] input: NormalizedCredentialRequest,
-        #[case] expected: MockAttributeIdentifierHolder,
-    ) {
-        let actual = input.mdoc_attribute_identifiers();
-        assert_eq!(actual, expected.mdoc_attribute_identifiers());
     }
 }
