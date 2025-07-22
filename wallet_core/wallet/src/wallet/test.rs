@@ -2,6 +2,8 @@ use std::num::NonZeroU8;
 use std::sync::Arc;
 use std::sync::LazyLock;
 
+use chrono::DateTime;
+use chrono::Utc;
 use futures::future::FutureExt;
 use indexmap::IndexMap;
 use p256::ecdsa::SigningKey;
@@ -40,6 +42,8 @@ use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::SortedTypeMetadataDocuments;
 use sd_jwt_vc_metadata::TypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
+use utils::generator::Generator;
+use utils::generator::mock::MockTimeGenerator;
 use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::messages::registration::WalletCertificateClaims;
 use wallet_configuration::wallet_config::WalletConfiguration;
@@ -148,7 +152,9 @@ pub static ISSUER_KEY_UNAUTHENTICATED: LazyLock<IssuerKey> = LazyLock::new(|| {
 
 /// Generates a valid `CredentialPayload` along with its metadata `SortedTypeMetadataDocuments` and
 /// `NormalizedTypeMetadata`.
-pub fn create_example_credential_payload() -> (CredentialPayload, SortedTypeMetadataDocuments, NormalizedTypeMetadata) {
+pub fn create_example_credential_payload(
+    time_generator: &impl Generator<DateTime<Utc>>,
+) -> (CredentialPayload, SortedTypeMetadataDocuments, NormalizedTypeMetadata) {
     let credential_payload = CredentialPayload::example_with_attributes(
         vec![
             ("family_name", AttributeValue::Text("De Bruijn".to_string())),
@@ -157,6 +163,7 @@ pub fn create_example_credential_payload() -> (CredentialPayload, SortedTypeMeta
             ("age_over_18", AttributeValue::Bool(true)),
         ],
         SigningKey::random(&mut OsRng).verifying_key(),
+        time_generator,
     );
 
     let metadata = TypeMetadata::example_with_claim_names(
@@ -180,8 +187,8 @@ pub fn create_example_credential_payload() -> (CredentialPayload, SortedTypeMeta
 }
 
 /// Generate valid `CredentialPreviewData`.
-pub fn create_example_preview_data() -> NormalizedCredentialPreview {
-    let (credential_payload, raw_metadata, normalized_metadata) = create_example_credential_payload();
+pub fn create_example_preview_data(time_generator: &impl Generator<DateTime<Utc>>) -> NormalizedCredentialPreview {
+    let (credential_payload, raw_metadata, normalized_metadata) = create_example_credential_payload(time_generator);
 
     NormalizedCredentialPreview {
         content: CredentialPreviewContent {
@@ -216,7 +223,7 @@ pub fn create_example_pid_mdoc_credential_unauthenticated() -> CredentialWithMet
 }
 
 fn create_example_pid_mdoc_credential_with_key(issuer_key: &IssuerKey) -> CredentialWithMetadata {
-    let (payload_preview, metadata) = create_example_payload_preview();
+    let (payload_preview, metadata) = create_example_payload_preview(&MockTimeGenerator::default());
 
     mdoc_credential_from_unsigned(payload_preview, metadata, issuer_key)
 }
