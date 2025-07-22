@@ -133,9 +133,10 @@ async fn wallet_server_settings_and_listener(
     let rp_ca = Ca::generate_reader_mock_ca().unwrap();
     let reader_trust_anchors = vec![rp_ca.as_borrowing_trust_anchor().clone()];
     let rp_trust_anchor = rp_ca.to_trust_anchor().to_owned();
-    let reader_registration = Some(ReaderRegistration::mock_from_credential_requests(
-        &request.dcql_query.clone().unwrap().try_into().unwrap(),
-    ));
+    let reader_registration = request
+        .dcql_query
+        .as_ref()
+        .map(ReaderRegistration::mock_from_dcql_query);
 
     // Set up the use case, based on RP CA and reader registration.
     let usecase_keypair = generate_reader_mock(&rp_ca, reader_registration).unwrap();
