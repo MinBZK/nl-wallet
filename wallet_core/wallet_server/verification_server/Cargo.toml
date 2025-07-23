@@ -38,6 +38,7 @@ postgres = ["server_utils/postgres"]
 integration_test = [
     "allow_insecure_url",
     "attestation_data/test",
+    "dcql/mock",
     "openid4vc/test",
     "openid4vc/mock",
     "server_utils/parsed_key_pair_conversion",
@@ -87,7 +88,11 @@ rstest.workspace = true
 serde_urlencoded.workspace = true
 tokio = { workspace = true, features = ["macros", "test-util"] }
 
-attestation_data = { path = "../../lib/attestation_data", features = ["example_credential_payloads", "generate", "mock"] }
+attestation_data = { path = "../../lib/attestation_data", features = [
+    "example_credential_payloads",
+    "generate",
+    "mock",
+] }
 crypto = { path = "../../lib/crypto", features = ["mock_remote_key"] }
 dcql.path = "../../lib/dcql"
 mdoc = { path = "../../lib/mdoc", features = ["mock_example_constructors"] }

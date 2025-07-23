@@ -3,9 +3,7 @@ use reqwest::StatusCode;
 use tracing::instrument;
 use url::Url;
 
-use dcql::CredentialQueryFormat;
-use dcql::normalized::AttributeRequest;
-use dcql::normalized::NormalizedCredentialRequest;
+use dcql::normalized;
 use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::tls::pinning::TlsPinningConfig;
 use openid4vc::disclosure_session::VpDisclosureClient;
@@ -120,25 +118,13 @@ async fn main() {
 
     let start_request = StartDisclosureRequest {
         usecase: "xyz_bank".to_owned(),
-        credential_requests: Some(
-            vec![NormalizedCredentialRequest {
-                format: CredentialQueryFormat::MsoMdoc {
-                    doctype_value: "urn:eudi:pid:nl:1".to_string(),
-                },
-                claims: vec![
-                    AttributeRequest::new_with_keys(
-                        vec!["urn:eudi:pid:nl:1".to_string(), "given_name".to_string()],
-                        true,
-                    ),
-                    AttributeRequest::new_with_keys(
-                        vec!["urn:eudi:pid:nl:1".to_string(), "family_name".to_string()],
-                        false,
-                    ),
-                ],
-            }]
-            .try_into()
-            .unwrap(),
-        ),
+        credential_requests: Some(normalized::mock::mock_mdoc_from_vecs(vec![(
+            "urn:eudi:pid:nl:1".to_string(),
+            vec![
+                vec!["urn:eudi:pid:nl:1".to_string(), "given_name".to_string()],
+                vec!["urn:eudi:pid:nl:1".to_string(), "family_name".to_string()],
+            ],
+        )])),
         return_url_template: Some(relying_party_url.parse().unwrap()),
     };
 

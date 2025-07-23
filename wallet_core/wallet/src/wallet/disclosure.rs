@@ -929,7 +929,6 @@ mod tests {
     use openid4vc::mock::MockIssuanceSession;
     use openid4vc::verifier::SessionType;
     use update_policy_model::update_policy::VersionState;
-    use utils::vec_at_least::VecNonEmpty;
 
     use crate::attestation::AttestationAttributeValue;
     use crate::attestation::AttestationIdentity;
@@ -958,19 +957,16 @@ mod tests {
     const PIN: &str = "051097";
     static RETURN_URL: LazyLock<BaseUrl> =
         LazyLock::new(|| BaseUrl::from_str("https://example.com/return/here").unwrap());
-    static DEFAULT_REQUESTED_PID_PATH: LazyLock<VecNonEmpty<String>> = LazyLock::new(|| {
-        vec![PID_DOCTYPE.to_string(), "age_over_18".to_string()]
-            .try_into()
-            .unwrap()
-    });
+    static DEFAULT_REQUESTED_PID_PATH: LazyLock<Vec<String>> =
+        LazyLock::new(|| vec![PID_DOCTYPE.to_string(), "age_over_18".to_string()]);
 
     // Set up properties for a `MockDisclosureSession`.
     fn setup_disclosure_session_verifier_certificate(
         verifier_certificate: VerifierCertificate,
-        requested_pid_path: VecNonEmpty<String>,
+        requested_pid_path: Vec<String>,
     ) -> MockDisclosureSession {
         let credential_requests =
-            normalized::mock::mock_from_vecs(vec![(PID_DOCTYPE.to_string(), vec![requested_pid_path])]);
+            normalized::mock::mock_mdoc_from_vecs(vec![(PID_DOCTYPE.to_string(), vec![requested_pid_path])]);
 
         let mut disclosure_session = MockDisclosureSession::new();
         disclosure_session
@@ -987,9 +983,7 @@ mod tests {
     }
 
     // Set up properties for a `MockDisclosureSession`.
-    fn setup_disclosure_session(
-        requested_pid_path: VecNonEmpty<String>,
-    ) -> (MockDisclosureSession, VerifierCertificate) {
+    fn setup_disclosure_session(requested_pid_path: Vec<String>) -> (MockDisclosureSession, VerifierCertificate) {
         let ca = Ca::generate_reader_mock_ca().unwrap();
         let reader_registration = ReaderRegistration::new_mock();
         let key_pair = generate_reader_mock(&ca, Some(reader_registration)).unwrap();
@@ -1004,7 +998,7 @@ mod tests {
     /// Set up the expected response of `MockDisclosureClient` when starting a new `MockDisclosureSession`.
     fn setup_disclosure_client_start(
         disclosure_client: &mut MockDisclosureClient,
-        requested_pid_path: VecNonEmpty<String>,
+        requested_pid_path: Vec<String>,
     ) -> VerifierCertificate {
         let (disclosure_session, verifier_certificate) = setup_disclosure_session(requested_pid_path);
 
@@ -1436,9 +1430,7 @@ mod tests {
         // of namespace and attribute, which should lead to no candidates being available.
         let verifier_certificate = setup_disclosure_client_start(
             &mut wallet.disclosure_client,
-            vec!["long".to_string(), "path".to_string(), "age_over_18".to_string()]
-                .try_into()
-                .unwrap(),
+            vec!["long".to_string(), "path".to_string(), "age_over_18".to_string()],
         );
 
         let mdoc_credential = create_example_pid_mdoc_credential();

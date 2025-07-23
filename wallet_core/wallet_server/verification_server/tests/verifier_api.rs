@@ -31,10 +31,7 @@ use attestation_data::x509::generate::mock::generate_reader_mock;
 use crypto::mock_remote::MockRemoteEcdsaKey;
 use crypto::mock_remote::MockRemoteKeyFactory;
 use crypto::server_keys::generate::Ca;
-use dcql::ClaimPath;
-use dcql::CredentialQueryFormat;
-use dcql::normalized::AttributeRequest;
-use dcql::normalized::NormalizedCredentialRequest;
+use dcql::normalized;
 use hsm::service::Pkcs11Hsm;
 use http_utils::error::HttpJsonErrorBody;
 use http_utils::reqwest::default_reqwest_client_builder;
@@ -79,48 +76,20 @@ const USECASE_NAME: &str = "usecase";
 static EXAMPLE_START_DISCLOSURE_REQUEST: LazyLock<StartDisclosureRequest> = LazyLock::new(|| StartDisclosureRequest {
     usecase: USECASE_NAME.to_string(),
     return_url_template: Some("https://return.url/{session_token}".parse().unwrap()),
-    credential_requests: Some(
-        vec![NormalizedCredentialRequest {
-            format: CredentialQueryFormat::MsoMdoc {
-                doctype_value: EXAMPLE_DOC_TYPE.to_string(),
-            },
-            claims: vec![AttributeRequest {
-                path: vec![
-                    ClaimPath::SelectByKey(EXAMPLE_NAMESPACE.to_string()),
-                    ClaimPath::SelectByKey(EXAMPLE_ATTR_NAME.to_string()),
-                ]
-                .try_into()
-                .unwrap(),
-                intent_to_retain: true,
-            }],
-        }]
-        .try_into()
-        .unwrap(),
-    ),
+    credential_requests: Some(normalized::mock::mock_mdoc_from_vecs(vec![(
+        EXAMPLE_DOC_TYPE.to_string(),
+        vec![vec![EXAMPLE_NAMESPACE.to_string(), EXAMPLE_ATTR_NAME.to_string()]],
+    )])),
 });
 
 static EXAMPLE_PID_START_DISCLOSURE_REQUEST: LazyLock<StartDisclosureRequest> =
     LazyLock::new(|| StartDisclosureRequest {
         usecase: USECASE_NAME.to_string(),
         return_url_template: Some("https://return.url/{session_token}".parse().unwrap()),
-        credential_requests: Some(
-            vec![NormalizedCredentialRequest {
-                format: CredentialQueryFormat::MsoMdoc {
-                    doctype_value: PID_ATTESTATION_TYPE.to_string(),
-                },
-                claims: vec![AttributeRequest {
-                    path: vec![
-                        ClaimPath::SelectByKey(PID_ATTESTATION_TYPE.to_string()),
-                        ClaimPath::SelectByKey(EXAMPLE_ATTR_NAME.to_string()),
-                    ]
-                    .try_into()
-                    .unwrap(),
-                    intent_to_retain: true,
-                }],
-            }]
-            .try_into()
-            .unwrap(),
-        ),
+        credential_requests: Some(normalized::mock::mock_mdoc_from_vecs(vec![(
+            PID_ATTESTATION_TYPE.to_string(),
+            vec![vec![PID_ATTESTATION_TYPE.to_string(), EXAMPLE_ATTR_NAME.to_string()]],
+        )])),
     });
 
 fn memory_storage_settings() -> Storage {

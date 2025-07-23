@@ -138,7 +138,7 @@ pub mod mock {
         vec![NormalizedCredentialRequest::new_pid_example()].try_into().unwrap()
     }
 
-    pub fn mock_from_vecs(input: Vec<(String, Vec<VecNonEmpty<String>>)>) -> VecNonEmpty<NormalizedCredentialRequest> {
+    pub fn mock_mdoc_from_vecs(input: Vec<(String, Vec<Vec<String>>)>) -> VecNonEmpty<NormalizedCredentialRequest> {
         let requests: Vec<_> = input
             .into_iter()
             .map(|(doc_type, paths)| {
