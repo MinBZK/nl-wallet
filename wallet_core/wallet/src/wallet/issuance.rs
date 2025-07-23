@@ -470,19 +470,6 @@ where
             )
             .await?;
 
-        let wte = if issuance_session.is_pid {
-            Some(
-                self.wte_issuance_client
-                    .obtain_wte(
-                        config.account_server.wte_public_key.as_inner(),
-                        remote_instruction.clone(),
-                    )
-                    .await?,
-            )
-        } else {
-            None
-        };
-
         let remote_key_factory = RemoteEcdsaKeyFactory::new(remote_instruction);
 
         info!("Signing nonce using Wallet Provider");
@@ -495,7 +482,11 @@ where
 
         let issuance_result = issuance_session
             .protocol_state
-            .accept_issuance(&config.mdoc_trust_anchors(), &remote_key_factory, wte)
+            .accept_issuance(
+                &config.mdoc_trust_anchors(),
+                &remote_key_factory,
+                issuance_session.is_pid,
+            )
             .await
             .map_err(|error| {
                 match error {

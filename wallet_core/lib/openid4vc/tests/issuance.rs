@@ -36,7 +36,6 @@ use openid4vc::issuance_session::IssuanceSession;
 use openid4vc::issuance_session::IssuanceSessionError;
 use openid4vc::issuance_session::IssuedCredential;
 use openid4vc::issuance_session::VcMessageClient;
-use openid4vc::issuance_session::mock_wte;
 use openid4vc::issuer::AttestationTypeConfig;
 use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::IssuanceData;
@@ -143,7 +142,7 @@ fn setup(
 async fn accept_issuance(
     #[values(NonZeroUsize::new(1).unwrap(), NonZeroUsize::new(2).unwrap())] attestation_count: NonZeroUsize,
 ) {
-    let (issuer, trust_anchor, server_url, wte_issuer_privkey) = setup_mock_issuer(attestation_count);
+    let (issuer, trust_anchor, server_url, wua_signing_key) = setup_mock_issuer(attestation_count);
     let trust_anchors = &[trust_anchor];
     let message_client = MockOpenidMessageClient::new(issuer);
     let copy_count = 4;
@@ -157,11 +156,10 @@ async fn accept_issuance(
     .await
     .unwrap();
 
-    let key_factory = MockRemoteKeyFactory::default();
-    let wte = mock_wte(&key_factory, &wte_issuer_privkey).await;
+    let key_factory = MockRemoteKeyFactory::new_with_wua_signing_key(wua_signing_key);
 
     let issued_creds = session
-        .accept_issuance(trust_anchors, &key_factory, Some(wte))
+        .accept_issuance(trust_anchors, &key_factory, true)
         .await
         .unwrap();
 
@@ -207,7 +205,7 @@ async fn start_and_accept_err(
     message_client: MockOpenidMessageClient,
     server_url: BaseUrl,
     trust_anchor: TrustAnchor<'static>,
-    wte_issuer_privkey: SigningKey,
+    wua_issuer_privkey: SigningKey,
 ) -> IssuanceSessionError {
     let trust_anchors = &[trust_anchor];
     let session = HttpIssuanceSession::start_issuance(
@@ -219,11 +217,10 @@ async fn start_and_accept_err(
     .await
     .unwrap();
 
-    let key_factory = MockRemoteKeyFactory::default();
-    let wte = mock_wte(&key_factory, &wte_issuer_privkey).await;
+    let key_factory = MockRemoteKeyFactory::new_with_wua_signing_key(wua_issuer_privkey);
 
     session
-        .accept_issuance(trust_anchors, &key_factory, Some(wte))
+        .accept_issuance(trust_anchors, &key_factory, true)
         .await
         .unwrap_err()
 }

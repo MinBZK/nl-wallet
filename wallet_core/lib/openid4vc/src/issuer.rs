@@ -4,7 +4,6 @@ use std::convert::Infallible;
 use std::num::NonZeroU8;
 use std::ops::Add;
 use std::sync::Arc;
-use std::sync::LazyLock;
 
 use chrono::Days;
 use chrono::DurationRound;
@@ -41,14 +40,12 @@ use crypto::utils::random_string;
 use http_utils::urls::BaseUrl;
 use http_utils::urls::HttpsUri;
 use jwt::EcdsaDecodingKey;
-use jwt::VerifiedJwt;
-use jwt::credential::JwtCredentialClaims;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
 use jwt::jwk::jwk_to_p256;
 use jwt::pop::JwtPopClaims;
-use jwt::validations;
-use jwt::wte::WteClaims;
+use jwt::wte::WteDisclosure;
+use jwt::wte::WteError;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataChainError;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
@@ -63,7 +60,6 @@ use crate::credential::CredentialRequests;
 use crate::credential::CredentialResponse;
 use crate::credential::CredentialResponses;
 use crate::credential::OPENID4VCI_VC_POP_JWT_TYPE;
-use crate::credential::WteDisclosure;
 use crate::dpop::Dpop;
 use crate::dpop::DpopError;
 use crate::metadata;
@@ -205,6 +201,9 @@ pub enum CredentialRequestError {
 
     #[error("error converting CredentialPayload to SD-JWT: {0}")]
     SdJwtConversion(#[from] SdJwtCredentialPayloadError),
+
+    #[error("error verifying WUA: {0}")]
+    Wua(#[from] WteError),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -1276,47 +1275,6 @@ impl CredentialRequestProof {
         }
 
         Ok(verifying_key)
-    }
-}
-
-// Returns the JWS validations for WTE verification.
-//
-// NOTE: the returned validation allows for no clock drift: time-based claims such as `exp` are validated
-// without leeway. There must be no clock drift between the WTE issuer and the caller.
-pub static WTE_JWT_VALIDATIONS: LazyLock<Validation> = LazyLock::new(|| {
-    let mut validations = validations();
-    validations.leeway = 0;
-
-    // Enforce presence of exp, meaning it is also verified since `validations().validate_exp` is `true` by default.
-    // Note that the PID issuer and the issuer of the WTE (the WP) have a mutual trust relationship with each other
-    // in which they jointly ensure, through the WTE, that each wallet can obtain at most one PID. Therefore the PID
-    // issuer, which runs this code, trusts the WP to set `exp` to a reasonable value (the `WTE_EXPIRY` constant).
-    validations.set_required_spec_claims(&["exp"]);
-
-    validations
-});
-
-impl WteDisclosure {
-    fn verify(
-        self,
-        issuer_public_key: &EcdsaDecodingKey,
-        expected_aud: &str,
-        accepted_wallet_client_ids: &[String],
-        expected_nonce: &str,
-    ) -> Result<(VerifiedJwt<JwtCredentialClaims<WteClaims>>, VerifyingKey), CredentialRequestError> {
-        let verified_jwt = VerifiedJwt::try_new(self.0, issuer_public_key, &WTE_JWT_VALIDATIONS)?;
-        let wte_pubkey = jwk_to_p256(&verified_jwt.payload().confirmation.jwk)?;
-
-        let mut validations = validations();
-        validations.set_audience(&[expected_aud]);
-        validations.set_issuer(accepted_wallet_client_ids);
-        let wte_disclosure_claims = self.1.parse_and_verify(&(&wte_pubkey).into(), &validations)?;
-
-        if wte_disclosure_claims.nonce.as_deref() != Some(expected_nonce) {
-            return Err(CredentialRequestError::IncorrectNonce);
-        }
-
-        Ok((verified_jwt, wte_pubkey))
     }
 }
 

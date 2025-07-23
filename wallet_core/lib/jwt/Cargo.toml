@@ -13,6 +13,7 @@ test = []
 [dependencies]
 base64.workspace = true
 chrono = { workspace = true, features = ["std", "clock", "serde"] }
+derive_more.workspace = true
 itertools.workspace = true
 jsonwebtoken.workspace = true
 p256 = { workspace = true, features = ["std", "ecdsa"] }

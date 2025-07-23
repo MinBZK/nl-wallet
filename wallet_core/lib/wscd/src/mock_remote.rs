@@ -30,8 +30,10 @@ use jwt::credential::JwtCredentialClaims;
 use jwt::jwk::jwk_from_p256;
 use jwt::pop::JwtPopClaims;
 use jwt::wte::WteClaims;
+use jwt::wte::WteDisclosure;
 
 use crate::Poa;
+use crate::factory::mock::MOCK_WALLET_CLIENT_ID;
 use crate::keyfactory::IssuanceResult;
 use crate::keyfactory::KeyFactory;
 
@@ -112,6 +114,8 @@ impl CredentialEcdsaKey for MockRemoteEcdsaKey {
 #[derive(Debug)]
 pub struct MockRemoteKeyFactory {
     signing_keys: Mutex<HashMap<String, SigningKey>>,
+    wua_signing_key: Option<SigningKey>,
+
     pub has_generating_error: bool,
     pub has_multi_key_signing_error: bool,
     pub has_poa_error: bool,
@@ -127,9 +131,17 @@ impl MockRemoteKeyFactory {
     fn new_signing_keys(signing_keys: HashMap<String, SigningKey>) -> Self {
         Self {
             signing_keys: Mutex::new(signing_keys),
+            wua_signing_key: None,
             has_generating_error: false,
             has_multi_key_signing_error: false,
             has_poa_error: false,
+        }
+    }
+
+    pub fn new_with_wua_signing_key(wua_signing_key: SigningKey) -> Self {
+        Self {
+            wua_signing_key: Some(wua_signing_key),
+            ..Default::default()
         }
     }
 
@@ -238,7 +250,7 @@ impl KeyFactory for MockRemoteKeyFactory {
         nonce: Option<String>,
         include_wua: bool,
     ) -> Result<IssuanceResult, Self::Error> {
-        let claims = JwtPopClaims::new(nonce, "wallet".to_string(), aud);
+        let claims = JwtPopClaims::new(nonce, MOCK_WALLET_CLIENT_ID.to_string(), aud);
 
         let mut keys = self.signing_keys.lock();
         let attestation_keys = (0..count.get())
@@ -275,10 +287,12 @@ impl KeyFactory for MockRemoteKeyFactory {
             MockRemoteEcdsaKey::new(verifying_key_sha256(key.verifying_key()), key)
         });
         let wua = include_wua.then(|| {
+            // If no WUA signing key is configured, just use the WUA's private key to sign it
+            let wua_signing_key = self.wua_signing_key.as_ref().unwrap_or(&wua_key.as_ref().unwrap().key);
             let wua = JwtCredentialClaims::new_signed(
                 wua_key.as_ref().unwrap().verifying_key(),
-                wua_key.as_ref().unwrap(), // Sign the WTE with its own private key in this test
-                "iss".to_string(),
+                wua_signing_key,
+                MOCK_WALLET_CLIENT_ID.to_string(),
                 Some("wte+jwt".to_string()),
                 WteClaims::new(),
             )
@@ -291,7 +305,7 @@ impl KeyFactory for MockRemoteKeyFactory {
                 .unwrap()
                 .unwrap();
 
-            (wua, wua_disclosure)
+            WteDisclosure::new(wua, wua_disclosure)
         });
 
         let count_including_wua = if include_wua { count.get() + 1 } else { count.get() };
