@@ -100,7 +100,7 @@ impl<H> VpDisclosureClient<H> {
         // Verify that the requested attributes are included in the reader authentication.
         verifier_certificate
             .registration()
-            .verify_requested_attributes(&credential_requests.as_ref())
+            .verify_requested_attributes(credential_requests.as_ref())
             .map_err(VpVerifierError::RequestedAttributesValidation)?;
 
         Ok(verifier_certificate)
@@ -185,6 +185,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+    use std::collections::HashSet;
     use std::sync::Arc;
     use std::sync::LazyLock;
 
@@ -203,10 +205,10 @@ mod tests {
     use crypto::mock_remote::MockRemoteKeyFactory;
     use crypto::server_keys::generate::Ca;
     use crypto::x509::BorrowingCertificateExtension;
+    use dcql::ClaimPath;
     use dcql::normalized;
     use http_utils::urls::BaseUrl;
     use mdoc::holder::Mdoc;
-    use mdoc::identifiers::AttributeIdentifier;
     use mdoc::test::data::PID;
     use mdoc::utils::serialization::CborBase64;
     use utils::generator::mock::MockTimeGenerator;
@@ -713,14 +715,18 @@ mod tests {
         )
         .expect_err("starting a new disclosure session on VpDisclosureClient should not succeed");
 
-        let unregistered_attribute = AttributeIdentifier {
-            credential_type: PID.to_string(),
-            namespace: PID.to_string(),
-            attribute: "bsn".to_string(),
-        };
+        let unregistered_attributes = HashMap::from([(
+            PID.to_string(),
+            HashSet::from([vec![
+                ClaimPath::SelectByKey(PID.to_string()),
+                ClaimPath::SelectByKey("bsn".to_string()),
+            ]
+            .try_into()
+            .unwrap()]),
+        )]);
         assert_matches!(*error, VpSessionError::Verifier(VpVerifierError::RequestedAttributesValidation(
-            ValidationError::UnregisteredAttributes(ids)
-        )) if ids == vec![unregistered_attribute]);
+            ValidationError::UnregisteredAttributes(unregistered)
+        )) if unregistered == unregistered_attributes);
 
         let wallet_messages = verifier_session.wallet_messages.lock();
         assert_eq!(wallet_messages.len(), 2);
