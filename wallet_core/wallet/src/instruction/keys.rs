@@ -2,17 +2,15 @@ use std::hash::Hash;
 use std::hash::Hasher;
 use std::num::NonZeroU64;
 
+use crypto::WithVerifyingKey;
 use derive_more::Constructor;
 use itertools::Itertools;
 use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
 use p256::ecdsa::signature;
-use p256::ecdsa::signature::Verifier;
 
 use crypto::keys::CredentialEcdsaKey;
 use crypto::keys::CredentialKeyType;
-use crypto::keys::EcdsaKey;
-use crypto::keys::SecureEcdsaKey;
 use crypto::keys::WithIdentifier;
 use crypto::p256_der::DerSignature;
 use jwt::wte::WteDisclosure;
@@ -53,21 +51,20 @@ pub struct RemoteEcdsaKeyFactory<S, AK, GK, A> {
     instruction_client: InstructionClient<S, AK, GK, A>,
 }
 
-pub struct RemoteEcdsaKey<S, AK, GK, A> {
+pub struct RemoteEcdsaKey {
     identifier: String,
     public_key: VerifyingKey,
-    instruction_client: InstructionClient<S, AK, GK, A>,
 }
 
-impl<S, AK, GK, A> PartialEq for RemoteEcdsaKey<S, AK, GK, A> {
+impl PartialEq for RemoteEcdsaKey {
     fn eq(&self, other: &Self) -> bool {
         self.identifier == other.identifier
     }
 }
 
-impl<S, AK, GK, A> Eq for RemoteEcdsaKey<S, AK, GK, A> {}
+impl Eq for RemoteEcdsaKey {}
 
-impl<S, AK, GK, A> Hash for RemoteEcdsaKey<S, AK, GK, A> {
+impl Hash for RemoteEcdsaKey {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.identifier.hash(state);
     }
@@ -80,7 +77,7 @@ where
     GK: GoogleAttestedKey,
     A: AccountProviderClient,
 {
-    type Key = RemoteEcdsaKey<S, AK, GK, A>;
+    type Key = RemoteEcdsaKey;
     type Error = RemoteEcdsaKeyError;
 
     async fn generate_new_multiple(&self, count: u64) -> Result<Vec<Self::Key>, Self::Error> {
@@ -92,7 +89,6 @@ where
             .map(|(identifier, public_key)| RemoteEcdsaKey {
                 identifier,
                 public_key: public_key.into_inner(),
-                instruction_client: self.instruction_client.clone(),
             })
             .collect();
 
@@ -103,7 +99,6 @@ where
         RemoteEcdsaKey {
             identifier: identifier.into(),
             public_key,
-            instruction_client: self.instruction_client.clone(),
         }
     }
 
@@ -177,7 +172,7 @@ where
     GK: GoogleAttestedKey,
     A: AccountProviderClient,
 {
-    type Key = RemoteEcdsaKey<S, AK, GK, A>;
+    type Key = RemoteEcdsaKey;
     type Error = RemoteEcdsaKeyError;
 
     async fn poa(
@@ -206,62 +201,20 @@ where
     }
 }
 
-impl<S, AK, GK, A> WithIdentifier for RemoteEcdsaKey<S, AK, GK, A> {
+impl WithIdentifier for RemoteEcdsaKey {
     fn identifier(&self) -> &str {
         &self.identifier
     }
 }
 
-impl<S, AK, GK, A> EcdsaKey for RemoteEcdsaKey<S, AK, GK, A>
-where
-    S: Storage,
-    AK: AppleAttestedKey,
-    GK: GoogleAttestedKey,
-    A: AccountProviderClient,
-{
+impl WithVerifyingKey for RemoteEcdsaKey {
     type Error = RemoteEcdsaKeyError;
 
     async fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
         Ok(self.public_key)
     }
-
-    async fn try_sign(&self, msg: &[u8]) -> Result<Signature, Self::Error> {
-        let result = self
-            .instruction_client
-            .send(Sign {
-                messages_with_identifiers: vec![(msg.to_vec(), vec![self.identifier.clone()])],
-            })
-            .await?;
-
-        let signature = result
-            .signatures
-            .into_iter()
-            .next()
-            .and_then(|r| r.into_iter().next())
-            .map(DerSignature::into_inner)
-            .ok_or(RemoteEcdsaKeyError::KeyNotFound(self.identifier.clone()))?;
-
-        self.public_key.verify(msg, &signature)?;
-
-        Ok(signature)
-    }
 }
 
-impl<S, AK, GK, A> SecureEcdsaKey for RemoteEcdsaKey<S, AK, GK, A>
-where
-    S: Storage,
-    AK: AppleAttestedKey,
-    GK: GoogleAttestedKey,
-    A: AccountProviderClient,
-{
-}
-
-impl<S, AK, GK, A> CredentialEcdsaKey for RemoteEcdsaKey<S, AK, GK, A>
-where
-    S: Storage,
-    AK: AppleAttestedKey,
-    GK: GoogleAttestedKey,
-    A: AccountProviderClient,
-{
+impl CredentialEcdsaKey for RemoteEcdsaKey {
     const KEY_TYPE: CredentialKeyType = CredentialKeyType::Remote;
 }
