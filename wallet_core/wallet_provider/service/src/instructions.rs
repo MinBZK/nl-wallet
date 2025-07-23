@@ -21,10 +21,9 @@ use hsm::model::encrypter::Encrypter;
 use hsm::model::wrapped_key::WrappedKey;
 use hsm::service::HsmError;
 use jwt::Jwt;
-use jwt::credential::JwtCredentialClaims;
 use jwt::jwk::jwk_from_p256;
 use jwt::pop::JwtPopClaims;
-use jwt::wte::WteClaims;
+use jwt::wte::WteDisclosure;
 use openid4vc::credential::OPENID4VCI_VC_POP_JWT_TYPE;
 use utils::generator::Generator;
 use utils::vec_at_least::VecNonEmpty;
@@ -182,7 +181,7 @@ async fn perform_issuance<T, R, H>(
         VecNonEmpty<String>,
         VecNonEmpty<Jwt<JwtPopClaims>>,
         Option<Poa>,
-        Option<(Jwt<JwtCredentialClaims<WteClaims>>, Jwt<JwtPopClaims>)>,
+        Option<WteDisclosure>,
     ),
     InstructionError,
 >
@@ -204,8 +203,8 @@ where
     let claims = JwtPopClaims::new(arguments.nonce, NL_WALLET_CLIENT_ID.to_string(), arguments.aud);
 
     let (wua_wrapped_key, wua_key_id, wua_with_disclosure) = if arguments.issue_wua {
-        let (wua_wrapped_key, wua_key_id, wua, wua_disclosure) = wua(&claims, user_state).await?;
-        (Some(wua_wrapped_key), Some(wua_key_id), Some((wua, wua_disclosure)))
+        let (wua_wrapped_key, wua_key_id, wua_disclosure) = wua(&claims, user_state).await?;
+        (Some(wua_wrapped_key), Some(wua_key_id), Some(wua_disclosure))
     } else {
         (None, None, None)
     };
@@ -278,15 +277,7 @@ where
 async fn wua<T, R, H>(
     claims: &JwtPopClaims,
     user_state: &UserState<R, H, impl WteIssuer>,
-) -> Result<
-    (
-        WrappedKey,
-        String,
-        Jwt<JwtCredentialClaims<WteClaims>>,
-        Jwt<JwtPopClaims>,
-    ),
-    InstructionError,
->
+) -> Result<(WrappedKey, String, WteDisclosure), InstructionError>
 where
     T: Committable,
     R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
@@ -306,7 +297,7 @@ where
     .await
     .map_err(InstructionError::PopSigning)?;
 
-    Ok((wua_wrapped_key, wua_key_id, wua, wua_disclosure))
+    Ok((wua_wrapped_key, wua_key_id, WteDisclosure::new(wua, wua_disclosure)))
 }
 
 async fn issuance_pops<H>(
@@ -416,17 +407,14 @@ impl HandleInstruction for PerformIssuanceWithWua {
         )
         .await?;
 
-        // unwrap: `perform_issuance()` included a WUA since we passed it `true` above.
-        let (wua, wua_disclosure) = wua_with_disclosure.unwrap();
-
         Ok(PerformIssuanceWithWuaResult {
             issuance_result: PerformIssuanceResult {
                 key_identifiers,
                 pops,
                 poa,
             },
-            wua,
-            wua_disclosure,
+            // unwrap: `perform_issuance()` included a WUA since we passed it `true` above.
+            wua_disclosure: wua_with_disclosure.unwrap(),
         })
     }
 }
@@ -624,11 +612,10 @@ mod tests {
     use crypto::utils::random_bytes;
     use hsm::model::wrapped_key::WrappedKey;
     use jwt::Jwt;
-    use jwt::credential::JwtCredentialClaims;
     use jwt::jwk::jwk_to_p256;
     use jwt::pop::JwtPopClaims;
     use jwt::validations;
-    use jwt::wte::WteClaims;
+    use jwt::wte::WteDisclosure;
     use wallet_account::NL_WALLET_CLIENT_ID;
     use wallet_account::messages::instructions::CheckPin;
     use wallet_account::messages::instructions::ConstructPoa;
@@ -866,11 +853,7 @@ mod tests {
             .unwrap()
     }
 
-    fn validate_issuance(
-        pops: &[Jwt<JwtPopClaims>],
-        poa: Option<Poa>,
-        wua_with_disclosure: Option<(Jwt<JwtCredentialClaims<WteClaims>>, Jwt<JwtPopClaims>)>,
-    ) {
+    fn validate_issuance(pops: &[Jwt<JwtPopClaims>], poa: Option<Poa>, wua_with_disclosure: Option<WteDisclosure>) {
         let mut validations = Validation::new(Algorithm::ES256);
         validations.required_spec_claims = HashSet::default();
         validations.set_issuer(&[NL_WALLET_CLIENT_ID]);
@@ -887,7 +870,9 @@ mod tests {
             })
             .collect_vec();
 
-        let (wua, wua_disclosure) = wua_with_disclosure.unzip();
+        let (wua, wua_disclosure) = wua_with_disclosure
+            .map(|WteDisclosure(wua, wua_disclosure)| (wua, wua_disclosure))
+            .unzip();
 
         let wua_key = wua
             .as_ref()
@@ -939,7 +924,7 @@ mod tests {
         validate_issuance(
             result.issuance_result.pops.as_slice(),
             result.issuance_result.poa,
-            Some((result.wua, result.wua_disclosure)),
+            Some(result.wua_disclosure),
         );
     }
 }

@@ -11,9 +11,8 @@ use crypto::p256_der::DerSignature;
 use crypto::p256_der::DerVerifyingKey;
 use jwt::Jwt;
 use jwt::JwtSubject;
-use jwt::credential::JwtCredentialClaims;
 use jwt::pop::JwtPopClaims;
-use jwt::wte::WteClaims;
+use jwt::wte::WteDisclosure;
 use utils::vec_at_least::VecAtLeastTwoUnique;
 use utils::vec_at_least::VecNonEmpty;
 use wscd::Poa;
@@ -150,8 +149,7 @@ pub struct PerformIssuanceWithWua {
 pub struct PerformIssuanceWithWuaResult {
     #[serde(flatten)]
     pub issuance_result: PerformIssuanceResult,
-    pub wua: Jwt<JwtCredentialClaims<WteClaims>>,
-    pub wua_disclosure: Jwt<JwtPopClaims>,
+    pub wua_disclosure: WteDisclosure,
 }
 
 impl InstructionAndResult for PerformIssuanceWithWua {
