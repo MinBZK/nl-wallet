@@ -5,6 +5,7 @@ use indexmap::IndexMap;
 use serial_test::serial;
 use url::Url;
 
+use attestation_data::constants::*;
 use attestation_data::issuable_document::IssuableDocument;
 use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
 use http_utils::urls::disclosure_based_issuance_base_uri;
@@ -13,7 +14,6 @@ use openid4vc::issuance_session::IssuanceSessionError;
 use openid4vc::openid4vp::RequestUriMethod;
 use openid4vc::openid4vp::VpRequestUriObject;
 use openid4vc::verifier::VerifierUrlParameters;
-use pid_issuer::pid::constants::*;
 use pid_issuer::pid::mock::mock_issuable_document_address;
 use tests_integration::common::*;
 use wallet::AttestationAttributeValue;
@@ -22,8 +22,6 @@ use wallet::DisclosureUriSource;
 use wallet::attestation_data::Attribute;
 use wallet::attestation_data::AttributeValue;
 use wallet::errors::IssuanceError;
-use wallet::mock::BSN_ATTR_NAME;
-use wallet::mock::PID_DOCTYPE;
 use wallet::openid4vc::SessionType;
 use wallet::utils::BaseUrl;
 
@@ -57,13 +55,13 @@ async fn test_pid_ok() {
     let attestations = wallet_attestations(&mut wallet).await;
     let pid_attestation = attestations
         .iter()
-        .find(|attestation| attestation.attestation_type == PID_DOCTYPE)
+        .find(|attestation| attestation.attestation_type == PID_ATTESTATION_TYPE)
         .expect("should have received PID attestation");
 
     let bsn_attr = pid_attestation
         .attributes
         .iter()
-        .find(|a| a.key == vec![BSN_ATTR_NAME])
+        .find(|a| a.key == vec![PID_BSN])
         .unwrap();
 
     assert_eq!(
@@ -188,10 +186,10 @@ async fn test_pid_optional_attributes() {
     let attestations = wallet_attestations(&mut wallet).await;
     let pid_attestation = attestations
         .iter()
-        .find(|attestation| attestation.attestation_type == PID_DOCTYPE)
+        .find(|attestation| attestation.attestation_type == PID_ATTESTATION_TYPE)
         .expect("should have received PID attestation");
 
-    let bsn_attr = pid_attestation.attributes.iter().find(|a| a.key == vec![BSN_ATTR_NAME]);
+    let bsn_attr = pid_attestation.attributes.iter().find(|a| a.key == vec![PID_BSN]);
 
     match bsn_attr {
         Some(bsn_attr) => assert_eq!(

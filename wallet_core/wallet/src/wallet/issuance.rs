@@ -12,6 +12,7 @@ use url::Url;
 use uuid::Uuid;
 
 use attestation_data::auth::Organization;
+use attestation_data::constants::PID_ATTESTATION_TYPE;
 use attestation_data::credential_payload::CredentialPayload;
 use crypto::x509::CertificateError;
 use error_category::ErrorCategory;
@@ -41,7 +42,6 @@ use crate::account_provider::AccountProviderClient;
 use crate::attestation::AttestationError;
 use crate::attestation::AttestationIdentity;
 use crate::attestation::AttestationPresentation;
-use crate::attestation::PID_DOCTYPE;
 use crate::config::UNIVERSAL_LINK_BASE_URL;
 use crate::digid::DigidClient;
 use crate::digid::DigidError;
@@ -200,7 +200,7 @@ where
             .storage
             .write()
             .await
-            .has_any_attestations_with_type(PID_DOCTYPE)
+            .has_any_attestations_with_type(PID_ATTESTATION_TYPE)
             .await
             .map_err(IssuanceError::AttestationQuery)?;
         if has_pid {
@@ -623,6 +623,7 @@ mod tests {
 
     use attestation_data::attributes::AttributeValue;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
+    use attestation_data::constants::PID_ATTESTATION_TYPE;
     use attestation_data::x509::CertificateType;
     use crypto::server_keys::generate::Ca;
     use crypto::x509::BorrowingCertificateExtension;
@@ -1156,7 +1157,7 @@ mod tests {
         let mdoc = test::create_example_pid_mdoc();
         let (pid_issuer, attestations) = mock_issuance_session(
             mdoc,
-            String::from(PID_DOCTYPE),
+            String::from(PID_ATTESTATION_TYPE),
             VerifiedTypeMetadataDocuments::nl_pid_example(),
         );
         wallet.session = Some(Session::Issuance(WalletIssuanceSession::new(
@@ -1183,7 +1184,7 @@ mod tests {
             assert_eq!(attestations[1].len(), 1);
             let attestation = &attestations[1][0];
             assert_matches!(attestation.identity, AttestationIdentity::Fixed { id: _ });
-            assert_eq!(attestation.attestation_type, PID_DOCTYPE);
+            assert_eq!(attestation.attestation_type, PID_ATTESTATION_TYPE);
 
             // Test that one successful issuance event is logged
             let events = events.lock();
@@ -1384,7 +1385,7 @@ mod tests {
         let mdoc = test::create_example_pid_mdoc();
         let (pid_issuer, attestations) = mock_issuance_session(
             mdoc,
-            String::from(PID_DOCTYPE),
+            String::from(PID_ATTESTATION_TYPE),
             VerifiedTypeMetadataDocuments::nl_pid_example(),
         );
         wallet.session = Some(Session::Issuance(WalletIssuanceSession::new(

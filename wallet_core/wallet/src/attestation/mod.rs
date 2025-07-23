@@ -16,9 +16,6 @@ use sd_jwt_vc_metadata::DisplayMetadata;
 use sd_jwt_vc_metadata::JsonSchemaPropertyType;
 use utils::vec_at_least::VecNonEmpty;
 
-pub const PID_DOCTYPE: &str = "urn:eudi:pid:nl:1";
-pub const BSN_ATTR_NAME: &str = "bsn";
-
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 pub enum AttestationError {
     #[error("some attributes not processed by claim: {0:?}")]

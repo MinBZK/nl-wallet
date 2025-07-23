@@ -19,6 +19,8 @@ pub use openid4vc::disclosure_session::DisclosureUriSource;
 use attestation_data::auth::Organization;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::auth::reader_auth::ReaderRegistration;
+use attestation_data::constants::PID_ATTESTATION_TYPE;
+use attestation_data::constants::PID_BSN;
 use attestation_data::disclosure_type::DisclosureType;
 use attestation_types::claim_path::ClaimPath;
 use crypto::x509::BorrowingCertificateExtension;
@@ -48,8 +50,6 @@ use crate::account_provider::AccountProviderClient;
 use crate::attestation::AttestationError;
 use crate::attestation::AttestationIdentity;
 use crate::attestation::AttestationPresentation;
-use crate::attestation::BSN_ATTR_NAME;
-use crate::attestation::PID_DOCTYPE;
 use crate::digid::DigidClient;
 use crate::errors::ChangePinError;
 use crate::errors::UpdatePolicyError;
@@ -72,12 +72,12 @@ use super::uri::identify_uri;
 /// the verifier already posseses for the wallet user. For this reason it should not retain it.
 static MDOC_LOGIN_REQUEST: LazyLock<NormalizedCredentialRequest> = LazyLock::new(|| NormalizedCredentialRequest {
     format: CredentialQueryFormat::MsoMdoc {
-        doctype_value: PID_DOCTYPE.to_string(),
+        doctype_value: PID_ATTESTATION_TYPE.to_string(),
     },
     claims: vec![AttributeRequest {
         path: vec![
-            ClaimPath::SelectByKey(PID_DOCTYPE.to_string()),
-            ClaimPath::SelectByKey(BSN_ATTR_NAME.to_string()),
+            ClaimPath::SelectByKey(PID_ATTESTATION_TYPE.to_string()),
+            ClaimPath::SelectByKey(PID_BSN.to_string()),
         ]
         .try_into()
         .unwrap(),
@@ -900,6 +900,7 @@ mod tests {
     use attestation_data::auth::Organization;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::auth::reader_auth::ReaderRegistration;
+    use attestation_data::constants::PID_ATTESTATION_TYPE;
     use attestation_data::disclosure_type::DisclosureType;
     use attestation_data::x509::generate::mock::generate_reader_mock;
     use crypto::server_keys::generate::Ca;
@@ -930,7 +931,6 @@ mod tests {
     use crate::attestation::AttestationAttributeValue;
     use crate::attestation::AttestationIdentity;
     use crate::attestation::AttestationPresentation;
-    use crate::attestation::PID_DOCTYPE;
     use crate::config::UNIVERSAL_LINK_BASE_URL;
     use crate::digid::MockDigidSession;
     use crate::errors::InstructionError;
@@ -954,14 +954,16 @@ mod tests {
     const PIN: &str = "051097";
     static RETURN_URL: LazyLock<BaseUrl> =
         LazyLock::new(|| BaseUrl::from_str("https://example.com/return/here").unwrap());
-    static DEFAULT_REQUESTED_PID_PATH: LazyLock<Vec<&str>> = LazyLock::new(|| vec![PID_DOCTYPE, "age_over_18"]);
+    static DEFAULT_REQUESTED_PID_PATH: LazyLock<Vec<&str>> =
+        LazyLock::new(|| vec![PID_ATTESTATION_TYPE, "age_over_18"]);
 
     // Set up properties for a `MockDisclosureSession`.
     fn setup_disclosure_session_verifier_certificate(
         verifier_certificate: VerifierCertificate,
         requested_pid_path: &[&str],
     ) -> MockDisclosureSession {
-        let credential_requests = normalized::mock::mock_mdoc_from_slices(&[(PID_DOCTYPE, &[requested_pid_path])]);
+        let credential_requests =
+            normalized::mock::mock_mdoc_from_slices(&[(PID_ATTESTATION_TYPE, &[requested_pid_path])]);
 
         let mut disclosure_session = MockDisclosureSession::new();
         disclosure_session
@@ -1106,7 +1108,7 @@ mod tests {
         let presentation = proposal.attestations.first().unwrap();
 
         assert_matches!(presentation.identity, AttestationIdentity::Fixed { .. });
-        assert_eq!(presentation.attestation_type, PID_DOCTYPE);
+        assert_eq!(presentation.attestation_type, PID_ATTESTATION_TYPE);
         assert_eq!(presentation.attributes.len(), 1);
 
         let attribute = presentation.attributes.first().unwrap();
@@ -1133,7 +1135,7 @@ mod tests {
             .protocol_state
             .expect_disclose()
             .times(1)
-            .withf(|mdocs| mdocs.len().get() == 1 && mdocs.first().mso.doc_type == PID_DOCTYPE)
+            .withf(|mdocs| mdocs.len().get() == 1 && mdocs.first().mso.doc_type == PID_ATTESTATION_TYPE)
             .return_once(|_mdocs| Ok(Some(RETURN_URL.clone())));
 
         let return_url = wallet
@@ -1164,7 +1166,7 @@ mod tests {
                 status: DisclosureStatus::Success,
                 ..
             } if attestations.len() == 1 &&
-                attestations.first().unwrap().attestation_type == PID_DOCTYPE &&
+                attestations.first().unwrap().attestation_type == PID_ATTESTATION_TYPE &&
                 reader_certificate.as_ref() == verifier_certificate.certificate() &&
                 reader_registration.as_ref() == verifier_certificate.registration()
         );
@@ -1404,7 +1406,7 @@ mod tests {
             .await
             .expect_err("starting disclosure should not succeed");
 
-        let expected_attributes = HashSet::from([format!("{PID_DOCTYPE}/{PID_DOCTYPE}/age_over_18")]);
+        let expected_attributes = HashSet::from([format!("{PID_ATTESTATION_TYPE}/{PID_ATTESTATION_TYPE}/age_over_18")]);
         assert_matches!(
             error,
             DisclosureError::AttributesNotAvailable {
@@ -1441,7 +1443,7 @@ mod tests {
             .await
             .expect_err("starting disclosure should not succeed");
 
-        let expected_attributes = HashSet::from([format!("{PID_DOCTYPE}/long/path/age_over_18")]);
+        let expected_attributes = HashSet::from([format!("{PID_ATTESTATION_TYPE}/long/path/age_over_18")]);
         assert_matches!(
             error,
             DisclosureError::AttributesNotAvailable {
@@ -1489,7 +1491,7 @@ mod tests {
         assert_matches!(
             &error,
             DisclosureError::MultipleCandidates(attestation_types)
-                if *attestation_types == vec![PID_DOCTYPE.to_string()]
+                if *attestation_types == vec![PID_ATTESTATION_TYPE.to_string()]
         );
         assert!(error.return_url().is_none());
         assert!(wallet.session.is_none());
