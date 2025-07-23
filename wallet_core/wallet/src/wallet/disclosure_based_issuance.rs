@@ -81,7 +81,6 @@ where
     DS: DigidSession,
     IS: Openid4vcIssuanceSession,
     DC: DisclosureClient,
-    
 {
     #[instrument(skip_all)]
     #[sentry_capture_error]

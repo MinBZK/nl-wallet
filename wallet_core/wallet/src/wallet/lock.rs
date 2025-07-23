@@ -137,7 +137,6 @@ where
         UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
         S: Storage,
         APC: AccountProviderClient,
-        
     {
         let config = &self.config_repository.get();
 
@@ -184,7 +183,6 @@ where
         UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
         S: Storage,
         APC: AccountProviderClient,
-        
     {
         info!("Unlocking wallet with pin");
 
@@ -214,7 +212,6 @@ where
         UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
         S: Storage,
         APC: AccountProviderClient,
-        
     {
         info!("Checking if blocked");
         if self.is_blocked() {
