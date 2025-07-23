@@ -3,7 +3,6 @@ use error_category::ErrorCategory;
 
 use crate::IssuerNameSpacesPreConditionError;
 use crate::holder::HolderError;
-use crate::identifiers::AttributeIdentifierError;
 use crate::utils::cose::CoseError;
 use crate::utils::cose::KeysError;
 use crate::utils::crypto::CryptoError;
@@ -44,8 +43,4 @@ pub enum Error {
     #[error("Missing or empty NameSpace detected: {0}")]
     #[category(critical)]
     MissingOrEmptyNamespace(#[from] IssuerNameSpacesPreConditionError),
-
-    #[error("Unable to extract attribute identifiers from items request: {0}")]
-    #[category(critical)]
-    AttributeIdentifier(#[from] AttributeIdentifierError),
 }

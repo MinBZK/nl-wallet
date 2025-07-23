@@ -6,7 +6,6 @@ use dcql::normalized::NormalizedCredentialRequest;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::identifiers::AttributeIdentifier;
-use crate::identifiers::AttributeIdentifierError;
 
 mod device_response;
 mod device_signed;
@@ -25,8 +24,6 @@ pub enum ResponseValidationError {
     MissingAttributes(Vec<AttributeIdentifier>),
     #[error("expected an mdoc")]
     ExpectedMdoc,
-    #[error("invalid attribute identifiers: {0}")]
-    AttributeIdentifier(#[from] AttributeIdentifierError),
 }
 
 /// Return the mdoc-specific paths for a particular attestation type in [`VecNonEmpty<NormalizedCredentialRequest>`],

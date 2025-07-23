@@ -23,7 +23,6 @@ use http_utils::urls::HttpsUri;
 use utils::generator::Generator;
 use utils::vec_at_least::VecNonEmpty;
 
-use crate::Error;
 use crate::Result;
 use crate::identifiers::AttributeIdentifier;
 use crate::identifiers::AttributeIdentifierHolder;
@@ -89,7 +88,7 @@ impl From<Vec<ItemsRequest>> for ItemsRequests {
 impl ItemsRequests {
     /// Checks that all `requested` attributes are disclosed in this [`DeviceResponse`].
     pub fn match_against_response(&self, device_response: &DeviceResponse) -> Result<()> {
-        let not_found: Vec<_> = self
+        let not_found = self
             .0
             .iter()
             .flat_map(|items_request| {
@@ -99,11 +98,10 @@ impl ItemsRequests {
                     .and_then(|docs| docs.iter().find(|doc| doc.doc_type == items_request.doc_type))
                     .map_or_else(
                         // If the entire document is missing then all requested attributes are missing
-                        || Ok::<_, Error>(items_request.mdoc_attribute_identifiers()?.into_iter().collect_vec()),
-                        |doc| Ok(items_request.match_against_issuer_signed(doc)?),
+                        || items_request.mdoc_attribute_identifiers().into_iter().collect_vec(),
+                        |doc| items_request.match_against_issuer_signed(doc),
                     )
             })
-            .flatten()
             .collect_vec();
 
         if not_found.is_empty() {
@@ -550,7 +548,7 @@ mod tests {
         items_requests
             .0
             .iter()
-            .flat_map(|request| request.mdoc_attribute_identifiers().unwrap())
+            .flat_map(|request| request.mdoc_attribute_identifiers())
             .collect()
     }
 
