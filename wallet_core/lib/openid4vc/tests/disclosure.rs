@@ -676,10 +676,6 @@ async fn test_disclosure_invalid_poa() {
         type Key = MockRemoteEcdsaKey;
         type Error = MockRemoteKeyFactoryError;
 
-        async fn generate_new_multiple(&self, count: u64) -> Result<Vec<Self::Key>, Self::Error> {
-            self.0.generate_new_multiple(count).await
-        }
-
         fn generate_existing<I: Into<String>>(&self, identifier: I, public_key: VerifyingKey) -> Self::Key {
             self.0.generate_existing(identifier, public_key)
         }
