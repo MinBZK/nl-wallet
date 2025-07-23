@@ -6,9 +6,8 @@ use serde_with::skip_serializing_none;
 
 use attestation_data::attributes::Attribute;
 use attestation_data::attributes::AttributeValue;
+use attestation_data::constants::*;
 use utils::vec_at_least::VecNonEmpty;
-
-use crate::pid::constants::*;
 
 #[derive(Deserialize)]
 pub struct BrpPersons {
@@ -291,14 +290,13 @@ mod tests {
     use std::fs;
 
     use rstest::rstest;
-
     use serde_json::json;
 
+    use attestation_data::constants::ADDRESS_ATTESTATION_TYPE;
+    use attestation_data::constants::PID_ATTESTATION_TYPE;
     use utils::path::prefix_local_path;
 
     use crate::pid::brp::data::BrpPersons;
-    use crate::pid::constants::ADDRESS_ATTESTATION_TYPE;
-    use crate::pid::constants::PID_ATTESTATION_TYPE;
 
     fn read_json(name: &str) -> String {
         fs::read_to_string(prefix_local_path(
