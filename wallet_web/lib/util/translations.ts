@@ -62,7 +62,7 @@ const dictionary: Record<Language, Record<Word, string>> = {
     no: "No",
     confirm_stop_title: "Are you sure you want to stop?",
     confirm_stop_body: "If you stop now, no data will be shared.",
-    device_choice_title: "Which device is your NL Wallet is installed?",
+    device_choice_title: "On which device is your NL Wallet app installed?",
     device_choice_same_device: "On this device",
     device_choice_cross_device: "On another device",
     expired_title: "Sorry, time is over",
