@@ -6,9 +6,8 @@ use p256::ecdsa::VerifyingKey;
 
 use crypto::CredentialEcdsaKey;
 use jwt::Jwt;
-use jwt::credential::JwtCredentialClaims;
 use jwt::pop::JwtPopClaims;
-use jwt::wte::WteClaims;
+use jwt::wte::WteDisclosure;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::Poa;
@@ -38,6 +37,6 @@ pub trait KeyFactory {
 pub struct IssuanceResult {
     pub key_identifiers: VecNonEmpty<String>,
     pub pops: VecNonEmpty<Jwt<JwtPopClaims>>,
-    pub wua: Option<(Jwt<JwtCredentialClaims<WteClaims>>, Jwt<JwtPopClaims>)>,
+    pub wua: Option<WteDisclosure>,
     pub poa: Option<Poa>,
 }

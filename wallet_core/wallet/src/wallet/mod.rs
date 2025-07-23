@@ -120,6 +120,7 @@ pub struct Wallet<
     account_provider_client: Arc<APC>,
     disclosure_client: DC,
     session: Option<Session<DS, IS, DC::Session>>,
+    #[allow(unused)] // TODO
     wte_issuance_client: WIC,
     lock: WalletLock,
     attestations_callback: Option<AttestationsCallback>,

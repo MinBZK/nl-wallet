@@ -15,6 +15,7 @@ use crypto::keys::EcdsaKey;
 use crypto::keys::SecureEcdsaKey;
 use crypto::keys::WithIdentifier;
 use crypto::p256_der::DerSignature;
+use jwt::wte::WteDisclosure;
 use platform_support::attested_key::AppleAttestedKey;
 use platform_support::attested_key::GoogleAttestedKey;
 use utils::vec_at_least::VecAtLeastTwoUnique;
@@ -163,7 +164,7 @@ where
                 key_identifiers: result.issuance_result.key_identifiers,
                 pops: result.issuance_result.pops,
                 poa: result.issuance_result.poa,
-                wua: Some((result.wua, result.wua_disclosure)),
+                wua: Some(WteDisclosure::new(result.wua, result.wua_disclosure)),
             })
         }
     }

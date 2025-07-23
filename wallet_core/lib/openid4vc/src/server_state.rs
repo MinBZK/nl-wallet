@@ -329,8 +329,7 @@ pub mod test {
     use rand_core::OsRng;
 
     use jwt::wte::WTE_EXPIRY;
-
-    use crate::issuer::WTE_JWT_VALIDATIONS;
+    use jwt::wte::WTE_JWT_VALIDATIONS;
 
     use super::*;
 
@@ -550,7 +549,7 @@ pub mod test {
         let wte_privkey = SigningKey::random(&mut OsRng);
 
         let wte = JwtCredentialClaims::new_signed(
-            &wte_privkey.verifying_key(),
+            wte_privkey.verifying_key(),
             &wte_signing_key,
             "iss".to_string(),
             None,

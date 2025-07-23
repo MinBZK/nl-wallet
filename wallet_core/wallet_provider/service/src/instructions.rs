@@ -718,7 +718,6 @@ mod tests {
 
     use assert_matches::assert_matches;
     use base64::prelude::*;
-    use chrono::Utc;
     use itertools::Itertools;
     use jsonwebtoken::Algorithm;
     use jsonwebtoken::Validation;

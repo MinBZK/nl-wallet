@@ -7,8 +7,6 @@ use rustls_pki_types::TrustAnchor;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use crypto::server_keys::generate::Ca;
 use http_utils::urls::BaseUrl;
-use jwt::credential::JwtCredential;
-use jwt::wte::WteClaims;
 use mdoc::IssuerSigned;
 use mdoc::holder::Mdoc;
 use mdoc::test::TestDocument;
@@ -68,7 +66,7 @@ impl IssuanceSession for MockIssuanceSession {
         &self,
         _: &[TrustAnchor<'_>],
         _: &KF,
-        _: Option<JwtCredential<WteClaims>>,
+        _: bool,
     ) -> Result<Vec<CredentialWithMetadata>, IssuanceSessionError> {
         self.accept()
     }

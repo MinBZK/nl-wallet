@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::num::NonZeroU64;
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -26,7 +27,6 @@ use attestation_data::disclosure::DisclosedAttestation;
 use attestation_data::x509::generate::mock::generate_reader_mock;
 use attestation_types::request;
 use attestation_types::request::NormalizedCredentialRequest;
-use crypto::mock_remote::MockRemoteKeyFactoryError;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::server_keys::generate::mock::RP_CERT_CN;
@@ -87,9 +87,11 @@ use utils::vec_at_least::VecAtLeastTwoUnique;
 use utils::vec_at_least::VecNonEmpty;
 use wscd::Poa;
 use wscd::factory::PoaFactory;
+use wscd::keyfactory::IssuanceResult;
 use wscd::keyfactory::KeyFactory;
 use wscd::mock_remote::MockRemoteEcdsaKey;
 use wscd::mock_remote::MockRemoteKeyFactory;
+use wscd::mock_remote::MockRemoteKeyFactoryError;
 
 #[tokio::test]
 async fn disclosure_direct() {
@@ -687,6 +689,16 @@ async fn test_disclosure_invalid_poa() {
             messages_and_keys: Vec<(Vec<u8>, Vec<&Self::Key>)>,
         ) -> Result<Vec<Vec<Signature>>, Self::Error> {
             self.0.sign_multiple_with_existing_keys(messages_and_keys).await
+        }
+
+        async fn perform_issuance(
+            &self,
+            count: NonZeroU64,
+            aud: String,
+            nonce: Option<String>,
+            include_wua: bool,
+        ) -> Result<IssuanceResult, Self::Error> {
+            self.0.perform_issuance(count, aud, nonce, include_wua).await
         }
     }
 

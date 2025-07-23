@@ -3631,6 +3631,7 @@ dependencies = [
  "base64 0.22.1",
  "chrono",
  "crypto",
+ "derive_more",
  "error_category",
  "futures",
  "indexmap 2.7.1",

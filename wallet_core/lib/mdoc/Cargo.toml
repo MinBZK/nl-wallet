@@ -88,4 +88,4 @@ attestation_types = { path = "../attestation_types", features = ["mock"] }
 crypto = { path = "../crypto", features = ["examples", "generate", "mock", "mock_secure_keys"] }
 sd_jwt_vc_metadata = { path = "../sd_jwt_vc_metadata", features = ["example_constructors"] }
 utils = { path = "../utils", features = ["mock_time"] }
-wscd = { path = "../wscd", features = ["mock_remote_key"] }
+wscd = { path = "../wscd", features = ["mock_remote_key", "examples"] }

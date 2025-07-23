@@ -6,11 +6,8 @@ use derive_more::AsRef;
 use derive_more::Constructor;
 use derive_more::Debug;
 use futures::TryFutureExt;
-use futures::future::OptionFuture;
 use futures::future::try_join_all;
 use itertools::Itertools;
-use jsonwebtoken::Algorithm;
-use jsonwebtoken::Header;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 use p256::elliptic_curve::rand_core::OsRng;
@@ -33,13 +30,12 @@ use crypto::keys::CredentialEcdsaKey;
 use crypto::x509::BorrowingCertificate;
 use error_category::ErrorCategory;
 use http_utils::urls::BaseUrl;
-use jwt::Jwt;
 use jwt::credential::JwtCredential;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
 use jwt::jwk::jwk_to_p256;
-use jwt::pop::JwtPopClaims;
 use jwt::wte::WteClaims;
+use jwt::wte::WteDisclosure;
 use mdoc::ATTR_RANDOM_LENGTH;
 use mdoc::holder::Mdoc;
 use mdoc::utils::cose::CoseError;
@@ -55,7 +51,6 @@ use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
 use utils::generator::TimeGenerator;
 use utils::single_unique::MultipleItemsFound;
 use utils::single_unique::SingleUnique;
-use utils::vec_at_least::VecAtLeastTwoUnique;
 use utils::vec_at_least::VecNonEmpty;
 use wscd::Poa;
 use wscd::factory::PoaFactory;
@@ -71,7 +66,6 @@ use crate::credential::CredentialRequestType;
 use crate::credential::CredentialRequests;
 use crate::credential::CredentialResponse;
 use crate::credential::CredentialResponses;
-use crate::credential::WteDisclosure;
 use crate::dpop::DPOP_HEADER_NAME;
 use crate::dpop::DPOP_NONCE_HEADER_NAME;
 use crate::dpop::Dpop;
@@ -282,7 +276,7 @@ pub trait IssuanceSession<H = HttpVcMessageClient> {
         &self,
         trust_anchors: &[TrustAnchor<'_>],
         key_factory: &KF,
-        wte: Option<JwtCredential<WteClaims>>,
+        include_wte: bool,
     ) -> Result<Vec<CredentialWithMetadata>, IssuanceSessionError>
     where
         K: CredentialEcdsaKey + Eq + Hash,
@@ -691,77 +685,54 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         &self,
         trust_anchors: &[TrustAnchor<'_>],
         key_factory: &KF,
-        wte: Option<JwtCredential<WteClaims>>,
+        include_wua: bool,
     ) -> Result<Vec<CredentialWithMetadata>, IssuanceSessionError>
     where
         K: CredentialEcdsaKey + Eq + Hash,
         KF: KeyFactory<Key = K> + PoaFactory<Key = K>,
     {
-        // Generate the PoPs to be sent to the issuer, and the private keys with which they were generated
-        // (i.e., the private key of the future mdoc).
-        // If N is the total amount of copies of credentials to be issued, then this returns N key/proof pairs.
-        // Note that N > 0 because `self.session_state.credential_request_types`` which we mapped above is
-        // derived from `VecNonEmpty<_>`.
-        let keys_and_proofs = CredentialRequestProof::new_multiple(
-            self.session_state.c_nonce.clone(),
-            self.message_client.client_id().to_string(),
-            self.session_state.issuer_url.clone(),
-            self.session_state.credential_request_types.len().try_into().unwrap(),
-            key_factory,
-        )
-        .await?;
+        let key_count = (self.session_state.credential_request_types.len() as u64)
+            .try_into()
+            .unwrap();
 
-        let pop_claims = JwtPopClaims::new(
-            Some(self.session_state.c_nonce.clone()),
-            self.message_client.client_id().to_string(),
-            self.session_state.issuer_url.as_ref().to_string(),
-        );
+        let mut issuance_data = key_factory
+            .perform_issuance(
+                key_count,
+                self.session_state.issuer_url.as_ref().to_string(),
+                Some(self.session_state.c_nonce.clone()),
+                include_wua,
+            )
+            .await
+            .map_err(|e| IssuanceSessionError::PrivateKeyGeneration(e.into()))?;
 
-        // This could be written better with `Option::map`, but `Option::map` does not support async closures
-        let (mut wte_disclosure, wte_privkey) = match wte {
-            Some(wte) => {
-                let wte_privkey = wte.private_key(key_factory)?;
-                let wte_release =
-                    Jwt::<JwtPopClaims>::sign(&pop_claims, &Header::new(Algorithm::ES256), &wte_privkey).await?;
-                (Some(WteDisclosure::new(wte.jwt, wte_release)), Some(wte_privkey))
-            }
-            None => (None, None),
-        };
-
-        // Ensure we include the WTE private key in the keys we need to prove association for.
-        let poa_keys = keys_and_proofs
-            .iter()
-            .map(|(key, _)| key)
-            .chain(wte_privkey.as_ref())
+        let proofs = issuance_data
+            .pops
+            .into_iter()
+            .map(|jwt| CredentialRequestProof::Jwt { jwt })
             .collect_vec();
-
-        // We need a minimum of two keys to associate for a PoA to be sensible.
-        let poa = VecAtLeastTwoUnique::try_from(poa_keys).ok().map(|poa_keys| async {
-            key_factory
-                .poa(poa_keys, pop_claims.aud.clone(), pop_claims.nonce.clone())
-                .await
-                .map_err(|e| IssuanceSessionError::Poa(Box::new(e)))
-        });
-        let mut poa = OptionFuture::from(poa).await.transpose()?;
 
         // Split into N keys and N credential requests, so we can send the credential request proofs separately
         // to the issuer.
-        let (pubkeys, credential_requests): (Vec<_>, Vec<_>) = try_join_all(
-            keys_and_proofs
+        let (pubkeys, mut credential_requests): (Vec<_>, Vec<_>) = try_join_all(
+            proofs
                 .into_iter()
+                .zip(issuance_data.key_identifiers.into_inner())
                 .zip(self.session_state.credential_request_types.clone())
-                .map(|((key, proof), credential_request_type)| async move {
-                    let pubkey = key
-                        .verifying_key()
-                        .await
+                .map(|((proof, id), credential_request_type)| async move {
+                    let CredentialRequestProof::Jwt { jwt } = &proof;
+
+                    // We assume here the WP gave us valid JWTs, and leave it up to the issuer to verify these.
+                    let (header, _) = jwt.dangerous_parse_unverified()?;
+
+                    let pubkey = jwk_to_p256(&header.jwk.unwrap())
                         .map_err(|e| IssuanceSessionError::VerifyingKeyFromPrivateKey(e.into()))?;
-                    let id = key.identifier().to_string();
                     let cred_request = CredentialRequest {
                         credential_type: credential_request_type.into(),
                         proof: Some(proof),
                         attestations: None, // We set this field below if necessary
                         poa: None,          // We set this field below if necessary
                     };
+
                     Ok::<_, IssuanceSessionError>(((pubkey, id), cred_request))
                 }),
         )
@@ -770,17 +741,16 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         .unzip();
 
         // The following two unwraps are safe because N > 0, see above.
-        let mut credential_requests = credential_requests; // Make it mutable so we can pop() to avoid cloning
         let responses = match credential_requests.len() {
             1 => {
                 let mut credential_request = credential_requests.pop().unwrap();
-                credential_request.attestations = wte_disclosure.take();
-                credential_request.poa = poa.take();
+                credential_request.attestations = issuance_data.wua.take();
+                credential_request.poa = issuance_data.poa.take();
                 vec![self.request_credential(&credential_request).await?]
             }
             _ => {
                 let credential_requests = VecNonEmpty::try_from(credential_requests).unwrap();
-                self.request_batch_credentials(credential_requests, wte_disclosure.take(), poa.take())
+                self.request_batch_credentials(credential_requests, issuance_data.wua.take(), issuance_data.poa.take())
                     .await?
             }
         };
@@ -1480,16 +1450,6 @@ mod tests {
         let trust_anchor = signer.trust_anchor.clone();
         let key_factory = MockRemoteKeyFactory::default();
 
-        let wte = if use_wte {
-            Some(
-                mock_wte(&key_factory, &SigningKey::random(&mut OsRng))
-                    .now_or_never()
-                    .unwrap(),
-            )
-        } else {
-            None
-        };
-
         let session_state = new_session_state(if multiple_creds {
             vec![preview_data.clone(), preview_data]
         } else {
@@ -1550,7 +1510,7 @@ mod tests {
             message_client: mock_msg_client,
             session_state,
         }
-        .accept_issuance(&[trust_anchor], &key_factory, wte)
+        .accept_issuance(&[trust_anchor], &key_factory, use_wte)
         .now_or_never()
         .unwrap()
         .expect("accepting issuance should succeed");
@@ -1582,7 +1542,7 @@ mod tests {
             message_client: mock_msg_client,
             session_state: new_session_state(vec![preview_data.clone(), preview_data]),
         }
-        .accept_issuance(&[trust_anchor], &MockRemoteKeyFactory::default(), None)
+        .accept_issuance(&[trust_anchor], &MockRemoteKeyFactory::default(), false)
         .now_or_never()
         .unwrap()
         .expect_err("accepting issuance should not succeed");
@@ -1626,7 +1586,7 @@ mod tests {
             message_client: mock_msg_client,
             session_state,
         }
-        .accept_issuance(&[trust_anchor], &MockRemoteKeyFactory::default(), None)
+        .accept_issuance(&[trust_anchor], &MockRemoteKeyFactory::default(), false)
         .now_or_never()
         .unwrap()
         .expect_err("accepting issuance should not succeed");
@@ -1656,7 +1616,7 @@ mod tests {
             message_client: mock_msg_client,
             session_state: new_session_state(vec![preview_data]),
         }
-        .accept_issuance(&[trust_anchor], &MockRemoteKeyFactory::default(), None)
+        .accept_issuance(&[trust_anchor], &MockRemoteKeyFactory::default(), false)
         .now_or_never()
         .unwrap()
         .expect_err("accepting issuance should not succeed");

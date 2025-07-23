@@ -2,29 +2,23 @@ use std::fmt;
 use std::fmt::Display;
 use std::fmt::Formatter;
 
-use futures::future::try_join_all;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::TryFromInto;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 
-use crypto::keys::CredentialEcdsaKey;
 use http_utils::urls::BaseUrl;
 use jwt::Jwt;
-use jwt::credential::JwtCredentialClaims;
-use jwt::jwk::jwk_jwt_header;
 use jwt::pop::JwtPopClaims;
-use jwt::wte::WteClaims;
+use jwt::wte::WteDisclosure;
 use mdoc::IssuerSigned;
 use mdoc::utils::serialization::CborBase64;
 use utils::spec::SpecOptional;
 use utils::vec_at_least::VecNonEmpty;
 use wscd::Poa;
-use wscd::keyfactory::KeyFactory;
 
 use crate::Format;
-use crate::issuance_session::IssuanceSessionError;
 use crate::token::AuthorizationCode;
 
 /// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#section-8.1>.
@@ -35,18 +29,6 @@ pub struct CredentialRequests {
     pub credential_requests: VecNonEmpty<CredentialRequest>,
     pub attestations: Option<WteDisclosure>,
     pub poa: Option<Poa>,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct WteDisclosure(
-    pub(crate) Jwt<JwtCredentialClaims<WteClaims>>,
-    pub(crate) Jwt<JwtPopClaims>,
-);
-
-impl WteDisclosure {
-    pub fn new(wte: Jwt<JwtCredentialClaims<WteClaims>>, release: Jwt<JwtPopClaims>) -> Self {
-        Self(wte, release)
-    }
 }
 
 /// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#section-7.2>.
@@ -134,43 +116,6 @@ impl CredentialResponse {
 }
 
 pub const OPENID4VCI_VC_POP_JWT_TYPE: &str = "openid4vci-proof+jwt";
-
-impl CredentialRequestProof {
-    pub async fn new_multiple<K: CredentialEcdsaKey>(
-        nonce: String,
-        wallet_client_id: String,
-        credential_issuer_identifier: BaseUrl,
-        number_of_keys: u64,
-        key_factory: &impl KeyFactory<Key = K>,
-    ) -> Result<Vec<(K, CredentialRequestProof)>, IssuanceSessionError> {
-        let keys = key_factory
-            .generate_new_multiple(number_of_keys)
-            .await
-            .map_err(|e| IssuanceSessionError::PrivateKeyGeneration(Box::new(e)))?;
-
-        let payload = JwtPopClaims::new(
-            Some(nonce),
-            wallet_client_id,
-            credential_issuer_identifier.as_ref().to_string(),
-        );
-
-        let keys_and_jwt_payloads = try_join_all(keys.into_iter().map(|privkey| async {
-            let header = jwk_jwt_header(OPENID4VCI_VC_POP_JWT_TYPE, &privkey).await?;
-            let payload = payload.clone();
-            Ok::<_, IssuanceSessionError>((privkey, (payload, header)))
-        }))
-        .await?;
-
-        let keys_and_proofs = Jwt::sign_bulk(keys_and_jwt_payloads, key_factory)
-            .await?
-            .into_iter()
-            .map(|(key, jwt)| (key, CredentialRequestProof::Jwt { jwt }))
-            .collect();
-
-        Ok(keys_and_proofs)
-    }
-}
-
 pub const OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME: &str = "openid-credential-offer";
 
 #[skip_serializing_none]

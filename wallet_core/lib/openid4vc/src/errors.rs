@@ -91,6 +91,7 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
                 | CredentialRequestError::WteAlreadyUsed
                 | CredentialRequestError::MissingPoa
                 | CredentialRequestError::CredentialTypeMismatch { .. }
+                | CredentialRequestError::Wua(_)
                 | CredentialRequestError::CredentialTypeNotOffered(_) => CredentialErrorCode::InvalidCredentialRequest,
 
                 CredentialRequestError::Unauthorized | CredentialRequestError::MalformedToken => {
