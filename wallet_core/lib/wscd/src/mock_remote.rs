@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::hash::Hasher;
-use std::iter;
 use std::num::NonZeroU64;
 
 use derive_more::Constructor;
@@ -24,7 +23,6 @@ use crypto::EcdsaKey;
 use crypto::SecureEcdsaKey;
 use crypto::WithIdentifier;
 use crypto::p256_der::verifying_key_sha256;
-use crypto::utils;
 use jwt::Jwt;
 use jwt::credential::JwtCredentialClaims;
 use jwt::jwk::jwk_from_p256;
@@ -168,30 +166,6 @@ impl Default for MockRemoteKeyFactory {
 impl KeyFactory for MockRemoteKeyFactory {
     type Key = MockRemoteEcdsaKey;
     type Error = MockRemoteKeyFactoryError;
-
-    async fn generate_new_multiple(&self, count: u64) -> Result<Vec<Self::Key>, Self::Error> {
-        if self.has_generating_error {
-            return Err(MockRemoteKeyFactoryError::Generating);
-        }
-
-        let identifiers_and_signing_keys =
-            iter::repeat_with(|| (utils::random_string(32), SigningKey::random(&mut OsRng)))
-                .take(count as usize)
-                .collect::<Vec<_>>();
-
-        self.signing_keys.lock().extend(
-            identifiers_and_signing_keys
-                .iter()
-                .map(|(identifer, signing_key)| (identifer.clone(), signing_key.clone())),
-        );
-
-        let keys = identifiers_and_signing_keys
-            .into_iter()
-            .map(|(identifer, signing_key)| MockRemoteEcdsaKey::new(identifer, signing_key))
-            .collect();
-
-        Ok(keys)
-    }
 
     fn generate_existing<I: Into<String>>(&self, identifier: I, public_key: VerifyingKey) -> Self::Key {
         let identifier = identifier.into();

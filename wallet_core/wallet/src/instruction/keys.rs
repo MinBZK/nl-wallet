@@ -18,8 +18,6 @@ use platform_support::attested_key::AppleAttestedKey;
 use platform_support::attested_key::GoogleAttestedKey;
 use utils::vec_at_least::VecAtLeastTwoUnique;
 use wallet_account::messages::instructions::ConstructPoa;
-use wallet_account::messages::instructions::GenerateKey;
-use wallet_account::messages::instructions::GenerateKeyResult;
 use wallet_account::messages::instructions::PerformIssuance;
 use wallet_account::messages::instructions::PerformIssuanceWithWua;
 use wallet_account::messages::instructions::Sign;
@@ -79,21 +77,6 @@ where
 {
     type Key = RemoteEcdsaKey;
     type Error = RemoteEcdsaKeyError;
-
-    async fn generate_new_multiple(&self, count: u64) -> Result<Vec<Self::Key>, Self::Error> {
-        let result: GenerateKeyResult = self.instruction_client.send(GenerateKey { count }).await?;
-
-        let keys = result
-            .public_keys
-            .into_iter()
-            .map(|(identifier, public_key)| RemoteEcdsaKey {
-                identifier,
-                public_key: public_key.into_inner(),
-            })
-            .collect();
-
-        Ok(keys)
-    }
 
     fn generate_existing<I: Into<String>>(&self, identifier: I, public_key: VerifyingKey) -> Self::Key {
         RemoteEcdsaKey {
