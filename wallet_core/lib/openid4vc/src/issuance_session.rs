@@ -30,11 +30,9 @@ use crypto::keys::CredentialEcdsaKey;
 use crypto::x509::BorrowingCertificate;
 use error_category::ErrorCategory;
 use http_utils::urls::BaseUrl;
-use jwt::credential::JwtCredential;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
 use jwt::jwk::jwk_to_p256;
-use jwt::wte::WteClaims;
 use jwt::wte::WteDisclosure;
 use mdoc::ATTR_RANDOM_LENGTH;
 use mdoc::holder::Mdoc;
@@ -1035,30 +1033,6 @@ impl IssuanceState {
 
         Ok((dpop_header.into(), access_token_header))
     }
-}
-
-#[cfg(any(test, feature = "test"))]
-pub async fn mock_wte<KF>(key_factory: &KF, privkey: &SigningKey) -> JwtCredential<WteClaims>
-where
-    KF: KeyFactory,
-{
-    use crypto::WithVerifyingKey;
-    use crypto::keys::WithIdentifier;
-    use jwt::credential::JwtCredentialClaims;
-
-    let wte_privkey = key_factory.generate_new_multiple(1).await.unwrap().pop().unwrap();
-
-    let wte = JwtCredentialClaims::new_signed(
-        &wte_privkey.verifying_key().await.unwrap(),
-        privkey,
-        "iss".to_string(),
-        None,
-        WteClaims::new(),
-    )
-    .await
-    .unwrap();
-
-    JwtCredential::new_unverified::<KF::Key>(wte_privkey.identifier().to_string(), wte)
 }
 
 #[cfg(test)]
