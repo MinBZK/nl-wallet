@@ -35,6 +35,24 @@ pub enum Error {
     #[error("invalid path: {0}")]
     InvalidPath(String),
 
+    #[error("path can only be found in object or array json values: {0}")]
+    UnexpectedObjectValue(serde_json::Value),
+
+    #[error("invalid array index: {path}")]
+    InvalidArrayIndex { path: String },
+
+    #[error("the array element for path: '{path}' cannot be found")]
+    ElementNotFoundInArray { path: String },
+
+    #[error("cannot disclose empty path")]
+    EmptyPath,
+
+    #[error("the referenced intermediate element for path: '{path}' cannot be found")]
+    IntermediateElementNotFound { path: String },
+
+    #[error("the referenced element for path: '{path}' cannot be found")]
+    ElementNotFound { path: String },
+
     #[error("invalid input: {0}")]
     Deserialization(String),
 
