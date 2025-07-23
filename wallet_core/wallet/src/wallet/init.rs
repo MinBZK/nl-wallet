@@ -86,7 +86,7 @@ async fn init_mock_key_holder() -> platform_support::attested_key::mock::Persist
     PersistentMockAttestedKeyHolder::new_mock_xcode(apple_attestation_environment)
 }
 
-impl<APC, DS, IS, WIC>
+impl<APC, DS, IS>
     Wallet<
         WalletConfigurationRepository,
         UpdatePolicyRepository,
@@ -96,11 +96,9 @@ impl<APC, DS, IS, WIC>
         DS,
         IS,
         VpDisclosureClient,
-        WIC,
     >
 where
     APC: Default,
-    WIC: Default,
 {
     #[sentry_capture_error]
     pub async fn init_all() -> Result<Self, WalletInitError> {
@@ -140,11 +138,10 @@ where
     }
 }
 
-impl<CR, UR, S, AKH, APC, DS, IS, DC, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, DC, WIC>
+impl<CR, UR, S, AKH, APC, DS, IS, DC> Wallet<CR, UR, S, AKH, APC, DS, IS, DC>
 where
     AKH: AttestedKeyHolder,
     DC: DisclosureClient,
-    WIC: Default,
 {
     pub(super) fn new(
         config_repository: CR,
@@ -185,7 +182,6 @@ where
             account_provider_client: Arc::new(account_provider_client),
             disclosure_client,
             session: None,
-            wte_issuance_client: WIC::default(),
             lock: WalletLock::new(true),
             attestations_callback: None,
             recent_history_callback: None,
@@ -225,7 +221,7 @@ where
     }
 }
 
-impl<CR, UR, S, AKH, APC, DS, IS, DC, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, DC, WIC>
+impl<CR, UR, S, AKH, APC, DS, IS, DC> Wallet<CR, UR, S, AKH, APC, DS, IS, DC>
 where
     S: Storage,
     AKH: AttestedKeyHolder,

@@ -11,7 +11,6 @@ use crate::storage::StorageError;
 
 pub use self::client::InstructionClient;
 pub use self::client::InstructionClientFactory;
-pub use self::keys::RemoteEcdsaKey;
 pub use self::keys::RemoteEcdsaKeyError;
 pub use self::keys::RemoteEcdsaKeyFactory;
 

@@ -34,7 +34,6 @@ use crate::lock::WalletLock;
 use crate::storage::DatabaseStorage;
 use crate::storage::RegistrationData;
 use crate::update_policy::UpdatePolicyRepository;
-use crate::wte::WpWteIssuanceClient;
 
 use self::attestations::AttestationsCallback;
 use self::disclosure::WalletDisclosureSession;
@@ -107,7 +106,6 @@ pub struct Wallet<
     DS = HttpDigidSession,                      // DigidSession
     IS = HttpIssuanceSession,                   // IssuanceSession
     DC = VpDisclosureClient,                    // DisclosureClient
-    WIC = WpWteIssuanceClient,                  // WteIssuanceClient
 > where
     AKH: AttestedKeyHolder,
     DC: DisclosureClient,
@@ -120,8 +118,6 @@ pub struct Wallet<
     account_provider_client: Arc<APC>,
     disclosure_client: DC,
     session: Option<Session<DS, IS, DC::Session>>,
-    #[allow(unused)] // TODO
-    wte_issuance_client: WIC,
     lock: WalletLock,
     attestations_callback: Option<AttestationsCallback>,
     recent_history_callback: Option<RecentHistoryCallback>,

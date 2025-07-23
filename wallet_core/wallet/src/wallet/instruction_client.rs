@@ -18,7 +18,7 @@ use crate::storage::Storage;
 
 use super::Wallet;
 
-impl<CR, UR, S, AKH, APC, DS, IS, DC, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, DC, WIC>
+impl<CR, UR, S, AKH, APC, DS, IS, DC> Wallet<CR, UR, S, AKH, APC, DS, IS, DC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
     UR: Repository<VersionState>,
@@ -26,7 +26,6 @@ where
     AKH: AttestedKeyHolder,
     APC: AccountProviderClient,
     DC: DisclosureClient,
-    WIC: Default,
 {
     /// Construct an [`InstructionClient`] for this [`Wallet`].
     /// This is the recommended way to obtain an [`InstructionClient`], because this function

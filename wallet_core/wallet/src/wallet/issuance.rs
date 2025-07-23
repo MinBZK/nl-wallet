@@ -57,7 +57,6 @@ use crate::storage::StorageError;
 use crate::storage::StoredAttestationCopy;
 use crate::wallet::Session;
 use crate::wallet::attestations::AttestationsError;
-use crate::wte::WteIssuanceClient;
 
 use super::Wallet;
 
@@ -159,7 +158,7 @@ pub struct WalletIssuanceSession<IS> {
     protocol_state: IS,
 }
 
-impl<CR, UR, S, AKH, APC, DS, IS, DC, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, DC, WIC>
+impl<CR, UR, S, AKH, APC, DS, IS, DC> Wallet<CR, UR, S, AKH, APC, DS, IS, DC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
     UR: Repository<VersionState>,
@@ -426,7 +425,6 @@ where
         UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
         S: Storage,
         APC: AccountProviderClient,
-        WIC: WteIssuanceClient + Default,
     {
         info!("Accepting issuance");
 

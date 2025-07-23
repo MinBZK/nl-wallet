@@ -52,7 +52,7 @@ type HistoryResult<T> = Result<T, HistoryError>;
 
 pub type RecentHistoryCallback = Box<dyn FnMut(Vec<WalletEvent>) + Send + Sync>;
 
-impl<CR, UR, S, AKH, APC, DS, IS, DC, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, DC, WIC>
+impl<CR, UR, S, AKH, APC, DS, IS, DC> Wallet<CR, UR, S, AKH, APC, DS, IS, DC>
 where
     S: Storage,
     UR: Repository<VersionState>,

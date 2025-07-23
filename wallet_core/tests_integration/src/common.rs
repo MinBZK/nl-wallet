@@ -68,7 +68,6 @@ use wallet::wallet_deps::HttpAccountProviderClient;
 use wallet::wallet_deps::HttpConfigurationRepository;
 use wallet::wallet_deps::UpdatePolicyRepository;
 use wallet::wallet_deps::UpdateableRepository;
-use wallet::wallet_deps::WpWteIssuanceClient;
 use wallet::wallet_deps::default_config_server_config;
 use wallet::wallet_deps::default_wallet_config;
 use wallet_configuration::config_server_config::ConfigServerConfiguration;
@@ -134,7 +133,6 @@ pub type WalletWithMocks = Wallet<
     MockDigidSession,
     HttpIssuanceSession,
     VpDisclosureClient,
-    WpWteIssuanceClient,
 >;
 
 pub async fn setup_wallet_and_default_env(vendor: WalletDeviceVendor) -> WalletWithMocks {

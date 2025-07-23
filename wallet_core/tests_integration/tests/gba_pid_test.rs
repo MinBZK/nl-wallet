@@ -18,7 +18,6 @@ use wallet::mock::StorageStub;
 use wallet::wallet_deps::HttpAccountProviderClient;
 use wallet::wallet_deps::HttpDigidSession;
 use wallet::wallet_deps::Repository;
-use wallet::wallet_deps::WpWteIssuanceClient;
 use wallet::wallet_deps::default_wallet_config;
 
 #[derive(Debug, Eq, PartialEq)]
@@ -124,7 +123,6 @@ type TestWallet = Wallet<
     HttpDigidSession,
     HttpIssuanceSession,
     VpDisclosureClient,
-    WpWteIssuanceClient,
 >;
 
 async fn gba_pid(bsn: &str) -> Result<(), TestError> {

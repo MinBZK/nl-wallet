@@ -62,7 +62,6 @@ use crate::storage::StorageState;
 use crate::storage::StorageStub;
 use crate::update_policy::MockUpdatePolicyRepository;
 use crate::wallet::attestations::AttestationsError;
-use crate::wte::tests::MockWteIssuanceClient;
 
 use super::HistoryError;
 use super::Wallet;
@@ -98,7 +97,6 @@ pub type WalletWithMocks = Wallet<
     MockDigidSession,
     MockIssuanceSession,
     MockDisclosureClient,
-    MockWteIssuanceClient,
 >;
 
 /// An alias for the `Wallet<>` with all mock dependencies.
@@ -111,7 +109,6 @@ pub type WalletWithStorageMock = Wallet<
     MockDigidSession,
     MockIssuanceSession,
     MockDisclosureClient,
-    MockWteIssuanceClient,
 >;
 
 /// The account server key material, generated once for testing.
@@ -283,7 +280,6 @@ impl<S>
         MockDigidSession,
         MockIssuanceSession,
         MockDisclosureClient,
-        MockWteIssuanceClient,
     >
 where
     S: Default,
