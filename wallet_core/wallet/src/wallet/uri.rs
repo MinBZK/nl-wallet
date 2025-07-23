@@ -12,7 +12,7 @@ use platform_support::attested_key::AttestedKeyHolder;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::config::UNIVERSAL_LINK_BASE_URL;
-use crate::issuance::DigidSession;
+use crate::digid::DigidClient;
 use crate::repository::Repository;
 use crate::wallet::Session;
 
@@ -60,12 +60,12 @@ pub(super) fn identify_uri(uri: &Url) -> Option<UriType> {
     None
 }
 
-impl<CR, UR, S, AKH, APC, DS, IS, DC> Wallet<CR, UR, S, AKH, APC, DS, IS, DC>
+impl<CR, UR, S, AKH, APC, DC, IS, DCC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
     AKH: AttestedKeyHolder,
-    DS: DigidSession,
-    DC: DisclosureClient,
+    DC: DigidClient,
+    DCC: DisclosureClient,
 {
     #[instrument(skip_all)]
     #[sentry_capture_error]
@@ -91,7 +91,7 @@ mod tests {
     use assert_matches::assert_matches;
 
     use crate::config::UNIVERSAL_LINK_BASE_URL;
-    use crate::issuance::MockDigidSession;
+    use crate::digid::MockDigidSession;
 
     use super::super::test::WalletDeviceVendor;
     use super::super::test::WalletWithMocks;

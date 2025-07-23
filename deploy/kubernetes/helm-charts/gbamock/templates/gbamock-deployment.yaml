@@ -26,6 +26,7 @@ spec:
       containers:
         - name: {{ .Values.nameOverride | default .Chart.Name }}
           image: "{{ .Values.global.imageRegistry }}/{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
           {{- with .Values.resources }}
           resources:
             {{- toYaml . | nindent 12 }}

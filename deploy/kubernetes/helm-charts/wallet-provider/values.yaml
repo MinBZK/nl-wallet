@@ -97,69 +97,40 @@ resources:
 database:
   secretName: null
 
-## @section Volumes
-## Volumes for the container
-## @param volumes[0].name Name of the first volume
-## @param volumes[0].configMap.name Name of the ConfigMap for the first volume
-## @param volumes[1].name Name of the second volume
-## @param volumes[1].secret.secretName Name of the secret for the second volume
-##
-volumes:
-  - name: pkcs11-config-volume
-    configMap:
-      name: nl-wallet-hsm-pkcs11
-  - name: wallet-provider-gcloud-service-account
-    secret:
-      secretName: nl-wallet-gcloud-service-account
-
-## @section Volume mounts
-## Volume mounts for the container
-## @param volumeMounts[0].name Name of the first volume mount
-## @param volumeMounts[0].mountPath Mount path for the first volume mount
-## @param volumeMounts[0].subPath Sub-path within the first volume mount
-## @param volumeMounts[1].name Name of the second volume mount
-## @param volumeMounts[1].mountPath Mount path for the second volume mount
-## @param volumeMounts[1].subPath Sub-path within the second volume mount
-##
-volumeMounts:
-  - name: pkcs11-config-volume
-    mountPath: /cs_pkcs11_R3.cfg
-    subPath: cs_pkcs11_R3.cfg
-  - name: wallet-provider-gcloud-service-account
-    mountPath: /google-cloud-service-account.json
-    subPath: google-cloud-service-account.json
-
-## @section Environment variables from ConfigMaps or Secrets
-## List of sources to populate environment variables in the container
-## @param envFrom[0].configMapRef.name Name of the ConfigMap for the environment variable source
-##
-envFrom:
-  - configMapRef:
-      name: wallet-provider-config
-
 ## @section HSM parameters
 ## @param hsm.maxSessions Maximum HSM sessions
+## @param hsm.maxSessionLifeTimeInSec The maximum lifetime of a HSM session in seconds
+## @param hsm.configMapName Name to the the ConfigMap containing the hsm config file
+## @param hsm.configMapKey Key of the the ConfigMap containing the hsm config file
 ##
 hsm:
+  configMapName: nl-wallet-hsm-pkcs11
+  configMapKey: cs_pkcs11_R3.cfg
   maxSessions: 10
+  maxSessionLifeTimeInSec: 900
 
-## @section ConfigMap parameters
-## Additional parameters for the ConfigMap
-## @param configmap.iosRootCertificates iOS root certificates override
-## @param configmap.rootPublicKeys Android root public keys
-## @param configmap.playstoreCertificateHashes Google Play Store certificate hashes
-## @param configmap.allowSideLoading Allow installing apps from sources other than the Play Store
-configmap:
-  iosRootCertificates: null
+## @section Android parameters
+## Parameters for the Android configuration
+## @param android.rootPublicKeys Android root public keys
+## @param android.playstoreCertificateHashes Google Play Store certificate hashes
+## @param android.allowSideLoading Allow installing apps from sources other than the Play Store
+## @param android.serviceAccount.secretName Name to the the Secret containing the Google Cloud service account file
+## @param android.serviceAccount.secretKey Key of the the Secret containing the Google Cloud service account file
+android:
   rootPublicKeys: null
   playstoreCertificateHashes: null
   allowSideLoading: false
+  serviceAccount:
+    secretName: nl-wallet-gcloud-service-account
+    secretKey: google-cloud-service-account.json
 
 ## @section iOS parameters
 ## Parameters for the iOS configuration
+## @param ios.rootCertificates iOS root certificates
 ## @param ios.teamIdentifier Team identifier for iOS
 ##
 ios:
+  rootCertificates: null
   teamIdentifier: null
 
 ## @section Application parameters
@@ -180,3 +151,25 @@ migration:
 ## @param serviceMonitor.enabled Enable service monitor
 serviceMonitor:
   enabled: true
+
+## @section Log sidecar
+## @param logSidecar.image.repository Repository for the log container image
+## @param logSidecar.image.pullPolicy Image pull policy for the log container
+## @param logSidecar.image.tag Image tag for the log container
+## @param logSidecar.resources.requests.cpu CPU request of log sidecar
+## @param logSidecar.resources.requests.memory Memory request of log sidecar
+## @param logSidecar.resources.limits.cpu CPU limit of log sidecar
+## @param logSidecar.resources.limits.memory Memory limit of log sidecar
+##
+logSidecar:
+  image:
+    repository: null
+    pullPolicy: IfNotPresent
+    tag: null
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "16Mi"
+    limits:
+      cpu: "400m"
+      memory: "32Mi"

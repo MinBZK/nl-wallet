@@ -18,14 +18,14 @@ struct CachedClientState {
 #[derive(Debug)]
 pub struct CachedReqwestClient<C> {
     client_state: Mutex<Option<CachedClientState>>,
-    config_type: PhantomData<C>,
+    _config_type: PhantomData<C>,
 }
 
 impl<C> CachedReqwestClient<C> {
     pub fn new() -> Self {
         Self {
             client_state: Mutex::new(None),
-            config_type: PhantomData,
+            _config_type: PhantomData,
         }
     }
 

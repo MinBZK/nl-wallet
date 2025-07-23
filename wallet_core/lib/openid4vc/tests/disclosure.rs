@@ -1,3 +1,5 @@
+#![expect(clippy::too_many_arguments)]
+
 use std::collections::HashMap;
 use std::num::NonZeroU64;
 use std::str::FromStr;
@@ -25,11 +27,11 @@ use attestation_data::attributes::AttributeValue;
 use attestation_data::auth::reader_auth::ReaderRegistration;
 use attestation_data::disclosure::DisclosedAttestation;
 use attestation_data::x509::generate::mock::generate_reader_mock;
-use attestation_types::request;
-use attestation_types::request::NormalizedCredentialRequest;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::server_keys::generate::mock::RP_CERT_CN;
+use dcql::normalized;
+use dcql::normalized::NormalizedCredentialRequest;
 use http_utils::urls::BaseUrl;
 use jwt::Jwt;
 use mdoc::DeviceResponse;
@@ -103,7 +105,7 @@ async fn disclosure_direct() {
     let response_uri: BaseUrl = "https://example.com/response_uri".parse().unwrap();
     let encryption_keypair = EcKeyPair::generate(EcCurve::P256).unwrap();
     let iso_auth_request = NormalizedVpAuthorizationRequest::new(
-        request::mock::new_pid_example(),
+        normalized::mock::new_pid_example(),
         auth_keypair.certificate(),
         nonce.clone(),
         encryption_keypair.to_jwk_public_key().try_into().unwrap(),
@@ -184,7 +186,7 @@ async fn disclosure_using_message_client() {
     let rp_keypair = generate_reader_mock(
         &ca,
         Some(ReaderRegistration::mock_from_credential_requests(
-            &request::mock::new_pid_example(),
+            &normalized::mock::new_pid_example(),
         )),
     )
     .unwrap();
@@ -245,7 +247,7 @@ impl DirectMockVpMessageClient {
         let encryption_keypair = EcKeyPair::generate(EcCurve::P256).unwrap();
 
         let auth_request = NormalizedVpAuthorizationRequest::new(
-            request::mock::new_pid_example(),
+            normalized::mock::new_pid_example(),
             auth_keypair.certificate(),
             nonce.clone(),
             encryption_keypair.to_jwk_public_key().try_into().unwrap(),

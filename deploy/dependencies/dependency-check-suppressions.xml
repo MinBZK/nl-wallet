@@ -16,6 +16,11 @@
     <packageUrl regex="true">^pkg:cocoapods/flutter_native_splash@.*$</packageUrl>
     <cve>CVE-2022-3095</cve>
   </suppress>
+  <suppress>
+    <notes><![CDATA[file name: python-gitlab:6.1.0]]></notes>
+    <packageUrl regex="true">^pkg:pypi/python-gitlab@.*$</packageUrl>
+    <cpe>cpe:/a:gitlab:gitlab</cpe>
+  </suppress>
   <!-- End group: [CRITICAL] https://ossindex.sonatype.org/component/pkg:cocoapods/Flutter@1.0.0 -->
 
   <!-- Start group: [LOW] -->

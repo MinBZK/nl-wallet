@@ -7,12 +7,14 @@ adhoc_url = "https://lap.gbav.idm.diginetwerk.net/gba-v/online/lo3services/adhoc
 username = ""
 # GBA-V password
 password = ""
-# GBA-V client certificate (BASE64 encoded DER certificate)
-client_cert = "MIIIBTCC..."
-# GBA-V client certificate key (BASE64 encoded DER key)
-client_cert_key = "MIIJQgI..."
 # GBA-V server certificate trust anchor (BASE64 encoded DER certificate)
 trust_anchor = "MIIFhDCC..."
+
+[run_mode.all.gbav.client_certificate_and_key]
+# GBA-V client certificate (BASE64 encoded DER certificate)
+certificate = "MIIIBTCC..."
+# GBA-V client certificate key (BASE64 encoded DER key)
+key = "MIIJQgI..."
 
 [run_mode.all.preloaded]
 # Optional path to folder containing preloaded GBA-V XML responses of the form "{bsn}.xml" (relative to binary or Cargo.toml)

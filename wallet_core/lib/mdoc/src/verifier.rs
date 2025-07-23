@@ -14,11 +14,11 @@ use serde_with::serde_as;
 use tracing::debug;
 use tracing::warn;
 
-use attestation_types::request::AttributeRequest;
-use attestation_types::request::NormalizedCredentialRequest;
 use crypto::x509::CertificateUsage;
 use dcql::ClaimPath;
 use dcql::CredentialQueryFormat;
+use dcql::normalized::AttributeRequest;
+use dcql::normalized::NormalizedCredentialRequest;
 use http_utils::urls::HttpsUri;
 use utils::generator::Generator;
 use utils::vec_at_least::VecNonEmpty;

@@ -15,11 +15,12 @@ use platform_support::attested_key::AttestedKeyHolder;
 use update_policy_model::update_policy::VersionState;
 use utils::vec_at_least::VecNonEmpty;
 
-use crate::AttestationPresentation;
-use crate::DisclosureStatus;
+use crate::attestation::AttestationPresentation;
+use crate::digid::DigidClient;
 use crate::errors::StorageError;
 use crate::repository::Repository;
 use crate::storage::DataDisclosureStatus;
+use crate::storage::DisclosureStatus;
 use crate::storage::Storage;
 use crate::storage::WalletEvent;
 
@@ -52,13 +53,15 @@ type HistoryResult<T> = Result<T, HistoryError>;
 
 pub type RecentHistoryCallback = Box<dyn FnMut(Vec<WalletEvent>) + Send + Sync>;
 
-impl<CR, UR, S, AKH, APC, DS, IS, DC> Wallet<CR, UR, S, AKH, APC, DS, IS, DC>
+impl<CR, UR, S, AKH, APC, DC, IS, DCC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC>
 where
     S: Storage,
     UR: Repository<VersionState>,
     AKH: AttestedKeyHolder,
-    DC: DisclosureClient,
+    DC: DigidClient,
+    DCC: DisclosureClient,
 {
+    #[expect(clippy::too_many_arguments, reason = "Indirect constructor of disclosure event")]
     pub(super) async fn store_disclosure_event(
         &mut self,
         timestamp: DateTime<Utc>,

@@ -13,8 +13,10 @@ use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::Wallet;
 use crate::account_provider::AccountProviderClient;
+use crate::digid::DigidClient;
 use crate::errors::UpdatePolicyError;
 use crate::instruction::InstructionClientFactory;
+use crate::instruction::InstructionClientParameters;
 use crate::pin::change::BeginChangePinOperation;
 use crate::pin::change::ChangePinError;
 use crate::pin::change::FinishChangePinOperation;
@@ -26,14 +28,15 @@ use super::WalletRegistration;
 
 const CHANGE_PIN_RETRIES: u8 = 3;
 
-impl<CR, UR, S, AKH, APC, DS, IS, DC> Wallet<CR, UR, S, AKH, APC, DS, IS, DC>
+impl<CR, UR, S, AKH, APC, DC, IS, DCC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
     UR: Repository<VersionState>,
     S: Storage,
     AKH: AttestedKeyHolder,
     APC: AccountProviderClient,
-    DC: DisclosureClient,
+    DC: DigidClient,
+    DCC: DisclosureClient,
 {
     pub async fn begin_change_pin(&mut self, old_pin: String, new_pin: String) -> Result<(), ChangePinError>
     where
@@ -80,9 +83,11 @@ where
             Arc::clone(&self.storage),
             Arc::clone(attested_key),
             Arc::clone(&self.account_provider_client),
-            registration_data.clone(),
-            config.http_config.clone(),
-            instruction_result_public_key,
+            InstructionClientParameters::new(
+                registration_data.clone(),
+                config.http_config.clone(),
+                instruction_result_public_key,
+            ),
         );
 
         let session = BeginChangePinOperation::new(
@@ -125,9 +130,11 @@ where
             Arc::clone(&self.storage),
             Arc::clone(attested_key),
             Arc::clone(&self.account_provider_client),
-            registration_data.clone(),
-            config.http_config.clone(),
-            instruction_result_public_key,
+            InstructionClientParameters::new(
+                registration_data.clone(),
+                config.http_config.clone(),
+                instruction_result_public_key,
+            ),
         );
 
         let session = FinishChangePinOperation::new(&instruction_client, &self.storage, CHANGE_PIN_RETRIES);

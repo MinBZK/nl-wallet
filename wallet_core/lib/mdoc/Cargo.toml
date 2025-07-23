@@ -70,11 +70,10 @@ crypto.path = "../crypto"
 dcql.path = "../dcql"
 error_category.path = "../error_category"
 http_utils.path = "../http_utils"
-jwt.path = "../jwt"
-sd_jwt.path = "../sd_jwt"
-sd_jwt_vc_metadata.path = "../sd_jwt_vc_metadata"
 utils.path = "../utils"
 wscd.path = "../wscd"
+
+sd_jwt_vc_metadata = { path = "../sd_jwt_vc_metadata", optional = true, features = ["example_constructors"] }
 
 [dev-dependencies]
 assert_matches.workspace = true
@@ -84,8 +83,8 @@ rstest.workspace = true
 serde_json.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 
-attestation_types = { path = "../attestation_types", features = ["mock"] }
 crypto = { path = "../crypto", features = ["examples", "generate", "mock", "mock_secure_keys"] }
+dcql = { path = "../dcql", features = ["mock"] }
 sd_jwt_vc_metadata = { path = "../sd_jwt_vc_metadata", features = ["example_constructors"] }
 utils = { path = "../utils", features = ["mock_time"] }
 wscd = { path = "../wscd", features = ["mock_remote_key", "examples"] }

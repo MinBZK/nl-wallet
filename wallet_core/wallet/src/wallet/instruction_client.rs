@@ -9,8 +9,10 @@ use update_policy_model::update_policy::VersionState;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::account_provider::AccountProviderClient;
+use crate::digid::DigidClient;
 use crate::errors::ChangePinError;
 use crate::instruction::InstructionClient;
+use crate::instruction::InstructionClientParameters;
 use crate::pin::change::ChangePinStorage;
 use crate::repository::Repository;
 use crate::storage::RegistrationData;
@@ -18,14 +20,15 @@ use crate::storage::Storage;
 
 use super::Wallet;
 
-impl<CR, UR, S, AKH, APC, DS, IS, DC> Wallet<CR, UR, S, AKH, APC, DS, IS, DC>
+impl<CR, UR, S, AKH, APC, DC, IS, DCC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
     UR: Repository<VersionState>,
     S: Storage,
     AKH: AttestedKeyHolder,
     APC: AccountProviderClient,
-    DC: DisclosureClient,
+    DC: DigidClient,
+    DCC: DisclosureClient,
 {
     /// Construct an [`InstructionClient`] for this [`Wallet`].
     /// This is the recommended way to obtain an [`InstructionClient`], because this function
@@ -49,9 +52,7 @@ where
             Arc::clone(&self.storage),
             attested_key,
             Arc::clone(&self.account_provider_client),
-            registration_data,
-            client_config,
-            instruction_result_public_key,
+            InstructionClientParameters::new(registration_data, client_config, instruction_result_public_key),
         );
 
         Ok(client)

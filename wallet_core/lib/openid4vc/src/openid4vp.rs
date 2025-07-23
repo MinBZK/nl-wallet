@@ -24,10 +24,10 @@ use serde_with::skip_serializing_none;
 
 use attestation_data::disclosure::DisclosedAttestationError;
 use attestation_data::disclosure::DisclosedAttestations;
-use attestation_types::request::NormalizedCredentialRequest;
 use crypto::utils::random_string;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateError;
+use dcql::normalized::NormalizedCredentialRequest;
 use error_category::ErrorCategory;
 use http_utils::urls::BaseUrl;
 use jwt::Jwt;
@@ -848,11 +848,11 @@ mod tests {
 
     use attestation_data::disclosure::DisclosedAttributes;
     use attestation_data::x509::generate::mock::generate_reader_mock;
-    use attestation_types::request;
-    use attestation_types::request::NormalizedCredentialRequest;
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
     use dcql::CredentialQueryFormat;
+    use dcql::normalized;
+    use dcql::normalized::NormalizedCredentialRequest;
     use jwt::Jwt;
     use mdoc::DeviceAuthenticationKeyed;
     use mdoc::DeviceResponse;
@@ -904,7 +904,7 @@ mod tests {
     }
 
     fn setup() -> (TrustAnchor<'static>, KeyPair, EcKeyPair, VpAuthorizationRequest) {
-        setup_with_credential_requests(request::mock::example())
+        setup_with_credential_requests(normalized::mock::example())
     }
 
     fn setup_with_credential_requests(
@@ -1242,7 +1242,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_verify_authorization_response() {
-        let (_, _, _, auth_request) = setup_with_credential_requests(request::mock::new_pid_example());
+        let (_, _, _, auth_request) = setup_with_credential_requests(normalized::mock::new_pid_example());
         let mdoc_nonce = "mdoc_nonce";
 
         let time_generator = MockTimeGenerator::default();

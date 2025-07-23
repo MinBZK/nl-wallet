@@ -1,4 +1,5 @@
 use std::error::Error;
+use std::fs::OpenOptions;
 
 use cfg_if::cfg_if;
 use rustls::crypto::CryptoProvider;
@@ -9,6 +10,7 @@ use tracing_subscriber::EnvFilter;
 use android_attest::android_crl::GoogleRevocationListClient;
 use hsm::service::Pkcs11Hsm;
 use http_utils::reqwest::default_reqwest_client_builder;
+use wallet_provider::logging::redirect_stdout_stderr_to_log;
 use wallet_provider::server;
 use wallet_provider::settings::Settings;
 
@@ -23,11 +25,23 @@ async fn main() -> Result<(), Box<dyn Error>> {
     );
 
     let settings = Settings::new()?;
-    if settings.structured_logging {
-        builder.json().init();
+    let log_redirect = if settings.structured_logging {
+        let builder = builder.json();
+        match settings.capture_and_redirect_logging.clone() {
+            None => {
+                builder.init();
+                None
+            }
+            Some(path) => {
+                let writer = OpenOptions::new().append(true).open(path)?;
+                builder.with_writer(writer).init();
+                Some(redirect_stdout_stderr_to_log()?)
+            }
+        }
     } else {
         builder.init();
-    }
+        None
+    };
 
     let hsm = Pkcs11Hsm::from_settings(settings.hsm.clone())?;
 
@@ -58,5 +72,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
         }
     }
 
-    server::serve(settings, hsm, google_crl_client, play_integrity_client).await
+    server::serve(settings, hsm, google_crl_client, play_integrity_client).await?;
+
+    if let Some(log_redirect) = log_redirect {
+        let _ = log_redirect.stop_and_wait();
+    }
+    Ok(())
 }

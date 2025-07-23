@@ -19,7 +19,7 @@ pub struct MockAttributeService(VecNonEmpty<IssuableDocument>);
 
 pub fn mock_issuable_document_pid() -> IssuableDocument {
     IssuableDocument::try_new(
-        MOCK_PID_DOCTYPE.to_string(),
+        PID_ATTESTATION_TYPE.to_string(),
         IndexMap::from_iter(vec![
             (
                 PID_FAMILY_NAME.to_string(),
@@ -41,6 +41,10 @@ pub fn mock_issuable_document_pid() -> IssuableDocument {
                 PID_BSN.to_string(),
                 Attribute::Single(AttributeValue::Text("999991772".to_string())),
             ),
+            (
+                PID_RECOVERY_CODE.to_string(),
+                Attribute::Single(AttributeValue::Text("123".to_string())),
+            ),
         ])
         .into(),
     )
@@ -49,7 +53,7 @@ pub fn mock_issuable_document_pid() -> IssuableDocument {
 
 pub fn mock_issuable_document_address() -> IssuableDocument {
     IssuableDocument::try_new(
-        MOCK_ADDRESS_DOCTYPE.to_string(),
+        ADDRESS_ATTESTATION_TYPE.to_string(),
         IndexMap::from_iter(vec![(
             PID_ADDRESS_GROUP.to_string(),
             Attribute::Nested(IndexMap::from_iter(vec![

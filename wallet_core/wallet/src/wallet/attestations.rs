@@ -14,6 +14,7 @@ use platform_support::attested_key::AttestedKeyHolder;
 use crate::attestation::AttestationError;
 use crate::attestation::AttestationIdentity;
 use crate::attestation::AttestationPresentation;
+use crate::digid::DigidClient;
 use crate::storage::Storage;
 use crate::storage::StorageError;
 use crate::storage::StoredAttestationCopy;
@@ -56,11 +57,12 @@ pub enum AttestationsError {
 
 pub type AttestationsCallback = Box<dyn FnMut(Vec<AttestationPresentation>) + Send + Sync>;
 
-impl<CR, UR, S, AKH, APC, DS, IS, DC> Wallet<CR, UR, S, AKH, APC, DS, IS, DC>
+impl<CR, UR, S, AKH, APC, DC, IS, DCC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC>
 where
     S: Storage,
     AKH: AttestedKeyHolder,
-    DC: DisclosureClient,
+    DC: DigidClient,
+    DCC: DisclosureClient,
 {
     pub(super) async fn emit_attestations(&mut self) -> Result<(), AttestationsError> {
         info!("Emit attestations from storage");
@@ -85,9 +87,7 @@ where
                                 .ok_or(AttestationsError::MissingIssuerRegistration)?;
 
                             let attestation = AttestationPresentation::create_for_issuance(
-                                AttestationIdentity::Fixed {
-                                    id: attestation_id.to_string(),
-                                },
+                                AttestationIdentity::Fixed { id: attestation_id },
                                 normalized_metadata,
                                 issuer_registration.organization,
                                 mdoc.issuer_signed.into_entries_by_namespace(),
@@ -106,9 +106,7 @@ where
 
                             let payload = sd_jwt.into_inner().into_credential_payload(&normalized_metadata)?;
                             let attestation = AttestationPresentation::create_from_attributes(
-                                AttestationIdentity::Fixed {
-                                    id: attestation_id.to_string(),
-                                },
+                                AttestationIdentity::Fixed { id: attestation_id },
                                 normalized_metadata,
                                 issuer_registration.organization,
                                 &payload.previewable_payload.attributes,

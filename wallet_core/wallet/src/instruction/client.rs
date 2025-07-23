@@ -1,6 +1,7 @@
 use std::future::Future;
 use std::sync::Arc;
 
+use derive_more::Constructor;
 use tokio::sync::RwLock;
 use tokio::sync::RwLockWriteGuard;
 
@@ -29,7 +30,8 @@ pub struct InstructionClient<S, AK, GK, A> {
     parameters: Arc<InstructionClientParameters>,
 }
 
-struct InstructionClientParameters {
+#[derive(Constructor)]
+pub struct InstructionClientParameters {
     registration: RegistrationData,
     client_config: TlsPinningConfig,
     instruction_result_public_key: EcdsaDecodingKey,
@@ -58,20 +60,14 @@ impl<S, AK, GK, A> InstructionClient<S, AK, GK, A> {
         storage: Arc<RwLock<S>>,
         attested_key: Arc<AttestedKey<AK, GK>>,
         account_provider_client: Arc<A>,
-        registration: RegistrationData,
-        client_config: TlsPinningConfig,
-        instruction_result_public_key: EcdsaDecodingKey,
+        parameters: InstructionClientParameters,
     ) -> Self {
         Self {
             pin,
             storage,
             attested_key,
             account_provider_client,
-            parameters: Arc::new(InstructionClientParameters {
-                registration,
-                client_config,
-                instruction_result_public_key,
-            }),
+            parameters: Arc::new(parameters),
         }
     }
 
@@ -192,19 +188,13 @@ impl<S, AK, GK, A> InstructionClientFactory<S, AK, GK, A> {
         storage: Arc<RwLock<S>>,
         attested_key: Arc<AttestedKey<AK, GK>>,
         account_provider_client: Arc<A>,
-        registration: RegistrationData,
-        client_config: TlsPinningConfig,
-        instruction_result_public_key: EcdsaDecodingKey,
+        parameters: InstructionClientParameters,
     ) -> Self {
         Self {
             storage,
             attested_key,
             account_provider_client,
-            parameters: Arc::new(InstructionClientParameters {
-                registration,
-                client_config,
-                instruction_result_public_key,
-            }),
+            parameters: Arc::new(parameters),
         }
     }
 

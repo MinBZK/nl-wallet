@@ -5,12 +5,12 @@ member can do a release, and knows what steps and which roles are involved.
 
 ## Assumptions
 
-* The main git branch is stable and always in a runnable state
-* The definitions of done of any merged feature always includes relevant
+- The main git branch is stable and always in a runnable state
+- The definitions of done of any merged feature always includes relevant
   documentation we can refer to (config file changes, schema changes, etc)
-* The definitions of done of any merged feature always includes any relevant
+- The definitions of done of any merged feature always includes any relevant
   unit-, integration and/or end-to-end tests (i.e., features are tested)
-* You have `cargo-edit` and `git-filter-repo` installed
+- You have `cargo-edit` and `git-filter-repo` installed
 
 ## What constitutes a release?
 
@@ -26,12 +26,13 @@ a release themselves.
 
 This section of the guide documents all the steps we do when we do a release.
 
-### Step 1: Make sure the release on Jira is green
+### Step 1: Make sure the release on Jira is green and complete
 
 We use [Jira Releases][2] (also sort-of interchangably called "versions") to
-keep track of things we want to have in a release. When you go to our `PVW`
-project page on Jira, and click on the "boat" icon on the left, you'll see our
-releases page.
+keep track of things we want to have in a release and administrate for which
+Jira items code has been merged within the release period for that version. When
+you go to our `PVW` project page on Jira, and click on the "boat" icon on the
+left, you'll see our releases page.
 
 For the version you want to release, have a look at the progress bar. When you
 click on the release, you'll see all issues in it - essentially, you want all
@@ -49,6 +50,22 @@ When the release is "green" (i.e., all relevant issues are in the `Done` state)
 you know that the relevant features and fixes have been merged in the `main`
 branch, and you can create a release tag (which we do later on in this guide).
 
+The nightly_git_jira_check job automatically keeps Jira issues up-to-date with
+GitLab MRs by setting the correct fixVersion based on merged branches. So by the
+time you're prepping the release, Jira should already reflect the correct state,
+but it is advised to verify the job log of nightly_git_jira_check. This job also
+checks and logs other inconsistencies:
+
+- Issues with the wrong version
+- Issues with multiple fixVersions
+- MRs with source branches that do not contain an existing Jira item
+
+In the latter case this cannot be synced/corrected automatically. In job
+'verify_release_check', which runs in the release tag pipeline, an artifact is
+created in which all MRs that are misisng a Jira key are logged. Add this file
+to the release ticket in Jira or a separate ticket belonging to the release to
+ensure a quick way to determinate what has been released.
+
 ### Step 2: Make sure Figma links are up-to-date in README.md
 
 We have links to Figma in our `README.md` file. We always update these before we
@@ -60,15 +77,15 @@ update the README.
 We do most testing in an automated fashion using our CI/CD pipeline. There are
 however still a few things we confirm. Most notably:
 
-  * Stable main pipeline (CI/CD pipeline for main is green)
-  * Automated nightly E2E testsuite succesful
-  * Manual E2E testsuite executed and green (there is a metric in our quality
-    time instance that our software quality engineer uses for this, you can
-    ask him for the link)
-  * OSV scanner ran and results accepted (see `osv-scanner` job in pipeline)
-  * ZAP scanner ran and results accepted (see ZAP in Quality Time)
-  * No blocker or critical Sonar findings (you can check our Sonar instance
-    for these findings, ask around for the link if you don't have it)
+- Stable main pipeline (CI/CD pipeline for main is green)
+- Automated nightly E2E testsuite succesful
+- Manual E2E testsuite executed and green (there is a metric in our quality time
+  instance that our software quality engineer uses for this, you can ask him for
+  the link)
+- OSV scanner ran and results accepted (see `osv-scanner` job in pipeline)
+- ZAP scanner ran and results accepted (see ZAP in Quality Time)
+- No blocker or critical Sonar findings (you can check our Sonar instance for
+  these findings, ask around for the link if you don't have it)
 
 The manual E2E tests are usually executed by the test automation engineer. We
 are working on getting automated ZAP tests as part of the pipeline that will
@@ -87,12 +104,12 @@ further release-steps can occur.
 
 The release in Jira is green, manual and automated testing is done and the other
 things we confirm in the previous step are all ok or accepted. The product owner
-*and* the software delivery manager now need to reply to the e-mail from the
-software quality engineer (see previous step) with an approval for release.
-The software delivery manager and the product owner CC the shared e-mail
-account and the technical team members who are executing the release.
+_and_ the software delivery manager now need to reply to the e-mail from the
+software quality engineer (see previous step) with an approval for release. The
+software delivery manager and the product owner CC the shared e-mail account and
+the technical team members who are executing the release.
 
-When you have received this CC and it contains the approval from *both* the
+When you have received this CC and it contains the approval from _both_ the
 product owner and the software delivery manager, you can continue onwards with
 the steps to execute the release.
 
@@ -103,18 +120,18 @@ release-steps can occur.
 ### Step 5: Freeze git main branch
 
 To avoid someone accidentally or otherwise sniping in another change, you can
-temporarily "freeze" the main branch. To do this in GitLab, you can follow
-these steps:
+temporarily "freeze" the main branch. To do this in GitLab, you can follow these
+steps:
 
-  1. Go to the project page, click `Settings`, go to `Repository settings`;
-  2. Click `Expand` on `Protected branches` and see the `main` branch there;
-  3. Set `Allowed to merge` to `None`;
-  4. Set `Allowed to push and merge` to specifically **your** user account;
+1. Go to the project page, click `Settings`, go to `Repository settings`;
+2. Click `Expand` on `Protected branches` and see the `main` branch there;
+3. Set `Allowed to merge` to `None`;
+4. Set `Allowed to push and merge` to specifically **your** user account;
 
 After doing the above, no one except you can merge or push to the `main branch`.
 
-Don't forget to undo the above when you're done (at least after you've
-completed steps 6 and 7).
+Don't forget to undo the above when you're done (at least after you've completed
+steps 6 and 7).
 
 ### Step 6: Set release version and tag
 
@@ -152,25 +169,24 @@ version tags.
 
 We currently (2024-10-22) collect 4 artifacts from our GitLab CI/CD pipeline:
 
-  * `wallet-sbom_vX.Y.Z_generic.zip`: The software-bill-of-materials for this
-    release.
-  * `wallet-issuance-server_vX.Y.Z_x86_64-linux-glibc.zip`: The wallet issuance
-    server for issuers, for glibc-based Linux systems built with Debian
-    bookworm.
-  * `wallet-issuance-server_vX.Y.Z_x86_64-linux-musl.zip`: The wallet issuance
-    server for issuers using statically linked musl.
-  * `wallet-verification-server_vX.Y.Z_x86_64-linux-glibc.zip`: The wallet
-    verification server for relying parties, for glibc-based Linux systems
-    built with Debian bookworm.
-  * `wallet-verification-server_vX.Y.Z_x86_64-linux-musl.zip`: The wallet
-    verification server for relying parties using statically linked musl.
-  * `wallet-web_vX.Y.Z_generic.zip`: The javascript helper library for issuers
-    and relying parties, to assist with integrating issuers and relying party
-    applications with the wallet platform.
+- `wallet-sbom_vX.Y.Z_generic.zip`: The software-bill-of-materials for this
+  release.
+- `wallet-issuance-server_vX.Y.Z_x86_64-linux-glibc.zip`: The wallet issuance
+  server for issuers, for glibc-based Linux systems built with Debian bookworm.
+- `wallet-issuance-server_vX.Y.Z_x86_64-linux-musl.zip`: The wallet issuance
+  server for issuers using statically linked musl.
+- `wallet-verification-server_vX.Y.Z_x86_64-linux-glibc.zip`: The wallet
+  verification server for relying parties, for glibc-based Linux systems built
+  with Debian bookworm.
+- `wallet-verification-server_vX.Y.Z_x86_64-linux-musl.zip`: The wallet
+  verification server for relying parties using statically linked musl.
+- `wallet-web_vX.Y.Z_generic.zip`: The javascript helper library for issuers and
+  relying parties, to assist with integrating issuers and relying party
+  applications with the wallet platform.
 
-You can collect these artifacts from our GitLab CI/CD pipeline - you need to
-go to the relevant job and click on download artifact/zip. You might need to
-rename the zip file and/or repackage in the case of `issuance_server`,
+You can collect these artifacts from our GitLab CI/CD pipeline - you need to go
+to the relevant job and click on download artifact/zip. You might need to rename
+the zip file and/or repackage in the case of `issuance_server`,
 `verification_server` and `wallet_web`.
 
 Currently (2024-11-07) you need to create the sha256sums manually (in the future
@@ -189,12 +205,13 @@ the zip files and sha256sum texts as artifacts of the release.
 Note on other binaries like `wallet_server_migrations` and schema changes in
 general: When any of our binaries that use a database backend require schema
 changes in the database, we can provide either documentation that instruct how
-someone can effect the necessary changes, or a `wallet_server_migrations` utility
-and clear instructions with regards to how-to-use. When we as a team decide to
-provide a `wallet_server_migrations` binary, make sure that binary is included in
-the verification server zip files, with instructions on how to use (i.e., an
-end-user must be able to update the schema using the provided utility by
-following the additionally supplied read-me or other installation instructions).
+someone can effect the necessary changes, or a `wallet_server_migrations`
+utility and clear instructions with regards to how-to-use. When we as a team
+decide to provide a `wallet_server_migrations` binary, make sure that binary is
+included in the verification server zip files, with instructions on how to use
+(i.e., an end-user must be able to update the schema using the provided utility
+by following the additionally supplied read-me or other installation
+instructions).
 
 Note about obtaining artifacts automatically: Currently the above is manual. We
 have an issue on Jira which is about creating an artifact uploader. This utility
@@ -269,22 +286,22 @@ and the version tag you've previously set to indicate the release. This version
 tag will point to the head of the repository and will not have an associated
 release yet.
 
-  1. Go to the *Releases* page and click on the *Draft a new release* icon.
-     You'll be presented with a release creation page;
-  2. Click on *Choose a tag* and select the version you want to create a release
-     for (normally the latest one for which you did all the previous steps);
-  3. As title, write: `Wallet X.Y.Z`, where `X.Y.Z` is the version number you're
-     releasing (i.e., should match tag without the `v` prefix);
-  4. Add the previously collected/created zip files and sha256 text files;
-  5. Insert the previously created release description markdown in the body text
-     of this release;
-  6. Enable the *Set as a pre-release* flag;
-  7. Click on *Publish release*;
+1. Go to the _Releases_ page and click on the _Draft a new release_ icon. You'll
+   be presented with a release creation page;
+2. Click on _Choose a tag_ and select the version you want to create a release
+   for (normally the latest one for which you did all the previous steps);
+3. As title, write: `Wallet X.Y.Z`, where `X.Y.Z` is the version number you're
+   releasing (i.e., should match tag without the `v` prefix);
+4. Add the previously collected/created zip files and sha256 text files;
+5. Insert the previously created release description markdown in the body text
+   of this release;
+6. Enable the _Set as a pre-release_ flag;
+7. Click on _Publish release_;
 
 Note on setting the pre-release flag: We always set this flag when doing an
 initial release. A versioned release like we've just created is also going
-through a larger scale testing and deployment phase through the operations
-team. When they have finished their testing phases and obtained their relevant
+through a larger scale testing and deployment phase through the operations team.
+When they have finished their testing phases and obtained their relevant
 approvals, a go-ahead could be given to unset the pre-release flag. This is an
 asynchronous process and never blocks the release itself (i.e., don't wait, just
 leave the release marked as pre-release until someone comes around later on to

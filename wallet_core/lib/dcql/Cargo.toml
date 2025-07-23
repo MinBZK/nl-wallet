@@ -7,10 +7,14 @@ rust-version.workspace = true
 [lints]
 workspace = true
 
+[features]
+mock = []
+
 [dependencies]
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true, features = ["std"] }
 serde_with.workspace = true
+thiserror.workspace = true
 
 utils.path = "../utils"
 

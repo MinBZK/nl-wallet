@@ -22,7 +22,9 @@ base64.workspace = true
 chrono = { workspace = true, features = ["clock", "serde", "std"] }
 config = { workspace = true, features = ["toml"] }
 http.workspace = true
+nutype.workspace = true
 p256 = { workspace = true, features = ["ecdsa", "pkcs8"] }
+ring.workspace = true
 rustls-pki-types.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_with = { workspace = true, features = ["base64"] }

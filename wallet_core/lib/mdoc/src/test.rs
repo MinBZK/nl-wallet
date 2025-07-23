@@ -413,11 +413,11 @@ impl MdocCose<CoseSign1, TaggedBytes<MobileSecurityObject>> {
 
 #[cfg(any(test, feature = "mock"))]
 pub mod data {
-    use attestation_types::request::AttributeRequest;
-    use attestation_types::request::NormalizedCredentialRequest;
     use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
     use dcql::ClaimPath;
     use dcql::CredentialQueryFormat;
+    use dcql::normalized::AttributeRequest;
+    use dcql::normalized::NormalizedCredentialRequest;
     use utils::vec_at_least::VecNonEmpty;
 
     use super::*;

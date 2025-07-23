@@ -29,7 +29,8 @@ use platform_support::hw_keystore::hardware::HardwareEncryptionKey;
 
 use crate::account_provider::HttpAccountProviderClient;
 use crate::config::WalletConfigurationRepository;
-use crate::issuance::HttpDigidSession;
+use crate::digid::DigidClient;
+use crate::digid::HttpDigidClient;
 use crate::lock::WalletLock;
 use crate::storage::DatabaseStorage;
 use crate::storage::RegistrationData;
@@ -45,6 +46,7 @@ pub use self::disclosure::DisclosureUriSource;
 pub use self::disclosure_based_issuance::DisclosureBasedIssuanceError;
 pub use self::history::HistoryError;
 pub use self::history::RecentHistoryCallback;
+pub use self::init::WalletClients;
 pub use self::init::WalletInitError;
 pub use self::issuance::IssuanceError;
 pub use self::lock::LockCallback;
@@ -103,12 +105,13 @@ pub struct Wallet<
     S = DatabaseStorage<HardwareEncryptionKey>, // Storage
     AKH = KeyHolderType,                        // AttestedKeyHolder
     APC = HttpAccountProviderClient,            // AccountProviderClient
-    DS = HttpDigidSession,                      // DigidSession
+    DC = HttpDigidClient,                       // DigidClient
     IS = HttpIssuanceSession,                   // IssuanceSession
-    DC = VpDisclosureClient,                    // DisclosureClient
+    DCC = VpDisclosureClient,                   // DisclosureClient
 > where
     AKH: AttestedKeyHolder,
-    DC: DisclosureClient,
+    DC: DigidClient,
+    DCC: DisclosureClient,
 {
     config_repository: CR,
     update_policy_repository: UR,
@@ -116,8 +119,9 @@ pub struct Wallet<
     key_holder: AKH,
     registration: WalletRegistration<AKH::AppleKey, AKH::GoogleKey>,
     account_provider_client: Arc<APC>,
-    disclosure_client: DC,
-    session: Option<Session<DS, IS, DC::Session>>,
+    digid_client: DC,
+    disclosure_client: DCC,
+    session: Option<Session<DC::Session, IS, DCC::Session>>,
     lock: WalletLock,
     attestations_callback: Option<AttestationsCallback>,
     recent_history_callback: Option<RecentHistoryCallback>,

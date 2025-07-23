@@ -41,15 +41,16 @@ use crate::account_provider::AccountProviderClient;
 use crate::attestation::AttestationError;
 use crate::attestation::AttestationIdentity;
 use crate::attestation::AttestationPresentation;
+use crate::attestation::PID_DOCTYPE;
 use crate::config::UNIVERSAL_LINK_BASE_URL;
+use crate::digid::DigidClient;
+use crate::digid::DigidError;
+use crate::digid::DigidSession;
 use crate::errors::ChangePinError;
 use crate::errors::UpdatePolicyError;
 use crate::instruction::InstructionError;
 use crate::instruction::RemoteEcdsaKeyError;
 use crate::instruction::RemoteEcdsaKeyFactory;
-use crate::issuance::DigidSession;
-use crate::issuance::DigidSessionError;
-use crate::issuance::PID_DOCTYPE;
 use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
 use crate::storage::Storage;
@@ -84,10 +85,10 @@ pub enum IssuanceError {
     PidAlreadyPresent,
 
     #[error("could not start DigiD session: {0}")]
-    DigidSessionStart(#[source] DigidSessionError),
+    DigidSessionStart(#[source] DigidError),
 
     #[error("could not finish DigiD session: {0}")]
-    DigidSessionFinish(#[source] DigidSessionError),
+    DigidSessionFinish(#[source] DigidError),
 
     #[error("could not retrieve attestations from issuer: {0}")]
     IssuanceSession(#[from] IssuanceSessionError),
@@ -158,15 +159,15 @@ pub struct WalletIssuanceSession<IS> {
     protocol_state: IS,
 }
 
-impl<CR, UR, S, AKH, APC, DS, IS, DC> Wallet<CR, UR, S, AKH, APC, DS, IS, DC>
+impl<CR, UR, S, AKH, APC, DC, IS, DCC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
     UR: Repository<VersionState>,
     S: Storage,
     AKH: AttestedKeyHolder,
-    DS: DigidSession,
+    DC: DigidClient,
     IS: IssuanceSession,
-    DC: DisclosureClient,
+    DCC: DisclosureClient,
     APC: AccountProviderClient,
 {
     #[instrument(skip_all)]
@@ -207,15 +208,18 @@ where
         }
 
         let pid_issuance_config = &self.config_repository.get().pid_issuance;
-        let (session, auth_url) = DS::start(
-            pid_issuance_config.digid.clone(),
-            pid_issuance_config.digid_http_config.clone(),
-            urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().to_owned(),
-        )
-        .await
-        .map_err(IssuanceError::DigidSessionStart)?;
+        let session = self
+            .digid_client
+            .start_session(
+                pid_issuance_config.digid.clone(),
+                pid_issuance_config.digid_http_config.clone(),
+                urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().to_owned(),
+            )
+            .await
+            .map_err(IssuanceError::DigidSessionStart)?;
 
         info!("DigiD auth URL generated");
+        let auth_url = session.auth_url().clone();
         self.session.replace(Session::Digid(session));
 
         Ok(auth_url)
@@ -329,8 +333,9 @@ where
             panic!()
         };
 
+        let pid_issuance_config = &self.config_repository.get().pid_issuance;
         let token_request = session
-            .into_token_request(redirect_uri)
+            .into_token_request(&pid_issuance_config.digid_http_config, redirect_uri)
             .await
             .map_err(IssuanceError::DigidSessionFinish)?;
 
@@ -379,7 +384,10 @@ where
             .await
             .map_err(IssuanceError::AttestationQuery)?;
 
-        let previews_and_identity: Vec<(&NormalizedCredentialPreview, Option<String>)> =
+        // For every preview, try to find the first matching stored attestation to determine its database identity. If
+        // there are more candidates, the algorithm matches the first one based on the ascending order of the Uuidv7 of
+        // the list of stored attestations. This means the oldest attestation is matched first.
+        let previews_and_identity: Vec<(&NormalizedCredentialPreview, Option<Uuid>)> =
             match_preview_and_stored_attestations(
                 issuance_session.normalized_credential_preview(),
                 stored,
@@ -528,19 +536,38 @@ where
             _ => unreachable!(),
         };
 
+        let all_previews = issued_credentials_with_metadata
+            .into_iter()
+            .zip_eq(issuance_session.preview_attestations)
+            .collect_vec();
+
+        let (existing, new): (Vec<_>, Vec<_>) = all_previews
+            .into_iter()
+            .partition(|(_, preview)| matches!(preview.identity, AttestationIdentity::Fixed { .. }));
+
         info!("Attestations accepted, storing credentials in database");
-        self.storage
-            .write()
-            .await
-            .insert_credentials(
-                Utc::now(),
-                issued_credentials_with_metadata
-                    .into_iter()
-                    .zip_eq(issuance_session.preview_attestations)
-                    .collect_vec(),
-            )
-            .await
-            .map_err(IssuanceError::AttestationStorage)?;
+        if !existing.is_empty() {
+            self.storage
+                .write()
+                .await
+                .update_credentials(
+                    Utc::now(),
+                    existing
+                        .into_iter()
+                        .map(|(credential, preview)| (credential.copies, preview))
+                        .collect_vec(),
+                )
+                .await
+                .map_err(IssuanceError::AttestationStorage)?;
+        }
+        if !new.is_empty() {
+            self.storage
+                .write()
+                .await
+                .insert_credentials(Utc::now(), new)
+                .await
+                .map_err(IssuanceError::AttestationStorage)?;
+        }
 
         self.emit_attestations().await.map_err(IssuanceError::Attestations)?;
         self.emit_recent_history().await.map_err(IssuanceError::EventStorage)?;
@@ -553,12 +580,13 @@ fn match_preview_and_stored_attestations<'a>(
     previews: &'a [NormalizedCredentialPreview],
     stored_attestations: Vec<StoredAttestationCopy>,
     time_generator: &impl Generator<DateTime<Utc>>,
-) -> Vec<(&'a NormalizedCredentialPreview, Option<String>)> {
+) -> Vec<(&'a NormalizedCredentialPreview, Option<Uuid>)> {
     let stored_credential_payloads: Vec<(CredentialPayload, Uuid)> = stored_attestations
         .into_iter()
         .map(|copy| copy.into_credential_payload_and_id())
         .collect_vec();
 
+    // Find the first matching stored preview based on the ordering of `stored_credential_payloads`.
     previews
         .iter()
         .map(|preview| {
@@ -570,7 +598,7 @@ fn match_preview_and_stored_attestations<'a>(
                         .credential_payload
                         .matches_existing(&stored_preview.previewable_payload, time_generator)
                 })
-                .map(|(_, id)| id.to_string());
+                .map(|(_, id)| *id);
 
             (preview, identity)
         })
@@ -598,7 +626,6 @@ mod tests {
     use attestation_data::x509::CertificateType;
     use crypto::server_keys::generate::Ca;
     use crypto::x509::BorrowingCertificateExtension;
-    use http_utils::tls::pinning::TlsPinningConfig;
     use mdoc::holder::Mdoc;
     use openid4vc::issuance_session::CredentialWithMetadata;
     use openid4vc::issuance_session::IssuedCredential;
@@ -613,7 +640,7 @@ mod tests {
 
     use crate::WalletEvent;
     use crate::attestation::AttestationAttributeValue;
-    use crate::issuance::MockDigidSession;
+    use crate::digid::MockDigidSession;
     use crate::storage::StorageState;
     use crate::storage::StoredAttestationFormat;
     use crate::wallet::test::WalletWithStorageMock;
@@ -664,7 +691,6 @@ mod tests {
     }
 
     #[tokio::test]
-    #[serial(MockDigidSession)]
     async fn test_create_pid_issuance_auth_url() {
         const AUTH_URL: &str = "http://example.com/auth";
 
@@ -673,11 +699,15 @@ mod tests {
         assert!(wallet.session.is_none());
 
         // Set up a mock DigiD session.
-        let session_start_context = MockDigidSession::start_context();
-        session_start_context.expect().returning(|_, _: TlsPinningConfig, _| {
-            let client = MockDigidSession::default();
-            Ok((client, Url::parse(AUTH_URL).unwrap()))
-        });
+        wallet.digid_client.expect_start_session().times(1).return_once(
+            |_digid_config, _http_config, _redirect_uri| {
+                let mut session = MockDigidSession::new();
+
+                session.expect_auth_url().return_const(Url::parse(AUTH_URL).unwrap());
+
+                Ok(session)
+            },
+        );
 
         // Have the `Wallet` generate a DigiD authentication URL and test it.
         let auth_url = wallet
@@ -725,7 +755,7 @@ mod tests {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // Set up a mock DigiD session.
-        wallet.session = Some(Session::Digid(MockDigidSession::default()));
+        wallet.session = Some(Session::Digid(MockDigidSession::new()));
 
         // Creating a DigiD authentication URL on a `Wallet` that
         // has an active DigiD session should return an error.
@@ -759,15 +789,15 @@ mod tests {
     }
 
     #[tokio::test]
-    #[serial(MockDigidSession)]
     async fn test_create_pid_issuance_auth_url_error_digid_session_start() {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // Make DigiD session starting return an error.
-        let session_start_context = MockDigidSession::start_context();
-        session_start_context
-            .expect()
-            .return_once(|_, _: TlsPinningConfig, _| Err(OidcError::NoAuthCode.into()));
+        wallet
+            .digid_client
+            .expect_start_session()
+            .times(1)
+            .return_once(|_digid_config, _http_config, _redirect_uri| Err(OidcError::NoAuthCode.into()));
 
         // The error should be forwarded when attempting to create a DigiD authentication URL.
         let error = wallet
@@ -783,7 +813,7 @@ mod tests {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // Set up a mock DigiD session.
-        wallet.session = Some(Session::Digid(MockDigidSession::default()));
+        wallet.session = Some(Session::Digid(MockDigidSession::new()));
 
         assert!(wallet.session.is_some());
 
@@ -876,7 +906,7 @@ mod tests {
 
             client
                 .expect_normalized_credential_previews()
-                .return_const(vec![create_example_preview_data()]);
+                .return_const(vec![create_example_preview_data(&MockTimeGenerator::default())]);
 
             client.expect_issuer().return_const(IssuerRegistration::new_mock());
 
@@ -945,20 +975,24 @@ mod tests {
         assert_matches!(error, IssuanceError::SessionState);
     }
 
-    fn mock_digid_session() -> MockDigidSession {
+    fn mock_digid_session() -> MockDigidSession<TlsPinningConfig> {
         // Set up a mock DigiD session that returns a token request.
-        let mut session = MockDigidSession::default();
+        let mut session = MockDigidSession::new();
 
-        session.expect_into_token_request().return_once(|_uri| {
-            Ok(TokenRequest {
-                grant_type: TokenRequestGrantType::PreAuthorizedCode {
-                    pre_authorized_code: "123".to_string().into(),
-                },
-                code_verifier: None,
-                client_id: None,
-                redirect_uri: None,
-            })
-        });
+        session
+            .expect_into_token_request()
+            .return_once(|_http_config, _redirect_uri| {
+                let token_request = TokenRequest {
+                    grant_type: TokenRequestGrantType::PreAuthorizedCode {
+                        pre_authorized_code: "123".to_string().into(),
+                    },
+                    code_verifier: None,
+                    client_id: None,
+                    redirect_uri: None,
+                };
+
+                Ok(token_request)
+            });
 
         session
     }
@@ -1003,18 +1037,20 @@ mod tests {
     async fn test_continue_pid_issuance_with_renewed_attestation() {
         let mut wallet = setup_wallet_with_digid_session_and_database_mock();
 
+        let time_generator = MockTimeGenerator::default();
+
         // When the attestation already exists in the database, we expect the identity to be known
-        let mut previews = vec![create_example_preview_data()];
+        let mut previews = vec![create_example_preview_data(&time_generator)];
 
         // When the attestation already exists in the database, but the preview has a newer nbf, it should be
         // considered as a new attestation and the identity is None.
-        let mut preview = create_example_preview_data();
+        let mut preview = create_example_preview_data(&time_generator);
         preview.content.credential_payload.not_before = Some(Utc::now().add(Duration::days(365)).into());
         previews.push(preview);
 
         // When the attestation_type is different from the one stored in the database, it should be
         // considered as a new attestation and the identity is None.
-        let mut preview = create_example_preview_data();
+        let mut preview = create_example_preview_data(&time_generator);
         preview.content.credential_payload.attestation_type = String::from("att_type_1");
         previews.push(preview);
 
@@ -1023,7 +1059,7 @@ mod tests {
         let cert_type = CertificateType::from(IssuerRegistration::new_mock());
         let issuer_key_pair = ca.generate_key_pair("mycert", cert_type, Default::default()).unwrap();
 
-        let (payload, _, normalized_metadata) = create_example_credential_payload();
+        let (payload, _, normalized_metadata) = create_example_credential_payload(&time_generator);
         let sd_jwt = payload
             .into_sd_jwt(&normalized_metadata, holder_key.verifying_key(), &issuer_key_pair)
             .now_or_never()
@@ -1065,7 +1101,9 @@ mod tests {
 
         assert_eq!(attestations.len(), 3);
 
-        assert_matches!(&attestations[0].identity, AttestationIdentity::Fixed { id } if id == &attestation_id.to_string());
+        assert_matches!(
+            &attestations[0].identity,
+            AttestationIdentity::Fixed { id } if id == &attestation_id);
         assert_matches!(&attestations[1].identity, AttestationIdentity::Ephemeral);
         assert_matches!(&attestations[2].identity, AttestationIdentity::Ephemeral);
     }
@@ -1158,15 +1196,6 @@ mod tests {
             assert!(wallet.has_registration());
             assert!(!wallet.is_locked());
         }
-
-        // Starting another PID issuance should fail
-        const AUTH_URL: &str = "http://example.com/auth";
-        // Set up a mock DigiD session.
-        let session_start_context = MockDigidSession::start_context();
-        session_start_context.expect().returning(|_, _: TlsPinningConfig, _| {
-            let client = MockDigidSession::default();
-            Ok((client, Url::parse(AUTH_URL).unwrap()))
-        });
 
         let err = wallet
             .create_pid_issuance_auth_url()
@@ -1388,7 +1417,9 @@ mod tests {
         let cert_type = CertificateType::from(IssuerRegistration::new_mock());
         let issuer_key_pair = ca.generate_key_pair("mycert", cert_type, Default::default()).unwrap();
 
-        let (payload, _, normalized_metadata) = create_example_credential_payload();
+        let time_generator = MockTimeGenerator::default();
+
+        let (payload, _, normalized_metadata) = create_example_credential_payload(&time_generator);
         let sd_jwt = payload
             .into_sd_jwt(&normalized_metadata, holder_key.verifying_key(), &issuer_key_pair)
             .now_or_never()
@@ -1406,27 +1437,25 @@ mod tests {
         };
 
         // When the attestation already exists in the database, we expect the identity to be known
-        let previews = [create_example_preview_data()];
-        let result =
-            match_preview_and_stored_attestations(&previews, vec![stored.clone()], &MockTimeGenerator::epoch());
+        let previews = [create_example_preview_data(&time_generator)];
+        let result = match_preview_and_stored_attestations(&previews, vec![stored.clone()], &time_generator);
         let (_, identities): (Vec<_>, Vec<_>) = multiunzip(result);
-        assert_eq!(vec![Some(attestation_id.to_string())], identities);
+        assert_eq!(vec![Some(attestation_id)], identities);
 
         // When the attestation already exists in the database, but the preview has a newer nbf, it should be considered
         // as a new attestation and the identity is None.
-        let mut preview = create_example_preview_data();
+        let mut preview = create_example_preview_data(&time_generator);
         preview.content.credential_payload.not_before = Some(Utc::now().add(Duration::days(365)).into());
         let previews = [preview];
-        let result =
-            match_preview_and_stored_attestations(&previews, vec![stored.clone()], &MockTimeGenerator::epoch());
+        let result = match_preview_and_stored_attestations(&previews, vec![stored.clone()], &time_generator);
         let (_, identities): (Vec<_>, Vec<_>) = multiunzip(result);
         assert_eq!(vec![None], identities);
 
         // When the attestation doesn't exists in the database, the identity is None.
-        let mut preview = create_example_preview_data();
+        let mut preview = create_example_preview_data(&time_generator);
         preview.content.credential_payload.attestation_type = String::from("att_type_1");
         let previews = [preview];
-        let result = match_preview_and_stored_attestations(&previews, vec![stored], &MockTimeGenerator::epoch());
+        let result = match_preview_and_stored_attestations(&previews, vec![stored], &time_generator);
         let (_, identities): (Vec<_>, Vec<_>) = multiunzip(result);
         assert_eq!(vec![None], identities);
     }

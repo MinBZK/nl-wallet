@@ -1,4 +1,5 @@
 use indexmap::IndexMap;
+use uuid::Uuid;
 
 use attestation_data::attributes::Attributes;
 use attestation_data::auth::Organization;
@@ -12,7 +13,7 @@ use super::AttestationPresentation;
 
 impl AttestationPresentation {
     pub(crate) fn create_for_disclosure(
-        attestation_id: String,
+        attestation_id: Uuid,
         metadata: NormalizedTypeMetadata,
         issuer_organization: Organization,
         mdoc_attributes: IndexMap<NameSpace, Vec<Entry>>,
@@ -32,6 +33,7 @@ impl AttestationPresentation {
 mod test {
     use assert_matches::assert_matches;
     use indexmap::IndexMap;
+    use uuid::Uuid;
 
     use attestation_data::attributes::AttributeValue;
     use attestation_data::attributes::AttributesError;
@@ -79,7 +81,7 @@ mod test {
         )]);
 
         let attestation = AttestationPresentation::create_for_disclosure(
-            String::from("id123"),
+            Uuid::new_v4(),
             example_metadata(),
             Organization::new_mock(),
             mdoc_attributes,
@@ -120,7 +122,7 @@ mod test {
         )]);
 
         let attestation = AttestationPresentation::create_for_disclosure(
-            String::from("id123"),
+            Uuid::new_v4(),
             example_metadata(),
             Organization::new_mock(),
             mdoc_attributes,
@@ -158,7 +160,7 @@ mod test {
         )]);
 
         let attestation = AttestationPresentation::create_for_disclosure(
-            String::from("id123"),
+            Uuid::new_v4(),
             metadata,
             Organization::new_mock(),
             mdoc_attributes,

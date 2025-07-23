@@ -1,10 +1,10 @@
 use futures::FutureExt;
 use indexmap::IndexMap;
 
-use attestation_types::request::NormalizedCredentialRequest;
 use crypto::examples::Examples;
 use crypto::server_keys::generate::Ca;
 use dcql::CredentialQueryFormat;
+use dcql::normalized::NormalizedCredentialRequest;
 use utils::vec_at_least::VecNonEmpty;
 use wscd::mock_remote::MockRemoteKeyFactory;
 

@@ -28,11 +28,11 @@ use attestation_data::credential_payload::mock::pid_example_payload;
 use attestation_data::disclosure::DisclosedAttestations;
 use attestation_data::x509::generate::mock::generate_issuer_mock;
 use attestation_data::x509::generate::mock::generate_reader_mock;
-use attestation_types::request::AttributeRequest;
-use attestation_types::request::NormalizedCredentialRequest;
 use crypto::server_keys::generate::Ca;
 use dcql::ClaimPath;
 use dcql::CredentialQueryFormat;
+use dcql::normalized::AttributeRequest;
+use dcql::normalized::NormalizedCredentialRequest;
 use hsm::service::Pkcs11Hsm;
 use http_utils::error::HttpJsonErrorBody;
 use http_utils::reqwest::default_reqwest_client_builder;
@@ -938,7 +938,7 @@ mod db_test {
 }
 
 async fn prepare_example_holder_mocks(issuer_ca: &Ca) -> (Mdoc, MockRemoteKeyFactory) {
-    let payload_preview = pid_example_payload().previewable_payload;
+    let payload_preview = pid_example_payload(&MockTimeGenerator::default()).previewable_payload;
 
     let issuer_key_pair = generate_issuer_mock(issuer_ca, Some(IssuerRegistration::new_mock())).unwrap();
 
