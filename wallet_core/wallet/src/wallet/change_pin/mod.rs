@@ -26,7 +26,7 @@ use super::WalletRegistration;
 
 const CHANGE_PIN_RETRIES: u8 = 3;
 
-impl<CR, UR, S, AKH, APC, DS, IS, DC, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, DC, WIC>
+impl<CR, UR, S, AKH, APC, DS, IS, DC> Wallet<CR, UR, S, AKH, APC, DS, IS, DC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
     UR: Repository<VersionState>,
@@ -34,7 +34,6 @@ where
     AKH: AttestedKeyHolder,
     APC: AccountProviderClient,
     DC: DisclosureClient,
-    WIC: Default,
 {
     pub async fn begin_change_pin(&mut self, old_pin: String, new_pin: String) -> Result<(), ChangePinError>
     where

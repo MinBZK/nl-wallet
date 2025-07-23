@@ -95,7 +95,7 @@ impl WalletRegistrationError {
     }
 }
 
-impl<CR, UR, S, AKH, APC, DS, IS, DC, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, DC, WIC>
+impl<CR, UR, S, AKH, APC, DS, IS, DC> Wallet<CR, UR, S, AKH, APC, DS, IS, DC>
 where
     AKH: AttestedKeyHolder,
     DC: DisclosureClient,

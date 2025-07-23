@@ -268,7 +268,7 @@ impl RedirectUriPurpose {
     }
 }
 
-impl<CR, UR, S, AKH, APC, DS, IS, DC, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, DC, WIC>
+impl<CR, UR, S, AKH, APC, DS, IS, DC> Wallet<CR, UR, S, AKH, APC, DS, IS, DC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
     UR: Repository<VersionState>,
@@ -649,7 +649,7 @@ where
         S: Storage,
         UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
         APC: AccountProviderClient,
-        WIC: Default,
+        
     {
         self.perform_disclosure(pin, RedirectUriPurpose::Browser, self.config_repository.get().as_ref())
             .await
@@ -666,7 +666,7 @@ where
         S: Storage,
         UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
         APC: AccountProviderClient,
-        WIC: Default,
+        
     {
         info!("Accepting disclosure");
         info!("Fetching update policy");
