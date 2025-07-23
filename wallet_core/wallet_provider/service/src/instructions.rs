@@ -164,12 +164,16 @@ impl HandleInstruction for ChangePinCommit {
     }
 }
 
-/// Helper for the [`PerformIssuance`] and [`PerformIssuanceWithWua`] instruction handlers.
-async fn perform_issuance<T, R, H>(
+struct IssuanceArguments {
     key_count: NonZeroU64,
     aud: String,
     nonce: Option<String>,
     issue_wua: bool,
+}
+
+/// Helper for the [`PerformIssuance`] and [`PerformIssuanceWithWua`] instruction handlers.
+async fn perform_issuance<T, R, H>(
+    arguments: IssuanceArguments,
     wallet_user: &WalletUser,
     uuid_generator: &impl Generator<Uuid>,
     user_state: &UserState<R, H, impl WteIssuer>,
@@ -187,7 +191,7 @@ where
     R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
     H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
 {
-    let key_count = key_count.get();
+    let key_count = arguments.key_count.get();
 
     let (key_ids, public_keys, wrapped_keys): (Vec<_>, Vec<_>, Vec<_>) = user_state
         .wallet_user_hsm
@@ -197,9 +201,9 @@ where
         .multiunzip();
 
     // The JWT claims to be signed in the PoPs and the PoA.
-    let claims = JwtPopClaims::new(nonce, NL_WALLET_CLIENT_ID.to_string(), aud);
+    let claims = JwtPopClaims::new(arguments.nonce, NL_WALLET_CLIENT_ID.to_string(), arguments.aud);
 
-    let (wua_wrapped_key, wua_key_id, wua_with_disclosure) = if issue_wua {
+    let (wua_wrapped_key, wua_key_id, wua_with_disclosure) = if arguments.issue_wua {
         let (wua_wrapped_key, wua_key_id, wua, wua_disclosure) = wua(&claims, user_state).await?;
         (Some(wua_wrapped_key), Some(wua_key_id), Some((wua, wua_disclosure)))
     } else {
@@ -213,7 +217,7 @@ where
 
     let pops = issuance_pops(&public_keys, &attestation_keys, &claims).await?;
 
-    let key_count_including_wua = if issue_wua { key_count + 1 } else { key_count };
+    let key_count_including_wua = if arguments.issue_wua { key_count + 1 } else { key_count };
     let poa = if key_count_including_wua > 1 {
         let wua_attestation_key = wua_wrapped_key.as_ref().map(|key| attestation_key(key, user_state));
         Some(
@@ -234,7 +238,9 @@ where
     };
 
     // Assemble the keys to be stored in the database
-    let wte_key_and_id = issue_wua.then(|| (wua_wrapped_key.unwrap(), wua_key_id.as_ref().unwrap()));
+    let wte_key_and_id = arguments
+        .issue_wua
+        .then(|| (wua_wrapped_key.unwrap(), wua_key_id.as_ref().unwrap()));
     let db_keys = wrapped_keys
         .into_iter()
         .zip(&key_ids)
@@ -363,10 +369,12 @@ impl HandleInstruction for PerformIssuance {
         H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
     {
         let (key_identifiers, pops, poa, _) = perform_issuance(
-            self.key_count,
-            self.aud,
-            self.nonce,
-            false,
+            IssuanceArguments {
+                key_count: self.key_count,
+                aud: self.aud,
+                nonce: self.nonce,
+                issue_wua: false,
+            },
             wallet_user,
             uuid_generator,
             user_state,
@@ -396,10 +404,12 @@ impl HandleInstruction for PerformIssuanceWithWua {
         H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
     {
         let (key_identifiers, pops, poa, wua_with_disclosure) = perform_issuance(
-            self.issuance_instruction.key_count,
-            self.issuance_instruction.aud,
-            self.issuance_instruction.nonce,
-            true,
+            IssuanceArguments {
+                key_count: self.issuance_instruction.key_count,
+                aud: self.issuance_instruction.aud,
+                nonce: self.issuance_instruction.nonce,
+                issue_wua: true,
+            },
             wallet_user,
             uuid_generator,
             user_state,
