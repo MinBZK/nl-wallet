@@ -17,7 +17,6 @@ use uuid::Uuid;
 
 use crypto::keys::EcdsaKey;
 use crypto::p256_der::DerSignature;
-use crypto::p256_der::DerVerifyingKey;
 use hsm::model::encrypter::Encrypter;
 use hsm::model::wrapped_key::WrappedKey;
 use hsm::service::HsmError;
@@ -36,8 +35,6 @@ use wallet_account::messages::instructions::ChangePinStart;
 use wallet_account::messages::instructions::CheckPin;
 use wallet_account::messages::instructions::ConstructPoa;
 use wallet_account::messages::instructions::ConstructPoaResult;
-use wallet_account::messages::instructions::GenerateKey;
-use wallet_account::messages::instructions::GenerateKeyResult;
 use wallet_account::messages::instructions::IssueWte;
 use wallet_account::messages::instructions::IssueWteResult;
 use wallet_account::messages::instructions::PerformIssuance;
@@ -73,7 +70,6 @@ pub trait ValidateInstruction {
 
 impl ValidateInstruction for CheckPin {}
 impl ValidateInstruction for ChangePinStart {}
-impl ValidateInstruction for GenerateKey {}
 impl ValidateInstruction for ConstructPoa {}
 impl ValidateInstruction for PerformIssuance {}
 impl ValidateInstruction for PerformIssuanceWithWua {}
@@ -186,56 +182,6 @@ impl HandleInstruction for ChangePinCommit {
         tx.commit().await?;
 
         Ok(())
-    }
-}
-
-impl HandleInstruction for GenerateKey {
-    type Result = GenerateKeyResult;
-
-    async fn handle<T, R, H>(
-        self,
-        wallet_user: &WalletUser,
-        uuid_generator: &impl Generator<Uuid>,
-        user_state: &UserState<R, H, impl WteIssuer>,
-    ) -> Result<GenerateKeyResult, InstructionError>
-    where
-        T: Committable,
-        R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
-        H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
-    {
-        let keys = user_state
-            .wallet_user_hsm
-            .generate_wrapped_keys(&user_state.wrapping_key_identifier, self.count)
-            .await?;
-
-        let (public_keys, wrapped_keys) = keys
-            .into_iter()
-            .map(|(identifier, public_key, wrapped_key)| {
-                (
-                    (identifier.clone(), DerVerifyingKey::from(public_key)),
-                    WalletUserKey {
-                        wallet_user_key_id: uuid_generator.generate(),
-                        key_identifier: identifier,
-                        key: wrapped_key,
-                    },
-                )
-            })
-            .unzip();
-
-        let tx = user_state.repositories.begin_transaction().await?;
-        user_state
-            .repositories
-            .save_keys(
-                &tx,
-                WalletUserKeys {
-                    wallet_user_id: wallet_user.id,
-                    keys: wrapped_keys,
-                },
-            )
-            .await?;
-        tx.commit().await?;
-
-        Ok(GenerateKeyResult { public_keys })
     }
 }
 
@@ -726,7 +672,6 @@ mod tests {
     use rand::rngs::OsRng;
     use rstest::rstest;
 
-    use crypto::p256_der::verifying_key_sha256;
     use crypto::utils::random_bytes;
     use hsm::model::wrapped_key::WrappedKey;
     use jwt::Jwt;
@@ -738,7 +683,6 @@ mod tests {
     use wallet_account::NL_WALLET_CLIENT_ID;
     use wallet_account::messages::instructions::CheckPin;
     use wallet_account::messages::instructions::ConstructPoa;
-    use wallet_account::messages::instructions::GenerateKey;
     use wallet_account::messages::instructions::IssueWte;
     use wallet_account::messages::instructions::PerformIssuance;
     use wallet_account::messages::instructions::PerformIssuanceWithWua;
@@ -776,34 +720,6 @@ mod tests {
             )
             .await
             .unwrap();
-    }
-
-    #[tokio::test]
-    async fn should_handle_generate_key() {
-        let wallet_user = wallet_user::mock::wallet_user_1();
-        let wrapping_key_identifier = "my_wrapping_key_identifier";
-
-        let instruction = GenerateKey { count: 2 };
-
-        let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
-        wallet_user_repo
-            .expect_begin_transaction()
-            .returning(|| Ok(MockTransaction));
-        wallet_user_repo.expect_save_keys().returning(|_, _| Ok(()));
-
-        let result = instruction
-            .handle(
-                &wallet_user,
-                &FixedUuidGenerator,
-                &mock::user_state(wallet_user_repo, setup_hsm().await, wrapping_key_identifier.to_string()),
-            )
-            .await
-            .unwrap();
-
-        result
-            .public_keys
-            .iter()
-            .for_each(|(identifier, key)| assert_eq!(verifying_key_sha256(key.as_inner()), *identifier));
     }
 
     #[tokio::test]

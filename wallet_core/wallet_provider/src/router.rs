@@ -23,8 +23,6 @@ use wallet_account::messages::instructions::ChangePinStart;
 use wallet_account::messages::instructions::CheckPin;
 use wallet_account::messages::instructions::ConstructPoa;
 use wallet_account::messages::instructions::ConstructPoaResult;
-use wallet_account::messages::instructions::GenerateKey;
-use wallet_account::messages::instructions::GenerateKeyResult;
 use wallet_account::messages::instructions::Instruction;
 use wallet_account::messages::instructions::InstructionAndResult;
 use wallet_account::messages::instructions::InstructionChallengeRequest;
@@ -89,7 +87,6 @@ where
                     &format!("/instructions/{}", ChangePinRollback::NAME),
                     post(change_pin_rollback),
                 )
-                .route(&format!("/instructions/{}", GenerateKey::NAME), post(generate_key))
                 .route(&format!("/instructions/{}", Sign::NAME), post(sign))
                 .route(&format!("/instructions/{}", IssueWte::NAME), post(issue_wte))
                 .route(&format!("/instructions/{}", ConstructPoa::NAME), post(construct_poa))
@@ -245,19 +242,6 @@ async fn change_pin_rollback<GRC, PIC>(
     let body = InstructionResultMessage { result };
 
     info!("Replying with the instruction result");
-
-    Ok((StatusCode::OK, body.into()))
-}
-
-async fn generate_key<GRC, PIC>(
-    State(state): State<Arc<RouterState<GRC, PIC>>>,
-    Json(payload): Json<Instruction<GenerateKey>>,
-) -> Result<(StatusCode, Json<InstructionResultMessage<GenerateKeyResult>>)> {
-    info!("Received generate key request, handling the GenerateKey instruction");
-    let body = state
-        .handle_instruction(payload)
-        .await
-        .inspect_err(|error| warn!("handling GenerateKey instruction failed: {}", error))?;
 
     Ok((StatusCode::OK, body.into()))
 }
