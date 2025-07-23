@@ -182,23 +182,6 @@ impl InstructionAndResult for Sign {
     type Result = SignResult;
 }
 
-// IssueWte instruction.
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct IssueWte;
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct IssueWteResult {
-    pub key_id: String,
-    pub wte: Jwt<JwtCredentialClaims<WteClaims>>,
-}
-
-impl InstructionAndResult for IssueWte {
-    const NAME: &'static str = "issue_wte";
-
-    type Result = IssueWteResult;
-}
-
 // ConstructPoa instruction.
 
 #[derive(Debug, Serialize, Deserialize)]
