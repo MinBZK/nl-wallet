@@ -35,8 +35,6 @@ use wallet_account::messages::instructions::ChangePinStart;
 use wallet_account::messages::instructions::CheckPin;
 use wallet_account::messages::instructions::ConstructPoa;
 use wallet_account::messages::instructions::ConstructPoaResult;
-use wallet_account::messages::instructions::IssueWte;
-use wallet_account::messages::instructions::IssueWteResult;
 use wallet_account::messages::instructions::PerformIssuance;
 use wallet_account::messages::instructions::PerformIssuanceResult;
 use wallet_account::messages::instructions::PerformIssuanceWithWua;
@@ -88,25 +86,6 @@ impl ValidateInstruction for Sign {
             let user = &wallet_user.id;
             warn!("user {user} attempted to sign a PoA via the Sign instruction instead of ConstructPoa");
             return Err(InstructionValidationError::PoaMessage);
-        }
-
-        Ok(())
-    }
-}
-
-impl ValidateInstruction for IssueWte {
-    fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
-        if wallet_user.pin_change_in_progress() {
-            return Err(InstructionValidationError::PinChangeInProgress);
-        }
-
-        // Since the user can exchange the WTE for the PID at the PID issuer, and since one of the purposes of the WTE
-        // is ensuring that a user can have only a single PID in their wallet, we must ensure that we didn't already
-        // issue a WTE at some point in the past.
-        if wallet_user.has_wte {
-            let user = &wallet_user.id;
-            warn!("user {user} sent a second IssueWte instruction");
-            return Err(InstructionValidationError::WteAlreadyIssued);
         }
 
         Ok(())
@@ -487,46 +466,6 @@ impl HandleInstruction for Sign {
     }
 }
 
-impl HandleInstruction for IssueWte {
-    type Result = IssueWteResult;
-
-    async fn handle<T, R, H>(
-        self,
-        wallet_user: &WalletUser,
-        uuid_generator: &impl Generator<Uuid>,
-        user_state: &UserState<R, H, impl WteIssuer>,
-    ) -> Result<Self::Result, InstructionError>
-    where
-        T: Committable,
-        R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
-        H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
-    {
-        let (wrapped_privkey, key_id, wte) = user_state
-            .wte_issuer
-            .issue_wte()
-            .await
-            .map_err(|e| InstructionError::WteIssuance(Box::new(e)))?;
-
-        let tx = user_state.repositories.begin_transaction().await?;
-        let keys = WalletUserKeys {
-            wallet_user_id: wallet_user.id,
-            keys: vec![WalletUserKey {
-                wallet_user_key_id: uuid_generator.generate(),
-                key_identifier: key_id.clone(),
-                key: wrapped_privkey,
-            }],
-        };
-        user_state.repositories.save_keys(&tx, keys).await?;
-        user_state
-            .repositories
-            .save_wte_issued(&tx, &wallet_user.wallet_id)
-            .await?;
-        tx.commit().await?;
-
-        Ok(IssueWteResult { key_id, wte })
-    }
-}
-
 impl HandleInstruction for ConstructPoa {
     type Result = ConstructPoaResult;
 
@@ -683,13 +622,11 @@ mod tests {
     use wallet_account::NL_WALLET_CLIENT_ID;
     use wallet_account::messages::instructions::CheckPin;
     use wallet_account::messages::instructions::ConstructPoa;
-    use wallet_account::messages::instructions::IssueWte;
     use wallet_account::messages::instructions::PerformIssuance;
     use wallet_account::messages::instructions::PerformIssuanceWithWua;
     use wallet_account::messages::instructions::Sign;
     use wallet_provider_domain::FixedUuidGenerator;
     use wallet_provider_domain::model::wallet_user;
-    use wallet_provider_domain::model::wallet_user::WalletUser;
     use wallet_provider_domain::repository::MockTransaction;
     use wallet_provider_persistence::repositories::mock::MockTransactionalWalletUserRepository;
     use wscd::Poa;
@@ -785,50 +722,6 @@ mod tests {
             .verifying_key()
             .verify(&random_msg_2, result.signatures[1][0].as_inner())
             .unwrap();
-    }
-
-    #[tokio::test]
-    async fn should_handle_issue_wte() {
-        let wallet_user = wallet_user::mock::wallet_user_1();
-        let wrapping_key_identifier = "my-wrapping-key-identifier";
-
-        let instruction = IssueWte;
-
-        let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
-
-        wallet_user_repo
-            .expect_begin_transaction()
-            .returning(|| Ok(MockTransaction));
-        wallet_user_repo
-            .expect_save_wte_issued()
-            .times(1)
-            .return_once(|_, _| Ok(()));
-        wallet_user_repo.expect_save_keys().times(1).return_once(|_, _| Ok(()));
-
-        let result = instruction
-            .handle(
-                &wallet_user,
-                &FixedUuidGenerator,
-                &mock::user_state(wallet_user_repo, setup_hsm().await, wrapping_key_identifier.to_string()),
-            )
-            .await
-            .unwrap();
-
-        let _ = result.wte.dangerous_parse_unverified().unwrap();
-    }
-
-    #[tokio::test]
-    async fn should_not_issue_multiple_wtes() {
-        let wallet_user = WalletUser {
-            has_wte: true,
-            ..wallet_user::mock::wallet_user_1()
-        };
-
-        let instruction = IssueWte;
-
-        let result = instruction.validate_instruction(&wallet_user).unwrap_err();
-
-        assert_matches!(result, InstructionValidationError::WteAlreadyIssued);
     }
 
     #[tokio::test]

@@ -27,8 +27,6 @@ use wallet_account::messages::instructions::Instruction;
 use wallet_account::messages::instructions::InstructionAndResult;
 use wallet_account::messages::instructions::InstructionChallengeRequest;
 use wallet_account::messages::instructions::InstructionResultMessage;
-use wallet_account::messages::instructions::IssueWte;
-use wallet_account::messages::instructions::IssueWteResult;
 use wallet_account::messages::instructions::PerformIssuance;
 use wallet_account::messages::instructions::PerformIssuanceResult;
 use wallet_account::messages::instructions::PerformIssuanceWithWua;
@@ -88,7 +86,6 @@ where
                     post(change_pin_rollback),
                 )
                 .route(&format!("/instructions/{}", Sign::NAME), post(sign))
-                .route(&format!("/instructions/{}", IssueWte::NAME), post(issue_wte))
                 .route(&format!("/instructions/{}", ConstructPoa::NAME), post(construct_poa))
                 .route(
                     &format!("/instructions/{}", PerformIssuance::NAME),
@@ -255,19 +252,6 @@ async fn sign<GRC, PIC>(
         .handle_instruction(payload)
         .await
         .inspect_err(|error| warn!("handling SignRequest instruction failed: {}", error))?;
-
-    Ok((StatusCode::OK, body.into()))
-}
-
-async fn issue_wte<GRC, PIC>(
-    State(state): State<Arc<RouterState<GRC, PIC>>>,
-    Json(payload): Json<Instruction<IssueWte>>,
-) -> Result<(StatusCode, Json<InstructionResultMessage<IssueWteResult>>)> {
-    info!("Received issue WTE request, handling the IssueWte instruction");
-    let body = state
-        .handle_instruction(payload)
-        .await
-        .inspect_err(|error| warn!("handling IssueWte instruction failed: {}", error))?;
 
     Ok((StatusCode::OK, body.into()))
 }
