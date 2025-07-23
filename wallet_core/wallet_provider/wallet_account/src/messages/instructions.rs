@@ -114,26 +114,6 @@ impl InstructionAndResult for ChangePinRollback {
     type Result = ();
 }
 
-// GenerateKey instruction.
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct GenerateKey {
-    pub count: u64,
-}
-
-#[serde_as]
-#[derive(Debug, Serialize, Deserialize)]
-pub struct GenerateKeyResult {
-    #[serde_as(as = "Vec<(_, Base64)>")]
-    pub public_keys: Vec<(String, DerVerifyingKey)>,
-}
-
-impl InstructionAndResult for GenerateKey {
-    const NAME: &'static str = "generate_key";
-
-    type Result = GenerateKeyResult;
-}
-
 // PerformIssuance instruction.
 
 #[serde_as]
