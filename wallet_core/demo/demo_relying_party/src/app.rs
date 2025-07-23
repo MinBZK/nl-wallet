@@ -178,7 +178,7 @@ async fn create_session(
         .start(
             options.usecase.clone(),
             // TODO: Change to Query (PVW-4530)
-            usecase.items_requests.clone().into(),
+            usecase.items_requests.clone().map(Into::into),
             return_url_template,
         )
         .await?;

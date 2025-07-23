@@ -265,7 +265,6 @@ pub async fn has_active_issuance_session() -> anyhow::Result<bool> {
 }
 
 #[flutter_api_error]
-#[allow(unused_variables)]
 pub async fn start_disclosure(uri: String, is_qr_code: bool) -> anyhow::Result<StartDisclosureResult> {
     let url = Url::parse(&uri)?;
 

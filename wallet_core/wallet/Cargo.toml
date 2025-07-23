@@ -67,7 +67,6 @@ uuid = { workspace = true, features = ["v4", "v7"] }
 mockall = { workspace = true, optional = true }
 
 attestation_data.path = "../lib/attestation_data"
-attestation_types.path = "../lib/attestation_types"
 crypto.path = "../lib/crypto"
 dcql.path = "../lib/dcql"
 entity.path = "entity"
@@ -102,8 +101,8 @@ wiremock.workspace = true
 
 apple_app_attest = { path = "../lib/apple_app_attest", features = ["mock"] }
 attestation_data = { path = "../lib/attestation_data", features = ["example_credential_payloads", "generate", "mock"] }
-attestation_types = { path = "../lib/attestation_types", features = ["mock"] }
 crypto = { path = "../lib/crypto", features = ["mock_secure_keys"] }
+dcql = { path = "../lib/dcql", features = ["mock"] }
 http_utils = { path = "../lib/http_utils", features = ["insecure_http_client"] }
 jwt = { path = "../lib/jwt", features = ["test"] }
 mdoc = { path = "../lib/mdoc", features = ["mock_example_constructors", "test"] }

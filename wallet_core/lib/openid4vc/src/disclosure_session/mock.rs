@@ -2,8 +2,8 @@ use std::hash::Hash;
 
 use rustls_pki_types::TrustAnchor;
 
-use attestation_types::request::NormalizedCredentialRequest;
 use crypto::CredentialEcdsaKey;
+use dcql::normalized::NormalizedCredentialRequest;
 use http_utils::urls::BaseUrl;
 use mdoc::holder::Mdoc;
 use utils::vec_at_least::VecNonEmpty;

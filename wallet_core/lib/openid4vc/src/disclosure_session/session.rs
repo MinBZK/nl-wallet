@@ -4,9 +4,9 @@ use itertools::Itertools;
 use tracing::info;
 use tracing::warn;
 
-use attestation_types::request::NormalizedCredentialRequest;
 use crypto::CredentialEcdsaKey;
 use crypto::utils::random_string;
+use dcql::normalized::NormalizedCredentialRequest;
 use http_utils::urls::BaseUrl;
 use mdoc::holder::Mdoc;
 use mdoc::holder::disclosure::credential_requests_to_mdoc_paths;

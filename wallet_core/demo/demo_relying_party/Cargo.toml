@@ -50,8 +50,8 @@ tracing-subscriber = { workspace = true, features = [
 url = { workspace = true, features = ["serde"] }
 
 attestation_data.path = "../../lib/attestation_data"
-attestation_types.path = "../../lib/attestation_types"
 crypto.path = "../../lib/crypto"
+dcql.path = "../../lib/dcql"
 demo_utils.path = "../demo_utils"
 http_utils = { path = "../../lib/http_utils", features = ["server"] }
 mdoc.path = "../../lib/mdoc"

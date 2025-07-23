@@ -36,6 +36,7 @@ spec:
       containers:
         - name: {{ .Values.frontend.name }}
           image: "{{ .Values.global.imageRegistry }}/{{ .Values.imageGbaFrontend.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.imageGbaFrontend.pullPolicy }}
           {{ with .Values.frontend.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
@@ -83,12 +84,12 @@ spec:
                 secretKeyRef:
                   name: nl-wallet-gba-hc-converter-secrets
                   key: password
-            - name: GBA_HC_CONVERTER__RUN_MODE__ALL__GBAV__CLIENT_CERT
+            - name: GBA_HC_CONVERTER__RUN_MODE__ALL__GBAV__CLIENT_CERTIFICATE_AND_KEY__CERTIFICATE
               valueFrom:
                 secretKeyRef:
                   name: nl-wallet-gba-hc-converter-secrets
                   key: client_cert
-            - name: GBA_HC_CONVERTER__RUN_MODE__ALL__GBAV__CLIENT_CERT_KEY
+            - name: GBA_HC_CONVERTER__RUN_MODE__ALL__GBAV__CLIENT_CERTIFICATE_AND_KEY__KEY
               valueFrom:
                 secretKeyRef:
                   name: nl-wallet-gba-hc-converter-secrets

@@ -22,7 +22,7 @@ pub struct BrpPerson {
     #[serde(rename = "burgerservicenummer")]
     bsn: String,
 
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     #[serde(rename = "geslacht")]
     gender: Option<BrpGender>,
 
@@ -55,7 +55,7 @@ impl BrpPerson {
 
         vec![
             (
-                String::from(MOCK_PID_DOCTYPE),
+                String::from(PID_ATTESTATION_TYPE),
                 IndexMap::from_iter(
                     vec![
                         Some((
@@ -86,7 +86,7 @@ impl BrpPerson {
                 ),
             ),
             (
-                String::from(MOCK_ADDRESS_DOCTYPE),
+                String::from(ADDRESS_ATTESTATION_TYPE),
                 IndexMap::from_iter(vec![(
                     String::from(PID_ADDRESS_GROUP),
                     Attribute::Nested(IndexMap::from_iter(
@@ -126,10 +126,9 @@ impl BrpPerson {
     }
 }
 
-#[allow(dead_code)]
 #[derive(Deserialize)]
 pub struct BrpGender {
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     code: BrpGenderCode,
 }
 
@@ -179,11 +178,11 @@ pub struct BrpBirth {
     #[serde(rename = "datum")]
     date: BrpDate,
 
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     #[serde(rename = "land")]
     country: Option<BrpDescription>,
 
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     #[serde(rename = "plaats")]
     place: Option<BrpDescription>,
 }
@@ -275,8 +274,8 @@ mod tests {
     use utils::path::prefix_local_path;
 
     use crate::pid::brp::data::BrpPersons;
-    use crate::pid::constants::MOCK_ADDRESS_DOCTYPE;
-    use crate::pid::constants::MOCK_PID_DOCTYPE;
+    use crate::pid::constants::ADDRESS_ATTESTATION_TYPE;
+    use crate::pid::constants::PID_ATTESTATION_TYPE;
 
     fn read_json(name: &str) -> String {
         fs::read_to_string(prefix_local_path(
@@ -335,7 +334,7 @@ mod tests {
 
         assert_eq!(
             json!([
-                MOCK_PID_DOCTYPE,
+                PID_ATTESTATION_TYPE,
                 {
                     "family_name": "Jansen",
                     "given_name": "Frouke",
@@ -349,7 +348,7 @@ mod tests {
 
         assert_eq!(
             json!([
-                MOCK_ADDRESS_DOCTYPE,
+                ADDRESS_ATTESTATION_TYPE,
                 {
                     "address": {
                         "street_address": "Van Wijngaerdenstraat",

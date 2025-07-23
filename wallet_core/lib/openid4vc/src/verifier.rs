@@ -35,12 +35,12 @@ use tracing::warn;
 
 use attestation_data::disclosure::DisclosedAttestation;
 use attestation_data::disclosure::DisclosedAttestations;
-use attestation_types::request::NormalizedCredentialRequest;
 use crypto::EcdsaKeySend;
 use crypto::keys::EcdsaKey;
 use crypto::server_keys::KeyPair;
 use crypto::utils::random_string;
 use crypto::x509::CertificateError;
+use dcql::normalized::NormalizedCredentialRequest;
 use http_utils::urls::BaseUrl;
 use jwt::Jwt;
 use jwt::error::JwtError;
@@ -1510,11 +1510,11 @@ mod tests {
 
     use attestation_data::auth::reader_auth::ReaderRegistration;
     use attestation_data::x509::generate::mock::generate_reader_mock;
-    use attestation_types::request::AttributeRequest;
-    use attestation_types::request::NormalizedCredentialRequest;
     use crypto::server_keys::generate::Ca;
     use dcql::ClaimPath;
     use dcql::CredentialQueryFormat;
+    use dcql::normalized::AttributeRequest;
+    use dcql::normalized::NormalizedCredentialRequest;
     use utils::generator::Generator;
     use utils::generator::TimeGenerator;
     use utils::vec_at_least::VecNonEmpty;

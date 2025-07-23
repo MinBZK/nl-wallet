@@ -2,6 +2,8 @@ use std::num::NonZeroU8;
 use std::sync::Arc;
 use std::sync::LazyLock;
 
+use chrono::DateTime;
+use chrono::Utc;
 use futures::future::FutureExt;
 use indexmap::IndexMap;
 use p256::ecdsa::SigningKey;
@@ -20,6 +22,7 @@ use crypto::p256_der::DerVerifyingKey;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::BorrowingTrustAnchor;
+use http_utils::tls::pinning::TlsPinningConfig;
 use jwt::Jwt;
 use mdoc::holder::Mdoc;
 use openid4vc::Format;
@@ -38,21 +41,22 @@ use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::SortedTypeMetadataDocuments;
 use sd_jwt_vc_metadata::TypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
+use utils::generator::Generator;
+use utils::generator::mock::MockTimeGenerator;
 use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::messages::registration::WalletCertificateClaims;
 use wallet_configuration::wallet_config::WalletConfiguration;
 use wscd::mock_remote::MockRemoteEcdsaKey;
 
-use crate::AttestationPresentation;
-use crate::WalletEvent;
 use crate::account_provider::MockAccountProviderClient;
+use crate::attestation::AttestationPresentation;
+use crate::attestation::PID_DOCTYPE;
+use crate::attestation::test::create_example_payload_preview;
 use crate::config::LocalConfigurationRepository;
 use crate::config::UpdatingConfigurationRepository;
 use crate::config::default_config_server_config;
 use crate::config::default_wallet_config;
-use crate::issuance;
-use crate::issuance::MockDigidSession;
-use crate::issuance::PID_DOCTYPE;
+use crate::digid::MockDigidClient;
 use crate::pin::key as pin_key;
 use crate::storage::KeyedData;
 use crate::storage::KeyedDataResult;
@@ -60,8 +64,10 @@ use crate::storage::MockStorage;
 use crate::storage::RegistrationData;
 use crate::storage::StorageState;
 use crate::storage::StorageStub;
+use crate::storage::WalletEvent;
 use crate::update_policy::MockUpdatePolicyRepository;
 use crate::wallet::attestations::AttestationsError;
+use crate::wallet::init::WalletClients;
 
 use super::HistoryError;
 use super::Wallet;
@@ -94,7 +100,7 @@ pub type WalletWithMocks = Wallet<
     StorageStub,
     MockHardwareAttestedKeyHolder,
     MockAccountProviderClient,
-    MockDigidSession,
+    MockDigidClient<TlsPinningConfig>,
     MockIssuanceSession,
     MockDisclosureClient,
 >;
@@ -106,7 +112,7 @@ pub type WalletWithStorageMock = Wallet<
     MockStorage,
     MockHardwareAttestedKeyHolder,
     MockAccountProviderClient,
-    MockDigidSession,
+    MockDigidClient<TlsPinningConfig>,
     MockIssuanceSession,
     MockDisclosureClient,
 >;
@@ -143,7 +149,9 @@ pub static ISSUER_KEY_UNAUTHENTICATED: LazyLock<IssuerKey> = LazyLock::new(|| {
 
 /// Generates a valid `CredentialPayload` along with its metadata `SortedTypeMetadataDocuments` and
 /// `NormalizedTypeMetadata`.
-pub fn create_example_credential_payload() -> (CredentialPayload, SortedTypeMetadataDocuments, NormalizedTypeMetadata) {
+pub fn create_example_credential_payload(
+    time_generator: &impl Generator<DateTime<Utc>>,
+) -> (CredentialPayload, SortedTypeMetadataDocuments, NormalizedTypeMetadata) {
     let credential_payload = CredentialPayload::example_with_attributes(
         vec![
             ("family_name", AttributeValue::Text("De Bruijn".to_string())),
@@ -152,6 +160,7 @@ pub fn create_example_credential_payload() -> (CredentialPayload, SortedTypeMeta
             ("age_over_18", AttributeValue::Bool(true)),
         ],
         SigningKey::random(&mut OsRng).verifying_key(),
+        time_generator,
     );
 
     let metadata = TypeMetadata::example_with_claim_names(
@@ -175,8 +184,8 @@ pub fn create_example_credential_payload() -> (CredentialPayload, SortedTypeMeta
 }
 
 /// Generate valid `CredentialPreviewData`.
-pub fn create_example_preview_data() -> NormalizedCredentialPreview {
-    let (credential_payload, raw_metadata, normalized_metadata) = create_example_credential_payload();
+pub fn create_example_preview_data(time_generator: &impl Generator<DateTime<Utc>>) -> NormalizedCredentialPreview {
+    let (credential_payload, raw_metadata, normalized_metadata) = create_example_credential_payload(time_generator);
 
     NormalizedCredentialPreview {
         content: CredentialPreviewContent {
@@ -211,7 +220,7 @@ pub fn create_example_pid_mdoc_credential_unauthenticated() -> CredentialWithMet
 }
 
 fn create_example_pid_mdoc_credential_with_key(issuer_key: &IssuerKey) -> CredentialWithMetadata {
-    let (payload_preview, metadata) = issuance::mock::create_example_payload_preview();
+    let (payload_preview, metadata) = create_example_payload_preview(&MockTimeGenerator::default());
 
     mdoc_credential_from_unsigned(payload_preview, metadata, issuer_key)
 }
@@ -277,7 +286,7 @@ impl<S>
         S,
         MockHardwareAttestedKeyHolder,
         MockAccountProviderClient,
-        MockDigidSession,
+        MockDigidClient<TlsPinningConfig>,
         MockIssuanceSession,
         MockDisclosureClient,
     >
@@ -299,8 +308,7 @@ where
             MockUpdatePolicyRepository::default(),
             S::default(),
             generate_key_holder(vendor),
-            MockAccountProviderClient::default(),
-            MockDisclosureClient::default(),
+            WalletClients::default(),
             RegistrationStatus::Unregistered,
         )
     }
@@ -394,8 +402,7 @@ impl WalletWithMocks {
             MockUpdatePolicyRepository::default(),
             storage,
             key_holder,
-            MockAccountProviderClient::default(),
-            MockDisclosureClient::default(),
+            WalletClients::default(),
         )
         .await
     }

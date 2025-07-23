@@ -34,7 +34,7 @@ impl From<wallet::AttestationIdentity> for AttestationIdentity {
     fn from(value: wallet::AttestationIdentity) -> Self {
         match value {
             wallet::AttestationIdentity::Ephemeral => AttestationIdentity::Ephemeral,
-            wallet::AttestationIdentity::Fixed { id } => AttestationIdentity::Fixed { id },
+            wallet::AttestationIdentity::Fixed { id } => AttestationIdentity::Fixed { id: id.to_string() },
         }
     }
 }
