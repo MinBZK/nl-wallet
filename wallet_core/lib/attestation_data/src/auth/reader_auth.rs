@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use indexmap::IndexMap;
 use indexmap::IndexSet;
 use itertools::Itertools;
 use serde::Deserialize;
@@ -123,16 +122,6 @@ pub struct SharingPolicy {
 pub struct DeletionPolicy {
     pub deleteable: bool,
 }
-
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
-pub struct AuthorizedMdoc(pub IndexMap<String, AuthorizedNamespace>);
-
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
-pub struct AuthorizedNamespace(pub IndexMap<String, AuthorizedAttribute>);
-
-// This struct could be extended in the future for attribute specific policies
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub struct AuthorizedAttribute {}
 
 impl BorrowingCertificateExtension for ReaderRegistration {
     /// oid: 2.1.123.1
