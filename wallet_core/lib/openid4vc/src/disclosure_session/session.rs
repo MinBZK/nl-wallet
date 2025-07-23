@@ -186,15 +186,15 @@ mod tests {
     use assert_matches::assert_matches;
     use futures::FutureExt;
     use http::StatusCode;
+    use http_utils::urls::BaseUrl;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
     use rstest::rstest;
     use serde::de::Error;
+    use serde_json::json;
 
     use attestation_data::auth::reader_auth::ReaderRegistration;
-    use http_utils::urls::BaseUrl;
     use mdoc::holder::Mdoc;
-    use serde_json::json;
     use wscd::mock_remote::MockRemoteEcdsaKey;
     use wscd::mock_remote::MockRemoteKeyFactory;
 

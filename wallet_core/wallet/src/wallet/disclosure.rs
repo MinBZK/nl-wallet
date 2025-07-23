@@ -649,7 +649,6 @@ where
         S: Storage,
         UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
         APC: AccountProviderClient,
-        
     {
         self.perform_disclosure(pin, RedirectUriPurpose::Browser, self.config_repository.get().as_ref())
             .await
@@ -666,7 +665,6 @@ where
         S: Storage,
         UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
         APC: AccountProviderClient,
-        
     {
         info!("Accepting disclosure");
         info!("Fetching update policy");

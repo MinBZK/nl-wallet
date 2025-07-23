@@ -691,7 +691,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
     {
         let key_count = (self.session_state.credential_request_types.len() as u64)
             .try_into()
-            .unwrap();
+            .unwrap(); // Safety: this is derived above from token_response.credential_previews, which is VecNonEmpty.
 
         let mut issuance_data = key_factory
             .perform_issuance(
@@ -709,8 +709,9 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             .map(|jwt| CredentialRequestProof::Jwt { jwt })
             .collect_vec();
 
-        // Split into N keys and N credential requests, so we can send the credential request proofs separately
-        // to the issuer.
+        // Call the amount of proofs we received N, which equals `key_count`.
+        // Combining these with the key identifiers and attestation types, compute N public keys and
+        // N credential requests.
         let (pubkeys, mut credential_requests): (Vec<_>, Vec<_>) = try_join_all(
             proofs
                 .into_iter()
