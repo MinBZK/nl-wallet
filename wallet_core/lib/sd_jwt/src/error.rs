@@ -1,6 +1,7 @@
 // Copyright 2020-2023 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
+use attestation_types::claim_path::ClaimPath;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
 use jwt::error::JwtX5cError;
@@ -35,8 +36,8 @@ pub enum Error {
     #[error("invalid path: {0}")]
     InvalidPath(String),
 
-    #[error("path can only be found in object or array json values: {0}")]
-    UnexpectedObjectValue(serde_json::Value),
+    #[error("unexpected element: {value}, for path: {path}")]
+    UnexpectedElementValue { value: serde_json::Value, path: ClaimPath },
 
     #[error("invalid array index: {path}")]
     InvalidArrayIndex { path: String },
