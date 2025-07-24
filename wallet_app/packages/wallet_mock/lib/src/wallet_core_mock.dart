@@ -256,4 +256,7 @@ class WalletCoreMock implements WalletCoreApi {
 
   @override
   Future<String> crateApiFullGetVersionString({hint}) async => MockConstants.versionString;
+
+  @override
+  Future<String> crateApiFullCreatePidRenewalRedirectUri() async => MockConstants.pidRenewalRedirectUri;
 }

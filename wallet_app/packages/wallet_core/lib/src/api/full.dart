@@ -67,6 +67,8 @@ Future<IdentifyUriResult> identifyUri({required String uri}) =>
 
 Future<String> createPidIssuanceRedirectUri() => WalletCore.instance.api.crateApiFullCreatePidIssuanceRedirectUri();
 
+Future<String> createPidRenewalRedirectUri() => WalletCore.instance.api.crateApiFullCreatePidRenewalRedirectUri();
+
 Future<void> cancelIssuance() => WalletCore.instance.api.crateApiFullCancelIssuance();
 
 Future<List<AttestationPresentation>> continuePidIssuance({required String uri}) =>
