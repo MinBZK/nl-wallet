@@ -3424,7 +3424,6 @@ dependencies = [
  "anyhow",
  "async-trait",
  "attestation_data",
- "attestation_types",
  "axum",
  "chrono",
  "config",

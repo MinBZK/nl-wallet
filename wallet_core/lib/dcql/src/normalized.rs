@@ -141,13 +141,13 @@ impl TryFrom<ClaimsQuery> for AttributeRequest {
         if source.path.iter().any(|p| !matches!(p, ClaimPath::SelectByKey(_))) {
             return Err(UnsupportedDcqlFeatures::UnsupportedClaimPathVariant);
         }
-        if source.intent_to_retain.is_none() {
+        let Some(intent_to_retain) = source.intent_to_retain else {
             return Err(UnsupportedDcqlFeatures::MissingIntentToRetain);
-        }
+        };
 
         let request = AttributeRequest {
             path: source.path,
-            intent_to_retain: source.intent_to_retain.unwrap_or(true),
+            intent_to_retain,
         };
         Ok(request)
     }

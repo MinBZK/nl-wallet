@@ -33,7 +33,7 @@ pub enum ResponseValidationError {
 impl ItemsRequests {
     /// Return the mdoc-specific paths for a particular attestation type in [`ItemsRequests`],
     /// which is always a pair of namespace and element (i.e. attribute) identifier. Note that this may return an empty set,
-    /// either when the attestation type is not present or when none of the paths can be represented as a 2-tuple.
+    /// when the attestation type is not present.
     pub fn to_mdoc_paths<'a>(&'a self, attestation_type: &str) -> HashSet<(&'a str, &'a str)> {
         self.0
             .iter()
