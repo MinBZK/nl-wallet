@@ -21,6 +21,7 @@ use serde::Serialize;
 use serde_with::skip_serializing_none;
 use ssri::Integrity;
 
+use attestation_types::claim_path::ClaimPath;
 use crypto::EcdsaKeySend;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateUsage;
@@ -30,6 +31,7 @@ use jwt::VerifiedJwt;
 use jwt::jwk::jwk_to_p256;
 use utils::generator::Generator;
 use utils::spec::SpecOptional;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::decoder::SdObjectDecoder;
 use crate::disclosure::Disclosure;
@@ -385,8 +387,8 @@ impl<'a> SdJwtPresentationBuilder<'a> {
         })
     }
 
-    pub fn disclose(mut self, path: &str) -> Result<Self> {
-        let path_segments = path.trim_start_matches('/').split('/').peekable();
+    pub fn disclose(mut self, path: &VecNonEmpty<ClaimPath>) -> Result<Self> {
+        let path_segments = path.iter().peekable();
         self.digests_to_be_disclosed.extend(
             digests_to_disclose(&self.full_payload, path_segments, &self.nondisclosed)?
                 .into_iter()
@@ -446,7 +448,7 @@ fn digests_to_disclose<'a, I>(
     disclosures: &'a IndexMap<String, Disclosure>,
 ) -> Result<Vec<&'a str>>
 where
-    I: Iterator<Item = &'a str>,
+    I: Iterator<Item = &'a ClaimPath>,
 {
     // Holds all digests that should be disclosed based on the `path`
     let mut digests = vec![];
@@ -454,15 +456,15 @@ where
     let element_key = path.next().ok_or(Error::EmptyPath)?;
     let has_next = path.peek().is_some();
 
-    match object {
+    match (object, element_key) {
         // We are just traversing to a deeper part of the object.
-        serde_json::Value::Object(object) if has_next => {
+        (serde_json::Value::Object(object), ClaimPath::SelectByKey(key)) if has_next => {
             // Either the element is non-selectively disclosable and present in the object, or it is selectively
             // disclosable and its digest has to be found.
             let next_object = object
-                .get(element_key)
+                .get(key)
                 .or_else(|| {
-                    find_disclosure_digest(object, element_key, disclosures)
+                    find_disclosure_digest(object, key, disclosures)
                         .and_then(|digest| {
                             // If the intermediate element should be selectively disclosable, it should be added to the
                             // list of digest to be disclosed.
@@ -471,63 +473,46 @@ where
                         })
                         .map(|disclosure| disclosure.claim_value())
                 })
-                .ok_or_else(|| Error::IntermediateElementNotFound {
-                    path: String::from(element_key),
-                })?;
+                .ok_or_else(|| Error::IntermediateElementNotFound { path: key.clone() })?;
 
             digests.append(&mut digests_to_disclose(next_object, path, disclosures)?);
             Ok(digests)
         }
         // We reached the the value we want to disclose, so add it to the list of digests
-        serde_json::Value::Object(object) => {
-            let digest =
-                find_disclosure_digest(object, element_key, disclosures).ok_or_else(|| Error::ElementNotFound {
-                    path: String::from(element_key),
-                })?;
+        (serde_json::Value::Object(object), ClaimPath::SelectByKey(key)) => {
+            let digest = find_disclosure_digest(object, key, disclosures)
+                .ok_or_else(|| Error::ElementNotFound { path: key.clone() })?;
 
             digests.push(digest);
             Ok(digests)
         }
         // Traversing an array
-        serde_json::Value::Array(arr) if has_next => {
-            let index = element_key
-                .parse::<usize>()
-                .ok()
-                .filter(|idx| arr.len() > *idx)
-                .ok_or_else(|| Error::InvalidArrayIndex {
-                    path: String::from(element_key),
-                })?;
-
-            let next_object = arr.get(index).ok_or_else(|| Error::ElementNotFoundInArray {
-                path: String::from(element_key),
+        (serde_json::Value::Array(arr), ClaimPath::SelectByIndex(index)) if has_next => {
+            let next_object = arr.get(*index).ok_or_else(|| Error::ElementNotFoundInArray {
+                path: element_key.to_string(),
             })?;
 
             digests.append(&mut digests_to_disclose(next_object, path, disclosures)?);
             Ok(digests)
         }
         // Disclosing an array's entry.
-        serde_json::Value::Array(arr) => {
-            let index = element_key
-                .parse::<usize>()
-                .ok()
-                .filter(|idx| arr.len() > *idx)
-                .ok_or_else(|| Error::InvalidArrayIndex {
-                    path: String::from(element_key),
-                })?;
-
+        (serde_json::Value::Array(arr), ClaimPath::SelectByIndex(index)) => {
             let digest = arr
-                .get(index)
+                .get(*index)
                 .unwrap()
                 .as_object()
                 .and_then(|entry| find_disclosure_digest(entry, "", disclosures))
                 .ok_or_else(|| Error::ElementNotFoundInArray {
-                    path: String::from(element_key),
+                    path: element_key.to_string(),
                 })?;
 
             digests.push(digest);
             Ok(digests)
         }
-        other => Err(Error::UnexpectedObjectValue(other.clone())),
+        (element, path) => Err(Error::UnexpectedElementValue {
+            value: element.clone(),
+            path: path.clone(),
+        }),
     }
 }
 
@@ -571,6 +556,7 @@ mod test {
     use chrono::Duration;
     use chrono::Utc;
     use futures::FutureExt;
+    use itertools::Itertools;
     use jsonwebtoken::Algorithm;
     use jsonwebtoken::errors::ErrorKind;
     use p256::ecdsa::SigningKey;
@@ -579,6 +565,7 @@ mod test {
     use serde_json::json;
     use ssri::Integrity;
 
+    use attestation_types::claim_path::ClaimPath;
     use jwt::EcdsaDecodingKey;
     use jwt::error::JwtError;
 
@@ -665,7 +652,7 @@ mod test {
     fn create_presentation(
         object: serde_json::Value,
         conceal_paths: &[&str],
-        disclose_paths: &[&str],
+        disclose_paths: &[Vec<&str>],
     ) -> SdJwtPresentation {
         let issuer_privkey = SigningKey::random(&mut OsRng);
         let holder_privkey = SigningKey::random(&mut OsRng);
@@ -698,7 +685,18 @@ mod test {
                         Algorithm::ES256,
                     )
                     .unwrap(),
-                |builder, path| builder.disclose(path).unwrap(),
+                |builder, path| {
+                    builder
+                        .disclose(
+                            &path
+                                .iter()
+                                .map(|key| ClaimPath::SelectByKey(String::from(*key)))
+                                .collect_vec()
+                                .try_into()
+                                .unwrap(),
+                        )
+                        .unwrap()
+                },
             )
             .finish(&holder_privkey)
             .now_or_never()
@@ -717,21 +715,21 @@ mod test {
     #[case::flat_sd_all_disclose_single(
         json!({"given_name": "John", "family_name": "Doe"}),
         &["/given_name", "/family_name"],
-        &["/given_name"],
+        &[vec!["given_name"]],
         &["given_name"],
         &[],
     )]
     #[case::flat_sd_all_disclose_all(
         json!({"given_name": "John", "family_name": "Doe"}),
         &["/given_name", "/family_name"],
-        &["/given_name", "/family_name"],
+        &[vec!["given_name"], vec!["family_name"]],
         &["given_name", "family_name"],
         &[],
     )]
     #[case::flat_single_sd(
         json!({"given_name": "John", "family_name": "Doe"}),
         &["/given_name"],
-        &["/given_name"],
+        &[vec!["given_name"]],
         &["given_name"],
         &["/family_name"],
     )]
@@ -745,49 +743,49 @@ mod test {
     #[case::structured_single_sd_and_disclose(
         json!({"address": {"street": "Main st.", "house_number": 4 }}),
         &["/address/street"],
-        &["/address/street"],
+        &[vec!["address", "street"]],
         &["street"],
         &["/address", "/address/house_number"],
     )]
     #[case::structured_recursive_path_sd_and_single_disclose(
         json!({"address": {"street": "Main st.", "house_number": 4 }}),
         &["/address/street", "/address"],
-        &["/address/street"],
+        &[vec!["address", "street"]],
         &["address", "street"],
         &[],
     )]
     #[case::structured_all_sd_and_all_disclose(
         json!({"address": {"street": "Main st.", "house_number": 4 }}),
         &["/address/street", "/address/house_number", "/address"],
-        &["/address/street", "/address/house_number"],
+        &[vec!["address", "street"], vec!["address", "house_number"]],
         &["street", "house_number", "address"],
         &[],
     )]
     #[case::structured_all_sd_and_single_disclose(
         json!({"address": {"street": "Main st.", "house_number": 4 }}),
         &["/address/street", "/address/house_number", "/address"],
-        &["/address/street"],
+        &[vec!["address", "street"]],
         &["address", "street"],
         &[],
     )]
     #[case::structured_root_sd_and_root_disclose(
         json!({"address": {"street": "Main st.", "house_number": 4 }}),
         &["/address"],
-        &["/address"],
+        &[vec!["address"]],
         &["address"],
         &[],
     )]
     #[case::array(
         json!({"nationalities": ["NL", "DE"]}),
         &["/nationalities"],
-        &["/nationalities"],
+        &[vec!["nationalities"]],
         &["nationalities"],
         &[],
     )]
     fn test_selectively_disclosable_attributes_in_presentation(
         #[case] object: serde_json::Value,
         #[case] conceal_paths: &[&str],
-        #[case] disclose_paths: &[&str],
+        #[case] disclose_paths: &[Vec<&str>],
         #[case] expected_disclosed_paths: &[&str],
         #[case] expected_not_selectively_disclosable_paths: &[&str],
     ) {
