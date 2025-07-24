@@ -6,7 +6,7 @@ use itertools::Either;
 use itertools::Itertools;
 use jsonschema::ValidationError;
 
-use dcql::ClaimPath;
+use attestation_types::claim_path::ClaimPath;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::chain::SortedTypeMetadata;
@@ -390,7 +390,7 @@ mod tests {
     use serde_json::json;
     use ssri::Integrity;
 
-    use dcql::ClaimPath;
+    use attestation_types::claim_path::ClaimPath;
     use utils::vec_at_least::VecNonEmpty;
 
     use crate::chain::SortedTypeMetadata;
