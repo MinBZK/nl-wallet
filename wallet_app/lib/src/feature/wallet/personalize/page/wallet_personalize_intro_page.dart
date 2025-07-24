@@ -5,6 +5,7 @@ import '../../../../util/extension/build_context_extension.dart';
 import '../../../../util/extension/string_extension.dart';
 import '../../../../wallet_assets.dart';
 import '../../../common/widget/button/confirm/confirm_buttons.dart';
+import '../../../common/widget/button/icon/help_icon_button.dart';
 import '../../../common/widget/button/primary_button.dart';
 import '../../../common/widget/button/tertiary_button.dart';
 import '../../../common/widget/page_illustration.dart';
@@ -34,6 +35,9 @@ class WalletPersonalizeIntroPage extends StatelessWidget {
               child: CustomScrollView(
                 slivers: [
                   SliverWalletAppBar(
+                    actions: const [
+                      HelpIconButton(),
+                    ],
                     title: context.l10n.walletPersonalizeIntroPageTitle,
                     progress: progress,
                     scrollController: PrimaryScrollController.maybeOf(context),
