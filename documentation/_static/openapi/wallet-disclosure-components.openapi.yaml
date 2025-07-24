@@ -8,63 +8,90 @@ components:
       properties:
         usecase:
           type: string
-        items_requests:
-          type: array
-          items:
-            $ref: '#/components/schemas/item_requests'
+        dcql_query:
+          $ref: '#/components/schemas/Query'
         return_url_template:
           type: string
           format: uri
       required:
         - usecase
-        - items_requests
+        - dcql_query
         - return_url_template
 
-    item_requests:
+    Query:
       type: object
+      required:
+        - credentials
       properties:
-        docType:
-          $ref: '#/components/schemas/doc_type'
-        nameSpaces:
-          $ref: '#/components/schemas/namespaces'
+        credentials:
+          type: array
+          items:
+            $ref: '#/components/schemas/CredentialQuery'
 
-    doc_type:
-      type: string
-      enum:
-        - com.example.pid
-        - com.example.address
-
-    namespaces:
+    CredentialQuery:
       type: object
+      required:
+        - id
+        - format
+        - meta
       properties:
-        com.example.pid:
-          type: object
-          properties:
-            given_name: boolean
-            family_name: boolean
-            given_name_birth: boolean
-            family_name_birth: boolean
-            gender: boolean
-            birth_date: boolean
-            age_over_18: boolean
-            birth_place: boolean
-            birth_city: boolean
-            birth_state: boolean
-            birth_country: boolean
-            bsn: boolean
-          additionalProperties: false
-        com.example.address:
-          type: object
-          properties:
-            resident_address: boolean
-            resident_street: boolean
-            resident_house_number: boolean
-            resident_postal_code: boolean
-            resident_city: boolean
-            resident_state: boolean
-            resident_country: boolean
-          additionalProperties: false
-      additionalProperties: false
+        id:
+          type: string
+          pattern: '^[A-Za-z0-9_-]+$'
+        format:
+          type: string
+          description: Credential format identifier (e.g. sd+sd-jwt, mso_mdoc)
+        meta:
+          oneOf:
+            - $ref: '#/components/schemas/MsoMdocMeta'
+            - $ref: '#/components/schemas/SdJwtMeta'
+        claims:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClaimsQuery'
+
+    ClaimsQuery:
+      type: object
+      required:
+        - path
+      properties:
+        id:
+          type: string
+        path:
+          $ref: '#/components/schemas/ClaimPath'
+        intent_to_retain:
+          type: boolean
+
+    ClaimPath:
+      type: array
+      items:
+        oneOf:
+          - type: string
+          - type: integer
+            minimum: 0
+          - type: 'null'
+
+    MsoMdocMeta:
+      type: object
+      description: Metadata for mso_mdoc format
+      properties:
+        doctype_value:
+          type: string
+          description: Value for the ISO-compliant mdoc document type
+      required:
+        - doctype_value
+
+    SdJwtMeta:
+      type: object
+      description: Metadata for sd+sd-jwt format
+      properties:
+        vct_values:
+          type: array
+          description: Values for the credential type (vct) claim
+          items:
+            type: string
+      required:
+        - vct_values
 
     session_token:
       description: The unique identifier of a session

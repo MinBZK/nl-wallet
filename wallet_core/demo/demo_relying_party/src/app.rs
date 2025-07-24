@@ -175,12 +175,7 @@ async fn create_session(
 
     let session_token = state
         .client
-        .start(
-            options.usecase.clone(),
-            // TODO: Change to Query (PVW-4530)
-            usecase.items_requests.clone().map(Into::into),
-            return_url_template,
-        )
+        .start(options.usecase, usecase.dcql_query.clone(), return_url_template)
         .await?;
 
     let result = SessionResponse {

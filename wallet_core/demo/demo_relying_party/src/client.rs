@@ -2,7 +2,7 @@ use futures::TryFutureExt;
 use reqwest::Client;
 use reqwest::Response;
 
-use dcql::normalized::NormalizedCredentialRequest;
+use dcql::Query;
 use demo_utils::disclosure::DemoDisclosedAttestations;
 use http_utils::error::HttpJsonErrorBody;
 use http_utils::urls::BaseUrl;
@@ -11,7 +11,6 @@ use openid4vc::server_state::SessionToken;
 use openid4vc_server::verifier::DisclosedAttributesParams;
 use openid4vc_server::verifier::StartDisclosureRequest;
 use openid4vc_server::verifier::StartDisclosureResponse;
-use utils::vec_at_least::VecNonEmpty;
 
 pub struct WalletServerClient {
     client: Client,
@@ -60,7 +59,7 @@ impl WalletServerClient {
     pub async fn start(
         &self,
         usecase: String,
-        credential_requests: Option<VecNonEmpty<NormalizedCredentialRequest>>,
+        dcql_query: Option<Query>,
         return_url_template: Option<ReturnUrlTemplate>,
     ) -> Result<SessionToken, anyhow::Error> {
         let response = self
@@ -68,7 +67,7 @@ impl WalletServerClient {
             .post(self.base_url.join("/disclosure/sessions"))
             .json(&StartDisclosureRequest {
                 usecase,
-                credential_requests,
+                dcql_query,
                 return_url_template,
             })
             .send()
