@@ -199,7 +199,7 @@ pub mod mock {
 mod tests {
     use rstest::rstest;
 
-    use dcql::ClaimPath;
+    use attestation_types::claim_path::ClaimPath;
     use dcql::normalized::AttributeRequest;
     use dcql::normalized::MdocCredentialRequestError;
     use dcql::normalized::NormalizedCredentialRequest;
