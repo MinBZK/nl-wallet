@@ -57,16 +57,16 @@ impl AttributeRequest {
 pub enum UnsupportedDcqlFeatures {
     #[error("'credential_sets' are not supported")]
     CredentialSets,
-    #[error("multiple credential querys are not supported")]
+    #[error("multiple credential queries are not supported")]
     MultipleCredentialQueries,
     #[error("'claim_sets' are not supported")]
     MultipleClaimSets,
     #[error("claim query with 'values' is not supported")]
     ClaimValues,
-    #[error("'trusted_authorities' not suported")]
+    #[error("'trusted_authorities' is not suported")]
     TrustedAuthorities,
     // TODO: PVW-4139 support SdJwt
-    #[error("format 'dc+sd-jwt' not supported")]
+    #[error("format 'dc+sd-jwt' is not supported")]
     SdJwt,
     #[error("invalid claim path length ({0}), mdoc requires 2")]
     InvalidClaimPathLength(NonZero<usize>),
