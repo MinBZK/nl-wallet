@@ -900,7 +900,7 @@ mod db_test {
 }
 
 async fn prepare_example_holder_mocks(issuer_ca: &Ca) -> (Mdoc, MockRemoteKeyFactory) {
-    let payload_preview = pid_example_payload().previewable_payload;
+    let payload_preview = pid_example_payload(&MockTimeGenerator::default()).previewable_payload;
 
     let issuer_key_pair = generate_issuer_mock(issuer_ca, Some(IssuerRegistration::new_mock())).unwrap();
 

@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -155,6 +156,21 @@ class DisclosureScreen extends StatelessWidget {
   }
 
   Widget _buildCheckOrganizationForLoginPage(BuildContext context, DisclosureCheckOrganizationForLogin state) {
+    late String description;
+    final attributes = state.cardRequests.map((it) => it.selection.attributes).flattened;
+    if (attributes.length == 1) {
+      final requestedAttribute = attributes.firstOrNull;
+      final attributeLabel = requestedAttribute?.label.l10nValue(context) ?? '';
+      description = context.l10n.disclosureRequestedAttributeDescription(
+        attributeLabel,
+        state.relyingParty.displayName.l10nValue(context),
+      );
+    } else {
+      description = context.l10n.disclosureRequestedAttributesDescription(
+        attributes.length,
+        state.relyingParty.displayName.l10nValue(context),
+      );
+    }
     return OrganizationApprovePage(
       onDeclinePressed: () => _stopDisclosure(context),
       onAcceptPressed: () => context.bloc.add(const DisclosureShareRequestedCardsApproved()),
@@ -162,6 +178,7 @@ class DisclosureScreen extends StatelessWidget {
       originUrl: state.originUrl,
       sessionType: state.sessionType,
       purpose: ApprovalPurpose.login,
+      description: description,
       onReportIssuePressed: () => _onReportIssuePressed(context, _resolveReportingOptionsForState(context)),
       onShowDetailsPressed: () {
         LoginDetailScreen.show(

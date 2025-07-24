@@ -67,12 +67,12 @@ spec:
             secretKeyRef:
               name: nl-wallet-gba-hc-converter-secrets
               key: password
-        - name: GBA_HC_CONVERTER__RUN_MODE__ALL__GBAV__CLIENT_KEYPAIR__CERTIFICATE
+        - name: GBA_HC_CONVERTER__RUN_MODE__ALL__GBAV__CLIENT_CERTIFICATE_AND_KEY__CERTIFICATE
           valueFrom:
             secretKeyRef:
               name: nl-wallet-gba-hc-converter-secrets
               key: client_cert
-        - name: GBA_HC_CONVERTER__RUN_MODE__ALL__GBAV__CLIENT_KEYPAIR__KEY
+        - name: GBA_HC_CONVERTER__RUN_MODE__ALL__GBAV__CLIENT_CERTIFICATE_AND_KEY__KEY
           valueFrom:
             secretKeyRef:
               name: nl-wallet-gba-hc-converter-secrets

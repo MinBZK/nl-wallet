@@ -43,11 +43,11 @@ impl HttpGbavClient {
         username: String,
         password: String,
         trust_anchor: Certificate,
-        client_keypair: CertificateAndKey,
+        client_certificate_and_key: CertificateAndKey,
         ca_api_key: Option<String>,
     ) -> Result<Self, Error> {
-        let cert = Pem::new("CERTIFICATE", client_keypair.certificate);
-        let key = Pem::new("PRIVATE KEY", client_keypair.key);
+        let cert = Pem::new("CERTIFICATE", client_certificate_and_key.certificate);
+        let key = Pem::new("PRIVATE KEY", client_certificate_and_key.key);
         let cert_buf = pem::encode(&key) + &pem::encode(&cert);
 
         let vraag_request_template_path = prefix_local_path("resources/remote/bsn_zoeken_template.xml".as_ref());

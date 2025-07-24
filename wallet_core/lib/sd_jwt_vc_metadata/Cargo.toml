@@ -22,8 +22,8 @@ serde_with = { workspace = true, features = ["base64"] }
 ssri.workspace = true
 thiserror.workspace = true
 
+attestation_types.path = "../attestation_types"
 crypto.path = "../crypto"
-dcql.path = "../dcql"
 http_utils.path = "../http_utils"
 utils.path = "../utils"
 

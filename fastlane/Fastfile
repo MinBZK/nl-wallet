@@ -251,6 +251,7 @@ platform :ios do
     run_tests(
       project: "wallet_core/wallet/platform_support/ios/PlatformSupport.xcodeproj",
       scheme: "PlatformSupport",
+      xcodebuild_formatter: 'xcpretty',
     )
 
     # This adjust the working directory so that the "wallet_core/wallet/platform_support/ios/"
