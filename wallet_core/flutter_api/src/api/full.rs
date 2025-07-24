@@ -223,6 +223,12 @@ pub async fn create_pid_issuance_redirect_uri() -> anyhow::Result<String> {
 }
 
 #[flutter_api_error]
+pub async fn create_pid_renewal_redirect_uri() -> anyhow::Result<String> {
+    // TODO: Implement as part of PVW-4586
+    Ok("pid_renewal_url".into())
+}
+
+#[flutter_api_error]
 pub async fn cancel_issuance() -> anyhow::Result<()> {
     let mut wallet = wallet().write().await;
 
