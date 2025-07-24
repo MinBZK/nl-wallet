@@ -14,8 +14,8 @@ use serde_with::serde_as;
 use tracing::debug;
 use tracing::warn;
 
+use attestation_types::claim_path::ClaimPath;
 use crypto::x509::CertificateUsage;
-use dcql::ClaimPath;
 use dcql::CredentialQueryFormat;
 use dcql::normalized::AttributeRequest;
 use dcql::normalized::NormalizedCredentialRequest;

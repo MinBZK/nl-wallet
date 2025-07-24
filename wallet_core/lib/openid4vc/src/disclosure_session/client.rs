@@ -201,11 +201,11 @@ mod tests {
 
     use attestation_data::auth::reader_auth::ReaderRegistration;
     use attestation_data::auth::reader_auth::ValidationError;
+    use attestation_types::claim_path::ClaimPath;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::mock_remote::MockRemoteKeyFactory;
     use crypto::server_keys::generate::Ca;
     use crypto::x509::BorrowingCertificateExtension;
-    use dcql::ClaimPath;
     use dcql::normalized;
     use http_utils::urls::BaseUrl;
     use mdoc::holder::Mdoc;

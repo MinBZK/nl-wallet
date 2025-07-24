@@ -9,8 +9,8 @@ use url::Url;
 use x509_parser::der_parser::Oid;
 use x509_parser::der_parser::asn1_rs::oid;
 
+use attestation_types::claim_path::ClaimPath;
 use crypto::x509::BorrowingCertificateExtension;
-use dcql::ClaimPath;
 use dcql::CredentialQueryFormat;
 use dcql::normalized::NormalizedCredentialRequest;
 use error_category::ErrorCategory;
