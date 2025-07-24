@@ -537,20 +537,14 @@ fn find_disclosure_digest<'o>(
     key: &str,
     disclosures: &IndexMap<String, Disclosure>,
 ) -> Option<&'o str> {
-    let maybe_disclosable_array_entry = || {
-        object
-            .get(ARRAY_DIGEST_KEY)
-            .and_then(|value| value.as_str())
-            .filter(|_| object.len() == 1)
-    };
     // Try to find the digest for disclosable property `key` in
     // the `_sd` field of `object`.
     object
         .get(DIGESTS_KEY)
-        .and_then(|value| value.as_array())
+        .map(|value| value.as_array().expect("`_sd` must be an array"))
         .iter()
         .flat_map(|values| values.iter())
-        .flat_map(|value| value.as_str())
+        .map(|value| value.as_str().expect("digest values should be strings"))
         .find(|digest| {
             disclosures
                 .get(*digest)
@@ -561,7 +555,12 @@ fn find_disclosure_digest<'o>(
                 .is_some_and(|name| name == key)
         })
         // If no result is found try checking `object` as a disclosable array entry.
-        .or_else(maybe_disclosable_array_entry)
+        .or_else(|| {
+            object
+                .get(ARRAY_DIGEST_KEY)
+                .map(|value| value.as_str().expect("digest values should be strings"))
+                .filter(|_| object.len() == 1)
+        })
 }
 
 #[cfg(test)]
