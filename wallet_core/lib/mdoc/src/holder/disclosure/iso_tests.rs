@@ -22,7 +22,6 @@ use crate::test;
 use crate::test::DebugCollapseBts;
 use crate::utils::serialization::CborSeq;
 use crate::utils::serialization::TaggedBytes;
-use crate::verifier::ItemsRequests;
 
 fn create_example_device_response(
     device_request: DeviceRequest,
@@ -31,7 +30,7 @@ fn create_example_device_response(
 ) -> DeviceResponse {
     let mut mdoc = Mdoc::new_example_resigned(ca).now_or_never().unwrap();
 
-    let items_requests: ItemsRequests = device_request.into_items_requests();
+    let items_requests = device_request.into_items_requests();
 
     assert_eq!(&items_requests.as_ref().first().unwrap().doc_type, &mdoc.mso.doc_type);
 
