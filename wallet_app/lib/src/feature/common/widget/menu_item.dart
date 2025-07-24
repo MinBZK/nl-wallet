@@ -124,7 +124,7 @@ class _MenuItemState extends State<MenuItem> {
                                     child: widget.errorIcon!,
                                   ),
                                 ),
-                                const SizedBox(width: 8),
+                                const SizedBox(width: 4),
                               ],
                               Expanded(
                                 child: DefaultTextAndFocusStyle(

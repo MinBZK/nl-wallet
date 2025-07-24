@@ -51,12 +51,13 @@ impl From<wallet::WalletEvent> for WalletEvent {
                 id,
                 attestation,
                 timestamp,
+                renewed,
                 ..
             } => WalletEvent::Issuance {
                 id: id.to_string(),
                 date_time: timestamp.to_rfc3339(),
                 attestation: (*attestation).into(),
-                renewed: false,
+                renewed,
             },
             wallet::WalletEvent::Disclosure {
                 id,

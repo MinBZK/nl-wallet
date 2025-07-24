@@ -39,8 +39,7 @@ pub struct GbavSettings {
     pub username: String,
     pub password: String,
 
-    #[serde(flatten)]
-    pub client_keypair: CertificateAndKey,
+    pub client_certificate_and_key: CertificateAndKey,
 
     #[serde_as(as = "Base64")]
     pub trust_anchor: ReqwestTrustAnchor,
@@ -65,7 +64,7 @@ impl HttpGbavClient {
             settings.username,
             settings.password,
             settings.trust_anchor.into_certificate(),
-            settings.client_keypair,
+            settings.client_certificate_and_key,
             settings.ca_api_key,
         )
         .await

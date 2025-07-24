@@ -75,8 +75,8 @@ networkPolicy:
 gbaHcConverter:
   replicaCount: 2
   extraPodlabels: {}
-  runMode: ALL
-  envVarNamePreloaded: ALL__PRELOADED
+  runMode: PRELOADED
+  envVarNamePreloaded: PRELOADED
   envVarNameGbav: ALL__GBAV
   preloadedXmlPath: "resources/encrypted-gba-v-responses"
   resources:

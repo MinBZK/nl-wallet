@@ -67,6 +67,7 @@ url = { workspace = true, features = ["serde"] }
 serial_test = { workspace = true, optional = true }
 
 attestation_data.path = "../../lib/attestation_data"
+attestation_types.path = "../../lib/attestation_types"
 crypto.path = "../../lib/crypto"
 dcql.path = "../../lib/dcql"
 hsm = { path = "../../lib/hsm", features = ["settings"] }
