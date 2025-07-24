@@ -21,6 +21,7 @@ use super::Wallet;
 #[derive(Debug)]
 pub enum UriType {
     PidIssuance,
+    PidRenewal,
     Disclosure,
     DisclosureBasedIssuance,
 }

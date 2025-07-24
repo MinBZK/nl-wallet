@@ -49,6 +49,8 @@ class CoreQrRepository implements QrRepository {
     switch (uriType) {
       case IdentifyUriResult.PidIssuance:
         return PidIssuanceNavigationRequest(rawValue);
+      case IdentifyUriResult.PidRenewal:
+        throw UnimplementedError();
       case IdentifyUriResult.Disclosure:
         return DisclosureNavigationRequest(rawValue, isQrCode: true);
       case IdentifyUriResult.DisclosureBasedIssuance:

@@ -4774,6 +4774,23 @@ class MockWalletCoreApi extends _i1.Mock implements _i23.WalletCoreApi {
       ) as _i10.Future<String>);
 
   @override
+  _i10.Future<String> crateApiFullCreatePidRenewalRedirectUri() => (super.noSuchMethod(
+        Invocation.method(#crateApiFullCreatePidRenewalRedirectUri, []),
+        returnValue: _i10.Future<String>.value(
+          _i14.dummyValue<String>(
+            this,
+            Invocation.method(#crateApiFullCreatePidRenewalRedirectUri, []),
+          ),
+        ),
+        returnValueForMissingStub: _i10.Future<String>.value(
+          _i14.dummyValue<String>(
+            this,
+            Invocation.method(#crateApiFullCreatePidRenewalRedirectUri, []),
+          ),
+        ),
+      ) as _i10.Future<String>);
+
+  @override
   _i10.Future<List<_i23.WalletEvent>> crateApiFullGetHistory() => (super.noSuchMethod(
         Invocation.method(#crateApiFullGetHistory, []),
         returnValue: _i10.Future<List<_i23.WalletEvent>>.value(
