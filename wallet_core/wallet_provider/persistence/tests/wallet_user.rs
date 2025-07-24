@@ -67,7 +67,6 @@ async fn test_find_wallet_user_by_wallet_id() {
         &wallet_user_model.hw_pubkey_der
     );
     assert!(wallet_user.instruction_challenge.is_none());
-    assert!(!wallet_user.has_wte);
     assert_matches!(wallet_user.attestation, WalletUserAttestation::Apple { .. });
 
     // After generating a random instruction challenge, this should be found together with the user.
