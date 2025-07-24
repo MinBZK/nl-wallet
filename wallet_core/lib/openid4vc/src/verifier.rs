@@ -10,6 +10,7 @@ use async_trait::async_trait;
 use chrono::DateTime;
 use chrono::SecondsFormat;
 use chrono::Utc;
+use dcql::normalized::NormalizedCredentialRequest;
 use derive_more::AsRef;
 use derive_more::Constructor;
 use derive_more::Debug;
@@ -46,6 +47,7 @@ use http_utils::urls::BaseUrl;
 use jwt::Jwt;
 use jwt::error::JwtError;
 use utils::generator::Generator;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::AuthorizationErrorCode;
 use crate::ErrorResponse;
@@ -94,6 +96,8 @@ pub enum NewSessionError {
     UnknownUseCase(String),
     #[error("presence or absence of return url template does not match configuration for the required use case")]
     ReturnUrlConfigurationMismatch,
+    #[error("request contains unsupported DCQL features: {0}")]
+    UnsupportedDcqlFeatures(#[from] UnsupportedDcqlFeatures),
 }
 
 /// Errors returned by the session status endpoint, used by the web front-end.
@@ -145,8 +149,6 @@ pub enum GetAuthRequestError {
     QueryParametersMissing,
     #[error("failed to deserialize query parameters: {0}")]
     QueryParametersDeserialization(#[from] serde_urlencoded::de::Error),
-    #[error("unsupported DCQL features requested: {0}")]
-    UnsupportedDcqlFeatures(#[from] UnsupportedDcqlFeatures),
 }
 
 /// Errors returned by the endpoint to which the user posts the Authorization Response.
@@ -211,7 +213,7 @@ pub struct Session<S: DisclosureState> {
 /// State for a session that has just been created.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Created {
-    dcql_query: Query,
+    credential_requests: VecNonEmpty<NormalizedCredentialRequest>,
     usecase_id: String,
     client_id: String,
     redirect_uri_template: Option<RedirectUriTemplate>,
@@ -621,7 +623,12 @@ impl<K: EcdsaKeySend> UseCase for RpInitiatedUseCase<K> {
             .or_else(|| self.dcql_query.clone())
             .ok_or_else(|| NewSessionError::NoCredentialRequests)?;
 
-        let session = Session::<Created>::new(dcql_query, id, self.data.client_id.clone(), redirect_uri_template);
+        let session = Session::<Created>::new(
+            dcql_query.try_into()?,
+            id,
+            self.data.client_id.clone(),
+            redirect_uri_template,
+        );
         Ok(session)
     }
 }
@@ -765,7 +772,7 @@ impl<K: EcdsaKeySend> UseCase for WalletInitiatedUseCase<K> {
         _return_url_template: Option<ReturnUrlTemplate>,
     ) -> Result<Session<Created>, NewSessionError> {
         let session = Session::<Created>::new(
-            self.dcql_query.clone(),
+            self.dcql_query.clone().try_into()?,
             id,
             self.data.client_id.clone(),
             Some(RedirectUriTemplate {
@@ -1181,7 +1188,7 @@ impl<T: DisclosureState> Session<T> {
 impl Session<Created> {
     /// Create a new disclosure session.
     fn new(
-        dcql_query: Query,
+        credential_requests: VecNonEmpty<NormalizedCredentialRequest>,
         usecase_id: String,
         client_id: String,
         redirect_uri_template: Option<RedirectUriTemplate>,
@@ -1190,7 +1197,7 @@ impl Session<Created> {
             state: SessionState::new(
                 SessionToken::new_random(),
                 Created {
-                    dcql_query,
+                    credential_requests,
                     usecase_id,
                     client_id,
                     redirect_uri_template,
@@ -1287,15 +1294,8 @@ impl Session<Created> {
         let nonce = random_string(32);
         let encryption_keypair =
             EcKeyPair::generate(EcCurve::P256).map_err(|err| error_with_redirect_uri(&redirect_uri, err))?;
-        let credential_request = self
-            .state
-            .data
-            .dcql_query
-            .clone()
-            .try_into()
-            .map_err(|err: UnsupportedDcqlFeatures| error_with_redirect_uri(&redirect_uri, err))?;
         let auth_request = NormalizedVpAuthorizationRequest::new(
-            credential_request,
+            self.state.data.credential_requests.clone(),
             usecase.key_pair.certificate(),
             nonce.clone(),
             encryption_keypair.to_jwk_public_key().try_into().unwrap(), // safe because we just constructed this key
