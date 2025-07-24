@@ -12,11 +12,6 @@ name = "performance_test"
 required-features = ["performance_test"]
 
 [[test]]
-name = "gba_pid_test"
-path = "tests/gba_pid_test.rs"
-required-features = ["gba_pid_test"]
-
-[[test]]
 name = "config_server"
 path = "tests/config_server.rs"
 required-features = ["integration_test"]
