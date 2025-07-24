@@ -24,7 +24,6 @@ pub struct WalletUser {
     pub last_unsuccessful_pin_entry: Option<DateTime<Utc>>,
     pub instruction_challenge: Option<InstructionChallenge>,
     pub instruction_sequence_number: u64,
-    pub has_wte: bool,
     pub attestation: WalletUserAttestation,
 }
 
@@ -119,7 +118,6 @@ SssTb0eI53lvfdvG/xkNcktwsXEIPL1y3lUKn1u1ZhFTnQn4QKmnvaN4uQ==
             last_unsuccessful_pin_entry: None,
             instruction_challenge: None,
             instruction_sequence_number: 0,
-            has_wte: false,
             attestation: super::WalletUserAttestation::Android,
         }
     }
