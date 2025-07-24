@@ -1,13 +1,12 @@
 pub mod normalized;
 
-use std::fmt::Display;
-use std::fmt::Formatter;
 use std::ops::Not;
 
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
 
+use attestation_types::claim_path::ClaimPath;
 use utils::vec_at_least::VecNonEmpty;
 
 /// A DCQL query, encoding constraints on the combinations of credentials and claims that are requested.
@@ -164,48 +163,6 @@ pub struct ClaimsQuery {
     ///
     /// <https://openid.net/specs/openid-4-verifiable-presentations-1_0-28.html#name-parameter-in-the-claims-que>
     pub intent_to_retain: Option<bool>,
-}
-
-/// Element of a claims path pointer.
-///
-/// <https://openid.net/specs/openid-4-verifiable-presentations-1_0-28.html#name-claims-path-pointer>
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum ClaimPath {
-    /// Select a claim in an object.
-    SelectByKey(String),
-
-    /// Select all elements within an array.
-    SelectAll,
-
-    /// Select an element in an array.
-    SelectByIndex(usize),
-}
-
-impl ClaimPath {
-    pub fn try_key_path(&self) -> Option<&str> {
-        match self {
-            ClaimPath::SelectByKey(key) => Some(key.as_str()),
-            _ => None,
-        }
-    }
-
-    pub fn try_into_key_path(self) -> Option<String> {
-        match self {
-            ClaimPath::SelectByKey(key) => Some(key),
-            _ => None,
-        }
-    }
-}
-
-impl Display for ClaimPath {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ClaimPath::SelectByKey(key) => write!(f, "{key}"),
-            ClaimPath::SelectAll => f.write_str("*"),
-            ClaimPath::SelectByIndex(index) => write!(f, "{index}"),
-        }
-    }
 }
 
 const fn bool_value<const B: bool>() -> bool {
