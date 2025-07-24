@@ -215,7 +215,6 @@ impl From<GetAuthRequestError> for ErrorResponse<GetRequestErrorCode> {
                 GetAuthRequestError::QueryParametersMissing
                 | GetAuthRequestError::QueryParametersDeserialization(_)
                 | GetAuthRequestError::InvalidEphemeralId(_)
-                | GetAuthRequestError::UnsupportedDcqlFeatures(_)
                 | GetAuthRequestError::Session(SessionError::UnexpectedState(_)) => GetRequestErrorCode::InvalidRequest,
             },
             error_description: Some(description),
@@ -364,6 +363,7 @@ impl From<&NewSessionError> for VerificationErrorCode {
             NewSessionError::Session(session_error) => session_error.into(),
             NewSessionError::NoCredentialRequests
             | NewSessionError::UnknownUseCase(_)
+            | NewSessionError::UnsupportedDcqlFeatures(_)
             | NewSessionError::ReturnUrlConfigurationMismatch => VerificationErrorCode::InvalidRequest,
         }
     }
