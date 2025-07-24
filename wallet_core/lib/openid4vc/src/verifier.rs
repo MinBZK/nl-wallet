@@ -1514,10 +1514,6 @@ mod tests {
     use attestation_data::auth::reader_auth::ReaderRegistration;
     use attestation_data::x509::generate::mock::generate_reader_mock;
     use crypto::server_keys::generate::Ca;
-    use dcql::ClaimPath;
-    use dcql::ClaimsQuery;
-    use dcql::CredentialQuery;
-    use dcql::CredentialQueryFormat;
     use dcql::Query;
     use utils::generator::Generator;
     use utils::generator::TimeGenerator;
@@ -1555,48 +1551,9 @@ mod tests {
     use super::WalletInitiatedUseCase;
     use super::WalletInitiatedUseCases;
 
-    const DISCLOSURE_DOC_TYPE: &str = "example_doctype";
-    const DISCLOSURE_NAME_SPACE: &str = "example_namespace";
-    const DISCLOSURE_ATTRS: [(&str, bool); 2] = [("first_name", true), ("family_name", false)];
-
     const DISCLOSURE_USECASE_NO_REDIRECT_URI: &str = "example_usecase_no_redirect_uri";
     const DISCLOSURE_USECASE: &str = "example_usecase";
     const DISCLOSURE_USECASE_ALL_REDIRECT_URI: &str = "example_usecase_all_redirect_uri";
-
-    fn new_disclosure_request() -> Query {
-        Query {
-            credentials: vec![CredentialQuery {
-                id: "my_credential".to_string(),
-                format: CredentialQueryFormat::MsoMdoc {
-                    doctype_value: DISCLOSURE_DOC_TYPE.to_string(),
-                },
-                multiple: false,
-                trusted_authorities: vec![],
-                require_cryptographic_holder_binding: true,
-                claims_selection: dcql::ClaimsSelection::All {
-                    claims: DISCLOSURE_ATTRS
-                        .iter()
-                        .map(|(attr_name, intent_to_retain)| ClaimsQuery {
-                            id: None,
-                            path: vec![
-                                ClaimPath::SelectByKey(DISCLOSURE_NAME_SPACE.to_string()),
-                                ClaimPath::SelectByKey(attr_name.to_string()),
-                            ]
-                            .try_into()
-                            .unwrap(),
-                            values: vec![],
-                            intent_to_retain: Some(*intent_to_retain),
-                        })
-                        .collect::<Vec<_>>()
-                        .try_into()
-                        .unwrap(),
-                },
-            }]
-            .try_into()
-            .unwrap(),
-            credential_sets: vec![],
-        }
-    }
 
     type TestVerifier = Verifier<
         MemorySessionStore<DisclosureData>,
@@ -1676,7 +1633,7 @@ mod tests {
         let result = verifier
             .new_session(
                 usecase_id.to_string(),
-                Some(new_disclosure_request()),
+                Some(Query::pid_full_name()),
                 return_url_template,
             )
             .await;
@@ -1698,7 +1655,7 @@ mod tests {
         let session_token = verifier
             .new_session(
                 DISCLOSURE_USECASE.to_string(),
-                Some(new_disclosure_request()),
+                Some(Query::pid_full_name()),
                 Some("https://example.com/{session_token}".parse().unwrap()),
             )
             .await
