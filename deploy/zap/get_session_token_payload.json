@@ -26,15 +26,15 @@
       {
         "id": "my_addr",
         "format": "mso_mdoc",
-        "meta": { "doctype_value": "com.example.pid" },
+        "meta": { "doctype_value": "com.example.address" },
         "claims": [
-          { "path": ["com.example.addr", "resident_address"], "intent_to_retain": true },
-          { "path": ["com.example.addr", "resident_street"], "intent_to_retain": true },
-          { "path": ["com.example.addr", "resident_house_number"], "intent_to_retain": true },
-          { "path": ["com.example.addr", "resident_postal_code"], "intent_to_retain": true },
-          { "path": ["com.example.addr", "resident_city"], "intent_to_retain": true },
-          { "path": ["com.example.addr", "resident_state"], "intent_to_retain": true },
-          { "path": ["com.example.addr", "resident_country"], "intent_to_retain": true }
+          { "path": ["com.example.address", "resident_address"], "intent_to_retain": true },
+          { "path": ["com.example.address", "resident_street"], "intent_to_retain": true },
+          { "path": ["com.example.address", "resident_house_number"], "intent_to_retain": true },
+          { "path": ["com.example.address", "resident_postal_code"], "intent_to_retain": true },
+          { "path": ["com.example.address", "resident_city"], "intent_to_retain": true },
+          { "path": ["com.example.address", "resident_state"], "intent_to_retain": true },
+          { "path": ["com.example.address", "resident_country"], "intent_to_retain": true }
         ]
       }
     ]
