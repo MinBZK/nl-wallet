@@ -970,13 +970,13 @@ curl --silent --request POST --json '{
   "dcql_query": {
     "credentials": [
       {
-        "id" = "my_pid",
-        "format" = "mso_mdoc",
-        "meta" = { "doctype_value" = "com.example.pid" },
-        "claims" = [
-            { "path" = ["com.example.pid", "given_name"], "intent_to_retain" = true },
-            { "path" = ["com.example.pid", "family_name"], "intent_to_retain" = true },
-            { "path" = ["com.example.pid", "birthdate"], "intent_to_retain" = true }
+        "id": "my_pid",
+        "format": "mso_mdoc",
+        "meta": { "doctype_value": "com.example.pid" },
+        "claims": [
+            { "path": ["com.example.pid", "given_name"], "intent_to_retain": true },
+            { "path": ["com.example.pid", "family_name"], "intent_to_retain": true },
+            { "path": ["com.example.pid", "birthdate"], "intent_to_retain": true }
         ]
       }
     ]
