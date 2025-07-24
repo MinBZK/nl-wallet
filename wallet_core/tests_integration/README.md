@@ -75,30 +75,3 @@ To run the test using Cargo from `wallet_core`:
 Change the values in `test_integration/.env` appropriately. The `allow_insecure_url` feature is not necessary (but
 also doesn't hurt). In addition, the `CONFIG_ENV` environment variable has to be set to point to the proper
 environment, e.g. `ont`.
-
-## GBA-V to PID tests
-
-### Configuration
-
-This test needs to run against the GBA-V proefomgeving. Therefore, the `gba-hc-converter` needs to be configured
-according to the configuration as can be seen in `wallet_core/gba_hc_converter/gba_hc_converter.toml.gbav.example`.
-
-### Running
-
-To run the test, the following servers need to be started:
-
-    ./scripts/start-devenv.sh postgres wallet_provider pid_issuer digid_connector brp
-
-or shorter:
-
-    ./scripts/start-devenv.sh postgres wp pi digid brp
-
-And run the actual test with:
-
-    cargo nextest run --package tests_integration --features=gba_pid_test --test gba_pid_test --fail-fast
-
-### Maintenance
-
-For mass accepting all `.snap.new` files, use the following command in the `tests/snapshots` folder:
-
-    for i in ./*.snap.new ; do mv "$i" "${i%%.new}; done

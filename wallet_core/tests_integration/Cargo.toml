@@ -157,30 +157,6 @@ performance_test = [
     "dep:dotenvy",
     "platform_support/mock_attested_key_apple_ca",
 ]
-gba_pid_test = [
-    "logging",
-    "fake_digid",
-    "dep:apple_app_attest",
-    "dep:attestation_data",
-    "dep:ctor",
-    "dep:indexmap",
-    "dep:insta",
-    "dep:reqwest",
-    "dep:tracing",
-    "dep:url",
-    "dep:mdoc",
-    "dep:openid4vc",
-    "dep:pid_issuer",
-    "dep:platform_support",
-    "dep:rstest",
-    "dep:serial_test",
-    "dep:serde_urlencoded",
-    "dep:tokio",
-    "dep:wallet",
-    "dep:utils",
-    "platform_support/mock_attested_key_apple_ca",
-    "wallet/snapshot_test",
-]
 
 [dependencies]
 assert_matches = { workspace = true, optional = true }
