@@ -1353,18 +1353,20 @@ hostname, FQDN or IP address, depending on how you’ve set-up
 <h3>Initiate a Disclosure Session<a class="headerlink" href="#initiate-a-disclosure-session" title="Link to this heading"></a></h3>
 <div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>curl<span class="w"> </span>--silent<span class="w"> </span>--request<span class="w"> </span>POST<span class="w"> </span>--json<span class="w"> </span><span class="s1">&#39;{</span>
 <span class="s1">  &quot;usecase&quot;: &quot;mijn_amsterdam&quot;,</span>
-<span class="s1">  &quot;items_requests&quot;: [</span>
-<span class="s1">    {</span>
-<span class="s1">      &quot;docType&quot;: &quot;com.example.pid&quot;,</span>
-<span class="s1">      &quot;nameSpaces&quot;: {</span>
-<span class="s1">        &quot;com.example.pid&quot;: {</span>
-<span class="s1">          &quot;given_name&quot;: true,</span>
-<span class="s1">          &quot;family_name&quot;: true,</span>
-<span class="s1">          &quot;own_family_name&quot;: true</span>
-<span class="s1">        }</span>
+<span class="s1">  &quot;dcql_query&quot;: {</span>
+<span class="s1">    &quot;credentials&quot;: [</span>
+<span class="s1">      {</span>
+<span class="s1">        &quot;id&quot;: &quot;my_pid&quot;,</span>
+<span class="s1">        &quot;format&quot;: &quot;mso_mdoc&quot;,</span>
+<span class="s1">        &quot;meta&quot;: { &quot;doctype_value&quot;: &quot;com.example.pid&quot; },</span>
+<span class="s1">        &quot;claims&quot;: [</span>
+<span class="s1">            { &quot;path&quot;: [&quot;com.example.pid&quot;, &quot;given_name&quot;], &quot;intent_to_retain&quot;: true },</span>
+<span class="s1">            { &quot;path&quot;: [&quot;com.example.pid&quot;, &quot;family_name&quot;], &quot;intent_to_retain&quot;: true },</span>
+<span class="s1">            { &quot;path&quot;: [&quot;com.example.pid&quot;, &quot;birthdate&quot;], &quot;intent_to_retain&quot;: true }</span>
+<span class="s1">        ]</span>
 <span class="s1">      }</span>
-<span class="s1">    }</span>
-<span class="s1">  ],</span>
+<span class="s1">    ]</span>
+<span class="s1">  },</span>
 <span class="s1">  &quot;return_url_template&quot;: &quot;https://relying-party/return&quot;</span>
 <span class="s1">}&#39;</span><span class="w"> </span><span class="s1">&#39;http://localhost:8001/disclosure/sessions&#39;</span>
 </pre></div>

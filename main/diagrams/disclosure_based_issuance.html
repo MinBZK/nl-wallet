@@ -392,15 +392,19 @@ In between the two screens, the issuer receives the disclosed attributes, and ca
 <span class="c1"># RP certificate</span>
 <span class="n">certificate</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;MIJ...&quot;</span>
 
+<span class="c1"># Attributes that have to be disclosed for `degree` in DCQL format</span>
+<span class="k">[[disclosure_settings.degree.dcql_query.credentials]]</span>
+<span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;my_credential&quot;</span>
+<span class="n">format</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;mso_mdoc&quot;</span>
+<span class="n">meta</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">doctype_value</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s2">&quot;com.example.pid&quot;</span><span class="w"> </span><span class="p">}</span>
+<span class="n">claims</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="n">path</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;com.example.pid&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;bsn&quot;</span><span class="p">],</span><span class="w"> </span><span class="n">intent_to_retain</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="kc">true</span><span class="w"> </span><span class="p">}</span>
+<span class="p">]</span>
+
 <span class="k">[disclosure_settings.degree.attestation_url_config]</span>
 <span class="c1"># URL to the attestation server</span>
 <span class="n">base_url</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;https://attestation_server.example.com&quot;</span>
 <span class="n">trust_anchors</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;MIJ...&quot;</span><span class="p">]</span>
-
-<span class="c1"># Attributes that have to be disclosed for `degree`</span>
-<span class="k">[[disclosure_settings.degree.to_disclose]]</span>
-<span class="n">docType</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;com.example.pid&quot;</span>
-<span class="n">nameSpaces</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">&quot;com.example.pid&quot;</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">bsn</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="kc">true</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span>
 
 <span class="c1"># A block like this has to be present for each attestation type that gets issued</span>
 <span class="k">[attestation_settings.</span><span class="s2">&quot;com.example.degree&quot;</span><span class="k">]</span>
