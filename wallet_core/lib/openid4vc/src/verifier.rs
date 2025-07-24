@@ -1510,8 +1510,8 @@ mod tests {
 
     use attestation_data::auth::reader_auth::ReaderRegistration;
     use attestation_data::x509::generate::mock::generate_reader_mock;
+    use attestation_types::claim_path::ClaimPath;
     use crypto::server_keys::generate::Ca;
-    use dcql::ClaimPath;
     use dcql::CredentialQueryFormat;
     use dcql::normalized::AttributeRequest;
     use dcql::normalized::NormalizedCredentialRequest;
