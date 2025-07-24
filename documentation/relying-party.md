@@ -967,18 +967,20 @@ hostname, FQDN or IP address, depending on how you've set-up
 ```sh
 curl --silent --request POST --json '{
   "usecase": "mijn_amsterdam",
-  "items_requests": [
-    {
-      "docType": "com.example.pid",
-      "nameSpaces": {
-        "com.example.pid": {
-          "given_name": true,
-          "family_name": true,
-          "own_family_name": true
-        }
+  "dcql_query": {
+    "credentials": [
+      {
+        "id": "my_pid",
+        "format": "mso_mdoc",
+        "meta": { "doctype_value": "com.example.pid" },
+        "claims": [
+            { "path": ["com.example.pid", "given_name"], "intent_to_retain": true },
+            { "path": ["com.example.pid", "family_name"], "intent_to_retain": true },
+            { "path": ["com.example.pid", "birthdate"], "intent_to_retain": true }
+        ]
       }
-    }
-  ],
+    ]
+  },
   "return_url_template": "https://relying-party/return"
 }' 'http://localhost:8001/disclosure/sessions'
 ```
