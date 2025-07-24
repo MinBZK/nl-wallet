@@ -21,13 +21,6 @@
           { "path": ["com.example.pid", "birth_country"], "intent_to_retain": true },
           { "path": ["com.example.pid", "has_spouse_or_partner"], "intent_to_retain": true },
           { "path": ["com.example.pid", "bsn"], "intent_to_retain": true }
-        ]
-      },
-      {
-        "id": "my_addr",
-        "format": "mso_mdoc",
-        "meta": { "doctype_value": "com.example.address" },
-        "claims": [
           { "path": ["com.example.address", "resident_address"], "intent_to_retain": true },
           { "path": ["com.example.address", "resident_street"], "intent_to_retain": true },
           { "path": ["com.example.address", "resident_house_number"], "intent_to_retain": true },
