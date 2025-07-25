@@ -39,7 +39,7 @@ fn create_example_device_response(
         .issuer_signed
         .into_attribute_subset(&items_requests.to_mdoc_paths(&mdoc.mso.doc_type));
 
-    let (device_response, _, _) = DeviceResponse::sign_from_mdocs(
+    let (device_response, _) = DeviceResponse::sign_from_mdocs(
         vec![mdoc],
         session_transcript,
         &MockRemoteKeyFactory::new_example(),

@@ -309,7 +309,7 @@ pub async fn sign_coses<K: CredentialEcdsaKey, P, PI>(
     unprotected_header: Header,
     poa_input: PI,
     include_payload: bool,
-) -> Result<(Vec<CoseSign1>, Vec<K>, Option<P>), CoseError> {
+) -> Result<(Vec<CoseSign1>, Option<P>), CoseError> {
     let (keys, challenges): (Vec<_>, Vec<_>) = keys_and_challenges.into_iter().unzip();
 
     let (sigs_data, protected_header) = signatures_data_and_header(&challenges);
@@ -340,7 +340,7 @@ pub async fn sign_coses<K: CredentialEcdsaKey, P, PI>(
         })
         .collect::<Result<Vec<_>, CoseError>>()?;
 
-    Ok((signed, keys, result.poa))
+    Ok((signed, result.poa))
 }
 
 #[derive(thiserror::Error, Debug, ErrorCategory)]

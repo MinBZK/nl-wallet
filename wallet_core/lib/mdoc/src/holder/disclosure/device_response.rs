@@ -34,7 +34,7 @@ impl DeviceResponse {
         session_transcript: &SessionTranscript,
         key_factory: &KF,
         poa_input: PI,
-    ) -> Result<(Self, Vec<K>, Option<P>)>
+    ) -> Result<(Self, Option<P>)>
     where
         K: CredentialEcdsaKey,
         KF: KeyFactory<Key = K, Poa = P, PoaInput = PI>,
@@ -59,8 +59,7 @@ impl DeviceResponse {
 
         // Create all of the DeviceSigned values in bulk using the keys
         // and challenges, then use these to create the Document values.
-        let (device_signeds, keys, poa) =
-            DeviceSigned::new_signatures(keys_and_challenges, key_factory, poa_input).await?;
+        let (device_signeds, poa) = DeviceSigned::new_signatures(keys_and_challenges, key_factory, poa_input).await?;
 
         let documents = mdocs
             .into_iter()
@@ -70,7 +69,7 @@ impl DeviceResponse {
 
         let device_response = Self::new(documents);
 
-        Ok((device_response, keys, poa))
+        Ok((device_response, poa))
     }
 
     pub fn match_against_request(
@@ -146,7 +145,7 @@ mod tests {
         let session_transcript = SessionTranscript::new_mock();
 
         // Sign a `DeviceResponse` that contains the attributes from the generated mdocs.
-        let (device_response, _keys, _) = DeviceResponse::sign_from_mdocs(
+        let (device_response, _) = DeviceResponse::sign_from_mdocs(
             mdocs.clone(),
             &session_transcript,
             &key_factory,

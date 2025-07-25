@@ -115,7 +115,7 @@ where
 
         let poa_input = JwtPoaInput::new(Some(mdoc_nonce.clone()), self.auth_request.client_id.clone());
         let result = DeviceResponse::sign_from_mdocs(filtered_mdocs, &session_transcript, key_factory, poa_input).await;
-        let (device_response, keys, poa) = match result {
+        let (device_response, poa) = match result {
             Ok(value) => value,
             Err(error) => {
                 return Err((

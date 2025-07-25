@@ -162,10 +162,9 @@ async fn disclosure_jwe(
     );
     let key_factory = MockRemoteKeyFactory::new(vec![mdoc_key]);
     let poa_input = JwtPoaInput::new(Some(auth_request.nonce.clone()), auth_request.client_id.clone());
-    let (device_response, _, poa) =
-        DeviceResponse::sign_from_mdocs(mdocs, &session_transcript, &key_factory, poa_input)
-            .await
-            .unwrap();
+    let (device_response, poa) = DeviceResponse::sign_from_mdocs(mdocs, &session_transcript, &key_factory, poa_input)
+        .await
+        .unwrap();
 
     // Put the disclosure in an Authorization Response and encrypt it.
     VpAuthorizationResponse::new_encrypted(device_response, &auth_request, &mdoc_nonce, poa).unwrap()
