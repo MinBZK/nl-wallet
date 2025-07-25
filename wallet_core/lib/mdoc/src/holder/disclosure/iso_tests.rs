@@ -4,9 +4,6 @@ use indexmap::IndexMap;
 use crypto::examples::Examples;
 use crypto::mock_remote::MockRemoteKeyFactory;
 use crypto::server_keys::generate::Ca;
-use dcql::CredentialQueryFormat;
-use dcql::normalized::NormalizedCredentialRequest;
-use utils::vec_at_least::VecNonEmpty;
 
 use crate::examples::EXAMPLE_ATTR_NAME;
 use crate::examples::EXAMPLE_ATTR_VALUE;
@@ -15,7 +12,6 @@ use crate::examples::EXAMPLE_NAMESPACE;
 use crate::examples::Example;
 use crate::examples::IsoCertTimeGenerator;
 use crate::holder::Mdoc;
-use crate::holder::disclosure::credential_requests_to_mdoc_paths;
 use crate::iso::device_retrieval::DeviceRequest;
 use crate::iso::device_retrieval::ItemsRequest;
 use crate::iso::device_retrieval::ReaderAuthenticationBytes;
@@ -34,22 +30,13 @@ fn create_example_device_response(
 ) -> DeviceResponse {
     let mut mdoc = Mdoc::new_example_resigned(ca).now_or_never().unwrap();
 
-    let credential_requests: VecNonEmpty<NormalizedCredentialRequest> = device_request.into_items_requests().into();
+    let items_requests = device_request.into_items_requests();
 
-    assert_eq!(
-        match &credential_requests.as_ref().first().unwrap().format {
-            CredentialQueryFormat::MsoMdoc { doctype_value } => Some(doctype_value),
-            _ => None,
-        },
-        Some(&mdoc.mso.doc_type)
-    );
+    assert_eq!(&items_requests.as_ref().first().unwrap().doc_type, &mdoc.mso.doc_type);
 
     mdoc.issuer_signed = mdoc
         .issuer_signed
-        .into_attribute_subset(&credential_requests_to_mdoc_paths(
-            &credential_requests,
-            &mdoc.mso.doc_type,
-        ));
+        .into_attribute_subset(&items_requests.to_mdoc_paths(&mdoc.mso.doc_type));
 
     let (device_response, _) =
         DeviceResponse::sign_from_mdocs(vec![mdoc], session_transcript, &MockRemoteKeyFactory::new_example())

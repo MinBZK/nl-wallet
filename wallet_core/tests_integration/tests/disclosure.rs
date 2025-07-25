@@ -7,7 +7,7 @@ use serial_test::serial;
 use url::Url;
 
 use attestation_data::disclosure::DisclosedAttestations;
-use dcql::normalized;
+use dcql::Query;
 use http_utils::error::HttpJsonErrorBody;
 use mdoc::test::TestDocuments;
 use mdoc::test::data::addr_street;
@@ -95,7 +95,7 @@ async fn test_disclosure_usecases_ok(
 ) {
     let start_request = StartDisclosureRequest {
         usecase: usecase.clone(),
-        credential_requests: Some(test_documents.into()),
+        dcql_query: Some(test_documents.into()),
         // The setup script is hardcoded to include "http://localhost:3004/" in the `ReaderRegistration`
         // contained in the certificate, so we have to specify a return URL prefixed with that.
         return_url_template,
@@ -244,13 +244,7 @@ async fn test_disclosure_without_pid() {
 
     let start_request = StartDisclosureRequest {
         usecase: "xyz_bank_no_return_url".to_owned(),
-        credential_requests: Some(normalized::mock::mock_mdoc_from_slices(&[(
-            "urn:eudi:pid:nl:1",
-            &[
-                &["urn:eudi:pid:nl:1", "given_name"],
-                &["urn:eudi:pid:nl:1", "family_name"],
-            ],
-        )])),
+        dcql_query: Some(Query::pid_full_name()),
         return_url_template: None,
     };
     let response = client

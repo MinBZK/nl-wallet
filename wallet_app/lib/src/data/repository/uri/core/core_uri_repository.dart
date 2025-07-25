@@ -21,6 +21,8 @@ class CoreUriRepository implements UriRepository {
     switch (uriType) {
       case IdentifyUriResult.PidIssuance:
         return PidIssuanceNavigationRequest(uri.toString());
+      case IdentifyUriResult.PidRenewal:
+        throw UnimplementedError();
       case IdentifyUriResult.Disclosure:
         return DisclosureNavigationRequest(uri.toString());
       case IdentifyUriResult.DisclosureBasedIssuance:

@@ -70,6 +70,7 @@ serial_test = { workspace = true, optional = true }
 attestation_data.path = "../../lib/attestation_data"
 attestation_types.path = "../../lib/attestation_types"
 crypto.path = "../../lib/crypto"
+dcql.path = "../../lib/dcql"
 hsm = { path = "../../lib/hsm", features = ["settings"] }
 http_utils = { path = "../../lib/http_utils", features = ["server"] }
 openid4vc = { path = "../../lib/openid4vc", features = ["axum"] }
@@ -95,7 +96,7 @@ attestation_data = { path = "../../lib/attestation_data", features = [
     "mock",
 ] }
 crypto = { path = "../../lib/crypto", features = ["mock_remote_key"] }
-dcql.path = "../../lib/dcql"
+dcql = { path = "../../lib/dcql", features = ["mock"] }
 mdoc = { path = "../../lib/mdoc", features = ["mock_example_constructors"] }
 sd_jwt_vc_metadata = { path = "../../lib/sd_jwt_vc_metadata", features = ["example_constructors"] }
 utils = { path = "../../lib/utils", features = ["mock_time"] }

@@ -10,38 +10,91 @@ connect_src = ["'self'", "http://${SERVICES_HOST}:${VERIFICATION_SERVER_WS_PORT}
 ip = '0.0.0.0'
 port = ${DEMO_RP_PORT}
 
-[[usecases.mijn_amsterdam.items_requests]]
-docType = "urn:eudi:pid:nl:1"
-nameSpaces = { "urn:eudi:pid:nl:1" = { bsn = true } }
+[[usecases.mijn_amsterdam.dcql_query.credentials]]
+id = "my_pid"
+format = "mso_mdoc"
+meta = { doctype_value = "urn:eudi:pid:nl:1" }
+claims = [
+    { path = ["urn:eudi:pid:nl:1", "bsn"], intent_to_retain = true }
+]
 
-[[usecases.online_marketplace.items_requests]]
-docType = "urn:eudi:pid:nl:1"
-nameSpaces = { "urn:eudi:pid:nl:1" = { given_name = true, family_name = true, birthdate = true } }
+[[usecases.online_marketplace.dcql_query.credentials]]
+id = "my_pid"
+format = "mso_mdoc"
+meta = { doctype_value = "urn:eudi:pid:nl:1" }
+claims = [
+    { path = ["urn:eudi:pid:nl:1", "given_name"], intent_to_retain = true },
+    { path = ["urn:eudi:pid:nl:1", "family_name"], intent_to_retain = true },
+    { path = ["urn:eudi:pid:nl:1", "birthdate"], intent_to_retain = true }
+]
 
-[[usecases.online_marketplace.items_requests]]
-docType = "urn:eudi:pid-address:nl:1"
-nameSpaces = { "urn:eudi:pid-address:nl:1.address" = { street_address = true, house_number = true, postal_code = true } }
+[[usecases.online_marketplace.dcql_query.credentials]]
+id = "my_address"
+format = "mso_mdoc"
+meta = { doctype_value = "urn:eudi:pid-address:nl:1" }
+claims = [
+    { path = ["urn:eudi:pid-address:nl:1.address", "street_address"], intent_to_retain = true },
+    { path = ["urn:eudi:pid-address:nl:1.address", "house_number"], intent_to_retain = true },
+    { path = ["urn:eudi:pid-address:nl:1.address", "postal_code"], intent_to_retain = true }
+]
 
-[[usecases.xyz_bank.items_requests]]
-docType = "urn:eudi:pid:nl:1"
-nameSpaces = { "urn:eudi:pid:nl:1" = { given_name = true, family_name = true, birthdate = true, bsn = true } }
+[[usecases.xyz_bank.dcql_query.credentials]]
+id = "my_pid"
+format = "mso_mdoc"
+meta = { doctype_value = "urn:eudi:pid:nl:1" }
+claims = [
+    { path = ["urn:eudi:pid:nl:1", "given_name"], intent_to_retain = true },
+    { path = ["urn:eudi:pid:nl:1", "family_name"], intent_to_retain = true },
+    { path = ["urn:eudi:pid:nl:1", "birthdate"], intent_to_retain = true }
+]
 
-[[usecases.xyz_bank.items_requests]]
-docType = "urn:eudi:pid-address:nl:1"
-nameSpaces = { "urn:eudi:pid-address:nl:1.address" = { street_address = true, house_number = true, postal_code = true } }
+[[usecases.xyz_bank.dcql_query.credentials]]
+id = "my_address"
+format = "mso_mdoc"
+meta = { doctype_value = "urn:eudi:pid-address:nl:1" }
+claims = [
+    { path = ["urn:eudi:pid-address:nl:1.address", "street_address"], intent_to_retain = true },
+    { path = ["urn:eudi:pid-address:nl:1.address", "house_number"], intent_to_retain = true },
+    { path = ["urn:eudi:pid-address:nl:1.address", "postal_code"], intent_to_retain = true }
+]
 
-[[usecases.monkey_bike.items_requests]]
-docType = "urn:eudi:pid:nl:1"
-nameSpaces = { "urn:eudi:pid:nl:1" = { given_name = true, family_name = true, birthdate = true, gender = true } }
+[[usecases.monkey_bike.dcql_query.credentials]]
+id = "my_pid"
+format = "mso_mdoc"
+meta = { doctype_value = "urn:eudi:pid:nl:1" }
+claims = [
+    { path = ["urn:eudi:pid:nl:1", "given_name"], intent_to_retain = true },
+    { path = ["urn:eudi:pid:nl:1", "family_name"], intent_to_retain = true },
+    { path = ["urn:eudi:pid:nl:1", "birthdate"], intent_to_retain = true },
+    { path = ["urn:eudi:pid:nl:1", "gender"], intent_to_retain = true }
+]
 
-[[usecases.monkey_bike.items_requests]]
-docType = "urn:eudi:pid-address:nl:1"
-nameSpaces = { "urn:eudi:pid-address:nl:1.address" = { street_address = true, house_number = true, postal_code = true, locality = true } }
+[[usecases.monkey_bike.dcql_query.credentials]]
+id = "my_address"
+format = "mso_mdoc"
+meta = { doctype_value = "urn:eudi:pid-address:nl:1" }
+claims = [
+    { path = ["urn:eudi:pid-address:nl:1.address", "street_address"], intent_to_retain = true },
+    { path = ["urn:eudi:pid-address:nl:1.address", "house_number"], intent_to_retain = true },
+    { path = ["urn:eudi:pid-address:nl:1.address", "postal_code"], intent_to_retain = true },
+    { path = ["urn:eudi:pid-address:nl:1.address", "locality"], intent_to_retain = true }
+]
 
-[[usecases.job_finder.items_requests]]
-docType = "urn:eudi:pid:nl:1"
-nameSpaces = { "urn:eudi:pid:nl:1" = { given_name = true, family_name = true } }
+[[usecases.job_finder.dcql_query.credentials]]
+id = "my_pid"
+format = "mso_mdoc"
+meta = { doctype_value = "urn:eudi:pid:nl:1" }
+claims = [
+    { path = ["urn:eudi:pid:nl:1", "given_name"], intent_to_retain = true },
+    { path = ["urn:eudi:pid:nl:1", "family_name"], intent_to_retain = true }
+]
 
-[[usecases.job_finder.items_requests]]
-docType = "com.example.degree"
-nameSpaces = { "com.example.degree" = { education = true, university = true, cum_laude = true } }
+[[usecases.job_finder.dcql_query.credentials]]
+id = "my_pid"
+format = "mso_mdoc"
+meta = { doctype_value = "com.example.degree" }
+claims = [
+    { path = ["com.example.degree", "education"], intent_to_retain = true },
+    { path = ["com.example.degree", "university"], intent_to_retain = true },
+    { path = ["com.example.degree", "cum_laude"], intent_to_retain = true }
+]
