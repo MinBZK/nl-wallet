@@ -22,7 +22,7 @@ use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 use ssri::Integrity;
 
-use dcql::ClaimPath;
+use attestation_types::claim_path::ClaimPath;
 use http_utils::data_uri::DataUri;
 use http_utils::urls::BaseUrl;
 use utils::spec::SpecOptional;
@@ -594,8 +594,8 @@ mod example_constructors {
 
     use serde_json::json;
 
+    use attestation_types::claim_path::ClaimPath;
     use crypto::utils::random_string;
-    use dcql::ClaimPath;
 
     use crate::examples::CREDENTIAL_PAYLOAD_SD_JWT_SPEC_METADATA_BYTES;
     use crate::examples::EUDI_PID_METADATA_BYTES;
@@ -812,7 +812,7 @@ mod test {
     use rstest::rstest;
     use serde_json::json;
 
-    use dcql::ClaimPath;
+    use attestation_types::claim_path::ClaimPath;
     use utils::vec_at_least::VecNonEmpty;
 
     use crate::examples::EXAMPLE_METADATA_BYTES;

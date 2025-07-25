@@ -9,7 +9,7 @@ pub mod utils;
 #[cfg(feature = "fake_digid")]
 pub mod fake_digid;
 
-#[cfg(any(feature = "performance_test", feature = "gba_pid_test"))]
+#[cfg(feature = "performance_test")]
 pub mod default {
     use apple_app_attest::AppIdentifier;
     use apple_app_attest::AttestationEnvironment;

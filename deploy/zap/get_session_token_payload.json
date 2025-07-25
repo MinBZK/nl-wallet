@@ -1,37 +1,36 @@
 {
-    "usecase": "xyz_bank",
-    "items_requests": [
+  "usecase": "xyz_bank",
+  "dcql_query": {
+    "credentials": [
       {
-        "docType": "com.example.pid",
-        "nameSpaces": {
-          "com.example.pid": {
-            "given_name": true,
-            "family_name": true,
-            "own_family_name": true,
-            "given_name_birth": true,
-            "family_name_birth": true,
-            "gender": true,
-            "birth_date": true,
-            "age_over_18": true,
-            "birth_place": true,
-            "birth_city": true,
-            "birth_state": true,
-            "birth_country": true,
-            "has_spouse_or_partner": true,
-            "bsn": true
-          },
-          "com.example.address": {
-            "resident_address": true,
-            "resident_street": true,
-            "resident_house_number": true,
-            "resident_postal_code": true,
-            "resident_city": true,
-            "resident_state": true,
-            "resident_country": true
-          }
-        }
+        "id": "my_pid",
+        "format": "mso_mdoc",
+        "meta": { "doctype_value": "com.example.pid" },
+        "claims": [
+          { "path": ["com.example.pid", "given_name"], "intent_to_retain": true },
+          { "path": ["com.example.pid", "family_name"], "intent_to_retain": true },
+          { "path": ["com.example.pid", "own_family_name"], "intent_to_retain": true },
+          { "path": ["com.example.pid", "given_name_birth"], "intent_to_retain": true },
+          { "path": ["com.example.pid", "family_name_birth"], "intent_to_retain": true },
+          { "path": ["com.example.pid", "gender"], "intent_to_retain": true },
+          { "path": ["com.example.pid", "birth_date"], "intent_to_retain": true },
+          { "path": ["com.example.pid", "age_over_18"], "intent_to_retain": true },
+          { "path": ["com.example.pid", "birth_place"], "intent_to_retain": true },
+          { "path": ["com.example.pid", "birth_city"], "intent_to_retain": true },
+          { "path": ["com.example.pid", "birth_state"], "intent_to_retain": true },
+          { "path": ["com.example.pid", "birth_country"], "intent_to_retain": true },
+          { "path": ["com.example.pid", "has_spouse_or_partner"], "intent_to_retain": true },
+          { "path": ["com.example.pid", "bsn"], "intent_to_retain": true }
+          { "path": ["com.example.address", "resident_address"], "intent_to_retain": true },
+          { "path": ["com.example.address", "resident_street"], "intent_to_retain": true },
+          { "path": ["com.example.address", "resident_house_number"], "intent_to_retain": true },
+          { "path": ["com.example.address", "resident_postal_code"], "intent_to_retain": true },
+          { "path": ["com.example.address", "resident_city"], "intent_to_retain": true },
+          { "path": ["com.example.address", "resident_state"], "intent_to_retain": true },
+          { "path": ["com.example.address", "resident_country"], "intent_to_retain": true }
+        ]
       }
-    ],
-    "return_url_template": "${RELYING_PARTY_URL}/xyz_bank/"
-  }
-  
+    ]
+  },
+  "return_url_template": "${RELYING_PARTY_URL}/xyz_bank/"
+}

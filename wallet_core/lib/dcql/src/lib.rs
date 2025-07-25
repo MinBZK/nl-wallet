@@ -1,13 +1,12 @@
 pub mod normalized;
 
-use std::fmt::Display;
-use std::fmt::Formatter;
 use std::ops::Not;
 
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
 
+use attestation_types::claim_path::ClaimPath;
 use utils::vec_at_least::VecNonEmpty;
 
 /// A DCQL query, encoding constraints on the combinations of credentials and claims that are requested.
@@ -166,50 +165,44 @@ pub struct ClaimsQuery {
     pub intent_to_retain: Option<bool>,
 }
 
-/// Element of a claims path pointer.
-///
-/// <https://openid.net/specs/openid-4-verifiable-presentations-1_0-28.html#name-claims-path-pointer>
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum ClaimPath {
-    /// Select a claim in an object.
-    SelectByKey(String),
-
-    /// Select all elements within an array.
-    SelectAll,
-
-    /// Select an element in an array.
-    SelectByIndex(usize),
-}
-
-impl ClaimPath {
-    pub fn try_key_path(&self) -> Option<&str> {
-        match self {
-            ClaimPath::SelectByKey(key) => Some(key.as_str()),
-            _ => None,
-        }
-    }
-
-    pub fn try_into_key_path(self) -> Option<String> {
-        match self {
-            ClaimPath::SelectByKey(key) => Some(key),
-            _ => None,
-        }
-    }
-}
-
-impl Display for ClaimPath {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ClaimPath::SelectByKey(key) => write!(f, "{key}"),
-            ClaimPath::SelectAll => f.write_str("*"),
-            ClaimPath::SelectByIndex(index) => write!(f, "{index}"),
-        }
-    }
-}
-
 const fn bool_value<const B: bool>() -> bool {
     B
+}
+
+#[cfg(any(test, feature = "examples"))]
+pub mod examples {
+    use super::Query;
+
+    pub(crate) const MULTIPLE_CREDENTIALS_DCQL_QUERY_BYTES: &[u8] =
+        include_bytes!("../examples/spec/multiple_credentials_dcql_query.json");
+    pub(crate) const WITH_CREDENTIAL_SETS_DCQL_QUERY_BYTES: &[u8] =
+        include_bytes!("../examples/spec/with_credential_sets_dcql_query.json");
+    pub(crate) const WITH_CLAIM_SETS_DCQL_QUERY_BYTES: &[u8] =
+        include_bytes!("../examples/spec/with_claim_sets_dcql_query.json");
+    pub(crate) const WITH_VALUES_DCQL_QUERY_BYTES: &[u8] =
+        include_bytes!("../examples/spec/with_values_dcql_query.json");
+
+    impl Query {
+        fn from_slice(slice: &[u8]) -> Self {
+            serde_json::from_slice::<Query>(slice).unwrap()
+        }
+
+        pub fn example_with_multiple_credentials() -> Self {
+            Self::from_slice(MULTIPLE_CREDENTIALS_DCQL_QUERY_BYTES)
+        }
+
+        pub fn example_with_credential_sets() -> Self {
+            Self::from_slice(WITH_CREDENTIAL_SETS_DCQL_QUERY_BYTES)
+        }
+
+        pub fn example_with_claim_sets() -> Self {
+            Self::from_slice(WITH_CLAIM_SETS_DCQL_QUERY_BYTES)
+        }
+
+        pub fn example_with_values() -> Self {
+            Self::from_slice(WITH_VALUES_DCQL_QUERY_BYTES)
+        }
+    }
 }
 
 #[cfg(test)]
@@ -218,13 +211,7 @@ mod tests {
     use serde_json::json;
 
     use super::Query;
-
-    const MULTIPLE_CREDENTIALS_DCQL_QUERY_BYTES: &[u8] =
-        include_bytes!("../examples/spec/multiple_credentials_dcql_query.json");
-    const WITH_CREDENTIAL_SETS_DCQL_QUERY_BYTES: &[u8] =
-        include_bytes!("../examples/spec/with_credential_sets_dcql_query.json");
-    const WITH_CLAIM_SETS_DCQL_QUERY_BYTES: &[u8] = include_bytes!("../examples/spec/with_claim_sets_dcql_query.json");
-    const WITH_VALUES_DCQL_QUERY_BYTES: &[u8] = include_bytes!("../examples/spec/with_values_dcql_query.json");
+    use super::examples::*;
 
     #[rstest]
     #[case(MULTIPLE_CREDENTIALS_DCQL_QUERY_BYTES)]

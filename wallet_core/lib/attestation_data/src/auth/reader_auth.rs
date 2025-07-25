@@ -10,8 +10,8 @@ use url::Url;
 use x509_parser::der_parser::Oid;
 use x509_parser::der_parser::asn1_rs::oid;
 
+use attestation_types::claim_path::ClaimPath;
 use crypto::x509::BorrowingCertificateExtension;
-use dcql::ClaimPath;
 use error_category::ErrorCategory;
 use mdoc::identifiers::AttributeIdentifier;
 use mdoc::identifiers::AttributeIdentifierError;
@@ -146,8 +146,9 @@ impl BorrowingCertificateExtension for ReaderRegistration {
 pub mod mock {
     use itertools::Itertools;
 
+    use dcql::ClaimsSelection;
     use dcql::CredentialQueryFormat;
-    use dcql::normalized::NormalizedCredentialRequest;
+    use dcql::Query;
     use utils::vec_at_least::VecNonEmpty;
 
     use super::*;
@@ -180,21 +181,24 @@ pub mod mock {
             .into()
         }
 
-        pub fn mock_from_credential_requests(authorized_requests: &VecNonEmpty<NormalizedCredentialRequest>) -> Self {
-            let authorized_attributes = authorized_requests.as_ref().iter().fold(
+        pub fn mock_from_dcql_query(dcql_query: &Query) -> Self {
+            let authorized_attributes = dcql_query.credentials.iter().fold(
                 HashMap::new(),
-                |mut acc: HashMap<String, Vec<VecNonEmpty<ClaimPath>>>, credential_request| {
-                    match credential_request.format {
+                |mut acc: HashMap<String, Vec<VecNonEmpty<ClaimPath>>>, credential_query| {
+                    match credential_query.format {
                         CredentialQueryFormat::MsoMdoc { ref doctype_value } => {
-                            let claim_paths = credential_request
-                                .claims
-                                .iter()
-                                .map(|c| c.path.clone())
-                                .collect::<Vec<_>>();
+                            let claim_paths = match &credential_query.claims_selection {
+                                ClaimsSelection::All { claims } => {
+                                    claims.iter().map(|c| c.path.clone()).collect::<Vec<_>>()
+                                }
+                                ClaimsSelection::NoSelectivelyDisclosable | ClaimsSelection::Combinations { .. } => {
+                                    unimplemented!()
+                                }
+                            };
                             acc.entry(doctype_value.to_string()).or_default().extend(claim_paths);
                         }
                         CredentialQueryFormat::SdJwt { .. } => todo!("PVW-4139 support SdJwt"),
-                    }
+                    };
                     acc
                 },
             );

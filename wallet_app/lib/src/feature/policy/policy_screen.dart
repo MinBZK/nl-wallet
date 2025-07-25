@@ -15,6 +15,7 @@ import '../common/widget/list/list_item.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
 import '../common/widget/spacer/sliver_divider.dart';
 import '../common/widget/spacer/sliver_sized_box.dart';
+import '../common/widget/text/body_text.dart';
 import '../common/widget/url_span.dart';
 import '../common/widget/wallet_scrollbar.dart';
 import 'policy_row_builder.dart';
@@ -76,7 +77,7 @@ class PolicyScreen extends StatelessWidget {
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text.rich(context.l10n.policyScreenSubtitle.toTextSpan(context)),
+              child: BodyText(context.l10n.policyScreenSubtitle),
             ),
           ),
           const SliverSizedBox(height: 24),

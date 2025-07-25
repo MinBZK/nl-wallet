@@ -67,6 +67,7 @@ uuid = { workspace = true, features = ["v4", "v7"] }
 mockall = { workspace = true, optional = true }
 
 attestation_data.path = "../lib/attestation_data"
+attestation_types.path = "../lib/attestation_types"
 crypto.path = "../lib/crypto"
 dcql.path = "../lib/dcql"
 entity.path = "entity"

@@ -205,34 +205,6 @@ run-fallback-pages-browsertest-test-ont:
     reports:
       junit: browsertests/packages/fallback-pages/test-results/*.xml
 
-run-gba-fetch-browsertest-test-ont:
-  extends: .run-browsertest-common
-  rules:
-    - !reference [.on-schedule, rules]
-  before_script: |
-    kubectl get secret nl-wallet-gba-fetch-browsertest-ont-client-secret -o jsonpath="{.data.gba_fetch_e2e\.p12}" | base64 -d > browsertests/packages/gba-fetch/config/gba_fetch_client_cert_ont.p12
-    export GBA_FETCH_FRONTEND_CLIENT_CERT_PATH="./gba_fetch_client_cert_ont.p12"
-    GBA_FETCH_FRONTEND_CLIENT_CERT_PASSPHRASE="$(kubectl get secret nl-wallet-gba-fetch-browsertest-ont-client-secret -o jsonpath='{.data.passphrase}' | base64 --decode)"
-    export GBA_FETCH_FRONTEND_CLIENT_CERT_PASSPHRASE
-  script: |
-    cd browsertests
-    npm ci
-    cd packages/gba-fetch
-    npx playwright install chromium
-    npm run test:authenticated
-    npm run test:unauthenticated
-  after_script:
-    - deploy/bin/store-artifact-zip.sh qt/quality-time/junit-results/browsertest-gba-fetch.zip browsertests/packages/gba-fetch/test-results-*/*.xml
-    - deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/browsertest-gba-fetch.zip browsertests/packages/gba-fetch/allure-results/*
-  artifacts:
-    name: browsertest-gba-fetch
-    when: always
-    paths:
-      - browsertests/packages/gba-fetch/test-results-*/
-      - browsertests/packages/gba-fetch/allure-results/
-    reports:
-      junit: browsertests/packages/gba-fetch/test-results-*/*.xml
-
 run-performance-test-ont:
   extends: .env-k8s
   rules: !reference [.default-branch, rules]

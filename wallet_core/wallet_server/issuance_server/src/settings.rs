@@ -12,12 +12,12 @@ use serde_with::serde_as;
 use attestation_data::x509::CertificateType;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::x509::CertificateUsage;
+use dcql::Query;
 use http_utils::tls::pinning::TlsPinningConfig;
 use http_utils::urls::BaseUrl;
 use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
 use issuer_settings::settings::IssuerSettings;
 use issuer_settings::settings::IssuerSettingsError;
-use mdoc::verifier::ItemsRequests;
 use openid4vc::server_state::SessionStoreTimeouts;
 use server_utils::settings::KeyPair;
 use server_utils::settings::NL_WALLET_CLIENT_ID;
@@ -47,7 +47,7 @@ pub struct IssuanceServerSettings {
 pub struct AttestationSettings {
     #[serde(flatten)]
     pub key_pair: KeyPair,
-    pub to_disclose: ItemsRequests,
+    pub dcql_query: Query,
 
     /// Endpoint to which the disclosed attributes get sent and which has to respond with the attestations to be issued
     /// (or an empty JSON array if none).

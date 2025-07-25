@@ -11,8 +11,8 @@ use regex::Regex;
 use serde::Deserialize;
 use serde::Serialize;
 
+use attestation_types::claim_path::ClaimPath;
 use crypto::utils::random_string;
-use dcql::ClaimPath;
 use dcql::CredentialQueryFormat;
 use dcql::normalized::AttributeRequest;
 use dcql::normalized::NormalizedCredentialRequest;

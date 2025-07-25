@@ -29,17 +29,12 @@ use attestation_data::disclosure::DisclosedAttestations;
 use attestation_data::x509::generate::mock::generate_issuer_mock;
 use attestation_data::x509::generate::mock::generate_reader_mock;
 use crypto::server_keys::generate::Ca;
-use dcql::ClaimPath;
-use dcql::CredentialQueryFormat;
-use dcql::normalized::AttributeRequest;
-use dcql::normalized::NormalizedCredentialRequest;
+use dcql::Query;
 use hsm::service::Pkcs11Hsm;
 use http_utils::error::HttpJsonErrorBody;
 use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::urls::BaseUrl;
 use mdoc::examples::EXAMPLE_ATTR_NAME;
-use mdoc::examples::EXAMPLE_DOC_TYPE;
-use mdoc::examples::EXAMPLE_NAMESPACE;
 use mdoc::holder::Mdoc;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::DisclosureSession;
@@ -79,48 +74,14 @@ const USECASE_NAME: &str = "usecase";
 static EXAMPLE_START_DISCLOSURE_REQUEST: LazyLock<StartDisclosureRequest> = LazyLock::new(|| StartDisclosureRequest {
     usecase: USECASE_NAME.to_string(),
     return_url_template: Some("https://return.url/{session_token}".parse().unwrap()),
-    credential_requests: Some(
-        vec![NormalizedCredentialRequest {
-            format: CredentialQueryFormat::MsoMdoc {
-                doctype_value: EXAMPLE_DOC_TYPE.to_string(),
-            },
-            claims: vec![AttributeRequest {
-                path: vec![
-                    ClaimPath::SelectByKey(EXAMPLE_NAMESPACE.to_string()),
-                    ClaimPath::SelectByKey(EXAMPLE_ATTR_NAME.to_string()),
-                ]
-                .try_into()
-                .unwrap(),
-                intent_to_retain: true,
-            }],
-        }]
-        .try_into()
-        .unwrap(),
-    ),
+    dcql_query: Some(Query::new_example()),
 });
 
 static EXAMPLE_PID_START_DISCLOSURE_REQUEST: LazyLock<StartDisclosureRequest> =
     LazyLock::new(|| StartDisclosureRequest {
         usecase: USECASE_NAME.to_string(),
         return_url_template: Some("https://return.url/{session_token}".parse().unwrap()),
-        credential_requests: Some(
-            vec![NormalizedCredentialRequest {
-                format: CredentialQueryFormat::MsoMdoc {
-                    doctype_value: PID_ATTESTATION_TYPE.to_string(),
-                },
-                claims: vec![AttributeRequest {
-                    path: vec![
-                        ClaimPath::SelectByKey(PID_ATTESTATION_TYPE.to_string()),
-                        ClaimPath::SelectByKey(EXAMPLE_ATTR_NAME.to_string()),
-                    ]
-                    .try_into()
-                    .unwrap(),
-                    intent_to_retain: true,
-                }],
-            }]
-            .try_into()
-            .unwrap(),
-        ),
+        dcql_query: Some(Query::pid_family_name()),
     });
 
 fn memory_storage_settings() -> Storage {
@@ -172,9 +133,10 @@ async fn wallet_server_settings_and_listener(
     let rp_ca = Ca::generate_reader_mock_ca().unwrap();
     let reader_trust_anchors = vec![rp_ca.as_borrowing_trust_anchor().clone()];
     let rp_trust_anchor = rp_ca.to_trust_anchor().to_owned();
-    let reader_registration = Some(ReaderRegistration::mock_from_credential_requests(
-        request.credential_requests.as_ref().unwrap(),
-    ));
+    let reader_registration = request
+        .dcql_query
+        .as_ref()
+        .map(ReaderRegistration::mock_from_dcql_query);
 
     // Set up the use case, based on RP CA and reader registration.
     let usecase_keypair = generate_reader_mock(&rp_ca, reader_registration).unwrap();
@@ -183,7 +145,7 @@ async fn wallet_server_settings_and_listener(
         UseCaseSettings {
             session_type_return_url: SessionTypeReturnUrl::SameDevice,
             key_pair: usecase_keypair.into(),
-            items_requests: None,
+            dcql_query: None,
             return_url_template: None,
         },
     )])
