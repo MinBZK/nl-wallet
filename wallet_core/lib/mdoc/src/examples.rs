@@ -12,7 +12,9 @@ use serde::de::DeserializeOwned;
 use crypto::server_keys::generate::Ca;
 use utils::generator::Generator;
 
+#[cfg(test)]
 use crate::iso::device_retrieval::DeviceRequest;
+#[cfg(test)]
 use crate::iso::device_retrieval::ReaderAuthenticationBytes;
 use crate::iso::disclosure::DeviceResponse;
 use crate::iso::disclosure::IssuerSigned;
@@ -174,6 +176,7 @@ impl Example<DeviceAuthenticationBytes<'_>> for DeviceAuthenticationBytes<'_> {
     }
 }
 
+#[cfg(test)]
 impl Example<ReaderAuthenticationBytes<'_>> for ReaderAuthenticationBytes<'_> {
     fn example_hex() -> &'static str {
         "d8185902ee837452656164657241757468656e7469636174696f6e83d8185858a20063312e30018201d818584ba4010220012158205a8\
@@ -193,6 +196,7 @@ impl Example<ReaderAuthenticationBytes<'_>> for ReaderAuthenticationBytes<'_> {
     }
 }
 
+#[cfg(test)]
 impl Example<DeviceRequest> for DeviceRequest {
     fn example_hex() -> &'static str {
         "a26776657273696f6e63312e306b646f63526571756573747381a26c6974656d7352657175657374d8185893a267646f6354797065756\
