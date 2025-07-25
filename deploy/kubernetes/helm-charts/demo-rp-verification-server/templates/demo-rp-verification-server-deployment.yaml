@@ -41,6 +41,10 @@ spec:
               containerPort: 8001
             - name: http-internal
               containerPort: 8002
+          volumeMounts:
+            - name: config-volume
+              mountPath: /verification_server.toml
+              subPath: config.toml
           env:
             - name: VERIFICATION_SERVER__REQUESTER_SERVER__IP
               value: "0.0.0.0"
@@ -132,3 +136,7 @@ spec:
               value: "software"
             - name: RUST_LOG
               value: "debug,hyper=warn"
+      volumes:
+        - name: config-volume
+          configMap:
+            name: nl-wallet-demo-rp-verification-server-data
