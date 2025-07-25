@@ -4,7 +4,6 @@ use std::num::NonZeroU64;
 
 use crypto::WithVerifyingKey;
 use derive_more::Constructor;
-use itertools::Itertools;
 use p256::ecdsa::VerifyingKey;
 use p256::ecdsa::signature;
 
@@ -14,13 +13,10 @@ use crypto::keys::WithIdentifier;
 use crypto::p256_der::DerSignature;
 use platform_support::attested_key::AppleAttestedKey;
 use platform_support::attested_key::GoogleAttestedKey;
-use utils::vec_at_least::VecAtLeastTwoUnique;
-use wallet_account::messages::instructions::ConstructPoa;
 use wallet_account::messages::instructions::PerformIssuance;
 use wallet_account::messages::instructions::PerformIssuanceWithWua;
 use wallet_account::messages::instructions::Sign;
 use wscd::Poa;
-use wscd::factory::PoaFactory;
 use wscd::keyfactory::DisclosureResult;
 use wscd::keyfactory::IssuanceResult;
 use wscd::keyfactory::JwtPoaInput;
@@ -150,42 +146,6 @@ where
                 Some(result.wua_disclosure),
             ))
         }
-    }
-}
-
-impl<S, AK, GK, A> PoaFactory for RemoteEcdsaKeyFactory<S, AK, GK, A>
-where
-    S: Storage,
-    AK: AppleAttestedKey,
-    GK: GoogleAttestedKey,
-    A: AccountProviderClient,
-{
-    type Key = RemoteEcdsaKey;
-    type Error = RemoteEcdsaKeyError;
-
-    async fn poa(
-        &self,
-        keys: VecAtLeastTwoUnique<&Self::Key>,
-        aud: String,
-        nonce: Option<String>,
-    ) -> Result<Poa, Self::Error> {
-        let poa = self
-            .instruction_client
-            .send(ConstructPoa {
-                key_identifiers: keys
-                    .as_slice()
-                    .iter()
-                    .map(|key| key.identifier.clone())
-                    .collect_vec()
-                    .try_into()
-                    .unwrap(), // our iterable is a VecAtLeastTwoUnique
-                aud,
-                nonce,
-            })
-            .await?
-            .poa;
-
-        Ok(poa)
     }
 }
 

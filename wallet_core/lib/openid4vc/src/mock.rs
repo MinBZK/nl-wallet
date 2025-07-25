@@ -26,7 +26,7 @@ use crate::token::TokenRequest;
 use crate::token::TokenRequestGrantType;
 
 // Re-exported for convenience
-pub use wscd::factory::mock::MOCK_WALLET_CLIENT_ID;
+pub use wscd::MOCK_WALLET_CLIENT_ID;
 
 // We can't use `mockall::automock!` on the `IssuerClient` trait directly since `automock` doesn't accept
 // traits using generic methods, and "impl trait" arguments, so we use `mockall::mock!` to make an indirection.
