@@ -73,15 +73,15 @@ const USECASE_NAME: &str = "usecase";
 
 static EXAMPLE_START_DISCLOSURE_REQUEST: LazyLock<StartDisclosureRequest> = LazyLock::new(|| StartDisclosureRequest {
     usecase: USECASE_NAME.to_string(),
-    return_url_template: Some("https://return.url/{session_token}".parse().unwrap()),
     dcql_query: Some(Query::new_example()),
+    return_url_template: Some("https://return.url/{session_token}".parse().unwrap()),
 });
 
 static EXAMPLE_PID_START_DISCLOSURE_REQUEST: LazyLock<StartDisclosureRequest> =
     LazyLock::new(|| StartDisclosureRequest {
         usecase: USECASE_NAME.to_string(),
-        return_url_template: Some("https://return.url/{session_token}".parse().unwrap()),
         dcql_query: Some(Query::pid_family_name()),
+        return_url_template: Some("https://return.url/{session_token}".parse().unwrap()),
     });
 
 fn memory_storage_settings() -> Storage {

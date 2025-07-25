@@ -89,15 +89,12 @@ impl DeviceResponse {
                     .and_then(|docs| docs.iter().find(|doc| doc.doc_type == *doctype_value))
                     .map_or_else(
                         // If the entire document is missing then all requested attributes are missing
-                        || Ok(request.mdoc_attribute_identifiers()?.into_iter().collect()),
+                        || request.mdoc_attribute_identifiers().into_iter().collect(),
                         |doc| request.match_against_issuer_signed(doc),
-                    )?;
+                    );
                 Ok(not_found)
             })
-            .collect::<Result<Vec<Vec<_>>, _>>()?
-            .into_iter()
-            .flatten()
-            .collect::<Vec<_>>();
+            .process_results(|iter| iter.flatten().collect_vec())?;
 
         if not_found.is_empty() {
             Ok(())
