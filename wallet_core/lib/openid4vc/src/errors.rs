@@ -364,6 +364,7 @@ impl From<&NewSessionError> for VerificationErrorCode {
             NewSessionError::Session(session_error) => session_error.into(),
             NewSessionError::NoCredentialRequests
             | NewSessionError::UnknownUseCase(_)
+            | NewSessionError::UnsupportedDcqlFeatures(_)
             | NewSessionError::ReturnUrlConfigurationMismatch => VerificationErrorCode::InvalidRequest,
         }
     }

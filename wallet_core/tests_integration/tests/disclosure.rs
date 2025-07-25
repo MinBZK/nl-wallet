@@ -7,9 +7,7 @@ use serial_test::serial;
 use url::Url;
 
 use attestation_data::disclosure::DisclosedAttestations;
-use dcql::CredentialQueryFormat;
-use dcql::normalized::AttributeRequest;
-use dcql::normalized::NormalizedCredentialRequest;
+use dcql::Query;
 use http_utils::error::HttpJsonErrorBody;
 use mdoc::test::TestDocuments;
 use mdoc::test::data::addr_street;
@@ -97,7 +95,7 @@ async fn test_disclosure_usecases_ok(
 ) {
     let start_request = StartDisclosureRequest {
         usecase: usecase.clone(),
-        credential_requests: Some(test_documents.into()),
+        dcql_query: Some(test_documents.into()),
         // The setup script is hardcoded to include "http://localhost:3004/" in the `ReaderRegistration`
         // contained in the certificate, so we have to specify a return URL prefixed with that.
         return_url_template,
@@ -246,25 +244,7 @@ async fn test_disclosure_without_pid() {
 
     let start_request = StartDisclosureRequest {
         usecase: "xyz_bank_no_return_url".to_owned(),
-        credential_requests: Some(
-            vec![NormalizedCredentialRequest {
-                format: CredentialQueryFormat::MsoMdoc {
-                    doctype_value: "urn:eudi:pid:nl:1".to_string(),
-                },
-                claims: vec![
-                    AttributeRequest::new_with_keys(
-                        vec!["urn:eudi:pid:nl:1".to_string(), "given_name".to_string()],
-                        true,
-                    ),
-                    AttributeRequest::new_with_keys(
-                        vec!["urn:eudi:pid:nl:1".to_string(), "family_name".to_string()],
-                        false,
-                    ),
-                ],
-            }]
-            .try_into()
-            .unwrap(),
-        ),
+        dcql_query: Some(Query::pid_full_name()),
         return_url_template: None,
     };
     let response = client

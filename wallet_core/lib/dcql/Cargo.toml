@@ -8,6 +8,7 @@ rust-version.workspace = true
 workspace = true
 
 [features]
+examples = []
 mock = []
 
 [dependencies]
@@ -16,6 +17,7 @@ serde_json = { workspace = true, features = ["std"] }
 serde_with.workspace = true
 thiserror.workspace = true
 
+attestation_types.path = "../attestation_types"
 utils.path = "../utils"
 
 [dev-dependencies]

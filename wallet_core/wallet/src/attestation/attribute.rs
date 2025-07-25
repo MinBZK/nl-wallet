@@ -5,7 +5,7 @@ use chrono::NaiveDate;
 use attestation_data::attributes::AttributeValue;
 use attestation_data::attributes::Attributes;
 use attestation_data::auth::Organization;
-use dcql::ClaimPath;
+use attestation_types::claim_path::ClaimPath;
 use sd_jwt_vc_metadata::JsonSchemaProperty;
 use sd_jwt_vc_metadata::JsonSchemaPropertyFormat;
 use sd_jwt_vc_metadata::JsonSchemaPropertyType;
@@ -152,7 +152,7 @@ pub mod test {
     use attestation_data::attributes::AttributeValue;
     use attestation_data::attributes::Attributes;
     use attestation_data::auth::Organization;
-    use dcql::ClaimPath;
+    use attestation_types::claim_path::ClaimPath;
     use sd_jwt_vc_metadata::ClaimDisplayMetadata;
     use sd_jwt_vc_metadata::ClaimMetadata;
     use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;

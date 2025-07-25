@@ -74,7 +74,7 @@ class WalletCore extends BaseEntrypoint<WalletCoreApi, WalletCoreApiImpl, Wallet
   String get codegenVersion => '2.9.0';
 
   @override
-  int get rustContentHash => 1861382066;
+  int get rustContentHash => 628984909;
 
   static const kDefaultExternalLibraryLoaderConfig = ExternalLibraryLoaderConfig(
     stem: 'wallet_core',
@@ -113,6 +113,8 @@ abstract class WalletCoreApi extends BaseApi {
   Future<List<AttestationPresentation>> crateApiFullContinuePidIssuance({required String uri});
 
   Future<String> crateApiFullCreatePidIssuanceRedirectUri();
+
+  Future<String> crateApiFullCreatePidRenewalRedirectUri();
 
   Future<List<WalletEvent>> crateApiFullGetHistory();
 
@@ -489,6 +491,27 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
 
   TaskConstMeta get kCrateApiFullCreatePidIssuanceRedirectUriConstMeta => const TaskConstMeta(
         debugName: "create_pid_issuance_redirect_uri",
+        argNames: [],
+      );
+
+  @override
+  Future<String> crateApiFullCreatePidRenewalRedirectUri() {
+    return handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        return wire.wire__crate__api__full__create_pid_renewal_redirect_uri(port_);
+      },
+      codec: DcoCodec(
+        decodeSuccessData: dco_decode_String,
+        decodeErrorData: dco_decode_AnyhowException,
+      ),
+      constMeta: kCrateApiFullCreatePidRenewalRedirectUriConstMeta,
+      argValues: [],
+      apiImpl: this,
+    ));
+  }
+
+  TaskConstMeta get kCrateApiFullCreatePidRenewalRedirectUriConstMeta => const TaskConstMeta(
+        debugName: "create_pid_renewal_redirect_uri",
         argNames: [],
       );
 
