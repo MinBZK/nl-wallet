@@ -78,23 +78,17 @@ mod tests {
     }
 
     fn credential_requests() -> VecNonEmpty<NormalizedCredentialRequest> {
-        normalized::mock::mock_mdoc_from_vecs(vec![
+        normalized::mock::mock_mdoc_from_slices(&[
             (
-                "att_1".to_string(),
-                vec![
-                    vec!["path1".to_string()],
-                    vec!["path2".to_string(), "path3".to_string()],
-                    vec!["path4".to_string(), "path5".to_string(), "path6".to_string()],
-                    vec!["path7".to_string(), "path8".to_string()],
+                "att_1",
+                &[
+                    &["path1"],
+                    &["path2", "path3"],
+                    &["path4", "path5", "path6"],
+                    &["path7", "path8"],
                 ],
             ),
-            (
-                "att_2".to_string(),
-                vec![
-                    vec!["path1".to_string(), "path2".to_string(), "path3".to_string()],
-                    vec!["path4".to_string()],
-                ],
-            ),
+            ("att_2", &[&["path1", "path2", "path3"], &["path4"]]),
         ])
     }
 }

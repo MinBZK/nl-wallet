@@ -339,13 +339,9 @@ mod tests {
         // Check all of the data the new `VpDisclosureSession` exposes.
         assert_eq!(disclosure_session.session_type(), session_type);
 
-        let expected_credential_requests = normalized::mock::mock_mdoc_from_vecs(vec![(
-            PID.to_string(),
-            vec![
-                vec![PID.to_string(), "bsn".to_string()],
-                vec![PID.to_string(), "given_name".to_string()],
-                vec![PID.to_string(), "family_name".to_string()],
-            ],
+        let expected_credential_requests = normalized::mock::mock_mdoc_from_slices(&[(
+            PID,
+            &[&[PID, "bsn"], &[PID, "given_name"], &[PID, "family_name"]],
         )]);
         assert_eq!(*disclosure_session.credential_requests(), expected_credential_requests);
 

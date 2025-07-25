@@ -244,11 +244,11 @@ async fn test_disclosure_without_pid() {
 
     let start_request = StartDisclosureRequest {
         usecase: "xyz_bank_no_return_url".to_owned(),
-        credential_requests: Some(normalized::mock::mock_mdoc_from_vecs(vec![(
-            "urn:eudi:pid:nl:1".to_string(),
-            vec![
-                vec!["urn:eudi:pid:nl:1".to_string(), "given_name".to_string()],
-                vec!["urn:eudi:pid:nl:1".to_string(), "family_name".to_string()],
+        credential_requests: Some(normalized::mock::mock_mdoc_from_slices(&[(
+            "urn:eudi:pid:nl:1",
+            &[
+                &["urn:eudi:pid:nl:1", "given_name"],
+                &["urn:eudi:pid:nl:1", "family_name"],
             ],
         )])),
         return_url_template: None,
