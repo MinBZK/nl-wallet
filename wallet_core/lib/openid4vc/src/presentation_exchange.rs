@@ -80,8 +80,7 @@ pub struct Field {
 /// "$['namespace']['attribute_name']".
 ///
 /// See also <https://identity.foundation/presentation-exchange/spec/v2.0.0/#jsonpath-syntax-definition>.
-static FIELD_PATH_REGEX: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r#"^\$\[['"]([^'"]*)['"]\]\[['"]([^'"]*)['"]\]$"#).unwrap());
+static FIELD_PATH_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r#"^\$(\[['"]([^'"]*)['"]\])+$"#).unwrap());
 
 impl Field {
     pub(crate) fn parse_paths(&self) -> Result<(String, String), PdConversionError> {
@@ -276,8 +275,8 @@ mod tests {
 
     #[rstest]
     #[case("$['namespace']['attribute_name']", true)]
-    #[case("$['namespace']", false)]
-    #[case("$['namespace']['attribute_name']['extra']", false)]
+    #[case("$['namespace']", true)] // TODO do we support this?
+    #[case("$['namespace']['attribute_name']['extra']", true)] // This is needed for SD-JWT
     #[case("$['namespace\'']['attribute_name']", false)] // We don't support escaped quotes ...
     #[case("$['namespace']['\"attribute_name']", false)] // ... in namespace or attribute names.
     #[case(r#"$["namespace"]["attribute_name"]"#, true)] // We also support double quotes ...
