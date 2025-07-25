@@ -2,14 +2,10 @@
 
 use chrono::DateTime;
 use chrono::Utc;
-use derive_more::AsRef;
 use indexmap::IndexMap;
-use itertools::Itertools;
 use p256::SecretKey;
 use p256::ecdsa::VerifyingKey;
 use rustls_pki_types::TrustAnchor;
-use serde::Deserialize;
-use serde::Serialize;
 use serde_with::serde_as;
 use tracing::debug;
 use tracing::warn;
@@ -20,8 +16,6 @@ use utils::generator::Generator;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::Result;
-use crate::identifiers::AttributeIdentifier;
-use crate::identifiers::AttributeIdentifierHolder;
 use crate::iso::*;
 use crate::utils::cose::ClonePayload;
 use crate::utils::crypto::cbor_digest;
@@ -63,49 +57,12 @@ pub enum VerificationError {
     EphemeralKeyMissing,
     #[error("validity error: {0}")]
     Validity(#[from] ValidityError),
-    #[error("attributes mismatch: {0:?}")]
-    MissingAttributes(Vec<AttributeIdentifier>),
     #[error("unexpected amount of CA Common Names in issuer certificate: expected 1, found {0}")]
     UnexpectedCACommonNameCount(usize),
     #[error("issuer URI {0} not found in SAN {1:?}")]
     IssuerUriNotFoundInSan(HttpsUri, VecNonEmpty<HttpsUri>),
     #[error("missing issuer URI")]
     MissingIssuerUri,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, AsRef)]
-pub struct ItemsRequests(pub Vec<ItemsRequest>);
-impl From<Vec<ItemsRequest>> for ItemsRequests {
-    fn from(value: Vec<ItemsRequest>) -> Self {
-        Self(value)
-    }
-}
-
-impl ItemsRequests {
-    /// Checks that all `requested` attributes are disclosed in this [`DeviceResponse`].
-    pub fn match_against_response(&self, device_response: &DeviceResponse) -> Result<()> {
-        let not_found = self
-            .0
-            .iter()
-            .flat_map(|items_request| {
-                device_response
-                    .documents
-                    .as_ref()
-                    .and_then(|docs| docs.iter().find(|doc| doc.doc_type == items_request.doc_type))
-                    .map_or_else(
-                        // If the entire document is missing then all requested attributes are missing
-                        || items_request.mdoc_attribute_identifiers().into_iter().collect_vec(),
-                        |doc| items_request.match_against_issuer_signed(doc),
-                    )
-            })
-            .collect_vec();
-
-        if not_found.is_empty() {
-            Ok(())
-        } else {
-            Err(VerificationError::MissingAttributes(not_found).into())
-        }
-    }
 }
 
 impl DeviceResponse {
@@ -349,7 +306,6 @@ mod tests {
     use chrono::Utc;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
-    use rstest::rstest;
 
     use crypto::examples::Examples;
     use crypto::mock_remote::MockRemoteEcdsaKey;
@@ -357,8 +313,6 @@ mod tests {
 
     use crate::DeviceAuthenticationBytes;
     use crate::DeviceResponse;
-    use crate::Document;
-    use crate::Error;
     use crate::ValidityInfo;
     use crate::examples::EXAMPLE_ATTR_NAME;
     use crate::examples::EXAMPLE_ATTR_VALUE;
@@ -366,9 +320,7 @@ mod tests {
     use crate::examples::EXAMPLE_NAMESPACE;
     use crate::examples::Example;
     use crate::examples::IsoCertTimeGenerator;
-    use crate::examples::example_items_requests;
     use crate::holder::Mdoc;
-    use crate::identifiers::AttributeIdentifierHolder;
     use crate::test;
     use crate::test::DebugCollapseBts;
 
@@ -468,142 +420,5 @@ mod tests {
             EXAMPLE_ATTR_NAME,
             &EXAMPLE_ATTR_VALUE,
         );
-    }
-
-    #[rstest]
-    #[case(do_nothing())]
-    #[case(swap_attributes())]
-    #[case(remove_documents())]
-    #[case(remove_document())]
-    #[case(change_doctype())]
-    #[case(change_namespace())]
-    #[case(remove_attribute())]
-    #[case(multiple_doc_types_swapped())]
-    fn match_disclosed_attributes(
-        #[case] testcase: (DeviceResponse, ItemsRequests, Result<(), Vec<AttributeIdentifier>>),
-    ) {
-        // Construct an items request that matches the example device response
-        let (device_response, items_requests, expected_result) = testcase;
-        assert_eq!(
-            items_requests
-                .match_against_response(&device_response)
-                .map_err(|e| match e {
-                    Error::Verification(VerificationError::MissingAttributes(e)) => e,
-                    _ => panic!(),
-                }),
-            expected_result,
-        );
-    }
-
-    /// Helper to compute all attribute identifiers contained in a bunch of [`ItemsRequest`]s.
-    fn attribute_identifiers(items_requests: &ItemsRequests) -> Vec<AttributeIdentifier> {
-        items_requests
-            .0
-            .iter()
-            .flat_map(|request| request.mdoc_attribute_identifiers())
-            .collect()
-    }
-
-    // return an unmodified device response, which should verify
-    fn do_nothing() -> (DeviceResponse, ItemsRequests, Result<(), Vec<AttributeIdentifier>>) {
-        (DeviceResponse::example(), example_items_requests(), Ok(()))
-    }
-
-    // Matching attributes is insensitive to swapped attributes, so verification succeeds
-    fn swap_attributes() -> (DeviceResponse, ItemsRequests, Result<(), Vec<AttributeIdentifier>>) {
-        let mut device_response = DeviceResponse::example();
-        let first_document = device_response.documents.as_mut().unwrap().first_mut().unwrap();
-        let name_spaces = first_document.issuer_signed.name_spaces.as_mut().unwrap();
-
-        name_spaces.modify_first_attributes(|attributes| {
-            attributes.swap(0, 1);
-        });
-
-        (device_response, example_items_requests(), Ok(()))
-    }
-
-    // remove all disclosed documents
-    fn remove_documents() -> (DeviceResponse, ItemsRequests, Result<(), Vec<AttributeIdentifier>>) {
-        let mut device_response = DeviceResponse::example();
-        device_response.documents = None;
-
-        let items_requests = example_items_requests();
-        let missing = attribute_identifiers(&items_requests);
-        (device_response, items_requests, Err(missing))
-    }
-
-    // remove a single disclosed document
-    fn remove_document() -> (DeviceResponse, ItemsRequests, Result<(), Vec<AttributeIdentifier>>) {
-        let mut device_response = DeviceResponse::example();
-        device_response.documents.as_mut().unwrap().pop();
-
-        let items_requests = example_items_requests();
-        let missing = attribute_identifiers(&items_requests);
-        (device_response, items_requests, Err(missing))
-    }
-
-    // Change the first doctype so it is not the requested one
-    fn change_doctype() -> (DeviceResponse, ItemsRequests, Result<(), Vec<AttributeIdentifier>>) {
-        let mut device_response = DeviceResponse::example();
-        device_response
-            .documents
-            .as_mut()
-            .unwrap()
-            .first_mut()
-            .unwrap()
-            .doc_type = "some_not_requested_doc_type".to_string();
-
-        let items_requests = example_items_requests();
-        let missing = attribute_identifiers(&items_requests);
-        (device_response, items_requests, Err(missing))
-    }
-
-    // Change a namespace so it is not the requested one
-    fn change_namespace() -> (DeviceResponse, ItemsRequests, Result<(), Vec<AttributeIdentifier>>) {
-        let mut device_response = DeviceResponse::example();
-        let first_document = device_response.documents.as_mut().unwrap().first_mut().unwrap();
-        let name_spaces = first_document.issuer_signed.name_spaces.as_mut().unwrap();
-
-        name_spaces.modify_namespaces(|name_spaces| {
-            let (_, attributes) = name_spaces.pop().unwrap();
-            name_spaces.insert("some_not_requested_name_space".to_string(), attributes);
-        });
-
-        let items_requests = example_items_requests();
-        let missing = attribute_identifiers(&items_requests);
-        (device_response, items_requests, Err(missing))
-    }
-
-    // Remove one of the disclosed attributes
-    fn remove_attribute() -> (DeviceResponse, ItemsRequests, Result<(), Vec<AttributeIdentifier>>) {
-        let mut device_response = DeviceResponse::example();
-        let first_document = device_response.documents.as_mut().unwrap().first_mut().unwrap();
-        let name_spaces = first_document.issuer_signed.name_spaces.as_mut().unwrap();
-
-        name_spaces.modify_first_attributes(|attributes| {
-            attributes.pop();
-        });
-
-        let items_requests = example_items_requests();
-        let missing = vec![attribute_identifiers(&items_requests).last().unwrap().clone()];
-        (device_response, items_requests, Err(missing))
-    }
-
-    // Add one extra document with doc_type "a", and swap the order in the items_requests
-    fn multiple_doc_types_swapped() -> (DeviceResponse, ItemsRequests, Result<(), Vec<AttributeIdentifier>>) {
-        let mut device_response = DeviceResponse::example();
-        let mut cloned_doc: Document = device_response.documents.as_ref().unwrap()[0].clone();
-        cloned_doc.doc_type = "a".to_string();
-        device_response.documents.as_mut().unwrap().push(cloned_doc);
-
-        let mut items_requests = example_items_requests();
-        let mut cloned_items_request = items_requests.0[0].clone();
-        cloned_items_request.doc_type = "a".to_string();
-        items_requests.0.push(cloned_items_request);
-
-        // swap the document order in items_requests
-        items_requests.0.reverse();
-
-        (device_response, items_requests, Ok(()))
     }
 }

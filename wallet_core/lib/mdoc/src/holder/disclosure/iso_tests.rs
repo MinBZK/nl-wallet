@@ -24,27 +24,6 @@ use crate::test;
 use crate::test::DebugCollapseBts;
 use crate::utils::serialization::CborSeq;
 use crate::utils::serialization::TaggedBytes;
-use crate::verifier::ItemsRequests;
-
-impl From<ItemsRequest> for Vec<VecNonEmpty<ClaimPath>> {
-    fn from(value: ItemsRequest) -> Self {
-        value
-            .name_spaces
-            .into_iter()
-            .flat_map(|(name_space, attributes)| {
-                let attribute_count = attributes.len();
-
-                itertools::repeat_n(name_space, attribute_count).zip(attributes).map(
-                    |(name_space, (attribute, _intent_to_retain))| {
-                        vec![ClaimPath::SelectByKey(name_space), ClaimPath::SelectByKey(attribute)]
-                            .try_into()
-                            .unwrap()
-                    },
-                )
-            })
-            .collect()
-    }
-}
 
 fn create_example_device_response(
     device_request: DeviceRequest,
@@ -53,7 +32,7 @@ fn create_example_device_response(
 ) -> DeviceResponse {
     let mut mdoc = Mdoc::new_example_resigned(ca).now_or_never().unwrap();
 
-    let ItemsRequests(items_requests) = device_request.into_items_requests();
+    let items_requests = device_request.into_items_requests();
 
     let first_request = items_requests
         .into_iter()

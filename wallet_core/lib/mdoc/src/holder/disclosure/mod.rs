@@ -12,7 +12,7 @@ mod issuer_signed;
 mod mdoc;
 
 #[cfg(test)]
-mod doc_request;
+mod device_retrieval;
 #[cfg(test)]
 mod iso_tests;
 
