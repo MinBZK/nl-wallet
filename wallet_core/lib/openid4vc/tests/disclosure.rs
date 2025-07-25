@@ -84,10 +84,8 @@ use openid4vc::verifier::WalletInitiatedUseCase;
 use openid4vc::verifier::WalletInitiatedUseCases;
 use utils::generator::TimeGenerator;
 use utils::generator::mock::MockTimeGenerator;
-use utils::vec_at_least::VecAtLeastTwoUnique;
 use utils::vec_at_least::VecNonEmpty;
 use wscd::Poa;
-use wscd::factory::PoaFactory;
 use wscd::keyfactory::DisclosureResult;
 use wscd::keyfactory::IssuanceResult;
 use wscd::keyfactory::JwtPoaInput;
@@ -695,20 +693,6 @@ async fn test_disclosure_invalid_poa() {
             include_wua: bool,
         ) -> Result<IssuanceResult<Self::Poa>, Self::Error> {
             self.0.perform_issuance(count, aud, nonce, include_wua).await
-        }
-    }
-
-    impl PoaFactory for WrongPoaKeyFactory {
-        type Key = MockRemoteEcdsaKey;
-        type Error = MockRemoteKeyFactoryError;
-
-        async fn poa(
-            &self,
-            keys: VecAtLeastTwoUnique<&Self::Key>,
-            _: String,
-            _: Option<String>,
-        ) -> Result<Poa, Self::Error> {
-            self.0.poa(keys, "".to_owned(), Some("".to_owned())).await
         }
     }
 

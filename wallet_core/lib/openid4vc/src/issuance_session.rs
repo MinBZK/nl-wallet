@@ -51,7 +51,6 @@ use utils::single_unique::MultipleItemsFound;
 use utils::single_unique::SingleUnique;
 use utils::vec_at_least::VecNonEmpty;
 use wscd::Poa;
-use wscd::factory::PoaFactory;
 use wscd::keyfactory::KeyFactory;
 
 use crate::CredentialErrorCode;
@@ -278,7 +277,7 @@ pub trait IssuanceSession<H = HttpVcMessageClient> {
     ) -> Result<Vec<CredentialWithMetadata>, IssuanceSessionError>
     where
         K: CredentialEcdsaKey + Eq + Hash,
-        KF: KeyFactory<Key = K, Poa = Poa> + PoaFactory<Key = K>;
+        KF: KeyFactory<Key = K, Poa = Poa>;
 
     async fn reject_issuance(self) -> Result<(), IssuanceSessionError>;
 
@@ -687,7 +686,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
     ) -> Result<Vec<CredentialWithMetadata>, IssuanceSessionError>
     where
         K: CredentialEcdsaKey + Eq + Hash,
-        KF: KeyFactory<Key = K, Poa = Poa> + PoaFactory<Key = K>,
+        KF: KeyFactory<Key = K, Poa = Poa>,
     {
         let key_count = (self.session_state.credential_request_types.len() as u64)
             .try_into()

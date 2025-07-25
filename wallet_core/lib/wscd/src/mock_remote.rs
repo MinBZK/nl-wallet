@@ -30,8 +30,8 @@ use jwt::pop::JwtPopClaims;
 use jwt::wte::WteClaims;
 use jwt::wte::WteDisclosure;
 
+use crate::MOCK_WALLET_CLIENT_ID;
 use crate::Poa;
-use crate::factory::mock::MOCK_WALLET_CLIENT_ID;
 use crate::keyfactory::DisclosureResult;
 use crate::keyfactory::IssuanceResult;
 use crate::keyfactory::JwtPoaInput;
