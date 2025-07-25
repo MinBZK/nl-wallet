@@ -460,7 +460,23 @@ impl HandleInstruction for Sign {
         }))
         .await?;
 
-        Ok(SignResult { signatures })
+        if found_keys.len() < 2 {
+            Ok(SignResult { signatures, poa: None })
+        } else {
+            // We have to feed a Vec of references to `Poa::new()`, so we need to iterate twice to construct that.
+            let keys = found_keys
+                .values()
+                .map(|wrapped_key| attestation_key(wrapped_key, user_state))
+                .collect_vec();
+            let keys = keys.iter().collect_vec().try_into().unwrap(); // We know there are at least two keys
+            let claims = JwtPopClaims::new(self.poa_nonce, NL_WALLET_CLIENT_ID.to_string(), self.poa_aud);
+            let poa = Poa::new(keys, claims).await?;
+
+            Ok(SignResult {
+                signatures,
+                poa: Some(poa),
+            })
+        }
     }
 }
 
@@ -668,6 +684,8 @@ mod tests {
                 (random_msg_1.clone(), vec!["key1".to_string(), "key2".to_string()]),
                 (random_msg_2.clone(), vec!["key2".to_string()]),
             ],
+            poa_nonce: Some("nonce".to_string()),
+            poa_aud: "aud".to_string(),
         };
         let signing_key_1 = SigningKey::random(&mut OsRng);
         let signing_key_2 = SigningKey::random(&mut OsRng);
@@ -827,6 +845,8 @@ mod tests {
 
         let instruction = Sign {
             messages_with_identifiers: vec![(mock_jwt_payload(r#"{"typ":"poa+jwt"}"#), vec!["key".to_string()])],
+            poa_nonce: Some("nonce".to_string()),
+            poa_aud: "aud".to_string(),
         };
 
         let err = instruction.validate_instruction(&wallet_user).unwrap_err();

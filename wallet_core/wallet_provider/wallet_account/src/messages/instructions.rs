@@ -165,6 +165,8 @@ impl InstructionAndResult for PerformIssuanceWithWua {
 pub struct Sign {
     #[serde_as(as = "Vec<(Base64, _)>")]
     pub messages_with_identifiers: Vec<(Vec<u8>, Vec<String>)>,
+    pub poa_nonce: Option<String>,
+    pub poa_aud: String,
 }
 
 #[serde_as]
@@ -172,6 +174,7 @@ pub struct Sign {
 pub struct SignResult {
     #[serde_as(as = "Vec<Vec<Base64>>")]
     pub signatures: Vec<Vec<DerSignature>>,
+    pub poa: Option<Poa>,
 }
 
 impl InstructionAndResult for Sign {

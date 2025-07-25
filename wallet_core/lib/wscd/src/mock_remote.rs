@@ -32,7 +32,9 @@ use jwt::wte::WteDisclosure;
 
 use crate::Poa;
 use crate::factory::mock::MOCK_WALLET_CLIENT_ID;
+use crate::keyfactory::DisclosureResult;
 use crate::keyfactory::IssuanceResult;
+use crate::keyfactory::JwtPoaInput;
 use crate::keyfactory::KeyFactory;
 
 #[derive(Debug, thiserror::Error)]
@@ -166,6 +168,8 @@ impl Default for MockRemoteKeyFactory {
 impl KeyFactory for MockRemoteKeyFactory {
     type Key = MockRemoteEcdsaKey;
     type Error = MockRemoteKeyFactoryError;
+    type Poa = Poa;
+    type PoaInput = JwtPoaInput;
 
     fn generate_existing<I: Into<String>>(&self, identifier: I, public_key: VerifyingKey) -> Self::Key {
         let identifier = identifier.into();
@@ -190,17 +194,18 @@ impl KeyFactory for MockRemoteKeyFactory {
     async fn sign_multiple_with_existing_keys(
         &self,
         messages_and_keys: Vec<(Vec<u8>, Vec<&Self::Key>)>,
-    ) -> Result<Vec<Vec<Signature>>, Self::Error> {
+        poa_input: Self::PoaInput,
+    ) -> Result<DisclosureResult<Self::Poa>, Self::Error> {
         if self.has_multi_key_signing_error {
             return Err(MockRemoteKeyFactoryError::Signing);
         }
 
-        let result = future::try_join_all(
+        let signatures = future::try_join_all(
             messages_and_keys
-                .into_iter()
+                .iter()
                 .map(|(msg, keys)| async move {
-                    let signatures = future::try_join_all(keys.into_iter().map(|key| async {
-                        let signature = key.try_sign(&msg).await.map_err(MockRemoteKeyFactoryError::Ecdsa)?;
+                    let signatures = future::try_join_all(keys.iter().map(|key| async {
+                        let signature = key.try_sign(msg).await.map_err(MockRemoteKeyFactoryError::Ecdsa)?;
 
                         Ok::<_, MockRemoteKeyFactoryError>(signature)
                     }))
@@ -214,7 +219,21 @@ impl KeyFactory for MockRemoteKeyFactory {
         )
         .await?;
 
-        Ok(result)
+        let keys = messages_and_keys.into_iter().flat_map(|(_, keys)| keys).collect_vec();
+        let poa = if keys.len() < 2 {
+            None
+        } else {
+            Some(
+                Poa::new(
+                    keys.try_into().unwrap(),
+                    JwtPopClaims::new(poa_input.nonce, MOCK_WALLET_CLIENT_ID.to_string(), poa_input.aud),
+                )
+                .await
+                .map_err(|_| MockRemoteKeyFactoryError::Poa)?,
+            )
+        };
+
+        Ok(DisclosureResult { signatures, poa })
     }
 
     async fn perform_issuance(
@@ -223,7 +242,7 @@ impl KeyFactory for MockRemoteKeyFactory {
         aud: String,
         nonce: Option<String>,
         include_wua: bool,
-    ) -> Result<IssuanceResult, Self::Error> {
+    ) -> Result<IssuanceResult<Self::Poa>, Self::Error> {
         let claims = JwtPopClaims::new(nonce, MOCK_WALLET_CLIENT_ID.to_string(), aud);
 
         let mut keys = self.signing_keys.lock();

@@ -3,6 +3,7 @@ use indexmap::IndexMap;
 
 use crypto::examples::Examples;
 use crypto::server_keys::generate::Ca;
+use wscd::keyfactory::JwtPoaInput;
 use wscd::mock_remote::MockRemoteKeyFactory;
 
 use crate::examples::EXAMPLE_ATTR_NAME;
@@ -38,11 +39,15 @@ fn create_example_device_response(
         .issuer_signed
         .into_attribute_subset(&items_requests.to_mdoc_paths(&mdoc.mso.doc_type));
 
-    let (device_response, _) =
-        DeviceResponse::sign_from_mdocs(vec![mdoc], session_transcript, &MockRemoteKeyFactory::new_example())
-            .now_or_never()
-            .unwrap()
-            .unwrap();
+    let (device_response, _, _) = DeviceResponse::sign_from_mdocs(
+        vec![mdoc],
+        session_transcript,
+        &MockRemoteKeyFactory::new_example(),
+        JwtPoaInput::new(Some("nonce".to_string()), "aud".to_string()),
+    )
+    .now_or_never()
+    .unwrap()
+    .unwrap();
 
     device_response
 }
