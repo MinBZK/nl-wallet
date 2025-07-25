@@ -957,16 +957,14 @@ mod tests {
     const PIN: &str = "051097";
     static RETURN_URL: LazyLock<BaseUrl> =
         LazyLock::new(|| BaseUrl::from_str("https://example.com/return/here").unwrap());
-    static DEFAULT_REQUESTED_PID_PATH: LazyLock<Vec<String>> =
-        LazyLock::new(|| vec![PID_DOCTYPE.to_string(), "age_over_18".to_string()]);
+    static DEFAULT_REQUESTED_PID_PATH: LazyLock<Vec<&str>> = LazyLock::new(|| vec![PID_DOCTYPE, "age_over_18"]);
 
     // Set up properties for a `MockDisclosureSession`.
     fn setup_disclosure_session_verifier_certificate(
         verifier_certificate: VerifierCertificate,
-        requested_pid_path: Vec<String>,
+        requested_pid_path: &[&str],
     ) -> MockDisclosureSession {
-        let credential_requests =
-            normalized::mock::mock_mdoc_from_vecs(vec![(PID_DOCTYPE.to_string(), vec![requested_pid_path])]);
+        let credential_requests = normalized::mock::mock_mdoc_from_slices(&[(PID_DOCTYPE, &[requested_pid_path])]);
 
         let mut disclosure_session = MockDisclosureSession::new();
         disclosure_session
@@ -983,7 +981,7 @@ mod tests {
     }
 
     // Set up properties for a `MockDisclosureSession`.
-    fn setup_disclosure_session(requested_pid_path: Vec<String>) -> (MockDisclosureSession, VerifierCertificate) {
+    fn setup_disclosure_session(requested_pid_path: &[&str]) -> (MockDisclosureSession, VerifierCertificate) {
         let ca = Ca::generate_reader_mock_ca().unwrap();
         let reader_registration = ReaderRegistration::new_mock();
         let key_pair = generate_reader_mock(&ca, Some(reader_registration)).unwrap();
@@ -998,7 +996,7 @@ mod tests {
     /// Set up the expected response of `MockDisclosureClient` when starting a new `MockDisclosureSession`.
     fn setup_disclosure_client_start(
         disclosure_client: &mut MockDisclosureClient,
-        requested_pid_path: Vec<String>,
+        requested_pid_path: &[&str],
     ) -> VerifierCertificate {
         let (disclosure_session, verifier_certificate) = setup_disclosure_session(requested_pid_path);
 
@@ -1015,7 +1013,8 @@ mod tests {
         Session<MockDigidSession<TlsPinningConfig>, MockIssuanceSession, MockDisclosureSession>,
         VerifierCertificate,
     ) {
-        let (disclosure_session, verifier_certificate) = setup_disclosure_session(DEFAULT_REQUESTED_PID_PATH.clone());
+        let (disclosure_session, verifier_certificate) =
+            setup_disclosure_session(DEFAULT_REQUESTED_PID_PATH.as_slice());
 
         let session = Session::Disclosure(WalletDisclosureSession::new_missing_attributes(
             RedirectUriPurpose::Browser,
@@ -1030,7 +1029,8 @@ mod tests {
         Session<MockDigidSession<TlsPinningConfig>, MockIssuanceSession, MockDisclosureSession>,
         VerifierCertificate,
     ) {
-        let (disclosure_session, verifier_certificate) = setup_disclosure_session(DEFAULT_REQUESTED_PID_PATH.clone());
+        let (disclosure_session, verifier_certificate) =
+            setup_disclosure_session(DEFAULT_REQUESTED_PID_PATH.as_slice());
 
         let mdoc_credential = create_example_pid_mdoc_credential();
         let metadata = mdoc_credential.metadata_documents.to_normalized().unwrap();
@@ -1084,7 +1084,7 @@ mod tests {
 
         // Set up the relevant mocks.
         let verifier_certificate =
-            setup_disclosure_client_start(&mut wallet.disclosure_client, DEFAULT_REQUESTED_PID_PATH.clone());
+            setup_disclosure_client_start(&mut wallet.disclosure_client, DEFAULT_REQUESTED_PID_PATH.as_slice());
 
         // Starting disclosure should not fail.
         let proposal = wallet
@@ -1378,7 +1378,7 @@ mod tests {
 
         wallet.mut_storage().has_query_error = true;
         let _verifier_certificate =
-            setup_disclosure_client_start(&mut wallet.disclosure_client, DEFAULT_REQUESTED_PID_PATH.clone());
+            setup_disclosure_client_start(&mut wallet.disclosure_client, DEFAULT_REQUESTED_PID_PATH.as_slice());
 
         // Starting disclosure on a wallet that has a faulty database should result in an error.
         let error = wallet
@@ -1398,7 +1398,7 @@ mod tests {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         let verifier_certificate =
-            setup_disclosure_client_start(&mut wallet.disclosure_client, DEFAULT_REQUESTED_PID_PATH.clone());
+            setup_disclosure_client_start(&mut wallet.disclosure_client, DEFAULT_REQUESTED_PID_PATH.as_slice());
 
         // Starting disclosure where an unavailable attribute is requested should result in an error.
         // As an exception, this error should leave the `Wallet` with an active disclosure session.
@@ -1428,10 +1428,8 @@ mod tests {
 
         // Set the requested attribute path to something that will not match the mdoc 2-tuple
         // of namespace and attribute, which should lead to no candidates being available.
-        let verifier_certificate = setup_disclosure_client_start(
-            &mut wallet.disclosure_client,
-            vec!["long".to_string(), "path".to_string(), "age_over_18".to_string()],
-        );
+        let verifier_certificate =
+            setup_disclosure_client_start(&mut wallet.disclosure_client, &["long", "path", "age_over_18"]);
 
         let mdoc_credential = create_example_pid_mdoc_credential();
         wallet
@@ -1482,7 +1480,7 @@ mod tests {
         );
 
         let _verifier_certificate =
-            setup_disclosure_client_start(&mut wallet.disclosure_client, DEFAULT_REQUESTED_PID_PATH.clone());
+            setup_disclosure_client_start(&mut wallet.disclosure_client, DEFAULT_REQUESTED_PID_PATH.as_slice());
 
         // Starting disclosure on a wallet that contains multiple instances
         // of the same attestation type should result in an error.
@@ -2005,7 +2003,7 @@ mod tests {
             Err((
                 setup_disclosure_session_verifier_certificate(
                     disclose_verifier_certificate,
-                    DEFAULT_REQUESTED_PID_PATH.clone(),
+                    DEFAULT_REQUESTED_PID_PATH.as_slice(),
                 ),
                 disclosure_error,
             ))
@@ -2075,7 +2073,7 @@ mod tests {
             Err((
                 setup_disclosure_session_verifier_certificate(
                     disclose_verifier_certificate,
-                    DEFAULT_REQUESTED_PID_PATH.clone(),
+                    DEFAULT_REQUESTED_PID_PATH.as_slice(),
                 ),
                 disclosure_error,
             ))
@@ -2178,7 +2176,7 @@ mod tests {
             .return_once(move |_mdocs| {
                 let mut session = setup_disclosure_session_verifier_certificate(
                     disclose_verifier_certificate,
-                    DEFAULT_REQUESTED_PID_PATH.clone(),
+                    DEFAULT_REQUESTED_PID_PATH.as_slice(),
                 );
 
                 if instruction_expectation == InstructionExpectation::Termination {

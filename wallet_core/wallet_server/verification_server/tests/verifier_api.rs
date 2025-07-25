@@ -76,9 +76,9 @@ const USECASE_NAME: &str = "usecase";
 static EXAMPLE_START_DISCLOSURE_REQUEST: LazyLock<StartDisclosureRequest> = LazyLock::new(|| StartDisclosureRequest {
     usecase: USECASE_NAME.to_string(),
     return_url_template: Some("https://return.url/{session_token}".parse().unwrap()),
-    credential_requests: Some(normalized::mock::mock_mdoc_from_vecs(vec![(
-        EXAMPLE_DOC_TYPE.to_string(),
-        vec![vec![EXAMPLE_NAMESPACE.to_string(), EXAMPLE_ATTR_NAME.to_string()]],
+    credential_requests: Some(normalized::mock::mock_mdoc_from_slices(&[(
+        EXAMPLE_DOC_TYPE,
+        &[&[EXAMPLE_NAMESPACE, EXAMPLE_ATTR_NAME]],
     )])),
 });
 
@@ -86,9 +86,9 @@ static EXAMPLE_PID_START_DISCLOSURE_REQUEST: LazyLock<StartDisclosureRequest> =
     LazyLock::new(|| StartDisclosureRequest {
         usecase: USECASE_NAME.to_string(),
         return_url_template: Some("https://return.url/{session_token}".parse().unwrap()),
-        credential_requests: Some(normalized::mock::mock_mdoc_from_vecs(vec![(
-            PID_ATTESTATION_TYPE.to_string(),
-            vec![vec![PID_ATTESTATION_TYPE.to_string(), EXAMPLE_ATTR_NAME.to_string()]],
+        credential_requests: Some(normalized::mock::mock_mdoc_from_slices(&[(
+            PID_ATTESTATION_TYPE,
+            &[&[PID_ATTESTATION_TYPE, EXAMPLE_ATTR_NAME]],
         )])),
     });
 

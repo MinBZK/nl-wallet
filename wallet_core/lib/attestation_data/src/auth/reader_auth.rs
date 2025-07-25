@@ -273,54 +273,54 @@ mod test {
 
     #[rstest]
     #[case(
-        normalized::mock::mock_mdoc_from_vecs(vec![
+        normalized::mock::mock_mdoc_from_slices(&[
             (
-                "some_doctype".to_string(),
-                vec![
-                    vec!["some_namespace".to_string(), "some_attribute".to_string()],
-                    vec!["some_namespace".to_string(), "another_attribute".to_string()],
-                    vec!["another_namespace".to_string(), "some_attribute".to_string()],
-                    vec!["another_namespace".to_string(), "another_attribute".to_string()],
+                "some_doctype",
+                &[
+                    &["some_namespace", "some_attribute"],
+                    &["some_namespace", "another_attribute"],
+                    &["another_namespace", "some_attribute"],
+                    &["another_namespace", "another_attribute"],
                 ]
             ),
             (
-                "another_doctype".to_string(),
-                vec![
-                    vec!["some_namespace".to_string(), "some_attribute".to_string()],
-                    vec!["some_namespace".to_string(), "another_attribute".to_string()],
+                "another_doctype",
+                &[
+                    &["some_namespace", "some_attribute"],
+                    &["some_namespace", "another_attribute"],
                 ]
             ),
         ]),
         None
     )]
     #[case(
-        normalized::mock::mock_sd_jwt_from_vecs(vec![(
-            vec!["some_doctype".to_string(), "another_doctype".to_string()],
-            vec![
-                vec!["some_namespace".to_string(), "some_attribute".to_string()],
-                vec!["some_namespace".to_string(), "another_attribute".to_string()],
-                vec!["another_namespace".to_string(), "some_attribute".to_string()],
-                vec!["another_namespace".to_string(), "another_attribute".to_string()],
+        normalized::mock::mock_sd_jwt_from_slices(&[(
+            &["some_doctype", "another_doctype"],
+            &[
+                &["some_namespace", "some_attribute"],
+                &["some_namespace", "another_attribute"],
+                &["another_namespace", "some_attribute"],
+                &["another_namespace", "another_attribute"],
             ],
         )]),
         None
     )]
     #[case(
-        normalized::mock::mock_mdoc_from_vecs(vec![
+        normalized::mock::mock_mdoc_from_slices(&[
             (
-                "some_doctype".to_string(),
-                vec![
-                    vec!["some_namespace".to_string(), "some_attribute".to_string()],
-                    vec!["some_namespace".to_string(), "missing_attribute".to_string()],
-                    vec!["missing_namespace".to_string(), "some_attribute".to_string()],
-                    vec!["missing_namespace".to_string(), "another_attribute".to_string()],
+                "some_doctype",
+                &[
+                    &["some_namespace", "some_attribute"],
+                    &["some_namespace", "missing_attribute"],
+                    &["missing_namespace", "some_attribute"],
+                    &["missing_namespace", "another_attribute"],
                 ]
             ),
             (
-                "missing_doctype".to_string(),
-                vec![
-                    vec!["some_namespace".to_string(), "some_attribute".to_string()],
-                    vec!["some_namespace".to_string(), "another_attribute".to_string()],
+                "missing_doctype",
+                &[
+                    &["some_namespace", "some_attribute"],
+                    &["some_namespace", "another_attribute"],
                 ]
             ),
         ]),
@@ -368,13 +368,13 @@ mod test {
         ]))
     )]
     #[case(
-        normalized::mock::mock_sd_jwt_from_vecs(vec![(
-            vec!["some_doctype".to_string(), "missing_doctype".to_string()],
-            vec![
-                vec!["some_namespace".to_string(), "some_attribute".to_string()],
-                vec!["some_namespace".to_string(), "missing_attribute".to_string()],
-                vec!["another_namespace".to_string(), "some_attribute".to_string()],
-                vec!["missing_namespace".to_string(), "another_attribute".to_string()],
+        normalized::mock::mock_sd_jwt_from_slices(&[(
+            &["some_doctype", "missing_doctype"],
+            &[
+                &["some_namespace", "some_attribute"],
+                &["some_namespace", "missing_attribute"],
+                &["another_namespace", "some_attribute"],
+                &["missing_namespace", "another_attribute"],
             ],
         )]),
         Some(HashMap::from([

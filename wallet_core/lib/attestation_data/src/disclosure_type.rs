@@ -68,43 +68,27 @@ mod test {
     }
 
     fn pid_bsn_attribute_paths() -> VecNonEmpty<NormalizedCredentialRequest> {
-        normalized::mock::mock_mdoc_from_vecs(vec![(
-            LOGIN_ATTESTATION_TYPE.to_string(),
-            vec![vec![LOGIN_NAMESPACE.to_string(), LOGIN_ATTRIBUTE_ID.to_string()]],
-        )])
+        normalized::mock::mock_mdoc_from_slices(&[(LOGIN_ATTESTATION_TYPE, &[&[LOGIN_NAMESPACE, LOGIN_ATTRIBUTE_ID]])])
     }
 
     fn pid_bsn_and_other_attribute_paths() -> VecNonEmpty<NormalizedCredentialRequest> {
-        normalized::mock::mock_mdoc_from_vecs(vec![(
-            LOGIN_ATTESTATION_TYPE.to_string(),
-            vec![
-                vec![LOGIN_NAMESPACE.to_string(), LOGIN_ATTRIBUTE_ID.to_string()],
-                vec![LOGIN_NAMESPACE.to_string(), "other".to_string()],
-            ],
+        normalized::mock::mock_mdoc_from_slices(&[(
+            LOGIN_ATTESTATION_TYPE,
+            &[&[LOGIN_NAMESPACE, LOGIN_ATTRIBUTE_ID], &[LOGIN_NAMESPACE, "other"]],
         )])
     }
 
     fn pid_and_other_bsn_attribute_paths() -> VecNonEmpty<NormalizedCredentialRequest> {
-        normalized::mock::mock_mdoc_from_vecs(vec![
-            (
-                LOGIN_ATTESTATION_TYPE.to_string(),
-                vec![vec![LOGIN_NAMESPACE.to_string(), LOGIN_ATTRIBUTE_ID.to_string()]],
-            ),
-            (
-                "other".to_string(),
-                vec![vec![LOGIN_NAMESPACE.to_string(), LOGIN_ATTRIBUTE_ID.to_string()]],
-            ),
+        normalized::mock::mock_mdoc_from_slices(&[
+            (LOGIN_ATTESTATION_TYPE, &[&[LOGIN_NAMESPACE, LOGIN_ATTRIBUTE_ID]]),
+            ("other", &[&[LOGIN_NAMESPACE, LOGIN_ATTRIBUTE_ID]]),
         ])
     }
 
     fn pid_too_long_attribute_paths() -> VecNonEmpty<NormalizedCredentialRequest> {
-        normalized::mock::mock_mdoc_from_vecs(vec![(
-            LOGIN_ATTESTATION_TYPE.to_string(),
-            vec![vec![
-                LOGIN_NAMESPACE.to_string(),
-                LOGIN_NAMESPACE.to_string(),
-                LOGIN_ATTRIBUTE_ID.to_string(),
-            ]],
+        normalized::mock::mock_mdoc_from_slices(&[(
+            LOGIN_ATTESTATION_TYPE,
+            &[&[LOGIN_NAMESPACE, LOGIN_NAMESPACE, LOGIN_ATTRIBUTE_ID]],
         )])
     }
 }
