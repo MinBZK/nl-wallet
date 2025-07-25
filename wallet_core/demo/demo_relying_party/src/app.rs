@@ -154,10 +154,7 @@ async fn create_session(
     language: Language,
     Json(options): Json<SessionOptions>,
 ) -> Result<Json<SessionResponse>> {
-    let usecase = state
-        .usecases
-        .get(&options.usecase)
-        .ok_or(anyhow::Error::msg("usecase not found"))?;
+    let usecase = state.usecases.get(&options.usecase).cloned().unwrap_or_default();
 
     let return_url_template = match usecase.return_url {
         ReturnUrlMode::None => None,
@@ -175,7 +172,7 @@ async fn create_session(
 
     let session_token = state
         .client
-        .start(options.usecase, usecase.dcql_query.clone(), return_url_template)
+        .start(options.usecase, usecase.dcql_query, return_url_template)
         .await?;
 
     let result = SessionResponse {
@@ -223,10 +220,6 @@ async fn usecase(
     Path(usecase): Path<String>,
     language: Language,
 ) -> Response {
-    if !state.usecases.contains_key(&usecase) {
-        return StatusCode::NOT_FOUND.into_response();
-    }
-
     let start_url = format_start_url(&state.public_url, language);
     UsecaseTemplate {
         usecase: &usecase,
@@ -267,10 +260,6 @@ async fn disclosed_attributes(
     Query(params): Query<DisclosedAttributesParams>,
     language: Language,
 ) -> Response {
-    if !state.usecases.contains_key(&usecase) {
-        return StatusCode::NOT_FOUND.into_response();
-    }
-
     let attributes = state
         .client
         .disclosed_attributes(params.session_token.clone(), params.nonce.clone())
