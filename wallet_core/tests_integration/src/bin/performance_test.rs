@@ -3,7 +3,7 @@ use reqwest::StatusCode;
 use tracing::instrument;
 use url::Url;
 
-use dcql::normalized;
+use dcql::Query;
 use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::tls::pinning::TlsPinningConfig;
 use openid4vc::disclosure_session::VpDisclosureClient;
@@ -118,13 +118,7 @@ async fn main() {
 
     let start_request = StartDisclosureRequest {
         usecase: "xyz_bank".to_owned(),
-        credential_requests: Some(normalized::mock::mock_mdoc_from_slices(&[(
-            "urn:eudi:pid:nl:1",
-            &[
-                &["urn:eudi:pid:nl:1", "given_name"],
-                &["urn:eudi:pid:nl:1", "family_name"],
-            ],
-        )])),
+        dcql_query: Some(Query::pid_full_name()),
         return_url_template: Some(relying_party_url.parse().unwrap()),
     };
 

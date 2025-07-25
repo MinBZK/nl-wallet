@@ -1547,6 +1547,20 @@ class WalletCoreWire implements BaseWire {
   late final _wire__crate__api__full__create_pid_issuance_redirect_uri =
       _wire__crate__api__full__create_pid_issuance_redirect_uriPtr.asFunction<void Function(int)>();
 
+  void wire__crate__api__full__create_pid_renewal_redirect_uri(
+    int port_,
+  ) {
+    return _wire__crate__api__full__create_pid_renewal_redirect_uri(
+      port_,
+    );
+  }
+
+  late final _wire__crate__api__full__create_pid_renewal_redirect_uriPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
+          'frbgen_wallet_core_wire__crate__api__full__create_pid_renewal_redirect_uri');
+  late final _wire__crate__api__full__create_pid_renewal_redirect_uri =
+      _wire__crate__api__full__create_pid_renewal_redirect_uriPtr.asFunction<void Function(int)>();
+
   void wire__crate__api__full__get_history(
     int port_,
   ) {

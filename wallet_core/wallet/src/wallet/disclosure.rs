@@ -260,6 +260,7 @@ impl RedirectUriPurpose {
         let purpose = identify_uri(uri)
             .and_then(|uri_type| match uri_type {
                 UriType::PidIssuance => None,
+                UriType::PidRenewal => None,
                 UriType::Disclosure => Some(Self::Browser),
                 UriType::DisclosureBasedIssuance => Some(Self::Issuance),
             })

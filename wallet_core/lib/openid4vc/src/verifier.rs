@@ -40,7 +40,9 @@ use crypto::keys::EcdsaKey;
 use crypto::server_keys::KeyPair;
 use crypto::utils::random_string;
 use crypto::x509::CertificateError;
+use dcql::Query;
 use dcql::normalized::NormalizedCredentialRequest;
+use dcql::normalized::UnsupportedDcqlFeatures;
 use http_utils::urls::BaseUrl;
 use jwt::Jwt;
 use jwt::error::JwtError;
@@ -94,6 +96,8 @@ pub enum NewSessionError {
     UnknownUseCase(String),
     #[error("presence or absence of return url template does not match configuration for the required use case")]
     ReturnUrlConfigurationMismatch,
+    #[error("request contains unsupported DCQL features: {0}")]
+    UnsupportedDcqlFeatures(#[from] UnsupportedDcqlFeatures),
 }
 
 /// Errors returned by the session status endpoint, used by the web front-end.
@@ -515,7 +519,7 @@ pub trait UseCase {
     fn new_session(
         &self,
         id: String,
-        credential_requests: Option<VecNonEmpty<NormalizedCredentialRequest>>,
+        dcql_query: Option<Query>,
         return_url_template: Option<ReturnUrlTemplate>,
     ) -> Result<Session<Created>, NewSessionError>;
 }
@@ -544,7 +548,7 @@ pub trait UseCases {
 #[derive(Debug)]
 pub struct RpInitiatedUseCase<K> {
     data: UseCaseData<K>,
-    credential_requests: Option<VecNonEmpty<NormalizedCredentialRequest>>,
+    dcql_query: Option<Query>,
     return_url_template: Option<ReturnUrlTemplate>,
 }
 
@@ -565,7 +569,7 @@ impl<K> RpInitiatedUseCase<K> {
     pub fn try_new(
         key_pair: KeyPair<K>,
         session_type_return_url: SessionTypeReturnUrl,
-        credential_requests: Option<VecNonEmpty<NormalizedCredentialRequest>>,
+        dcql_query: Option<Query>,
         return_url_template: Option<ReturnUrlTemplate>,
     ) -> Result<Self, NewDisclosureUseCaseError> {
         let client_id = client_id_from_key_pair(&key_pair)?;
@@ -575,7 +579,7 @@ impl<K> RpInitiatedUseCase<K> {
                 client_id,
                 session_type_return_url,
             },
-            credential_requests,
+            dcql_query,
             return_url_template,
         };
 
@@ -593,7 +597,7 @@ impl<K: EcdsaKeySend> UseCase for RpInitiatedUseCase<K> {
     fn new_session(
         &self,
         id: String,
-        credential_requests: Option<VecNonEmpty<NormalizedCredentialRequest>>,
+        dcql_query: Option<Query>,
         return_url_template: Option<ReturnUrlTemplate>,
     ) -> Result<Session<Created>, NewSessionError> {
         // If the caller passes a `return_url_template` then we use that,
@@ -614,13 +618,13 @@ impl<K: EcdsaKeySend> UseCase for RpInitiatedUseCase<K> {
             return Err(NewSessionError::ReturnUrlConfigurationMismatch);
         }
 
-        // We use either the specified credential_requests, or if not specified, the one configured in the usecase.
-        let credential_requests = credential_requests
-            .or_else(|| self.credential_requests.clone())
+        // We use either the specified dcql_query, or if not specified, the one configured in the usecase.
+        let dcql_query = dcql_query
+            .or_else(|| self.dcql_query.clone())
             .ok_or_else(|| NewSessionError::NoCredentialRequests)?;
 
         let session = Session::<Created>::new(
-            credential_requests,
+            dcql_query.try_into()?,
             id,
             self.data.client_id.clone(),
             redirect_uri_template,
@@ -723,7 +727,7 @@ impl<K, S> RpInitiatedUseCases<K, S> {
 #[derive(Debug, Constructor)]
 pub struct WalletInitiatedUseCase<K> {
     data: UseCaseData<K>,
-    credential_requests: VecNonEmpty<NormalizedCredentialRequest>,
+    dcql_query: Query,
     return_url_template: ReturnUrlTemplate,
 }
 
@@ -736,7 +740,7 @@ impl<K> WalletInitiatedUseCase<K> {
     pub fn try_new(
         key_pair: KeyPair<K>,
         session_type_return_url: SessionTypeReturnUrl,
-        credential_requests: VecNonEmpty<NormalizedCredentialRequest>,
+        dcql_query: Query,
         return_url_template: ReturnUrlTemplate,
     ) -> Result<Self, UseCaseCertificateError> {
         let client_id = client_id_from_key_pair(&key_pair)?;
@@ -746,7 +750,7 @@ impl<K> WalletInitiatedUseCase<K> {
                 client_id,
                 session_type_return_url,
             },
-            credential_requests,
+            dcql_query,
             return_url_template,
         };
 
@@ -764,11 +768,11 @@ impl<K: EcdsaKeySend> UseCase for WalletInitiatedUseCase<K> {
     fn new_session(
         &self,
         id: String,
-        _credential_requests: Option<VecNonEmpty<NormalizedCredentialRequest>>,
+        _dcql_query: Option<Query>,
         _return_url_template: Option<ReturnUrlTemplate>,
     ) -> Result<Session<Created>, NewSessionError> {
         let session = Session::<Created>::new(
-            self.credential_requests.clone(),
+            self.dcql_query.clone().try_into()?,
             id,
             self.data.client_id.clone(),
             Some(RedirectUriTemplate {
@@ -905,13 +909,13 @@ where
     /// Start a new disclosure session. Returns a [`SessionToken`] that can be used to retrieve the
     /// session state.
     ///
-    /// - `items_requests` contains the attributes to be requested.
+    /// - `dcql_query` contains the attributes to be requested.
     /// - `usecase_id` should point to an existing item in the `certificates` parameter.
     /// - `return_url_template` is the return URL the user should be returned to, if present.
     pub async fn new_session(
         &self,
         usecase_id: String,
-        credential_requests: Option<VecNonEmpty<NormalizedCredentialRequest>>,
+        dcql_query: Option<Query>,
         return_url_template: Option<ReturnUrlTemplate>,
     ) -> Result<SessionToken, NewSessionError> {
         info!("create verifier session: {usecase_id}");
@@ -920,7 +924,7 @@ where
             Some(use_case) => use_case,
             None => return Err(NewSessionError::UnknownUseCase(usecase_id)),
         };
-        let session_state = use_case.new_session(usecase_id, credential_requests, return_url_template)?;
+        let session_state = use_case.new_session(usecase_id, dcql_query, return_url_template)?;
         let session_token = session_state.state.token.clone();
 
         self.sessions
@@ -1288,14 +1292,8 @@ impl Session<Created> {
 
         // Construct the Authorization Request.
         let nonce = random_string(32);
-        let encryption_keypair = EcKeyPair::generate(EcCurve::P256).map_err(|err| {
-            WithRedirectUri::new(
-                err.into(),
-                redirect_uri
-                    .as_ref()
-                    .and_then(|u| u.share_on_error.then_some(u.uri.clone())),
-            )
-        })?;
+        let encryption_keypair =
+            EcKeyPair::generate(EcCurve::P256).map_err(|err| error_with_redirect_uri(&redirect_uri, err))?;
         let auth_request = NormalizedVpAuthorizationRequest::new(
             self.state.data.credential_requests.clone(),
             usecase.key_pair.certificate(),
@@ -1304,19 +1302,12 @@ impl Session<Created> {
             response_uri,
             wallet_nonce,
         )
-        .map_err(|err| {
-            WithRedirectUri::new(
-                err.into(),
-                redirect_uri
-                    .as_ref()
-                    .and_then(|u| u.share_on_error.then_some(u.uri.clone())),
-            )
-        })?;
+        .map_err(|err| error_with_redirect_uri(&redirect_uri, err))?;
 
         let vp_auth_request = VpAuthorizationRequest::from(auth_request.clone());
         let jws = Jwt::sign_with_certificate(&vp_auth_request, &usecase.key_pair)
             .await
-            .map_err(|err| WithRedirectUri::new(err.into(), redirect_uri.as_ref().map(|u| u.uri.clone())))?;
+            .map_err(|err| error_with_redirect_uri(&redirect_uri, err))?;
 
         Ok((jws, auth_request, redirect_uri, encryption_keypair))
     }
@@ -1354,6 +1345,18 @@ impl Session<Created> {
             }
         }
     }
+}
+
+fn error_with_redirect_uri(
+    redirect_uri: &Option<RedirectUri>,
+    err: impl Into<GetAuthRequestError>,
+) -> WithRedirectUri<GetAuthRequestError> {
+    WithRedirectUri::new(
+        err.into(),
+        redirect_uri
+            .as_ref()
+            .and_then(|u| u.share_on_error.then_some(u.uri.clone())),
+    )
 }
 
 impl Session<WaitingForResponse> {
@@ -1510,14 +1513,10 @@ mod tests {
 
     use attestation_data::auth::reader_auth::ReaderRegistration;
     use attestation_data::x509::generate::mock::generate_reader_mock;
-    use attestation_types::claim_path::ClaimPath;
     use crypto::server_keys::generate::Ca;
-    use dcql::CredentialQueryFormat;
-    use dcql::normalized::AttributeRequest;
-    use dcql::normalized::NormalizedCredentialRequest;
+    use dcql::Query;
     use utils::generator::Generator;
     use utils::generator::TimeGenerator;
-    use utils::vec_at_least::VecNonEmpty;
 
     use crate::mock::MOCK_WALLET_CLIENT_ID;
     use crate::server_state::MemorySessionStore;
@@ -1552,38 +1551,9 @@ mod tests {
     use super::WalletInitiatedUseCase;
     use super::WalletInitiatedUseCases;
 
-    const DISCLOSURE_DOC_TYPE: &str = "example_doctype";
-    const DISCLOSURE_NAME_SPACE: &str = "example_namespace";
-    const DISCLOSURE_ATTRS: [(&str, bool); 2] = [("first_name", true), ("family_name", false)];
-
     const DISCLOSURE_USECASE_NO_REDIRECT_URI: &str = "example_usecase_no_redirect_uri";
     const DISCLOSURE_USECASE: &str = "example_usecase";
     const DISCLOSURE_USECASE_ALL_REDIRECT_URI: &str = "example_usecase_all_redirect_uri";
-
-    fn new_disclosure_request() -> VecNonEmpty<NormalizedCredentialRequest> {
-        vec![NormalizedCredentialRequest {
-            format: CredentialQueryFormat::MsoMdoc {
-                doctype_value: DISCLOSURE_DOC_TYPE.to_string(),
-            },
-            claims: DISCLOSURE_ATTRS
-                .iter()
-                .map(|(attr_name, intent_to_retain)| {
-                    AttributeRequest {
-                        // unwrap below is safe because claims path is not empty
-                        path: vec![
-                            ClaimPath::SelectByKey(DISCLOSURE_NAME_SPACE.to_string()),
-                            ClaimPath::SelectByKey(attr_name.to_string()),
-                        ]
-                        .try_into()
-                        .unwrap(),
-                        intent_to_retain: *intent_to_retain,
-                    }
-                })
-                .collect(),
-        }]
-        .try_into()
-        .unwrap()
-    }
 
     type TestVerifier = Verifier<
         MemorySessionStore<DisclosureData>,
@@ -1663,7 +1633,7 @@ mod tests {
         let result = verifier
             .new_session(
                 usecase_id.to_string(),
-                Some(new_disclosure_request()),
+                Some(Query::pid_full_name()),
                 return_url_template,
             )
             .await;
@@ -1685,7 +1655,7 @@ mod tests {
         let session_token = verifier
             .new_session(
                 DISCLOSURE_USECASE.to_string(),
-                Some(new_disclosure_request()),
+                Some(Query::pid_full_name()),
                 Some("https://example.com/{session_token}".parse().unwrap()),
             )
             .await
@@ -1991,7 +1961,7 @@ mod tests {
                     session_type_return_url: SessionTypeReturnUrl::Neither,
                     client_id: "client_id".to_string(),
                 },
-                credential_requests: vec![NormalizedCredentialRequest::new_example()].try_into().unwrap(),
+                dcql_query: Query::new_example(),
                 return_url_template: "https://example.com".parse().unwrap(),
             },
         )]);
