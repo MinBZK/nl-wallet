@@ -6,23 +6,20 @@ use chrono::DateTime;
 use chrono::TimeZone;
 use chrono::Utc;
 use ciborium::Value;
-use indexmap::IndexMap;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 
 use crypto::server_keys::generate::Ca;
 use utils::generator::Generator;
 
-use crate::DeviceAuthenticationBytes;
-use crate::DeviceRequest;
-use crate::DeviceResponse;
-use crate::IssuerSigned;
-use crate::ItemsRequest;
-use crate::ReaderAuthenticationBytes;
+use crate::iso::device_retrieval::DeviceRequest;
+use crate::iso::device_retrieval::ReaderAuthenticationBytes;
+use crate::iso::disclosure::DeviceResponse;
+use crate::iso::disclosure::IssuerSigned;
+use crate::iso::engagement::DeviceAuthenticationBytes;
 use crate::test::generate_issuer_mock;
 use crate::utils::serialization::cbor_deserialize;
 use crate::utils::serialization::cbor_serialize;
-use crate::verifier::ItemsRequests;
 
 pub const EXAMPLE_DOC_TYPE: &str = "org.iso.18013.5.1.mDL";
 pub const EXAMPLE_NAMESPACE: &str = "org.iso.18013.5.1";
@@ -213,25 +210,6 @@ impl Example<DeviceRequest> for DeviceRequest {
          401f3400069063c189138bdcd2f631427c589424113fc9ec26cebcacacfcdb9695d28e99953becabc4e30ab4efacc839a81f9159933d1\
          92527ee91b449bb7f80bf"
     }
-}
-
-pub fn example_items_requests() -> ItemsRequests {
-    vec![ItemsRequest {
-        doc_type: EXAMPLE_DOC_TYPE.to_string(),
-        name_spaces: IndexMap::from_iter([(
-            EXAMPLE_NAMESPACE.to_string(),
-            IndexMap::from_iter([
-                ("family_name".to_string(), false),
-                ("issue_date".to_string(), false),
-                ("expiry_date".to_string(), false),
-                ("document_number".to_string(), false),
-                ("portrait".to_string(), false),
-                ("driving_privileges".to_string(), false),
-            ]),
-        )]),
-        request_info: None,
-    }]
-    .into()
 }
 
 #[cfg(any(test, feature = "mock_example_constructors"))]
