@@ -6,7 +6,6 @@ use ciborium::Value;
 use coset::CoseSign1;
 use derive_more::Debug;
 use indexmap::IndexMap;
-use indexmap::IndexSet;
 use ssri::Integrity;
 
 use crypto::CredentialEcdsaKey;
@@ -27,8 +26,6 @@ use crate::MobileSecurityObject;
 use crate::MobileSecurityObjectVersion;
 use crate::ValidityInfo;
 use crate::holder::Mdoc;
-use crate::identifiers::AttributeIdentifier;
-use crate::identifiers::AttributeIdentifierHolder;
 use crate::iso::device_retrieval::DeviceRequest;
 use crate::iso::device_retrieval::DocRequest;
 use crate::iso::device_retrieval::ItemsRequest;
@@ -383,23 +380,6 @@ impl From<TestDocuments> for DeviceRequest {
     fn from(value: TestDocuments) -> Self {
         let items_requests = ItemsRequests::from(value);
         Self::from_items_requests(items_requests.0)
-    }
-}
-
-impl AttributeIdentifierHolder for TestDocuments {
-    fn mdoc_attribute_identifiers(&self) -> IndexSet<AttributeIdentifier> {
-        self.0
-            .iter()
-            .flat_map(|document| {
-                document.namespaces.iter().flat_map(|(namespace, attributes)| {
-                    attributes.iter().map(|attribute| AttributeIdentifier {
-                        credential_type: document.doc_type.clone(),
-                        namespace: namespace.clone(),
-                        attribute: attribute.name.clone(),
-                    })
-                })
-            })
-            .collect()
     }
 }
 
