@@ -1218,7 +1218,7 @@ mod tests {
         // Sign the challenges using the mdoc key
         let key_factory = MockRemoteKeyFactory::default();
         let poa_input = JwtPoaInput::new(Some(mdoc_nonce.to_string()), auth_request.client_id.clone());
-        let (device_signed, _, poa) = DeviceSigned::new_signatures(keys_and_challenges, &key_factory, poa_input)
+        let (device_signed, poa) = DeviceSigned::new_signatures(keys_and_challenges, &key_factory, poa_input)
             .await
             .unwrap();
 

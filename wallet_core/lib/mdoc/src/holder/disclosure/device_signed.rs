@@ -23,13 +23,12 @@ impl DeviceSigned {
         keys_and_challenges: Vec<(K, &[u8])>,
         key_factory: &KF,
         poa_input: PI,
-    ) -> Result<(Vec<DeviceSigned>, Vec<K>, Option<P>)>
+    ) -> Result<(Vec<DeviceSigned>, Option<P>)>
     where
         K: CredentialEcdsaKey,
         KF: KeyFactory<Key = K, Poa = P, PoaInput = PI>,
     {
-        let (coses, keys, poa) =
-            sign_coses(keys_and_challenges, key_factory, Header::default(), poa_input, false).await?;
+        let (coses, poa) = sign_coses(keys_and_challenges, key_factory, Header::default(), poa_input, false).await?;
 
         let signed = coses
             .into_iter()
@@ -39,7 +38,7 @@ impl DeviceSigned {
             })
             .collect();
 
-        Ok((signed, keys, poa))
+        Ok((signed, poa))
     }
 
     pub fn new_mac(
