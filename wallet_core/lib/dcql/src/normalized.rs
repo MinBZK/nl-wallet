@@ -414,19 +414,19 @@ pub mod mock {
         vec![NormalizedCredentialRequest::new_pid_example()].try_into().unwrap()
     }
 
-    pub fn mock_from_vecs(input: Vec<(String, Vec<VecNonEmpty<String>>)>) -> VecNonEmpty<NormalizedCredentialRequest> {
+    fn mock_from_slices<'a>(
+        input: impl IntoIterator<Item = (CredentialQueryFormat, &'a [&'a [&'a str]])>,
+    ) -> VecNonEmpty<NormalizedCredentialRequest> {
         let requests: Vec<_> = input
             .into_iter()
-            .map(|(doc_type, paths)| {
-                let format = CredentialQueryFormat::MsoMdoc {
-                    doctype_value: doc_type.to_string(),
-                };
+            .map(|(format, paths)| {
                 let claims = paths
-                    .into_iter()
+                    .iter()
                     .map(|path| {
                         let claim_path: Vec<_> = path
-                            .into_iter()
-                            .map(|element| ClaimPath::SelectByKey(element.to_string()))
+                            .iter()
+                            .copied()
+                            .map(|key| ClaimPath::SelectByKey(key.to_string()))
                             .collect();
                         AttributeRequest {
                             path: VecNonEmpty::try_from(claim_path).expect("empy path not allowed"),
@@ -438,6 +438,36 @@ pub mod mock {
             })
             .collect();
         requests.try_into().expect("should contain at least 1 request")
+    }
+
+    pub fn mock_mdoc_from_slices(input: &[(&str, &[&[&str]])]) -> VecNonEmpty<NormalizedCredentialRequest> {
+        let input_iter = input.iter().copied().map(|(doctype, paths)| {
+            let format = CredentialQueryFormat::MsoMdoc {
+                doctype_value: doctype.to_string(),
+            };
+
+            (format, paths)
+        });
+
+        mock_from_slices(input_iter)
+    }
+
+    pub fn mock_sd_jwt_from_slices(input: &[(&[&str], &[&[&str]])]) -> VecNonEmpty<NormalizedCredentialRequest> {
+        let input_iter = input.iter().copied().map(|(attestation_types, paths)| {
+            let format = CredentialQueryFormat::SdJwt {
+                vct_values: attestation_types
+                    .iter()
+                    .copied()
+                    .map(str::to_string)
+                    .collect::<Vec<_>>()
+                    .try_into()
+                    .expect("should contain at least one attestation type"),
+            };
+
+            (format, paths)
+        });
+
+        mock_from_slices(input_iter)
     }
 
     pub fn example() -> VecNonEmpty<NormalizedCredentialRequest> {
