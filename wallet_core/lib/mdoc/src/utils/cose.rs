@@ -303,12 +303,13 @@ pub async fn sign_cose(
     Ok(signed)
 }
 
-pub async fn sign_coses<K: CredentialEcdsaKey>(
+pub async fn sign_coses<K: CredentialEcdsaKey, P, PI>(
     keys_and_challenges: Vec<(K, &[u8])>,
-    key_factory: &impl KeyFactory<Key = K>,
+    key_factory: &impl KeyFactory<Key = K, Poa = P, PoaInput = PI>,
     unprotected_header: Header,
+    poa_input: PI,
     include_payload: bool,
-) -> Result<(Vec<CoseSign1>, Vec<K>), CoseError> {
+) -> Result<(Vec<CoseSign1>, Vec<K>, Option<P>), CoseError> {
     let (keys, challenges): (Vec<_>, Vec<_>) = keys_and_challenges.into_iter().unzip();
 
     let (sigs_data, protected_header) = signatures_data_and_header(&challenges);
@@ -319,12 +320,13 @@ pub async fn sign_coses<K: CredentialEcdsaKey>(
         .map(|(key, sig_data)| (sig_data, vec![key]))
         .collect::<Vec<_>>();
 
-    let signatures = key_factory
-        .sign_multiple_with_existing_keys(keys_and_signature_data)
+    let result = key_factory
+        .sign_multiple_with_existing_keys(keys_and_signature_data, poa_input)
         .await
         .map_err(|error| CoseError::Signing(error.into()))?;
 
-    let signed = signatures
+    let signed = result
+        .signatures
         .into_iter()
         .zip(challenges)
         .map(|(signature, payload)| {
@@ -338,7 +340,7 @@ pub async fn sign_coses<K: CredentialEcdsaKey>(
         })
         .collect::<Result<Vec<_>, CoseError>>()?;
 
-    Ok((signed, keys))
+    Ok((signed, keys, result.poa))
 }
 
 #[derive(thiserror::Error, Debug, ErrorCategory)]

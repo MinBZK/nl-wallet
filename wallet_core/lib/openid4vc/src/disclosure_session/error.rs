@@ -56,10 +56,6 @@ pub enum VpClientError {
     #[error("error creating mdoc device response: {0}")]
     DeviceResponse(#[source] mdoc::Error),
 
-    #[error("error constructing PoA: {0}")]
-    #[category(pd)]
-    Poa(#[source] Box<dyn Error + Send + Sync + 'static>),
-
     #[error("error encrypting Authorization Response: {0}")]
     #[category(defer)]
     AuthResponseEncryption(#[source] AuthResponseError),
