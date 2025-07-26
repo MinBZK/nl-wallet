@@ -9,6 +9,7 @@ use axum::routing::post;
 use futures::TryFutureExt;
 use futures::try_join;
 use serde::Serialize;
+use serde::de::DeserializeOwned;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
 use tower_http::trace::TraceLayer;
@@ -26,11 +27,8 @@ use wallet_account::messages::instructions::InstructionAndResult;
 use wallet_account::messages::instructions::InstructionChallengeRequest;
 use wallet_account::messages::instructions::InstructionResultMessage;
 use wallet_account::messages::instructions::PerformIssuance;
-use wallet_account::messages::instructions::PerformIssuanceResult;
 use wallet_account::messages::instructions::PerformIssuanceWithWua;
-use wallet_account::messages::instructions::PerformIssuanceWithWuaResult;
 use wallet_account::messages::instructions::Sign;
-use wallet_account::messages::instructions::SignResult;
 use wallet_account::messages::registration::Certificate;
 use wallet_account::messages::registration::Challenge;
 use wallet_account::messages::registration::Registration;
@@ -38,6 +36,8 @@ use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::signed::ChallengeResponse;
 use wallet_provider_service::account_server::GoogleCrlProvider;
 use wallet_provider_service::account_server::IntegrityTokenDecoder;
+use wallet_provider_service::instructions::HandleInstruction;
+use wallet_provider_service::instructions::ValidateInstruction;
 use wallet_provider_service::wte_issuer::WteIssuer;
 
 use crate::errors::WalletProviderError;
@@ -62,6 +62,7 @@ where
     PIC: IntegrityTokenDecoder + Send + Sync + 'static,
 {
     let state = Arc::new(router_state);
+
     Router::new()
         .merge(health_router())
         .nest(
@@ -70,27 +71,33 @@ where
                 .route("/enroll", post(enroll))
                 .route("/createwallet", post(create_wallet))
                 .route("/instructions/challenge", post(instruction_challenge))
-                .route(&format!("/instructions/{}", CheckPin::NAME), post(check_pin))
                 .route(
                     &format!("/instructions/{}", ChangePinStart::NAME),
                     post(change_pin_start),
                 )
                 .route(
-                    &format!("/instructions/{}", ChangePinCommit::NAME),
-                    post(change_pin_commit),
-                )
-                .route(
                     &format!("/instructions/{}", ChangePinRollback::NAME),
                     post(change_pin_rollback),
                 )
-                .route(&format!("/instructions/{}", Sign::NAME), post(sign))
+                .route(
+                    &format!("/instructions/{}", ChangePinCommit::NAME),
+                    post(handle_instruction::<ChangePinCommit, _, _, _>),
+                )
+                .route(
+                    &format!("/instructions/{}", CheckPin::NAME),
+                    post(handle_instruction::<CheckPin, _, _, _>),
+                )
+                .route(
+                    &format!("/instructions/{}", Sign::NAME),
+                    post(handle_instruction::<Sign, _, _, _>),
+                )
                 .route(
                     &format!("/instructions/{}", PerformIssuance::NAME),
-                    post(perform_issuance),
+                    post(handle_instruction::<PerformIssuance, _, _, _>),
                 )
                 .route(
                     &format!("/instructions/{}", PerformIssuanceWithWua::NAME),
-                    post(perform_issuance_with_wua),
+                    post(handle_instruction::<PerformIssuanceWithWua, _, _, _>),
                 )
                 .layer(TraceLayer::new_for_http())
                 .with_state(Arc::clone(&state)),
@@ -166,15 +173,19 @@ async fn instruction_challenge<GRC, PIC>(
     Ok((StatusCode::OK, body.into()))
 }
 
-async fn check_pin<GRC, PIC>(
+async fn handle_instruction<I, R, GRC, PIC>(
     State(state): State<Arc<RouterState<GRC, PIC>>>,
-    Json(payload): Json<Instruction<CheckPin>>,
-) -> Result<(StatusCode, Json<InstructionResultMessage<()>>)> {
-    info!("Received check pin request, handling the CheckPin instruction");
+    Json(payload): Json<Instruction<I>>,
+) -> Result<(StatusCode, Json<InstructionResultMessage<R>>)>
+where
+    I: InstructionAndResult<Result = R> + HandleInstruction<Result = R> + ValidateInstruction,
+    R: Serialize + DeserializeOwned,
+{
+    info!("received {} instruction", I::NAME);
     let body = state
         .handle_instruction(payload)
         .await
-        .inspect_err(|error| warn!("handling CheckPin instruction failed: {}", error))?;
+        .inspect_err(|error| warn!("handling {} instruction failed: {}", I::NAME, error))?;
 
     Ok((StatusCode::OK, body.into()))
 }
@@ -202,19 +213,6 @@ async fn change_pin_start<GRC, PIC>(
     Ok((StatusCode::OK, body.into()))
 }
 
-async fn change_pin_commit<GRC, PIC>(
-    State(state): State<Arc<RouterState<GRC, PIC>>>,
-    Json(payload): Json<Instruction<ChangePinCommit>>,
-) -> Result<(StatusCode, Json<InstructionResultMessage<()>>)> {
-    info!("Received change pin commit request, handling the ChangePinCommit instruction");
-    let body = state
-        .handle_instruction(payload)
-        .await
-        .inspect_err(|error| warn!("handling ChangePinCommit instruction failed: {}", error))?;
-
-    Ok((StatusCode::OK, body.into()))
-}
-
 async fn change_pin_rollback<GRC, PIC>(
     State(state): State<Arc<RouterState<GRC, PIC>>>,
     Json(payload): Json<Instruction<ChangePinRollback>>,
@@ -236,45 +234,6 @@ async fn change_pin_rollback<GRC, PIC>(
     let body = InstructionResultMessage { result };
 
     info!("Replying with the instruction result");
-
-    Ok((StatusCode::OK, body.into()))
-}
-
-async fn sign<GRC, PIC>(
-    State(state): State<Arc<RouterState<GRC, PIC>>>,
-    Json(payload): Json<Instruction<Sign>>,
-) -> Result<(StatusCode, Json<InstructionResultMessage<SignResult>>)> {
-    info!("Received sign request, handling the SignRequest instruction");
-    let body = state
-        .handle_instruction(payload)
-        .await
-        .inspect_err(|error| warn!("handling SignRequest instruction failed: {}", error))?;
-
-    Ok((StatusCode::OK, body.into()))
-}
-
-async fn perform_issuance<GRC, PIC>(
-    State(state): State<Arc<RouterState<GRC, PIC>>>,
-    Json(payload): Json<Instruction<PerformIssuance>>,
-) -> Result<(StatusCode, Json<InstructionResultMessage<PerformIssuanceResult>>)> {
-    info!("Received perform_issuance request, handling the PerformIssuance instruction");
-    let body = state
-        .handle_instruction(payload)
-        .await
-        .inspect_err(|error| warn!("handling PerformIssuance instruction failed: {}", error))?;
-
-    Ok((StatusCode::OK, body.into()))
-}
-
-async fn perform_issuance_with_wua<GRC, PIC>(
-    State(state): State<Arc<RouterState<GRC, PIC>>>,
-    Json(payload): Json<Instruction<PerformIssuanceWithWua>>,
-) -> Result<(StatusCode, Json<InstructionResultMessage<PerformIssuanceWithWuaResult>>)> {
-    info!("Received perform_issuance_with_wua request, handling the PerformIssuanceWithWua instruction");
-    let body = state
-        .handle_instruction(payload)
-        .await
-        .inspect_err(|error| warn!("handling PerformIssuanceWithWua instruction failed: {}", error))?;
 
     Ok((StatusCode::OK, body.into()))
 }
