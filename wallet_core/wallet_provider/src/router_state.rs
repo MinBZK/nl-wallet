@@ -145,7 +145,7 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
     pub async fn handle_instruction<I, R>(
         &self,
         instruction: Instruction<I>,
-    ) -> Result<InstructionResultMessage<<I as HandleInstruction>::Result>, WalletProviderError>
+    ) -> Result<InstructionResultMessage<R>, WalletProviderError>
     where
         I: InstructionAndResult<Result = R> + HandleInstruction<Result = R> + ValidateInstruction,
         R: Serialize + DeserializeOwned,
