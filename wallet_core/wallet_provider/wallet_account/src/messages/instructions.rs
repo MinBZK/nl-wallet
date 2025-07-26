@@ -13,7 +13,6 @@ use jwt::Jwt;
 use jwt::JwtSubject;
 use jwt::pop::JwtPopClaims;
 use jwt::wte::WteDisclosure;
-use utils::vec_at_least::VecAtLeastTwoUnique;
 use utils::vec_at_least::VecNonEmpty;
 use wscd::Poa;
 
@@ -181,26 +180,6 @@ impl InstructionAndResult for Sign {
     const NAME: &'static str = "sign";
 
     type Result = SignResult;
-}
-
-// ConstructPoa instruction.
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ConstructPoa {
-    pub key_identifiers: VecAtLeastTwoUnique<String>,
-    pub aud: String,
-    pub nonce: Option<String>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ConstructPoaResult {
-    pub poa: Poa,
-}
-
-impl InstructionAndResult for ConstructPoa {
-    const NAME: &'static str = "construct_poa";
-
-    type Result = ConstructPoaResult;
 }
 
 #[cfg(feature = "client")]

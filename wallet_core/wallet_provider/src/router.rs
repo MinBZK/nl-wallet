@@ -21,8 +21,6 @@ use wallet_account::messages::instructions::ChangePinCommit;
 use wallet_account::messages::instructions::ChangePinRollback;
 use wallet_account::messages::instructions::ChangePinStart;
 use wallet_account::messages::instructions::CheckPin;
-use wallet_account::messages::instructions::ConstructPoa;
-use wallet_account::messages::instructions::ConstructPoaResult;
 use wallet_account::messages::instructions::Instruction;
 use wallet_account::messages::instructions::InstructionAndResult;
 use wallet_account::messages::instructions::InstructionChallengeRequest;
@@ -86,7 +84,6 @@ where
                     post(change_pin_rollback),
                 )
                 .route(&format!("/instructions/{}", Sign::NAME), post(sign))
-                .route(&format!("/instructions/{}", ConstructPoa::NAME), post(construct_poa))
                 .route(
                     &format!("/instructions/{}", PerformIssuance::NAME),
                     post(perform_issuance),
@@ -252,19 +249,6 @@ async fn sign<GRC, PIC>(
         .handle_instruction(payload)
         .await
         .inspect_err(|error| warn!("handling SignRequest instruction failed: {}", error))?;
-
-    Ok((StatusCode::OK, body.into()))
-}
-
-async fn construct_poa<GRC, PIC>(
-    State(state): State<Arc<RouterState<GRC, PIC>>>,
-    Json(payload): Json<Instruction<ConstructPoa>>,
-) -> Result<(StatusCode, Json<InstructionResultMessage<ConstructPoaResult>>)> {
-    info!("Received new PoA request, handling the ConstructPoa instruction");
-    let body = state
-        .handle_instruction(payload)
-        .await
-        .inspect_err(|error| warn!("handling ConstructPoa instruction failed: {}", error))?;
 
     Ok((StatusCode::OK, body.into()))
 }

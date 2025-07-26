@@ -32,8 +32,6 @@ use wallet_account::messages::instructions::ChangePinCommit;
 use wallet_account::messages::instructions::ChangePinRollback;
 use wallet_account::messages::instructions::ChangePinStart;
 use wallet_account::messages::instructions::CheckPin;
-use wallet_account::messages::instructions::ConstructPoa;
-use wallet_account::messages::instructions::ConstructPoaResult;
 use wallet_account::messages::instructions::PerformIssuance;
 use wallet_account::messages::instructions::PerformIssuanceResult;
 use wallet_account::messages::instructions::PerformIssuanceWithWua;
@@ -67,7 +65,6 @@ pub trait ValidateInstruction {
 
 impl ValidateInstruction for CheckPin {}
 impl ValidateInstruction for ChangePinStart {}
-impl ValidateInstruction for ConstructPoa {}
 impl ValidateInstruction for PerformIssuance {}
 impl ValidateInstruction for PerformIssuanceWithWua {}
 
@@ -480,52 +477,6 @@ impl HandleInstruction for Sign {
     }
 }
 
-impl HandleInstruction for ConstructPoa {
-    type Result = ConstructPoaResult;
-
-    async fn handle<T, R, H>(
-        self,
-        wallet_user: &WalletUser,
-        _uuid_generator: &impl Generator<Uuid>,
-        user_state: &UserState<R, H, impl WteIssuer>,
-    ) -> Result<Self::Result, InstructionError>
-    where
-        T: Committable,
-        R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
-        H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
-    {
-        let tx = user_state.repositories.begin_transaction().await?;
-        let keys = user_state
-            .repositories
-            .find_keys_by_identifiers(&tx, wallet_user.id, self.key_identifiers.as_slice())
-            .await?;
-        tx.commit().await?;
-
-        let keys = self
-            .key_identifiers
-            .as_slice()
-            .iter()
-            .map(|key_identifier| {
-                let wrapped_key = keys
-                    .get(key_identifier)
-                    .ok_or(InstructionError::NonexistingKey(key_identifier.clone()))?;
-                Ok(HsmCredentialSigningKey {
-                    hsm: &user_state.wallet_user_hsm,
-                    wrapped_key,
-                    wrapping_key_identifier: &user_state.wrapping_key_identifier,
-                })
-            })
-            .collect::<Result<Vec<_>, InstructionError>>()?;
-
-        // Poa::new() needs a vec of references. We can unwrap because self.key_identifiers is a VecAtLeastTwo.
-        let keys = keys.iter().collect_vec().try_into().unwrap();
-        let claims = JwtPopClaims::new(self.nonce, NL_WALLET_CLIENT_ID.to_string(), self.aud);
-        let poa = Poa::new(keys, claims).await?;
-
-        Ok(ConstructPoaResult { poa })
-    }
-}
-
 struct HsmCredentialSigningKey<'a, H> {
     hsm: &'a H,
     wrapped_key: &'a WrappedKey,
@@ -630,11 +581,9 @@ mod tests {
     use jwt::Jwt;
     use jwt::jwk::jwk_to_p256;
     use jwt::pop::JwtPopClaims;
-    use jwt::validations;
     use jwt::wte::WteDisclosure;
     use wallet_account::NL_WALLET_CLIENT_ID;
     use wallet_account::messages::instructions::CheckPin;
-    use wallet_account::messages::instructions::ConstructPoa;
     use wallet_account::messages::instructions::PerformIssuance;
     use wallet_account::messages::instructions::PerformIssuanceWithWua;
     use wallet_account::messages::instructions::Sign;
@@ -643,7 +592,6 @@ mod tests {
     use wallet_provider_domain::repository::MockTransaction;
     use wallet_provider_persistence::repositories::mock::MockTransactionalWalletUserRepository;
     use wscd::Poa;
-    use wscd::PoaPayload;
 
     use crate::account_server::InstructionValidationError;
     use crate::account_server::mock;
@@ -737,65 +685,6 @@ mod tests {
             .verifying_key()
             .verify(&random_msg_2, result.signatures[1][0].as_inner())
             .unwrap();
-    }
-
-    #[tokio::test]
-    async fn should_handle_construct_poa() {
-        let wallet_user = wallet_user::mock::wallet_user_1();
-        let wrapping_key_identifier = "my-wrapping-key-identifier";
-
-        let signing_key_1 = SigningKey::random(&mut OsRng);
-        let signing_key_2 = SigningKey::random(&mut OsRng);
-        let signing_key_1_bytes = signing_key_1.to_bytes().to_vec();
-        let signing_key_2_bytes = signing_key_2.to_bytes().to_vec();
-        let signing_key_1_public = *signing_key_1.verifying_key();
-        let signing_key_2_public = *signing_key_2.verifying_key();
-
-        let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
-        wallet_user_repo
-            .expect_begin_transaction()
-            .returning(|| Ok(MockTransaction));
-        wallet_user_repo
-            .expect_find_keys_by_identifiers()
-            .return_once(move |_, _, _| {
-                Ok(HashMap::from([
-                    (
-                        "key1".to_string(),
-                        WrappedKey::new(signing_key_1_bytes, signing_key_1_public),
-                    ),
-                    (
-                        "key2".to_string(),
-                        WrappedKey::new(signing_key_2_bytes, signing_key_2_public),
-                    ),
-                ]))
-            });
-
-        let instruction = ConstructPoa {
-            key_identifiers: vec!["key1".to_string(), "key2".to_string()].try_into().unwrap(),
-            aud: "aud".to_string(),
-            nonce: None,
-        };
-
-        let poa = instruction
-            .handle(
-                &wallet_user,
-                &FixedUuidGenerator,
-                &mock::user_state(wallet_user_repo, setup_hsm().await, wrapping_key_identifier.to_string()),
-            )
-            .await
-            .unwrap()
-            .poa;
-
-        let mut validations = validations();
-        validations.set_audience(&["aud"]);
-        validations.set_issuer(&[NL_WALLET_CLIENT_ID.to_string()]);
-
-        Vec::<Jwt<PoaPayload>>::from(poa)
-            .into_iter()
-            .zip([signing_key_1_public, signing_key_2_public])
-            .for_each(|(jwt, pubkey)| {
-                jwt.parse_and_verify(&(&pubkey).into(), &validations).unwrap();
-            });
     }
 
     fn mock_jwt_payload(header: &str) -> Vec<u8> {
