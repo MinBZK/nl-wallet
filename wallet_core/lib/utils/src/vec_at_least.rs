@@ -92,7 +92,7 @@ impl<T, const N: usize, const UNIQUE: bool> VecAtLeastN<T, N, UNIQUE> {
         self.0
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = &T> {
+    pub fn iter(&self) -> impl ExactSizeIterator<Item = &T> {
         self.0.iter()
     }
 }

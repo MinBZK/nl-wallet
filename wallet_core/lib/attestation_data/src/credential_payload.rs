@@ -659,8 +659,8 @@ mod test {
             .unwrap();
 
         let hasher = Sha256Hasher::new();
-        let (presented_sd_jwt, _) = sd_jwt
-            .into_presentation(
+        let presented_sd_jwt = sd_jwt
+            .into_presentation_builder(
                 &hasher,
                 DateTime::from_timestamp_millis(1458304832).unwrap(),
                 String::from("https://aud.example.com"),
