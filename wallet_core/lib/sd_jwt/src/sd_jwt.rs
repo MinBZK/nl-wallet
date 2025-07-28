@@ -496,15 +496,7 @@ where
         (serde_json::Value::Array(arr), ClaimPath::SelectByIndex(index)) if has_next => {
             let next_object = arr
                 .get(*index)
-                .and_then(|entry| entry.as_object())
-                .and_then(|object| find_disclosure_digest_in_array(object))
-                .and_then(|digest| {
-                    // We're disclosing something within a selectively disclosable array entry.
-                    // For the verifier to be able to verify that, we'll also have to disclose that entry.
-                    digests.push(digest);
-                    disclosures.get(digest)
-                })
-                .map(|disclosure| disclosure.claim_value())
+                .and_then(|entry| process_array_entry(entry, disclosures, &mut digests))
                 .ok_or_else(|| Error::ElementNotFoundInArray {
                     path: element_key.to_string(),
                 })?;
@@ -527,24 +519,15 @@ where
         }
         // Disclosing all array entries
         (serde_json::Value::Array(arr), ClaimPath::SelectAll) => {
-            for value in arr {
-                let object = value
-                    .as_object()
-                    .expect("selectively disclosable array elements should be objects");
-
-                if let Some(digest) = find_disclosure_digest_in_array(object) {
-                    digests.push(digest);
-
-                    if has_next {
-                        if let Some(disclosure) = disclosures.get(digest) {
-                            digests.append(&mut digests_to_disclose(
-                                disclosure.claim_value(),
-                                path,
-                                disclosures,
-                                true,
-                            )?);
-                        }
+            for entry in arr {
+                let next_object = process_array_entry(entry, disclosures, &mut digests).ok_or_else(|| {
+                    Error::ElementNotFoundInArray {
+                        path: element_key.to_string(),
                     }
+                })?;
+
+                if has_next {
+                    digests.append(&mut digests_to_disclose(next_object, path, disclosures, true)?);
                 }
             }
 
@@ -555,6 +538,23 @@ where
             path: path.clone(),
         }),
     }
+}
+
+fn process_array_entry<'a>(
+    entry: &'a serde_json::Value,
+    disclosures: &'a IndexMap<String, Disclosure>,
+    digests: &mut Vec<&'a str>,
+) -> Option<&'a serde_json::Value> {
+    entry
+        .as_object()
+        .and_then(|object| find_disclosure_digest_in_array(object))
+        .and_then(|digest| {
+            // We're disclosing something within a selectively disclosable array entry.
+            // For the verifier to be able to verify that, we'll also have to disclose that entry.
+            digests.push(digest);
+            disclosures.get(digest)
+        })
+        .map(move |disclosure| disclosure.claim_value())
 }
 
 /// Find the digest of the given `key` in the `object` and `disclosures`.
