@@ -42,7 +42,7 @@ impl Display for ClaimPath {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             ClaimPath::SelectByKey(key) => write!(f, "{key}"),
-            ClaimPath::SelectAll => f.write_str("*"),
+            ClaimPath::SelectAll => f.write_str("null"),
             ClaimPath::SelectByIndex(index) => write!(f, "{index}"),
         }
     }
@@ -53,7 +53,7 @@ impl FromStr for ClaimPath {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "*" => Ok(ClaimPath::SelectAll),
+            "null" => Ok(ClaimPath::SelectAll),
             s if s.chars().all(|c| c.is_ascii_digit()) => s.parse().map(ClaimPath::SelectByIndex),
             s => Ok(ClaimPath::SelectByKey(String::from(s))),
         }
