@@ -12,7 +12,7 @@ impl Mdoc {
         KF: KeyFactory<Key = K>,
     {
         let public_key = (&self.mso.device_key_info.device_key).try_into()?;
-        let key = key_factory.generate_existing(&self.private_key_id, public_key);
+        let key = key_factory.new_key(&self.private_key_id, public_key);
 
         Ok(key)
     }

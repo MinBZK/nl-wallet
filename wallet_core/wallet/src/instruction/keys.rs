@@ -76,14 +76,14 @@ where
     type Poa = Poa;
     type PoaInput = JwtPoaInput;
 
-    fn generate_existing<I: Into<String>>(&self, identifier: I, public_key: VerifyingKey) -> Self::Key {
+    fn new_key<I: Into<String>>(&self, identifier: I, public_key: VerifyingKey) -> Self::Key {
         RemoteEcdsaKey {
             identifier: identifier.into(),
             public_key,
         }
     }
 
-    async fn sign_multiple_with_existing_keys(
+    async fn sign(
         &self,
         messages_and_keys: Vec<(Vec<u8>, Vec<&Self::Key>)>,
         poa_input: Self::PoaInput,

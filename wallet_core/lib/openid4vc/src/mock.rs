@@ -189,5 +189,5 @@ where
     )
     .unwrap();
 
-    key_factory.generate_existing(issuance_data.key_identifiers.first(), pubkey)
+    key_factory.new_key(issuance_data.key_identifiers.first(), pubkey)
 }
