@@ -388,12 +388,12 @@ impl<'a> SdJwtPresentationBuilder<'a> {
     }
 
     pub fn disclose(mut self, path: &VecNonEmpty<ClaimPath>) -> Result<Self> {
-        let path_segments = path.iter().peekable();
-        self.digests_to_be_disclosed.extend(
-            digests_to_disclose(&self.full_payload, path_segments, &self.nondisclosed)?
+        self.digests_to_be_disclosed.extend({
+            let mut path_segments = path.iter().peekable();
+            digests_to_disclose(&self.full_payload, &mut path_segments, &self.nondisclosed, false)?
                 .into_iter()
-                .map(String::from),
-        );
+                .map(String::from)
+        });
 
         Ok(self)
     }
@@ -444,17 +444,22 @@ pub(crate) fn sd_jwt_validation() -> Validation {
 /// The `object` must be the payload of an SD-JWT, containing an `_sd` array and other claims.
 fn digests_to_disclose<'a, I>(
     object: &'a serde_json::Value,
-    mut path: Peekable<I>,
+    path: &mut Peekable<I>,
     disclosures: &'a IndexMap<String, Disclosure>,
+    traversing_array: bool,
 ) -> Result<Vec<&'a str>>
 where
-    I: Iterator<Item = &'a ClaimPath>,
+    I: ExactSizeIterator<Item = &'a ClaimPath>,
 {
     // Holds all digests that should be disclosed based on the `path`
     let mut digests = vec![];
 
-    let element_key = path.next().ok_or(Error::EmptyPath)?;
-    let has_next = path.peek().is_some();
+    // If we are traversing an array, peekable shouldn't consume the next value
+    let (element_key, has_next) = if traversing_array {
+        (*path.peek().ok_or(Error::EmptyPath)?, path.len() > 1)
+    } else {
+        (path.next().ok_or(Error::EmptyPath)?, path.peek().is_some())
+    };
 
     match (object, element_key) {
         // We are just traversing to a deeper part of the object.
@@ -464,10 +469,11 @@ where
             let next_object = object
                 .get(key)
                 .or_else(|| {
-                    find_disclosure_digest(object, key, disclosures)
+                    find_disclosure_digest_in_object(object, key, disclosures)
                         .and_then(|digest| {
-                            // If the intermediate element should be selectively disclosable, it should be added to the
-                            // list of digest to be disclosed.
+                            // We're disclosing something within the current object, which is selectively disclosable.
+                            // For the verifier to be able to verify that, we'll also have to disclose the current
+                            // object.
                             digests.push(digest);
                             disclosures.get(digest)
                         })
@@ -475,12 +481,12 @@ where
                 })
                 .ok_or_else(|| Error::IntermediateElementNotFound { path: key.clone() })?;
 
-            digests.append(&mut digests_to_disclose(next_object, path, disclosures)?);
+            digests.append(&mut digests_to_disclose(next_object, path, disclosures, false)?);
             Ok(digests)
         }
         // We reached the the value we want to disclose, so add it to the list of digests
         (serde_json::Value::Object(object), ClaimPath::SelectByKey(key)) => {
-            let digest = find_disclosure_digest(object, key, disclosures)
+            let digest = find_disclosure_digest_in_object(object, key, disclosures)
                 .ok_or_else(|| Error::ElementNotFound { path: key.clone() })?;
 
             digests.push(digest);
@@ -488,20 +494,30 @@ where
         }
         // Traversing an array
         (serde_json::Value::Array(arr), ClaimPath::SelectByIndex(index)) if has_next => {
-            let next_object = arr.get(*index).ok_or_else(|| Error::ElementNotFoundInArray {
-                path: element_key.to_string(),
-            })?;
+            let next_object = arr
+                .get(*index)
+                .and_then(|entry| entry.as_object())
+                .and_then(|object| find_disclosure_digest_in_array(object))
+                .and_then(|digest| {
+                    // We're disclosing something within a selectively disclosable array entry.
+                    // For the verifier to be able to verify that, we'll also have to disclose that entry.
+                    digests.push(digest);
+                    disclosures.get(digest)
+                })
+                .map(|disclosure| disclosure.claim_value())
+                .ok_or_else(|| Error::ElementNotFoundInArray {
+                    path: element_key.to_string(),
+                })?;
 
-            digests.append(&mut digests_to_disclose(next_object, path, disclosures)?);
+            digests.append(&mut digests_to_disclose(next_object, path, disclosures, false)?);
             Ok(digests)
         }
         // Disclosing an array's entry.
         (serde_json::Value::Array(arr), ClaimPath::SelectByIndex(index)) => {
             let digest = arr
                 .get(*index)
-                .unwrap()
-                .as_object()
-                .and_then(|entry| find_disclosure_digest(entry, "", disclosures))
+                .and_then(|entry| entry.as_object())
+                .and_then(|object| find_disclosure_digest_in_array(object))
                 .ok_or_else(|| Error::ElementNotFoundInArray {
                     path: element_key.to_string(),
                 })?;
@@ -509,7 +525,32 @@ where
             digests.push(digest);
             Ok(digests)
         }
-        (element, path) => Err(Error::UnexpectedElementValue {
+        // Disclosing all array entries
+        (serde_json::Value::Array(arr), ClaimPath::SelectAll) => {
+            for value in arr {
+                let object = value
+                    .as_object()
+                    .expect("selectively disclosable array elements should be objects");
+
+                if let Some(digest) = find_disclosure_digest_in_array(object) {
+                    digests.push(digest);
+
+                    if has_next {
+                        if let Some(disclosure) = disclosures.get(digest) {
+                            digests.append(&mut digests_to_disclose(
+                                disclosure.claim_value(),
+                                path,
+                                disclosures,
+                                true,
+                            )?);
+                        }
+                    }
+                }
+            }
+
+            Ok(digests)
+        }
+        (element, path) => Err(Error::UnexpectedElement {
             value: element.clone(),
             path: path.clone(),
         }),
@@ -517,7 +558,7 @@ where
 }
 
 /// Find the digest of the given `key` in the `object` and `disclosures`.
-fn find_disclosure_digest<'o>(
+fn find_disclosure_digest_in_object<'o>(
     object: &'o serde_json::Map<String, serde_json::Value>,
     key: &str,
     disclosures: &IndexMap<String, Disclosure>,
@@ -539,13 +580,15 @@ fn find_disclosure_digest<'o>(
                 })
                 .is_some_and(|name| name == key)
         })
-        // If no result is found try checking `object` as a disclosable array entry.
-        .or_else(|| {
-            object
-                .get(ARRAY_DIGEST_KEY)
-                .map(|value| value.as_str().expect("digest values should be strings"))
-                .filter(|_| object.len() == 1)
-        })
+}
+
+/// Find the digest of the given `key` in the `object` and `disclosures`.
+fn find_disclosure_digest_in_array(object: &serde_json::Map<String, serde_json::Value>) -> Option<&str> {
+    // Try checking `object` as a disclosable array entry.
+    object
+        .get(ARRAY_DIGEST_KEY)
+        .map(|value| value.as_str().expect("digest values should be strings"))
+        .filter(|_| object.len() == 1)
 }
 
 #[cfg(test)]
@@ -565,7 +608,6 @@ mod test {
     use serde_json::json;
     use ssri::Integrity;
 
-    use attestation_types::claim_path::ClaimPath;
     use jwt::EcdsaDecodingKey;
     use jwt::error::JwtError;
 
@@ -690,7 +732,7 @@ mod test {
                         .disclose(
                             &path
                                 .iter()
-                                .map(|key| ClaimPath::SelectByKey(String::from(*key)))
+                                .map(|key| key.parse().unwrap())
                                 .collect_vec()
                                 .try_into()
                                 .unwrap(),
@@ -782,7 +824,7 @@ mod test {
         &["nationalities"],
         &[],
     )]
-    fn test_selectively_disclosable_attributes_in_presentation(
+    fn test_object_selectively_disclosable_attributes_in_presentation(
         #[case] object: serde_json::Value,
         #[case] conceal_paths: &[&str],
         #[case] disclose_paths: &[Vec<&str>],
@@ -834,6 +876,166 @@ mod test {
 
         assert_eq!(
             expected_not_selectively_disclosable_paths
+                .iter()
+                .map(|path| String::from(*path))
+                .collect::<HashSet<_>>(),
+            not_selectively_disclosable_paths
+        );
+    }
+
+    #[rstest]
+    #[case::array(
+        json!({"nationalities": ["NL", "DE"]}),
+        &["/nationalities/0", "/nationalities/1"],
+        &[vec!["nationalities", "*"]],
+        &["NL", "DE"],
+        &["/nationalities"],
+    )]
+    #[case::array(
+        json!({"nationalities": ["NL", "DE"]}),
+        &["/nationalities/0", "/nationalities/1", "/nationalities"],
+        &[vec!["nationalities", "*"]],
+        &["nationalities", "NL", "DE"],
+        &[],
+    )]
+    #[case::array(
+        json!({"nationalities": ["NL", "DE"]}),
+        &["/nationalities/0"],
+        &[vec!["nationalities", "0"]],
+        &["NL"],
+        &["/nationalities/DE", "/nationalities"],
+    )]
+    #[case::array(
+        json!({"nationalities": [{"country": "NL"}, {"country": "DE"}]}),
+        &["/nationalities/0/country", "/nationalities/1/country", "/nationalities/0", "/nationalities/1", "/nationalities"],
+        &[vec!["nationalities", "*", "country"]],
+        &["nationalities", "country"],
+        &[],
+    )]
+    #[case::array(
+        json!({"nationalities": [{"country": "NL"}, {"country": "DE"}]}),
+        &["/nationalities/0", "/nationalities/1", "/nationalities"],
+        &[vec!["nationalities", "*"]],
+        &["nationalities", "country"],
+        &[],
+    )]
+    #[case::array(
+        json!({"nationalities": ["NL", "DE"]}),
+        &["/nationalities/0", "/nationalities/1"],
+        &[vec!["nationalities", "1"]],
+        &["DE"],
+        &["/nationalities"],
+    )]
+    #[case::array(
+        json!({"nationalities": ["NL", "DE"]}),
+        &["/nationalities/0", "/nationalities/1", "/nationalities"],
+        &[vec!["nationalities", "1"]],
+        &["nationalities", "DE"],
+        &[],
+    )]
+    #[case::array(
+        json!({"nationalities": [{"country": "NL"}, {"country": "DE"}]}),
+        &["/nationalities/0/country", "/nationalities/1/country", "/nationalities/0", "/nationalities/1", "/nationalities"],
+        &[vec!["nationalities", "1", "country"]],
+        &["nationalities", "country"],
+        &[],
+    )]
+    #[case::array(
+        json!({"nationalities": [{"country": "NL"}, {"country": "DE"}]}),
+        &["/nationalities/0", "/nationalities/1", "/nationalities"],
+        &[vec!["nationalities", "1"]],
+        &["nationalities", "country"],
+        &[],
+    )]
+    fn test_array_selectively_disclosable_attributes_in_presentation(
+        #[case] object: serde_json::Value,
+        #[case] conceal_paths: &[&str],
+        #[case] disclose_paths: &[Vec<&str>],
+        #[case] expected_disclosed_paths_or_values: &[&str],
+        #[case] expected_not_selectively_disclosable_paths_or_values: &[&str],
+    ) {
+        let presentation = create_presentation(object, conceal_paths, disclose_paths);
+
+        fn get_paths(object: &serde_json::Map<String, serde_json::Value>) -> HashSet<String> {
+            fn traverse(value: &serde_json::Value, current_path: &str, paths: &mut HashSet<String>) {
+                match value {
+                    serde_json::Value::Object(map) => {
+                        for (key, val) in map {
+                            let new_path = if current_path.is_empty() {
+                                format!("/{key}")
+                            } else {
+                                format!("{current_path}/{key}")
+                            };
+
+                            if key != "_sd" && key != "..." {
+                                paths.insert(new_path.clone());
+                                match val {
+                                    serde_json::Value::Object(_) => traverse(val, &new_path, paths),
+                                    serde_json::Value::Array(values) => {
+                                        values.iter().for_each(|value| traverse(value, &new_path, paths))
+                                    }
+                                    serde_json::Value::String(s) => {
+                                        paths.insert(s.clone());
+                                    }
+                                    _ => {}
+                                }
+                            }
+                        }
+                    }
+                    serde_json::Value::String(s) => {
+                        let new_path = if current_path.is_empty() {
+                            format!("/{s}")
+                        } else {
+                            format!("{current_path}/{s}")
+                        };
+                        paths.insert(new_path);
+                    }
+                    _ => {}
+                }
+            }
+
+            let mut paths = HashSet::new();
+            traverse(&serde_json::Value::Object(object.clone()), "", &mut paths);
+            paths
+        }
+
+        let claims = presentation.sd_jwt.issuer_signed_jwt.payload();
+        let not_selectively_disclosable_paths = get_paths(&claims.properties);
+
+        let mut actual_disclosed_paths_or_values = HashSet::new();
+
+        for (_digest, disclosure) in presentation.sd_jwt.disclosures {
+            match disclosure.content {
+                DisclosureContent::ObjectProperty(_, name, _) => {
+                    actual_disclosed_paths_or_values.insert(name);
+                }
+                DisclosureContent::ArrayElement(_, value) => match value {
+                    serde_json::Value::Object(map) => {
+                        for (key, _value) in map {
+                            if key != "_sd" {
+                                actual_disclosed_paths_or_values.insert(key.clone());
+                            }
+                        }
+                    }
+                    serde_json::Value::String(value) => {
+                        actual_disclosed_paths_or_values.insert(value);
+                    }
+                    _ => {}
+                },
+            }
+        }
+
+        assert_eq!(
+            HashSet::from_iter(
+                expected_disclosed_paths_or_values
+                    .iter()
+                    .map(|path| String::from(*path))
+            ),
+            actual_disclosed_paths_or_values
+        );
+
+        assert_eq!(
+            expected_not_selectively_disclosable_paths_or_values
                 .iter()
                 .map(|path| String::from(*path))
                 .collect::<HashSet<_>>(),

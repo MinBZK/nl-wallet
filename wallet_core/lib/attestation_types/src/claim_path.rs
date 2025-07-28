@@ -1,5 +1,7 @@
 use std::fmt::Display;
 use std::fmt::Formatter;
+use std::num::ParseIntError;
+use std::str::FromStr;
 
 use serde::Deserialize;
 use serde::Serialize;
@@ -42,6 +44,18 @@ impl Display for ClaimPath {
             ClaimPath::SelectByKey(key) => write!(f, "{key}"),
             ClaimPath::SelectAll => f.write_str("*"),
             ClaimPath::SelectByIndex(index) => write!(f, "{index}"),
+        }
+    }
+}
+
+impl FromStr for ClaimPath {
+    type Err = ParseIntError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "*" => Ok(ClaimPath::SelectAll),
+            s if s.chars().all(|c| c.is_ascii_digit()) => s.parse().map(ClaimPath::SelectByIndex),
+            s => Ok(ClaimPath::SelectByKey(String::from(s))),
         }
     }
 }

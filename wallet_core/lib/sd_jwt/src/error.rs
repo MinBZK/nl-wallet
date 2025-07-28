@@ -37,7 +37,7 @@ pub enum Error {
     InvalidPath(String),
 
     #[error("unexpected element: {value}, for path: {path}")]
-    UnexpectedElementValue { value: serde_json::Value, path: ClaimPath },
+    UnexpectedElement { value: serde_json::Value, path: ClaimPath },
 
     #[error("invalid array index: {path}")]
     InvalidArrayIndex { path: String },
