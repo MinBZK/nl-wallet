@@ -516,18 +516,6 @@ pub struct ClaimMetadata {
     pub svg_id: Option<SvgId>,
 }
 
-pub fn claim_paths_to_json_path(paths: &VecNonEmpty<ClaimPath>) -> Result<String, TypeMetadataError> {
-    let json_path = paths.iter().try_fold(String::new(), |mut acc, path| match path {
-        ClaimPath::SelectByKey(_) => {
-            acc.push_str(&format!("/{path}"));
-            Ok(acc)
-        }
-        other => Err(TypeMetadataError::JsonPathConversion(other.to_string())),
-    })?;
-
-    Ok(json_path)
-}
-
 impl ClaimMetadata {
     pub(crate) fn path_to_string(path: &[ClaimPath]) -> String {
         path.iter().fold(String::new(), |mut output, path| {
@@ -1265,40 +1253,6 @@ mod test {
         }))
         .unwrap();
         assert_type_metadata_error(metadata.validate_svg_ids(), expected);
-    }
-
-    #[test]
-    fn test_to_json_path() {
-        assert_eq!(
-            "/a/b/c",
-            claim_paths_to_json_path(
-                &VecNonEmpty::try_from(vec![
-                    ClaimPath::SelectByKey(String::from("a")),
-                    ClaimPath::SelectByKey(String::from("b")),
-                    ClaimPath::SelectByKey(String::from("c")),
-                ])
-                .unwrap()
-            )
-            .unwrap()
-        );
-
-        assert_matches!(
-            claim_paths_to_json_path(
-                &VecNonEmpty::try_from(vec![
-                    ClaimPath::SelectByKey(String::from("a")),
-                    ClaimPath::SelectByIndex(0),
-                ])
-                .unwrap()
-            ),
-            Err(TypeMetadataError::JsonPathConversion(_))
-        );
-
-        assert_matches!(
-            claim_paths_to_json_path(
-                &VecNonEmpty::try_from(vec![ClaimPath::SelectByKey(String::from("a")), ClaimPath::SelectAll,]).unwrap()
-            ),
-            Err(TypeMetadataError::JsonPathConversion(_))
-        );
     }
 
     #[rstest]

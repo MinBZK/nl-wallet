@@ -23,7 +23,6 @@ derive_more = { workspace = true, features = ["as_ref", "from"] }
 indexmap.workspace = true
 itertools.workspace = true
 jsonwebtoken.workspace = true
-json-pointer.workspace = true
 p256 = { workspace = true, features = ["default", "pem"] }
 rand.workspace = true
 rustls-pki-types.workspace = true
