@@ -321,7 +321,7 @@ pub async fn sign_coses<K: CredentialEcdsaKey, P, PI>(
         .collect::<Vec<_>>();
 
     let result = key_factory
-        .sign_multiple_with_existing_keys(keys_and_signature_data, poa_input)
+        .sign(keys_and_signature_data, poa_input)
         .await
         .map_err(|error| CoseError::Signing(error.into()))?;
 

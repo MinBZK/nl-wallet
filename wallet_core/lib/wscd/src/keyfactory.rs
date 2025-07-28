@@ -17,14 +17,20 @@ pub trait KeyFactory {
     type PoaInput;
     type Poa;
 
-    fn generate_existing<I: Into<String>>(&self, identifier: I, public_key: VerifyingKey) -> Self::Key;
+    /// Instantiate a new reference to a key in this WSCD.
+    ///
+    /// NOTE: this does not generate the key in the WSCD if it does not already exist.
+    /// For generating keys, use [`KeyFactory::perform_issuance()`].
+    fn new_key<I: Into<String>>(&self, identifier: I, public_key: VerifyingKey) -> Self::Key;
 
-    async fn sign_multiple_with_existing_keys(
+    /// Sign the given inputs with the given keys, also returning a PoA when more than one key is used.
+    async fn sign(
         &self,
         messages_and_keys: Vec<(Vec<u8>, Vec<&Self::Key>)>,
         poa_input: Self::PoaInput,
     ) -> Result<DisclosureResult<Self::Poa>, Self::Error>;
 
+    /// Construct new keys along with PoPs and PoA, and optionally a WUA, for use during issuance.
     async fn perform_issuance(
         &self,
         count: NonZeroU64,

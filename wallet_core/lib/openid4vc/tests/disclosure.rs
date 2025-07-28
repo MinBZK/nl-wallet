@@ -666,19 +666,16 @@ async fn test_disclosure_invalid_poa() {
         type Poa = Poa;
         type PoaInput = JwtPoaInput;
 
-        fn generate_existing<I: Into<String>>(&self, identifier: I, public_key: VerifyingKey) -> Self::Key {
-            self.0.generate_existing(identifier, public_key)
+        fn new_key<I: Into<String>>(&self, identifier: I, public_key: VerifyingKey) -> Self::Key {
+            self.0.new_key(identifier, public_key)
         }
 
-        async fn sign_multiple_with_existing_keys(
+        async fn sign(
             &self,
             messages_and_keys: Vec<(Vec<u8>, Vec<&Self::Key>)>,
             poa_input: Self::PoaInput,
         ) -> Result<DisclosureResult<Self::Poa>, Self::Error> {
-            let mut result = self
-                .0
-                .sign_multiple_with_existing_keys(messages_and_keys, poa_input)
-                .await?;
+            let mut result = self.0.sign(messages_and_keys, poa_input).await?;
 
             result.poa.as_mut().unwrap().set_payload("wrong_payload".to_string());
 
