@@ -736,31 +736,18 @@ impl VpAuthorizationResponse {
         Ok(&device_response.0)
     }
 
-    fn keys(&self) -> Result<Vec<VerifyingKey>, MdocError> {
-        let keys = self
-            .vp_token
+    fn unique_keys(&self) -> Result<Vec<VerifyingKey>, MdocError> {
+        self.vp_token
             .iter()
-            .map(|vp| match vp {
-                VerifiablePresentation::MsoMdoc(device_response) => device_response
-                    .0
-                    .documents
-                    .as_ref()
-                    .map(|docs| {
-                        docs.iter()
-                            .map(|doc| {
-                                // VerifyingKey implements Copy, thereby saving use a clone here
-                                doc.issuer_signed.public_key()
-                            })
-                            .collect::<Result<Vec<_>, MdocError>>()
-                    })
-                    .unwrap_or(Ok(Default::default())), // empty list if no documents are present
-            })
-            .collect::<Result<Vec<_>, MdocError>>()?
-            .into_iter()
-            .flatten()
-            .collect_vec();
+            .flat_map(|vp| {
+                let VerifiablePresentation::MsoMdoc(CborBase64(device_response)) = vp;
 
-        Ok(keys)
+                &device_response.documents
+            })
+            .flatten()
+            .map(|document| document.issuer_signed.public_key())
+            // Unfortunately `VerifyingKey` does not implement `Hash`, so we have to deduplicate manually.
+            .process_results(|iter| iter.dedup().collect())
     }
 
     pub fn verify(
@@ -786,7 +773,7 @@ impl VpAuthorizationResponse {
 
         // Verify PoA
         let used_keys = self
-            .keys()
+            .unique_keys()
             .expect("should always succeed when called after DeviceResponse::verify");
         if used_keys.len() >= 2 {
             self.poa.as_ref().ok_or(AuthResponseError::MissingPoa)?.clone().verify(
