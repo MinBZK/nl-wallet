@@ -1,6 +1,7 @@
 // Copyright 2020-2023 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
+use attestation_types::claim_path::ClaimPath;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
 use jwt::error::JwtX5cError;
@@ -34,6 +35,24 @@ pub enum Error {
 
     #[error("invalid path: {0}")]
     InvalidPath(String),
+
+    #[error("unexpected element: {value}, for path: {path}")]
+    UnexpectedElement { value: serde_json::Value, path: ClaimPath },
+
+    #[error("invalid array index: {path}")]
+    InvalidArrayIndex { path: String },
+
+    #[error("the array element for path: '{path}' cannot be found")]
+    ElementNotFoundInArray { path: String },
+
+    #[error("cannot disclose empty path")]
+    EmptyPath,
+
+    #[error("the referenced intermediate element for path: '{path}' cannot be found")]
+    IntermediateElementNotFound { path: String },
+
+    #[error("the referenced element for path: '{path}' cannot be found")]
+    ElementNotFound { path: String },
 
     #[error("invalid input: {0}")]
     Deserialization(String),

@@ -36,6 +36,7 @@ thiserror.workspace = true
 futures = { workspace = true, optional = true }
 rand_core = { workspace = true, optional = true }
 
+attestation_types.path = "../attestation_types"
 jwt.path = "../jwt"
 crypto.path = "../crypto"
 utils.path = "../utils"
