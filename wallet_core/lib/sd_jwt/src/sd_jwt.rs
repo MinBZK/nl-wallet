@@ -887,14 +887,14 @@ mod test {
     #[case::array(
         json!({"nationalities": ["NL", "DE"]}),
         &["/nationalities/0", "/nationalities/1"],
-        &[vec!["nationalities", "*"]],
+        &[vec!["nationalities", "null"]],
         &["NL", "DE"],
         &["/nationalities"],
     )]
     #[case::array(
         json!({"nationalities": ["NL", "DE"]}),
         &["/nationalities/0", "/nationalities/1", "/nationalities"],
-        &[vec!["nationalities", "*"]],
+        &[vec!["nationalities", "null"]],
         &["nationalities", "NL", "DE"],
         &[],
     )]
@@ -908,14 +908,14 @@ mod test {
     #[case::array(
         json!({"nationalities": [{"country": "NL"}, {"country": "DE"}]}),
         &["/nationalities/0/country", "/nationalities/1/country", "/nationalities/0", "/nationalities/1", "/nationalities"],
-        &[vec!["nationalities", "*", "country"]],
+        &[vec!["nationalities", "null", "country"]],
         &["nationalities", "country"],
         &[],
     )]
     #[case::array(
         json!({"nationalities": [{"country": "NL"}, {"country": "DE"}]}),
         &["/nationalities/0", "/nationalities/1", "/nationalities"],
-        &[vec!["nationalities", "*"]],
+        &[vec!["nationalities", "null"]],
         &["nationalities", "country"],
         &[],
     )]
