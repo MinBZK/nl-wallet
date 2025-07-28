@@ -156,7 +156,7 @@ mod tests {
     use openid4vc::issuance_session::CredentialWithMetadata;
     use openid4vc::issuance_session::IssuedCredential;
     use openid4vc::issuance_session::IssuedCredentialCopies;
-    use sd_jwt::sd_jwt::SdJwt;
+    use sd_jwt::sd_jwt::SdJwtPresentation;
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
 
     use super::super::test;
@@ -200,7 +200,7 @@ mod tests {
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let issuance_keypair = generate_issuer_mock(&ca, IssuerRegistration::new_mock().into()).unwrap();
 
-        let sd_jwt = SdJwt::example_pid_sd_jwt(&issuance_keypair);
+        let sd_jwt = SdJwtPresentation::example_pid_sd_jwt(&issuance_keypair);
         let attestation_type = sd_jwt
             .claims()
             .properties

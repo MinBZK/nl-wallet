@@ -6,7 +6,6 @@ use std::fmt::Display;
 use base64::prelude::*;
 use serde::Deserialize;
 use serde::Serialize;
-use serde_json::Value;
 
 use crate::error::Error;
 
@@ -70,7 +69,7 @@ impl Disclosure {
         self.as_ref()
     }
 
-    pub fn claim_value(&self) -> &Value {
+    pub fn claim_value(&self) -> &serde_json::Value {
         match &self.content {
             DisclosureContent::ObjectProperty(_, _, value) => value,
             DisclosureContent::ArrayElement(_, value) => value,
@@ -99,13 +98,13 @@ pub enum DisclosureContent {
         /// The claim name, optional for array elements.
         String,
         /// The claim Value which can be of any type.
-        Value,
+        serde_json::Value,
     ),
     ArrayElement(
         /// The salt value.
         String,
         /// The claim Value which can be of any type.
-        Value,
+        serde_json::Value,
     ),
 }
 

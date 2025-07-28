@@ -1,6 +1,8 @@
 // Copyright 2020-2024 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
+use std::collections::HashSet;
+
 use chrono::DateTime;
 use chrono::Duration;
 use jsonwebtoken::Algorithm;
@@ -11,11 +13,13 @@ use serde_json::Value;
 use serde_json::json;
 use ssri::Integrity;
 
+use attestation_types::claim_path::ClaimPath;
 use crypto::server_keys::generate::Ca;
 use crypto::x509::BorrowingCertificate;
 use jwt::EcdsaDecodingKey;
 use jwt::jwk::jwk_from_p256;
 use sd_jwt::builder::SdJwtBuilder;
+use sd_jwt::disclosure::DisclosureContent;
 use sd_jwt::hasher::Hasher;
 use sd_jwt::hasher::Sha256Hasher;
 use sd_jwt::sd_jwt::SdJwt;
@@ -49,7 +53,7 @@ async fn make_sd_jwt(
 
 #[test]
 fn simple_sd_jwt() {
-    let sd_jwt = SdJwt::spec_simple_structured();
+    let sd_jwt = SdJwtPresentation::spec_simple_structured();
     let disclosed = sd_jwt.into_disclosed_object().unwrap();
     let expected_object = json!({
       "address": {
@@ -65,7 +69,7 @@ fn simple_sd_jwt() {
 
 #[test]
 fn complex_sd_jwt() {
-    let sd_jwt: SdJwt = SdJwt::spec_complex_structured();
+    let sd_jwt: SdJwt = SdJwtPresentation::spec_complex_structured();
     let disclosed = sd_jwt.into_disclosed_object().unwrap();
     let expected_object = json!({
       "verified_claims": {
@@ -108,7 +112,7 @@ async fn concealing_property_of_concealable_value_works() -> anyhow::Result<()> 
     let signing_key = SigningKey::random(&mut OsRng);
 
     sd_jwt
-        .into_presentation(
+        .into_presentation_builder(
             &hasher,
             DateTime::from_timestamp_millis(1458304832).unwrap(),
             String::from("https://example.com"),
@@ -144,7 +148,7 @@ async fn sd_jwt_without_disclosures_works() -> anyhow::Result<()> {
 
     let disclosed = sd_jwt
         .clone()
-        .into_presentation(
+        .into_presentation_builder(
             &hasher,
             DateTime::from_timestamp_millis(1458304832).unwrap(),
             String::from("https://example.com"),
@@ -152,8 +156,7 @@ async fn sd_jwt_without_disclosures_works() -> anyhow::Result<()> {
             Algorithm::ES256,
         )?
         .finish(&holder_signing_key)
-        .await?
-        .0;
+        .await?;
 
     // Try to serialize & deserialize `with_kb`.
     let with_kb = {
@@ -189,7 +192,7 @@ async fn sd_jwt_sd_hash() -> anyhow::Result<()> {
 
     let disclosed = sd_jwt
         .clone()
-        .into_presentation(
+        .into_presentation_builder(
             &hasher,
             DateTime::from_timestamp_millis(1458304832).unwrap(),
             String::from("https://example.com"),
@@ -197,8 +200,7 @@ async fn sd_jwt_sd_hash() -> anyhow::Result<()> {
             Algorithm::ES256,
         )?
         .finish(&signing_key)
-        .await?
-        .0;
+        .await?;
 
     let encoded_kb_jwt = disclosed.to_string();
     let (issued_sd_jwt, _kb) = encoded_kb_jwt.rsplit_once("~").unwrap();
@@ -271,20 +273,29 @@ async fn test_presentation() -> anyhow::Result<()> {
     let hasher = Sha256Hasher::new();
 
     // The holder can withhold from a verifier any concealable claim by calling `conceal`.
-    let (presented_sd_jwt, _) = sd_jwt
-        .into_presentation(
+    let presented_sd_jwt = sd_jwt
+        .into_presentation_builder(
             &hasher,
             DateTime::from_timestamp_millis(1458304832).unwrap(),
             String::from("https://example.com"),
             String::from("abcdefghi"),
             Algorithm::ES256,
         )?
+        .disclose(&vec![ClaimPath::SelectByKey(String::from("email"))].try_into().unwrap())?
+        .disclose(
+            &vec![
+                ClaimPath::SelectByKey(String::from("address")),
+                ClaimPath::SelectByKey(String::from("street_address")),
+            ]
+            .try_into()
+            .unwrap(),
+        )?
         .finish(&holder_privkey)
         .await?;
 
     println!("{}", &presented_sd_jwt);
 
-    SdJwtPresentation::parse_and_verify(
+    let parsed_presentation = SdJwtPresentation::parse_and_verify(
         &presented_sd_jwt.to_string(),
         &EcdsaDecodingKey::from(issuer_privkey.verifying_key()),
         &Sha256Hasher,
@@ -292,6 +303,18 @@ async fn test_presentation() -> anyhow::Result<()> {
         "abcdefghi",
         Duration::days(36500),
     )?;
+
+    let disclosed_paths = parsed_presentation
+        .sd_jwt()
+        .disclosures()
+        .into_iter()
+        .map(|(_, v)| match &v.content {
+            DisclosureContent::ObjectProperty(_, name, _) => name.as_str(),
+            _ => panic!("unexpected disclosure content"),
+        })
+        .collect::<HashSet<_>>();
+
+    assert_eq!(HashSet::from(["email", "address", "street_address"]), disclosed_paths);
 
     Ok(())
 }

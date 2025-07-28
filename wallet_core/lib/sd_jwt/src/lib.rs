@@ -1,6 +1,6 @@
 pub mod builder;
 mod decoder;
-mod disclosure;
+pub mod disclosure;
 mod encoder;
 pub mod error;
 pub mod hasher;

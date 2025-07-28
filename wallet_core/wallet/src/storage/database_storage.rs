@@ -883,7 +883,7 @@ pub(crate) mod tests {
     use platform_support::hw_keystore::mock::MockHardwareEncryptionKey;
     use platform_support::utils::PlatformUtilities;
     use platform_support::utils::mock::MockHardwareUtilities;
-    use sd_jwt::sd_jwt::SdJwt;
+    use sd_jwt::sd_jwt::SdJwtPresentation;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
     use sd_jwt_vc_metadata::examples::VCT_EXAMPLE_CREDENTIAL;
@@ -1217,7 +1217,7 @@ pub(crate) mod tests {
         let state = storage.state().await.unwrap();
         assert!(matches!(state, StorageState::Opened));
 
-        let sd_jwt = SdJwt::example_pid_sd_jwt(&ISSUER_KEY);
+        let sd_jwt = SdJwtPresentation::example_pid_sd_jwt(&ISSUER_KEY);
         let credential = IssuedCredential::SdJwt(Box::new(sd_jwt.clone().into()));
 
         let issued_copies = IssuedCredentialCopies::new_or_panic(
@@ -1282,7 +1282,7 @@ pub(crate) mod tests {
         assert!(matches!(state, StorageState::Opened));
 
         // Create issued_copies that will be inserted into the database
-        let sd_jwt = SdJwt::example_pid_sd_jwt(&ISSUER_KEY);
+        let sd_jwt = SdJwtPresentation::example_pid_sd_jwt(&ISSUER_KEY);
         let credential = IssuedCredential::SdJwt(Box::new(sd_jwt.clone().into()));
         let issued_copies = IssuedCredentialCopies::new_or_panic(
             vec![credential.clone(), credential.clone(), credential.clone()]
@@ -1338,7 +1338,7 @@ pub(crate) mod tests {
         assert_eq!(fetched_events.len(), 1);
 
         // Create new issued_copies that will be updated
-        let sd_jwt = SdJwt::example_pid_sd_jwt(&ISSUER_KEY);
+        let sd_jwt = SdJwtPresentation::example_pid_sd_jwt(&ISSUER_KEY);
         let credential = IssuedCredential::SdJwt(Box::new(sd_jwt.clone().into()));
         let issued_copies = IssuedCredentialCopies::new_or_panic(
             vec![credential.clone(), credential.clone(), credential.clone()]
@@ -1528,7 +1528,7 @@ pub(crate) mod tests {
                 .unwrap()
         );
 
-        let sd_jwt = SdJwt::example_pid_sd_jwt(&ISSUER_KEY);
+        let sd_jwt = SdJwtPresentation::example_pid_sd_jwt(&ISSUER_KEY);
         let credential = IssuedCredential::SdJwt(Box::new(sd_jwt.clone().into()));
 
         let issued_copies = IssuedCredentialCopies::new_or_panic(
@@ -1656,7 +1656,7 @@ pub(crate) mod tests {
         let timestamp_older = Utc.with_ymd_and_hms(2023, 11, 21, 13, 37, 00).unwrap();
         let timestamp_even_older = Utc.with_ymd_and_hms(2023, 11, 11, 11, 11, 00).unwrap();
 
-        let sd_jwt = SdJwt::example_pid_sd_jwt(&ISSUER_KEY);
+        let sd_jwt = SdJwtPresentation::example_pid_sd_jwt(&ISSUER_KEY);
         let credential = IssuedCredential::SdJwt(Box::new(sd_jwt.clone().into()));
 
         let issued_copies = IssuedCredentialCopies::new_or_panic(vec![credential.clone()].try_into().unwrap());
