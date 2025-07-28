@@ -3,6 +3,7 @@
 //! implementing only the fields used by the OpenID4VP profile from ISO 18013-7.
 //! Other fields are left out of the various structs and enums for now, and some fields that are optional per
 //! Presentation Exchange that are always used by the ISO 18013-7 profile are mandatory here.
+use std::num::NonZeroUsize;
 use std::sync::LazyLock;
 
 use indexmap::IndexSet;
@@ -60,12 +61,9 @@ pub enum LimitDisclosure {
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 pub enum PdConversionError {
-    #[error("no paths")]
-    #[category(critical)]
-    NoPaths,
     #[error("too many paths: expected 1, found {0}")]
     #[category(critical)]
-    TooManyPaths(usize),
+    TooManyPaths(NonZeroUsize),
     #[error("unsupported JsonPath expression: {0}")]
     #[category(critical)]
     UnsupportedJsonPathExpression(String),
@@ -76,7 +74,7 @@ pub enum PdConversionError {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Field {
-    pub path: Vec<String>,
+    pub path: VecNonEmpty<String>,
     pub intent_to_retain: bool,
 }
 
@@ -88,30 +86,23 @@ pub struct Field {
 static FIELD_PATH_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r#"^\$(:?\[['"]([^'"]+)['"]\])+$"#).unwrap());
 
 impl Field {
-    pub(crate) fn parse_paths(&self) -> Result<VecNonEmpty<String>, PdConversionError> {
-        let path = match &self.path.as_slice() {
-            [p] => p,
-            [] => return Err(PdConversionError::NoPaths),
-            [_, ..] => return Err(PdConversionError::TooManyPaths(self.path.len())),
+    pub(crate) fn parse_paths(&self) -> Result<impl Iterator<Item = impl Display>, PdConversionError> {
+        let path = match self.path.len() {
+            NonZeroUsize::MIN => self.path.first(),
+            _ => return Err(PdConversionError::TooManyPaths(self.path.len())),
         };
 
         if !FIELD_PATH_REGEX.is_match(path) {
             return Err(PdConversionError::UnsupportedJsonPathExpression(path.to_string()));
         }
 
-        let mut path = path.clone();
-        path.pop(); // remove trailing ']'
-        let segments = path[2..] // remove leading '$['
-            .split("][")
-            .map(|a| {
-                let mut chars = a.chars();
-                chars.next(); // remove leading ' or "
-                chars.next_back(); // remove trailing ' or "
-                chars.as_str().to_string()
-            })
-            .collect_vec()
-            .try_into()
-            .unwrap(); // the regex guarantees at least one segment
+        let path = path.trim_start_matches("$[").trim_end_matches("]");
+        let segments = path.split("][").map(|a| {
+            let mut chars = a.chars();
+            chars.next(); // remove leading ' or "
+            chars.next_back(); // remove trailing ' or "
+            chars.as_str()
+        });
 
         Ok(segments)
     }
@@ -150,7 +141,9 @@ impl From<&VecNonEmpty<NormalizedCredentialRequest>> for PresentationDefinition 
                                 .claims
                                 .iter()
                                 .map(|attr| Field {
-                                    path: vec![format!("$['{}']", attr.path.iter().join("']['"))],
+                                    path: vec![format!("$['{}']", attr.path.iter().join("']['"))]
+                                        .try_into()
+                                        .unwrap(),
                                     intent_to_retain: attr.intent_to_retain,
                                 })
                                 .collect(),
@@ -196,8 +189,7 @@ impl TryFrom<&PresentationDefinition> for VecNonEmpty<NormalizedCredentialReques
                         // The unwrap below is safe because we know the vec is non-empty.
                         Ok(AttributeRequest {
                             path: attrs
-                                .into_iter()
-                                .map(ClaimPath::SelectByKey)
+                                .map(|a| ClaimPath::SelectByKey(a.to_string()))
                                 .collect_vec()
                                 .try_into()
                                 .unwrap(),
@@ -313,18 +305,26 @@ mod tests {
     }
 
     #[rstest]
-    #[case(vec!["$['namespace']['attribute_name']".to_string()], Ok(vec!["namespace".to_string(), "attribute_name".to_string()].try_into().unwrap()))]
-    #[case(vec!["$['namespace']".to_string()], Ok(vec!["namespace".to_string()].try_into().unwrap()))]
-    #[case(vec!["$['namespace']['attribute_name']['extra']".to_string()], Ok(vec!["namespace".to_string(), "attribute_name".to_string(), "extra".to_string()].try_into().unwrap()))]
-    #[case(vec![], Err(PdConversionError::NoPaths))]
-    #[case(vec!["too".to_string(), "many".to_string(), "paths".to_string()], Err(PdConversionError::TooManyPaths(3)))]
-    #[case(vec!["$['']".to_string()], Err(PdConversionError::UnsupportedJsonPathExpression("$['']".to_string())))]
-    fn field_parse_paths(#[case] path: Vec<String>, #[case] expected: Result<VecNonEmpty<String>, PdConversionError>) {
+    #[case(vec!["$['namespace']['attribute_name']".to_string()].try_into().unwrap(), Ok(vec!["namespace".to_string(), "attribute_name".to_string()].try_into().unwrap()))]
+    #[case(vec!["$['namespace']".to_string()].try_into().unwrap(), Ok(vec!["namespace".to_string()].try_into().unwrap()))]
+    #[case(vec!["$['namespace']['attribute_name']['extra']".to_string()].try_into().unwrap(), Ok(vec!["namespace".to_string(), "attribute_name".to_string(), "extra".to_string()].try_into().unwrap()))]
+    #[case(vec!["too".to_string(), "many".to_string(), "paths".to_string()].try_into().unwrap(), Err(PdConversionError::TooManyPaths(3.try_into().unwrap())))]
+    #[case(vec!["$['']".to_string()].try_into().unwrap(), Err(PdConversionError::UnsupportedJsonPathExpression("$['']".to_string())))]
+    fn field_parse_paths(
+        #[case] path: VecNonEmpty<String>,
+        #[case] expected: Result<VecNonEmpty<String>, PdConversionError>,
+    ) {
         let field = Field {
             path,
             intent_to_retain: Default::default(),
         };
-        assert_eq!(field.parse_paths(), expected);
+
+        assert_eq!(
+            field
+                .parse_paths()
+                .map(|iter| iter.map(|a| a.to_string()).collect::<Vec<_>>().try_into().unwrap()),
+            expected
+        );
     }
 
     #[test]
