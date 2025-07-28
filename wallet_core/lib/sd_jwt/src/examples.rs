@@ -10,6 +10,7 @@ use rand_core::OsRng;
 use serde_json::json;
 use ssri::Integrity;
 
+use attestation_types::claim_path::ClaimPath;
 use crypto::server_keys::KeyPair;
 use crypto::utils::random_string;
 use jwt::EcdsaDecodingKey;
@@ -86,11 +87,15 @@ impl SdJwtPresentation {
         // issuer signs SD-JWT
         SdJwtBuilder::new(object)
             .unwrap()
-            .make_concealable("/family_name")
+            .make_concealable(
+                vec![ClaimPath::SelectByKey(String::from("family_name"))]
+                    .try_into()
+                    .unwrap(),
+            )
             .unwrap()
-            .make_concealable("/bsn")
+            .make_concealable(vec![ClaimPath::SelectByKey(String::from("bsn"))].try_into().unwrap())
             .unwrap()
-            .add_decoys("", 2)
+            .add_decoys(&[], 2)
             .unwrap()
             .finish(
                 Algorithm::ES256,
