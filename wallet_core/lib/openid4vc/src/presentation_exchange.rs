@@ -58,13 +58,17 @@ pub enum LimitDisclosure {
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 pub enum PdConversionError {
-    #[error("too many paths")]
+    #[error("no paths")]
     #[category(critical)]
-    TooManyPaths,
-    #[error("unsupported JsonPath expression")]
+    NoPaths,
+    #[error("too many paths: expected 1, found {0}")]
     #[category(critical)]
-    UnsupportedJsonPathExpression,
+    TooManyPaths(usize),
+    #[error("unsupported JsonPath expression: {0}")]
+    #[category(critical)]
+    UnsupportedJsonPathExpression(String),
     #[error("signature algorithms not supported")]
     #[category(critical)]
     UnsupportedAlgs,
@@ -77,24 +81,39 @@ pub struct Field {
 }
 
 /// Per ISO 18013.7, the field paths in a Presentation Definition must all be a JSONPath expression of the form
-/// "$['namespace']['attribute_name']".
+/// "$['namespace']['attribute_name']". To be able to support SD-JWTs with nested attributes, we also allow JSONPath
+/// expressions with more components, such as "$['path']['to']['attribute']".
 ///
 /// See also <https://identity.foundation/presentation-exchange/spec/v2.0.0/#jsonpath-syntax-definition>.
-static FIELD_PATH_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r#"^\$(\[['"]([^'"]*)['"]\])+$"#).unwrap());
+static FIELD_PATH_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r#"^\$(:?\[['"]([^'"]+)['"]\])+$"#).unwrap());
 
 impl Field {
-    pub(crate) fn parse_paths(&self) -> Result<(String, String), PdConversionError> {
-        if self.path.len() != 1 {
-            return Err(PdConversionError::TooManyPaths);
+    pub(crate) fn parse_paths(&self) -> Result<VecNonEmpty<String>, PdConversionError> {
+        let path = match &self.path.as_slice() {
+            [p] => p,
+            [] => return Err(PdConversionError::NoPaths),
+            [_, ..] => return Err(PdConversionError::TooManyPaths(self.path.len())),
+        };
+
+        if !FIELD_PATH_REGEX.is_match(path) {
+            return Err(PdConversionError::UnsupportedJsonPathExpression(path.to_string()));
         }
-        let path = &self.path[0];
 
-        let captures = FIELD_PATH_REGEX
-            .captures(path)
-            .ok_or(PdConversionError::UnsupportedJsonPathExpression)?;
+        let mut path = path.clone();
+        path.pop(); // remove trailing ']'
+        let segments = path[2..] // remove leading '$['
+            .split("][")
+            .map(|a| {
+                let mut chars = a.chars();
+                chars.next(); // remove leading ' or "
+                chars.next_back(); // remove trailing ' or "
+                chars.as_str().to_string()
+            })
+            .collect_vec()
+            .try_into()
+            .unwrap(); // the regex guarantees at least one segment
 
-        // `captures` will always have three elements due to how the regex is constructed.
-        Ok((captures[1].to_string(), captures[2].to_string()))
+        Ok(segments)
     }
 }
 
@@ -173,10 +192,13 @@ impl TryFrom<&PresentationDefinition> for VecNonEmpty<NormalizedCredentialReques
                     .fields
                     .iter()
                     .map(|field| {
-                        let (namespace, attr) = field.parse_paths()?;
+                        let attrs = field.parse_paths()?;
                         // The unwrap below is safe because we know the vec is non-empty.
                         Ok(AttributeRequest {
-                            path: vec![ClaimPath::SelectByKey(namespace), ClaimPath::SelectByKey(attr)]
+                            path: attrs
+                                .into_iter()
+                                .map(ClaimPath::SelectByKey)
+                                .collect_vec()
                                 .try_into()
                                 .unwrap(),
                             intent_to_retain: field.intent_to_retain,
@@ -267,6 +289,9 @@ mod tests {
     use dcql::normalized::NormalizedCredentialRequest;
     use utils::vec_at_least::VecNonEmpty;
 
+    use crate::presentation_exchange::Field;
+    use crate::presentation_exchange::PdConversionError;
+
     use super::FIELD_PATH_REGEX;
     use super::FormatAlg;
     use super::LimitDisclosure;
@@ -275,15 +300,31 @@ mod tests {
 
     #[rstest]
     #[case("$['namespace']['attribute_name']", true)]
-    #[case("$['namespace']", true)] // TODO do we support this?
-    #[case("$['namespace']['attribute_name']['extra']", true)] // This is needed for SD-JWT
+    #[case("$['namespace']", true)] // This is needed for SD-JWT
+    #[case("$['namespace']['attribute_name']['extra']", true)] // This is needed for SD-JWT nested attributes
     #[case("$['namespace\'']['attribute_name']", false)] // We don't support escaped quotes ...
     #[case("$['namespace']['\"attribute_name']", false)] // ... in namespace or attribute names.
+    #[case("$['']", false)]
     #[case(r#"$["namespace"]["attribute_name"]"#, true)] // We also support double quotes ...
     #[case(r#"$['namespace']["attribute_name"]"#, true)] // ... and even mixes between the two
     #[case(r#"$['namespace']['attribute_name"]"#, true)] // (although not required by ISO 18013-7).
     fn field_path_regex(#[case] path: &str, #[case] should_match: bool) {
         assert_eq!(FIELD_PATH_REGEX.is_match(path), should_match);
+    }
+
+    #[rstest]
+    #[case(vec!["$['namespace']['attribute_name']".to_string()], Ok(vec!["namespace".to_string(), "attribute_name".to_string()].try_into().unwrap()))]
+    #[case(vec!["$['namespace']".to_string()], Ok(vec!["namespace".to_string()].try_into().unwrap()))]
+    #[case(vec!["$['namespace']['attribute_name']['extra']".to_string()], Ok(vec!["namespace".to_string(), "attribute_name".to_string(), "extra".to_string()].try_into().unwrap()))]
+    #[case(vec![], Err(PdConversionError::NoPaths))]
+    #[case(vec!["too".to_string(), "many".to_string(), "paths".to_string()], Err(PdConversionError::TooManyPaths(3)))]
+    #[case(vec!["$['']".to_string()], Err(PdConversionError::UnsupportedJsonPathExpression("$['']".to_string())))]
+    fn field_parse_paths(#[case] path: Vec<String>, #[case] expected: Result<VecNonEmpty<String>, PdConversionError>) {
+        let field = Field {
+            path,
+            intent_to_retain: Default::default(),
+        };
+        assert_eq!(field.parse_paths(), expected);
     }
 
     #[test]
