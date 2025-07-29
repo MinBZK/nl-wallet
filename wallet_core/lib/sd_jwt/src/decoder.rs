@@ -93,31 +93,7 @@ impl SdObjectDecoder {
         for value in array {
             match value {
                 Value::Object(object) => {
-                    for (key, value) in object {
-                        if key == ARRAY_DIGEST_KEY {
-                            if object.keys().len() != 1 {
-                                return Err(Error::InvalidArrayDisclosureObject);
-                            }
-
-                            if let Some((_, decoded_value)) = self.disclosure_and_decoded_value_for_array_value(
-                                value,
-                                disclosures,
-                                processed_digests,
-                                |disclosure| match disclosure.content {
-                                    DisclosureContent::ObjectProperty(_, _, _) => {
-                                        Err(Error::InvalidDisclosure("array length must be 2".to_string()))
-                                    }
-                                    _ => Ok(()),
-                                },
-                            )? {
-                                output.push(decoded_value);
-                            }
-                        } else {
-                            let decoded_object = self.decode_object(object, disclosures, processed_digests)?;
-                            output.push(Value::Object(decoded_object));
-                            break;
-                        }
-                    }
+                    self.decode_array_nested_object(object, disclosures, processed_digests, &mut output)?;
                 }
                 Value::Array(array) => {
                     // Nested arrays need to be decoded too.
@@ -132,6 +108,42 @@ impl SdObjectDecoder {
         }
 
         Ok(output)
+    }
+
+    fn decode_array_nested_object(
+        &self,
+        object: &serde_json::Map<String, serde_json::Value>,
+        disclosures: &IndexMap<String, Disclosure>,
+        processed_digests: &mut Vec<String>,
+        output: &mut Vec<Value>,
+    ) -> Result<(), Error> {
+        for (key, value) in object {
+            if key == ARRAY_DIGEST_KEY {
+                if object.keys().len() != 1 {
+                    return Err(Error::InvalidArrayDisclosureObject);
+                }
+
+                if let Some((_, decoded_value)) = self.disclosure_and_decoded_value_for_array_value(
+                    value,
+                    disclosures,
+                    processed_digests,
+                    |disclosure| match disclosure.content {
+                        DisclosureContent::ObjectProperty(_, _, _) => {
+                            Err(Error::InvalidDisclosure("array length must be 2".to_string()))
+                        }
+                        _ => Ok(()),
+                    },
+                )? {
+                    output.push(decoded_value);
+                }
+            } else {
+                let decoded_object = self.decode_object(object, disclosures, processed_digests)?;
+                output.push(Value::Object(decoded_object));
+                break;
+            }
+        }
+
+        Ok(())
     }
 
     fn disclosure_and_decoded_value_for_array_value<'a>(
