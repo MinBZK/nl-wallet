@@ -45,6 +45,7 @@ config = { workspace = true, features = ["toml", "preserve_order"] }
 futures = { workspace = true, features = ["std", "async-await"] }
 hex.workspace = true
 indexmap = { workspace = true, features = ["serde"] }
+itertools.workspace = true
 p256 = { workspace = true, features = ["ecdsa", "pkcs8"] }
 reqwest = { workspace = true, features = ["rustls-tls-webpki-roots"] }
 ring.workspace = true

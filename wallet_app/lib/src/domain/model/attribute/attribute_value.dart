@@ -42,6 +42,16 @@ class DateValue extends AttributeValue {
   const DateValue(this.value);
 }
 
+class ArrayValue extends AttributeValue {
+  @override
+  final List<AttributeValue> value;
+
+  const ArrayValue(this.value);
+
+  @override
+  String toString() => value.map((v) => '  • $v').join('\n');
+}
+
 class NullValue extends AttributeValue {
   @override
   get value => null;

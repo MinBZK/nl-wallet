@@ -53,6 +53,17 @@
         }
       ],
       "sd": "always"
+    },
+    {
+      "path": ["nationalities"],
+      "display": [
+        {
+          "lang": "en-US",
+          "label": "Nationalities",
+          "description": "List of nationalities of the person"
+        }
+      ],
+      "sd": "always"
     }
   ],
   "schema": {
@@ -103,6 +114,12 @@
       },
       "age_over_18": {
         "type": "boolean"
+      },
+      "nationalities": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
       }
     },
     "required": ["vct", "iss", "attestation_qualification", "given_name", "family_name", "birthdate"]
