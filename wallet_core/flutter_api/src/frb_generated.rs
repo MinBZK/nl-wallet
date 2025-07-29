@@ -26,7 +26,7 @@
 // Section: imports
 
 use flutter_rust_bridge::for_generated::byteorder::{NativeEndian, ReadBytesExt, WriteBytesExt};
-use flutter_rust_bridge::for_generated::{Lifetimeable, Lockable, transform_result_dco};
+use flutter_rust_bridge::for_generated::{transform_result_dco, Lifetimeable, Lockable};
 use flutter_rust_bridge::{Handler, IntoIntoDart};
 
 // Section: boilerplate
@@ -1187,6 +1187,10 @@ impl SseDecode for crate::models::attestation::AttributeValue {
                 return crate::models::attestation::AttributeValue::Date { value: var_value };
             }
             4 => {
+                let mut var_value = <Vec<crate::models::attestation::AttributeValue>>::sse_decode(deserializer);
+                return crate::models::attestation::AttributeValue::Array { value: var_value };
+            }
+            5 => {
                 return crate::models::attestation::AttributeValue::Null;
             }
             _ => {
@@ -1434,6 +1438,18 @@ impl SseDecode for Vec<crate::models::attestation::AttestationPresentation> {
             ans_.push(<crate::models::attestation::AttestationPresentation>::sse_decode(
                 deserializer,
             ));
+        }
+        return ans_;
+    }
+}
+
+impl SseDecode for Vec<crate::models::attestation::AttributeValue> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = vec![];
+        for idx_ in 0..len_ {
+            ans_.push(<crate::models::attestation::AttributeValue>::sse_decode(deserializer));
         }
         return ans_;
     }
@@ -2004,7 +2020,10 @@ impl flutter_rust_bridge::IntoDart for crate::models::attestation::AttributeValu
             crate::models::attestation::AttributeValue::Date { value } => {
                 [3.into_dart(), value.into_into_dart().into_dart()].into_dart()
             }
-            crate::models::attestation::AttributeValue::Null => [4.into_dart()].into_dart(),
+            crate::models::attestation::AttributeValue::Array { value } => {
+                [4.into_dart(), value.into_into_dart().into_dart()].into_dart()
+            }
+            crate::models::attestation::AttributeValue::Null => [5.into_dart()].into_dart(),
             _ => {
                 unimplemented!("");
             }
@@ -2684,8 +2703,12 @@ impl SseEncode for crate::models::attestation::AttributeValue {
                 <i32>::sse_encode(3, serializer);
                 <String>::sse_encode(value, serializer);
             }
-            crate::models::attestation::AttributeValue::Null => {
+            crate::models::attestation::AttributeValue::Array { value } => {
                 <i32>::sse_encode(4, serializer);
+                <Vec<crate::models::attestation::AttributeValue>>::sse_encode(value, serializer);
+            }
+            crate::models::attestation::AttributeValue::Null => {
+                <i32>::sse_encode(5, serializer);
             }
             _ => {
                 unimplemented!("");
@@ -2910,6 +2933,16 @@ impl SseEncode for Vec<crate::models::attestation::AttestationPresentation> {
         <i32>::sse_encode(self.len() as _, serializer);
         for item in self {
             <crate::models::attestation::AttestationPresentation>::sse_encode(item, serializer);
+        }
+    }
+}
+
+impl SseEncode for Vec<crate::models::attestation::AttributeValue> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::models::attestation::AttributeValue>::sse_encode(item, serializer);
         }
     }
 }
@@ -3303,7 +3336,7 @@ mod io {
 
     use super::*;
     use flutter_rust_bridge::for_generated::byteorder::{NativeEndian, ReadBytesExt, WriteBytesExt};
-    use flutter_rust_bridge::for_generated::{Lifetimeable, Lockable, transform_result_dco};
+    use flutter_rust_bridge::for_generated::{transform_result_dco, Lifetimeable, Lockable};
     use flutter_rust_bridge::{Handler, IntoIntoDart};
 
     // Section: boilerplate
@@ -3478,7 +3511,13 @@ mod io {
                         value: ans.value.cst_decode(),
                     }
                 }
-                4 => crate::models::attestation::AttributeValue::Null,
+                4 => {
+                    let ans = unsafe { self.kind.Array };
+                    crate::models::attestation::AttributeValue::Array {
+                        value: ans.value.cst_decode(),
+                    }
+                }
+                5 => crate::models::attestation::AttributeValue::Null,
                 _ => unreachable!(),
             }
         }
@@ -3666,6 +3705,16 @@ mod io {
     {
         // Codec=Cst (C-struct based), see doc to use other codecs
         fn cst_decode(self) -> Vec<crate::models::attestation::AttestationPresentation> {
+            let vec = unsafe {
+                let wrap = flutter_rust_bridge::for_generated::box_from_leak_ptr(self);
+                flutter_rust_bridge::for_generated::vec_from_leak_ptr(wrap.ptr, wrap.len)
+            };
+            vec.into_iter().map(CstDecode::cst_decode).collect()
+        }
+    }
+    impl CstDecode<Vec<crate::models::attestation::AttributeValue>> for *mut wire_cst_list_attribute_value {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> Vec<crate::models::attestation::AttributeValue> {
             let vec = unsafe {
                 let wrap = flutter_rust_bridge::for_generated::box_from_leak_ptr(self);
                 flutter_rust_bridge::for_generated::vec_from_leak_ptr(wrap.ptr, wrap.len)
@@ -4442,8 +4491,8 @@ mod io {
     }
 
     #[unsafe(no_mangle)]
-    pub extern "C" fn frbgen_wallet_core_cst_new_box_autoadd_attestation_presentation()
-    -> *mut wire_cst_attestation_presentation {
+    pub extern "C" fn frbgen_wallet_core_cst_new_box_autoadd_attestation_presentation(
+    ) -> *mut wire_cst_attestation_presentation {
         flutter_rust_bridge::for_generated::new_leak_box_ptr(wire_cst_attestation_presentation::new_with_null_ptr())
     }
 
@@ -4479,8 +4528,8 @@ mod io {
     }
 
     #[unsafe(no_mangle)]
-    pub extern "C" fn frbgen_wallet_core_cst_new_box_autoadd_wallet_instruction_error()
-    -> *mut wire_cst_wallet_instruction_error {
+    pub extern "C" fn frbgen_wallet_core_cst_new_box_autoadd_wallet_instruction_error(
+    ) -> *mut wire_cst_wallet_instruction_error {
         flutter_rust_bridge::for_generated::new_leak_box_ptr(wire_cst_wallet_instruction_error::new_with_null_ptr())
     }
 
@@ -4505,6 +4554,18 @@ mod io {
         let wrap = wire_cst_list_attestation_presentation {
             ptr: flutter_rust_bridge::for_generated::new_leak_vec_ptr(
                 <wire_cst_attestation_presentation>::new_with_null_ptr(),
+                len,
+            ),
+            len,
+        };
+        flutter_rust_bridge::for_generated::new_leak_box_ptr(wrap)
+    }
+
+    #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_wallet_core_cst_new_list_attribute_value(len: i32) -> *mut wire_cst_list_attribute_value {
+        let wrap = wire_cst_list_attribute_value {
+            ptr: flutter_rust_bridge::for_generated::new_leak_vec_ptr(
+                <wire_cst_attribute_value>::new_with_null_ptr(),
                 len,
             ),
             len,
@@ -4659,6 +4720,7 @@ mod io {
         Boolean: wire_cst_AttributeValue_Boolean,
         Number: wire_cst_AttributeValue_Number,
         Date: wire_cst_AttributeValue_Date,
+        Array: wire_cst_AttributeValue_Array,
         nil__: (),
     }
     #[repr(C)]
@@ -4680,6 +4742,11 @@ mod io {
     #[derive(Clone, Copy)]
     pub struct wire_cst_AttributeValue_Date {
         value: *mut wire_cst_list_prim_u_8_strict,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_AttributeValue_Array {
+        value: *mut wire_cst_list_attribute_value,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
@@ -4797,6 +4864,12 @@ mod io {
     #[derive(Clone, Copy)]
     pub struct wire_cst_list_attestation_presentation {
         ptr: *mut wire_cst_attestation_presentation,
+        len: i32,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_list_attribute_value {
+        ptr: *mut wire_cst_attribute_value,
         len: i32,
     }
     #[repr(C)]

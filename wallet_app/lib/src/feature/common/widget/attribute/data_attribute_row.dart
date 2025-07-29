@@ -21,8 +21,22 @@ class DataAttributeRow extends StatelessWidget {
       subtitle: Text.rich(
         prettyValue.toTextSpan(context),
         semanticsLabel: BsnHelper.isValidBsnFormat(prettyValue) ? SemanticsHelper.splitNumberString(prettyValue) : null,
-        style: attribute.value is NullValue ? context.textTheme.bodyLarge : null,
+        style: _resolveTextStyle(context, attribute.value),
       ),
     );
+  }
+
+  TextStyle? _resolveTextStyle(BuildContext context, AttributeValue attributeValue) {
+    switch (attributeValue) {
+      case ArrayValue():
+        return attributeValue.value.isEmpty ? context.textTheme.bodyLarge : null;
+      case NullValue():
+        return context.textTheme.bodyLarge;
+      case StringValue():
+      case BooleanValue():
+      case NumberValue():
+      case DateValue():
+        return null;
+    }
   }
 }

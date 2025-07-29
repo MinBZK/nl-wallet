@@ -23,6 +23,22 @@
           "langFormaat": "24 maart 2000"
         }
       },
+      "nationaliteiten": [
+        {
+          "type": "Nationaliteit",
+          "nationaliteit": {
+            "code": "0001",
+            "omschrijving": "Nederlandse"
+          }
+        },
+        {
+          "type": "Nationaliteit",
+          "nationaliteit": {
+            "code": "0052",
+            "omschrijving": "Belgische"
+          }
+        }
+      ],
       "verblijfplaats": {
         "type": "Adres",
         "verblijfadres": {
