@@ -55,8 +55,10 @@ async fn test_pid_ok() {
 
     // Verify that the first mdoc contains the bsn
     let attestations = wallet_attestations(&mut wallet).await;
-    let pid_attestation = attestations.first().unwrap();
-    assert_eq!(pid_attestation.attestation_type, PID_DOCTYPE);
+    let pid_attestation = attestations
+        .iter()
+        .find(|attestation| attestation.attestation_type == PID_DOCTYPE)
+        .expect("should have received PID attestation");
 
     let bsn_attr = pid_attestation
         .attributes
@@ -184,8 +186,10 @@ async fn test_pid_optional_attributes() {
 
     // Verify that the first mdoc contains the bsn
     let attestations = wallet_attestations(&mut wallet).await;
-    let pid_attestation = attestations.first().unwrap();
-    assert_eq!(pid_attestation.attestation_type, PID_DOCTYPE);
+    let pid_attestation = attestations
+        .iter()
+        .find(|attestation| attestation.attestation_type == PID_DOCTYPE)
+        .expect("should have received PID attestation");
 
     let bsn_attr = pid_attestation.attributes.iter().find(|a| a.key == vec![BSN_ATTR_NAME]);
 
