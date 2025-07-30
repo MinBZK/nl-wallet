@@ -268,7 +268,7 @@ mod test {
                         .unwrap(),
                     );
 
-                    assert_matches!(result, Err(Error::ParentNotFound(_, _)));
+                    assert_matches!(result, Err(Error::ParentNotFound(_)));
                 }
 
                 #[test]
@@ -327,7 +327,7 @@ mod test {
                         .unwrap(),
                     );
 
-                    assert_matches!(result, Err(Error::ParentNotFound(_, _)));
+                    assert_matches!(result, Err(Error::ParentNotFound(_)));
                 }
 
                 #[test]

@@ -105,7 +105,7 @@ impl<H: Hasher> SdObjectEncoder<H> {
                 Ok(disclosure)
             }
             (Some(element), path) => Err(Error::UnexpectedElement((*element).clone(), vec![path])),
-            (None, path) => Err(Error::ParentNotFound(self.object.clone(), vec![path])),
+            (None, path) => Err(Error::ParentNotFound(vec![path])),
         }
     }
 
@@ -134,7 +134,7 @@ impl<H: Hasher> SdObjectEncoder<H> {
 
     fn add_decoy(&mut self, path: &[ClaimPath]) -> Result<()> {
         let Some(parent) = Self::iterate_object_by_claim_paths(&mut self.object, path.iter()) else {
-            return Err(Error::ParentNotFound(self.object.clone(), path.to_vec()));
+            return Err(Error::ParentNotFound(path.to_vec()));
         };
 
         if let Some(object) = parent.as_object_mut() {
@@ -330,7 +330,7 @@ mod test {
                     .unwrap(),
                 )
                 .unwrap_err(),
-            Error::ParentNotFound(_, _)
+            Error::ParentNotFound(_)
         );
     }
 }
