@@ -73,7 +73,7 @@ impl<H: Hasher> SdObjectEncoder<H> {
         let salt = Self::gen_rand(self.salt_size);
 
         let (rest, last_path) = path.into_inner_last();
-        let parent = Self::iterate_object_by_claim_paths(&mut self.object, rest.iter());
+        let parent = Self::traverse_object_by_claim_paths(&mut self.object, rest.iter())?;
 
         match (parent, last_path) {
             (Some(Value::Object(parent)), ClaimPath::SelectByKey(key)) => {
@@ -140,7 +140,7 @@ impl<H: Hasher> SdObjectEncoder<H> {
     }
 
     fn add_decoy(&mut self, path: &[ClaimPath]) -> Result<()> {
-        let Some(parent) = Self::iterate_object_by_claim_paths(&mut self.object, path.iter()) else {
+        let Some(parent) = Self::traverse_object_by_claim_paths(&mut self.object, path.iter())? else {
             return Err(Error::ParentNotFound(path.to_vec()));
         };
 
@@ -158,14 +158,16 @@ impl<H: Hasher> SdObjectEncoder<H> {
         }
     }
 
-    fn iterate_object_by_claim_paths<'a, 'b>(
+    fn traverse_object_by_claim_paths<'a, 'b>(
         object: &'a mut Value,
         mut claim_paths: impl Iterator<Item = &'b ClaimPath>,
-    ) -> Option<&'a mut serde_json::Value> {
-        claim_paths.try_fold(object, |object, claim_path| match claim_path {
-            ClaimPath::SelectByKey(key) => object.get_mut(key),
-            ClaimPath::SelectByIndex(index) => object.get_mut(index),
-            ClaimPath::SelectAll => unimplemented!(),
+    ) -> Result<Option<&'a mut serde_json::Value>> {
+        claim_paths.try_fold(Some(object), |maybe_object, claim_path| {
+            maybe_object.map_or(Ok(None), |object| match claim_path {
+                ClaimPath::SelectByKey(key) => Ok(object.get_mut(key)),
+                ClaimPath::SelectByIndex(index) => Ok(object.get_mut(index)),
+                ClaimPath::SelectAll => Err(Error::UnsupportedTraversalPath(claim_path.clone())),
+            })
         })
     }
 
