@@ -76,9 +76,6 @@ impl<H: Hasher> SdObjectEncoder<H> {
 
         match (parent, last_path) {
             (Some(Value::Object(parent)), ClaimPath::SelectByKey(key)) => {
-                // Safe to unwrap, otherwise there would be no match
-                // let parent = parent.as_object_mut().unwrap();
-
                 let disclosure = parent
                     .remove(&key)
                     .ok_or_else(|| Error::DisclosureNotFound(key.clone(), parent.clone()))?;
@@ -114,8 +111,7 @@ impl<H: Hasher> SdObjectEncoder<H> {
     pub fn add_sd_alg_property(&mut self) {
         self.object
             .as_object_mut()
-            // Safety: `object` is a JSON object.
-            .unwrap()
+            .expect("`object` should be a JSON object")
             .insert(SD_ALG.to_string(), Value::String(self.hasher.alg_name().to_string()));
     }
 
