@@ -60,9 +60,6 @@ pub enum TypeMetadataError {
     #[error("found missing `svg_id`s: {}", .0.join(", "))]
     MissingSvgIds(Vec<String>),
 
-    #[error("error converting claim path to a JSON path: {0}")]
-    JsonPathConversion(String),
-
     #[error("internal attributes found in claim: {}", .0.join(", "))]
     InternalAttributeInClaim(Vec<String>),
 }
