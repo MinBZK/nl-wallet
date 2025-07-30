@@ -13,6 +13,7 @@ use utils::vec_at_least::VecNonEmpty;
 
 use crate::disclosure::Disclosure;
 use crate::disclosure::DisclosureContent;
+use crate::disclosure::DisclosureContentSerializationError;
 use crate::error::Error;
 use crate::error::Result;
 use crate::hasher::Hasher;
@@ -81,13 +82,18 @@ impl<H: Hasher> SdObjectEncoder<H> {
                     .ok_or_else(|| Error::DisclosureNotFound(key.clone(), parent.clone()))?;
 
                 // Remove the value from the parent and create a disclosure for it.
-                let disclosure = Disclosure::try_new(DisclosureContent::ObjectProperty(salt, key, disclosure))?;
+                let disclosure = Disclosure::try_new(DisclosureContent::ObjectProperty(salt, key, disclosure))
+                    .map_err(|DisclosureContentSerializationError { key, value, error }| {
+                        // In case of an error, restore the removed entry so that the original object is intact
+                        parent.insert(key.expect("key should have a value for ObjectProperty"), value);
+                        error
+                    })?;
 
                 // Hash the disclosure.
                 let hash = self.hasher.encoded_digest(disclosure.as_str());
 
                 // Add the hash to the "_sd" array if exists; otherwise, create the array and insert the hash.
-                Self::add_digest_to_object(parent, hash)?;
+                Self::add_digest_to_object(parent, hash);
                 Ok(disclosure)
             }
             (Some(Value::Array(entries)), ClaimPath::SelectByIndex(index)) => {
@@ -95,7 +101,12 @@ impl<H: Hasher> SdObjectEncoder<H> {
                     return Err(Error::IndexOutOfBounds(index, entries.clone()));
                 };
 
-                let disclosure = Disclosure::try_new(DisclosureContent::ArrayElement(salt, element.clone()))?;
+                let disclosure = Disclosure::try_new(DisclosureContent::ArrayElement(salt, std::mem::take(element)))
+                    .map_err(|DisclosureContentSerializationError { key: _, value, error }| {
+                        // In case of an error, restore the removed entry so that the original object is intact
+                        *element = value;
+                        error
+                    })?;
                 let hash = self.hasher.encoded_digest(disclosure.as_str());
                 let tripledot = json!({ARRAY_DIGEST_KEY: hash});
                 *element = tripledot;
@@ -135,7 +146,7 @@ impl<H: Hasher> SdObjectEncoder<H> {
 
         if let Some(object) = parent.as_object_mut() {
             let hash = Self::random_digest(&self.hasher, self.salt_size, false)?;
-            Self::add_digest_to_object(object, hash)?;
+            Self::add_digest_to_object(object, hash);
             Ok(())
         } else if let Some(array) = parent.as_array_mut() {
             let hash = Self::random_digest(&self.hasher, self.salt_size, true)?;
@@ -159,26 +170,24 @@ impl<H: Hasher> SdObjectEncoder<H> {
     }
 
     /// Add the hash to the "_sd" array if exists; otherwise, create the array and insert the hash.
-    fn add_digest_to_object(object: &mut Map<String, Value>, digest: String) -> Result<()> {
+    fn add_digest_to_object(object: &mut Map<String, Value>, digest: String) {
         if let Some(sd_value) = object.get_mut(DIGESTS_KEY) {
-            if let Value::Array(value) = sd_value {
-                // Make sure the digests are sorted.
-                let idx = value
-                    .iter()
-                    .enumerate()
-                    .find(|(_, value)| value.as_str().is_some_and(|s| s > digest.as_str()))
-                    .map(|(pos, _)| pos)
-                    .unwrap_or(value.len());
-                value.insert(idx, Value::String(digest));
-            } else {
-                return Err(Error::DataTypeMismatch(
-                    "invalid object: existing `_sd` type is not an array".to_string(),
-                ));
-            }
+            let Value::Array(value) = sd_value else {
+                panic!("existing `_sd` type is not an array");
+            };
+
+            // Make sure the digests are sorted.
+            let idx = value
+                .iter()
+                .enumerate()
+                .find(|(_, value)| value.as_str().is_some_and(|s| s > digest.as_str()))
+                .map(|(pos, _)| pos)
+                .unwrap_or(value.len());
+
+            value.insert(idx, Value::String(digest));
         } else {
             object.insert(DIGESTS_KEY.to_owned(), json!([digest]));
         }
-        Ok(())
     }
 
     fn random_digest(hasher: &dyn Hasher, salt_len: usize, array_entry: bool) -> Result<String> {
@@ -195,7 +204,14 @@ impl<H: Hasher> SdObjectEncoder<H> {
         let disclosure = Disclosure::try_new(match decoy_claim_name {
             Some(claim_name) => DisclosureContent::ObjectProperty(salt, claim_name, Value::String(decoy_value)),
             None => DisclosureContent::ArrayElement(salt, Value::String(decoy_value)),
-        })?;
+        })
+        .map_err(
+            |DisclosureContentSerializationError {
+                 key: _,
+                 value: _,
+                 error,
+             }| error,
+        )?;
         Ok(hasher.encoded_digest(disclosure.as_str()))
     }
 
