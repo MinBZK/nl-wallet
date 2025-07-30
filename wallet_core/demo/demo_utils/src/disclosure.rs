@@ -1,4 +1,3 @@
-use indexmap::IndexMap;
 use serde::Deserialize;
 
 use attestation_data::attributes::Attributes;
@@ -11,6 +10,7 @@ use openid4vc::Format;
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DemoDisclosedAttestation {
+    pub attestation_type: String,
     pub attributes: Attributes,
     pub format: Format,
     pub issuer_uri: HttpsUri,
@@ -20,24 +20,25 @@ pub struct DemoDisclosedAttestation {
     pub validity_info: ValidityInfo,
 }
 
-pub type DemoDisclosedAttestations = IndexMap<String, DemoDisclosedAttestation>;
-
 #[cfg(test)]
 mod test {
+    use indexmap::IndexMap;
+
     use serde_with::chrono::DateTime;
 
     use attestation_data::attributes::Attribute;
     use attestation_data::attributes::AttributeValue;
+    use attestation_data::disclosure::DisclosedAttestation;
+    use attestation_data::disclosure::DisclosedAttributes;
 
     use super::*;
 
     #[test]
     fn test_deserialize_disclosed_attestations() {
-        let mut attestations: attestation_data::disclosure::DisclosedAttestations = IndexMap::new();
-        attestations.insert(
-            "urn:eudi:pid:nl:1".to_string(),
-            attestation_data::disclosure::DisclosedAttestation {
-                attributes: attestation_data::disclosure::DisclosedAttributes::MsoMdoc(IndexMap::from_iter(vec![(
+        let attestations = vec![
+            DisclosedAttestation {
+                attestation_type: "urn:eudi:pid:nl:1".to_string(),
+                attributes: DisclosedAttributes::MsoMdoc(IndexMap::from_iter(vec![(
                     "urn:eudi:pid:nl:1".to_string(),
                     IndexMap::from_iter(vec![
                         ("bsn".to_string(), AttributeValue::Text("999991772".to_string())),
@@ -54,11 +55,9 @@ mod test {
                     signed: DateTime::UNIX_EPOCH,
                 },
             },
-        );
-        attestations.insert(
-            "urn:eudi:pid-address:nl:1".to_string(),
-            attestation_data::disclosure::DisclosedAttestation {
-                attributes: attestation_data::disclosure::DisclosedAttributes::SdJwt(
+            DisclosedAttestation {
+                attestation_type: "urn:eudi:pid-address:nl:1".to_string(),
+                attributes: DisclosedAttributes::SdJwt(
                     IndexMap::from_iter(vec![(
                         "address".to_string(),
                         Attribute::Nested(IndexMap::from_iter(vec![
@@ -86,9 +85,9 @@ mod test {
                     signed: DateTime::UNIX_EPOCH,
                 },
             },
-        );
+        ];
 
-        let attestations: DemoDisclosedAttestations =
+        let attestations: Vec<DemoDisclosedAttestation> =
             serde_json::from_str(&serde_json::to_string(&attestations).unwrap()).unwrap();
 
         assert_eq!(attestations.len(), 2);

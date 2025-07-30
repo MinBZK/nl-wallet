@@ -3,7 +3,7 @@ use reqwest::Client;
 use reqwest::Response;
 
 use dcql::Query;
-use demo_utils::disclosure::DemoDisclosedAttestations;
+use demo_utils::disclosure::DemoDisclosedAttestation;
 use http_utils::error::HttpJsonErrorBody;
 use http_utils::urls::BaseUrl;
 use openid4vc::return_url::ReturnUrlTemplate;
@@ -83,7 +83,7 @@ impl WalletServerClient {
         &self,
         session_token: SessionToken,
         nonce: Option<String>,
-    ) -> Result<DemoDisclosedAttestations, anyhow::Error> {
+    ) -> Result<Vec<DemoDisclosedAttestation>, anyhow::Error> {
         let mut disclosed_attributes_url = self
             .base_url
             .join(&format!("/disclosure/sessions/{session_token}/disclosed_attributes"));
@@ -115,7 +115,7 @@ impl WalletServerClient {
             .and_then(|response| async { Self::error_for_response(response).await })
             .and_then(|response| async {
                 response
-                    .json::<DemoDisclosedAttestations>()
+                    .json::<Vec<DemoDisclosedAttestation>>()
                     .map_err(anyhow::Error::from)
                     .await
             })

@@ -14,7 +14,6 @@ use derive_more::AsRef;
 use derive_more::Constructor;
 use derive_more::Debug;
 use derive_more::From;
-use indexmap::IndexMap;
 use josekit::JoseError;
 use josekit::jwk::Jwk;
 use josekit::jwk::alg::ec::EcCurve;
@@ -34,7 +33,6 @@ use tracing::info;
 use tracing::warn;
 
 use attestation_data::disclosure::DisclosedAttestation;
-use attestation_data::disclosure::DisclosedAttestations;
 use crypto::EcdsaKeySend;
 use crypto::keys::EcdsaKey;
 use crypto::server_keys::KeyPair;
@@ -239,7 +237,7 @@ pub struct Done {
 #[serde(rename_all = "UPPERCASE", tag = "status")]
 enum SessionResult {
     Done {
-        disclosed_attributes: DisclosedAttestations,
+        disclosed_attributes: Vec<DisclosedAttestation>,
         redirect_uri_nonce: Option<String>,
     },
     Failed {
@@ -848,7 +846,7 @@ pub trait DisclosureResultHandler {
     async fn disclosure_result(
         &self,
         usecase_id: &str,
-        disclosed: &IndexMap<String, DisclosedAttestation>,
+        disclosed: &[DisclosedAttestation],
     ) -> Result<HashMap<String, String>, DisclosureResultHandlerError>;
 }
 
@@ -1075,7 +1073,7 @@ where
         &self,
         session_token: &SessionToken,
         redirect_uri_nonce: Option<String>,
-    ) -> Result<DisclosedAttestations, DisclosedAttributesError> {
+    ) -> Result<Vec<DisclosedAttestation>, DisclosedAttributesError> {
         let disclosure_data = session_or_error(self.sessions.as_ref(), session_token).await?.data;
 
         match disclosure_data {
@@ -1481,7 +1479,11 @@ impl Session<WaitingForResponse> {
         }
     }
 
-    fn transition_finish(self, disclosed_attributes: DisclosedAttestations, nonce: Option<String>) -> Session<Done> {
+    fn transition_finish(
+        self,
+        disclosed_attributes: Vec<DisclosedAttestation>,
+        nonce: Option<String>,
+    ) -> Session<Done> {
         self.transition(Done {
             session_result: SessionResult::Done {
                 disclosed_attributes,

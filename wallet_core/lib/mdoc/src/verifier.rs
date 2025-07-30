@@ -19,6 +19,7 @@ use http_utils::urls::HttpsUri;
 use utils::generator::Generator;
 use utils::vec_at_least::VecNonEmpty;
 
+use crate::Error;
 use crate::Result;
 use crate::identifiers::AttributeIdentifier;
 use crate::identifiers::AttributeIdentifierHolder;
@@ -34,14 +35,12 @@ use crate::utils::serialization::cbor_serialize;
 #[serde_as]
 #[derive(Debug, Clone)]
 pub struct DisclosedDocument {
+    pub doc_type: String,
     pub attributes: IndexMap<NameSpace, IndexMap<DataElementIdentifier, DataElementValue>>,
     pub issuer_uri: HttpsUri,
     pub ca: String,
     pub validity_info: ValidityInfo,
 }
-
-/// All attributes that were disclosed in a [`DeviceResponse`], as computed by [`DeviceResponse::verify()`].
-pub type DisclosedDocuments = IndexMap<DocType, DisclosedDocument>;
 
 #[derive(thiserror::Error, Debug)]
 pub enum VerificationError {
@@ -123,7 +122,7 @@ impl DeviceResponse {
         session_transcript: &SessionTranscript,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
-    ) -> Result<DisclosedDocuments> {
+    ) -> Result<Vec<DisclosedDocument>> {
         if let Some(errors) = &self.document_errors {
             return Err(VerificationError::DeviceResponseErrors(errors.clone()).into());
         }
@@ -132,24 +131,27 @@ impl DeviceResponse {
             return Err(VerificationError::UnexpectedStatus(self.status).into());
         }
 
-        if self.documents.is_none() {
-            return Err(VerificationError::NoDocuments.into());
-        }
+        let disclosed_documents = self
+            .documents
+            .as_ref()
+            .ok_or(Error::from(VerificationError::NoDocuments))?
+            .iter()
+            .map(|document| {
+                debug!("verifying document with doc_type: {}", document.doc_type);
 
-        let mut attrs = IndexMap::new();
-        for doc in self.documents.as_ref().unwrap() {
-            debug!("verifying document with doc_type: {}", doc.doc_type);
-            let (doc_type, doc_attrs) = doc
-                .verify(eph_reader_key, session_transcript, time, trust_anchors)
-                .map_err(|e| {
-                    warn!("document verification failed: {e}");
-                    e
-                })?;
-            attrs.insert(doc_type, doc_attrs);
-            debug!("document OK");
-        }
+                let disclosed_document = document
+                    .verify(eph_reader_key, session_transcript, time, trust_anchors)
+                    .inspect_err(|error| {
+                        warn!("document verification failed: {error}");
+                    })?;
 
-        Ok(attrs)
+                debug!("document OK");
+
+                Ok(disclosed_document)
+            })
+            .collect::<Result<_, Error>>()?;
+
+        Ok(disclosed_documents)
     }
 }
 
@@ -242,6 +244,7 @@ impl IssuerSigned {
 
         Ok((
             DisclosedDocument {
+                doc_type: mso.doc_type.clone(),
                 attributes,
                 issuer_uri,
                 ca: String::from(ca_cns.pop().unwrap()),
@@ -293,10 +296,10 @@ impl Document {
         session_transcript: &SessionTranscript,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
-    ) -> Result<(DocType, DisclosedDocument)> {
+    ) -> Result<DisclosedDocument> {
         debug!("verifying document with doc_type: {:?}", &self.doc_type);
         debug!("verify issuer_signed");
-        let (attrs, mso) = self
+        let (disclosed_document, mso) = self
             .issuer_signed
             .verify(ValidityRequirement::Valid, time, trust_anchors)?;
 
@@ -337,7 +340,7 @@ impl Document {
         }
         debug!("signature valid");
 
-        Ok((mso.doc_type, attrs))
+        Ok(disclosed_document)
     }
 }
 

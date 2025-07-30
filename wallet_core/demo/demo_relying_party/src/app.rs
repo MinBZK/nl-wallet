@@ -32,7 +32,7 @@ use attestation_data::attributes::AttributeValue;
 use demo_utils::LANGUAGE_JS_SHA256;
 use demo_utils::WALLET_WEB_CSS_SHA256;
 use demo_utils::WALLET_WEB_JS_SHA256;
-use demo_utils::disclosure::DemoDisclosedAttestations;
+use demo_utils::disclosure::DemoDisclosedAttestation;
 use demo_utils::error::Result;
 use demo_utils::headers::cors_layer;
 use demo_utils::headers::set_content_security_policy;
@@ -249,7 +249,7 @@ pub struct DisclosedAttributesParams {
 #[template(path = "disclosed/attributes.askama", escape = "html", ext = "html")]
 struct DisclosedAttributesTemplate<'a> {
     usecase: &'a str,
-    attributes: DemoDisclosedAttestations,
+    attributes: Vec<DemoDisclosedAttestation>,
     demo_index_url: Url,
     base: BaseTemplate<'a>,
 }
@@ -299,15 +299,15 @@ async fn disclosed_attributes(
 }
 
 mod filters {
-    use demo_utils::disclosure::DemoDisclosedAttestations;
+    use demo_utils::disclosure::DemoDisclosedAttestation;
 
     // searches for an attribute with a specific key, the key is a dot-separated string
     pub fn attribute(
-        attestations: &DemoDisclosedAttestations,
+        attestations: &[DemoDisclosedAttestation],
         _: &dyn askama::Values,
         name: &str,
     ) -> askama::Result<String> {
-        for (_, attestation) in attestations {
+        for attestation in attestations {
             if let Some(attribute_value) = attestation
                 .attributes
                 .flattened()
