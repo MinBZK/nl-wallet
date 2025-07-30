@@ -35,7 +35,6 @@ axum = { workspace = true, features = ["form", "http1", "json", "query", "tokio"
 config = { workspace = true, features = ["toml", "preserve_order"] }
 chrono.workspace = true
 futures = { workspace = true, features = ["std", "async-await"] }
-indexmap = { workspace = true, features = ["serde"] }
 itertools.workspace = true
 reqwest = { workspace = true, features = ["rustls-tls-webpki-roots"] }
 rustls-pki-types.workspace = true
@@ -67,6 +66,7 @@ server_utils.path = "../server_utils"
 utils.path = "../../lib/utils"
 
 [dev-dependencies]
+indexmap.workspace = true
 tokio = { workspace = true, features = ["macros", "test-util"] }
 p256 = { workspace = true, features = ["ecdsa"] }
 

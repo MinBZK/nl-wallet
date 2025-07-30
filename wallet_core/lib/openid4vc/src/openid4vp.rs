@@ -22,8 +22,8 @@ use serde_with::formats::PreferOne;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 
+use attestation_data::disclosure::DisclosedAttestation;
 use attestation_data::disclosure::DisclosedAttestationError;
-use attestation_data::disclosure::DisclosedAttestations;
 use crypto::utils::random_string;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateError;
@@ -695,7 +695,7 @@ impl VpAuthorizationResponse {
         accepted_wallet_client_ids: &[String],
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
-    ) -> Result<DisclosedAttestations, AuthResponseError> {
+    ) -> Result<Vec<DisclosedAttestation>, AuthResponseError> {
         let (response, mdoc_nonce) = Self::decrypt(jwe, private_key, &auth_request.nonce)?;
 
         response.verify(
@@ -757,7 +757,7 @@ impl VpAuthorizationResponse {
         mdoc_nonce: &str,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
-    ) -> Result<DisclosedAttestations, AuthResponseError> {
+    ) -> Result<Vec<DisclosedAttestation>, AuthResponseError> {
         // Verify the cryptographic integrity of the disclosed attributes.
         let session_transcript = SessionTranscript::new_oid4vp(
             &auth_request.response_uri,
@@ -767,7 +767,7 @@ impl VpAuthorizationResponse {
         );
         // TODO this is still mdoc specific (PVW-4531)
         let device_response = self.device_response()?;
-        let disclosed_attrs = device_response
+        let disclosed_documents = device_response
             .verify(None, &session_transcript, time, trust_anchors)
             .map_err(AuthResponseError::Verification)?;
 
@@ -805,10 +805,11 @@ impl VpAuthorizationResponse {
             });
         }
 
-        Ok(disclosed_attrs
+        disclosed_documents
             .into_iter()
-            .map(|(vct, attrs)| Ok((vct, attrs.try_into()?)))
-            .collect::<Result<DisclosedAttestations, DisclosedAttestationError>>()?)
+            .map(DisclosedAttestation::try_from)
+            .try_collect()
+            .map_err(AuthResponseError::DisclosedAttestation)
     }
 }
 
@@ -1262,9 +1263,9 @@ mod tests {
 
         assert_eq!(attestations.len(), 1);
 
-        let (attestation_type, attestation) = attestations.first().unwrap();
+        let attestation = attestations.first().unwrap();
 
-        assert_eq!("urn:eudi:pid:nl:1", attestation_type.as_str(),);
+        assert_eq!("urn:eudi:pid:nl:1", attestation.attestation_type.as_str());
         let DisclosedAttributes::MsoMdoc(attributes) = &attestation.attributes else {
             panic!("should be mdoc attributes")
         };

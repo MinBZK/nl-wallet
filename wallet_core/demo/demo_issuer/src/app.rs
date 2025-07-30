@@ -28,7 +28,7 @@ use attestation_data::issuable_document::IssuableDocument;
 use demo_utils::LANGUAGE_JS_SHA256;
 use demo_utils::WALLET_WEB_CSS_SHA256;
 use demo_utils::WALLET_WEB_JS_SHA256;
-use demo_utils::disclosure::DemoDisclosedAttestations;
+use demo_utils::disclosure::DemoDisclosedAttestation;
 use demo_utils::error::Result;
 use demo_utils::headers::set_content_security_policy;
 use demo_utils::headers::set_static_cache_control;
@@ -185,7 +185,7 @@ async fn usecase(
 async fn attestation(
     State(state): State<Arc<ApplicationState>>,
     Path(usecase): Path<String>,
-    Json(disclosed): Json<DemoDisclosedAttestations>,
+    Json(disclosed): Json<Vec<DemoDisclosedAttestation>>,
 ) -> Result<Response> {
     let Some(usecase) = state.usecases.get(&usecase) else {
         return Ok(StatusCode::NOT_FOUND.into_response());
@@ -195,8 +195,9 @@ async fn attestation(
     // blindly
     let requested_path = usecase.disclosed.path.iter().map(String::as_str).collect::<Vec<_>>();
     let attribute_value = disclosed
-        .get(&usecase.disclosed.credential_type)
-        .and_then(|document| {
+        .iter()
+        .filter(|attestation| attestation.attestation_type == usecase.disclosed.credential_type)
+        .flat_map(|document| {
             document
                 .attributes
                 .flattened()
@@ -205,6 +206,8 @@ async fn attestation(
                     (path.as_ref() == requested_path).then_some(attribute_value.to_owned())
                 })
         })
+        .exactly_one()
+        .ok()
         .ok_or(anyhow::Error::msg("invalid disclosure result"))?;
 
     let documents: Vec<IssuableDocument> = usecase
