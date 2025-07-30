@@ -82,4 +82,7 @@ pub enum Error {
 
     #[error("missing required JWK key binding")]
     MissingJwkKeybinding,
+
+    #[error("cannot traverse object for path: {0}")]
+    UnsupportedTraversalPath(ClaimPath),
 }
