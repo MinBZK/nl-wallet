@@ -161,7 +161,11 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
     emit(IssuanceLoadInProgress(state.stepperProgress));
     await Future.delayed(Duration(seconds: Environment.mockRepositories ? 2 : 0));
 
-    emit(IssuanceReviewCards.init(cards: event.cards));
+    if (event.cards.isEmpty) {
+      emit(IssuanceNoCardsRetrieved(organization: issuance.relyingParty));
+    } else {
+      emit(IssuanceReviewCards.init(cards: event.cards));
+    }
   }
 
   Future<void> _onPinConfirmedForIssuance(IssuancePinForIssuanceConfirmed event, Emitter<IssuanceState> emit) async {
