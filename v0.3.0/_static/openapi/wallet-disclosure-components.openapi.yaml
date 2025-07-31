@@ -136,39 +136,23 @@ components:
 
     disclosed_attributes:
       description: An object with the resultant disclosed attributes
-      type: object
-      properties:
-        com.example.pid:
-          type: object
-          properties:
-            attributes:
-              $ref: '#/components/schemas/attributes'
-            issuer:
-              type: string
-            ca:
-              type: string
-            validityInfo:
-              $ref: '#/components/schemas/validity_info'
-          required:
-            - attributes
-            - issuer
-            - validityInfo
-        com.example.address:
-          type: object
-          properties:
-            attributes:
-              $ref: '#/components/schemas/attributes'
-            issuer:
-              type: string
-            ca:
-              type: string
-            validityInfo:
-              $ref: '#/components/schemas/validity_info'
-          required:
-            - attributes
-            - issuer
-            - validityInfo
-        additionalProperties: false
+      type: array
+      items:
+        type: object
+        properties:
+          attestationType: string
+          attributes:
+            $ref: '#/components/schemas/attributes'
+          issuer:
+            type: string
+          ca:
+            type: string
+          validityInfo:
+            $ref: '#/components/schemas/validity_info'
+        required:
+          - attributes
+          - issuer
+          - validityInfo
 
     attributes:
       type: object

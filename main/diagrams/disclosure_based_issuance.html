@@ -340,8 +340,9 @@ In between the two screens, the issuer receives the disclosed attributes, and ca
 <span class="na">Host</span><span class="o">:</span> <span class="l">localhost:51560</span>
 <span class="na">Content-Length</span><span class="o">:</span> <span class="l">267</span>
 
-<span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;com.example.pid&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="p">[</span>
+<span class="w">  </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;attestationType&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;com.example.pid&quot;</span><span class="p">,</span>
 <span class="w">    </span><span class="nt">&quot;attributes&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">      </span><span class="nt">&quot;com.example.pid&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">        </span><span class="nt">&quot;bsn&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;999991772&quot;</span>
@@ -355,7 +356,7 @@ In between the two screens, the issuer receives the disclosed attributes, and ca
 <span class="w">      </span><span class="nt">&quot;validUntil&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-04-15T07:02:26Z&quot;</span>
 <span class="w">    </span><span class="p">}</span>
 <span class="w">  </span><span class="p">}</span>
-<span class="p">}</span>
+<span class="p">]</span>
 </pre></div>
 </div>
 <p>The <code class="docutils literal notranslate"><span class="pre">attestation_server</span></code> must respond with a JSON-serialized <code class="docutils literal notranslate"><span class="pre">Vec&lt;IssuableDocument&gt;</span></code>. For example:</p>

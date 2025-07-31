@@ -317,12 +317,17 @@ refer to the wallet’s keys, invalidating existing keys and their identifiers.
 The WP’s database will therefore have to be cleared when deploying this.</p></li>
 <li><p>Specifying for which attributes a relying party is authorized in a certificate
 has been made attestation format agnostic, meaning all existing certificates
-are invalid and should be regenerated to accomodate the new structure.</p></li>
+are invalid and should be regenerated to accommodate the new structure.</p></li>
 <li><p>The minimum size for the <code class="docutils literal notranslate"><span class="pre">ephemeral_id_secret</span></code> in the configuration of the
 <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> has been increased from 16 to 32 bytes.</p></li>
 <li><p>Switched configuration of mock relying party, issuance and verification server
 to use DCQL (Digital Credential Query Language) for defining credential
 queries. (see issuance_server.example.toml)</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">disclosed_attributes</span></code> endpoint of the verifier no longer returns a JSON
+object keyed by the attestation type. Instead, it returns an array of
+attestation objects, with <code class="docutils literal notranslate"><span class="pre">attestation_type</span></code> added as a field in that object.
+This effectively removes the limitation that a particular attestation type
+can only appear once in disclosed attributes.</p></li>
 </ul>
 </section>
 <section id="new-features">
