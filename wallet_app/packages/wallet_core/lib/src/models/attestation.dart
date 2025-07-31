@@ -95,6 +95,9 @@ sealed class AttributeValue with _$AttributeValue {
   const factory AttributeValue.date({
     required String value,
   }) = AttributeValue_Date;
+  const factory AttributeValue.array({
+    required List<AttributeValue> value,
+  }) = AttributeValue_Array;
   const factory AttributeValue.null_() = AttributeValue_Null;
 }
 

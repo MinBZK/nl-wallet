@@ -23,6 +23,18 @@
   </suppress>
   <!-- End group: [CRITICAL] https://ossindex.sonatype.org/component/pkg:cocoapods/Flutter@1.0.0 -->
 
+  <!-- Start group: [MEDIUM] -->
+  <suppress>
+    <notes><![CDATA[
+    See the discussion in https://github.com/prettier/prettier/issues/17737.
+    Suppressing here because it is a dev dependency and we only input our own source files, therefore lowering the
+    exploitability.
+    ]]></notes>
+    <packageUrl regex="true">^pkg:npm/prettier@.*$</packageUrl>
+    <vulnerabilityName>CVE-2025-8263</vulnerabilityName>
+  </suppress>
+  <!-- End group: [MEDIUM] -->
+
   <!-- Start group: [LOW] -->
   <suppress>
     <notes><![CDATA[

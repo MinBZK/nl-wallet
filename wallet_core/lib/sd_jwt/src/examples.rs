@@ -10,6 +10,7 @@ use rand_core::OsRng;
 use serde_json::json;
 use ssri::Integrity;
 
+use attestation_types::claim_path::ClaimPath;
 use crypto::server_keys::KeyPair;
 use crypto::utils::random_string;
 use jwt::EcdsaDecodingKey;
@@ -76,6 +77,7 @@ impl SdJwtPresentation {
           "iss": "https://cert.issuer.example.com",
           "attestation_qualification": "QEAA",
           "bsn": "999991772",
+          "recovery_code": "885ed8a2-f07a-4f77-a8df-2e166f5ebd36",
           "given_name": "John",
           "family_name": "Doe",
           "birthdate": "1940-01-01"
@@ -86,11 +88,15 @@ impl SdJwtPresentation {
         // issuer signs SD-JWT
         SdJwtBuilder::new(object)
             .unwrap()
-            .make_concealable("/family_name")
+            .make_concealable(
+                vec![ClaimPath::SelectByKey(String::from("family_name"))]
+                    .try_into()
+                    .unwrap(),
+            )
             .unwrap()
-            .make_concealable("/bsn")
+            .make_concealable(vec![ClaimPath::SelectByKey(String::from("bsn"))].try_into().unwrap())
             .unwrap()
-            .add_decoys("", 2)
+            .add_decoys(&[], 2)
             .unwrap()
             .finish(
                 Algorithm::ES256,

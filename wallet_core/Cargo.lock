@@ -3570,15 +3570,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "json-pointer"
-version = "0.3.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5fe841b94e719a482213cee19dd04927cf412f26d8dc84c5a446c081e49c2997"
-dependencies = [
- "serde_json",
-]
-
-[[package]]
 name = "jsonschema"
 version = "0.29.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4523,6 +4514,7 @@ dependencies = [
  "http_utils",
  "indexmap 2.7.1",
  "issuer_settings",
+ "itertools 0.14.0",
  "jwt",
  "openid4vc",
  "openid4vc_server",
@@ -5464,7 +5456,6 @@ dependencies = [
  "futures",
  "indexmap 2.7.1",
  "itertools 0.14.0",
- "json-pointer",
  "jsonwebtoken",
  "jwt",
  "p256",

@@ -30,7 +30,6 @@ use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataError;
 use sd_jwt_vc_metadata::TypeMetadataValidationError;
-use sd_jwt_vc_metadata::claim_paths_to_json_path;
 use utils::date_time_seconds::DateTimeSeconds;
 use utils::generator::Generator;
 
@@ -285,7 +284,7 @@ impl CredentialPayload {
             .previewable_payload
             .attributes
             .claim_paths()
-            .iter()
+            .into_iter()
             .try_fold(SdJwtBuilder::new(self)?, |builder, claims| {
                 let should_be_selectively_discloseable = match sd_by_claims.get(&claims) {
                     Some(sd) => !matches!(sd, ClaimSelectiveDisclosureMetadata::Never),
@@ -296,11 +295,8 @@ impl CredentialPayload {
                     return Ok(builder);
                 }
 
-                let json_path =
-                    claim_paths_to_json_path(claims).map_err(SdJwtCredentialPayloadError::ClaimPathConversion)?;
-
                 builder
-                    .make_concealable(&json_path)
+                    .make_concealable(claims)
                     .map_err(SdJwtCredentialPayloadError::SdJwtCreation)
             })?
             .finish(
@@ -439,6 +435,7 @@ mod test {
     use serde_json::json;
     use ssri::Integrity;
 
+    use attestation_types::claim_path::ClaimPath;
     use attestation_types::qualification::AttestationQualification;
     use crypto::EcdsaKey;
     use crypto::server_keys::generate::Ca;
@@ -595,17 +592,44 @@ mod test {
 
         let sd_jwt = SdJwtBuilder::new(claims)
             .unwrap()
-            .make_concealable("/birth_date")
+            .make_concealable(
+                vec![ClaimPath::SelectByKey(String::from("birth_date"))]
+                    .try_into()
+                    .unwrap(),
+            )
             .unwrap()
-            .make_concealable("/place_of_birth/locality")
+            .make_concealable(
+                vec![
+                    ClaimPath::SelectByKey(String::from("place_of_birth")),
+                    ClaimPath::SelectByKey(String::from("locality")),
+                ]
+                .try_into()
+                .unwrap(),
+            )
             .unwrap()
-            .make_concealable("/place_of_birth/country/name")
+            .make_concealable(
+                vec![
+                    ClaimPath::SelectByKey(String::from("place_of_birth")),
+                    ClaimPath::SelectByKey(String::from("country")),
+                    ClaimPath::SelectByKey(String::from("name")),
+                ]
+                .try_into()
+                .unwrap(),
+            )
             .unwrap()
-            .make_concealable("/place_of_birth/country/area_code")
+            .make_concealable(
+                vec![
+                    ClaimPath::SelectByKey(String::from("place_of_birth")),
+                    ClaimPath::SelectByKey(String::from("country")),
+                    ClaimPath::SelectByKey(String::from("area_code")),
+                ]
+                .try_into()
+                .unwrap(),
+            )
             .unwrap()
-            .add_decoys("/place_of_birth", 1)
+            .add_decoys(&[ClaimPath::SelectByKey(String::from("place_of_birth"))], 1)
             .unwrap()
-            .add_decoys("", 2)
+            .add_decoys(&[], 2)
             .unwrap()
             .finish(
                 Algorithm::ES256,
