@@ -197,7 +197,9 @@ async fn attestation(
     let attribute_value = disclosed
         .iter()
         .filter(|attestation| attestation.attestation_type == usecase.disclosed.credential_type)
-        .flat_map(|document| {
+        .exactly_one()
+        .ok()
+        .and_then(|document| {
             document
                 .attributes
                 .flattened()
@@ -206,8 +208,6 @@ async fn attestation(
                     (path.as_ref() == requested_path).then_some(attribute_value.to_owned())
                 })
         })
-        .exactly_one()
-        .ok()
         .ok_or(anyhow::Error::msg("invalid disclosure result"))?;
 
     let documents: Vec<IssuableDocument> = usecase
