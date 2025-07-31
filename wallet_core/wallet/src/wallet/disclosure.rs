@@ -731,7 +731,11 @@ where
             .write()
             .await
             .increment_attestation_copies_usage_count(
-                attestations.iter().map(|attestation| attestation.copy_id).collect(),
+                attestations
+                    .iter()
+                    .map(|attestation| attestation.copy_id)
+                    .dedup()
+                    .collect(),
             )
             .await;
 
