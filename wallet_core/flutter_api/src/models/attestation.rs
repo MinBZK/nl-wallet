@@ -137,6 +137,7 @@ pub enum AttributeValue {
     Boolean { value: bool },
     Number { value: i64 },
     Date { value: String },
+    Array { value: Vec<AttributeValue> },
     Null,
 }
 
@@ -158,7 +159,9 @@ impl From<attestation_data::AttributeValue> for AttributeValue {
             attestation_data::AttributeValue::Integer(value) => AttributeValue::Number { value },
             attestation_data::AttributeValue::Text(value) => AttributeValue::String { value },
             attestation_data::AttributeValue::Null => AttributeValue::Null,
-            attestation_data::AttributeValue::Array(_) => todo!("implement in PVW-4001"),
+            attestation_data::AttributeValue::Array(entries) => AttributeValue::Array {
+                value: entries.into_iter().map(AttributeValue::from).collect(),
+            },
         }
     }
 }
