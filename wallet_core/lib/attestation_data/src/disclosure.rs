@@ -97,6 +97,7 @@ impl From<DisclosedAttributes> for IndexMap<NameSpace, IndexMap<DataElementIdent
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DisclosedAttestation {
+    pub attestation_type: String,
     #[serde(flatten)]
     pub attributes: DisclosedAttributes,
     pub issuer_uri: HttpsUri,
@@ -106,14 +107,12 @@ pub struct DisclosedAttestation {
     pub validity_info: ValidityInfo,
 }
 
-/// All attestations disclosed in a disclosure session.
-pub type DisclosedAttestations = IndexMap<String, DisclosedAttestation>;
-
 impl TryFrom<mdoc::verifier::DisclosedDocument> for DisclosedAttestation {
     type Error = DisclosedAttestationError;
 
     fn try_from(doc: mdoc::verifier::DisclosedDocument) -> Result<Self, Self::Error> {
         Ok(DisclosedAttestation {
+            attestation_type: doc.doc_type,
             attributes: doc.attributes.try_into()?,
             issuer_uri: doc.issuer_uri,
             ca: doc.ca,
@@ -126,6 +125,7 @@ impl TryFrom<mdoc::verifier::DisclosedDocument> for DisclosedAttestation {
 impl From<DisclosedAttestation> for mdoc::verifier::DisclosedDocument {
     fn from(doc: DisclosedAttestation) -> Self {
         mdoc::verifier::DisclosedDocument {
+            doc_type: doc.attestation_type,
             attributes: doc.attributes.into(),
             issuer_uri: doc.issuer_uri,
             ca: doc.ca,
@@ -148,11 +148,12 @@ mod test {
     use rstest::rstest;
     use serde_json::json;
 
-    use super::DisclosedAttestations;
+    use super::DisclosedAttestation;
 
     #[rstest]
-    #[case(json!({
-        "com.example.pid": {
+    #[case(json!([
+        {
+            "attestationType": "com.example.pid",
             "issuerUri": "https://pid.example.com",
             "ca": "ca.example.com",
             "validityInfo": {
@@ -167,7 +168,8 @@ mod test {
                 }
             }
         },
-        "com.example.address": {
+        {
+        "attestationType": "com.example.address",
             "issuerUri": "https://pid.example.com",
             "ca": "ca.example.com",
             "validityInfo": {
@@ -182,9 +184,10 @@ mod test {
                 }
             }
         }
-    }))]
-    #[case(json!({
-        "com.example.pid": {
+    ]))]
+    #[case(json!([
+        {
+            "attestationType": "com.example.pid",
             "issuerUri": "https://pid.example.com",
             "ca": "ca.example.com",
             "validityInfo": {
@@ -199,7 +202,8 @@ mod test {
                 }
             }
         },
-        "com.example.address": {
+        {
+            "attestationType": "com.example.address",
             "issuerUri": "https://pid.example.com",
             "ca": "ca.example.com",
             "validityInfo": {
@@ -218,9 +222,10 @@ mod test {
                 }
             }
         }
-    }))]
-    #[case(json!({
-        "com.example.pid": {
+    ]))]
+    #[case(json!([
+        {
+            "attestationType": "com.example.pid",
             "issuerUri": "https://pid.example.com",
             "ca": "ca.example.com",
             "validityInfo": {
@@ -244,8 +249,8 @@ mod test {
                 }
             }
         }
-    }))]
+    ]))]
     fn serialize_disclosed_attestation_ok(#[case] attestations: serde_json::Value) {
-        serde_json::from_value::<DisclosedAttestations>(attestations).unwrap();
+        serde_json::from_value::<Vec<DisclosedAttestation>>(attestations).unwrap();
     }
 }

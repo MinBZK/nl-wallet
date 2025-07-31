@@ -395,7 +395,7 @@ mod tests {
         let device_response = match response.vp_token.into_iter().next().unwrap() {
             VerifiablePresentation::MsoMdoc(CborBase64(device_response)) => device_response,
         };
-        let attributes = device_response
+        let disclosed_documents = device_response
             .verify(
                 None,
                 &verifier_session.session_transcript(&mdoc_nonce),
@@ -405,12 +405,12 @@ mod tests {
             .expect("mdoc DeviceResponse sent by VPDisclosureSession should be valid");
 
         // Finally, check that the disclosed attributes match exactly those provided.
-        let disclosed_attributes = attributes
+        let disclosed_attributes = disclosed_documents
             .iter()
             .exactly_one()
             .ok()
-            .and_then(|(attestation_type, documents)| (attestation_type == PID).then_some(documents))
-            .and_then(|documents| documents.attributes.iter().exactly_one().ok())
+            .and_then(|document| (document.doc_type == *PID).then_some(document))
+            .and_then(|document| document.attributes.iter().exactly_one().ok())
             .and_then(|(namespaces, attributes)| (namespaces == PID).then_some(attributes))
             .map(|attributes| {
                 attributes
