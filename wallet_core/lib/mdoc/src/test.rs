@@ -115,7 +115,7 @@ fn remove_whitespace(s: &str) -> String {
 }
 
 /// Assert that the specified doctype was disclosed, and that it contained the specified namespace,
-/// and that the first attribute in that namespace has the specified name and value.
+/// and that the namespace contains the specified name and value.
 pub fn assert_disclosure_contains(
     disclosed_documents: &[DisclosedDocument],
     doctype: &str,
