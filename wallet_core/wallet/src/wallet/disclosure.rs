@@ -61,6 +61,7 @@ use crate::repository::UpdateableRepository;
 use crate::storage::DataDisclosureStatus;
 use crate::storage::Storage;
 use crate::storage::StorageError;
+use crate::storage::StoredMdocCopy;
 use crate::wallet::Session;
 
 use super::UriType;
@@ -326,39 +327,36 @@ where
                     .ok()
                     .map(|_| stored_mdoc)
             })
-            .map(|stored_mdoc| {
-                // TODO (PVW-4132): Mdoc attestations contained in the database should be assumed to be valid.
-                //                  Once this is expressed within the type system, these errors can be removed.
-                let mdoc_certificate = stored_mdoc
-                    .mdoc
-                    .issuer_certificate()
-                    .map_err(DisclosureError::MdocCertificate)?;
-                let issuer_registration = IssuerRegistration::from_certificate(&mdoc_certificate)
-                    .map_err(DisclosureError::IssuerRegistration)?
-                    .ok_or(DisclosureError::MissingIssuerRegistration)?;
+            .map(
+                |StoredMdocCopy {
+                     mdoc_id,
+                     mdoc_copy_id,
+                     mut mdoc,
+                     normalized_metadata,
+                 }| {
+                    // Remove any attributes that were not requested from the presentation attributes.
+                    mdoc.issuer_signed = mdoc.issuer_signed.into_attribute_subset(request.claim_paths());
 
-                // Remove any attributes that were not requested from the presentation attributes.
-                let issuer_signed = stored_mdoc
-                    .mdoc
-                    .issuer_signed
-                    .clone()
-                    .into_attribute_subset(request.claim_paths());
+                    // TODO (PVW-4132): Mdoc attestations contained in the database should be assumed to be valid.
+                    //                  Once this is expressed within the type system, these errors can be removed.
+                    let mdoc_certificate = mdoc.issuer_certificate().map_err(DisclosureError::MdocCertificate)?;
+                    let issuer_registration = IssuerRegistration::from_certificate(&mdoc_certificate)
+                        .map_err(DisclosureError::IssuerRegistration)?
+                        .ok_or(DisclosureError::MissingIssuerRegistration)?;
 
-                let attestation_presentation = AttestationPresentation::create_from_mdoc(
-                    AttestationIdentity::Fixed {
-                        id: stored_mdoc.mdoc_id,
-                    },
-                    stored_mdoc.normalized_metadata,
-                    issuer_registration.organization,
-                    issuer_signed.into_entries_by_namespace(),
-                )
-                .map_err(DisclosureError::AttestationAttributes)?;
+                    let attestation_presentation = AttestationPresentation::create_from_mdoc(
+                        AttestationIdentity::Fixed { id: mdoc_id },
+                        normalized_metadata,
+                        issuer_registration.organization,
+                        mdoc.issuer_signed.clone().into_entries_by_namespace(),
+                    )
+                    .map_err(DisclosureError::AttestationAttributes)?;
 
-                let attestation =
-                    DisclosureAttestation::new(stored_mdoc.mdoc_copy_id, stored_mdoc.mdoc, attestation_presentation);
+                    let attestation = DisclosureAttestation::new(mdoc_copy_id, mdoc, attestation_presentation);
 
-                Ok(attestation)
-            })
+                    Ok(attestation)
+                },
+            )
             .collect::<Result<Vec<_>, DisclosureError>>()?;
         let candidate_attestations = VecNonEmpty::try_from(candidate_attestations).ok();
 

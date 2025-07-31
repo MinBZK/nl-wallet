@@ -31,6 +31,7 @@ use crypto::server_keys::generate::Ca;
 use crypto::server_keys::generate::mock::RP_CERT_CN;
 use dcql::Query;
 use dcql::normalized;
+use dcql::normalized::NormalizedCredentialRequest;
 use http_utils::urls::BaseUrl;
 use jwt::Jwt;
 use mdoc::DeviceResponse;
@@ -496,7 +497,12 @@ async fn test_client_and_server(
         .unwrap();
 
     // Finish the disclosure.
-    let mdocs = test_documents_to_mdocs(stored_documents, &issuer_ca, &key_factory);
+    let mdocs = test_documents_to_mdocs(
+        stored_documents,
+        session.credential_requests().as_ref(),
+        &issuer_ca,
+        &key_factory,
+    );
     let redirect_uri = session.disclose(mdocs, &key_factory).await.unwrap();
 
     // Check if we received a redirect URI when we should have, based on the use case and session type.
@@ -653,7 +659,12 @@ async fn test_client_and_server_cancel_after_wallet_start() {
     assert_matches!(status_response, StatusResponse::Cancelled);
 
     // Disclosing attributes at this point should result in an error.
-    let mdocs = test_documents_to_mdocs(stored_documents, &issuer_ca, &key_factory);
+    let mdocs = test_documents_to_mdocs(
+        stored_documents,
+        session.credential_requests().as_ref(),
+        &issuer_ca,
+        &key_factory,
+    );
     let (_session, error) = session
         .disclose(mdocs, &key_factory)
         .await
@@ -740,7 +751,12 @@ async fn test_disclosure_invalid_poa() {
         .unwrap();
 
     // Finish the disclosure.
-    let mdocs = test_documents_to_mdocs(stored_documents, &issuer_ca, &key_factory);
+    let mdocs = test_documents_to_mdocs(
+        stored_documents,
+        session.credential_requests().as_ref(),
+        &issuer_ca,
+        &key_factory,
+    );
     let (_session, error) = session
         .disclose(mdocs, &key_factory)
         .await
@@ -786,7 +802,12 @@ async fn test_wallet_initiated_usecase_verifier() {
     .unwrap();
 
     // Do the disclosure
-    let mdocs = test_documents_to_mdocs(pid_full_name(), &issuer_ca, &key_factory);
+    let mdocs = test_documents_to_mdocs(
+        pid_full_name(),
+        session.credential_requests().as_ref(),
+        &issuer_ca,
+        &key_factory,
+    );
     session.disclose(mdocs, &key_factory).await.unwrap().unwrap();
 }
 
@@ -950,16 +971,26 @@ fn setup_verifier(
     (verifier, rp_ca.to_trust_anchor().to_owned(), issuer_ca)
 }
 
-fn test_documents_to_mdocs<KF>(stored_documents: TestDocuments, issuer_ca: &Ca, key_factory: &KF) -> VecNonEmpty<Mdoc>
+fn test_documents_to_mdocs<KF>(
+    stored_documents: TestDocuments,
+    credential_requests: &[NormalizedCredentialRequest],
+    issuer_ca: &Ca,
+    key_factory: &KF,
+) -> VecNonEmpty<Mdoc>
 where
     KF: KeyFactory,
 {
     stored_documents
         .into_iter()
-        .map(|doc| {
-            test_document_to_mdoc(doc, issuer_ca, key_factory)
+        .zip_eq(credential_requests)
+        .map(|(doc, request)| {
+            let mut mdoc = test_document_to_mdoc(doc, issuer_ca, key_factory)
                 .now_or_never()
-                .unwrap()
+                .unwrap();
+
+            mdoc.issuer_signed = mdoc.issuer_signed.into_attribute_subset(request.claim_paths());
+
+            mdoc
         })
         .collect_vec()
         .try_into()

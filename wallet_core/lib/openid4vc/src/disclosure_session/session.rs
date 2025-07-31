@@ -98,16 +98,6 @@ where
             ));
         }
 
-        let subset_mdocs = mdocs
-            .into_iter()
-            .zip_eq(self.auth_request.credential_requests.as_ref())
-            .map(|(mut mdoc, request)| {
-                mdoc.issuer_signed = mdoc.issuer_signed.into_attribute_subset(request.claim_paths());
-
-                mdoc
-            })
-            .collect_vec();
-
         // Sign Document values based on the remaining contents of these mdocs and retain the keys used for signing.
         info!("signing disclosed mdoc documents");
 
@@ -119,7 +109,7 @@ where
             &mdoc_nonce,
         );
 
-        let result = DeviceResponse::sign_from_mdocs(subset_mdocs, &session_transcript, key_factory).await;
+        let result = DeviceResponse::sign_from_mdocs(mdocs.into_inner(), &session_transcript, key_factory).await;
         let (device_response, keys) = match result {
             Ok(value) => value,
             Err(error) => {
