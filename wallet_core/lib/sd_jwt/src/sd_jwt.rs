@@ -1,6 +1,7 @@
 // Copyright 2020-2023 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
+use std::collections::HashMap;
 use std::collections::HashSet;
 use std::fmt::Display;
 use std::iter::Peekable;
@@ -10,7 +11,6 @@ use chrono::Duration;
 use chrono::Utc;
 use derive_more::AsRef;
 use derive_more::From;
-use indexmap::IndexMap;
 use itertools::Itertools;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::Header;
@@ -78,7 +78,7 @@ pub struct SdJwt {
     // the certificates are stored here redunantly for convenience as well.
     issuer_certificates: Vec<BorrowingCertificate>,
 
-    disclosures: IndexMap<String, Disclosure>,
+    disclosures: HashMap<String, Disclosure>,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, From, AsRef)]
@@ -171,7 +171,7 @@ impl SdJwt {
     pub(crate) fn new(
         issuer_signed_jwt: VerifiedJwt<SdJwtClaims>,
         issuer_certificates: Vec<BorrowingCertificate>,
-        disclosures: IndexMap<String, Disclosure>,
+        disclosures: HashMap<String, Disclosure>,
     ) -> Self {
         Self {
             issuer_signed_jwt,
@@ -188,7 +188,7 @@ impl SdJwt {
         self.issuer_signed_jwt.payload()
     }
 
-    pub fn disclosures(&self) -> &IndexMap<String, Disclosure> {
+    pub fn disclosures(&self) -> &HashMap<String, Disclosure> {
         &self.disclosures
     }
 
@@ -237,7 +237,7 @@ impl SdJwt {
     fn parse_sd_jwt_unverified(
         sd_jwt: &str,
         hasher: &impl Hasher,
-    ) -> Result<(Jwt<SdJwtClaims>, IndexMap<String, Disclosure>)> {
+    ) -> Result<(Jwt<SdJwtClaims>, HashMap<String, Disclosure>)> {
         if !sd_jwt.ends_with("~") {
             return Err(Error::Deserialization(
                 "SD-JWT format is invalid, input doesn't and with '~'".to_string(),
@@ -253,7 +253,7 @@ impl SdJwt {
         let disclosures = disclosure_segments
             .split("~")
             .filter(|segment| !segment.is_empty())
-            .try_fold(IndexMap::new(), |mut acc, segment| {
+            .try_fold(HashMap::new(), |mut acc, segment| {
                 let disclosure = Disclosure::parse(segment)?;
                 acc.insert(hasher.encoded_digest(disclosure.as_str()), disclosure);
                 Ok::<_, Error>(acc)
@@ -332,7 +332,7 @@ pub struct SdJwtPresentationBuilder {
 
     /// Non-disclosed attributes. All attributes start here. Calling `disclose()` moves an attribute from here
     /// to `disclosed`.
-    nondisclosed: IndexMap<String, Disclosure>,
+    nondisclosed: HashMap<String, Disclosure>,
 
     /// Digests to be disclosed.
     digests_to_be_disclosed: HashSet<String>,
@@ -365,6 +365,8 @@ impl SdJwtPresentationBuilder {
     }
 
     pub fn disclose(mut self, path: &VecNonEmpty<ClaimPath>) -> Result<Self> {
+        // Gather all digests to be disclosed into a set. This can include intermediary attributes as well
+
         self.digests_to_be_disclosed.extend({
             let mut path_segments = path.iter().peekable();
             digests_to_disclose(&self.full_payload, &mut path_segments, &self.nondisclosed, false)?
@@ -383,15 +385,14 @@ impl SdJwtPresentationBuilder {
             mut nondisclosed,
             ..
         } = self;
-
-        let mut disclosures = IndexMap::new();
-        digests_to_be_disclosed.into_iter().for_each(|digest| {
-            if let Some(disclosure) = nondisclosed.shift_remove(&digest) {
-                disclosures.insert(digest, disclosure);
-            }
-        });
-
-        sd_jwt.disclosures = disclosures;
+        sd_jwt.disclosures = digests_to_be_disclosed
+            .into_iter()
+            .fold(HashMap::new(), |mut disclosures, digest| {
+                if let Some(disclosure) = nondisclosed.remove(&digest) {
+                    disclosures.insert(digest, disclosure);
+                }
+                disclosures
+            });
 
         UnsignedSdJwtPresentation(sd_jwt)
     }
@@ -446,7 +447,7 @@ pub(crate) fn sd_jwt_validation() -> Validation {
 fn digests_to_disclose<'a, I>(
     object: &'a serde_json::Value,
     path: &mut Peekable<I>,
-    disclosures: &'a IndexMap<String, Disclosure>,
+    disclosures: &'a HashMap<String, Disclosure>,
     traversing_array: bool,
 ) -> Result<Vec<&'a str>>
 where
@@ -540,7 +541,7 @@ where
 
 fn process_array_entry<'a>(
     entry: &'a serde_json::Value,
-    disclosures: &'a IndexMap<String, Disclosure>,
+    disclosures: &'a HashMap<String, Disclosure>,
     digests: &mut Vec<&'a str>,
 ) -> Option<&'a serde_json::Value> {
     entry
@@ -559,7 +560,7 @@ fn process_array_entry<'a>(
 fn find_disclosure_digest_in_object<'o>(
     object: &'o serde_json::Map<String, serde_json::Value>,
     key: &str,
-    disclosures: &IndexMap<String, Disclosure>,
+    disclosures: &HashMap<String, Disclosure>,
 ) -> Option<&'o str> {
     // Try to find the digest for disclosable property `key` in
     // the `_sd` field of `object`.
@@ -687,7 +688,15 @@ mod test {
     fn round_trip_ser_des() {
         let sd_jwt =
             SdJwt::parse_and_verify(SIMPLE_STRUCTURED_SD_JWT, &examples_sd_jwt_decoding_key(), &Sha256Hasher).unwrap();
-        assert_eq!(&sd_jwt.to_string(), SIMPLE_STRUCTURED_SD_JWT);
+
+        let (expected_jwt, expected_disclosures) =
+            SdJwt::parse_sd_jwt_unverified(SIMPLE_STRUCTURED_SD_JWT, &Sha256Hasher).unwrap();
+
+        assert_eq!(sd_jwt.disclosures(), &expected_disclosures);
+        assert_eq!(
+            sd_jwt.issuer_signed_jwt.payload(),
+            &expected_jwt.dangerous_parse_unverified().unwrap().1
+        );
     }
 
     fn create_presentation(

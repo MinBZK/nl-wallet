@@ -1,7 +1,8 @@
 // Copyright 2020-2024 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use indexmap::IndexMap;
+use std::collections::HashMap;
+
 use serde_json::Map;
 use serde_json::Value;
 
@@ -23,7 +24,7 @@ impl SdObjectDecoder {
     pub fn decode(
         &self,
         object: &Map<String, Value>,
-        disclosures: &IndexMap<String, Disclosure>,
+        disclosures: &HashMap<String, Disclosure>,
     ) -> Result<Map<String, Value>, Error> {
         // `processed_digests` are kept track of in case one digest appears more than once which
         // renders the SD-JWT invalid.
@@ -47,7 +48,7 @@ impl SdObjectDecoder {
     fn decode_object(
         &self,
         object: &Map<String, Value>,
-        disclosures: &IndexMap<String, Disclosure>,
+        disclosures: &HashMap<String, Disclosure>,
         processed_digests: &mut Vec<String>,
     ) -> Result<Map<String, Value>, Error> {
         let mut output: Map<String, Value> = Map::new();
@@ -86,7 +87,7 @@ impl SdObjectDecoder {
     fn decode_array(
         &self,
         array: &[Value],
-        disclosures: &IndexMap<String, Disclosure>,
+        disclosures: &HashMap<String, Disclosure>,
         processed_digests: &mut Vec<String>,
     ) -> Result<Vec<Value>, Error> {
         let mut output: Vec<Value> = vec![];
@@ -113,7 +114,7 @@ impl SdObjectDecoder {
     fn decode_array_nested_object(
         &self,
         object: &serde_json::Map<String, serde_json::Value>,
-        disclosures: &IndexMap<String, Disclosure>,
+        disclosures: &HashMap<String, Disclosure>,
         processed_digests: &mut Vec<String>,
         output: &mut Vec<Value>,
     ) -> Result<(), Error> {
@@ -149,7 +150,7 @@ impl SdObjectDecoder {
     fn disclosure_and_decoded_value_for_array_value<'a>(
         &self,
         digest: &Value,
-        disclosures: &'a IndexMap<String, Disclosure>,
+        disclosures: &'a HashMap<String, Disclosure>,
         processed_digests: &mut Vec<String>,
         verify_disclosure: impl Fn(&Disclosure) -> Result<(), Error>,
     ) -> Result<Option<(&'a DisclosureContent, Value)>, Error> {
@@ -197,7 +198,7 @@ impl SdObjectDecoder {
     fn decode_claim_value(
         &self,
         disclosure: &Disclosure,
-        disclosures: &IndexMap<String, Disclosure>,
+        disclosures: &HashMap<String, Disclosure>,
         processed_digests: &mut Vec<String>,
     ) -> Result<Value, Error> {
         let decoded = match disclosure.claim_value() {
@@ -217,7 +218,8 @@ impl SdObjectDecoder {
 // - no _sd or ... are left in the decoded object in cases where they are not expected.
 #[cfg(test)]
 mod test {
-    use indexmap::IndexMap;
+    use std::collections::HashMap;
+
     use serde_json::json;
 
     use crate::decoder::SdObjectDecoder;
@@ -237,7 +239,7 @@ mod test {
         assert_eq!(encoder.clone().encode().get("_sd_alg").unwrap(), "sha-256");
         let decoder = SdObjectDecoder;
         let decoded = decoder
-            .decode(encoder.encode().as_object().unwrap(), &IndexMap::new())
+            .decode(encoder.encode().as_object().unwrap(), &HashMap::new())
             .unwrap();
         assert!(decoded.get("_sd_alg").is_none());
     }
@@ -270,14 +272,16 @@ mod test {
 
     #[test]
     fn test_recursive_disclosure_empty_object() {
-        let (claims, mut disclosure_content) = recursive_disclosures_example();
-        // Take the last disclosure value, which is `address`
-        let disclosure_only_address = IndexMap::from([disclosure_content.pop().unwrap()]);
+        let (claims, disclosure_content) = recursive_disclosures_example();
 
-        let decoded = SdObjectDecoder
-            .decode(claims.as_object().unwrap(), &disclosure_only_address)
-            .unwrap();
+        // There should be a disclosure value for `address`
+        assert!(disclosure_content.into_iter().any(|(k, v)| {
+            let disclosure_only_address = HashMap::from([(k, v)]);
 
-        assert_eq!(decoded.get("address").unwrap().to_string(), "{}");
+            SdObjectDecoder
+                .decode(claims.as_object().unwrap(), &disclosure_only_address)
+                .map(|decoded| decoded.get("address").unwrap().to_string().as_str() == "{}")
+                .unwrap_or(false)
+        }));
     }
 }

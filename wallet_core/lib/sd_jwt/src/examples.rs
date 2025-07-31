@@ -1,8 +1,9 @@
+use std::collections::HashMap;
+
 use base64::Engine;
 use base64::prelude::BASE64_URL_SAFE_NO_PAD;
 use chrono::Duration;
 use futures::FutureExt;
-use indexmap::IndexMap;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::jwk::Jwk;
 use p256::ecdsa::SigningKey;
@@ -112,7 +113,7 @@ impl SdJwtPresentation {
 }
 
 // Taken from https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-17.html#name-example-sd-jwt-with-recursi
-pub fn recursive_disclosures_example() -> (serde_json::Value, IndexMap<String, Disclosure>) {
+pub fn recursive_disclosures_example() -> (serde_json::Value, HashMap<String, Disclosure>) {
     let claims = json!({
       "_sd": [
         "HvrKX6fPV0v9K_yCVFBiLFHsMaxcD_114Em6VT8x1lg"
@@ -132,7 +133,7 @@ pub fn recursive_disclosures_example() -> (serde_json::Value, IndexMap<String, D
         "WyJRZ19PNjR6cUF4ZTQxMmExMDhpcm9BIiwgImFkZHJlc3MiLCB7Il9zZCI6IFsiNnZoOWJxLXpTNEdLTV83R3BnZ1ZiWXp6dTZvT0dYcm1OVkdQSFA3NVVkMCIsICI5Z2pWdVh0ZEZST0NnUnJ0TmNHVVhtRjY1cmRlemlfNkVyX2o3NmttWXlNIiwgIktVUkRQaDRaQzE5LTN0aXotRGYzOVY4ZWlkeTFvVjNhM0gxRGEyTjBnODgiLCAiV045cjlkQ0JKOEhUQ3NTMmpLQVN4VGpFeVc1bTV4NjVfWl8ycm8yamZYTSJdfV0",
     ];
 
-    let disclosure_content = IndexMap::from_iter(disclosures.into_iter().map(|disclosure_str| {
+    let disclosure_content = HashMap::from_iter(disclosures.into_iter().map(|disclosure_str| {
         let disclosure_type: DisclosureContent =
             serde_json::from_slice(&BASE64_URL_SAFE_NO_PAD.decode(disclosure_str).unwrap()).unwrap();
         let disclosure = Disclosure::try_new(disclosure_type).unwrap();
