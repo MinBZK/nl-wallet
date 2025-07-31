@@ -19,6 +19,7 @@ import '../common/page/terminal_page.dart';
 import '../common/screen/placeholder_screen.dart';
 import '../common/widget/button/icon/back_icon_button.dart';
 import '../common/widget/button/icon/close_icon_button.dart';
+import '../common/widget/button/icon/help_icon_button.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
 import '../common/widget/page_illustration.dart';
 import '../common/widget/wallet_app_bar.dart';
@@ -59,7 +60,10 @@ class IssuanceScreen extends StatelessWidget {
       appBar: WalletAppBar(
         leading: _buildBackButton(context),
         automaticallyImplyLeading: false,
-        actions: [CloseIconButton(onPressed: () => _stopIssuance(context))],
+        actions: [
+          const HelpIconButton(),
+          CloseIconButton(onPressed: () => _stopIssuance(context)),
+        ],
         progress: progress,
       ),
       body: PopScope(
