@@ -83,7 +83,11 @@ pub struct Field {
 /// expressions with more components, such as "$['path']['to']['attribute']".
 ///
 /// See also <https://identity.foundation/presentation-exchange/spec/v2.0.0/#jsonpath-syntax-definition>.
-static FIELD_PATH_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r#"^\$(:?\[['"]([^'"]+)['"]\])+$"#).unwrap());
+const FIELD_PATH_ELEMENT_REGEX_STRING: &str = r#"\[['"]([^'"]+)['"]\]"#;
+static FIELD_PATH_ELEMENT_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(FIELD_PATH_ELEMENT_REGEX_STRING).unwrap());
+static FIELD_PATH_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(&format!(r#"^\$(?:{FIELD_PATH_ELEMENT_REGEX_STRING})+$"#)).unwrap());
 
 impl Field {
     pub(crate) fn parse_paths(&self) -> Result<impl Iterator<Item = impl Display>, PdConversionError> {
@@ -96,12 +100,9 @@ impl Field {
             return Err(PdConversionError::UnsupportedJsonPathExpression(path.to_string()));
         }
 
-        let path = path.trim_start_matches("$[").trim_end_matches("]");
-        let segments = path.split("][").map(|a| {
-            let mut chars = a.chars();
-            chars.next(); // remove leading ' or "
-            chars.next_back(); // remove trailing ' or "
-            chars.as_str()
+        let segments = FIELD_PATH_ELEMENT_REGEX.captures_iter(path).map(|captures| {
+            let (_, [segment]) = captures.extract();
+            segment
         });
 
         Ok(segments)
