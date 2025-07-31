@@ -91,10 +91,11 @@ static FIELD_PATH_REGEX: LazyLock<Regex> =
 
 impl Field {
     pub(crate) fn parse_paths(&self) -> Result<impl Iterator<Item = impl Display>, PdConversionError> {
-        let path = match self.path.len() {
-            NonZeroUsize::MIN => self.path.first(),
-            _ => return Err(PdConversionError::TooManyPaths(self.path.len())),
-        };
+        let path = self
+            .path
+            .iter()
+            .exactly_one()
+            .map_err(|_| PdConversionError::TooManyPaths(self.path.len()))?;
 
         if !FIELD_PATH_REGEX.is_match(path) {
             return Err(PdConversionError::UnsupportedJsonPathExpression(path.to_string()));
