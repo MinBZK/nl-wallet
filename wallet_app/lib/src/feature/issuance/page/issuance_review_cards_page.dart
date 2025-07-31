@@ -154,7 +154,7 @@ class IssuanceReviewCardsPage extends StatelessWidget {
 
   Widget _buildHeaderSection(BuildContext context) {
     final title = _buildTitle(context);
-    final subtitle = context.l10n.issuanceReviewCardsPageSubtitle(offeredCards.length, _getOrganizationName(context));
+    final subtitle = context.l10n.issuanceReviewCardsPageSubtitle(allCards.length, _getOrganizationName(context));
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -177,7 +177,7 @@ class IssuanceReviewCardsPage extends StatelessWidget {
   String _buildTitle(BuildContext context) {
     if (hasOfferedCards && hasRenewedCards) {
       // Copy for situation where there are both new and updated cards
-      return context.l10n.issuanceReviewCardsPageAddAndRenewTitle(offeredCards.length + renewedCards.length);
+      return context.l10n.issuanceReviewCardsPageAddAndRenewTitle(allCards.length);
     } else if (!hasOfferedCards && hasRenewedCards) {
       // Copy for situation where there are only updated cards
       return context.l10n.issuanceReviewCardsPageRenewOnlyTitle(renewedCards.length);
