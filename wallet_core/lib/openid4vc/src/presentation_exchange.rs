@@ -93,7 +93,7 @@ static FIELD_PATH_REGEX: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(&format!(r#"^\$(?:{FIELD_PATH_ELEMENT_REGEX_STRING})+$"#)).unwrap());
 
 impl Field {
-    pub(crate) fn parse_paths(&self) -> Result<impl Iterator<Item = impl Display>, PdConversionError> {
+    pub(crate) fn parse_paths(&self) -> Result<VecNonEmpty<String>, PdConversionError> {
         let path = self
             .path
             .iter()
@@ -104,10 +104,15 @@ impl Field {
             return Err(PdConversionError::UnsupportedJsonPathExpression(path.to_string()));
         }
 
-        let segments = FIELD_PATH_ELEMENT_REGEX.captures_iter(path).map(|captures| {
-            let (_, [segment]) = captures.extract();
-            segment
-        });
+        let segments = FIELD_PATH_ELEMENT_REGEX
+            .captures_iter(path)
+            .map(|captures| {
+                let (_, [segment]) = captures.extract();
+                segment.to_string()
+            })
+            .collect_vec()
+            .try_into()
+            .unwrap(); // the regex guarantees at least one segment
 
         Ok(segments)
     }
@@ -203,7 +208,8 @@ impl TryFrom<&PresentationDefinition> for VecNonEmpty<NormalizedCredentialReques
                         // The unwrap below is safe because we know the vec is non-empty.
                         Ok(AttributeRequest {
                             path: attrs
-                                .map(|a| ClaimPath::SelectByKey(a.to_string()))
+                                .into_iter()
+                                .map(ClaimPath::SelectByKey)
                                 .collect_vec()
                                 .try_into()
                                 .unwrap(),
@@ -333,12 +339,7 @@ mod tests {
             intent_to_retain: false,
         };
 
-        assert_eq!(
-            field
-                .parse_paths()
-                .map(|iter| iter.map(|a| a.to_string()).collect::<Vec<_>>().try_into().unwrap()),
-            expected
-        );
+        assert_eq!(field.parse_paths(), expected);
     }
 
     #[test]
