@@ -444,23 +444,22 @@ impl DisclosureResultHandler for MockDisclosureResultHandler {
     (pid_given_name() + addr_street()).into(),
     pid_given_name() + addr_street()
 )]
-// TODO (PVW-4705): Re-enable this test once the attestation type limit for disclosure has been removed.
-// #[case(
-//     SessionType::SameDevice,
-//     None,
-//     NO_RETURN_URL_USE_CASE,
-//     pid_full_name() + pid_full_name(),
-//     (pid_given_name() + pid_given_name()).into(),
-//     pid_given_name() + pid_given_name()
-// )]
-// #[case(
-//     SessionType::SameDevice,
-//     None,
-//     NO_RETURN_URL_USE_CASE,
-//     pid_given_name() + pid_given_name(),
-//     (pid_given_name() + pid_given_name()).into(),
-//     pid_given_name() + pid_given_name()
-// )]
+#[case(
+    SessionType::SameDevice,
+    None,
+    NO_RETURN_URL_USE_CASE,
+    pid_full_name() + pid_full_name(),
+    (pid_given_name() + pid_given_name()).into(),
+    pid_given_name() + pid_given_name()
+)]
+#[case(
+    SessionType::SameDevice,
+    None,
+    NO_RETURN_URL_USE_CASE,
+    pid_given_name() + pid_given_name(),
+    (pid_given_name() + pid_given_name()).into(),
+    pid_given_name() + pid_given_name()
+)]
 #[tokio::test]
 async fn test_client_and_server(
     #[case] session_type: SessionType,
