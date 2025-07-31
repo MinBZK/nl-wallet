@@ -22,7 +22,6 @@ use rstest::rstest;
 use rustls_pki_types::TrustAnchor;
 use url::Url;
 
-use attestation_data::attributes::AttributeValue;
 use attestation_data::auth::reader_auth::ReaderRegistration;
 use attestation_data::disclosure::DisclosedAttestation;
 use attestation_data::x509::generate::mock::generate_reader_mock;
@@ -41,10 +40,12 @@ use mdoc::DeviceResponse;
 use mdoc::SessionTranscript;
 use mdoc::holder::Mdoc;
 use mdoc::test::TestDocuments;
+use mdoc::test::assert_disclosure_contains;
 use mdoc::test::data::PID;
 use mdoc::test::data::addr_street;
 use mdoc::test::data::pid_full_name;
 use mdoc::test::data::pid_given_name;
+use mdoc::verifier::DisclosedDocument;
 use openid4vc::ErrorResponse;
 use openid4vc::GetRequestErrorCode;
 use openid4vc::PostAuthResponseErrorCode;
@@ -130,9 +131,12 @@ async fn disclosure_direct() {
         )
         .unwrap();
 
-    assert_eq!(
-        disclosed_attrs[PID].attributes.clone().unwrap_mso_mdoc()[PID]["family_name"],
-        AttributeValue::Text("De Bruijn".to_owned()),
+    assert_disclosure_contains(
+        &disclosed_attrs.into_iter().map(DisclosedDocument::from).collect_vec(),
+        PID,
+        PID,
+        "family_name",
+        &ciborium::Value::Text("De Bruijn".to_string()),
     );
 }
 
@@ -307,9 +311,12 @@ impl VpMessageClient for DirectMockVpMessageClient {
             )
             .unwrap();
 
-        assert_eq!(
-            disclosed_attrs[PID].attributes.clone().unwrap_mso_mdoc()[PID]["family_name"],
-            AttributeValue::Text("De Bruijn".to_owned()),
+        assert_disclosure_contains(
+            &disclosed_attrs.into_iter().map(DisclosedDocument::from).collect_vec(),
+            PID,
+            PID,
+            "family_name",
+            &ciborium::Value::Text("De Bruijn".to_string()),
         );
 
         Ok(None)
@@ -345,7 +352,7 @@ impl DisclosureResultHandler for MockDisclosureResultHandler {
     async fn disclosure_result(
         &self,
         _usecase_id: &str,
-        _disclosed: &IndexMap<String, DisclosedAttestation>,
+        _disclosed: &[DisclosedAttestation],
     ) -> Result<HashMap<String, String>, DisclosureResultHandlerError> {
         Ok(self
             .key
@@ -437,23 +444,22 @@ impl DisclosureResultHandler for MockDisclosureResultHandler {
     (pid_given_name() + addr_street()).into(),
     pid_given_name() + addr_street()
 )]
-// TODO (PVW-4705): Re-enable this test once the attestation type limit for disclosure has been removed.
-// #[case(
-//     SessionType::SameDevice,
-//     None,
-//     NO_RETURN_URL_USE_CASE,
-//     pid_full_name() + pid_full_name(),
-//     (pid_given_name() + pid_given_name()).into(),
-//     pid_given_name() + pid_given_name()
-// )]
-// #[case(
-//     SessionType::SameDevice,
-//     None,
-//     NO_RETURN_URL_USE_CASE,
-//     pid_given_name() + pid_given_name(),
-//     (pid_given_name() + pid_given_name()).into(),
-//     pid_given_name() + pid_given_name()
-// )]
+#[case(
+    SessionType::SameDevice,
+    None,
+    NO_RETURN_URL_USE_CASE,
+    pid_full_name() + pid_full_name(),
+    (pid_given_name() + pid_given_name()).into(),
+    pid_given_name() + pid_given_name()
+)]
+#[case(
+    SessionType::SameDevice,
+    None,
+    NO_RETURN_URL_USE_CASE,
+    pid_given_name() + pid_given_name(),
+    (pid_given_name() + pid_given_name()).into(),
+    pid_given_name() + pid_given_name()
+)]
 #[tokio::test]
 async fn test_client_and_server(
     #[case] session_type: SessionType,
@@ -544,8 +550,8 @@ async fn test_client_and_server(
     expected_documents.assert_matches(
         &disclosed_documents
             .into_iter()
-            .map(|(credential_type, attributes)| (credential_type, attributes.into()))
-            .collect(),
+            .map(DisclosedDocument::from)
+            .collect_vec(),
     );
 }
 
