@@ -91,6 +91,9 @@ impl VerifiedSdJwt {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
+pub struct UnsignedSdJwtPresentation(SdJwt);
+
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct SdJwtPresentation {
     sd_jwt: SdJwt,
     key_binding_jwt: SpecOptional<KeyBindingJwt>,
@@ -260,22 +263,8 @@ impl SdJwt {
     }
 
     /// Prepares this [`SdJwt`] for a presentation, returning an [`SdJwtPresentationBuilder`].
-    /// ## Errors
-    /// - [`Error::InvalidHasher`] is returned if the provided `hasher`'s algorithm doesn't match the algorithm
-    ///   specified by SD-JWT's `_sd_alg` claim. "sha-256" is used if the claim is missing.
-    pub fn into_presentation_builder(
-        self,
-        hasher: &dyn Hasher,
-        key_binding_iat: DateTime<Utc>,
-        key_binding_aud: String,
-        key_binding_nonce: String,
-        key_binding_alg: Algorithm,
-    ) -> Result<SdJwtPresentationBuilder> {
-        SdJwtPresentationBuilder::new(
-            self,
-            KeyBindingJwtBuilder::new(key_binding_iat, key_binding_aud, key_binding_nonce, key_binding_alg),
-            hasher,
-        )
+    pub fn into_presentation_builder(self) -> SdJwtPresentationBuilder {
+        SdJwtPresentationBuilder::new(self)
     }
 
     /// Returns the JSON object obtained by replacing all disclosures into their
@@ -338,10 +327,8 @@ impl VerifiedSdJwt {
 }
 
 #[derive(Clone)]
-pub struct SdJwtPresentationBuilder<'a> {
+pub struct SdJwtPresentationBuilder {
     sd_jwt: SdJwt,
-    kb_jwt_builder: KeyBindingJwtBuilder,
-    hasher: &'a dyn Hasher,
 
     /// Non-disclosed attributes. All attributes start here. Calling `disclose()` moves an attribute from here
     /// to `disclosed`.
@@ -355,16 +342,8 @@ pub struct SdJwtPresentationBuilder<'a> {
     full_payload: serde_json::Value,
 }
 
-impl<'a> SdJwtPresentationBuilder<'a> {
-    pub(crate) fn new(sd_jwt: SdJwt, kb_jwt_builder: KeyBindingJwtBuilder, hasher: &'a dyn Hasher) -> Result<Self> {
-        let required_hasher = sd_jwt.claims()._sd_alg.as_deref().unwrap_or(SHA_ALG_NAME);
-        if required_hasher != hasher.alg_name() {
-            return Err(Error::InvalidHasher(format!(
-                "hasher \"{}\" was provided, but \"{required_hasher} is required\"",
-                hasher.alg_name()
-            )));
-        }
-
+impl SdJwtPresentationBuilder {
+    pub(crate) fn new(mut sd_jwt: SdJwt) -> Self {
         let full_payload = {
             let claims = sd_jwt.issuer_signed_jwt.payload().clone();
             let sd = claims._sd.into_iter().map(serde_json::Value::String).collect();
@@ -375,16 +354,14 @@ impl<'a> SdJwtPresentationBuilder<'a> {
             serde_json::Value::Object(payload)
         };
 
-        let nondisclosed = sd_jwt.disclosures.clone();
+        let nondisclosed = std::mem::take(&mut sd_jwt.disclosures);
 
-        Ok(Self {
+        Self {
             sd_jwt,
-            kb_jwt_builder,
             nondisclosed,
             digests_to_be_disclosed: HashSet::new(),
             full_payload,
-            hasher,
-        })
+        }
     }
 
     pub fn disclose(mut self, path: &VecNonEmpty<ClaimPath>) -> Result<Self> {
@@ -398,13 +375,11 @@ impl<'a> SdJwtPresentationBuilder<'a> {
         Ok(self)
     }
 
-    /// Returns the resulting [`SdJwtPresentation`].
-    pub async fn finish(self, signing_key: &impl EcdsaKeySend) -> Result<SdJwtPresentation> {
+    pub fn finish(self) -> UnsignedSdJwtPresentation {
         // Put everything back in its place.
         let SdJwtPresentationBuilder {
             mut sd_jwt,
             digests_to_be_disclosed,
-            kb_jwt_builder,
             mut nondisclosed,
             ..
         } = self;
@@ -418,11 +393,37 @@ impl<'a> SdJwtPresentationBuilder<'a> {
 
         sd_jwt.disclosures = disclosures;
 
-        let key_binding_jwt = kb_jwt_builder.finish(&sd_jwt, self.hasher, signing_key).await?;
+        UnsignedSdJwtPresentation(sd_jwt)
+    }
+}
+
+impl UnsignedSdJwtPresentation {
+    /// Signs the underlying SdJwt and returns an SD-JWT presentation containing the issuer signed SD-JWT and KB-JWT.
+    ///
+    /// ## Errors
+    /// - [`Error::InvalidHasher`] is returned if the provided `hasher`'s algorithm doesn't match the algorithm
+    ///   specified by SD-JWT's `_sd_alg` claim. "sha-256" is used if the claim is missing.
+    pub async fn sign(
+        self,
+        key_binding_jwt_builder: KeyBindingJwtBuilder,
+        hasher: &impl Hasher,
+        signing_key: &impl EcdsaKeySend,
+    ) -> Result<SdJwtPresentation> {
+        let sd_jwt = self.0;
+
+        let required_hasher = sd_jwt.claims()._sd_alg.as_deref().unwrap_or(SHA_ALG_NAME);
+        if required_hasher != hasher.alg_name() {
+            return Err(Error::InvalidHasher(format!(
+                "hasher \"{}\" was provided, but \"{required_hasher} is required\"",
+                hasher.alg_name()
+            )));
+        }
+
+        let kb_jwt = key_binding_jwt_builder.finish(&sd_jwt, hasher, signing_key).await?;
 
         let sd_jwt_presentation = SdJwtPresentation {
             sd_jwt,
-            key_binding_jwt: key_binding_jwt.into(),
+            key_binding_jwt: kb_jwt.into(),
         };
 
         Ok(sd_jwt_presentation)
@@ -612,6 +613,7 @@ mod test {
     use crate::disclosure::DisclosureContent;
     use crate::examples::*;
     use crate::hasher::Sha256Hasher;
+    use crate::key_binding_jwt_claims::KeyBindingJwtBuilder;
     use crate::sd_jwt::Error;
     use crate::sd_jwt::SdJwt;
     use crate::sd_jwt::SdJwtPresentation;
@@ -722,30 +724,24 @@ mod test {
 
         disclose_paths
             .iter()
-            .fold(
-                sd_jwt
-                    .into_presentation_builder(
-                        &Sha256Hasher,
-                        Utc::now(),
-                        "aud".to_string(),
-                        "nonce".to_string(),
-                        Algorithm::ES256,
+            .fold(sd_jwt.into_presentation_builder(), |builder, path| {
+                builder
+                    .disclose(
+                        &path
+                            .iter()
+                            .map(|key| key.parse().unwrap())
+                            .collect_vec()
+                            .try_into()
+                            .unwrap(),
                     )
-                    .unwrap(),
-                |builder, path| {
-                    builder
-                        .disclose(
-                            &path
-                                .iter()
-                                .map(|key| key.parse().unwrap())
-                                .collect_vec()
-                                .try_into()
-                                .unwrap(),
-                        )
-                        .unwrap()
-                },
+                    .unwrap()
+            })
+            .finish()
+            .sign(
+                KeyBindingJwtBuilder::new(Utc::now(), "aud".to_string(), "nonce".to_string(), Algorithm::ES256),
+                &Sha256Hasher,
+                &holder_privkey,
             )
-            .finish(&holder_privkey)
             .now_or_never()
             .unwrap()
             .unwrap()
