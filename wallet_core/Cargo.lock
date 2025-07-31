@@ -4513,6 +4513,7 @@ dependencies = [
  "http_utils",
  "indexmap 2.7.1",
  "issuer_settings",
+ "itertools 0.14.0",
  "jwt",
  "openid4vc",
  "openid4vc_server",

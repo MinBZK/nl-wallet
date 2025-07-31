@@ -1143,6 +1143,10 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
           value: dco_decode_String(raw[1]),
         );
       case 4:
+        return AttributeValue_Array(
+          value: dco_decode_list_attribute_value(raw[1]),
+        );
+      case 5:
         return AttributeValue_Null();
       default:
         throw Exception("unreachable");
@@ -1363,6 +1367,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   List<AttestationPresentation> dco_decode_list_attestation_presentation(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_attestation_presentation).toList();
+  }
+
+  @protected
+  List<AttributeValue> dco_decode_list_attribute_value(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_attribute_value).toList();
   }
 
   @protected
@@ -1758,6 +1768,9 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         var var_value = sse_decode_String(deserializer);
         return AttributeValue_Date(value: var_value);
       case 4:
+        var var_value = sse_decode_list_attribute_value(deserializer);
+        return AttributeValue_Array(value: var_value);
+      case 5:
         return AttributeValue_Null();
       default:
         throw UnimplementedError('');
@@ -1985,6 +1998,18 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     var ans_ = <AttestationPresentation>[];
     for (var idx_ = 0; idx_ < len_; ++idx_) {
       ans_.add(sse_decode_attestation_presentation(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<AttributeValue> sse_decode_list_attribute_value(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <AttributeValue>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_attribute_value(deserializer));
     }
     return ans_;
   }
@@ -2549,8 +2574,11 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       case AttributeValue_Date(value: final value):
         sse_encode_i_32(3, serializer);
         sse_encode_String(value, serializer);
-      case AttributeValue_Null():
+      case AttributeValue_Array(value: final value):
         sse_encode_i_32(4, serializer);
+        sse_encode_list_attribute_value(value, serializer);
+      case AttributeValue_Null():
+        sse_encode_i_32(5, serializer);
     }
   }
 
@@ -2744,6 +2772,15 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     sse_encode_i_32(self.length, serializer);
     for (final item in self) {
       sse_encode_attestation_presentation(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_attribute_value(List<AttributeValue> self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_attribute_value(item, serializer);
     }
   }
 

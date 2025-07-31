@@ -144,11 +144,21 @@ typedef struct wire_cst_AttributeValue_Date {
   struct wire_cst_list_prim_u_8_strict *value;
 } wire_cst_AttributeValue_Date;
 
+typedef struct wire_cst_list_attribute_value {
+  struct wire_cst_attribute_value *ptr;
+  int32_t len;
+} wire_cst_list_attribute_value;
+
+typedef struct wire_cst_AttributeValue_Array {
+  struct wire_cst_list_attribute_value *value;
+} wire_cst_AttributeValue_Array;
+
 typedef union AttributeValueKind {
   struct wire_cst_AttributeValue_String String;
   struct wire_cst_AttributeValue_Boolean Boolean;
   struct wire_cst_AttributeValue_Number Number;
   struct wire_cst_AttributeValue_Date Date;
+  struct wire_cst_AttributeValue_Array Array;
 } AttributeValueKind;
 
 typedef struct wire_cst_attribute_value {
@@ -467,6 +477,8 @@ struct wire_cst_list_attestation_attribute *frbgen_wallet_core_cst_new_list_atte
 
 struct wire_cst_list_attestation_presentation *frbgen_wallet_core_cst_new_list_attestation_presentation(int32_t len);
 
+struct wire_cst_list_attribute_value *frbgen_wallet_core_cst_new_list_attribute_value(int32_t len);
+
 struct wire_cst_list_claim_display_metadata *frbgen_wallet_core_cst_new_list_claim_display_metadata(int32_t len);
 
 struct wire_cst_list_display_metadata *frbgen_wallet_core_cst_new_list_display_metadata(int32_t len);
@@ -490,6 +502,7 @@ static int64_t dummy_method_to_enforce_bundling(void) {
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_wallet_instruction_error);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_attestation_attribute);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_attestation_presentation);
+    dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_attribute_value);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_claim_display_metadata);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_display_metadata);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_localized_string);
