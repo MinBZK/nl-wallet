@@ -23,6 +23,26 @@ pub enum VecAtLeastNError {
     DuplicateItems,
 }
 
+/// A macro that creates a `VecNonEmpty` from a list of expressions.
+///
+/// # Examples
+/// ```
+/// let vec = vec_non_empty![1, 2, 3]; // Creates a VecNonEmpty<i32>
+/// ```
+#[macro_export]
+macro_rules! vec_non_empty {
+    // Version with explicit type parameter
+    ($t:ty; $($x:expr),+ $(,)?) => {{
+        let vec: Vec<$t> = vec![$($x),+];
+        <Vec<$t> as TryInto<$crate::vec_at_least::VecNonEmpty<$t>>>::try_into(vec).unwrap()
+    }};
+
+    // Version without type parameter (relies on type inference)
+    ($($x:expr),+ $(,)?) => (
+        $crate::vec_at_least::VecNonEmpty::try_from(vec![$($x),+]).unwrap()
+    );
+}
+
 // These should cover the most common use cases of `VecAtLeastN`.
 pub type VecNonEmpty<T> = VecAtLeastN<T, 1, false>;
 pub type VecNonEmptyUnique<T> = VecAtLeastN<T, 1, true>;
@@ -227,6 +247,22 @@ mod tests {
         let vec = VecNonEmpty::try_from(input);
 
         assert_eq!(vec.is_ok(), expected_is_ok);
+    }
+
+    #[test]
+    fn test_vec_non_empty_macro() {
+        let uints = vec_non_empty![u32; 1, 2, 3];
+        assert_eq!(1, *uints.first());
+
+        let str_slices = vec_non_empty!["a", "b"];
+        assert_eq!("a", *str_slices.first());
+
+        #[derive(Debug, PartialEq)]
+        struct Test {
+            x: usize,
+        }
+        let tests = vec_non_empty![Test { x: 1 }];
+        assert_eq!(Test { x: 1 }, *tests.first());
     }
 
     #[rstest]
