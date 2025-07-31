@@ -377,8 +377,8 @@ async fn test_presentation() -> anyhow::Result<()> {
     let disclosed_paths = parsed_presentation
         .sd_jwt()
         .disclosures()
-        .into_iter()
-        .map(|(_, v)| match &v.content {
+        .values()
+        .map(|v| match &v.content {
             DisclosureContent::ObjectProperty(_, name, _) => name.as_str(),
             _ => panic!("unexpected disclosure content"),
         })
