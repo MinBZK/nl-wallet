@@ -533,10 +533,7 @@ where
 
             Ok(digests)
         }
-        (element, path) => Err(Error::UnexpectedElement {
-            value: element.clone(),
-            path: path.clone(),
-        }),
+        (element, _) => Err(Error::UnexpectedElement(element.clone(), path.cloned().collect_vec())),
     }
 }
 
@@ -693,7 +690,7 @@ mod test {
 
     fn create_presentation(
         object: serde_json::Value,
-        conceal_paths: &[&str],
+        conceal_paths: &[Vec<&str>],
         disclose_paths: &[Vec<&str>],
     ) -> SdJwtPresentation {
         let issuer_privkey = SigningKey::random(&mut OsRng);
@@ -702,7 +699,15 @@ mod test {
         let sd_jwt = conceal_paths
             .iter()
             .fold(SdJwtBuilder::new(object).unwrap(), |builder, path| {
-                builder.make_concealable(path).unwrap()
+                builder
+                    .make_concealable(
+                        path.iter()
+                            .map(|p| p.parse().unwrap())
+                            .collect_vec()
+                            .try_into()
+                            .unwrap(),
+                    )
+                    .unwrap()
             })
             .finish(
                 Algorithm::ES256,
@@ -749,28 +754,28 @@ mod test {
     #[rstest]
     #[case::default_nothing_disclosed(
         json!({"given_name": "John", "family_name": "Doe"}),
-        &["/given_name", "/family_name"],
+        &[vec!["given_name"], vec!["family_name"]],
         &[],
         &[],
         &[],
     )]
     #[case::flat_sd_all_disclose_single(
         json!({"given_name": "John", "family_name": "Doe"}),
-        &["/given_name", "/family_name"],
+        &[vec!["given_name"], vec!["family_name"]],
         &[vec!["given_name"]],
         &["given_name"],
         &[],
     )]
     #[case::flat_sd_all_disclose_all(
         json!({"given_name": "John", "family_name": "Doe"}),
-        &["/given_name", "/family_name"],
+        &[vec!["given_name"], vec!["family_name"]],
         &[vec!["given_name"], vec!["family_name"]],
         &["given_name", "family_name"],
         &[],
     )]
     #[case::flat_single_sd(
         json!({"given_name": "John", "family_name": "Doe"}),
-        &["/given_name"],
+        &[vec!["given_name"]],
         &[vec!["given_name"]],
         &["given_name"],
         &["/family_name"],
@@ -784,49 +789,49 @@ mod test {
     )]
     #[case::structured_single_sd_and_disclose(
         json!({"address": {"street": "Main st.", "house_number": 4 }}),
-        &["/address/street"],
+        &[vec!["address", "street"]],
         &[vec!["address", "street"]],
         &["street"],
         &["/address", "/address/house_number"],
     )]
     #[case::structured_recursive_path_sd_and_single_disclose(
         json!({"address": {"street": "Main st.", "house_number": 4 }}),
-        &["/address/street", "/address"],
+        &[vec!["address", "street"], vec!["address"]],
         &[vec!["address", "street"]],
         &["address", "street"],
         &[],
     )]
     #[case::structured_all_sd_and_all_disclose(
         json!({"address": {"street": "Main st.", "house_number": 4 }}),
-        &["/address/street", "/address/house_number", "/address"],
+        &[vec!["address", "street"], vec!["address", "house_number"], vec!["address"]],
         &[vec!["address", "street"], vec!["address", "house_number"]],
         &["street", "house_number", "address"],
         &[],
     )]
     #[case::structured_all_sd_and_single_disclose(
         json!({"address": {"street": "Main st.", "house_number": 4 }}),
-        &["/address/street", "/address/house_number", "/address"],
+        &[vec!["address", "street"], vec!["address", "house_number"], vec!["address"]],
         &[vec!["address", "street"]],
         &["address", "street"],
         &[],
     )]
     #[case::structured_root_sd_and_root_disclose(
         json!({"address": {"street": "Main st.", "house_number": 4 }}),
-        &["/address"],
+        &[vec!["address"]],
         &[vec!["address"]],
         &["address"],
         &[],
     )]
     #[case::array(
         json!({"nationalities": ["NL", "DE"]}),
-        &["/nationalities"],
+        &[vec!["nationalities"]],
         &[vec!["nationalities"]],
         &["nationalities"],
         &[],
     )]
     fn test_object_selectively_disclosable_attributes_in_presentation(
         #[case] object: serde_json::Value,
-        #[case] conceal_paths: &[&str],
+        #[case] conceal_paths: &[Vec<&str>],
         #[case] disclose_paths: &[Vec<&str>],
         #[case] expected_disclosed_paths: &[&str],
         #[case] expected_not_selectively_disclosable_paths: &[&str],
@@ -886,70 +891,82 @@ mod test {
     #[rstest]
     #[case::array(
         json!({"nationalities": ["NL", "DE"]}),
-        &["/nationalities/0", "/nationalities/1"],
+        &[vec!["nationalities", "0"], vec!["nationalities", "1"]],
         &[vec!["nationalities", "null"]],
         &["NL", "DE"],
         &["/nationalities"],
     )]
     #[case::array(
         json!({"nationalities": ["NL", "DE"]}),
-        &["/nationalities/0", "/nationalities/1", "/nationalities"],
+        &[vec!["nationalities", "0"], vec!["nationalities", "1"], vec!["nationalities"]],
         &[vec!["nationalities", "null"]],
         &["nationalities", "NL", "DE"],
         &[],
     )]
     #[case::array(
         json!({"nationalities": ["NL", "DE"]}),
-        &["/nationalities/0"],
+        &[vec!["nationalities", "0"]],
         &[vec!["nationalities", "0"]],
         &["NL"],
         &["/nationalities/DE", "/nationalities"],
     )]
     #[case::array(
         json!({"nationalities": [{"country": "NL"}, {"country": "DE"}]}),
-        &["/nationalities/0/country", "/nationalities/1/country", "/nationalities/0", "/nationalities/1", "/nationalities"],
+        &[
+            vec!["nationalities", "0", "country"],
+            vec!["nationalities", "1", "country"],
+            vec!["nationalities", "0"],
+            vec!["nationalities", "1"],
+            vec!["nationalities"]
+        ],
         &[vec!["nationalities", "null", "country"]],
         &["nationalities", "country"],
         &[],
     )]
     #[case::array(
         json!({"nationalities": [{"country": "NL"}, {"country": "DE"}]}),
-        &["/nationalities/0", "/nationalities/1", "/nationalities"],
+        &[vec!["nationalities", "0"], vec!["nationalities", "1"], vec!["nationalities"]],
         &[vec!["nationalities", "null"]],
         &["nationalities", "country"],
         &[],
     )]
     #[case::array(
         json!({"nationalities": ["NL", "DE"]}),
-        &["/nationalities/0", "/nationalities/1"],
+        &[vec!["nationalities", "0"], vec!["nationalities", "1"]],
         &[vec!["nationalities", "1"]],
         &["DE"],
         &["/nationalities"],
     )]
     #[case::array(
         json!({"nationalities": ["NL", "DE"]}),
-        &["/nationalities/0", "/nationalities/1", "/nationalities"],
+        &[vec!["nationalities", "0"], vec!["nationalities", "1"], vec!["nationalities"]],
         &[vec!["nationalities", "1"]],
         &["nationalities", "DE"],
         &[],
     )]
     #[case::array(
         json!({"nationalities": [{"country": "NL"}, {"country": "DE"}]}),
-        &["/nationalities/0/country", "/nationalities/1/country", "/nationalities/0", "/nationalities/1", "/nationalities"],
+        &[
+            vec!["nationalities", "0", "country"],
+            vec!["nationalities", "1", "country"],
+            vec!["nationalities", "0"],
+            vec!["nationalities", "1"],
+            vec!["nationalities"]
+        ],
         &[vec!["nationalities", "1", "country"]],
         &["nationalities", "country"],
         &[],
     )]
     #[case::array(
         json!({"nationalities": [{"country": "NL"}, {"country": "DE"}]}),
-        &["/nationalities/0", "/nationalities/1", "/nationalities"],
+        &[vec!["nationalities", "0"], vec!["nationalities", "1"], vec!["nationalities"]],
         &[vec!["nationalities", "1"]],
         &["nationalities", "country"],
         &[],
     )]
     fn test_array_selectively_disclosable_attributes_in_presentation(
         #[case] object: serde_json::Value,
-        #[case] conceal_paths: &[&str],
+        #[case] conceal_paths: &[Vec<&str>],
         #[case] disclose_paths: &[Vec<&str>],
         #[case] expected_disclosed_paths_or_values: &[&str],
         #[case] expected_not_selectively_disclosable_paths_or_values: &[&str],
