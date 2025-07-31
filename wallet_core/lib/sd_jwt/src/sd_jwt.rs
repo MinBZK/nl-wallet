@@ -388,9 +388,8 @@ impl SdJwtPresentationBuilder {
         sd_jwt.disclosures = digests_to_be_disclosed
             .into_iter()
             .fold(HashMap::new(), |mut disclosures, digest| {
-                if let Some(disclosure) = nondisclosed.remove(&digest) {
-                    disclosures.insert(digest, disclosure);
-                }
+                let disclosure = nondisclosed.remove(&digest).expect("disclosure should be present");
+                disclosures.insert(digest, disclosure);
                 disclosures
             });
 
@@ -399,7 +398,8 @@ impl SdJwtPresentationBuilder {
 }
 
 impl UnsignedSdJwtPresentation {
-    /// Signs the underlying SdJwt and returns an SD-JWT presentation containing the issuer signed SD-JWT and KB-JWT.
+    /// Signs the underlying [`SdJwt`] and returns an SD-JWT presentation containing the issuer signed SD-JWT and
+    /// KB-JWT.
     ///
     /// ## Errors
     /// - [`Error::InvalidHasher`] is returned if the provided `hasher`'s algorithm doesn't match the algorithm

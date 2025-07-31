@@ -213,7 +213,7 @@ mod test {
             .await
             .unwrap();
 
-        let sd_hash = hasher.encoded_digest(SIMPLE_STRUCTURED_SD_JWT);
+        let sd_hash = hasher.encoded_digest(sd_jwt.presentation().as_str());
 
         assert_eq!(iat.timestamp(), kb_jwt.claims().iat.timestamp());
         assert_eq!(String::from("receiver"), kb_jwt.claims().aud);
