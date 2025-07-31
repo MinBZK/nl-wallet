@@ -26,9 +26,6 @@ use crate::MobileSecurityObject;
 use crate::MobileSecurityObjectVersion;
 use crate::ValidityInfo;
 use crate::holder::Mdoc;
-use crate::iso::device_retrieval::DeviceRequest;
-use crate::iso::device_retrieval::DocRequest;
-use crate::iso::device_retrieval::ItemsRequest;
 use crate::iso::disclosure::IssuerSigned;
 use crate::iso::mdocs::DataElementValue;
 use crate::iso::mdocs::Entry;
@@ -38,7 +35,6 @@ use crate::utils::cose::MdocCose;
 use crate::utils::serialization::TaggedBytes;
 use crate::verifier::DisclosedDocument;
 use crate::verifier::DisclosedDocuments;
-use crate::verifier::ItemsRequests;
 
 /// Wrapper around `T` that implements `Debug` by using `T`'s implementation,
 /// but with byte sequences (which can take a lot of vertical space) replaced with
@@ -139,27 +135,6 @@ pub fn assert_disclosure_contains(
 
     assert_eq!(disclosed_attr_name, name);
     assert_eq!(disclosed_attr_value, value);
-}
-
-impl DeviceRequest {
-    pub fn from_doc_requests(doc_requests: Vec<DocRequest>) -> Self {
-        DeviceRequest {
-            doc_requests,
-            ..Default::default()
-        }
-    }
-
-    pub fn from_items_requests(items_requests: Vec<ItemsRequest>) -> Self {
-        Self::from_doc_requests(
-            items_requests
-                .into_iter()
-                .map(|items_request| DocRequest {
-                    items_request: items_request.into(),
-                    reader_auth: None,
-                })
-                .collect(),
-        )
-    }
 }
 
 pub fn generate_issuer_mock(ca: &Ca) -> Result<KeyPair, CertificateError> {
@@ -279,21 +254,6 @@ impl TestDocument {
     }
 }
 
-impl From<TestDocument> for ItemsRequest {
-    fn from(value: TestDocument) -> Self {
-        Self {
-            doc_type: value.doc_type,
-            name_spaces: IndexMap::from_iter(value.namespaces.into_iter().map(|(namespace, attributes)| {
-                (
-                    namespace,
-                    IndexMap::from_iter(attributes.into_iter().map(|attribute| (attribute.name, true))),
-                )
-            })),
-            request_info: None,
-        }
-    }
-}
-
 #[derive(Debug, Clone)]
 pub struct TestDocuments(pub Vec<TestDocument>);
 impl TestDocuments {
@@ -360,26 +320,12 @@ impl IntoIterator for TestDocuments {
     }
 }
 
-impl From<TestDocuments> for ItemsRequests {
-    fn from(value: TestDocuments) -> Self {
-        let requests: Vec<_> = value.into_iter().map(ItemsRequest::from).collect();
-        Self::from(requests)
-    }
-}
-
 impl std::ops::Add for TestDocuments {
     type Output = TestDocuments;
 
     fn add(mut self, mut rhs: Self) -> Self::Output {
         self.0.append(&mut rhs.0);
         self
-    }
-}
-
-impl From<TestDocuments> for DeviceRequest {
-    fn from(value: TestDocuments) -> Self {
-        let items_requests = ItemsRequests::from(value);
-        Self::from_items_requests(items_requests.0)
     }
 }
 
@@ -506,29 +452,6 @@ pub mod data {
             TypeMetadataDocuments::address_example(),
         )]
         .into()
-    }
-
-    impl ItemsRequest {
-        pub fn new_pid_example() -> Self {
-            Self {
-                doc_type: PID.to_string(),
-                name_spaces: IndexMap::from_iter([(
-                    PID.to_string(),
-                    IndexMap::from_iter([
-                        ("bsn".to_string(), false),
-                        ("given_name".to_string(), false),
-                        ("family_name".to_string(), false),
-                    ]),
-                )]),
-                request_info: None,
-            }
-        }
-    }
-
-    impl ItemsRequests {
-        pub fn new_pid_example() -> Self {
-            vec![ItemsRequest::new_pid_example()].into()
-        }
     }
 
     impl From<TestDocument> for NormalizedCredentialRequest {

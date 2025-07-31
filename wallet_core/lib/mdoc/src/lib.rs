@@ -8,7 +8,6 @@ pub mod issuer;
 pub mod verifier;
 
 // General code used throughout the crate.
-pub mod identifiers;
 pub mod utils;
 
 // Errors that can happen throughout the crate.
