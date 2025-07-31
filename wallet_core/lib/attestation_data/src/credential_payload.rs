@@ -443,6 +443,7 @@ mod test {
     use jwt::jwk::jwk_from_p256;
     use sd_jwt::builder::SdJwtBuilder;
     use sd_jwt::hasher::Sha256Hasher;
+    use sd_jwt::key_binding_jwt_claims::KeyBindingJwtBuilder;
     use sd_jwt::key_binding_jwt_claims::RequiredKeyBinding;
     use sd_jwt::sd_jwt::SdJwtPresentation;
     use sd_jwt_vc_metadata::JsonSchemaPropertyType;
@@ -684,15 +685,18 @@ mod test {
 
         let hasher = Sha256Hasher::new();
         let presented_sd_jwt = sd_jwt
-            .into_presentation_builder(
+            .into_presentation_builder()
+            .finish()
+            .sign(
+                KeyBindingJwtBuilder::new(
+                    DateTime::from_timestamp_millis(1458304832).unwrap(),
+                    String::from("https://aud.example.com"),
+                    String::from("nonce123"),
+                    Algorithm::ES256,
+                ),
                 &hasher,
-                DateTime::from_timestamp_millis(1458304832).unwrap(),
-                String::from("https://aud.example.com"),
-                String::from("nonce123"),
-                Algorithm::ES256,
+                &holder_key,
             )
-            .unwrap()
-            .finish(&holder_key)
             .await
             .unwrap();
 
