@@ -318,7 +318,7 @@ mod tests {
     ) {
         let field = Field {
             path,
-            intent_to_retain: Default::default(),
+            intent_to_retain: false,
         };
 
         assert_eq!(
