@@ -26,29 +26,9 @@ pub struct AttributeRequest {
     pub intent_to_retain: bool,
 }
 
-#[derive(Debug, thiserror::Error)]
-#[cfg_attr(any(test, feature = "mock"), derive(PartialEq, Eq))]
-pub enum MdocCredentialRequestError {
-    #[error("unexpected amount of claim paths: expected 2, found {0}")]
-    UnexpectedClaimsPathAmount(NonZero<usize>),
-    #[error("unexpected claim path type, expected key string")]
-    UnexpectedClaimsPathType,
-    #[error("sd-jwt is not supported here")]
-    SdJwtNotSupported,
-}
-
-impl AttributeRequest {
-    pub fn to_namespace_and_attribute(&self) -> Result<(&str, &str), MdocCredentialRequestError> {
-        if self.path.len().get() != 2 {
-            return Err(MdocCredentialRequestError::UnexpectedClaimsPathAmount(self.path.len()));
-        }
-        let ClaimPath::SelectByKey(namespace) = &self.path[0] else {
-            return Err(MdocCredentialRequestError::UnexpectedClaimsPathType);
-        };
-        let ClaimPath::SelectByKey(attribute) = &self.path[1] else {
-            return Err(MdocCredentialRequestError::UnexpectedClaimsPathType);
-        };
-        Ok((namespace, attribute))
+impl NormalizedCredentialRequest {
+    pub fn claim_paths(&self) -> impl Iterator<Item = &VecNonEmpty<ClaimPath>> {
+        self.claims.iter().map(|claim| &claim.path)
     }
 }
 
@@ -517,59 +497,8 @@ mod test {
     use crate::Query;
     use crate::TrustedAuthoritiesQuery;
 
-    use super::AttributeRequest;
-    use super::MdocCredentialRequestError;
     use super::NormalizedCredentialRequest;
     use super::UnsupportedDcqlFeatures;
-    use super::mock::ATTR_FAMILY_NAME;
-    use super::mock::ATTR_GIVEN_NAME;
-    use super::mock::EXAMPLE_NAMESPACE;
-
-    #[rstest]
-    #[case(
-        vec![
-            ClaimPath::SelectByKey(EXAMPLE_NAMESPACE.to_string()),
-            ClaimPath::SelectByKey(ATTR_FAMILY_NAME.to_string()),
-        ].try_into().unwrap(),
-        Ok((EXAMPLE_NAMESPACE, ATTR_FAMILY_NAME))
-    )]
-    #[case(
-        vec![ClaimPath::SelectByKey(EXAMPLE_NAMESPACE.to_string())].try_into().unwrap(),
-        Err(MdocCredentialRequestError::UnexpectedClaimsPathAmount(1.try_into().unwrap()))
-    )]
-    #[case(
-        vec![
-            ClaimPath::SelectByKey(EXAMPLE_NAMESPACE.to_string()),
-            ClaimPath::SelectByKey(ATTR_FAMILY_NAME.to_string()),
-            ClaimPath::SelectByKey(ATTR_GIVEN_NAME.to_string()),
-        ].try_into().unwrap(),
-        Err(MdocCredentialRequestError::UnexpectedClaimsPathAmount(3.try_into().unwrap()))
-    )]
-    #[case(
-        vec![
-            ClaimPath::SelectByKey(EXAMPLE_NAMESPACE.to_string()),
-            ClaimPath::SelectByIndex(1),
-        ].try_into().unwrap(),
-        Err(MdocCredentialRequestError::UnexpectedClaimsPathType)
-    )]
-    #[case(
-        vec![
-            ClaimPath::SelectAll,
-            ClaimPath::SelectByKey(ATTR_FAMILY_NAME.to_string()),
-        ].try_into().unwrap(),
-        Err(MdocCredentialRequestError::UnexpectedClaimsPathType)
-    )]
-    fn test_to_namespace_and_attribute(
-        #[case] claim_paths: VecNonEmpty<ClaimPath>,
-        #[case] expected: Result<(&str, &str), MdocCredentialRequestError>,
-    ) {
-        let test_subject = AttributeRequest {
-            path: claim_paths,
-            intent_to_retain: false,
-        };
-        let actual = test_subject.to_namespace_and_attribute();
-        assert_eq!(actual, expected);
-    }
 
     #[rstest]
     #[case(Query::example_with_multiple_credentials(), Err(UnsupportedDcqlFeatures::SdJwt))]

@@ -35,8 +35,8 @@ use jwt::error::JwtX5cError;
 use mdoc::DeviceResponse;
 use mdoc::SessionTranscript;
 use mdoc::errors::Error as MdocError;
-use mdoc::holder::disclosure::ResponseValidationError;
 use mdoc::utils::serialization::CborBase64;
+use mdoc::verifier::ResponseMatchingError;
 use poa::Poa;
 use poa::PoaVerificationError;
 use serde_with::SerializeDisplay;
@@ -569,7 +569,7 @@ pub enum AuthResponseError {
     #[error("error verifying disclosed mdoc(s): {0}")]
     Verification(#[source] mdoc::Error),
     #[error("missing requested attributes: {0}")]
-    MissingAttributes(#[source] ResponseValidationError),
+    MissingAttributes(#[source] ResponseMatchingError),
     #[error("received unexpected amount of Verifiable Presentations: expected 1, found {0}")]
     UnexpectedVpCount(usize),
     #[error("error in Presentation Submission: {0}")]
@@ -799,7 +799,7 @@ impl VpAuthorizationResponse {
 
         // Check that we received all attributes that we requested
         device_response
-            .match_against_request(&auth_request.credential_requests)
+            .matches_requests(auth_request.credential_requests.as_ref())
             .map_err(AuthResponseError::MissingAttributes)?;
 
         // Safe: if we have found all requested items in the documents, then the documents are not absent.

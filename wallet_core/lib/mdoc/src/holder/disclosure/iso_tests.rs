@@ -1,9 +1,11 @@
 use futures::FutureExt;
 use indexmap::IndexMap;
 
+use attestation_types::claim_path::ClaimPath;
 use crypto::examples::Examples;
 use crypto::mock_remote::MockRemoteKeyFactory;
 use crypto::server_keys::generate::Ca;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::examples::EXAMPLE_ATTR_NAME;
 use crate::examples::EXAMPLE_ATTR_VALUE;
@@ -32,11 +34,14 @@ fn create_example_device_response(
 
     let items_requests = device_request.into_items_requests();
 
-    assert_eq!(&items_requests.as_ref().first().unwrap().doc_type, &mdoc.mso.doc_type);
+    let first_request = items_requests
+        .into_iter()
+        .next()
+        .expect("device request should not be empty");
+    assert_eq!(&first_request.doc_type, &mdoc.mso.doc_type);
 
-    mdoc.issuer_signed = mdoc
-        .issuer_signed
-        .into_attribute_subset(&items_requests.to_mdoc_paths(&mdoc.mso.doc_type));
+    let claim_paths = Vec::<VecNonEmpty<ClaimPath>>::from(first_request);
+    mdoc.issuer_signed = mdoc.issuer_signed.into_attribute_subset(&claim_paths);
 
     let (device_response, _) =
         DeviceResponse::sign_from_mdocs(vec![mdoc], session_transcript, &MockRemoteKeyFactory::new_example())

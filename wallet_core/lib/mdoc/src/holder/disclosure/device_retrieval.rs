@@ -3,9 +3,11 @@ use chrono::Utc;
 use itertools::Itertools;
 use rustls_pki_types::TrustAnchor;
 
+use attestation_types::claim_path::ClaimPath;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateUsage;
 use utils::generator::Generator;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::device_retrieval::DeviceRequest;
 use crate::device_retrieval::DocRequest;
@@ -17,17 +19,13 @@ use crate::utils::cose::ClonePayload;
 use crate::utils::serialization;
 use crate::utils::serialization::CborSeq;
 use crate::utils::serialization::TaggedBytes;
-use crate::verifier::ItemsRequests;
 
 impl DeviceRequest {
-    pub fn into_items_requests(self) -> ItemsRequests {
-        let requests = self
-            .doc_requests
+    pub fn into_items_requests(self) -> Vec<ItemsRequest> {
+        self.doc_requests
             .into_iter()
             .map(|doc_request| doc_request.items_request.0)
-            .collect_vec();
-
-        ItemsRequests::from(requests)
+            .collect_vec()
     }
 }
 
@@ -55,6 +53,26 @@ impl DocRequest {
                 Ok(cert)
             })
             .transpose()
+    }
+}
+
+impl From<ItemsRequest> for Vec<VecNonEmpty<ClaimPath>> {
+    fn from(value: ItemsRequest) -> Self {
+        value
+            .name_spaces
+            .into_iter()
+            .flat_map(|(name_space, attributes)| {
+                let attribute_count = attributes.len();
+
+                itertools::repeat_n(name_space, attribute_count).zip(attributes).map(
+                    |(name_space, (attribute, _intent_to_retain))| {
+                        vec![ClaimPath::SelectByKey(name_space), ClaimPath::SelectByKey(attribute)]
+                            .try_into()
+                            .unwrap()
+                    },
+                )
+            })
+            .collect()
     }
 }
 
