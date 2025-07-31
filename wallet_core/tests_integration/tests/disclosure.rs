@@ -10,7 +10,10 @@ use attestation_data::disclosure::DisclosedAttestation;
 use dcql::Query;
 use http_utils::error::HttpJsonErrorBody;
 use mdoc::test::TestDocuments;
+use mdoc::test::data::addr_street;
+use mdoc::test::data::pid_family_name;
 use mdoc::test::data::pid_full_name;
+use mdoc::test::data::pid_given_name;
 use mdoc::verifier::DisclosedDocument;
 use openid4vc::return_url::ReturnUrlTemplate;
 use openid4vc::verifier::SessionType;
@@ -70,20 +73,18 @@ async fn get_verifier_status(client: &reqwest::Client, status_url: Url) -> Statu
     pid_full_name(),
     pid_full_name()
 )]
-// TODO (PVW-4705): Re-enable this test once the attestation type limit for disclosure has been removed.
-// #[case(SessionType::SameDevice,
-//     None,
-//     "xyz_bank_no_return_url",
-//     pid_family_name() + pid_given_name(),
-//     pid_family_name() + pid_given_name()
-// )]
-// TODO (PVW-4705): Re-enable this test once the disclosure response order matches the request.
-// #[case(SessionType::SameDevice,
-//     None,
-//     "multiple_cards",
-//     pid_given_name() + addr_street(),
-//     pid_given_name() + addr_street()
-// )]
+#[case(SessionType::SameDevice,
+    None,
+    "xyz_bank_no_return_url",
+    pid_family_name() + pid_given_name(),
+    pid_family_name() + pid_given_name()
+)]
+#[case(SessionType::SameDevice,
+    None,
+    "multiple_cards",
+    pid_given_name() + addr_street(),
+    pid_given_name() + addr_street()
+)]
 #[tokio::test]
 #[serial(hsm)]
 async fn test_disclosure_usecases_ok(
