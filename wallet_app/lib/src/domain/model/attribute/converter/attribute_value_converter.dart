@@ -11,6 +11,7 @@ const _kStringValue = 'string';
 const _kBooleanValue = 'bool';
 const _kNumberValue = 'number';
 const _kDateValue = 'date';
+const _kArrayValue = 'array';
 const _kNullValue = 'null';
 
 class AttributeValueConverter extends JsonConverter<AttributeValue, Map<String, dynamic>> {
@@ -27,6 +28,8 @@ class AttributeValueConverter extends JsonConverter<AttributeValue, Map<String, 
         return NumberValue(int.parse(json[_kValueKey]!));
       case _kDateValue:
         return DateValue(_decodeDateTime(json[_kValueKey]!));
+      case _kArrayValue:
+        return ArrayValue(List<AttributeValue>.from(json[_kValueKey].map(fromJson)));
       case _kNullValue:
         return NullValue();
     }
@@ -44,6 +47,8 @@ class AttributeValueConverter extends JsonConverter<AttributeValue, Map<String, 
         return {_kTypeKey: _kNumberValue, _kValueKey: object.value.toString()};
       case DateValue():
         return {_kTypeKey: _kDateValue, _kValueKey: _encodeDateTime(object.value)};
+      case ArrayValue():
+        return {_kTypeKey: _kArrayValue, _kValueKey: object.value.map(toJson).toList()};
       case NullValue():
         return {_kTypeKey: _kNullValue, _kValueKey: null};
     }

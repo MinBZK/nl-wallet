@@ -146,6 +146,9 @@ impl AttestationAttributeValue {
             (None, AttributeValue::Text(text)) | (Some(JsonSchemaPropertyType::String), AttributeValue::Text(text)) => {
                 Ok(AttestationAttributeValue::Basic(AttributeValue::Text(text)))
             }
+            (Some(JsonSchemaPropertyType::Array), AttributeValue::Array(entries)) => {
+                Ok(AttestationAttributeValue::Basic(AttributeValue::Array(entries)))
+            }
             (_, value) => Err(AttributeError::AttributeConversion(value, schema_type)),
         }
     }

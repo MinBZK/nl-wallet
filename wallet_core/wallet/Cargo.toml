@@ -107,12 +107,7 @@ dcql = { path = "../lib/dcql", features = ["mock"] }
 http_utils = { path = "../lib/http_utils", features = ["insecure_http_client"] }
 jwt = { path = "../lib/jwt", features = ["test"] }
 mdoc = { path = "../lib/mdoc", features = ["mock_example_constructors", "test"] }
-openid4vc = { path = "../lib/openid4vc", features = [
-    "mock",
-    "test",
-    "example_credential_payloads",
-    "example_constructors",
-] }
+openid4vc = { path = "../lib/openid4vc", features = ["mock", "test", "example_credential_payloads", "example_constructors"] }
 # enable the "mock" feature for platform_support when running tests
 platform_support = { path = "platform_support", features = ["mock"] }
 sd_jwt = { path = "../lib/sd_jwt", features = ["examples"] }

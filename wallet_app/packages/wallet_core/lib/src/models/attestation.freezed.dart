@@ -382,6 +382,74 @@ class _$AttributeValue_DateCopyWithImpl<$Res> implements $AttributeValue_DateCop
 
 /// @nodoc
 
+class AttributeValue_Array extends AttributeValue {
+  const AttributeValue_Array({required final List<AttributeValue> value})
+      : _value = value,
+        super._();
+
+  final List<AttributeValue> _value;
+  List<AttributeValue> get value {
+    if (_value is EqualUnmodifiableListView) return _value;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_value);
+  }
+
+  /// Create a copy of AttributeValue
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @pragma('vm:prefer-inline')
+  $AttributeValue_ArrayCopyWith<AttributeValue_Array> get copyWith =>
+      _$AttributeValue_ArrayCopyWithImpl<AttributeValue_Array>(this, _$identity);
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is AttributeValue_Array &&
+            const DeepCollectionEquality().equals(other._value, _value));
+  }
+
+  @override
+  int get hashCode => Object.hash(runtimeType, const DeepCollectionEquality().hash(_value));
+
+  @override
+  String toString() {
+    return 'AttributeValue.array(value: $value)';
+  }
+}
+
+/// @nodoc
+abstract mixin class $AttributeValue_ArrayCopyWith<$Res> implements $AttributeValueCopyWith<$Res> {
+  factory $AttributeValue_ArrayCopyWith(AttributeValue_Array value, $Res Function(AttributeValue_Array) _then) =
+      _$AttributeValue_ArrayCopyWithImpl;
+  @useResult
+  $Res call({List<AttributeValue> value});
+}
+
+/// @nodoc
+class _$AttributeValue_ArrayCopyWithImpl<$Res> implements $AttributeValue_ArrayCopyWith<$Res> {
+  _$AttributeValue_ArrayCopyWithImpl(this._self, this._then);
+
+  final AttributeValue_Array _self;
+  final $Res Function(AttributeValue_Array) _then;
+
+  /// Create a copy of AttributeValue
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  $Res call({
+    Object? value = null,
+  }) {
+    return _then(AttributeValue_Array(
+      value: null == value
+          ? _self._value
+          : value // ignore: cast_nullable_to_non_nullable
+              as List<AttributeValue>,
+    ));
+  }
+}
+
+/// @nodoc
+
 class AttributeValue_Null extends AttributeValue {
   const AttributeValue_Null() : super._();
 

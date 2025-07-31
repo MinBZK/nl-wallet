@@ -11,10 +11,12 @@ use p256::ecdsa::VerifyingKey;
 use serde::Serialize;
 use ssri::Integrity;
 
+use attestation_types::claim_path::ClaimPath;
 use crypto::EcdsaKeySend;
 use crypto::x509::BorrowingCertificate;
 use jwt::VerifiedJwt;
 use jwt::jwk::jwk_from_p256;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::disclosure::Disclosure;
 use crate::encoder::DEFAULT_SALT_SIZE;
@@ -69,13 +71,14 @@ impl<H: Hasher> SdJwtBuilder<H> {
     /// Substitutes a value with the digest of its disclosure.
     ///
     /// ## Notes
-    /// - `path` indicates the pointer to the value that will be concealed using the syntax of [JSON pointer](https://datatracker.ietf.org/doc/html/rfc6901).
-    ///
+    /// - `path`  indicates the claim paths pointing to the value that will be concealed.
     ///
     /// ## Example
     ///  ```rust
-    ///  use sd_jwt::builder::SdJwtBuilder;
+    ///  use attestation_types::claim_path::ClaimPath;
     ///  use serde_json::json;
+    ///  use sd_jwt::builder::SdJwtBuilder;
+    ///  use utils::vec_at_least::VecNonEmpty;
     ///
     ///  let obj = json!({
     ///   "id": "did:value",
@@ -86,14 +89,24 @@ impl<H: Hasher> SdJwtBuilder<H> {
     /// });
     /// let builder = SdJwtBuilder::new(obj)
     ///   .unwrap()
-    ///   .make_concealable("/id").unwrap() //conceals "id": "did:value"
-    ///   .make_concealable("/claim1/abc").unwrap() //"abc": true
-    ///   .make_concealable("/claim2/0").unwrap(); //conceals "val_1"
+    ///   //conceals "id": "did:value"
+    ///   .make_concealable(VecNonEmpty::try_from(vec![ClaimPath::SelectByKey(String::from("id"))]).unwrap()).unwrap()
+    ///   //"abc": true
+    ///   .make_concealable(VecNonEmpty::try_from(
+    ///       vec![
+    ///          ClaimPath::SelectByKey(String::from("claim1")),
+    ///          ClaimPath::SelectByKey(String::from("abc"))
+    ///       ]
+    ///   ).unwrap()).unwrap()
+    ///   //conceals "val_1"
+    ///   .make_concealable(VecNonEmpty::try_from(
+    ///       vec![
+    ///          ClaimPath::SelectByKey(String::from("claim2")),
+    ///          ClaimPath::SelectByIndex(0)
+    ///       ]
+    ///   ).unwrap()).unwrap();
     /// ```
-    /// ## Error
-    /// * [`Error::InvalidPath`] if pointer is invalid.
-    /// * [`Error::DataTypeMismatch`] if existing SD format is invalid.
-    pub fn make_concealable(mut self, path: &str) -> Result<Self> {
+    pub fn make_concealable(mut self, path: VecNonEmpty<ClaimPath>) -> Result<Self> {
         let disclosure = self.encoder.conceal(path)?;
         self.disclosures
             .insert(self.encoder.hasher.encoded_digest(disclosure.as_str()), disclosure);
@@ -103,11 +116,10 @@ impl<H: Hasher> SdJwtBuilder<H> {
 
     /// Adds a decoy digest to the specified path.
     ///
-    /// `path` indicates the pointer to the value that will be concealed using the syntax of
-    /// [JSON pointer](https://datatracker.ietf.org/doc/html/rfc6901).
+    /// `path`  indicates the claim paths pointing to the value that will be concealed.
     ///
-    /// Use `path` = "" to add decoys to the top level.
-    pub fn add_decoys(mut self, path: &str, number_of_decoys: usize) -> Result<Self> {
+    /// Use `path` = &[] to add decoys to the top level.
+    pub fn add_decoys(mut self, path: &[ClaimPath], number_of_decoys: usize) -> Result<Self> {
         self.encoder.add_decoys(path, number_of_decoys)?;
 
         Ok(self)
@@ -167,9 +179,11 @@ mod test {
 
                 #[test]
                 fn can_be_done_for_object_values() {
-                    let result = SdJwtBuilder::new(json!({ "address": {} }))
-                        .unwrap()
-                        .make_concealable("/address");
+                    let result = SdJwtBuilder::new(json!({ "address": {} })).unwrap().make_concealable(
+                        vec![ClaimPath::SelectByKey(String::from("address"))]
+                            .try_into()
+                            .unwrap(),
+                    );
 
                     assert!(result.is_ok());
                 }
@@ -178,7 +192,11 @@ mod test {
                 fn can_be_done_for_array_elements() {
                     let result = SdJwtBuilder::new(json!({ "nationalities": ["US", "DE"] }))
                         .unwrap()
-                        .make_concealable("/nationalities");
+                        .make_concealable(
+                            vec![ClaimPath::SelectByKey(String::from("nationalities"))]
+                                .try_into()
+                                .unwrap(),
+                        );
 
                     assert!(result.is_ok());
                 }
@@ -191,7 +209,14 @@ mod test {
                 fn can_be_done_for_object_values() {
                     let result = SdJwtBuilder::new(json!({ "address": { "country": "US" } }))
                         .unwrap()
-                        .make_concealable("/address/country");
+                        .make_concealable(
+                            vec![
+                                ClaimPath::SelectByKey(String::from("address")),
+                                ClaimPath::SelectByKey(String::from("country")),
+                            ]
+                            .try_into()
+                            .unwrap(),
+                        );
 
                     assert!(result.is_ok());
                 }
@@ -202,7 +227,15 @@ mod test {
                       "address": { "contact_person": [ "Jane Dow", "John Doe" ] }
                     }))
                     .unwrap()
-                    .make_concealable("/address/contact_person/0");
+                    .make_concealable(
+                        vec![
+                            ClaimPath::SelectByKey(String::from("address")),
+                            ClaimPath::SelectByKey(String::from("contact_person")),
+                            ClaimPath::SelectByIndex(0),
+                        ]
+                        .try_into()
+                        .unwrap(),
+                    );
 
                     assert!(result.is_ok());
                 }
@@ -217,18 +250,25 @@ mod test {
 
                 #[test]
                 fn returns_an_error_for_nonexistant_object_paths() {
-                    let result = SdJwtBuilder::new(json!({})).unwrap().make_concealable("/email");
+                    let result = SdJwtBuilder::new(json!({}))
+                        .unwrap()
+                        .make_concealable(vec![ClaimPath::SelectByKey(String::from("email"))].try_into().unwrap());
 
-                    assert_matches!(result, Err(Error::InvalidPath(path)) if path == "/email");
+                    assert_matches!(result, Err(Error::DisclosureNotFound(key, _)) if key == "email");
                 }
 
                 #[test]
                 fn returns_an_error_for_nonexistant_array_paths() {
-                    let result = SdJwtBuilder::new(json!({}))
-                        .unwrap()
-                        .make_concealable("/nationalities/0");
+                    let result = SdJwtBuilder::new(json!({})).unwrap().make_concealable(
+                        vec![
+                            ClaimPath::SelectByKey(String::from("nationalities")),
+                            ClaimPath::SelectByIndex(0),
+                        ]
+                        .try_into()
+                        .unwrap(),
+                    );
 
-                    assert_matches!(result, Err(Error::InvalidPath(path)) if path == "/nationalities/0");
+                    assert_matches!(result, Err(Error::ParentNotFound(_)));
                 }
 
                 #[test]
@@ -237,9 +277,16 @@ mod test {
                       "nationalities": ["US", "DE"]
                     }))
                     .unwrap()
-                    .make_concealable("/nationalities/2");
+                    .make_concealable(
+                        vec![
+                            ClaimPath::SelectByKey(String::from("nationalities")),
+                            ClaimPath::SelectByIndex(2),
+                        ]
+                        .try_into()
+                        .unwrap(),
+                    );
 
-                    assert_matches!(result, Err(Error::InvalidPath(path)) if path == "/nationalities/2");
+                    assert_matches!(result, Err(Error::IndexOutOfBounds(2, _)));
                 }
             }
 
@@ -252,9 +299,16 @@ mod test {
                       "address": {}
                     }))
                     .unwrap()
-                    .make_concealable("/address/region");
+                    .make_concealable(
+                        vec![
+                            ClaimPath::SelectByKey(String::from("address")),
+                            ClaimPath::SelectByKey(String::from("region")),
+                        ]
+                        .try_into()
+                        .unwrap(),
+                    );
 
-                    assert_matches!(result, Err(Error::InvalidPath(path)) if path == "/address/region");
+                    assert_matches!(result, Err(Error::DisclosureNotFound(key, _)) if key == "region");
                 }
 
                 #[test]
@@ -263,9 +317,17 @@ mod test {
                       "address": {}
                     }))
                     .unwrap()
-                    .make_concealable("/address/contact_person/2");
+                    .make_concealable(
+                        vec![
+                            ClaimPath::SelectByKey(String::from("address")),
+                            ClaimPath::SelectByKey(String::from("contact_person")),
+                            ClaimPath::SelectByIndex(2),
+                        ]
+                        .try_into()
+                        .unwrap(),
+                    );
 
-                    assert_matches!(result, Err(Error::InvalidPath(path)) if path == "/address/contact_person/2");
+                    assert_matches!(result, Err(Error::ParentNotFound(_)));
                 }
 
                 #[test]
@@ -274,9 +336,17 @@ mod test {
                       "address": { "contact_person": [ "Jane Dow", "John Doe" ] }
                     }))
                     .unwrap()
-                    .make_concealable("/address/contact_person/2");
+                    .make_concealable(
+                        vec![
+                            ClaimPath::SelectByKey(String::from("address")),
+                            ClaimPath::SelectByKey(String::from("contact_person")),
+                            ClaimPath::SelectByIndex(2),
+                        ]
+                        .try_into()
+                        .unwrap(),
+                    );
 
-                    assert_matches!(result, Err(Error::InvalidPath(path)) if path == "/address/contact_person/2");
+                    assert_matches!(result, Err(Error::IndexOutOfBounds(2, _)));
                 }
             }
         }
@@ -290,14 +360,14 @@ mod test {
 
             #[test]
             fn can_add_zero_object_value_decoys_for_a_path() {
-                let result = SdJwtBuilder::new(json!({})).unwrap().add_decoys("", 0);
+                let result = SdJwtBuilder::new(json!({})).unwrap().add_decoys(&[], 0);
 
                 assert!(result.is_ok());
             }
 
             #[test]
             fn can_add_object_value_decoys_for_a_path() {
-                let result = SdJwtBuilder::new(json!({})).unwrap().add_decoys("", 2);
+                let result = SdJwtBuilder::new(json!({})).unwrap().add_decoys(&[], 2);
 
                 assert!(result.is_ok());
             }
@@ -310,7 +380,7 @@ mod test {
             fn can_add_zero_object_value_decoys_for_a_path() {
                 let result = SdJwtBuilder::new(json!({ "address": {} }))
                     .unwrap()
-                    .add_decoys("/address", 0);
+                    .add_decoys(&[ClaimPath::SelectByKey(String::from("address"))], 0);
 
                 assert!(result.is_ok());
             }
@@ -319,7 +389,7 @@ mod test {
             fn can_add_object_value_decoys_for_a_path() {
                 let result = SdJwtBuilder::new(json!({ "address": {} }))
                     .unwrap()
-                    .add_decoys("/address", 2);
+                    .add_decoys(&[ClaimPath::SelectByKey(String::from("address"))], 2);
 
                 assert!(result.is_ok());
             }
@@ -328,7 +398,7 @@ mod test {
             fn can_add_zero_array_element_decoys_for_a_path() {
                 let result = SdJwtBuilder::new(json!({ "nationalities": ["US", "DE"] }))
                     .unwrap()
-                    .add_decoys("/nationalities", 0);
+                    .add_decoys(&[ClaimPath::SelectByKey(String::from("nationalities"))], 0);
 
                 assert!(result.is_ok());
             }
@@ -337,7 +407,7 @@ mod test {
             fn can_add_array_element_decoys_for_a_path() {
                 let result = SdJwtBuilder::new(json!({ "nationalities": ["US", "DE"] }))
                     .unwrap()
-                    .add_decoys("/nationalities", 2);
+                    .add_decoys(&[ClaimPath::SelectByKey(String::from("nationalities"))], 2);
 
                 assert!(result.is_ok());
             }
