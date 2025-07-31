@@ -277,12 +277,13 @@ impl TestDocuments {
             disclosed_document,
         ) in self.0.iter().zip(disclosed_documents)
         {
-            // verify the disclosed attributes
+            // verify the disclosed doc type
             assert_eq!(disclosed_document.doc_type, *expected_doc_type);
             // verify the issuer
             assert_eq!(disclosed_document.issuer_uri, *expected_issuer);
             // verify the number of namespaces in this document
             assert_eq!(disclosed_document.attributes.len(), expected_namespaces.len());
+            // verify the disclosed attributes
             for (expected_namespace, expected_attributes) in expected_namespaces {
                 let disclosed_attributes = disclosed_document
                     .attributes
