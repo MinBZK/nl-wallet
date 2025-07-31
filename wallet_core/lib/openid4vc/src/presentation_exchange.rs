@@ -70,6 +70,9 @@ pub enum PdConversionError {
     #[error("signature algorithms not supported")]
     #[category(critical)]
     UnsupportedAlgs,
+    #[error("too many VCT values in credential request: expected 1, found {0}")]
+    #[category(critical)]
+    UnsupportedSdJwt(NonZeroUsize),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -111,9 +114,11 @@ impl Field {
 }
 
 // TODO: Remove in PVW-4419
-impl From<&VecNonEmpty<NormalizedCredentialRequest>> for PresentationDefinition {
-    fn from(requested_creds: &VecNonEmpty<NormalizedCredentialRequest>) -> Self {
-        PresentationDefinition {
+impl TryFrom<&VecNonEmpty<NormalizedCredentialRequest>> for PresentationDefinition {
+    type Error = PdConversionError;
+
+    fn try_from(requested_creds: &VecNonEmpty<NormalizedCredentialRequest>) -> Result<Self, Self::Error> {
+        let pd = PresentationDefinition {
             id: random_string(16),
             input_descriptors: requested_creds
                 .as_ref()
@@ -127,14 +132,17 @@ impl From<&VecNonEmpty<NormalizedCredentialRequest>> for PresentationDefinition 
                             },
                         ),
                         CredentialQueryFormat::SdJwt { vct_values } => (
-                            vct_values.first().clone(), /* TODO this only works for credential requests with a
-                                                         * single VCT value */
+                            vct_values
+                                .iter()
+                                .exactly_one()
+                                .map_err(|_| PdConversionError::UnsupportedSdJwt(vct_values.len()))?
+                                .to_owned(),
                             VpFormat::SdJwt {
                                 alg: IndexSet::from([FormatAlg::ES256]),
                             },
                         ),
                     };
-                    InputDescriptor {
+                    let id = InputDescriptor {
                         id,
                         format,
                         constraints: Constraints {
@@ -150,10 +158,14 @@ impl From<&VecNonEmpty<NormalizedCredentialRequest>> for PresentationDefinition 
                                 })
                                 .collect(),
                         },
-                    }
+                    };
+
+                    Ok(id)
                 })
-                .collect(),
-        }
+                .collect::<Result<Vec<_>, _>>()?,
+        };
+
+        Ok(pd)
     }
 }
 
@@ -332,7 +344,7 @@ mod tests {
     #[test]
     fn convert_pd_credential_requests() {
         let orginal: VecNonEmpty<NormalizedCredentialRequest> = normalized::mock::example();
-        let pd: PresentationDefinition = (&orginal).into();
+        let pd: PresentationDefinition = (&orginal).try_into().unwrap();
         let converted: VecNonEmpty<NormalizedCredentialRequest> = (&pd).try_into().unwrap();
 
         assert_eq!(orginal, converted);
