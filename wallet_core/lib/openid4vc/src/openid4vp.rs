@@ -60,6 +60,8 @@ pub enum AuthRequestError {
     CertificateParsing(#[from] CertificateError),
     #[error("Subject Alternative Name missing from X.509 certificate")]
     MissingSAN,
+    #[error("error converting Credential Request to Presentation Definition: {0}")]
+    PdConversion(#[from] PdConversionError),
 }
 
 /// A Request URI object, as defined in RFC 9101.
@@ -395,7 +397,7 @@ impl NormalizedVpAuthorizationRequest {
             nonce,
             encryption_pubkey: encryption_pubkey.clone(),
             response_uri,
-            presentation_definition: (&credential_requests).into(),
+            presentation_definition: (&credential_requests).try_into()?,
             credential_requests,
             client_metadata: ClientMetadata {
                 jwks: VpJwks::Direct {
