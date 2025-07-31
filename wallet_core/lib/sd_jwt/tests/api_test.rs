@@ -24,10 +24,11 @@ use sd_jwt::hasher::Hasher;
 use sd_jwt::hasher::Sha256Hasher;
 use sd_jwt::sd_jwt::SdJwt;
 use sd_jwt::sd_jwt::SdJwtPresentation;
+use utils::vec_at_least::VecNonEmpty;
 
 async fn make_sd_jwt(
     object: Value,
-    disclosable_values: impl IntoIterator<Item = &str>,
+    disclosable_values: impl IntoIterator<Item = VecNonEmpty<ClaimPath>>,
     holder_pubkey: &VerifyingKey,
 ) -> (SdJwt, EcdsaDecodingKey) {
     let signing_key = SigningKey::random(&mut OsRng);
@@ -35,8 +36,8 @@ async fn make_sd_jwt(
 
     let sd_jwt = disclosable_values
         .into_iter()
-        .fold(SdJwtBuilder::new(object).unwrap(), |builder, path| {
-            builder.make_concealable(path).unwrap()
+        .fold(SdJwtBuilder::new(object).unwrap(), |builder, paths| {
+            builder.make_concealable(paths).unwrap()
         })
         .finish(
             Algorithm::ES256,
@@ -104,7 +105,22 @@ async fn concealing_property_of_concealable_value_works() -> anyhow::Result<()> 
     let hasher = Sha256Hasher::new();
     let (sd_jwt, _) = make_sd_jwt(
         json!({"parent": {"property1": "value1", "property2": [1, 2, 3]}}),
-        ["/parent/property1", "/parent/property2/0", "/parent"],
+        [
+            vec![
+                ClaimPath::SelectByKey(String::from("parent")),
+                ClaimPath::SelectByKey(String::from("property1")),
+            ]
+            .try_into()
+            .unwrap(),
+            vec![
+                ClaimPath::SelectByKey(String::from("parent")),
+                ClaimPath::SelectByKey(String::from("property2")),
+                ClaimPath::SelectByIndex(0),
+            ]
+            .try_into()
+            .unwrap(),
+            vec![ClaimPath::SelectByKey(String::from("parent"))].try_into().unwrap(),
+        ],
         holder_signing_key.verifying_key(),
     )
     .await;
@@ -183,7 +199,22 @@ async fn sd_jwt_sd_hash() -> anyhow::Result<()> {
 
     let (sd_jwt, _) = make_sd_jwt(
         json!({"parent": {"property1": "value1", "property2": [1, 2, 3]}}),
-        ["/parent/property1", "/parent/property2/0", "/parent"],
+        [
+            vec![
+                ClaimPath::SelectByKey(String::from("parent")),
+                ClaimPath::SelectByKey(String::from("property1")),
+            ]
+            .try_into()
+            .unwrap(),
+            vec![
+                ClaimPath::SelectByKey(String::from("parent")),
+                ClaimPath::SelectByKey(String::from("property2")),
+                ClaimPath::SelectByIndex(0),
+            ]
+            .try_into()
+            .unwrap(),
+            vec![ClaimPath::SelectByKey(String::from("parent"))].try_into().unwrap(),
+        ],
         holder_signing_key.verifying_key(),
     )
     .await;
@@ -252,13 +283,35 @@ async fn test_presentation() -> anyhow::Result<()> {
 
     // issuer signs SD-JWT
     let sd_jwt = SdJwtBuilder::new(object)?
-        .make_concealable("/email")?
-        .make_concealable("/phone_number")?
-        .make_concealable("/address/street_address")?
-        .make_concealable("/address")?
-        .make_concealable("/nationalities/0")?
-        .add_decoys("/nationalities", 1)?
-        .add_decoys("", 2)?
+        .make_concealable(vec![ClaimPath::SelectByKey(String::from("email"))].try_into().unwrap())?
+        .make_concealable(
+            vec![ClaimPath::SelectByKey(String::from("phone_number"))]
+                .try_into()
+                .unwrap(),
+        )?
+        .make_concealable(
+            vec![
+                ClaimPath::SelectByKey(String::from("address")),
+                ClaimPath::SelectByKey(String::from("street_address")),
+            ]
+            .try_into()
+            .unwrap(),
+        )?
+        .make_concealable(
+            vec![ClaimPath::SelectByKey(String::from("address"))]
+                .try_into()
+                .unwrap(),
+        )?
+        .make_concealable(
+            vec![
+                ClaimPath::SelectByKey(String::from("nationalities")),
+                ClaimPath::SelectByIndex(0),
+            ]
+            .try_into()
+            .unwrap(),
+        )?
+        .add_decoys(&[ClaimPath::SelectByKey(String::from("nationalities"))], 1)?
+        .add_decoys(&[], 2)?
         .finish(
             Algorithm::ES256,
             Integrity::from(""),
