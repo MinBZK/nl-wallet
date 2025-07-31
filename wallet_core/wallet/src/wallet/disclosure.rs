@@ -61,7 +61,6 @@ use crate::repository::UpdateableRepository;
 use crate::storage::DataDisclosureStatus;
 use crate::storage::Storage;
 use crate::storage::StorageError;
-use crate::storage::StoredMdocCopy;
 use crate::wallet::Session;
 
 use super::UriType;
@@ -299,19 +298,23 @@ where
     DCC: DisclosureClient,
     S: Storage,
 {
+    /// Helper method that fetches attestation from the database based on their attestation type, filters out any of
+    /// them that do not match the request and convert the remaining ones to a [`DisclosureAttestation`], which contains
+    /// an [`AttestationPresentation`] to show to the user.
     async fn fetch_candidate_mdocs(
         storage: &S,
         request: &NormalizedCredentialRequest,
-    ) -> Result<Option<VecNonEmpty<StoredMdocCopy>>, StorageError> {
+    ) -> Result<Option<VecNonEmpty<DisclosureAttestation>>, DisclosureError> {
         let CredentialQueryFormat::MsoMdoc { doctype_value } = &request.format else {
             return Ok(None);
         };
 
         let stored_mdocs = storage
             .fetch_unique_mdocs_by_doctypes(&HashSet::from([doctype_value.as_str()]))
-            .await?;
+            .await
+            .map_err(DisclosureError::AttestationRetrieval)?;
 
-        let candidate_mdocs = stored_mdocs
+        let candidate_attestations = stored_mdocs
             .into_iter()
             .filter_map(|stored_mdoc| {
                 // Only select those attestations that contain all of the requested attributes.
@@ -323,10 +326,43 @@ where
                     .ok()
                     .map(|_| stored_mdoc)
             })
-            .collect_vec();
-        let candidate_mdocs = VecNonEmpty::try_from(candidate_mdocs).ok();
+            .map(|stored_mdoc| {
+                // TODO (PVW-4132): Mdoc attestations contained in the database should be assumed to be valid.
+                //                  Once this is expressed within the type system, these errors can be removed.
+                let mdoc_certificate = stored_mdoc
+                    .mdoc
+                    .issuer_certificate()
+                    .map_err(DisclosureError::MdocCertificate)?;
+                let issuer_registration = IssuerRegistration::from_certificate(&mdoc_certificate)
+                    .map_err(DisclosureError::IssuerRegistration)?
+                    .ok_or(DisclosureError::MissingIssuerRegistration)?;
 
-        Ok(candidate_mdocs)
+                // Remove any attributes that were not requested from the presentation attributes.
+                let issuer_signed = stored_mdoc
+                    .mdoc
+                    .issuer_signed
+                    .clone()
+                    .into_attribute_subset(request.claim_paths());
+
+                let attestation_presentation = AttestationPresentation::create_from_mdoc(
+                    AttestationIdentity::Fixed {
+                        id: stored_mdoc.mdoc_id,
+                    },
+                    stored_mdoc.normalized_metadata,
+                    issuer_registration.organization,
+                    issuer_signed.into_entries_by_namespace(),
+                )
+                .map_err(DisclosureError::AttestationAttributes)?;
+
+                let attestation =
+                    DisclosureAttestation::new(stored_mdoc.mdoc_copy_id, stored_mdoc.mdoc, attestation_presentation);
+
+                Ok(attestation)
+            })
+            .collect::<Result<Vec<_>, DisclosureError>>()?;
+        let candidate_attestations = VecNonEmpty::try_from(candidate_attestations).ok();
+
+        Ok(candidate_attestations)
     }
 
     #[instrument(skip_all)]
@@ -371,15 +407,16 @@ where
             .start(disclosure_uri_query, source, &config.rp_trust_anchors())
             .await?;
 
+        // For each disclosure request, fetch the candidates from the database and convert
+        // each of them to an `AttestationPresentation` that can be shown to the user.
         let storage = self.storage.read().await;
-        let mdoc_candidates = try_join_all(
+        let attestation_candidates = try_join_all(
             session
                 .credential_requests()
                 .iter()
                 .map(|request| Self::fetch_candidate_mdocs(&*storage, request)),
         )
-        .await
-        .map_err(DisclosureError::AttestationRetrieval)?
+        .await?
         .into_iter()
         .flatten()
         .collect_vec();
@@ -399,7 +436,7 @@ where
             .map_err(DisclosureError::HistoryRetrieval)?;
 
         // If no suitable candidates were found for at least one of the requests, report this as an error to the UI.
-        if mdoc_candidates.len() < session.credential_requests().len().get() {
+        if attestation_candidates.len() < session.credential_requests().len().get() {
             info!("At least one attribute from one attestation is missing in order to satisfy the disclosure request");
 
             let reader_registration = verifier_certificate.registration().clone();
@@ -440,60 +477,6 @@ where
                 session_type,
             });
         }
-
-        // Now that we know that we have at least one candidate per attestation type, start attempting to convert the
-        // stored attestations to `AttestationPresentation` values, placing these in `DisclosureAttestation` along with
-        // the original attestation.
-        let attestation_candidates = mdoc_candidates
-            .into_iter()
-            .zip_eq(session.credential_requests().as_ref())
-            .map(|(stored_mdocs, request)| {
-                let attestations = stored_mdocs
-                    .into_iter()
-                    .map(|stored_mdoc| {
-                        // TODO (PVW-4132): Mdoc attestations contained in the database should be assumed to be valid.
-                        //                  Once this is expressed within the type system, these errors can be removed.
-                        let mdoc_certificate = stored_mdoc
-                            .mdoc
-                            .issuer_certificate()
-                            .map_err(DisclosureError::MdocCertificate)?;
-                        let issuer_registration = IssuerRegistration::from_certificate(&mdoc_certificate)
-                            .map_err(DisclosureError::IssuerRegistration)?
-                            .ok_or(DisclosureError::MissingIssuerRegistration)?;
-
-                        // Remove any attributes that were not requested from the presentation attributes.
-                        let issuer_signed = stored_mdoc
-                            .mdoc
-                            .issuer_signed
-                            .clone()
-                            .into_attribute_subset(request.claim_paths());
-
-                        let attestation_presentation = AttestationPresentation::create_from_mdoc(
-                            AttestationIdentity::Fixed {
-                                id: stored_mdoc.mdoc_id,
-                            },
-                            stored_mdoc.normalized_metadata.clone(),
-                            issuer_registration.organization,
-                            issuer_signed.into_entries_by_namespace(),
-                        )
-                        .map_err(DisclosureError::AttestationAttributes)?;
-
-                        let attestation = DisclosureAttestation::new(
-                            stored_mdoc.mdoc_copy_id,
-                            stored_mdoc.mdoc,
-                            attestation_presentation,
-                        );
-
-                        Ok(attestation)
-                    })
-                    .collect::<Result<Vec<_>, DisclosureError>>()?
-                    .try_into()
-                    // Safe, as the source of the iterator is `VecNonEmpty`.
-                    .unwrap();
-
-                Ok(attestations)
-            })
-            .collect::<Result<Vec<VecNonEmpty<_>>, DisclosureError>>()?;
 
         // For now, return an error if multiple attestations are found for a requested attestation type.
         // TODO (PVW-3829): Allow the user to select amongst multiple disclosure candidates.
