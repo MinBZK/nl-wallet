@@ -102,7 +102,7 @@ impl<H: Hasher> SdObjectEncoder<H> {
                 };
 
                 let disclosure = Disclosure::try_new(DisclosureContent::ArrayElement(salt, std::mem::take(element)))
-                    .map_err(|DisclosureContentSerializationError { key: _, value, error }| {
+                    .map_err(|DisclosureContentSerializationError { value, error, .. }| {
                         // In case of an error, restore the removed entry so that the original object is intact
                         *element = value;
                         error
@@ -207,13 +207,7 @@ impl<H: Hasher> SdObjectEncoder<H> {
             Some(claim_name) => DisclosureContent::ObjectProperty(salt, claim_name, Value::String(decoy_value)),
             None => DisclosureContent::ArrayElement(salt, Value::String(decoy_value)),
         })
-        .map_err(
-            |DisclosureContentSerializationError {
-                 key: _,
-                 value: _,
-                 error,
-             }| error,
-        )?;
+        .map_err(|DisclosureContentSerializationError { error, .. }| error)?;
         Ok(hasher.encoded_digest(disclosure.as_str()))
     }
 
