@@ -1603,7 +1603,7 @@ pub(crate) mod tests {
 
         let normalized_metadata = VerifiedTypeMetadataDocuments::nl_pid_example().to_normalized().unwrap();
 
-        let issuer_certificate = sd_jwt.as_ref().as_ref().issuer_certificate().unwrap();
+        let issuer_certificate = sd_jwt.as_ref().issuer_certificate();
         let issuer_registration = IssuerRegistration::from_certificate(issuer_certificate)
             .unwrap()
             .unwrap();
@@ -1736,7 +1736,7 @@ pub(crate) mod tests {
 
                 let normalized_metadata = VerifiedTypeMetadataDocuments::nl_pid_example().to_normalized().unwrap();
 
-                let issuer_certificate = sd_jwt.as_ref().as_ref().issuer_certificate().unwrap();
+                let issuer_certificate = sd_jwt.as_ref().issuer_certificate();
                 let issuer_registration = IssuerRegistration::from_certificate(issuer_certificate)
                     .unwrap()
                     .unwrap();

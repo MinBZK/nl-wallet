@@ -38,10 +38,6 @@ pub enum AttestationsError {
     #[category(critical)]
     MissingIssuerRegistration,
 
-    #[error("SD-JWT does not contain an issuer certificate")]
-    #[category(critical)]
-    MissingIssuerCertificate,
-
     #[error("could not extract type metadata from mdoc: {0}")]
     #[category(defer)]
     Metadata(#[source] mdoc::Error),
@@ -96,13 +92,11 @@ where
                             Ok(attestation)
                         }
                         StoredAttestationFormat::SdJwt { sd_jwt } => {
-                            let issuer_certificate = sd_jwt
-                                .as_ref()
-                                .as_ref()
-                                .issuer_certificate()
-                                .ok_or(AttestationsError::MissingIssuerCertificate)?;
-                            let issuer_registration = IssuerRegistration::from_certificate(issuer_certificate)?
-                                .ok_or(AttestationsError::MissingIssuerRegistration)?;
+                            let issuer_certificate = sd_jwt.as_ref().issuer_certificate();
+                            // Note that this means that an `IssuerRegistration` should ALWAYS be backwards compatible.
+                            let issuer_registration = IssuerRegistration::from_certificate(issuer_certificate)
+                                .expect("a stored SD-JWT attestation should always contain a valid IssuerRegistration")
+                                .expect("a verified SD-JWT attestation should always contain an IssuerRegistration");
 
                             let payload = sd_jwt.into_inner().into_credential_payload(&normalized_metadata)?;
                             let attestation = AttestationPresentation::create_from_attributes(
