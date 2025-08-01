@@ -224,7 +224,7 @@ impl SdJwt {
     pub fn parse_and_verify(sd_jwt: &str, pubkey: &EcdsaDecodingKey, hasher: &impl Hasher) -> Result<Self> {
         let (jwt, disclosures) = Self::parse_sd_jwt_unverified(sd_jwt, hasher)?;
 
-        let issuer_certificates = jwt.extract_x5c_certificates()?.into();
+        let issuer_certificates = jwt.extract_x5c_certificates()?;
         let issuer_signed_jwt = VerifiedJwt::try_new(jwt, pubkey, &sd_jwt_validation())?;
 
         Ok(Self {
@@ -293,7 +293,7 @@ impl VerifiedSdJwt {
     ) -> Result<VerifiedSdJwt> {
         let (jwt, disclosures) = SdJwt::parse_sd_jwt_unverified(sd_jwt, hasher)?;
 
-        let (issuer_signed_jwt, issuer_certificate) = VerifiedJwt::try_new_against_trust_anchors(
+        let (issuer_signed_jwt, issuer_certificates) = VerifiedJwt::try_new_against_trust_anchors(
             jwt,
             &sd_jwt_validation(),
             time,
@@ -303,7 +303,7 @@ impl VerifiedSdJwt {
 
         Ok(Self(SdJwt {
             issuer_signed_jwt,
-            issuer_certificates: vec![issuer_certificate],
+            issuer_certificates: issuer_certificates.into_inner(),
             disclosures,
         }))
     }
@@ -315,7 +315,7 @@ impl VerifiedSdJwt {
     pub fn dangerous_parse_unverified(sd_jwt: &str, hasher: &impl Hasher) -> Result<Self> {
         let (jwt, disclosures) = SdJwt::parse_sd_jwt_unverified(sd_jwt, hasher)?;
 
-        let issuer_certificates = jwt.extract_x5c_certificates()?.into();
+        let issuer_certificates = jwt.extract_x5c_certificates()?;
         let issuer_signed_jwt = VerifiedJwt::new_dangerous(jwt)?;
 
         Ok(Self(SdJwt {
