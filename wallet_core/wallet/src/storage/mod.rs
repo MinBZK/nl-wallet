@@ -23,11 +23,9 @@ use uuid::Uuid;
 use attestation_data::disclosure_type::DisclosureType;
 use crypto::x509::BorrowingCertificate;
 use error_category::ErrorCategory;
-use mdoc::holder::Mdoc;
 use mdoc::utils::serialization::CborError;
 use openid4vc::issuance_session::CredentialWithMetadata;
 use openid4vc::issuance_session::IssuedCredentialCopies;
-use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataChainError;
 
 use crate::AttestationPresentation;
@@ -109,12 +107,11 @@ pub enum StorageError {
 
 pub type StorageResult<T> = Result<T, StorageError>;
 
-#[derive(Debug, Clone)]
-pub struct StoredMdocCopy {
-    pub mdoc_id: Uuid,
-    pub mdoc_copy_id: Uuid,
-    pub mdoc: Mdoc,
-    pub normalized_metadata: NormalizedTypeMetadata,
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AttestationFormatQuery {
+    Any,
+    MsoMdoc,
+    SdJwt,
 }
 
 /// This trait abstracts the persistent storage for the wallet.
@@ -159,12 +156,8 @@ pub trait Storage {
     async fn fetch_unique_attestations_by_type<'a>(
         &'a self,
         attestation_types: &HashSet<&'a str>,
+        format_query: AttestationFormatQuery,
     ) -> StorageResult<Vec<StoredAttestationCopy>>;
-
-    async fn fetch_unique_mdocs_by_doctypes<'a>(
-        &'a self,
-        doc_types: &HashSet<&'a str>,
-    ) -> StorageResult<Vec<StoredMdocCopy>>;
 
     async fn log_disclosure_event(
         &mut self,

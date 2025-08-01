@@ -201,6 +201,7 @@ mod tests {
     use super::super::DisclosureBasedIssuanceError;
     use super::super::Session;
     use super::super::disclosure::DisclosureAttestation;
+    use super::super::disclosure::DisclosureAttestationFormat;
     use super::super::disclosure::DisclosureError;
     use super::super::disclosure::RedirectUriPurpose;
     use super::super::disclosure::WalletDisclosureSession;
@@ -222,7 +223,9 @@ mod tests {
 
         let attestation = DisclosureAttestation::new(
             Uuid::new_v4(),
-            Mdoc::new_mock().now_or_never().unwrap(),
+            DisclosureAttestationFormat::MsoMdoc {
+                mdoc: Box::new(Mdoc::new_mock().now_or_never().unwrap()),
+            },
             AttestationPresentation::new_mock(),
         );
 
