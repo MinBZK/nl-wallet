@@ -27,6 +27,7 @@ import 'package:wallet/src/domain/usecase/biometrics/get_supported_biometrics_us
 import 'package:wallet/src/domain/usecase/biometrics/is_biometric_login_enabled_usecase.dart';
 import 'package:wallet/src/domain/usecase/biometrics/request_biometrics_usecase.dart';
 import 'package:wallet/src/domain/usecase/biometrics/set_biometrics_usecase.dart';
+import 'package:wallet/src/domain/usecase/card/get_pid_cards_usecase.dart';
 import 'package:wallet/src/domain/usecase/card/get_wallet_card_usecase.dart';
 import 'package:wallet/src/domain/usecase/card/get_wallet_cards_usecase.dart';
 import 'package:wallet/src/domain/usecase/card/observe_wallet_card_detail_usecase.dart';
@@ -49,6 +50,7 @@ import 'package:wallet/src/domain/usecase/pid/accept_offered_pid_usecase.dart';
 import 'package:wallet/src/domain/usecase/pid/cancel_pid_issuance_usecase.dart';
 import 'package:wallet/src/domain/usecase/pid/continue_pid_issuance_usecase.dart';
 import 'package:wallet/src/domain/usecase/pid/get_pid_issuance_url_usecase.dart';
+import 'package:wallet/src/domain/usecase/pid/get_pid_renewal_url_usecase.dart';
 import 'package:wallet/src/domain/usecase/pin/change_pin_usecase.dart';
 import 'package:wallet/src/domain/usecase/pin/check_is_valid_pin_usecase.dart';
 import 'package:wallet/src/domain/usecase/pin/disclose_for_issuance_usecase.dart';
@@ -170,6 +172,8 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<RequestBiometricsUseCase>()])
 @GenerateNiceMocks([MockSpec<TourOverviewViewedUseCase>()])
 @GenerateNiceMocks([MockSpec<FetchTourVideosUseCase>()])
+@GenerateNiceMocks([MockSpec<GetPidRenewalUrlUseCase>()])
+@GenerateNiceMocks([MockSpec<GetPidCardsUseCase>()])
 
 /// Core
 @GenerateNiceMocks([MockSpec<WalletCoreApi>()])

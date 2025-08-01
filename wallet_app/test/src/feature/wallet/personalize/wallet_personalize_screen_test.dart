@@ -348,7 +348,7 @@ void main() {
         await tester.pumpAndSettle();
 
         // Verify the cancel dialog is shown
-        final stopDialogTitleFinder = find.text(l10n.walletPersonalizeScreenStopDigidDialogTitle);
+        final stopDialogTitleFinder = find.text(l10n.stopDigidLoginDialogTitle);
         expect(stopDialogTitleFinder, findsOneWidget);
 
         // Mock digid result coming in

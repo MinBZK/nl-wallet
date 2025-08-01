@@ -1,25 +1,22 @@
 import 'dart:io';
 
-import 'package:collection/collection.dart';
 import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher_string.dart';
-import 'package:wallet_mock/mock.dart';
 
 import '../../../../environment.dart';
+import '../../../data/service/navigation_service.dart';
 import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/flow_progress.dart';
+import '../../../domain/model/navigation/navigation_request.dart';
 import '../../../domain/model/result/application_error.dart';
 import '../../../util/extension/build_context_extension.dart';
-import '../../../util/extension/string_extension.dart';
 import '../../../util/launch_util.dart';
-import '../../../util/mapper/card/attribute/card_attribute_mapper.dart';
-import '../../../util/mapper/mapper.dart';
 import '../../../wallet_assets.dart';
 import '../../../wallet_constants.dart';
-import '../../../wallet_core/typed/typed_wallet_core.dart';
+import '../../common/dialog/stop_digid_login_dialog.dart';
 import '../../common/page/generic_loading_page.dart';
 import '../../common/page/terminal_page.dart';
 import '../../common/sheet/confirm_action_sheet.dart';
@@ -40,8 +37,6 @@ import 'page/wallet_personalize_confirm_pin_page.dart';
 import 'page/wallet_personalize_intro_page.dart';
 import 'page/wallet_personalize_success_page.dart';
 
-const _kDigidWebsiteUrl = 'https://www.digid.nl/inlogmethodes/identiteitsbewijs';
-
 class WalletPersonalizeScreen extends StatelessWidget {
   const WalletPersonalizeScreen({super.key});
 
@@ -52,9 +47,8 @@ class WalletPersonalizeScreen extends StatelessWidget {
       body: PopScope(
         canPop: false,
         onPopInvokedWithResult: (didPop, result) {
-          if (didPop) {
-            return;
-          }
+          if (didPop) return;
+
           if (context.bloc.state.canGoBack) {
             context.bloc.add(WalletPersonalizeBackPressed());
           } else {
@@ -198,30 +192,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
     final shouldShowDialog = isAuthenticating || isConnectingToDigid;
     if (!shouldShowDialog) return false;
 
-    final result = await showDialog<bool?>(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text.rich(context.l10n.walletPersonalizeScreenStopDigidDialogTitle.toTextSpan(context)),
-          content: Text.rich(context.l10n.walletPersonalizeScreenStopDigidDialogSubtitle.toTextSpan(context)),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: Text.rich(context.l10n.walletPersonalizeScreenStopDigidDialogNegativeCta.toTextSpan(context)),
-            ),
-            TextButton(
-              style: Theme.of(context)
-                  .textButtonTheme
-                  .style
-                  ?.copyWith(foregroundColor: WidgetStatePropertyAll(context.colorScheme.error)),
-              onPressed: () => Navigator.pop(context, true),
-              child: Text.rich(context.l10n.walletPersonalizeScreenStopDigidDialogPositiveCta.toTextSpan(context)),
-            ),
-          ],
-        );
-      },
-    );
-    return result ?? false;
+    return StopDigidLoginDialog.show(context);
   }
 
   Widget _buildWalletIntroPage(BuildContext context, WalletPersonalizeInitial state) {
@@ -235,7 +206,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
 
   Future<void> _loginWithDigid(BuildContext context, String authUrl) async {
     final bloc = context.bloc;
-    if (authUrl == MockConstants.pidIssuanceRedirectUri && !Environment.isTest) {
+    if (Environment.mockRepositories) {
       await _performMockDigidLogin(context);
     } else {
       try {
@@ -247,38 +218,16 @@ class WalletPersonalizeScreen extends StatelessWidget {
     }
   }
 
-  /// Initiate the mock digid login and notify the BLoC about the result.
-  ///
-  /// Since this is only used for the mock builds, and the flow itself differs quite
-  /// a bit from the final flow (which opens an external link and deep links back into
-  /// the app) we take some shortcuts with knowledge about the mock here to continue
-  /// to the next step of the personalization flow.
+  /// Initiate the mock digid login and and trigger [PidIssuanceNavigationRequest] on success
   Future<void> _performMockDigidLogin(BuildContext context) async {
     assert(Environment.mockRepositories, 'This flow is only intended for mock builds');
-    final bloc = context.bloc;
-    final walletCore = context.read<TypedWalletCore>();
-    final Mapper<CardAttributeWithCardId, DataAttribute> attributeMapper = context.read();
 
-    // Perform the mock DigiD flow
-    final loginSucceeded = (await MockDigidScreen.mockLogin(context)) ?? false;
-    if (loginSucceeded) {
-      // Emit state that shows "Data is being retrieved"
-      bloc.add(const WalletPersonalizeUpdateState(WalletPersonalizeAuthenticating()));
-      await Future.delayed(const Duration(milliseconds: 1500)); // Fake loading delay
-
-      // Process mock attestations and notify block
-      final attestations = await walletCore.continuePidIssuance(MockConstants.pidIssuanceRedirectUri);
-      final mockPidCardAttributes = attestations
-          .map((it) => it.attributes.map((attr) => CardAttributeWithCardId(it.attestationType, attr)))
-          .flattenedToList;
-      bloc.add(WalletPersonalizeLoginWithDigidSucceeded(attributeMapper.mapList(mockPidCardAttributes)));
-    } else {
-      await Future.delayed(kDefaultMockDelay);
-      bloc.add(
-        WalletPersonalizeLoginWithDigidFailed(
-          error: GenericError('Mock login failed', sourceError: Exception('Mock exception')),
-        ),
-      );
+    final success = await MockDigidScreen.mockLogin(context);
+    if (success && context.mounted) {
+      await context.read<NavigationService>().handleNavigationRequest(PidIssuanceNavigationRequest('issue_pid'));
+    } else if (context.mounted) {
+      final error = GenericError('Mock login failed', sourceError: Exception('Mock exception'));
+      context.bloc.add(WalletPersonalizeLoginWithDigidFailed(error: error));
     }
   }
 
@@ -463,7 +412,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
     );
   }
 
-  void _launchDigidWebsite() => launchUrlStringCatching(_kDigidWebsiteUrl, mode: LaunchMode.externalApplication);
+  void _launchDigidWebsite() => launchUrlStringCatching(kDigidWebsiteUrl, mode: LaunchMode.externalApplication);
 }
 
 extension _WalletPersonalizeScreenExtension on BuildContext {

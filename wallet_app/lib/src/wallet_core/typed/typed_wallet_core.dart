@@ -90,6 +90,8 @@ class TypedWalletCore {
 
   Future<String> createPidIssuanceRedirectUri() => call(core.createPidIssuanceRedirectUri);
 
+  Future<String> createPidRenewalRedirectUri() => call(core.createPidRenewalRedirectUri);
+
   Future<core.IdentifyUriResult> identifyUri(String uri) => call(() => core.identifyUri(uri: uri));
 
   /// Cancel ongoing issuance session (includes PID issuance)

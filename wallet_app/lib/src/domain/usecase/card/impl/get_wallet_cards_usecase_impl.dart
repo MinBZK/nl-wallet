@@ -4,14 +4,14 @@ import '../../../model/result/result.dart';
 import '../get_wallet_cards_usecase.dart';
 
 class GetWalletCardsUseCaseImpl extends GetWalletCardsUseCase {
-  final WalletCardRepository walletCardRepository;
+  final WalletCardRepository _walletCardRepository;
 
-  GetWalletCardsUseCaseImpl(this.walletCardRepository);
+  GetWalletCardsUseCaseImpl(this._walletCardRepository);
 
   @override
   Future<Result<List<WalletCard>>> invoke() async {
     return tryCatch(
-      () async => walletCardRepository.observeWalletCards().first.timeout(const Duration(seconds: 5)),
+      () async => _walletCardRepository.readAll(),
       'Failed to get wallet cards',
     );
   }

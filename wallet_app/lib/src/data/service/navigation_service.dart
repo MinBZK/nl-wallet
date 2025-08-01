@@ -61,18 +61,14 @@ class NavigationService {
           ModalRoute.withName(WalletRoutes.splashRoute),
           arguments: request.argument,
         );
+      case PidRenewalNavigationRequest():
+        await _navigatorKey.currentState?.pushNamedAndRemoveUntil(
+          request.destination,
+          ModalRoute.withName(WalletRoutes.cardDetailRoute),
+          arguments: request.argument,
+        );
       case DisclosureNavigationRequest():
-        await _navigatorKey.currentState?.pushNamedAndRemoveUntil(
-          request.destination,
-          ModalRoute.withName(WalletRoutes.dashboardRoute),
-          arguments: request.argument,
-        );
       case IssuanceNavigationRequest():
-        await _navigatorKey.currentState?.pushNamedAndRemoveUntil(
-          request.destination,
-          ModalRoute.withName(WalletRoutes.dashboardRoute),
-          arguments: request.argument,
-        );
       case SignNavigationRequest():
         await _navigatorKey.currentState?.pushNamedAndRemoveUntil(
           request.destination,
