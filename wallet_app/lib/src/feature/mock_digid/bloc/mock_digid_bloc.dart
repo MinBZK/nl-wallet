@@ -18,7 +18,9 @@ class MockDigidBloc extends Bloc<MockDigidEvent, MockDigidState> {
     on<MockDigidDeclinePressed>(_onDeclinePressed);
 
     //Dismiss digid splash after 2 seconds.
-    Future.delayed(kDefaultDigidMockDelay).then((_) => add(MockDigidSplashDismissed()));
+    Future.delayed(kDefaultDigidMockDelay).then((_) {
+      if (!isClosed) add(MockDigidSplashDismissed());
+    });
   }
 
   FutureOr<void> _onSplashDismissed(event, emit) async {

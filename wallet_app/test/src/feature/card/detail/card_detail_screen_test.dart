@@ -62,6 +62,25 @@ void main() {
       await screenMatchesGolden('success.dark');
     });
 
+    testGoldens('CardDetailLoadSuccess - renewable card - light', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        CardDetailScreen(
+          cardTitle: WalletMockData.card.title.testValue,
+        ).withState<CardDetailBloc, CardDetailState>(
+          MockCardSummaryBloc(),
+          CardDetailLoadSuccess(
+            WalletCardDetail(
+              card: WalletMockData.card,
+              mostRecentIssuance: WalletMockData.issuanceEvent,
+              mostRecentSuccessfulDisclosure: WalletMockData.disclosureEvent,
+            ),
+            showRenewOption: true,
+          ),
+        ),
+      );
+      await screenMatchesGolden('success.renewable.light');
+    });
+
     testGoldens('CardDetailLoadInProgress light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         CardDetailScreen(
