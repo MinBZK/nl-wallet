@@ -60,6 +60,7 @@ import 'package:wallet/src/domain/usecase/biometrics/get_supported_biometrics_us
 import 'package:wallet/src/domain/usecase/biometrics/is_biometric_login_enabled_usecase.dart' as _i97;
 import 'package:wallet/src/domain/usecase/biometrics/request_biometrics_usecase.dart' as _i100;
 import 'package:wallet/src/domain/usecase/biometrics/set_biometrics_usecase.dart' as _i95;
+import 'package:wallet/src/domain/usecase/card/get_pid_cards_usecase.dart' as _i106;
 import 'package:wallet/src/domain/usecase/card/get_wallet_card_usecase.dart' as _i79;
 import 'package:wallet/src/domain/usecase/card/get_wallet_cards_usecase.dart' as _i73;
 import 'package:wallet/src/domain/usecase/card/observe_wallet_card_detail_usecase.dart' as _i77;
@@ -82,6 +83,7 @@ import 'package:wallet/src/domain/usecase/pid/accept_offered_pid_usecase.dart' a
 import 'package:wallet/src/domain/usecase/pid/cancel_pid_issuance_usecase.dart' as _i75;
 import 'package:wallet/src/domain/usecase/pid/continue_pid_issuance_usecase.dart' as _i76;
 import 'package:wallet/src/domain/usecase/pid/get_pid_issuance_url_usecase.dart' as _i74;
+import 'package:wallet/src/domain/usecase/pid/get_pid_renewal_url_usecase.dart' as _i105;
 import 'package:wallet/src/domain/usecase/pin/change_pin_usecase.dart' as _i92;
 import 'package:wallet/src/domain/usecase/pin/check_is_valid_pin_usecase.dart' as _i68;
 import 'package:wallet/src/domain/usecase/pin/check_pin_usecase.dart' as _i54;
@@ -1486,6 +1488,23 @@ class MockPidRepository extends _i1.Mock implements _i21.PidRepository {
       ) as _i10.Future<String>);
 
   @override
+  _i10.Future<String> getPidRenewalUrl() => (super.noSuchMethod(
+        Invocation.method(#getPidRenewalUrl, []),
+        returnValue: _i10.Future<String>.value(
+          _i14.dummyValue<String>(
+            this,
+            Invocation.method(#getPidRenewalUrl, []),
+          ),
+        ),
+        returnValueForMissingStub: _i10.Future<String>.value(
+          _i14.dummyValue<String>(
+            this,
+            Invocation.method(#getPidRenewalUrl, []),
+          ),
+        ),
+      ) as _i10.Future<String>);
+
+  @override
   _i10.Future<List<_i22.DataAttribute>> continuePidIssuance(String? uri) => (super.noSuchMethod(
         Invocation.method(#continuePidIssuance, [uri]),
         returnValue: _i10.Future<List<_i22.DataAttribute>>.value(
@@ -2133,6 +2152,23 @@ class MockTypedWalletCore extends _i1.Mock implements _i38.TypedWalletCore {
           _i14.dummyValue<String>(
             this,
             Invocation.method(#createPidIssuanceRedirectUri, []),
+          ),
+        ),
+      ) as _i10.Future<String>);
+
+  @override
+  _i10.Future<String> createPidRenewalRedirectUri() => (super.noSuchMethod(
+        Invocation.method(#createPidRenewalRedirectUri, []),
+        returnValue: _i10.Future<String>.value(
+          _i14.dummyValue<String>(
+            this,
+            Invocation.method(#createPidRenewalRedirectUri, []),
+          ),
+        ),
+        returnValueForMissingStub: _i10.Future<String>.value(
+          _i14.dummyValue<String>(
+            this,
+            Invocation.method(#createPidRenewalRedirectUri, []),
           ),
         ),
       ) as _i10.Future<String>);
@@ -4510,6 +4546,92 @@ class MockFetchTourVideosUseCase extends _i1.Mock implements _i103.FetchTourVide
           ),
         ),
       ) as _i10.Future<_i50.Result<List<_i104.TourVideo>>>);
+
+  @override
+  _i10.Future<_i50.Result<T>> tryCatch<T>(
+    _i10.Future<T> Function()? future,
+    String? errorDescription,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(#tryCatch, [future, errorDescription]),
+        returnValue: _i10.Future<_i50.Result<T>>.value(
+          _i14.dummyValue<_i50.Result<T>>(
+            this,
+            Invocation.method(#tryCatch, [future, errorDescription]),
+          ),
+        ),
+        returnValueForMissingStub: _i10.Future<_i50.Result<T>>.value(
+          _i14.dummyValue<_i50.Result<T>>(
+            this,
+            Invocation.method(#tryCatch, [future, errorDescription]),
+          ),
+        ),
+      ) as _i10.Future<_i50.Result<T>>);
+}
+
+/// A class which mocks [GetPidRenewalUrlUseCase].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockGetPidRenewalUrlUseCase extends _i1.Mock implements _i105.GetPidRenewalUrlUseCase {
+  @override
+  _i10.Future<_i50.Result<String>> invoke() => (super.noSuchMethod(
+        Invocation.method(#invoke, []),
+        returnValue: _i10.Future<_i50.Result<String>>.value(
+          _i14.dummyValue<_i50.Result<String>>(
+            this,
+            Invocation.method(#invoke, []),
+          ),
+        ),
+        returnValueForMissingStub: _i10.Future<_i50.Result<String>>.value(
+          _i14.dummyValue<_i50.Result<String>>(
+            this,
+            Invocation.method(#invoke, []),
+          ),
+        ),
+      ) as _i10.Future<_i50.Result<String>>);
+
+  @override
+  _i10.Future<_i50.Result<T>> tryCatch<T>(
+    _i10.Future<T> Function()? future,
+    String? errorDescription,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(#tryCatch, [future, errorDescription]),
+        returnValue: _i10.Future<_i50.Result<T>>.value(
+          _i14.dummyValue<_i50.Result<T>>(
+            this,
+            Invocation.method(#tryCatch, [future, errorDescription]),
+          ),
+        ),
+        returnValueForMissingStub: _i10.Future<_i50.Result<T>>.value(
+          _i14.dummyValue<_i50.Result<T>>(
+            this,
+            Invocation.method(#tryCatch, [future, errorDescription]),
+          ),
+        ),
+      ) as _i10.Future<_i50.Result<T>>);
+}
+
+/// A class which mocks [GetPidCardsUseCase].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockGetPidCardsUseCase extends _i1.Mock implements _i106.GetPidCardsUseCase {
+  @override
+  _i10.Future<_i50.Result<List<_i9.WalletCard>>> invoke() => (super.noSuchMethod(
+        Invocation.method(#invoke, []),
+        returnValue: _i10.Future<_i50.Result<List<_i9.WalletCard>>>.value(
+          _i14.dummyValue<_i50.Result<List<_i9.WalletCard>>>(
+            this,
+            Invocation.method(#invoke, []),
+          ),
+        ),
+        returnValueForMissingStub: _i10.Future<_i50.Result<List<_i9.WalletCard>>>.value(
+          _i14.dummyValue<_i50.Result<List<_i9.WalletCard>>>(
+            this,
+            Invocation.method(#invoke, []),
+          ),
+        ),
+      ) as _i10.Future<_i50.Result<List<_i9.WalletCard>>>);
 
   @override
   _i10.Future<_i50.Result<T>> tryCatch<T>(

@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2025-07-29T15:01:45+02:00",
+    "@@last_modified": "2025-07-29T15:58:44+02:00",
     "aboutScreenDescription": "De NL Wallet wordt gemaakt door de Nederlandse overheid, zodat iedereen digitale diensten veilig en gemakkelijk kan gebruiken.\n\nJe kunt de ontwikkelingen volgen op {url}.",
     "aboutScreenPrivacyCta": "Privacyverklaring",
     "aboutScreenTitle": "Over de NL Wallet",
@@ -446,7 +446,7 @@
     "@fraudCheckPageTitle": {
         "placeholders": {
             "url": {
-                "example": "https://example.org",
+                "example": "https:\/\/example.org",
                 "type": "String"
             }
         }
@@ -1402,10 +1402,6 @@
     "walletPersonalizeScreenLoadingTitle": "Even geduld",
     "walletPersonalizeScreenProcessingDigiDResultDescription": "Gegevens worden opgehaald",
     "walletPersonalizeScreenProcessingDigiDResultTitle": "Even geduld",
-    "walletPersonalizeScreenStopDigidDialogNegativeCta": "TERUG",
-    "walletPersonalizeScreenStopDigidDialogPositiveCta": "INLOGGEN STOPPEN",
-    "walletPersonalizeScreenStopDigidDialogSubtitle": "Als je stopt, moet je opnieuw beginnen.",
-    "walletPersonalizeScreenStopDigidDialogTitle": "DigiD inloggen stoppen?",
     "walletPersonalizeSetupFailedScreenCta": "Probeer opnieuw",
     "walletPersonalizeSetupFailedScreenDescription": "Je hebt te vaak een ongeldige pincode ingevuld. Kies een nieuwe pincode en begin opnieuw.",
     "walletPersonalizeSetupFailedScreenHeadline": "Aanmaken mislukt",
