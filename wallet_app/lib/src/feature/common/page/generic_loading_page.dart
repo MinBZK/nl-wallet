@@ -100,6 +100,7 @@ class _GenericLoadingPageState extends State<GenericLoadingPage> {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Expanded(
+              flex: context.isLandscape ? 3 : 2,
               child: SingleChildScrollView(
                 reverse: true,
                 /* make sure it's bottom aligned */
@@ -128,6 +129,7 @@ class _GenericLoadingPageState extends State<GenericLoadingPage> {
             ),
             widget.loadingIndicator,
             Expanded(
+              flex: 2,
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [

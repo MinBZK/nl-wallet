@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2025-07-29T15:01:45+02:00",
+    "@@last_modified": "2025-07-29T15:58:44+02:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -450,7 +450,7 @@
     "@fraudCheckPageTitle": {
         "placeholders": {
             "url": {
-                "example": "https://example.org",
+                "example": "https:\/\/example.org",
                 "type": "String"
             }
         }
@@ -1406,10 +1406,6 @@
     "walletPersonalizeScreenLoadingTitle": "Please wait",
     "walletPersonalizeScreenProcessingDigiDResultDescription": "Data is being retrieved",
     "walletPersonalizeScreenProcessingDigiDResultTitle": "Please wait",
-    "walletPersonalizeScreenStopDigidDialogNegativeCta": "BACK",
-    "walletPersonalizeScreenStopDigidDialogPositiveCta": "STOP LOGIN",
-    "walletPersonalizeScreenStopDigidDialogSubtitle": "If you stop, you'll need to start over.",
-    "walletPersonalizeScreenStopDigidDialogTitle": "Stop DigiD login?",
     "walletPersonalizeSetupFailedScreenCta": "Try again",
     "walletPersonalizeSetupFailedScreenDescription": "Too many wrong PIN attempts. Set a new PIN and try again.",
     "walletPersonalizeSetupFailedScreenHeadline": "Setup failed",

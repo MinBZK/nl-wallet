@@ -20,18 +20,19 @@ class CardDetailLoadInProgress extends CardDetailState {
 
 class CardDetailLoadSuccess extends CardDetailState {
   final WalletCardDetail detail;
+  final bool showRenewOption;
 
-  const CardDetailLoadSuccess(this.detail);
+  const CardDetailLoadSuccess(this.detail, {this.showRenewOption = false});
 
   @override
-  List<Object> get props => [detail];
+  List<Object> get props => [detail, showRenewOption];
 }
 
 class CardDetailLoadFailure extends CardDetailState {
-  final String cardId;
+  final String attestationId;
 
-  const CardDetailLoadFailure(this.cardId);
+  const CardDetailLoadFailure(this.attestationId);
 
   @override
-  List<Object> get props => [cardId];
+  List<Object> get props => [attestationId];
 }
