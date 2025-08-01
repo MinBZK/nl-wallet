@@ -7,6 +7,7 @@ use itertools::Itertools;
 use jsonschema::ValidationError;
 
 use attestation_types::claim_path::ClaimPath;
+use utils::non_empty_iterator::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::chain::SortedTypeMetadata;
@@ -182,7 +183,7 @@ impl NormalizedTypeMetadata {
     }
 
     pub fn validate(&self, attestation_json: &serde_json::Value) -> Result<(), TypeMetadataValidationError> {
-        for (vct, schema) in self.vcts.iter().zip(self.schemas.as_slice()) {
+        for (vct, schema) in self.vcts.non_empty_iter().zip(self.schemas.as_slice()) {
             schema
                 .validate(attestation_json)
                 .map_err(|error| TypeMetadataValidationError(vct.clone(), error))?;
@@ -385,13 +386,15 @@ mod example_constructors {
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
-    use itertools::Itertools;
     use rstest::rstest;
     use serde_json::json;
     use ssri::Integrity;
 
     use attestation_types::claim_path::ClaimPath;
+    use utils::non_empty_iterator::IntoNonEmptyIterator;
+    use utils::non_empty_iterator::NonEmptyIterator;
     use utils::vec_at_least::VecNonEmpty;
+    use utils::vec_non_empty;
 
     use crate::chain::SortedTypeMetadata;
     use crate::metadata::ClaimDisplayMetadata;
@@ -481,14 +484,14 @@ mod tests {
         // The JSON schemas should be ordered from leaf to root.
         assert_eq!(normalized.schemas.len().get(), 3);
         assert_eq!(
-            normalized.schemas.iter().collect_vec(),
-            vec![&metadata_v3.schema, &metadata_v2.schema, &metadata.schema]
-                .into_iter()
+            normalized.schemas,
+            vec_non_empty![metadata_v3.schema, metadata_v2.schema, metadata.schema]
+                .into_non_empty_iter()
                 .map(|schema_option| match schema_option {
-                    SchemaOption::Embedded { schema } => schema.as_ref(),
+                    SchemaOption::Embedded { schema } => *schema,
                     _ => unreachable!(),
                 })
-                .collect_vec()
+                .collect::<VecNonEmpty<_>>()
         );
     }
 

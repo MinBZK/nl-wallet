@@ -6,6 +6,7 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use error_category::ErrorCategory;
+use utils::non_empty_iterator::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::ClaimPath;
@@ -202,7 +203,11 @@ impl TryFrom<ClaimsQuery> for AttributeRequest {
         if source.path.len().get() != 2 {
             return Err(UnsupportedDcqlFeatures::InvalidClaimPathLength(source.path.len()));
         }
-        if source.path.iter().any(|p| !matches!(p, ClaimPath::SelectByKey(_))) {
+        if source
+            .path
+            .non_empty_iter()
+            .any(|p| !matches!(p, ClaimPath::SelectByKey(_)))
+        {
             return Err(UnsupportedDcqlFeatures::UnsupportedClaimPathVariant);
         }
         let Some(intent_to_retain) = source.intent_to_retain else {
