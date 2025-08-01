@@ -1,6 +1,7 @@
 // Copyright 2020-2023 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
+use std::collections::HashMap;
 use std::collections::HashSet;
 use std::fmt::Display;
 use std::iter::Peekable;
@@ -10,7 +11,6 @@ use chrono::Duration;
 use chrono::Utc;
 use derive_more::AsRef;
 use derive_more::From;
-use indexmap::IndexMap;
 use itertools::Itertools;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::Header;
@@ -78,7 +78,7 @@ pub struct SdJwt {
     // the certificates are stored here redunantly for convenience as well.
     issuer_certificates: Vec<BorrowingCertificate>,
 
-    disclosures: IndexMap<String, Disclosure>,
+    disclosures: HashMap<String, Disclosure>,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, From, AsRef)]
@@ -89,6 +89,9 @@ impl VerifiedSdJwt {
         self.0
     }
 }
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct UnsignedSdJwtPresentation(SdJwt);
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct SdJwtPresentation {
@@ -168,7 +171,7 @@ impl SdJwt {
     pub(crate) fn new(
         issuer_signed_jwt: VerifiedJwt<SdJwtClaims>,
         issuer_certificates: Vec<BorrowingCertificate>,
-        disclosures: IndexMap<String, Disclosure>,
+        disclosures: HashMap<String, Disclosure>,
     ) -> Self {
         Self {
             issuer_signed_jwt,
@@ -185,7 +188,7 @@ impl SdJwt {
         self.issuer_signed_jwt.payload()
     }
 
-    pub fn disclosures(&self) -> &IndexMap<String, Disclosure> {
+    pub fn disclosures(&self) -> &HashMap<String, Disclosure> {
         &self.disclosures
     }
 
@@ -234,7 +237,7 @@ impl SdJwt {
     fn parse_sd_jwt_unverified(
         sd_jwt: &str,
         hasher: &impl Hasher,
-    ) -> Result<(Jwt<SdJwtClaims>, IndexMap<String, Disclosure>)> {
+    ) -> Result<(Jwt<SdJwtClaims>, HashMap<String, Disclosure>)> {
         if !sd_jwt.ends_with("~") {
             return Err(Error::Deserialization(
                 "SD-JWT format is invalid, input doesn't and with '~'".to_string(),
@@ -250,7 +253,7 @@ impl SdJwt {
         let disclosures = disclosure_segments
             .split("~")
             .filter(|segment| !segment.is_empty())
-            .try_fold(IndexMap::new(), |mut acc, segment| {
+            .try_fold(HashMap::new(), |mut acc, segment| {
                 let disclosure = Disclosure::parse(segment)?;
                 acc.insert(hasher.encoded_digest(disclosure.as_str()), disclosure);
                 Ok::<_, Error>(acc)
@@ -260,22 +263,8 @@ impl SdJwt {
     }
 
     /// Prepares this [`SdJwt`] for a presentation, returning an [`SdJwtPresentationBuilder`].
-    /// ## Errors
-    /// - [`Error::InvalidHasher`] is returned if the provided `hasher`'s algorithm doesn't match the algorithm
-    ///   specified by SD-JWT's `_sd_alg` claim. "sha-256" is used if the claim is missing.
-    pub fn into_presentation_builder(
-        self,
-        hasher: &dyn Hasher,
-        key_binding_iat: DateTime<Utc>,
-        key_binding_aud: String,
-        key_binding_nonce: String,
-        key_binding_alg: Algorithm,
-    ) -> Result<SdJwtPresentationBuilder> {
-        SdJwtPresentationBuilder::new(
-            self,
-            KeyBindingJwtBuilder::new(key_binding_iat, key_binding_aud, key_binding_nonce, key_binding_alg),
-            hasher,
-        )
+    pub fn into_presentation_builder(self) -> SdJwtPresentationBuilder {
+        SdJwtPresentationBuilder::new(self)
     }
 
     /// Returns the JSON object obtained by replacing all disclosures into their
@@ -338,14 +327,12 @@ impl VerifiedSdJwt {
 }
 
 #[derive(Clone)]
-pub struct SdJwtPresentationBuilder<'a> {
+pub struct SdJwtPresentationBuilder {
     sd_jwt: SdJwt,
-    kb_jwt_builder: KeyBindingJwtBuilder,
-    hasher: &'a dyn Hasher,
 
     /// Non-disclosed attributes. All attributes start here. Calling `disclose()` moves an attribute from here
     /// to `disclosed`.
-    nondisclosed: IndexMap<String, Disclosure>,
+    nondisclosed: HashMap<String, Disclosure>,
 
     /// Digests to be disclosed.
     digests_to_be_disclosed: HashSet<String>,
@@ -355,16 +342,8 @@ pub struct SdJwtPresentationBuilder<'a> {
     full_payload: serde_json::Value,
 }
 
-impl<'a> SdJwtPresentationBuilder<'a> {
-    pub(crate) fn new(sd_jwt: SdJwt, kb_jwt_builder: KeyBindingJwtBuilder, hasher: &'a dyn Hasher) -> Result<Self> {
-        let required_hasher = sd_jwt.claims()._sd_alg.as_deref().unwrap_or(SHA_ALG_NAME);
-        if required_hasher != hasher.alg_name() {
-            return Err(Error::InvalidHasher(format!(
-                "hasher \"{}\" was provided, but \"{required_hasher} is required\"",
-                hasher.alg_name()
-            )));
-        }
-
+impl SdJwtPresentationBuilder {
+    pub(crate) fn new(mut sd_jwt: SdJwt) -> Self {
         let full_payload = {
             let claims = sd_jwt.issuer_signed_jwt.payload().clone();
             let sd = claims._sd.into_iter().map(serde_json::Value::String).collect();
@@ -375,19 +354,19 @@ impl<'a> SdJwtPresentationBuilder<'a> {
             serde_json::Value::Object(payload)
         };
 
-        let nondisclosed = sd_jwt.disclosures.clone();
+        let nondisclosed = std::mem::take(&mut sd_jwt.disclosures);
 
-        Ok(Self {
+        Self {
             sd_jwt,
-            kb_jwt_builder,
             nondisclosed,
             digests_to_be_disclosed: HashSet::new(),
             full_payload,
-            hasher,
-        })
+        }
     }
 
     pub fn disclose(mut self, path: &VecNonEmpty<ClaimPath>) -> Result<Self> {
+        // Gather all digests to be disclosed into a set. This can include intermediary attributes as well
+
         self.digests_to_be_disclosed.extend({
             let mut path_segments = path.iter().peekable();
             digests_to_disclose(&self.full_payload, &mut path_segments, &self.nondisclosed, false)?
@@ -398,31 +377,54 @@ impl<'a> SdJwtPresentationBuilder<'a> {
         Ok(self)
     }
 
-    /// Returns the resulting [`SdJwtPresentation`].
-    pub async fn finish(self, signing_key: &impl EcdsaKeySend) -> Result<SdJwtPresentation> {
+    pub fn finish(self) -> UnsignedSdJwtPresentation {
         // Put everything back in its place.
         let SdJwtPresentationBuilder {
             mut sd_jwt,
             digests_to_be_disclosed,
-            kb_jwt_builder,
             mut nondisclosed,
             ..
         } = self;
-
-        let mut disclosures = IndexMap::new();
-        digests_to_be_disclosed.into_iter().for_each(|digest| {
-            if let Some(disclosure) = nondisclosed.shift_remove(&digest) {
+        sd_jwt.disclosures = digests_to_be_disclosed
+            .into_iter()
+            .fold(HashMap::new(), |mut disclosures, digest| {
+                let disclosure = nondisclosed.remove(&digest).expect("disclosure should be present");
                 disclosures.insert(digest, disclosure);
-            }
-        });
+                disclosures
+            });
 
-        sd_jwt.disclosures = disclosures;
+        UnsignedSdJwtPresentation(sd_jwt)
+    }
+}
 
-        let key_binding_jwt = kb_jwt_builder.finish(&sd_jwt, self.hasher, signing_key).await?;
+impl UnsignedSdJwtPresentation {
+    /// Signs the underlying [`SdJwt`] and returns an SD-JWT presentation containing the issuer signed SD-JWT and
+    /// KB-JWT.
+    ///
+    /// ## Errors
+    /// - [`Error::InvalidHasher`] is returned if the provided `hasher`'s algorithm doesn't match the algorithm
+    ///   specified by SD-JWT's `_sd_alg` claim. "sha-256" is used if the claim is missing.
+    pub async fn sign(
+        self,
+        key_binding_jwt_builder: KeyBindingJwtBuilder,
+        hasher: &impl Hasher,
+        signing_key: &impl EcdsaKeySend,
+    ) -> Result<SdJwtPresentation> {
+        let sd_jwt = self.0;
+
+        let required_hasher = sd_jwt.claims()._sd_alg.as_deref().unwrap_or(SHA_ALG_NAME);
+        if required_hasher != hasher.alg_name() {
+            return Err(Error::InvalidHasher(format!(
+                "hasher \"{}\" was provided, but \"{required_hasher} is required\"",
+                hasher.alg_name()
+            )));
+        }
+
+        let kb_jwt = key_binding_jwt_builder.finish(&sd_jwt, hasher, signing_key).await?;
 
         let sd_jwt_presentation = SdJwtPresentation {
             sd_jwt,
-            key_binding_jwt: key_binding_jwt.into(),
+            key_binding_jwt: kb_jwt.into(),
         };
 
         Ok(sd_jwt_presentation)
@@ -445,7 +447,7 @@ pub(crate) fn sd_jwt_validation() -> Validation {
 fn digests_to_disclose<'a, I>(
     object: &'a serde_json::Value,
     path: &mut Peekable<I>,
-    disclosures: &'a IndexMap<String, Disclosure>,
+    disclosures: &'a HashMap<String, Disclosure>,
     traversing_array: bool,
 ) -> Result<Vec<&'a str>>
 where
@@ -539,7 +541,7 @@ where
 
 fn process_array_entry<'a>(
     entry: &'a serde_json::Value,
-    disclosures: &'a IndexMap<String, Disclosure>,
+    disclosures: &'a HashMap<String, Disclosure>,
     digests: &mut Vec<&'a str>,
 ) -> Option<&'a serde_json::Value> {
     entry
@@ -558,7 +560,7 @@ fn process_array_entry<'a>(
 fn find_disclosure_digest_in_object<'o>(
     object: &'o serde_json::Map<String, serde_json::Value>,
     key: &str,
-    disclosures: &IndexMap<String, Disclosure>,
+    disclosures: &HashMap<String, Disclosure>,
 ) -> Option<&'o str> {
     // Try to find the digest for disclosable property `key` in
     // the `_sd` field of `object`.
@@ -612,6 +614,7 @@ mod test {
     use crate::disclosure::DisclosureContent;
     use crate::examples::*;
     use crate::hasher::Sha256Hasher;
+    use crate::key_binding_jwt_claims::KeyBindingJwtBuilder;
     use crate::sd_jwt::Error;
     use crate::sd_jwt::SdJwt;
     use crate::sd_jwt::SdJwtPresentation;
@@ -685,7 +688,15 @@ mod test {
     fn round_trip_ser_des() {
         let sd_jwt =
             SdJwt::parse_and_verify(SIMPLE_STRUCTURED_SD_JWT, &examples_sd_jwt_decoding_key(), &Sha256Hasher).unwrap();
-        assert_eq!(&sd_jwt.to_string(), SIMPLE_STRUCTURED_SD_JWT);
+
+        let (expected_jwt, expected_disclosures) =
+            SdJwt::parse_sd_jwt_unverified(SIMPLE_STRUCTURED_SD_JWT, &Sha256Hasher).unwrap();
+
+        assert_eq!(sd_jwt.disclosures(), &expected_disclosures);
+        assert_eq!(
+            sd_jwt.issuer_signed_jwt.payload(),
+            &expected_jwt.dangerous_parse_unverified().unwrap().1
+        );
     }
 
     fn create_presentation(
@@ -722,30 +733,24 @@ mod test {
 
         disclose_paths
             .iter()
-            .fold(
-                sd_jwt
-                    .into_presentation_builder(
-                        &Sha256Hasher,
-                        Utc::now(),
-                        "aud".to_string(),
-                        "nonce".to_string(),
-                        Algorithm::ES256,
+            .fold(sd_jwt.into_presentation_builder(), |builder, path| {
+                builder
+                    .disclose(
+                        &path
+                            .iter()
+                            .map(|key| key.parse().unwrap())
+                            .collect_vec()
+                            .try_into()
+                            .unwrap(),
                     )
-                    .unwrap(),
-                |builder, path| {
-                    builder
-                        .disclose(
-                            &path
-                                .iter()
-                                .map(|key| key.parse().unwrap())
-                                .collect_vec()
-                                .try_into()
-                                .unwrap(),
-                        )
-                        .unwrap()
-                },
+                    .unwrap()
+            })
+            .finish()
+            .sign(
+                KeyBindingJwtBuilder::new(Utc::now(), "aud".to_string(), "nonce".to_string(), Algorithm::ES256),
+                &Sha256Hasher,
+                &holder_privkey,
             )
-            .finish(&holder_privkey)
             .now_or_never()
             .unwrap()
             .unwrap()

@@ -1,9 +1,10 @@
 // Copyright 2020-2024 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
+use std::collections::HashMap;
+
 use base64::Engine;
 use base64::prelude::BASE64_STANDARD;
-use indexmap::IndexMap;
 use itertools::Itertools;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::Header;
@@ -35,7 +36,7 @@ const SD_JWT_HEADER_TYP: &str = "dc+sd-jwt";
 pub struct SdJwtBuilder<H> {
     encoder: SdObjectEncoder<H>,
     header: Header,
-    disclosures: IndexMap<String, Disclosure>,
+    disclosures: HashMap<String, Disclosure>,
 }
 
 impl SdJwtBuilder<Sha256Hasher> {
@@ -60,7 +61,7 @@ impl<H: Hasher> SdJwtBuilder<H> {
         let encoder = SdObjectEncoder::with_custom_hasher_and_salt_size(object, hasher, salt_size)?;
         Ok(Self {
             encoder,
-            disclosures: IndexMap::new(),
+            disclosures: HashMap::new(),
             header: Header {
                 typ: Some(String::from(SD_JWT_HEADER_TYP)),
                 ..Default::default()
