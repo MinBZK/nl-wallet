@@ -5454,7 +5454,6 @@ dependencies = [
  "crypto",
  "derive_more",
  "futures",
- "indexmap 2.7.1",
  "itertools 0.14.0",
  "jsonwebtoken",
  "jwt",

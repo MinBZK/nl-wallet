@@ -22,6 +22,7 @@ use sd_jwt::builder::SdJwtBuilder;
 use sd_jwt::disclosure::DisclosureContent;
 use sd_jwt::hasher::Hasher;
 use sd_jwt::hasher::Sha256Hasher;
+use sd_jwt::key_binding_jwt_claims::KeyBindingJwtBuilder;
 use sd_jwt::sd_jwt::SdJwt;
 use sd_jwt::sd_jwt::SdJwtPresentation;
 use utils::vec_at_least::VecNonEmpty;
@@ -128,14 +129,18 @@ async fn concealing_property_of_concealable_value_works() -> anyhow::Result<()> 
     let signing_key = SigningKey::random(&mut OsRng);
 
     sd_jwt
-        .into_presentation_builder(
+        .into_presentation_builder()
+        .finish()
+        .sign(
+            KeyBindingJwtBuilder::new(
+                DateTime::from_timestamp_millis(1458304832).unwrap(),
+                String::from("https://example.com"),
+                String::from("abcdefghi"),
+                Algorithm::ES256,
+            ),
             &hasher,
-            DateTime::from_timestamp_millis(1458304832).unwrap(),
-            String::from("https://example.com"),
-            String::from("abcdefghi"),
-            Algorithm::ES256,
-        )?
-        .finish(&signing_key)
+            &signing_key,
+        )
         .await?;
 
     Ok(())
@@ -164,14 +169,18 @@ async fn sd_jwt_without_disclosures_works() -> anyhow::Result<()> {
 
     let disclosed = sd_jwt
         .clone()
-        .into_presentation_builder(
+        .into_presentation_builder()
+        .finish()
+        .sign(
+            KeyBindingJwtBuilder::new(
+                DateTime::from_timestamp_millis(1458304832).unwrap(),
+                String::from("https://example.com"),
+                String::from("abcdefghi"),
+                Algorithm::ES256,
+            ),
             &hasher,
-            DateTime::from_timestamp_millis(1458304832).unwrap(),
-            String::from("https://example.com"),
-            String::from("abcdefghi"),
-            Algorithm::ES256,
-        )?
-        .finish(&holder_signing_key)
+            &holder_signing_key,
+        )
         .await?;
 
     // Try to serialize & deserialize `with_kb`.
@@ -223,14 +232,18 @@ async fn sd_jwt_sd_hash() -> anyhow::Result<()> {
 
     let disclosed = sd_jwt
         .clone()
-        .into_presentation_builder(
+        .into_presentation_builder()
+        .finish()
+        .sign(
+            KeyBindingJwtBuilder::new(
+                DateTime::from_timestamp_millis(1458304832).unwrap(),
+                String::from("https://example.com"),
+                String::from("abcdefghi"),
+                Algorithm::ES256,
+            ),
             &hasher,
-            DateTime::from_timestamp_millis(1458304832).unwrap(),
-            String::from("https://example.com"),
-            String::from("abcdefghi"),
-            Algorithm::ES256,
-        )?
-        .finish(&signing_key)
+            &signing_key,
+        )
         .await?;
 
     let encoded_kb_jwt = disclosed.to_string();
@@ -327,13 +340,7 @@ async fn test_presentation() -> anyhow::Result<()> {
 
     // The holder can withhold from a verifier any concealable claim by calling `conceal`.
     let presented_sd_jwt = sd_jwt
-        .into_presentation_builder(
-            &hasher,
-            DateTime::from_timestamp_millis(1458304832).unwrap(),
-            String::from("https://example.com"),
-            String::from("abcdefghi"),
-            Algorithm::ES256,
-        )?
+        .into_presentation_builder()
         .disclose(&vec![ClaimPath::SelectByKey(String::from("email"))].try_into().unwrap())?
         .disclose(
             &vec![
@@ -343,7 +350,17 @@ async fn test_presentation() -> anyhow::Result<()> {
             .try_into()
             .unwrap(),
         )?
-        .finish(&holder_privkey)
+        .finish()
+        .sign(
+            KeyBindingJwtBuilder::new(
+                DateTime::from_timestamp_millis(1458304832).unwrap(),
+                String::from("https://example.com"),
+                String::from("abcdefghi"),
+                Algorithm::ES256,
+            ),
+            &hasher,
+            &holder_privkey,
+        )
         .await?;
 
     println!("{}", &presented_sd_jwt);
@@ -360,8 +377,8 @@ async fn test_presentation() -> anyhow::Result<()> {
     let disclosed_paths = parsed_presentation
         .sd_jwt()
         .disclosures()
-        .into_iter()
-        .map(|(_, v)| match &v.content {
+        .values()
+        .map(|v| match &v.content {
             DisclosureContent::ObjectProperty(_, name, _) => name.as_str(),
             _ => panic!("unexpected disclosure content"),
         })
