@@ -32,6 +32,7 @@ use wallet_account::messages::instructions::ChangePinCommit;
 use wallet_account::messages::instructions::ChangePinRollback;
 use wallet_account::messages::instructions::ChangePinStart;
 use wallet_account::messages::instructions::CheckPin;
+use wallet_account::messages::instructions::DiscloseRecoveryCode;
 use wallet_account::messages::instructions::PerformIssuance;
 use wallet_account::messages::instructions::PerformIssuanceResult;
 use wallet_account::messages::instructions::PerformIssuanceWithWua;
@@ -67,6 +68,7 @@ impl ValidateInstruction for CheckPin {}
 impl ValidateInstruction for ChangePinStart {}
 impl ValidateInstruction for PerformIssuance {}
 impl ValidateInstruction for PerformIssuanceWithWua {}
+impl ValidateInstruction for DiscloseRecoveryCode {}
 
 impl ValidateInstruction for Sign {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
@@ -475,6 +477,25 @@ impl HandleInstruction for Sign {
                 poa: Some(poa),
             })
         }
+    }
+}
+
+impl HandleInstruction for DiscloseRecoveryCode {
+    type Result = ();
+
+    async fn handle<T, R, H>(
+        self,
+        _wallet_user: &WalletUser,
+        _uuid_generator: &impl Generator<Uuid>,
+        _user_state: &UserState<R, H, impl WuaIssuer>,
+    ) -> Result<Self::Result, InstructionError>
+    where
+        T: Committable,
+        R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
+        H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
+    {
+        // TODO verify and store recovery code
+        Ok(())
     }
 }
 

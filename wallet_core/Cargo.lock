@@ -7585,6 +7585,7 @@ dependencies = [
  "rand_core",
  "rstest",
  "rustls-pki-types",
+ "sd_jwt",
  "serde",
  "serde_json",
  "serde_with",
