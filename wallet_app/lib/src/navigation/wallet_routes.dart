@@ -78,15 +78,12 @@ class WalletRoutes {
     splashRoute,
     introductionRoute,
     introductionPrivacyRoute,
+    privacyPolicyRoute,
     aboutRoute,
     setupSecurityRoute,
     pinRoute,
     pinTimeoutRoute,
     pinBlockedRoute,
-    themeRoute,
-    changeLanguageRoute,
-    changePinRoute,
-    privacyPolicyRoute,
     updateInfoRoute,
   ];
 
