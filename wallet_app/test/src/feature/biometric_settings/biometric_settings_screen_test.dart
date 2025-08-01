@@ -8,6 +8,7 @@ import 'package:wallet/src/domain/usecase/app/check_is_app_initialized_usecase.d
 import 'package:wallet/src/domain/usecase/biometrics/biometrics.dart';
 import 'package:wallet/src/domain/usecase/biometrics/is_biometric_login_enabled_usecase.dart';
 import 'package:wallet/src/domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
+import 'package:wallet/src/domain/usecase/wallet/observe_wallet_locked_usecase.dart';
 import 'package:wallet/src/feature/biometric_settings/biometric_settings_screen.dart';
 import 'package:wallet/src/feature/biometric_settings/bloc/biometric_settings_bloc.dart';
 import 'package:wallet/src/util/manager/biometric_unlock_manager.dart';
@@ -30,6 +31,9 @@ void main() {
           MockBiometricSettingsBloc()..supportedBiometrics = Biometrics.face,
           const BiometricSettingsLoaded(biometricLoginEnabled: true),
         ),
+        providers: [
+          RepositoryProvider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase()),
+        ],
       );
       await screenMatchesGolden('face_loaded.light');
     });
@@ -41,6 +45,9 @@ void main() {
           const BiometricSettingsLoaded(biometricLoginEnabled: false),
         ),
         brightness: Brightness.dark,
+        providers: [
+          RepositoryProvider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase()),
+        ],
       );
       await screenMatchesGolden('finger_loaded.dark');
     });
@@ -51,6 +58,9 @@ void main() {
           MockBiometricSettingsBloc()..supportedBiometrics = Biometrics.fingerprint,
           BiometricSettingsInitial(),
         ),
+        providers: [
+          RepositoryProvider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase()),
+        ],
       );
       await screenMatchesGolden('initial.light');
     });
@@ -62,6 +72,9 @@ void main() {
           const BiometricSettingsLoaded(biometricLoginEnabled: true),
         ),
         brightness: Brightness.dark,
+        providers: [
+          RepositoryProvider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase()),
+        ],
       );
       await screenMatchesGolden('some_loaded.dark');
     });
@@ -77,7 +90,10 @@ void main() {
 
       await tester.pumpWidgetWithAppWrapper(
         const BiometricSettingScreen(),
-        providers: [RepositoryProvider<BiometricSettingsBloc>(create: (c) => bloc)],
+        providers: [
+          RepositoryProvider<BiometricSettingsBloc>(create: (c) => bloc),
+          RepositoryProvider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase()),
+        ],
       );
 
       await screenMatchesGolden('setup_required.light');
@@ -95,7 +111,10 @@ void main() {
 
     await tester.pumpWidgetWithAppWrapper(
       const BiometricSettingScreen(),
-      providers: [RepositoryProvider<BiometricSettingsBloc>(create: (c) => bloc)],
+      providers: [
+        RepositoryProvider<BiometricSettingsBloc>(create: (c) => bloc),
+        RepositoryProvider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase()),
+      ],
     );
 
     await screenMatchesGolden('locked_out.light');
@@ -139,6 +158,7 @@ void main() {
         RepositoryProvider<BiometricUnlockManager>(create: (c) => MockBiometricUnlockManager()),
         RepositoryProvider<UnlockWalletWithPinUseCase>(create: (c) => mockUnlockUseCase),
         RepositoryProvider<CheckPinUseCase>(create: (c) => mockUnlockUseCase),
+        RepositoryProvider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase()),
       ],
     );
 
@@ -183,6 +203,7 @@ void main() {
         RepositoryProvider<BiometricUnlockManager>(create: (c) => MockBiometricUnlockManager()),
         RepositoryProvider<UnlockWalletWithPinUseCase>(create: (c) => mockUnlockUseCase),
         RepositoryProvider<CheckPinUseCase>(create: (c) => mockUnlockUseCase),
+        RepositoryProvider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase()),
       ],
     );
 
