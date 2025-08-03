@@ -13,7 +13,9 @@ use uuid::Uuid;
 
 use attestation_data::auth::Organization;
 use attestation_data::constants::PID_ATTESTATION_TYPE;
+use attestation_data::constants::PID_RECOVERY_CODE;
 use attestation_data::credential_payload::CredentialPayload;
+use attestation_types::claim_path::ClaimPath;
 use crypto::x509::CertificateError;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
@@ -24,18 +26,23 @@ use http_utils::urls;
 use http_utils::urls::BaseUrl;
 use jwt::error::JwtError;
 use openid4vc::disclosure_session::DisclosureClient;
+use openid4vc::issuance_session::CredentialWithMetadata;
 use openid4vc::issuance_session::HttpVcMessageClient;
 use openid4vc::issuance_session::IssuanceSession;
 use openid4vc::issuance_session::IssuanceSessionError;
+use openid4vc::issuance_session::IssuedCredential;
 use openid4vc::issuance_session::NormalizedCredentialPreview;
 use openid4vc::token::CredentialPreviewError;
 use openid4vc::token::TokenRequest;
+use platform_support::attested_key::AppleAttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
+use platform_support::attested_key::GoogleAttestedKey;
 use update_policy_model::update_policy::VersionState;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 use wallet_account::NL_WALLET_CLIENT_ID;
+use wallet_account::messages::instructions::DiscloseRecoveryCode;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::account_provider::AccountProviderClient;
@@ -48,6 +55,7 @@ use crate::digid::DigidError;
 use crate::digid::DigidSession;
 use crate::errors::ChangePinError;
 use crate::errors::UpdatePolicyError;
+use crate::instruction::InstructionClient;
 use crate::instruction::InstructionError;
 use crate::instruction::RemoteEcdsaKeyError;
 use crate::instruction::RemoteEcdsaWscd;
@@ -151,6 +159,14 @@ pub enum IssuanceError {
 
     #[error("certificate error: {0}")]
     Certificate(#[from] CertificateError),
+
+    #[error("PID attestation in SD JWT format is missing")]
+    #[category(critical)]
+    MissingPidSdJwt,
+
+    #[error("could not add recovery code disclosure: {0}")]
+    #[category(pd)]
+    RecoveryCodeDisclosure(sd_jwt::error::Error),
 }
 
 #[derive(Debug, Clone, Constructor)]
@@ -477,8 +493,7 @@ where
             )
             .await?;
 
-        let remote_wscd = RemoteEcdsaWscd::new(remote_instruction);
-
+        let remote_wscd = RemoteEcdsaWscd::new(remote_instruction.clone());
         info!("Signing nonce using Wallet Provider");
 
         let organization = issuance_session
@@ -533,6 +548,12 @@ where
             _ => unreachable!(),
         };
 
+        if issuance_session.is_pid {
+            info!("This is a PID issuance session, therefore disclosing recovery code");
+            self.disclose_recovery_code(&remote_instruction, &issued_credentials_with_metadata)
+                .await?;
+        }
+
         let all_previews = issued_credentials_with_metadata
             .into_iter()
             .zip_eq(issuance_session.preview_attestations)
@@ -568,6 +589,45 @@ where
 
         self.emit_attestations().await.map_err(IssuanceError::Attestations)?;
         self.emit_recent_history().await.map_err(IssuanceError::EventStorage)?;
+
+        Ok(())
+    }
+
+    /// Finds the PID SD JWT, creates a disclosure of just the recovery code, and sends it to the remote instruction
+    /// endpoint of the Wallet Provider.
+    async fn disclose_recovery_code<AK: AppleAttestedKey, GK: GoogleAttestedKey>(
+        &self,
+        instruction_client: &InstructionClient<S, AK, GK, APC>,
+        issued_credentials_with_metadata: &[CredentialWithMetadata],
+    ) -> Result<(), IssuanceError> {
+        let pid = issued_credentials_with_metadata
+            .iter()
+            .find_map(|cred| {
+                (cred.attestation_type == PID_ATTESTATION_TYPE).then(|| {
+                    cred.copies.as_ref().iter().find_map(|copy| match copy {
+                        IssuedCredential::MsoMdoc(_) => None,
+                        IssuedCredential::SdJwt(verified_sd_jwt) => Some(verified_sd_jwt.clone()),
+                    })
+                })
+            })
+            .flatten()
+            .ok_or(IssuanceError::MissingPidSdJwt)?
+            .into_inner();
+        let recovery_code_disclosure = pid
+            .into_presentation_builder()
+            .disclose(
+                &vec![ClaimPath::SelectByKey(PID_RECOVERY_CODE.to_owned())]
+                    .try_into()
+                    .unwrap(),
+            )
+            .map_err(IssuanceError::RecoveryCodeDisclosure)?
+            .finish();
+
+        instruction_client
+            .send(DiscloseRecoveryCode {
+                recovery_code_disclosure: recovery_code_disclosure.into(),
+            })
+            .await?;
 
         Ok(())
     }
