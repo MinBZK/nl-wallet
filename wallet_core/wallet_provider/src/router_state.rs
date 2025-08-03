@@ -136,6 +136,11 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
                 wallet_user_hsm: hsm,
                 wua_issuer,
                 wrapping_key_identifier: settings.attestation_wrapping_key_identifier,
+                issuer_trust_anchors: settings
+                    .issuer_trust_anchors
+                    .iter()
+                    .map(|anchor| anchor.to_owned_trust_anchor())
+                    .collect(),
             },
         };
 

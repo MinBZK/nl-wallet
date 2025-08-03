@@ -217,13 +217,17 @@ pub enum InstructionError {
     #[error("WUA issuance: {0}")]
     WuaIssuance(#[source] Box<dyn Error + Send + Sync + 'static>),
     #[error("instruction referenced nonexisting key: {0}")]
-    NonexistingKey(String),
+    NonExistingKey(String),
     #[error("PoA construction error: {0}")]
     Poa(#[from] PoaError),
     #[error("public key conversion error: {0}")]
     JwkConversion(#[from] JwkConversionError),
     #[error("error signing PoP: {0}")]
     PopSigning(#[source] JwtError),
+    #[error("SD JWT error: {0}")]
+    SdJwtError(#[from] sd_jwt::error::Error),
+    #[error("recovery code missing from SD JWT")]
+    MissingRecoveryCode,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -363,6 +367,7 @@ pub struct UserState<R, H, W> {
     pub wallet_user_hsm: H,
     pub wua_issuer: W,
     pub wrapping_key_identifier: String,
+    pub issuer_trust_anchors: Vec<TrustAnchor<'static>>,
 }
 
 impl<GRC, PIC> AccountServer<GRC, PIC> {
@@ -1214,12 +1219,14 @@ pub mod mock {
         repositories: R,
         wallet_user_hsm: MockPkcs11Client<HsmError>,
         wrapping_key_identifier: String,
+        issuer_trust_anchors: Vec<TrustAnchor<'static>>,
     ) -> UserState<R, MockPkcs11Client<HsmError>, MockWuaIssuer> {
         UserState::<R, MockPkcs11Client<HsmError>, MockWuaIssuer> {
             repositories,
             wallet_user_hsm,
             wua_issuer: MockWuaIssuer,
             wrapping_key_identifier,
+            issuer_trust_anchors,
         }
     }
 
@@ -1443,6 +1450,7 @@ mod tests {
             wallet_user_hsm: hsm,
             wua_issuer: MockWuaIssuer,
             wrapping_key_identifier: wrapping_key_identifier.to_string(),
+            issuer_trust_anchors: vec![], // not needed in these tests
         };
 
         account_server
@@ -1494,7 +1502,7 @@ mod tests {
             apple_assertion_counter,
         };
 
-        let user_state = mock::user_state(repo, hsm, wrapping_key_identifier);
+        let user_state = mock::user_state(repo, hsm, wrapping_key_identifier, vec![]);
 
         (setup, account_server, hw_privkey, cert, user_state)
     }

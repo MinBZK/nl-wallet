@@ -15,6 +15,7 @@ use serde::Serialize;
 use tracing::warn;
 use uuid::Uuid;
 
+use attestation_data::constants::PID_RECOVERY_CODE;
 use crypto::keys::EcdsaKey;
 use crypto::p256_der::DerSignature;
 use hsm::model::encrypter::Encrypter;
@@ -26,6 +27,7 @@ use jwt::pop::JwtPopClaims;
 use jwt::wua::WuaDisclosure;
 use openid4vc::credential::OPENID4VCI_VC_POP_JWT_TYPE;
 use utils::generator::Generator;
+use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 use wallet_account::NL_WALLET_CLIENT_ID;
 use wallet_account::messages::instructions::ChangePinCommit;
@@ -487,14 +489,25 @@ impl HandleInstruction for DiscloseRecoveryCode {
         self,
         _wallet_user: &WalletUser,
         _uuid_generator: &impl Generator<Uuid>,
-        _user_state: &UserState<R, H, impl WuaIssuer>,
+        user_state: &UserState<R, H, impl WuaIssuer>,
     ) -> Result<Self::Result, InstructionError>
     where
         T: Committable,
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
         H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
     {
-        // TODO verify and store recovery code
+        let (verified_sd_jwt, _) = self
+            .recovery_code_disclosure
+            .into_verified_against_trust_anchors(&user_state.issuer_trust_anchors, &TimeGenerator)?;
+
+        let _recovery_code = verified_sd_jwt
+            .as_ref()
+            .to_disclosed_object()?
+            .remove(PID_RECOVERY_CODE)
+            .ok_or(InstructionError::MissingRecoveryCode)?;
+
+        // TODO write recovery_code to the database
+
         Ok(())
     }
 }
@@ -589,7 +602,12 @@ mod tests {
     use std::collections::HashSet;
 
     use assert_matches::assert_matches;
+    use attestation_data::auth::issuer_auth::IssuerRegistration;
+    use attestation_data::constants::PID_RECOVERY_CODE;
+    use attestation_data::x509::generate::mock::generate_issuer_mock;
+    use attestation_types::claim_path::ClaimPath;
     use base64::prelude::*;
+    use crypto::server_keys::generate::Ca;
     use itertools::Itertools;
     use jsonwebtoken::Algorithm;
     use jsonwebtoken::Validation;
@@ -604,8 +622,10 @@ mod tests {
     use jwt::jwk::jwk_to_p256;
     use jwt::pop::JwtPopClaims;
     use jwt::wua::WuaDisclosure;
+    use sd_jwt::sd_jwt::SdJwtPresentation;
     use wallet_account::NL_WALLET_CLIENT_ID;
     use wallet_account::messages::instructions::CheckPin;
+    use wallet_account::messages::instructions::DiscloseRecoveryCode;
     use wallet_account::messages::instructions::PerformIssuance;
     use wallet_account::messages::instructions::PerformIssuanceWithWua;
     use wallet_account::messages::instructions::Sign;
@@ -636,6 +656,7 @@ mod tests {
                     MockTransactionalWalletUserRepository::new(),
                     setup_hsm().await,
                     wrapping_key_identifier.to_string(),
+                    vec![],
                 ),
             )
             .await
@@ -692,7 +713,12 @@ mod tests {
             .handle(
                 &wallet_user,
                 &FixedUuidGenerator,
-                &mock::user_state(wallet_user_repo, setup_hsm().await, wrapping_key_identifier.to_string()),
+                &mock::user_state(
+                    wallet_user_repo,
+                    setup_hsm().await,
+                    wrapping_key_identifier.to_string(),
+                    vec![],
+                ),
             )
             .await
             .unwrap();
@@ -719,6 +745,53 @@ mod tests {
                 &[NL_WALLET_CLIENT_ID.to_string()],
                 poa_nonce.as_ref().unwrap(),
             )
+            .unwrap();
+    }
+
+    #[tokio::test]
+    async fn should_handle_disclose_recovery_code() {
+        let wallet_user = wallet_user::mock::wallet_user_1();
+        let wrapping_key_identifier = "my-wrapping-key-identifier";
+
+        let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
+        let issuer_key = generate_issuer_mock(&issuer_ca, IssuerRegistration::new_mock().into()).unwrap();
+        let sd_jwt = SdJwtPresentation::example_pid_sd_jwt(&issuer_key);
+
+        let recovery_code_disclosure = sd_jwt
+            .into_presentation_builder()
+            .disclose(
+                &vec![ClaimPath::SelectByKey(PID_RECOVERY_CODE.to_owned())]
+                    .try_into()
+                    .unwrap(),
+            )
+            .unwrap()
+            .finish()
+            .into();
+
+        let instruction = DiscloseRecoveryCode {
+            recovery_code_disclosure,
+        };
+
+        let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
+        wallet_user_repo
+            .expect_begin_transaction()
+            .returning(|| Ok(MockTransaction));
+        wallet_user_repo
+            .expect_store_recovery_code()
+            .returning(|_, _, _| Ok(()));
+
+        instruction
+            .handle(
+                &wallet_user,
+                &FixedUuidGenerator,
+                &mock::user_state(
+                    wallet_user_repo,
+                    setup_hsm().await,
+                    wrapping_key_identifier.to_string(),
+                    vec![issuer_ca.as_borrowing_trust_anchor().to_owned_trust_anchor()],
+                ),
+            )
+            .await
             .unwrap();
     }
 
@@ -791,7 +864,12 @@ mod tests {
             .handle(
                 &wallet_user,
                 &FixedUuidGenerator,
-                &mock::user_state(wallet_user_repo, setup_hsm().await, wrapping_key_identifier.to_string()),
+                &mock::user_state(
+                    wallet_user_repo,
+                    setup_hsm().await,
+                    wrapping_key_identifier.to_string(),
+                    vec![],
+                ),
             )
             .await
             .unwrap()
