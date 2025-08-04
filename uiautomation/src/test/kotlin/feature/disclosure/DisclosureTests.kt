@@ -142,8 +142,8 @@ class DisclosureTests : TestBase() {
             { assertTrue(disclosureScreen.organizationInPresentationRequestHeaderVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", MARKETPLACE)), "Header is not visible") },
             { assertTrue(disclosureScreen.labelVisible(tasData.getPidClaimLabel("family_name")), "Label is not visible") },
             { assertTrue(disclosureScreen.labelVisible(tasData.getPidClaimLabel("given_name")), "Label is not visible") },
-            { assertTrue(disclosureScreen.dataNotVisible(gbaData.getValueByField(NAME,  DEFAULT_BSN)), "data is visible") },
-            { assertTrue(disclosureScreen.dataNotVisible(gbaData.getValueByField(FIRST_NAME,  DEFAULT_BSN)), "data is visible") },
+            { assertTrue(disclosureScreen.dataNotVisible(gbaData.getValueByField(NAME, DEFAULT_BSN)), "data is visible") },
+            { assertTrue(disclosureScreen.dataNotVisible(gbaData.getValueByField(FIRST_NAME, DEFAULT_BSN)), "data is visible") },
             { assertTrue(disclosureScreen.sharingReasonVisible(organizationAuthMetadata.getAttributeValueForOrganization("purposeStatement", MARKETPLACE)), "reason is not visible") },
             { assertTrue(disclosureScreen.conditionsHeaderVisible(), "Description is not visible") },
             { assertTrue(disclosureScreen.conditionsButtonVisible(), "Try again button is not visible") }
