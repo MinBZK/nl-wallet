@@ -49,9 +49,9 @@ class CardDataTests : TestBase() {
         setUp(testInfo)
         assertAll(
             { assertTrue(cardDataScreen.visible(), "card data screen is not visible") },
-            { assertTrue(cardDataScreen.dataAttributeVisible(gbaData.getValueByField(FIRST_NAME, "999991772")), "data attribute are not visible") },
+            { assertTrue(cardDataScreen.dataAttributeVisible(gbaData.getValueByField(FIRST_NAME, DEFAULT_BSN)), "data attribute are not visible") },
             { assertTrue(cardDataScreen.dataLabelVisible(cardMetadata.getPidClaimLabel("given_name")), "data label are not visible") },
-            { assertTrue(cardDataScreen.dataAttributeVisible(gbaData.getValueByField(NAME, "999991772")), "data attribute are not visible") },
+            { assertTrue(cardDataScreen.dataAttributeVisible(gbaData.getValueByField(NAME, DEFAULT_BSN)), "data attribute are not visible") },
             { assertTrue(cardDataScreen.dataLabelVisible(cardMetadata.getPidClaimLabel("family_name")), "data label are not visible") },
             { assertTrue(cardDataScreen.dataLabelVisible(cardMetadata.getPidClaimLabel("birthdate")), "data label are not visible") },
         )
