@@ -50,8 +50,10 @@ impl StoredAttestationCopy {
                 CredentialPayload::from_mdoc_unvalidated(*mdoc, &self.normalized_metadata)
                     .expect("conversion from stored mdoc attestation to CredentialPayload has been done before")
             }
-            StoredAttestationFormat::SdJwt { sd_jwt } => CredentialPayload::from_verified_sd_jwt_unvalidated(*sd_jwt)
-                .expect("conversion from stored SD-JWT attestation to CredentialPayload has been done before"),
+            StoredAttestationFormat::SdJwt { sd_jwt } => {
+                CredentialPayload::from_verified_sd_jwt_unvalidated(sd_jwt.as_ref())
+                    .expect("conversion from stored SD-JWT attestation to CredentialPayload has been done before")
+            }
         }
     }
 
@@ -68,7 +70,7 @@ impl StoredAttestationCopy {
                 mdoc.issuer_signed.into_entries_by_namespace(),
             ),
             StoredAttestationFormat::SdJwt { sd_jwt } => {
-                let credential_payload = CredentialPayload::from_verified_sd_jwt_unvalidated(*sd_jwt)
+                let credential_payload = CredentialPayload::from_verified_sd_jwt_unvalidated(sd_jwt.as_ref())
                     .expect("conversion from stored SD-JWT attestation to CredentialPayload has been done before");
 
                 AttestationPresentation::create_from_attributes(

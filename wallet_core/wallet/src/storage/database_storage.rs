@@ -1608,7 +1608,8 @@ pub(crate) mod tests {
             .unwrap();
 
         let payload = sd_jwt
-            .into_inner()
+            .as_ref()
+            .as_ref()
             .into_credential_payload(&normalized_metadata)
             .unwrap();
         let attestation = AttestationPresentation::create_from_attributes(
@@ -1741,7 +1742,8 @@ pub(crate) mod tests {
                     .unwrap();
 
                 let payload = sd_jwt
-                    .into_inner()
+                    .as_ref()
+                    .as_ref()
                     .into_credential_payload(&normalized_metadata)
                     .unwrap();
                 AttestationPresentation::create_from_attributes(
