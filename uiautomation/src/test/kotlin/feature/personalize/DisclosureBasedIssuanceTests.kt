@@ -86,7 +86,7 @@ class DisclosureBasedIssuanceTests : TestBase() {
             { assertTrue(cardIssuanceScreen.labelVisible(tasData.getDiplomaClaimLabel("grade")), "Label is not visible") },
             { assertTrue(cardIssuanceScreen.dataVisible(l10n.getString("cardValueNull")), "data is not visible") },
             { assertTrue(cardIssuanceScreen.dataVisible(issuanceData.getAttributeValues("university", DEFAULT_BSN, "university").first()), "data is not visible") },
-            { assertTrue(cardIssuanceScreen.dataVisible(issuanceData.getAttributeValues("university",  DEFAULT_BSN, "education").first()), "data is not visible") },
+            { assertTrue(cardIssuanceScreen.dataVisible(issuanceData.getAttributeValues("university", DEFAULT_BSN, "education").first()), "data is not visible") },
         )
         cardIssuanceScreen.clickBackButton()
         cardIssuanceScreen.clickAddButton()
@@ -116,8 +116,8 @@ class DisclosureBasedIssuanceTests : TestBase() {
             { assertTrue(cardIssuanceScreen.organizationInSubtitleVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", INSURANCE)), "Subtitle is not visible") },
             { assertTrue(cardIssuanceScreen.labelVisible(tasData.getInsuranceClaimLabel("start_date")), "Label is not visible") },
             { assertTrue(cardIssuanceScreen.labelVisible(tasData.getInsuranceClaimLabel("duration")), "Label is not visible") },
-            { assertTrue(cardIssuanceScreen.dataVisible(issuanceData.getAttributeValues("insurance",  DEFAULT_BSN, "product").first()), "data is not visible") },
-            { assertTrue(cardIssuanceScreen.dataVisible(issuanceData.getAttributeValues("insurance",  DEFAULT_BSN, "coverage").first()), "data is not visible") },
+            { assertTrue(cardIssuanceScreen.dataVisible(issuanceData.getAttributeValues("insurance", DEFAULT_BSN, "product").first()), "data is not visible") },
+            { assertTrue(cardIssuanceScreen.dataVisible(issuanceData.getAttributeValues("insurance", DEFAULT_BSN, "coverage").first()), "data is not visible") },
         )
         cardIssuanceScreen.clickBackButton()
         cardIssuanceScreen.clickAddButton()
