@@ -67,10 +67,7 @@ impl IssuerSigned {
     /// Prune the [`IssuerSigned`] of any attributes that are not covered by the claim paths. This may result in its
     /// `name_spaces` field to be set to `None`. Note that claim paths that are not full key paths or do not consist of
     /// two elements are unsupported and will be ignored.
-    pub fn into_attribute_subset<'a, 'b>(
-        self,
-        claim_paths: impl IntoIterator<Item = &'b VecNonEmpty<ClaimPath>>,
-    ) -> Self {
+    pub fn into_attribute_subset<'a>(self, claim_paths: impl IntoIterator<Item = &'a VecNonEmpty<ClaimPath>>) -> Self {
         let Some(name_spaces) = self.name_spaces else {
             return self;
         };
