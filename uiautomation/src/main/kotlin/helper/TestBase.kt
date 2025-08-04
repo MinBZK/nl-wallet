@@ -36,5 +36,6 @@ open class TestBase {
 
     companion object {
         const val MAX_RETRY_COUNT = 3
+        const val DEFAULT_BSN = "999991772"
     }
 }

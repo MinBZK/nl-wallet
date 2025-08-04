@@ -45,8 +45,8 @@ class DashboardTests : TestBase() {
             { assertTrue(dashboardScreen.pidCardsVisible(), "Expected cards are not visible") },
             { assertTrue(dashboardScreen.cardTitlesVisible(), "card title are not visible") },
             { assertTrue(dashboardScreen.cardButtonsVisible(), "card buttons are not visible") },
-            { assertTrue(dashboardScreen.cardSubtitleVisible(gbaData.getValueByField(GbaDataHelper.Field.FIRST_NAME,"999991772")), "pid card subtitle is not visible") },
-            { assertTrue(dashboardScreen.cardSubtitleVisible(gbaData.getValueByField(GbaDataHelper.Field.CITY,"999991772")), "adress card subtitle is not visible") },
+            { assertTrue(dashboardScreen.cardSubtitleVisible(gbaData.getValueByField(GbaDataHelper.Field.FIRST_NAME, DEFAULT_BSN)), "pid card subtitle is not visible") },
+            { assertTrue(dashboardScreen.cardSubtitleVisible(gbaData.getValueByField(GbaDataHelper.Field.CITY, DEFAULT_BSN)), "adress card subtitle is not visible") },
         )
     }
 

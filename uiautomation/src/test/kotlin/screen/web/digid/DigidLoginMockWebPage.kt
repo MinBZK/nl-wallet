@@ -25,4 +25,9 @@ class DigidLoginMockWebPage : MobileActions() {
         findElement(mockLoginButtonLocator).click()
         switchToAppContext()
     }
+
+    fun login(bsn: String) {
+        enterBsn(bsn)
+        clickLoginButton()
+    }
 }
