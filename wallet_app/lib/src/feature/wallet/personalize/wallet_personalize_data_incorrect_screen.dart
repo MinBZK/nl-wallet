@@ -7,10 +7,10 @@ import '../../../util/extension/string_extension.dart';
 import '../../common/widget/button/primary_button.dart';
 import '../../common/widget/button/tertiary_button.dart';
 import '../../common/widget/numbered_list.dart';
-import '../../common/widget/sliver_wallet_app_bar.dart';
 import '../../common/widget/spacer/sliver_sized_box.dart';
 import '../../common/widget/text/body_text.dart';
 import '../../common/widget/text/title_text.dart';
+import '../../common/widget/wallet_app_bar.dart';
 import '../../common/widget/wallet_scrollbar.dart';
 
 class WalletPersonalizeDataIncorrectScreen extends StatelessWidget {
@@ -21,6 +21,9 @@ class WalletPersonalizeDataIncorrectScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: WalletAppBar(
+        title: TitleText(context.l10n.walletPersonalizeDataIncorrectScreenSubhead),
+      ),
       key: const Key('personalizeDataIncorrectScreen'),
       body: Column(
         children: [
@@ -29,10 +32,6 @@ class WalletPersonalizeDataIncorrectScreen extends StatelessWidget {
               child: SafeArea(
                 child: CustomScrollView(
                   slivers: [
-                    SliverWalletAppBar(
-                      title: context.l10n.walletPersonalizeDataIncorrectScreenSubhead,
-                      scrollController: PrimaryScrollController.maybeOf(context),
-                    ),
                     SliverToBoxAdapter(
                       child: _buildContent(context),
                     ),
@@ -55,6 +54,9 @@ class WalletPersonalizeDataIncorrectScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          const SizedBox(height: 12),
+          TitleText(context.l10n.walletPersonalizeDataIncorrectScreenSubhead),
+          const SizedBox(height: 8),
           BodyText(
             context.l10n.walletPersonalizeDataIncorrectScreenDescription,
           ),

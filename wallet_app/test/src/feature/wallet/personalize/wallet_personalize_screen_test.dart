@@ -357,8 +357,7 @@ void main() {
 
         // Verify dialog is gone and confirm attributes screen is shown
         expect(stopDialogTitleFinder, findsNothing);
-        // Look for 2 widgets due to usage of [SliverWalletAppBar]
-        expect(find.text(l10n.walletPersonalizeCheckDataOfferingPageTitle), findsNWidgets(2));
+        expect(find.text(l10n.walletPersonalizeCheckDataOfferingPageTitle), findsOneWidget);
       },
     );
 
@@ -582,7 +581,7 @@ void main() {
       );
       final l10n = await TestUtils.englishLocalizations;
       expect(find.byType(TerminalPage), findsOneWidget);
-      expect(find.text(l10n.walletPersonalizeDigidCancelledPageTitle, findRichText: true), findsOneWidget);
+      expect(find.text(l10n.walletPersonalizeDigidCancelledPageTitle), findsOneWidget);
     });
 
     testWidgets('Verify WalletPersonalizeDigidFailure shows WalletPersonalizeDigidErrorPage', (tester) async {
@@ -594,7 +593,7 @@ void main() {
       );
       final l10n = await TestUtils.englishLocalizations;
       expect(find.byType(TerminalPage), findsOneWidget);
-      expect(find.text(l10n.walletPersonalizeDigidErrorPageTitle, findRichText: true), findsOneWidget);
+      expect(find.text(l10n.walletPersonalizeDigidErrorPageTitle), findsOneWidget);
     });
 
     testWidgets('Verify WalletPersonalizeNetworkError shows ErrorPage', (tester) async {

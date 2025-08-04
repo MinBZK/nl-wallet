@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 
 import '../../navigation/secured_page_route.dart';
 import '../../util/extension/build_context_extension.dart';
+import '../../wallet_constants.dart';
 import '../common/widget/button/bottom_back_button.dart';
 import '../common/widget/paragraphed_list.dart';
 import '../common/widget/paragraphed_sliver_list.dart';
-import '../common/widget/sliver_wallet_app_bar.dart';
+import '../common/widget/text/title_text.dart';
+import '../common/widget/wallet_app_bar.dart';
 
 /// Simple screen that renders the provided [title] and [description].
 class InfoScreen extends StatelessWidget {
@@ -23,15 +25,20 @@ class InfoScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: WalletAppBar(
+        title: TitleText(title),
+      ),
       body: SafeArea(
         child: Column(
           children: [
             Expanded(
               child: CustomScrollView(
                 slivers: [
-                  SliverWalletAppBar(
-                    title: title,
-                    scrollController: PrimaryScrollController.maybeOf(context),
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: kDefaultTitlePadding,
+                      child: TitleText(title),
+                    ),
                   ),
                   SliverPadding(
                     sliver: ParagraphedSliverList.splitContent(description),

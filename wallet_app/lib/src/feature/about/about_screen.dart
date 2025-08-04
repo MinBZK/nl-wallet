@@ -6,15 +6,17 @@ import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/string_extension.dart';
 import '../../util/launch_util.dart';
+import '../../wallet_constants.dart';
 import '../common/widget/button/bottom_back_button.dart';
 import '../common/widget/button/list_button.dart';
 import '../common/widget/menu_item.dart';
 import '../common/widget/mock_indicator_text.dart';
-import '../common/widget/sliver_wallet_app_bar.dart';
 import '../common/widget/text/body_text.dart';
+import '../common/widget/text/title_text.dart';
 import '../common/widget/text_with_link.dart';
 import '../common/widget/version/config_version_text.dart';
 import '../common/widget/version/string_version_text.dart';
+import '../common/widget/wallet_app_bar.dart';
 import '../common/widget/wallet_scrollbar.dart';
 
 class AboutScreen extends StatelessWidget {
@@ -23,6 +25,9 @@ class AboutScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: WalletAppBar(
+        title: TitleText(context.l10n.aboutScreenTitle),
+      ),
       key: const Key('aboutScreen'),
       body: SafeArea(
         child: Column(
@@ -31,10 +36,6 @@ class AboutScreen extends StatelessWidget {
               child: WalletScrollbar(
                 child: CustomScrollView(
                   slivers: [
-                    SliverWalletAppBar(
-                      title: context.l10n.aboutScreenTitle,
-                      scrollController: PrimaryScrollController.maybeOf(context),
-                    ),
                     _buildContentSliver(context),
                   ],
                 ),
@@ -50,6 +51,10 @@ class AboutScreen extends StatelessWidget {
   Widget _buildContentSliver(BuildContext context) {
     return SliverList.list(
       children: [
+        Padding(
+          padding: kDefaultTitlePadding,
+          child: TitleText(context.l10n.aboutScreenTitle),
+        ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: _buildDescription(context),

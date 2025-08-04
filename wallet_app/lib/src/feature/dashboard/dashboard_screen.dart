@@ -70,6 +70,7 @@ class DashboardScreen extends StatelessWidget {
     return WalletAppBar(
       automaticallyImplyLeading: false,
       leading: _buildLeadingMenuButton(context),
+      fadeInTitleOnScroll: false,
       leadingWidth: double.infinity,
       actions: const [
         FadeInAtOffset(

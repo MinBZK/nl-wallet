@@ -8,11 +8,13 @@ import '../../../navigation/wallet_routes.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
 import '../../../util/extension/wallet_event_extension.dart';
+import '../../../wallet_constants.dart';
 import '../../common/widget/button/bottom_back_button.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/history/history_section_sliver.dart';
-import '../../common/widget/sliver_wallet_app_bar.dart';
 import '../../common/widget/spacer/sliver_sized_box.dart';
+import '../../common/widget/text/title_text.dart';
+import '../../common/widget/wallet_app_bar.dart';
 import '../../common/widget/wallet_scrollbar.dart';
 import '../../history/detail/argument/history_detail_screen_argument.dart';
 import 'bloc/card_history_bloc.dart';
@@ -33,6 +35,9 @@ class CardHistoryScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: WalletAppBar(
+        title: TitleText(context.l10n.cardHistoryScreenTitle),
+      ),
       key: const Key('cardHistoryScreen'),
       body: SafeArea(
         child: Column(
@@ -57,9 +62,11 @@ class CardHistoryScreen extends StatelessWidget {
         return WalletScrollbar(
           child: CustomScrollView(
             slivers: [
-              SliverWalletAppBar(
-                title: context.l10n.cardHistoryScreenTitle,
-                scrollController: PrimaryScrollController.maybeOf(context),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: kDefaultTitlePadding,
+                  child: TitleText(context.l10n.cardHistoryScreenTitle),
+                ),
               ),
               sliver,
             ],
@@ -85,7 +92,13 @@ class CardHistoryScreen extends StatelessWidget {
           ),
         )
         .toList();
-    return SliverMainAxisGroup(slivers: [...sections, const SliverSizedBox(height: 24)]);
+    return SliverMainAxisGroup(
+      slivers: [
+        const SliverSizedBox(height: 16),
+        ...sections,
+        const SliverSizedBox(height: 24),
+      ],
+    );
   }
 
   void _onEventPressed(BuildContext context, WalletEvent event, WalletCard card) {

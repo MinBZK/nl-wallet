@@ -42,7 +42,6 @@ import '../../common/widget/pin_header.dart';
 import '../../common/widget/policy/policy_row.dart';
 import '../../common/widget/policy/policy_section.dart';
 import '../../common/widget/select_card_row.dart';
-import '../../common/widget/sliver_wallet_app_bar.dart';
 import '../../common/widget/stacked_wallet_cards.dart';
 import '../../common/widget/status_icon.dart';
 import '../../common/widget/stepper_indicator.dart';
@@ -174,11 +173,6 @@ class OtherStylesTab extends StatelessWidget {
       children: [
         const ThemeSectionHeader(title: 'App Bars'),
         const SizedBox(height: 12),
-        const ThemeSectionSubHeader(title: 'Sliver Wallet App Bar'),
-        TextButton(
-          onPressed: () => _showSliverWalletAppBarPage(context),
-          child: const Text('SliverWalletAppBar'),
-        ),
         const ThemeSectionSubHeader(title: 'Wallet App Bar'),
         TextButton(
           onPressed: () => _showWalletAppBarPage(context),
@@ -551,35 +545,6 @@ class OtherStylesTab extends StatelessWidget {
         const ThemeSectionSubHeader(title: 'TourBanner'),
         const TourBanner(),
       ],
-    );
-  }
-
-  void _showSliverWalletAppBarPage(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) {
-          return Scaffold(
-            body: CustomScrollView(
-              slivers: [
-                SliverWalletAppBar(
-                  title: 'Sliver App Bar',
-                  scrollController: PrimaryScrollController.maybeOf(context),
-                  progress: const FlowProgress(currentStep: 2, totalSteps: 3),
-                  leading: const BackIconButton(),
-                  actions: const [HelpIconButton()],
-                ),
-                const SliverFillRemaining(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16),
-                    child: Text('Scroll this page to see the collapsing effect'),
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
     );
   }
 

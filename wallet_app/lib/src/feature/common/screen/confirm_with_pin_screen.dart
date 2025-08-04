@@ -40,6 +40,7 @@ class _ConfirmWithPinScreenState extends State<ConfirmWithPinScreen> with LockSt
     return Scaffold(
       appBar: const WalletAppBar(
         actions: [HelpIconButton()],
+        fadeInTitleOnScroll: false,
       ),
       body: BlocProvider<PinBloc>(
         create: (BuildContext context) => widget.bloc ?? PinBloc(context.read<CheckPinUseCase>()),
