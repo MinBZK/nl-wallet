@@ -58,11 +58,11 @@ use crate::AttestationPresentation;
 use crate::DisclosureStatus;
 
 use super::AttestationFormatQuery;
+use super::FullStoredAttestationCopy;
 use super::Storage;
 use super::StorageError;
 use super::StorageResult;
 use super::StorageState;
-use super::StoredAttestationCopy;
 use super::StoredAttestationFormat;
 use super::data::KeyedData;
 use super::database::Database;
@@ -155,7 +155,7 @@ impl<K> DatabaseStorage<K> {
     async fn query_unique_attestations(
         &self,
         condition: Option<Condition>,
-    ) -> StorageResult<Vec<StoredAttestationCopy>> {
+    ) -> StorageResult<Vec<FullStoredAttestationCopy>> {
         let database = self.database()?;
 
         // As this query only contains one `MIN()` aggregate function, the columns that
@@ -207,7 +207,7 @@ impl<K> DatabaseStorage<K> {
 
                     let normalized_metadata = metadata.documents.to_normalized()?;
 
-                    let stored_copy = StoredAttestationCopy {
+                    let stored_copy = FullStoredAttestationCopy {
                         attestation_id,
                         attestation_copy_id,
                         attestation,
@@ -571,7 +571,7 @@ where
         Ok(())
     }
 
-    async fn fetch_unique_attestations(&self) -> StorageResult<Vec<StoredAttestationCopy>> {
+    async fn fetch_unique_attestations(&self) -> StorageResult<Vec<FullStoredAttestationCopy>> {
         self.query_unique_attestations(None).await
     }
 
@@ -579,7 +579,7 @@ where
         &'a self,
         attestation_types: &HashSet<&'a str>,
         format_query: AttestationFormatQuery,
-    ) -> StorageResult<Vec<StoredAttestationCopy>> {
+    ) -> StorageResult<Vec<FullStoredAttestationCopy>> {
         let condition = Condition::all();
 
         let attestation_types_iter = attestation_types.iter().copied();
@@ -807,7 +807,7 @@ fn create_attestation_copy_models(
                 let model = attestation_copy::ActiveModel {
                     id: Set(Uuid::now_v7()),
                     attestation_id: Set(attestation_id),
-                    attestation: Set(sd_jwt.into_inner().to_string().into_bytes()),
+                    attestation: Set(sd_jwt.to_string().into_bytes()),
                     attestation_format: Set(AttestationFormat::SdJwt),
                     ..Default::default()
                 };
@@ -1585,7 +1585,7 @@ pub(crate) mod tests {
             .await
             .expect("Could not insert mdocs");
 
-        let StoredAttestationCopy {
+        let FullStoredAttestationCopy {
             attestation: StoredAttestationFormat::SdJwt { sd_jwt },
             attestation_id,
             ..
@@ -1725,7 +1725,7 @@ pub(crate) mod tests {
             .expect("Could not fetch unique attestations")
             .into_iter()
             .map(|attestation| {
-                let StoredAttestationCopy {
+                let FullStoredAttestationCopy {
                     attestation: StoredAttestationFormat::SdJwt { sd_jwt },
                     attestation_id,
                     ..

@@ -10,6 +10,7 @@ use chrono::DateTime;
 use chrono::Duration;
 use chrono::Utc;
 use derive_more::AsRef;
+use derive_more::Display;
 use itertools::Itertools;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::Header;
@@ -80,10 +81,10 @@ pub struct SdJwt {
     disclosures: HashMap<String, Disclosure>,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, AsRef)]
+#[derive(Debug, Clone, Eq, PartialEq, AsRef, Display)]
 pub struct VerifiedSdJwt(SdJwt);
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, AsRef)]
 pub struct UnsignedSdJwtPresentation(SdJwt);
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -316,12 +317,6 @@ impl VerifiedSdJwt {
             issuer_certificates,
             disclosures,
         }))
-    }
-
-    pub fn into_inner(self) -> SdJwt {
-        let Self(sd_jwt) = self;
-
-        sd_jwt
     }
 
     pub fn issuer_certificate(&self) -> &BorrowingCertificate {

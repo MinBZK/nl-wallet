@@ -26,7 +26,6 @@ use mdoc::utils::crypto::CryptoError;
 use sd_jwt::builder::SdJwtBuilder;
 use sd_jwt::key_binding_jwt_claims::RequiredKeyBinding;
 use sd_jwt::sd_jwt::SdJwt;
-use sd_jwt::sd_jwt::VerifiedSdJwt;
 use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataError;
@@ -263,8 +262,8 @@ impl CredentialPayload {
         Ok(credential_payload)
     }
 
-    pub fn from_verified_sd_jwt_unvalidated(sd_jwt: &VerifiedSdJwt) -> Result<Self, SdJwtCredentialPayloadError> {
-        Self::from_sd_jwt(sd_jwt.as_ref(), None)
+    pub fn from_sd_jwt_unvalidated(sd_jwt: &SdJwt) -> Result<Self, SdJwtCredentialPayloadError> {
+        Self::from_sd_jwt(sd_jwt, None)
     }
 
     fn from_mdoc_parts_unvalidated(

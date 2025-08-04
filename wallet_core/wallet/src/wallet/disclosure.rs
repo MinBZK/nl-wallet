@@ -28,7 +28,6 @@ use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use http_utils::tls::pinning::TlsPinningConfig;
 use http_utils::urls::BaseUrl;
-use mdoc::holder::Mdoc;
 use mdoc::utils::cose::CoseError;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::DisclosureSession;
@@ -259,19 +258,8 @@ impl<DCS> WalletDisclosureSession<DCS> {
 #[derive(Debug, Clone, Constructor)]
 pub(super) struct DisclosureAttestation {
     copy_id: Uuid,
-    format: DisclosureAttestationFormat,
+    attestation: StoredAttestationFormat<UnsignedSdJwtPresentation>,
     presentation: AttestationPresentation,
-}
-
-#[derive(Debug, Clone)]
-pub(super) enum DisclosureAttestationFormat {
-    MsoMdoc {
-        mdoc: Box<Mdoc>,
-    },
-    #[expect(dead_code)]
-    SdJwt {
-        sd_jwt: Box<UnsignedSdJwtPresentation>,
-    },
 }
 
 impl RedirectUriPurpose {
@@ -319,45 +307,28 @@ where
             .fetch_unique_attestations_by_type(&attestation_types, format_query)
             .await?;
 
-        let candidate_attestations = match &request.format {
-            CredentialQueryFormat::MsoMdoc { .. } => {
-                stored_attestations
-                    .into_iter()
-                    .flat_map(|mut stored_copy| {
-                        let StoredAttestationFormat::MsoMdoc { mut mdoc } = stored_copy.attestation else {
-                            panic!("database returned unexpected disclosure candidate format, expecting mdoc");
-                        };
+        let candidate_attestations = stored_attestations
+            .into_iter()
+            .filter(|full_copy| {
+                // Only select those attestations that contain all of the requested attributes.
+                // TODO (PVW-4537): Have this be part of the database query using some index.
+                full_copy.matches_requested_attributes(request.claim_paths())
+            })
+            .map(|full_copy| {
+                // Remove any attributes that were not requested from the presentation attributes.
+                let partial_copy = full_copy.into_partial(request.claim_paths());
 
-                        // Only select those attestations that contain all of the requested attributes.
-                        // TODO (PVW-4537): Have this be part of the database query using some index.
-                        let mdoc_matches = mdoc
-                            .issuer_signed
-                            .matches_requested_attributes(request.claim_paths())
-                            .is_ok();
+                // Save a clone of the original attestation for disclosure,
+                // then convert the partial attestation for display.
+                let copy_id = partial_copy.attestation_copy_id;
+                let attestation = partial_copy.attestation.clone();
+                let presentation = partial_copy.into_attestation_presentation();
 
-                        if !mdoc_matches {
-                            return None;
-                        }
+                DisclosureAttestation::new(copy_id, attestation, presentation)
+            })
+            .collect_vec();
 
-                        let attestation_copy_id = stored_copy.attestation_copy_id;
-
-                        // Remove any attributes that were not requested from the presentation attributes.
-                        mdoc.issuer_signed = mdoc.issuer_signed.into_attribute_subset(request.claim_paths());
-                        stored_copy.attestation = StoredAttestationFormat::MsoMdoc { mdoc: mdoc.clone() };
-
-                        Some(DisclosureAttestation::new(
-                            attestation_copy_id,
-                            DisclosureAttestationFormat::MsoMdoc { mdoc },
-                            stored_copy.into_attestation_presentation(),
-                        ))
-                    })
-                    .collect_vec()
-            }
-            CredentialQueryFormat::SdJwt { .. } => {
-                todo!("implement SD-JWT filtering and conversion");
-            }
-        };
-
+        // Return `None` if the list of candidates is empty.
         let candidate_attestations = VecNonEmpty::try_from(candidate_attestations).ok();
 
         Ok(candidate_attestations)
@@ -408,7 +379,7 @@ where
         // For each disclosure request, fetch the candidates from the database and convert
         // each of them to an `AttestationPresentation` that can be shown to the user.
         let storage = self.storage.read().await;
-        let attestation_candidates = try_join_all(
+        let candidate_attestations = try_join_all(
             session
                 .credential_requests()
                 .iter()
@@ -435,7 +406,7 @@ where
             .map_err(DisclosureError::HistoryRetrieval)?;
 
         // If no suitable candidates were found for at least one of the requests, report this as an error to the UI.
-        if attestation_candidates.len() < session.credential_requests().len().get() {
+        if candidate_attestations.len() < session.credential_requests().len().get() {
             info!("At least one attribute from one attestation is missing in order to satisfy the disclosure request");
 
             let reader_registration = verifier_certificate.registration().clone();
@@ -480,7 +451,7 @@ where
         // For now, return an error if multiple attestations are found for a requested attestation type.
         // TODO (PVW-3829): Allow the user to select amongst multiple disclosure candidates.
 
-        let (disclosure_attestations, duplicate_attestation_types): (Vec<_>, Vec<_>) = attestation_candidates
+        let (disclosure_attestations, duplicate_attestation_types): (Vec<_>, Vec<_>) = candidate_attestations
             .into_iter()
             .partition_map(|candidate_attestations| {
                 if candidate_attestations.len().get() == 1 {
@@ -755,9 +726,9 @@ where
         // Clone some values from `WalletDisclosureSession`, before we have to give away ownership of it.
         let mdocs = attestations
             .iter()
-            .map(|attestation| match &attestation.format {
-                DisclosureAttestationFormat::MsoMdoc { mdoc } => mdoc.as_ref().clone(),
-                DisclosureAttestationFormat::SdJwt { .. } => {
+            .map(|attestation| match &attestation.attestation {
+                StoredAttestationFormat::MsoMdoc { mdoc } => mdoc.as_ref().clone(),
+                StoredAttestationFormat::SdJwt { .. } => {
                     todo!("implement SD-JWT disclosure (PVW-4138)")
                 }
             })
@@ -926,6 +897,7 @@ mod tests {
     use crate::errors::InstructionError;
     use crate::errors::RemoteEcdsaKeyError;
     use crate::storage::DisclosureStatus;
+    use crate::storage::StoredAttestationFormat;
     use crate::storage::WalletEvent;
     use crate::wallet::test::setup_mock_recent_history_callback;
 
@@ -934,7 +906,6 @@ mod tests {
     use super::super::test::WalletWithMocks;
     use super::super::test::create_example_pid_mdoc_credential;
     use super::DisclosureAttestation;
-    use super::DisclosureAttestationFormat;
     use super::DisclosureError;
     use super::DisclosureProposalPresentation;
     use super::RedirectUriPurpose;
@@ -1042,7 +1013,7 @@ mod tests {
             DisclosureType::Regular,
             vec![DisclosureAttestation::new(
                 Uuid::new_v4(),
-                DisclosureAttestationFormat::MsoMdoc { mdoc },
+                StoredAttestationFormat::MsoMdoc { mdoc },
                 presentation,
             )]
             .try_into()
