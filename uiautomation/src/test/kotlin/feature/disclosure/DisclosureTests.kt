@@ -104,7 +104,7 @@ class DisclosureTests : TestBase() {
         val organizationDetailScreen = OrganizationDetailScreen()
         organizationDetailScreen.clickBackButton()
         disclosureScreen.viewSharedData("1", tasData.getPidDisplayName())
-        assertTrue(disclosureScreen.bsnVisible("999991772"), "BSN not visible")
+        assertTrue(disclosureScreen.bsnVisible(DEFAULT_BSN), "BSN not visible")
         disclosureScreen.goBack()
         disclosureScreen.goBack()
         disclosureScreen.cancel()
@@ -142,14 +142,14 @@ class DisclosureTests : TestBase() {
             { assertTrue(disclosureScreen.organizationInPresentationRequestHeaderVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", MARKETPLACE)), "Header is not visible") },
             { assertTrue(disclosureScreen.labelVisible(tasData.getPidClaimLabel("family_name")), "Label is not visible") },
             { assertTrue(disclosureScreen.labelVisible(tasData.getPidClaimLabel("given_name")), "Label is not visible") },
-            { assertTrue(disclosureScreen.dataNotVisible(gbaData.getValueByField(NAME, "999991772")), "data is visible") },
-            { assertTrue(disclosureScreen.dataNotVisible(gbaData.getValueByField(FIRST_NAME, "999991772")), "data is visible") },
+            { assertTrue(disclosureScreen.dataNotVisible(gbaData.getValueByField(NAME,  DEFAULT_BSN)), "data is visible") },
+            { assertTrue(disclosureScreen.dataNotVisible(gbaData.getValueByField(FIRST_NAME,  DEFAULT_BSN)), "data is visible") },
             { assertTrue(disclosureScreen.sharingReasonVisible(organizationAuthMetadata.getAttributeValueForOrganization("purposeStatement", MARKETPLACE)), "reason is not visible") },
             { assertTrue(disclosureScreen.conditionsHeaderVisible(), "Description is not visible") },
             { assertTrue(disclosureScreen.conditionsButtonVisible(), "Try again button is not visible") }
         )
         disclosureScreen.viewSharedData("3", tasData.getPidDisplayName())
-        assertTrue(disclosureScreen.dataVisible(gbaData.getValueByField(NAME, "999991772")), "Name not visible")
+        assertTrue(disclosureScreen.dataVisible(gbaData.getValueByField(NAME, DEFAULT_BSN)), "Name not visible")
         disclosureScreen.goBack()
         disclosureScreen.readTerms()
         assertTrue(disclosureScreen.termsVisible(), "Terms not visible")
