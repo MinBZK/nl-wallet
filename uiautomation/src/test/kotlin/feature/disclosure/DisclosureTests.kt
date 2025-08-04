@@ -5,8 +5,8 @@ import helper.GbaDataHelper.Field.FIRST_NAME
 import helper.GbaDataHelper.Field.NAME
 import helper.LocalizationHelper
 import helper.OrganizationAuthMetadataHelper
-import helper.OrganizationAuthMetadataHelper.Organization.AMSTERDAM
 import helper.OrganizationAuthMetadataHelper.Organization.MARKETPLACE
+import helper.OrganizationAuthMetadataHelper.Organization.AMSTERDAM
 import helper.OrganizationAuthMetadataHelper.Organization.XYZ
 import helper.TasDataHelper
 import helper.TestBase
@@ -148,7 +148,7 @@ class DisclosureTests : TestBase() {
             { assertTrue(disclosureScreen.conditionsHeaderVisible(), "Description is not visible") },
             { assertTrue(disclosureScreen.conditionsButtonVisible(), "Try again button is not visible") }
         )
-        disclosureScreen.viewSharedData("3", tasData.getPidDisplayName())
+        disclosureScreen.viewSharedData("4", tasData.getPidDisplayName())
         assertTrue(disclosureScreen.dataVisible(gbaData.getValueByField(NAME, DEFAULT_BSN)), "Name not visible")
         disclosureScreen.goBack()
         disclosureScreen.readTerms()
