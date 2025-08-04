@@ -9,7 +9,8 @@ import '../../../../mocks/wallet_mock_data.dart';
 import '../../../../test_util/golden_utils.dart';
 
 const _defaultTestSurfaceSize = Size(328, 208);
-const _largeTestSurfaceSize = Size(328, 260);
+const _outdatedFooterTestSurfaceSize = Size(328, 239);
+const _largeTestSurfaceSize = Size(328, 261);
 
 void main() {
   group('widgets', () {
@@ -121,6 +122,72 @@ void main() {
           brightness: Brightness.dark,
         );
         await screenMatchesGolden('shared_attributes/mock');
+      },
+    );
+    testGoldens(
+      'shared attributes with outdated footer - light mode',
+      (tester) async {
+        await tester.pumpWidgetWithAppWrapper(
+          surfaceSize: _outdatedFooterTestSurfaceSize,
+          Container(
+            height: _largeTestSurfaceSize.height,
+            width: _largeTestSurfaceSize.width,
+            padding: const EdgeInsets.only(bottom: 8) /* to allow shadow to render */,
+            child: SharedAttributesCard(
+              card: WalletMockData.card,
+              attributes: WalletMockData.card.attributes,
+              onPressed: () {},
+              showOutdatedFooter: true,
+            ),
+          ),
+        );
+        await screenMatchesGolden('shared_attributes/outdated_footer.light');
+      },
+    );
+
+    testGoldens(
+      'shared attributes with outdated footer - dark mode - focused',
+      (tester) async {
+        await tester.pumpWidgetWithAppWrapper(
+          surfaceSize: _outdatedFooterTestSurfaceSize,
+          Container(
+            height: _largeTestSurfaceSize.height,
+            width: _largeTestSurfaceSize.width,
+            padding: const EdgeInsets.only(bottom: 8) /* to allow shadow to render */,
+            child: SharedAttributesCard(
+              card: WalletMockData.card,
+              attributes: WalletMockData.card.attributes,
+              onPressed: () {},
+              showOutdatedFooter: true,
+            ),
+          ),
+          brightness: Brightness.dark,
+        );
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+        await tester.pumpAndSettle();
+        await screenMatchesGolden('shared_attributes/outdated_footer.focused.dark');
+      },
+    );
+
+    testGoldens(
+      'shared attributes with outdated footer - dark mode',
+      (tester) async {
+        await tester.pumpWidgetWithAppWrapper(
+          surfaceSize: _outdatedFooterTestSurfaceSize,
+          Container(
+            height: _largeTestSurfaceSize.height,
+            width: _largeTestSurfaceSize.width,
+            padding: const EdgeInsets.only(bottom: 8) /* to allow shadow to render */,
+            child: SharedAttributesCard(
+              card: WalletMockData.card,
+              attributes: WalletMockData.card.attributes,
+              onPressed: () {},
+              showOutdatedFooter: true,
+            ),
+          ),
+          brightness: Brightness.dark,
+        );
+        await screenMatchesGolden('shared_attributes/outdated_footer.dark');
       },
     );
     testGoldens(
