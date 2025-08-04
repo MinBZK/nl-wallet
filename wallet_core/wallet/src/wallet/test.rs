@@ -134,18 +134,6 @@ pub static ISSUER_KEY: LazyLock<IssuerKey> = LazyLock::new(|| {
     }
 });
 
-/// The unauthenticated issuer key material, generated once for testing.
-pub static ISSUER_KEY_UNAUTHENTICATED: LazyLock<IssuerKey> = LazyLock::new(|| {
-    let ca = Ca::generate_issuer_mock_ca().unwrap();
-    let issuance_key = generate_issuer_mock(&ca, None).unwrap();
-    let trust_anchor = ca.as_borrowing_trust_anchor().clone();
-
-    IssuerKey {
-        issuance_key,
-        trust_anchor,
-    }
-});
-
 /// Generates a valid `CredentialPayload` along with its metadata `SortedTypeMetadataDocuments` and
 /// `NormalizedTypeMetadata`.
 pub fn create_example_credential_payload(
@@ -210,12 +198,6 @@ pub fn create_example_pid_mdoc() -> Mdoc {
 /// Generates a valid `CredentialWithMetadata` that contains a full mdoc PID.
 pub fn create_example_pid_mdoc_credential() -> CredentialWithMetadata {
     create_example_pid_mdoc_credential_with_key(&ISSUER_KEY)
-}
-
-/// Generates a valid `CredentialWithMetadata` that contains a
-/// full mdoc PID, with an unauthenticated issuer certificate.
-pub fn create_example_pid_mdoc_credential_unauthenticated() -> CredentialWithMetadata {
-    create_example_pid_mdoc_credential_with_key(&ISSUER_KEY_UNAUTHENTICATED)
 }
 
 fn create_example_pid_mdoc_credential_with_key(issuer_key: &IssuerKey) -> CredentialWithMetadata {

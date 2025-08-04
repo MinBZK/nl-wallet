@@ -4,10 +4,8 @@ use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::credential_payload::IntoCredentialPayload;
 use attestation_data::credential_payload::SdJwtCredentialPayloadError;
 use crypto::x509::BorrowingCertificateExtension;
-use crypto::x509::CertificateError;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
-use mdoc::utils::cose::CoseError;
 use openid4vc::disclosure_session::DisclosureClient;
 use platform_support::attested_key::AttestedKeyHolder;
 
@@ -27,20 +25,6 @@ use super::Wallet;
 pub enum AttestationsError {
     #[error("could not fetch documents from database storage: {0}")]
     Storage(#[from] StorageError),
-
-    #[error("could not extract Mdl extension from X.509 certificate: {0}")]
-    Certificate(#[from] CertificateError),
-
-    #[error("could not interpret X.509 certificate: {0}")]
-    Cose(#[from] CoseError),
-
-    #[error("X.509 certificate does not contain IssuerRegistration")]
-    #[category(critical)]
-    MissingIssuerRegistration,
-
-    #[error("could not extract type metadata from mdoc: {0}")]
-    #[category(defer)]
-    Metadata(#[source] mdoc::Error),
 
     #[error("could not convert SD-JWT to a CredentialPayload: {0}")]
     #[category(defer)]
@@ -78,9 +62,12 @@ where
                  }| {
                     match attestation {
                         StoredAttestationFormat::MsoMdoc { mdoc } => {
-                            let issuer_certificate = mdoc.issuer_certificate()?;
-                            let issuer_registration = IssuerRegistration::from_certificate(&issuer_certificate)?
-                                .ok_or(AttestationsError::MissingIssuerRegistration)?;
+                            let issuer_certificate = mdoc
+                                .issuer_certificate()
+                                .expect("a stored mdoc attestation should always contain an issuer certificate");
+                            let issuer_registration = IssuerRegistration::from_certificate(&issuer_certificate)
+                                .expect("a stored mdoc attestation should always contain a valid IssuerRegistration")
+                                .expect("a stored mdoc attestation should always contain an IssuerRegistration");
 
                             let attestation = AttestationPresentation::create_from_mdoc(
                                 AttestationIdentity::Fixed { id: attestation_id },
@@ -252,32 +239,6 @@ mod tests {
 
         // Infer that the closure is now dropped by counting the `Arc` references.
         assert_eq!(Arc::strong_count(&attestations), 1);
-    }
-
-    // Tests that setting the documents callback on a registered `Wallet`, with invalid issuer certificate raises
-    // a `MissingIssuerRegistration` error.
-    #[tokio::test]
-    async fn test_wallet_set_clear_documents_callback_registered_no_issuer_registration() {
-        let mut wallet = Wallet::new_registered_and_unlocked(WalletDeviceVendor::Apple);
-
-        // The database contains a single `Mdoc`, without Issuer registration.
-        let mdoc_credential = test::create_example_pid_mdoc_credential_unauthenticated();
-        Arc::get_mut(&mut wallet.storage)
-            .unwrap()
-            .get_mut()
-            .issued_credential_copies
-            .insert(mdoc_credential.attestation_type.clone(), vec![mdoc_credential]);
-
-        // Register mock attestation_callback
-        let (attestations, error) = test::setup_mock_attestations_callback(&mut wallet)
-            .await
-            .map(|_| ())
-            .expect_err("Expected error");
-
-        assert_matches!(error, AttestationsError::MissingIssuerRegistration);
-
-        // Infer that the closure is still alive by counting the `Arc` references.
-        assert_eq!(Arc::strong_count(&attestations), 2);
     }
 
     #[tokio::test]
