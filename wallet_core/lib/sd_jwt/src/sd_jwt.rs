@@ -84,20 +84,6 @@ pub struct SdJwt {
 #[derive(Debug, Clone, Eq, PartialEq, From, AsRef)]
 pub struct VerifiedSdJwt(SdJwt);
 
-impl VerifiedSdJwt {
-    pub fn into_inner(self) -> SdJwt {
-        self.0
-    }
-
-    pub fn issuer_certificate(&self) -> &BorrowingCertificate {
-        let Self(sd_jwt) = self;
-
-        sd_jwt
-            .issuer_certificate()
-            .expect("a verified SD-JWT should always contain a certificate")
-    }
-}
-
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct UnsignedSdJwtPresentation(SdJwt);
 
@@ -331,6 +317,20 @@ impl VerifiedSdJwt {
             issuer_certificates,
             disclosures,
         }))
+    }
+
+    pub fn into_inner(self) -> SdJwt {
+        let Self(sd_jwt) = self;
+
+        sd_jwt
+    }
+
+    pub fn issuer_certificate(&self) -> &BorrowingCertificate {
+        let Self(sd_jwt) = self;
+
+        sd_jwt
+            .issuer_certificate()
+            .expect("a verified SD-JWT should always contain a certificate")
     }
 }
 

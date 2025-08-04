@@ -36,6 +36,7 @@ impl StoredAttestationFormat {
             Self::SdJwt { sd_jwt } => Cow::Borrowed(sd_jwt.issuer_certificate()),
         };
 
+        // Note that this means that an `IssuerRegistration` should ALWAYS be backwards compatible.
         IssuerRegistration::from_certificate(issuer_certificate.as_ref())
             .expect("a stored attestation should always contain a valid IssuerRegistration")
             .expect("a stored attestation should always contain an IssuerRegistration")
