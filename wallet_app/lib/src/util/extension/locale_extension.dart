@@ -2,6 +2,8 @@ import 'package:fimber/fimber.dart';
 import 'package:flutter/widgets.dart';
 import 'package:intl/locale.dart' as intl;
 
+import '../../../l10n/generated/app_localizations.dart';
+import '../../../l10n/generated/app_localizations_en.dart';
 import 'build_context_extension.dart';
 
 extension LocaleExtension on Locale {
@@ -23,4 +25,13 @@ extension LocaleExtension on Locale {
   bool matchesCurrentLocale(BuildContext context) => this == context.activeLocale;
 
   bool matchesCurrentLanguage(BuildContext context) => languageCode == context.activeLocale.languageCode;
+
+  AppLocalizations get l10n {
+    try {
+      return lookupAppLocalizations(this);
+    } catch (ex) {
+      Fimber.e('Failed to resolve l10n for locale: $this. Falling back to english.', ex: ex);
+      return AppLocalizationsEn();
+    }
+  }
 }

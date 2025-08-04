@@ -94,6 +94,20 @@ const kMockPidAttestationAttributes = [
     key: kMockCitizenShipNumberKey,
     svgId: kMockCitizenShipNumberKey,
   ),
+  AttestationAttribute(
+    labels: [
+      ClaimDisplayMetadata(lang: 'nl', label: 'Nationaliteiten'),
+      ClaimDisplayMetadata(lang: 'en', label: 'Nationalities'),
+    ],
+    value: AttributeValue_Array(
+      value: [
+        AttributeValue_String(value: 'NL'),
+        AttributeValue_String(value: 'EN'),
+      ],
+    ),
+    key: kMockCitizenShipNumberKey,
+    svgId: kMockCitizenShipNumberKey,
+  ),
 ];
 
 const kMockAddressAttestationAttributes = [
