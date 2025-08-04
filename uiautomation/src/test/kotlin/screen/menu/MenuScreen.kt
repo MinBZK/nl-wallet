@@ -36,7 +36,10 @@ class MenuScreen : MobileActions() {
 
     fun clickFeedbackButton() = clickElement(feedbackButton)
 
-    fun clickAboutButton() = clickElement(aboutButton)
+    fun clickAboutButton() {
+        scrollToEnd(scrollableType)
+        clickElement(aboutButton)
+    }
 
     fun clickLogoutButton() {
         scrollToEnd(scrollableType)
