@@ -584,7 +584,11 @@ fn match_preview_and_stored_attestations<'a>(
 ) -> Vec<(&'a NormalizedCredentialPreview, Option<Uuid>)> {
     let stored_credential_payloads: Vec<(CredentialPayload, Uuid)> = stored_attestations
         .into_iter()
-        .map(|copy| copy.into_credential_payload_and_id())
+        .map(|copy| {
+            let attestation_id = copy.attestation_id;
+
+            (copy.into_credential_payload(), attestation_id)
+        })
         .collect_vec();
 
     // Find the first matching stored preview based on the ordering of `stored_credential_payloads`.
