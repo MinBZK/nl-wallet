@@ -49,7 +49,7 @@ class ArrayValue extends AttributeValue {
   const ArrayValue(this.value);
 
   @override
-  String toString() => value.map((v) => '  • $v').join('\n');
+  String toString() => value.join(', ');
 }
 
 class NullValue extends AttributeValue {
@@ -57,5 +57,5 @@ class NullValue extends AttributeValue {
   get value => null;
 
   @override
-  String toString() => 'Not available';
+  String toString() => 'null';
 }
