@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2025-07-29T15:58:44+02:00",
+    "@@last_modified": "2025-08-01T12:29:20+02:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -181,7 +181,7 @@
     "cardValueNull": "Not provided",
     "cardValueTrue": "Yes",
     "changeLanguageScreenTitle": "Select a language",
-    "changePinScreenConfirmNewPinTitle": "Repeat your new PIN",
+    "changePinScreenConfirmNewPinTitle": "Success! Repeat your new PIN",
     "changePinScreenEnterCurrentPinTitle": "First, enter your current PIN",
     "changePinScreenSelectNewPinTitle": "Choose a new 6-digit PIN",
     "changePinScreenSuccessDescription": "Your app is secured with your new PIN.",
@@ -1233,7 +1233,7 @@
             }
         }
     },
-    "setupSecurityConfirmationPageTitle": "Repeat your PIN",
+    "setupSecurityConfirmationPageTitle": "Success! Repeat your PIN",
     "setupSecurityLoadingPageDescription": "PIN is being saved",
     "setupSecurityLoadingPageTitle": "Please wait",
     "setupSecurityScreenWCAGPinChosenAnnouncement": "PIN chosen. Repeat to confirm.",
@@ -1249,7 +1249,7 @@
             }
         }
     },
-    "sharedAttributesCardOutdatedFooter": "This card became invalid after this activity. These details are outdated.",
+    "sharedAttributesCardOutdatedFooter": "These details are outdated.",
     "sharedAttributesCardTitle": "{count} from {cardTitle}",
     "showDetailsCta": "View",
     "signConfirmPinPageDescription": "By entering your PIN you agree to exchange your data.",
