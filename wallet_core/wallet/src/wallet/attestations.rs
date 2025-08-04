@@ -1,8 +1,7 @@
 use tracing::info;
 
 use attestation_data::auth::issuer_auth::IssuerRegistration;
-use attestation_data::credential_payload::IntoCredentialPayload;
-use attestation_data::credential_payload::SdJwtCredentialPayloadError;
+use attestation_data::credential_payload::CredentialPayload;
 use crypto::x509::BorrowingCertificateExtension;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
@@ -25,10 +24,6 @@ use super::Wallet;
 pub enum AttestationsError {
     #[error("could not fetch documents from database storage: {0}")]
     Storage(#[from] StorageError),
-
-    #[error("could not convert SD-JWT to a CredentialPayload: {0}")]
-    #[category(defer)]
-    CredentialPayloadConversion(#[from] SdJwtCredentialPayloadError),
 
     #[error("error converting credential payload to attestation: {0}")]
     #[category(defer)]
@@ -65,6 +60,7 @@ where
                             let issuer_certificate = mdoc
                                 .issuer_certificate()
                                 .expect("a stored mdoc attestation should always contain an issuer certificate");
+                            // Note that this means that an `IssuerRegistration` should ALWAYS be backwards compatible.
                             let issuer_registration = IssuerRegistration::from_certificate(&issuer_certificate)
                                 .expect("a stored mdoc attestation should always contain a valid IssuerRegistration")
                                 .expect("a stored mdoc attestation should always contain an IssuerRegistration");
@@ -85,12 +81,13 @@ where
                                 .expect("a stored SD-JWT attestation should always contain a valid IssuerRegistration")
                                 .expect("a verified SD-JWT attestation should always contain an IssuerRegistration");
 
-                            let payload = sd_jwt.into_inner().into_credential_payload(&normalized_metadata)?;
+                            let credential_payload = CredentialPayload::from_verified_sd_jwt_unvalidated(*sd_jwt)
+                                .expect("a stored SD-JWT attestation should always convert to CredentialPayload");
                             let attestation = AttestationPresentation::create_from_attributes(
                                 AttestationIdentity::Fixed { id: attestation_id },
                                 normalized_metadata,
                                 issuer_registration.organization,
-                                &payload.previewable_payload.attributes,
+                                &credential_payload.previewable_payload.attributes,
                             )?;
 
                             Ok(attestation)

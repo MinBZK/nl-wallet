@@ -1,7 +1,6 @@
 use uuid::Uuid;
 
 use attestation_data::credential_payload::CredentialPayload;
-use attestation_data::credential_payload::IntoCredentialPayload;
 use mdoc::holder::Mdoc;
 use sd_jwt::sd_jwt::VerifiedSdJwt;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
@@ -21,17 +20,14 @@ pub struct StoredAttestationCopy {
 }
 
 impl StoredAttestationCopy {
-    pub fn into_credential_payload_and_id(self) -> (CredentialPayload, Uuid) {
-        let payload = match self.attestation {
-            StoredAttestationFormat::MsoMdoc { mdoc } => mdoc
-                .into_credential_payload(&self.normalized_metadata)
-                .expect("conversion from mdoc to CredentialPayload has been done before"),
-            StoredAttestationFormat::SdJwt { sd_jwt } => sd_jwt
-                .into_inner()
-                .into_credential_payload(&self.normalized_metadata)
-                .expect("conversion from SD-JWT to CredentialPayload has been done before"),
-        };
-
-        (payload, self.attestation_id)
+    pub fn into_credential_payload(self) -> CredentialPayload {
+        match self.attestation {
+            StoredAttestationFormat::MsoMdoc { mdoc } => {
+                CredentialPayload::from_mdoc_unvalidated(*mdoc, &self.normalized_metadata)
+                    .expect("conversion from stored mdoc attestation to CredentialPayload has been done before")
+            }
+            StoredAttestationFormat::SdJwt { sd_jwt } => CredentialPayload::from_verified_sd_jwt_unvalidated(*sd_jwt)
+                .expect("conversion from stored SD-JWT attestation to CredentialPayload has been done before"),
+        }
     }
 }
