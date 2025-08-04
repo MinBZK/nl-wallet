@@ -639,6 +639,7 @@ mod tests {
     use openid4vc::oidc::OidcError;
     use openid4vc::token::TokenRequest;
     use openid4vc::token::TokenRequestGrantType;
+    use sd_jwt::sd_jwt::VerifiedSdJwt;
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
     use utils::generator::mock::MockTimeGenerator;
 
@@ -1075,7 +1076,7 @@ mod tests {
             attestation_id,
             attestation_copy_id: Uuid::new_v4(),
             attestation: StoredAttestationFormat::SdJwt {
-                sd_jwt: Box::new(sd_jwt.into()),
+                sd_jwt: Box::new(VerifiedSdJwt::new_mock(sd_jwt)),
             },
             normalized_metadata,
         };
@@ -1435,7 +1436,7 @@ mod tests {
             attestation_id,
             attestation_copy_id: Uuid::new_v4(),
             attestation: StoredAttestationFormat::SdJwt {
-                sd_jwt: Box::new(sd_jwt.into()),
+                sd_jwt: Box::new(VerifiedSdJwt::new_mock(sd_jwt)),
             },
             normalized_metadata,
         };

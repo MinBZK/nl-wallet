@@ -79,7 +79,7 @@ mod tests {
     use openid4vc::issuance_session::CredentialWithMetadata;
     use openid4vc::issuance_session::IssuedCredential;
     use openid4vc::issuance_session::IssuedCredentialCopies;
-    use sd_jwt::sd_jwt::SdJwtPresentation;
+    use sd_jwt::sd_jwt::VerifiedSdJwt;
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
 
     use super::super::test;
@@ -123,8 +123,9 @@ mod tests {
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let issuance_keypair = generate_issuer_mock(&ca, IssuerRegistration::new_mock().into()).unwrap();
 
-        let sd_jwt = SdJwtPresentation::example_pid_sd_jwt(&issuance_keypair);
+        let sd_jwt = VerifiedSdJwt::pid_example(&issuance_keypair);
         let attestation_type = sd_jwt
+            .as_ref()
             .claims()
             .properties
             .get("vct")
@@ -143,9 +144,7 @@ mod tests {
                 vec![
                     CredentialWithMetadata::new(
                         IssuedCredentialCopies::new_or_panic(
-                            vec![IssuedCredential::SdJwt(Box::new(sd_jwt.into()))]
-                                .try_into()
-                                .unwrap(),
+                            vec![IssuedCredential::SdJwt(Box::new(sd_jwt))].try_into().unwrap(),
                         ),
                         attestation_type.clone(),
                         VerifiedTypeMetadataDocuments::nl_pid_example(),
