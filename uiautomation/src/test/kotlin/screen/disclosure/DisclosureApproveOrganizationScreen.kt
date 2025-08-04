@@ -25,7 +25,6 @@ class DisclosureApproveOrganizationScreen : MobileActions() {
     private val reportOptionUntrusted = find.byText(l10n.getString("reportOptionUntrusted"))
     private val reportOptionSuspiciousOrganization = find.byText(l10n.getString("reportOptionSuspiciousOrganization"))
 
-
     fun login() = clickElement(loginButton)
 
     fun goToWebsite() {
@@ -158,4 +157,3 @@ class DisclosureApproveOrganizationScreen : MobileActions() {
         return isElementVisible(disclosureConfirmDataAttributesCheckConditionsCta)
     }
 }
-
