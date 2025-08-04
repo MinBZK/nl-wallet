@@ -965,10 +965,8 @@ impl CredentialResponse {
                     trust_anchors,
                 )?;
 
-                let issued_credential_payload = sd_jwt
-                    .clone()
-                    .into_inner()
-                    .into_credential_payload(&preview.normalized_metadata)?;
+                let issued_credential_payload =
+                    sd_jwt.as_ref().into_credential_payload(&preview.normalized_metadata)?;
 
                 Self::validate_credential(
                     preview,

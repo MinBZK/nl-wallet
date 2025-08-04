@@ -146,7 +146,7 @@ pub trait IntoCredentialPayload {
     fn into_credential_payload(self, metadata: &NormalizedTypeMetadata) -> Result<CredentialPayload, Self::Error>;
 }
 
-impl IntoCredentialPayload for SdJwt {
+impl IntoCredentialPayload for &SdJwt {
     type Error = SdJwtCredentialPayloadError;
 
     fn into_credential_payload(self, metadata: &NormalizedTypeMetadata) -> Result<CredentialPayload, Self::Error> {
@@ -246,11 +246,11 @@ impl CredentialPayload {
     }
 
     fn from_sd_jwt(
-        sd_jwt: SdJwt,
+        sd_jwt: &SdJwt,
         metadata: Option<&NormalizedTypeMetadata>,
     ) -> Result<Self, SdJwtCredentialPayloadError> {
         let disclosed_object = sd_jwt
-            .into_disclosed_object()
+            .to_disclosed_object()
             .map_err(SdJwtCredentialPayloadError::SdJwtSerialization)?;
         let disclosed_value = serde_json::Value::Object(disclosed_object);
 
@@ -263,10 +263,8 @@ impl CredentialPayload {
         Ok(credential_payload)
     }
 
-    pub fn from_verified_sd_jwt_unvalidated(sd_jwt: VerifiedSdJwt) -> Result<Self, SdJwtCredentialPayloadError> {
-        let credential_payload = Self::from_sd_jwt(sd_jwt.into_inner(), None)?;
-
-        Ok(credential_payload)
+    pub fn from_verified_sd_jwt_unvalidated(sd_jwt: &VerifiedSdJwt) -> Result<Self, SdJwtCredentialPayloadError> {
+        Self::from_sd_jwt(sd_jwt.as_ref(), None)
     }
 
     fn from_mdoc_parts_unvalidated(

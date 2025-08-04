@@ -262,7 +262,7 @@ impl SdJwt {
 
     /// Returns the JSON object obtained by replacing all disclosures into their
     /// corresponding JWT concealable claims.
-    pub fn into_disclosed_object(self) -> Result<serde_json::Map<String, serde_json::Value>> {
+    pub fn to_disclosed_object(&self) -> Result<serde_json::Map<String, serde_json::Value>> {
         let decoder = SdObjectDecoder;
         let object = serde_json::to_value(self.claims())?;
 
