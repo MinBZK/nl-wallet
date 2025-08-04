@@ -69,7 +69,7 @@ void main() {
 
       // Validate that the widget exists
       final widgetFinder = find.text(l10n.aboutScreenTitle);
-      expect(widgetFinder, findsNWidgets(2));
+      expect(widgetFinder, findsOneWidget);
     });
   });
 }

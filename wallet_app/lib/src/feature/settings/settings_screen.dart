@@ -7,10 +7,12 @@ import '../../util/extension/biometrics_extension.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/object_extension.dart';
 import '../../util/extension/string_extension.dart';
+import '../../wallet_constants.dart';
 import '../common/dialog/reset_wallet_dialog.dart';
 import '../common/widget/button/bottom_back_button.dart';
 import '../common/widget/menu_item.dart';
-import '../common/widget/sliver_wallet_app_bar.dart';
+import '../common/widget/text/title_text.dart';
+import '../common/widget/wallet_app_bar.dart';
 import '../common/widget/wallet_scrollbar.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -19,6 +21,9 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: WalletAppBar(
+        title: TitleText(context.l10n.settingsScreenTitle),
+      ),
       key: const Key('settingsScreen'),
       body: SafeArea(
         child: Column(
@@ -27,10 +32,6 @@ class SettingsScreen extends StatelessWidget {
               child: WalletScrollbar(
                 child: CustomScrollView(
                   slivers: [
-                    SliverWalletAppBar(
-                      title: context.l10n.settingsScreenTitle,
-                      scrollController: PrimaryScrollController.maybeOf(context),
-                    ),
                     _buildContentSliver(context),
                   ],
                 ),
@@ -46,6 +47,10 @@ class SettingsScreen extends StatelessWidget {
   Widget _buildContentSliver(BuildContext context) {
     return SliverList.list(
       children: [
+        Padding(
+          padding: kDefaultTitlePadding,
+          child: TitleText(context.l10n.settingsScreenTitle),
+        ),
         const SizedBox(height: 16),
         const Divider(),
         MenuItem(

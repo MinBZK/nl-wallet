@@ -35,7 +35,7 @@ void main() {
       final descriptionFinder = find.textContaining(l10n.pinBlockedScreenDescription, findRichText: true);
       final ctaFinder = find.textContaining(l10n.pinBlockedScreenResetWalletCta, findRichText: true);
 
-      expect(headlineFinder, findsNWidgets(2) /*In content and appbar*/);
+      expect(headlineFinder, findsOneWidget);
       expect(descriptionFinder, findsOneWidget);
       expect(ctaFinder, findsOneWidget);
     });

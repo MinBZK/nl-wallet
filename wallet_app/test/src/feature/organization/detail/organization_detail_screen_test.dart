@@ -97,7 +97,7 @@ void main() {
 
       final l10n = await TestUtils.englishLocalizations;
       final title = l10n.organizationDetailScreenTitle(WalletMockData.organization.displayName.testValue);
-      expect(find.text(title), findsNWidgets(2) /* expanded and collapsed title */);
+      expect(find.text(title), findsOneWidget);
       expect(find.text(WalletMockData.organization.description!.testValue), findsOneWidget);
       expect(find.text(WalletMockData.organization.legalName.testValue), findsOneWidget);
       expect(find.text(WalletMockData.organization.category!.testValue), findsOneWidget);

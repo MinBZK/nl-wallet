@@ -8,7 +8,9 @@ import '../common/widget/button/primary_button.dart';
 import '../common/widget/button/tertiary_button.dart';
 import '../common/widget/page_illustration.dart';
 import '../common/widget/paragraphed_list.dart';
-import '../common/widget/sliver_wallet_app_bar.dart';
+import '../common/widget/spacer/sliver_sized_box.dart';
+import '../common/widget/text/title_text.dart';
+import '../common/widget/wallet_app_bar.dart';
 import '../common/widget/wallet_scrollbar.dart';
 
 class ForgotPinScreen extends StatelessWidget {
@@ -17,6 +19,9 @@ class ForgotPinScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: WalletAppBar(
+        title: TitleText(context.l10n.forgotPinScreenTitle),
+      ),
       key: const Key('forgotPinScreen'),
       body: SafeArea(
         child: Column(
@@ -33,14 +38,12 @@ class ForgotPinScreen extends StatelessWidget {
     return WalletScrollbar(
       child: CustomScrollView(
         slivers: [
-          SliverWalletAppBar(
-            title: context.l10n.forgotPinScreenTitle,
-            scrollController: PrimaryScrollController.maybeOf(context),
-          ),
+          const SliverSizedBox(height: 12),
           SliverPadding(
-            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             sliver: _buildContentSliver(context),
           ),
+          const SliverSizedBox(height: 24),
         ],
       ),
     );
@@ -49,6 +52,8 @@ class ForgotPinScreen extends StatelessWidget {
   Widget _buildContentSliver(BuildContext context) {
     return SliverList.list(
       children: [
+        TitleText(context.l10n.forgotPinScreenTitle),
+        const SizedBox(height: 8),
         ParagraphedList.splitContent(context.l10n.forgotPinScreenDescription),
         const SizedBox(height: 32),
         const PageIllustration(

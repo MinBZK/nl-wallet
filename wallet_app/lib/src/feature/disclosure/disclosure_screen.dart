@@ -10,7 +10,6 @@ import '../../util/cast_util.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/localized_text_extension.dart';
 import '../../util/extension/object_extension.dart';
-import '../../util/extension/string_extension.dart';
 import '../../util/launch_util.dart';
 import '../common/dialog/scan_with_wallet_dialog.dart';
 import '../common/page/generic_loading_page.dart';
@@ -22,6 +21,7 @@ import '../common/widget/button/icon/help_icon_button.dart';
 import '../common/widget/centered_loading_indicator.dart';
 import '../common/widget/fade_in_at_offset.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
+import '../common/widget/text/title_text.dart';
 import '../common/widget/wallet_app_bar.dart';
 import '../error/error_page.dart';
 import '../fraud_check/fraud_check_page.dart';
@@ -70,6 +70,7 @@ class DisclosureScreen extends StatelessWidget {
               onPressed: () => _stopDisclosure(context),
             ),
           ],
+          fadeInTitleOnScroll: false /* Handled by _buildTitle */,
           title: _buildTitle(context),
           progress: progress,
         ),
@@ -353,61 +354,59 @@ class DisclosureScreen extends StatelessWidget {
           DisclosureCheckOrganizationForLogin() => FadeInAtOffset(
               appearOffset: 120,
               visibleOffset: 150,
-              child: Text.rich(
-                context.l10n
-                    .organizationApprovePageGenericTitle(
-                      state.relyingParty.displayName.l10nValue(context),
-                    )
-                    .toTextSpan(context),
+              child: TitleText(
+                OrganizationApprovePage.resolveTitle(
+                  context,
+                  ApprovalPurpose.login,
+                  state.relyingParty,
+                ),
               ),
             ),
           DisclosureConfirmDataAttributes() => FadeInAtOffset(
               appearOffset: 70,
               visibleOffset: 100,
-              child: Text.rich(
-                context.l10n
-                    .disclosureConfirmDataAttributesShareWithTitle(
-                      state.relyingParty.displayName.l10nValue(context),
-                    )
-                    .toTextSpan(context),
+              child: TitleText(
+                context.l10n.disclosureConfirmDataAttributesShareWithTitle(
+                  state.relyingParty.displayName.l10nValue(context),
+                ),
               ),
             ),
           DisclosureStopped() => FadeInAtOffset(
               appearOffset: 48,
               visibleOffset: 70,
-              child: Text.rich(context.l10n.disclosureStoppedPageTitle.toTextSpan(context)),
+              child: TitleText(context.l10n.disclosureStoppedPageTitle),
             ),
           DisclosureSuccess() => FadeInAtOffset(
               appearOffset: 48,
               visibleOffset: 70,
-              child: Text.rich(context.l10n.disclosureSuccessPageTitle.toTextSpan(context)),
+              child: TitleText(context.l10n.disclosureSuccessPageTitle),
             ),
           DisclosureNetworkError() => FadeInAtOffset(
               appearOffset: 48,
               visibleOffset: 70,
-              child: Text(
+              child: TitleText(
                 state.hasInternet ? context.l10n.errorScreenServerHeadline : context.l10n.errorScreenNoInternetHeadline,
               ),
             ),
           DisclosureExternalScannerError() => FadeInAtOffset(
               appearOffset: 48,
               visibleOffset: 70,
-              child: Text.rich(context.l10n.disclosureGenericErrorPageTitle.toTextSpan(context)),
+              child: TitleText(context.l10n.disclosureGenericErrorPageTitle),
             ),
           DisclosureGenericError() => FadeInAtOffset(
               appearOffset: 48,
               visibleOffset: 70,
-              child: Text.rich(context.l10n.disclosureGenericErrorPageTitle.toTextSpan(context)),
+              child: TitleText(context.l10n.disclosureGenericErrorPageTitle),
             ),
           DisclosureSessionExpired() => FadeInAtOffset(
               appearOffset: 48,
               visibleOffset: 70,
-              child: Text.rich(context.l10n.errorScreenSessionExpiredHeadline.toTextSpan(context)),
+              child: TitleText(context.l10n.errorScreenSessionExpiredHeadline),
             ),
           DisclosureSessionCancelled() => FadeInAtOffset(
               appearOffset: 48,
               visibleOffset: 70,
-              child: Text.rich(context.l10n.errorScreenCancelledSessionHeadline.toTextSpan(context)),
+              child: TitleText(context.l10n.errorScreenCancelledSessionHeadline),
             ),
           _ => null,
         };

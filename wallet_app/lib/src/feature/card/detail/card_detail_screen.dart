@@ -15,6 +15,7 @@ import '../../../util/formatter/card_valid_until_time_formatter.dart';
 import '../../../util/formatter/operation_issued_time_formatter.dart';
 import '../../../util/formatter/time_ago_formatter.dart';
 import '../../../util/mapper/event/wallet_event_status_text_mapper.dart';
+import '../../../wallet_constants.dart';
 import '../../common/screen/placeholder_screen.dart';
 import '../../common/sheet/explanation_sheet.dart';
 import '../../common/widget/animated_fade_in.dart';
@@ -26,9 +27,10 @@ import '../../common/widget/card/wallet_card_item.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/menu_item.dart';
 import '../../common/widget/organization/organization_logo.dart';
-import '../../common/widget/sliver_wallet_app_bar.dart';
 import '../../common/widget/spacer/sliver_divider.dart';
 import '../../common/widget/spacer/sliver_sized_box.dart';
+import '../../common/widget/text/title_text.dart';
+import '../../common/widget/wallet_app_bar.dart';
 import '../../common/widget/wallet_scrollbar.dart';
 import '../../organization/detail/organization_detail_screen.dart';
 import '../data/argument/card_data_screen_argument.dart';
@@ -61,6 +63,10 @@ class CardDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: WalletAppBar(
+        title: TitleText(_getTitle(context)),
+        actions: const [HelpIconButton()],
+      ),
       key: const Key('cardDetailScreen'),
       body: SafeArea(
         child: BlocBuilder<CardDetailBloc, CardDetailState>(
@@ -71,10 +77,11 @@ class CardDetailScreen extends StatelessWidget {
                   child: WalletScrollbar(
                     child: CustomScrollView(
                       slivers: [
-                        SliverWalletAppBar(
-                          title: _getTitle(context, state),
-                          scrollController: PrimaryScrollController.maybeOf(context),
-                          actions: const [HelpIconButton()],
+                        SliverPadding(
+                          padding: kDefaultTitlePadding,
+                          sliver: SliverToBoxAdapter(
+                            child: TitleText(_getTitle(context)),
+                          ),
                         ),
                         _buildBody(context, state),
                       ],
@@ -90,7 +97,8 @@ class CardDetailScreen extends StatelessWidget {
     );
   }
 
-  String _getTitle(BuildContext context, CardDetailState state) {
+  String _getTitle(BuildContext context) {
+    final state = context.watch<CardDetailBloc>().state;
     final title = tryCast<CardDetailLoadSuccess>(state)?.detail.card.title.l10nValue(context);
     return title ?? cardTitle;
   }

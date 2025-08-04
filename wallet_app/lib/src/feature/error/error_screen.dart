@@ -5,12 +5,14 @@ import '../../navigation/secured_page_route.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../wallet_assets.dart';
+import '../../wallet_constants.dart';
 import '../common/widget/button/confirm/confirm_buttons.dart';
 import '../common/widget/button/icon/close_icon_button.dart';
 import '../common/widget/button/tertiary_button.dart';
 import '../common/widget/page_illustration.dart';
-import '../common/widget/sliver_wallet_app_bar.dart';
 import '../common/widget/text/body_text.dart';
+import '../common/widget/text/title_text.dart';
+import '../common/widget/wallet_app_bar.dart';
 import '../common/widget/wallet_scrollbar.dart';
 import 'error_button_builder.dart';
 
@@ -37,6 +39,11 @@ class ErrorScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: WalletAppBar(
+        title: TitleText(title),
+        automaticallyImplyLeading: false,
+        actions: actions,
+      ),
       body: SafeArea(
         child: WalletScrollbar(
           child: Column(
@@ -44,11 +51,11 @@ class ErrorScreen extends StatelessWidget {
               Expanded(
                 child: CustomScrollView(
                   slivers: [
-                    SliverWalletAppBar(
-                      title: title,
-                      scrollController: PrimaryScrollController.maybeOf(context),
-                      automaticallyImplyLeading: false,
-                      actions: actions,
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: kDefaultTitlePadding,
+                        child: TitleText(title),
+                      ),
                     ),
                     SliverToBoxAdapter(
                       child: Padding(

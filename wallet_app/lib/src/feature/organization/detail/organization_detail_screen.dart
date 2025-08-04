@@ -16,8 +16,9 @@ import '../../common/widget/button/list_button.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/list/list_item.dart';
 import '../../common/widget/organization/organization_logo.dart';
-import '../../common/widget/sliver_wallet_app_bar.dart';
+import '../../common/widget/text/title_text.dart';
 import '../../common/widget/url_span.dart';
+import '../../common/widget/wallet_app_bar.dart';
 import '../../common/widget/wallet_scrollbar.dart';
 import 'argument/organization_detail_screen_argument.dart';
 import 'bloc/organization_detail_bloc.dart';
@@ -45,6 +46,10 @@ class OrganizationDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: WalletAppBar(
+        title: TitleText(_resolveTitle(context)),
+        actions: const [HelpIconButton()],
+      ),
       body: SafeArea(
         child: Column(
           children: [
@@ -69,11 +74,6 @@ class OrganizationDetailScreen extends StatelessWidget {
         return WalletScrollbar(
           child: CustomScrollView(
             slivers: [
-              SliverWalletAppBar(
-                title: _resolveTitle(context),
-                scrollController: PrimaryScrollController.maybeOf(context),
-                actions: const [HelpIconButton()],
-              ),
               content,
             ],
           ),
@@ -83,7 +83,7 @@ class OrganizationDetailScreen extends StatelessWidget {
   }
 
   String _resolveTitle(BuildContext context) {
-    final state = context.read<OrganizationDetailBloc>().state;
+    final state = context.watch<OrganizationDetailBloc>().state;
     if (state is! OrganizationDetailSuccess) return '';
     return context.l10n.organizationDetailScreenTitle(state.organization.displayName.l10nValue(context));
   }
@@ -111,7 +111,10 @@ class OrganizationDetailScreen extends StatelessWidget {
     final items = _buildInfoSectionItems(context, state.organization);
     return SliverList.list(
       children: [
-        const SizedBox(height: 24),
+        Padding(
+          padding: const EdgeInsets.only(left: 16, right: 16, top: 12, bottom: 24),
+          child: TitleText(_resolveTitle(context)),
+        ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: _buildHeaderSection(context, state.organization),
