@@ -28,4 +28,8 @@ class PersonalizePidPreviewScreen : MobileActions() {
         scrollToEnd(ScrollableType.CustomScrollView)
         clickElement(rejectButton)
     }
+
+    fun scrollToEnd() {
+        scrollToEnd(ScrollableType.CustomScrollView)
+    }
 }
