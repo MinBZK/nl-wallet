@@ -12,7 +12,7 @@ class DemoIndexWebPage : MobileActions() {
     private val marketplaceButtonLocator = By.xpath("//a[@id='online_marketplace']")
     private val monkeyBikeButtonLocator = By.xpath("//a[@id='monkey_bike']")
     private val hollandUniversityButtonLocator = By.xpath("//a[@id='university']")
-    private val insurAnceButtonLocator = By.xpath("//a[@id='insurance']")
+    private val insuranceButtonLocator = By.xpath("//a[@id='insurance']")
 
     fun visible() = isWebElementVisible(findElement(headerTextLocator))
 
@@ -26,6 +26,6 @@ class DemoIndexWebPage : MobileActions() {
 
     fun clickHollandUniversityButton() = clickWebElement(findElement(hollandUniversityButtonLocator))
 
-    fun clickInsurAnceButton() = clickWebElement(findElement(insurAnceButtonLocator))
+    fun clickInsuranceButton() = clickWebElement(findElement(insuranceButtonLocator))
 
 }

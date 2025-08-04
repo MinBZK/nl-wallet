@@ -1,6 +1,7 @@
 package feature.dashboard
 
 import helper.GbaDataHelper
+import helper.TasDataHelper
 import helper.TestBase
 import navigator.OnboardingNavigator
 import navigator.screen.OnboardingNavigatorScreen
@@ -27,6 +28,7 @@ class DashboardTests : TestBase() {
 
     private lateinit var dashboardScreen: DashboardScreen
     private lateinit var gbaData: GbaDataHelper
+    private lateinit var tasData: TasDataHelper
 
     fun setUp(testInfo: TestInfo) {
         startDriver(testInfo)
@@ -34,6 +36,7 @@ class DashboardTests : TestBase() {
 
         dashboardScreen = DashboardScreen()
         gbaData = GbaDataHelper()
+        tasData = TasDataHelper()
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
@@ -62,7 +65,7 @@ class DashboardTests : TestBase() {
     @DisplayName("$USE_CASE.4 Tapping the card opens the card's details. [${JIRA_ID}]")
     fun verifyCardDetailScreen(testInfo: TestInfo) {
         setUp(testInfo)
-        dashboardScreen.clickPidCard()
+        dashboardScreen.clickCard(tasData.getPidVCT())
 
         val cardDetailScreen = CardDetailScreen()
         assertTrue(cardDetailScreen.visible(), "card detail screen is not visible")

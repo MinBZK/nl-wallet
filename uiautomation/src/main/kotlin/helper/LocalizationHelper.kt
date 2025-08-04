@@ -23,6 +23,7 @@ class LocalizationHelper {
     ) {
         SECONDS("seconden", "seconds"),
         ADD_CARD("Voeg kaart toe", "Add 1 card"),
+        RENEW_CARD("Kaart vernieuwen", "Renew card"),
     }
 
     fun translate(translation: Translation): String {

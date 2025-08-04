@@ -101,7 +101,7 @@ class DisclosureBasedIssuanceTests : TestBase() {
         setUp(testInfo)
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
         MenuScreen().clickBrowserTestButton()
-        indexWebPage.clickInsurAnceButton()
+        indexWebPage.clickInsuranceButton()
         val platform = indexWebPage.platformName()
         issuerWebPage.openSameDeviceWalletFlow(platform)
         issuerWebPage.switchToAppContext()
