@@ -22,7 +22,6 @@ use attestation_data::auth::reader_auth::ReaderRegistration;
 use attestation_data::disclosure_type::DisclosureType;
 use attestation_types::claim_path::ClaimPath;
 use crypto::x509::BorrowingCertificateExtension;
-use crypto::x509::CertificateError;
 use dcql::CredentialQueryFormat;
 use dcql::normalized::AttributeRequest;
 use dcql::normalized::NormalizedCredentialRequest;
@@ -144,13 +143,6 @@ pub enum DisclosureError {
         shared_data_with_relying_party_before: bool,
         session_type: SessionType,
     },
-    #[error("could not extract issuer certificate from stored mdoc: {0}")]
-    MdocCertificate(#[source] CoseError),
-    #[error("could not extract issuer registration from stored attestation certificate: {0}")]
-    IssuerRegistration(#[source] CertificateError),
-    #[error("stored mdoc certificate does not contain issuer registration")]
-    #[category(critical)]
-    MissingIssuerRegistration,
     #[error("could not interpret attestation attributes: {0}")]
     AttestationAttributes(#[source] AttestationError),
     #[error("error sending instruction to Wallet Provider: {0}")]
@@ -361,14 +353,14 @@ where
                                 // Remove any attributes that were not requested from the presentation attributes.
                                 mdoc.issuer_signed = mdoc.issuer_signed.into_attribute_subset(request.claim_paths());
 
-                                // TODO (PVW-4132): Mdoc attestations contained in the database should be assumed to be
-                                //                  valid. Once this is expressed within the type system, these errors
-                                //                  can be removed.
-                                let mdoc_certificate =
-                                    mdoc.issuer_certificate().map_err(DisclosureError::MdocCertificate)?;
-                                let issuer_registration = IssuerRegistration::from_certificate(&mdoc_certificate)
-                                    .map_err(DisclosureError::IssuerRegistration)?
-                                    .ok_or(DisclosureError::MissingIssuerRegistration)?;
+                                let issuer_certificate = mdoc
+                                    .issuer_certificate()
+                                    .expect("a stored mdoc attestation should always contain an issuer certificate");
+                                let issuer_registration = IssuerRegistration::from_certificate(&issuer_certificate)
+                                    .expect(
+                                        "a stored mdoc attestation should always contain a valid IssuerRegistration",
+                                    )
+                                    .expect("a stored mdoc attestation should always contain an IssuerRegistration");
 
                                 let attestation_presentation = AttestationPresentation::create_from_mdoc(
                                     AttestationIdentity::Fixed { id: attestation_id },
@@ -1488,9 +1480,6 @@ mod tests {
     //                  This comment should be removed once that is implemented.
     //
     // For the above reason tests are not included for the following error cases:
-    // * DisclosureError::MdocCertificate
-    // * DisclosureError::IssuerRegistration
-    // * DisclosureError::MissingIssuerRegistration
     // * DisclosureError::AttestationAttributes
 
     #[tokio::test]
