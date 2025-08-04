@@ -844,7 +844,6 @@ pub(crate) mod tests {
     use platform_support::hw_keystore::mock::MockHardwareEncryptionKey;
     use platform_support::utils::PlatformUtilities;
     use platform_support::utils::mock::MockHardwareUtilities;
-    use sd_jwt::sd_jwt::SdJwtPresentation;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
     use wallet_account::messages::registration::WalletCertificate;
@@ -1216,8 +1215,8 @@ pub(crate) mod tests {
         let state = storage.state().await.unwrap();
         assert!(matches!(state, StorageState::Opened));
 
-        let sd_jwt = SdJwtPresentation::example_pid_sd_jwt(&ISSUER_KEY);
-        let credential = IssuedCredential::SdJwt(Box::new(sd_jwt.clone().into()));
+        let sd_jwt = VerifiedSdJwt::pid_example(&ISSUER_KEY);
+        let credential = IssuedCredential::SdJwt(Box::new(sd_jwt.clone()));
 
         let issued_copies = IssuedCredentialCopies::new_or_panic(
             vec![credential.clone(), credential.clone(), credential.clone()]
@@ -1225,7 +1224,7 @@ pub(crate) mod tests {
                 .unwrap(),
         );
 
-        let attestation_type = sd_jwt.claims().properties.get("vct").unwrap().to_string();
+        let attestation_type = sd_jwt.as_ref().claims().properties.get("vct").unwrap().to_string();
 
         let attestations = storage
             .fetch_unique_attestations()
@@ -1261,7 +1260,7 @@ pub(crate) mod tests {
 
         assert_matches!(
             &attestation_copy1.attestation,
-            StoredAttestationFormat::SdJwt { sd_jwt: stored } if stored.as_ref().as_ref() == &sd_jwt
+            StoredAttestationFormat::SdJwt { sd_jwt: stored } if stored.as_ref() == &sd_jwt
         );
         assert_eq!(
             attestation_copy1.normalized_metadata,
@@ -1294,13 +1293,13 @@ pub(crate) mod tests {
         assert_eq!(fetched_unique_any.len(), 1);
         assert_matches!(
             &fetched_unique_any.first().unwrap().attestation,
-            StoredAttestationFormat::SdJwt { sd_jwt: stored } if stored.as_ref().as_ref() == &sd_jwt
+            StoredAttestationFormat::SdJwt { sd_jwt: stored } if stored.as_ref() == &sd_jwt
         );
         assert!(fetched_unique_mdoc.is_empty());
         assert_eq!(fetched_unique_sd_jwt.len(), 1);
         assert_matches!(
             &fetched_unique_sd_jwt.first().unwrap().attestation,
-            StoredAttestationFormat::SdJwt { sd_jwt: stored } if stored.as_ref().as_ref() == &sd_jwt
+            StoredAttestationFormat::SdJwt { sd_jwt: stored } if stored.as_ref() == &sd_jwt
         );
         assert!(fetched_unique_other.is_empty());
     }
@@ -1313,15 +1312,15 @@ pub(crate) mod tests {
         assert!(matches!(state, StorageState::Opened));
 
         // Create issued_copies that will be inserted into the database
-        let sd_jwt = SdJwtPresentation::example_pid_sd_jwt(&ISSUER_KEY);
-        let credential = IssuedCredential::SdJwt(Box::new(sd_jwt.clone().into()));
+        let sd_jwt = VerifiedSdJwt::pid_example(&ISSUER_KEY);
+        let credential = IssuedCredential::SdJwt(Box::new(sd_jwt.clone()));
         let issued_copies = IssuedCredentialCopies::new_or_panic(
             vec![credential.clone(), credential.clone(), credential.clone()]
                 .try_into()
                 .unwrap(),
         );
 
-        let attestation_type = sd_jwt.claims().properties.get("vct").unwrap().to_string();
+        let attestation_type = sd_jwt.as_ref().claims().properties.get("vct").unwrap().to_string();
 
         let attestations = storage
             .fetch_unique_attestations()
@@ -1369,8 +1368,8 @@ pub(crate) mod tests {
         assert_eq!(fetched_events.len(), 1);
 
         // Create new issued_copies that will be updated
-        let sd_jwt = SdJwtPresentation::example_pid_sd_jwt(&ISSUER_KEY);
-        let credential = IssuedCredential::SdJwt(Box::new(sd_jwt.clone().into()));
+        let sd_jwt = VerifiedSdJwt::pid_example(&ISSUER_KEY);
+        let credential = IssuedCredential::SdJwt(Box::new(sd_jwt.clone()));
         let issued_copies = IssuedCredentialCopies::new_or_panic(
             vec![credential.clone(), credential.clone(), credential.clone()]
                 .try_into()
@@ -1559,8 +1558,8 @@ pub(crate) mod tests {
                 .unwrap()
         );
 
-        let sd_jwt = SdJwtPresentation::example_pid_sd_jwt(&ISSUER_KEY);
-        let credential = IssuedCredential::SdJwt(Box::new(sd_jwt.clone().into()));
+        let sd_jwt = VerifiedSdJwt::pid_example(&ISSUER_KEY);
+        let credential = IssuedCredential::SdJwt(Box::new(sd_jwt.clone()));
 
         let issued_copies = IssuedCredentialCopies::new_or_panic(
             vec![credential.clone(), credential.clone(), credential.clone()]
@@ -1568,7 +1567,7 @@ pub(crate) mod tests {
                 .unwrap(),
         );
 
-        let attestation_type = sd_jwt.claims().properties.get("vct").unwrap().to_string();
+        let attestation_type = sd_jwt.as_ref().claims().properties.get("vct").unwrap().to_string();
 
         // Insert sd_jwt
         storage
@@ -1687,11 +1686,11 @@ pub(crate) mod tests {
         let timestamp_older = Utc.with_ymd_and_hms(2023, 11, 21, 13, 37, 00).unwrap();
         let timestamp_even_older = Utc.with_ymd_and_hms(2023, 11, 11, 11, 11, 00).unwrap();
 
-        let sd_jwt = SdJwtPresentation::example_pid_sd_jwt(&ISSUER_KEY);
-        let credential = IssuedCredential::SdJwt(Box::new(sd_jwt.clone().into()));
+        let sd_jwt = VerifiedSdJwt::pid_example(&ISSUER_KEY);
+        let credential = IssuedCredential::SdJwt(Box::new(sd_jwt.clone()));
 
         let issued_copies = IssuedCredentialCopies::new_or_panic(vec![credential.clone()].try_into().unwrap());
-        let attestation_type = sd_jwt.claims().properties.get("vct").unwrap().to_string();
+        let attestation_type = sd_jwt.as_ref().claims().properties.get("vct").unwrap().to_string();
 
         // Insert sd_jwts
         storage

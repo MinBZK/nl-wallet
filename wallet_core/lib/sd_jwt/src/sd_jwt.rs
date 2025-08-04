@@ -10,7 +10,6 @@ use chrono::DateTime;
 use chrono::Duration;
 use chrono::Utc;
 use derive_more::AsRef;
-use derive_more::From;
 use itertools::Itertools;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::Header;
@@ -81,7 +80,7 @@ pub struct SdJwt {
     disclosures: HashMap<String, Disclosure>,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, From, AsRef)]
+#[derive(Debug, Clone, Eq, PartialEq, AsRef)]
 pub struct VerifiedSdJwt(SdJwt);
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -596,6 +595,81 @@ fn find_disclosure_digest_in_array(object: &serde_json::Map<String, serde_json::
         .get(ARRAY_DIGEST_KEY)
         .map(|value| value.as_str().expect("digest values should be strings"))
         .filter(|_| object.len() == 1)
+}
+
+#[cfg(feature = "mock")]
+mod mock {
+    use super::SdJwt;
+    use super::VerifiedSdJwt;
+
+    impl VerifiedSdJwt {
+        pub fn new_mock(sd_jwt: SdJwt) -> Self {
+            Self(sd_jwt)
+        }
+    }
+}
+
+#[cfg(feature = "examples")]
+mod example {
+    use futures::FutureExt;
+    use jsonwebtoken::Algorithm;
+    use p256::ecdsa::SigningKey;
+    use rand_core::OsRng;
+    use serde_json::json;
+    use ssri::Integrity;
+
+    use attestation_types::claim_path::ClaimPath;
+    use crypto::server_keys::KeyPair;
+    use crypto::utils::random_string;
+
+    use crate::builder::SdJwtBuilder;
+
+    use super::VerifiedSdJwt;
+
+    impl VerifiedSdJwt {
+        pub fn pid_example(issuer_keypair: &KeyPair) -> Self {
+            let object = json!({
+                "vct": "urn:eudi:pid:nl:1",
+                "iat": 1683000000,
+                "exp": 1883000000,
+                "iss": "https://cert.issuer.example.com",
+                "attestation_qualification": "QEAA",
+                "bsn": "999991772",
+                "recovery_code": "885ed8a2-f07a-4f77-a8df-2e166f5ebd36",
+                "given_name": "John",
+                "family_name": "Doe",
+                "birthdate": "1940-01-01"
+            });
+
+            let holder_privkey = SigningKey::random(&mut OsRng);
+
+            // issuer signs SD-JWT
+            let sd_jwt = SdJwtBuilder::new(object)
+                .unwrap()
+                .make_concealable(
+                    vec![ClaimPath::SelectByKey(String::from("family_name"))]
+                        .try_into()
+                        .unwrap(),
+                )
+                .unwrap()
+                .make_concealable(vec![ClaimPath::SelectByKey(String::from("bsn"))].try_into().unwrap())
+                .unwrap()
+                .add_decoys(&[], 2)
+                .unwrap()
+                .finish(
+                    Algorithm::ES256,
+                    Integrity::from(random_string(32)),
+                    issuer_keypair.private_key(),
+                    vec![issuer_keypair.certificate().clone()],
+                    holder_privkey.verifying_key(),
+                )
+                .now_or_never()
+                .unwrap()
+                .unwrap();
+
+            Self(sd_jwt)
+        }
+    }
 }
 
 #[cfg(test)]
