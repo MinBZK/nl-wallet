@@ -6,8 +6,10 @@ import '../../util/formatter/report_option_title_formatter.dart';
 import '../common/screen/placeholder_screen.dart';
 import '../common/widget/button/bottom_back_button.dart';
 import '../common/widget/menu_item.dart';
-import '../common/widget/sliver_wallet_app_bar.dart';
 import '../common/widget/spacer/sliver_sized_box.dart';
+import '../common/widget/text/body_text.dart';
+import '../common/widget/text/title_text.dart';
+import '../common/widget/wallet_app_bar.dart';
 import '../common/widget/wallet_scrollbar.dart';
 
 class ReportIssueScreen extends StatelessWidget {
@@ -18,6 +20,9 @@ class ReportIssueScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: WalletAppBar(
+        title: TitleText(context.l10n.reportIssueScreenTitle),
+      ),
       body: SafeArea(
         child: Column(
           children: [
@@ -35,10 +40,6 @@ class ReportIssueScreen extends StatelessWidget {
     return WalletScrollbar(
       child: CustomScrollView(
         slivers: <Widget>[
-          SliverWalletAppBar(
-            title: context.l10n.reportIssueScreenTitle,
-            scrollController: PrimaryScrollController.maybeOf(context),
-          ),
           SliverToBoxAdapter(child: _buildHeaderSection(context)),
           const SliverSizedBox(height: 24),
           const SliverToBoxAdapter(child: Divider()),
@@ -55,10 +56,10 @@ class ReportIssueScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            context.l10n.reportIssueScreenHeaderTitle,
-            style: context.textTheme.bodyLarge,
-          ),
+          const SizedBox(height: 12),
+          TitleText(context.l10n.reportIssueScreenTitle),
+          const SizedBox(height: 8),
+          BodyText(context.l10n.reportIssueScreenHeaderTitle),
         ],
       ),
     );

@@ -46,6 +46,9 @@ class DisclosureExternalScannerError extends DisclosureState implements ErrorSta
   @override
   bool get showStopConfirmation => false;
 
+  @override
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: kDisclosureSteps, totalSteps: kDisclosureSteps);
+
   const DisclosureExternalScannerError({required this.error});
 
   @override
@@ -61,6 +64,9 @@ class DisclosureGenericError extends DisclosureState implements ErrorState {
   @override
   bool get showStopConfirmation => false;
 
+  @override
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: kDisclosureSteps, totalSteps: kDisclosureSteps);
+
   const DisclosureGenericError({required this.error, this.returnUrl});
 
   @override
@@ -75,6 +81,9 @@ class DisclosureRelyingPartyError extends DisclosureState implements ErrorState 
 
   @override
   bool get showStopConfirmation => false;
+
+  @override
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: kDisclosureSteps, totalSteps: kDisclosureSteps);
 
   const DisclosureRelyingPartyError({required this.error, this.organizationName});
 
@@ -94,6 +103,9 @@ class DisclosureSessionExpired extends DisclosureState implements ErrorState {
   final bool canRetry;
 
   final String? returnUrl;
+
+  @override
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: kDisclosureSteps, totalSteps: kDisclosureSteps);
 
   const DisclosureSessionExpired({
     required this.error,
@@ -117,6 +129,9 @@ class DisclosureSessionCancelled extends DisclosureState implements ErrorState {
   @override
   bool get showStopConfirmation => false;
 
+  @override
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: kDisclosureSteps, totalSteps: kDisclosureSteps);
+
   const DisclosureSessionCancelled({
     required this.error,
     this.relyingParty,
@@ -139,6 +154,9 @@ class DisclosureNetworkError extends DisclosureState implements NetworkErrorStat
 
   @override
   final int? statusCode;
+
+  @override
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: kDisclosureSteps, totalSteps: kDisclosureSteps);
 
   const DisclosureNetworkError({
     this.statusCode,

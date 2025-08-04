@@ -210,7 +210,7 @@ void main() {
       const WalletPersonalizeAuthenticating(),
       const WalletPersonalizeCheckData(availableAttributes: []),
       isA<WalletPersonalizeLoadInProgress>(),
-      const WalletPersonalizeInitial(),
+      const WalletPersonalizeInitial(didGoBack: true),
     ],
   );
 

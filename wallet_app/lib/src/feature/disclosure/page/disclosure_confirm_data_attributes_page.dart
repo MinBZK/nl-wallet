@@ -74,7 +74,6 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
         child: CustomScrollView(
           restorationId: 'confirm_data_attributes_scrollview',
           slivers: <Widget>[
-            const SliverSizedBox(height: 8),
             SliverToBoxAdapter(child: _buildHeaderSection(context)),
             const SliverDivider(),
             SliverToBoxAdapter(
@@ -139,10 +138,11 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
 
   Widget _buildHeaderSection(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          const SizedBox(height: 12),
           TitleText(
             context.l10n.disclosureConfirmDataAttributesShareWithTitle(relyingParty.displayName.l10nValue(context)),
           ),
@@ -150,6 +150,7 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
           BodyText(
             context.l10n.disclosureConfirmDataAttributesDisclaimer,
           ),
+          const SizedBox(height: 24),
         ],
       ),
     );

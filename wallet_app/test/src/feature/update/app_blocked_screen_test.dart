@@ -37,8 +37,7 @@ void main() {
       final l10n = await TestUtils.englishLocalizations;
 
       final titleFinder = find.textContaining(l10n.appBlockedScreenTitle, findRichText: true);
-      // Title rendered twice, in content and (hidden) in sliverappbar.
-      expect(titleFinder, findsNWidgets(2));
+      expect(titleFinder, findsOneWidget);
     });
   });
 }

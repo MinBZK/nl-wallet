@@ -73,7 +73,7 @@ class RenewPidScreen extends StatelessWidget {
     );
   }
 
-  Widget? _buildTitle(BuildContext context, RenewPidState state) {
+  Widget _buildTitle(BuildContext context, RenewPidState state) {
     String title;
     switch (state) {
       case RenewPidInitial():
@@ -91,7 +91,7 @@ class RenewPidScreen extends StatelessWidget {
       case RenewPidAwaitingDigidAuthentication():
       case RenewPidVerifyingDigidAuthentication():
       case RenewPidUpdatingCards():
-        return null;
+        return const SizedBox.shrink();
       case RenewPidDigidLoginCancelled():
         title = context.l10n.renewPidDigidLoginCancelledTitle;
       case RenewPidDigidMismatch():
@@ -99,11 +99,7 @@ class RenewPidScreen extends StatelessWidget {
       case RenewPidStopped():
         title = context.l10n.renewPidStoppedTitle;
     }
-    return FadeInAtOffset(
-      appearOffset: 40,
-      visibleOffset: 80,
-      child: TitleText(title),
-    );
+    return TitleText(title);
   }
 
   Widget _buildBody(BuildContext context) {

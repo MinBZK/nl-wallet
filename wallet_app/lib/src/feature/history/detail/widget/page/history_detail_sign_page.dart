@@ -4,11 +4,12 @@ import '../../../../../domain/model/event/wallet_event.dart';
 import '../../../../../util/extension/build_context_extension.dart';
 import '../../../../../util/extension/object_extension.dart';
 import '../../../../../util/extension/wallet_event_extension.dart';
+import '../../../../../wallet_constants.dart';
 import '../../../../common/builder/request_detail_common_builders.dart';
 import '../../../../common/widget/divider_side.dart';
-import '../../../../common/widget/sliver_wallet_app_bar.dart';
 import '../../../../common/widget/spacer/sliver_divider.dart';
 import '../../../../common/widget/spacer/sliver_sized_box.dart';
+import '../../../../common/widget/text/title_text.dart';
 import '../history_detail_timestamp.dart';
 
 class HistoryDetailSignPage extends StatelessWidget {
@@ -20,9 +21,11 @@ class HistoryDetailSignPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return CustomScrollView(
       slivers: [
-        SliverWalletAppBar(
-          title: context.l10n.historyDetailScreenTitle,
-          scrollController: PrimaryScrollController.maybeOf(context),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: kDefaultTitlePadding,
+            child: TitleText(context.l10n.historyDetailScreenTitle),
+          ),
         ),
         SliverToBoxAdapter(
           child: HistoryDetailTimestamp(

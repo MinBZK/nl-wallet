@@ -4,7 +4,7 @@ import '../../../domain/model/card/wallet_card.dart';
 import '../../../util/extension/build_context_extension.dart';
 import 'card/wallet_card_item.dart';
 
-const _kCardOverlap = 56.0;
+const _kCardOverlap = 86.0;
 
 class StackedWalletCards extends StatelessWidget {
   final List<WalletCard> cards;

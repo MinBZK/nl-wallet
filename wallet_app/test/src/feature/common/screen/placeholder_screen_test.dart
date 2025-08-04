@@ -20,7 +20,7 @@ void main() {
       final descriptionFinder = find.text('D', findRichText: true);
 
       // Verify all expected widgets show up once
-      expect(headlineFinder, findsNWidgets(2) /* app bar + content */);
+      expect(headlineFinder, findsOneWidget);
       expect(descriptionFinder, findsOneWidget);
     });
 
