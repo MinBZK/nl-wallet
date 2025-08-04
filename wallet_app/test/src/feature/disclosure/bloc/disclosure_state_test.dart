@@ -177,32 +177,32 @@ void main() {
     group('Disclosure ErrorStates', () {
       test('DisclosureExternalScannerError has correct default FlowProgress', () {
         final state = DisclosureExternalScannerError(error: mockApplicationError);
-        expect(state.stepperProgress, const FlowProgress(currentStep: 0, totalSteps: kDisclosureSteps));
+        expect(state.stepperProgress, const FlowProgress(currentStep: kDisclosureSteps, totalSteps: kDisclosureSteps));
       });
 
       test('DisclosureGenericError has correct default FlowProgress', () {
         final state = DisclosureGenericError(error: mockApplicationError);
-        expect(state.stepperProgress, const FlowProgress(currentStep: 0, totalSteps: kDisclosureSteps));
+        expect(state.stepperProgress, const FlowProgress(currentStep: kDisclosureSteps, totalSteps: kDisclosureSteps));
       });
 
       test('DisclosureRelyingPartyError has correct default FlowProgress', () {
         final state = DisclosureRelyingPartyError(error: mockApplicationError);
-        expect(state.stepperProgress, const FlowProgress(currentStep: 0, totalSteps: kDisclosureSteps));
+        expect(state.stepperProgress, const FlowProgress(currentStep: kDisclosureSteps, totalSteps: kDisclosureSteps));
       });
 
       test('DisclosureSessionExpired has correct default FlowProgress', () {
         final state = DisclosureSessionExpired(error: mockApplicationError, isCrossDevice: false, canRetry: false);
-        expect(state.stepperProgress, const FlowProgress(currentStep: 0, totalSteps: kDisclosureSteps));
+        expect(state.stepperProgress, const FlowProgress(currentStep: kDisclosureSteps, totalSteps: kDisclosureSteps));
       });
 
       test('DisclosureSessionCancelled has correct default FlowProgress', () {
         final state = DisclosureSessionCancelled(error: mockApplicationError);
-        expect(state.stepperProgress, const FlowProgress(currentStep: 0, totalSteps: kDisclosureSteps));
+        expect(state.stepperProgress, const FlowProgress(currentStep: kDisclosureSteps, totalSteps: kDisclosureSteps));
       });
 
       test('DisclosureNetworkError has correct default FlowProgress', () {
         final state = DisclosureNetworkError(error: mockApplicationError);
-        expect(state.stepperProgress, const FlowProgress(currentStep: 0, totalSteps: kDisclosureSteps));
+        expect(state.stepperProgress, const FlowProgress(currentStep: kDisclosureSteps, totalSteps: kDisclosureSteps));
       });
     });
   });

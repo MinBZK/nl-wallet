@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'dart:math';
 
 import 'package:collection/collection.dart';
@@ -109,6 +110,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
               const HelpIconButton(),
               if (_showSkipSetupButton) _buildSkipSetupButton(),
             ],
+            fadeInTitleOnScroll: false,
             title: FadeInAtOffset(
               scrollController: _currentScrollController,
               appearOffset: 38,
@@ -128,6 +130,10 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
   }
 
   Widget _buildGovernmentLabel(BuildContext context) {
+    // Calculate the height, taking the top (os level) padding into account. Assuring it doesn't overlap with the appbar
+    final topPadding = MediaQuery.of(context).padding.top;
+    final double portraitLogoHeight = math.min(88, 64 + topPadding);
+    // Calculate the offset for the scroll animation
     final labelOffset = -2 * _currentScrollControllerPixelOffset;
     final normalizedOffset = min(labelOffset, 0).toDouble();
     return Positioned(
@@ -139,7 +145,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
           attributedLabel: context.l10n.introductionWCAGDutchGovernmentLogoLabel.toAttributedString(context),
           child: Image.asset(
             WalletAssets.logo_rijksoverheid_label,
-            height: context.isLandscape ? 64 : 88,
+            height: context.isLandscape ? 64 : portraitLogoHeight,
             fit: BoxFit.contain,
           ),
         ),

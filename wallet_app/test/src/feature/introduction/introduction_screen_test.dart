@@ -17,6 +17,12 @@ void main() {
       await screenMatchesGolden('page_1.light');
     });
 
+    testGoldens('Page 1 light - landscape', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(const IntroductionScreen(), surfaceSize: iphoneXSizeLandscape);
+      await tester.pumpAndSettle();
+      await screenMatchesGolden('page_1.light.landscape');
+    });
+
     testGoldens('Page 2 light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(const IntroductionScreen());
       await _skipPage(tester);

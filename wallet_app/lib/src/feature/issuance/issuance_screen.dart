@@ -22,6 +22,7 @@ import '../common/widget/button/icon/close_icon_button.dart';
 import '../common/widget/button/icon/help_icon_button.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
 import '../common/widget/page_illustration.dart';
+import '../common/widget/text/title_text.dart';
 import '../common/widget/wallet_app_bar.dart';
 import '../dashboard/dashboard_screen.dart';
 import '../error/error_page.dart';
@@ -64,6 +65,7 @@ class IssuanceScreen extends StatelessWidget {
           const HelpIconButton(),
           CloseIconButton(onPressed: () => _stopIssuance(context)),
         ],
+        title: _buildTitle(context),
         progress: progress,
       ),
       body: PopScope(
@@ -313,6 +315,48 @@ class IssuanceScreen extends StatelessWidget {
       organizationName: state.organizationName?.l10nValue(context),
       onClosePressed: () => Navigator.pop(context),
     );
+  }
+
+  TitleText _buildTitle(BuildContext context) {
+    final state = context.watch<IssuanceBloc>().state;
+    String title;
+    switch (state) {
+      case IssuanceInitial():
+        title = context.l10n.issuanceLoadingRequestTitle;
+      case IssuanceLoadInProgress():
+        title = context.l10n.issuanceLoadingCardsTitle;
+      case IssuanceCheckOrganization():
+        title = OrganizationApprovePage.resolveTitle(context, ApprovalPurpose.issuance, state.organization);
+      case IssuanceMissingAttributes():
+        title = context.l10n.missingAttributesPageTitle;
+      case IssuanceProvidePinForIssuance():
+      case IssuanceProvidePinForDisclosure():
+        title = '';
+      case IssuanceReviewCards():
+        title = IssuanceReviewCardsPage.resolveTitle(
+          context,
+          renewedCards: state.renewedCards,
+          offeredCards: state.offeredCards,
+        );
+      case IssuanceCompleted():
+        title = context.l10n.issuanceSuccessPageTitle(state.addedCards.length);
+      case IssuanceStopped():
+        title = context.l10n.issuanceStoppedPageTitle;
+      case IssuanceGenericError():
+      case IssuanceExternalScannerError():
+        title = context.l10n.issuanceGenericErrorPageTitle;
+      case IssuanceNoCardsRetrieved():
+        title = context.l10n.issuanceNoCardsPageTitle;
+      case IssuanceNetworkError():
+        title = state.hasInternet ? context.l10n.errorScreenServerHeadline : context.l10n.errorScreenNoInternetHeadline;
+      case IssuanceSessionExpired():
+        title = context.l10n.errorScreenSessionExpiredHeadline;
+      case IssuanceSessionCancelled():
+        title = context.l10n.errorScreenCancelledSessionHeadline;
+      case IssuanceRelyingPartyError():
+        title = context.l10n.issuanceRelyingPartyErrorTitle;
+    }
+    return TitleText(title);
   }
 }
 

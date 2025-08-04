@@ -9,7 +9,7 @@ void main() {
     await tester.pumpWidgetWithAppWrapper(const CardDataIncorrectScreen());
     final l10n = await TestUtils.englishLocalizations;
 
-    expect(find.text(l10n.cardDataIncorrectScreenSubhead), findsNWidgets(2) /* expanded and collapsed title */);
+    expect(find.text(l10n.cardDataIncorrectScreenSubhead), findsOneWidget);
 
     l10n.cardDataIncorrectScreenDescription.split('\n\n').forEach(
       (paragraph) {

@@ -37,7 +37,7 @@ class FraudCheckPage extends StatelessWidget {
       child: WalletScrollbar(
         child: CustomScrollView(
           slivers: <Widget>[
-            const SliverSizedBox(height: 24),
+            const SliverSizedBox(height: 12),
             SliverToBoxAdapter(child: _buildTextSection(context)),
             const SliverSizedBox(height: 24),
             const SliverToBoxAdapter(child: PageIllustration(asset: WalletAssets.svg_url_check)),

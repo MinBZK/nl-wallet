@@ -129,15 +129,15 @@ class OrganizationApprovePage extends StatelessWidget {
         children: [
           OrganizationLogo(image: organization.logo, size: 64, fixedRadius: 12),
           const SizedBox(height: 24),
-          _buildHeaderTitleText(context),
+          TitleText(resolveTitle(context, purpose, organization)),
           _buildHeaderDescriptionSection(context),
         ],
       ),
     );
   }
 
-  Widget _buildHeaderTitleText(BuildContext context) {
-    final title = switch (purpose) {
+  static String resolveTitle(BuildContext context, ApprovalPurpose purpose, Organization organization) {
+    return switch (purpose) {
       ApprovalPurpose.issuance =>
         context.l10n.organizationApprovePageIssuanceTitle(organization.displayName.l10nValue(context)),
       ApprovalPurpose.disclosure =>
@@ -147,7 +147,6 @@ class OrganizationApprovePage extends StatelessWidget {
       ApprovalPurpose.login =>
         context.l10n.organizationApprovePageLoginTitle(organization.displayName.l10nValue(context)),
     };
-    return TitleText(title);
   }
 
   Widget _buildHeaderDescriptionSection(BuildContext context) {

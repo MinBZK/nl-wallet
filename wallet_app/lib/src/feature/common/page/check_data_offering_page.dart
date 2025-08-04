@@ -36,7 +36,7 @@ class CheckDataOfferingPage extends StatelessWidget {
       child: CustomScrollView(
         restorationId: 'check_data_offering_scrollview',
         slivers: <Widget>[
-          const SliverSizedBox(height: 32),
+          const SliverSizedBox(height: 12),
           SliverToBoxAdapter(child: _buildHeaderSection(context)),
           SliverToBoxAdapter(child: _buildCardFront(context)),
           SliverSizedBox(height: showHeaderAttributesDivider ? 24 : 12),
@@ -63,7 +63,7 @@ class CheckDataOfferingPage extends StatelessWidget {
     final overline = this.overline;
     final subtitle = this.subtitle;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: MergeSemantics(
         child: Column(
           mainAxisSize: MainAxisSize.min,

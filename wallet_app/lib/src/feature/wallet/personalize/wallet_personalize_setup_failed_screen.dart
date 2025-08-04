@@ -4,8 +4,10 @@ import '../../../navigation/wallet_routes.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
 import '../../../wallet_assets.dart';
-import '../../common/widget/sliver_wallet_app_bar.dart';
 import '../../common/widget/spacer/sliver_sized_box.dart';
+import '../../common/widget/text/body_text.dart';
+import '../../common/widget/text/title_text.dart';
+import '../../common/widget/wallet_app_bar.dart';
 import '../../common/widget/wallet_scrollbar.dart';
 
 class WalletPersonalizeSetupFailedScreen extends StatelessWidget {
@@ -14,22 +16,28 @@ class WalletPersonalizeSetupFailedScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: WalletAppBar(
+        title: TitleText(context.l10n.walletPersonalizeSetupFailedScreenHeadline),
+      ),
       body: SafeArea(
         minimum: const EdgeInsets.only(bottom: 24),
         child: WalletScrollbar(
           child: CustomScrollView(
             slivers: [
-              SliverWalletAppBar(
-                title: context.l10n.walletPersonalizeSetupFailedScreenHeadline,
-                scrollController: PrimaryScrollController.maybeOf(context),
-              ),
+              const SliverSizedBox(height: 12),
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Text(
-                    context.l10n.walletPersonalizeSetupFailedScreenDescription,
-                    textAlign: TextAlign.start,
-                    style: context.textTheme.bodyLarge,
+                  child: Column(
+                    children: [
+                      TitleText(context.l10n.walletPersonalizeSetupFailedScreenHeadline),
+                      const SizedBox(height: 8),
+                      BodyText(
+                        context.l10n.walletPersonalizeSetupFailedScreenDescription,
+                        textAlign: TextAlign.start,
+                        style: context.textTheme.bodyLarge,
+                      ),
+                    ],
                   ),
                 ),
               ),

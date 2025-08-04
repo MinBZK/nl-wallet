@@ -65,7 +65,7 @@ class IssuanceReviewCardsPage extends StatelessWidget {
             child: CustomScrollView(
               restorationId: 'issuance_review_cards_page',
               slivers: <Widget>[
-                const SliverSizedBox(height: 24),
+                const SliverSizedBox(height: 12),
                 SliverToBoxAdapter(child: _buildHeaderSection(context)),
                 const SliverSizedBox(height: 24),
                 _buildOfferedCardsSection(context),
@@ -153,7 +153,7 @@ class IssuanceReviewCardsPage extends StatelessWidget {
   }
 
   Widget _buildHeaderSection(BuildContext context) {
-    final title = _buildTitle(context);
+    final title = resolveTitle(context, renewedCards: renewedCards, offeredCards: offeredCards);
     final subtitle = context.l10n.issuanceReviewCardsPageSubtitle(allCards.length, _getOrganizationName(context));
 
     return Padding(
@@ -174,10 +174,17 @@ class IssuanceReviewCardsPage extends StatelessWidget {
     return context.l10n.organizationFallbackName;
   }
 
-  String _buildTitle(BuildContext context) {
+  static String resolveTitle(
+    BuildContext context, {
+    required List<WalletCard> offeredCards,
+    required List<WalletCard> renewedCards,
+  }) {
+    final bool hasOfferedCards = offeredCards.isNotEmpty;
+    final bool hasRenewedCards = renewedCards.isNotEmpty;
+
     if (hasOfferedCards && hasRenewedCards) {
       // Copy for situation where there are both new and updated cards
-      return context.l10n.issuanceReviewCardsPageAddAndRenewTitle(allCards.length);
+      return context.l10n.issuanceReviewCardsPageAddAndRenewTitle(offeredCards.length + renewedCards.length);
     } else if (!hasOfferedCards && hasRenewedCards) {
       // Copy for situation where there are only updated cards
       return context.l10n.issuanceReviewCardsPageRenewOnlyTitle(renewedCards.length);

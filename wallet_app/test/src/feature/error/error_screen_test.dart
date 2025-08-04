@@ -126,7 +126,7 @@ void main() {
 
       // Verify all expected widgets show up once
       expect(descriptionFinder, findsOneWidget);
-      expect(headlineFinder, findsNWidgets(2) /* app bar + content */);
+      expect(headlineFinder, findsOneWidget);
       expect(primaryActionFinder, findsOneWidget);
       expect(secondaryActionFinder, findsOneWidget);
     });
@@ -150,7 +150,7 @@ void main() {
 
       // Verify all expected widgets show up once
       expect(descriptionFinder, findsOneWidget);
-      expect(headlineFinder, findsNWidgets(2) /* app bar + content */);
+      expect(headlineFinder, findsOneWidget);
       expect(primaryActionFinder, findsOneWidget);
       expect(secondaryActionFinder, findsOneWidget);
     });
@@ -175,7 +175,7 @@ void main() {
 
     // Verify all expected widgets show up once
     expect(descriptionFinder, findsOneWidget);
-    expect(headlineFinder, findsNWidgets(2) /* app bar + content */);
+    expect(headlineFinder, findsOneWidget);
     expect(primaryActionFinder, findsOneWidget);
     expect(secondaryActionFinder, findsOneWidget);
   });
@@ -198,7 +198,7 @@ void main() {
 
     // Verify all expected widgets show up once
     expect(descriptionFinder, findsOneWidget);
-    expect(headlineFinder, findsNWidgets(2) /* app bar + content */);
+    expect(headlineFinder, findsOneWidget);
     expect(secondaryActionFinder, findsOneWidget);
   });
 
@@ -221,7 +221,7 @@ void main() {
 
     // Verify all expected widgets show up once
     expect(descriptionFinder, findsOneWidget);
-    expect(headlineFinder, findsNWidgets(2) /* app bar + content */);
+    expect(headlineFinder, findsOneWidget);
     expect(secondaryActionFinder, findsOneWidget);
     expect(primaryActionFinder, findsOneWidget);
   });
@@ -244,7 +244,7 @@ void main() {
 
     // Verify all expected widgets show up once
     expect(descriptionFinder, findsOneWidget);
-    expect(headlineFinder, findsNWidgets(2) /* app bar + content */);
+    expect(headlineFinder, findsOneWidget);
     expect(primaryActionFinder, findsOneWidget);
     expect(secondaryActionFinder, findsOneWidget);
   });
