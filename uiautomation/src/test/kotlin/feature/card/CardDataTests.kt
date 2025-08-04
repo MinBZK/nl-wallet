@@ -47,6 +47,8 @@ class CardDataTests : TestBase() {
     @DisplayName("$USE_CASE.1 The Card attributes page displays all attributes on the card. [${JIRA_ID}]")
     fun verifyCardData(testInfo: TestInfo) {
         setUp(testInfo)
+        val nationalities = gbaData.getNationalities(DEFAULT_BSN)
+        val formattedNationalities = nationalities.joinToString("\n") { "  • $it" }
         assertAll(
             { assertTrue(cardDataScreen.visible(), "card data screen is not visible") },
             { assertTrue(cardDataScreen.dataAttributeVisible(gbaData.getValueByField(FIRST_NAME, DEFAULT_BSN)), "data attribute are not visible") },
@@ -54,7 +56,8 @@ class CardDataTests : TestBase() {
             { assertTrue(cardDataScreen.dataAttributeVisible(gbaData.getValueByField(NAME, DEFAULT_BSN)), "data attribute are not visible") },
             { assertTrue(cardDataScreen.dataLabelVisible(cardMetadata.getPidClaimLabel("family_name")), "data label are not visible") },
             { assertTrue(cardDataScreen.dataLabelVisible(cardMetadata.getPidClaimLabel("birthdate")), "data label are not visible") },
-        )
+            { assertTrue(cardDataScreen.dataAttributeVisible(formattedNationalities), "array attribute is not visible") },
+            )
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
