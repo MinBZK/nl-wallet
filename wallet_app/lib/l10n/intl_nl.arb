@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2025-07-29T15:58:44+02:00",
+    "@@last_modified": "2025-08-01T12:29:20+02:00",
     "aboutScreenDescription": "De NL Wallet wordt gemaakt door de Nederlandse overheid, zodat iedereen digitale diensten veilig en gemakkelijk kan gebruiken.\n\nJe kunt de ontwikkelingen volgen op {url}.",
     "aboutScreenPrivacyCta": "Privacyverklaring",
     "aboutScreenTitle": "Over de NL Wallet",
@@ -177,7 +177,7 @@
     "cardValueNull": "Niet opgegeven",
     "cardValueTrue": "Ja",
     "changeLanguageScreenTitle": "Kies een taal",
-    "changePinScreenConfirmNewPinTitle": "Herhaal je nieuwe pincode",
+    "changePinScreenConfirmNewPinTitle": "Gelukt! Herhaal je nieuwe pincode",
     "changePinScreenEnterCurrentPinTitle": "Voor eerst je huidige pincode in",
     "changePinScreenSelectNewPinTitle": "Kies een nieuwe pincode",
     "changePinScreenSuccessDescription": "Je app is beveiligd met je nieuwe pincode.",
@@ -1229,7 +1229,7 @@
             }
         }
     },
-    "setupSecurityConfirmationPageTitle": "Herhaal je pincode",
+    "setupSecurityConfirmationPageTitle": "Gelukt! Herhaal je pincode",
     "setupSecurityLoadingPageDescription": "Pincode wordt opgeslagen",
     "setupSecurityLoadingPageTitle": "Even geduld",
     "setupSecurityScreenWCAGPinChosenAnnouncement": "Pincode gekozen. Herhaal pincode om te bevestigen.",
@@ -1245,7 +1245,7 @@
             }
         }
     },
-    "sharedAttributesCardOutdatedFooter": "Deze kaart is ongeldig geworden na deze activiteit. Deze gegevens zijn verouderd.",
+    "sharedAttributesCardOutdatedFooter": "Deze gegevens zijn verouderd.",
     "sharedAttributesCardTitle": "{count} uit {cardTitle}",
     "showDetailsCta": "Bekijk",
     "signConfirmPinPageDescription": "Hiermee geef je toestemming om gegevens uit te wisselen.",
