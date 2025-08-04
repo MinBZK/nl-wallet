@@ -1,21 +1,15 @@
 use tracing::info;
 
-use attestation_data::auth::issuer_auth::IssuerRegistration;
-use attestation_data::credential_payload::CredentialPayload;
-use crypto::x509::BorrowingCertificateExtension;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use openid4vc::disclosure_session::DisclosureClient;
 use platform_support::attested_key::AttestedKeyHolder;
 
-use crate::attestation::AttestationError;
-use crate::attestation::AttestationIdentity;
 use crate::attestation::AttestationPresentation;
 use crate::digid::DigidClient;
 use crate::storage::Storage;
 use crate::storage::StorageError;
 use crate::storage::StoredAttestationCopy;
-use crate::storage::StoredAttestationFormat;
 
 use super::Wallet;
 
@@ -24,10 +18,6 @@ use super::Wallet;
 pub enum AttestationsError {
     #[error("could not fetch documents from database storage: {0}")]
     Storage(#[from] StorageError),
-
-    #[error("error converting credential payload to attestation: {0}")]
-    #[category(defer)]
-    Attestation(#[from] AttestationError),
 }
 
 pub type AttestationsCallback = Box<dyn FnMut(Vec<AttestationPresentation>) + Send + Sync>;
@@ -48,54 +38,8 @@ where
             .fetch_unique_attestations()
             .await?
             .into_iter()
-            .map(
-                |StoredAttestationCopy {
-                     attestation_id,
-                     attestation,
-                     normalized_metadata,
-                     ..
-                 }| {
-                    match attestation {
-                        StoredAttestationFormat::MsoMdoc { mdoc } => {
-                            let issuer_certificate = mdoc
-                                .issuer_certificate()
-                                .expect("a stored mdoc attestation should always contain an issuer certificate");
-                            // Note that this means that an `IssuerRegistration` should ALWAYS be backwards compatible.
-                            let issuer_registration = IssuerRegistration::from_certificate(&issuer_certificate)
-                                .expect("a stored mdoc attestation should always contain a valid IssuerRegistration")
-                                .expect("a stored mdoc attestation should always contain an IssuerRegistration");
-
-                            let attestation = AttestationPresentation::create_from_mdoc(
-                                AttestationIdentity::Fixed { id: attestation_id },
-                                normalized_metadata,
-                                issuer_registration.organization,
-                                mdoc.issuer_signed.into_entries_by_namespace(),
-                            )?;
-
-                            Ok(attestation)
-                        }
-                        StoredAttestationFormat::SdJwt { sd_jwt } => {
-                            let issuer_certificate = sd_jwt.as_ref().issuer_certificate();
-                            // Note that this means that an `IssuerRegistration` should ALWAYS be backwards compatible.
-                            let issuer_registration = IssuerRegistration::from_certificate(issuer_certificate)
-                                .expect("a stored SD-JWT attestation should always contain a valid IssuerRegistration")
-                                .expect("a verified SD-JWT attestation should always contain an IssuerRegistration");
-
-                            let credential_payload = CredentialPayload::from_verified_sd_jwt_unvalidated(*sd_jwt)
-                                .expect("a stored SD-JWT attestation should always convert to CredentialPayload");
-                            let attestation = AttestationPresentation::create_from_attributes(
-                                AttestationIdentity::Fixed { id: attestation_id },
-                                normalized_metadata,
-                                issuer_registration.organization,
-                                &credential_payload.previewable_payload.attributes,
-                            )?;
-
-                            Ok(attestation)
-                        }
-                    }
-                },
-            )
-            .collect::<Result<Vec<_>, AttestationsError>>()?;
+            .map(StoredAttestationCopy::into_attestation_presentation)
+            .collect();
 
         if let Some(ref mut callback) = self.attestations_callback {
             callback(attestations);
@@ -129,6 +73,7 @@ mod tests {
 
     use assert_matches::assert_matches;
 
+    use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::x509::generate::mock::generate_issuer_mock;
     use crypto::server_keys::generate::Ca;
     use openid4vc::issuance_session::CredentialWithMetadata;

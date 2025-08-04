@@ -17,11 +17,9 @@ use uuid::Uuid;
 pub use openid4vc::disclosure_session::DisclosureUriSource;
 
 use attestation_data::auth::Organization;
-use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::auth::reader_auth::ReaderRegistration;
 use attestation_data::disclosure_type::DisclosureType;
 use attestation_types::claim_path::ClaimPath;
-use crypto::x509::BorrowingCertificateExtension;
 use dcql::CredentialQueryFormat;
 use dcql::normalized::AttributeRequest;
 use dcql::normalized::NormalizedCredentialRequest;
@@ -45,8 +43,6 @@ use utils::vec_at_least::VecNonEmpty;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::account_provider::AccountProviderClient;
-use crate::attestation::AttestationError;
-use crate::attestation::AttestationIdentity;
 use crate::attestation::AttestationPresentation;
 use crate::attestation::BSN_ATTR_NAME;
 use crate::attestation::PID_DOCTYPE;
@@ -62,7 +58,6 @@ use crate::storage::AttestationFormatQuery;
 use crate::storage::DataDisclosureStatus;
 use crate::storage::Storage;
 use crate::storage::StorageError;
-use crate::storage::StoredAttestationCopy;
 use crate::storage::StoredAttestationFormat;
 use crate::wallet::Session;
 
@@ -143,8 +138,6 @@ pub enum DisclosureError {
         shared_data_with_relying_party_before: bool,
         session_type: SessionType,
     },
-    #[error("could not interpret attestation attributes: {0}")]
-    AttestationAttributes(#[source] AttestationError),
     #[error("error sending instruction to Wallet Provider: {0}")]
     Instruction(#[source] InstructionError),
     #[error("could not increment usage count of mdoc copies in database: {0}")]
@@ -311,7 +304,7 @@ where
     async fn fetch_candidate_attestations(
         storage: &S,
         request: &NormalizedCredentialRequest,
-    ) -> Result<Option<VecNonEmpty<DisclosureAttestation>>, DisclosureError> {
+    ) -> Result<Option<VecNonEmpty<DisclosureAttestation>>, StorageError> {
         let (attestation_types, format_query) = match &request.format {
             CredentialQueryFormat::MsoMdoc { doctype_value } => {
                 (HashSet::from([doctype_value.as_str()]), AttestationFormatQuery::MsoMdoc)
@@ -324,68 +317,46 @@ where
 
         let stored_attestations = storage
             .fetch_unique_attestations_by_type(&attestation_types, format_query)
-            .await
-            .map_err(DisclosureError::AttestationRetrieval)?;
+            .await?;
 
         let candidate_attestations = match &request.format {
             CredentialQueryFormat::MsoMdoc { .. } => {
                 stored_attestations
                     .into_iter()
-                    .flat_map(
-                        |StoredAttestationCopy {
-                             attestation_id,
-                             attestation_copy_id,
-                             attestation,
-                             normalized_metadata,
-                         }| {
-                            let StoredAttestationFormat::MsoMdoc { mut mdoc } = attestation else {
-                                panic!("database returned unexpected disclosure candidate format, expecting mdoc");
-                            };
+                    .flat_map(|mut stored_copy| {
+                        let StoredAttestationFormat::MsoMdoc { mut mdoc } = stored_copy.attestation else {
+                            panic!("database returned unexpected disclosure candidate format, expecting mdoc");
+                        };
 
-                            // Only select those attestations that contain all of the requested attributes.
-                            // TODO (PVW-4537): Have this be part of the database query using some index.
-                            let mdoc_matches = mdoc
-                                .issuer_signed
-                                .matches_requested_attributes(request.claim_paths())
-                                .is_ok();
+                        // Only select those attestations that contain all of the requested attributes.
+                        // TODO (PVW-4537): Have this be part of the database query using some index.
+                        let mdoc_matches = mdoc
+                            .issuer_signed
+                            .matches_requested_attributes(request.claim_paths())
+                            .is_ok();
 
-                            mdoc_matches.then(|| {
-                                // Remove any attributes that were not requested from the presentation attributes.
-                                mdoc.issuer_signed = mdoc.issuer_signed.into_attribute_subset(request.claim_paths());
+                        if !mdoc_matches {
+                            return None;
+                        }
 
-                                let issuer_certificate = mdoc
-                                    .issuer_certificate()
-                                    .expect("a stored mdoc attestation should always contain an issuer certificate");
-                                let issuer_registration = IssuerRegistration::from_certificate(&issuer_certificate)
-                                    .expect(
-                                        "a stored mdoc attestation should always contain a valid IssuerRegistration",
-                                    )
-                                    .expect("a stored mdoc attestation should always contain an IssuerRegistration");
+                        let attestation_copy_id = stored_copy.attestation_copy_id;
 
-                                let attestation_presentation = AttestationPresentation::create_from_mdoc(
-                                    AttestationIdentity::Fixed { id: attestation_id },
-                                    normalized_metadata,
-                                    issuer_registration.organization,
-                                    mdoc.issuer_signed.clone().into_entries_by_namespace(),
-                                )
-                                .map_err(DisclosureError::AttestationAttributes)?;
+                        // Remove any attributes that were not requested from the presentation attributes.
+                        mdoc.issuer_signed = mdoc.issuer_signed.into_attribute_subset(request.claim_paths());
+                        stored_copy.attestation = StoredAttestationFormat::MsoMdoc { mdoc: mdoc.clone() };
 
-                                let attestation = DisclosureAttestation::new(
-                                    attestation_copy_id,
-                                    DisclosureAttestationFormat::MsoMdoc { mdoc },
-                                    attestation_presentation,
-                                );
-
-                                Ok(attestation)
-                            })
-                        },
-                    )
-                    .collect::<Result<Vec<_>, DisclosureError>>()
+                        Some(DisclosureAttestation::new(
+                            attestation_copy_id,
+                            DisclosureAttestationFormat::MsoMdoc { mdoc },
+                            stored_copy.into_attestation_presentation(),
+                        ))
+                    })
+                    .collect_vec()
             }
             CredentialQueryFormat::SdJwt { .. } => {
                 todo!("implement SD-JWT filtering and conversion");
             }
-        }?;
+        };
 
         let candidate_attestations = VecNonEmpty::try_from(candidate_attestations).ok();
 
@@ -443,7 +414,8 @@ where
                 .iter()
                 .map(|request| Self::fetch_candidate_attestations(&*storage, request)),
         )
-        .await?
+        .await
+        .map_err(DisclosureError::AttestationRetrieval)?
         .into_iter()
         .flatten()
         .collect_vec();
@@ -1474,13 +1446,6 @@ mod tests {
         );
         assert!(wallet.session.is_some());
     }
-
-    // TODO (PVW-4132): Attestations that are stored in the database should be assumed to contain valid certificates and
-    //                  metadata. Codifying these assumptions in to the type system should be implemented in PVW-4132.
-    //                  This comment should be removed once that is implemented.
-    //
-    // For the above reason tests are not included for the following error cases:
-    // * DisclosureError::AttestationAttributes
 
     #[tokio::test]
     async fn test_wallet_start_disclosure_error_multiple_candidates() {
