@@ -35,9 +35,9 @@ class DashboardScreen : MobileActions() {
 
     fun clickMenuButton() = clickElement(menuButton, false)
 
-    fun clickPidCard() {
+    fun clickCard(vct: String) {
         scrollToEndOnDashBoard()
-        clickElement(pidIdCard, false)
+        clickElement(find.byValueKey(vct), false)
     }
 
     fun appTourBannerVisible() = isElementVisible(appTourBannerTitle)
