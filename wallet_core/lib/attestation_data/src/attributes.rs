@@ -369,6 +369,17 @@ impl Attributes {
         Ok(Some(attr))
     }
 
+    /// Check if the a value exists at all of the provided claim paths.
+    /// Note that an invalid path will result in a mismatch.
+    pub fn has_claim_paths<'a, 'b>(
+        &'a self,
+        claim_paths: impl IntoIterator<Item = &'b VecNonEmpty<ClaimPath>>,
+    ) -> bool {
+        claim_paths
+            .into_iter()
+            .all(|claim_path| self.get(claim_path).map(|value| value.is_some()).unwrap_or(false))
+    }
+
     /// Insert the specified attribute at the specified location.
     ///
     /// NB: for now only all claim paths must be strings.
@@ -779,14 +790,21 @@ pub mod test {
     #[case(vec![ClaimPath::SelectByKey("house".to_string())], Ok(None))]
     #[case(vec![ClaimPath::SelectByIndex(1)], Err(AttributesHandlingError::InvalidClaimPath))]
     #[case(vec![ClaimPath::SelectAll], Err(AttributesHandlingError::InvalidClaimPath))]
-    fn test_attributes_get(
+    fn test_attributes_get_and_has_claim_paths(
         #[case] claim_paths: Vec<ClaimPath>,
         #[case] expected: Result<Option<&AttributeValue>, AttributesHandlingError>,
     ) {
         let attributes = setup_issuable_attributes();
-        let claim_paths = &claim_paths.try_into().unwrap();
+        let claim_paths = claim_paths.try_into().unwrap();
 
-        assert_eq!(attributes.get(claim_paths), expected);
+        assert_eq!(attributes.get(&claim_paths), expected);
+
+        let has_claim_path = attributes.has_claim_paths(&[claim_paths]);
+
+        match expected {
+            Ok(Some(_)) => assert!(has_claim_path),
+            _ => assert!(!has_claim_path),
+        }
     }
 
     #[rstest]

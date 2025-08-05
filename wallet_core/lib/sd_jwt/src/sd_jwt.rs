@@ -326,6 +326,12 @@ impl VerifiedSdJwt {
             .issuer_certificate()
             .expect("a verified SD-JWT should always contain a certificate")
     }
+
+    pub fn into_presentation_builder(self) -> SdJwtPresentationBuilder {
+        let Self(sd_jwt) = self;
+
+        sd_jwt.into_presentation_builder()
+    }
 }
 
 #[derive(Clone)]

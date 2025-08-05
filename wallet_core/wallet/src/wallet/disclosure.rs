@@ -315,8 +315,12 @@ where
                 full_copy.matches_requested_attributes(request.claim_paths())
             })
             .map(|full_copy| {
-                // Remove any attributes that were not requested from the presentation attributes.
-                let partial_copy = full_copy.into_partial(request.claim_paths());
+                // Remove any attributes that were not requested from the presentation attributes. Since the filtering
+                // above should remove any attestation in which the requested claim paths are not present and this is
+                // the only error condition, no error should occur.
+                let partial_copy = full_copy
+                    .try_into_partial(request.claim_paths())
+                    .expect("all claim paths should be present in attestation");
 
                 // Save a clone of the original attestation for disclosure,
                 // then convert the partial attestation for display.
