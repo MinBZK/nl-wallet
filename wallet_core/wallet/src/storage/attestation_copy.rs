@@ -35,6 +35,11 @@ pub struct StoredAttestationCopy<S> {
 /// the issued attributes, which can then be used for selective disclosure.
 pub type FullStoredAttestationCopy = StoredAttestationCopy<VerifiedSdJwt>;
 
+fn credential_payload_from_sd_jwt(sd_jwt: &SdJwt) -> CredentialPayload {
+    CredentialPayload::from_sd_jwt_unvalidated(sd_jwt)
+        .expect("conversion from stored SD-JWT attestation to CredentialPayload has been done before")
+}
+
 impl<S> StoredAttestationFormat<S>
 where
     S: AsRef<SdJwt>,
@@ -81,8 +86,7 @@ where
                 mdoc.issuer_signed.into_entries_by_namespace(),
             ),
             StoredAttestationFormat::SdJwt { sd_jwt } => {
-                let credential_payload = CredentialPayload::from_sd_jwt_unvalidated(sd_jwt.as_ref().as_ref())
-                    .expect("conversion from stored SD-JWT attestation to CredentialPayload has been done before");
+                let credential_payload = credential_payload_from_sd_jwt(sd_jwt.as_ref().as_ref());
 
                 AttestationPresentation::create_from_attributes(
                     AttestationIdentity::Fixed {
@@ -106,10 +110,7 @@ impl StoredAttestationCopy<VerifiedSdJwt> {
                 CredentialPayload::from_mdoc_unvalidated(*mdoc, &self.normalized_metadata)
                     .expect("conversion from stored mdoc attestation to CredentialPayload has been done before")
             }
-            StoredAttestationFormat::SdJwt { sd_jwt } => {
-                CredentialPayload::from_sd_jwt_unvalidated(sd_jwt.as_ref().as_ref())
-                    .expect("conversion from stored SD-JWT attestation to CredentialPayload has been done before")
-            }
+            StoredAttestationFormat::SdJwt { sd_jwt } => credential_payload_from_sd_jwt(sd_jwt.as_ref().as_ref()),
         }
     }
 
@@ -122,18 +123,24 @@ impl StoredAttestationCopy<VerifiedSdJwt> {
             StoredAttestationFormat::MsoMdoc { mdoc } => {
                 mdoc.issuer_signed.matches_requested_attributes(claim_paths).is_ok()
             }
-            StoredAttestationFormat::SdJwt { .. } => {
-                todo!("implement attribute matching for SD-JWT")
+            StoredAttestationFormat::SdJwt { sd_jwt } => {
+                // Create a temporary CredentialPayload to check if the paths are all present.
+                let credential_payload = credential_payload_from_sd_jwt(sd_jwt.as_ref().as_ref());
+
+                credential_payload
+                    .previewable_payload
+                    .attributes
+                    .has_claim_paths(claim_paths)
             }
         }
     }
 
     /// Convert the stored attestation into one that is ready for disclosure by
     /// selecting a subset of its attributes, based on a list of claim paths.
-    pub fn into_partial<'a>(
+    pub fn try_into_partial<'a>(
         self,
         claim_paths: impl IntoIterator<Item = &'a VecNonEmpty<ClaimPath>>,
-    ) -> StoredAttestationCopy<UnsignedSdJwtPresentation> {
+    ) -> Result<StoredAttestationCopy<UnsignedSdJwtPresentation>, sd_jwt::error::Error> {
         let Self {
             attestation_id,
             attestation_copy_id,
@@ -147,16 +154,27 @@ impl StoredAttestationCopy<VerifiedSdJwt> {
 
                 StoredAttestationFormat::MsoMdoc { mdoc }
             }
-            StoredAttestationFormat::SdJwt { .. } => {
-                todo!("implement attribute filtering for SD-JWT")
+            StoredAttestationFormat::SdJwt { sd_jwt } => {
+                let presentation = claim_paths
+                    .into_iter()
+                    .try_fold(sd_jwt.into_presentation_builder(), |builder, claim_path| {
+                        builder.disclose(claim_path)
+                    })?
+                    .finish();
+
+                StoredAttestationFormat::SdJwt {
+                    sd_jwt: Box::new(presentation),
+                }
             }
         };
 
-        StoredAttestationCopy {
+        let partial_copy = StoredAttestationCopy {
             attestation_id,
             attestation_copy_id,
             attestation,
             normalized_metadata,
-        }
+        };
+
+        Ok(partial_copy)
     }
 }
