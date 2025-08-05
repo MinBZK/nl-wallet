@@ -102,6 +102,17 @@ pub enum CredentialQueryFormat {
     },
 }
 
+impl CredentialQueryFormat {
+    pub fn attestation_types(&self) -> impl Iterator<Item = &str> {
+        match self {
+            Self::MsoMdoc { doctype_value } => std::slice::from_ref(doctype_value),
+            Self::SdJwt { vct_values } => vct_values.as_slice(),
+        }
+        .iter()
+        .map(String::as_str)
+    }
+}
+
 /// Represents a request for one or more credentials to satisfy a particular use case with the Verifier.
 ///
 /// <https://openid.net/specs/openid-4-verifiable-presentations-1_0-28.html#name-credential-set-query>
