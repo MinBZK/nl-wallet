@@ -20,6 +20,7 @@ import '../common/screen/placeholder_screen.dart';
 import '../common/widget/button/icon/back_icon_button.dart';
 import '../common/widget/button/icon/close_icon_button.dart';
 import '../common/widget/button/icon/help_icon_button.dart';
+import '../common/widget/fade_in_at_offset.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
 import '../common/widget/page_illustration.dart';
 import '../common/widget/text/title_text.dart';
@@ -56,30 +57,33 @@ class IssuanceScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final progress = context.watch<IssuanceBloc>().state.stepperProgress;
-    return Scaffold(
-      restorationId: 'issuance_scaffold',
-      appBar: WalletAppBar(
-        leading: _buildBackButton(context),
-        automaticallyImplyLeading: false,
-        actions: [
-          const HelpIconButton(),
-          CloseIconButton(onPressed: () => _stopIssuance(context)),
-        ],
-        title: _buildTitle(context),
-        progress: progress,
-      ),
-      body: PopScope(
-        canPop: false,
-        onPopInvokedWithResult: (didPop, result) {
-          if (didPop) return;
-          if (context.bloc.state.canGoBack) {
-            context.bloc.add(const IssuanceBackPressed());
-          } else {
-            _stopIssuance(context);
-          }
-        },
-        child: SafeArea(
-          child: _buildPage(),
+    return ScrollOffsetProvider(
+      child: Scaffold(
+        restorationId: 'issuance_scaffold',
+        appBar: WalletAppBar(
+          leading: _buildBackButton(context),
+          automaticallyImplyLeading: false,
+          actions: [
+            const HelpIconButton(),
+            CloseIconButton(onPressed: () => _stopIssuance(context)),
+          ],
+          title: _buildTitle(context),
+          fadeInTitleOnScroll: false,
+          progress: progress,
+        ),
+        body: PopScope(
+          canPop: false,
+          onPopInvokedWithResult: (didPop, result) {
+            if (didPop) return;
+            if (context.bloc.state.canGoBack) {
+              context.bloc.add(const IssuanceBackPressed());
+            } else {
+              _stopIssuance(context);
+            }
+          },
+          child: SafeArea(
+            child: _buildPage(),
+          ),
         ),
       ),
     );
@@ -88,6 +92,7 @@ class IssuanceScreen extends StatelessWidget {
   Widget _buildPage() {
     return BlocConsumer<IssuanceBloc, IssuanceState>(
       listener: (context, state) {
+        context.read<ScrollOffset>().reset(); // Reset provided scrollOffset between pages
         if (state is IssuanceExternalScannerError) {
           Navigator.maybePop(context).then((popped) {
             if (context.mounted) ScanWithWalletDialog.show(context);
@@ -317,7 +322,7 @@ class IssuanceScreen extends StatelessWidget {
     );
   }
 
-  TitleText _buildTitle(BuildContext context) {
+  Widget _buildTitle(BuildContext context) {
     final state = context.watch<IssuanceBloc>().state;
     String title;
     switch (state) {
@@ -356,7 +361,14 @@ class IssuanceScreen extends StatelessWidget {
       case IssuanceRelyingPartyError():
         title = context.l10n.issuanceRelyingPartyErrorTitle;
     }
-    return TitleText(title);
+
+    // Check for [IssuanceCheckOrganization] state, as it has a taller header (with logo) and thus should fade in later.
+    final isCheckOrganizationState = state is IssuanceCheckOrganization;
+    return FadeInAtOffset(
+      appearOffset: isCheckOrganizationState ? 120 : 40,
+      visibleOffset: isCheckOrganizationState ? 150 : 80,
+      child: TitleText(title),
+    );
   }
 }
 
