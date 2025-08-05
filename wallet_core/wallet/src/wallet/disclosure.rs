@@ -1,5 +1,4 @@
 use std::collections::HashSet;
-use std::iter;
 use std::sync::Arc;
 use std::sync::LazyLock;
 
@@ -420,17 +419,13 @@ where
                 .credential_requests()
                 .as_ref()
                 .iter()
-                .flat_map(|request| match &request.format {
-                    CredentialQueryFormat::MsoMdoc { doctype_value } => request
-                        .claims
-                        .iter()
-                        .map(|path| {
-                            iter::once(doctype_value.to_string())
-                                .chain(path.path.iter().map(|path| format!("{path}")))
-                                .join("/")
-                        })
-                        .collect_vec(),
-                    CredentialQueryFormat::SdJwt { .. } => todo!("PVW-4139 support SdJwt"),
+                .flat_map(|request| {
+                    request.format.attestation_types().flat_map(|attestation_type| {
+                        request
+                            .claims
+                            .iter()
+                            .map(move |claim| format!("{}/{}", attestation_type, claim.path.iter().join("/")))
+                    })
                 })
                 .collect();
             let session_type = session.session_type();

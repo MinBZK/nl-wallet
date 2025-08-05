@@ -11,7 +11,6 @@ use x509_parser::der_parser::asn1_rs::oid;
 
 use attestation_types::claim_path::ClaimPath;
 use crypto::x509::BorrowingCertificateExtension;
-use dcql::CredentialQueryFormat;
 use dcql::normalized::NormalizedCredentialRequest;
 use error_category::ErrorCategory;
 use utils::vec_at_least::VecNonEmpty;
@@ -54,15 +53,11 @@ impl ReaderRegistration {
         let unregistered_attributes = requests
             .into_iter()
             .flat_map(|request| {
-                let attestation_types = match &request.format {
-                    CredentialQueryFormat::MsoMdoc { doctype_value } => std::slice::from_ref(doctype_value),
-                    CredentialQueryFormat::SdJwt { vct_values } => vct_values.as_slice(),
-                };
                 let request_attributes = request.claims.iter().map(|claim| &claim.path).collect::<HashSet<_>>();
 
                 // Check if any of the requested attributes are missing from the
                 // authorized attributes for all requested attestation types.
-                attestation_types.iter().flat_map(move |attestation_type| {
+                request.format.attestation_types().flat_map(move |attestation_type| {
                     let authorized_attributes = self
                         .authorized_attributes
                         .get(attestation_type)
@@ -75,7 +70,8 @@ impl ReaderRegistration {
                         .cloned()
                         .collect::<HashSet<_>>();
 
-                    (!unauthorized_attributes.is_empty()).then(|| (attestation_type.clone(), unauthorized_attributes))
+                    (!unauthorized_attributes.is_empty())
+                        .then(|| (attestation_type.to_string(), unauthorized_attributes))
                 })
             })
             .collect::<HashMap<_, _>>();
