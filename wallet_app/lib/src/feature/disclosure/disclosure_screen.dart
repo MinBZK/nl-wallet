@@ -101,13 +101,11 @@ class DisclosureScreen extends StatelessWidget {
 
   Widget _buildPage() {
     return BlocConsumer<DisclosureBloc, DisclosureState>(
-      /// Reset the [ScrollOffset] used by [FadeInAtOffset] when the state (and thus the visible page) changes.
       listener: (context, state) {
-        context.read<ScrollOffset>().offset = 0;
+        context.read<ScrollOffset>().reset(); // Reset provided scrollOffset between pages
         if (state is DisclosureExternalScannerError) {
           Navigator.maybePop(context).then((popped) {
-            // ignore: use_build_context_synchronously
-            ScanWithWalletDialog.show(context);
+            if (context.mounted) ScanWithWalletDialog.show(context);
           });
         }
       },
@@ -348,71 +346,50 @@ class DisclosureScreen extends StatelessWidget {
   }
 
   Widget _buildTitle(BuildContext context) {
-    return BlocBuilder<DisclosureBloc, DisclosureState>(
-      builder: (context, state) {
-        final Widget? result = switch (state) {
-          DisclosureCheckOrganizationForLogin() => FadeInAtOffset(
-              appearOffset: 120,
-              visibleOffset: 150,
-              child: TitleText(
-                OrganizationApprovePage.resolveTitle(
-                  context,
-                  ApprovalPurpose.login,
-                  state.relyingParty,
-                ),
-              ),
-            ),
-          DisclosureConfirmDataAttributes() => FadeInAtOffset(
-              appearOffset: 70,
-              visibleOffset: 100,
-              child: TitleText(
-                context.l10n.disclosureConfirmDataAttributesShareWithTitle(
-                  state.relyingParty.displayName.l10nValue(context),
-                ),
-              ),
-            ),
-          DisclosureStopped() => FadeInAtOffset(
-              appearOffset: 48,
-              visibleOffset: 70,
-              child: TitleText(context.l10n.disclosureStoppedPageTitle),
-            ),
-          DisclosureSuccess() => FadeInAtOffset(
-              appearOffset: 48,
-              visibleOffset: 70,
-              child: TitleText(context.l10n.disclosureSuccessPageTitle),
-            ),
-          DisclosureNetworkError() => FadeInAtOffset(
-              appearOffset: 48,
-              visibleOffset: 70,
-              child: TitleText(
-                state.hasInternet ? context.l10n.errorScreenServerHeadline : context.l10n.errorScreenNoInternetHeadline,
-              ),
-            ),
-          DisclosureExternalScannerError() => FadeInAtOffset(
-              appearOffset: 48,
-              visibleOffset: 70,
-              child: TitleText(context.l10n.disclosureGenericErrorPageTitle),
-            ),
-          DisclosureGenericError() => FadeInAtOffset(
-              appearOffset: 48,
-              visibleOffset: 70,
-              child: TitleText(context.l10n.disclosureGenericErrorPageTitle),
-            ),
-          DisclosureSessionExpired() => FadeInAtOffset(
-              appearOffset: 48,
-              visibleOffset: 70,
-              child: TitleText(context.l10n.errorScreenSessionExpiredHeadline),
-            ),
-          DisclosureSessionCancelled() => FadeInAtOffset(
-              appearOffset: 48,
-              visibleOffset: 70,
-              child: TitleText(context.l10n.errorScreenCancelledSessionHeadline),
-            ),
-          _ => null,
-        };
+    final state = context.watch<DisclosureBloc>().state;
+    String? title;
+    switch (state) {
+      case DisclosureInitial():
+        title = context.l10n.disclosureLoadingTitle;
+      case DisclosureGenericError():
+        title = context.l10n.disclosureGenericErrorPageTitle;
+      case DisclosureRelyingPartyError():
+        title = context.l10n.disclosureRelyingPartyErrorTitle;
+      case DisclosureSessionExpired():
+        title = context.l10n.errorScreenSessionExpiredHeadline;
+      case DisclosureSessionCancelled():
+        title = context.l10n.errorScreenCancelledSessionHeadline;
+      case DisclosureNetworkError():
+        title = state.hasInternet ? context.l10n.errorScreenServerHeadline : context.l10n.errorScreenNoInternetHeadline;
+      case DisclosureCheckUrl():
+        title = context.l10n.fraudCheckPageTitle(state.originUrl);
+      case DisclosureCheckOrganizationForLogin():
+        title = OrganizationApprovePage.resolveTitle(context, ApprovalPurpose.login, state.relyingParty);
+      case DisclosureMissingAttributes():
+        title = context.l10n.missingAttributesPageTitle;
+      case DisclosureConfirmDataAttributes():
+        title = context.l10n.disclosureConfirmDataAttributesShareWithTitle(
+          state.relyingParty.displayName.l10nValue(context),
+        );
+      case DisclosureSuccess():
+        title = context.l10n.disclosureSuccessPageTitle;
+      case DisclosureStopped():
+        title = context.l10n.disclosureStoppedPageTitle;
+      case DisclosureLeftFeedback():
+        title = context.l10n.disclosureReportSubmittedPageTitle;
+      case DisclosureConfirmPin():
+      case DisclosureExternalScannerError():
+      case DisclosureLoadInProgress():
+        break;
+    }
+    if (title == null) return const SizedBox.shrink();
 
-        return result ?? const SizedBox.shrink();
-      },
+    // Check for CheckOrganization state, as it has a taller header (with logo) and thus should fade in later.
+    final isCheckOrganizationState = state is DisclosureCheckOrganizationForLogin;
+    return FadeInAtOffset(
+      appearOffset: isCheckOrganizationState ? 120 : 40,
+      visibleOffset: isCheckOrganizationState ? 150 : 80,
+      child: TitleText(title),
     );
   }
 

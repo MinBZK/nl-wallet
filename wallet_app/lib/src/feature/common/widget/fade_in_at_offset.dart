@@ -65,6 +65,10 @@ class _FadeInAtOffsetState extends State<FadeInAtOffset> with AfterLayoutMixin<F
     double startAppearingAt = widget.appearOffset;
     double completelyVisibleAt = widget.visibleOffset;
 
+    // If don't have enough room to scroll to reach the 'start animation' breakpoint we simply
+    // never show the [child], as this should mean the original title always stays visible.
+    if (maxScrollExtent <= startAppearingAt) return const SizedBox.shrink();
+
     if (maxScrollExtent > 0 /* if maxScrollExtent is 0, we only animate for the overscroll */) {
       // We make sure the widget will always animate to 100% opacity by comparing it with the maximum scrollable extend.
       startAppearingAt = min(widget.appearOffset, maxScrollExtent - 1);
