@@ -23,11 +23,12 @@ pub enum StoredAttestationFormat<S> {
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(test, derive(derive_more::Constructor))]
 pub struct StoredAttestationCopy<S> {
-    pub attestation_id: Uuid,
-    pub attestation_copy_id: Uuid,
-    pub attestation: StoredAttestationFormat<S>,
-    pub normalized_metadata: NormalizedTypeMetadata,
+    pub(super) attestation_id: Uuid,
+    pub(super) attestation_copy_id: Uuid,
+    pub(super) attestation: StoredAttestationFormat<S>,
+    pub(super) normalized_metadata: NormalizedTypeMetadata,
 }
 
 /// This is an alias for the type of `StoredAttestation` that is returned by the database and contains all of the
@@ -38,6 +39,24 @@ pub type FullStoredAttestationCopy = StoredAttestationCopy<VerifiedSdJwt>;
 fn credential_payload_from_sd_jwt(sd_jwt: &SdJwt) -> CredentialPayload {
     CredentialPayload::from_sd_jwt_unvalidated(sd_jwt)
         .expect("conversion from stored SD-JWT attestation to CredentialPayload has been done before")
+}
+
+impl<S> StoredAttestationCopy<S> {
+    pub fn attestation_id(&self) -> Uuid {
+        self.attestation_id
+    }
+
+    pub fn attestation_copy_id(&self) -> Uuid {
+        self.attestation_copy_id
+    }
+
+    pub fn attestation(&self) -> &StoredAttestationFormat<S> {
+        &self.attestation
+    }
+
+    pub fn normalized_metadata(&self) -> &NormalizedTypeMetadata {
+        &self.normalized_metadata
+    }
 }
 
 impl<S> StoredAttestationFormat<S>
