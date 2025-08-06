@@ -323,8 +323,8 @@ where
 
                 // Save a clone of the original attestation for disclosure,
                 // then convert the partial attestation for display.
-                let copy_id = partial_copy.attestation_copy_id;
-                let attestation = partial_copy.attestation.clone();
+                let copy_id = partial_copy.attestation_copy_id();
+                let attestation = partial_copy.attestation().clone();
                 let presentation = partial_copy.into_attestation_presentation();
 
                 DisclosureAttestation::new(copy_id, attestation, presentation)

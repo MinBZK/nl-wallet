@@ -585,7 +585,7 @@ fn match_preview_and_stored_attestations<'a>(
     let stored_credential_payloads: Vec<(CredentialPayload, Uuid)> = stored_attestations
         .into_iter()
         .map(|copy| {
-            let attestation_id = copy.attestation_id;
+            let attestation_id = copy.attestation_id();
 
             (copy.into_credential_payload(), attestation_id)
         })
@@ -1072,14 +1072,14 @@ mod tests {
             .unwrap();
 
         let attestation_id = Uuid::new_v4();
-        let stored = FullStoredAttestationCopy {
+        let stored = FullStoredAttestationCopy::new(
             attestation_id,
-            attestation_copy_id: Uuid::new_v4(),
-            attestation: StoredAttestationFormat::SdJwt {
+            Uuid::new_v4(),
+            StoredAttestationFormat::SdJwt {
                 sd_jwt: Box::new(VerifiedSdJwt::new_mock(sd_jwt)),
             },
             normalized_metadata,
-        };
+        );
 
         let storage = wallet.mut_storage();
         storage
@@ -1432,14 +1432,14 @@ mod tests {
             .unwrap();
 
         let attestation_id = Uuid::new_v4();
-        let stored = FullStoredAttestationCopy {
+        let stored = FullStoredAttestationCopy::new(
             attestation_id,
-            attestation_copy_id: Uuid::new_v4(),
-            attestation: StoredAttestationFormat::SdJwt {
+            Uuid::new_v4(),
+            StoredAttestationFormat::SdJwt {
                 sd_jwt: Box::new(VerifiedSdJwt::new_mock(sd_jwt)),
             },
             normalized_metadata,
-        };
+        );
 
         // When the attestation already exists in the database, we expect the identity to be known
         let previews = [create_example_preview_data(&time_generator)];
