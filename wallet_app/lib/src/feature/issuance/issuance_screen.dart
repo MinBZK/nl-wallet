@@ -272,6 +272,7 @@ class IssuanceScreen extends StatelessWidget {
       description: context.l10n.issuanceNoCardsPageDescription(state.organization.displayName.l10nValue(context)),
       primaryButtonCta: context.l10n.generalClose,
       onPrimaryPressed: () => _stopIssuance(context),
+      primaryButtonIcon: const Icon(Icons.close),
       illustration: const PageIllustration(asset: WalletAssets.svg_no_cards),
     );
   }
