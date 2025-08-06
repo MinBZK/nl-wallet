@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2025-08-05T09:55:02+02:00",
+    "@@last_modified": "2025-08-05T15:31:06+02:00",
     "aboutScreenDescription": "De NL Wallet wordt gemaakt door de Nederlandse overheid, zodat iedereen digitale diensten veilig en gemakkelijk kan gebruiken.\n\nJe kunt de ontwikkelingen volgen op {url}.",
     "aboutScreenPrivacyCta": "Privacyverklaring",
     "aboutScreenTitle": "Over de NL Wallet",
@@ -715,7 +715,7 @@
     "issuanceLoadingCardsTitle": "Even geduld",
     "issuanceLoadingRequestDescription": "De aanvraag wordt opgehaald",
     "issuanceLoadingRequestTitle": "Even geduld",
-    "issuanceNoCardsPageDescription": "Geen kaarten gevonden bij {organization}",
+    "issuanceNoCardsPageDescription": "Er zijn geen kaarten om toe te voegen van {organization}\n\nAls je denkt dat er kaarten missen, neem dan contact op met {organization}.",
     "@issuanceNoCardsPageDescription": {
         "placeholders": {
             "organization": {

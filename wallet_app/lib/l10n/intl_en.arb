@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2025-08-05T09:55:02+02:00",
+    "@@last_modified": "2025-08-05T15:31:06+02:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -719,7 +719,7 @@
     "issuanceLoadingCardsTitle": "Please wait",
     "issuanceLoadingRequestDescription": "Your request is being retrieved",
     "issuanceLoadingRequestTitle": "Please wait",
-    "issuanceNoCardsPageDescription": "No cards found at {organization}",
+    "issuanceNoCardsPageDescription": "There are no cards to add from {organization}\n\nIf you believe cards are missing, please contact {organization}.",
     "@issuanceNoCardsPageDescription": {
         "placeholders": {
             "organization": {
