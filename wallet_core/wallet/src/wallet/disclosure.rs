@@ -80,6 +80,18 @@ static MDOC_LOGIN_REQUEST: LazyLock<NormalizedCredentialRequest> = LazyLock::new
     }],
 });
 
+static SD_JWT_LOGIN_REQUEST: LazyLock<NormalizedCredentialRequest> = LazyLock::new(|| NormalizedCredentialRequest {
+    format: CredentialQueryFormat::SdJwt {
+        vct_values: vec![PID_DOCTYPE.to_string()].try_into().unwrap(),
+    },
+    claims: vec![AttributeRequest {
+        path: vec![ClaimPath::SelectByKey(BSN_ATTR_NAME.to_string())]
+            .try_into()
+            .unwrap(),
+        intent_to_retain: false,
+    }],
+});
+
 #[derive(Debug, Clone)]
 pub struct DisclosureProposalPresentation {
     pub attestations: Vec<AttestationPresentation>,
@@ -396,8 +408,13 @@ where
 
         // At this point, determine the disclosure type and if data was ever shared with this RP before, as the UI
         // needs this context both for when all requested attributes are present and for when attributes are missing.
-        let disclosure_type =
-            DisclosureType::from_credential_requests(session.credential_requests().as_ref(), &MDOC_LOGIN_REQUEST);
+        let disclosure_type = DisclosureType::from_credential_requests(
+            session.credential_requests().as_ref(),
+            [
+                LazyLock::force(&MDOC_LOGIN_REQUEST),
+                LazyLock::force(&SD_JWT_LOGIN_REQUEST),
+            ],
+        );
 
         let verifier_certificate = session.verifier_certificate();
         let shared_data_with_relying_party_before = self
