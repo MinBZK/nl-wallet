@@ -853,7 +853,7 @@ mod tests {
             .unwrap()
     }
 
-    fn validate_issuance(pops: &[Jwt<JwtPopClaims>], poa: Option<Poa>, wua_with_disclosure: Option<WteDisclosure>) {
+    fn validate_issuance(pops: &[Jwt<JwtPopClaims>], poa: Option<Poa>, wua_with_disclosure: Option<&WteDisclosure>) {
         let mut validations = Validation::new(Algorithm::ES256);
         validations.required_spec_claims = HashSet::default();
         validations.set_issuer(&[NL_WALLET_CLIENT_ID]);
@@ -870,18 +870,24 @@ mod tests {
             })
             .collect_vec();
 
-        let (wua, wua_disclosure) = wua_with_disclosure
-            .map(|WteDisclosure(wua, wua_disclosure)| (wua, wua_disclosure))
-            .unzip();
+        let wua_key = wua_with_disclosure.map(|wua_with_disclosure| {
+            let wua_key = jwk_to_p256(
+                &wua_with_disclosure
+                    .wte()
+                    .dangerous_parse_unverified()
+                    .unwrap()
+                    .1
+                    .confirmation
+                    .jwk,
+            )
+            .unwrap();
 
-        let wua_key = wua
-            .as_ref()
-            .map(|wua| jwk_to_p256(&wua.dangerous_parse_unverified().unwrap().1.confirmation.jwk).unwrap());
-
-        wua_disclosure.inspect(|wua_disclosure| {
-            wua_disclosure
-                .parse_and_verify(&(wua_key.as_ref().unwrap().into()), &validations)
+            wua_with_disclosure
+                .wte_pop()
+                .parse_and_verify(&((&wua_key).into()), &validations)
                 .unwrap();
+
+            wua_key
         });
 
         let keys = keys.into_iter().chain(wua_key).collect_vec();
@@ -924,7 +930,7 @@ mod tests {
         validate_issuance(
             result.issuance_result.pops.as_slice(),
             result.issuance_result.poa,
-            Some(result.wua_disclosure),
+            Some(&result.wua_disclosure),
         );
     }
 }
