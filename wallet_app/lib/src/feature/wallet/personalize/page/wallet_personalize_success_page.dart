@@ -20,7 +20,7 @@ class WalletPersonalizeSuccessPage extends StatelessWidget {
     return TerminalPage(
       title: context.l10n.walletPersonalizeSuccessPageTitle,
       illustration: Padding(
-        padding: const EdgeInsets.only(top: 32, left: 16, right: 16),
+        padding: const EdgeInsets.only(top: 12, left: 16, right: 16),
         child: Center(
           child: StackedWalletCards(
             cards: cards,

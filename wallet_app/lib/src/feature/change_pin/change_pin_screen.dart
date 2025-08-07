@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../domain/model/flow_progress.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/cast_util.dart';
 import '../../util/extension/build_context_extension.dart';
@@ -13,10 +14,10 @@ import '../../wallet_constants.dart';
 import '../common/page/generic_loading_page.dart';
 import '../common/page/terminal_page.dart';
 import '../common/widget/button/animated_visibility_back_button.dart';
+import '../common/widget/fade_in_at_offset.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
 import '../common/widget/page_illustration.dart';
-import '../common/widget/sliver_wallet_app_bar.dart';
-import '../common/widget/stepper_indicator.dart';
+import '../common/widget/text/title_text.dart';
 import '../common/widget/wallet_app_bar.dart';
 import '../error/error_page.dart';
 import '../error/error_screen.dart';
@@ -38,82 +39,76 @@ class ChangePinScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: WalletAppBar(
-        bottom: _buildStepper(),
-        leading: _buildLeading(context),
-      ),
-      key: const Key('changePinScreen'),
-      body: SafeArea(
-        child: BlocConsumer<ChangePinBloc, ChangePinState>(
-          listener: (BuildContext context, ChangePinState state) async {
-            final bloc = context.bloc;
-            unawaited(_runAnnouncements(context, state));
-            switch (state) {
-              case ChangePinGenericError():
-                ErrorScreen.showGeneric(context, secured: false, style: ErrorCtaStyle.retry);
-              case ChangePinNetworkError():
-                ErrorScreen.showNetwork(context, networkError: tryCast(state), secured: false);
-              case ChangePinSelectNewPinFailed():
-                await PinValidationErrorDialog.show(context, state.reason).then((_) => bloc.add(PinBackspacePressed()));
-              case ChangePinConfirmNewPinFailed():
-                await PinConfirmationErrorDialog.show(context, retryAllowed: state.retryAllowed).then((_) {
-                  bloc.add(state.retryAllowed ? PinBackspacePressed() : ChangePinRetryPressed());
-                });
-              default:
-                break;
-            }
-          },
-          builder: (context, state) {
-            final Widget result = switch (state) {
-              ChangePinInitial() => _buildEnterCurrentPinPage(context),
-              ChangePinSelectNewPinInProgress() => _buildSelectNewPinPage(context, enteredDigits: state.enteredDigits),
-              ChangePinSelectNewPinFailed() => _buildSelectNewPinPage(context, enteredDigits: kPinDigits),
-              ChangePinConfirmNewPinInProgress() =>
-                _buildConfirmNewPinPage(context, enteredDigits: state.enteredDigits),
-              ChangePinConfirmNewPinFailed() => _buildConfirmNewPinPage(context, enteredDigits: kPinDigits),
-              ChangePinUpdating() => _buildChangePinUpdating(context),
-              ChangePinCompleted() => _buildChangePinSuccess(context),
-              ChangePinGenericError() => _buildChangePinFailed(context),
-              ChangePinNetworkError() => _buildChangePinFailed(context),
-            };
-            return FakePagingAnimatedSwitcher(
-              animateBackwards: state.didGoBack,
-              child: result,
-            );
-          },
+    return ScrollOffsetProvider(
+      child: Scaffold(
+        appBar: WalletAppBar(
+          title: _buildTitle(context),
+          progress: _buildFlowProgress(context),
+          leading: _buildLeading(context),
+        ),
+        key: const Key('changePinScreen'),
+        body: SafeArea(
+          child: BlocConsumer<ChangePinBloc, ChangePinState>(
+            listener: (BuildContext context, ChangePinState state) async {
+              final bloc = context.bloc;
+              unawaited(_runAnnouncements(context, state));
+              switch (state) {
+                case ChangePinGenericError():
+                  ErrorScreen.showGeneric(context, secured: false, style: ErrorCtaStyle.retry);
+                case ChangePinNetworkError():
+                  ErrorScreen.showNetwork(context, networkError: tryCast(state), secured: false);
+                case ChangePinSelectNewPinFailed():
+                  await PinValidationErrorDialog.show(context, state.reason)
+                      .then((_) => bloc.add(PinBackspacePressed()));
+                case ChangePinConfirmNewPinFailed():
+                  await PinConfirmationErrorDialog.show(context, retryAllowed: state.retryAllowed).then((_) {
+                    bloc.add(state.retryAllowed ? PinBackspacePressed() : ChangePinRetryPressed());
+                  });
+                default:
+                  break;
+              }
+            },
+            builder: (context, state) {
+              final Widget result = switch (state) {
+                ChangePinInitial() => _buildEnterCurrentPinPage(context),
+                ChangePinSelectNewPinInProgress() =>
+                  _buildSelectNewPinPage(context, enteredDigits: state.enteredDigits),
+                ChangePinSelectNewPinFailed() => _buildSelectNewPinPage(context, enteredDigits: kPinDigits),
+                ChangePinConfirmNewPinInProgress() =>
+                  _buildConfirmNewPinPage(context, enteredDigits: state.enteredDigits),
+                ChangePinConfirmNewPinFailed() => _buildConfirmNewPinPage(context, enteredDigits: kPinDigits),
+                ChangePinUpdating() => _buildChangePinUpdating(context),
+                ChangePinCompleted() => _buildChangePinSuccess(context),
+                ChangePinGenericError() => _buildChangePinFailed(context),
+                ChangePinNetworkError() => _buildChangePinFailed(context),
+              };
+              return FakePagingAnimatedSwitcher(
+                animateBackwards: state.didGoBack,
+                child: result,
+              );
+            },
+          ),
         ),
       ),
     );
   }
 
-  PreferredSizeWidget _buildStepper() {
-    return PreferredSize(
-      preferredSize: const Size.fromHeight(kStepIndicatorHeight),
-      child: Container(
-        height: kStepIndicatorHeight,
-        alignment: Alignment.center,
-        child: BlocBuilder<ChangePinBloc, ChangePinState>(
-          builder: (context, state) {
-            final currentStep = switch (state) {
-              ChangePinInitial() => 1,
-              ChangePinSelectNewPinInProgress() => 2,
-              ChangePinSelectNewPinFailed() => 2,
-              ChangePinConfirmNewPinInProgress() => 3,
-              ChangePinConfirmNewPinFailed() => 3,
-              ChangePinUpdating() => 3,
-              ChangePinCompleted() => kTotalNrOfPages,
-              ChangePinGenericError() => 0,
-              ChangePinNetworkError() => 0,
-            };
-            return StepperIndicator(
-              currentStep: currentStep,
-              totalSteps: kTotalNrOfPages,
-            );
-          },
-        ),
-      ),
-    );
+  FlowProgress _buildFlowProgress(BuildContext context) {
+    final state = context.watch<ChangePinBloc>().state;
+
+    final currentStep = switch (state) {
+      ChangePinInitial() => 1,
+      ChangePinSelectNewPinInProgress() => 2,
+      ChangePinSelectNewPinFailed() => 2,
+      ChangePinConfirmNewPinInProgress() => 3,
+      ChangePinConfirmNewPinFailed() => 3,
+      ChangePinUpdating() => 3,
+      ChangePinCompleted() => kTotalNrOfPages,
+      ChangePinGenericError() => 0,
+      ChangePinNetworkError() => 0,
+    };
+
+    return FlowProgress(currentStep: currentStep, totalSteps: kTotalNrOfPages);
   }
 
   Widget _buildLeading(BuildContext context) {
@@ -219,6 +214,23 @@ class ChangePinScreen extends StatelessWidget {
       } else if (state.enteredDigits > 0 && state.enteredDigits < kPinDigits) {
         AnnouncementsHelper.announceEnteredDigits(l10n, state.enteredDigits);
       }
+    }
+  }
+
+  Widget _buildTitle(BuildContext context) {
+    final state = context.watch<ChangePinBloc>().state;
+    switch (state) {
+      case ChangePinCompleted():
+        return TitleText(context.l10n.changePinScreenSuccessTitle);
+      case ChangePinInitial():
+      case ChangePinSelectNewPinInProgress():
+      case ChangePinSelectNewPinFailed():
+      case ChangePinConfirmNewPinInProgress():
+      case ChangePinConfirmNewPinFailed():
+      case ChangePinUpdating():
+      case ChangePinGenericError():
+      case ChangePinNetworkError():
+        return const TitleText('');
     }
   }
 }

@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../../navigation/secured_page_route.dart';
 import '../../util/extension/build_context_extension.dart';
+import '../../wallet_constants.dart';
 import '../common/widget/button/bottom_back_button.dart';
-import '../common/widget/sliver_wallet_app_bar.dart';
 import '../common/widget/spacer/sliver_sized_box.dart';
+import '../common/widget/text/title_text.dart';
+import '../common/widget/wallet_app_bar.dart';
 import '../common/widget/wallet_scrollbar.dart';
 import 'widget/data_incorrect_option_row.dart';
 
@@ -14,14 +16,19 @@ class DataIncorrectScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: WalletAppBar(
+        title: TitleText(context.l10n.dataIncorrectScreenHeaderTitle),
+      ),
       body: SafeArea(
         child: WalletScrollbar(
           child: CustomScrollView(
             restorationId: 'data_incorrect',
             slivers: <Widget>[
-              SliverWalletAppBar(
-                title: context.l10n.dataIncorrectScreenHeaderTitle,
-                scrollController: PrimaryScrollController.maybeOf(context),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: kDefaultTitlePadding,
+                  child: TitleText(context.l10n.dataIncorrectScreenHeaderTitle),
+                ),
               ),
               SliverToBoxAdapter(
                 child: Padding(

@@ -63,7 +63,7 @@ void main() {
       final headlineFinder = find.textContaining(locale.pinTimeoutScreenHeadline, findRichText: true);
       final ctaFinder = find.textContaining(locale.pinTimeoutScreenForgotPinCta, findRichText: true);
 
-      expect(headlineFinder, findsNWidgets(2) /*In content and appbar*/);
+      expect(headlineFinder, findsOneWidget);
       expect(ctaFinder, findsOneWidget);
     });
 

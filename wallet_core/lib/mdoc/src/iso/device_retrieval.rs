@@ -6,15 +6,11 @@ use std::fmt::Debug;
 use ciborium::value::Value;
 use coset::CoseSign1;
 use indexmap::IndexMap;
-use indexmap::IndexSet;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
 use url::Url;
 
-use crate::identifiers::AttributeIdentifier;
-use crate::identifiers::AttributeIdentifierError;
-use crate::identifiers::AttributeIdentifierHolder;
 use crate::iso::engagement::*;
 use crate::iso::mdocs::*;
 use crate::utils::cose::MdocCose;
@@ -90,19 +86,24 @@ pub struct ItemsRequest {
     pub request_info: Option<IndexMap<String, Value>>,
 }
 
-impl AttributeIdentifierHolder for ItemsRequest {
-    fn mdoc_attribute_identifiers(&self) -> Result<IndexSet<AttributeIdentifier>, AttributeIdentifierError> {
-        Ok(self
-            .name_spaces
-            .iter()
-            .flat_map(|(namespace, attributes)| {
-                attributes.into_iter().map(|(attribute, _)| AttributeIdentifier {
-                    credential_type: self.doc_type.to_owned(),
-                    namespace: namespace.to_owned(),
-                    attribute: attribute.to_owned(),
+impl DeviceRequest {
+    pub fn from_doc_requests(doc_requests: Vec<DocRequest>) -> Self {
+        DeviceRequest {
+            doc_requests,
+            ..Default::default()
+        }
+    }
+
+    pub fn from_items_requests(items_requests: Vec<ItemsRequest>) -> Self {
+        Self::from_doc_requests(
+            items_requests
+                .into_iter()
+                .map(|items_request| DocRequest {
+                    items_request: items_request.into(),
+                    reader_auth: None,
                 })
-            })
-            .collect())
+                .collect(),
+        )
     }
 }
 
@@ -118,7 +119,7 @@ pub type DataElements = IndexMap<DataElementIdentifier, IntentToRetain>;
 /// [`DataElements`] within a [`ItemsRequest`].
 pub type IntentToRetain = bool;
 
-#[cfg(any(test, feature = "examples"))]
+#[cfg(test)]
 mod examples {
     use std::iter;
 

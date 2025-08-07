@@ -10,6 +10,7 @@ import '../../util/extension/biometrics_extension.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/string_extension.dart';
 import '../../wallet_assets.dart';
+import '../../wallet_constants.dart';
 import '../common/dialog/locked_out_dialog.dart';
 import '../common/screen/confirm_with_pin_screen.dart';
 import '../common/screen/terminal_screen.dart';
@@ -19,8 +20,9 @@ import '../common/widget/button/tertiary_button.dart';
 import '../common/widget/centered_loading_indicator.dart';
 import '../common/widget/page_illustration.dart';
 import '../common/widget/paragraphed_sliver_list.dart';
-import '../common/widget/sliver_wallet_app_bar.dart';
 import '../common/widget/spacer/sliver_sized_box.dart';
+import '../common/widget/text/title_text.dart';
+import '../common/widget/wallet_app_bar.dart';
 import '../error/error_screen.dart';
 import 'bloc/biometric_settings_bloc.dart';
 
@@ -30,6 +32,9 @@ class BiometricSettingScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: WalletAppBar(
+        title: TitleText(_resolveTitle(context)),
+      ),
       body: SafeArea(
         child: Column(
           children: [
@@ -161,7 +166,12 @@ class BiometricSettingScreen extends StatelessWidget {
   Widget _buildLoading(BuildContext context) {
     return CustomScrollView(
       slivers: [
-        SliverWalletAppBar(title: _resolveTitle(context)),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: kDefaultTitlePadding,
+            child: TitleText(_resolveTitle(context)),
+          ),
+        ),
         const SliverFillRemaining(
           child: CenteredLoadingIndicator(),
         ),
@@ -182,7 +192,12 @@ class BiometricSettingScreen extends StatelessWidget {
     final supportedBiometricsText = context.bloc.supportedBiometrics.prettyPrint(context);
     return CustomScrollView(
       slivers: [
-        SliverWalletAppBar(title: _resolveTitle(context)),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: kDefaultTitlePadding,
+            child: TitleText(_resolveTitle(context)),
+          ),
+        ),
         SliverPadding(
           padding: const EdgeInsets.all(16),
           sliver: ParagraphedSliverList.splitContent(

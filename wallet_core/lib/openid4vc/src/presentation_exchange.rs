@@ -3,6 +3,7 @@
 //! implementing only the fields used by the OpenID4VP profile from ISO 18013-7.
 //! Other fields are left out of the various structs and enums for now, and some fields that are optional per
 //! Presentation Exchange that are always used by the ISO 18013-7 profile are mandatory here.
+use std::num::NonZeroUsize;
 use std::sync::LazyLock;
 
 use indexmap::IndexSet;
@@ -24,14 +25,14 @@ use crate::Format;
 use crate::openid4vp::FormatAlg;
 use crate::openid4vp::VpFormat;
 
-/// As specified in https://identity.foundation/presentation-exchange/spec/v2.0.0/#presentation-definition.
+/// As specified in <https://identity.foundation/presentation-exchange/spec/v2.0.0/#presentation-definition>.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PresentationDefinition {
     pub id: String,
     pub input_descriptors: Vec<InputDescriptor>,
 }
 
-/// As specified in https://identity.foundation/presentation-exchange/spec/v2.0.0/#input-descriptor-object.
+/// As specified in <https://identity.foundation/presentation-exchange/spec/v2.0.0/#input-descriptor-object>.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InputDescriptor {
     pub id: String,
@@ -58,82 +59,118 @@ pub enum LimitDisclosure {
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 pub enum PdConversionError {
-    #[error("too many paths")]
+    #[error("too many paths: expected 1, found {0}")]
     #[category(critical)]
-    TooManyPaths,
-    #[error("unsupported JsonPath expression")]
+    TooManyPaths(NonZeroUsize),
+    #[error("unsupported JsonPath expression: {0}")]
     #[category(critical)]
-    UnsupportedJsonPathExpression,
+    UnsupportedJsonPathExpression(String),
     #[error("signature algorithms not supported")]
     #[category(critical)]
     UnsupportedAlgs,
+    #[error("too many VCT values in credential request: expected 1, found {0}")]
+    #[category(critical)]
+    UnsupportedSdJwt(NonZeroUsize),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Field {
-    pub path: Vec<String>,
+    pub path: VecNonEmpty<String>,
     pub intent_to_retain: bool,
 }
 
 /// Per ISO 18013.7, the field paths in a Presentation Definition must all be a JSONPath expression of the form
-/// "$['namespace']['attribute_name']".
+/// "$['namespace']['attribute_name']". To be able to support SD-JWTs with nested attributes, we also allow JSONPath
+/// expressions with more components, such as "$['path']['to']['attribute']".
 ///
-/// See also https://identity.foundation/presentation-exchange/spec/v2.0.0/#jsonpath-syntax-definition
+/// See also <https://identity.foundation/presentation-exchange/spec/v2.0.0/#jsonpath-syntax-definition>.
+const FIELD_PATH_ELEMENT_REGEX_STRING: &str = r#"\[['"]([^'"]+)['"]\]"#;
+static FIELD_PATH_ELEMENT_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(FIELD_PATH_ELEMENT_REGEX_STRING).unwrap());
 static FIELD_PATH_REGEX: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r#"^\$\[['"]([^'"]*)['"]\]\[['"]([^'"]*)['"]\]$"#).unwrap());
+    LazyLock::new(|| Regex::new(&format!(r#"^\$(?:{FIELD_PATH_ELEMENT_REGEX_STRING})+$"#)).unwrap());
 
 impl Field {
-    pub(crate) fn parse_paths(&self) -> Result<(String, String), PdConversionError> {
-        if self.path.len() != 1 {
-            return Err(PdConversionError::TooManyPaths);
+    pub(crate) fn parse_paths(&self) -> Result<VecNonEmpty<String>, PdConversionError> {
+        let path = self
+            .path
+            .iter()
+            .exactly_one()
+            .map_err(|_| PdConversionError::TooManyPaths(self.path.len()))?;
+
+        if !FIELD_PATH_REGEX.is_match(path) {
+            return Err(PdConversionError::UnsupportedJsonPathExpression(path.to_string()));
         }
-        let path = &self.path[0];
 
-        let captures = FIELD_PATH_REGEX
-            .captures(path)
-            .ok_or(PdConversionError::UnsupportedJsonPathExpression)?;
+        let segments = FIELD_PATH_ELEMENT_REGEX
+            .captures_iter(path)
+            .map(|captures| {
+                let (_, [segment]) = captures.extract();
+                segment.to_string()
+            })
+            .collect_vec()
+            .try_into()
+            .unwrap(); // the regex guarantees at least one segment
 
-        // `captures` will always have three elements due to how the regex is constructed.
-        Ok((captures[1].to_string(), captures[2].to_string()))
+        Ok(segments)
     }
 }
 
 // TODO: Remove in PVW-4419
-impl From<&VecNonEmpty<NormalizedCredentialRequest>> for PresentationDefinition {
-    fn from(requested_creds: &VecNonEmpty<NormalizedCredentialRequest>) -> Self {
-        PresentationDefinition {
+impl TryFrom<&VecNonEmpty<NormalizedCredentialRequest>> for PresentationDefinition {
+    type Error = PdConversionError;
+
+    fn try_from(requested_creds: &VecNonEmpty<NormalizedCredentialRequest>) -> Result<Self, Self::Error> {
+        let pd = PresentationDefinition {
             id: random_string(16),
             input_descriptors: requested_creds
                 .as_ref()
                 .iter()
                 .map(|request| {
-                    let CredentialQueryFormat::MsoMdoc { doctype_value } = &request.format else {
-                        panic!("SdJwt not supported yet");
+                    let (id, format) = match &request.format {
+                        CredentialQueryFormat::MsoMdoc { doctype_value } => (
+                            doctype_value.to_owned(),
+                            VpFormat::MsoMdoc {
+                                alg: IndexSet::from([FormatAlg::ES256]),
+                            },
+                        ),
+                        CredentialQueryFormat::SdJwt { vct_values } => (
+                            vct_values
+                                .iter()
+                                .exactly_one()
+                                .map_err(|_| PdConversionError::UnsupportedSdJwt(vct_values.len()))?
+                                .to_owned(),
+                            VpFormat::SdJwt {
+                                alg: IndexSet::from([FormatAlg::ES256]),
+                            },
+                        ),
                     };
-                    InputDescriptor {
-                        id: doctype_value.clone(),
-                        format: VpFormat::MsoMdoc {
-                            alg: IndexSet::from([FormatAlg::ES256]),
-                        },
+                    let id = InputDescriptor {
+                        id,
+                        format,
                         constraints: Constraints {
                             limit_disclosure: LimitDisclosure::Required,
                             fields: request
                                 .claims
                                 .iter()
-                                .map(|attr_req| {
-                                    let path = attr_req.path.iter().map(|p| format!("['{p}']")).join("");
-                                    Field {
-                                        path: vec![format!("${path}")],
-                                        intent_to_retain: attr_req.intent_to_retain,
-                                    }
+                                .map(|attr| Field {
+                                    path: vec![format!("$['{}']", attr.path.iter().join("']['"))]
+                                        .try_into()
+                                        .unwrap(),
+                                    intent_to_retain: attr.intent_to_retain,
                                 })
                                 .collect(),
                         },
-                    }
+                    };
+
+                    Ok(id)
                 })
-                .collect(),
-        }
+                .collect::<Result<Vec<_>, _>>()?,
+        };
+
+        Ok(pd)
     }
 }
 
@@ -154,7 +191,10 @@ impl TryFrom<&PresentationDefinition> for VecNonEmpty<NormalizedCredentialReques
             .input_descriptors
             .iter()
             .map(|input_descriptor| {
-                let VpFormat::MsoMdoc { alg } = &input_descriptor.format;
+                let alg = match &input_descriptor.format {
+                    VpFormat::MsoMdoc { alg } => alg,
+                    VpFormat::SdJwt { alg } => alg,
+                };
                 if !alg.contains(&FormatAlg::ES256) {
                     return Err(PdConversionError::UnsupportedAlgs);
                 }
@@ -164,10 +204,13 @@ impl TryFrom<&PresentationDefinition> for VecNonEmpty<NormalizedCredentialReques
                     .fields
                     .iter()
                     .map(|field| {
-                        let (namespace, attr) = field.parse_paths()?;
+                        let attrs = field.parse_paths()?;
                         // The unwrap below is safe because we know the vec is non-empty.
                         Ok(AttributeRequest {
-                            path: vec![ClaimPath::SelectByKey(namespace), ClaimPath::SelectByKey(attr)]
+                            path: attrs
+                                .into_iter()
+                                .map(ClaimPath::SelectByKey)
+                                .collect_vec()
                                 .try_into()
                                 .unwrap(),
                             intent_to_retain: field.intent_to_retain,
@@ -258,6 +301,9 @@ mod tests {
     use dcql::normalized::NormalizedCredentialRequest;
     use utils::vec_at_least::VecNonEmpty;
 
+    use crate::presentation_exchange::Field;
+    use crate::presentation_exchange::PdConversionError;
+
     use super::FIELD_PATH_REGEX;
     use super::FormatAlg;
     use super::LimitDisclosure;
@@ -266,10 +312,11 @@ mod tests {
 
     #[rstest]
     #[case("$['namespace']['attribute_name']", true)]
-    #[case("$['namespace']", false)]
-    #[case("$['namespace']['attribute_name']['extra']", false)]
+    #[case("$['namespace']", true)] // This is needed for SD-JWT
+    #[case("$['namespace']['attribute_name']['extra']", true)] // This is needed for SD-JWT nested attributes
     #[case("$['namespace\'']['attribute_name']", false)] // We don't support escaped quotes ...
     #[case("$['namespace']['\"attribute_name']", false)] // ... in namespace or attribute names.
+    #[case("$['']", false)]
     #[case(r#"$["namespace"]["attribute_name"]"#, true)] // We also support double quotes ...
     #[case(r#"$['namespace']["attribute_name"]"#, true)] // ... and even mixes between the two
     #[case(r#"$['namespace']['attribute_name"]"#, true)] // (although not required by ISO 18013-7).
@@ -277,10 +324,28 @@ mod tests {
         assert_eq!(FIELD_PATH_REGEX.is_match(path), should_match);
     }
 
+    #[rstest]
+    #[case(vec!["$['namespace']['attribute_name']".to_string()].try_into().unwrap(), Ok(vec!["namespace".to_string(), "attribute_name".to_string()].try_into().unwrap()))]
+    #[case(vec!["$['namespace']".to_string()].try_into().unwrap(), Ok(vec!["namespace".to_string()].try_into().unwrap()))]
+    #[case(vec!["$['namespace']['attribute_name']['extra']".to_string()].try_into().unwrap(), Ok(vec!["namespace".to_string(), "attribute_name".to_string(), "extra".to_string()].try_into().unwrap()))]
+    #[case(vec!["too".to_string(), "many".to_string(), "paths".to_string()].try_into().unwrap(), Err(PdConversionError::TooManyPaths(3.try_into().unwrap())))]
+    #[case(vec!["$['']".to_string()].try_into().unwrap(), Err(PdConversionError::UnsupportedJsonPathExpression("$['']".to_string())))]
+    fn field_parse_paths(
+        #[case] path: VecNonEmpty<String>,
+        #[case] expected: Result<VecNonEmpty<String>, PdConversionError>,
+    ) {
+        let field = Field {
+            path,
+            intent_to_retain: false,
+        };
+
+        assert_eq!(field.parse_paths(), expected);
+    }
+
     #[test]
     fn convert_pd_credential_requests() {
         let orginal: VecNonEmpty<NormalizedCredentialRequest> = normalized::mock::example();
-        let pd: PresentationDefinition = (&orginal).into();
+        let pd: PresentationDefinition = (&orginal).try_into().unwrap();
         let converted: VecNonEmpty<NormalizedCredentialRequest> = (&pd).try_into().unwrap();
 
         assert_eq!(orginal, converted);

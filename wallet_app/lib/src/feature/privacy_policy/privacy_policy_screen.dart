@@ -6,11 +6,13 @@ import '../../theme/base_wallet_theme.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/object_extension.dart';
 import '../../util/launch_util.dart';
+import '../../wallet_constants.dart';
 import '../common/widget/button/bottom_back_button.dart';
 import '../common/widget/button/icon/back_icon_button.dart';
 import '../common/widget/centered_loading_indicator.dart';
-import '../common/widget/sliver_wallet_app_bar.dart';
 import '../common/widget/spacer/sliver_sized_box.dart';
+import '../common/widget/text/title_text.dart';
+import '../common/widget/wallet_app_bar.dart';
 import '../common/widget/wallet_scrollbar.dart';
 
 class PrivacyPolicyScreen extends StatelessWidget {
@@ -19,6 +21,11 @@ class PrivacyPolicyScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: const WalletAppBar(
+        // hardcoded dutch title to match hardcoded dutch policy
+        title: TitleText('Privacyverklaring Publieke Wallet (eerste beproevingsperiode)'),
+        leading: BackIconButton(),
+      ),
       key: const Key('privacyPolicyScreen'),
       body: SafeArea(child: _buildContent(context)),
     );
@@ -31,11 +38,11 @@ class PrivacyPolicyScreen extends StatelessWidget {
           child: WalletScrollbar(
             child: CustomScrollView(
               slivers: [
-                SliverWalletAppBar(
-                  // hardcoded dutch title to match hardcoded dutch policy
-                  title: 'Privacyverklaring Publieke Wallet (eerste beproevingsperiode)',
-                  scrollController: PrimaryScrollController.maybeOf(context),
-                  leading: const BackIconButton(),
+                const SliverToBoxAdapter(
+                  child: Padding(
+                    padding: kDefaultTitlePadding,
+                    child: TitleText('Privacyverklaring Publieke Wallet (eerste beproevingsperiode)'),
+                  ),
                 ),
                 SliverPadding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),

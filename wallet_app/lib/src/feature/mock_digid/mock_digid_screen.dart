@@ -98,14 +98,15 @@ class MockDigidScreen extends StatelessWidget {
     );
   }
 
-  static Future<bool?> mockLogin(BuildContext context) {
-    return Navigator.of(context).push(
-      CupertinoPageRoute(
-        builder: (context) => BlocProvider(
-          create: (context) => MockDigidBloc(),
-          child: const MockDigidScreen(),
-        ),
-      ),
-    );
+  static Future<bool> mockLogin(BuildContext context) async {
+    return await Navigator.of(context).push<bool?>(
+          CupertinoPageRoute(
+            builder: (context) => BlocProvider(
+              create: (context) => MockDigidBloc(),
+              child: const MockDigidScreen(),
+            ),
+          ),
+        ) ??
+        false;
   }
 }

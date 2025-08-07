@@ -84,12 +84,12 @@ class WalletEventLog {
     _logEvent(event);
   }
 
-  void logIssuance(AttestationPresentation attestation) {
+  void logIssuance(AttestationPresentation attestation, {bool isRenewal = false}) {
     final event = WalletEvent.issuance(
       id: 'id123',
       dateTime: DateTime.now().toIso8601String(),
       attestation: attestation,
-      renewed: false,
+      renewed: isRenewal,
     );
     _logEvent(event);
   }

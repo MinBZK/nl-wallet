@@ -32,7 +32,7 @@ use attestation_data::attributes::AttributeValue;
 use demo_utils::LANGUAGE_JS_SHA256;
 use demo_utils::WALLET_WEB_CSS_SHA256;
 use demo_utils::WALLET_WEB_JS_SHA256;
-use demo_utils::disclosure::DemoDisclosedAttestations;
+use demo_utils::disclosure::DemoDisclosedAttestation;
 use demo_utils::error::Result;
 use demo_utils::headers::cors_layer;
 use demo_utils::headers::set_content_security_policy;
@@ -154,10 +154,7 @@ async fn create_session(
     language: Language,
     Json(options): Json<SessionOptions>,
 ) -> Result<Json<SessionResponse>> {
-    let usecase = state
-        .usecases
-        .get(&options.usecase)
-        .ok_or(anyhow::Error::msg("usecase not found"))?;
+    let usecase = state.usecases.get(&options.usecase).cloned().unwrap_or_default();
 
     let return_url_template = match usecase.return_url {
         ReturnUrlMode::None => None,
@@ -175,7 +172,7 @@ async fn create_session(
 
     let session_token = state
         .client
-        .start(options.usecase, usecase.dcql_query.clone(), return_url_template)
+        .start(options.usecase, usecase.dcql_query, return_url_template)
         .await?;
 
     let result = SessionResponse {
@@ -223,10 +220,6 @@ async fn usecase(
     Path(usecase): Path<String>,
     language: Language,
 ) -> Response {
-    if !state.usecases.contains_key(&usecase) {
-        return StatusCode::NOT_FOUND.into_response();
-    }
-
     let start_url = format_start_url(&state.public_url, language);
     UsecaseTemplate {
         usecase: &usecase,
@@ -256,7 +249,7 @@ pub struct DisclosedAttributesParams {
 #[template(path = "disclosed/attributes.askama", escape = "html", ext = "html")]
 struct DisclosedAttributesTemplate<'a> {
     usecase: &'a str,
-    attributes: DemoDisclosedAttestations,
+    attributes: Vec<DemoDisclosedAttestation>,
     demo_index_url: Url,
     base: BaseTemplate<'a>,
 }
@@ -267,10 +260,6 @@ async fn disclosed_attributes(
     Query(params): Query<DisclosedAttributesParams>,
     language: Language,
 ) -> Response {
-    if !state.usecases.contains_key(&usecase) {
-        return StatusCode::NOT_FOUND.into_response();
-    }
-
     let attributes = state
         .client
         .disclosed_attributes(params.session_token.clone(), params.nonce.clone())
@@ -310,15 +299,15 @@ async fn disclosed_attributes(
 }
 
 mod filters {
-    use demo_utils::disclosure::DemoDisclosedAttestations;
+    use demo_utils::disclosure::DemoDisclosedAttestation;
 
     // searches for an attribute with a specific key, the key is a dot-separated string
     pub fn attribute(
-        attestations: &DemoDisclosedAttestations,
+        attestations: &[DemoDisclosedAttestation],
         _: &dyn askama::Values,
         name: &str,
     ) -> askama::Result<String> {
-        for (_, attestation) in attestations {
+        for attestation in attestations {
             if let Some(attribute_value) = attestation
                 .attributes
                 .flattened()

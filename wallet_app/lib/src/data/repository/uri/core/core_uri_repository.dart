@@ -22,7 +22,7 @@ class CoreUriRepository implements UriRepository {
       case IdentifyUriResult.PidIssuance:
         return PidIssuanceNavigationRequest(uri.toString());
       case IdentifyUriResult.PidRenewal:
-        throw UnimplementedError();
+        return PidRenewalNavigationRequest(uri.toString());
       case IdentifyUriResult.Disclosure:
         return DisclosureNavigationRequest(uri.toString());
       case IdentifyUriResult.DisclosureBasedIssuance:

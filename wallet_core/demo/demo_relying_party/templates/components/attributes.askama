@@ -1,6 +1,6 @@
 {% macro attributes(attributes) %}
 <dl class="attributes">
-{% for (attestation_type, attestation) in attributes %}
+{% for attestation in attributes %}
     {% for (key, value) in attestation.attributes.flattened() %}
         <dt>{{ base.trans[key.into_last()] }}</dt>
         <dd>

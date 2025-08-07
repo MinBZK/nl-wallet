@@ -1,5 +1,5 @@
 use std::error::Error;
-use std::num::NonZeroU64;
+use std::num::NonZeroUsize;
 
 use derive_more::Constructor;
 use p256::ecdsa::Signature;
@@ -33,7 +33,7 @@ pub trait KeyFactory {
     /// Construct new keys along with PoPs and PoA, and optionally a WUA, for use during issuance.
     async fn perform_issuance(
         &self,
-        count: NonZeroU64,
+        count: NonZeroUsize,
         aud: String,
         nonce: Option<String>,
         include_wua: bool,

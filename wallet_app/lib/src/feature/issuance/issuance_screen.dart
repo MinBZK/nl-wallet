@@ -19,13 +19,17 @@ import '../common/page/terminal_page.dart';
 import '../common/screen/placeholder_screen.dart';
 import '../common/widget/button/icon/back_icon_button.dart';
 import '../common/widget/button/icon/close_icon_button.dart';
+import '../common/widget/button/icon/help_icon_button.dart';
+import '../common/widget/fade_in_at_offset.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
 import '../common/widget/page_illustration.dart';
+import '../common/widget/text/title_text.dart';
 import '../common/widget/wallet_app_bar.dart';
 import '../dashboard/dashboard_screen.dart';
 import '../error/error_page.dart';
 import '../organization/approve/organization_approve_page.dart';
 import '../report_issue/report_issue_screen.dart';
+import '../report_issue/reporting_group.dart';
 import 'argument/issuance_screen_argument.dart';
 import 'bloc/issuance_bloc.dart';
 import 'issuance_request_details_screen.dart';
@@ -54,26 +58,33 @@ class IssuanceScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final progress = context.watch<IssuanceBloc>().state.stepperProgress;
-    return Scaffold(
-      restorationId: 'issuance_scaffold',
-      appBar: WalletAppBar(
-        leading: _buildBackButton(context),
-        automaticallyImplyLeading: false,
-        actions: [CloseIconButton(onPressed: () => _stopIssuance(context))],
-        progress: progress,
-      ),
-      body: PopScope(
-        canPop: false,
-        onPopInvokedWithResult: (didPop, result) {
-          if (didPop) return;
-          if (context.bloc.state.canGoBack) {
-            context.bloc.add(const IssuanceBackPressed());
-          } else {
-            _stopIssuance(context);
-          }
-        },
-        child: SafeArea(
-          child: _buildPage(),
+    return ScrollOffsetProvider(
+      child: Scaffold(
+        restorationId: 'issuance_scaffold',
+        appBar: WalletAppBar(
+          leading: _buildBackButton(context),
+          automaticallyImplyLeading: false,
+          actions: [
+            const HelpIconButton(),
+            CloseIconButton(onPressed: () => _stopIssuance(context)),
+          ],
+          title: _buildTitle(context),
+          fadeInTitleOnScroll: false,
+          progress: progress,
+        ),
+        body: PopScope(
+          canPop: false,
+          onPopInvokedWithResult: (didPop, result) {
+            if (didPop) return;
+            if (context.bloc.state.canGoBack) {
+              context.bloc.add(const IssuanceBackPressed());
+            } else {
+              _stopIssuance(context);
+            }
+          },
+          child: SafeArea(
+            child: _buildPage(),
+          ),
         ),
       ),
     );
@@ -82,6 +93,7 @@ class IssuanceScreen extends StatelessWidget {
   Widget _buildPage() {
     return BlocConsumer<IssuanceBloc, IssuanceState>(
       listener: (context, state) {
+        context.read<ScrollOffset>().reset(); // Reset provided scrollOffset between pages
         if (state is IssuanceExternalScannerError) {
           Navigator.maybePop(context).then((popped) {
             if (context.mounted) ScanWithWalletDialog.show(context);
@@ -246,7 +258,7 @@ class IssuanceScreen extends StatelessWidget {
         organizationName: bloc.relyingParty?.displayName.l10nValue(context),
         onReportIssuePressed: () => ReportIssueScreen.show(
           context,
-          [ReportingOption.untrusted, ReportingOption.unreasonableTerms, ReportingOption.overAskingOrganization],
+          ReportingGroup.issuance,
         ),
       );
       if (stopped) bloc.add(const IssuanceStopRequested());
@@ -261,6 +273,7 @@ class IssuanceScreen extends StatelessWidget {
       description: context.l10n.issuanceNoCardsPageDescription(state.organization.displayName.l10nValue(context)),
       primaryButtonCta: context.l10n.generalClose,
       onPrimaryPressed: () => _stopIssuance(context),
+      primaryButtonIcon: const Icon(Icons.close),
       illustration: const PageIllustration(asset: WalletAssets.svg_no_cards),
     );
   }
@@ -308,6 +321,55 @@ class IssuanceScreen extends StatelessWidget {
     return IssuanceRelyingPartyErrorPage(
       organizationName: state.organizationName?.l10nValue(context),
       onClosePressed: () => Navigator.pop(context),
+    );
+  }
+
+  Widget _buildTitle(BuildContext context) {
+    final state = context.watch<IssuanceBloc>().state;
+    String title;
+    switch (state) {
+      case IssuanceInitial():
+        title = context.l10n.issuanceLoadingRequestTitle;
+      case IssuanceLoadInProgress():
+        title = context.l10n.issuanceLoadingCardsTitle;
+      case IssuanceCheckOrganization():
+        title = OrganizationApprovePage.resolveTitle(context, ApprovalPurpose.issuance, state.organization);
+      case IssuanceMissingAttributes():
+        title = context.l10n.missingAttributesPageTitle;
+      case IssuanceProvidePinForIssuance():
+      case IssuanceProvidePinForDisclosure():
+        title = '';
+      case IssuanceReviewCards():
+        title = IssuanceReviewCardsPage.resolveTitle(
+          context,
+          renewedCards: state.renewedCards,
+          offeredCards: state.offeredCards,
+        );
+      case IssuanceCompleted():
+        title = context.l10n.issuanceSuccessPageTitle(state.addedCards.length);
+      case IssuanceStopped():
+        title = context.l10n.issuanceStoppedPageTitle;
+      case IssuanceGenericError():
+      case IssuanceExternalScannerError():
+        title = context.l10n.issuanceGenericErrorPageTitle;
+      case IssuanceNoCardsRetrieved():
+        title = context.l10n.issuanceNoCardsPageTitle;
+      case IssuanceNetworkError():
+        title = state.hasInternet ? context.l10n.errorScreenServerHeadline : context.l10n.errorScreenNoInternetHeadline;
+      case IssuanceSessionExpired():
+        title = context.l10n.errorScreenSessionExpiredHeadline;
+      case IssuanceSessionCancelled():
+        title = context.l10n.errorScreenCancelledSessionHeadline;
+      case IssuanceRelyingPartyError():
+        title = context.l10n.issuanceRelyingPartyErrorTitle;
+    }
+
+    // Check for [IssuanceCheckOrganization] state, as it has a taller header (with logo) and thus should fade in later.
+    final isCheckOrganizationState = state is IssuanceCheckOrganization;
+    return FadeInAtOffset(
+      appearOffset: isCheckOrganizationState ? 120 : 40,
+      visibleOffset: isCheckOrganizationState ? 150 : 80,
+      child: TitleText(title),
     );
   }
 }

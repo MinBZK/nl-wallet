@@ -100,7 +100,7 @@ impl<H> VpDisclosureClient<H> {
         // Verify that the requested attributes are included in the reader authentication.
         verifier_certificate
             .registration()
-            .verify_requested_attributes(&credential_requests.as_ref())
+            .verify_requested_attributes(credential_requests.as_ref())
             .map_err(VpVerifierError::RequestedAttributesValidation)?;
 
         Ok(verifier_certificate)
@@ -185,6 +185,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+    use std::collections::HashSet;
     use std::sync::Arc;
     use std::sync::LazyLock;
 
@@ -199,12 +201,12 @@ mod tests {
 
     use attestation_data::auth::reader_auth::ReaderRegistration;
     use attestation_data::auth::reader_auth::ValidationError;
+    use attestation_types::claim_path::ClaimPath;
     use crypto::server_keys::generate::Ca;
     use crypto::x509::BorrowingCertificateExtension;
     use dcql::normalized;
     use http_utils::urls::BaseUrl;
     use mdoc::holder::Mdoc;
-    use mdoc::identifiers::AttributeIdentifier;
     use mdoc::test::data::PID;
     use mdoc::utils::serialization::CborBase64;
     use utils::generator::mock::MockTimeGenerator;
@@ -337,13 +339,9 @@ mod tests {
         // Check all of the data the new `VpDisclosureSession` exposes.
         assert_eq!(disclosure_session.session_type(), session_type);
 
-        let expected_credential_requests = normalized::mock::mock_from_vecs(vec![(
-            PID.to_string(),
-            vec![
-                vec![PID.to_string(), "bsn".to_string()].try_into().unwrap(),
-                vec![PID.to_string(), "given_name".to_string()].try_into().unwrap(),
-                vec![PID.to_string(), "family_name".to_string()].try_into().unwrap(),
-            ],
+        let expected_credential_requests = normalized::mock::mock_mdoc_from_slices(&[(
+            PID,
+            &[&[PID, "bsn"], &[PID, "given_name"], &[PID, "family_name"]],
         )]);
         assert_eq!(*disclosure_session.credential_requests(), expected_credential_requests);
 
@@ -397,7 +395,7 @@ mod tests {
         let device_response = match response.vp_token.into_iter().next().unwrap() {
             VerifiablePresentation::MsoMdoc(CborBase64(device_response)) => device_response,
         };
-        let attributes = device_response
+        let disclosed_documents = device_response
             .verify(
                 None,
                 &verifier_session.session_transcript(&mdoc_nonce),
@@ -407,12 +405,12 @@ mod tests {
             .expect("mdoc DeviceResponse sent by VPDisclosureSession should be valid");
 
         // Finally, check that the disclosed attributes match exactly those provided.
-        let disclosed_attributes = attributes
+        let disclosed_attributes = disclosed_documents
             .iter()
             .exactly_one()
             .ok()
-            .and_then(|(attestation_type, documents)| (attestation_type == PID).then_some(documents))
-            .and_then(|documents| documents.attributes.iter().exactly_one().ok())
+            .and_then(|document| (document.doc_type == *PID).then_some(document))
+            .and_then(|document| document.attributes.iter().exactly_one().ok())
             .and_then(|(namespaces, attributes)| (namespaces == PID).then_some(attributes))
             .map(|attributes| {
                 attributes
@@ -713,14 +711,18 @@ mod tests {
         )
         .expect_err("starting a new disclosure session on VpDisclosureClient should not succeed");
 
-        let unregistered_attribute = AttributeIdentifier {
-            credential_type: PID.to_string(),
-            namespace: PID.to_string(),
-            attribute: "bsn".to_string(),
-        };
+        let unregistered_attributes = HashMap::from([(
+            PID.to_string(),
+            HashSet::from([vec![
+                ClaimPath::SelectByKey(PID.to_string()),
+                ClaimPath::SelectByKey("bsn".to_string()),
+            ]
+            .try_into()
+            .unwrap()]),
+        )]);
         assert_matches!(*error, VpSessionError::Verifier(VpVerifierError::RequestedAttributesValidation(
-            ValidationError::UnregisteredAttributes(ids)
-        )) if ids == vec![unregistered_attribute]);
+            ValidationError::UnregisteredAttributes(unregistered)
+        )) if unregistered == unregistered_attributes);
 
         let wallet_messages = verifier_session.wallet_messages.lock();
         assert_eq!(wallet_messages.len(), 2);

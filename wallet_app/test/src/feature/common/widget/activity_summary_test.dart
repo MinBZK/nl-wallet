@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wallet/l10n/generated/app_localizations.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
@@ -8,7 +10,10 @@ import 'package:wallet/src/util/extension/string_extension.dart';
 
 import '../../../../wallet_app_test_widget.dart';
 import '../../../mocks/wallet_mock_data.dart';
+import '../../../test_util/golden_utils.dart';
 import '../../../test_util/test_utils.dart';
+
+final kGoldenSize = const Size(300, 94);
 
 void main() {
   late AppLocalizations l10n;
@@ -27,82 +32,79 @@ void main() {
     l10n = await TestUtils.englishLocalizations;
   });
 
-  group(
-    'mode',
-    () {
-      test('when no activities are provided, the mode defaults to last month', () {
-        const summary = ActivitySummary(events: []);
-        expect(summary.mode, ActivityDisplayMode.lastMonth);
-      });
+  group('mode', () {
+    test('when no activities are provided, the mode defaults to last month', () {
+      const summary = ActivitySummary(events: []);
+      expect(summary.mode, ActivityDisplayMode.lastMonth);
+    });
 
-      test('when all provided activities occurred today, the mode is today', () {
-        final summary = ActivitySummary(
-          events: [
-            WalletEvent.issuance(
-              dateTime: DateTime.now(),
-              status: EventStatus.success,
-              card: WalletMockData.card,
-              renewed: false,
-            ),
-            WalletEvent.issuance(
-              dateTime: DateTime.now(),
-              status: EventStatus.success,
-              card: WalletMockData.card,
-              renewed: false,
-            ),
-          ],
-        );
-        expect(summary.mode, ActivityDisplayMode.today);
-      });
+    test('when all provided activities occurred today, the mode is today', () {
+      final summary = ActivitySummary(
+        events: [
+          WalletEvent.issuance(
+            dateTime: DateTime.now(),
+            status: EventStatus.success,
+            card: WalletMockData.card,
+            renewed: false,
+          ),
+          WalletEvent.issuance(
+            dateTime: DateTime.now(),
+            status: EventStatus.success,
+            card: WalletMockData.card,
+            renewed: false,
+          ),
+        ],
+      );
+      expect(summary.mode, ActivityDisplayMode.today);
+    });
 
-      test('when the provided activities include activities from the last week, the mode is lastWeek', () {
-        final summary = ActivitySummary(
-          events: [
-            WalletEvent.issuance(
-              dateTime: DateTime.now(),
-              status: EventStatus.success,
-              card: WalletMockData.card,
-              renewed: false,
-            ),
-            WalletEvent.issuance(
-              dateTime: DateTime.now().add(const Duration(days: 3)),
-              status: EventStatus.success,
-              card: WalletMockData.card,
-              renewed: false,
-            ),
-            WalletEvent.issuance(
-              dateTime: DateTime.now().add(const Duration(days: 20)),
-              status: EventStatus.success,
-              card: WalletMockData.card,
-              renewed: false,
-            ),
-          ],
-        );
-        expect(summary.mode, ActivityDisplayMode.lastWeek);
-      });
+    test('when the provided activities include activities from the last week, the mode is lastWeek', () {
+      final summary = ActivitySummary(
+        events: [
+          WalletEvent.issuance(
+            dateTime: DateTime.now(),
+            status: EventStatus.success,
+            card: WalletMockData.card,
+            renewed: false,
+          ),
+          WalletEvent.issuance(
+            dateTime: DateTime.now().add(const Duration(days: 3)),
+            status: EventStatus.success,
+            card: WalletMockData.card,
+            renewed: false,
+          ),
+          WalletEvent.issuance(
+            dateTime: DateTime.now().add(const Duration(days: 20)),
+            status: EventStatus.success,
+            card: WalletMockData.card,
+            renewed: false,
+          ),
+        ],
+      );
+      expect(summary.mode, ActivityDisplayMode.lastWeek);
+    });
 
-      test('when the provided activities only include activities from the more than a week ago, the mode is lastMonth',
-          () {
-        final summary = ActivitySummary(
-          events: [
-            WalletEvent.issuance(
-              dateTime: DateTime.now().add(const Duration(days: 8)),
-              status: EventStatus.success,
-              card: WalletMockData.card,
-              renewed: false,
-            ),
-            WalletEvent.issuance(
-              dateTime: DateTime.now().add(const Duration(days: 20)),
-              status: EventStatus.success,
-              card: WalletMockData.card,
-              renewed: false,
-            ),
-          ],
-        );
-        expect(summary.mode, ActivityDisplayMode.lastWeek);
-      });
-    },
-  );
+    test('when the provided activities only include activities from the more than a week ago, the mode is lastMonth',
+        () {
+      final summary = ActivitySummary(
+        events: [
+          WalletEvent.issuance(
+            dateTime: DateTime.now().add(const Duration(days: 8)),
+            status: EventStatus.success,
+            card: WalletMockData.card,
+            renewed: false,
+          ),
+          WalletEvent.issuance(
+            dateTime: DateTime.now().add(const Duration(days: 20)),
+            status: EventStatus.success,
+            card: WalletMockData.card,
+            renewed: false,
+          ),
+        ],
+      );
+      expect(summary.mode, ActivityDisplayMode.lastWeek);
+    });
+  });
 
   group('widgets', () {
     testWidgets('empty state shows no activities', (tester) async {
@@ -275,6 +277,151 @@ void main() {
       /// Validate that not shown widgets are shown as group.
       final otherOrgsFinder = find.textContaining(l10n.activitySummarySharedWithOthers(2));
       expect(otherOrgsFinder, findsOneWidget);
+    });
+  });
+
+  group('goldens', () {
+    testGoldens('empty state', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const ActivitySummary(events: []),
+        surfaceSize: kGoldenSize,
+      );
+      await screenMatchesGolden('activity_summary/empty');
+    });
+
+    testGoldens('single card added', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        ActivitySummary(
+          events: [
+            WalletEvent.issuance(
+              dateTime: DateTime.now(),
+              status: EventStatus.success,
+              card: WalletMockData.card,
+              renewed: false,
+            ),
+          ],
+        ),
+        surfaceSize: kGoldenSize,
+      );
+      await screenMatchesGolden('activity_summary/single_card_added');
+    });
+
+    testGoldens('multiple cards added', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        ActivitySummary(
+          events: [
+            WalletEvent.issuance(
+              dateTime: DateTime.now(),
+              status: EventStatus.success,
+              card: WalletMockData.card,
+              renewed: false,
+            ),
+            WalletEvent.issuance(
+              dateTime: DateTime.now(),
+              status: EventStatus.success,
+              card: WalletMockData.card,
+              renewed: false,
+            ),
+          ],
+        ),
+        surfaceSize: kGoldenSize,
+      );
+      await screenMatchesGolden('activity_summary/multiple_cards_added');
+    });
+
+    testGoldens('single organization shared with', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        ActivitySummary(
+          events: [
+            disclosureAt(DateTime.now()),
+          ],
+        ),
+        surfaceSize: Size(kGoldenSize.width, kGoldenSize.height + 22),
+      );
+      await screenMatchesGolden('activity_summary/single_org_shared_with');
+    });
+
+    testGoldens('multiple organizations shared with', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        ActivitySummary(
+          events: [
+            disclosureAt(
+              DateTime.now(),
+              relyingParty: WalletMockData.organization.copyWith(displayName: 'Org-X'.untranslated),
+            ),
+            disclosureAt(
+              DateTime.now(),
+              relyingParty: WalletMockData.organization.copyWith(displayName: 'Org-Y'.untranslated),
+            ),
+            disclosureAt(
+              DateTime.now(),
+              relyingParty: WalletMockData.organization.copyWith(displayName: 'Org-Z'.untranslated),
+            ),
+          ],
+        ),
+        surfaceSize: Size(kGoldenSize.width, kGoldenSize.height + 22),
+      );
+      await screenMatchesGolden('activity_summary/multiple_orgs_shared_with');
+    });
+
+    testGoldens('more than three organizations shared with', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        ActivitySummary(
+          events: [
+            disclosureAt(
+              DateTime.now(),
+              relyingParty: WalletMockData.organization.copyWith(displayName: 'Org-A'.untranslated),
+            ),
+            disclosureAt(
+              DateTime.now(),
+              relyingParty: WalletMockData.organization.copyWith(displayName: 'Org-B'.untranslated),
+            ),
+            disclosureAt(
+              DateTime.now(),
+              relyingParty: WalletMockData.organization.copyWith(displayName: 'Org-C'.untranslated),
+            ),
+            disclosureAt(
+              DateTime.now(),
+              relyingParty: WalletMockData.organization.copyWith(displayName: 'Org-D'.untranslated),
+            ),
+          ],
+        ),
+        surfaceSize: Size(kGoldenSize.width, kGoldenSize.height + 22),
+      );
+      await screenMatchesGolden('activity_summary/more_than_three_orgs_shared_with');
+    });
+
+    testGoldens('all interactions - new cards, updated cards, shared with, logged in at', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        ActivitySummary(
+          events: [
+            disclosureAt(DateTime.now()),
+            WalletEvent.disclosure(
+              dateTime: DateTime.now(),
+              status: EventStatus.success,
+              relyingParty: WalletMockData.organization,
+              purpose: 'disclosure'.untranslated,
+              cards: [WalletMockData.card],
+              policy: WalletMockData.policy,
+              type: DisclosureType.login,
+            ),
+            WalletEvent.issuance(
+              dateTime: DateTime.now(),
+              status: EventStatus.success,
+              card: WalletMockData.card,
+              renewed: false,
+            ),
+            WalletEvent.issuance(
+              dateTime: DateTime.now(),
+              status: EventStatus.success,
+              card: WalletMockData.card,
+              renewed: true,
+            ),
+          ],
+        ),
+        surfaceSize: Size(kGoldenSize.width, kGoldenSize.height + 66),
+      );
+      await screenMatchesGolden('activity_summary/all_interactions');
     });
   });
 }

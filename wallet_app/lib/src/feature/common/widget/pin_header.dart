@@ -34,8 +34,8 @@ class PinHeader extends StatelessWidget {
 
   EdgeInsets _resolvePadding(BuildContext context) {
     return context.isLandscape
-        ? const EdgeInsets.symmetric(horizontal: 24, vertical: 24)
-        : const EdgeInsets.symmetric(horizontal: 16, vertical: 24);
+        ? const EdgeInsets.symmetric(horizontal: 24, vertical: 12)
+        : const EdgeInsets.symmetric(horizontal: 16, vertical: 12);
   }
 
   Alignment _resolveAlignment(BuildContext context) {

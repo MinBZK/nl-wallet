@@ -62,6 +62,25 @@ void main() {
       await screenMatchesGolden('success.dark');
     });
 
+    testGoldens('CardDetailLoadSuccess - renewable card - light', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        CardDetailScreen(
+          cardTitle: WalletMockData.card.title.testValue,
+        ).withState<CardDetailBloc, CardDetailState>(
+          MockCardSummaryBloc(),
+          CardDetailLoadSuccess(
+            WalletCardDetail(
+              card: WalletMockData.card,
+              mostRecentIssuance: WalletMockData.issuanceEvent,
+              mostRecentSuccessfulDisclosure: WalletMockData.disclosureEvent,
+            ),
+            showRenewOption: true,
+          ),
+        ),
+      );
+      await screenMatchesGolden('success.renewable.light');
+    });
+
     testGoldens('CardDetailLoadInProgress light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         CardDetailScreen(
@@ -100,7 +119,7 @@ void main() {
 
       // Validate that the widget exists
       final cardTitleFinder = find.text(WalletMockData.card.title.testValue);
-      expect(cardTitleFinder, findsNWidgets(3)); // App bar (collapsed and expanded) title + title on card
+      expect(cardTitleFinder, findsNWidgets(2)); // Screen title + title on card
     });
 
     testWidgets('loading renders as expected, with title and loading indicator', (tester) async {

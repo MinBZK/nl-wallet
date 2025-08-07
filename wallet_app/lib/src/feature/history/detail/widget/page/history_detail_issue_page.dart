@@ -7,14 +7,15 @@ import '../../../../../domain/model/organization.dart';
 import '../../../../../util/extension/build_context_extension.dart';
 import '../../../../../util/extension/object_extension.dart';
 import '../../../../../util/extension/wallet_event_extension.dart';
+import '../../../../../wallet_constants.dart';
 import '../../../../check_attributes/check_attributes_screen.dart';
 import '../../../../common/builder/request_detail_common_builders.dart';
 import '../../../../common/screen/placeholder_screen.dart';
 import '../../../../common/widget/card/shared_attributes_card.dart';
 import '../../../../common/widget/divider_side.dart';
-import '../../../../common/widget/sliver_wallet_app_bar.dart';
 import '../../../../common/widget/spacer/sliver_divider.dart';
 import '../../../../common/widget/spacer/sliver_sized_box.dart';
+import '../../../../common/widget/text/title_text.dart';
 import '../../../../info/info_screen.dart';
 import '../../../../organization/detail/organization_detail_screen.dart';
 import '../../../../organization/widget/organization_row.dart';
@@ -27,15 +28,13 @@ class HistoryDetailIssuePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cardName = event.card.title.l10nValue(context);
-    final title = event.renewed
-        ? context.l10n.historyDetailScreenTitleForRenewal(cardName)
-        : context.l10n.historyDetailScreenTitleForIssuance(cardName);
     return CustomScrollView(
       slivers: [
-        SliverWalletAppBar(
-          title: title,
-          scrollController: PrimaryScrollController.maybeOf(context),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: kDefaultTitlePadding,
+            child: TitleText(resolveTitle(context, event)),
+          ),
         ),
         SliverToBoxAdapter(
           child: HistoryDetailTimestamp(
@@ -88,5 +87,12 @@ class HistoryDetailIssuePage extends StatelessWidget {
         const SliverDivider(),
       ],
     );
+  }
+
+  static String resolveTitle(BuildContext context, IssuanceEvent event) {
+    final cardName = event.card.title.l10nValue(context);
+    return event.renewed
+        ? context.l10n.historyDetailScreenTitleForRenewal(cardName)
+        : context.l10n.historyDetailScreenTitleForIssuance(cardName);
   }
 }

@@ -1,6 +1,8 @@
 use chrono::NaiveDate;
 use indexmap::IndexMap;
+use itertools::Itertools;
 use serde::Deserialize;
+use serde_with::skip_serializing_none;
 
 use attestation_data::attributes::Attribute;
 use attestation_data::attributes::AttributeValue;
@@ -35,6 +37,9 @@ pub struct BrpPerson {
     #[serde(rename = "leeftijd")]
     age: u8,
 
+    #[serde(rename = "nationaliteiten", default, skip_serializing_if = "Vec::is_empty")]
+    nationalities: Vec<BrpNationality>,
+
     #[serde(rename = "verblijfplaats")]
     residence: BrpResidence,
 }
@@ -52,6 +57,11 @@ impl BrpPerson {
         let family_name = self.name.into_name_with_prefix();
         let street = self.residence.address.street().map(String::from);
         let house_number = self.residence.address.locator_designator();
+        let nationalities = self
+            .nationalities
+            .into_iter()
+            .filter_map(|nationality| nationality.nationality.map(|nationality| nationality.description))
+            .collect_vec();
 
         vec![
             (
@@ -79,6 +89,12 @@ impl BrpPerson {
                             Attribute::Single(AttributeValue::Bool(is_over_18)),
                         )),
                         Some((String::from(PID_BSN), Attribute::Single(AttributeValue::Text(self.bsn)))),
+                        Some((
+                            String::from(PID_NATIONALITY),
+                            Attribute::Single(AttributeValue::Array(
+                                nationalities.into_iter().map(AttributeValue::Text).collect_vec(),
+                            )),
+                        )),
                     ]
                     .into_iter()
                     .flatten()
@@ -197,6 +213,13 @@ pub struct BrpDate {
 pub struct BrpDescription {
     #[serde(rename = "omschrijving")]
     description: String,
+}
+
+#[skip_serializing_none]
+#[derive(Deserialize, Clone)]
+pub struct BrpNationality {
+    #[serde(rename = "nationaliteit")]
+    nationality: Option<BrpDescription>,
 }
 
 #[derive(Deserialize)]
@@ -341,6 +364,10 @@ mod tests {
                     "birthdate": "2000-03-24",
                     "age_over_18": true,
                     "bsn": "999991772",
+                    "nationalities": [
+                        "Nederlandse",
+                        "Belgische"
+                    ]
                 },
             ]),
             serde_json::to_value(pid_card).unwrap()

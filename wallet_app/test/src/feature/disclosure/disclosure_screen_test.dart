@@ -422,6 +422,50 @@ void main() {
 
       await screenMatchesGolden('report_issue.light');
     });
+
+    testGoldens('DisclosureSessionExpired Error Light', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
+          MockDisclosureBloc(),
+          const DisclosureSessionExpired(
+            error: SessionError(
+              state: SessionState.expired,
+              crossDevice: SessionType.crossDevice,
+              canRetry: false,
+              sourceError: 'expired',
+            ),
+            canRetry: false,
+            isCrossDevice: false,
+          ),
+        ),
+      );
+      await screenMatchesGolden('session_expired_error.light');
+    });
+
+    testGoldens('DisclosureExternalScannerError Error Light', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
+          MockDisclosureBloc(),
+          const DisclosureExternalScannerError(
+            error: GenericError('external_scanner', sourceError: 'external'),
+          ),
+        ),
+      );
+      await screenMatchesGolden('external_scanner_error.light');
+    });
+
+    testGoldens('DisclosureRelyingPartyError Error Light', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
+          MockDisclosureBloc(),
+          DisclosureRelyingPartyError(
+            error: const GenericError('relying_party', sourceError: 'rp'),
+            organizationName: WalletMockData.organization.displayName,
+          ),
+        ),
+      );
+      await screenMatchesGolden('relying_party_error.light');
+    });
   });
 
   group('widgets', () {
@@ -455,7 +499,7 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      // Verify the 'no internet' title is shown
+      // Verify the 'no internet' checkOrgForLoginTitle is shown
       final noInternetHeadlineFinder = find.text(l10n.errorScreenNoInternetHeadline);
       expect(noInternetHeadlineFinder, findsAtLeastNWidgets(1));
 
@@ -486,7 +530,7 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      // Verify the 'no internet' title is shown
+      // Verify the 'no internet' checkOrgForLoginTitle is shown
       final noInternetHeadlineFinder = find.text(l10n.errorScreenServerHeadline);
       expect(noInternetHeadlineFinder, findsAtLeastNWidgets(1));
 
@@ -515,7 +559,7 @@ void main() {
 
       final l10n = await TestUtils.englishLocalizations;
 
-      // Verify the 'something went wrong' title is shown
+      // Verify the 'something went wrong' checkOrgForLoginTitle is shown
       final headlineFinder = find.text(l10n.errorScreenGenericHeadline);
       expect(headlineFinder, findsAtLeastNWidgets(1));
 
@@ -553,7 +597,7 @@ void main() {
 
       final l10n = await TestUtils.englishLocalizations;
 
-      // Verify the 'session expired' title is shown
+      // Verify the 'session expired' checkOrgForLoginTitle is shown
       final headlineFinder = find.text(l10n.errorScreenSessionExpiredHeadline);
       expect(headlineFinder, findsAtLeastNWidgets(1));
 
@@ -628,16 +672,18 @@ void main() {
         );
 
         final l10n = await TestUtils.englishLocalizations;
-        final title = l10n.organizationApprovePageGenericTitle(WalletMockData.organization.displayName.testValue);
-        expect(find.textContaining(title), findsAtLeast(1));
+        final checkOrgForLoginTitle =
+            l10n.organizationApprovePageLoginTitle(WalletMockData.organization.displayName.testValue);
+        expect(find.textContaining(checkOrgForLoginTitle), findsAtLeast(1));
 
         // Navigate away
+        expect(find.text(l10n.organizationApprovePageMoreInfoLoginCta), findsOneWidget);
         await tester.tap(find.text(l10n.organizationApprovePageMoreInfoLoginCta));
         await tester.pumpAndSettle();
 
-        // DisclosureScreen title should no longer be visible
-        expect(find.text(title), findsNothing);
-        // Login detail screen title should be visible
+        // DisclosureScreen checkOrgForLoginTitle should no longer be visible
+        expect(find.text(checkOrgForLoginTitle), findsNothing);
+        // Login detail screen checkOrgForLoginTitle should be visible
         final organizationDetailScreenTitle =
             l10n.loginDetailScreenTitle(WalletMockData.organization.displayName.testValue);
         expect(find.text(organizationDetailScreenTitle), findsAtLeast(1));

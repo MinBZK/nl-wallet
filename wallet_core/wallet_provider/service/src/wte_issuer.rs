@@ -49,7 +49,8 @@ where
     type Error = HsmWteIssuerError;
 
     async fn issue_wte(&self) -> Result<(WrappedKey, String, Jwt<JwtCredentialClaims<WteClaims>>), Self::Error> {
-        let (pubkey, wrapped_privkey) = self.hsm.generate_wrapped_key(&self.wrapping_key_identifier).await?;
+        let wrapped_privkey = self.hsm.generate_wrapped_key(&self.wrapping_key_identifier).await?;
+        let pubkey = *wrapped_privkey.public_key();
 
         let jwt = JwtCredentialClaims::new_signed(
             &pubkey,

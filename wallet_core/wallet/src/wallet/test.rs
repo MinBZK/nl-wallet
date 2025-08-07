@@ -51,7 +51,6 @@ use wscd::mock_remote::MockRemoteEcdsaKey;
 use crate::account_provider::MockAccountProviderClient;
 use crate::attestation::AttestationPresentation;
 use crate::attestation::PID_DOCTYPE;
-use crate::attestation::test::create_example_payload_preview;
 use crate::config::LocalConfigurationRepository;
 use crate::config::UpdatingConfigurationRepository;
 use crate::config::default_config_server_config;
@@ -253,6 +252,38 @@ fn mdoc_credential_from_unsigned(
         attestation_type,
         metadata_documents.into(),
     )
+}
+
+// NOTE: this example and metadata should comply with "eudi:pid:nl:1.json"
+pub fn create_example_payload_preview(
+    time_generator: &impl Generator<DateTime<Utc>>,
+) -> (PreviewableCredentialPayload, TypeMetadata) {
+    let payload = CredentialPayload::example_with_attributes(
+        vec![
+            ("family_name", AttributeValue::Text("De Bruijn".to_string())),
+            ("given_name", AttributeValue::Text("Willeke Liselotte".to_string())),
+            ("birthdate", AttributeValue::Text("1997-05-10".to_string())),
+            ("age_over_18", AttributeValue::Bool(true)),
+        ],
+        SigningKey::random(&mut OsRng).verifying_key(),
+        time_generator,
+    );
+
+    let metadata = TypeMetadata::example_with_claim_names(
+        PID_DOCTYPE,
+        &[
+            ("family_name", JsonSchemaPropertyType::String, None),
+            ("given_name", JsonSchemaPropertyType::String, None),
+            (
+                "birthdate",
+                JsonSchemaPropertyType::String,
+                Some(JsonSchemaPropertyFormat::Date),
+            ),
+            ("age_over_18", JsonSchemaPropertyType::Boolean, None),
+        ],
+    );
+
+    (payload.previewable_payload, metadata)
 }
 
 pub fn generate_key_holder(vendor: WalletDeviceVendor) -> MockHardwareAttestedKeyHolder {

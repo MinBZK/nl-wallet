@@ -137,6 +137,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   List<AttestationPresentation> dco_decode_list_attestation_presentation(dynamic raw);
 
   @protected
+  List<AttributeValue> dco_decode_list_attribute_value(dynamic raw);
+
+  @protected
   List<ClaimDisplayMetadata> dco_decode_list_claim_display_metadata(dynamic raw);
 
   @protected
@@ -325,6 +328,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   List<AttestationPresentation> sse_decode_list_attestation_presentation(SseDeserializer deserializer);
+
+  @protected
+  List<AttributeValue> sse_decode_list_attribute_value(SseDeserializer deserializer);
 
   @protected
   List<ClaimDisplayMetadata> sse_decode_list_claim_display_metadata(SseDeserializer deserializer);
@@ -566,6 +572,16 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   }
 
   @protected
+  ffi.Pointer<wire_cst_list_attribute_value> cst_encode_list_attribute_value(List<AttributeValue> raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    final ans = wire.cst_new_list_attribute_value(raw.length);
+    for (var i = 0; i < raw.length; ++i) {
+      cst_api_fill_to_wire_attribute_value(raw[i], ans.ref.ptr[i]);
+    }
+    return ans;
+  }
+
+  @protected
   ffi.Pointer<wire_cst_list_claim_display_metadata> cst_encode_list_claim_display_metadata(
       List<ClaimDisplayMetadata> raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
@@ -748,8 +764,14 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
       wireObj.kind.Date.value = pre_value;
       return;
     }
-    if (apiObj is AttributeValue_Null) {
+    if (apiObj is AttributeValue_Array) {
+      var pre_value = cst_encode_list_attribute_value(apiObj.value);
       wireObj.tag = 4;
+      wireObj.kind.Array.value = pre_value;
+      return;
+    }
+    if (apiObj is AttributeValue_Null) {
+      wireObj.tag = 5;
       return;
     }
   }
@@ -1205,6 +1227,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void sse_encode_list_attestation_presentation(List<AttestationPresentation> self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_list_attribute_value(List<AttributeValue> self, SseSerializer serializer);
 
   @protected
   void sse_encode_list_claim_display_metadata(List<ClaimDisplayMetadata> self, SseSerializer serializer);
@@ -2011,6 +2036,20 @@ class WalletCoreWire implements BaseWire {
   late final _cst_new_list_attestation_presentation = _cst_new_list_attestation_presentationPtr
       .asFunction<ffi.Pointer<wire_cst_list_attestation_presentation> Function(int)>();
 
+  ffi.Pointer<wire_cst_list_attribute_value> cst_new_list_attribute_value(
+    int len,
+  ) {
+    return _cst_new_list_attribute_value(
+      len,
+    );
+  }
+
+  late final _cst_new_list_attribute_valuePtr =
+      _lookup<ffi.NativeFunction<ffi.Pointer<wire_cst_list_attribute_value> Function(ffi.Int32)>>(
+          'frbgen_wallet_core_cst_new_list_attribute_value');
+  late final _cst_new_list_attribute_value =
+      _cst_new_list_attribute_valuePtr.asFunction<ffi.Pointer<wire_cst_list_attribute_value> Function(int)>();
+
   ffi.Pointer<wire_cst_list_claim_display_metadata> cst_new_list_claim_display_metadata(
     int len,
   ) {
@@ -2279,6 +2318,10 @@ final class wire_cst_AttributeValue_Date extends ffi.Struct {
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> value;
 }
 
+final class wire_cst_AttributeValue_Array extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_attribute_value> value;
+}
+
 final class AttributeValueKind extends ffi.Union {
   external wire_cst_AttributeValue_String String;
 
@@ -2287,6 +2330,8 @@ final class AttributeValueKind extends ffi.Union {
   external wire_cst_AttributeValue_Number Number;
 
   external wire_cst_AttributeValue_Date Date;
+
+  external wire_cst_AttributeValue_Array Array;
 }
 
 final class wire_cst_attribute_value extends ffi.Struct {
@@ -2294,6 +2339,13 @@ final class wire_cst_attribute_value extends ffi.Struct {
   external int tag;
 
   external AttributeValueKind kind;
+}
+
+final class wire_cst_list_attribute_value extends ffi.Struct {
+  external ffi.Pointer<wire_cst_attribute_value> ptr;
+
+  @ffi.Int32()
+  external int len;
 }
 
 final class wire_cst_attestation_attribute extends ffi.Struct {

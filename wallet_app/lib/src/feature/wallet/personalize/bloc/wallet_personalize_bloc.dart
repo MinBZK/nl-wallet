@@ -137,7 +137,7 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
     emit(const WalletPersonalizeLoadInProgress(FlowProgress(currentStep: 0, totalSteps: kSetupSteps)));
     final cancelResult = await cancelPidIssuanceUseCase.invoke();
     if (cancelResult.hasError) Fimber.e('Failed to explicitly reject pid', ex: cancelResult.error);
-    emit(const WalletPersonalizeInitial());
+    emit(const WalletPersonalizeInitial(didGoBack: true));
   }
 
   Future<void> _onRetryPressed(event, emit) async => emit(const WalletPersonalizeInitial());

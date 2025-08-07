@@ -25,6 +25,8 @@ pub struct Settings {
     pub log_requests: bool,
     pub allow_origins: Option<CorsOrigin>,
     pub connect_src: Option<ConnectSource>,
+
+    #[serde(default)]
     pub usecases: IndexMap<String, Usecase>,
 }
 
@@ -42,7 +44,7 @@ pub enum ReturnUrlMode {
     None,
 }
 
-#[derive(Deserialize, Clone)]
+#[derive(Default, Deserialize, Clone)]
 pub struct Usecase {
     #[serde(default)]
     pub return_url: ReturnUrlMode,

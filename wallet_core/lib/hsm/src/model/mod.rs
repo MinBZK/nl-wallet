@@ -279,13 +279,9 @@ pub mod mock {
             todo!()
         }
 
-        async fn generate_wrapped_key(
-            &self,
-            _wrapping_key_identifier: &str,
-        ) -> Result<(VerifyingKey, WrappedKey), HsmError> {
+        async fn generate_wrapped_key(&self, _wrapping_key_identifier: &str) -> Result<WrappedKey, HsmError> {
             let key = SigningKey::random(&mut OsRng);
-            let verifying_key = *key.verifying_key();
-            Ok((verifying_key, WrappedKey::new(key.to_bytes().to_vec(), verifying_key)))
+            Ok(WrappedKey::new(key.to_bytes().to_vec(), *key.verifying_key()))
         }
 
         async fn sign_wrapped(

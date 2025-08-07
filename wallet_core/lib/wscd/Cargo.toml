@@ -9,14 +9,13 @@ workspace = true
 
 [features]
 # Include examples from the ISO specification
-examples = []
-mock = ["mock_remote_key", "dep:rand_core"]
+examples = ["crypto/examples"]
 # Include MockRemoteEcdsaKey type and MockRemoteKeyFactory implementation of KeyFactory for testing
-mock_remote_key = ["crypto/mock_remote_key", "dep:parking_lot", "dep:rand_core"]
+mock = ["crypto/mock_remote_key", "dep:parking_lot", "dep:rand_core"]
 
 [dependencies]
 derive_more = { workspace = true, features = ["as_ref", "from"] }
-futures.workspace = true
+futures = { workspace = true, features = ["std"] }
 itertools.workspace = true
 jsonwebtoken.workspace = true
 parking_lot = { workspace = true, optional = true }

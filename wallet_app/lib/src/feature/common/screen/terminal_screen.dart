@@ -7,9 +7,10 @@ import '../widget/button/confirm/confirm_buttons.dart';
 import '../widget/button/icon/help_icon_button.dart';
 import '../widget/button/primary_button.dart';
 import '../widget/page_illustration.dart';
-import '../widget/sliver_wallet_app_bar.dart';
 import '../widget/spacer/sliver_sized_box.dart';
 import '../widget/text/body_text.dart';
+import '../widget/text/title_text.dart';
+import '../widget/wallet_app_bar.dart';
 
 class TerminalScreen extends StatelessWidget {
   final String title;
@@ -30,12 +31,19 @@ class TerminalScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: WalletAppBar(
+        title: TitleText(title),
+        automaticallyImplyLeading: false,
+        actions: const [HelpIconButton()],
+      ),
       body: CustomScrollView(
         slivers: [
-          SliverWalletAppBar(
-            title: title,
-            automaticallyImplyLeading: false,
-            actions: const [HelpIconButton()],
+          const SliverSizedBox(height: 12),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: TitleText(title),
+            ),
           ),
           SliverToBoxAdapter(
             child: Padding(
