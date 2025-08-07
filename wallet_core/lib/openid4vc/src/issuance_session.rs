@@ -274,7 +274,7 @@ pub trait IssuanceSession<H = HttpVcMessageClient> {
         &self,
         trust_anchors: &[TrustAnchor<'_>],
         key_factory: &KF,
-        include_wte: bool,
+        include_wua: bool,
     ) -> Result<Vec<CredentialWithMetadata>, IssuanceSessionError>
     where
         K: CredentialEcdsaKey + Eq + Hash,
