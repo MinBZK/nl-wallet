@@ -201,11 +201,11 @@ where
     // The JWT claims to be signed in the PoPs and the PoA.
     let claims = JwtPopClaims::new(arguments.nonce, NL_WALLET_CLIENT_ID.to_string(), arguments.aud);
 
-    let (wua_wrapped_key, wua_key_id, wua_with_disclosure) = if arguments.issue_wua {
-        let (wua_wrapped_key, wua_key_id, wua_disclosure) = wua(&claims, user_state).await?;
-        (Some(wua_wrapped_key), Some(wua_key_id), Some(wua_disclosure))
+    let (wua_key_and_id, wua_disclosure) = if arguments.issue_wua {
+        let (key, key_id, wua_disclosure) = wua(&claims, user_state).await?;
+        (Some((key, key_id)), Some(wua_disclosure))
     } else {
-        (None, None, None)
+        (None, None)
     };
 
     let attestation_keys = wrapped_keys
@@ -221,7 +221,7 @@ where
         arguments.key_count.get()
     };
     let poa = if key_count_including_wua > 1 {
-        let wua_attestation_key = wua_wrapped_key.as_ref().map(|key| attestation_key(key, user_state));
+        let wua_attestation_key = wua_key_and_id.as_ref().map(|(key, _)| attestation_key(key, user_state));
         Some(
             // Unwrap is safe because we're operating on the output of `generate_wrapped_keys()`
             // which returns `VecNonEmpty`
@@ -241,16 +241,13 @@ where
     };
 
     // Assemble the keys to be stored in the database
-    let wua_key_and_id = arguments
-        .issue_wua
-        .then(|| (wua_wrapped_key.unwrap(), wua_key_id.as_ref().unwrap()));
     let db_keys = wrapped_keys
         .into_iter()
-        .zip(&key_ids)
+        .zip(key_ids.clone())
         .chain(wua_key_and_id.into_iter())
-        .map(|(key, id)| WalletUserKey {
+        .map(|(key, key_identifier)| WalletUserKey {
             wallet_user_key_id: uuid_generator.generate(),
-            key_identifier: id.clone(),
+            key_identifier,
             key,
         })
         .collect();
@@ -274,7 +271,7 @@ where
         key_ids.try_into().unwrap(),
         pops.try_into().unwrap(),
         poa,
-        wua_with_disclosure,
+        wua_disclosure,
     ))
 }
 
