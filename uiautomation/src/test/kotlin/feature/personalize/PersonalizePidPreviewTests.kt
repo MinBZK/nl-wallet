@@ -47,13 +47,13 @@ class PersonalizePidPreviewTests : TestBase() {
         setUp(testInfo)
         assertTrue(personalizePidPreviewScreen.visible(), "personalize pid preview screen is not visible")
         val nationalities = gbaData.getNationalities(DEFAULT_BSN)
-        val formattedNationalities = nationalities.joinToString("\n") { "  • $it" }
         assertAll(
             { assertTrue(personalizePidPreviewScreen.visible(), "personalize pid preview screen is not visible") },
             { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(gbaData.getValueByField(FIRST_NAME, DEFAULT_BSN)), "human readable pid data is not visible") },
             { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(gbaData.getValueByField(NAME, DEFAULT_BSN)), "human readable pid data is not visible") },
             { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(DEFAULT_BSN), "human readable pid data is not visible") },
-            { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(formattedNationalities), "array attribute is not visible") },
+            { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(nationalities[0]), "array attribute is not visible") },
+            { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(nationalities[1]), "array attribute is not visible") },
         )
         personalizePidPreviewScreen.scrollToEnd()
         assertAll(
