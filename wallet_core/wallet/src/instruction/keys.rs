@@ -19,6 +19,7 @@ use utils::vec_at_least::VecAtLeastTwoUnique;
 use wallet_account::messages::instructions::ConstructPoa;
 use wallet_account::messages::instructions::PerformIssuance;
 use wallet_account::messages::instructions::PerformIssuanceWithWua;
+use wallet_account::messages::instructions::PerformIssuanceWithWuaResult;
 use wallet_account::messages::instructions::Sign;
 use wscd::Poa;
 use wscd::factory::PoaFactory;
@@ -117,33 +118,27 @@ where
         nonce: Option<String>,
         include_wua: bool,
     ) -> Result<IssuanceResult, Self::Error> {
-        if !include_wua {
-            let result = self
-                .instruction_client
-                .send(PerformIssuance { key_count, aud, nonce })
-                .await?;
-
-            Ok(IssuanceResult {
-                key_identifiers: result.key_identifiers,
-                pops: result.pops,
-                poa: result.poa,
-                wua: None,
-            })
+        let issuance_instruction = PerformIssuance { key_count, aud, nonce };
+        let (issuance_result, wua) = if !include_wua {
+            (self.instruction_client.send(issuance_instruction).await?, None)
         } else {
-            let result = self
+            let PerformIssuanceWithWuaResult {
+                issuance_result,
+                wua_disclosure,
+            } = self
                 .instruction_client
-                .send(PerformIssuanceWithWua {
-                    issuance_instruction: PerformIssuance { key_count, aud, nonce },
-                })
+                .send(PerformIssuanceWithWua { issuance_instruction })
                 .await?;
 
-            Ok(IssuanceResult {
-                key_identifiers: result.issuance_result.key_identifiers,
-                pops: result.issuance_result.pops,
-                poa: result.issuance_result.poa,
-                wua: Some(result.wua_disclosure),
-            })
-        }
+            (issuance_result, Some(wua_disclosure))
+        };
+
+        Ok(IssuanceResult {
+            key_identifiers: issuance_result.key_identifiers,
+            pops: issuance_result.pops,
+            poa: issuance_result.poa,
+            wua,
+        })
     }
 }
 
