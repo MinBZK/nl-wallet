@@ -106,4 +106,4 @@ platform_support = { path = "../../wallet/platform_support", features = ["mock_a
 wallet_account = { path = "../wallet_account", features = ["client", "server"] }
 wallet_provider_domain = { path = "../domain", features = ["mock"] }
 wallet_provider_persistence = { path = "../persistence", features = ["mock"] }
-wscd = { path = "../../lib/wscd", features = ["mock_remote_key"] }
+wscd = { path = "../../lib/wscd", features = ["mock"] }
