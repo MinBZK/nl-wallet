@@ -4,6 +4,7 @@ import '../../../domain/model/attribute/attribute.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
 import '../widget/bullet_list.dart';
+import '../widget/bullet_list_dot.dart';
 import '../widget/button/tertiary_button.dart';
 import '../widget/text/title_text.dart';
 import '../widget/wallet_scrollbar.dart';
@@ -39,7 +40,7 @@ class MissingAttributesSheet extends StatelessWidget {
                 const SizedBox(height: 8),
                 BulletList(
                   items: missingAttributes.map((it) => it.label.l10nValue(context)).toList(),
-                  icon: _buildBulletListIcon(context),
+                  icon: const BulletListDot(),
                 ),
               ],
             ),
@@ -55,19 +56,6 @@ class MissingAttributesSheet extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildBulletListIcon(BuildContext context) {
-    return Center(
-      child: Container(
-        height: 4,
-        width: 4,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: context.theme.iconTheme.color,
-        ),
       ),
     );
   }

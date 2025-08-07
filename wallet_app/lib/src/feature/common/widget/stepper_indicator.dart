@@ -4,6 +4,9 @@ import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
 import '../../../wallet_constants.dart';
 
+/// The space taken up by the stepper indicator (when visible).
+const kStepIndicatorHeight = 28.0; //FIXME: Is this still correct
+
 const Size kSingleIndicatorSize = Size(12, 4);
 const double kMarginWidth = 12;
 const BorderRadius kBorderRadius = BorderRadius.all(Radius.circular(8));

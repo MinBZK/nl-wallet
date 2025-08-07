@@ -10,6 +10,7 @@ class HistoryOverviewScreen : MobileActions() {
     private val addressCardTitle = find.byText(cardMetadata.getAddressDisplayName())
     private val disclosureLoginSubtitle = find.byText(l10n.getString("cardHistoryLoginSuccess"))
     private val historyDetailScreenIssuanceSuccessDescription= find.byText(l10n.getString("historyDetailScreenIssuanceSuccessDescription"))
+    private val cardHistoryTimelineOperationRenewed = find.byText(l10n.getString("cardHistoryTimelineOperationRenewed"))
 
     private val bottomBackButton = find.byText(l10n.getString("generalBottomBackCta"))
 
@@ -32,4 +33,6 @@ class HistoryOverviewScreen : MobileActions() {
     }
 
     fun issuanceSubtitleVisible() = isElementVisible(historyDetailScreenIssuanceSuccessDescription)
+
+    fun renewCardSubtitleVisible() = isElementVisible(cardHistoryTimelineOperationRenewed)
 }

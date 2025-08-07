@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use indexmap::IndexMap;
 use itertools::Itertools;
 
 use attestation_data::disclosure::DisclosedAttestation;
@@ -43,7 +42,7 @@ pub trait AttributesFetcher {
     async fn attributes(
         &self,
         usecase_id: &str,
-        disclosed: &IndexMap<String, DisclosedAttestation>,
+        disclosed: &[DisclosedAttestation],
     ) -> Result<Vec<IssuableDocument>, Self::Error>;
 }
 
@@ -68,7 +67,7 @@ impl AttributesFetcher for HttpAttributesFetcher {
     async fn attributes(
         &self,
         usecase_id: &str,
-        disclosed: &IndexMap<String, DisclosedAttestation>,
+        disclosed: &[DisclosedAttestation],
     ) -> Result<Vec<IssuableDocument>, Self::Error> {
         let http_client = self
             .urls
@@ -129,7 +128,7 @@ where
     async fn disclosure_result(
         &self,
         usecase_id: &str,
-        disclosed: &IndexMap<String, DisclosedAttestation>,
+        disclosed: &[DisclosedAttestation],
     ) -> Result<HashMap<String, String>, DisclosureResultHandlerError> {
         let to_issue = self
             .attributes_fetcher
@@ -212,20 +211,18 @@ mod tests {
 
     pub struct TestAttributesFetcher;
 
-    fn mock_disclosed_attrs(attestation_type: String) -> IndexMap<String, DisclosedAttestation> {
-        IndexMap::from([(
+    fn mock_disclosed_attrs(attestation_type: String) -> Vec<DisclosedAttestation> {
+        vec![DisclosedAttestation {
             attestation_type,
-            DisclosedAttestation {
-                attributes: DisclosedAttributes::MsoMdoc(IndexMap::new()),
-                issuer_uri: "https://example.com".parse().unwrap(),
-                ca: "ca".to_string(),
-                validity_info: ValidityInfo {
-                    signed: Utc::now(),
-                    valid_from: Utc::now(),
-                    valid_until: Utc::now(),
-                },
+            attributes: DisclosedAttributes::MsoMdoc(IndexMap::new()),
+            issuer_uri: "https://example.com".parse().unwrap(),
+            ca: "ca".to_string(),
+            validity_info: ValidityInfo {
+                signed: Utc::now(),
+                valid_from: Utc::now(),
+                valid_until: Utc::now(),
             },
-        )])
+        }]
     }
 
     impl AttributesFetcher for TestAttributesFetcher {
@@ -234,15 +231,15 @@ mod tests {
         async fn attributes(
             &self,
             _usecase_id: &str,
-            disclosed: &IndexMap<String, DisclosedAttestation>,
+            disclosed: &[DisclosedAttestation],
         ) -> Result<Vec<IssuableDocument>, Self::Error> {
             // Insert the received attribute type into the issuable document to demonstrate that the
             // issued attributes can depend on the disclosed attributes.
-            let (attestation_type, _) = disclosed.first().unwrap();
+            let attestation = disclosed.first().unwrap();
 
             Ok(vec![
                 IssuableDocument::try_new(
-                    attestation_type.clone(),
+                    attestation.attestation_type.clone(),
                     IndexMap::from([(
                         "attr_name".to_string(),
                         Attribute::Single(AttributeValue::Text("attrvalue".to_string())),
@@ -262,7 +259,7 @@ mod tests {
         async fn attributes(
             &self,
             _usecase_id: &str,
-            _disclosed: &IndexMap<String, DisclosedAttestation>,
+            _disclosed: &[DisclosedAttestation],
         ) -> Result<Vec<IssuableDocument>, Self::Error> {
             Ok(self.0.clone())
         }

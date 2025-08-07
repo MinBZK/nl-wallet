@@ -12,6 +12,7 @@ import org.junit.platform.suite.api.SuiteDisplayName
     feature.personalize.PersonalizeSuccessTests::class,
     feature.personalize.PersonalizePidDataIncorrectTests::class,
     feature.personalize.PersonalizeAppHandlesDigidAuthenticationTests::class,
+    feature.personalize.RenewCardTests::class
 )
 @Suite
 @SuiteDisplayName("Personalize Test Suite")

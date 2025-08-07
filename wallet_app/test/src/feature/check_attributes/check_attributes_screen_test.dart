@@ -1,8 +1,10 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/feature/check_attributes/bloc/check_attributes_bloc.dart';
 import 'package:wallet/src/feature/check_attributes/check_attributes_screen.dart';
+import 'package:wallet/src/util/extension/string_extension.dart';
 
 import '../../../wallet_app_test_widget.dart';
 import '../../mocks/wallet_mock_data.dart';
@@ -27,6 +29,43 @@ void main() {
         ),
       );
       await screenMatchesGolden('light');
+    });
+
+    testGoldens('check multiple attributes light', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        CheckAttributesScreen(
+          onDataIncorrectPressed: () {},
+        ).withState<CheckAttributesBloc, CheckAttributesState>(
+          MockCheckAttributesBloc(),
+          CheckAttributesSuccess(
+            card: WalletMockData.card,
+            attributes: [
+              WalletMockData.textDataAttribute,
+              DataAttribute(
+                key: '',
+                label: 'bool'.untranslated,
+                value: const BooleanValue(true),
+              ),
+              DataAttribute(
+                key: '',
+                label: 'number'.untranslated,
+                value: const NumberValue(1337),
+              ),
+              DataAttribute(
+                key: '',
+                label: 'date'.untranslated,
+                value: DateValue(DateTime(2025, 1, 2)),
+              ),
+              DataAttribute(
+                key: '',
+                label: 'null'.untranslated,
+                value: NullValue(),
+              ),
+            ],
+          ),
+        ),
+      );
+      await screenMatchesGolden('multi.light');
     });
 
     testGoldens('check attributes with alternatives - light', (tester) async {

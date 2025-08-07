@@ -25,7 +25,7 @@ use url::Url;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::auth::reader_auth::ReaderRegistration;
 use attestation_data::credential_payload::mock::pid_example_payload;
-use attestation_data::disclosure::DisclosedAttestations;
+use attestation_data::disclosure::DisclosedAttestation;
 use attestation_data::x509::generate::mock::generate_issuer_mock;
 use attestation_data::x509::generate::mock::generate_reader_mock;
 use crypto::server_keys::generate::Ca;
@@ -73,15 +73,15 @@ const USECASE_NAME: &str = "usecase";
 
 static EXAMPLE_START_DISCLOSURE_REQUEST: LazyLock<StartDisclosureRequest> = LazyLock::new(|| StartDisclosureRequest {
     usecase: USECASE_NAME.to_string(),
-    return_url_template: Some("https://return.url/{session_token}".parse().unwrap()),
     dcql_query: Some(Query::new_example()),
+    return_url_template: Some("https://return.url/{session_token}".parse().unwrap()),
 });
 
 static EXAMPLE_PID_START_DISCLOSURE_REQUEST: LazyLock<StartDisclosureRequest> =
     LazyLock::new(|| StartDisclosureRequest {
         usecase: USECASE_NAME.to_string(),
-        return_url_template: Some("https://return.url/{session_token}".parse().unwrap()),
         dcql_query: Some(Query::pid_family_name()),
+        return_url_template: Some("https://return.url/{session_token}".parse().unwrap()),
     });
 
 fn memory_storage_settings() -> Storage {
@@ -975,10 +975,16 @@ async fn perform_full_disclosure(session_type: SessionType) -> (Client, SessionT
     (client, session_token, internal_url, return_url)
 }
 
-fn check_example_disclosed_attributes(disclosed_attributes: &DisclosedAttestations) {
-    itertools::assert_equal(disclosed_attributes.keys(), [PID_ATTESTATION_TYPE]);
+fn check_example_disclosed_attributes(disclosed_attributes: &[DisclosedAttestation]) {
+    itertools::assert_equal(
+        disclosed_attributes
+            .iter()
+            .map(|attestation| &attestation.attestation_type),
+        [PID_ATTESTATION_TYPE],
+    );
     let attributes = disclosed_attributes
-        .get(PID_ATTESTATION_TYPE)
+        .iter()
+        .find(|attestation| attestation.attestation_type == *PID_ATTESTATION_TYPE)
         .unwrap()
         .attributes
         .clone()
@@ -1004,7 +1010,7 @@ async fn test_disclosed_attributes_without_nonce() {
     assert_eq!(response.status(), StatusCode::OK);
 
     // Check the disclosed attributes against the example attributes.
-    let disclosed_attributes = response.json::<DisclosedAttestations>().await.unwrap();
+    let disclosed_attributes = response.json::<Vec<DisclosedAttestation>>().await.unwrap();
 
     check_example_disclosed_attributes(&disclosed_attributes);
 }
@@ -1051,7 +1057,7 @@ async fn test_disclosed_attributes_with_nonce() {
     assert_eq!(response.status(), StatusCode::OK);
 
     // Check the disclosed attributes against the example attributes.
-    let disclosed_attributes = response.json::<DisclosedAttestations>().await.unwrap();
+    let disclosed_attributes = response.json::<Vec<DisclosedAttestation>>().await.unwrap();
 
     check_example_disclosed_attributes(&disclosed_attributes);
 }

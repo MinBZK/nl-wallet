@@ -22,8 +22,8 @@ use serde_with::formats::PreferOne;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 
+use attestation_data::disclosure::DisclosedAttestation;
 use attestation_data::disclosure::DisclosedAttestationError;
-use attestation_data::disclosure::DisclosedAttestations;
 use crypto::utils::random_string;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateError;
@@ -35,8 +35,8 @@ use jwt::error::JwtX5cError;
 use mdoc::DeviceResponse;
 use mdoc::SessionTranscript;
 use mdoc::errors::Error as MdocError;
-use mdoc::holder::disclosure::ResponseValidationError;
 use mdoc::utils::serialization::CborBase64;
+use mdoc::verifier::ResponseMatchingError;
 use serde_with::SerializeDisplay;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
@@ -60,6 +60,8 @@ pub enum AuthRequestError {
     CertificateParsing(#[from] CertificateError),
     #[error("Subject Alternative Name missing from X.509 certificate")]
     MissingSAN,
+    #[error("error converting Credential Request to Presentation Definition: {0}")]
+    PdConversion(#[from] PdConversionError),
 }
 
 /// A Request URI object, as defined in RFC 9101.
@@ -214,6 +216,7 @@ pub enum VpEncValues {
 #[serde(rename_all = "snake_case")]
 pub enum VpFormat {
     MsoMdoc { alg: IndexSet<FormatAlg> },
+    SdJwt { alg: IndexSet<FormatAlg> },
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -394,7 +397,7 @@ impl NormalizedVpAuthorizationRequest {
             nonce,
             encryption_pubkey: encryption_pubkey.clone(),
             response_uri,
-            presentation_definition: (&credential_requests).into(),
+            presentation_definition: (&credential_requests).try_into()?,
             credential_requests,
             client_metadata: ClientMetadata {
                 jwks: VpJwks::Direct {
@@ -569,7 +572,7 @@ pub enum AuthResponseError {
     #[error("error verifying disclosed mdoc(s): {0}")]
     Verification(#[source] mdoc::Error),
     #[error("missing requested attributes: {0}")]
-    MissingAttributes(#[source] ResponseValidationError),
+    MissingAttributes(#[source] ResponseMatchingError),
     #[error("received unexpected amount of Verifiable Presentations: expected 1, found {0}")]
     UnexpectedVpCount(usize),
     #[error("error in Presentation Submission: {0}")]
@@ -695,7 +698,7 @@ impl VpAuthorizationResponse {
         accepted_wallet_client_ids: &[String],
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
-    ) -> Result<DisclosedAttestations, AuthResponseError> {
+    ) -> Result<Vec<DisclosedAttestation>, AuthResponseError> {
         let (response, mdoc_nonce) = Self::decrypt(jwe, private_key, &auth_request.nonce)?;
 
         response.verify(
@@ -736,31 +739,18 @@ impl VpAuthorizationResponse {
         Ok(&device_response.0)
     }
 
-    fn keys(&self) -> Result<Vec<VerifyingKey>, MdocError> {
-        let keys = self
-            .vp_token
+    fn unique_keys(&self) -> Result<Vec<VerifyingKey>, MdocError> {
+        self.vp_token
             .iter()
-            .map(|vp| match vp {
-                VerifiablePresentation::MsoMdoc(device_response) => device_response
-                    .0
-                    .documents
-                    .as_ref()
-                    .map(|docs| {
-                        docs.iter()
-                            .map(|doc| {
-                                // VerifyingKey implements Copy, thereby saving use a clone here
-                                doc.issuer_signed.public_key()
-                            })
-                            .collect::<Result<Vec<_>, MdocError>>()
-                    })
-                    .unwrap_or(Ok(Default::default())), // empty list if no documents are present
-            })
-            .collect::<Result<Vec<_>, MdocError>>()?
-            .into_iter()
-            .flatten()
-            .collect_vec();
+            .flat_map(|vp| {
+                let VerifiablePresentation::MsoMdoc(CborBase64(device_response)) = vp;
 
-        Ok(keys)
+                &device_response.documents
+            })
+            .flatten()
+            .map(|document| document.issuer_signed.public_key())
+            // Unfortunately `VerifyingKey` does not implement `Hash`, so we have to deduplicate manually.
+            .process_results(|iter| iter.dedup().collect())
     }
 
     pub fn verify(
@@ -770,7 +760,7 @@ impl VpAuthorizationResponse {
         mdoc_nonce: &str,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
-    ) -> Result<DisclosedAttestations, AuthResponseError> {
+    ) -> Result<Vec<DisclosedAttestation>, AuthResponseError> {
         // Verify the cryptographic integrity of the disclosed attributes.
         let session_transcript = SessionTranscript::new_oid4vp(
             &auth_request.response_uri,
@@ -780,13 +770,13 @@ impl VpAuthorizationResponse {
         );
         // TODO this is still mdoc specific (PVW-4531)
         let device_response = self.device_response()?;
-        let disclosed_attrs = device_response
+        let disclosed_documents = device_response
             .verify(None, &session_transcript, time, trust_anchors)
             .map_err(AuthResponseError::Verification)?;
 
         // Verify PoA
         let used_keys = self
-            .keys()
+            .unique_keys()
             .expect("should always succeed when called after DeviceResponse::verify");
         if used_keys.len() >= 2 {
             self.poa.as_ref().ok_or(AuthResponseError::MissingPoa)?.clone().verify(
@@ -799,7 +789,7 @@ impl VpAuthorizationResponse {
 
         // Check that we received all attributes that we requested
         device_response
-            .match_against_request(&auth_request.credential_requests)
+            .matches_requests(auth_request.credential_requests.as_ref())
             .map_err(AuthResponseError::MissingAttributes)?;
 
         // Safe: if we have found all requested items in the documents, then the documents are not absent.
@@ -818,10 +808,11 @@ impl VpAuthorizationResponse {
             });
         }
 
-        Ok(disclosed_attrs
+        disclosed_documents
             .into_iter()
-            .map(|(vct, attrs)| Ok((vct, attrs.try_into()?)))
-            .collect::<Result<DisclosedAttestations, DisclosedAttestationError>>()?)
+            .map(DisclosedAttestation::try_from)
+            .try_collect()
+            .map_err(AuthResponseError::DisclosedAttestation)
     }
 }
 
@@ -1275,9 +1266,9 @@ mod tests {
 
         assert_eq!(attestations.len(), 1);
 
-        let (attestation_type, attestation) = attestations.first().unwrap();
+        let attestation = attestations.first().unwrap();
 
-        assert_eq!("urn:eudi:pid:nl:1", attestation_type.as_str(),);
+        assert_eq!("urn:eudi:pid:nl:1", attestation.attestation_type.as_str());
         let DisclosedAttributes::MsoMdoc(attributes) = &attestation.attributes else {
             panic!("should be mdoc attributes")
         };

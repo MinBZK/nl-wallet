@@ -7,7 +7,9 @@ import '../widget/button/bottom_back_button.dart';
 import '../widget/page_illustration.dart';
 import '../widget/paragraphed_list.dart';
 import '../widget/paragraphed_sliver_list.dart';
-import '../widget/sliver_wallet_app_bar.dart';
+import '../widget/spacer/sliver_sized_box.dart';
+import '../widget/text/title_text.dart';
+import '../widget/wallet_app_bar.dart';
 import '../widget/wallet_scrollbar.dart';
 
 class PlaceholderScreen extends StatelessWidget {
@@ -27,6 +29,10 @@ class PlaceholderScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: WalletAppBar(
+        title: TitleText(headline),
+        automaticallyImplyLeading: true,
+      ),
       body: SafeArea(
         child: WalletScrollbar(
           child: Column(
@@ -34,11 +40,14 @@ class PlaceholderScreen extends StatelessWidget {
               Expanded(
                 child: CustomScrollView(
                   slivers: [
-                    SliverWalletAppBar(
-                      title: headline,
-                      scrollController: PrimaryScrollController.maybeOf(context),
-                      automaticallyImplyLeading: true,
+                    const SliverSizedBox(height: 12),
+                    SliverPadding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      sliver: SliverToBoxAdapter(
+                        child: TitleText(headline),
+                      ),
                     ),
+                    const SliverSizedBox(height: 8),
                     SliverPadding(
                       sliver: ParagraphedSliverList.splitContent(description),
                       padding: const EdgeInsets.symmetric(horizontal: 16),

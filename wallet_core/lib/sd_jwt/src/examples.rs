@@ -1,8 +1,9 @@
+use std::collections::HashMap;
+
 use base64::Engine;
 use base64::prelude::BASE64_URL_SAFE_NO_PAD;
 use chrono::Duration;
 use futures::FutureExt;
-use indexmap::IndexMap;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::jwk::Jwk;
 use p256::ecdsa::SigningKey;
@@ -10,6 +11,7 @@ use rand_core::OsRng;
 use serde_json::json;
 use ssri::Integrity;
 
+use attestation_types::claim_path::ClaimPath;
 use crypto::server_keys::KeyPair;
 use crypto::utils::random_string;
 use jwt::EcdsaDecodingKey;
@@ -38,7 +40,7 @@ pub const WITH_KB_SD_JWT: &str = include_str!("../examples/spec/with_kb.jwt");
 pub const WITH_KB_SD_JWT_AUD: &str = "https://verifier.example.org";
 pub const WITH_KB_SD_JWT_NONCE: &str = "1234567890";
 
-impl SdJwt {
+impl SdJwtPresentation {
     pub fn spec_simple_structured() -> SdJwt {
         SdJwt::parse_and_verify(SIMPLE_STRUCTURED_SD_JWT, &examples_sd_jwt_decoding_key(), &Sha256Hasher).unwrap()
     }
@@ -76,6 +78,7 @@ impl SdJwt {
           "iss": "https://cert.issuer.example.com",
           "attestation_qualification": "QEAA",
           "bsn": "999991772",
+          "recovery_code": "885ed8a2-f07a-4f77-a8df-2e166f5ebd36",
           "given_name": "John",
           "family_name": "Doe",
           "birthdate": "1940-01-01"
@@ -86,11 +89,15 @@ impl SdJwt {
         // issuer signs SD-JWT
         SdJwtBuilder::new(object)
             .unwrap()
-            .make_concealable("/family_name")
+            .make_concealable(
+                vec![ClaimPath::SelectByKey(String::from("family_name"))]
+                    .try_into()
+                    .unwrap(),
+            )
             .unwrap()
-            .make_concealable("/bsn")
+            .make_concealable(vec![ClaimPath::SelectByKey(String::from("bsn"))].try_into().unwrap())
             .unwrap()
-            .add_decoys("", 2)
+            .add_decoys(&[], 2)
             .unwrap()
             .finish(
                 Algorithm::ES256,
@@ -106,7 +113,7 @@ impl SdJwt {
 }
 
 // Taken from https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-17.html#name-example-sd-jwt-with-recursi
-pub fn recursive_disclosures_example() -> (serde_json::Value, IndexMap<String, Disclosure>) {
+pub fn recursive_disclosures_example() -> (serde_json::Value, HashMap<String, Disclosure>) {
     let claims = json!({
       "_sd": [
         "HvrKX6fPV0v9K_yCVFBiLFHsMaxcD_114Em6VT8x1lg"
@@ -126,7 +133,7 @@ pub fn recursive_disclosures_example() -> (serde_json::Value, IndexMap<String, D
         "WyJRZ19PNjR6cUF4ZTQxMmExMDhpcm9BIiwgImFkZHJlc3MiLCB7Il9zZCI6IFsiNnZoOWJxLXpTNEdLTV83R3BnZ1ZiWXp6dTZvT0dYcm1OVkdQSFA3NVVkMCIsICI5Z2pWdVh0ZEZST0NnUnJ0TmNHVVhtRjY1cmRlemlfNkVyX2o3NmttWXlNIiwgIktVUkRQaDRaQzE5LTN0aXotRGYzOVY4ZWlkeTFvVjNhM0gxRGEyTjBnODgiLCAiV045cjlkQ0JKOEhUQ3NTMmpLQVN4VGpFeVc1bTV4NjVfWl8ycm8yamZYTSJdfV0",
     ];
 
-    let disclosure_content = IndexMap::from_iter(disclosures.into_iter().map(|disclosure_str| {
+    let disclosure_content = HashMap::from_iter(disclosures.into_iter().map(|disclosure_str| {
         let disclosure_type: DisclosureContent =
             serde_json::from_slice(&BASE64_URL_SAFE_NO_PAD.decode(disclosure_str).unwrap()).unwrap();
         let disclosure = Disclosure::try_new(disclosure_type).unwrap();

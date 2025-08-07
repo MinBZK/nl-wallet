@@ -60,9 +60,6 @@ pub enum TypeMetadataError {
     #[error("found missing `svg_id`s: {}", .0.join(", "))]
     MissingSvgIds(Vec<String>),
 
-    #[error("error converting claim path to a JSON path: {0}")]
-    JsonPathConversion(String),
-
     #[error("internal attributes found in claim: {}", .0.join(", "))]
     InternalAttributeInClaim(Vec<String>),
 }
@@ -514,18 +511,6 @@ pub struct ClaimMetadata {
 
     /// A string defining the ID of the claim for reference in the SVG template.
     pub svg_id: Option<SvgId>,
-}
-
-pub fn claim_paths_to_json_path(paths: &VecNonEmpty<ClaimPath>) -> Result<String, TypeMetadataError> {
-    let json_path = paths.iter().try_fold(String::new(), |mut acc, path| match path {
-        ClaimPath::SelectByKey(_) => {
-            acc.push_str(&format!("/{path}"));
-            Ok(acc)
-        }
-        other => Err(TypeMetadataError::JsonPathConversion(other.to_string())),
-    })?;
-
-    Ok(json_path)
 }
 
 impl ClaimMetadata {
@@ -1265,40 +1250,6 @@ mod test {
         }))
         .unwrap();
         assert_type_metadata_error(metadata.validate_svg_ids(), expected);
-    }
-
-    #[test]
-    fn test_to_json_path() {
-        assert_eq!(
-            "/a/b/c",
-            claim_paths_to_json_path(
-                &VecNonEmpty::try_from(vec![
-                    ClaimPath::SelectByKey(String::from("a")),
-                    ClaimPath::SelectByKey(String::from("b")),
-                    ClaimPath::SelectByKey(String::from("c")),
-                ])
-                .unwrap()
-            )
-            .unwrap()
-        );
-
-        assert_matches!(
-            claim_paths_to_json_path(
-                &VecNonEmpty::try_from(vec![
-                    ClaimPath::SelectByKey(String::from("a")),
-                    ClaimPath::SelectByIndex(0),
-                ])
-                .unwrap()
-            ),
-            Err(TypeMetadataError::JsonPathConversion(_))
-        );
-
-        assert_matches!(
-            claim_paths_to_json_path(
-                &VecNonEmpty::try_from(vec![ClaimPath::SelectByKey(String::from("a")), ClaimPath::SelectAll,]).unwrap()
-            ),
-            Err(TypeMetadataError::JsonPathConversion(_))
-        );
     }
 
     #[rstest]

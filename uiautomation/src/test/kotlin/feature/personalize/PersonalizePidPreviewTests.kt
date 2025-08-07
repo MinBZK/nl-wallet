@@ -45,15 +45,22 @@ class PersonalizePidPreviewTests : TestBase() {
     @DisplayName("$USE_CASE.1 When the PID provider offers PID data, the app displays this PID data to the user. 2 The App displays the PID data in a user friendly / human readable format. 3 The App asks the User to check whether the data is correct, and offers two buttons: confirm and reject. [$JIRA_ID]")
     fun verifyPersonalizePidPreviewScreen(testInfo: TestInfo) {
         setUp(testInfo)
+        assertTrue(personalizePidPreviewScreen.visible(), "personalize pid preview screen is not visible")
+        val nationalities = gbaData.getNationalities(DEFAULT_BSN)
         assertAll(
             { assertTrue(personalizePidPreviewScreen.visible(), "personalize pid preview screen is not visible") },
-            { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(gbaData.getValueByField(FIRST_NAME,"999991772")), "human readable pid data is not visible") },
-            { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(gbaData.getValueByField(NAME,"999991772")), "human readable pid data is not visible") },
-            { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(gbaData.getValueByField(STREET,"999991772")), "human readable pid data is not visible") },
-            { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(gbaData.getValueByField(CITY,"999991772")), "human readable pid data is not visible") },
-            { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(gbaData.getValueByField(HOUSE_NUMBER,"999991772")), "human readable pid data is not visible") },
-            { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(gbaData.getValueByField(POSTAL_CODE,"999991772")), "human readable pid data is not visible") },
-            { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible("999991772"), "human readable pid data is not visible") },
+            { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(gbaData.getValueByField(FIRST_NAME, DEFAULT_BSN)), "human readable pid data is not visible") },
+            { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(gbaData.getValueByField(NAME, DEFAULT_BSN)), "human readable pid data is not visible") },
+            { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(DEFAULT_BSN), "human readable pid data is not visible") },
+            { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(nationalities[0]), "array attribute is not visible") },
+            { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(nationalities[1]), "array attribute is not visible") },
+        )
+        personalizePidPreviewScreen.scrollToEnd()
+        assertAll(
+            { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(gbaData.getValueByField(POSTAL_CODE, DEFAULT_BSN)), "human readable pid data is not visible") },
+            { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(gbaData.getValueByField(STREET, DEFAULT_BSN)), "human readable pid data is not visible") },
+            { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(gbaData.getValueByField(CITY, DEFAULT_BSN)), "human readable pid data is not visible") },
+            { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(gbaData.getValueByField(HOUSE_NUMBER, DEFAULT_BSN)), "human readable pid data is not visible") },
             { assertTrue(personalizePidPreviewScreen.confirmButtonsVisible(), "confirm buttons are not visible") }
         )
     }

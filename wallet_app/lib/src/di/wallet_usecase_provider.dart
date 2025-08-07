@@ -16,8 +16,10 @@ import '../domain/usecase/biometrics/is_biometric_login_enabled_usecase.dart';
 import '../domain/usecase/biometrics/request_biometrics_usecase.dart';
 import '../domain/usecase/biometrics/set_biometrics_usecase.dart';
 import '../domain/usecase/biometrics/unlock_wallet_with_biometrics_usecase.dart';
+import '../domain/usecase/card/get_pid_cards_usecase.dart';
 import '../domain/usecase/card/get_wallet_card_usecase.dart';
 import '../domain/usecase/card/get_wallet_cards_usecase.dart';
+import '../domain/usecase/card/impl/get_pid_cards_usecase_impl.dart';
 import '../domain/usecase/card/impl/get_wallet_card_usecase_impl.dart';
 import '../domain/usecase/card/impl/get_wallet_cards_usecase_impl.dart';
 import '../domain/usecase/card/impl/observe_wallet_card_detail_usecase_impl.dart';
@@ -54,10 +56,12 @@ import '../domain/usecase/pid/accept_offered_pid_usecase.dart';
 import '../domain/usecase/pid/cancel_pid_issuance_usecase.dart';
 import '../domain/usecase/pid/continue_pid_issuance_usecase.dart';
 import '../domain/usecase/pid/get_pid_issuance_url_usecase.dart';
+import '../domain/usecase/pid/get_pid_renewal_url_usecase.dart';
 import '../domain/usecase/pid/impl/accept_offered_pid_usecase_impl.dart';
 import '../domain/usecase/pid/impl/cancel_pid_issuance_usecase_impl.dart';
 import '../domain/usecase/pid/impl/continue_pid_issuance_usecase_impl.dart';
 import '../domain/usecase/pid/impl/get_pid_issuance_url_usecase_impl.dart';
+import '../domain/usecase/pid/impl/get_pid_renewal_url_usecase_impl.dart';
 import '../domain/usecase/pin/change_pin_usecase.dart';
 import '../domain/usecase/pin/check_is_valid_pin_usecase.dart';
 import '../domain/usecase/pin/disclose_for_issuance_usecase.dart';
@@ -137,6 +141,9 @@ class WalletUseCaseProvider extends StatelessWidget {
         RepositoryProvider<GetWalletCardsUseCase>(
           create: (context) => GetWalletCardsUseCaseImpl(context.read()),
         ),
+        RepositoryProvider<GetPidCardsUseCase>(
+          create: (context) => GetPidCardsUseCaseImpl(context.read()),
+        ),
         RepositoryProvider<GetWalletCardUseCase>(
           create: (context) => GetWalletCardUseCaseImpl(context.read()),
         ),
@@ -175,6 +182,9 @@ class WalletUseCaseProvider extends StatelessWidget {
         ),
         RepositoryProvider<GetPidIssuanceUrlUseCase>(
           create: (context) => GetPidIssuanceUrlUseCaseImpl(context.read()),
+        ),
+        RepositoryProvider<GetPidRenewalUrlUseCase>(
+          create: (context) => GetPidRenewalUrlUseCaseImpl(context.read()),
         ),
         RepositoryProvider<ContinuePidIssuanceUseCase>(
           create: (context) => ContinuePidIssuanceUseCaseImpl(context.read()),

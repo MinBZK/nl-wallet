@@ -7,9 +7,9 @@ import '../../navigation/secured_page_route.dart';
 import '../../util/cast_util.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/string_extension.dart';
-import '../../util/formatter/attribute_value_formatter.dart';
 import '../common/sheet/select_card_sheet.dart';
 import '../common/widget/animation/animated_card_switcher.dart';
+import '../common/widget/attribute/attribute_row.dart';
 import '../common/widget/button/bottom_back_button.dart';
 import '../common/widget/button/confirm/confirm_buttons.dart';
 import '../common/widget/button/icon/help_icon_button.dart';
@@ -149,24 +149,12 @@ class CheckAttributesScreen extends StatelessWidget {
                   const SliverSizedBox(height: 24),
                   const SliverDivider(),
                   SliverPadding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+                    padding: const EdgeInsets.symmetric(vertical: 24),
                     sliver: SliverList.separated(
                       itemCount: state.attributes.length,
                       itemBuilder: (context, i) {
                         final attribute = state.attributes[i];
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              attribute.label.l10nValue(context),
-                              style: context.textTheme.bodySmall,
-                            ),
-                            Text(
-                              attribute.value.prettyPrint(context),
-                              style: context.textTheme.titleMedium,
-                            ),
-                          ],
-                        );
+                        return AttributeRow(attribute: attribute);
                       },
                       separatorBuilder: (context, i) => const SizedBox(height: 24),
                     ),

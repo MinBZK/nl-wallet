@@ -22,6 +22,9 @@ class CorePidRepository extends PidRepository {
   Future<String> getPidIssuanceUrl() => _walletCore.createPidIssuanceRedirectUri();
 
   @override
+  Future<String> getPidRenewalUrl() => _walletCore.createPidRenewalRedirectUri();
+
+  @override
   Future<List<DataAttribute>> continuePidIssuance(String uri) async {
     final result = await _walletCore.continuePidIssuance(uri);
     return result.map(_cardMapper.map).map((attestation) => attestation.attributes).flattened.toList();

@@ -16,9 +16,10 @@ import '../../wallet_constants.dart';
 import '../common/widget/button/bottom_back_button.dart';
 import '../common/widget/button/icon/back_icon_button.dart';
 import '../common/widget/centered_loading_indicator.dart';
-import '../common/widget/sliver_wallet_app_bar.dart';
 import '../common/widget/spacer/sliver_divider.dart';
 import '../common/widget/spacer/sliver_sized_box.dart';
+import '../common/widget/text/title_text.dart';
+import '../common/widget/wallet_app_bar.dart';
 import '../common/widget/wallet_scrollbar.dart';
 import 'bloc/change_language_bloc.dart';
 
@@ -28,6 +29,12 @@ class ChangeLanguageScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: WalletAppBar(
+        title: TitleText(context.l10n.changeLanguageScreenTitle),
+        leading: const BackIconButton(
+          key: Key('changeLanguageScreenBackCta'),
+        ),
+      ),
       key: const Key('changeLanguageScreen'),
       body: SafeArea(
         child: Column(
@@ -36,11 +43,10 @@ class ChangeLanguageScreen extends StatelessWidget {
               child: WalletScrollbar(
                 child: CustomScrollView(
                   slivers: [
-                    SliverWalletAppBar(
-                      title: context.l10n.changeLanguageScreenTitle,
-                      scrollController: PrimaryScrollController.maybeOf(context),
-                      leading: const BackIconButton(
-                        key: Key('changeLanguageScreenBackCta'),
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: kDefaultTitlePadding,
+                        child: TitleText(context.l10n.changeLanguageScreenTitle),
                       ),
                     ),
                     const SliverSizedBox(height: 12),

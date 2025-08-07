@@ -1058,8 +1058,9 @@ Example responses:
 ```
 
 ```json
-{
-    "com.example.pid": {
+[
+    {
+        "attestationType": "com.example.pid",
         "attributes": {
             "com.example.pid": {
                 "family_name": "De Bruijn",
@@ -1075,7 +1076,7 @@ Example responses:
             "validUntil": "2025-07-20T14:00:58Z"
         }
     }
-}
+]
 ```
 
 ## References

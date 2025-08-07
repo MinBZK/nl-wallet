@@ -7,14 +7,15 @@ import '../../../navigation/wallet_routes.dart';
 import '../../../theme/wallet_theme.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
+import '../../../wallet_constants.dart';
 import '../../common/widget/bullet_list.dart';
 import '../../common/widget/button/bottom_back_button.dart';
 import '../../common/widget/centered_loading_indicator.dart';
-import '../../common/widget/sliver_wallet_app_bar.dart';
 import '../../common/widget/spacer/sliver_divider.dart';
 import '../../common/widget/spacer/sliver_sized_box.dart';
 import '../../common/widget/text/body_text.dart';
 import '../../common/widget/text/title_text.dart';
+import '../../common/widget/wallet_app_bar.dart';
 import '../../common/widget/wallet_scrollbar.dart';
 import '../../error/error_page.dart';
 import '../video/argument/tour_video_screen_argument.dart';
@@ -26,6 +27,9 @@ class TourOverviewScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: WalletAppBar(
+        title: TitleText(context.l10n.tourOverviewScreenTitle),
+      ),
       body: SafeArea(
         child: Column(
           children: [
@@ -59,9 +63,11 @@ class TourOverviewScreen extends StatelessWidget {
     return WalletScrollbar(
       child: CustomScrollView(
         slivers: [
-          SliverWalletAppBar(
-            title: context.l10n.tourOverviewScreenTitle,
-            scrollController: PrimaryScrollController.maybeOf(context),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: kDefaultTitlePadding,
+              child: TitleText(context.l10n.tourOverviewScreenTitle),
+            ),
           ),
           SliverToBoxAdapter(
             child: Padding(

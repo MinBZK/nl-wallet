@@ -1,6 +1,9 @@
 // Copyright 2020-2023 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
+use itertools::Itertools;
+
+use attestation_types::claim_path::ClaimPath;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
 use jwt::error::JwtX5cError;
@@ -32,17 +35,35 @@ pub enum Error {
     #[error("array disclosure object contains keys other than `...`")]
     InvalidArrayDisclosureObject,
 
-    #[error("invalid path: {0}")]
-    InvalidPath(String),
+    #[error("invalid array index: {0}, for array: {1:?}")]
+    IndexOutOfBounds(usize, Vec<serde_json::Value>),
+
+    #[error("disclosure not found for key: {0} in map: {1:?}")]
+    DisclosureNotFound(String, serde_json::Map<String, serde_json::Value>),
+
+    #[error("couldn't find parent for path: /{}", .0.iter().map(ToString::to_string).join("/"))]
+    ParentNotFound(Vec<ClaimPath>),
+
+    #[error("unexpected element: {}, for path: /{}", .0, .1.iter().map(ToString::to_string).join("/"))]
+    UnexpectedElement(serde_json::Value, Vec<ClaimPath>),
+
+    #[error("the array element for path: '{path}' cannot be found")]
+    ElementNotFoundInArray { path: String },
+
+    #[error("cannot disclose empty path")]
+    EmptyPath,
+
+    #[error("the referenced intermediate element for path: '{path}' cannot be found")]
+    IntermediateElementNotFound { path: String },
+
+    #[error("the referenced element for path: '{path}' cannot be found")]
+    ElementNotFound { path: String },
 
     #[error("invalid input: {0}")]
     Deserialization(String),
 
     #[error("error serializing to JSON: {0}")]
     Serialization(#[from] serde_json::error::Error),
-
-    #[error("{0}")]
-    Unspecified(String),
 
     #[error("the validation ended with {0} unused disclosure(s)")]
     UnusedDisclosures(usize),
@@ -61,4 +82,7 @@ pub enum Error {
 
     #[error("missing required JWK key binding")]
     MissingJwkKeybinding,
+
+    #[error("cannot traverse object for path: {0}")]
+    UnsupportedTraversalPath(ClaimPath),
 }

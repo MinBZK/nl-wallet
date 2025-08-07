@@ -52,6 +52,34 @@
                   </ns2:item>
                 </ns2:categorievoorkomens>
               </ns2:item>
+
+              <!-- Categorie 4 - Nationaliteit Nederlandse -->
+              <ns2:item>
+                <ns2:categorievoorkomens>
+                  <ns2:item>
+                    <ns2:categorienummer>4</ns2:categorienummer>
+                    <ns2:elementen>
+                      <ns2:item>
+                        <ns2:nummer>510</ns2:nummer>
+                        <ns2:waarde>0001</ns2:waarde> <!-- Nationaliteit Nederlandse -->
+                      </ns2:item>
+                      <ns2:item>
+                        <ns2:nummer>6310</ns2:nummer>
+                        <ns2:waarde>017</ns2:waarde> <!-- Reden opname nationaliteit -->
+                      </ns2:item>
+                      <ns2:item>
+                        <ns2:nummer>8510</ns2:nummer>
+                        <ns2:waarde>20000324</ns2:waarde> <!-- Ingangsdatum geldigheid -->
+                      </ns2:item>
+                      <ns2:item>
+                        <ns2:nummer>8610</ns2:nummer>
+                        <ns2:waarde>20000325</ns2:waarde> <!-- Datum van opneming -->
+                      </ns2:item>
+                    </ns2:elementen>
+                  </ns2:item>
+                </ns2:categorievoorkomens>
+              </ns2:item>
+  
               <ns2:item>
                 <ns2:categorievoorkomens>
                   <ns2:item>

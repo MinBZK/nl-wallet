@@ -8,9 +8,9 @@ import '../../../common/widget/attribute/attribute_row.dart';
 import '../../../common/widget/button/confirm/confirm_buttons.dart';
 import '../../../common/widget/button/primary_button.dart';
 import '../../../common/widget/button/secondary_button.dart';
-import '../../../common/widget/sliver_wallet_app_bar.dart';
 import '../../../common/widget/spacer/sliver_sized_box.dart';
 import '../../../common/widget/text/body_text.dart';
+import '../../../common/widget/text/title_text.dart';
 import '../../../common/widget/wallet_scrollbar.dart';
 import '../wallet_personalize_data_incorrect_screen.dart';
 
@@ -34,12 +34,7 @@ class WalletPersonalizeCheckDataOfferingPage extends StatelessWidget {
       child: WalletScrollbar(
         child: CustomScrollView(
           slivers: <Widget>[
-            SliverWalletAppBar(
-              title: context.l10n.walletPersonalizeCheckDataOfferingPageTitle,
-              scrollController: PrimaryScrollController.maybeOf(context),
-              progress: progress,
-              automaticallyImplyLeading: false,
-            ),
+            const SliverSizedBox(height: 12),
             SliverToBoxAdapter(child: _buildHeaderSection(context)),
             const SliverSizedBox(height: 24),
             const SliverToBoxAdapter(child: Divider()),
@@ -67,7 +62,14 @@ class WalletPersonalizeCheckDataOfferingPage extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
       alignment: Alignment.centerLeft,
-      child: BodyText(context.l10n.walletPersonalizeCheckDataOfferingPageSubtitle),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TitleText(context.l10n.walletPersonalizeCheckDataOfferingPageTitle),
+          const SizedBox(height: 8),
+          BodyText(context.l10n.walletPersonalizeCheckDataOfferingPageSubtitle),
+        ],
+      ),
     );
   }
 

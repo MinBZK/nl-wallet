@@ -6,7 +6,6 @@ use std::fmt::Display;
 use base64::prelude::*;
 use serde::Deserialize;
 use serde::Serialize;
-use serde_json::Value;
 
 use crate::error::Error;
 
@@ -24,6 +23,13 @@ pub struct Disclosure {
     encoded: String,
 }
 
+#[derive(Debug)]
+pub(crate) struct DisclosureContentSerializationError {
+    pub key: Option<String>,
+    pub value: serde_json::Value,
+    pub error: serde_json::Error,
+}
+
 impl AsRef<str> for Disclosure {
     fn as_ref(&self) -> &str {
         &self.encoded
@@ -34,8 +40,26 @@ impl Disclosure {
     /// Creates a new instance of [`Disclosure`].
     ///
     /// Use `.to_string()` to get the actual disclosure.
-    pub(crate) fn try_new(content: DisclosureContent) -> Result<Self, Error> {
-        let encoded = BASE64_URL_SAFE_NO_PAD.encode(serde_json::to_vec(&content)?.as_slice());
+    pub(crate) fn try_new(content: DisclosureContent) -> Result<Self, DisclosureContentSerializationError> {
+        let serialized = match serde_json::to_vec(&content) {
+            Ok(serialized) => serialized,
+            Err(error) => {
+                return match content {
+                    DisclosureContent::ObjectProperty(_, key, value) => Err(DisclosureContentSerializationError {
+                        key: Some(key),
+                        value,
+                        error,
+                    }),
+                    DisclosureContent::ArrayElement(_, value) => Err(DisclosureContentSerializationError {
+                        key: None,
+                        value,
+                        error,
+                    }),
+                };
+            }
+        };
+
+        let encoded = BASE64_URL_SAFE_NO_PAD.encode(serialized.as_slice());
         Ok(Self { content, encoded })
     }
 
@@ -70,7 +94,7 @@ impl Disclosure {
         self.as_ref()
     }
 
-    pub fn claim_value(&self) -> &Value {
+    pub fn claim_value(&self) -> &serde_json::Value {
         match &self.content {
             DisclosureContent::ObjectProperty(_, _, value) => value,
             DisclosureContent::ArrayElement(_, value) => value,
@@ -99,13 +123,13 @@ pub enum DisclosureContent {
         /// The claim name, optional for array elements.
         String,
         /// The claim Value which can be of any type.
-        Value,
+        serde_json::Value,
     ),
     ArrayElement(
         /// The salt value.
         String,
         /// The claim Value which can be of any type.
-        Value,
+        serde_json::Value,
     ),
 }
 

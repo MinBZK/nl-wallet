@@ -25,6 +25,7 @@ class PinScreen extends StatelessWidget {
       appBar: const WalletAppBar(
         automaticallyImplyLeading: false,
         actions: [InfoIconButton()],
+        fadeInTitleOnScroll: false,
       ),
       body: FutureBuilder<bool>(
         future: context.read<IsBiometricLoginEnabledUseCase>().invoke(),

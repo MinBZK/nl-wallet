@@ -7,7 +7,7 @@ import 'package:wallet/src/domain/model/disclosure/disclosure_type.dart';
 import 'package:wallet/src/domain/model/result/application_error.dart';
 import 'package:wallet/src/domain/model/result/result.dart';
 import 'package:wallet/src/feature/disclosure/bloc/disclosure_bloc.dart';
-import 'package:wallet/src/feature/report_issue/report_issue_screen.dart';
+import 'package:wallet/src/feature/report_issue/reporting_option.dart';
 import 'package:wallet/src/util/extension/core_error_extension.dart';
 import 'package:wallet/src/util/extension/string_extension.dart';
 import 'package:wallet/src/wallet_core/error/core_error.dart';

@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:video_player/video_player.dart';
-import 'package:wallet/src/feature/error/error_page.dart';
+import 'package:wallet/src/feature/error/error_screen.dart';
 import 'package:wallet/src/feature/tour/video/tour_video_screen.dart';
 
 import '../../../../wallet_app_test_widget.dart';
@@ -92,7 +92,7 @@ void main() {
 
       final l10n = await TestUtils.englishLocalizations;
       // Should not crash and should show generic error UI
-      expect(find.byType(ErrorPage), findsAtLeastNWidgets(1));
+      expect(find.byType(ErrorScreen), findsOneWidget);
       expect(find.text(l10n.errorScreenGenericHeadline), findsOneWidget);
     });
 
@@ -112,7 +112,7 @@ void main() {
 
       final l10n = await TestUtils.englishLocalizations;
       // Should not crash and should show no internet error UI
-      expect(find.byType(ErrorPage), findsAtLeastNWidgets(1));
+      expect(find.byType(ErrorScreen), findsOneWidget);
       expect(find.text(l10n.errorScreenNoInternetHeadline), findsOneWidget);
     });
   });
