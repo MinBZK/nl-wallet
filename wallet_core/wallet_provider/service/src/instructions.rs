@@ -190,12 +190,11 @@ where
     R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
     H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
 {
-    let key_count = arguments.key_count.get();
-
     let (key_ids, public_keys, wrapped_keys): (Vec<_>, Vec<_>, Vec<_>) = user_state
         .wallet_user_hsm
-        .generate_wrapped_keys(&user_state.wrapping_key_identifier, key_count)
+        .generate_wrapped_keys(&user_state.wrapping_key_identifier, arguments.key_count)
         .await?
+        .into_inner()
         .into_iter()
         .multiunzip();
 
@@ -216,11 +215,16 @@ where
 
     let pops = issuance_pops(&public_keys, &attestation_keys, &claims).await?;
 
-    let key_count_including_wua = if arguments.issue_wua { key_count + 1 } else { key_count };
+    let key_count_including_wua = if arguments.issue_wua {
+        arguments.key_count.get() + 1
+    } else {
+        arguments.key_count.get()
+    };
     let poa = if key_count_including_wua > 1 {
         let wua_attestation_key = wua_wrapped_key.as_ref().map(|key| attestation_key(key, user_state));
         Some(
-            // Unwrap is safe because there are `key_count` keys, which is a nonzero type
+            // Unwrap is safe because we're operating on the output of `generate_wrapped_keys()`
+            // which returns `VecNonEmpty`
             Poa::new(
                 attestation_keys
                     .iter()

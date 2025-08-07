@@ -1,3 +1,4 @@
+use std::num::NonZeroU64;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
@@ -29,6 +30,7 @@ use sec1::EcParameters;
 use crypto::p256_der::verifying_key_sha256;
 use crypto::utils::sha256;
 use utils::spawn;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::model::Hsm;
 use crate::model::encrypted::Encrypted;
@@ -130,13 +132,17 @@ pub trait Pkcs11Client {
     async fn generate_wrapped_keys(
         &self,
         wrapping_key_identifier: &str,
-        count: u64,
-    ) -> Result<Vec<(String, VerifyingKey, WrappedKey)>> {
-        future::try_join_all((0..count).map(|_| async move {
+        count: NonZeroU64,
+    ) -> Result<VecNonEmpty<(String, VerifyingKey, WrappedKey)>> {
+        future::try_join_all((0..count.get()).map(|_| async move {
             let result = self.generate_wrapped_key(wrapping_key_identifier).await;
             result.map(|(pub_key, wrapped)| (verifying_key_sha256(&pub_key), pub_key, wrapped))
         }))
         .await
+        .map(|keys| {
+            // Unwrap is safe because we generated `count` keys, which is a nonzero type
+            keys.try_into().unwrap()
+        })
     }
     async fn sign_wrapped(
         &self,
