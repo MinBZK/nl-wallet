@@ -708,15 +708,13 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         let proofs = issuance_data
             .pops
             .into_iter()
-            .map(|jwt| CredentialRequestProof::Jwt { jwt })
-            .collect_vec();
+            .map(|jwt| CredentialRequestProof::Jwt { jwt });
 
         // Call the amount of proofs we received N, which equals `key_count`.
         // Combining these with the key identifiers and attestation types, compute N public keys and
         // N credential requests.
         let (pubkeys, mut credential_requests): (Vec<_>, Vec<_>) = try_join_all(
             proofs
-                .into_iter()
                 .zip(issuance_data.key_identifiers.into_inner())
                 .zip(self.session_state.credential_request_types.clone())
                 .map(|((proof, id), credential_request_type)| async move {
