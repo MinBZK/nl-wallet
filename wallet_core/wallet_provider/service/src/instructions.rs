@@ -241,13 +241,13 @@ where
     };
 
     // Assemble the keys to be stored in the database
-    let wte_key_and_id = arguments
+    let wua_key_and_id = arguments
         .issue_wua
         .then(|| (wua_wrapped_key.unwrap(), wua_key_id.as_ref().unwrap()));
     let db_keys = wrapped_keys
         .into_iter()
         .zip(&key_ids)
-        .chain(wte_key_and_id.into_iter())
+        .chain(wua_key_and_id.into_iter())
         .map(|(key, id)| WalletUserKey {
             wallet_user_key_id: uuid_generator.generate(),
             key_identifier: id.clone(),
