@@ -19,7 +19,7 @@ import '../../../domain/usecase/disclosure/start_disclosure_usecase.dart';
 import '../../../domain/usecase/event/get_most_recent_wallet_event_usecase.dart';
 import '../../../util/cast_util.dart';
 import '../../../util/extension/list_extension.dart';
-import '../../report_issue/report_issue_screen.dart';
+import '../../report_issue/reporting_option.dart';
 
 part 'disclosure_event.dart';
 part 'disclosure_state.dart';
