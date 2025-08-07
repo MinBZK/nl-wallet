@@ -38,8 +38,8 @@ class MenuTests : TestBase() {
         setUp(testInfo)
         assertAll(
             { assertTrue(menuScreen.visible(), "menu screen is not visible") },
+            { assertTrue(menuScreen.menuListButtonsVisible(), "menu list buttons are not visible") },
             { assertTrue(menuScreen.logoutButtonVisible(), "logout button is not visible") },
-            { assertTrue(menuScreen.menuListButtonsVisible(), "menu list buttons are not visible") }
         )
     }
 
