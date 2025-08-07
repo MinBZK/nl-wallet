@@ -85,4 +85,4 @@ tokio = { workspace = true, features = ["macros", "test-util"] }
 
 attestation_data = { path = "../../lib/attestation_data", features = ["generate", "mock"] }
 utils = { path = "../../lib/utils", features = ["mock_time"] }
-wscd = { path = "../../lib/wscd", features = ["mock_remote_key"] }
+wscd = { path = "../../lib/wscd", features = ["mock"] }

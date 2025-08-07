@@ -25,7 +25,7 @@ allow_insecure_url = ["http_utils/allow_insecure_url"]
 # Include mock implementations for testing
 mock = ["dep:mockall", "wscd/mock", "crypto/generate", "mdoc/test"]
 # Include miscellaneous test utilities
-test = ["jwt/test", "wscd/mock", "wscd/mock_remote_key", "dep:assert_matches", "dep:parking_lot"]
+test = ["jwt/test", "wscd/mock", "wscd/mock", "dep:assert_matches", "dep:parking_lot"]
 # All features needed to run the integration test
 integration = ["mock", "test", "example_constructors", "attestation_data/test", "dep:ciborium"]
 # Credential payload examples
@@ -118,4 +118,4 @@ jwt = { path = "../jwt", features = ["test"] }
 mdoc = { path = "../mdoc", features = ["test", "mock_example_constructors"] }
 sd_jwt_vc_metadata = { path = "../sd_jwt_vc_metadata", features = ["example_constructors"] }
 utils = { path = "../utils", features = ["mock_time"] }
-wscd = { path = "../wscd", features = ["mock", "mock_remote_key"] }
+wscd = { path = "../wscd", features = ["mock"] }

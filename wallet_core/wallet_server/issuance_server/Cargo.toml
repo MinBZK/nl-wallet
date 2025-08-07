@@ -70,4 +70,4 @@ indexmap.workspace = true
 tokio = { workspace = true, features = ["macros", "test-util"] }
 p256 = { workspace = true, features = ["ecdsa"] }
 
-wscd = { path = "../../lib/wscd", features = ["mock_remote_key"] }
+wscd = { path = "../../lib/wscd", features = ["mock"] }
