@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-
 use uuid::Uuid;
 
 use attestation_data::auth::issuer_auth::IssuerRegistration;
@@ -75,21 +73,18 @@ where
     /// Extract the [`IssuerRegistration`] from a stored attestation by parsing it from the issuer certificate.
     fn issuer_registration(&self) -> IssuerRegistration {
         let issuer_certificate = match self {
-            Self::MsoMdoc { mdoc } => Cow::Owned(
-                mdoc.issuer_certificate()
-                    .expect("a stored mdoc attestation should always contain an issuer certificate"),
-            ),
-            Self::SdJwt { sd_jwt } => Cow::Borrowed(
-                sd_jwt
-                    .as_ref()
-                    .as_ref()
-                    .issuer_certificate()
-                    .expect("a stored SD-JWT attestation should always contain an issuer certificate"),
-            ),
+            Self::MsoMdoc { mdoc } => &mdoc
+                .issuer_certificate()
+                .expect("a stored mdoc attestation should always contain an issuer certificate"),
+            Self::SdJwt { sd_jwt } => sd_jwt
+                .as_ref()
+                .as_ref()
+                .issuer_certificate()
+                .expect("a stored SD-JWT attestation should always contain an issuer certificate"),
         };
 
         // Note that this means that an `IssuerRegistration` should ALWAYS be backwards compatible.
-        IssuerRegistration::from_certificate(issuer_certificate.as_ref())
+        IssuerRegistration::from_certificate(issuer_certificate)
             .expect("a stored attestation should always contain a valid IssuerRegistration")
             .expect("a stored attestation should always contain an IssuerRegistration")
     }
