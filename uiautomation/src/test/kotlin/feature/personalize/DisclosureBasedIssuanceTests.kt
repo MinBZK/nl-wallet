@@ -138,7 +138,7 @@ class DisclosureBasedIssuanceTests : TestBase() {
         issuerWebPage.switchToAppContext()
         disclosureForIssuanceScreen.share()
         pinScreen.enterPin(OnboardingNavigator.PIN)
-        assertTrue(noCardsErrorScreen.headlineVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", INSURANCE)), "no card error screen is not visible")
+        assertTrue(noCardsErrorScreen.titleVisible(), "no card error screen is not visible")
         noCardsErrorScreen.close()
         assertTrue(dashboardScreen.cardVisible(tasData.getPidVCT()), "Pid not visible on dashboard")
     }
