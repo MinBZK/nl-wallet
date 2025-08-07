@@ -6,14 +6,16 @@ import '../../../domain/model/attribute/attribute.dart';
 import '../../../util/cast_util.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
+import '../../../wallet_constants.dart';
 import '../../common/widget/attribute/data_attribute_row.dart';
 import '../../common/widget/button/bottom_back_button.dart';
 import '../../common/widget/button/icon/help_icon_button.dart';
 import '../../common/widget/button/list_button.dart';
 import '../../common/widget/centered_loading_indicator.dart';
-import '../../common/widget/sliver_wallet_app_bar.dart';
 import '../../common/widget/spacer/sliver_divider.dart';
 import '../../common/widget/spacer/sliver_sized_box.dart';
+import '../../common/widget/text/title_text.dart';
+import '../../common/widget/wallet_app_bar.dart';
 import '../../common/widget/wallet_scrollbar.dart';
 import 'argument/card_data_screen_argument.dart';
 import 'bloc/card_data_bloc.dart';
@@ -37,6 +39,10 @@ class CardDataScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: WalletAppBar(
+        title: TitleText(_generateTitle(context)),
+        actions: const [HelpIconButton()],
+      ),
       key: const Key('cardDataScreen'),
       body: SafeArea(
         child: _buildBody(context),
@@ -44,7 +50,8 @@ class CardDataScreen extends StatelessWidget {
     );
   }
 
-  String _generateTitle(BuildContext context, CardDataState state) {
+  String _generateTitle(BuildContext context) {
+    final state = context.watch<CardDataBloc>().state;
     final title = tryCast<CardDataLoadSuccess>(state)?.card.title.l10nValue(context) ?? cardTitle;
     return context.l10n.cardDataScreenTitle(title);
   }
@@ -58,25 +65,17 @@ class CardDataScreen extends StatelessWidget {
               final Widget contentSliver = switch (state) {
                 CardDataInitial() => _buildLoading(),
                 CardDataLoadInProgress() => _buildLoading(),
-                CardDataLoadSuccess() => SliverMainAxisGroup(
-                    slivers: [
-                      const SliverDivider(),
-                      const SliverSizedBox(height: 24),
-                      _buildDataAttributes(context, state.card.attributes),
-                      const SliverSizedBox(height: 24),
-                      _buildDataIncorrectButtonSliver(context),
-                      const SliverSizedBox(height: 24),
-                    ],
-                  ),
+                CardDataLoadSuccess() => _buildSuccess(context, state),
                 CardDataLoadFailure() => _buildError(context),
               };
               return WalletScrollbar(
                 child: CustomScrollView(
                   slivers: [
-                    SliverWalletAppBar(
-                      title: _generateTitle(context, state),
-                      scrollController: PrimaryScrollController.maybeOf(context),
-                      actions: const [HelpIconButton()],
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: kDefaultTitlePadding,
+                        child: TitleText(_generateTitle(context)),
+                      ),
                     ),
                     contentSliver,
                   ],
@@ -86,6 +85,20 @@ class CardDataScreen extends StatelessWidget {
           ),
         ),
         const BottomBackButton(),
+      ],
+    );
+  }
+
+  Widget _buildSuccess(BuildContext context, CardDataLoadSuccess state) {
+    return SliverMainAxisGroup(
+      slivers: [
+        const SliverSizedBox(height: 16),
+        const SliverDivider(),
+        const SliverSizedBox(height: 24),
+        _buildDataAttributes(context, state.card.attributes),
+        const SliverSizedBox(height: 24),
+        _buildDataIncorrectButtonSliver(context),
+        const SliverSizedBox(height: 24),
       ],
     );
   }

@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::collections::HashSet;
 use std::convert::identity;
 use std::path::PathBuf;
@@ -254,83 +255,65 @@ impl<K> DatabaseStorage<K> {
         Ok(mdocs)
     }
 
-    async fn query_has_any_attestation_with_type(&self, attestation_type: &str) -> StorageResult<bool> {
-        let select_statement = Query::select()
-            .column((attestation::Entity, attestation::Column::Id))
-            .from(attestation::Entity)
-            .and_where(Expr::col(attestation::Column::AttestationType).eq(attestation_type))
-            .take();
-
-        let exists_query = Query::select()
-            .expr_as(Expr::exists(select_statement), Alias::new("attestation_type_exists"))
-            .to_owned();
-
-        let exists_result = self.execute_query(exists_query).await?;
-        let exists = exists_result
-            .map(|result| result.try_get("", "attestation_type_exists"))
-            .transpose()?
-            .unwrap_or(false);
-
-        Ok(exists)
-    }
-
     fn combine_events(
         issuance_events: Vec<(issuance_event::Model, issuance_event_attestation::Model)>,
         disclosure_events: Vec<(disclosure_event::Model, Option<disclosure_event_attestation::Model>)>,
     ) -> StorageResult<Vec<WalletEvent>> {
-        // Collect into list of WalletEvent enum
-        let mut wallet_events: Vec<WalletEvent> = Vec::new();
+        // Collect issuance events into a Vec of WalletEvents
+        let mut wallet_events = issuance_events
+            .into_iter()
+            .map(|(event, event_attestation)| {
+                let attestation =
+                    serde_json::from_value::<AttestationPresentation>(event_attestation.attestation_presentation)?;
 
-        for (event, event_attestation) in issuance_events {
-            let attestation =
-                serde_json::from_value::<AttestationPresentation>(event_attestation.attestation_presentation)?;
+                Ok(WalletEvent::Issuance {
+                    id: event.id,
+                    attestation: Box::new(attestation),
+                    timestamp: event.timestamp,
+                    renewed: event_attestation.renewed,
+                })
+            })
+            .collect::<Result<Vec<_>, serde_json::Error>>()?;
 
-            let wallet_event = WalletEvent::Issuance {
-                id: event.id,
-                attestation: Box::new(attestation),
-                timestamp: event.timestamp,
-                renewed: event_attestation.renewed,
-            };
+        // Deduplicate disclosure events and add the related attestations
+        let disclosure_events = disclosure_events.into_iter().try_fold(
+            HashMap::<Uuid, WalletEvent>::new(),
+            |mut acc, (event, att_opt)| {
+                // Lookup wallet_event or create new one
+                let wallet_event = acc.entry(event.id).or_insert_with(|| {
+                    // Unwrapping here is safe since the certificate has been parsed before
+                    let reader_certificate = BorrowingCertificate::from_der(event.relying_party_certificate).unwrap();
+                    let reader_registration = ReaderRegistration::from_certificate(&reader_certificate)
+                        .unwrap()
+                        .unwrap();
 
-            wallet_events.push(wallet_event);
-        }
-
-        let mut disclosure_wallet_events: Vec<WalletEvent> = vec![];
-
-        for (event, att_opt) in disclosure_events {
-            let mut attestations = vec![];
-            if let Some(att) = att_opt {
-                let attestation = serde_json::from_value::<AttestationPresentation>(att.attestation_presentation)?;
-
-                if let Some(WalletEvent::Disclosure { id, attestations, .. }) = disclosure_wallet_events.last_mut() {
-                    if &event.id == id {
-                        attestations.push(attestation);
-                        break;
+                    WalletEvent::Disclosure {
+                        id: event.id,
+                        attestations: Default::default(),
+                        timestamp: event.timestamp,
+                        reader_certificate: Box::new(reader_certificate),
+                        reader_registration: Box::new(reader_registration),
+                        status: event.status,
+                        r#type: event.r#type.into(),
                     }
-                } else {
+                });
+
+                // Add related attestation to the wallet_event if it exists
+                if let Some(att) = att_opt {
+                    let attestation = serde_json::from_value::<AttestationPresentation>(att.attestation_presentation)?;
+
+                    let WalletEvent::Disclosure { attestations, .. } = wallet_event else {
+                        panic!("should always be a disclosure event");
+                    };
                     attestations.push(attestation);
                 }
-            }
 
-            // Unwrapping here is safe since the certificate has been parsed before
-            let reader_certificate = BorrowingCertificate::from_der(event.relying_party_certificate).unwrap();
-            let reader_registration = ReaderRegistration::from_certificate(&reader_certificate)
-                .unwrap()
-                .unwrap();
+                StorageResult::Ok(acc)
+            },
+        )?;
 
-            let wallet_event = WalletEvent::Disclosure {
-                id: event.id,
-                attestations,
-                timestamp: event.timestamp,
-                reader_certificate: Box::new(reader_certificate),
-                reader_registration: Box::new(reader_registration),
-                status: event.status,
-                r#type: event.r#type.into(),
-            };
-
-            disclosure_wallet_events.push(wallet_event);
-        }
-        wallet_events.append(&mut disclosure_wallet_events);
+        // Merge issuance and disclosure events
+        wallet_events.append(&mut disclosure_events.into_values().collect());
 
         // Sort by timestamp descending
         wallet_events.sort_by(|a, b| b.timestamp().cmp(a.timestamp()));
@@ -648,7 +631,23 @@ where
     }
 
     async fn has_any_attestations_with_type(&self, attestation_type: &str) -> StorageResult<bool> {
-        self.query_has_any_attestation_with_type(attestation_type).await
+        let select_statement = Query::select()
+            .column((attestation::Entity, attestation::Column::Id))
+            .from(attestation::Entity)
+            .and_where(Expr::col(attestation::Column::AttestationType).eq(attestation_type))
+            .take();
+
+        let exists_query = Query::select()
+            .expr_as(Expr::exists(select_statement), Alias::new("attestation_type_exists"))
+            .to_owned();
+
+        let exists_result = self.execute_query(exists_query).await?;
+        let exists = exists_result
+            .map(|result| result.try_get("", "attestation_type_exists"))
+            .transpose()?
+            .unwrap_or(false);
+
+        Ok(exists)
     }
 
     async fn log_disclosure_event(
@@ -880,7 +879,7 @@ pub(crate) mod tests {
     use platform_support::hw_keystore::mock::MockHardwareEncryptionKey;
     use platform_support::utils::PlatformUtilities;
     use platform_support::utils::mock::MockHardwareUtilities;
-    use sd_jwt::sd_jwt::SdJwt;
+    use sd_jwt::sd_jwt::SdJwtPresentation;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
     use sd_jwt_vc_metadata::examples::VCT_EXAMPLE_CREDENTIAL;
@@ -1214,7 +1213,7 @@ pub(crate) mod tests {
         let state = storage.state().await.unwrap();
         assert!(matches!(state, StorageState::Opened));
 
-        let sd_jwt = SdJwt::example_pid_sd_jwt(&ISSUER_KEY);
+        let sd_jwt = SdJwtPresentation::example_pid_sd_jwt(&ISSUER_KEY);
         let credential = IssuedCredential::SdJwt(Box::new(sd_jwt.clone().into()));
 
         let issued_copies = IssuedCredentialCopies::new_or_panic(
@@ -1279,7 +1278,7 @@ pub(crate) mod tests {
         assert!(matches!(state, StorageState::Opened));
 
         // Create issued_copies that will be inserted into the database
-        let sd_jwt = SdJwt::example_pid_sd_jwt(&ISSUER_KEY);
+        let sd_jwt = SdJwtPresentation::example_pid_sd_jwt(&ISSUER_KEY);
         let credential = IssuedCredential::SdJwt(Box::new(sd_jwt.clone().into()));
         let issued_copies = IssuedCredentialCopies::new_or_panic(
             vec![credential.clone(), credential.clone(), credential.clone()]
@@ -1335,7 +1334,7 @@ pub(crate) mod tests {
         assert_eq!(fetched_events.len(), 1);
 
         // Create new issued_copies that will be updated
-        let sd_jwt = SdJwt::example_pid_sd_jwt(&ISSUER_KEY);
+        let sd_jwt = SdJwtPresentation::example_pid_sd_jwt(&ISSUER_KEY);
         let credential = IssuedCredential::SdJwt(Box::new(sd_jwt.clone().into()));
         let issued_copies = IssuedCredentialCopies::new_or_panic(
             vec![credential.clone(), credential.clone(), credential.clone()]
@@ -1525,7 +1524,7 @@ pub(crate) mod tests {
                 .unwrap()
         );
 
-        let sd_jwt = SdJwt::example_pid_sd_jwt(&ISSUER_KEY);
+        let sd_jwt = SdJwtPresentation::example_pid_sd_jwt(&ISSUER_KEY);
         let credential = IssuedCredential::SdJwt(Box::new(sd_jwt.clone().into()));
 
         let issued_copies = IssuedCredentialCopies::new_or_panic(
@@ -1589,7 +1588,7 @@ pub(crate) mod tests {
         storage
             .log_disclosure_event(
                 disclosure_timestamp,
-                vec![attestation.clone()],
+                vec![attestation.clone(), attestation.clone()],
                 READER_KEY.certificate().clone(),
                 DisclosureStatus::Error,
                 DisclosureType::Regular,
@@ -1599,7 +1598,7 @@ pub(crate) mod tests {
         storage
             .log_disclosure_event(
                 earlier_disclosure_timestamp,
-                vec![attestation],
+                vec![attestation.clone(), attestation],
                 READER_KEY.certificate().clone(),
                 DisclosureStatus::Error,
                 DisclosureType::Regular,
@@ -1612,8 +1611,10 @@ pub(crate) mod tests {
         // Error event should exist
         assert_eq!(fetched_events.len(), 3);
         assert_eq!(fetched_events[0].timestamp(), &disclosure_timestamp);
+        assert_matches!(&fetched_events[0], WalletEvent::Disclosure { attestations, .. } if attestations.len() == 2);
         assert_eq!(fetched_events[1].timestamp(), &issuance_timestamp);
         assert_eq!(fetched_events[2].timestamp(), &earlier_disclosure_timestamp);
+        assert_matches!(&fetched_events[2], WalletEvent::Disclosure { attestations, .. } if attestations.len() == 2);
 
         // Still no data has been shared with RP, because we only consider Successful events
         assert!(
@@ -1651,7 +1652,7 @@ pub(crate) mod tests {
         let timestamp_older = Utc.with_ymd_and_hms(2023, 11, 21, 13, 37, 00).unwrap();
         let timestamp_even_older = Utc.with_ymd_and_hms(2023, 11, 11, 11, 11, 00).unwrap();
 
-        let sd_jwt = SdJwt::example_pid_sd_jwt(&ISSUER_KEY);
+        let sd_jwt = SdJwtPresentation::example_pid_sd_jwt(&ISSUER_KEY);
         let credential = IssuedCredential::SdJwt(Box::new(sd_jwt.clone().into()));
 
         let issued_copies = IssuedCredentialCopies::new_or_panic(vec![credential.clone()].try_into().unwrap());

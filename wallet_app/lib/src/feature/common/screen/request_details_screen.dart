@@ -8,15 +8,17 @@ import '../../../domain/model/policy/organization_policy.dart';
 import '../../../navigation/secured_page_route.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/object_extension.dart';
+import '../../../wallet_constants.dart';
 import '../../organization/detail/organization_detail_screen.dart';
 import '../builder/request_detail_common_builders.dart';
 import '../widget/button/bottom_back_button.dart';
 import '../widget/divider_side.dart';
 import '../widget/menu_item.dart';
 import '../widget/organization/organization_logo.dart';
-import '../widget/sliver_wallet_app_bar.dart';
 import '../widget/spacer/sliver_divider.dart';
 import '../widget/spacer/sliver_sized_box.dart';
+import '../widget/text/title_text.dart';
+import '../widget/wallet_app_bar.dart';
 import '../widget/wallet_scrollbar.dart';
 
 class RequestDetailsScreen extends StatelessWidget {
@@ -63,6 +65,9 @@ class RequestDetailsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: WalletAppBar(
+        title: TitleText(title),
+      ),
       body: SafeArea(
         child: Column(
           children: [
@@ -70,9 +75,11 @@ class RequestDetailsScreen extends StatelessWidget {
               child: WalletScrollbar(
                 child: CustomScrollView(
                   slivers: [
-                    SliverWalletAppBar(
-                      title: title,
-                      scrollController: PrimaryScrollController.maybeOf(context),
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: kDefaultTitlePadding.copyWith(bottom: 24),
+                        child: TitleText(title),
+                      ),
                     ),
                     if (organization != null)
                       _buildOrganizationSliver(

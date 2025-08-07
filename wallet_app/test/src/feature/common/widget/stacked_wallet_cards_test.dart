@@ -8,7 +8,7 @@ import '../../../mocks/wallet_mock_data.dart';
 import '../../../test_util/golden_utils.dart';
 
 void main() {
-  const kGoldenSize = Size(300, 233);
+  const kGoldenSize = Size(300, 270);
 
   group('goldens', () {
     testGoldens(
@@ -38,7 +38,7 @@ void main() {
             ],
           ),
           textScaleSize: 3,
-          surfaceSize: const Size(300, 567),
+          surfaceSize: const Size(300, 590),
         );
         await screenMatchesGolden('stacked_wallet_cards/light.3x_font');
       },

@@ -11,8 +11,9 @@ import '../common/widget/button/icon/help_icon_button.dart';
 import '../common/widget/button/primary_button.dart';
 import '../common/widget/button/tertiary_button.dart';
 import '../common/widget/page_illustration.dart';
-import '../common/widget/sliver_wallet_app_bar.dart';
 import '../common/widget/spacer/sliver_sized_box.dart';
+import '../common/widget/text/title_text.dart';
+import '../common/widget/wallet_app_bar.dart';
 import '../common/widget/wallet_scrollbar.dart';
 import '../forgot_pin/forgot_pin_screen.dart';
 import 'argument/pin_timeout_screen_argument.dart';
@@ -46,6 +47,10 @@ class PinTimeoutScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: WalletAppBar(
+        title: TitleText(context.l10n.pinTimeoutScreenHeadline),
+        actions: const [HelpIconButton()],
+      ),
       body: SafeArea(
         child: Column(
           children: [
@@ -53,17 +58,20 @@ class PinTimeoutScreen extends StatelessWidget {
               child: WalletScrollbar(
                 child: CustomScrollView(
                   slivers: [
-                    SliverWalletAppBar(
-                      title: context.l10n.pinTimeoutScreenHeadline,
-                      scrollController: PrimaryScrollController.maybeOf(context),
-                      actions: const [HelpIconButton()],
-                    ),
                     SliverPadding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       sliver: SliverToBoxAdapter(
-                        child: PinTimeoutDescription(
-                          expiryTime: expiryTime,
-                          onExpire: onExpire ?? () => _onTimeoutExpired(context),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 12),
+                            TitleText(context.l10n.pinTimeoutScreenHeadline),
+                            const SizedBox(height: 8),
+                            PinTimeoutDescription(
+                              expiryTime: expiryTime,
+                              onExpire: onExpire ?? () => _onTimeoutExpired(context),
+                            ),
+                          ],
                         ),
                       ),
                     ),

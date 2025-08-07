@@ -88,7 +88,7 @@ fn kb_jwt_validation(expected_aud: &str) -> Validation {
 
 /// Builder-style struct to ease the creation of an [`KeyBindingJwt`].
 #[derive(Debug, Clone)]
-pub(crate) struct KeyBindingJwtBuilder {
+pub struct KeyBindingJwtBuilder {
     header: Header,
     iat: DateTime<Utc>,
     aud: String,
@@ -96,7 +96,7 @@ pub(crate) struct KeyBindingJwtBuilder {
 }
 
 impl KeyBindingJwtBuilder {
-    pub(crate) fn new(iat: DateTime<Utc>, aud: String, nonce: String, alg: Algorithm) -> Self {
+    pub fn new(iat: DateTime<Utc>, aud: String, nonce: String, alg: Algorithm) -> Self {
         let header = Header {
             typ: Some(String::from(KB_JWT_HEADER_TYP)),
             alg,
@@ -181,6 +181,7 @@ mod test {
     use crate::key_binding_jwt_claims::KeyBindingJwtBuilder;
     use crate::key_binding_jwt_claims::KeyBindingJwtClaims;
     use crate::sd_jwt::SdJwt;
+    use crate::sd_jwt::SdJwtPresentation;
 
     async fn example_kb_jwt(signing_key: &SigningKey, header: Header) -> Jwt<KeyBindingJwtClaims> {
         Jwt::sign(
@@ -212,7 +213,7 @@ mod test {
             .await
             .unwrap();
 
-        let sd_hash = hasher.encoded_digest(SIMPLE_STRUCTURED_SD_JWT);
+        let sd_hash = hasher.encoded_digest(sd_jwt.presentation().as_str());
 
         assert_eq!(iat.timestamp(), kb_jwt.claims().iat.timestamp());
         assert_eq!(String::from("receiver"), kb_jwt.claims().aud);
@@ -292,7 +293,7 @@ mod test {
 
     #[tokio::test]
     async fn test_algorithm_should_match_sd_jwt() {
-        let sd_jwt = SdJwt::spec_simple_structured();
+        let sd_jwt = SdJwtPresentation::spec_simple_structured();
 
         let signing_key = SigningKey::random(&mut OsRng);
 

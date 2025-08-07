@@ -22,7 +22,7 @@ use tower_http::cors::CorsLayer;
 use tracing::info;
 use tracing::warn;
 
-use attestation_data::disclosure::DisclosedAttestations;
+use attestation_data::disclosure::DisclosedAttestation;
 use crypto::keys::EcdsaKeySend;
 use http_utils::error::HttpJsonError;
 use http_utils::urls;
@@ -334,7 +334,7 @@ async fn disclosed_attributes<S, US, UC, K>(
     State(state): State<Arc<ApplicationState<S, US>>>,
     Path(session_token): Path<SessionToken>,
     Query(params): Query<DisclosedAttributesParams>,
-) -> Result<Json<DisclosedAttestations>, HttpJsonError<VerificationErrorCode>>
+) -> Result<Json<Vec<DisclosedAttestation>>, HttpJsonError<VerificationErrorCode>>
 where
     S: SessionStore<DisclosureData>,
     US: UseCases<Key = K, UseCase = UC>,

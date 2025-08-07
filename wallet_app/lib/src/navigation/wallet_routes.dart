@@ -49,6 +49,8 @@ import '../feature/policy/policy_screen_arguments.dart';
 import '../feature/privacy_policy/privacy_policy_screen.dart';
 import '../feature/qr/bloc/qr_bloc.dart';
 import '../feature/qr/qr_screen.dart';
+import '../feature/renew_pid/bloc/renew_pid_bloc.dart';
+import '../feature/renew_pid/renew_pid_screen.dart';
 import '../feature/settings/settings_screen.dart';
 import '../feature/setup_security/bloc/setup_security_bloc.dart';
 import '../feature/setup_security/setup_security_screen.dart';
@@ -78,15 +80,12 @@ class WalletRoutes {
     splashRoute,
     introductionRoute,
     introductionPrivacyRoute,
+    privacyPolicyRoute,
     aboutRoute,
     setupSecurityRoute,
     pinRoute,
     pinTimeoutRoute,
     pinBlockedRoute,
-    themeRoute,
-    changeLanguageRoute,
-    changePinRoute,
-    privacyPolicyRoute,
     updateInfoRoute,
   ];
 
@@ -99,6 +98,7 @@ class WalletRoutes {
   static const pinTimeoutRoute = '/pin/timeout';
   static const pinBlockedRoute = '/pin/blocked';
   static const walletPersonalizeRoute = '/wallet/personalize';
+  static const renewPidRoute = '/pid/renew';
   static const walletHistoryRoute = '/wallet/history';
   static const dashboardRoute = '/dashboard';
   static const menuRoute = '/menu';
@@ -210,6 +210,8 @@ class WalletRoutes {
         return _createTourOverviewScreenBuilder;
       case WalletRoutes.tourVideoRoute:
         return _createTourVideoScreenBuilder(settings);
+      case WalletRoutes.renewPidRoute:
+        return _createRenewPidScreenBuilder(settings);
       default:
         throw UnsupportedError('Unknown route: ${settings.name}');
     }
@@ -494,6 +496,26 @@ WidgetBuilder _createTourVideoScreenBuilder(RouteSettings settings) {
       videoTitle: argument.videoTitle,
       videoUrl: argument.videoUrl,
       subtitleUrl: argument.subtitleUrl,
+    );
+  };
+}
+
+WidgetBuilder _createRenewPidScreenBuilder(RouteSettings settings) {
+  final argument = Consumable(tryCast<String>(settings.arguments));
+  return (context) {
+    return BlocProvider<RenewPidBloc>(
+      create: (BuildContext context) {
+        final bloc = RenewPidBloc(
+          context.read(),
+          context.read(),
+          context.read(),
+          context.read(),
+          continueFromDigiD: argument.peek() != null,
+        );
+        if (argument.peek() != null) bloc.add(RenewPidContinuePidRenewal(argument.value!));
+        return bloc;
+      },
+      child: const RenewPidScreen(),
     );
   };
 }

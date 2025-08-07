@@ -38,6 +38,7 @@ postgres = ["server_utils/postgres"]
 integration_test = [
     "allow_insecure_url",
     "attestation_data/test",
+    "dcql/mock",
     "openid4vc/test",
     "openid4vc/mock",
     "server_utils/parsed_key_pair_conversion",

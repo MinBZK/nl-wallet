@@ -11,17 +11,18 @@ import '../../navigation/secured_page_route.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/string_extension.dart';
 import '../../util/mapper/context_mapper.dart';
+import '../../wallet_constants.dart';
 import '../check_attributes/check_attributes_screen.dart';
 import '../common/widget/button/bottom_back_button.dart';
 import '../common/widget/button/icon/help_icon_button.dart';
 import '../common/widget/button/link_button.dart';
 import '../common/widget/card/shared_attributes_card.dart';
 import '../common/widget/organization/organization_logo.dart';
-import '../common/widget/sliver_wallet_app_bar.dart';
 import '../common/widget/spacer/sliver_divider.dart';
 import '../common/widget/spacer/sliver_sized_box.dart';
 import '../common/widget/text/body_text.dart';
 import '../common/widget/text/title_text.dart';
+import '../common/widget/wallet_app_bar.dart';
 import '../common/widget/wallet_scrollbar.dart';
 import '../info/info_screen.dart';
 import '../organization/detail/organization_detail_screen.dart';
@@ -57,6 +58,10 @@ class LoginDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: WalletAppBar(
+        title: TitleText(context.l10n.loginDetailScreenTitle(organization.displayName.l10nValue(context))),
+        actions: const [HelpIconButton()],
+      ),
       body: SafeArea(
         child: Column(
           children: [
@@ -74,12 +79,13 @@ class LoginDetailScreen extends StatelessWidget {
     return WalletScrollbar(
       child: CustomScrollView(
         slivers: [
-          SliverWalletAppBar(
-            title: context.l10n.loginDetailScreenTitle(organization.displayName.l10nValue(context)),
-            scrollController: PrimaryScrollController.maybeOf(context),
-            actions: const [HelpIconButton()],
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: kDefaultTitlePadding,
+              child: TitleText(context.l10n.loginDetailScreenTitle(organization.displayName.l10nValue(context))),
+            ),
           ),
-          const SliverSizedBox(height: 24),
+          const SliverSizedBox(height: 12),
           const SliverDivider(),
           _buildOrganizationSection(context),
           const SliverDivider(),

@@ -10,7 +10,7 @@ import 'package:video_player/video_player.dart';
 
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/utility/do_on_init.dart';
-import '../../error/error_page.dart';
+import '../../error/error_screen.dart';
 import '../../lock/auto_lock_provider.dart';
 import 'argument/tour_video_screen_argument.dart';
 import 'widget/video_overlay.dart';
@@ -134,15 +134,13 @@ class _TourVideoScreenState extends State<TourVideoScreen> {
         late Widget errorPage;
         final hasInternet = snapshot.data ?? false;
         if (hasInternet) {
-          errorPage = ErrorPage.generic(
+          errorPage = ErrorScreen.generic(
             context,
-            onPrimaryActionPressed: () => Navigator.pop(context),
             style: ErrorCtaStyle.close,
           );
         } else {
-          errorPage = ErrorPage.noInternet(
+          errorPage = ErrorScreen.noInternet(
             context,
-            onPrimaryActionPressed: () => Navigator.pop(context),
             style: ErrorCtaStyle.close,
           );
         }

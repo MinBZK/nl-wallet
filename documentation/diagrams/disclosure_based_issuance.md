@@ -29,8 +29,9 @@ Accept: */*
 Host: localhost:51560
 Content-Length: 267
 
-{
-  "com.example.pid": {
+[
+  {
+    "attestationType": "com.example.pid",
     "attributes": {
       "com.example.pid": {
         "bsn": "999991772"
@@ -44,7 +45,7 @@ Content-Length: 267
       "validUntil": "2026-04-15T07:02:26Z"
     }
   }
-}
+]
 ```
 
 The `attestation_server` must respond with a JSON-serialized `Vec<IssuableDocument>`. For example:

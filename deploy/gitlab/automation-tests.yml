@@ -17,7 +17,7 @@ automation-compile-check:
     - set -euxo pipefail
   variables:
     APP_IDENTIFIER: "nl.ictu.edi.wallet.latest"
-    DEVICE_NAME: "Google Pixel 8"
+    DEVICE_NAME: "OnePlus 12R"
     PLATFORM_NAME: "Android"
     PLATFORM_VERSION: "14.0"
 

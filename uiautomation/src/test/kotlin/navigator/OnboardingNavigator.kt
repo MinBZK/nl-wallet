@@ -17,7 +17,7 @@ class OnboardingNavigator {
         const val PIN = "122222"
     }
 
-    fun toScreen(screen: OnboardingNavigatorScreen) {
+    fun toScreen(screen: OnboardingNavigatorScreen, bsn: String = "999991772") {
         if (screen > OnboardingNavigatorScreen.Introduction) IntroductionScreen().clickSkipButton()
         if (screen > OnboardingNavigatorScreen.IntroductionPrivacy) IntroductionPrivacyScreen().clickNextButton()
         if (screen > OnboardingNavigatorScreen.SecurityChoosePin) PinScreen().choosePin(PIN)
@@ -26,7 +26,7 @@ class OnboardingNavigator {
         if (screen > OnboardingNavigatorScreen.SecuritySetupCompleted) SecuritySetupCompletedScreen().clickNextButton()
         if (screen > OnboardingNavigatorScreen.PersonalizeInform) PersonalizeInformScreen().clickDigidLoginButton()
         if (screen > OnboardingNavigatorScreen.DigidLoginStartWebPage) DigidLoginStartWebPage().clickMockLoginButton()
-        if (screen > OnboardingNavigatorScreen.DigidLoginMockWebPage) DigidLoginMockWebPage().clickLoginButton()
+        if (screen > OnboardingNavigatorScreen.DigidLoginMockWebPage) DigidLoginMockWebPage().login(bsn)
         if (screen > OnboardingNavigatorScreen.PersonalizePidPreview) PersonalizePidPreviewScreen().clickAcceptButton()
         if (screen > OnboardingNavigatorScreen.PersonalizeConfirmIssuance) PinScreen().enterPin(PIN)
         if (screen > OnboardingNavigatorScreen.PersonalizeSuccess) PersonalizeSuccessScreen().clickNextButton()

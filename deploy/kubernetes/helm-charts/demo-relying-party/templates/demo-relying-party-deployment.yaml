@@ -39,10 +39,6 @@ spec:
           ports:
             - name: http
               containerPort: 8001
-          volumeMounts:
-            - name: config-volume
-              mountPath: /demo_relying_party.toml
-              subPath: config.toml
           env:
             - name: DEMO_RELYING_PARTY__PUBLIC_WALLET_SERVER_URL
               value: {{ .Values.verificationServerBaseUrl }}
@@ -60,7 +56,3 @@ spec:
               value: {{ .Values.logRequests | quote }}
             - name: RUST_LOG
               value: "debug,hyper=warn"
-      volumes:
-        - name: config-volume
-          configMap:
-            name: nl-wallet-demo-relying-party-data

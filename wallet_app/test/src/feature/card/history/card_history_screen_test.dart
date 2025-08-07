@@ -113,7 +113,7 @@ void main() {
       final stickyJanFinder = find.text('January 2023');
       final stickyDecFinder = find.text('December 2022');
       final stickyNovFinder = find.text('November 2022');
-      expect(appBarTitleFinder, findsNWidgets(2));
+      expect(appBarTitleFinder, findsOneWidget);
       expect(stickyJanFinder, findsOneWidget);
       expect(stickyDecFinder, findsOneWidget);
       expect(stickyNovFinder, findsOneWidget);

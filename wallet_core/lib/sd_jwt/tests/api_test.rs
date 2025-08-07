@@ -1,6 +1,8 @@
 // Copyright 2020-2024 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
+use std::collections::HashSet;
+
 use chrono::DateTime;
 use chrono::Duration;
 use jsonwebtoken::Algorithm;
@@ -11,19 +13,23 @@ use serde_json::Value;
 use serde_json::json;
 use ssri::Integrity;
 
+use attestation_types::claim_path::ClaimPath;
 use crypto::server_keys::generate::Ca;
 use crypto::x509::BorrowingCertificate;
 use jwt::EcdsaDecodingKey;
 use jwt::jwk::jwk_from_p256;
 use sd_jwt::builder::SdJwtBuilder;
+use sd_jwt::disclosure::DisclosureContent;
 use sd_jwt::hasher::Hasher;
 use sd_jwt::hasher::Sha256Hasher;
+use sd_jwt::key_binding_jwt_claims::KeyBindingJwtBuilder;
 use sd_jwt::sd_jwt::SdJwt;
 use sd_jwt::sd_jwt::SdJwtPresentation;
+use utils::vec_at_least::VecNonEmpty;
 
 async fn make_sd_jwt(
     object: Value,
-    disclosable_values: impl IntoIterator<Item = &str>,
+    disclosable_values: impl IntoIterator<Item = VecNonEmpty<ClaimPath>>,
     holder_pubkey: &VerifyingKey,
 ) -> (SdJwt, EcdsaDecodingKey) {
     let signing_key = SigningKey::random(&mut OsRng);
@@ -31,8 +37,8 @@ async fn make_sd_jwt(
 
     let sd_jwt = disclosable_values
         .into_iter()
-        .fold(SdJwtBuilder::new(object).unwrap(), |builder, path| {
-            builder.make_concealable(path).unwrap()
+        .fold(SdJwtBuilder::new(object).unwrap(), |builder, paths| {
+            builder.make_concealable(paths).unwrap()
         })
         .finish(
             Algorithm::ES256,
@@ -49,7 +55,7 @@ async fn make_sd_jwt(
 
 #[test]
 fn simple_sd_jwt() {
-    let sd_jwt = SdJwt::spec_simple_structured();
+    let sd_jwt = SdJwtPresentation::spec_simple_structured();
     let disclosed = sd_jwt.into_disclosed_object().unwrap();
     let expected_object = json!({
       "address": {
@@ -65,7 +71,7 @@ fn simple_sd_jwt() {
 
 #[test]
 fn complex_sd_jwt() {
-    let sd_jwt: SdJwt = SdJwt::spec_complex_structured();
+    let sd_jwt: SdJwt = SdJwtPresentation::spec_complex_structured();
     let disclosed = sd_jwt.into_disclosed_object().unwrap();
     let expected_object = json!({
       "verified_claims": {
@@ -100,7 +106,22 @@ async fn concealing_property_of_concealable_value_works() -> anyhow::Result<()> 
     let hasher = Sha256Hasher::new();
     let (sd_jwt, _) = make_sd_jwt(
         json!({"parent": {"property1": "value1", "property2": [1, 2, 3]}}),
-        ["/parent/property1", "/parent/property2/0", "/parent"],
+        [
+            vec![
+                ClaimPath::SelectByKey(String::from("parent")),
+                ClaimPath::SelectByKey(String::from("property1")),
+            ]
+            .try_into()
+            .unwrap(),
+            vec![
+                ClaimPath::SelectByKey(String::from("parent")),
+                ClaimPath::SelectByKey(String::from("property2")),
+                ClaimPath::SelectByIndex(0),
+            ]
+            .try_into()
+            .unwrap(),
+            vec![ClaimPath::SelectByKey(String::from("parent"))].try_into().unwrap(),
+        ],
         holder_signing_key.verifying_key(),
     )
     .await;
@@ -108,14 +129,18 @@ async fn concealing_property_of_concealable_value_works() -> anyhow::Result<()> 
     let signing_key = SigningKey::random(&mut OsRng);
 
     sd_jwt
-        .into_presentation(
+        .into_presentation_builder()
+        .finish()
+        .sign(
+            KeyBindingJwtBuilder::new(
+                DateTime::from_timestamp_millis(1458304832).unwrap(),
+                String::from("https://example.com"),
+                String::from("abcdefghi"),
+                Algorithm::ES256,
+            ),
             &hasher,
-            DateTime::from_timestamp_millis(1458304832).unwrap(),
-            String::from("https://example.com"),
-            String::from("abcdefghi"),
-            Algorithm::ES256,
-        )?
-        .finish(&signing_key)
+            &signing_key,
+        )
         .await?;
 
     Ok(())
@@ -144,16 +169,19 @@ async fn sd_jwt_without_disclosures_works() -> anyhow::Result<()> {
 
     let disclosed = sd_jwt
         .clone()
-        .into_presentation(
+        .into_presentation_builder()
+        .finish()
+        .sign(
+            KeyBindingJwtBuilder::new(
+                DateTime::from_timestamp_millis(1458304832).unwrap(),
+                String::from("https://example.com"),
+                String::from("abcdefghi"),
+                Algorithm::ES256,
+            ),
             &hasher,
-            DateTime::from_timestamp_millis(1458304832).unwrap(),
-            String::from("https://example.com"),
-            String::from("abcdefghi"),
-            Algorithm::ES256,
-        )?
-        .finish(&holder_signing_key)
-        .await?
-        .0;
+            &holder_signing_key,
+        )
+        .await?;
 
     // Try to serialize & deserialize `with_kb`.
     let with_kb = {
@@ -180,7 +208,22 @@ async fn sd_jwt_sd_hash() -> anyhow::Result<()> {
 
     let (sd_jwt, _) = make_sd_jwt(
         json!({"parent": {"property1": "value1", "property2": [1, 2, 3]}}),
-        ["/parent/property1", "/parent/property2/0", "/parent"],
+        [
+            vec![
+                ClaimPath::SelectByKey(String::from("parent")),
+                ClaimPath::SelectByKey(String::from("property1")),
+            ]
+            .try_into()
+            .unwrap(),
+            vec![
+                ClaimPath::SelectByKey(String::from("parent")),
+                ClaimPath::SelectByKey(String::from("property2")),
+                ClaimPath::SelectByIndex(0),
+            ]
+            .try_into()
+            .unwrap(),
+            vec![ClaimPath::SelectByKey(String::from("parent"))].try_into().unwrap(),
+        ],
         holder_signing_key.verifying_key(),
     )
     .await;
@@ -189,16 +232,19 @@ async fn sd_jwt_sd_hash() -> anyhow::Result<()> {
 
     let disclosed = sd_jwt
         .clone()
-        .into_presentation(
+        .into_presentation_builder()
+        .finish()
+        .sign(
+            KeyBindingJwtBuilder::new(
+                DateTime::from_timestamp_millis(1458304832).unwrap(),
+                String::from("https://example.com"),
+                String::from("abcdefghi"),
+                Algorithm::ES256,
+            ),
             &hasher,
-            DateTime::from_timestamp_millis(1458304832).unwrap(),
-            String::from("https://example.com"),
-            String::from("abcdefghi"),
-            Algorithm::ES256,
-        )?
-        .finish(&signing_key)
-        .await?
-        .0;
+            &signing_key,
+        )
+        .await?;
 
     let encoded_kb_jwt = disclosed.to_string();
     let (issued_sd_jwt, _kb) = encoded_kb_jwt.rsplit_once("~").unwrap();
@@ -250,13 +296,35 @@ async fn test_presentation() -> anyhow::Result<()> {
 
     // issuer signs SD-JWT
     let sd_jwt = SdJwtBuilder::new(object)?
-        .make_concealable("/email")?
-        .make_concealable("/phone_number")?
-        .make_concealable("/address/street_address")?
-        .make_concealable("/address")?
-        .make_concealable("/nationalities/0")?
-        .add_decoys("/nationalities", 1)?
-        .add_decoys("", 2)?
+        .make_concealable(vec![ClaimPath::SelectByKey(String::from("email"))].try_into().unwrap())?
+        .make_concealable(
+            vec![ClaimPath::SelectByKey(String::from("phone_number"))]
+                .try_into()
+                .unwrap(),
+        )?
+        .make_concealable(
+            vec![
+                ClaimPath::SelectByKey(String::from("address")),
+                ClaimPath::SelectByKey(String::from("street_address")),
+            ]
+            .try_into()
+            .unwrap(),
+        )?
+        .make_concealable(
+            vec![ClaimPath::SelectByKey(String::from("address"))]
+                .try_into()
+                .unwrap(),
+        )?
+        .make_concealable(
+            vec![
+                ClaimPath::SelectByKey(String::from("nationalities")),
+                ClaimPath::SelectByIndex(0),
+            ]
+            .try_into()
+            .unwrap(),
+        )?
+        .add_decoys(&[ClaimPath::SelectByKey(String::from("nationalities"))], 1)?
+        .add_decoys(&[], 2)?
         .finish(
             Algorithm::ES256,
             Integrity::from(""),
@@ -271,20 +339,33 @@ async fn test_presentation() -> anyhow::Result<()> {
     let hasher = Sha256Hasher::new();
 
     // The holder can withhold from a verifier any concealable claim by calling `conceal`.
-    let (presented_sd_jwt, _) = sd_jwt
-        .into_presentation(
-            &hasher,
-            DateTime::from_timestamp_millis(1458304832).unwrap(),
-            String::from("https://example.com"),
-            String::from("abcdefghi"),
-            Algorithm::ES256,
+    let presented_sd_jwt = sd_jwt
+        .into_presentation_builder()
+        .disclose(&vec![ClaimPath::SelectByKey(String::from("email"))].try_into().unwrap())?
+        .disclose(
+            &vec![
+                ClaimPath::SelectByKey(String::from("address")),
+                ClaimPath::SelectByKey(String::from("street_address")),
+            ]
+            .try_into()
+            .unwrap(),
         )?
-        .finish(&holder_privkey)
+        .finish()
+        .sign(
+            KeyBindingJwtBuilder::new(
+                DateTime::from_timestamp_millis(1458304832).unwrap(),
+                String::from("https://example.com"),
+                String::from("abcdefghi"),
+                Algorithm::ES256,
+            ),
+            &hasher,
+            &holder_privkey,
+        )
         .await?;
 
     println!("{}", &presented_sd_jwt);
 
-    SdJwtPresentation::parse_and_verify(
+    let parsed_presentation = SdJwtPresentation::parse_and_verify(
         &presented_sd_jwt.to_string(),
         &EcdsaDecodingKey::from(issuer_privkey.verifying_key()),
         &Sha256Hasher,
@@ -292,6 +373,18 @@ async fn test_presentation() -> anyhow::Result<()> {
         "abcdefghi",
         Duration::days(36500),
     )?;
+
+    let disclosed_paths = parsed_presentation
+        .sd_jwt()
+        .disclosures()
+        .values()
+        .map(|v| match &v.content {
+            DisclosureContent::ObjectProperty(_, name, _) => name.as_str(),
+            _ => panic!("unexpected disclosure content"),
+        })
+        .collect::<HashSet<_>>();
+
+    assert_eq!(HashSet::from(["email", "address", "street_address"]), disclosed_paths);
 
     Ok(())
 }

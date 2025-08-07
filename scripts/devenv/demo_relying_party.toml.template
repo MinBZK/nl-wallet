@@ -15,7 +15,7 @@ id = "my_pid"
 format = "mso_mdoc"
 meta = { doctype_value = "urn:eudi:pid:nl:1" }
 claims = [
-    { path = ["urn:eudi:pid:nl:1", "bsn"], intent_to_retain = true }
+    { path = ["urn:eudi:pid:nl:1", "bsn"], intent_to_retain = false }
 ]
 
 [[usecases.online_marketplace.dcql_query.credentials]]
@@ -25,7 +25,8 @@ meta = { doctype_value = "urn:eudi:pid:nl:1" }
 claims = [
     { path = ["urn:eudi:pid:nl:1", "given_name"], intent_to_retain = true },
     { path = ["urn:eudi:pid:nl:1", "family_name"], intent_to_retain = true },
-    { path = ["urn:eudi:pid:nl:1", "birthdate"], intent_to_retain = true }
+    { path = ["urn:eudi:pid:nl:1", "birthdate"], intent_to_retain = true },
+    { path = ["urn:eudi:pid:nl:1", "nationalities"], intent_to_retain = true }
 ]
 
 [[usecases.online_marketplace.dcql_query.credentials]]

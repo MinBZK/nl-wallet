@@ -15,18 +15,22 @@ import '../../../util/formatter/card_valid_until_time_formatter.dart';
 import '../../../util/formatter/operation_issued_time_formatter.dart';
 import '../../../util/formatter/time_ago_formatter.dart';
 import '../../../util/mapper/event/wallet_event_status_text_mapper.dart';
+import '../../../wallet_constants.dart';
 import '../../common/screen/placeholder_screen.dart';
 import '../../common/sheet/explanation_sheet.dart';
 import '../../common/widget/animated_fade_in.dart';
-import '../../common/widget/button/bottom_back_button.dart';
+import '../../common/widget/button/button_content.dart';
 import '../../common/widget/button/icon/help_icon_button.dart';
+import '../../common/widget/button/list_button.dart';
+import '../../common/widget/button/primary_button.dart';
 import '../../common/widget/card/wallet_card_item.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/menu_item.dart';
 import '../../common/widget/organization/organization_logo.dart';
-import '../../common/widget/sliver_wallet_app_bar.dart';
 import '../../common/widget/spacer/sliver_divider.dart';
 import '../../common/widget/spacer/sliver_sized_box.dart';
+import '../../common/widget/text/title_text.dart';
+import '../../common/widget/wallet_app_bar.dart';
 import '../../common/widget/wallet_scrollbar.dart';
 import '../../organization/detail/organization_detail_screen.dart';
 import '../data/argument/card_data_screen_argument.dart';
@@ -59,36 +63,42 @@ class CardDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: WalletAppBar(
+        title: TitleText(_getTitle(context)),
+        actions: const [HelpIconButton()],
+      ),
       key: const Key('cardDetailScreen'),
       body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: BlocBuilder<CardDetailBloc, CardDetailState>(
-                builder: (context, state) {
-                  return WalletScrollbar(
+        child: BlocBuilder<CardDetailBloc, CardDetailState>(
+          builder: (context, state) {
+            return Column(
+              children: [
+                Expanded(
+                  child: WalletScrollbar(
                     child: CustomScrollView(
                       slivers: [
-                        SliverWalletAppBar(
-                          title: _getTitle(context, state),
-                          scrollController: PrimaryScrollController.maybeOf(context),
-                          actions: const [HelpIconButton()],
+                        SliverPadding(
+                          padding: kDefaultTitlePadding,
+                          sliver: SliverToBoxAdapter(
+                            child: TitleText(_getTitle(context)),
+                          ),
                         ),
                         _buildBody(context, state),
                       ],
                     ),
-                  );
-                },
-              ),
-            ),
-            const BottomBackButton(),
-          ],
+                  ),
+                ),
+                _buildBottomSection(context, state),
+              ],
+            );
+          },
         ),
       ),
     );
   }
 
-  String _getTitle(BuildContext context, CardDetailState state) {
+  String _getTitle(BuildContext context) {
+    final state = context.watch<CardDetailBloc>().state;
     final title = tryCast<CardDetailLoadSuccess>(state)?.detail.card.title.l10nValue(context);
     return title ?? cardTitle;
   }
@@ -280,7 +290,7 @@ class CardDetailScreen extends StatelessWidget {
           const SizedBox(height: 16),
           TextButton(
             child: Text.rich(context.l10n.generalRetry.toTextSpan(context)),
-            onPressed: () => context.read<CardDetailBloc>().add(CardDetailLoadTriggered(state.cardId)),
+            onPressed: () => context.read<CardDetailBloc>().add(CardDetailLoadTriggered(state.attestationId)),
           ),
         ],
       ),
@@ -316,5 +326,33 @@ class CardDetailScreen extends StatelessWidget {
 
   void _onCardDeletePressed(BuildContext context) {
     PlaceholderScreen.showGeneric(context);
+  }
+
+  Widget _buildBottomSection(BuildContext context, CardDetailState state) {
+    final showRefreshButton = tryCast<CardDetailLoadSuccess>(state)?.showRenewOption ?? false;
+    return Column(
+      mainAxisSize: MainAxisSize.max,
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        const Divider(),
+        if (showRefreshButton)
+          Padding(
+            padding: const EdgeInsets.only(left: 16, right: 16, top: 24, bottom: 12),
+            child: PrimaryButton(
+              text: Text.rich(context.l10n.cardDetailScreenRenewPidCta.toTextSpan(context)),
+              icon: const Icon(Icons.arrow_forward_outlined),
+              onPressed: () => Navigator.of(context).pushNamed(WalletRoutes.renewPidRoute),
+            ),
+          ),
+        ListButton(
+          onPressed: () => Navigator.maybePop(context),
+          icon: const Icon(Icons.arrow_back),
+          mainAxisAlignment: MainAxisAlignment.center,
+          iconPosition: IconPosition.start,
+          dividerSide: DividerSide.none,
+          text: Text.rich(context.l10n.generalBottomBackCta.toTextSpan(context)),
+        ),
+      ],
+    );
   }
 }

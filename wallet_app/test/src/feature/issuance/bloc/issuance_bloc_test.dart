@@ -154,6 +154,30 @@ void main() {
   );
 
   blocTest(
+    'verify IssuanceNoCardsRetrieved is emitted when pin disclosure does not result in cards',
+    build: () => createBloc(isRefreshFlow: false),
+    setUp: () {
+      when(startIssuanceUseCase.invoke(any)).thenAnswer(
+        (_) async => Result.success(_kDefaultReadyToDiscloseResponse),
+      );
+    },
+    act: (bloc) async {
+      bloc.add(const IssuanceSessionStarted('https://example.org'));
+      await Future.delayed(const Duration(milliseconds: 10));
+      bloc.add(const IssuanceOrganizationApproved());
+      await Future.delayed(const Duration(milliseconds: 10));
+      bloc.add(const IssuancePinForDisclosureConfirmed(cards: []));
+      await Future.delayed(const Duration(milliseconds: 10));
+    },
+    expect: () => [
+      isA<IssuanceCheckOrganization>(),
+      isA<IssuanceProvidePinForDisclosure>(),
+      isA<IssuanceLoadInProgress>(),
+      isA<IssuanceNoCardsRetrieved>(),
+    ],
+  );
+
+  blocTest(
     'verify back press from confirm pin for disclosure',
     build: () => createBloc(isRefreshFlow: false),
     setUp: () {

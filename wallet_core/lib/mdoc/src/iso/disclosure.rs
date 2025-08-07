@@ -6,7 +6,6 @@
 use coset::CoseMac0;
 use coset::CoseSign1;
 use indexmap::IndexMap;
-use indexmap::IndexSet;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_bytes::ByteBuf;
@@ -15,7 +14,6 @@ use serde_repr::Serialize_repr;
 use serde_with::skip_serializing_none;
 use std::fmt::Debug;
 
-use crate::identifiers::AttributeIdentifier;
 use crate::iso::mdocs::*;
 use crate::utils::cose::MdocCose;
 use crate::utils::serialization::NullCborValue;
@@ -58,12 +56,6 @@ pub struct Document {
     pub errors: Option<Errors>,
 }
 
-impl Document {
-    pub fn issuer_signed_attribute_identifiers(&self) -> IndexSet<AttributeIdentifier> {
-        self.issuer_signed.attribute_identifiers(&self.doc_type)
-    }
-}
-
 /// The issuer-signed MSO in Cose format, as well as some or all of the attributes including their randoms
 /// (i.e. [`IssuerSignedItem`]s) contained in the mdoc. This includes the public key of the MSO,
 /// but not the private key (for that, see [`Mdoc`](crate::holder::Mdoc)).
@@ -87,28 +79,6 @@ impl IssuerSigned {
                 name_spaces
                     .into_iter()
                     .map(|(name_space, attributes)| (name_space, attributes.into()))
-                    .collect()
-            })
-            .unwrap_or_default()
-    }
-
-    pub(crate) fn attribute_identifiers(&self, doc_type: &str) -> IndexSet<AttributeIdentifier> {
-        self.name_spaces
-            .as_ref()
-            .map(|name_spaces| {
-                name_spaces
-                    .as_ref()
-                    .iter()
-                    .flat_map(|(namespace, attributes)| {
-                        attributes
-                            .as_ref()
-                            .iter()
-                            .map(|TaggedBytes(attribute)| AttributeIdentifier {
-                                credential_type: doc_type.to_owned(),
-                                namespace: namespace.to_owned(),
-                                attribute: attribute.element_identifier.to_owned(),
-                            })
-                    })
                     .collect()
             })
             .unwrap_or_default()
