@@ -190,7 +190,7 @@ where
     R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
     H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
 {
-    let (key_ids, _, wrapped_keys): (Vec<_>, Vec<_>, Vec<_>) = user_state
+    let (key_ids, wrapped_keys): (Vec<_>, Vec<_>) = user_state
         .wallet_user_hsm
         .generate_wrapped_keys(&user_state.wrapping_key_identifier, arguments.key_count)
         .await?

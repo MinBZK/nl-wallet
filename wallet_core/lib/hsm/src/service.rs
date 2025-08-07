@@ -128,15 +128,15 @@ pub trait Pkcs11Client {
         unwrapping_key: PrivateKeyHandle,
         wrapped_key: WrappedKey,
     ) -> Result<PrivateKeyHandle>;
-    async fn generate_wrapped_key(&self, wrapping_key_identifier: &str) -> Result<(VerifyingKey, WrappedKey)>;
+    async fn generate_wrapped_key(&self, wrapping_key_identifier: &str) -> Result<WrappedKey>;
     async fn generate_wrapped_keys(
         &self,
         wrapping_key_identifier: &str,
         count: NonZeroUsize,
-    ) -> Result<VecNonEmpty<(String, VerifyingKey, WrappedKey)>> {
+    ) -> Result<VecNonEmpty<(String, WrappedKey)>> {
         future::try_join_all((0..count.get()).map(|_| async move {
             let result = self.generate_wrapped_key(wrapping_key_identifier).await;
-            result.map(|(pub_key, wrapped)| (verifying_key_sha256(&pub_key), pub_key, wrapped))
+            result.map(|wrapped| (verifying_key_sha256(wrapped.public_key()), wrapped))
         }))
         .await
         .map(|keys| {
@@ -567,7 +567,7 @@ impl Pkcs11Client for Pkcs11Hsm {
         .map(PrivateKeyHandle)
     }
 
-    async fn generate_wrapped_key(&self, wrapping_key_identifier: &str) -> Result<(VerifyingKey, WrappedKey)> {
+    async fn generate_wrapped_key(&self, wrapping_key_identifier: &str) -> Result<WrappedKey> {
         let private_wrapping_handle = self.get_private_key_handle(wrapping_key_identifier).await?;
         let (public_handle, private_handle) = self.generate_session_signing_key_pair().await?;
         let verifying_key = Pkcs11Client::get_verifying_key(self, public_handle).await?;
@@ -576,7 +576,7 @@ impl Pkcs11Client for Pkcs11Hsm {
             .wrap_key(private_wrapping_handle, private_handle, verifying_key)
             .await?;
 
-        Ok((verifying_key, wrapped))
+        Ok(wrapped)
     }
 
     async fn sign_wrapped(
