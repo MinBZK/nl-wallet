@@ -1,7 +1,6 @@
 use std::collections::HashSet;
 use std::collections::VecDeque;
 use std::hash::Hash;
-use std::num::NonZeroU64;
 
 use derive_more::AsRef;
 use derive_more::Constructor;
@@ -694,7 +693,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         K: CredentialEcdsaKey + Eq + Hash,
         KF: KeyFactory<Key = K> + PoaFactory<Key = K>,
     {
-        let key_count: NonZeroU64 = self.session_state.credential_request_types.len().try_into().unwrap();
+        let key_count = self.session_state.credential_request_types.len();
 
         let mut issuance_data = key_factory
             .perform_issuance(

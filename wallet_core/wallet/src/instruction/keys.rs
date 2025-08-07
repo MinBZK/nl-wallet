@@ -1,6 +1,6 @@
 use std::hash::Hash;
 use std::hash::Hasher;
-use std::num::NonZeroU64;
+use std::num::NonZeroUsize;
 
 use crypto::WithVerifyingKey;
 use derive_more::Constructor;
@@ -112,7 +112,7 @@ where
 
     async fn perform_issuance(
         &self,
-        key_count: NonZeroU64,
+        key_count: NonZeroUsize,
         aud: String,
         nonce: Option<String>,
         include_wua: bool,

@@ -1,6 +1,6 @@
 use std::hash::Hash;
 use std::hash::Hasher;
-use std::num::NonZeroU64;
+use std::num::NonZeroUsize;
 use std::sync::Arc;
 
 use base64::prelude::*;
@@ -164,7 +164,7 @@ impl HandleInstruction for ChangePinCommit {
 }
 
 struct IssuanceArguments {
-    key_count: NonZeroU64,
+    key_count: NonZeroUsize,
     aud: String,
     nonce: Option<String>,
     issue_wua: bool,
@@ -903,7 +903,7 @@ mod tests {
     #[rstest]
     #[case(1)]
     #[case(2)]
-    async fn should_handle_perform_issuance(#[case] key_count: u64) {
+    async fn should_handle_perform_issuance(#[case] key_count: usize) {
         let result = perform_issuance(PerformIssuance {
             key_count: key_count.try_into().unwrap(),
             aud: POP_AUD.to_string(),
