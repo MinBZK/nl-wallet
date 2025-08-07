@@ -723,7 +723,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
                     // We assume here the WP gave us valid JWTs, and leave it up to the issuer to verify these.
                     let (header, _) = jwt.dangerous_parse_unverified()?;
 
-                    let pubkey = jwk_to_p256(&header.jwk.unwrap())
+                    let pubkey = jwk_to_p256(&header.jwk.expect("WP failed to include JWK in PoP JWT header"))
                         .map_err(|e| IssuanceSessionError::VerifyingKeyFromPrivateKey(e.into()))?;
                     let cred_request = CredentialRequest {
                         credential_type: credential_request_type.into(),
