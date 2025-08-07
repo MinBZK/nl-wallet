@@ -41,7 +41,7 @@ fn create_example_device_response(
     assert_eq!(&first_request.doc_type, &mdoc.mso.doc_type);
 
     let claim_paths = Vec::<VecNonEmpty<ClaimPath>>::from(first_request);
-    mdoc.issuer_signed = mdoc.issuer_signed.into_attribute_subset(&claim_paths);
+    mdoc.issuer_signed = mdoc.issuer_signed.into_attribute_subset(&claim_paths).unwrap();
 
     let (device_response, _) =
         DeviceResponse::sign_from_mdocs(vec![mdoc], session_transcript, &MockRemoteKeyFactory::new_example())

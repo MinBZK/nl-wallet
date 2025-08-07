@@ -968,7 +968,8 @@ async fn perform_full_disclosure(session_type: SessionType) -> (Client, SessionT
     assert_eq!(disclosure_session.credential_requests().len().get(), 1);
     mdoc.issuer_signed = mdoc
         .issuer_signed
-        .into_attribute_subset(disclosure_session.credential_requests().first().claim_paths());
+        .into_attribute_subset(disclosure_session.credential_requests().first().claim_paths())
+        .unwrap();
 
     let return_url = disclosure_session
         .disclose(vec![mdoc].try_into().unwrap(), &key_factory)
@@ -1096,7 +1097,8 @@ async fn test_disclosed_attributes_failed_session() {
     assert_eq!(disclosure_session.credential_requests().len().get(), 1);
     mdoc.issuer_signed = mdoc
         .issuer_signed
-        .into_attribute_subset(disclosure_session.credential_requests().first().claim_paths());
+        .into_attribute_subset(disclosure_session.credential_requests().first().claim_paths())
+        .unwrap();
 
     disclosure_session
         .disclose(vec![mdoc].try_into().unwrap(), &MockRemoteKeyFactory::new_example())

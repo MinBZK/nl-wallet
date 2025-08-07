@@ -17,9 +17,7 @@ mod device_retrieval;
 mod iso_tests;
 
 #[derive(Debug, thiserror::Error)]
-pub enum IssuerSignedMatchingError {
-    #[error("requested attributes are missing: {}", .0.iter().map(|path| {
-        format!("[{}]", path.iter().join(", "))
-    }).join(", "))]
-    MissingAttributes(HashSet<VecNonEmpty<ClaimPath>>),
-}
+#[error("requested attributes are missing: {}", .0.iter().map(|path| {
+    format!("[{}]", path.iter().join(", "))
+}).join(", "))]
+pub struct MissingAttributesError(pub HashSet<VecNonEmpty<ClaimPath>>);
