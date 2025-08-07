@@ -1,4 +1,4 @@
-use std::num::NonZeroU64;
+use std::num::NonZeroUsize;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
@@ -132,7 +132,7 @@ pub trait Pkcs11Client {
     async fn generate_wrapped_keys(
         &self,
         wrapping_key_identifier: &str,
-        count: NonZeroU64,
+        count: NonZeroUsize,
     ) -> Result<VecNonEmpty<(String, VerifyingKey, WrappedKey)>> {
         future::try_join_all((0..count.get()).map(|_| async move {
             let result = self.generate_wrapped_key(wrapping_key_identifier).await;

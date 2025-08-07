@@ -1,7 +1,7 @@
 #![expect(clippy::too_many_arguments)]
 
 use std::collections::HashMap;
-use std::num::NonZeroU64;
+use std::num::NonZeroUsize;
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -688,7 +688,7 @@ async fn test_disclosure_invalid_poa() {
 
         async fn perform_issuance(
             &self,
-            count: NonZeroU64,
+            count: NonZeroUsize,
             aud: String,
             nonce: Option<String>,
             include_wua: bool,

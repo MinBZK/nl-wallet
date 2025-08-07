@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::hash::Hasher;
-use std::num::NonZeroU64;
+use std::num::NonZeroUsize;
 
 use derive_more::Constructor;
 use derive_more::Debug;
@@ -219,7 +219,7 @@ impl KeyFactory for MockRemoteKeyFactory {
 
     async fn perform_issuance(
         &self,
-        count: NonZeroU64,
+        count: NonZeroUsize,
         aud: String,
         nonce: Option<String>,
         include_wua: bool,

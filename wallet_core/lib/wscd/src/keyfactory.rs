@@ -1,5 +1,5 @@
 use std::error::Error;
-use std::num::NonZeroU64;
+use std::num::NonZeroUsize;
 
 use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
@@ -25,7 +25,7 @@ pub trait KeyFactory {
 
     async fn perform_issuance(
         &self,
-        count: NonZeroU64,
+        count: NonZeroUsize,
         aud: String,
         nonce: Option<String>,
         include_wua: bool,
