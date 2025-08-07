@@ -270,7 +270,6 @@ where
         .await?;
     tx.commit().await?;
 
-    // Unwraps are safe because there are `self.key_count` keys and pops, which is a nonzero type
     Ok((key_ids, pops, poa, wua_disclosure))
 }
 
