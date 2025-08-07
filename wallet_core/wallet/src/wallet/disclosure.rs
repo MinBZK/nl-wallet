@@ -484,10 +484,10 @@ where
         }
 
         // This unwrap is guaranteed to succeed as:
-        // 1. The `RequestedAttributePaths` type inherently guarantees that it contains at least one attestation type.
+        // 1. The `DisclosureSession` is guaranteed to contain at least one credential request.
         // 2. We check above if there is at least one candidate for every attestation type.
         // 3. We then check above that none of the attestation types have multiple candidates, so the length of
-        //    disclosure_attestations is the same as attestations_by_type, which is at least 1.
+        //    disclosure_attestations is the same as candidate_attestations, which is at least 1.
         let disclosure_attestations = VecNonEmpty::try_from(disclosure_attestations).unwrap();
 
         info!("All attributes in the disclosure request are present in the database, return a proposal to the user");
