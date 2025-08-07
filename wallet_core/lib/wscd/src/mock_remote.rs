@@ -256,15 +256,14 @@ impl KeyFactory for MockRemoteKeyFactory {
             .try_into()
             .unwrap();
 
-        let wua_key = include_wua.then(|| {
-            let key = SigningKey::random(&mut OsRng);
-            MockRemoteEcdsaKey::new(verifying_key_sha256(key.verifying_key()), key)
-        });
-        let wua = include_wua.then(|| {
+        let wua_and_key = include_wua.then(|| {
+            let wua_key = SigningKey::random(&mut OsRng);
+            let wua_key = MockRemoteEcdsaKey::new(verifying_key_sha256(wua_key.verifying_key()), wua_key);
+
             // If no WUA signing key is configured, just use the WUA's private key to sign it
-            let wua_signing_key = self.wua_signing_key.as_ref().unwrap_or(&wua_key.as_ref().unwrap().key);
+            let wua_signing_key = self.wua_signing_key.as_ref().unwrap_or(&wua_key.key);
             let wua = JwtCredentialClaims::new_signed(
-                wua_key.as_ref().unwrap().verifying_key(),
+                wua_key.verifying_key(),
                 wua_signing_key,
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 Some("wte+jwt".to_string()),
@@ -274,12 +273,12 @@ impl KeyFactory for MockRemoteKeyFactory {
             .unwrap()
             .unwrap();
 
-            let wua_disclosure = Jwt::sign(&claims, &Header::new(Algorithm::ES256), wua_key.as_ref().unwrap())
+            let wua_disclosure = Jwt::sign(&claims, &Header::new(Algorithm::ES256), &wua_key)
                 .now_or_never()
                 .unwrap()
                 .unwrap();
 
-            WteDisclosure::new(wua, wua_disclosure)
+            (WteDisclosure::new(wua, wua_disclosure), wua_key)
         });
 
         let count_including_wua = if include_wua { count.get() + 1 } else { count.get() };
@@ -287,7 +286,7 @@ impl KeyFactory for MockRemoteKeyFactory {
             Poa::new(
                 attestation_keys
                     .iter()
-                    .chain(wua_key.as_ref())
+                    .chain(wua_and_key.as_ref().map(|(_, key)| key))
                     .collect_vec()
                     .try_into()
                     .unwrap(),
@@ -306,7 +305,7 @@ impl KeyFactory for MockRemoteKeyFactory {
                 .try_into()
                 .unwrap(),
             pops,
-            wua,
+            wua: wua_and_key.map(|(wua, _)| wua),
             poa,
         })
     }
