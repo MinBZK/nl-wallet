@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/string_extension.dart';
 import '../../wallet_assets.dart';
+import '../../wallet_constants.dart';
 import '../common/sheet/error_details_sheet.dart';
 import '../common/widget/button/confirm/confirm_buttons.dart';
 import '../common/widget/button/tertiary_button.dart';
 import '../common/widget/page_illustration.dart';
-import '../common/widget/spacer/sliver_sized_box.dart';
 import '../common/widget/text/body_text.dart';
 import '../common/widget/text/title_text.dart';
 import '../common/widget/wallet_scrollbar.dart';
@@ -168,14 +168,12 @@ class ErrorPage extends StatelessWidget {
             Expanded(
               child: CustomScrollView(
                 slivers: [
-                  const SliverSizedBox(height: 24),
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      padding: kDefaultTitlePadding,
                       child: TitleText(headline),
                     ),
                   ),
-                  const SliverSizedBox(height: 8),
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),

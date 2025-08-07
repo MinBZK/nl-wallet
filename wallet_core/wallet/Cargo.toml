@@ -118,7 +118,7 @@ platform_support = { path = "platform_support", features = ["mock"] }
 sd_jwt = { path = "../lib/sd_jwt", features = ["examples"] }
 sd_jwt_vc_metadata = { path = "../lib/sd_jwt_vc_metadata", features = ["example_constructors"] }
 wallet_account = { path = "../wallet_provider/wallet_account", features = ["client", "server"] }
-wscd = { path = "../lib/wscd", features = ["mock_remote_key"] }
+wscd = { path = "../lib/wscd", features = ["mock"] }
 
 [build-dependencies]
 serde.workspace = true

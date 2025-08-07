@@ -1,6 +1,6 @@
 use std::hash::Hash;
 use std::hash::Hasher;
-use std::num::NonZeroU64;
+use std::num::NonZeroUsize;
 
 use crypto::WithVerifyingKey;
 use derive_more::Constructor;
@@ -15,6 +15,7 @@ use platform_support::attested_key::AppleAttestedKey;
 use platform_support::attested_key::GoogleAttestedKey;
 use wallet_account::messages::instructions::PerformIssuance;
 use wallet_account::messages::instructions::PerformIssuanceWithWua;
+use wallet_account::messages::instructions::PerformIssuanceWithWuaResult;
 use wallet_account::messages::instructions::Sign;
 use wscd::Poa;
 use wscd::keyfactory::DisclosureResult;
@@ -114,38 +115,32 @@ where
 
     async fn perform_issuance(
         &self,
-        key_count: NonZeroU64,
+        key_count: NonZeroUsize,
         aud: String,
         nonce: Option<String>,
         include_wua: bool,
     ) -> Result<IssuanceResult<Self::Poa>, Self::Error> {
-        if !include_wua {
-            let result = self
-                .instruction_client
-                .send(PerformIssuance { key_count, aud, nonce })
-                .await?;
-
-            Ok(IssuanceResult::new(
-                result.key_identifiers,
-                result.pops,
-                result.poa,
-                None,
-            ))
+        let issuance_instruction = PerformIssuance { key_count, aud, nonce };
+        let (issuance_result, wua) = if !include_wua {
+            (self.instruction_client.send(issuance_instruction).await?, None)
         } else {
-            let result = self
+            let PerformIssuanceWithWuaResult {
+                issuance_result,
+                wua_disclosure,
+            } = self
                 .instruction_client
-                .send(PerformIssuanceWithWua {
-                    issuance_instruction: PerformIssuance { key_count, aud, nonce },
-                })
+                .send(PerformIssuanceWithWua { issuance_instruction })
                 .await?;
 
-            Ok(IssuanceResult::new(
-                result.issuance_result.key_identifiers,
-                result.issuance_result.pops,
-                result.issuance_result.poa,
-                Some(result.wua_disclosure),
-            ))
-        }
+            (issuance_result, Some(wua_disclosure))
+        };
+
+        Ok(IssuanceResult::new(
+            issuance_result.key_identifiers,
+            issuance_result.pops,
+            issuance_result.poa,
+            wua,
+        ))
     }
 }
 

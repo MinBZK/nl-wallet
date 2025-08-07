@@ -136,31 +136,39 @@ class _ActivitySummaryState extends State<ActivitySummary> {
   String _resolveSubtitleForEvents(BuildContext context, List<WalletEvent> events) {
     final List<String?> subtitleLines = [
       _generateCardsAddedLine(context, events),
+      _generateCardsUpdatedLine(context, events),
       _generatedLoggedInLine(context, events),
       _generateSharedWithLine(context, events),
     ];
     final subtitles = subtitleLines.nonNulls.toList();
     final separator = ' ${context.l10n.activitySummarySeparator} ';
-    switch (subtitles.length) {
-      case 0:
-        return context.l10n.activitySummaryEmpty;
-      case 1:
-        return '${context.l10n.activitySummaryPrefix} ${subtitles.first}.';
-      case 2:
-        return '${context.l10n.activitySummaryPrefix} ${subtitles.join(separator)}.';
-      case 3:
-        return '${context.l10n.activitySummaryPrefix} ${subtitles.first}, ${subtitles.sublist(1).join(separator)}.';
-      default:
-        throw UnsupportedError('Unsupported subtitles state (length = ${subtitles.length})');
-    }
+
+    if (subtitles.isEmpty) return context.l10n.activitySummaryEmpty;
+    if (subtitles.length == 1) return '${context.l10n.activitySummaryPrefix} ${subtitles.first}.';
+    if (subtitles.length == 2) return '${context.l10n.activitySummaryPrefix} ${subtitles.join(separator)}.';
+    return '${context.l10n.activitySummaryPrefix} ${subtitles.sublist(0, subtitles.length - 1).join(', ')}$separator${subtitles.last}.';
   }
 
   /// Generate the 'x cards added' line, or return null when no cards were added.
   String? _generateCardsAddedLine(BuildContext context, List<WalletEvent> relevantEvents) {
-    final addedCardsCount =
-        relevantEvents.whereType<IssuanceEvent>().where((element) => element.status == EventStatus.success).length;
+    final addedCardsCount = relevantEvents
+        .whereType<IssuanceEvent>()
+        .where((it) => it.status == EventStatus.success)
+        .where((it) => !it.renewed)
+        .length;
     if (addedCardsCount == 0) return null;
     return context.l10n.activitySummaryCardsAdded(addedCardsCount, addedCardsCount);
+  }
+
+  /// Generate the 'x cards replaced' line, or return null when no cards were updated.
+  String? _generateCardsUpdatedLine(BuildContext context, List<WalletEvent> relevantEvents) {
+    final updatedCardsCount = relevantEvents
+        .whereType<IssuanceEvent>()
+        .where((it) => it.status == EventStatus.success)
+        .where((it) => it.renewed)
+        .length;
+    if (updatedCardsCount == 0) return null;
+    return context.l10n.activitySummaryCardsUpdated(updatedCardsCount, updatedCardsCount);
   }
 
   String? _generatedLoggedInLine(BuildContext context, List<WalletEvent> relevantEvents) {

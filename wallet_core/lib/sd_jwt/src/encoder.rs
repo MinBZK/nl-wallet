@@ -2,16 +2,18 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use base64::prelude::*;
-use json_pointer::JsonPointer;
 use rand::Rng;
 use serde_json::Map;
 use serde_json::Value;
 use serde_json::json;
 
+use attestation_types::claim_path::ClaimPath;
 use crypto::utils::random_bytes;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::disclosure::Disclosure;
 use crate::disclosure::DisclosureContent;
+use crate::disclosure::DisclosureContentSerializationError;
 use crate::error::Error;
 use crate::error::Result;
 use crate::hasher::Hasher;
@@ -65,64 +67,53 @@ impl<H: Hasher> SdObjectEncoder<H> {
 
     /// Substitutes a value with the digest of its disclosure.
     ///
-    /// `path` indicates the pointer to the value that will be concealed using the syntax of
-    /// [JSON pointer](https://datatracker.ietf.org/doc/html/rfc6901).
-    ///
-    /// ## Error
-    /// * [`Error::InvalidPath`] if pointer is invalid.
-    /// * [`Error::DataTypeMismatch`] if existing SD format is invalid.
-    pub fn conceal(&mut self, path: &str) -> Result<Disclosure> {
+    /// `path` indicates the claim paths pointing to the value that will be concealed.
+    pub fn conceal(&mut self, path: VecNonEmpty<ClaimPath>) -> Result<Disclosure> {
         // Determine salt.
         let salt = Self::gen_rand(self.salt_size);
 
-        let element_pointer = path
-            .parse::<JsonPointer<_, _>>()
-            .map_err(|_| Error::InvalidPath(path.to_string()))?;
+        let (rest, last_path) = path.into_inner_last();
+        let parent = Self::traverse_object_by_claim_paths(&mut self.object, rest.iter())?;
 
-        let mut parent_pointer = element_pointer.clone();
-        let element_key = parent_pointer.pop().ok_or(Error::InvalidPath(path.to_string()))?;
-
-        let parent = parent_pointer
-            .get(&self.object)
-            .map_err(|_| Error::InvalidPath(path.to_string()))?;
-
-        match parent {
-            Value::Object(_) => {
-                let parent = parent_pointer
-                    .get_mut(&mut self.object)
-                    .map_err(|_| Error::InvalidPath(path.to_string()))?
-                    .as_object_mut()
-                    .ok_or_else(|| Error::InvalidPath(path.to_string()))?;
+        match (parent, last_path) {
+            (Some(Value::Object(parent)), ClaimPath::SelectByKey(key)) => {
+                let disclosure = parent
+                    .remove(&key)
+                    .ok_or_else(|| Error::DisclosureNotFound(key.clone(), parent.clone()))?;
 
                 // Remove the value from the parent and create a disclosure for it.
-                let disclosure = Disclosure::try_new(DisclosureContent::ObjectProperty(
-                    salt,
-                    element_key.to_owned(),
-                    parent
-                        .remove(&element_key)
-                        .ok_or_else(|| Error::InvalidPath(path.to_string()))?,
-                ))?;
+                let disclosure = Disclosure::try_new(DisclosureContent::ObjectProperty(salt, key, disclosure))
+                    .map_err(|DisclosureContentSerializationError { key, value, error }| {
+                        // In case of an error, restore the removed entry so that the original object is intact
+                        parent.insert(key.expect("key should have a value for ObjectProperty"), value);
+                        error
+                    })?;
 
                 // Hash the disclosure.
                 let hash = self.hasher.encoded_digest(disclosure.as_str());
 
                 // Add the hash to the "_sd" array if exists; otherwise, create the array and insert the hash.
-                Self::add_digest_to_object(parent, hash)?;
+                Self::add_digest_to_object(parent, hash);
                 Ok(disclosure)
             }
-            Value::Array(_) => {
-                let element = element_pointer
-                    .get_mut(&mut self.object)
-                    .map_err(|_| Error::InvalidPath(path.to_string()))?;
-                let disclosure = Disclosure::try_new(DisclosureContent::ArrayElement(salt, element.clone()))?;
+            (Some(Value::Array(entries)), ClaimPath::SelectByIndex(index)) => {
+                let Some(element) = entries.get_mut(index) else {
+                    return Err(Error::IndexOutOfBounds(index, entries.clone()));
+                };
+
+                let disclosure = Disclosure::try_new(DisclosureContent::ArrayElement(salt, std::mem::take(element)))
+                    .map_err(|DisclosureContentSerializationError { value, error, .. }| {
+                        // In case of an error, restore the removed entry so that the original object is intact
+                        *element = value;
+                        error
+                    })?;
                 let hash = self.hasher.encoded_digest(disclosure.as_str());
                 let tripledot = json!({ARRAY_DIGEST_KEY: hash});
                 *element = tripledot;
                 Ok(disclosure)
             }
-            _ => Err(Error::Unspecified(
-                "parent of element can can only be an object or an array".to_string(),
-            )),
+            (Some(element), path) => Err(Error::UnexpectedElement((*element).clone(), vec![path])),
+            (None, path) => Err(Error::ParentNotFound(vec![path])),
         }
     }
 
@@ -131,8 +122,7 @@ impl<H: Hasher> SdObjectEncoder<H> {
     pub fn add_sd_alg_property(&mut self) {
         self.object
             .as_object_mut()
-            // Safety: `object` is a JSON object.
-            .unwrap()
+            .expect("`object` should be a JSON object")
             .insert(SD_ALG.to_string(), Value::String(self.hasher.alg_name().to_string()));
     }
 
@@ -142,57 +132,64 @@ impl<H: Hasher> SdObjectEncoder<H> {
     /// [JSON pointer](https://datatracker.ietf.org/doc/html/rfc6901).
     ///
     /// Use `path` = "" to add decoys to the top level.
-    pub fn add_decoys(&mut self, path: &str, number_of_decoys: usize) -> Result<()> {
+    pub fn add_decoys(&mut self, path: &[ClaimPath], number_of_decoys: usize) -> Result<()> {
         for _ in 0..number_of_decoys {
             self.add_decoy(path)?;
         }
         Ok(())
     }
 
-    fn add_decoy(&mut self, path: &str) -> Result<()> {
-        let element_pointer = path
-            .parse::<JsonPointer<_, _>>()
-            .map_err(|_| Error::InvalidPath(path.to_string()))?;
+    fn add_decoy(&mut self, path: &[ClaimPath]) -> Result<()> {
+        let Some(parent) = Self::traverse_object_by_claim_paths(&mut self.object, path.iter())? else {
+            return Err(Error::ParentNotFound(path.to_vec()));
+        };
 
-        let value = element_pointer
-            .get_mut(&mut self.object)
-            .map_err(|_| Error::InvalidPath(path.to_string()))?;
-
-        if let Some(object) = value.as_object_mut() {
+        if let Some(object) = parent.as_object_mut() {
             let hash = Self::random_digest(&self.hasher, self.salt_size, false)?;
-            Self::add_digest_to_object(object, hash)?;
+            Self::add_digest_to_object(object, hash);
             Ok(())
-        } else if let Some(array) = value.as_array_mut() {
+        } else if let Some(array) = parent.as_array_mut() {
             let hash = Self::random_digest(&self.hasher, self.salt_size, true)?;
             let tripledot = json!({ARRAY_DIGEST_KEY: hash});
             array.push(tripledot);
             Ok(())
         } else {
-            Err(Error::InvalidPath(path.to_string()))
+            Err(Error::UnexpectedElement((*parent).clone(), path.to_vec()))
         }
     }
 
+    fn traverse_object_by_claim_paths<'a, 'b>(
+        object: &'a mut Value,
+        mut claim_paths: impl Iterator<Item = &'b ClaimPath>,
+    ) -> Result<Option<&'a mut serde_json::Value>> {
+        claim_paths.try_fold(Some(object), |maybe_object, claim_path| {
+            maybe_object.map_or(Ok(None), |object| match claim_path {
+                ClaimPath::SelectByKey(key) => Ok(object.get_mut(key)),
+                ClaimPath::SelectByIndex(index) => Ok(object.get_mut(index)),
+                ClaimPath::SelectAll => Err(Error::UnsupportedTraversalPath(claim_path.clone())),
+            })
+        })
+    }
+
     /// Add the hash to the "_sd" array if exists; otherwise, create the array and insert the hash.
-    fn add_digest_to_object(object: &mut Map<String, Value>, digest: String) -> Result<()> {
+    fn add_digest_to_object(object: &mut Map<String, Value>, digest: String) {
         if let Some(sd_value) = object.get_mut(DIGESTS_KEY) {
-            if let Value::Array(value) = sd_value {
-                // Make sure the digests are sorted.
-                let idx = value
-                    .iter()
-                    .enumerate()
-                    .find(|(_, value)| value.as_str().is_some_and(|s| s > digest.as_str()))
-                    .map(|(pos, _)| pos)
-                    .unwrap_or(value.len());
-                value.insert(idx, Value::String(digest));
-            } else {
-                return Err(Error::DataTypeMismatch(
-                    "invalid object: existing `_sd` type is not an array".to_string(),
-                ));
-            }
+            let Value::Array(value) = sd_value else {
+                panic!("existing `_sd` type is not an array");
+            };
+
+            // Make sure the digests are sorted.
+            let idx = value
+                .iter()
+                .enumerate()
+                .find(|(_, value)| value.as_str().is_some_and(|s| s > digest.as_str()))
+                .map(|(pos, _)| pos)
+                .unwrap_or(value.len());
+
+            value.insert(idx, Value::String(digest));
         } else {
             object.insert(DIGESTS_KEY.to_owned(), json!([digest]));
         }
-        Ok(())
     }
 
     fn random_digest(hasher: &dyn Hasher, salt_len: usize, array_entry: bool) -> Result<String> {
@@ -209,7 +206,8 @@ impl<H: Hasher> SdObjectEncoder<H> {
         let disclosure = Disclosure::try_new(match decoy_claim_name {
             Some(claim_name) => DisclosureContent::ObjectProperty(salt, claim_name, Value::String(decoy_value)),
             None => DisclosureContent::ArrayElement(salt, Value::String(decoy_value)),
-        })?;
+        })
+        .map_err(|DisclosureContentSerializationError { error, .. }| error)?;
         Ok(hasher.encoded_digest(disclosure.as_str()))
     }
 
@@ -220,8 +218,13 @@ impl<H: Hasher> SdObjectEncoder<H> {
 
 #[cfg(test)]
 mod test {
+    use std::vec;
+
+    use assert_matches::assert_matches;
     use serde_json::Value;
     use serde_json::json;
+
+    use attestation_types::claim_path::ClaimPath;
 
     use crate::error::Error;
 
@@ -240,10 +243,23 @@ mod test {
     #[test]
     fn simple() {
         let mut encoder = SdObjectEncoder::try_from(object()).unwrap();
-        encoder.conceal("/claim1/abc").unwrap();
-        encoder.conceal("/id").unwrap();
-        encoder.add_decoys("", 10).unwrap();
-        encoder.add_decoys("/claim2", 10).unwrap();
+        encoder
+            .conceal(
+                vec![
+                    ClaimPath::SelectByKey(String::from("claim1")),
+                    ClaimPath::SelectByKey(String::from("abc")),
+                ]
+                .try_into()
+                .unwrap(),
+            )
+            .unwrap();
+        encoder
+            .conceal(vec![ClaimPath::SelectByKey(String::from("id"))].try_into().unwrap())
+            .unwrap();
+        encoder.add_decoys(&[], 10).unwrap();
+        encoder
+            .add_decoys(&[ClaimPath::SelectByKey(String::from("claim2"))], 10)
+            .unwrap();
         assert!(encoder.object.get("id").is_none());
         assert_eq!(encoder.object.get("_sd").unwrap().as_array().unwrap().len(), 11);
         assert_eq!(encoder.object.get("claim2").unwrap().as_array().unwrap().len(), 12);
@@ -252,8 +268,19 @@ mod test {
     #[test]
     fn nested() {
         let mut encoder = SdObjectEncoder::try_from(object()).unwrap();
-        encoder.conceal("/claim1/abc").unwrap();
-        encoder.conceal("/claim1").unwrap();
+        encoder
+            .conceal(
+                vec![
+                    ClaimPath::SelectByKey(String::from("claim1")),
+                    ClaimPath::SelectByKey(String::from("abc")),
+                ]
+                .try_into()
+                .unwrap(),
+            )
+            .unwrap();
+        encoder
+            .conceal(vec![ClaimPath::SelectByKey(String::from("claim1"))].try_into().unwrap())
+            .unwrap();
 
         assert!(encoder.object.get("claim1").is_none());
         assert_eq!(encoder.object.get("_sd").unwrap().as_array().unwrap().len(), 1);
@@ -262,23 +289,56 @@ mod test {
     #[test]
     fn errors() {
         let mut encoder = SdObjectEncoder::try_from(object()).unwrap();
-        encoder.conceal("/claim1/abc").unwrap();
-        assert!(matches!(
-            encoder.conceal("claim2/2").unwrap_err(),
-            Error::InvalidPath(_)
-        ));
+        encoder
+            .conceal(
+                vec![
+                    ClaimPath::SelectByKey(String::from("claim1")),
+                    ClaimPath::SelectByKey(String::from("abc")),
+                ]
+                .try_into()
+                .unwrap(),
+            )
+            .unwrap();
+        assert_matches!(
+            encoder
+                .conceal(
+                    vec![
+                        ClaimPath::SelectByKey(String::from("claim2")),
+                        ClaimPath::SelectByIndex(2),
+                    ]
+                    .try_into()
+                    .unwrap(),
+                )
+                .unwrap_err(),
+            Error::IndexOutOfBounds(2, _)
+        );
     }
 
     #[test]
     fn test_wrong_path() {
         let mut encoder = SdObjectEncoder::try_from(object()).unwrap();
-        assert!(matches!(
-            encoder.conceal("/claim12").unwrap_err(),
-            Error::InvalidPath(_)
-        ));
-        assert!(matches!(
-            encoder.conceal("/claim12/0").unwrap_err(),
-            Error::InvalidPath(_)
-        ));
+        assert_matches!(
+            encoder
+                .conceal(
+                    vec![ClaimPath::SelectByKey(String::from("claim12"))]
+                        .try_into()
+                        .unwrap()
+                )
+                .unwrap_err(),
+            Error::DisclosureNotFound(key, _) if key == "claim12"
+        );
+        assert_matches!(
+            encoder
+                .conceal(
+                    vec![
+                        ClaimPath::SelectByKey(String::from("claim12")),
+                        ClaimPath::SelectByIndex(0),
+                    ]
+                    .try_into()
+                    .unwrap(),
+                )
+                .unwrap_err(),
+            Error::ParentNotFound(_)
+        );
     }
 }

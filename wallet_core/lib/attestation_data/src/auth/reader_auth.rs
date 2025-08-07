@@ -1,7 +1,6 @@
 use std::collections::HashMap;
+use std::collections::HashSet;
 
-use indexmap::IndexMap;
-use indexmap::IndexSet;
 use itertools::Itertools;
 use serde::Deserialize;
 use serde::Serialize;
@@ -12,10 +11,9 @@ use x509_parser::der_parser::asn1_rs::oid;
 
 use attestation_types::claim_path::ClaimPath;
 use crypto::x509::BorrowingCertificateExtension;
+use dcql::CredentialQueryFormat;
+use dcql::normalized::NormalizedCredentialRequest;
 use error_category::ErrorCategory;
-use mdoc::identifiers::AttributeIdentifier;
-use mdoc::identifiers::AttributeIdentifierError;
-use mdoc::identifiers::AttributeIdentifierHolder;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::auth::LocalizedStrings;
@@ -24,13 +22,13 @@ use crate::x509::CertificateType;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 pub enum ValidationError {
-    #[error("requested unregistered attributes: {0:?}")]
+    #[error("requested unregistered attributes: {}", .0.iter().map(|(attestation_type, paths)| {
+        format!("({}): {}", attestation_type, paths.iter().map(|path| {
+            format!("[{}]", path.iter().join(", "))
+        }).join(", "))
+    }).join(" / "))]
     #[category(critical)] // RP data, no user data
-    UnregisteredAttributes(Vec<AttributeIdentifier>),
-
-    #[error("Unable to verify the requested attributes: {0}")]
-    #[category(critical)]
-    RequestedAttributeVerification(#[from] AttributeIdentifierError),
+    UnregisteredAttributes(HashMap<String, HashSet<VecNonEmpty<ClaimPath>>>),
 }
 
 #[skip_serializing_none]
@@ -49,14 +47,41 @@ pub struct ReaderRegistration {
 
 impl ReaderRegistration {
     /// Verify whether all requested attributes exist in the registration.
-    pub fn verify_requested_attributes(
-        &self,
-        requested_attributes: &impl AttributeIdentifierHolder,
+    pub fn verify_requested_attributes<'a>(
+        &'a self,
+        requests: impl IntoIterator<Item = &'a NormalizedCredentialRequest>,
     ) -> Result<(), ValidationError> {
-        let difference: Vec<AttributeIdentifier> = requested_attributes.difference(self)?.into_iter().collect();
+        let unregistered_attributes = requests
+            .into_iter()
+            .flat_map(|request| {
+                let attestation_types = match &request.format {
+                    CredentialQueryFormat::MsoMdoc { doctype_value } => std::slice::from_ref(doctype_value),
+                    CredentialQueryFormat::SdJwt { vct_values } => vct_values.as_slice(),
+                };
+                let request_attributes = request.claims.iter().map(|claim| &claim.path).collect::<HashSet<_>>();
 
-        if !difference.is_empty() {
-            return Err(ValidationError::UnregisteredAttributes(difference));
+                // Check if any of the requested attributes are missing from the
+                // authorized attributes for all requested attestation types.
+                attestation_types.iter().flat_map(move |attestation_type| {
+                    let authorized_attributes = self
+                        .authorized_attributes
+                        .get(attestation_type)
+                        .map(|attributes| attributes.iter().collect::<HashSet<_>>())
+                        .unwrap_or_default();
+
+                    let unauthorized_attributes = request_attributes
+                        .difference(&authorized_attributes)
+                        .copied()
+                        .cloned()
+                        .collect::<HashSet<_>>();
+
+                    (!unauthorized_attributes.is_empty()).then(|| (attestation_type.clone(), unauthorized_attributes))
+                })
+            })
+            .collect::<HashMap<_, _>>();
+
+        if !unregistered_attributes.is_empty() {
+            return Err(ValidationError::UnregisteredAttributes(unregistered_attributes));
         }
 
         Ok(())
@@ -71,31 +96,6 @@ impl TryFrom<ReaderRegistration> for Vec<rcgen::CustomExtension> {
         let certificate_type = CertificateType::from(value);
         let result = certificate_type.try_into()?;
         Ok(result)
-    }
-}
-
-impl AttributeIdentifierHolder for ReaderRegistration {
-    fn mdoc_attribute_identifiers(&self) -> Result<IndexSet<AttributeIdentifier>, AttributeIdentifierError> {
-        self.authorized_attributes
-            .iter()
-            .flat_map(|(doc_type, paths)| {
-                paths.iter().map(|paths| {
-                    if paths.len().get() != 2 {
-                        return Err(AttributeIdentifierError::ExtractFromReaderRegistration {
-                            authorized_attributes: paths.clone(),
-                        });
-                    }
-
-                    let namespace = paths.first().to_string();
-                    let attribute = paths.last().to_string();
-                    Ok(AttributeIdentifier {
-                        credential_type: doc_type.to_owned(),
-                        namespace,
-                        attribute,
-                    })
-                })
-            })
-            .try_collect()
     }
 }
 
@@ -123,16 +123,6 @@ pub struct SharingPolicy {
 pub struct DeletionPolicy {
     pub deleteable: bool,
 }
-
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
-pub struct AuthorizedMdoc(pub IndexMap<String, AuthorizedNamespace>);
-
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
-pub struct AuthorizedNamespace(pub IndexMap<String, AuthorizedAttribute>);
-
-// This struct could be extended in the future for attribute specific policies
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub struct AuthorizedAttribute {}
 
 impl BorrowingCertificateExtension for ReaderRegistration {
     /// oid: 2.1.123.1
@@ -278,131 +268,183 @@ pub mod mock {
 #[cfg(test)]
 mod test {
     use assert_matches::assert_matches;
+    use rstest::rstest;
 
-    use mdoc::identifiers::mock::MockAttributeIdentifierHolder;
+    use dcql::normalized;
 
     use super::mock::*;
     use super::*;
 
-    #[test]
-    fn verify_requested_attributes_in_device_request() {
-        let device_request: MockAttributeIdentifierHolder = vec![
-            "some_doctype/some_namespace/some_attribute".parse().unwrap(),
-            "some_doctype/some_namespace/another_attribute".parse().unwrap(),
-            "some_doctype/another_namespace/some_attribute".parse().unwrap(),
-            "some_doctype/another_namespace/another_attribute".parse().unwrap(),
-            "another_doctype/some_namespace/some_attribute".parse().unwrap(),
-            "another_doctype/some_namespace/another_attribute".parse().unwrap(),
-        ]
-        .into();
-        let registration = create_some_registration();
-        registration.verify_requested_attributes(&device_request).unwrap();
-    }
-
-    #[test]
-    fn verify_requested_attributes_in_device_request_missing() {
-        let device_request: MockAttributeIdentifierHolder = vec![
-            "some_doctype/some_namespace/some_attribute".parse().unwrap(),
-            "some_doctype/some_namespace/missing_attribute".parse().unwrap(),
-            "some_doctype/missing_namespace/some_attribute".parse().unwrap(),
-            "some_doctype/missing_namespace/another_attribute".parse().unwrap(),
-            "missing_doctype/some_namespace/some_attribute".parse().unwrap(),
-            "missing_doctype/some_namespace/another_attribute".parse().unwrap(),
-        ]
-        .into();
-        let registration = create_some_registration();
-        let result = registration.verify_requested_attributes(&device_request);
-        assert_matches!(
-            result,
-            Err(ValidationError::UnregisteredAttributes(attrs)) if attrs == vec![
-                "some_doctype/some_namespace/missing_attribute".parse().unwrap(),
-                "some_doctype/missing_namespace/some_attribute".parse().unwrap(),
-                "some_doctype/missing_namespace/another_attribute".parse().unwrap(),
-                "missing_doctype/some_namespace/some_attribute".parse().unwrap(),
-                "missing_doctype/some_namespace/another_attribute".parse().unwrap(),
-            ]
-        );
-    }
-
-    #[test]
-    fn attribute_identifiers_for_single_claimpath_should_err_for_mdoc() {
-        let registration = create_registration(vec![("some_doctype", vec![vec!["some_attribute"]])]);
-        assert!(registration.mdoc_attribute_identifiers().is_err());
-    }
-
-    #[test]
-    fn validate_items_request() {
-        let request: MockAttributeIdentifierHolder = vec![
-            "some_doctype/some_namespace/some_attribute".parse().unwrap(),
-            "some_doctype/some_namespace/another_attribute".parse().unwrap(),
-        ]
-        .into();
-        let registration = create_some_registration();
-        registration.verify_requested_attributes(&request).unwrap();
-    }
-
-    #[test]
-    fn validate_items_request_missing_attribute() {
-        let request: MockAttributeIdentifierHolder = vec![
-            "some_doctype/some_namespace/missing_attribute".parse().unwrap(),
-            "some_doctype/some_namespace/another_attribute".parse().unwrap(),
-        ]
-        .into();
-        let registration = create_registration(vec![(
-            "some_doctype",
-            vec![
-                vec!["some_namespace", "some_attribute"],
-                vec!["some_namespace", "another_attribute"],
+    #[rstest]
+    #[case(
+        normalized::mock::mock_mdoc_from_slices(&[
+            (
+                "some_doctype",
+                &[
+                    &["some_namespace", "some_attribute"],
+                    &["some_namespace", "another_attribute"],
+                    &["another_namespace", "some_attribute"],
+                    &["another_namespace", "another_attribute"],
+                ]
+            ),
+            (
+                "another_doctype",
+                &[
+                    &["some_namespace", "some_attribute"],
+                    &["some_namespace", "another_attribute"],
+                ]
+            ),
+        ]),
+        None
+    )]
+    #[case(
+        normalized::mock::mock_sd_jwt_from_slices(&[(
+            &["some_doctype", "another_doctype"],
+            &[
+                &["some_namespace", "some_attribute"],
+                &["some_namespace", "another_attribute"],
+                &["another_namespace", "some_attribute"],
+                &["another_namespace", "another_attribute"],
             ],
-        )]);
-
-        let result = registration.verify_requested_attributes(&request);
-        assert_matches!(result, Err(ValidationError::UnregisteredAttributes(attrs)) if attrs == vec![
-            "some_doctype/some_namespace/missing_attribute".parse().unwrap(),
-        ]);
-    }
-
-    #[test]
-    fn validate_items_request_missing_namespace() {
-        let request: MockAttributeIdentifierHolder = vec![
-            "some_doctype/missing_namespace/some_attribute".parse().unwrap(),
-            "some_doctype/missing_namespace/another_attribute".parse().unwrap(),
-        ]
-        .into();
-        let registration = create_registration(vec![(
-            "some_doctype",
-            vec![
-                vec!["some_namespace", "some_attribute"],
-                vec!["some_namespace", "another_attribute"],
+        )]),
+        None
+    )]
+    #[case(
+        normalized::mock::mock_mdoc_from_slices(&[
+            (
+                "some_doctype",
+                &[
+                    &["some_namespace", "some_attribute"],
+                    &["some_namespace", "missing_attribute"],
+                    &["missing_namespace", "some_attribute"],
+                    &["missing_namespace", "another_attribute"],
+                ]
+            ),
+            (
+                "missing_doctype",
+                &[
+                    &["some_namespace", "some_attribute"],
+                    &["some_namespace", "another_attribute"],
+                ]
+            ),
+        ]),
+        Some(HashMap::from([
+            (
+                "some_doctype".to_string(),
+                HashSet::from([
+                    vec![
+                        ClaimPath::SelectByKey("some_namespace".to_string()),
+                        ClaimPath::SelectByKey("missing_attribute".to_string()),
+                    ]
+                    .try_into()
+                    .unwrap(),
+                    vec![
+                        ClaimPath::SelectByKey("missing_namespace".to_string()),
+                        ClaimPath::SelectByKey("some_attribute".to_string()),
+                    ]
+                    .try_into()
+                    .unwrap(),
+                    vec![
+                        ClaimPath::SelectByKey("missing_namespace".to_string()),
+                        ClaimPath::SelectByKey("another_attribute".to_string()),
+                    ]
+                    .try_into()
+                    .unwrap(),
+                ]),
+            ),
+            (
+                "missing_doctype".to_string(),
+                HashSet::from([
+                    vec![
+                        ClaimPath::SelectByKey("some_namespace".to_string()),
+                        ClaimPath::SelectByKey("some_attribute".to_string()),
+                    ]
+                    .try_into()
+                    .unwrap(),
+                    vec![
+                        ClaimPath::SelectByKey("some_namespace".to_string()),
+                        ClaimPath::SelectByKey("another_attribute".to_string()),
+                    ]
+                    .try_into()
+                    .unwrap(),
+                ]),
+            ),
+        ]))
+    )]
+    #[case(
+        normalized::mock::mock_sd_jwt_from_slices(&[(
+            &["some_doctype", "missing_doctype"],
+            &[
+                &["some_namespace", "some_attribute"],
+                &["some_namespace", "missing_attribute"],
+                &["another_namespace", "some_attribute"],
+                &["missing_namespace", "another_attribute"],
             ],
-        )]);
+        )]),
+        Some(HashMap::from([
+            (
+                "some_doctype".to_string(),
+                HashSet::from([
+                    vec![
+                        ClaimPath::SelectByKey("some_namespace".to_string()),
+                        ClaimPath::SelectByKey("missing_attribute".to_string()),
+                    ]
+                    .try_into()
+                    .unwrap(),
+                    vec![
+                        ClaimPath::SelectByKey("missing_namespace".to_string()),
+                        ClaimPath::SelectByKey("another_attribute".to_string()),
+                    ]
+                    .try_into()
+                    .unwrap(),
+                ]),
+            ),
+            (
+                "missing_doctype".to_string(),
+                HashSet::from([
+                    vec![
+                        ClaimPath::SelectByKey("some_namespace".to_string()),
+                        ClaimPath::SelectByKey("some_attribute".to_string()),
+                    ]
+                    .try_into()
+                    .unwrap(),
+                    vec![
+                        ClaimPath::SelectByKey("some_namespace".to_string()),
+                        ClaimPath::SelectByKey("missing_attribute".to_string()),
+                    ]
+                    .try_into()
+                    .unwrap(),
+                    vec![
+                        ClaimPath::SelectByKey("another_namespace".to_string()),
+                        ClaimPath::SelectByKey("some_attribute".to_string()),
+                    ]
+                    .try_into()
+                    .unwrap(),
+                    vec![
+                        ClaimPath::SelectByKey("missing_namespace".to_string()),
+                        ClaimPath::SelectByKey("another_attribute".to_string()),
+                    ]
+                    .try_into()
+                    .unwrap(),
+                ]),
+            ),
+        ]))
+    )]
+    fn test_reader_registration_verify_requested_attributes(
+        #[case] requested_attributes: VecNonEmpty<NormalizedCredentialRequest>,
+        #[case] expected_unregistered: Option<HashMap<String, HashSet<VecNonEmpty<ClaimPath>>>>,
+    ) {
+        let registration = create_some_registration();
+        let result = registration.verify_requested_attributes(requested_attributes.as_ref());
 
-        let result = registration.verify_requested_attributes(&request);
-        assert_matches!(result, Err(ValidationError::UnregisteredAttributes(attrs)) if attrs == vec![
-            "some_doctype/missing_namespace/some_attribute".parse().unwrap(),
-            "some_doctype/missing_namespace/another_attribute".parse().unwrap(),
-        ]);
-    }
-
-    #[test]
-    fn validate_items_request_missing_doctype() {
-        let request: MockAttributeIdentifierHolder = vec![
-            "missing_doctype/some_namespace/some_attribute".parse().unwrap(),
-            "missing_doctype/some_namespace/another_attribute".parse().unwrap(),
-        ]
-        .into();
-        let registration = create_registration(vec![(
-            "some_doctype",
-            vec![
-                vec!["some_namespace", "some_attribute"],
-                vec!["some_namespace", "another_attribute"],
-            ],
-        )]);
-
-        let result = registration.verify_requested_attributes(&request);
-        assert_matches!(result, Err(ValidationError::UnregisteredAttributes(attrs)) if attrs == vec![
-            "missing_doctype/some_namespace/some_attribute".parse().unwrap(),
-            "missing_doctype/some_namespace/another_attribute".parse().unwrap(),
-        ]);
+        match expected_unregistered {
+            Some(expected_unregistered) => {
+                assert_matches!(
+                    result.expect_err("verifying requested attributes should fail"),
+                    ValidationError::UnregisteredAttributes(unregistered) if unregistered == expected_unregistered
+                );
+            }
+            None => result.expect("verifying requested attributes should succeed"),
+        }
     }
 }

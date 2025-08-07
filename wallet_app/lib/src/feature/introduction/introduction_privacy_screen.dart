@@ -13,8 +13,9 @@ import '../common/widget/button/icon/help_icon_button.dart';
 import '../common/widget/button/primary_button.dart';
 import '../common/widget/button/tertiary_button.dart';
 import '../common/widget/page_illustration.dart';
-import '../common/widget/sliver_wallet_app_bar.dart';
 import '../common/widget/spacer/sliver_sized_box.dart';
+import '../common/widget/text/title_text.dart';
+import '../common/widget/wallet_app_bar.dart';
 import '../common/widget/wallet_scrollbar.dart';
 
 class IntroductionPrivacyScreen extends StatelessWidget {
@@ -23,6 +24,12 @@ class IntroductionPrivacyScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: WalletAppBar(
+        title: TitleText(context.l10n.introductionPrivacyScreenHeadline),
+        leading: const BackIconButton(),
+        progress: const FlowProgress(currentStep: 1, totalSteps: kSetupSteps),
+        actions: const [HelpIconButton()],
+      ),
       key: const Key('introductionPrivacyScreen'),
       body: SafeArea(child: _buildContent(context)),
     );
@@ -35,19 +42,14 @@ class IntroductionPrivacyScreen extends StatelessWidget {
           child: WalletScrollbar(
             child: CustomScrollView(
               slivers: [
-                SliverWalletAppBar(
-                  title: context.l10n.introductionPrivacyScreenHeadline,
-                  scrollController: PrimaryScrollController.maybeOf(context),
-                  leading: const BackIconButton(),
-                  progress: const FlowProgress(currentStep: 1, totalSteps: kSetupSteps),
-                  actions: const [HelpIconButton()],
-                ),
                 SliverPadding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   sliver: SliverToBoxAdapter(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        const SizedBox(height: 12),
+                        TitleText(context.l10n.introductionPrivacyScreenHeadline),
                         Padding(
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           child: BulletList(

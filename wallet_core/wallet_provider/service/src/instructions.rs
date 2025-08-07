@@ -1,6 +1,6 @@
 use std::hash::Hash;
 use std::hash::Hasher;
-use std::num::NonZeroU64;
+use std::num::NonZeroUsize;
 use std::sync::Arc;
 
 use base64::prelude::*;
@@ -161,7 +161,7 @@ impl HandleInstruction for ChangePinCommit {
 }
 
 struct IssuanceArguments {
-    key_count: NonZeroU64,
+    key_count: NonZeroUsize,
     aud: String,
     nonce: Option<String>,
     issue_wua: bool,
@@ -187,37 +187,45 @@ where
     R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
     H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
 {
-    let key_count = arguments.key_count.get();
-
-    let (key_ids, public_keys, wrapped_keys): (Vec<_>, Vec<_>, Vec<_>) = user_state
+    let (key_ids, wrapped_keys): (Vec<_>, Vec<_>) = user_state
         .wallet_user_hsm
-        .generate_wrapped_keys(&user_state.wrapping_key_identifier, key_count)
+        .generate_wrapped_keys(&user_state.wrapping_key_identifier, arguments.key_count)
         .await?
+        .into_inner()
         .into_iter()
         .multiunzip();
+
+    // Instantiate some VecNonEmpty's that we need below. Safe because generate_wrapped_keys() returns VecNonEmpty.
+    let key_ids: VecNonEmpty<_> = key_ids.try_into().unwrap();
+    let attestation_keys = wrapped_keys
+        .iter()
+        .map(|wrapped_key| attestation_key(wrapped_key, user_state))
+        .collect_vec()
+        .try_into()
+        .unwrap();
 
     // The JWT claims to be signed in the PoPs and the PoA.
     let claims = JwtPopClaims::new(arguments.nonce, NL_WALLET_CLIENT_ID.to_string(), arguments.aud);
 
-    let (wua_wrapped_key, wua_key_id, wua_with_disclosure) = if arguments.issue_wua {
-        let (wua_wrapped_key, wua_key_id, wua_disclosure) = wua(&claims, user_state).await?;
-        (Some(wua_wrapped_key), Some(wua_key_id), Some(wua_disclosure))
+    let (wua_key_and_id, wua_disclosure) = if arguments.issue_wua {
+        let (key, key_id, wua_disclosure) = wua(&claims, user_state).await?;
+        (Some((key, key_id)), Some(wua_disclosure))
     } else {
-        (None, None, None)
+        (None, None)
     };
 
-    let attestation_keys = wrapped_keys
-        .iter()
-        .map(|wrapped_key| attestation_key(wrapped_key, user_state))
-        .collect_vec();
+    let pops = issuance_pops(&attestation_keys, &claims).await?;
 
-    let pops = issuance_pops(&public_keys, &attestation_keys, &claims).await?;
-
-    let key_count_including_wua = if arguments.issue_wua { key_count + 1 } else { key_count };
+    let key_count_including_wua = if arguments.issue_wua {
+        arguments.key_count.get() + 1
+    } else {
+        arguments.key_count.get()
+    };
     let poa = if key_count_including_wua > 1 {
-        let wua_attestation_key = wua_wrapped_key.as_ref().map(|key| attestation_key(key, user_state));
+        let wua_attestation_key = wua_key_and_id.as_ref().map(|(key, _)| attestation_key(key, user_state));
         Some(
-            // Unwrap is safe because there are `key_count` keys, which is a nonzero type
+            // Unwrap is safe because we're operating on the output of `generate_wrapped_keys()`
+            // which returns `VecNonEmpty`
             Poa::new(
                 attestation_keys
                     .iter()
@@ -234,16 +242,13 @@ where
     };
 
     // Assemble the keys to be stored in the database
-    let wte_key_and_id = arguments
-        .issue_wua
-        .then(|| (wua_wrapped_key.unwrap(), wua_key_id.as_ref().unwrap()));
     let db_keys = wrapped_keys
         .into_iter()
-        .zip(&key_ids)
-        .chain(wte_key_and_id.into_iter())
-        .map(|(key, id)| WalletUserKey {
+        .zip(key_ids.clone())
+        .chain(wua_key_and_id.into_iter())
+        .map(|(key, key_identifier)| WalletUserKey {
             wallet_user_key_id: uuid_generator.generate(),
-            key_identifier: id.clone(),
+            key_identifier,
             key,
         })
         .collect();
@@ -262,13 +267,7 @@ where
         .await?;
     tx.commit().await?;
 
-    // Unwraps are safe because there are `self.key_count` keys and pops, which is a nonzero type
-    Ok((
-        key_ids.try_into().unwrap(),
-        pops.try_into().unwrap(),
-        poa,
-        wua_with_disclosure,
-    ))
+    Ok((key_ids, pops, poa, wua_disclosure))
 }
 
 async fn wua<T, R, H>(
@@ -298,30 +297,30 @@ where
 }
 
 async fn issuance_pops<H>(
-    public_keys: &[VerifyingKey],
-    attestation_keys: &[HsmCredentialSigningKey<'_, H>],
+    attestation_keys: &VecNonEmpty<HsmCredentialSigningKey<'_, H>>,
     claims: &JwtPopClaims,
-) -> Result<Vec<Jwt<JwtPopClaims>>, InstructionError>
+) -> Result<VecNonEmpty<Jwt<JwtPopClaims>>, InstructionError>
 where
     H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
 {
-    let pops = future::try_join_all(public_keys.iter().zip(attestation_keys).map(
-        |(public_key, attestation_key)| async {
-            let header = Header {
-                typ: Some(OPENID4VCI_VC_POP_JWT_TYPE.to_string()),
-                alg: Algorithm::ES256,
-                jwk: Some(jwk_from_p256(public_key)?),
-                ..Default::default()
-            };
+    let pops = future::try_join_all(attestation_keys.iter().map(|attestation_key| async {
+        let public_key = attestation_key.verifying_key().await?;
+        let header = Header {
+            typ: Some(OPENID4VCI_VC_POP_JWT_TYPE.to_string()),
+            alg: Algorithm::ES256,
+            jwk: Some(jwk_from_p256(&public_key)?),
+            ..Default::default()
+        };
 
-            let jwt = Jwt::sign(claims, &header, attestation_key)
-                .await
-                .map_err(InstructionError::PopSigning)?;
+        let jwt = Jwt::sign(claims, &header, attestation_key)
+            .await
+            .map_err(InstructionError::PopSigning)?;
 
-            Ok::<_, InstructionError>(jwt)
-        },
-    ))
-    .await?;
+        Ok::<_, InstructionError>(jwt)
+    }))
+    .await?
+    .try_into()
+    .unwrap(); // Safe because we're iterating over attestation_keys which is VecNonEmpty
 
     Ok(pops)
 }
@@ -762,7 +761,7 @@ mod tests {
             .unwrap()
     }
 
-    fn validate_issuance(pops: &[Jwt<JwtPopClaims>], poa: Option<Poa>, wua_with_disclosure: Option<WteDisclosure>) {
+    fn validate_issuance(pops: &[Jwt<JwtPopClaims>], poa: Option<Poa>, wua_with_disclosure: Option<&WteDisclosure>) {
         let mut validations = Validation::new(Algorithm::ES256);
         validations.required_spec_claims = HashSet::default();
         validations.set_issuer(&[NL_WALLET_CLIENT_ID]);
@@ -779,18 +778,24 @@ mod tests {
             })
             .collect_vec();
 
-        let (wua, wua_disclosure) = wua_with_disclosure
-            .map(|WteDisclosure(wua, wua_disclosure)| (wua, wua_disclosure))
-            .unzip();
+        let wua_key = wua_with_disclosure.map(|wua_with_disclosure| {
+            let wua_key = jwk_to_p256(
+                &wua_with_disclosure
+                    .wte()
+                    .dangerous_parse_unverified()
+                    .unwrap()
+                    .1
+                    .confirmation
+                    .jwk,
+            )
+            .unwrap();
 
-        let wua_key = wua
-            .as_ref()
-            .map(|wua| jwk_to_p256(&wua.dangerous_parse_unverified().unwrap().1.confirmation.jwk).unwrap());
-
-        wua_disclosure.inspect(|wua_disclosure| {
-            wua_disclosure
-                .parse_and_verify(&(wua_key.as_ref().unwrap().into()), &validations)
+            wua_with_disclosure
+                .wte_pop()
+                .parse_and_verify(&((&wua_key).into()), &validations)
                 .unwrap();
+
+            wua_key
         });
 
         let keys = keys.into_iter().chain(wua_key).collect_vec();
@@ -808,7 +813,7 @@ mod tests {
     #[rstest]
     #[case(1)]
     #[case(2)]
-    async fn should_handle_perform_issuance(#[case] key_count: u64) {
+    async fn should_handle_perform_issuance(#[case] key_count: usize) {
         let result = perform_issuance(PerformIssuance {
             key_count: key_count.try_into().unwrap(),
             aud: POP_AUD.to_string(),
@@ -833,7 +838,7 @@ mod tests {
         validate_issuance(
             result.issuance_result.pops.as_slice(),
             result.issuance_result.poa,
-            Some(result.wua_disclosure),
+            Some(&result.wua_disclosure),
         );
     }
 }

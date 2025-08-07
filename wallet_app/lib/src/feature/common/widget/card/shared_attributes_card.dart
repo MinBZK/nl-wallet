@@ -8,6 +8,7 @@ import '../../../../util/extension/string_extension.dart';
 import '../../decoration/shadow_decoration.dart';
 import '../button/button_content.dart';
 import '../default_text_and_focus_style.dart';
+import '../text/body_text.dart';
 import 'wallet_card_item.dart';
 
 const _kCornerRadius = Radius.circular(12);
@@ -34,13 +35,21 @@ class SharedAttributesCard extends StatefulWidget {
   /// trigger card selection workflow.
   final VoidCallback? onChangeCardPressed;
 
+  /// When set to true, this widget will render a footer to inform the user that
+  /// the shown [attributes] are considered outdated.
+  final bool showOutdatedFooter;
+
   const SharedAttributesCard({
     required this.card,
     this.attributes,
     this.onPressed,
     this.onChangeCardPressed,
+    this.showOutdatedFooter = false,
     super.key,
-  });
+  }) : assert(
+          !(showOutdatedFooter && onChangeCardPressed != null),
+          'Outdated footer can not be shown together with change card button',
+        );
 
   @override
   State<SharedAttributesCard> createState() => _SharedAttributesCardState();
@@ -51,6 +60,10 @@ class _SharedAttributesCardState extends State<SharedAttributesCard> {
 
   /// Determines whether the "Change card" call-to-action button is shown.
   bool get showChangeCardButton => widget.onChangeCardPressed != null;
+
+  /// Whether (or not) this widget renders a footer. Useful to draw the correct borderadius
+  /// for the top section.
+  bool get hasFooter => widget.onChangeCardPressed != null || widget.showOutdatedFooter;
 
   @override
   void initState() {
@@ -85,10 +98,7 @@ class _SharedAttributesCardState extends State<SharedAttributesCard> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildHeaderStrip(context),
-                Padding(
-                  padding: _kContentPadding,
-                  child: _buildCardContent(context),
-                ),
+                _buildCardContent(context),
               ],
             ),
           ),
@@ -121,60 +131,74 @@ class _SharedAttributesCardState extends State<SharedAttributesCard> {
   /// Uses [DefaultTextAndFocusStyle] for consistent text styling and focus states.
   Widget _buildCardContent(BuildContext context) {
     final textPressedColor = context.theme.textButtonTheme.style?.foregroundColor?.resolve({WidgetState.pressed});
+    final content = Padding(
+      padding: _kContentPadding,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          DefaultTextAndFocusStyle(
+            statesController: _statesController,
+            textStyle: context.textTheme.titleMedium,
+            pressedOrFocusedColor: textPressedColor,
+            child: Text.rich(
+              context.l10n
+                  .sharedAttributesCardTitle(
+                    widget.card.title.l10nValue(context),
+                    (widget.attributes ?? widget.card.attributes).length,
+                  )
+                  .toTextSpan(context),
+            ),
+          ),
+          const SizedBox(height: 8),
+          DefaultTextAndFocusStyle(
+            statesController: _statesController,
+            textStyle: context.textTheme.bodyLarge,
+            pressedOrFocusedColor: textPressedColor,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: _buildAttributeList(context),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Focus(
+            // Prevents the button from being focused to avoid duplicate focus handling with the parent TextButton
+            canRequestFocus: false,
+            descendantsAreFocusable: false,
+            child: TextButton.icon(
+              onPressed: widget.onPressed,
+              statesController: _statesController,
+              icon: const Icon(Icons.arrow_forward),
+              iconAlignment: IconAlignment.end,
+              label: Semantics(
+                button: true,
+                attributedLabel: context.l10n
+                    .sharedAttributesCardCtaSemanticsLabel(widget.card.title.l10nValue(context))
+                    .toAttributedString(context),
+                excludeSemantics: true /* exclude semantics from child text */,
+                child: Text.rich(context.l10n.sharedAttributesCardCta.toTextSpan(context)),
+              ),
+              style: context.theme.textButtonTheme.style?.copyWith(
+                backgroundColor: WidgetStateProperty.all(Colors.transparent),
+                minimumSize: const WidgetStatePropertyAll(Size.zero),
+                padding: const WidgetStatePropertyAll(EdgeInsets.zero),
+                side: WidgetStateBorderSide.resolveWith((states) => BorderSide.none),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+        ],
+      ),
+    );
+    if (!widget.showOutdatedFooter) return content;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        DefaultTextAndFocusStyle(
-          statesController: _statesController,
-          textStyle: context.textTheme.titleMedium,
-          pressedOrFocusedColor: textPressedColor,
-          child: Text.rich(
-            context.l10n
-                .sharedAttributesCardTitle(
-                  widget.card.title.l10nValue(context),
-                  (widget.attributes ?? widget.card.attributes).length,
-                )
-                .toTextSpan(context),
-          ),
-        ),
-        const SizedBox(height: 8),
-        DefaultTextAndFocusStyle(
-          statesController: _statesController,
-          textStyle: context.textTheme.bodyLarge,
-          pressedOrFocusedColor: textPressedColor,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: _buildAttributeList(context),
-          ),
-        ),
-        const SizedBox(height: 16),
-        Focus(
-          // Prevents the button from being focused to avoid duplicate focus handling with the parent TextButton
-          canRequestFocus: false,
-          descendantsAreFocusable: false,
-          child: TextButton.icon(
-            onPressed: widget.onPressed,
-            statesController: _statesController,
-            icon: const Icon(Icons.arrow_forward),
-            iconAlignment: IconAlignment.end,
-            label: Semantics(
-              button: true,
-              attributedLabel: context.l10n
-                  .sharedAttributesCardCtaSemanticsLabel(widget.card.title.l10nValue(context))
-                  .toAttributedString(context),
-              excludeSemantics: true /* exclude semantics from child text */,
-              child: Text.rich(context.l10n.sharedAttributesCardCta.toTextSpan(context)),
-            ),
-            style: context.theme.textButtonTheme.style?.copyWith(
-              backgroundColor: WidgetStateProperty.all(Colors.transparent),
-              minimumSize: const WidgetStatePropertyAll(Size.zero),
-              padding: const WidgetStatePropertyAll(EdgeInsets.zero),
-              side: WidgetStateBorderSide.resolveWith((states) => BorderSide.none),
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-          ),
-        ),
-        const SizedBox(height: 4),
+        content,
+        if (widget.showOutdatedFooter) ...[
+          const Divider(),
+          _buildOutdatedFooter(context),
+        ],
       ],
     );
   }
@@ -223,6 +247,20 @@ class _SharedAttributesCardState extends State<SharedAttributesCard> {
           iconPosition: IconPosition.end,
           mainAxisAlignment: MainAxisAlignment.start,
         ),
+      ),
+    );
+  }
+
+  /// Builds the "details outdated" footer, rendered at the bottom of the card.
+  Widget _buildOutdatedFooter(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          Icon(Icons.feedback_outlined, color: context.colorScheme.onSurfaceVariant),
+          const SizedBox(width: 12),
+          Expanded(child: BodyText(context.l10n.sharedAttributesCardOutdatedFooter)),
+        ],
       ),
     );
   }

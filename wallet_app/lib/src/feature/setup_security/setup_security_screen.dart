@@ -19,7 +19,6 @@ import '../common/widget/button/icon/info_icon_button.dart';
 import '../common/widget/fade_in_at_offset.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
 import '../common/widget/page_illustration.dart';
-import '../common/widget/stepper_indicator.dart';
 import '../common/widget/text/title_text.dart';
 import '../common/widget/wallet_app_bar.dart';
 import '../error/error_page.dart';
@@ -48,6 +47,7 @@ class SetupSecurityScreen extends StatelessWidget {
           leading: _buildBackButton(context, state),
           actions: [_buildAboutAction(context, state)],
           title: _buildTitle(context, state),
+          progress: state.stepperProgress,
         ),
         body: PopScope(
           canPop: state is SetupSecuritySelectPinInProgress,
@@ -55,22 +55,10 @@ class SetupSecurityScreen extends StatelessWidget {
             if (!didPop) context.bloc.add(SetupSecurityBackPressed());
           },
           child: SafeArea(
-            child: Column(
-              children: [
-                _buildStepper(state),
-                Expanded(child: _buildPage()),
-              ],
-            ),
+            child: _buildPage(),
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildStepper(SetupSecurityState state) {
-    return StepperIndicator(
-      currentStep: state.stepperProgress.currentStep,
-      totalSteps: state.stepperProgress.totalSteps,
     );
   }
 
@@ -139,7 +127,7 @@ class SetupSecurityScreen extends StatelessWidget {
   }
 
   Widget? _buildBackButton(BuildContext context, SetupSecurityState state) {
-    if (state is SetupSecurityCompleted) return null; // Allow title to align to the left in [WalletAppBar].
+    if (!state.canGoBack) return null; // Allow title to align to the left in [WalletAppBar].
     return AnimatedVisibilityBackButton(
       visible: state.canGoBack,
       onPressed: () {
@@ -241,14 +229,12 @@ class SetupSecurityScreen extends StatelessWidget {
       SetupSecurityGenericError() => '',
       SetupSecurityNetworkError() => '',
       SetupSecurityDeviceIncompatibleError() => '',
-      SetupSecurityConfigureBiometrics() => '',
+      SetupSecurityConfigureBiometrics() => context.l10n.setupBiometricsPageTitle(
+          state.biometrics.prettyPrint(context),
+        ),
     };
     if (title.isEmpty) return const SizedBox.shrink();
-    return FadeInAtOffset(
-      appearOffset: 30,
-      visibleOffset: 60,
-      child: TitleText(title),
-    );
+    return TitleText(title);
   }
 }
 

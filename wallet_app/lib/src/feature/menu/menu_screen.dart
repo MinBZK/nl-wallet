@@ -10,16 +10,18 @@ import '../../../environment.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/string_extension.dart';
+import '../../wallet_constants.dart';
 import '../common/mixin/lock_state_mixin.dart';
 import '../common/screen/placeholder_screen.dart';
 import '../common/widget/button/bottom_back_button.dart';
 import '../common/widget/button/icon/back_icon_button.dart';
 import '../common/widget/button/secondary_button.dart';
 import '../common/widget/menu_item.dart';
-import '../common/widget/sliver_wallet_app_bar.dart';
 import '../common/widget/spacer/sliver_divider.dart';
 import '../common/widget/spacer/sliver_sized_box.dart';
+import '../common/widget/text/title_text.dart';
 import '../common/widget/utility/do_on_init.dart';
+import '../common/widget/wallet_app_bar.dart';
 import '../common/widget/wallet_scrollbar.dart';
 import 'bloc/menu_bloc.dart';
 
@@ -39,6 +41,10 @@ class _MenuScreenState extends State<MenuScreen> with LockStateMixin<MenuScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: WalletAppBar(
+        title: TitleText(context.l10n.menuScreenTitle),
+        leading: const BackIconButton(),
+      ),
       body: SafeArea(
         child: Column(
           children: [
@@ -55,10 +61,11 @@ class _MenuScreenState extends State<MenuScreen> with LockStateMixin<MenuScreen>
                 key: const Key('menuScreen'),
                 child: CustomScrollView(
                   slivers: [
-                    SliverWalletAppBar(
-                      title: context.l10n.menuScreenTitle,
-                      scrollController: PrimaryScrollController.maybeOf(context),
-                      leading: const BackIconButton(),
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: kDefaultTitlePadding,
+                        child: TitleText(context.l10n.menuScreenTitle),
+                      ),
                     ),
                     _buildContentSliver(context),
                   ],

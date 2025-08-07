@@ -1,38 +1,29 @@
-import 'package:fimber/fimber.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:intl/intl.dart';
 
-import '../../../l10n/generated/app_localizations.dart';
-import '../../../l10n/generated/app_localizations_en.dart';
 import '../../domain/model/attribute/attribute.dart';
 import '../extension/build_context_extension.dart';
+import '../extension/locale_extension.dart';
 
 class AttributeValueFormatter {
-  static String format(BuildContext context, AttributeValue attributeValue) {
-    return switch (attributeValue) {
-      StringValue() => attributeValue.value,
-      BooleanValue() => attributeValue.value ? context.l10n.cardValueTrue : context.l10n.cardValueFalse,
-      NumberValue() => attributeValue.value.toString(),
-      DateValue() => _prettyPrintDateTime(context.activeLocale, attributeValue.value),
-      NullValue() => context.l10n.cardValueNull
+  static String format(BuildContext context, AttributeValue attributeValue) =>
+      formatWithLocale(context.activeLocale, attributeValue);
+
+  static String formatWithLocale(Locale locale, AttributeValue attribute) {
+    final l10n = locale.l10n;
+    return switch (attribute) {
+      StringValue() => attribute.value.isEmpty ? l10n.cardValueEmpty : attribute.value,
+      BooleanValue() => attribute.value ? l10n.cardValueTrue : l10n.cardValueFalse,
+      NumberValue() => '${attribute.value}',
+      DateValue() => _prettyPrintDateTime(locale, attribute.value),
+      ArrayValue() => _formatArrayValue(locale, attribute),
+      NullValue() => l10n.cardValueNull,
     };
   }
 
-  static String formatWithLocale(Locale locale, AttributeValue attributeValue) {
-    late AppLocalizations l10n;
-    try {
-      l10n = lookupAppLocalizations(locale);
-    } catch (ex) {
-      Fimber.e('Failed to resolve l10n for locale: $locale. Falling back to english.', ex: ex);
-      l10n = AppLocalizationsEn();
-    }
-    return switch (attributeValue) {
-      StringValue() => attributeValue.value,
-      BooleanValue() => attributeValue.value ? l10n.cardValueTrue : l10n.cardValueFalse,
-      NumberValue() => attributeValue.value.toString(),
-      DateValue() => _prettyPrintDateTime(locale, attributeValue.value),
-      NullValue() => l10n.cardValueNull,
-    };
+  static String _formatArrayValue(Locale locale, ArrayValue attribute) {
+    if (attribute.value.isEmpty) return locale.l10n.cardValueEmptyList;
+    return attribute.value.map((it) => '  • ${formatWithLocale(locale, it)}').join('\n');
   }
 
   static String _prettyPrintDateTime(Locale locale, DateTime dateTime) {

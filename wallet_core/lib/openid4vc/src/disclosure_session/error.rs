@@ -53,6 +53,10 @@ pub enum VpClientError {
     #[error("error sending OpenID4VP message: {0}")]
     Request(#[source] VpMessageClientError),
 
+    #[error("disclosed attestation count does not match request: expected {expected}, found {found}")]
+    #[category(critical)]
+    AttestationCountMismatch { expected: usize, found: usize },
+
     #[error("error creating mdoc device response: {0}")]
     DeviceResponse(#[source] mdoc::Error),
 

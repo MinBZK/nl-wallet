@@ -43,7 +43,18 @@ impl Default for WteClaims {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, Constructor)]
-pub struct WteDisclosure(pub Jwt<JwtCredentialClaims<WteClaims>>, pub Jwt<JwtPopClaims>);
+pub struct WteDisclosure(Jwt<JwtCredentialClaims<WteClaims>>, Jwt<JwtPopClaims>);
+
+#[cfg(feature = "test")]
+impl WteDisclosure {
+    pub fn wte(&self) -> &Jwt<JwtCredentialClaims<WteClaims>> {
+        &self.0
+    }
+
+    pub fn wte_pop(&self) -> &Jwt<JwtPopClaims> {
+        &self.1
+    }
+}
 
 #[derive(Debug, thiserror::Error)]
 pub enum WteError {

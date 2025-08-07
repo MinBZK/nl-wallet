@@ -132,9 +132,8 @@ where
         .await
         .unwrap();
 
-    let (public_key, wrapped) = hsm.generate_wrapped_key(identifier).await.unwrap();
-
-    assert_eq!(public_key, *wrapped.public_key());
+    let wrapped = hsm.generate_wrapped_key(identifier).await.unwrap();
+    let public_key = *wrapped.public_key();
 
     let data = Arc::new(random_bytes(32));
     let signature = Pkcs11Client::sign_wrapped(hsm, identifier, wrapped, Arc::clone(&data))

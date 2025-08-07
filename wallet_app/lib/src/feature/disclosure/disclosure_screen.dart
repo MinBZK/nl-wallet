@@ -10,7 +10,6 @@ import '../../util/cast_util.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/localized_text_extension.dart';
 import '../../util/extension/object_extension.dart';
-import '../../util/extension/string_extension.dart';
 import '../../util/launch_util.dart';
 import '../common/dialog/scan_with_wallet_dialog.dart';
 import '../common/page/generic_loading_page.dart';
@@ -22,6 +21,7 @@ import '../common/widget/button/icon/help_icon_button.dart';
 import '../common/widget/centered_loading_indicator.dart';
 import '../common/widget/fade_in_at_offset.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
+import '../common/widget/text/title_text.dart';
 import '../common/widget/wallet_app_bar.dart';
 import '../error/error_page.dart';
 import '../fraud_check/fraud_check_page.dart';
@@ -30,6 +30,8 @@ import '../login/login_detail_screen.dart';
 import '../organization/approve/organization_approve_page.dart';
 import '../pin/bloc/pin_bloc.dart';
 import '../report_issue/report_issue_screen.dart';
+import '../report_issue/reporting_group.dart';
+import '../report_issue/reporting_option.dart';
 import 'argument/disclosure_screen_argument.dart';
 import 'bloc/disclosure_bloc.dart';
 import 'page/disclosure_confirm_data_attributes_page.dart';
@@ -70,6 +72,7 @@ class DisclosureScreen extends StatelessWidget {
               onPressed: () => _stopDisclosure(context),
             ),
           ],
+          fadeInTitleOnScroll: false /* Handled by _buildTitle */,
           title: _buildTitle(context),
           progress: progress,
         ),
@@ -100,13 +103,11 @@ class DisclosureScreen extends StatelessWidget {
 
   Widget _buildPage() {
     return BlocConsumer<DisclosureBloc, DisclosureState>(
-      /// Reset the [ScrollOffset] used by [FadeInAtOffset] when the state (and thus the visible page) changes.
       listener: (context, state) {
-        context.read<ScrollOffset>().offset = 0;
+        context.read<ScrollOffset>().reset(); // Reset provided scrollOffset between pages
         if (state is DisclosureExternalScannerError) {
           Navigator.maybePop(context).then((popped) {
-            // ignore: use_build_context_synchronously
-            ScanWithWalletDialog.show(context);
+            if (context.mounted) ScanWithWalletDialog.show(context);
           });
         }
       },
@@ -321,25 +322,12 @@ class DisclosureScreen extends StatelessWidget {
     switch (state) {
       case DisclosureCheckUrl():
       case DisclosureCheckOrganizationForLogin():
-        return [
-          ReportingOption.unknownOrganization,
-          ReportingOption.requestNotInitiated,
-          ReportingOption.suspiciousOrganization,
-          ReportingOption.impersonatingOrganization,
-        ];
+        return ReportingGroup.disclosureCheckOrganizationForLogin;
       case DisclosureConfirmPin():
       case DisclosureConfirmDataAttributes():
-        return [
-          ReportingOption.untrusted,
-          ReportingOption.overAskingOrganization,
-          ReportingOption.suspiciousOrganization,
-          ReportingOption.unreasonableTerms,
-        ];
+        return ReportingGroup.disclosureConfirm;
       case DisclosureMissingAttributes():
-        return [
-          ReportingOption.overAskingOrganization,
-          ReportingOption.suspiciousOrganization,
-        ];
+        return ReportingGroup.disclosureMissingAttributes;
       default:
         Fimber.d('No ReportingOptions provided for $state');
         return <ReportingOption>[];
@@ -347,73 +335,50 @@ class DisclosureScreen extends StatelessWidget {
   }
 
   Widget _buildTitle(BuildContext context) {
-    return BlocBuilder<DisclosureBloc, DisclosureState>(
-      builder: (context, state) {
-        final Widget? result = switch (state) {
-          DisclosureCheckOrganizationForLogin() => FadeInAtOffset(
-              appearOffset: 120,
-              visibleOffset: 150,
-              child: Text.rich(
-                context.l10n
-                    .organizationApprovePageGenericTitle(
-                      state.relyingParty.displayName.l10nValue(context),
-                    )
-                    .toTextSpan(context),
-              ),
-            ),
-          DisclosureConfirmDataAttributes() => FadeInAtOffset(
-              appearOffset: 70,
-              visibleOffset: 100,
-              child: Text.rich(
-                context.l10n
-                    .disclosureConfirmDataAttributesShareWithTitle(
-                      state.relyingParty.displayName.l10nValue(context),
-                    )
-                    .toTextSpan(context),
-              ),
-            ),
-          DisclosureStopped() => FadeInAtOffset(
-              appearOffset: 48,
-              visibleOffset: 70,
-              child: Text.rich(context.l10n.disclosureStoppedPageTitle.toTextSpan(context)),
-            ),
-          DisclosureSuccess() => FadeInAtOffset(
-              appearOffset: 48,
-              visibleOffset: 70,
-              child: Text.rich(context.l10n.disclosureSuccessPageTitle.toTextSpan(context)),
-            ),
-          DisclosureNetworkError() => FadeInAtOffset(
-              appearOffset: 48,
-              visibleOffset: 70,
-              child: Text(
-                state.hasInternet ? context.l10n.errorScreenServerHeadline : context.l10n.errorScreenNoInternetHeadline,
-              ),
-            ),
-          DisclosureExternalScannerError() => FadeInAtOffset(
-              appearOffset: 48,
-              visibleOffset: 70,
-              child: Text.rich(context.l10n.disclosureGenericErrorPageTitle.toTextSpan(context)),
-            ),
-          DisclosureGenericError() => FadeInAtOffset(
-              appearOffset: 48,
-              visibleOffset: 70,
-              child: Text.rich(context.l10n.disclosureGenericErrorPageTitle.toTextSpan(context)),
-            ),
-          DisclosureSessionExpired() => FadeInAtOffset(
-              appearOffset: 48,
-              visibleOffset: 70,
-              child: Text.rich(context.l10n.errorScreenSessionExpiredHeadline.toTextSpan(context)),
-            ),
-          DisclosureSessionCancelled() => FadeInAtOffset(
-              appearOffset: 48,
-              visibleOffset: 70,
-              child: Text.rich(context.l10n.errorScreenCancelledSessionHeadline.toTextSpan(context)),
-            ),
-          _ => null,
-        };
+    final state = context.watch<DisclosureBloc>().state;
+    String? title;
+    switch (state) {
+      case DisclosureInitial():
+        title = context.l10n.disclosureLoadingTitle;
+      case DisclosureGenericError():
+        title = context.l10n.disclosureGenericErrorPageTitle;
+      case DisclosureRelyingPartyError():
+        title = context.l10n.disclosureRelyingPartyErrorTitle;
+      case DisclosureSessionExpired():
+        title = context.l10n.errorScreenSessionExpiredHeadline;
+      case DisclosureSessionCancelled():
+        title = context.l10n.errorScreenCancelledSessionHeadline;
+      case DisclosureNetworkError():
+        title = state.hasInternet ? context.l10n.errorScreenServerHeadline : context.l10n.errorScreenNoInternetHeadline;
+      case DisclosureCheckUrl():
+        title = context.l10n.fraudCheckPageTitle(state.originUrl);
+      case DisclosureCheckOrganizationForLogin():
+        title = OrganizationApprovePage.resolveTitle(context, ApprovalPurpose.login, state.relyingParty);
+      case DisclosureMissingAttributes():
+        title = context.l10n.missingAttributesPageTitle;
+      case DisclosureConfirmDataAttributes():
+        title = context.l10n.disclosureConfirmDataAttributesShareWithTitle(
+          state.relyingParty.displayName.l10nValue(context),
+        );
+      case DisclosureSuccess():
+        title = context.l10n.disclosureSuccessPageTitle;
+      case DisclosureStopped():
+        title = context.l10n.disclosureStoppedPageTitle;
+      case DisclosureLeftFeedback():
+        title = context.l10n.disclosureReportSubmittedPageTitle;
+      case DisclosureConfirmPin():
+      case DisclosureExternalScannerError():
+      case DisclosureLoadInProgress():
+        break;
+    }
+    if (title == null) return const SizedBox.shrink();
 
-        return result ?? const SizedBox.shrink();
-      },
+    // Check for CheckOrganization state, as it has a taller header (with logo) and thus should fade in later.
+    final isCheckOrganizationState = state is DisclosureCheckOrganizationForLogin;
+    return FadeInAtOffset(
+      appearOffset: isCheckOrganizationState ? 120 : 40,
+      visibleOffset: isCheckOrganizationState ? 150 : 80,
+      child: TitleText(title),
     );
   }
 

@@ -5,12 +5,12 @@ import '../../../../util/extension/build_context_extension.dart';
 import '../../../../util/extension/string_extension.dart';
 import '../../../../wallet_assets.dart';
 import '../../../common/widget/button/confirm/confirm_buttons.dart';
-import '../../../common/widget/button/icon/help_icon_button.dart';
 import '../../../common/widget/button/primary_button.dart';
 import '../../../common/widget/button/tertiary_button.dart';
 import '../../../common/widget/page_illustration.dart';
-import '../../../common/widget/sliver_wallet_app_bar.dart';
+import '../../../common/widget/spacer/sliver_sized_box.dart';
 import '../../../common/widget/text/body_text.dart';
+import '../../../common/widget/text/title_text.dart';
 import '../../../common/widget/wallet_scrollbar.dart';
 
 class WalletPersonalizeIntroPage extends StatelessWidget {
@@ -34,14 +34,14 @@ class WalletPersonalizeIntroPage extends StatelessWidget {
             child: WalletScrollbar(
               child: CustomScrollView(
                 slivers: [
-                  SliverWalletAppBar(
-                    actions: const [
-                      HelpIconButton(),
-                    ],
-                    title: context.l10n.walletPersonalizeIntroPageTitle,
-                    progress: progress,
-                    scrollController: PrimaryScrollController.maybeOf(context),
+                  const SliverSizedBox(height: 12),
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    sliver: SliverToBoxAdapter(
+                      child: TitleText(context.l10n.walletPersonalizeIntroPageTitle),
+                    ),
                   ),
+                  const SliverSizedBox(height: 8),
                   SliverPadding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     sliver: SliverList(

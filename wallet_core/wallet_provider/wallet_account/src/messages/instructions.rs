@@ -1,4 +1,4 @@
-use std::num::NonZeroU64;
+use std::num::NonZeroUsize;
 
 use derive_more::Constructor;
 use serde::Deserialize;
@@ -117,7 +117,7 @@ impl InstructionAndResult for ChangePinRollback {
 #[serde_as]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PerformIssuance {
-    pub key_count: NonZeroU64,
+    pub key_count: NonZeroUsize,
     pub aud: String,
     pub nonce: Option<String>,
 }

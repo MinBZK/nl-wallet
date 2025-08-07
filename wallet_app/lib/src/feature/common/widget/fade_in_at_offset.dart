@@ -65,6 +65,10 @@ class _FadeInAtOffsetState extends State<FadeInAtOffset> with AfterLayoutMixin<F
     double startAppearingAt = widget.appearOffset;
     double completelyVisibleAt = widget.visibleOffset;
 
+    // If don't have enough room to scroll to reach the 'start animation' breakpoint we simply
+    // never show the [child], as this should mean the original title always stays visible.
+    if (maxScrollExtent <= startAppearingAt) return const SizedBox.shrink();
+
     if (maxScrollExtent > 0 /* if maxScrollExtent is 0, we only animate for the overscroll */) {
       // We make sure the widget will always animate to 100% opacity by comparing it with the maximum scrollable extend.
       startAppearingAt = min(widget.appearOffset, maxScrollExtent - 1);
@@ -73,14 +77,11 @@ class _FadeInAtOffsetState extends State<FadeInAtOffset> with AfterLayoutMixin<F
 
     // Exclude the widget from focus and pointer events when it's not visible.
     final completelyInvisible = offset <= startAppearingAt;
-    return ExcludeFocus(
-      excluding: completelyInvisible,
-      child: IgnorePointer(
-        ignoring: completelyInvisible,
-        child: Opacity(
-          opacity: offset.normalize(startAppearingAt, completelyVisibleAt).toDouble(),
-          child: widget.child,
-        ),
+    return Offstage(
+      offstage: completelyInvisible,
+      child: Opacity(
+        opacity: offset.normalize(startAppearingAt, completelyVisibleAt).toDouble(),
+        child: widget.child,
       ),
     );
   }
@@ -88,11 +89,34 @@ class _FadeInAtOffsetState extends State<FadeInAtOffset> with AfterLayoutMixin<F
   @override
   void didUpdateWidget(covariant FadeInAtOffset oldWidget) {
     super.didUpdateWidget(oldWidget);
-    _scrollController?.removeListener(_onScroll);
-    _scrollController = null;
-    if (context.read<ScrollOffset?>() != null) return;
-    _scrollController = widget.scrollController ?? PrimaryScrollController.of(context);
-    _scrollController?.addListener(_onScroll);
+
+    // If a ScrollOffset is provided, we don't manage our own listeners.
+    if (context.read<ScrollOffset?>() != null) {
+      // Make sure to clean up if we were previously managing one.
+      if (_scrollController != null) {
+        _scrollController!.removeListener(_onScroll);
+        _scrollController = null;
+      }
+      return;
+    }
+
+    // Re-attach to scroll controller if anything changed
+    final scrollController = widget.scrollController ?? PrimaryScrollController.of(context);
+    if (scrollController != _scrollController || widget.scrollController != oldWidget.scrollController) {
+      _scrollController?.removeListener(_onScroll);
+      _scrollController = scrollController;
+      _scrollController?.addListener(_onScroll);
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    MediaQuery.of(context).orientation; // This line is crucial to make sure we actually trigger on orientation changes.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // This helps 'sync' the scrollOffset after an orientation change
+      if (_afterFirstLayout && context.mounted) setState(() {});
+    });
   }
 
   @override

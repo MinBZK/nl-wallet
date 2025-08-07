@@ -101,8 +101,9 @@ tokio = { workspace = true, features = ["rt", "macros", "parking_lot"] }
 
 android_attest = { path = "../../lib/android_attest", features = ["mock"] }
 apple_app_attest = { path = "../../lib/apple_app_attest", features = ["mock"] }
+jwt = { path = "../../lib/jwt", features = ["test"] }
 platform_support = { path = "../../wallet/platform_support", features = ["mock_attested_key_apple"] }
 wallet_account = { path = "../wallet_account", features = ["client", "server"] }
 wallet_provider_domain = { path = "../domain", features = ["mock"] }
 wallet_provider_persistence = { path = "../persistence", features = ["mock"] }
-wscd = { path = "../../lib/wscd", features = ["mock_remote_key"] }
+wscd = { path = "../../lib/wscd", features = ["mock"] }

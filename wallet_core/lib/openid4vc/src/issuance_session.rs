@@ -273,7 +273,7 @@ pub trait IssuanceSession<H = HttpVcMessageClient> {
         &self,
         trust_anchors: &[TrustAnchor<'_>],
         key_factory: &KF,
-        include_wte: bool,
+        include_wua: bool,
     ) -> Result<Vec<CredentialWithMetadata>, IssuanceSessionError>
     where
         K: CredentialEcdsaKey + Eq + Hash,
@@ -506,8 +506,8 @@ impl NormalizedCredentialPreview {
 struct IssuanceState {
     access_token: AccessToken,
     c_nonce: String,
-    normalized_credential_previews: Vec<NormalizedCredentialPreview>,
-    credential_request_types: Vec<CredentialRequestType>,
+    normalized_credential_previews: VecNonEmpty<NormalizedCredentialPreview>,
+    credential_request_types: VecNonEmpty<CredentialRequestType>,
     issuer_registration: IssuerRegistration,
     issuer_url: BaseUrl,
     #[debug(skip)]
@@ -643,7 +643,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             .map_err(IssuanceSessionError::DifferentIssuerRegistrations)?
             .expect("there are always credential_previews in the token_response");
 
-        let normalized_credential_previews = token_response
+        let normalized_credential_previews: VecNonEmpty<_> = token_response
             .credential_previews
             .into_iter()
             .map(|preview| {
@@ -652,9 +652,13 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
                 let state = NormalizedCredentialPreview::try_new(preview)?;
                 Ok::<_, IssuanceSessionError>(state)
             })
-            .collect::<Result<Vec<_>, _>>()?;
+            .collect::<Result<Vec<_>, _>>()?
+            .try_into()
+            .unwrap(); // token_response.credential_previews is VecNonempty
 
-        let credential_request_types = credential_request_types_from_preview(&normalized_credential_previews)?;
+        let credential_request_types = credential_request_types_from_preview(normalized_credential_previews.as_ref())?
+            .try_into()
+            .unwrap(); // This came from token_response.credential_previews which is VecNonempty
 
         let session_state = IssuanceState {
             access_token: token_response.token_response.access_token,
@@ -688,9 +692,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         K: CredentialEcdsaKey + Eq + Hash,
         KF: KeyFactory<Key = K, Poa = Poa>,
     {
-        let key_count = (self.session_state.credential_request_types.len() as u64)
-            .try_into()
-            .unwrap(); // Safety: this is derived above from token_response.credential_previews, which is VecNonEmpty.
+        let key_count = self.session_state.credential_request_types.len();
 
         let mut issuance_data = key_factory
             .perform_issuance(
@@ -705,15 +707,13 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         let proofs = issuance_data
             .pops
             .into_iter()
-            .map(|jwt| CredentialRequestProof::Jwt { jwt })
-            .collect_vec();
+            .map(|jwt| CredentialRequestProof::Jwt { jwt });
 
         // Call the amount of proofs we received N, which equals `key_count`.
         // Combining these with the key identifiers and attestation types, compute N public keys and
         // N credential requests.
         let (pubkeys, mut credential_requests): (Vec<_>, Vec<_>) = try_join_all(
             proofs
-                .into_iter()
                 .zip(issuance_data.key_identifiers.into_inner())
                 .zip(self.session_state.credential_request_types.clone())
                 .map(|((proof, id), credential_request_type)| async move {
@@ -722,7 +722,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
                     // We assume here the WP gave us valid JWTs, and leave it up to the issuer to verify these.
                     let (header, _) = jwt.dangerous_parse_unverified()?;
 
-                    let pubkey = jwk_to_p256(&header.jwk.unwrap())
+                    let pubkey = jwk_to_p256(&header.jwk.expect("WP failed to include JWK in PoP JWT header"))
                         .map_err(|e| IssuanceSessionError::VerifyingKeyFromPrivateKey(e.into()))?;
                     let cred_request = CredentialRequest {
                         credential_type: credential_request_type.into(),
@@ -843,7 +843,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
     }
 
     fn normalized_credential_preview(&self) -> &[NormalizedCredentialPreview] {
-        &self.session_state.normalized_credential_previews
+        self.session_state.normalized_credential_previews.as_ref()
     }
 
     fn issuer_registration(&self) -> &IssuerRegistration {
@@ -956,6 +956,7 @@ impl CredentialResponse {
                 Ok(IssuedCredential::MsoMdoc(Box::new(mdoc)))
             }
             CredentialResponse::SdJwt { credential } => {
+                // TODO: validate SD-JWT against JSON schema (PVW-4687)
                 let sd_jwt = VerifiedSdJwt::parse_and_verify_against_trust_anchors(
                     &credential,
                     &Sha256Hasher,
@@ -1306,8 +1307,8 @@ mod tests {
         IssuanceState {
             access_token: "access_token".to_string().into(),
             c_nonce: "c_nonce".to_string(),
-            normalized_credential_previews,
-            credential_request_types,
+            normalized_credential_previews: normalized_credential_previews.try_into().unwrap(),
+            credential_request_types: credential_request_types.try_into().unwrap(),
             issuer_registration: IssuerRegistration::new_mock(),
             issuer_url: "https://issuer.example.com".parse().unwrap(),
             dpop_private_key: SigningKey::random(&mut OsRng),

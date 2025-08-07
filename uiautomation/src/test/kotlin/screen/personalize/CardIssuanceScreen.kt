@@ -9,6 +9,7 @@ class CardIssuanceScreen : MobileActions() {
     private val stopButton = find.byText(l10n.getString("generalBottomBackCta"))
     private val viewDetailsButton = find.byText(l10n.getString("issuanceReviewCardsPageShowDetailsCta"))
     private val dashboardButton = find.byText(l10n.getString("issuanceSuccessPageCloseCta"))
+    private val renewCardSectionTitle = find.byText(l10n.translate(LocalizationHelper.Translation.RENEW_CARD))
 
     fun clickAddButton() {
         scrollToEnd(ScrollableType.CustomScrollView)
@@ -37,6 +38,8 @@ class CardIssuanceScreen : MobileActions() {
             "$organization."
         )))
     }
+
+    fun renewCardSectionTitleVisible() = isElementVisible(renewCardSectionTitle)
 
     fun clickToDashboardButton() = clickElement(dashboardButton)
 }

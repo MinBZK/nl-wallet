@@ -5,11 +5,12 @@ import '../../../../../domain/model/event/wallet_event.dart';
 import '../../../../../util/extension/build_context_extension.dart';
 import '../../../../../util/extension/object_extension.dart';
 import '../../../../../util/extension/wallet_event_extension.dart';
+import '../../../../../wallet_constants.dart';
 import '../../../../common/builder/request_detail_common_builders.dart';
 import '../../../../common/widget/button/list_button.dart';
-import '../../../../common/widget/sliver_wallet_app_bar.dart';
 import '../../../../common/widget/spacer/sliver_divider.dart';
 import '../../../../common/widget/spacer/sliver_sized_box.dart';
+import '../../../../common/widget/text/title_text.dart';
 import '../history_detail_timestamp.dart';
 
 class HistoryDetailLoginPage extends StatelessWidget {
@@ -21,9 +22,11 @@ class HistoryDetailLoginPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return CustomScrollView(
       slivers: [
-        SliverWalletAppBar(
-          title: _resolveLoginTitle(context, event),
-          scrollController: PrimaryScrollController.maybeOf(context),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: kDefaultTitlePadding,
+            child: TitleText(resolveLoginTitle(context, event)),
+          ),
         ),
         SliverToBoxAdapter(
           child: HistoryDetailTimestamp(
@@ -57,7 +60,7 @@ class HistoryDetailLoginPage extends StatelessWidget {
     );
   }
 
-  String _resolveLoginTitle(BuildContext context, DisclosureEvent event) {
+  static String resolveLoginTitle(BuildContext context, DisclosureEvent event) {
     final organizationName = event.relyingParty.displayName.l10nValue(context);
     return switch (event.status) {
       EventStatus.success => context.l10n.historyDetailScreenTitleForLogin(organizationName),

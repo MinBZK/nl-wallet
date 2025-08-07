@@ -6,7 +6,6 @@ use ciborium::Value;
 use coset::CoseSign1;
 use derive_more::Debug;
 use indexmap::IndexMap;
-use indexmap::IndexSet;
 use ssri::Integrity;
 
 use crypto::CredentialEcdsaKey;
@@ -27,12 +26,6 @@ use crate::MobileSecurityObject;
 use crate::MobileSecurityObjectVersion;
 use crate::ValidityInfo;
 use crate::holder::Mdoc;
-use crate::identifiers::AttributeIdentifier;
-use crate::identifiers::AttributeIdentifierError;
-use crate::identifiers::AttributeIdentifierHolder;
-use crate::iso::device_retrieval::DeviceRequest;
-use crate::iso::device_retrieval::DocRequest;
-use crate::iso::device_retrieval::ItemsRequest;
 use crate::iso::disclosure::IssuerSigned;
 use crate::iso::mdocs::DataElementValue;
 use crate::iso::mdocs::Entry;
@@ -41,8 +34,6 @@ use crate::utils::cose::CoseKey;
 use crate::utils::cose::MdocCose;
 use crate::utils::serialization::TaggedBytes;
 use crate::verifier::DisclosedDocument;
-use crate::verifier::DisclosedDocuments;
-use crate::verifier::ItemsRequests;
 
 /// Wrapper around `T` that implements `Debug` by using `T`'s implementation,
 /// but with byte sequences (which can take a lot of vertical space) replaced with
@@ -124,46 +115,21 @@ fn remove_whitespace(s: &str) -> String {
 }
 
 /// Assert that the specified doctype was disclosed, and that it contained the specified namespace,
-/// and that the first attribute in that namespace has the specified name and value.
+/// and that the namespace contains the specified name and value.
 pub fn assert_disclosure_contains(
-    disclosed_attrs: &DisclosedDocuments,
+    disclosed_documents: &[DisclosedDocument],
     doctype: &str,
     namespace: &str,
     name: &str,
     value: &DataElementValue,
 ) {
-    let (disclosed_attr_name, disclosed_attr_value) = disclosed_attrs
-        .get(doctype)
-        .unwrap()
-        .attributes
-        .get(namespace)
-        .unwrap()
-        .first()
-        .unwrap();
+    let contains_attribute = disclosed_documents
+        .iter()
+        .filter(|document| document.doc_type == *doctype)
+        .flat_map(|document| document.attributes.get(namespace))
+        .any(|attributes| attributes.get(name) == Some(value));
 
-    assert_eq!(disclosed_attr_name, name);
-    assert_eq!(disclosed_attr_value, value);
-}
-
-impl DeviceRequest {
-    pub fn from_doc_requests(doc_requests: Vec<DocRequest>) -> Self {
-        DeviceRequest {
-            doc_requests,
-            ..Default::default()
-        }
-    }
-
-    pub fn from_items_requests(items_requests: Vec<ItemsRequest>) -> Self {
-        Self::from_doc_requests(
-            items_requests
-                .into_iter()
-                .map(|items_request| DocRequest {
-                    items_request: items_request.into(),
-                    reader_auth: None,
-                })
-                .collect(),
-        )
-    }
+    assert!(contains_attribute)
 }
 
 pub fn generate_issuer_mock(ca: &Ca) -> Result<KeyPair, CertificateError> {
@@ -283,21 +249,6 @@ impl TestDocument {
     }
 }
 
-impl From<TestDocument> for ItemsRequest {
-    fn from(value: TestDocument) -> Self {
-        Self {
-            doc_type: value.doc_type,
-            name_spaces: IndexMap::from_iter(value.namespaces.into_iter().map(|(namespace, attributes)| {
-                (
-                    namespace,
-                    IndexMap::from_iter(attributes.into_iter().map(|attribute| (attribute.name, true))),
-                )
-            })),
-            request_info: None,
-        }
-    }
-}
-
 #[derive(Debug, Clone)]
 pub struct TestDocuments(pub Vec<TestDocument>);
 impl TestDocuments {
@@ -313,26 +264,28 @@ impl TestDocuments {
         self.0.into_iter().next()
     }
 
-    pub fn assert_matches(&self, disclosed_documents: &IndexMap<String, DisclosedDocument>) {
+    pub fn assert_matches(&self, disclosed_documents: &[DisclosedDocument]) {
         // verify the number of documents
         assert_eq!(disclosed_documents.len(), self.len());
-        for TestDocument {
-            doc_type: expected_doc_type,
-            namespaces: expected_namespaces,
-            issuer_uri: expected_issuer,
-            ..
-        } in &self.0
+        for (
+            TestDocument {
+                doc_type: expected_doc_type,
+                namespaces: expected_namespaces,
+                issuer_uri: expected_issuer,
+                ..
+            },
+            disclosed_document,
+        ) in self.0.iter().zip(disclosed_documents)
         {
-            // verify the disclosed attributes
-            let disclosed_namespaces = disclosed_documents
-                .get(expected_doc_type)
-                .expect("expected doc_type not received");
+            // verify the disclosed doc type
+            assert_eq!(disclosed_document.doc_type, *expected_doc_type);
             // verify the issuer
-            assert_eq!(disclosed_namespaces.issuer_uri, *expected_issuer);
+            assert_eq!(disclosed_document.issuer_uri, *expected_issuer);
             // verify the number of namespaces in this document
-            assert_eq!(disclosed_namespaces.attributes.len(), expected_namespaces.len());
+            assert_eq!(disclosed_document.attributes.len(), expected_namespaces.len());
+            // verify the disclosed attributes
             for (expected_namespace, expected_attributes) in expected_namespaces {
-                let disclosed_attributes = disclosed_namespaces
+                let disclosed_attributes = disclosed_document
                     .attributes
                     .get(expected_namespace)
                     .expect("expected namespace not received");
@@ -364,44 +317,12 @@ impl IntoIterator for TestDocuments {
     }
 }
 
-impl From<TestDocuments> for ItemsRequests {
-    fn from(value: TestDocuments) -> Self {
-        let requests: Vec<_> = value.into_iter().map(ItemsRequest::from).collect();
-        Self::from(requests)
-    }
-}
-
 impl std::ops::Add for TestDocuments {
     type Output = TestDocuments;
 
     fn add(mut self, mut rhs: Self) -> Self::Output {
         self.0.append(&mut rhs.0);
         self
-    }
-}
-
-impl From<TestDocuments> for DeviceRequest {
-    fn from(value: TestDocuments) -> Self {
-        let items_requests = ItemsRequests::from(value);
-        Self::from_items_requests(items_requests.0)
-    }
-}
-
-impl AttributeIdentifierHolder for TestDocuments {
-    fn mdoc_attribute_identifiers(&self) -> Result<IndexSet<AttributeIdentifier>, AttributeIdentifierError> {
-        Ok(self
-            .0
-            .iter()
-            .flat_map(|document| {
-                document.namespaces.iter().flat_map(|(namespace, attributes)| {
-                    attributes.iter().map(|attribute| AttributeIdentifier {
-                        credential_type: document.doc_type.clone(),
-                        namespace: namespace.clone(),
-                        attribute: attribute.name.clone(),
-                    })
-                })
-            })
-            .collect())
     }
 }
 
@@ -528,29 +449,6 @@ pub mod data {
             TypeMetadataDocuments::address_example(),
         )]
         .into()
-    }
-
-    impl ItemsRequest {
-        pub fn new_pid_example() -> Self {
-            Self {
-                doc_type: PID.to_string(),
-                name_spaces: IndexMap::from_iter([(
-                    PID.to_string(),
-                    IndexMap::from_iter([
-                        ("bsn".to_string(), false),
-                        ("given_name".to_string(), false),
-                        ("family_name".to_string(), false),
-                    ]),
-                )]),
-                request_info: None,
-            }
-        }
-    }
-
-    impl ItemsRequests {
-        pub fn new_pid_example() -> Self {
-            vec![ItemsRequest::new_pid_example()].into()
-        }
     }
 
     impl From<TestDocument> for NormalizedCredentialRequest {

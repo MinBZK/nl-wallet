@@ -635,7 +635,6 @@ mod tests {
     use openid4vc::token::TokenRequest;
     use openid4vc::token::TokenRequestGrantType;
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
-    use sd_jwt_vc_metadata::examples::VCT_EXAMPLE_CREDENTIAL;
     use utils::generator::mock::MockTimeGenerator;
 
     use crate::WalletEvent;
@@ -665,7 +664,7 @@ mod tests {
         };
 
         let attestations = vec![
-            AttestationPresentation::create_for_issuance(
+            AttestationPresentation::create_from_mdoc(
                 AttestationIdentity::Ephemeral,
                 type_metadata.to_normalized().unwrap(),
                 issuer_registration.organization.clone(),
@@ -1157,7 +1156,7 @@ mod tests {
         let mdoc = test::create_example_pid_mdoc();
         let (pid_issuer, attestations) = mock_issuance_session(
             mdoc,
-            String::from(VCT_EXAMPLE_CREDENTIAL),
+            String::from(PID_DOCTYPE),
             VerifiedTypeMetadataDocuments::nl_pid_example(),
         );
         wallet.session = Some(Session::Issuance(WalletIssuanceSession::new(
@@ -1385,7 +1384,7 @@ mod tests {
         let mdoc = test::create_example_pid_mdoc();
         let (pid_issuer, attestations) = mock_issuance_session(
             mdoc,
-            String::from(VCT_EXAMPLE_CREDENTIAL),
+            String::from(PID_DOCTYPE),
             VerifiedTypeMetadataDocuments::nl_pid_example(),
         );
         wallet.session = Some(Session::Issuance(WalletIssuanceSession::new(
