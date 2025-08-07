@@ -11,6 +11,7 @@ import '../common/widget/text/body_text.dart';
 import '../common/widget/text/title_text.dart';
 import '../common/widget/wallet_app_bar.dart';
 import '../common/widget/wallet_scrollbar.dart';
+import 'reporting_option.dart';
 
 class ReportIssueScreen extends StatelessWidget {
   final List<ReportingOption> options;
@@ -86,14 +87,4 @@ class ReportIssueScreen extends StatelessWidget {
       ),
     );
   }
-}
-
-enum ReportingOption {
-  unknownOrganization,
-  requestNotInitiated,
-  impersonatingOrganization,
-  untrusted,
-  overAskingOrganization,
-  suspiciousOrganization,
-  unreasonableTerms,
 }

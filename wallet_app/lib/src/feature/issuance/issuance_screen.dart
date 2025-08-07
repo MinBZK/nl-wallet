@@ -29,6 +29,7 @@ import '../dashboard/dashboard_screen.dart';
 import '../error/error_page.dart';
 import '../organization/approve/organization_approve_page.dart';
 import '../report_issue/report_issue_screen.dart';
+import '../report_issue/reporting_group.dart';
 import 'argument/issuance_screen_argument.dart';
 import 'bloc/issuance_bloc.dart';
 import 'issuance_request_details_screen.dart';
@@ -257,7 +258,7 @@ class IssuanceScreen extends StatelessWidget {
         organizationName: bloc.relyingParty?.displayName.l10nValue(context),
         onReportIssuePressed: () => ReportIssueScreen.show(
           context,
-          [ReportingOption.untrusted, ReportingOption.unreasonableTerms, ReportingOption.overAskingOrganization],
+          ReportingGroup.issuance,
         ),
       );
       if (stopped) bloc.add(const IssuanceStopRequested());
