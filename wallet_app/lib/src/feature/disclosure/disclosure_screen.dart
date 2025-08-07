@@ -30,6 +30,8 @@ import '../login/login_detail_screen.dart';
 import '../organization/approve/organization_approve_page.dart';
 import '../pin/bloc/pin_bloc.dart';
 import '../report_issue/report_issue_screen.dart';
+import '../report_issue/reporting_group.dart';
+import '../report_issue/reporting_option.dart';
 import 'argument/disclosure_screen_argument.dart';
 import 'bloc/disclosure_bloc.dart';
 import 'page/disclosure_confirm_data_attributes_page.dart';
@@ -320,25 +322,12 @@ class DisclosureScreen extends StatelessWidget {
     switch (state) {
       case DisclosureCheckUrl():
       case DisclosureCheckOrganizationForLogin():
-        return [
-          ReportingOption.unknownOrganization,
-          ReportingOption.requestNotInitiated,
-          ReportingOption.suspiciousOrganization,
-          ReportingOption.impersonatingOrganization,
-        ];
+        return ReportingGroup.disclosureCheckOrganizationForLogin;
       case DisclosureConfirmPin():
       case DisclosureConfirmDataAttributes():
-        return [
-          ReportingOption.untrusted,
-          ReportingOption.overAskingOrganization,
-          ReportingOption.suspiciousOrganization,
-          ReportingOption.unreasonableTerms,
-        ];
+        return ReportingGroup.disclosureConfirm;
       case DisclosureMissingAttributes():
-        return [
-          ReportingOption.overAskingOrganization,
-          ReportingOption.suspiciousOrganization,
-        ];
+        return ReportingGroup.disclosureMissingAttributes;
       default:
         Fimber.d('No ReportingOptions provided for $state');
         return <ReportingOption>[];

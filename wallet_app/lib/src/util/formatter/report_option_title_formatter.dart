@@ -1,6 +1,6 @@
 import 'package:flutter/cupertino.dart';
 
-import '../../feature/report_issue/report_issue_screen.dart';
+import '../../feature/report_issue/reporting_option.dart';
 import '../extension/build_context_extension.dart';
 
 class ReportOptionTitleFormatter {
