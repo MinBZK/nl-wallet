@@ -7,6 +7,7 @@ use attestation_data::credential_payload::CredentialPayload;
 use attestation_types::claim_path::ClaimPath;
 use crypto::x509::BorrowingCertificateExtension;
 use mdoc::holder::Mdoc;
+use mdoc::holder::disclosure::MissingAttributesError;
 use sd_jwt::sd_jwt::SdJwt;
 use sd_jwt::sd_jwt::UnsignedSdJwtPresentation;
 use sd_jwt::sd_jwt::VerifiedSdJwt;
@@ -15,6 +16,14 @@ use utils::vec_at_least::VecNonEmpty;
 
 use crate::AttestationIdentity;
 use crate::AttestationPresentation;
+
+#[derive(Debug, thiserror::Error)]
+pub enum StoredAttestationCopyPathError {
+    #[error("requested path not present in mdoc attestion: {0}")]
+    MsoMdoc(#[from] MissingAttributesError),
+    #[error("requested path not present in SD-JWT attestion: {0}")]
+    SdJwt(#[from] sd_jwt::error::Error),
+}
 
 #[derive(Debug, Clone)]
 pub enum StoredAttestationFormat<S> {
@@ -159,7 +168,7 @@ impl StoredAttestationCopy<VerifiedSdJwt> {
     pub fn try_into_partial<'a>(
         self,
         claim_paths: impl IntoIterator<Item = &'a VecNonEmpty<ClaimPath>>,
-    ) -> Result<StoredAttestationCopy<UnsignedSdJwtPresentation>, sd_jwt::error::Error> {
+    ) -> Result<StoredAttestationCopy<UnsignedSdJwtPresentation>, StoredAttestationCopyPathError> {
         let Self {
             attestation_id,
             attestation_copy_id,
@@ -169,7 +178,7 @@ impl StoredAttestationCopy<VerifiedSdJwt> {
 
         let attestation = match attestation {
             StoredAttestationFormat::MsoMdoc { mut mdoc } => {
-                mdoc.issuer_signed = mdoc.issuer_signed.into_attribute_subset(claim_paths);
+                mdoc.issuer_signed = mdoc.issuer_signed.into_attribute_subset(claim_paths)?;
 
                 StoredAttestationFormat::MsoMdoc { mdoc }
             }

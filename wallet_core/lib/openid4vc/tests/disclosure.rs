@@ -988,7 +988,7 @@ where
                 .now_or_never()
                 .unwrap();
 
-            mdoc.issuer_signed = mdoc.issuer_signed.into_attribute_subset(request.claim_paths());
+            mdoc.issuer_signed = mdoc.issuer_signed.into_attribute_subset(request.claim_paths()).unwrap();
 
             mdoc
         })

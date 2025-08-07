@@ -23,7 +23,7 @@ use utils::vec_at_least::VecNonEmpty;
 
 use crate::Error;
 use crate::Result;
-use crate::holder::disclosure::IssuerSignedMatchingError;
+use crate::holder::disclosure::MissingAttributesError;
 use crate::iso::*;
 use crate::utils::cose::ClonePayload;
 use crate::utils::crypto::cbor_digest;
@@ -179,7 +179,7 @@ impl DeviceResponse {
                         .matches_requested_attributes(request.claim_paths())
                     {
                         Ok(()) => None,
-                        Err(IssuerSignedMatchingError::MissingAttributes(missing_attributes)) => {
+                        Err(MissingAttributesError(missing_attributes)) => {
                             Some((document.doc_type.clone(), missing_attributes))
                         }
                     }
