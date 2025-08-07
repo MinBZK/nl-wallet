@@ -190,13 +190,22 @@ where
     R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
     H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
 {
-    let (key_ids, public_keys, wrapped_keys): (Vec<_>, Vec<_>, Vec<_>) = user_state
+    let (key_ids, _, wrapped_keys): (Vec<_>, Vec<_>, Vec<_>) = user_state
         .wallet_user_hsm
         .generate_wrapped_keys(&user_state.wrapping_key_identifier, arguments.key_count)
         .await?
         .into_inner()
         .into_iter()
         .multiunzip();
+
+    // Instantiate some VecNonEmpty's that we need below. Safe because generate_wrapped_keys() returns VecNonEmpty.
+    let key_ids: VecNonEmpty<_> = key_ids.try_into().unwrap();
+    let attestation_keys = wrapped_keys
+        .iter()
+        .map(|wrapped_key| attestation_key(wrapped_key, user_state))
+        .collect_vec()
+        .try_into()
+        .unwrap();
 
     // The JWT claims to be signed in the PoPs and the PoA.
     let claims = JwtPopClaims::new(arguments.nonce, NL_WALLET_CLIENT_ID.to_string(), arguments.aud);
@@ -208,12 +217,7 @@ where
         (None, None)
     };
 
-    let attestation_keys = wrapped_keys
-        .iter()
-        .map(|wrapped_key| attestation_key(wrapped_key, user_state))
-        .collect_vec();
-
-    let pops = issuance_pops(&public_keys, &attestation_keys, &claims).await?;
+    let pops = issuance_pops(&attestation_keys, &claims).await?;
 
     let key_count_including_wua = if arguments.issue_wua {
         arguments.key_count.get() + 1
@@ -267,12 +271,7 @@ where
     tx.commit().await?;
 
     // Unwraps are safe because there are `self.key_count` keys and pops, which is a nonzero type
-    Ok((
-        key_ids.try_into().unwrap(),
-        pops.try_into().unwrap(),
-        poa,
-        wua_disclosure,
-    ))
+    Ok((key_ids, pops, poa, wua_disclosure))
 }
 
 async fn wua<T, R, H>(
@@ -302,30 +301,30 @@ where
 }
 
 async fn issuance_pops<H>(
-    public_keys: &[VerifyingKey],
-    attestation_keys: &[HsmCredentialSigningKey<'_, H>],
+    attestation_keys: &VecNonEmpty<HsmCredentialSigningKey<'_, H>>,
     claims: &JwtPopClaims,
-) -> Result<Vec<Jwt<JwtPopClaims>>, InstructionError>
+) -> Result<VecNonEmpty<Jwt<JwtPopClaims>>, InstructionError>
 where
     H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
 {
-    let pops = future::try_join_all(public_keys.iter().zip(attestation_keys).map(
-        |(public_key, attestation_key)| async {
-            let header = Header {
-                typ: Some(OPENID4VCI_VC_POP_JWT_TYPE.to_string()),
-                alg: Algorithm::ES256,
-                jwk: Some(jwk_from_p256(public_key)?),
-                ..Default::default()
-            };
+    let pops = future::try_join_all(attestation_keys.iter().map(|attestation_key| async {
+        let public_key = attestation_key.verifying_key().await?;
+        let header = Header {
+            typ: Some(OPENID4VCI_VC_POP_JWT_TYPE.to_string()),
+            alg: Algorithm::ES256,
+            jwk: Some(jwk_from_p256(&public_key)?),
+            ..Default::default()
+        };
 
-            let jwt = Jwt::sign(claims, &header, attestation_key)
-                .await
-                .map_err(InstructionError::PopSigning)?;
+        let jwt = Jwt::sign(claims, &header, attestation_key)
+            .await
+            .map_err(InstructionError::PopSigning)?;
 
-            Ok::<_, InstructionError>(jwt)
-        },
-    ))
-    .await?;
+        Ok::<_, InstructionError>(jwt)
+    }))
+    .await?
+    .try_into()
+    .unwrap(); // Safe because we're iterating over attestation_keys which is VecNonEmpty
 
     Ok(pops)
 }
