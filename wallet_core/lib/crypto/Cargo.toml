@@ -13,7 +13,7 @@ examples = ["dep:anyhow", "dep:hex", "dep:hex-literal"]
 # Include code for generating certificates and keys
 generate = ["dep:rcgen", "dep:time"]
 # Include mock implementations and constructors for testing
-mock = ["dep:futures", "dep:parking_lot", "dep:rand_core"]
+mock = ["mock_remote_key", "dep:futures", "dep:parking_lot", "dep:rand_core"]
 # Implement SecureEcdsaKey and EphemeralEcdsaKey on p256 key
 mock_secure_keys = []
 # Include Mock variant of CredentialKeyType enum
