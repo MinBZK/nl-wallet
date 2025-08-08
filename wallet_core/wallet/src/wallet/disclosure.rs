@@ -932,7 +932,7 @@ mod tests {
     const PIN: &str = "051097";
     static RETURN_URL: LazyLock<BaseUrl> =
         LazyLock::new(|| BaseUrl::from_str("https://example.com/return/here").unwrap());
-    static DEFAULT_REQUESTED_PID_PATH: LazyLock<Vec<&str>> = LazyLock::new(|| vec![PID_DOCTYPE, "age_over_18"]);
+    static DEFAULT_REQUESTED_PID_PATH: LazyLock<Vec<&str>> = LazyLock::new(|| vec![PID_DOCTYPE, "family_name"]);
 
     // Set up properties for a `MockDisclosureSession`.
     fn setup_disclosure_session_verifier_certificate(
@@ -1089,10 +1089,10 @@ mod tests {
 
         let attribute = presentation.attributes.first().unwrap();
 
-        assert_eq!(attribute.key, vec!["age_over_18"]);
+        assert_eq!(attribute.key, vec!["family_name"]);
         assert_matches!(
-            attribute.value,
-            AttestationAttributeValue::Basic(AttributeValue::Bool(true))
+            &attribute.value,
+            AttestationAttributeValue::Basic(AttributeValue::Text(family_name)) if family_name == "De Bruijn"
         );
 
         // Starting disclosure should not cause mdoc copy usage counts to be incremented.
@@ -1382,7 +1382,7 @@ mod tests {
             .await
             .expect_err("starting disclosure should not succeed");
 
-        let expected_attributes = HashSet::from([format!("{PID_DOCTYPE}/{PID_DOCTYPE}/age_over_18")]);
+        let expected_attributes = HashSet::from([format!("{PID_DOCTYPE}/{PID_DOCTYPE}/family_name")]);
         assert_matches!(
             error,
             DisclosureError::AttributesNotAvailable {
@@ -1404,7 +1404,7 @@ mod tests {
         // Set the requested attribute path to something that will not match the mdoc 2-tuple
         // of namespace and attribute, which should lead to no candidates being available.
         let verifier_certificate =
-            setup_disclosure_client_start(&mut wallet.disclosure_client, &["long", "path", "age_over_18"]);
+            setup_disclosure_client_start(&mut wallet.disclosure_client, &["long", "path", "family_name"]);
 
         let mdoc_credential = create_example_pid_mdoc_credential();
         wallet
@@ -1419,7 +1419,7 @@ mod tests {
             .await
             .expect_err("starting disclosure should not succeed");
 
-        let expected_attributes = HashSet::from([format!("{PID_DOCTYPE}/long/path/age_over_18")]);
+        let expected_attributes = HashSet::from([format!("{PID_DOCTYPE}/long/path/family_name")]);
         assert_matches!(
             error,
             DisclosureError::AttributesNotAvailable {

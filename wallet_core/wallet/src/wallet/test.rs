@@ -10,6 +10,7 @@ use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 use parking_lot::Mutex;
 use rand_core::OsRng;
+use ssri::Integrity;
 
 use apple_app_attest::AppIdentifier;
 use apple_app_attest::AttestationEnvironment;
@@ -41,6 +42,7 @@ use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::SortedTypeMetadataDocuments;
 use sd_jwt_vc_metadata::TypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
+use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
 use utils::generator::Generator;
 use utils::generator::mock::MockTimeGenerator;
 use wallet_account::messages::registration::WalletCertificate;
@@ -201,26 +203,26 @@ pub fn create_example_pid_mdoc_credential() -> CredentialWithMetadata {
 }
 
 fn create_example_pid_mdoc_credential_with_key(issuer_key: &IssuerKey) -> CredentialWithMetadata {
-    let (payload_preview, metadata) = create_example_payload_preview(&MockTimeGenerator::default());
+    let credential_payload = CredentialPayload::nl_pid_example(&MockTimeGenerator::default());
+    let metadata_documents = VerifiedTypeMetadataDocuments::nl_pid_example();
 
-    mdoc_credential_from_unsigned(payload_preview, metadata, issuer_key)
+    mdoc_credential_from_unsigned(credential_payload.previewable_payload, metadata_documents, issuer_key)
 }
 
 /// Generates a valid `Mdoc`, based on an `PreviewableCredentialPayload`, the `TypeMetadata` and issuer key.
 fn mdoc_credential_from_unsigned(
-    payload: PreviewableCredentialPayload,
-    metadata: TypeMetadata,
+    preview_payload: PreviewableCredentialPayload,
+    metadata_documents: VerifiedTypeMetadataDocuments,
     issuer_key: &IssuerKey,
 ) -> CredentialWithMetadata {
     let private_key_id = crypto::utils::random_string(16);
     let mdoc_remote_key = MockRemoteEcdsaKey::new_random(private_key_id.clone());
     let mdoc_public_key = mdoc_remote_key.verifying_key();
-    let (attestation_type, metadata_integrity, metadata_documents) =
-        TypeMetadataDocuments::from_single_example(metadata);
 
-    let mdoc = payload
+    let attestation_type = preview_payload.attestation_type.clone();
+    let mdoc = preview_payload
         .into_signed_mdoc_unverified::<MockRemoteEcdsaKey>(
-            metadata_integrity,
+            Integrity::from(""),
             private_key_id,
             mdoc_public_key,
             &issuer_key.issuance_key,
@@ -232,40 +234,8 @@ fn mdoc_credential_from_unsigned(
     CredentialWithMetadata::new(
         IssuedCredentialCopies::new_or_panic(vec![IssuedCredential::MsoMdoc(Box::new(mdoc))].try_into().unwrap()),
         attestation_type,
-        metadata_documents.into(),
+        metadata_documents,
     )
-}
-
-// NOTE: this example and metadata should comply with "eudi:pid:nl:1.json"
-pub fn create_example_payload_preview(
-    time_generator: &impl Generator<DateTime<Utc>>,
-) -> (PreviewableCredentialPayload, TypeMetadata) {
-    let payload = CredentialPayload::example_with_attributes(
-        vec![
-            ("family_name", AttributeValue::Text("De Bruijn".to_string())),
-            ("given_name", AttributeValue::Text("Willeke Liselotte".to_string())),
-            ("birthdate", AttributeValue::Text("1997-05-10".to_string())),
-            ("age_over_18", AttributeValue::Bool(true)),
-        ],
-        SigningKey::random(&mut OsRng).verifying_key(),
-        time_generator,
-    );
-
-    let metadata = TypeMetadata::example_with_claim_names(
-        PID_DOCTYPE,
-        &[
-            ("family_name", JsonSchemaPropertyType::String, None),
-            ("given_name", JsonSchemaPropertyType::String, None),
-            (
-                "birthdate",
-                JsonSchemaPropertyType::String,
-                Some(JsonSchemaPropertyFormat::Date),
-            ),
-            ("age_over_18", JsonSchemaPropertyType::Boolean, None),
-        ],
-    );
-
-    (payload.previewable_payload, metadata)
 }
 
 pub fn generate_key_holder(vendor: WalletDeviceVendor) -> MockHardwareAttestedKeyHolder {
