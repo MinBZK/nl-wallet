@@ -36,7 +36,7 @@ pub struct WalletConfiguration {
 }
 
 impl WalletConfiguration {
-    pub fn mdoc_trust_anchors(&self) -> Vec<TrustAnchor> {
+    pub fn mdoc_trust_anchors(&self) -> Vec<TrustAnchor<'_>> {
         self.mdoc_trust_anchors
             .iter()
             .map(|anchor| anchor.as_trust_anchor().clone())
@@ -125,7 +125,7 @@ pub struct DisclosureConfiguration {
 }
 
 impl DisclosureConfiguration {
-    pub fn rp_trust_anchors(&self) -> Vec<TrustAnchor> {
+    pub fn rp_trust_anchors(&self) -> Vec<TrustAnchor<'_>> {
         self.rp_trust_anchors
             .iter()
             .map(|anchor| anchor.as_trust_anchor().clone())
