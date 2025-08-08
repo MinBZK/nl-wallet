@@ -26,6 +26,8 @@ use utils::vec_at_least::VecNonEmpty;
 use crate::POA_JWT_TYP;
 use crate::error::PoaError;
 use crate::error::PoaVerificationError;
+use crate::keyfactory::JwtPoaInput;
+use crate::keyfactory::KeyFactoryPoa;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PoaPayload {
@@ -153,6 +155,10 @@ impl Poa {
     pub fn set_payload(&mut self, payload: String) {
         self.0.payload = payload;
     }
+}
+
+impl KeyFactoryPoa for Poa {
+    type Input = JwtPoaInput;
 }
 
 #[cfg(test)]

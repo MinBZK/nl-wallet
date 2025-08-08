@@ -80,7 +80,7 @@ where
     ) -> Result<Option<BaseUrl>, (Self, DisclosureError<VpSessionError>)>
     where
         K: CredentialEcdsaKey + Eq + Hash,
-        KF: KeyFactory<Key = K, Poa = Poa, PoaInput = JwtPoaInput>,
+        KF: KeyFactory<Key = K, Poa = Poa>,
     {
         info!("disclose mdoc documents");
 

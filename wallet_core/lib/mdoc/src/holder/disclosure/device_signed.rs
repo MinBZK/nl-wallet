@@ -9,6 +9,7 @@ use p256::SecretKey;
 
 use crypto::keys::CredentialEcdsaKey;
 use wscd::keyfactory::KeyFactory;
+use wscd::keyfactory::KeyFactoryPoa;
 
 use crate::errors::Result;
 use crate::iso::*;
@@ -19,14 +20,15 @@ use crate::utils::serialization::TaggedBytes;
 use crate::utils::serialization::cbor_serialize;
 
 impl DeviceSigned {
-    pub async fn new_signatures<K, KF, P, PI>(
+    pub async fn new_signatures<K, KF, P>(
         keys_and_challenges: Vec<(K, &[u8])>,
         key_factory: &KF,
-        poa_input: PI,
+        poa_input: P::Input,
     ) -> Result<(Vec<DeviceSigned>, Option<P>)>
     where
         K: CredentialEcdsaKey,
-        KF: KeyFactory<Key = K, Poa = P, PoaInput = PI>,
+        KF: KeyFactory<Key = K, Poa = P>,
+        P: KeyFactoryPoa,
     {
         let (coses, poa) = sign_coses(keys_and_challenges, key_factory, Header::default(), poa_input, false).await?;
 
