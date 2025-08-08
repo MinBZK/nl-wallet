@@ -18,7 +18,7 @@ pub const MOCK_APPLE_ROOT_CA: &[u8] = &decode!(Pem, include_bytes!("../assets/mo
 #[cfg(feature = "mock_ca_root")]
 pub const MOCK_APPLE_ROOT_CA_KEY: &[u8] = &decode!(Pem, include_bytes!("../assets/mock_ca.key.pem"));
 
-fn static_trust_anchors(der: &[u8]) -> Vec<TrustAnchor> {
+fn static_trust_anchors(der: &[u8]) -> Vec<TrustAnchor<'_>> {
     let certificate = Box::new(CertificateDer::from(der));
 
     // As this happens at most once, leaking the `CertificateDer` to make it static should

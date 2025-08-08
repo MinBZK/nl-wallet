@@ -252,11 +252,11 @@ impl BorrowingCertificate {
             .map_err(CertificateError::Verification)
     }
 
-    pub fn end_entity_certificate(&self) -> &EndEntityCert {
+    pub fn end_entity_certificate(&self) -> &EndEntityCert<'_> {
         &self.0.get().end_entity_cert
     }
 
-    pub fn x509_certificate(&self) -> &X509Certificate {
+    pub fn x509_certificate(&self) -> &X509Certificate<'_> {
         &self.0.get().x509_cert
     }
 
