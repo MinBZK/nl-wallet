@@ -14,7 +14,7 @@ examples = ["crypto/examples"]
 mock = ["crypto/mock_remote_key", "dep:parking_lot", "dep:rand_core"]
 
 [dependencies]
-derive_more = { workspace = true, features = ["as_ref", "from"] }
+derive_more = { workspace = true, features = ["as_ref", "from", "constructor"] }
 futures = { workspace = true, features = ["std"] }
 itertools.workspace = true
 jsonwebtoken.workspace = true
