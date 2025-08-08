@@ -25,6 +25,8 @@ use url::Url;
 use attestation_data::auth::reader_auth::ReaderRegistration;
 use attestation_data::disclosure::DisclosedAttestation;
 use attestation_data::x509::generate::mock::generate_reader_mock;
+use crypto::mock_remote::MockRemoteEcdsaKey;
+use crypto::mock_remote::MockRemoteKeyFactoryError;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::server_keys::generate::mock::RP_CERT_CN;
@@ -93,9 +95,7 @@ use wscd::Poa;
 use wscd::keyfactory::IssuanceResult;
 use wscd::keyfactory::JwtPoaInput;
 use wscd::keyfactory::KeyFactory;
-use crypto::mock_remote::MockRemoteEcdsaKey;
 use wscd::mock_remote::MockRemoteKeyFactory;
-use wscd::mock_remote::MockRemoteKeyFactoryError;
 
 #[tokio::test]
 async fn disclosure_direct() {

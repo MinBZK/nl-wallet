@@ -79,13 +79,27 @@ impl CredentialEcdsaKey for MockRemoteEcdsaKey {
     const KEY_TYPE: CredentialKeyType = CredentialKeyType::Mock;
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum MockRemoteKeyFactoryError {
+    #[error("key generation error")]
+    Generating,
+    #[error("signing error")]
+    Signing,
+    #[error("poa error")]
+    Poa,
+    #[error("ECDSA error: {0}")]
+    Ecdsa(#[source] <MockRemoteEcdsaKey as EcdsaKey>::Error),
+}
+
 /// A type that implements [`KeyFactory`] and can be used in tests. It has the option
 /// of returning `MockRemoteKeyFactoryError::Generating` when generating multiple
 /// keys and `MockRemoteKeyFactoryError::Signing` when signing multiple, influenced
 /// by boolean fields on the type.
 #[derive(Debug)]
 pub struct MockRemoteKeyFactory {
-    signing_keys: Mutex<HashMap<String, SigningKey>>,
+    pub signing_keys: Mutex<HashMap<String, SigningKey>>,
+
+    pub has_multi_key_signing_error: bool,
 }
 
 impl MockRemoteKeyFactory {
@@ -95,9 +109,10 @@ impl MockRemoteKeyFactory {
         Self::new_signing_keys(signing_keys)
     }
 
-    fn new_signing_keys(signing_keys: HashMap<String, SigningKey>) -> Self {
+    pub fn new_signing_keys(signing_keys: HashMap<String, SigningKey>) -> Self {
         Self {
             signing_keys: Mutex::new(signing_keys),
+            has_multi_key_signing_error: false,
         }
     }
 
@@ -125,7 +140,7 @@ impl KeyFactoryPoa for MockPoa {
 
 impl DisclosureKeyFactory for MockRemoteKeyFactory {
     type Key = MockRemoteEcdsaKey;
-    type Error = <MockRemoteEcdsaKey as EcdsaKey>::Error;
+    type Error = MockRemoteKeyFactoryError;
     type Poa = MockPoa;
 
     fn new_key<I: Into<String>>(&self, identifier: I, public_key: VerifyingKey) -> Self::Key {
@@ -153,12 +168,17 @@ impl DisclosureKeyFactory for MockRemoteKeyFactory {
         messages_and_keys: Vec<(Vec<u8>, Vec<&Self::Key>)>,
         _poa_input: <Self::Poa as KeyFactoryPoa>::Input,
     ) -> Result<DisclosureResult<Self::Poa>, Self::Error> {
+        if self.has_multi_key_signing_error {
+            return Err(MockRemoteKeyFactoryError::Signing);
+        }
+
         let signatures = future::try_join_all(
             messages_and_keys
                 .iter()
                 .map(|(msg, keys)| async move {
                     let signatures = future::try_join_all(keys.iter().map(|key| async { key.try_sign(msg).await }))
-                        .await?
+                        .await
+                        .map_err(MockRemoteKeyFactoryError::Ecdsa)?
                         .into_iter()
                         .collect::<Vec<_>>();
 
