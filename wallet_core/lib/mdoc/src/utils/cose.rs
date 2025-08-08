@@ -33,6 +33,7 @@ use crypto::x509::CertificateUsage;
 use error_category::ErrorCategory;
 use utils::generator::Generator;
 use wscd::keyfactory::KeyFactory;
+use wscd::keyfactory::KeyFactoryPoa;
 
 use crate::utils::serialization::CborError;
 use crate::utils::serialization::cbor_deserialize;
@@ -303,11 +304,11 @@ pub async fn sign_cose(
     Ok(signed)
 }
 
-pub async fn sign_coses<K: CredentialEcdsaKey, P, PI>(
+pub async fn sign_coses<K: CredentialEcdsaKey, P: KeyFactoryPoa>(
     keys_and_challenges: Vec<(K, &[u8])>,
-    key_factory: &impl KeyFactory<Key = K, Poa = P, PoaInput = PI>,
+    key_factory: &impl KeyFactory<Key = K, Poa = P>,
     unprotected_header: Header,
-    poa_input: PI,
+    poa_input: P::Input,
     include_payload: bool,
 ) -> Result<(Vec<CoseSign1>, Option<P>), CoseError> {
     let (keys, challenges): (Vec<_>, Vec<_>) = keys_and_challenges.into_iter().unzip();

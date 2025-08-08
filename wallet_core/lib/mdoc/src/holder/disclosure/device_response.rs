@@ -2,6 +2,7 @@ use itertools::Itertools;
 
 use crypto::CredentialEcdsaKey;
 use wscd::keyfactory::KeyFactory;
+use wscd::keyfactory::KeyFactoryPoa;
 
 use crate::errors::Error;
 use crate::errors::Result;
@@ -24,15 +25,16 @@ impl DeviceResponse {
         }
     }
 
-    pub async fn sign_from_mdocs<K, KF, P, PI>(
+    pub async fn sign_from_mdocs<K, KF, P>(
         mdocs: Vec<Mdoc>,
         session_transcript: &SessionTranscript,
         key_factory: &KF,
-        poa_input: PI,
+        poa_input: P::Input,
     ) -> Result<(Self, Option<P>)>
     where
         K: CredentialEcdsaKey,
-        KF: KeyFactory<Key = K, Poa = P, PoaInput = PI>,
+        KF: KeyFactory<Key = K, Poa = P>,
+        P: KeyFactoryPoa,
     {
         // Prepare the credential keys and device auth challenges per mdoc.
         let (keys, challenges) = mdocs

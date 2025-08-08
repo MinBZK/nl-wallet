@@ -14,8 +14,7 @@ use utils::vec_at_least::VecNonEmpty;
 pub trait KeyFactory {
     type Key: CredentialEcdsaKey;
     type Error: Error + Send + Sync + 'static;
-    type PoaInput;
-    type Poa;
+    type Poa: KeyFactoryPoa;
 
     /// Instantiate a new reference to a key in this WSCD.
     ///
@@ -27,7 +26,7 @@ pub trait KeyFactory {
     async fn sign(
         &self,
         messages_and_keys: Vec<(Vec<u8>, Vec<&Self::Key>)>,
-        poa_input: Self::PoaInput,
+        poa_input: <Self::Poa as KeyFactoryPoa>::Input,
     ) -> Result<DisclosureResult<Self::Poa>, Self::Error>;
 
     /// Construct new keys along with PoPs and PoA, and optionally a WUA, for use during issuance.
@@ -38,6 +37,10 @@ pub trait KeyFactory {
         nonce: Option<String>,
         include_wua: bool,
     ) -> Result<IssuanceResult<Self::Poa>, Self::Error>;
+}
+
+pub trait KeyFactoryPoa {
+    type Input;
 }
 
 #[derive(Debug, Constructor)]

@@ -20,8 +20,8 @@ use wallet_account::messages::instructions::Sign;
 use wscd::Poa;
 use wscd::keyfactory::DisclosureResult;
 use wscd::keyfactory::IssuanceResult;
-use wscd::keyfactory::JwtPoaInput;
 use wscd::keyfactory::KeyFactory;
+use wscd::keyfactory::KeyFactoryPoa;
 
 use crate::account_provider::AccountProviderClient;
 use crate::storage::Storage;
@@ -75,7 +75,6 @@ where
     type Key = RemoteEcdsaKey;
     type Error = RemoteEcdsaKeyError;
     type Poa = Poa;
-    type PoaInput = JwtPoaInput;
 
     fn new_key<I: Into<String>>(&self, identifier: I, public_key: VerifyingKey) -> Self::Key {
         RemoteEcdsaKey {
@@ -87,7 +86,7 @@ where
     async fn sign(
         &self,
         messages_and_keys: Vec<(Vec<u8>, Vec<&Self::Key>)>,
-        poa_input: Self::PoaInput,
+        poa_input: <Self::Poa as KeyFactoryPoa>::Input,
     ) -> Result<DisclosureResult<Self::Poa>, Self::Error> {
         let sign_result = self
             .instruction_client

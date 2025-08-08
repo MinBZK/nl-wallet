@@ -91,6 +91,7 @@ use wscd::keyfactory::DisclosureResult;
 use wscd::keyfactory::IssuanceResult;
 use wscd::keyfactory::JwtPoaInput;
 use wscd::keyfactory::KeyFactory;
+use wscd::keyfactory::KeyFactoryPoa;
 use wscd::mock_remote::MockRemoteEcdsaKey;
 use wscd::mock_remote::MockRemoteKeyFactory;
 use wscd::mock_remote::MockRemoteKeyFactoryError;
@@ -663,7 +664,6 @@ async fn test_disclosure_invalid_poa() {
         type Key = MockRemoteEcdsaKey;
         type Error = MockRemoteKeyFactoryError;
         type Poa = Poa;
-        type PoaInput = JwtPoaInput;
 
         fn new_key<I: Into<String>>(&self, identifier: I, public_key: VerifyingKey) -> Self::Key {
             self.0.new_key(identifier, public_key)
@@ -672,7 +672,7 @@ async fn test_disclosure_invalid_poa() {
         async fn sign(
             &self,
             messages_and_keys: Vec<(Vec<u8>, Vec<&Self::Key>)>,
-            poa_input: Self::PoaInput,
+            poa_input: <Self::Poa as KeyFactoryPoa>::Input,
         ) -> Result<DisclosureResult<Self::Poa>, Self::Error> {
             let mut result = self.0.sign(messages_and_keys, poa_input).await?;
 

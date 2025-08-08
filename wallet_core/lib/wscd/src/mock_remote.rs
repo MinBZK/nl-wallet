@@ -34,8 +34,8 @@ use crate::MOCK_WALLET_CLIENT_ID;
 use crate::Poa;
 use crate::keyfactory::DisclosureResult;
 use crate::keyfactory::IssuanceResult;
-use crate::keyfactory::JwtPoaInput;
 use crate::keyfactory::KeyFactory;
+use crate::keyfactory::KeyFactoryPoa;
 
 #[derive(Debug, thiserror::Error)]
 pub enum MockRemoteKeyFactoryError {
@@ -169,7 +169,6 @@ impl KeyFactory for MockRemoteKeyFactory {
     type Key = MockRemoteEcdsaKey;
     type Error = MockRemoteKeyFactoryError;
     type Poa = Poa;
-    type PoaInput = JwtPoaInput;
 
     fn new_key<I: Into<String>>(&self, identifier: I, public_key: VerifyingKey) -> Self::Key {
         let identifier = identifier.into();
@@ -194,7 +193,7 @@ impl KeyFactory for MockRemoteKeyFactory {
     async fn sign(
         &self,
         messages_and_keys: Vec<(Vec<u8>, Vec<&Self::Key>)>,
-        poa_input: Self::PoaInput,
+        poa_input: <Self::Poa as KeyFactoryPoa>::Input,
     ) -> Result<DisclosureResult<Self::Poa>, Self::Error> {
         if self.has_multi_key_signing_error {
             return Err(MockRemoteKeyFactoryError::Signing);
