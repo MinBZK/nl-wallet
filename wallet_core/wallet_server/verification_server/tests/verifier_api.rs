@@ -65,7 +65,7 @@ use utils::generator::mock::MockTimeGenerator;
 use verification_server::server;
 use verification_server::settings::UseCaseSettings;
 use verification_server::settings::VerifierSettings;
-use wscd::mock_remote::MockRemoteEcdsaKey;
+use crypto::mock_remote::MockRemoteEcdsaKey;
 use wscd::mock_remote::MockRemoteKeyFactory;
 
 const PID_ATTESTATION_TYPE: &str = "urn:eudi:pid:nl:1";

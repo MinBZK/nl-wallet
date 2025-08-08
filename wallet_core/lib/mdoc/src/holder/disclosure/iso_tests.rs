@@ -3,10 +3,9 @@ use indexmap::IndexMap;
 
 use attestation_types::claim_path::ClaimPath;
 use crypto::examples::Examples;
+use crypto::mock_remote::MockRemoteKeyFactory;
 use crypto::server_keys::generate::Ca;
 use utils::vec_at_least::VecNonEmpty;
-use wscd::keyfactory::JwtPoaInput;
-use wscd::mock_remote::MockRemoteKeyFactory;
 
 use crate::examples::EXAMPLE_ATTR_NAME;
 use crate::examples::EXAMPLE_ATTR_VALUE;
@@ -44,15 +43,11 @@ fn create_example_device_response(
     let claim_paths = Vec::<VecNonEmpty<ClaimPath>>::from(first_request);
     mdoc.issuer_signed = mdoc.issuer_signed.into_attribute_subset(&claim_paths);
 
-    let (device_response, _) = DeviceResponse::sign_from_mdocs(
-        vec![mdoc],
-        session_transcript,
-        &MockRemoteKeyFactory::new_example(),
-        JwtPoaInput::new(Some("nonce".to_string()), "aud".to_string()),
-    )
-    .now_or_never()
-    .unwrap()
-    .unwrap();
+    let (device_response, _) =
+        DeviceResponse::sign_from_mdocs(vec![mdoc], session_transcript, &MockRemoteKeyFactory::new_example(), ())
+            .now_or_never()
+            .unwrap()
+            .unwrap();
 
     device_response
 }

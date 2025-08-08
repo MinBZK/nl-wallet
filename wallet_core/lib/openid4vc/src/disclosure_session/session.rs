@@ -182,7 +182,7 @@ mod tests {
     use attestation_data::auth::reader_auth::ReaderRegistration;
     use dcql::normalized::NormalizedCredentialRequest;
     use mdoc::holder::Mdoc;
-    use wscd::mock_remote::MockRemoteEcdsaKey;
+    use crypto::mock_remote::MockRemoteEcdsaKey;
     use wscd::mock_remote::MockRemoteKeyFactory;
 
     use crate::errors::AuthorizationErrorCode;

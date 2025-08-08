@@ -93,7 +93,7 @@ use wscd::Poa;
 use wscd::keyfactory::IssuanceResult;
 use wscd::keyfactory::JwtPoaInput;
 use wscd::keyfactory::KeyFactory;
-use wscd::mock_remote::MockRemoteEcdsaKey;
+use crypto::mock_remote::MockRemoteEcdsaKey;
 use wscd::mock_remote::MockRemoteKeyFactory;
 use wscd::mock_remote::MockRemoteKeyFactoryError;
 

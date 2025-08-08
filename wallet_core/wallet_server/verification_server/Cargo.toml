@@ -100,4 +100,4 @@ dcql = { path = "../../lib/dcql", features = ["mock"] }
 mdoc = { path = "../../lib/mdoc", features = ["mock_example_constructors"] }
 sd_jwt_vc_metadata = { path = "../../lib/sd_jwt_vc_metadata", features = ["example_constructors"] }
 utils = { path = "../../lib/utils", features = ["mock_time"] }
-wscd = { path = "../../lib/wscd", features = ["mock"] }
+wscd = { path = "../../lib/wscd", features = ["mock", "examples"] }
