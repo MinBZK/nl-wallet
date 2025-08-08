@@ -849,7 +849,7 @@ mod tests {
     use super::MockHardwareAttestedKeyHolder;
 
     impl MockHardwareAttestedKeyHolder {
-        pub fn to_test_data(&self) -> TestData {
+        pub fn to_test_data(&self) -> TestData<'_> {
             match &self.holder_type {
                 KeyHolderType::Apple { ca, app_identifier, .. } => TestData::Apple(AppleTestData {
                     app_identifier,
