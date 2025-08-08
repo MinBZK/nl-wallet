@@ -214,7 +214,7 @@ mod tests {
     use uuid::Uuid;
 
     use attestation_data::auth::issuer_auth::IssuerRegistration;
-    use attestation_data::credential_payload::mock::pid_example_payload;
+    use attestation_data::credential_payload::CredentialPayload;
     use attestation_data::x509::generate::mock::generate_issuer_mock;
     use attestation_types::claim_path::ClaimPath;
     use crypto::keys::WithIdentifier;
@@ -237,7 +237,7 @@ mod tests {
     fn mdoc_stored_attestation_copy(
         issuer_keypair: &KeyPair,
     ) -> (StoredAttestationCopy<VerifiedSdJwt>, VecNonEmpty<ClaimPath>) {
-        let credential_payload = pid_example_payload(&MockTimeGenerator::default());
+        let credential_payload = CredentialPayload::nl_pid_example(&MockTimeGenerator::default());
 
         let mdoc_remote_key = MockRemoteEcdsaKey::new_random("identifier".to_string());
         let mdoc = credential_payload
@@ -272,7 +272,7 @@ mod tests {
     fn sd_jwt_stored_attestation_copy(
         issuer_keypair: &KeyPair,
     ) -> (StoredAttestationCopy<VerifiedSdJwt>, VecNonEmpty<ClaimPath>) {
-        let credential_payload = pid_example_payload(&MockTimeGenerator::default());
+        let credential_payload = CredentialPayload::nl_pid_example(&MockTimeGenerator::default());
 
         let holder_privkey = SigningKey::random(&mut OsRng);
         let sd_jwt = credential_payload
