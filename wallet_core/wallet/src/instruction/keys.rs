@@ -18,6 +18,7 @@ use wallet_account::messages::instructions::PerformIssuanceWithWua;
 use wallet_account::messages::instructions::PerformIssuanceWithWuaResult;
 use wallet_account::messages::instructions::Sign;
 use wscd::Poa;
+use wscd::keyfactory::DisclosureKeyFactory;
 use wscd::keyfactory::DisclosureResult;
 use wscd::keyfactory::IssuanceResult;
 use wscd::keyfactory::KeyFactory;
@@ -65,7 +66,7 @@ impl Hash for RemoteEcdsaKey {
     }
 }
 
-impl<S, AK, GK, A> KeyFactory for RemoteEcdsaKeyFactory<S, AK, GK, A>
+impl<S, AK, GK, A> DisclosureKeyFactory for RemoteEcdsaKeyFactory<S, AK, GK, A>
 where
     S: Storage,
     AK: AppleAttestedKey,
@@ -111,7 +112,15 @@ where
 
         Ok(DisclosureResult::new(signatures, sign_result.poa))
     }
+}
 
+impl<S, AK, GK, A> KeyFactory for RemoteEcdsaKeyFactory<S, AK, GK, A>
+where
+    S: Storage,
+    AK: AppleAttestedKey,
+    GK: GoogleAttestedKey,
+    A: AccountProviderClient,
+{
     async fn perform_issuance(
         &self,
         key_count: NonZeroUsize,

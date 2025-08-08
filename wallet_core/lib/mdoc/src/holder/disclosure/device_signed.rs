@@ -8,7 +8,7 @@ use p256::PublicKey;
 use p256::SecretKey;
 
 use crypto::keys::CredentialEcdsaKey;
-use wscd::keyfactory::KeyFactory;
+use wscd::keyfactory::DisclosureKeyFactory;
 use wscd::keyfactory::KeyFactoryPoa;
 
 use crate::errors::Result;
@@ -27,7 +27,7 @@ impl DeviceSigned {
     ) -> Result<(Vec<DeviceSigned>, Option<P>)>
     where
         K: CredentialEcdsaKey,
-        KF: KeyFactory<Key = K, Poa = P>,
+        KF: DisclosureKeyFactory<Key = K, Poa = P>,
         P: KeyFactoryPoa,
     {
         let (coses, poa) = sign_coses(keys_and_challenges, key_factory, Header::default(), poa_input, false).await?;

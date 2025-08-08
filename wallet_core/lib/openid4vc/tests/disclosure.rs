@@ -87,6 +87,7 @@ use utils::generator::TimeGenerator;
 use utils::generator::mock::MockTimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 use wscd::Poa;
+use wscd::keyfactory::DisclosureKeyFactory;
 use wscd::keyfactory::DisclosureResult;
 use wscd::keyfactory::IssuanceResult;
 use wscd::keyfactory::JwtPoaInput;
@@ -660,7 +661,8 @@ async fn test_disclosure_invalid_poa() {
     /// A mock key factory that returns a wrong PoA.
     #[derive(Default)]
     struct WrongPoaKeyFactory(MockRemoteKeyFactory);
-    impl KeyFactory for WrongPoaKeyFactory {
+
+    impl DisclosureKeyFactory for WrongPoaKeyFactory {
         type Key = MockRemoteEcdsaKey;
         type Error = MockRemoteKeyFactoryError;
         type Poa = Poa;
@@ -680,7 +682,9 @@ async fn test_disclosure_invalid_poa() {
 
             Ok(result)
         }
+    }
 
+    impl KeyFactory for WrongPoaKeyFactory {
         async fn perform_issuance(
             &self,
             count: NonZeroUsize,
