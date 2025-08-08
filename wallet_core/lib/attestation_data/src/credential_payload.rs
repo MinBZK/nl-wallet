@@ -433,6 +433,8 @@ mod examples {
 
 #[cfg(feature = "mock")]
 pub mod mock {
+    use chrono::DateTime;
+    use chrono::Utc;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
 
@@ -440,18 +442,20 @@ pub mod mock {
 
     use crate::attributes::AttributeValue;
 
-    use super::*;
+    use super::CredentialPayload;
 
-    pub fn pid_example_payload(time_generator: &impl Generator<DateTime<Utc>>) -> CredentialPayload {
-        CredentialPayload::example_with_attributes(
-            vec![
-                ("bsn", AttributeValue::Text("999999999".to_string())),
-                ("given_name", AttributeValue::Text("Willeke Liselotte".to_string())),
-                ("family_name", AttributeValue::Text("De Bruijn".to_string())),
-            ],
-            SigningKey::random(&mut OsRng).verifying_key(),
-            time_generator,
-        )
+    impl CredentialPayload {
+        pub fn nl_pid_example(time_generator: &impl Generator<DateTime<Utc>>) -> Self {
+            Self::example_with_attributes(
+                vec![
+                    ("bsn", AttributeValue::Text("999999999".to_string())),
+                    ("given_name", AttributeValue::Text("Willeke Liselotte".to_string())),
+                    ("family_name", AttributeValue::Text("De Bruijn".to_string())),
+                ],
+                SigningKey::random(&mut OsRng).verifying_key(),
+                time_generator,
+            )
+        }
     }
 }
 

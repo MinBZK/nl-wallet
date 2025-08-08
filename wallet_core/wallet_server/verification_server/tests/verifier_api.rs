@@ -24,7 +24,7 @@ use url::Url;
 
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::auth::reader_auth::ReaderRegistration;
-use attestation_data::credential_payload::mock::pid_example_payload;
+use attestation_data::credential_payload::CredentialPayload;
 use attestation_data::disclosure::DisclosedAttestation;
 use attestation_data::x509::generate::mock::generate_issuer_mock;
 use attestation_data::x509::generate::mock::generate_reader_mock;
@@ -900,7 +900,7 @@ mod db_test {
 }
 
 async fn prepare_example_holder_mocks(issuer_ca: &Ca) -> (Mdoc, MockRemoteKeyFactory) {
-    let payload_preview = pid_example_payload(&MockTimeGenerator::default()).previewable_payload;
+    let payload_preview = CredentialPayload::nl_pid_example(&MockTimeGenerator::default()).previewable_payload;
 
     let issuer_key_pair = generate_issuer_mock(issuer_ca, Some(IssuerRegistration::new_mock())).unwrap();
 
