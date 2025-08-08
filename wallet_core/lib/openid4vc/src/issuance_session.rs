@@ -517,8 +517,8 @@ struct IssuanceState {
 }
 
 fn credential_request_types_from_preview(
-    normalized_credential_previews: &[NormalizedCredentialPreview],
-) -> Result<Vec<CredentialRequestType>, IssuanceSessionError> {
+    normalized_credential_previews: &VecNonEmpty<NormalizedCredentialPreview>,
+) -> Result<VecNonEmpty<CredentialRequestType>, IssuanceSessionError> {
     // The OpenID4VCI `/batch_credential` endpoints supports issuance of multiple attestations, but the protocol
     // has no support (yet) for issuance of multiple copies of multiple attestations.
     // We implement this below by simply flattening the relevant nested iterators when communicating with the
@@ -568,7 +568,9 @@ fn credential_request_types_from_preview(
 
             Ok(request_types)
         })
-        .process_results(|iter| iter.flatten().collect_vec())?;
+        .process_results(|iter| iter.flatten().collect_vec())?
+        .try_into()
+        .unwrap(); // we're iterating over a VecNonEmpty
 
     Ok(credential_request_types)
 }
@@ -657,9 +659,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             .try_into()
             .unwrap(); // token_response.credential_previews is VecNonempty
 
-        let credential_request_types = credential_request_types_from_preview(normalized_credential_previews.as_ref())?
-            .try_into()
-            .unwrap(); // This came from token_response.credential_previews which is VecNonempty
+        let credential_request_types = credential_request_types_from_preview(&normalized_credential_previews)?;
 
         let session_state = IssuanceState {
             access_token: token_response.token_response.access_token,
@@ -1302,14 +1302,14 @@ mod tests {
     }
 
     /// Return a new session ready for `accept_issuance()`.
-    fn new_session_state(normalized_credential_previews: Vec<NormalizedCredentialPreview>) -> IssuanceState {
+    fn new_session_state(normalized_credential_previews: VecNonEmpty<NormalizedCredentialPreview>) -> IssuanceState {
         let credential_request_types = credential_request_types_from_preview(&normalized_credential_previews).unwrap();
 
         IssuanceState {
             access_token: "access_token".to_string().into(),
             c_nonce: "c_nonce".to_string(),
-            normalized_credential_previews: normalized_credential_previews.try_into().unwrap(),
-            credential_request_types: credential_request_types.try_into().unwrap(),
+            normalized_credential_previews,
+            credential_request_types,
             issuer_registration: IssuerRegistration::new_mock(),
             issuer_url: "https://issuer.example.com".parse().unwrap(),
             dpop_private_key: SigningKey::random(&mut OsRng),
@@ -1433,9 +1433,9 @@ mod tests {
         let key_factory = MockRemoteKeyFactory::default();
 
         let session_state = new_session_state(if multiple_creds {
-            vec![preview_data.clone(), preview_data]
+            vec![preview_data.clone(), preview_data].try_into().unwrap()
         } else {
-            vec![preview_data]
+            vec![preview_data].try_into().unwrap()
         });
 
         let mut mock_msg_client = mock_openid_message_client();
@@ -1522,7 +1522,7 @@ mod tests {
 
         let error = HttpIssuanceSession {
             message_client: mock_msg_client,
-            session_state: new_session_state(vec![preview_data.clone(), preview_data]),
+            session_state: new_session_state(vec![preview_data.clone(), preview_data].try_into().unwrap()),
         }
         .accept_issuance(&[trust_anchor], &MockRemoteKeyFactory::default(), false)
         .now_or_never()
@@ -1553,7 +1553,7 @@ mod tests {
         );
         let trust_anchor = signer.trust_anchor.clone();
 
-        let session_state = new_session_state(vec![preview_data]);
+        let session_state = new_session_state(vec![preview_data].try_into().unwrap());
 
         let mut mock_msg_client = mock_openid_message_client();
 
@@ -1597,7 +1597,7 @@ mod tests {
 
         let error = HttpIssuanceSession {
             message_client: mock_msg_client,
-            session_state: new_session_state(vec![preview_data]),
+            session_state: new_session_state(vec![preview_data].try_into().unwrap()),
         }
         .accept_issuance(&[trust_anchor], &MockRemoteKeyFactory::default(), false)
         .now_or_never()
