@@ -839,6 +839,7 @@ mod tests {
 
     use attestation_data::disclosure::DisclosedAttributes;
     use attestation_data::x509::generate::mock::generate_reader_mock;
+    use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
     use dcql::CredentialQueryFormat;
@@ -866,7 +867,6 @@ mod tests {
     use utils::vec_at_least::VecNonEmpty;
     use wscd::Poa;
     use wscd::keyfactory::JwtPoaInput;
-    use wscd::mock_remote::MockRemoteEcdsaKey;
     use wscd::mock_remote::MockRemoteKeyFactory;
 
     use crate::AuthorizationErrorCode;

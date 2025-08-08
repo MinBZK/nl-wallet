@@ -76,10 +76,9 @@ mod tests {
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
 
+    use crypto::mock_remote::MockRemoteEcdsaKey;
+    use crypto::mock_remote::MockRemoteKeyFactory;
     use crypto::server_keys::generate::Ca;
-    use wscd::keyfactory::JwtPoaInput;
-    use wscd::mock_remote::MockRemoteEcdsaKey;
-    use wscd::mock_remote::MockRemoteKeyFactory;
 
     use crate::holder::Mdoc;
     use crate::iso::disclosure::DeviceAuth;
@@ -106,15 +105,11 @@ mod tests {
         let session_transcript = SessionTranscript::new_mock();
 
         // Sign a `DeviceResponse` that contains the attributes from the generated mdocs.
-        let (device_response, _) = DeviceResponse::sign_from_mdocs(
-            mdocs.clone(),
-            &session_transcript,
-            &key_factory,
-            JwtPoaInput::new(Some("nonce".to_string()), "aud".to_string()),
-        )
-        .now_or_never()
-        .unwrap()
-        .expect("signing DeviceResponse from mdocs should succeed");
+        let (device_response, _) =
+            DeviceResponse::sign_from_mdocs(mdocs.clone(), &session_transcript, &key_factory, ())
+                .now_or_never()
+                .unwrap()
+                .expect("signing DeviceResponse from mdocs should succeed");
 
         for (document, mdoc) in device_response.documents.as_deref().unwrap_or(&[]).iter().zip(&mdocs) {
             // For each created `Document`, check the contents against the input mdoc.

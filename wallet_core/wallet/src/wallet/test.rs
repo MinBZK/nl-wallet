@@ -46,7 +46,7 @@ use utils::generator::mock::MockTimeGenerator;
 use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::messages::registration::WalletCertificateClaims;
 use wallet_configuration::wallet_config::WalletConfiguration;
-use wscd::mock_remote::MockRemoteEcdsaKey;
+use crypto::mock_remote::MockRemoteEcdsaKey;
 
 use crate::account_provider::MockAccountProviderClient;
 use crate::attestation::AttestationPresentation;

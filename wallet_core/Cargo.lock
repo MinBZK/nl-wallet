@@ -1500,12 +1500,15 @@ dependencies = [
  "chrono",
  "derive_more",
  "error_category",
+ "futures",
  "hex",
  "hex-literal",
  "http_utils",
  "indexmap 2.7.1",
  "p256",
+ "parking_lot",
  "rand",
+ "rand_core",
  "rcgen",
  "ring",
  "rustls-pki-types",
@@ -3851,7 +3854,6 @@ dependencies = [
  "tracing",
  "url",
  "utils",
- "wscd",
 ]
 
 [[package]]

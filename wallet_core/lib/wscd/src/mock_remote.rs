@@ -1,27 +1,19 @@
 use std::collections::HashMap;
-use std::hash::Hash;
-use std::hash::Hasher;
 use std::num::NonZeroUsize;
 
-use derive_more::Constructor;
 use derive_more::Debug;
 use futures::FutureExt;
 use futures::future;
 use itertools::Itertools;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::Header;
-use p256::ecdsa::Signature;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
-use p256::ecdsa::signature::Signer;
 use parking_lot::Mutex;
 use rand_core::OsRng;
 
-use crypto::CredentialEcdsaKey;
-use crypto::CredentialKeyType;
 use crypto::EcdsaKey;
-use crypto::SecureEcdsaKey;
-use crypto::WithIdentifier;
+use crypto::mock_remote::MockRemoteEcdsaKey;
 use crypto::p256_der::verifying_key_sha256;
 use crypto::wscd::DisclosureKeyFactory;
 use crypto::wscd::DisclosureResult;
@@ -48,64 +40,6 @@ pub enum MockRemoteKeyFactoryError {
     Poa,
     #[error("ECDSA error: {0}")]
     Ecdsa(#[source] <MockRemoteEcdsaKey as EcdsaKey>::Error),
-}
-
-/// To be used in test in place of `RemoteEcdsaKey`, implementing the
-/// [`EcdsaKey`], [`SecureEcdsaKey`] and [`WithIdentifier`] traits.
-#[derive(Debug, Clone, Constructor)]
-pub struct MockRemoteEcdsaKey {
-    identifier: String,
-    #[debug(skip)]
-    pub key: SigningKey,
-}
-
-impl PartialEq for MockRemoteEcdsaKey {
-    fn eq(&self, other: &Self) -> bool {
-        self.identifier == other.identifier
-    }
-}
-
-impl Eq for MockRemoteEcdsaKey {}
-
-impl Hash for MockRemoteEcdsaKey {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.identifier.hash(state);
-    }
-}
-
-impl MockRemoteEcdsaKey {
-    pub fn new_random(identifier: String) -> Self {
-        Self::new(identifier, SigningKey::random(&mut OsRng))
-    }
-
-    pub fn verifying_key(&self) -> &VerifyingKey {
-        self.key.verifying_key()
-    }
-}
-
-impl EcdsaKey for MockRemoteEcdsaKey {
-    type Error = p256::ecdsa::Error;
-
-    async fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
-        let key = self.key.verifying_key();
-
-        Ok(*key)
-    }
-
-    async fn try_sign(&self, msg: &[u8]) -> Result<Signature, Self::Error> {
-        Signer::try_sign(&self.key, msg)
-    }
-}
-impl SecureEcdsaKey for MockRemoteEcdsaKey {}
-
-impl WithIdentifier for MockRemoteEcdsaKey {
-    fn identifier(&self) -> &str {
-        &self.identifier
-    }
-}
-
-impl CredentialEcdsaKey for MockRemoteEcdsaKey {
-    const KEY_TYPE: CredentialKeyType = CredentialKeyType::Mock;
 }
 
 /// A type that implements [`KeyFactory`] and can be used in tests. It has the option
@@ -144,10 +78,6 @@ impl MockRemoteKeyFactory {
             wua_signing_key: Some(wua_signing_key),
             ..Default::default()
         }
-    }
-
-    pub fn add_key(&mut self, key: MockRemoteEcdsaKey) {
-        self.signing_keys.get_mut().insert(key.identifier, key.key);
     }
 
     #[cfg(feature = "examples")]

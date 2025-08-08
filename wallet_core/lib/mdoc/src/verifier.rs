@@ -395,9 +395,9 @@ mod tests {
     use rstest::rstest;
 
     use crypto::examples::Examples;
+    use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
     use dcql::normalized;
-    use wscd::mock_remote::MockRemoteEcdsaKey;
 
     use crate::examples::EXAMPLE_ATTR_NAME;
     use crate::examples::EXAMPLE_ATTR_VALUE;
