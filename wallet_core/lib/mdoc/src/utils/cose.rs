@@ -32,7 +32,7 @@ use crypto::x509::CertificateError;
 use crypto::x509::CertificateUsage;
 use error_category::ErrorCategory;
 use utils::generator::Generator;
-use wscd::keyfactory::KeyFactory;
+use wscd::keyfactory::DisclosureKeyFactory;
 use wscd::keyfactory::KeyFactoryPoa;
 
 use crate::utils::serialization::CborError;
@@ -306,7 +306,7 @@ pub async fn sign_cose(
 
 pub async fn sign_coses<K: CredentialEcdsaKey, P: KeyFactoryPoa>(
     keys_and_challenges: Vec<(K, &[u8])>,
-    key_factory: &impl KeyFactory<Key = K, Poa = P>,
+    key_factory: &impl DisclosureKeyFactory<Key = K, Poa = P>,
     unprotected_header: Header,
     poa_input: P::Input,
     include_payload: bool,

@@ -32,6 +32,7 @@ use jwt::wte::WteDisclosure;
 
 use crate::MOCK_WALLET_CLIENT_ID;
 use crate::Poa;
+use crate::keyfactory::DisclosureKeyFactory;
 use crate::keyfactory::DisclosureResult;
 use crate::keyfactory::IssuanceResult;
 use crate::keyfactory::KeyFactory;
@@ -165,7 +166,7 @@ impl Default for MockRemoteKeyFactory {
     }
 }
 
-impl KeyFactory for MockRemoteKeyFactory {
+impl DisclosureKeyFactory for MockRemoteKeyFactory {
     type Key = MockRemoteEcdsaKey;
     type Error = MockRemoteKeyFactoryError;
     type Poa = Poa;
@@ -234,14 +235,16 @@ impl KeyFactory for MockRemoteKeyFactory {
 
         Ok(DisclosureResult { signatures, poa })
     }
+}
 
+impl KeyFactory for MockRemoteKeyFactory {
     async fn perform_issuance(
         &self,
         count: NonZeroUsize,
         aud: String,
         nonce: Option<String>,
         include_wua: bool,
-    ) -> Result<IssuanceResult<Self::Poa>, Self::Error> {
+    ) -> Result<IssuanceResult<Poa>, Self::Error> {
         let claims = JwtPopClaims::new(nonce, MOCK_WALLET_CLIENT_ID.to_string(), aud);
 
         let mut keys = self.signing_keys.lock();

@@ -1,7 +1,7 @@
 use itertools::Itertools;
 
 use crypto::CredentialEcdsaKey;
-use wscd::keyfactory::KeyFactory;
+use wscd::keyfactory::DisclosureKeyFactory;
 use wscd::keyfactory::KeyFactoryPoa;
 
 use crate::errors::Error;
@@ -33,7 +33,7 @@ impl DeviceResponse {
     ) -> Result<(Self, Option<P>)>
     where
         K: CredentialEcdsaKey,
-        KF: KeyFactory<Key = K, Poa = P>,
+        KF: DisclosureKeyFactory<Key = K, Poa = P>,
         P: KeyFactoryPoa,
     {
         // Prepare the credential keys and device auth challenges per mdoc.

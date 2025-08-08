@@ -11,7 +11,9 @@ use jwt::pop::JwtPopClaims;
 use jwt::wte::WteDisclosure;
 use utils::vec_at_least::VecNonEmpty;
 
-pub trait KeyFactory {
+use crate::Poa;
+
+pub trait DisclosureKeyFactory {
     type Key: CredentialEcdsaKey;
     type Error: Error + Send + Sync + 'static;
     type Poa: KeyFactoryPoa;
@@ -28,7 +30,9 @@ pub trait KeyFactory {
         messages_and_keys: Vec<(Vec<u8>, Vec<&Self::Key>)>,
         poa_input: <Self::Poa as KeyFactoryPoa>::Input,
     ) -> Result<DisclosureResult<Self::Poa>, Self::Error>;
+}
 
+pub trait KeyFactory: DisclosureKeyFactory<Poa = Poa> {
     /// Construct new keys along with PoPs and PoA, and optionally a WUA, for use during issuance.
     async fn perform_issuance(
         &self,
@@ -36,7 +40,7 @@ pub trait KeyFactory {
         aud: String,
         nonce: Option<String>,
         include_wua: bool,
-    ) -> Result<IssuanceResult<Self::Poa>, Self::Error>;
+    ) -> Result<IssuanceResult<Poa>, Self::Error>;
 }
 
 pub trait KeyFactoryPoa {
