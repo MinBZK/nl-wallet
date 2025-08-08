@@ -23,9 +23,9 @@ axum = ["dep:axum"]
 # Allow the disclosure return URL and its prefix to use http://
 allow_insecure_url = ["http_utils/allow_insecure_url"]
 # Include mock implementations for testing
-mock = ["dep:mockall", "poa/mock"]
+mock = ["dep:mockall", "wscd/mock", "crypto/generate", "mdoc/test"]
 # Include miscellaneous test utilities
-test = ["jwt/test", "poa/mock", "crypto/mock_remote_key", "dep:assert_matches", "dep:parking_lot"]
+test = ["jwt/test", "wscd/mock", "wscd/mock", "dep:assert_matches", "dep:parking_lot"]
 # All features needed to run the integration test
 integration = ["mock", "test", "example_constructors", "attestation_data/test", "dep:ciborium"]
 # Credential payload examples
@@ -94,10 +94,10 @@ error_category.path = "../error_category"
 http_utils = { path = "../http_utils", features = ["client"] }
 jwt.path = "../jwt"
 mdoc.path = "../mdoc"
-poa.path = "../poa"
 sd_jwt.path = "../sd_jwt"
 sd_jwt_vc_metadata.path = "../sd_jwt_vc_metadata"
 utils.path = "../utils"
+wscd.path = "../wscd"
 
 [dev-dependencies]
 assert_matches.workspace = true
@@ -111,11 +111,11 @@ ts-rs.workspace = true
 wiremock.workspace = true
 
 attestation_data = { path = "../attestation_data", features = ["generate", "mock", "example_credential_payloads"] }
-crypto = { path = "../crypto", features = ["examples", "mock_remote_key"] }
+crypto = { path = "../crypto", features = ["examples"] }
 dcql = { path = "../dcql", features = ["mock"] }
 http_utils = { path = "../http_utils", features = ["insecure_http_client"] }
 jwt = { path = "../jwt", features = ["test"] }
 mdoc = { path = "../mdoc", features = ["test", "mock_example_constructors"] }
-poa = { path = "../poa", features = ["mock"] }
 sd_jwt_vc_metadata = { path = "../sd_jwt_vc_metadata", features = ["example_constructors"] }
 utils = { path = "../utils", features = ["mock_time"] }
+wscd = { path = "../wscd", features = ["mock"] }

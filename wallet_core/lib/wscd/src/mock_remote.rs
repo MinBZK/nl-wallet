@@ -1,11 +1,15 @@
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::hash::Hasher;
-use std::iter;
+use std::num::NonZeroUsize;
 
 use derive_more::Constructor;
 use derive_more::Debug;
+use futures::FutureExt;
 use futures::future;
+use itertools::Itertools;
+use jsonwebtoken::Algorithm;
+use jsonwebtoken::Header;
 use p256::ecdsa::Signature;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
@@ -13,14 +17,23 @@ use p256::ecdsa::signature::Signer;
 use parking_lot::Mutex;
 use rand_core::OsRng;
 
-use crate::utils;
+use crypto::CredentialEcdsaKey;
+use crypto::CredentialKeyType;
+use crypto::EcdsaKey;
+use crypto::SecureEcdsaKey;
+use crypto::WithIdentifier;
+use crypto::p256_der::verifying_key_sha256;
+use jwt::Jwt;
+use jwt::credential::JwtCredentialClaims;
+use jwt::jwk::jwk_from_p256;
+use jwt::pop::JwtPopClaims;
+use jwt::wte::WteClaims;
+use jwt::wte::WteDisclosure;
 
-use crate::factory::KeyFactory;
-use crate::keys::CredentialEcdsaKey;
-use crate::keys::CredentialKeyType;
-use crate::keys::EcdsaKey;
-use crate::keys::SecureEcdsaKey;
-use crate::keys::WithIdentifier;
+use crate::Poa;
+use crate::factory::mock::MOCK_WALLET_CLIENT_ID;
+use crate::keyfactory::IssuanceResult;
+use crate::keyfactory::KeyFactory;
 
 #[derive(Debug, thiserror::Error)]
 pub enum MockRemoteKeyFactoryError {
@@ -99,6 +112,8 @@ impl CredentialEcdsaKey for MockRemoteEcdsaKey {
 #[derive(Debug)]
 pub struct MockRemoteKeyFactory {
     signing_keys: Mutex<HashMap<String, SigningKey>>,
+    wua_signing_key: Option<SigningKey>,
+
     pub has_generating_error: bool,
     pub has_multi_key_signing_error: bool,
     pub has_poa_error: bool,
@@ -114,9 +129,17 @@ impl MockRemoteKeyFactory {
     fn new_signing_keys(signing_keys: HashMap<String, SigningKey>) -> Self {
         Self {
             signing_keys: Mutex::new(signing_keys),
+            wua_signing_key: None,
             has_generating_error: false,
             has_multi_key_signing_error: false,
             has_poa_error: false,
+        }
+    }
+
+    pub fn new_with_wua_signing_key(wua_signing_key: SigningKey) -> Self {
+        Self {
+            wua_signing_key: Some(wua_signing_key),
+            ..Default::default()
         }
     }
 
@@ -126,8 +149,8 @@ impl MockRemoteKeyFactory {
 
     #[cfg(feature = "examples")]
     pub fn new_example() -> Self {
-        use crate::examples::EXAMPLE_KEY_IDENTIFIER;
-        use crate::examples::Examples;
+        use crypto::examples::EXAMPLE_KEY_IDENTIFIER;
+        use crypto::examples::Examples;
 
         let keys = HashMap::from([(EXAMPLE_KEY_IDENTIFIER.to_string(), Examples::static_device_key())]);
         Self::new_signing_keys(keys)
@@ -143,30 +166,6 @@ impl Default for MockRemoteKeyFactory {
 impl KeyFactory for MockRemoteKeyFactory {
     type Key = MockRemoteEcdsaKey;
     type Error = MockRemoteKeyFactoryError;
-
-    async fn generate_new_multiple(&self, count: u64) -> Result<Vec<Self::Key>, Self::Error> {
-        if self.has_generating_error {
-            return Err(MockRemoteKeyFactoryError::Generating);
-        }
-
-        let identifiers_and_signing_keys =
-            iter::repeat_with(|| (utils::random_string(32), SigningKey::random(&mut OsRng)))
-                .take(count as usize)
-                .collect::<Vec<_>>();
-
-        self.signing_keys.lock().extend(
-            identifiers_and_signing_keys
-                .iter()
-                .map(|(identifer, signing_key)| (identifer.clone(), signing_key.clone())),
-        );
-
-        let keys = identifiers_and_signing_keys
-            .into_iter()
-            .map(|(identifer, signing_key)| MockRemoteEcdsaKey::new(identifer, signing_key))
-            .collect();
-
-        Ok(keys)
-    }
 
     fn generate_existing<I: Into<String>>(&self, identifier: I, public_key: VerifyingKey) -> Self::Key {
         let identifier = identifier.into();
@@ -186,32 +185,6 @@ impl KeyFactory for MockRemoteKeyFactory {
         );
 
         MockRemoteEcdsaKey::new(identifier, signing_key)
-    }
-
-    async fn sign_with_new_keys(
-        &self,
-        msg: Vec<u8>,
-        number_of_keys: u64,
-    ) -> Result<Vec<(Self::Key, Signature)>, Self::Error> {
-        let keys = self.generate_new_multiple(number_of_keys).await?;
-
-        if self.has_multi_key_signing_error {
-            return Err(MockRemoteKeyFactoryError::Signing);
-        }
-
-        let signatures_by_identifier = future::try_join_all(keys.into_iter().map(|key| async {
-            let signature = key
-                .try_sign(msg.as_slice())
-                .await
-                .map_err(MockRemoteKeyFactoryError::Ecdsa)?;
-
-            Ok::<_, MockRemoteKeyFactoryError>((key, signature))
-        }))
-        .await?
-        .into_iter()
-        .collect();
-
-        Ok(signatures_by_identifier)
     }
 
     async fn sign_multiple_with_existing_keys(
@@ -242,5 +215,98 @@ impl KeyFactory for MockRemoteKeyFactory {
         .await?;
 
         Ok(result)
+    }
+
+    async fn perform_issuance(
+        &self,
+        count: NonZeroUsize,
+        aud: String,
+        nonce: Option<String>,
+        include_wua: bool,
+    ) -> Result<IssuanceResult, Self::Error> {
+        let claims = JwtPopClaims::new(nonce, MOCK_WALLET_CLIENT_ID.to_string(), aud);
+
+        let mut keys = self.signing_keys.lock();
+        let attestation_keys = (0..count.get())
+            .map(|_| {
+                let key = SigningKey::random(&mut OsRng);
+                let identifier = verifying_key_sha256(key.verifying_key());
+                keys.insert(identifier.clone(), key.clone());
+                MockRemoteEcdsaKey::new(identifier, key)
+            })
+            .collect_vec();
+        drop(keys);
+
+        let pops = attestation_keys
+            .iter()
+            .map(|attestation_key| {
+                let header = Header {
+                    typ: Some("openid4vci-proof+jwt".to_string()),
+                    alg: Algorithm::ES256,
+                    jwk: Some(jwk_from_p256(attestation_key.verifying_key()).unwrap()),
+                    ..Default::default()
+                };
+
+                Jwt::sign(&claims, &header, attestation_key)
+                    .now_or_never()
+                    .unwrap()
+                    .unwrap()
+            })
+            .collect_vec()
+            .try_into()
+            .unwrap();
+
+        let wua_and_key = include_wua.then(|| {
+            let wua_key = SigningKey::random(&mut OsRng);
+            let wua_key = MockRemoteEcdsaKey::new(verifying_key_sha256(wua_key.verifying_key()), wua_key);
+
+            // If no WUA signing key is configured, just use the WUA's private key to sign it
+            let wua_signing_key = self.wua_signing_key.as_ref().unwrap_or(&wua_key.key);
+            let wua = JwtCredentialClaims::new_signed(
+                wua_key.verifying_key(),
+                wua_signing_key,
+                MOCK_WALLET_CLIENT_ID.to_string(),
+                Some("wte+jwt".to_string()),
+                WteClaims::new(),
+            )
+            .now_or_never()
+            .unwrap()
+            .unwrap();
+
+            let wua_disclosure = Jwt::sign(&claims, &Header::new(Algorithm::ES256), &wua_key)
+                .now_or_never()
+                .unwrap()
+                .unwrap();
+
+            (WteDisclosure::new(wua, wua_disclosure), wua_key)
+        });
+
+        let count_including_wua = if include_wua { count.get() + 1 } else { count.get() };
+        let poa = (count_including_wua > 1).then(|| {
+            Poa::new(
+                attestation_keys
+                    .iter()
+                    .chain(wua_and_key.as_ref().map(|(_, key)| key))
+                    .collect_vec()
+                    .try_into()
+                    .unwrap(),
+                claims,
+            )
+            .now_or_never()
+            .unwrap()
+            .unwrap()
+        });
+
+        Ok(IssuanceResult {
+            key_identifiers: attestation_keys
+                .into_iter()
+                .map(|key| key.identifier)
+                .collect_vec()
+                .try_into()
+                .unwrap(),
+            pops,
+            wua: wua_and_key.map(|(wua, _)| wua),
+            poa,
+        })
     }
 }

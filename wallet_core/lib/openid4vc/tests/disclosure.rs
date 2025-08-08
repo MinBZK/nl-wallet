@@ -1,6 +1,7 @@
 #![expect(clippy::too_many_arguments)]
 
 use std::collections::HashMap;
+use std::num::NonZeroUsize;
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -25,10 +26,6 @@ use url::Url;
 use attestation_data::auth::reader_auth::ReaderRegistration;
 use attestation_data::disclosure::DisclosedAttestation;
 use attestation_data::x509::generate::mock::generate_reader_mock;
-use crypto::factory::KeyFactory;
-use crypto::mock_remote::MockRemoteEcdsaKey;
-use crypto::mock_remote::MockRemoteKeyFactory;
-use crypto::mock_remote::MockRemoteKeyFactoryError;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::server_keys::generate::mock::RP_CERT_CN;
@@ -87,12 +84,17 @@ use openid4vc::verifier::VpToken;
 use openid4vc::verifier::WalletAuthResponse;
 use openid4vc::verifier::WalletInitiatedUseCase;
 use openid4vc::verifier::WalletInitiatedUseCases;
-use poa::Poa;
-use poa::factory::PoaFactory;
 use utils::generator::TimeGenerator;
 use utils::generator::mock::MockTimeGenerator;
 use utils::vec_at_least::VecAtLeastTwoUnique;
 use utils::vec_at_least::VecNonEmpty;
+use wscd::Poa;
+use wscd::factory::PoaFactory;
+use wscd::keyfactory::IssuanceResult;
+use wscd::keyfactory::KeyFactory;
+use wscd::mock_remote::MockRemoteEcdsaKey;
+use wscd::mock_remote::MockRemoteKeyFactory;
+use wscd::mock_remote::MockRemoteKeyFactoryError;
 
 #[tokio::test]
 async fn disclosure_direct() {
@@ -673,16 +675,8 @@ async fn test_disclosure_invalid_poa() {
         type Key = MockRemoteEcdsaKey;
         type Error = MockRemoteKeyFactoryError;
 
-        async fn generate_new_multiple(&self, count: u64) -> Result<Vec<Self::Key>, Self::Error> {
-            self.0.generate_new_multiple(count).await
-        }
-
         fn generate_existing<I: Into<String>>(&self, identifier: I, public_key: VerifyingKey) -> Self::Key {
             self.0.generate_existing(identifier, public_key)
-        }
-
-        async fn sign_with_new_keys(&self, _: Vec<u8>, _: u64) -> Result<Vec<(Self::Key, Signature)>, Self::Error> {
-            unimplemented!()
         }
 
         async fn sign_multiple_with_existing_keys(
@@ -690,6 +684,16 @@ async fn test_disclosure_invalid_poa() {
             messages_and_keys: Vec<(Vec<u8>, Vec<&Self::Key>)>,
         ) -> Result<Vec<Vec<Signature>>, Self::Error> {
             self.0.sign_multiple_with_existing_keys(messages_and_keys).await
+        }
+
+        async fn perform_issuance(
+            &self,
+            count: NonZeroUsize,
+            aud: String,
+            nonce: Option<String>,
+            include_wua: bool,
+        ) -> Result<IssuanceResult, Self::Error> {
+            self.0.perform_issuance(count, aud, nonce, include_wua).await
         }
     }
 

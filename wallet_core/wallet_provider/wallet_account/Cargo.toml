@@ -21,6 +21,7 @@ server = ["dep:p256", "dep:thiserror", "dep:apple_app_attest"]
 integration_test = ["client", "server", "dep:rustls-pki-types", "dep:android_attest"]
 
 [dependencies]
+chrono = { workspace = true, features = ["std", "serde"] }
 derive_more = { workspace = true, features = ["constructor"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true, features = ["std", "raw_value"] }
@@ -29,8 +30,8 @@ strum = { workspace = true, features = ["derive"] }
 
 crypto.path = "../../lib/crypto"
 jwt.path = "../../lib/jwt"
-poa.path = "../../lib/poa"
 utils.path = "../../lib/utils"
+wscd.path = "../../lib/wscd"
 
 futures = { workspace = true, optional = true, features = ["std"] }
 p256 = { workspace = true, optional = true, features = ["ecdsa", "pem", "std"] }

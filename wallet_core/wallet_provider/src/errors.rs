@@ -97,7 +97,9 @@ impl From<WalletProviderError> for AccountError {
                 | InstructionError::WalletCertificate(_)
                 | InstructionError::WteIssuance(_)
                 | InstructionError::HsmError(_)
-                | InstructionError::Poa(_) => Self::Unexpected,
+                | InstructionError::Poa(_)
+                | InstructionError::PopSigning(_)
+                | InstructionError::JwkConversion(_) => Self::Unexpected,
             },
             WalletProviderError::Hsm(_) => Self::Unexpected,
             WalletProviderError::Wte(_) => Self::Unexpected,

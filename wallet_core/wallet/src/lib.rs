@@ -10,7 +10,6 @@ mod reqwest;
 mod storage;
 mod update_policy;
 mod wallet;
-mod wte;
 
 pub mod errors;
 
@@ -87,7 +86,6 @@ pub mod wallet_deps {
     pub use crate::storage::Storage;
     pub use crate::update_policy::HttpUpdatePolicyRepository;
     pub use crate::update_policy::UpdatePolicyRepository;
-    pub use crate::wte::WpWteIssuanceClient;
 }
 
 #[cfg(feature = "mock")]

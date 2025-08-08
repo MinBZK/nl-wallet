@@ -5,16 +5,16 @@ use tracing::info;
 use tracing::warn;
 
 use crypto::CredentialEcdsaKey;
-use crypto::factory::KeyFactory;
 use crypto::utils::random_string;
 use dcql::normalized::NormalizedCredentialRequest;
 use http_utils::urls::BaseUrl;
 use mdoc::holder::Mdoc;
 use mdoc::iso::disclosure::DeviceResponse;
 use mdoc::iso::engagement::SessionTranscript;
-use poa::factory::PoaFactory;
 use utils::vec_at_least::VecAtLeastTwoUnique;
 use utils::vec_at_least::VecNonEmpty;
+use wscd::factory::PoaFactory;
+use wscd::keyfactory::KeyFactory;
 
 use crate::openid4vp::NormalizedVpAuthorizationRequest;
 use crate::openid4vp::VpAuthorizationResponse;
@@ -193,19 +193,19 @@ mod tests {
     use assert_matches::assert_matches;
     use futures::FutureExt;
     use http::StatusCode;
+    use http_utils::urls::BaseUrl;
     use itertools::Itertools;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
     use rstest::rstest;
     use serde::de::Error;
+    use serde_json::json;
 
     use attestation_data::auth::reader_auth::ReaderRegistration;
-    use crypto::mock_remote::MockRemoteEcdsaKey;
-    use crypto::mock_remote::MockRemoteKeyFactory;
     use dcql::normalized::NormalizedCredentialRequest;
-    use http_utils::urls::BaseUrl;
     use mdoc::holder::Mdoc;
-    use serde_json::json;
+    use wscd::mock_remote::MockRemoteEcdsaKey;
+    use wscd::mock_remote::MockRemoteKeyFactory;
 
     use crate::errors::AuthorizationErrorCode;
     use crate::errors::VpAuthorizationErrorCode;

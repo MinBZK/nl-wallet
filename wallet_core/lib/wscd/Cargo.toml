@@ -1,5 +1,5 @@
 [package]
-name = "poa"
+name = "wscd"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -8,12 +8,17 @@ rust-version.workspace = true
 workspace = true
 
 [features]
-mock = ["crypto/mock_remote_key", "dep:rand_core"]
+# Include examples from the ISO specification
+examples = ["crypto/examples"]
+# Include MockRemoteEcdsaKey type and MockRemoteKeyFactory implementation of KeyFactory for testing
+mock = ["crypto/mock_remote_key", "dep:parking_lot", "dep:rand_core"]
 
 [dependencies]
 derive_more = { workspace = true, features = ["as_ref", "from"] }
-futures.workspace = true
+futures = { workspace = true, features = ["std"] }
+itertools.workspace = true
 jsonwebtoken.workspace = true
+parking_lot = { workspace = true, optional = true }
 p256 = { workspace = true, features = ["ecdsa"] }
 serde = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
@@ -26,6 +31,7 @@ utils.path = "../utils/"
 
 [dev-dependencies]
 assert_matches.workspace = true
+parking_lot.workspace = true
 rand_core.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["macros"] }

@@ -3,12 +3,12 @@ use std::hash::Hash;
 use rustls_pki_types::TrustAnchor;
 
 use crypto::CredentialEcdsaKey;
-use crypto::factory::KeyFactory;
 use dcql::normalized::NormalizedCredentialRequest;
 use http_utils::urls::BaseUrl;
 use mdoc::holder::Mdoc;
-use poa::factory::PoaFactory;
 use utils::vec_at_least::VecNonEmpty;
+use wscd::factory::PoaFactory;
+use wscd::keyfactory::KeyFactory;
 
 use crate::verifier::SessionType;
 

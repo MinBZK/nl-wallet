@@ -18,7 +18,6 @@ use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::credential_payload::CredentialPayload;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::x509::generate::mock::generate_issuer_mock;
-use crypto::mock_remote::MockRemoteEcdsaKey;
 use crypto::p256_der::DerVerifyingKey;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
@@ -47,6 +46,7 @@ use utils::generator::mock::MockTimeGenerator;
 use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::messages::registration::WalletCertificateClaims;
 use wallet_configuration::wallet_config::WalletConfiguration;
+use wscd::mock_remote::MockRemoteEcdsaKey;
 
 use crate::account_provider::MockAccountProviderClient;
 use crate::attestation::AttestationPresentation;
@@ -67,7 +67,6 @@ use crate::storage::WalletEvent;
 use crate::update_policy::MockUpdatePolicyRepository;
 use crate::wallet::attestations::AttestationsError;
 use crate::wallet::init::WalletClients;
-use crate::wte::tests::MockWteIssuanceClient;
 
 use super::HistoryError;
 use super::Wallet;
@@ -103,7 +102,6 @@ pub type WalletWithMocks = Wallet<
     MockDigidClient<TlsPinningConfig>,
     MockIssuanceSession,
     MockDisclosureClient,
-    MockWteIssuanceClient,
 >;
 
 /// An alias for the `Wallet<>` with all mock dependencies.
@@ -116,7 +114,6 @@ pub type WalletWithStorageMock = Wallet<
     MockDigidClient<TlsPinningConfig>,
     MockIssuanceSession,
     MockDisclosureClient,
-    MockWteIssuanceClient,
 >;
 
 /// The account server key material, generated once for testing.
@@ -323,7 +320,6 @@ impl<S>
         MockDigidClient<TlsPinningConfig>,
         MockIssuanceSession,
         MockDisclosureClient,
-        MockWteIssuanceClient,
     >
 where
     S: Default,

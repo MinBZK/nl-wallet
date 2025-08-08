@@ -19,7 +19,6 @@ use attestation_data::issuable_document::IssuableDocument;
 use attestation_data::x509::generate::mock::generate_issuer_mock;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::qualification::AttestationQualification;
-use crypto::mock_remote::MockRemoteKeyFactory;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use http_utils::urls::BaseUrl;
@@ -38,7 +37,6 @@ use openid4vc::issuance_session::IssuanceSession;
 use openid4vc::issuance_session::IssuanceSessionError;
 use openid4vc::issuance_session::IssuedCredential;
 use openid4vc::issuance_session::VcMessageClient;
-use openid4vc::issuance_session::mock_wte;
 use openid4vc::issuer::AttestationTypeConfig;
 use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::IssuanceData;
@@ -52,8 +50,6 @@ use openid4vc::server_state::MemoryWteTracker;
 use openid4vc::token::AccessToken;
 use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenResponseWithPreviews;
-use poa::Poa;
-use poa::PoaPayload;
 use sd_jwt_vc_metadata::ClaimDisplayMetadata;
 use sd_jwt_vc_metadata::ClaimMetadata;
 use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
@@ -61,6 +57,9 @@ use sd_jwt_vc_metadata::TypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use sd_jwt_vc_metadata::UncheckedTypeMetadata;
 use utils::vec_at_least::VecNonEmpty;
+use wscd::Poa;
+use wscd::PoaPayload;
+use wscd::mock_remote::MockRemoteKeyFactory;
 
 type MockIssuer = Issuer<MockAttributeService, SigningKey, MemorySessionStore<IssuanceData>, MemoryWteTracker>;
 
@@ -143,7 +142,7 @@ fn setup(
 async fn accept_issuance(
     #[values(NonZeroUsize::new(1).unwrap(), NonZeroUsize::new(2).unwrap())] attestation_count: NonZeroUsize,
 ) {
-    let (issuer, trust_anchor, server_url, wte_issuer_privkey) = setup_mock_issuer(attestation_count);
+    let (issuer, trust_anchor, server_url, wua_signing_key) = setup_mock_issuer(attestation_count);
     let trust_anchors = &[trust_anchor];
     let message_client = MockOpenidMessageClient::new(issuer);
     let copy_count = 4;
@@ -157,11 +156,10 @@ async fn accept_issuance(
     .await
     .unwrap();
 
-    let key_factory = MockRemoteKeyFactory::default();
-    let wte = mock_wte(&key_factory, &wte_issuer_privkey).await;
+    let key_factory = MockRemoteKeyFactory::new_with_wua_signing_key(wua_signing_key);
 
     let issued_creds = session
-        .accept_issuance(trust_anchors, &key_factory, Some(wte))
+        .accept_issuance(trust_anchors, &key_factory, true)
         .await
         .unwrap();
 
@@ -207,7 +205,7 @@ async fn start_and_accept_err(
     message_client: MockOpenidMessageClient,
     server_url: BaseUrl,
     trust_anchor: TrustAnchor<'static>,
-    wte_issuer_privkey: SigningKey,
+    wua_issuer_privkey: SigningKey,
 ) -> IssuanceSessionError {
     let trust_anchors = &[trust_anchor];
     let session = HttpIssuanceSession::start_issuance(
@@ -219,11 +217,10 @@ async fn start_and_accept_err(
     .await
     .unwrap();
 
-    let key_factory = MockRemoteKeyFactory::default();
-    let wte = mock_wte(&key_factory, &wte_issuer_privkey).await;
+    let key_factory = MockRemoteKeyFactory::new_with_wua_signing_key(wua_issuer_privkey);
 
     session
-        .accept_issuance(trust_anchors, &key_factory, Some(wte))
+        .accept_issuance(trust_anchors, &key_factory, true)
         .await
         .unwrap_err()
 }

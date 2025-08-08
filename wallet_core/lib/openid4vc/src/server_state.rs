@@ -328,11 +328,8 @@ pub mod test {
     use parking_lot::RwLock;
     use rand_core::OsRng;
 
-    use crypto::mock_remote::MockRemoteKeyFactory;
     use jwt::wte::WTE_EXPIRY;
-
-    use crate::issuance_session::mock_wte;
-    use crate::issuer::WTE_JWT_VALIDATIONS;
+    use jwt::wte::WTE_JWT_VALIDATIONS;
 
     use super::*;
 
@@ -548,10 +545,18 @@ pub mod test {
     }
 
     pub async fn test_wte_tracker(wte_tracker: &impl WteTracker, mock_time: &RwLock<DateTime<Utc>>) {
-        let key_factory = MockRemoteKeyFactory::default();
         let wte_signing_key = SigningKey::random(&mut OsRng);
+        let wte_privkey = SigningKey::random(&mut OsRng);
 
-        let wte = mock_wte(&key_factory, &wte_signing_key).await.jwt;
+        let wte = JwtCredentialClaims::new_signed(
+            wte_privkey.verifying_key(),
+            &wte_signing_key,
+            "iss".to_string(),
+            None,
+            WteClaims::new(),
+        )
+        .await
+        .unwrap();
 
         let wte = VerifiedJwt::try_new(wte, &wte_signing_key.verifying_key().into(), &WTE_JWT_VALIDATIONS).unwrap();
 

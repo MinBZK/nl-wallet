@@ -23,14 +23,14 @@ use wallet_account::messages::instructions::ChangePinStart;
 use wallet_account::messages::instructions::CheckPin;
 use wallet_account::messages::instructions::ConstructPoa;
 use wallet_account::messages::instructions::ConstructPoaResult;
-use wallet_account::messages::instructions::GenerateKey;
-use wallet_account::messages::instructions::GenerateKeyResult;
 use wallet_account::messages::instructions::Instruction;
 use wallet_account::messages::instructions::InstructionAndResult;
 use wallet_account::messages::instructions::InstructionChallengeRequest;
 use wallet_account::messages::instructions::InstructionResultMessage;
-use wallet_account::messages::instructions::IssueWte;
-use wallet_account::messages::instructions::IssueWteResult;
+use wallet_account::messages::instructions::PerformIssuance;
+use wallet_account::messages::instructions::PerformIssuanceResult;
+use wallet_account::messages::instructions::PerformIssuanceWithWua;
+use wallet_account::messages::instructions::PerformIssuanceWithWuaResult;
 use wallet_account::messages::instructions::Sign;
 use wallet_account::messages::instructions::SignResult;
 use wallet_account::messages::registration::Certificate;
@@ -85,10 +85,16 @@ where
                     &format!("/instructions/{}", ChangePinRollback::NAME),
                     post(change_pin_rollback),
                 )
-                .route(&format!("/instructions/{}", GenerateKey::NAME), post(generate_key))
                 .route(&format!("/instructions/{}", Sign::NAME), post(sign))
-                .route(&format!("/instructions/{}", IssueWte::NAME), post(issue_wte))
                 .route(&format!("/instructions/{}", ConstructPoa::NAME), post(construct_poa))
+                .route(
+                    &format!("/instructions/{}", PerformIssuance::NAME),
+                    post(perform_issuance),
+                )
+                .route(
+                    &format!("/instructions/{}", PerformIssuanceWithWua::NAME),
+                    post(perform_issuance_with_wua),
+                )
                 .layer(TraceLayer::new_for_http())
                 .with_state(Arc::clone(&state)),
         )
@@ -237,19 +243,6 @@ async fn change_pin_rollback<GRC, PIC>(
     Ok((StatusCode::OK, body.into()))
 }
 
-async fn generate_key<GRC, PIC>(
-    State(state): State<Arc<RouterState<GRC, PIC>>>,
-    Json(payload): Json<Instruction<GenerateKey>>,
-) -> Result<(StatusCode, Json<InstructionResultMessage<GenerateKeyResult>>)> {
-    info!("Received generate key request, handling the GenerateKey instruction");
-    let body = state
-        .handle_instruction(payload)
-        .await
-        .inspect_err(|error| warn!("handling GenerateKey instruction failed: {}", error))?;
-
-    Ok((StatusCode::OK, body.into()))
-}
-
 async fn sign<GRC, PIC>(
     State(state): State<Arc<RouterState<GRC, PIC>>>,
     Json(payload): Json<Instruction<Sign>>,
@@ -263,19 +256,6 @@ async fn sign<GRC, PIC>(
     Ok((StatusCode::OK, body.into()))
 }
 
-async fn issue_wte<GRC, PIC>(
-    State(state): State<Arc<RouterState<GRC, PIC>>>,
-    Json(payload): Json<Instruction<IssueWte>>,
-) -> Result<(StatusCode, Json<InstructionResultMessage<IssueWteResult>>)> {
-    info!("Received issue WTE request, handling the IssueWte instruction");
-    let body = state
-        .handle_instruction(payload)
-        .await
-        .inspect_err(|error| warn!("handling IssueWte instruction failed: {}", error))?;
-
-    Ok((StatusCode::OK, body.into()))
-}
-
 async fn construct_poa<GRC, PIC>(
     State(state): State<Arc<RouterState<GRC, PIC>>>,
     Json(payload): Json<Instruction<ConstructPoa>>,
@@ -285,6 +265,32 @@ async fn construct_poa<GRC, PIC>(
         .handle_instruction(payload)
         .await
         .inspect_err(|error| warn!("handling ConstructPoa instruction failed: {}", error))?;
+
+    Ok((StatusCode::OK, body.into()))
+}
+
+async fn perform_issuance<GRC, PIC>(
+    State(state): State<Arc<RouterState<GRC, PIC>>>,
+    Json(payload): Json<Instruction<PerformIssuance>>,
+) -> Result<(StatusCode, Json<InstructionResultMessage<PerformIssuanceResult>>)> {
+    info!("Received perform_issuance request, handling the PerformIssuance instruction");
+    let body = state
+        .handle_instruction(payload)
+        .await
+        .inspect_err(|error| warn!("handling PerformIssuance instruction failed: {}", error))?;
+
+    Ok((StatusCode::OK, body.into()))
+}
+
+async fn perform_issuance_with_wua<GRC, PIC>(
+    State(state): State<Arc<RouterState<GRC, PIC>>>,
+    Json(payload): Json<Instruction<PerformIssuanceWithWua>>,
+) -> Result<(StatusCode, Json<InstructionResultMessage<PerformIssuanceWithWuaResult>>)> {
+    info!("Received perform_issuance_with_wua request, handling the PerformIssuanceWithWua instruction");
+    let body = state
+        .handle_instruction(payload)
+        .await
+        .inspect_err(|error| warn!("handling PerformIssuanceWithWua instruction failed: {}", error))?;
 
     Ok((StatusCode::OK, body.into()))
 }

@@ -97,7 +97,6 @@ where
         pin_entries: Set(0),
         last_unsuccessful_pin: Set(None),
         is_blocked: Set(false),
-        has_wte: Set(false),
         attestation_date_time: Set(user.attestation_date_time.into()),
         apple_attestation_id: Set(apple_attestation_id),
         android_attestation_id: Set(android_attestation_id),
@@ -124,7 +123,6 @@ struct WalletUserJoinedModel {
     instruction_challenge: Option<Vec<u8>>,
     instruction_challenge_expiration_date_time: Option<DateTimeWithTimeZone>,
     instruction_sequence_number: i32,
-    has_wte: bool,
     apple_assertion_counter: Option<i64>,
 }
 
@@ -151,7 +149,6 @@ where
             "instruction_challenge_expiration_date_time",
         )
         .column(wallet_user::Column::InstructionSequenceNumber)
-        .column(wallet_user::Column::HasWte)
         .column_as(
             wallet_user_apple_attestation::Column::AssertionCounter,
             "apple_assertion_counter",
@@ -215,7 +212,6 @@ where
                     last_unsuccessful_pin_entry: joined_model.last_unsuccessful_pin.map(DateTime::<Utc>::from),
                     instruction_challenge,
                     instruction_sequence_number: u64::try_from(joined_model.instruction_sequence_number).unwrap(),
-                    has_wte: joined_model.has_wte,
                     attestation,
                 };
 
@@ -474,14 +470,6 @@ where
         .await
         .map(|_| ())
         .map_err(|e| PersistenceError::Execution(e.into()))
-}
-
-pub async fn save_wte_issued<S, T>(db: &T, wallet_id: &str) -> Result<()>
-where
-    S: ConnectionTrait,
-    T: PersistenceConnection<S>,
-{
-    update_fields(db, wallet_id, vec![(wallet_user::Column::HasWte, Expr::value(true))]).await
 }
 
 pub async fn update_apple_assertion_counter<S, T>(

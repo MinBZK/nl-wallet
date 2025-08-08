@@ -1,7 +1,7 @@
 use itertools::Itertools;
 
 use crypto::CredentialEcdsaKey;
-use crypto::factory::KeyFactory;
+use wscd::keyfactory::KeyFactory;
 
 use crate::errors::Error;
 use crate::errors::Result;
@@ -73,9 +73,9 @@ mod tests {
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
 
-    use crypto::mock_remote::MockRemoteEcdsaKey;
-    use crypto::mock_remote::MockRemoteKeyFactory;
     use crypto::server_keys::generate::Ca;
+    use wscd::mock_remote::MockRemoteEcdsaKey;
+    use wscd::mock_remote::MockRemoteKeyFactory;
 
     use crate::holder::Mdoc;
     use crate::iso::disclosure::DeviceAuth;
