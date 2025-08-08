@@ -11,7 +11,7 @@ workspace = true
 # Include examples from the ISO specification
 examples = ["crypto/examples"]
 # Include MockRemoteEcdsaKey type and MockRemoteKeyFactory implementation of KeyFactory for testing
-mock = ["crypto/mock_remote_key", "dep:parking_lot", "dep:rand_core"]
+mock = ["crypto/mock", "dep:parking_lot", "dep:rand_core"]
 
 [dependencies]
 derive_more = { workspace = true, features = ["as_ref", "from", "constructor"] }
