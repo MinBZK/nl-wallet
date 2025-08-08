@@ -12,6 +12,7 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use crypto::keys::EcdsaKey;
+use crypto::wscd::KeyFactoryPoa;
 use jwt::JsonJwt;
 use jwt::Jwt;
 use jwt::error::JwtError;
@@ -27,7 +28,6 @@ use crate::POA_JWT_TYP;
 use crate::error::PoaError;
 use crate::error::PoaVerificationError;
 use crate::keyfactory::JwtPoaInput;
-use crate::keyfactory::KeyFactoryPoa;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PoaPayload {

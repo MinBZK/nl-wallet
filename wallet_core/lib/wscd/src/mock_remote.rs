@@ -23,6 +23,9 @@ use crypto::EcdsaKey;
 use crypto::SecureEcdsaKey;
 use crypto::WithIdentifier;
 use crypto::p256_der::verifying_key_sha256;
+use crypto::wscd::DisclosureKeyFactory;
+use crypto::wscd::DisclosureResult;
+use crypto::wscd::KeyFactoryPoa;
 use jwt::Jwt;
 use jwt::credential::JwtCredentialClaims;
 use jwt::jwk::jwk_from_p256;
@@ -32,11 +35,8 @@ use jwt::wte::WteDisclosure;
 
 use crate::MOCK_WALLET_CLIENT_ID;
 use crate::Poa;
-use crate::keyfactory::DisclosureKeyFactory;
-use crate::keyfactory::DisclosureResult;
 use crate::keyfactory::IssuanceResult;
 use crate::keyfactory::KeyFactory;
-use crate::keyfactory::KeyFactoryPoa;
 
 #[derive(Debug, thiserror::Error)]
 pub enum MockRemoteKeyFactoryError {
