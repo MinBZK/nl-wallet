@@ -5,14 +5,13 @@ use indexmap::IndexSet;
 use rustls_pki_types::TrustAnchor;
 
 use attestation_data::auth::issuer_auth::IssuerRegistration;
-use crypto::factory::KeyFactory;
 use crypto::server_keys::generate::Ca;
 use http_utils::urls::BaseUrl;
-use jwt::credential::JwtCredential;
-use jwt::wte::WteClaims;
+use jwt::jwk::jwk_to_p256;
 use mdoc::IssuerSigned;
 use mdoc::holder::Mdoc;
 use mdoc::test::TestDocument;
+use wscd::keyfactory::KeyFactory;
 
 use crate::issuance_session::CredentialWithMetadata;
 use crate::issuance_session::HttpVcMessageClient;
@@ -27,7 +26,7 @@ use crate::token::TokenRequest;
 use crate::token::TokenRequestGrantType;
 
 // Re-exported for convenience
-pub use poa::factory::mock::MOCK_WALLET_CLIENT_ID;
+pub use wscd::factory::mock::MOCK_WALLET_CLIENT_ID;
 
 // We can't use `mockall::automock!` on the `IssuerClient` trait directly since `automock` doesn't accept
 // traits using generic methods, and "impl trait" arguments, so we use `mockall::mock!` to make an indirection.
@@ -68,7 +67,7 @@ impl IssuanceSession for MockIssuanceSession {
         &self,
         _: &[TrustAnchor<'_>],
         _: &KF,
-        _: Option<JwtCredential<WteClaims>>,
+        _: bool,
     ) -> Result<Vec<CredentialWithMetadata>, IssuanceSessionError> {
         self.accept()
     }
@@ -149,7 +148,7 @@ pub async fn test_document_to_issuer_signed<KF>(doc: TestDocument, ca: &Ca, key_
 where
     KF: KeyFactory,
 {
-    let key = key_factory.generate_new().await.unwrap();
+    let key = generate_key(key_factory).await;
 
     let issuer_signed = doc.issuer_signed(ca, &key, Utc::now()).await;
     (issuer_signed, key)
@@ -159,7 +158,36 @@ pub async fn test_document_to_mdoc<KF>(doc: TestDocument, ca: &Ca, key_factory: 
 where
     KF: KeyFactory,
 {
-    let key = key_factory.generate_new().await.unwrap();
+    let key = generate_key(key_factory).await;
 
     doc.sign(ca, &key).await
+}
+
+async fn generate_key<KF>(key_factory: &KF) -> KF::Key
+where
+    KF: KeyFactory,
+{
+    let issuance_data = key_factory
+        .perform_issuance(
+            1.try_into().unwrap(),
+            "aud".to_string(),
+            Some("nonce".to_string()),
+            false,
+        )
+        .await
+        .unwrap();
+
+    let pubkey = jwk_to_p256(
+        &issuance_data
+            .pops
+            .first()
+            .dangerous_parse_unverified()
+            .unwrap()
+            .0
+            .jwk
+            .unwrap(),
+    )
+    .unwrap();
+
+    key_factory.generate_existing(issuance_data.key_identifiers.first(), pubkey)
 }

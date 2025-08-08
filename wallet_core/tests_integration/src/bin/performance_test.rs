@@ -27,7 +27,6 @@ use wallet::wallet_deps::HttpDigidClient;
 use wallet::wallet_deps::Repository;
 use wallet::wallet_deps::UpdatePolicyRepository;
 use wallet::wallet_deps::UpdateableRepository;
-use wallet::wallet_deps::WpWteIssuanceClient;
 use wallet::wallet_deps::default_config_server_config;
 use wallet::wallet_deps::default_wallet_config;
 
@@ -45,7 +44,6 @@ type PerformanceTestWallet = Wallet<
     HttpDigidClient,
     HttpIssuanceSession,
     VpDisclosureClient,
-    WpWteIssuanceClient,
 >;
 
 #[instrument(name = "", fields(pid = std::process::id()))]

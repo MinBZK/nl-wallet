@@ -49,7 +49,8 @@ where
     type Error = HsmWteIssuerError;
 
     async fn issue_wte(&self) -> Result<(WrappedKey, String, Jwt<JwtCredentialClaims<WteClaims>>), Self::Error> {
-        let (pubkey, wrapped_privkey) = self.hsm.generate_wrapped_key(&self.wrapping_key_identifier).await?;
+        let wrapped_privkey = self.hsm.generate_wrapped_key(&self.wrapping_key_identifier).await?;
+        let pubkey = *wrapped_privkey.public_key();
 
         let jwt = JwtCredentialClaims::new_signed(
             &pubkey,
@@ -84,6 +85,7 @@ pub mod mock {
     use jwt::credential::JwtCredentialClaims;
     use jwt::wte::WteClaims;
 
+    use super::WTE_JWT_TYP;
     use super::WteIssuer;
 
     pub struct MockWteIssuer;
@@ -93,10 +95,22 @@ pub mod mock {
 
         async fn issue_wte(&self) -> Result<(WrappedKey, String, Jwt<JwtCredentialClaims<WteClaims>>), Self::Error> {
             let privkey = SigningKey::random(&mut OsRng);
+            let pubkey = privkey.verifying_key();
+
+            let jwt = JwtCredentialClaims::new_signed(
+                pubkey,
+                &privkey, // Sign the WTE with its own private key in this test
+                "iss".to_string(),
+                Some(WTE_JWT_TYP.to_string()),
+                WteClaims::new(),
+            )
+            .await
+            .unwrap();
+
             Ok((
                 WrappedKey::new(privkey.to_bytes().to_vec(), *privkey.verifying_key()),
                 verifying_key_sha256(privkey.verifying_key()),
-                "a.b.c".into(),
+                jwt,
             ))
         }
 

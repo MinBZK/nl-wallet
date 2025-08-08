@@ -56,7 +56,7 @@ pub enum WalletUnlockError {
     UpdatePolicy(#[from] UpdatePolicyError),
 }
 
-impl<CR, UR, S, AKH, APC, DC, IS, DCC, WIC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC, WIC>
+impl<CR, UR, S, AKH, APC, DC, IS, DCC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC>
 where
     AKH: AttestedKeyHolder,
     DC: DigidClient,
@@ -139,7 +139,6 @@ where
         UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
         S: Storage,
         APC: AccountProviderClient,
-        WIC: Default,
     {
         let config = &self.config_repository.get();
 
@@ -186,7 +185,6 @@ where
         UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
         S: Storage,
         APC: AccountProviderClient,
-        WIC: Default,
     {
         info!("Unlocking wallet with pin");
 
@@ -216,7 +214,6 @@ where
         UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
         S: Storage,
         APC: AccountProviderClient,
-        WIC: Default,
     {
         info!("Checking if blocked");
         if self.is_blocked() {

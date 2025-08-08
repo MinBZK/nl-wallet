@@ -3,9 +3,9 @@ use indexmap::IndexMap;
 
 use attestation_types::claim_path::ClaimPath;
 use crypto::examples::Examples;
-use crypto::mock_remote::MockRemoteKeyFactory;
 use crypto::server_keys::generate::Ca;
 use utils::vec_at_least::VecNonEmpty;
+use wscd::mock_remote::MockRemoteKeyFactory;
 
 use crate::examples::EXAMPLE_ATTR_NAME;
 use crate::examples::EXAMPLE_ATTR_VALUE;

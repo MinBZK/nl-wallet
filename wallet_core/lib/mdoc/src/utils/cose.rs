@@ -25,7 +25,6 @@ use rustls_pki_types::TrustAnchor;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 
-use crypto::factory::KeyFactory;
 use crypto::keys::CredentialEcdsaKey;
 use crypto::keys::EcdsaKey;
 use crypto::x509::BorrowingCertificate;
@@ -33,6 +32,7 @@ use crypto::x509::CertificateError;
 use crypto::x509::CertificateUsage;
 use error_category::ErrorCategory;
 use utils::generator::Generator;
+use wscd::keyfactory::KeyFactory;
 
 use crate::utils::serialization::CborError;
 use crate::utils::serialization::cbor_deserialize;
@@ -201,29 +201,6 @@ impl<T> MdocCose<CoseSign1, T> {
         Ok(cose.into())
     }
 
-    pub async fn generate_keys_and_sign<K: CredentialEcdsaKey>(
-        obj: &T,
-        unprotected_header: Header,
-        number_of_keys: u64,
-        key_factory: &impl KeyFactory<Key = K>,
-        include_payload: bool,
-    ) -> crate::Result<Vec<(K, MdocCose<CoseSign1, T>)>>
-    where
-        T: Clone + Serialize,
-    {
-        let payload = cbor_serialize(obj).map_err(CoseError::Cbor)?;
-        let coses = generate_keys_and_sign_cose(
-            &payload,
-            unprotected_header,
-            number_of_keys,
-            key_factory,
-            include_payload,
-        )
-        .await?;
-
-        Ok(coses.into_iter().map(|(key, cose)| (key, cose.into())).collect())
-    }
-
     /// Get the [`Certificate`] containing the public key with which the MSO is signed from the unsigned COSE header.
     pub fn signing_cert(&self) -> Result<BorrowingCertificate, CoseError>
     where
@@ -369,42 +346,6 @@ pub async fn sign_coses<K: CredentialEcdsaKey>(
 pub enum KeysError {
     #[error("key generation error: {0}")]
     KeyGeneration(#[from] Box<dyn std::error::Error + Send + Sync + 'static>),
-}
-
-pub async fn generate_keys_and_sign_cose<K: CredentialEcdsaKey>(
-    payload: &[u8],
-    unprotected_header: Header,
-    number_of_keys: u64,
-    key_factory: &impl KeyFactory<Key = K>,
-    include_payload: bool,
-) -> crate::Result<Vec<(K, CoseSign1)>> {
-    let (sig_data, protected_header) = signature_data_and_header(payload);
-
-    let signatures = key_factory
-        .sign_with_new_keys(sig_data, number_of_keys)
-        .await
-        .map_err(|err| KeysError::KeyGeneration(err.into()))?;
-
-    let coses = signatures
-        .into_iter()
-        .zip(itertools::repeat_n(
-            (protected_header, unprotected_header),
-            number_of_keys.try_into().unwrap(),
-        ))
-        .map(|((key, signature), (protected_header, unprotected_header))| {
-            (
-                key,
-                CoseSign1 {
-                    signature: signature.to_vec(),
-                    payload: include_payload.then(|| payload.to_vec()),
-                    protected: protected_header,
-                    unprotected: unprotected_header,
-                },
-            )
-        })
-        .collect();
-
-    Ok(coses)
 }
 
 pub trait ClonePayload {

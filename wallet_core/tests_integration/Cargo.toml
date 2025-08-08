@@ -93,6 +93,7 @@ test_common = [
     "dep:wallet_provider_persistence",
     "dep:wallet_provider_service",
     "dep:wiremock",
+    "dep:wscd",
 ]
 # Include the fake_digid submodule
 fake_digid = ["dep:http_utils", "dep:reqwest", "dep:url", "dep:wallet_configuration"]
@@ -209,7 +210,7 @@ attestation_data = { path = "../lib/attestation_data", optional = true, features
     "mock",
 ] }
 configuration_server = { path = "../configuration_server", optional = true }
-crypto = { path = "../lib/crypto", optional = true, features = ["mock_remote_key"] }
+crypto = { path = "../lib/crypto", optional = true }
 dcql = { path = "../lib/dcql", optional = true, features = ["mock"] }
 gba_hc_converter = { path = "../gba_hc_converter", optional = true }
 hsm = { path = "../lib/hsm", optional = true, features = ["test"] }
@@ -219,6 +220,7 @@ jwt.path = "../lib/jwt"
 mdoc = { path = "../lib/mdoc", optional = true, features = ["test"] }
 openid4vc = { path = "../lib/openid4vc", optional = true }
 openid4vc_server = { path = "../lib/openid4vc_server", optional = true, features = ["issuance", "disclosure"] }
+wscd = { path = "../lib/wscd", optional = true, features = ["mock"] }
 pid_issuer = { path = "../wallet_server/pid_issuer", optional = true, features = ["mock"] }
 platform_support = { path = "../wallet/platform_support", optional = true, features = ["mock"] }
 server_utils = { path = "../wallet_server/server_utils", optional = true, features = [] }

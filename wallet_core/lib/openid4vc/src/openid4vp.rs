@@ -37,12 +37,12 @@ use mdoc::SessionTranscript;
 use mdoc::errors::Error as MdocError;
 use mdoc::utils::serialization::CborBase64;
 use mdoc::verifier::ResponseMatchingError;
-use poa::Poa;
-use poa::PoaVerificationError;
 use serde_with::SerializeDisplay;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
+use wscd::Poa;
+use wscd::PoaVerificationError;
 
 use crate::Format;
 use crate::authorization::AuthorizationRequest;
@@ -839,8 +839,6 @@ mod tests {
 
     use attestation_data::disclosure::DisclosedAttributes;
     use attestation_data::x509::generate::mock::generate_reader_mock;
-    use crypto::mock_remote::MockRemoteEcdsaKey;
-    use crypto::mock_remote::MockRemoteKeyFactory;
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
     use dcql::CredentialQueryFormat;
@@ -862,13 +860,15 @@ mod tests {
     use mdoc::utils::serialization::CborSeq;
     use mdoc::utils::serialization::TaggedBytes;
     use mdoc::utils::serialization::cbor_serialize;
-    use poa::Poa;
-    use poa::factory::PoaFactory;
     use utils::generator::Generator;
     use utils::generator::TimeGenerator;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_at_least::VecAtLeastTwoUnique;
     use utils::vec_at_least::VecNonEmpty;
+    use wscd::Poa;
+    use wscd::factory::PoaFactory;
+    use wscd::mock_remote::MockRemoteEcdsaKey;
+    use wscd::mock_remote::MockRemoteKeyFactory;
 
     use crate::AuthorizationErrorCode;
     use crate::VpAuthorizationErrorCode;

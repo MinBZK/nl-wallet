@@ -58,7 +58,6 @@ use crate::storage::StorageError;
 use crate::storage::StoredAttestationCopy;
 use crate::wallet::Session;
 use crate::wallet::attestations::AttestationsError;
-use crate::wte::WteIssuanceClient;
 
 use super::Wallet;
 
@@ -160,7 +159,7 @@ pub struct WalletIssuanceSession<IS> {
     protocol_state: IS,
 }
 
-impl<CR, UR, S, AKH, APC, DC, IS, DCC, WIC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC, WIC>
+impl<CR, UR, S, AKH, APC, DC, IS, DCC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
     UR: Repository<VersionState>,
@@ -434,7 +433,6 @@ where
         UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
         S: Storage,
         APC: AccountProviderClient,
-        WIC: WteIssuanceClient + Default,
     {
         info!("Accepting issuance");
 
@@ -478,19 +476,6 @@ where
             )
             .await?;
 
-        let wte = if issuance_session.is_pid {
-            Some(
-                self.wte_issuance_client
-                    .obtain_wte(
-                        config.account_server.wte_public_key.as_inner(),
-                        remote_instruction.clone(),
-                    )
-                    .await?,
-            )
-        } else {
-            None
-        };
-
         let remote_key_factory = RemoteEcdsaKeyFactory::new(remote_instruction);
 
         info!("Signing nonce using Wallet Provider");
@@ -503,7 +488,11 @@ where
 
         let issuance_result = issuance_session
             .protocol_state
-            .accept_issuance(&config.mdoc_trust_anchors(), &remote_key_factory, wte)
+            .accept_issuance(
+                &config.mdoc_trust_anchors(),
+                &remote_key_factory,
+                issuance_session.is_pid,
+            )
             .await
             .map_err(|error| {
                 match error {

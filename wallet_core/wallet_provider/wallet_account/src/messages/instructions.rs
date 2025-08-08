@@ -1,3 +1,5 @@
+use std::num::NonZeroUsize;
+
 use derive_more::Constructor;
 use serde::Deserialize;
 use serde::Serialize;
@@ -9,10 +11,11 @@ use crypto::p256_der::DerSignature;
 use crypto::p256_der::DerVerifyingKey;
 use jwt::Jwt;
 use jwt::JwtSubject;
-use jwt::credential::JwtCredentialClaims;
-use jwt::wte::WteClaims;
-use poa::Poa;
+use jwt::pop::JwtPopClaims;
+use jwt::wte::WteDisclosure;
 use utils::vec_at_least::VecAtLeastTwoUnique;
+use utils::vec_at_least::VecNonEmpty;
+use wscd::Poa;
 
 use crate::signed::ChallengeRequest;
 use crate::signed::ChallengeResponse;
@@ -110,24 +113,49 @@ impl InstructionAndResult for ChangePinRollback {
     type Result = ();
 }
 
-// GenerateKey instruction.
+// PerformIssuance instruction.
 
+#[serde_as]
 #[derive(Debug, Serialize, Deserialize)]
-pub struct GenerateKey {
-    pub count: u64,
+pub struct PerformIssuance {
+    pub key_count: NonZeroUsize,
+    pub aud: String,
+    pub nonce: Option<String>,
 }
 
 #[serde_as]
 #[derive(Debug, Serialize, Deserialize)]
-pub struct GenerateKeyResult {
-    #[serde_as(as = "Vec<(_, Base64)>")]
-    pub public_keys: Vec<(String, DerVerifyingKey)>,
+pub struct PerformIssuanceResult {
+    pub key_identifiers: VecNonEmpty<String>,
+    pub pops: VecNonEmpty<Jwt<JwtPopClaims>>,
+    pub poa: Option<Poa>,
 }
 
-impl InstructionAndResult for GenerateKey {
-    const NAME: &'static str = "generate_key";
+impl InstructionAndResult for PerformIssuance {
+    const NAME: &'static str = "perform_issuance";
 
-    type Result = GenerateKeyResult;
+    type Result = PerformIssuanceResult;
+}
+
+#[serde_as]
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PerformIssuanceWithWua {
+    #[serde(flatten)]
+    pub issuance_instruction: PerformIssuance,
+}
+
+#[serde_as]
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PerformIssuanceWithWuaResult {
+    #[serde(flatten)]
+    pub issuance_result: PerformIssuanceResult,
+    pub wua_disclosure: WteDisclosure,
+}
+
+impl InstructionAndResult for PerformIssuanceWithWua {
+    const NAME: &'static str = "perform_issuance_with_wua";
+
+    type Result = PerformIssuanceWithWuaResult;
 }
 
 // Sign instruction.
@@ -150,23 +178,6 @@ impl InstructionAndResult for Sign {
     const NAME: &'static str = "sign";
 
     type Result = SignResult;
-}
-
-// IssueWte instruction.
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct IssueWte;
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct IssueWteResult {
-    pub key_id: String,
-    pub wte: Jwt<JwtCredentialClaims<WteClaims>>,
-}
-
-impl InstructionAndResult for IssueWte {
-    const NAME: &'static str = "issue_wte";
-
-    type Result = IssueWteResult;
 }
 
 // ConstructPoa instruction.

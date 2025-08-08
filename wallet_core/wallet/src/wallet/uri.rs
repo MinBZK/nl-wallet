@@ -61,7 +61,7 @@ pub(super) fn identify_uri(uri: &Url) -> Option<UriType> {
     None
 }
 
-impl<CR, UR, S, AKH, APC, DC, IS, DCC, WIC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC, WIC>
+impl<CR, UR, S, AKH, APC, DC, IS, DCC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
     AKH: AttestedKeyHolder,

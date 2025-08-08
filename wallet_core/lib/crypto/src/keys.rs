@@ -90,13 +90,27 @@ pub trait WithIdentifier {
     fn identifier(&self) -> &str;
 }
 
+pub trait WithVerifyingKey {
+    type Error: Error + Send + Sync + 'static;
+
+    async fn verifying_key(&self) -> Result<VerifyingKey, Self::Error>;
+}
+
+impl<T: EcdsaKey> WithVerifyingKey for T {
+    type Error = T::Error;
+
+    async fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
+        self.verifying_key().await
+    }
+}
+
 /// Contract for ECDSA private keys suitable for credentials.
 /// Should be sufficiently secured e.g. through a HSM, or Android's TEE/StrongBox or Apple's SE.
-pub trait CredentialEcdsaKey: SecureEcdsaKey + WithIdentifier {
+pub trait CredentialEcdsaKey: WithVerifyingKey + WithIdentifier {
     const KEY_TYPE: CredentialKeyType;
 
     // from WithIdentifier: identifier()
-    // from SecureSigningKey: verifying_key(), try_sign() and sign() methods
+    // from WithVerifyingKey: verifying_key()
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

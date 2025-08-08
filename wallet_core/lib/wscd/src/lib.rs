@@ -1,6 +1,10 @@
 pub mod error;
 pub mod factory;
+pub mod keyfactory;
 pub mod poa;
+
+#[cfg(any(test, feature = "mock"))]
+pub mod mock_remote;
 
 pub static POA_JWT_TYP: &str = "poa+jwt";
 

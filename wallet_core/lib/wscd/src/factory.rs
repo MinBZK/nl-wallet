@@ -21,12 +21,12 @@ pub trait PoaFactory {
 
 #[cfg(feature = "mock")]
 pub mod mock {
-    use crypto::mock_remote::MockRemoteEcdsaKey;
-    use crypto::mock_remote::MockRemoteKeyFactory;
-    use crypto::mock_remote::MockRemoteKeyFactoryError;
     use jwt::pop::JwtPopClaims;
     use utils::vec_at_least::VecAtLeastTwoUnique;
 
+    use crate::mock_remote::MockRemoteEcdsaKey;
+    use crate::mock_remote::MockRemoteKeyFactory;
+    use crate::mock_remote::MockRemoteKeyFactoryError;
     use crate::poa::Poa;
 
     use super::PoaFactory;
