@@ -212,6 +212,10 @@ pub enum IssuanceSessionError {
     #[error("different issuer registrations found in credential previews")]
     #[category(critical)]
     DifferentIssuerRegistrations(#[source] MultipleItemsFound),
+
+    #[error("WP failed to include JWK in PoP JWT header")]
+    #[category(critical)]
+    MissingJwk,
 }
 
 #[derive(Clone, Debug)]
@@ -723,7 +727,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
                     // We assume here the WP gave us valid JWTs, and leave it up to the issuer to verify these.
                     let (header, _) = jwt.dangerous_parse_unverified()?;
 
-                    let pubkey = jwk_to_p256(&header.jwk.expect("WP failed to include JWK in PoP JWT header"))
+                    let pubkey = jwk_to_p256(&header.jwk.ok_or(IssuanceSessionError::MissingJwk)?)
                         .map_err(|e| IssuanceSessionError::VerifyingKeyFromPrivateKey(e.into()))?;
                     let cred_request = CredentialRequest {
                         credential_type: credential_request_type.into(),
