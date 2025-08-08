@@ -1,5 +1,5 @@
 use crypto::CredentialEcdsaKey;
-use wscd::keyfactory::DisclosureKeyFactory;
+use crypto::wscd::DisclosureKeyFactory;
 
 use crate::errors::Result;
 

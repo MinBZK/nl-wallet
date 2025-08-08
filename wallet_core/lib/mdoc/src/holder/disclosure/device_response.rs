@@ -1,8 +1,8 @@
 use itertools::Itertools;
 
 use crypto::CredentialEcdsaKey;
-use wscd::keyfactory::DisclosureKeyFactory;
-use wscd::keyfactory::KeyFactoryPoa;
+use crypto::wscd::DisclosureKeyFactory;
+use crypto::wscd::KeyFactoryPoa;
 
 use crate::errors::Error;
 use crate::errors::Result;

@@ -27,13 +27,13 @@ use serde::de::DeserializeOwned;
 
 use crypto::keys::CredentialEcdsaKey;
 use crypto::keys::EcdsaKey;
+use crypto::wscd::DisclosureKeyFactory;
+use crypto::wscd::KeyFactoryPoa;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateError;
 use crypto::x509::CertificateUsage;
 use error_category::ErrorCategory;
 use utils::generator::Generator;
-use wscd::keyfactory::DisclosureKeyFactory;
-use wscd::keyfactory::KeyFactoryPoa;
 
 use crate::utils::serialization::CborError;
 use crate::utils::serialization::cbor_deserialize;
