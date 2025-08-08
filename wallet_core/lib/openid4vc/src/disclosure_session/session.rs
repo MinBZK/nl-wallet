@@ -180,9 +180,9 @@ mod tests {
     use serde_json::json;
 
     use attestation_data::auth::reader_auth::ReaderRegistration;
+    use crypto::mock_remote::MockRemoteEcdsaKey;
     use dcql::normalized::NormalizedCredentialRequest;
     use mdoc::holder::Mdoc;
-    use crypto::mock_remote::MockRemoteEcdsaKey;
     use wscd::mock_remote::MockRemoteKeyFactory;
 
     use crate::errors::AuthorizationErrorCode;
@@ -299,7 +299,7 @@ mod tests {
             setup_disclosure_session(None, [NormalizedCredentialRequest::new_pid_example()]);
         let (mdoc, mut key_factory) = setup_disclosure_mdoc();
 
-        key_factory.has_multi_key_signing_error = true;
+        key_factory.disclosure.has_multi_key_signing_error = true;
 
         let (_disclosure_session, error) = disclosure_session
             .disclose(vec![mdoc].try_into().unwrap(), &key_factory)
