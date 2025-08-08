@@ -7596,6 +7596,7 @@ dependencies = [
  "serde_urlencoded",
  "serde_with",
  "serial_test",
+ "ssri",
  "strum 0.26.3",
  "tempfile",
  "thiserror 2.0.11",

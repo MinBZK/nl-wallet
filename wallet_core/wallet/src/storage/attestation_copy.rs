@@ -201,3 +201,157 @@ impl StoredAttestationCopy<VerifiedSdJwt> {
         Ok(partial_copy)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::sync::LazyLock;
+
+    use futures::FutureExt;
+    use itertools::Itertools;
+    use p256::ecdsa::SigningKey;
+    use rand_core::OsRng;
+    use ssri::Integrity;
+    use uuid::Uuid;
+
+    use attestation_data::auth::issuer_auth::IssuerRegistration;
+    use attestation_data::credential_payload::mock::pid_example_payload;
+    use attestation_data::x509::generate::mock::generate_issuer_mock;
+    use attestation_types::claim_path::ClaimPath;
+    use crypto::keys::WithIdentifier;
+    use crypto::server_keys::KeyPair;
+    use crypto::server_keys::generate::Ca;
+    use sd_jwt::sd_jwt::VerifiedSdJwt;
+    use sd_jwt_vc_metadata::NormalizedTypeMetadata;
+    use utils::generator::mock::MockTimeGenerator;
+    use utils::vec_at_least::VecNonEmpty;
+    use wscd::mock_remote::MockRemoteEcdsaKey;
+
+    use crate::attestation::BSN_ATTR_NAME;
+    use crate::attestation::PID_DOCTYPE;
+
+    use super::StoredAttestationCopy;
+    use super::StoredAttestationFormat;
+
+    static ATTESTATION_ID: LazyLock<Uuid> = LazyLock::new(Uuid::new_v4);
+
+    fn mdoc_stored_attestation_copy(
+        issuer_keypair: &KeyPair,
+    ) -> (StoredAttestationCopy<VerifiedSdJwt>, VecNonEmpty<ClaimPath>) {
+        let credential_payload = pid_example_payload(&MockTimeGenerator::default());
+
+        let mdoc_remote_key = MockRemoteEcdsaKey::new_random("identifier".to_string());
+        let mdoc = credential_payload
+            .previewable_payload
+            .into_signed_mdoc_unverified::<MockRemoteEcdsaKey>(
+                Integrity::from(""),
+                mdoc_remote_key.identifier().to_string(),
+                mdoc_remote_key.verifying_key(),
+                issuer_keypair,
+            )
+            .now_or_never()
+            .unwrap()
+            .unwrap();
+
+        let copy = StoredAttestationCopy {
+            attestation_id: *ATTESTATION_ID,
+            attestation_copy_id: Uuid::new_v4(),
+            attestation: StoredAttestationFormat::MsoMdoc { mdoc: Box::new(mdoc) },
+            normalized_metadata: NormalizedTypeMetadata::nl_pid_example(),
+        };
+
+        let bsn_path = vec![
+            ClaimPath::SelectByKey(PID_DOCTYPE.to_string()),
+            ClaimPath::SelectByKey(BSN_ATTR_NAME.to_string()),
+        ]
+        .try_into()
+        .unwrap();
+
+        (copy, bsn_path)
+    }
+
+    fn sd_jwt_stored_attestation_copy(
+        issuer_keypair: &KeyPair,
+    ) -> (StoredAttestationCopy<VerifiedSdJwt>, VecNonEmpty<ClaimPath>) {
+        let credential_payload = pid_example_payload(&MockTimeGenerator::default());
+
+        let holder_privkey = SigningKey::random(&mut OsRng);
+        let sd_jwt = credential_payload
+            .into_sd_jwt(
+                &NormalizedTypeMetadata::nl_pid_example(),
+                holder_privkey.verifying_key(),
+                issuer_keypair,
+            )
+            .now_or_never()
+            .unwrap()
+            .unwrap();
+
+        let copy = StoredAttestationCopy {
+            attestation_id: *ATTESTATION_ID,
+            attestation_copy_id: Uuid::new_v4(),
+            attestation: StoredAttestationFormat::SdJwt {
+                sd_jwt: Box::new(VerifiedSdJwt::new_mock(sd_jwt)),
+            },
+            normalized_metadata: NormalizedTypeMetadata::nl_pid_example(),
+        };
+
+        let bsn_path = vec![ClaimPath::SelectByKey(BSN_ATTR_NAME.to_string())]
+            .try_into()
+            .unwrap();
+
+        (copy, bsn_path)
+    }
+
+    #[test]
+    fn test_stored_attestation_copy() {
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
+        let issuer_registration = IssuerRegistration::new_mock();
+        let issuer_keypair = generate_issuer_mock(&ca, issuer_registration.clone().into()).unwrap();
+
+        let (full_presentations, partial_presentations): (Vec<_>, Vec<_>) = [
+            mdoc_stored_attestation_copy(&issuer_keypair),
+            sd_jwt_stored_attestation_copy(&issuer_keypair),
+        ]
+        .into_iter()
+        .map(|(full_attestation_copy, bsn_path)| {
+            // The retrieved `IssuerRegistration` matches the input.
+            let full_issuer_registration = full_attestation_copy.attestation.issuer_registration();
+            assert_eq!(full_issuer_registration, issuer_registration);
+
+            // The attestation should contain the BSN attribute path.
+            assert!(full_attestation_copy.matches_requested_attributes([&bsn_path]));
+
+            // The attestation should not contain some incorrect path.
+            let missing_path = vec![ClaimPath::SelectByKey("missing".to_string())].try_into().unwrap();
+            assert!(!full_attestation_copy.matches_requested_attributes([&missing_path]));
+
+            // The converted `AttestationPresentation` contains multiple attributes.
+            let full_presentation = full_attestation_copy.clone().into_attestation_presentation();
+            assert_eq!(full_presentation.attributes.len(), 3);
+
+            // Selecting a particular attribute for disclosure should only succeed if the path exists.
+            let partial_attestation_copy = full_attestation_copy
+                .clone()
+                .try_into_partial([&bsn_path])
+                .expect("converting the full attestation copy to on containing just the BSN should succeed");
+
+            let _error = full_attestation_copy
+                .try_into_partial([&missing_path])
+                .expect_err("converting the full attestation copy to a partial one should not succeed");
+
+            // The retrieved `IssuerRegistration` of the partial attestation copy matches the input.
+            let partial_issuer_registration = partial_attestation_copy.attestation.issuer_registration();
+            assert_eq!(partial_issuer_registration, issuer_registration);
+
+            // The converted `AttestationPresentation` contains only one attribute.
+            let partial_presentation = partial_attestation_copy.into_attestation_presentation();
+            assert_eq!(partial_presentation.attributes.len(), 1);
+
+            (full_presentation, partial_presentation)
+        })
+        .unzip();
+
+        // The full and partial `AttestationPresentation`s should be the same for both formats.
+        assert!(full_presentations.iter().all_equal());
+        assert!(partial_presentations.iter().all_equal())
+    }
+}
