@@ -8,6 +8,7 @@ use serde_with::skip_serializing_none;
 
 use attestation_types::claim_path::ClaimPath;
 use utils::vec_at_least::VecNonEmpty;
+use utils::vec_at_least::VecNonEmptyUnique;
 
 /// A DCQL query, encoding constraints on the combinations of credentials and claims that are requested.
 /// The Wallet must evaluate the query against the Credentials it holds and returns Presentations matching the query.
@@ -73,7 +74,7 @@ pub enum ClaimsSelection {
 
         /// Arrays of identifiers for elements in claims that specifies which combinations of claims for the Credential
         /// are requested.
-        claim_sets: VecNonEmpty<VecNonEmpty<String>>,
+        claim_sets: VecNonEmpty<VecNonEmptyUnique<String>>,
     },
 
     /// The RP requests all of the contained claims.
@@ -110,7 +111,7 @@ pub struct CredentialSetQuery {
     /// A non-empty array, where each value in the array is a list of Credential Query identifiers representing
     /// one set of Credentials that satisfies the use case. The value of each element in the options array is
     /// an array of identifiers which reference elements in the `credentials` field of [`Query`].
-    pub options: VecNonEmpty<VecNonEmpty<String>>,
+    pub options: VecNonEmpty<VecNonEmptyUnique<String>>,
 
     /// Indicates whether this set of Credentials is required to satisfy the particular use case at the Verifier.
     /// If omitted, the default value is true.
