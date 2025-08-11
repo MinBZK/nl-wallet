@@ -22,36 +22,34 @@ sed -i'' -E '/^Defaults\s+(env_reset|mail_badpass|secure_path)/d' /etc/sudoers
 
 # yq
 # Download from: https://github.com/mikefarah/yq/releases/
-wget --no-hsts -q -O yq.tar.gz https://github.com/mikefarah/yq/releases/download/v4.45.1/yq_linux_amd64.tar.gz
-echo "290b22a62d0bd3590741557eb6391707a519893d81be975637bc13443140e057 yq.tar.gz" | sha256sum -c
-tar -xf yq.tar.gz --no-same-owner ./yq_linux_amd64
-mv yq_linux_amd64 /usr/local/bin/yq
-rm yq.tar.gz
+wget --no-hsts -q -O /usr/local/bin/yq https://github.com/mikefarah/yq/releases/download/v4.47.1/yq_linux_amd64
+echo "0fb28c6680193c41b364193d0c0fc4a03177aecde51cfc04d506b1517158c2fb  /usr/local/bin/yq" | sha256sum -c
+chmod +x /usr/local/bin/yq
 
 # Minio
 # Download from: https://dl.min.io/client/mc/release/linux-amd64/
-wget --no-hsts -q -O /usr/local/bin/mc https://dl.min.io/client/mc/release/linux-amd64/archive/mc.RELEASE.2024-11-21T17-21-54Z
-echo "0312010a9d0aa7a52b4dfb14330f289ee4e295def80b3a3f530d4f38c1b71da0  /usr/local/bin/mc" | sha256sum -c
+wget --no-hsts -q -O /usr/local/bin/mc https://dl.min.io/client/mc/release/linux-amd64/archive/mc.RELEASE.2025-07-21T05-28-08Z
+echo "ea4a453be116071ab1ccbd24eb8755bf0579649f41a7b94ab9e68571bb9f4a1e  /usr/local/bin/mc" | sha256sum -c
 chmod +x /usr/local/bin/mc
 
 # k8s same version as SP
 # Get sha256 by appending .sha256)
-wget --no-hsts -q -O /usr/local/bin/kubectl https://dl.k8s.io/release/v1.29.12/bin/linux/amd64/kubectl
-echo "35fc028853e6f5299a53f22ab58273ea2d882c0f261ead0a2eed5b844b12dbfb  /usr/local/bin/kubectl" | sha256sum -c
+wget --no-hsts -q -O /usr/local/bin/kubectl https://dl.k8s.io/release/v1.30.14/bin/linux/amd64/kubectl
+echo "7ccac981ece0098284d8961973295f5124d78eab7b89ba5023f35591baa16271  /usr/local/bin/kubectl" | sha256sum -c
 chmod +x /usr/local/bin/kubectl
 
 # Helm
 # Download from https://github.com/helm/helm/releases
-wget --no-hsts -q -O helm.tar.gz https://get.helm.sh/helm-v3.16.4-linux-amd64.tar.gz
-echo "fc307327959aa38ed8f9f7e66d45492bb022a66c3e5da6063958254b9767d179  helm.tar.gz" | sha256sum -c
+wget --no-hsts -q -O helm.tar.gz https://get.helm.sh/helm-v3.17.4-linux-amd64.tar.gz
+echo "c91e3d7293849eff3b4dc4ea7994c338bcc92f914864d38b5789bab18a1d775d  helm.tar.gz" | sha256sum -c
 tar -xf helm.tar.gz --no-same-owner linux-amd64/helm
 mv linux-amd64/helm /usr/local/bin/
 rmdir linux-amd64
 rm helm.tar.gz
 
 # GitHub CLI
-wget --no-hsts -q -O gh.tar.gz https://github.com/cli/cli/releases/download/v2.67.0/gh_2.67.0_linux_amd64.tar.gz
-echo "d77623479bec017ef8eebadfefc785bafd4658343b3eb6d3f3e26fd5e11368d5  gh.tar.gz" | sha256sum -c
+wget --no-hsts -q -O gh.tar.gz https://github.com/cli/cli/releases/download/v2.76.2/gh_2.76.2_linux_amd64.tar.gz
+echo "62544b0f3759bbf1155c0ac3d75838b5fe23d66dfb75cf8368f84fff8f82b93e  gh.tar.gz" | sha256sum -c
 tar -xf gh.tar.gz --exclude 'LICENSE' --exclude 'share'
 mv gh_*/bin/gh /usr/local/bin/
 rm -rf gh_* gh.tar.gz
