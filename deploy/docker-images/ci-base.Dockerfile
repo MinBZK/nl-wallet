@@ -1,12 +1,12 @@
 ARG DOCKER_HUB_PROXY
-# bookworm-20250630-slim
-FROM ${DOCKER_HUB_PROXY}library/debian@sha256:6ac2c08566499cc2415926653cf2ed7c3aedac445675a013cc09469c9e118fdd
+# trixie-20250721-slim
+FROM ${DOCKER_HUB_PROXY}library/debian@sha256:cc92da07b99dd5c078cb5583fdb4ba639c7c9c14eb78508a2be285ca67cc738a
 
 COPY apt.sh /tmp/
 RUN /tmp/apt.sh
 
 # Update and upgrade to the latest and greatest
-RUN apt-get update && apt-get upgrade -y
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get upgrade -y
 
 # Add wallet user with same uid as gitlab-runner and
 RUN useradd -u 1001 -m -d /wallet -s /bin/bash wallet \
