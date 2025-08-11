@@ -45,6 +45,8 @@ pub enum UnsupportedDcqlFeatures {
     ClaimValues,
     #[error("'trusted_authorities' is not suported")]
     TrustedAuthorities,
+    #[error("requests that do not require a cryptographic holder binding proof are not supported")]
+    CryptographicHolderBindingNotRequired,
     // TODO: PVW-4139 support SdJwt
     #[error("format 'dc+sd-jwt' is not supported")]
     SdJwt,
@@ -84,7 +86,7 @@ impl TryFrom<CredentialQuery> for NormalizedCredentialRequest {
             return Err(UnsupportedDcqlFeatures::TrustedAuthorities);
         }
         if !source.require_cryptographic_holder_binding {
-            todo!()
+            return Err(UnsupportedDcqlFeatures::CryptographicHolderBindingNotRequired);
         }
 
         let CredentialQueryFormat::MsoMdoc { doctype_value } = source.format else {
@@ -526,6 +528,10 @@ mod test {
         Err(UnsupportedDcqlFeatures::MissingIntentToRetain)
     )]
     #[case(query_with_values(), Err(UnsupportedDcqlFeatures::ClaimValues))]
+    #[case(
+        query_without_cryptographic_holder_binding_requirement(),
+        Err(UnsupportedDcqlFeatures::CryptographicHolderBindingNotRequired)
+    )]
     fn test_conversion(
         #[case] query: Query,
         #[case] expected: Result<VecNonEmpty<NormalizedCredentialRequest>, UnsupportedDcqlFeatures>,
@@ -635,6 +641,13 @@ mod test {
             c.claims_selection = ClaimsSelection::All {
                 claims: vec![claims_query].try_into().unwrap(),
             };
+            c
+        })
+    }
+
+    fn query_without_cryptographic_holder_binding_requirement() -> Query {
+        mdoc_example_query_mutate_first_credential_query(move |mut c| {
+            c.require_cryptographic_holder_binding = false;
             c
         })
     }
