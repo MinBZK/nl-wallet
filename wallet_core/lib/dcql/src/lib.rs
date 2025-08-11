@@ -12,6 +12,30 @@ use attestation_types::claim_path::ClaimPath;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_at_least::VecNonEmptyUnique;
 
+#[derive(Debug, thiserror::Error)]
+#[error("not a valid identifier: {0}")]
+pub struct IdentifierError(String);
+
+fn validate_identifier_str(id: &str) -> Result<(), IdentifierError> {
+    if !id.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-') {
+        return Err(IdentifierError(id.to_string()));
+    }
+
+    Ok(())
+}
+
+#[nutype(
+    derive(Debug, Clone, PartialEq, Eq, Hash, Display, AsRef, TryFrom, Serialize, Deserialize),
+    validate(with = validate_identifier_str, error = IdentifierError),
+)]
+pub struct CredentialIdentifier(String);
+
+#[nutype(
+    derive(Debug, Clone, PartialEq, Eq, Hash, Display, AsRef, TryFrom, Serialize, Deserialize),
+    validate(with = validate_identifier_str, error = IdentifierError),
+)]
+pub struct ClaimIdentifier(String);
+
 trait MayHaveUniqueId {
     fn id(&self) -> Option<&str>;
 }
@@ -45,7 +69,7 @@ pub struct CredentialQuery {
     /// Identifies the Credential in the response and, if provided, the constraints in credential_sets. MUST be
     /// non-empty consisting of alphanumeric, underscore (_) or hyphen (-) characters. MUST be unique within the
     /// Authorization Request.
-    pub id: String,
+    pub id: CredentialIdentifier,
 
     /// Specifies the format of the requested Credential.
     #[serde(flatten)]
@@ -74,7 +98,7 @@ pub struct CredentialQuery {
 
 impl MayHaveUniqueId for CredentialQuery {
     fn id(&self) -> Option<&str> {
-        Some(self.id.as_str())
+        Some(self.id.as_ref())
     }
 }
 
@@ -92,7 +116,7 @@ pub enum ClaimsSelection {
 
         /// Arrays of identifiers for elements in claims that specifies which combinations of claims for the Credential
         /// are requested.
-        claim_sets: VecNonEmpty<VecNonEmptyUnique<String>>,
+        claim_sets: VecNonEmpty<VecNonEmptyUnique<ClaimIdentifier>>,
     },
 
     /// The RP requests all of the contained claims.
@@ -129,7 +153,7 @@ pub struct CredentialSetQuery {
     /// A non-empty array, where each value in the array is a list of Credential Query identifiers representing
     /// one set of Credentials that satisfies the use case. The value of each element in the options array is
     /// an array of identifiers which reference elements in the `credentials` field of [`Query`].
-    pub options: VecNonEmpty<VecNonEmptyUnique<String>>,
+    pub options: VecNonEmpty<VecNonEmptyUnique<CredentialIdentifier>>,
 
     /// Indicates whether this set of Credentials is required to satisfy the particular use case at the Verifier.
     /// If omitted, the default value is true.
@@ -167,7 +191,7 @@ pub struct ClaimsQuery {
     /// REQUIRED if claim_sets is present in the Credential Query; OPTIONAL otherwise.
     /// The value MUST be a non-empty string consisting of alphanumeric, underscore (_) or hyphen (-) characters.
     /// Within the particular claims array, the same id MUST NOT be present more than once.
-    pub id: Option<String>,
+    pub id: Option<ClaimIdentifier>,
 
     /// Claims path pointers that specify the path to a claim within the Credential.
     pub path: VecNonEmpty<ClaimPath>,
@@ -186,7 +210,7 @@ pub struct ClaimsQuery {
 
 impl MayHaveUniqueId for ClaimsQuery {
     fn id(&self) -> Option<&str> {
-        self.id.as_deref()
+        self.id.as_ref().map(|id| id.as_ref())
     }
 }
 
@@ -350,7 +374,12 @@ mod tests {
     #[case(("foo", "foo"), (None, None), false)]
     #[case(("foo", "foo"), (Some("bleh"), Some("blah")), false)]
     #[case(("foo", "bar"), (Some("bleh"), Some("bleh")), false)]
-    fn test_duplicate_id_errors(
+    #[case(("foo!", "bar"), (None, None), false)]
+    #[case(("foo", "café"), (None, None), false)]
+    #[case(("悪い", "bar"), (None, None), false)]
+    #[case(("🐈", "bar"), (None, None), false)]
+    #[case(("foo", "bar"), (Some("bleh"), Some("#blah")), false)]
+    fn test_credential_and_claim_id_errors(
         #[case] (first_credential_id, second_credential_id): (&str, &str),
         #[case] (first_claim_id, second_claim_id): (Option<&str>, Option<&str>),
         #[case] should_succeed: bool,
