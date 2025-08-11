@@ -28,13 +28,13 @@ fn validate_identifier_str(id: &str) -> Result<(), IdentifierError> {
     derive(Debug, Clone, PartialEq, Eq, Hash, Display, AsRef, TryFrom, Serialize, Deserialize),
     validate(with = validate_identifier_str, error = IdentifierError),
 )]
-pub struct CredentialIdentifier(String);
+pub struct CredentialQueryIdentifier(String);
 
 #[nutype(
     derive(Debug, Clone, PartialEq, Eq, Hash, Display, AsRef, TryFrom, Serialize, Deserialize),
     validate(with = validate_identifier_str, error = IdentifierError),
 )]
-pub struct ClaimIdentifier(String);
+pub struct ClaimsQueryIdentifier(String);
 
 trait MayHaveUniqueId {
     fn id(&self) -> Option<&str>;
@@ -69,7 +69,7 @@ pub struct CredentialQuery {
     /// Identifies the Credential in the response and, if provided, the constraints in credential_sets. MUST be
     /// non-empty consisting of alphanumeric, underscore (_) or hyphen (-) characters. MUST be unique within the
     /// Authorization Request.
-    pub id: CredentialIdentifier,
+    pub id: CredentialQueryIdentifier,
 
     /// Specifies the format of the requested Credential.
     #[serde(flatten)]
@@ -116,7 +116,7 @@ pub enum ClaimsSelection {
 
         /// Arrays of identifiers for elements in claims that specifies which combinations of claims for the Credential
         /// are requested.
-        claim_sets: VecNonEmpty<VecNonEmptyUnique<ClaimIdentifier>>,
+        claim_sets: VecNonEmpty<VecNonEmptyUnique<ClaimsQueryIdentifier>>,
     },
 
     /// The RP requests all of the contained claims.
@@ -153,7 +153,7 @@ pub struct CredentialSetQuery {
     /// A non-empty array, where each value in the array is a list of Credential Query identifiers representing
     /// one set of Credentials that satisfies the use case. The value of each element in the options array is
     /// an array of identifiers which reference elements in the `credentials` field of [`Query`].
-    pub options: VecNonEmpty<VecNonEmptyUnique<CredentialIdentifier>>,
+    pub options: VecNonEmpty<VecNonEmptyUnique<CredentialQueryIdentifier>>,
 
     /// Indicates whether this set of Credentials is required to satisfy the particular use case at the Verifier.
     /// If omitted, the default value is true.
@@ -191,7 +191,7 @@ pub struct ClaimsQuery {
     /// REQUIRED if claim_sets is present in the Credential Query; OPTIONAL otherwise.
     /// The value MUST be a non-empty string consisting of alphanumeric, underscore (_) or hyphen (-) characters.
     /// Within the particular claims array, the same id MUST NOT be present more than once.
-    pub id: Option<ClaimIdentifier>,
+    pub id: Option<ClaimsQueryIdentifier>,
 
     /// Claims path pointers that specify the path to a claim within the Credential.
     pub path: VecNonEmpty<ClaimPath>,

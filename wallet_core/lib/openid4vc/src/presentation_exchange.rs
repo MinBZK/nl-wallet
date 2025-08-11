@@ -190,7 +190,8 @@ impl TryFrom<&PresentationDefinition> for VecNonEmpty<NormalizedCredentialReques
         let credential_requests = pd
             .input_descriptors
             .iter()
-            .map(|input_descriptor| {
+            .enumerate()
+            .map(|(index, input_descriptor)| {
                 let alg = match &input_descriptor.format {
                     VpFormat::MsoMdoc { alg } => alg,
                     VpFormat::SdJwt { alg } => alg,
@@ -219,6 +220,8 @@ impl TryFrom<&PresentationDefinition> for VecNonEmpty<NormalizedCredentialReques
                     .collect::<Result<_, _>>()?;
 
                 Ok(NormalizedCredentialRequest {
+                    // TODO: This is temporary and will be removed when we switch over to using DCQL.
+                    id: format!("mdoc_{index}").try_into().unwrap(),
                     format: CredentialQueryFormat::MsoMdoc {
                         doctype_value: input_descriptor.id.clone(),
                     },
@@ -348,7 +351,9 @@ mod tests {
         let pd: PresentationDefinition = (&orginal).try_into().unwrap();
         let converted: VecNonEmpty<NormalizedCredentialRequest> = (&pd).try_into().unwrap();
 
-        assert_eq!(orginal, converted);
+        assert_eq!(orginal.len(), converted.len());
+        assert_eq!(orginal.first().format, converted.first().format);
+        assert_eq!(orginal.first().claims, converted.first().claims);
     }
 
     #[test]

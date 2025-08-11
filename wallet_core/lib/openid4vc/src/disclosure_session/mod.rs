@@ -49,6 +49,7 @@ pub trait DisclosureClient {
 
 pub trait DisclosureSession {
     fn session_type(&self) -> SessionType;
+    /// The identifiers of each [`NormalizedCredentialRequest`] returned are guaranteed to be unique.
     fn credential_requests(&self) -> &VecNonEmpty<NormalizedCredentialRequest>;
     fn verifier_certificate(&self) -> &VerifierCertificate;
 
