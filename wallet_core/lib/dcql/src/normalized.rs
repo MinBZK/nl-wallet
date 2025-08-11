@@ -525,6 +525,7 @@ mod test {
         query_with_missing_intent_to_retain(),
         Err(UnsupportedDcqlFeatures::MissingIntentToRetain)
     )]
+    #[case(query_with_values(), Err(UnsupportedDcqlFeatures::ClaimValues))]
     fn test_conversion(
         #[case] query: Query,
         #[case] expected: Result<VecNonEmpty<NormalizedCredentialRequest>, UnsupportedDcqlFeatures>,
@@ -614,6 +615,20 @@ mod test {
             claims_query.path = vec![ClaimPath::SelectByKey("ns".to_string()), ClaimPath::SelectByIndex(1)]
                 .try_into()
                 .unwrap();
+            claims_query
+        };
+        mdoc_example_query_mutate_first_credential_query(move |mut c| {
+            c.claims_selection = ClaimsSelection::All {
+                claims: vec![claims_query].try_into().unwrap(),
+            };
+            c
+        })
+    }
+
+    fn query_with_values() -> Query {
+        let claims_query = {
+            let mut claims_query = mdoc_claims_query();
+            claims_query.values = vec![serde_json::Value::Bool(true)];
             claims_query
         };
         mdoc_example_query_mutate_first_credential_query(move |mut c| {
