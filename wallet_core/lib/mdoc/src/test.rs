@@ -492,7 +492,7 @@ pub mod data {
 
     fn credential_query_from((id, source): (usize, TestDocument)) -> CredentialQuery {
         CredentialQuery {
-            id: format!("id-{id}"),
+            id: format!("id-{id}").try_into().unwrap(),
             format: CredentialQueryFormat::MsoMdoc {
                 doctype_value: source.doc_type,
             },

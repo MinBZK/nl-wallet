@@ -169,7 +169,7 @@ pub mod mock {
         pub fn new_example() -> Self {
             Self {
                 credentials: vec![CredentialQuery {
-                    id: "my_credential".to_string(),
+                    id: "my_credential".to_string().try_into().unwrap(),
                     format: CredentialQueryFormat::MsoMdoc {
                         doctype_value: EXAMPLE_DOC_TYPE.to_string(),
                     },
@@ -201,7 +201,7 @@ pub mod mock {
         pub fn new_pid_example() -> Self {
             Self {
                 credentials: vec![CredentialQuery {
-                    id: "my_credential".to_string(),
+                    id: "my_credential".to_string().try_into().unwrap(),
                     format: CredentialQueryFormat::MsoMdoc {
                         doctype_value: PID.to_string(),
                     },
@@ -257,7 +257,7 @@ pub mod mock {
         pub fn pid_full_name() -> Self {
             Self {
                 credentials: vec![CredentialQuery {
-                    id: "my_credential".to_string(),
+                    id: "my_credential".to_string().try_into().unwrap(),
                     format: CredentialQueryFormat::MsoMdoc {
                         doctype_value: PID.to_string(),
                     },
@@ -302,7 +302,7 @@ pub mod mock {
         pub fn pid_family_name() -> Self {
             Self {
                 credentials: vec![CredentialQuery {
-                    id: "my_credential".to_string(),
+                    id: "my_credential".to_string().try_into().unwrap(),
                     format: CredentialQueryFormat::MsoMdoc {
                         doctype_value: PID.to_string(),
                     },
@@ -579,7 +579,9 @@ mod test {
         mdoc_example_query_mutate_first_credential_query(|mut c| {
             c.claims_selection = ClaimsSelection::Combinations {
                 claims: vec![mdoc_claims_query()].try_into().unwrap(),
-                claim_sets: vec![vec!["1".to_string()].try_into().unwrap()].try_into().unwrap(),
+                claim_sets: vec![vec!["1".to_string().try_into().unwrap()].try_into().unwrap()]
+                    .try_into()
+                    .unwrap(),
             };
             c
         })
