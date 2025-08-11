@@ -1,6 +1,7 @@
 use itertools::Itertools;
 
 use dcql::CredentialQueryFormat;
+use dcql::normalized::AttributeRequest;
 use dcql::normalized::NormalizedCredentialRequest;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -10,17 +11,21 @@ pub enum DisclosureType {
 }
 
 impl DisclosureType {
-    pub fn from_credential_requests<'a>(
+    pub fn from_credential_requests<'a, 'b>(
         credential_requests: impl IntoIterator<Item = &'a NormalizedCredentialRequest>,
-        mdoc_login_request: &NormalizedCredentialRequest,
+        login_attestation_type: &str,
+        mdoc_login_claim: &AttributeRequest,
     ) -> Self {
         credential_requests
             .into_iter()
             .exactly_one()
             .ok()
             .and_then(|request| {
-                match request.format {
-                    CredentialQueryFormat::MsoMdoc { .. } => request == mdoc_login_request,
+                match &request.format {
+                    CredentialQueryFormat::MsoMdoc { doctype_value } => {
+                        doctype_value == login_attestation_type
+                            && request.claims.iter().exactly_one().ok() == Some(mdoc_login_claim)
+                    }
                     // TODO (PVW-4621): Add support for matching SDW-JWT login request.
                     CredentialQueryFormat::SdJwt { .. } => false,
                 }
@@ -52,14 +57,15 @@ mod test {
         #[case] attribute_paths: VecNonEmpty<NormalizedCredentialRequest>,
         #[case] expected: DisclosureType,
     ) {
-        let mdoc_login_request = normalized::mock::mock_mdoc_from_slices(&[(
-            LOGIN_ATTESTATION_TYPE,
-            &[&[LOGIN_NAMESPACE, LOGIN_ATTRIBUTE_ID]],
-        )])
-        .into_first();
+        let mdoc_login_attribute =
+            normalized::mock::mock_attribute_request_from_slice(&[LOGIN_NAMESPACE, LOGIN_ATTRIBUTE_ID]);
 
         assert_eq!(
-            DisclosureType::from_credential_requests(attribute_paths.as_ref(), &mdoc_login_request),
+            DisclosureType::from_credential_requests(
+                attribute_paths.as_ref(),
+                LOGIN_ATTESTATION_TYPE,
+                &mdoc_login_attribute,
+            ),
             expected
         );
     }

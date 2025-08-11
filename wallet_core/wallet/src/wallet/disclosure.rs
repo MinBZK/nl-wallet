@@ -70,19 +70,14 @@ use super::uri::identify_uri;
 
 /// A login request will only contain the BSN attribute, which the verifier checks against a BSN
 /// the verifier already posseses for the wallet user. For this reason it should not retain it.
-static MDOC_LOGIN_REQUEST: LazyLock<NormalizedCredentialRequest> = LazyLock::new(|| NormalizedCredentialRequest {
-    format: CredentialQueryFormat::MsoMdoc {
-        doctype_value: PID_ATTESTATION_TYPE.to_string(),
-    },
-    claims: vec![AttributeRequest {
-        path: vec![
-            ClaimPath::SelectByKey(PID_ATTESTATION_TYPE.to_string()),
-            ClaimPath::SelectByKey(PID_BSN.to_string()),
-        ]
-        .try_into()
-        .unwrap(),
-        intent_to_retain: false,
-    }],
+static MDOC_LOGIN_ATTRIBUTE: LazyLock<AttributeRequest> = LazyLock::new(|| AttributeRequest {
+    path: vec![
+        ClaimPath::SelectByKey(PID_ATTESTATION_TYPE.to_string()),
+        ClaimPath::SelectByKey(PID_BSN.to_string()),
+    ]
+    .try_into()
+    .unwrap(),
+    intent_to_retain: false,
 });
 
 #[derive(Debug, Clone)]
@@ -387,8 +382,11 @@ where
 
         // At this point, determine the disclosure type and if data was ever shared with this RP before, as the UI
         // needs this context both for when all requested attributes are present and for when attributes are missing.
-        let disclosure_type =
-            DisclosureType::from_credential_requests(session.credential_requests().as_ref(), &MDOC_LOGIN_REQUEST);
+        let disclosure_type = DisclosureType::from_credential_requests(
+            session.credential_requests().as_ref(),
+            PID_ATTESTATION_TYPE,
+            &MDOC_LOGIN_ATTRIBUTE,
+        );
 
         let verifier_certificate = session.verifier_certificate();
         let shared_data_with_relying_party_before = self
