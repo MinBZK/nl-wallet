@@ -509,7 +509,10 @@ mod test {
     #[case(query_multiple_queries(), Err(UnsupportedDcqlFeatures::MultipleCredentialQueries))]
     #[case(query_with_trusted_authorities(), Err(UnsupportedDcqlFeatures::TrustedAuthorities))]
     #[case(query_with_claim_sets(), Err(UnsupportedDcqlFeatures::MultipleClaimSets))]
-    #[case(query_with_invalid_claim_path_length(), Err(UnsupportedDcqlFeatures::InvalidClaimPathLength(1.try_into().unwrap())))]
+    #[case(
+        query_with_invalid_claim_path_length(),
+        Err(UnsupportedDcqlFeatures::InvalidClaimPathLength(1.try_into().unwrap())),
+    )]
     #[case(
         query_with_invalid_claim_path_variant_all(),
         Err(UnsupportedDcqlFeatures::UnsupportedClaimPathVariant)
