@@ -172,14 +172,14 @@ pub mod mock {
         }
 
         pub fn mock_from_dcql_query(dcql_query: &Query) -> Self {
-            let authorized_attributes = dcql_query.credentials.iter().fold(
+            let authorized_attributes = dcql_query.credentials.as_ref().iter().fold(
                 HashMap::new(),
                 |mut acc: HashMap<String, Vec<VecNonEmpty<ClaimPath>>>, credential_query| {
                     match credential_query.format {
                         CredentialQueryFormat::MsoMdoc { ref doctype_value } => {
                             let claim_paths = match &credential_query.claims_selection {
                                 ClaimsSelection::All { claims } => {
-                                    claims.iter().map(|c| c.path.clone()).collect::<Vec<_>>()
+                                    claims.as_ref().iter().map(|c| c.path.clone()).collect::<Vec<_>>()
                                 }
                                 ClaimsSelection::NoSelectivelyDisclosable | ClaimsSelection::Combinations { .. } => {
                                     unimplemented!()

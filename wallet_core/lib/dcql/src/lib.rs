@@ -2,6 +2,8 @@ pub mod normalized;
 
 use std::ops::Not;
 
+use itertools::Itertools;
+use nutype::nutype;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
@@ -10,6 +12,16 @@ use attestation_types::claim_path::ClaimPath;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_at_least::VecNonEmptyUnique;
 
+trait MayHaveUniqueId {
+    fn id(&self) -> Option<&str>;
+}
+
+#[nutype(
+    derive(Debug, Clone, PartialEq, Eq, AsRef, TryFrom, IntoIterator, Serialize, Deserialize),
+    validate(predicate = |items| !items.is_empty() && items.iter().flat_map(MayHaveUniqueId::id).all_unique()),
+)]
+pub struct UniqueIdVec<T: MayHaveUniqueId>(Vec<T>);
+
 /// A DCQL query, encoding constraints on the combinations of credentials and claims that are requested.
 /// The Wallet must evaluate the query against the Credentials it holds and returns Presentations matching the query.
 ///
@@ -17,7 +29,7 @@ use utils::vec_at_least::VecNonEmptyUnique;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Query {
     /// Credential Queries that specify the requested Credentials.
-    pub credentials: VecNonEmpty<CredentialQuery>,
+    pub credentials: UniqueIdVec<CredentialQuery>,
 
     /// Additional constraints, if any, on which of the requested Credentials to return.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -60,6 +72,12 @@ pub struct CredentialQuery {
     pub claims_selection: ClaimsSelection,
 }
 
+impl MayHaveUniqueId for CredentialQuery {
+    fn id(&self) -> Option<&str> {
+        Some(self.id.as_str())
+    }
+}
+
 /// Specifies which claims (if any) of the Credential is requested by the RP.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
@@ -70,7 +88,7 @@ pub enum ClaimsSelection {
     /// The RP specifies several options of combinations of requested claims.
     Combinations {
         /// Objects that specify claims in the requested Credential.
-        claims: VecNonEmpty<ClaimsQuery>,
+        claims: UniqueIdVec<ClaimsQuery>,
 
         /// Arrays of identifiers for elements in claims that specifies which combinations of claims for the Credential
         /// are requested.
@@ -80,7 +98,7 @@ pub enum ClaimsSelection {
     /// The RP requests all of the contained claims.
     All {
         /// Objects that specify claims in the requested Credential.
-        claims: VecNonEmpty<ClaimsQuery>,
+        claims: UniqueIdVec<ClaimsQuery>,
     },
 }
 
@@ -164,6 +182,12 @@ pub struct ClaimsQuery {
     ///
     /// <https://openid.net/specs/openid-4-verifiable-presentations-1_0-28.html#name-parameter-in-the-claims-que>
     pub intent_to_retain: Option<bool>,
+}
+
+impl MayHaveUniqueId for ClaimsQuery {
+    fn id(&self) -> Option<&str> {
+        self.id.as_deref()
+    }
 }
 
 const fn bool_value<const B: bool>() -> bool {
@@ -289,5 +313,81 @@ mod tests {
         });
 
         assert_eq!(serde_json::to_value(&query).unwrap(), expected);
+    }
+
+    #[test]
+    fn test_empty_credentials_error() {
+        let json = json!({
+            "credentials": []
+        });
+
+        let _ = serde_json::from_value::<Query>(json).expect_err("deserializing Query should not succeed");
+    }
+
+    #[test]
+    fn test_empty_claims_error() {
+        let json = json!({
+            "credentials": [
+                {
+                    "id": "pid",
+                    "format": "dc+sd-jwt",
+                    "meta": {
+                        "vct_values": [ "https://credentials.example.com/identity_credential" ]
+                    },
+                    "claims": []
+                }
+            ]
+        });
+
+        let _ = serde_json::from_value::<Query>(json).expect_err("deserializing Query should not succeed");
+    }
+
+    #[rstest]
+    #[case(("foo", "bar"), (Some("bleh"), Some("blah")), true)]
+    #[case(("foo", "bar"), (None, None), true)]
+    #[case(("foo", "bar"), (Some("bleh"), None), true)]
+    #[case(("foo", "bar"), (None, Some("bleh")), true)]
+    #[case(("foo", "foo"), (None, None), false)]
+    #[case(("foo", "foo"), (Some("bleh"), Some("blah")), false)]
+    #[case(("foo", "bar"), (Some("bleh"), Some("bleh")), false)]
+    fn test_duplicate_id_errors(
+        #[case] (first_credential_id, second_credential_id): (&str, &str),
+        #[case] (first_claim_id, second_claim_id): (Option<&str>, Option<&str>),
+        #[case] should_succeed: bool,
+    ) {
+        let json = json!({
+            "credentials": [
+                {
+                    "id": first_credential_id,
+                    "format": "dc+sd-jwt",
+                    "meta": {
+                        "vct_values": ["https://credentials.example.com/identity_credential" ]
+                    },
+                    "claims": [
+                        { "id": first_claim_id, "path": [ "given_name" ] },
+                        { "id": second_claim_id, "path": [ "family_name" ] }
+                    ]
+                },
+                {
+                    "id": second_credential_id,
+                    "format": "dc+sd-jwt",
+                    "meta": {
+                        "vct_values": [ "https://othercredentials.example/pid" ]
+                    },
+                    "require_cryptographic_holder_binding": false,
+                    "claims": [
+                        { "path": [ "address", null, 1, "street_address" ] }
+                    ]
+                }
+            ]
+        });
+
+        let result = serde_json::from_value::<Query>(json);
+
+        if should_succeed {
+            let _ = result.expect("deserializing Query should succeed");
+        } else {
+            let _ = result.expect_err("deserializing Query should not succeed");
+        }
     }
 }

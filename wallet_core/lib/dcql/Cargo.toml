@@ -12,6 +12,8 @@ examples = []
 mock = []
 
 [dependencies]
+nutype = { workspace = true, features = ["serde"] }
+itertools.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true, features = ["std"] }
 serde_with.workspace = true

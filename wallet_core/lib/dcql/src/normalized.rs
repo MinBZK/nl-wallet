@@ -545,7 +545,9 @@ mod test {
         F: FnOnce(CredentialQuery) -> CredentialQuery,
     {
         let mut query = Query::new_example();
-        query.credentials = vec![mutate(query.credentials.into_first())].try_into().unwrap();
+        query.credentials = vec![mutate(query.credentials.into_iter().next().unwrap())]
+            .try_into()
+            .unwrap();
         query
     }
 
