@@ -3,7 +3,7 @@ set -euxo pipefail
 
 # Check APT signatures to cryptographically pin APT to trusted source
 [[ $(ls /etc/apt/trusted.gpg.d/ | wc -l) -eq 9 ]]
-sha256sum <<EOD
+sha256sum -c <<EOD
 c2a9a16fde95e037bafd0fa6b7e31f41b4ff1e85851de5558f19a2a2f0e955e2  /etc/apt/trusted.gpg.d/debian-archive-bookworm-automatic.asc
 74f81645b4e3156d1e9a88c8dd9259271b89c7099d64af89a2a6996b592faa1f  /etc/apt/trusted.gpg.d/debian-archive-bookworm-security-automatic.asc
 521e9f6a9f9b92ee8d5ce74345e8cfd04028dae9db6f571259d584b293549824  /etc/apt/trusted.gpg.d/debian-archive-bookworm-stable.asc
