@@ -2,4 +2,4 @@
 set -euxo pipefail
 
 DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-  openjdk-17-jdk-headless
+  openjdk-21-jdk-headless
