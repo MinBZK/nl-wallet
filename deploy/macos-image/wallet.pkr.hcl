@@ -9,13 +9,13 @@ packer {
 
 variable "vm_base_name" {
   type = string
-  # macos-sonoma-xcode:16
-  default = "ghcr.io/cirruslabs/macos-sonoma-xcode@sha256:e530cb9f8a6db081a29395ef1f27ddfe5c2f28ecaabb88320155e12862b30a81"
+  # macos-sequoia-xcode:16.4
+  default = "ghcr.io/cirruslabs/macos-sequoia-xcode@sha256:db7deaf20e58b08db63a3fc541923103a0bb715b55da751e140dc45c6df0ba62"
 }
 
 variable "vm_name" {
   type = string
-  default = "sonoma-wallet:0.1.13"
+  default = "sequoia-wallet:0.1.0"
 }
 
 source "tart-cli" "tart" {
@@ -23,7 +23,7 @@ source "tart-cli" "tart" {
   vm_name      = "${var.vm_name}"
   cpu_count    = 4
   memory_gb    = 8
-  disk_size_gb = 100
+  disk_size_gb = 120
   headless     = true
   ssh_password = "admin"
   ssh_username = "admin"
@@ -57,6 +57,7 @@ build {
       "git -C $FLUTTER_HOME switch --detach 3.32.1",
       "dart --disable-analytics",
       "flutter config --no-analytics",
+      "yes | sdkmanager --licenses",
       "flutter doctor --android-licenses",
       "flutter precache",
       "dart pub global activate junitreport 2.0.2",
