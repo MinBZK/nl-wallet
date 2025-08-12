@@ -84,6 +84,14 @@ where
     {
         info!("disclose mdoc documents");
 
+        // TODO (PVW-4780): This method assumes that the attestations passed to it only contain those attributes that
+        //                  were requested to be disclosed. As the `Wallet` already has to perform this operation in
+        //                  order to show the disclosure to the user, we decided to have it pass those reduced versions
+        //                  of the attestations to `VpDisclosureSession`. However, this responsibility would be more
+        //                  appropriately housed in the disclosure session itself. This could be resolved by introducing
+        //                  a new type that this method takes which encapsulates a full source attestation and a list
+        //                  of the attributes to be disclosed. This type then provides the canonical method of creating
+        //                  intermediate types of the attestations that contain a subset of the attributes.
         let expected_attestation_count = self.auth_request.credential_requests.len();
         if mdocs.len() != expected_attestation_count {
             return Err((
