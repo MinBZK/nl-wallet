@@ -4,6 +4,7 @@ use itertools::Itertools;
 use serde::Deserialize;
 use serde::Serialize;
 
+use error_category::ErrorCategory;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::ClaimPath;
@@ -35,8 +36,9 @@ impl NormalizedCredentialRequest {
     }
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, ErrorCategory)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
+#[category(critical)]
 pub enum UnsupportedDcqlFeatures {
     #[error("'credential_sets' are not supported")]
     CredentialSets,
