@@ -546,7 +546,7 @@ pub trait UseCases {
 #[derive(Debug)]
 pub struct RpInitiatedUseCase<K> {
     data: UseCaseData<K>,
-    dcql_query: Option<Query>,
+    credential_requests: Option<VecNonEmpty<NormalizedCredentialRequest>>,
     return_url_template: Option<ReturnUrlTemplate>,
 }
 
@@ -567,7 +567,7 @@ impl<K> RpInitiatedUseCase<K> {
     pub fn try_new(
         key_pair: KeyPair<K>,
         session_type_return_url: SessionTypeReturnUrl,
-        dcql_query: Option<Query>,
+        credential_requests: Option<VecNonEmpty<NormalizedCredentialRequest>>,
         return_url_template: Option<ReturnUrlTemplate>,
     ) -> Result<Self, NewDisclosureUseCaseError> {
         let client_id = client_id_from_key_pair(&key_pair)?;
@@ -577,7 +577,7 @@ impl<K> RpInitiatedUseCase<K> {
                 client_id,
                 session_type_return_url,
             },
-            dcql_query,
+            credential_requests,
             return_url_template,
         };
 
@@ -617,12 +617,14 @@ impl<K: EcdsaKeySend> UseCase for RpInitiatedUseCase<K> {
         }
 
         // We use either the specified dcql_query, or if not specified, the one configured in the usecase.
-        let dcql_query = dcql_query
-            .or_else(|| self.dcql_query.clone())
+        let credential_requests = dcql_query
+            .map(TryInto::try_into)
+            .transpose()?
+            .or_else(|| self.credential_requests.clone())
             .ok_or_else(|| NewSessionError::NoCredentialRequests)?;
 
         let session = Session::<Created>::new(
-            dcql_query.try_into()?,
+            credential_requests,
             id,
             self.data.client_id.clone(),
             redirect_uri_template,
