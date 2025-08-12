@@ -20,6 +20,7 @@ serde_with.workspace = true
 thiserror.workspace = true
 
 attestation_types.path = "../attestation_types"
+error_category.path = "../error_category"
 utils.path = "../utils"
 
 [dev-dependencies]
