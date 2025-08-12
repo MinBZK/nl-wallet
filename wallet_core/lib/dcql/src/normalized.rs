@@ -1,5 +1,6 @@
 use std::num::NonZero;
 
+use itertools::Itertools;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -80,6 +81,22 @@ impl TryFrom<Query> for VecNonEmpty<NormalizedCredentialRequest> {
     }
 }
 
+impl From<VecNonEmpty<NormalizedCredentialRequest>> for Query {
+    fn from(value: VecNonEmpty<NormalizedCredentialRequest>) -> Self {
+        Self {
+            credentials: value
+                .into_iter()
+                .map(CredentialQuery::from)
+                .collect_vec()
+                .try_into()
+                // TODO: Make a newtype that wraps a collection of `NormalizedCredentialRequest`s
+                //       and guarantees identifier uniqueness.
+                .unwrap(),
+            credential_sets: vec![],
+        }
+    }
+}
+
 impl TryFrom<CredentialQuery> for NormalizedCredentialRequest {
     type Error = UnsupportedDcqlFeatures;
 
@@ -122,6 +139,28 @@ impl TryFrom<CredentialQuery> for NormalizedCredentialRequest {
     }
 }
 
+impl From<NormalizedCredentialRequest> for CredentialQuery {
+    fn from(value: NormalizedCredentialRequest) -> Self {
+        Self {
+            id: value.id,
+            format: value.format,
+            multiple: false,
+            trusted_authorities: vec![],
+            require_cryptographic_holder_binding: true,
+            claims_selection: ClaimsSelection::All {
+                claims: value
+                    .claims
+                    .into_iter()
+                    .map(ClaimsQuery::from)
+                    .collect_vec()
+                    .try_into()
+                    // This unwrap is safe as the source is guaranteed not to be empty and no identifiers are used.
+                    .unwrap(),
+            },
+        }
+    }
+}
+
 impl TryFrom<ClaimsQuery> for AttributeRequest {
     type Error = UnsupportedDcqlFeatures;
 
@@ -144,6 +183,18 @@ impl TryFrom<ClaimsQuery> for AttributeRequest {
             intent_to_retain,
         };
         Ok(request)
+    }
+}
+
+impl From<AttributeRequest> for ClaimsQuery {
+    fn from(value: AttributeRequest) -> Self {
+        Self {
+            // Just set the identifier to `None`, as it is only useful for `claim_sets`, which we do not support.
+            id: None,
+            path: value.path,
+            values: vec![],
+            intent_to_retain: Some(value.intent_to_retain),
+        }
     }
 }
 
@@ -579,8 +630,15 @@ mod test {
         #[case] query: Query,
         #[case] expected: Result<VecNonEmpty<NormalizedCredentialRequest>, UnsupportedDcqlFeatures>,
     ) {
-        let result: Result<VecNonEmpty<NormalizedCredentialRequest>, _> = query.try_into();
+        let result = VecNonEmpty::<NormalizedCredentialRequest>::try_from(query.clone());
+
         assert_eq!(result, expected);
+
+        // If the conversion succeeds, test that the conversion back matches the input.
+        // Note that this requires that the input does not use `ClaimsQuery` identifiers.
+        if let Ok(normalized) = result {
+            assert_eq!(Query::from(normalized), query);
+        }
     }
 
     fn mdoc_example_query_mutate_first_credential_query<F>(mutate: F) -> Query

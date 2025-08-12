@@ -50,7 +50,7 @@ pub struct UniqueIdVec<T: MayHaveUniqueId>(Vec<T>);
 /// The Wallet must evaluate the query against the Credentials it holds and returns Presentations matching the query.
 ///
 /// <https://openid.net/specs/openid-4-verifiable-presentations-1_0-28.html#name-digital-credentials-query-l>
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Query {
     /// Credential Queries that specify the requested Credentials.
     pub credentials: UniqueIdVec<CredentialQuery>,
@@ -64,7 +64,7 @@ pub struct Query {
 ///
 /// <https://openid.net/specs/openid-4-verifiable-presentations-1_0-28.html#name-credential-query>
 #[skip_serializing_none]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CredentialQuery {
     /// Identifies the Credential in the response and, if provided, the constraints in credential_sets. MUST be
     /// non-empty consisting of alphanumeric, underscore (_) or hyphen (-) characters. MUST be unique within the
@@ -103,7 +103,7 @@ impl MayHaveUniqueId for CredentialQuery {
 }
 
 /// Specifies which claims (if any) of the Credential is requested by the RP.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum ClaimsSelection {
     /// The RP requests none of the selectively disclosable claims of the Credential.
@@ -148,7 +148,7 @@ pub enum CredentialQueryFormat {
 /// Represents a request for one or more credentials to satisfy a particular use case with the Verifier.
 ///
 /// <https://openid.net/specs/openid-4-verifiable-presentations-1_0-28.html#name-credential-set-query>
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CredentialSetQuery {
     /// A non-empty array, where each value in the array is a list of Credential Query identifiers representing
     /// one set of Credentials that satisfies the use case. The value of each element in the options array is
@@ -166,7 +166,7 @@ pub struct CredentialSetQuery {
 /// in one of the provided types.
 ///
 /// <https://openid.net/specs/openid-4-verifiable-presentations-1_0-28.html#dcql_trusted_authorities>
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "type", content = "values", rename_all = "snake_case")]
 pub enum TrustedAuthoritiesQuery {
     /// Contains the KeyIdentifier of the AuthorityKeyIdentifier as defined in Section 4.2.1.1 of [RFC5280],
@@ -185,7 +185,7 @@ pub enum TrustedAuthoritiesQuery {
 ///
 /// <https://openid.net/specs/openid-4-verifiable-presentations-1_0-28.html#name-claims-query>
 #[skip_serializing_none]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ClaimsQuery {
     /// A string identifying the particular claim.
     /// REQUIRED if claim_sets is present in the Credential Query; OPTIONAL otherwise.
