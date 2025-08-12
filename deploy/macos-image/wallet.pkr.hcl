@@ -57,6 +57,7 @@ build {
       "git -C $FLUTTER_HOME switch --detach 3.32.1",
       "dart --disable-analytics",
       "flutter config --no-analytics",
+      "yes | sdkmanager --licenses",
       "flutter doctor --android-licenses",
       "flutter precache",
       "dart pub global activate junitreport 2.0.2",
