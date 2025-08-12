@@ -3,7 +3,7 @@ set -euxo pipefail
 
 VERSION=12.1.3
 
-gpg --keyserver hkp://keyserver.ubuntu.com --recv-keys 259A55407DD6C00299E6607EFFDE55BE73A2D1ED
+gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 259A55407DD6C00299E6607EFFDE55BE73A2D1ED
 wget --no-hsts -q https://github.com/dependency-check/DependencyCheck/releases/download/v${VERSION}/dependency-check-${VERSION}-release.zip
 wget --no-hsts -q https://github.com/dependency-check/DependencyCheck/releases/download/v${VERSION}/dependency-check-${VERSION}-release.zip.asc
 gpg --verify dependency-check-${VERSION}-release.zip.asc
