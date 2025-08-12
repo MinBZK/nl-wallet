@@ -334,6 +334,8 @@ impl MdocCose<CoseSign1, TaggedBytes<MobileSecurityObject>> {
 
 #[cfg(any(test, feature = "mock"))]
 pub mod data {
+    use itertools::Itertools;
+
     use attestation_types::claim_path::ClaimPath;
     use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
     use dcql::ClaimsQuery;
@@ -472,7 +474,9 @@ pub mod data {
                     intent_to_retain: true,
                 })
             })
-            .collect();
+            .collect_vec()
+            .try_into()
+            .expect("TestDocument has attributes");
 
         NormalizedCredentialRequest { id, format, claims }
     }

@@ -217,7 +217,10 @@ impl TryFrom<&PresentationDefinition> for VecNonEmpty<NormalizedCredentialReques
                             intent_to_retain: field.intent_to_retain,
                         })
                     })
-                    .collect::<Result<_, _>>()?;
+                    .collect::<Result<Vec<_>, _>>()?
+                    .try_into()
+                    // TODO: This is temporary and will be removed when we switch over to using DCQL.
+                    .unwrap();
 
                 Ok(NormalizedCredentialRequest {
                     // TODO: This is temporary and will be removed when we switch over to using DCQL.
