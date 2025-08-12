@@ -18,7 +18,7 @@ use crate::Query;
 pub struct NormalizedCredentialRequest {
     pub id: CredentialQueryIdentifier,
     pub format: CredentialQueryFormat,
-    pub claims: Vec<AttributeRequest>,
+    pub claims: VecNonEmpty<AttributeRequest>,
 }
 
 /// Request for a single attribute with the given [path].
@@ -41,6 +41,8 @@ pub enum UnsupportedDcqlFeatures {
     CredentialSets,
     #[error("multiple credential queries are not supported")]
     MultipleCredentialQueries,
+    #[error("disclosing only non-selectively disclosable claims is not supported")]
+    NoClaims,
     #[error("'claim_sets' are not supported")]
     MultipleClaimSets,
     #[error("claim query with 'values' is not supported")]
@@ -97,12 +99,18 @@ impl TryFrom<CredentialQuery> for NormalizedCredentialRequest {
         };
         let claims = match source.claims_selection {
             ClaimsSelection::NoSelectivelyDisclosable => {
-                vec![]
+                return Err(UnsupportedDcqlFeatures::NoClaims);
             }
             ClaimsSelection::Combinations { .. } => {
                 return Err(UnsupportedDcqlFeatures::MultipleClaimSets);
             }
-            ClaimsSelection::All { claims } => claims.into_iter().map(TryInto::try_into).collect::<Result<_, _>>()?,
+            ClaimsSelection::All { claims } => claims
+                .into_iter()
+                .map(TryInto::try_into)
+                .collect::<Result<Vec<_>, _>>()?
+                .try_into()
+                // This unwrap is safe, as the source is guaranteed not to be empty.
+                .unwrap(),
         };
 
         let request = Self {
@@ -141,6 +149,8 @@ impl TryFrom<ClaimsQuery> for AttributeRequest {
 
 #[cfg(any(test, feature = "mock"))]
 pub mod mock {
+    use itertools::Itertools;
+
     use utils::vec_at_least::VecNonEmpty;
 
     use crate::ClaimPath;
@@ -356,7 +366,9 @@ pub mod mock {
                 claims: vec![AttributeRequest::new_with_keys(
                     vec![EXAMPLE_NAMESPACE.to_string(), ATTR_FAMILY_NAME.to_string()],
                     true,
-                )],
+                )]
+                .try_into()
+                .unwrap(),
             }
         }
 
@@ -370,7 +382,9 @@ pub mod mock {
                     AttributeRequest::new_with_keys(vec![PID.to_string(), ATTR_BSN.to_string()], false),
                     AttributeRequest::new_with_keys(vec![PID.to_string(), ATTR_GIVEN_NAME.to_string()], false),
                     AttributeRequest::new_with_keys(vec![PID.to_string(), ATTR_FAMILY_NAME.to_string()], false),
-                ],
+                ]
+                .try_into()
+                .unwrap(),
             }
         }
 
@@ -383,7 +397,9 @@ pub mod mock {
                 claims: vec![
                     AttributeRequest::new_with_keys(vec![PID.to_string(), ATTR_FAMILY_NAME.to_string()], true),
                     AttributeRequest::new_with_keys(vec![PID.to_string(), ATTR_GIVEN_NAME.to_string()], true),
-                ],
+                ]
+                .try_into()
+                .unwrap(),
             }
         }
 
@@ -396,7 +412,9 @@ pub mod mock {
                 claims: vec![AttributeRequest::new_with_keys(
                     vec![ADDR_NS.to_string(), ATTR_STREET_ADDRESS.to_string()],
                     true,
-                )],
+                )]
+                .try_into()
+                .unwrap(),
             }
         }
     }
@@ -411,7 +429,13 @@ pub mod mock {
         let requests: Vec<_> = input
             .into_iter()
             .map(|(id, format, paths)| {
-                let claims = paths.iter().copied().map(mock_attribute_request_from_slice).collect();
+                let claims = paths
+                    .iter()
+                    .copied()
+                    .map(mock_attribute_request_from_slice)
+                    .collect_vec()
+                    .try_into()
+                    .expect("should contain at least 1 claim");
                 NormalizedCredentialRequest { id, format, claims }
             })
             .collect();
@@ -495,7 +519,9 @@ pub mod mock {
                     vec![EXAMPLE_NAMESPACE.to_string(), ATTR_DRIVING_PRIVILEGES.to_string()],
                     false,
                 ),
-            ],
+            ]
+            .try_into()
+            .unwrap(),
         }]
         .try_into()
         .unwrap()
@@ -526,6 +552,7 @@ mod test {
     #[case(Query::new_example(), Ok(vec![NormalizedCredentialRequest::new_example()].try_into().unwrap()))]
     #[case(query_multiple_queries(), Err(UnsupportedDcqlFeatures::MultipleCredentialQueries))]
     #[case(query_with_trusted_authorities(), Err(UnsupportedDcqlFeatures::TrustedAuthorities))]
+    #[case(query_without_claims(), Err(UnsupportedDcqlFeatures::NoClaims))]
     #[case(query_with_claim_sets(), Err(UnsupportedDcqlFeatures::MultipleClaimSets))]
     #[case(
         query_with_invalid_claim_path_length(),
@@ -587,6 +614,13 @@ mod test {
             c.claims_selection = ClaimsSelection::All {
                 claims: vec![mdoc_claims_query_missing_intent_to_retain()].try_into().unwrap(),
             };
+            c
+        })
+    }
+
+    fn query_without_claims() -> Query {
+        mdoc_example_query_mutate_first_credential_query(|mut c| {
+            c.claims_selection = ClaimsSelection::NoSelectivelyDisclosable;
             c
         })
     }
