@@ -15,6 +15,7 @@ class BrowserStackMobileDriver : WebDriverProvider {
 
     private val browserStackUserName = EnvironmentUtil.getVar("BROWSERSTACK_USER")
     private val browserStackAccessKey = EnvironmentUtil.getVar("BROWSERSTACK_KEY")
+    private val sessionName = EnvironmentUtil.getVar("CI_JOB_ID").takeIf { it.isNotBlank() } ?: "local--run"
 
     override fun createDriver(capabilities: Capabilities): WebDriver {
 
@@ -34,7 +35,7 @@ class BrowserStackMobileDriver : WebDriverProvider {
         // Set other BrowserStack capabilities
         val browserstackOptions = HashMap<String, Any>()
         browserstackOptions["appiumVersion"] = "2.6.0"
-        browserstackOptions["buildName"] = BrowserStackHelper.buildName
+        browserstackOptions["buildName"] = sessionName
         browserstackOptions["disableAnimations"] = "true"
         browserstackOptions["idleTimeout"] = BROWSER_STACK_IDLE_TIMEOUT_SECONDS
         browserstackOptions["networkLogs"] = "true"

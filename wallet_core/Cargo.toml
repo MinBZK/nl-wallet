@@ -129,7 +129,6 @@ http = "1.2.0"
 http-cache-reqwest = { version = "0.15.1", default-features = false }
 hmac = "0.12.1"
 indexmap = "2.7.1"
-insta = { version = "1.42.1", default-features = false }
 int-enum = "1.1.2"
 itertools = "0.14.0"
 jni = "0.21.1"
