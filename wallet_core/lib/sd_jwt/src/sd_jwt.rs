@@ -143,10 +143,10 @@ impl SdJwtPresentation {
     }
 
     pub fn presentation(&self) -> String {
-        let disclosures = self.sd_jwt.disclosures.values().map(ToString::to_string).join("~");
+        let disclosures = self.sd_jwt.disclosures.values().join("~");
         let key_bindings = self.key_binding_jwt.as_ref().to_string();
         [self.sd_jwt.issuer_signed_jwt.jwt().clone().0, disclosures, key_bindings]
-            .iter()
+            .into_iter()
             .filter(|segment| !segment.is_empty())
             .join("~")
     }
