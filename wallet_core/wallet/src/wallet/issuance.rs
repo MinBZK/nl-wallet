@@ -647,7 +647,7 @@ mod tests {
     use crate::attestation::AttestationAttributeValue;
     use crate::digid::MockDigidSession;
     use crate::storage::StorageState;
-    use crate::storage::StoredAttestationFormat;
+    use crate::storage::StoredAttestation;
     use crate::wallet::test::WalletWithStorageMock;
     use crate::wallet::test::create_example_credential_payload;
     use crate::wallet::test::create_example_preview_data;
@@ -1075,7 +1075,7 @@ mod tests {
         let stored = FullStoredAttestationCopy::new(
             attestation_id,
             Uuid::new_v4(),
-            StoredAttestationFormat::SdJwt {
+            StoredAttestation::SdJwt {
                 sd_jwt: Box::new(VerifiedSdJwt::new_mock(sd_jwt)),
             },
             normalized_metadata,
@@ -1435,7 +1435,7 @@ mod tests {
         let stored = FullStoredAttestationCopy::new(
             attestation_id,
             Uuid::new_v4(),
-            StoredAttestationFormat::SdJwt {
+            StoredAttestation::SdJwt {
                 sd_jwt: Box::new(VerifiedSdJwt::new_mock(sd_jwt)),
             },
             normalized_metadata,

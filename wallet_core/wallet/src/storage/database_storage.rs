@@ -63,7 +63,7 @@ use super::Storage;
 use super::StorageError;
 use super::StorageResult;
 use super::StorageState;
-use super::StoredAttestationFormat;
+use super::StoredAttestation;
 use super::data::KeyedData;
 use super::database::Database;
 use super::database::SqliteUrl;
@@ -191,7 +191,7 @@ impl<K> DatabaseStorage<K> {
                     let attestation = match attestation_format {
                         AttestationFormat::Mdoc => {
                             let mdoc = cbor_deserialize(attestation_bytes.as_slice())?;
-                            StoredAttestationFormat::MsoMdoc { mdoc: Box::new(mdoc) }
+                            StoredAttestation::MsoMdoc { mdoc: Box::new(mdoc) }
                         }
                         AttestationFormat::SdJwt => {
                             let sd_jwt = VerifiedSdJwt::dangerous_parse_unverified(
@@ -199,7 +199,7 @@ impl<K> DatabaseStorage<K> {
                                 String::from_utf8(attestation_bytes).unwrap().as_str(),
                                 &Sha256Hasher,
                             )?;
-                            StoredAttestationFormat::SdJwt {
+                            StoredAttestation::SdJwt {
                                 sd_jwt: Box::new(sd_jwt),
                             }
                         }
@@ -1108,7 +1108,7 @@ pub(crate) mod tests {
 
         assert_matches!(
             &attestation_copy1.attestation,
-            StoredAttestationFormat::MsoMdoc { mdoc: stored } if **stored == mdoc
+            StoredAttestation::MsoMdoc { mdoc: stored } if **stored == mdoc
         );
         assert_eq!(
             attestation_copy1.normalized_metadata,
@@ -1141,12 +1141,12 @@ pub(crate) mod tests {
         assert_eq!(fetched_unique_any.len(), 1);
         assert_matches!(
             &fetched_unique_any.first().unwrap().attestation,
-            StoredAttestationFormat::MsoMdoc { mdoc: stored } if **stored == mdoc
+            StoredAttestation::MsoMdoc { mdoc: stored } if **stored == mdoc
         );
         assert_eq!(fetched_unique_mdoc.len(), 1);
         assert_matches!(
             &fetched_unique_mdoc.first().unwrap().attestation,
-            StoredAttestationFormat::MsoMdoc { mdoc: stored } if **stored == mdoc
+            StoredAttestation::MsoMdoc { mdoc: stored } if **stored == mdoc
         );
         assert!(fetched_unique_sd_jwt.is_empty());
         assert!(fetched_unique_other.is_empty());
@@ -1168,7 +1168,7 @@ pub(crate) mod tests {
         let attestation_copy2 = fetched_unique_attestation_type.first().unwrap();
         assert_matches!(
             &attestation_copy2.attestation,
-            StoredAttestationFormat::MsoMdoc { mdoc: stored } if **stored == mdoc
+            StoredAttestation::MsoMdoc { mdoc: stored } if **stored == mdoc
         );
         assert_eq!(
             attestation_copy2.normalized_metadata,
@@ -1260,7 +1260,7 @@ pub(crate) mod tests {
 
         assert_matches!(
             &attestation_copy1.attestation,
-            StoredAttestationFormat::SdJwt { sd_jwt: stored } if stored.as_ref() == &sd_jwt
+            StoredAttestation::SdJwt { sd_jwt: stored } if stored.as_ref() == &sd_jwt
         );
         assert_eq!(
             attestation_copy1.normalized_metadata,
@@ -1293,13 +1293,13 @@ pub(crate) mod tests {
         assert_eq!(fetched_unique_any.len(), 1);
         assert_matches!(
             &fetched_unique_any.first().unwrap().attestation,
-            StoredAttestationFormat::SdJwt { sd_jwt: stored } if stored.as_ref() == &sd_jwt
+            StoredAttestation::SdJwt { sd_jwt: stored } if stored.as_ref() == &sd_jwt
         );
         assert!(fetched_unique_mdoc.is_empty());
         assert_eq!(fetched_unique_sd_jwt.len(), 1);
         assert_matches!(
             &fetched_unique_sd_jwt.first().unwrap().attestation,
-            StoredAttestationFormat::SdJwt { sd_jwt: stored } if stored.as_ref() == &sd_jwt
+            StoredAttestation::SdJwt { sd_jwt: stored } if stored.as_ref() == &sd_jwt
         );
         assert!(fetched_unique_other.is_empty());
     }
@@ -1356,7 +1356,7 @@ pub(crate) mod tests {
         assert_eq!(attestations.len(), 1);
 
         let inserted_attestation_copy = attestations.first().unwrap();
-        let StoredAttestationFormat::SdJwt {
+        let StoredAttestation::SdJwt {
             sd_jwt: inserted_attestation,
         } = &inserted_attestation_copy.attestation
         else {
@@ -1395,7 +1395,7 @@ pub(crate) mod tests {
         assert_eq!(attestations.len(), 1);
 
         let updated_attestation_copy = attestations.first().unwrap();
-        let StoredAttestationFormat::SdJwt {
+        let StoredAttestation::SdJwt {
             sd_jwt: updated_attestation,
         } = &updated_attestation_copy.attestation
         else {
@@ -1425,7 +1425,7 @@ pub(crate) mod tests {
             .expect("Could not fetch unique attestations");
 
         let next_updated_attestation_copy = attestations.first().unwrap();
-        let StoredAttestationFormat::SdJwt {
+        let StoredAttestation::SdJwt {
             sd_jwt: next_updated_attestation,
         } = &next_updated_attestation_copy.attestation
         else {
@@ -1586,7 +1586,7 @@ pub(crate) mod tests {
             .expect("Could not insert mdocs");
 
         let FullStoredAttestationCopy {
-            attestation: StoredAttestationFormat::SdJwt { sd_jwt },
+            attestation: StoredAttestation::SdJwt { sd_jwt },
             attestation_id,
             ..
         } = storage
@@ -1726,7 +1726,7 @@ pub(crate) mod tests {
             .into_iter()
             .map(|attestation| {
                 let FullStoredAttestationCopy {
-                    attestation: StoredAttestationFormat::SdJwt { sd_jwt },
+                    attestation: StoredAttestation::SdJwt { sd_jwt },
                     attestation_id,
                     ..
                 } = attestation

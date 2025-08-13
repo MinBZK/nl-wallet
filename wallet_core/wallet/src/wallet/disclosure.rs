@@ -56,7 +56,7 @@ use crate::storage::AttestationFormatQuery;
 use crate::storage::DataDisclosureStatus;
 use crate::storage::Storage;
 use crate::storage::StorageError;
-use crate::storage::StoredAttestationFormat;
+use crate::storage::StoredAttestation;
 use crate::wallet::Session;
 
 use super::UriType;
@@ -269,7 +269,7 @@ impl<DCS> WalletDisclosureSession<DCS> {
 #[derive(Debug, Clone, Constructor)]
 pub(super) struct DisclosureAttestation {
     copy_id: Uuid,
-    attestation: StoredAttestationFormat<UnsignedSdJwtPresentation>,
+    attestation: StoredAttestation<UnsignedSdJwtPresentation>,
     presentation: AttestationPresentation,
 }
 
@@ -743,8 +743,8 @@ where
         let mdocs = attestations
             .iter()
             .map(|attestation| match &attestation.attestation {
-                StoredAttestationFormat::MsoMdoc { mdoc } => mdoc.as_ref().clone(),
-                StoredAttestationFormat::SdJwt { .. } => {
+                StoredAttestation::MsoMdoc { mdoc } => mdoc.as_ref().clone(),
+                StoredAttestation::SdJwt { .. } => {
                     todo!("implement SD-JWT disclosure (PVW-4138)")
                 }
             })
@@ -911,8 +911,8 @@ mod tests {
     use crate::errors::InstructionError;
     use crate::errors::RemoteEcdsaKeyError;
     use crate::storage::DisclosureStatus;
+    use crate::storage::StoredAttestation;
     use crate::storage::StoredAttestationCopy;
-    use crate::storage::StoredAttestationFormat;
     use crate::storage::WalletEvent;
 
     use super::super::Session;
@@ -1047,7 +1047,7 @@ mod tests {
         // Create a `StoredAttestationCopy`.
         let (attestation, metadata) = match requested_format {
             RequestedFormat::MsoMdoc => (
-                StoredAttestationFormat::MsoMdoc {
+                StoredAttestation::MsoMdoc {
                     mdoc: Box::new(create_example_pid_mdoc()),
                 },
                 NormalizedTypeMetadata::nl_pid_example(),
@@ -1056,7 +1056,7 @@ mod tests {
                 let (sd_jwt, metadata) = create_example_pid_sd_jwt();
 
                 (
-                    StoredAttestationFormat::SdJwt {
+                    StoredAttestation::SdJwt {
                         sd_jwt: Box::new(sd_jwt),
                     },
                     metadata,
