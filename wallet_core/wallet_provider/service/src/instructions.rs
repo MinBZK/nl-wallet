@@ -456,6 +456,8 @@ impl HandleInstruction for Sign {
         }))
         .await?;
 
+        // A PoA should be generated only if the unique keys, i.e. the keys referenced in the instruction
+        // after deduplication, count two or more.
         if found_keys.len() < 2 {
             Ok(SignResult { signatures, poa: None })
         } else {
