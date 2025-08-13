@@ -28,6 +28,7 @@ use attestation_data::credential_payload::mock::pid_example_payload;
 use attestation_data::disclosure::DisclosedAttestation;
 use attestation_data::x509::generate::mock::generate_issuer_mock;
 use attestation_data::x509::generate::mock::generate_reader_mock;
+use crypto::mock_remote::MockRemoteEcdsaKey;
 use crypto::server_keys::generate::Ca;
 use dcql::Query;
 use hsm::service::Pkcs11Hsm;
@@ -65,7 +66,6 @@ use utils::generator::mock::MockTimeGenerator;
 use verification_server::server;
 use verification_server::settings::UseCaseSettings;
 use verification_server::settings::VerifierSettings;
-use crypto::mock_remote::MockRemoteEcdsaKey;
 use wscd::mock_remote::MockRemoteKeyFactory;
 
 const PID_ATTESTATION_TYPE: &str = "urn:eudi:pid:nl:1";
