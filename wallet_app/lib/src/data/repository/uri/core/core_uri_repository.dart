@@ -23,6 +23,8 @@ class CoreUriRepository implements UriRepository {
         return PidIssuanceNavigationRequest(uri.toString());
       case IdentifyUriResult.PidRenewal:
         return PidRenewalNavigationRequest(uri.toString());
+      case IdentifyUriResult.PinRecovery:
+        throw UnimplementedError('PinRecovery not yet supported');
       case IdentifyUriResult.Disclosure:
         return DisclosureNavigationRequest(uri.toString());
       case IdentifyUriResult.DisclosureBasedIssuance:
