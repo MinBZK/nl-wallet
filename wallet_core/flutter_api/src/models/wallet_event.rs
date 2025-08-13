@@ -7,8 +7,6 @@ use super::disclosure::RPLocalizedStrings;
 use super::disclosure::RequestPolicy;
 use super::localize::LocalizedString;
 
-pub struct WalletEvents(Vec<WalletEvent>);
-
 pub enum WalletEvent {
     Disclosure {
         id: String,
@@ -34,14 +32,6 @@ pub enum DisclosureStatus {
     Success,
     Cancelled,
     Error,
-}
-
-impl IntoIterator for WalletEvents {
-    type Item = WalletEvent;
-    type IntoIter = std::vec::IntoIter<WalletEvent>;
-    fn into_iter(self) -> Self::IntoIter {
-        self.0.into_iter()
-    }
 }
 
 impl From<wallet::WalletEvent> for WalletEvent {

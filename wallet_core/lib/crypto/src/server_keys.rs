@@ -181,7 +181,7 @@ pub mod generate {
             rcgen_cert_privkey(&self.key_pair)
         }
 
-        pub fn to_trust_anchor(&self) -> TrustAnchor {
+        pub fn to_trust_anchor(&self) -> TrustAnchor<'_> {
             self.borrowing_trust_anchor.as_trust_anchor().clone()
         }
 
