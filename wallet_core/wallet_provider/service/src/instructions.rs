@@ -582,7 +582,6 @@ mod tests {
     use jwt::Jwt;
     use jwt::jwk::jwk_to_p256;
     use jwt::pop::JwtPopClaims;
-    use jwt::validations;
     use jwt::wte::WteDisclosure;
     use wallet_account::NL_WALLET_CLIENT_ID;
     use wallet_account::messages::instructions::CheckPin;
@@ -594,7 +593,6 @@ mod tests {
     use wallet_provider_domain::repository::MockTransaction;
     use wallet_provider_persistence::repositories::mock::MockTransactionalWalletUserRepository;
     use wscd::Poa;
-    use wscd::PoaPayload;
 
     use crate::account_server::InstructionValidationError;
     use crate::account_server::mock;
@@ -627,6 +625,8 @@ mod tests {
     async fn should_handle_sign() {
         let wallet_user = wallet_user::mock::wallet_user_1();
         let wrapping_key_identifier = "my-wrapping-key-identifier";
+        let poa_nonce = Some("nonce".to_string());
+        let poa_aud = "aud".to_string();
 
         let random_msg_1 = random_bytes(32);
         let random_msg_2 = random_bytes(32);
@@ -635,8 +635,8 @@ mod tests {
                 (random_msg_1.clone(), vec!["key1".to_string(), "key2".to_string()]),
                 (random_msg_2.clone(), vec!["key2".to_string()]),
             ],
-            poa_nonce: Some("nonce".to_string()),
-            poa_aud: "aud".to_string(),
+            poa_nonce: poa_nonce.clone(),
+            poa_aud: poa_aud.clone(),
         };
         let signing_key_1 = SigningKey::random(&mut OsRng);
         let signing_key_2 = SigningKey::random(&mut OsRng);
@@ -689,16 +689,16 @@ mod tests {
             .verify(&random_msg_2, result.signatures[1][0].as_inner())
             .unwrap();
 
-        let mut validations = validations();
-        validations.set_audience(&["aud"]);
-        validations.set_issuer(&[NL_WALLET_CLIENT_ID.to_string()]);
-
-        Vec::<Jwt<PoaPayload>>::from(result.poa.unwrap())
-            .into_iter()
-            .zip([signing_key_1_public, signing_key_2_public])
-            .for_each(|(jwt, pubkey)| {
-                jwt.parse_and_verify(&(&pubkey).into(), &validations).unwrap();
-            });
+        result
+            .poa
+            .unwrap()
+            .verify(
+                &[signing_key_1_public, signing_key_2_public],
+                &poa_aud,
+                &[NL_WALLET_CLIENT_ID.to_string()],
+                poa_nonce.as_ref().unwrap(),
+            )
+            .unwrap();
     }
 
     fn mock_jwt_payload(header: &str) -> Vec<u8> {
