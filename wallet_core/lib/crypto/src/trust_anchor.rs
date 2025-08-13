@@ -36,7 +36,7 @@ impl BorrowingTrustAnchor {
         Ok(BorrowingTrustAnchor(yoke))
     }
 
-    pub fn as_trust_anchor(&self) -> &TrustAnchor {
+    pub fn as_trust_anchor(&self) -> &TrustAnchor<'_> {
         &self.0.get().trust_anchor
     }
 

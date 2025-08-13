@@ -73,7 +73,7 @@ impl DerX509CertificateChain {
         self.as_ref().iter().skip(1).map(Vec::as_slice).collect()
     }
 
-    pub fn credential_certificate(&self) -> Result<CredentialCertificate, CertificateError> {
+    pub fn credential_certificate(&self) -> Result<CredentialCertificate<'_>, CertificateError> {
         let (_, cert) = X509Certificate::from_der(self.credential_certificate_der())
             .map_err(|error| CertificateError::CredentialParsing(error.into()))?;
 

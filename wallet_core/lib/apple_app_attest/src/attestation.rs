@@ -293,7 +293,7 @@ pub mod mock {
             self.certificate.der()
         }
 
-        pub fn trust_anchor(&self) -> TrustAnchor {
+        pub fn trust_anchor(&self) -> TrustAnchor<'_> {
             webpki::anchor_from_trusted_cert(self.as_certificate_der()).unwrap()
         }
     }
