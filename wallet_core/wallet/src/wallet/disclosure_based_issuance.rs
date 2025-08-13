@@ -197,7 +197,7 @@ mod tests {
     use utils::generator::mock::MockTimeGenerator;
 
     use crate::attestation::AttestationPresentation;
-    use crate::storage::StoredAttestationFormat;
+    use crate::storage::StoredAttestation;
 
     use super::super::DisclosureBasedIssuanceError;
     use super::super::Session;
@@ -223,7 +223,7 @@ mod tests {
 
         let attestation = DisclosureAttestation::new(
             Uuid::new_v4(),
-            StoredAttestationFormat::MsoMdoc {
+            StoredAttestation::MsoMdoc {
                 mdoc: Box::new(Mdoc::new_mock().now_or_never().unwrap()),
             },
             AttestationPresentation::new_mock(),

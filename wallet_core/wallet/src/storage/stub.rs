@@ -23,7 +23,7 @@ use super::FullStoredAttestationCopy;
 use super::Storage;
 use super::StorageResult;
 use super::StorageState;
-use super::StoredAttestationFormat;
+use super::StoredAttestation;
 use super::data::KeyedData;
 use super::data::RegistrationData;
 use super::event_log::WalletEvent;
@@ -203,8 +203,8 @@ impl Storage for StorageStub {
             .flatten()
             .map(|credential| {
                 let attestation = match credential.copies.as_ref().first() {
-                    IssuedCredential::MsoMdoc(mdoc) => StoredAttestationFormat::MsoMdoc { mdoc: mdoc.clone() },
-                    IssuedCredential::SdJwt(sd_jwt) => StoredAttestationFormat::SdJwt { sd_jwt: sd_jwt.clone() },
+                    IssuedCredential::MsoMdoc(mdoc) => StoredAttestation::MsoMdoc { mdoc: mdoc.clone() },
+                    IssuedCredential::SdJwt(sd_jwt) => StoredAttestation::SdJwt { sd_jwt: sd_jwt.clone() },
                 };
 
                 FullStoredAttestationCopy {
@@ -239,11 +239,11 @@ impl Storage for StorageStub {
                         .find_map(|credential| match (format_query, credential) {
                             (AttestationFormatQuery::Any, IssuedCredential::MsoMdoc(mdoc))
                             | (AttestationFormatQuery::MsoMdoc, IssuedCredential::MsoMdoc(mdoc)) => {
-                                Some(StoredAttestationFormat::MsoMdoc { mdoc: mdoc.clone() })
+                                Some(StoredAttestation::MsoMdoc { mdoc: mdoc.clone() })
                             }
                             (AttestationFormatQuery::Any, IssuedCredential::SdJwt(sd_jwt))
                             | (AttestationFormatQuery::SdJwt, IssuedCredential::SdJwt(sd_jwt)) => {
-                                Some(StoredAttestationFormat::SdJwt { sd_jwt: sd_jwt.clone() })
+                                Some(StoredAttestation::SdJwt { sd_jwt: sd_jwt.clone() })
                             }
                             _ => None,
                         });

@@ -24,7 +24,7 @@ pub enum StoredAttestationCopyPathError {
 }
 
 #[derive(Debug, Clone)]
-pub enum StoredAttestationFormat<S> {
+pub enum StoredAttestation<S> {
     MsoMdoc { mdoc: Box<Mdoc> }, // TODO: Wrap in similar VerifiedMdoc type (PVW-4132)
     SdJwt { sd_jwt: Box<S> },
 }
@@ -34,7 +34,7 @@ pub enum StoredAttestationFormat<S> {
 pub struct StoredAttestationCopy<S> {
     pub(super) attestation_id: Uuid,
     pub(super) attestation_copy_id: Uuid,
-    pub(super) attestation: StoredAttestationFormat<S>,
+    pub(super) attestation: StoredAttestation<S>,
     pub(super) normalized_metadata: NormalizedTypeMetadata,
 }
 
@@ -57,7 +57,7 @@ impl<S> StoredAttestationCopy<S> {
         self.attestation_copy_id
     }
 
-    pub fn attestation(&self) -> &StoredAttestationFormat<S> {
+    pub fn attestation(&self) -> &StoredAttestation<S> {
         &self.attestation
     }
 
@@ -66,7 +66,7 @@ impl<S> StoredAttestationCopy<S> {
     }
 }
 
-impl<S> StoredAttestationFormat<S>
+impl<S> StoredAttestation<S>
 where
     S: AsRef<SdJwt>,
 {
@@ -100,7 +100,7 @@ where
         let issuer_registration = self.attestation.issuer_registration();
 
         match self.attestation {
-            StoredAttestationFormat::MsoMdoc { mdoc } => AttestationPresentation::create_from_mdoc(
+            StoredAttestation::MsoMdoc { mdoc } => AttestationPresentation::create_from_mdoc(
                 AttestationIdentity::Fixed {
                     id: self.attestation_id,
                 },
@@ -108,7 +108,7 @@ where
                 issuer_registration.organization,
                 mdoc.issuer_signed.into_entries_by_namespace(),
             ),
-            StoredAttestationFormat::SdJwt { sd_jwt } => {
+            StoredAttestation::SdJwt { sd_jwt } => {
                 let credential_payload = credential_payload_from_sd_jwt(sd_jwt.as_ref().as_ref());
 
                 AttestationPresentation::create_from_attributes(
@@ -129,11 +129,11 @@ impl StoredAttestationCopy<VerifiedSdJwt> {
     /// Convert the stored attestation into a [`CredentialPayload`], skipping JSON schema validation.
     pub fn into_credential_payload(self) -> CredentialPayload {
         match self.attestation {
-            StoredAttestationFormat::MsoMdoc { mdoc } => {
+            StoredAttestation::MsoMdoc { mdoc } => {
                 CredentialPayload::from_mdoc_unvalidated(*mdoc, &self.normalized_metadata)
                     .expect("conversion from stored mdoc attestation to CredentialPayload has been done before")
             }
-            StoredAttestationFormat::SdJwt { sd_jwt } => credential_payload_from_sd_jwt(sd_jwt.as_ref().as_ref()),
+            StoredAttestation::SdJwt { sd_jwt } => credential_payload_from_sd_jwt(sd_jwt.as_ref().as_ref()),
         }
     }
 
@@ -143,10 +143,8 @@ impl StoredAttestationCopy<VerifiedSdJwt> {
         claim_paths: impl IntoIterator<Item = &'b VecNonEmpty<ClaimPath>>,
     ) -> bool {
         match &self.attestation {
-            StoredAttestationFormat::MsoMdoc { mdoc } => {
-                mdoc.issuer_signed.matches_requested_attributes(claim_paths).is_ok()
-            }
-            StoredAttestationFormat::SdJwt { sd_jwt } => {
+            StoredAttestation::MsoMdoc { mdoc } => mdoc.issuer_signed.matches_requested_attributes(claim_paths).is_ok(),
+            StoredAttestation::SdJwt { sd_jwt } => {
                 // Create a temporary CredentialPayload to check if the paths are all present.
                 let credential_payload = credential_payload_from_sd_jwt(sd_jwt.as_ref().as_ref());
 
@@ -172,12 +170,12 @@ impl StoredAttestationCopy<VerifiedSdJwt> {
         } = self;
 
         let attestation = match attestation {
-            StoredAttestationFormat::MsoMdoc { mut mdoc } => {
+            StoredAttestation::MsoMdoc { mut mdoc } => {
                 mdoc.issuer_signed = mdoc.issuer_signed.into_attribute_subset(claim_paths)?;
 
-                StoredAttestationFormat::MsoMdoc { mdoc }
+                StoredAttestation::MsoMdoc { mdoc }
             }
-            StoredAttestationFormat::SdJwt { sd_jwt } => {
+            StoredAttestation::SdJwt { sd_jwt } => {
                 let presentation = claim_paths
                     .into_iter()
                     .try_fold(sd_jwt.into_presentation_builder(), |builder, claim_path| {
@@ -185,7 +183,7 @@ impl StoredAttestationCopy<VerifiedSdJwt> {
                     })?
                     .finish();
 
-                StoredAttestationFormat::SdJwt {
+                StoredAttestation::SdJwt {
                     sd_jwt: Box::new(presentation),
                 }
             }
@@ -229,8 +227,8 @@ mod tests {
     use crate::attestation::BSN_ATTR_NAME;
     use crate::attestation::PID_DOCTYPE;
 
+    use super::StoredAttestation;
     use super::StoredAttestationCopy;
-    use super::StoredAttestationFormat;
 
     static ATTESTATION_ID: LazyLock<Uuid> = LazyLock::new(Uuid::new_v4);
 
@@ -255,7 +253,7 @@ mod tests {
         let copy = StoredAttestationCopy {
             attestation_id: *ATTESTATION_ID,
             attestation_copy_id: Uuid::new_v4(),
-            attestation: StoredAttestationFormat::MsoMdoc { mdoc: Box::new(mdoc) },
+            attestation: StoredAttestation::MsoMdoc { mdoc: Box::new(mdoc) },
             normalized_metadata: NormalizedTypeMetadata::nl_pid_example(),
         };
 
@@ -288,7 +286,7 @@ mod tests {
         let copy = StoredAttestationCopy {
             attestation_id: *ATTESTATION_ID,
             attestation_copy_id: Uuid::new_v4(),
-            attestation: StoredAttestationFormat::SdJwt {
+            attestation: StoredAttestation::SdJwt {
                 sd_jwt: Box::new(VerifiedSdJwt::new_mock(sd_jwt)),
             },
             normalized_metadata: NormalizedTypeMetadata::nl_pid_example(),
