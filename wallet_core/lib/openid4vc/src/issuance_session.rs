@@ -1057,6 +1057,7 @@ mod tests {
     use attestation_data::credential_payload::CredentialPayload;
     use attestation_data::x509::generate::mock::generate_issuer_mock;
     use attestation_types::qualification::AttestationQualification;
+    use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
     use crypto::x509::CertificateError;
@@ -1066,7 +1067,6 @@ mod tests {
     use sd_jwt_vc_metadata::TypeMetadata;
     use sd_jwt_vc_metadata::TypeMetadataDocuments;
     use utils::generator::mock::MockTimeGenerator;
-    use crypto::mock_remote::MockRemoteEcdsaKey;
     use wscd::mock_remote::MockRemoteKeyFactory;
 
     use crate::Format;
