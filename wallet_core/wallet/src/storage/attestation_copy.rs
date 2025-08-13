@@ -45,7 +45,7 @@ pub type FullStoredAttestationCopy = StoredAttestationCopy<VerifiedSdJwt>;
 
 fn credential_payload_from_sd_jwt(sd_jwt: &SdJwt) -> CredentialPayload {
     CredentialPayload::from_sd_jwt_unvalidated(sd_jwt)
-        .expect("conversion from stored SD-JWT attestation to CredentialPayload has been done before")
+        .expect("a stored SD-JWT attestation should convert to CredentialPayload without errors")
 }
 
 impl<S> StoredAttestationCopy<S> {
@@ -121,7 +121,7 @@ where
                 )
             }
         }
-        .expect("conversion from stored SD-JWT attestation to AttestationPresentation has been done before")
+        .expect("a stored attestation should convert to AttestationPresentation without errors")
     }
 }
 
@@ -131,7 +131,7 @@ impl StoredAttestationCopy<VerifiedSdJwt> {
         match self.attestation {
             StoredAttestation::MsoMdoc { mdoc } => {
                 CredentialPayload::from_mdoc_unvalidated(*mdoc, &self.normalized_metadata)
-                    .expect("conversion from stored mdoc attestation to CredentialPayload has been done before")
+                    .expect("a stored mdoc attestation should convert to CredentialPayload without errors")
             }
             StoredAttestation::SdJwt { sd_jwt } => credential_payload_from_sd_jwt(sd_jwt.as_ref().as_ref()),
         }
