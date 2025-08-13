@@ -54,7 +54,7 @@ build {
       "source ~/.zprofile",
       "set -eux",
       "git -C $FLUTTER_HOME fetch origin",
-      "git -C $FLUTTER_HOME switch --detach 3.32.1",
+      "git -C $FLUTTER_HOME switch --detach 3.32.8",
       "dart --disable-analytics",
       "flutter config --no-analytics",
       "yes | sdkmanager --licenses",
