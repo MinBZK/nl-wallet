@@ -11,6 +11,3 @@ pub use error::PoaError;
 pub use error::PoaVerificationError;
 pub use poa::Poa;
 pub use poa::PoaPayload;
-
-#[cfg(feature = "mock")]
-pub const MOCK_WALLET_CLIENT_ID: &str = "mock_wallet_client_id";
