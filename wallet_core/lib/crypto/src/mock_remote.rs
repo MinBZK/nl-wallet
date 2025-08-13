@@ -81,8 +81,6 @@ impl CredentialEcdsaKey for MockRemoteEcdsaKey {
 
 #[derive(Debug, thiserror::Error)]
 pub enum MockRemoteKeyFactoryError {
-    #[error("key generation error")]
-    Generating,
     #[error("signing error")]
     Signing,
     #[error("poa error")]
@@ -92,9 +90,8 @@ pub enum MockRemoteKeyFactoryError {
 }
 
 /// A type that implements [`KeyFactory`] and can be used in tests. It has the option
-/// of returning `MockRemoteKeyFactoryError::Generating` when generating multiple
-/// keys and `MockRemoteKeyFactoryError::Signing` when signing multiple, influenced
-/// by boolean fields on the type.
+/// of returning `MockRemoteKeyFactoryError::Signing` when signing, influenced
+/// by a boolean field on the type.
 #[derive(Debug)]
 pub struct MockRemoteKeyFactory {
     pub signing_keys: Mutex<HashMap<String, SigningKey>>,
