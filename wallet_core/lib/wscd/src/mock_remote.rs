@@ -24,10 +24,11 @@ use jwt::pop::JwtPopClaims;
 use jwt::wte::WteClaims;
 use jwt::wte::WteDisclosure;
 
-use crate::MOCK_WALLET_CLIENT_ID;
 use crate::Poa;
 use crate::keyfactory::IssuanceResult;
 use crate::keyfactory::KeyFactory;
+
+pub const MOCK_WALLET_CLIENT_ID: &str = "mock_wallet_client_id";
 
 /// A type that implements [`KeyFactory`] and can be used in tests. It has the option
 /// of returning `MockRemoteKeyFactoryError::Generating` when generating multiple
