@@ -22,6 +22,7 @@ use super::Wallet;
 pub enum UriType {
     PidIssuance,
     PidRenewal,
+    PinRecovery,
     Disclosure,
     DisclosureBasedIssuance,
 }
