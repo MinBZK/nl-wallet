@@ -4720,6 +4720,13 @@ class MockWalletCoreApi extends _i1.Mock implements _i23.WalletCoreApi {
       ) as _i10.Future<void>);
 
   @override
+  _i10.Future<void> crateApiFullCancelPinRecovery() => (super.noSuchMethod(
+        Invocation.method(#crateApiFullCancelPinRecovery, []),
+        returnValue: _i10.Future<void>.value(),
+        returnValueForMissingStub: _i10.Future<void>.value(),
+      ) as _i10.Future<void>);
+
+  @override
   _i10.Future<_i23.WalletInstructionResult> crateApiFullChangePin({
     required String? oldPin,
     required String? newPin,
@@ -4805,6 +4812,32 @@ class MockWalletCoreApi extends _i1.Mock implements _i23.WalletCoreApi {
       ) as _i10.Future<void>);
 
   @override
+  _i10.Future<_i23.WalletInstructionResult> crateApiFullCompletePinRecovery({
+    required String? pin,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(#crateApiFullCompletePinRecovery, [], {
+          #pin: pin,
+        }),
+        returnValue: _i10.Future<_i23.WalletInstructionResult>.value(
+          _i14.dummyValue<_i23.WalletInstructionResult>(
+            this,
+            Invocation.method(#crateApiFullCompletePinRecovery, [], {
+              #pin: pin,
+            }),
+          ),
+        ),
+        returnValueForMissingStub: _i10.Future<_i23.WalletInstructionResult>.value(
+          _i14.dummyValue<_i23.WalletInstructionResult>(
+            this,
+            Invocation.method(#crateApiFullCompletePinRecovery, [], {
+              #pin: pin,
+            }),
+          ),
+        ),
+      ) as _i10.Future<_i23.WalletInstructionResult>);
+
+  @override
   _i10.Future<_i23.WalletInstructionResult> crateApiFullContinueChangePin({
     required String? pin,
   }) =>
@@ -4873,6 +4906,15 @@ class MockWalletCoreApi extends _i1.Mock implements _i23.WalletCoreApi {
       ) as _i10.Future<List<_i23.AttestationPresentation>>);
 
   @override
+  _i10.Future<void> crateApiFullContinuePinRecovery({required String? uri}) => (super.noSuchMethod(
+        Invocation.method(#crateApiFullContinuePinRecovery, [], {
+          #uri: uri,
+        }),
+        returnValue: _i10.Future<void>.value(),
+        returnValueForMissingStub: _i10.Future<void>.value(),
+      ) as _i10.Future<void>);
+
+  @override
   _i10.Future<String> crateApiFullCreatePidIssuanceRedirectUri() => (super.noSuchMethod(
         Invocation.method(#crateApiFullCreatePidIssuanceRedirectUri, []),
         returnValue: _i10.Future<String>.value(
@@ -4908,6 +4950,29 @@ class MockWalletCoreApi extends _i1.Mock implements _i23.WalletCoreApi {
           _i14.dummyValue<String>(
             this,
             Invocation.method(#crateApiFullCreatePidRenewalRedirectUri, []),
+          ),
+        ),
+      ) as _i10.Future<String>);
+
+  @override
+  _i10.Future<String> crateApiFullCreatePinRecoveryRedirectUri() => (super.noSuchMethod(
+        Invocation.method(#crateApiFullCreatePinRecoveryRedirectUri, []),
+        returnValue: _i10.Future<String>.value(
+          _i14.dummyValue<String>(
+            this,
+            Invocation.method(
+              #crateApiFullCreatePinRecoveryRedirectUri,
+              [],
+            ),
+          ),
+        ),
+        returnValueForMissingStub: _i10.Future<String>.value(
+          _i14.dummyValue<String>(
+            this,
+            Invocation.method(
+              #crateApiFullCreatePinRecoveryRedirectUri,
+              [],
+            ),
           ),
         ),
       ) as _i10.Future<String>);

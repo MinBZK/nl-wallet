@@ -69,6 +69,16 @@ Future<String> createPidIssuanceRedirectUri() => WalletCore.instance.api.crateAp
 
 Future<String> createPidRenewalRedirectUri() => WalletCore.instance.api.crateApiFullCreatePidRenewalRedirectUri();
 
+Future<String> createPinRecoveryRedirectUri() => WalletCore.instance.api.crateApiFullCreatePinRecoveryRedirectUri();
+
+Future<void> continuePinRecovery({required String uri}) =>
+    WalletCore.instance.api.crateApiFullContinuePinRecovery(uri: uri);
+
+Future<WalletInstructionResult> completePinRecovery({required String pin}) =>
+    WalletCore.instance.api.crateApiFullCompletePinRecovery(pin: pin);
+
+Future<void> cancelPinRecovery() => WalletCore.instance.api.crateApiFullCancelPinRecovery();
+
 Future<void> cancelIssuance() => WalletCore.instance.api.crateApiFullCancelIssuance();
 
 Future<List<AttestationPresentation>> continuePidIssuance({required String uri}) =>
