@@ -580,6 +580,7 @@ mod tests {
     use jwt::Jwt;
     use jwt::jwk::jwk_to_p256;
     use jwt::pop::JwtPopClaims;
+    use jwt::validations;
     use jwt::wte::WteDisclosure;
     use wallet_account::NL_WALLET_CLIENT_ID;
     use wallet_account::messages::instructions::CheckPin;
@@ -591,6 +592,7 @@ mod tests {
     use wallet_provider_domain::repository::MockTransaction;
     use wallet_provider_persistence::repositories::mock::MockTransactionalWalletUserRepository;
     use wscd::Poa;
+    use wscd::PoaPayload;
 
     use crate::account_server::InstructionValidationError;
     use crate::account_server::mock;
@@ -684,6 +686,17 @@ mod tests {
             .verifying_key()
             .verify(&random_msg_2, result.signatures[1][0].as_inner())
             .unwrap();
+
+        let mut validations = validations();
+        validations.set_audience(&["aud"]);
+        validations.set_issuer(&[NL_WALLET_CLIENT_ID.to_string()]);
+
+        Vec::<Jwt<PoaPayload>>::from(result.poa.unwrap())
+            .into_iter()
+            .zip([signing_key_1_public, signing_key_2_public])
+            .for_each(|(jwt, pubkey)| {
+                jwt.parse_and_verify(&(&pubkey).into(), &validations).unwrap();
+            });
     }
 
     fn mock_jwt_payload(header: &str) -> Vec<u8> {
