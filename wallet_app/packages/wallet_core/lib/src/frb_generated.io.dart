@@ -1405,6 +1405,20 @@ class WalletCoreWire implements BaseWire {
   late final _wire__crate__api__full__cancel_issuance =
       _wire__crate__api__full__cancel_issuancePtr.asFunction<void Function(int)>();
 
+  void wire__crate__api__full__cancel_pin_recovery(
+    int port_,
+  ) {
+    return _wire__crate__api__full__cancel_pin_recovery(
+      port_,
+    );
+  }
+
+  late final _wire__crate__api__full__cancel_pin_recoveryPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
+          'frbgen_wallet_core_wire__crate__api__full__cancel_pin_recovery');
+  late final _wire__crate__api__full__cancel_pin_recovery =
+      _wire__crate__api__full__cancel_pin_recoveryPtr.asFunction<void Function(int)>();
+
   void wire__crate__api__full__change_pin(
     int port_,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> old_pin,
@@ -1509,6 +1523,22 @@ class WalletCoreWire implements BaseWire {
   late final _wire__crate__api__full__clear_version_state_stream =
       _wire__crate__api__full__clear_version_state_streamPtr.asFunction<void Function(int)>();
 
+  void wire__crate__api__full__complete_pin_recovery(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> pin,
+  ) {
+    return _wire__crate__api__full__complete_pin_recovery(
+      port_,
+      pin,
+    );
+  }
+
+  late final _wire__crate__api__full__complete_pin_recoveryPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>>(
+          'frbgen_wallet_core_wire__crate__api__full__complete_pin_recovery');
+  late final _wire__crate__api__full__complete_pin_recovery = _wire__crate__api__full__complete_pin_recoveryPtr
+      .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
+
   void wire__crate__api__full__continue_change_pin(
     int port_,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> pin,
@@ -1558,6 +1588,22 @@ class WalletCoreWire implements BaseWire {
   late final _wire__crate__api__full__continue_pid_issuance = _wire__crate__api__full__continue_pid_issuancePtr
       .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
 
+  void wire__crate__api__full__continue_pin_recovery(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> uri,
+  ) {
+    return _wire__crate__api__full__continue_pin_recovery(
+      port_,
+      uri,
+    );
+  }
+
+  late final _wire__crate__api__full__continue_pin_recoveryPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>>(
+          'frbgen_wallet_core_wire__crate__api__full__continue_pin_recovery');
+  late final _wire__crate__api__full__continue_pin_recovery = _wire__crate__api__full__continue_pin_recoveryPtr
+      .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
+
   void wire__crate__api__full__create_pid_issuance_redirect_uri(
     int port_,
   ) {
@@ -1585,6 +1631,20 @@ class WalletCoreWire implements BaseWire {
           'frbgen_wallet_core_wire__crate__api__full__create_pid_renewal_redirect_uri');
   late final _wire__crate__api__full__create_pid_renewal_redirect_uri =
       _wire__crate__api__full__create_pid_renewal_redirect_uriPtr.asFunction<void Function(int)>();
+
+  void wire__crate__api__full__create_pin_recovery_redirect_uri(
+    int port_,
+  ) {
+    return _wire__crate__api__full__create_pin_recovery_redirect_uri(
+      port_,
+    );
+  }
+
+  late final _wire__crate__api__full__create_pin_recovery_redirect_uriPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
+          'frbgen_wallet_core_wire__crate__api__full__create_pin_recovery_redirect_uri');
+  late final _wire__crate__api__full__create_pin_recovery_redirect_uri =
+      _wire__crate__api__full__create_pin_recovery_redirect_uriPtr.asFunction<void Function(int)>();
 
   void wire__crate__api__full__get_history(
     int port_,
