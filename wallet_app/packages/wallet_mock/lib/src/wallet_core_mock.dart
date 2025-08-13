@@ -274,4 +274,24 @@ class WalletCoreMock implements WalletCoreApi {
     await Future.delayed(const Duration(seconds: 1));
     return MockConstants.pidRenewalRedirectUri;
   }
+
+  @override
+  Future<String> crateApiFullCreatePinRecoveryRedirectUri() {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> crateApiFullContinuePinRecovery({required String uri}) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<WalletInstructionResult> crateApiFullCompletePinRecovery({required String pin}) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> crateApiFullCancelPinRecovery() {
+    throw UnimplementedError();
+  }
 }

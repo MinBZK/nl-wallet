@@ -229,6 +229,32 @@ pub async fn create_pid_renewal_redirect_uri() -> anyhow::Result<String> {
 }
 
 #[flutter_api_error]
+pub async fn create_pin_recovery_redirect_uri() -> anyhow::Result<String> {
+    // TODO: Implement as part of PVW-4587
+    Ok("pin_recovery_url".into())
+}
+
+#[flutter_api_error]
+pub async fn continue_pin_recovery(uri: String) -> anyhow::Result<()> {
+    // TODO: Implement as part of PVW-4587
+    println!("Recovery URI: {uri}");
+    Ok(())
+}
+
+#[flutter_api_error]
+pub async fn complete_pin_recovery(pin: String) -> anyhow::Result<WalletInstructionResult> {
+    // TODO: Implement as part of PVW-4587
+    println!("PIN length: {}", pin.len());
+    Ok(WalletInstructionResult::Ok)
+}
+
+#[flutter_api_error]
+pub async fn cancel_pin_recovery() -> anyhow::Result<()> {
+    // TODO: Implement as part of PVW-4587
+    Ok(())
+}
+
+#[flutter_api_error]
 pub async fn cancel_issuance() -> anyhow::Result<()> {
     let mut wallet = wallet().write().await;
 
