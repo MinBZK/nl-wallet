@@ -37,7 +37,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueNom,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.9.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 628984909;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 290785620;
 
 // Section: executor
 
@@ -125,6 +125,26 @@ fn wire__crate__api__full__cancel_issuance_impl(port_: flutter_rust_bridge::for_
                 transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || async move {
                         let output_ok = crate::api::full::cancel_issuance().await?;
+                        Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__full__cancel_pin_recovery_impl(port_: flutter_rust_bridge::for_generated::MessagePort) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "cancel_pin_recovery",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            move |context| async move {
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || async move {
+                        let output_ok = crate::api::full::cancel_pin_recovery().await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -293,6 +313,30 @@ fn wire__crate__api__full__clear_version_state_stream_impl(port_: flutter_rust_b
         },
     )
 }
+fn wire__crate__api__full__complete_pin_recovery_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    pin: impl CstDecode<String>,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "complete_pin_recovery",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let api_pin = pin.cst_decode();
+            move |context| async move {
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || async move {
+                        let output_ok = crate::api::full::complete_pin_recovery(api_pin).await?;
+                        Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
 fn wire__crate__api__full__continue_change_pin_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     pin: impl CstDecode<String>,
@@ -365,6 +409,30 @@ fn wire__crate__api__full__continue_pid_issuance_impl(
         },
     )
 }
+fn wire__crate__api__full__continue_pin_recovery_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    uri: impl CstDecode<String>,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "continue_pin_recovery",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let api_uri = uri.cst_decode();
+            move |context| async move {
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || async move {
+                        let output_ok = crate::api::full::continue_pin_recovery(api_uri).await?;
+                        Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
 fn wire__crate__api__full__create_pid_issuance_redirect_uri_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
 ) {
@@ -401,6 +469,28 @@ fn wire__crate__api__full__create_pid_renewal_redirect_uri_impl(
                 transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || async move {
                         let output_ok = crate::api::full::create_pid_renewal_redirect_uri().await?;
+                        Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__full__create_pin_recovery_redirect_uri_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "create_pin_recovery_redirect_uri",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            move |context| async move {
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || async move {
+                        let output_ok = crate::api::full::create_pin_recovery_redirect_uri().await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -987,8 +1077,9 @@ impl CstDecode<crate::models::uri::IdentifyUriResult> for i32 {
         match self {
             0 => crate::models::uri::IdentifyUriResult::PidIssuance,
             1 => crate::models::uri::IdentifyUriResult::PidRenewal,
-            2 => crate::models::uri::IdentifyUriResult::Disclosure,
-            3 => crate::models::uri::IdentifyUriResult::DisclosureBasedIssuance,
+            2 => crate::models::uri::IdentifyUriResult::PinRecovery,
+            3 => crate::models::uri::IdentifyUriResult::Disclosure,
+            4 => crate::models::uri::IdentifyUriResult::DisclosureBasedIssuance,
             _ => unreachable!("Invalid variant for IdentifyUriResult: {}", self),
         }
     }
@@ -1368,8 +1459,9 @@ impl SseDecode for crate::models::uri::IdentifyUriResult {
         return match inner {
             0 => crate::models::uri::IdentifyUriResult::PidIssuance,
             1 => crate::models::uri::IdentifyUriResult::PidRenewal,
-            2 => crate::models::uri::IdentifyUriResult::Disclosure,
-            3 => crate::models::uri::IdentifyUriResult::DisclosureBasedIssuance,
+            2 => crate::models::uri::IdentifyUriResult::PinRecovery,
+            3 => crate::models::uri::IdentifyUriResult::Disclosure,
+            4 => crate::models::uri::IdentifyUriResult::DisclosureBasedIssuance,
             _ => unreachable!("Invalid variant for IdentifyUriResult: {}", inner),
         };
     }
@@ -2212,8 +2304,9 @@ impl flutter_rust_bridge::IntoDart for crate::models::uri::IdentifyUriResult {
         match self {
             Self::PidIssuance => 0.into_dart(),
             Self::PidRenewal => 1.into_dart(),
-            Self::Disclosure => 2.into_dart(),
-            Self::DisclosureBasedIssuance => 3.into_dart(),
+            Self::PinRecovery => 2.into_dart(),
+            Self::Disclosure => 3.into_dart(),
+            Self::DisclosureBasedIssuance => 4.into_dart(),
             _ => unreachable!(),
         }
     }
@@ -2871,8 +2964,9 @@ impl SseEncode for crate::models::uri::IdentifyUriResult {
             match self {
                 crate::models::uri::IdentifyUriResult::PidIssuance => 0,
                 crate::models::uri::IdentifyUriResult::PidRenewal => 1,
-                crate::models::uri::IdentifyUriResult::Disclosure => 2,
-                crate::models::uri::IdentifyUriResult::DisclosureBasedIssuance => 3,
+                crate::models::uri::IdentifyUriResult::PinRecovery => 2,
+                crate::models::uri::IdentifyUriResult::Disclosure => 3,
+                crate::models::uri::IdentifyUriResult::DisclosureBasedIssuance => 4,
                 _ => {
                     unimplemented!("");
                 }
@@ -4266,6 +4360,11 @@ mod io {
     }
 
     #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__cancel_pin_recovery(port_: i64) {
+        wire__crate__api__full__cancel_pin_recovery_impl(port_)
+    }
+
+    #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__change_pin(
         port_: i64,
         old_pin: *mut wire_cst_list_prim_u_8_strict,
@@ -4308,6 +4407,14 @@ mod io {
     }
 
     #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__complete_pin_recovery(
+        port_: i64,
+        pin: *mut wire_cst_list_prim_u_8_strict,
+    ) {
+        wire__crate__api__full__complete_pin_recovery_impl(port_, pin)
+    }
+
+    #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__continue_change_pin(
         port_: i64,
         pin: *mut wire_cst_list_prim_u_8_strict,
@@ -4332,6 +4439,14 @@ mod io {
     }
 
     #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__continue_pin_recovery(
+        port_: i64,
+        uri: *mut wire_cst_list_prim_u_8_strict,
+    ) {
+        wire__crate__api__full__continue_pin_recovery_impl(port_, uri)
+    }
+
+    #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__create_pid_issuance_redirect_uri(port_: i64) {
         wire__crate__api__full__create_pid_issuance_redirect_uri_impl(port_)
     }
@@ -4339,6 +4454,11 @@ mod io {
     #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__create_pid_renewal_redirect_uri(port_: i64) {
         wire__crate__api__full__create_pid_renewal_redirect_uri_impl(port_)
+    }
+
+    #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__create_pin_recovery_redirect_uri(port_: i64) {
+        wire__crate__api__full__create_pin_recovery_redirect_uri_impl(port_)
     }
 
     #[unsafe(no_mangle)]

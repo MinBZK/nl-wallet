@@ -4,6 +4,7 @@ use wallet::errors::UriIdentificationError;
 pub enum IdentifyUriResult {
     PidIssuance,
     PidRenewal,
+    PinRecovery,
     Disclosure,
     DisclosureBasedIssuance,
 }
@@ -16,6 +17,7 @@ impl TryFrom<Result<UriType, UriIdentificationError>> for IdentifyUriResult {
             Ok(uri_type) => match uri_type {
                 UriType::PidIssuance => Ok(Self::PidIssuance),
                 UriType::PidRenewal => Ok(Self::PidRenewal),
+                UriType::PinRecovery => Ok(Self::PinRecovery),
                 UriType::Disclosure => Ok(Self::Disclosure),
                 UriType::DisclosureBasedIssuance => Ok(Self::DisclosureBasedIssuance),
             },

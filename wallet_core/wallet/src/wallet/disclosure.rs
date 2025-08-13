@@ -281,6 +281,7 @@ impl RedirectUriPurpose {
             .and_then(|uri_type| match uri_type {
                 UriType::PidIssuance => None,
                 UriType::PidRenewal => None,
+                UriType::PinRecovery => None,
                 UriType::Disclosure => Some(Self::Browser),
                 UriType::DisclosureBasedIssuance => Some(Self::Issuance),
             })
