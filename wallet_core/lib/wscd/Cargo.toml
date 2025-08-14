@@ -25,7 +25,7 @@ thiserror.workspace = true
 
 rand_core = { workspace = true, optional = true }
 
-crypto.path = "../crypto/"
+crypto = { path = "../crypto/", features = ["mock"] }
 jwt.path = "../jwt"
 utils.path = "../utils/"
 
