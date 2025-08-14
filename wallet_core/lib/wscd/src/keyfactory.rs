@@ -1,8 +1,8 @@
 use std::num::NonZeroUsize;
 
-use crypto::wscd::DisclosureKeyFactory;
 use derive_more::Constructor;
 
+use crypto::wscd::DisclosureKeyFactory;
 use jwt::Jwt;
 use jwt::pop::JwtPopClaims;
 use jwt::wte::WteDisclosure;
