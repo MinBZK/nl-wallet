@@ -16,7 +16,7 @@ doctest = false
 [[test]]
 name = "verifier_api"
 path = "tests/verifier_api.rs"
-required-features = ["integration_test"]
+required-features = ["test"]
 
 [[test]]
 name = "postgres"
@@ -34,8 +34,7 @@ default = ["postgres"]
 allow_insecure_url = ["openid4vc/allow_insecure_url", "http_utils/allow_insecure_url"]
 # Include session storage in PostgreSQL
 postgres = ["server_utils/postgres"]
-# Enable integration tests
-integration_test = [
+test = [
     "allow_insecure_url",
     "attestation_data/test",
     "dcql/mock",
@@ -43,6 +42,8 @@ integration_test = [
     "openid4vc/mock",
     "server_utils/parsed_key_pair_conversion",
 ]
+# Enable integration tests
+integration_test = ["test"]
 # Include and run integration tests that depend on an external PostgreSQL database
 db_test = ["integration_test", "postgres", "futures/std", "futures/async-await", "dep:serial_test", "tokio/sync"]
 
