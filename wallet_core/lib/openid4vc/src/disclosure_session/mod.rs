@@ -7,7 +7,6 @@ use dcql::normalized::NormalizedCredentialRequest;
 use http_utils::urls::BaseUrl;
 use mdoc::holder::Mdoc;
 use utils::vec_at_least::VecNonEmpty;
-use wscd::Poa;
 use wscd::keyfactory::KeyFactory;
 
 use crate::verifier::SessionType;
@@ -60,6 +59,6 @@ pub trait DisclosureSession {
     ) -> Result<Option<BaseUrl>, (Self, DisclosureError<VpSessionError>)>
     where
         K: CredentialEcdsaKey + Eq + Hash,
-        KF: KeyFactory<Key = K, Poa = Poa>,
+        KF: KeyFactory<Key = K>,
         Self: Sized;
 }

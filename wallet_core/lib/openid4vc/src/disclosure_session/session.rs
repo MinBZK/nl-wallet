@@ -12,7 +12,6 @@ use mdoc::holder::Mdoc;
 use mdoc::iso::disclosure::DeviceResponse;
 use mdoc::iso::engagement::SessionTranscript;
 use utils::vec_at_least::VecNonEmpty;
-use wscd::Poa;
 use wscd::keyfactory::JwtPoaInput;
 use wscd::keyfactory::KeyFactory;
 
@@ -80,7 +79,7 @@ where
     ) -> Result<Option<BaseUrl>, (Self, DisclosureError<VpSessionError>)>
     where
         K: CredentialEcdsaKey + Eq + Hash,
-        KF: KeyFactory<Key = K, Poa = Poa>,
+        KF: KeyFactory<Key = K>,
     {
         info!("disclose mdoc documents");
 

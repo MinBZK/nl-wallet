@@ -281,7 +281,7 @@ pub trait IssuanceSession<H = HttpVcMessageClient> {
     ) -> Result<Vec<CredentialWithMetadata>, IssuanceSessionError>
     where
         K: CredentialEcdsaKey + Eq + Hash,
-        KF: KeyFactory<Key = K, Poa = Poa>;
+        KF: KeyFactory<Key = K>;
 
     async fn reject_issuance(self) -> Result<(), IssuanceSessionError>;
 
@@ -694,7 +694,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
     ) -> Result<Vec<CredentialWithMetadata>, IssuanceSessionError>
     where
         K: CredentialEcdsaKey + Eq + Hash,
-        KF: KeyFactory<Key = K, Poa = Poa>,
+        KF: KeyFactory<Key = K>,
     {
         let key_count = self.session_state.credential_request_types.len();
 
