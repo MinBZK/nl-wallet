@@ -28,7 +28,6 @@ mock_example_constructors = [
     "examples",
     "mock",
     "crypto/examples",
-    "wscd/mock",
 ]
 
 [dependencies]
@@ -71,7 +70,6 @@ dcql.path = "../dcql"
 error_category.path = "../error_category"
 http_utils.path = "../http_utils"
 utils.path = "../utils"
-wscd.path = "../wscd"
 
 sd_jwt_vc_metadata = { path = "../sd_jwt_vc_metadata", optional = true, features = ["example_constructors"] }
 
@@ -87,4 +85,3 @@ crypto = { path = "../crypto", features = ["examples", "generate", "mock", "mock
 dcql = { path = "../dcql", features = ["mock"] }
 sd_jwt_vc_metadata = { path = "../sd_jwt_vc_metadata", features = ["example_constructors"] }
 utils = { path = "../utils", features = ["mock_time"] }
-wscd = { path = "../wscd", features = ["mock", "examples"] }
