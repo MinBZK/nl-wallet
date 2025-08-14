@@ -216,7 +216,7 @@ open class MobileActions {
         Thread.sleep(MODAL_ANCHOR_DISPLAY_TIMEOUT)
 
         // Locate shadow-host element
-        val startButton = driver.findElement(By.tagName("nl-wallet-button")) as WebElement
+        val startButton = driver.findElement(By.tagName("nl-wallet-button"))
 
         // Locate modal-anchor element inside the shadow-root of the shadow-host element
         val jsExecutor = driver as JavascriptExecutor
@@ -255,7 +255,7 @@ open class MobileActions {
         }
     }
 
-    fun platformName() = driver.capabilities.platformName.name
+    fun platformName() = driver.capabilities.platformName?.name ?: throw IllegalStateException("No platform name")
 
     fun disableInternetConnection() {
         if (testConfig.remote) {
