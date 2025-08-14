@@ -243,14 +243,16 @@ class _WalletCardItemState extends State<WalletCardItem> {
 
   Widget _buildBackground() {
     const fallBackBackground = DecoratedBox(decoration: BoxDecoration(color: _kFallbackBgColor));
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        widget.background ?? fallBackBackground,
-        if (widget.holograph != null) Positioned(bottom: 24, right: 24, child: widget.holograph!),
-        // Draw a subtle shadow overlay (3d effect) at the bottom.
-        BottomClipShadow(radius: _kCardBorderRadius.bottomLeft.x),
-      ],
+    return ExcludeSemantics(
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          widget.background ?? fallBackBackground,
+          if (widget.holograph != null) Positioned(bottom: 24, right: 24, child: widget.holograph!),
+          // Draw a subtle shadow overlay (3d effect) at the bottom.
+          BottomClipShadow(radius: _kCardBorderRadius.bottomLeft.x),
+        ],
+      ),
     );
   }
 
@@ -278,7 +280,7 @@ class _WalletCardItemState extends State<WalletCardItem> {
             ),
           ),
           SizedBox(width: widget.logo == null ? 0 : 16),
-          widget.logo ?? const SizedBox.shrink(),
+          ExcludeSemantics(child: widget.logo ?? const SizedBox.shrink()),
         ],
       ),
     );

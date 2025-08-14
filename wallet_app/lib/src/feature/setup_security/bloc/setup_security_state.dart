@@ -7,7 +7,7 @@ sealed class SetupSecurityState extends Equatable {
 
   bool get didGoBack => false;
 
-  FlowProgress get stepperProgress => const FlowProgress(currentStep: 3, totalSteps: kSetupSteps);
+  FlowProgress? get stepperProgress => null;
 
   @override
   List<Object?> get props => [canGoBack, didGoBack, stepperProgress];
@@ -33,7 +33,7 @@ class SetupSecuritySelectPinInProgress extends SetupSecurityState {
   bool get didGoBack => afterBackPressed;
 
   @override
-  FlowProgress get stepperProgress => const FlowProgress(currentStep: 3, totalSteps: kSetupSteps);
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: 2, totalSteps: kSetupSteps);
 
   @override
   List<Object?> get props => [enteredDigits, ...super.props];
@@ -45,7 +45,7 @@ class SetupSecuritySelectPinFailed extends SetupSecurityState {
   const SetupSecuritySelectPinFailed({required this.reason});
 
   @override
-  FlowProgress get stepperProgress => const FlowProgress(currentStep: 3, totalSteps: kSetupSteps);
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: 2, totalSteps: kSetupSteps);
 
   @override
   List<Object?> get props => [reason, ...super.props];
@@ -65,7 +65,7 @@ class SetupSecurityPinConfirmationInProgress extends SetupSecurityState {
   List<Object?> get props => [enteredDigits, ...super.props];
 
   @override
-  FlowProgress get stepperProgress => const FlowProgress(currentStep: 4, totalSteps: kSetupSteps);
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: 3, totalSteps: kSetupSteps);
 }
 
 class SetupSecurityPinConfirmationFailed extends SetupSecurityState {
@@ -77,7 +77,7 @@ class SetupSecurityPinConfirmationFailed extends SetupSecurityState {
   bool get canGoBack => true;
 
   @override
-  FlowProgress get stepperProgress => const FlowProgress(currentStep: 4, totalSteps: kSetupSteps);
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: 3, totalSteps: kSetupSteps);
 }
 
 class SetupSecurityCreatingWallet extends SetupSecurityState {
@@ -112,9 +112,6 @@ class SetupSecurityCompleted extends SetupSecurityState {
 
 class SetupSecurityGenericError extends SetupSecurityState implements ErrorState {
   @override
-  FlowProgress get stepperProgress => const FlowProgress(currentStep: 4, totalSteps: kSetupSteps);
-
-  @override
   final ApplicationError error;
 
   const SetupSecurityGenericError({required this.error});
@@ -125,9 +122,6 @@ class SetupSecurityGenericError extends SetupSecurityState implements ErrorState
 
 class SetupSecurityDeviceIncompatibleError extends SetupSecurityState implements ErrorState {
   @override
-  FlowProgress get stepperProgress => const FlowProgress(currentStep: 4, totalSteps: kSetupSteps);
-
-  @override
   final ApplicationError error;
 
   const SetupSecurityDeviceIncompatibleError({required this.error});
@@ -137,9 +131,6 @@ class SetupSecurityDeviceIncompatibleError extends SetupSecurityState implements
 }
 
 class SetupSecurityNetworkError extends SetupSecurityState implements NetworkErrorState {
-  @override
-  FlowProgress get stepperProgress => const FlowProgress(currentStep: 4, totalSteps: kSetupSteps);
-
   @override
   final ApplicationError error;
 
