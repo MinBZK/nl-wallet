@@ -2,10 +2,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use std::fmt::Display;
+use std::str::FromStr;
 
 use base64::prelude::*;
 use serde::Deserialize;
 use serde::Serialize;
+use serde_with::DeserializeFromStr;
+use serde_with::SerializeDisplay;
 
 use crate::error::Error;
 
@@ -14,13 +17,40 @@ use crate::error::Error;
 ///
 /// See: https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-07.html#name-disclosures
 // TODO: [PVW-4138] Update link and check spec changes
-#[derive(Debug, Clone, Eq)]
+#[derive(Debug, Clone, Eq, SerializeDisplay, DeserializeFromStr)]
 pub struct Disclosure {
     /// Indicates whether this disclosure is an object property or array element.
     pub content: DisclosureContent,
 
     /// Base64Url-encoded disclosure.
     encoded: String,
+}
+
+impl Display for Disclosure {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.encoded)
+    }
+}
+
+/// Parses a Base64 encoded disclosure into a [`Disclosure`].
+impl FromStr for Disclosure {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let disclosure_type: DisclosureContent = BASE64_URL_SAFE_NO_PAD
+            .decode(s)
+            .map_err(|_| Error::InvalidDisclosure(format!("Base64 decoding of the disclosure was not possible {s}")))
+            .and_then(|data| {
+                serde_json::from_slice(&data).map_err(|_| {
+                    Error::InvalidDisclosure(format!("decoded disclosure could not be serialized as an array {s}"))
+                })
+            })?;
+
+        Ok(Self {
+            content: disclosure_type,
+            encoded: s.to_owned(),
+        })
+    }
 }
 
 #[derive(Debug)]
@@ -63,33 +93,6 @@ impl Disclosure {
         Ok(Self { content, encoded })
     }
 
-    /// Parses a Base64 encoded disclosure into a [`Disclosure`].
-    ///
-    /// ## Error
-    ///
-    /// Returns an [`Error::InvalidDisclosure`] if input is not a valid disclosure.
-    pub fn parse(disclosure: &str) -> Result<Self, Error> {
-        let disclosure_type: DisclosureContent = BASE64_URL_SAFE_NO_PAD
-            .decode(disclosure)
-            .map_err(|_e| {
-                Error::InvalidDisclosure(format!(
-                    "Base64 decoding of the disclosure was not possible {disclosure}"
-                ))
-            })
-            .and_then(|data| {
-                serde_json::from_slice(&data).map_err(|_e| {
-                    Error::InvalidDisclosure(format!(
-                        "decoded disclosure could not be serialized as an array {disclosure}"
-                    ))
-                })
-            })?;
-
-        Ok(Self {
-            content: disclosure_type,
-            encoded: disclosure.to_string(),
-        })
-    }
-
     pub fn as_str(&self) -> &str {
         self.as_ref()
     }
@@ -99,12 +102,6 @@ impl Disclosure {
             DisclosureContent::ObjectProperty(_, _, value) => value,
             DisclosureContent::ArrayElement(_, value) => value,
         }
-    }
-}
-
-impl Display for Disclosure {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.encoded)
     }
 }
 
@@ -158,8 +155,9 @@ mod test {
         ))
         .unwrap();
 
-        let parsed =
-            Disclosure::parse("WyIyR0xDNDJzS1F2ZUNmR2ZyeU5STjl3IiwgInRpbWUiLCAiMjAxMi0wNC0yM1QxODoyNVoiXQ").unwrap();
+        let parsed: Disclosure = "WyIyR0xDNDJzS1F2ZUNmR2ZyeU5STjl3IiwgInRpbWUiLCAiMjAxMi0wNC0yM1QxODoyNVoiXQ"
+            .parse()
+            .unwrap();
         assert_eq!(parsed, disclosure);
     }
 
@@ -171,7 +169,7 @@ mod test {
         ))
         .unwrap();
 
-        let parsed = Disclosure::parse("WyJsa2x4RjVqTVlsR1RQVW92TU5JdkNBIiwgIlVTIl0").unwrap();
+        let parsed: Disclosure = "WyJsa2x4RjVqTVlsR1RQVW92TU5JdkNBIiwgIlVTIl0".parse().unwrap();
         assert_eq!(parsed, disclosure);
     }
 
@@ -181,6 +179,6 @@ mod test {
         let disclosure = serde_json::to_vec(&json!([salt])).unwrap();
         let encoded = BASE64_URL_SAFE_NO_PAD.encode(disclosure);
 
-        assert_matches!(Disclosure::parse(&encoded), Err(Error::InvalidDisclosure(_)));
+        assert_matches!(&encoded.parse::<Disclosure>(), Err(Error::InvalidDisclosure(_)));
     }
 }
