@@ -241,10 +241,10 @@ dotenvy = { workspace = true, optional = true }
 # * hsm_test
 # * db_test
 android_attest = { path = "../lib/android_attest", features = ["serialize_key_attestation"] }
-issuance_server = { path = "../wallet_server/issuance_server", features = ["integration_test"] }
+issuance_server = { path = "../wallet_server/issuance_server" }
 openid4vc = { path = "../lib/openid4vc", features = ["integration"] }
-pid_issuer = { path = "../wallet_server/pid_issuer", features = ["integration_test"] }
+pid_issuer = { path = "../wallet_server/pid_issuer" }
 platform_support = { path = "../wallet/platform_support", features = ["persistent_mock_attested_key"] }
 sd_jwt = { path = "../lib/sd_jwt", features = ["examples"] }
 server_utils = { path = "../wallet_server/server_utils", features = ["parsed_key_pair_conversion"] }
-verification_server = { path = "../wallet_server/verification_server", features = ["integration_test"] }
+verification_server = { path = "../wallet_server/verification_server" }
