@@ -6,14 +6,15 @@ use tracing::warn;
 
 use crypto::CredentialEcdsaKey;
 use crypto::utils::random_string;
+use crypto::wscd::DisclosureKeyFactory;
 use dcql::normalized::NormalizedCredentialRequest;
 use http_utils::urls::BaseUrl;
 use mdoc::holder::Mdoc;
 use mdoc::iso::disclosure::DeviceResponse;
 use mdoc::iso::engagement::SessionTranscript;
 use utils::vec_at_least::VecNonEmpty;
+use wscd::Poa;
 use wscd::keyfactory::JwtPoaInput;
-use wscd::keyfactory::KeyFactory;
 
 use crate::openid4vp::NormalizedVpAuthorizationRequest;
 use crate::openid4vp::VpAuthorizationResponse;
@@ -79,7 +80,7 @@ where
     ) -> Result<Option<BaseUrl>, (Self, DisclosureError<VpSessionError>)>
     where
         K: CredentialEcdsaKey + Eq + Hash,
-        KF: KeyFactory<Key = K>,
+        KF: DisclosureKeyFactory<Key = K, Poa = Poa>,
     {
         info!("disclose mdoc documents");
 
