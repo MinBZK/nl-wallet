@@ -1,5 +1,4 @@
 pub mod error;
-pub mod factory;
 pub mod keyfactory;
 pub mod poa;
 

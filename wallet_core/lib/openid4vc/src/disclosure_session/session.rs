@@ -6,15 +6,15 @@ use tracing::warn;
 
 use crypto::CredentialEcdsaKey;
 use crypto::utils::random_string;
+use crypto::wscd::DisclosureKeyFactory;
 use dcql::normalized::NormalizedCredentialRequest;
 use http_utils::urls::BaseUrl;
 use mdoc::holder::Mdoc;
 use mdoc::iso::disclosure::DeviceResponse;
 use mdoc::iso::engagement::SessionTranscript;
-use utils::vec_at_least::VecAtLeastTwoUnique;
 use utils::vec_at_least::VecNonEmpty;
-use wscd::factory::PoaFactory;
-use wscd::keyfactory::KeyFactory;
+use wscd::Poa;
+use wscd::keyfactory::JwtPoaInput;
 
 use crate::openid4vp::NormalizedVpAuthorizationRequest;
 use crate::openid4vp::VpAuthorizationResponse;
@@ -80,7 +80,7 @@ where
     ) -> Result<Option<BaseUrl>, (Self, DisclosureError<VpSessionError>)>
     where
         K: CredentialEcdsaKey + Eq + Hash,
-        KF: KeyFactory<Key = K> + PoaFactory<Key = K>,
+        KF: DisclosureKeyFactory<Key = K, Poa = Poa>,
     {
         info!("disclose mdoc documents");
 
@@ -119,36 +119,14 @@ where
             &mdoc_nonce,
         );
 
-        let result = DeviceResponse::sign_from_mdocs(subset_mdocs, &session_transcript, key_factory).await;
-        let (device_response, keys) = match result {
+        let poa_input = JwtPoaInput::new(Some(mdoc_nonce.clone()), self.auth_request.client_id.clone());
+        let result = DeviceResponse::sign_from_mdocs(subset_mdocs, &session_transcript, key_factory, poa_input).await;
+        let (device_response, poa) = match result {
             Ok(value) => value,
             Err(error) => {
                 return Err((
                     self,
                     DisclosureError::before_sharing(VpClientError::DeviceResponse(error).into()),
-                ));
-            }
-        };
-
-        // If at least two keys were used, generate a PoA to include in the response.
-        let result = match VecAtLeastTwoUnique::try_from(keys.iter().collect_vec()) {
-            Ok(keys) => {
-                info!("creating Proof of Association");
-                Some(
-                    key_factory
-                        .poa(keys, self.auth_request.client_id.clone(), Some(mdoc_nonce.clone()))
-                        .await,
-                )
-            }
-            Err(_) => None,
-        }
-        .transpose();
-        let poa = match result {
-            Ok(value) => value,
-            Err(error) => {
-                return Err((
-                    self,
-                    DisclosureError::before_sharing(VpClientError::Poa(Box::new(error)).into()),
                 ));
             }
         };
@@ -202,9 +180,9 @@ mod tests {
     use serde_json::json;
 
     use attestation_data::auth::reader_auth::ReaderRegistration;
+    use crypto::mock_remote::MockRemoteEcdsaKey;
     use dcql::normalized::NormalizedCredentialRequest;
     use mdoc::holder::Mdoc;
-    use wscd::mock_remote::MockRemoteEcdsaKey;
     use wscd::mock_remote::MockRemoteKeyFactory;
 
     use crate::errors::AuthorizationErrorCode;
@@ -321,7 +299,7 @@ mod tests {
             setup_disclosure_session(None, [NormalizedCredentialRequest::new_pid_example()]);
         let (mdoc, mut key_factory) = setup_disclosure_mdoc();
 
-        key_factory.has_multi_key_signing_error = true;
+        key_factory.disclosure.has_multi_key_signing_error = true;
 
         let (_disclosure_session, error) = disclosure_session
             .disclose(vec![mdoc].try_into().unwrap(), &key_factory)
@@ -334,39 +312,6 @@ mod tests {
             DisclosureError {
                 data_shared,
                 error: VpSessionError::Client(VpClientError::DeviceResponse(_))
-            } if !data_shared
-        );
-    }
-
-    #[test]
-    fn test_disclosure_session_disclose_error_poa() {
-        // Calling `VPDisclosureSession::disclose()` with a malfunctioning PoA factory should result in an error.
-        let (disclosure_session, _verifier_session) = setup_disclosure_session(
-            None,
-            [
-                NormalizedCredentialRequest::new_pid_example(),
-                NormalizedCredentialRequest::new_pid_example(),
-            ],
-        );
-        let (mdoc, mut key_factory) = setup_disclosure_mdoc();
-
-        let mdoc_key2 = MockRemoteEcdsaKey::new("mdoc_key2".to_string(), SigningKey::random(&mut OsRng));
-        let mdoc2 = Mdoc::new_mock_with_key(&mdoc_key2).now_or_never().unwrap();
-
-        key_factory.add_key(mdoc_key2);
-        key_factory.has_poa_error = true;
-
-        let (_disclosure_session, error) = disclosure_session
-            .disclose(vec![mdoc, mdoc2].try_into().unwrap(), &key_factory)
-            .now_or_never()
-            .unwrap()
-            .expect_err("disclosing mdoc using VpDisclosureSession should not succeed");
-
-        assert_matches!(
-            error,
-            DisclosureError {
-                data_shared,
-                error: VpSessionError::Client(VpClientError::Poa(_))
             } if !data_shared
         );
     }

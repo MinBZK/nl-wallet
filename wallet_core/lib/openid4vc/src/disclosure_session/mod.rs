@@ -3,12 +3,12 @@ use std::hash::Hash;
 use rustls_pki_types::TrustAnchor;
 
 use crypto::CredentialEcdsaKey;
+use crypto::wscd::DisclosureKeyFactory;
 use dcql::normalized::NormalizedCredentialRequest;
 use http_utils::urls::BaseUrl;
 use mdoc::holder::Mdoc;
 use utils::vec_at_least::VecNonEmpty;
-use wscd::factory::PoaFactory;
-use wscd::keyfactory::KeyFactory;
+use wscd::Poa;
 
 use crate::verifier::SessionType;
 
@@ -60,6 +60,6 @@ pub trait DisclosureSession {
     ) -> Result<Option<BaseUrl>, (Self, DisclosureError<VpSessionError>)>
     where
         K: CredentialEcdsaKey + Eq + Hash,
-        KF: KeyFactory<Key = K> + PoaFactory<Key = K>,
+        KF: DisclosureKeyFactory<Key = K, Poa = Poa>,
         Self: Sized;
 }

@@ -1,10 +1,8 @@
-use std::error::Error;
 use std::num::NonZeroUsize;
 
-use p256::ecdsa::Signature;
-use p256::ecdsa::VerifyingKey;
+use derive_more::Constructor;
 
-use crypto::CredentialEcdsaKey;
+use crypto::wscd::DisclosureKeyFactory;
 use jwt::Jwt;
 use jwt::pop::JwtPopClaims;
 use jwt::wte::WteDisclosure;
@@ -12,30 +10,27 @@ use utils::vec_at_least::VecNonEmpty;
 
 use crate::Poa;
 
-pub trait KeyFactory {
-    type Key: CredentialEcdsaKey;
-    type Error: Error + Send + Sync + 'static;
-
-    fn generate_existing<I: Into<String>>(&self, identifier: I, public_key: VerifyingKey) -> Self::Key;
-
-    async fn sign_multiple_with_existing_keys(
-        &self,
-        messages_and_keys: Vec<(Vec<u8>, Vec<&Self::Key>)>,
-    ) -> Result<Vec<Vec<Signature>>, Self::Error>;
-
+pub trait KeyFactory: DisclosureKeyFactory<Poa = Poa> {
+    /// Construct new keys along with PoPs and PoA, and optionally a WUA, for use during issuance.
     async fn perform_issuance(
         &self,
         count: NonZeroUsize,
         aud: String,
         nonce: Option<String>,
         include_wua: bool,
-    ) -> Result<IssuanceResult, Self::Error>;
+    ) -> Result<IssuanceResult<Self::Poa>, Self::Error>;
 }
 
-#[derive(Debug)]
-pub struct IssuanceResult {
+#[derive(Debug, Constructor)]
+pub struct IssuanceResult<P> {
     pub key_identifiers: VecNonEmpty<String>,
     pub pops: VecNonEmpty<Jwt<JwtPopClaims>>,
+    pub poa: Option<P>,
     pub wua: Option<WteDisclosure>,
-    pub poa: Option<Poa>,
+}
+
+#[derive(Debug, Constructor)]
+pub struct JwtPoaInput {
+    pub nonce: Option<String>,
+    pub aud: String,
 }

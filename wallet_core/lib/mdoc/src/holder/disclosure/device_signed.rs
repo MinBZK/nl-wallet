@@ -8,7 +8,8 @@ use p256::PublicKey;
 use p256::SecretKey;
 
 use crypto::keys::CredentialEcdsaKey;
-use wscd::keyfactory::KeyFactory;
+use crypto::wscd::DisclosureKeyFactory;
+use crypto::wscd::KeyFactoryPoa;
 
 use crate::errors::Result;
 use crate::iso::*;
@@ -19,15 +20,17 @@ use crate::utils::serialization::TaggedBytes;
 use crate::utils::serialization::cbor_serialize;
 
 impl DeviceSigned {
-    pub async fn new_signatures<K, KF>(
+    pub async fn new_signatures<K, KF, P>(
         keys_and_challenges: Vec<(K, &[u8])>,
         key_factory: &KF,
-    ) -> Result<(Vec<DeviceSigned>, Vec<K>)>
+        poa_input: P::Input,
+    ) -> Result<(Vec<DeviceSigned>, Option<P>)>
     where
         K: CredentialEcdsaKey,
-        KF: KeyFactory<Key = K>,
+        KF: DisclosureKeyFactory<Key = K, Poa = P>,
+        P: KeyFactoryPoa,
     {
-        let (coses, keys) = sign_coses(keys_and_challenges, key_factory, Header::default(), false).await?;
+        let (coses, poa) = sign_coses(keys_and_challenges, key_factory, Header::default(), poa_input, false).await?;
 
         let signed = coses
             .into_iter()
@@ -37,7 +40,7 @@ impl DeviceSigned {
             })
             .collect();
 
-        Ok((signed, keys))
+        Ok((signed, poa))
     }
 
     pub fn new_mac(

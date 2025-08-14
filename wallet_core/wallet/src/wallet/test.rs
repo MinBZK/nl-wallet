@@ -19,6 +19,7 @@ use attestation_data::constants::PID_ATTESTATION_TYPE;
 use attestation_data::credential_payload::CredentialPayload;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::x509::generate::mock::generate_issuer_mock;
+use crypto::mock_remote::MockRemoteEcdsaKey;
 use crypto::p256_der::DerVerifyingKey;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
@@ -47,7 +48,6 @@ use utils::generator::mock::MockTimeGenerator;
 use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::messages::registration::WalletCertificateClaims;
 use wallet_configuration::wallet_config::WalletConfiguration;
-use wscd::mock_remote::MockRemoteEcdsaKey;
 
 use crate::account_provider::MockAccountProviderClient;
 use crate::attestation::AttestationPresentation;

@@ -13,7 +13,6 @@ use indexmap::IndexMap;
 use itertools::Itertools;
 use josekit::jwk::alg::ec::EcCurve;
 use josekit::jwk::alg::ec::EcKeyPair;
-use p256::ecdsa::Signature;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 use rand_core::OsRng;
@@ -26,9 +25,14 @@ use url::Url;
 use attestation_data::auth::reader_auth::ReaderRegistration;
 use attestation_data::disclosure::DisclosedAttestation;
 use attestation_data::x509::generate::mock::generate_reader_mock;
+use crypto::mock_remote::MockRemoteEcdsaKey;
+use crypto::mock_remote::MockRemoteKeyFactoryError;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::server_keys::generate::mock::RP_CERT_CN;
+use crypto::wscd::DisclosureKeyFactory;
+use crypto::wscd::DisclosureResult;
+use crypto::wscd::KeyFactoryPoa;
 use dcql::Query;
 use dcql::normalized;
 use http_utils::urls::BaseUrl;
@@ -86,15 +90,12 @@ use openid4vc::verifier::WalletInitiatedUseCase;
 use openid4vc::verifier::WalletInitiatedUseCases;
 use utils::generator::TimeGenerator;
 use utils::generator::mock::MockTimeGenerator;
-use utils::vec_at_least::VecAtLeastTwoUnique;
 use utils::vec_at_least::VecNonEmpty;
 use wscd::Poa;
-use wscd::factory::PoaFactory;
 use wscd::keyfactory::IssuanceResult;
+use wscd::keyfactory::JwtPoaInput;
 use wscd::keyfactory::KeyFactory;
-use wscd::mock_remote::MockRemoteEcdsaKey;
 use wscd::mock_remote::MockRemoteKeyFactory;
-use wscd::mock_remote::MockRemoteKeyFactoryError;
 
 #[tokio::test]
 async fn disclosure_direct() {
@@ -164,21 +165,10 @@ async fn disclosure_jwe(
         &mdoc_nonce,
     );
     let key_factory = MockRemoteKeyFactory::new(vec![mdoc_key]);
-    let (device_response, keys) = DeviceResponse::sign_from_mdocs(mdocs, &session_transcript, &key_factory)
+    let poa_input = JwtPoaInput::new(Some(auth_request.nonce.clone()), auth_request.client_id.clone());
+    let (device_response, poa) = DeviceResponse::sign_from_mdocs(mdocs, &session_transcript, &key_factory, poa_input)
         .await
         .unwrap();
-
-    let poa = match VecAtLeastTwoUnique::try_from(keys) {
-        Ok(keys) => {
-            let keys = keys.as_slice().iter().collect_vec().try_into().unwrap();
-            let poa = key_factory
-                .poa(keys, auth_request.client_id.clone(), Some(mdoc_nonce.clone()))
-                .await
-                .unwrap();
-            Some(poa)
-        }
-        Err(_) => None,
-    };
 
     // Put the disclosure in an Authorization Response and encrypt it.
     VpAuthorizationResponse::new_encrypted(device_response, &auth_request, &mdoc_nonce, poa).unwrap()
@@ -671,43 +661,38 @@ async fn test_disclosure_invalid_poa() {
     /// A mock key factory that returns a wrong PoA.
     #[derive(Default)]
     struct WrongPoaKeyFactory(MockRemoteKeyFactory);
-    impl KeyFactory for WrongPoaKeyFactory {
+
+    impl DisclosureKeyFactory for WrongPoaKeyFactory {
         type Key = MockRemoteEcdsaKey;
         type Error = MockRemoteKeyFactoryError;
+        type Poa = Poa;
 
-        fn generate_existing<I: Into<String>>(&self, identifier: I, public_key: VerifyingKey) -> Self::Key {
-            self.0.generate_existing(identifier, public_key)
+        fn new_key<I: Into<String>>(&self, identifier: I, public_key: VerifyingKey) -> Self::Key {
+            self.0.new_key(identifier, public_key)
         }
 
-        async fn sign_multiple_with_existing_keys(
+        async fn sign(
             &self,
             messages_and_keys: Vec<(Vec<u8>, Vec<&Self::Key>)>,
-        ) -> Result<Vec<Vec<Signature>>, Self::Error> {
-            self.0.sign_multiple_with_existing_keys(messages_and_keys).await
-        }
+            poa_input: <Self::Poa as KeyFactoryPoa>::Input,
+        ) -> Result<DisclosureResult<Self::Poa>, Self::Error> {
+            let mut result = self.0.sign(messages_and_keys, poa_input).await?;
 
+            result.poa.as_mut().unwrap().set_payload("wrong_payload".to_string());
+
+            Ok(result)
+        }
+    }
+
+    impl KeyFactory for WrongPoaKeyFactory {
         async fn perform_issuance(
             &self,
             count: NonZeroUsize,
             aud: String,
             nonce: Option<String>,
             include_wua: bool,
-        ) -> Result<IssuanceResult, Self::Error> {
+        ) -> Result<IssuanceResult<Self::Poa>, Self::Error> {
             self.0.perform_issuance(count, aud, nonce, include_wua).await
-        }
-    }
-
-    impl PoaFactory for WrongPoaKeyFactory {
-        type Key = MockRemoteEcdsaKey;
-        type Error = MockRemoteKeyFactoryError;
-
-        async fn poa(
-            &self,
-            keys: VecAtLeastTwoUnique<&Self::Key>,
-            _: String,
-            _: Option<String>,
-        ) -> Result<Poa, Self::Error> {
-            self.0.poa(keys, "".to_owned(), Some("".to_owned())).await
         }
     }
 
