@@ -128,7 +128,7 @@ spec:
           imagePullPolicy: {{ .Values.logSidecar.image.pullPolicy }}
           command: ['/bin/sh', '-c', 'mkfifo /shared/log && exec cat /shared/log']
           restartPolicy: Always # sidecar
-          {{- with .Values.logResources }}
+          {{- with .Values.logSidecar.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
