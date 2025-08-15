@@ -33,7 +33,7 @@ use http_utils::urls::BaseUrl;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
 use jwt::jwk::jwk_to_p256;
-use jwt::wte::WteDisclosure;
+use jwt::wua::WuaDisclosure;
 use mdoc::ATTR_RANDOM_LENGTH;
 use mdoc::holder::Mdoc;
 use mdoc::utils::cose::CoseError;
@@ -874,7 +874,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
     async fn request_batch_credentials(
         &self,
         credential_requests: VecNonEmpty<CredentialRequest>,
-        wte_disclosure: Option<WteDisclosure>,
+        wua_disclosure: Option<WuaDisclosure>,
         poa: Option<Poa>,
     ) -> Result<Vec<CredentialResponse>, IssuanceSessionError> {
         let url = Self::discover_batch_credential_endpoint(&self.message_client, &self.session_state.issuer_url)
@@ -889,7 +889,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                 &url,
                 &CredentialRequests {
                     credential_requests,
-                    attestations: wte_disclosure,
+                    attestations: wua_disclosure,
                     poa,
                 },
                 &dpop_header,
@@ -1406,8 +1406,8 @@ mod tests {
         session_state: &IssuanceState,
         dpop_header: &str,
         access_token_header: &str,
-        attestations: &Option<WteDisclosure>,
-        use_wte: bool,
+        attestations: &Option<WuaDisclosure>,
+        use_wua: bool,
     ) {
         assert_eq!(
             access_token_header,
@@ -1424,13 +1424,13 @@ mod tests {
             )
             .unwrap();
 
-        if use_wte != attestations.is_some() {
-            panic!("unexpected WTE usage");
+        if use_wua != attestations.is_some() {
+            panic!("unexpected WUA usage");
         }
     }
 
     #[rstest]
-    fn test_accept_issuance(#[values(true, false)] use_wte: bool, #[values(true, false)] multiple_creds: bool) {
+    fn test_accept_issuance(#[values(true, false)] use_wua: bool, #[values(true, false)] multiple_creds: bool) {
         let (signer, preview_data) = MockCredentialSigner::new_with_preview_state();
         let trust_anchor = signer.trust_anchor.clone();
         let wscd = MockRemoteWscd::default();
@@ -1455,7 +1455,7 @@ mod tests {
                         dpop_header,
                         access_token_header,
                         &credential_requests.attestations,
-                        use_wte,
+                        use_wua,
                     );
 
                     let credential_responses = credential_requests
@@ -1481,7 +1481,7 @@ mod tests {
                         dpop_header,
                         access_token_header,
                         &credential_request.attestations,
-                        use_wte,
+                        use_wua,
                     );
 
                     let response = signer.into_response_from_request(credential_request);
@@ -1495,7 +1495,7 @@ mod tests {
             message_client: mock_msg_client,
             session_state,
         }
-        .accept_issuance(&[trust_anchor], &wscd, use_wte)
+        .accept_issuance(&[trust_anchor], &wscd, use_wua)
         .now_or_never()
         .unwrap()
         .expect("accepting issuance should succeed");

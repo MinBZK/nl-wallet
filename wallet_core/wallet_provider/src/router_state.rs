@@ -28,7 +28,7 @@ use wallet_provider_service::instructions::ValidateInstruction;
 use wallet_provider_service::keys::InstructionResultSigning;
 use wallet_provider_service::keys::WalletCertificateSigning;
 use wallet_provider_service::pin_policy::PinPolicy;
-use wallet_provider_service::wte_issuer::HsmWteIssuer;
+use wallet_provider_service::wua_issuer::HsmWuaIssuer;
 
 use crate::errors::WalletProviderError;
 use crate::settings::Settings;
@@ -38,7 +38,7 @@ pub struct RouterState<GRC, PIC> {
     pub pin_policy: PinPolicy,
     pub instruction_result_signing_key: InstructionResultSigning,
     pub certificate_signing_key: WalletCertificateSigning,
-    pub user_state: UserState<Repositories, Pkcs11Hsm, HsmWteIssuer<Pkcs11Hsm>>,
+    pub user_state: UserState<Repositories, Pkcs11Hsm, HsmWuaIssuer<Pkcs11Hsm>>,
 }
 
 impl<GRC, PIC> RouterState<GRC, PIC> {
@@ -119,9 +119,9 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
         );
 
         let repositories = Repositories::from(db);
-        let wte_issuer = HsmWteIssuer::new(
-            HsmEcdsaKey::new(settings.wte_signing_key_identifier, hsm.clone()),
-            settings.wte_issuer_identifier,
+        let wua_issuer = HsmWuaIssuer::new(
+            HsmEcdsaKey::new(settings.wua_signing_key_identifier, hsm.clone()),
+            settings.wua_issuer_identifier,
             hsm.clone(),
             settings.attestation_wrapping_key_identifier.clone(),
         );
@@ -134,7 +134,7 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
             user_state: UserState {
                 repositories,
                 wallet_user_hsm: hsm,
-                wte_issuer,
+                wua_issuer,
                 wrapping_key_identifier: settings.attestation_wrapping_key_identifier,
             },
         };

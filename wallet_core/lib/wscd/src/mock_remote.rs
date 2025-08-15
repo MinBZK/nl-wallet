@@ -21,8 +21,8 @@ use jwt::Jwt;
 use jwt::credential::JwtCredentialClaims;
 use jwt::jwk::jwk_from_p256;
 use jwt::pop::JwtPopClaims;
-use jwt::wte::WteClaims;
-use jwt::wte::WteDisclosure;
+use jwt::wua::WuaClaims;
+use jwt::wua::WuaDisclosure;
 
 use crate::Poa;
 use crate::wscd::IssuanceResult;
@@ -165,8 +165,8 @@ impl Wscd for MockRemoteWscd {
                 wua_key.verifying_key(),
                 wua_signing_key,
                 MOCK_WALLET_CLIENT_ID.to_string(),
-                Some("wte+jwt".to_string()),
-                WteClaims::new(),
+                Some("wua+jwt".to_string()),
+                WuaClaims::new(),
             )
             .now_or_never()
             .unwrap()
@@ -177,7 +177,7 @@ impl Wscd for MockRemoteWscd {
                 .unwrap()
                 .unwrap();
 
-            (WteDisclosure::new(wua, wua_disclosure), wua_key)
+            (WuaDisclosure::new(wua, wua_disclosure), wua_key)
         });
 
         let count_including_wua = if include_wua { count.get() + 1 } else { count.get() };

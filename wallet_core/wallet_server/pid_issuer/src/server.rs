@@ -9,9 +9,9 @@ use hsm::service::Pkcs11Hsm;
 use issuer_settings::settings::IssuerSettings;
 use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::Issuer;
-use openid4vc::issuer::WteConfig;
+use openid4vc::issuer::WuaConfig;
 use openid4vc::server_state::SessionStore;
-use openid4vc::server_state::WteTracker;
+use openid4vc::server_state::WuaTracker;
 use openid4vc_server::issuer::create_issuance_router;
 use server_utils::server::create_wallet_listener;
 use server_utils::server::listen;
@@ -21,13 +21,13 @@ pub async fn serve<A, IS, W>(
     settings: IssuerSettings,
     hsm: Option<Pkcs11Hsm>,
     issuance_sessions: Arc<IS>,
-    wte_issuer_pubkey: VerifyingKey,
-    wte_tracker: W,
+    wua_issuer_pubkey: VerifyingKey,
+    wua_tracker: W,
 ) -> Result<()>
 where
     A: AttributeService + Send + Sync + 'static,
     IS: SessionStore<openid4vc::issuer::IssuanceData> + Send + Sync + 'static,
-    W: WteTracker + Send + Sync + 'static,
+    W: WuaTracker + Send + Sync + 'static,
 {
     let listener = create_wallet_listener(&settings.server_settings.wallet_server).await?;
     serve_with_listener(
@@ -36,8 +36,8 @@ where
         settings,
         hsm,
         issuance_sessions,
-        wte_issuer_pubkey,
-        wte_tracker,
+        wua_issuer_pubkey,
+        wua_tracker,
     )
     .await
 }
@@ -49,13 +49,13 @@ pub async fn serve_with_listener<A, IS, W>(
     settings: IssuerSettings,
     hsm: Option<Pkcs11Hsm>,
     issuance_sessions: Arc<IS>,
-    wte_issuer_pubkey: VerifyingKey,
-    wte_tracker: W,
+    wua_issuer_pubkey: VerifyingKey,
+    wua_tracker: W,
 ) -> Result<()>
 where
     A: AttributeService + Send + Sync + 'static,
     IS: SessionStore<openid4vc::issuer::IssuanceData> + Send + Sync + 'static,
-    W: WteTracker + Send + Sync + 'static,
+    W: WuaTracker + Send + Sync + 'static,
 {
     let log_requests = settings.server_settings.log_requests;
 
@@ -67,9 +67,9 @@ where
         attestation_config,
         &settings.server_settings.public_url,
         settings.wallet_client_ids,
-        Some(WteConfig {
-            wte_issuer_pubkey: (&wte_issuer_pubkey).into(),
-            wte_tracker: Arc::new(wte_tracker),
+        Some(WuaConfig {
+            wua_issuer_pubkey: (&wua_issuer_pubkey).into(),
+            wua_tracker: Arc::new(wua_tracker),
         }),
     )));
 

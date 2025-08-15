@@ -21,43 +21,43 @@ use crate::pop::JwtPopClaims;
 use crate::validations;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct WteClaims {
+pub struct WuaClaims {
     #[serde(with = "ts_seconds")]
     pub exp: DateTime<Utc>,
 }
 
-pub static WTE_EXPIRY: Duration = Duration::minutes(5);
+pub static WUA_EXPIRY: Duration = Duration::minutes(5);
 
-impl WteClaims {
+impl WuaClaims {
     pub fn new() -> Self {
         Self {
-            exp: Utc::now() + WTE_EXPIRY,
+            exp: Utc::now() + WUA_EXPIRY,
         }
     }
 }
 
-impl Default for WteClaims {
+impl Default for WuaClaims {
     fn default() -> Self {
         Self::new()
     }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, Constructor)]
-pub struct WteDisclosure(Jwt<JwtCredentialClaims<WteClaims>>, Jwt<JwtPopClaims>);
+pub struct WuaDisclosure(Jwt<JwtCredentialClaims<WuaClaims>>, Jwt<JwtPopClaims>);
 
 #[cfg(feature = "test")]
-impl WteDisclosure {
-    pub fn wte(&self) -> &Jwt<JwtCredentialClaims<WteClaims>> {
+impl WuaDisclosure {
+    pub fn wua(&self) -> &Jwt<JwtCredentialClaims<WuaClaims>> {
         &self.0
     }
 
-    pub fn wte_pop(&self) -> &Jwt<JwtPopClaims> {
+    pub fn wua_pop(&self) -> &Jwt<JwtPopClaims> {
         &self.1
     }
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum WteError {
+pub enum WuaError {
     #[error("incorrect nonce")]
     IncorrectNonce,
     #[error("JWK conversion error: {0}")]
@@ -66,35 +66,35 @@ pub enum WteError {
     Jwt(#[from] JwtError),
 }
 
-impl WteDisclosure {
+impl WuaDisclosure {
     pub fn verify(
         self,
         issuer_public_key: &EcdsaDecodingKey,
         expected_aud: &str,
         accepted_wallet_client_ids: &[String],
         expected_nonce: &str,
-    ) -> Result<(VerifiedJwt<JwtCredentialClaims<WteClaims>>, VerifyingKey), WteError> {
-        let verified_jwt = VerifiedJwt::try_new(self.0, issuer_public_key, &WTE_JWT_VALIDATIONS)?;
-        let wte_pubkey = jwk_to_p256(&verified_jwt.payload().confirmation.jwk)?;
+    ) -> Result<(VerifiedJwt<JwtCredentialClaims<WuaClaims>>, VerifyingKey), WuaError> {
+        let verified_jwt = VerifiedJwt::try_new(self.0, issuer_public_key, &WUA_JWT_VALIDATIONS)?;
+        let wua_pubkey = jwk_to_p256(&verified_jwt.payload().confirmation.jwk)?;
 
         let mut validations = validations();
         validations.set_audience(&[expected_aud]);
         validations.set_issuer(accepted_wallet_client_ids);
-        let wte_disclosure_claims = self.1.parse_and_verify(&(&wte_pubkey).into(), &validations)?;
+        let wua_disclosure_claims = self.1.parse_and_verify(&(&wua_pubkey).into(), &validations)?;
 
-        if wte_disclosure_claims.nonce.as_deref() != Some(expected_nonce) {
-            return Err(WteError::IncorrectNonce);
+        if wua_disclosure_claims.nonce.as_deref() != Some(expected_nonce) {
+            return Err(WuaError::IncorrectNonce);
         }
 
-        Ok((verified_jwt, wte_pubkey))
+        Ok((verified_jwt, wua_pubkey))
     }
 }
 
-// Returns the JWS validations for WTE verification.
+// Returns the JWS validations for WUA verification.
 //
 // NOTE: the returned validation allows for no clock drift: time-based claims such as `exp` are validated
-// without leeway. There must be no clock drift between the WTE issuer and the caller.
-pub static WTE_JWT_VALIDATIONS: LazyLock<Validation> = LazyLock::new(|| {
+// without leeway. There must be no clock drift between the WUA issuer and the caller.
+pub static WUA_JWT_VALIDATIONS: LazyLock<Validation> = LazyLock::new(|| {
     let mut validations = validations();
     validations.leeway = 0;
 

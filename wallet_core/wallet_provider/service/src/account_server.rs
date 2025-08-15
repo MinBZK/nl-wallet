@@ -97,7 +97,7 @@ use crate::wallet_certificate::new_wallet_certificate;
 use crate::wallet_certificate::parse_claims_and_retrieve_wallet_user;
 use crate::wallet_certificate::verify_wallet_certificate;
 use crate::wallet_certificate::verify_wallet_certificate_public_keys;
-use crate::wte_issuer::WteIssuer;
+use crate::wua_issuer::WuaIssuer;
 
 #[derive(Debug, thiserror::Error)]
 pub enum AccountServerInitError {
@@ -214,8 +214,8 @@ pub enum InstructionError {
     Storage(#[from] PersistenceError),
     #[error("hsm error: {0}")]
     HsmError(#[from] HsmError),
-    #[error("WTE issuance: {0}")]
-    WteIssuance(#[source] Box<dyn Error + Send + Sync + 'static>),
+    #[error("WUA issuance: {0}")]
+    WuaIssuance(#[source] Box<dyn Error + Send + Sync + 'static>),
     #[error("instruction referenced nonexisting key: {0}")]
     NonexistingKey(String),
     #[error("PoA construction error: {0}")]
@@ -242,8 +242,8 @@ pub enum InstructionValidationError {
     PinChangeNotInProgress,
     #[error("hsm error: {0}")]
     HsmError(#[from] HsmError),
-    #[error("WTE already issued")]
-    WteAlreadyIssued,
+    #[error("WUA already issued")]
+    WuaAlreadyIssued,
     #[error("received instruction to sign a PoA with the Sign instruction")]
     PoaMessage,
 }
@@ -361,7 +361,7 @@ pub struct AccountServer<GRC = GoogleRevocationListClient, PIC = PlayIntegrityCl
 pub struct UserState<R, H, W> {
     pub repositories: R,
     pub wallet_user_hsm: H,
-    pub wte_issuer: W,
+    pub wua_issuer: W,
     pub wrapping_key_identifier: String,
 }
 
@@ -392,7 +392,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         &self,
         certificate_signing_key: &impl WalletCertificateSigningKey,
         registration_message: ChallengeResponse<Registration>,
-        user_state: &UserState<R, H, impl WteIssuer>,
+        user_state: &UserState<R, H, impl WuaIssuer>,
     ) -> Result<WalletCertificate, RegistrationError>
     where
         GRC: GoogleCrlProvider,
@@ -621,7 +621,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         &self,
         challenge_request: InstructionChallengeRequest,
         time_generator: &impl Generator<DateTime<Utc>>,
-        user_state: &UserState<R, H, impl WteIssuer>,
+        user_state: &UserState<R, H, impl WuaIssuer>,
     ) -> Result<Vec<u8>, ChallengeError>
     where
         T: Committable,
@@ -711,7 +711,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         instruction_result_signing_key: &impl InstructionResultSigningKey,
         generators: &G,
         pin_policy: &impl PinPolicyEvaluator,
-        user_state: &UserState<R, H, impl WteIssuer>,
+        user_state: &UserState<R, H, impl WuaIssuer>,
     ) -> Result<InstructionResult<IR>, InstructionError>
     where
         T: Committable,
@@ -752,7 +752,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         signing_keys: (&impl InstructionResultSigningKey, &impl WalletCertificateSigningKey),
         generators: &G,
         pin_policy: &impl PinPolicyEvaluator,
-        user_state: &UserState<R, H, impl WteIssuer>,
+        user_state: &UserState<R, H, impl WuaIssuer>,
     ) -> Result<InstructionResult<WalletCertificate>, InstructionError>
     where
         T: Committable,
@@ -827,7 +827,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         instruction_result_signing_key: &impl InstructionResultSigningKey,
         generators: &G,
         pin_policy: &impl PinPolicyEvaluator,
-        user_state: &UserState<R, H, impl WteIssuer>,
+        user_state: &UserState<R, H, impl WuaIssuer>,
     ) -> Result<InstructionResult<()>, InstructionError>
     where
         T: Committable,
@@ -866,7 +866,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         instruction: Instruction<I>,
         generators: &G,
         pin_policy: &impl PinPolicyEvaluator,
-        user_state: &UserState<R, H, impl WteIssuer>,
+        user_state: &UserState<R, H, impl WuaIssuer>,
         pin_pubkey: F,
     ) -> Result<(WalletUser, I), InstructionError>
     where
@@ -1146,7 +1146,7 @@ pub mod mock {
     use wallet_provider_persistence::repositories::mock::WalletUserTestRepo;
 
     use crate::wallet_certificate;
-    use crate::wte_issuer::mock::MockWteIssuer;
+    use crate::wua_issuer::mock::MockWuaIssuer;
 
     use super::mock_play_integrity::MockPlayIntegrityClient;
     use super::*;
@@ -1208,17 +1208,17 @@ pub mod mock {
         )
     }
 
-    pub type MockUserState = UserState<WalletUserTestRepo, MockPkcs11Client<HsmError>, MockWteIssuer>;
+    pub type MockUserState = UserState<WalletUserTestRepo, MockPkcs11Client<HsmError>, MockWuaIssuer>;
 
     pub fn user_state<R>(
         repositories: R,
         wallet_user_hsm: MockPkcs11Client<HsmError>,
         wrapping_key_identifier: String,
-    ) -> UserState<R, MockPkcs11Client<HsmError>, MockWteIssuer> {
-        UserState::<R, MockPkcs11Client<HsmError>, MockWteIssuer> {
+    ) -> UserState<R, MockPkcs11Client<HsmError>, MockWuaIssuer> {
+        UserState::<R, MockPkcs11Client<HsmError>, MockWuaIssuer> {
             repositories,
             wallet_user_hsm,
-            wte_issuer: MockWteIssuer,
+            wua_issuer: MockWuaIssuer,
             wrapping_key_identifier,
         }
     }
@@ -1363,7 +1363,7 @@ mod tests {
     use crate::wallet_certificate::mock::WalletCertificateSetup;
     use crate::wallet_certificate::mock::setup_hsm;
     use crate::wallet_certificate::verify_wallet_certificate;
-    use crate::wte_issuer::mock::MockWteIssuer;
+    use crate::wua_issuer::mock::MockWuaIssuer;
 
     use super::AndroidAppAttestationError;
     use super::ChallengeError;
@@ -1441,7 +1441,7 @@ mod tests {
         let user_state = UserState {
             repositories: wallet_user_repo,
             wallet_user_hsm: hsm,
-            wte_issuer: MockWteIssuer,
+            wua_issuer: MockWuaIssuer,
             wrapping_key_identifier: wrapping_key_identifier.to_string(),
         };
 

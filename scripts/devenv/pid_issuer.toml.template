@@ -1,7 +1,7 @@
 public_url = 'http://${SERVICES_HOST}:${PID_ISSUER_WS_PORT}/'
 issuer_trust_anchors = ["${ISSUER_CA_CRT}"]
 
-wte_issuer_pubkey = "${WP_WTE_PUBLIC_KEY}"
+wua_issuer_pubkey = "${WP_WUA_PUBLIC_KEY}"
 metadata = [
     "${ISSUER_METADATA_PID_PATH}",
     "${ISSUER_METADATA_PID_NL_PATH}",
