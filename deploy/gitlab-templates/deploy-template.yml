@@ -263,7 +263,7 @@ run-encrypt-gba-v-testdata-${DEPLOY_ENV}:
 run-demo-issuer-issuance-server-reset-${DEPLOY_ENV}:
   extends: .deploy-base
   needs:
-    - job: demo-issuer-issuance-server-${DEPLOY_ENV}
+    - job: db-cluster-${DEPLOY_ENV}
       artifacts: false
   script:
     - kubectl create job --from=cronjob/demo-issuer-issuance-server-reset demo-issuer-issuance-db-reset-$(date +%s)
@@ -273,7 +273,7 @@ run-demo-issuer-issuance-server-reset-${DEPLOY_ENV}:
 run-demo-rp-verification-server-reset-${DEPLOY_ENV}:
   extends: .deploy-base
   needs:
-    - job: demo-rp-verification-server-${DEPLOY_ENV}
+    - job: db-cluster-${DEPLOY_ENV}
       artifacts: false
   script:
     - kubectl create job --from=cronjob/demo-rp-verification-server-reset demo-rp-verification-db-reset-$(date +%s)
@@ -283,7 +283,7 @@ run-demo-rp-verification-server-reset-${DEPLOY_ENV}:
 run-pid-issuer-reset-${DEPLOY_ENV}:
   extends: .deploy-base
   needs:
-    - job: pid-issuer-${DEPLOY_ENV}
+    - job: db-cluster-${DEPLOY_ENV}
       artifacts: false
   script:
     - kubectl create job --from=cronjob/pid-issuer-reset pid-issuer-db-reset-$(date +%s)
@@ -293,7 +293,7 @@ run-pid-issuer-reset-${DEPLOY_ENV}:
 run-wallet-provider-reset-${DEPLOY_ENV}:
   extends: .deploy-base
   needs:
-    - job: wallet-provider-${DEPLOY_ENV}
+    - job: db-cluster-${DEPLOY_ENV}
       artifacts: false
   script:
     - kubectl create job --from=cronjob/wallet-provider-reset wallet-provider-db-reset-$(date +%s)
