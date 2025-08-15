@@ -1,0 +1,9 @@
+/* Custom css below */
+
+.wy-breadcrumbs>li.wy-breadcrumbs-aside {
+    display: none;
+}
+
+div[role="contentinfo"] {
+    display: none;
+}

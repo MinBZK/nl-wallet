@@ -31,7 +31,7 @@ build-documentation:
     name: documentation
     when: always
     paths:
-      - documentation/_build/html
+      - wallet_docs/_build/html
   allow_failure: true
 
 generate-c4-puml:
@@ -41,7 +41,7 @@ generate-c4-puml:
     entrypoint: [""]
   script:
     - mkdir -p c4diagrams
-    - /usr/local/structurizr-cli/structurizr.sh export --workspace documentation/_structurizr/workspace.dsl --output c4diagrams --format plantuml
+    - /usr/local/structurizr-cli/structurizr.sh export --workspace wallet_docs/_structurizr/workspace.dsl --output c4diagrams --format plantuml
     - echo "Generated .puml files:"
     - ls -l c4diagrams
   artifacts:
@@ -76,7 +76,7 @@ publish-documentation:
     - git clone --branch documentation --depth 1 https://$GITHUB_USER:$GITHUB_TOKEN@github.com/MinBZK/nl-wallet.git public
     - cd public
     - rm -rf *
-    - mv ../documentation/_build/html/* .
+    - mv ../wallet_docs/_build/html/* .
     - |
       if [[ ! -f index.html ]]; then
         >&2 echo "ERROR: index.html not found"
