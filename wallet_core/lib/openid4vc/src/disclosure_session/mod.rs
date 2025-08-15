@@ -3,7 +3,7 @@ use std::hash::Hash;
 use rustls_pki_types::TrustAnchor;
 
 use crypto::CredentialEcdsaKey;
-use crypto::wscd::DisclosureKeyFactory;
+use crypto::wscd::DisclosureWscd;
 use dcql::normalized::NormalizedCredentialRequest;
 use http_utils::urls::BaseUrl;
 use mdoc::holder::Mdoc;
@@ -53,13 +53,13 @@ pub trait DisclosureSession {
     fn verifier_certificate(&self) -> &VerifierCertificate;
 
     async fn terminate(self) -> Result<Option<BaseUrl>, VpSessionError>;
-    async fn disclose<K, KF>(
+    async fn disclose<K, W>(
         self,
         mdocs: VecNonEmpty<Mdoc>,
-        key_factory: &KF,
+        wscd: &W,
     ) -> Result<Option<BaseUrl>, (Self, DisclosureError<VpSessionError>)>
     where
         K: CredentialEcdsaKey + Eq + Hash,
-        KF: DisclosureKeyFactory<Key = K, Poa = Poa>,
+        W: DisclosureWscd<Key = K, Poa = Poa>,
         Self: Sized;
 }

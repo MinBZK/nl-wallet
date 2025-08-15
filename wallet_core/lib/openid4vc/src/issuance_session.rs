@@ -51,7 +51,7 @@ use utils::single_unique::MultipleItemsFound;
 use utils::single_unique::SingleUnique;
 use utils::vec_at_least::VecNonEmpty;
 use wscd::Poa;
-use wscd::keyfactory::KeyFactory;
+use wscd::wscd::Wscd;
 
 use crate::CredentialErrorCode;
 use crate::ErrorResponse;
@@ -273,15 +273,15 @@ pub trait IssuanceSession<H = HttpVcMessageClient> {
     where
         Self: Sized;
 
-    async fn accept_issuance<K, KF>(
+    async fn accept_issuance<K, W>(
         &self,
         trust_anchors: &[TrustAnchor<'_>],
-        key_factory: &KF,
+        wscd: &W,
         include_wua: bool,
     ) -> Result<Vec<CredentialWithMetadata>, IssuanceSessionError>
     where
         K: CredentialEcdsaKey + Eq + Hash,
-        KF: KeyFactory<Key = K>;
+        W: Wscd<Key = K>;
 
     async fn reject_issuance(self) -> Result<(), IssuanceSessionError>;
 
@@ -686,19 +686,19 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         Ok(issuance_client)
     }
 
-    async fn accept_issuance<K, KF>(
+    async fn accept_issuance<K, W>(
         &self,
         trust_anchors: &[TrustAnchor<'_>],
-        key_factory: &KF,
+        wscd: &W,
         include_wua: bool,
     ) -> Result<Vec<CredentialWithMetadata>, IssuanceSessionError>
     where
         K: CredentialEcdsaKey + Eq + Hash,
-        KF: KeyFactory<Key = K>,
+        W: Wscd<Key = K>,
     {
         let key_count = self.session_state.credential_request_types.len();
 
-        let mut issuance_data = key_factory
+        let mut issuance_data = wscd
             .perform_issuance(
                 key_count,
                 self.session_state.issuer_url.as_ref().to_string(),
@@ -1071,7 +1071,7 @@ mod tests {
     use sd_jwt_vc_metadata::TypeMetadata;
     use sd_jwt_vc_metadata::TypeMetadataDocuments;
     use utils::generator::mock::MockTimeGenerator;
-    use wscd::mock_remote::MockRemoteKeyFactory;
+    use wscd::mock_remote::MockRemoteWscd;
 
     use crate::Format;
     use crate::mock::MOCK_WALLET_CLIENT_ID;
@@ -1433,7 +1433,7 @@ mod tests {
     fn test_accept_issuance(#[values(true, false)] use_wte: bool, #[values(true, false)] multiple_creds: bool) {
         let (signer, preview_data) = MockCredentialSigner::new_with_preview_state();
         let trust_anchor = signer.trust_anchor.clone();
-        let key_factory = MockRemoteKeyFactory::default();
+        let wscd = MockRemoteWscd::default();
 
         let session_state = new_session_state(if multiple_creds {
             vec![preview_data.clone(), preview_data].try_into().unwrap()
@@ -1495,7 +1495,7 @@ mod tests {
             message_client: mock_msg_client,
             session_state,
         }
-        .accept_issuance(&[trust_anchor], &key_factory, use_wte)
+        .accept_issuance(&[trust_anchor], &wscd, use_wte)
         .now_or_never()
         .unwrap()
         .expect("accepting issuance should succeed");
@@ -1527,7 +1527,7 @@ mod tests {
             message_client: mock_msg_client,
             session_state: new_session_state(vec![preview_data.clone(), preview_data].try_into().unwrap()),
         }
-        .accept_issuance(&[trust_anchor], &MockRemoteKeyFactory::default(), false)
+        .accept_issuance(&[trust_anchor], &MockRemoteWscd::default(), false)
         .now_or_never()
         .unwrap()
         .expect_err("accepting issuance should not succeed");
@@ -1572,7 +1572,7 @@ mod tests {
             message_client: mock_msg_client,
             session_state,
         }
-        .accept_issuance(&[trust_anchor], &MockRemoteKeyFactory::default(), false)
+        .accept_issuance(&[trust_anchor], &MockRemoteWscd::default(), false)
         .now_or_never()
         .unwrap()
         .expect_err("accepting issuance should not succeed");
@@ -1602,7 +1602,7 @@ mod tests {
             message_client: mock_msg_client,
             session_state: new_session_state(vec![preview_data].try_into().unwrap()),
         }
-        .accept_issuance(&[trust_anchor], &MockRemoteKeyFactory::default(), false)
+        .accept_issuance(&[trust_anchor], &MockRemoteWscd::default(), false)
         .now_or_never()
         .unwrap()
         .expect_err("accepting issuance should not succeed");

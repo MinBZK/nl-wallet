@@ -50,7 +50,7 @@ use crate::errors::ChangePinError;
 use crate::errors::UpdatePolicyError;
 use crate::instruction::InstructionError;
 use crate::instruction::RemoteEcdsaKeyError;
-use crate::instruction::RemoteEcdsaKeyFactory;
+use crate::instruction::RemoteEcdsaWscd;
 use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
 use crate::storage::Storage;
@@ -476,7 +476,7 @@ where
             )
             .await?;
 
-        let remote_key_factory = RemoteEcdsaKeyFactory::new(remote_instruction);
+        let remote_wscd = RemoteEcdsaWscd::new(remote_instruction);
 
         info!("Signing nonce using Wallet Provider");
 
@@ -488,16 +488,12 @@ where
 
         let issuance_result = issuance_session
             .protocol_state
-            .accept_issuance(
-                &config.mdoc_trust_anchors(),
-                &remote_key_factory,
-                issuance_session.is_pid,
-            )
+            .accept_issuance(&config.mdoc_trust_anchors(), &remote_wscd, issuance_session.is_pid)
             .await
             .map_err(|error| {
                 match error {
                     // We knowingly call unwrap() on the downcast to `RemoteEcdsaKeyError` here because we know
-                    // that it is the error type of the `RemoteEcdsaKeyFactory` we provide above.
+                    // that it is the error type of the `RemoteEcdsaWscd` we provide above.
                     IssuanceSessionError::PrivateKeyGeneration(error)
                     | IssuanceSessionError::Jwt(JwtError::Signing(error)) => {
                         match *error.downcast::<RemoteEcdsaKeyError>().unwrap() {
@@ -515,7 +511,7 @@ where
             });
 
         // Make sure there are no remaining references to the `AttestedKey` value.
-        drop(remote_key_factory);
+        drop(remote_wscd);
 
         // If the Wallet Provider returns either a PIN timeout or a permanent block,
         // wipe the contents of the wallet and return it to its initial state.

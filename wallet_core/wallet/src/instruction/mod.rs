@@ -13,7 +13,7 @@ pub use self::client::InstructionClient;
 pub use self::client::InstructionClientFactory;
 pub use self::client::InstructionClientParameters;
 pub use self::keys::RemoteEcdsaKeyError;
-pub use self::keys::RemoteEcdsaKeyFactory;
+pub use self::keys::RemoteEcdsaWscd;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
