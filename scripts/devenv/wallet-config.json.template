@@ -15,7 +15,7 @@
     },
     "certificate_public_key": "${WP_CERTIFICATE_PUBLIC_KEY}",
     "instruction_result_public_key": "${WP_INSTRUCTION_RESULT_PUBLIC_KEY}",
-    "wte_public_key": "${WP_WTE_PUBLIC_KEY}"
+    "wua_public_key": "${WP_WUA_PUBLIC_KEY}"
   },
   "pid_issuance": {
     "pid_issuer_url": "http://${SERVICES_HOST}:${PID_ISSUER_WS_PORT}/issuance/",

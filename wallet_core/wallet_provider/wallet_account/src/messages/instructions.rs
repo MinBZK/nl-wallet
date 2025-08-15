@@ -12,7 +12,7 @@ use crypto::p256_der::DerVerifyingKey;
 use jwt::Jwt;
 use jwt::JwtSubject;
 use jwt::pop::JwtPopClaims;
-use jwt::wte::WteDisclosure;
+use jwt::wua::WuaDisclosure;
 use utils::vec_at_least::VecNonEmpty;
 use wscd::Poa;
 
@@ -148,7 +148,7 @@ pub struct PerformIssuanceWithWua {
 pub struct PerformIssuanceWithWuaResult {
     #[serde(flatten)]
     pub issuance_result: PerformIssuanceResult,
-    pub wua_disclosure: WteDisclosure,
+    pub wua_disclosure: WuaDisclosure,
 }
 
 impl InstructionAndResult for PerformIssuanceWithWua {

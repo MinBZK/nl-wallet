@@ -198,9 +198,9 @@ mod tests {
     use openid4vc::issuer::IssuanceData;
     use openid4vc::issuer::Issuer;
     use openid4vc::issuer::TrivialAttributeService;
-    use openid4vc::issuer::WteConfig;
+    use openid4vc::issuer::WuaConfig;
     use openid4vc::server_state::MemorySessionStore;
-    use openid4vc::server_state::MemoryWteTracker;
+    use openid4vc::server_state::MemoryWuaTracker;
     use openid4vc::server_state::SessionStore;
     use openid4vc::server_state::SessionStoreTimeouts;
     use openid4vc::server_state::SessionToken;
@@ -265,7 +265,7 @@ mod tests {
         }
     }
 
-    type MockIssuer = Issuer<TrivialAttributeService, SigningKey, MemorySessionStore<IssuanceData>, MemoryWteTracker>;
+    type MockIssuer = Issuer<TrivialAttributeService, SigningKey, MemorySessionStore<IssuanceData>, MemoryWuaTracker>;
 
     fn mock_issuer(sessions: Arc<MemorySessionStore<IssuanceData>>) -> MockIssuer {
         Issuer::new(
@@ -274,7 +274,7 @@ mod tests {
             HashMap::<std::string::String, AttestationTypeConfig<SigningKey>>::new().into(),
             &"https://example.com".parse().unwrap(),
             vec![],
-            None::<WteConfig<MemoryWteTracker>>,
+            None::<WuaConfig<MemoryWuaTracker>>,
         )
     }
 

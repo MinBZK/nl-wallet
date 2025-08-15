@@ -17,9 +17,9 @@ use crate::CredentialKeyType;
 use crate::EcdsaKey;
 use crate::SecureEcdsaKey;
 use crate::WithIdentifier;
-use crate::wscd::DisclosureKeyFactory;
 use crate::wscd::DisclosureResult;
-use crate::wscd::KeyFactoryPoa;
+use crate::wscd::DisclosureWscd;
+use crate::wscd::WscdPoa;
 
 /// To be used in test in place of `RemoteEcdsaKey`, implementing the
 /// [`EcdsaKey`], [`SecureEcdsaKey`] and [`WithIdentifier`] traits.
@@ -80,7 +80,7 @@ impl CredentialEcdsaKey for MockRemoteEcdsaKey {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum MockRemoteKeyFactoryError {
+pub enum MockRemoteWscdError {
     #[error("signing error")]
     Signing,
     #[error("poa error")]
@@ -89,17 +89,17 @@ pub enum MockRemoteKeyFactoryError {
     Ecdsa(#[source] <MockRemoteEcdsaKey as EcdsaKey>::Error),
 }
 
-/// A type that implements [`KeyFactory`] and can be used in tests. It has the option
-/// of returning `MockRemoteKeyFactoryError::Signing` when signing, influenced
+/// A type that implements [`DisclosureWscd`] and can be used in tests. It has the option
+/// of returning `MockRemoteWscdError::Signing` when signing, influenced
 /// by a boolean field on the type.
 #[derive(Debug)]
-pub struct MockRemoteKeyFactory {
+pub struct MockRemoteWscd {
     pub signing_keys: Mutex<HashMap<String, SigningKey>>,
 
     pub has_multi_key_signing_error: bool,
 }
 
-impl MockRemoteKeyFactory {
+impl MockRemoteWscd {
     pub fn new(keys: Vec<MockRemoteEcdsaKey>) -> Self {
         let signing_keys = keys.into_iter().map(|key| (key.identifier, key.key)).collect();
 
@@ -123,7 +123,7 @@ impl MockRemoteKeyFactory {
     }
 }
 
-impl Default for MockRemoteKeyFactory {
+impl Default for MockRemoteWscd {
     fn default() -> Self {
         Self::new_signing_keys(HashMap::new())
     }
@@ -131,13 +131,13 @@ impl Default for MockRemoteKeyFactory {
 
 pub struct MockPoa;
 
-impl KeyFactoryPoa for MockPoa {
+impl WscdPoa for MockPoa {
     type Input = ();
 }
 
-impl DisclosureKeyFactory for MockRemoteKeyFactory {
+impl DisclosureWscd for MockRemoteWscd {
     type Key = MockRemoteEcdsaKey;
-    type Error = MockRemoteKeyFactoryError;
+    type Error = MockRemoteWscdError;
     type Poa = MockPoa;
 
     fn new_key<I: Into<String>>(&self, identifier: I, public_key: VerifyingKey) -> Self::Key {
@@ -163,10 +163,10 @@ impl DisclosureKeyFactory for MockRemoteKeyFactory {
     async fn sign(
         &self,
         messages_and_keys: Vec<(Vec<u8>, Vec<&Self::Key>)>,
-        _poa_input: <Self::Poa as KeyFactoryPoa>::Input,
+        _poa_input: <Self::Poa as WscdPoa>::Input,
     ) -> Result<DisclosureResult<Self::Poa>, Self::Error> {
         if self.has_multi_key_signing_error {
-            return Err(MockRemoteKeyFactoryError::Signing);
+            return Err(MockRemoteWscdError::Signing);
         }
 
         let signatures = future::try_join_all(
@@ -175,7 +175,7 @@ impl DisclosureKeyFactory for MockRemoteKeyFactory {
                 .map(|(msg, keys)| async move {
                     let signatures = future::try_join_all(keys.iter().map(|key| async { key.try_sign(msg).await }))
                         .await
-                        .map_err(MockRemoteKeyFactoryError::Ecdsa)?
+                        .map_err(MockRemoteWscdError::Ecdsa)?
                         .into_iter()
                         .collect::<Vec<_>>();
 

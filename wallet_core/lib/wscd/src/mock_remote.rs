@@ -11,36 +11,36 @@ use p256::ecdsa::VerifyingKey;
 use rand_core::OsRng;
 
 use crypto::mock_remote::MockRemoteEcdsaKey;
-use crypto::mock_remote::MockRemoteKeyFactory as DisclosureMockRemoteKeyFactory;
-use crypto::mock_remote::MockRemoteKeyFactoryError;
+use crypto::mock_remote::MockRemoteWscd as DisclosureMockRemoteWscd;
+use crypto::mock_remote::MockRemoteWscdError;
 use crypto::p256_der::verifying_key_sha256;
-use crypto::wscd::DisclosureKeyFactory;
 use crypto::wscd::DisclosureResult;
-use crypto::wscd::KeyFactoryPoa;
+use crypto::wscd::DisclosureWscd;
+use crypto::wscd::WscdPoa;
 use jwt::Jwt;
 use jwt::credential::JwtCredentialClaims;
 use jwt::jwk::jwk_from_p256;
 use jwt::pop::JwtPopClaims;
-use jwt::wte::WteClaims;
-use jwt::wte::WteDisclosure;
+use jwt::wua::WuaClaims;
+use jwt::wua::WuaDisclosure;
 
 use crate::Poa;
-use crate::keyfactory::IssuanceResult;
-use crate::keyfactory::KeyFactory;
+use crate::wscd::IssuanceResult;
+use crate::wscd::Wscd;
 
 pub const MOCK_WALLET_CLIENT_ID: &str = "mock_wallet_client_id";
 
-/// A type that implements [`KeyFactory`] and can be used in tests. It has the option
-/// of returning `MockRemoteKeyFactoryError::Generating` when generating multiple
-/// keys and `MockRemoteKeyFactoryError::Signing` when signing multiple, influenced
+/// A type that implements [`Wscd`] and can be used in tests. It has the option
+/// of returning `MockRemoteWscdError::Generating` when generating multiple
+/// keys and `MockRemoteWscdError::Signing` when signing multiple, influenced
 /// by boolean fields on the type.
 #[derive(Debug)]
-pub struct MockRemoteKeyFactory {
-    pub disclosure: DisclosureMockRemoteKeyFactory,
+pub struct MockRemoteWscd {
+    pub disclosure: DisclosureMockRemoteWscd,
     wua_signing_key: Option<SigningKey>,
 }
 
-impl MockRemoteKeyFactory {
+impl MockRemoteWscd {
     pub fn new(keys: Vec<MockRemoteEcdsaKey>) -> Self {
         let signing_keys = keys.into_iter().map(|key| (key.identifier, key.key)).collect();
 
@@ -49,7 +49,7 @@ impl MockRemoteKeyFactory {
 
     fn new_signing_keys(signing_keys: HashMap<String, SigningKey>) -> Self {
         Self {
-            disclosure: DisclosureMockRemoteKeyFactory::new_signing_keys(signing_keys),
+            disclosure: DisclosureMockRemoteWscd::new_signing_keys(signing_keys),
             wua_signing_key: None,
         }
     }
@@ -71,15 +71,15 @@ impl MockRemoteKeyFactory {
     }
 }
 
-impl Default for MockRemoteKeyFactory {
+impl Default for MockRemoteWscd {
     fn default() -> Self {
         Self::new_signing_keys(HashMap::new())
     }
 }
 
-impl DisclosureKeyFactory for MockRemoteKeyFactory {
+impl DisclosureWscd for MockRemoteWscd {
     type Key = MockRemoteEcdsaKey;
-    type Error = MockRemoteKeyFactoryError;
+    type Error = MockRemoteWscdError;
     type Poa = Poa;
 
     fn new_key<I: Into<String>>(&self, identifier: I, public_key: VerifyingKey) -> Self::Key {
@@ -89,7 +89,7 @@ impl DisclosureKeyFactory for MockRemoteKeyFactory {
     async fn sign(
         &self,
         messages_and_keys: Vec<(Vec<u8>, Vec<&Self::Key>)>,
-        poa_input: <Self::Poa as KeyFactoryPoa>::Input,
+        poa_input: <Self::Poa as WscdPoa>::Input,
     ) -> Result<DisclosureResult<Self::Poa>, Self::Error> {
         let keys = messages_and_keys
             .iter()
@@ -105,7 +105,7 @@ impl DisclosureKeyFactory for MockRemoteKeyFactory {
                     JwtPopClaims::new(poa_input.nonce, MOCK_WALLET_CLIENT_ID.to_string(), poa_input.aud),
                 )
                 .await
-                .map_err(|_| MockRemoteKeyFactoryError::Poa)?,
+                .map_err(|_| MockRemoteWscdError::Poa)?,
             )
         };
 
@@ -115,7 +115,7 @@ impl DisclosureKeyFactory for MockRemoteKeyFactory {
     }
 }
 
-impl KeyFactory for MockRemoteKeyFactory {
+impl Wscd for MockRemoteWscd {
     async fn perform_issuance(
         &self,
         count: NonZeroUsize,
@@ -165,8 +165,8 @@ impl KeyFactory for MockRemoteKeyFactory {
                 wua_key.verifying_key(),
                 wua_signing_key,
                 MOCK_WALLET_CLIENT_ID.to_string(),
-                Some("wte+jwt".to_string()),
-                WteClaims::new(),
+                Some("wua+jwt".to_string()),
+                WuaClaims::new(),
             )
             .now_or_never()
             .unwrap()
@@ -177,7 +177,7 @@ impl KeyFactory for MockRemoteKeyFactory {
                 .unwrap()
                 .unwrap();
 
-            (WteDisclosure::new(wua, wua_disclosure), wua_key)
+            (WuaDisclosure::new(wua, wua_disclosure), wua_key)
         });
 
         let count_including_wua = if include_wua { count.get() + 1 } else { count.get() };

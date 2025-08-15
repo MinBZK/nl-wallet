@@ -44,8 +44,8 @@ use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
 use jwt::jwk::jwk_to_p256;
 use jwt::pop::JwtPopClaims;
-use jwt::wte::WteDisclosure;
-use jwt::wte::WteError;
+use jwt::wua::WuaDisclosure;
+use jwt::wua::WuaError;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataChainError;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
@@ -76,7 +76,7 @@ use crate::server_state::SessionState;
 use crate::server_state::SessionStore;
 use crate::server_state::SessionStoreError;
 use crate::server_state::SessionToken;
-use crate::server_state::WteTracker;
+use crate::server_state::WuaTracker;
 use crate::token::AccessToken;
 use crate::token::AuthorizationCode;
 use crate::token::CredentialPreview;
@@ -181,14 +181,14 @@ pub enum CredentialRequestError {
     #[error("missing credential request proof of possession")]
     MissingCredentialRequestPoP,
 
-    #[error("missing WTE")]
-    MissingWte,
+    #[error("missing WUA")]
+    MissingWua,
 
-    #[error("error checking WTE usage status: {0}")]
-    WteTracking(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
+    #[error("error checking WUA usage status: {0}")]
+    WuaTracking(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
 
-    #[error("WTE has already been used")]
-    WteAlreadyUsed,
+    #[error("WUA has already been used")]
+    WuaAlreadyUsed,
 
     #[error("missing PoA")]
     MissingPoa,
@@ -203,7 +203,7 @@ pub enum CredentialRequestError {
     SdJwtConversion(#[from] SdJwtCredentialPayloadError),
 
     #[error("error verifying WUA: {0}")]
-    Wua(#[from] WteError),
+    Wua(#[from] WuaError),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -395,14 +395,14 @@ pub struct Issuer<A, K, S, W> {
     attr_service: A,
     issuer_data: IssuerData<K, W>,
     sessions_cleanup_task: JoinHandle<()>,
-    wte_cleanup_task: Option<JoinHandle<()>>,
+    wua_cleanup_task: Option<JoinHandle<()>>,
     pub metadata: IssuerMetadata,
 }
 
 /// Fields of the [`Issuer`] needed by the issuance functions.
 pub struct IssuerData<K, W> {
     attestation_config: AttestationTypesConfig<K>,
-    wte_config: Option<WteConfig<W>>,
+    wua_config: Option<WuaConfig<W>>,
 
     /// URL identifying the issuer; should host ` /.well-known/openid-credential-issuer`,
     /// and MUST be used by the wallet as `aud` in its PoP JWTs.
@@ -415,20 +415,20 @@ pub struct IssuerData<K, W> {
     server_url: BaseUrl,
 }
 
-pub struct WteConfig<W> {
-    /// Public key of the WTE issuer.
-    pub wte_issuer_pubkey: EcdsaDecodingKey,
+pub struct WuaConfig<W> {
+    /// Public key of the WUA issuer.
+    pub wua_issuer_pubkey: EcdsaDecodingKey,
 
-    /// Tracks recently seen WTEs.
-    pub wte_tracker: Arc<W>,
+    /// Tracks recently seen WUAs.
+    pub wua_tracker: Arc<W>,
 }
 
 impl<A, K, S, W> Drop for Issuer<A, K, S, W> {
     fn drop(&mut self) {
         // Stop the tasks at the next .await
         self.sessions_cleanup_task.abort();
-        if let Some(ref wte_cleanup_task) = self.wte_cleanup_task {
-            wte_cleanup_task.abort();
+        if let Some(ref wua_cleanup_task) = self.wua_cleanup_task {
+            wua_cleanup_task.abort();
         }
     }
 }
@@ -438,7 +438,7 @@ where
     A: AttributeService,
     K: EcdsaKeySend,
     S: SessionStore<IssuanceData> + Send + Sync + 'static,
-    W: WteTracker + Send + Sync + 'static,
+    W: WuaTracker + Send + Sync + 'static,
 {
     pub fn new(
         sessions: Arc<S>,
@@ -446,11 +446,11 @@ where
         attestation_config: AttestationTypesConfig<K>,
         server_url: &BaseUrl,
         wallet_client_ids: Vec<String>,
-        wte_config: Option<WteConfig<W>>,
+        wua_config: Option<WuaConfig<W>>,
     ) -> Self {
-        let wte_tracker = wte_config
+        let wua_tracker = wua_config
             .as_ref()
-            .map(|wte_config| Arc::clone(&wte_config.wte_tracker));
+            .map(|wua_config| Arc::clone(&wua_config.wua_tracker));
 
         let credential_configurations_supported = attestation_config
             .as_ref()
@@ -468,7 +468,7 @@ where
             attestation_config,
             credential_issuer_identifier: issuer_url.clone(),
             accepted_wallet_client_ids: wallet_client_ids,
-            wte_config,
+            wua_config,
 
             // In this implementation, for now the Credential Issuer Identifier also always acts as
             // the public server URL.
@@ -480,7 +480,7 @@ where
             attr_service,
             issuer_data,
             sessions_cleanup_task: sessions.start_cleanup_task(CLEANUP_INTERVAL_SECONDS),
-            wte_cleanup_task: wte_tracker.map(|wte_tracker| wte_tracker.start_cleanup_task(CLEANUP_INTERVAL_SECONDS)),
+            wua_cleanup_task: wua_tracker.map(|wua_tracker| wua_tracker.start_cleanup_task(CLEANUP_INTERVAL_SECONDS)),
             metadata: IssuerMetadata {
                 issuer_config: metadata::IssuerData {
                     credential_issuer: issuer_url.clone(),
@@ -535,7 +535,7 @@ where
     A: AttributeService,
     K: EcdsaKeySend,
     S: SessionStore<IssuanceData>,
-    W: WteTracker,
+    W: WuaTracker,
 {
     pub async fn process_token_request(
         &self,
@@ -883,7 +883,7 @@ impl Session<WaitingForResponse> {
         credential_request: CredentialRequest,
         access_token: AccessToken,
         dpop: Dpop,
-        issuer_data: &IssuerData<impl EcdsaKeySend, impl WteTracker>,
+        issuer_data: &IssuerData<impl EcdsaKeySend, impl WuaTracker>,
     ) -> (Result<CredentialResponse, CredentialRequestError>, Session<Done>) {
         let result = self
             .process_credential_inner(credential_request, access_token, dpop, issuer_data)
@@ -907,7 +907,7 @@ impl Session<WaitingForResponse> {
         access_token: &AccessToken,
         dpop: &Dpop,
         endpoint: &str,
-        issuer_data: &IssuerData<impl EcdsaKeySend, impl WteTracker>,
+        issuer_data: &IssuerData<impl EcdsaKeySend, impl WuaTracker>,
     ) -> Result<(), CredentialRequestError> {
         let session_data = self.session_data();
 
@@ -929,48 +929,48 @@ impl Session<WaitingForResponse> {
         Ok(())
     }
 
-    async fn verify_wte(
+    async fn verify_wua(
         &self,
-        wte_config: &WteConfig<impl WteTracker>,
-        attestations: Option<WteDisclosure>,
+        wua_config: &WuaConfig<impl WuaTracker>,
+        attestations: Option<WuaDisclosure>,
         issuer_identifier: &str,
     ) -> Result<VerifyingKey, CredentialRequestError> {
-        let wte_disclosure = attestations.ok_or(CredentialRequestError::MissingWte)?;
+        let wua_disclosure = attestations.ok_or(CredentialRequestError::MissingWua)?;
 
-        let (verified_wte, wte_pubkey) = wte_disclosure.verify(
-            &wte_config.wte_issuer_pubkey,
+        let (verified_wua, wua_pubkey) = wua_disclosure.verify(
+            &wua_config.wua_issuer_pubkey,
             issuer_identifier,
             &self.state.data.accepted_wallet_client_ids,
             &self.state.data.c_nonce,
         )?;
 
-        // Check that the WTE is fresh
-        if wte_config
-            .wte_tracker
-            .track_wte(&verified_wte)
+        // Check that the WUA is fresh
+        if wua_config
+            .wua_tracker
+            .track_wua(&verified_wua)
             .await
-            .map_err(|err| CredentialRequestError::WteTracking(Box::new(err)))?
+            .map_err(|err| CredentialRequestError::WuaTracking(Box::new(err)))?
         {
-            return Err(CredentialRequestError::WteAlreadyUsed);
+            return Err(CredentialRequestError::WuaAlreadyUsed);
         }
 
-        Ok(wte_pubkey)
+        Ok(wua_pubkey)
     }
 
-    pub async fn verify_wte_and_poa(
+    pub async fn verify_wua_and_poa(
         &self,
-        attestations: Option<WteDisclosure>,
+        attestations: Option<WuaDisclosure>,
         poa: Option<Poa>,
         attestation_keys: impl Iterator<Item = VerifyingKey>,
-        issuer_data: &IssuerData<impl EcdsaKeySend, impl WteTracker>,
+        issuer_data: &IssuerData<impl EcdsaKeySend, impl WuaTracker>,
     ) -> Result<(), CredentialRequestError> {
         let issuer_identifier = issuer_data.credential_issuer_identifier.as_ref().as_str();
 
-        let attestation_keys = match &issuer_data.wte_config {
+        let attestation_keys = match &issuer_data.wua_config {
             None => attestation_keys.collect_vec(),
-            Some(wte) => {
-                let wte_pubkey = self.verify_wte(wte, attestations, issuer_identifier).await?;
-                attestation_keys.chain([wte_pubkey]).collect_vec()
+            Some(wua) => {
+                let wua_pubkey = self.verify_wua(wua, attestations, issuer_identifier).await?;
+                attestation_keys.chain([wua_pubkey]).collect_vec()
             }
         };
 
@@ -989,7 +989,7 @@ impl Session<WaitingForResponse> {
         credential_request: CredentialRequest,
         access_token: AccessToken,
         dpop: Dpop,
-        issuer_data: &IssuerData<impl EcdsaKeySend, impl WteTracker>,
+        issuer_data: &IssuerData<impl EcdsaKeySend, impl WuaTracker>,
     ) -> Result<CredentialResponse, CredentialRequestError> {
         let session_data = self.session_data();
 
@@ -1017,7 +1017,7 @@ impl Session<WaitingForResponse> {
 
         let holder_pubkey = credential_request.verify(&session_data.c_nonce, issuer_data)?;
 
-        self.verify_wte_and_poa(
+        self.verify_wua_and_poa(
             credential_request.attestations,
             credential_request.poa,
             [holder_pubkey].into_iter(),
@@ -1041,7 +1041,7 @@ impl Session<WaitingForResponse> {
         credential_requests: CredentialRequests,
         access_token: AccessToken,
         dpop: Dpop,
-        issuer_data: &IssuerData<impl EcdsaKeySend, impl WteTracker>,
+        issuer_data: &IssuerData<impl EcdsaKeySend, impl WuaTracker>,
     ) -> (Result<CredentialResponses, CredentialRequestError>, Session<Done>) {
         let result = self
             .process_batch_credential_inner(credential_requests, access_token, dpop, issuer_data)
@@ -1065,7 +1065,7 @@ impl Session<WaitingForResponse> {
         credential_requests: CredentialRequests,
         access_token: AccessToken,
         dpop: Dpop,
-        issuer_data: &IssuerData<impl EcdsaKeySend, impl WteTracker>,
+        issuer_data: &IssuerData<impl EcdsaKeySend, impl WuaTracker>,
     ) -> Result<CredentialResponses, CredentialRequestError> {
         let session_data = self.session_data();
 
@@ -1096,7 +1096,7 @@ impl Session<WaitingForResponse> {
             })
             .collect::<Result<Vec<_>, CredentialRequestError>>()?;
 
-        self.verify_wte_and_poa(
+        self.verify_wua_and_poa(
             credential_requests.attestations,
             credential_requests.poa,
             previews_and_holder_pubkeys.iter().map(|(_, _, key)| *key),
@@ -1150,7 +1150,7 @@ impl CredentialRequest {
     fn verify(
         &self,
         c_nonce: &str,
-        issuer_data: &IssuerData<impl EcdsaKeySend, impl WteTracker>,
+        issuer_data: &IssuerData<impl EcdsaKeySend, impl WuaTracker>,
     ) -> Result<VerifyingKey, CredentialRequestError> {
         let holder_pubkey = self
             .proof
@@ -1171,7 +1171,7 @@ impl CredentialResponse {
         credential_format: Format,
         preview_credential_payload: PreviewableCredentialPayload,
         holder_pubkey: VerifyingKey,
-        issuer_data: &IssuerData<impl EcdsaKeySend, impl WteTracker>,
+        issuer_data: &IssuerData<impl EcdsaKeySend, impl WuaTracker>,
     ) -> Result<CredentialResponse, CredentialRequestError> {
         // Get the correct `AttestationTypeConfig` for this attestation type.
         let key_id = preview_credential_payload.attestation_type.as_str();

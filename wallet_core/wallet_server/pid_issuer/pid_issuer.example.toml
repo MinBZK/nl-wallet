@@ -4,7 +4,7 @@
 public_url = 'http://localhost:8001/'
 
 issuer_trust_anchors = ["MII..."] # CAs for issuer certificates
-wte_issuer_pubkey = ""            # Public key of the WTE issuer
+wua_issuer_pubkey = ""            # Public key of the WUA issuer
 
 # Files containing SD-JWT Type Metadata documents
 metadata = ["com_example_pid_metadata.json", "com_example_address_metadata.json"]

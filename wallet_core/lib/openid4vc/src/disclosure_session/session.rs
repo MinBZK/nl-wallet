@@ -6,7 +6,7 @@ use tracing::warn;
 
 use crypto::CredentialEcdsaKey;
 use crypto::utils::random_string;
-use crypto::wscd::DisclosureKeyFactory;
+use crypto::wscd::DisclosureWscd;
 use dcql::normalized::NormalizedCredentialRequest;
 use http_utils::urls::BaseUrl;
 use mdoc::holder::Mdoc;
@@ -14,7 +14,7 @@ use mdoc::iso::disclosure::DeviceResponse;
 use mdoc::iso::engagement::SessionTranscript;
 use utils::vec_at_least::VecNonEmpty;
 use wscd::Poa;
-use wscd::keyfactory::JwtPoaInput;
+use wscd::wscd::JwtPoaInput;
 
 use crate::openid4vp::NormalizedVpAuthorizationRequest;
 use crate::openid4vp::VpAuthorizationResponse;
@@ -73,14 +73,14 @@ where
         Ok(return_url)
     }
 
-    async fn disclose<K, KF>(
+    async fn disclose<K, W>(
         self,
         mdocs: VecNonEmpty<Mdoc>,
-        key_factory: &KF,
+        wscd: &W,
     ) -> Result<Option<BaseUrl>, (Self, DisclosureError<VpSessionError>)>
     where
         K: CredentialEcdsaKey + Eq + Hash,
-        KF: DisclosureKeyFactory<Key = K, Poa = Poa>,
+        W: DisclosureWscd<Key = K, Poa = Poa>,
     {
         info!("disclose mdoc documents");
 
@@ -120,7 +120,7 @@ where
         );
 
         let poa_input = JwtPoaInput::new(Some(mdoc_nonce.clone()), self.auth_request.client_id.clone());
-        let result = DeviceResponse::sign_from_mdocs(subset_mdocs, &session_transcript, key_factory, poa_input).await;
+        let result = DeviceResponse::sign_from_mdocs(subset_mdocs, &session_transcript, wscd, poa_input).await;
         let (device_response, poa) = match result {
             Ok(value) => value,
             Err(error) => {
@@ -183,7 +183,7 @@ mod tests {
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use dcql::normalized::NormalizedCredentialRequest;
     use mdoc::holder::Mdoc;
-    use wscd::mock_remote::MockRemoteKeyFactory;
+    use wscd::mock_remote::MockRemoteWscd;
 
     use crate::errors::AuthorizationErrorCode;
     use crate::errors::VpAuthorizationErrorCode;
@@ -260,12 +260,12 @@ mod tests {
         }
     }
 
-    fn setup_disclosure_mdoc() -> (Mdoc, MockRemoteKeyFactory) {
+    fn setup_disclosure_mdoc() -> (Mdoc, MockRemoteWscd) {
         let mdoc_key = MockRemoteEcdsaKey::new("mdoc_key".to_string(), SigningKey::random(&mut OsRng));
         let mdoc = Mdoc::new_mock_with_key(&mdoc_key).now_or_never().unwrap();
-        let key_factory = MockRemoteKeyFactory::new(vec![mdoc_key]);
+        let wscd = MockRemoteWscd::new(vec![mdoc_key]);
 
-        (mdoc, key_factory)
+        (mdoc, wscd)
     }
 
     /// This contains a lightweight test of `VpDisclosureSession::disclose()`. For a more
@@ -276,10 +276,10 @@ mod tests {
     ) {
         let (disclosure_session, verifier_session) =
             setup_disclosure_session(redirect_uri.clone(), [NormalizedCredentialRequest::new_pid_example()]);
-        let (mdoc, key_factory) = setup_disclosure_mdoc();
+        let (mdoc, wscd) = setup_disclosure_mdoc();
 
         let disclosure_redirect_uri = disclosure_session
-            .disclose(vec![mdoc].try_into().unwrap(), &key_factory)
+            .disclose(vec![mdoc].try_into().unwrap(), &wscd)
             .now_or_never()
             .unwrap()
             .expect("disclosing mdoc using VpDisclosureSession should succeed");
@@ -294,15 +294,15 @@ mod tests {
 
     #[test]
     fn test_disclosure_session_disclose_error_device_response() {
-        // Calling `VPDisclosureSession::disclose()` with a malfunctioning key factory should result in an error.
+        // Calling `VPDisclosureSession::disclose()` with a malfunctioning WSCD should result in an error.
         let (disclosure_session, _verifier_session) =
             setup_disclosure_session(None, [NormalizedCredentialRequest::new_pid_example()]);
-        let (mdoc, mut key_factory) = setup_disclosure_mdoc();
+        let (mdoc, mut wscd) = setup_disclosure_mdoc();
 
-        key_factory.disclosure.has_multi_key_signing_error = true;
+        wscd.disclosure.has_multi_key_signing_error = true;
 
         let (_disclosure_session, error) = disclosure_session
-            .disclose(vec![mdoc].try_into().unwrap(), &key_factory)
+            .disclose(vec![mdoc].try_into().unwrap(), &wscd)
             .now_or_never()
             .unwrap()
             .expect_err("disclosing mdoc using VpDisclosureSession should not succeed");
@@ -321,7 +321,7 @@ mod tests {
         // Calling `VPDisclosureSession::disclose()` with a malformed encryption key should result in an error.
         let (mut disclosure_session, _verifier_session) =
             setup_disclosure_session(None, [NormalizedCredentialRequest::new_pid_example()]);
-        let (mdoc, key_factory) = setup_disclosure_mdoc();
+        let (mdoc, wscd) = setup_disclosure_mdoc();
 
         disclosure_session
             .auth_request
@@ -330,7 +330,7 @@ mod tests {
             .unwrap();
 
         let (_disclosure_session, error) = disclosure_session
-            .disclose(vec![mdoc].try_into().unwrap(), &key_factory)
+            .disclose(vec![mdoc].try_into().unwrap(), &wscd)
             .now_or_never()
             .unwrap()
             .expect_err("disclosing mdoc using VpDisclosureSession should not succeed");
@@ -350,11 +350,11 @@ mod tests {
         F: Fn() -> VpMessageClientError,
     {
         let disclosure_session = setup_disclosure_session_http_error(response_factory);
-        let (mdoc, key_factory) = setup_disclosure_mdoc();
+        let (mdoc, wscd) = setup_disclosure_mdoc();
         let wallet_messages = Arc::clone(&disclosure_session.client.wallet_messages);
 
         let (_disclosure_session, error) = disclosure_session
-            .disclose(vec![mdoc].try_into().unwrap(), &key_factory)
+            .disclose(vec![mdoc].try_into().unwrap(), &wscd)
             .now_or_never()
             .unwrap()
             .expect_err("disclosing mdoc using VpDisclosureSession should not succeed");
