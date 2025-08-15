@@ -52,11 +52,14 @@ function list() {
 function get() {
     have cat cargo flutter jq
 
+    # Wallet app:
+    echo "wallet_app: $(cd "$project_root/wallet_app" && flutter pub deps --json | jq -r '.packages[] | select(.name == "wallet") | .version')"
+
     # Wallet core:
     echo "wallet_core: $(cd "$project_root/wallet_core" && cargo metadata --format-version=1 | jq -r '.packages[] | select(.name == "wallet") | .version')"
 
-    # Wallet app:
-    echo "wallet_app: $(cd "$project_root/wallet_app" && flutter pub deps --json | jq -r '.packages[] | select(.name == "wallet") | .version')"
+    # Wallet docs:
+    echo wallet_docs: $(python3 -c "import sys; sys.path.append('$project_root/wallet_docs'); import conf; print(conf.release)")
 
     # Wallet web:
     echo "wallet_web: $(cd "$project_root/wallet_web" && cat package.json | jq -r '.version')"
@@ -84,6 +87,9 @@ function set() {
         # Wallet web (package.json):
         jq ".version = \"$non_prefixed_version\"" "$project_root/wallet_web/package.json" > "/tmp/wallet_web_package_json_$$" 2>&1
         mv "/tmp/wallet_web_package_json_$$" "$project_root/wallet_web/package.json" > /dev/null 2>&1
+
+        # Wallet docs (conf.py):
+        $sed -i "s|^version = [\s]*.*$|version = \'$non_prefixed_version\'|g" "$project_root/wallet_docs/conf.py" > /dev/null 2>&1
 
         # Inform about doing lock upgrades.
         error ""
