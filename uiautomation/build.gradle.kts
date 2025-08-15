@@ -12,25 +12,25 @@ repositories {
 }
 
 kotlin {
-    jvmToolchain(jdkVersion = 17)
+    jvmToolchain(jdkVersion = 21)
 }
 
 dependencies {
     implementation(kotlin("stdlib"))
 
-    implementation("com.codeborne:selenide-appium:7.5.1")
-    implementation("com.squareup.moshi:moshi-kotlin:1.15.1")
-    implementation("io.appium:java-client:9.3.0")
-    implementation("io.github.ashwithpoojary98:appium_flutterfinder_java:1.0.9")
-    implementation("io.rest-assured:rest-assured:5.4.0")
-    implementation("org.junit.jupiter:junit-jupiter:5.11.0")
-    implementation("org.junit-pioneer:junit-pioneer:2.2.0")
-    implementation("org.junit.platform:junit-platform-suite-engine:1.11.0")
-    implementation("org.slf4j:slf4j-simple:2.0.16")
+    implementation("com.codeborne:selenide-appium:7.9.4")
+    implementation("com.squareup.moshi:moshi-kotlin:1.15.2")
+    implementation("io.appium:java-client:10.0.0")
+    implementation("io.github.ashwithpoojary98:appium_flutterfinder_java:1.0.10")
+    implementation("io.rest-assured:rest-assured:5.5.5")
+    implementation("org.junit.jupiter:junit-jupiter:5.13.4")
+    implementation("org.junit-pioneer:junit-pioneer:2.3.0")
+    implementation("org.junit.platform:junit-platform-suite-engine:1.13.4")
+    implementation("org.slf4j:slf4j-simple:2.0.17")
 
     implementation(platform("io.qameta.allure:allure-bom:2.29.1"))
     implementation("io.qameta.allure:allure-junit5")
-    implementation("org.json:json:20240303")
+    implementation("org.json:json:20250517")
     implementation("org.tomlj:tomlj:1.1.1")
 }
 
