@@ -23,7 +23,7 @@ use hsm::service::HsmError;
 use jwt::Jwt;
 use jwt::jwk::jwk_from_p256;
 use jwt::pop::JwtPopClaims;
-use jwt::wte::WteDisclosure;
+use jwt::wua::WuaDisclosure;
 use openid4vc::credential::OPENID4VCI_VC_POP_JWT_TYPE;
 use utils::generator::Generator;
 use utils::vec_at_least::VecNonEmpty;
@@ -51,7 +51,7 @@ use wscd::Poa;
 use crate::account_server::InstructionError;
 use crate::account_server::InstructionValidationError;
 use crate::account_server::UserState;
-use crate::wte_issuer::WteIssuer;
+use crate::wua_issuer::WuaIssuer;
 
 pub trait ValidateInstruction {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
@@ -107,7 +107,7 @@ pub trait HandleInstruction {
         self,
         wallet_user: &WalletUser,
         uuid_generator: &impl Generator<Uuid>,
-        user_state: &UserState<R, H, impl WteIssuer>,
+        user_state: &UserState<R, H, impl WuaIssuer>,
     ) -> Result<Self::Result, InstructionError>
     where
         T: Committable,
@@ -122,7 +122,7 @@ impl HandleInstruction for CheckPin {
         self,
         _wallet_user: &WalletUser,
         _uuid_generator: &impl Generator<Uuid>,
-        _user_state: &UserState<R, H, impl WteIssuer>,
+        _user_state: &UserState<R, H, impl WuaIssuer>,
     ) -> Result<(), InstructionError>
     where
         T: Committable,
@@ -140,7 +140,7 @@ impl HandleInstruction for ChangePinCommit {
         self,
         wallet_user: &WalletUser,
         _uuid_generator: &impl Generator<Uuid>,
-        user_state: &UserState<R, H, impl WteIssuer>,
+        user_state: &UserState<R, H, impl WuaIssuer>,
     ) -> Result<Self::Result, InstructionError>
     where
         T: Committable,
@@ -172,13 +172,13 @@ async fn perform_issuance<T, R, H>(
     arguments: IssuanceArguments,
     wallet_user: &WalletUser,
     uuid_generator: &impl Generator<Uuid>,
-    user_state: &UserState<R, H, impl WteIssuer>,
+    user_state: &UserState<R, H, impl WuaIssuer>,
 ) -> Result<
     (
         VecNonEmpty<String>,
         VecNonEmpty<Jwt<JwtPopClaims>>,
         Option<Poa>,
-        Option<WteDisclosure>,
+        Option<WuaDisclosure>,
     ),
     InstructionError,
 >
@@ -272,18 +272,18 @@ where
 
 async fn wua<T, R, H>(
     claims: &JwtPopClaims,
-    user_state: &UserState<R, H, impl WteIssuer>,
-) -> Result<(WrappedKey, String, WteDisclosure), InstructionError>
+    user_state: &UserState<R, H, impl WuaIssuer>,
+) -> Result<(WrappedKey, String, WuaDisclosure), InstructionError>
 where
     T: Committable,
     R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
     H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
 {
     let (wua_wrapped_key, wua_key_id, wua) = user_state
-        .wte_issuer
-        .issue_wte()
+        .wua_issuer
+        .issue_wua()
         .await
-        .map_err(|e| InstructionError::WteIssuance(Box::new(e)))?;
+        .map_err(|e| InstructionError::WuaIssuance(Box::new(e)))?;
 
     let wua_disclosure = Jwt::sign(
         claims,
@@ -293,7 +293,7 @@ where
     .await
     .map_err(InstructionError::PopSigning)?;
 
-    Ok((wua_wrapped_key, wua_key_id, WteDisclosure::new(wua, wua_disclosure)))
+    Ok((wua_wrapped_key, wua_key_id, WuaDisclosure::new(wua, wua_disclosure)))
 }
 
 async fn issuance_pops<H>(
@@ -327,7 +327,7 @@ where
 
 fn attestation_key<'a, T, R, H>(
     wrapped_key: &'a WrappedKey,
-    user_state: &'a UserState<R, H, impl WteIssuer>,
+    user_state: &'a UserState<R, H, impl WuaIssuer>,
 ) -> HsmCredentialSigningKey<'a, H>
 where
     T: Committable,
@@ -348,7 +348,7 @@ impl HandleInstruction for PerformIssuance {
         self,
         wallet_user: &WalletUser,
         uuid_generator: &impl Generator<Uuid>,
-        user_state: &UserState<R, H, impl WteIssuer>,
+        user_state: &UserState<R, H, impl WuaIssuer>,
     ) -> Result<Self::Result, InstructionError>
     where
         T: Committable,
@@ -383,7 +383,7 @@ impl HandleInstruction for PerformIssuanceWithWua {
         self,
         wallet_user: &WalletUser,
         uuid_generator: &impl Generator<Uuid>,
-        user_state: &UserState<R, H, impl WteIssuer>,
+        user_state: &UserState<R, H, impl WuaIssuer>,
     ) -> Result<Self::Result, InstructionError>
     where
         T: Committable,
@@ -422,7 +422,7 @@ impl HandleInstruction for Sign {
         self,
         wallet_user: &WalletUser,
         _uuid_generator: &impl Generator<Uuid>,
-        user_state: &UserState<R, H, impl WteIssuer>,
+        user_state: &UserState<R, H, impl WuaIssuer>,
     ) -> Result<SignResult, InstructionError>
     where
         T: Committable,
@@ -582,7 +582,7 @@ mod tests {
     use jwt::Jwt;
     use jwt::jwk::jwk_to_p256;
     use jwt::pop::JwtPopClaims;
-    use jwt::wte::WteDisclosure;
+    use jwt::wua::WuaDisclosure;
     use wallet_account::NL_WALLET_CLIENT_ID;
     use wallet_account::messages::instructions::CheckPin;
     use wallet_account::messages::instructions::PerformIssuance;
@@ -776,7 +776,7 @@ mod tests {
             .unwrap()
     }
 
-    fn validate_issuance(pops: &[Jwt<JwtPopClaims>], poa: Option<Poa>, wua_with_disclosure: Option<&WteDisclosure>) {
+    fn validate_issuance(pops: &[Jwt<JwtPopClaims>], poa: Option<Poa>, wua_with_disclosure: Option<&WuaDisclosure>) {
         let mut validations = Validation::new(Algorithm::ES256);
         validations.required_spec_claims = HashSet::default();
         validations.set_issuer(&[NL_WALLET_CLIENT_ID]);
@@ -796,7 +796,7 @@ mod tests {
         let wua_key = wua_with_disclosure.map(|wua_with_disclosure| {
             let wua_key = jwk_to_p256(
                 &wua_with_disclosure
-                    .wte()
+                    .wua()
                     .dangerous_parse_unverified()
                     .unwrap()
                     .1
@@ -806,7 +806,7 @@ mod tests {
             .unwrap();
 
             wua_with_disclosure
-                .wte_pop()
+                .wua_pop()
                 .parse_and_verify(&((&wua_key).into()), &validations)
                 .unwrap();
 

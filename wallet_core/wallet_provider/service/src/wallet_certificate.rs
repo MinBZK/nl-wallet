@@ -21,7 +21,7 @@ use wallet_provider_domain::repository::WalletUserRepository;
 use crate::account_server::UserState;
 use crate::account_server::WalletCertificateError;
 use crate::keys::WalletCertificateSigningKey;
-use crate::wte_issuer::WteIssuer;
+use crate::wua_issuer::WuaIssuer;
 
 const WALLET_CERTIFICATE_VERSION: u32 = 0;
 
@@ -136,7 +136,7 @@ pub async fn verify_wallet_certificate<T, R, H, F>(
     pin_public_disclosure_protection_key_identifier: &str,
     encryption_key_identifier: &str,
     pin_pubkey: F,
-    user_state: &UserState<R, H, impl WteIssuer>,
+    user_state: &UserState<R, H, impl WuaIssuer>,
 ) -> Result<WalletUser, WalletCertificateError>
 where
     T: Committable,

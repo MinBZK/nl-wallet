@@ -41,12 +41,12 @@ use openid4vc::issuer::AttestationTypeConfig;
 use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
-use openid4vc::issuer::WteConfig;
+use openid4vc::issuer::WuaConfig;
 use openid4vc::metadata::IssuerMetadata;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
 use openid4vc::oidc;
 use openid4vc::server_state::MemorySessionStore;
-use openid4vc::server_state::MemoryWteTracker;
+use openid4vc::server_state::MemoryWuaTracker;
 use openid4vc::token::AccessToken;
 use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenResponseWithPreviews;
@@ -61,7 +61,7 @@ use wscd::Poa;
 use wscd::PoaPayload;
 use wscd::mock_remote::MockRemoteWscd;
 
-type MockIssuer = Issuer<MockAttributeService, SigningKey, MemorySessionStore<IssuanceData>, MemoryWteTracker>;
+type MockIssuer = Issuer<MockAttributeService, SigningKey, MemorySessionStore<IssuanceData>, MemoryWuaTracker>;
 
 fn setup_mock_issuer(attestation_count: NonZeroUsize) -> (MockIssuer, TrustAnchor<'static>, BaseUrl, SigningKey) {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
@@ -82,7 +82,7 @@ fn setup(
     issuance_keypair: &KeyPair,
 ) -> (MockIssuer, TrustAnchor<'static>, BaseUrl, SigningKey) {
     let server_url: BaseUrl = "https://example.com/".parse().unwrap();
-    let wte_issuer_privkey = SigningKey::random(&mut OsRng);
+    let wua_issuer_privkey = SigningKey::random(&mut OsRng);
     let trust_anchor = ca.to_trust_anchor().to_owned();
 
     let attestation_config = MOCK_ATTESTATION_TYPES
@@ -123,9 +123,9 @@ fn setup(
         attestation_config,
         &server_url,
         vec![MOCK_WALLET_CLIENT_ID.to_string()],
-        Some(WteConfig {
-            wte_issuer_pubkey: wte_issuer_privkey.verifying_key().into(),
-            wte_tracker: Arc::new(MemoryWteTracker::new()),
+        Some(WuaConfig {
+            wua_issuer_pubkey: wua_issuer_privkey.verifying_key().into(),
+            wua_tracker: Arc::new(MemoryWuaTracker::new()),
         }),
     );
 
@@ -133,7 +133,7 @@ fn setup(
         issuer,
         trust_anchor,
         server_url.join_base_url("issuance/"),
-        wte_issuer_privkey,
+        wua_issuer_privkey,
     )
 }
 
@@ -221,13 +221,13 @@ async fn start_and_accept_err(
 
 #[tokio::test]
 async fn wrong_access_token() {
-    let (issuer, trust_anchor, server_url, wte_issuer_privkey) = setup_mock_issuer(NonZeroUsize::new(1).unwrap());
+    let (issuer, trust_anchor, server_url, wua_issuer_privkey) = setup_mock_issuer(NonZeroUsize::new(1).unwrap());
     let message_client = MockOpenidMessageClient {
         wrong_access_token: true,
         ..MockOpenidMessageClient::new(issuer)
     };
 
-    let result = start_and_accept_err(message_client, server_url, trust_anchor, wte_issuer_privkey).await;
+    let result = start_and_accept_err(message_client, server_url, trust_anchor, wua_issuer_privkey).await;
     assert_matches!(
         result,
         IssuanceSessionError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidToken)
@@ -236,13 +236,13 @@ async fn wrong_access_token() {
 
 #[tokio::test]
 async fn invalid_dpop() {
-    let (issuer, trust_anchor, server_url, wte_issuer_privkey) = setup_mock_issuer(NonZeroUsize::new(1).unwrap());
+    let (issuer, trust_anchor, server_url, wua_issuer_privkey) = setup_mock_issuer(NonZeroUsize::new(1).unwrap());
     let message_client = MockOpenidMessageClient {
         invalidate_dpop: true,
         ..MockOpenidMessageClient::new(issuer)
     };
 
-    let result = start_and_accept_err(message_client, server_url, trust_anchor, wte_issuer_privkey).await;
+    let result = start_and_accept_err(message_client, server_url, trust_anchor, wua_issuer_privkey).await;
     assert_matches!(
         result,
         IssuanceSessionError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidCredentialRequest)
@@ -251,13 +251,13 @@ async fn invalid_dpop() {
 
 #[tokio::test]
 async fn invalid_pop() {
-    let (issuer, trust_anchor, server_url, wte_issuer_privkey) = setup_mock_issuer(NonZeroUsize::new(1).unwrap());
+    let (issuer, trust_anchor, server_url, wua_issuer_privkey) = setup_mock_issuer(NonZeroUsize::new(1).unwrap());
     let message_client = MockOpenidMessageClient {
         invalidate_pop: true,
         ..MockOpenidMessageClient::new(issuer)
     };
 
-    let result = start_and_accept_err(message_client, server_url, trust_anchor, wte_issuer_privkey).await;
+    let result = start_and_accept_err(message_client, server_url, trust_anchor, wua_issuer_privkey).await;
     assert!(matches!(
         result,
         IssuanceSessionError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidProof)
@@ -266,13 +266,13 @@ async fn invalid_pop() {
 
 #[tokio::test]
 async fn invalid_poa() {
-    let (issuer, trust_anchor, server_url, wte_issuer_privkey) = setup_mock_issuer(NonZeroUsize::new(1).unwrap());
+    let (issuer, trust_anchor, server_url, wua_issuer_privkey) = setup_mock_issuer(NonZeroUsize::new(1).unwrap());
     let message_client = MockOpenidMessageClient {
         invalidate_poa: true,
         ..MockOpenidMessageClient::new(issuer)
     };
 
-    let result = start_and_accept_err(message_client, server_url, trust_anchor, wte_issuer_privkey).await;
+    let result = start_and_accept_err(message_client, server_url, trust_anchor, wua_issuer_privkey).await;
     assert_matches!(
         result,
         IssuanceSessionError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidProof)
@@ -281,13 +281,13 @@ async fn invalid_poa() {
 
 #[tokio::test]
 async fn no_poa() {
-    let (issuer, trust_anchor, server_url, wte_issuer_privkey) = setup_mock_issuer(NonZeroUsize::new(1).unwrap());
+    let (issuer, trust_anchor, server_url, wua_issuer_privkey) = setup_mock_issuer(NonZeroUsize::new(1).unwrap());
     let message_client = MockOpenidMessageClient {
         strip_poa: true,
         ..MockOpenidMessageClient::new(issuer)
     };
 
-    let result = start_and_accept_err(message_client, server_url, trust_anchor, wte_issuer_privkey).await;
+    let result = start_and_accept_err(message_client, server_url, trust_anchor, wua_issuer_privkey).await;
     assert_matches!(
         result,
         IssuanceSessionError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidCredentialRequest)
@@ -295,14 +295,14 @@ async fn no_poa() {
 }
 
 #[tokio::test]
-async fn no_wte() {
-    let (issuer, trust_anchor, server_url, wte_issuer_privkey) = setup_mock_issuer(NonZeroUsize::new(1).unwrap());
+async fn no_wua() {
+    let (issuer, trust_anchor, server_url, wua_issuer_privkey) = setup_mock_issuer(NonZeroUsize::new(1).unwrap());
     let message_client = MockOpenidMessageClient {
-        strip_wte: true,
+        strip_wua: true,
         ..MockOpenidMessageClient::new(issuer)
     };
 
-    let result = start_and_accept_err(message_client, server_url, trust_anchor, wte_issuer_privkey).await;
+    let result = start_and_accept_err(message_client, server_url, trust_anchor, wua_issuer_privkey).await;
     assert_matches!(
         result,
         IssuanceSessionError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidCredentialRequest)
@@ -328,7 +328,7 @@ struct MockOpenidMessageClient {
     invalidate_pop: bool,
     invalidate_poa: bool,
     strip_poa: bool,
-    strip_wte: bool,
+    strip_wua: bool,
 }
 
 impl MockOpenidMessageClient {
@@ -340,7 +340,7 @@ impl MockOpenidMessageClient {
             invalidate_pop: false,
             invalidate_poa: false,
             strip_poa: false,
-            strip_wte: false,
+            strip_wua: false,
         }
     }
 }
@@ -381,7 +381,7 @@ impl MockOpenidMessageClient {
             credential_request.poa.take();
         }
 
-        if self.strip_wte {
+        if self.strip_wua {
             credential_request.attestations.take();
         }
 
@@ -405,7 +405,7 @@ impl MockOpenidMessageClient {
             credential_requests.poa.take();
         }
 
-        if self.strip_wte {
+        if self.strip_wua {
             credential_requests.attestations.take();
         }
 

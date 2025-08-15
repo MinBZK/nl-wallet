@@ -94,7 +94,7 @@ pub struct AccountServerConfiguration {
     pub instruction_result_public_key: DerVerifyingKey,
     #[debug(skip)]
     #[serde_as(as = "Base64")]
-    pub wte_public_key: DerVerifyingKey,
+    pub wua_public_key: DerVerifyingKey,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]

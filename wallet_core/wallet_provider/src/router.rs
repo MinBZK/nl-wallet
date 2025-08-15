@@ -38,7 +38,7 @@ use wallet_provider_service::account_server::GoogleCrlProvider;
 use wallet_provider_service::account_server::IntegrityTokenDecoder;
 use wallet_provider_service::instructions::HandleInstruction;
 use wallet_provider_service::instructions::ValidateInstruction;
-use wallet_provider_service::wte_issuer::WteIssuer;
+use wallet_provider_service::wua_issuer::WuaIssuer;
 
 use crate::errors::WalletProviderError;
 use crate::router_state::RouterState;
@@ -246,13 +246,13 @@ struct PublicKeys {
     #[serde_as(as = "Base64")]
     instruction_result_public_key: DerVerifyingKey,
     #[serde_as(as = "Base64")]
-    wte_signing_key: DerVerifyingKey,
+    wua_signing_key: DerVerifyingKey,
 }
 
 async fn public_keys<GRC, PIC>(
     State(state): State<Arc<RouterState<GRC, PIC>>>,
 ) -> Result<(StatusCode, Json<PublicKeys>)> {
-    let (certificate_public_key, instruction_result_public_key, wte_signing_key) = try_join!(
+    let (certificate_public_key, instruction_result_public_key, wua_signing_key) = try_join!(
         state
             .certificate_signing_key
             .verifying_key()
@@ -263,16 +263,16 @@ async fn public_keys<GRC, PIC>(
             .map_err(WalletProviderError::Hsm),
         state
             .user_state
-            .wte_issuer
+            .wua_issuer
             .public_key()
-            .map_err(WalletProviderError::Wte)
+            .map_err(WalletProviderError::Wua)
     )
     .inspect_err(|error| warn!("getting wallet provider public keys failed: {}", error))?;
 
     let body = PublicKeys {
         certificate_public_key: certificate_public_key.into(),
         instruction_result_public_key: instruction_result_public_key.into(),
-        wte_signing_key: wte_signing_key.into(),
+        wua_signing_key: wua_signing_key.into(),
     };
 
     Ok((StatusCode::OK, body.into()))

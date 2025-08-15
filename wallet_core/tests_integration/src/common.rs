@@ -50,7 +50,7 @@ use pid_issuer::pid::mock::MockAttributeService;
 use pid_issuer::pid::mock::mock_issuable_document_address;
 use pid_issuer::pid::mock::mock_issuable_document_pid;
 use pid_issuer::settings::PidIssuerSettings;
-use pid_issuer::wte_tracker::WteTrackerVariant;
+use pid_issuer::wua_tracker::WuaTrackerVariant;
 use platform_support::attested_key::mock::KeyHolderType;
 use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
 use server_utils::settings::RequesterAuth;
@@ -556,7 +556,7 @@ pub async fn start_pid_issuer_server<A: AttributeService + Send + Sync + 'static
         .unwrap();
 
     let issuance_sessions = Arc::new(SessionStoreVariant::new(db_connection.clone(), storage_settings.into()));
-    let wte_tracker = WteTrackerVariant::new(db_connection);
+    let wua_tracker = WuaTrackerVariant::new(db_connection);
 
     tokio::spawn(async move {
         if let Err(error) = pid_issuer::server::serve_with_listener(
@@ -565,8 +565,8 @@ pub async fn start_pid_issuer_server<A: AttributeService + Send + Sync + 'static
             settings.issuer_settings,
             hsm,
             issuance_sessions,
-            settings.wte_issuer_pubkey.into_inner(),
-            wte_tracker,
+            settings.wua_issuer_pubkey.into_inner(),
+            wua_tracker,
         )
         .await
         {
