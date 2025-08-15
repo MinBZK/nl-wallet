@@ -330,8 +330,14 @@ queries. (see issuance_server.example.toml)</p></li>
 <li><p>The <code class="docutils literal notranslate"><span class="pre">disclosed_attributes</span></code> endpoint of the verifier no longer returns a JSON
 object keyed by the attestation type. Instead, it returns an array of
 attestation objects, with <code class="docutils literal notranslate"><span class="pre">attestation_type</span></code> added as a field in that object.
-This effectively removes the limitation that a particular attestation type
-can only appear once in disclosed attributes.</p></li>
+This effectively removes the limitation that a particular attestation type can
+only appear once in disclosed attributes.</p></li>
+<li><p>The WTE acronym has been replaced by WUA across the codebase, including in the
+Wallet Provider and PID issuer configurations, as well as their database table
+and column names. These configurations will need to be updated and the
+database migrations will need to be fresly run. In addition, a variable in the
+wallet configuration has been renamed, so an updated wallet configuration will
+need to be deployed.</p></li>
 </ul>
 </section>
 <section id="new-features">

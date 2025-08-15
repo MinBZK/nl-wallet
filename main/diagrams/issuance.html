@@ -368,8 +368,8 @@ window.addEventListener("load", () => mermaid.run());
     activate Wallet
         Wallet-&gt;&gt;Wallet: create PoPs by signing nonce using Wallet Provider
         Wallet-&gt;&gt;+WalletServer: POST /batch_credential(access_token, PoPs)
-        note over Wallet: WTE and PoA are included here
-        WalletServer-&gt;&gt;WalletServer: verify proofs,  WTE and PoA
+        note over Wallet: WUA and PoA are included here
+        WalletServer-&gt;&gt;WalletServer: verify proofs,  WUA and PoA
         WalletServer-&gt;&gt;-Wallet: attestations
     deactivate Wallet
     </pre></section>
