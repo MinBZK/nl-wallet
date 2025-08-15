@@ -1,9 +1,0 @@
-# python venv
-venv/
-
-# Build output directories
-_build/
-
-# Structurizr working folders
-_structurizr/.structurizr
-_structurizr/images

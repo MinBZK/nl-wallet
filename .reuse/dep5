@@ -4,7 +4,7 @@ Files: *
 Copyright: The Wallet contributors
 License: EUPL-1.2
 
-Files: documentation/*
+Files: wallet_docs/*
 Copyright: The Wallet contributors
 License: CC0-1.0
 Comment: Bij het citeren van de inhoud mag niet de indruk gewekt worden dat de Rijksoverheid zonder meer de strekking van het afgeleide werk onderschrijft.
