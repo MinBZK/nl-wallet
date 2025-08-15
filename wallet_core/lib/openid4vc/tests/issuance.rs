@@ -59,7 +59,7 @@ use sd_jwt_vc_metadata::UncheckedTypeMetadata;
 use utils::vec_at_least::VecNonEmpty;
 use wscd::Poa;
 use wscd::PoaPayload;
-use wscd::mock_remote::MockRemoteKeyFactory;
+use wscd::mock_remote::MockRemoteWscd;
 
 type MockIssuer = Issuer<MockAttributeService, SigningKey, MemorySessionStore<IssuanceData>, MemoryWteTracker>;
 
@@ -156,12 +156,9 @@ async fn accept_issuance(
     .await
     .unwrap();
 
-    let key_factory = MockRemoteKeyFactory::new_with_wua_signing_key(wua_signing_key);
+    let wscd = MockRemoteWscd::new_with_wua_signing_key(wua_signing_key);
 
-    let issued_creds = session
-        .accept_issuance(trust_anchors, &key_factory, true)
-        .await
-        .unwrap();
+    let issued_creds = session.accept_issuance(trust_anchors, &wscd, true).await.unwrap();
 
     assert_eq!(issued_creds.len(), attestation_count.get());
     assert_eq!(issued_creds.first().unwrap().copies.as_ref().len().get(), copy_count);
@@ -217,12 +214,9 @@ async fn start_and_accept_err(
     .await
     .unwrap();
 
-    let key_factory = MockRemoteKeyFactory::new_with_wua_signing_key(wua_issuer_privkey);
+    let wscd = MockRemoteWscd::new_with_wua_signing_key(wua_issuer_privkey);
 
-    session
-        .accept_issuance(trust_anchors, &key_factory, true)
-        .await
-        .unwrap_err()
+    session.accept_issuance(trust_anchors, &wscd, true).await.unwrap_err()
 }
 
 #[tokio::test]

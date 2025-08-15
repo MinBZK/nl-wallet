@@ -211,7 +211,7 @@ mod tests {
     use mdoc::test::data::PID;
     use mdoc::utils::serialization::CborBase64;
     use utils::generator::mock::MockTimeGenerator;
-    use wscd::mock_remote::MockRemoteKeyFactory;
+    use wscd::mock_remote::MockRemoteWscd;
 
     use crate::errors::AuthorizationErrorCode;
     use crate::errors::VpAuthorizationErrorCode;
@@ -364,10 +364,10 @@ mod tests {
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let mdoc_key = MockRemoteEcdsaKey::new("mdoc_key".to_string(), SigningKey::random(&mut OsRng));
         let mdoc = Mdoc::new_mock_with_ca_and_key(&ca, &mdoc_key).now_or_never().unwrap();
-        let key_factory = MockRemoteKeyFactory::new(vec![mdoc_key]);
+        let wscd = MockRemoteWscd::new(vec![mdoc_key]);
 
         let disclosure_redirect_uri = disclosure_session
-            .disclose(vec![mdoc].try_into().unwrap(), &key_factory)
+            .disclose(vec![mdoc].try_into().unwrap(), &wscd)
             .now_or_never()
             .unwrap()
             .expect("disclosing mdoc using VpDisclosureSession should succeed");

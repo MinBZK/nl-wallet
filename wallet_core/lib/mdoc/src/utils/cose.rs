@@ -27,8 +27,8 @@ use serde::de::DeserializeOwned;
 
 use crypto::keys::CredentialEcdsaKey;
 use crypto::keys::EcdsaKey;
-use crypto::wscd::DisclosureKeyFactory;
-use crypto::wscd::KeyFactoryPoa;
+use crypto::wscd::DisclosureWscd;
+use crypto::wscd::WscdPoa;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateError;
 use crypto::x509::CertificateUsage;
@@ -304,9 +304,9 @@ pub async fn sign_cose(
     Ok(signed)
 }
 
-pub async fn sign_coses<K: CredentialEcdsaKey, P: KeyFactoryPoa>(
+pub async fn sign_coses<K: CredentialEcdsaKey, P: WscdPoa>(
     keys_and_challenges: Vec<(K, &[u8])>,
-    key_factory: &impl DisclosureKeyFactory<Key = K, Poa = P>,
+    wscd: &impl DisclosureWscd<Key = K, Poa = P>,
     unprotected_header: Header,
     poa_input: P::Input,
     include_payload: bool,
@@ -321,7 +321,7 @@ pub async fn sign_coses<K: CredentialEcdsaKey, P: KeyFactoryPoa>(
         .map(|(key, sig_data)| (sig_data, vec![key]))
         .collect::<Vec<_>>();
 
-    let result = key_factory
+    let result = wscd
         .sign(keys_and_signature_data, poa_input)
         .await
         .map_err(|error| CoseError::Signing(error.into()))?;

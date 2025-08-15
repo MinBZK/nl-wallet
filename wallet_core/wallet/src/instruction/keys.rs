@@ -11,9 +11,9 @@ use crypto::keys::CredentialEcdsaKey;
 use crypto::keys::CredentialKeyType;
 use crypto::keys::WithIdentifier;
 use crypto::p256_der::DerSignature;
-use crypto::wscd::DisclosureKeyFactory;
 use crypto::wscd::DisclosureResult;
-use crypto::wscd::KeyFactoryPoa;
+use crypto::wscd::DisclosureWscd;
+use crypto::wscd::WscdPoa;
 use platform_support::attested_key::AppleAttestedKey;
 use platform_support::attested_key::GoogleAttestedKey;
 use wallet_account::messages::instructions::PerformIssuance;
@@ -21,8 +21,8 @@ use wallet_account::messages::instructions::PerformIssuanceWithWua;
 use wallet_account::messages::instructions::PerformIssuanceWithWuaResult;
 use wallet_account::messages::instructions::Sign;
 use wscd::Poa;
-use wscd::keyfactory::IssuanceResult;
-use wscd::keyfactory::KeyFactory;
+use wscd::wscd::IssuanceResult;
+use wscd::wscd::Wscd;
 
 use crate::account_provider::AccountProviderClient;
 use crate::storage::Storage;
@@ -43,7 +43,7 @@ pub enum RemoteEcdsaKeyError {
 }
 
 #[derive(Constructor)]
-pub struct RemoteEcdsaKeyFactory<S, AK, GK, A> {
+pub struct RemoteEcdsaWscd<S, AK, GK, A> {
     instruction_client: InstructionClient<S, AK, GK, A>,
 }
 
@@ -66,7 +66,7 @@ impl Hash for RemoteEcdsaKey {
     }
 }
 
-impl<S, AK, GK, A> DisclosureKeyFactory for RemoteEcdsaKeyFactory<S, AK, GK, A>
+impl<S, AK, GK, A> DisclosureWscd for RemoteEcdsaWscd<S, AK, GK, A>
 where
     S: Storage,
     AK: AppleAttestedKey,
@@ -87,7 +87,7 @@ where
     async fn sign(
         &self,
         messages_and_keys: Vec<(Vec<u8>, Vec<&Self::Key>)>,
-        poa_input: <Self::Poa as KeyFactoryPoa>::Input,
+        poa_input: <Self::Poa as WscdPoa>::Input,
     ) -> Result<DisclosureResult<Self::Poa>, Self::Error> {
         let sign_result = self
             .instruction_client
@@ -114,7 +114,7 @@ where
     }
 }
 
-impl<S, AK, GK, A> KeyFactory for RemoteEcdsaKeyFactory<S, AK, GK, A>
+impl<S, AK, GK, A> Wscd for RemoteEcdsaWscd<S, AK, GK, A>
 where
     S: Storage,
     AK: AppleAttestedKey,
