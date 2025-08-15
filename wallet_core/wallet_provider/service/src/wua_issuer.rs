@@ -11,18 +11,18 @@ use hsm::service::HsmError;
 use jwt::Jwt;
 use jwt::credential::JwtCredentialClaims;
 use jwt::error::JwtError;
-use jwt::wte::WteClaims;
+use jwt::wua::WuaClaims;
 use wallet_provider_domain::model::hsm::WalletUserHsm;
 
-pub trait WteIssuer {
+pub trait WuaIssuer {
     type Error: Error + Send + Sync + 'static;
 
-    async fn issue_wte(&self) -> Result<(WrappedKey, String, Jwt<JwtCredentialClaims<WteClaims>>), Self::Error>;
+    async fn issue_wua(&self) -> Result<(WrappedKey, String, Jwt<JwtCredentialClaims<WuaClaims>>), Self::Error>;
     async fn public_key(&self) -> Result<VerifyingKey, Self::Error>;
 }
 
 #[derive(Constructor)]
-pub struct HsmWteIssuer<H, K = HsmEcdsaKey> {
+pub struct HsmWuaIssuer<H, K = HsmEcdsaKey> {
     private_key: K,
     iss: String,
     hsm: H,
@@ -30,7 +30,7 @@ pub struct HsmWteIssuer<H, K = HsmEcdsaKey> {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum HsmWteIssuerError {
+pub enum HsmWuaIssuerError {
     #[error("HSM error: {0}")]
     Hsm(#[from] HsmError),
     #[error("JWT error: {0}")]
@@ -39,16 +39,16 @@ pub enum HsmWteIssuerError {
     PublicKeyError(Box<dyn Error + Send + Sync + 'static>),
 }
 
-static WTE_JWT_TYP: &str = "wte+jwt";
+static WUA_JWT_TYP: &str = "wua+jwt";
 
-impl<H, K> WteIssuer for HsmWteIssuer<H, K>
+impl<H, K> WuaIssuer for HsmWuaIssuer<H, K>
 where
     H: WalletUserHsm<Error = HsmError>,
     K: SecureEcdsaKey,
 {
-    type Error = HsmWteIssuerError;
+    type Error = HsmWuaIssuerError;
 
-    async fn issue_wte(&self) -> Result<(WrappedKey, String, Jwt<JwtCredentialClaims<WteClaims>>), Self::Error> {
+    async fn issue_wua(&self) -> Result<(WrappedKey, String, Jwt<JwtCredentialClaims<WuaClaims>>), Self::Error> {
         let wrapped_privkey = self.hsm.generate_wrapped_key(&self.wrapping_key_identifier).await?;
         let pubkey = *wrapped_privkey.public_key();
 
@@ -56,8 +56,8 @@ where
             &pubkey,
             &self.private_key,
             self.iss.clone(),
-            Some(WTE_JWT_TYP.to_string()),
-            WteClaims::new(),
+            Some(WUA_JWT_TYP.to_string()),
+            WuaClaims::new(),
         )
         .await?;
 
@@ -68,7 +68,7 @@ where
         self.private_key
             .verifying_key()
             .await
-            .map_err(|e| HsmWteIssuerError::PublicKeyError(Box::new(e)))
+            .map_err(|e| HsmWuaIssuerError::PublicKeyError(Box::new(e)))
     }
 }
 
@@ -83,26 +83,26 @@ pub mod mock {
     use hsm::model::wrapped_key::WrappedKey;
     use jwt::Jwt;
     use jwt::credential::JwtCredentialClaims;
-    use jwt::wte::WteClaims;
+    use jwt::wua::WuaClaims;
 
-    use super::WTE_JWT_TYP;
-    use super::WteIssuer;
+    use super::WUA_JWT_TYP;
+    use super::WuaIssuer;
 
-    pub struct MockWteIssuer;
+    pub struct MockWuaIssuer;
 
-    impl WteIssuer for MockWteIssuer {
+    impl WuaIssuer for MockWuaIssuer {
         type Error = Infallible;
 
-        async fn issue_wte(&self) -> Result<(WrappedKey, String, Jwt<JwtCredentialClaims<WteClaims>>), Self::Error> {
+        async fn issue_wua(&self) -> Result<(WrappedKey, String, Jwt<JwtCredentialClaims<WuaClaims>>), Self::Error> {
             let privkey = SigningKey::random(&mut OsRng);
             let pubkey = privkey.verifying_key();
 
             let jwt = JwtCredentialClaims::new_signed(
                 pubkey,
-                &privkey, // Sign the WTE with its own private key in this test
+                &privkey, // Sign the WUA with its own private key in this test
                 "iss".to_string(),
-                Some(WTE_JWT_TYP.to_string()),
-                WteClaims::new(),
+                Some(WUA_JWT_TYP.to_string()),
+                WuaClaims::new(),
             )
             .await
             .unwrap();
@@ -130,37 +130,37 @@ mod tests {
     use hsm::service::HsmError;
     use jwt::jwk::jwk_to_p256;
 
-    use super::HsmWteIssuer;
-    use super::WteIssuer;
+    use super::HsmWuaIssuer;
+    use super::WuaIssuer;
 
     #[tokio::test]
     async fn it_works() {
         let hsm = MockPkcs11Client::<HsmError>::default();
-        let wte_signing_key = SigningKey::random(&mut OsRng);
-        let wte_verifying_key = wte_signing_key.verifying_key();
+        let wua_signing_key = SigningKey::random(&mut OsRng);
+        let wua_verifying_key = wua_signing_key.verifying_key();
         let iss = "iss";
         let wrapping_key_identifier = "my-wrapping-key-identifier";
 
-        let wte_issuer = HsmWteIssuer {
-            private_key: wte_signing_key.clone(),
+        let wua_issuer = HsmWuaIssuer {
+            private_key: wua_signing_key.clone(),
             iss: iss.to_string(),
             hsm,
             wrapping_key_identifier: wrapping_key_identifier.to_string(),
         };
 
-        let (wte_privkey, _key_id, wte) = wte_issuer.issue_wte().await.unwrap();
+        let (wua_privkey, _key_id, wua) = wua_issuer.issue_wua().await.unwrap();
 
-        let wte_claims = wte
-            .parse_and_verify(&wte_verifying_key.into(), &jwt::validations())
+        let wua_claims = wua
+            .parse_and_verify(&wua_verifying_key.into(), &jwt::validations())
             .unwrap();
 
         assert_eq!(
-            wte_privkey.public_key(),
-            &jwk_to_p256(&wte_claims.confirmation.jwk).unwrap()
+            wua_privkey.public_key(),
+            &jwk_to_p256(&wua_claims.confirmation.jwk).unwrap()
         );
 
         // Check that the fields have the expected contents
-        assert_eq!(wte_claims.contents.iss, iss.to_string());
-        assert!(wte_claims.contents.attributes.exp > Utc::now());
+        assert_eq!(wua_claims.contents.iss, iss.to_string());
+        assert!(wua_claims.contents.attributes.exp > Utc::now());
     }
 }

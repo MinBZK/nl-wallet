@@ -55,8 +55,8 @@ sequenceDiagram
     activate Wallet
         Wallet->>Wallet: create PoPs by signing nonce using Wallet Provider
         Wallet->>+WalletServer: POST /batch_credential(access_token, PoPs)
-        note over Wallet: WTE and PoA are included here
-        WalletServer->>WalletServer: verify proofs,  WTE and PoA
+        note over Wallet: WUA and PoA are included here
+        WalletServer->>WalletServer: verify proofs,  WUA and PoA
         WalletServer->>-Wallet: attestations
     deactivate Wallet
 ```

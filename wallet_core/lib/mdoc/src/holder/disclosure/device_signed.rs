@@ -8,8 +8,8 @@ use p256::PublicKey;
 use p256::SecretKey;
 
 use crypto::keys::CredentialEcdsaKey;
-use crypto::wscd::DisclosureKeyFactory;
-use crypto::wscd::KeyFactoryPoa;
+use crypto::wscd::DisclosureWscd;
+use crypto::wscd::WscdPoa;
 
 use crate::errors::Result;
 use crate::iso::*;
@@ -20,17 +20,17 @@ use crate::utils::serialization::TaggedBytes;
 use crate::utils::serialization::cbor_serialize;
 
 impl DeviceSigned {
-    pub async fn new_signatures<K, KF, P>(
+    pub async fn new_signatures<K, W, P>(
         keys_and_challenges: Vec<(K, &[u8])>,
-        key_factory: &KF,
+        wscd: &W,
         poa_input: P::Input,
     ) -> Result<(Vec<DeviceSigned>, Option<P>)>
     where
         K: CredentialEcdsaKey,
-        KF: DisclosureKeyFactory<Key = K, Poa = P>,
-        P: KeyFactoryPoa,
+        W: DisclosureWscd<Key = K, Poa = P>,
+        P: WscdPoa,
     {
-        let (coses, poa) = sign_coses(keys_and_challenges, key_factory, Header::default(), poa_input, false).await?;
+        let (coses, poa) = sign_coses(keys_and_challenges, wscd, Header::default(), poa_input, false).await?;
 
         let signed = coses
             .into_iter()

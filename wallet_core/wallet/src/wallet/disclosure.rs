@@ -55,7 +55,7 @@ use crate::errors::ChangePinError;
 use crate::errors::UpdatePolicyError;
 use crate::instruction::InstructionError;
 use crate::instruction::RemoteEcdsaKeyError;
-use crate::instruction::RemoteEcdsaKeyFactory;
+use crate::instruction::RemoteEcdsaWscd;
 use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
 use crate::storage::DataDisclosureStatus;
@@ -703,7 +703,7 @@ where
 
         let attestations = session.attestations.as_ref().ok_or(DisclosureError::SessionState)?;
 
-        // Prepare the `RemoteEcdsaKeyFactory` for signing using the provided PIN.
+        // Prepare the `RemoteEcdsaWscd` for signing using the provided PIN.
         let instruction_result_public_key = config.account_server.instruction_result_public_key.as_inner().into();
 
         let remote_instruction = self
@@ -716,7 +716,7 @@ where
             )
             .await?;
 
-        let remote_key_factory = RemoteEcdsaKeyFactory::new(remote_instruction);
+        let remote_wscd = RemoteEcdsaWscd::new(remote_instruction);
 
         // Increment the disclosure counts of the attestation copies referenced in the proposal,
         // so that for the next disclosure different copies are used.
@@ -782,7 +782,7 @@ where
             // This not possible, as we took a reference to this value before.
             unreachable!();
         };
-        let result = session.protocol_state.disclose(mdocs, &remote_key_factory).await;
+        let result = session.protocol_state.disclose(mdocs, &remote_wscd).await;
         let return_url = match result {
             Ok(return_url) => return_url.map(BaseUrl::into_inner),
             Err((protocol_state, error)) => {

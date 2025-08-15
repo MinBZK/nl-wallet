@@ -10,7 +10,7 @@ workspace = true
 [features]
 # Include examples from the ISO specification
 examples = ["crypto/examples"]
-# Include MockRemoteEcdsaKey type and MockRemoteKeyFactory implementation of KeyFactory for testing
+# Include MockRemoteEcdsaKey type and MockRemoteWscd implementation of Wscd for testing
 mock = ["crypto/mock", "dep:parking_lot", "dep:rand_core"]
 
 [dependencies]

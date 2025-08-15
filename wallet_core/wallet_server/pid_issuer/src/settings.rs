@@ -25,7 +25,7 @@ pub struct PidIssuerSettings {
     pub brp_server: BaseUrl,
 
     #[serde_as(as = "Base64")]
-    pub wte_issuer_pubkey: DerVerifyingKey,
+    pub wua_issuer_pubkey: DerVerifyingKey,
 
     pub recovery_code: SecretKey,
 

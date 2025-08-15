@@ -11,7 +11,7 @@ use jwt::jwk::jwk_to_p256;
 use mdoc::IssuerSigned;
 use mdoc::holder::Mdoc;
 use mdoc::test::TestDocument;
-use wscd::keyfactory::KeyFactory;
+use wscd::wscd::Wscd;
 
 use crate::issuance_session::CredentialWithMetadata;
 use crate::issuance_session::HttpVcMessageClient;
@@ -63,10 +63,10 @@ impl IssuanceSession for MockIssuanceSession {
         Self::start()
     }
 
-    async fn accept_issuance<K, KF>(
+    async fn accept_issuance<K, W>(
         &self,
         _: &[TrustAnchor<'_>],
-        _: &KF,
+        _: &W,
         _: bool,
     ) -> Result<Vec<CredentialWithMetadata>, IssuanceSessionError> {
         self.accept()
@@ -144,30 +144,30 @@ impl TokenRequest {
     }
 }
 
-pub async fn test_document_to_issuer_signed<KF>(doc: TestDocument, ca: &Ca, key_factory: &KF) -> (IssuerSigned, KF::Key)
+pub async fn test_document_to_issuer_signed<W>(doc: TestDocument, ca: &Ca, wscd: &W) -> (IssuerSigned, W::Key)
 where
-    KF: KeyFactory,
+    W: Wscd,
 {
-    let key = generate_key(key_factory).await;
+    let key = generate_key(wscd).await;
 
     let issuer_signed = doc.issuer_signed(ca, &key, Utc::now()).await;
     (issuer_signed, key)
 }
 
-pub async fn test_document_to_mdoc<KF>(doc: TestDocument, ca: &Ca, key_factory: &KF) -> Mdoc
+pub async fn test_document_to_mdoc<W>(doc: TestDocument, ca: &Ca, wscd: &W) -> Mdoc
 where
-    KF: KeyFactory,
+    W: Wscd,
 {
-    let key = generate_key(key_factory).await;
+    let key = generate_key(wscd).await;
 
     doc.sign(ca, &key).await
 }
 
-async fn generate_key<KF>(key_factory: &KF) -> KF::Key
+async fn generate_key<W>(wscd: &W) -> W::Key
 where
-    KF: KeyFactory,
+    W: Wscd,
 {
-    let issuance_data = key_factory
+    let issuance_data = wscd
         .perform_issuance(
             1.try_into().unwrap(),
             "aud".to_string(),
@@ -189,5 +189,5 @@ where
     )
     .unwrap();
 
-    key_factory.new_key(issuance_data.key_identifiers.first(), pubkey)
+    wscd.new_key(issuance_data.key_identifiers.first(), pubkey)
 }

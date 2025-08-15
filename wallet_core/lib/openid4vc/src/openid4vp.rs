@@ -866,8 +866,8 @@ mod tests {
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_at_least::VecNonEmpty;
     use wscd::Poa;
-    use wscd::keyfactory::JwtPoaInput;
-    use wscd::mock_remote::MockRemoteKeyFactory;
+    use wscd::mock_remote::MockRemoteWscd;
+    use wscd::wscd::JwtPoaInput;
 
     use crate::AuthorizationErrorCode;
     use crate::VpAuthorizationErrorCode;
@@ -1207,9 +1207,9 @@ mod tests {
             .collect_vec();
 
         // Sign the challenges using the mdoc key
-        let key_factory = MockRemoteKeyFactory::default();
+        let wscd = MockRemoteWscd::default();
         let poa_input = JwtPoaInput::new(Some(mdoc_nonce.to_string()), auth_request.client_id.clone());
-        let (device_signed, poa) = DeviceSigned::new_signatures(keys_and_challenges, &key_factory, poa_input)
+        let (device_signed, poa) = DeviceSigned::new_signatures(keys_and_challenges, &wscd, poa_input)
             .await
             .unwrap();
 
@@ -1282,11 +1282,11 @@ mod tests {
 
         let auth_request = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap();
 
-        let key_factory = MockRemoteKeyFactory::default();
+        let wscd = MockRemoteWscd::default();
         let issuer_signed_and_keys = join_all(
             stored_documents
                 .into_iter()
-                .map(|doc| test_document_to_issuer_signed(doc, ca, &key_factory)),
+                .map(|doc| test_document_to_issuer_signed(doc, ca, &wscd)),
         )
         .await;
 

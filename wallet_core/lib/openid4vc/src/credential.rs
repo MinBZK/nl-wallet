@@ -11,7 +11,7 @@ use serde_with::skip_serializing_none;
 use http_utils::urls::BaseUrl;
 use jwt::Jwt;
 use jwt::pop::JwtPopClaims;
-use jwt::wte::WteDisclosure;
+use jwt::wua::WuaDisclosure;
 use mdoc::IssuerSigned;
 use mdoc::utils::serialization::CborBase64;
 use utils::spec::SpecOptional;
@@ -27,7 +27,7 @@ use crate::token::AuthorizationCode;
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CredentialRequests {
     pub credential_requests: VecNonEmpty<CredentialRequest>,
-    pub attestations: Option<WteDisclosure>,
+    pub attestations: Option<WuaDisclosure>,
     pub poa: Option<Poa>,
 }
 
@@ -39,7 +39,7 @@ pub struct CredentialRequest {
     #[serde(flatten)]
     pub credential_type: SpecOptional<CredentialRequestType>,
     pub proof: Option<CredentialRequestProof>,
-    pub attestations: Option<WteDisclosure>,
+    pub attestations: Option<WuaDisclosure>,
     pub poa: Option<Poa>,
 }
 

@@ -9,11 +9,11 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
-                    .table(UsedWtes::Table)
+                    .table(UsedWuas::Table)
                     .if_not_exists()
-                    .col(ColumnDef::new(UsedWtes::UsedWteHash).binary_len(256 / 8).not_null())
-                    .col(ColumnDef::new(UsedWtes::Expires).timestamp_with_time_zone().not_null())
-                    .primary_key(Index::create().col(UsedWtes::UsedWteHash))
+                    .col(ColumnDef::new(UsedWuas::UsedWuaHash).binary_len(256 / 8).not_null())
+                    .col(ColumnDef::new(UsedWuas::Expires).timestamp_with_time_zone().not_null())
+                    .primary_key(Index::create().col(UsedWuas::UsedWuaHash))
                     .to_owned(),
             )
             .await
@@ -23,8 +23,8 @@ impl MigrationTrait for Migration {
 }
 
 #[derive(DeriveIden)]
-enum UsedWtes {
+enum UsedWuas {
     Table,
-    UsedWteHash,
+    UsedWuaHash,
     Expires,
 }
