@@ -5,6 +5,21 @@ automation-compile-check:
     - cd uiautomation
     - ./gradlew --no-daemon compileTestKotlin
 
+scheduled-automation-tests-trigger:
+  rules:
+    - !reference [.default-or-release, rules]
+  needs:
+    - job: deploy-apps-ont
+      artifacts: false
+      optional: true
+  trigger:
+    include:
+      - local: .gitlab-ci.yml
+  variables:
+    SCHEDULED: true
+  when: manual
+  allow_failure: true
+
 .run-automation-tests-base:
   extends: .env-k8s
   before_script:

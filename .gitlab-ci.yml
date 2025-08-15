@@ -10,8 +10,8 @@ variables:
   CARGO_INCREMENTAL: 0
   CARGO_PROFILE_TEST_DEBUG: "line-tables-only"
   APP_BUILD_OFFSET: 861
-  BUILD_TAG: 250813-9b1dccaa
-  HSM_CLIENT_TAG: "9ec8d6a0"
+  BUILD_TAG: 250814-116bf43a
+  HSM_CLIENT_TAG: "51c3fbc"
   BUNDLE_DEPLOYMENT: "true"
   BUNDLE_RETRY: 10
 
@@ -28,7 +28,7 @@ variables:
 .env-macos-runner:
   tags:
     - macos
-  image: sequoia-wallet:0.1.1
+  image: sequoia-wallet:0.2.0
 
 .default-branch:
   rules:
