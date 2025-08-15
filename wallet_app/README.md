@@ -216,7 +216,7 @@ on [Internationalizing Flutter apps](https://flutter.dev/docs/development/access
 
 Internally, this project uses the commercial Lokalise service to manage translations. This service
 is currently not accessible for external contributors. For contributors with access, please
-see [documentation/lokalise.md](./documentation/lokalise.md) for documentation.
+see [using-lokalise.md](./wallet_docs/development-notes/using-lokalise.md) for documentation.
 
 ### Deeplink Scenarios
 
