@@ -9,6 +9,22 @@ build-documentation:
     - pip3 install -r requirements.txt
     - make linkcheck
     - sphinx-multiversion . _build/html -W
+    #GitHub pages needs an index.html at the root of the html folder
+    - |
+      cat > _build/html/index.html <<EOF
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta http-equiv="refresh" content="0; url=main/index.html">
+          <script>window.location.href = "main/index.html"</script>
+          <title>Redirecting to main</title>
+        </head>
+        <body>
+          Redirecting to <a href="main/index.html">main</a>...
+        </body>
+      </html>
+      EOF
+
   variables:
     GIT_STRATEGY: clone
     GIT_DEPTH: 0
