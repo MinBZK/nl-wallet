@@ -1,0 +1,303 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Using Lokalise &mdash; NL Wallet 0.4.0-dev documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=ba2e7a06" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=bf7cd258"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/js/custom.js?v=48752f09"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="author" title="About these documents" href="../about.html" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Definition of done" href="../way-of-working/definition-of-done.html" />
+    <link rel="prev" title="Updating Rust" href="updating-rust.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #383EDE" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            NL Wallet
+              <img src="../_static/wallet.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../about.html">About</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Get Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../get-started/onboarding.html">Onboarding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../get-started/verifier.html">Create a Verifier</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../get-started/issuer.html">Create an Issuer</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Architecture</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/components-overview.html">Components Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/disclosure-based-issuance.html">Disclosure-based Issuance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/disclosure-with-openid4vp.html">Disclosure with OpenID4VP</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/issuance-with-openid4vci.html">Issuance with OpenID4VCI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/mobile-app-startup.html">Mobile App Startup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/pin-validation.html">Pin Validation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/wallet-creation.html">Wallet Creation</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Development</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="generic-issuance.html">Generic Issuance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="openapi-specifications.html">OpenAPI Specifications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sd-jwt-vc-profile.html">SD-JWT VC Profile</a></li>
+<li class="toctree-l1"><a class="reference internal" href="specification-references.html">Specification References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sphinx-documentation.html">Sphinx Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="updating-rust.html">Updating Rust</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Using Lokalise</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Way of Working</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../way-of-working/definition-of-done.html">Definition of done</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../way-of-working/merge-requests.html">Merge Requests</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../way-of-working/release-howto.html">Releases Howto</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Release Notes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/v0.3.0.html">v0.3.0</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/v0.4.0.html">v0.4.0 (in development)</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #383EDE" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">NL Wallet</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content style-external-links">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Using Lokalise</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/development/using-lokalise.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="using-lokalise">
+<h1>Using Lokalise<a class="headerlink" href="#using-lokalise" title="Link to this heading"></a></h1>
+<p>Internally, this project uses the commercial Lokalise service to manage translations. This service is currently not accessible for external contributors. The following is for contributors with access.</p>
+<section id="workflow">
+<h2>Workflow<a class="headerlink" href="#workflow" title="Link to this heading"></a></h2>
+<p>The most common workflow to add or edit translations is to go to the Lokalise <a class="reference external" href="https://app.lokalise.com/project/6436413463447da2022622.90277191/">nl-wallet-app</a> project (authentication required) and edit the translations in the web UI. After doing so you can export the new translations as .arb files to be used in the project.</p>
+<section id="exporting-translations-lokalise-app">
+<h3>Exporting translations (lokalise -&gt; app)<a class="headerlink" href="#exporting-translations-lokalise-app" title="Link to this heading"></a></h3>
+<p>To download the latest translations from Lokalise, go to the ‘Download’ tab and select the following:</p>
+<ul class="simple">
+<li><p>File format: Flutter (.arb)</p></li>
+<li><p>Include all platform keys (no idea if this is necessary)</p></li>
+<li><p>Languages: All</p></li>
+<li><p>File structure:</p>
+<ul>
+<li><p>One file per language</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">intl_%LANG_ISO%.%FORMAT%</span></code></p></li>
+</ul>
+</li>
+<li><p>Advanced settings:</p>
+<ul>
+<li><p>Disable <code class="docutils literal notranslate"><span class="pre">compact</span> <span class="pre">format</span></code></p></li>
+<li><p>Enable <code class="docutils literal notranslate"><span class="pre">include</span> <span class="pre">description</span></code></p></li>
+<li><p>Enable <code class="docutils literal notranslate"><span class="pre">Replace</span> <span class="pre">line</span> <span class="pre">breaks</span> <span class="pre">with</span> <span class="pre">\n</span></code></p></li>
+</ul>
+</li>
+<li><p>App triggers:</p>
+<ul>
+<li><p>None</p></li>
+</ul>
+</li>
+</ul>
+<p>Click <code class="docutils literal notranslate"><span class="pre">Preview</span></code> to preview your changes, and click <code class="docutils literal notranslate"><span class="pre">Build</span> <span class="pre">and</span> <span class="pre">download</span></code> to download the translations.
+Place the contents of the download zip file in the <code class="docutils literal notranslate"><span class="pre">wallet_app/lib/l10n</span></code> folder.
+Al</p>
+<section id="export-script">
+<h4>Export script<a class="headerlink" href="#export-script" title="Link to this heading"></a></h4>
+<p>Alternatively you can run the following script (inside the <code class="docutils literal notranslate"><span class="pre">wallet_app</span></code> dir), make sure to set <code class="docutils literal notranslate"><span class="pre">LOKALISE_API_KEY</span></code>, an API Token can be generated from the Lokalise dashboard at Profile Settings -&gt; API Tokens.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="ch">#!/bin/bash</span>
+
+<span class="c1"># Download &#39;nl-wallet-showcase-app.zip&#39;</span>
+curl<span class="w"> </span>--request<span class="w"> </span>POST<span class="w"> </span><span class="se">\</span>
+<span class="w">     </span>--url<span class="w"> </span>https://api.lokalise.com/api2/projects/6436413463447da2022622.90277191:branch/files/download<span class="w"> </span><span class="se">\</span>
+<span class="w">     </span>--header<span class="w"> </span><span class="s1">&#39;X-Api-Token: &#39;</span><span class="s2">&quot;</span><span class="nv">$LOKALISE_API_KEY</span><span class="s2">&quot;</span><span class="s1">&#39;&#39;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">     </span>--header<span class="w"> </span><span class="s1">&#39;accept: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">     </span>--header<span class="w"> </span><span class="s1">&#39;content-type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">     </span>--data<span class="w"> </span><span class="s1">&#39;</span>
+<span class="s1">{</span>
+<span class="s1">  &quot;format&quot;: &quot;arb&quot;,</span>
+<span class="s1">  &quot;replace_breaks&quot;: false,</span>
+<span class="s1">  &quot;plural_format&quot;: &quot;icu&quot;,</span>
+<span class="s1">  &quot;compact&quot;: false,</span>
+<span class="s1">  &quot;original_filenames&quot;: false,</span>
+<span class="s1">  &quot;bundle_structure&quot;: &quot;lib/l10n/intl_%LANG_ISO%.%FORMAT%&quot;</span>
+<span class="s1">}</span>
+<span class="s1">&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-o<span class="w"> </span><span class="s1">&#39;&quot;bundle_url&quot;:&quot;[^&quot;]*&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-o<span class="w"> </span><span class="s1">&#39;[^&quot;]*$&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>xargs<span class="w"> </span>wget
+
+<span class="c1"># Unzip &#39;nl-wallet-showcase-app.zip&#39;</span>
+unzip<span class="w"> </span>-o<span class="w"> </span>nl-wallet-showcase-app.zip
+
+<span class="c1"># Clean up</span>
+rm<span class="w"> </span>nl-wallet-showcase-app.zip
+
+<span class="c1"># Generate new translation files</span>
+flutter<span class="w"> </span>gen-l10n
+</pre></div>
+</div>
+</section>
+</section>
+<section id="importing-keys-translations-app-lokalise">
+<h3>Importing keys/translations (app -&gt; lokalise)<a class="headerlink" href="#importing-keys-translations-app-lokalise" title="Link to this heading"></a></h3>
+<p>When managing the translations in Lokalise, importing from the app should in theory never be necessary, however if the translations do run out of sync (e.g. because keys were only added in the app repo) the following can be done to sync the new keys back to lokalise.</p>
+<p>Go to the upload tab of the nl-wallet-app project and use the following options:</p>
+<ul class="simple">
+<li><p>[x] Replace \n with line break</p></li>
+<li><p>[x] Convert to universal placeholders</p></li>
+<li><p>[x] Detect ICU plurals</p></li>
+<li><p>[ ] Tag keys</p></li>
+<li><p>[ ] Differentiate keys by file</p></li>
+<li><p>[ ] Fill empty keys with key name</p></li>
+<li><p>[ ] Hide from contributors</p></li>
+<li><p>[ ] Pre-translate with 100% TM matches</p></li>
+<li><p>[x] Replace modified values (disable to only push new keys)</p></li>
+<li><p>[ ] Enable cleanup mode  (<em>Caution</em>: Can be useful to clean up Lokalise, but remember to create a snapshot first! This can be done via: More -&gt; Snapshots -&gt; Take new snapshot)</p></li>
+</ul>
+<p>After uploading both the intl_en.arb and intl_nl.arb and processing them the localisations should be in sync with the repository.</p>
+<section id="import-script">
+<h4>Import script<a class="headerlink" href="#import-script" title="Link to this heading"></a></h4>
+<p>Alternatively you can run the following script (inside the <code class="docutils literal notranslate"><span class="pre">wallet_app</span></code> dir), make sure to set <code class="docutils literal notranslate"><span class="pre">LOKALISE_API_KEY</span></code>, an API Token can be generated from the Lokalise dashboard at Profile Settings -&gt; API Tokens.</p>
+<p>Note that the script always creates a snapshot before uploading and that <code class="docutils literal notranslate"><span class="pre">replace_modified</span></code> is disabled by default. Run the script with the <code class="docutils literal notranslate"><span class="pre">--replace-modified</span></code> option to enable this.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="ch">#!/bin/bash</span>
+
+<span class="c1"># Check for the --replace-modified flag</span>
+<span class="nv">replaceModified</span><span class="o">=</span><span class="s2">&quot;false&quot;</span>
+<span class="k">for</span><span class="w"> </span>arg<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$@</span><span class="s2">&quot;</span><span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">  </span><span class="k">case</span><span class="w"> </span><span class="nv">$arg</span><span class="w"> </span><span class="k">in</span>
+<span class="w">  </span>--replace-modified<span class="o">)</span>
+<span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Uploading with replace_modified enabled&quot;</span>
+<span class="w">    </span><span class="nv">replaceModified</span><span class="o">=</span><span class="s2">&quot;true&quot;</span>
+<span class="w">    </span><span class="p">;;</span>
+<span class="w">  </span><span class="k">esac</span>
+<span class="k">done</span>
+
+<span class="c1"># Create a snapshot for safety purposes</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Creating snapshot...&quot;</span>
+curl<span class="w"> </span>--request<span class="w"> </span>POST<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--url<span class="w"> </span>https://api.lokalise.com/api2/projects/6436413463447da2022622.90277191/snapshots<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--header<span class="w"> </span><span class="s1">&#39;X-Api-Token: &#39;</span><span class="s2">&quot;</span><span class="nv">$LOKALISE_API_KEY</span><span class="s2">&quot;</span><span class="s1">&#39;&#39;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--header<span class="w"> </span><span class="s1">&#39;accept: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--header<span class="w"> </span><span class="s1">&#39;content-type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--data<span class="w"> </span><span class="s1">&#39;</span>
+<span class="s1">{</span>
+<span class="s1">  &quot;title&quot;: &quot;Upload script&quot;</span>
+<span class="s1">}</span>
+<span class="s1">&#39;</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;&quot;</span>
+
+<span class="c1"># Upload language files</span>
+<span class="nv">supportedLocales</span><span class="o">=(</span><span class="s2">&quot;en&quot;</span><span class="w"> </span><span class="s2">&quot;nl&quot;</span><span class="o">)</span>
+<span class="k">for</span><span class="w"> </span>languageIso<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">supportedLocales</span><span class="p">[@]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">  </span><span class="nv">languageFile</span><span class="o">=</span><span class="s2">&quot;lib/l10n/intl_</span><span class="nv">$languageIso</span><span class="s2">.arb&quot;</span>
+<span class="w">  </span><span class="nv">fileContents</span><span class="o">=</span><span class="k">$(</span>base64<span class="w"> </span>&lt;<span class="s2">&quot;</span><span class="nv">$languageFile</span><span class="s2">&quot;</span><span class="k">)</span>
+<span class="w">  </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Uploading </span><span class="si">${</span><span class="nv">languageFile</span><span class="si">}</span><span class="s2">...&quot;</span>
+<span class="w">  </span>curl<span class="w"> </span>--request<span class="w"> </span>POST<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--url<span class="w"> </span>https://api.lokalise.com/api2/projects/6436413463447da2022622.90277191:branch/files/upload<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--header<span class="w"> </span><span class="s1">&#39;X-Api-Token: &#39;</span><span class="s2">&quot;</span><span class="nv">$LOKALISE_API_KEY</span><span class="s2">&quot;</span><span class="s1">&#39;&#39;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--header<span class="w"> </span><span class="s1">&#39;accept: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--header<span class="w"> </span><span class="s1">&#39;content-type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--data<span class="w"> </span><span class="s1">&#39;</span>
+<span class="s1">    {</span>
+<span class="s1">      &quot;data&quot;: &quot;&#39;</span><span class="s2">&quot;</span><span class="nv">$fileContents</span><span class="s2">&quot;</span><span class="s1">&#39;&quot;,</span>
+<span class="s1">      &quot;filename&quot;: &quot;&#39;</span><span class="s2">&quot;</span><span class="nv">$languageFile</span><span class="s2">&quot;</span><span class="s1">&#39;&quot;,</span>
+<span class="s1">      &quot;lang_iso&quot;: &quot;&#39;</span><span class="s2">&quot;</span><span class="nv">$languageIso</span><span class="s2">&quot;</span><span class="s1">&#39;&quot;,</span>
+<span class="s1">      &quot;convert_placeholders&quot;: true,</span>
+<span class="s1">      &quot;detect_icu_plurals&quot;: true,</span>
+<span class="s1">      &quot;slashn_to_linebreak&quot;: true,</span>
+<span class="s1">      &quot;replace_modified&quot;: &#39;</span><span class="s2">&quot;</span><span class="nv">$replaceModified</span><span class="s2">&quot;</span><span class="s1">&#39;</span>
+<span class="s1">    }</span>
+<span class="s1">    &#39;</span>
+<span class="w">  </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;&quot;</span>
+<span class="k">done</span>
+</pre></div>
+</div>
+</section>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="updating-rust.html" class="btn btn-neutral float-left" title="Updating Rust" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../way-of-working/definition-of-done.html" class="btn btn-neutral float-right" title="Definition of done" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, NL Wallet.</p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    <span class="fa fa-book"> Other Versions</span>
+    v: main
+    <span class="fa fa-caret-down"></span>
+  </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="using-lokalise.html">main</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(false);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,267 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Issuance with OpenID4VCI &mdash; NL Wallet 0.4.0-dev documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=ba2e7a06" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=bf7cd258"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script type="module" src="https://cdn.jsdelivr.net/npm/mermaid@11.2.0/dist/mermaid.esm.min.mjs"></script>
+      <script type="module" src="https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk@0.1.4/dist/mermaid-layout-elk.esm.min.mjs"></script>
+      <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.2.0/dist/mermaid.esm.min.mjs";import elkLayouts from "https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk@0.1.4/dist/mermaid-layout-elk.esm.min.mjs";mermaid.registerLayoutLoaders(elkLayouts);mermaid.initialize({startOnLoad:false});</script>
+      <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+      <script type="module">
+import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.2.0/dist/mermaid.esm.min.mjs";
+window.addEventListener("load", () => mermaid.run());
+</script>
+      <script src="../_static/js/custom.js?v=48752f09"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="author" title="About these documents" href="../about.html" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Mobile App Startup" href="mobile-app-startup.html" />
+    <link rel="prev" title="Disclosure with OpenID4VP" href="disclosure-with-openid4vp.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #383EDE" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            NL Wallet
+              <img src="../_static/wallet.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../about.html">About</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Get Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../get-started/onboarding.html">Onboarding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../get-started/verifier.html">Create a Verifier</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../get-started/issuer.html">Create an Issuer</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Architecture</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="components-overview.html">Components Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="disclosure-based-issuance.html">Disclosure-based Issuance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="disclosure-with-openid4vp.html">Disclosure with OpenID4VP</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Issuance with OpenID4VCI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="mobile-app-startup.html">Mobile App Startup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pin-validation.html">Pin Validation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wallet-creation.html">Wallet Creation</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Development</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../development/generic-issuance.html">Generic Issuance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/openapi-specifications.html">OpenAPI Specifications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/sd-jwt-vc-profile.html">SD-JWT VC Profile</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/specification-references.html">Specification References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/sphinx-documentation.html">Sphinx Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/updating-rust.html">Updating Rust</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/using-lokalise.html">Using Lokalise</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Way of Working</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../way-of-working/definition-of-done.html">Definition of done</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../way-of-working/merge-requests.html">Merge Requests</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../way-of-working/release-howto.html">Releases Howto</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Release Notes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/v0.3.0.html">v0.3.0</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/v0.4.0.html">v0.4.0 (in development)</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #383EDE" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">NL Wallet</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content style-external-links">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Issuance with OpenID4VCI</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/architecture/issuance-with-openid4vci.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="issuance-with-openid4vci">
+<h1>Issuance with OpenID4VCI<a class="headerlink" href="#issuance-with-openid4vci" title="Link to this heading"></a></h1>
+<section id="pid-issuance">
+<h2>PID issuance<a class="headerlink" href="#pid-issuance" title="Link to this heading"></a></h2>
+<p>This diagram shows how we use OpenID4VCI in the pre-authorized code flow to issue the PID.</p>
+<p>In this protocol, the wallet starts a normal OpenID Connect session at the AuthServer (DigiD/<code class="docutils literal notranslate"><span class="pre">nl-rdo-max</span></code>), obtaining an authorization code. Next, the wallet uses this code to start the OpenID4VCI issuance protocol in the pre-authorized code flow with the Wallet Server. The Wallet Server finishes the OpenID Connect session with the AuthServer to discover the identity of the wallet user, allowing it to finish issuance.</p>
+<p>In the diagram below we introduce an actor called the PidAttributeService, whose responsibility it is to produce the attributes to be issued given the pre-authorized code. In the case of PID issuance it can do this by finishing the OpenID session at the AuthServer that the wallet started. (This actor is a library part of the WalletServer, as opposed to a separate HTTP server; we include it as separate actor here to separate responsibilities.)</p>
+<p>In more detail, the protocol works as follows.</p>
+<ul class="simple">
+<li><p>The wallet starts an OpenID Connect session at the AuthServer by sending it an Authorization Request, receiving an authorization code from the AuthServer in response.</p></li>
+<li><p>Using the received authorization code, the wallet starts OpenID4VCI issuance in the pre-authorized code flow by POSTing the code as a pre-authorized code in a Token Request to the WalletServer.</p></li>
+<li><p>The WalletServer feeds the Token Request with the pre-authorized code to its PidAttributeService component. The PidAttributeService POSTs the Token Request to the AuthServer, transforming only the pre-authorized code in it to a normal authorization code but keeping the other parameters (such as the <code class="docutils literal notranslate"><span class="pre">state</span></code> and the PKCE <code class="docutils literal notranslate"><span class="pre">code_verifier</span></code>) in the Token Request as is, thereby continuing the OpenID Connect session that the wallet previously started.</p></li>
+<li><p>Using the resulting <code class="docutils literal notranslate"><span class="pre">access_token</span></code>, the PidAttributeService invokes the <code class="docutils literal notranslate"><span class="pre">/userinfo</span></code> endpoint of the AuthServer to retrieve the BSN, with which it next does a BRP query, resulting in the attributes to be issued that are returned to the WalletServer. The WalletServer then generates the <code class="docutils literal notranslate"><span class="pre">c_nonce</span></code> and an <code class="docutils literal notranslate"><span class="pre">access_token</span></code> of its own, and returns these to the wallet.</p></li>
+<li><p>Along with the <code class="docutils literal notranslate"><span class="pre">access_token</span></code> and <code class="docutils literal notranslate"><span class="pre">c_nonce</span></code> we also return a preview of the attestations, as a custom addition to the OpenID4VCI protocol.</p></li>
+<li><p>When the wallet accesses the <code class="docutils literal notranslate"><span class="pre">batch_credential</span></code> endpoint with the <code class="docutils literal notranslate"><span class="pre">access_token</span></code> and a valid set of proofs of possession (signatures over the <code class="docutils literal notranslate"><span class="pre">c_nonce</span></code> validating against the public keys that the wallet wants to have in its PID), the WalletServer generates the attestations and returns them.</p></li>
+</ul>
+<p>Notice that from the perspective of the AuthServer, the OS acts as the User Agent normally does in OpenID Connect, and the WalletServer/PidAttributeService combination acts as a normal OpenID Client: the former starts the session by navigating to the AuthServer with an Authorization Request, and the latter resumes the session with Token and User Info Requests.</p>
+<pre  class="mermaid">
+        sequenceDiagram
+    autonumber
+
+    actor User
+    participant OS
+    participant Wallet
+    participant WalletServer as PID-Issuer
+    participant PidAttributeService
+    participant AuthServer
+
+    User-&gt;&gt;+Wallet: click &quot;issue PID&quot;
+    Wallet-&gt;&gt;-OS: navigate to AuthServer/authorize?redirect_uri=...
+    OS-&gt;&gt;+AuthServer: GET /authorize?redirect_uri=...
+    note over User, AuthServer: authenticate user with DigiD app
+    AuthServer-&gt;&gt;AuthServer: generate &amp; store code
+    AuthServer-&gt;&gt;-OS: GET universal_link?code=...
+    OS-&gt;&gt;Wallet: openWallet(code)
+    activate Wallet
+        Wallet-&gt;&gt;+WalletServer: POST /token(pre-authorized_code)
+        WalletServer-&gt;&gt;+PidAttributeService: getAttributes(pre-authorized_code)
+        PidAttributeService-&gt;&gt;+AuthServer: POST /token(code)
+        AuthServer-&gt;&gt;AuthServer: lookup(code)
+        AuthServer-&gt;&gt;-PidAttributeService: access_token
+        PidAttributeService-&gt;&gt;+AuthServer: GET /userinfo(access_token)
+        AuthServer-&gt;&gt;-PidAttributeService: claims(BSN)
+        PidAttributeService-&gt;&gt;PidAttributeService: obtain attributes from BRP
+        PidAttributeService-&gt;&gt;-WalletServer: attributes
+        WalletServer-&gt;&gt;WalletServer: generate c_nonce, access_token
+        WalletServer-&gt;&gt;-Wallet: access_token, c_nonce, attestation_previews
+        Wallet-&gt;&gt;+User: Show attributes, ask consent
+    deactivate Wallet
+    User-&gt;&gt;-Wallet: approve with PIN
+    activate Wallet
+        Wallet-&gt;&gt;Wallet: create PoPs by signing nonce using Wallet Provider
+        Wallet-&gt;&gt;+WalletServer: POST /batch_credential(access_token, PoPs)
+        note over Wallet: WUA and PoA are included here
+        WalletServer-&gt;&gt;WalletServer: verify proofs,  WUA and PoA
+        WalletServer-&gt;&gt;-Wallet: attestations
+    deactivate Wallet
+    </pre></section>
+<section id="generic-issuance">
+<h2>Generic issuance<a class="headerlink" href="#generic-issuance" title="Link to this heading"></a></h2>
+<p>For generic issuance, we can implement the AttributeService as follows:</p>
+<ul class="simple">
+<li><p>The issuer feeds it a bunch of to-be-issued attestations (e.g. <code class="docutils literal notranslate"><span class="pre">Vec&lt;IssuableDocument&gt;</span></code>) and receives a fresh pre-authorized token in return, which it sends to the wallet using a UL or QR;</p></li>
+<li><p>When the WalletServer calls <code class="docutils literal notranslate"><span class="pre">getAttributes(pre-authorized_code)</span></code> on the AttributeService, it looks up the attributes to be issued using the pre-authorized code and returns them.</p></li>
+</ul>
+<p>This would look like the following diagram.</p>
+<pre  class="mermaid">
+        sequenceDiagram
+    autonumber
+
+    actor User
+    participant OS
+    participant Wallet
+    participant WalletServer
+    participant GenericAttributeService
+    participant Issuer
+
+    User-&gt;&gt;+Issuer: start issuance flow
+    Issuer-&gt;&gt;Issuer: determine attributes to be issued
+    Issuer-&gt;&gt;+WalletServer: createSession(attributes)
+    WalletServer-&gt;&gt;+GenericAttributeService: createSession(attributes)
+    GenericAttributeService-&gt;&gt;GenericAttributeService: generate pre-authorized_code&lt;br/&gt;store attributes
+    GenericAttributeService-&gt;&gt;-WalletServer: pre-authorized_code
+    WalletServer-&gt;&gt;-Issuer: pre-authorized_code
+    Issuer-&gt;&gt;-OS: GET universal_link?pre-authorized_code=...
+    OS-&gt;&gt;Wallet: openWallet(pre-authorized_code)
+    activate Wallet
+        Wallet-&gt;&gt;+WalletServer: POST /token(pre-authorized_code)
+        WalletServer-&gt;&gt;+GenericAttributeService: getAttributes(pre-authorized_code)
+        GenericAttributeService-&gt;&gt;GenericAttributeService: lookup attributes using pre-authorized code
+        GenericAttributeService-&gt;&gt;-WalletServer: attributes
+        WalletServer-&gt;&gt;WalletServer: generate c_nonce, access_token
+        WalletServer-&gt;&gt;-Wallet: access_token, c_nonce, attestation_previews
+        Wallet-&gt;&gt;+User: Show attributes, ask consent
+    deactivate Wallet
+    User-&gt;&gt;-Wallet: approve with PIN
+    activate Wallet
+        Wallet-&gt;&gt;Wallet: create PoPs by signing nonce using Wallet Provider
+        Wallet-&gt;&gt;+WalletServer: POST /batch_credential(access_token, PoPs)
+        WalletServer-&gt;&gt;-Wallet: attestations
+    deactivate Wallet
+    </pre></section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="disclosure-with-openid4vp.html" class="btn btn-neutral float-left" title="Disclosure with OpenID4VP" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="mobile-app-startup.html" class="btn btn-neutral float-right" title="Mobile App Startup" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, NL Wallet.</p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    <span class="fa fa-book"> Other Versions</span>
+    v: main
+    <span class="fa fa-caret-down"></span>
+  </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="issuance-with-openid4vci.html">main</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(false);
+      });
+  </script> 
+
+</body>
+</html>

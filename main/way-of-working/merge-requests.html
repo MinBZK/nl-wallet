@@ -1,0 +1,188 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Merge Requests &mdash; NL Wallet 0.4.0-dev documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=ba2e7a06" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=bf7cd258"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/js/custom.js?v=48752f09"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="author" title="About these documents" href="../about.html" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Releases Howto" href="release-howto.html" />
+    <link rel="prev" title="Definition of done" href="definition-of-done.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #383EDE" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            NL Wallet
+              <img src="../_static/wallet.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../about.html">About</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Get Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../get-started/onboarding.html">Onboarding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../get-started/verifier.html">Create a Verifier</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../get-started/issuer.html">Create an Issuer</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Architecture</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/components-overview.html">Components Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/disclosure-based-issuance.html">Disclosure-based Issuance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/disclosure-with-openid4vp.html">Disclosure with OpenID4VP</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/issuance-with-openid4vci.html">Issuance with OpenID4VCI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/mobile-app-startup.html">Mobile App Startup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/pin-validation.html">Pin Validation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/wallet-creation.html">Wallet Creation</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Development</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../development/generic-issuance.html">Generic Issuance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/openapi-specifications.html">OpenAPI Specifications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/sd-jwt-vc-profile.html">SD-JWT VC Profile</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/specification-references.html">Specification References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/sphinx-documentation.html">Sphinx Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/updating-rust.html">Updating Rust</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/using-lokalise.html">Using Lokalise</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Way of Working</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="definition-of-done.html">Definition of done</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Merge Requests</a></li>
+<li class="toctree-l1"><a class="reference internal" href="release-howto.html">Releases Howto</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Release Notes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/v0.3.0.html">v0.3.0</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/v0.4.0.html">v0.4.0 (in development)</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #383EDE" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">NL Wallet</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content style-external-links">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Merge Requests</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/way-of-working/merge-requests.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="merge-requests">
+<h1>Merge Requests<a class="headerlink" href="#merge-requests" title="Link to this heading"></a></h1>
+<p>As part of our software delivery process, we do pull- or merge requests. These
+are reviewed before being merged to the main branch and checked for compliance
+with our <a class="reference internal" href="definition-of-done.html"><span class="std std-doc">definition of done</span></a>.</p>
+<p>This small merge-request guide describes succinctly how we should create an MR
+and how we do a so-called MR review.</p>
+<ol class="arabic simple">
+<li><p>Decide if this is a standard (default) or basic MR. A standard MR
+is intended for regular work, always has a related issue ticket
+and is checked for various aspects documented in our definition
+of done. A basic MR is for quick fixes and/or forgotten things
+and does not always have a related issue ticket, and is checked
+only for unwanted content in commits and for technical debt TODO
+issues.</p></li>
+<li><p>When you’ve chosen the MR type, a template text body will be
+inserted. Here you link the related issue ticket (if it’s a
+standard MR) and insert a short description. Note that a full
+description, with other important information like implementation
+decisions and context for code changes should be part of the
+related issue ticket. A basic MR should not require extensive
+explanation.</p></li>
+<li><p>In some cases, one or more of the specifically to-be-checkmarked
+items is not applicable to this MR. To assist the reviewer, you can
+use ~~strikethrough~~ on a list item below to indicate that that
+specific item is not relevant to this MR (i.e., don’t delete the
+line, but use strikethrough instead).</p></li>
+<li><p>As the assignee of the MR, you implement the work in accordance
+with the definition of done; as a reviewer of the MR, you verify
+that such is the case.</p></li>
+</ol>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="definition-of-done.html" class="btn btn-neutral float-left" title="Definition of done" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="release-howto.html" class="btn btn-neutral float-right" title="Releases Howto" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, NL Wallet.</p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    <span class="fa fa-book"> Other Versions</span>
+    v: main
+    <span class="fa fa-caret-down"></span>
+  </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="merge-requests.html">main</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(false);
+      });
+  </script> 
+
+</body>
+</html>

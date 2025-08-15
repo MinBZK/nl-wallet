@@ -1,0 +1,251 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wallet Creation &mdash; NL Wallet 0.4.0-dev documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=ba2e7a06" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=bf7cd258"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script type="module" src="https://cdn.jsdelivr.net/npm/mermaid@11.2.0/dist/mermaid.esm.min.mjs"></script>
+      <script type="module" src="https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk@0.1.4/dist/mermaid-layout-elk.esm.min.mjs"></script>
+      <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.2.0/dist/mermaid.esm.min.mjs";import elkLayouts from "https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk@0.1.4/dist/mermaid-layout-elk.esm.min.mjs";mermaid.registerLayoutLoaders(elkLayouts);mermaid.initialize({startOnLoad:false});</script>
+      <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+      <script type="module">
+import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.2.0/dist/mermaid.esm.min.mjs";
+window.addEventListener("load", () => mermaid.run());
+</script>
+      <script src="../_static/js/custom.js?v=48752f09"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="author" title="About these documents" href="../about.html" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Generic Issuance" href="../development/generic-issuance.html" />
+    <link rel="prev" title="Pin Validation" href="pin-validation.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #383EDE" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            NL Wallet
+              <img src="../_static/wallet.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../about.html">About</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Get Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../get-started/onboarding.html">Onboarding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../get-started/verifier.html">Create a Verifier</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../get-started/issuer.html">Create an Issuer</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Architecture</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="components-overview.html">Components Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="disclosure-based-issuance.html">Disclosure-based Issuance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="disclosure-with-openid4vp.html">Disclosure with OpenID4VP</a></li>
+<li class="toctree-l1"><a class="reference internal" href="issuance-with-openid4vci.html">Issuance with OpenID4VCI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="mobile-app-startup.html">Mobile App Startup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pin-validation.html">Pin Validation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Wallet Creation</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Development</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../development/generic-issuance.html">Generic Issuance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/openapi-specifications.html">OpenAPI Specifications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/sd-jwt-vc-profile.html">SD-JWT VC Profile</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/specification-references.html">Specification References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/sphinx-documentation.html">Sphinx Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/updating-rust.html">Updating Rust</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/using-lokalise.html">Using Lokalise</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Way of Working</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../way-of-working/definition-of-done.html">Definition of done</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../way-of-working/merge-requests.html">Merge Requests</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../way-of-working/release-howto.html">Releases Howto</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Release Notes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/v0.3.0.html">v0.3.0</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/v0.4.0.html">v0.4.0 (in development)</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #383EDE" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">NL Wallet</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content style-external-links">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Wallet Creation</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/architecture/wallet-creation.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="wallet-creation">
+<h1>Wallet Creation<a class="headerlink" href="#wallet-creation" title="Link to this heading"></a></h1>
+<p>The diagram below illustrates the Wallet creation process. Including certificate generation and registration with the <code class="docutils literal notranslate"><span class="pre">wallet_provider</span></code>.</p>
+<section id="create-wallet-app">
+<h2>Create wallet (app)<a class="headerlink" href="#create-wallet-app" title="Link to this heading"></a></h2>
+<pre  class="mermaid">
+        sequenceDiagram
+    %% Force ordering by explicitly setting up participants
+    actor user
+    participant platform
+    participant wallet_app
+    participant wallet_core
+    participant wallet_provider
+    title Create Wallet (app) [2.1]
+
+    user-&gt;&gt;wallet_app: provide valid pin
+    note over user, wallet_app: pin validity is guaranteed locally, see 3.1
+    activate user
+        wallet_app-&gt;&gt;wallet_core: register(pin)
+        wallet_core-&gt;&gt;wallet_provider: requestChallenge()
+        opt server error
+        wallet_provider--&gt;&gt;wallet_core: server error
+            wallet_core--&gt;&gt;wallet_app: error
+            wallet_app-&gt;&gt;user: show server error
+        end
+        note over wallet_provider,wallet_provider: see 2.2 for details
+        wallet_provider--&gt;&gt;wallet_core: challenge
+        activate wallet_core
+        critical key generation
+            option key setup (pin key)
+                wallet_core-&gt;&gt;wallet_core: generateSalt()
+                wallet_core-&gt;&gt;platform: store(salt)
+                platform-&gt;&gt;platform: generateHwBackedDbKey()
+                platform-&gt;&gt;platform: persistEncrypted(salt)
+            option key setup (hw key)
+                wallet_core-&gt;&gt;platform: generateHwKey()
+                note over platform, wallet_core: HW key = Hardware backed key
+        end
+        critical sign challenge
+            option sign with pin key
+                wallet_core-&gt;&gt;wallet_core: deriveEcdsaKeyPair(pin, salt)
+                wallet_core-&gt;&gt;wallet_core: signChallenge(ecdsaKey, challenge)
+            option sign with hw key
+                wallet_core-&gt;&gt;platform: signWithHwKey(pinSignedChallenge)
+                platform-&gt;&gt;platform: sign(hwKey, pinSignedChallenge)
+                platform--&gt;&gt;wallet_core: doubleSignedChallenge
+        end
+        wallet_core-&gt;&gt;platform: getHwPublicKey()
+        platform--&gt;&gt;wallet_core: hwPublicKey
+        wallet_core-&gt;&gt;+wallet_provider: createWallet(&lt;br/&gt;pinPubKey, hwPubKey&lt;br/&gt;doubleSignedChallenge&lt;br/&gt;)
+        deactivate wallet_core
+        wallet_provider-&gt;&gt;wallet_provider: createWallet()
+        opt server error
+            note over wallet_provider,user: same as server error above
+        end
+        note over wallet_provider,wallet_provider: see 2.2 for details
+        wallet_provider--&gt;&gt;-wallet_core: walletId, walletCertificate
+        wallet_core-&gt;&gt;platform: store(walletId, walletCert)
+        platform-&gt;&gt;platform: persist(walletId, walletCert)
+        wallet_core-&gt;&gt;wallet_app: registration success
+        wallet_app-&gt;&gt;user: render wallet created
+    deactivate user
+    </pre></section>
+<section id="create-wallet-server">
+<h2>Create wallet (server)<a class="headerlink" href="#create-wallet-server" title="Link to this heading"></a></h2>
+<p>High level overview of what happens inside the <code class="docutils literal notranslate"><span class="pre">wallet_provider</span></code>.</p>
+<pre  class="mermaid">
+        sequenceDiagram
+    %% Force ordering by explicitly setting up participants
+    actor user
+    participant wallet_core
+    participant wallet_provider
+    participant hsm
+    title Create Wallet (server) [2.2]
+
+    wallet_core-&gt;&gt;+wallet_provider: requestChallenge()
+    note over wallet_core,wallet_provider: POST /enroll
+    wallet_provider-&gt;&gt;wallet_provider: generateChallenge()
+    wallet_provider--&gt;&gt;-wallet_core: challenge
+    wallet_core-&gt;&gt;+wallet_provider: createWallet(&lt;br/&gt;pinPubKey, pinSignedChallenge&lt;br/&gt;hWPubKey, hwSignedChallenge&lt;br/&gt;)
+    note over wallet_core,wallet_provider: POST /createwallet
+    wallet_provider-&gt;&gt;wallet_provider: verifySignedChallenge()
+    wallet_provider-&gt;&gt;wallet_provider: storePubKeys()
+    wallet_provider-&gt;&gt;wallet_provider: generateCertificate()
+    wallet_provider--&gt;&gt;-wallet_core: walletId, walletCertificate
+    </pre></section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="pin-validation.html" class="btn btn-neutral float-left" title="Pin Validation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../development/generic-issuance.html" class="btn btn-neutral float-right" title="Generic Issuance" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, NL Wallet.</p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    <span class="fa fa-book"> Other Versions</span>
+    v: main
+    <span class="fa fa-caret-down"></span>
+  </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="wallet-creation.html">main</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(false);
+      });
+  </script> 
+
+</body>
+</html>

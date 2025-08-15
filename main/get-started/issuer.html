@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v0.4.0 (in development) &mdash; NL Wallet 0.4.0-dev documentation</title>
+  <title>Create an Issuer &mdash; NL Wallet 0.4.0-dev documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
       <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=ba2e7a06" />
@@ -22,7 +22,8 @@
     <link rel="author" title="About these documents" href="../about.html" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="prev" title="v0.3.0" href="v0.3.0.html" /> 
+    <link rel="next" title="Components Overview" href="../architecture/components-overview.html" />
+    <link rel="prev" title="Create a Verifier" href="verifier.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -49,10 +50,10 @@
 <li class="toctree-l1"><a class="reference internal" href="../about.html">About</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Get Started</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../get-started/onboarding.html">Onboarding</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../get-started/verifier.html">Create a Verifier</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../get-started/issuer.html">Create an Issuer</a></li>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="onboarding.html">Onboarding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="verifier.html">Create a Verifier</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Create an Issuer</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Architecture</span></p>
 <ul>
@@ -81,9 +82,9 @@
 <li class="toctree-l1"><a class="reference internal" href="../way-of-working/release-howto.html">Releases Howto</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Release Notes</span></p>
-<ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="v0.3.0.html">v0.3.0</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">v0.4.0 (in development)</a></li>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/v0.3.0.html">v0.3.0</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/v0.4.0.html">v0.4.0 (in development)</a></li>
 </ul>
 
         </div>
@@ -100,9 +101,9 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">v0.4.0 (in development)</li>
+      <li class="breadcrumb-item active">Create an Issuer</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../_sources/release-notes/v0.4.0.md.txt" rel="nofollow"> View page source</a>
+            <a href="../_sources/get-started/issuer.md.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -110,99 +111,17 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="v0-4-0-in-development">
-<h1>v0.4.0 (in development)<a class="headerlink" href="#v0-4-0-in-development" title="Link to this heading"></a></h1>
-<section id="upgrading">
-<h2>Upgrading<a class="headerlink" href="#upgrading" title="Link to this heading"></a></h2>
-<ul class="simple">
-<li><p>This release changes the identifiers used by the wallet and Wallet Provider to
-refer to the wallet’s keys, invalidating existing keys and their identifiers.
-The WP’s database will therefore have to be cleared when deploying this.</p></li>
-<li><p>Specifying for which attributes a relying party is authorized in a certificate
-has been made attestation format agnostic, meaning all existing certificates
-are invalid and should be regenerated to accommodate the new structure.</p></li>
-<li><p>The minimum size for the <code class="docutils literal notranslate"><span class="pre">ephemeral_id_secret</span></code> in the configuration of the
-<code class="docutils literal notranslate"><span class="pre">verification_server</span></code> has been increased from 16 to 32 bytes.</p></li>
-<li><p>The Wallet Provider no longer tracks in the database for each user if that
-user received a WUA. The corresponding column in the WP’s user table has been
-removed, so the WP’s database will therefore have to be cleared when deploying
-this.</p></li>
-<li><p>Switched configuration of mock relying party, issuance and verification server
-to use DCQL (Digital Credential Query Language) for defining credential
-queries. (see issuance_server.example.toml)</p></li>
-<li><p>The <code class="docutils literal notranslate"><span class="pre">disclosed_attributes</span></code> endpoint of the verifier no longer returns a JSON
-object keyed by the attestation type. Instead, it returns an array of
-attestation objects, with <code class="docutils literal notranslate"><span class="pre">attestation_type</span></code> added as a field in that object.
-This effectively removes the limitation that a particular attestation type can
-only appear once in disclosed attributes.</p></li>
-<li><p>The WTE acronym has been replaced by WUA across the codebase, including in the
-Wallet Provider and PID issuer configurations, as well as their database table
-and column names. These configurations will need to be updated and the
-database migrations will need to be fresly run. In addition, a variable in the
-wallet configuration has been renamed, so an updated wallet configuration will
-need to be deployed.</p></li>
-</ul>
-</section>
-<section id="new-features">
-<h2>New features<a class="headerlink" href="#new-features" title="Link to this heading"></a></h2>
-<ul class="simple">
-<li><p>The wallet and Wallet Provider now use the SHA256 of the public keys to refer
-to the wallet’s keys, so that the wallet’s signing instructions to the WP are
-non-repudiable.</p></li>
-<li><p>The wallet now supports issued attributes containing ‘null’ and array values.</p></li>
-<li><p>The PID issuer now includes a new attribute called the recovery code, which is
-computed as the HMAC of the user’s BSN.</p></li>
-<li><p>When identical attestations are issued, the wallet detects if the attestation
-already exists and renews the existing attestation. The only exception is that
-if the attestation will be valid in the future, the attestation will be
-treated as new.</p></li>
-</ul>
-</section>
-<section id="code-improvements">
-<h2>Code improvements<a class="headerlink" href="#code-improvements" title="Link to this heading"></a></h2>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">ReaderRegistration</span></code> has been made attestation format agnostic, meaning the
-attributes specified in the reader certificate for which the relying party is
-authorized to request them are specified in a manner that works for both mdoc
-and SD-JWT attestations.</p></li>
-<li><p>The various instructions that the wallet used to send to the Wallet Provider
-during issuance and disclosure are now consolidated into two instructions, one
-for issuance and one for disclosure, that handle everything the wallet needs
-at once.</p></li>
-</ul>
-</section>
-<section id="wallet-app-improvements">
-<h2>Wallet app improvements<a class="headerlink" href="#wallet-app-improvements" title="Link to this heading"></a></h2>
-<ul class="simple">
-<li><p>The wallet now includes a ‘video tour’ screen, where users can watch short
-short video tutorials to learn about the functionalities of the app.</p></li>
-<li><p>The UI has been updated to support the ‘pid renewal’ flow. Currently only
-available in mock builds.</p></li>
-<li><p>Update to Flutter 3.32.8.</p></li>
-</ul>
-</section>
-<section id="bug-fixes">
-<h2>Bug fixes<a class="headerlink" href="#bug-fixes" title="Link to this heading"></a></h2>
-</section>
-<section id="ci-changes">
-<h2>CI changes<a class="headerlink" href="#ci-changes" title="Link to this heading"></a></h2>
-<ul class="simple">
-<li><p>Configure volume mounts more naturally (and aligned with other charts) via
-Helm values for update-policy-server and wallet-provider.</p></li>
-<li><p>Configure wallet-provider directly via Deployment instead of separate
-ConfigMap.</p></li>
-<li><p>Capture stdout/stderr from PKCS#11 library and log lines via log library to
-get structured logging</p></li>
-<li><p>Base CI images on Debian Trixie</p></li>
-</ul>
-</section>
+  <section id="create-an-issuer">
+<h1>Create an Issuer<a class="headerlink" href="#create-an-issuer" title="Link to this heading"></a></h1>
+<p>TODO Issuer docs need to be created here, support self-CA and generic issuance</p>
 </section>
 
 
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="v0.3.0.html" class="btn btn-neutral float-left" title="v0.3.0" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="verifier.html" class="btn btn-neutral float-left" title="Create a Verifier" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../architecture/components-overview.html" class="btn btn-neutral float-right" title="Components Overview" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
@@ -228,7 +147,7 @@ get structured logging</p></li>
     <div class="rst-other-versions">
         <dl>
             <dt>Branches</dt>
-            <dd><a href="v0.4.0.html">main</a></dd>
+            <dd><a href="issuer.html">main</a></dd>
         </dl>
     </div>
 </div><script>
