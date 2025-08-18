@@ -1,125 +1,46 @@
 use std::collections::HashMap;
-use std::hash::Hash;
-use std::hash::Hasher;
 use std::num::NonZeroUsize;
 
-use derive_more::Constructor;
 use derive_more::Debug;
 use futures::FutureExt;
-use futures::future;
 use itertools::Itertools;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::Header;
-use p256::ecdsa::Signature;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
-use p256::ecdsa::signature::Signer;
-use parking_lot::Mutex;
 use rand_core::OsRng;
 
-use crypto::CredentialEcdsaKey;
-use crypto::CredentialKeyType;
-use crypto::EcdsaKey;
-use crypto::SecureEcdsaKey;
-use crypto::WithIdentifier;
+use crypto::mock_remote::MockRemoteEcdsaKey;
+use crypto::mock_remote::MockRemoteWscd as DisclosureMockRemoteWscd;
+use crypto::mock_remote::MockRemoteWscdError;
 use crypto::p256_der::verifying_key_sha256;
+use crypto::wscd::DisclosureResult;
+use crypto::wscd::DisclosureWscd;
+use crypto::wscd::WscdPoa;
 use jwt::Jwt;
 use jwt::credential::JwtCredentialClaims;
 use jwt::jwk::jwk_from_p256;
 use jwt::pop::JwtPopClaims;
-use jwt::wte::WteClaims;
-use jwt::wte::WteDisclosure;
+use jwt::wua::WuaClaims;
+use jwt::wua::WuaDisclosure;
 
 use crate::Poa;
-use crate::factory::mock::MOCK_WALLET_CLIENT_ID;
-use crate::keyfactory::IssuanceResult;
-use crate::keyfactory::KeyFactory;
+use crate::wscd::IssuanceResult;
+use crate::wscd::Wscd;
 
-#[derive(Debug, thiserror::Error)]
-pub enum MockRemoteKeyFactoryError {
-    #[error("key generation error")]
-    Generating,
-    #[error("signing error")]
-    Signing,
-    #[error("poa error")]
-    Poa,
-    #[error("ECDSA error: {0}")]
-    Ecdsa(#[source] <MockRemoteEcdsaKey as EcdsaKey>::Error),
-}
+pub const MOCK_WALLET_CLIENT_ID: &str = "mock_wallet_client_id";
 
-/// To be used in test in place of `RemoteEcdsaKey`, implementing the
-/// [`EcdsaKey`], [`SecureEcdsaKey`] and [`WithIdentifier`] traits.
-#[derive(Debug, Clone, Constructor)]
-pub struct MockRemoteEcdsaKey {
-    identifier: String,
-    #[debug(skip)]
-    pub key: SigningKey,
-}
-
-impl PartialEq for MockRemoteEcdsaKey {
-    fn eq(&self, other: &Self) -> bool {
-        self.identifier == other.identifier
-    }
-}
-
-impl Eq for MockRemoteEcdsaKey {}
-
-impl Hash for MockRemoteEcdsaKey {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.identifier.hash(state);
-    }
-}
-
-impl MockRemoteEcdsaKey {
-    pub fn new_random(identifier: String) -> Self {
-        Self::new(identifier, SigningKey::random(&mut OsRng))
-    }
-
-    pub fn verifying_key(&self) -> &VerifyingKey {
-        self.key.verifying_key()
-    }
-}
-
-impl EcdsaKey for MockRemoteEcdsaKey {
-    type Error = p256::ecdsa::Error;
-
-    async fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
-        let key = self.key.verifying_key();
-
-        Ok(*key)
-    }
-
-    async fn try_sign(&self, msg: &[u8]) -> Result<Signature, Self::Error> {
-        Signer::try_sign(&self.key, msg)
-    }
-}
-impl SecureEcdsaKey for MockRemoteEcdsaKey {}
-
-impl WithIdentifier for MockRemoteEcdsaKey {
-    fn identifier(&self) -> &str {
-        &self.identifier
-    }
-}
-
-impl CredentialEcdsaKey for MockRemoteEcdsaKey {
-    const KEY_TYPE: CredentialKeyType = CredentialKeyType::Mock;
-}
-
-/// A type that implements [`KeyFactory`] and can be used in tests. It has the option
-/// of returning `MockRemoteKeyFactoryError::Generating` when generating multiple
-/// keys and `MockRemoteKeyFactoryError::Signing` when signing multiple, influenced
+/// A type that implements [`Wscd`] and can be used in tests. It has the option
+/// of returning `MockRemoteWscdError::Generating` when generating multiple
+/// keys and `MockRemoteWscdError::Signing` when signing multiple, influenced
 /// by boolean fields on the type.
 #[derive(Debug)]
-pub struct MockRemoteKeyFactory {
-    signing_keys: Mutex<HashMap<String, SigningKey>>,
+pub struct MockRemoteWscd {
+    pub disclosure: DisclosureMockRemoteWscd,
     wua_signing_key: Option<SigningKey>,
-
-    pub has_generating_error: bool,
-    pub has_multi_key_signing_error: bool,
-    pub has_poa_error: bool,
 }
 
-impl MockRemoteKeyFactory {
+impl MockRemoteWscd {
     pub fn new(keys: Vec<MockRemoteEcdsaKey>) -> Self {
         let signing_keys = keys.into_iter().map(|key| (key.identifier, key.key)).collect();
 
@@ -128,11 +49,8 @@ impl MockRemoteKeyFactory {
 
     fn new_signing_keys(signing_keys: HashMap<String, SigningKey>) -> Self {
         Self {
-            signing_keys: Mutex::new(signing_keys),
+            disclosure: DisclosureMockRemoteWscd::new_signing_keys(signing_keys),
             wua_signing_key: None,
-            has_generating_error: false,
-            has_multi_key_signing_error: false,
-            has_poa_error: false,
         }
     }
 
@@ -141,10 +59,6 @@ impl MockRemoteKeyFactory {
             wua_signing_key: Some(wua_signing_key),
             ..Default::default()
         }
-    }
-
-    pub fn add_key(&mut self, key: MockRemoteEcdsaKey) {
-        self.signing_keys.get_mut().insert(key.identifier, key.key);
     }
 
     #[cfg(feature = "examples")]
@@ -157,76 +71,61 @@ impl MockRemoteKeyFactory {
     }
 }
 
-impl Default for MockRemoteKeyFactory {
+impl Default for MockRemoteWscd {
     fn default() -> Self {
         Self::new_signing_keys(HashMap::new())
     }
 }
 
-impl KeyFactory for MockRemoteKeyFactory {
+impl DisclosureWscd for MockRemoteWscd {
     type Key = MockRemoteEcdsaKey;
-    type Error = MockRemoteKeyFactoryError;
+    type Error = MockRemoteWscdError;
+    type Poa = Poa;
 
-    fn generate_existing<I: Into<String>>(&self, identifier: I, public_key: VerifyingKey) -> Self::Key {
-        let identifier = identifier.into();
-        let signing_key = self
-            .signing_keys
-            .lock()
-            .get(&identifier)
-            .expect("called generate_existing() with unknown identifier")
-            .clone();
-
-        // If the provided public key does not match the key fetched
-        // using the identifier, this is programmer error.
-        assert_eq!(
-            signing_key.verifying_key(),
-            &public_key,
-            "called generate_existing() with incorrect public_key"
-        );
-
-        MockRemoteEcdsaKey::new(identifier, signing_key)
+    fn new_key<I: Into<String>>(&self, identifier: I, public_key: VerifyingKey) -> Self::Key {
+        self.disclosure.new_key(identifier, public_key)
     }
 
-    async fn sign_multiple_with_existing_keys(
+    async fn sign(
         &self,
         messages_and_keys: Vec<(Vec<u8>, Vec<&Self::Key>)>,
-    ) -> Result<Vec<Vec<Signature>>, Self::Error> {
-        if self.has_multi_key_signing_error {
-            return Err(MockRemoteKeyFactoryError::Signing);
-        }
+        poa_input: <Self::Poa as WscdPoa>::Input,
+    ) -> Result<DisclosureResult<Self::Poa>, Self::Error> {
+        let keys = messages_and_keys
+            .iter()
+            .flat_map(|(_, keys)| keys.clone())
+            .collect_vec();
 
-        let result = future::try_join_all(
-            messages_and_keys
-                .into_iter()
-                .map(|(msg, keys)| async move {
-                    let signatures = future::try_join_all(keys.into_iter().map(|key| async {
-                        let signature = key.try_sign(&msg).await.map_err(MockRemoteKeyFactoryError::Ecdsa)?;
+        let poa = if keys.len() < 2 {
+            None
+        } else {
+            Some(
+                Poa::new(
+                    keys.try_into().unwrap(),
+                    JwtPopClaims::new(poa_input.nonce, MOCK_WALLET_CLIENT_ID.to_string(), poa_input.aud),
+                )
+                .await
+                .map_err(|_| MockRemoteWscdError::Poa)?,
+            )
+        };
 
-                        Ok::<_, MockRemoteKeyFactoryError>(signature)
-                    }))
-                    .await?
-                    .into_iter()
-                    .collect::<Vec<_>>();
+        let DisclosureResult { signatures, .. } = self.disclosure.sign(messages_and_keys, ()).await?;
 
-                    Ok::<_, MockRemoteKeyFactoryError>(signatures)
-                })
-                .collect::<Vec<_>>(),
-        )
-        .await?;
-
-        Ok(result)
+        Ok(DisclosureResult { signatures, poa })
     }
+}
 
+impl Wscd for MockRemoteWscd {
     async fn perform_issuance(
         &self,
         count: NonZeroUsize,
         aud: String,
         nonce: Option<String>,
         include_wua: bool,
-    ) -> Result<IssuanceResult, Self::Error> {
+    ) -> Result<IssuanceResult<Poa>, Self::Error> {
         let claims = JwtPopClaims::new(nonce, MOCK_WALLET_CLIENT_ID.to_string(), aud);
 
-        let mut keys = self.signing_keys.lock();
+        let mut keys = self.disclosure.signing_keys.lock();
         let attestation_keys = (0..count.get())
             .map(|_| {
                 let key = SigningKey::random(&mut OsRng);
@@ -266,8 +165,8 @@ impl KeyFactory for MockRemoteKeyFactory {
                 wua_key.verifying_key(),
                 wua_signing_key,
                 MOCK_WALLET_CLIENT_ID.to_string(),
-                Some("wte+jwt".to_string()),
-                WteClaims::new(),
+                Some("wua+jwt".to_string()),
+                WuaClaims::new(),
             )
             .now_or_never()
             .unwrap()
@@ -278,7 +177,7 @@ impl KeyFactory for MockRemoteKeyFactory {
                 .unwrap()
                 .unwrap();
 
-            (WteDisclosure::new(wua, wua_disclosure), wua_key)
+            (WuaDisclosure::new(wua, wua_disclosure), wua_key)
         });
 
         let count_including_wua = if include_wua { count.get() + 1 } else { count.get() };

@@ -53,18 +53,3 @@ build-demo-trigger:
     BUILD: 'demo'
   when: manual
   allow_failure: true
-
-trigger-scheduled-automation-tests:
-  rules:
-    - !reference [.default-or-release, rules]
-  needs:
-    - job: deploy-apps-ont
-      artifacts: false
-      optional: true
-  trigger:
-    include:
-      - local: .gitlab-ci.yml
-  variables:
-    SCHEDULED: true
-  when: manual
-  allow_failure: true

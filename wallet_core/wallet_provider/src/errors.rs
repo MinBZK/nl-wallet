@@ -15,7 +15,7 @@ use wallet_provider_service::account_server::ChallengeError;
 use wallet_provider_service::account_server::InstructionError;
 use wallet_provider_service::account_server::RegistrationError;
 use wallet_provider_service::account_server::WalletCertificateError;
-use wallet_provider_service::wte_issuer::HsmWteIssuerError;
+use wallet_provider_service::wua_issuer::HsmWuaIssuerError;
 
 // Make a newtype to circumvent the orphan rule.
 #[derive(Debug, Clone, From, AsRef, Display, FromStr)]
@@ -32,7 +32,7 @@ pub enum WalletProviderError {
     #[error("{0}")]
     Hsm(#[from] HsmError),
     #[error("{0}")]
-    Wte(#[from] HsmWteIssuerError),
+    Wua(#[from] HsmWuaIssuerError),
 }
 
 impl HttpJsonErrorType for WalletProviderErrorType {
@@ -95,14 +95,14 @@ impl From<WalletProviderError> for AccountError {
                 InstructionError::Signing(_)
                 | InstructionError::Storage(_)
                 | InstructionError::WalletCertificate(_)
-                | InstructionError::WteIssuance(_)
+                | InstructionError::WuaIssuance(_)
                 | InstructionError::HsmError(_)
                 | InstructionError::Poa(_)
                 | InstructionError::PopSigning(_)
                 | InstructionError::JwkConversion(_) => Self::Unexpected,
             },
             WalletProviderError::Hsm(_) => Self::Unexpected,
-            WalletProviderError::Wte(_) => Self::Unexpected,
+            WalletProviderError::Wua(_) => Self::Unexpected,
         }
     }
 }

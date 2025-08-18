@@ -16,9 +16,11 @@ use apple_app_attest::AppIdentifier;
 use apple_app_attest::AttestationEnvironment;
 use attestation_data::attributes::AttributeValue;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
+use attestation_data::constants::PID_ATTESTATION_TYPE;
 use attestation_data::credential_payload::CredentialPayload;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::x509::generate::mock::generate_issuer_mock;
+use crypto::mock_remote::MockRemoteEcdsaKey;
 use crypto::p256_der::DerVerifyingKey;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
@@ -49,11 +51,9 @@ use utils::generator::mock::MockTimeGenerator;
 use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::messages::registration::WalletCertificateClaims;
 use wallet_configuration::wallet_config::WalletConfiguration;
-use wscd::mock_remote::MockRemoteEcdsaKey;
 
 use crate::account_provider::MockAccountProviderClient;
 use crate::attestation::AttestationPresentation;
-use crate::attestation::PID_DOCTYPE;
 use crate::config::LocalConfigurationRepository;
 use crate::config::UpdatingConfigurationRepository;
 use crate::config::default_config_server_config;
@@ -154,7 +154,7 @@ pub fn create_example_credential_payload(
     );
 
     let metadata = TypeMetadata::example_with_claim_names(
-        PID_DOCTYPE,
+        PID_ATTESTATION_TYPE,
         &[
             ("family_name", JsonSchemaPropertyType::String, None),
             ("given_name", JsonSchemaPropertyType::String, None),

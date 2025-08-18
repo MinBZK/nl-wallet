@@ -18,7 +18,7 @@ use wallet::wallet_deps::DigidClient;
 use wallet::wallet_deps::DigidSession;
 use wallet::wallet_deps::HttpDigidClient;
 use wallet::wallet_deps::default_wallet_config;
-use wscd::mock_remote::MockRemoteKeyFactory;
+use wscd::mock_remote::MockRemoteWscd;
 
 /// Test the full PID issuance flow, i.e. including OIDC with nl-rdo-max and retrieving the PID from BRP
 /// (Haal-Centraal). This test depends on part of the internal API of the DigiD bridge, so it may break when nl-rdo-max
@@ -103,11 +103,7 @@ async fn test_pid_issuance_digid_bridge() {
     .unwrap();
 
     let credential_with_metadata = issuance_session
-        .accept_issuance(
-            &wallet_config.mdoc_trust_anchors(),
-            &MockRemoteKeyFactory::default(),
-            false,
-        )
+        .accept_issuance(&wallet_config.mdoc_trust_anchors(), &MockRemoteWscd::default(), false)
         .await
         .unwrap();
 

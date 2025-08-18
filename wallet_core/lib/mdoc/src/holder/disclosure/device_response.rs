@@ -1,7 +1,8 @@
 use itertools::Itertools;
 
 use crypto::CredentialEcdsaKey;
-use wscd::keyfactory::KeyFactory;
+use crypto::wscd::DisclosureWscd;
+use crypto::wscd::WscdPoa;
 
 use crate::errors::Error;
 use crate::errors::Result;
@@ -24,20 +25,22 @@ impl DeviceResponse {
         }
     }
 
-    pub async fn sign_from_mdocs<K, KF>(
+    pub async fn sign_from_mdocs<K, W, P>(
         mdocs: Vec<Mdoc>,
         session_transcript: &SessionTranscript,
-        key_factory: &KF,
-    ) -> Result<(Self, Vec<K>)>
+        wscd: &W,
+        poa_input: P::Input,
+    ) -> Result<(Self, Option<P>)>
     where
         K: CredentialEcdsaKey,
-        KF: KeyFactory<Key = K>,
+        W: DisclosureWscd<Key = K, Poa = P>,
+        P: WscdPoa,
     {
         // Prepare the credential keys and device auth challenges per mdoc.
         let (keys, challenges) = mdocs
             .iter()
             .map(|mdoc| {
-                let credential_key = mdoc.credential_key(key_factory)?;
+                let credential_key = mdoc.credential_key(wscd)?;
                 let device_signed_challenge =
                     DeviceAuthenticationKeyed::challenge(&mdoc.mso.doc_type, session_transcript)?;
 
@@ -53,7 +56,7 @@ impl DeviceResponse {
 
         // Create all of the DeviceSigned values in bulk using the keys
         // and challenges, then use these to create the Document values.
-        let (device_signeds, keys) = DeviceSigned::new_signatures(keys_and_challenges, key_factory).await?;
+        let (device_signeds, poa) = DeviceSigned::new_signatures(keys_and_challenges, wscd, poa_input).await?;
 
         let documents = mdocs
             .into_iter()
@@ -63,7 +66,7 @@ impl DeviceResponse {
 
         let device_response = Self::new(documents);
 
-        Ok((device_response, keys))
+        Ok((device_response, poa))
     }
 }
 
@@ -73,9 +76,9 @@ mod tests {
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
 
+    use crypto::mock_remote::MockRemoteEcdsaKey;
+    use crypto::mock_remote::MockRemoteWscd;
     use crypto::server_keys::generate::Ca;
-    use wscd::mock_remote::MockRemoteEcdsaKey;
-    use wscd::mock_remote::MockRemoteKeyFactory;
 
     use crate::holder::Mdoc;
     use crate::iso::disclosure::DeviceAuth;
@@ -96,17 +99,16 @@ mod tests {
                 (mdoc, key)
             })
             .unzip();
-        let key_factory = MockRemoteKeyFactory::new(keys);
+        let wscd = MockRemoteWscd::new(keys);
 
         // Create a `SessionTranscript`, its contents do not matter.
         let session_transcript = SessionTranscript::new_mock();
 
         // Sign a `DeviceResponse` that contains the attributes from the generated mdocs.
-        let (device_response, _keys) =
-            DeviceResponse::sign_from_mdocs(mdocs.clone(), &session_transcript, &key_factory)
-                .now_or_never()
-                .unwrap()
-                .expect("signing DeviceResponse from mdocs should succeed");
+        let (device_response, _) = DeviceResponse::sign_from_mdocs(mdocs.clone(), &session_transcript, &wscd, ())
+            .now_or_never()
+            .unwrap()
+            .expect("signing DeviceResponse from mdocs should succeed");
 
         for (document, mdoc) in device_response.documents.as_deref().unwrap_or(&[]).iter().zip(&mdocs) {
             // For each created `Document`, check the contents against the input mdoc.

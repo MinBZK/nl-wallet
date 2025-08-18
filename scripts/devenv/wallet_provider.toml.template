@@ -1,5 +1,5 @@
 certificate_signing_key_identifier = "certificate_signing_key"
-wte_signing_key_identifier = "wte_signing_key"
+wua_signing_key_identifier = "wua_signing_key"
 instruction_result_signing_key_identifier = "instruction_result_signing_key"
 attestation_wrapping_key_identifier = "attestation_wrapping_key"
 pin_pubkey_encryption_key_identifier = "pin_pubkey_encryption_key"

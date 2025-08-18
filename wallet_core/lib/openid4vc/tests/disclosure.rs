@@ -13,7 +13,6 @@ use indexmap::IndexMap;
 use itertools::Itertools;
 use josekit::jwk::alg::ec::EcCurve;
 use josekit::jwk::alg::ec::EcKeyPair;
-use p256::ecdsa::Signature;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 use rand_core::OsRng;
@@ -26,9 +25,14 @@ use url::Url;
 use attestation_data::auth::reader_auth::ReaderRegistration;
 use attestation_data::disclosure::DisclosedAttestation;
 use attestation_data::x509::generate::mock::generate_reader_mock;
+use crypto::mock_remote::MockRemoteEcdsaKey;
+use crypto::mock_remote::MockRemoteWscdError;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::server_keys::generate::mock::RP_CERT_CN;
+use crypto::wscd::DisclosureResult;
+use crypto::wscd::DisclosureWscd;
+use crypto::wscd::WscdPoa;
 use dcql::Query;
 use dcql::normalized;
 use dcql::normalized::NormalizedCredentialRequest;
@@ -87,15 +91,12 @@ use openid4vc::verifier::WalletInitiatedUseCase;
 use openid4vc::verifier::WalletInitiatedUseCases;
 use utils::generator::TimeGenerator;
 use utils::generator::mock::MockTimeGenerator;
-use utils::vec_at_least::VecAtLeastTwoUnique;
 use utils::vec_at_least::VecNonEmpty;
 use wscd::Poa;
-use wscd::factory::PoaFactory;
-use wscd::keyfactory::IssuanceResult;
-use wscd::keyfactory::KeyFactory;
-use wscd::mock_remote::MockRemoteEcdsaKey;
-use wscd::mock_remote::MockRemoteKeyFactory;
-use wscd::mock_remote::MockRemoteKeyFactoryError;
+use wscd::mock_remote::MockRemoteWscd;
+use wscd::wscd::IssuanceResult;
+use wscd::wscd::JwtPoaInput;
+use wscd::wscd::Wscd;
 
 #[tokio::test]
 async fn disclosure_direct() {
@@ -164,22 +165,11 @@ async fn disclosure_jwe(
         auth_request.nonce.clone(),
         &mdoc_nonce,
     );
-    let key_factory = MockRemoteKeyFactory::new(vec![mdoc_key]);
-    let (device_response, keys) = DeviceResponse::sign_from_mdocs(mdocs, &session_transcript, &key_factory)
+    let wscd = MockRemoteWscd::new(vec![mdoc_key]);
+    let poa_input = JwtPoaInput::new(Some(auth_request.nonce.clone()), auth_request.client_id.clone());
+    let (device_response, poa) = DeviceResponse::sign_from_mdocs(mdocs, &session_transcript, &wscd, poa_input)
         .await
         .unwrap();
-
-    let poa = match VecAtLeastTwoUnique::try_from(keys) {
-        Ok(keys) => {
-            let keys = keys.as_slice().iter().collect_vec().try_into().unwrap();
-            let poa = key_factory
-                .poa(keys, auth_request.client_id.clone(), Some(mdoc_nonce.clone()))
-                .await
-                .unwrap();
-            Some(poa)
-        }
-        Err(_) => None,
-    };
 
     // Put the disclosure in an Authorization Response and encrypt it.
     VpAuthorizationResponse::new_encrypted(device_response, &auth_request, &mdoc_nonce, poa).unwrap()
@@ -214,8 +204,8 @@ async fn disclosure_using_message_client() {
         .unwrap();
 
     // Finish the disclosure by sending the attestations to the "RP".
-    let key_factory = MockRemoteKeyFactory::new(vec![mdoc_key]);
-    session.disclose(mdocs, &key_factory).await.unwrap();
+    let wscd = MockRemoteWscd::new(vec![mdoc_key]);
+    session.disclose(mdocs, &wscd).await.unwrap();
 }
 
 /// A mock implementation of the `VpMessageClient` trait that implements the RP side of OpenID4VP
@@ -491,7 +481,7 @@ async fn test_client_and_server(
     };
 
     // Start session in the wallet
-    let key_factory = MockRemoteKeyFactory::default();
+    let wscd = MockRemoteWscd::default();
     let session = start_disclosure_session(Arc::clone(&verifier), uri_source, &request_uri, rp_trust_anchor)
         .await
         .unwrap();
@@ -501,9 +491,9 @@ async fn test_client_and_server(
         stored_documents,
         session.credential_requests().as_ref(),
         &issuer_ca,
-        &key_factory,
+        &wscd,
     );
-    let redirect_uri = session.disclose(mdocs, &key_factory).await.unwrap();
+    let redirect_uri = session.disclose(mdocs, &wscd).await.unwrap();
 
     // Check if we received a redirect URI when we should have, based on the use case and session type.
     let should_have_redirect_uri = match (use_case, session_type) {
@@ -637,7 +627,7 @@ async fn test_client_and_server_cancel_after_wallet_start() {
     let request_uri = request_uri_from_status_endpoint(&verifier, &session_token, session_type).await;
 
     // Start session in the wallet
-    let key_factory = MockRemoteKeyFactory::default();
+    let wscd = MockRemoteWscd::default();
     let session = start_disclosure_session(
         Arc::clone(&verifier),
         DisclosureUriSource::Link,
@@ -663,10 +653,10 @@ async fn test_client_and_server_cancel_after_wallet_start() {
         stored_documents,
         session.credential_requests().as_ref(),
         &issuer_ca,
-        &key_factory,
+        &wscd,
     );
     let (_session, error) = session
-        .disclose(mdocs, &key_factory)
+        .disclose(mdocs, &wscd)
         .await
         .expect_err("should not be able to disclose attributes");
 
@@ -679,46 +669,41 @@ async fn test_client_and_server_cancel_after_wallet_start() {
 
 #[tokio::test]
 async fn test_disclosure_invalid_poa() {
-    /// A mock key factory that returns a wrong PoA.
+    /// A mock WSCD that returns a wrong PoA.
     #[derive(Default)]
-    struct WrongPoaKeyFactory(MockRemoteKeyFactory);
-    impl KeyFactory for WrongPoaKeyFactory {
-        type Key = MockRemoteEcdsaKey;
-        type Error = MockRemoteKeyFactoryError;
+    struct WrongPoaWscd(MockRemoteWscd);
 
-        fn generate_existing<I: Into<String>>(&self, identifier: I, public_key: VerifyingKey) -> Self::Key {
-            self.0.generate_existing(identifier, public_key)
+    impl DisclosureWscd for WrongPoaWscd {
+        type Key = MockRemoteEcdsaKey;
+        type Error = MockRemoteWscdError;
+        type Poa = Poa;
+
+        fn new_key<I: Into<String>>(&self, identifier: I, public_key: VerifyingKey) -> Self::Key {
+            self.0.new_key(identifier, public_key)
         }
 
-        async fn sign_multiple_with_existing_keys(
+        async fn sign(
             &self,
             messages_and_keys: Vec<(Vec<u8>, Vec<&Self::Key>)>,
-        ) -> Result<Vec<Vec<Signature>>, Self::Error> {
-            self.0.sign_multiple_with_existing_keys(messages_and_keys).await
-        }
+            poa_input: <Self::Poa as WscdPoa>::Input,
+        ) -> Result<DisclosureResult<Self::Poa>, Self::Error> {
+            let mut result = self.0.sign(messages_and_keys, poa_input).await?;
 
+            result.poa.as_mut().unwrap().set_payload("wrong_payload".to_string());
+
+            Ok(result)
+        }
+    }
+
+    impl Wscd for WrongPoaWscd {
         async fn perform_issuance(
             &self,
             count: NonZeroUsize,
             aud: String,
             nonce: Option<String>,
             include_wua: bool,
-        ) -> Result<IssuanceResult, Self::Error> {
+        ) -> Result<IssuanceResult<Self::Poa>, Self::Error> {
             self.0.perform_issuance(count, aud, nonce, include_wua).await
-        }
-    }
-
-    impl PoaFactory for WrongPoaKeyFactory {
-        type Key = MockRemoteEcdsaKey;
-        type Error = MockRemoteKeyFactoryError;
-
-        async fn poa(
-            &self,
-            keys: VecAtLeastTwoUnique<&Self::Key>,
-            _: String,
-            _: Option<String>,
-        ) -> Result<Poa, Self::Error> {
-            self.0.poa(keys, "".to_owned(), Some("".to_owned())).await
         }
     }
 
@@ -745,7 +730,7 @@ async fn test_disclosure_invalid_poa() {
     };
 
     // Start session in the wallet
-    let key_factory = WrongPoaKeyFactory::default();
+    let wscd = WrongPoaWscd::default();
     let session = start_disclosure_session(Arc::clone(&verifier), uri_source, &request_uri, rp_trust_anchor)
         .await
         .unwrap();
@@ -755,10 +740,10 @@ async fn test_disclosure_invalid_poa() {
         stored_documents,
         session.credential_requests().as_ref(),
         &issuer_ca,
-        &key_factory,
+        &wscd,
     );
     let (_session, error) = session
-        .disclose(mdocs, &key_factory)
+        .disclose(mdocs, &wscd)
         .await
         .expect_err("should not be able to disclose attributes");
     assert_matches!(
@@ -790,7 +775,7 @@ async fn test_wallet_initiated_usecase_verifier() {
     })
     .unwrap();
 
-    let key_factory = MockRemoteKeyFactory::default();
+    let wscd = MockRemoteWscd::default();
 
     let session = start_disclosure_session(
         verifier,
@@ -806,9 +791,9 @@ async fn test_wallet_initiated_usecase_verifier() {
         pid_full_name(),
         session.credential_requests().as_ref(),
         &issuer_ca,
-        &key_factory,
+        &wscd,
     );
-    session.disclose(mdocs, &key_factory).await.unwrap().unwrap();
+    session.disclose(mdocs, &wscd).await.unwrap().unwrap();
 }
 
 #[tokio::test]
@@ -971,22 +956,20 @@ fn setup_verifier(
     (verifier, rp_ca.to_trust_anchor().to_owned(), issuer_ca)
 }
 
-fn test_documents_to_mdocs<KF>(
+fn test_documents_to_mdocs<W>(
     stored_documents: TestDocuments,
     credential_requests: &[NormalizedCredentialRequest],
     issuer_ca: &Ca,
-    key_factory: &KF,
+    wscd: &W,
 ) -> VecNonEmpty<Mdoc>
 where
-    KF: KeyFactory,
+    W: Wscd,
 {
     stored_documents
         .into_iter()
         .zip_eq(credential_requests)
         .map(|(doc, request)| {
-            let mut mdoc = test_document_to_mdoc(doc, issuer_ca, key_factory)
-                .now_or_never()
-                .unwrap();
+            let mut mdoc = test_document_to_mdoc(doc, issuer_ca, wscd).now_or_never().unwrap();
 
             mdoc.issuer_signed = mdoc.issuer_signed.into_attribute_subset(request.claim_paths()).unwrap();
 

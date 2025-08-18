@@ -15,7 +15,7 @@ variable "vm_base_name" {
 
 variable "vm_name" {
   type = string
-  default = "sequoia-wallet:0.1.1"
+  default = "sequoia-wallet:0.2.0"
 }
 
 source "tart-cli" "tart" {
@@ -43,8 +43,8 @@ build {
     inline = [
       "source ~/.zprofile",
       "rbenv version | grep -v system | xargs -n1 rbenv uninstall -f",
-      "rbenv install 3.1.6",
-      "rbenv global 3.1.6"
+      "rbenv install 3.3.8",
+      "rbenv global 3.3.8"
     ]
   }
 

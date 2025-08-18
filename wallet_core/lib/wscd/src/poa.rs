@@ -12,6 +12,7 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use crypto::keys::EcdsaKey;
+use crypto::wscd::WscdPoa;
 use jwt::JsonJwt;
 use jwt::Jwt;
 use jwt::error::JwtError;
@@ -26,6 +27,7 @@ use utils::vec_at_least::VecNonEmpty;
 use crate::POA_JWT_TYP;
 use crate::error::PoaError;
 use crate::error::PoaVerificationError;
+use crate::wscd::JwtPoaInput;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PoaPayload {
@@ -155,6 +157,10 @@ impl Poa {
     }
 }
 
+impl WscdPoa for Poa {
+    type Input = JwtPoaInput;
+}
+
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
@@ -163,12 +169,11 @@ mod tests {
     use rand_core::OsRng;
     use rstest::rstest;
 
+    use crypto::mock_remote::MockRemoteEcdsaKey;
     use jwt::Jwt;
     use jwt::pop::JwtPopClaims;
     use jwt::validations;
     use utils::vec_at_least::VecNonEmpty;
-
-    use crate::mock_remote::MockRemoteEcdsaKey;
 
     use super::Poa;
     use super::PoaPayload;

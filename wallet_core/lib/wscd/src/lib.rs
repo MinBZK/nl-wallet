@@ -1,7 +1,6 @@
 pub mod error;
-pub mod factory;
-pub mod keyfactory;
 pub mod poa;
+pub mod wscd;
 
 #[cfg(any(test, feature = "mock"))]
 pub mod mock_remote;

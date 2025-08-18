@@ -841,6 +841,7 @@ mod tests {
 
     use attestation_data::disclosure::DisclosedAttributes;
     use attestation_data::x509::generate::mock::generate_reader_mock;
+    use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
     use dcql::CredentialQueryFormat;
@@ -865,12 +866,10 @@ mod tests {
     use utils::generator::Generator;
     use utils::generator::TimeGenerator;
     use utils::generator::mock::MockTimeGenerator;
-    use utils::vec_at_least::VecAtLeastTwoUnique;
     use utils::vec_at_least::VecNonEmpty;
     use wscd::Poa;
-    use wscd::factory::PoaFactory;
-    use wscd::mock_remote::MockRemoteEcdsaKey;
-    use wscd::mock_remote::MockRemoteKeyFactory;
+    use wscd::mock_remote::MockRemoteWscd;
+    use wscd::wscd::JwtPoaInput;
 
     use crate::AuthorizationErrorCode;
     use crate::VpAuthorizationErrorCode;
@@ -1210,25 +1209,13 @@ mod tests {
             .collect_vec();
 
         // Sign the challenges using the mdoc key
-        let key_factory = MockRemoteKeyFactory::default();
-        let device_signed = DeviceSigned::new_signatures(keys_and_challenges, &key_factory)
+        let wscd = MockRemoteWscd::default();
+        let poa_input = JwtPoaInput::new(Some(mdoc_nonce.to_string()), auth_request.client_id.clone());
+        let (device_signed, poa) = DeviceSigned::new_signatures(keys_and_challenges, &wscd, poa_input)
             .await
-            .unwrap()
-            .0;
+            .unwrap();
 
         let device_response = device_response(issuer_signed, device_signed, &session_transcript, cas, time);
-
-        let poa = match VecAtLeastTwoUnique::try_from(keys) {
-            Ok(keys) => {
-                let keys = keys.as_slice().iter().collect_vec().try_into().unwrap();
-                let poa = key_factory
-                    .poa(keys, auth_request.client_id.clone(), Some(mdoc_nonce.to_owned()))
-                    .await
-                    .unwrap();
-                Some(poa)
-            }
-            Err(_) => None,
-        };
 
         (device_response, poa)
     }
@@ -1297,11 +1284,11 @@ mod tests {
 
         let auth_request = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap();
 
-        let key_factory = MockRemoteKeyFactory::default();
+        let wscd = MockRemoteWscd::default();
         let issuer_signed_and_keys = join_all(
             stored_documents
                 .into_iter()
-                .map(|doc| test_document_to_issuer_signed(doc, ca, &key_factory)),
+                .map(|doc| test_document_to_issuer_signed(doc, ca, &wscd)),
         )
         .await;
 

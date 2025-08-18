@@ -9,7 +9,14 @@
     "@eslint/js": "^9.21.0",
     "eslint": "^9.21.0",
     "eslint-plugin-playwright": "^2.2.0",
+    "@playwright/test": "^1.55.0-alpha-2025-08-11",
+    "allure-playwright": "^3.2.0",
     "prettier": "^3.5.0"
+  },
+  "overrides": {
+    "allure-playwright": {
+      "@playwright/test": "1.55.0-alpha-2025-08-11"
+    }
   },
   "scripts": {
     "lint": "eslint",

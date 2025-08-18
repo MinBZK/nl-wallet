@@ -1,0 +1,13 @@
+# Python venv
+venv/
+_venv/
+.venv/
+
+# Python cache
+__pycache__/
+
+# Build output directories
+_build/
+
+# Structurizr working folders
+_structurizr/

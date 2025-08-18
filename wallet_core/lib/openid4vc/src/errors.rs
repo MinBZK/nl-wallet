@@ -83,12 +83,12 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
                 | CredentialRequestError::SdJwtConversion(_)
                 | CredentialRequestError::CredentialSigning(_)
                 | CredentialRequestError::Jwt(_)
-                | CredentialRequestError::WteTracking(_) => CredentialErrorCode::ServerError,
+                | CredentialRequestError::WuaTracking(_) => CredentialErrorCode::ServerError,
 
                 CredentialRequestError::IssuanceError(_)
                 | CredentialRequestError::UseBatchIssuance
-                | CredentialRequestError::MissingWte
-                | CredentialRequestError::WteAlreadyUsed
+                | CredentialRequestError::MissingWua
+                | CredentialRequestError::WuaAlreadyUsed
                 | CredentialRequestError::MissingPoa
                 | CredentialRequestError::CredentialTypeMismatch { .. }
                 | CredentialRequestError::Wua(_)
