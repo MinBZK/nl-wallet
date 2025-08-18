@@ -6,7 +6,7 @@ use crypto::CredentialEcdsaKey;
 use crypto::wscd::DisclosureWscd;
 use dcql::normalized::NormalizedCredentialRequest;
 use http_utils::urls::BaseUrl;
-use mdoc::holder::Mdoc;
+use mdoc::holder::disclosure::DisclosureMdoc;
 use utils::vec_at_least::VecNonEmpty;
 use wscd::Poa;
 
@@ -55,7 +55,7 @@ pub trait DisclosureSession {
     async fn terminate(self) -> Result<Option<BaseUrl>, VpSessionError>;
     async fn disclose<K, W>(
         self,
-        mdocs: VecNonEmpty<Mdoc>,
+        disclosure_mdocs: VecNonEmpty<DisclosureMdoc>,
         wscd: &W,
     ) -> Result<Option<BaseUrl>, (Self, DisclosureError<VpSessionError>)>
     where

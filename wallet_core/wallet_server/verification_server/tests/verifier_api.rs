@@ -37,6 +37,7 @@ use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::urls::BaseUrl;
 use mdoc::examples::EXAMPLE_ATTR_NAME;
 use mdoc::holder::Mdoc;
+use mdoc::holder::disclosure::DisclosureMdoc;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::DisclosureSession;
 use openid4vc::disclosure_session::DisclosureUriSource;
@@ -944,7 +945,7 @@ async fn perform_full_disclosure(session_type: SessionType) -> (Client, SessionT
     // Prepare a holder with a valid example Mdoc. Use the query portion of the
     // universal link to have holder code contact the wallet_sever and start disclosure.
     // This should result in a proposal to disclosure for the holder.
-    let (mut mdoc, wscd) = prepare_example_holder_mocks(&issuer_ca).await;
+    let (mdoc, wscd) = prepare_example_holder_mocks(&issuer_ca).await;
 
     let request_uri_query = ul.as_ref().query().unwrap().to_string();
     let uri_source = match session_type {
@@ -966,13 +967,11 @@ async fn perform_full_disclosure(session_type: SessionType) -> (Client, SessionT
     // Have the holder actually disclosure the example attributes to the verification_server,
     // after which the status endpoint should report that the session is Done.
     assert_eq!(disclosure_session.credential_requests().len().get(), 1);
-    mdoc.issuer_signed = mdoc
-        .issuer_signed
-        .into_attribute_subset(disclosure_session.credential_requests().first().claim_paths())
-        .unwrap();
+    let disclosure_mdoc =
+        DisclosureMdoc::try_new(mdoc, disclosure_session.credential_requests().first().claim_paths()).unwrap();
 
     let return_url = disclosure_session
-        .disclose(vec![mdoc].try_into().unwrap(), &wscd)
+        .disclose(vec![disclosure_mdoc].try_into().unwrap(), &wscd)
         .await
         .expect("should disclose attributes successfully");
 
@@ -1093,15 +1092,16 @@ async fn test_disclosed_attributes_failed_session() {
         .expect("disclosure session should start at client side");
 
     // Disclose the expired attestation from the examples in the ISO specification.
-    let mut mdoc = Mdoc::new_example_resigned(&issuer_ca).await;
+    let mdoc = Mdoc::new_example_resigned(&issuer_ca).await;
     assert_eq!(disclosure_session.credential_requests().len().get(), 1);
-    mdoc.issuer_signed = mdoc
-        .issuer_signed
-        .into_attribute_subset(disclosure_session.credential_requests().first().claim_paths())
-        .unwrap();
+    let disclosure_mdoc =
+        DisclosureMdoc::try_new(mdoc, disclosure_session.credential_requests().first().claim_paths()).unwrap();
 
     disclosure_session
-        .disclose(vec![mdoc].try_into().unwrap(), &MockRemoteWscd::new_example())
+        .disclose(
+            vec![disclosure_mdoc].try_into().unwrap(),
+            &MockRemoteWscd::new_example(),
+        )
         .await
         .expect_err("disclosing attributes should result in an error");
 

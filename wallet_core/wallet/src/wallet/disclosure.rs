@@ -723,10 +723,10 @@ where
         }
 
         // Clone some values from `WalletDisclosureSession`, before we have to give away ownership of it.
-        let mdocs = attestations
+        let disclosure_mdocs = attestations
             .iter()
             .map(|proposal| match proposal.partial_attestation() {
-                PartialAttestation::MsoMdoc { mdoc } => mdoc.as_ref().clone(),
+                PartialAttestation::MsoMdoc { disclosure_mdoc } => disclosure_mdoc.as_ref().clone(),
                 PartialAttestation::SdJwt { .. } => {
                     todo!("implement SD-JWT disclosure (PVW-4138)")
                 }
@@ -742,7 +742,7 @@ where
             // This not possible, as we took a reference to this value before.
             unreachable!();
         };
-        let result = session.protocol_state.disclose(mdocs, &remote_wscd).await;
+        let result = session.protocol_state.disclose(disclosure_mdocs, &remote_wscd).await;
         let return_url = match result {
             Ok(return_url) => return_url.map(BaseUrl::into_inner),
             Err((protocol_state, error)) => {
@@ -1147,16 +1147,16 @@ mod tests {
             .protocol_state
             .expect_disclose()
             .times(1)
-            .withf(|mdocs| {
+            .withf(|disclosure_mdocs| {
                 // Make sure that only one attestation with a single attribute is disclosed.
-                mdocs
+                disclosure_mdocs
                     .clone()
                     .into_iter()
                     .exactly_one()
                     .ok()
-                    .and_then(|mdoc| {
-                        (mdoc.mso.doc_type == PID_ATTESTATION_TYPE)
-                            .then_some(mdoc.issuer_signed.into_entries_by_namespace())
+                    .and_then(|disclosure_mdoc| {
+                        (disclosure_mdoc.doc_type == PID_ATTESTATION_TYPE)
+                            .then_some(disclosure_mdoc.issuer_signed.into_entries_by_namespace())
                     })
                     .and_then(|name_spaces| name_spaces.into_iter().exactly_one().ok())
                     .and_then(|(name_space, entries)| (name_space == PID_ATTESTATION_TYPE).then_some(entries))
