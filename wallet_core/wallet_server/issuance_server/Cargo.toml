@@ -67,7 +67,7 @@ utils.path = "../../lib/utils"
 
 [dev-dependencies]
 indexmap.workspace = true
-tokio = { workspace = true, features = ["macros", "test-util"] }
 p256 = { workspace = true, features = ["ecdsa"] }
+tokio = { workspace = true, features = ["macros", "test-util"] }
 
 wscd = { path = "../../lib/wscd", features = ["mock"] }
