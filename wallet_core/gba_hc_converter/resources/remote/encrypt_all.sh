@@ -1,4 +1,4 @@
-set -euo
+set -euo pipefail
 
 CUR_DIR="$(cd "$(dirname "$0")" && pwd)"
 
