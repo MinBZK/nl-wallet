@@ -155,7 +155,7 @@ impl HandleInstruction for ChangePinCommit {
 
         user_state
             .repositories
-            .commit_pin_change(&tx, wallet_user.wallet_id.as_str())
+            .commit_pin_change(&tx, &wallet_user.wallet_id)
             .await?;
 
         tx.commit().await?;
@@ -487,7 +487,7 @@ impl HandleInstruction for DiscloseRecoveryCode {
 
     async fn handle<T, R, H>(
         self,
-        _wallet_user: &WalletUser,
+        wallet_user: &WalletUser,
         _uuid_generator: &impl Generator<Uuid>,
         user_state: &UserState<R, H, impl WuaIssuer>,
     ) -> Result<Self::Result, InstructionError>
@@ -500,13 +500,19 @@ impl HandleInstruction for DiscloseRecoveryCode {
             .recovery_code_disclosure
             .into_verified_against_trust_anchors(&user_state.issuer_trust_anchors, &TimeGenerator)?;
 
-        let _recovery_code = verified_sd_jwt
+        let recovery_code = verified_sd_jwt
             .as_ref()
             .to_disclosed_object()?
             .remove(PID_RECOVERY_CODE)
-            .ok_or(InstructionError::MissingRecoveryCode)?;
+            .ok_or(InstructionError::MissingRecoveryCode)?
+            .to_string();
 
-        // TODO write recovery_code to the database
+        let tx = user_state.repositories.begin_transaction().await?;
+        user_state
+            .repositories
+            .store_recovery_code(&tx, &wallet_user.wallet_id, recovery_code)
+            .await?;
+        tx.commit().await?;
 
         Ok(())
     }

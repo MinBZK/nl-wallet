@@ -28,6 +28,7 @@ pub struct Model {
     pub apple_attestation_id: Option<Uuid>,
     #[sea_orm(unique)]
     pub android_attestation_id: Option<Uuid>,
+    pub recovery_code: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
