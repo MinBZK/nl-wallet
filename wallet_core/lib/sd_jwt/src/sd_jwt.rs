@@ -25,10 +25,12 @@ use attestation_types::claim_path::ClaimPath;
 use crypto::EcdsaKeySend;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateUsage;
+use http_utils::urls::HttpsUri;
 use jwt::EcdsaDecodingKey;
 use jwt::Jwt;
 use jwt::VerifiedJwt;
 use jwt::jwk::jwk_to_p256;
+use utils::date_time_seconds::DateTimeSeconds;
 use utils::generator::Generator;
 use utils::spec::SpecOptional;
 use utils::vec_at_least::VecNonEmpty;
@@ -62,6 +64,16 @@ pub struct SdJwtClaims {
     // to parse.
     #[serde(rename = "vct#integrity")]
     pub vct_integrity: Option<Integrity>,
+
+    pub vct: Option<String>,
+
+    pub iss: Option<HttpsUri>,
+
+    pub iat: Option<DateTimeSeconds>,
+
+    pub exp: Option<DateTimeSeconds>,
+
+    pub nbf: Option<DateTimeSeconds>,
 
     /// Non-selectively disclosable claims of the SD-JWT.
     #[serde(flatten)]
@@ -278,6 +290,11 @@ impl Display for SdJwt {
 }
 
 impl VerifiedSdJwt {
+    #[cfg(feature = "test")]
+    pub fn new_dangerous(sd_jwt: SdJwt) -> Self {
+        Self(sd_jwt)
+    }
+
     /// Parses an SD-JWT into its components as [`VerifiedSdJwt`] verifying against the provided trust anchors.
     pub fn parse_and_verify_against_trust_anchors(
         sd_jwt: &str,

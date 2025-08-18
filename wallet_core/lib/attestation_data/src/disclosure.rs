@@ -1,5 +1,6 @@
 use chrono::DateTime;
 use chrono::Utc;
+use crypto::x509::CertificateError;
 use indexmap::IndexMap;
 use serde::Deserialize;
 use serde::Serialize;
@@ -76,6 +77,19 @@ impl TryFrom<IndexMap<NameSpace, IndexMap<DataElementIdentifier, DataElementValu
     }
 }
 
+impl TryFrom<serde_json::Map<String, serde_json::Value>> for DisclosedAttributes {
+    type Error = AttributeError;
+
+    fn try_from(map: serde_json::Map<String, serde_json::Value>) -> Result<Self, Self::Error> {
+        Ok(DisclosedAttributes::SdJwt(
+            map.into_iter()
+                .map(|(key, attributes)| Ok((key, attributes.try_into()?)))
+                .collect::<Result<IndexMap<_, _>, Self::Error>>()?
+                .into(),
+        ))
+    }
+}
+
 #[cfg(feature = "test")]
 impl From<DisclosedAttributes> for IndexMap<NameSpace, IndexMap<DataElementIdentifier, DataElementValue>> {
     fn from(attributes: DisclosedAttributes) -> Self {
@@ -134,6 +148,54 @@ impl From<DisclosedAttestation> for mdoc::verifier::DisclosedDocument {
     }
 }
 
+impl TryFrom<sd_jwt::sd_jwt::SdJwt> for DisclosedAttestation {
+    type Error = DisclosedAttestationError;
+
+    fn try_from(sd_jwt: sd_jwt::sd_jwt::SdJwt) -> Result<Self, Self::Error> {
+        let claims = sd_jwt.claims();
+        let validity_info = ValidityInfo {
+            signed: claims
+                .iat
+                .ok_or(DisclosedAttestationError::MissingAttributes("iat"))?
+                .into(),
+            valid_from: claims
+                .nbf
+                .ok_or(DisclosedAttestationError::MissingAttributes("nbf"))?
+                .into(),
+            valid_until: claims
+                .exp
+                .ok_or(DisclosedAttestationError::MissingAttributes("exp"))?
+                .into(),
+        };
+
+        let attestation_type = claims
+            .vct
+            .as_ref()
+            .ok_or(DisclosedAttestationError::MissingAttributes("vct"))?
+            .clone();
+        let issuer_uri = claims
+            .iss
+            .as_ref()
+            .ok_or(DisclosedAttestationError::MissingAttributes("iss"))?
+            .clone();
+        let ca = sd_jwt
+            .issuer_certificate()
+            .ok_or(DisclosedAttestationError::MissingIssuerCertificate)?
+            .issuer_common_names()?
+            .first()
+            .ok_or(DisclosedAttestationError::EmptyIssuerCommonName)?
+            .to_string();
+        let attributes = sd_jwt.to_disclosed_object()?.try_into()?;
+        Ok(DisclosedAttestation {
+            attestation_type,
+            attributes,
+            issuer_uri,
+            ca,
+            validity_info,
+        })
+    }
+}
+
 #[derive(Debug, thiserror::Error)]
 pub enum DisclosedAttestationError {
     #[error("error converting mdoc attributes: {0}")]
@@ -141,6 +203,21 @@ pub enum DisclosedAttestationError {
 
     #[error("parse error while converting validity_info: {0}")]
     ParseError(#[from] chrono::ParseError),
+
+    #[error("missing SD JWT claim: {0}")]
+    MissingAttributes(&'static str),
+
+    #[error("error converting SD JWT to disclosed object: {0}")]
+    DisclosedObjectConversion(#[from] sd_jwt::error::Error),
+
+    #[error("missing issuer certificate in SD JWT")]
+    MissingIssuerCertificate,
+
+    #[error("issuer common name in SD JWT issuer certificate is not a string")]
+    IssuerCommonNameNotAString(#[from] CertificateError),
+
+    #[error("empty issuer common name in SD JWT issuer certificate")]
+    EmptyIssuerCommonName,
 }
 
 #[cfg(test)]

@@ -32,6 +32,9 @@ pub enum AttributeError {
 
     #[error("unable to convert number to cbor: {0}")]
     NumberToCborConversion(#[from] TryFromIntError),
+
+    #[error("unable to convert json value: {0}")]
+    FromJsonConversion(serde_json::Value),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -75,12 +78,53 @@ impl TryFrom<ciborium::Value> for AttributeValue {
     }
 }
 
+impl TryFrom<serde_json::Value> for AttributeValue {
+    type Error = AttributeError;
+
+    fn try_from(value: serde_json::Value) -> Result<Self, Self::Error> {
+        match value {
+            serde_json::Value::Null => Ok(AttributeValue::Null),
+            serde_json::Value::Bool(bool) => Ok(AttributeValue::Bool(bool)),
+            serde_json::Value::Number(number) => Ok(number
+                .as_i64()
+                .map(AttributeValue::Integer)
+                .ok_or_else(|| AttributeError::FromJsonConversion(serde_json::Value::Number(number)))?),
+            serde_json::Value::String(text) => Ok(AttributeValue::Text(text)),
+            serde_json::Value::Array(elements) => Ok(AttributeValue::Array(
+                elements.into_iter().map(Self::try_from).try_collect()?,
+            )),
+            _ => Err(AttributeError::FromJsonConversion(value)),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(any(test, feature = "test"), derive(derive_more::Unwrap))]
 #[serde(untagged)]
 pub enum Attribute {
     Single(AttributeValue),
     Nested(IndexMap<String, Attribute>),
+}
+
+impl TryFrom<serde_json::Value> for Attribute {
+    type Error = AttributeError;
+
+    fn try_from(value: serde_json::Value) -> Result<Self, Self::Error> {
+        match value {
+            serde_json::Value::Object(map) => {
+                let attributes = map
+                    .into_iter()
+                    .map(|(key, value)| {
+                        let attribute = Attribute::try_from(value)?;
+                        Ok((key, attribute))
+                    })
+                    .collect::<Result<_, AttributeError>>()?;
+
+                Ok(Attribute::Nested(attributes))
+            }
+            _ => Ok(Attribute::Single(AttributeValue::try_from(value)?)),
+        }
+    }
 }
 
 #[derive(Debug, Default, Clone, Eq, PartialEq, Serialize, Deserialize, AsRef, From)]
