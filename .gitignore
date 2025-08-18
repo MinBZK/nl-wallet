@@ -56,6 +56,10 @@ migrate_working_dir/
 /fastlane/Preview.html
 /fastlane/screenshots
 /fastlane/test_output
+/fastlane/entitlements.plist
+
+# Fastlane resign
+_floatsignTemp/
 
 # DigiD connector checkout from devenv
 /nl-rdo-max

@@ -42,7 +42,12 @@ test-ios:
     when: always
     paths:
       - "*.ipa"
+      - "fastlane/entitlements.plist"
+      - "wallet_app/build/ios/archive/Runner.xcarchive"
+      - "wallet_app/build/ios/Runner.entitlements"
+      - "wallet_app/ios/Flutter/Generated.xcconfig"
       - "wallet_app/ios/compile_rust_core.log"
+      - "wallet_app/ios/*.xcactivitylog"
   variables:
     APPLE_ATTESTATION_ENVIRONMENT: "production"
   script:
@@ -52,9 +57,9 @@ test-ios:
     - export MATCH_PASSWORD
     - git config --global url.https://repo-certificates-deploy-token:${REPO_CERTIFICATES_DEPLOY_TOKEN}@$CI_SERVER_HOST.insteadOf https://$CI_SERVER_HOST
     - bundle install
+    # Build
     - |
-      bundle exec fastlane ios ci_build \
-        bundle_id:"${INTERNAL_APP_IDENTIFIER}${APP_PACKAGE_IDENTIFIER_SUFFIX:+.$APP_PACKAGE_IDENTIFIER_SUFFIX}" \
+      bundle exec fastlane ios build \
         app_name:"${APP_NAME}" \
         build_mode:"${APP_BUILD_MODE}" \
         mock:"${APP_MOCK}" \
@@ -63,6 +68,16 @@ test-ios:
         universal_link_base:"${UL_HOSTNAME:-}" \
         build:"$((CI_PIPELINE_IID + APP_BUILD_OFFSET))" \
         version:"${VERSION:-}"
+    # Entitlements file
+    - bundle exec fastlane ios entitlements
+    # Sign
+    - |
+      bundle exec fastlane ios sign \
+        app_store:"true" \
+        bundle_id:"${INTERNAL_APP_IDENTIFIER}${APP_PACKAGE_IDENTIFIER_SUFFIX:+.$APP_PACKAGE_IDENTIFIER_SUFFIX}" \
+        version:"${VERSION:-}"
+  after_script:
+    - find $HOME/Library/Developer/Xcode/DerivedData/Runner-* -name '*.xcactivitylog' -print0 | xargs -0 -I{} cp {} wallet_app/ios/
 
 .build-ios-app-ont:
   extends: .build-ios-app

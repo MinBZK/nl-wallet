@@ -332,6 +332,7 @@ DEPENDENCIES
   fastlane
   ffi (~> 1.16.3)
   nokogiri (~> 1.18.9)
+  plist
   slather
 
 BUNDLED WITH
