@@ -197,11 +197,11 @@ mod tests {
     use utils::generator::mock::MockTimeGenerator;
 
     use crate::attestation::AttestationPresentation;
-    use crate::storage::StoredAttestation;
+    use crate::storage::AttestationDisclosureProposal;
+    use crate::storage::PartialAttestation;
 
     use super::super::DisclosureBasedIssuanceError;
     use super::super::Session;
-    use super::super::disclosure::DisclosureAttestation;
     use super::super::disclosure::DisclosureError;
     use super::super::disclosure::RedirectUriPurpose;
     use super::super::disclosure::WalletDisclosureSession;
@@ -221,9 +221,9 @@ mod tests {
             .expect_verifier_certificate()
             .return_const(verifier_certificate);
 
-        let attestation = DisclosureAttestation::new(
+        let proposal = AttestationDisclosureProposal::new(
             Uuid::new_v4(),
-            StoredAttestation::MsoMdoc {
+            PartialAttestation::MsoMdoc {
                 mdoc: Box::new(Mdoc::new_mock().now_or_never().unwrap()),
             },
             AttestationPresentation::new_mock(),
@@ -232,7 +232,7 @@ mod tests {
         WalletDisclosureSession::new_proposal(
             RedirectUriPurpose::Issuance,
             DisclosureType::Regular,
-            vec![attestation].try_into().unwrap(),
+            vec![proposal].try_into().unwrap(),
             disclosure_session,
         )
     }

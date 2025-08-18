@@ -54,9 +54,9 @@ use crate::instruction::RemoteEcdsaWscd;
 use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
 use crate::storage::AttestationFormatQuery;
-use crate::storage::FullStoredAttestationCopy;
 use crate::storage::Storage;
 use crate::storage::StorageError;
+use crate::storage::StoredAttestationCopy;
 use crate::wallet::Session;
 use crate::wallet::attestations::AttestationsError;
 
@@ -575,7 +575,7 @@ where
 
 fn match_preview_and_stored_attestations<'a>(
     previews: &'a [NormalizedCredentialPreview],
-    stored_attestations: Vec<FullStoredAttestationCopy>,
+    stored_attestations: Vec<StoredAttestationCopy>,
     time_generator: &impl Generator<DateTime<Utc>>,
 ) -> Vec<(&'a NormalizedCredentialPreview, Option<Uuid>)> {
     let stored_credential_payloads: Vec<(CredentialPayload, Uuid)> = stored_attestations
@@ -1069,7 +1069,7 @@ mod tests {
             .unwrap();
 
         let attestation_id = Uuid::new_v4();
-        let stored = FullStoredAttestationCopy::new(
+        let stored = StoredAttestationCopy::new(
             attestation_id,
             Uuid::new_v4(),
             StoredAttestation::SdJwt {
@@ -1429,7 +1429,7 @@ mod tests {
             .unwrap();
 
         let attestation_id = Uuid::new_v4();
-        let stored = FullStoredAttestationCopy::new(
+        let stored = StoredAttestationCopy::new(
             attestation_id,
             Uuid::new_v4(),
             StoredAttestation::SdJwt {
