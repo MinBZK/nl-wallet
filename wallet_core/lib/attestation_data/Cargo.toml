@@ -62,5 +62,6 @@ tokio = { workspace = true, features = ["macros"] }
 crypto = { path = "../crypto", features = ["generate", "mock"] }
 dcql = { path = "../dcql", features = ["mock"] }
 mdoc = { path = "../mdoc", features = ["mock", "mock_example_constructors", "test"] }
+sd_jwt = { path = "../sd_jwt", features = ["test"] }
 sd_jwt_vc_metadata = { path = "../sd_jwt_vc_metadata", features = ["example_constructors"] }
 utils = { path = "../utils", features = ["mock_time"] }

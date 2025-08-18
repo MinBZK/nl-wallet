@@ -691,7 +691,7 @@ mod test {
 
         assert_eq!(
             payload.previewable_payload.attestation_type,
-            sd_jwt.claims().properties.get("vct").and_then(|c| c.as_str()).unwrap()
+            sd_jwt.claims().vct.as_ref().unwrap().clone()
         );
 
         let unverified_payload = CredentialPayload::from_sd_jwt_unvalidated(&sd_jwt)

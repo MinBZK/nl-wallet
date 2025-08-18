@@ -57,47 +57,55 @@ async fn make_sd_jwt(
 fn simple_sd_jwt() {
     let sd_jwt = SdJwtPresentation::spec_simple_structured();
     let disclosed = sd_jwt.to_disclosed_object().unwrap();
-    let expected_object = json!({
-      "address": {
-        "country": "JP",
-        "region": "港区"
-      },
-      "iss": "https://issuer.example.com",
-      "iat": 1683000000,
-      "exp": 1883000000
-    });
-    assert_eq!(expected_object.as_object().unwrap(), &disclosed);
+    let expected = json!({
+        "address": {
+            "country": "JP",
+            "region": "港区"
+        },
+        "iss": "https://issuer.example.com/",
+        "iat": 1683000000,
+        "exp": 1883000000
+    })
+    .as_object()
+    .unwrap()
+    .to_owned();
+
+    assert_eq!(expected, disclosed);
 }
 
 #[test]
 fn complex_sd_jwt() {
     let sd_jwt: SdJwt = SdJwtPresentation::spec_complex_structured();
     let disclosed = sd_jwt.to_disclosed_object().unwrap();
-    let expected_object = json!({
-      "verified_claims": {
-        "verification": {
-            "time": "2012-04-23T18:25Z",
-            "trust_framework": "de_aml",
-            "evidence": [
-                { "method": "pipp" }
-            ]
-        },
-        "claims": {
-            "address": {
-                "locality": "Maxstadt",
-                "postal_code": "12344",
-                "country": "DE",
-                "street_address": "Weidenstraße 22"
+    let expected = json!({
+        "verified_claims": {
+            "verification": {
+                "time": "2012-04-23T18:25Z",
+                "trust_framework": "de_aml",
+                "evidence": [
+                    { "method": "pipp" }
+                ]
             },
-            "given_name": "Max",
-            "family_name": "Müller"
-        }
-      },
-      "iss": "https://issuer.example.com",
-      "iat": 1683000000,
-      "exp": 1883000000
-    });
-    assert_eq!(expected_object.as_object().unwrap(), &disclosed);
+            "claims": {
+                "address": {
+                    "locality": "Maxstadt",
+                    "postal_code": "12344",
+                    "country": "DE",
+                    "street_address": "Weidenstraße 22"
+                },
+                "given_name": "Max",
+                "family_name": "Müller"
+            }
+        },
+        "iss": "https://issuer.example.com/",
+        "iat": 1683000000,
+        "exp": 1883000000
+    })
+    .as_object()
+    .unwrap()
+    .to_owned();
+
+    assert_eq!(expected, disclosed);
 }
 
 #[tokio::test]
