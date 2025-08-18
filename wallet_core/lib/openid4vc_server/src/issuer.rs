@@ -39,7 +39,7 @@ use openid4vc::issuer::Issuer;
 use openid4vc::metadata::IssuerMetadata;
 use openid4vc::oidc;
 use openid4vc::server_state::SessionStore;
-use openid4vc::server_state::WteTracker;
+use openid4vc::server_state::WuaTracker;
 use openid4vc::token::AccessToken;
 use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenResponseWithPreviews;
@@ -63,7 +63,7 @@ where
     A: AttributeService + Send + Sync + 'static,
     K: EcdsaKeySend + Sync + 'static,
     S: SessionStore<IssuanceData> + Send + Sync + 'static,
-    W: WteTracker + Send + Sync + 'static,
+    W: WuaTracker + Send + Sync + 'static,
 {
     let application_state = ApplicationState { issuer };
 
@@ -87,7 +87,7 @@ where
     A: AttributeService,
     K: EcdsaKeySend,
     S: SessionStore<IssuanceData>,
-    W: WteTracker,
+    W: WuaTracker,
 {
     let metadata = state.issuer.oauth_metadata().await.map_err(|error| {
         warn!("retrieving OAuth metadata failed: {}", error);
@@ -115,7 +115,7 @@ where
     A: AttributeService,
     K: EcdsaKeySend,
     S: SessionStore<IssuanceData>,
-    W: WteTracker,
+    W: WuaTracker,
 {
     let (response, dpop_nonce) = state
         .issuer
@@ -142,7 +142,7 @@ where
     A: AttributeService,
     K: EcdsaKeySend,
     S: SessionStore<IssuanceData>,
-    W: WteTracker,
+    W: WuaTracker,
 {
     let access_token = authorization_header.into();
     let response = state
@@ -164,7 +164,7 @@ where
     A: AttributeService,
     K: EcdsaKeySend,
     S: SessionStore<IssuanceData>,
-    W: WteTracker,
+    W: WuaTracker,
 {
     let access_token = authorization_header.into();
     let response = state
@@ -186,7 +186,7 @@ where
     A: AttributeService,
     K: EcdsaKeySend,
     S: SessionStore<IssuanceData>,
-    W: WteTracker,
+    W: WuaTracker,
 {
     let uri_path = &uri.path()[1..]; // strip off leading slash
 

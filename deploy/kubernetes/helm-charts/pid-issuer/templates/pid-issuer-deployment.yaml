@@ -80,11 +80,11 @@ spec:
                   key: trust_anchors
             - name: PID_ISSUER__BRP_SERVER
               value: "http://brpproxy/"
-            - name: PID_ISSUER__WTE_ISSUER_PUBKEY
+            - name: PID_ISSUER__WUA_ISSUER_PUBKEY
               valueFrom:
                 configMapKeyRef:
-                  name: nl-wallet-pid-issuer-wte-issuer-pubkey
-                  key: wte_issuer_pubkey
+                  name: nl-wallet-pid-issuer-wua-issuer-pubkey
+                  key: wua_issuer_pubkey
             - name: PID_ISSUER__METADATA
               value: "eudi:pid:1.json,eudi:pid:nl:1.json,eudi:pid-address:1.json,eudi:pid-address:nl:1.json"
             - name: PID_ISSUER__STORAGE__URL

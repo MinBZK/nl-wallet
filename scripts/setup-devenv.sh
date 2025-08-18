@@ -248,12 +248,12 @@ fi
 ISSUER_CA_CRT=$(< "${TARGET_DIR}/ca.issuer.crt.der" ${BASE64})
 export ISSUER_CA_CRT
 
-# Generate key for WTE signing
-generate_wp_signing_key wte_signing
-WP_WTE_SIGNING_KEY_PATH="${TARGET_DIR}/wallet_provider/wte_signing.pem"
-export WP_WTE_SIGNING_KEY_PATH
-WP_WTE_PUBLIC_KEY=$(< "${TARGET_DIR}/wallet_provider/wte_signing.pub.der" ${BASE64})
-export WP_WTE_PUBLIC_KEY
+# Generate key for WUA signing
+generate_wp_signing_key wua_signing
+WP_WUA_SIGNING_KEY_PATH="${TARGET_DIR}/wallet_provider/wua_signing.pem"
+export WP_WUA_SIGNING_KEY_PATH
+WP_WUA_PUBLIC_KEY=$(< "${TARGET_DIR}/wallet_provider/wua_signing.pub.der" ${BASE64})
+export WP_WUA_PUBLIC_KEY
 
 # Generate pid issuer key and cert
 generate_pid_issuer_key_pair
@@ -484,7 +484,7 @@ render_template "${DEVENV}/wallet-config.json.template" "${TARGET_DIR}/wallet-co
 ########################################################################
 
 softhsm2-util --import "${WP_CERTIFICATE_SIGNING_KEY_PATH}" --pin "${HSM_USER_PIN}" --id "$(echo -n "certificate_signing" | xxd -p)" --label "certificate_signing_key" --token "test_token"
-softhsm2-util --import "${WP_WTE_SIGNING_KEY_PATH}" --pin "${HSM_USER_PIN}" --id "$(echo -n "wte_signing" | xxd -p)" --label "wte_signing_key" --token "test_token"
+softhsm2-util --import "${WP_WUA_SIGNING_KEY_PATH}" --pin "${HSM_USER_PIN}" --id "$(echo -n "wua_signing" | xxd -p)" --label "wua_signing_key" --token "test_token"
 softhsm2-util --import "${WP_INSTRUCTION_RESULT_SIGNING_KEY_PATH}" --pin "${HSM_USER_PIN}" --id "$(echo -n "instruction_result_signing" | xxd -p)" --label "instruction_result_signing_key" --token "test_token"
 softhsm2-util --import "${WP_ATTESTATION_WRAPPING_KEY_PATH}" --aes --pin "${HSM_USER_PIN}" --id "$(echo -n "attestation_wrapping" | xxd -p)" --label "attestation_wrapping_key" --token "test_token"
 softhsm2-util --import "${WP_PIN_PUBKEY_ENCRYPTION_KEY_PATH}" --aes --pin "${HSM_USER_PIN}" --id "$(echo -n "pin_pubkey_encryption" | xxd -p)" --label "pin_pubkey_encryption_key" --token "test_token"

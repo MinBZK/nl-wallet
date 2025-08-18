@@ -212,20 +212,19 @@ mod tests {
     use uuid::Uuid;
 
     use attestation_data::auth::issuer_auth::IssuerRegistration;
+    use attestation_data::constants::PID_ATTESTATION_TYPE;
+    use attestation_data::constants::PID_BSN;
     use attestation_data::credential_payload::CredentialPayload;
     use attestation_data::x509::generate::mock::generate_issuer_mock;
     use attestation_types::claim_path::ClaimPath;
     use crypto::keys::WithIdentifier;
+    use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
     use sd_jwt::sd_jwt::VerifiedSdJwt;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_at_least::VecNonEmpty;
-    use wscd::mock_remote::MockRemoteEcdsaKey;
-
-    use crate::attestation::BSN_ATTR_NAME;
-    use crate::attestation::PID_DOCTYPE;
 
     use super::StoredAttestation;
     use super::StoredAttestationCopy;
@@ -258,8 +257,8 @@ mod tests {
         };
 
         let bsn_path = vec![
-            ClaimPath::SelectByKey(PID_DOCTYPE.to_string()),
-            ClaimPath::SelectByKey(BSN_ATTR_NAME.to_string()),
+            ClaimPath::SelectByKey(PID_ATTESTATION_TYPE.to_string()),
+            ClaimPath::SelectByKey(PID_BSN.to_string()),
         ]
         .try_into()
         .unwrap();
@@ -292,9 +291,7 @@ mod tests {
             normalized_metadata: NormalizedTypeMetadata::nl_pid_example(),
         };
 
-        let bsn_path = vec![ClaimPath::SelectByKey(BSN_ATTR_NAME.to_string())]
-            .try_into()
-            .unwrap();
+        let bsn_path = vec![ClaimPath::SelectByKey(PID_BSN.to_string())].try_into().unwrap();
 
         (copy, bsn_path)
     }

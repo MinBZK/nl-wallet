@@ -5,14 +5,13 @@ use indexmap::IndexMap;
 
 use attestation_data::attributes::Attribute;
 use attestation_data::attributes::AttributeValue;
+use attestation_data::constants::*;
 use attestation_data::issuable_document::IssuableDocument;
 use http_utils::urls::BaseUrl;
 use openid4vc::issuer::AttributeService;
 use openid4vc::oidc;
 use openid4vc::token::TokenRequest;
 use utils::vec_at_least::VecNonEmpty;
-
-use crate::pid::constants::*;
 
 #[derive(Debug, Constructor)]
 pub struct MockAttributeService(VecNonEmpty<IssuableDocument>);

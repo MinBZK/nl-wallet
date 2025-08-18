@@ -54,6 +54,16 @@ void main() {
       await screenMatchesGolden('error.light');
     });
 
+    testGoldens('SetupSecurityGenericError -  light', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
+          MockSetupSecurityBloc(),
+          const SetupSecurityGenericError(error: GenericError('test', sourceError: 'test')),
+        ),
+      );
+      await screenMatchesGolden('generic_error.light');
+    });
+
     testGoldens('SetupSecurityPinConfirmationFailed retry NOT allowed light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(

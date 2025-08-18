@@ -12,6 +12,7 @@ use url::Url;
 use uuid::Uuid;
 
 use attestation_data::auth::Organization;
+use attestation_data::constants::PID_ATTESTATION_TYPE;
 use attestation_data::credential_payload::CredentialPayload;
 use crypto::x509::CertificateError;
 use error_category::ErrorCategory;
@@ -41,7 +42,6 @@ use crate::account_provider::AccountProviderClient;
 use crate::attestation::AttestationError;
 use crate::attestation::AttestationIdentity;
 use crate::attestation::AttestationPresentation;
-use crate::attestation::PID_DOCTYPE;
 use crate::config::UNIVERSAL_LINK_BASE_URL;
 use crate::digid::DigidClient;
 use crate::digid::DigidError;
@@ -50,7 +50,7 @@ use crate::errors::ChangePinError;
 use crate::errors::UpdatePolicyError;
 use crate::instruction::InstructionError;
 use crate::instruction::RemoteEcdsaKeyError;
-use crate::instruction::RemoteEcdsaKeyFactory;
+use crate::instruction::RemoteEcdsaWscd;
 use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
 use crate::storage::AttestationFormatQuery;
@@ -201,7 +201,7 @@ where
             .storage
             .write()
             .await
-            .has_any_attestations_with_type(PID_DOCTYPE)
+            .has_any_attestations_with_type(PID_ATTESTATION_TYPE)
             .await
             .map_err(IssuanceError::AttestationQuery)?;
         if has_pid {
@@ -477,7 +477,7 @@ where
             )
             .await?;
 
-        let remote_key_factory = RemoteEcdsaKeyFactory::new(remote_instruction);
+        let remote_wscd = RemoteEcdsaWscd::new(remote_instruction);
 
         info!("Signing nonce using Wallet Provider");
 
@@ -489,16 +489,12 @@ where
 
         let issuance_result = issuance_session
             .protocol_state
-            .accept_issuance(
-                &config.mdoc_trust_anchors(),
-                &remote_key_factory,
-                issuance_session.is_pid,
-            )
+            .accept_issuance(&config.mdoc_trust_anchors(), &remote_wscd, issuance_session.is_pid)
             .await
             .map_err(|error| {
                 match error {
                     // We knowingly call unwrap() on the downcast to `RemoteEcdsaKeyError` here because we know
-                    // that it is the error type of the `RemoteEcdsaKeyFactory` we provide above.
+                    // that it is the error type of the `RemoteEcdsaWscd` we provide above.
                     IssuanceSessionError::PrivateKeyGeneration(error)
                     | IssuanceSessionError::Jwt(JwtError::Signing(error)) => {
                         match *error.downcast::<RemoteEcdsaKeyError>().unwrap() {
@@ -516,7 +512,7 @@ where
             });
 
         // Make sure there are no remaining references to the `AttestedKey` value.
-        drop(remote_key_factory);
+        drop(remote_wscd);
 
         // If the Wallet Provider returns either a PIN timeout or a permanent block,
         // wipe the contents of the wallet and return it to its initial state.
@@ -628,6 +624,7 @@ mod tests {
 
     use attestation_data::attributes::AttributeValue;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
+    use attestation_data::constants::PID_ATTESTATION_TYPE;
     use attestation_data::x509::CertificateType;
     use crypto::server_keys::generate::Ca;
     use crypto::x509::BorrowingCertificateExtension;
@@ -1162,7 +1159,7 @@ mod tests {
         let mdoc = test::create_example_pid_mdoc();
         let (pid_issuer, attestations) = mock_issuance_session(
             mdoc,
-            String::from(PID_DOCTYPE),
+            String::from(PID_ATTESTATION_TYPE),
             VerifiedTypeMetadataDocuments::nl_pid_example(),
         );
         wallet.session = Some(Session::Issuance(WalletIssuanceSession::new(
@@ -1189,7 +1186,7 @@ mod tests {
             assert_eq!(attestations[1].len(), 1);
             let attestation = &attestations[1][0];
             assert_matches!(attestation.identity, AttestationIdentity::Fixed { id: _ });
-            assert_eq!(attestation.attestation_type, PID_DOCTYPE);
+            assert_eq!(attestation.attestation_type, PID_ATTESTATION_TYPE);
 
             // Test that one successful issuance event is logged
             let events = events.lock();
@@ -1390,7 +1387,7 @@ mod tests {
         let mdoc = test::create_example_pid_mdoc();
         let (pid_issuer, attestations) = mock_issuance_session(
             mdoc,
-            String::from(PID_DOCTYPE),
+            String::from(PID_ATTESTATION_TYPE),
             VerifiedTypeMetadataDocuments::nl_pid_example(),
         );
         wallet.session = Some(Session::Issuance(WalletIssuanceSession::new(

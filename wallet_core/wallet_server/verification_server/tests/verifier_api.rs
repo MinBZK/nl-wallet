@@ -28,6 +28,7 @@ use attestation_data::credential_payload::CredentialPayload;
 use attestation_data::disclosure::DisclosedAttestation;
 use attestation_data::x509::generate::mock::generate_issuer_mock;
 use attestation_data::x509::generate::mock::generate_reader_mock;
+use crypto::mock_remote::MockRemoteEcdsaKey;
 use crypto::server_keys::generate::Ca;
 use dcql::Query;
 use hsm::service::Pkcs11Hsm;
@@ -65,8 +66,7 @@ use utils::generator::mock::MockTimeGenerator;
 use verification_server::server;
 use verification_server::settings::UseCaseSettings;
 use verification_server::settings::VerifierSettings;
-use wscd::mock_remote::MockRemoteEcdsaKey;
-use wscd::mock_remote::MockRemoteKeyFactory;
+use wscd::mock_remote::MockRemoteWscd;
 
 const PID_ATTESTATION_TYPE: &str = "urn:eudi:pid:nl:1";
 const USECASE_NAME: &str = "usecase";
@@ -899,7 +899,7 @@ mod db_test {
     }
 }
 
-async fn prepare_example_holder_mocks(issuer_ca: &Ca) -> (Mdoc, MockRemoteKeyFactory) {
+async fn prepare_example_holder_mocks(issuer_ca: &Ca) -> (Mdoc, MockRemoteWscd) {
     let payload_preview = CredentialPayload::nl_pid_example(&MockTimeGenerator::default()).previewable_payload;
 
     let issuer_key_pair = generate_issuer_mock(issuer_ca, Some(IssuerRegistration::new_mock())).unwrap();
@@ -923,10 +923,10 @@ async fn prepare_example_holder_mocks(issuer_ca: &Ca) -> (Mdoc, MockRemoteKeyFac
         .await
         .unwrap();
 
-    // Place the private key in a SoftwareKeyFactory and return it, along with the mdoc.
-    let key_factory = MockRemoteKeyFactory::new(vec![mdoc_private_key]);
+    // Place the private key in a `MockRemoteWscd` and return it, along with the mdoc.
+    let wscd = MockRemoteWscd::new(vec![mdoc_private_key]);
 
-    (mdoc, key_factory)
+    (mdoc, wscd)
 }
 
 async fn perform_full_disclosure(session_type: SessionType) -> (Client, SessionToken, BaseUrl, Option<BaseUrl>) {
@@ -944,7 +944,7 @@ async fn perform_full_disclosure(session_type: SessionType) -> (Client, SessionT
     // Prepare a holder with a valid example Mdoc. Use the query portion of the
     // universal link to have holder code contact the wallet_sever and start disclosure.
     // This should result in a proposal to disclosure for the holder.
-    let (mut mdoc, key_factory) = prepare_example_holder_mocks(&issuer_ca).await;
+    let (mut mdoc, wscd) = prepare_example_holder_mocks(&issuer_ca).await;
 
     let request_uri_query = ul.as_ref().query().unwrap().to_string();
     let uri_source = match session_type {
@@ -972,7 +972,7 @@ async fn perform_full_disclosure(session_type: SessionType) -> (Client, SessionT
         .unwrap();
 
     let return_url = disclosure_session
-        .disclose(vec![mdoc].try_into().unwrap(), &key_factory)
+        .disclose(vec![mdoc].try_into().unwrap(), &wscd)
         .await
         .expect("should disclose attributes successfully");
 
@@ -1101,7 +1101,7 @@ async fn test_disclosed_attributes_failed_session() {
         .unwrap();
 
     disclosure_session
-        .disclose(vec![mdoc].try_into().unwrap(), &MockRemoteKeyFactory::new_example())
+        .disclose(vec![mdoc].try_into().unwrap(), &MockRemoteWscd::new_example())
         .await
         .expect_err("disclosing attributes should result in an error");
 

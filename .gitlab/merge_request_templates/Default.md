@@ -13,4 +13,4 @@
 - [ ] Incurred technical debt has a TODO comment and a related issue ticket
 - [ ] Can be deployed locally and remotely (CI/CD related setup up-to-date)
 
-*The above items are described in our [definition of done](./documentation/wow/definition-of-done.md).*
+*The above items are described in our [definition of done](./wallet_docs/way-of-working/definition-of-done.md).*

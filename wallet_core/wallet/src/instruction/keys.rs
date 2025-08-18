@@ -4,8 +4,6 @@ use std::num::NonZeroUsize;
 
 use crypto::WithVerifyingKey;
 use derive_more::Constructor;
-use itertools::Itertools;
-use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
 use p256::ecdsa::signature;
 
@@ -13,18 +11,18 @@ use crypto::keys::CredentialEcdsaKey;
 use crypto::keys::CredentialKeyType;
 use crypto::keys::WithIdentifier;
 use crypto::p256_der::DerSignature;
+use crypto::wscd::DisclosureResult;
+use crypto::wscd::DisclosureWscd;
+use crypto::wscd::WscdPoa;
 use platform_support::attested_key::AppleAttestedKey;
 use platform_support::attested_key::GoogleAttestedKey;
-use utils::vec_at_least::VecAtLeastTwoUnique;
-use wallet_account::messages::instructions::ConstructPoa;
 use wallet_account::messages::instructions::PerformIssuance;
 use wallet_account::messages::instructions::PerformIssuanceWithWua;
 use wallet_account::messages::instructions::PerformIssuanceWithWuaResult;
 use wallet_account::messages::instructions::Sign;
 use wscd::Poa;
-use wscd::factory::PoaFactory;
-use wscd::keyfactory::IssuanceResult;
-use wscd::keyfactory::KeyFactory;
+use wscd::wscd::IssuanceResult;
+use wscd::wscd::Wscd;
 
 use crate::account_provider::AccountProviderClient;
 use crate::storage::Storage;
@@ -45,7 +43,7 @@ pub enum RemoteEcdsaKeyError {
 }
 
 #[derive(Constructor)]
-pub struct RemoteEcdsaKeyFactory<S, AK, GK, A> {
+pub struct RemoteEcdsaWscd<S, AK, GK, A> {
     instruction_client: InstructionClient<S, AK, GK, A>,
 }
 
@@ -68,7 +66,7 @@ impl Hash for RemoteEcdsaKey {
     }
 }
 
-impl<S, AK, GK, A> KeyFactory for RemoteEcdsaKeyFactory<S, AK, GK, A>
+impl<S, AK, GK, A> DisclosureWscd for RemoteEcdsaWscd<S, AK, GK, A>
 where
     S: Storage,
     AK: AppleAttestedKey,
@@ -77,18 +75,20 @@ where
 {
     type Key = RemoteEcdsaKey;
     type Error = RemoteEcdsaKeyError;
+    type Poa = Poa;
 
-    fn generate_existing<I: Into<String>>(&self, identifier: I, public_key: VerifyingKey) -> Self::Key {
+    fn new_key<I: Into<String>>(&self, identifier: I, public_key: VerifyingKey) -> Self::Key {
         RemoteEcdsaKey {
             identifier: identifier.into(),
             public_key,
         }
     }
 
-    async fn sign_multiple_with_existing_keys(
+    async fn sign(
         &self,
         messages_and_keys: Vec<(Vec<u8>, Vec<&Self::Key>)>,
-    ) -> Result<Vec<Vec<Signature>>, Self::Error> {
+        poa_input: <Self::Poa as WscdPoa>::Input,
+    ) -> Result<DisclosureResult<Self::Poa>, Self::Error> {
         let sign_result = self
             .instruction_client
             .send(Sign {
@@ -99,6 +99,8 @@ where
                         (message, identifiers)
                     })
                     .collect(),
+                poa_aud: poa_input.aud,
+                poa_nonce: poa_input.nonce,
             })
             .await?;
 
@@ -108,16 +110,24 @@ where
             .map(|signatures| signatures.into_iter().map(DerSignature::into_inner).collect())
             .collect();
 
-        Ok(signatures)
+        Ok(DisclosureResult::new(signatures, sign_result.poa))
     }
+}
 
+impl<S, AK, GK, A> Wscd for RemoteEcdsaWscd<S, AK, GK, A>
+where
+    S: Storage,
+    AK: AppleAttestedKey,
+    GK: GoogleAttestedKey,
+    A: AccountProviderClient,
+{
     async fn perform_issuance(
         &self,
         key_count: NonZeroUsize,
         aud: String,
         nonce: Option<String>,
         include_wua: bool,
-    ) -> Result<IssuanceResult, Self::Error> {
+    ) -> Result<IssuanceResult<Self::Poa>, Self::Error> {
         let issuance_instruction = PerformIssuance { key_count, aud, nonce };
         let (issuance_result, wua) = if !include_wua {
             (self.instruction_client.send(issuance_instruction).await?, None)
@@ -133,48 +143,12 @@ where
             (issuance_result, Some(wua_disclosure))
         };
 
-        Ok(IssuanceResult {
-            key_identifiers: issuance_result.key_identifiers,
-            pops: issuance_result.pops,
-            poa: issuance_result.poa,
+        Ok(IssuanceResult::new(
+            issuance_result.key_identifiers,
+            issuance_result.pops,
+            issuance_result.poa,
             wua,
-        })
-    }
-}
-
-impl<S, AK, GK, A> PoaFactory for RemoteEcdsaKeyFactory<S, AK, GK, A>
-where
-    S: Storage,
-    AK: AppleAttestedKey,
-    GK: GoogleAttestedKey,
-    A: AccountProviderClient,
-{
-    type Key = RemoteEcdsaKey;
-    type Error = RemoteEcdsaKeyError;
-
-    async fn poa(
-        &self,
-        keys: VecAtLeastTwoUnique<&Self::Key>,
-        aud: String,
-        nonce: Option<String>,
-    ) -> Result<Poa, Self::Error> {
-        let poa = self
-            .instruction_client
-            .send(ConstructPoa {
-                key_identifiers: keys
-                    .as_slice()
-                    .iter()
-                    .map(|key| key.identifier.clone())
-                    .collect_vec()
-                    .try_into()
-                    .unwrap(), // our iterable is a VecAtLeastTwoUnique
-                aud,
-                nonce,
-            })
-            .await?
-            .poa;
-
-        Ok(poa)
+        ))
     }
 }
 

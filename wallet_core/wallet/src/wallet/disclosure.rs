@@ -17,6 +17,8 @@ pub use openid4vc::disclosure_session::DisclosureUriSource;
 
 use attestation_data::auth::Organization;
 use attestation_data::auth::reader_auth::ReaderRegistration;
+use attestation_data::constants::PID_ATTESTATION_TYPE;
+use attestation_data::constants::PID_BSN;
 use attestation_data::disclosure_type::DisclosureType;
 use attestation_types::claim_path::ClaimPath;
 use dcql::CredentialQueryFormat;
@@ -42,14 +44,12 @@ use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::account_provider::AccountProviderClient;
 use crate::attestation::AttestationPresentation;
-use crate::attestation::BSN_ATTR_NAME;
-use crate::attestation::PID_DOCTYPE;
 use crate::digid::DigidClient;
 use crate::errors::ChangePinError;
 use crate::errors::UpdatePolicyError;
 use crate::instruction::InstructionError;
 use crate::instruction::RemoteEcdsaKeyError;
-use crate::instruction::RemoteEcdsaKeyFactory;
+use crate::instruction::RemoteEcdsaWscd;
 use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
 use crate::storage::AttestationFormatQuery;
@@ -67,12 +67,12 @@ use super::uri::identify_uri;
 /// the verifier already posseses for the wallet user. For this reason it should not retain it.
 static MDOC_LOGIN_REQUEST: LazyLock<NormalizedCredentialRequest> = LazyLock::new(|| NormalizedCredentialRequest {
     format: CredentialQueryFormat::MsoMdoc {
-        doctype_value: PID_DOCTYPE.to_string(),
+        doctype_value: PID_ATTESTATION_TYPE.to_string(),
     },
     claims: vec![AttributeRequest {
         path: vec![
-            ClaimPath::SelectByKey(PID_DOCTYPE.to_string()),
-            ClaimPath::SelectByKey(BSN_ATTR_NAME.to_string()),
+            ClaimPath::SelectByKey(PID_ATTESTATION_TYPE.to_string()),
+            ClaimPath::SelectByKey(PID_BSN.to_string()),
         ]
         .try_into()
         .unwrap(),
@@ -82,12 +82,10 @@ static MDOC_LOGIN_REQUEST: LazyLock<NormalizedCredentialRequest> = LazyLock::new
 
 static SD_JWT_LOGIN_REQUEST: LazyLock<NormalizedCredentialRequest> = LazyLock::new(|| NormalizedCredentialRequest {
     format: CredentialQueryFormat::SdJwt {
-        vct_values: vec![PID_DOCTYPE.to_string()].try_into().unwrap(),
+        vct_values: vec![PID_ATTESTATION_TYPE.to_string()].try_into().unwrap(),
     },
     claims: vec![AttributeRequest {
-        path: vec![ClaimPath::SelectByKey(BSN_ATTR_NAME.to_string())]
-            .try_into()
-            .unwrap(),
+        path: vec![ClaimPath::SelectByKey(PID_BSN.to_string())].try_into().unwrap(),
         intent_to_retain: false,
     }],
 });
@@ -672,7 +670,7 @@ where
 
         let attestations = session.attestations.as_ref().ok_or(DisclosureError::SessionState)?;
 
-        // Prepare the `RemoteEcdsaKeyFactory` for signing using the provided PIN.
+        // Prepare the `RemoteEcdsaWscd` for signing using the provided PIN.
         let instruction_result_public_key = config.account_server.instruction_result_public_key.as_inner().into();
 
         let remote_instruction = self
@@ -685,7 +683,7 @@ where
             )
             .await?;
 
-        let remote_key_factory = RemoteEcdsaKeyFactory::new(remote_instruction);
+        let remote_wscd = RemoteEcdsaWscd::new(remote_instruction);
 
         // Increment the disclosure counts of the attestation copies referenced in the proposal,
         // so that for the next disclosure different copies are used.
@@ -760,7 +758,7 @@ where
             // This not possible, as we took a reference to this value before.
             unreachable!();
         };
-        let result = session.protocol_state.disclose(mdocs, &remote_key_factory).await;
+        let result = session.protocol_state.disclose(mdocs, &remote_wscd).await;
         let return_url = match result {
             Ok(return_url) => return_url.map(BaseUrl::into_inner),
             Err((protocol_state, error)) => {
@@ -877,6 +875,7 @@ mod tests {
     use attestation_data::attributes::AttributeValue;
     use attestation_data::auth::Organization;
     use attestation_data::auth::reader_auth::ReaderRegistration;
+    use attestation_data::constants::PID_ATTESTATION_TYPE;
     use attestation_data::disclosure_type::DisclosureType;
     use attestation_data::x509::generate::mock::generate_reader_mock;
     use attestation_types::claim_path::ClaimPath;
@@ -906,7 +905,6 @@ mod tests {
 
     use crate::attestation::AttestationAttributeValue;
     use crate::attestation::AttestationIdentity;
-    use crate::attestation::PID_DOCTYPE;
     use crate::config::UNIVERSAL_LINK_BASE_URL;
     use crate::digid::MockDigidSession;
     use crate::errors::InstructionError;
@@ -935,7 +933,8 @@ mod tests {
     const PIN: &str = "051097";
     static RETURN_URL: LazyLock<BaseUrl> =
         LazyLock::new(|| BaseUrl::from_str("https://example.com/return/here").unwrap());
-    static DEFAULT_MDOC_REQUESTED_PID_PATH: LazyLock<Vec<&str>> = LazyLock::new(|| vec![PID_DOCTYPE, "family_name"]);
+    static DEFAULT_MDOC_REQUESTED_PID_PATH: LazyLock<Vec<&str>> =
+        LazyLock::new(|| vec![PID_ATTESTATION_TYPE, "family_name"]);
     static DEFAULT_SD_JWT_REQUESTED_PID_PATH: LazyLock<Vec<&str>> = LazyLock::new(|| vec!["family_name"]);
 
     #[derive(Debug, Clone, Copy)]
@@ -961,10 +960,10 @@ mod tests {
     ) -> MockDisclosureSession {
         let credential_requests = match requested_format {
             RequestedFormat::MsoMdoc => {
-                normalized::mock::mock_mdoc_from_slices(&[(PID_DOCTYPE, &[requested_pid_path])])
+                normalized::mock::mock_mdoc_from_slices(&[(PID_ATTESTATION_TYPE, &[requested_pid_path])])
             }
             RequestedFormat::SdJwt => {
-                normalized::mock::mock_sd_jwt_from_slices(&[(&[PID_DOCTYPE], &[requested_pid_path])])
+                normalized::mock::mock_sd_jwt_from_slices(&[(&[PID_ATTESTATION_TYPE], &[requested_pid_path])])
             }
         };
 
@@ -1142,7 +1141,7 @@ mod tests {
         let presentation = proposal.attestations.first().unwrap();
 
         assert_matches!(presentation.identity, AttestationIdentity::Fixed { .. });
-        assert_eq!(presentation.attestation_type, PID_DOCTYPE);
+        assert_eq!(presentation.attestation_type, PID_ATTESTATION_TYPE);
         assert_eq!(presentation.attributes.len(), 1);
 
         let attribute = presentation.attributes.first().unwrap();
@@ -1177,10 +1176,11 @@ mod tests {
                     .exactly_one()
                     .ok()
                     .and_then(|mdoc| {
-                        (mdoc.mso.doc_type == PID_DOCTYPE).then_some(mdoc.issuer_signed.into_entries_by_namespace())
+                        (mdoc.mso.doc_type == PID_ATTESTATION_TYPE)
+                            .then_some(mdoc.issuer_signed.into_entries_by_namespace())
                     })
                     .and_then(|name_spaces| name_spaces.into_iter().exactly_one().ok())
-                    .and_then(|(name_space, entries)| (name_space == PID_DOCTYPE).then_some(entries))
+                    .and_then(|(name_space, entries)| (name_space == PID_ATTESTATION_TYPE).then_some(entries))
                     .and_then(|entries| entries.into_iter().exactly_one().ok())
                     .map(|entry| entry.name == "family_name")
                     .unwrap_or(false)
@@ -1215,7 +1215,7 @@ mod tests {
                 status: DisclosureStatus::Success,
                 ..
             } if attestations.len() == 1 &&
-                attestations.first().unwrap().attestation_type == PID_DOCTYPE &&
+                attestations.first().unwrap().attestation_type == PID_ATTESTATION_TYPE &&
                 reader_certificate.as_ref() == verifier_certificate.certificate() &&
                 reader_registration.as_ref() == verifier_certificate.registration()
         );
@@ -1462,7 +1462,7 @@ mod tests {
             .await
             .expect_err("starting disclosure should not succeed");
 
-        let expected_attributes = HashSet::from([format!("{}/{}", PID_DOCTYPE, requested_pid_path.join("/"))]);
+        let expected_attributes = HashSet::from([format!("{}/{}", PID_ATTESTATION_TYPE, requested_pid_path.join("/"))]);
         assert_matches!(
             error,
             DisclosureError::AttributesNotAvailable {
@@ -1478,11 +1478,11 @@ mod tests {
     }
 
     #[rstest]
-    #[case(RequestedFormat::MsoMdoc, &[PID_DOCTYPE, "favourite_colour"])]
+    #[case(RequestedFormat::MsoMdoc, &[PID_ATTESTATION_TYPE, "favourite_colour"])]
     #[case(RequestedFormat::MsoMdoc, &["family_name"])]
     #[case(RequestedFormat::MsoMdoc, &["long", "path", "family_name"])]
     #[case(RequestedFormat::SdJwt, &["favourite_colour"])]
-    #[case(RequestedFormat::SdJwt, &[PID_DOCTYPE, "family_name"])]
+    #[case(RequestedFormat::SdJwt, &[PID_ATTESTATION_TYPE, "family_name"])]
     #[case(RequestedFormat::SdJwt, &["long", "path", "family_name"])]
     #[tokio::test]
     async fn test_wallet_start_disclosure_error_attributes_not_available_non_matching(
@@ -1508,7 +1508,7 @@ mod tests {
             .await
             .expect_err("starting disclosure should not succeed");
 
-        let expected_attributes = HashSet::from([format!("{}/{}", PID_DOCTYPE, path.join("/"))]);
+        let expected_attributes = HashSet::from([format!("{}/{}", PID_ATTESTATION_TYPE, path.join("/"))]);
         assert_matches!(
             error,
             DisclosureError::AttributesNotAvailable {
@@ -1556,7 +1556,7 @@ mod tests {
         assert_matches!(
             &error,
             DisclosureError::MultipleCandidates(attestation_types)
-                if *attestation_types == vec![PID_DOCTYPE.to_string()]
+                if *attestation_types == vec![PID_ATTESTATION_TYPE.to_string()]
         );
         assert!(error.return_url().is_none());
         assert!(wallet.session.is_none());

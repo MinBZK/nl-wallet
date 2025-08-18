@@ -27,12 +27,13 @@ use serde::de::DeserializeOwned;
 
 use crypto::keys::CredentialEcdsaKey;
 use crypto::keys::EcdsaKey;
+use crypto::wscd::DisclosureWscd;
+use crypto::wscd::WscdPoa;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateError;
 use crypto::x509::CertificateUsage;
 use error_category::ErrorCategory;
 use utils::generator::Generator;
-use wscd::keyfactory::KeyFactory;
 
 use crate::utils::serialization::CborError;
 use crate::utils::serialization::cbor_deserialize;
@@ -303,12 +304,13 @@ pub async fn sign_cose(
     Ok(signed)
 }
 
-pub async fn sign_coses<K: CredentialEcdsaKey>(
+pub async fn sign_coses<K: CredentialEcdsaKey, P: WscdPoa>(
     keys_and_challenges: Vec<(K, &[u8])>,
-    key_factory: &impl KeyFactory<Key = K>,
+    wscd: &impl DisclosureWscd<Key = K, Poa = P>,
     unprotected_header: Header,
+    poa_input: P::Input,
     include_payload: bool,
-) -> Result<(Vec<CoseSign1>, Vec<K>), CoseError> {
+) -> Result<(Vec<CoseSign1>, Option<P>), CoseError> {
     let (keys, challenges): (Vec<_>, Vec<_>) = keys_and_challenges.into_iter().unzip();
 
     let (sigs_data, protected_header) = signatures_data_and_header(&challenges);
@@ -319,12 +321,13 @@ pub async fn sign_coses<K: CredentialEcdsaKey>(
         .map(|(key, sig_data)| (sig_data, vec![key]))
         .collect::<Vec<_>>();
 
-    let signatures = key_factory
-        .sign_multiple_with_existing_keys(keys_and_signature_data)
+    let result = wscd
+        .sign(keys_and_signature_data, poa_input)
         .await
         .map_err(|error| CoseError::Signing(error.into()))?;
 
-    let signed = signatures
+    let signed = result
+        .signatures
         .into_iter()
         .zip(challenges)
         .map(|(signature, payload)| {
@@ -338,7 +341,7 @@ pub async fn sign_coses<K: CredentialEcdsaKey>(
         })
         .collect::<Result<Vec<_>, CoseError>>()?;
 
-    Ok((signed, keys))
+    Ok((signed, result.poa))
 }
 
 #[derive(thiserror::Error, Debug, ErrorCategory)]

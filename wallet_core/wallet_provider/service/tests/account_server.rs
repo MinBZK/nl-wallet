@@ -30,7 +30,7 @@ use wallet_provider_service::account_server::mock::MockAccountServer;
 use wallet_provider_service::account_server::mock::MockHardwareKey;
 use wallet_provider_service::keys::WalletCertificateSigningKey;
 use wallet_provider_service::wallet_certificate;
-use wallet_provider_service::wte_issuer::mock::MockWteIssuer;
+use wallet_provider_service::wua_issuer::mock::MockWuaIssuer;
 
 async fn db_from_env() -> Result<Db, PersistenceError> {
     let _ = tracing::subscriber::set_global_default(
@@ -55,7 +55,7 @@ async fn do_registration(
     WalletCertificate,
     MockHardwareKey,
     WalletCertificateClaims,
-    UserState<Repositories, MockPkcs11Client<HsmError>, MockWteIssuer>,
+    UserState<Repositories, MockPkcs11Client<HsmError>, MockWuaIssuer>,
 ) {
     let challenge = account_server
         .registration_challenge(certificate_signing_key)

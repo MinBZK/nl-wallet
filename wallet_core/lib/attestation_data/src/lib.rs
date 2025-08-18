@@ -1,5 +1,6 @@
 pub mod attributes;
 pub mod auth;
+pub mod constants;
 pub mod credential_payload;
 pub mod disclosure;
 pub mod disclosure_type;
