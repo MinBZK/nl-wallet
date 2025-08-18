@@ -3,7 +3,6 @@ use std::sync::Arc;
 use std::sync::LazyLock;
 
 use chrono::Utc;
-use derive_more::Constructor;
 use futures::future::try_join_all;
 use itertools::Either;
 use itertools::Itertools;
@@ -11,7 +10,6 @@ use tracing::error;
 use tracing::info;
 use tracing::instrument;
 use url::Url;
-use uuid::Uuid;
 
 pub use openid4vc::disclosure_session::DisclosureUriSource;
 
@@ -37,7 +35,6 @@ use openid4vc::disclosure_session::VpSessionError;
 use openid4vc::disclosure_session::VpVerifierError;
 use openid4vc::verifier::SessionType;
 use platform_support::attested_key::AttestedKeyHolder;
-use sd_jwt::sd_jwt::UnsignedSdJwtPresentation;
 use update_policy_model::update_policy::VersionState;
 use utils::vec_at_least::VecNonEmpty;
 use wallet_configuration::wallet_config::WalletConfiguration;
@@ -52,11 +49,12 @@ use crate::instruction::RemoteEcdsaKeyError;
 use crate::instruction::RemoteEcdsaWscd;
 use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
+use crate::storage::AttestationDisclosureProposal;
 use crate::storage::AttestationFormatQuery;
 use crate::storage::DataDisclosureStatus;
+use crate::storage::PartialAttestation;
 use crate::storage::Storage;
 use crate::storage::StorageError;
-use crate::storage::StoredAttestation;
 use crate::wallet::Session;
 
 use super::UriType;
@@ -231,7 +229,7 @@ pub enum RedirectUriPurpose {
 pub(super) struct WalletDisclosureSession<DCS> {
     pub redirect_uri_purpose: RedirectUriPurpose,
     pub disclosure_type: DisclosureType,
-    pub attestations: Option<VecNonEmpty<DisclosureAttestation>>,
+    pub attestations: Option<VecNonEmpty<AttestationDisclosureProposal>>,
     pub protocol_state: DCS,
 }
 
@@ -239,7 +237,7 @@ impl<DCS> WalletDisclosureSession<DCS> {
     pub fn new_proposal(
         redirect_uri_purpose: RedirectUriPurpose,
         disclosure_type: DisclosureType,
-        attestations: VecNonEmpty<DisclosureAttestation>,
+        attestations: VecNonEmpty<AttestationDisclosureProposal>,
         protocol_state: DCS,
     ) -> Self {
         Self {
@@ -262,13 +260,6 @@ impl<DCS> WalletDisclosureSession<DCS> {
             protocol_state,
         }
     }
-}
-
-#[derive(Debug, Clone, Constructor)]
-pub(super) struct DisclosureAttestation {
-    copy_id: Uuid,
-    attestation: StoredAttestation<UnsignedSdJwtPresentation>,
-    presentation: AttestationPresentation,
 }
 
 impl RedirectUriPurpose {
@@ -297,12 +288,12 @@ where
     S: Storage,
 {
     /// Helper method that fetches attestation from the database based on their attestation type, filters out any of
-    /// them that do not match the request and convert the remaining ones to a [`DisclosureAttestation`], which contains
-    /// an [`AttestationPresentation`] to show to the user.
+    /// them that do not match the request and convert the remaining ones to a [`AttestationDisclosureProposal`], which
+    /// contains an [`AttestationPresentation`] to show to the user.
     async fn fetch_candidate_attestations(
         storage: &S,
         request: &NormalizedCredentialRequest,
-    ) -> Result<Option<VecNonEmpty<DisclosureAttestation>>, StorageError> {
+    ) -> Result<Option<VecNonEmpty<AttestationDisclosureProposal>>, StorageError> {
         let (attestation_types, format_query) = match &request.format {
             CredentialQueryFormat::MsoMdoc { doctype_value } => {
                 (HashSet::from([doctype_value.as_str()]), AttestationFormatQuery::MsoMdoc)
@@ -319,26 +310,19 @@ where
 
         let candidate_attestations = stored_attestations
             .into_iter()
-            .filter(|full_copy| {
+            .filter_map(|attestation_copy| {
                 // Only select those attestations that contain all of the requested attributes.
                 // TODO (PVW-4537): Have this be part of the database query using some index.
-                full_copy.matches_requested_attributes(request.claim_paths())
-            })
-            .map(|full_copy| {
-                // Remove any attributes that were not requested from the presentation attributes. Since the filtering
-                // above should remove any attestation in which the requested claim paths are not present and this is
-                // the only error condition, no error should occur.
-                let partial_copy = full_copy
-                    .try_into_partial(request.claim_paths())
-                    .expect("all claim paths should be present in attestation");
-
-                // Save a clone of the original attestation for disclosure,
-                // then convert the partial attestation for display.
-                let copy_id = partial_copy.attestation_copy_id();
-                let attestation = partial_copy.attestation().clone();
-                let presentation = partial_copy.into_attestation_presentation();
-
-                DisclosureAttestation::new(copy_id, attestation, presentation)
+                attestation_copy
+                    .matches_requested_attributes(request.claim_paths())
+                    .then(|| {
+                        // Create a disclosure proposal by removing any attributes that were not requested from the
+                        // presentation attributes. Since the filtering above should remove any attestation in which the
+                        // requested claim paths are not present and this is the only error condition, no error should
+                        // occur.
+                        AttestationDisclosureProposal::try_new(attestation_copy, request.claim_paths())
+                            .expect("all claim paths should be present in attestation")
+                    })
             })
             .collect_vec();
 
@@ -472,7 +456,7 @@ where
                 if candidate_attestations.len().get() == 1 {
                     Either::Left(candidate_attestations.into_first())
                 } else {
-                    Either::Right(candidate_attestations.into_first().presentation.attestation_type)
+                    Either::Right(candidate_attestations.into_first().into_presentation().attestation_type)
                 }
             });
 
@@ -496,7 +480,7 @@ where
         let proposal = DisclosureProposalPresentation {
             attestations: disclosure_attestations
                 .iter()
-                .map(|attestation| attestation.presentation.clone())
+                .map(|attestation| attestation.presentation().clone())
                 .collect(),
             reader_registration: verifier_certificate.registration().clone(),
             shared_data_with_relying_party_before,
@@ -524,7 +508,7 @@ where
         let attestations = session.attestations.map(|attestations| {
             attestations
                 .into_iter()
-                .map(|attestation| attestation.presentation)
+                .map(|proposal| proposal.into_presentation())
                 .collect_vec()
                 .try_into()
                 // Safe, as the source of the iterator is `VecNonEmpty`.
@@ -701,7 +685,7 @@ where
             .increment_attestation_copies_usage_count(
                 attestations
                     .iter()
-                    .map(|attestation| attestation.copy_id)
+                    .map(|proposal| proposal.attestation_copy_id())
                     .dedup()
                     .collect(),
             )
@@ -720,7 +704,7 @@ where
                     Some(
                         attestations
                             .iter()
-                            .map(|attestation| attestation.presentation.clone())
+                            .map(|proposal| proposal.presentation().clone())
                             .collect_vec()
                             .try_into()
                             .unwrap(),
@@ -741,9 +725,9 @@ where
         // Clone some values from `WalletDisclosureSession`, before we have to give away ownership of it.
         let mdocs = attestations
             .iter()
-            .map(|attestation| match &attestation.attestation {
-                StoredAttestation::MsoMdoc { mdoc } => mdoc.as_ref().clone(),
-                StoredAttestation::SdJwt { .. } => {
+            .map(|proposal| match proposal.partial_attestation() {
+                PartialAttestation::MsoMdoc { mdoc } => mdoc.as_ref().clone(),
+                PartialAttestation::SdJwt { .. } => {
                     todo!("implement SD-JWT disclosure (PVW-4138)")
                 }
             })
@@ -784,7 +768,7 @@ where
                                     .as_ref()
                                     .unwrap()
                                     .iter()
-                                    .map(|attestation| attestation.presentation.clone())
+                                    .map(|proposal| proposal.presentation().clone())
                                     .collect_vec()
                                     .try_into()
                                     .unwrap(),
@@ -840,7 +824,7 @@ where
                     .attestations
                     .unwrap()
                     .into_iter()
-                    .map(|attestation| attestation.presentation)
+                    .map(|proposal| proposal.into_presentation())
                     .collect_vec()
                     .try_into()
                     .unwrap(),
@@ -909,6 +893,7 @@ mod tests {
     use crate::digid::MockDigidSession;
     use crate::errors::InstructionError;
     use crate::errors::RemoteEcdsaKeyError;
+    use crate::storage::AttestationDisclosureProposal;
     use crate::storage::DisclosureStatus;
     use crate::storage::StoredAttestation;
     use crate::storage::StoredAttestationCopy;
@@ -922,7 +907,6 @@ mod tests {
     use super::super::test::create_example_pid_sd_jwt;
     use super::super::test::create_example_pid_sd_jwt_credential;
     use super::super::test::setup_mock_recent_history_callback;
-    use super::DisclosureAttestation;
     use super::DisclosureError;
     use super::DisclosureProposalPresentation;
     use super::RedirectUriPurpose;
@@ -1067,27 +1051,22 @@ mod tests {
             StoredAttestationCopy::new(Uuid::new_v4(), Uuid::new_v4(), attestation, metadata.clone());
 
         // Remove any of the attributes not requested from the attestation.
-        let stored_attestation = stored_attestation
-            .try_into_partial(&[requested_pid_path
+        let proposal = AttestationDisclosureProposal::try_new(
+            stored_attestation,
+            &[requested_pid_path
                 .iter()
                 .map(|element| ClaimPath::SelectByKey(element.to_string()))
                 .collect_vec()
                 .try_into()
-                .unwrap()])
-            .unwrap();
-        let attestation = stored_attestation.attestation().clone();
+                .unwrap()],
+        )
+        .unwrap();
 
         // Store that attestation and its `AttestationPresentation` in the session.
         let session = Session::Disclosure(WalletDisclosureSession::new_proposal(
             RedirectUriPurpose::Browser,
             DisclosureType::Regular,
-            vec![DisclosureAttestation::new(
-                stored_attestation.attestation_copy_id(),
-                attestation,
-                stored_attestation.into_attestation_presentation(),
-            )]
-            .try_into()
-            .unwrap(),
+            vec![proposal].try_into().unwrap(),
             disclosure_session,
         ));
 
@@ -2071,7 +2050,7 @@ mod tests {
             .as_ref()
             .unwrap()
             .iter()
-            .map(|attestation| attestation.copy_id)
+            .map(|attestation| attestation.attestation_copy_id())
             .collect_vec();
 
         let disclose_verifier_certificate = verifier_certificate.clone();
@@ -2246,7 +2225,7 @@ mod tests {
             .as_ref()
             .unwrap()
             .iter()
-            .map(|attestation| attestation.copy_id)
+            .map(|attestation| attestation.attestation_copy_id())
             .collect_vec();
 
         let disclose_verifier_certificate = verifier_certificate.clone();

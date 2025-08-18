@@ -58,12 +58,12 @@ use crate::AttestationPresentation;
 use crate::DisclosureStatus;
 
 use super::AttestationFormatQuery;
-use super::FullStoredAttestationCopy;
 use super::Storage;
 use super::StorageError;
 use super::StorageResult;
 use super::StorageState;
 use super::StoredAttestation;
+use super::attestation_copy::StoredAttestationCopy;
 use super::data::KeyedData;
 use super::database::Database;
 use super::database::SqliteUrl;
@@ -155,7 +155,7 @@ impl<K> DatabaseStorage<K> {
     async fn query_unique_attestations(
         &self,
         condition: Option<Condition>,
-    ) -> StorageResult<Vec<FullStoredAttestationCopy>> {
+    ) -> StorageResult<Vec<StoredAttestationCopy>> {
         let database = self.database()?;
 
         // As this query only contains one `MIN()` aggregate function, the columns that
@@ -207,7 +207,7 @@ impl<K> DatabaseStorage<K> {
 
                     let normalized_metadata = metadata.documents.to_normalized()?;
 
-                    let stored_copy = FullStoredAttestationCopy {
+                    let stored_copy = StoredAttestationCopy {
                         attestation_id,
                         attestation_copy_id,
                         attestation,
@@ -571,7 +571,7 @@ where
         Ok(())
     }
 
-    async fn fetch_unique_attestations(&self) -> StorageResult<Vec<FullStoredAttestationCopy>> {
+    async fn fetch_unique_attestations(&self) -> StorageResult<Vec<StoredAttestationCopy>> {
         self.query_unique_attestations(None).await
     }
 
@@ -579,7 +579,7 @@ where
         &'a self,
         attestation_types: &HashSet<&'a str>,
         format_query: AttestationFormatQuery,
-    ) -> StorageResult<Vec<FullStoredAttestationCopy>> {
+    ) -> StorageResult<Vec<StoredAttestationCopy>> {
         let condition = Condition::all();
 
         let attestation_types_iter = attestation_types.iter().copied();
@@ -1585,7 +1585,7 @@ pub(crate) mod tests {
             .await
             .expect("Could not insert mdocs");
 
-        let FullStoredAttestationCopy {
+        let StoredAttestationCopy {
             attestation: StoredAttestation::SdJwt { sd_jwt },
             attestation_id,
             ..
@@ -1725,7 +1725,7 @@ pub(crate) mod tests {
             .expect("Could not fetch unique attestations")
             .into_iter()
             .map(|attestation| {
-                let FullStoredAttestationCopy {
+                let StoredAttestationCopy {
                     attestation: StoredAttestation::SdJwt { sd_jwt },
                     attestation_id,
                     ..

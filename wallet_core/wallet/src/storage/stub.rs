@@ -19,11 +19,11 @@ use crate::AttestationPresentation;
 use crate::DisclosureStatus;
 
 use super::AttestationFormatQuery;
-use super::FullStoredAttestationCopy;
 use super::Storage;
 use super::StorageResult;
 use super::StorageState;
-use super::StoredAttestation;
+use super::attestation_copy::StoredAttestation;
+use super::attestation_copy::StoredAttestationCopy;
 use super::data::KeyedData;
 use super::data::RegistrationData;
 use super::event_log::WalletEvent;
@@ -194,7 +194,7 @@ impl Storage for StorageStub {
         Ok(has_attestations)
     }
 
-    async fn fetch_unique_attestations(&self) -> StorageResult<Vec<FullStoredAttestationCopy>> {
+    async fn fetch_unique_attestations(&self) -> StorageResult<Vec<StoredAttestationCopy>> {
         self.check_query_error()?;
 
         let attestations = self
@@ -207,7 +207,7 @@ impl Storage for StorageStub {
                     IssuedCredential::SdJwt(sd_jwt) => StoredAttestation::SdJwt { sd_jwt: sd_jwt.clone() },
                 };
 
-                FullStoredAttestationCopy {
+                StoredAttestationCopy {
                     attestation_id: Uuid::now_v7(),
                     attestation_copy_id: Uuid::now_v7(),
                     attestation,
@@ -223,7 +223,7 @@ impl Storage for StorageStub {
         &'a self,
         attestation_types: &HashSet<&'a str>,
         format_query: AttestationFormatQuery,
-    ) -> StorageResult<Vec<FullStoredAttestationCopy>> {
+    ) -> StorageResult<Vec<StoredAttestationCopy>> {
         self.check_query_error()?;
 
         let attestations = attestation_types
@@ -248,7 +248,7 @@ impl Storage for StorageStub {
                             _ => None,
                         });
 
-                attestation.map(|attestation| FullStoredAttestationCopy {
+                attestation.map(|attestation| StoredAttestationCopy {
                     attestation_id: Uuid::now_v7(),
                     attestation_copy_id: Uuid::now_v7(),
                     attestation,

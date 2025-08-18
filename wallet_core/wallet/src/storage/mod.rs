@@ -30,7 +30,8 @@ use sd_jwt_vc_metadata::TypeMetadataChainError;
 
 use crate::AttestationPresentation;
 
-pub use self::attestation_copy::FullStoredAttestationCopy;
+pub use self::attestation_copy::AttestationDisclosureProposal;
+pub use self::attestation_copy::PartialAttestation;
 pub use self::attestation_copy::StoredAttestation;
 pub use self::attestation_copy::StoredAttestationCopy;
 pub use self::data::ChangePinData;
@@ -152,13 +153,13 @@ pub trait Storage {
 
     async fn has_any_attestations_with_type(&self, attestation_type: &str) -> StorageResult<bool>;
 
-    async fn fetch_unique_attestations(&self) -> StorageResult<Vec<FullStoredAttestationCopy>>;
+    async fn fetch_unique_attestations(&self) -> StorageResult<Vec<StoredAttestationCopy>>;
 
     async fn fetch_unique_attestations_by_type<'a>(
         &'a self,
         attestation_types: &HashSet<&'a str>,
         format_query: AttestationFormatQuery,
-    ) -> StorageResult<Vec<FullStoredAttestationCopy>>;
+    ) -> StorageResult<Vec<StoredAttestationCopy>>;
 
     async fn log_disclosure_event(
         &mut self,
