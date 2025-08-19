@@ -4,9 +4,9 @@ TODO These verifier docs need updating to support self-CA and generic issuance
 
 ## Introduction
 
-A Relying Party (a verifier of attestations presented by the wallet) will want
-to have a global idea of what he/she needs to do when integrating their
-application with the wallet environment.
+A Relying Party (a verifier of attestations presented by the -NL-Wallet) will
+want to have a global idea of what he/she needs to do when integrating their
+application with the NL-Wallet environment.
 
 This document aims to provide a global outline of components used, the necessary
 decisions, data, certificate(s), and setup of the "Ontvangende Voorziening" plus
@@ -15,7 +15,7 @@ integration thereof with their own frontend(s) and backend.
 ## Step-by-step
 
 As a relying party you want to verify certain attributes of a natural person
-which are contained in the NL wallet. To be able to do so there are a few things
+which are contained in the NL-Wallet. To be able to do so there are a few things
 you must do. Roughly these are a couple of onboarding steps and the actual
 configuration of the "Ontvangende Voorziening" (which can be translated as
 "Receiving Facility", a facility that receives attributes to verify):
@@ -61,35 +61,35 @@ session. The main components are:
 - Relying Party Application: An app running on-premises or in-cloud of the
   relying party that needs to do something with the result of a verification of
   attributes;
-- [Wallet App][5]: The wallet app running on a mobile device;
+- [Wallet App][5]: The NL-Wallet app running on a mobile device;
 
 Missing from the above diagram, but worth mentioning:
 
 - [Wallet Web][14] The frontend helper JavaScript/TypeScript library which helps
-  relying parties integrate their application with the Wallet platform.
+  relying parties integrate their application with the NL-Wallet platform.
 
 For the purpose of this document, we won't go into all components mentioned
 above, in particular, "DigiD" and "Pseudonym Service" are out-of-scope with
 regards to this outline.
 
-The Wallet platform largely consists of "Verstrekkende Voorziening(en)", that
+The NL-Wallet platform largely consists of "Verstrekkende Voorziening(en)", that
 can issue attributes and attestations, "Ontvangende Voorziening(en)" that handle
-disclosure of attributes sessions, and the Wallet App, which contains attributes
+disclosure of attributes sessions, and the Nl-Wallet App, which contains attributes
 and attestations received through the "Verstrekkende Voorziening(en)", enabling
-the Wallet App to disclose them to "Ontvangende Voorziening(en)".
+the NL-Wallet App to disclose them to "Ontvangende Voorziening(en)".
 
 The "Ontvangende Voorziening(en)" are things that relying parties configure and
 maintain on their own premises or cloud environments, which they integrate with
-their own application, and which interacts with the Wallet app, in order to
+their own application, and which interacts with the NL-Wallet app, in order to
 verify attributes and attestations for usage in their own application.
 
 This document is about configuring an "Ontvangende Voorziening". To have a
-broader view on the Wallet platform, you can have a look at the [Architecture
+broader view on the NL-Wallet platform, you can have a look at the [Architecture
 Documents][5]. Specifically, the Project Start Architecture, the Solution
 Architecture Document and the Design Considerations (all of which can be found
 at the aforementioned link).
 
-The Wallet platform is fully open-source; you can find the project on GitHub:
+The NL-Wallet platform is fully open-source; you can find the project on GitHub:
 [nl-wallet][6] (note: we currently have a dependency on [nl-rdo-max][7] which is
 also open-source but lags behind a bit in updates - we're intending on getting
 some currently-private changes upstreamed, work in progress).
@@ -110,9 +110,9 @@ purpose of the verification. So:
 - Which attribute(s): `birth_date`, `age_over_18`, `gender`, etc
 - What purpose: _describe why you need to verify the attribute(s)_
 
-Attributes in the wallet are grouped in things called attestations and the
-wallet app displays these attestations as cards. The attestations are stored in
-the `mdoc` format (see [ISO/IEC 18013-5:2021][8] and [ISO/IEC 23220-4][9]).
+Attributes in are grouped in things called attestations and the app displays
+these attestations as cards. The attestations are stored in the `mdoc` format
+(see [ISO/IEC 18013-5:2021][8] and [ISO/IEC 23220-4][9]).
 
 In the `verification_server` we have the concept of `usecases`, which
 encapsulate what you want to use a disclosure for, for example to verify a legal
@@ -167,9 +167,9 @@ needed when we file the request later on.
 
 ## Required Data
 
-The Wallet needs a bunch of data about you, the relying party which we store as
-a part of the certificate in a so-called X.509v3 extension. We use this data to
-present a view of the relying party in the wallet app GUI. What we need to know:
+We need certain meta-data about you, the relying party, which we store as a part
+of the certificate in a so-called X.509v3 extension. We use this data to present
+a view of the relying party in the NL-Wallet app GUI. What we need to know:
 
 **REQUIRED_DATA**
 
@@ -179,13 +179,13 @@ present a view of the relying party in the wallet app GUI. What we need to know:
 | `retention_policy`                | -         | Do you have an intent to retain data? For how long?                          |
 | `sharing_policy`                  | -         | Do you have an intent to share data? With whom?                              |
 | `deletion_policy`                 | -         | Do you allow users to request deletion of their data, yes/no?                |
-| `organization_display_name`       | `nl+en`   | Name of the relying party as shown in the wallet app.                        |
+| `organization_display_name`       | `nl+en`   | Name of the relying party as shown in the app app.                        |
 | `organization_legal_name`         | `nl+en`   | Legal name of the relying party.                                             |
 | `organization_description`        | `nl+en`   | Short one-sentence description or mission statement of the relying party.    |
 | `organization_web_url`            | -         | The home URL of the relying party.                                           |
 | `organization_city`               | `nl+en`   | The home city of the relying party.                                          |
 | `organization_category`           | `nl+en`   | Bank, Municipality, Trading, Delivery Service, etc.                          |
-| `organization_logo`               | -         | A logo to display in the wallet app, preferably in SVG format.               |
+| `organization_logo`               | -         | A logo to display in the app, preferably in SVG format.               |
 | `organization_country_code`       | -         | Two-letter country code of relying party residence.                          |
 | `organization_kvk`                | -         | Chamber of commerce number of relying party.                                 |
 | `organization_privacy_policy_url` | -         | Link to relying party's privacy policy.                                      |
@@ -263,7 +263,7 @@ The data from `reader_auth.json` is used in various parts of the app. For
 illustrational purposes, see below a screenshot of a screen showing details
 about the municipality of Amsterdam:
 
-<img src="/_static/img/non-free/reader_auth_json_in_use.gif" alt="A screenshot showing how reader_auth.json data is used within the Wallet app." width="300"/>
+<img src="/_static/img/non-free/reader_auth_json_in_use.gif" alt="A screenshot showing how reader_auth.json data is used within the NL-Wallet app." width="300"/>
 
 ## Certificate Request
 
@@ -366,13 +366,13 @@ purpose_statement: For what purpose are you attesting? Login? Age verification? 
 retention_policy: Do you have an intent to retain data? For how long?
 sharing_policy: Do you have an intent to share data? With whom?
 deletion_policy: Do you allow users to request deletion of their data, yes/no?
-organization_display_name: Name of the relying party as shown in the wallet app.
+organization_display_name: Name of the relying party as shown in the app.
 organization_legal_name: Legal name of the relying party.
 organization_description: Short one-sentence description or mission statement of the relying party.
 organization_web_url: The home URL of the relying party.
 organization_city: The home city of the relying party.
 organization_category: Bank, Municipality, Trading, Delivery Service, etc.
-organization_logo: A logo to display in the wallet app, preferably in SVG format.
+organization_logo: A logo to display in the app, preferably in SVG format.
 organization_country_code: Two-letter country code of relying party residence.
 organization_kvk: Chamber of commerce number of relying party.
 organization_privacy_policy_url: Link to relying party's privacy policy.
@@ -575,8 +575,8 @@ export WAPUBLICURL="https://verify.example.com/"
 
 The universal link base URL is used to configure the `verification_server` to
 communicate the correct environment-specific universal link to the the mobile
-operating system which is running the NL Wallet app. It is used to trigger the
-mobile operating system to start the NL Wallet app when clicking the link or
+operating system which is running the NL-Wallet app. It is used to trigger the
+mobile operating system to start the NL-Wallet app when clicking the link or
 scanning the QR code.
 
 You will have received the universal link base URL with the e-mail response to
@@ -686,7 +686,7 @@ looks like you'd expect.
 
 ### Configuring an API key (optional)
 
-In our configuration, the wallet server is configured with a separate port for
+In our configuration, the `wallet_server` is configured with a separate port for
 the public (wallet) and private (requester) endpoints. The private endpoint can
 additionally be configured to require an API key, which needs to be passed with
 a request as an `Authorization` header containing `Bearer your_secret_key`.
@@ -777,13 +777,13 @@ the [API specifications](#api-specifications) section.
 
 ## Background
 
-Now that you can interact with the wallet platform, you are ready to start
+Now that you can interact with the NL-Wallet platform, you are ready to start
 working on integration your own application with your "Ontvangende Voorziening".
 
 An "Ontvangende Voorziening" is realized by the `verification_server`, which is
-a software component developed by the NL wallet team which you as a relying
+a software component developed by the NL-Wallet team which you as a relying
 party run on-premises or within your cloud environment in order to interact with
-the wallet platform.
+the NL-Wallet platform.
 
 In the following subsections we'll give you a high-level overview of what an
 "Ontvangende Voorziening" looks like, how to integrate it with your application
@@ -810,8 +810,8 @@ Note the possible session states:
 
 Note the "actors/components" we distinguish between:
 
-- `user`: _user of the wallet_app, initiating an attribute disclosure session_
-- `wallet_app`: _the wallet app, running on a users' mobile phone_
+- `user`: _user of the app, initiating an attribute disclosure session_
+- `wallet_app`: _the NL-Wallet app, running on a users' mobile phone_
 - `verification_server`: _the verification_server component of the OV_
 - `rp_frontend`: _the (JavaScript/HTML/CSS) frontend of the relying party app_
   _can be-or-use previously mentioned `wallet_web` JavaScript helper library_
@@ -890,11 +890,11 @@ Same-device flow, the resulting Universal link can be directly opened by the
 
 ## Notes on Requirements Applicable to Your Application
 
-Below a list of things to know about the wallet platform and more specifically,
-what you need to keep in mind when you integrate the usage of the wallet for
-identification or verification of attributes with your application:
+Below you'll find a list of things to know about the NL-Wallet platform and more
+specifically, what you need to keep in mind when you integrate the usage of the
+app for identification or verification of attributes with your application:
 
-- The wallet app presents attestations using the [OpenID4VP][10] protocol
+- The NL-Wallet app presents attestations using the [OpenID4VP][10] protocol
   standard using the [ISO/IEC 18013-5:2021][8] mdoc credential format;
 - Any disclosure session initiation request must include the reason why the
   relying party is requesting the attributes;
@@ -906,14 +906,14 @@ identification or verification of attributes with your application:
 - The standard buttons for login and sharing should be used, but one can use
   custom button text (within reason);
 - Button styling and call-to-action can be customized by relying party;
-- The text "NL Wallet" should always be visible in the call-to-action;
-- Logo of "NL Wallet" should be visible next to the call-to-action.
+- The text "NL-Wallet" should always be visible in the call-to-action;
+- Logo of "NL-Wallet" should be visible next to the call-to-action.
 
 ## Integration
 
 If you look at the previous disclosure flow diagram, on the left side, you see
 the Relying Party application, which is an application you probably already have
-that you want to integrate with functionality the wallet provides (i.e., the
+that you want to integrate with functionality the app provides (i.e., the
 verification of identity and/or certain specific attributes, in order to allow
 or disallow usage of (a part of) said application).
 
@@ -1087,7 +1087,7 @@ Below you'll find a collection of links which we reference to through the entire
 text. Note that they don't display when rendered within a website, you need to
 read the text in a regular text editor or pager to see them.
 
-TODO: Link to VV/OV SAD, which are still in draft and not published yet.
+TODO Link to VV/OV SAD, which are still in draft and not published yet.
 
 [1]: https://www.logius.nl/onze-dienstverlening/toegang/digid
 [2]: https://www.logius.nl/onze-dienstverlening/toegang/voorzieningen/bsnk-pp
