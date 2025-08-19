@@ -34,7 +34,7 @@
       "${READER_CA_CRT}"
     ]
   },
-  "mdoc_trust_anchors": [
+  "issuer_trust_anchors": [
     "${ISSUER_CA_CRT}"
   ],
   "update_policy_server": {

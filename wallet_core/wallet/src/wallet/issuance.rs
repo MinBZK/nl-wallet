@@ -344,7 +344,7 @@ where
         self.issuance_fetch_previews(
             token_request,
             config.pid_issuance.pid_issuer_url.clone(),
-            &config.mdoc_trust_anchors(),
+            &config.issuer_trust_anchors(),
             true,
         )
         .await
@@ -355,7 +355,7 @@ where
         &mut self,
         token_request: TokenRequest,
         issuer_url: BaseUrl,
-        mdoc_trust_anchors: &Vec<TrustAnchor<'_>>,
+        issuer_trust_anchors: &Vec<TrustAnchor<'_>>,
         is_pid: bool,
     ) -> Result<Vec<AttestationPresentation>, IssuanceError> {
         let http_client = client_builder_accept_json(default_reqwest_client_builder())
@@ -366,7 +366,7 @@ where
             HttpVcMessageClient::new(NL_WALLET_CLIENT_ID.to_string(), http_client),
             issuer_url,
             token_request,
-            mdoc_trust_anchors,
+            issuer_trust_anchors,
         )
         .await?;
 
@@ -488,7 +488,7 @@ where
 
         let issuance_result = issuance_session
             .protocol_state
-            .accept_issuance(&config.mdoc_trust_anchors(), &remote_wscd, issuance_session.is_pid)
+            .accept_issuance(&config.issuer_trust_anchors(), &remote_wscd, issuance_session.is_pid)
             .await
             .map_err(|error| {
                 match error {
