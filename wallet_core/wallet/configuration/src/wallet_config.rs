@@ -28,7 +28,7 @@ pub struct WalletConfiguration {
     pub disclosure: DisclosureConfiguration,
     #[debug(skip)]
     #[serde_as(as = "Vec<Base64>")]
-    pub mdoc_trust_anchors: Vec<BorrowingTrustAnchor>,
+    pub issuer_trust_anchors: Vec<BorrowingTrustAnchor>,
     pub update_policy_server: UpdatePolicyServerConfiguration,
     pub google_cloud_project_number: u64,
     pub static_assets_base_url: BaseUrl,
@@ -36,8 +36,8 @@ pub struct WalletConfiguration {
 }
 
 impl WalletConfiguration {
-    pub fn mdoc_trust_anchors(&self) -> Vec<TrustAnchor<'_>> {
-        self.mdoc_trust_anchors
+    pub fn issuer_trust_anchors(&self) -> Vec<TrustAnchor<'_>> {
+        self.issuer_trust_anchors
             .iter()
             .map(|anchor| anchor.as_trust_anchor().clone())
             .collect()
