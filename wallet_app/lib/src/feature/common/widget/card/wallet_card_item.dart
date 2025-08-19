@@ -168,10 +168,11 @@ class WalletCardItem extends StatefulWidget {
         },
       ),
       builder: (context, child) {
+        final scale = scaleTween.evaluate(animation);
         return Transform(
           alignment: FractionalOffset.center,
           transform: Matrix4.identity()
-            ..scale(scaleTween.evaluate(animation))
+            ..scaleByDouble(scale, scale, scale, scale)
             ..setEntry(3, 2, 0.001)
             ..rotateX(perspectiveTween.evaluate(animation)),
           child: child,
