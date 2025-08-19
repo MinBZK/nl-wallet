@@ -66,7 +66,7 @@ specific attributes that make the certicate work with our ecosystem.
 These certificates are issued by a CA (Certificate Authority) and these CAs are
 then trusted by the app, the issuers and the verifiers.
 
-In the future, the NL-wallet platform will likely facilitate or use a dedicated
+In the future, the NL-Wallet platform will likely facilitate or use a dedicated
 CA entity that will be responsible for issuing certificates for both issuers and
 verifiers, for both development and production purposes. This CA entity is not
 yet available, and hence, we facilitate community participants by allowing them
