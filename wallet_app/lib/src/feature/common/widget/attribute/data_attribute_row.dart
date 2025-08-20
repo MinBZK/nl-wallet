@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 
 import '../../../../domain/model/attribute/attribute.dart';
 import '../../../../util/extension/build_context_extension.dart';
@@ -37,11 +38,26 @@ class DataAttributeRow extends StatelessWidget {
 
     // Check for non-empty array, this value is not simply formatted and displayed.
     if (attributeValue is ArrayValue && attributeValue.value.isNotEmpty) {
-      return ListView.builder(
+      return _buildArrayStyleSubtitle(context, attributeValue);
+    }
+
+    return Text.rich(
+      prettyValue.toTextSpan(context),
+      semanticsLabel: BsnHelper.isValidBsnFormat(prettyValue) ? SemanticsHelper.splitNumberString(prettyValue) : null,
+      style: _resolveSubtitleStyle(context, attribute.value),
+    );
+  }
+
+  Widget _buildArrayStyleSubtitle(BuildContext context, ArrayValue arrayValue) {
+    return Semantics(
+      // Dedicated semanticsLabel, this makes sure it gets announced on Android as well.
+      attributedLabel: _buildAttributedString(context, arrayValue),
+      excludeSemantics: true,
+      child: ListView.builder(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         itemBuilder: (c, i) {
-          final subtitleRow = _buildSubtitle(context, attributeValue.value[i]);
+          final subtitleRow = _buildSubtitle(context, arrayValue.value[i]);
           return Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -50,15 +66,19 @@ class DataAttributeRow extends StatelessWidget {
             ],
           );
         },
-        itemCount: attributeValue.value.length,
-      );
-    }
-
-    return Text.rich(
-      prettyValue.toTextSpan(context),
-      semanticsLabel: BsnHelper.isValidBsnFormat(prettyValue) ? SemanticsHelper.splitNumberString(prettyValue) : null,
-      style: _resolveSubtitleStyle(context, attribute.value),
+        itemCount: arrayValue.value.length,
+      ),
     );
+  }
+
+  AttributedString _buildAttributedString(BuildContext context, ArrayValue arrayValue) {
+    final attributedStrings = arrayValue.value.map(
+      (it) {
+        if (it is ArrayValue) return _buildAttributedString(context, it);
+        return it.prettyPrint(context).toAttributedString(context);
+      },
+    );
+    return attributedStrings.reduce((acc, it) => acc + ', '.toAttributedString(context) + it);
   }
 
   TextStyle? _resolveSubtitleStyle(BuildContext context, AttributeValue attributeValue) {
