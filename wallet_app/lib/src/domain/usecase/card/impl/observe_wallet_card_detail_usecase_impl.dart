@@ -1,3 +1,6 @@
+import 'package:collection/collection.dart';
+import 'package:rxdart/rxdart.dart';
+
 import '../../../../data/repository/card/wallet_card_repository.dart';
 import '../../../../data/repository/event/wallet_event_repository.dart';
 import '../../../model/card/wallet_card.dart';
@@ -20,7 +23,8 @@ class ObserveWalletCardDetailUseCaseImpl extends ObserveWalletCardDetailUseCase 
   Stream<WalletCardDetail> invoke(String cardId) {
     return _walletCardRepository
         .observeWalletCards()
-        .map((cards) => cards.firstWhere((card) => card.attestationId == cardId))
+        .map((cards) => cards.firstWhereOrNull((card) => card.attestationId == cardId))
+        .whereNotNull()
         .asyncMap(_getWalletCardDetail)
         .handleAppError('Error while observing card details');
   }
