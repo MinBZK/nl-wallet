@@ -1,5 +1,7 @@
 # Index
 
+TODO Add a story here so the index doesn't look so empty
+
 ```{toctree}
 :maxdepth: 1
 about
