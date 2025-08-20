@@ -97,13 +97,13 @@ async fn test_pid_issuance_digid_bridge() {
         HttpVcMessageClient::new(NL_WALLET_CLIENT_ID.to_string(), reqwest::Client::new()),
         server_url.clone(),
         token_request,
-        &wallet_config.mdoc_trust_anchors(),
+        &wallet_config.issuer_trust_anchors(),
     )
     .await
     .unwrap();
 
     let credential_with_metadata = issuance_session
-        .accept_issuance(&wallet_config.mdoc_trust_anchors(), &MockRemoteWscd::default(), false)
+        .accept_issuance(&wallet_config.issuer_trust_anchors(), &MockRemoteWscd::default(), false)
         .await
         .unwrap();
 
