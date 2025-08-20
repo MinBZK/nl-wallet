@@ -113,121 +113,144 @@
              
   <section id="create-a-verifier">
 <h1>Create a Verifier<a class="headerlink" href="#create-a-verifier" title="Link to this heading"></a></h1>
-<p>TODO These verifier docs need updating to support self-CA and generic issuance</p>
 <section id="introduction">
 <h2>Introduction<a class="headerlink" href="#introduction" title="Link to this heading"></a></h2>
-<p>A Relying Party (a verifier of attestations presented by the wallet) will want
-to have a global idea of what he/she needs to do when integrating their
-application with the wallet environment.</p>
-<p>This document aims to provide a global outline of components used, the necessary
-decisions, data, certificate(s), and setup of the “Ontvangende Voorziening” plus
-integration thereof with their own frontend(s) and backend.</p>
+<p>A verifier (also known as a “relying party” or an “ontvangde voorziening”,
+essentially an entity that wants to verify attestations presented by the
+NL-Wallet) will want to have a global idea of what they needs to do when
+integrating their application with the NL-Wallet environment.</p>
+<p>This document provides a global outline of components used, the necessary
+decisions, data, and certificate(s), and guides the setup of a so-called
+verifier/relying-party/ontvangende-voorziening plus integration thereof with
+their own frontend and backend.</p>
 </section>
-<section id="step-by-step">
-<h2>Step-by-step<a class="headerlink" href="#step-by-step" title="Link to this heading"></a></h2>
-<p>As a relying party you want to verify certain attributes of a natural person
-which are contained in the NL wallet. To be able to do so there are a few things
-you must do. Roughly these are a couple of onboarding steps and the actual
-configuration of the “Ontvangende Voorziening” (which can be translated as
-“Receiving Facility”, a facility that receives attributes to verify):</p>
-<ol class="arabic simple">
-<li><p>Determine which attributes you need to verify</p></li>
-<li><p>Provide required relying party data</p></li>
-<li><p>Request a certificate (per <code class="docutils literal notranslate"><span class="pre">usecase</span></code>, usually one)</p></li>
-<li><p>Configure your OV (Ontvangende Voorziening)</p></li>
+<section id="about-names">
+<h2>About names<a class="headerlink" href="#about-names" title="Link to this heading"></a></h2>
+<p>Due to how we build upon existing standards, and due to terminology used in
+other guidelines and architectures we adhere to, we use various other names
+interchangably for a verifier. These things all reference the same thing:</p>
+<ul class="simple">
+<li><p>Verifier</p></li>
+<li><p>Relying Party</p></li>
+<li><p>Reception Service</p></li>
+<li><p>Ontvangende Voorziening</p></li>
+</ul>
+<p>In this document we use the name “Verifier” primarily, unless we know that a
+document we reference uses one of these other names.</p>
+</section>
+<section id="what-we-re-going-to-cover">
+<h2>What we’re going to cover<a class="headerlink" href="#what-we-re-going-to-cover" title="Link to this heading"></a></h2>
+<p>You want to verify certain attributes of a natural person which are contained in
+the NL-Wallet. What we’re going to cover:</p>
+<ol class="arabic simple" start="0">
+<li><p>Architecture and component overview</p></li>
+<li><p>Determine which attributes you want to verify</p></li>
+<li><p>Collect required metadata</p></li>
+<li><p>Create a reader certificate</p></li>
+<li><p>Configure your <code class="docutils literal notranslate"><span class="pre">verification_server</span></code></p></li>
 <li><p>Proof-of-function, test calls</p></li>
-<li><p>Integrate the OV with your own application</p></li>
+<li><p>Integrate with your own application</p></li>
 </ol>
 <p>We’ll start with an overview of the system architecture, specifically its main
 components and where to find more information.</p>
 <p>We’ll then cover the decisions you need to make regarding which attributes you
 need to verify.</p>
-<p>We’ll list required fields you need to provide us, which we need to construct a
-<code class="docutils literal notranslate"><span class="pre">reader_auth.json</span></code> which will become part of your certificate, as a X.509v3
-custom extension.</p>
-<p>We’ll show how you can request your certificate which enables you to talk to the
-Wallet, and test connectivity.</p>
-<p>Finally, we’ll give a high-level overview of what an OV looks like, and what the
-disclosure flow looks like, and where you can find the API documentation and
-example calls.</p>
+<p>We’ll list required fields you need to construct a <code class="docutils literal notranslate"><span class="pre">reader_auth.json</span></code> which will
+become part of your reader certificate, as a X.509v3 custom extension, and we’ll
+show you how to create the reader certificate.</p>
+<p>Finally, we’ll give a high-level overview of what a verifier looks like, and
+what the disclosure flow looks like.</p>
 </section>
 <section id="architecture-overview">
-<h2>Architecture Overview<a class="headerlink" href="#architecture-overview" title="Link to this heading"></a></h2>
+<h2>Architecture overview<a class="headerlink" href="#architecture-overview" title="Link to this heading"></a></h2>
 <p><img alt="Disclosure Components" src="../_images/disclosure-components.svg" /></p>
 <p>In the above diagram, we see the main components involved in a disclosure
-session. The main components are:</p>
+session. The main components described in the diagram are:</p>
 <ul class="simple">
 <li><p><a class="reference external" href="https://www.logius.nl/onze-dienstverlening/toegang/digid">DigiD</a>: Digitale Identiteit, a digital identification system;</p></li>
 <li><p><a class="reference external" href="https://www.logius.nl/onze-dienstverlening/toegang/voorzieningen/bsnk-pp">Pseudonym Service</a>: A service that pseudonimizes BSN numbers;</p></li>
 <li><p><a class="reference external" href="https://www.rvig.nl/basisregistratie-personen">(BRP-V) Authentic Source</a>: A source of attributes, made accessible by a
 so-called Verstrekkende Voorziening (VV);</p></li>
-<li><p>VV: Verstrekkende Voorziening, the party that issues attributes;</p></li>
-<li><p>OV: Ontvangende Voorziening, an application that runs on-premises or in-cloud
-of a relying party that can verify attributes, which this document is about;</p></li>
+<li><p>VV: Verstrekkende Voorziening, an issuer, the party that issues attributes;</p></li>
+<li><p>OV: Ontvangende Voorziening, a verifier, the party that want to verify
+attested attributes;</p></li>
 <li><p>Relying Party Application: An app running on-premises or in-cloud of the
-relying party that needs to do something with the result of a verification of
+verifier that needs to do something with the result of a verification of
 attributes;</p></li>
-<li><p><a class="reference external" href="https://edi.pleio.nl/news/view/93f40956-3671-49c9-9c82-2dab636b59bf/psasad-documenten-nl-wallet">Wallet App</a>: The wallet app running on a mobile device;</p></li>
+<li><p><a class="reference external" href="https://edi.pleio.nl/news/view/93f40956-3671-49c9-9c82-2dab636b59bf/psasad-documenten-nl-wallet">Wallet App</a>: The NL-Wallet app running on a mobile device;</p></li>
 </ul>
 <p>Missing from the above diagram, but worth mentioning:</p>
 <ul class="simple">
 <li><p><a class="reference external" href="https://github.com/MinBZK/nl-wallet/tree/main/wallet_web">Wallet Web</a> The frontend helper JavaScript/TypeScript library which helps
-relying parties integrate their application with the Wallet platform.</p></li>
+verifiers integrate their application with the NL-Wallet platform.</p></li>
 </ul>
 <p>For the purpose of this document, we won’t go into all components mentioned
 above, in particular, “DigiD” and “Pseudonym Service” are out-of-scope with
 regards to this outline.</p>
-<p>The Wallet platform largely consists of “Verstrekkende Voorziening(en)”, that
-can issue attributes and attestations, “Ontvangende Voorziening(en)” that handle
-disclosure of attributes sessions, and the Wallet App, which contains attributes
-and attestations received through the “Verstrekkende Voorziening(en)”, enabling
-the Wallet App to disclose them to “Ontvangende Voorziening(en)”.</p>
-<p>The “Ontvangende Voorziening(en)” are things that relying parties configure and
-maintain on their own premises or cloud environments, which they integrate with
-their own application, and which interacts with the Wallet app, in order to
-verify attributes and attestations for usage in their own application.</p>
-<p>This document is about configuring an “Ontvangende Voorziening”. To have a
-broader view on the Wallet platform, you can have a look at the <a class="reference external" href="https://edi.pleio.nl/news/view/93f40956-3671-49c9-9c82-2dab636b59bf/psasad-documenten-nl-wallet">Architecture
-Documents</a>. Specifically, the Project Start Architecture, the Solution
-Architecture Document and the Design Considerations (all of which can be found
-at the aforementioned link).</p>
-<p>The Wallet platform is fully open-source; you can find the project on GitHub:
-<a class="reference external" href="https://github.com/MinBZK/nl-wallet">nl-wallet</a> (note: we currently have a dependency on <a class="reference external" href="https://github.com/minvws/nl-rdo-max">nl-rdo-max</a> which is
-also open-source but lags behind a bit in updates - we’re intending on getting
-some currently-private changes upstreamed, work in progress).</p>
 </section>
-<section id="preparations-and-onboarding">
-<h2>Preparations and Onboarding<a class="headerlink" href="#preparations-and-onboarding" title="Link to this heading"></a></h2>
-<p>The subsections below describe the decisions you need to make as a relying party
-with regards to attributes you want to verify, what data we require from you,
-how to create a certificate request for a certificate (which is configured for
-usage within the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code>), and how to file all of that with us.</p>
+<section id="component-overview">
+<h2>Component overview<a class="headerlink" href="#component-overview" title="Link to this heading"></a></h2>
+<p>The NL-Wallet platform largely consists of:</p>
+<ul class="simple">
+<li><p><strong>issuers</strong>: (also known as Verstrekkende Voorzieningen), which can issue
+attested attributes;</p></li>
+<li><p><strong>verifiers</strong>: (also known as Ontvangende Voorzieningen or Relying Parties),
+which can verify attested attributes they are interested in;</p></li>
+<li><p><strong>backend</strong>: services that run in the NL-Wallet datacenter(s) or cloud that
+facilitate various functions for the mobile app (usually not interacted with
+directly, by either issuers or verifiers);</p></li>
+<li><p><strong>app</strong>: the NL-Wallet mobile app, which contains attested attributes,
+received from issuers, and which it can disclose to verifiers.</p></li>
+</ul>
+<p>Verifiers configure and maintain a <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> on their own premises
+or cloud environments, which they integrate with their own application, and which
+interacts with the NL-Wallet app, in order to verify attested attributes.</p>
+<p>This document is about configuring and integrating a <code class="docutils literal notranslate"><span class="pre">verification_server</span></code>. To
+have a broader view on the NL-Wallet platform as a whole, you can have a look at
+the <a class="reference external" href="https://edi.pleio.nl/news/view/93f40956-3671-49c9-9c82-2dab636b59bf/psasad-documenten-nl-wallet">Architecture Documents</a>. Specifically, the Project Start Architecture,
+the Solution Architecture Document and the Design Considerations (all of which
+can be found at the aforementioned link).</p>
+<p>The NL-Wallet platform is fully open-source; you can find the project on GitHub:
+<a class="reference external" href="https://github.com/MinBZK/nl-wallet">nl-wallet</a> (do note that we have a dependency on <a class="reference external" href="https://github.com/minvws/nl-rdo-max">nl-rdo-max</a> to talk to
+<a class="reference external" href="https://www.logius.nl/onze-dienstverlening/toegang/digid">DigiD</a>, but this is specifically for the <code class="docutils literal notranslate"><span class="pre">pid_issuer</span></code> and irrelevant to you
+as a third-party developing a verifier).</p>
 </section>
-<section id="decisions">
-<h2>Decisions<a class="headerlink" href="#decisions" title="Link to this heading"></a></h2>
-<p>Ultimately, as an RP (relying party, an entity that wants to verify attributes)
-you need to decide what attributes you want to verify, and communicate the
-purpose of the verification. So:</p>
+<section id="preparations">
+<h2>Preparations<a class="headerlink" href="#preparations" title="Link to this heading"></a></h2>
+<p>The subsections below describe the decisions you need to make as a verifier with
+regards to attested attributes you want to verify, what data we require from
+you, how to create a reader certificate for your usecase (which is configured
+for usage within the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code>).</p>
+<p>It is assumed you have <a class="reference internal" href="onboarding.html"><span class="std std-doc">onboarded succesfully</span></a> - i.e., you are running your
+own CA and the public key of that CA has been shared with the operations team
+who will need to add your CA public key to the trust anchors of the app.</p>
+</section>
+<section id="decide-what-you-want-to-verify">
+<h2>Decide what you want to verify<a class="headerlink" href="#decide-what-you-want-to-verify" title="Link to this heading"></a></h2>
+<p>TODO Update the decision section for generic issuance</p>
+<p>You need to decide which attested attributes you want to verify, and consider
+the purpose of the verification. So:</p>
 <ul class="simple">
 <li><p>Which attribute(s): <code class="docutils literal notranslate"><span class="pre">birth_date</span></code>, <code class="docutils literal notranslate"><span class="pre">age_over_18</span></code>, <code class="docutils literal notranslate"><span class="pre">gender</span></code>, etc</p></li>
 <li><p>What purpose: <em>describe why you need to verify the attribute(s)</em></p></li>
 </ul>
-<p>Attributes in the wallet are grouped in things called attestations and the
-wallet app displays these attestations as cards. The attestations are stored in
-the <code class="docutils literal notranslate"><span class="pre">mdoc</span></code> format (see <a class="reference external" href="https://www.iso.org/standard/69084.html">ISO/IEC 18013-5:2021</a> and <a class="reference external" href="https://www.iso.org/standard/86785.html">ISO/IEC 23220-4</a>).</p>
+<p>Attributes in are grouped in things called attestations and the app displays
+these attestations as cards. The attestations are stored in the <code class="docutils literal notranslate"><span class="pre">mdoc</span></code> format
+(see <a class="reference external" href="https://www.iso.org/standard/69084.html">ISO/IEC 18013-5:2021</a> and <a class="reference external" href="https://www.iso.org/standard/86785.html">ISO/IEC 23220-4</a>).</p>
 <p>In the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> we have the concept of <code class="docutils literal notranslate"><span class="pre">usecases</span></code>, which
 encapsulate what you want to use a disclosure for, for example to verify a legal
-age or to login to a website. Essentially, every certificate that you create to
-be able to verify attributes for some purpose, represent a certificate/key-pair,
-and the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> can support multiple <code class="docutils literal notranslate"><span class="pre">usecases</span></code>. In this guide we
-will be creating a single certificate (so, for a single <code class="docutils literal notranslate"><span class="pre">usecase</span></code>), but there’s
-nothing stopping you from creating/requesting multiple certificates for
-different <code class="docutils literal notranslate"><span class="pre">usecases</span></code>.</p>
+age or to login to a website. Essentially, every reader certificate that you
+create to be able to verify attested attributes for some purpose, represent a
+certificate/key-pair, and the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> can support multiple
+<code class="docutils literal notranslate"><span class="pre">usecases</span></code>. In this guide we will be creating a single certificate (so, for a
+single <code class="docutils literal notranslate"><span class="pre">usecase</span></code>), but there’s nothing stopping you from creating multiple
+reader certificates for different <code class="docutils literal notranslate"><span class="pre">usecases</span></code>.</p>
 <p>We currently (as of 2024-08-08) support two <code class="docutils literal notranslate"><span class="pre">mdoc</span></code> doctypes: <code class="docutils literal notranslate"><span class="pre">PID_DOCTYPE</span></code> and
 <code class="docutils literal notranslate"><span class="pre">ADDRESS_DOCTYPE</span></code>. An <code class="docutils literal notranslate"><span class="pre">mdoc</span></code> contains one or multiple attributes that you can
 verify. For your convenience, we list the attributes for both doctypes here:</p>
 <section id="what-a-pid-doctype-looks-like">
 <h3>What a PID_DOCTYPE looks like<a class="headerlink" href="#what-a-pid-doctype-looks-like" title="Link to this heading"></a></h3>
+<p>TODO Update the PID_DOCTYPE section for generic issuance</p>
 <table class="docutils align-default">
 <thead>
 <tr class="row-odd"><th class="head"><p>Attribute</p></th>
@@ -304,6 +327,7 @@ verify. For your convenience, we list the attributes for both doctypes here:</p>
 </section>
 <section id="what-an-address-doctype-looks-like">
 <h3>What an ADDRESS_DOCTYPE looks like<a class="headerlink" href="#what-an-address-doctype-looks-like" title="Link to this heading"></a></h3>
+<p>TODO Update the ADDRESS_DOCTYPE section for generic issuance</p>
 <table class="docutils align-default">
 <thead>
 <tr class="row-odd"><th class="head"><p>Attribute</p></th>
@@ -356,11 +380,13 @@ verify. For your convenience, we list the attributes for both doctypes here:</p>
 needed when we file the request later on.</p>
 </section>
 </section>
-<section id="required-data">
-<h2>Required Data<a class="headerlink" href="#required-data" title="Link to this heading"></a></h2>
-<p>The Wallet needs a bunch of data about you, the relying party which we store as
-a part of the certificate in a so-called X.509v3 extension. We use this data to
-present a view of the relying party in the wallet app GUI. What we need to know:</p>
+<section id="required-metadata">
+<h2>Required metadata<a class="headerlink" href="#required-metadata" title="Link to this heading"></a></h2>
+<p>TODO Update the required metadata section for generic issuance</p>
+<p>A reader certificate contains a bunch of metadata, which we store as a part
+of the certificate in a so-called X.509v3 extension. We use this data to know
+which attested attribute you want to verify, and to present a view of you, the
+verifier in the NL-Wallet app GUI. What we need to know:</p>
 <p><strong>REQUIRED_DATA</strong></p>
 <table class="docutils align-default">
 <thead>
@@ -388,23 +414,23 @@ present a view of the relying party in the wallet app GUI. What we need to know:
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">organization_display_name</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">nl+en</span></code></p></td>
-<td><p>Name of the relying party as shown in the wallet app.</p></td>
+<td><p>Name of the verifier as shown in the app app.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">organization_legal_name</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">nl+en</span></code></p></td>
-<td><p>Legal name of the relying party.</p></td>
+<td><p>Legal name of the verifier.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">organization_description</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">nl+en</span></code></p></td>
-<td><p>Short one-sentence description or mission statement of the relying party.</p></td>
+<td><p>Short one-sentence description or mission statement of the verifier.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">organization_web_url</span></code></p></td>
 <td><p>-</p></td>
-<td><p>The home URL of the relying party.</p></td>
+<td><p>The home URL of the verifier.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">organization_city</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">nl+en</span></code></p></td>
-<td><p>The home city of the relying party.</p></td>
+<td><p>The home city of the verifier.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">organization_category</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">nl+en</span></code></p></td>
@@ -412,19 +438,19 @@ present a view of the relying party in the wallet app GUI. What we need to know:
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">organization_logo</span></code></p></td>
 <td><p>-</p></td>
-<td><p>A logo to display in the wallet app, preferably in SVG format.</p></td>
+<td><p>A logo to display in the app, preferably in SVG format.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">organization_country_code</span></code></p></td>
 <td><p>-</p></td>
-<td><p>Two-letter country code of relying party residence.</p></td>
+<td><p>Two-letter country code of verifier residence.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">organization_kvk</span></code></p></td>
 <td><p>-</p></td>
-<td><p>Chamber of commerce number of relying party.</p></td>
+<td><p>Chamber of commerce number of verifier.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">organization_privacy_policy_url</span></code></p></td>
 <td><p>-</p></td>
-<td><p>Link to relying party’s privacy policy.</p></td>
+<td><p>Link to verifier’s privacy policy.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">request_origin_base_url</span></code></p></td>
 <td><p>-</p></td>
@@ -436,15 +462,14 @@ present a view of the relying party in the wallet app GUI. What we need to know:
 </tr>
 </tbody>
 </table>
-<p>Collect answers to the above, they will be needed once we file the request later
-on.</p>
 <p>Note: In the <code class="docutils literal notranslate"><span class="pre">Languages</span></code> column where it says <code class="docutils literal notranslate"><span class="pre">nl+en</span></code> for example, please
 provide both a dutch and an english answer.</p>
-<section id="example-reader-auth-json">
-<h3>Example reader_auth.json<a class="headerlink" href="#example-reader-auth-json" title="Link to this heading"></a></h3>
-<p>To give you an idea with regards to how we format this data, here’s an example
-of the JSON data (a so-called <code class="docutils literal notranslate"><span class="pre">reader_auth.json</span></code>) we produce from your answers
-(this is an example for the municipality of Amsterdam):</p>
+<section id="create-reader-authentication-json">
+<h3>Create reader authentication JSON<a class="headerlink" href="#create-reader-authentication-json" title="Link to this heading"></a></h3>
+<p>TODO Update the reader_auth.json creation section for generic issuance</p>
+<p>When you’ve collected all the required metadata, you are ready to create the
+<code class="docutils literal notranslate"><span class="pre">reader_auth.json</span></code> file. For illustrative purposes, here is an example for the
+municipality of Amsterdam:</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
 <span class="w">    </span><span class="nt">&quot;purposeStatement&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">        </span><span class="nt">&quot;nl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Inloggen&quot;</span><span class="p">,</span>
@@ -463,17 +488,17 @@ of the JSON data (a so-called <code class="docutils literal notranslate"><span c
 <span class="w">    </span><span class="nt">&quot;organization&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">        </span><span class="nt">&quot;displayName&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">            </span><span class="nt">&quot;nl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Gemeente Amsterdam&quot;</span><span class="p">,</span>
-<span class="w">            </span><span class="nt">&quot;en&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Municipality of Amsterdam&quot;</span>
+<span class="w">            </span><span class="nt">&quot;en&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;City of Amsterdam&quot;</span>
 <span class="w">        </span><span class="p">},</span>
 <span class="w">        </span><span class="nt">&quot;legalName&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">            </span><span class="nt">&quot;nl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Gemeente Amsterdam&quot;</span><span class="p">,</span>
-<span class="w">            </span><span class="nt">&quot;en&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Municipality of Amsterdam&quot;</span>
+<span class="w">            </span><span class="nt">&quot;en&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;City of Amsterdam&quot;</span>
 <span class="w">        </span><span class="p">},</span>
 <span class="w">        </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">            </span><span class="nt">&quot;nl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Alles wat we doen, doen we voor de stad en de Amsterdammers.&quot;</span><span class="p">,</span>
 <span class="w">            </span><span class="nt">&quot;en&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Everything we do, we do for the city and the people of Amsterdam.&quot;</span>
 <span class="w">        </span><span class="p">},</span>
-<span class="w">        </span><span class="nt">&quot;webUrl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://amsterdam.nl&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;webUrl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://www.amsterdam.nl&quot;</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">&quot;city&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">            </span><span class="nt">&quot;nl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Amsterdam&quot;</span><span class="p">,</span>
 <span class="w">            </span><span class="nt">&quot;en&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Amsterdam&quot;</span>
@@ -487,10 +512,10 @@ of the JSON data (a so-called <code class="docutils literal notranslate"><span c
 <span class="w">            </span><span class="nt">&quot;imageData&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;svg width=\&quot;64\&quot; height=\&quot;64\&quot; viewBox=\&quot;0 0 64 64\&quot; fill=\&quot;none\&quot; xmlns=\&quot;http://www.w3.org/2000/svg\&quot;&gt;&lt;rect width=\&quot;64\&quot; height=\&quot;64\&quot; rx=\&quot;12\&quot; fill=\&quot;#FF0000\&quot;/&gt;&lt;path d=\&quot;M25 53.1823L29.1985 48.9481L25 44.7139L27.8015 41.8886L32 46.1228L36.1985 41.8886L39 44.7139L34.8015 48.9481L39 53.1823L36.191 56L31.9925 51.7658L27.794 56L25 53.1823ZM25 19.2861L29.1985 15.0519L25 10.8253L27.8015 8L32 12.2342L36.191 8L38.9925 10.8253L34.794 15.0595L38.9925 19.2937L36.191 22.1114L31.9925 17.8772L27.794 22.1114L25 19.2861ZM25 36.2455L29.1985 32.0114L25 27.7848L27.8015 24.9594L32 29.1936L36.1985 24.9594L39 27.7848L34.8015 32.0189L39 36.2531L36.191 39.0709L31.9925 34.8367L27.794 39.0709L25 36.2455Z\&quot; fill=\&quot;white\&quot;/&gt;&lt;/svg&gt;&quot;</span>
 <span class="w">        </span><span class="p">},</span>
 <span class="w">        </span><span class="nt">&quot;countryCode&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;nl&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;kvk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;1234-1234&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;privacyPolicyUrl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://amsterdam.nl/privacy&quot;</span>
+<span class="w">        </span><span class="nt">&quot;kvk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;34366966&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;privacyPolicyUrl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://www.amsterdam.nl/privacy&quot;</span>
 <span class="w">    </span><span class="p">},</span>
-<span class="w">    </span><span class="nt">&quot;requestOriginBaseUrl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://amsterdam.nl&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;requestOriginBaseUrl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://www.amsterdam.nl&quot;</span><span class="p">,</span>
 <span class="w">    </span><span class="nt">&quot;authorizedAttributes&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">        </span><span class="nt">&quot;urn:eudi:pid:nl:1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[[</span><span class="s2">&quot;urn:eudi:pid:nl:1&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;bsn&quot;</span><span class="p">]]</span>
 <span class="w">    </span><span class="p">}</span>
@@ -498,147 +523,62 @@ of the JSON data (a so-called <code class="docutils literal notranslate"><span c
 </pre></div>
 </div>
 </section>
-<section id="example-screenshot-of-reader-auth-json-data-used-in-wallet-app">
-<h3>Example Screenshot of reader_auth.json Data Used in Wallet App<a class="headerlink" href="#example-screenshot-of-reader-auth-json-data-used-in-wallet-app" title="Link to this heading"></a></h3>
+<section id="example-screenshot-of-reader-authentication-metadata-used-in-the-app">
+<h3>Example screenshot of reader authentication metadata used in the app<a class="headerlink" href="#example-screenshot-of-reader-authentication-metadata-used-in-the-app" title="Link to this heading"></a></h3>
 <p>The data from <code class="docutils literal notranslate"><span class="pre">reader_auth.json</span></code> is used in various parts of the app. For
-illustrational purposes, see below a screenshot of a screen showing details
+illustrative purposes, see below a screenshot of a screen showing details
 about the municipality of Amsterdam:</p>
-<a class="reference internal image-reference" href="../_images/reader_auth_json_in_use.gif"><img alt="A screenshot showing how reader_auth.json data is used within the Wallet app." src="../_images/reader_auth_json_in_use.gif" style="width: 300px;" />
+<a class="reference internal image-reference" href="../_images/reader_auth_json_in_use.gif"><img alt="A screenshot showing how reader_auth.json data is used within the NL-Wallet app." src="../_images/reader_auth_json_in_use.gif" style="width: 300px;" />
 </a>
 </section>
 </section>
-<section id="certificate-request">
-<h2>Certificate Request<a class="headerlink" href="#certificate-request" title="Link to this heading"></a></h2>
-<p>You will need a certificate. We currently use our own certificate authority to
-sign and trust certificates (in the future we might work with a public CA like
-PKI-Overheid).</p>
-<p>When you send us your certificate request, we will send you a signed certificate
-and a copy of our certificate authority certificate.</p>
-<p>Note that the verification server supports both software private keys and
-hardware private keys located in an HSM. The remainder of this document assumes
-software keys.</p>
-<p>Without further ado, let’s create a private key, an <code class="docutils literal notranslate"><span class="pre">openssl</span></code> config and a
-certificate request:</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># Create a private key.</span>
-openssl<span class="w"> </span>ecparam<span class="w"> </span>-name<span class="w"> </span>prime256v1<span class="w"> </span>-genkey<span class="w"> </span>-noout<span class="w"> </span>-outform<span class="w"> </span>der<span class="w"> </span>-out<span class="w"> </span>rp-pkcs1.key
+<section id="creating-a-reader-certificate">
+<h2>Creating a reader certificate<a class="headerlink" href="#creating-a-reader-certificate" title="Link to this heading"></a></h2>
+<p>In the following code block, we clone the nl-wallet repository, enter its directory,
+set a target directory and specify an identifier (this identifier resembles your
+organization, lowercase characters a-z, can end with numbers but not begin with
+them).</p>
+<p>We then make sure the target directory exists, and invoke <code class="docutils literal notranslate"><span class="pre">cargo</span></code> (rust’s build
+tool) to in turn invoke <code class="docutils literal notranslate"><span class="pre">wallet_ca</span></code> which creates the reader certificate and
+key.</p>
+<p>Finally, we invoke <code class="docutils literal notranslate"><span class="pre">openssl</span></code> to convert our PEM certificate and key into DER
+format.</p>
+<p>Note: You need a <code class="docutils literal notranslate"><span class="pre">reader_auth.json</span></code>, which you can base on the example shown in the
+<a class="reference internal" href="#create-reader-authentication-json">previous section</a>.</p>
+<p>Note: You will need to have <a class="reference internal" href="onboarding.html"><span class="std std-doc">onboarded</span></a>, which means you have
+<a class="reference internal" href="onboarding.html#create-a-ca"><span class="std std-ref">created your own CA</span></a>.</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="c1"># Git clone and enter the nl-wallet repository if you haven&#39;t already done so.</span>
+git<span class="w"> </span>clone<span class="w"> </span>https://github.com/MinBZK/nl-wallet
+<span class="nb">cd</span><span class="w"> </span>nl-wallet
 
-<span class="c1"># Convert key to PKCS#8 format.</span>
-openssl<span class="w"> </span>pkcs8<span class="w"> </span>-topk8<span class="w"> </span>-inform<span class="w"> </span>DER<span class="w"> </span>-outform<span class="w"> </span>DER<span class="w"> </span>-nocrypt<span class="w"> </span>-in<span class="w"> </span>rp-pkcs1.key<span class="w"> </span>-out<span class="w"> </span>rp-pkcs8.key
-rm<span class="w"> </span>rp-pkcs1.key
-mv<span class="w"> </span>rp-pkcs8.key<span class="w"> </span>rp.key
+<span class="c1"># Set and create target directory, identifier for your certificates.</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">TARGET_DIR</span><span class="o">=</span>../ca-target
+<span class="nb">export</span><span class="w"> </span><span class="nv">IDENTIFIER</span><span class="o">=</span>foocorp
+mkdir<span class="w"> </span>-p<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">&quot;</span>
 
-<span class="c1"># Set organization name to previously specified organization_legal_name.</span>
-<span class="nb">export</span><span class="w"> </span><span class="nv">ORGANIZATION_NAME</span><span class="o">=</span><span class="s2">&quot;Your legal organization name here&quot;</span>
+<span class="c1"># Create the reader certificate using wallet_ca.</span>
+cargo<span class="w"> </span>run<span class="w"> </span>--manifest-path<span class="w"> </span><span class="s2">&quot;wallet_core/Cargo.toml&quot;</span><span class="w"> </span>--bin<span class="w"> </span><span class="s2">&quot;wallet_ca&quot;</span><span class="w"> </span>reader<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--ca-key-file<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">/ca.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">.key.pem&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--ca-crt-file<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">/ca.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">.crt.pem&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--common-name<span class="w"> </span><span class="s2">&quot;reader.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--reader-auth-file<span class="w"> </span><span class="s2">&quot;reader_auth.json&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--file-prefix<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">/reader.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">&quot;</span>
 
-<span class="c1"># Set common name to the hostname of whatever is using the certificate.</span>
-<span class="nb">export</span><span class="w"> </span><span class="nv">COMMON_NAME</span><span class="o">=</span><span class="s2">&quot;foo.yoursite.com&quot;</span>
+<span class="c1"># Convert certificate PEM to DER.</span>
+openssl<span class="w"> </span>x509<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-in<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">/reader.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">.crt.pem&quot;</span><span class="w"> </span>-inform<span class="w"> </span>PEM<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-out<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">/reader.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">.crt.der&quot;</span><span class="w"> </span>-outform<span class="w"> </span>DER
 
-<span class="c1"># Create an openssl configuration file used to create the request later on.</span>
-cat<span class="w"> </span><span class="s">&lt;&lt;EOF &gt; &quot;rp.cfg&quot;</span>
-<span class="s">[req]</span>
-<span class="s">distinguished_name = req_distinguished_name</span>
-<span class="s">req_extensions = v3_req</span>
-<span class="s">prompt = no</span>
-
-<span class="s">[req_distinguished_name]</span>
-<span class="s">C = NL</span>
-<span class="s">ST = Zuid-Holland</span>
-<span class="s">L = Den Haag</span>
-<span class="s">O = $ORGANIZATION_NAME</span>
-<span class="s">CN = $COMMON_NAME</span>
-
-<span class="s">[v3_req]</span>
-<span class="s">extendedKeyUsage = critical, 1.0.18013.5.1.6</span>
-<span class="s">subjectAltName = @alt_names</span>
-
-<span class="s">[alt_names]</span>
-<span class="s">DNS.0 = $COMMON_NAME</span>
-<span class="s">EOF</span>
-
-<span class="c1"># Create the certificate request.</span>
-openssl<span class="w"> </span>req<span class="w"> </span>-config<span class="w"> </span>rp.cfg<span class="w"> </span>-new<span class="w"> </span>-key<span class="w"> </span>rp.key<span class="w"> </span>-out<span class="w"> </span>rp.csr
+<span class="c1"># Convert key PEM to DER.</span>
+openssl<span class="w"> </span>pkcs8<span class="w"> </span>-topk8<span class="w"> </span>-nocrypt<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-in<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">/reader.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">.key.pem&quot;</span><span class="w"> </span>-inform<span class="w"> </span>PEM<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-out<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">/reader.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">.key.der&quot;</span><span class="w"> </span>-outform<span class="w"> </span>DER
 </pre></div>
 </div>
-<p>You should now have three files: <code class="docutils literal notranslate"><span class="pre">rp.key</span></code>, <code class="docutils literal notranslate"><span class="pre">rp.cfg</span></code> and <code class="docutils literal notranslate"><span class="pre">rp.csr</span></code>. Keep the key
-safe somewhere, don’t share it, not even with us. The certificate request,
-<code class="docutils literal notranslate"><span class="pre">rp.csr</span></code>, and the configuration, <code class="docutils literal notranslate"><span class="pre">rp.cfg</span></code>, we will send together with the
-decided attributes and needed data when we file the request in the next section.</p>
-<p>Note: When we receive the requested data and the certificate request, we will
-serialize that as a JSON string and add it to the certificate as an X.509v3
-extension with OID 2.1.123.1.</p>
 </section>
-<section id="file-request">
-<h2>File Request<a class="headerlink" href="#file-request" title="Link to this heading"></a></h2>
-<p>Alright, let’s review what we’ve got so far:</p>
-<ul class="simple">
-<li><p>You’ve determined the names of the attributes you want to verify;</p></li>
-<li><p>You’ve written down a description of the purpose of verification;</p></li>
-<li><p>You’ve collected all the required data attributes requested previously;</p></li>
-<li><p>You’ve followed the certificate request steps and have an <code class="docutils literal notranslate"><span class="pre">rp.cfg</span></code> document;</p></li>
-<li><p>You’ve followed the certificate request steps and have an <code class="docutils literal notranslate"><span class="pre">rp.csr</span></code> document;</p></li>
-</ul>
-<p>Put all of the above in the following e-mail template, and attach your signing
-request (<code class="docutils literal notranslate"><span class="pre">rp.csr</span></code>), certificate configuration file (<code class="docutils literal notranslate"><span class="pre">rp.cfg</span></code>), and optionally
-some SVG logo data:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Dear NL-Wallet,
-
-Please find herein an onboarding request for us as a relying party. Attached
-you will find our signing request, our certificate configuration file, and
-possibly, some SVG logo data.
-
-Please find below the answers with regards to requested data, attributes for
-verification and descripion of purpose.
-
-Attributes requested for verification:
-&lt;fill in list of attributes previously documented&gt;
-
-Description of purpose:
-&lt;describe purpose of verification&gt;
-
-Required data:
-purpose_statement: For what purpose are you attesting? Login? Age verification? etc.
-retention_policy: Do you have an intent to retain data? For how long?
-sharing_policy: Do you have an intent to share data? With whom?
-deletion_policy: Do you allow users to request deletion of their data, yes/no?
-organization_display_name: Name of the relying party as shown in the wallet app.
-organization_legal_name: Legal name of the relying party.
-organization_description: Short one-sentence description or mission statement of the relying party.
-organization_web_url: The home URL of the relying party.
-organization_city: The home city of the relying party.
-organization_category: Bank, Municipality, Trading, Delivery Service, etc.
-organization_logo: A logo to display in the wallet app, preferably in SVG format.
-organization_country_code: Two-letter country code of relying party residence.
-organization_kvk: Chamber of commerce number of relying party.
-organization_privacy_policy_url: Link to relying party&#39;s privacy policy.
-request_origin_base_url: What is the URL the user sees in the address bar when they start disclosure?.
-list_of_verifiable_attributes: List of attributes determined in previous section.
-
-Kind regards,
-
-
-&lt;relying party&gt;
-
-&lt;don&#39;t forget to attach signing request, certificate configuration file and
-optionally, som SVG data for your logo&gt;
-</pre></div>
-</div>
-<p>Mail the above to our company/group email address (not published here for the
-time being) and we will pick up the request from there.</p>
-<p>What you’ll receive from us in reply to the above is:</p>
-<ol class="arabic simple">
-<li><p>A <code class="docutils literal notranslate"><span class="pre">DER</span></code> format certificate based on your certificate-request with an X509v3
-extension with OID 2.1.123.1 containing the aforementioned <code class="docutils literal notranslate"><span class="pre">reader_auth.json</span></code>
-populated with your provided required data.</p></li>
-<li><p>A so-called trust-anchor certificate, also in <code class="docutils literal notranslate"><span class="pre">DER</span></code> format which represents
-the issuer(s) you as a relying party trust as a party that issues attributes.</p></li>
-<li><p>A universal link base URL for one of our environments, which you need to
-configure when setting up the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> (covered in the
-<a class="reference internal" href="#universal-link-base-url">Universal link base URL</a> section of the
-installation chapter).</p></li>
-</ol>
-</section>
-<section id="wallet-server-installation">
-<h2>Wallet server installation<a class="headerlink" href="#wallet-server-installation" title="Link to this heading"></a></h2>
+<section id="verification-server-installation">
+<h2>Verification server installation<a class="headerlink" href="#verification-server-installation" title="Link to this heading"></a></h2>
+<p>TODO Update verification_server install section for generic issuance</p>
 <p>After you have obtained a certificate for your <code class="docutils literal notranslate"><span class="pre">usecase</span></code>, following the
 previously documented steps, you are ready to setup and configure your
 <code class="docutils literal notranslate"><span class="pre">verification_server</span></code>.</p>
@@ -797,14 +737,14 @@ configure a plausible example URL:</p>
 <h3>Universal link base URL<a class="headerlink" href="#universal-link-base-url" title="Link to this heading"></a></h3>
 <p>The universal link base URL is used to configure the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> to
 communicate the correct environment-specific universal link to the the mobile
-operating system which is running the NL Wallet app. It is used to trigger the
-mobile operating system to start the NL Wallet app when clicking the link or
+operating system which is running the NL-Wallet app. It is used to trigger the
+mobile operating system to start the NL-Wallet app when clicking the link or
 scanning the QR code.</p>
-<p>You will have received the universal link base URL with the e-mail response to
-your certificate request (as mentioned in the <a class="reference internal" href="#file-request">File Request</a>)
-section previously.</p>
-<p>For example, if you want to configure your <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> for usage with
-a Wallet App built for the acceptance environment, you’d configure it as such:</p>
+<p>You should have received the universal link base URL as part of the
+<a class="reference internal" href="onboarding.html"><span class="std std-doc">onboarding</span></a> process.</p>
+<p>For illustrative purposes, if you want to configure your <code class="docutils literal notranslate"><span class="pre">verification_server</span></code>
+for usage with a Wallet App built for an acceptance environment, you would
+configure it as follows (note that <code class="docutils literal notranslate"><span class="pre">example.com</span></code> is a fake domain):</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">WAULBASEURL</span><span class="o">=</span><span class="s2">&quot;https://app.example.com/ul/&quot;</span>
 </pre></div>
 </div>
@@ -819,10 +759,8 @@ configured once in the <code class="docutils literal notranslate"><span class="p
 </section>
 <section id="configuring-the-trustanchor-and-the-usecase">
 <h3>Configuring the trustanchor and the usecase<a class="headerlink" href="#configuring-the-trustanchor-and-the-usecase" title="Link to this heading"></a></h3>
-<p>In the <a class="reference internal" href="#file-request">File Request</a> section we’ve requested a certificate for
-the <code class="docutils literal notranslate"><span class="pre">usecase</span></code> and, if everything went well, you’ve received a signed certificate
-and a so-called <code class="docutils literal notranslate"><span class="pre">trust-anchor</span></code> certificate. Additionally, you will still have
-the key matching your <code class="docutils literal notranslate"><span class="pre">usecase</span></code> certificate.</p>
+<p>In the <a class="reference internal" href="#creating-a-reader-certificate">Creating a reader certificate</a> section
+we’ve created a reader certificate for your <code class="docutils literal notranslate"><span class="pre">usecase</span></code>.</p>
 <p>We’ll assume your <code class="docutils literal notranslate"><span class="pre">usecase</span></code> certificate is in the <code class="docutils literal notranslate"><span class="pre">DER</span></code> format and named
 <code class="docutils literal notranslate"><span class="pre">rp.crt</span></code>, your key is named <code class="docutils literal notranslate"><span class="pre">rp.key</span></code>, and finally you have two trust anchor (ca)
 certificates called <code class="docutils literal notranslate"><span class="pre">issuer_ta.crt</span></code> and <code class="docutils literal notranslate"><span class="pre">reader_ta.crt</span></code>. The <code class="docutils literal notranslate"><span class="pre">issuer_ta.crt</span></code>
@@ -896,10 +834,11 @@ looks like you’d expect.</p>
 </section>
 <section id="configuring-an-api-key-optional">
 <h3>Configuring an API key (optional)<a class="headerlink" href="#configuring-an-api-key-optional" title="Link to this heading"></a></h3>
-<p>In our configuration, the wallet server is configured with a separate port for
-the public (wallet) and private (requester) endpoints. The private endpoint can
-additionally be configured to require an API key, which needs to be passed with
-a request as an <code class="docutils literal notranslate"><span class="pre">Authorization</span></code> header containing <code class="docutils literal notranslate"><span class="pre">Bearer</span> <span class="pre">your_secret_key</span></code>.</p>
+<p>In our configuration, the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> is configured with a separate
+port for the public (wallet) and private (requester) endpoints. The private
+endpoint can additionally be configured to require an API key, which needs to
+be passed with a request as an <code class="docutils literal notranslate"><span class="pre">Authorization</span></code> header containing a string
+<code class="docutils literal notranslate"><span class="pre">Bearer</span> <span class="pre">your_secret_key</span></code>.</p>
 <p>To configure the usage of an API key, you need to add a section as follows to
 the configuration file (choose a better key than <code class="docutils literal notranslate"><span class="pre">your_secret_key</span></code>):</p>
 <div class="highlight-toml notranslate"><div class="highlight"><pre><span></span><span class="k">[requester_server.authentication]</span>
@@ -908,12 +847,12 @@ the configuration file (choose a better key than <code class="docutils literal n
 </div>
 </section>
 <section id="configuring-cross-origin-resource-sharing-optional">
-<h3>Configuring Cross-Origin Resource Sharing (optional)<a class="headerlink" href="#configuring-cross-origin-resource-sharing-optional" title="Link to this heading"></a></h3>
-<p>Cross-Origin Resource Sharing (CORS) can be configured on the verification
-server for when the Relying Party application is hosted on a different URL than
-the verification server.</p>
+<h3>Configuring cross-origin resource sharing (optional)<a class="headerlink" href="#configuring-cross-origin-resource-sharing-optional" title="Link to this heading"></a></h3>
+<p>Cross-Origin Resource Sharing (CORS) can be configured on <code class="docutils literal notranslate"><span class="pre">verification_server</span></code>
+when the application is hosted on a different URL than the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code>
+itself.</p>
 <p>To configure CORS, you need to add <code class="docutils literal notranslate"><span class="pre">allow_origins</span></code> to the <code class="docutils literal notranslate"><span class="pre">[verifier]</span></code> section
-with a list of all the Relying Party URLs. Replace <code class="docutils literal notranslate"><span class="pre">&quot;https://example.com&quot;</span></code> in
+with a list of all the URLs you need. Replace <code class="docutils literal notranslate"><span class="pre">&quot;https://example.com&quot;</span></code> in
 the following snippet with a comma separated list of the required urls.</p>
 <div class="highlight-toml notranslate"><div class="highlight"><pre><span></span><span class="k">[verifier]</span>
 <span class="n">allow_origins</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;https://example.com&quot;</span><span class="p">]</span>
@@ -923,6 +862,7 @@ the following snippet with a comma separated list of the required urls.</p>
 </section>
 <section id="running-the-server-for-the-first-time">
 <h2>Running the server for the first time<a class="headerlink" href="#running-the-server-for-the-first-time" title="Link to this heading"></a></h2>
+<p>TODO Update verification_server running section for generic issuance</p>
 <p>In section <a class="reference internal" href="#obtaining-the-software">Obtaining the software</a> we have described
 how you can obtain the software. In this section, we assume you have a Linux
 AMD64 static executable called <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> that you can run. Make sure
@@ -947,6 +887,7 @@ example, to run the server with debug logging, use the following command.</p>
 </section>
 <section id="validating-the-configuration">
 <h2>Validating the configuration<a class="headerlink" href="#validating-the-configuration" title="Link to this heading"></a></h2>
+<p>TODO Update verification_server validation section for generic issuance</p>
 <p>During startup, the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> performs some checks on the
 configuration to prevent common configuration problems. Most notably the
 following checks are performed:</p>
@@ -976,25 +917,24 @@ the <a class="reference internal" href="#api-specifications">API specifications<
 </section>
 <section id="background">
 <h2>Background<a class="headerlink" href="#background" title="Link to this heading"></a></h2>
-<p>Now that you can interact with the wallet platform, you are ready to start
-working on integration your own application with your “Ontvangende Voorziening”.</p>
-<p>An “Ontvangende Voorziening” is realized by the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code>, which is
-a software component developed by the NL wallet team which you as a relying
-party run on-premises or within your cloud environment in order to interact with
-the wallet platform.</p>
-<p>In the following subsections we’ll give you a high-level overview of what an
-“Ontvangende Voorziening” looks like, how to integrate it with your application
-and some directions with regards to the API specifications.</p>
+<p>TODO Update background section for generic issuance</p>
+<p>Now that you can interact with the NL-Wallet platform, you are ready to start
+working on integrating your own application.</p>
+<p>The previously configured <code class="docutils literal notranslate"><span class="pre">verification_server</span></code>, is a software component
+developed by the NL-Wallet team which you as a verifier run on-premises or
+within your cloud environment in order to interact with the NL-Wallet platform.</p>
+<p>In the following subsections we’ll give you a high-level overview of what a
+verifier looks like, how to integrate it with your application and some
+directions with regards to API specifications.</p>
 <section id="what-a-disclosure-session-looks-like">
-<h3>What a Disclosure Session Looks Like<a class="headerlink" href="#what-a-disclosure-session-looks-like" title="Link to this heading"></a></h3>
+<h3>What a disclosure session looks Like<a class="headerlink" href="#what-a-disclosure-session-looks-like" title="Link to this heading"></a></h3>
 <p><img alt="Disclosure Flow" src="../_images/disclosure-flow.svg" /></p>
 <p>In the above flow diagram you see the components involved in a disclosure
 session. Except for the “PID Issuer (VV)” and the “Wallet App”, these run on
-premises or within cloud environment(s) of the relying party (i.e., you).</p>
+premises or within cloud environment(s) of the verifier (i.e., you).</p>
 <p>Let’s walk through a typical (cross-device, note on same-device flows in
 following section) disclosure session (for full details, have a look at the
-VV/OV SAD and our
-<a class="reference internal" href="../architecture/disclosure-with-openid4vp.html"><span class="std std-doc">component interaction flow for disclosures</span></a>).</p>
+VV/OV SAD and our <a class="reference internal" href="../architecture/disclosure-with-openid4vp.html"><span class="std std-doc">component interaction flow for disclosures</span></a>).</p>
 <p>Note the possible session states:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">CREATED</span></code>: <em>session created</em></p></li>
@@ -1003,23 +943,23 @@ VV/OV SAD and our
 </ul>
 <p>Note the “actors/components” we distinguish between:</p>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">user</span></code>: <em>user of the wallet_app, initiating an attribute disclosure session</em></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">wallet_app</span></code>: <em>the wallet app, running on a users’ mobile phone</em></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">user</span></code>: <em>user of the app, initiating an attribute disclosure session</em></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">wallet_app</span></code>: <em>the NL-Wallet app, running on a users’ mobile phone</em></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">verification_server</span></code>: <em>the verification_server component of the OV</em></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">rp_frontend</span></code>: <em>the (JavaScript/HTML/CSS) frontend of the relying party app</em>
+<li><p><code class="docutils literal notranslate"><span class="pre">rp_frontend</span></code>: <em>the (JavaScript/HTML/CSS) frontend of the verifier app</em>
 <em>can be-or-use previously mentioned <code class="docutils literal notranslate"><span class="pre">wallet_web</span></code> JavaScript helper library</em></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">rp_backend</span></code>: <em>the (server) backend of the relying party application</em></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">rp_backend</span></code>: <em>the (server) backend of the verifier application</em></p></li>
 </ul>
 <p>In the diagram, the <code class="docutils literal notranslate"><span class="pre">user</span></code> is the small stick-figure at the top, the actor who
-initiates some task he/she wants to accomplish. the <code class="docutils literal notranslate"><span class="pre">wallet_app</span></code> is the blue box
+initiates some task they wants to accomplish. the <code class="docutils literal notranslate"><span class="pre">wallet_app</span></code> is the blue box
 on the right. The <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> is the big block in the middle (shown as
-“Verifier Service (Ontvangst Voorziening, OV)” containing the configuration, the
-verifier, and the validator components). The <code class="docutils literal notranslate"><span class="pre">rp_frontend</span></code> and <code class="docutils literal notranslate"><span class="pre">rp_backend</span></code> are
-represented by the big orange/beige block on the left (shown as “Relying Party
-Application”).</p>
+“Verifier Service (Ontvangende Voorziening, OV)” containing the configuration,
+the verifier, and the validator components). The <code class="docutils literal notranslate"><span class="pre">rp_frontend</span></code> and <code class="docutils literal notranslate"><span class="pre">rp_backend</span></code>
+are represented by the big orange/beige block on the left (shown as “Relying
+Party Application”).</p>
 <p>Overview of a flow for cross device attribute disclosure:</p>
 <ol class="arabic simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">user</span></code> initiates action (i.e., clicks a button on web page of relying party
+<li><p><code class="docutils literal notranslate"><span class="pre">user</span></code> initiates action (i.e., clicks a button on web page of verifier
 in their desktop or mobile webbrowser);</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">rp_frontend</span></code> receives action, asks <code class="docutils literal notranslate"><span class="pre">rp_backend</span></code> to initiate session;</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">rp_backend</span></code> in turn calls <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> with a session
@@ -1041,9 +981,9 @@ configured time-limit when receiving a <code class="docutils literal notranslate
 status. The poll will terminate on <code class="docutils literal notranslate"><span class="pre">DONE</span></code>;</p></li>
 <li><p>After <code class="docutils literal notranslate"><span class="pre">user</span></code> completes the scanning of the QR or followed the universal link,
 <code class="docutils literal notranslate"><span class="pre">wallet_app</span></code> parses/extracts the QR/UL and starts a device engagement session
-with <code class="docutils literal notranslate"><span class="pre">verification_server</span></code>, which in turn returns the relying party details
+with <code class="docutils literal notranslate"><span class="pre">verification_server</span></code>, which in turn returns the verifier details
 and the requested attributes to the <code class="docutils literal notranslate"><span class="pre">wallet_app</span></code>;</p></li>
-<li><p>The <code class="docutils literal notranslate"><span class="pre">wallet_app</span></code> shows the relying party details and the requested attributes
+<li><p>The <code class="docutils literal notranslate"><span class="pre">wallet_app</span></code> shows the verifier details and the requested attributes
 to the <code class="docutils literal notranslate"><span class="pre">user</span></code> and gives the <code class="docutils literal notranslate"><span class="pre">user</span></code> the option to consent or abort;</p></li>
 </ol>
 <p>The <code class="docutils literal notranslate"><span class="pre">user</span></code> can abort, which will terminate the session with a <code class="docutils literal notranslate"><span class="pre">CANCELED</span></code> status.
@@ -1073,7 +1013,7 @@ condition;</p></li>
 </ol>
 </section>
 <section id="cross-device-vs-same-device">
-<h3>Cross Device vs. Same Device<a class="headerlink" href="#cross-device-vs-same-device" title="Link to this heading"></a></h3>
+<h3>Cross device vs. same device<a class="headerlink" href="#cross-device-vs-same-device" title="Link to this heading"></a></h3>
 <p>Same-device flows differ from cross-device flows in how the QR/UL is encoded.
 The <code class="docutils literal notranslate"><span class="pre">rp_frontend</span></code> detects the user-agent and from that determines if a
 Cross-device or Same-device flow is appropiate. When it encodes for a
@@ -1083,46 +1023,46 @@ Same-device flow, the resulting Universal link can be directly opened by the
 </section>
 </section>
 <section id="notes-on-requirements-applicable-to-your-application">
-<h2>Notes on Requirements Applicable to Your Application<a class="headerlink" href="#notes-on-requirements-applicable-to-your-application" title="Link to this heading"></a></h2>
-<p>Below a list of things to know about the wallet platform and more specifically,
-what you need to keep in mind when you integrate the usage of the wallet for
-identification or verification of attributes with your application:</p>
+<h2>Notes on requirements applicable to your application<a class="headerlink" href="#notes-on-requirements-applicable-to-your-application" title="Link to this heading"></a></h2>
+<p>TODO Update applicable requirements section for generic issuance</p>
+<p>Below you’ll find a list of things to know about the NL-Wallet platform and more
+specifically, what you need to keep in mind when you integrate the usage of the
+app for identification or verification of attributes with your application:</p>
 <ul class="simple">
-<li><p>The wallet app presents attestations using the <a class="reference external" href="https://openid.net/specs/openid-4-verifiable-presentations-1_0.html">OpenID4VP</a> protocol
+<li><p>The NL-Wallet app presents attestations using the <a class="reference external" href="https://openid.net/specs/openid-4-verifiable-presentations-1_0.html">OpenID4VP</a> protocol
 standard using the <a class="reference external" href="https://www.iso.org/standard/69084.html">ISO/IEC 18013-5:2021</a> mdoc credential format;</p></li>
 <li><p>Any disclosure session initiation request must include the reason why the
-relying party is requesting the attributes;</p></li>
-<li><p>A relying party <strong>MUST NOT</strong> track, in the broadest sense of the word;</p></li>
-<li><p>A relying party needs to adhere to the EU-GDPR (Nederlands: EU-AVG)
+verifier is requesting the attributes;</p></li>
+<li><p>A verifier <strong>MUST NOT</strong> track, in the broadest sense of the word;</p></li>
+<li><p>A verifier needs to adhere to the EU-GDPR (Nederlands: EU-AVG)
 <a class="reference external" href="https://europa.eu/youreurope/business/dealing-with-customers/data-protection/data-protection-gdpr/index_en.htm">GDPR</a>;</p></li>
 <li><p>It is required to follow accessibility guidelines set forth in the <a class="reference external" href="https://www.w3.org/WAI/WCAG21/Understanding/intro">WCAG</a>;</p></li>
 <li><p>It is expected that you use the <code class="docutils literal notranslate"><span class="pre">wallet_web</span></code> frontend helper library;</p></li>
 <li><p>The standard buttons for login and sharing should be used, but one can use
 custom button text (within reason);</p></li>
-<li><p>Button styling and call-to-action can be customized by relying party;</p></li>
-<li><p>The text “NL Wallet” should always be visible in the call-to-action;</p></li>
-<li><p>Logo of “NL Wallet” should be visible next to the call-to-action.</p></li>
+<li><p>Button styling and call-to-action can be customized by verifier;</p></li>
+<li><p>The text “NL-Wallet” should always be visible in the call-to-action;</p></li>
+<li><p>Logo of “NL-Wallet” should be visible next to the call-to-action.</p></li>
 </ul>
 </section>
 <section id="integration">
 <h2>Integration<a class="headerlink" href="#integration" title="Link to this heading"></a></h2>
+<p>TODO Update integration section for generic issuance</p>
 <p>If you look at the previous disclosure flow diagram, on the left side, you see
-the Relying Party application, which is an application you probably already have
-that you want to integrate with functionality the wallet provides (i.e., the
+the “Relying Party Application”, which is an application you probably already
+have that you want to integrate with functionality the app provides (i.e., the
 verification of identity and/or certain specific attributes, in order to allow
 or disallow usage of (a part of) said application).</p>
-<p>To integrate with the “Ontvangende Voorziening”, you modify your frontend and
-backend application, using the <code class="docutils literal notranslate"><span class="pre">wallet_web</span></code> frontend library, integrating with
-the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> (the implementation of the “Ontvangende Voorziening”
-on your premises or in your cloud environment).</p>
+<p>To integrate with the verifier, you modify your frontend and backend app, using
+the <code class="docutils literal notranslate"><span class="pre">wallet_web</span></code> frontend library, integrating with your previously configured
+<code class="docutils literal notranslate"><span class="pre">verification_server</span></code>.</p>
 <p>In the disclosure flow diagram, on the right, where the “Relying Party
 Application” is shown, you see a four integration/call points: “Configure
 Verifier”, “Initiate Disclosure Session”, “Start Result Poll Loop” and “Retrieve
 OV Result”:</p>
 <ul class="simple">
 <li><p>Configuration of the verifier, executed manually by you, a one-time initial
-setup that stores a configuration about your app in the configuration
-component of the OV;</p></li>
+setup which is documented in this guide;</p></li>
 <li><p>Initiation of a disclosure session, executed by your backend application;</p></li>
 <li><p>The status check loop, executed by your frontend application, where we check
 for a status result, which indicates success or failure of the session.</p></li>
@@ -1137,7 +1077,8 @@ disclosed_attributes.</p></li>
 you.</p>
 </section>
 <section id="api-specifications">
-<h2>API Specifications<a class="headerlink" href="#api-specifications" title="Link to this heading"></a></h2>
+<h2>API specifications<a class="headerlink" href="#api-specifications" title="Link to this heading"></a></h2>
+<p>TODO Update api section for generic issuance</p>
 <p>The API specifications for the <a class="reference download internal" download="" href="../_downloads/7f35158ecf120abaffafc44f9a47febd/wallet-disclosure-private.openapi.yaml"><span class="xref download myst">private</span></a> (also known as the <code class="docutils literal notranslate"><span class="pre">requester</span></code>) and
 <a class="reference download internal" download="" href="../_downloads/971cb4ae9ac0ff66a26e80f9a1b8766a/wallet-disclosure-public.openapi.yaml"><span class="xref download myst">public</span></a> (also known as the <code class="docutils literal notranslate"><span class="pre">wallet</span></code>) endpoints are available in the
 <code class="docutils literal notranslate"><span class="pre">/wallet_docs</span></code> part of of the git repository.</p>
@@ -1151,12 +1092,12 @@ can optionally be configured to have authentication mechanisms (or otherwise
 bind to a private/trusted/internal network), used to initiate sessions and
 retrieve sensitive data, usually running on TCP port <code class="docutils literal notranslate"><span class="pre">8002</span></code>.</p>
 <p>Following is a collection of sample calls that illustrate how you interact with
-the OV. Note that we’re using <code class="docutils literal notranslate"><span class="pre">localhost</span></code>, in your case it might be another
-hostname, FQDN or IP address, depending on how you’ve set-up
+the verifier. Note that we’re using <code class="docutils literal notranslate"><span class="pre">localhost</span></code>, in your case it might be
+another hostname, FQDN or IP address, depending on how you’ve set-up
 <code class="docutils literal notranslate"><span class="pre">verification_server</span></code>:</p>
 <section id="initiate-a-disclosure-session">
-<h3>Initiate a Disclosure Session<a class="headerlink" href="#initiate-a-disclosure-session" title="Link to this heading"></a></h3>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>curl<span class="w"> </span>--silent<span class="w"> </span>--request<span class="w"> </span>POST<span class="w"> </span>--json<span class="w"> </span><span class="s1">&#39;{</span>
+<h3>Initiate a disclosure session<a class="headerlink" href="#initiate-a-disclosure-session" title="Link to this heading"></a></h3>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>curl<span class="w"> </span>--silent<span class="w"> </span>--request<span class="w"> </span>POST<span class="w"> </span>--json<span class="w"> </span><span class="s1">&#39;{</span>
 <span class="s1">  &quot;usecase&quot;: &quot;mijn_amsterdam&quot;,</span>
 <span class="s1">  &quot;dcql_query&quot;: {</span>
 <span class="s1">    &quot;credentials&quot;: [</span>
@@ -1172,7 +1113,7 @@ hostname, FQDN or IP address, depending on how you’ve set-up
 <span class="s1">      }</span>
 <span class="s1">    ]</span>
 <span class="s1">  },</span>
-<span class="s1">  &quot;return_url_template&quot;: &quot;https://relying-party/return&quot;</span>
+<span class="s1">  &quot;return_url_template&quot;: &quot;https://verifier/return&quot;</span>
 <span class="s1">}&#39;</span><span class="w"> </span><span class="s1">&#39;http://localhost:8001/disclosure/sessions&#39;</span>
 </pre></div>
 </div>
@@ -1184,8 +1125,8 @@ hostname, FQDN or IP address, depending on how you’ve set-up
 </div>
 </section>
 <section id="check-status-of-session">
-<h3>Check Status of Session<a class="headerlink" href="#check-status-of-session" title="Link to this heading"></a></h3>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>curl<span class="w"> </span>--silent<span class="w"> </span>--request<span class="w"> </span>GET<span class="w"> </span><span class="s1">&#39;http://localhost:8001/disclosure/sessions/387f8vMgeE1NunRPqn55Tha1761EC54i?session_type=same_device&#39;</span>
+<h3>Check status of session<a class="headerlink" href="#check-status-of-session" title="Link to this heading"></a></h3>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>curl<span class="w"> </span>--silent<span class="w"> </span>--request<span class="w"> </span>GET<span class="w"> </span><span class="s1">&#39;http://localhost:8001/disclosure/sessions/387f8vMgeE1NunRPqn55Tha1761EC54i?session_type=same_device&#39;</span>
 </pre></div>
 </div>
 <p>Example responses:</p>
@@ -1211,12 +1152,12 @@ hostname, FQDN or IP address, depending on how you’ve set-up
 </div>
 </section>
 <section id="retrieve-disclosure-results">
-<h3>Retrieve Disclosure Results<a class="headerlink" href="#retrieve-disclosure-results" title="Link to this heading"></a></h3>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>curl<span class="w"> </span>--silent<span class="w"> </span>--request<span class="w"> </span>GET<span class="w"> </span><span class="s1">&#39;http://localhost:8002/disclosure/sessions/387f8vMgeE1NunRPqn55Tha1761EC54i/disclosed_attributes&#39;</span>
+<h3>Retrieve disclosure results<a class="headerlink" href="#retrieve-disclosure-results" title="Link to this heading"></a></h3>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>curl<span class="w"> </span>--silent<span class="w"> </span>--request<span class="w"> </span>GET<span class="w"> </span><span class="s1">&#39;http://localhost:8002/disclosure/sessions/387f8vMgeE1NunRPqn55Tha1761EC54i/disclosed_attributes&#39;</span>
 </pre></div>
 </div>
 <p>and with (required, see error response below too) <code class="docutils literal notranslate"><span class="pre">nonce</span></code> query parameter:</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>curl<span class="w"> </span>--silent<span class="w"> </span>--request<span class="w"> </span>GET<span class="s1">&#39; http://localhost:8002/disclosure/sessions/387f8vMgeE1NunRPqn55Tha1761EC54i/disclosed_attributes?nonce=rcofnse1SThIdSYAqXhnJNOTk9EmBweT&#39;</span>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>curl<span class="w"> </span>--silent<span class="w"> </span>--request<span class="w"> </span>GET<span class="s1">&#39; http://localhost:8002/disclosure/sessions/387f8vMgeE1NunRPqn55Tha1761EC54i/disclosed_attributes?nonce=rcofnse1SThIdSYAqXhnJNOTk9EmBweT&#39;</span>
 </pre></div>
 </div>
 <p>Example responses:</p>
@@ -1264,7 +1205,6 @@ hostname, FQDN or IP address, depending on how you’ve set-up
 <p>Below you’ll find a collection of links which we reference to through the entire
 text. Note that they don’t display when rendered within a website, you need to
 read the text in a regular text editor or pager to see them.</p>
-<p>TODO: Link to VV/OV SAD, which are still in draft and not published yet.</p>
 </section>
 </section>
 

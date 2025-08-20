@@ -170,7 +170,7 @@ that ascertain the validity of a verifier and issuer, and that contain various
 specific attributes that make the certicate work with our ecosystem.</p>
 <p>These certificates are issued by a CA (Certificate Authority) and these CAs are
 then trusted by the app, the issuers and the verifiers.</p>
-<p>In the future, the NL-wallet platform will likely facilitate or use a dedicated
+<p>In the future, the NL-Wallet platform will likely facilitate or use a dedicated
 CA entity that will be responsible for issuing certificates for both issuers and
 verifiers, for both development and production purposes. This CA entity is not
 yet available, and hence, we facilitate community participants by allowing them
@@ -184,21 +184,26 @@ of that CA with us.</p>
 <code class="docutils literal notranslate"><span class="pre">wallet_ca</span></code> CLI tool included in the NL-Wallet GitHub repository. We assume you
 have followed the instructions in the <code class="docutils literal notranslate"><span class="pre">README.md</span></code> of the root of the NL-Wallet
 repository, so you have rust installed, run on a supported platform, etc.</p>
-<p>In the following code, we clone the nl-wallet repository, enter its directory,
-set a target directory and specify an identifier (this identifier resembles your
-organization, lowercase characters a-z, can end with numbers but not begin with
-them). We then make sure the target directory exists, and invoke cargo (rust’s
-build tool) to in turn invoke <code class="docutils literal notranslate"><span class="pre">wallet_ca</span></code> which creates the CA certificate and
-key.</p>
+<p>In the following code block, we clone the nl-wallet repository, enter its
+directory, set a target directory and specify an identifier (this identifier
+resembles your organization, lowercase characters a-z, can end with numbers but
+not begin with them).</p>
+<p>We then make sure the target directory exists, and invoke <code class="docutils literal notranslate"><span class="pre">cargo</span></code> (rust’s build
+tool) to in turn invoke <code class="docutils literal notranslate"><span class="pre">wallet_ca</span></code> which creates the CA certificate and key.</p>
 <p>Change at least the <code class="docutils literal notranslate"><span class="pre">IDENTIFIER</span></code> to match your organization name (should be
 lowercase characters a-z, can end with numbers but may not begin with them).</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/MinBZK/nl-wallet
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="c1"># Git clone and enter the nl-wallet repository if you haven&#39;t already done so.</span>
+git<span class="w"> </span>clone<span class="w"> </span>https://github.com/MinBZK/nl-wallet
 <span class="nb">cd</span><span class="w"> </span>nl-wallet
+
+<span class="c1"># Set and create target directory, identifier for your certificates.</span>
 <span class="nb">export</span><span class="w"> </span><span class="nv">TARGET_DIR</span><span class="o">=</span>../ca-target
 <span class="nb">export</span><span class="w"> </span><span class="nv">IDENTIFIER</span><span class="o">=</span>foocorp
 mkdir<span class="w"> </span>-p<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">&quot;</span>
+
+<span class="c1"># Create the CA certificate using wallet_ca.</span>
 cargo<span class="w"> </span>run<span class="w"> </span>--manifest-path<span class="w"> </span><span class="s2">&quot;wallet_core/Cargo.toml&quot;</span><span class="w"> </span>--bin<span class="w"> </span><span class="s2">&quot;wallet_ca&quot;</span><span class="w"> </span>ca<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--common-name<span class="w"> </span><span class="s2">&quot;ca.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">.example.com&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--common-name<span class="w"> </span><span class="s2">&quot;ca.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--file-prefix<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">/ca.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">&quot;</span>
 </pre></div>
 </div>
