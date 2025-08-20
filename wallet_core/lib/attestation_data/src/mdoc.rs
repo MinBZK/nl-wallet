@@ -77,15 +77,15 @@ impl PreviewableCredentialPayload {
 #[cfg(any(test, feature = "mock"))]
 mod test {
     use chrono::Utc;
-    use crypto::EcdsaKeySend;
     use p256::ecdsa::VerifyingKey;
-    use sd_jwt::sd_jwt::VerifiedSdJwt;
     use ssri::Integrity;
 
     use crypto::CredentialEcdsaKey;
     use crypto::EcdsaKey;
+    use crypto::EcdsaKeySend;
     use crypto::server_keys::KeyPair;
     use mdoc::holder::Mdoc;
+    use sd_jwt::sd_jwt::VerifiedSdJwt;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 
     use crate::credential_payload::CredentialPayload;
