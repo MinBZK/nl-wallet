@@ -29,9 +29,7 @@ document we reference uses one of these other names.
 ## What we're going to cover
 
 You want to verify certain attributes of a natural person which are contained in
-the NL-Wallet. To be able to do so there are a few things you must do. Roughly,
-these are a couple of onboarding steps, and the actual configuration of the
-on-premises `verification_server`. What we need to do:
+the NL-Wallet. What we're going to cover:
 
 0. Architecture and component overview
 1. Determine which attributes you want to verify
