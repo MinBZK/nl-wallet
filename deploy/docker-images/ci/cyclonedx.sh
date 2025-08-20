@@ -9,7 +9,7 @@ echo "5e1595542a6367378a3944bbd3008caab3de65d572345361d3b9597b1dbbaaa0  /usr/loc
 chmod +x /usr/local/bin/cyclonedx
 
 # Rust
-sudo -E -H -u wallet -- sh -c 'cd $HOME && cargo install cargo-cyclonedx --version 0.5.7'
+sudo -E -H -u wallet -- sh -c 'cd $HOME && cargo install cargo-cyclonedx --locked --version 0.5.7'
 
 # Ruby
 gem install cyclonedx-cocoapods -v 2.0.0
