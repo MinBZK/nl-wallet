@@ -21,3 +21,12 @@ app.*.map.json
 
 # Build output directories
 build/
+
+# Local coverage reports
+coverage/
+
+# Android shared libraries
+jniLibs/
+
+# Golden test failures
+**/failures/*.png
