@@ -100,7 +100,7 @@ impl UnverifiedSdJwt {
         let issuer_certificates = self.issuer_signed.extract_x5c_certificates()?;
         let issuer_signed_jwt = self.issuer_signed.verify(pubkey, &validations())?;
 
-        let disclosures = Self::verified_disclosures(&self.disclosures, &issuer_signed_jwt)?;
+        let disclosures = Self::verified_disclosures(&self.disclosures);
         Ok(VerifiedSdJwt(SdJwt {
             issuer_signed_jwt,
             issuer_certificates,
@@ -121,7 +121,7 @@ impl UnverifiedSdJwt {
             &validations(),
         )?;
 
-        let disclosures = Self::verified_disclosures(&self.disclosures, &issuer_signed_jwt)?;
+        let disclosures = Self::verified_disclosures(&self.disclosures);
         Ok((
             VerifiedSdJwt(SdJwt {
                 issuer_signed_jwt,
@@ -132,23 +132,16 @@ impl UnverifiedSdJwt {
         ))
     }
 
-    fn verified_disclosures(
-        disclosures: &[Disclosure],
-        issuer_signed_jwt: &VerifiedJwt<SdJwtClaims>,
-    ) -> Result<HashMap<String, Disclosure>> {
-        let disclosures = disclosures
+    fn verified_disclosures(disclosures: &[Disclosure]) -> HashMap<String, Disclosure> {
+        disclosures
             .iter()
             .map(|disclosure| {
                 // TODO get the hasher from the issuer_signed_jwt
                 let hash = Sha256Hasher.encoded_digest(disclosure.as_str());
-                if !issuer_signed_jwt.payload()._sd.contains(&hash) {
-                    return Err(Error::DisclosureMissing(disclosure.to_string()));
-                }
-                Ok((hash, disclosure.clone()))
+                // TODO verify recursively that the hash is in the issuer_signed_jwt "_sd" array
+                (hash, disclosure.clone())
             })
-            .try_collect()?;
-
-        Ok(disclosures)
+            .collect()
     }
 }
 
