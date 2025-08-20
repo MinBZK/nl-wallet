@@ -1,10 +1,10 @@
 use chrono::DateTime;
 use chrono::Utc;
-use crypto::x509::CertificateError;
 use indexmap::IndexMap;
 use serde::Deserialize;
 use serde::Serialize;
 
+use crypto::x509::CertificateError;
 use http_utils::urls::HttpsUri;
 use mdoc::DataElementIdentifier;
 use mdoc::DataElementValue;
