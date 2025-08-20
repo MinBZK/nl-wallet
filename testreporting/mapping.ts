@@ -3,7 +3,6 @@ import { basename, extname } from "node:path"
 // Mapping to rename filenames to human-readable strings
 const filenameToGroupMapping: Record<string, string> = {
   "browsertest-wallet-web": "Browsertests",
-  "browsertest-gba-fetch": "Browsertests",
   "browsertest-fallback-pages": "Browsertests",
   e2e: "End-to-end tests",
   flutter: "Wallet App",
@@ -12,7 +11,6 @@ const filenameToGroupMapping: Record<string, string> = {
   ios: "Platform Support iOS",
   android: "Platform Support Android",
   rust: "Wallet Core",
-  "rust-gba-pid": "GBA PID tests",
 }
 
 export function fileNameToGroup(fileName: string) {
