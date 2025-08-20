@@ -136,9 +136,9 @@ impl UnverifiedSdJwt {
         disclosures
             .iter()
             .map(|disclosure| {
-                // TODO get the hasher from the issuer_signed_jwt
+                // TODO get the hasher from the issuer_signed_jwt (PVW-4817)
                 let hash = Sha256Hasher.encoded_digest(disclosure.as_str());
-                // TODO verify recursively that the hash is in the issuer_signed_jwt "_sd" array
+                // TODO verify recursively that the hash is in the issuer_signed_jwt "_sd" array (PVW-4817)
                 (hash, disclosure.clone())
             })
             .collect()
