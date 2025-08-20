@@ -1,17 +1,22 @@
+import 'package:collection/collection.dart';
+import 'package:rxdart/transformers.dart';
+
 import '../../../../data/repository/card/wallet_card_repository.dart';
 import '../../../model/card/wallet_card.dart';
 import '../../wallet_usecase.dart';
 import '../observe_wallet_card_usecase.dart';
 
 class ObserveWalletCardUseCaseImpl extends ObserveWalletCardUseCase {
-  final WalletCardRepository walletCardRepository;
+  final WalletCardRepository _walletCardRepository;
 
-  ObserveWalletCardUseCaseImpl(this.walletCardRepository);
+  ObserveWalletCardUseCaseImpl(this._walletCardRepository);
 
   @override
   Stream<WalletCard> invoke(String cardId) {
-    return walletCardRepository.observeWalletCards().map((cards) {
-      return cards.firstWhere((card) => card.attestationId == cardId);
-    }).handleAppError('Error while observing card with id $cardId');
+    return _walletCardRepository
+        .observeWalletCards()
+        .map((cards) => cards.firstWhereOrNull((card) => card.attestationId == cardId))
+        .whereNotNull()
+        .handleAppError('Error while observing card with id $cardId');
   }
 }
