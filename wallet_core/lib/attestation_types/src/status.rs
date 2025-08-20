@@ -1,4 +1,3 @@
-use std::io;
 use std::io::prelude::*;
 
 use base64::prelude::*;
@@ -7,6 +6,7 @@ use flate2::read::ZlibDecoder;
 use flate2::write::ZlibEncoder;
 use serde::Deserialize;
 use serde::Serialize;
+use serde::ser::SerializeStruct;
 use serde_repr::Deserialize_repr;
 use serde_repr::Serialize_repr;
 
@@ -15,42 +15,86 @@ use http_utils::urls::HttpsUri;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StatusList(Vec<StatusType>);
 
-#[derive(Debug, thiserror::Error)]
-enum StatusListError {
-    #[error("decode error: {0}")]
-    Decode(#[from] base64::DecodeError),
+impl Serialize for StatusList {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let (bits, packed) = self.pack();
 
-    #[error("compression error: {0}")]
-    Compression(#[from] flate2::CompressError),
+        // Implementations are RECOMMENDED to use the highest compression level available.
+        let mut e = ZlibEncoder::new(Vec::new(), Compression::best());
+        e.write_all(&packed).map_err(serde::ser::Error::custom)?;
+        let compressed = e.finish().map_err(serde::ser::Error::custom)?;
 
-    #[error("io error: {0}")]
-    Io(#[from] io::Error),
+        let lst = BASE64_URL_SAFE_NO_PAD.encode(compressed);
+
+        let mut serialized = serializer.serialize_struct("StatusList", 2)?;
+        serialized.serialize_field("bits", &bits)?;
+        serialized.serialize_field("lst", &lst)?;
+        serialized.end()
+    }
 }
 
-impl TryFrom<StatusListCompressed> for StatusList {
-    type Error = StatusListError;
+impl<'de> Deserialize<'de> for StatusList {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        struct StatusListRaw {
+            bits: Bits,
+            lst: String,
+        }
 
-    fn try_from(value: StatusListCompressed) -> Result<Self, Self::Error> {
-        let decoded = BASE64_URL_SAFE_NO_PAD.decode(value.lst)?;
+        let raw = StatusListRaw::deserialize(deserializer)?;
+        let compressed = BASE64_URL_SAFE_NO_PAD
+            .decode(raw.lst)
+            .map_err(serde::de::Error::custom)?;
 
-        let mut d = ZlibDecoder::new(decoded.as_slice());
-        let mut s = Vec::new();
-        d.read_to_end(&mut s)?;
+        let mut d = ZlibDecoder::new(&compressed[..]);
+        let mut decompressed = Vec::new();
+        d.read_to_end(&mut decompressed).map_err(serde::de::Error::custom)?;
 
-        let level = 8 / value.bits as usize;
-        let mask = (2_u16.pow(value.bits as u32) - 1) as u8;
+        let status_list = StatusList::unpack(raw.bits, &decompressed);
+        Ok(status_list)
+    }
+}
 
-        let lst = s
+impl StatusList {
+    fn pack(&self) -> (Bits, Vec<u8>) {
+        let bits = self
+            .0
+            .iter()
+            .max_by(|a, b| a.bits().cmp(&b.bits()))
+            .map(|s| s.bits())
+            .unwrap_or_default(); // empty list
+
+        let level = 8 / bits as usize;
+
+        let mut lst = vec![0; (self.0.len() * bits as usize).div_ceil(8)];
+        for (index, status) in self.0.iter().enumerate() {
+            lst[index / level] |= status.as_u8() << (index % level);
+        }
+
+        (bits, lst)
+    }
+
+    fn unpack(bits: Bits, lst: &[u8]) -> Self {
+        let level = 8 / bits as usize;
+        let mask = (2_u16.pow(bits as u32) - 1) as u8;
+
+        let lst = lst
             .iter()
             .flat_map(|byte| {
                 (0..level).map(move |i| {
-                    let status = byte >> (i * value.bits as usize) & mask;
+                    let status = byte >> (i * bits as usize) & mask;
                     StatusType::from(status)
                 })
             })
             .collect();
 
-        Ok(StatusList(lst))
+        StatusList(lst)
     }
 }
 
@@ -62,42 +106,6 @@ enum Bits {
     Two = 2,
     Four = 4,
     Eight = 8,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-struct StatusListCompressed {
-    pub bits: Bits,
-
-    pub lst: String,
-}
-
-impl TryFrom<StatusList> for StatusListCompressed {
-    type Error = StatusListError;
-
-    fn try_from(value: StatusList) -> Result<Self, Self::Error> {
-        let bits = value
-            .0
-            .iter()
-            .max_by(|a, b| a.bits().cmp(&b.bits()))
-            .map(|s| s.bits())
-            .unwrap_or_default(); // empty list
-
-        let level = 8 / bits as usize;
-
-        let mut lst = vec![0; (value.0.len() * bits as usize).div_ceil(8)];
-        for (index, status) in value.0.iter().enumerate() {
-            lst[index / level] |= status.as_u8() << (index % level);
-        }
-
-        // Implementations are RECOMMENDED to use the highest compression level available.
-        let mut e = ZlibEncoder::new(Vec::new(), Compression::best());
-        e.write_all(&lst)?;
-        let lst = e.finish()?;
-
-        let lst = BASE64_URL_SAFE_NO_PAD.encode(lst);
-
-        Ok(StatusListCompressed { bits, lst })
-    }
 }
 
 /// A status describes the state, mode, condition or stage of an entity that is represented by the Referenced Token.
@@ -243,8 +251,8 @@ mod test {
     #[case(parse_status_list(FOUR_BIT_STATUS_LIST), Bits::Four)]
     #[case(parse_status_list(EIGHT_BIT_STATUS_LIST), Bits::Eight)]
     fn test_status_list_serialization(#[case] list: StatusList, #[case] expected: Bits) {
-        let compressed: StatusListCompressed = list.try_into().unwrap();
-        assert_eq!(compressed.bits, expected);
+        let compressed = serde_json::to_value(list).unwrap();
+        assert_eq!(compressed["bits"].as_u64().unwrap(), expected as u64);
     }
 
     #[rstest]
@@ -327,14 +335,13 @@ mod test {
         parse_status_list(EIGHT_BIT_STATUS_LIST)
     )]
     fn test_status_list_deserialization(#[case] value: serde_json::Value, #[case] expected: StatusList) {
-        let compressed: StatusListCompressed = serde_json::from_value(value).unwrap();
-        let deflated: StatusList = compressed.try_into().unwrap();
+        let status_list: StatusList = serde_json::from_value(value).unwrap();
 
-        assert_eq!(deflated.0[..expected.0.len()], expected.0);
+        assert_eq!(status_list.0[..expected.0.len()], expected.0);
         // everything not in the expected list should be Valid
         assert_eq!(
-            deflated.0[expected.0.len()..],
-            vec![StatusType::Valid; deflated.0.len() - expected.0.len()]
+            status_list.0[expected.0.len()..],
+            vec![StatusType::Valid; status_list.0.len() - expected.0.len()]
         );
     }
 }
