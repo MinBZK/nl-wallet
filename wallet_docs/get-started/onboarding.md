@@ -83,24 +83,30 @@ To create a Certificate Authority (CA) for development purposes, you can use the
 have followed the instructions in the `README.md` of the root of the NL-Wallet
 repository, so you have rust installed, run on a supported platform, etc.
 
-In the following code, we clone the nl-wallet repository, enter its directory,
-set a target directory and specify an identifier (this identifier resembles your
-organization, lowercase characters a-z, can end with numbers but not begin with
-them). We then make sure the target directory exists, and invoke cargo (rust's
-build tool) to in turn invoke `wallet_ca` which creates the CA certificate and
-key.
+In the following code block, we clone the nl-wallet repository, enter its
+directory, set a target directory and specify an identifier (this identifier
+resembles your organization, lowercase characters a-z, can end with numbers but
+not begin with them).
+
+We then make sure the target directory exists, and invoke `cargo` (rust's build
+tool) to in turn invoke `wallet_ca` which creates the CA certificate and key.
 
 Change at least the `IDENTIFIER` to match your organization name (should be
 lowercase characters a-z, can end with numbers but may not begin with them).
 
 ```shell
+# Git clone and enter the nl-wallet repository if you haven't already done so.
 git clone https://github.com/MinBZK/nl-wallet
 cd nl-wallet
+
+# Set and create target directory, identifier for your certificates.
 export TARGET_DIR=../ca-target
 export IDENTIFIER=foocorp
 mkdir -p "${TARGET_DIR}"
+
+# Create the CA certificate using wallet_ca.
 cargo run --manifest-path "wallet_core/Cargo.toml" --bin "wallet_ca" ca \
-    --common-name "ca.${IDENTIFIER}.example.com" \
+    --common-name "ca.${IDENTIFIER}" \
     --file-prefix "${TARGET_DIR}/ca.${IDENTIFIER}"
 ```
 
