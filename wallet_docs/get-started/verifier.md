@@ -76,7 +76,7 @@ session. The main components described in the diagram are:
 Missing from the above diagram, but worth mentioning:
 
 - [Wallet Web][14] The frontend helper JavaScript/TypeScript library which helps
-  relying parties integrate their application with the NL-Wallet platform.
+  verifiers integrate their application with the NL-Wallet platform.
 
 For the purpose of this document, we won't go into all components mentioned
 above, in particular, "DigiD" and "Pseudonym Service" are out-of-scope with
@@ -208,23 +208,23 @@ verifier in the NL-Wallet app GUI. What we need to know:
 | `retention_policy`                | -         | Do you have an intent to retain data? For how long?                          |
 | `sharing_policy`                  | -         | Do you have an intent to share data? With whom?                              |
 | `deletion_policy`                 | -         | Do you allow users to request deletion of their data, yes/no?                |
-| `organization_display_name`       | `nl+en`   | Name of the relying party as shown in the app app.                        |
-| `organization_legal_name`         | `nl+en`   | Legal name of the relying party.                                             |
-| `organization_description`        | `nl+en`   | Short one-sentence description or mission statement of the relying party.    |
-| `organization_web_url`            | -         | The home URL of the relying party.                                           |
-| `organization_city`               | `nl+en`   | The home city of the relying party.                                          |
+| `organization_display_name`       | `nl+en`   | Name of the verifier as shown in the app app.                        |
+| `organization_legal_name`         | `nl+en`   | Legal name of the verifier.                                             |
+| `organization_description`        | `nl+en`   | Short one-sentence description or mission statement of the verifier.    |
+| `organization_web_url`            | -         | The home URL of the verifier.                                           |
+| `organization_city`               | `nl+en`   | The home city of the verifier.                                          |
 | `organization_category`           | `nl+en`   | Bank, Municipality, Trading, Delivery Service, etc.                          |
 | `organization_logo`               | -         | A logo to display in the app, preferably in SVG format.               |
-| `organization_country_code`       | -         | Two-letter country code of relying party residence.                          |
-| `organization_kvk`                | -         | Chamber of commerce number of relying party.                                 |
-| `organization_privacy_policy_url` | -         | Link to relying party's privacy policy.                                      |
+| `organization_country_code`       | -         | Two-letter country code of verifier residence.                          |
+| `organization_kvk`                | -         | Chamber of commerce number of verifier.                                 |
+| `organization_privacy_policy_url` | -         | Link to verifier's privacy policy.                                      |
 | `request_origin_base_url`         | -         | What is the URL the user sees in the address bar when they start disclosure? |
 | `list_of_verifiable_attributes`   | -         | List of attributes determined in previous section.                           |
 
 Note: In the `Languages` column where it says `nl+en` for example, please
 provide both a dutch and an english answer.
 
-### Creating a reader_auth.json
+### Create reader authentication JSON
 
 TODO Update the reader_auth.json creation section for generic issuance
 
@@ -251,17 +251,17 @@ municipality of Amsterdam:
     "organization": {
         "displayName": {
             "nl": "Gemeente Amsterdam",
-            "en": "Municipality of Amsterdam"
+            "en": "City of Amsterdam"
         },
         "legalName": {
             "nl": "Gemeente Amsterdam",
-            "en": "Municipality of Amsterdam"
+            "en": "City of Amsterdam"
         },
         "description": {
             "nl": "Alles wat we doen, doen we voor de stad en de Amsterdammers.",
             "en": "Everything we do, we do for the city and the people of Amsterdam."
         },
-        "webUrl": "https://amsterdam.nl",
+        "webUrl": "https://www.amsterdam.nl",
         "city": {
             "nl": "Amsterdam",
             "en": "Amsterdam"
@@ -275,17 +275,17 @@ municipality of Amsterdam:
             "imageData": "<svg width=\"64\" height=\"64\" viewBox=\"0 0 64 64\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><rect width=\"64\" height=\"64\" rx=\"12\" fill=\"#FF0000\"/><path d=\"M25 53.1823L29.1985 48.9481L25 44.7139L27.8015 41.8886L32 46.1228L36.1985 41.8886L39 44.7139L34.8015 48.9481L39 53.1823L36.191 56L31.9925 51.7658L27.794 56L25 53.1823ZM25 19.2861L29.1985 15.0519L25 10.8253L27.8015 8L32 12.2342L36.191 8L38.9925 10.8253L34.794 15.0595L38.9925 19.2937L36.191 22.1114L31.9925 17.8772L27.794 22.1114L25 19.2861ZM25 36.2455L29.1985 32.0114L25 27.7848L27.8015 24.9594L32 29.1936L36.1985 24.9594L39 27.7848L34.8015 32.0189L39 36.2531L36.191 39.0709L31.9925 34.8367L27.794 39.0709L25 36.2455Z\" fill=\"white\"/></svg>"
         },
         "countryCode": "nl",
-        "kvk": "1234-1234",
-        "privacyPolicyUrl": "https://amsterdam.nl/privacy"
+        "kvk": "34366966",
+        "privacyPolicyUrl": "https://www.amsterdam.nl/privacy"
     },
-    "requestOriginBaseUrl": "https://amsterdam.nl",
+    "requestOriginBaseUrl": "https://www.amsterdam.nl",
     "authorizedAttributes": {
         "urn:eudi:pid:nl:1": [["urn:eudi:pid:nl:1", "bsn"]]
     }
 }
 ```
 
-### Example screenshot of reader_auth.json data used in the app
+### Example screenshot of reader authentication metadata used in the app
 
 The data from `reader_auth.json` is used in various parts of the app. For
 illustrative purposes, see below a screenshot of a screen showing details
@@ -295,7 +295,53 @@ about the municipality of Amsterdam:
 
 ## Creating a reader certificate
 
-TODO Use wallet_ca to create reader certificate
+In the following code block, we clone the nl-wallet repository, enter its directory,
+set a target directory and specify an identifier (this identifier resembles your
+organization, lowercase characters a-z, can end with numbers but not begin with
+them).
+
+We then make sure the target directory exists, and invoke `cargo` (rust's build
+tool) to in turn invoke `wallet_ca` which creates the reader certificate and
+key.
+
+Finally, we invoke `openssl` to convert our PEM certificate and key into DER
+format.
+
+Note: You need a `reader_auth.json`, which you can base on the example shown in the
+[previous section](#create-reader-authentication-json).
+
+Note: You will need to have [onboarded](onboarding.md), which means you have
+[created your own CA](onboarding.md#create-a-ca).
+
+
+```shell
+# Git clone and enter the nl-wallet repository if you haven't already done so.
+git clone https://github.com/MinBZK/nl-wallet
+cd nl-wallet
+
+# Set and create target directory, identifier for your certificates.
+export TARGET_DIR=../ca-target
+export IDENTIFIER=foocorp
+mkdir -p "${TARGET_DIR}"
+
+# Create the reader certificate using wallet_ca.
+cargo run --manifest-path "wallet_core/Cargo.toml" --bin "wallet_ca" reader \
+    --ca-key-file "${TARGET_DIR}/ca.${IDENTIFIER}.key.pem" \
+    --ca-crt-file "${TARGET_DIR}/ca.${IDENTIFIER}.crt.pem" \
+    --common-name "reader.${IDENTIFIER}" \
+    --reader-auth-file "reader_auth.json" \
+    --file-prefix "${TARGET_DIR}/reader.${IDENTIFIER}"
+
+# Convert certificate PEM to DER.
+openssl x509 \
+    -in "${TARGET_DIR}/reader.${IDENTIFIER}.crt.pem" -inform PEM \
+    -out "${TARGET_DIR}/reader.${IDENTIFIER}.crt.der" -outform DER
+
+# Convert key PEM to DER.
+openssl pkcs8 -topk8 -nocrypt \
+    -in "${TARGET_DIR}/reader.${IDENTIFIER}.key.pem" -inform PEM \
+    -out "${TARGET_DIR}/reader.${IDENTIFIER}.key.der" -outform DER
+```
 
 ## Verification server installation
 
@@ -594,12 +640,12 @@ api_key = "your_secret_key"
 
 ### Configuring cross-origin resource sharing (optional)
 
-Cross-Origin Resource Sharing (CORS) can be configured on the verification
-server for when the Relying Party application is hosted on a different URL than
-the verification server.
+Cross-Origin Resource Sharing (CORS) can be configured on `verification_server`
+when the application is hosted on a different URL than the `verification_server`
+itself.
 
 To configure CORS, you need to add `allow_origins` to the `[verifier]` section
-with a list of all the Relying Party URLs. Replace `"https://example.com"` in
+with a list of all the URLs you need. Replace `"https://example.com"` in
 the following snippet with a comma separated list of the required urls.
 
 ```toml
@@ -677,16 +723,15 @@ the [API specifications](#api-specifications) section.
 TODO Update background section for generic issuance
 
 Now that you can interact with the NL-Wallet platform, you are ready to start
-working on integration your own application with your "Ontvangende Voorziening".
+working on integrating your own application.
 
-An "Ontvangende Voorziening" is realized by the `verification_server`, which is
-a software component developed by the NL-Wallet team which you as a relying
-party run on-premises or within your cloud environment in order to interact with
-the NL-Wallet platform.
+The previously configured `verification_server`, is a software component
+developed by the NL-Wallet team which you as a verifier run on-premises or
+within your cloud environment in order to interact with the NL-Wallet platform.
 
-In the following subsections we'll give you a high-level overview of what an
-"Ontvangende Voorziening" looks like, how to integrate it with your application
-and some directions with regards to the API specifications.
+In the following subsections we'll give you a high-level overview of what a
+verifier looks like, how to integrate it with your application and some
+directions with regards to API specifications.
 
 ### What a disclosure session looks Like
 
@@ -694,12 +739,11 @@ and some directions with regards to the API specifications.
 
 In the above flow diagram you see the components involved in a disclosure
 session. Except for the "PID Issuer (VV)" and the "Wallet App", these run on
-premises or within cloud environment(s) of the relying party (i.e., you).
+premises or within cloud environment(s) of the verifier (i.e., you).
 
 Let's walk through a typical (cross-device, note on same-device flows in
 following section) disclosure session (for full details, have a look at the
-VV/OV SAD and our
-[component interaction flow for disclosures](/architecture/disclosure-with-openid4vp.md)).
+VV/OV SAD and our [component interaction flow for disclosures](/architecture/disclosure-with-openid4vp.md)).
 
 Note the possible session states:
 
@@ -712,21 +756,21 @@ Note the "actors/components" we distinguish between:
 - `user`: _user of the app, initiating an attribute disclosure session_
 - `wallet_app`: _the NL-Wallet app, running on a users' mobile phone_
 - `verification_server`: _the verification_server component of the OV_
-- `rp_frontend`: _the (JavaScript/HTML/CSS) frontend of the relying party app_
+- `rp_frontend`: _the (JavaScript/HTML/CSS) frontend of the verifier app_
   _can be-or-use previously mentioned `wallet_web` JavaScript helper library_
-- `rp_backend`: _the (server) backend of the relying party application_
+- `rp_backend`: _the (server) backend of the verifier application_
 
 In the diagram, the `user` is the small stick-figure at the top, the actor who
 initiates some task they wants to accomplish. the `wallet_app` is the blue box
 on the right. The `verification_server` is the big block in the middle (shown as
-"Verifier Service (Ontvangst Voorziening, OV)" containing the configuration, the
-verifier, and the validator components). The `rp_frontend` and `rp_backend` are
-represented by the big orange/beige block on the left (shown as "Relying Party
-Application").
+"Verifier Service (Ontvangende Voorziening, OV)" containing the configuration,
+the verifier, and the validator components). The `rp_frontend` and `rp_backend`
+are represented by the big orange/beige block on the left (shown as "Relying
+Party Application").
 
 Overview of a flow for cross device attribute disclosure:
 
-1. `user` initiates action (i.e., clicks a button on web page of relying party
+1. `user` initiates action (i.e., clicks a button on web page of verifier
    in their desktop or mobile webbrowser);
 2. `rp_frontend` receives action, asks `rp_backend` to initiate session;
 3. `rp_backend` in turn calls `verification_server` with a session
@@ -748,9 +792,9 @@ navigate to the universal link (UL). In parallel, `rp_frontend` will poll the
    status. The poll will terminate on `DONE`;
 7. After `user` completes the scanning of the QR or followed the universal link,
    `wallet_app` parses/extracts the QR/UL and starts a device engagement session
-   with `verification_server`, which in turn returns the relying party details
+   with `verification_server`, which in turn returns the verifier details
    and the requested attributes to the `wallet_app`;
-8. The `wallet_app` shows the relying party details and the requested attributes
+8. The `wallet_app` shows the verifier details and the requested attributes
    to the `user` and gives the `user` the option to consent or abort;
 
 The `user` can abort, which will terminate the session with a `CANCELED` status.
@@ -798,15 +842,15 @@ app for identification or verification of attributes with your application:
 - The NL-Wallet app presents attestations using the [OpenID4VP][10] protocol
   standard using the [ISO/IEC 18013-5:2021][8] mdoc credential format;
 - Any disclosure session initiation request must include the reason why the
-  relying party is requesting the attributes;
-- A relying party **MUST NOT** track, in the broadest sense of the word;
-- A relying party needs to adhere to the EU-GDPR (Nederlands: EU-AVG)
+  verifier is requesting the attributes;
+- A verifier **MUST NOT** track, in the broadest sense of the word;
+- A verifier needs to adhere to the EU-GDPR (Nederlands: EU-AVG)
   [GDPR][12];
 - It is required to follow accessibility guidelines set forth in the [WCAG][13];
 - It is expected that you use the `wallet_web` frontend helper library;
 - The standard buttons for login and sharing should be used, but one can use
   custom button text (within reason);
-- Button styling and call-to-action can be customized by relying party;
+- Button styling and call-to-action can be customized by verifier;
 - The text "NL-Wallet" should always be visible in the call-to-action;
 - Logo of "NL-Wallet" should be visible next to the call-to-action.
 
@@ -815,15 +859,14 @@ app for identification or verification of attributes with your application:
 TODO Update integration section for generic issuance
 
 If you look at the previous disclosure flow diagram, on the left side, you see
-the Relying Party application, which is an application you probably already have
-that you want to integrate with functionality the app provides (i.e., the
+the "Relying Party Application", which is an application you probably already
+have that you want to integrate with functionality the app provides (i.e., the
 verification of identity and/or certain specific attributes, in order to allow
 or disallow usage of (a part of) said application).
 
-To integrate with the "Ontvangende Voorziening", you modify your frontend and
-backend application, using the `wallet_web` frontend library, integrating with
-the `verification_server` (the implementation of the "Ontvangende Voorziening"
-on your premises or in your cloud environment).
+To integrate with the verifier, you modify your frontend and backend app, using
+the `wallet_web` frontend library, integrating with your previously configured
+`verification_server`.
 
 In the disclosure flow diagram, on the right, where the "Relying Party
 Application" is shown, you see a four integration/call points: "Configure
@@ -831,8 +874,7 @@ Verifier", "Initiate Disclosure Session", "Start Result Poll Loop" and "Retrieve
 OV Result":
 
 - Configuration of the verifier, executed manually by you, a one-time initial
-  setup that stores a configuration about your app in the configuration
-  component of the OV;
+  setup which is documented in this guide;
 - Initiation of a disclosure session, executed by your backend application;
 - The status check loop, executed by your frontend application, where we check
   for a status result, which indicates success or failure of the session.
@@ -865,8 +907,8 @@ bind to a private/trusted/internal network), used to initiate sessions and
 retrieve sensitive data, usually running on TCP port `8002`.
 
 Following is a collection of sample calls that illustrate how you interact with
-the OV. Note that we're using `localhost`, in your case it might be another
-hostname, FQDN or IP address, depending on how you've set-up
+the verifier. Note that we're using `localhost`, in your case it might be
+another hostname, FQDN or IP address, depending on how you've set-up
 `verification_server`:
 
 ### Initiate a disclosure session
