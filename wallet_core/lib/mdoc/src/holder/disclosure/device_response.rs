@@ -13,7 +13,7 @@ use crate::iso::disclosure::Document;
 use crate::iso::engagement::DeviceAuthenticationKeyed;
 use crate::iso::engagement::SessionTranscript;
 
-use super::mdoc::DisclosureMdoc;
+use super::mdoc::PartialMdoc;
 
 impl DeviceResponse {
     pub fn new(documents: Vec<Document>) -> Self {
@@ -26,7 +26,7 @@ impl DeviceResponse {
     }
 
     pub async fn sign_from_mdocs<K, W, P>(
-        disclosure_mdocs: Vec<DisclosureMdoc>,
+        partial_mdocs: Vec<PartialMdoc>,
         session_transcript: &SessionTranscript,
         wscd: &W,
         poa_input: P::Input,
@@ -37,12 +37,12 @@ impl DeviceResponse {
         P: WscdPoa,
     {
         // Prepare the credential keys and device auth challenges per mdoc.
-        let (keys, challenges) = disclosure_mdocs
+        let (keys, challenges) = partial_mdocs
             .iter()
-            .map(|disclosure_mdoc| {
-                let credential_key = disclosure_mdoc.credential_key(wscd)?;
+            .map(|partial_mdoc| {
+                let credential_key = partial_mdoc.credential_key(wscd)?;
                 let device_signed_challenge =
-                    DeviceAuthenticationKeyed::challenge(&disclosure_mdoc.doc_type, session_transcript)?;
+                    DeviceAuthenticationKeyed::challenge(&partial_mdoc.doc_type, session_transcript)?;
 
                 Ok((credential_key, device_signed_challenge))
             })
@@ -58,10 +58,10 @@ impl DeviceResponse {
         // and challenges, then use these to create the Document values.
         let (device_signeds, poa) = DeviceSigned::new_signatures(keys_and_challenges, wscd, poa_input).await?;
 
-        let documents = disclosure_mdocs
+        let documents = partial_mdocs
             .into_iter()
             .zip(device_signeds)
-            .map(|(disclosure_mdoc, device_signed)| Document::new(disclosure_mdoc, device_signed))
+            .map(|(partial_mdoc, device_signed)| Document::new(partial_mdoc, device_signed))
             .collect();
 
         let device_response = Self::new(documents);
@@ -86,16 +86,16 @@ mod tests {
     use crate::iso::engagement::SessionTranscript;
     use crate::utils::cose::ClonePayload;
 
-    use super::super::mdoc::DisclosureMdoc;
+    use super::super::mdoc::PartialMdoc;
 
     #[test]
     fn test_device_response_sign_from_mdocs() {
         // Generate and sign some mdocs.
         let ca = Ca::generate_issuer_mock_ca().unwrap();
-        let (disclosure_mdocs, keys): (Vec<_>, Vec<_>) = (0..3)
+        let (partial_mdocs, keys): (Vec<_>, Vec<_>) = (0..3)
             .map(|index| {
                 let key = MockRemoteEcdsaKey::new(format!("key_{index}"), SigningKey::random(&mut OsRng));
-                let mdoc = DisclosureMdoc::new_mock_with_ca_and_key(&ca, &key);
+                let mdoc = PartialMdoc::new_mock_with_ca_and_key(&ca, &key);
 
                 (mdoc, key)
             })
@@ -107,22 +107,22 @@ mod tests {
 
         // Sign a `DeviceResponse` that contains all of the attributes from the generated mdocs.
         let (device_response, _) =
-            DeviceResponse::sign_from_mdocs(disclosure_mdocs.clone(), &session_transcript, &wscd, ())
+            DeviceResponse::sign_from_mdocs(partial_mdocs.clone(), &session_transcript, &wscd, ())
                 .now_or_never()
                 .unwrap()
                 .expect("signing DeviceResponse from mdocs should succeed");
 
-        for (document, disclosure_mdoc) in device_response
+        for (document, partial_mdoc) in device_response
             .documents
             .as_deref()
             .unwrap_or(&[])
             .iter()
-            .zip(&disclosure_mdocs)
+            .zip(&partial_mdocs)
         {
             // For each created `Document`, check the contents against the input mdoc.
-            assert_eq!(document.doc_type, disclosure_mdoc.doc_type);
+            assert_eq!(document.doc_type, partial_mdoc.doc_type);
             assert!(document.device_signed.name_spaces.0.is_empty());
-            assert_eq!(document.issuer_signed, disclosure_mdoc.issuer_signed);
+            assert_eq!(document.issuer_signed, partial_mdoc.issuer_signed);
 
             // Re-create the device authentication challenge and validate that
             // each document has a valid device authentication signature.
@@ -132,7 +132,7 @@ mod tests {
             if let DeviceAuth::DeviceSignature(signature) = &document.device_signed.device_auth {
                 signature
                     .clone_with_payload(device_auth_bytes)
-                    .verify(&(&disclosure_mdoc.device_key).try_into().unwrap())
+                    .verify(&(&partial_mdoc.device_key).try_into().unwrap())
                     .expect("device authentication in DeviceResponse should be valid");
             } else {
                 panic!("device authentication in DeviceResponse should be of signature type");

@@ -7,8 +7,8 @@ use attestation_types::claim_path::ClaimPath;
 use crypto::x509::BorrowingCertificateExtension;
 use mdoc::IssuerSigned;
 use mdoc::holder::Mdoc;
-use mdoc::holder::disclosure::DisclosureMdoc;
 use mdoc::holder::disclosure::MissingAttributesError;
+use mdoc::holder::disclosure::PartialMdoc;
 use sd_jwt::sd_jwt::SdJwt;
 use sd_jwt::sd_jwt::UnsignedSdJwtPresentation;
 use sd_jwt::sd_jwt::VerifiedSdJwt;
@@ -43,7 +43,7 @@ pub struct StoredAttestationCopy {
 
 #[derive(Debug, Clone)]
 pub enum PartialAttestation {
-    MsoMdoc { disclosure_mdoc: Box<DisclosureMdoc> },
+    MsoMdoc { partial_mdoc: Box<PartialMdoc> },
     SdJwt { sd_jwt: Box<UnsignedSdJwtPresentation> },
 }
 
@@ -177,9 +177,9 @@ impl PartialAttestation {
     ) -> Result<Self, PartialAttestationError> {
         let partial_attestation = match attestation {
             StoredAttestation::MsoMdoc { mdoc } => {
-                let disclosure_mdoc = Box::new(DisclosureMdoc::try_new(*mdoc, claim_paths)?);
+                let partial_mdoc = Box::new(PartialMdoc::try_new(*mdoc, claim_paths)?);
 
-                PartialAttestation::MsoMdoc { disclosure_mdoc }
+                PartialAttestation::MsoMdoc { partial_mdoc }
             }
             StoredAttestation::SdJwt { sd_jwt } => {
                 let unsigned_presentation = claim_paths
@@ -215,8 +215,8 @@ impl AttestationDisclosureProposal {
         let partial_attestation = PartialAttestation::try_new(attestation, claim_paths)?;
 
         let presentation = match &partial_attestation {
-            PartialAttestation::MsoMdoc { disclosure_mdoc } => attestation_presentation_from_issuer_signed(
-                disclosure_mdoc.issuer_signed.clone(),
+            PartialAttestation::MsoMdoc { partial_mdoc } => attestation_presentation_from_issuer_signed(
+                partial_mdoc.issuer_signed.clone(),
                 attestation_id,
                 normalized_metadata,
                 issuer_registration.organization,

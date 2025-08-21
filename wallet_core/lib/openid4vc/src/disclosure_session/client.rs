@@ -207,7 +207,7 @@ mod tests {
     use crypto::x509::BorrowingCertificateExtension;
     use dcql::normalized;
     use http_utils::urls::BaseUrl;
-    use mdoc::holder::disclosure::DisclosureMdoc;
+    use mdoc::holder::disclosure::PartialMdoc;
     use mdoc::test::data::PID;
     use mdoc::utils::serialization::CborBase64;
     use utils::generator::mock::MockTimeGenerator;
@@ -363,11 +363,11 @@ mod tests {
         // Create a test mdoc and disclose it.
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let mdoc_key = MockRemoteEcdsaKey::new("mdoc_key".to_string(), SigningKey::random(&mut OsRng));
-        let disclosure_mdoc = DisclosureMdoc::new_mock_with_ca_and_key(&ca, &mdoc_key);
+        let partial_mdoc = PartialMdoc::new_mock_with_ca_and_key(&ca, &mdoc_key);
         let wscd = MockRemoteWscd::new(vec![mdoc_key]);
 
         let disclosure_redirect_uri = disclosure_session
-            .disclose(vec![disclosure_mdoc].try_into().unwrap(), &wscd)
+            .disclose(vec![partial_mdoc].try_into().unwrap(), &wscd)
             .now_or_never()
             .unwrap()
             .expect("disclosing mdoc using VpDisclosureSession should succeed");
