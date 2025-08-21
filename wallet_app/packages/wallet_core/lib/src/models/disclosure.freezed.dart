@@ -1,6 +1,5 @@
-// dart format width=80
-// coverage:ignore-file
 // GENERATED CODE - DO NOT MODIFY BY HAND
+// coverage:ignore-file
 // ignore_for_file: type=lint
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
@@ -32,6 +31,177 @@ mixin _$AcceptDisclosureResult {
 /// @nodoc
 class $AcceptDisclosureResultCopyWith<$Res> {
   $AcceptDisclosureResultCopyWith(AcceptDisclosureResult _, $Res Function(AcceptDisclosureResult) __);
+}
+
+/// Adds pattern-matching-related methods to [AcceptDisclosureResult].
+extension AcceptDisclosureResultPatterns on AcceptDisclosureResult {
+  /// A variant of `map` that fallback to returning `orElse`.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case _:
+  ///     return orElse();
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(AcceptDisclosureResult_Ok value)? ok,
+    TResult Function(AcceptDisclosureResult_InstructionError value)? instructionError,
+    required TResult orElse(),
+  }) {
+    final _that = this;
+    switch (_that) {
+      case AcceptDisclosureResult_Ok() when ok != null:
+        return ok(_that);
+      case AcceptDisclosureResult_InstructionError() when instructionError != null:
+        return instructionError(_that);
+      case _:
+        return orElse();
+    }
+  }
+
+  /// A `switch`-like method, using callbacks.
+  ///
+  /// Callbacks receives the raw object, upcasted.
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case final Subclass2 value:
+  ///     return ...;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(AcceptDisclosureResult_Ok value) ok,
+    required TResult Function(AcceptDisclosureResult_InstructionError value) instructionError,
+  }) {
+    final _that = this;
+    switch (_that) {
+      case AcceptDisclosureResult_Ok():
+        return ok(_that);
+      case AcceptDisclosureResult_InstructionError():
+        return instructionError(_that);
+    }
+  }
+
+  /// A variant of `map` that fallback to returning `null`.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case _:
+  ///     return null;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(AcceptDisclosureResult_Ok value)? ok,
+    TResult? Function(AcceptDisclosureResult_InstructionError value)? instructionError,
+  }) {
+    final _that = this;
+    switch (_that) {
+      case AcceptDisclosureResult_Ok() when ok != null:
+        return ok(_that);
+      case AcceptDisclosureResult_InstructionError() when instructionError != null:
+        return instructionError(_that);
+      case _:
+        return null;
+    }
+  }
+
+  /// A variant of `when` that fallback to an `orElse` callback.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case _:
+  ///     return orElse();
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function(String? returnUrl)? ok,
+    TResult Function(WalletInstructionError error)? instructionError,
+    required TResult orElse(),
+  }) {
+    final _that = this;
+    switch (_that) {
+      case AcceptDisclosureResult_Ok() when ok != null:
+        return ok(_that.returnUrl);
+      case AcceptDisclosureResult_InstructionError() when instructionError != null:
+        return instructionError(_that.error);
+      case _:
+        return orElse();
+    }
+  }
+
+  /// A `switch`-like method, using callbacks.
+  ///
+  /// As opposed to `map`, this offers destructuring.
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case Subclass2(:final field2):
+  ///     return ...;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function(String? returnUrl) ok,
+    required TResult Function(WalletInstructionError error) instructionError,
+  }) {
+    final _that = this;
+    switch (_that) {
+      case AcceptDisclosureResult_Ok():
+        return ok(_that.returnUrl);
+      case AcceptDisclosureResult_InstructionError():
+        return instructionError(_that.error);
+    }
+  }
+
+  /// A variant of `when` that fallback to returning `null`
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case _:
+  ///     return null;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function(String? returnUrl)? ok,
+    TResult? Function(WalletInstructionError error)? instructionError,
+  }) {
+    final _that = this;
+    switch (_that) {
+      case AcceptDisclosureResult_Ok() when ok != null:
+        return ok(_that.returnUrl);
+      case AcceptDisclosureResult_InstructionError() when instructionError != null:
+        return instructionError(_that.error);
+      case _:
+        return null;
+    }
+  }
 }
 
 /// @nodoc
@@ -264,6 +434,267 @@ class _$StartDisclosureResultCopyWithImpl<$Res> implements $StartDisclosureResul
           : requestOriginBaseUrl // ignore: cast_nullable_to_non_nullable
               as String,
     ));
+  }
+}
+
+/// Adds pattern-matching-related methods to [StartDisclosureResult].
+extension StartDisclosureResultPatterns on StartDisclosureResult {
+  /// A variant of `map` that fallback to returning `orElse`.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case _:
+  ///     return orElse();
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(StartDisclosureResult_Request value)? request,
+    TResult Function(StartDisclosureResult_RequestAttributesMissing value)? requestAttributesMissing,
+    required TResult orElse(),
+  }) {
+    final _that = this;
+    switch (_that) {
+      case StartDisclosureResult_Request() when request != null:
+        return request(_that);
+      case StartDisclosureResult_RequestAttributesMissing() when requestAttributesMissing != null:
+        return requestAttributesMissing(_that);
+      case _:
+        return orElse();
+    }
+  }
+
+  /// A `switch`-like method, using callbacks.
+  ///
+  /// Callbacks receives the raw object, upcasted.
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case final Subclass2 value:
+  ///     return ...;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(StartDisclosureResult_Request value) request,
+    required TResult Function(StartDisclosureResult_RequestAttributesMissing value) requestAttributesMissing,
+  }) {
+    final _that = this;
+    switch (_that) {
+      case StartDisclosureResult_Request():
+        return request(_that);
+      case StartDisclosureResult_RequestAttributesMissing():
+        return requestAttributesMissing(_that);
+    }
+  }
+
+  /// A variant of `map` that fallback to returning `null`.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case _:
+  ///     return null;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(StartDisclosureResult_Request value)? request,
+    TResult? Function(StartDisclosureResult_RequestAttributesMissing value)? requestAttributesMissing,
+  }) {
+    final _that = this;
+    switch (_that) {
+      case StartDisclosureResult_Request() when request != null:
+        return request(_that);
+      case StartDisclosureResult_RequestAttributesMissing() when requestAttributesMissing != null:
+        return requestAttributesMissing(_that);
+      case _:
+        return null;
+    }
+  }
+
+  /// A variant of `when` that fallback to an `orElse` callback.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case _:
+  ///     return orElse();
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function(
+            Organization relyingParty,
+            RequestPolicy policy,
+            List<AttestationPresentation> requestedAttestations,
+            bool sharedDataWithRelyingPartyBefore,
+            DisclosureSessionType sessionType,
+            List<LocalizedString> requestPurpose,
+            String requestOriginBaseUrl,
+            DisclosureType requestType)?
+        request,
+    TResult Function(
+            Organization relyingParty,
+            List<MissingAttribute> missingAttributes,
+            bool sharedDataWithRelyingPartyBefore,
+            DisclosureSessionType sessionType,
+            List<LocalizedString> requestPurpose,
+            String requestOriginBaseUrl)?
+        requestAttributesMissing,
+    required TResult orElse(),
+  }) {
+    final _that = this;
+    switch (_that) {
+      case StartDisclosureResult_Request() when request != null:
+        return request(
+            _that.relyingParty,
+            _that.policy,
+            _that.requestedAttestations,
+            _that.sharedDataWithRelyingPartyBefore,
+            _that.sessionType,
+            _that.requestPurpose,
+            _that.requestOriginBaseUrl,
+            _that.requestType);
+      case StartDisclosureResult_RequestAttributesMissing() when requestAttributesMissing != null:
+        return requestAttributesMissing(
+            _that.relyingParty,
+            _that.missingAttributes,
+            _that.sharedDataWithRelyingPartyBefore,
+            _that.sessionType,
+            _that.requestPurpose,
+            _that.requestOriginBaseUrl);
+      case _:
+        return orElse();
+    }
+  }
+
+  /// A `switch`-like method, using callbacks.
+  ///
+  /// As opposed to `map`, this offers destructuring.
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case Subclass2(:final field2):
+  ///     return ...;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function(
+            Organization relyingParty,
+            RequestPolicy policy,
+            List<AttestationPresentation> requestedAttestations,
+            bool sharedDataWithRelyingPartyBefore,
+            DisclosureSessionType sessionType,
+            List<LocalizedString> requestPurpose,
+            String requestOriginBaseUrl,
+            DisclosureType requestType)
+        request,
+    required TResult Function(
+            Organization relyingParty,
+            List<MissingAttribute> missingAttributes,
+            bool sharedDataWithRelyingPartyBefore,
+            DisclosureSessionType sessionType,
+            List<LocalizedString> requestPurpose,
+            String requestOriginBaseUrl)
+        requestAttributesMissing,
+  }) {
+    final _that = this;
+    switch (_that) {
+      case StartDisclosureResult_Request():
+        return request(
+            _that.relyingParty,
+            _that.policy,
+            _that.requestedAttestations,
+            _that.sharedDataWithRelyingPartyBefore,
+            _that.sessionType,
+            _that.requestPurpose,
+            _that.requestOriginBaseUrl,
+            _that.requestType);
+      case StartDisclosureResult_RequestAttributesMissing():
+        return requestAttributesMissing(
+            _that.relyingParty,
+            _that.missingAttributes,
+            _that.sharedDataWithRelyingPartyBefore,
+            _that.sessionType,
+            _that.requestPurpose,
+            _that.requestOriginBaseUrl);
+    }
+  }
+
+  /// A variant of `when` that fallback to returning `null`
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case _:
+  ///     return null;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function(
+            Organization relyingParty,
+            RequestPolicy policy,
+            List<AttestationPresentation> requestedAttestations,
+            bool sharedDataWithRelyingPartyBefore,
+            DisclosureSessionType sessionType,
+            List<LocalizedString> requestPurpose,
+            String requestOriginBaseUrl,
+            DisclosureType requestType)?
+        request,
+    TResult? Function(
+            Organization relyingParty,
+            List<MissingAttribute> missingAttributes,
+            bool sharedDataWithRelyingPartyBefore,
+            DisclosureSessionType sessionType,
+            List<LocalizedString> requestPurpose,
+            String requestOriginBaseUrl)?
+        requestAttributesMissing,
+  }) {
+    final _that = this;
+    switch (_that) {
+      case StartDisclosureResult_Request() when request != null:
+        return request(
+            _that.relyingParty,
+            _that.policy,
+            _that.requestedAttestations,
+            _that.sharedDataWithRelyingPartyBefore,
+            _that.sessionType,
+            _that.requestPurpose,
+            _that.requestOriginBaseUrl,
+            _that.requestType);
+      case StartDisclosureResult_RequestAttributesMissing() when requestAttributesMissing != null:
+        return requestAttributesMissing(
+            _that.relyingParty,
+            _that.missingAttributes,
+            _that.sharedDataWithRelyingPartyBefore,
+            _that.sessionType,
+            _that.requestPurpose,
+            _that.requestOriginBaseUrl);
+      case _:
+        return null;
+    }
   }
 }
 
