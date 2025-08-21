@@ -30,7 +30,7 @@ use sd_jwt_vc_metadata::TypeMetadataChainError;
 
 use crate::AttestationPresentation;
 
-pub use self::attestation_copy::AttestationDisclosureProposal;
+pub use self::attestation_copy::DisclosableAttestation;
 pub use self::attestation_copy::PartialAttestation;
 pub use self::attestation_copy::StoredAttestation;
 pub use self::attestation_copy::StoredAttestationCopy;

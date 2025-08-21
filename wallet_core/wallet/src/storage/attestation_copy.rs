@@ -49,7 +49,7 @@ pub enum PartialAttestation {
 
 #[derive(Debug, Clone)]
 #[cfg_attr(test, derive(derive_more::Constructor))]
-pub struct AttestationDisclosureProposal {
+pub struct DisclosableAttestation {
     attestation_copy_id: Uuid,
     partial_attestation: PartialAttestation,
     presentation: AttestationPresentation,
@@ -199,7 +199,7 @@ impl PartialAttestation {
     }
 }
 
-impl AttestationDisclosureProposal {
+impl DisclosableAttestation {
     pub fn try_new<'a>(
         attestion_copy: StoredAttestationCopy,
         claim_paths: impl IntoIterator<Item = &'a VecNonEmpty<ClaimPath>>,
@@ -229,13 +229,13 @@ impl AttestationDisclosureProposal {
             ),
         };
 
-        let proposal = Self {
+        let disclosable_attestation = Self {
             attestation_copy_id,
             partial_attestation,
             presentation,
         };
 
-        Ok(proposal)
+        Ok(disclosable_attestation)
     }
 
     pub fn attestation_copy_id(&self) -> Uuid {
@@ -281,7 +281,7 @@ mod tests {
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_at_least::VecNonEmpty;
 
-    use super::AttestationDisclosureProposal;
+    use super::DisclosableAttestation;
     use super::StoredAttestation;
     use super::StoredAttestationCopy;
 
@@ -354,7 +354,7 @@ mod tests {
         let issuer_registration = IssuerRegistration::new_mock();
         let issuer_keypair = generate_issuer_mock(&ca, issuer_registration.clone().into()).unwrap();
 
-        let (full_presentations, proposal_presentations): (Vec<_>, Vec<_>) = [
+        let (full_presentations, disclosable_presentations): (Vec<_>, Vec<_>) = [
             mdoc_stored_attestation_copy(&issuer_keypair),
             sd_jwt_stored_attestation_copy(&issuer_keypair),
         ]
@@ -376,21 +376,21 @@ mod tests {
             assert_eq!(full_presentation.attributes.len(), 3);
 
             // Selecting a particular attribute for disclosure should only succeed if the path exists.
-            let proposal = AttestationDisclosureProposal::try_new(attestation_copy.clone(), [&bsn_path])
+            let disclosable_attestation = DisclosableAttestation::try_new(attestation_copy.clone(), [&bsn_path])
                 .expect("converting the full attestation copy to on containing just the BSN should succeed");
 
-            let _error = AttestationDisclosureProposal::try_new(attestation_copy, [&missing_path])
+            let _error = DisclosableAttestation::try_new(attestation_copy, [&missing_path])
                 .expect_err("converting the full attestation copy to a partial one should not succeed");
 
-            // The `AttestationDisclosureProposal` contains only one attribute.
-            assert_eq!(proposal.presentation().attributes.len(), 1);
+            // The `DisclosableAttestation` contains only one attribute.
+            assert_eq!(disclosable_attestation.presentation().attributes.len(), 1);
 
-            (full_presentation, proposal.into_presentation())
+            (full_presentation, disclosable_attestation.into_presentation())
         })
         .unzip();
 
         // The full and partial `AttestationPresentation`s should be the same for both formats.
         assert!(full_presentations.iter().all_equal());
-        assert!(proposal_presentations.iter().all_equal())
+        assert!(disclosable_presentations.iter().all_equal())
     }
 }
