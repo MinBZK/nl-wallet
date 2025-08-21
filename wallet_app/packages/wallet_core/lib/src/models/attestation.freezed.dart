@@ -1,6 +1,5 @@
-// dart format width=80
-// coverage:ignore-file
 // GENERATED CODE - DO NOT MODIFY BY HAND
+// coverage:ignore-file
 // ignore_for_file: type=lint
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
@@ -32,6 +31,177 @@ mixin _$AttestationIdentity {
 /// @nodoc
 class $AttestationIdentityCopyWith<$Res> {
   $AttestationIdentityCopyWith(AttestationIdentity _, $Res Function(AttestationIdentity) __);
+}
+
+/// Adds pattern-matching-related methods to [AttestationIdentity].
+extension AttestationIdentityPatterns on AttestationIdentity {
+  /// A variant of `map` that fallback to returning `orElse`.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case _:
+  ///     return orElse();
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(AttestationIdentity_Ephemeral value)? ephemeral,
+    TResult Function(AttestationIdentity_Fixed value)? fixed,
+    required TResult orElse(),
+  }) {
+    final _that = this;
+    switch (_that) {
+      case AttestationIdentity_Ephemeral() when ephemeral != null:
+        return ephemeral(_that);
+      case AttestationIdentity_Fixed() when fixed != null:
+        return fixed(_that);
+      case _:
+        return orElse();
+    }
+  }
+
+  /// A `switch`-like method, using callbacks.
+  ///
+  /// Callbacks receives the raw object, upcasted.
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case final Subclass2 value:
+  ///     return ...;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(AttestationIdentity_Ephemeral value) ephemeral,
+    required TResult Function(AttestationIdentity_Fixed value) fixed,
+  }) {
+    final _that = this;
+    switch (_that) {
+      case AttestationIdentity_Ephemeral():
+        return ephemeral(_that);
+      case AttestationIdentity_Fixed():
+        return fixed(_that);
+    }
+  }
+
+  /// A variant of `map` that fallback to returning `null`.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case _:
+  ///     return null;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(AttestationIdentity_Ephemeral value)? ephemeral,
+    TResult? Function(AttestationIdentity_Fixed value)? fixed,
+  }) {
+    final _that = this;
+    switch (_that) {
+      case AttestationIdentity_Ephemeral() when ephemeral != null:
+        return ephemeral(_that);
+      case AttestationIdentity_Fixed() when fixed != null:
+        return fixed(_that);
+      case _:
+        return null;
+    }
+  }
+
+  /// A variant of `when` that fallback to an `orElse` callback.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case _:
+  ///     return orElse();
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function()? ephemeral,
+    TResult Function(String id)? fixed,
+    required TResult orElse(),
+  }) {
+    final _that = this;
+    switch (_that) {
+      case AttestationIdentity_Ephemeral() when ephemeral != null:
+        return ephemeral();
+      case AttestationIdentity_Fixed() when fixed != null:
+        return fixed(_that.id);
+      case _:
+        return orElse();
+    }
+  }
+
+  /// A `switch`-like method, using callbacks.
+  ///
+  /// As opposed to `map`, this offers destructuring.
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case Subclass2(:final field2):
+  ///     return ...;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function() ephemeral,
+    required TResult Function(String id) fixed,
+  }) {
+    final _that = this;
+    switch (_that) {
+      case AttestationIdentity_Ephemeral():
+        return ephemeral();
+      case AttestationIdentity_Fixed():
+        return fixed(_that.id);
+    }
+  }
+
+  /// A variant of `when` that fallback to returning `null`
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case _:
+  ///     return null;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function()? ephemeral,
+    TResult? Function(String id)? fixed,
+  }) {
+    final _that = this;
+    switch (_that) {
+      case AttestationIdentity_Ephemeral() when ephemeral != null:
+        return ephemeral();
+      case AttestationIdentity_Fixed() when fixed != null:
+        return fixed(_that.id);
+      case _:
+        return null;
+    }
+  }
 }
 
 /// @nodoc
@@ -134,6 +304,249 @@ mixin _$AttributeValue {
 /// @nodoc
 class $AttributeValueCopyWith<$Res> {
   $AttributeValueCopyWith(AttributeValue _, $Res Function(AttributeValue) __);
+}
+
+/// Adds pattern-matching-related methods to [AttributeValue].
+extension AttributeValuePatterns on AttributeValue {
+  /// A variant of `map` that fallback to returning `orElse`.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case _:
+  ///     return orElse();
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(AttributeValue_String value)? string,
+    TResult Function(AttributeValue_Boolean value)? boolean,
+    TResult Function(AttributeValue_Number value)? number,
+    TResult Function(AttributeValue_Date value)? date,
+    TResult Function(AttributeValue_Array value)? array,
+    TResult Function(AttributeValue_Null value)? null_,
+    required TResult orElse(),
+  }) {
+    final _that = this;
+    switch (_that) {
+      case AttributeValue_String() when string != null:
+        return string(_that);
+      case AttributeValue_Boolean() when boolean != null:
+        return boolean(_that);
+      case AttributeValue_Number() when number != null:
+        return number(_that);
+      case AttributeValue_Date() when date != null:
+        return date(_that);
+      case AttributeValue_Array() when array != null:
+        return array(_that);
+      case AttributeValue_Null() when null_ != null:
+        return null_(_that);
+      case _:
+        return orElse();
+    }
+  }
+
+  /// A `switch`-like method, using callbacks.
+  ///
+  /// Callbacks receives the raw object, upcasted.
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case final Subclass2 value:
+  ///     return ...;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(AttributeValue_String value) string,
+    required TResult Function(AttributeValue_Boolean value) boolean,
+    required TResult Function(AttributeValue_Number value) number,
+    required TResult Function(AttributeValue_Date value) date,
+    required TResult Function(AttributeValue_Array value) array,
+    required TResult Function(AttributeValue_Null value) null_,
+  }) {
+    final _that = this;
+    switch (_that) {
+      case AttributeValue_String():
+        return string(_that);
+      case AttributeValue_Boolean():
+        return boolean(_that);
+      case AttributeValue_Number():
+        return number(_that);
+      case AttributeValue_Date():
+        return date(_that);
+      case AttributeValue_Array():
+        return array(_that);
+      case AttributeValue_Null():
+        return null_(_that);
+    }
+  }
+
+  /// A variant of `map` that fallback to returning `null`.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case _:
+  ///     return null;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(AttributeValue_String value)? string,
+    TResult? Function(AttributeValue_Boolean value)? boolean,
+    TResult? Function(AttributeValue_Number value)? number,
+    TResult? Function(AttributeValue_Date value)? date,
+    TResult? Function(AttributeValue_Array value)? array,
+    TResult? Function(AttributeValue_Null value)? null_,
+  }) {
+    final _that = this;
+    switch (_that) {
+      case AttributeValue_String() when string != null:
+        return string(_that);
+      case AttributeValue_Boolean() when boolean != null:
+        return boolean(_that);
+      case AttributeValue_Number() when number != null:
+        return number(_that);
+      case AttributeValue_Date() when date != null:
+        return date(_that);
+      case AttributeValue_Array() when array != null:
+        return array(_that);
+      case AttributeValue_Null() when null_ != null:
+        return null_(_that);
+      case _:
+        return null;
+    }
+  }
+
+  /// A variant of `when` that fallback to an `orElse` callback.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case _:
+  ///     return orElse();
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function(String value)? string,
+    TResult Function(bool value)? boolean,
+    TResult Function(PlatformInt64 value)? number,
+    TResult Function(String value)? date,
+    TResult Function(List<AttributeValue> value)? array,
+    TResult Function()? null_,
+    required TResult orElse(),
+  }) {
+    final _that = this;
+    switch (_that) {
+      case AttributeValue_String() when string != null:
+        return string(_that.value);
+      case AttributeValue_Boolean() when boolean != null:
+        return boolean(_that.value);
+      case AttributeValue_Number() when number != null:
+        return number(_that.value);
+      case AttributeValue_Date() when date != null:
+        return date(_that.value);
+      case AttributeValue_Array() when array != null:
+        return array(_that.value);
+      case AttributeValue_Null() when null_ != null:
+        return null_();
+      case _:
+        return orElse();
+    }
+  }
+
+  /// A `switch`-like method, using callbacks.
+  ///
+  /// As opposed to `map`, this offers destructuring.
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case Subclass2(:final field2):
+  ///     return ...;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function(String value) string,
+    required TResult Function(bool value) boolean,
+    required TResult Function(PlatformInt64 value) number,
+    required TResult Function(String value) date,
+    required TResult Function(List<AttributeValue> value) array,
+    required TResult Function() null_,
+  }) {
+    final _that = this;
+    switch (_that) {
+      case AttributeValue_String():
+        return string(_that.value);
+      case AttributeValue_Boolean():
+        return boolean(_that.value);
+      case AttributeValue_Number():
+        return number(_that.value);
+      case AttributeValue_Date():
+        return date(_that.value);
+      case AttributeValue_Array():
+        return array(_that.value);
+      case AttributeValue_Null():
+        return null_();
+    }
+  }
+
+  /// A variant of `when` that fallback to returning `null`
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case _:
+  ///     return null;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function(String value)? string,
+    TResult? Function(bool value)? boolean,
+    TResult? Function(PlatformInt64 value)? number,
+    TResult? Function(String value)? date,
+    TResult? Function(List<AttributeValue> value)? array,
+    TResult? Function()? null_,
+  }) {
+    final _that = this;
+    switch (_that) {
+      case AttributeValue_String() when string != null:
+        return string(_that.value);
+      case AttributeValue_Boolean() when boolean != null:
+        return boolean(_that.value);
+      case AttributeValue_Number() when number != null:
+        return number(_that.value);
+      case AttributeValue_Date() when date != null:
+        return date(_that.value);
+      case AttributeValue_Array() when array != null:
+        return array(_that.value);
+      case AttributeValue_Null() when null_ != null:
+        return null_();
+      case _:
+        return null;
+    }
+  }
 }
 
 /// @nodoc
@@ -263,7 +676,7 @@ class _$AttributeValue_BooleanCopyWithImpl<$Res> implements $AttributeValue_Bool
 class AttributeValue_Number extends AttributeValue {
   const AttributeValue_Number({required this.value}) : super._();
 
-  final int value;
+  final PlatformInt64 value;
 
   /// Create a copy of AttributeValue
   /// with the given fields replaced by the non-null parameter values.
@@ -294,7 +707,7 @@ abstract mixin class $AttributeValue_NumberCopyWith<$Res> implements $AttributeV
   factory $AttributeValue_NumberCopyWith(AttributeValue_Number value, $Res Function(AttributeValue_Number) _then) =
       _$AttributeValue_NumberCopyWithImpl;
   @useResult
-  $Res call({int value});
+  $Res call({PlatformInt64 value});
 }
 
 /// @nodoc
@@ -314,7 +727,7 @@ class _$AttributeValue_NumberCopyWithImpl<$Res> implements $AttributeValue_Numbe
       value: null == value
           ? _self.value
           : value // ignore: cast_nullable_to_non_nullable
-              as int,
+              as PlatformInt64,
     ));
   }
 }
@@ -486,6 +899,177 @@ mixin _$RenderingMetadata {
 /// @nodoc
 class $RenderingMetadataCopyWith<$Res> {
   $RenderingMetadataCopyWith(RenderingMetadata _, $Res Function(RenderingMetadata) __);
+}
+
+/// Adds pattern-matching-related methods to [RenderingMetadata].
+extension RenderingMetadataPatterns on RenderingMetadata {
+  /// A variant of `map` that fallback to returning `orElse`.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case _:
+  ///     return orElse();
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(RenderingMetadata_Simple value)? simple,
+    TResult Function(RenderingMetadata_SvgTemplates value)? svgTemplates,
+    required TResult orElse(),
+  }) {
+    final _that = this;
+    switch (_that) {
+      case RenderingMetadata_Simple() when simple != null:
+        return simple(_that);
+      case RenderingMetadata_SvgTemplates() when svgTemplates != null:
+        return svgTemplates(_that);
+      case _:
+        return orElse();
+    }
+  }
+
+  /// A `switch`-like method, using callbacks.
+  ///
+  /// Callbacks receives the raw object, upcasted.
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case final Subclass2 value:
+  ///     return ...;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(RenderingMetadata_Simple value) simple,
+    required TResult Function(RenderingMetadata_SvgTemplates value) svgTemplates,
+  }) {
+    final _that = this;
+    switch (_that) {
+      case RenderingMetadata_Simple():
+        return simple(_that);
+      case RenderingMetadata_SvgTemplates():
+        return svgTemplates(_that);
+    }
+  }
+
+  /// A variant of `map` that fallback to returning `null`.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case _:
+  ///     return null;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(RenderingMetadata_Simple value)? simple,
+    TResult? Function(RenderingMetadata_SvgTemplates value)? svgTemplates,
+  }) {
+    final _that = this;
+    switch (_that) {
+      case RenderingMetadata_Simple() when simple != null:
+        return simple(_that);
+      case RenderingMetadata_SvgTemplates() when svgTemplates != null:
+        return svgTemplates(_that);
+      case _:
+        return null;
+    }
+  }
+
+  /// A variant of `when` that fallback to an `orElse` callback.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case _:
+  ///     return orElse();
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function(ImageWithMetadata? logo, String? backgroundColor, String? textColor)? simple,
+    TResult Function()? svgTemplates,
+    required TResult orElse(),
+  }) {
+    final _that = this;
+    switch (_that) {
+      case RenderingMetadata_Simple() when simple != null:
+        return simple(_that.logo, _that.backgroundColor, _that.textColor);
+      case RenderingMetadata_SvgTemplates() when svgTemplates != null:
+        return svgTemplates();
+      case _:
+        return orElse();
+    }
+  }
+
+  /// A `switch`-like method, using callbacks.
+  ///
+  /// As opposed to `map`, this offers destructuring.
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case Subclass2(:final field2):
+  ///     return ...;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function(ImageWithMetadata? logo, String? backgroundColor, String? textColor) simple,
+    required TResult Function() svgTemplates,
+  }) {
+    final _that = this;
+    switch (_that) {
+      case RenderingMetadata_Simple():
+        return simple(_that.logo, _that.backgroundColor, _that.textColor);
+      case RenderingMetadata_SvgTemplates():
+        return svgTemplates();
+    }
+  }
+
+  /// A variant of `when` that fallback to returning `null`
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case _:
+  ///     return null;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function(ImageWithMetadata? logo, String? backgroundColor, String? textColor)? simple,
+    TResult? Function()? svgTemplates,
+  }) {
+    final _that = this;
+    switch (_that) {
+      case RenderingMetadata_Simple() when simple != null:
+        return simple(_that.logo, _that.backgroundColor, _that.textColor);
+      case RenderingMetadata_SvgTemplates() when svgTemplates != null:
+        return svgTemplates();
+      case _:
+        return null;
+    }
+  }
 }
 
 /// @nodoc
