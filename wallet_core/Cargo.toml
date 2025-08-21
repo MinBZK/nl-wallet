@@ -24,6 +24,7 @@ members = [
     "lib/openid4vc_server",
     "lib/sd_jwt",
     "lib/sd_jwt_vc_metadata",
+    "lib/token_status_list",
     "lib/utils",
     "lib/wscd",
     "tests_integration",

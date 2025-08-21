@@ -669,26 +669,9 @@ dependencies = [
 name = "attestation_types"
 version = "0.4.0-dev"
 dependencies = [
- "axum",
- "base64 0.22.1",
- "chrono",
- "crypto",
- "derive_more",
- "flate2",
- "http_utils",
- "jsonwebtoken",
- "jwt",
- "regex",
- "reqwest",
- "rstest",
  "serde",
- "serde_json",
- "serde_repr",
  "serde_with",
  "strum 0.26.3",
- "tests_integration",
- "thiserror 2.0.11",
- "tokio",
 ]
 
 [[package]]
@@ -6732,6 +6715,31 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "token_status_list"
+version = "0.4.0-dev"
+dependencies = [
+ "axum",
+ "base64 0.22.1",
+ "chrono",
+ "crypto",
+ "derive_more",
+ "flate2",
+ "http_utils",
+ "jsonwebtoken",
+ "jwt",
+ "regex",
+ "reqwest",
+ "rstest",
+ "serde",
+ "serde_json",
+ "serde_repr",
+ "serde_with",
+ "tests_integration",
+ "thiserror 2.0.11",
+ "tokio",
 ]
 
 [[package]]
