@@ -157,7 +157,7 @@ where
             .issuance_fetch_previews(
                 token_request,
                 credential_offer.credential_issuer,
-                &config.mdoc_trust_anchors(),
+                &config.issuer_trust_anchors(),
                 false,
             )
             .await?;

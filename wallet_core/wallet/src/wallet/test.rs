@@ -279,7 +279,7 @@ fn create_wallet_configuration() -> WalletConfiguration {
     config.account_server.certificate_public_key = (*keys.certificate_signing_key.verifying_key()).into();
     config.account_server.instruction_result_public_key = (*keys.instruction_result_signing_key.verifying_key()).into();
 
-    config.mdoc_trust_anchors = vec![ISSUER_KEY.trust_anchor.clone()];
+    config.issuer_trust_anchors = vec![ISSUER_KEY.trust_anchor.clone()];
 
     config
 }

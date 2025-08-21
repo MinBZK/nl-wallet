@@ -1,6 +1,5 @@
-// dart format width=80
-// coverage:ignore-file
 // GENERATED CODE - DO NOT MODIFY BY HAND
+// coverage:ignore-file
 // ignore_for_file: type=lint
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
@@ -33,6 +32,177 @@ mixin _$DisclosureBasedIssuanceResult {
 class $DisclosureBasedIssuanceResultCopyWith<$Res> {
   $DisclosureBasedIssuanceResultCopyWith(
       DisclosureBasedIssuanceResult _, $Res Function(DisclosureBasedIssuanceResult) __);
+}
+
+/// Adds pattern-matching-related methods to [DisclosureBasedIssuanceResult].
+extension DisclosureBasedIssuanceResultPatterns on DisclosureBasedIssuanceResult {
+  /// A variant of `map` that fallback to returning `orElse`.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case _:
+  ///     return orElse();
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(DisclosureBasedIssuanceResult_Ok value)? ok,
+    TResult Function(DisclosureBasedIssuanceResult_InstructionError value)? instructionError,
+    required TResult orElse(),
+  }) {
+    final _that = this;
+    switch (_that) {
+      case DisclosureBasedIssuanceResult_Ok() when ok != null:
+        return ok(_that);
+      case DisclosureBasedIssuanceResult_InstructionError() when instructionError != null:
+        return instructionError(_that);
+      case _:
+        return orElse();
+    }
+  }
+
+  /// A `switch`-like method, using callbacks.
+  ///
+  /// Callbacks receives the raw object, upcasted.
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case final Subclass2 value:
+  ///     return ...;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(DisclosureBasedIssuanceResult_Ok value) ok,
+    required TResult Function(DisclosureBasedIssuanceResult_InstructionError value) instructionError,
+  }) {
+    final _that = this;
+    switch (_that) {
+      case DisclosureBasedIssuanceResult_Ok():
+        return ok(_that);
+      case DisclosureBasedIssuanceResult_InstructionError():
+        return instructionError(_that);
+    }
+  }
+
+  /// A variant of `map` that fallback to returning `null`.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case _:
+  ///     return null;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(DisclosureBasedIssuanceResult_Ok value)? ok,
+    TResult? Function(DisclosureBasedIssuanceResult_InstructionError value)? instructionError,
+  }) {
+    final _that = this;
+    switch (_that) {
+      case DisclosureBasedIssuanceResult_Ok() when ok != null:
+        return ok(_that);
+      case DisclosureBasedIssuanceResult_InstructionError() when instructionError != null:
+        return instructionError(_that);
+      case _:
+        return null;
+    }
+  }
+
+  /// A variant of `when` that fallback to an `orElse` callback.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case _:
+  ///     return orElse();
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function(List<AttestationPresentation> field0)? ok,
+    TResult Function(WalletInstructionError error)? instructionError,
+    required TResult orElse(),
+  }) {
+    final _that = this;
+    switch (_that) {
+      case DisclosureBasedIssuanceResult_Ok() when ok != null:
+        return ok(_that.field0);
+      case DisclosureBasedIssuanceResult_InstructionError() when instructionError != null:
+        return instructionError(_that.error);
+      case _:
+        return orElse();
+    }
+  }
+
+  /// A `switch`-like method, using callbacks.
+  ///
+  /// As opposed to `map`, this offers destructuring.
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case Subclass2(:final field2):
+  ///     return ...;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function(List<AttestationPresentation> field0) ok,
+    required TResult Function(WalletInstructionError error) instructionError,
+  }) {
+    final _that = this;
+    switch (_that) {
+      case DisclosureBasedIssuanceResult_Ok():
+        return ok(_that.field0);
+      case DisclosureBasedIssuanceResult_InstructionError():
+        return instructionError(_that.error);
+    }
+  }
+
+  /// A variant of `when` that fallback to returning `null`
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case _:
+  ///     return null;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function(List<AttestationPresentation> field0)? ok,
+    TResult? Function(WalletInstructionError error)? instructionError,
+  }) {
+    final _that = this;
+    switch (_that) {
+      case DisclosureBasedIssuanceResult_Ok() when ok != null:
+        return ok(_that.field0);
+      case DisclosureBasedIssuanceResult_InstructionError() when instructionError != null:
+        return instructionError(_that.error);
+      case _:
+        return null;
+    }
+  }
 }
 
 /// @nodoc
@@ -202,6 +372,195 @@ mixin _$WalletInstructionError {
 /// @nodoc
 class $WalletInstructionErrorCopyWith<$Res> {
   $WalletInstructionErrorCopyWith(WalletInstructionError _, $Res Function(WalletInstructionError) __);
+}
+
+/// Adds pattern-matching-related methods to [WalletInstructionError].
+extension WalletInstructionErrorPatterns on WalletInstructionError {
+  /// A variant of `map` that fallback to returning `orElse`.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case _:
+  ///     return orElse();
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(WalletInstructionError_IncorrectPin value)? incorrectPin,
+    TResult Function(WalletInstructionError_Timeout value)? timeout,
+    TResult Function(WalletInstructionError_Blocked value)? blocked,
+    required TResult orElse(),
+  }) {
+    final _that = this;
+    switch (_that) {
+      case WalletInstructionError_IncorrectPin() when incorrectPin != null:
+        return incorrectPin(_that);
+      case WalletInstructionError_Timeout() when timeout != null:
+        return timeout(_that);
+      case WalletInstructionError_Blocked() when blocked != null:
+        return blocked(_that);
+      case _:
+        return orElse();
+    }
+  }
+
+  /// A `switch`-like method, using callbacks.
+  ///
+  /// Callbacks receives the raw object, upcasted.
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case final Subclass2 value:
+  ///     return ...;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(WalletInstructionError_IncorrectPin value) incorrectPin,
+    required TResult Function(WalletInstructionError_Timeout value) timeout,
+    required TResult Function(WalletInstructionError_Blocked value) blocked,
+  }) {
+    final _that = this;
+    switch (_that) {
+      case WalletInstructionError_IncorrectPin():
+        return incorrectPin(_that);
+      case WalletInstructionError_Timeout():
+        return timeout(_that);
+      case WalletInstructionError_Blocked():
+        return blocked(_that);
+    }
+  }
+
+  /// A variant of `map` that fallback to returning `null`.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case _:
+  ///     return null;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(WalletInstructionError_IncorrectPin value)? incorrectPin,
+    TResult? Function(WalletInstructionError_Timeout value)? timeout,
+    TResult? Function(WalletInstructionError_Blocked value)? blocked,
+  }) {
+    final _that = this;
+    switch (_that) {
+      case WalletInstructionError_IncorrectPin() when incorrectPin != null:
+        return incorrectPin(_that);
+      case WalletInstructionError_Timeout() when timeout != null:
+        return timeout(_that);
+      case WalletInstructionError_Blocked() when blocked != null:
+        return blocked(_that);
+      case _:
+        return null;
+    }
+  }
+
+  /// A variant of `when` that fallback to an `orElse` callback.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case _:
+  ///     return orElse();
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function(int attemptsLeftInRound, bool isFinalRound)? incorrectPin,
+    TResult Function(BigInt timeoutMillis)? timeout,
+    TResult Function()? blocked,
+    required TResult orElse(),
+  }) {
+    final _that = this;
+    switch (_that) {
+      case WalletInstructionError_IncorrectPin() when incorrectPin != null:
+        return incorrectPin(_that.attemptsLeftInRound, _that.isFinalRound);
+      case WalletInstructionError_Timeout() when timeout != null:
+        return timeout(_that.timeoutMillis);
+      case WalletInstructionError_Blocked() when blocked != null:
+        return blocked();
+      case _:
+        return orElse();
+    }
+  }
+
+  /// A `switch`-like method, using callbacks.
+  ///
+  /// As opposed to `map`, this offers destructuring.
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case Subclass2(:final field2):
+  ///     return ...;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function(int attemptsLeftInRound, bool isFinalRound) incorrectPin,
+    required TResult Function(BigInt timeoutMillis) timeout,
+    required TResult Function() blocked,
+  }) {
+    final _that = this;
+    switch (_that) {
+      case WalletInstructionError_IncorrectPin():
+        return incorrectPin(_that.attemptsLeftInRound, _that.isFinalRound);
+      case WalletInstructionError_Timeout():
+        return timeout(_that.timeoutMillis);
+      case WalletInstructionError_Blocked():
+        return blocked();
+    }
+  }
+
+  /// A variant of `when` that fallback to returning `null`
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case _:
+  ///     return null;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function(int attemptsLeftInRound, bool isFinalRound)? incorrectPin,
+    TResult? Function(BigInt timeoutMillis)? timeout,
+    TResult? Function()? blocked,
+  }) {
+    final _that = this;
+    switch (_that) {
+      case WalletInstructionError_IncorrectPin() when incorrectPin != null:
+        return incorrectPin(_that.attemptsLeftInRound, _that.isFinalRound);
+      case WalletInstructionError_Timeout() when timeout != null:
+        return timeout(_that.timeoutMillis);
+      case WalletInstructionError_Blocked() when blocked != null:
+        return blocked();
+      case _:
+        return null;
+    }
+  }
 }
 
 /// @nodoc
@@ -377,6 +736,177 @@ mixin _$WalletInstructionResult {
 /// @nodoc
 class $WalletInstructionResultCopyWith<$Res> {
   $WalletInstructionResultCopyWith(WalletInstructionResult _, $Res Function(WalletInstructionResult) __);
+}
+
+/// Adds pattern-matching-related methods to [WalletInstructionResult].
+extension WalletInstructionResultPatterns on WalletInstructionResult {
+  /// A variant of `map` that fallback to returning `orElse`.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case _:
+  ///     return orElse();
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(WalletInstructionResult_Ok value)? ok,
+    TResult Function(WalletInstructionResult_InstructionError value)? instructionError,
+    required TResult orElse(),
+  }) {
+    final _that = this;
+    switch (_that) {
+      case WalletInstructionResult_Ok() when ok != null:
+        return ok(_that);
+      case WalletInstructionResult_InstructionError() when instructionError != null:
+        return instructionError(_that);
+      case _:
+        return orElse();
+    }
+  }
+
+  /// A `switch`-like method, using callbacks.
+  ///
+  /// Callbacks receives the raw object, upcasted.
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case final Subclass2 value:
+  ///     return ...;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(WalletInstructionResult_Ok value) ok,
+    required TResult Function(WalletInstructionResult_InstructionError value) instructionError,
+  }) {
+    final _that = this;
+    switch (_that) {
+      case WalletInstructionResult_Ok():
+        return ok(_that);
+      case WalletInstructionResult_InstructionError():
+        return instructionError(_that);
+    }
+  }
+
+  /// A variant of `map` that fallback to returning `null`.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case _:
+  ///     return null;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(WalletInstructionResult_Ok value)? ok,
+    TResult? Function(WalletInstructionResult_InstructionError value)? instructionError,
+  }) {
+    final _that = this;
+    switch (_that) {
+      case WalletInstructionResult_Ok() when ok != null:
+        return ok(_that);
+      case WalletInstructionResult_InstructionError() when instructionError != null:
+        return instructionError(_that);
+      case _:
+        return null;
+    }
+  }
+
+  /// A variant of `when` that fallback to an `orElse` callback.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case _:
+  ///     return orElse();
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function()? ok,
+    TResult Function(WalletInstructionError error)? instructionError,
+    required TResult orElse(),
+  }) {
+    final _that = this;
+    switch (_that) {
+      case WalletInstructionResult_Ok() when ok != null:
+        return ok();
+      case WalletInstructionResult_InstructionError() when instructionError != null:
+        return instructionError(_that.error);
+      case _:
+        return orElse();
+    }
+  }
+
+  /// A `switch`-like method, using callbacks.
+  ///
+  /// As opposed to `map`, this offers destructuring.
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case Subclass2(:final field2):
+  ///     return ...;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function() ok,
+    required TResult Function(WalletInstructionError error) instructionError,
+  }) {
+    final _that = this;
+    switch (_that) {
+      case WalletInstructionResult_Ok():
+        return ok();
+      case WalletInstructionResult_InstructionError():
+        return instructionError(_that.error);
+    }
+  }
+
+  /// A variant of `when` that fallback to returning `null`
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case _:
+  ///     return null;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function()? ok,
+    TResult? Function(WalletInstructionError error)? instructionError,
+  }) {
+    final _that = this;
+    switch (_that) {
+      case WalletInstructionResult_Ok() when ok != null:
+        return ok();
+      case WalletInstructionResult_InstructionError() when instructionError != null:
+        return instructionError(_that.error);
+      case _:
+        return null;
+    }
+  }
 }
 
 /// @nodoc
