@@ -199,7 +199,7 @@ mod tests {
     use utils::generator::mock::MockTimeGenerator;
 
     use crate::attestation::AttestationPresentation;
-    use crate::storage::AttestationDisclosureProposal;
+    use crate::storage::DisclosableAttestation;
     use crate::storage::PartialAttestation;
 
     use super::super::DisclosureBasedIssuanceError;
@@ -226,7 +226,7 @@ mod tests {
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let mdoc_key = MockRemoteEcdsaKey::new("mdoc_key".to_string(), SigningKey::random(&mut OsRng));
         let partial_mdoc = Box::new(PartialMdoc::new_mock_with_ca_and_key(&ca, &mdoc_key));
-        let proposal = AttestationDisclosureProposal::new(
+        let disclosable_attestation = DisclosableAttestation::new(
             Uuid::new_v4(),
             PartialAttestation::MsoMdoc { partial_mdoc },
             AttestationPresentation::new_mock(),
@@ -235,7 +235,7 @@ mod tests {
         WalletDisclosureSession::new_proposal(
             RedirectUriPurpose::Issuance,
             DisclosureType::Regular,
-            vec![proposal].try_into().unwrap(),
+            vec![disclosable_attestation].try_into().unwrap(),
             disclosure_session,
         )
     }
