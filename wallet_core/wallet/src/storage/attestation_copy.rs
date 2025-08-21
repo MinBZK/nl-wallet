@@ -43,12 +43,8 @@ pub struct StoredAttestationCopy {
 
 #[derive(Debug, Clone)]
 pub enum PartialAttestation {
-    MsoMdoc {
-        disclosure_mdoc: Box<DisclosureMdoc>,
-    },
-    SdJwt {
-        sd_jwt_presentation: Box<UnsignedSdJwtPresentation>,
-    },
+    MsoMdoc { disclosure_mdoc: Box<DisclosureMdoc> },
+    SdJwt { sd_jwt: Box<UnsignedSdJwtPresentation> },
 }
 
 #[derive(Debug, Clone)]
@@ -186,7 +182,7 @@ impl PartialAttestation {
                 PartialAttestation::MsoMdoc { disclosure_mdoc }
             }
             StoredAttestation::SdJwt { sd_jwt } => {
-                let presentation = claim_paths
+                let unsigned_presentation = claim_paths
                     .into_iter()
                     .try_fold(sd_jwt.into_presentation_builder(), |builder, claim_path| {
                         builder.disclose(claim_path)
@@ -194,7 +190,7 @@ impl PartialAttestation {
                     .finish();
 
                 PartialAttestation::SdJwt {
-                    sd_jwt_presentation: Box::new(presentation),
+                    sd_jwt: Box::new(unsigned_presentation),
                 }
             }
         };
@@ -225,8 +221,8 @@ impl AttestationDisclosureProposal {
                 normalized_metadata,
                 issuer_registration.organization,
             ),
-            PartialAttestation::SdJwt { sd_jwt_presentation } => attestation_presentation_from_sd_jwt(
-                sd_jwt_presentation.as_ref(),
+            PartialAttestation::SdJwt { sd_jwt } => attestation_presentation_from_sd_jwt(
+                sd_jwt.as_ref(),
                 attestation_id,
                 normalized_metadata,
                 issuer_registration.organization,
