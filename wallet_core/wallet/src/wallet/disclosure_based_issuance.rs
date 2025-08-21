@@ -169,15 +169,17 @@ where
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
-    use futures::FutureExt;
+    use p256::ecdsa::SigningKey;
+    use rand_core::OsRng;
     use uuid::Uuid;
 
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::auth::reader_auth::ReaderRegistration;
     use attestation_data::disclosure_type::DisclosureType;
     use attestation_data::x509::generate::mock::generate_reader_mock;
+    use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
-    use mdoc::holder::Mdoc;
+    use mdoc::holder::disclosure::PartialMdoc;
     use openid4vc::DisclosureErrorResponse;
     use openid4vc::PostAuthResponseErrorCode;
     use openid4vc::credential::CredentialOffer;
@@ -197,10 +199,11 @@ mod tests {
     use utils::generator::mock::MockTimeGenerator;
 
     use crate::attestation::AttestationPresentation;
+    use crate::storage::DisclosableAttestation;
+    use crate::storage::PartialAttestation;
 
     use super::super::DisclosureBasedIssuanceError;
     use super::super::Session;
-    use super::super::disclosure::DisclosureAttestation;
     use super::super::disclosure::DisclosureError;
     use super::super::disclosure::RedirectUriPurpose;
     use super::super::disclosure::WalletDisclosureSession;
@@ -220,16 +223,19 @@ mod tests {
             .expect_verifier_certificate()
             .return_const(verifier_certificate);
 
-        let attestation = DisclosureAttestation::new(
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
+        let mdoc_key = MockRemoteEcdsaKey::new("mdoc_key".to_string(), SigningKey::random(&mut OsRng));
+        let partial_mdoc = Box::new(PartialMdoc::new_mock_with_ca_and_key(&ca, &mdoc_key));
+        let disclosable_attestation = DisclosableAttestation::new(
             Uuid::new_v4(),
-            Mdoc::new_mock().now_or_never().unwrap(),
+            PartialAttestation::MsoMdoc { partial_mdoc },
             AttestationPresentation::new_mock(),
         );
 
         WalletDisclosureSession::new_proposal(
             RedirectUriPurpose::Issuance,
             DisclosureType::Regular,
-            vec![attestation].try_into().unwrap(),
+            vec![disclosable_attestation].try_into().unwrap(),
             disclosure_session,
         )
     }
