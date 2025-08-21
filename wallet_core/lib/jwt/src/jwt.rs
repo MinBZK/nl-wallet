@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
-use std::collections::VecDeque;
 use std::marker::PhantomData;
 use std::str::FromStr;
 use std::sync::LazyLock;
@@ -86,11 +85,11 @@ where
         time: &impl Generator<DateTime<Utc>>,
         certificate_usage: CertificateUsage,
         trust_anchors: &[TrustAnchor],
-    ) -> Result<(Self, BorrowingCertificate), JwtX5cError> {
-        let (header, payload, certificate) =
+    ) -> Result<(Self, VecNonEmpty<BorrowingCertificate>), JwtX5cError> {
+        let (header, payload, certificates) =
             jwt.parse_and_verify_against_trust_anchors(trust_anchors, time, certificate_usage, validation_options)?;
 
-        Ok((Self { header, payload, jwt }, certificate))
+        Ok((Self { header, payload, jwt }, certificates))
     }
 
     pub fn new_dangerous(jwt: Jwt<T>) -> Result<Self> {
@@ -215,11 +214,11 @@ where
         Ok((header, body))
     }
 
-    pub fn extract_x5c_certificates(&self) -> Result<VecDeque<BorrowingCertificate>, JwtX5cError> {
+    pub fn extract_x5c_certificates(&self) -> Result<Vec<BorrowingCertificate>, JwtX5cError> {
         let header = jsonwebtoken::decode_header(&self.0).map_err(JwtError::Validation)?;
 
         let Some(encoded_x5c) = header.x5c else {
-            return Ok(VecDeque::new());
+            return Ok(Vec::new());
         };
 
         encoded_x5c
@@ -241,19 +240,19 @@ where
         time: &impl Generator<DateTime<Utc>>,
         certificate_usage: CertificateUsage,
         validation_options: &Validation,
-    ) -> Result<(Header, T, BorrowingCertificate), JwtX5cError> {
-        let mut certs = self.extract_x5c_certificates()?;
+    ) -> Result<(Header, T, VecNonEmpty<BorrowingCertificate>), JwtX5cError> {
+        let certificates = self.extract_x5c_certificates()?;
 
         // Verify the certificate chain against the trust anchors.
-        let leaf_cert = certs.pop_front().ok_or(JwtX5cError::MissingCertificates)?;
-        // The `VecDeque` containing the certificates will be contiguous at this point, so the second value is empty.
-        let (intermediates, _) = certs.as_slices();
+        let certificates = VecNonEmpty::try_from(certificates).map_err(|_| JwtX5cError::MissingCertificates)?;
+        let leaf_cert = certificates.first();
 
         leaf_cert
             .verify(
                 certificate_usage,
-                &intermediates
+                &certificates
                     .iter()
+                    .skip(1)
                     .map(AsRef::as_ref)
                     .map(CertificateDer::from_slice)
                     .collect_vec(),
@@ -267,7 +266,7 @@ where
 
         let (header, payload) = self.parse_and_verify_with_header(&pubkey.into(), validation_options)?;
 
-        Ok((header, payload, leaf_cert))
+        Ok((header, payload, certificates))
     }
 
     /// Verify the JWS against the provided trust anchors, using the X.509 certificate(s) present in the `x5c` JWT
@@ -277,7 +276,7 @@ where
         audience: &[A],
         trust_anchors: &[TrustAnchor],
         time: &impl Generator<DateTime<Utc>>,
-    ) -> Result<(T, BorrowingCertificate), JwtX5cError> {
+    ) -> Result<(T, VecNonEmpty<BorrowingCertificate>), JwtX5cError> {
         let validation_options = {
             let mut validation = Validation::new(Algorithm::ES256);
 
@@ -287,14 +286,14 @@ where
             validation
         };
 
-        let (_, payload, certificate) = self.parse_and_verify_against_trust_anchors(
+        let (_, payload, certificates) = self.parse_and_verify_against_trust_anchors(
             trust_anchors,
             time,
             CertificateUsage::ReaderAuth,
             &validation_options,
         )?;
 
-        Ok((payload, certificate))
+        Ok((payload, certificates))
     }
 }
 
@@ -694,12 +693,12 @@ mod tests {
         let jwt = Jwt::sign_with_certificate(&payload, &keypair).await.unwrap();
 
         let audience: &[String] = &[];
-        let (deserialized, leaf_cert) = jwt
+        let (deserialized, certificates) = jwt
             .verify_against_trust_anchors_and_audience(audience, &[ca.to_trust_anchor()], &TimeGenerator)
             .unwrap();
 
         assert_eq!(deserialized, payload);
-        assert_eq!(leaf_cert, *keypair.certificate());
+        assert_eq!(certificates.into_first(), *keypair.certificate());
     }
 
     #[tokio::test]
@@ -756,12 +755,12 @@ mod tests {
 
         // Verifying this JWT against the CA's trust anchor should succeed.
         let audience: &[String] = &[];
-        let (deserialized, leaf_cert) = jwt
+        let (deserialized, certificates) = jwt
             .verify_against_trust_anchors_and_audience(audience, &[ca.to_trust_anchor()], &TimeGenerator)
             .unwrap();
 
         assert_eq!(deserialized, payload);
-        assert_eq!(leaf_cert, *keypair.certificate());
+        assert_eq!(certificates.into_first(), *keypair.certificate());
     }
 
     #[tokio::test]

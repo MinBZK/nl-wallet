@@ -14,6 +14,7 @@ use chrono::Utc;
 use ciborium::tag;
 use ciborium::value::Value;
 use indexmap::IndexMap;
+use itertools::Itertools;
 use nutype::nutype;
 use p256::ecdsa::VerifyingKey;
 use serde::Deserialize;
@@ -280,7 +281,9 @@ impl TryFrom<IndexMap<NameSpace, Vec<Entry>>> for IssuerNameSpaces {
 /// this is used as the type of the keys. (This datastructure is itself not named in the spec.)
 #[nutype(
     derive(Debug, Clone, PartialEq, AsRef, TryFrom, Into, IntoIterator, Serialize, Deserialize),
-    validate(predicate = |items| !items.is_empty()),
+    validate(predicate = |items| {
+        !items.is_empty() && items.iter().map(|TaggedBytes(item)| &item.element_identifier).all_unique()
+    }),
 )]
 pub struct Attributes(Vec<IssuerSignedItemBytes>);
 
@@ -369,8 +372,12 @@ impl IssuerSignedItem {
 
 #[cfg(any(test, feature = "test"))]
 mod test {
+    use indexmap::IndexMap;
 
-    use super::*;
+    use super::Attributes;
+    use super::IssuerNameSpaces;
+    use super::IssuerSignedItemBytes;
+    use super::NameSpace;
 
     impl IssuerNameSpaces {
         pub fn modify_namespaces<F>(&mut self, modify_func: F)
@@ -405,6 +412,43 @@ mod test {
             let first_key = self.as_ref().keys().next().unwrap().to_string();
 
             self.modify_attributes(&first_key, modify_func);
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use rstest::rstest;
+    use serde_bytes::ByteBuf;
+
+    use crate::utils::serialization::TaggedBytes;
+
+    use super::Attributes;
+    use super::IssuerSignedItem;
+
+    #[rstest]
+    #[case(vec![], false)]
+    #[case(vec![("foo", "foo"), ("bar", "bar"), ("bleh", "blah")], true)]
+    #[case(vec![("foo", "foo"), ("bar", "bar"), ("foo", "blah")], false)]
+    fn test_attributes_predicate(#[case] attributes: Vec<(&str, &str)>, #[case] should_succeed: bool) {
+        let result = Attributes::try_new(
+            attributes
+                .into_iter()
+                .map(|(identifier, value)| {
+                    TaggedBytes(IssuerSignedItem {
+                        digest_id: 0,
+                        random: ByteBuf::default(),
+                        element_identifier: identifier.to_string(),
+                        element_value: ciborium::Value::Text(value.to_string()),
+                    })
+                })
+                .collect(),
+        );
+
+        if should_succeed {
+            result.expect("constructing new Attributes type should succeed");
+        } else {
+            result.expect_err("constructing new Attributes type should not succeed");
         }
     }
 }

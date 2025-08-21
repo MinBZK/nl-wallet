@@ -1,24 +1,15 @@
 use tracing::info;
 
-use attestation_data::auth::issuer_auth::IssuerRegistration;
-use attestation_data::credential_payload::IntoCredentialPayload;
-use attestation_data::credential_payload::SdJwtCredentialPayloadError;
-use crypto::x509::BorrowingCertificateExtension;
-use crypto::x509::CertificateError;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
-use mdoc::utils::cose::CoseError;
 use openid4vc::disclosure_session::DisclosureClient;
 use platform_support::attested_key::AttestedKeyHolder;
 
-use crate::attestation::AttestationError;
-use crate::attestation::AttestationIdentity;
 use crate::attestation::AttestationPresentation;
 use crate::digid::DigidClient;
 use crate::storage::Storage;
 use crate::storage::StorageError;
 use crate::storage::StoredAttestationCopy;
-use crate::storage::StoredAttestationFormat;
 
 use super::Wallet;
 
@@ -27,32 +18,6 @@ use super::Wallet;
 pub enum AttestationsError {
     #[error("could not fetch documents from database storage: {0}")]
     Storage(#[from] StorageError),
-
-    #[error("could not extract Mdl extension from X.509 certificate: {0}")]
-    Certificate(#[from] CertificateError),
-
-    #[error("could not interpret X.509 certificate: {0}")]
-    Cose(#[from] CoseError),
-
-    #[error("X.509 certificate does not contain IssuerRegistration")]
-    #[category(critical)]
-    MissingIssuerRegistration,
-
-    #[error("SD-JWT does not contain an issuer certificate")]
-    #[category(critical)]
-    MissingIssuerCertificate,
-
-    #[error("could not extract type metadata from mdoc: {0}")]
-    #[category(defer)]
-    Metadata(#[source] mdoc::Error),
-
-    #[error("could not convert SD-JWT to a CredentialPayload: {0}")]
-    #[category(defer)]
-    CredentialPayloadConversion(#[from] SdJwtCredentialPayloadError),
-
-    #[error("error converting credential payload to attestation: {0}")]
-    #[category(defer)]
-    Attestation(#[from] AttestationError),
 }
 
 pub type AttestationsCallback = Box<dyn FnMut(Vec<AttestationPresentation>) + Send + Sync>;
@@ -73,51 +38,8 @@ where
             .fetch_unique_attestations()
             .await?
             .into_iter()
-            .map(
-                |StoredAttestationCopy {
-                     attestation_id,
-                     attestation,
-                     normalized_metadata,
-                     ..
-                 }| {
-                    match attestation {
-                        StoredAttestationFormat::MsoMdoc { mdoc } => {
-                            let issuer_certificate = mdoc.issuer_certificate()?;
-                            let issuer_registration = IssuerRegistration::from_certificate(&issuer_certificate)?
-                                .ok_or(AttestationsError::MissingIssuerRegistration)?;
-
-                            let attestation = AttestationPresentation::create_from_mdoc(
-                                AttestationIdentity::Fixed { id: attestation_id },
-                                normalized_metadata,
-                                issuer_registration.organization,
-                                mdoc.issuer_signed.into_entries_by_namespace(),
-                            )?;
-
-                            Ok(attestation)
-                        }
-                        StoredAttestationFormat::SdJwt { sd_jwt } => {
-                            let issuer_certificate = sd_jwt
-                                .as_ref()
-                                .as_ref()
-                                .issuer_certificate()
-                                .ok_or(AttestationsError::MissingIssuerCertificate)?;
-                            let issuer_registration = IssuerRegistration::from_certificate(issuer_certificate)?
-                                .ok_or(AttestationsError::MissingIssuerRegistration)?;
-
-                            let payload = sd_jwt.into_inner().into_credential_payload(&normalized_metadata)?;
-                            let attestation = AttestationPresentation::create_from_attributes(
-                                AttestationIdentity::Fixed { id: attestation_id },
-                                normalized_metadata,
-                                issuer_registration.organization,
-                                &payload.previewable_payload.attributes,
-                            )?;
-
-                            Ok(attestation)
-                        }
-                    }
-                },
-            )
-            .collect::<Result<Vec<_>, AttestationsError>>()?;
+            .map(StoredAttestationCopy::into_attestation_presentation)
+            .collect();
 
         if let Some(ref mut callback) = self.attestations_callback {
             callback(attestations);
@@ -151,12 +73,13 @@ mod tests {
 
     use assert_matches::assert_matches;
 
+    use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::x509::generate::mock::generate_issuer_mock;
     use crypto::server_keys::generate::Ca;
     use openid4vc::issuance_session::CredentialWithMetadata;
     use openid4vc::issuance_session::IssuedCredential;
     use openid4vc::issuance_session::IssuedCredentialCopies;
-    use sd_jwt::sd_jwt::SdJwtPresentation;
+    use sd_jwt::sd_jwt::VerifiedSdJwt;
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
 
     use super::super::test;
@@ -200,8 +123,9 @@ mod tests {
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let issuance_keypair = generate_issuer_mock(&ca, IssuerRegistration::new_mock().into()).unwrap();
 
-        let sd_jwt = SdJwtPresentation::example_pid_sd_jwt(&issuance_keypair);
+        let sd_jwt = VerifiedSdJwt::pid_example(&issuance_keypair);
         let attestation_type = sd_jwt
+            .as_ref()
             .claims()
             .properties
             .get("vct")
@@ -220,9 +144,7 @@ mod tests {
                 vec![
                     CredentialWithMetadata::new(
                         IssuedCredentialCopies::new_or_panic(
-                            vec![IssuedCredential::SdJwt(Box::new(sd_jwt.into()))]
-                                .try_into()
-                                .unwrap(),
+                            vec![IssuedCredential::SdJwt(Box::new(sd_jwt))].try_into().unwrap(),
                         ),
                         attestation_type.clone(),
                         VerifiedTypeMetadataDocuments::nl_pid_example(),
@@ -258,32 +180,6 @@ mod tests {
 
         // Infer that the closure is now dropped by counting the `Arc` references.
         assert_eq!(Arc::strong_count(&attestations), 1);
-    }
-
-    // Tests that setting the documents callback on a registered `Wallet`, with invalid issuer certificate raises
-    // a `MissingIssuerRegistration` error.
-    #[tokio::test]
-    async fn test_wallet_set_clear_documents_callback_registered_no_issuer_registration() {
-        let mut wallet = Wallet::new_registered_and_unlocked(WalletDeviceVendor::Apple);
-
-        // The database contains a single `Mdoc`, without Issuer registration.
-        let mdoc_credential = test::create_example_pid_mdoc_credential_unauthenticated();
-        Arc::get_mut(&mut wallet.storage)
-            .unwrap()
-            .get_mut()
-            .issued_credential_copies
-            .insert(mdoc_credential.attestation_type.clone(), vec![mdoc_credential]);
-
-        // Register mock attestation_callback
-        let (attestations, error) = test::setup_mock_attestations_callback(&mut wallet)
-            .await
-            .map(|_| ())
-            .expect_err("Expected error");
-
-        assert_matches!(error, AttestationsError::MissingIssuerRegistration);
-
-        // Infer that the closure is still alive by counting the `Arc` references.
-        assert_eq!(Arc::strong_count(&attestations), 2);
     }
 
     #[tokio::test]

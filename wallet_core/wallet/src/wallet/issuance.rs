@@ -53,6 +53,7 @@ use crate::instruction::RemoteEcdsaKeyError;
 use crate::instruction::RemoteEcdsaWscd;
 use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
+use crate::storage::AttestationFormatQuery;
 use crate::storage::Storage;
 use crate::storage::StorageError;
 use crate::storage::StoredAttestationCopy;
@@ -380,7 +381,7 @@ where
             .storage
             .read()
             .await
-            .fetch_unique_attestations_by_type(&preview_attestation_types)
+            .fetch_unique_attestations_by_type(&preview_attestation_types, AttestationFormatQuery::Any)
             .await
             .map_err(IssuanceError::AttestationQuery)?;
 
@@ -579,7 +580,11 @@ fn match_preview_and_stored_attestations<'a>(
 ) -> Vec<(&'a NormalizedCredentialPreview, Option<Uuid>)> {
     let stored_credential_payloads: Vec<(CredentialPayload, Uuid)> = stored_attestations
         .into_iter()
-        .map(|copy| copy.into_credential_payload_and_id())
+        .map(|copy| {
+            let attestation_id = copy.attestation_id();
+
+            (copy.into_credential_payload(), attestation_id)
+        })
         .collect_vec();
 
     // Find the first matching stored preview based on the ordering of `stored_credential_payloads`.
@@ -631,6 +636,7 @@ mod tests {
     use openid4vc::oidc::OidcError;
     use openid4vc::token::TokenRequest;
     use openid4vc::token::TokenRequestGrantType;
+    use sd_jwt::sd_jwt::VerifiedSdJwt;
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
     use utils::generator::mock::MockTimeGenerator;
 
@@ -638,7 +644,7 @@ mod tests {
     use crate::attestation::AttestationAttributeValue;
     use crate::digid::MockDigidSession;
     use crate::storage::StorageState;
-    use crate::storage::StoredAttestationFormat;
+    use crate::storage::StoredAttestation;
     use crate::wallet::test::WalletWithStorageMock;
     use crate::wallet::test::create_example_credential_payload;
     use crate::wallet::test::create_example_preview_data;
@@ -1063,19 +1069,19 @@ mod tests {
             .unwrap();
 
         let attestation_id = Uuid::new_v4();
-        let stored = StoredAttestationCopy {
+        let stored = StoredAttestationCopy::new(
             attestation_id,
-            attestation_copy_id: Uuid::new_v4(),
-            attestation: StoredAttestationFormat::SdJwt {
-                sd_jwt: Box::new(sd_jwt.into()),
+            Uuid::new_v4(),
+            StoredAttestation::SdJwt {
+                sd_jwt: Box::new(VerifiedSdJwt::new_mock(sd_jwt)),
             },
             normalized_metadata,
-        };
+        );
 
         let storage = wallet.mut_storage();
         storage
             .expect_fetch_unique_attestations_by_type()
-            .return_once(move |_attestation_types| Ok(vec![stored]));
+            .return_once(move |_attestation_types, _format| Ok(vec![stored]));
 
         // Set up the `MockIssuanceSession` to return one `CredentialPreviewState`.
         let start_context = MockIssuanceSession::start_context();
@@ -1423,14 +1429,14 @@ mod tests {
             .unwrap();
 
         let attestation_id = Uuid::new_v4();
-        let stored = StoredAttestationCopy {
+        let stored = StoredAttestationCopy::new(
             attestation_id,
-            attestation_copy_id: Uuid::new_v4(),
-            attestation: StoredAttestationFormat::SdJwt {
-                sd_jwt: Box::new(sd_jwt.into()),
+            Uuid::new_v4(),
+            StoredAttestation::SdJwt {
+                sd_jwt: Box::new(VerifiedSdJwt::new_mock(sd_jwt)),
             },
             normalized_metadata,
-        };
+        );
 
         // When the attestation already exists in the database, we expect the identity to be known
         let previews = [create_example_preview_data(&time_generator)];

@@ -4,7 +4,6 @@ use std::collections::HashSet;
 use chrono::DateTime;
 use chrono::Duration;
 use chrono::Utc;
-use itertools::Itertools;
 use sea_orm::DbErr;
 use uuid::Uuid;
 
@@ -19,12 +18,12 @@ use openid4vc::issuance_session::IssuedCredentialCopies;
 use crate::AttestationPresentation;
 use crate::DisclosureStatus;
 
+use super::AttestationFormatQuery;
 use super::Storage;
 use super::StorageResult;
 use super::StorageState;
-use super::StoredAttestationCopy;
-use super::StoredAttestationFormat;
-use super::StoredMdocCopy;
+use super::attestation_copy::StoredAttestation;
+use super::attestation_copy::StoredAttestationCopy;
 use super::data::KeyedData;
 use super::data::RegistrationData;
 use super::event_log::WalletEvent;
@@ -204,8 +203,8 @@ impl Storage for StorageStub {
             .flatten()
             .map(|credential| {
                 let attestation = match credential.copies.as_ref().first() {
-                    IssuedCredential::MsoMdoc(mdoc) => StoredAttestationFormat::MsoMdoc { mdoc: mdoc.clone() },
-                    IssuedCredential::SdJwt(sd_jwt) => StoredAttestationFormat::SdJwt { sd_jwt: sd_jwt.clone() },
+                    IssuedCredential::MsoMdoc(mdoc) => StoredAttestation::MsoMdoc { mdoc: mdoc.clone() },
+                    IssuedCredential::SdJwt(sd_jwt) => StoredAttestation::SdJwt { sd_jwt: sd_jwt.clone() },
                 };
 
                 StoredAttestationCopy {
@@ -223,41 +222,42 @@ impl Storage for StorageStub {
     async fn fetch_unique_attestations_by_type<'a>(
         &'a self,
         attestation_types: &HashSet<&'a str>,
+        format_query: AttestationFormatQuery,
     ) -> StorageResult<Vec<StoredAttestationCopy>> {
-        Ok(self
-            .fetch_unique_attestations()
-            .await?
-            .into_iter()
-            .filter(|attestation| attestation_types.contains(attestation.attestation_id.to_string().as_str()))
-            .collect_vec())
-    }
+        self.check_query_error()?;
 
-    async fn fetch_unique_mdocs_by_doctypes<'a>(
-        &'a self,
-        doc_types: &HashSet<&'a str>,
-    ) -> StorageResult<Vec<StoredMdocCopy>> {
-        // Get every unique Mdoc and filter them based on the requested doc types.
-        let copies = self.fetch_unique_attestations().await?;
+        let attestations = attestation_types
+            .iter()
+            .flat_map(|attestation_type| self.issued_credential_copies.get(*attestation_type))
+            .flatten()
+            .flat_map(|credential| {
+                let attestation =
+                    credential
+                        .copies
+                        .as_ref()
+                        .iter()
+                        .find_map(|credential| match (format_query, credential) {
+                            (AttestationFormatQuery::Any, IssuedCredential::MsoMdoc(mdoc))
+                            | (AttestationFormatQuery::MsoMdoc, IssuedCredential::MsoMdoc(mdoc)) => {
+                                Some(StoredAttestation::MsoMdoc { mdoc: mdoc.clone() })
+                            }
+                            (AttestationFormatQuery::Any, IssuedCredential::SdJwt(sd_jwt))
+                            | (AttestationFormatQuery::SdJwt, IssuedCredential::SdJwt(sd_jwt)) => {
+                                Some(StoredAttestation::SdJwt { sd_jwt: sd_jwt.clone() })
+                            }
+                            _ => None,
+                        });
 
-        let mdocs = copies
-            .into_iter()
-            .filter_map(|copy| {
-                match copy.attestation {
-                    StoredAttestationFormat::MsoMdoc { mdoc } if doc_types.contains(mdoc.doc_type().as_str()) => {
-                        Some(*mdoc)
-                    }
-                    _ => None,
-                }
-                .map(|mdoc| StoredMdocCopy {
-                    mdoc_id: copy.attestation_id,
-                    mdoc_copy_id: copy.attestation_copy_id,
-                    mdoc,
-                    normalized_metadata: copy.normalized_metadata,
+                attestation.map(|attestation| StoredAttestationCopy {
+                    attestation_id: Uuid::now_v7(),
+                    attestation_copy_id: Uuid::now_v7(),
+                    attestation,
+                    normalized_metadata: credential.metadata_documents.to_normalized().unwrap(),
                 })
             })
             .collect();
 
-        Ok(mdocs)
+        Ok(attestations)
     }
 
     async fn log_disclosure_event(
