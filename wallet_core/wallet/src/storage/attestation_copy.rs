@@ -26,12 +26,15 @@ pub enum PartialAttestationError {
     SdJwt(#[from] sd_jwt::error::Error),
 }
 
+/// An attestation that is present in the wallet database, part of [`StoredAttestationCopy`].
 #[derive(Debug, Clone)]
 pub enum StoredAttestation {
     MsoMdoc { mdoc: Box<Mdoc> }, // TODO: Wrap in similar VerifiedMdoc type (PVW-4132)
     SdJwt { sd_jwt: Box<VerifiedSdJwt> },
 }
 
+/// An instance of an attestation copy as it is contained in the wallet database, which contains both the column id for
+/// that particular copy and the foreign key id for its attestation parent.
 #[derive(Debug, Clone)]
 #[cfg_attr(test, derive(derive_more::Constructor))]
 pub struct StoredAttestationCopy {
@@ -41,12 +44,18 @@ pub struct StoredAttestationCopy {
     pub(super) normalized_metadata: NormalizedTypeMetadata,
 }
 
+/// An attestation that is present in the wallet database and contains a subset of its original attributes, part of
+/// [`DisclosableAttestation`].
 #[derive(Debug, Clone)]
 pub enum PartialAttestation {
     MsoMdoc { partial_mdoc: Box<PartialMdoc> },
     SdJwt { sd_jwt: Box<UnsignedSdJwtPresentation> },
 }
 
+/// A version of an attestation in the wallet database which contains a subset of its original attributes and whose
+/// intended purpose is disclosure. It contains the column id for the copy in the database that is its source, the
+/// partial attestation itself and an [`AttestationPresentation`] of the partial attestation that can be shown to the
+/// user for approval. This type is always derived from [`StoredAttestationCopy`].
 #[derive(Debug, Clone)]
 #[cfg_attr(test, derive(derive_more::Constructor))]
 pub struct DisclosableAttestation {
