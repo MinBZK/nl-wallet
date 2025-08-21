@@ -16,5 +16,6 @@ static int64_t dummy_method_to_enforce_bundling_frb(void) {
     dummy_var ^= ((int64_t) (void*) frb_init_frb_dart_api_dl);
     dummy_var ^= ((int64_t) (void*) frb_free_wire_sync_rust2dart_dco);
     dummy_var ^= ((int64_t) (void*) frb_free_wire_sync_rust2dart_sse);
+    dummy_var ^= ((int64_t) (void*) frb_create_shutdown_callback);
     return dummy_var;
 }
