@@ -8,7 +8,7 @@ use crypto::utils::random_string;
 use crypto::wscd::DisclosureWscd;
 use dcql::normalized::NormalizedCredentialRequest;
 use http_utils::urls::BaseUrl;
-use mdoc::holder::disclosure::DisclosureMdoc;
+use mdoc::holder::disclosure::PartialMdoc;
 use mdoc::iso::disclosure::DeviceResponse;
 use mdoc::iso::engagement::SessionTranscript;
 use utils::vec_at_least::VecNonEmpty;
@@ -74,7 +74,7 @@ where
 
     async fn disclose<K, W>(
         self,
-        disclosure_mdocs: VecNonEmpty<DisclosureMdoc>,
+        partial_mdocs: VecNonEmpty<PartialMdoc>,
         wscd: &W,
     ) -> Result<Option<BaseUrl>, (Self, DisclosureError<VpSessionError>)>
     where
@@ -92,13 +92,13 @@ where
         //                  of the attributes to be disclosed. This type then provides the canonical method of creating
         //                  intermediate types of the attestations that contain a subset of the attributes.
         let expected_attestation_count = self.auth_request.credential_requests.len();
-        if disclosure_mdocs.len() != expected_attestation_count {
+        if partial_mdocs.len() != expected_attestation_count {
             return Err((
                 self,
                 DisclosureError::before_sharing(
                     VpClientError::AttestationCountMismatch {
                         expected: expected_attestation_count.get(),
-                        found: disclosure_mdocs.len().get(),
+                        found: partial_mdocs.len().get(),
                     }
                     .into(),
                 ),
@@ -118,7 +118,7 @@ where
 
         let poa_input = JwtPoaInput::new(Some(mdoc_nonce.clone()), self.auth_request.client_id.clone());
         let result =
-            DeviceResponse::sign_from_mdocs(disclosure_mdocs.into_inner(), &session_transcript, wscd, poa_input).await;
+            DeviceResponse::sign_from_mdocs(partial_mdocs.into_inner(), &session_transcript, wscd, poa_input).await;
         let (device_response, poa) = match result {
             Ok(value) => value,
             Err(error) => {
@@ -181,7 +181,7 @@ mod tests {
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
     use dcql::normalized::NormalizedCredentialRequest;
-    use mdoc::holder::disclosure::DisclosureMdoc;
+    use mdoc::holder::disclosure::PartialMdoc;
     use wscd::mock_remote::MockRemoteWscd;
 
     use crate::errors::AuthorizationErrorCode;
@@ -259,13 +259,13 @@ mod tests {
         }
     }
 
-    fn setup_disclosure_mdoc() -> (DisclosureMdoc, MockRemoteWscd) {
+    fn setup_disclosure_mdoc() -> (PartialMdoc, MockRemoteWscd) {
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let mdoc_key = MockRemoteEcdsaKey::new("mdoc_key".to_string(), SigningKey::random(&mut OsRng));
-        let disclosure_mdoc = DisclosureMdoc::new_mock_with_ca_and_key(&ca, &mdoc_key);
+        let partial_mdoc = PartialMdoc::new_mock_with_ca_and_key(&ca, &mdoc_key);
         let wscd = MockRemoteWscd::new(vec![mdoc_key]);
 
-        (disclosure_mdoc, wscd)
+        (partial_mdoc, wscd)
     }
 
     /// This contains a lightweight test of `VpDisclosureSession::disclose()`. For a more

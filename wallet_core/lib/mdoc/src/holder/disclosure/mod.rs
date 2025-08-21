@@ -11,7 +11,7 @@ mod document;
 mod issuer_signed;
 mod mdoc;
 
-pub use mdoc::DisclosureMdoc;
+pub use mdoc::PartialMdoc;
 
 #[cfg(test)]
 mod device_retrieval;

@@ -40,7 +40,7 @@ use http_utils::urls::BaseUrl;
 use jwt::Jwt;
 use mdoc::DeviceResponse;
 use mdoc::SessionTranscript;
-use mdoc::holder::disclosure::DisclosureMdoc;
+use mdoc::holder::disclosure::PartialMdoc;
 use mdoc::test::TestDocuments;
 use mdoc::test::assert_disclosure_contains;
 use mdoc::test::data::PID;
@@ -154,7 +154,7 @@ fn disclosure_jwe(
     issuer_ca: &Ca,
 ) -> String {
     let mdoc_key = MockRemoteEcdsaKey::new(String::from("mdoc_key"), SigningKey::random(&mut OsRng));
-    let disclosure_mdocs = vec![DisclosureMdoc::new_mock_with_ca_and_key(issuer_ca, &mdoc_key)];
+    let partial_mdocs = vec![PartialMdoc::new_mock_with_ca_and_key(issuer_ca, &mdoc_key)];
     let mdoc_nonce = "mdoc_nonce".to_string();
 
     // Verify the Authorization Request JWE and read the requested attributes.
@@ -170,11 +170,10 @@ fn disclosure_jwe(
     );
     let wscd = MockRemoteWscd::new(vec![mdoc_key]);
     let poa_input = JwtPoaInput::new(Some(auth_request.nonce.clone()), auth_request.client_id.clone());
-    let (device_response, poa) =
-        DeviceResponse::sign_from_mdocs(disclosure_mdocs, &session_transcript, &wscd, poa_input)
-            .now_or_never()
-            .unwrap()
-            .unwrap();
+    let (device_response, poa) = DeviceResponse::sign_from_mdocs(partial_mdocs, &session_transcript, &wscd, poa_input)
+        .now_or_never()
+        .unwrap()
+        .unwrap();
 
     // Put the disclosure in an Authorization Response and encrypt it.
     VpAuthorizationResponse::new_encrypted(device_response, &auth_request, &mdoc_nonce, poa).unwrap()
@@ -193,7 +192,7 @@ async fn disclosure_using_message_client() {
     let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
 
     let mdoc_key = MockRemoteEcdsaKey::new(String::from("mdoc_key"), SigningKey::random(&mut OsRng));
-    let disclosure_mdocs = vec![DisclosureMdoc::new_mock_with_ca_and_key(&issuer_ca, &mdoc_key)]
+    let partial_mdocs = vec![PartialMdoc::new_mock_with_ca_and_key(&issuer_ca, &mdoc_key)]
         .try_into()
         .unwrap();
 
@@ -210,7 +209,7 @@ async fn disclosure_using_message_client() {
 
     // Finish the disclosure by sending the attestations to the "RP".
     let wscd = MockRemoteWscd::new(vec![mdoc_key]);
-    session.disclose(disclosure_mdocs, &wscd).await.unwrap();
+    session.disclose(partial_mdocs, &wscd).await.unwrap();
 }
 
 /// A mock implementation of the `VpMessageClient` trait that implements the RP side of OpenID4VP
@@ -492,13 +491,13 @@ async fn test_client_and_server(
         .unwrap();
 
     // Finish the disclosure.
-    let disclosure_mdocs = test_documents_to_disclosure_mdocs(
+    let partial_mdocs = test_documents_to_partial_mdocs(
         stored_documents,
         session.credential_requests().as_ref(),
         &issuer_ca,
         &wscd,
     );
-    let redirect_uri = session.disclose(disclosure_mdocs, &wscd).await.unwrap();
+    let redirect_uri = session.disclose(partial_mdocs, &wscd).await.unwrap();
 
     // Check if we received a redirect URI when we should have, based on the use case and session type.
     let should_have_redirect_uri = match (use_case, session_type) {
@@ -654,14 +653,14 @@ async fn test_client_and_server_cancel_after_wallet_start() {
     assert_matches!(status_response, StatusResponse::Cancelled);
 
     // Disclosing attributes at this point should result in an error.
-    let disclosure_mdocs = test_documents_to_disclosure_mdocs(
+    let partial_mdocs = test_documents_to_partial_mdocs(
         stored_documents,
         session.credential_requests().as_ref(),
         &issuer_ca,
         &wscd,
     );
     let (_session, error) = session
-        .disclose(disclosure_mdocs, &wscd)
+        .disclose(partial_mdocs, &wscd)
         .await
         .expect_err("should not be able to disclose attributes");
 
@@ -741,14 +740,14 @@ async fn test_disclosure_invalid_poa() {
         .unwrap();
 
     // Finish the disclosure.
-    let disclosure_mdocs = test_documents_to_disclosure_mdocs(
+    let partial_mdocs = test_documents_to_partial_mdocs(
         stored_documents,
         session.credential_requests().as_ref(),
         &issuer_ca,
         &wscd,
     );
     let (_session, error) = session
-        .disclose(disclosure_mdocs, &wscd)
+        .disclose(partial_mdocs, &wscd)
         .await
         .expect_err("should not be able to disclose attributes");
     assert_matches!(
@@ -792,13 +791,13 @@ async fn test_wallet_initiated_usecase_verifier() {
     .unwrap();
 
     // Do the disclosure
-    let disclosure_mdocs = test_documents_to_disclosure_mdocs(
+    let partial_mdocs = test_documents_to_partial_mdocs(
         pid_full_name(),
         session.credential_requests().as_ref(),
         &issuer_ca,
         &wscd,
     );
-    session.disclose(disclosure_mdocs, &wscd).await.unwrap().unwrap();
+    session.disclose(partial_mdocs, &wscd).await.unwrap().unwrap();
 }
 
 #[tokio::test]
@@ -961,12 +960,12 @@ fn setup_verifier(
     (verifier, rp_ca.to_trust_anchor().to_owned(), issuer_ca)
 }
 
-fn test_documents_to_disclosure_mdocs<W>(
+fn test_documents_to_partial_mdocs<W>(
     stored_documents: TestDocuments,
     credential_requests: &[NormalizedCredentialRequest],
     issuer_ca: &Ca,
     wscd: &W,
-) -> VecNonEmpty<DisclosureMdoc>
+) -> VecNonEmpty<PartialMdoc>
 where
     W: Wscd,
 {
@@ -976,7 +975,7 @@ where
         .map(|(doc, request)| {
             let mdoc = test_document_to_mdoc(doc, issuer_ca, wscd).now_or_never().unwrap();
 
-            DisclosureMdoc::try_new(mdoc, request.claim_paths()).unwrap()
+            PartialMdoc::try_new(mdoc, request.claim_paths()).unwrap()
         })
         .collect_vec()
         .try_into()

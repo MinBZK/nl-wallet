@@ -37,7 +37,7 @@ use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::urls::BaseUrl;
 use mdoc::examples::EXAMPLE_ATTR_NAME;
 use mdoc::holder::Mdoc;
-use mdoc::holder::disclosure::DisclosureMdoc;
+use mdoc::holder::disclosure::PartialMdoc;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::DisclosureSession;
 use openid4vc::disclosure_session::DisclosureUriSource;
@@ -967,11 +967,11 @@ async fn perform_full_disclosure(session_type: SessionType) -> (Client, SessionT
     // Have the holder actually disclosure the example attributes to the verification_server,
     // after which the status endpoint should report that the session is Done.
     assert_eq!(disclosure_session.credential_requests().len().get(), 1);
-    let disclosure_mdoc =
-        DisclosureMdoc::try_new(mdoc, disclosure_session.credential_requests().first().claim_paths()).unwrap();
+    let partial_mdoc =
+        PartialMdoc::try_new(mdoc, disclosure_session.credential_requests().first().claim_paths()).unwrap();
 
     let return_url = disclosure_session
-        .disclose(vec![disclosure_mdoc].try_into().unwrap(), &wscd)
+        .disclose(vec![partial_mdoc].try_into().unwrap(), &wscd)
         .await
         .expect("should disclose attributes successfully");
 
@@ -1094,14 +1094,11 @@ async fn test_disclosed_attributes_failed_session() {
     // Disclose the expired attestation from the examples in the ISO specification.
     let mdoc = Mdoc::new_example_resigned(&issuer_ca).await;
     assert_eq!(disclosure_session.credential_requests().len().get(), 1);
-    let disclosure_mdoc =
-        DisclosureMdoc::try_new(mdoc, disclosure_session.credential_requests().first().claim_paths()).unwrap();
+    let partial_mdoc =
+        PartialMdoc::try_new(mdoc, disclosure_session.credential_requests().first().claim_paths()).unwrap();
 
     disclosure_session
-        .disclose(
-            vec![disclosure_mdoc].try_into().unwrap(),
-            &MockRemoteWscd::new_example(),
-        )
+        .disclose(vec![partial_mdoc].try_into().unwrap(), &MockRemoteWscd::new_example())
         .await
         .expect_err("disclosing attributes should result in an error");
 

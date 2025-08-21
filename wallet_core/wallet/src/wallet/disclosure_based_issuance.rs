@@ -179,7 +179,7 @@ mod tests {
     use attestation_data::x509::generate::mock::generate_reader_mock;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
-    use mdoc::holder::disclosure::DisclosureMdoc;
+    use mdoc::holder::disclosure::PartialMdoc;
     use openid4vc::DisclosureErrorResponse;
     use openid4vc::PostAuthResponseErrorCode;
     use openid4vc::credential::CredentialOffer;
@@ -225,10 +225,10 @@ mod tests {
 
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let mdoc_key = MockRemoteEcdsaKey::new("mdoc_key".to_string(), SigningKey::random(&mut OsRng));
-        let disclosure_mdoc = Box::new(DisclosureMdoc::new_mock_with_ca_and_key(&ca, &mdoc_key));
+        let partial_mdoc = Box::new(PartialMdoc::new_mock_with_ca_and_key(&ca, &mdoc_key));
         let proposal = AttestationDisclosureProposal::new(
             Uuid::new_v4(),
-            PartialAttestation::MsoMdoc { disclosure_mdoc },
+            PartialAttestation::MsoMdoc { partial_mdoc },
             AttestationPresentation::new_mock(),
         );
 

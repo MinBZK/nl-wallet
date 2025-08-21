@@ -12,28 +12,28 @@ use super::super::Mdoc;
 use super::MissingAttributesError;
 
 #[derive(Debug, Clone)]
-pub struct DisclosureMdoc {
+pub struct PartialMdoc {
     pub doc_type: DocType,
     pub issuer_signed: IssuerSigned,
     pub(super) private_key_id: String,
     pub(super) device_key: DeviceKey,
 }
 
-impl DisclosureMdoc {
+impl PartialMdoc {
     pub fn try_new<'a>(
         mdoc: Mdoc,
         claim_paths: impl IntoIterator<Item = &'a VecNonEmpty<ClaimPath>>,
     ) -> std::result::Result<Self, MissingAttributesError> {
         let issuer_signed = mdoc.issuer_signed.into_attribute_subset(claim_paths)?;
 
-        let disclosure_mdoc = Self {
+        let partial_mdoc = Self {
             doc_type: mdoc.mso.doc_type,
             issuer_signed,
             private_key_id: mdoc.private_key_id,
             device_key: mdoc.mso.device_key_info.device_key,
         };
 
-        Ok(disclosure_mdoc)
+        Ok(partial_mdoc)
     }
 
     pub(super) fn credential_key<K, W>(&self, wscd: &W) -> Result<K>
@@ -63,7 +63,7 @@ mod examples {
     use crate::holder::Mdoc;
     use crate::test::data::PID;
 
-    use super::DisclosureMdoc;
+    use super::PartialMdoc;
 
     static PID_EXAMPLE_CLAIM_PATHS: LazyLock<Vec<VecNonEmpty<ClaimPath>>> = LazyLock::new(|| {
         ["bsn", "given_name", "family_name"]
@@ -79,7 +79,7 @@ mod examples {
             .collect()
     });
 
-    impl DisclosureMdoc {
+    impl PartialMdoc {
         /// Create a mock [`DisclosureMdoc`] with all the attributes from the PID example.
         pub fn new_mock_with_ca_and_key(ca: &Ca, device_key: &MockRemoteEcdsaKey) -> Self {
             let mdoc = Mdoc::new_mock_with_ca_and_key(ca, device_key).now_or_never().unwrap();

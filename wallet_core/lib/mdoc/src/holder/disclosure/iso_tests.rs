@@ -25,7 +25,7 @@ use crate::test::DebugCollapseBts;
 use crate::utils::serialization::CborSeq;
 use crate::utils::serialization::TaggedBytes;
 
-use super::mdoc::DisclosureMdoc;
+use super::mdoc::PartialMdoc;
 
 fn create_example_device_response(
     device_request: DeviceRequest,
@@ -43,10 +43,10 @@ fn create_example_device_response(
     assert_eq!(&first_request.doc_type, &mdoc.mso.doc_type);
 
     let claim_paths = Vec::<VecNonEmpty<ClaimPath>>::from(first_request);
-    let disclosure_mdoc = DisclosureMdoc::try_new(mdoc, &claim_paths).unwrap();
+    let partial_mdoc = PartialMdoc::try_new(mdoc, &claim_paths).unwrap();
 
     let (device_response, _) = DeviceResponse::sign_from_mdocs(
-        vec![disclosure_mdoc],
+        vec![partial_mdoc],
         session_transcript,
         &MockRemoteWscd::new_example(),
         (),
