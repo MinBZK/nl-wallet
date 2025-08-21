@@ -9,7 +9,7 @@ environment:
   sdk: ^3.0.0
 
 dependencies:
-  flutter_rust_bridge: ^2.9.0
+  flutter_rust_bridge: ^2.11.1
   freezed_annotation: ^3.0.0
 
 dev_dependencies:
