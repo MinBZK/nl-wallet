@@ -689,10 +689,7 @@ mod test {
             .into_credential_payload(&metadata)
             .expect("creating and validating CredentialPayload from SD-JWT should succeed");
 
-        assert_eq!(
-            payload.previewable_payload.attestation_type,
-            sd_jwt.claims().vct.as_ref().unwrap().clone()
-        );
+        assert_eq!(payload.previewable_payload.attestation_type, sd_jwt.claims().vct);
 
         let unverified_payload = CredentialPayload::from_sd_jwt_unvalidated(&sd_jwt)
             .expect("creating a CredentialPayload from SD-JWT while not validating metdata should succeed");

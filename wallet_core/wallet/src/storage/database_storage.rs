@@ -1224,7 +1224,7 @@ pub(crate) mod tests {
                 .unwrap(),
         );
 
-        let attestation_type = sd_jwt.as_ref().claims().vct.as_ref().unwrap().to_string();
+        let attestation_type = sd_jwt.as_ref().claims().vct.clone();
 
         let attestations = storage
             .fetch_unique_attestations()
@@ -1320,7 +1320,7 @@ pub(crate) mod tests {
                 .unwrap(),
         );
 
-        let attestation_type = sd_jwt.as_ref().claims().vct.as_ref().unwrap().to_string();
+        let attestation_type = sd_jwt.as_ref().claims().vct.clone();
 
         let attestations = storage
             .fetch_unique_attestations()
@@ -1567,7 +1567,7 @@ pub(crate) mod tests {
                 .unwrap(),
         );
 
-        let attestation_type = sd_jwt.as_ref().claims().vct.as_ref().unwrap().to_string();
+        let attestation_type = sd_jwt.as_ref().claims().vct.clone();
 
         // Insert sd_jwt
         storage
@@ -1691,7 +1691,7 @@ pub(crate) mod tests {
         let credential = IssuedCredential::SdJwt(Box::new(sd_jwt.clone()));
 
         let issued_copies = IssuedCredentialCopies::new_or_panic(vec![credential.clone()].try_into().unwrap());
-        let attestation_type = sd_jwt.as_ref().claims().vct.as_ref().unwrap().to_string();
+        let attestation_type = sd_jwt.as_ref().claims().vct.clone();
 
         // Insert sd_jwts
         storage

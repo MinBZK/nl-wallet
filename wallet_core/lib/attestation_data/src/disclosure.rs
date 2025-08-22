@@ -18,7 +18,7 @@ use crate::attributes::Attributes;
 #[serde(rename_all = "camelCase")]
 pub struct ValidityInfo {
     pub signed: DateTime<Utc>,
-    pub valid_from: DateTime<Utc>,
+    pub valid_from: Option<DateTime<Utc>>,
     pub valid_until: DateTime<Utc>,
 }
 
@@ -28,7 +28,7 @@ impl TryFrom<&mdoc::iso::ValidityInfo> for ValidityInfo {
     fn try_from(value: &mdoc::iso::ValidityInfo) -> Result<Self, Self::Error> {
         Ok(Self {
             signed: (&value.signed).try_into()?,
-            valid_from: (&value.valid_from).try_into()?,
+            valid_from: Some((&value.valid_from).try_into()?),
             valid_until: (&value.valid_until).try_into()?,
         })
     }
@@ -39,7 +39,7 @@ impl From<ValidityInfo> for mdoc::iso::ValidityInfo {
     fn from(value: ValidityInfo) -> Self {
         Self {
             signed: value.signed.into(),
-            valid_from: value.valid_from.into(),
+            valid_from: value.valid_from.unwrap().into(),
             valid_until: value.valid_until.into(),
             expected_update: None,
         }
@@ -154,30 +154,11 @@ impl TryFrom<sd_jwt::sd_jwt::SdJwt> for DisclosedAttestation {
     fn try_from(sd_jwt: sd_jwt::sd_jwt::SdJwt) -> Result<Self, Self::Error> {
         let claims = sd_jwt.claims();
         let validity_info = ValidityInfo {
-            signed: claims
-                .iat
-                .ok_or(DisclosedAttestationError::MissingAttributes("iat"))?
-                .into(),
-            valid_from: claims
-                .nbf
-                .ok_or(DisclosedAttestationError::MissingAttributes("nbf"))?
-                .into(),
-            valid_until: claims
-                .exp
-                .ok_or(DisclosedAttestationError::MissingAttributes("exp"))?
-                .into(),
+            signed: claims.iat.clone().into_inner().into(),
+            valid_from: claims.nbf.map(Into::into),
+            valid_until: claims.exp.clone().into_inner().into(),
         };
 
-        let attestation_type = claims
-            .vct
-            .as_ref()
-            .ok_or(DisclosedAttestationError::MissingAttributes("vct"))?
-            .clone();
-        let issuer_uri = claims
-            .iss
-            .as_ref()
-            .ok_or(DisclosedAttestationError::MissingAttributes("iss"))?
-            .clone();
         let ca = sd_jwt
             .issuer_certificate()
             .ok_or(DisclosedAttestationError::MissingIssuerCertificate)?
@@ -187,9 +168,9 @@ impl TryFrom<sd_jwt::sd_jwt::SdJwt> for DisclosedAttestation {
             .to_string();
         let attributes = sd_jwt.to_disclosed_object()?.try_into()?;
         Ok(DisclosedAttestation {
-            attestation_type,
+            attestation_type: claims.vct.clone(),
             attributes,
-            issuer_uri,
+            issuer_uri: claims.iss.clone().into_inner(),
             ca,
             validity_info,
         })

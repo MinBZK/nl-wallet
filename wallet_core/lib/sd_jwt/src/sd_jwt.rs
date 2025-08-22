@@ -49,7 +49,7 @@ use crate::key_binding_jwt_claims::KeyBindingJwtBuilder;
 use crate::key_binding_jwt_claims::RequiredKeyBinding;
 
 #[skip_serializing_none]
-#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub struct SdJwtClaims {
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub _sd: Vec<String>,
@@ -65,13 +65,13 @@ pub struct SdJwtClaims {
     #[serde(rename = "vct#integrity")]
     pub vct_integrity: Option<Integrity>,
 
-    pub vct: Option<String>,
+    pub vct: String,
 
-    pub iss: Option<HttpsUri>,
+    pub iss: SpecOptional<HttpsUri>,
 
-    pub iat: Option<DateTimeSeconds>,
+    pub iat: SpecOptional<DateTimeSeconds>,
 
-    pub exp: Option<DateTimeSeconds>,
+    pub exp: SpecOptional<DateTimeSeconds>,
 
     pub nbf: Option<DateTimeSeconds>,
 

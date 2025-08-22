@@ -219,7 +219,7 @@ mod tests {
             ca: "ca".to_string(),
             validity_info: ValidityInfo {
                 signed: Utc::now(),
-                valid_from: Utc::now(),
+                valid_from: Some(Utc::now()),
                 valid_until: Utc::now(),
             },
         }]
