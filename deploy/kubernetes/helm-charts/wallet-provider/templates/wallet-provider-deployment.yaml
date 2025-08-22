@@ -91,7 +91,7 @@ spec:
             - name: WALLET_PROVIDER__ANDROID__ROOT_PUBLIC_KEYS
               value: {{ .Values.android.rootPublicKeys }}
             - name: WALLET_PROVIDER__ANDROID__PLAY_STORE_CERTIFICATE_HASHES
-              value: {{ .Values.configmap.playstoreCertificateHashes }}
+              value: {{ .Values.android.playstoreCertificateHashes }}
             - name: WALLET_PROVIDER__ANDROID__ALLOW_SIDELOADING
               value: {{ .Values.android.allowSideLoading | quote }}
             - name: WALLET_PROVIDER__ANDROID__PACKAGE_NAME

@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
-use std::convert::identity;
 use std::path::PathBuf;
 
 use chrono::DateTime;
@@ -9,13 +8,13 @@ use futures::try_join;
 use itertools::Itertools;
 use sea_orm::ActiveModelTrait;
 use sea_orm::ColumnTrait;
+use sea_orm::Condition;
 use sea_orm::ConnectionTrait;
 use sea_orm::EntityTrait;
 use sea_orm::QueryFilter;
 use sea_orm::QueryOrder;
 use sea_orm::QueryResult;
 use sea_orm::QuerySelect;
-use sea_orm::Select;
 use sea_orm::Set;
 use sea_orm::StatementBuilder;
 use sea_orm::TransactionTrait;
@@ -58,13 +57,13 @@ use crate::AttestationIdentity;
 use crate::AttestationPresentation;
 use crate::DisclosureStatus;
 
+use super::AttestationFormatQuery;
 use super::Storage;
 use super::StorageError;
 use super::StorageResult;
 use super::StorageState;
-use super::StoredAttestationCopy;
-use super::StoredAttestationFormat;
-use super::StoredMdocCopy;
+use super::StoredAttestation;
+use super::attestation_copy::StoredAttestationCopy;
 use super::data::KeyedData;
 use super::database::Database;
 use super::database::SqliteUrl;
@@ -102,6 +101,16 @@ pub struct DatabaseStorage<K> {
 struct OpenDatabaseStorage<K> {
     database: Database,
     key_file_key: K,
+}
+
+impl AttestationFormatQuery {
+    fn attestation_format(self) -> Option<AttestationFormat> {
+        match self {
+            AttestationFormatQuery::Any => None,
+            AttestationFormatQuery::MsoMdoc => Some(AttestationFormat::Mdoc),
+            AttestationFormatQuery::SdJwt => Some(AttestationFormat::SdJwt),
+        }
+    }
 }
 
 impl<K> DatabaseStorage<K> {
@@ -143,10 +152,10 @@ impl<K> DatabaseStorage<K> {
         )
     }
 
-    async fn query_unique_attestations<F>(&self, transform_select: F) -> StorageResult<Vec<StoredAttestationCopy>>
-    where
-        F: FnOnce(Select<attestation_copy::Entity>) -> Select<attestation_copy::Entity>,
-    {
+    async fn query_unique_attestations(
+        &self,
+        condition: Option<Condition>,
+    ) -> StorageResult<Vec<StoredAttestationCopy>> {
         let database = self.database()?;
 
         // As this query only contains one `MIN()` aggregate function, the columns that
@@ -167,8 +176,13 @@ impl<K> DatabaseStorage<K> {
             .group_by(attestation_copy::Column::AttestationId)
             .order_by(attestation_copy::Column::Id, Order::Asc);
 
+        let select = match condition {
+            Some(condition) => select.filter(condition),
+            None => select,
+        };
+
         let copies: Vec<(Uuid, Uuid, Vec<u8>, AttestationFormat, TypeMetadataModel)> =
-            transform_select(select).into_tuple().all(database.connection()).await?;
+            select.into_tuple().all(database.connection()).await?;
 
         let attestations = copies
             .into_iter()
@@ -177,7 +191,7 @@ impl<K> DatabaseStorage<K> {
                     let attestation = match attestation_format {
                         AttestationFormat::Mdoc => {
                             let mdoc = cbor_deserialize(attestation_bytes.as_slice())?;
-                            StoredAttestationFormat::MsoMdoc { mdoc: Box::new(mdoc) }
+                            StoredAttestation::MsoMdoc { mdoc: Box::new(mdoc) }
                         }
                         AttestationFormat::SdJwt => {
                             let sd_jwt = VerifiedSdJwt::dangerous_parse_unverified(
@@ -185,7 +199,7 @@ impl<K> DatabaseStorage<K> {
                                 String::from_utf8(attestation_bytes).unwrap().as_str(),
                                 &Sha256Hasher,
                             )?;
-                            StoredAttestationFormat::SdJwt {
+                            StoredAttestation::SdJwt {
                                 sd_jwt: Box::new(sd_jwt),
                             }
                         }
@@ -206,53 +220,6 @@ impl<K> DatabaseStorage<K> {
             .collect::<Result<_, StorageError>>()?;
 
         Ok(attestations)
-    }
-
-    async fn query_unique_mdocs<F>(&self, transform_select: F) -> StorageResult<Vec<StoredMdocCopy>>
-    where
-        F: FnOnce(Select<attestation_copy::Entity>) -> Select<attestation_copy::Entity>,
-    {
-        let database = self.database()?;
-
-        // As this query only contains one `MIN()` aggregate function, the columns that
-        // do not appear in the `GROUP BY` clause are taken from whichever `mdoc_copy`
-        // row has the lowest disclosure count. This uses the "bare columns in aggregate
-        // queries" feature that SQLite provides.
-        //
-        // See: https://www.sqlite.org/lang_select.html#bare_columns_in_an_aggregate_query
-        let select = attestation_copy::Entity::find()
-            .select_only()
-            .inner_join(attestation::Entity)
-            .column(attestation_copy::Column::Id)
-            .column(attestation_copy::Column::AttestationId)
-            .column(attestation_copy::Column::Attestation)
-            .column(attestation::Column::TypeMetadata)
-            .column_as(attestation_copy::Column::DisclosureCount.min(), "disclosure_count")
-            .group_by(attestation_copy::Column::AttestationId)
-            .filter(attestation_copy::Column::AttestationFormat.eq(AttestationFormat::Mdoc))
-            .order_by(attestation_copy::Column::Id, Order::Asc);
-
-        let mdoc_copies: Vec<(Uuid, Uuid, Vec<u8>, TypeMetadataModel)> =
-            transform_select(select).into_tuple().all(database.connection()).await?;
-
-        let mdocs = mdoc_copies
-            .into_iter()
-            .map(|(mdoc_copy_id, mdoc_id, mdoc_bytes, metadata)| {
-                let mdoc = cbor_deserialize(mdoc_bytes.as_slice())?;
-                let normalized_metadata = metadata.documents.to_normalized()?;
-
-                let stored_mdoc_copy = StoredMdocCopy {
-                    mdoc_id,
-                    mdoc_copy_id,
-                    mdoc,
-                    normalized_metadata,
-                };
-
-                Ok(stored_mdoc_copy)
-            })
-            .collect::<Result<_, StorageError>>()?;
-
-        Ok(mdocs)
     }
 
     fn combine_events(
@@ -605,29 +572,27 @@ where
     }
 
     async fn fetch_unique_attestations(&self) -> StorageResult<Vec<StoredAttestationCopy>> {
-        self.query_unique_attestations(identity).await
+        self.query_unique_attestations(None).await
     }
 
     async fn fetch_unique_attestations_by_type<'a>(
         &'a self,
         attestation_types: &HashSet<&'a str>,
+        format_query: AttestationFormatQuery,
     ) -> StorageResult<Vec<StoredAttestationCopy>> {
-        self.query_unique_attestations(move |select| {
-            let attestation_types_iter = attestation_types.iter().copied();
+        let condition = Condition::all();
 
-            select.filter(attestation::Column::AttestationType.is_in(attestation_types_iter))
-        })
-        .await
-    }
+        let attestation_types_iter = attestation_types.iter().copied();
+        let condition = condition.add(attestation::Column::AttestationType.is_in(attestation_types_iter));
 
-    async fn fetch_unique_mdocs_by_doctypes<'a>(
-        &'a self,
-        doc_types: &HashSet<&'a str>,
-    ) -> StorageResult<Vec<StoredMdocCopy>> {
-        let doc_types_iter = doc_types.iter().copied();
+        let condition = match format_query.attestation_format() {
+            Some(attestation_format) => {
+                condition.add(attestation_copy::Column::AttestationFormat.eq(attestation_format))
+            }
+            None => condition,
+        };
 
-        self.query_unique_mdocs(move |select| select.filter(attestation::Column::AttestationType.is_in(doc_types_iter)))
-            .await
+        self.query_unique_attestations(Some(condition)).await
     }
 
     async fn has_any_attestations_with_type(&self, attestation_type: &str) -> StorageResult<bool> {
@@ -842,7 +807,7 @@ fn create_attestation_copy_models(
                 let model = attestation_copy::ActiveModel {
                     id: Set(Uuid::now_v7()),
                     attestation_id: Set(attestation_id),
-                    attestation: Set(sd_jwt.into_inner().to_string().into_bytes()),
+                    attestation: Set(sd_jwt.to_string().into_bytes()),
                     attestation_format: Set(AttestationFormat::SdJwt),
                     ..Default::default()
                 };
@@ -879,10 +844,8 @@ pub(crate) mod tests {
     use platform_support::hw_keystore::mock::MockHardwareEncryptionKey;
     use platform_support::utils::PlatformUtilities;
     use platform_support::utils::mock::MockHardwareUtilities;
-    use sd_jwt::sd_jwt::SdJwtPresentation;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
-    use sd_jwt_vc_metadata::examples::VCT_EXAMPLE_CREDENTIAL;
     use wallet_account::messages::registration::WalletCertificate;
 
     use crate::storage::data::RegistrationData;
@@ -1118,9 +1081,6 @@ pub(crate) mod tests {
                 .unwrap(),
         );
 
-        // Use vct matching that of the metadata
-        let attestation_type = VCT_EXAMPLE_CREDENTIAL;
-
         // Insert mdocs
         storage
             .insert_credentials(
@@ -1128,8 +1088,8 @@ pub(crate) mod tests {
                 vec![(
                     CredentialWithMetadata::new(
                         issued_mdoc_copies,
-                        String::from(attestation_type),
-                        VerifiedTypeMetadataDocuments::example(),
+                        mdoc.mso.doc_type.clone(),
+                        VerifiedTypeMetadataDocuments::nl_pid_example(),
                     ),
                     AttestationPresentation::new_mock(),
                 )],
@@ -1148,9 +1108,48 @@ pub(crate) mod tests {
 
         assert_matches!(
             &attestation_copy1.attestation,
-            StoredAttestationFormat::MsoMdoc { mdoc: stored } if **stored == mdoc
+            StoredAttestation::MsoMdoc { mdoc: stored } if **stored == mdoc
         );
-        assert_eq!(attestation_copy1.normalized_metadata, NormalizedTypeMetadata::example());
+        assert_eq!(
+            attestation_copy1.normalized_metadata,
+            NormalizedTypeMetadata::nl_pid_example()
+        );
+
+        // Only one unique `AttestationCopy` should be returned when querying
+        // the attestation type, but not when the queried format is SD-JWT.
+        let attestation_types = HashSet::from([mdoc.mso.doc_type.as_str()]);
+        let fetched_unique_any = storage
+            .fetch_unique_attestations_by_type(&attestation_types, AttestationFormatQuery::Any)
+            .await
+            .expect("Could not fetch unique attestations by type");
+
+        let fetched_unique_mdoc = storage
+            .fetch_unique_attestations_by_type(&attestation_types, AttestationFormatQuery::MsoMdoc)
+            .await
+            .expect("Could not fetch unique attestations by type");
+
+        let fetched_unique_sd_jwt = storage
+            .fetch_unique_attestations_by_type(&attestation_types, AttestationFormatQuery::SdJwt)
+            .await
+            .expect("Could not fetch unique attestations by type");
+
+        let fetched_unique_other = storage
+            .fetch_unique_attestations_by_type(&HashSet::from(["other"]), AttestationFormatQuery::Any)
+            .await
+            .expect("Could not fetch unique attestations by type");
+
+        assert_eq!(fetched_unique_any.len(), 1);
+        assert_matches!(
+            &fetched_unique_any.first().unwrap().attestation,
+            StoredAttestation::MsoMdoc { mdoc: stored } if **stored == mdoc
+        );
+        assert_eq!(fetched_unique_mdoc.len(), 1);
+        assert_matches!(
+            &fetched_unique_mdoc.first().unwrap().attestation,
+            StoredAttestation::MsoMdoc { mdoc: stored } if **stored == mdoc
+        );
+        assert!(fetched_unique_sd_jwt.is_empty());
+        assert!(fetched_unique_other.is_empty());
 
         // Increment the usage count for this attestation copy.
         storage
@@ -1169,9 +1168,12 @@ pub(crate) mod tests {
         let attestation_copy2 = fetched_unique_attestation_type.first().unwrap();
         assert_matches!(
             &attestation_copy2.attestation,
-            StoredAttestationFormat::MsoMdoc { mdoc: stored } if **stored == mdoc
+            StoredAttestation::MsoMdoc { mdoc: stored } if **stored == mdoc
         );
-        assert_eq!(attestation_copy2.normalized_metadata, NormalizedTypeMetadata::example());
+        assert_eq!(
+            attestation_copy2.normalized_metadata,
+            NormalizedTypeMetadata::nl_pid_example()
+        );
         assert_ne!(
             attestation_copy1.attestation_copy_id,
             attestation_copy2.attestation_copy_id
@@ -1213,8 +1215,8 @@ pub(crate) mod tests {
         let state = storage.state().await.unwrap();
         assert!(matches!(state, StorageState::Opened));
 
-        let sd_jwt = SdJwtPresentation::example_pid_sd_jwt(&ISSUER_KEY);
-        let credential = IssuedCredential::SdJwt(Box::new(sd_jwt.clone().into()));
+        let sd_jwt = VerifiedSdJwt::pid_example(&ISSUER_KEY);
+        let credential = IssuedCredential::SdJwt(Box::new(sd_jwt.clone()));
 
         let issued_copies = IssuedCredentialCopies::new_or_panic(
             vec![credential.clone(), credential.clone(), credential.clone()]
@@ -1222,7 +1224,7 @@ pub(crate) mod tests {
                 .unwrap(),
         );
 
-        let attestation_type = sd_jwt.claims().properties.get("vct").unwrap().to_string();
+        let attestation_type = sd_jwt.as_ref().claims().properties.get("vct").unwrap().to_string();
 
         let attestations = storage
             .fetch_unique_attestations()
@@ -1247,27 +1249,59 @@ pub(crate) mod tests {
             .await
             .expect("Could not insert mdocs");
 
-        let attestations = storage
+        let fetched_unique = storage
             .fetch_unique_attestations()
             .await
             .expect("Could not fetch unique attestations");
 
-        // One matching attestation should be returned
-        assert_eq!(attestations.len(), 1);
+        // Only one unique `AttestationCopy` should be returned and it should match all copies.
+        assert_eq!(fetched_unique.len(), 1);
+        let attestation_copy1 = fetched_unique.first().unwrap();
 
-        // Fetching by attestation type should return the same attestation
-        let attestations = storage
-            .fetch_unique_attestations_by_type(&HashSet::from([attestation_type.as_str()]))
-            .await
-            .unwrap();
-        assert_eq!(attestations.len(), 1);
+        assert_matches!(
+            &attestation_copy1.attestation,
+            StoredAttestation::SdJwt { sd_jwt: stored } if stored.as_ref() == &sd_jwt
+        );
+        assert_eq!(
+            attestation_copy1.normalized_metadata,
+            NormalizedTypeMetadata::nl_pid_example()
+        );
 
-        // Fetching by a different attestation type should return an empty list
-        let attestations = storage
-            .fetch_unique_attestations_by_type(&HashSet::from(["does_not_exist"]))
+        // Only one unique `AttestationCopy` should be returned when querying
+        // the attestation type, but not when the queried format is mdoc.
+        let attestation_types = HashSet::from([attestation_type.as_str()]);
+        let fetched_unique_any = storage
+            .fetch_unique_attestations_by_type(&attestation_types, AttestationFormatQuery::Any)
             .await
-            .unwrap();
-        assert!(attestations.is_empty());
+            .expect("Could not fetch unique attestations by type");
+
+        let fetched_unique_mdoc = storage
+            .fetch_unique_attestations_by_type(&attestation_types, AttestationFormatQuery::MsoMdoc)
+            .await
+            .expect("Could not fetch unique attestations by type");
+
+        let fetched_unique_sd_jwt = storage
+            .fetch_unique_attestations_by_type(&attestation_types, AttestationFormatQuery::SdJwt)
+            .await
+            .expect("Could not fetch unique attestations by type");
+
+        let fetched_unique_other = storage
+            .fetch_unique_attestations_by_type(&HashSet::from(["other"]), AttestationFormatQuery::Any)
+            .await
+            .expect("Could not fetch unique attestations by type");
+
+        assert_eq!(fetched_unique_any.len(), 1);
+        assert_matches!(
+            &fetched_unique_any.first().unwrap().attestation,
+            StoredAttestation::SdJwt { sd_jwt: stored } if stored.as_ref() == &sd_jwt
+        );
+        assert!(fetched_unique_mdoc.is_empty());
+        assert_eq!(fetched_unique_sd_jwt.len(), 1);
+        assert_matches!(
+            &fetched_unique_sd_jwt.first().unwrap().attestation,
+            StoredAttestation::SdJwt { sd_jwt: stored } if stored.as_ref() == &sd_jwt
+        );
+        assert!(fetched_unique_other.is_empty());
     }
 
     #[tokio::test]
@@ -1278,15 +1312,15 @@ pub(crate) mod tests {
         assert!(matches!(state, StorageState::Opened));
 
         // Create issued_copies that will be inserted into the database
-        let sd_jwt = SdJwtPresentation::example_pid_sd_jwt(&ISSUER_KEY);
-        let credential = IssuedCredential::SdJwt(Box::new(sd_jwt.clone().into()));
+        let sd_jwt = VerifiedSdJwt::pid_example(&ISSUER_KEY);
+        let credential = IssuedCredential::SdJwt(Box::new(sd_jwt.clone()));
         let issued_copies = IssuedCredentialCopies::new_or_panic(
             vec![credential.clone(), credential.clone(), credential.clone()]
                 .try_into()
                 .unwrap(),
         );
 
-        let attestation_type = sd_jwt.claims().properties.get("vct").unwrap().to_string();
+        let attestation_type = sd_jwt.as_ref().claims().properties.get("vct").unwrap().to_string();
 
         let attestations = storage
             .fetch_unique_attestations()
@@ -1322,7 +1356,7 @@ pub(crate) mod tests {
         assert_eq!(attestations.len(), 1);
 
         let inserted_attestation_copy = attestations.first().unwrap();
-        let StoredAttestationFormat::SdJwt {
+        let StoredAttestation::SdJwt {
             sd_jwt: inserted_attestation,
         } = &inserted_attestation_copy.attestation
         else {
@@ -1334,8 +1368,8 @@ pub(crate) mod tests {
         assert_eq!(fetched_events.len(), 1);
 
         // Create new issued_copies that will be updated
-        let sd_jwt = SdJwtPresentation::example_pid_sd_jwt(&ISSUER_KEY);
-        let credential = IssuedCredential::SdJwt(Box::new(sd_jwt.clone().into()));
+        let sd_jwt = VerifiedSdJwt::pid_example(&ISSUER_KEY);
+        let credential = IssuedCredential::SdJwt(Box::new(sd_jwt.clone()));
         let issued_copies = IssuedCredentialCopies::new_or_panic(
             vec![credential.clone(), credential.clone(), credential.clone()]
                 .try_into()
@@ -1361,7 +1395,7 @@ pub(crate) mod tests {
         assert_eq!(attestations.len(), 1);
 
         let updated_attestation_copy = attestations.first().unwrap();
-        let StoredAttestationFormat::SdJwt {
+        let StoredAttestation::SdJwt {
             sd_jwt: updated_attestation,
         } = &updated_attestation_copy.attestation
         else {
@@ -1391,7 +1425,7 @@ pub(crate) mod tests {
             .expect("Could not fetch unique attestations");
 
         let next_updated_attestation_copy = attestations.first().unwrap();
-        let StoredAttestationFormat::SdJwt {
+        let StoredAttestation::SdJwt {
             sd_jwt: next_updated_attestation,
         } = &next_updated_attestation_copy.attestation
         else {
@@ -1524,8 +1558,8 @@ pub(crate) mod tests {
                 .unwrap()
         );
 
-        let sd_jwt = SdJwtPresentation::example_pid_sd_jwt(&ISSUER_KEY);
-        let credential = IssuedCredential::SdJwt(Box::new(sd_jwt.clone().into()));
+        let sd_jwt = VerifiedSdJwt::pid_example(&ISSUER_KEY);
+        let credential = IssuedCredential::SdJwt(Box::new(sd_jwt.clone()));
 
         let issued_copies = IssuedCredentialCopies::new_or_panic(
             vec![credential.clone(), credential.clone(), credential.clone()]
@@ -1533,7 +1567,7 @@ pub(crate) mod tests {
                 .unwrap(),
         );
 
-        let attestation_type = sd_jwt.claims().properties.get("vct").unwrap().to_string();
+        let attestation_type = sd_jwt.as_ref().claims().properties.get("vct").unwrap().to_string();
 
         // Insert sd_jwt
         storage
@@ -1552,7 +1586,7 @@ pub(crate) mod tests {
             .expect("Could not insert mdocs");
 
         let StoredAttestationCopy {
-            attestation: StoredAttestationFormat::SdJwt { sd_jwt },
+            attestation: StoredAttestation::SdJwt { sd_jwt },
             attestation_id,
             ..
         } = storage
@@ -1568,13 +1602,14 @@ pub(crate) mod tests {
 
         let normalized_metadata = VerifiedTypeMetadataDocuments::nl_pid_example().to_normalized().unwrap();
 
-        let issuer_certificate = sd_jwt.as_ref().as_ref().issuer_certificate().unwrap();
+        let issuer_certificate = sd_jwt.as_ref().issuer_certificate();
         let issuer_registration = IssuerRegistration::from_certificate(issuer_certificate)
             .unwrap()
             .unwrap();
 
         let payload = sd_jwt
-            .into_inner()
+            .as_ref()
+            .as_ref()
             .into_credential_payload(&normalized_metadata)
             .unwrap();
         let attestation = AttestationPresentation::create_from_attributes(
@@ -1652,11 +1687,11 @@ pub(crate) mod tests {
         let timestamp_older = Utc.with_ymd_and_hms(2023, 11, 21, 13, 37, 00).unwrap();
         let timestamp_even_older = Utc.with_ymd_and_hms(2023, 11, 11, 11, 11, 00).unwrap();
 
-        let sd_jwt = SdJwtPresentation::example_pid_sd_jwt(&ISSUER_KEY);
-        let credential = IssuedCredential::SdJwt(Box::new(sd_jwt.clone().into()));
+        let sd_jwt = VerifiedSdJwt::pid_example(&ISSUER_KEY);
+        let credential = IssuedCredential::SdJwt(Box::new(sd_jwt.clone()));
 
         let issued_copies = IssuedCredentialCopies::new_or_panic(vec![credential.clone()].try_into().unwrap());
-        let attestation_type = sd_jwt.claims().properties.get("vct").unwrap().to_string();
+        let attestation_type = sd_jwt.as_ref().claims().properties.get("vct").unwrap().to_string();
 
         // Insert sd_jwts
         storage
@@ -1691,7 +1726,7 @@ pub(crate) mod tests {
             .into_iter()
             .map(|attestation| {
                 let StoredAttestationCopy {
-                    attestation: StoredAttestationFormat::SdJwt { sd_jwt },
+                    attestation: StoredAttestation::SdJwt { sd_jwt },
                     attestation_id,
                     ..
                 } = attestation
@@ -1701,13 +1736,14 @@ pub(crate) mod tests {
 
                 let normalized_metadata = VerifiedTypeMetadataDocuments::nl_pid_example().to_normalized().unwrap();
 
-                let issuer_certificate = sd_jwt.as_ref().as_ref().issuer_certificate().unwrap();
+                let issuer_certificate = sd_jwt.as_ref().issuer_certificate();
                 let issuer_registration = IssuerRegistration::from_certificate(issuer_certificate)
                     .unwrap()
                     .unwrap();
 
                 let payload = sd_jwt
-                    .into_inner()
+                    .as_ref()
+                    .as_ref()
                     .into_credential_payload(&normalized_metadata)
                     .unwrap();
                 AttestationPresentation::create_from_attributes(

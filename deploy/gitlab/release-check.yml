@@ -6,7 +6,7 @@
     - export JIRA_PAT
     - GITLAB_TOKEN=$(kubectl get secret nl-wallet-git-jira-check-tokens -o jsonpath='{.data.GITLAB_TOKEN}' | base64 --decode)
     - export GITLAB_TOKEN
-    - export CURRENT_RELEASE="$(jq -r '"v" + .version | sub("-dev$"; "")' wallet_web/package.json) "
+    - export CURRENT_RELEASE="$(jq -r '"v" + .version | sub("-dev$"; "")' wallet_web/package.json)"
     - echo "Using CURRENT_RELEASE = $CURRENT_RELEASE"
     - python3 -m venv venv
     - source venv/bin/activate

@@ -41,6 +41,7 @@ test = [
     "openid4vc/test",
     "openid4vc/mock",
     "server_utils/parsed_key_pair_conversion",
+    "dep:wscd",
 ]
 # Enable integration tests
 integration_test = ["test"]
@@ -80,6 +81,8 @@ sd_jwt_vc_metadata.path = "../../lib/sd_jwt_vc_metadata"
 server_utils.path = "../server_utils"
 utils = { path = "../../lib/utils" }
 
+wscd = { path = "../../lib/wscd", optional = true, features = ["mock", "examples"] }
+
 [dev-dependencies]
 assert_matches.workspace = true
 itertools.workspace = true
@@ -99,4 +102,3 @@ dcql = { path = "../../lib/dcql", features = ["mock"] }
 mdoc = { path = "../../lib/mdoc", features = ["mock_example_constructors"] }
 sd_jwt_vc_metadata = { path = "../../lib/sd_jwt_vc_metadata", features = ["example_constructors"] }
 utils = { path = "../../lib/utils", features = ["mock_time"] }
-wscd = { path = "../../lib/wscd", features = ["mock", "examples"] }

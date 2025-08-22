@@ -34,7 +34,7 @@ class BrowserStackMobileDriver : WebDriverProvider {
 
         // Set other BrowserStack capabilities
         val browserstackOptions = HashMap<String, Any>()
-        browserstackOptions["appiumVersion"] = "2.6.0"
+        browserstackOptions["appiumVersion"] = "2.18.0"
         browserstackOptions["buildName"] = sessionName
         browserstackOptions["disableAnimations"] = "true"
         browserstackOptions["idleTimeout"] = BROWSER_STACK_IDLE_TIMEOUT_SECONDS

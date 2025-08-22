@@ -14,12 +14,13 @@ required-features = ["examples"]
 
 [features]
 examples = ["futures", "rand_core"]
+mock = []
 
 [dependencies]
 anyhow.workspace = true
 base64.workspace = true
 chrono.workspace = true
-derive_more = { workspace = true, features = ["as_ref", "from"] }
+derive_more = { workspace = true, features = ["as_ref", "display"] }
 itertools.workspace = true
 jsonwebtoken.workspace = true
 p256 = { workspace = true, features = ["default", "pem"] }

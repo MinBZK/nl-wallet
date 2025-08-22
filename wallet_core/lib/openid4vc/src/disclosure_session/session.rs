@@ -1,6 +1,5 @@
 use std::hash::Hash;
 
-use itertools::Itertools;
 use tracing::info;
 use tracing::warn;
 
@@ -9,7 +8,7 @@ use crypto::utils::random_string;
 use crypto::wscd::DisclosureWscd;
 use dcql::normalized::NormalizedCredentialRequest;
 use http_utils::urls::BaseUrl;
-use mdoc::holder::Mdoc;
+use mdoc::holder::disclosure::PartialMdoc;
 use mdoc::iso::disclosure::DeviceResponse;
 use mdoc::iso::engagement::SessionTranscript;
 use utils::vec_at_least::VecNonEmpty;
@@ -75,7 +74,7 @@ where
 
     async fn disclose<K, W>(
         self,
-        mdocs: VecNonEmpty<Mdoc>,
+        partial_mdocs: VecNonEmpty<PartialMdoc>,
         wscd: &W,
     ) -> Result<Option<BaseUrl>, (Self, DisclosureError<VpSessionError>)>
     where
@@ -84,29 +83,27 @@ where
     {
         info!("disclose mdoc documents");
 
+        // TODO (PVW-4780): This method assumes that the attestations passed to it only contain those attributes that
+        //                  were requested to be disclosed. As the `Wallet` already has to perform this operation in
+        //                  order to show the disclosure to the user, we decided to have it pass those reduced versions
+        //                  of the attestations to `VpDisclosureSession`. However, this responsibility would be more
+        //                  appropriately housed in the disclosure session itself. This could be resolved by introducing
+        //                  a new type that this method takes which encapsulates a full source attestation and a list
+        //                  of the attributes to be disclosed. This type then provides the canonical method of creating
+        //                  intermediate types of the attestations that contain a subset of the attributes.
         let expected_attestation_count = self.auth_request.credential_requests.len();
-        if mdocs.len() != expected_attestation_count {
+        if partial_mdocs.len() != expected_attestation_count {
             return Err((
                 self,
                 DisclosureError::before_sharing(
                     VpClientError::AttestationCountMismatch {
                         expected: expected_attestation_count.get(),
-                        found: mdocs.len().get(),
+                        found: partial_mdocs.len().get(),
                     }
                     .into(),
                 ),
             ));
         }
-
-        let subset_mdocs = mdocs
-            .into_iter()
-            .zip_eq(self.auth_request.credential_requests.as_ref())
-            .map(|(mut mdoc, request)| {
-                mdoc.issuer_signed = mdoc.issuer_signed.into_attribute_subset(request.claim_paths());
-
-                mdoc
-            })
-            .collect_vec();
 
         // Sign Document values based on the remaining contents of these mdocs and retain the keys used for signing.
         info!("signing disclosed mdoc documents");
@@ -120,7 +117,8 @@ where
         );
 
         let poa_input = JwtPoaInput::new(Some(mdoc_nonce.clone()), self.auth_request.client_id.clone());
-        let result = DeviceResponse::sign_from_mdocs(subset_mdocs, &session_transcript, wscd, poa_input).await;
+        let result =
+            DeviceResponse::sign_from_mdocs(partial_mdocs.into_inner(), &session_transcript, wscd, poa_input).await;
         let (device_response, poa) = match result {
             Ok(value) => value,
             Err(error) => {
@@ -181,8 +179,9 @@ mod tests {
 
     use attestation_data::auth::reader_auth::ReaderRegistration;
     use crypto::mock_remote::MockRemoteEcdsaKey;
+    use crypto::server_keys::generate::Ca;
     use dcql::normalized::NormalizedCredentialRequest;
-    use mdoc::holder::Mdoc;
+    use mdoc::holder::disclosure::PartialMdoc;
     use wscd::mock_remote::MockRemoteWscd;
 
     use crate::errors::AuthorizationErrorCode;
@@ -260,12 +259,13 @@ mod tests {
         }
     }
 
-    fn setup_disclosure_mdoc() -> (Mdoc, MockRemoteWscd) {
+    fn setup_disclosure_mdoc() -> (PartialMdoc, MockRemoteWscd) {
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
         let mdoc_key = MockRemoteEcdsaKey::new("mdoc_key".to_string(), SigningKey::random(&mut OsRng));
-        let mdoc = Mdoc::new_mock_with_key(&mdoc_key).now_or_never().unwrap();
+        let partial_mdoc = PartialMdoc::new_mock_with_ca_and_key(&ca, &mdoc_key);
         let wscd = MockRemoteWscd::new(vec![mdoc_key]);
 
-        (mdoc, wscd)
+        (partial_mdoc, wscd)
     }
 
     /// This contains a lightweight test of `VpDisclosureSession::disclose()`. For a more

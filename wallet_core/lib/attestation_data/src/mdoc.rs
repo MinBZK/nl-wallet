@@ -216,7 +216,7 @@ mod tests {
         let mdoc = Mdoc::new_mock().now_or_never().unwrap();
         let metadata = NormalizedTypeMetadata::from_single_example(UncheckedTypeMetadata::pid_example());
 
-        let payload = MdocParts::new(mdoc.issuer_signed.into_entries_by_namespace(), mdoc.mso)
+        let payload = MdocParts::from(mdoc)
             .into_credential_payload(&metadata)
             .expect("creating and validating CredentialPayload from Mdoc should succeed");
 
@@ -247,7 +247,7 @@ mod tests {
             ],
         ));
 
-        let error = MdocParts::new(mdoc.issuer_signed.into_entries_by_namespace(), mdoc.mso)
+        let error = MdocParts::from(mdoc)
             .into_credential_payload(&metadata)
             .expect_err("wrong family_name type should fail validation");
 

@@ -11,15 +11,15 @@ mod document;
 mod issuer_signed;
 mod mdoc;
 
+pub use mdoc::PartialMdoc;
+
 #[cfg(test)]
 mod device_retrieval;
 #[cfg(test)]
 mod iso_tests;
 
 #[derive(Debug, thiserror::Error)]
-pub enum IssuerSignedMatchingError {
-    #[error("requested attributes are missing: {}", .0.iter().map(|path| {
-        format!("[{}]", path.iter().join(", "))
-    }).join(", "))]
-    MissingAttributes(HashSet<VecNonEmpty<ClaimPath>>),
-}
+#[error("requested attributes are missing: {}", .0.iter().map(|path| {
+    format!("[{}]", path.iter().join(", "))
+}).join(", "))]
+pub struct MissingAttributesError(pub HashSet<VecNonEmpty<ClaimPath>>);

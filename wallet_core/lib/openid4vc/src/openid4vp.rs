@@ -318,11 +318,13 @@ impl VpAuthorizationRequest {
         jws: &Jwt<VpAuthorizationRequest>,
         trust_anchors: &[TrustAnchor],
     ) -> Result<(VpAuthorizationRequest, BorrowingCertificate), AuthRequestValidationError> {
-        Ok(jws.verify_against_trust_anchors_and_audience(
+        let (auth_request, certificates) = jws.verify_against_trust_anchors_and_audience(
             &[VpAuthorizationRequestAudience::SelfIssued],
             trust_anchors,
             &TimeGenerator,
-        )?)
+        )?;
+
+        Ok((auth_request, certificates.into_first()))
     }
 
     /// Validate that an Authorization Request satisfies the following:

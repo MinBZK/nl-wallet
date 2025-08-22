@@ -6,7 +6,7 @@ use crypto::CredentialEcdsaKey;
 use crypto::wscd::DisclosureWscd;
 use dcql::normalized::NormalizedCredentialRequest;
 use http_utils::urls::BaseUrl;
-use mdoc::holder::Mdoc;
+use mdoc::holder::disclosure::PartialMdoc;
 use utils::vec_at_least::VecNonEmpty;
 use wscd::Poa;
 
@@ -45,7 +45,7 @@ mockall::mock! {
         pub async fn terminate(self) -> Result<Option<BaseUrl>, VpSessionError>;
         pub async fn disclose(
             self,
-            mdocs: VecNonEmpty<Mdoc>,
+            partial_mdocs: VecNonEmpty<PartialMdoc>,
         ) -> Result<Option<BaseUrl>, (Self, DisclosureError<VpSessionError>)>;
     }
 }
@@ -69,13 +69,13 @@ impl DisclosureSession for MockDisclosureSession {
 
     async fn disclose<K, W>(
         self,
-        mdocs: VecNonEmpty<Mdoc>,
+        partial_mdocs: VecNonEmpty<PartialMdoc>,
         _: &W,
     ) -> Result<Option<BaseUrl>, (Self, DisclosureError<VpSessionError>)>
     where
         K: CredentialEcdsaKey + Eq + Hash,
         W: DisclosureWscd<Key = K, Poa = Poa>,
     {
-        self.disclose(mdocs).await
+        self.disclose(partial_mdocs).await
     }
 }

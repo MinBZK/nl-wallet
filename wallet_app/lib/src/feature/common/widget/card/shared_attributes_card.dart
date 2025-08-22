@@ -207,15 +207,17 @@ class _SharedAttributesCardState extends State<SharedAttributesCard> {
   /// for the associated [WalletCard]. The header has a fixed height and
   /// rounded top corners to match the card's visual design.
   Widget _buildHeaderStrip(BuildContext context) {
-    return SizedBox(
-      height: _kHeaderStripHeight,
-      width: double.infinity,
-      child: ClipRRect(
-        borderRadius: const BorderRadius.only(
-          topLeft: _kCornerRadius,
-          topRight: _kCornerRadius,
+    return ExcludeSemantics(
+      child: SizedBox(
+        height: _kHeaderStripHeight,
+        width: double.infinity,
+        child: ClipRRect(
+          borderRadius: const BorderRadius.only(
+            topLeft: _kCornerRadius,
+            topRight: _kCornerRadius,
+          ),
+          child: widget.card.getL10nBackground(context),
         ),
-        child: widget.card.getL10nBackground(context),
       ),
     );
   }

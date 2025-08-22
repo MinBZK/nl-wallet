@@ -100,10 +100,6 @@ pub enum IssuanceSessionError {
     #[category(critical)]
     MissingNonce,
 
-    #[error("missing issuer certificate")]
-    #[category(critical)]
-    MissingIssuerCertificate,
-
     #[error("mismatch between issued and previewed credential, issued: {actual:?} , previewed: {expected:?}")]
     #[category(pd)]
     IssuedCredentialMismatch {
@@ -968,21 +964,14 @@ impl CredentialResponse {
                     trust_anchors,
                 )?;
 
-                let credential_issuer_certificate = sd_jwt
-                    .as_ref()
-                    .issuer_certificate()
-                    .ok_or(IssuanceSessionError::MissingIssuerCertificate)?;
-
-                let issued_credential_payload = sd_jwt
-                    .clone()
-                    .into_inner()
-                    .into_credential_payload(&preview.normalized_metadata)?;
+                let issued_credential_payload =
+                    sd_jwt.as_ref().into_credential_payload(&preview.normalized_metadata)?;
 
                 Self::validate_credential(
                     preview,
                     verifying_key,
                     issued_credential_payload,
-                    credential_issuer_certificate,
+                    sd_jwt.issuer_certificate(),
                 )?;
 
                 Ok(IssuedCredential::SdJwt(Box::new(sd_jwt)))

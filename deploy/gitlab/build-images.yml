@@ -3,7 +3,7 @@
 
 build-images-tag:
   extends: .build-image
-  image: "${HARBOR_REGISTRY}/docker-hub-proxy/library/bash:5.3.0"
+  image: "${HARBOR_REGISTRY}/docker-hub-proxy/alpine/git:v2.49.1"
   when: manual
   allow_failure: true
   before_script:
@@ -14,7 +14,7 @@ build-images-tag:
         COMMIT_SHORT_SHA="${CI_MERGE_REQUEST_SOURCE_BRANCH_SHA:0:8}"
       fi
   script:
-    - echo IMAGE_TAG="$(date +'%y%m%d')-${COMMIT_SHORT_SHA}" | tee build.env
+    - echo IMAGE_TAG="$(git show -s --format=%cd --date=format:'%y%m%d')-${COMMIT_SHORT_SHA}" | tee build.env
   artifacts:
     reports:
       dotenv: build.env
