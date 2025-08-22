@@ -119,7 +119,7 @@ impl Field {
     }
 }
 
-// TODO: Remove in PVW-4419
+// TODO: Remove in PVW-4420
 impl TryFrom<&NormalizedCredentialRequests> for PresentationDefinition {
     type Error = PdConversionError;
 
@@ -220,11 +220,11 @@ impl TryFrom<&PresentationDefinition> for NormalizedCredentialRequests {
                     })
                     .collect::<Result<Vec<_>, _>>()?
                     .try_into()
-                    // TODO: This is temporary and will be removed when we switch over to using DCQL.
+                    // TODO (PVW-4419): This unwrap is temporary and will be removed when we switch over to using DCQL.
                     .unwrap();
 
                 Ok(NormalizedCredentialRequest {
-                    // TODO: This is temporary and will be removed when we switch over to using DCQL.
+                    // TODO (PVW-4419): This unwrap is temporary and will be removed when we switch over to using DCQL.
                     id: format!("mdoc_{index}").try_into().unwrap(),
                     format: CredentialQueryFormat::MsoMdoc {
                         doctype_value: input_descriptor.id.clone(),
