@@ -4,7 +4,7 @@ use rustls_pki_types::TrustAnchor;
 
 use crypto::CredentialEcdsaKey;
 use crypto::wscd::DisclosureWscd;
-use dcql::normalized::NormalizedCredentialRequest;
+use dcql::normalized::NormalizedCredentialRequests;
 use http_utils::urls::BaseUrl;
 use mdoc::holder::disclosure::PartialMdoc;
 use utils::vec_at_least::VecNonEmpty;
@@ -39,7 +39,7 @@ mockall::mock! {
     #[derive(Debug)]
     pub DisclosureSession {
         pub fn session_type(&self) -> SessionType;
-        pub fn credential_requests(&self) -> &VecNonEmpty<NormalizedCredentialRequest>;
+        pub fn credential_requests(&self) -> &NormalizedCredentialRequests;
         pub fn verifier_certificate(&self) -> &VerifierCertificate;
 
         pub async fn terminate(self) -> Result<Option<BaseUrl>, VpSessionError>;
@@ -55,7 +55,7 @@ impl DisclosureSession for MockDisclosureSession {
         self.session_type()
     }
 
-    fn credential_requests(&self) -> &VecNonEmpty<NormalizedCredentialRequest> {
+    fn credential_requests(&self) -> &NormalizedCredentialRequests {
         self.credential_requests()
     }
 

@@ -345,7 +345,7 @@ pub mod data {
     use dcql::Query;
     use dcql::normalized::AttributeRequest;
     use dcql::normalized::NormalizedCredentialRequest;
-    use utils::vec_at_least::VecNonEmpty;
+    use dcql::normalized::NormalizedCredentialRequests;
 
     use super::*;
 
@@ -481,7 +481,7 @@ pub mod data {
         NormalizedCredentialRequest { id, format, claims }
     }
 
-    impl From<TestDocuments> for VecNonEmpty<NormalizedCredentialRequest> {
+    impl From<TestDocuments> for NormalizedCredentialRequests {
         fn from(source: TestDocuments) -> Self {
             source
                 .0

@@ -52,8 +52,7 @@ mod test {
 
     use dcql::CredentialFormat;
     use dcql::normalized;
-    use dcql::normalized::NormalizedCredentialRequest;
-    use utils::vec_at_least::VecNonEmpty;
+    use dcql::normalized::NormalizedCredentialRequests;
 
     use super::DisclosureType;
 
@@ -74,7 +73,7 @@ mod test {
     #[case(sd_jwt_pid_and_other_bsn_attribute_paths(), DisclosureType::Regular)]
     #[case(sd_jwt_pid_too_long_attribute_paths(), DisclosureType::Regular)]
     fn test_disclosure_type_from_request_attribute_paths(
-        #[case] attribute_paths: VecNonEmpty<NormalizedCredentialRequest>,
+        #[case] attribute_paths: NormalizedCredentialRequests,
         #[case] expected: DisclosureType,
     ) {
         let login_attestation_types = HashSet::from([LOGIN_ATTESTATION_TYPE, ALSO_LOGIN_ATTESTATION_TYPE]);
@@ -93,59 +92,68 @@ mod test {
         );
     }
 
-    fn mdoc_pid_bsn_attribute_paths() -> VecNonEmpty<NormalizedCredentialRequest> {
-        normalized::mock::mock_mdoc_from_slices(&[(LOGIN_ATTESTATION_TYPE, &[&[LOGIN_NAMESPACE, LOGIN_ATTRIBUTE_ID]])])
+    fn mdoc_pid_bsn_attribute_paths() -> NormalizedCredentialRequests {
+        NormalizedCredentialRequests::new_mock_mdoc_from_slices(&[(
+            LOGIN_ATTESTATION_TYPE,
+            &[&[LOGIN_NAMESPACE, LOGIN_ATTRIBUTE_ID]],
+        )])
     }
 
-    fn mdoc_pid_bsn_and_other_attribute_paths() -> VecNonEmpty<NormalizedCredentialRequest> {
-        normalized::mock::mock_mdoc_from_slices(&[(
+    fn mdoc_pid_bsn_and_other_attribute_paths() -> NormalizedCredentialRequests {
+        NormalizedCredentialRequests::new_mock_mdoc_from_slices(&[(
             LOGIN_ATTESTATION_TYPE,
             &[&[LOGIN_NAMESPACE, LOGIN_ATTRIBUTE_ID], &[LOGIN_NAMESPACE, "other"]],
         )])
     }
 
-    fn mdoc_pid_and_other_bsn_attribute_paths() -> VecNonEmpty<NormalizedCredentialRequest> {
-        normalized::mock::mock_mdoc_from_slices(&[
+    fn mdoc_pid_and_other_bsn_attribute_paths() -> NormalizedCredentialRequests {
+        NormalizedCredentialRequests::new_mock_mdoc_from_slices(&[
             (LOGIN_ATTESTATION_TYPE, &[&[LOGIN_NAMESPACE, LOGIN_ATTRIBUTE_ID]]),
             ("other", &[&[LOGIN_NAMESPACE, LOGIN_ATTRIBUTE_ID]]),
         ])
     }
 
-    fn mdoc_pid_too_short_attribute_paths() -> VecNonEmpty<NormalizedCredentialRequest> {
-        normalized::mock::mock_mdoc_from_slices(&[(LOGIN_ATTESTATION_TYPE, &[&[LOGIN_ATTRIBUTE_ID]])])
+    fn mdoc_pid_too_short_attribute_paths() -> NormalizedCredentialRequests {
+        NormalizedCredentialRequests::new_mock_mdoc_from_slices(&[(LOGIN_ATTESTATION_TYPE, &[&[LOGIN_ATTRIBUTE_ID]])])
     }
 
-    fn mdoc_pid_too_long_attribute_paths() -> VecNonEmpty<NormalizedCredentialRequest> {
-        normalized::mock::mock_mdoc_from_slices(&[(
+    fn mdoc_pid_too_long_attribute_paths() -> NormalizedCredentialRequests {
+        NormalizedCredentialRequests::new_mock_mdoc_from_slices(&[(
             LOGIN_ATTESTATION_TYPE,
             &[&[LOGIN_NAMESPACE, LOGIN_NAMESPACE, LOGIN_ATTRIBUTE_ID]],
         )])
     }
 
-    fn sd_jwt_pid_bsn_attribute_paths() -> VecNonEmpty<NormalizedCredentialRequest> {
-        normalized::mock::mock_sd_jwt_from_slices(&[(&[LOGIN_ATTESTATION_TYPE], &[&[LOGIN_ATTRIBUTE_ID]])])
+    fn sd_jwt_pid_bsn_attribute_paths() -> NormalizedCredentialRequests {
+        NormalizedCredentialRequests::new_mock_sd_jwt_from_slices(&[(
+            &[LOGIN_ATTESTATION_TYPE],
+            &[&[LOGIN_ATTRIBUTE_ID]],
+        )])
     }
 
-    fn sd_jwt_double_pid_bsn_attribute_paths() -> VecNonEmpty<NormalizedCredentialRequest> {
-        normalized::mock::mock_sd_jwt_from_slices(&[(
+    fn sd_jwt_double_pid_bsn_attribute_paths() -> NormalizedCredentialRequests {
+        NormalizedCredentialRequests::new_mock_sd_jwt_from_slices(&[(
             &[ALSO_LOGIN_ATTESTATION_TYPE, LOGIN_ATTESTATION_TYPE],
             &[&[LOGIN_ATTRIBUTE_ID]],
         )])
     }
 
-    fn sd_jwt_pid_bsn_and_other_attribute_paths() -> VecNonEmpty<NormalizedCredentialRequest> {
-        normalized::mock::mock_sd_jwt_from_slices(&[(&[LOGIN_ATTESTATION_TYPE], &[&[LOGIN_ATTRIBUTE_ID], &["other"]])])
+    fn sd_jwt_pid_bsn_and_other_attribute_paths() -> NormalizedCredentialRequests {
+        NormalizedCredentialRequests::new_mock_sd_jwt_from_slices(&[(
+            &[LOGIN_ATTESTATION_TYPE],
+            &[&[LOGIN_ATTRIBUTE_ID], &["other"]],
+        )])
     }
 
-    fn sd_jwt_pid_and_other_bsn_attribute_paths() -> VecNonEmpty<NormalizedCredentialRequest> {
-        normalized::mock::mock_sd_jwt_from_slices(&[
+    fn sd_jwt_pid_and_other_bsn_attribute_paths() -> NormalizedCredentialRequests {
+        NormalizedCredentialRequests::new_mock_sd_jwt_from_slices(&[
             (&[LOGIN_ATTESTATION_TYPE], &[&[LOGIN_ATTRIBUTE_ID]]),
             (&["other"], &[&[LOGIN_ATTRIBUTE_ID]]),
         ])
     }
 
-    fn sd_jwt_pid_too_long_attribute_paths() -> VecNonEmpty<NormalizedCredentialRequest> {
-        normalized::mock::mock_sd_jwt_from_slices(&[(
+    fn sd_jwt_pid_too_long_attribute_paths() -> NormalizedCredentialRequests {
+        NormalizedCredentialRequests::new_mock_sd_jwt_from_slices(&[(
             &[LOGIN_ATTESTATION_TYPE],
             &[&[LOGIN_NAMESPACE, LOGIN_ATTRIBUTE_ID]],
         )])

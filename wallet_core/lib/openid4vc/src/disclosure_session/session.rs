@@ -6,7 +6,7 @@ use tracing::warn;
 use crypto::CredentialEcdsaKey;
 use crypto::utils::random_string;
 use crypto::wscd::DisclosureWscd;
-use dcql::normalized::NormalizedCredentialRequest;
+use dcql::normalized::NormalizedCredentialRequests;
 use http_utils::urls::BaseUrl;
 use mdoc::holder::disclosure::PartialMdoc;
 use mdoc::iso::disclosure::DeviceResponse;
@@ -58,7 +58,7 @@ where
         self.session_type
     }
 
-    fn credential_requests(&self) -> &VecNonEmpty<NormalizedCredentialRequest> {
+    fn credential_requests(&self) -> &NormalizedCredentialRequests {
         &self.auth_request.credential_requests
     }
 
@@ -91,13 +91,13 @@ where
         //                  a new type that this method takes which encapsulates a full source attestation and a list
         //                  of the attributes to be disclosed. This type then provides the canonical method of creating
         //                  intermediate types of the attestations that contain a subset of the attributes.
-        let expected_attestation_count = self.auth_request.credential_requests.len();
-        if partial_mdocs.len() != expected_attestation_count {
+        let expected_attestation_count = self.auth_request.credential_requests.as_ref().len();
+        if partial_mdocs.len().get() != expected_attestation_count {
             return Err((
                 self,
                 DisclosureError::before_sharing(
                     VpClientError::AttestationCountMismatch {
-                        expected: expected_attestation_count.get(),
+                        expected: expected_attestation_count,
                         found: partial_mdocs.len().get(),
                     }
                     .into(),

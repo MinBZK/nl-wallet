@@ -1,5 +1,6 @@
 use std::num::NonZero;
 
+use derive_more::IntoIterator;
 use itertools::Itertools;
 use serde::Deserialize;
 use serde::Serialize;
@@ -13,7 +14,31 @@ use crate::ClaimsSelection;
 use crate::CredentialQuery;
 use crate::CredentialQueryFormat;
 use crate::CredentialQueryIdentifier;
+use crate::MayHaveUniqueId;
 use crate::Query;
+use crate::UniqueIdVec;
+use crate::UniqueIdVecError;
+
+#[derive(Debug, Clone, PartialEq, Eq, IntoIterator, Serialize, Deserialize)]
+pub struct NormalizedCredentialRequests(UniqueIdVec<NormalizedCredentialRequest>);
+
+impl AsRef<[NormalizedCredentialRequest]> for NormalizedCredentialRequests {
+    fn as_ref(&self) -> &[NormalizedCredentialRequest] {
+        let Self(unique_vec) = self;
+
+        unique_vec.as_ref()
+    }
+}
+
+impl TryFrom<Vec<NormalizedCredentialRequest>> for NormalizedCredentialRequests {
+    type Error = UniqueIdVecError;
+
+    fn try_from(value: Vec<NormalizedCredentialRequest>) -> Result<Self, Self::Error> {
+        let unique_vec = UniqueIdVec::try_from(value)?;
+
+        Ok(Self(unique_vec))
+    }
+}
 
 /// Request for a credential.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -21,6 +46,12 @@ pub struct NormalizedCredentialRequest {
     pub id: CredentialQueryIdentifier,
     pub format: CredentialQueryFormat,
     pub claims: VecNonEmpty<AttributeRequest>,
+}
+
+impl MayHaveUniqueId for NormalizedCredentialRequest {
+    fn id(&self) -> Option<&str> {
+        Some(self.id.as_ref())
+    }
 }
 
 /// Request for a single attribute with the given [path].
@@ -65,8 +96,7 @@ pub enum UnsupportedDcqlFeatures {
     MissingIntentToRetain,
 }
 
-// Note that the identifiers of each `NormalizedCredentialRequest` resulting from this are guaranteed to be unique.
-impl TryFrom<Query> for VecNonEmpty<NormalizedCredentialRequest> {
+impl TryFrom<Query> for NormalizedCredentialRequests {
     type Error = UnsupportedDcqlFeatures;
 
     fn try_from(source: Query) -> Result<Self, Self::Error> {
@@ -78,21 +108,20 @@ impl TryFrom<Query> for VecNonEmpty<NormalizedCredentialRequest> {
             .into_iter()
             .map(TryInto::try_into)
             .collect::<Result<Vec<_>, _>>()?;
-        // unwrap is safe, because source.credentials is also [`VecNonEmpty`]
+        // This unwrap is safe, because source.credentials is also `UniqueIdVec`.
         Ok(requests.try_into().unwrap())
     }
 }
 
-impl From<VecNonEmpty<NormalizedCredentialRequest>> for Query {
-    fn from(value: VecNonEmpty<NormalizedCredentialRequest>) -> Self {
+impl From<NormalizedCredentialRequests> for Query {
+    fn from(value: NormalizedCredentialRequests) -> Self {
         Self {
             credentials: value
                 .into_iter()
                 .map(CredentialQuery::from)
                 .collect_vec()
                 .try_into()
-                // TODO: Make a newtype that wraps a collection of `NormalizedCredentialRequest`s
-                //       and guarantees identifier uniqueness.
+                // This unwrap is safe, the source is also a `UniqueIdVec`.
                 .unwrap(),
             credential_sets: vec![],
         }
@@ -216,6 +245,7 @@ pub mod mock {
 
     use super::AttributeRequest;
     use super::NormalizedCredentialRequest;
+    use super::NormalizedCredentialRequests;
 
     pub const EXAMPLE_DOC_TYPE: &str = "org.iso.18013.5.1.mDL";
     pub const EXAMPLE_NAMESPACE: &str = "org.iso.18013.5.1";
@@ -409,6 +439,110 @@ pub mod mock {
         }
     }
 
+    impl NormalizedCredentialRequests {
+        pub fn new_pid_example() -> Self {
+            vec![NormalizedCredentialRequest::new_pid_example()].try_into().unwrap()
+        }
+
+        pub fn new_example() -> Self {
+            vec![NormalizedCredentialRequest::new_example()].try_into().unwrap()
+        }
+
+        pub fn new_big_example() -> Self {
+            vec![NormalizedCredentialRequest {
+                id: "my_credential".to_string().try_into().unwrap(),
+                format: CredentialQueryFormat::MsoMdoc {
+                    doctype_value: EXAMPLE_DOC_TYPE.to_string(),
+                },
+                claims: vec![
+                    AttributeRequest::new_with_keys(
+                        vec![EXAMPLE_NAMESPACE.to_string(), ATTR_FAMILY_NAME.to_string()],
+                        false,
+                    ),
+                    AttributeRequest::new_with_keys(
+                        vec![EXAMPLE_NAMESPACE.to_string(), ATTR_ISSUE_DATE.to_string()],
+                        false,
+                    ),
+                    AttributeRequest::new_with_keys(
+                        vec![EXAMPLE_NAMESPACE.to_string(), ATTR_EXPIRY_DATE.to_string()],
+                        false,
+                    ),
+                    AttributeRequest::new_with_keys(
+                        vec![EXAMPLE_NAMESPACE.to_string(), ATTR_DOCUMENT_NUMBER.to_string()],
+                        false,
+                    ),
+                    AttributeRequest::new_with_keys(
+                        vec![EXAMPLE_NAMESPACE.to_string(), ATTR_PORTRAIT.to_string()],
+                        false,
+                    ),
+                    AttributeRequest::new_with_keys(
+                        vec![EXAMPLE_NAMESPACE.to_string(), ATTR_DRIVING_PRIVILEGES.to_string()],
+                        false,
+                    ),
+                ]
+                .try_into()
+                .unwrap(),
+            }]
+            .try_into()
+            .unwrap()
+        }
+
+        fn new_mock_from_slices<'a>(
+            input: impl IntoIterator<Item = (CredentialQueryIdentifier, CredentialQueryFormat, &'a [&'a [&'a str]])>,
+        ) -> Self {
+            let requests: Vec<_> = input
+                .into_iter()
+                .map(|(id, format, paths)| {
+                    let claims = paths
+                        .iter()
+                        .copied()
+                        .map(mock_attribute_request_from_slice)
+                        .collect_vec()
+                        .try_into()
+                        .expect("should contain at least 1 claim");
+                    NormalizedCredentialRequest { id, format, claims }
+                })
+                .collect();
+            requests.try_into().expect("should contain at least 1 request")
+        }
+
+        pub fn new_mock_mdoc_from_slices(input: &[(&str, &[&[&str]])]) -> Self {
+            let input_iter = input.iter().copied().enumerate().map(|(index, (doctype, paths))| {
+                let id = format!("mdoc_{index}").try_into().unwrap();
+                let format = CredentialQueryFormat::MsoMdoc {
+                    doctype_value: doctype.to_string(),
+                };
+
+                (id, format, paths)
+            });
+
+            Self::new_mock_from_slices(input_iter)
+        }
+
+        pub fn new_mock_sd_jwt_from_slices(input: &[(&[&str], &[&[&str]])]) -> Self {
+            let input_iter = input
+                .iter()
+                .copied()
+                .enumerate()
+                .map(|(index, (attestation_types, paths))| {
+                    let id = format!("sd_jwt_{index}").try_into().unwrap();
+                    let format = CredentialQueryFormat::SdJwt {
+                        vct_values: attestation_types
+                            .iter()
+                            .copied()
+                            .map(str::to_string)
+                            .collect::<Vec<_>>()
+                            .try_into()
+                            .expect("should contain at least one attestation type"),
+                    };
+
+                    (id, format, paths)
+                });
+
+            Self::new_mock_from_slices(input_iter)
+        }
+    }
+
     impl NormalizedCredentialRequest {
         pub fn new_example() -> Self {
             Self {
@@ -472,29 +606,6 @@ pub mod mock {
         }
     }
 
-    pub fn new_pid_example() -> VecNonEmpty<NormalizedCredentialRequest> {
-        vec![NormalizedCredentialRequest::new_pid_example()].try_into().unwrap()
-    }
-
-    fn mock_from_slices<'a>(
-        input: impl IntoIterator<Item = (CredentialQueryIdentifier, CredentialQueryFormat, &'a [&'a [&'a str]])>,
-    ) -> VecNonEmpty<NormalizedCredentialRequest> {
-        let requests: Vec<_> = input
-            .into_iter()
-            .map(|(id, format, paths)| {
-                let claims = paths
-                    .iter()
-                    .copied()
-                    .map(mock_attribute_request_from_slice)
-                    .collect_vec()
-                    .try_into()
-                    .expect("should contain at least 1 claim");
-                NormalizedCredentialRequest { id, format, claims }
-            })
-            .collect();
-        requests.try_into().expect("should contain at least 1 request")
-    }
-
     pub fn mock_attribute_request_from_slice(path: &[&str]) -> AttributeRequest {
         let claim_path: Vec<_> = path
             .iter()
@@ -507,85 +618,11 @@ pub mod mock {
             intent_to_retain: false,
         }
     }
-
-    pub fn mock_mdoc_from_slices(input: &[(&str, &[&[&str]])]) -> VecNonEmpty<NormalizedCredentialRequest> {
-        let input_iter = input.iter().copied().enumerate().map(|(index, (doctype, paths))| {
-            let id = format!("mdoc_{index}").try_into().unwrap();
-            let format = CredentialQueryFormat::MsoMdoc {
-                doctype_value: doctype.to_string(),
-            };
-
-            (id, format, paths)
-        });
-
-        mock_from_slices(input_iter)
-    }
-
-    pub fn mock_sd_jwt_from_slices(input: &[(&[&str], &[&[&str]])]) -> VecNonEmpty<NormalizedCredentialRequest> {
-        let input_iter = input
-            .iter()
-            .copied()
-            .enumerate()
-            .map(|(index, (attestation_types, paths))| {
-                let id = format!("sd_jwt_{index}").try_into().unwrap();
-                let format = CredentialQueryFormat::SdJwt {
-                    vct_values: attestation_types
-                        .iter()
-                        .copied()
-                        .map(str::to_string)
-                        .collect::<Vec<_>>()
-                        .try_into()
-                        .expect("should contain at least one attestation type"),
-                };
-
-                (id, format, paths)
-            });
-
-        mock_from_slices(input_iter)
-    }
-
-    pub fn example() -> VecNonEmpty<NormalizedCredentialRequest> {
-        vec![NormalizedCredentialRequest {
-            id: "my_credential".to_string().try_into().unwrap(),
-            format: CredentialQueryFormat::MsoMdoc {
-                doctype_value: EXAMPLE_DOC_TYPE.to_string(),
-            },
-            claims: vec![
-                AttributeRequest::new_with_keys(
-                    vec![EXAMPLE_NAMESPACE.to_string(), ATTR_FAMILY_NAME.to_string()],
-                    false,
-                ),
-                AttributeRequest::new_with_keys(
-                    vec![EXAMPLE_NAMESPACE.to_string(), ATTR_ISSUE_DATE.to_string()],
-                    false,
-                ),
-                AttributeRequest::new_with_keys(
-                    vec![EXAMPLE_NAMESPACE.to_string(), ATTR_EXPIRY_DATE.to_string()],
-                    false,
-                ),
-                AttributeRequest::new_with_keys(
-                    vec![EXAMPLE_NAMESPACE.to_string(), ATTR_DOCUMENT_NUMBER.to_string()],
-                    false,
-                ),
-                AttributeRequest::new_with_keys(vec![EXAMPLE_NAMESPACE.to_string(), ATTR_PORTRAIT.to_string()], false),
-                AttributeRequest::new_with_keys(
-                    vec![EXAMPLE_NAMESPACE.to_string(), ATTR_DRIVING_PRIVILEGES.to_string()],
-                    false,
-                ),
-            ]
-            .try_into()
-            .unwrap(),
-        }]
-        .try_into()
-        .unwrap()
-    }
 }
 
 #[cfg(test)]
 mod test {
     use rstest::rstest;
-
-    use utils::vec_at_least::VecNonEmpty;
 
     use crate::ClaimPath;
     use crate::ClaimsQuery;
@@ -594,7 +631,7 @@ mod test {
     use crate::Query;
     use crate::TrustedAuthoritiesQuery;
 
-    use super::NormalizedCredentialRequest;
+    use super::NormalizedCredentialRequests;
     use super::UnsupportedDcqlFeatures;
 
     #[rstest]
@@ -602,7 +639,7 @@ mod test {
     #[case(Query::example_with_credential_sets(), Err(UnsupportedDcqlFeatures::CredentialSets))]
     #[case(Query::example_with_claim_sets(), Err(UnsupportedDcqlFeatures::SdJwt))]
     #[case(Query::example_with_values(), Err(UnsupportedDcqlFeatures::SdJwt))]
-    #[case(Query::new_example(), Ok(vec![NormalizedCredentialRequest::new_example()].try_into().unwrap()))]
+    #[case(Query::new_example(), Ok(NormalizedCredentialRequests::new_example()))]
     #[case(query_multiple_queries(), Err(UnsupportedDcqlFeatures::MultipleCredentialQueries))]
     #[case(query_with_trusted_authorities(), Err(UnsupportedDcqlFeatures::TrustedAuthorities))]
     #[case(query_without_claims(), Err(UnsupportedDcqlFeatures::NoClaims))]
@@ -630,9 +667,9 @@ mod test {
     )]
     fn test_conversion(
         #[case] query: Query,
-        #[case] expected: Result<VecNonEmpty<NormalizedCredentialRequest>, UnsupportedDcqlFeatures>,
+        #[case] expected: Result<NormalizedCredentialRequests, UnsupportedDcqlFeatures>,
     ) {
-        let result = VecNonEmpty::<NormalizedCredentialRequest>::try_from(query.clone());
+        let result = NormalizedCredentialRequests::try_from(query.clone());
 
         assert_eq!(result, expected);
 

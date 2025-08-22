@@ -41,9 +41,32 @@ trait MayHaveUniqueId {
     fn id(&self) -> Option<&str>;
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum UniqueIdVecError {
+    #[error("source vec is empty")]
+    Empty,
+    #[error("source vec contains items with duplicate identifiers")]
+    DuplicateIds,
+}
+
+fn validate_vec_non_empt_and_unique_ids<T>(items: &[T]) -> Result<(), UniqueIdVecError>
+where
+    T: MayHaveUniqueId,
+{
+    if items.is_empty() {
+        return Err(UniqueIdVecError::Empty);
+    }
+
+    if !items.iter().flat_map(MayHaveUniqueId::id).all_unique() {
+        return Err(UniqueIdVecError::DuplicateIds);
+    }
+
+    Ok(())
+}
+
 #[nutype(
     derive(Debug, Clone, PartialEq, Eq, AsRef, TryFrom, IntoIterator, Serialize, Deserialize),
-    validate(predicate = |items| !items.is_empty() && items.iter().flat_map(MayHaveUniqueId::id).all_unique()),
+    validate(with = validate_vec_non_empt_and_unique_ids, error = UniqueIdVecError),
 )]
 pub struct UniqueIdVec<T: MayHaveUniqueId>(Vec<T>);
 

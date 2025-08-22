@@ -4,7 +4,7 @@ use rustls_pki_types::TrustAnchor;
 
 use crypto::CredentialEcdsaKey;
 use crypto::wscd::DisclosureWscd;
-use dcql::normalized::NormalizedCredentialRequest;
+use dcql::normalized::NormalizedCredentialRequests;
 use http_utils::urls::BaseUrl;
 use mdoc::holder::disclosure::PartialMdoc;
 use utils::vec_at_least::VecNonEmpty;
@@ -50,7 +50,7 @@ pub trait DisclosureClient {
 pub trait DisclosureSession {
     fn session_type(&self) -> SessionType;
     /// The identifiers of each [`NormalizedCredentialRequest`] returned are guaranteed to be unique.
-    fn credential_requests(&self) -> &VecNonEmpty<NormalizedCredentialRequest>;
+    fn credential_requests(&self) -> &NormalizedCredentialRequests;
     fn verifier_certificate(&self) -> &VerifierCertificate;
 
     async fn terminate(self) -> Result<Option<BaseUrl>, VpSessionError>;

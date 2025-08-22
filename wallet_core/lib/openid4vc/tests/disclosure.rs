@@ -34,8 +34,8 @@ use crypto::wscd::DisclosureResult;
 use crypto::wscd::DisclosureWscd;
 use crypto::wscd::WscdPoa;
 use dcql::Query;
-use dcql::normalized;
 use dcql::normalized::NormalizedCredentialRequest;
+use dcql::normalized::NormalizedCredentialRequests;
 use http_utils::urls::BaseUrl;
 use jwt::Jwt;
 use mdoc::DeviceResponse;
@@ -108,7 +108,7 @@ fn disclosure_direct() {
     let response_uri: BaseUrl = "https://example.com/response_uri".parse().unwrap();
     let encryption_keypair = EcKeyPair::generate(EcCurve::P256).unwrap();
     let iso_auth_request = NormalizedVpAuthorizationRequest::new(
-        normalized::mock::new_pid_example(),
+        NormalizedCredentialRequests::new_pid_example(),
         auth_keypair.certificate(),
         nonce.clone(),
         encryption_keypair.to_jwk_public_key().try_into().unwrap(),
@@ -244,7 +244,7 @@ impl DirectMockVpMessageClient {
         let encryption_keypair = EcKeyPair::generate(EcCurve::P256).unwrap();
 
         let auth_request = NormalizedVpAuthorizationRequest::new(
-            normalized::mock::new_pid_example(),
+            NormalizedCredentialRequests::new_pid_example(),
             auth_keypair.certificate(),
             nonce.clone(),
             encryption_keypair.to_jwk_public_key().try_into().unwrap(),
