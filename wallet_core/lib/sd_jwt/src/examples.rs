@@ -3,21 +3,12 @@ use std::collections::HashMap;
 use base64::Engine;
 use base64::prelude::BASE64_URL_SAFE_NO_PAD;
 use chrono::Duration;
-use futures::FutureExt;
-use jsonwebtoken::Algorithm;
 use jsonwebtoken::jwk::Jwk;
-use p256::ecdsa::SigningKey;
-use rand_core::OsRng;
 use serde_json::json;
-use ssri::Integrity;
 
-use attestation_types::claim_path::ClaimPath;
-use crypto::server_keys::KeyPair;
-use crypto::utils::random_string;
 use jwt::EcdsaDecodingKey;
 use jwt::jwk::jwk_to_p256;
 
-use crate::builder::SdJwtBuilder;
 use crate::disclosure::Disclosure;
 use crate::disclosure::DisclosureContent;
 use crate::hasher::Hasher;
@@ -68,47 +59,6 @@ impl SdJwtPresentation {
             Duration::minutes(2),
         )
         .unwrap()
-    }
-
-    pub fn example_pid_sd_jwt(issuer_keypair: &KeyPair) -> SdJwt {
-        let object = json!({
-          "vct": "urn:eudi:pid:nl:1",
-          "iat": 1683000000,
-          "exp": 1883000000,
-          "iss": "https://cert.issuer.example.com",
-          "attestation_qualification": "QEAA",
-          "bsn": "999991772",
-          "recovery_code": "885ed8a2-f07a-4f77-a8df-2e166f5ebd36",
-          "given_name": "John",
-          "family_name": "Doe",
-          "birthdate": "1940-01-01"
-        });
-
-        let holder_privkey = SigningKey::random(&mut OsRng);
-
-        // issuer signs SD-JWT
-        SdJwtBuilder::new(object)
-            .unwrap()
-            .make_concealable(
-                vec![ClaimPath::SelectByKey(String::from("family_name"))]
-                    .try_into()
-                    .unwrap(),
-            )
-            .unwrap()
-            .make_concealable(vec![ClaimPath::SelectByKey(String::from("bsn"))].try_into().unwrap())
-            .unwrap()
-            .add_decoys(&[], 2)
-            .unwrap()
-            .finish(
-                Algorithm::ES256,
-                Integrity::from(random_string(32)),
-                issuer_keypair.private_key(),
-                vec![issuer_keypair.certificate().clone()],
-                holder_privkey.verifying_key(),
-            )
-            .now_or_never()
-            .unwrap()
-            .unwrap()
     }
 }
 

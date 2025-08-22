@@ -1,11 +1,9 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
-use std::iter;
 use std::sync::Arc;
 use std::sync::LazyLock;
 
 use chrono::Utc;
-use derive_more::Constructor;
 use futures::future::try_join_all;
 use itertools::Either;
 use itertools::Itertools;
@@ -13,19 +11,15 @@ use tracing::error;
 use tracing::info;
 use tracing::instrument;
 use url::Url;
-use uuid::Uuid;
 
 pub use openid4vc::disclosure_session::DisclosureUriSource;
 
 use attestation_data::auth::Organization;
-use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::auth::reader_auth::ReaderRegistration;
 use attestation_data::constants::PID_ATTESTATION_TYPE;
 use attestation_data::constants::PID_BSN;
 use attestation_data::disclosure_type::DisclosureType;
 use attestation_types::claim_path::ClaimPath;
-use crypto::x509::BorrowingCertificateExtension;
-use crypto::x509::CertificateError;
 use dcql::CredentialFormat;
 use dcql::CredentialQueryFormat;
 use dcql::normalized::AttributeRequest;
@@ -35,7 +29,6 @@ use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use http_utils::tls::pinning::TlsPinningConfig;
 use http_utils::urls::BaseUrl;
-use mdoc::holder::Mdoc;
 use mdoc::utils::cose::CoseError;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::DisclosureSession;
@@ -49,8 +42,6 @@ use utils::vec_at_least::VecNonEmpty;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::account_provider::AccountProviderClient;
-use crate::attestation::AttestationError;
-use crate::attestation::AttestationIdentity;
 use crate::attestation::AttestationPresentation;
 use crate::digid::DigidClient;
 use crate::errors::ChangePinError;
@@ -60,10 +51,12 @@ use crate::instruction::RemoteEcdsaKeyError;
 use crate::instruction::RemoteEcdsaWscd;
 use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
+use crate::storage::AttestationFormatQuery;
 use crate::storage::DataDisclosureStatus;
+use crate::storage::DisclosableAttestation;
+use crate::storage::PartialAttestation;
 use crate::storage::Storage;
 use crate::storage::StorageError;
-use crate::storage::StoredMdocCopy;
 use crate::wallet::Session;
 
 use super::UriType;
@@ -153,15 +146,6 @@ pub enum DisclosureError {
         shared_data_with_relying_party_before: bool,
         session_type: SessionType,
     },
-    #[error("could not extract issuer certificate from stored mdoc: {0}")]
-    MdocCertificate(#[source] CoseError),
-    #[error("could not extract issuer registration from stored attestation certificate: {0}")]
-    IssuerRegistration(#[source] CertificateError),
-    #[error("stored mdoc certificate does not contain issuer registration")]
-    #[category(critical)]
-    MissingIssuerRegistration,
-    #[error("could not interpret attestation attributes: {0}")]
-    AttestationAttributes(#[source] AttestationError),
     #[error("error sending instruction to Wallet Provider: {0}")]
     Instruction(#[source] InstructionError),
     #[error("could not increment usage count of mdoc copies in database: {0}")]
@@ -244,18 +228,18 @@ pub enum RedirectUriPurpose {
 }
 
 #[derive(Debug, Clone)]
-pub struct WalletDisclosureSession<DCS> {
-    pub(super) redirect_uri_purpose: RedirectUriPurpose,
-    pub(super) disclosure_type: DisclosureType,
-    pub(super) attestations: Option<VecNonEmpty<DisclosureAttestation>>,
-    pub(super) protocol_state: DCS,
+pub(super) struct WalletDisclosureSession<DCS> {
+    pub redirect_uri_purpose: RedirectUriPurpose,
+    pub disclosure_type: DisclosureType,
+    pub attestations: Option<VecNonEmpty<DisclosableAttestation>>,
+    pub protocol_state: DCS,
 }
 
 impl<DCS> WalletDisclosureSession<DCS> {
     pub fn new_proposal(
         redirect_uri_purpose: RedirectUriPurpose,
         disclosure_type: DisclosureType,
-        attestations: VecNonEmpty<DisclosureAttestation>,
+        attestations: VecNonEmpty<DisclosableAttestation>,
         protocol_state: DCS,
     ) -> Self {
         Self {
@@ -278,13 +262,6 @@ impl<DCS> WalletDisclosureSession<DCS> {
             protocol_state,
         }
     }
-}
-
-#[derive(Debug, Clone, Constructor)]
-pub struct DisclosureAttestation {
-    copy_id: Uuid,
-    mdoc: Mdoc,
-    presentation: AttestationPresentation,
 }
 
 impl RedirectUriPurpose {
@@ -312,34 +289,49 @@ where
     DCC: DisclosureClient,
     S: Storage,
 {
-    async fn fetch_candidate_mdocs(
+    /// Helper method that fetches attestation from the database based on their attestation type, filters out any of
+    /// them that do not match the request and convert the remaining ones to a [`DisclosableAttestation`], which
+    /// contains an [`AttestationPresentation`] to show to the user.
+    async fn fetch_candidate_attestations(
         storage: &S,
         request: &NormalizedCredentialRequest,
-    ) -> Result<Option<VecNonEmpty<StoredMdocCopy>>, StorageError> {
-        let CredentialQueryFormat::MsoMdoc { doctype_value } = &request.format else {
-            return Ok(None);
+    ) -> Result<Option<VecNonEmpty<DisclosableAttestation>>, StorageError> {
+        let (attestation_types, format_query) = match &request.format {
+            CredentialQueryFormat::MsoMdoc { doctype_value } => {
+                (HashSet::from([doctype_value.as_str()]), AttestationFormatQuery::MsoMdoc)
+            }
+            CredentialQueryFormat::SdJwt { vct_values } => (
+                vct_values.iter().map(String::as_str).collect(),
+                AttestationFormatQuery::SdJwt,
+            ),
         };
 
-        let stored_mdocs = storage
-            .fetch_unique_mdocs_by_doctypes(&HashSet::from([doctype_value.as_str()]))
+        let stored_attestations = storage
+            .fetch_unique_attestations_by_type(&attestation_types, format_query)
             .await?;
 
-        let candidate_mdocs = stored_mdocs
+        let candidate_attestations = stored_attestations
             .into_iter()
-            .filter_map(|stored_mdoc| {
+            .filter_map(|attestation_copy| {
                 // Only select those attestations that contain all of the requested attributes.
                 // TODO (PVW-4537): Have this be part of the database query using some index.
-                stored_mdoc
-                    .mdoc
-                    .issuer_signed
+                attestation_copy
                     .matches_requested_attributes(request.claim_paths())
-                    .ok()
-                    .map(|_| stored_mdoc)
+                    .then(|| {
+                        // Create a disclosure proposal by removing any attributes that were not requested from the
+                        // presentation attributes. Since the filtering above should remove any attestation in which the
+                        // requested claim paths are not present and this is the only error condition, no error should
+                        // occur.
+                        DisclosableAttestation::try_new(attestation_copy, request.claim_paths())
+                            .expect("all claim paths should be present in attestation")
+                    })
             })
             .collect_vec();
-        let candidate_mdocs = VecNonEmpty::try_from(candidate_mdocs).ok();
 
-        Ok(candidate_mdocs)
+        // Return `None` if the list of candidates is empty.
+        let candidate_attestations = VecNonEmpty::try_from(candidate_attestations).ok();
+
+        Ok(candidate_attestations)
     }
 
     #[instrument(skip_all)]
@@ -384,12 +376,14 @@ where
             .start(disclosure_uri_query, source, &config.rp_trust_anchors())
             .await?;
 
+        // For each disclosure request, fetch the candidates from the database and convert
+        // each of them to an `AttestationPresentation` that can be shown to the user.
         let storage = self.storage.read().await;
-        let mdoc_candidates = try_join_all(
+        let candidate_attestations = try_join_all(
             session
                 .credential_requests()
                 .iter()
-                .map(|request| Self::fetch_candidate_mdocs(&*storage, request)),
+                .map(|request| Self::fetch_candidate_attestations(&*storage, request)),
         )
         .await
         .map_err(DisclosureError::AttestationRetrieval)?
@@ -415,7 +409,7 @@ where
             .map_err(DisclosureError::HistoryRetrieval)?;
 
         // If no suitable candidates were found for at least one of the requests, report this as an error to the UI.
-        if mdoc_candidates.len() < session.credential_requests().len().get() {
+        if candidate_attestations.len() < session.credential_requests().len().get() {
             info!("At least one attribute from one attestation is missing in order to satisfy the disclosure request");
 
             let reader_registration = verifier_certificate.registration().clone();
@@ -425,17 +419,13 @@ where
                 .credential_requests()
                 .as_ref()
                 .iter()
-                .flat_map(|request| match &request.format {
-                    CredentialQueryFormat::MsoMdoc { doctype_value } => request
-                        .claims
-                        .iter()
-                        .map(|path| {
-                            iter::once(doctype_value.to_string())
-                                .chain(path.path.iter().map(|path| format!("{path}")))
-                                .join("/")
-                        })
-                        .collect_vec(),
-                    CredentialQueryFormat::SdJwt { .. } => todo!("PVW-4139 support SdJwt"),
+                .flat_map(|request| {
+                    request.format.attestation_types().flat_map(|attestation_type| {
+                        request
+                            .claims
+                            .iter()
+                            .map(move |claim| format!("{}/{}", attestation_type, claim.path.iter().join("/")))
+                    })
                 })
                 .collect();
             let session_type = session.session_type();
@@ -457,70 +447,16 @@ where
             });
         }
 
-        // Now that we know that we have at least one candidate per attestation type, start attempting to convert the
-        // stored attestations to `AttestationPresentation` values, placing these in `DisclosureAttestation` along with
-        // the original attestation.
-        let attestation_candidates = mdoc_candidates
-            .into_iter()
-            .zip_eq(session.credential_requests().as_ref())
-            .map(|(stored_mdocs, request)| {
-                let attestations = stored_mdocs
-                    .into_iter()
-                    .map(|stored_mdoc| {
-                        // TODO (PVW-4132): Mdoc attestations contained in the database should be assumed to be valid.
-                        //                  Once this is expressed within the type system, these errors can be removed.
-                        let mdoc_certificate = stored_mdoc
-                            .mdoc
-                            .issuer_certificate()
-                            .map_err(DisclosureError::MdocCertificate)?;
-                        let issuer_registration = IssuerRegistration::from_certificate(&mdoc_certificate)
-                            .map_err(DisclosureError::IssuerRegistration)?
-                            .ok_or(DisclosureError::MissingIssuerRegistration)?;
-
-                        // Remove any attributes that were not requested from the presentation attributes.
-                        let issuer_signed = stored_mdoc
-                            .mdoc
-                            .issuer_signed
-                            .clone()
-                            .into_attribute_subset(request.claim_paths());
-
-                        let attestation_presentation = AttestationPresentation::create_from_mdoc(
-                            AttestationIdentity::Fixed {
-                                id: stored_mdoc.mdoc_id,
-                            },
-                            stored_mdoc.normalized_metadata.clone(),
-                            issuer_registration.organization,
-                            issuer_signed.into_entries_by_namespace(),
-                        )
-                        .map_err(DisclosureError::AttestationAttributes)?;
-
-                        let attestation = DisclosureAttestation::new(
-                            stored_mdoc.mdoc_copy_id,
-                            stored_mdoc.mdoc,
-                            attestation_presentation,
-                        );
-
-                        Ok(attestation)
-                    })
-                    .collect::<Result<Vec<_>, DisclosureError>>()?
-                    .try_into()
-                    // Safe, as the source of the iterator is `VecNonEmpty`.
-                    .unwrap();
-
-                Ok(attestations)
-            })
-            .collect::<Result<Vec<VecNonEmpty<_>>, DisclosureError>>()?;
-
         // For now, return an error if multiple attestations are found for a requested attestation type.
         // TODO (PVW-3829): Allow the user to select amongst multiple disclosure candidates.
 
-        let (disclosure_attestations, duplicate_attestation_types): (Vec<_>, Vec<_>) = attestation_candidates
+        let (disclosure_attestations, duplicate_attestation_types): (Vec<_>, Vec<_>) = candidate_attestations
             .into_iter()
             .partition_map(|candidate_attestations| {
                 if candidate_attestations.len().get() == 1 {
                     Either::Left(candidate_attestations.into_first())
                 } else {
-                    Either::Right(candidate_attestations.into_first().presentation.attestation_type)
+                    Either::Right(candidate_attestations.into_first().into_presentation().attestation_type)
                 }
             });
 
@@ -531,10 +467,10 @@ where
         }
 
         // This unwrap is guaranteed to succeed as:
-        // 1. The `RequestedAttributePaths` type inherently guarantees that it contains at least one attestation type.
+        // 1. The `DisclosureSession` is guaranteed to contain at least one credential request.
         // 2. We check above if there is at least one candidate for every attestation type.
         // 3. We then check above that none of the attestation types have multiple candidates, so the length of
-        //    disclosure_attestations is the same as attestations_by_type, which is at least 1.
+        //    disclosure_attestations is the same as candidate_attestations, which is at least 1.
         let disclosure_attestations = VecNonEmpty::try_from(disclosure_attestations).unwrap();
 
         info!("All attributes in the disclosure request are present in the database, return a proposal to the user");
@@ -544,7 +480,7 @@ where
         let proposal = DisclosureProposalPresentation {
             attestations: disclosure_attestations
                 .iter()
-                .map(|attestation| attestation.presentation.clone())
+                .map(|attestation| attestation.presentation().clone())
                 .collect(),
             reader_registration: verifier_certificate.registration().clone(),
             shared_data_with_relying_party_before,
@@ -572,7 +508,7 @@ where
         let attestations = session.attestations.map(|attestations| {
             attestations
                 .into_iter()
-                .map(|attestation| attestation.presentation)
+                .map(|attestation| attestation.into_presentation())
                 .collect_vec()
                 .try_into()
                 // Safe, as the source of the iterator is `VecNonEmpty`.
@@ -747,7 +683,11 @@ where
             .write()
             .await
             .increment_attestation_copies_usage_count(
-                attestations.iter().map(|attestation| attestation.copy_id).collect(),
+                attestations
+                    .iter()
+                    .map(|attestation| attestation.attestation_copy_id())
+                    .dedup()
+                    .collect(),
             )
             .await;
 
@@ -764,7 +704,7 @@ where
                     Some(
                         attestations
                             .iter()
-                            .map(|attestation| attestation.presentation.clone())
+                            .map(|attestation| attestation.presentation().clone())
                             .collect_vec()
                             .try_into()
                             .unwrap(),
@@ -783,9 +723,14 @@ where
         }
 
         // Clone some values from `WalletDisclosureSession`, before we have to give away ownership of it.
-        let mdocs = attestations
+        let partial_mdocs = attestations
             .iter()
-            .map(|attestation| attestation.mdoc.clone())
+            .map(|attestation| match attestation.partial_attestation() {
+                PartialAttestation::MsoMdoc { partial_mdoc } => partial_mdoc.as_ref().clone(),
+                PartialAttestation::SdJwt { .. } => {
+                    todo!("implement SD-JWT disclosure (PVW-4138)")
+                }
+            })
             .collect_vec()
             .try_into()
             // Safe, as the source of the iterator is `VecNonEmpty`.
@@ -797,7 +742,7 @@ where
             // This not possible, as we took a reference to this value before.
             unreachable!();
         };
-        let result = session.protocol_state.disclose(mdocs, &remote_wscd).await;
+        let result = session.protocol_state.disclose(partial_mdocs, &remote_wscd).await;
         let return_url = match result {
             Ok(return_url) => return_url.map(BaseUrl::into_inner),
             Err((protocol_state, error)) => {
@@ -823,7 +768,7 @@ where
                                     .as_ref()
                                     .unwrap()
                                     .iter()
-                                    .map(|attestation| attestation.presentation.clone())
+                                    .map(|attestation| attestation.presentation().clone())
                                     .collect_vec()
                                     .try_into()
                                     .unwrap(),
@@ -879,7 +824,7 @@ where
                     .attestations
                     .unwrap()
                     .into_iter()
-                    .map(|attestation| attestation.presentation)
+                    .map(|attestation| attestation.into_presentation())
                     .collect_vec()
                     .try_into()
                     .unwrap(),
@@ -913,13 +858,12 @@ mod tests {
 
     use attestation_data::attributes::AttributeValue;
     use attestation_data::auth::Organization;
-    use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::auth::reader_auth::ReaderRegistration;
     use attestation_data::constants::PID_ATTESTATION_TYPE;
     use attestation_data::disclosure_type::DisclosureType;
     use attestation_data::x509::generate::mock::generate_reader_mock;
+    use attestation_types::claim_path::ClaimPath;
     use crypto::server_keys::generate::Ca;
-    use crypto::x509::BorrowingCertificateExtension;
     use dcql::normalized;
     use http_utils::tls::pinning::TlsPinningConfig;
     use http_utils::urls;
@@ -938,27 +882,31 @@ mod tests {
     use openid4vc::errors::DisclosureErrorResponse;
     use openid4vc::errors::ErrorResponse;
     use openid4vc::errors::GetRequestErrorCode;
-    use openid4vc::issuance_session::IssuedCredential;
     use openid4vc::mock::MockIssuanceSession;
     use openid4vc::verifier::SessionType;
+    use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use update_policy_model::update_policy::VersionState;
 
     use crate::attestation::AttestationAttributeValue;
     use crate::attestation::AttestationIdentity;
-    use crate::attestation::AttestationPresentation;
     use crate::config::UNIVERSAL_LINK_BASE_URL;
     use crate::digid::MockDigidSession;
     use crate::errors::InstructionError;
     use crate::errors::RemoteEcdsaKeyError;
+    use crate::storage::DisclosableAttestation;
     use crate::storage::DisclosureStatus;
+    use crate::storage::StoredAttestation;
+    use crate::storage::StoredAttestationCopy;
     use crate::storage::WalletEvent;
-    use crate::wallet::disclosure::DisclosureAttestation;
-    use crate::wallet::test::setup_mock_recent_history_callback;
 
     use super::super::Session;
     use super::super::test::WalletDeviceVendor;
     use super::super::test::WalletWithMocks;
+    use super::super::test::create_example_pid_mdoc;
     use super::super::test::create_example_pid_mdoc_credential;
+    use super::super::test::create_example_pid_sd_jwt;
+    use super::super::test::create_example_pid_sd_jwt_credential;
+    use super::super::test::setup_mock_recent_history_callback;
     use super::DisclosureError;
     use super::DisclosureProposalPresentation;
     use super::RedirectUriPurpose;
@@ -969,16 +917,39 @@ mod tests {
     const PIN: &str = "051097";
     static RETURN_URL: LazyLock<BaseUrl> =
         LazyLock::new(|| BaseUrl::from_str("https://example.com/return/here").unwrap());
-    static DEFAULT_REQUESTED_PID_PATH: LazyLock<Vec<&str>> =
-        LazyLock::new(|| vec![PID_ATTESTATION_TYPE, "age_over_18"]);
+    static DEFAULT_MDOC_REQUESTED_PID_PATH: LazyLock<Vec<&str>> =
+        LazyLock::new(|| vec![PID_ATTESTATION_TYPE, "family_name"]);
+    static DEFAULT_SD_JWT_REQUESTED_PID_PATH: LazyLock<Vec<&str>> = LazyLock::new(|| vec!["family_name"]);
+
+    #[derive(Debug, Clone, Copy)]
+    enum RequestedFormat {
+        MsoMdoc,
+        SdJwt,
+    }
+
+    impl RequestedFormat {
+        fn default_requested_pid_path(self) -> &'static [&'static str] {
+            match self {
+                Self::MsoMdoc => DEFAULT_MDOC_REQUESTED_PID_PATH.as_slice(),
+                Self::SdJwt => DEFAULT_SD_JWT_REQUESTED_PID_PATH.as_slice(),
+            }
+        }
+    }
 
     // Set up properties for a `MockDisclosureSession`.
     fn setup_disclosure_session_verifier_certificate(
         verifier_certificate: VerifierCertificate,
+        requested_format: RequestedFormat,
         requested_pid_path: &[&str],
     ) -> MockDisclosureSession {
-        let credential_requests =
-            normalized::mock::mock_mdoc_from_slices(&[(PID_ATTESTATION_TYPE, &[requested_pid_path])]);
+        let credential_requests = match requested_format {
+            RequestedFormat::MsoMdoc => {
+                normalized::mock::mock_mdoc_from_slices(&[(PID_ATTESTATION_TYPE, &[requested_pid_path])])
+            }
+            RequestedFormat::SdJwt => {
+                normalized::mock::mock_sd_jwt_from_slices(&[(&[PID_ATTESTATION_TYPE], &[requested_pid_path])])
+            }
+        };
 
         let mut disclosure_session = MockDisclosureSession::new();
         disclosure_session
@@ -995,14 +966,20 @@ mod tests {
     }
 
     // Set up properties for a `MockDisclosureSession`.
-    fn setup_disclosure_session(requested_pid_path: &[&str]) -> (MockDisclosureSession, VerifierCertificate) {
+    fn setup_disclosure_session(
+        requested_format: RequestedFormat,
+        requested_pid_path: &[&str],
+    ) -> (MockDisclosureSession, VerifierCertificate) {
         let ca = Ca::generate_reader_mock_ca().unwrap();
         let reader_registration = ReaderRegistration::new_mock();
         let key_pair = generate_reader_mock(&ca, Some(reader_registration)).unwrap();
         let verifier_certificate = VerifierCertificate::try_new(key_pair.into()).unwrap().unwrap();
 
-        let disclosure_session =
-            setup_disclosure_session_verifier_certificate(verifier_certificate.clone(), requested_pid_path);
+        let disclosure_session = setup_disclosure_session_verifier_certificate(
+            verifier_certificate.clone(),
+            requested_format,
+            requested_pid_path,
+        );
 
         (disclosure_session, verifier_certificate)
     }
@@ -1010,9 +987,10 @@ mod tests {
     /// Set up the expected response of `MockDisclosureClient` when starting a new `MockDisclosureSession`.
     fn setup_disclosure_client_start(
         disclosure_client: &mut MockDisclosureClient,
+        requested_format: RequestedFormat,
         requested_pid_path: &[&str],
     ) -> VerifierCertificate {
-        let (disclosure_session, verifier_certificate) = setup_disclosure_session(requested_pid_path);
+        let (disclosure_session, verifier_certificate) = setup_disclosure_session(requested_format, requested_pid_path);
 
         disclosure_client
             .expect_start()
@@ -1023,12 +1001,14 @@ mod tests {
         verifier_certificate
     }
 
-    fn setup_wallet_disclosure_session_missing_attributes() -> (
+    fn setup_wallet_disclosure_session_missing_attributes(
+        requested_format: RequestedFormat,
+    ) -> (
         Session<MockDigidSession<TlsPinningConfig>, MockIssuanceSession, MockDisclosureSession>,
         VerifierCertificate,
     ) {
         let (disclosure_session, verifier_certificate) =
-            setup_disclosure_session(DEFAULT_REQUESTED_PID_PATH.as_slice());
+            setup_disclosure_session(requested_format, requested_format.default_requested_pid_path());
 
         let session = Session::Disclosure(WalletDisclosureSession::new_missing_attributes(
             RedirectUriPurpose::Browser,
@@ -1039,40 +1019,54 @@ mod tests {
         (session, verifier_certificate)
     }
 
-    fn setup_wallet_disclosure_session() -> (
+    fn setup_wallet_disclosure_session(
+        requested_format: RequestedFormat,
+    ) -> (
         Session<MockDigidSession<TlsPinningConfig>, MockIssuanceSession, MockDisclosureSession>,
         VerifierCertificate,
     ) {
-        let (disclosure_session, verifier_certificate) =
-            setup_disclosure_session(DEFAULT_REQUESTED_PID_PATH.as_slice());
+        let requested_pid_path = requested_format.default_requested_pid_path();
+        let (disclosure_session, verifier_certificate) = setup_disclosure_session(requested_format, requested_pid_path);
 
-        let mdoc_credential = create_example_pid_mdoc_credential();
-        let metadata = mdoc_credential.metadata_documents.to_normalized().unwrap();
-        let IssuedCredential::MsoMdoc(mdoc) = mdoc_credential.copies.into_inner().into_first() else {
-            unreachable!();
+        // Create a `StoredAttestationCopy`.
+        let (attestation, metadata) = match requested_format {
+            RequestedFormat::MsoMdoc => (
+                StoredAttestation::MsoMdoc {
+                    mdoc: Box::new(create_example_pid_mdoc()),
+                },
+                NormalizedTypeMetadata::nl_pid_example(),
+            ),
+            RequestedFormat::SdJwt => {
+                let (sd_jwt, metadata) = create_example_pid_sd_jwt();
+
+                (
+                    StoredAttestation::SdJwt {
+                        sd_jwt: Box::new(sd_jwt),
+                    },
+                    metadata,
+                )
+            }
         };
-        let issuer_registration = IssuerRegistration::from_certificate(&mdoc.issuer_certificate().unwrap())
-            .unwrap()
-            .unwrap();
-        let attributes = mdoc.clone().issuer_signed.into_entries_by_namespace();
-        let presentation = AttestationPresentation::create_from_mdoc(
-            AttestationIdentity::Fixed { id: Uuid::new_v4() },
-            metadata,
-            issuer_registration.organization,
-            attributes,
+        let stored_attestation =
+            StoredAttestationCopy::new(Uuid::new_v4(), Uuid::new_v4(), attestation, metadata.clone());
+
+        // Remove any of the attributes not requested from the attestation.
+        let disclosable_attestation = DisclosableAttestation::try_new(
+            stored_attestation,
+            &[requested_pid_path
+                .iter()
+                .map(|element| ClaimPath::SelectByKey(element.to_string()))
+                .collect_vec()
+                .try_into()
+                .unwrap()],
         )
         .unwrap();
 
+        // Store that attestation and its `AttestationPresentation` in the session.
         let session = Session::Disclosure(WalletDisclosureSession::new_proposal(
             RedirectUriPurpose::Browser,
             DisclosureType::Regular,
-            vec![DisclosureAttestation {
-                copy_id: Uuid::new_v4(),
-                mdoc: *mdoc,
-                presentation,
-            }]
-            .try_into()
-            .unwrap(),
+            vec![disclosable_attestation].try_into().unwrap(),
             disclosure_session,
         ));
 
@@ -1097,8 +1091,11 @@ mod tests {
             .insert(mdoc_credential.attestation_type.clone(), vec![mdoc_credential]);
 
         // Set up the relevant mocks.
-        let verifier_certificate =
-            setup_disclosure_client_start(&mut wallet.disclosure_client, DEFAULT_REQUESTED_PID_PATH.as_slice());
+        let verifier_certificate = setup_disclosure_client_start(
+            &mut wallet.disclosure_client,
+            RequestedFormat::MsoMdoc,
+            DEFAULT_MDOC_REQUESTED_PID_PATH.as_slice(),
+        );
 
         // Starting disclosure should not fail.
         let proposal = wallet
@@ -1128,10 +1125,10 @@ mod tests {
 
         let attribute = presentation.attributes.first().unwrap();
 
-        assert_eq!(attribute.key, vec!["age_over_18"]);
+        assert_eq!(attribute.key, vec!["family_name"]);
         assert_matches!(
-            attribute.value,
-            AttestationAttributeValue::Basic(AttributeValue::Bool(true))
+            &attribute.value,
+            AttestationAttributeValue::Basic(AttributeValue::Text(family_name)) if family_name == "De Bruijn"
         );
 
         // Starting disclosure should not cause mdoc copy usage counts to be incremented.
@@ -1150,7 +1147,23 @@ mod tests {
             .protocol_state
             .expect_disclose()
             .times(1)
-            .withf(|mdocs| mdocs.len().get() == 1 && mdocs.first().mso.doc_type == PID_ATTESTATION_TYPE)
+            .withf(|partial_mdocs| {
+                // Make sure that only one attestation with a single attribute is disclosed.
+                partial_mdocs
+                    .clone()
+                    .into_iter()
+                    .exactly_one()
+                    .ok()
+                    .and_then(|partial_mdoc| {
+                        (partial_mdoc.doc_type == PID_ATTESTATION_TYPE)
+                            .then_some(partial_mdoc.issuer_signed.into_entries_by_namespace())
+                    })
+                    .and_then(|name_spaces| name_spaces.into_iter().exactly_one().ok())
+                    .and_then(|(name_space, entries)| (name_space == PID_ATTESTATION_TYPE).then_some(entries))
+                    .and_then(|entries| entries.into_iter().exactly_one().ok())
+                    .map(|entry| entry.name == "family_name")
+                    .unwrap_or(false)
+            })
             .return_once(|_mdocs| Ok(Some(RETURN_URL.clone())));
 
         let return_url = wallet
@@ -1391,8 +1404,11 @@ mod tests {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         wallet.mut_storage().has_query_error = true;
-        let _verifier_certificate =
-            setup_disclosure_client_start(&mut wallet.disclosure_client, DEFAULT_REQUESTED_PID_PATH.as_slice());
+        let _verifier_certificate = setup_disclosure_client_start(
+            &mut wallet.disclosure_client,
+            RequestedFormat::MsoMdoc,
+            DEFAULT_MDOC_REQUESTED_PID_PATH.as_slice(),
+        );
 
         // Starting disclosure on a wallet that has a faulty database should result in an error.
         let error = wallet
@@ -1407,12 +1423,16 @@ mod tests {
 
     // TODO (PVW-1879): Add test for `DisclosureError::HistoryRetrieval`.
 
+    #[rstest]
     #[tokio::test]
-    async fn test_wallet_start_disclosure_error_attributes_not_available() {
+    async fn test_wallet_start_disclosure_error_attributes_not_available_not_present(
+        #[values(RequestedFormat::MsoMdoc, RequestedFormat::SdJwt)] requested_format: RequestedFormat,
+    ) {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
+        let requested_pid_path = requested_format.default_requested_pid_path();
         let verifier_certificate =
-            setup_disclosure_client_start(&mut wallet.disclosure_client, DEFAULT_REQUESTED_PID_PATH.as_slice());
+            setup_disclosure_client_start(&mut wallet.disclosure_client, requested_format, requested_pid_path);
 
         // Starting disclosure where an unavailable attribute is requested should result in an error.
         // As an exception, this error should leave the `Wallet` with an active disclosure session.
@@ -1421,7 +1441,7 @@ mod tests {
             .await
             .expect_err("starting disclosure should not succeed");
 
-        let expected_attributes = HashSet::from([format!("{PID_ATTESTATION_TYPE}/{PID_ATTESTATION_TYPE}/age_over_18")]);
+        let expected_attributes = HashSet::from([format!("{}/{}", PID_ATTESTATION_TYPE, requested_pid_path.join("/"))]);
         assert_matches!(
             error,
             DisclosureError::AttributesNotAvailable {
@@ -1436,14 +1456,23 @@ mod tests {
         assert!(wallet.session.is_some());
     }
 
+    #[rstest]
+    #[case(RequestedFormat::MsoMdoc, &[PID_ATTESTATION_TYPE, "favourite_colour"])]
+    #[case(RequestedFormat::MsoMdoc, &["family_name"])]
+    #[case(RequestedFormat::MsoMdoc, &["long", "path", "family_name"])]
+    #[case(RequestedFormat::SdJwt, &["favourite_colour"])]
+    #[case(RequestedFormat::SdJwt, &[PID_ATTESTATION_TYPE, "family_name"])]
+    #[case(RequestedFormat::SdJwt, &["long", "path", "family_name"])]
     #[tokio::test]
-    async fn test_wallet_start_disclosure_error_attributes_not_available_non_mdoc() {
+    async fn test_wallet_start_disclosure_error_attributes_not_available_non_matching(
+        #[case] requested_format: RequestedFormat,
+        #[case] path: &[&str],
+    ) {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // Set the requested attribute path to something that will not match the mdoc 2-tuple
         // of namespace and attribute, which should lead to no candidates being available.
-        let verifier_certificate =
-            setup_disclosure_client_start(&mut wallet.disclosure_client, &["long", "path", "age_over_18"]);
+        let verifier_certificate = setup_disclosure_client_start(&mut wallet.disclosure_client, requested_format, path);
 
         let mdoc_credential = create_example_pid_mdoc_credential();
         wallet
@@ -1458,7 +1487,7 @@ mod tests {
             .await
             .expect_err("starting disclosure should not succeed");
 
-        let expected_attributes = HashSet::from([format!("{PID_ATTESTATION_TYPE}/long/path/age_over_18")]);
+        let expected_attributes = HashSet::from([format!("{}/{}", PID_ATTESTATION_TYPE, path.join("/"))]);
         assert_matches!(
             error,
             DisclosureError::AttributesNotAvailable {
@@ -1473,28 +1502,28 @@ mod tests {
         assert!(wallet.session.is_some());
     }
 
-    // TODO (PVW-4132): Attestations that are stored in the database should be assumed to contain valid certificates and
-    //                  metadata. Codifying these assumptions in to the type system should be implemented in PVW-4132.
-    //                  This comment should be removed once that is implemented.
-    //
-    // For the above reason tests are not included for the following error cases:
-    // * DisclosureError::MdocCertificate
-    // * DisclosureError::IssuerRegistration
-    // * DisclosureError::MissingIssuerRegistration
-    // * DisclosureError::AttestationAttributes
-
+    #[rstest]
     #[tokio::test]
-    async fn test_wallet_start_disclosure_error_multiple_candidates() {
+    async fn test_wallet_start_disclosure_error_multiple_candidates(
+        #[values(RequestedFormat::MsoMdoc, RequestedFormat::SdJwt)] requested_format: RequestedFormat,
+    ) {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
-        let mdoc_credential = create_example_pid_mdoc_credential();
+        let credential = match requested_format {
+            RequestedFormat::MsoMdoc => create_example_pid_mdoc_credential(),
+            RequestedFormat::SdJwt => create_example_pid_sd_jwt_credential(),
+        };
+
         wallet.mut_storage().issued_credential_copies.insert(
-            mdoc_credential.attestation_type.clone(),
-            vec![mdoc_credential.clone(), mdoc_credential],
+            credential.attestation_type.clone(),
+            vec![credential.clone(), credential],
         );
 
-        let _verifier_certificate =
-            setup_disclosure_client_start(&mut wallet.disclosure_client, DEFAULT_REQUESTED_PID_PATH.as_slice());
+        let _verifier_certificate = setup_disclosure_client_start(
+            &mut wallet.disclosure_client,
+            requested_format,
+            requested_format.default_requested_pid_path(),
+        );
 
         // Starting disclosure on a wallet that contains multiple instances
         // of the same attestation type should result in an error.
@@ -1514,13 +1543,16 @@ mod tests {
 
     #[rstest]
     #[tokio::test]
-    async fn test_wallet_cancel_disclosure(#[values(false, true)] has_missing_attributes: bool) {
+    async fn test_wallet_cancel_disclosure(
+        #[values(RequestedFormat::MsoMdoc, RequestedFormat::SdJwt)] requested_format: RequestedFormat,
+        #[values(false, true)] has_missing_attributes: bool,
+    ) {
         // Prepare a registered and unlocked wallet with an active disclosure session.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
         let (session, verifier_certificate) = if has_missing_attributes {
-            setup_wallet_disclosure_session_missing_attributes()
+            setup_wallet_disclosure_session_missing_attributes(requested_format)
         } else {
-            setup_wallet_disclosure_session()
+            setup_wallet_disclosure_session(requested_format)
         };
         wallet.session = Some(session);
 
@@ -1570,11 +1602,14 @@ mod tests {
         );
     }
 
+    #[rstest]
     #[tokio::test]
-    async fn test_wallet_cancel_disclosure_error_blocked() {
+    async fn test_wallet_cancel_disclosure_error_blocked(
+        #[values(RequestedFormat::MsoMdoc, RequestedFormat::SdJwt)] requested_format: RequestedFormat,
+    ) {
         // Prepare a registered and unlocked wallet with an active disclosure session that is blocked.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
-        let (session, _verifier_certificate) = setup_wallet_disclosure_session();
+        let (session, _verifier_certificate) = setup_wallet_disclosure_session(requested_format);
         wallet.session = Some(session);
 
         wallet.update_policy_repository.state = VersionState::Block;
@@ -1609,11 +1644,14 @@ mod tests {
         assert!(wallet.session.is_none());
     }
 
+    #[rstest]
     #[tokio::test]
-    async fn test_wallet_cancel_disclosure_error_locked() {
+    async fn test_wallet_cancel_disclosure_error_locked(
+        #[values(RequestedFormat::MsoMdoc, RequestedFormat::SdJwt)] requested_format: RequestedFormat,
+    ) {
         // Prepare a registered and locked wallet with an active disclosure session.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
-        let (session, _verifier_certificate) = setup_wallet_disclosure_session();
+        let (session, _verifier_certificate) = setup_wallet_disclosure_session(requested_format);
         wallet.session = Some(session);
 
         wallet.lock();
@@ -1651,11 +1689,14 @@ mod tests {
         assert!(events.lock().pop().unwrap().is_empty());
     }
 
+    #[rstest]
     #[tokio::test]
-    async fn test_wallet_cancel_disclosure_error_vp_client_return_url() {
+    async fn test_wallet_cancel_disclosure_error_vp_client_return_url(
+        #[values(RequestedFormat::MsoMdoc, RequestedFormat::SdJwt)] requested_format: RequestedFormat,
+    ) {
         // Prepare a registered and unlocked wallet with an active disclosure session.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
-        let (session, _verifier_certificate) = setup_wallet_disclosure_session();
+        let (session, _verifier_certificate) = setup_wallet_disclosure_session(requested_format);
         wallet.session = Some(session);
 
         let events = setup_mock_recent_history_callback(&mut wallet).await.unwrap();
@@ -1693,11 +1734,14 @@ mod tests {
         assert!(events.lock().pop().unwrap().is_empty());
     }
 
+    #[rstest]
     #[tokio::test]
-    async fn test_wallet_cancel_disclosure_error_event_storage() {
+    async fn test_wallet_cancel_disclosure_error_event_storage(
+        #[values(RequestedFormat::MsoMdoc, RequestedFormat::SdJwt)] requested_format: RequestedFormat,
+    ) {
         // Prepare a registered and unlocked wallet with an active disclosure session and a faulty database.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
-        let (session, _verifier_certificate) = setup_wallet_disclosure_session();
+        let (session, _verifier_certificate) = setup_wallet_disclosure_session(requested_format);
         wallet.session = Some(session);
 
         let events = setup_mock_recent_history_callback(&mut wallet).await.unwrap();
@@ -1732,7 +1776,7 @@ mod tests {
     async fn test_wallet_accept_disclosure_abridged() {
         // Prepare a registered and unlocked wallet with an active disclosure session.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
-        let (session, _verifier_certificate) = setup_wallet_disclosure_session();
+        let (session, _verifier_certificate) = setup_wallet_disclosure_session(RequestedFormat::MsoMdoc);
         wallet.session = Some(session);
 
         let events = setup_mock_recent_history_callback(&mut wallet).await.unwrap();
@@ -1764,7 +1808,7 @@ mod tests {
     async fn test_wallet_accept_disclosure_error_blocked() {
         // Prepare a registered and unlocked wallet with an active disclosure session that is blocked.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
-        let (session, _verifier_certificate) = setup_wallet_disclosure_session();
+        let (session, _verifier_certificate) = setup_wallet_disclosure_session(RequestedFormat::MsoMdoc);
         wallet.session = Some(session);
 
         wallet.update_policy_repository.state = VersionState::Block;
@@ -1803,7 +1847,7 @@ mod tests {
     async fn test_wallet_accept_disclosure_error_locked() {
         // Prepare a registered and unlocked wallet with an active disclosure session.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
-        let (session, _verifier_certificate) = setup_wallet_disclosure_session();
+        let (session, _verifier_certificate) = setup_wallet_disclosure_session(RequestedFormat::MsoMdoc);
         wallet.session = Some(session);
 
         wallet.lock();
@@ -1845,7 +1889,7 @@ mod tests {
     async fn test_wallet_accept_disclosure_error_unexpected_redirect_uri_purpose() {
         // Prepare a registered and unlocked wallet with an active disclosure based issuance session.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
-        let (session, _verifier_certificate) = setup_wallet_disclosure_session();
+        let (session, _verifier_certificate) = setup_wallet_disclosure_session(RequestedFormat::MsoMdoc);
         wallet.session = Some(session);
 
         let Some(Session::Disclosure(session)) = &mut wallet.session else {
@@ -1877,7 +1921,7 @@ mod tests {
     async fn test_wallet_accept_disclosure_error_session_state_missing_attributes() {
         // Prepare a registered and unlocked wallet with an active disclosure session that has missing attributes.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
-        let (session, _verifier_certificate) = setup_wallet_disclosure_session();
+        let (session, _verifier_certificate) = setup_wallet_disclosure_session(RequestedFormat::MsoMdoc);
         wallet.session = Some(session);
 
         let Some(Session::Disclosure(session)) = &mut wallet.session else {
@@ -1905,7 +1949,7 @@ mod tests {
     async fn test_wallet_accept_disclosure_error_increment_usage_count() {
         // Prepare a registered and unlocked wallet with an active disclosure session and a faulty database.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
-        let (session, _verifier_certificate) = setup_wallet_disclosure_session();
+        let (session, _verifier_certificate) = setup_wallet_disclosure_session(RequestedFormat::MsoMdoc);
         wallet.session = Some(session);
 
         wallet.mut_storage().has_query_error = true;
@@ -1993,7 +2037,7 @@ mod tests {
     {
         // Prepare a registered and unlocked wallet with an active disclosure session.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
-        let (session, verifier_certificate) = setup_wallet_disclosure_session();
+        let (session, verifier_certificate) = setup_wallet_disclosure_session(RequestedFormat::MsoMdoc);
         wallet.session = Some(session);
 
         let events = setup_mock_recent_history_callback(&mut wallet).await.unwrap();
@@ -2006,7 +2050,7 @@ mod tests {
             .as_ref()
             .unwrap()
             .iter()
-            .map(|attestation| attestation.copy_id)
+            .map(|attestation| attestation.attestation_copy_id())
             .collect_vec();
 
         let disclose_verifier_certificate = verifier_certificate.clone();
@@ -2017,7 +2061,8 @@ mod tests {
             Err((
                 setup_disclosure_session_verifier_certificate(
                     disclose_verifier_certificate,
-                    DEFAULT_REQUESTED_PID_PATH.as_slice(),
+                    RequestedFormat::MsoMdoc,
+                    DEFAULT_MDOC_REQUESTED_PID_PATH.as_slice(),
                 ),
                 disclosure_error,
             ))
@@ -2087,7 +2132,8 @@ mod tests {
             Err((
                 setup_disclosure_session_verifier_certificate(
                     disclose_verifier_certificate,
-                    DEFAULT_REQUESTED_PID_PATH.as_slice(),
+                    RequestedFormat::MsoMdoc,
+                    DEFAULT_MDOC_REQUESTED_PID_PATH.as_slice(),
                 ),
                 disclosure_error,
             ))
@@ -2166,7 +2212,7 @@ mod tests {
     ) {
         // Prepare a registered and unlocked wallet with an active disclosure session.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
-        let (session, verifier_certificate) = setup_wallet_disclosure_session();
+        let (session, verifier_certificate) = setup_wallet_disclosure_session(RequestedFormat::MsoMdoc);
         wallet.session = Some(session);
 
         let events = setup_mock_recent_history_callback(&mut wallet).await.unwrap();
@@ -2179,7 +2225,7 @@ mod tests {
             .as_ref()
             .unwrap()
             .iter()
-            .map(|attestation| attestation.copy_id)
+            .map(|attestation| attestation.attestation_copy_id())
             .collect_vec();
 
         let disclose_verifier_certificate = verifier_certificate.clone();
@@ -2190,7 +2236,8 @@ mod tests {
             .return_once(move |_mdocs| {
                 let mut session = setup_disclosure_session_verifier_certificate(
                     disclose_verifier_certificate,
-                    DEFAULT_REQUESTED_PID_PATH.as_slice(),
+                    RequestedFormat::MsoMdoc,
+                    DEFAULT_MDOC_REQUESTED_PID_PATH.as_slice(),
                 );
 
                 if instruction_expectation == InstructionExpectation::Termination {

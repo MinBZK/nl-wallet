@@ -1,5 +1,5 @@
 PODS:
-  - app_links (0.0.2):
+  - app_links (6.4.1):
     - Flutter
   - app_settings (5.1.1):
     - Flutter
@@ -31,7 +31,7 @@ PODS:
   - sensors_plus (0.0.1):
     - Flutter
   - Sentry/HybridSDK (8.46.0)
-  - sentry_flutter (8.14.1):
+  - sentry_flutter (8.14.2):
     - Flutter
     - FlutterMacOS
     - Sentry/HybridSDK (= 8.46.0)
@@ -118,15 +118,15 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/video_player_avfoundation/darwin"
 
 SPEC CHECKSUMS:
-  app_links: 76b66b60cc809390ca1ad69bfd66b998d2387ac7
+  app_links: 3dbc685f76b1693c66a6d9dd1e9ab6f73d97dc0a
   app_settings: 5127ae0678de1dcc19f2293271c51d37c89428b2
   connectivity_plus: cb623214f4e1f6ef8fe7403d580fdad517d2f7dd
   country_codes: b534fe92b5dd4d4cfd31a720f2bfa223373d162c
   device_info_plus: 21fcca2080fbcd348be798aa36c3e5ed849eefbe
-  Flutter: e0871f40cf51350855a761d2e70bf5af5b9b5de7
+  Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
   flutter_native_splash: c32d145d68aeda5502d5f543ee38c192065986cf
   IOSSecuritySuite: 45e8531b05ffa72b5661cbdb5b5b5648a8de1a84
-  local_auth_darwin: 553ce4f9b16d3fdfeafce9cf042e7c9f77c1c391
+  local_auth_darwin: d2e8c53ef0c4f43c646462e3415432c4dab3ae19
   mobile_scanner: 9157936403f5a0644ca3779a38ff8404c5434a93
   package_info_plus: af8e2ca6888548050f16fa2f1938db7b5a5df499
   permission_handler_apple: 4ed2196e43d0651e8ff7ca3483a069d469701f2d
@@ -134,7 +134,7 @@ SPEC CHECKSUMS:
   screen_brightness_ios: 9953fd7da5bd480f1a93990daeec2eb42d4f3b52
   sensors_plus: 6a11ed0c2e1d0bd0b20b4029d3bad27d96e0c65b
   Sentry: da60d980b197a46db0b35ea12cb8f39af48d8854
-  sentry_flutter: 942017adbe00f963061cb11ec260414a990b7a42
+  sentry_flutter: 27892878729f42701297c628eb90e7c6529f3684
   shared_preferences_foundation: 9e1978ff2562383bd5676f64ec4e9aa8fa06a6f7
   store_redirect: 55fd455802ceab09803b2df6e68f19a58815266a
   url_launcher_ios: 694010445543906933d732453a59da0a173ae33d
