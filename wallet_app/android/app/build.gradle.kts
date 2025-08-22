@@ -147,7 +147,8 @@ android {
             }
         }
         release {
-            signingConfig = signingConfigs.getByName("release")
+            // Only allow release signing for release or unsigned
+            signingConfig = signingConfigName.takeIf { it == "release" }?.let { signingConfigs.getByName(it) }
             isMinifyEnabled = true
             proguardFiles += listOf(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -199,18 +200,6 @@ mapOf(
     tasks.named { it == "merge${buildMode}NativeLibs" }.configureEach {
         dependsOn("cargoBuildNativeLibrary${buildMode}")
     }
-}
-
-// Ensure non-debug keys for release builds
-tasks.register("checkForReleaseKeys") {
-    doFirst {
-        if (signingConfigName != "release") {
-            throw GradleException("Cannot do a release build with non-release keys")
-        }
-    }
-}
-tasks.named { it == "signReleaseBundle" }.configureEach {
-    dependsOn("checkForReleaseKeys")
 }
 
 tasks.register<Delete>("cleanJni") {
