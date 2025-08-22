@@ -1,3 +1,4 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import net.razvan.JacocoToCoberturaPlugin
 import net.razvan.JacocoToCoberturaTask
 
@@ -75,16 +76,18 @@ android {
         targetCompatibility = JavaVersion.VERSION_11
     }
 
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11.toString()
-        freeCompilerArgs += "-Xstring-concat=inline"
-    }
-
     sourceSets {
         getByName("main") {
             // UniFFI generated bindings
             kotlin.srcDirs("../kotlin")
         }
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget = JvmTarget.JVM_11
+        freeCompilerArgs = listOf("-Xstring-concat=inline")
     }
 }
 
