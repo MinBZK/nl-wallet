@@ -1,4 +1,4 @@
-{{ $configMapFile := (print $.Template.BasePath "/cm-nl-wallet-gba-hc-converter-zoek-xml.yaml") }}
+{{ $configMapFile := (print $.Template.BasePath "/cm-gba-hc-converter-zoek-xml.yaml") }}
 {{ $configMapChecksum := sha256sum (tpl (print $configMapFile) .) }}
 ---
 apiVersion: apps/v1
