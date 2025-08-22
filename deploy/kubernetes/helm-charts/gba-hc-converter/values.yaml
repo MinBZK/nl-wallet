@@ -148,3 +148,13 @@ frontend:
 preloadGbaPod:
   name: preload-gba-v-data-pod
   extraPodlabels: {}
+
+## @section xml files
+## Parameters for the XML files used in the GBA HC Converter
+## @param xmlFiles List of XML files to be used in the GBA HC Converter
+xmlFiles: {}
+
+## @section zoekXmlFiles
+## Parameters for the XML files used in the GBA HC Converter for Zoek
+## @param zoekXmlFiles List of XML files to be used in the GBA HC Converter
+zoekXmlFiles: {}
