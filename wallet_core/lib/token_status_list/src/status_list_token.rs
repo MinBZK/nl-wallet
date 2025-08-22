@@ -64,12 +64,7 @@ impl StatusListToken {
 #[cfg(feature = "axum")]
 impl IntoResponse for StatusListToken {
     fn into_response(self) -> Response {
-        let mut response = self.0.0.into_response();
-        response
-            .headers_mut()
-            .insert(CONTENT_TYPE, TOKEN_STATUS_LIST_JWT_HEADER.parse().unwrap());
-
-        response
+        ([(CONTENT_TYPE, TOKEN_STATUS_LIST_JWT_HEADER)], self.0.0.to_string()).into_response()
     }
 }
 
@@ -145,7 +140,6 @@ mod test {
     #[cfg(feature = "axum")]
     async fn start_mock_server() -> BaseUrl {
         use crate::status_list::test::EXAMPLE_STATUS_LIST_ONE;
-        use crate::status_list::test::parse_status_list;
 
         let listener = TcpListener::bind("localhost:0").await.unwrap();
         let port = listener.local_addr().unwrap().port();
@@ -155,7 +149,7 @@ mod test {
             Some(Utc::now() + Duration::from_secs(3600)),
             "https://example.com/statuslists/1".parse().unwrap(),
             Some(Duration::from_secs(43200)),
-            parse_status_list(EXAMPLE_STATUS_LIST_ONE),
+            EXAMPLE_STATUS_LIST_ONE.to_owned(),
             &MockRemoteEcdsaKey::new_random("key".to_string()),
         )
         .await

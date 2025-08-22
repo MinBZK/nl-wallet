@@ -73,7 +73,7 @@ impl StatusList {
 
         let mut lst = vec![0; (self.0.len() * bits as usize).div_ceil(8)];
         for (index, status) in self.0.iter().enumerate() {
-            lst[index / level] |= status.as_u8() << (index % level);
+            lst[index / level] |= Into::<u8>::into(*status) << (index % level);
         }
 
         (bits, lst)
@@ -144,6 +144,17 @@ impl From<u8> for StatusType {
     }
 }
 
+impl From<StatusType> for u8 {
+    fn from(value: StatusType) -> Self {
+        match value {
+            StatusType::Valid => 0,
+            StatusType::Invalid => 1,
+            StatusType::Suspended => 2,
+            StatusType::ApplicationSpecific(i) | StatusType::Reserved(i) => i,
+        }
+    }
+}
+
 impl StatusType {
     fn bits(self) -> Bits {
         match self {
@@ -154,59 +165,56 @@ impl StatusType {
             _ => panic!("invalid status type"),
         }
     }
-
-    fn as_u8(self) -> u8 {
-        match self {
-            StatusType::Valid => 0,
-            StatusType::Invalid => 1,
-            StatusType::Suspended => 2,
-            StatusType::ApplicationSpecific(i) | StatusType::Reserved(i) => i,
-        }
-    }
 }
 
 #[cfg(test)]
 pub mod test {
+    use std::sync::LazyLock;
+
     use regex::Regex;
     use rstest::rstest;
     use serde_json::json;
 
     use super::*;
 
-    pub fn parse_status_list(input: &str) -> StatusList {
-        let re = Regex::new(r"status\[(\d+)\]\s*=\s*(\d+)").unwrap();
+    static STATUS_LIST_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"status\[(\d+)\]\s*=\s*(\d+)").unwrap());
 
-        let mut max_index = 0;
-        let mut result = Vec::new();
-        for cap in re.captures_iter(input) {
+    fn parse_status_list(input: &str) -> StatusList {
+        let result = STATUS_LIST_REGEX.captures_iter(input).fold(Vec::new(), |mut acc, cap| {
             let idx = cap.get(1).unwrap().as_str().parse::<usize>().unwrap();
             let value = cap.get(2).unwrap().as_str().parse::<u8>().unwrap();
 
-            if idx + 1 > max_index {
-                result.resize(idx + 1, StatusType::Valid);
-                max_index = idx;
+            if idx + 1 > acc.len() {
+                acc.resize(idx + 1, StatusType::Valid);
             }
 
-            result[idx] = StatusType::from(value);
-        }
+            acc[idx] = StatusType::from(value);
+            acc
+        });
 
         StatusList(result)
     }
 
-    pub const EXAMPLE_STATUS_LIST_ONE: &str = include_str!("../examples/spec/example-status-list-1.txt");
-    const EXAMPLE_STATUS_LIST_TWO: &str = include_str!("../examples/spec/example-status-list-2.txt");
-    const ONE_BIT_STATUS_LIST: &str = include_str!("../examples/spec/1-bit-status-list.txt");
-    const TWO_BIT_STATUS_LIST: &str = include_str!("../examples/spec/2-bit-status-list.txt");
-    const FOUR_BIT_STATUS_LIST: &str = include_str!("../examples/spec/4-bit-status-list.txt");
-    const EIGHT_BIT_STATUS_LIST: &str = include_str!("../examples/spec/8-bit-status-list.txt");
+    pub static EXAMPLE_STATUS_LIST_ONE: LazyLock<StatusList> =
+        LazyLock::new(|| parse_status_list(include_str!("../examples/spec/example-status-list-1.txt")));
+    static EXAMPLE_STATUS_LIST_TWO: LazyLock<StatusList> =
+        LazyLock::new(|| parse_status_list(include_str!("../examples/spec/example-status-list-2.txt")));
+    static ONE_BIT_STATUS_LIST: LazyLock<StatusList> =
+        LazyLock::new(|| parse_status_list(include_str!("../examples/spec/1-bit-status-list.txt")));
+    static TWO_BIT_STATUS_LIST: LazyLock<StatusList> =
+        LazyLock::new(|| parse_status_list(include_str!("../examples/spec/2-bit-status-list.txt")));
+    static FOUR_BIT_STATUS_LIST: LazyLock<StatusList> =
+        LazyLock::new(|| parse_status_list(include_str!("../examples/spec/4-bit-status-list.txt")));
+    static EIGHT_BIT_STATUS_LIST: LazyLock<StatusList> =
+        LazyLock::new(|| parse_status_list(include_str!("../examples/spec/8-bit-status-list.txt")));
 
     #[rstest]
-    #[case(parse_status_list(EXAMPLE_STATUS_LIST_ONE), Bits::One)]
-    #[case(parse_status_list(EXAMPLE_STATUS_LIST_TWO), Bits::Two)]
-    #[case(parse_status_list(ONE_BIT_STATUS_LIST), Bits::One)]
-    #[case(parse_status_list(TWO_BIT_STATUS_LIST), Bits::Two)]
-    #[case(parse_status_list(FOUR_BIT_STATUS_LIST), Bits::Four)]
-    #[case(parse_status_list(EIGHT_BIT_STATUS_LIST), Bits::Eight)]
+    #[case(EXAMPLE_STATUS_LIST_ONE.to_owned(), Bits::One)]
+    #[case(EXAMPLE_STATUS_LIST_TWO.to_owned(), Bits::Two)]
+    #[case(ONE_BIT_STATUS_LIST.to_owned(), Bits::One)]
+    #[case(TWO_BIT_STATUS_LIST.to_owned(), Bits::Two)]
+    #[case(FOUR_BIT_STATUS_LIST.to_owned(), Bits::Four)]
+    #[case(EIGHT_BIT_STATUS_LIST.to_owned(), Bits::Eight)]
     fn test_status_list_serialization(#[case] list: StatusList, #[case] expected: Bits) {
         let compressed = serde_json::to_value(list).unwrap();
         assert_eq!(compressed["bits"].as_u64().unwrap(), expected as u64);
@@ -217,13 +225,13 @@ pub mod test {
             "bits": 1,
             "lst": "eNrbuRgAAhcBXQ",
         }),
-        parse_status_list(EXAMPLE_STATUS_LIST_ONE)
+        EXAMPLE_STATUS_LIST_ONE.to_owned()
     )]
     #[case(json!({
             "bits": 2,
             "lst": "eNo76fITAAPfAgc"
         }),
-        parse_status_list(EXAMPLE_STATUS_LIST_TWO)
+        EXAMPLE_STATUS_LIST_TWO.to_owned()
     )]
     #[case(json!({
             "bits": 1,
@@ -232,7 +240,7 @@ pub mod test {
                  AAAAAAAAAAAAAAAAAAAAAAAAAAAXG9IAAAAAAAAAPwsJAAAAAAAAAAAAAAAvhsSAAAAAAAAAAAA7KpLAAAAAAAAAAAAAAAAAAAAAJ\
                  sLCQAAAAAAAAAAADjelAAAAAAAAAAAKjDMAQAAAACAZC8L2AEb"
         }),
-        parse_status_list(ONE_BIT_STATUS_LIST)
+        ONE_BIT_STATUS_LIST.to_owned()
     )]
     #[case(json!({
             "bits": 2,
@@ -243,7 +251,7 @@ pub mod test {
                  AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAwJEuAQAAAAAAAAAAAAAAAAAAAAAAAMB9SwIAAAAAAAAAAAAAAAAAAACoYUoAAAAA\
                  AAAAAAAAAEBqH81gAQw"
         }),
-        parse_status_list(TWO_BIT_STATUS_LIST)
+        TWO_BIT_STATUS_LIST.to_owned()
     )]
     #[case(json!({
             "bits": 4,
@@ -257,7 +265,7 @@ pub mod test {
                  AAAACArpwKAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGhqVkAzlwIAAAAAiGVRAAAAAAAAAAAAAAAAAAAAAAA\
                  AAAAAAAAAAAAAAAAAAABx3AoAgLpVAQAAAAAAAAAAAAAAwM89rwMAAAAAAAAAAAjsA9xMBMA"
         }),
-        parse_status_list(FOUR_BIT_STATUS_LIST)
+        FOUR_BIT_STATUS_LIST.to_owned()
     )]
     #[case(json!({
             "bits": 8,
@@ -289,7 +297,7 @@ pub mod test {
                  gFiMKwEAAAAAAHQyhwRk7h4JAAAAAAAAAAAgatdKAACUYj0JAAAAAAAAAAAAQnORBLTFJRIAAAAAkIaDJAAAAJryngQAAAAAAAAAA\
                  AA98oQEAAAAAAAAAEC2zpcgWY9LQKL2kwAgGK9IAAAAAPHaRQIAAAAAAAAAAADIxyoSAAAAAAAAAAAAAADQFotLAECz_gQ1PX-B"
         }),
-        parse_status_list(EIGHT_BIT_STATUS_LIST)
+        EIGHT_BIT_STATUS_LIST.to_owned()
     )]
     fn test_status_list_deserialization(#[case] value: serde_json::Value, #[case] expected: StatusList) {
         let status_list: StatusList = serde_json::from_value(value).unwrap();
