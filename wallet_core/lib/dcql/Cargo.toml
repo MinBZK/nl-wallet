@@ -12,6 +12,7 @@ examples = []
 mock = []
 
 [dependencies]
+derive_more = { workspace = true, features = ["into_iterator"] }
 nutype = { workspace = true, features = ["serde"] }
 itertools.workspace = true
 serde = { workspace = true, features = ["derive"] }

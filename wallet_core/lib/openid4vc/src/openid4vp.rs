@@ -27,7 +27,7 @@ use attestation_data::disclosure::DisclosedAttestationError;
 use crypto::utils::random_string;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateError;
-use dcql::normalized::NormalizedCredentialRequest;
+use dcql::normalized::NormalizedCredentialRequests;
 use error_category::ErrorCategory;
 use http_utils::urls::BaseUrl;
 use jwt::Jwt;
@@ -40,7 +40,6 @@ use mdoc::verifier::ResponseMatchingError;
 use serde_with::SerializeDisplay;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
-use utils::vec_at_least::VecNonEmpty;
 use wscd::Poa;
 use wscd::PoaVerificationError;
 
@@ -371,7 +370,7 @@ pub struct NormalizedVpAuthorizationRequest {
     pub nonce: String,
     pub encryption_pubkey: Jwk,
     pub response_uri: BaseUrl,
-    pub credential_requests: VecNonEmpty<NormalizedCredentialRequest>,
+    pub credential_requests: NormalizedCredentialRequests,
     pub presentation_definition: PresentationDefinition,
     pub client_metadata: ClientMetadata,
     pub state: Option<String>,
@@ -380,7 +379,7 @@ pub struct NormalizedVpAuthorizationRequest {
 
 impl NormalizedVpAuthorizationRequest {
     pub fn new(
-        credential_requests: VecNonEmpty<NormalizedCredentialRequest>,
+        credential_requests: NormalizedCredentialRequests,
         rp_certificate: &BorrowingCertificate,
         nonce: String,
         encryption_pubkey: JwePublicKey,
@@ -845,8 +844,7 @@ mod tests {
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
     use dcql::CredentialQueryFormat;
-    use dcql::normalized;
-    use dcql::normalized::NormalizedCredentialRequest;
+    use dcql::normalized::NormalizedCredentialRequests;
     use jwt::Jwt;
     use mdoc::DeviceAuthenticationKeyed;
     use mdoc::DeviceResponse;
@@ -866,7 +864,6 @@ mod tests {
     use utils::generator::Generator;
     use utils::generator::TimeGenerator;
     use utils::generator::mock::MockTimeGenerator;
-    use utils::vec_at_least::VecNonEmpty;
     use wscd::Poa;
     use wscd::mock_remote::MockRemoteWscd;
     use wscd::wscd::JwtPoaInput;
@@ -896,11 +893,11 @@ mod tests {
     }
 
     fn setup() -> (TrustAnchor<'static>, KeyPair, EcKeyPair, VpAuthorizationRequest) {
-        setup_with_credential_requests(normalized::mock::example())
+        setup_with_credential_requests(NormalizedCredentialRequests::new_big_example())
     }
 
     fn setup_with_credential_requests(
-        credential_requests: VecNonEmpty<NormalizedCredentialRequest>,
+        credential_requests: NormalizedCredentialRequests,
     ) -> (TrustAnchor<'static>, KeyPair, EcKeyPair, VpAuthorizationRequest) {
         let ca = Ca::generate("myca", Default::default()).unwrap();
         let trust_anchor = ca.to_trust_anchor().to_owned();
@@ -1222,7 +1219,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_verify_authorization_response() {
-        let (_, _, _, auth_request) = setup_with_credential_requests(normalized::mock::new_pid_example());
+        let (_, _, _, auth_request) = setup_with_credential_requests(NormalizedCredentialRequests::new_pid_example());
         let mdoc_nonce = "mdoc_nonce";
 
         let time_generator = MockTimeGenerator::default();

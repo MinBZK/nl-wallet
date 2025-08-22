@@ -397,7 +397,7 @@ mod tests {
     use crypto::examples::Examples;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
-    use dcql::normalized;
+    use dcql::normalized::NormalizedCredentialRequests;
 
     use crate::examples::EXAMPLE_ATTR_NAME;
     use crate::examples::EXAMPLE_ATTR_VALUE;
@@ -510,8 +510,8 @@ mod tests {
         );
     }
 
-    fn full_example_credential_request() -> VecNonEmpty<NormalizedCredentialRequest> {
-        normalized::mock::mock_mdoc_from_slices(&[(
+    fn full_example_credential_request() -> NormalizedCredentialRequests {
+        NormalizedCredentialRequests::new_mock_mdoc_from_slices(&[(
             EXAMPLE_DOC_TYPE,
             &[
                 &[EXAMPLE_NAMESPACE, "family_name"],
@@ -533,25 +533,29 @@ mod tests {
         }
     }
 
-    fn double_full_example_credential_request() -> VecNonEmpty<NormalizedCredentialRequest> {
-        vec![
-            full_example_credential_request().into_first(),
-            full_example_credential_request().into_first(),
-        ]
-        .try_into()
-        .unwrap()
+    fn double_example_credential_request() -> NormalizedCredentialRequests {
+        NormalizedCredentialRequests::new_mock_mdoc_from_slices(&[
+            (EXAMPLE_DOC_TYPE, &[&[EXAMPLE_NAMESPACE, "family_name"]]),
+            (EXAMPLE_DOC_TYPE, &[&[EXAMPLE_NAMESPACE, "family_name"]]),
+        ])
     }
 
-    fn wrong_doc_type_example_request() -> VecNonEmpty<NormalizedCredentialRequest> {
-        normalized::mock::mock_mdoc_from_slices(&[("wrong_doc_type", &[&[EXAMPLE_NAMESPACE, "family_name"]])])
+    fn wrong_doc_type_example_request() -> NormalizedCredentialRequests {
+        NormalizedCredentialRequests::new_mock_mdoc_from_slices(&[(
+            "wrong_doc_type",
+            &[&[EXAMPLE_NAMESPACE, "family_name"]],
+        )])
     }
 
-    fn wrong_name_space_example_request() -> VecNonEmpty<NormalizedCredentialRequest> {
-        normalized::mock::mock_mdoc_from_slices(&[(EXAMPLE_DOC_TYPE, &[&["wrong_name_space", "family_name"]])])
+    fn wrong_name_space_example_request() -> NormalizedCredentialRequests {
+        NormalizedCredentialRequests::new_mock_mdoc_from_slices(&[(
+            EXAMPLE_DOC_TYPE,
+            &[&["wrong_name_space", "family_name"]],
+        )])
     }
 
-    fn wrong_attributes_example_request() -> VecNonEmpty<NormalizedCredentialRequest> {
-        normalized::mock::mock_mdoc_from_slices(&[(
+    fn wrong_attributes_example_request() -> NormalizedCredentialRequests {
+        NormalizedCredentialRequests::new_mock_mdoc_from_slices(&[(
             EXAMPLE_DOC_TYPE,
             &[
                 &[EXAMPLE_NAMESPACE, "family_name"],
@@ -561,8 +565,11 @@ mod tests {
         )])
     }
 
-    fn sd_jwt_example_request() -> VecNonEmpty<NormalizedCredentialRequest> {
-        normalized::mock::mock_sd_jwt_from_slices(&[(&[EXAMPLE_DOC_TYPE], &[&[EXAMPLE_NAMESPACE, "family_name"]])])
+    fn sd_jwt_example_request() -> NormalizedCredentialRequests {
+        NormalizedCredentialRequests::new_mock_sd_jwt_from_slices(&[(
+            &[EXAMPLE_DOC_TYPE],
+            &[&[EXAMPLE_NAMESPACE, "family_name"]],
+        )])
     }
 
     fn missing_attributes(attributes: &[(&str, &[&[&str]])]) -> Vec<(String, HashSet<VecNonEmpty<ClaimPath>>)> {
@@ -600,7 +607,7 @@ mod tests {
     )]
     #[case(
         DeviceResponse::example(),
-        double_full_example_credential_request(),
+        double_example_credential_request(),
         Err(ResponseMatchingError::AttestationCountMismatch {
             expected: 2,
             found: 1,
@@ -641,7 +648,7 @@ mod tests {
     )]
     fn test_device_response_matches_requests(
         #[case] device_response: DeviceResponse,
-        #[case] requests: VecNonEmpty<NormalizedCredentialRequest>,
+        #[case] requests: NormalizedCredentialRequests,
         #[case] expected_result: Result<(), ResponseMatchingError>,
     ) {
         let result = device_response.matches_requests(requests.as_ref());
@@ -652,7 +659,7 @@ mod tests {
     #[test]
     fn test_device_response_matches_request() {
         DeviceResponse::example()
-            .matches_request(full_example_credential_request().first())
+            .matches_request(full_example_credential_request().as_ref().first().unwrap())
             .expect("credential request should match device response");
     }
 }

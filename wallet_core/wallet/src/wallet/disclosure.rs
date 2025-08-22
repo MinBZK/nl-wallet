@@ -382,6 +382,7 @@ where
         let candidate_attestations = try_join_all(
             session
                 .credential_requests()
+                .as_ref()
                 .iter()
                 .map(|request| Self::fetch_candidate_attestations(&*storage, request)),
         )
@@ -409,7 +410,7 @@ where
             .map_err(DisclosureError::HistoryRetrieval)?;
 
         // If no suitable candidates were found for at least one of the requests, report this as an error to the UI.
-        if candidate_attestations.len() < session.credential_requests().len().get() {
+        if candidate_attestations.len() < session.credential_requests().as_ref().len() {
             info!("At least one attribute from one attestation is missing in order to satisfy the disclosure request");
 
             let reader_registration = verifier_certificate.registration().clone();
@@ -864,7 +865,7 @@ mod tests {
     use attestation_data::x509::generate::mock::generate_reader_mock;
     use attestation_types::claim_path::ClaimPath;
     use crypto::server_keys::generate::Ca;
-    use dcql::normalized;
+    use dcql::normalized::NormalizedCredentialRequests;
     use http_utils::tls::pinning::TlsPinningConfig;
     use http_utils::urls;
     use http_utils::urls::BaseUrl;
@@ -943,12 +944,14 @@ mod tests {
         requested_pid_path: &[&str],
     ) -> MockDisclosureSession {
         let credential_requests = match requested_format {
-            RequestedFormat::MsoMdoc => {
-                normalized::mock::mock_mdoc_from_slices(&[(PID_ATTESTATION_TYPE, &[requested_pid_path])])
-            }
-            RequestedFormat::SdJwt => {
-                normalized::mock::mock_sd_jwt_from_slices(&[(&[PID_ATTESTATION_TYPE], &[requested_pid_path])])
-            }
+            RequestedFormat::MsoMdoc => NormalizedCredentialRequests::new_mock_mdoc_from_slices(&[(
+                PID_ATTESTATION_TYPE,
+                &[requested_pid_path],
+            )]),
+            RequestedFormat::SdJwt => NormalizedCredentialRequests::new_mock_sd_jwt_from_slices(&[(
+                &[PID_ATTESTATION_TYPE],
+                &[requested_pid_path],
+            )]),
         };
 
         let mut disclosure_session = MockDisclosureSession::new();

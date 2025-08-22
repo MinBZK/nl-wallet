@@ -39,13 +39,12 @@ use crypto::server_keys::KeyPair;
 use crypto::utils::random_string;
 use crypto::x509::CertificateError;
 use dcql::Query;
-use dcql::normalized::NormalizedCredentialRequest;
+use dcql::normalized::NormalizedCredentialRequests;
 use dcql::normalized::UnsupportedDcqlFeatures;
 use http_utils::urls::BaseUrl;
 use jwt::Jwt;
 use jwt::error::JwtError;
 use utils::generator::Generator;
-use utils::vec_at_least::VecNonEmpty;
 
 use crate::AuthorizationErrorCode;
 use crate::ErrorResponse;
@@ -211,7 +210,7 @@ pub struct Session<S: DisclosureState> {
 /// State for a session that has just been created.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Created {
-    credential_requests: VecNonEmpty<NormalizedCredentialRequest>,
+    credential_requests: NormalizedCredentialRequests,
     usecase_id: String,
     client_id: String,
     redirect_uri_template: Option<RedirectUriTemplate>,
@@ -546,7 +545,7 @@ pub trait UseCases {
 #[derive(Debug)]
 pub struct RpInitiatedUseCase<K> {
     data: UseCaseData<K>,
-    credential_requests: Option<VecNonEmpty<NormalizedCredentialRequest>>,
+    credential_requests: Option<NormalizedCredentialRequests>,
     return_url_template: Option<ReturnUrlTemplate>,
 }
 
@@ -567,7 +566,7 @@ impl<K> RpInitiatedUseCase<K> {
     pub fn try_new(
         key_pair: KeyPair<K>,
         session_type_return_url: SessionTypeReturnUrl,
-        credential_requests: Option<VecNonEmpty<NormalizedCredentialRequest>>,
+        credential_requests: Option<NormalizedCredentialRequests>,
         return_url_template: Option<ReturnUrlTemplate>,
     ) -> Result<Self, NewDisclosureUseCaseError> {
         let client_id = client_id_from_key_pair(&key_pair)?;
@@ -1188,7 +1187,7 @@ impl<T: DisclosureState> Session<T> {
 impl Session<Created> {
     /// Create a new disclosure session.
     fn new(
-        credential_requests: VecNonEmpty<NormalizedCredentialRequest>,
+        credential_requests: NormalizedCredentialRequests,
         usecase_id: String,
         client_id: String,
         redirect_uri_template: Option<RedirectUriTemplate>,
