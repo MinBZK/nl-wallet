@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::collections::HashSet;
 use std::iter;
 use std::sync::Arc;
@@ -25,6 +26,7 @@ use attestation_data::disclosure_type::DisclosureType;
 use attestation_types::claim_path::ClaimPath;
 use crypto::x509::BorrowingCertificateExtension;
 use crypto::x509::CertificateError;
+use dcql::CredentialFormat;
 use dcql::CredentialQueryFormat;
 use dcql::normalized::AttributeRequest;
 use dcql::normalized::NormalizedCredentialRequest;
@@ -68,16 +70,31 @@ use super::UriType;
 use super::Wallet;
 use super::uri::identify_uri;
 
+static LOGIN_ATTESTATION_TYPES: LazyLock<HashSet<&str>> = LazyLock::new(|| HashSet::from([PID_ATTESTATION_TYPE]));
+
 /// A login request will only contain the BSN attribute, which the verifier checks against a BSN
 /// the verifier already posseses for the wallet user. For this reason it should not retain it.
-static MDOC_LOGIN_ATTRIBUTE: LazyLock<AttributeRequest> = LazyLock::new(|| AttributeRequest {
-    path: vec![
-        ClaimPath::SelectByKey(PID_ATTESTATION_TYPE.to_string()),
-        ClaimPath::SelectByKey(PID_BSN.to_string()),
-    ]
-    .try_into()
-    .unwrap(),
-    intent_to_retain: false,
+static LOGIN_CLAIMS: LazyLock<HashMap<CredentialFormat, AttributeRequest>> = LazyLock::new(|| {
+    let mdoc_login_claims = AttributeRequest {
+        path: vec![
+            ClaimPath::SelectByKey(PID_ATTESTATION_TYPE.to_string()),
+            ClaimPath::SelectByKey(PID_BSN.to_string()),
+        ]
+        .try_into()
+        .unwrap(),
+        intent_to_retain: false,
+    };
+
+    let sd_jwt_login_claims = AttributeRequest {
+        path: vec![ClaimPath::SelectByKey(PID_BSN.to_string())].try_into().unwrap(),
+        // TODO (PVW-4139): SD-JWT requests should not have intent_to_retain, fix this one we supper SD-JWT in DCQL.
+        intent_to_retain: false,
+    };
+
+    HashMap::from([
+        (CredentialFormat::MsoMdoc, mdoc_login_claims),
+        (CredentialFormat::SdJwt, sd_jwt_login_claims),
+    ])
 });
 
 #[derive(Debug, Clone)]
@@ -384,8 +401,8 @@ where
         // needs this context both for when all requested attributes are present and for when attributes are missing.
         let disclosure_type = DisclosureType::from_credential_requests(
             session.credential_requests().as_ref(),
-            PID_ATTESTATION_TYPE,
-            &MDOC_LOGIN_ATTRIBUTE,
+            &LOGIN_ATTESTATION_TYPES,
+            &LOGIN_CLAIMS,
         );
 
         let verifier_certificate = session.verifier_certificate();

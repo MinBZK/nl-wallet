@@ -7,6 +7,7 @@ use nutype::nutype;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
+use strum::EnumDiscriminants;
 
 use attestation_types::claim_path::ClaimPath;
 use utils::vec_at_least::VecNonEmpty;
@@ -126,7 +127,9 @@ pub enum ClaimsSelection {
     },
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, EnumDiscriminants)]
+#[strum_discriminants(derive(Hash, strum::Display))]
+#[strum_discriminants(name(CredentialFormat))]
 #[serde(tag = "format", content = "meta", rename_all = "snake_case")]
 pub enum CredentialQueryFormat {
     MsoMdoc {
