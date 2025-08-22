@@ -1,3 +1,4 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.util.Base64
 import java.util.Properties
 
@@ -87,11 +88,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_11
     }
 
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11.toString()
-        freeCompilerArgs = listOf("-Xstring-concat=inline")
-    }
-
     packaging {
         // Exclude the platform_support.so files that are added by the
         // platform_support module, as this code is also in libwallet_core.so
@@ -157,6 +153,13 @@ android {
                 abiFilters += ndkTargets
             }
         }
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget = JvmTarget.JVM_11
+        freeCompilerArgs = listOf("-Xstring-concat=inline")
     }
 }
 
