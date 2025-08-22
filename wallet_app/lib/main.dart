@@ -63,12 +63,11 @@ void main() async {
 
 FutureOr<SentryEvent?> beforeSend(SentryEvent event, Hint hint) async {
   // Strip all breadcrumbs and exception values from the event
-  return event.copyWith(
-    breadcrumbs: null,
-    exceptions: event.exceptions?.map((exception) {
-      return exception.copyWith(value: null);
-    }).toList(),
-  );
+  event.breadcrumbs = null;
+  event.exceptions?.forEach((ex) {
+    ex.value = null;
+  });
+  return event;
 }
 
 //ignore: avoid_void_async
