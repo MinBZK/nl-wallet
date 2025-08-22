@@ -30,6 +30,7 @@ use wallet_provider_domain::model::wallet_user::WalletUserAttestation;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestationCreate;
 use wallet_provider_domain::model::wallet_user::WalletUserCreate;
 use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
+use wallet_provider_domain::model::wallet_user::WalletUserState;
 use wallet_provider_domain::repository::PersistenceError;
 
 use crate::PersistenceConnection;
@@ -96,7 +97,7 @@ where
         instruction_sequence_number: Set(0),
         pin_entries: Set(0),
         last_unsuccessful_pin: Set(None),
-        is_blocked: Set(false),
+        state: Set(WalletUserState::Active.to_string()),
         attestation_date_time: Set(user.attestation_date_time.into()),
         apple_attestation_id: Set(apple_attestation_id),
         android_attestation_id: Set(android_attestation_id),
@@ -110,7 +111,7 @@ where
 
 #[derive(FromQueryResult)]
 struct WalletUserJoinedModel {
-    is_blocked: bool,
+    state: String,
     id: Uuid,
     wallet_id: String,
     hw_pubkey_der: Vec<u8>,
@@ -133,7 +134,7 @@ where
 {
     let joined_model = wallet_user::Entity::find()
         .select_only()
-        .column(wallet_user::Column::IsBlocked)
+        .column(wallet_user::Column::State)
         .column(wallet_user::Column::Id)
         .column(wallet_user::Column::WalletId)
         .column(wallet_user::Column::HwPubkeyDer)
@@ -169,7 +170,7 @@ where
 
     let query_result = joined_model
         .map(|joined_model| {
-            if joined_model.is_blocked {
+            if joined_model.state == WalletUserState::Blocked.to_string() {
                 WalletUserQueryResult::Blocked
             } else {
                 let encrypted_pin_pubkey = Encrypted::new(
@@ -443,15 +444,21 @@ where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
-    wallet_user::Entity::update_many()
-        .col_expr(wallet_user::Column::PinEntries, pin_entries)
-        .col_expr(wallet_user::Column::LastUnsuccessfulPin, Expr::value(datetime))
-        .col_expr(wallet_user::Column::IsBlocked, Expr::value(is_blocked))
-        .filter(wallet_user::Column::WalletId.eq(wallet_id))
-        .exec(db.connection())
-        .await
-        .map(|_| ())
-        .map_err(|e| PersistenceError::Execution(e.into()))
+    if is_blocked {
+        wallet_user::Entity::update_many().col_expr(
+            wallet_user::Column::State,
+            Expr::value(WalletUserState::Blocked.to_string()),
+        )
+    } else {
+        wallet_user::Entity::update_many()
+    }
+    .col_expr(wallet_user::Column::PinEntries, pin_entries)
+    .col_expr(wallet_user::Column::LastUnsuccessfulPin, Expr::value(datetime))
+    .filter(wallet_user::Column::WalletId.eq(wallet_id))
+    .exec(db.connection())
+    .await
+    .map(|_| ())
+    .map_err(|e| PersistenceError::Execution(e.into()))
 }
 
 async fn update_fields<S, T, C>(db: &T, wallet_id: &str, col_values: Vec<(C, SimpleExpr)>) -> Result<()>

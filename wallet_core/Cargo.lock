@@ -7706,6 +7706,7 @@ dependencies = [
  "p256",
  "rand",
  "serde",
+ "strum 0.26.3",
  "thiserror 2.0.11",
  "utils",
  "uuid",

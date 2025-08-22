@@ -25,7 +25,7 @@ impl MigrationTrait for Migration {
                     .col(unsigned(WalletUser::InstructionSequenceNumber).default(0))
                     .col(small_unsigned(WalletUser::PinEntries).default(0))
                     .col(timestamp_with_time_zone_null(WalletUser::LastUnsuccessfulPin))
-                    .col(boolean(WalletUser::IsBlocked).default(false))
+                    .col(string(WalletUser::State).default("active"))
                     .col(timestamp_with_time_zone(WalletUser::AttestationDateTime))
                     .col(uuid_null(WalletUser::AppleAttestationId))
                     .col(uuid_null(WalletUser::AndroidAttestationId))
@@ -94,7 +94,7 @@ pub enum WalletUser {
     InstructionSequenceNumber,
     PinEntries,
     LastUnsuccessfulPin,
-    IsBlocked,
+    State,
     AttestationDateTime,
     AppleAttestationId,
     AndroidAttestationId,
