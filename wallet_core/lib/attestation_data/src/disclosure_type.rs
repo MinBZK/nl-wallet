@@ -1,6 +1,9 @@
+use std::collections::HashMap;
+use std::collections::HashSet;
+
 use itertools::Itertools;
 
-use dcql::CredentialQueryFormat;
+use dcql::CredentialFormat;
 use dcql::normalized::AttributeRequest;
 use dcql::normalized::NormalizedCredentialRequest;
 
@@ -11,25 +14,30 @@ pub enum DisclosureType {
 }
 
 impl DisclosureType {
-    pub fn from_credential_requests<'a, 'b>(
+    pub fn from_credential_requests<'a>(
         credential_requests: impl IntoIterator<Item = &'a NormalizedCredentialRequest>,
-        login_attestation_type: &str,
-        mdoc_login_claim: &AttributeRequest,
+        login_attestation_types: &HashSet<&str>,
+        login_claims: &HashMap<CredentialFormat, AttributeRequest>,
     ) -> Self {
+        // Consider the disclosure type a login if there is only one credential request...
         credential_requests
             .into_iter()
             .exactly_one()
             .ok()
             .and_then(|request| {
-                match &request.format {
-                    CredentialQueryFormat::MsoMdoc { doctype_value } => {
-                        doctype_value == login_attestation_type
-                            && request.claims.iter().exactly_one().ok() == Some(mdoc_login_claim)
-                    }
-                    // TODO (PVW-4621): Add support for matching SDW-JWT login request.
-                    CredentialQueryFormat::SdJwt { .. } => false,
-                }
-                .then_some(DisclosureType::Login)
+                let login_claim = login_claims.get(&(&request.format).into());
+
+                // ...and that request is for one of the formats for which we have login request, contains a subset of
+                // the login attestation types and contains exactly the same requested claims as the login request.
+                let is_login = login_claim.is_some()
+                    && request
+                        .format
+                        .attestation_types()
+                        .collect::<HashSet<_>>()
+                        .is_subset(login_attestation_types)
+                    && request.claims.iter().exactly_one().ok() == login_claim;
+
+                is_login.then_some(DisclosureType::Login)
             })
             .unwrap_or(DisclosureType::Regular)
     }
@@ -37,61 +45,109 @@ impl DisclosureType {
 
 #[cfg(test)]
 mod test {
+    use std::collections::HashMap;
+    use std::collections::HashSet;
+
     use rstest::rstest;
 
+    use dcql::CredentialFormat;
     use dcql::normalized;
+    use dcql::normalized::NormalizedCredentialRequest;
     use utils::vec_at_least::VecNonEmpty;
 
-    use super::*;
+    use super::DisclosureType;
 
     const LOGIN_ATTESTATION_TYPE: &str = "pid";
+    const ALSO_LOGIN_ATTESTATION_TYPE: &str = "also_pid";
     const LOGIN_NAMESPACE: &str = "pid";
     const LOGIN_ATTRIBUTE_ID: &str = "bsn";
 
     #[rstest]
-    #[case(pid_bsn_attribute_paths(), DisclosureType::Login)]
-    #[case(pid_bsn_and_other_attribute_paths(), DisclosureType::Regular)]
-    #[case(pid_and_other_bsn_attribute_paths(), DisclosureType::Regular)]
-    #[case(pid_too_long_attribute_paths(), DisclosureType::Regular)]
+    #[case(mdoc_pid_bsn_attribute_paths(), DisclosureType::Login)]
+    #[case(mdoc_pid_bsn_and_other_attribute_paths(), DisclosureType::Regular)]
+    #[case(mdoc_pid_and_other_bsn_attribute_paths(), DisclosureType::Regular)]
+    #[case(mdoc_pid_too_short_attribute_paths(), DisclosureType::Regular)]
+    #[case(mdoc_pid_too_long_attribute_paths(), DisclosureType::Regular)]
+    #[case(sd_jwt_pid_bsn_attribute_paths(), DisclosureType::Login)]
+    #[case(sd_jwt_double_pid_bsn_attribute_paths(), DisclosureType::Login)]
+    #[case(sd_jwt_pid_bsn_and_other_attribute_paths(), DisclosureType::Regular)]
+    #[case(sd_jwt_pid_and_other_bsn_attribute_paths(), DisclosureType::Regular)]
+    #[case(sd_jwt_pid_too_long_attribute_paths(), DisclosureType::Regular)]
     fn test_disclosure_type_from_request_attribute_paths(
         #[case] attribute_paths: VecNonEmpty<NormalizedCredentialRequest>,
         #[case] expected: DisclosureType,
     ) {
-        let mdoc_login_attribute =
+        let login_attestation_types = HashSet::from([LOGIN_ATTESTATION_TYPE, ALSO_LOGIN_ATTESTATION_TYPE]);
+
+        let mdoc_login_claims =
             normalized::mock::mock_attribute_request_from_slice(&[LOGIN_NAMESPACE, LOGIN_ATTRIBUTE_ID]);
+        let sd_jwt_login_claims = normalized::mock::mock_attribute_request_from_slice(&[LOGIN_ATTRIBUTE_ID]);
+        let login_claims = HashMap::from([
+            (CredentialFormat::MsoMdoc, mdoc_login_claims),
+            (CredentialFormat::SdJwt, sd_jwt_login_claims),
+        ]);
 
         assert_eq!(
-            DisclosureType::from_credential_requests(
-                attribute_paths.as_ref(),
-                LOGIN_ATTESTATION_TYPE,
-                &mdoc_login_attribute,
-            ),
+            DisclosureType::from_credential_requests(attribute_paths.as_ref(), &login_attestation_types, &login_claims),
             expected
         );
     }
 
-    fn pid_bsn_attribute_paths() -> VecNonEmpty<NormalizedCredentialRequest> {
+    fn mdoc_pid_bsn_attribute_paths() -> VecNonEmpty<NormalizedCredentialRequest> {
         normalized::mock::mock_mdoc_from_slices(&[(LOGIN_ATTESTATION_TYPE, &[&[LOGIN_NAMESPACE, LOGIN_ATTRIBUTE_ID]])])
     }
 
-    fn pid_bsn_and_other_attribute_paths() -> VecNonEmpty<NormalizedCredentialRequest> {
+    fn mdoc_pid_bsn_and_other_attribute_paths() -> VecNonEmpty<NormalizedCredentialRequest> {
         normalized::mock::mock_mdoc_from_slices(&[(
             LOGIN_ATTESTATION_TYPE,
             &[&[LOGIN_NAMESPACE, LOGIN_ATTRIBUTE_ID], &[LOGIN_NAMESPACE, "other"]],
         )])
     }
 
-    fn pid_and_other_bsn_attribute_paths() -> VecNonEmpty<NormalizedCredentialRequest> {
+    fn mdoc_pid_and_other_bsn_attribute_paths() -> VecNonEmpty<NormalizedCredentialRequest> {
         normalized::mock::mock_mdoc_from_slices(&[
             (LOGIN_ATTESTATION_TYPE, &[&[LOGIN_NAMESPACE, LOGIN_ATTRIBUTE_ID]]),
             ("other", &[&[LOGIN_NAMESPACE, LOGIN_ATTRIBUTE_ID]]),
         ])
     }
 
-    fn pid_too_long_attribute_paths() -> VecNonEmpty<NormalizedCredentialRequest> {
+    fn mdoc_pid_too_short_attribute_paths() -> VecNonEmpty<NormalizedCredentialRequest> {
+        normalized::mock::mock_mdoc_from_slices(&[(LOGIN_ATTESTATION_TYPE, &[&[LOGIN_ATTRIBUTE_ID]])])
+    }
+
+    fn mdoc_pid_too_long_attribute_paths() -> VecNonEmpty<NormalizedCredentialRequest> {
         normalized::mock::mock_mdoc_from_slices(&[(
             LOGIN_ATTESTATION_TYPE,
             &[&[LOGIN_NAMESPACE, LOGIN_NAMESPACE, LOGIN_ATTRIBUTE_ID]],
+        )])
+    }
+
+    fn sd_jwt_pid_bsn_attribute_paths() -> VecNonEmpty<NormalizedCredentialRequest> {
+        normalized::mock::mock_sd_jwt_from_slices(&[(&[LOGIN_ATTESTATION_TYPE], &[&[LOGIN_ATTRIBUTE_ID]])])
+    }
+
+    fn sd_jwt_double_pid_bsn_attribute_paths() -> VecNonEmpty<NormalizedCredentialRequest> {
+        normalized::mock::mock_sd_jwt_from_slices(&[(
+            &[ALSO_LOGIN_ATTESTATION_TYPE, LOGIN_ATTESTATION_TYPE],
+            &[&[LOGIN_ATTRIBUTE_ID]],
+        )])
+    }
+
+    fn sd_jwt_pid_bsn_and_other_attribute_paths() -> VecNonEmpty<NormalizedCredentialRequest> {
+        normalized::mock::mock_sd_jwt_from_slices(&[(&[LOGIN_ATTESTATION_TYPE], &[&[LOGIN_ATTRIBUTE_ID], &["other"]])])
+    }
+
+    fn sd_jwt_pid_and_other_bsn_attribute_paths() -> VecNonEmpty<NormalizedCredentialRequest> {
+        normalized::mock::mock_sd_jwt_from_slices(&[
+            (&[LOGIN_ATTESTATION_TYPE], &[&[LOGIN_ATTRIBUTE_ID]]),
+            (&["other"], &[&[LOGIN_ATTRIBUTE_ID]]),
+        ])
+    }
+
+    fn sd_jwt_pid_too_long_attribute_paths() -> VecNonEmpty<NormalizedCredentialRequest> {
+        normalized::mock::mock_sd_jwt_from_slices(&[(
+            &[LOGIN_ATTESTATION_TYPE],
+            &[&[LOGIN_NAMESPACE, LOGIN_ATTRIBUTE_ID]],
         )])
     }
 }
