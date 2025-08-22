@@ -14,12 +14,20 @@ use utils::vec_at_least::VecNonEmpty;
 use utils::vec_at_least::VecNonEmptyUnique;
 
 #[derive(Debug, thiserror::Error)]
-#[error("not a valid identifier: {0}")]
-pub struct IdentifierError(String);
+pub enum IdentifierError {
+    #[error("identifier is an empty string")]
+    Empty,
+    #[error("identifier contains illegal characters: {0}")]
+    IllegalCharacters(String),
+}
 
 fn validate_identifier_str(id: &str) -> Result<(), IdentifierError> {
+    if id.is_empty() {
+        return Err(IdentifierError::Empty);
+    }
+
     if !id.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-') {
-        return Err(IdentifierError(id.to_string()));
+        return Err(IdentifierError::IllegalCharacters(id.to_string()));
     }
 
     Ok(())
