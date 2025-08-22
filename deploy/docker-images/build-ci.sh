@@ -12,7 +12,7 @@ FULL_IMAGE_PREFIX="${HARBOR_REGISTRY}/${HARBOR_PROJECT}/${IMAGE_PREFIX}"
 # Tell us what image name we're using:
 echo "Image to build is: \"$IMAGE_NAME\" with tag \"${IMAGE_TAG}\""
 
-if [ -e "$DOCKERFILE" ]; then
+if [[ -e "$DOCKERFILE" ]]; then
     /kaniko/executor \
         --build-arg "HARBOR_REGISTRY=${HARBOR_REGISTRY}" \
         --build-arg "DOCKER_HUB_PROXY=${HARBOR_REGISTRY}/docker-hub-proxy/" \

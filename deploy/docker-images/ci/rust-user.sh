@@ -19,3 +19,4 @@ cargo install cargo-llvm-cov --locked --version 0.6.17
 cargo install cargo-audit --locked --version 0.21.2
 cargo install cargo-nextest --locked --version 0.9.101
 cargo install flutter_rust_bridge_codegen --locked --version 2.11.1
+cargo install lcov2xml --locked --version 1.0.6
