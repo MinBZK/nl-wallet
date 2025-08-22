@@ -1224,7 +1224,7 @@ pub(crate) mod tests {
                 .unwrap(),
         );
 
-        let attestation_type = sd_jwt.as_ref().claims().vct.clone();
+        let attestation_type = sd_jwt.as_ref().claims().vct.as_ref().unwrap().to_owned();
 
         let attestations = storage
             .fetch_unique_attestations()
@@ -1320,7 +1320,7 @@ pub(crate) mod tests {
                 .unwrap(),
         );
 
-        let attestation_type = sd_jwt.as_ref().claims().vct.clone();
+        let attestation_type = sd_jwt.as_ref().claims().vct.as_ref().unwrap().to_owned();
 
         let attestations = storage
             .fetch_unique_attestations()
@@ -1338,7 +1338,7 @@ pub(crate) mod tests {
                 vec![(
                     CredentialWithMetadata::new(
                         issued_copies.clone(),
-                        attestation_type.clone(),
+                        attestation_type,
                         VerifiedTypeMetadataDocuments::nl_pid_example(),
                     ),
                     attestation_presentation.clone(),
@@ -1567,7 +1567,7 @@ pub(crate) mod tests {
                 .unwrap(),
         );
 
-        let attestation_type = sd_jwt.as_ref().claims().vct.clone();
+        let attestation_type = sd_jwt.as_ref().claims().vct.as_ref().unwrap().to_owned();
 
         // Insert sd_jwt
         storage
@@ -1576,7 +1576,7 @@ pub(crate) mod tests {
                 vec![(
                     CredentialWithMetadata::new(
                         issued_copies,
-                        attestation_type.clone(),
+                        attestation_type,
                         VerifiedTypeMetadataDocuments::nl_pid_example(),
                     ),
                     AttestationPresentation::new_mock(),
@@ -1691,7 +1691,7 @@ pub(crate) mod tests {
         let credential = IssuedCredential::SdJwt(Box::new(sd_jwt.clone()));
 
         let issued_copies = IssuedCredentialCopies::new_or_panic(vec![credential.clone()].try_into().unwrap());
-        let attestation_type = sd_jwt.as_ref().claims().vct.clone();
+        let attestation_type = sd_jwt.as_ref().claims().vct.as_ref().unwrap().to_owned();
 
         // Insert sd_jwts
         storage
@@ -1709,7 +1709,7 @@ pub(crate) mod tests {
                     (
                         CredentialWithMetadata::new(
                             issued_copies,
-                            attestation_type.clone(),
+                            attestation_type,
                             VerifiedTypeMetadataDocuments::nl_pid_example(),
                         ),
                         AttestationPresentation::new_mock(),

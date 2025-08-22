@@ -168,7 +168,11 @@ impl TryFrom<sd_jwt::sd_jwt::SdJwt> for DisclosedAttestation {
             .to_string();
         let attributes = sd_jwt.to_disclosed_object()?.try_into()?;
         Ok(DisclosedAttestation {
-            attestation_type: claims.vct.clone(),
+            attestation_type: claims
+                .vct
+                .as_ref()
+                .ok_or(DisclosedAttestationError::MissingAttributes("vct"))?
+                .to_owned(),
             attributes,
             issuer_uri: claims.iss.clone().into_inner(),
             ca,
