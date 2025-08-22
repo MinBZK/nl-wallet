@@ -317,6 +317,7 @@ platform :ios do
     # Set up provisioning profiles using match
     match(
       type: options[:app_store] ? "appstore" : "adhoc",
+      app_identifier: bundle_id,
       readonly: true,
     )
 
