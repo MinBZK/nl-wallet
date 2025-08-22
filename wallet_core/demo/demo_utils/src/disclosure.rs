@@ -50,7 +50,7 @@ mod test {
                 issuer_uri: "https://cert.issuer.example.com/".parse().unwrap(),
                 ca: "ca.issuer.example.com".to_string(),
                 validity_info: ValidityInfo {
-                    valid_from: DateTime::UNIX_EPOCH,
+                    valid_from: Some(DateTime::UNIX_EPOCH),
                     valid_until: DateTime::UNIX_EPOCH,
                     signed: DateTime::UNIX_EPOCH,
                 },
@@ -80,7 +80,7 @@ mod test {
                 issuer_uri: "https://cert.issuer.example.com/".parse().unwrap(),
                 ca: "ca.issuer.example.com".to_string(),
                 validity_info: ValidityInfo {
-                    valid_from: DateTime::UNIX_EPOCH,
+                    valid_from: Some(DateTime::UNIX_EPOCH),
                     valid_until: DateTime::UNIX_EPOCH,
                     signed: DateTime::UNIX_EPOCH,
                 },
