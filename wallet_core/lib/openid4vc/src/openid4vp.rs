@@ -27,6 +27,8 @@ use attestation_data::disclosure::DisclosedAttestationError;
 use crypto::utils::random_string;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateError;
+use dcql::disclosure::CredentialValidationError;
+use dcql::disclosure::DisclosedCredential;
 use dcql::normalized::NormalizedCredentialRequests;
 use error_category::ErrorCategory;
 use http_utils::urls::BaseUrl;
@@ -36,10 +38,10 @@ use mdoc::DeviceResponse;
 use mdoc::SessionTranscript;
 use mdoc::errors::Error as MdocError;
 use mdoc::utils::serialization::CborBase64;
-use mdoc::verifier::ResponseMatchingError;
 use serde_with::SerializeDisplay;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
+use utils::vec_nonempty;
 use wscd::Poa;
 use wscd::PoaVerificationError;
 
@@ -572,8 +574,8 @@ pub enum AuthResponseError {
     Utf8(#[from] FromUtf8Error),
     #[error("error verifying disclosed mdoc(s): {0}")]
     Verification(#[source] mdoc::Error),
-    #[error("missing requested attributes: {0}")]
-    MissingAttributes(#[source] ResponseMatchingError),
+    #[error("response does not satisfy credential request(s): {0}")]
+    UnsatisfiedCredentialRequest(#[source] CredentialValidationError),
     #[error("received unexpected amount of Verifiable Presentations: expected 1, found {0}")]
     UnexpectedVpCount(usize),
     #[error("error in Presentation Submission: {0}")]
@@ -789,9 +791,22 @@ impl VpAuthorizationResponse {
         }
 
         // Check that we received all attributes that we requested
-        device_response
-            .matches_requests(auth_request.credential_requests.as_ref())
-            .map_err(AuthResponseError::MissingAttributes)?;
+        // TODO: For now we assume that the order of `Document`s in the `DeviceResponse` lines up exactly with the
+        //       normalized credential requests. This will be replaced with a key mapping of `DeviceResponse`s that
+        //       contain a single `Document` once Presentation Exchange is replaced with DCQL.
+        let disclosed_credentials = device_response
+            .documents
+            .as_deref()
+            .unwrap_or_default()
+            .iter()
+            .zip(auth_request.credential_requests.as_ref())
+            .map(|(document, request)| (&request.id, vec_nonempty![DisclosedCredential::MsoMdoc(document)]))
+            .collect();
+
+        auth_request
+            .credential_requests
+            .is_satisfied_by_disclosed_credentials(&disclosed_credentials)
+            .map_err(AuthResponseError::UnsatisfiedCredentialRequest)?;
 
         // Safe: if we have found all requested items in the documents, then the documents are not absent.
         let documents = device_response.documents.as_ref().unwrap();

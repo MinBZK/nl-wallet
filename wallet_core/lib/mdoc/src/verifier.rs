@@ -1,11 +1,8 @@
 //! RP software, for verifying mdoc disclosures, see [`DeviceResponse::verify()`].
 
-use std::collections::HashSet;
-
 use chrono::DateTime;
 use chrono::Utc;
 use indexmap::IndexMap;
-use itertools::Itertools;
 use p256::SecretKey;
 use p256::ecdsa::VerifyingKey;
 use rustls_pki_types::TrustAnchor;
@@ -13,17 +10,13 @@ use serde_with::serde_as;
 use tracing::debug;
 use tracing::warn;
 
-use attestation_types::claim_path::ClaimPath;
 use crypto::x509::CertificateUsage;
-use dcql::CredentialQueryFormat;
-use dcql::normalized::NormalizedCredentialRequest;
 use http_utils::urls::HttpsUri;
 use utils::generator::Generator;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::Error;
 use crate::Result;
-use crate::holder::disclosure::MissingAttributesError;
 use crate::iso::*;
 use crate::utils::cose::ClonePayload;
 use crate::utils::crypto::cbor_digest;
@@ -71,23 +64,6 @@ pub enum VerificationError {
     MissingIssuerUri,
 }
 
-#[derive(Debug, thiserror::Error)]
-#[cfg_attr(test, derive(PartialEq, Eq))]
-pub enum ResponseMatchingError {
-    #[error("attestation count in response does not match request: expected {expected}, found {found}")]
-    AttestationCountMismatch { expected: usize, found: usize },
-    #[error("at least one request was not for mdoc format")]
-    FormatNotMdoc,
-    #[error("received incorrect doc type: expected \"{expected}\", found \"{found}\"")]
-    DocTypeMismatch { expected: String, found: String },
-    #[error("requested attributes are missing for doc type(s): {}", .0.iter().map(|(attestation_type, paths)| {
-        format!("({}): {}", attestation_type, paths.iter().map(|path| {
-            format!("[{}]", path.iter().join(", "))
-        }).join(", "))
-    }).join(" / "))]
-    MissingAttributes(Vec<(String, HashSet<VecNonEmpty<ClaimPath>>)>),
-}
-
 impl DeviceResponse {
     /// Verify a [`DeviceResponse`], returning the verified attributes, grouped per doctype and namespace.
     ///
@@ -133,65 +109,6 @@ impl DeviceResponse {
             .collect::<Result<_, Error>>()?;
 
         Ok(disclosed_documents)
-    }
-
-    pub fn matches_request(
-        &self,
-        credential_request: &NormalizedCredentialRequest,
-    ) -> Result<(), ResponseMatchingError> {
-        self.matches_requests(std::slice::from_ref(credential_request))
-    }
-
-    pub fn matches_requests(
-        &self,
-        credential_requests: &[NormalizedCredentialRequest],
-    ) -> Result<(), ResponseMatchingError> {
-        let documents = self.documents.as_deref().unwrap_or_default();
-
-        if documents.len() != credential_requests.len() {
-            return Err(ResponseMatchingError::AttestationCountMismatch {
-                expected: credential_requests.len(),
-                found: documents.len(),
-            });
-        }
-
-        let missing_attributes = credential_requests
-            .iter()
-            .zip_eq(documents)
-            .map(|(request, document)| {
-                let CredentialQueryFormat::MsoMdoc { doctype_value } = &request.format else {
-                    return Err(ResponseMatchingError::FormatNotMdoc);
-                };
-
-                if document.doc_type != *doctype_value {
-                    return Err(ResponseMatchingError::DocTypeMismatch {
-                        expected: doctype_value.clone(),
-                        found: document.doc_type.clone(),
-                    });
-                };
-
-                Ok((request, document))
-            })
-            .process_results(|iter| {
-                iter.flat_map(|(request, document)| {
-                    match document
-                        .issuer_signed
-                        .matches_requested_attributes(request.claim_paths())
-                    {
-                        Ok(()) => None,
-                        Err(MissingAttributesError(missing_attributes)) => {
-                            Some((document.doc_type.clone(), missing_attributes))
-                        }
-                    }
-                })
-                .collect_vec()
-            })?;
-
-        if !missing_attributes.is_empty() {
-            return Err(ResponseMatchingError::MissingAttributes(missing_attributes));
-        }
-
-        Ok(())
     }
 }
 
@@ -392,12 +309,10 @@ mod tests {
     use chrono::Utc;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
-    use rstest::rstest;
 
     use crypto::examples::Examples;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
-    use dcql::normalized::NormalizedCredentialRequests;
 
     use crate::examples::EXAMPLE_ATTR_NAME;
     use crate::examples::EXAMPLE_ATTR_VALUE;
@@ -508,158 +423,5 @@ mod tests {
             EXAMPLE_ATTR_NAME,
             &EXAMPLE_ATTR_VALUE,
         );
-    }
-
-    fn full_example_credential_request() -> NormalizedCredentialRequests {
-        NormalizedCredentialRequests::new_mock_mdoc_from_slices(&[(
-            EXAMPLE_DOC_TYPE,
-            &[
-                &[EXAMPLE_NAMESPACE, "family_name"],
-                &[EXAMPLE_NAMESPACE, "issue_date"],
-                &[EXAMPLE_NAMESPACE, "expiry_date"],
-                &[EXAMPLE_NAMESPACE, "document_number"],
-                &[EXAMPLE_NAMESPACE, "portrait"],
-                &[EXAMPLE_NAMESPACE, "driving_privileges"],
-            ],
-        )])
-    }
-
-    fn empty_device_response() -> DeviceResponse {
-        DeviceResponse {
-            version: Default::default(),
-            documents: None,
-            document_errors: None,
-            status: 0,
-        }
-    }
-
-    fn double_example_credential_request() -> NormalizedCredentialRequests {
-        NormalizedCredentialRequests::new_mock_mdoc_from_slices(&[
-            (EXAMPLE_DOC_TYPE, &[&[EXAMPLE_NAMESPACE, "family_name"]]),
-            (EXAMPLE_DOC_TYPE, &[&[EXAMPLE_NAMESPACE, "family_name"]]),
-        ])
-    }
-
-    fn wrong_doc_type_example_request() -> NormalizedCredentialRequests {
-        NormalizedCredentialRequests::new_mock_mdoc_from_slices(&[(
-            "wrong_doc_type",
-            &[&[EXAMPLE_NAMESPACE, "family_name"]],
-        )])
-    }
-
-    fn wrong_name_space_example_request() -> NormalizedCredentialRequests {
-        NormalizedCredentialRequests::new_mock_mdoc_from_slices(&[(
-            EXAMPLE_DOC_TYPE,
-            &[&["wrong_name_space", "family_name"]],
-        )])
-    }
-
-    fn wrong_attributes_example_request() -> NormalizedCredentialRequests {
-        NormalizedCredentialRequests::new_mock_mdoc_from_slices(&[(
-            EXAMPLE_DOC_TYPE,
-            &[
-                &[EXAMPLE_NAMESPACE, "family_name"],
-                &[EXAMPLE_NAMESPACE, "favourite_colour"],
-                &[EXAMPLE_NAMESPACE, "average_airspeed"],
-            ],
-        )])
-    }
-
-    fn sd_jwt_example_request() -> NormalizedCredentialRequests {
-        NormalizedCredentialRequests::new_mock_sd_jwt_from_slices(&[(
-            &[EXAMPLE_DOC_TYPE],
-            &[&[EXAMPLE_NAMESPACE, "family_name"]],
-        )])
-    }
-
-    fn missing_attributes(attributes: &[(&str, &[&[&str]])]) -> Vec<(String, HashSet<VecNonEmpty<ClaimPath>>)> {
-        attributes
-            .iter()
-            .copied()
-            .map(|(doc_type, attributes)| {
-                let attributes = attributes
-                    .iter()
-                    .copied()
-                    .map(|path| {
-                        path.iter()
-                            .copied()
-                            .map(|path_element| ClaimPath::SelectByKey(path_element.to_string()))
-                            .collect_vec()
-                            .try_into()
-                            .unwrap()
-                    })
-                    .collect();
-
-                (doc_type.to_string(), attributes)
-            })
-            .collect()
-    }
-
-    #[rstest]
-    #[case(DeviceResponse::example(), full_example_credential_request(), Ok(()))]
-    #[case(
-        empty_device_response(),
-        full_example_credential_request(),
-        Err(ResponseMatchingError::AttestationCountMismatch {
-            expected: 1,
-            found: 0,
-        }),
-    )]
-    #[case(
-        DeviceResponse::example(),
-        double_example_credential_request(),
-        Err(ResponseMatchingError::AttestationCountMismatch {
-            expected: 2,
-            found: 1,
-        }),
-    )]
-    #[case(
-        DeviceResponse::example(),
-        sd_jwt_example_request(),
-        Err(ResponseMatchingError::FormatNotMdoc)
-    )]
-    #[case(
-        DeviceResponse::example(),
-        wrong_doc_type_example_request(),
-        Err(ResponseMatchingError::DocTypeMismatch {
-            expected: "wrong_doc_type".to_string(),
-            found: EXAMPLE_DOC_TYPE.to_string()
-        }),
-    )]
-    #[case(
-        DeviceResponse::example(),
-        wrong_name_space_example_request(),
-        Err(ResponseMatchingError::MissingAttributes(missing_attributes(
-            &[(EXAMPLE_DOC_TYPE, &[&["wrong_name_space", "family_name"]])]
-        ))),
-    )]
-    #[case(
-        DeviceResponse::example(),
-        wrong_attributes_example_request(),
-        Err(ResponseMatchingError::MissingAttributes(missing_attributes(
-            &[(
-                EXAMPLE_DOC_TYPE,
-                &[
-                    &[EXAMPLE_NAMESPACE, "average_airspeed"],
-                    &[EXAMPLE_NAMESPACE, "favourite_colour"],
-                ]
-            )]
-        ))),
-    )]
-    fn test_device_response_matches_requests(
-        #[case] device_response: DeviceResponse,
-        #[case] requests: NormalizedCredentialRequests,
-        #[case] expected_result: Result<(), ResponseMatchingError>,
-    ) {
-        let result = device_response.matches_requests(requests.as_ref());
-
-        assert_eq!(result, expected_result);
-    }
-
-    #[test]
-    fn test_device_response_matches_request() {
-        DeviceResponse::example()
-            .matches_request(full_example_credential_request().as_ref().first().unwrap())
-            .expect("credential request should match device response");
     }
 }

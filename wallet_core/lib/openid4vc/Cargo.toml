@@ -112,7 +112,7 @@ wiremock.workspace = true
 
 attestation_data = { path = "../attestation_data", features = ["generate", "mock", "example_credential_payloads"] }
 crypto = { path = "../crypto", features = ["examples"] }
-dcql = { path = "../dcql", features = ["mock"] }
+dcql = { path = "../dcql", features = ["mock", "test_document"] }
 http_utils = { path = "../http_utils", features = ["insecure_http_client"] }
 jwt = { path = "../jwt", features = ["test"] }
 mdoc = { path = "../mdoc", features = ["test", "mock_example_constructors"] }

@@ -1,4 +1,8 @@
+pub mod disclosure;
 pub mod normalized;
+
+#[cfg(feature = "test_document")]
+mod test_document;
 
 use std::ops::Not;
 
