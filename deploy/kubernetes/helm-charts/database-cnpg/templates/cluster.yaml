@@ -13,7 +13,9 @@ spec:
     {{- end }}
     labels:
       app.kubernetes.io/component: "{{ .Release.Name }}-postgres"
-      {{- .Values.extraPodlabels | toYaml | nindent 6 }}
+      {{- with .Values.extraPodlabels }}
+      {{- toYaml . | nindent 6 }}
+      {{- end }}
 
   primaryUpdateMethod: switchover
 
@@ -144,12 +146,14 @@ spec:
   template:
     metadata:
       labels:
-        {{- $chart.Values.metadata.labels | toYaml | nindent 8 }}
+        {{- with $chart.Values.extraPodlabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
         app.kubernetes.io/component: "{{ $chart.Release.Name}}-pgbouncer"
     spec:
       containers:
         - name: pgbouncer
-          image: {{ .Values.image.registry }}/{{ $chart.Values.imagePgBouncer.repository }}:{{ $chart.Values.imagePgBouncer.tag }}
+          image: {{ $chart.Values.global.imageRegistry }}/{{ $chart.Values.imagePgBouncer.repository }}:{{ $chart.Values.imagePgBouncer.tag }}
 {{- with $pgPool.pool.resources }}
           resources:
             {{- . | toYaml | nindent 12 }}

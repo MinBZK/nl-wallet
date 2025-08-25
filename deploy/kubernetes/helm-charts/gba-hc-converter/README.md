@@ -110,3 +110,16 @@
 | `preloadGbaPod.name`           | Name of the Preload GBA Pod               | `preload-gba-v-data-pod` |
 | `preloadGbaPod.extraPodlabels` | Additional labels for the Preload GBA Pod | `{}`                     |
 
+### xml files
+
+| Name       | Description                                          | Value |
+| ---------- | ---------------------------------------------------- | ----- |
+| `xmlFiles` | List of XML files to be used in the GBA HC Converter | `{}`  |
+
+### zoekXmlFiles
+
+| Name           | Description                                          | Value |
+| -------------- | ---------------------------------------------------- | ----- |
+| `zoekXmlFiles` | List of XML files to be used in the GBA HC Converter | `{}`  |
+
+

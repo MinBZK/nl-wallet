@@ -1,3 +1,4 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.util.Base64
 import java.util.Properties
 
@@ -65,7 +66,7 @@ val ulIntentFilter =
 
 android {
     namespace = "nl.rijksoverheid.edi.wallet"
-    compileSdk = 35
+    compileSdk = 36
     // Use NDK r28b to get 16kB page size
     ndkVersion = "28.1.13356709"
 
@@ -87,11 +88,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_11
     }
 
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11.toString()
-        freeCompilerArgs = listOf("-Xstring-concat=inline")
-    }
-
     packaging {
         // Exclude the platform_support.so files that are added by the
         // platform_support module, as this code is also in libwallet_core.so
@@ -104,8 +100,8 @@ android {
         applicationId = System.getenv("APPLICATION_ID") ?: "nl.ictu.edi.wallet.latest"
         // You can update the following values to match your application needs.
         // For more information, see: https://docs.flutter.dev/deployment/android#reviewing-the-build-configuration.
-        minSdk = flutter.minSdkVersion
-        targetSdk = 35
+        minSdk = 24
+        targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
 
@@ -147,7 +143,8 @@ android {
             }
         }
         release {
-            signingConfig = signingConfigs.getByName("release")
+            // Only allow release signing for release or unsigned
+            signingConfig = signingConfigName.takeIf { it == "release" }?.let { signingConfigs.getByName(it) }
             isMinifyEnabled = true
             proguardFiles += listOf(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -157,6 +154,13 @@ android {
                 abiFilters += ndkTargets
             }
         }
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget = JvmTarget.JVM_11
+        freeCompilerArgs = listOf("-Xstring-concat=inline")
     }
 }
 
@@ -199,18 +203,6 @@ mapOf(
     tasks.named { it == "merge${buildMode}NativeLibs" }.configureEach {
         dependsOn("cargoBuildNativeLibrary${buildMode}")
     }
-}
-
-// Ensure non-debug keys for release builds
-tasks.register("checkForReleaseKeys") {
-    doFirst {
-        if (signingConfigName != "release") {
-            throw GradleException("Cannot do a release build with non-release keys")
-        }
-    }
-}
-tasks.named { it == "signReleaseBundle" }.configureEach {
-    dependsOn("checkForReleaseKeys")
 }
 
 tasks.register<Delete>("cleanJni") {

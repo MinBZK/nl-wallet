@@ -237,12 +237,12 @@ gba-hc-converter-${DEPLOY_ENV}:
   script:
     - !reference [.build-helm-dependency, script]
     - !reference [.replace-chart-app-version, script]
-    - !reference [.parse-config-files, script]
     - PATH_CHART=${HELM_CHARTS_PATH}/${CHART_NAME}
     - sed -i 's/{{bsn}}/{{`{{bsn}}`}}/g' wallet_core/gba_hc_converter/resources/remote/bsn_zoeken_template.xml
-    - cp wallet_core/gba_hc_converter/resources/remote/bsn_zoeken_template.xml ${PATH_CHART}/files/
-    - cp wallet_core/gba_hc_converter/resources/remote/encrypt_all.sh ${PATH_CHART}/shell-scripts/
-    - cp -r wallet_core/gba_hc_converter/resources/gba-v-responses/ ${PATH_CHART}/
+    - scripts/convert-gba-hc-converter-values.sh xmlFiles wallet_core/gba_hc_converter/resources/gba-v-responses > ${PATH_CHART}/xmlFiles.yaml
+    - scripts/convert-gba-hc-converter-values.sh zoekXmlFiles wallet_core/gba_hc_converter/resources/remote/bsn_zoeken_template.xml > ${PATH_CHART}/zoekXmlFiles.yaml
+    - export CONFIG_FILES="${CONFIG_FILES},${PATH_CHART}/xmlFiles.yaml,${PATH_CHART}/zoekXmlFiles.yaml"
+    - !reference [.parse-config-files, script]
     - |
       helm upgrade --install --atomic --timeout 5m ${RELEASE_NAME} ${PATH_CHART} \
       --set global.imageRegistry=${HARBOR_REGISTRY} \
