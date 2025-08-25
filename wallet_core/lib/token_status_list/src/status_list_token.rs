@@ -69,7 +69,7 @@ impl IntoResponse for StatusListToken {
 }
 
 #[serde_as]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct StatusListClaims {
     #[serde(with = "ts_seconds")]
     iat: DateTime<Utc>,
@@ -107,7 +107,6 @@ mod test {
     async fn test_status_list_token() {
         let example_header = json!({
             "alg": "ES256",
-            "kid": "12",
             "typ": "statuslist+jwt"
         });
         let example_payload = json!({
@@ -121,21 +120,29 @@ mod test {
             "ttl": 43200
         });
 
-        let header: Header = serde_json::from_value(example_header).unwrap();
-        assert_eq!(header.typ, Some(TOKEN_STATUS_LIST_JWT_TYP.to_string()));
+        let expected_header: Header = serde_json::from_value(example_header).unwrap();
+        assert_eq!(expected_header.typ, Some(TOKEN_STATUS_LIST_JWT_TYP.to_string()));
 
-        let claims: StatusListClaims = serde_json::from_value(example_payload).unwrap();
+        let expected_claims: StatusListClaims = serde_json::from_value(example_payload).unwrap();
 
         let key = SigningKey::random(&mut OsRng);
-        let signed = StatusListToken::try_new(claims.iat, claims.exp, claims.sub, claims.ttl, claims.status_list, &key)
-            .await
-            .unwrap();
+        let signed = StatusListToken::try_new(
+            expected_claims.iat,
+            expected_claims.exp,
+            expected_claims.sub.clone(),
+            expected_claims.ttl,
+            expected_claims.status_list.clone(),
+            &key,
+        )
+        .await
+        .unwrap();
 
-        let (header, _) = signed
+        let (header, claims) = signed
             .0
             .parse_and_verify_with_header(&key.verifying_key().into(), &jwt::validations())
             .unwrap();
-        assert_eq!(header.typ, Some(TOKEN_STATUS_LIST_JWT_TYP.to_string()));
+        assert_eq!(header, expected_header);
+        assert_eq!(claims, expected_claims);
     }
 
     #[cfg(feature = "axum")]
