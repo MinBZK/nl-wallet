@@ -91,6 +91,8 @@ test-rust-doctest:
 
 test-rust-compilation-android:
   image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-android:${BUILD_TAG}"
+  tags:
+    - linux
   extends: [.test-rust-compilation]
   script:
     - cargo ndk --target arm64-v8a check --package flutter_api --locked --release
