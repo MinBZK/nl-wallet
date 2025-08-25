@@ -15,6 +15,7 @@ required-features = ["examples"]
 [features]
 examples = ["futures", "rand_core"]
 mock = []
+test = []
 
 [dependencies]
 anyhow.workspace = true
@@ -36,8 +37,9 @@ futures = { workspace = true, optional = true }
 rand_core = { workspace = true, optional = true }
 
 attestation_types.path = "../attestation_types"
-jwt.path = "../jwt"
 crypto.path = "../crypto"
+http_utils.path = "../http_utils"
+jwt.path = "../jwt"
 utils.path = "../utils"
 
 [dev-dependencies]
