@@ -91,7 +91,7 @@ impl StatusList {
             .iter()
             .flat_map(|byte| {
                 (0..level).map(move |i| {
-                    let status = byte >> (i * bits as usize) & mask;
+                    let status = (byte >> (i * bits as usize)) & mask;
                     StatusType::from(status)
                 })
             })
