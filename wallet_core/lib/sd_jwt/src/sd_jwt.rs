@@ -25,10 +25,12 @@ use attestation_types::claim_path::ClaimPath;
 use crypto::EcdsaKeySend;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateUsage;
+use http_utils::urls::HttpsUri;
 use jwt::EcdsaDecodingKey;
 use jwt::Jwt;
 use jwt::VerifiedJwt;
 use jwt::jwk::jwk_to_p256;
+use utils::date_time_seconds::DateTimeSeconds;
 use utils::generator::Generator;
 use utils::spec::SpecOptional;
 use utils::vec_at_least::VecNonEmpty;
@@ -47,7 +49,7 @@ use crate::key_binding_jwt_claims::KeyBindingJwtBuilder;
 use crate::key_binding_jwt_claims::RequiredKeyBinding;
 
 #[skip_serializing_none]
-#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub struct SdJwtClaims {
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub _sd: Vec<String>,
@@ -62,6 +64,18 @@ pub struct SdJwtClaims {
     // to parse.
     #[serde(rename = "vct#integrity")]
     pub vct_integrity: Option<Integrity>,
+
+    // Even though we want this to be mandatory, we allow it to be optional in order for the examples from the spec
+    // to parse.
+    pub vct: Option<String>,
+
+    pub iss: SpecOptional<HttpsUri>,
+
+    pub iat: SpecOptional<DateTimeSeconds>,
+
+    pub exp: Option<DateTimeSeconds>,
+
+    pub nbf: Option<DateTimeSeconds>,
 
     /// Non-selectively disclosable claims of the SD-JWT.
     #[serde(flatten)]
@@ -278,6 +292,11 @@ impl Display for SdJwt {
 }
 
 impl VerifiedSdJwt {
+    #[cfg(feature = "test")]
+    pub fn new_dangerous(sd_jwt: SdJwt) -> Self {
+        Self(sd_jwt)
+    }
+
     /// Parses an SD-JWT into its components as [`VerifiedSdJwt`] verifying against the provided trust anchors.
     pub fn parse_and_verify_against_trust_anchors(
         sd_jwt: &str,
@@ -729,6 +748,8 @@ mod test {
         let holder_privkey = SigningKey::random(&mut OsRng);
 
         let sd_jwt = SdJwtBuilder::new(json!({
+            "iss": "https://iss.example.com",
+            "iat": Utc::now().timestamp(),
             "exp": (Utc::now() - Duration::days(1)).timestamp(),
         }))
         .unwrap()
@@ -841,77 +862,138 @@ mod test {
 
     #[rstest]
     #[case::default_nothing_disclosed(
-        json!({"given_name": "John", "family_name": "Doe"}),
+        json!({
+            "iss": "https://iss.example.com",
+            "iat": Utc::now().timestamp(),
+            "given_name": "John",
+            "family_name": "Doe"
+        }),
         &[vec!["given_name"], vec!["family_name"]],
         &[],
         &[],
         &[],
     )]
     #[case::flat_sd_all_disclose_single(
-        json!({"given_name": "John", "family_name": "Doe"}),
+        json!({
+            "iss": "https://iss.example.com",
+            "iat": Utc::now().timestamp(),
+            "given_name": "John",
+            "family_name": "Doe"
+        }),
         &[vec!["given_name"], vec!["family_name"]],
         &[vec!["given_name"]],
         &["given_name"],
         &[],
     )]
     #[case::flat_sd_all_disclose_all(
-        json!({"given_name": "John", "family_name": "Doe"}),
+        json!({
+            "iss": "https://iss.example.com",
+            "iat": Utc::now().timestamp(),
+            "given_name": "John",
+            "family_name": "Doe"
+        }),
         &[vec!["given_name"], vec!["family_name"]],
         &[vec!["given_name"], vec!["family_name"]],
         &["given_name", "family_name"],
         &[],
     )]
     #[case::flat_single_sd(
-        json!({"given_name": "John", "family_name": "Doe"}),
+        json!({
+            "iss": "https://iss.example.com",
+            "iat": Utc::now().timestamp(),
+            "given_name": "John",
+            "family_name": "Doe"
+        }),
         &[vec!["given_name"]],
         &[vec!["given_name"]],
         &["given_name"],
         &["/family_name"],
     )]
     #[case::flat_no_sd_no_disclose(
-        json!({"given_name": "John", "family_name": "Doe"}),
+        json!({
+            "iss": "https://iss.example.com",
+            "iat": Utc::now().timestamp(),
+            "given_name": "John",
+            "family_name": "Doe"
+        }),
         &[],
         &[],
         &[],
         &["/family_name", "/given_name"],
     )]
     #[case::structured_single_sd_and_disclose(
-        json!({"address": {"street": "Main st.", "house_number": 4 }}),
+        json!({
+            "iss": "https://iss.example.com",
+            "iat": Utc::now().timestamp(),
+            "address": {
+                "street": "Main st.",
+                "house_number": 4
+            }
+        }),
         &[vec!["address", "street"]],
         &[vec!["address", "street"]],
         &["street"],
         &["/address", "/address/house_number"],
     )]
     #[case::structured_recursive_path_sd_and_single_disclose(
-        json!({"address": {"street": "Main st.", "house_number": 4 }}),
+        json!({
+            "iss": "https://iss.example.com",
+            "iat": Utc::now().timestamp(),
+            "address": {
+                "street": "Main st.",
+                "house_number": 4
+            }
+        }),
         &[vec!["address", "street"], vec!["address"]],
         &[vec!["address", "street"]],
         &["address", "street"],
         &[],
     )]
     #[case::structured_all_sd_and_all_disclose(
-        json!({"address": {"street": "Main st.", "house_number": 4 }}),
+        json!({
+            "iss": "https://iss.example.com",
+            "iat": Utc::now().timestamp(),
+            "address": {
+                "street": "Main st.",
+                "house_number": 4
+            }
+        }),
         &[vec!["address", "street"], vec!["address", "house_number"], vec!["address"]],
         &[vec!["address", "street"], vec!["address", "house_number"]],
         &["street", "house_number", "address"],
         &[],
     )]
     #[case::structured_all_sd_and_single_disclose(
-        json!({"address": {"street": "Main st.", "house_number": 4 }}),
+        json!({
+            "iss": "https://iss.example.com",
+            "iat": Utc::now().timestamp(),
+            "address": {
+                "street": "Main st.",
+                "house_number": 4
+            }
+        }),
         &[vec!["address", "street"], vec!["address", "house_number"], vec!["address"]],
         &[vec!["address", "street"]],
         &["address", "street"],
         &[],
     )]
     #[case::structured_root_sd_and_root_disclose(
-        json!({"address": {"street": "Main st.", "house_number": 4 }}),
+        json!({
+            "iss": "https://iss.example.com",
+            "iat": Utc::now().timestamp(),
+            "address": {"street": "Main st.", "house_number": 4 }
+        }),
         &[vec!["address"]],
         &[vec!["address"]],
         &["address"],
         &[],
     )]
     #[case::array(
-        json!({"nationalities": ["NL", "DE"]}),
+        json!({
+            "iss": "https://iss.example.com",
+            "iat": Utc::now().timestamp(),
+            "nationalities": ["NL", "DE"]
+        }),
         &[vec!["nationalities"]],
         &[vec!["nationalities"]],
         &["nationalities"],
@@ -978,28 +1060,44 @@ mod test {
 
     #[rstest]
     #[case::array(
-        json!({"nationalities": ["NL", "DE"]}),
+        json!({
+            "iss": "https://iss.example.com",
+            "iat": Utc::now().timestamp(),
+            "nationalities": ["NL", "DE"]
+        }),
         &[vec!["nationalities", "0"], vec!["nationalities", "1"]],
         &[vec!["nationalities", "null"]],
         &["NL", "DE"],
         &["/nationalities"],
     )]
     #[case::array(
-        json!({"nationalities": ["NL", "DE"]}),
+        json!({
+            "iss": "https://iss.example.com",
+            "iat": Utc::now().timestamp(),
+            "nationalities": ["NL", "DE"]
+        }),
         &[vec!["nationalities", "0"], vec!["nationalities", "1"], vec!["nationalities"]],
         &[vec!["nationalities", "null"]],
         &["nationalities", "NL", "DE"],
         &[],
     )]
     #[case::array(
-        json!({"nationalities": ["NL", "DE"]}),
+        json!({
+            "iss": "https://iss.example.com",
+            "iat": Utc::now().timestamp(),
+            "nationalities": ["NL", "DE"]
+        }),
         &[vec!["nationalities", "0"]],
         &[vec!["nationalities", "0"]],
         &["NL"],
         &["/nationalities/DE", "/nationalities"],
     )]
     #[case::array(
-        json!({"nationalities": [{"country": "NL"}, {"country": "DE"}]}),
+        json!({
+            "iss": "https://iss.example.com",
+            "iat": Utc::now().timestamp(),
+            "nationalities": [{"country": "NL"}, {"country": "DE"}]
+        }),
         &[
             vec!["nationalities", "0", "country"],
             vec!["nationalities", "1", "country"],
@@ -1012,28 +1110,44 @@ mod test {
         &[],
     )]
     #[case::array(
-        json!({"nationalities": [{"country": "NL"}, {"country": "DE"}]}),
+        json!({
+            "iss": "https://iss.example.com",
+            "iat": Utc::now().timestamp(),
+            "nationalities": [{"country": "NL"}, {"country": "DE"}]
+        }),
         &[vec!["nationalities", "0"], vec!["nationalities", "1"], vec!["nationalities"]],
         &[vec!["nationalities", "null"]],
         &["nationalities", "country"],
         &[],
     )]
     #[case::array(
-        json!({"nationalities": ["NL", "DE"]}),
+        json!({
+            "iss": "https://iss.example.com",
+            "iat": Utc::now().timestamp(),
+            "nationalities": ["NL", "DE"]
+        }),
         &[vec!["nationalities", "0"], vec!["nationalities", "1"]],
         &[vec!["nationalities", "1"]],
         &["DE"],
         &["/nationalities"],
     )]
     #[case::array(
-        json!({"nationalities": ["NL", "DE"]}),
+        json!({
+            "iss": "https://iss.example.com",
+            "iat": Utc::now().timestamp(),
+            "nationalities": ["NL", "DE"]
+        }),
         &[vec!["nationalities", "0"], vec!["nationalities", "1"], vec!["nationalities"]],
         &[vec!["nationalities", "1"]],
         &["nationalities", "DE"],
         &[],
     )]
     #[case::array(
-        json!({"nationalities": [{"country": "NL"}, {"country": "DE"}]}),
+        json!({
+            "iss": "https://iss.example.com",
+            "iat": Utc::now().timestamp(),
+            "nationalities": [{"country": "NL"}, {"country": "DE"}]
+        }),
         &[
             vec!["nationalities", "0", "country"],
             vec!["nationalities", "1", "country"],
@@ -1046,7 +1160,11 @@ mod test {
         &[],
     )]
     #[case::array(
-        json!({"nationalities": [{"country": "NL"}, {"country": "DE"}]}),
+        json!({
+            "iss": "https://iss.example.com",
+            "iat": Utc::now().timestamp(),
+            "nationalities": [{"country": "NL"}, {"country": "DE"}]
+        }),
         &[vec!["nationalities", "0"], vec!["nationalities", "1"], vec!["nationalities"]],
         &[vec!["nationalities", "1"]],
         &["nationalities", "country"],

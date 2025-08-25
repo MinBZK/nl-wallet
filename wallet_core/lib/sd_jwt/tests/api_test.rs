@@ -57,47 +57,55 @@ async fn make_sd_jwt(
 fn simple_sd_jwt() {
     let sd_jwt = SdJwtPresentation::spec_simple_structured();
     let disclosed = sd_jwt.to_disclosed_object().unwrap();
-    let expected_object = json!({
-      "address": {
-        "country": "JP",
-        "region": "港区"
-      },
-      "iss": "https://issuer.example.com",
-      "iat": 1683000000,
-      "exp": 1883000000
-    });
-    assert_eq!(expected_object.as_object().unwrap(), &disclosed);
+    let expected = json!({
+        "address": {
+            "country": "JP",
+            "region": "港区"
+        },
+        "iss": "https://issuer.example.com/",
+        "iat": 1683000000,
+        "exp": 1883000000
+    })
+    .as_object()
+    .unwrap()
+    .to_owned();
+
+    assert_eq!(expected, disclosed);
 }
 
 #[test]
 fn complex_sd_jwt() {
     let sd_jwt: SdJwt = SdJwtPresentation::spec_complex_structured();
     let disclosed = sd_jwt.to_disclosed_object().unwrap();
-    let expected_object = json!({
-      "verified_claims": {
-        "verification": {
-            "time": "2012-04-23T18:25Z",
-            "trust_framework": "de_aml",
-            "evidence": [
-                { "method": "pipp" }
-            ]
-        },
-        "claims": {
-            "address": {
-                "locality": "Maxstadt",
-                "postal_code": "12344",
-                "country": "DE",
-                "street_address": "Weidenstraße 22"
+    let expected = json!({
+        "verified_claims": {
+            "verification": {
+                "time": "2012-04-23T18:25Z",
+                "trust_framework": "de_aml",
+                "evidence": [
+                    { "method": "pipp" }
+                ]
             },
-            "given_name": "Max",
-            "family_name": "Müller"
-        }
-      },
-      "iss": "https://issuer.example.com",
-      "iat": 1683000000,
-      "exp": 1883000000
-    });
-    assert_eq!(expected_object.as_object().unwrap(), &disclosed);
+            "claims": {
+                "address": {
+                    "locality": "Maxstadt",
+                    "postal_code": "12344",
+                    "country": "DE",
+                    "street_address": "Weidenstraße 22"
+                },
+                "given_name": "Max",
+                "family_name": "Müller"
+            }
+        },
+        "iss": "https://issuer.example.com/",
+        "iat": 1683000000,
+        "exp": 1883000000
+    })
+    .as_object()
+    .unwrap()
+    .to_owned();
+
+    assert_eq!(expected, disclosed);
 }
 
 #[tokio::test]
@@ -105,7 +113,14 @@ async fn concealing_property_of_concealable_value_works() -> anyhow::Result<()> 
     let holder_signing_key = SigningKey::random(&mut OsRng);
     let hasher = Sha256Hasher::new();
     let (sd_jwt, _) = make_sd_jwt(
-        json!({"parent": {"property1": "value1", "property2": [1, 2, 3]}}),
+        json!({
+            "iss": "https://issuer.example.com/",
+            "iat": 1683000000,
+            "parent": {
+                "property1": "value1",
+                "property2": [1, 2, 3]
+            }
+        }),
         [
             vec![
                 ClaimPath::SelectByKey(String::from("parent")),
@@ -151,7 +166,14 @@ async fn sd_jwt_without_disclosures_works() -> anyhow::Result<()> {
     let holder_signing_key = SigningKey::random(&mut OsRng);
     let hasher = Sha256Hasher::new();
     let (sd_jwt, decoding_key) = make_sd_jwt(
-        json!({"parent": {"property1": "value1", "property2": [1, 2, 3]}}),
+        json!({
+            "iss": "https://issuer.example.com",
+            "iat": 1683000000,
+            "parent": {
+                "property1": "value1",
+                "property2": [1, 2, 3]
+            }
+        }),
         [],
         holder_signing_key.verifying_key(),
     )
@@ -207,7 +229,14 @@ async fn sd_jwt_sd_hash() -> anyhow::Result<()> {
     let hasher = Sha256Hasher::new();
 
     let (sd_jwt, _) = make_sd_jwt(
-        json!({"parent": {"property1": "value1", "property2": [1, 2, 3]}}),
+        json!({
+            "iss": "https://issuer.example.com",
+            "iat": 1683000000,
+            "parent": {
+                "property1": "value1",
+                "property2": [1, 2, 3]
+            }
+        }),
         [
             vec![
                 ClaimPath::SelectByKey(String::from("parent")),
@@ -260,24 +289,26 @@ async fn sd_jwt_sd_hash() -> anyhow::Result<()> {
 #[tokio::test]
 async fn test_presentation() -> anyhow::Result<()> {
     let object = json!({
-      "sub": "user_42",
-      "given_name": "John",
-      "family_name": "Doe",
-      "email": "johndoe@example.com",
-      "phone_number": "+1-202-555-0101",
-      "phone_number_verified": true,
-      "address": {
-        "street_address": "123 Main St",
-        "locality": "Anytown",
-        "region": "Anystate",
-        "country": "US"
-      },
-      "birthdate": "1940-01-01",
-      "updated_at": 1570000000,
-      "nationalities": [
-        "US",
-        "DE"
-      ]
+        "iss": "https://issuer.example.com",
+        "iat": 1683000000,
+        "sub": "user_42",
+        "given_name": "John",
+        "family_name": "Doe",
+        "email": "johndoe@example.com",
+        "phone_number": "+1-202-555-0101",
+        "phone_number_verified": true,
+        "address": {
+            "street_address": "123 Main St",
+            "locality": "Anytown",
+            "region": "Anystate",
+            "country": "US"
+        },
+        "birthdate": "1940-01-01",
+        "updated_at": 1570000000,
+        "nationalities": [
+            "US",
+            "DE"
+        ]
     });
 
     let ca = Ca::generate("myca", Default::default())?;

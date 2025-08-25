@@ -76,14 +76,19 @@ impl PreviewableCredentialPayload {
 
 #[cfg(any(test, feature = "mock"))]
 mod test {
+    use chrono::Utc;
     use p256::ecdsa::VerifyingKey;
     use ssri::Integrity;
 
     use crypto::CredentialEcdsaKey;
     use crypto::EcdsaKey;
+    use crypto::EcdsaKeySend;
     use crypto::server_keys::KeyPair;
     use mdoc::holder::Mdoc;
+    use sd_jwt::sd_jwt::VerifiedSdJwt;
+    use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 
+    use crate::credential_payload::CredentialPayload;
     use crate::credential_payload::PreviewableCredentialPayload;
 
     impl PreviewableCredentialPayload {
@@ -102,6 +107,27 @@ mod test {
             let mdoc = Mdoc::new_unverified(mso, private_key_id, issuer_signed, K::KEY_TYPE);
 
             Ok(mdoc)
+        }
+
+        /// Construct [`VerifiedSdJwt`] directly by signing, skipping validation.
+        pub async fn into_signed_sd_jwt_unverified<K: CredentialEcdsaKey>(
+            self,
+            metadata: &NormalizedTypeMetadata,
+            metadata_integrity: Integrity,
+            public_key: &VerifyingKey,
+            issuer_keypair: &KeyPair<impl EcdsaKeySend>,
+        ) -> mdoc::Result<VerifiedSdJwt> {
+            let payload = CredentialPayload::from_previewable_credential_payload(
+                self,
+                Utc::now().into(),
+                public_key,
+                metadata,
+                metadata_integrity,
+            )
+            .unwrap();
+
+            let sd_jwt = payload.into_sd_jwt(metadata, public_key, issuer_keypair).await.unwrap();
+            Ok(VerifiedSdJwt::new_dangerous(sd_jwt))
         }
     }
 }
