@@ -37,7 +37,7 @@ impl FromStr for Disclosure {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let disclosure_type: DisclosureContent = BASE64_URL_SAFE_NO_PAD
+        let content: DisclosureContent = BASE64_URL_SAFE_NO_PAD
             .decode(s)
             .map_err(|_| Error::InvalidDisclosure(format!("Base64 decoding of the disclosure was not possible {s}")))
             .and_then(|data| {
@@ -47,7 +47,7 @@ impl FromStr for Disclosure {
             })?;
 
         Ok(Self {
-            content: disclosure_type,
+            content,
             encoded: s.to_owned(),
         })
     }

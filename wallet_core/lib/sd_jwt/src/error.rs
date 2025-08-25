@@ -41,9 +41,6 @@ pub enum Error {
     #[error("disclosure not found for key: {0} in map: {1:?}")]
     DisclosureNotFound(String, serde_json::Map<String, serde_json::Value>),
 
-    #[error("disclosure not found in SD-JWT: {0}")]
-    DisclosureMissing(String),
-
     #[error("couldn't find parent for path: /{}", .0.iter().map(ToString::to_string).join("/"))]
     ParentNotFound(Vec<ClaimPath>),
 
