@@ -6,6 +6,7 @@ use std::num::NonZeroUsize;
 
 use derive_more::Index;
 use itertools::Itertools;
+use nonempty_collections::FromNonEmptyIterator;
 use serde::Deserialize;
 use serde::Deserializer;
 use serde::Serialize;
@@ -14,9 +15,8 @@ use serde::de;
 use serde_with::DeserializeAs;
 use serde_with::SerializeAs;
 
-use crate::non_empty_iterator::FromNonEmptyIterator;
-use crate::non_empty_iterator::IntoNonEmptyIterator;
-use crate::non_empty_iterator::NonEmptyIterator;
+pub use nonempty_collections::IntoNonEmptyIterator;
+pub use nonempty_collections::iter::NonEmptyIterator;
 
 #[derive(Debug, thiserror::Error)]
 pub enum VecAtLeastNError {
@@ -39,16 +39,16 @@ pub enum VecAtLeastNError {
 /// ```
 #[macro_export]
 macro_rules! vec_non_empty {
+    // Version without type parameter (relies on type inference)
+    ($($x:expr),+ $(,)?) => (
+        $crate::vec_at_least::VecNonEmpty::try_from(vec![$($x),+]).unwrap()
+    );
+
     // Version with explicit type parameter
     ($t:ty; $($x:expr),+ $(,)?) => {{
         let vec: Vec<$t> = vec![$($x),+];
         <Vec<$t> as TryInto<$crate::vec_at_least::VecNonEmpty<$t>>>::try_into(vec).unwrap()
     }};
-
-    // Version without type parameter (relies on type inference)
-    ($($x:expr),+ $(,)?) => (
-        $crate::vec_at_least::VecNonEmpty::try_from(vec![$($x),+]).unwrap()
-    );
 }
 
 // These should cover the most common use cases of `VecAtLeastN`.
@@ -139,11 +139,11 @@ impl<T, const N: usize> VecAtLeastN<T, N, false> {
         self.0.push(e);
     }
 
-    pub fn non_empty_iter(&self) -> Iter<'_, T> {
+    pub fn nonempty_iter(&self) -> Iter<'_, T> {
         Iter { iter: self.0.iter() }
     }
 
-    pub fn non_empty_iter_mut(&mut self) -> IterMut<'_, T> {
+    pub fn nonempty_iter_mut(&mut self) -> IterMut<'_, T> {
         IterMut {
             inner: self.0.iter_mut(),
         }
@@ -192,7 +192,6 @@ impl<T, const N: usize, const UNIQUE: bool> From<VecAtLeastN<T, N, UNIQUE>> for 
     }
 }
 
-/// A non-empty iterator over the values of an [`NEVec`].
 #[must_use = "non-empty iterators are lazy and do nothing unless consumed"]
 #[derive(Clone)]
 pub struct Iter<'a, T: 'a> {
@@ -217,7 +216,6 @@ impl<T: Debug> Debug for Iter<'_, T> {
     }
 }
 
-/// A non-empty iterator over mutable values from an [`VecNonEmpty`].
 #[derive(Debug)]
 #[must_use = "non-empty iterators are lazy and do nothing unless consumed"]
 pub struct IterMut<'a, T: 'a> {
@@ -262,9 +260,9 @@ impl<T: Debug> Debug for IntoIter<T> {
 }
 
 impl<T> IntoNonEmptyIterator for VecNonEmpty<T> {
-    type IntoNonEmptyIter = IntoIter<T>;
+    type IntoNEIter = IntoIter<T>;
 
-    fn into_non_empty_iter(self) -> Self::IntoNonEmptyIter {
+    fn into_nonempty_iter(self) -> Self::IntoNEIter {
         IntoIter {
             inner: self.0.into_iter(),
         }
@@ -272,10 +270,10 @@ impl<T> IntoNonEmptyIterator for VecNonEmpty<T> {
 }
 
 impl<'a, T> IntoNonEmptyIterator for &'a VecNonEmpty<T> {
-    type IntoNonEmptyIter = Iter<'a, T>;
+    type IntoNEIter = Iter<'a, T>;
 
-    fn into_non_empty_iter(self) -> Self::IntoNonEmptyIter {
-        self.non_empty_iter()
+    fn into_nonempty_iter(self) -> Self::IntoNEIter {
+        self.nonempty_iter()
     }
 }
 
@@ -307,7 +305,7 @@ impl<'a, T> IntoIterator for &'a mut VecNonEmpty<T> {
 }
 
 impl<T> FromNonEmptyIterator<T> for VecNonEmpty<T> {
-    fn from_non_empty_iter<I>(iter: I) -> Self
+    fn from_nonempty_iter<I>(iter: I) -> Self
     where
         I: IntoNonEmptyIterator<Item = T>,
     {
@@ -369,10 +367,9 @@ mod tests {
     use std::collections::HashSet;
     use std::panic;
 
+    use nonempty_collections::IntoNonEmptyIterator;
+    use nonempty_collections::NonEmptyIterator;
     use rstest::rstest;
-
-    use crate::non_empty_iterator::IntoNonEmptyIterator;
-    use crate::non_empty_iterator::NonEmptyIterator;
 
     use super::VecAtLeastN;
     use super::VecAtLeastTwo;
@@ -457,7 +454,7 @@ mod tests {
     #[test]
     fn test_non_empty_iter() {
         let vec = vec_non_empty![1, 2, 3];
-        let iter = vec.non_empty_iter();
+        let iter = vec.nonempty_iter();
         let (first, mut rest_iter) = iter.next();
         assert_eq!(first, &1);
         assert_eq!(rest_iter.next(), Some(&2));
@@ -468,7 +465,7 @@ mod tests {
     #[test]
     fn test_into_non_empty_iter() {
         let vec = vec_non_empty![1, 2, 3];
-        let iter = vec.into_non_empty_iter();
+        let iter = vec.into_nonempty_iter();
         let (first, mut rest_iter) = iter.next();
         assert_eq!(first, 1);
         assert_eq!(rest_iter.next(), Some(2));
@@ -480,22 +477,22 @@ mod tests {
     fn test_non_empty_iter_map() {
         let vec = vec_non_empty![1, 2, 3];
 
-        let incremented_vec = vec.non_empty_iter().map(|x| x + 1).collect::<VecNonEmpty<_>>();
+        let incremented_vec = vec.nonempty_iter().map(|x| x + 1).collect::<VecNonEmpty<_>>();
         assert_eq!(incremented_vec, vec_non_empty![2, 3, 4]);
 
-        let incremented_vec = vec.non_empty_iter().map(|x| x + 1).collect::<Vec<_>>();
+        let incremented_vec = vec.nonempty_iter().map(|x| x + 1).collect::<Vec<_>>();
         assert_eq!(incremented_vec, vec![2, 3, 4]);
 
-        let incremented_set = vec.non_empty_iter().map(|x| x + 1).collect::<HashSet<_>>();
+        let incremented_set = vec.nonempty_iter().map(|x| x + 1).collect::<HashSet<_>>();
         assert_eq!(incremented_set, HashSet::from([2, 3, 4]));
 
-        let into_vec = vec.into_non_empty_iter().collect::<VecNonEmpty<_>>();
+        let into_vec = vec.into_nonempty_iter().collect::<VecNonEmpty<_>>();
         assert_eq!(into_vec, vec_non_empty![1, 2, 3]);
     }
 
     #[test]
     fn test_non_empty_iter_fold() {
         let vec = vec_non_empty![1, 2, 3];
-        assert_eq!(6, vec.non_empty_iter().fold(0, |acc, x| acc + x));
+        assert_eq!(6, vec.nonempty_iter().fold(0, |acc, x| acc + x));
     }
 }

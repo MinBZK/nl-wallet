@@ -1,7 +1,6 @@
 pub mod built_info;
 pub mod date_time_seconds;
 pub mod generator;
-pub mod non_empty_iterator;
 pub mod path;
 pub mod single_unique;
 pub mod spawn;

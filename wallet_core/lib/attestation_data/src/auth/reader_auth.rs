@@ -135,7 +135,6 @@ pub mod mock {
     use dcql::ClaimsSelection;
     use dcql::CredentialQueryFormat;
     use dcql::Query;
-    use utils::non_empty_iterator::NonEmptyIterator;
     use utils::vec_at_least::VecNonEmpty;
 
     use super::*;

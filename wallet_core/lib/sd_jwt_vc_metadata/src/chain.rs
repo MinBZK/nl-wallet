@@ -16,7 +16,7 @@ use ssri::Algorithm;
 use ssri::Integrity;
 use ssri::IntegrityChecker;
 
-use utils::non_empty_iterator::NonEmptyIterator;
+use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::metadata::TypeMetadata;
@@ -116,7 +116,7 @@ impl TypeMetadataDocuments {
         // Start by deserializing all of the metadata documents from JSON and map them by index into `source_documents`.
         // This also automatically performs some internal consistency checks on each individual metadata document.
         let mut metadata_by_index: HashMap<_, _> = documents
-            .non_empty_iter()
+            .nonempty_iter()
             .enumerate()
             .map(|(index, json)| serde_json::from_slice::<TypeMetadata>(json).map(|metadata| (index, metadata)))
             .collect::<Result<_, _>>()?;
@@ -232,8 +232,8 @@ impl PartialEq<SortedTypeMetadataDocuments> for TypeMetadataDocuments {
         // A `TypeMetadataDocuments` is equal to a `SortedTypeMetadataDocuments` if the set of JSON documents they hold
         // is exactly the same. This holds, as a `SortedTypeMetadataDocuments` can only be constructed when there are no
         // excess JSON metadata documents within the set.
-        HashSet::<&[u8]>::from_iter(self.as_ref().non_empty_iter().map(Vec::as_slice))
-            == HashSet::from_iter(other.as_ref().non_empty_iter().map(Vec::as_slice))
+        HashSet::<&[u8]>::from_iter(self.as_ref().nonempty_iter().map(Vec::as_slice))
+            == HashSet::from_iter(other.as_ref().nonempty_iter().map(Vec::as_slice))
     }
 }
 
@@ -266,7 +266,7 @@ impl VerifiedTypeMetadataDocuments {
     pub fn to_normalized(&self) -> Result<NormalizedTypeMetadata, TypeMetadataChainError> {
         let Self(documents) = self;
         let metadata_chain = documents
-            .non_empty_iter()
+            .nonempty_iter()
             .map(|json| serde_json::from_slice(json))
             .collect::<Result<VecNonEmpty<_>, _>>()?;
         let normalized = NormalizedTypeMetadata::try_from_sorted_metadata(SortedTypeMetadata(metadata_chain))?;
@@ -431,7 +431,7 @@ mod test {
     use ssri::Integrity;
     use ssri::IntegrityOpts;
 
-    use utils::non_empty_iterator::NonEmptyIterator;
+    use utils::vec_at_least::NonEmptyIterator;
     use utils::vec_non_empty;
 
     use crate::examples::EXAMPLE_METADATA_BYTES;
@@ -493,8 +493,8 @@ mod test {
         assert_eq!(normalized.vct(), vct);
         assert_eq!(normalized.vct_count(), source_documents.as_ref().len());
         assert_eq!(
-            sorted.as_ref().non_empty_iter().collect::<HashSet<_>>(),
-            source_documents.as_ref().non_empty_iter().collect::<HashSet<_>>()
+            sorted.as_ref().nonempty_iter().collect::<HashSet<_>>(),
+            source_documents.as_ref().nonempty_iter().collect::<HashSet<_>>()
         );
         assert_eq!(
             serde_json::from_slice::<UncheckedTypeMetadata>(sorted.as_ref().first())

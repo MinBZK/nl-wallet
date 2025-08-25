@@ -3967,6 +3967,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "nonempty-collections"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3761f83543b22e36b7ea1145309acf9c251ef67dd8b186047f85d8cc985272d4"
+
+[[package]]
 name = "nu-ansi-term"
 version = "0.46.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7376,6 +7382,7 @@ dependencies = [
  "chrono",
  "derive_more",
  "itertools 0.14.0",
+ "nonempty-collections",
  "parking_lot",
  "rstest",
  "serde",

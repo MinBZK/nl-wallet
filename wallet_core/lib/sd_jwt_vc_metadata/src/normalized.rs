@@ -7,7 +7,6 @@ use itertools::Itertools;
 use jsonschema::ValidationError;
 
 use attestation_types::claim_path::ClaimPath;
-use utils::non_empty_iterator::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::chain::SortedTypeMetadata;
@@ -183,7 +182,7 @@ impl NormalizedTypeMetadata {
     }
 
     pub fn validate(&self, attestation_json: &serde_json::Value) -> Result<(), TypeMetadataValidationError> {
-        for (vct, schema) in self.vcts.non_empty_iter().zip(self.schemas.as_slice()) {
+        for (vct, schema) in self.vcts.iter().zip(self.schemas.as_slice()) {
             schema
                 .validate(attestation_json)
                 .map_err(|error| TypeMetadataValidationError(vct.clone(), error))?;
@@ -391,8 +390,8 @@ mod tests {
     use ssri::Integrity;
 
     use attestation_types::claim_path::ClaimPath;
-    use utils::non_empty_iterator::IntoNonEmptyIterator;
-    use utils::non_empty_iterator::NonEmptyIterator;
+    use utils::vec_at_least::IntoNonEmptyIterator;
+    use utils::vec_at_least::NonEmptyIterator;
     use utils::vec_at_least::VecNonEmpty;
     use utils::vec_non_empty;
 
@@ -486,7 +485,7 @@ mod tests {
         assert_eq!(
             normalized.schemas,
             vec_non_empty![metadata_v3.schema, metadata_v2.schema, metadata.schema]
-                .into_non_empty_iter()
+                .into_nonempty_iter()
                 .map(|schema_option| match schema_option {
                     SchemaOption::Embedded { schema } => *schema,
                     _ => unreachable!(),
