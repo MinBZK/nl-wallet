@@ -12,12 +12,17 @@ examples = []
 mock = []
 
 [dependencies]
+derive_more = { workspace = true, features = ["into_iterator"] }
+nutype = { workspace = true, features = ["serde"] }
+itertools.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true, features = ["std"] }
 serde_with.workspace = true
+strum.workspace = true
 thiserror.workspace = true
 
 attestation_types.path = "../attestation_types"
+error_category.path = "../error_category"
 utils.path = "../utils"
 
 [dev-dependencies]

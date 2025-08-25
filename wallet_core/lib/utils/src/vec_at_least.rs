@@ -25,6 +25,7 @@ pub enum VecAtLeastNError {
 
 // These should cover the most common use cases of `VecAtLeastN`.
 pub type VecNonEmpty<T> = VecAtLeastN<T, 1, false>;
+pub type VecNonEmptyUnique<T> = VecAtLeastN<T, 1, true>;
 pub type VecAtLeastTwo<T> = VecAtLeastN<T, 2, false>;
 pub type VecAtLeastTwoUnique<T> = VecAtLeastN<T, 2, true>;
 

@@ -1701,10 +1701,15 @@ name = "dcql"
 version = "0.4.0-dev"
 dependencies = [
  "attestation_types",
+ "derive_more",
+ "error_category",
+ "itertools 0.14.0",
+ "nutype",
  "rstest",
  "serde",
  "serde_json",
  "serde_with",
+ "strum 0.26.3",
  "thiserror 2.0.11",
  "utils",
 ]

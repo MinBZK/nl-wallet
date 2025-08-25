@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::collections::HashSet;
 use std::sync::Arc;
 use std::sync::LazyLock;
@@ -19,6 +20,7 @@ use attestation_data::constants::PID_ATTESTATION_TYPE;
 use attestation_data::constants::PID_BSN;
 use attestation_data::disclosure_type::DisclosureType;
 use attestation_types::claim_path::ClaimPath;
+use dcql::CredentialFormat;
 use dcql::CredentialQueryFormat;
 use dcql::normalized::AttributeRequest;
 use dcql::normalized::NormalizedCredentialRequest;
@@ -61,13 +63,12 @@ use super::UriType;
 use super::Wallet;
 use super::uri::identify_uri;
 
+static LOGIN_ATTESTATION_TYPES: LazyLock<HashSet<&str>> = LazyLock::new(|| HashSet::from([PID_ATTESTATION_TYPE]));
+
 /// A login request will only contain the BSN attribute, which the verifier checks against a BSN
 /// the verifier already posseses for the wallet user. For this reason it should not retain it.
-static MDOC_LOGIN_REQUEST: LazyLock<NormalizedCredentialRequest> = LazyLock::new(|| NormalizedCredentialRequest {
-    format: CredentialQueryFormat::MsoMdoc {
-        doctype_value: PID_ATTESTATION_TYPE.to_string(),
-    },
-    claims: vec![AttributeRequest {
+static LOGIN_CLAIMS: LazyLock<HashMap<CredentialFormat, AttributeRequest>> = LazyLock::new(|| {
+    let mdoc_login_claims = AttributeRequest {
         path: vec![
             ClaimPath::SelectByKey(PID_ATTESTATION_TYPE.to_string()),
             ClaimPath::SelectByKey(PID_BSN.to_string()),
@@ -75,17 +76,18 @@ static MDOC_LOGIN_REQUEST: LazyLock<NormalizedCredentialRequest> = LazyLock::new
         .try_into()
         .unwrap(),
         intent_to_retain: false,
-    }],
-});
+    };
 
-static SD_JWT_LOGIN_REQUEST: LazyLock<NormalizedCredentialRequest> = LazyLock::new(|| NormalizedCredentialRequest {
-    format: CredentialQueryFormat::SdJwt {
-        vct_values: vec![PID_ATTESTATION_TYPE.to_string()].try_into().unwrap(),
-    },
-    claims: vec![AttributeRequest {
+    let sd_jwt_login_claims = AttributeRequest {
         path: vec![ClaimPath::SelectByKey(PID_BSN.to_string())].try_into().unwrap(),
+        // TODO (PVW-4139): SD-JWT requests should not have intent_to_retain, fix this one we supper SD-JWT in DCQL.
         intent_to_retain: false,
-    }],
+    };
+
+    HashMap::from([
+        (CredentialFormat::MsoMdoc, mdoc_login_claims),
+        (CredentialFormat::SdJwt, sd_jwt_login_claims),
+    ])
 });
 
 #[derive(Debug, Clone)]
@@ -380,6 +382,7 @@ where
         let candidate_attestations = try_join_all(
             session
                 .credential_requests()
+                .as_ref()
                 .iter()
                 .map(|request| Self::fetch_candidate_attestations(&*storage, request)),
         )
@@ -393,10 +396,8 @@ where
         // needs this context both for when all requested attributes are present and for when attributes are missing.
         let disclosure_type = DisclosureType::from_credential_requests(
             session.credential_requests().as_ref(),
-            [
-                LazyLock::force(&MDOC_LOGIN_REQUEST),
-                LazyLock::force(&SD_JWT_LOGIN_REQUEST),
-            ],
+            &LOGIN_ATTESTATION_TYPES,
+            &LOGIN_CLAIMS,
         );
 
         let verifier_certificate = session.verifier_certificate();
@@ -409,7 +410,7 @@ where
             .map_err(DisclosureError::HistoryRetrieval)?;
 
         // If no suitable candidates were found for at least one of the requests, report this as an error to the UI.
-        if candidate_attestations.len() < session.credential_requests().len().get() {
+        if candidate_attestations.len() < session.credential_requests().as_ref().len() {
             info!("At least one attribute from one attestation is missing in order to satisfy the disclosure request");
 
             let reader_registration = verifier_certificate.registration().clone();
@@ -864,7 +865,7 @@ mod tests {
     use attestation_data::x509::generate::mock::generate_reader_mock;
     use attestation_types::claim_path::ClaimPath;
     use crypto::server_keys::generate::Ca;
-    use dcql::normalized;
+    use dcql::normalized::NormalizedCredentialRequests;
     use http_utils::tls::pinning::TlsPinningConfig;
     use http_utils::urls;
     use http_utils::urls::BaseUrl;
@@ -943,12 +944,14 @@ mod tests {
         requested_pid_path: &[&str],
     ) -> MockDisclosureSession {
         let credential_requests = match requested_format {
-            RequestedFormat::MsoMdoc => {
-                normalized::mock::mock_mdoc_from_slices(&[(PID_ATTESTATION_TYPE, &[requested_pid_path])])
-            }
-            RequestedFormat::SdJwt => {
-                normalized::mock::mock_sd_jwt_from_slices(&[(&[PID_ATTESTATION_TYPE], &[requested_pid_path])])
-            }
+            RequestedFormat::MsoMdoc => NormalizedCredentialRequests::new_mock_mdoc_from_slices(&[(
+                PID_ATTESTATION_TYPE,
+                &[requested_pid_path],
+            )]),
+            RequestedFormat::SdJwt => NormalizedCredentialRequests::new_mock_sd_jwt_from_slices(&[(
+                &[PID_ATTESTATION_TYPE],
+                &[requested_pid_path],
+            )]),
         };
 
         let mut disclosure_session = MockDisclosureSession::new();
