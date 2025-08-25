@@ -307,7 +307,8 @@ pub mod test {
         let status_list: StatusList = serde_json::from_value(value).unwrap();
 
         assert_eq!(status_list.0[..expected.0.len()], expected.0);
-        // everything not in the expected list should be Valid
+        // Since the example input only specifies non-valid entries, everything not in the `expected` list should've
+        // been deserialised as Valid
         assert_eq!(
             status_list.0[expected.0.len()..],
             vec![StatusType::Valid; status_list.0.len() - expected.0.len()]
