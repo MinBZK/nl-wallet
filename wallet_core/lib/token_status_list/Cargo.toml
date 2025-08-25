@@ -30,7 +30,7 @@ jwt.path = "../jwt"
 
 [dev-dependencies]
 axum = { workspace = true, features = ["http1", "tokio"] }
-crypto = { path = "../crypto", features = ["mock"] }
+p256.workspace = true
 regex.workspace = true
 reqwest = { workspace = true, features = ["json"] }
 tokio = { workspace = true, features = ["macros"] }

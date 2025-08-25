@@ -6730,6 +6730,7 @@ dependencies = [
  "http_utils",
  "jsonwebtoken",
  "jwt",
+ "p256",
  "regex",
  "reqwest",
  "rstest",

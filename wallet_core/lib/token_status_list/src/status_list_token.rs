@@ -93,10 +93,11 @@ pub struct StatusListClaims {
 mod test {
     use axum::Router;
     use axum::routing::get;
+    use p256::ecdsa::SigningKey;
+    use p256::elliptic_curve::rand_core::OsRng;
     use serde_json::json;
     use tokio::net::TcpListener;
 
-    use crypto::mock_remote::MockRemoteEcdsaKey;
     use http_utils::urls::BaseUrl;
     use tests_integration::common::wait_for_server;
 
@@ -125,7 +126,7 @@ mod test {
 
         let claims: StatusListClaims = serde_json::from_value(example_payload).unwrap();
 
-        let key = MockRemoteEcdsaKey::new_random("key".to_string());
+        let key = SigningKey::random(&mut OsRng);
         let signed = StatusListToken::try_new(claims.iat, claims.exp, claims.sub, claims.ttl, claims.status_list, &key)
             .await
             .unwrap();
@@ -150,7 +151,7 @@ mod test {
             "https://example.com/statuslists/1".parse().unwrap(),
             Some(Duration::from_secs(43200)),
             EXAMPLE_STATUS_LIST_ONE.to_owned(),
-            &MockRemoteEcdsaKey::new_random("key".to_string()),
+            &SigningKey::random(&mut OsRng),
         )
         .await
         .unwrap();
