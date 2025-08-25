@@ -72,6 +72,11 @@ test-android:
         universal_link_base:"${UL_HOSTNAME:-}" \
         build:"$((CI_PIPELINE_IID + APP_BUILD_OFFSET))" \
         version:"${VERSION:-}"
+    - |
+      if [[ -f *.aab ]] && jarsigner -verify *.aab | grep -q 'jar is unsigned'; then
+        echo "Unsigned build, correctly set key.properties and key store"
+        exit 1
+      fi
   after_script:
     - rm wallet_app/android/upload-keystore.jks wallet_app/android/key.properties
 
