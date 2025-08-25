@@ -168,14 +168,14 @@ pub mod mock {
         }
 
         pub fn mock_from_dcql_query(dcql_query: &Query) -> Self {
-            let authorized_attributes = dcql_query.credentials.iter().fold(
+            let authorized_attributes = dcql_query.credentials.as_ref().iter().fold(
                 HashMap::new(),
                 |mut acc: HashMap<String, Vec<VecNonEmpty<ClaimPath>>>, credential_query| {
                     match credential_query.format {
                         CredentialQueryFormat::MsoMdoc { ref doctype_value } => {
                             let claim_paths = match &credential_query.claims_selection {
                                 ClaimsSelection::All { claims } => {
-                                    claims.iter().map(|c| c.path.clone()).collect::<Vec<_>>()
+                                    claims.as_ref().iter().map(|c| c.path.clone()).collect::<Vec<_>>()
                                 }
                                 ClaimsSelection::NoSelectivelyDisclosable | ClaimsSelection::Combinations { .. } => {
                                     unimplemented!()
@@ -266,14 +266,14 @@ mod test {
     use assert_matches::assert_matches;
     use rstest::rstest;
 
-    use dcql::normalized;
+    use dcql::normalized::NormalizedCredentialRequests;
 
     use super::mock::*;
     use super::*;
 
     #[rstest]
     #[case(
-        normalized::mock::mock_mdoc_from_slices(&[
+        NormalizedCredentialRequests::new_mock_mdoc_from_slices(&[
             (
                 "some_doctype",
                 &[
@@ -294,7 +294,7 @@ mod test {
         None
     )]
     #[case(
-        normalized::mock::mock_sd_jwt_from_slices(&[(
+        NormalizedCredentialRequests::new_mock_sd_jwt_from_slices(&[(
             &["some_doctype", "another_doctype"],
             &[
                 &["some_namespace", "some_attribute"],
@@ -306,7 +306,7 @@ mod test {
         None
     )]
     #[case(
-        normalized::mock::mock_mdoc_from_slices(&[
+        NormalizedCredentialRequests::new_mock_mdoc_from_slices(&[
             (
                 "some_doctype",
                 &[
@@ -368,7 +368,7 @@ mod test {
         ]))
     )]
     #[case(
-        normalized::mock::mock_sd_jwt_from_slices(&[(
+        NormalizedCredentialRequests::new_mock_sd_jwt_from_slices(&[(
             &["some_doctype", "missing_doctype"],
             &[
                 &["some_namespace", "some_attribute"],
@@ -427,7 +427,7 @@ mod test {
         ]))
     )]
     fn test_reader_registration_verify_requested_attributes(
-        #[case] requested_attributes: VecNonEmpty<NormalizedCredentialRequest>,
+        #[case] requested_attributes: NormalizedCredentialRequests,
         #[case] expected_unregistered: Option<HashMap<String, HashSet<VecNonEmpty<ClaimPath>>>>,
     ) {
         let registration = create_some_registration();

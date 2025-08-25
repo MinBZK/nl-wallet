@@ -17,6 +17,7 @@ use crypto::utils::random_string;
 use dcql::CredentialQueryFormat;
 use dcql::normalized::AttributeRequest;
 use dcql::normalized::NormalizedCredentialRequest;
+use dcql::normalized::NormalizedCredentialRequests;
 use error_category::ErrorCategory;
 use mdoc::Document;
 use utils::vec_at_least::VecNonEmpty;
@@ -118,11 +119,11 @@ impl Field {
     }
 }
 
-// TODO: Remove in PVW-4419
-impl TryFrom<&VecNonEmpty<NormalizedCredentialRequest>> for PresentationDefinition {
+// TODO: Remove in PVW-4420
+impl TryFrom<&NormalizedCredentialRequests> for PresentationDefinition {
     type Error = PdConversionError;
 
-    fn try_from(requested_creds: &VecNonEmpty<NormalizedCredentialRequest>) -> Result<Self, Self::Error> {
+    fn try_from(requested_creds: &NormalizedCredentialRequests) -> Result<Self, Self::Error> {
         let pd = PresentationDefinition {
             id: random_string(16),
             input_descriptors: requested_creds
@@ -183,14 +184,15 @@ pub struct PresentationSubmission {
     pub descriptor_map: Vec<InputDescriptorMappingObject>,
 }
 
-impl TryFrom<&PresentationDefinition> for VecNonEmpty<NormalizedCredentialRequest> {
+impl TryFrom<&PresentationDefinition> for NormalizedCredentialRequests {
     type Error = PdConversionError;
 
     fn try_from(pd: &PresentationDefinition) -> Result<Self, Self::Error> {
         let credential_requests = pd
             .input_descriptors
             .iter()
-            .map(|input_descriptor| {
+            .enumerate()
+            .map(|(index, input_descriptor)| {
                 let alg = match &input_descriptor.format {
                     VpFormat::MsoMdoc { alg } => alg,
                     VpFormat::SdJwt { alg } => alg,
@@ -216,9 +218,14 @@ impl TryFrom<&PresentationDefinition> for VecNonEmpty<NormalizedCredentialReques
                             intent_to_retain: field.intent_to_retain,
                         })
                     })
-                    .collect::<Result<_, _>>()?;
+                    .collect::<Result<Vec<_>, _>>()?
+                    .try_into()
+                    // TODO (PVW-4419): This unwrap is temporary and will be removed when we switch over to using DCQL.
+                    .unwrap();
 
                 Ok(NormalizedCredentialRequest {
+                    // TODO (PVW-4419): This unwrap is temporary and will be removed when we switch over to using DCQL.
+                    id: format!("mdoc_{index}").try_into().unwrap(),
                     format: CredentialQueryFormat::MsoMdoc {
                         doctype_value: input_descriptor.id.clone(),
                     },
@@ -297,8 +304,7 @@ mod tests {
     use rstest::rstest;
     use serde_json::json;
 
-    use dcql::normalized;
-    use dcql::normalized::NormalizedCredentialRequest;
+    use dcql::normalized::NormalizedCredentialRequests;
     use utils::vec_at_least::VecNonEmpty;
 
     use crate::presentation_exchange::Field;
@@ -344,11 +350,19 @@ mod tests {
 
     #[test]
     fn convert_pd_credential_requests() {
-        let orginal: VecNonEmpty<NormalizedCredentialRequest> = normalized::mock::example();
-        let pd: PresentationDefinition = (&orginal).try_into().unwrap();
-        let converted: VecNonEmpty<NormalizedCredentialRequest> = (&pd).try_into().unwrap();
+        let orginal = NormalizedCredentialRequests::new_big_example();
+        let pd = PresentationDefinition::try_from(&orginal).unwrap();
+        let converted = NormalizedCredentialRequests::try_from(&pd).unwrap();
 
-        assert_eq!(orginal, converted);
+        assert_eq!(orginal.as_ref().len(), converted.as_ref().len());
+        assert_eq!(
+            orginal.as_ref().first().unwrap().format,
+            converted.as_ref().first().unwrap().format
+        );
+        assert_eq!(
+            orginal.as_ref().first().unwrap().claims,
+            converted.as_ref().first().unwrap().claims
+        );
     }
 
     #[test]

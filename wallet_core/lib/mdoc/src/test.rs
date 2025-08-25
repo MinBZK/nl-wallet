@@ -334,6 +334,8 @@ impl MdocCose<CoseSign1, TaggedBytes<MobileSecurityObject>> {
 
 #[cfg(any(test, feature = "mock"))]
 pub mod data {
+    use itertools::Itertools;
+
     use attestation_types::claim_path::ClaimPath;
     use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
     use dcql::ClaimsQuery;
@@ -343,7 +345,7 @@ pub mod data {
     use dcql::Query;
     use dcql::normalized::AttributeRequest;
     use dcql::normalized::NormalizedCredentialRequest;
-    use utils::vec_at_least::VecNonEmpty;
+    use dcql::normalized::NormalizedCredentialRequests;
 
     use super::*;
 
@@ -451,39 +453,41 @@ pub mod data {
         .into()
     }
 
-    impl From<TestDocument> for NormalizedCredentialRequest {
-        fn from(source: TestDocument) -> Self {
-            let format = CredentialQueryFormat::MsoMdoc {
-                doctype_value: source.doc_type,
-            };
+    fn credential_request_from((id, source): (usize, TestDocument)) -> NormalizedCredentialRequest {
+        let id = format!("id-{id}").try_into().unwrap();
+        let format = CredentialQueryFormat::MsoMdoc {
+            doctype_value: source.doc_type,
+        };
 
-            // unwrap below is safe because claims path is not empty
-            let claims = source
-                .namespaces
-                .into_iter()
-                .flat_map(|(namespace, attrs)| {
-                    attrs.into_iter().map(move |entry| AttributeRequest {
-                        path: vec![
-                            ClaimPath::SelectByKey(namespace.clone()),
-                            ClaimPath::SelectByKey(entry.name),
-                        ]
-                        .try_into()
-                        .unwrap(),
-                        intent_to_retain: true,
-                    })
+        // unwrap below is safe because claims path is not empty
+        let claims = source
+            .namespaces
+            .into_iter()
+            .flat_map(|(namespace, attrs)| {
+                attrs.into_iter().map(move |entry| AttributeRequest {
+                    path: vec![
+                        ClaimPath::SelectByKey(namespace.clone()),
+                        ClaimPath::SelectByKey(entry.name),
+                    ]
+                    .try_into()
+                    .unwrap(),
+                    intent_to_retain: true,
                 })
-                .collect();
+            })
+            .collect_vec()
+            .try_into()
+            .expect("TestDocument has attributes");
 
-            NormalizedCredentialRequest { format, claims }
-        }
+        NormalizedCredentialRequest { id, format, claims }
     }
 
-    impl From<TestDocuments> for VecNonEmpty<NormalizedCredentialRequest> {
+    impl From<TestDocuments> for NormalizedCredentialRequests {
         fn from(source: TestDocuments) -> Self {
             source
                 .0
                 .into_iter()
-                .map(Into::into)
+                .enumerate()
+                .map(credential_request_from)
                 .collect::<Vec<_>>()
                 .try_into()
                 .unwrap()
@@ -492,7 +496,7 @@ pub mod data {
 
     fn credential_query_from((id, source): (usize, TestDocument)) -> CredentialQuery {
         CredentialQuery {
-            id: format!("id-{id}"),
+            id: format!("id-{id}").try_into().unwrap(),
             format: CredentialQueryFormat::MsoMdoc {
                 doctype_value: source.doc_type,
             },

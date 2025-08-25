@@ -5,9 +5,8 @@ use tracing::warn;
 
 use crypto::utils as crypto_utils;
 use crypto::x509::BorrowingCertificate;
-use dcql::normalized::NormalizedCredentialRequest;
+use dcql::normalized::NormalizedCredentialRequests;
 use http_utils::urls::BaseUrl;
-use utils::vec_at_least::VecNonEmpty;
 
 use crate::errors::AuthorizationErrorCode;
 use crate::errors::ErrorResponse;
@@ -80,7 +79,7 @@ impl<H> VpDisclosureClient<H> {
     fn process_auth_request(
         request_uri_client_id: &str,
         auth_request_client_id: &str,
-        credential_requests: &VecNonEmpty<NormalizedCredentialRequest>,
+        credential_requests: &NormalizedCredentialRequests,
         certificate: BorrowingCertificate,
     ) -> Result<VerifierCertificate, VpVerifierError> {
         // The `client_id` in the Authorization Request, which has been authenticated, has to equal
@@ -205,7 +204,7 @@ mod tests {
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
     use crypto::x509::BorrowingCertificateExtension;
-    use dcql::normalized;
+    use dcql::normalized::NormalizedCredentialRequests;
     use http_utils::urls::BaseUrl;
     use mdoc::holder::disclosure::PartialMdoc;
     use mdoc::test::data::PID;
@@ -339,7 +338,7 @@ mod tests {
         // Check all of the data the new `VpDisclosureSession` exposes.
         assert_eq!(disclosure_session.session_type(), session_type);
 
-        let expected_credential_requests = normalized::mock::mock_mdoc_from_slices(&[(
+        let expected_credential_requests = NormalizedCredentialRequests::new_mock_mdoc_from_slices(&[(
             PID,
             &[&[PID, "bsn"], &[PID, "given_name"], &[PID, "family_name"]],
         )]);

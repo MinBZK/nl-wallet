@@ -966,9 +966,17 @@ async fn perform_full_disclosure(session_type: SessionType) -> (Client, SessionT
 
     // Have the holder actually disclosure the example attributes to the verification_server,
     // after which the status endpoint should report that the session is Done.
-    assert_eq!(disclosure_session.credential_requests().len().get(), 1);
-    let partial_mdoc =
-        PartialMdoc::try_new(mdoc, disclosure_session.credential_requests().first().claim_paths()).unwrap();
+    assert_eq!(disclosure_session.credential_requests().as_ref().len(), 1);
+    let partial_mdoc = PartialMdoc::try_new(
+        mdoc,
+        disclosure_session
+            .credential_requests()
+            .as_ref()
+            .first()
+            .unwrap()
+            .claim_paths(),
+    )
+    .unwrap();
 
     let return_url = disclosure_session
         .disclose(vec![partial_mdoc].try_into().unwrap(), &wscd)
@@ -1093,9 +1101,17 @@ async fn test_disclosed_attributes_failed_session() {
 
     // Disclose the expired attestation from the examples in the ISO specification.
     let mdoc = Mdoc::new_example_resigned(&issuer_ca).await;
-    assert_eq!(disclosure_session.credential_requests().len().get(), 1);
-    let partial_mdoc =
-        PartialMdoc::try_new(mdoc, disclosure_session.credential_requests().first().claim_paths()).unwrap();
+    assert_eq!(disclosure_session.credential_requests().as_ref().len(), 1);
+    let partial_mdoc = PartialMdoc::try_new(
+        mdoc,
+        disclosure_session
+            .credential_requests()
+            .as_ref()
+            .first()
+            .unwrap()
+            .claim_paths(),
+    )
+    .unwrap();
 
     disclosure_session
         .disclose(vec![partial_mdoc].try_into().unwrap(), &MockRemoteWscd::new_example())

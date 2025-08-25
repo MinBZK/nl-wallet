@@ -2,21 +2,90 @@ pub mod normalized;
 
 use std::ops::Not;
 
+use itertools::Itertools;
+use nutype::nutype;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
+use strum::EnumDiscriminants;
 
 use attestation_types::claim_path::ClaimPath;
 use utils::vec_at_least::VecNonEmpty;
+use utils::vec_at_least::VecNonEmptyUnique;
+
+#[derive(Debug, thiserror::Error)]
+pub enum IdentifierError {
+    #[error("identifier is an empty string")]
+    Empty,
+    #[error("identifier contains illegal characters: {0}")]
+    IllegalCharacters(String),
+}
+
+fn validate_identifier_str(id: &str) -> Result<(), IdentifierError> {
+    if id.is_empty() {
+        return Err(IdentifierError::Empty);
+    }
+
+    if !id.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-') {
+        return Err(IdentifierError::IllegalCharacters(id.to_string()));
+    }
+
+    Ok(())
+}
+
+#[nutype(
+    derive(Debug, Clone, PartialEq, Eq, Hash, Display, AsRef, TryFrom, Serialize, Deserialize),
+    validate(with = validate_identifier_str, error = IdentifierError),
+)]
+pub struct CredentialQueryIdentifier(String);
+
+#[nutype(
+    derive(Debug, Clone, PartialEq, Eq, Hash, Display, AsRef, TryFrom, Serialize, Deserialize),
+    validate(with = validate_identifier_str, error = IdentifierError),
+)]
+pub struct ClaimsQueryIdentifier(String);
+
+trait MayHaveUniqueId {
+    fn id(&self) -> Option<&str>;
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum UniqueIdVecError {
+    #[error("source vec is empty")]
+    Empty,
+    #[error("source vec contains items with duplicate identifiers")]
+    DuplicateIds,
+}
+
+fn validate_vec_non_empt_and_unique_ids<T>(items: &[T]) -> Result<(), UniqueIdVecError>
+where
+    T: MayHaveUniqueId,
+{
+    if items.is_empty() {
+        return Err(UniqueIdVecError::Empty);
+    }
+
+    if !items.iter().flat_map(MayHaveUniqueId::id).all_unique() {
+        return Err(UniqueIdVecError::DuplicateIds);
+    }
+
+    Ok(())
+}
+
+#[nutype(
+    derive(Debug, Clone, PartialEq, Eq, AsRef, TryFrom, IntoIterator, Serialize, Deserialize),
+    validate(with = validate_vec_non_empt_and_unique_ids, error = UniqueIdVecError),
+)]
+pub struct UniqueIdVec<T: MayHaveUniqueId>(Vec<T>);
 
 /// A DCQL query, encoding constraints on the combinations of credentials and claims that are requested.
 /// The Wallet must evaluate the query against the Credentials it holds and returns Presentations matching the query.
 ///
 /// <https://openid.net/specs/openid-4-verifiable-presentations-1_0-28.html#name-digital-credentials-query-l>
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Query {
     /// Credential Queries that specify the requested Credentials.
-    pub credentials: VecNonEmpty<CredentialQuery>,
+    pub credentials: UniqueIdVec<CredentialQuery>,
 
     /// Additional constraints, if any, on which of the requested Credentials to return.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -27,12 +96,12 @@ pub struct Query {
 ///
 /// <https://openid.net/specs/openid-4-verifiable-presentations-1_0-28.html#name-credential-query>
 #[skip_serializing_none]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CredentialQuery {
     /// Identifies the Credential in the response and, if provided, the constraints in credential_sets. MUST be
     /// non-empty consisting of alphanumeric, underscore (_) or hyphen (-) characters. MUST be unique within the
     /// Authorization Request.
-    pub id: String,
+    pub id: CredentialQueryIdentifier,
 
     /// Specifies the format of the requested Credential.
     #[serde(flatten)]
@@ -59,8 +128,14 @@ pub struct CredentialQuery {
     pub claims_selection: ClaimsSelection,
 }
 
+impl MayHaveUniqueId for CredentialQuery {
+    fn id(&self) -> Option<&str> {
+        Some(self.id.as_ref())
+    }
+}
+
 /// Specifies which claims (if any) of the Credential is requested by the RP.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum ClaimsSelection {
     /// The RP requests none of the selectively disclosable claims of the Credential.
@@ -69,21 +144,23 @@ pub enum ClaimsSelection {
     /// The RP specifies several options of combinations of requested claims.
     Combinations {
         /// Objects that specify claims in the requested Credential.
-        claims: VecNonEmpty<ClaimsQuery>,
+        claims: UniqueIdVec<ClaimsQuery>,
 
         /// Arrays of identifiers for elements in claims that specifies which combinations of claims for the Credential
         /// are requested.
-        claim_sets: VecNonEmpty<VecNonEmpty<String>>,
+        claim_sets: VecNonEmpty<VecNonEmptyUnique<ClaimsQueryIdentifier>>,
     },
 
     /// The RP requests all of the contained claims.
     All {
         /// Objects that specify claims in the requested Credential.
-        claims: VecNonEmpty<ClaimsQuery>,
+        claims: UniqueIdVec<ClaimsQuery>,
     },
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, EnumDiscriminants)]
+#[strum_discriminants(derive(Hash, strum::Display))]
+#[strum_discriminants(name(CredentialFormat))]
 #[serde(tag = "format", content = "meta", rename_all = "snake_case")]
 pub enum CredentialQueryFormat {
     MsoMdoc {
@@ -116,12 +193,12 @@ impl CredentialQueryFormat {
 /// Represents a request for one or more credentials to satisfy a particular use case with the Verifier.
 ///
 /// <https://openid.net/specs/openid-4-verifiable-presentations-1_0-28.html#name-credential-set-query>
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CredentialSetQuery {
     /// A non-empty array, where each value in the array is a list of Credential Query identifiers representing
     /// one set of Credentials that satisfies the use case. The value of each element in the options array is
     /// an array of identifiers which reference elements in the `credentials` field of [`Query`].
-    pub options: VecNonEmpty<VecNonEmpty<String>>,
+    pub options: VecNonEmpty<VecNonEmptyUnique<CredentialQueryIdentifier>>,
 
     /// Indicates whether this set of Credentials is required to satisfy the particular use case at the Verifier.
     /// If omitted, the default value is true.
@@ -134,7 +211,7 @@ pub struct CredentialSetQuery {
 /// in one of the provided types.
 ///
 /// <https://openid.net/specs/openid-4-verifiable-presentations-1_0-28.html#dcql_trusted_authorities>
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "type", content = "values", rename_all = "snake_case")]
 pub enum TrustedAuthoritiesQuery {
     /// Contains the KeyIdentifier of the AuthorityKeyIdentifier as defined in Section 4.2.1.1 of [RFC5280],
@@ -153,13 +230,13 @@ pub enum TrustedAuthoritiesQuery {
 ///
 /// <https://openid.net/specs/openid-4-verifiable-presentations-1_0-28.html#name-claims-query>
 #[skip_serializing_none]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ClaimsQuery {
     /// A string identifying the particular claim.
     /// REQUIRED if claim_sets is present in the Credential Query; OPTIONAL otherwise.
     /// The value MUST be a non-empty string consisting of alphanumeric, underscore (_) or hyphen (-) characters.
     /// Within the particular claims array, the same id MUST NOT be present more than once.
-    pub id: Option<String>,
+    pub id: Option<ClaimsQueryIdentifier>,
 
     /// Claims path pointers that specify the path to a claim within the Credential.
     pub path: VecNonEmpty<ClaimPath>,
@@ -174,6 +251,12 @@ pub struct ClaimsQuery {
     ///
     /// <https://openid.net/specs/openid-4-verifiable-presentations-1_0-28.html#name-parameter-in-the-claims-que>
     pub intent_to_retain: Option<bool>,
+}
+
+impl MayHaveUniqueId for ClaimsQuery {
+    fn id(&self) -> Option<&str> {
+        self.id.as_ref().map(|id| id.as_ref())
+    }
 }
 
 const fn bool_value<const B: bool>() -> bool {
@@ -299,5 +382,86 @@ mod tests {
         });
 
         assert_eq!(serde_json::to_value(&query).unwrap(), expected);
+    }
+
+    #[test]
+    fn test_empty_credentials_error() {
+        let json = json!({
+            "credentials": []
+        });
+
+        let _ = serde_json::from_value::<Query>(json).expect_err("deserializing Query should not succeed");
+    }
+
+    #[test]
+    fn test_empty_claims_error() {
+        let json = json!({
+            "credentials": [
+                {
+                    "id": "pid",
+                    "format": "dc+sd-jwt",
+                    "meta": {
+                        "vct_values": [ "https://credentials.example.com/identity_credential" ]
+                    },
+                    "claims": []
+                }
+            ]
+        });
+
+        let _ = serde_json::from_value::<Query>(json).expect_err("deserializing Query should not succeed");
+    }
+
+    #[rstest]
+    #[case(("foo", "bar"), (Some("bleh"), Some("blah")), true)]
+    #[case(("foo", "bar"), (None, None), true)]
+    #[case(("foo", "bar"), (Some("bleh"), None), true)]
+    #[case(("foo", "bar"), (None, Some("bleh")), true)]
+    #[case(("foo", "foo"), (None, None), false)]
+    #[case(("foo", "foo"), (Some("bleh"), Some("blah")), false)]
+    #[case(("foo", "bar"), (Some("bleh"), Some("bleh")), false)]
+    #[case(("foo!", "bar"), (None, None), false)]
+    #[case(("foo", "café"), (None, None), false)]
+    #[case(("悪い", "bar"), (None, None), false)]
+    #[case(("🐈", "bar"), (None, None), false)]
+    #[case(("foo", "bar"), (Some("bleh"), Some("#blah")), false)]
+    fn test_credential_and_claim_id_errors(
+        #[case] (first_credential_id, second_credential_id): (&str, &str),
+        #[case] (first_claim_id, second_claim_id): (Option<&str>, Option<&str>),
+        #[case] should_succeed: bool,
+    ) {
+        let json = json!({
+            "credentials": [
+                {
+                    "id": first_credential_id,
+                    "format": "dc+sd-jwt",
+                    "meta": {
+                        "vct_values": ["https://credentials.example.com/identity_credential" ]
+                    },
+                    "claims": [
+                        { "id": first_claim_id, "path": [ "given_name" ] },
+                        { "id": second_claim_id, "path": [ "family_name" ] }
+                    ]
+                },
+                {
+                    "id": second_credential_id,
+                    "format": "dc+sd-jwt",
+                    "meta": {
+                        "vct_values": [ "https://othercredentials.example/pid" ]
+                    },
+                    "require_cryptographic_holder_binding": false,
+                    "claims": [
+                        { "path": [ "address", null, 1, "street_address" ] }
+                    ]
+                }
+            ]
+        });
+
+        let result = serde_json::from_value::<Query>(json);
+
+        if should_succeed {
+            let _ = result.expect("deserializing Query should succeed");
+        } else {
+            let _ = result.expect_err("deserializing Query should not succeed");
+        }
     }
 }

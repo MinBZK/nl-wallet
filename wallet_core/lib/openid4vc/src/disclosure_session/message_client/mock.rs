@@ -16,10 +16,10 @@ use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::utils as crypto_utils;
 use dcql::normalized::NormalizedCredentialRequest;
+use dcql::normalized::NormalizedCredentialRequests;
 use http_utils::urls::BaseUrl;
 use jwt::Jwt;
 use mdoc::SessionTranscript;
-use utils::vec_at_least::VecNonEmpty;
 
 use crate::errors::ErrorResponse;
 use crate::errors::VpAuthorizationErrorCode;
@@ -139,7 +139,7 @@ pub struct MockVerifierSession {
     pub redirect_uri: Option<BaseUrl>,
     pub reader_registration: Option<ReaderRegistration>,
     pub trust_anchors: Vec<TrustAnchor<'static>>,
-    pub credential_requests: VecNonEmpty<NormalizedCredentialRequest>,
+    pub credential_requests: NormalizedCredentialRequests,
     pub nonce: String,
     pub encryption_keypair: EcKeyPair,
     pub request_uri_object: VpRequestUriObject,
