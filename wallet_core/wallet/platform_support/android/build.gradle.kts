@@ -1,3 +1,4 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import net.razvan.JacocoToCoberturaPlugin
 import net.razvan.JacocoToCoberturaTask
 
@@ -12,14 +13,14 @@ val ndkTargets = System.getenv("ANDROID_NDK_TARGETS")?.split(' ')
 
 android {
     namespace  = "nl.rijksoverheid.edi.wallet.platform_support"
-    compileSdk = 35
+    compileSdk = 36
     // Use NDK r28b to get 16kB page size
     ndkVersion = "28.1.13356709"
 
     defaultConfig {
         minSdk = 24
-        lint { targetSdk = 35 }
-        testOptions { targetSdk = 35 }
+        lint { targetSdk = 36 }
+        testOptions { targetSdk = 36 }
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
@@ -75,16 +76,18 @@ android {
         targetCompatibility = JavaVersion.VERSION_11
     }
 
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11.toString()
-        freeCompilerArgs += "-Xstring-concat=inline"
-    }
-
     sourceSets {
         getByName("main") {
             // UniFFI generated bindings
             kotlin.srcDirs("../kotlin")
         }
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget = JvmTarget.JVM_11
+        freeCompilerArgs = listOf("-Xstring-concat=inline")
     }
 }
 
