@@ -4,8 +4,8 @@ use serde::Serialize;
 use http_utils::urls::HttpsUri;
 
 /// By including a "status" claim in a Referenced Token, the Issuer is referencing a mechanism to retrieve status
-/// information about this Referenced Token. This specification defines one possible member of the "status" object,
-/// called "status_list". Other members of the "status" object may be defined by other specifications.
+/// information about this Referenced Token. This crate defines one possible member of the "status" object,
+/// called "status_list".
 ///
 /// ```json
 /// "status": {

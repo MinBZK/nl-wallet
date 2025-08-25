@@ -11,6 +11,10 @@ use serde::ser::SerializeStruct;
 use serde_repr::Deserialize_repr;
 use serde_repr::Serialize_repr;
 
+/// A Status List is a data structure that contains the statuses of many Referenced Tokens represented by one or
+/// multiple bits.
+///
+/// <https://www.ietf.org/archive/id/draft-ietf-oauth-status-list-12.html#name-status-list>
 #[derive(Debug, Clone, PartialEq, Eq, AsRef)]
 pub struct StatusList(Vec<StatusType>);
 
