@@ -865,7 +865,6 @@ mod test {
         json!({
             "iss": "https://iss.example.com",
             "iat": Utc::now().timestamp(),
-            "exp": (Utc::now() + Duration::days(1)).timestamp(),
             "given_name": "John",
             "family_name": "Doe"
         }),
@@ -878,7 +877,6 @@ mod test {
         json!({
             "iss": "https://iss.example.com",
             "iat": Utc::now().timestamp(),
-            "exp": (Utc::now() + Duration::days(1)).timestamp(),
             "given_name": "John",
             "family_name": "Doe"
         }),
@@ -891,7 +889,6 @@ mod test {
         json!({
             "iss": "https://iss.example.com",
             "iat": Utc::now().timestamp(),
-            "exp": (Utc::now() + Duration::days(1)).timestamp(),
             "given_name": "John",
             "family_name": "Doe"
         }),
@@ -904,7 +901,6 @@ mod test {
         json!({
             "iss": "https://iss.example.com",
             "iat": Utc::now().timestamp(),
-            "exp": (Utc::now() + Duration::days(1)).timestamp(),
             "given_name": "John",
             "family_name": "Doe"
         }),
@@ -917,7 +913,6 @@ mod test {
         json!({
             "iss": "https://iss.example.com",
             "iat": Utc::now().timestamp(),
-            "exp": (Utc::now() + Duration::days(1)).timestamp(),
             "given_name": "John",
             "family_name": "Doe"
         }),
@@ -930,7 +925,6 @@ mod test {
         json!({
             "iss": "https://iss.example.com",
             "iat": Utc::now().timestamp(),
-            "exp": (Utc::now() + Duration::days(1)).timestamp(),
             "address": {
                 "street": "Main st.",
                 "house_number": 4
@@ -945,7 +939,6 @@ mod test {
         json!({
             "iss": "https://iss.example.com",
             "iat": Utc::now().timestamp(),
-            "exp": (Utc::now() + Duration::days(1)).timestamp(),
             "address": {
                 "street": "Main st.",
                 "house_number": 4
@@ -960,7 +953,6 @@ mod test {
         json!({
             "iss": "https://iss.example.com",
             "iat": Utc::now().timestamp(),
-            "exp": (Utc::now() + Duration::days(1)).timestamp(),
             "address": {
                 "street": "Main st.",
                 "house_number": 4
@@ -975,7 +967,6 @@ mod test {
         json!({
             "iss": "https://iss.example.com",
             "iat": Utc::now().timestamp(),
-            "exp": (Utc::now() + Duration::days(1)).timestamp(),
             "address": {
                 "street": "Main st.",
                 "house_number": 4
@@ -990,7 +981,6 @@ mod test {
         json!({
             "iss": "https://iss.example.com",
             "iat": Utc::now().timestamp(),
-            "exp": (Utc::now() + Duration::days(1)).timestamp(),
             "address": {"street": "Main st.", "house_number": 4 }
         }),
         &[vec!["address"]],
@@ -1002,7 +992,6 @@ mod test {
         json!({
             "iss": "https://iss.example.com",
             "iat": Utc::now().timestamp(),
-            "exp": (Utc::now() + Duration::days(1)).timestamp(),
             "nationalities": ["NL", "DE"]
         }),
         &[vec!["nationalities"]],
@@ -1074,7 +1063,6 @@ mod test {
         json!({
             "iss": "https://iss.example.com",
             "iat": Utc::now().timestamp(),
-            "exp": (Utc::now() + Duration::days(1)).timestamp(),
             "nationalities": ["NL", "DE"]
         }),
         &[vec!["nationalities", "0"], vec!["nationalities", "1"]],
@@ -1086,7 +1074,6 @@ mod test {
         json!({
             "iss": "https://iss.example.com",
             "iat": Utc::now().timestamp(),
-            "exp": (Utc::now() + Duration::days(1)).timestamp(),
             "nationalities": ["NL", "DE"]
         }),
         &[vec!["nationalities", "0"], vec!["nationalities", "1"], vec!["nationalities"]],
@@ -1098,7 +1085,6 @@ mod test {
         json!({
             "iss": "https://iss.example.com",
             "iat": Utc::now().timestamp(),
-            "exp": (Utc::now() + Duration::days(1)).timestamp(),
             "nationalities": ["NL", "DE"]
         }),
         &[vec!["nationalities", "0"]],
@@ -1110,7 +1096,6 @@ mod test {
         json!({
             "iss": "https://iss.example.com",
             "iat": Utc::now().timestamp(),
-            "exp": (Utc::now() + Duration::days(1)).timestamp(),
             "nationalities": [{"country": "NL"}, {"country": "DE"}]
         }),
         &[
@@ -1128,7 +1113,6 @@ mod test {
         json!({
             "iss": "https://iss.example.com",
             "iat": Utc::now().timestamp(),
-            "exp": (Utc::now() + Duration::days(1)).timestamp(),
             "nationalities": [{"country": "NL"}, {"country": "DE"}]
         }),
         &[vec!["nationalities", "0"], vec!["nationalities", "1"], vec!["nationalities"]],
@@ -1140,7 +1124,6 @@ mod test {
         json!({
             "iss": "https://iss.example.com",
             "iat": Utc::now().timestamp(),
-            "exp": (Utc::now() + Duration::days(1)).timestamp(),
             "nationalities": ["NL", "DE"]
         }),
         &[vec!["nationalities", "0"], vec!["nationalities", "1"]],
@@ -1152,7 +1135,6 @@ mod test {
         json!({
             "iss": "https://iss.example.com",
             "iat": Utc::now().timestamp(),
-            "exp": (Utc::now() + Duration::days(1)).timestamp(),
             "nationalities": ["NL", "DE"]
         }),
         &[vec!["nationalities", "0"], vec!["nationalities", "1"], vec!["nationalities"]],
@@ -1164,7 +1146,6 @@ mod test {
         json!({
             "iss": "https://iss.example.com",
             "iat": Utc::now().timestamp(),
-            "exp": (Utc::now() + Duration::days(1)).timestamp(),
             "nationalities": [{"country": "NL"}, {"country": "DE"}]
         }),
         &[
@@ -1182,7 +1163,6 @@ mod test {
         json!({
             "iss": "https://iss.example.com",
             "iat": Utc::now().timestamp(),
-            "exp": (Utc::now() + Duration::days(1)).timestamp(),
             "nationalities": [{"country": "NL"}, {"country": "DE"}]
         }),
         &[vec!["nationalities", "0"], vec!["nationalities", "1"], vec!["nationalities"]],

@@ -124,15 +124,7 @@ mod tests {
         let issuance_keypair = generate_issuer_mock(&ca, IssuerRegistration::new_mock().into()).unwrap();
 
         let sd_jwt = VerifiedSdJwt::pid_example(&issuance_keypair);
-        let attestation_type = sd_jwt
-            .as_ref()
-            .claims()
-            .properties
-            .get("vct")
-            .unwrap()
-            .as_str()
-            .unwrap()
-            .to_string();
+        let attestation_type = sd_jwt.as_ref().claims().vct.as_ref().unwrap().to_owned();
         let mdoc_credential = test::create_example_pid_mdoc_credential();
 
         Arc::get_mut(&mut wallet.storage)
