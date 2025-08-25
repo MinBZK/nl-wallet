@@ -19,7 +19,7 @@ use crate::attributes::Attributes;
 pub struct ValidityInfo {
     pub signed: DateTime<Utc>,
     pub valid_from: Option<DateTime<Utc>>,
-    pub valid_until: DateTime<Utc>,
+    pub valid_until: Option<DateTime<Utc>>,
 }
 
 impl TryFrom<&mdoc::iso::ValidityInfo> for ValidityInfo {
@@ -29,7 +29,7 @@ impl TryFrom<&mdoc::iso::ValidityInfo> for ValidityInfo {
         Ok(Self {
             signed: (&value.signed).try_into()?,
             valid_from: Some((&value.valid_from).try_into()?),
-            valid_until: (&value.valid_until).try_into()?,
+            valid_until: Some((&value.valid_until).try_into()?),
         })
     }
 }
@@ -40,7 +40,7 @@ impl From<ValidityInfo> for mdoc::iso::ValidityInfo {
         Self {
             signed: value.signed.into(),
             valid_from: value.valid_from.unwrap().into(),
-            valid_until: value.valid_until.into(),
+            valid_until: value.valid_until.unwrap().into(),
             expected_update: None,
         }
     }
@@ -156,7 +156,7 @@ impl TryFrom<sd_jwt::sd_jwt::SdJwt> for DisclosedAttestation {
         let validity_info = ValidityInfo {
             signed: claims.iat.clone().into_inner().into(),
             valid_from: claims.nbf.map(Into::into),
-            valid_until: claims.exp.clone().into_inner().into(),
+            valid_until: claims.exp.map(Into::into),
         };
 
         let ca = sd_jwt

@@ -220,7 +220,7 @@ mod tests {
             validity_info: ValidityInfo {
                 signed: Utc::now(),
                 valid_from: Some(Utc::now()),
-                valid_until: Utc::now(),
+                valid_until: Some(Utc::now()),
             },
         }]
     }

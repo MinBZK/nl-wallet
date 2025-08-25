@@ -73,7 +73,7 @@ pub struct SdJwtClaims {
 
     pub iat: SpecOptional<DateTimeSeconds>,
 
-    pub exp: SpecOptional<DateTimeSeconds>,
+    pub exp: Option<DateTimeSeconds>,
 
     pub nbf: Option<DateTimeSeconds>,
 
