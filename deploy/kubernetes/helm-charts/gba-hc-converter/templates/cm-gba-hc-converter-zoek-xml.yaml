@@ -5,7 +5,6 @@ metadata:
   labels:
     {{- include "common.labels.standard" . | nindent 4 }}
 data:
-{{- range $path, $bytes := .Files.Glob (printf "files/*") }}
-{{ base $path | indent 2 }}: |
-{{ tpl ($.Files.Get $path) $ | indent 4 }}
-{{- end }}
+  {{ with .Values.zoekXmlFiles }}
+  {{- toYaml . | nindent 2 }}
+  {{- end }}

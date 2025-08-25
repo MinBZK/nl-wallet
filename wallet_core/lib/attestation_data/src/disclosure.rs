@@ -4,6 +4,7 @@ use indexmap::IndexMap;
 use serde::Deserialize;
 use serde::Serialize;
 
+use crypto::x509::CertificateError;
 use http_utils::urls::HttpsUri;
 use mdoc::DataElementIdentifier;
 use mdoc::DataElementValue;
@@ -17,8 +18,8 @@ use crate::attributes::Attributes;
 #[serde(rename_all = "camelCase")]
 pub struct ValidityInfo {
     pub signed: DateTime<Utc>,
-    pub valid_from: DateTime<Utc>,
-    pub valid_until: DateTime<Utc>,
+    pub valid_from: Option<DateTime<Utc>>,
+    pub valid_until: Option<DateTime<Utc>>,
 }
 
 impl TryFrom<&mdoc::iso::ValidityInfo> for ValidityInfo {
@@ -27,8 +28,8 @@ impl TryFrom<&mdoc::iso::ValidityInfo> for ValidityInfo {
     fn try_from(value: &mdoc::iso::ValidityInfo) -> Result<Self, Self::Error> {
         Ok(Self {
             signed: (&value.signed).try_into()?,
-            valid_from: (&value.valid_from).try_into()?,
-            valid_until: (&value.valid_until).try_into()?,
+            valid_from: Some((&value.valid_from).try_into()?),
+            valid_until: Some((&value.valid_until).try_into()?),
         })
     }
 }
@@ -38,8 +39,8 @@ impl From<ValidityInfo> for mdoc::iso::ValidityInfo {
     fn from(value: ValidityInfo) -> Self {
         Self {
             signed: value.signed.into(),
-            valid_from: value.valid_from.into(),
-            valid_until: value.valid_until.into(),
+            valid_from: value.valid_from.unwrap().into(),
+            valid_until: value.valid_until.unwrap().into(),
             expected_update: None,
         }
     }
@@ -72,6 +73,19 @@ impl TryFrom<IndexMap<NameSpace, IndexMap<DataElementIdentifier, DataElementValu
                     ))
                 })
                 .collect::<Result<_, Self::Error>>()?,
+        ))
+    }
+}
+
+impl TryFrom<serde_json::Map<String, serde_json::Value>> for DisclosedAttributes {
+    type Error = AttributeError;
+
+    fn try_from(map: serde_json::Map<String, serde_json::Value>) -> Result<Self, Self::Error> {
+        Ok(DisclosedAttributes::SdJwt(
+            map.into_iter()
+                .map(|(key, attributes)| Ok((key, attributes.try_into()?)))
+                .collect::<Result<IndexMap<_, _>, Self::Error>>()?
+                .into(),
         ))
     }
 }
@@ -134,6 +148,39 @@ impl From<DisclosedAttestation> for mdoc::verifier::DisclosedDocument {
     }
 }
 
+impl TryFrom<sd_jwt::sd_jwt::SdJwt> for DisclosedAttestation {
+    type Error = DisclosedAttestationError;
+
+    fn try_from(sd_jwt: sd_jwt::sd_jwt::SdJwt) -> Result<Self, Self::Error> {
+        let claims = sd_jwt.claims();
+        let validity_info = ValidityInfo {
+            signed: claims.iat.clone().into_inner().into(),
+            valid_from: claims.nbf.map(Into::into),
+            valid_until: claims.exp.map(Into::into),
+        };
+
+        let ca = sd_jwt
+            .issuer_certificate()
+            .ok_or(DisclosedAttestationError::MissingIssuerCertificate)?
+            .issuer_common_names()?
+            .first()
+            .ok_or(DisclosedAttestationError::EmptyIssuerCommonName)?
+            .to_string();
+        let attributes = sd_jwt.to_disclosed_object()?.try_into()?;
+        Ok(DisclosedAttestation {
+            attestation_type: claims
+                .vct
+                .as_ref()
+                .ok_or(DisclosedAttestationError::MissingAttributes("vct"))?
+                .to_owned(),
+            attributes,
+            issuer_uri: claims.iss.clone().into_inner(),
+            ca,
+            validity_info,
+        })
+    }
+}
+
 #[derive(Debug, thiserror::Error)]
 pub enum DisclosedAttestationError {
     #[error("error converting mdoc attributes: {0}")]
@@ -141,6 +188,21 @@ pub enum DisclosedAttestationError {
 
     #[error("parse error while converting validity_info: {0}")]
     ParseError(#[from] chrono::ParseError),
+
+    #[error("missing SD JWT claim: {0}")]
+    MissingAttributes(&'static str),
+
+    #[error("error converting SD JWT to disclosed object: {0}")]
+    DisclosedObjectConversion(#[from] sd_jwt::error::Error),
+
+    #[error("missing issuer certificate in SD JWT")]
+    MissingIssuerCertificate,
+
+    #[error("issuer common name in SD JWT issuer certificate is not a string")]
+    IssuerCommonNameNotAString(#[from] CertificateError),
+
+    #[error("empty issuer common name in SD JWT issuer certificate")]
+    EmptyIssuerCommonName,
 }
 
 #[cfg(test)]
