@@ -18,6 +18,9 @@ use jsonwebtoken::Validation;
 use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde::Serialize;
+use serde_json::Map;
+use serde_with::FromInto;
+use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 use ssri::Integrity;
 
@@ -34,6 +37,7 @@ use utils::date_time_seconds::DateTimeSeconds;
 use utils::generator::Generator;
 use utils::spec::SpecOptional;
 use utils::vec_at_least::VecNonEmpty;
+use utils::vec_at_least::VecNonEmptyUnique;
 
 use crate::decoder::SdObjectDecoder;
 use crate::disclosure::Disclosure;
@@ -51,9 +55,6 @@ use crate::key_binding_jwt_claims::RequiredKeyBinding;
 #[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub struct SdJwtClaims {
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub _sd: Vec<String>,
-
     pub _sd_alg: Option<String>,
 
     // Even though we want this to be mandatory, we allow it to be optional in order for the examples from the spec
@@ -77,9 +78,95 @@ pub struct SdJwtClaims {
 
     pub nbf: Option<DateTimeSeconds>,
 
+    #[serde(flatten)]
+    pub claims: ObjectClaims,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Default)]
+pub struct ObjectClaims {
+    /// Selectively disclosable claims of the SD-JWT.
+    pub _sd: Option<VecNonEmptyUnique<String>>,
+
     /// Non-selectively disclosable claims of the SD-JWT.
     #[serde(flatten)]
-    pub properties: serde_json::Map<String, serde_json::Value>,
+    pub fields: HashMap<String, ClaimValue>,
+}
+
+impl ObjectClaims {
+    fn into_json_value(self) -> serde_json::Value {
+        let mut map = Map::from_iter(self.fields.into_iter().map(|(k, v)| (k, v.into_json_value())));
+
+        let hashes = self
+            ._sd
+            .iter()
+            .flat_map(|hashes| hashes.iter())
+            .map(|a| serde_json::Value::String(a.clone()))
+            .collect();
+
+        map.insert(DIGESTS_KEY.to_string(), serde_json::Value::Array(hashes));
+
+        serde_json::Value::Object(map)
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
+#[serde(untagged)]
+pub enum ClaimValue {
+    Array(Vec<ArrayClaim>),
+    Object(ObjectClaims),
+    Primitive(serde_json::Value),
+}
+
+impl ClaimValue {
+    fn into_json_value(self) -> serde_json::Value {
+        match self {
+            ClaimValue::Array(array) => {
+                serde_json::Value::Array(array.into_iter().map(ArrayClaim::into_json_value).collect())
+            }
+            ClaimValue::Object(object) => object.into_json_value(),
+            ClaimValue::Primitive(primitive) => primitive.clone(),
+        }
+    }
+}
+
+#[serde_as]
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
+#[serde(untagged)]
+pub enum ArrayClaim {
+    Hash(#[serde_as(as = "FromInto<DisclosureHash>")] String),
+    Value(ClaimValue),
+}
+
+impl ArrayClaim {
+    fn into_json_value(self) -> serde_json::Value {
+        match self {
+            ArrayClaim::Value(value) => value.into_json_value(),
+            ArrayClaim::Hash(hash) => serde_json::Value::Object(Map::from_iter(vec![(
+                ARRAY_DIGEST_KEY.to_string(),
+                serde_json::Value::String(hash.to_string()),
+            )])),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Default)]
+#[serde(deny_unknown_fields)]
+pub struct DisclosureHash {
+    #[serde(rename = "...")]
+    hash: String,
+}
+
+impl From<String> for DisclosureHash {
+    fn from(hash: String) -> Self {
+        Self { hash }
+    }
+}
+
+impl From<DisclosureHash> for String {
+    fn from(value: DisclosureHash) -> Self {
+        value.hash
+    }
 }
 
 /// Representation of an SD-JWT of the format
@@ -371,15 +458,7 @@ pub struct SdJwtPresentationBuilder {
 
 impl SdJwtPresentationBuilder {
     pub(crate) fn new(mut sd_jwt: SdJwt) -> Self {
-        let full_payload = {
-            let claims = sd_jwt.issuer_signed_jwt.payload().clone();
-            let sd = claims._sd.into_iter().map(serde_json::Value::String).collect();
-
-            let mut payload = claims.properties;
-            payload.insert(DIGESTS_KEY.to_string(), serde_json::Value::Array(sd));
-
-            serde_json::Value::Object(payload)
-        };
+        let full_payload = sd_jwt.issuer_signed_jwt.payload().claims.clone().into_json_value();
 
         let nondisclosed = std::mem::take(&mut sd_jwt.disclosures);
 
@@ -694,15 +773,23 @@ mod example {
 
 #[cfg(test)]
 mod test {
+    use std::collections::HashMap;
     use std::collections::HashSet;
 
     use assert_matches::assert_matches;
+    use chrono::DateTime;
     use chrono::Duration;
     use chrono::Utc;
     use futures::FutureExt;
+    use http_utils::urls::HttpsUri;
     use itertools::Itertools;
     use jsonwebtoken::Algorithm;
     use jsonwebtoken::errors::ErrorKind;
+    use jsonwebtoken::jwk::AlgorithmParameters;
+    use jsonwebtoken::jwk::EllipticCurve;
+    use jsonwebtoken::jwk::EllipticCurveKeyParameters;
+    use jsonwebtoken::jwk::EllipticCurveKeyType;
+    use jsonwebtoken::jwk::Jwk;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
     use rstest::rstest;
@@ -711,14 +798,23 @@ mod test {
 
     use jwt::EcdsaDecodingKey;
     use jwt::error::JwtError;
+    use utils::date_time_seconds::DateTimeSeconds;
+    use utils::spec::SpecOptional;
 
     use crate::builder::SdJwtBuilder;
     use crate::disclosure::DisclosureContent;
+    use crate::encoder::ARRAY_DIGEST_KEY;
+    use crate::encoder::DIGESTS_KEY;
     use crate::examples::*;
     use crate::hasher::Sha256Hasher;
     use crate::key_binding_jwt_claims::KeyBindingJwtBuilder;
+    use crate::key_binding_jwt_claims::RequiredKeyBinding;
+    use crate::sd_jwt::ArrayClaim;
+    use crate::sd_jwt::ClaimValue;
     use crate::sd_jwt::Error;
+    use crate::sd_jwt::ObjectClaims;
     use crate::sd_jwt::SdJwt;
+    use crate::sd_jwt::SdJwtClaims;
     use crate::sd_jwt::SdJwtPresentation;
 
     #[rstest]
@@ -1034,7 +1130,10 @@ mod test {
         }
 
         let claims = presentation.sd_jwt.issuer_signed_jwt.payload();
-        let not_selectively_disclosable_paths = get_paths(&claims.properties);
+        let serde_json::Value::Object(properties) = &claims.claims.clone().into_json_value() else {
+            panic!("unexpected")
+        };
+        let not_selectively_disclosable_paths = get_paths(properties);
 
         assert_eq!(
             HashSet::from_iter(expected_disclosed_paths.iter().map(|path| String::from(*path))),
@@ -1190,7 +1289,7 @@ mod test {
                                 format!("{current_path}/{key}")
                             };
 
-                            if key != "_sd" && key != "..." {
+                            if key != DIGESTS_KEY && key != ARRAY_DIGEST_KEY {
                                 paths.insert(new_path.clone());
                                 match val {
                                     serde_json::Value::Object(_) => traverse(val, &new_path, paths),
@@ -1223,7 +1322,10 @@ mod test {
         }
 
         let claims = presentation.sd_jwt.issuer_signed_jwt.payload();
-        let not_selectively_disclosable_paths = get_paths(&claims.properties);
+        let serde_json::Value::Object(properties) = &claims.claims.clone().into_json_value() else {
+            panic!("unexpected")
+        };
+        let not_selectively_disclosable_paths = get_paths(properties);
 
         let mut actual_disclosed_paths_or_values = HashSet::new();
 
@@ -1264,5 +1366,262 @@ mod test {
                 .collect::<HashSet<_>>(),
             not_selectively_disclosable_paths
         );
+    }
+
+    #[rstest]
+    #[case(json!({
+        "iss": "https://issuer.example.com",
+        "iat": 1683000000,
+        "given_name": "Alice",
+        "_sd": ["X9yH0Ajrdm1Oij4tWso9UzzKJvPoDxwmuEcO3XAdRC0"]
+    }))]
+    #[case(json!({
+        "iss": "https://issuer.example.com",
+        "iat": 1683000000,
+        "nationalities":
+        ["DE", {"...":"w0I8EKcdCtUPkGCNUrfwVp2xEgNjtoIDlOxc9-PlOhs"}, "US"]
+    }))]
+    #[case(json!({
+        "iss": "https://issuer.example.com",
+        "iat": 1683000000,
+        "family_name": "Möbius",
+        "nationalities": [
+            { "...": "PmnlrRjhLcwf8zTDdK15HVGwHtPYjddvD362WjBLwro" },
+            { "...": "r823HFN6Ba_lpSANYtXqqCBAH-TsQlIzfOK0lRAFLCM" },
+            { "...": "nP5GYjwhFm6ESlAeC4NCaIliW4tz0hTrUeoJB3lb5TA" }
+        ]
+    }))]
+    #[case(json!({
+        "_sd": [
+            "CrQe7S5kqBAHt-nMYXgc6bdt2SH5aTY1sU_M-PgkjPI",
+            "JzYjH4svliH0R3PyEMfeZu6Jt69u5qehZo7F7EPYlSE",
+            "PorFbpKuVu6xymJagvkFsFXAbRoc2JGlAUA2BA4o7cI",
+            "TGf4oLbgwd5JQaHyKVQZU9UdGE0w5rtDsrZzfUaomLo",
+            "XQ_3kPKt1XyX7KANkqVR6yZ2Va5NrPIvPYbyMvRKBMM",
+            "XzFrzwscM6Gn6CJDc6vVK8BkMnfG8vOSKfpPIZdAfdE",
+            "gbOsI4Edq2x2Kw-w5wPEzakob9hV1cRD0ATN3oQL9JM",
+            "jsu9yVulwQQlhFlM_3JlzMaSFzglhQG0DpfayQwLUK4"
+        ],
+        "iss": "https://issuer.example.com",
+        "iat": 1683000000,
+        "exp": 1883000000,
+        "sub": "user_42",
+        "nationalities": [
+            {
+                "...": "pFndjkZ_VCzmyTa6UjlZo3dh-ko8aIKQc9DlGzhaVYo"
+            },
+            {
+                "...": "7Cf6JkPudry3lcbwHgeZ8khAv1U1OSlerP0VkBJrWZ0"
+            }
+        ],
+        "_sd_alg": "sha-256",
+        "cnf": {
+            "jwk": {
+                "kty": "EC",
+                "crv": "P-256",
+                "x": "TCAER19Zvu3OHF4j4W4vfSVoHIP1ILilDls7vCeGemc",
+                "y": "ZxjiWWbZMQGHVWKVQ4hbSIirsVfuecCE6t4jT9F2HZQ"
+            }
+        }
+    }))]
+    #[case(json!({
+        "iss": "https://issuer.example.com",
+        "iat": 1683000000,
+        "exp": 1883000000,
+        "sub": "6c5c0a49-b589-431d-bae7-219122a9ec2c",
+        "address": {
+            "_sd": [
+                "6vh9bq-zS4GKM_7GpggVbYzzu6oOGXrmNVGPHP75Ud0",
+                "9gjVuXtdFROCgRrtNcGUXmF65rdezi_6Er_j76kmYyM",
+                "KURDPh4ZC19-3tiz-Df39V8eidy1oV3a3H1Da2N0g88",
+                "WN9r9dCBJ8HTCsS2jKASxTjEyW5m5x65_Z_2ro2jfXM"
+            ]
+        },
+        "_sd_alg": "sha-256"
+    }))]
+    #[case(json!({
+        "iss": "https://issuer.example.com",
+        "iat": 1683000000,
+        "exp": 1883000000,
+        "sub": "6c5c0a49-b589-431d-bae7-219122a9ec2c",
+        "address": {
+            "_sd": [
+                "6vh9bq-zS4GKM_7GpggVbYzzu6oOGXrmNVGPHP75Ud0",
+                "9gjVuXtdFROCgRrtNcGUXmF65rdezi_6Er_j76kmYyM",
+                "KURDPh4ZC19-3tiz-Df39V8eidy1oV3a3H1Da2N0g88"
+            ],
+            "country": "DE"
+        },
+        "_sd_alg": "sha-256"
+    }
+    ))]
+    #[case(json!({
+        "_sd": [
+            "-aSznId9mWM8ocuQolCllsxVggq1-vHW4OtnhUtVmWw",
+            "IKbrYNn3vA7WEFrysvbdBJjDDU_EvQIr0W18vTRpUSg",
+            "otkxuT14nBiwzNJ3MPaOitOl9pVnXOaEHal_xkyNfKI"
+        ],
+        "iss": "https://issuer.example.com",
+        "iat": 1683000000,
+        "exp": 1883000000,
+        "verified_claims": {
+            "verification": {
+                "_sd": [
+                    "7h4UE9qScvDKodXVCuoKfKBJpVBfXMF_TmAGVaZe3Sc",
+                    "vTwe3raHIFYgFA3xaUD2aMxFz5oDo8iBu05qKlOg9Lw"
+                ],
+                "trust_framework": "de_aml",
+                "evidence": [
+                    {
+                        "...": "tYJ0TDucyZZCRMbROG4qRO5vkPSFRxFhUELc18CSl3k"
+                    },
+                ]
+            },
+            "claims": {
+                "_sd": [
+                    "RiOiCn6_w5ZHaadkQMrcQJf0Jte5RwurRs54231DTlo",
+                    "S_498bbpKzB6Eanftss0xc7cOaoneRr3pKr7NdRmsMo",
+                    "WNA-UNK7F_zhsAb9syWO6IIQ1uHlTmOU8r8CvJ0cIMk",
+                    "Wxh_sV3iRH9bgrTBJi-aYHNCLt-vjhX1sd-igOf_9lk",
+                    "_O-wJiH3enSB4ROHntToQT8JmLtz-mhO2f1c89XoerQ",
+                    "hvDXhwmGcJQsBCA2OtjuLAcwAMpDsaU0nkovcKOqWNE"
+                ]
+            }
+        },
+        "_sd_alg": "sha-256"
+    }))]
+    fn deserialize_spec_examples(#[case] value: serde_json::Value) {
+        let result = serde_json::from_value::<SdJwtClaims>(value);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn sd_jwt_claims_features() {
+        let value = json!({
+            "_sd": [
+                "CrQe7S5kqBAHt-nMYXgc6bdt2SH5aTY1sU_M-PgkjPI",
+            ],
+            "iss": "https://issuer.example.com",
+            "iat": 1683000000,
+            "exp": 1883000000,
+            "sub": "user_42",
+            "object_with_hashes": {
+                "_sd": [
+                    "gbOsI4Edq2x2Kw-w5wPEzakob9hV1cRD0ATN3oQL9JM",
+                ],
+                "field": "value",
+            },
+            "object_with_array_of_hashes": {
+                "array": [
+                    {
+                        "...": "pFndjkZ_VCzmyTa6UjlZo3dh-ko8aIKQc9DlGzhaVYo"
+                    },
+                ]
+            },
+            "array_of_hashes": [
+                {
+                    "...": "pFndjkZ_VCzmyTa6UjlZo3dh-ko8aIKQc9DlGzhaVYo"
+                },
+            ],
+            "array_of_object_with_hashes": [
+                {
+                    "_sd": [
+                        "jsu9yVulwQQlhFlM_3JlzMaSFzglhQG0DpfayQwLUK4"
+                    ],
+                },
+                {
+                    "...": "7Cf6JkPudry3lcbwHgeZ8khAv1U1OSlerP0VkBJrWZ0"
+                }
+            ],
+            "_sd_alg": "sha-256",
+            "cnf": {
+                "jwk": {
+                    "kty": "EC",
+                    "crv": "P-256",
+                    "x": "TCAER19Zvu3OHF4j4W4vfSVoHIP1ILilDls7vCeGemc",
+                    "y": "ZxjiWWbZMQGHVWKVQ4hbSIirsVfuecCE6t4jT9F2HZQ"
+                }
+            }
+        });
+        let parsed: SdJwtClaims = serde_json::from_value(value).unwrap();
+
+        let expected = SdJwtClaims {
+            cnf: Some(RequiredKeyBinding::Jwk(Jwk {
+                common: Default::default(),
+                algorithm: AlgorithmParameters::EllipticCurve(EllipticCurveKeyParameters {
+                    curve: EllipticCurve::P256,
+                    key_type: EllipticCurveKeyType::EC,
+                    x: "TCAER19Zvu3OHF4j4W4vfSVoHIP1ILilDls7vCeGemc".to_string(),
+                    y: "ZxjiWWbZMQGHVWKVQ4hbSIirsVfuecCE6t4jT9F2HZQ".to_string(),
+                }),
+            })),
+            _sd_alg: Some("sha-256".to_string()),
+            vct_integrity: None,
+            iss: SpecOptional::from("https://issuer.example.com".parse::<HttpsUri>().unwrap()),
+            iat: SpecOptional::from(DateTimeSeconds::new(DateTime::from_timestamp(1683000000, 0).unwrap())),
+            exp: DateTime::from_timestamp(1883000000, 0).map(DateTimeSeconds::new),
+            nbf: None,
+            vct: None,
+            claims: ObjectClaims {
+                _sd: Some(
+                    vec!["CrQe7S5kqBAHt-nMYXgc6bdt2SH5aTY1sU_M-PgkjPI".to_string()]
+                        .try_into()
+                        .unwrap(),
+                ),
+                fields: HashMap::from([
+                    (
+                        "sub".to_string(),
+                        ClaimValue::Primitive(serde_json::Value::String("user_42".to_string())),
+                    ),
+                    (
+                        "object_with_hashes".to_string(),
+                        ClaimValue::Object(ObjectClaims {
+                            _sd: Some(
+                                vec!["gbOsI4Edq2x2Kw-w5wPEzakob9hV1cRD0ATN3oQL9JM".to_string()]
+                                    .try_into()
+                                    .unwrap(),
+                            ),
+                            fields: HashMap::from([(
+                                "field".to_string(),
+                                ClaimValue::Primitive(serde_json::Value::String("value".to_string())),
+                            )]),
+                        }),
+                    ),
+                    (
+                        "object_with_array_of_hashes".to_string(),
+                        ClaimValue::Object(ObjectClaims {
+                            _sd: None,
+                            fields: HashMap::from([(
+                                "array".to_string(),
+                                ClaimValue::Array(vec![ArrayClaim::Hash(
+                                    "pFndjkZ_VCzmyTa6UjlZo3dh-ko8aIKQc9DlGzhaVYo".to_string(),
+                                )]),
+                            )]),
+                        }),
+                    ),
+                    (
+                        "array_of_hashes".to_string(),
+                        ClaimValue::Array(vec![ArrayClaim::Hash(
+                            "pFndjkZ_VCzmyTa6UjlZo3dh-ko8aIKQc9DlGzhaVYo".to_string(),
+                        )]),
+                    ),
+                    (
+                        "array_of_object_with_hashes".to_string(),
+                        ClaimValue::Array(vec![
+                            ArrayClaim::Value(ClaimValue::Object(ObjectClaims {
+                                _sd: Some(
+                                    vec!["jsu9yVulwQQlhFlM_3JlzMaSFzglhQG0DpfayQwLUK4".to_string()]
+                                        .try_into()
+                                        .unwrap(),
+                                ),
+                                fields: HashMap::new(),
+                            })),
+                            ArrayClaim::Hash("7Cf6JkPudry3lcbwHgeZ8khAv1U1OSlerP0VkBJrWZ0".to_string()),
+                        ]),
+                    ),
+                ]),
+            },
+        };
+        assert_eq!(parsed, expected);
     }
 }
