@@ -99,7 +99,7 @@ impl UnverifiedSdJwt {
     // This function is only to test that parsing the examples of the spec works correctly.
     #[cfg(test)]
     pub fn into_verified(self, pubkey: &EcdsaDecodingKey) -> Result<VerifiedSdJwt> {
-        let issuer_signed_jwt = self.issuer_signed.clone().into_verified(pubkey, &jwt::validations())?;
+        let issuer_signed_jwt = VerifiedJwt::try_new(self.issuer_signed.clone(), pubkey, &jwt::validations())?;
 
         let disclosures = self.parse_disclosures()?;
         Ok(VerifiedSdJwt(SdJwt {
@@ -114,11 +114,12 @@ impl UnverifiedSdJwt {
         trust_anchors: &[TrustAnchor],
         time: &impl Generator<DateTime<Utc>>,
     ) -> Result<(VerifiedSdJwt, VecNonEmpty<BorrowingCertificate>)> {
-        let (issuer_signed_jwt, leaf_cert) = self.issuer_signed.clone().into_verified_against_trust_anchors(
-            trust_anchors,
+        let (issuer_signed_jwt, leaf_cert) = VerifiedJwt::try_new_against_trust_anchors(
+            self.issuer_signed.clone(),
+            &validations(),
             time,
             CertificateUsage::Mdl,
-            &validations(),
+            trust_anchors,
         )?;
 
         let disclosures = self.parse_disclosures()?;

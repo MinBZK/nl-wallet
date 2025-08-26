@@ -303,35 +303,6 @@ where
 
         Ok((payload, certificates))
     }
-
-    pub fn into_verified(self, pubkey: &EcdsaDecodingKey, validation_options: &Validation) -> Result<VerifiedJwt<T>> {
-        let (header, payload) = self.parse_and_verify_with_header(pubkey, validation_options)?;
-
-        Ok(VerifiedJwt {
-            header,
-            payload,
-            jwt: self,
-        })
-    }
-
-    pub fn into_verified_against_trust_anchors(
-        self,
-        trust_anchors: &[TrustAnchor],
-        time: &impl Generator<DateTime<Utc>>,
-        certificate_usage: CertificateUsage,
-        validation_options: &Validation,
-    ) -> Result<(VerifiedJwt<T>, VecNonEmpty<BorrowingCertificate>), JwtX5cError> {
-        let (header, payload, certificates) =
-            self.parse_and_verify_against_trust_anchors(trust_anchors, time, certificate_usage, validation_options)?;
-        Ok((
-            VerifiedJwt {
-                header,
-                payload,
-                jwt: self,
-            },
-            certificates,
-        ))
-    }
 }
 
 impl<T> VerifiedJwt<T>
