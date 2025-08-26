@@ -53,13 +53,20 @@ use crate::account_server::InstructionValidationError;
 use crate::account_server::UserState;
 use crate::wua_issuer::WuaIssuer;
 
+fn default_instruction_validations(wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+    if wallet_user.pin_change_in_progress() {
+        return Err(InstructionValidationError::PinChangeInProgress);
+    }
+    if matches!(wallet_user.state, WalletUserState::RecoveringPin) {
+        return Err(InstructionValidationError::PinRecoveryInProgress);
+    }
+
+    Ok(())
+}
+
 pub trait ValidateInstruction {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
-        if wallet_user.pin_change_in_progress() {
-            return Err(InstructionValidationError::PinChangeInProgress);
-        }
-
-        Ok(())
+        default_instruction_validations(wallet_user)
     }
 }
 
@@ -70,9 +77,7 @@ impl ValidateInstruction for PerformIssuanceWithWua {}
 
 impl ValidateInstruction for Sign {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
-        if wallet_user.pin_change_in_progress() {
-            return Err(InstructionValidationError::PinChangeInProgress);
-        }
+        default_instruction_validations(wallet_user)?;
 
         if self
             .messages_with_identifiers
@@ -89,13 +94,21 @@ impl ValidateInstruction for Sign {
 }
 
 impl ValidateInstruction for ChangePinCommit {
-    fn validate_instruction(&self, _wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+    fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+        if matches!(wallet_user.state, WalletUserState::RecoveringPin) {
+            return Err(InstructionValidationError::PinRecoveryInProgress);
+        }
+
         Ok(())
     }
 }
 
 impl ValidateInstruction for ChangePinRollback {
-    fn validate_instruction(&self, _wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+    fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+        if matches!(wallet_user.state, WalletUserState::RecoveringPin) {
+            return Err(InstructionValidationError::PinRecoveryInProgress);
+        }
+
         Ok(())
     }
 }

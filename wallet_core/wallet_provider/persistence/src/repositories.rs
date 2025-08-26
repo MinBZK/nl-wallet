@@ -180,6 +180,7 @@ pub mod mock {
     use wallet_provider_domain::model::wallet_user::WalletUserCreate;
     use wallet_provider_domain::model::wallet_user::WalletUserKeys;
     use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
+    use wallet_provider_domain::model::wallet_user::WalletUserState;
     use wallet_provider_domain::repository::MockTransaction;
     use wallet_provider_domain::repository::MockTransactionStarter;
     use wallet_provider_domain::repository::PersistenceError;
@@ -329,6 +330,7 @@ pub mod mock {
                     Some(assertion_counter) => WalletUserAttestation::Apple { assertion_counter },
                     None => WalletUserAttestation::Android,
                 },
+                state: WalletUserState::Active,
             })))
         }
 

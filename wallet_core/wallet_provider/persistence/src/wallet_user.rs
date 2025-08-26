@@ -168,10 +168,10 @@ where
         .await
         .map_err(|e| PersistenceError::Execution(e.into()))?;
 
-    let query_result = joined_model
+    joined_model
         .map(|joined_model| {
             if joined_model.state == WalletUserState::Blocked.to_string() {
-                WalletUserQueryResult::Blocked
+                Ok(WalletUserQueryResult::Blocked)
             } else {
                 let encrypted_pin_pubkey = Encrypted::new(
                     joined_model.encrypted_pin_pubkey_sec1,
@@ -203,6 +203,10 @@ where
                     // CHECK statement on the table.
                     None => WalletUserAttestation::Android,
                 };
+                let state: WalletUserState = joined_model
+                    .state
+                    .parse()
+                    .map_err(PersistenceError::UserStateConversion)?;
                 let wallet_user = WalletUser {
                     id: joined_model.id,
                     wallet_id: joined_model.wallet_id,
@@ -214,14 +218,13 @@ where
                     instruction_challenge,
                     instruction_sequence_number: u64::try_from(joined_model.instruction_sequence_number).unwrap(),
                     attestation,
+                    state,
                 };
 
-                WalletUserQueryResult::Found(Box::new(wallet_user))
+                Ok(WalletUserQueryResult::Found(Box::new(wallet_user)))
             }
         })
-        .unwrap_or(WalletUserQueryResult::NotFound);
-
-    Ok(query_result)
+        .unwrap_or(Ok(WalletUserQueryResult::NotFound))
 }
 
 pub async fn clear_instruction_challenge<S, T>(db: &T, wallet_id: &str) -> Result<()>

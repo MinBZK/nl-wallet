@@ -25,6 +25,7 @@ pub struct WalletUser {
     pub instruction_challenge: Option<InstructionChallenge>,
     pub instruction_sequence_number: u64,
     pub attestation: WalletUserAttestation,
+    pub state: WalletUserState,
 }
 
 #[derive(Debug)]
@@ -67,6 +68,7 @@ pub struct WalletUserCreate {
 pub enum WalletUserState {
     Active,
     Blocked,
+    RecoveringPin,
 }
 
 #[derive(Debug)]
@@ -106,6 +108,7 @@ pub mod mock {
     use hsm::model::encrypted::InitializationVector;
 
     use crate::model::wallet_user::WalletUser;
+    use crate::model::wallet_user::WalletUserState;
 
     pub fn wallet_user_1() -> WalletUser {
         WalletUser {
@@ -126,6 +129,7 @@ SssTb0eI53lvfdvG/xkNcktwsXEIPL1y3lUKn1u1ZhFTnQn4QKmnvaN4uQ==
             instruction_challenge: None,
             instruction_sequence_number: 0,
             attestation: super::WalletUserAttestation::Android,
+            state: WalletUserState::Active,
         }
     }
 }
