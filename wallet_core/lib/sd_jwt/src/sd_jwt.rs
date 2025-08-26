@@ -96,19 +96,6 @@ impl FromStr for UnverifiedSdJwt {
 }
 
 impl UnverifiedSdJwt {
-    // This function is only to test that parsing the examples of the spec works correctly.
-    #[cfg(test)]
-    pub fn into_verified(self, pubkey: &EcdsaDecodingKey) -> Result<VerifiedSdJwt> {
-        let issuer_signed_jwt = VerifiedJwt::try_new(self.issuer_signed.clone(), pubkey, &jwt::validations())?;
-
-        let disclosures = self.parse_disclosures()?;
-        Ok(VerifiedSdJwt(SdJwt {
-            issuer_signed_jwt,
-            issuer_certificates: self.issuer_signed.extract_x5c_certificates()?,
-            disclosures,
-        }))
-    }
-
     pub fn into_verified_against_trust_anchors(
         self,
         trust_anchors: &[TrustAnchor],
@@ -834,10 +821,12 @@ mod test {
     use ssri::Integrity;
 
     use jwt::EcdsaDecodingKey;
+    use jwt::VerifiedJwt;
     use jwt::error::JwtError;
 
     use crate::builder::SdJwtBuilder;
     use crate::disclosure::DisclosureContent;
+    use crate::error::Result;
     use crate::examples::*;
     use crate::hasher::Sha256Hasher;
     use crate::key_binding_jwt_claims::KeyBindingJwtBuilder;
@@ -845,6 +834,7 @@ mod test {
     use crate::sd_jwt::SdJwt;
     use crate::sd_jwt::SdJwtPresentation;
     use crate::sd_jwt::UnverifiedSdJwt;
+    use crate::sd_jwt::VerifiedSdJwt;
 
     #[rstest]
     #[case(SIMPLE_STRUCTURED_SD_JWT)]
@@ -852,6 +842,19 @@ mod test {
     #[case(SD_JWT_VC)]
     fn parse_various(#[case] encoded_sd_jwt: &str) {
         SdJwt::parse_and_verify(encoded_sd_jwt, &examples_sd_jwt_decoding_key(), &Sha256Hasher).unwrap();
+    }
+
+    impl UnverifiedSdJwt {
+        pub fn into_verified(self, pubkey: &EcdsaDecodingKey) -> Result<VerifiedSdJwt> {
+            let issuer_signed_jwt = VerifiedJwt::try_new(self.issuer_signed.clone(), pubkey, &jwt::validations())?;
+
+            let disclosures = self.parse_disclosures()?;
+            Ok(VerifiedSdJwt(SdJwt {
+                issuer_signed_jwt,
+                issuer_certificates: vec![],
+                disclosures,
+            }))
+        }
     }
 
     #[rstest]
