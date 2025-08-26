@@ -33,12 +33,13 @@ pub enum VecAtLeastNError {
 ///
 /// # Examples
 /// ```
-/// use utils::vec_non_empty;
+/// use utils::vec_nonempty;
 ///
-/// let vec = vec_non_empty![1, 2, 3]; // Creates a VecNonEmpty<i32>
+/// let vec1 = vec_nonempty![1, 2, 3]; // Creates a VecNonEmpty<i32>
+/// let vec2 = vec_nonempty![u8; 1, 2, 3]; // Creates a VecNonEmpty<u8> by explicitly stating the type
 /// ```
 #[macro_export]
-macro_rules! vec_non_empty {
+macro_rules! vec_nonempty {
     // Version without type parameter (relies on type inference)
     ($($x:expr),+ $(,)?) => (
         $crate::vec_at_least::VecNonEmpty::try_from(vec![$($x),+]).unwrap()
@@ -393,25 +394,25 @@ mod tests {
     #[case(vec![1], true)]
     #[case(vec![1, 2], true)]
     #[case(vec![1, 2, 3], true)]
-    fn test_vec_non_empty(#[case] input: Vec<usize>, #[case] expected_is_ok: bool) {
+    fn test_vec_nonempty(#[case] input: Vec<usize>, #[case] expected_is_ok: bool) {
         let vec = VecNonEmpty::try_from(input);
 
         assert_eq!(vec.is_ok(), expected_is_ok);
     }
 
     #[test]
-    fn test_vec_non_empty_macro() {
-        let uints = vec_non_empty![u32; 1, 2, 3];
+    fn test_vec_nonempty_macro() {
+        let uints = vec_nonempty![u32; 1, 2, 3];
         assert_eq!(1, *uints.first());
 
-        let str_slices = vec_non_empty!["a", "b"];
+        let str_slices = vec_nonempty!["a", "b"];
         assert_eq!("a", *str_slices.first());
 
         #[derive(Debug, PartialEq)]
         struct Test {
             x: usize,
         }
-        let tests = vec_non_empty![Test { x: 1 }];
+        let tests = vec_nonempty![Test { x: 1 }];
         assert_eq!(Test { x: 1 }, *tests.first());
     }
 
@@ -442,7 +443,7 @@ mod tests {
     }
 
     #[test]
-    fn test_vec_non_empty_index() {
+    fn test_vec_nonempty_index() {
         let vec = VecNonEmpty::try_from(vec![1, 2, 3]).unwrap();
         assert_eq!(vec[0], 1);
         assert_eq!(vec[1], 2);
@@ -452,8 +453,8 @@ mod tests {
     }
 
     #[test]
-    fn test_non_empty_iter() {
-        let vec = vec_non_empty![1, 2, 3];
+    fn test_nonempty_iter() {
+        let vec = vec_nonempty![1, 2, 3];
         let iter = vec.nonempty_iter();
         let (first, mut rest_iter) = iter.next();
         assert_eq!(first, &1);
@@ -463,8 +464,8 @@ mod tests {
     }
 
     #[test]
-    fn test_into_non_empty_iter() {
-        let vec = vec_non_empty![1, 2, 3];
+    fn test_into_nonempty_iter() {
+        let vec = vec_nonempty![1, 2, 3];
         let iter = vec.into_nonempty_iter();
         let (first, mut rest_iter) = iter.next();
         assert_eq!(first, 1);
@@ -474,11 +475,11 @@ mod tests {
     }
 
     #[test]
-    fn test_non_empty_iter_map() {
-        let vec = vec_non_empty![1, 2, 3];
+    fn test_nonempty_iter_map() {
+        let vec = vec_nonempty![1, 2, 3];
 
         let incremented_vec = vec.nonempty_iter().map(|x| x + 1).collect::<VecNonEmpty<_>>();
-        assert_eq!(incremented_vec, vec_non_empty![2, 3, 4]);
+        assert_eq!(incremented_vec, vec_nonempty![2, 3, 4]);
 
         let incremented_vec = vec.nonempty_iter().map(|x| x + 1).collect::<Vec<_>>();
         assert_eq!(incremented_vec, vec![2, 3, 4]);
@@ -487,12 +488,12 @@ mod tests {
         assert_eq!(incremented_set, HashSet::from([2, 3, 4]));
 
         let into_vec = vec.into_nonempty_iter().collect::<VecNonEmpty<_>>();
-        assert_eq!(into_vec, vec_non_empty![1, 2, 3]);
+        assert_eq!(into_vec, vec_nonempty![1, 2, 3]);
     }
 
     #[test]
-    fn test_non_empty_iter_fold() {
-        let vec = vec_non_empty![1, 2, 3];
+    fn test_nonempty_iter_fold() {
+        let vec = vec_nonempty![1, 2, 3];
         assert_eq!(6, vec.nonempty_iter().fold(0, |acc, x| acc + x));
     }
 }

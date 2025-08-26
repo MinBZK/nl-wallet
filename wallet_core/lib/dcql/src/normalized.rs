@@ -239,7 +239,7 @@ pub mod mock {
     use itertools::Itertools;
 
     use utils::vec_at_least::VecNonEmpty;
-    use utils::vec_non_empty;
+    use utils::vec_nonempty;
 
     use crate::ClaimPath;
     use crate::ClaimsQuery;
@@ -283,7 +283,7 @@ pub mod mock {
                     claims_selection: ClaimsSelection::All {
                         claims: vec![ClaimsQuery {
                             id: None,
-                            path: vec_non_empty![
+                            path: vec_nonempty![
                                 ClaimPath::SelectByKey(EXAMPLE_NAMESPACE.to_string()),
                                 ClaimPath::SelectByKey(ATTR_FAMILY_NAME.to_string()),
                             ],
@@ -314,7 +314,7 @@ pub mod mock {
                         claims: vec![
                             ClaimsQuery {
                                 id: None,
-                                path: vec_non_empty![
+                                path: vec_nonempty![
                                     ClaimPath::SelectByKey(PID.to_string()),
                                     ClaimPath::SelectByKey(ATTR_BSN.to_string()),
                                 ],
@@ -323,7 +323,7 @@ pub mod mock {
                             },
                             ClaimsQuery {
                                 id: None,
-                                path: vec_non_empty![
+                                path: vec_nonempty![
                                     ClaimPath::SelectByKey(PID.to_string()),
                                     ClaimPath::SelectByKey(ATTR_GIVEN_NAME.to_string()),
                                 ],
@@ -332,7 +332,7 @@ pub mod mock {
                             },
                             ClaimsQuery {
                                 id: None,
-                                path: vec_non_empty![
+                                path: vec_nonempty![
                                     ClaimPath::SelectByKey(PID.to_string()),
                                     ClaimPath::SelectByKey(ATTR_FAMILY_NAME.to_string()),
                                 ],
@@ -364,7 +364,7 @@ pub mod mock {
                         claims: vec![
                             ClaimsQuery {
                                 id: None,
-                                path: vec_non_empty![
+                                path: vec_nonempty![
                                     ClaimPath::SelectByKey(PID.to_string()),
                                     ClaimPath::SelectByKey(ATTR_GIVEN_NAME.to_string()),
                                 ],
@@ -373,7 +373,7 @@ pub mod mock {
                             },
                             ClaimsQuery {
                                 id: None,
-                                path: vec_non_empty![
+                                path: vec_nonempty![
                                     ClaimPath::SelectByKey(PID.to_string()),
                                     ClaimPath::SelectByKey(ATTR_FAMILY_NAME.to_string()),
                                 ],
@@ -404,7 +404,7 @@ pub mod mock {
                     claims_selection: ClaimsSelection::All {
                         claims: vec![ClaimsQuery {
                             id: None,
-                            path: vec_non_empty![
+                            path: vec_nonempty![
                                 ClaimPath::SelectByKey(PID.to_string()),
                                 ClaimPath::SelectByKey(ATTR_FAMILY_NAME.to_string()),
                             ],

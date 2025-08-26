@@ -393,7 +393,7 @@ mod tests {
     use utils::vec_at_least::IntoNonEmptyIterator;
     use utils::vec_at_least::NonEmptyIterator;
     use utils::vec_at_least::VecNonEmpty;
-    use utils::vec_non_empty;
+    use utils::vec_nonempty;
 
     use crate::chain::SortedTypeMetadata;
     use crate::metadata::ClaimDisplayMetadata;
@@ -484,7 +484,7 @@ mod tests {
         assert_eq!(normalized.schemas.len().get(), 3);
         assert_eq!(
             normalized.schemas,
-            vec_non_empty![metadata_v3.schema, metadata_v2.schema, metadata.schema]
+            vec_nonempty![metadata_v3.schema, metadata_v2.schema, metadata.schema]
                 .into_nonempty_iter()
                 .map(|schema_option| match schema_option {
                     SchemaOption::Embedded { schema } => *schema,

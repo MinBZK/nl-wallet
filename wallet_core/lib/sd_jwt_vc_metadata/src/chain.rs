@@ -432,7 +432,7 @@ mod test {
     use ssri::IntegrityOpts;
 
     use utils::vec_at_least::NonEmptyIterator;
-    use utils::vec_non_empty;
+    use utils::vec_nonempty;
 
     use crate::examples::EXAMPLE_METADATA_BYTES;
     use crate::examples::EXAMPLE_V2_METADATA_BYTES;
@@ -455,7 +455,7 @@ mod test {
         }
 
         pub fn example_with_extensions() -> Self {
-            let chain = vec_non_empty![
+            let chain = vec_nonempty![
                 TypeMetadata::example_v3(),
                 TypeMetadata::example_v2(),
                 TypeMetadata::example(),
