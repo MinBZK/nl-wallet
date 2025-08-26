@@ -69,6 +69,8 @@ use wallet_account::messages::instructions::InstructionAndResult;
 use wallet_account::messages::instructions::InstructionChallengeRequest;
 use wallet_account::messages::instructions::InstructionResult;
 use wallet_account::messages::instructions::InstructionResultClaims;
+use wallet_account::messages::instructions::StartPinRecovery;
+use wallet_account::messages::instructions::StartPinRecoveryResult;
 use wallet_account::messages::registration::Registration;
 use wallet_account::messages::registration::RegistrationAttestation;
 use wallet_account::messages::registration::WalletCertificate;
@@ -94,8 +96,9 @@ use crate::instructions::ValidateInstruction;
 use crate::keys::InstructionResultSigningKey;
 use crate::keys::WalletCertificateSigningKey;
 use crate::wallet_certificate::new_wallet_certificate;
-use crate::wallet_certificate::parse_claims_and_retrieve_wallet_user;
 use crate::wallet_certificate::verify_wallet_certificate;
+use crate::wallet_certificate::verify_wallet_certificate_and_retrieve_wallet_user;
+use crate::wallet_certificate::verify_wallet_certificate_hw_public_key;
 use crate::wallet_certificate::verify_wallet_certificate_public_keys;
 use crate::wua_issuer::WuaIssuer;
 
@@ -238,8 +241,8 @@ pub enum InstructionValidationError {
     VerificationFailed(#[source] wallet_account::error::DecodeError),
     #[error("pin change is in progress")]
     PinChangeInProgress,
-    #[error("pin change is not in progress")]
-    PinChangeNotInProgress,
+    #[error("pin recovery is in progress")]
+    PinRecoveryInProgress,
     #[error("hsm error: {0}")]
     HsmError(#[from] HsmError),
     #[error("WUA already issued")]
@@ -629,7 +632,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         H: Decrypter<VerifyingKey, Error = HsmError> + Hsm<Error = HsmError>,
     {
         debug!("Parse certificate and retrieving wallet user");
-        let (user, claims) = parse_claims_and_retrieve_wallet_user(
+        let (user, claims) = verify_wallet_certificate_and_retrieve_wallet_user(
             &challenge_request.certificate,
             &self.keys.wallet_certificate_signing_pubkey,
             &user_state.repositories,
@@ -861,6 +864,110 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         self.sign_instruction_result(instruction_result_signing_key, ()).await
     }
 
+    pub async fn handle_start_pin_recovery_instruction<T, R, G, H>(
+        &self,
+        instruction: Instruction<StartPinRecovery>,
+        signing_keys: (&impl InstructionResultSigningKey, &impl WalletCertificateSigningKey),
+        generators: &G,
+        pin_policy: &impl PinPolicyEvaluator,
+        user_state: &UserState<R, H, impl WuaIssuer>,
+    ) -> Result<InstructionResult<StartPinRecoveryResult>, InstructionError>
+    where
+        T: Committable,
+        R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
+        G: Generator<Uuid> + Generator<DateTime<Utc>>,
+        H: WalletUserHsm<Error = HsmError>
+            + Hsm<Error = HsmError>
+            + Decrypter<VerifyingKey, Error = HsmError>
+            + Encrypter<VerifyingKey, Error = HsmError>,
+    {
+        // This instruction is signed not by the user's current PIN, as they are
+        // recovering from having forgotten it. Instead it is signed by a newly chosen
+        // PIN. To verify the instruction against that PIN key, we therefore first have
+        // to extract it from the instruction itself.
+        let pin_pubkey = instruction
+            .instruction
+            .dangerous_parse_unverified()
+            .map_err(|e| InstructionValidationError::VerificationFailed(e))?
+            .payload
+            .pin_pubkey
+            .into_inner();
+
+        let encrypted_pin_pubkey = Encrypter::encrypt(
+            &user_state.wallet_user_hsm,
+            &self.keys.encryption_key_identifier,
+            pin_pubkey,
+        )
+        .await?;
+
+        let (wallet_user, claims) = verify_wallet_certificate_and_retrieve_wallet_user(
+            &instruction.certificate,
+            &self.keys.wallet_certificate_signing_pubkey,
+            &user_state.repositories,
+        )
+        .await?;
+
+        // Verify the instruction against just the HW key.
+        verify_wallet_certificate_hw_public_key(&claims, &wallet_user.hw_pubkey)?;
+
+        // This also verifies the instruction against the provided new PIN key.
+        let instruction_payload = self
+            .verify_pin_and_extract_instruction(
+                &wallet_user,
+                instruction,
+                generators,
+                Some(encrypted_pin_pubkey.clone()),
+                pin_policy,
+                user_state,
+            )
+            .await?;
+
+        // Handle the issuance part of the instruction
+        // TODO should this be inside the tx?
+        let issuance_with_wua_result = instruction_payload
+            .issuance_with_wua_instruction
+            .handle(&wallet_user, generators, &user_state)
+            .await?;
+
+        // TODO PVW-4815: mark the identifiers from `issuance_with_wua_result.issuance_result.key_identifiers` in the
+        //                database for later deletion during handling of the DiscloseRecoveryCodePinRecovery
+        //                instruction.
+
+        let tx = user_state.repositories.begin_transaction().await?;
+
+        user_state
+            .repositories
+            .change_pin(&tx, wallet_user.wallet_id.as_str(), encrypted_pin_pubkey)
+            .await?;
+
+        let (instruction_result_signing_key, certificate_signing_key) = signing_keys;
+
+        let certificate = new_wallet_certificate(
+            self.name.clone(),
+            &self.keys.pin_public_disclosure_protection_key_identifier,
+            certificate_signing_key,
+            wallet_user.wallet_id,
+            wallet_user.hw_pubkey,
+            &pin_pubkey,
+            &user_state.wallet_user_hsm,
+        )
+        .await?;
+
+        let result = self
+            .sign_instruction_result(
+                instruction_result_signing_key,
+                StartPinRecoveryResult {
+                    issuance_with_wua_result,
+                    certificate,
+                },
+            )
+            .await?;
+
+        tx.commit().await?;
+
+        Ok(result)
+    }
+
     async fn verify_and_extract_instruction<T, R, I, G, H, F>(
         &self,
         instruction: Instruction<I>,
@@ -889,6 +996,32 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         )
         .await?;
 
+        let instruction = self
+            .verify_pin_and_extract_instruction(&wallet_user, instruction, generators, None, pin_policy, user_state)
+            .await?;
+
+        Ok((wallet_user, instruction))
+    }
+
+    /// Verify the provided user's PIN and the provided instruction.
+    ///
+    /// The `pin_pubkey` is used if provided; if not, the PIN public key from the `wallet_user` is used.
+    async fn verify_pin_and_extract_instruction<T, R, I, G, H>(
+        &self,
+        wallet_user: &WalletUser,
+        instruction: Instruction<I>,
+        generators: &G,
+        pin_pubkey: Option<Encrypted<VerifyingKey>>,
+        pin_policy: &impl PinPolicyEvaluator,
+        user_state: &UserState<R, H, impl WuaIssuer>,
+    ) -> Result<I, InstructionError>
+    where
+        T: Committable,
+        R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
+        I: InstructionAndResult + ValidateInstruction,
+        G: Generator<Uuid> + Generator<DateTime<Utc>>,
+        H: Hsm<Error = HsmError> + Decrypter<VerifyingKey, Error = HsmError>,
+    {
         debug!(
             "Starting database transaction and instruction handling process for user {}",
             &wallet_user.id
@@ -921,7 +1054,13 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         debug!("Verifying instruction");
 
         let verification_result = self
-            .verify_instruction(instruction, &wallet_user, generators, &user_state.wallet_user_hsm)
+            .verify_instruction(
+                instruction,
+                &wallet_user,
+                pin_pubkey,
+                generators,
+                &user_state.wallet_user_hsm,
+            )
             .await;
 
         match verification_result {
@@ -960,7 +1099,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
 
                 tx.commit().await?;
 
-                Ok((wallet_user, challenge_response_payload.payload))
+                Ok(challenge_response_payload.payload)
             }
             Err(validation_error) => {
                 let error = if matches!(validation_error, InstructionValidationError::VerificationFailed(_)) {
@@ -1015,10 +1154,14 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         Ok(challenge)
     }
 
+    /// Verify the provided instruction for the specified user.
+    ///
+    /// The `pin_pubkey` is used if provided; if not, the PIN public key from the `wallet_user` is used.
     async fn verify_instruction<I, D>(
         &self,
         instruction: Instruction<I>,
         wallet_user: &WalletUser,
+        pin_pubkey: Option<Encrypted<VerifyingKey>>,
         time_generator: &impl Generator<DateTime<Utc>>,
         verifying_key_decrypter: &D,
     ) -> Result<(ChallengeResponsePayload<I>, Option<AssertionCounter>), InstructionValidationError>
@@ -1031,7 +1174,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         let pin_pubkey = verifying_key_decrypter
             .decrypt(
                 &self.keys.encryption_key_identifier,
-                wallet_user.encrypted_pin_pubkey.clone(),
+                pin_pubkey.unwrap_or_else(|| wallet_user.encrypted_pin_pubkey.clone()),
             )
             .await?;
 
@@ -1880,7 +2023,7 @@ mod tests {
                 .sign_instruction(CheckPin, challenge, 44, &setup.pin_privkey, cert)
                 .await;
             let _ = account_server
-                .verify_instruction(instruction, &user, &EpochGenerator, &user_state.wallet_user_hsm)
+                .verify_instruction(instruction, &user, None, &EpochGenerator, &user_state.wallet_user_hsm)
                 .await
                 .expect("instruction should be valid");
         } else {
@@ -1924,7 +2067,7 @@ mod tests {
                 .sign_instruction(CheckPin, challenge, 44, &setup.pin_privkey, cert)
                 .await;
             let error = account_server
-                .verify_instruction(instruction, &user, &EpochGenerator, &user_state.wallet_user_hsm)
+                .verify_instruction(instruction, &user, None, &EpochGenerator, &user_state.wallet_user_hsm)
                 .await
                 .expect_err("instruction should not be valid");
 
@@ -1996,7 +2139,7 @@ mod tests {
                 .sign_instruction(CheckPin, challenge, 44, &setup.pin_privkey, cert)
                 .await;
             let error = account_server
-                .verify_instruction(instruction, &user, &EpochGenerator, &user_state.wallet_user_hsm)
+                .verify_instruction(instruction, &user, None, &EpochGenerator, &user_state.wallet_user_hsm)
                 .await
                 .expect_err("instruction should not be valid");
 

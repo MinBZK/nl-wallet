@@ -56,7 +56,7 @@ where
         .map_err(WalletCertificateError::JwtSigning)
 }
 
-pub async fn parse_claims_and_retrieve_wallet_user<T, R>(
+pub async fn verify_wallet_certificate_and_retrieve_wallet_user<T, R>(
     certificate: &WalletCertificate,
     certificate_signing_pubkey: &EcdsaDecodingKey,
     wallet_user_repository: &R,
@@ -96,6 +96,42 @@ where
     }
 }
 
+pub fn verify_wallet_certificate_hw_public_key(
+    claims: &WalletCertificateClaims,
+    hw_pubkey: &VerifyingKey,
+) -> Result<(), WalletCertificateError> {
+    debug!("Verifying the hardware public key matches the one in the provided certificate");
+    if hw_pubkey != claims.hw_pubkey.as_inner() {
+        Err(WalletCertificateError::HwPubKeyMismatch)
+    } else {
+        Ok(())
+    }
+}
+
+pub async fn verify_wallet_certificate_pin_public_key<H>(
+    claims: WalletCertificateClaims,
+    pin_public_disclosure_protection_key_identifier: &str,
+    encryption_key_identifier: &str,
+    encrypted_pin_pubkey: Encrypted<VerifyingKey>,
+    hsm: &H,
+) -> Result<(), WalletCertificateError>
+where
+    H: Decrypter<VerifyingKey, Error = HsmError> + Hsm<Error = HsmError>,
+{
+    debug!("Decrypt the encrypted pin public key");
+    let pin_pubkey = Decrypter::decrypt(hsm, encryption_key_identifier, encrypted_pin_pubkey).await?;
+
+    debug!("Verifying the pin public key matches the HMAC the provided certificate");
+    verify_pin_pubkey(
+        &pin_pubkey,
+        claims.pin_pubkey_hash,
+        pin_public_disclosure_protection_key_identifier,
+        hsm,
+    )
+    .await
+    .map_err(|_| WalletCertificateError::PinPubKeyMismatch)
+}
+
 pub async fn verify_wallet_certificate_public_keys<H>(
     claims: WalletCertificateClaims,
     pin_public_disclosure_protection_key_identifier: &str,
@@ -107,29 +143,23 @@ pub async fn verify_wallet_certificate_public_keys<H>(
 where
     H: Decrypter<VerifyingKey, Error = HsmError> + Hsm<Error = HsmError>,
 {
-    debug!("Decrypt the encrypted pin public key");
+    verify_wallet_certificate_hw_public_key(&claims, hw_pubkey)?;
 
-    let pin_pubkey = Decrypter::decrypt(hsm, encryption_key_identifier, encrypted_pin_pubkey).await?;
-
-    let pin_hash_verification = verify_pin_pubkey(
-        &pin_pubkey,
-        claims.pin_pubkey_hash,
+    verify_wallet_certificate_pin_public_key(
+        claims,
         pin_public_disclosure_protection_key_identifier,
+        encryption_key_identifier,
+        encrypted_pin_pubkey,
         hsm,
     )
-    .await;
-
-    debug!("Verifying the pin and hardware public keys matches those in the provided certificate");
-
-    if pin_hash_verification.is_err() {
-        Err(WalletCertificateError::PinPubKeyMismatch)
-    } else if hw_pubkey != claims.hw_pubkey.as_inner() {
-        Err(WalletCertificateError::HwPubKeyMismatch)
-    } else {
-        Ok(())
-    }
+    .await
 }
 
+/// - Verify the provided [`WalletCertificate`]
+/// - Retrieve the [`WalletUser`] from the DB using the `wallet_id` from the verified [`WalletCertificate`]
+/// - Check that the provided PIN key and the HW key in the [`WalletUser`] are present in the
+///   (verified) wallet certificate
+/// - Return the [`WalletUser`].
 pub async fn verify_wallet_certificate<T, R, H, F>(
     certificate: &WalletCertificate,
     certificate_signing_pubkey: &EcdsaDecodingKey,
@@ -146,9 +176,12 @@ where
 {
     debug!("Parsing and verifying the provided certificate");
 
-    let (user, claims) =
-        parse_claims_and_retrieve_wallet_user(certificate, certificate_signing_pubkey, &user_state.repositories)
-            .await?;
+    let (user, claims) = verify_wallet_certificate_and_retrieve_wallet_user(
+        certificate,
+        certificate_signing_pubkey,
+        &user_state.repositories,
+    )
+    .await?;
 
     verify_wallet_certificate_public_keys(
         claims,
@@ -159,6 +192,7 @@ where
         &user_state.wallet_user_hsm,
     )
     .await?;
+
     Ok(user)
 }
 

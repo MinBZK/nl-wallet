@@ -112,6 +112,31 @@ impl InstructionAndResult for ChangePinRollback {
     type Result = ();
 }
 
+// StartPinRecovery instruction.
+
+#[serde_as]
+#[derive(Debug, Serialize, Deserialize)]
+pub struct StartPinRecovery {
+    #[serde(flatten)]
+    pub issuance_with_wua_instruction: PerformIssuanceWithWua,
+    #[serde_as(as = "Base64")]
+    pub pin_pubkey: DerVerifyingKey,
+}
+
+#[serde_as]
+#[derive(Debug, Serialize, Deserialize)]
+pub struct StartPinRecoveryResult {
+    #[serde(flatten)]
+    pub issuance_with_wua_result: PerformIssuanceWithWuaResult,
+    pub certificate: WalletCertificate,
+}
+
+impl InstructionAndResult for StartPinRecovery {
+    const NAME: &'static str = "start_pin_recovery";
+
+    type Result = StartPinRecoveryResult;
+}
+
 // PerformIssuance instruction.
 
 #[serde_as]

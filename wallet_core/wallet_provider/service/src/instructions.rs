@@ -38,10 +38,12 @@ use wallet_account::messages::instructions::PerformIssuanceWithWua;
 use wallet_account::messages::instructions::PerformIssuanceWithWuaResult;
 use wallet_account::messages::instructions::Sign;
 use wallet_account::messages::instructions::SignResult;
+use wallet_account::messages::instructions::StartPinRecovery;
 use wallet_provider_domain::model::hsm::WalletUserHsm;
 use wallet_provider_domain::model::wallet_user::WalletUser;
 use wallet_provider_domain::model::wallet_user::WalletUserKey;
 use wallet_provider_domain::model::wallet_user::WalletUserKeys;
+use wallet_provider_domain::model::wallet_user::WalletUserState;
 use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::repository::TransactionStarter;
 use wallet_provider_domain::repository::WalletUserRepository;
@@ -107,6 +109,16 @@ impl ValidateInstruction for ChangePinRollback {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
         if matches!(wallet_user.state, WalletUserState::RecoveringPin) {
             return Err(InstructionValidationError::PinRecoveryInProgress);
+        }
+
+        Ok(())
+    }
+}
+
+impl ValidateInstruction for StartPinRecovery {
+    fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+        if wallet_user.pin_change_in_progress() {
+            return Err(InstructionValidationError::PinChangeInProgress);
         }
 
         Ok(())

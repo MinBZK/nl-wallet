@@ -29,6 +29,8 @@ use wallet_account::messages::instructions::InstructionResultMessage;
 use wallet_account::messages::instructions::PerformIssuance;
 use wallet_account::messages::instructions::PerformIssuanceWithWua;
 use wallet_account::messages::instructions::Sign;
+use wallet_account::messages::instructions::StartPinRecovery;
+use wallet_account::messages::instructions::StartPinRecoveryResult;
 use wallet_account::messages::registration::Certificate;
 use wallet_account::messages::registration::Challenge;
 use wallet_account::messages::registration::Registration;
@@ -78,6 +80,10 @@ where
                 .route(
                     &format!("/instructions/{}", ChangePinRollback::NAME),
                     post(change_pin_rollback),
+                )
+                .route(
+                    &format!("/instructions/{}", StartPinRecovery::NAME),
+                    post(start_pin_recovery),
                 )
                 .route(
                     &format!("/instructions/{}", ChangePinCommit::NAME),
@@ -234,6 +240,29 @@ async fn change_pin_rollback<GRC, PIC>(
     let body = InstructionResultMessage { result };
 
     info!("Replying with the instruction result");
+
+    Ok((StatusCode::OK, body.into()))
+}
+
+async fn start_pin_recovery<GRC, PIC>(
+    State(state): State<Arc<RouterState<GRC, PIC>>>,
+    Json(payload): Json<Instruction<StartPinRecovery>>,
+) -> Result<(StatusCode, Json<InstructionResultMessage<StartPinRecoveryResult>>)> {
+    info!("Received StartPinRecovery instruction");
+
+    let result = state
+        .account_server
+        .handle_start_pin_recovery_instruction(
+            payload,
+            (&state.instruction_result_signing_key, &state.certificate_signing_key),
+            state.as_ref(),
+            &state.pin_policy,
+            &state.user_state,
+        )
+        .await
+        .inspect_err(|error| warn!("handling ChangePinStart instruction failed: {}", error))?;
+
+    let body = InstructionResultMessage { result };
 
     Ok((StatusCode::OK, body.into()))
 }
