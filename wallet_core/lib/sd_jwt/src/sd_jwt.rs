@@ -350,6 +350,11 @@ impl SdJwt {
             .filter(|segment| !segment.is_empty())
             .try_fold(HashMap::new(), |mut acc, segment| {
                 let disclosure = Disclosure::parse(segment)?;
+
+                // Verify disclosure value by parsing it as [ClaimValue].
+                // TODO: Use [ClaimValue] internally in [Disclosure] (PVW-4843)
+                serde_json::from_value::<ClaimValue>(disclosure.content.claim_value().clone())?;
+
                 acc.insert(hasher.encoded_digest(disclosure.as_str()), disclosure);
                 Ok::<_, Error>(acc)
             })?;
