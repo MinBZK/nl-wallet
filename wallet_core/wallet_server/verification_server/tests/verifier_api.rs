@@ -74,7 +74,7 @@ const USECASE_NAME: &str = "usecase";
 
 static EXAMPLE_START_DISCLOSURE_REQUEST: LazyLock<StartDisclosureRequest> = LazyLock::new(|| StartDisclosureRequest {
     usecase: USECASE_NAME.to_string(),
-    dcql_query: Some(Query::new_example()),
+    dcql_query: Some(Query::new_mdoc_example()),
     return_url_template: Some("https://return.url/{session_token}".parse().unwrap()),
 });
 

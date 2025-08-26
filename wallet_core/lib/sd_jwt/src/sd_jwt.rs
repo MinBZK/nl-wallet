@@ -4,7 +4,6 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::fmt::Display;
-use std::iter::Peekable;
 
 use chrono::DateTime;
 use chrono::Duration;
@@ -395,7 +394,7 @@ impl SdJwtPresentationBuilder {
         // Gather all digests to be disclosed into a set. This can include intermediary attributes as well
 
         self.digests_to_be_disclosed.extend({
-            let mut path_segments = path.iter().peekable();
+            let mut path_segments = path.as_ref().iter().peekable();
             digests_to_disclose(&self.full_payload, &mut path_segments, &self.nondisclosed, false)?
                 .into_iter()
                 .map(String::from)
@@ -473,7 +472,7 @@ pub(crate) fn sd_jwt_validation() -> Validation {
 /// The `object` must be the payload of an SD-JWT, containing an `_sd` array and other claims.
 fn digests_to_disclose<'a, I>(
     object: &'a serde_json::Value,
-    path: &mut Peekable<I>,
+    path: &mut std::iter::Peekable<I>,
     disclosures: &'a HashMap<String, Disclosure>,
     traversing_array: bool,
 ) -> Result<Vec<&'a str>>

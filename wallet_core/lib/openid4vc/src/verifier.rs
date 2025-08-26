@@ -1964,7 +1964,7 @@ mod tests {
                     session_type_return_url: SessionTypeReturnUrl::Neither,
                     client_id: "client_id".to_string(),
                 },
-                dcql_query: Query::new_example(),
+                dcql_query: Query::pid_family_name(),
                 return_url_template: "https://example.com".parse().unwrap(),
             },
         )]);

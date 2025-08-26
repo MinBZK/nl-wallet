@@ -38,6 +38,7 @@ use openid4vc::disclosure_session::VpVerifierError;
 use openid4vc::verifier::SessionType;
 use platform_support::attested_key::AttestedKeyHolder;
 use update_policy_model::update_policy::VersionState;
+use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
@@ -725,17 +726,14 @@ where
 
         // Clone some values from `WalletDisclosureSession`, before we have to give away ownership of it.
         let partial_mdocs = attestations
-            .iter()
+            .nonempty_iter()
             .map(|attestation| match attestation.partial_attestation() {
                 PartialAttestation::MsoMdoc { partial_mdoc } => partial_mdoc.as_ref().clone(),
                 PartialAttestation::SdJwt { .. } => {
                     todo!("implement SD-JWT disclosure (PVW-4138)")
                 }
             })
-            .collect_vec()
-            .try_into()
-            // Safe, as the source of the iterator is `VecNonEmpty`.
-            .unwrap();
+            .collect::<VecNonEmpty<_>>();
 
         // Take ownership of the disclosure session and actually perform disclosure, casting any
         // `InstructionError` that occurs during signing to `RemoteEcdsaKeyError::Instruction`.
