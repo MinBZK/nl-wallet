@@ -1,7 +1,9 @@
+use std::collections::HashMap;
+use std::hash::BuildHasherDefault;
+use std::hash::Hasher;
 use std::io::prelude::*;
 
 use base64::prelude::*;
-use derive_more::AsRef;
 use flate2::Compression;
 use flate2::read::ZlibDecoder;
 use flate2::write::ZlibEncoder;
@@ -11,12 +13,38 @@ use serde::ser::SerializeStruct;
 use serde_repr::Deserialize_repr;
 use serde_repr::Serialize_repr;
 
+#[derive(Debug, Default)]
+struct IdentityHasher(u64);
+
+impl Hasher for IdentityHasher {
+    fn finish(&self) -> u64 {
+        self.0
+    }
+
+    fn write(&mut self, _bytes: &[u8]) {
+        unimplemented!("IdentityHasher only supports writing numbers")
+    }
+
+    fn write_u64(&mut self, i: u64) {
+        self.0 = i;
+    }
+
+    fn write_usize(&mut self, i: usize) {
+        self.0 = u64::try_from(i).expect("usize too large to fit in u64");
+    }
+}
+
+type SparseStatusVec = HashMap<usize, StatusType, BuildHasherDefault<IdentityHasher>>;
+
 /// A Status List is a data structure that contains the statuses of many Referenced Tokens represented by one or
 /// multiple bits.
 ///
 /// <https://www.ietf.org/archive/id/draft-ietf-oauth-status-list-12.html#name-status-list>
-#[derive(Debug, Clone, PartialEq, Eq, AsRef)]
-pub struct StatusList(Vec<StatusType>);
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub struct StatusList {
+    sparse: SparseStatusVec,
+    len: usize,
+}
 
 impl Serialize for StatusList {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -65,18 +93,42 @@ impl<'de> Deserialize<'de> for StatusList {
 }
 
 impl StatusList {
+    pub fn new(len: usize) -> Self {
+        StatusList {
+            sparse: HashMap::default(),
+            len,
+        }
+    }
+
+    pub fn len(&self) -> usize {
+        self.len
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.sparse.is_empty()
+    }
+
+    pub fn get(&self, k: &usize) -> StatusType {
+        self.sparse.get(k).copied().unwrap_or_default()
+    }
+
+    pub fn insert(&mut self, k: usize, v: StatusType) -> Option<StatusType> {
+        // TODO what if k >= len?
+        self.sparse.insert(k, v)
+    }
+
     fn pack(&self) -> (Bits, Vec<u8>) {
         let bits = self
-            .0
-            .iter()
+            .sparse
+            .values()
             .max_by(|a, b| a.bits().cmp(&b.bits()))
             .map(|s| s.bits())
             .unwrap_or_default(); // empty list
 
         let level = 8 / bits as usize;
 
-        let mut lst = vec![0; (self.0.len() * bits as usize).div_ceil(8)];
-        for (index, status) in self.0.iter().enumerate() {
+        let mut lst = vec![0; (self.len * bits as usize).div_ceil(8)];
+        for (index, status) in &self.sparse {
             lst[index / level] |= Into::<u8>::into(*status) << (index % level);
         }
 
@@ -87,17 +139,22 @@ impl StatusList {
         let level = 8 / bits as usize;
         let mask = (2_u16.pow(bits as u32) - 1) as u8;
 
-        let lst = lst
+        let len = lst.len() * level;
+        let sparse: SparseStatusVec = lst
             .iter()
-            .flat_map(|byte| {
-                (0..level).map(move |i| {
+            .enumerate()
+            .flat_map(|(index, byte)| {
+                (0..level).filter_map(move |i| {
                     let status = (byte >> (i * bits as usize)) & mask;
-                    StatusType::from(status)
+                    status.ne(&0).then(|| {
+                        let mapped_index = index * level + i;
+                        (mapped_index, StatusType::from(status))
+                    })
                 })
             })
             .collect();
 
-        StatusList(lst)
+        StatusList { sparse, len }
     }
 }
 
@@ -183,20 +240,22 @@ pub mod test {
 
     static STATUS_LIST_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"status\[(\d+)\]\s*=\s*(\d+)").unwrap());
 
+    // Parse the status list examples as they are listed in the spec
     fn parse_status_list(input: &str) -> StatusList {
-        let result = STATUS_LIST_REGEX.captures_iter(input).fold(Vec::new(), |mut acc, cap| {
-            let idx = cap.get(1).unwrap().as_str().parse::<usize>().unwrap();
-            let value = cap.get(2).unwrap().as_str().parse::<u8>().unwrap();
+        let sparse = STATUS_LIST_REGEX
+            .captures_iter(input)
+            .fold(SparseStatusVec::default(), |mut acc, cap| {
+                let index = cap.get(1).unwrap().as_str().parse::<usize>().unwrap();
+                let value = cap.get(2).unwrap().as_str().parse::<u8>().unwrap();
 
-            if idx + 1 > acc.len() {
-                acc.resize(idx + 1, StatusType::Valid);
-            }
+                if value != 0 {
+                    acc.insert(index, StatusType::from(value));
+                }
+                acc
+            });
 
-            acc[idx] = StatusType::from(value);
-            acc
-        });
-
-        StatusList(result)
+        let len = sparse.keys().max().unwrap().to_owned() + 1;
+        StatusList { len, sparse }
     }
 
     pub static EXAMPLE_STATUS_LIST_ONE: LazyLock<StatusList> =
@@ -306,12 +365,8 @@ pub mod test {
     fn test_status_list_deserialization(#[case] value: serde_json::Value, #[case] expected: StatusList) {
         let status_list: StatusList = serde_json::from_value(value).unwrap();
 
-        assert_eq!(status_list.0[..expected.0.len()], expected.0);
-        // Since the example input only specifies non-valid entries, everything not in the `expected` list should've
-        // been deserialised as Valid
-        assert_eq!(
-            status_list.0[expected.0.len()..],
-            vec![StatusType::Valid; status_list.0.len() - expected.0.len()]
-        );
+        assert_eq!(status_list.sparse, expected.sparse);
+        // Since the example input only specifies non-valid entries, there can be more entries in the deserialized list
+        assert!(status_list.len >= expected.len);
     }
 }

@@ -194,6 +194,6 @@ mod test {
         let status_list_token: StatusListToken = response.text().await.unwrap().parse().unwrap();
         let (header, payload) = status_list_token.0.dangerous_parse_unverified().unwrap();
         assert_eq!(header.typ.unwrap(), TOKEN_STATUS_LIST_JWT_TYP);
-        assert!(!payload.status_list.as_ref().is_empty());
+        assert!(!payload.status_list.is_empty());
     }
 }
