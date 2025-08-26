@@ -809,11 +809,11 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         )
         .await?;
 
-        let result = self.sign_instruction_result(signing_keys.0, wallet_certificate).await;
+        let result = self.sign_instruction_result(signing_keys.0, wallet_certificate).await?;
 
         tx.commit().await?;
 
-        result
+        Ok(result)
     }
 
     // Implements the logic behind the ChangePinRollback instruction.
