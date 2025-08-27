@@ -531,16 +531,14 @@ where
 
         // If the Wallet Provider returns either a PIN timeout or a permanent block,
         // wipe the contents of the wallet and return it to its initial state.
-        if matches!(
-            issuance_result,
-            Err(IssuanceError::Instruction(
-                InstructionError::Timeout { .. } | InstructionError::Blocked
-            ))
-        ) {
-            self.reset_to_initial_state().await;
-        }
-
-        let issued_credentials_with_metadata = issuance_result?;
+        let issued_credentials_with_metadata = match issuance_result {
+            Err(IssuanceError::Instruction(error @ (InstructionError::Timeout { .. } | InstructionError::Blocked))) => {
+                drop(remote_instruction);
+                self.reset_to_initial_state().await;
+                return Err(IssuanceError::Instruction(error));
+            }
+            _ => issuance_result?,
+        };
 
         info!("Isuance succeeded; removing issuance session state");
         let issuance_session = match self.session.take() {
