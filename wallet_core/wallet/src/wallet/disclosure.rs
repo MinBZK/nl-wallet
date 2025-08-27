@@ -67,7 +67,7 @@ use super::uri::identify_uri;
 static LOGIN_ATTESTATION_TYPES: LazyLock<HashSet<&str>> = LazyLock::new(|| HashSet::from([PID_ATTESTATION_TYPE]));
 
 /// A login request will only contain the BSN attribute, which the verifier checks against a BSN
-/// the verifier already posseses for the wallet user. For this reason it should not retain it.
+/// the verifier already possesses for the wallet user. For this reason it should not retain it.
 static LOGIN_CLAIMS: LazyLock<HashMap<CredentialFormat, AttributeRequest>> = LazyLock::new(|| {
     let mdoc_login_claims = AttributeRequest {
         path: vec![
@@ -81,7 +81,7 @@ static LOGIN_CLAIMS: LazyLock<HashMap<CredentialFormat, AttributeRequest>> = Laz
 
     let sd_jwt_login_claims = AttributeRequest {
         path: vec![ClaimPath::SelectByKey(PID_BSN.to_string())].try_into().unwrap(),
-        // TODO (PVW-4139): SD-JWT requests should not have intent_to_retain, fix this one we supper SD-JWT in DCQL.
+        // TODO (PVW-4139): SD-JWT requests should not have intent_to_retain, fix this once we support SD-JWT in DCQL.
         intent_to_retain: false,
     };
 
