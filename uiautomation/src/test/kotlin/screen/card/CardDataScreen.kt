@@ -20,6 +20,10 @@ class CardDataScreen : MobileActions() {
         return isElementVisible(find.byText(attribute))
     }
 
+    fun dataLabelAbsent(attribute: String): Boolean {
+        return isElementAbsent(find.byText(attribute))
+    }
+
     fun clickDataIncorrectButton() = clickElement(dataIncorrectButton)
 
     fun clickBottomBackButton() = clickElement(bottomBackButton)
