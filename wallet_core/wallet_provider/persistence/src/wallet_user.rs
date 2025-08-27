@@ -145,6 +145,7 @@ where
         .column(wallet_user::Column::PreviousPinPubkeyIv)
         .column(wallet_user::Column::PinEntries)
         .column(wallet_user::Column::LastUnsuccessfulPin)
+        .column(wallet_user::Column::RecoveryCode)
         .column(wallet_user_instruction_challenge::Column::InstructionChallenge)
         .column_as(
             wallet_user_instruction_challenge::Column::ExpirationDateTime,
@@ -510,7 +511,7 @@ where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
-    wallet_user::Entity::update_many()
+    let result = wallet_user::Entity::update_many()
         .col_expr(wallet_user::Column::RecoveryCode, Expr::value(recovery_code))
         .filter(
             wallet_user::Column::WalletId
@@ -519,6 +520,11 @@ where
         )
         .exec(db.connection())
         .await
-        .map(|_| ())
-        .map_err(|e| PersistenceError::Execution(e.into()))
+        .map_err(|e| PersistenceError::Execution(e.into()))?;
+
+    match result.rows_affected {
+        0 => Err(PersistenceError::NoRowsUpdated),
+        1 => Ok(()),
+        _ => panic!("multiple `wallet_user`s with the same `wallet_id`"),
+    }
 }
