@@ -91,15 +91,9 @@ pub struct StatusListClaims {
 
 #[cfg(test)]
 mod test {
-    use axum::Router;
-    use axum::routing::get;
     use p256::ecdsa::SigningKey;
     use p256::elliptic_curve::rand_core::OsRng;
     use serde_json::json;
-    use tokio::net::TcpListener;
-
-    use http_utils::urls::BaseUrl;
-    use tests_integration::common::wait_for_server;
 
     use super::*;
 
@@ -146,7 +140,14 @@ mod test {
     }
 
     #[cfg(feature = "axum")]
-    async fn start_mock_server() -> BaseUrl {
+    async fn start_mock_server() -> http_utils::urls::BaseUrl {
+        use axum::Router;
+        use axum::routing::get;
+        use tokio::net::TcpListener;
+
+        use http_utils::urls::BaseUrl;
+        use tests_integration::common::wait_for_server;
+
         use crate::status_list::test::EXAMPLE_STATUS_LIST_ONE;
 
         let listener = TcpListener::bind("localhost:0").await.unwrap();
