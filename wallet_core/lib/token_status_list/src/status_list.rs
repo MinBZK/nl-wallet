@@ -1,15 +1,9 @@
 use std::collections::HashMap;
 use std::hash::BuildHasherDefault;
 use std::hash::Hasher;
-use std::io::prelude::*;
 
-use base64::prelude::*;
-use flate2::Compression;
-use flate2::read::ZlibDecoder;
-use flate2::write::ZlibEncoder;
 use serde::Deserialize;
 use serde::Serialize;
-use serde::ser::SerializeStruct;
 use serde_repr::Deserialize_repr;
 use serde_repr::Serialize_repr;
 
@@ -46,49 +40,56 @@ pub struct StatusList {
     len: usize,
 }
 
-impl Serialize for StatusList {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        let (bits, packed) = self.pack();
+#[derive(Debug, Default, Clone, Eq, Serialize, Deserialize)]
+pub struct PackedStatusList {
+    /// The amount of bits used to describe the status of each Referenced Token within this Status List.
+    bits: Bits,
 
-        // Implementations are RECOMMENDED to use the highest compression level available.
-        let mut e = ZlibEncoder::new(Vec::new(), Compression::best());
-        e.write_all(&packed).map_err(serde::ser::Error::custom)?;
-        let compressed = e.finish().map_err(serde::ser::Error::custom)?;
+    #[serde(with = "zlib_base64")]
+    lst: Vec<u8>,
+}
 
-        let lst = BASE64_URL_SAFE_NO_PAD.encode(compressed);
-
-        let mut serialized = serializer.serialize_struct("StatusList", 2)?;
-        serialized.serialize_field("bits", &bits)?;
-        serialized.serialize_field("lst", &lst)?;
-        serialized.end()
+impl PartialEq for PackedStatusList {
+    fn eq(&self, other: &Self) -> bool {
+        self.unpack() == other.unpack()
     }
 }
 
-impl<'de> Deserialize<'de> for StatusList {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+mod zlib_base64 {
+    use std::io::prelude::*;
+
+    use base64::prelude::*;
+    use flate2::Compression;
+    use flate2::read::ZlibDecoder;
+    use flate2::write::ZlibEncoder;
+    use serde::Deserialize;
+
+    pub fn serialize<S>(bytes: &[u8], serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        // Implementations are RECOMMENDED to use the highest compression level available.
+        let mut e = ZlibEncoder::new(Vec::new(), Compression::best());
+        e.write_all(bytes).map_err(serde::ser::Error::custom)?;
+        let compressed = e.finish().map_err(serde::ser::Error::custom)?;
+
+        let encoded = BASE64_URL_SAFE_NO_PAD.encode(compressed);
+        serializer.serialize_str(&encoded)
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Vec<u8>, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
-        #[derive(Deserialize)]
-        struct StatusListRaw {
-            bits: Bits,
-            lst: String,
-        }
+        let s = String::deserialize(deserializer)?;
 
-        let raw = StatusListRaw::deserialize(deserializer)?;
-        let compressed = BASE64_URL_SAFE_NO_PAD
-            .decode(raw.lst)
-            .map_err(serde::de::Error::custom)?;
+        let decoded = BASE64_URL_SAFE_NO_PAD.decode(s).map_err(serde::de::Error::custom)?;
 
-        let mut d = ZlibDecoder::new(&compressed[..]);
+        let mut d = ZlibDecoder::new(&decoded[..]);
         let mut decompressed = Vec::new();
         d.read_to_end(&mut decompressed).map_err(serde::de::Error::custom)?;
 
-        let status_list = StatusList::unpack(raw.bits, &decompressed);
-        Ok(status_list)
+        Ok(decompressed)
     }
 }
 
@@ -100,24 +101,19 @@ impl StatusList {
         }
     }
 
-    pub fn len(&self) -> usize {
-        self.len
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.sparse.is_empty()
-    }
-
     pub fn get(&self, k: &usize) -> StatusType {
         self.sparse.get(k).copied().unwrap_or_default()
     }
 
     pub fn insert(&mut self, k: usize, v: StatusType) -> Option<StatusType> {
-        // TODO what if k >= len?
+        if k > self.len {
+            return None; // status lists should not grow dynamically
+        }
+
         self.sparse.insert(k, v)
     }
 
-    fn pack(&self) -> (Bits, Vec<u8>) {
+    pub fn pack(self) -> PackedStatusList {
         let bits = self
             .sparse
             .values()
@@ -125,36 +121,59 @@ impl StatusList {
             .map(|s| s.bits())
             .unwrap_or_default(); // empty list
 
-        let level = 8 / bits as usize;
+        let statuses_per_byte = bits.statuses_per_byte();
 
-        let mut lst = vec![0; (self.len * bits as usize).div_ceil(8)];
-        for (index, status) in &self.sparse {
-            lst[index / level] |= Into::<u8>::into(*status) << (index % level);
-        }
+        let lst = self.sparse.iter().fold(
+            vec![0; (self.len * bits as usize).div_ceil(8)],
+            |mut acc, (index, status)| {
+                let idx = index / statuses_per_byte;
+                acc[idx] |= Into::<u8>::into(*status) << ((index % statuses_per_byte) * bits as usize);
+                acc
+            },
+        );
 
-        (bits, lst)
+        PackedStatusList { bits, lst }
+    }
+}
+
+impl PackedStatusList {
+    pub fn single_unpack(&self, index: usize) -> StatusType {
+        self.partial_unpack(&[index])[0]
     }
 
-    fn unpack(bits: Bits, lst: &[u8]) -> Self {
-        let level = 8 / bits as usize;
-        let mask = (2_u16.pow(bits as u32) - 1) as u8;
+    pub fn partial_unpack(&self, indices: &[usize]) -> Vec<StatusType> {
+        let statuses_per_byte = self.bits.statuses_per_byte();
+        let mask = self.bits.mask();
 
-        let len = lst.len() * level;
-        let sparse: SparseStatusVec = lst
+        indices
             .iter()
-            .enumerate()
-            .flat_map(|(index, byte)| {
-                (0..level).filter_map(move |i| {
-                    let status = (byte >> (i * bits as usize)) & mask;
-                    status.ne(&0).then(|| {
-                        let mapped_index = index * level + i;
-                        (mapped_index, StatusType::from(status))
-                    })
-                })
+            .map(|index| {
+                let byte = self.lst[index / statuses_per_byte];
+                let status = (byte >> ((index % statuses_per_byte) * self.bits as usize)) & mask;
+                StatusType::from(status)
+            })
+            .collect()
+    }
+
+    fn unpack(&self) -> StatusList {
+        let statuses_per_byte = self.bits.statuses_per_byte();
+        let mask = self.bits.mask();
+
+        let len = self.lst.len() * statuses_per_byte;
+        let sparse: SparseStatusVec = (0..len)
+            .filter_map(|index| {
+                let byte = self.lst[index / statuses_per_byte];
+                let status = (byte >> ((index % statuses_per_byte) * self.bits as usize)) & mask;
+                (status != 0).then(|| (index, StatusType::from(status)))
             })
             .collect();
 
         StatusList { sparse, len }
+    }
+
+    #[cfg(test)]
+    pub fn is_empty(&self) -> bool {
+        self.lst.is_empty()
     }
 }
 
@@ -166,6 +185,18 @@ enum Bits {
     Two = 2,
     Four = 4,
     Eight = 8,
+}
+
+impl Bits {
+    #[inline]
+    pub fn statuses_per_byte(self) -> usize {
+        8 / self as usize
+    }
+
+    #[inline]
+    pub fn mask(self) -> u8 {
+        ((1 << self as u16) - 1) as u8
+    }
 }
 
 /// A status describes the state, mode, condition or stage of an entity that is represented by the Referenced Token.
@@ -279,7 +310,8 @@ pub mod test {
     #[case(FOUR_BIT_STATUS_LIST.to_owned(), Bits::Four)]
     #[case(EIGHT_BIT_STATUS_LIST.to_owned(), Bits::Eight)]
     fn test_status_list_serialization(#[case] list: StatusList, #[case] expected: Bits) {
-        let compressed = serde_json::to_value(list).unwrap();
+        let packed = list.pack();
+        let compressed = serde_json::to_value(packed).unwrap();
         assert_eq!(compressed["bits"].as_u64().unwrap(), expected as u64);
     }
 
@@ -363,10 +395,23 @@ pub mod test {
         EIGHT_BIT_STATUS_LIST.to_owned()
     )]
     fn test_status_list_deserialization(#[case] value: serde_json::Value, #[case] expected: StatusList) {
-        let status_list: StatusList = serde_json::from_value(value).unwrap();
+        let packed: PackedStatusList = serde_json::from_value(value).unwrap();
+
+        let status_list = packed.unpack();
 
         assert_eq!(status_list.sparse, expected.sparse);
         // Since the example input only specifies non-valid entries, there can be more entries in the deserialized list
         assert!(status_list.len >= expected.len);
+    }
+
+    #[rstest]
+    #[case(vec![0, 1993, 35460], vec![StatusType::Invalid, StatusType::Suspended, StatusType::ApplicationSpecific(3)])]
+    #[case(vec![1, 2, 3], vec![StatusType::Valid, StatusType::Valid, StatusType::Valid])]
+    #[case(vec![0, 1], vec![StatusType::Invalid, StatusType::Valid])]
+    #[case(vec![1, 0], vec![StatusType::Valid, StatusType::Invalid])]
+    fn test_partial_unpack(#[case] indices: Vec<usize>, #[case] expected: Vec<StatusType>) {
+        let packed = FOUR_BIT_STATUS_LIST.to_owned().pack();
+        let unpacked = packed.partial_unpack(&indices);
+        assert_eq!(unpacked, expected);
     }
 }

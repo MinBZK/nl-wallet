@@ -23,7 +23,7 @@ use http_utils::urls::HttpsUri;
 use jwt::Jwt;
 use jwt::error::JwtError;
 
-use crate::status_list::StatusList;
+use crate::status_list::PackedStatusList;
 
 static TOKEN_STATUS_LIST_JWT_TYP: &str = "statuslist+jwt";
 static TOKEN_STATUS_LIST_JWT_HEADER: &str = "application/statuslist+jwt";
@@ -41,7 +41,7 @@ impl StatusListToken {
         exp: Option<DateTime<Utc>>,
         sub: HttpsUri,
         ttl: Option<Duration>,
-        status_list: StatusList,
+        status_list: PackedStatusList,
         key: &impl EcdsaKey,
     ) -> Result<Self, JwtError> {
         let claims = StatusListClaims {
@@ -86,7 +86,7 @@ pub struct StatusListClaims {
     #[serde_as(as = "Option<DurationSeconds<u64>>")]
     ttl: Option<Duration>,
 
-    status_list: StatusList,
+    status_list: PackedStatusList,
 }
 
 #[cfg(test)]
@@ -158,7 +158,7 @@ mod test {
             Some(Utc::now() + Duration::from_secs(3600)),
             "https://example.com/statuslists/1".parse().unwrap(),
             Some(Duration::from_secs(43200)),
-            EXAMPLE_STATUS_LIST_ONE.to_owned(),
+            EXAMPLE_STATUS_LIST_ONE.to_owned().pack(),
             &SigningKey::random(&mut OsRng),
         )
         .await
