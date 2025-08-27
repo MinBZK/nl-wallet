@@ -625,7 +625,9 @@ mod tests {
     use itertools::Itertools;
     use jsonwebtoken::Algorithm;
     use jsonwebtoken::Validation;
+    use p256::ecdsa::Signature;
     use p256::ecdsa::SigningKey;
+    use p256::ecdsa::signature::Signer;
     use p256::ecdsa::signature::Verifier;
     use rand::rngs::OsRng;
     use rstest::rstest;
@@ -637,12 +639,17 @@ mod tests {
     use jwt::pop::JwtPopClaims;
     use jwt::wua::WuaDisclosure;
     use wallet_account::NL_WALLET_CLIENT_ID;
+    use wallet_account::messages::instructions::ChangePinCommit;
+    use wallet_account::messages::instructions::ChangePinRollback;
+    use wallet_account::messages::instructions::ChangePinStart;
     use wallet_account::messages::instructions::CheckPin;
     use wallet_account::messages::instructions::PerformIssuance;
     use wallet_account::messages::instructions::PerformIssuanceWithWua;
     use wallet_account::messages::instructions::Sign;
+    use wallet_account::messages::instructions::StartPinRecovery;
     use wallet_provider_domain::FixedUuidGenerator;
     use wallet_provider_domain::model::wallet_user;
+    use wallet_provider_domain::model::wallet_user::WalletUserState;
     use wallet_provider_domain::repository::MockTransaction;
     use wallet_provider_persistence::repositories::mock::MockTransactionalWalletUserRepository;
     use wscd::Poa;
@@ -908,5 +915,58 @@ mod tests {
             result.issuance_result.poa,
             Some(&result.wua_disclosure),
         );
+    }
+
+    fn mock_change_pin_start_instruction() -> ChangePinStart {
+        let privkey = SigningKey::random(&mut OsRng);
+        let signature: Signature = privkey.sign("bla".as_bytes());
+        ChangePinStart {
+            pin_pubkey: (*privkey.verifying_key()).into(),
+            pop_pin_pubkey: signature.into(),
+        }
+    }
+
+    fn mock_sign_instruction() -> Sign {
+        Sign {
+            messages_with_identifiers: vec![],
+            poa_nonce: None,
+            poa_aud: "aud".to_string(),
+        }
+    }
+
+    fn mock_start_pin_recovery_instruction() -> StartPinRecovery {
+        StartPinRecovery {
+            issuance_with_wua_instruction: PerformIssuanceWithWua {
+                issuance_instruction: PerformIssuance {
+                    key_count: 1.try_into().unwrap(),
+                    aud: "aud".to_string(),
+                    nonce: None,
+                },
+            },
+            pin_pubkey: (*SigningKey::random(&mut OsRng).verifying_key()).into(),
+        }
+    }
+
+    #[rstest]
+    #[case(Box::new(CheckPin), false)]
+    #[case(Box::new(mock_change_pin_start_instruction()), false)]
+    #[case(Box::new(ChangePinCommit {}), false)]
+    #[case(Box::new(ChangePinRollback {}), false)]
+    #[case(Box::new(mock_sign_instruction()), false)]
+    #[case(Box::new(mock_start_pin_recovery_instruction()), true)]
+    fn test_instruction_validation_during_pin_recovery(
+        #[case] instruction: Box<dyn ValidateInstruction>,
+        #[case] should_succeed: bool,
+    ) {
+        let mut wallet_user = wallet_user::mock::wallet_user_1();
+        wallet_user.state = WalletUserState::RecoveringPin;
+
+        let result = instruction.validate_instruction(&wallet_user);
+
+        if should_succeed {
+            assert_matches!(result, Ok(()));
+        } else {
+            assert_matches!(result, Err(InstructionValidationError::PinRecoveryInProgress));
+        }
     }
 }
