@@ -382,7 +382,7 @@ mod tests {
 
             // The converted `AttestationPresentation` contains multiple attributes.
             let full_presentation = attestation_copy.clone().into_attestation_presentation();
-            assert_eq!(full_presentation.attributes.len(), 3);
+            assert_eq!(full_presentation.attributes.len(), 5);
 
             // Selecting a particular attribute for disclosure should only succeed if the path exists.
             let disclosable_attestation = DisclosableAttestation::try_new(attestation_copy.clone(), [&bsn_path])
