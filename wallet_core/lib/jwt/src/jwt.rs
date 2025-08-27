@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::fmt::Display;
 use std::marker::PhantomData;
 use std::str::FromStr;
 use std::sync::LazyLock;
@@ -61,11 +62,18 @@ impl<T> FromStr for Jwt<T> {
     }
 }
 
+impl<T> Display for Jwt<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
 /// A verified JWS, along with its header and payload.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct VerifiedJwt<T> {
     header: Header,
     payload: T,
+
     jwt: Jwt<T>,
 }
 
@@ -403,6 +411,7 @@ impl<T> Serialize for Jwt<T> {
         String::serialize(&self.0, serializer)
     }
 }
+
 impl<'de, T> Deserialize<'de> for Jwt<T> {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> std::result::Result<Self, D::Error> {
         String::deserialize(deserializer).map(Jwt::from)
