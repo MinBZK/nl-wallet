@@ -1486,6 +1486,9 @@ mod tests {
     use wallet_account::messages::instructions::CheckPin;
     use wallet_account::messages::instructions::InstructionAndResult;
     use wallet_account::messages::instructions::InstructionResult;
+    use wallet_account::messages::instructions::PerformIssuance;
+    use wallet_account::messages::instructions::PerformIssuanceWithWua;
+    use wallet_account::messages::instructions::StartPinRecovery;
     use wallet_account::messages::registration::WalletCertificate;
     use wallet_account::signed::ChallengeResponse;
     use wallet_provider_domain::EpochGenerator;
@@ -2526,5 +2529,83 @@ mod tests {
             "instruction validation error: pin change is in progress",
             error.to_string()
         );
+    }
+
+    #[tokio::test]
+    async fn test_start_pin_recovery() {
+        let (setup, account_server, hw_privkey, cert, mut user_state) =
+            setup_and_do_registration(AttestationType::Google).await;
+        user_state.repositories.instruction_sequence_number = 42;
+
+        let challenge =
+            do_instruction_challenge::<ChangePinStart>(&account_server, &hw_privkey, cert.clone(), 43, &user_state)
+                .await
+                .unwrap();
+
+        user_state.repositories.challenge = Some(challenge.clone());
+
+        let new_pin_privkey = SigningKey::random(&mut OsRng);
+        let new_pin_pubkey = *new_pin_privkey.verifying_key();
+
+        let instruction = StartPinRecovery {
+            issuance_with_wua_instruction: PerformIssuanceWithWua {
+                issuance_instruction: PerformIssuance {
+                    key_count: 1.try_into().unwrap(),
+                    aud: "aud".to_string(),
+                    nonce: Some("nonce".to_string()),
+                },
+            },
+            pin_pubkey: new_pin_pubkey.into(),
+        };
+        let instruction = hw_privkey
+            .sign_instruction(instruction, challenge, 46, &new_pin_privkey, cert)
+            .await;
+
+        let instruction_result_signing_key = SigningKey::random(&mut OsRng);
+
+        let result = account_server
+            .handle_start_pin_recovery_instruction(
+                instruction,
+                (&instruction_result_signing_key, &setup.signing_key),
+                &MockGenerators,
+                &TimeoutPinPolicy,
+                &user_state,
+            )
+            .await
+            .unwrap()
+            .dangerous_parse_unverified()
+            .unwrap()
+            .1
+            .result;
+
+        user_state.repositories.encrypted_pin_pubkey = Encrypter::encrypt(
+            &user_state.wallet_user_hsm,
+            wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER,
+            new_pin_pubkey,
+        )
+        .await
+        .unwrap();
+
+        verify_wallet_certificate(
+            &result.certificate,
+            &EcdsaDecodingKey::from(&setup.signing_pubkey),
+            wallet_certificate::mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
+            wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER,
+            |wallet_user| wallet_user.encrypted_pin_pubkey.clone(),
+            &user_state,
+        )
+        .await
+        .expect("verifying wallet certificate with the new pin_pubkey should succeed");
+
+        do_check_pin(
+            &account_server,
+            &new_pin_privkey,
+            &hw_privkey,
+            result.certificate,
+            &instruction_result_signing_key,
+            &mut user_state,
+        )
+        .await
+        .expect("checking new pin should succeed");
     }
 }
