@@ -63,7 +63,7 @@ pub struct WalletUserCreate {
     pub attestation: WalletUserAttestationCreate,
 }
 
-#[derive(Debug, Clone, Copy, strum::Display, strum::EnumString)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::Display, strum::EnumString)]
 #[strum(serialize_all = "snake_case")]
 pub enum WalletUserState {
     Active,

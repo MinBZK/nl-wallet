@@ -170,7 +170,11 @@ where
 
     joined_model
         .map(|joined_model| {
-            if joined_model.state == WalletUserState::Blocked.to_string() {
+            let state: WalletUserState = joined_model
+                .state
+                .parse()
+                .map_err(PersistenceError::UserStateConversion)?;
+            if state == WalletUserState::Blocked {
                 Ok(WalletUserQueryResult::Blocked)
             } else {
                 let encrypted_pin_pubkey = Encrypted::new(
@@ -203,10 +207,6 @@ where
                     // CHECK statement on the table.
                     None => WalletUserAttestation::Android,
                 };
-                let state: WalletUserState = joined_model
-                    .state
-                    .parse()
-                    .map_err(PersistenceError::UserStateConversion)?;
                 let wallet_user = WalletUser {
                     id: joined_model.id,
                     wallet_id: joined_model.wallet_id,
