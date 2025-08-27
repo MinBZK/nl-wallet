@@ -69,6 +69,7 @@ use wallet_account::messages::instructions::InstructionAndResult;
 use wallet_account::messages::instructions::InstructionChallengeRequest;
 use wallet_account::messages::instructions::InstructionResult;
 use wallet_account::messages::instructions::InstructionResultClaims;
+use wallet_account::messages::instructions::PerformIssuanceWithWuaResult;
 use wallet_account::messages::instructions::StartPinRecovery;
 use wallet_account::messages::instructions::StartPinRecoveryResult;
 use wallet_account::messages::registration::Registration;
@@ -92,7 +93,9 @@ use wallet_provider_domain::repository::WalletUserRepository;
 use wscd::PoaError;
 
 use crate::instructions::HandleInstruction;
+use crate::instructions::IssuanceArguments;
 use crate::instructions::ValidateInstruction;
+use crate::instructions::perform_issuance;
 use crate::keys::InstructionResultSigningKey;
 use crate::keys::WalletCertificateSigningKey;
 use crate::wallet_certificate::new_wallet_certificate;
@@ -888,7 +891,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         let pin_pubkey = instruction
             .instruction
             .dangerous_parse_unverified()
-            .map_err(|e| InstructionValidationError::VerificationFailed(e))?
+            .map_err(InstructionValidationError::VerificationFailed)?
             .payload
             .pin_pubkey
             .into_inner();
@@ -922,16 +925,25 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             )
             .await?;
 
-        // Handle the issuance part of the instruction
-        // TODO should this be inside the tx?
-        let issuance_with_wua_result = instruction_payload
-            .issuance_with_wua_instruction
-            .handle(&wallet_user, generators, &user_state)
-            .await?;
+        let issuance_instruction = instruction_payload.issuance_with_wua_instruction.issuance_instruction;
 
-        // TODO PVW-4815: mark the identifiers from `issuance_with_wua_result.issuance_result.key_identifiers` in the
-        //                database for later deletion during handling of the DiscloseRecoveryCodePinRecovery
-        //                instruction.
+        // Handle the issuance part without persisting the generated keys
+        let (issuance_result, wua_with_disclosure, _, _) = perform_issuance(
+            IssuanceArguments {
+                key_count: issuance_instruction.key_count,
+                aud: issuance_instruction.aud,
+                nonce: issuance_instruction.nonce,
+                issue_wua: true,
+            },
+            user_state,
+        )
+        .await?;
+
+        let issuance_with_wua_result = PerformIssuanceWithWuaResult {
+            issuance_result,
+            // unwrap: `perform_issuance()` included a WUA since we passed it `true` above.
+            wua_disclosure: wua_with_disclosure.unwrap(),
+        };
 
         let tx = user_state.repositories.begin_transaction().await?;
 
@@ -1056,7 +1068,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         let verification_result = self
             .verify_instruction(
                 instruction,
-                &wallet_user,
+                wallet_user,
                 pin_pubkey,
                 generators,
                 &user_state.wallet_user_hsm,
@@ -1067,7 +1079,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             Ok((challenge_response_payload, assertion_counter)) => {
                 debug!("Instruction successfully verified, validating instruction");
 
-                challenge_response_payload.payload.validate_instruction(&wallet_user)?;
+                challenge_response_payload.payload.validate_instruction(wallet_user)?;
 
                 debug!("Instruction successfully validated, resetting pin retries");
 
