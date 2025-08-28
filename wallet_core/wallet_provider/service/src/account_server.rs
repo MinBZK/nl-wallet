@@ -98,10 +98,10 @@ use crate::instructions::ValidateInstruction;
 use crate::instructions::perform_issuance;
 use crate::keys::InstructionResultSigningKey;
 use crate::keys::WalletCertificateSigningKey;
+use crate::wallet_certificate::PinKeyChecks;
 use crate::wallet_certificate::new_wallet_certificate;
+use crate::wallet_certificate::parse_claims_and_retrieve_wallet_user;
 use crate::wallet_certificate::verify_wallet_certificate;
-use crate::wallet_certificate::verify_wallet_certificate_and_retrieve_wallet_user;
-use crate::wallet_certificate::verify_wallet_certificate_hw_public_key;
 use crate::wallet_certificate::verify_wallet_certificate_public_keys;
 use crate::wua_issuer::WuaIssuer;
 
@@ -635,7 +635,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         H: Decrypter<VerifyingKey, Error = HsmError> + Hsm<Error = HsmError>,
     {
         debug!("Parse certificate and retrieving wallet user");
-        let (user, claims) = verify_wallet_certificate_and_retrieve_wallet_user(
+        let (user, claims) = parse_claims_and_retrieve_wallet_user(
             &challenge_request.certificate,
             &self.keys.wallet_certificate_signing_pubkey,
             &user_state.repositories,
@@ -669,9 +669,9 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             &self.keys.encryption_key_identifier,
             &user.hw_pubkey,
             if request.instruction_name == ChangePinRollback::NAME {
-                user.encrypted_previous_pin_pubkey.unwrap_or(user.encrypted_pin_pubkey)
+                PinKeyChecks::AllChecks(user.encrypted_previous_pin_pubkey.unwrap_or(user.encrypted_pin_pubkey))
             } else {
-                user.encrypted_pin_pubkey
+                PinKeyChecks::AllChecks(user.encrypted_pin_pubkey)
             },
             &user_state.wallet_user_hsm,
         )
@@ -732,7 +732,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
     {
         let (wallet_user, instruction_payload) = self
             .verify_and_extract_instruction(instruction, generators, pin_policy, user_state, |wallet_user| {
-                wallet_user.encrypted_pin_pubkey.clone()
+                PinKeyChecks::AllChecks(wallet_user.encrypted_pin_pubkey.clone())
             })
             .await?;
 
@@ -771,7 +771,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
     {
         let (wallet_user, instruction_payload) = self
             .verify_and_extract_instruction(instruction, generators, pin_policy, user_state, |wallet_user| {
-                wallet_user.encrypted_pin_pubkey.clone()
+                PinKeyChecks::AllChecks(wallet_user.encrypted_pin_pubkey.clone())
             })
             .await?;
 
@@ -843,10 +843,12 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
     {
         let (wallet_user, _) = self
             .verify_and_extract_instruction(instruction, generators, pin_policy, user_state, |wallet_user| {
-                wallet_user
-                    .encrypted_previous_pin_pubkey
-                    .clone()
-                    .unwrap_or(wallet_user.encrypted_pin_pubkey.clone())
+                PinKeyChecks::AllChecks(
+                    wallet_user
+                        .encrypted_previous_pin_pubkey
+                        .clone()
+                        .unwrap_or(wallet_user.encrypted_pin_pubkey.clone()),
+                )
             })
             .await?;
 
@@ -890,7 +892,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         // to extract it from the instruction itself.
         let pin_pubkey = instruction
             .instruction
-            .dangerous_parse_unverified()
+            .dangerous_parse_unverified() // `verify_pin_and_extract_instruction()` below verifies this properly.
             .map_err(InstructionValidationError::VerificationFailed)?
             .payload
             .pin_pubkey
@@ -903,26 +905,10 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         )
         .await?;
 
-        let (wallet_user, claims) = verify_wallet_certificate_and_retrieve_wallet_user(
-            &instruction.certificate,
-            &self.keys.wallet_certificate_signing_pubkey,
-            &user_state.repositories,
-        )
-        .await?;
-
-        // Verify the instruction against just the HW key.
-        verify_wallet_certificate_hw_public_key(&claims, &wallet_user.hw_pubkey)?;
-
-        // This also verifies the instruction against the provided new PIN key.
-        let instruction_payload = self
-            .verify_pin_and_extract_instruction(
-                &wallet_user,
-                instruction,
-                generators,
-                Some(encrypted_pin_pubkey.clone()),
-                pin_policy,
-                user_state,
-            )
+        let (wallet_user, instruction_payload) = self
+            .verify_and_extract_instruction(instruction, generators, pin_policy, user_state, |_| {
+                PinKeyChecks::OnlySignature(encrypted_pin_pubkey.clone())
+            })
             .await?;
 
         let issuance_instruction = instruction_payload.issuance_with_wua_instruction.issuance_instruction;
@@ -994,11 +980,11 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         I: InstructionAndResult + ValidateInstruction,
         G: Generator<Uuid> + Generator<DateTime<Utc>>,
         H: Hsm<Error = HsmError> + Decrypter<VerifyingKey, Error = HsmError>,
-        F: Fn(&WalletUser) -> Encrypted<VerifyingKey>,
+        F: Fn(&WalletUser) -> PinKeyChecks,
     {
         debug!("Verifying certificate and retrieving wallet user");
 
-        let wallet_user = verify_wallet_certificate(
+        let (wallet_user, pin_pubkey) = verify_wallet_certificate(
             &instruction.certificate,
             &self.keys.wallet_certificate_signing_pubkey,
             &self.keys.pin_public_disclosure_protection_key_identifier,
@@ -1009,7 +995,14 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         .await?;
 
         let instruction = self
-            .verify_pin_and_extract_instruction(&wallet_user, instruction, generators, None, pin_policy, user_state)
+            .verify_pin_and_extract_instruction(
+                &wallet_user,
+                instruction,
+                generators,
+                pin_pubkey,
+                pin_policy,
+                user_state,
+            )
             .await?;
 
         Ok((wallet_user, instruction))
@@ -1023,7 +1016,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         wallet_user: &WalletUser,
         instruction: Instruction<I>,
         generators: &G,
-        pin_pubkey: Option<Encrypted<VerifyingKey>>,
+        pin_pubkey: Encrypted<VerifyingKey>,
         pin_policy: &impl PinPolicyEvaluator,
         user_state: &UserState<R, H, impl WuaIssuer>,
     ) -> Result<I, InstructionError>
@@ -1173,7 +1166,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         &self,
         instruction: Instruction<I>,
         wallet_user: &WalletUser,
-        pin_pubkey: Option<Encrypted<VerifyingKey>>,
+        pin_pubkey: Encrypted<VerifyingKey>,
         time_generator: &impl Generator<DateTime<Utc>>,
         verifying_key_decrypter: &D,
     ) -> Result<(ChallengeResponsePayload<I>, Option<AssertionCounter>), InstructionValidationError>
@@ -1184,10 +1177,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         let challenge = Self::verify_instruction_challenge(wallet_user, time_generator)?;
 
         let pin_pubkey = verifying_key_decrypter
-            .decrypt(
-                &self.keys.encryption_key_identifier,
-                pin_pubkey.unwrap_or_else(|| wallet_user.encrypted_pin_pubkey.clone()),
-            )
+            .decrypt(&self.keys.encryption_key_identifier, pin_pubkey)
             .await?;
 
         let sequence_number_comparison = SequenceNumberComparison::LargerThan(wallet_user.instruction_sequence_number);
@@ -1518,6 +1508,7 @@ mod tests {
 
     use crate::keys::WalletCertificateSigningKey;
     use crate::wallet_certificate;
+    use crate::wallet_certificate::PinKeyChecks;
     use crate::wallet_certificate::mock::WalletCertificateSetup;
     use crate::wallet_certificate::mock::setup_hsm;
     use crate::wallet_certificate::verify_wallet_certificate;
@@ -1838,7 +1829,7 @@ mod tests {
             &EcdsaDecodingKey::from(&setup.signing_pubkey),
             wallet_certificate::mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
             wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER,
-            |wallet_user| wallet_user.encrypted_pin_pubkey.clone(),
+            |wallet_user| PinKeyChecks::AllChecks(wallet_user.encrypted_pin_pubkey.clone()),
             &user_state,
         )
         .await
@@ -2038,7 +2029,13 @@ mod tests {
                 .sign_instruction(CheckPin, challenge, 44, &setup.pin_privkey, cert)
                 .await;
             let _ = account_server
-                .verify_instruction(instruction, &user, None, &EpochGenerator, &user_state.wallet_user_hsm)
+                .verify_instruction(
+                    instruction,
+                    &user,
+                    user.encrypted_pin_pubkey.clone(),
+                    &EpochGenerator,
+                    &user_state.wallet_user_hsm,
+                )
                 .await
                 .expect("instruction should be valid");
         } else {
@@ -2082,7 +2079,13 @@ mod tests {
                 .sign_instruction(CheckPin, challenge, 44, &setup.pin_privkey, cert)
                 .await;
             let error = account_server
-                .verify_instruction(instruction, &user, None, &EpochGenerator, &user_state.wallet_user_hsm)
+                .verify_instruction(
+                    instruction,
+                    &user,
+                    user.encrypted_pin_pubkey.clone(),
+                    &EpochGenerator,
+                    &user_state.wallet_user_hsm,
+                )
                 .await
                 .expect_err("instruction should not be valid");
 
@@ -2154,7 +2157,13 @@ mod tests {
                 .sign_instruction(CheckPin, challenge, 44, &setup.pin_privkey, cert)
                 .await;
             let error = account_server
-                .verify_instruction(instruction, &user, None, &EpochGenerator, &user_state.wallet_user_hsm)
+                .verify_instruction(
+                    instruction,
+                    &user,
+                    user.encrypted_pin_pubkey.clone(),
+                    &EpochGenerator,
+                    &user_state.wallet_user_hsm,
+                )
                 .await
                 .expect_err("instruction should not be valid");
 
@@ -2219,16 +2228,19 @@ mod tests {
         )
         .await;
 
-        verify_wallet_certificate(
+        if verify_wallet_certificate(
             &new_cert,
             &EcdsaDecodingKey::from(&setup.signing_pubkey),
             wallet_certificate::mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
             wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER,
-            |wallet_user| wallet_user.encrypted_pin_pubkey.clone(),
+            |wallet_user| PinKeyChecks::AllChecks(wallet_user.encrypted_pin_pubkey.clone()),
             &user_state,
         )
         .await
-        .expect_err("verifying with the old pin_pubkey should fail");
+        .is_ok()
+        {
+            panic!("verifying with the old pin_pubkey should fail")
+        };
 
         user_state.repositories.encrypted_pin_pubkey = encrypted_new_pin_pubkey.clone();
 
@@ -2237,7 +2249,7 @@ mod tests {
             &EcdsaDecodingKey::from(&setup.signing_pubkey),
             wallet_certificate::mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
             wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER,
-            |wallet_user| wallet_user.encrypted_pin_pubkey.clone(),
+            |wallet_user| PinKeyChecks::AllChecks(wallet_user.encrypted_pin_pubkey.clone()),
             &user_state,
         )
         .await
@@ -2603,7 +2615,7 @@ mod tests {
             &EcdsaDecodingKey::from(&setup.signing_pubkey),
             wallet_certificate::mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
             wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER,
-            |wallet_user| wallet_user.encrypted_pin_pubkey.clone(),
+            |wallet_user| PinKeyChecks::AllChecks(wallet_user.encrypted_pin_pubkey.clone()),
             &user_state,
         )
         .await
