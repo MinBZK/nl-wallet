@@ -33,7 +33,7 @@ class SetupSecuritySelectPinInProgress extends SetupSecurityState {
   bool get didGoBack => afterBackPressed;
 
   @override
-  FlowProgress get stepperProgress => const FlowProgress(currentStep: 2, totalSteps: kSetupSteps);
+  FlowProgress get stepperProgress => FlowProgress(currentStep: 2, totalSteps: SetupHelper.totalSetupSteps);
 
   @override
   List<Object?> get props => [enteredDigits, ...super.props];
@@ -45,7 +45,7 @@ class SetupSecuritySelectPinFailed extends SetupSecurityState {
   const SetupSecuritySelectPinFailed({required this.reason});
 
   @override
-  FlowProgress get stepperProgress => const FlowProgress(currentStep: 2, totalSteps: kSetupSteps);
+  FlowProgress get stepperProgress => FlowProgress(currentStep: 2, totalSteps: SetupHelper.totalSetupSteps);
 
   @override
   List<Object?> get props => [reason, ...super.props];
@@ -65,7 +65,7 @@ class SetupSecurityPinConfirmationInProgress extends SetupSecurityState {
   List<Object?> get props => [enteredDigits, ...super.props];
 
   @override
-  FlowProgress get stepperProgress => const FlowProgress(currentStep: 3, totalSteps: kSetupSteps);
+  FlowProgress get stepperProgress => FlowProgress(currentStep: 3, totalSteps: SetupHelper.totalSetupSteps);
 }
 
 class SetupSecurityPinConfirmationFailed extends SetupSecurityState {
@@ -77,13 +77,10 @@ class SetupSecurityPinConfirmationFailed extends SetupSecurityState {
   bool get canGoBack => true;
 
   @override
-  FlowProgress get stepperProgress => const FlowProgress(currentStep: 3, totalSteps: kSetupSteps);
+  FlowProgress get stepperProgress => FlowProgress(currentStep: 3, totalSteps: SetupHelper.totalSetupSteps);
 }
 
-class SetupSecurityCreatingWallet extends SetupSecurityState {
-  @override
-  FlowProgress get stepperProgress => const FlowProgress(currentStep: 4, totalSteps: kSetupSteps);
-}
+class SetupSecurityCreatingWallet extends SetupSecurityState {}
 
 class SetupSecurityConfigureBiometrics extends SetupSecurityState {
   final Biometrics biometrics;
@@ -92,7 +89,7 @@ class SetupSecurityConfigureBiometrics extends SetupSecurityState {
       : assert(biometrics != Biometrics.none, 'This state is invalid without supported biometrics');
 
   @override
-  FlowProgress get stepperProgress => const FlowProgress(currentStep: 4, totalSteps: kSetupSteps);
+  FlowProgress get stepperProgress => FlowProgress(currentStep: 4, totalSteps: SetupHelper.totalSetupSteps);
 
   @override
   List<Object?> get props => [biometrics, ...super.props];
@@ -104,7 +101,8 @@ class SetupSecurityCompleted extends SetupSecurityState {
   const SetupSecurityCompleted({this.enabledBiometrics = Biometrics.none});
 
   @override
-  FlowProgress get stepperProgress => const FlowProgress(currentStep: 5, totalSteps: kSetupSteps);
+  FlowProgress get stepperProgress =>
+      FlowProgress(currentStep: SetupHelper.totalSetupSteps - 4, totalSteps: SetupHelper.totalSetupSteps);
 
   @override
   List<Object?> get props => [enabledBiometrics, ...super.props];
@@ -143,5 +141,5 @@ class SetupSecurityNetworkError extends SetupSecurityState implements NetworkErr
   const SetupSecurityNetworkError({required this.error, required this.hasInternet, this.statusCode});
 
   @override
-  List<Object?> get props => [error, stepperProgress, hasInternet, statusCode, ...super.props];
+  List<Object?> get props => [error, hasInternet, statusCode, ...super.props];
 }
