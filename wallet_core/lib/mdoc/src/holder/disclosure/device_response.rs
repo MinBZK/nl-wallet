@@ -3,6 +3,7 @@ use itertools::Itertools;
 use crypto::CredentialEcdsaKey;
 use crypto::wscd::DisclosureWscd;
 use crypto::wscd::WscdPoa;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::errors::Error;
 use crate::errors::Result;
@@ -25,12 +26,12 @@ impl DeviceResponse {
         }
     }
 
-    pub async fn sign_from_mdocs<K, W, P>(
-        partial_mdocs: Vec<PartialMdoc>,
+    pub async fn sign_multiple_from_partial_mdocs<K, W, P>(
+        partial_mdocs: VecNonEmpty<PartialMdoc>,
         session_transcript: &SessionTranscript,
         wscd: &W,
         poa_input: P::Input,
-    ) -> Result<(Self, Option<P>)>
+    ) -> Result<(VecNonEmpty<Self>, Option<P>)>
     where
         K: CredentialEcdsaKey,
         W: DisclosureWscd<Key = K, Poa = P>,
@@ -58,15 +59,16 @@ impl DeviceResponse {
         // and challenges, then use these to create the Document values.
         let (device_signeds, poa) = DeviceSigned::new_signatures(keys_and_challenges, wscd, poa_input).await?;
 
-        let documents = partial_mdocs
+        let device_responses = partial_mdocs
             .into_iter()
-            .zip(device_signeds)
-            .map(|(partial_mdoc, device_signed)| Document::new(partial_mdoc, device_signed))
-            .collect();
+            .zip_eq(device_signeds)
+            .map(|(partial_mdoc, device_signed)| Self::new(vec![Document::new(partial_mdoc, device_signed)]))
+            .collect_vec()
+            .try_into()
+            // This is safe, as the source iterator is non-empty.
+            .unwrap();
 
-        let device_response = Self::new(documents);
-
-        Ok((device_response, poa))
+        Ok((device_responses, poa))
     }
 }
 
@@ -105,18 +107,20 @@ mod tests {
         // Create a `SessionTranscript`, its contents do not matter.
         let session_transcript = SessionTranscript::new_mock();
 
-        // Sign a `DeviceResponse` that contains all of the attributes from the generated mdocs.
-        let (device_response, _) =
-            DeviceResponse::sign_from_mdocs(partial_mdocs.clone(), &session_transcript, &wscd, ())
-                .now_or_never()
-                .unwrap()
-                .expect("signing DeviceResponse from mdocs should succeed");
+        // Sign multiple `DeviceResponse`s that contain all of the attributes from the generated mdocs.
+        let (device_responses, _) = DeviceResponse::sign_multiple_from_partial_mdocs(
+            partial_mdocs.clone().try_into().unwrap(),
+            &session_transcript,
+            &wscd,
+            (),
+        )
+        .now_or_never()
+        .unwrap()
+        .expect("signing DeviceResponse from mdocs should succeed");
 
-        for (document, partial_mdoc) in device_response
-            .documents
-            .as_deref()
-            .unwrap_or(&[])
+        for (document, partial_mdoc) in device_responses
             .iter()
+            .flat_map(|device_response| device_response.documents.as_deref().unwrap_or_default())
             .zip(&partial_mdocs)
         {
             // For each created `Document`, check the contents against the input mdoc.

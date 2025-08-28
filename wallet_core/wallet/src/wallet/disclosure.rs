@@ -22,6 +22,7 @@ use attestation_data::disclosure_type::DisclosureType;
 use attestation_types::claim_path::ClaimPath;
 use dcql::CredentialFormat;
 use dcql::CredentialQueryFormat;
+use dcql::CredentialQueryIdentifier;
 use dcql::normalized::AttributeRequest;
 use dcql::normalized::NormalizedCredentialRequest;
 use entity::disclosure_event::EventStatus;
@@ -38,8 +39,8 @@ use openid4vc::disclosure_session::VpVerifierError;
 use openid4vc::verifier::SessionType;
 use platform_support::attested_key::AttestedKeyHolder;
 use update_policy_model::update_policy::VersionState;
-use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
+use utils::vec_nonempty;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::account_provider::AccountProviderClient;
@@ -232,7 +233,7 @@ pub enum RedirectUriPurpose {
 pub(super) struct WalletDisclosureSession<DCS> {
     pub redirect_uri_purpose: RedirectUriPurpose,
     pub disclosure_type: DisclosureType,
-    pub attestations: Option<VecNonEmpty<DisclosableAttestation>>,
+    pub attestations: Option<HashMap<CredentialQueryIdentifier, DisclosableAttestation>>,
     pub protocol_state: DCS,
 }
 
@@ -240,7 +241,7 @@ impl<DCS> WalletDisclosureSession<DCS> {
     pub fn new_proposal(
         redirect_uri_purpose: RedirectUriPurpose,
         disclosure_type: DisclosureType,
-        attestations: VecNonEmpty<DisclosableAttestation>,
+        attestations: HashMap<CredentialQueryIdentifier, DisclosableAttestation>,
         protocol_state: DCS,
     ) -> Self {
         Self {
@@ -390,8 +391,9 @@ where
         .await
         .map_err(DisclosureError::AttestationRetrieval)?
         .into_iter()
-        .flatten()
-        .collect_vec();
+        .zip(session.credential_requests().as_ref())
+        .flat_map(|(attestations, request)| attestations.map(|attestations| (&request.id, attestations)))
+        .collect::<HashMap<_, _>>();
 
         // At this point, determine the disclosure type and if data was ever shared with this RP before, as the UI
         // needs this context both for when all requested attributes are present and for when attributes are missing.
@@ -452,11 +454,11 @@ where
         // For now, return an error if multiple attestations are found for a requested attestation type.
         // TODO (PVW-3829): Allow the user to select amongst multiple disclosure candidates.
 
-        let (disclosure_attestations, duplicate_attestation_types): (Vec<_>, Vec<_>) = candidate_attestations
+        let (disclosure_attestations, duplicate_attestation_types): (HashMap<_, _>, Vec<_>) = candidate_attestations
             .into_iter()
-            .partition_map(|candidate_attestations| {
+            .partition_map(|(id, candidate_attestations)| {
                 if candidate_attestations.len().get() == 1 {
-                    Either::Left(candidate_attestations.into_first())
+                    Either::Left((id.clone(), candidate_attestations.into_first()))
                 } else {
                     Either::Right(candidate_attestations.into_first().into_presentation().attestation_type)
                 }
@@ -468,20 +470,13 @@ where
             return Err(DisclosureError::MultipleCandidates(duplicate_attestation_types));
         }
 
-        // This unwrap is guaranteed to succeed as:
-        // 1. The `DisclosureSession` is guaranteed to contain at least one credential request.
-        // 2. We check above if there is at least one candidate for every attestation type.
-        // 3. We then check above that none of the attestation types have multiple candidates, so the length of
-        //    disclosure_attestations is the same as candidate_attestations, which is at least 1.
-        let disclosure_attestations = VecNonEmpty::try_from(disclosure_attestations).unwrap();
-
         info!("All attributes in the disclosure request are present in the database, return a proposal to the user");
 
         // Place the propopsed attestations in a `DisclosureProposalPresentation`,
         // along with a copy of the `ReaderRegistration`.
         let proposal = DisclosureProposalPresentation {
             attestations: disclosure_attestations
-                .iter()
+                .values()
                 .map(|attestation| attestation.presentation().clone())
                 .collect(),
             reader_registration: verifier_certificate.registration().clone(),
@@ -509,7 +504,7 @@ where
     ) -> Result<Option<Url>, DisclosureError> {
         let attestations = session.attestations.map(|attestations| {
             attestations
-                .into_iter()
+                .into_values()
                 .map(|attestation| attestation.into_presentation())
                 .collect_vec()
                 .try_into()
@@ -686,7 +681,7 @@ where
             .await
             .increment_attestation_copies_usage_count(
                 attestations
-                    .iter()
+                    .values()
                     .map(|attestation| attestation.attestation_copy_id())
                     .dedup()
                     .collect(),
@@ -705,7 +700,7 @@ where
                     Utc::now(),
                     Some(
                         attestations
-                            .iter()
+                            .values()
                             .map(|attestation| attestation.presentation().clone())
                             .collect_vec()
                             .try_into()
@@ -725,15 +720,19 @@ where
         }
 
         // Clone some values from `WalletDisclosureSession`, before we have to give away ownership of it.
-        let partial_mdocs = attestations
-            .nonempty_iter()
-            .map(|attestation| match attestation.partial_attestation() {
-                PartialAttestation::MsoMdoc { partial_mdoc } => partial_mdoc.as_ref().clone(),
-                PartialAttestation::SdJwt { .. } => {
-                    todo!("implement SD-JWT disclosure (PVW-4138)")
-                }
+        let disclosable_attestations = attestations
+            .iter()
+            .map(|(id, attestation)| {
+                let partial_mdoc = match attestation.partial_attestation() {
+                    PartialAttestation::MsoMdoc { partial_mdoc } => partial_mdoc.as_ref().clone(),
+                    PartialAttestation::SdJwt { .. } => {
+                        todo!("implement SD-JWT disclosure (PVW-4138)")
+                    }
+                };
+
+                (id.clone(), vec_nonempty![partial_mdoc])
             })
-            .collect::<VecNonEmpty<_>>();
+            .collect();
 
         // Take ownership of the disclosure session and actually perform disclosure, casting any
         // `InstructionError` that occurs during signing to `RemoteEcdsaKeyError::Instruction`.
@@ -741,7 +740,10 @@ where
             // This not possible, as we took a reference to this value before.
             unreachable!();
         };
-        let result = session.protocol_state.disclose(partial_mdocs, &remote_wscd).await;
+        let result = session
+            .protocol_state
+            .disclose(disclosable_attestations, &remote_wscd)
+            .await;
         let return_url = match result {
             Ok(return_url) => return_url.map(BaseUrl::into_inner),
             Err((protocol_state, error)) => {
@@ -766,7 +768,7 @@ where
                                     .attestations
                                     .as_ref()
                                     .unwrap()
-                                    .iter()
+                                    .values()
                                     .map(|attestation| attestation.presentation().clone())
                                     .collect_vec()
                                     .try_into()
@@ -822,7 +824,7 @@ where
                 session
                     .attestations
                     .unwrap()
-                    .into_iter()
+                    .into_values()
                     .map(|attestation| attestation.into_presentation())
                     .collect_vec()
                     .try_into()
@@ -842,6 +844,7 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
     use std::collections::HashSet;
     use std::str::FromStr;
     use std::sync::LazyLock;
@@ -1067,7 +1070,7 @@ mod tests {
         let session = Session::Disclosure(WalletDisclosureSession::new_proposal(
             RedirectUriPurpose::Browser,
             DisclosureType::Regular,
-            vec![disclosable_attestation].try_into().unwrap(),
+            HashMap::from([("id".try_into().unwrap(), disclosable_attestation)]),
             disclosure_session,
         ));
 
@@ -1152,9 +1155,10 @@ mod tests {
                 // Make sure that only one attestation with a single attribute is disclosed.
                 partial_mdocs
                     .clone()
-                    .into_iter()
+                    .into_values()
                     .exactly_one()
                     .ok()
+                    .and_then(|partial_mdocs| partial_mdocs.into_iter().exactly_one().ok())
                     .and_then(|partial_mdoc| {
                         (partial_mdoc.doc_type == PID_ATTESTATION_TYPE)
                             .then_some(partial_mdoc.issuer_signed.into_entries_by_namespace())
@@ -2050,7 +2054,7 @@ mod tests {
             .attestations
             .as_ref()
             .unwrap()
-            .iter()
+            .values()
             .map(|attestation| attestation.attestation_copy_id())
             .collect_vec();
 
@@ -2225,7 +2229,7 @@ mod tests {
             .attestations
             .as_ref()
             .unwrap()
-            .iter()
+            .values()
             .map(|attestation| attestation.attestation_copy_id())
             .collect_vec();
 

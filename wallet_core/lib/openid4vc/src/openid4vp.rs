@@ -1,8 +1,10 @@
+use std::cell::LazyCell;
+use std::collections::HashMap;
 use std::string::FromUtf8Error;
 
-use base64::DecodeError;
 use chrono::DateTime;
 use chrono::Utc;
+use derive_more::Constructor;
 use indexmap::IndexSet;
 use itertools::Itertools;
 use josekit::JoseError;
@@ -17,43 +19,39 @@ use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::DeserializeFromStr;
-use serde_with::OneOrMany;
-use serde_with::formats::PreferOne;
-use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 
 use attestation_data::disclosure::DisclosedAttestation;
 use attestation_data::disclosure::DisclosedAttestationError;
-use crypto::utils::random_string;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateError;
+use dcql::CredentialQueryIdentifier;
+use dcql::Query;
 use dcql::disclosure::CredentialValidationError;
 use dcql::disclosure::DisclosedCredential;
 use dcql::normalized::NormalizedCredentialRequests;
+use dcql::normalized::UnsupportedDcqlFeatures;
 use error_category::ErrorCategory;
 use http_utils::urls::BaseUrl;
 use jwt::Jwt;
 use jwt::error::JwtX5cError;
 use mdoc::DeviceResponse;
+use mdoc::Document;
 use mdoc::SessionTranscript;
 use mdoc::errors::Error as MdocError;
 use mdoc::utils::serialization::CborBase64;
 use serde_with::SerializeDisplay;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
-use utils::vec_nonempty;
+use utils::vec_at_least::IntoNonEmptyIterator;
+use utils::vec_at_least::NonEmptyIterator;
+use utils::vec_at_least::VecNonEmpty;
 use wscd::Poa;
 use wscd::PoaVerificationError;
 
-use crate::Format;
 use crate::authorization::AuthorizationRequest;
 use crate::authorization::ResponseMode;
 use crate::authorization::ResponseType;
-use crate::presentation_exchange::InputDescriptorMappingObject;
-use crate::presentation_exchange::PdConversionError;
-use crate::presentation_exchange::PresentationDefinition;
-use crate::presentation_exchange::PresentationSubmission;
-use crate::presentation_exchange::PsError;
 
 #[derive(Debug, thiserror::Error)]
 pub enum AuthRequestError {
@@ -61,8 +59,6 @@ pub enum AuthRequestError {
     CertificateParsing(#[from] CertificateError),
     #[error("Subject Alternative Name missing from X.509 certificate")]
     MissingSAN,
-    #[error("error converting Credential Request to Presentation Definition: {0}")]
-    PdConversion(#[from] PdConversionError),
 }
 
 /// A Request URI object, as defined in RFC 9101.
@@ -98,8 +94,7 @@ pub struct VpAuthorizationRequest {
     pub oauth_request: AuthorizationRequest,
 
     /// Contains requirements on the credentials and/or attributes to be disclosed.
-    #[serde(flatten)]
-    pub presentation_definition: VpPresentationDefinition,
+    pub dcql_query: Query,
 
     /// Metadata about the verifier such as their encryption key(s).
     #[serde(flatten)]
@@ -120,23 +115,6 @@ pub enum VpAuthorizationRequestAudience {
     #[default]
     #[strum(to_string = "https://self-issued.me/v2")]
     SelfIssued,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum VpPresentationDefinition {
-    #[serde(rename = "presentation_definition")]
-    Direct(PresentationDefinition),
-    #[serde(rename = "presentation_definition_url")]
-    Indirect(BaseUrl),
-}
-
-impl VpPresentationDefinition {
-    pub fn direct(self) -> Option<PresentationDefinition> {
-        match self {
-            VpPresentationDefinition::Direct(pd) => Some(pd),
-            VpPresentationDefinition::Indirect(_) => None,
-        }
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -289,11 +267,8 @@ pub enum AuthRequestValidationError {
         expected: &'static str,
         found: Option<serde_json::Value>,
     },
-    #[error("no attributes were requested")]
-    #[category(critical)]
-    NoAttributesRequested,
-    #[error("unsupported Presentation Definition: {0}")]
-    UnsupportedPresentationDefinition(#[from] PdConversionError),
+    #[error("unsupported DCQL query: {0}")]
+    UnsupportedDcqlQuery(#[from] UnsupportedDcqlFeatures),
     #[error(
         "client_id from Authorization Request was {client_id}, should have been equal to SAN DNSName from X.509 \
          certificate ({dns_san})"
@@ -373,7 +348,6 @@ pub struct NormalizedVpAuthorizationRequest {
     pub encryption_pubkey: Jwk,
     pub response_uri: BaseUrl,
     pub credential_requests: NormalizedCredentialRequests,
-    pub presentation_definition: PresentationDefinition,
     pub client_metadata: ClientMetadata,
     pub state: Option<String>,
     pub wallet_nonce: Option<String>,
@@ -400,7 +374,6 @@ impl NormalizedVpAuthorizationRequest {
             nonce,
             encryption_pubkey: encryption_pubkey.clone(),
             response_uri,
-            presentation_definition: (&credential_requests).try_into()?,
             credential_requests,
             client_metadata: ClientMetadata {
                 jwks: VpJwks::Direct {
@@ -434,7 +407,7 @@ impl From<NormalizedVpAuthorizationRequest> for VpAuthorizationRequest {
                 code_challenge: None,
                 scope: None,
             },
-            presentation_definition: VpPresentationDefinition::Direct(value.presentation_definition),
+            dcql_query: value.credential_requests.into(),
             client_metadata: Some(VpClientMetadata::Direct(value.client_metadata)),
             client_id_scheme: Some(ClientIdScheme::X509SanDns),
             response_uri: Some(value.response_uri),
@@ -505,17 +478,12 @@ impl TryFrom<VpAuthorizationRequest> for NormalizedVpAuthorizationRequest {
         }
 
         // Of fields that have an "_uri" variant, check that they are not used
-        let Some(presentation_definition) = vp_auth_request.presentation_definition.direct() else {
-            return Err(AuthRequestValidationError::UriVariantNotSupported(
-                "presentation_definition",
-            ));
-        };
         let Some(client_metadata) = client_metadata.direct() else {
             return Err(AuthRequestValidationError::UriVariantNotSupported("client_metadata"));
         };
         let Some(jwks) = client_metadata.jwks.direct() else {
             return Err(AuthRequestValidationError::UriVariantNotSupported(
-                "presentation_definition",
+                "client_metadata.jwks",
             ));
         };
 
@@ -526,21 +494,12 @@ impl TryFrom<VpAuthorizationRequest> for NormalizedVpAuthorizationRequest {
         let jwk = jwks.first().unwrap().clone();
         JwePublicKey::validate(&jwk)?;
 
-        if presentation_definition
-            .input_descriptors
-            .iter()
-            .all(|i| i.constraints.fields.is_empty())
-        {
-            return Err(AuthRequestValidationError::NoAttributesRequested);
-        }
-
         Ok(NormalizedVpAuthorizationRequest {
             client_id: vp_auth_request.oauth_request.client_id,
             nonce: vp_auth_request.oauth_request.nonce.unwrap(),
             encryption_pubkey: jwk,
-            credential_requests: (&presentation_definition).try_into()?,
+            credential_requests: vp_auth_request.dcql_query.try_into()?,
             response_uri: vp_auth_request.response_uri.unwrap(),
-            presentation_definition,
             client_metadata,
             state: vp_auth_request.oauth_request.state,
             wallet_nonce: vp_auth_request.wallet_nonce,
@@ -564,44 +523,75 @@ pub enum AuthResponseError {
         expected: Option<String>,
         found: Option<String>,
     },
-    #[error("failed to base64 decode JWE header fields: {0}")]
-    Base64(#[from] DecodeError),
     #[error("missing apu field from JWE")]
     MissingApu,
     #[error("missing apv field from JWE")]
     MissingApv,
     #[error("failed to decode apu/apv field from JWE")]
     Utf8(#[from] FromUtf8Error),
+    #[error("no Document received in any DeviceResponse for credential query identifier: {0}")]
+    #[category(pd)]
+    NoMdocDocuments(CredentialQueryIdentifier),
     #[error("error verifying disclosed mdoc(s): {0}")]
-    Verification(#[source] mdoc::Error),
+    MdocVerification(#[source] mdoc::Error),
     #[error("response does not satisfy credential request(s): {0}")]
     UnsatisfiedCredentialRequest(#[source] CredentialValidationError),
-    #[error("received unexpected amount of Verifiable Presentations: expected 1, found {0}")]
-    UnexpectedVpCount(usize),
-    #[error("error in Presentation Submission: {0}")]
-    PresentationSubmission(#[from] PsError),
-    #[error("error collecting keys to verify PoA: {0}")]
-    PoaKeys(#[source] mdoc::Error),
     #[error("missing PoA")]
     MissingPoa,
     #[error("error verifying PoA: {0}")]
     PoaVerification(#[from] PoaVerificationError),
     #[error("error converting disclosed attestations: {0}")]
     #[category(pd)]
-    DisclosedAttestation(#[from] DisclosedAttestationError),
+    DisclosedAttestation(#[source] DisclosedAttestationError),
+}
+
+/// Disclosure of a credential, generally containing the issuer-signed credential itself, the disclosed attributes,
+/// and a holder signature over some nonce provided by the verifier.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum VerifiablePresentation {
+    // NB: a `DeviceResponse` can contain disclosures of multiple mdocs. In case of other (not yet supported) formats,
+    //     each credential is expected to result in a separate Verifiable Presentation.
+    MsoMdoc(VecNonEmpty<CborBase64<DeviceResponse>>),
+}
+
+impl VerifiablePresentation {
+    pub fn new_mdoc(device_responses: VecNonEmpty<DeviceResponse>) -> Self {
+        let device_responses = device_responses.into_nonempty_iter().map(CborBase64).collect();
+
+        Self::MsoMdoc(device_responses)
+    }
+
+    /// Helper function for iterating over all mdoc [`Document`]s in a [`VerifiablePresentation`].
+    fn mdoc_documents_iter<'a>(
+        device_responses: impl IntoIterator<Item = &'a CborBase64<DeviceResponse>>,
+    ) -> impl Iterator<Item = &'a Document> {
+        device_responses
+            .into_iter()
+            .flat_map(|CborBase64(device_response)| device_response.documents.as_deref().unwrap_or_default())
+    }
+
+    /// Helper function for extracing all unique public keys in a set of [`VerifiablePresentation`]s.
+    fn unique_keys<'a>(presentations: impl IntoIterator<Item = &'a Self>) -> Result<Vec<VerifyingKey>, MdocError> {
+        presentations
+            .into_iter()
+            .flat_map(|presentation| match presentation {
+                Self::MsoMdoc(device_responses) => {
+                    Self::mdoc_documents_iter(device_responses).map(|document| document.issuer_signed.public_key())
+                }
+            })
+            // Unfortunately `VerifyingKey` does not implement `Hash`, so we have to deduplicate manually.
+            .process_results(|iter| iter.dedup().collect())
+    }
 }
 
 // We do not reuse or embed the `AuthorizationResponse` struct from `authorization.rs`, because in no variant
 // of OpenID4VP that we (plan to) support do we need the `code` field from that struct, which is its primary citizen.
 /// An OpenID4VP Authorization Response, with the wallet's disclosed credentials/attributes in the `vp_token`.
-#[serde_as]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Constructor)]
 pub struct VpAuthorizationResponse {
-    /// One or more Verifiable Presentations.
-    #[serde_as(as = "OneOrMany<_, PreferOne>")]
-    pub vp_token: Vec<VerifiablePresentation>,
-
-    pub presentation_submission: PresentationSubmission,
+    /// A map of Verifiable Presentations, keyed by the credential query identifier of the original DCQL request.
+    pub vp_token: HashMap<CredentialQueryIdentifier, VerifiablePresentation>,
 
     /// MUST equal the `state` from the Authorization Request.
     /// May be used by the RP to link incoming Authorization Responses to its corresponding Authorization Request,
@@ -611,52 +601,15 @@ pub struct VpAuthorizationResponse {
     pub poa: Option<Poa>,
 }
 
-/// Disclosure of an credential, generally containing the issuer-signed credential itself, the disclosed attributes,
-/// and a holder signature over some nonce provided by the verifier.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum VerifiablePresentation {
-    // NB: a `DeviceResponse` can contain disclosures of multiple mdocs.
-    // In case of other (not yet supported) formats, each credential is expected to result in a separate
-    // Verifiable Presentation. See e.g. this example:
-    // https://openid.github.io/OpenID4VP/openid-4-verifiable-presentations-wg-draft.html#section-6.1-13
-    MsoMdoc(CborBase64<DeviceResponse>),
-}
-
 impl VpAuthorizationResponse {
-    fn new(device_response: DeviceResponse, auth_request: &NormalizedVpAuthorizationRequest, poa: Option<Poa>) -> Self {
-        let presentation_submission = PresentationSubmission {
-            id: random_string(16),
-            definition_id: auth_request.presentation_definition.id.clone(),
-            descriptor_map: device_response
-                .documents
-                .as_ref()
-                .unwrap() // we never produce DeviceResponse instances without documents in it
-                .iter()
-                .map(|doc| InputDescriptorMappingObject {
-                    id: doc.doc_type.clone(),
-                    format: Format::MsoMdoc,
-                    path: "$".to_string(),
-                })
-                .collect(),
-        };
-
-        VpAuthorizationResponse {
-            vp_token: vec![VerifiablePresentation::MsoMdoc(device_response.into())],
-            presentation_submission,
-            state: auth_request.state.clone(),
-            poa,
-        }
-    }
-
     /// Create a JWE containing a new encrypted Authorization Request.
     pub fn new_encrypted(
-        device_response: DeviceResponse,
+        vp_token: HashMap<CredentialQueryIdentifier, VerifiablePresentation>,
         auth_request: &NormalizedVpAuthorizationRequest,
         mdoc_nonce: &str,
         poa: Option<Poa>,
     ) -> Result<String, AuthResponseError> {
-        Self::new(device_response, auth_request, poa).encrypt(auth_request, mdoc_nonce)
+        Self::new(vp_token, auth_request.state.clone(), poa).encrypt(auth_request, mdoc_nonce)
     }
 
     fn encrypt(
@@ -701,7 +654,7 @@ impl VpAuthorizationResponse {
         accepted_wallet_client_ids: &[String],
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
-    ) -> Result<Vec<DisclosedAttestation>, AuthResponseError> {
+    ) -> Result<HashMap<CredentialQueryIdentifier, VecNonEmpty<DisclosedAttestation>>, AuthResponseError> {
         let (response, mdoc_nonce) = Self::decrypt(jwe, private_key, &auth_request.nonce)?;
 
         response.verify(
@@ -733,56 +686,67 @@ impl VpAuthorizationResponse {
         Ok((payload, mdoc_nonce))
     }
 
-    fn device_response(&self) -> Result<&DeviceResponse, AuthResponseError> {
-        if self.vp_token.len() != 1 {
-            return Err(AuthResponseError::UnexpectedVpCount(self.vp_token.len()));
-        }
-
-        let VerifiablePresentation::MsoMdoc(device_response) = &self.vp_token.first().unwrap();
-        Ok(&device_response.0)
-    }
-
-    fn unique_keys(&self) -> Result<Vec<VerifyingKey>, MdocError> {
-        self.vp_token
-            .iter()
-            .flat_map(|vp| {
-                let VerifiablePresentation::MsoMdoc(CborBase64(device_response)) = vp;
-
-                &device_response.documents
-            })
-            .flatten()
-            .map(|document| document.issuer_signed.public_key())
-            // Unfortunately `VerifyingKey` does not implement `Hash`, so we have to deduplicate manually.
-            .process_results(|iter| iter.dedup().collect())
-    }
-
     pub fn verify(
-        &self,
+        self,
         auth_request: &NormalizedVpAuthorizationRequest,
         accepted_wallet_client_ids: &[String],
         mdoc_nonce: &str,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
-    ) -> Result<Vec<DisclosedAttestation>, AuthResponseError> {
-        // Verify the cryptographic integrity of the disclosed attributes.
-        let session_transcript = SessionTranscript::new_oid4vp(
-            &auth_request.response_uri,
-            &auth_request.client_id,
-            auth_request.nonce.clone(),
-            mdoc_nonce,
-        );
-        // TODO this is still mdoc specific (PVW-4531)
-        let device_response = self.device_response()?;
-        let disclosed_documents = device_response
-            .verify(None, &session_transcript, time, trust_anchors)
-            .map_err(AuthResponseError::Verification)?;
+    ) -> Result<HashMap<CredentialQueryIdentifier, VecNonEmpty<DisclosedAttestation>>, AuthResponseError> {
+        // Step 1: Verify the cryptographic integrity of the verifyable presentations
+        //         and extract the disclosed attestations from them.
+        let session_transcript = LazyCell::new(|| {
+            // The mdoc `SessionTranscript` may not be required, so initialize it lazily.
+            SessionTranscript::new_oid4vp(
+                &auth_request.response_uri,
+                &auth_request.client_id,
+                auth_request.nonce.clone(),
+                mdoc_nonce,
+            )
+        });
 
-        // Verify PoA
-        let used_keys = self
-            .unique_keys()
+        let disclosed_attestations = self
+            .vp_token
+            .iter()
+            .map(|(id, presentation)| {
+                let attestations = match presentation {
+                    VerifiablePresentation::MsoMdoc(device_responses) => device_responses
+                        .iter()
+                        .map(|CborBase64(device_response)| {
+                            // For each mdoc `DeviceResponse`, extract the disclosed documents...
+                            let disclosed_documents = device_response
+                                .verify(None, &session_transcript, time, trust_anchors)
+                                .map_err(AuthResponseError::MdocVerification)?;
+
+                            // ...and attempt to convert them to `DisclosedAttestation`s.
+                            let disclosed_attestations = disclosed_documents
+                                .into_iter()
+                                .map(|disclosed_document| {
+                                    DisclosedAttestation::try_from(disclosed_document)
+                                        .map_err(AuthResponseError::DisclosedAttestation)
+                                })
+                                .collect::<Result<Vec<_>, _>>()?;
+
+                            Ok(disclosed_attestations)
+                        })
+                        // Simply concatentate all `DisclosedAttestation`s resulting from all `DeviceResponse`s.
+                        // This prevents us from having to assume that all `DeviceResponse`s
+                        // only contain a single credential.
+                        .process_results::<_, _, AuthResponseError, _>(|iter| iter.flatten().collect_vec())?
+                        .try_into()
+                        .map_err(|_| AuthResponseError::NoMdocDocuments(id.clone()))?,
+                };
+
+                Ok((id.clone(), attestations))
+            })
+            .collect::<Result<_, AuthResponseError>>()?;
+
+        // Step 2: Verify the PoA, if present.
+        let used_keys = VerifiablePresentation::unique_keys(self.vp_token.values())
             .expect("should always succeed when called after DeviceResponse::verify");
         if used_keys.len() >= 2 {
-            self.poa.as_ref().ok_or(AuthResponseError::MissingPoa)?.clone().verify(
+            self.poa.ok_or(AuthResponseError::MissingPoa)?.verify(
                 &used_keys,
                 auth_request.client_id.as_str(),
                 accepted_wallet_client_ids,
@@ -790,33 +754,7 @@ impl VpAuthorizationResponse {
             )?
         }
 
-        // Check that we received all attributes that we requested
-        // TODO: For now we assume that the order of `Document`s in the `DeviceResponse` lines up exactly with the
-        //       normalized credential requests. This will be replaced with a key mapping of `DeviceResponse`s that
-        //       contain a single `Document` once Presentation Exchange is replaced with DCQL.
-        let disclosed_credentials = device_response
-            .documents
-            .as_deref()
-            .unwrap_or_default()
-            .iter()
-            .zip(auth_request.credential_requests.as_ref())
-            .map(|(document, request)| (&request.id, vec_nonempty![DisclosedCredential::MsoMdoc(document)]))
-            .collect();
-
-        auth_request
-            .credential_requests
-            .is_satisfied_by_disclosed_credentials(&disclosed_credentials)
-            .map_err(AuthResponseError::UnsatisfiedCredentialRequest)?;
-
-        // Safe: if we have found all requested items in the documents, then the documents are not absent.
-        let documents = device_response.documents.as_ref().unwrap();
-
-        // Check that the Presentation Submission is what it should be per the Presentation Exchange spec and ISO
-        // 18013-7.
-        self.presentation_submission
-            .verify(documents, &auth_request.presentation_definition)?;
-
-        // If `state` is provided it must equal the `state` from the Authorization Request.
+        // Step 3: Verify the `state` field, against that of the Authorization Request.
         if self.state != auth_request.state {
             return Err(AuthResponseError::StateIncorrect {
                 expected: auth_request.state.clone(),
@@ -824,11 +762,31 @@ impl VpAuthorizationResponse {
             });
         }
 
-        disclosed_documents
-            .into_iter()
-            .map(DisclosedAttestation::try_from)
-            .try_collect()
-            .map_err(AuthResponseError::DisclosedAttestation)
+        // Step 4: Check that we received all the attributes that we requested.
+        let disclosed_credentials = self
+            .vp_token
+            .iter()
+            .map(|(id, presentation)| {
+                let credentials = match presentation {
+                    VerifiablePresentation::MsoMdoc(device_responses) => {
+                        VerifiablePresentation::mdoc_documents_iter(device_responses)
+                            .map(DisclosedCredential::MsoMdoc)
+                            .collect_vec()
+                            .try_into()
+                            .expect("should always succeed when called after DeviceResponse::verify")
+                    }
+                };
+
+                (id, credentials)
+            })
+            .collect();
+
+        auth_request
+            .credential_requests
+            .is_satisfied_by_disclosed_credentials(&disclosed_credentials)
+            .map_err(AuthResponseError::UnsatisfiedCredentialRequest)?;
+
+        Ok(disclosed_attestations)
     }
 }
 
@@ -840,6 +798,7 @@ pub struct VpResponse {
 #[cfg(test)]
 mod tests {
     use std::borrow::Cow;
+    use std::collections::HashMap;
 
     use chrono::DateTime;
     use chrono::Utc;
@@ -859,11 +818,11 @@ mod tests {
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
     use dcql::CredentialQueryFormat;
+    use dcql::CredentialQueryIdentifier;
     use dcql::normalized::NormalizedCredentialRequests;
     use jwt::Jwt;
     use mdoc::DeviceAuthenticationKeyed;
     use mdoc::DeviceResponse;
-    use mdoc::DeviceResponseVersion;
     use mdoc::DeviceSigned;
     use mdoc::Document;
     use mdoc::IssuerSigned;
@@ -879,6 +838,7 @@ mod tests {
     use utils::generator::Generator;
     use utils::generator::TimeGenerator;
     use utils::generator::mock::MockTimeGenerator;
+    use utils::vec_nonempty;
     use wscd::Poa;
     use wscd::mock_remote::MockRemoteWscd;
     use wscd::wscd::JwtPoaInput;
@@ -946,19 +906,44 @@ mod tests {
         let device_response = DeviceResponse::example();
         let auth_request = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap();
         // the ISO examples only use one Mdoc and therefore there is no need for a PoA
-        let auth_response = VpAuthorizationResponse::new(device_response, &auth_request, None);
+        let auth_response = VpAuthorizationResponse::new(
+            HashMap::from([(
+                "id".try_into().unwrap(),
+                VerifiablePresentation::new_mdoc(vec_nonempty![device_response]),
+            )]),
+            None,
+            None,
+        );
         let jwe = auth_response.encrypt(&auth_request, &mdoc_nonce).unwrap();
 
         let (decrypted, jwe_mdoc_nonce) =
             VpAuthorizationResponse::decrypt(&jwe, &encryption_privkey, &auth_request.nonce).unwrap();
-        assert_eq!(mdoc_nonce, jwe_mdoc_nonce);
 
-        let VerifiablePresentation::MsoMdoc(CborBase64(encrypted_device_response)) =
-            auth_response.vp_token.first().unwrap();
-        let VerifiablePresentation::MsoMdoc(CborBase64(decrypted_device_response)) =
-            decrypted.vp_token.first().unwrap();
-        let encrypted_document = encrypted_device_response.documents.as_ref().unwrap().first().unwrap();
-        let decrypted_document = decrypted_device_response.documents.as_ref().unwrap().first().unwrap();
+        assert_eq!(mdoc_nonce, jwe_mdoc_nonce);
+        assert_eq!(decrypted.vp_token.len(), 1);
+
+        let (encrypted_identifier, VerifiablePresentation::MsoMdoc(encrypted_device_responses)) =
+            auth_response.vp_token.into_iter().next().unwrap();
+        let (decrypted_identifier, VerifiablePresentation::MsoMdoc(decrypted_device_responses)) =
+            decrypted.vp_token.into_iter().next().unwrap();
+
+        assert_eq!(encrypted_identifier, decrypted_identifier);
+        assert_eq!(decrypted_device_responses.len().get(), 1);
+
+        let CborBase64(encrypted_device_response) = encrypted_device_responses.into_first();
+        let CborBase64(decrypted_device_response) = decrypted_device_responses.into_first();
+
+        assert_eq!(
+            decrypted_device_response
+                .documents
+                .as_ref()
+                .map(|documents| documents.len())
+                .unwrap_or_default(),
+            1
+        );
+
+        let encrypted_document = encrypted_device_response.documents.unwrap().into_iter().next().unwrap();
+        let decrypted_document = decrypted_device_response.documents.unwrap().into_iter().next().unwrap();
 
         assert_eq!(decrypted_document.doc_type, encrypted_document.doc_type);
         assert_eq!(decrypted_document.issuer_signed, encrypted_document.issuer_signed);
@@ -1001,24 +986,19 @@ mod tests {
                         }
                     }
                 },
-                "presentation_definition": {
-                    "id": "mDL-sample-req",
-                    "input_descriptors": [{
-                        "format": {
-                            "mso_mdoc": {
-                                "alg": [ "ES256" ]
-                            }
+                "dcql_query": {
+                    "credentials": [{
+                        "id": "pid",
+                        "format": "mso_mdoc",
+                        "meta": {
+                            "doctype_value": "org.iso.18013.5.1.mDL",
                         },
-                        "id": "org.iso.18013.5.1.mDL",
-                        "constraints": {
-                            "limit_disclosure": "required",
-                            "fields": [
-                                { "path": ["$['org.iso.18013.5.1']['family_name']"], "intent_to_retain": false },
-                                { "path": ["$['org.iso.18013.5.1']['birth_date']"], "intent_to_retain": false },
-                                { "path": ["$['org.iso.18013.5.1']['document_number']"], "intent_to_retain": false },
-                                { "path": ["$['org.iso.18013.5.1']['driving_privileges']"], "intent_to_retain": false }
-                            ]
-                        }
+                        "claims": [
+                            { "path": ["org.iso.18013.5.1", "family_name"], "intent_to_retain": false },
+                            { "path": ["org.iso.18013.5.1", "birth_date"], "intent_to_retain": false },
+                            { "path": ["org.iso.18013.5.1", "document_number"], "intent_to_retain": false },
+                            { "path": ["org.iso.18013.5.1", "driving_privileges"], "intent_to_retain": false }
+                        ]
                     }]
                 }
             }
@@ -1032,102 +1012,131 @@ mod tests {
     fn deserialize_authorization_response_example() {
         let example_json = json!(
             {
-                "presentation_submission": {
-                    "definition_id": "mDL-sample-req",
-                    "id": "mDL-sample-res",
-                    "descriptor_map": [
-                        {
-                            "id": "org.iso.18013.5.1.mDL",
-                            "format": "mso_mdoc",
-                            "path": "$"
-                        }
+                "vp_token": {
+                    "example_credential_id": [
+                        "o2d2ZXJzaW9uYzEuMGlkb2N1bWVudHOBo2dkb2NUeXBldW9yZy5pc28uMTgwMTMuNS4xLm1ETGxpc3N1\
+                         ZXJTaWduZWSiam5hbWVTcGFjZXOhcW9yZy5pc28uMTgwMTMuNS4xi9gYWF-kaGRpZ2VzdElEGhU-n8Jm\
+                         cmFuZG9tUBhhBdaBj6yzbcAptxJFt5NxZWxlbWVudElkZW50aWZpZXJqYmlydGhfZGF0ZWxlbGVtZW50\
+                         VmFsdWXZA-xqMTk5MC0wMS0wMdgYWF-kaGRpZ2VzdElEGgGfQ2JmcmFuZG9tUD_vjxEDDiHVNPYQrc-z\
+                         3qJxZWxlbWVudElkZW50aWZpZXJvZG9jdW1lbnRfbnVtYmVybGVsZW1lbnRWYWx1ZWhBQkNEMTIzNNgY\
+                         WPOkaGRpZ2VzdElEGhYhPvdmcmFuZG9tUPeQCdM61nPIh-T2KdDLzJ9xZWxlbWVudElkZW50aWZpZXJy\
+                         ZHJpdmluZ19wcml2aWxlZ2VzbGVsZW1lbnRWYWx1ZYKjamlzc3VlX2RhdGXZA-xqMjAyMC0wMS0wMWtl\
+                         eHBpcnlfZGF0ZdkD7GoyMDI1LTAxLTAxdXZlaGljbGVfY2F0ZWdvcnlfY29kZWFCo2ppc3N1ZV9kYXRl\
+                         2QPsajIwMjAtMDEtMDFrZXhwaXJ5X2RhdGXZA-xqMjAyNS0wMS0wMXV2ZWhpY2xlX2NhdGVnb3J5X2Nv\
+                         ZGViQkXYGFhgpGhkaWdlc3RJRBo23jMjZnJhbmRvbVBRkUqBtZ0-cdgL-Ah55BRHcWVsZW1lbnRJZGVu\
+                         dGlmaWVya2V4cGlyeV9kYXRlbGVsZW1lbnRWYWx1ZdkD7GoyMDI1LTAxLTAx2BhYWKRoZGlnZXN0SUQa\
+                         ZYFFSmZyYW5kb21QdKpwyVh1BG0egitavv8UWXFlbGVtZW50SWRlbnRpZmllcmtmYW1pbHlfbmFtZWxl\
+                         bGVtZW50VmFsdWVlU21pdGjYGFhXpGhkaWdlc3RJRBoX9SvMZnJhbmRvbVBD8vu88PnK3lzRO9sRvnND\
+                         cWVsZW1lbnRJZGVudGlmaWVyamdpdmVuX25hbWVsZWxlbWVudFZhbHVlZUFsaWNl2BhYX6RoZGlnZXN0\
+                         SUQaMaFJlmZyYW5kb21Q9AoSQ1BmYmKEqfADoeKDunFlbGVtZW50SWRlbnRpZmllcmppc3N1ZV9kYXRl\
+                         bGVsZW1lbnRWYWx1ZdkD7GoyMDIwLTAxLTAx2BhYX6RoZGlnZXN0SUQaA8azMWZyYW5kb21Qb5Fu5qMe\
+                         qndj9esMYWzh5XFlbGVtZW50SWRlbnRpZmllcnFpc3N1aW5nX2F1dGhvcml0eWxlbGVtZW50VmFsdWVm\
+                         TlksVVNB2BhYWaRoZGlnZXN0SUQaUUgWkmZyYW5kb21Qgh02uXoPCuF2NCY9MlUucHFlbGVtZW50SWRl\
+                         bnRpZmllcm9pc3N1aW5nX2NvdW50cnlsZWxlbWVudFZhbHVlYlVT2BhZCD-kaGRpZ2VzdElEGmTXNGdm\
+                         cmFuZG9tUE2OWXxsntQn-CrtHF_AfwVxZWxlbWVudElkZW50aWZpZXJocG9ydHJhaXRsZWxlbWVudFZh\
+                         bHVlWQft_9j_4AAQSkZJRgABAQAAAAAAAAD_4gIoSUNDX1BST0ZJTEUAAQEAAAIYAAAAAAQwAABtbnRy\
+                         UkdCIFhZWiAAAAAAAAAAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAA\
+                         AADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNj\
+                         AAAA8AAAAHRyWFlaAAABZAAAABRnWFlaAAABeAAAABRiWFlaAAABjAAAABRyVFJDAAABoAAAAChnVFJD\
+                         AAABoAAAAChiVFJDAAABoAAAACh3dHB0AAAByAAAABRjcHJ0AAAB3AAAADxtbHVjAAAAAAAAAAEAAAAM\
+                         ZW5VUwAAAFgAAAAcAHMAUgBHAEIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+                         AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFhZWiAAAAAAAABvogAAOPUAAAOQ\
+                         WFlaIAAAAAAAAGKZAAC3hQAAGNpYWVogAAAAAAAAJKAAAA-EAAC2z3BhcmEAAAAAAAQAAAACZmYAAPKn\
+                         AAANWQAAE9AAAApbAAAAAAAAAABYWVogAAAAAAAA9tYAAQAAAADTLW1sdWMAAAAAAAAAAQAAAAxlblVT\
+                         AAAAIAAAABwARwBvAG8AZwBsAGUAIABJAG4AYwAuACAAMgAwADEANv_bAEMAEAsMDgwKEA4NDhIREBMY\
+                         KBoYFhYYMSMlHSg6Mz08OTM4N0BIXE5ARFdFNzhQbVFXX2JnaGc-TXF5cGR4XGVnY__bAEMBERISGBUY\
+                         LxoaL2NCOEJjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY__A\
+                         ABEIALAAeQMBIgACEQEDEQH_xAAaAAADAQEBAQAAAAAAAAAAAAAAAwQFBgcB_8QALhAAAgIBAwIEBQMF\
+                         AAAAAAAAAAMEEyMFFDNDUyRjc4MBBhU0oxZEkyU1UVWz_8QAFgEBAQEAAAAAAAAAAAAAAAAAAAME_8QA\
+                         FhEBAQEAAAAAAAAAAAAAAAAAAAMT_9oADAMBAAIRAxEAPwDlwACSRoAAAAW1CrQGgS7pR93q_wDAFIEu\
+                         6C0CoAAAAAAAAAFDRQ0AFNGksoBVtrRTQAqqAUFQAN9VoWh6oW-UA1TRvSJbQbykheptoCopUEigAAAA\
+                         AAFSmq4gktqUSxVWtAbFgNlNOji_LihsBVRsqDVkxm_LiukQfpyUdkNCuTklfK-LK0y5WjNitqaegks9\
+                         VqqgZODlaW2Ll6QrpG9PVa2pXS5TLnq2srymhJBxFRK1RUriCQAACQAAAglcpfpaiCVympACsnRxVGoo\
+                         gil6g1GjQAkC2ogqbP8AKUX1Daiog2ClKqUo5zVIFVp2Rl6pFtUBwbcQKGz_ALpoqLyhlNAACQAAAllc\
+                         pfFbUQSuUaFZOoiz1VF6p6u6ckpqhtVqrVBXR2SpQ23KcbAa1rVKOtqtihVVaNtOXlNlKxWios9tuWUB\
+                         1pK3KSqa1vV9oqy9UDz7VMUpqhUXiKte_ukr1RSsSgy1AAASAChoCmqL1RbVClelaakVVTagrJLFgeUb\
+                         KqlRaqhtQqVxBqZass9SlNqOoqaqL9-33VHL6Mrx9p2XKqoCDaqbF81uUg-lqt6vpGzAVVFUoaBlxYFT\
+                         cXEXtt5VKyjahTW1NVUB59PU36o23ujRs_K22olDLUAKAJFDRQ0Bqi-LKqaQDVBWTe3TcWK0lntaNi8Q\
+                         qVFtDUboLVW1HRnJRYErdYjqNq1qlZcoBbU1o1spSuVtXqjasQVEgq23iyg1XLbytKiCfPVAytbiKjkt\
+                         Zbbqjf4iAbKlKbKa3utFBgKAAAUNFAA0aKADeit8KNVKtMuA3ul9SmhqbOl1Wl_dOXixVW27pqjZVU39\
+                         1b7oVag3lJVKq4mjbSQGnJfNsrxSldo6OVKqU1rekcHKlbqU2U3qlUqlCgAqygPdAUAAABU0GtFNbUEr\
+                         FiAqi8RswMpgwOIvU2okq62LAVUNVpaldUggT1VZTUVKV3QqbUDQ3XaBSiQy9exaW1rTiG8uI7L5jlKa\
+                         3a9rK05dtTeWpRVKqACrYYrVNVUKapqiqRQAASXyorVKxKIKi_3be6StVb9r0gqlVyqKmqa1ouL8Pj8P\
+                         jj-GVnGbsWKptrWt4lAZcA2dgQKgNixVN7p2UVXhVElWDF0trTZi6MpRepVQ20KhSlKINU1RUBXmip-s\
+                         7XErlOXlSmz222gakC1Wlyp_VbiMvWVKVFV0ml8ptUCLF7SvymNryqpSovaUEilKtxWim7qBibaoa1VS\
+                         jU1SA1XErF_yKpMZSlNVlKtr5opTVKblVxF-6i_6v8oCmxdhFU3lt5SVsVsXpNOolRbZSoHutMaU1u6a\
+                         3KBjZVZTeVPV9LUpTfFN5RWsRlJ0uL3eUlbF2qospXE0DZVlgbXqqOogfaqOD0ue3f5fyneK4sRJqkGm\
+                         XPlYsRqN4jnJ8rqtJDLlBAV_V2yv2o1VvVVla3ENbK8BUr-JpVI1VUrVMrcSsrfVMGU23VGt801GxZWl\
+                         6Nl6pgxVNa3EVSXymq3SsuI3lSlSlYuXzTkpSmqlVHRq0tu1U0DLn2qnhaGsKlVKa1Rlkh__2dgYWGGk\
+                         aGRpZ2VzdElEGnHvWL5mcmFuZG9tUPHruXHjv35Iu-rzOkKBD2xxZWxlbWVudElkZW50aWZpZXJ2dW5f\
+                         ZGlzdGluZ3Vpc2hpbmdfc2lnbmxlbGVtZW50VmFsdWVjVVNBamlzc3VlckF1dGiEQ6EBJqEYIVkCvjCC\
+                         ArowggJhoAMCAQICFA7VlOKXxKg_rJ6UiVqmXVQjpptXMAoGCCqGSM49BAMCMGAxCzAJBgNVBAYTAlVT\
+                         MQswCQYDVQQIDAJOWTEZMBcGA1UECgwQSVNPbURMIFRlc3QgUm9vdDEpMCcGA1UEAwwgSVNPMTgwMTMt\
+                         NSBUZXN0IENlcnRpZmljYXRlIFJvb3QwHhcNMjMxMTE0MTAwMTA1WhcNMjQxMTEzMTAwMTA1WjBrMQsw\
+                         CQYDVQQGEwJVUzELMAkGA1UECAwCTlkxIjAgBgNVBAoMGUlTT21ETCBUZXN0IElzc3VlciBTaWduZXIx\
+                         KzApBgNVBAMMIklTTzE4MDEzLTUgVGVzdCBDZXJ0aWZpY2F0ZSBTaWduZXIwWTATBgcqhkjOPQIBBggq\
+                         hkjOPQMBBwNCAAQgaK6KmQ1mWKt-Vo6ixfHxsmX9YlGAuUPkOvQ_uHrxgsZLC6FheRwtU3v-5GGkHD70\
+                         FJNmz7DJUiR6G8TWMYZGo4HtMIHqMB0GA1UdDgQWBBQEpN0hSF6BFZJCDvZwASaa6ewoXzAfBgNVHSME\
+                         GDAWgBQ1RoOxz04dQvKPF76VhBf-jMv3EDAxBglghkgBhvhCAQ0EJBYiSVNPMTgwMTMtNSBUZXN0IFNp\
+                         Z25lciBDZXJ0aWZpY2F0ZTAOBgNVHQ8BAf8EBAMCB4AwFQYDVR0lAQH_BAswCQYHKIGMXQUBAjAdBgNV\
+                         HRIEFjAUgRJleGFtcGxlQGlzb21kbC5jb20wLwYDVR0fBCgwJjAkoCKgIIYeaHR0cHM6Ly9leGFtcGxl\
+                         LmNvbS9JU09tREwuY3JsMAoGCCqGSM49BAMCA0cAMEQCIGV5CQ0EFGjFzVBSqWfaPVUMziescVQ4W-lx\
+                         w5bq7nCBAiBf1D9SPeA05Sdf0iWHanW3N0FBtS7Iz5XdSKWT2IqMKFkFzNgYWQXHpmd2ZXJzaW9uYzEu\
+                         MG9kaWdlc3RBbGdvcml0aG1nU0hBLTI1Nmx2YWx1ZURpZ2VzdHOhcW9yZy5pc28uMTgwMTMuNS4xuB4a\
+                         AZ9DYlggxtL2LRFm_GWjYft8lw02WZS4CLbChc-NakfbNNyTuAcaA8azMVggpZCl5WRduZFAMb0vykZC\
+                         xA-AdeM1R8eoiC1d9d3pkLUaEU3f71ggHp0cG-ZNraR6vcOgLZSORP9rDEipOlXzHh18YamiANoaFT6f\
+                         wlggEphIDgQUoblEdUCq34aMJ50OQ8QmCVFJuQgiB1_YwhoaFiE-91ggeEtCLmPzCOD0suxhDwW43s7y\
+                         Nc1x6Jd4DZ6tO4ObD6IaFxmGZVgguLSRAKQ1dwJGOS_soukGSZUkCqvW7zN4R4eoTO-phFAaF_UrzFgg\
+                         J4LaSDWgaeLF8hkPWLaDZGrjYCOuLYCcZk5tWXug4aMaGthQz1ggg3jAWBkkHRE9l4AoDdqdFYgJ56cr\
+                         lzeAf47JtJ662VMaKXLy5lggQBw9uLpXYKFP4ZdoO7zzb_vtymKttmA_qeaaEW_jbWUaLBiyUVggR3An\
+                         IGXnmMTMHPjuR19-e4lLs6vi3digyHN0iyzc3PkaMQCGYVggKvs-nJVYFRwH_TbFGPy1X_t69MR1l94t\
+                         oRIIK98UBvAaMaFJllggCoQYDBIY_rk6s0MhMbC8ibfzGegfY-Pfwauy9GHW_38aMqbHz1ggtrjS6GQs\
+                         MtSQaKf7Voa6kxPLDqK24EZ-9WhB8JaO4f4aNUVesFggOzxV3ZrJ8FQMCuThmR6L7B4SMN5bxLy05i6v\
+                         9wgpejYaNt4zI1ggzzpJiJuTxtgMDAxycYe7TYmsovh5Aw_EDfDX8rRqYV4aOTYKk1ggEnnTJHhcMseT\
+                         jVtPRGnCRRCE0WvwelO1dECZvlLXeIQaSkPcgFggyKs6jeFkCIjai1k5xYqZyqjK45ImuVOzPVC8jPXP\
+                         XksaT9EOg1ggO9johmBdbxTYTcMQDSB1K9jwdd350VIjMuCHDZ8DDUEaUUgWklggGz_ddBP3N_0mxg7f\
+                         co-oJ2HorIFAptTj78ZseE5gfmAaUUqijlgglmqfTA5d9Wi85wDcpdTO1NrlH02nOx4zP7FZ8TE7Kroa\
+                         XagLOFggt3m7aHSfgJ3rEl1nn-Pp8YitK572a64L2GAa-UZCiGkaXyMT31gghLUPLnlPsZaDTk7Yd_Js\
+                         jeEuWwIeAyu5FNeYRDkajlUaYLUtAlggb0He6jVXV1OGqzZidHIWpba3yCffluLpOiKAiVzVeXEaZNc0\
+                         Z1gggSJJmw3Dt0YsH38Flq1hxybrP4tWRR6nSUUPZOah6BUaZYFFSlgg9-83mx19kFY-tbUDXndIdXL1\
+                         oXs_2nYgchpnvWuENjIaaMXpU1gg5iCCWrzVNvXZa8I_jfmTpwZFxdmEfv7D3rcYhza65Dcaa4ST6Vgg\
+                         rz6sluAmWjOaVRmKC6lLFyqEglIyTwZlGA3Q6tbF_WcacYeIV1ggk1fOHKjmMaPlh7SaVtWk-6jC38Dq\
+                         PcWz3UcH6xuiZ1Mace9YvlggJCOAb023GTSEcNt48NYF2ZOM2p9RIqO8W91zORSzMFQaecXSi1ggFZp2\
+                         VG3VaCEgchdZPgbK8JSuYsMCmy9Dy4WXyZD1Z1RtZGV2aWNlS2V5SW5mb6FpZGV2aWNlS2V5pAECIAEh\
+                         WCCS9P-a8TB2KJzTBif0C32CrhjX3XKMVykLFFTHdFXpnSJYIADctY3zP9kjfSptLs9kyUhDUDRf4xOS\
+                         Is0FkbyjHnsFZ2RvY1R5cGV1b3JnLmlzby4xODAxMy41LjEubURMbHZhbGlkaXR5SW5mb6Nmc2lnbmVk\
+                         wHQyMDIzLTExLTE2VDA5OjI1OjIyWml2YWxpZEZyb23AdDIwMjMtMTEtMTZUMDk6MjU6MjJaanZhbGlk\
+                         VW50aWzAdDIwMjMtMTItMTZUMDk6MjU6MjJaWEC8OJJedu29mak8hVi1X__VJhpQ6QhgOhTqHZMtdrqy\
+                         Wdalv457ykvXnq3U5Zl5NC1GDyIDdr23_L67HUOKFqCHbGRldmljZVNpZ25lZKJqbmFtZVNwYWNlc9gY\
+                         QaBqZGV2aWNlQXV0aKFvZGV2aWNlU2lnbmF0dXJlhEOhASag9lhAX4O7CImR03EijrZDHYgdzQefwdix\
+                         5l-hJ7ow05OvOyQj0f_kW9GYbvWbDYbHN_kreXHaXpDh5Swm1nc5X39N6mZzdGF0dXMA"
                     ]
-                },
-                "vp_token":
-                "o2d2ZXJzaW9uYzEuMGlkb2N1bWVudHOBo2dkb2NUeXBldW9yZy5pc28uMTgwMTMuNS4xLm1ETGxpc3N1ZXJTaWduZWSiam5hbWVTc\
-                 GFjZXOhcW9yZy5pc28uMTgwMTMuNS4xi9gYWF-kaGRpZ2VzdElEGhU-n8JmcmFuZG9tUBhhBdaBj6yzbcAptxJFt5NxZWxlbWVudE\
-                 lkZW50aWZpZXJqYmlydGhfZGF0ZWxlbGVtZW50VmFsdWXZA-xqMTk5MC0wMS0wMdgYWF-kaGRpZ2VzdElEGgGfQ2JmcmFuZG9tUD_\
-                 vjxEDDiHVNPYQrc-z3qJxZWxlbWVudElkZW50aWZpZXJvZG9jdW1lbnRfbnVtYmVybGVsZW1lbnRWYWx1ZWhBQkNEMTIzNNgYWPOk\
-                 aGRpZ2VzdElEGhYhPvdmcmFuZG9tUPeQCdM61nPIh-T2KdDLzJ9xZWxlbWVudElkZW50aWZpZXJyZHJpdmluZ19wcml2aWxlZ2Vzb\
-                 GVsZW1lbnRWYWx1ZYKjamlzc3VlX2RhdGXZA-xqMjAyMC0wMS0wMWtleHBpcnlfZGF0ZdkD7GoyMDI1LTAxLTAxdXZlaGljbGVfY2\
-                 F0ZWdvcnlfY29kZWFCo2ppc3N1ZV9kYXRl2QPsajIwMjAtMDEtMDFrZXhwaXJ5X2RhdGXZA-xqMjAyNS0wMS0wMXV2ZWhpY2xlX2N\
-                 hdGVnb3J5X2NvZGViQkXYGFhgpGhkaWdlc3RJRBo23jMjZnJhbmRvbVBRkUqBtZ0-cdgL-Ah55BRHcWVsZW1lbnRJZGVudGlmaWVy\
-                 a2V4cGlyeV9kYXRlbGVsZW1lbnRWYWx1ZdkD7GoyMDI1LTAxLTAx2BhYWKRoZGlnZXN0SUQaZYFFSmZyYW5kb21QdKpwyVh1BG0eg\
-                 itavv8UWXFlbGVtZW50SWRlbnRpZmllcmtmYW1pbHlfbmFtZWxlbGVtZW50VmFsdWVlU21pdGjYGFhXpGhkaWdlc3RJRBoX9SvMZn\
-                 JhbmRvbVBD8vu88PnK3lzRO9sRvnNDcWVsZW1lbnRJZGVudGlmaWVyamdpdmVuX25hbWVsZWxlbWVudFZhbHVlZUFsaWNl2BhYX6R\
-                 oZGlnZXN0SUQaMaFJlmZyYW5kb21Q9AoSQ1BmYmKEqfADoeKDunFlbGVtZW50SWRlbnRpZmllcmppc3N1ZV9kYXRlbGVsZW1lbnRW\
-                 YWx1ZdkD7GoyMDIwLTAxLTAx2BhYX6RoZGlnZXN0SUQaA8azMWZyYW5kb21Qb5Fu5qMeqndj9esMYWzh5XFlbGVtZW50SWRlbnRpZ\
-                 mllcnFpc3N1aW5nX2F1dGhvcml0eWxlbGVtZW50VmFsdWVmTlksVVNB2BhYWaRoZGlnZXN0SUQaUUgWkmZyYW5kb21Qgh02uXoPCu\
-                 F2NCY9MlUucHFlbGVtZW50SWRlbnRpZmllcm9pc3N1aW5nX2NvdW50cnlsZWxlbWVudFZhbHVlYlVT2BhZCD-kaGRpZ2VzdElEGmT\
-                 XNGdmcmFuZG9tUE2OWXxsntQn-CrtHF_AfwVxZWxlbWVudElkZW50aWZpZXJocG9ydHJhaXRsZWxlbWVudFZhbHVlWQft_9j_4AAQ\
-                 SkZJRgABAQAAAAAAAAD_4gIoSUNDX1BST0ZJTEUAAQEAAAIYAAAAAAQwAABtbnRyUkdCIFhZWiAAAAAAAAAAAAAAAABhY3NwAAAAA\
-                 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
-                 AAAAAAAAAAAAAAAAlkZXNjAAAA8AAAAHRyWFlaAAABZAAAABRnWFlaAAABeAAAABRiWFlaAAABjAAAABRyVFJDAAABoAAAAChnVFJ\
-                 DAAABoAAAAChiVFJDAAABoAAAACh3dHB0AAAByAAAABRjcHJ0AAAB3AAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAFgAAAAcAHMA\
-                 UgBHAEIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
-                 AAAAAAAAAAAAFhZWiAAAAAAAABvogAAOPUAAAOQWFlaIAAAAAAAAGKZAAC3hQAAGNpYWVogAAAAAAAAJKAAAA-EAAC2z3BhcmEAAA\
-                 AAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABYWVogAAAAAAAA9tYAAQAAAADTLW1sdWMAAAAAAAAAAQAAAAxlblVTAAA\
-                 AIAAAABwARwBvAG8AZwBsAGUAIABJAG4AYwAuACAAMgAwADEANv_bAEMAEAsMDgwKEA4NDhIREBMYKBoYFhYYMSMlHSg6Mz08OTM4\
-                 N0BIXE5ARFdFNzhQbVFXX2JnaGc-TXF5cGR4XGVnY__bAEMBERISGBUYLxoaL2NCOEJjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY\
-                 2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY__AABEIALAAeQMBIgACEQEDEQH_xAAaAAADAQEBAQAAAAAAAAAAAAAAAwQFBgcB_8QALh\
-                 AAAgIBAwIEBQMFAAAAAAAAAAMEEyMFFDNDUyRjc4MBBhU0oxZEkyU1UVWz_8QAFgEBAQEAAAAAAAAAAAAAAAAAAAME_8QAFhEBAQE\
-                 AAAAAAAAAAAAAAAAAAAMT_9oADAMBAAIRAxEAPwDlwACSRoAAAAW1CrQGgS7pR93q_wDAFIEu6C0CoAAAAAAAAAFDRQ0AFNGksoBV\
-                 trRTQAqqAUFQAN9VoWh6oW-UA1TRvSJbQbykheptoCopUEigAAAAAAFSmq4gktqUSxVWtAbFgNlNOji_LihsBVRsqDVkxm_LiukQf\
-                 pyUdkNCuTklfK-LK0y5WjNitqaegks9VqqgZODlaW2Ll6QrpG9PVa2pXS5TLnq2srymhJBxFRK1RUriCQAACQAAAglcpfpaiCVymp\
-                 ACsnRxVGoogil6g1GjQAkC2ogqbP8AKUX1Daiog2ClKqUo5zVIFVp2Rl6pFtUBwbcQKGz_ALpoqLyhlNAACQAAAllcpfFbUQSuUaF\
-                 ZOoiz1VF6p6u6ckpqhtVqrVBXR2SpQ23KcbAa1rVKOtqtihVVaNtOXlNlKxWios9tuWUB1pK3KSqa1vV9oqy9UDz7VMUpqhUXiKte\
-                 _ukr1RSsSgy1AAASAChoCmqL1RbVClelaakVVTagrJLFgeUbKqlRaqhtQqVxBqZass9SlNqOoqaqL9-33VHL6Mrx9p2XKqoCDaqbF\
-                 81uUg-lqt6vpGzAVVFUoaBlxYFTcXEXtt5VKyjahTW1NVUB59PU36o23ujRs_K22olDLUAKAJFDRQ0Bqi-LKqaQDVBWTe3TcWK0ln\
-                 taNi8QqVFtDUboLVW1HRnJRYErdYjqNq1qlZcoBbU1o1spSuVtXqjasQVEgq23iyg1XLbytKiCfPVAytbiKjktZbbqjf4iAbKlKbK\
-                 a3utFBgKAAAUNFAA0aKADeit8KNVKtMuA3ul9SmhqbOl1Wl_dOXixVW27pqjZVU391b7oVag3lJVKq4mjbSQGnJfNsrxSldo6OVKq\
-                 U1rekcHKlbqU2U3qlUqlCgAqygPdAUAAABU0GtFNbUErFiAqi8RswMpgwOIvU2okq62LAVUNVpaldUggT1VZTUVKV3QqbUDQ3XaBS\
-                 iQy9exaW1rTiG8uI7L5jlKa3a9rK05dtTeWpRVKqACrYYrVNVUKapqiqRQAASXyorVKxKIKi_3be6StVb9r0gqlVyqKmqa1ouL8Pj\
-                 8Pjj-GVnGbsWKptrWt4lAZcA2dgQKgNixVN7p2UVXhVElWDF0trTZi6MpRepVQ20KhSlKINU1RUBXmip-s7XErlOXlSmz222gakC1\
-                 Wlyp_VbiMvWVKVFV0ml8ptUCLF7SvymNryqpSovaUEilKtxWim7qBibaoa1VSjU1SA1XErF_yKpMZSlNVlKtr5opTVKblVxF-6i_6\
-                 v8oCmxdhFU3lt5SVsVsXpNOolRbZSoHutMaU1u6a3KBjZVZTeVPV9LUpTfFN5RWsRlJ0uL3eUlbF2qospXE0DZVlgbXqqOogfaqOD\
-                 0ue3f5fyneK4sRJqkGmXPlYsRqN4jnJ8rqtJDLlBAV_V2yv2o1VvVVla3ENbK8BUr-JpVI1VUrVMrcSsrfVMGU23VGt801GxZWl6N\
-                 l6pgxVNa3EVSXymq3SsuI3lSlSlYuXzTkpSmqlVHRq0tu1U0DLn2qnhaGsKlVKa1Rlkh__2dgYWGGkaGRpZ2VzdElEGnHvWL5mcmF\
-                 uZG9tUPHruXHjv35Iu-rzOkKBD2xxZWxlbWVudElkZW50aWZpZXJ2dW5fZGlzdGluZ3Vpc2hpbmdfc2lnbmxlbGVtZW50VmFsdWVj\
-                 VVNBamlzc3VlckF1dGiEQ6EBJqEYIVkCvjCCArowggJhoAMCAQICFA7VlOKXxKg_rJ6UiVqmXVQjpptXMAoGCCqGSM49BAMCMGAxC\
-                 zAJBgNVBAYTAlVTMQswCQYDVQQIDAJOWTEZMBcGA1UECgwQSVNPbURMIFRlc3QgUm9vdDEpMCcGA1UEAwwgSVNPMTgwMTMtNSBUZX\
-                 N0IENlcnRpZmljYXRlIFJvb3QwHhcNMjMxMTE0MTAwMTA1WhcNMjQxMTEzMTAwMTA1WjBrMQswCQYDVQQGEwJVUzELMAkGA1UECAw\
-                 CTlkxIjAgBgNVBAoMGUlTT21ETCBUZXN0IElzc3VlciBTaWduZXIxKzApBgNVBAMMIklTTzE4MDEzLTUgVGVzdCBDZXJ0aWZpY2F0\
-                 ZSBTaWduZXIwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAAQgaK6KmQ1mWKt-Vo6ixfHxsmX9YlGAuUPkOvQ_uHrxgsZLC6FheRwtU\
-                 3v-5GGkHD70FJNmz7DJUiR6G8TWMYZGo4HtMIHqMB0GA1UdDgQWBBQEpN0hSF6BFZJCDvZwASaa6ewoXzAfBgNVHSMEGDAWgBQ1Ro\
-                 Oxz04dQvKPF76VhBf-jMv3EDAxBglghkgBhvhCAQ0EJBYiSVNPMTgwMTMtNSBUZXN0IFNpZ25lciBDZXJ0aWZpY2F0ZTAOBgNVHQ8\
-                 BAf8EBAMCB4AwFQYDVR0lAQH_BAswCQYHKIGMXQUBAjAdBgNVHRIEFjAUgRJleGFtcGxlQGlzb21kbC5jb20wLwYDVR0fBCgwJjAk\
-                 oCKgIIYeaHR0cHM6Ly9leGFtcGxlLmNvbS9JU09tREwuY3JsMAoGCCqGSM49BAMCA0cAMEQCIGV5CQ0EFGjFzVBSqWfaPVUMziesc\
-                 VQ4W-lxw5bq7nCBAiBf1D9SPeA05Sdf0iWHanW3N0FBtS7Iz5XdSKWT2IqMKFkFzNgYWQXHpmd2ZXJzaW9uYzEuMG9kaWdlc3RBbG\
-                 dvcml0aG1nU0hBLTI1Nmx2YWx1ZURpZ2VzdHOhcW9yZy5pc28uMTgwMTMuNS4xuB4aAZ9DYlggxtL2LRFm_GWjYft8lw02WZS4CLb\
-                 Chc-NakfbNNyTuAcaA8azMVggpZCl5WRduZFAMb0vykZCxA-AdeM1R8eoiC1d9d3pkLUaEU3f71ggHp0cG-ZNraR6vcOgLZSORP9r\
-                 DEipOlXzHh18YamiANoaFT6fwlggEphIDgQUoblEdUCq34aMJ50OQ8QmCVFJuQgiB1_YwhoaFiE-91ggeEtCLmPzCOD0suxhDwW43\
-                 s7yNc1x6Jd4DZ6tO4ObD6IaFxmGZVgguLSRAKQ1dwJGOS_soukGSZUkCqvW7zN4R4eoTO-phFAaF_UrzFggJ4LaSDWgaeLF8hkPWL\
-                 aDZGrjYCOuLYCcZk5tWXug4aMaGthQz1ggg3jAWBkkHRE9l4AoDdqdFYgJ56crlzeAf47JtJ662VMaKXLy5lggQBw9uLpXYKFP4Zd\
-                 oO7zzb_vtymKttmA_qeaaEW_jbWUaLBiyUVggR3AnIGXnmMTMHPjuR19-e4lLs6vi3digyHN0iyzc3PkaMQCGYVggKvs-nJVYFRwH\
-                 _TbFGPy1X_t69MR1l94toRIIK98UBvAaMaFJllggCoQYDBIY_rk6s0MhMbC8ibfzGegfY-Pfwauy9GHW_38aMqbHz1ggtrjS6GQsM\
-                 tSQaKf7Voa6kxPLDqK24EZ-9WhB8JaO4f4aNUVesFggOzxV3ZrJ8FQMCuThmR6L7B4SMN5bxLy05i6v9wgpejYaNt4zI1ggzzpJiJ\
-                 uTxtgMDAxycYe7TYmsovh5Aw_EDfDX8rRqYV4aOTYKk1ggEnnTJHhcMseTjVtPRGnCRRCE0WvwelO1dECZvlLXeIQaSkPcgFggyKs\
-                 6jeFkCIjai1k5xYqZyqjK45ImuVOzPVC8jPXPXksaT9EOg1ggO9johmBdbxTYTcMQDSB1K9jwdd350VIjMuCHDZ8DDUEaUUgWklgg\
-                 Gz_ddBP3N_0mxg7fco-oJ2HorIFAptTj78ZseE5gfmAaUUqijlgglmqfTA5d9Wi85wDcpdTO1NrlH02nOx4zP7FZ8TE7KroaXagLO\
-                 Fggt3m7aHSfgJ3rEl1nn-Pp8YitK572a64L2GAa-UZCiGkaXyMT31gghLUPLnlPsZaDTk7Yd_JsjeEuWwIeAyu5FNeYRDkajlUaYL\
-                 UtAlggb0He6jVXV1OGqzZidHIWpba3yCffluLpOiKAiVzVeXEaZNc0Z1gggSJJmw3Dt0YsH38Flq1hxybrP4tWRR6nSUUPZOah6BU\
-                 aZYFFSlgg9-83mx19kFY-tbUDXndIdXL1oXs_2nYgchpnvWuENjIaaMXpU1gg5iCCWrzVNvXZa8I_jfmTpwZFxdmEfv7D3rcYhza6\
-                 5Dcaa4ST6Vggrz6sluAmWjOaVRmKC6lLFyqEglIyTwZlGA3Q6tbF_WcacYeIV1ggk1fOHKjmMaPlh7SaVtWk-6jC38DqPcWz3UcH6\
-                 xuiZ1Mace9YvlggJCOAb023GTSEcNt48NYF2ZOM2p9RIqO8W91zORSzMFQaecXSi1ggFZp2VG3VaCEgchdZPgbK8JSuYsMCmy9Dy4\
-                 WXyZD1Z1RtZGV2aWNlS2V5SW5mb6FpZGV2aWNlS2V5pAECIAEhWCCS9P-a8TB2KJzTBif0C32CrhjX3XKMVykLFFTHdFXpnSJYIAD\
-                 ctY3zP9kjfSptLs9kyUhDUDRf4xOSIs0FkbyjHnsFZ2RvY1R5cGV1b3JnLmlzby4xODAxMy41LjEubURMbHZhbGlkaXR5SW5mb6Nm\
-                 c2lnbmVkwHQyMDIzLTExLTE2VDA5OjI1OjIyWml2YWxpZEZyb23AdDIwMjMtMTEtMTZUMDk6MjU6MjJaanZhbGlkVW50aWzAdDIwM\
-                 jMtMTItMTZUMDk6MjU6MjJaWEC8OJJedu29mak8hVi1X__VJhpQ6QhgOhTqHZMtdrqyWdalv457ykvXnq3U5Zl5NC1GDyIDdr23_L\
-                 67HUOKFqCHbGRldmljZVNpZ25lZKJqbmFtZVNwYWNlc9gYQaBqZGV2aWNlQXV0aKFvZGV2aWNlU2lnbmF0dXJlhEOhASag9lhAX4O\
-                 7CImR03EijrZDHYgdzQefwdix5l-hJ7ow05OvOyQj0f_kW9GYbvWbDYbHN_kreXHaXpDh5Swm1nc5X39N6mZzdGF0dXMA"
+                }
             }
         );
 
         let auth_response: VpAuthorizationResponse = serde_json::from_value(example_json).unwrap();
 
-        let VerifiablePresentation::MsoMdoc(CborBase64(decrypted_device_response)) =
-            auth_response.vp_token.first().unwrap();
-        let decrypted_document = decrypted_device_response.documents.as_ref().unwrap().first().unwrap();
+        assert_eq!(auth_response.vp_token.len(), 1);
+
+        let VerifiablePresentation::MsoMdoc(decrypted_device_responses) =
+            auth_response.vp_token.into_values().next().unwrap();
+
+        assert_eq!(decrypted_device_responses.len().get(), 1);
+
+        let CborBase64(decrypted_device_response) = decrypted_device_responses.into_first();
+
+        assert_eq!(
+            decrypted_device_response
+                .documents
+                .as_ref()
+                .map(|documents| documents.len())
+                .unwrap_or_default(),
+            1
+        );
+
+        let decrypted_document = decrypted_device_response.documents.unwrap().into_iter().next().unwrap();
+
         assert_eq!(decrypted_document.doc_type, "org.iso.18013.5.1.mDL".to_string());
     }
 
@@ -1159,50 +1168,51 @@ mod tests {
     }
 
     /// Build a valid `DeviceResponse` using the given `issuer_signed`, `device_signed` and `session_transcript`.
-    fn device_response(
+    fn device_responses(
         issuer_signed: Vec<IssuerSigned>,
         device_signed: Vec<DeviceSigned>,
         session_transcript: &SessionTranscript,
         cas: &[TrustAnchor],
         time: &impl Generator<DateTime<Utc>>,
-    ) -> DeviceResponse {
-        let documents = Some(
-            issuer_signed
-                .into_iter()
-                .zip(device_signed)
-                .map(|(issuer_signed, device_signed)| {
-                    let doc_type = issuer_signed.issuer_auth.doc_type().unwrap();
+    ) -> Vec<DeviceResponse> {
+        let documents = issuer_signed
+            .into_iter()
+            .zip(device_signed)
+            .map(|(issuer_signed, device_signed)| {
+                let doc_type = issuer_signed.issuer_auth.doc_type().unwrap();
 
-                    Document {
-                        doc_type,
-                        issuer_signed,
-                        device_signed,
-                        errors: None,
-                    }
-                })
-                .collect(),
-        );
+                Document {
+                    doc_type,
+                    issuer_signed,
+                    device_signed,
+                    errors: None,
+                }
+            })
+            .collect_vec();
 
-        let device_response = DeviceResponse {
-            version: DeviceResponseVersion::V1_0,
-            documents,
-            document_errors: None,
-            status: 0,
-        };
-        device_response.verify(None, session_transcript, time, cas).unwrap();
+        let device_responses = documents
+            .into_iter()
+            .map(|document| DeviceResponse::new(vec![document]))
+            .collect_vec();
 
-        device_response
+        for device_response in &device_responses {
+            device_response
+                .verify(None, session_transcript, time, cas)
+                .expect("created DeviceResponse should be valid");
+        }
+
+        device_responses
     }
 
     /// Manually construct a mock `DeviceResponse` and PoA using the given `auth_request`, `issuer_signed` and
     /// `mdoc_nonce`.
-    async fn setup_device_response(
+    async fn setup_vp_token(
         auth_request: &NormalizedVpAuthorizationRequest,
         mdoc_nonce: &str,
         issuer_signed_and_keys: &[(IssuerSigned, MockRemoteEcdsaKey)],
         cas: &[TrustAnchor<'_>],
         time: &impl Generator<DateTime<Utc>>,
-    ) -> (DeviceResponse, Option<Poa>) {
+    ) -> (HashMap<CredentialQueryIdentifier, VerifiablePresentation>, Option<Poa>) {
         let session_transcript = SessionTranscript::new_oid4vp(
             &auth_request.response_uri,
             &auth_request.client_id,
@@ -1227,9 +1237,22 @@ mod tests {
             .await
             .unwrap();
 
-        let device_response = device_response(issuer_signed, device_signed, &session_transcript, cas, time);
+        let device_responses = device_responses(issuer_signed, device_signed, &session_transcript, cas, time);
 
-        (device_response, poa)
+        let vp_token = auth_request
+            .credential_requests
+            .as_ref()
+            .iter()
+            .zip_eq(device_responses)
+            .map(|(request, device_response)| {
+                (
+                    request.id.clone(),
+                    VerifiablePresentation::new_mdoc(vec_nonempty![device_response]),
+                )
+            })
+            .collect();
+
+        (vp_token, poa)
     }
 
     #[tokio::test]
@@ -1244,7 +1267,7 @@ mod tests {
         let mdoc_key = MockRemoteEcdsaKey::new(String::from("mdoc_key"), SigningKey::random(&mut OsRng));
         let mdoc = Mdoc::new_mock_with_ca_and_key(&ca, &mdoc_key).await;
 
-        let (device_response, poa) = setup_device_response(
+        let (vp_token, poa) = setup_vp_token(
             &auth_request,
             mdoc_nonce,
             &vec![(mdoc.issuer_signed, mdoc_key)],
@@ -1253,7 +1276,7 @@ mod tests {
         )
         .await;
 
-        let auth_response = VpAuthorizationResponse::new(device_response, &auth_request, poa);
+        let auth_response = VpAuthorizationResponse::new(vp_token, None, poa);
 
         let attestations = auth_response
             .verify(
@@ -1267,7 +1290,11 @@ mod tests {
 
         assert_eq!(attestations.len(), 1);
 
-        let attestation = attestations.first().unwrap();
+        let disclosed_attestations = attestations.into_values().next().unwrap();
+
+        assert_eq!(disclosed_attestations.len().get(), 1);
+
+        let attestation = disclosed_attestations.into_first();
 
         assert_eq!("urn:eudi:pid:nl:1", attestation.attestation_type.as_str());
         let DisclosedAttributes::MsoMdoc(attributes) = &attestation.attributes else {
@@ -1313,7 +1340,7 @@ mod tests {
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let trust_anchors = &[ca.to_trust_anchor()];
         let (issuer_signed_and_keys, auth_request) = setup_poa_test(&ca).await;
-        let (device_response, poa) = setup_device_response(
+        let (vp_token, poa) = setup_vp_token(
             &auth_request,
             mdoc_nonce,
             &issuer_signed_and_keys,
@@ -1322,7 +1349,7 @@ mod tests {
         )
         .await;
 
-        let auth_response = VpAuthorizationResponse::new(device_response, &auth_request, poa);
+        let auth_response = VpAuthorizationResponse::new(vp_token, None, poa);
         auth_response
             .verify(
                 &auth_request,
@@ -1340,7 +1367,7 @@ mod tests {
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let trust_anchors = &[ca.to_trust_anchor()];
         let (issuer_signed_and_keys, auth_request) = setup_poa_test(&ca).await;
-        let (device_response, _) = setup_device_response(
+        let (vp_token, _) = setup_vp_token(
             &auth_request,
             mdoc_nonce,
             &issuer_signed_and_keys,
@@ -1349,7 +1376,7 @@ mod tests {
         )
         .await;
 
-        let auth_response = VpAuthorizationResponse::new(device_response, &auth_request, None);
+        let auth_response = VpAuthorizationResponse::new(vp_token, None, None);
         let error = auth_response
             .verify(
                 &auth_request,
@@ -1368,7 +1395,7 @@ mod tests {
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let trust_anchors = &[ca.to_trust_anchor()];
         let (issuer_signed_and_keys, auth_request) = setup_poa_test(&ca).await;
-        let (device_response, poa) = setup_device_response(
+        let (vp_token, poa) = setup_vp_token(
             &auth_request,
             mdoc_nonce,
             &issuer_signed_and_keys,
@@ -1380,7 +1407,7 @@ mod tests {
         let mut poa = poa.unwrap();
         poa.set_payload("edited".to_owned());
 
-        let auth_response = VpAuthorizationResponse::new(device_response, &auth_request, Some(poa));
+        let auth_response = VpAuthorizationResponse::new(vp_token, None, Some(poa));
         let error = auth_response
             .verify(
                 &auth_request,

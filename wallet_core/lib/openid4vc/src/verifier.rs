@@ -38,6 +38,7 @@ use crypto::keys::EcdsaKey;
 use crypto::server_keys::KeyPair;
 use crypto::utils::random_string;
 use crypto::x509::CertificateError;
+use dcql::CredentialQueryIdentifier;
 use dcql::Query;
 use dcql::normalized::NormalizedCredentialRequests;
 use dcql::normalized::UnsupportedDcqlFeatures;
@@ -45,6 +46,7 @@ use http_utils::urls::BaseUrl;
 use jwt::Jwt;
 use jwt::error::JwtError;
 use utils::generator::Generator;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::AuthorizationErrorCode;
 use crate::ErrorResponse;
@@ -236,7 +238,7 @@ pub struct Done {
 #[serde(rename_all = "UPPERCASE", tag = "status")]
 enum SessionResult {
     Done {
-        disclosed_attributes: Vec<DisclosedAttestation>,
+        disclosed_attributes: HashMap<CredentialQueryIdentifier, VecNonEmpty<DisclosedAttestation>>,
         redirect_uri_nonce: Option<String>,
     },
     Failed {
@@ -847,7 +849,7 @@ pub trait DisclosureResultHandler {
     async fn disclosure_result(
         &self,
         usecase_id: &str,
-        disclosed: &[DisclosedAttestation],
+        disclosed: &HashMap<CredentialQueryIdentifier, VecNonEmpty<DisclosedAttestation>>,
     ) -> Result<HashMap<String, String>, DisclosureResultHandlerError>;
 }
 
@@ -1074,7 +1076,7 @@ where
         &self,
         session_token: &SessionToken,
         redirect_uri_nonce: Option<String>,
-    ) -> Result<Vec<DisclosedAttestation>, DisclosedAttributesError> {
+    ) -> Result<HashMap<CredentialQueryIdentifier, VecNonEmpty<DisclosedAttestation>>, DisclosedAttributesError> {
         let disclosure_data = session_or_error(self.sessions.as_ref(), session_token).await?.data;
 
         match disclosure_data {
@@ -1482,7 +1484,7 @@ impl Session<WaitingForResponse> {
 
     fn transition_finish(
         self,
-        disclosed_attributes: Vec<DisclosedAttestation>,
+        disclosed_attributes: HashMap<CredentialQueryIdentifier, VecNonEmpty<DisclosedAttestation>>,
         nonce: Option<String>,
     ) -> Session<Done> {
         self.transition(Done {

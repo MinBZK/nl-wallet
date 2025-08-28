@@ -135,19 +135,6 @@ impl TryFrom<mdoc::verifier::DisclosedDocument> for DisclosedAttestation {
     }
 }
 
-#[cfg(feature = "test")]
-impl From<DisclosedAttestation> for mdoc::verifier::DisclosedDocument {
-    fn from(doc: DisclosedAttestation) -> Self {
-        mdoc::verifier::DisclosedDocument {
-            doc_type: doc.attestation_type,
-            attributes: doc.attributes.into(),
-            issuer_uri: doc.issuer_uri,
-            ca: doc.ca,
-            validity_info: doc.validity_info.into(),
-        }
-    }
-}
-
 impl TryFrom<sd_jwt::sd_jwt::SdJwt> for DisclosedAttestation {
     type Error = DisclosedAttestationError;
 

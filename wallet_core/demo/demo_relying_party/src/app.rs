@@ -279,7 +279,7 @@ async fn disclosed_attributes(
         Ok(attributes) => DisclosedAttributesTemplate {
             usecase: &usecase,
             demo_index_url: state.demo_index_url.clone().into_inner(),
-            attributes,
+            attributes: attributes.into_values().flatten().collect(),
             base,
         }
         .into_response(),

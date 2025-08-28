@@ -263,44 +263,6 @@ impl TestDocuments {
     pub fn into_first(self) -> Option<TestDocument> {
         self.0.into_iter().next()
     }
-
-    pub fn assert_matches(&self, disclosed_documents: &[DisclosedDocument]) {
-        // verify the number of documents
-        assert_eq!(disclosed_documents.len(), self.len());
-        for (
-            TestDocument {
-                doc_type: expected_doc_type,
-                namespaces: expected_namespaces,
-                issuer_uri: expected_issuer,
-                ..
-            },
-            disclosed_document,
-        ) in self.0.iter().zip(disclosed_documents)
-        {
-            // verify the disclosed doc type
-            assert_eq!(disclosed_document.doc_type, *expected_doc_type);
-            // verify the issuer
-            assert_eq!(disclosed_document.issuer_uri, *expected_issuer);
-            // verify the number of namespaces in this document
-            assert_eq!(disclosed_document.attributes.len(), expected_namespaces.len());
-            // verify the disclosed attributes
-            for (expected_namespace, expected_attributes) in expected_namespaces {
-                let disclosed_attributes = disclosed_document
-                    .attributes
-                    .get(expected_namespace)
-                    .expect("expected namespace not received");
-                // verify the number of the attributes in this namespace
-                assert_eq!(disclosed_attributes.len(), expected_attributes.len());
-                // verify whether all expected attributes exist in this namespace
-                for expected_attribute in expected_attributes {
-                    assert_eq!(
-                        disclosed_attributes.get(&expected_attribute.name),
-                        Some(&expected_attribute.value)
-                    );
-                }
-            }
-        }
-    }
 }
 
 impl From<Vec<TestDocument>> for TestDocuments {

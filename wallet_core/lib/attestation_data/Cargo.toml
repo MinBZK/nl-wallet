@@ -13,6 +13,7 @@ example_credential_payloads = ["dep:rand_core"]
 generate = ["dep:rcgen", "crypto/generate"]
 mock = ["example_credential_payloads", "dep:rand_core", "crypto/mock", "mdoc/test", "sd_jwt/test"]
 test = ["derive_more/unwrap"]
+test_document = ["dcql/test_document"]
 
 [dependencies]
 chrono.workspace = true

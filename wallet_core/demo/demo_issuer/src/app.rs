@@ -25,6 +25,7 @@ use tower_http::trace::TraceLayer;
 use url::Url;
 
 use attestation_data::issuable_document::IssuableDocument;
+use dcql::CredentialQueryIdentifier;
 use demo_utils::LANGUAGE_JS_SHA256;
 use demo_utils::WALLET_WEB_CSS_SHA256;
 use demo_utils::WALLET_WEB_JS_SHA256;
@@ -185,7 +186,7 @@ async fn usecase(
 async fn attestation(
     State(state): State<Arc<ApplicationState>>,
     Path(usecase): Path<String>,
-    Json(disclosed): Json<Vec<DemoDisclosedAttestation>>,
+    Json(disclosed): Json<HashMap<CredentialQueryIdentifier, Vec<DemoDisclosedAttestation>>>,
 ) -> Result<Response> {
     let Some(usecase) = state.usecases.get(&usecase) else {
         return Ok(StatusCode::NOT_FOUND.into_response());
@@ -195,7 +196,8 @@ async fn attestation(
     // blindly
     let requested_path = usecase.disclosed.path.iter().map(String::as_str).collect::<Vec<_>>();
     let attribute_value = disclosed
-        .iter()
+        .values()
+        .flatten()
         .filter(|attestation| attestation.attestation_type == usecase.disclosed.credential_type)
         .exactly_one()
         .ok()
