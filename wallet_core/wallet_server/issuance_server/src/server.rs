@@ -76,7 +76,7 @@ where
             WalletInitiatedUseCase::try_new(
                 s.key_pair.parse(hsm.clone()).await?,
                 SessionTypeReturnUrl::Both,
-                s.dcql_query,
+                s.dcql_query.try_into()?,
                 format!("{OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME}://").parse().unwrap(),
             )?,
         ))

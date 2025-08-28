@@ -726,7 +726,7 @@ impl<K, S> RpInitiatedUseCases<K, S> {
 #[derive(Debug, Constructor)]
 pub struct WalletInitiatedUseCase<K> {
     data: UseCaseData<K>,
-    dcql_query: Query,
+    credential_requests: NormalizedCredentialRequests,
     return_url_template: ReturnUrlTemplate,
 }
 
@@ -739,7 +739,7 @@ impl<K> WalletInitiatedUseCase<K> {
     pub fn try_new(
         key_pair: KeyPair<K>,
         session_type_return_url: SessionTypeReturnUrl,
-        dcql_query: Query,
+        credential_requests: NormalizedCredentialRequests,
         return_url_template: ReturnUrlTemplate,
     ) -> Result<Self, UseCaseCertificateError> {
         let client_id = client_id_from_key_pair(&key_pair)?;
@@ -749,7 +749,7 @@ impl<K> WalletInitiatedUseCase<K> {
                 client_id,
                 session_type_return_url,
             },
-            dcql_query,
+            credential_requests,
             return_url_template,
         };
 
@@ -771,7 +771,7 @@ impl<K: EcdsaKeySend> UseCase for WalletInitiatedUseCase<K> {
         _return_url_template: Option<ReturnUrlTemplate>,
     ) -> Result<Session<Created>, NewSessionError> {
         let session = Session::<Created>::new(
-            self.dcql_query.clone().try_into()?,
+            self.credential_requests.clone(),
             id,
             self.data.client_id.clone(),
             Some(RedirectUriTemplate {
@@ -1508,6 +1508,7 @@ mod tests {
     use chrono::DateTime;
     use chrono::Duration;
     use chrono::Utc;
+    use dcql::normalized::NormalizedCredentialRequests;
     use itertools::Itertools;
     use p256::ecdsa::SigningKey;
     use ring::hmac;
@@ -1964,7 +1965,7 @@ mod tests {
                     session_type_return_url: SessionTypeReturnUrl::Neither,
                     client_id: "client_id".to_string(),
                 },
-                dcql_query: Query::pid_family_name(),
+                credential_requests: NormalizedCredentialRequests::new_pid_example(),
                 return_url_template: "https://example.com".parse().unwrap(),
             },
         )]);

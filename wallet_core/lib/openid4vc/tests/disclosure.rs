@@ -881,7 +881,7 @@ fn setup_wallet_initiated_usecase_verifier() -> (Arc<MockWalletInitiatedUseCaseV
         WalletInitiatedUseCase::try_new(
             generate_reader_mock(&rp_ca, reader_registration.clone()).unwrap(),
             SessionTypeReturnUrl::SameDevice,
-            dcql_query,
+            dcql_query.try_into().unwrap(),
             "https://example.com/redirect_uri".parse().unwrap(),
         )
         .unwrap(),
