@@ -35,25 +35,45 @@ static TOKEN_STATUS_LIST_JWT_HEADER: &str = "application/statuslist+jwt";
 #[derive(Debug, Clone, FromStr, Serialize, Deserialize)]
 pub struct StatusListToken(Jwt<StatusListClaims>);
 
-impl StatusListToken {
-    pub async fn try_new(
-        iat: DateTime<Utc>,
-        exp: Option<DateTime<Utc>>,
-        sub: HttpsUri,
-        ttl: Option<Duration>,
-        status_list: PackedStatusList,
-        key: &impl EcdsaKey,
-    ) -> Result<Self, JwtError> {
-        let claims = StatusListClaims {
-            iat,
-            exp,
+pub struct StatusListTokenBuilder {
+    exp: Option<DateTime<Utc>>,
+    sub: HttpsUri,
+    ttl: Option<Duration>,
+    status_list: PackedStatusList,
+}
+
+impl StatusListTokenBuilder {
+    pub fn new(sub: HttpsUri, status_list: PackedStatusList) -> Self {
+        Self {
+            exp: None,
             sub,
-            ttl,
+            ttl: None,
             status_list,
-        };
+        }
+    }
+
+    pub fn exp(mut self, exp: DateTime<Utc>) -> Self {
+        self.exp = Some(exp);
+        self
+    }
+
+    pub fn ttl(mut self, ttl: Duration) -> Self {
+        self.ttl = Some(ttl);
+        self
+    }
+
+    pub async fn sign(self, key: &impl EcdsaKey) -> Result<StatusListToken, JwtError> {
         let header = Header {
             typ: Some(TOKEN_STATUS_LIST_JWT_TYP.to_string()),
             ..Header::new(Algorithm::ES256)
+        };
+
+        let claims = StatusListClaims {
+            iat: Utc::now(),
+            exp: self.exp,
+            sub: self.sub,
+            ttl: self.ttl,
+            status_list: self.status_list,
         };
 
         let jwt = Jwt::sign(&claims, &header, key).await?;
@@ -120,23 +140,23 @@ mod test {
         let expected_claims: StatusListClaims = serde_json::from_value(example_payload).unwrap();
 
         let key = SigningKey::random(&mut OsRng);
-        let signed = StatusListToken::try_new(
-            expected_claims.iat,
-            expected_claims.exp,
-            expected_claims.sub.clone(),
-            expected_claims.ttl,
-            expected_claims.status_list.clone(),
-            &key,
-        )
-        .await
-        .unwrap();
+        let signed = StatusListTokenBuilder::new(expected_claims.sub.clone(), expected_claims.status_list.clone())
+            .exp(expected_claims.exp.unwrap())
+            .ttl(expected_claims.ttl.unwrap())
+            .sign(&key)
+            .await
+            .unwrap();
 
         let (header, claims) = signed
             .0
             .parse_and_verify_with_header(&key.verifying_key().into(), &jwt::validations())
             .unwrap();
         assert_eq!(header, expected_header);
-        assert_eq!(claims, expected_claims);
+        // the `iat` claim is set when signing the token
+        assert_eq!(claims.status_list, expected_claims.status_list);
+        assert_eq!(claims.sub, expected_claims.sub);
+        assert_eq!(claims.ttl, expected_claims.ttl);
+        assert_eq!(claims.exp, expected_claims.exp);
     }
 
     #[cfg(feature = "axum")]
@@ -153,14 +173,13 @@ mod test {
         let listener = TcpListener::bind("localhost:0").await.unwrap();
         let port = listener.local_addr().unwrap().port();
 
-        let token_status_list = StatusListToken::try_new(
-            Utc::now(),
-            Some(Utc::now() + Duration::from_secs(3600)),
+        let token_status_list = StatusListTokenBuilder::new(
             "https://example.com/statuslists/1".parse().unwrap(),
-            Some(Duration::from_secs(43200)),
             EXAMPLE_STATUS_LIST_ONE.to_owned().pack(),
-            &SigningKey::random(&mut OsRng),
         )
+        .exp(Utc::now() + Duration::from_secs(3600))
+        .ttl(Duration::from_secs(43200))
+        .sign(&SigningKey::random(&mut OsRng))
         .await
         .unwrap();
 
