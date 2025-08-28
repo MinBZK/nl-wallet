@@ -285,8 +285,9 @@ mod tests {
 
     use crate::account_provider::AccountProviderResponseError;
     use crate::pin::key::PinKey;
+    use crate::storage::ChangePinData;
     use crate::storage::InstructionData;
-    use crate::storage::KeyedData;
+    use crate::wallet::test::WalletWithStorage;
 
     use super::super::WalletRegistration;
     use super::super::test::ACCOUNT_SERVER_KEYS;
@@ -301,7 +302,7 @@ mod tests {
     async fn test_wallet_lock_unlock(
         #[values(WalletDeviceVendor::Apple, WalletDeviceVendor::Google)] vendor: WalletDeviceVendor,
     ) {
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked(vendor);
+        let mut wallet = WalletWithStorage::new_registered_and_unlocked(vendor).await;
 
         // Wrap a `Vec<bool>` in both a `Mutex` and `Arc`,
         // so we can write to it from the closure.
@@ -490,7 +491,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_unlock_error_instruction_server_challenge_404() {
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
+        let mut wallet = WalletWithStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         wallet.lock();
 
@@ -514,7 +515,7 @@ mod tests {
     async fn test_wallet_unlock_error_instruction_response(
         response_error: AccountProviderResponseError,
     ) -> WalletUnlockError {
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
+        let mut wallet = WalletWithStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         wallet.lock();
 
@@ -606,7 +607,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_unlock_error_instruction_signing() {
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
+        let mut wallet = WalletWithStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         wallet.lock();
 
@@ -629,7 +630,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_unlock_error_instruction_result_validation() {
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
+        let mut wallet = WalletWithStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         wallet.lock();
 
@@ -669,10 +670,18 @@ mod tests {
     async fn test_wallet_unlock_error_instruction_store() {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
+        wallet
+            .mut_storage()
+            .expect_fetch_data::<ChangePinData>()
+            .returning(move || Ok(None));
+
         wallet.lock();
 
         // Have the database return an error when fetching the sequence number.
-        wallet.storage.write().await.set_keyed_data_error(InstructionData::KEY);
+        wallet
+            .mut_storage()
+            .expect_fetch_data::<InstructionData>()
+            .returning(move || Err(StorageError::AlreadyOpened));
 
         // Unlocking the wallet should now result in an
         // `InstructionError::StoreInstructionSequenceNumber` error.

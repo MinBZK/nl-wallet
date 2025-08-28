@@ -167,7 +167,8 @@ mod tests {
     use crate::pin::change::State;
     use crate::wallet::test::ACCOUNT_SERVER_KEYS;
     use crate::wallet::test::WalletDeviceVendor;
-    use crate::wallet::test::WalletWithMocks;
+    use crate::wallet::test::WalletWithStorage;
+    use crate::wallet::test::valid_certificate;
 
     fn create_wp_result<T>(result: T) -> Jwt<InstructionResultClaims<T>>
     where
@@ -186,7 +187,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_begin_and_continue_change_pin() {
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
+        let mut wallet = WalletWithStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         Arc::get_mut(&mut wallet.account_provider_client)
             .unwrap()
@@ -199,7 +200,7 @@ mod tests {
             unreachable!();
         };
 
-        let wp_result = create_wp_result(WalletWithMocks::valid_certificate(
+        let wp_result = create_wp_result(valid_certificate(
             Some(registration_data.wallet_id.clone()),
             *attested_key.verifying_key(),
         ));

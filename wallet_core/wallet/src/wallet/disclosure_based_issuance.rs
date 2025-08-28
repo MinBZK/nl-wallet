@@ -196,11 +196,17 @@ mod tests {
     use openid4vc::verifier::DisclosureResultHandlerError;
     use openid4vc::verifier::PostAuthResponseError;
     use openid4vc::verifier::ToPostAuthResponseErrorCode;
+    use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use utils::generator::mock::MockTimeGenerator;
 
     use crate::attestation::AttestationPresentation;
+    use crate::storage::ChangePinData;
     use crate::storage::DisclosableAttestation;
     use crate::storage::PartialAttestation;
+    use crate::storage::StoredAttestation;
+    use crate::storage::StoredAttestationCopy;
+    use crate::wallet::test::WalletWithMocks;
+    use crate::wallet::test::create_example_pid_mdoc;
 
     use super::super::DisclosureBasedIssuanceError;
     use super::super::Session;
@@ -208,7 +214,6 @@ mod tests {
     use super::super::disclosure::RedirectUriPurpose;
     use super::super::disclosure::WalletDisclosureSession;
     use super::super::test::WalletDeviceVendor;
-    use super::super::test::WalletWithMocks;
     use super::super::test::create_example_preview_data;
 
     const PIN: &str = "051097";
@@ -282,6 +287,45 @@ mod tests {
             Ok(client)
         });
 
+        wallet
+            .mut_storage()
+            .expect_fetch_data::<ChangePinData>()
+            .returning(|| Ok(None));
+
+        wallet
+            .mut_storage()
+            .expect_increment_attestation_copies_usage_count()
+            .times(1)
+            .return_once(|_| Ok(()));
+
+        wallet
+            .mut_storage()
+            .expect_log_disclosure_event()
+            .times(1)
+            .returning(|_, _, _, _, _| Ok(()));
+
+        wallet
+            .mut_storage()
+            .expect_fetch_recent_wallet_events()
+            .returning(move || Ok(vec![]));
+
+        let mdoc = create_example_pid_mdoc();
+        let stored_attestation_copy = StoredAttestationCopy::new(
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            StoredAttestation::MsoMdoc {
+                mdoc: Box::new(mdoc.clone()),
+            },
+            NormalizedTypeMetadata::nl_pid_example(),
+        );
+
+        let expectation_attestation_copy = stored_attestation_copy.clone();
+        wallet
+            .mut_storage()
+            .expect_fetch_unique_attestations_by_type()
+            .times(1)
+            .returning(move |_, _| Ok(vec![expectation_attestation_copy.clone()]));
+
         // Accept disclosure based issuance
         let previews = wallet
             .continue_disclosure_based_issuance(PIN.to_owned())
@@ -327,6 +371,28 @@ mod tests {
             ))
         });
         wallet.session = Some(Session::Disclosure(disclosure_session));
+
+        wallet
+            .mut_storage()
+            .expect_fetch_data::<ChangePinData>()
+            .returning(|| Ok(None));
+
+        wallet
+            .mut_storage()
+            .expect_increment_attestation_copies_usage_count()
+            .times(1)
+            .return_once(|_| Ok(()));
+
+        wallet
+            .mut_storage()
+            .expect_log_disclosure_event()
+            .times(1)
+            .returning(|_, _, _, _, _| Ok(()));
+
+        wallet
+            .mut_storage()
+            .expect_fetch_recent_wallet_events()
+            .returning(move || Ok(vec![]));
 
         let previews = wallet
             .continue_disclosure_based_issuance(PIN.to_owned())

@@ -83,7 +83,9 @@ pub mod wallet_deps {
     pub use crate::repository::Repository;
     pub use crate::repository::RepositoryUpdateState;
     pub use crate::repository::UpdateableRepository;
+    pub use crate::storage::DatabaseStorage;
     pub use crate::storage::Storage;
+    pub use crate::storage::in_memory_storage;
     pub use crate::update_policy::HttpUpdatePolicyRepository;
     pub use crate::update_policy::UpdatePolicyRepository;
 }
@@ -94,6 +96,5 @@ pub mod mock {
     pub use crate::config::LocalConfigurationRepository;
     pub use crate::digid::MockDigidClient;
     pub use crate::digid::MockDigidSession;
-    pub use crate::storage::StorageStub;
     pub use crate::update_policy::MockUpdatePolicyRepository;
 }

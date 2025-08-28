@@ -72,15 +72,16 @@ mod tests {
     use std::sync::Arc;
 
     use assert_matches::assert_matches;
+    use uuid::Uuid;
 
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::x509::generate::mock::generate_issuer_mock;
     use crypto::server_keys::generate::Ca;
-    use openid4vc::issuance_session::CredentialWithMetadata;
-    use openid4vc::issuance_session::IssuedCredential;
-    use openid4vc::issuance_session::IssuedCredentialCopies;
     use sd_jwt::sd_jwt::VerifiedSdJwt;
-    use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
+    use sd_jwt_vc_metadata::NormalizedTypeMetadata;
+
+    use crate::storage::StoredAttestation;
+    use crate::wallet::test::create_example_pid_mdoc;
 
     use super::super::test;
     use super::super::test::WalletDeviceVendor;
@@ -118,32 +119,35 @@ mod tests {
     // Tests both setting and clearing the documents callback on a registered `Wallet`.
     #[tokio::test]
     async fn test_wallet_set_clear_documents_callback_registered() {
-        let mut wallet = Wallet::new_registered_and_unlocked(WalletDeviceVendor::Apple);
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let issuance_keypair = generate_issuer_mock(&ca, IssuerRegistration::new_mock().into()).unwrap();
 
         let sd_jwt = VerifiedSdJwt::pid_example(&issuance_keypair);
         let attestation_type = sd_jwt.as_ref().claims().vct.as_ref().unwrap().to_owned();
-        let mdoc_credential = test::create_example_pid_mdoc_credential();
 
-        Arc::get_mut(&mut wallet.storage)
-            .unwrap()
-            .get_mut()
-            .issued_credential_copies
-            .insert(
-                mdoc_credential.attestation_type.clone(),
-                vec![
-                    CredentialWithMetadata::new(
-                        IssuedCredentialCopies::new_or_panic(
-                            vec![IssuedCredential::SdJwt(Box::new(sd_jwt))].try_into().unwrap(),
-                        ),
-                        attestation_type.clone(),
-                        VerifiedTypeMetadataDocuments::nl_pid_example(),
-                    ),
-                    mdoc_credential,
-                ],
-            );
+        let storage = wallet.mut_storage();
+        storage.expect_fetch_unique_attestations().return_once(move || {
+            Ok(vec![
+                StoredAttestationCopy::new(
+                    Uuid::new_v4(),
+                    Uuid::new_v4(),
+                    StoredAttestation::SdJwt {
+                        sd_jwt: Box::new(sd_jwt),
+                    },
+                    NormalizedTypeMetadata::nl_pid_example(),
+                ),
+                StoredAttestationCopy::new(
+                    Uuid::new_v4(),
+                    Uuid::new_v4(),
+                    StoredAttestation::MsoMdoc {
+                        mdoc: Box::new(create_example_pid_mdoc()),
+                    },
+                    NormalizedTypeMetadata::nl_pid_example(),
+                ),
+            ])
+        });
 
         // Register mock document_callback
         let attestations = test::setup_mock_attestations_callback(&mut wallet)
@@ -176,10 +180,13 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_set_attestations_callback_error() {
-        let mut wallet = Wallet::new_registered_and_unlocked(WalletDeviceVendor::Apple);
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // Have the database return an error on query.
-        wallet.storage.write().await.has_query_error = true;
+        let storage = wallet.mut_storage();
+        storage
+            .expect_fetch_unique_attestations()
+            .returning(|| Err(StorageError::NotOpened));
 
         // Confirm that setting the callback returns an error.
         let error = wallet
