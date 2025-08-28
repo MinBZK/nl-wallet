@@ -27,6 +27,7 @@ import '../common/widget/fade_in_at_offset.dart';
 import '../common/widget/spacer/sliver_sized_box.dart';
 import '../common/widget/text/body_text.dart';
 import '../common/widget/text/title_text.dart';
+import '../common/widget/utility/focus_on_init.dart';
 import '../common/widget/wallet_app_bar.dart';
 import '../common/widget/wallet_scrollbar.dart';
 import 'widget/introduction_progress_stepper.dart';
@@ -141,12 +142,14 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
       left: 0,
       right: 0,
       child: Center(
-        child: Semantics(
-          attributedLabel: context.l10n.introductionWCAGDutchGovernmentLogoLabel.toAttributedString(context),
-          child: Image.asset(
-            WalletAssets.logo_rijksoverheid_label,
-            height: context.isLandscape ? 64 : portraitLogoHeight,
-            fit: BoxFit.contain,
+        child: ExcludeSemantics(
+          child: Semantics(
+            attributedLabel: context.l10n.introductionWCAGDutchGovernmentLogoLabel.toAttributedString(context),
+            child: Image.asset(
+              WalletAssets.logo_rijksoverheid_label,
+              height: context.isLandscape ? 64 : portraitLogoHeight,
+              fit: BoxFit.contain,
+            ),
           ),
         ),
       ),
@@ -175,8 +178,8 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
   Widget _buildPage({
     required Key key,
     required BuildContext context,
-    required String title,
-    required String description,
+    required Widget title,
+    required Widget description,
     required String lottieAsset,
     ScrollController? controller,
   }) {
@@ -197,9 +200,9 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    TitleText(title),
+                    title,
                     const SizedBox(height: 8),
-                    BodyText(description),
+                    description,
                   ],
                 ),
               ),
@@ -243,8 +246,8 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
     return _buildPage(
       key: const Key('introductionPage1'),
       context: context,
-      title: context.l10n.introductionPage1Title,
-      description: context.l10n.introductionPage1Description,
+      title: FocusOnInit(child: TitleText(context.l10n.introductionPage1Title)),
+      description: BodyText(context.l10n.introductionPage1Description),
       lottieAsset: WalletAssets.lottie_intro_1,
       controller: _scrollControllers[0],
     );
@@ -254,8 +257,8 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
     return _buildPage(
       key: const Key('introductionPage2'),
       context: context,
-      title: context.l10n.introductionPage2Title,
-      description: context.l10n.introductionPage2Description,
+      title: TitleText(context.l10n.introductionPage2Title),
+      description: BodyText(context.l10n.introductionPage2Description),
       lottieAsset: WalletAssets.lottie_intro_2,
       controller: _scrollControllers[1],
     );
@@ -265,8 +268,8 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
     return _buildPage(
       key: const Key('introductionPage3'),
       context: context,
-      title: context.l10n.introductionPage3Title,
-      description: context.l10n.introductionPage3Description,
+      title: TitleText(context.l10n.introductionPage3Title),
+      description: BodyText(context.l10n.introductionPage3Description),
       lottieAsset: WalletAssets.lottie_intro_3,
       controller: _scrollControllers[2],
     );
@@ -341,6 +344,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
       opacity: _currentPage.clamp(0.0, 1.0),
       child: BackIconButton(
         onPressed: () => _onPreviousPagePressed(context),
+        key: ValueKey(_currentPageInt),
       ),
     );
   }
