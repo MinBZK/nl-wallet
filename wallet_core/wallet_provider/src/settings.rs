@@ -48,7 +48,7 @@ pub struct Settings {
 
     /// Issuer trust anchors are used to validate the received PID SD JWT with Recovery Code disclosure
     #[serde_as(as = "Vec<Base64>")]
-    pub issuer_trust_anchors: Vec<BorrowingTrustAnchor>,
+    pub pid_issuer_trust_anchors: Vec<BorrowingTrustAnchor>,
 
     pub ios: Ios,
     pub android: Android,

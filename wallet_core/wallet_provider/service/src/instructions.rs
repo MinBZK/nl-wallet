@@ -498,7 +498,7 @@ impl HandleInstruction for DiscloseRecoveryCode {
     {
         let (verified_sd_jwt, _) = self
             .recovery_code_disclosure
-            .into_verified_against_trust_anchors(&user_state.issuer_trust_anchors, &TimeGenerator)?;
+            .into_verified_against_trust_anchors(&user_state.pid_issuer_trust_anchors, &TimeGenerator)?;
 
         let recovery_code = verified_sd_jwt
             .as_ref()

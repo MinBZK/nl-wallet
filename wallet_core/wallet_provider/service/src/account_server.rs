@@ -367,7 +367,7 @@ pub struct UserState<R, H, W> {
     pub wallet_user_hsm: H,
     pub wua_issuer: W,
     pub wrapping_key_identifier: String,
-    pub issuer_trust_anchors: Vec<TrustAnchor<'static>>,
+    pub pid_issuer_trust_anchors: Vec<TrustAnchor<'static>>,
 }
 
 impl<GRC, PIC> AccountServer<GRC, PIC> {
@@ -1219,14 +1219,14 @@ pub mod mock {
         repositories: R,
         wallet_user_hsm: MockPkcs11Client<HsmError>,
         wrapping_key_identifier: String,
-        issuer_trust_anchors: Vec<TrustAnchor<'static>>,
+        pid_issuer_trust_anchors: Vec<TrustAnchor<'static>>,
     ) -> UserState<R, MockPkcs11Client<HsmError>, MockWuaIssuer> {
         UserState::<R, MockPkcs11Client<HsmError>, MockWuaIssuer> {
             repositories,
             wallet_user_hsm,
             wua_issuer: MockWuaIssuer,
             wrapping_key_identifier,
-            issuer_trust_anchors,
+            pid_issuer_trust_anchors,
         }
     }
 
@@ -1450,7 +1450,7 @@ mod tests {
             wallet_user_hsm: hsm,
             wua_issuer: MockWuaIssuer,
             wrapping_key_identifier: wrapping_key_identifier.to_string(),
-            issuer_trust_anchors: vec![], // not needed in these tests
+            pid_issuer_trust_anchors: vec![], // not needed in these tests
         };
 
         account_server
