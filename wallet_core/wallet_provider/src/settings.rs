@@ -46,6 +46,10 @@ pub struct Settings {
     #[serde_as(as = "DurationMilliSeconds")]
     pub instruction_challenge_timeout: Duration,
 
+    /// Issuer trust anchors are used to validate the received PID SD JWT with Recovery Code disclosure
+    #[serde_as(as = "Vec<Base64>")]
+    pub pid_issuer_trust_anchors: Vec<BorrowingTrustAnchor>,
+
     pub ios: Ios,
     pub android: Android,
 }

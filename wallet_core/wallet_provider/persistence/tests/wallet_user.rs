@@ -19,6 +19,7 @@ use wallet_provider_persistence::wallet_user::commit_pin_change;
 use wallet_provider_persistence::wallet_user::find_wallet_user_by_wallet_id;
 use wallet_provider_persistence::wallet_user::register_unsuccessful_pin_entry;
 use wallet_provider_persistence::wallet_user::rollback_pin_change;
+use wallet_provider_persistence::wallet_user::store_recovery_code;
 use wallet_provider_persistence::wallet_user::update_apple_assertion_counter;
 
 use crate::common::encrypted_pin_key;
@@ -314,4 +315,60 @@ async fn test_update_apple_assertion_counter() {
         }
         _ => panic!(),
     };
+}
+
+#[tokio::test]
+async fn test_store_recovery_code() {
+    let (db, _, wallet_id, _) = create_test_user().await;
+    let (_, _, other_wallet_id, _) = create_test_user().await;
+
+    // Each of the two users created above should start out with a recovery code that is null.
+    let wallet_user = find_wallet_user_by_wallet_id(&db, &wallet_id).await.unwrap();
+    let other_wallet_user = find_wallet_user_by_wallet_id(&db, &other_wallet_id).await.unwrap();
+
+    assert_matches!(
+        wallet_user, WalletUserQueryResult::Found(wallet_user) if wallet_user.recovery_code.is_none()
+    );
+    assert_matches!(
+        other_wallet_user, WalletUserQueryResult::Found(wallet_user) if wallet_user.recovery_code.is_none()
+    );
+
+    let recovery_code = "885ed8a2-f07a-4f77-a8df-2e166f5ebd36".to_string();
+    // After updating the recovery_code for the first user it should be changed, while the other one should remain null
+    store_recovery_code(&db, &other_wallet_id, recovery_code.clone())
+        .await
+        .expect("storing the recovery code should succeed");
+
+    let wallet_user = find_wallet_user_by_wallet_id(&db, &wallet_id).await.unwrap();
+    let other_wallet_user = find_wallet_user_by_wallet_id(&db, &other_wallet_id).await.unwrap();
+
+    assert_matches!(
+        wallet_user, WalletUserQueryResult::Found(wallet_user) if wallet_user.recovery_code.is_none()
+    );
+    assert_matches!(
+        other_wallet_user, WalletUserQueryResult::Found(wallet_user) if wallet_user.recovery_code.as_ref().is_some_and(|rc| rc == &recovery_code)
+    );
+
+    // After updating the recovery_code for the second user it should be changed as well
+    store_recovery_code(&db, &wallet_id, recovery_code.clone())
+        .await
+        .expect("storing the recovery code should succeed");
+
+    let wallet_user = find_wallet_user_by_wallet_id(&db, &wallet_id).await.unwrap();
+    let other_wallet_user = find_wallet_user_by_wallet_id(&db, &other_wallet_id).await.unwrap();
+
+    assert_matches!(
+        wallet_user, WalletUserQueryResult::Found(wallet_user) if wallet_user.recovery_code.as_ref().is_some_and(|rc| rc == &recovery_code)
+    );
+    assert_matches!(
+        other_wallet_user, WalletUserQueryResult::Found(wallet_user) if wallet_user.recovery_code.as_ref().is_some_and(|rc| rc == &recovery_code)
+    );
+
+    // Updating the recovery_code for the first user again should give an error
+    store_recovery_code(&db, &wallet_id, recovery_code.clone())
+        .await
+        .expect_err("storing the recovery code twice should error");
+    store_recovery_code(&db, &other_wallet_id, recovery_code)
+        .await
+        .expect_err("storing the recovery code twice should error");
 }

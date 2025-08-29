@@ -104,6 +104,12 @@ spec:
             - name: WALLET_PROVIDER__HSM__MAX_SESSION_LIFETIME_IN_SEC
               value: {{ .Values.hsm.maxSessionLifeTimeInSec | quote }}
 
+
+            - name: WALLET_PROVIDER__ISSUER_TRUST_ANCHORS
+              valueFrom:
+                configMapKeyRef:
+                  name: nl-wallet-server-trust-anchors
+                  key: issuer_trust_anchors
             - name: WALLET_PROVIDER__STRUCTURED_LOGGING
               value: "true"
             - name: WALLET_PROVIDER__CAPTURE_AND_REDIRECT_LOGGING

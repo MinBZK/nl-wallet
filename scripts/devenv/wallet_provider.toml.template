@@ -8,6 +8,8 @@ pin_public_disclosure_protection_key_identifier = "pin_public_disclosure_protect
 # Indicates whether logging should be output in a structured (JSON) manner.
 #structured_logging = false
 
+pid_issuer_trust_anchors = ["${ISSUER_CA_CRT}"]
+
 [database]
 host = "${DB_HOST}"
 username = "${DB_USERNAME}"

@@ -13,6 +13,7 @@ use jwt::Jwt;
 use jwt::JwtSubject;
 use jwt::pop::JwtPopClaims;
 use jwt::wua::WuaDisclosure;
+use sd_jwt::sd_jwt::UnverifiedSdJwt;
 use utils::vec_at_least::VecNonEmpty;
 use wscd::Poa;
 
@@ -180,6 +181,20 @@ impl InstructionAndResult for Sign {
     const NAME: &'static str = "sign";
 
     type Result = SignResult;
+}
+
+// DiscloseRecoveryCode instruction.
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DiscloseRecoveryCode {
+    /// PID in SD JWT format with one disclosure: the recovery code
+    pub recovery_code_disclosure: UnverifiedSdJwt,
+}
+
+impl InstructionAndResult for DiscloseRecoveryCode {
+    const NAME: &'static str = "disclose_recovery_code";
+
+    type Result = ();
 }
 
 #[cfg(feature = "client")]
