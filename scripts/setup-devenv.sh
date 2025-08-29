@@ -80,7 +80,6 @@ then
 # export DB_HOST=${DB_HOST}
 # export DB_USERNAME=${DB_USERNAME}
 # export DB_PASSWORD=${DB_PASSWORD}
-# export DB_NAME=${DB_NAME}
 # export HSM_LIBRARY_PATH=${HSM_LIBRARY_PATH}
 # export HSM_SO_PIN=${HSM_SO_PIN}
 # export HSM_USER_PIN=${HSM_USER_PIN}
