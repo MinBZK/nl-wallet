@@ -105,7 +105,7 @@ spec:
               value: {{ .Values.hsm.maxSessionLifeTimeInSec | quote }}
 
 
-            - name: WALLET_PROVIDER__ISSUER_TRUST_ANCHORS
+            - name: WALLET_PROVIDER__PID_ISSUER_TRUST_ANCHORS
               valueFrom:
                 configMapKeyRef:
                   name: nl-wallet-server-trust-anchors
