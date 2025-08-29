@@ -142,6 +142,7 @@ impl Settings {
                     .with_list_parse_key("ios.root_certificates")
                     .with_list_parse_key("android.root_public_keys")
                     .with_list_parse_key("android.play_store_certificate_hashes")
+                    .with_list_parse_key("pid_issuer_trust_anchors")
                     .try_parsing(true),
             )
             .build()?
