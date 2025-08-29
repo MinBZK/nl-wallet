@@ -308,8 +308,8 @@ format.
 Note: You need a `reader_auth.json`, which you can base on the example shown in the
 [previous section](#create-reader-authentication-json).
 
-Note: You will need to have [onboarded](onboarding.md), which means you have
-[created your own CA](onboarding.md#create-a-ca).
+Note: You will need to have [onboarded](../community/onboarding), which means you have
+[created your own CA](../community/create-a-ca).
 
 
 ```shell
@@ -741,7 +741,7 @@ premises or within cloud environment(s) of the verifier (i.e., you).
 
 Let's walk through a typical (cross-device, note on same-device flows in
 following section) disclosure session (for full details, have a look at the
-VV/OV SAD and our [component interaction flow for disclosures](/architecture/disclosure-with-openid4vp.md)).
+VV/OV SAD and our [component interaction flow for disclosures](/architecture/disclosure-with-openid4vp)).
 
 Note the possible session states:
 
@@ -1042,7 +1042,7 @@ read the text in a regular text editor or pager to see them.
 [8]: https://www.iso.org/standard/69084.html
 [9]: https://www.iso.org/standard/86785.html
 [10]: https://openid.net/specs/openid-4-verifiable-presentations-1_0.html
-[11]: onboarding.md
+[11]: ../community/onboarding
 [12]: https://europa.eu/youreurope/business/dealing-with-customers/data-protection/data-protection-gdpr/index_en.htm
 [13]: https://www.w3.org/WAI/WCAG21/Understanding/intro
 [14]: https://github.com/MinBZK/nl-wallet/tree/main/wallet_web
