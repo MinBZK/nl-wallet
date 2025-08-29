@@ -639,6 +639,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             &challenge_request.certificate,
             &self.keys.wallet_certificate_signing_pubkey,
             &user_state.repositories,
+            true,
         )
         .await?;
 
@@ -731,7 +732,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             + Encrypter<VerifyingKey, Error = HsmError>,
     {
         let (wallet_user, instruction_payload) = self
-            .verify_and_extract_instruction(instruction, generators, pin_policy, user_state, |wallet_user| {
+            .verify_and_extract_instruction(instruction, generators, pin_policy, user_state, false, |wallet_user| {
                 PinKeyChecks::AllChecks(wallet_user.encrypted_pin_pubkey.clone())
             })
             .await?;
@@ -770,7 +771,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             + Encrypter<VerifyingKey, Error = HsmError>,
     {
         let (wallet_user, instruction_payload) = self
-            .verify_and_extract_instruction(instruction, generators, pin_policy, user_state, |wallet_user| {
+            .verify_and_extract_instruction(instruction, generators, pin_policy, user_state, false, |wallet_user| {
                 PinKeyChecks::AllChecks(wallet_user.encrypted_pin_pubkey.clone())
             })
             .await?;
@@ -842,7 +843,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         H: WalletUserHsm<Error = HsmError> + Hsm<Error = HsmError> + Decrypter<VerifyingKey, Error = HsmError>,
     {
         let (wallet_user, _) = self
-            .verify_and_extract_instruction(instruction, generators, pin_policy, user_state, |wallet_user| {
+            .verify_and_extract_instruction(instruction, generators, pin_policy, user_state, false, |wallet_user| {
                 PinKeyChecks::AllChecks(
                     wallet_user
                         .encrypted_previous_pin_pubkey
@@ -906,7 +907,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         .await?;
 
         let (wallet_user, instruction_payload) = self
-            .verify_and_extract_instruction(instruction, generators, pin_policy, user_state, |_| {
+            .verify_and_extract_instruction(instruction, generators, pin_policy, user_state, true, |_| {
                 PinKeyChecks::OnlySignature(encrypted_pin_pubkey.clone())
             })
             .await?;
@@ -972,6 +973,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         generators: &G,
         pin_policy: &impl PinPolicyEvaluator,
         user_state: &UserState<R, H, impl WuaIssuer>,
+        allow_blocked: bool,
         pin_pubkey: F,
     ) -> Result<(WalletUser, I), InstructionError>
     where
@@ -989,6 +991,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             &self.keys.wallet_certificate_signing_pubkey,
             &self.keys.pin_public_disclosure_protection_key_identifier,
             &self.keys.encryption_key_identifier,
+            allow_blocked,
             pin_pubkey,
             user_state,
         )
@@ -1829,6 +1832,7 @@ mod tests {
             &EcdsaDecodingKey::from(&setup.signing_pubkey),
             wallet_certificate::mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
             wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER,
+            false,
             |wallet_user| PinKeyChecks::AllChecks(wallet_user.encrypted_pin_pubkey.clone()),
             &user_state,
         )
@@ -2233,6 +2237,7 @@ mod tests {
             &EcdsaDecodingKey::from(&setup.signing_pubkey),
             wallet_certificate::mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
             wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER,
+            false,
             |wallet_user| PinKeyChecks::AllChecks(wallet_user.encrypted_pin_pubkey.clone()),
             &user_state,
         )
@@ -2249,6 +2254,7 @@ mod tests {
             &EcdsaDecodingKey::from(&setup.signing_pubkey),
             wallet_certificate::mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
             wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER,
+            false,
             |wallet_user| PinKeyChecks::AllChecks(wallet_user.encrypted_pin_pubkey.clone()),
             &user_state,
         )
@@ -2615,6 +2621,7 @@ mod tests {
             &EcdsaDecodingKey::from(&setup.signing_pubkey),
             wallet_certificate::mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
             wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER,
+            false,
             |wallet_user| PinKeyChecks::AllChecks(wallet_user.encrypted_pin_pubkey.clone()),
             &user_state,
         )

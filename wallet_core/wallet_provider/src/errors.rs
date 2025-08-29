@@ -92,6 +92,7 @@ impl From<WalletProviderError> for AccountError {
                 InstructionError::PinTimeout(data) => Self::PinTimeout(data),
                 InstructionError::AccountBlocked => Self::AccountBlocked,
                 InstructionError::Validation(_) | InstructionError::NonexistingKey(_) => Self::InstructionValidation,
+                InstructionError::WalletCertificate(WalletCertificateError::UserBlocked) => Self::AccountBlocked,
                 InstructionError::Signing(_)
                 | InstructionError::Storage(_)
                 | InstructionError::WalletCertificate(_)

@@ -14,6 +14,7 @@ use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::messages::registration::WalletCertificateClaims;
 use wallet_provider_domain::model::wallet_user::WalletUser;
 use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
+use wallet_provider_domain::model::wallet_user::WalletUserState;
 use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::repository::TransactionStarter;
 use wallet_provider_domain::repository::WalletUserRepository;
@@ -60,6 +61,7 @@ pub async fn parse_claims_and_retrieve_wallet_user<T, R>(
     certificate: &WalletCertificate,
     certificate_signing_pubkey: &EcdsaDecodingKey,
     wallet_user_repository: &R,
+    allow_blocked: bool,
 ) -> Result<(WalletUser, WalletCertificateClaims), WalletCertificateError>
 where
     T: Committable,
@@ -85,7 +87,9 @@ where
             debug!("No user found for the provided certificate: {}", &claims.wallet_id);
             Err(WalletCertificateError::UserNotRegistered)
         }
-        WalletUserQueryResult::Blocked => {
+        WalletUserQueryResult::Found(user_boxed)
+            if !allow_blocked && matches!(user_boxed.state, WalletUserState::Blocked) =>
+        {
             debug!("User found for the provided certificate is blocked");
             Err(WalletCertificateError::UserBlocked)
         }
@@ -168,6 +172,7 @@ pub async fn verify_wallet_certificate<T, R, H, F>(
     certificate_signing_pubkey: &EcdsaDecodingKey,
     pin_public_disclosure_protection_key_identifier: &str,
     encryption_key_identifier: &str,
+    allow_blocked: bool,
     pin_checks: F,
     user_state: &UserState<R, H, impl WuaIssuer>,
 ) -> Result<(WalletUser, Encrypted<VerifyingKey>), WalletCertificateError>
@@ -179,9 +184,13 @@ where
 {
     debug!("Parsing and verifying the provided certificate");
 
-    let (user, claims) =
-        parse_claims_and_retrieve_wallet_user(certificate, certificate_signing_pubkey, &user_state.repositories)
-            .await?;
+    let (user, claims) = parse_claims_and_retrieve_wallet_user(
+        certificate,
+        certificate_signing_pubkey,
+        &user_state.repositories,
+        allow_blocked,
+    )
+    .await?;
 
     let pin_checks = pin_checks(&user);
 
@@ -370,6 +379,7 @@ mod tests {
             &((&setup.signing_pubkey).into()),
             mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
             mock::SIGNING_KEY_IDENTIFIER,
+            false,
             |wallet_user| PinKeyChecks::AllChecks(wallet_user.encrypted_pin_pubkey.clone()),
             &user_state,
         )
@@ -414,6 +424,7 @@ mod tests {
             &EcdsaDecodingKey::from(&setup.signing_pubkey),
             mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
             mock::ENCRYPTION_KEY_IDENTIFIER,
+            false,
             |wallet_user| PinKeyChecks::AllChecks(wallet_user.encrypted_pin_pubkey.clone()),
             &user_state,
         )
@@ -469,6 +480,7 @@ mod tests {
             &EcdsaDecodingKey::from(&setup.signing_pubkey),
             mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
             mock::ENCRYPTION_KEY_IDENTIFIER,
+            false,
             |wallet_user| PinKeyChecks::AllChecks(wallet_user.encrypted_pin_pubkey.clone()),
             &user_state,
         )

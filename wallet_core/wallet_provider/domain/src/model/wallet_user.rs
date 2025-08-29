@@ -50,7 +50,6 @@ pub struct InstructionChallenge {
 pub enum WalletUserQueryResult {
     Found(Box<WalletUser>),
     NotFound,
-    Blocked,
 }
 
 #[derive(Debug)]
