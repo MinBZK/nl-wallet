@@ -375,4 +375,40 @@ platform :ios do
 
     upload_to_browserstack(file: ipa_file, user: user, key: key, custom_id: "NLWalletIos")
   end
+
+  desc "Upload iOS app to BrowserStack from GitLab CI"
+  lane :ci_browserstack do |options|
+    browserstack_user = ENV["BROWSERSTACK_USER"]
+    browserstack_key  = ENV["BROWSERSTACK_KEY"]
+    commit_sha        = ENV["CI_COMMIT_SHA"]
+
+    UI.user_error!("No BROWSERSTACK_USER environment variable set") if browserstack_user.blank?
+    UI.user_error!("No BROWSERSTACK_KEY environment variable set")  if browserstack_key.blank?
+
+    bundle_id = options[:bundle_id] || get_app_identifier
+    UI.user_error!("No bundle id set") if bundle_id.blank?
+
+    real_version, _ = get_local_version_and_build
+
+    ipa_basename = "#{bundle_id}-#{real_version}.ipa"
+    ipa_path_from_repo_root = "#{ipa_basename}"
+
+    label = options[:label] || options[:version] #
+
+    custom_id_parts = ["NLWalletIos", bundle_id]
+    custom_id_parts << commit_sha unless commit_sha.to_s.empty?
+    custom_id_parts << label unless label.to_s.empty?
+    custom_id = custom_id_parts.join("_")
+
+    unless File.exist?("../#{ipa_path_from_repo_root}")
+      UI.user_error!("IPA not found at #{ipa_path_from_repo_root}. Make sure build_app produced #{ipa_basename} in fastlane/.")
+    end
+
+    upload_to_browserstack(
+      file: ipa_path_from_repo_root,
+      user: browserstack_user,
+      key:  browserstack_key,
+      custom_id: custom_id
+    )
+  end
 end

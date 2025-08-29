@@ -57,6 +57,13 @@ tasks.register<Test>("smokeTest") {
     }
 }
 
+tasks.register<Test>("smokeTestIOS") {
+    useJUnitPlatform {
+        includeTags("smokeIOS")
+        exclude("suite/**")
+    }
+}
+
 tasks.register<Test>("runOnAll") {
     useJUnitPlatform {
         includeTags("runonall")
