@@ -1,0 +1,247 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Create a CA &mdash; NL Wallet 0.4.0-dev documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=ba2e7a06" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=bf7cd258"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/js/custom.js?v=48752f09"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="author" title="About these documents" href="../about.html" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Definition of Done" href="../way-of-working/definition-of-done.html" />
+    <link rel="prev" title="Onboarding" href="onboarding.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #383EDE" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            NL Wallet
+              <img src="../_static/wallet.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../about.html">About</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Get Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../get-started/preparations.html">Preparations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../get-started/create-a-verifier.html">Create a Verifier</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../get-started/create-an-issuer.html">Create an Issuer</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Architecture</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/components-overview.html">Components Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/disclosure-based-issuance.html">Disclosure-based Issuance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/disclosure-with-openid4vp.html">Disclosure with OpenID4VP</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/issuance-with-openid4vci.html">Issuance with OpenID4VCI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/mobile-app-startup.html">Mobile App Startup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/pin-validation.html">Pin Validation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/wallet-creation.html">Wallet Creation</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Development</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../development/generic-issuance.html">Generic Issuance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/openapi-specifications.html">OpenAPI Specifications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/sd-jwt-vc-profile.html">SD-JWT VC Profile</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/specification-references.html">Specification References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/sphinx-documentation.html">Sphinx Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/updating-rust.html">Updating Rust</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/using-lokalise.html">Using Lokalise</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Community</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="onboarding.html">Onboarding</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Create a CA</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Way of Working</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../way-of-working/definition-of-done.html">Definition of Done</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../way-of-working/merge-requests.html">Merge Requests</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../way-of-working/release-howto.html">Releases Howto</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Release Notes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/v0.3.0.html">v0.3.0</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/v0.4.0.html">v0.4.0 (in development)</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #383EDE" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">NL Wallet</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content style-external-links">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Create a CA</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/community/create-a-ca.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="create-a-ca">
+<h1>Create a CA<a class="headerlink" href="#create-a-ca" title="Link to this heading"></a></h1>
+<p>To create a Certificate Authority (CA) for development purposes, you can use the
+<code class="docutils literal notranslate"><span class="pre">wallet_ca</span></code> CLI tool included in the NL-Wallet GitHub repository. We assume you
+have followed the instructions in the <code class="docutils literal notranslate"><span class="pre">README.md</span></code> of the root of the NL-Wallet
+repository, so you have rust installed, run on a supported platform, etc.</p>
+<p>In the following code block, we clone the nl-wallet repository, enter its
+directory, set a target directory and specify an identifier (this identifier
+resembles your organization, lowercase characters a-z, can end with numbers but
+not begin with them).</p>
+<p>We then make sure the target directory exists, and invoke <code class="docutils literal notranslate"><span class="pre">cargo</span></code> (rust’s build
+tool) to in turn invoke <code class="docutils literal notranslate"><span class="pre">wallet_ca</span></code> which creates the CA certificate and key.</p>
+<p>Change at least the <code class="docutils literal notranslate"><span class="pre">IDENTIFIER</span></code> variable to match your organization name
+(should be a value with lowercase characters a-z, and can end with numbers but
+may not begin with them).</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="c1"># Git clone and enter the nl-wallet repository if you haven&#39;t already done so.</span>
+git<span class="w"> </span>clone<span class="w"> </span>https://github.com/MinBZK/nl-wallet
+<span class="nb">cd</span><span class="w"> </span>nl-wallet
+
+<span class="c1"># Set and create target directory, identifier for your certificates.</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">TARGET_DIR</span><span class="o">=</span>../ca-target
+<span class="nb">export</span><span class="w"> </span><span class="nv">IDENTIFIER</span><span class="o">=</span>foocorp
+mkdir<span class="w"> </span>-p<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">&quot;</span>
+
+<span class="c1"># Create the CA certificate using wallet_ca.</span>
+cargo<span class="w"> </span>run<span class="w"> </span>--manifest-path<span class="w"> </span><span class="s2">&quot;wallet_core/Cargo.toml&quot;</span><span class="w"> </span>--bin<span class="w"> </span><span class="s2">&quot;wallet_ca&quot;</span><span class="w"> </span>ca<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--common-name<span class="w"> </span><span class="s2">&quot;ca.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--file-prefix<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">/ca.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">&quot;</span>
+</pre></div>
+</div>
+<p>After executing the above commands, you will have two files in the target
+directory you specified.</p>
+<div class="admonition note">
+<p class="admonition-title">Why create your own CA certificates?</p>
+<p>Normally, when you set up a local development environment, the setup script
+creates a couple of CA’s for you (to be precise, one for verifiers, and one for
+issuers).</p>
+<p>But there might be a reason for you to set up your own CA manually, for
+example, when you <a class="reference internal" href="onboarding.html"><span class="doc std std-doc">onboard</span></a> on our NL-Wallet community platform, you will
+need to create your own CA and share the public key of your CA with the
+operations team.</p>
+</div>
+<section id="background">
+<h2>Background<a class="headerlink" href="#background" title="Link to this heading"></a></h2>
+<p>The participants in the NL-Wallet ecosystem can generally be expressed as the
+following three entities:</p>
+<ul class="simple">
+<li><p>Users (people that use the Wallet app)</p></li>
+<li><p>Issuers (entities that issue attested attributes)</p></li>
+<li><p>Verifiers (entities that want to verify a users’ attested attributes)</p></li>
+</ul>
+<p>To develop integrations within the NL-Wallet ecosystem (i.e., a verifier, or an
+issuer that can interact with the app), you need to have certain certificates
+that ascertain the validity of a verifier and issuer, and that contain various
+specific attributes that make the certicate work with our ecosystem.</p>
+<p>These certificates are issued by a CA (Certificate Authority) and these CAs are
+then trusted by the app, the issuers and the verifiers.</p>
+<p>In the future, the NL-Wallet platform will likely facilitate or use a dedicated
+CA entity that will be responsible for issuing certificates for both issuers and
+verifiers, for both development and production purposes. This CA entity is not
+yet available, and hence, we facilitate community participants by allowing them
+to create and run their own CA.</p>
+</section>
+<section id="sharing-your-ca-public-key-with-the-operations-team">
+<h2>Sharing your CA Public Key with the Operations Team<a class="headerlink" href="#sharing-your-ca-public-key-with-the-operations-team" title="Link to this heading"></a></h2>
+<div class="admonition note">
+<p class="admonition-title">Optional</p>
+<p>If you’re creating your own CA because you are in the process of <a class="reference internal" href="onboarding.html"><span class="doc std std-doc">onboarding</span></a>
+on our NL-Wallet community platform, you need to share your public key with
+the operations team. This section covers that - if you’re just creating your own
+CA for usage in your own environment, please ignore this section.</p>
+</div>
+<p>After you have created the CA certificate and its key, we need to share the
+certificate with the operations team. the certificate will be called something
+like this:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>ca.foocorp.crt.pem
+</pre></div>
+</div>
+<p>Where “foocorp” is the name you previously used as identifier. You can e-mail
+the public key to the e-mail address of the operations team. They will configure
+this key in the issuer and reader trust anchors of the NL-Wallet. You will have
+obtained the e-mail address to be used after approval, possibly at the kick-off.</p>
+<p>Make sure you keep the key file safe, it should never be shared with any party
+external to your organization (it’s called something like <code class="docutils literal notranslate"><span class="pre">ca.foocorp.key.pem</span></code>).</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="onboarding.html" class="btn btn-neutral float-left" title="Onboarding" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../way-of-working/definition-of-done.html" class="btn btn-neutral float-right" title="Definition of Done" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, NL Wallet.</p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    <span class="fa fa-book"> Other Versions</span>
+    v: main
+    <span class="fa fa-caret-down"></span>
+  </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="create-a-ca.html">main</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(false);
+      });
+  </script> 
+
+</body>
+</html>

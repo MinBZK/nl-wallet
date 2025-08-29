@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Create an Issuer &mdash; NL Wallet 0.4.0-dev documentation</title>
+  <title>Preparations &mdash; NL Wallet 0.4.0-dev documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
       <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=ba2e7a06" />
@@ -22,8 +22,8 @@
     <link rel="author" title="About these documents" href="../about.html" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Components Overview" href="../architecture/components-overview.html" />
-    <link rel="prev" title="Create a Verifier" href="verifier.html" /> 
+    <link rel="next" title="Create a Verifier" href="create-a-verifier.html" />
+    <link rel="prev" title="About" href="../about.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -51,9 +51,9 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Get Started</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="onboarding.html">Onboarding</a></li>
-<li class="toctree-l1"><a class="reference internal" href="verifier.html">Create a Verifier</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Create an Issuer</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Preparations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="create-a-verifier.html">Create a Verifier</a></li>
+<li class="toctree-l1"><a class="reference internal" href="create-an-issuer.html">Create an Issuer</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Architecture</span></p>
 <ul>
@@ -75,9 +75,14 @@
 <li class="toctree-l1"><a class="reference internal" href="../development/updating-rust.html">Updating Rust</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../development/using-lokalise.html">Using Lokalise</a></li>
 </ul>
+<p class="caption" role="heading"><span class="caption-text">Community</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../community/onboarding.html">Onboarding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../community/create-a-ca.html">Create a CA</a></li>
+</ul>
 <p class="caption" role="heading"><span class="caption-text">Way of Working</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../way-of-working/definition-of-done.html">Definition of done</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../way-of-working/definition-of-done.html">Definition of Done</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../way-of-working/merge-requests.html">Merge Requests</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../way-of-working/release-howto.html">Releases Howto</a></li>
 </ul>
@@ -101,9 +106,9 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">Create an Issuer</li>
+      <li class="breadcrumb-item active">Preparations</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../_sources/get-started/issuer.md.txt" rel="nofollow"> View page source</a>
+            <a href="../_sources/get-started/preparations.md.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -111,17 +116,40 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="create-an-issuer">
-<h1>Create an Issuer<a class="headerlink" href="#create-an-issuer" title="Link to this heading"></a></h1>
-<p>TODO Issuer docs need to be created here, support self-CA and generic issuance</p>
+  <section id="preparations">
+<h1>Preparations<a class="headerlink" href="#preparations" title="Link to this heading"></a></h1>
+<p>There are a few things to do and consider before you can start developing for
+the NL-Wallet. This short preparations note points you in the right directions
+to make sure that everything works for local development, and mentions the
+option of community onboarding for organizations.</p>
+<section id="local-development">
+<h2>Local development<a class="headerlink" href="#local-development" title="Link to this heading"></a></h2>
+<p>Before following the various getting started guides, it is imperative that you
+have a fully-functioning local development environment. The <a class="reference external" href="https://github.com/MinBZK/nl-wallet/blob/main/README.md">README.md</a> of
+our NL-Wallet git repository thoroughly covers how to set up all the various
+software components, and how to execute tests, run the backend services and run
+the mobile app on an Android emulator or iOS simulator.</p>
+<p>Make sure you follow all the steps and verify that you can execute all tests,
+run the backend, and mobile app without errors before continuing with the guides
+offered here.</p>
+</section>
+<section id="community-onboarding-optional">
+<h2>Community onboarding (optional)<a class="headerlink" href="#community-onboarding-optional" title="Link to this heading"></a></h2>
+<p>Organizations that have a need for a closer partnering with the NL-Wallet
+eco-system, and that want to test integrations of their software with the
+official NL-Wallet backend and mobile apps, can opt to become a community
+member.</p>
+<p>Please see our <a class="reference internal" href="../community/onboarding.html"><span class="doc std std-doc">community onboarding documentation</span></a>
+for more information about what to consider and how that works.</p>
+</section>
 </section>
 
 
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="verifier.html" class="btn btn-neutral float-left" title="Create a Verifier" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="../architecture/components-overview.html" class="btn btn-neutral float-right" title="Components Overview" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="../about.html" class="btn btn-neutral float-left" title="About" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="create-a-verifier.html" class="btn btn-neutral float-right" title="Create a Verifier" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
@@ -147,7 +175,7 @@
     <div class="rst-other-versions">
         <dl>
             <dt>Branches</dt>
-            <dd><a href="issuer.html">main</a></dd>
+            <dd><a href="preparations.html">main</a></dd>
         </dl>
     </div>
 </div><script>

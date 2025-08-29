@@ -22,8 +22,8 @@
     <link rel="author" title="About these documents" href="../about.html" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Create an Issuer" href="issuer.html" />
-    <link rel="prev" title="Onboarding" href="onboarding.html" /> 
+    <link rel="next" title="Create an Issuer" href="create-an-issuer.html" />
+    <link rel="prev" title="Preparations" href="preparations.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -51,9 +51,9 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Get Started</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="onboarding.html">Onboarding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="preparations.html">Preparations</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Create a Verifier</a></li>
-<li class="toctree-l1"><a class="reference internal" href="issuer.html">Create an Issuer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="create-an-issuer.html">Create an Issuer</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Architecture</span></p>
 <ul>
@@ -75,9 +75,14 @@
 <li class="toctree-l1"><a class="reference internal" href="../development/updating-rust.html">Updating Rust</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../development/using-lokalise.html">Using Lokalise</a></li>
 </ul>
+<p class="caption" role="heading"><span class="caption-text">Community</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../community/onboarding.html">Onboarding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../community/create-a-ca.html">Create a CA</a></li>
+</ul>
 <p class="caption" role="heading"><span class="caption-text">Way of Working</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../way-of-working/definition-of-done.html">Definition of done</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../way-of-working/definition-of-done.html">Definition of Done</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../way-of-working/merge-requests.html">Merge Requests</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../way-of-working/release-howto.html">Releases Howto</a></li>
 </ul>
@@ -103,7 +108,7 @@
       <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
       <li class="breadcrumb-item active">Create a Verifier</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../_sources/get-started/verifier.md.txt" rel="nofollow"> View page source</a>
+            <a href="../_sources/get-started/create-a-verifier.md.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -221,7 +226,7 @@ as a third-party developing a verifier).</p>
 regards to attested attributes you want to verify, what data we require from
 you, how to create a reader certificate for your usecase (which is configured
 for usage within the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code>).</p>
-<p>It is assumed you have <a class="reference internal" href="onboarding.html"><span class="std std-doc">onboarded succesfully</span></a> - i.e., you are running your
+<p>It is assumed you have <a class="reference internal" href="../community/onboarding.html"><span class="doc std std-doc">onboarded succesfully</span></a> - i.e., you are running your
 own CA and the public key of that CA has been shared with the operations team
 who will need to add your CA public key to the trust anchors of the app.</p>
 </section>
@@ -545,8 +550,8 @@ key.</p>
 format.</p>
 <p>Note: You need a <code class="docutils literal notranslate"><span class="pre">reader_auth.json</span></code>, which you can base on the example shown in the
 <a class="reference internal" href="#create-reader-authentication-json">previous section</a>.</p>
-<p>Note: You will need to have <a class="reference internal" href="onboarding.html"><span class="std std-doc">onboarded</span></a>, which means you have
-<a class="reference internal" href="onboarding.html#create-a-ca"><span class="std std-ref">created your own CA</span></a>.</p>
+<p>Note: You will need to have <a class="reference internal" href="../community/onboarding.html"><span class="doc std std-doc">onboarded</span></a>, which means you have
+<a class="reference internal" href="../community/create-a-ca.html"><span class="doc std std-doc">created your own CA</span></a>.</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="c1"># Git clone and enter the nl-wallet repository if you haven&#39;t already done so.</span>
 git<span class="w"> </span>clone<span class="w"> </span>https://github.com/MinBZK/nl-wallet
 <span class="nb">cd</span><span class="w"> </span>nl-wallet
@@ -741,7 +746,7 @@ operating system which is running the NL-Wallet app. It is used to trigger the
 mobile operating system to start the NL-Wallet app when clicking the link or
 scanning the QR code.</p>
 <p>You should have received the universal link base URL as part of the
-<a class="reference internal" href="onboarding.html"><span class="std std-doc">onboarding</span></a> process.</p>
+<a class="reference internal" href="../community/onboarding.html"><span class="doc std std-doc">onboarding</span></a> process.</p>
 <p>For illustrative purposes, if you want to configure your <code class="docutils literal notranslate"><span class="pre">verification_server</span></code>
 for usage with a Wallet App built for an acceptance environment, you would
 configure it as follows (note that <code class="docutils literal notranslate"><span class="pre">example.com</span></code> is a fake domain):</p>
@@ -934,7 +939,7 @@ session. Except for the “PID Issuer (VV)” and the “Wallet App”, these ru
 premises or within cloud environment(s) of the verifier (i.e., you).</p>
 <p>Let’s walk through a typical (cross-device, note on same-device flows in
 following section) disclosure session (for full details, have a look at the
-VV/OV SAD and our <a class="reference internal" href="../architecture/disclosure-with-openid4vp.html"><span class="std std-doc">component interaction flow for disclosures</span></a>).</p>
+VV/OV SAD and our <a class="reference internal" href="../architecture/disclosure-with-openid4vp.html"><span class="doc std std-doc">component interaction flow for disclosures</span></a>).</p>
 <p>Note the possible session states:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">CREATED</span></code>: <em>session created</em></p></li>
@@ -1212,8 +1217,8 @@ read the text in a regular text editor or pager to see them.</p>
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="onboarding.html" class="btn btn-neutral float-left" title="Onboarding" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="issuer.html" class="btn btn-neutral float-right" title="Create an Issuer" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="preparations.html" class="btn btn-neutral float-left" title="Preparations" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="create-an-issuer.html" class="btn btn-neutral float-right" title="Create an Issuer" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
@@ -1239,7 +1244,7 @@ read the text in a regular text editor or pager to see them.</p>
     <div class="rst-other-versions">
         <dl>
             <dt>Branches</dt>
-            <dd><a href="verifier.html">main</a></dd>
+            <dd><a href="create-a-verifier.html">main</a></dd>
         </dl>
     </div>
 </div><script>

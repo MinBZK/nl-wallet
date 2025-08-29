@@ -59,9 +59,9 @@ window.addEventListener("load", () => mermaid.run());
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Get Started</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../get-started/onboarding.html">Onboarding</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../get-started/verifier.html">Create a Verifier</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../get-started/issuer.html">Create an Issuer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../get-started/preparations.html">Preparations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../get-started/create-a-verifier.html">Create a Verifier</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../get-started/create-an-issuer.html">Create an Issuer</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Architecture</span></p>
 <ul class="current">
@@ -83,9 +83,14 @@ window.addEventListener("load", () => mermaid.run());
 <li class="toctree-l1"><a class="reference internal" href="../development/updating-rust.html">Updating Rust</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../development/using-lokalise.html">Using Lokalise</a></li>
 </ul>
+<p class="caption" role="heading"><span class="caption-text">Community</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../community/onboarding.html">Onboarding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../community/create-a-ca.html">Create a CA</a></li>
+</ul>
 <p class="caption" role="heading"><span class="caption-text">Way of Working</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../way-of-working/definition-of-done.html">Definition of done</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../way-of-working/definition-of-done.html">Definition of Done</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../way-of-working/merge-requests.html">Merge Requests</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../way-of-working/release-howto.html">Releases Howto</a></li>
 </ul>
@@ -137,7 +142,7 @@ In between the two screens, the issuer receives the disclosed attributes, and ca
 <section id="attestation-server">
 <h3>Attestation server<a class="headerlink" href="#attestation-server" title="Link to this heading"></a></h3>
 <p>The attestation server exchanges disclosed attributes for attestations to be issued. It is contacted by the <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> during a disclosure based issuance session to do this. Note that this server does not need to be reachable by the wallet, and it probably should not be directly connected to the internet.</p>
-<p>The attestation server receives an HTTP <code class="docutils literal notranslate"><span class="pre">POST</span></code> by the <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> containing a JSON structure of the same form as the <code class="docutils literal notranslate"><span class="pre">/disclosed_attributes</span></code> endpoint of the <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> returns, as documented in the <a class="reference internal" href="../get-started/verifier.html#retrieve-disclosure-results"><span class="std std-ref">verifier documentation</span></a>. More specifically, this is a JSON-serialized <code class="docutils literal notranslate"><span class="pre">IndexMap&lt;String,</span> <span class="pre">DocumentDisclosedAttributes&gt;</span></code>. For example:</p>
+<p>The attestation server receives an HTTP <code class="docutils literal notranslate"><span class="pre">POST</span></code> by the <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> containing a JSON structure of the same form as the <code class="docutils literal notranslate"><span class="pre">/disclosed_attributes</span></code> endpoint of the <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> returns, as documented in the <a class="reference internal" href="../get-started/create-a-verifier.html#retrieve-disclosure-results"><span class="std std-ref">verifier documentation</span></a>. More specifically, this is a JSON-serialized <code class="docutils literal notranslate"><span class="pre">IndexMap&lt;String,</span> <span class="pre">DocumentDisclosedAttributes&gt;</span></code>. For example:</p>
 <div class="highlight-http notranslate"><div class="highlight"><pre><span></span><span class="nf">POST</span> <span class="nn">/</span> <span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span>
 <span class="na">Content-Type</span><span class="o">:</span> <span class="l">application/json</span>
 <span class="na">Accept</span><span class="o">:</span> <span class="l">*/*</span>
@@ -224,7 +229,7 @@ In between the two screens, the issuer receives the disclosed attributes, and ca
 </pre></div>
 </div>
 <p>Here, <code class="docutils literal notranslate"><span class="pre">degree</span></code> is an example of a freely choosable identifier that has to be present in the QR/UL that starts the session.</p>
-<p>For the rest of the configuration parameters of the <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code>, see the <a class="reference download internal" download="" href="../_downloads/cfd0fc70893e7a8e15b716697ef14c54/issuance_server.example.toml"><span class="xref download myst"><code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> example configuration file</span></a> and the <a class="reference internal" href="../get-started/verifier.html#retrieve-disclosure-results"><span class="std std-ref">verifier documentation</span></a>.</p>
+<p>For the rest of the configuration parameters of the <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code>, see the <a class="reference download internal" download="" href="../_downloads/cfd0fc70893e7a8e15b716697ef14c54/issuance_server.example.toml"><span class="xref download myst"><code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> example configuration file</span></a> and the <a class="reference internal" href="../get-started/create-a-verifier.html#retrieve-disclosure-results"><span class="std std-ref">verifier documentation</span></a>.</p>
 </section>
 <section id="qr-ul">
 <h3>QR/UL<a class="headerlink" href="#qr-ul" title="Link to this heading"></a></h3>

@@ -1,4 +1,4 @@
-# Definition of done
+# Definition of Done
 
 This Definition of Done (the DoD) is a mutual agreement between the development
 team and the product owner. It is essentially a list of conditions that a change

@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>OpenAPI Specifications &mdash; NL Wallet 0.4.0-dev documentation</title>
+  <title>Create an Issuer &mdash; NL Wallet 0.4.0-dev documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
       <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=ba2e7a06" />
@@ -22,8 +22,8 @@
     <link rel="author" title="About these documents" href="../about.html" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="SD-JWT VC Profile" href="sd-jwt-vc-profile.html" />
-    <link rel="prev" title="Generic Issuance" href="generic-issuance.html" /> 
+    <link rel="next" title="Components Overview" href="../architecture/components-overview.html" />
+    <link rel="prev" title="Create a Verifier" href="create-a-verifier.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -50,10 +50,10 @@
 <li class="toctree-l1"><a class="reference internal" href="../about.html">About</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Get Started</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../get-started/preparations.html">Preparations</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../get-started/create-a-verifier.html">Create a Verifier</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../get-started/create-an-issuer.html">Create an Issuer</a></li>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="preparations.html">Preparations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="create-a-verifier.html">Create a Verifier</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Create an Issuer</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Architecture</span></p>
 <ul>
@@ -66,14 +66,14 @@
 <li class="toctree-l1"><a class="reference internal" href="../architecture/wallet-creation.html">Wallet Creation</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Development</span></p>
-<ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="generic-issuance.html">Generic Issuance</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">OpenAPI Specifications</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sd-jwt-vc-profile.html">SD-JWT VC Profile</a></li>
-<li class="toctree-l1"><a class="reference internal" href="specification-references.html">Specification References</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sphinx-documentation.html">Sphinx Documentation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="updating-rust.html">Updating Rust</a></li>
-<li class="toctree-l1"><a class="reference internal" href="using-lokalise.html">Using Lokalise</a></li>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../development/generic-issuance.html">Generic Issuance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/openapi-specifications.html">OpenAPI Specifications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/sd-jwt-vc-profile.html">SD-JWT VC Profile</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/specification-references.html">Specification References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/sphinx-documentation.html">Sphinx Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/updating-rust.html">Updating Rust</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/using-lokalise.html">Using Lokalise</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Community</span></p>
 <ul>
@@ -106,9 +106,9 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">OpenAPI Specifications</li>
+      <li class="breadcrumb-item active">Create an Issuer</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../_sources/development/openapi-specifications.md.txt" rel="nofollow"> View page source</a>
+            <a href="../_sources/get-started/create-an-issuer.md.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -116,32 +116,17 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="openapi-specifications">
-<h1>OpenAPI Specifications<a class="headerlink" href="#openapi-specifications" title="Link to this heading"></a></h1>
-<p>This directory contains the API documentation for the Wallet (as of this writing
-2025-02-24, specifically, the disclosure API for the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code>’s public
-and private endpoints).</p>
-<p>There are a couple of documents here:</p>
-<ul class="simple">
-<li><p><a class="reference download internal" download="" href="../_downloads/5667771a9814818497777f124496e7ad/wallet-disclosure-components.openapi.yaml"><span class="xref download myst">wallet-disclosure-components.openapi.yaml</span></a>: An OpenAPIv3 components library
-which is included/used in the private and public API spec documents below.
-You shouldn’t open this in a Swagger/OpenAPI editor/preview on its own;</p></li>
-<li><p><a class="reference download internal" download="" href="../_downloads/7f35158ecf120abaffafc44f9a47febd/wallet-disclosure-private.openapi.yaml"><span class="xref download myst">wallet-disclosure-private.openapi.yaml</span></a>: The private/internal API for the
-<code class="docutils literal notranslate"><span class="pre">verification_server</span></code>’s disclosure functionality;</p></li>
-<li><p><a class="reference download internal" download="" href="../_downloads/971cb4ae9ac0ff66a26e80f9a1b8766a/wallet-disclosure-public.openapi.yaml"><span class="xref download myst">wallet-disclosure-public.openapi.yaml</span></a>: The public/external API for the
-<code class="docutils literal notranslate"><span class="pre">verification_server</span></code>’s disclosure functionality;</p></li>
-</ul>
-<p>You can “run” the last two OpenAPIv3 documents using Swagger and/or some
-facility in your favorite editor (like Postman, or Redocly in Jetbrains editors
-which comes as a part of the OpenAPI (Swagger) Editor Plugin).</p>
+  <section id="create-an-issuer">
+<h1>Create an Issuer<a class="headerlink" href="#create-an-issuer" title="Link to this heading"></a></h1>
+<p>TODO Issuer docs need to be created here, support self-CA and generic issuance</p>
 </section>
 
 
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="generic-issuance.html" class="btn btn-neutral float-left" title="Generic Issuance" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="sd-jwt-vc-profile.html" class="btn btn-neutral float-right" title="SD-JWT VC Profile" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="create-a-verifier.html" class="btn btn-neutral float-left" title="Create a Verifier" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../architecture/components-overview.html" class="btn btn-neutral float-right" title="Components Overview" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
@@ -167,7 +152,7 @@ which comes as a part of the OpenAPI (Swagger) Editor Plugin).</p>
     <div class="rst-other-versions">
         <dl>
             <dt>Branches</dt>
-            <dd><a href="openapi-specifications.html">main</a></dd>
+            <dd><a href="create-an-issuer.html">main</a></dd>
         </dl>
     </div>
 </div><script>
