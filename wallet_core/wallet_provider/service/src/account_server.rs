@@ -1506,6 +1506,7 @@ mod tests {
     use wallet_provider_domain::model::TimeoutPinPolicy;
     use wallet_provider_domain::model::wallet_user::InstructionChallenge;
     use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
+    use wallet_provider_domain::model::wallet_user::WalletUserState;
     use wallet_provider_domain::repository::Committable;
     use wallet_provider_domain::repository::MockTransaction;
     use wallet_provider_domain::repository::TransactionStarter;
@@ -1648,6 +1649,7 @@ mod tests {
             challenge: None,
             instruction_sequence_number: 0,
             apple_assertion_counter,
+            state: WalletUserState::Active,
         };
 
         let user_state = mock::user_state(repo, hsm, wrapping_key_identifier);
@@ -2572,7 +2574,11 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_start_pin_recovery() {
+    #[rstest]
+    async fn test_start_pin_recovery(
+        #[values(WalletUserState::Active, WalletUserState::Blocked, WalletUserState::RecoveringPin)]
+        account_state: WalletUserState,
+    ) {
         let (setup, account_server, hw_privkey, cert, mut user_state) =
             setup_and_do_registration(AttestationType::Google).await;
         user_state.repositories.instruction_sequence_number = 42;
@@ -2582,7 +2588,11 @@ mod tests {
                 .await
                 .unwrap();
 
-        user_state.repositories.challenge = Some(challenge.clone());
+        user_state.repositories = WalletUserTestRepo {
+            challenge: Some(challenge.clone()),
+            state: account_state,
+            ..user_state.repositories
+        };
 
         let new_pin_privkey = SigningKey::random(&mut OsRng);
         let new_pin_pubkey = *new_pin_privkey.verifying_key();
@@ -2618,13 +2628,17 @@ mod tests {
             .1
             .result;
 
-        user_state.repositories.encrypted_pin_pubkey = Encrypter::encrypt(
-            &user_state.wallet_user_hsm,
-            wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER,
-            new_pin_pubkey,
-        )
-        .await
-        .unwrap();
+        user_state.repositories = WalletUserTestRepo {
+            encrypted_pin_pubkey: Encrypter::encrypt(
+                &user_state.wallet_user_hsm,
+                wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER,
+                new_pin_pubkey,
+            )
+            .await
+            .unwrap(),
+            state: WalletUserState::Active,
+            ..user_state.repositories
+        };
 
         verify_wallet_certificate(
             &result.certificate,

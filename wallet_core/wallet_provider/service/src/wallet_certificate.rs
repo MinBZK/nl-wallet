@@ -316,6 +316,7 @@ mod tests {
     use hsm::model::mock::MockPkcs11Client;
     use hsm::service::HsmError;
     use jwt::EcdsaDecodingKey;
+    use wallet_provider_domain::model::wallet_user::WalletUserState;
     use wallet_provider_persistence::repositories::mock::WalletUserTestRepo;
 
     use crate::account_server::mock::user_state;
@@ -368,6 +369,7 @@ mod tests {
                 challenge: None,
                 instruction_sequence_number: 42,
                 apple_assertion_counter: None,
+                state: WalletUserState::Active,
             },
             hsm,
             wrapping_key_identifier.to_string(),
@@ -415,6 +417,7 @@ mod tests {
                 challenge: None,
                 instruction_sequence_number: 0,
                 apple_assertion_counter: None,
+                state: WalletUserState::Active,
             },
             setup_hsm().await,
             wrapping_key_identifier.to_string(),
@@ -473,6 +476,7 @@ mod tests {
                 challenge: None,
                 instruction_sequence_number: 0,
                 apple_assertion_counter: None,
+                state: WalletUserState::Active,
             },
             hsm,
             wrapping_key_identifier.to_string(),

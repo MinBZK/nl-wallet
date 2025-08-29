@@ -295,6 +295,7 @@ pub mod mock {
         pub challenge: Option<Vec<u8>>,
         pub instruction_sequence_number: u64,
         pub apple_assertion_counter: Option<AssertionCounter>,
+        pub state: WalletUserState,
     }
 
     impl WalletUserRepository for WalletUserTestRepo {
@@ -330,7 +331,7 @@ pub mod mock {
                     Some(assertion_counter) => WalletUserAttestation::Apple { assertion_counter },
                     None => WalletUserAttestation::Android,
                 },
-                state: WalletUserState::Active,
+                state: self.state,
             })))
         }
 
