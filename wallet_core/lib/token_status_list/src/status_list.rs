@@ -121,13 +121,11 @@ impl StatusList {
             .map(|s| s.bits())
             .unwrap_or_default(); // empty list
 
-        let statuses_per_byte = bits.statuses_per_byte();
-
         let lst = self.sparse.iter().fold(
             vec![0; (self.len * bits as usize).div_ceil(8)],
             |mut acc, (index, status)| {
-                let idx = index / statuses_per_byte;
-                acc[idx] |= Into::<u8>::into(*status) << ((index % statuses_per_byte) * bits as usize);
+                let idx = bits.packed_index(*index);
+                acc[idx] |= Into::<u8>::into(*status) << bits.shift_for_index(*index);
                 acc
             },
         );
@@ -138,33 +136,21 @@ impl StatusList {
 
 impl PackedStatusList {
     pub fn single_unpack(&self, index: usize) -> StatusType {
-        self.partial_unpack(&[index])[0]
+        let byte = self.lst[self.bits.packed_index(index)];
+        let status = (byte >> self.bits.shift_for_index(index)) & self.bits.mask();
+        StatusType::from(status)
     }
 
     pub fn partial_unpack(&self, indices: &[usize]) -> Vec<StatusType> {
-        let statuses_per_byte = self.bits.statuses_per_byte();
-        let mask = self.bits.mask();
-
-        indices
-            .iter()
-            .map(|index| {
-                let byte = self.lst[index / statuses_per_byte];
-                let status = (byte >> ((index % statuses_per_byte) * self.bits as usize)) & mask;
-                StatusType::from(status)
-            })
-            .collect()
+        indices.iter().map(|index| self.single_unpack(*index)).collect()
     }
 
     fn unpack(&self) -> StatusList {
-        let statuses_per_byte = self.bits.statuses_per_byte();
-        let mask = self.bits.mask();
-
-        let len = self.lst.len() * statuses_per_byte;
+        let len = self.bits.unpacked_len(self.lst.len());
         let sparse: SparseStatusVec = (0..len)
             .filter_map(|index| {
-                let byte = self.lst[index / statuses_per_byte];
-                let status = (byte >> ((index % statuses_per_byte) * self.bits as usize)) & mask;
-                (status != 0).then(|| (index, StatusType::from(status)))
+                let status = self.single_unpack(index);
+                (status != StatusType::Valid).then_some((index, status))
             })
             .collect();
 
@@ -189,13 +175,28 @@ enum Bits {
 
 impl Bits {
     #[inline]
-    pub fn statuses_per_byte(self) -> usize {
+    fn statuses_per_byte(self) -> usize {
         8 / self as usize
     }
 
     #[inline]
     pub fn mask(self) -> u8 {
         ((1 << self as u16) - 1) as u8
+    }
+
+    #[inline]
+    pub fn shift_for_index(self, index: usize) -> usize {
+        (index % self.statuses_per_byte()) * self as usize
+    }
+
+    #[inline]
+    pub fn packed_index(self, index: usize) -> usize {
+        index / self.statuses_per_byte()
+    }
+
+    #[inline]
+    pub fn unpacked_len(self, len: usize) -> usize {
+        len * self.statuses_per_byte()
     }
 }
 
