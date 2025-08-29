@@ -144,6 +144,12 @@ need to be deployed.</p></li>
 <li><p>flutter_rust_bridge has been updated to 2.11.1, run
 <code class="docutils literal notranslate"><span class="pre">cargo</span> <span class="pre">install</span> <span class="pre">flutter_rust_bridge_codegen</span></code> to update.</p></li>
 <li><p>In the wallet configuration <code class="docutils literal notranslate"><span class="pre">mdoc_trust_anchors</span></code> is renamed to <code class="docutils literal notranslate"><span class="pre">issuer_trust_anchors</span></code>.</p></li>
+<li><p>The Recovery Code will now be disclosed to the Wallet Provider after PID
+issuance. It will be stored in the Wallet Provider’s database, so therefore
+the database will have to migrated when deploying this. For the Wallet
+Provider to be able to verify the disclosed Recovery Code, the Wallet
+Provider’s configuration will need to be updated with the
+<code class="docutils literal notranslate"><span class="pre">pid_issuer_trust_anchors</span></code>.</p></li>
 </ul>
 </section>
 <section id="new-features">
