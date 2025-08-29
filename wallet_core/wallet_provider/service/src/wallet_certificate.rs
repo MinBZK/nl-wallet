@@ -126,8 +126,7 @@ impl PinKeyChecks {
 
 pub async fn verify_wallet_certificate_public_keys<H>(
     claims: WalletCertificateClaims,
-    pin_public_disclosure_protection_key_identifier: &str,
-    encryption_key_identifier: &str,
+    key_identifiers: (&str, &str),
     hw_pubkey: &VerifyingKey,
     pin_checks: PinKeyChecks,
     hsm: &H,
@@ -136,6 +135,8 @@ where
     H: Decrypter<VerifyingKey, Error = HsmError> + Hsm<Error = HsmError>,
 {
     debug!("Decrypt the encrypted pin public key");
+
+    let (pin_public_disclosure_protection_key_identifier, encryption_key_identifier) = key_identifiers;
 
     if let PinKeyChecks::AllChecks(encrypted_pin_pubkey) = pin_checks {
         let pin_pubkey = Decrypter::decrypt(hsm, encryption_key_identifier, encrypted_pin_pubkey).await?;
@@ -170,8 +171,7 @@ where
 pub async fn verify_wallet_certificate<T, R, H, F>(
     certificate: &WalletCertificate,
     certificate_signing_pubkey: &EcdsaDecodingKey,
-    pin_public_disclosure_protection_key_identifier: &str,
-    encryption_key_identifier: &str,
+    key_identifiers: (&str, &str),
     allow_blocked: bool,
     pin_checks: F,
     user_state: &UserState<R, H, impl WuaIssuer>,
@@ -196,8 +196,7 @@ where
 
     verify_wallet_certificate_public_keys(
         claims,
-        pin_public_disclosure_protection_key_identifier,
-        encryption_key_identifier,
+        key_identifiers,
         &user.hw_pubkey,
         pin_checks.clone(),
         &user_state.wallet_user_hsm,
@@ -377,8 +376,10 @@ mod tests {
         verify_wallet_certificate(
             &wallet_certificate,
             &((&setup.signing_pubkey).into()),
-            mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
-            mock::SIGNING_KEY_IDENTIFIER,
+            (
+                mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
+                mock::SIGNING_KEY_IDENTIFIER,
+            ),
             false,
             |wallet_user| PinKeyChecks::AllChecks(wallet_user.encrypted_pin_pubkey.clone()),
             &user_state,
@@ -422,8 +423,10 @@ mod tests {
         if verify_wallet_certificate(
             &wallet_certificate,
             &EcdsaDecodingKey::from(&setup.signing_pubkey),
-            mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
-            mock::ENCRYPTION_KEY_IDENTIFIER,
+            (
+                mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
+                mock::ENCRYPTION_KEY_IDENTIFIER,
+            ),
             false,
             |wallet_user| PinKeyChecks::AllChecks(wallet_user.encrypted_pin_pubkey.clone()),
             &user_state,
@@ -478,8 +481,10 @@ mod tests {
         if verify_wallet_certificate(
             &wallet_certificate,
             &EcdsaDecodingKey::from(&setup.signing_pubkey),
-            mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
-            mock::ENCRYPTION_KEY_IDENTIFIER,
+            (
+                mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
+                mock::ENCRYPTION_KEY_IDENTIFIER,
+            ),
             false,
             |wallet_user| PinKeyChecks::AllChecks(wallet_user.encrypted_pin_pubkey.clone()),
             &user_state,

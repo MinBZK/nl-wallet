@@ -666,8 +666,10 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         debug!("Verifying wallet certificate");
         verify_wallet_certificate_public_keys(
             claims,
-            &self.keys.pin_public_disclosure_protection_key_identifier,
-            &self.keys.encryption_key_identifier,
+            (
+                &self.keys.pin_public_disclosure_protection_key_identifier,
+                &self.keys.encryption_key_identifier,
+            ),
             &user.hw_pubkey,
             if request.instruction_name == ChangePinRollback::NAME {
                 PinKeyChecks::AllChecks(user.encrypted_previous_pin_pubkey.unwrap_or(user.encrypted_pin_pubkey))
@@ -989,8 +991,10 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         let (wallet_user, pin_pubkey) = verify_wallet_certificate(
             &instruction.certificate,
             &self.keys.wallet_certificate_signing_pubkey,
-            &self.keys.pin_public_disclosure_protection_key_identifier,
-            &self.keys.encryption_key_identifier,
+            (
+                &self.keys.pin_public_disclosure_protection_key_identifier,
+                &self.keys.encryption_key_identifier,
+            ),
             allow_blocked,
             pin_pubkey,
             user_state,
@@ -1830,8 +1834,10 @@ mod tests {
         verify_wallet_certificate(
             &cert,
             &EcdsaDecodingKey::from(&setup.signing_pubkey),
-            wallet_certificate::mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
-            wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER,
+            (
+                wallet_certificate::mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
+                wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER,
+            ),
             false,
             |wallet_user| PinKeyChecks::AllChecks(wallet_user.encrypted_pin_pubkey.clone()),
             &user_state,
@@ -2235,8 +2241,10 @@ mod tests {
         if verify_wallet_certificate(
             &new_cert,
             &EcdsaDecodingKey::from(&setup.signing_pubkey),
-            wallet_certificate::mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
-            wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER,
+            (
+                wallet_certificate::mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
+                wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER,
+            ),
             false,
             |wallet_user| PinKeyChecks::AllChecks(wallet_user.encrypted_pin_pubkey.clone()),
             &user_state,
@@ -2252,8 +2260,10 @@ mod tests {
         verify_wallet_certificate(
             &new_cert,
             &EcdsaDecodingKey::from(&setup.signing_pubkey),
-            wallet_certificate::mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
-            wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER,
+            (
+                wallet_certificate::mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
+                wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER,
+            ),
             false,
             |wallet_user| PinKeyChecks::AllChecks(wallet_user.encrypted_pin_pubkey.clone()),
             &user_state,
@@ -2619,8 +2629,10 @@ mod tests {
         verify_wallet_certificate(
             &result.certificate,
             &EcdsaDecodingKey::from(&setup.signing_pubkey),
-            wallet_certificate::mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
-            wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER,
+            (
+                wallet_certificate::mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
+                wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER,
+            ),
             false,
             |wallet_user| PinKeyChecks::AllChecks(wallet_user.encrypted_pin_pubkey.clone()),
             &user_state,
