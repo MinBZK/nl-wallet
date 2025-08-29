@@ -6,6 +6,8 @@ use indexmap::IndexMap;
 use attestation_data::attributes::AttributeValue;
 use attestation_data::attributes::Attributes;
 use attestation_data::auth::Organization;
+use attestation_data::constants::PID_ATTESTATION_TYPE;
+use attestation_data::constants::PID_RECOVERY_CODE;
 use attestation_types::claim_path::ClaimPath;
 use mdoc::iso::mdocs::Entry;
 use mdoc::iso::mdocs::NameSpace;
@@ -106,6 +108,7 @@ impl AttestationPresentation {
             }
             return Err(AttestationError::AttributesNotProcessedByClaim(paths));
         }
+        let attributes = Self::filter_recovery_code(&attestation_type, attributes);
 
         // Finally, construct the `AttestationPresentation` type.
         Ok(AttestationPresentation {
@@ -115,6 +118,20 @@ impl AttestationPresentation {
             issuer,
             attributes,
         })
+    }
+
+    fn filter_recovery_code(
+        attestation_type: &str,
+        attributes: Vec<AttestationAttribute>,
+    ) -> Vec<AttestationAttribute> {
+        if attestation_type == PID_ATTESTATION_TYPE {
+            return attributes
+                .into_iter()
+                .filter(|attr| attr.key != vec![PID_RECOVERY_CODE])
+                .collect();
+        }
+
+        attributes
     }
 }
 
@@ -168,6 +185,9 @@ pub mod test {
     use attestation_data::attributes::AttributeValue;
     use attestation_data::attributes::Attributes;
     use attestation_data::auth::Organization;
+    use attestation_data::constants::PID_ATTESTATION_TYPE;
+    use attestation_data::constants::PID_BSN;
+    use attestation_data::constants::PID_RECOVERY_CODE;
     use attestation_types::claim_path::ClaimPath;
     use mdoc::iso::mdocs::DataElementValue;
     use mdoc::iso::mdocs::Entry;
@@ -533,5 +553,44 @@ pub mod test {
     ) {
         let result = AttestationAttributeValue::try_from_attribute_value(value, prop);
         assert_eq!(result.ok(), expected);
+    }
+
+    #[test]
+    fn test_filter_recovery_code() {
+        let mdoc_attributes = IndexMap::from([(
+            String::from(PID_ATTESTATION_TYPE),
+            vec![
+                Entry {
+                    name: String::from(PID_BSN),
+                    value: DataElementValue::Text(String::from("999991772")),
+                },
+                Entry {
+                    name: String::from(PID_RECOVERY_CODE),
+                    value: DataElementValue::Text(String::from("RECOVERY-CODE")),
+                },
+            ],
+        )]);
+
+        let attestation = AttestationPresentation::create_from_mdoc(
+            AttestationIdentity::Ephemeral,
+            NormalizedTypeMetadata::nl_pid_example(),
+            Organization::new_mock(),
+            mdoc_attributes,
+        )
+        .expect("creating AttestationPresentation should succeed");
+
+        let attrs = attestation
+            .attributes
+            .iter()
+            .map(|attr| (attr.key.clone(), attr.value.clone()))
+            .collect::<Vec<_>>();
+
+        assert_eq!(
+            [(
+                vec![String::from(PID_BSN)],
+                AttestationAttributeValue::Basic(AttributeValue::Text(String::from("999991772")))
+            ),],
+            attrs.as_slice()
+        );
     }
 }

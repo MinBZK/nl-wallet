@@ -15,7 +15,7 @@ import '../../../../domain/usecase/pid/cancel_pid_issuance_usecase.dart';
 import '../../../../domain/usecase/pid/continue_pid_issuance_usecase.dart';
 import '../../../../domain/usecase/pid/get_pid_issuance_url_usecase.dart';
 import '../../../../domain/usecase/wallet/is_wallet_initialized_with_pid_usecase.dart';
-import '../../../../wallet_constants.dart';
+import '../../../../util/helper/setup_helper.dart';
 import '../../../../wallet_core/error/core_error.dart';
 
 part 'wallet_personalize_event.dart';
@@ -134,7 +134,7 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
   }
 
   Future<void> _onOfferingRejected(event, emit) async {
-    emit(const WalletPersonalizeLoadInProgress(FlowProgress(currentStep: 0, totalSteps: kSetupSteps)));
+    emit(WalletPersonalizeLoadInProgress(state.stepperProgress));
     final cancelResult = await cancelPidIssuanceUseCase.invoke();
     if (cancelResult.hasError) Fimber.e('Failed to explicitly reject pid', ex: cancelResult.error);
     emit(const WalletPersonalizeInitial(didGoBack: true));

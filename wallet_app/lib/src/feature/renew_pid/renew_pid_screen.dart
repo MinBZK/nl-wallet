@@ -62,7 +62,12 @@ class RenewPidScreen extends StatelessWidget {
   PreferredSizeWidget _buildAppBar(BuildContext context) {
     final state = context.watch<RenewPidBloc>().state;
     return WalletAppBar(
-      leading: state.canGoBack ? BackIconButton(onPressed: () => context.bloc.add(const RenewPidBackPressed())) : null,
+      leading: state.canGoBack
+          ? BackIconButton(
+              key: ValueKey(state.runtimeType),
+              onPressed: () => context.bloc.add(const RenewPidBackPressed()),
+            )
+          : null,
       automaticallyImplyLeading: false,
       actions: [
         const HelpIconButton(),
