@@ -230,10 +230,32 @@ pub enum RedirectUriPurpose {
 }
 
 #[derive(Debug, Clone)]
+pub(super) enum WalletDisclosureAttestations {
+    Missing,
+    Proposal(HashMap<CredentialQueryIdentifier, DisclosableAttestation>),
+}
+
+impl WalletDisclosureAttestations {
+    pub fn proposal(&self) -> Option<&HashMap<CredentialQueryIdentifier, DisclosableAttestation>> {
+        match self {
+            Self::Missing => None,
+            Self::Proposal(attestations) => Some(attestations),
+        }
+    }
+
+    pub fn into_proposal(self) -> Option<HashMap<CredentialQueryIdentifier, DisclosableAttestation>> {
+        match self {
+            Self::Missing => None,
+            Self::Proposal(attestations) => Some(attestations),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
 pub(super) struct WalletDisclosureSession<DCS> {
     pub redirect_uri_purpose: RedirectUriPurpose,
     pub disclosure_type: DisclosureType,
-    pub attestations: Option<HashMap<CredentialQueryIdentifier, DisclosableAttestation>>,
+    pub attestations: WalletDisclosureAttestations,
     pub protocol_state: DCS,
 }
 
@@ -247,7 +269,7 @@ impl<DCS> WalletDisclosureSession<DCS> {
         Self {
             redirect_uri_purpose,
             disclosure_type,
-            attestations: Some(attestations),
+            attestations: WalletDisclosureAttestations::Proposal(attestations),
             protocol_state,
         }
     }
@@ -260,7 +282,7 @@ impl<DCS> WalletDisclosureSession<DCS> {
         Self {
             redirect_uri_purpose,
             disclosure_type,
-            attestations: None,
+            attestations: WalletDisclosureAttestations::Missing,
             protocol_state,
         }
     }
@@ -502,15 +524,16 @@ where
         &mut self,
         session: WalletDisclosureSession<DCC::Session>,
     ) -> Result<Option<Url>, DisclosureError> {
-        let attestations = session.attestations.map(|attestations| {
-            attestations
-                .into_values()
-                .map(|attestation| attestation.into_presentation())
-                .collect_vec()
-                .try_into()
-                // Safe, as the source of the iterator is `VecNonEmpty`.
-                .unwrap()
-        });
+        let attestations = session
+            .attestations
+            .into_proposal()
+            .map(|attestations| {
+                attestations
+                    .into_values()
+                    .map(|attestation| attestation.into_presentation())
+                    .collect_vec()
+            })
+            .unwrap_or_default();
 
         let (reader_certificate, _) = session
             .protocol_state
@@ -522,7 +545,7 @@ where
 
         self.store_disclosure_event(
             Utc::now(),
-            attestations,
+            attestations.try_into().ok(),
             reader_certificate,
             session.disclosure_type,
             EventStatus::Cancelled,
@@ -649,7 +672,7 @@ where
             });
         }
 
-        let attestations = session.attestations.as_ref().ok_or(DisclosureError::SessionState)?;
+        let attestations = session.attestations.proposal().ok_or(DisclosureError::SessionState)?;
 
         // Prepare the `RemoteEcdsaWscd` for signing using the provided PIN.
         let instruction_result_public_key = config.account_server.instruction_result_public_key.as_inner().into();
@@ -698,14 +721,12 @@ where
             if let Err(e) = self
                 .store_disclosure_event(
                     Utc::now(),
-                    Some(
-                        attestations
-                            .values()
-                            .map(|attestation| attestation.presentation().clone())
-                            .collect_vec()
-                            .try_into()
-                            .unwrap(),
-                    ),
+                    attestations
+                        .values()
+                        .map(|attestation| attestation.presentation().clone())
+                        .collect_vec()
+                        .try_into()
+                        .ok(),
                     reader_certificate,
                     session.disclosure_type,
                     EventStatus::Error,
@@ -760,20 +781,21 @@ where
                     } else {
                         DataDisclosureStatus::NotDisclosed
                     };
+                    let attestation_presentations = session
+                        .attestations
+                        .proposal()
+                        .map(|attestations| {
+                            attestations
+                                .values()
+                                .map(|attestation| attestation.presentation().clone())
+                                .collect_vec()
+                        })
+                        .unwrap_or_default();
+
                     if let Err(e) = self
                         .store_disclosure_event(
                             Utc::now(),
-                            Some(
-                                session
-                                    .attestations
-                                    .as_ref()
-                                    .unwrap()
-                                    .values()
-                                    .map(|attestation| attestation.presentation().clone())
-                                    .collect_vec()
-                                    .try_into()
-                                    .unwrap(),
-                            ),
+                            attestation_presentations.try_into().ok(),
                             reader_certificate,
                             session.disclosure_type,
                             EventStatus::Error,
@@ -818,18 +840,19 @@ where
         // Disclosure is now successful. Any errors that occur after this point will result in the `Wallet` not having
         // an active disclosure session anymore. Note that these unwraps are safe, as session.attestations was checked
         // to be present above and the source of the iterator is also `VecNonEmpty`.
-        self.store_disclosure_event(
-            Utc::now(),
-            Some(
-                session
-                    .attestations
-                    .unwrap()
+        let attestation_presentations = session
+            .attestations
+            .into_proposal()
+            .map(|attestations| {
+                attestations
                     .into_values()
                     .map(|attestation| attestation.into_presentation())
                     .collect_vec()
-                    .try_into()
-                    .unwrap(),
-            ),
+            })
+            .unwrap_or_default();
+        self.store_disclosure_event(
+            Utc::now(),
+            attestation_presentations.try_into().ok(),
             reader_certificate,
             session.disclosure_type,
             EventStatus::Success,
@@ -912,6 +935,7 @@ mod tests {
     use super::DisclosureError;
     use super::DisclosureProposalPresentation;
     use super::RedirectUriPurpose;
+    use super::WalletDisclosureAttestations;
     use super::WalletDisclosureSession;
 
     static DISCLOSURE_URI: LazyLock<Url> =
@@ -1932,7 +1956,7 @@ mod tests {
         let Some(Session::Disclosure(session)) = &mut wallet.session else {
             unreachable!();
         };
-        session.attestations = None;
+        session.attestations = WalletDisclosureAttestations::Missing;
 
         let events = setup_mock_recent_history_callback(&mut wallet).await.unwrap();
 
@@ -2052,7 +2076,7 @@ mod tests {
         };
         let copy_ids = session
             .attestations
-            .as_ref()
+            .proposal()
             .unwrap()
             .values()
             .map(|attestation| attestation.attestation_copy_id())
@@ -2227,7 +2251,7 @@ mod tests {
         };
         let copy_ids = session
             .attestations
-            .as_ref()
+            .proposal()
             .unwrap()
             .values()
             .map(|attestation| attestation.attestation_copy_id())
