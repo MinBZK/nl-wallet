@@ -101,6 +101,7 @@ async fn do_registration(
         Repositories::from(db),
         wallet_certificate::mock::setup_hsm().await,
         wrapping_key_identifier.to_string(),
+        vec![],
     );
     let certificate = account_server
         .register(certificate_signing_key, registration_message, &user_state)

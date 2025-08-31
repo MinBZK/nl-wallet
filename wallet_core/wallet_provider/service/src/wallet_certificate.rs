@@ -326,6 +326,7 @@ mod tests {
             },
             hsm,
             wrapping_key_identifier.to_string(),
+            vec![],
         );
 
         verify_wallet_certificate(
@@ -370,6 +371,7 @@ mod tests {
             },
             setup_hsm().await,
             wrapping_key_identifier.to_string(),
+            vec![],
         );
         verify_wallet_certificate(
             &wallet_certificate,
@@ -421,6 +423,7 @@ mod tests {
             },
             hsm,
             wrapping_key_identifier.to_string(),
+            vec![],
         );
         verify_wallet_certificate(
             &wallet_certificate,

@@ -11,9 +11,6 @@ const EdgeInsets kDefaultTitlePadding = EdgeInsets.only(left: 16, right: 16, top
 const kPinDigits = 6;
 const kMockPin = '123456';
 
-// Setup
-const kSetupSteps = 8;
-
 // DigiD
 const kDigidWebsiteUrl = 'https://www.digid.nl/inlogmethodes/identiteitsbewijs';
 

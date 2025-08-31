@@ -4,6 +4,7 @@ import 'package:flutter_native_splash/flutter_native_splash.dart';
 
 import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
+import '../../util/helper/setup_helper.dart';
 import '../../wallet_assets.dart';
 import '../common/widget/utility/do_on_init.dart';
 import '../common/widget/wallet_logo.dart';
@@ -19,6 +20,7 @@ class SplashScreen extends StatelessWidget {
       onInit: (context) {
         FlutterNativeSplash.remove();
         WalletAssets.preloadPidSvgs();
+        SetupHelper.init(context);
       },
       child: BlocListener<SplashBloc, SplashState>(
         listenWhen: (prev, current) => current is SplashLoaded,

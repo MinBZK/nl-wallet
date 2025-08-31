@@ -4,8 +4,8 @@ import '../../domain/model/flow_progress.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/string_extension.dart';
+import '../../util/helper/setup_helper.dart';
 import '../../wallet_assets.dart';
-import '../../wallet_constants.dart';
 import '../common/widget/bullet_list.dart';
 import '../common/widget/button/confirm/confirm_buttons.dart';
 import '../common/widget/button/icon/back_icon_button.dart';
@@ -27,7 +27,7 @@ class IntroductionPrivacyScreen extends StatelessWidget {
       appBar: WalletAppBar(
         title: TitleText(context.l10n.introductionPrivacyScreenHeadline),
         leading: const BackIconButton(),
-        progress: const FlowProgress(currentStep: 1, totalSteps: kSetupSteps),
+        progress: FlowProgress(currentStep: 1, totalSteps: SetupHelper.totalSetupSteps),
         actions: const [HelpIconButton()],
       ),
       key: const Key('introductionPrivacyScreen'),

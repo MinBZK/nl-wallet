@@ -130,6 +130,7 @@ class SetupSecurityScreen extends StatelessWidget {
     if (!state.canGoBack) return null; // Allow title to align to the left in [WalletAppBar].
     return AnimatedVisibilityBackButton(
       visible: state.canGoBack,
+      key: ValueKey(state.runtimeType),
       onPressed: () {
         if (state is SetupSecuritySelectPinInProgress) {
           Navigator.maybePop(context);

@@ -22,6 +22,7 @@ use wallet_account::messages::instructions::ChangePinCommit;
 use wallet_account::messages::instructions::ChangePinRollback;
 use wallet_account::messages::instructions::ChangePinStart;
 use wallet_account::messages::instructions::CheckPin;
+use wallet_account::messages::instructions::DiscloseRecoveryCode;
 use wallet_account::messages::instructions::Instruction;
 use wallet_account::messages::instructions::InstructionAndResult;
 use wallet_account::messages::instructions::InstructionChallengeRequest;
@@ -98,6 +99,10 @@ where
                 .route(
                     &format!("/instructions/{}", PerformIssuanceWithWua::NAME),
                     post(handle_instruction::<PerformIssuanceWithWua, _, _, _>),
+                )
+                .route(
+                    &format!("/instructions/{}", DiscloseRecoveryCode::NAME),
+                    post(disclose_recovery_code),
                 )
                 .layer(TraceLayer::new_for_http())
                 .with_state(Arc::clone(&state)),
@@ -234,6 +239,19 @@ async fn change_pin_rollback<GRC, PIC>(
     let body = InstructionResultMessage { result };
 
     info!("Replying with the instruction result");
+
+    Ok((StatusCode::OK, body.into()))
+}
+
+async fn disclose_recovery_code<GRC, PIC>(
+    State(state): State<Arc<RouterState<GRC, PIC>>>,
+    Json(payload): Json<Instruction<DiscloseRecoveryCode>>,
+) -> Result<(StatusCode, Json<InstructionResultMessage<()>>)> {
+    info!("Received disclose recovery code request, handling the DiscloseRecoveryCode instruction");
+    let body = state
+        .handle_instruction(payload)
+        .await
+        .inspect_err(|error| warn!("handling DiscloseRecoveryCode instruction failed: {}", error))?;
 
     Ok((StatusCode::OK, body.into()))
 }
