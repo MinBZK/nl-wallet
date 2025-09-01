@@ -98,8 +98,8 @@ impl NormalizedCredentialRequests {
         &self,
         disclosed_credentials: &HashMap<&CredentialQueryIdentifier, VecNonEmpty<DisclosedCredential>>,
     ) -> Result<(), CredentialValidationError> {
-        // Multiple credential queries are not supported, make the `HashMap` resolve to a single credential.
-        // If at least one of the values has more than one credential, this consitutes an error.
+        // Credential queries that allow for multiple responses are not supported, so make the `HashMap` resolve to a
+        // single credential. If at least one of the values has more than one credential, this consitutes an error.
         let (mut single_credentials, multiple_credential_ids): (HashMap<_, _>, HashSet<_>) =
             disclosed_credentials.iter().partition_map(|(id, credentials)| {
                 if let Ok(credential) = credentials.iter().exactly_one() {
@@ -135,7 +135,7 @@ impl NormalizedCredentialRequests {
             return Err(CredentialValidationError::UnexpectedIdentifiers(unexpected_ids));
         }
 
-        // Each received credential should be of the requested formated.
+        // Each received credential should be of the requested format.
         let format_mismatches = requests_and_credentials
             .iter()
             .filter_map(|(id, (request, credential))| {

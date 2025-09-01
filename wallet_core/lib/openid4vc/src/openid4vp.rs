@@ -562,7 +562,7 @@ impl VerifiablePresentation {
         Self::MsoMdoc(device_responses)
     }
 
-    /// Helper function for iterating over all mdoc [`Document`]s in a [`VerifiablePresentation`].
+    /// Helper function for iterating over all mdoc [`Document`]s in a list of encoded [`DeviceResponse`]s.
     fn mdoc_documents_iter<'a>(
         device_responses: impl IntoIterator<Item = &'a CborBase64<DeviceResponse>>,
     ) -> impl Iterator<Item = &'a Document> {
@@ -694,7 +694,7 @@ impl VpAuthorizationResponse {
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
     ) -> Result<HashMap<CredentialQueryIdentifier, VecNonEmpty<DisclosedAttestation>>, AuthResponseError> {
-        // Step 1: Verify the cryptographic integrity of the verifyable presentations
+        // Step 1: Verify the cryptographic integrity of the verifiable presentations
         //         and extract the disclosed attestations from them.
         let session_transcript = LazyCell::new(|| {
             // The mdoc `SessionTranscript` may not be required, so initialize it lazily.
@@ -714,12 +714,13 @@ impl VpAuthorizationResponse {
                     VerifiablePresentation::MsoMdoc(device_responses) => device_responses
                         .iter()
                         .map(|CborBase64(device_response)| {
-                            // For each mdoc `DeviceResponse`, extract the disclosed documents...
+                            // Verify the cryptographic integrity of each mdoc `DeviceResponse`
+                            // and extract its disclosed documents...
                             let disclosed_documents = device_response
                                 .verify(None, &session_transcript, time, trust_anchors)
                                 .map_err(AuthResponseError::MdocVerification)?;
 
-                            // ...and attempt to convert them to `DisclosedAttestation`s.
+                            // ...then attempt to convert them to `DisclosedAttestation`s.
                             let disclosed_attestations = disclosed_documents
                                 .into_iter()
                                 .map(|disclosed_document| {
@@ -1204,8 +1205,8 @@ mod tests {
         device_responses
     }
 
-    /// Manually construct a mock `DeviceResponse` and PoA using the given `auth_request`, `issuer_signed` and
-    /// `mdoc_nonce`.
+    /// Manually construct mock `VerifiablePresentation`s and a PoA using
+    /// the given `auth_request`, `issuer_signed` and `mdoc_nonce`.
     async fn setup_vp_token(
         auth_request: &NormalizedVpAuthorizationRequest,
         mdoc_nonce: &str,
