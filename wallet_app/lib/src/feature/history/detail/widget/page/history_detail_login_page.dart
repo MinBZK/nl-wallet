@@ -3,13 +3,11 @@ import 'package:flutter/material.dart';
 import '../../../../../domain/model/attribute/attribute.dart';
 import '../../../../../domain/model/event/wallet_event.dart';
 import '../../../../../util/extension/build_context_extension.dart';
-import '../../../../../util/extension/object_extension.dart';
 import '../../../../../util/extension/wallet_event_extension.dart';
 import '../../../../../wallet_constants.dart';
 import '../../../../common/builder/request_detail_common_builders.dart';
 import '../../../../common/widget/button/list_button.dart';
-import '../../../../common/widget/spacer/sliver_divider.dart';
-import '../../../../common/widget/spacer/sliver_sized_box.dart';
+import '../../../../common/widget/divider_side.dart';
 import '../../../../common/widget/text/title_text.dart';
 import '../history_detail_timestamp.dart';
 
@@ -20,43 +18,37 @@ class HistoryDetailLoginPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CustomScrollView(
-      slivers: [
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: kDefaultTitlePadding,
-            child: TitleText(resolveLoginTitle(context, event)),
-          ),
+    return ListView(
+      children: [
+        Padding(
+          padding: kDefaultTitlePadding,
+          child: TitleText(resolveLoginTitle(context, event)),
         ),
-        SliverToBoxAdapter(
-          child: HistoryDetailTimestamp(
-            dateTime: event.dateTime,
+        HistoryDetailTimestamp(dateTime: event.dateTime),
+        const SizedBox(height: 24),
+        const Divider(),
+        if (!event.wasSuccess)
+          RequestDetailCommonBuilders.buildStatusHeader(context, event: event, side: DividerSide.bottom),
+        if (event.wasSuccess) ...[
+          RequestDetailCommonBuilders.buildPurpose(context, purpose: event.purpose, side: DividerSide.bottom),
+          RequestDetailCommonBuilders.buildSharedAttributes(context, cards: event.cards, side: DividerSide.bottom),
+          RequestDetailCommonBuilders.buildPolicy(
+            context,
+            organization: event.relyingParty,
+            policy: event.policy,
+            side: DividerSide.bottom,
           ),
-        ),
-        const SliverSizedBox(height: 24),
-        const SliverDivider(),
-        RequestDetailCommonBuilders.buildStatusHeaderSliver(context, event: event, side: DividerSide.bottom)
-            .takeIf((_) => !event.wasSuccess),
-        RequestDetailCommonBuilders.buildPurposeSliver(context, purpose: event.purpose, side: DividerSide.bottom)
-            .takeIf((_) => event.wasSuccess),
-        RequestDetailCommonBuilders.buildSharedAttributesSliver(context, cards: event.cards, side: DividerSide.bottom)
-            .takeIf((_) => event.wasSuccess),
-        RequestDetailCommonBuilders.buildPolicySliver(
-          context,
-          organization: event.relyingParty,
-          policy: event.policy,
-          side: DividerSide.bottom,
-        ).takeIf((_) => event.wasSuccess),
-        RequestDetailCommonBuilders.buildAboutOrganizationSliver(
+        ],
+        RequestDetailCommonBuilders.buildAboutOrganization(
           context,
           organization: event.relyingParty,
           side: DividerSide.bottom,
         ),
-        RequestDetailCommonBuilders.buildShowDetailsSliver(context, event: event, side: DividerSide.bottom)
-            .takeIf((_) => !event.wasSuccess),
-        RequestDetailCommonBuilders.buildReportIssueSliver(context, side: DividerSide.bottom),
-        const SliverSizedBox(height: 24),
-      ].nonNulls.toList(),
+        if (!event.wasSuccess)
+          RequestDetailCommonBuilders.buildShowDetails(context, event: event, side: DividerSide.bottom),
+        RequestDetailCommonBuilders.buildReportIssue(context, side: DividerSide.bottom),
+        const SizedBox(height: 24),
+      ],
     );
   }
 

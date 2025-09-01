@@ -450,6 +450,12 @@ pub mod mock {
             Self::example_with_attributes(
                 vec![
                     ("bsn", AttributeValue::Text("999999999".to_string())),
+                    (
+                        "recovery_code",
+                        AttributeValue::Text(
+                            "cff292503cba8c4fbf2e5820dcdc468ae00f40c87b1af35513375800128fc00d".to_string(),
+                        ),
+                    ),
                     ("given_name", AttributeValue::Text("Willeke Liselotte".to_string())),
                     ("family_name", AttributeValue::Text("De Bruijn".to_string())),
                     ("birthdate", AttributeValue::Text("1997-03-11".to_string())),

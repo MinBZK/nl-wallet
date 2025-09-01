@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/semantics.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
@@ -17,8 +17,6 @@ import '../common/widget/button/bottom_back_button.dart';
 import '../common/widget/button/icon/back_icon_button.dart';
 import '../common/widget/button/secondary_button.dart';
 import '../common/widget/menu_item.dart';
-import '../common/widget/spacer/sliver_divider.dart';
-import '../common/widget/spacer/sliver_sized_box.dart';
 import '../common/widget/text/title_text.dart';
 import '../common/widget/utility/do_on_init.dart';
 import '../common/widget/wallet_app_bar.dart';
@@ -50,26 +48,14 @@ class _MenuScreenState extends State<MenuScreen> with LockStateMixin<MenuScreen>
           children: [
             DoOnInit(
               onInit: (_) {
-                SemanticsService.announce(
-                  context.l10n.menuScreenWCAGPageAnnouncement(_buildMenuItems(context).length),
-                  TextDirection.ltr,
-                );
+                final announcement = context.l10n.menuScreenWCAGPageAnnouncement(_buildMenuItems(context).length);
+                SemanticsService.announce(announcement, TextDirection.ltr);
               },
             ),
             Expanded(
               child: WalletScrollbar(
                 key: const Key('menuScreen'),
-                child: CustomScrollView(
-                  slivers: [
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: kDefaultTitlePadding,
-                        child: TitleText(context.l10n.menuScreenTitle),
-                      ),
-                    ),
-                    _buildContentSliver(context),
-                  ],
-                ),
+                child: _buildContentList(context),
               ),
             ),
             const BottomBackButton(),
@@ -79,32 +65,40 @@ class _MenuScreenState extends State<MenuScreen> with LockStateMixin<MenuScreen>
     );
   }
 
-  Widget _buildContentSliver(BuildContext context) {
+  Widget _buildContentList(BuildContext context) {
     final menuItems = _buildMenuItems(context);
-    final itemsList = SliverList.separated(
-      itemBuilder: (context, i) => menuItems[i],
-      itemCount: menuItems.length,
-      separatorBuilder: (context, i) => const Divider(),
-    );
-    return SliverMainAxisGroup(
-      slivers: [
-        const SliverSizedBox(height: 16),
-        const SliverDivider(),
-        itemsList,
-        const SliverDivider(),
-        const SliverSizedBox(height: 40),
-        SliverToBoxAdapter(
-          child: Center(
-            child: IntrinsicWidth(
-              child: SecondaryButton(
-                icon: const Icon(Icons.key_outlined),
-                text: Text.rich(context.l10n.menuScreenLockCta.toTextSpan(context)),
-                onPressed: () => context.read<MenuBloc>().add(MenuLockWalletPressed()),
-              ),
+
+    // Opting to use a (non-sliver) ListView for better a11y support, [CustomScrollView] did not allow scrolling
+    // to the 'logout' button for example. This might be fixable by using a combination of [SliverEnsureSemantics]
+    // and CustomScrollViews with fixedScrollExtend, but seeing as this is a relatively short list, this seems like
+    // the cleaner and (much) simpler solution. As fixedScrollExtend might also conflict with font scaling.
+    return ListView(
+      children: [
+        Padding(
+          padding: kDefaultTitlePadding,
+          child: TitleText(context.l10n.menuScreenTitle),
+        ),
+        const SizedBox(height: 16),
+        const Divider(),
+        ListView.separated(
+          physics: const NeverScrollableScrollPhysics(),
+          itemBuilder: (c, i) => menuItems[i],
+          separatorBuilder: (c, i) => const Divider(),
+          itemCount: menuItems.length,
+          shrinkWrap: true,
+        ),
+        const Divider(),
+        const SizedBox(height: 40),
+        Center(
+          child: IntrinsicWidth(
+            child: SecondaryButton(
+              icon: const Icon(Icons.key_outlined),
+              text: Text.rich(context.l10n.menuScreenLockCta.toTextSpan(context)),
+              onPressed: () => context.read<MenuBloc>().add(MenuLockWalletPressed()),
             ),
           ),
         ),
-        const SliverSizedBox(height: 40),
+        const SizedBox(height: 40),
       ],
     );
   }
