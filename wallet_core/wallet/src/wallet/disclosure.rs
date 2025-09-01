@@ -1561,8 +1561,7 @@ mod tests {
             .issued_credential_copies
             .insert(mdoc_credential.attestation_type.clone(), vec![mdoc_credential]);
 
-        // Starting disclosure where an unavailable attribute is requested should result in an error.
-        // As an exception, this error should leave the `Wallet` with an active disclosure session.
+        // Starting disclosure where the recovery code is requested should result in an error.
         let error = wallet
             .start_disclosure(&DISCLOSURE_URI, DisclosureUriSource::QrCode)
             .await
