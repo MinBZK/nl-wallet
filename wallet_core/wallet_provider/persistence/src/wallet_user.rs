@@ -100,6 +100,7 @@ where
         attestation_date_time: Set(user.attestation_date_time.into()),
         apple_attestation_id: Set(apple_attestation_id),
         android_attestation_id: Set(android_attestation_id),
+        recovery_code: Set(None),
     }
     .insert(connection)
     .await
@@ -124,6 +125,7 @@ struct WalletUserJoinedModel {
     instruction_challenge_expiration_date_time: Option<DateTimeWithTimeZone>,
     instruction_sequence_number: i32,
     apple_assertion_counter: Option<i64>,
+    recovery_code: Option<String>,
 }
 
 pub async fn find_wallet_user_by_wallet_id<S, T>(db: &T, wallet_id: &str) -> Result<WalletUserQueryResult>
@@ -143,6 +145,7 @@ where
         .column(wallet_user::Column::PreviousPinPubkeyIv)
         .column(wallet_user::Column::PinEntries)
         .column(wallet_user::Column::LastUnsuccessfulPin)
+        .column(wallet_user::Column::RecoveryCode)
         .column(wallet_user_instruction_challenge::Column::InstructionChallenge)
         .column_as(
             wallet_user_instruction_challenge::Column::ExpirationDateTime,
@@ -213,6 +216,7 @@ where
                     instruction_challenge,
                     instruction_sequence_number: u64::try_from(joined_model.instruction_sequence_number).unwrap(),
                     attestation,
+                    recovery_code: joined_model.recovery_code,
                 };
 
                 WalletUserQueryResult::Found(Box::new(wallet_user))
@@ -500,4 +504,27 @@ where
         .map_err(|e| PersistenceError::Execution(Box::new(e)))?;
 
     Ok(())
+}
+
+pub async fn store_recovery_code<S, T>(db: &T, wallet_id: &str, recovery_code: String) -> Result<()>
+where
+    S: ConnectionTrait,
+    T: PersistenceConnection<S>,
+{
+    let result = wallet_user::Entity::update_many()
+        .col_expr(wallet_user::Column::RecoveryCode, Expr::value(recovery_code))
+        .filter(
+            wallet_user::Column::WalletId
+                .eq(wallet_id)
+                .and(wallet_user::Column::RecoveryCode.is_null()),
+        )
+        .exec(db.connection())
+        .await
+        .map_err(|e| PersistenceError::Execution(e.into()))?;
+
+    match result.rows_affected {
+        0 => Err(PersistenceError::NoRowsUpdated),
+        1 => Ok(()),
+        _ => panic!("multiple `wallet_user`s with the same `wallet_id`"),
+    }
 }

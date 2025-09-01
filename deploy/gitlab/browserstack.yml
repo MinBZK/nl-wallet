@@ -1,19 +1,34 @@
-upload-browserstack-android-app:
-  extends: [.env-k8s, .ruby-cache]
-  rules: !reference [.default-branch, rules]
-  needs:
-    - job: build-android-app-ont-profile
-      artifacts: true
+.upload-browserstack-base:
+  extends: [ .env-k8s, .ruby-cache ]
+  rules: !reference [ .default-branch, rules ]
   variables:
     LC_ALL: "C.UTF-8"
     LANG: "C.UTF-8"
-  script:
+  before_script:
     - BROWSERSTACK_USER=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.user}' | base64 --decode)
     - export BROWSERSTACK_USER
     - BROWSERSTACK_KEY=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.key}' | base64 --decode)
     - export BROWSERSTACK_KEY
     - bundle install
+
+upload-browserstack-android-app:
+  extends: .upload-browserstack-base
+  needs:
+    - job: build-android-app-ont-profile
+      artifacts: true
+  script:
     - |
       bundle exec fastlane android ci_browserstack \
+        application_id:"${INTERNAL_APP_IDENTIFIER}.latest" \
+        version:"${CI_COMMIT_TAG#v}"
+
+upload-browserstack-ios-app:
+  extends: .upload-browserstack-base
+  needs:
+    - job: build-ios-app-ont-profile
+      artifacts: true
+  script:
+    - |
+      bundle exec fastlane ios ci_browserstack \
         application_id:"${INTERNAL_APP_IDENTIFIER}.latest" \
         version:"${CI_COMMIT_TAG#v}"

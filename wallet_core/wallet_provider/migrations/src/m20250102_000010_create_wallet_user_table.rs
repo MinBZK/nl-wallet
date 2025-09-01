@@ -29,6 +29,7 @@ impl MigrationTrait for Migration {
                     .col(timestamp_with_time_zone(WalletUser::AttestationDateTime))
                     .col(uuid_null(WalletUser::AppleAttestationId))
                     .col(uuid_null(WalletUser::AndroidAttestationId))
+                    .col(string_null(WalletUser::RecoveryCode))
                     .check(SimpleExpr::or(
                         // Both of these columns should be used or neither.
                         Expr::col(WalletUser::EncryptedPreviousPinPubkeySec1)
@@ -98,4 +99,5 @@ pub enum WalletUser {
     AttestationDateTime,
     AppleAttestationId,
     AndroidAttestationId,
+    RecoveryCode,
 }

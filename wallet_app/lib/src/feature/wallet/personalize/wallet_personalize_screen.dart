@@ -67,7 +67,10 @@ class WalletPersonalizeScreen extends StatelessWidget {
     final state = context.watch<WalletPersonalizeBloc>().state;
     if (!state.canGoBack) return null;
     return state.canGoBack
-        ? BackIconButton(onPressed: () => context.bloc.add(WalletPersonalizeBackPressed()))
+        ? BackIconButton(
+            key: ValueKey(state.runtimeType),
+            onPressed: () => context.bloc.add(WalletPersonalizeBackPressed()),
+          )
         : const SizedBox.shrink();
   }
 

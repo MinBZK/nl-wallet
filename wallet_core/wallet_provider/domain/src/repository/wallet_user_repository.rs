@@ -77,6 +77,13 @@ pub trait WalletUserRepository {
 
     async fn rollback_pin_change(&self, transaction: &Self::TransactionType, wallet_id: &str) -> Result<()>;
 
+    async fn store_recovery_code(
+        &self,
+        transaction: &Self::TransactionType,
+        wallet_id: &str,
+        recovery_code: String,
+    ) -> Result<()>;
+
     async fn update_apple_assertion_counter(
         &self,
         transaction: &Self::TransactionType,
@@ -198,6 +205,15 @@ pub mod mock {
             _transaction: &Self::TransactionType,
             _wallet_id: &str,
             _assertion_counter: AssertionCounter,
+        ) -> Result<()> {
+            Ok(())
+        }
+
+        async fn store_recovery_code(
+            &self,
+            _transaction: &Self::TransactionType,
+            _wallet_id: &str,
+            _recovery_code: String,
         ) -> Result<()> {
             Ok(())
         }

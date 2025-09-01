@@ -54,7 +54,7 @@ class IntroductionTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.3 The App offers a button to skip the intro, leading to the privacy summary. [${JIRA_ID}]")
-    @Tags(Tag("smoke"))
+    @Tags(Tag("smoke"),Tag("smokeIOS"))
     fun verifySkipIntroButton(testInfo: TestInfo) {
         setUp(testInfo)
         val privacyScreen = IntroductionPrivacyScreen()

@@ -152,38 +152,18 @@ mod tests {
     use std::sync::Arc;
 
     use assert_matches::assert_matches;
-    use futures::FutureExt;
-    use serde::Serialize;
-    use serde::de::DeserializeOwned;
 
-    use jwt::Jwt;
     use platform_support::attested_key::AttestedKey;
     use wallet_account::messages::instructions::ChangePinCommit;
     use wallet_account::messages::instructions::ChangePinStart;
     use wallet_account::messages::instructions::Instruction;
-    use wallet_account::messages::instructions::InstructionResultClaims;
 
     use crate::pin::change::ChangePinStorage;
     use crate::pin::change::State;
-    use crate::wallet::test::ACCOUNT_SERVER_KEYS;
     use crate::wallet::test::WalletDeviceVendor;
     use crate::wallet::test::WalletWithStorage;
+    use crate::wallet::test::create_wp_result;
     use crate::wallet::test::valid_certificate;
-
-    fn create_wp_result<T>(result: T) -> Jwt<InstructionResultClaims<T>>
-    where
-        T: Serialize + DeserializeOwned,
-    {
-        let result_claims = InstructionResultClaims {
-            result,
-            iss: "wallet_unit_test".to_string(),
-            iat: jsonwebtoken::get_current_timestamp(),
-        };
-        Jwt::sign_with_sub(&result_claims, &ACCOUNT_SERVER_KEYS.instruction_result_signing_key)
-            .now_or_never()
-            .unwrap()
-            .expect("could not sign instruction result")
-    }
 
     #[tokio::test]
     async fn test_wallet_begin_and_continue_change_pin() {

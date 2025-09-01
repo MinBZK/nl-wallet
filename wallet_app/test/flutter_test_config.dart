@@ -14,6 +14,7 @@ import 'package:wallet/src/domain/model/result/result.dart';
 import 'package:wallet/src/domain/model/start_sign_result/start_sign_result.dart';
 import 'package:wallet/src/util/extension/core_error_extension.dart';
 import 'package:wallet/src/util/extension/string_extension.dart';
+import 'package:wallet/src/util/helper/setup_helper.dart';
 import 'package:wallet/src/wallet_core/error/core_error.dart';
 import 'package:wallet_core/core.dart' as core;
 
@@ -27,6 +28,7 @@ Future<void> testExecutable(FutureOr<void> Function() testMain) async {
   _provideDefaultCheckHasInternetMock();
   _setupMockitoDummies();
   _setupGoldenFileComparator();
+  SetupHelper.initWithValue(8);
   VisibilityDetectorController.instance.updateInterval = Duration.zero;
   return testMain();
 }

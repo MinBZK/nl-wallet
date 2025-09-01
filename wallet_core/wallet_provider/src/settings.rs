@@ -46,6 +46,10 @@ pub struct Settings {
     #[serde_as(as = "DurationMilliSeconds")]
     pub instruction_challenge_timeout: Duration,
 
+    /// Issuer trust anchors are used to validate the received PID SD JWT with Recovery Code disclosure
+    #[serde_as(as = "Vec<Base64>")]
+    pub pid_issuer_trust_anchors: Vec<BorrowingTrustAnchor>,
+
     pub ios: Ios,
     pub android: Android,
 }
@@ -138,6 +142,7 @@ impl Settings {
                     .with_list_parse_key("ios.root_certificates")
                     .with_list_parse_key("android.root_public_keys")
                     .with_list_parse_key("android.play_store_certificate_hashes")
+                    .with_list_parse_key("pid_issuer_trust_anchors")
                     .try_parsing(true),
             )
             .build()?

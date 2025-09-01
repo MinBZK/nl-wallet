@@ -10,6 +10,8 @@ use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 use parking_lot::Mutex;
 use rand_core::OsRng;
+use serde::Serialize;
+use serde::de::DeserializeOwned;
 use ssri::Integrity;
 use uuid::Uuid;
 
@@ -48,6 +50,7 @@ use sd_jwt_vc_metadata::TypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use utils::generator::Generator;
 use utils::generator::mock::MockTimeGenerator;
+use wallet_account::messages::instructions::InstructionResultClaims;
 use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::messages::registration::WalletCertificateClaims;
 use wallet_configuration::wallet_config::WalletConfiguration;
@@ -565,4 +568,19 @@ pub fn create_disclosure_event(
         status,
         r#type: DisclosureType::Regular,
     }
+}
+
+pub fn create_wp_result<T>(result: T) -> Jwt<InstructionResultClaims<T>>
+where
+    T: Serialize + DeserializeOwned,
+{
+    let result_claims = InstructionResultClaims {
+        result,
+        iss: "wallet_unit_test".to_string(),
+        iat: jsonwebtoken::get_current_timestamp(),
+    };
+    Jwt::sign_with_sub(&result_claims, &ACCOUNT_SERVER_KEYS.instruction_result_signing_key)
+        .now_or_never()
+        .unwrap()
+        .expect("could not sign instruction result")
 }

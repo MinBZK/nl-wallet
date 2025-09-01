@@ -13,7 +13,9 @@ use uuid::Uuid;
 
 use attestation_data::auth::Organization;
 use attestation_data::constants::PID_ATTESTATION_TYPE;
+use attestation_data::constants::PID_RECOVERY_CODE;
 use attestation_data::credential_payload::CredentialPayload;
+use attestation_types::claim_path::ClaimPath;
 use crypto::x509::CertificateError;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
@@ -24,18 +26,23 @@ use http_utils::urls;
 use http_utils::urls::BaseUrl;
 use jwt::error::JwtError;
 use openid4vc::disclosure_session::DisclosureClient;
+use openid4vc::issuance_session::CredentialWithMetadata;
 use openid4vc::issuance_session::HttpVcMessageClient;
 use openid4vc::issuance_session::IssuanceSession;
 use openid4vc::issuance_session::IssuanceSessionError;
+use openid4vc::issuance_session::IssuedCredential;
 use openid4vc::issuance_session::NormalizedCredentialPreview;
 use openid4vc::token::CredentialPreviewError;
 use openid4vc::token::TokenRequest;
+use platform_support::attested_key::AppleAttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
+use platform_support::attested_key::GoogleAttestedKey;
 use update_policy_model::update_policy::VersionState;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 use wallet_account::NL_WALLET_CLIENT_ID;
+use wallet_account::messages::instructions::DiscloseRecoveryCode;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::account_provider::AccountProviderClient;
@@ -48,6 +55,7 @@ use crate::digid::DigidError;
 use crate::digid::DigidSession;
 use crate::errors::ChangePinError;
 use crate::errors::UpdatePolicyError;
+use crate::instruction::InstructionClient;
 use crate::instruction::InstructionError;
 use crate::instruction::RemoteEcdsaKeyError;
 use crate::instruction::RemoteEcdsaWscd;
@@ -151,6 +159,14 @@ pub enum IssuanceError {
 
     #[error("certificate error: {0}")]
     Certificate(#[from] CertificateError),
+
+    #[error("PID attestation in SD JWT format is missing")]
+    #[category(critical)]
+    MissingPidSdJwt,
+
+    #[error("could not add recovery code disclosure: {0}")]
+    #[category(pd)]
+    RecoveryCodeDisclosure(sd_jwt::error::Error),
 }
 
 #[derive(Debug, Clone, Constructor)]
@@ -477,8 +493,7 @@ where
             )
             .await?;
 
-        let remote_wscd = RemoteEcdsaWscd::new(remote_instruction);
-
+        let remote_wscd = RemoteEcdsaWscd::new(remote_instruction.clone());
         info!("Signing nonce using Wallet Provider");
 
         let organization = issuance_session
@@ -516,22 +531,26 @@ where
 
         // If the Wallet Provider returns either a PIN timeout or a permanent block,
         // wipe the contents of the wallet and return it to its initial state.
-        if matches!(
-            issuance_result,
-            Err(IssuanceError::Instruction(
-                InstructionError::Timeout { .. } | InstructionError::Blocked
-            ))
-        ) {
-            self.reset_to_initial_state().await;
-        }
-
-        let issued_credentials_with_metadata = issuance_result?;
+        let issued_credentials_with_metadata = match issuance_result {
+            Err(IssuanceError::Instruction(error @ (InstructionError::Timeout { .. } | InstructionError::Blocked))) => {
+                drop(remote_instruction);
+                self.reset_to_initial_state().await;
+                return Err(IssuanceError::Instruction(error));
+            }
+            _ => issuance_result?,
+        };
 
         info!("Isuance succeeded; removing issuance session state");
         let issuance_session = match self.session.take() {
             Some(Session::Issuance(issuance_session)) => issuance_session,
             _ => unreachable!(),
         };
+
+        if issuance_session.is_pid {
+            info!("This is a PID issuance session, therefore disclosing recovery code");
+            self.disclose_recovery_code(&remote_instruction, &issued_credentials_with_metadata)
+                .await?;
+        }
 
         let all_previews = issued_credentials_with_metadata
             .into_iter()
@@ -568,6 +587,45 @@ where
 
         self.emit_attestations().await.map_err(IssuanceError::Attestations)?;
         self.emit_recent_history().await.map_err(IssuanceError::EventStorage)?;
+
+        Ok(())
+    }
+
+    /// Finds the PID SD JWT, creates a disclosure of just the recovery code, and sends it to the remote instruction
+    /// endpoint of the Wallet Provider.
+    async fn disclose_recovery_code<AK: AppleAttestedKey, GK: GoogleAttestedKey>(
+        &self,
+        instruction_client: &InstructionClient<S, AK, GK, APC>,
+        issued_credentials_with_metadata: &[CredentialWithMetadata],
+    ) -> Result<(), IssuanceError> {
+        let pid = issued_credentials_with_metadata
+            .iter()
+            .find_map(|cred| {
+                (cred.attestation_type == PID_ATTESTATION_TYPE).then(|| {
+                    cred.copies.as_ref().iter().find_map(|copy| match copy {
+                        IssuedCredential::MsoMdoc(_) => None,
+                        IssuedCredential::SdJwt(verified_sd_jwt) => Some(verified_sd_jwt.clone()),
+                    })
+                })
+            })
+            .flatten()
+            .ok_or(IssuanceError::MissingPidSdJwt)?
+            .into_inner();
+        let recovery_code_disclosure = pid
+            .into_presentation_builder()
+            .disclose(
+                &vec![ClaimPath::SelectByKey(PID_RECOVERY_CODE.to_owned())]
+                    .try_into()
+                    .unwrap(),
+            )
+            .map_err(IssuanceError::RecoveryCodeDisclosure)?
+            .finish();
+
+        instruction_client
+            .send(DiscloseRecoveryCode {
+                recovery_code_disclosure: recovery_code_disclosure.into(),
+            })
+            .await?;
 
         Ok(())
     }
@@ -625,10 +683,10 @@ mod tests {
     use attestation_data::attributes::AttributeValue;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::constants::PID_ATTESTATION_TYPE;
+    use attestation_data::credential_payload::IntoCredentialPayload;
     use attestation_data::x509::CertificateType;
     use crypto::server_keys::generate::Ca;
     use crypto::x509::BorrowingCertificateExtension;
-    use mdoc::holder::Mdoc;
     use openid4vc::issuance_session::CredentialWithMetadata;
     use openid4vc::issuance_session::IssuedCredential;
     use openid4vc::issuance_session::IssuedCredentialCopies;
@@ -640,17 +698,21 @@ mod tests {
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
     use utils::generator::mock::MockTimeGenerator;
+    use wallet_account::messages::instructions::Instruction;
 
     use crate::WalletEvent;
     use crate::attestation::AttestationAttributeValue;
     use crate::digid::MockDigidSession;
     use crate::storage::ChangePinData;
+    use crate::storage::InstructionData;
     use crate::storage::RegistrationData;
     use crate::storage::StorageState;
     use crate::storage::StoredAttestation;
     use crate::wallet::test::create_example_credential_payload;
     use crate::wallet::test::create_example_pid_mdoc;
+    use crate::wallet::test::create_example_pid_sd_jwt;
     use crate::wallet::test::create_example_preview_data;
+    use crate::wallet::test::create_wp_result;
     use crate::wallet::test::mock_issuance_event;
 
     use super::super::test;
@@ -659,32 +721,49 @@ mod tests {
     use super::*;
 
     fn mock_issuance_session(
-        mdoc: Mdoc,
+        credential: IssuedCredential,
         attestation_type: String,
         type_metadata: VerifiedTypeMetadataDocuments,
     ) -> (MockIssuanceSession, VecNonEmpty<AttestationPresentation>) {
         let mut client = MockIssuanceSession::new();
-        let issuer_certificate = mdoc.issuer_certificate().unwrap();
+        let issuer_certificate = match &credential {
+            IssuedCredential::MsoMdoc(mdoc) => mdoc.issuer_certificate().unwrap(),
+            IssuedCredential::SdJwt(sd_jwt) => sd_jwt.as_ref().as_ref().issuer_certificate().unwrap().to_owned(),
+        };
+
         let issuer_registration = match IssuerRegistration::from_certificate(&issuer_certificate) {
             Ok(Some(registration)) => registration,
             _ => IssuerRegistration::new_mock(),
         };
 
-        let attestations = vec![
-            AttestationPresentation::create_from_mdoc(
+        let attestations = vec![match &credential {
+            IssuedCredential::MsoMdoc(mdoc) => AttestationPresentation::create_from_mdoc(
                 AttestationIdentity::Ephemeral,
                 type_metadata.to_normalized().unwrap(),
                 issuer_registration.organization.clone(),
                 mdoc.issuer_signed.clone().into_entries_by_namespace(),
             )
             .unwrap(),
-        ]
+            IssuedCredential::SdJwt(sd_jwt) => {
+                let payload = sd_jwt
+                    .clone()
+                    .into_inner()
+                    .into_credential_payload(&type_metadata.to_normalized().unwrap())
+                    .unwrap();
+                AttestationPresentation::create_from_attributes(
+                    AttestationIdentity::Ephemeral,
+                    type_metadata.to_normalized().unwrap(),
+                    issuer_registration.organization.clone(),
+                    &payload.previewable_payload.attributes,
+                )
+                .unwrap()
+            }
+        }]
         .try_into()
         .unwrap();
 
         client.expect_issuer().return_const(issuer_registration);
 
-        let credential = IssuedCredential::MsoMdoc(Box::new(mdoc));
         client.expect_accept().return_once(move || {
             Ok(vec![CredentialWithMetadata::new(
                 IssuedCredentialCopies::new_or_panic(VecNonEmpty::try_from(vec![credential]).unwrap()),
@@ -1193,9 +1272,9 @@ mod tests {
 
         // Create a mock OpenID4VCI session that accepts the PID with a single
         // instance of `MdocCopies`, which contains a single valid `Mdoc`.
-        let mdoc = test::create_example_pid_mdoc();
+        let (verified_sd_jwt, metadata) = create_example_pid_sd_jwt();
         let (pid_issuer, attestations) = mock_issuance_session(
-            mdoc.clone(),
+            IssuedCredential::SdJwt(Box::new(verified_sd_jwt.clone())),
             String::from(PID_ATTESTATION_TYPE),
             VerifiedTypeMetadataDocuments::nl_pid_example(),
         );
@@ -1212,8 +1291,10 @@ mod tests {
                 Ok(vec![StoredAttestationCopy::new(
                     Uuid::new_v4(),
                     Uuid::new_v4(),
-                    StoredAttestation::MsoMdoc { mdoc: Box::new(mdoc) },
-                    NormalizedTypeMetadata::nl_pid_example(),
+                    StoredAttestation::SdJwt {
+                        sd_jwt: Box::new(verified_sd_jwt),
+                    },
+                    metadata,
                 )])
             });
 
@@ -1228,7 +1309,23 @@ mod tests {
             .withf(|_, _| true)
             .returning(|_, _| Ok(()));
 
+        wallet
+            .mut_storage()
+            .expect_fetch_data::<InstructionData>()
+            .returning(|| {
+                Ok(Some(InstructionData {
+                    instruction_sequence_number: 0,
+                }))
+            });
+
+        wallet
+            .mut_storage()
+            .expect_upsert_data::<InstructionData>()
+            .returning(|_| Ok(()));
+
         mock_issuance_event(&mut wallet);
+
+        setup_mock_recovery_code_instructions(&mut wallet);
 
         // Accept the PID issuance with the PIN.
         wallet
@@ -1271,6 +1368,22 @@ mod tests {
             .await
             .expect_err("creating new PID issuance auth URL when there already is a PID should fail");
         assert_matches!(err, IssuanceError::PidAlreadyPresent);
+    }
+
+    fn setup_mock_recovery_code_instructions(wallet: &mut WalletWithMocks) {
+        Arc::get_mut(&mut wallet.account_provider_client)
+            .unwrap()
+            .expect_instruction_challenge()
+            .once()
+            .returning(|_, _| Ok(crypto::utils::random_bytes(32)));
+
+        let wp_result = create_wp_result(());
+
+        Arc::get_mut(&mut wallet.account_provider_client)
+            .unwrap()
+            .expect_instruction()
+            .once()
+            .return_once(move |_, _: Instruction<DiscloseRecoveryCode>| Ok(wp_result));
     }
 
     #[tokio::test]
@@ -1478,9 +1591,9 @@ mod tests {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // Have the mock OpenID4VCI session report some mdocs upon accepting.
-        let mdoc = test::create_example_pid_mdoc();
+        let (verified_sd_jwt, _metadata) = create_example_pid_sd_jwt();
         let (pid_issuer, attestations) = mock_issuance_session(
-            mdoc,
+            IssuedCredential::SdJwt(Box::new(verified_sd_jwt)),
             String::from(PID_ATTESTATION_TYPE),
             VerifiedTypeMetadataDocuments::nl_pid_example(),
         );
@@ -1501,6 +1614,22 @@ mod tests {
             .expect_insert_credentials()
             .withf(|_, _| true)
             .returning(|_, _| Err(StorageError::AlreadyOpened));
+
+        wallet
+            .mut_storage()
+            .expect_fetch_data::<InstructionData>()
+            .returning(|| {
+                Ok(Some(InstructionData {
+                    instruction_sequence_number: 0,
+                }))
+            });
+
+        wallet
+            .mut_storage()
+            .expect_upsert_data::<InstructionData>()
+            .returning(|_| Ok(()));
+
+        setup_mock_recovery_code_instructions(&mut wallet);
 
         // Accepting PID issuance should result in an error.
         let error = wallet

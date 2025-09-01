@@ -15,6 +15,7 @@ import '../../../domain/usecase/pin/check_is_valid_pin_usecase.dart';
 import '../../../domain/usecase/wallet/create_wallet_usecase.dart';
 import '../../../util/cast_util.dart';
 import '../../../util/extension/string_extension.dart';
+import '../../../util/helper/setup_helper.dart';
 import '../../../wallet_constants.dart';
 
 part 'setup_security_event.dart';
