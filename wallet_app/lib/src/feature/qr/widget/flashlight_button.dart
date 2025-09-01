@@ -21,7 +21,8 @@ class FlashlightButton extends StatelessWidget {
       button: true,
       onTap: onPressed,
       excludeSemantics: true,
-      attributedLabel: (isOn ? context.l10n.generalOn : context.l10n.generalOff).toAttributedString(context),
+      attributedLabel: (isOn ? context.l10n.qrScreenDisableTorchCta : context.l10n.qrScreenEnableTorchCta)
+          .toAttributedString(context),
       child: OutlinedButton(
         onPressed: onPressed,
         style: context.theme.outlinedButtonTheme.style?.copyWith(

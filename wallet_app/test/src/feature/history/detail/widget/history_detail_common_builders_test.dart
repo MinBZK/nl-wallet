@@ -17,10 +17,10 @@ import '../../../../mocks/wallet_mock_data.dart';
 import '../../../../test_util/test_utils.dart';
 
 void main() {
-  testWidgets('buildStatusHeaderSliver', (WidgetTester tester) async {
+  testWidgets('buildStatusHeader', (WidgetTester tester) async {
     await tester.pumpWidgetWithAppWrapper(
-      _SliverTestWrapper(
-        sliverBuilder: (context) => RequestDetailCommonBuilders.buildStatusHeaderSliver(
+      _WidgetTestWrapper(
+        widgetBuilder: (context) => RequestDetailCommonBuilders.buildStatusHeader(
           context,
           event: WalletMockData.disclosureEvent,
           side: DividerSide.bottom,
@@ -33,10 +33,10 @@ void main() {
     expect(find.text(l10n.cardHistoryDisclosureSuccess), findsOneWidget);
   });
 
-  testWidgets('buildPurposeSliver', (WidgetTester tester) async {
+  testWidgets('buildPurpose', (WidgetTester tester) async {
     await tester.pumpWidgetWithAppWrapper(
-      _SliverTestWrapper(
-        sliverBuilder: (context) => RequestDetailCommonBuilders.buildPurposeSliver(
+      _WidgetTestWrapper(
+        widgetBuilder: (context) => RequestDetailCommonBuilders.buildPurpose(
           context,
           purpose: WalletMockData.disclosureEvent.purpose,
           side: DividerSide.bottom,
@@ -49,10 +49,10 @@ void main() {
     expect(find.text(WalletMockData.disclosureEvent.purpose.testValue), findsOneWidget);
   });
 
-  testWidgets('buildSharedAttributesSliver', (WidgetTester tester) async {
+  testWidgets('buildSharedAttributes', (WidgetTester tester) async {
     await tester.pumpWidgetWithAppWrapper(
-      _SliverTestWrapper(
-        sliverBuilder: (context) => RequestDetailCommonBuilders.buildSharedAttributesSliver(
+      _WidgetTestWrapper(
+        widgetBuilder: (context) => RequestDetailCommonBuilders.buildSharedAttributes(
           context,
           cards: WalletMockData.disclosureEvent.cards,
           side: DividerSide.bottom,
@@ -67,10 +67,10 @@ void main() {
     expect(find.textContaining(totalNrOfAttributes.toString()), findsOneWidget);
   });
 
-  testWidgets('buildRequestedAttributesSliver', (WidgetTester tester) async {
+  testWidgets('buildRequestedAttributes', (WidgetTester tester) async {
     await tester.pumpWidgetWithAppWrapper(
-      _SliverTestWrapper(
-        sliverBuilder: (context) => RequestDetailCommonBuilders.buildRequestedAttributesSliver(
+      _WidgetTestWrapper(
+        widgetBuilder: (context) => RequestDetailCommonBuilders.buildRequestedAttributes(
           context,
           cards: WalletMockData.disclosureEvent.cards,
           side: DividerSide.bottom,
@@ -85,10 +85,10 @@ void main() {
     expect(find.textContaining(totalNrOfAttributes.toString()), findsOneWidget);
   });
 
-  testWidgets('buildPolicySliver', (WidgetTester tester) async {
+  testWidgets('buildPolicy', (WidgetTester tester) async {
     await tester.pumpWidgetWithAppWrapper(
-      _SliverTestWrapper(
-        sliverBuilder: (context) => RequestDetailCommonBuilders.buildPolicySliver(
+      _WidgetTestWrapper(
+        widgetBuilder: (context) => RequestDetailCommonBuilders.buildPolicy(
           context,
           organization: WalletMockData.disclosureEvent.relyingParty,
           policy: WalletMockData.disclosureEvent.policy,
@@ -102,10 +102,10 @@ void main() {
     expect(find.text(l10n.historyDetailScreenTermsCta), findsOneWidget);
   });
 
-  testWidgets('buildAboutOrganizationSliver', (WidgetTester tester) async {
+  testWidgets('buildAboutOrganization', (WidgetTester tester) async {
     await tester.pumpWidgetWithAppWrapper(
-      _SliverTestWrapper(
-        sliverBuilder: (context) => RequestDetailCommonBuilders.buildAboutOrganizationSliver(
+      _WidgetTestWrapper(
+        widgetBuilder: (context) => RequestDetailCommonBuilders.buildAboutOrganization(
           context,
           organization: WalletMockData.disclosureEvent.relyingPartyOrIssuer,
           side: DividerSide.bottom,
@@ -119,10 +119,10 @@ void main() {
     expect(find.textContaining(orgDisplayName), findsOneWidget);
   });
 
-  testWidgets('buildShowDetailsSliver', (WidgetTester tester) async {
+  testWidgets('buildShowDetails', (WidgetTester tester) async {
     await tester.pumpWidgetWithAppWrapper(
-      _SliverTestWrapper(
-        sliverBuilder: (context) => RequestDetailCommonBuilders.buildShowDetailsSliver(
+      _WidgetTestWrapper(
+        widgetBuilder: (context) => RequestDetailCommonBuilders.buildShowDetails(
           context,
           event: WalletMockData.disclosureEvent,
           side: DividerSide.bottom,
@@ -134,10 +134,10 @@ void main() {
     expect(find.text(l10n.historyDetailScreenShowDetailsCta), findsOneWidget);
   });
 
-  testWidgets('buildReportIssueSliver', (WidgetTester tester) async {
+  testWidgets('buildReportIssue', (WidgetTester tester) async {
     await tester.pumpWidgetWithAppWrapper(
-      _SliverTestWrapper(
-        sliverBuilder: (c) => RequestDetailCommonBuilders.buildReportIssueSliver(c, side: DividerSide.bottom),
+      _WidgetTestWrapper(
+        widgetBuilder: (c) => RequestDetailCommonBuilders.buildReportIssue(c, side: DividerSide.bottom),
       ),
     );
 
@@ -146,15 +146,11 @@ void main() {
   });
 }
 
-class _SliverTestWrapper extends StatelessWidget {
-  final WidgetBuilder sliverBuilder;
+class _WidgetTestWrapper extends StatelessWidget {
+  final WidgetBuilder widgetBuilder;
 
-  const _SliverTestWrapper({required this.sliverBuilder});
+  const _WidgetTestWrapper({required this.widgetBuilder});
 
   @override
-  Widget build(BuildContext context) {
-    return CustomScrollView(
-      slivers: [sliverBuilder(context)],
-    );
-  }
+  Widget build(BuildContext context) => widgetBuilder(context);
 }

@@ -1,0 +1,38 @@
+[package]
+name = "token_status_list"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[features]
+axum = ["dep:axum"]
+
+[dependencies]
+axum = { workspace = true, optional = true }
+base64.workspace = true
+chrono.workspace = true
+derive_more = { workspace = true, features = ["as_ref"] }
+flate2.workspace = true
+jsonwebtoken.workspace = true
+rstest.workspace = true
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
+serde_repr.workspace = true
+serde_with = { workspace = true, features = ["macros"] }
+thiserror.workspace = true
+
+crypto.path = "../crypto"
+http_utils.path = "../http_utils"
+jwt.path = "../jwt"
+
+[dev-dependencies]
+axum = { workspace = true, features = ["http1", "tokio"] }
+p256.workspace = true
+regex.workspace = true
+reqwest = { workspace = true, features = ["json"] }
+tokio = { workspace = true, features = ["macros"] }
+
+tests_integration = { path = "../../tests_integration", features = ["test_common"] }

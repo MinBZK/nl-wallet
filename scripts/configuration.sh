@@ -71,7 +71,6 @@ export GOOGLE_CLOUD_PROJECT_NUMBER=12143997365
 export DB_HOST="${DB_HOST:-localhost}"
 export DB_USERNAME="${DB_USERNAME:-postgres}"
 export DB_PASSWORD="${DB_PASSWORD:-postgres}"
-export DB_NAME="${DB_NAME:-wallet_provider}"
 export PGADMIN_DEFAULT_PASSWORD="${PGADMIN_DEFAULT_PASSWORD:-admin}"
 
 # HSM properties, with defaults

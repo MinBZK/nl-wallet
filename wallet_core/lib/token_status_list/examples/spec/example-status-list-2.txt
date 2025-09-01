@@ -1,0 +1,12 @@
+status[0] = 1
+status[1] = 2
+status[2] = 0
+status[3] = 3
+status[4] = 0
+status[5] = 1
+status[6] = 0
+status[7] = 1
+status[8] = 1
+status[9] = 2
+status[10] = 3
+status[11] = 3

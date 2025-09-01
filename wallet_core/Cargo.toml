@@ -24,6 +24,7 @@ members = [
     "lib/openid4vc_server",
     "lib/sd_jwt",
     "lib/sd_jwt_vc_metadata",
+    "lib/token_status_list",
     "lib/utils",
     "lib/wscd",
     "tests_integration",
@@ -120,6 +121,7 @@ der = "0.7.9"
 derive_more = "2.0.1"
 dotenvy = "0.15.7"
 etag = "4.0.0"
+flate2 = "1.1.2"
 flutter_rust_bridge = { version = "2.7.1", default-features = false }
 futures = { version = "0.3.31", default-features = false }
 gcloud-auth = { version = "1.0.0", default-features = false }
