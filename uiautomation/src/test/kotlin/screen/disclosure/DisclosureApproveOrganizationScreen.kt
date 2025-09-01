@@ -24,6 +24,7 @@ class DisclosureApproveOrganizationScreen : MobileActions() {
     private val disclosureConfirmDataAttributesCheckConditionsCta = find.byText(l10n.getString("disclosureConfirmDataAttributesCheckConditionsCta"))
     private val reportOptionUntrusted = find.byText(l10n.getString("reportOptionUntrusted"))
     private val reportOptionSuspiciousOrganization = find.byText(l10n.getString("reportOptionSuspiciousOrganization"))
+    private val scrollableElement = find.byType(ScrollableType.CustomScrollView.toString())
 
     fun login() = clickElement(loginButton)
 
@@ -35,7 +36,7 @@ class DisclosureApproveOrganizationScreen : MobileActions() {
     fun proceed() = clickElement(yesProceedButton)
 
     fun share() {
-        scrollToEnd(ScrollableType.CustomScrollView)
+        scrollToEnd(scrollableElement)
         clickElement(shareButton)
     }
 
@@ -101,7 +102,7 @@ class DisclosureApproveOrganizationScreen : MobileActions() {
     }
 
     fun readTerms() {
-        scrollToEnd(ScrollableType.CustomScrollView)
+        scrollToEnd(scrollableElement)
         clickElement(readTermsButton)
     }
 
@@ -114,7 +115,7 @@ class DisclosureApproveOrganizationScreen : MobileActions() {
     }
 
     fun cancel() {
-        scrollToEnd(ScrollableType.CustomScrollView)
+        scrollToEnd(scrollableElement)
         clickElement(organizationApprovePageDenyCta)
     }
 
@@ -148,12 +149,12 @@ class DisclosureApproveOrganizationScreen : MobileActions() {
     }
 
     fun conditionsHeaderVisible(): Boolean {
-        scrollToEnd(ScrollableType.CustomScrollView)
+        scrollToEnd(scrollableElement)
         return isElementVisible(disclosureConfirmDataAttributesSubtitleTerms)
     }
 
     fun conditionsButtonVisible(): Boolean  {
-        scrollToEnd(ScrollableType.CustomScrollView)
+        scrollToEnd(scrollableElement)
         return isElementVisible(disclosureConfirmDataAttributesCheckConditionsCta)
     }
 }
