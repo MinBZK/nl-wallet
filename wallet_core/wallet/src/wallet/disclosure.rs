@@ -288,23 +288,18 @@ impl RedirectUriPurpose {
 
 fn is_request_for_recovery_code(request: &NormalizedCredentialRequest) -> bool {
     match &request.format {
-        CredentialQueryFormat::MsoMdoc { doctype_value } => {
-            if doctype_value.as_str() == PID_ATTESTATION_TYPE {
-                Some(vec_nonempty![
-                    ClaimPath::SelectByKey(String::from(PID_ATTESTATION_TYPE)),
-                    ClaimPath::SelectByKey(String::from(PID_RECOVERY_CODE))
-                ])
-            } else {
-                None
-            }
+        CredentialQueryFormat::MsoMdoc { doctype_value } if doctype_value.as_str() == PID_ATTESTATION_TYPE => {
+            Some(vec_nonempty![
+                ClaimPath::SelectByKey(String::from(PID_ATTESTATION_TYPE)),
+                ClaimPath::SelectByKey(String::from(PID_RECOVERY_CODE))
+            ])
         }
-        CredentialQueryFormat::SdJwt { vct_values } => {
-            if vct_values.iter().any(|vct| vct.as_str() == PID_ATTESTATION_TYPE) {
-                Some(vec_nonempty![ClaimPath::SelectByKey(String::from(PID_RECOVERY_CODE))])
-            } else {
-                None
-            }
+        CredentialQueryFormat::SdJwt { vct_values }
+            if vct_values.iter().any(|vct| vct.as_str() == PID_ATTESTATION_TYPE) =>
+        {
+            Some(vec_nonempty![ClaimPath::SelectByKey(String::from(PID_RECOVERY_CODE))])
         }
+        CredentialQueryFormat::MsoMdoc { .. } | CredentialQueryFormat::SdJwt { .. } => None,
     }
     .is_some_and(|claim_path| {
         request
