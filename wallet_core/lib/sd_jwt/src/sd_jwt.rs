@@ -15,10 +15,12 @@ use itertools::Itertools;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::Header;
 use jsonwebtoken::Validation;
+use nutype::nutype;
 use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_json::Map;
+use serde_json::Number;
 use serde_with::FromInto;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
@@ -82,6 +84,9 @@ pub struct SdJwtClaims {
     pub claims: ObjectClaims,
 }
 
+#[nutype(validate(predicate = |n| n != "..."), derive(Debug, Clone, TryFrom, FromStr, PartialEq, Eq, Hash, Serialize, Deserialize))]
+pub struct ClaimName(String);
+
 #[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Default)]
 pub struct ObjectClaims {
@@ -90,12 +95,16 @@ pub struct ObjectClaims {
 
     /// Non-selectively disclosable claims of the SD-JWT.
     #[serde(flatten)]
-    pub fields: HashMap<String, ClaimValue>,
+    pub fields: HashMap<ClaimName, ClaimValue>,
 }
 
 impl ObjectClaims {
     fn into_json_value(self) -> serde_json::Value {
-        let mut map = Map::from_iter(self.fields.into_iter().map(|(k, v)| (k, v.into_json_value())));
+        let mut map = Map::from_iter(
+            self.fields
+                .into_iter()
+                .map(|(k, v)| (k.into_inner(), v.into_json_value())),
+        );
 
         let hashes = self
             ._sd
@@ -115,7 +124,10 @@ impl ObjectClaims {
 pub enum ClaimValue {
     Array(Vec<ArrayClaim>),
     Object(ObjectClaims),
-    Primitive(serde_json::Value),
+    Null,
+    Bool(bool),
+    Number(Number),
+    String(String),
 }
 
 impl ClaimValue {
@@ -125,7 +137,10 @@ impl ClaimValue {
                 serde_json::Value::Array(array.into_iter().map(ArrayClaim::into_json_value).collect())
             }
             ClaimValue::Object(object) => object.into_json_value(),
-            ClaimValue::Primitive(primitive) => primitive.clone(),
+            ClaimValue::Null => serde_json::Value::Null,
+            ClaimValue::Bool(value) => serde_json::Value::Bool(value),
+            ClaimValue::Number(value) => serde_json::Value::Number(value),
+            ClaimValue::String(value) => serde_json::Value::String(value),
         }
     }
 }
@@ -1375,19 +1390,43 @@ mod test {
 
     #[rstest]
     #[case(json!({
-        "iss": "https://issuer.example.com",
+        "iss": "https://issuer.example.com/",
         "iat": 1683000000,
         "given_name": "Alice",
         "_sd": ["X9yH0Ajrdm1Oij4tWso9UzzKJvPoDxwmuEcO3XAdRC0"]
-    }))]
+    }), true)]
     #[case(json!({
-        "iss": "https://issuer.example.com",
+        "iss": "https://issuer.example.com/",
+        "iat": 1683000000,
+        "_sd": [0]
+    }), false)]
+    #[case(json!({
+        "iss": "https://issuer.example.com/",
+        "iat": 1683000000,
+        "nested": {
+            "_sd": [0]
+        }
+    }), false)]
+    #[case(json!({
+        "iss": "https://issuer.example.com/",
+        "iat": 1683000000,
+        "array": [{
+            "_sd": [0]
+        }]
+    }), false)]
+    #[case(json!({
+        "iss": "https://issuer.example.com/",
+        "iat": 1683000000,
+        "array": [{ "...": 0 }]
+    }), false)]
+    #[case(json!({
+        "iss": "https://issuer.example.com/",
         "iat": 1683000000,
         "nationalities":
         ["DE", {"...":"w0I8EKcdCtUPkGCNUrfwVp2xEgNjtoIDlOxc9-PlOhs"}, "US"]
-    }))]
+    }), true)]
     #[case(json!({
-        "iss": "https://issuer.example.com",
+        "iss": "https://issuer.example.com/",
         "iat": 1683000000,
         "family_name": "Möbius",
         "nationalities": [
@@ -1395,7 +1434,7 @@ mod test {
             { "...": "r823HFN6Ba_lpSANYtXqqCBAH-TsQlIzfOK0lRAFLCM" },
             { "...": "nP5GYjwhFm6ESlAeC4NCaIliW4tz0hTrUeoJB3lb5TA" }
         ]
-    }))]
+    }), true)]
     #[case(json!({
         "_sd": [
             "CrQe7S5kqBAHt-nMYXgc6bdt2SH5aTY1sU_M-PgkjPI",
@@ -1407,7 +1446,7 @@ mod test {
             "gbOsI4Edq2x2Kw-w5wPEzakob9hV1cRD0ATN3oQL9JM",
             "jsu9yVulwQQlhFlM_3JlzMaSFzglhQG0DpfayQwLUK4"
         ],
-        "iss": "https://issuer.example.com",
+        "iss": "https://issuer.example.com/",
         "iat": 1683000000,
         "exp": 1883000000,
         "sub": "user_42",
@@ -1428,9 +1467,9 @@ mod test {
                 "y": "ZxjiWWbZMQGHVWKVQ4hbSIirsVfuecCE6t4jT9F2HZQ"
             }
         }
-    }))]
+    }), true)]
     #[case(json!({
-        "iss": "https://issuer.example.com",
+        "iss": "https://issuer.example.com/",
         "iat": 1683000000,
         "exp": 1883000000,
         "sub": "6c5c0a49-b589-431d-bae7-219122a9ec2c",
@@ -1443,9 +1482,9 @@ mod test {
             ]
         },
         "_sd_alg": "sha-256"
-    }))]
+    }), true)]
     #[case(json!({
-        "iss": "https://issuer.example.com",
+        "iss": "https://issuer.example.com/",
         "iat": 1683000000,
         "exp": 1883000000,
         "sub": "6c5c0a49-b589-431d-bae7-219122a9ec2c",
@@ -1459,14 +1498,14 @@ mod test {
         },
         "_sd_alg": "sha-256"
     }
-    ))]
+    ), true)]
     #[case(json!({
         "_sd": [
             "-aSznId9mWM8ocuQolCllsxVggq1-vHW4OtnhUtVmWw",
             "IKbrYNn3vA7WEFrysvbdBJjDDU_EvQIr0W18vTRpUSg",
             "otkxuT14nBiwzNJ3MPaOitOl9pVnXOaEHal_xkyNfKI"
         ],
-        "iss": "https://issuer.example.com",
+        "iss": "https://issuer.example.com/",
         "iat": 1683000000,
         "exp": 1883000000,
         "verified_claims": {
@@ -1494,10 +1533,15 @@ mod test {
             }
         },
         "_sd_alg": "sha-256"
-    }))]
-    fn deserialize_spec_examples(#[case] value: serde_json::Value) {
-        let result = serde_json::from_value::<SdJwtClaims>(value);
-        assert!(result.is_ok());
+    }), true)]
+    fn deserialize_spec_examples(#[case] original: serde_json::Value, #[case] is_valid: bool) {
+        let deserialized = serde_json::from_value::<SdJwtClaims>(original.clone());
+        dbg!(&deserialized);
+        assert_eq!(deserialized.is_ok(), is_valid);
+        if is_valid {
+            let serialized = serde_json::to_value(deserialized.unwrap()).unwrap();
+            assert_eq!(serialized, original);
+        }
     }
 
     #[test]
@@ -1506,7 +1550,7 @@ mod test {
             "_sd": [
                 "CrQe7S5kqBAHt-nMYXgc6bdt2SH5aTY1sU_M-PgkjPI",
             ],
-            "iss": "https://issuer.example.com",
+            "iss": "https://issuer.example.com/",
             "iat": 1683000000,
             "exp": 1883000000,
             "sub": "user_42",
@@ -1562,7 +1606,7 @@ mod test {
             })),
             _sd_alg: Some("sha-256".to_string()),
             vct_integrity: None,
-            iss: SpecOptional::from("https://issuer.example.com".parse::<HttpsUri>().unwrap()),
+            iss: SpecOptional::from("https://issuer.example.com/".parse::<HttpsUri>().unwrap()),
             iat: SpecOptional::from(DateTimeSeconds::new(DateTime::from_timestamp(1683000000, 0).unwrap())),
             exp: DateTime::from_timestamp(1883000000, 0).map(DateTimeSeconds::new),
             nbf: None,
@@ -1574,12 +1618,9 @@ mod test {
                         .unwrap(),
                 ),
                 fields: HashMap::from([
+                    ("sub".parse().unwrap(), ClaimValue::String("user_42".to_string())),
                     (
-                        "sub".to_string(),
-                        ClaimValue::Primitive(serde_json::Value::String("user_42".to_string())),
-                    ),
-                    (
-                        "object_with_hashes".to_string(),
+                        "object_with_hashes".parse().unwrap(),
                         ClaimValue::Object(ObjectClaims {
                             _sd: Some(
                                 vec!["gbOsI4Edq2x2Kw-w5wPEzakob9hV1cRD0ATN3oQL9JM".to_string()]
@@ -1587,17 +1628,17 @@ mod test {
                                     .unwrap(),
                             ),
                             fields: HashMap::from([(
-                                "field".to_string(),
-                                ClaimValue::Primitive(serde_json::Value::String("value".to_string())),
+                                "field".parse().unwrap(),
+                                ClaimValue::String("value".to_string()),
                             )]),
                         }),
                     ),
                     (
-                        "object_with_array_of_hashes".to_string(),
+                        "object_with_array_of_hashes".parse().unwrap(),
                         ClaimValue::Object(ObjectClaims {
                             _sd: None,
                             fields: HashMap::from([(
-                                "array".to_string(),
+                                "array".parse().unwrap(),
                                 ClaimValue::Array(vec![ArrayClaim::Hash(
                                     "pFndjkZ_VCzmyTa6UjlZo3dh-ko8aIKQc9DlGzhaVYo".to_string(),
                                 )]),
@@ -1605,13 +1646,13 @@ mod test {
                         }),
                     ),
                     (
-                        "array_of_hashes".to_string(),
+                        "array_of_hashes".parse().unwrap(),
                         ClaimValue::Array(vec![ArrayClaim::Hash(
                             "pFndjkZ_VCzmyTa6UjlZo3dh-ko8aIKQc9DlGzhaVYo".to_string(),
                         )]),
                     ),
                     (
-                        "array_of_object_with_hashes".to_string(),
+                        "array_of_object_with_hashes".parse().unwrap(),
                         ClaimValue::Array(vec![
                             ArrayClaim::Value(ClaimValue::Object(ObjectClaims {
                                 _sd: Some(

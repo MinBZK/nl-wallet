@@ -5394,6 +5394,7 @@ dependencies = [
  "itertools 0.14.0",
  "jsonwebtoken",
  "jwt",
+ "nutype",
  "p256",
  "rand",
  "rand_core",
