@@ -51,11 +51,11 @@ use crate::encoder::DIGESTS_KEY;
 use crate::error::Error;
 use crate::error::Result;
 use crate::hasher::Hasher;
-use crate::hasher::SHA_ALG_NAME;
 use crate::hasher::Sha256Hasher;
 use crate::key_binding_jwt_claims::KeyBindingJwt;
 use crate::key_binding_jwt_claims::KeyBindingJwtBuilder;
 use crate::key_binding_jwt_claims::RequiredKeyBinding;
+use crate::sd_alg::SdAlg;
 
 /// An SD-JWT that has been split into parts but not verified yet. There's no need to keep the SD JWT as serialized form
 /// as there is no KB-JWT
@@ -161,7 +161,7 @@ impl From<UnsignedSdJwtPresentation> for UnverifiedSdJwt {
 #[skip_serializing_none]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SdJwtClaims {
-    pub _sd_alg: Option<String>,
+    pub _sd_alg: Option<SdAlg>,
 
     // Even though we want this to be mandatory, we allow it to be optional in order for the examples from the spec
     // to parse.
@@ -602,11 +602,11 @@ impl UnsignedSdJwtPresentation {
     ) -> Result<SdJwtPresentation> {
         let sd_jwt = self.0;
 
-        let required_hasher = sd_jwt.claims()._sd_alg.as_deref().unwrap_or(SHA_ALG_NAME);
-        if required_hasher != hasher.alg_name() {
+        let required_hasher = sd_jwt.claims()._sd_alg.unwrap_or_default();
+        if required_hasher != hasher.alg() {
             return Err(Error::InvalidHasher(format!(
                 "hasher \"{}\" was provided, but \"{required_hasher} is required\"",
-                hasher.alg_name()
+                hasher.alg()
             )));
         }
 
@@ -895,6 +895,7 @@ mod test {
     use crate::hasher::Sha256Hasher;
     use crate::key_binding_jwt_claims::KeyBindingJwtBuilder;
     use crate::key_binding_jwt_claims::RequiredKeyBinding;
+    use crate::sd_alg::SdAlg;
     use crate::sd_jwt::ArrayClaim;
     use crate::sd_jwt::ClaimValue;
     use crate::sd_jwt::Error;
@@ -1710,7 +1711,7 @@ mod test {
                     y: "ZxjiWWbZMQGHVWKVQ4hbSIirsVfuecCE6t4jT9F2HZQ".to_string(),
                 }),
             })),
-            _sd_alg: Some("sha-256".to_string()),
+            _sd_alg: Some(SdAlg::Sha256),
             vct_integrity: None,
             iss: SpecOptional::from("https://issuer.example.com/".parse::<HttpsUri>().unwrap()),
             iat: SpecOptional::from(DateTimeSeconds::new(DateTime::from_timestamp(1683000000, 0).unwrap())),

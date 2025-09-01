@@ -21,7 +21,6 @@ use jwt::VerifiedJwt;
 use crate::error;
 use crate::error::Error;
 use crate::hasher::Hasher;
-use crate::hasher::SHA_ALG_NAME;
 use crate::sd_jwt::SdJwt;
 
 pub const KB_JWT_HEADER_TYP: &str = "kb+jwt";
@@ -127,10 +126,10 @@ impl KeyBindingJwtBuilder {
             sd_hash,
         };
 
-        if sd_jwt.claims()._sd_alg.as_deref().unwrap_or(SHA_ALG_NAME) != hasher.alg_name() {
+        if sd_jwt.claims()._sd_alg.unwrap_or_default() != hasher.alg() {
             return Err(Error::InvalidHasher(format!(
                 "invalid hashing algorithm \"{}\"",
-                hasher.alg_name()
+                hasher.alg()
             )));
         }
 
@@ -180,6 +179,7 @@ mod test {
     use crate::key_binding_jwt_claims::KeyBindingJwt;
     use crate::key_binding_jwt_claims::KeyBindingJwtBuilder;
     use crate::key_binding_jwt_claims::KeyBindingJwtClaims;
+    use crate::sd_alg::SdAlg;
     use crate::sd_jwt::SdJwt;
     use crate::sd_jwt::SdJwtPresentation;
 
@@ -303,8 +303,8 @@ mod test {
                 vec![]
             }
 
-            fn alg_name(&self) -> &'static str {
-                "test_alg"
+            fn alg(&self) -> SdAlg {
+                SdAlg::Sha256 // must be a valid SdAlg
             }
         }
 

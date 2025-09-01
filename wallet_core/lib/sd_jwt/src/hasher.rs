@@ -5,7 +5,7 @@ use base64::prelude::*;
 
 use crypto::utils::sha256;
 
-pub const SHA_ALG_NAME: &str = "sha-256";
+use crate::sd_alg::SdAlg;
 
 /// Used to implement hash functions to be used for encoding/decoding.
 ///
@@ -23,8 +23,8 @@ pub trait Hasher {
     /// ## Note
     ///
     /// The hash algorithm identifier MUST be a hash algorithm value from the
-    /// "Hash Name String" column in the IANA "Named Information Hash Algorithm"  
-    fn alg_name(&self) -> &str;
+    /// "Hash Name String" column in the IANA "Named Information Hash Algorithm"
+    fn alg(&self) -> SdAlg;
 
     /// Returns the base64url-encoded digest of a `disclosure`.
     fn encoded_digest(&self, disclosure: &str) -> String {
@@ -49,8 +49,8 @@ impl Hasher for Sha256Hasher {
         sha256(input)
     }
 
-    fn alg_name(&self) -> &'static str {
-        SHA_ALG_NAME
+    fn alg(&self) -> SdAlg {
+        SdAlg::Sha256
     }
 }
 

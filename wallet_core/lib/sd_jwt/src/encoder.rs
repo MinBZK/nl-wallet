@@ -123,7 +123,7 @@ impl<H: Hasher> SdObjectEncoder<H> {
         self.object
             .as_object_mut()
             .expect("`object` should be a JSON object")
-            .insert(SD_ALG.to_string(), Value::String(self.hasher.alg_name().to_string()));
+            .insert(SD_ALG.to_string(), Value::String(self.hasher.alg().to_string()));
     }
 
     /// Adds a decoy digest to the specified path.
