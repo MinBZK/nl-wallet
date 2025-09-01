@@ -287,7 +287,8 @@ impl RedirectUriPurpose {
 }
 
 fn is_request_for_recovery_code(request: &NormalizedCredentialRequest) -> bool {
-    match &request.format {
+    // Get a normalized claim path for recovery_code if request is for PID
+    let recovery_code_claim_path = match &request.format {
         CredentialQueryFormat::MsoMdoc { doctype_value } if doctype_value.as_str() == PID_ATTESTATION_TYPE => {
             Some(vec_nonempty![
                 ClaimPath::SelectByKey(String::from(PID_ATTESTATION_TYPE)),
@@ -300,8 +301,8 @@ fn is_request_for_recovery_code(request: &NormalizedCredentialRequest) -> bool {
             Some(vec_nonempty![ClaimPath::SelectByKey(String::from(PID_RECOVERY_CODE))])
         }
         CredentialQueryFormat::MsoMdoc { .. } | CredentialQueryFormat::SdJwt { .. } => None,
-    }
-    .is_some_and(|claim_path| {
+    };
+    recovery_code_claim_path.is_some_and(|claim_path| {
         request
             .claims
             .iter()
