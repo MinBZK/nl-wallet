@@ -566,7 +566,9 @@ pub mod test {
                 },
                 Entry {
                     name: String::from(PID_RECOVERY_CODE),
-                    value: DataElementValue::Text(String::from("RECOVERY-CODE")),
+                    value: DataElementValue::Text(String::from(
+                        "cff292503cba8c4fbf2e5820dcdc468ae00f40c87b1af35513375800128fc00d",
+                    )),
                 },
             ],
         )]);

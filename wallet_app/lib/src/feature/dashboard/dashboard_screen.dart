@@ -25,7 +25,6 @@ import '../common/widget/button/scan_qr_button.dart';
 import '../common/widget/card/wallet_card_item.dart';
 import '../common/widget/centered_loading_indicator.dart';
 import '../common/widget/fade_in_at_offset.dart';
-import '../common/widget/spacer/sliver_sized_box.dart';
 import '../common/widget/text_with_link.dart';
 import '../common/widget/wallet_app_bar.dart';
 import '../common/widget/wallet_scrollbar.dart';
@@ -117,37 +116,29 @@ class DashboardScreen extends StatelessWidget {
 
   Widget _buildContent(BuildContext context, DashboardLoadSuccess state) {
     return WalletScrollbar(
-      child: CustomScrollView(
-        slivers: [
-          const SliverToBoxAdapter(
-            child: BannerList(),
-          ),
-          const SliverSizedBox(height: 16),
-          SliverToBoxAdapter(
-            child: Center(
-              child: ScanQrButton(
-                onPressed: () => Navigator.pushNamed(context, WalletRoutes.qrRoute),
-              ),
+      child: ListView(
+        children: [
+          const BannerList(),
+          const SizedBox(height: 16),
+          Center(
+            child: ScanQrButton(
+              onPressed: () => Navigator.pushNamed(context, WalletRoutes.qrRoute),
             ),
           ),
-          const SliverSizedBox(height: 16),
-          SliverPadding(
+          const SizedBox(height: 16),
+          Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            sliver: SliverToBoxAdapter(
-              child: ActivitySummary(
-                events: state.history ?? [],
-                onTap: () => Navigator.pushNamed(context, WalletRoutes.walletHistoryRoute),
-              ),
+            child: ActivitySummary(
+              events: state.history ?? [],
+              onTap: () => Navigator.pushNamed(context, WalletRoutes.walletHistoryRoute),
             ),
           ),
-          SliverPadding(
+          Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            sliver: _buildCardsSliver(context, state.cards),
+            child: _buildCardsGrid(context, state.cards),
           ),
-          SliverToBoxAdapter(
-            child: _buildFooter(context),
-          ),
-          SliverSizedBox(
+          _buildFooter(context),
+          SizedBox(
             height: context.mediaQuery.padding.bottom,
           ),
         ],
@@ -155,18 +146,20 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildCardsSliver(BuildContext context, List<WalletCard> cards) {
+  Widget _buildCardsGrid(BuildContext context, List<WalletCard> cards) {
+    if (cards.isEmpty) return const SizedBox.shrink();
+
     final crossAxisCount = max(1, (context.mediaQuery.size.width / kCardBreakPointWidth).floor());
-    return SliverMasonryGrid(
-      gridDelegate: SliverSimpleGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: min(crossAxisCount, _kMaxCrossAxisCount),
-      ),
+    final actualCrossAxisCount = min(crossAxisCount, _kMaxCrossAxisCount);
+
+    return MasonryGridView.count(
+      crossAxisCount: actualCrossAxisCount,
       mainAxisSpacing: 16,
       crossAxisSpacing: 16,
-      delegate: SliverChildBuilderDelegate(
-        (context, index) => _buildCardListItem(context, cards[index]),
-        childCount: cards.length,
-      ),
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: cards.length,
+      itemBuilder: (context, index) => _buildCardListItem(context, cards[index]),
     );
   }
 

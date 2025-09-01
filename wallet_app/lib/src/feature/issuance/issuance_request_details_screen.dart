@@ -20,8 +20,6 @@ import '../common/widget/card/shared_attributes_card.dart';
 import '../common/widget/list/list_item.dart';
 import '../common/widget/menu_item.dart';
 import '../common/widget/organization/organization_logo.dart';
-import '../common/widget/spacer/sliver_divider.dart';
-import '../common/widget/spacer/sliver_sized_box.dart';
 import '../common/widget/text/title_text.dart';
 import '../common/widget/wallet_app_bar.dart';
 import '../common/widget/wallet_scrollbar.dart';
@@ -71,38 +69,36 @@ class IssuanceRequestDetailsScreen extends StatelessWidget {
       children: [
         Expanded(
           child: WalletScrollbar(
-            child: CustomScrollView(
-              slivers: [
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: kDefaultTitlePadding,
-                    child: TitleText(
-                      context.l10n.requestDetailScreenAltTitle(
-                        state.organization.displayName.l10nValue(context),
-                      ),
+            child: ListView(
+              children: [
+                Padding(
+                  padding: kDefaultTitlePadding,
+                  child: TitleText(
+                    context.l10n.requestDetailScreenAltTitle(
+                      state.organization.displayName.l10nValue(context),
                     ),
                   ),
                 ),
-                const SliverSizedBox(height: 16),
-                _buildOrganizationSliver(
+                const SizedBox(height: 16),
+                _buildOrganization(
                   context,
                   state.organization,
                   DividerSide.top,
                 ),
-                RequestDetailCommonBuilders.buildPurposeSliver(
+                RequestDetailCommonBuilders.buildPurpose(
                   context,
                   purpose: state.purpose,
                   side: DividerSide.top,
                 ),
-                _buildCardRequestsSliver(context, state.cardRequests),
-                RequestDetailCommonBuilders.buildPolicySliver(
+                _buildCardRequests(context, state.cardRequests),
+                RequestDetailCommonBuilders.buildPolicy(
                   context,
                   organization: state.organization,
                   policy: state.policy,
                   side: DividerSide.top,
                 ),
-                const SliverDivider(),
-                const SliverSizedBox(height: 24),
+                const Divider(),
+                const SizedBox(height: 24),
               ],
             ),
           ),
@@ -112,66 +108,61 @@ class IssuanceRequestDetailsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildOrganizationSliver(BuildContext context, Organization organization, DividerSide side) {
-    return SliverToBoxAdapter(
-      child: MenuItem(
-        leftIcon: OrganizationLogo(image: organization.logo, size: kMenuItemNormalIconSize),
-        dividerSide: side,
-        label: Text(
-          context.l10n.requestDetailScreenAboutOrganizationCta(
-            organization.displayName.l10nValue(context),
-          ),
+  Widget _buildOrganization(BuildContext context, Organization organization, DividerSide side) {
+    return MenuItem(
+      leftIcon: OrganizationLogo(image: organization.logo, size: kMenuItemNormalIconSize),
+      dividerSide: side,
+      label: Text(
+        context.l10n.requestDetailScreenAboutOrganizationCta(
+          organization.displayName.l10nValue(context),
         ),
-        subtitle: Text(organization.category?.l10nValue(context) ?? '').takeIf((_) => organization.category != null),
-        onPressed: () => OrganizationDetailScreen.showPreloaded(
-          context,
-          organization,
-          sharedDataWithOrganizationBefore: false,
-        ),
+      ),
+      subtitle: Text(organization.category?.l10nValue(context) ?? '').takeIf((_) => organization.category != null),
+      onPressed: () => OrganizationDetailScreen.showPreloaded(
+        context,
+        organization,
+        sharedDataWithOrganizationBefore: false,
       ),
     );
   }
 
-  Widget _buildCardRequestsSliver(BuildContext context, List<DiscloseCardRequest> cardRequests) {
+  Widget _buildCardRequests(BuildContext context, List<DiscloseCardRequest> cardRequests) {
     final totalNrOfAttributes = cardRequests.map((it) => it.selection.attributes).flattened.length;
     final String title = context.l10n.requestDetailsScreenAttributesTitle;
     final subtitle = context.l10n.requestDetailsScreenAttributesSubtitle(totalNrOfAttributes);
 
-    final headerSliver = SliverToBoxAdapter(
-      child: ListItem(
-        label: Text.rich(title.toTextSpan(context)),
-        subtitle: Text.rich(subtitle.toTextSpan(context)),
-        icon: const Icon(Icons.credit_card_outlined),
-        style: ListItemStyle.vertical,
-        dividerSide: DividerSide.top,
-      ),
+    final header = ListItem(
+      label: Text.rich(title.toTextSpan(context)),
+      subtitle: Text.rich(subtitle.toTextSpan(context)),
+      icon: const Icon(Icons.credit_card_outlined),
+      style: ListItemStyle.vertical,
+      dividerSide: DividerSide.top,
     );
 
-    final attributesSliver = SliverList.separated(
-      itemCount: cardRequests.length,
-      itemBuilder: (context, i) {
-        final request = cardRequests[i];
-        return AnimatedCardSwitcher(
-          enableAnimation: !context.isScreenReaderEnabled,
-          child: SharedAttributesCard(
-            key: ValueKey(request.selection.attestationId),
-            card: request.selection,
-            onPressed: () => _onShowCardDetailsPressed(context, request),
-            onChangeCardPressed:
-                request.hasAlternatives ? () => _showSelectAlternativeCardSheet(context, request) : null,
-          ),
-        );
-      },
-      separatorBuilder: (context, i) => const SizedBox(height: 16),
-    );
-    return SliverMainAxisGroup(
-      slivers: [
-        headerSliver,
-        SliverPadding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          sliver: attributesSliver,
+    final attributeWidgets = cardRequests.map((request) {
+      return AnimatedCardSwitcher(
+        enableAnimation: !context.isScreenReaderEnabled,
+        child: SharedAttributesCard(
+          key: ValueKey(request.selection.attestationId),
+          card: request.selection,
+          onPressed: () => _onShowCardDetailsPressed(context, request),
+          onChangeCardPressed: request.hasAlternatives ? () => _showSelectAlternativeCardSheet(context, request) : null,
         ),
-        const SliverSizedBox(height: 24),
+      );
+    }).toList();
+
+    return Column(
+      children: [
+        header,
+        ListView.separated(
+          physics: const NeverScrollableScrollPhysics(),
+          shrinkWrap: true,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          itemBuilder: (c, i) => attributeWidgets[i],
+          separatorBuilder: (c, i) => const SizedBox(height: 16),
+          itemCount: attributeWidgets.length,
+        ),
+        const SizedBox(height: 24),
       ],
     );
   }

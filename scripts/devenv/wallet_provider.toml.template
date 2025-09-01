@@ -14,7 +14,7 @@ pid_issuer_trust_anchors = ["${ISSUER_CA_CRT}"]
 host = "${DB_HOST}"
 username = "${DB_USERNAME}"
 password = "${DB_PASSWORD}"
-name = "${DB_NAME}"
+name = "wallet_provider"
 
 [webserver]
 ip = "0.0.0.0"

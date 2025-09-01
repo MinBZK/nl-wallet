@@ -264,10 +264,8 @@ WidgetBuilder _createDashboardScreenBuilder(RouteSettings settings) {
 }
 
 Widget _createMenuScreenBuilder(BuildContext context) {
-  return BlocProvider(
-    create: (context) => MenuBloc(
-      context.read(),
-    ),
+  return BlocProvider<MenuBloc>(
+    create: (context) => MenuBloc(context.read()),
     child: const MenuScreen(),
   );
 }

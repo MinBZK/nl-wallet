@@ -1,21 +1,18 @@
 services:
   postgres:
     container_name: postgres
-    image: docker.io/bitnami/postgresql
+    image: docker.io/library/postgres
     ports:
       - "5432:5432"
     network_mode: bridge
     environment:
-      # ALLOW_EMPTY_PASSWORD is recommended only for development.
-      - ALLOW_EMPTY_PASSWORD=yes
-      - POSTGRESQL_USERNAME=${DB_USERNAME}
-      - POSTGRESQL_PASSWORD=${DB_PASSWORD}
-      - POSTGRESQL_DATABASE=${DB_NAME}
+      # POSTGRES_HOST_AUTH_METHOD=trust is recommended only for development.
+      - POSTGRES_HOST_AUTH_METHOD=trust
+      - POSTGRES_USER=${DB_USERNAME}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
     volumes:
-      - postgres:/bitnami/postgresql
-      - postgres:/docker-entrypoint-initdb.d
-      - postgres:/docker-entrypoint-preinitdb.d
-      - ./sql/create_tables.sql:/docker-entrypoint-initdb.d/create_tables.sql
+      - postgres:/var/lib/postgresql/data
+      - ./sql:/docker-entrypoint-initdb.d
 
   brpproxy:
     container_name: brpproxy

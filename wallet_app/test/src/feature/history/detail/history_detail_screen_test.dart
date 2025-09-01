@@ -253,12 +253,6 @@ void main() {
       expect(find.text(WalletMockData.disclosureEvent.cards.first.attributes.first.label.testValue), findsOneWidget);
       expect(find.text('1 March 2024, 00:00'), findsOneWidget);
       expect(find.textContaining('will store your data for', findRichText: true), findsOneWidget);
-      final scrollableFinder = find.byType(Scrollable);
-      await tester.scrollUntilVisible(
-        find.text(l10n.disclosureStopSheetReportIssueCta),
-        500,
-        scrollable: scrollableFinder,
-      );
       expect(find.textContaining(l10n.disclosureStopSheetReportIssueCta), findsOneWidget);
       expect(find.text(l10n.generalBottomBackCta), findsOneWidget);
     });
@@ -301,12 +295,6 @@ void main() {
       expect(find.text(WalletMockData.loginEvent.cards.first.attributes.first.label.testValue), findsOneWidget);
       expect(find.text('1 February 2024, 00:00'), findsOneWidget);
       expect(find.textContaining('will store your data for', findRichText: true), findsOneWidget);
-      final scrollableFinder = find.byType(Scrollable);
-      await tester.scrollUntilVisible(
-        find.text(l10n.disclosureStopSheetReportIssueCta),
-        500,
-        scrollable: scrollableFinder,
-      );
       expect(find.textContaining(l10n.disclosureStopSheetReportIssueCta), findsOneWidget);
       expect(find.text(l10n.generalBottomBackCta), findsOneWidget);
     });

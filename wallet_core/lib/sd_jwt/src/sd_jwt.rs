@@ -766,7 +766,7 @@ mod example {
                 "iss": "https://cert.issuer.example.com",
                 "attestation_qualification": "QEAA",
                 "bsn": "999991772",
-                "recovery_code": "885ed8a2-f07a-4f77-a8df-2e166f5ebd36",
+                "recovery_code": "cff292503cba8c4fbf2e5820dcdc468ae00f40c87b1af35513375800128fc00d",
                 "given_name": "John",
                 "family_name": "Doe",
                 "birthdate": "1940-01-01"

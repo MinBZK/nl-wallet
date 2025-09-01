@@ -23,45 +23,39 @@ import '../widget/button/link_button.dart';
 import '../widget/button/list_button.dart';
 import '../widget/card/shared_attributes_card.dart';
 import '../widget/list/list_item.dart';
-import '../widget/spacer/sliver_divider.dart';
-import '../widget/spacer/sliver_sized_box.dart';
 
 class RequestDetailCommonBuilders {
   RequestDetailCommonBuilders._();
 
-  static Widget buildStatusHeaderSliver(
+  static Widget buildStatusHeader(
     BuildContext context, {
     required WalletEvent event,
     DividerSide side = DividerSide.none,
   }) {
-    return SliverMainAxisGroup(
-      slivers: [
-        if (side.top) const SliverDivider(),
-        SliverToBoxAdapter(
-          child: WalletEventStatusHeader(event: event),
-        ),
-        if (side.bottom) const SliverDivider(),
+    return Column(
+      children: [
+        if (side.top) const Divider(),
+        WalletEventStatusHeader(event: event),
+        if (side.bottom) const Divider(),
       ],
     );
   }
 
-  static Widget buildPurposeSliver(
+  static Widget buildPurpose(
     BuildContext context, {
     required LocalizedText purpose,
     DividerSide side = DividerSide.none,
   }) {
-    return SliverToBoxAdapter(
-      child: ListItem(
-        label: Text.rich(context.l10n.historyDetailScreenPurposeTitle.toTextSpan(context)),
-        subtitle: Text.rich(purpose.l10nSpan(context)),
-        icon: const Icon(Icons.info_outline_rounded),
-        style: ListItemStyle.vertical,
-        dividerSide: side,
-      ),
+    return ListItem(
+      label: Text.rich(context.l10n.historyDetailScreenPurposeTitle.toTextSpan(context)),
+      subtitle: Text.rich(purpose.l10nSpan(context)),
+      icon: const Icon(Icons.info_outline_rounded),
+      style: ListItemStyle.vertical,
+      dividerSide: side,
     );
   }
 
-  static Widget buildSharedAttributesSliver(
+  static Widget buildSharedAttributes(
     BuildContext context, {
     required List<WalletCard> cards,
     DividerSide side = DividerSide.none,
@@ -69,10 +63,10 @@ class RequestDetailCommonBuilders {
     final totalNrOfAttributes = cards.map((it) => it.attributes).flattened.length;
     final String title = context.l10n.historyDetailScreenSharedAttributesTitle;
     final subtitle = context.l10n.historyDetailScreenSharedAttributesSubtitle(totalNrOfAttributes);
-    return _buildAttributesSliver(context, cards: cards, title: title, subtitle: subtitle, side: side);
+    return _buildAttributes(context, cards: cards, title: title, subtitle: subtitle, side: side);
   }
 
-  static Widget buildRequestedAttributesSliver(
+  static Widget buildRequestedAttributes(
     BuildContext context, {
     required List<WalletCard> cards,
     DividerSide side = DividerSide.none,
@@ -80,56 +74,53 @@ class RequestDetailCommonBuilders {
     final totalNrOfAttributes = cards.map((it) => it.attributes).flattened.length;
     final String title = context.l10n.requestDetailsScreenAttributesTitle;
     final subtitle = context.l10n.requestDetailsScreenAttributesSubtitle(totalNrOfAttributes);
-    return _buildAttributesSliver(context, cards: cards, title: title, subtitle: subtitle, side: side);
+    return _buildAttributes(context, cards: cards, title: title, subtitle: subtitle, side: side);
   }
 
-  static Widget _buildAttributesSliver(
+  static Widget _buildAttributes(
     BuildContext context, {
     required List<WalletCard> cards,
     required String title,
     required String subtitle,
     DividerSide side = DividerSide.none,
   }) {
-    final headerSliver = SliverToBoxAdapter(
-      child: ListItem(
-        label: Text.rich(title.toTextSpan(context)),
-        subtitle: Text.rich(subtitle.toTextSpan(context)),
-        icon: const Icon(Icons.credit_card_outlined),
-        style: ListItemStyle.vertical,
-        dividerSide: DividerSide.none /* handled below */,
-      ),
+    final header = ListItem(
+      label: Text.rich(title.toTextSpan(context)),
+      subtitle: Text.rich(subtitle.toTextSpan(context)),
+      icon: const Icon(Icons.credit_card_outlined),
+      style: ListItemStyle.vertical,
+      dividerSide: DividerSide.none /* handled below */,
     );
 
-    final attributesSliver = SliverList.separated(
-      itemCount: cards.length,
-      itemBuilder: (context, i) {
-        final card = cards[i];
-        return SharedAttributesCard(
-          card: card,
-          onPressed: () => CheckAttributesScreen.show(
-            context,
-            card: card,
-            onDataIncorrectPressed: () => InfoScreen.showDetailsIncorrect(context),
-          ),
-        );
-      },
-      separatorBuilder: (context, i) => const SizedBox(height: 16),
-    );
-    return SliverMainAxisGroup(
-      slivers: [
-        if (side.top) const SliverDivider(),
-        headerSliver,
-        SliverPadding(
+    return Column(
+      children: [
+        if (side.top) const Divider(),
+        header,
+        ListView.separated(
+          shrinkWrap: true,
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          sliver: attributesSliver,
+          physics: const NeverScrollableScrollPhysics(),
+          itemBuilder: (c, i) {
+            final card = cards[i];
+            return SharedAttributesCard(
+              card: card,
+              onPressed: () => CheckAttributesScreen.show(
+                context,
+                card: card,
+                onDataIncorrectPressed: () => InfoScreen.showDetailsIncorrect(context),
+              ),
+            );
+          },
+          separatorBuilder: (c, i) => const SizedBox(height: 16),
+          itemCount: cards.length,
         ),
-        const SliverSizedBox(height: 24),
-        if (side.bottom) const SliverDivider(),
+        const SizedBox(height: 24),
+        if (side.bottom) const Divider(),
       ],
     );
   }
 
-  static Widget buildPolicySliver(
+  static Widget buildPolicy(
     BuildContext context, {
     required Organization organization,
     required Policy policy,
@@ -137,72 +128,64 @@ class RequestDetailCommonBuilders {
   }) {
     final OrganizationPolicy orgPolicy = OrganizationPolicy(policy: policy, organization: organization);
     final policyTextMapper = context.read<ContextMapper<OrganizationPolicy, String>>();
-    return SliverToBoxAdapter(
-      child: ListItem(
-        label: Text.rich(context.l10n.historyDetailScreenTermsTitle.toTextSpan(context)),
-        subtitle: Text.rich(policyTextMapper.map(context, orgPolicy).toTextSpan(context)),
-        icon: const Icon(Icons.handshake_outlined),
-        button: LinkButton(
-          text: Text.rich(context.l10n.historyDetailScreenTermsCta.toTextSpan(context)),
-          onPressed: () => PolicyScreen.show(context, organization, policy),
-        ),
-        style: ListItemStyle.vertical,
-        dividerSide: side,
+    return ListItem(
+      label: Text.rich(context.l10n.historyDetailScreenTermsTitle.toTextSpan(context)),
+      subtitle: Text.rich(policyTextMapper.map(context, orgPolicy).toTextSpan(context)),
+      icon: const Icon(Icons.handshake_outlined),
+      button: LinkButton(
+        text: Text.rich(context.l10n.historyDetailScreenTermsCta.toTextSpan(context)),
+        onPressed: () => PolicyScreen.show(context, organization, policy),
       ),
+      style: ListItemStyle.vertical,
+      dividerSide: side,
     );
   }
 
-  static Widget buildAboutOrganizationSliver(
+  static Widget buildAboutOrganization(
     BuildContext context, {
     required Organization organization,
     DividerSide side = DividerSide.none,
   }) {
-    return SliverToBoxAdapter(
-      child: ListButton(
-        text: Text.rich(
-          context.l10n
-              .historyDetailScreenAboutOrganizationCta(organization.displayName.l10nValue(context))
-              .toTextSpan(context),
-        ),
-        onPressed: () => OrganizationDetailScreen.showPreloaded(
-          context,
-          organization,
-          sharedDataWithOrganizationBefore: false,
-          onReportIssuePressed: () => PlaceholderScreen.showGeneric(context),
-        ),
-        dividerSide: side,
-        trailing: ExcludeSemantics(
-          child: SizedBox(
-            height: 36,
-            width: 36,
-            child: AppImage(asset: organization.logo),
-          ),
+    return ListButton(
+      text: Text.rich(
+        context.l10n
+            .historyDetailScreenAboutOrganizationCta(organization.displayName.l10nValue(context))
+            .toTextSpan(context),
+      ),
+      onPressed: () => OrganizationDetailScreen.showPreloaded(
+        context,
+        organization,
+        sharedDataWithOrganizationBefore: false,
+        onReportIssuePressed: () => PlaceholderScreen.showGeneric(context),
+      ),
+      dividerSide: side,
+      trailing: ExcludeSemantics(
+        child: SizedBox(
+          height: 36,
+          width: 36,
+          child: AppImage(asset: organization.logo),
         ),
       ),
     );
   }
 
-  static Widget buildShowDetailsSliver(
+  static Widget buildShowDetails(
     BuildContext context, {
     required DisclosureEvent event,
     DividerSide side = DividerSide.none,
   }) {
-    return SliverToBoxAdapter(
-      child: ListButton(
-        text: Text.rich(context.l10n.historyDetailScreenShowDetailsCta.toTextSpan(context)),
-        onPressed: () => RequestDetailsScreen.showEvent(context, event),
-        dividerSide: side,
-      ),
+    return ListButton(
+      text: Text.rich(context.l10n.historyDetailScreenShowDetailsCta.toTextSpan(context)),
+      onPressed: () => RequestDetailsScreen.showEvent(context, event),
+      dividerSide: side,
     );
   }
 
-  static Widget buildReportIssueSliver(BuildContext context, {DividerSide side = DividerSide.none}) {
-    return SliverToBoxAdapter(
-      child: ListButton(
-        text: Text.rich(context.l10n.historyDetailScreenReportIssueCta.toTextSpan(context)),
-        onPressed: () => PlaceholderScreen.showGeneric(context),
-        dividerSide: side,
-      ),
+  static Widget buildReportIssue(BuildContext context, {DividerSide side = DividerSide.none}) {
+    return ListButton(
+      text: Text.rich(context.l10n.historyDetailScreenReportIssueCta.toTextSpan(context)),
+      onPressed: () => PlaceholderScreen.showGeneric(context),
+      dividerSide: side,
     );
   }
 }
