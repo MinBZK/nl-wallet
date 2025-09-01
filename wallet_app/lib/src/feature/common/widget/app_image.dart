@@ -21,13 +21,18 @@ class AppImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final object = asset;
+    final Widget result;
     switch (object) {
       case SvgImage():
-        return SvgPicture.string(object.data, fit: fit, alignment: alignment, semanticsLabel: altText);
+        result = SvgPicture.string(object.data, fit: fit, alignment: alignment, semanticsLabel: altText);
       case AppAssetImage():
-        return Image(image: AssetImage(object.name), fit: fit, alignment: alignment, semanticLabel: altText);
+        result = Image(image: AssetImage(object.name), fit: fit, alignment: alignment, semanticLabel: altText);
       case AppMemoryImage():
-        return Image.memory(object.data, fit: fit, alignment: alignment, semanticLabel: altText);
+        result = Image.memory(object.data, fit: fit, alignment: alignment, semanticLabel: altText);
     }
+    return ExcludeSemantics(
+      excluding: altText == null,
+      child: result,
+    );
   }
 }
