@@ -919,6 +919,16 @@ mod test {
         );
     }
 
+    #[test]
+    fn parse_invalid_disclosure() {
+        let result = SdJwt::parse_and_verify(
+            INVALID_DISCLOSURE_SD_JWT.trim(),
+            &examples_sd_jwt_decoding_key(),
+            &Sha256Hasher,
+        );
+        assert_matches!(result, Err(crate::error::Error::Serialization(_)));
+    }
+
     fn create_presentation(
         object: serde_json::Value,
         conceal_paths: &[Vec<&str>],
