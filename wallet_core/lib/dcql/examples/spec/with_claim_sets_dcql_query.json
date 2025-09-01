@@ -1,22 +1,22 @@
 {
-    "credentials": [
-        {
-            "id": "pid",
-            "format": "dc+sd-jwt",
-            "meta": {
-                "vct_values": [ "https://credentials.example.com/identity_credential" ]
-            },
-            "claims": [
-                {"id": "a", "path": ["last_name"]},
-                {"id": "b", "path": ["postal_code"]},
-                {"id": "c", "path": ["locality"]},
-                {"id": "d", "path": ["region"]},
-                {"id": "e", "path": ["date_of_birth"]}
-            ],
-            "claim_sets": [
-                ["a", "c", "d", "e"],
-                ["a", "b", "e"]
-            ]
-        }
-    ]
+  "credentials": [
+    {
+      "id": "pid",
+      "format": "dc+sd-jwt",
+      "meta": {
+        "vct_values": ["https://credentials.example.com/identity_credential"]
+      },
+      "claims": [
+        { "id": "a", "path": ["last_name"] },
+        { "id": "b", "path": ["postal_code"] },
+        { "id": "c", "path": ["locality"] },
+        { "id": "d", "path": ["region"] },
+        { "id": "e", "path": ["date_of_birth"] }
+      ],
+      "claim_sets": [
+        ["a", "c", "d", "e"],
+        ["a", "b", "e"]
+      ]
+    }
+  ]
 }
