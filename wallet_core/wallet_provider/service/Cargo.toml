@@ -100,16 +100,16 @@ rand_core.workspace = true
 rstest.workspace = true
 tracing-test.workspace = true
 tokio = { workspace = true, features = ["rt", "macros", "parking_lot"] }
-url.workspace = true
 
 android_attest = { path = "../../lib/android_attest", features = ["mock"] }
 apple_app_attest = { path = "../../lib/apple_app_attest", features = ["mock"] }
-attestation_data = { path = "../../lib/attestation_data", features = ["mock"] }
+attestation_data = { path = "../../lib/attestation_data", features = ["mock", "generate"] }
 attestation_types = { path = "../../lib/attestation_types" }
 crypto = { path = "../../lib/crypto", features = ["mock_remote_key"] }
 jwt = { path = "../../lib/jwt", features = ["test"] }
 pid_issuer = { path = "../../wallet_server/pid_issuer", features = ["mock"] }
 platform_support = { path = "../../wallet/platform_support", features = ["mock_attested_key_apple"] }
+sd_jwt = { path = "../../lib/sd_jwt", features = ["examples"] }
 wallet_account = { path = "../wallet_account", features = ["client", "server"] }
 wallet_provider_domain = { path = "../domain", features = ["mock"] }
 wallet_provider_persistence = { path = "../persistence", features = ["mock"] }

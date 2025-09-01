@@ -7795,7 +7795,6 @@ dependencies = [
  "tracing-subscriber",
  "tracing-test",
  "trait-variant",
- "url",
  "utils",
  "uuid",
  "wallet_account",

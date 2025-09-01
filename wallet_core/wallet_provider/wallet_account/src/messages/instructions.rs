@@ -194,7 +194,12 @@ pub struct DiscloseRecoveryCode {
 impl InstructionAndResult for DiscloseRecoveryCode {
     const NAME: &'static str = "disclose_recovery_code";
 
-    type Result = ();
+    type Result = DiscloseRecoveryCodeResult;
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DiscloseRecoveryCodeResult {
+    pub transfer_available: bool,
 }
 
 #[cfg(feature = "client")]
