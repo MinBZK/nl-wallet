@@ -912,7 +912,6 @@ mod test {
     use chrono::Duration;
     use chrono::Utc;
     use futures::FutureExt;
-    use http_utils::urls::HttpsUri;
     use itertools::Itertools;
     use jsonwebtoken::Algorithm;
     use jsonwebtoken::errors::ErrorKind;
@@ -927,6 +926,7 @@ mod test {
     use serde_json::json;
     use ssri::Integrity;
 
+    use http_utils::urls::HttpsUri;
     use jwt::EcdsaDecodingKey;
     use jwt::VerifiedJwt;
     use jwt::error::JwtError;
