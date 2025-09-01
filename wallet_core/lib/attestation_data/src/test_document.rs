@@ -48,7 +48,7 @@ pub fn test_documents_assert_matches_disclosed_attestations(
 
         // Verify the actual attributes.
         let DisclosedAttributes::MsoMdoc(mut attributes) = attestation.attributes else {
-            panic!("disclosed attributes should be in mdoc structure");
+            panic!("disclosed attributes should be in mdoc format");
         };
 
         assert_eq!(attributes.len(), expected_namespaces.len());

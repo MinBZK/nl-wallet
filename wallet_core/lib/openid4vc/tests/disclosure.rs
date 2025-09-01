@@ -116,7 +116,7 @@ fn assert_disclosed_attestations_mdoc_pid(
     assert_eq!(disclosed_attestation.attestation_type, PID);
 
     let DisclosedAttributes::MsoMdoc(attributes) = &disclosed_attestation.attributes else {
-        panic!("disclosed attributes should be in mdoc structure");
+        panic!("disclosed attributes should be in mdoc format");
     };
 
     let family_name = attributes.get(PID).and_then(|name_space| name_space.get("family_name"));
