@@ -91,7 +91,8 @@ impl IntoResponse for StatusListToken {
 }
 
 #[serde_as]
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct StatusListClaims {
     #[serde(with = "ts_seconds")]
     iat: DateTime<Utc>,

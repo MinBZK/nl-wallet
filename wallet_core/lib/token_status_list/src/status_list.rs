@@ -40,7 +40,8 @@ pub struct StatusList {
     len: usize,
 }
 
-#[derive(Debug, Default, Clone, Eq, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+#[cfg_attr(test, derive(Eq))]
 pub struct PackedStatusList {
     /// The amount of bits used to describe the status of each Referenced Token within this Status List.
     bits: Bits,
@@ -49,6 +50,7 @@ pub struct PackedStatusList {
     lst: Vec<u8>,
 }
 
+#[cfg(test)]
 impl PartialEq for PackedStatusList {
     fn eq(&self, other: &Self) -> bool {
         self.unpack() == other.unpack()
@@ -146,6 +148,7 @@ impl PackedStatusList {
         indices.iter().map(|index| self.single_unpack(*index)).collect()
     }
 
+    #[cfg(test)]
     fn unpack(&self) -> StatusList {
         let len = self.bits.unpacked_len(self.lst.len());
         let sparse: SparseStatusVec = (0..len)
@@ -196,6 +199,7 @@ impl Bits {
     }
 
     #[inline]
+    #[cfg(test)]
     pub fn unpacked_len(self, len: usize) -> usize {
         len * self.statuses_per_byte()
     }
