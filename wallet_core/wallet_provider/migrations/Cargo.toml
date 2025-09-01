@@ -9,6 +9,7 @@ workspace = true
 
 [dependencies]
 async-trait.workspace = true
+regex.workspace = true
 sea-orm-migration = { workspace = true, features = [
     "cli",
     "runtime-tokio-rustls",
