@@ -14,4 +14,6 @@ doctest = false
 
 [dependencies]
 sea-orm-migration = { workspace = true, features = ["cli", "runtime-tokio-rustls", "sqlx-postgres"] }
+# This dependency is a workaround for a bug in sea-orm-cli and can be removed once that is updated to v1.1.15 or more.
+regex.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "parking_lot", "macros"] }
