@@ -148,8 +148,7 @@ impl PackedStatusList {
         indices.iter().map(|index| self.single_unpack(*index)).collect()
     }
 
-    #[cfg(test)]
-    fn unpack(&self) -> StatusList {
+    pub fn unpack(&self) -> StatusList {
         let len = self.bits.unpacked_len(self.lst.len());
         let sparse: SparseStatusVec = (0..len)
             .filter_map(|index| {
@@ -199,7 +198,6 @@ impl Bits {
     }
 
     #[inline]
-    #[cfg(test)]
     pub fn unpacked_len(self, len: usize) -> usize {
         len * self.statuses_per_byte()
     }
