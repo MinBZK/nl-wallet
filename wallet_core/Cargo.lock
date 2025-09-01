@@ -4193,7 +4193,6 @@ dependencies = [
  "p256",
  "parking_lot",
  "rand_core",
- "regex",
  "reqwest",
  "ring",
  "rstest",
