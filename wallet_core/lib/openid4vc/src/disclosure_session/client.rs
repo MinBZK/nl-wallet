@@ -341,7 +341,7 @@ mod tests {
 
         assert_eq!(
             *disclosure_session.credential_requests(),
-            NormalizedCredentialRequests::new_pid_example()
+            NormalizedCredentialRequests::new_mock_mdoc_pid_example()
         );
 
         assert_eq!(

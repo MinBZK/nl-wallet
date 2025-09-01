@@ -818,8 +818,8 @@ mod tests {
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
-    use dcql::CredentialQueryFormat;
     use dcql::CredentialQueryIdentifier;
+    use dcql::normalized::FormatCredentialRequest;
     use dcql::normalized::NormalizedCredentialRequests;
     use jwt::UnverifiedJwt;
     use mdoc::DeviceAuthenticationKeyed;
@@ -869,7 +869,7 @@ mod tests {
     }
 
     fn setup() -> (TrustAnchor<'static>, KeyPair, EcKeyPair, VpAuthorizationRequest) {
-        setup_with_credential_requests(NormalizedCredentialRequests::new_big_example())
+        setup_with_credential_requests(NormalizedCredentialRequests::new_mock_mdoc_iso_example())
     }
 
     fn setup_with_credential_requests(
@@ -1151,9 +1151,9 @@ mod tests {
             .credential_requests
             .as_ref()
             .iter()
-            .map(|it| {
-                match &it.format {
-                    CredentialQueryFormat::MsoMdoc { doctype_value } => {
+            .map(|request| {
+                match &request.format_request {
+                    FormatCredentialRequest::MsoMdoc { doctype_value, .. } => {
                         // Assemble the challenge (serialized Device Authentication) to sign with the mdoc key
                         let device_authentication = TaggedBytes(CborSeq(DeviceAuthenticationKeyed {
                             device_authentication: Default::default(),
@@ -1164,7 +1164,7 @@ mod tests {
 
                         cbor_serialize(&device_authentication).unwrap()
                     }
-                    CredentialQueryFormat::SdJwt { .. } => todo!("PVW-4139 support SdJwt"),
+                    FormatCredentialRequest::SdJwt { .. } => todo!("PVW-4139 support SdJwt"),
                 }
             })
             .collect_vec()
@@ -1260,7 +1260,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_verify_authorization_response() {
-        let (_, _, _, auth_request) = setup_with_credential_requests(NormalizedCredentialRequests::new_pid_example());
+        let (_, _, _, auth_request) =
+            setup_with_credential_requests(NormalizedCredentialRequests::new_mock_mdoc_pid_example());
         let mdoc_nonce = "mdoc_nonce";
 
         let time_generator = MockTimeGenerator::default();
@@ -1320,9 +1321,9 @@ mod tests {
         NormalizedVpAuthorizationRequest,
     ) {
         let stored_documents = pid_full_name() + addr_street();
-        let items_request = stored_documents.clone().into();
+        let credential_requests = stored_documents.clone().into();
 
-        let (_, _, _, auth_request) = setup_with_credential_requests(items_request);
+        let (_, _, _, auth_request) = setup_with_credential_requests(credential_requests);
 
         let auth_request = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap();
 

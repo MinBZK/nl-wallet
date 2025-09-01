@@ -9,7 +9,7 @@ workspace = true
 
 [features]
 examples = []
-mock = []
+mock = ["mdoc/examples"]
 test_document = ["mdoc/test"]
 
 [dependencies]

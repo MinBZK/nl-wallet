@@ -1639,7 +1639,7 @@ mod tests {
         let result = verifier
             .new_session(
                 usecase_id.to_string(),
-                Some(Query::pid_full_name()),
+                Some(Query::new_mock_mdoc_pid_example()),
                 return_url_template,
             )
             .await;
@@ -1661,7 +1661,7 @@ mod tests {
         let session_token = verifier
             .new_session(
                 DISCLOSURE_USECASE.to_string(),
-                Some(Query::pid_full_name()),
+                Some(Query::new_mock_mdoc_pid_example()),
                 Some("https://example.com/{session_token}".parse().unwrap()),
             )
             .await
@@ -1967,7 +1967,7 @@ mod tests {
                     session_type_return_url: SessionTypeReturnUrl::Neither,
                     client_id: "client_id".to_string(),
                 },
-                credential_requests: NormalizedCredentialRequests::new_pid_example(),
+                credential_requests: NormalizedCredentialRequests::new_mock_mdoc_pid_example(),
                 return_url_template: "https://example.com".parse().unwrap(),
             },
         )]);

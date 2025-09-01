@@ -82,7 +82,7 @@ impl<'a> DisclosedCredential<'a> {
             Self::MsoMdoc(document) => {
                 match document
                     .issuer_signed
-                    .matches_requested_attributes(credential_request.claim_paths())
+                    .matches_requested_attributes(credential_request.format_request.claim_paths())
                 {
                     Ok(()) => HashSet::new(),
                     Err(MissingAttributesError(missing_attributes)) => missing_attributes,
@@ -139,7 +139,7 @@ impl NormalizedCredentialRequests {
         let format_mismatches = requests_and_credentials
             .iter()
             .filter_map(|(id, (request, credential))| {
-                let expected_format = (&request.format).into();
+                let expected_format = request.format_request.format();
                 let received_format = credential.format();
 
                 (received_format != expected_format).then(|| ((*id).clone(), (expected_format, received_format)))
@@ -156,11 +156,15 @@ impl NormalizedCredentialRequests {
             .filter_map(|(id, (request, credential))| {
                 let credential_type = credential.credential_type();
 
-                (!request.format.credential_types().contains(credential_type)).then(|| {
+                (!request.format_request.credential_types().contains(credential_type)).then(|| {
                     (
                         (*id).clone(),
                         (
-                            request.format.credential_types().map(str::to_string).collect_vec(),
+                            request
+                                .format_request
+                                .credential_types()
+                                .map(str::to_string)
+                                .collect_vec(),
                             credential_type.to_string(),
                         ),
                     )

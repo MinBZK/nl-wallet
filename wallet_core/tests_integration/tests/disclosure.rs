@@ -9,10 +9,12 @@ use url::Url;
 
 use attestation_data::disclosure::DisclosedAttestation;
 use attestation_data::test_document::test_documents_assert_matches_disclosed_attestations;
+use dcql::CredentialQuery;
 use dcql::CredentialQueryIdentifier;
 use dcql::Query;
 use http_utils::error::HttpJsonErrorBody;
 use mdoc::test::TestDocuments;
+use mdoc::test::data::PID;
 use mdoc::test::data::addr_street;
 use mdoc::test::data::pid_family_name;
 use mdoc::test::data::pid_full_name;
@@ -246,7 +248,12 @@ async fn test_disclosure_without_pid() {
 
     let start_request = StartDisclosureRequest {
         usecase: "xyz_bank_no_return_url".to_owned(),
-        dcql_query: Some(Query::pid_full_name()),
+        dcql_query: Some(Query::new_mock_single(CredentialQuery::new_mock_mdoc(
+            "pid_full_name",
+            PID,
+            PID,
+            &["given_name", "family_name"],
+        ))),
         return_url_template: None,
     };
     let response = client

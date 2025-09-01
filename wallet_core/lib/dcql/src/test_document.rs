@@ -10,33 +10,36 @@ use crate::ClaimsSelection;
 use crate::CredentialQuery;
 use crate::CredentialQueryFormat;
 use crate::Query;
-use crate::normalized::AttributeRequest;
+use crate::normalized::FormatCredentialRequest;
+use crate::normalized::MdocAttributeRequest;
 use crate::normalized::NormalizedCredentialRequest;
 use crate::normalized::NormalizedCredentialRequests;
 
 fn credential_request_from((id, source): (usize, TestDocument)) -> NormalizedCredentialRequest {
     let id = format!("id-{id}").try_into().unwrap();
-    let format = CredentialQueryFormat::MsoMdoc {
-        doctype_value: source.doc_type,
-    };
 
     let claims = source
         .namespaces
         .into_iter()
         .flat_map(|(namespace, attrs)| {
-            attrs.into_iter().map(move |entry| AttributeRequest {
+            attrs.into_iter().map(move |entry| MdocAttributeRequest {
                 path: vec_nonempty![
                     ClaimPath::SelectByKey(namespace.clone()),
                     ClaimPath::SelectByKey(entry.name),
                 ],
-                intent_to_retain: true,
+                intent_to_retain: None,
             })
         })
         .collect_vec()
         .try_into()
         .expect("TestDocument should have attributes");
 
-    NormalizedCredentialRequest { id, format, claims }
+    let format_request = FormatCredentialRequest::MsoMdoc {
+        doctype_value: source.doc_type,
+        claims,
+    };
+
+    NormalizedCredentialRequest { id, format_request }
 }
 
 impl From<TestDocuments> for NormalizedCredentialRequests {

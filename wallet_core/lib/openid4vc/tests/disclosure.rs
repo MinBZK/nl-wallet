@@ -48,6 +48,7 @@ use mdoc::holder::disclosure::PartialMdoc;
 use mdoc::test::TestDocuments;
 use mdoc::test::data::PID;
 use mdoc::test::data::addr_street;
+use mdoc::test::data::pid_example;
 use mdoc::test::data::pid_full_name;
 use mdoc::test::data::pid_given_name;
 use openid4vc::ErrorResponse;
@@ -107,7 +108,7 @@ fn assert_disclosed_attestations_mdoc_pid(
 ) {
     assert_eq!(disclosed_attestations.len(), 1);
     let disclosed_attestation = disclosed_attestations
-        .get(&"pid".try_into().unwrap())
+        .get(&"mdoc_pid_example".try_into().unwrap())
         .expect("disclosed attestations should include pid")
         .iter()
         .exactly_one()
@@ -134,7 +135,7 @@ fn disclosure_direct() {
     let response_uri: BaseUrl = "https://example.com/response_uri".parse().unwrap();
     let encryption_keypair = EcKeyPair::generate(EcCurve::P256).unwrap();
     let iso_auth_request = NormalizedVpAuthorizationRequest::new(
-        NormalizedCredentialRequests::new_pid_example(),
+        NormalizedCredentialRequests::new_mock_mdoc_pid_example(),
         auth_keypair.certificate(),
         nonce.clone(),
         encryption_keypair.to_jwk_public_key().try_into().unwrap(),
@@ -199,7 +200,7 @@ fn disclosure_jwe(
     // Put the disclosure in an Authorization Response and encrypt it.
     VpAuthorizationResponse::new_encrypted(
         HashMap::from([(
-            "pid".try_into().unwrap(),
+            "mdoc_pid_example".try_into().unwrap(),
             VerifiablePresentation::new_mdoc(device_responses),
         )]),
         &auth_request,
@@ -214,7 +215,9 @@ async fn disclosure_using_message_client() {
     let ca = Ca::generate("myca", Default::default()).unwrap();
     let rp_keypair = generate_reader_mock(
         &ca,
-        Some(ReaderRegistration::mock_from_dcql_query(&Query::new_pid_example())),
+        Some(ReaderRegistration::mock_from_dcql_query(
+            &Query::new_mock_mdoc_pid_example(),
+        )),
     )
     .unwrap();
 
@@ -238,7 +241,10 @@ async fn disclosure_using_message_client() {
     // Finish the disclosure by sending the attestations to the "RP".
     let wscd = MockRemoteWscd::new(vec![mdoc_key]);
     session
-        .disclose(HashMap::from([("pid".try_into().unwrap(), partial_mdocs)]), &wscd)
+        .disclose(
+            HashMap::from([("mdoc_pid_example".try_into().unwrap(), partial_mdocs)]),
+            &wscd,
+        )
         .await
         .unwrap();
 }
@@ -275,7 +281,7 @@ impl DirectMockVpMessageClient {
         let encryption_keypair = EcKeyPair::generate(EcCurve::P256).unwrap();
 
         let auth_request = NormalizedVpAuthorizationRequest::new(
-            NormalizedCredentialRequests::new_pid_example(),
+            NormalizedCredentialRequests::new_mock_mdoc_pid_example(),
             auth_keypair.certificate(),
             nonce.clone(),
             encryption_keypair.to_jwk_public_key().try_into().unwrap(),
@@ -579,7 +585,7 @@ async fn test_client_and_server(
 
 #[tokio::test]
 async fn test_client_and_server_cancel_after_created() {
-    let dcql_query = Query::pid_full_name();
+    let dcql_query = Query::new_mock_mdoc_pid_example();
     let session_type = SessionType::SameDevice;
 
     let (verifier, trust_anchor, _issuer_ca) = setup_verifier(&dcql_query, None);
@@ -630,8 +636,8 @@ async fn test_client_and_server_cancel_after_created() {
 
 #[tokio::test]
 async fn test_client_and_server_cancel_after_wallet_start() {
-    let stored_documents = pid_full_name();
-    let dcql_query = Query::pid_full_name();
+    let stored_documents = pid_example();
+    let dcql_query = Query::new_mock_mdoc_pid_example();
     let session_type = SessionType::SameDevice;
 
     let (verifier, trust_anchor, issuer_ca) = setup_verifier(&dcql_query, None);
@@ -994,7 +1000,7 @@ where
         .zip_eq(credential_requests)
         .map(|(doc, request)| {
             let mdoc = test_document_to_mdoc(doc, issuer_ca, wscd).now_or_never().unwrap();
-            let partial_mdoc = PartialMdoc::try_new(mdoc, request.claim_paths()).unwrap();
+            let partial_mdoc = PartialMdoc::try_new(mdoc, request.format_request.claim_paths()).unwrap();
 
             (request.id.clone(), vec_nonempty![partial_mdoc])
         })

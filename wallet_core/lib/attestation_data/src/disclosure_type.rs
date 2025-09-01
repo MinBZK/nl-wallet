@@ -1,11 +1,11 @@
-use std::collections::HashMap;
 use std::collections::HashSet;
 
 use itertools::Itertools;
 
-use dcql::CredentialFormat;
-use dcql::normalized::AttributeRequest;
+use dcql::normalized::FormatCredentialRequest;
+use dcql::normalized::MdocAttributeRequest;
 use dcql::normalized::NormalizedCredentialRequest;
+use dcql::normalized::SdJwtAttributeRequest;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DisclosureType {
@@ -17,7 +17,8 @@ impl DisclosureType {
     pub fn from_credential_requests<'a>(
         credential_requests: impl IntoIterator<Item = &'a NormalizedCredentialRequest>,
         login_attestation_types: &HashSet<&str>,
-        login_claims: &HashMap<CredentialFormat, AttributeRequest>,
+        mdoc_login_attribute: &MdocAttributeRequest,
+        sd_jwt_login_attribute: &SdJwtAttributeRequest,
     ) -> Self {
         // Consider the disclosure type a login if there is only one credential request...
         credential_requests
@@ -25,19 +26,23 @@ impl DisclosureType {
             .exactly_one()
             .ok()
             .and_then(|request| {
-                let login_claim = login_claims.get(&(&request.format).into());
-
-                // ...and that request is for one of the formats for which we have login request, contains a subset of
-                // the login attestation types and contains exactly the same requested claims as the login request.
-                let is_login = login_claim.is_some()
-                    && request
-                        .format
-                        .credential_types()
-                        .collect::<HashSet<_>>()
-                        .is_subset(login_attestation_types)
-                    && request.claims.iter().exactly_one().ok() == login_claim;
-
-                is_login.then_some(DisclosureType::Login)
+                // ...and contains a subset of the login attestation types and contains exactly
+                // the same requested attribute as the login request of the same format.
+                match &request.format_request {
+                    FormatCredentialRequest::MsoMdoc { doctype_value, claims } => {
+                        login_attestation_types.contains(doctype_value.as_str())
+                            && claims.iter().exactly_one().ok() == Some(mdoc_login_attribute)
+                    }
+                    FormatCredentialRequest::SdJwt { vct_values, claims } => {
+                        vct_values
+                            .iter()
+                            .map(String::as_str)
+                            .collect::<HashSet<_>>()
+                            .is_subset(login_attestation_types)
+                            && claims.iter().exactly_one().ok() == Some(sd_jwt_login_attribute)
+                    }
+                }
+                .then_some(DisclosureType::Login)
             })
             .unwrap_or(DisclosureType::Regular)
     }
@@ -45,14 +50,15 @@ impl DisclosureType {
 
 #[cfg(test)]
 mod test {
-    use std::collections::HashMap;
     use std::collections::HashSet;
 
     use rstest::rstest;
 
-    use dcql::CredentialFormat;
-    use dcql::normalized;
+    use attestation_types::claim_path::ClaimPath;
+    use dcql::normalized::MdocAttributeRequest;
     use dcql::normalized::NormalizedCredentialRequests;
+    use dcql::normalized::SdJwtAttributeRequest;
+    use utils::vec_nonempty;
 
     use super::DisclosureType;
 
@@ -78,16 +84,24 @@ mod test {
     ) {
         let login_attestation_types = HashSet::from([LOGIN_ATTESTATION_TYPE, ALSO_LOGIN_ATTESTATION_TYPE]);
 
-        let mdoc_login_claims =
-            normalized::mock::mock_attribute_request_from_slice(&[LOGIN_NAMESPACE, LOGIN_ATTRIBUTE_ID]);
-        let sd_jwt_login_claims = normalized::mock::mock_attribute_request_from_slice(&[LOGIN_ATTRIBUTE_ID]);
-        let login_claims = HashMap::from([
-            (CredentialFormat::MsoMdoc, mdoc_login_claims),
-            (CredentialFormat::SdJwt, sd_jwt_login_claims),
-        ]);
+        let mdoc_login_attribute = MdocAttributeRequest {
+            path: vec_nonempty![
+                ClaimPath::SelectByKey(LOGIN_NAMESPACE.to_string()),
+                ClaimPath::SelectByKey(LOGIN_ATTRIBUTE_ID.to_string())
+            ],
+            intent_to_retain: None,
+        };
+        let sd_jwt_login_attribute = SdJwtAttributeRequest {
+            path: vec_nonempty![ClaimPath::SelectByKey(LOGIN_ATTRIBUTE_ID.to_string())],
+        };
 
         assert_eq!(
-            DisclosureType::from_credential_requests(attribute_paths.as_ref(), &login_attestation_types, &login_claims),
+            DisclosureType::from_credential_requests(
+                attribute_paths.as_ref(),
+                &login_attestation_types,
+                &mdoc_login_attribute,
+                &sd_jwt_login_attribute
+            ),
             expected
         );
     }

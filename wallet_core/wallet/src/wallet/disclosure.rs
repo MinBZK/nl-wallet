@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::collections::HashSet;
 use std::sync::Arc;
 use std::sync::LazyLock;
@@ -22,11 +21,11 @@ use attestation_data::constants::PID_BSN;
 use attestation_data::constants::PID_RECOVERY_CODE;
 use attestation_data::disclosure_type::DisclosureType;
 use attestation_types::claim_path::ClaimPath;
-use dcql::CredentialFormat;
-use dcql::CredentialQueryFormat;
 use dcql::CredentialQueryIdentifier;
-use dcql::normalized::AttributeRequest;
+use dcql::normalized::FormatCredentialRequest;
+use dcql::normalized::MdocAttributeRequest;
 use dcql::normalized::NormalizedCredentialRequest;
+use dcql::normalized::SdJwtAttributeRequest;
 use entity::disclosure_event::EventStatus;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
@@ -71,27 +70,19 @@ static LOGIN_ATTESTATION_TYPES: LazyLock<HashSet<&str>> = LazyLock::new(|| HashS
 
 /// A login request will only contain the BSN attribute, which the verifier checks against a BSN
 /// the verifier already possesses for the wallet user. For this reason it should not retain it.
-static LOGIN_CLAIMS: LazyLock<HashMap<CredentialFormat, AttributeRequest>> = LazyLock::new(|| {
-    let mdoc_login_claims = AttributeRequest {
-        path: vec![
-            ClaimPath::SelectByKey(PID_ATTESTATION_TYPE.to_string()),
-            ClaimPath::SelectByKey(PID_BSN.to_string()),
-        ]
-        .try_into()
-        .unwrap(),
-        intent_to_retain: false,
-    };
+static MDOC_LOGIN_ATTRIBUTE: LazyLock<MdocAttributeRequest> = LazyLock::new(|| MdocAttributeRequest {
+    path: vec_nonempty![
+        ClaimPath::SelectByKey(PID_ATTESTATION_TYPE.to_string()),
+        ClaimPath::SelectByKey(PID_BSN.to_string()),
+    ],
+    intent_to_retain: Some(false),
+});
 
-    let sd_jwt_login_claims = AttributeRequest {
-        path: vec![ClaimPath::SelectByKey(PID_BSN.to_string())].try_into().unwrap(),
-        // TODO (PVW-4139): SD-JWT requests should not have intent_to_retain, fix this once we support SD-JWT in DCQL.
-        intent_to_retain: false,
-    };
-
-    HashMap::from([
-        (CredentialFormat::MsoMdoc, mdoc_login_claims),
-        (CredentialFormat::SdJwt, sd_jwt_login_claims),
-    ])
+static SD_JWT_LOGIN_ATTRIBUTE: LazyLock<SdJwtAttributeRequest> = LazyLock::new(|| SdJwtAttributeRequest {
+    path: vec_nonempty![
+        ClaimPath::SelectByKey(PID_ATTESTATION_TYPE.to_string()),
+        ClaimPath::SelectByKey(PID_BSN.to_string()),
+    ],
 });
 
 #[derive(Debug, Clone)]
@@ -307,28 +298,28 @@ impl RedirectUriPurpose {
     }
 }
 
+/// Check if the PID recovery code is part of a credential request.
 fn is_request_for_recovery_code(request: &NormalizedCredentialRequest) -> bool {
-    // Get a normalized claim path for recovery_code if request is for PID
-    let recovery_code_claim_path = match &request.format {
-        CredentialQueryFormat::MsoMdoc { doctype_value } if doctype_value.as_str() == PID_ATTESTATION_TYPE => {
-            Some(vec_nonempty![
-                ClaimPath::SelectByKey(String::from(PID_ATTESTATION_TYPE)),
-                ClaimPath::SelectByKey(String::from(PID_RECOVERY_CODE))
-            ])
+    match &request.format_request {
+        FormatCredentialRequest::MsoMdoc { doctype_value, claims } => {
+            doctype_value.as_str() == PID_ATTESTATION_TYPE
+                && claims.iter().any(|claim| {
+                    itertools::equal(
+                        claim.path.iter().map(ClaimPath::try_key_path),
+                        [Some(PID_ATTESTATION_TYPE), Some(PID_RECOVERY_CODE)],
+                    )
+                })
         }
-        CredentialQueryFormat::SdJwt { vct_values }
-            if vct_values.iter().any(|vct| vct.as_str() == PID_ATTESTATION_TYPE) =>
-        {
-            Some(vec_nonempty![ClaimPath::SelectByKey(String::from(PID_RECOVERY_CODE))])
+        FormatCredentialRequest::SdJwt { vct_values, claims } => {
+            vct_values.iter().any(|vct| vct.as_str() == PID_ATTESTATION_TYPE)
+                && claims.iter().any(|claim| {
+                    itertools::equal(
+                        claim.path.iter().map(ClaimPath::try_key_path),
+                        [Some(PID_RECOVERY_CODE)],
+                    )
+                })
         }
-        CredentialQueryFormat::MsoMdoc { .. } | CredentialQueryFormat::SdJwt { .. } => None,
-    };
-    recovery_code_claim_path.is_some_and(|claim_path| {
-        request
-            .claims
-            .iter()
-            .any(|attribute_request| attribute_request.path == claim_path)
-    })
+    }
 }
 
 impl<CR, UR, S, AKH, APC, DC, IS, DCC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC>
@@ -347,18 +338,14 @@ where
         storage: &S,
         request: &NormalizedCredentialRequest,
     ) -> Result<Option<VecNonEmpty<DisclosableAttestation>>, StorageError> {
-        let (attestation_types, format_query) = match &request.format {
-            CredentialQueryFormat::MsoMdoc { doctype_value } => {
-                (HashSet::from([doctype_value.as_str()]), AttestationFormatQuery::MsoMdoc)
-            }
-            CredentialQueryFormat::SdJwt { vct_values } => (
-                vct_values.iter().map(String::as_str).collect(),
-                AttestationFormatQuery::SdJwt,
-            ),
+        let credential_types = request.format_request.credential_types().collect();
+        let format_query = match &request.format_request {
+            FormatCredentialRequest::MsoMdoc { .. } => AttestationFormatQuery::MsoMdoc,
+            FormatCredentialRequest::SdJwt { .. } => AttestationFormatQuery::SdJwt,
         };
 
         let stored_attestations = storage
-            .fetch_unique_attestations_by_type(&attestation_types, format_query)
+            .fetch_unique_attestations_by_type(&credential_types, format_query)
             .await?;
 
         let candidate_attestations = stored_attestations
@@ -367,13 +354,13 @@ where
                 // Only select those attestations that contain all of the requested attributes.
                 // TODO (PVW-4537): Have this be part of the database query using some index.
                 attestation_copy
-                    .matches_requested_attributes(request.claim_paths())
+                    .matches_requested_attributes(request.format_request.claim_paths())
                     .then(|| {
                         // Create a disclosure proposal by removing any attributes that were not requested from the
                         // presentation attributes. Since the filtering above should remove any attestation in which the
                         // requested claim paths are not present and this is the only error condition, no error should
                         // occur.
-                        DisclosableAttestation::try_new(attestation_copy, request.claim_paths())
+                        DisclosableAttestation::try_new(attestation_copy, request.format_request.claim_paths())
                             .expect("all claim paths should be present in attestation")
                     })
             })
@@ -459,7 +446,8 @@ where
         let disclosure_type = DisclosureType::from_credential_requests(
             session.credential_requests().as_ref(),
             &LOGIN_ATTESTATION_TYPES,
-            &LOGIN_CLAIMS,
+            &MDOC_LOGIN_ATTRIBUTE,
+            &SD_JWT_LOGIN_ATTRIBUTE,
         );
 
         let verifier_certificate = session.verifier_certificate();
@@ -483,11 +471,11 @@ where
                 .as_ref()
                 .iter()
                 .flat_map(|request| {
-                    request.format.credential_types().flat_map(|attestation_type| {
+                    request.format_request.credential_types().flat_map(|attestation_type| {
                         request
-                            .claims
-                            .iter()
-                            .map(move |claim| format!("{}/{}", attestation_type, claim.path.iter().join("/")))
+                            .format_request
+                            .claim_paths()
+                            .map(move |claim_path| format!("{}/{}", attestation_type, claim_path.iter().join("/")))
                     })
                 })
                 .collect();

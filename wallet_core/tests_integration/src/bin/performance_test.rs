@@ -118,7 +118,7 @@ async fn main() {
 
     let start_request = StartDisclosureRequest {
         usecase: "xyz_bank".to_owned(),
-        dcql_query: Some(Query::pid_full_name()),
+        dcql_query: Some(Query::new_mock_mdoc_pid_example()),
         return_url_template: Some(relying_party_url.parse().unwrap()),
     };
 

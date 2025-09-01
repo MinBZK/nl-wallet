@@ -53,26 +53,29 @@ impl ReaderRegistration {
         let unregistered_attributes = requests
             .into_iter()
             .flat_map(|request| {
-                let request_attributes = request.claims.iter().map(|claim| &claim.path).collect::<HashSet<_>>();
+                let request_attributes = request.format_request.claim_paths().collect::<HashSet<_>>();
 
                 // Check if any of the requested attributes are missing from the
                 // authorized attributes for all requested attestation types.
-                request.format.credential_types().flat_map(move |attestation_type| {
-                    let authorized_attributes = self
-                        .authorized_attributes
-                        .get(attestation_type)
-                        .map(|attributes| attributes.iter().collect::<HashSet<_>>())
-                        .unwrap_or_default();
+                request
+                    .format_request
+                    .credential_types()
+                    .flat_map(move |credential_type| {
+                        let authorized_attributes = self
+                            .authorized_attributes
+                            .get(credential_type)
+                            .map(|attributes| attributes.iter().collect::<HashSet<_>>())
+                            .unwrap_or_default();
 
-                    let unauthorized_attributes = request_attributes
-                        .difference(&authorized_attributes)
-                        .copied()
-                        .cloned()
-                        .collect::<HashSet<_>>();
+                        let unauthorized_attributes = request_attributes
+                            .difference(&authorized_attributes)
+                            .copied()
+                            .cloned()
+                            .collect::<HashSet<_>>();
 
-                    (!unauthorized_attributes.is_empty())
-                        .then(|| (attestation_type.to_string(), unauthorized_attributes))
-                })
+                        (!unauthorized_attributes.is_empty())
+                            .then(|| (credential_type.to_string(), unauthorized_attributes))
+                    })
             })
             .collect::<HashMap<_, _>>();
 

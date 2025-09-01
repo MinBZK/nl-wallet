@@ -36,7 +36,6 @@ use hsm::service::Pkcs11Hsm;
 use http_utils::error::HttpJsonErrorBody;
 use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::urls::BaseUrl;
-use mdoc::examples::EXAMPLE_ATTR_NAME;
 use mdoc::holder::Mdoc;
 use mdoc::holder::disclosure::PartialMdoc;
 use openid4vc::disclosure_session::DisclosureClient;
@@ -77,7 +76,7 @@ const USECASE_NAME: &str = "usecase";
 
 static EXAMPLE_START_DISCLOSURE_REQUEST: LazyLock<StartDisclosureRequest> = LazyLock::new(|| StartDisclosureRequest {
     usecase: USECASE_NAME.to_string(),
-    dcql_query: Some(Query::new_mdoc_example()),
+    dcql_query: Some(Query::new_mock_mdoc_iso_example()),
     return_url_template: Some("https://return.url/{session_token}".parse().unwrap()),
 });
 
@@ -96,7 +95,7 @@ static EXAMPLE_PID_START_DISCLOSURE_REQUEST_ID: LazyLock<CredentialQueryIdentifi
 static EXAMPLE_PID_START_DISCLOSURE_REQUEST: LazyLock<StartDisclosureRequest> =
     LazyLock::new(|| StartDisclosureRequest {
         usecase: USECASE_NAME.to_string(),
-        dcql_query: Some(Query::pid_family_name()),
+        dcql_query: Some(Query::new_mock_mdoc_pid_example()),
         return_url_template: Some("https://return.url/{session_token}".parse().unwrap()),
     });
 
@@ -989,6 +988,7 @@ async fn perform_full_disclosure(session_type: SessionType) -> (Client, SessionT
             .as_ref()
             .first()
             .unwrap()
+            .format_request
             .claim_paths(),
     )
     .unwrap();
@@ -1030,8 +1030,8 @@ fn check_example_disclosed_attributes(
         .unwrap_mso_mdoc();
     itertools::assert_equal(attributes.keys(), [PID_ATTESTATION_TYPE]);
     let (first_entry_name, first_entry_value) = attributes.get(PID_ATTESTATION_TYPE).unwrap().first().unwrap();
-    assert_eq!(first_entry_name, EXAMPLE_ATTR_NAME);
-    assert_eq!(first_entry_value.to_string(), "De Bruijn".to_owned());
+    assert_eq!(first_entry_name, "bsn");
+    assert_eq!(first_entry_value.to_string(), "999999999".to_owned());
 }
 
 #[tokio::test]
@@ -1141,6 +1141,7 @@ async fn test_disclosed_attributes_failed_session() {
             .as_ref()
             .first()
             .unwrap()
+            .format_request
             .claim_paths(),
     )
     .unwrap();
