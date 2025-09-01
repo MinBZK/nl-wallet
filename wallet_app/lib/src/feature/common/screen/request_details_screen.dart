@@ -15,8 +15,6 @@ import '../widget/button/bottom_back_button.dart';
 import '../widget/divider_side.dart';
 import '../widget/menu_item.dart';
 import '../widget/organization/organization_logo.dart';
-import '../widget/spacer/sliver_divider.dart';
-import '../widget/spacer/sliver_sized_box.dart';
 import '../widget/text/title_text.dart';
 import '../widget/wallet_app_bar.dart';
 import '../widget/wallet_scrollbar.dart';
@@ -73,47 +71,45 @@ class RequestDetailsScreen extends StatelessWidget {
           children: [
             Expanded(
               child: WalletScrollbar(
-                child: CustomScrollView(
-                  slivers: [
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: kDefaultTitlePadding.copyWith(bottom: 24),
-                        child: TitleText(title),
-                      ),
+                child: ListView(
+                  children: [
+                    Padding(
+                      padding: kDefaultTitlePadding.copyWith(bottom: 24),
+                      child: TitleText(title),
                     ),
                     if (organization != null)
-                      _buildOrganizationSliver(
+                      _buildOrganization(
                         context,
                         organization!,
                         DividerSide.top,
                       ),
                     if (purpose != null)
-                      RequestDetailCommonBuilders.buildPurposeSliver(
+                      RequestDetailCommonBuilders.buildPurpose(
                         context,
                         purpose: purpose!,
                         side: DividerSide.top,
                       ),
                     if (sharedAttributes != null)
-                      RequestDetailCommonBuilders.buildSharedAttributesSliver(
+                      RequestDetailCommonBuilders.buildSharedAttributes(
                         context,
                         cards: sharedAttributes!,
                         side: DividerSide.top,
                       ),
                     if (requestedAttributes != null)
-                      RequestDetailCommonBuilders.buildRequestedAttributesSliver(
+                      RequestDetailCommonBuilders.buildRequestedAttributes(
                         context,
                         cards: requestedAttributes!,
                         side: DividerSide.top,
                       ),
                     if (policy != null)
-                      RequestDetailCommonBuilders.buildPolicySliver(
+                      RequestDetailCommonBuilders.buildPolicy(
                         context,
                         organization: policy!.organization,
                         policy: policy!.policy,
                         side: DividerSide.top,
                       ),
-                    const SliverDivider(),
-                    const SliverSizedBox(height: 24),
+                    const Divider(),
+                    const SizedBox(height: 24),
                   ],
                 ),
               ),
@@ -125,24 +121,22 @@ class RequestDetailsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildOrganizationSliver(BuildContext context, Organization organization, DividerSide side) {
-    return SliverToBoxAdapter(
-      child: MenuItem(
-        leftIcon: OrganizationLogo(image: organization.logo, size: kMenuItemNormalIconSize),
-        dividerSide: side,
-        label: Text(
-          context.l10n.requestDetailScreenAboutOrganizationCta(
-            organization.displayName.l10nValue(context),
-          ),
+  Widget _buildOrganization(BuildContext context, Organization organization, DividerSide side) {
+    return MenuItem(
+      leftIcon: OrganizationLogo(image: organization.logo, size: kMenuItemNormalIconSize),
+      dividerSide: side,
+      label: Text(
+        context.l10n.requestDetailScreenAboutOrganizationCta(
+          organization.displayName.l10nValue(context),
         ),
-        subtitle: Text(organization.category?.l10nValue(context) ?? '').takeIf(
-          (_) => organization.category != null,
-        ),
-        onPressed: () => OrganizationDetailScreen.showPreloaded(
-          context,
-          organization,
-          sharedDataWithOrganizationBefore: false,
-        ),
+      ),
+      subtitle: Text(organization.category?.l10nValue(context) ?? '').takeIf(
+        (_) => organization.category != null,
+      ),
+      onPressed: () => OrganizationDetailScreen.showPreloaded(
+        context,
+        organization,
+        sharedDataWithOrganizationBefore: false,
       ),
     );
   }

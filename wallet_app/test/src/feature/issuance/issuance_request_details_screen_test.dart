@@ -82,7 +82,7 @@ void main() {
     );
 
     // Scroll to the bottom of the screen
-    await tester.fling(find.byType(Scrollable), const Offset(0, -1000), 5000);
+    await tester.fling(find.byType(Scrollable).first, const Offset(0, -1000), 5000);
     await tester.pumpAndSettle();
 
     // Tap the 'swap card' button

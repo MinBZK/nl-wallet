@@ -24,6 +24,27 @@ void main() {
       await screenMatchesGolden('success.light');
     });
 
+    testGoldens('DashboardLoadSuccess light - landscape', (tester) async {
+      await _pumpSuccessWithVersionState(
+        tester,
+        state: VersionStateOk(),
+        surfaceSize: iphoneXSizeLandscape,
+      );
+      await screenMatchesGolden('success.light.landscape');
+    });
+
+    testGoldens('DashboardLoadSuccess light - landscape - scrolled', (tester) async {
+      await _pumpSuccessWithVersionState(
+        tester,
+        state: VersionStateOk(),
+        surfaceSize: iphoneXSizeLandscape,
+      );
+      await tester.fling(find.byType(Scrollable).first, const Offset(0, -1000), 5000);
+      await tester.pumpAndSettle();
+
+      await screenMatchesGolden('success.light.landscape.scrolled');
+    });
+
     testGoldens('DashboardLoadSuccess dark', (tester) async {
       await _pumpSuccessWithVersionState(tester, state: VersionStateOk(), brightness: Brightness.dark);
       await screenMatchesGolden('success.dark');
@@ -134,7 +155,7 @@ void main() {
         await tester.scrollUntilVisible(
           find.text(WalletMockData.altCard.title.testValue),
           500,
-          scrollable: scrollableFinder,
+          scrollable: scrollableFinder.first,
         );
         await screenMatchesGolden('success.ok.cards.light.scaled_2x');
       });
@@ -186,6 +207,7 @@ Future<void> _pumpSuccessWithVersionState(
   required VersionState state,
   Brightness brightness = Brightness.light,
   double textScaleSize = 1,
+  Size surfaceSize = iphoneXSize,
 }) async {
   await tester.pumpWidgetWithAppWrapper(
     const DashboardScreen().withState<DashboardBloc, DashboardState>(
@@ -194,6 +216,7 @@ Future<void> _pumpSuccessWithVersionState(
     ),
     brightness: brightness,
     textScaleSize: textScaleSize,
+    surfaceSize: surfaceSize,
     providers: [
       RepositoryProvider<NavigationService>(create: (c) => MockNavigationService()),
       RepositoryProvider<ObserveVersionStateUsecase>(
