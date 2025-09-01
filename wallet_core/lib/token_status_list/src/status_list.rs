@@ -63,6 +63,7 @@ mod zlib_base64 {
     use flate2::read::ZlibDecoder;
     use flate2::write::ZlibEncoder;
     use serde::Deserialize;
+    use serde::Serialize;
 
     pub fn serialize<S>(bytes: &[u8], serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -74,7 +75,7 @@ mod zlib_base64 {
         let compressed = e.finish().map_err(serde::ser::Error::custom)?;
 
         let encoded = BASE64_URL_SAFE_NO_PAD.encode(compressed);
-        serializer.serialize_str(&encoded)
+        encoded.serialize(serializer)
     }
 
     pub fn deserialize<'de, D>(deserializer: D) -> Result<Vec<u8>, D::Error>
