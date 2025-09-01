@@ -350,7 +350,7 @@ impl SdJwt {
     ) -> Result<(Jwt<SdJwtClaims>, HashMap<String, Disclosure>)> {
         if !sd_jwt.ends_with("~") {
             return Err(Error::Deserialization(
-                "SD-JWT format is invalid, input doesn't and with '~'".to_string(),
+                "SD-JWT format is invalid, input doesn't end with '~'".to_string(),
             ));
         }
 
