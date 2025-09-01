@@ -1,0 +1,15 @@
+status[0]=1
+status[1993]=2
+status[35460]=3
+status[459495]=4
+status[595669]=5
+status[754353]=6
+status[845645]=7
+status[923232]=8
+status[924445]=9
+status[934534]=10
+status[1004534]=11
+status[1000345]=12
+status[1030203]=13
+status[1030204]=14
+status[1030205]=15
