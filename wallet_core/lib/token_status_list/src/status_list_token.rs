@@ -35,6 +35,17 @@ static TOKEN_STATUS_LIST_JWT_HEADER: &str = "application/statuslist+jwt";
 #[derive(Debug, Clone, FromStr, Serialize, Deserialize)]
 pub struct StatusListToken(Jwt<StatusListClaims>);
 
+impl StatusListToken {
+    pub fn builder(sub: HttpsUri, status_list: PackedStatusList) -> StatusListTokenBuilder {
+        StatusListTokenBuilder {
+            exp: None,
+            sub,
+            ttl: None,
+            status_list,
+        }
+    }
+}
+
 pub struct StatusListTokenBuilder {
     exp: Option<DateTime<Utc>>,
     sub: HttpsUri,
@@ -43,15 +54,6 @@ pub struct StatusListTokenBuilder {
 }
 
 impl StatusListTokenBuilder {
-    pub fn new(sub: HttpsUri, status_list: PackedStatusList) -> Self {
-        Self {
-            exp: None,
-            sub,
-            ttl: None,
-            status_list,
-        }
-    }
-
     pub fn exp(mut self, exp: DateTime<Utc>) -> Self {
         self.exp = Some(exp);
         self
@@ -140,7 +142,7 @@ mod test {
         let expected_claims: StatusListClaims = serde_json::from_value(example_payload).unwrap();
 
         let key = SigningKey::random(&mut OsRng);
-        let signed = StatusListTokenBuilder::new(expected_claims.sub.clone(), expected_claims.status_list.clone())
+        let signed = StatusListToken::builder(expected_claims.sub.clone(), expected_claims.status_list.clone())
             .exp(expected_claims.exp.unwrap())
             .ttl(expected_claims.ttl.unwrap())
             .sign(&key)
@@ -173,7 +175,7 @@ mod test {
         let listener = TcpListener::bind("localhost:0").await.unwrap();
         let port = listener.local_addr().unwrap().port();
 
-        let token_status_list = StatusListTokenBuilder::new(
+        let token_status_list = StatusListToken::builder(
             "https://example.com/statuslists/1".parse().unwrap(),
             EXAMPLE_STATUS_LIST_ONE.to_owned().pack(),
         )
