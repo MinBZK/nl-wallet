@@ -7695,6 +7695,7 @@ name = "wallet_provider_migrations"
 version = "0.4.0-dev"
 dependencies = [
  "async-trait",
+ "regex",
  "sea-orm-migration",
  "tokio",
  "wallet_provider_database_settings",
@@ -7782,6 +7783,7 @@ dependencies = [
 name = "wallet_server_migrations"
 version = "0.4.0-dev"
 dependencies = [
+ "regex",
  "sea-orm-migration",
  "tokio",
 ]
