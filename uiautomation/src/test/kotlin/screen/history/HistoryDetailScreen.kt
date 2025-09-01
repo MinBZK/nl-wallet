@@ -11,6 +11,7 @@ class HistoryDetailScreen : MobileActions() {
     private val historyDetailScreenPurposeTitle = find.byText(l10n.getString("historyDetailScreenPurposeTitle"))
     private val historyDetailScreenTermsTitle = find.byText(l10n.getString("historyDetailScreenTermsTitle"))
     private val organizationButtonLabel = find.byText(l10n.getString("organizationButtonLabel"))
+    private val scrollableElement = find.byType(ScrollableType.CustomScrollView.toString())
 
     fun visible() = isElementVisible(screen, false)
 
@@ -21,7 +22,7 @@ class HistoryDetailScreen : MobileActions() {
     }
 
     fun disclosureOrganizationVisible(organization: String): Boolean {
-        scrollToEnd(ScrollableType.CustomScrollView)
+        scrollToEnd(scrollableElement)
         val link = l10n.getString("historyDetailScreenAboutOrganizationCta").replace("{organization}", organization)
         return isElementVisible(find.byText(link), false)
     }
@@ -50,7 +51,7 @@ class HistoryDetailScreen : MobileActions() {
     }
 
     fun termsVisible(): Boolean {
-        scrollToEnd(ScrollableType.CustomScrollView)
+        scrollToEnd(scrollableElement)
         return isElementVisible(historyDetailScreenTermsTitle)
     }
 }
