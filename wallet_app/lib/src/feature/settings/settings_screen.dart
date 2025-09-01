@@ -30,11 +30,7 @@ class SettingsScreen extends StatelessWidget {
           children: [
             Expanded(
               child: WalletScrollbar(
-                child: CustomScrollView(
-                  slivers: [
-                    _buildContentSliver(context),
-                  ],
-                ),
+                child: _buildContentList(context),
               ),
             ),
             const BottomBackButton(),
@@ -44,8 +40,8 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildContentSliver(BuildContext context) {
-    return SliverList.list(
+  Widget _buildContentList(BuildContext context) {
+    return ListView(
       children: [
         Padding(
           padding: kDefaultTitlePadding,

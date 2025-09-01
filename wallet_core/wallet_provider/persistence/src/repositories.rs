@@ -155,6 +155,15 @@ impl WalletUserRepository for Repositories {
     ) -> Result<(), PersistenceError> {
         wallet_user::update_apple_assertion_counter(transaction, wallet_id, assertion_counter).await
     }
+
+    async fn store_recovery_code(
+        &self,
+        transaction: &Self::TransactionType,
+        wallet_id: &str,
+        recovery_code: String,
+    ) -> Result<(), PersistenceError> {
+        wallet_user::store_recovery_code(transaction, wallet_id, recovery_code).await
+    }
 }
 
 #[cfg(feature = "mock")]
@@ -277,6 +286,13 @@ pub mod mock {
                 wallet_id: &str,
                 assertion_counter: AssertionCounter,
             ) -> Result<(), PersistenceError>;
+
+            async fn store_recovery_code(
+                &self,
+                transaction: &MockTransaction,
+                wallet_id: &str,
+                recovery_code: String,
+            ) -> Result<(), PersistenceError>;
         }
 
         impl TransactionStarter for TransactionalWalletUserRepository {
@@ -329,6 +345,7 @@ pub mod mock {
                     Some(assertion_counter) => WalletUserAttestation::Apple { assertion_counter },
                     None => WalletUserAttestation::Android,
                 },
+                recovery_code: None,
             })))
         }
 
@@ -434,6 +451,15 @@ pub mod mock {
             _transaction: &MockTransaction,
             _wallet_id: &str,
             _assertion_counter: AssertionCounter,
+        ) -> Result<(), PersistenceError> {
+            Ok(())
+        }
+
+        async fn store_recovery_code(
+            &self,
+            _transaction: &Self::TransactionType,
+            _wallet_id: &str,
+            _recovery_code: String,
         ) -> Result<(), PersistenceError> {
             Ok(())
         }

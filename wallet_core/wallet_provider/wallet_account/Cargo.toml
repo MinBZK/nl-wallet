@@ -30,6 +30,7 @@ strum = { workspace = true, features = ["derive"] }
 
 crypto.path = "../../lib/crypto"
 jwt.path = "../../lib/jwt"
+sd_jwt.path = "../../lib/sd_jwt"
 utils.path = "../../lib/utils"
 wscd.path = "../../lib/wscd"
 

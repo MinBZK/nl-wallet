@@ -1,9 +1,9 @@
 part of 'renew_pid_bloc.dart';
 
-const kRenewPidSteps = 3;
+const kRenewPidSteps = 4;
 
 sealed class RenewPidState extends Equatable {
-  FlowProgress get stepperProgress => const FlowProgress(currentStep: 0, totalSteps: kRenewPidSteps);
+  FlowProgress? get stepperProgress => null;
 
   bool get canGoBack => false;
 
@@ -22,14 +22,14 @@ class RenewPidInitial extends RenewPidState {
   const RenewPidInitial({this.didGoBack = false});
 
   @override
-  FlowProgress get stepperProgress => const FlowProgress(currentStep: 0, totalSteps: kRenewPidSteps);
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: 1, totalSteps: kRenewPidSteps);
 }
 
 class RenewPidLoadingDigidUrl extends RenewPidState {
   const RenewPidLoadingDigidUrl();
 
   @override
-  FlowProgress get stepperProgress => const FlowProgress(currentStep: 0, totalSteps: kRenewPidSteps);
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: 1, totalSteps: kRenewPidSteps);
 }
 
 class RenewPidAwaitingDigidAuthentication extends RenewPidState {
@@ -38,7 +38,7 @@ class RenewPidAwaitingDigidAuthentication extends RenewPidState {
   const RenewPidAwaitingDigidAuthentication(this.authUrl);
 
   @override
-  FlowProgress get stepperProgress => const FlowProgress(currentStep: 0, totalSteps: kRenewPidSteps);
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: 1, totalSteps: kRenewPidSteps);
 
   @override
   List<Object?> get props => [...super.props, authUrl];
@@ -48,21 +48,15 @@ class RenewPidVerifyingDigidAuthentication extends RenewPidState {
   const RenewPidVerifyingDigidAuthentication();
 
   @override
-  FlowProgress get stepperProgress => const FlowProgress(currentStep: 0, totalSteps: kRenewPidSteps);
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: 1, totalSteps: kRenewPidSteps);
 }
 
 class RenewPidDigidMismatch extends RenewPidState {
   const RenewPidDigidMismatch();
-
-  @override
-  FlowProgress get stepperProgress => const FlowProgress(currentStep: kRenewPidSteps, totalSteps: kRenewPidSteps);
 }
 
 class RenewPidStopped extends RenewPidState {
   const RenewPidStopped();
-
-  @override
-  FlowProgress get stepperProgress => const FlowProgress(currentStep: kRenewPidSteps, totalSteps: kRenewPidSteps);
 }
 
 class RenewPidCheckData extends RenewPidState {
@@ -73,7 +67,7 @@ class RenewPidCheckData extends RenewPidState {
   const RenewPidCheckData({required this.availableAttributes, this.didGoBack = false});
 
   @override
-  FlowProgress get stepperProgress => const FlowProgress(currentStep: 1, totalSteps: kRenewPidSteps);
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: 2, totalSteps: kRenewPidSteps);
 
   @override
   List<Object?> get props => [availableAttributes, ...super.props];
@@ -86,7 +80,7 @@ class RenewPidConfirmPin extends RenewPidState {
   const RenewPidConfirmPin(this.attributes);
 
   @override
-  FlowProgress get stepperProgress => const FlowProgress(currentStep: 2, totalSteps: kRenewPidSteps);
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: 3, totalSteps: kRenewPidSteps);
 
   @override
   bool get canGoBack => true;
@@ -97,7 +91,7 @@ class RenewPidConfirmPin extends RenewPidState {
 
 class RenewPidUpdatingCards extends RenewPidState {
   @override
-  FlowProgress get stepperProgress => const FlowProgress(currentStep: 2, totalSteps: kRenewPidSteps);
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: 3, totalSteps: kRenewPidSteps);
 
   const RenewPidUpdatingCards();
 }
@@ -125,9 +119,6 @@ class RenewPidDigidFailure extends RenewPidState implements ErrorState {
 }
 
 class RenewPidDigidLoginCancelled extends RenewPidState {
-  @override
-  FlowProgress get stepperProgress => const FlowProgress(currentStep: 3, totalSteps: kRenewPidSteps);
-
   const RenewPidDigidLoginCancelled();
 }
 
@@ -150,9 +141,6 @@ class RenewPidNetworkError extends RenewPidState implements NetworkErrorState {
 class RenewPidGenericError extends RenewPidState implements ErrorState {
   @override
   final ApplicationError error;
-
-  @override
-  FlowProgress get stepperProgress => const FlowProgress(currentStep: kRenewPidSteps, totalSteps: kRenewPidSteps);
 
   const RenewPidGenericError({required this.error});
 

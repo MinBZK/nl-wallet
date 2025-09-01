@@ -152,9 +152,10 @@ class IssuanceScreen extends StatelessWidget {
   }
 
   Widget? _buildBackButton(BuildContext context) {
-    final canGoBack = context.watch<IssuanceBloc>().state.canGoBack;
-    if (!canGoBack) return null;
+    final state = context.watch<IssuanceBloc>().state;
+    if (!state.canGoBack) return null;
     return BackIconButton(
+      key: ValueKey(state.runtimeType),
       onPressed: () => context.bloc.add(const IssuanceBackPressed()),
     );
   }

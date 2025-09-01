@@ -93,22 +93,19 @@ class ChangePinScreen extends StatelessWidget {
     );
   }
 
-  FlowProgress _buildFlowProgress(BuildContext context) {
+  FlowProgress? _buildFlowProgress(BuildContext context) {
     final state = context.watch<ChangePinBloc>().state;
-
-    final currentStep = switch (state) {
-      ChangePinInitial() => 1,
-      ChangePinSelectNewPinInProgress() => 2,
-      ChangePinSelectNewPinFailed() => 2,
-      ChangePinConfirmNewPinInProgress() => 3,
-      ChangePinConfirmNewPinFailed() => 3,
-      ChangePinUpdating() => 3,
-      ChangePinCompleted() => kTotalNrOfPages,
-      ChangePinGenericError() => 0,
-      ChangePinNetworkError() => 0,
+    return switch (state) {
+      ChangePinInitial() => const FlowProgress(currentStep: 1, totalSteps: kTotalNrOfPages),
+      ChangePinSelectNewPinInProgress() => const FlowProgress(currentStep: 2, totalSteps: kTotalNrOfPages),
+      ChangePinSelectNewPinFailed() => const FlowProgress(currentStep: 2, totalSteps: kTotalNrOfPages),
+      ChangePinConfirmNewPinInProgress() => const FlowProgress(currentStep: 3, totalSteps: kTotalNrOfPages),
+      ChangePinConfirmNewPinFailed() => const FlowProgress(currentStep: 3, totalSteps: kTotalNrOfPages),
+      ChangePinUpdating() => const FlowProgress(currentStep: 3, totalSteps: kTotalNrOfPages),
+      ChangePinCompleted() => const FlowProgress(currentStep: kTotalNrOfPages, totalSteps: kTotalNrOfPages),
+      ChangePinGenericError() => null,
+      ChangePinNetworkError() => null,
     };
-
-    return FlowProgress(currentStep: currentStep, totalSteps: kTotalNrOfPages);
   }
 
   Widget _buildLeading(BuildContext context) {

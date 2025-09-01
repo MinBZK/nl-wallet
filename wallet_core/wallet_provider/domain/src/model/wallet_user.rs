@@ -25,6 +25,7 @@ pub struct WalletUser {
     pub instruction_challenge: Option<InstructionChallenge>,
     pub instruction_sequence_number: u64,
     pub attestation: WalletUserAttestation,
+    pub recovery_code: Option<String>,
 }
 
 #[derive(Debug)]
@@ -119,6 +120,7 @@ SssTb0eI53lvfdvG/xkNcktwsXEIPL1y3lUKn1u1ZhFTnQn4QKmnvaN4uQ==
             instruction_challenge: None,
             instruction_sequence_number: 0,
             attestation: super::WalletUserAttestation::Android,
+            recovery_code: None,
         }
     }
 }

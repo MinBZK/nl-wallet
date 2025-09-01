@@ -3,7 +3,7 @@ part of 'issuance_bloc.dart';
 const int kIssuanceSteps = 5;
 
 sealed class IssuanceState extends Equatable {
-  FlowProgress get stepperProgress => const FlowProgress(currentStep: kIssuanceSteps, totalSteps: kIssuanceSteps);
+  FlowProgress? get stepperProgress => null;
 
   bool get showStopConfirmation => true;
 
@@ -28,7 +28,7 @@ class IssuanceInitial extends IssuanceState {
 
 class IssuanceLoadInProgress extends IssuanceState {
   @override
-  final FlowProgress stepperProgress;
+  final FlowProgress? stepperProgress;
 
   const IssuanceLoadInProgress(this.stepperProgress);
 }
@@ -98,9 +98,6 @@ class IssuanceMissingAttributes extends IssuanceState {
 
   @override
   bool get didGoBack => afterBackPressed;
-
-  @override
-  FlowProgress get stepperProgress => const FlowProgress(currentStep: kIssuanceSteps, totalSteps: kIssuanceSteps);
 
   @override
   List<Object?> get props => [organization, missingAttributes, ...super.props];

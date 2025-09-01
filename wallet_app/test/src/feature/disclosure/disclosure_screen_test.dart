@@ -64,7 +64,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
           MockDisclosureBloc(),
-          const DisclosureLoadInProgress(FlowProgress(currentStep: 0, totalSteps: kDisclosureSteps)),
+          const DisclosureLoadInProgress(FlowProgress(currentStep: 1, totalSteps: kDisclosureSteps)),
         ),
       );
       await screenMatchesGolden('load_in_progress.light');
@@ -631,7 +631,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
           MockDisclosureBloc(),
-          const DisclosureLoadInProgress(FlowProgress(currentStep: 0, totalSteps: kDisclosureSteps)),
+          const DisclosureLoadInProgress(FlowProgress(currentStep: 1, totalSteps: kDisclosureSteps)),
         ),
       );
 
@@ -858,7 +858,7 @@ void main() {
         await tester.pumpWidgetWithAppWrapper(
           const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
             mockDisclosureBloc,
-            const DisclosureLoadInProgress(FlowProgress(currentStep: 0, totalSteps: kDisclosureSteps)),
+            const DisclosureLoadInProgress(FlowProgress(currentStep: 1, totalSteps: kDisclosureSteps)),
           ),
         );
 

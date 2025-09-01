@@ -26,7 +26,8 @@ pub struct Mdoc {
     /// convenience (fetching it from the `issuer_signed` would involve parsing the COSE inside it).
     pub mso: MobileSecurityObject,
 
-    /// Identifier of the mdoc's private key. Obtain a reference to it with [`DisclosureWscd::new_key(private_key_id)`].
+    /// Identifier of the mdoc's private key. Obtain a reference to it with
+    /// [`DisclosureWscd::new_key(private_key_id)`].
     // Note that even though these fields are not `pub`, to users of this package their data is still accessible
     // by serializing the mdoc and examining the serialized bytes. This is not a problem because it is essentially
     // unavoidable: when stored (i.e. serialized), we need to include all of this data to be able to recover a usable

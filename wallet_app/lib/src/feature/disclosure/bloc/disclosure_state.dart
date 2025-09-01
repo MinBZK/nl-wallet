@@ -13,7 +13,7 @@ sealed class DisclosureState extends Equatable {
 
   bool get didGoBack => false;
 
-  FlowProgress get stepperProgress => const FlowProgress(currentStep: 0, totalSteps: kDisclosureSteps);
+  FlowProgress? get stepperProgress => null;
 
   const DisclosureState();
 
@@ -33,7 +33,7 @@ class DisclosureLoadInProgress extends DisclosureState {
   bool get showStopConfirmation => true;
 
   @override
-  final FlowProgress stepperProgress;
+  final FlowProgress? stepperProgress;
 
   const DisclosureLoadInProgress(this.stepperProgress);
 }
@@ -45,9 +45,6 @@ class DisclosureExternalScannerError extends DisclosureState implements ErrorSta
 
   @override
   bool get showStopConfirmation => false;
-
-  @override
-  FlowProgress get stepperProgress => const FlowProgress(currentStep: kDisclosureSteps, totalSteps: kDisclosureSteps);
 
   const DisclosureExternalScannerError({required this.error});
 
@@ -64,9 +61,6 @@ class DisclosureGenericError extends DisclosureState implements ErrorState {
   @override
   bool get showStopConfirmation => false;
 
-  @override
-  FlowProgress get stepperProgress => const FlowProgress(currentStep: kDisclosureSteps, totalSteps: kDisclosureSteps);
-
   const DisclosureGenericError({required this.error, this.returnUrl});
 
   @override
@@ -81,9 +75,6 @@ class DisclosureRelyingPartyError extends DisclosureState implements ErrorState 
 
   @override
   bool get showStopConfirmation => false;
-
-  @override
-  FlowProgress get stepperProgress => const FlowProgress(currentStep: kDisclosureSteps, totalSteps: kDisclosureSteps);
 
   const DisclosureRelyingPartyError({required this.error, this.organizationName});
 
@@ -103,9 +94,6 @@ class DisclosureSessionExpired extends DisclosureState implements ErrorState {
   final bool canRetry;
 
   final String? returnUrl;
-
-  @override
-  FlowProgress get stepperProgress => const FlowProgress(currentStep: kDisclosureSteps, totalSteps: kDisclosureSteps);
 
   const DisclosureSessionExpired({
     required this.error,
@@ -129,9 +117,6 @@ class DisclosureSessionCancelled extends DisclosureState implements ErrorState {
   @override
   bool get showStopConfirmation => false;
 
-  @override
-  FlowProgress get stepperProgress => const FlowProgress(currentStep: kDisclosureSteps, totalSteps: kDisclosureSteps);
-
   const DisclosureSessionCancelled({
     required this.error,
     this.relyingParty,
@@ -154,9 +139,6 @@ class DisclosureNetworkError extends DisclosureState implements NetworkErrorStat
 
   @override
   final int? statusCode;
-
-  @override
-  FlowProgress get stepperProgress => const FlowProgress(currentStep: kDisclosureSteps, totalSteps: kDisclosureSteps);
 
   const DisclosureNetworkError({
     this.statusCode,
@@ -410,9 +392,6 @@ class DisclosureStopped extends DisclosureState {
   final String? returnUrl;
 
   @override
-  FlowProgress get stepperProgress => const FlowProgress(currentStep: kDisclosureSteps, totalSteps: kDisclosureSteps);
-
-  @override
   bool get showStopConfirmation => false;
 
   const DisclosureStopped({required this.organization, this.isLoginFlow = false, this.returnUrl});
@@ -422,9 +401,6 @@ class DisclosureStopped extends DisclosureState {
 }
 
 class DisclosureLeftFeedback extends DisclosureState {
-  @override
-  FlowProgress get stepperProgress => const FlowProgress(currentStep: kDisclosureSteps, totalSteps: kDisclosureSteps);
-
   @override
   bool get showStopConfirmation => false;
 

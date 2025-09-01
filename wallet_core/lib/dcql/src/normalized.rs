@@ -6,6 +6,7 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use error_category::ErrorCategory;
+use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::ClaimPath;
@@ -202,7 +203,11 @@ impl TryFrom<ClaimsQuery> for AttributeRequest {
         if source.path.len().get() != 2 {
             return Err(UnsupportedDcqlFeatures::InvalidClaimPathLength(source.path.len()));
         }
-        if source.path.iter().any(|p| !matches!(p, ClaimPath::SelectByKey(_))) {
+        if source
+            .path
+            .nonempty_iter()
+            .any(|p| !matches!(p, ClaimPath::SelectByKey(_)))
+        {
             return Err(UnsupportedDcqlFeatures::UnsupportedClaimPathVariant);
         }
         let Some(intent_to_retain) = source.intent_to_retain else {
@@ -234,6 +239,7 @@ pub mod mock {
     use itertools::Itertools;
 
     use utils::vec_at_least::VecNonEmpty;
+    use utils::vec_nonempty;
 
     use crate::ClaimPath;
     use crate::ClaimsQuery;
@@ -264,10 +270,10 @@ pub mod mock {
     pub const ADDR_NS: &str = "urn:eudi:pid-address:nl:1.address";
 
     impl Query {
-        pub fn new_example() -> Self {
+        pub fn new_mdoc_example() -> Self {
             Self {
                 credentials: vec![CredentialQuery {
-                    id: "my_credential".to_string().try_into().unwrap(),
+                    id: "new_mdoc_example".to_string().try_into().unwrap(),
                     format: CredentialQueryFormat::MsoMdoc {
                         doctype_value: EXAMPLE_DOC_TYPE.to_string(),
                     },
@@ -277,12 +283,10 @@ pub mod mock {
                     claims_selection: ClaimsSelection::All {
                         claims: vec![ClaimsQuery {
                             id: None,
-                            path: vec![
+                            path: vec_nonempty![
                                 ClaimPath::SelectByKey(EXAMPLE_NAMESPACE.to_string()),
                                 ClaimPath::SelectByKey(ATTR_FAMILY_NAME.to_string()),
-                            ]
-                            .try_into()
-                            .unwrap(),
+                            ],
                             values: vec![],
                             intent_to_retain: Some(true),
                         }]
@@ -299,7 +303,7 @@ pub mod mock {
         pub fn new_pid_example() -> Self {
             Self {
                 credentials: vec![CredentialQuery {
-                    id: "my_credential".to_string().try_into().unwrap(),
+                    id: "new_pid_example".to_string().try_into().unwrap(),
                     format: CredentialQueryFormat::MsoMdoc {
                         doctype_value: PID.to_string(),
                     },
@@ -310,34 +314,28 @@ pub mod mock {
                         claims: vec![
                             ClaimsQuery {
                                 id: None,
-                                path: vec![
+                                path: vec_nonempty![
                                     ClaimPath::SelectByKey(PID.to_string()),
                                     ClaimPath::SelectByKey(ATTR_BSN.to_string()),
-                                ]
-                                .try_into()
-                                .unwrap(),
+                                ],
                                 values: vec![],
                                 intent_to_retain: Some(true),
                             },
                             ClaimsQuery {
                                 id: None,
-                                path: vec![
+                                path: vec_nonempty![
                                     ClaimPath::SelectByKey(PID.to_string()),
                                     ClaimPath::SelectByKey(ATTR_GIVEN_NAME.to_string()),
-                                ]
-                                .try_into()
-                                .unwrap(),
+                                ],
                                 values: vec![],
                                 intent_to_retain: Some(true),
                             },
                             ClaimsQuery {
                                 id: None,
-                                path: vec![
+                                path: vec_nonempty![
                                     ClaimPath::SelectByKey(PID.to_string()),
                                     ClaimPath::SelectByKey(ATTR_FAMILY_NAME.to_string()),
-                                ]
-                                .try_into()
-                                .unwrap(),
+                                ],
                                 values: vec![],
                                 intent_to_retain: Some(true),
                             },
@@ -355,7 +353,7 @@ pub mod mock {
         pub fn pid_full_name() -> Self {
             Self {
                 credentials: vec![CredentialQuery {
-                    id: "my_credential".to_string().try_into().unwrap(),
+                    id: "pid_full_name".to_string().try_into().unwrap(),
                     format: CredentialQueryFormat::MsoMdoc {
                         doctype_value: PID.to_string(),
                     },
@@ -366,23 +364,19 @@ pub mod mock {
                         claims: vec![
                             ClaimsQuery {
                                 id: None,
-                                path: vec![
+                                path: vec_nonempty![
                                     ClaimPath::SelectByKey(PID.to_string()),
                                     ClaimPath::SelectByKey(ATTR_GIVEN_NAME.to_string()),
-                                ]
-                                .try_into()
-                                .unwrap(),
+                                ],
                                 values: vec![],
                                 intent_to_retain: Some(true),
                             },
                             ClaimsQuery {
                                 id: None,
-                                path: vec![
+                                path: vec_nonempty![
                                     ClaimPath::SelectByKey(PID.to_string()),
                                     ClaimPath::SelectByKey(ATTR_FAMILY_NAME.to_string()),
-                                ]
-                                .try_into()
-                                .unwrap(),
+                                ],
                                 values: vec![],
                                 intent_to_retain: Some(true),
                             },
@@ -410,12 +404,10 @@ pub mod mock {
                     claims_selection: ClaimsSelection::All {
                         claims: vec![ClaimsQuery {
                             id: None,
-                            path: vec![
+                            path: vec_nonempty![
                                 ClaimPath::SelectByKey(PID.to_string()),
                                 ClaimPath::SelectByKey(ATTR_FAMILY_NAME.to_string()),
-                            ]
-                            .try_into()
-                            .unwrap(),
+                            ],
                             values: vec![],
                             intent_to_retain: Some(true),
                         }]
@@ -445,7 +437,9 @@ pub mod mock {
         }
 
         pub fn new_example() -> Self {
-            vec![NormalizedCredentialRequest::new_example()].try_into().unwrap()
+            vec![NormalizedCredentialRequest::new_mdoc_example()]
+                .try_into()
+                .unwrap()
         }
 
         pub fn new_big_example() -> Self {
@@ -544,9 +538,9 @@ pub mod mock {
     }
 
     impl NormalizedCredentialRequest {
-        pub fn new_example() -> Self {
+        pub fn new_mdoc_example() -> Self {
             Self {
-                id: "my_credential".to_string().try_into().unwrap(),
+                id: "new_mdoc_example".to_string().try_into().unwrap(),
                 format: CredentialQueryFormat::MsoMdoc {
                     doctype_value: EXAMPLE_DOC_TYPE.to_string(),
                 },
@@ -639,7 +633,7 @@ mod test {
     #[case(Query::example_with_credential_sets(), Err(UnsupportedDcqlFeatures::CredentialSets))]
     #[case(Query::example_with_claim_sets(), Err(UnsupportedDcqlFeatures::SdJwt))]
     #[case(Query::example_with_values(), Err(UnsupportedDcqlFeatures::SdJwt))]
-    #[case(Query::new_example(), Ok(NormalizedCredentialRequests::new_example()))]
+    #[case(Query::new_mdoc_example(), Ok(NormalizedCredentialRequests::new_example()))]
     #[case(query_multiple_queries(), Err(UnsupportedDcqlFeatures::MultipleCredentialQueries))]
     #[case(query_with_trusted_authorities(), Err(UnsupportedDcqlFeatures::TrustedAuthorities))]
     #[case(query_without_claims(), Err(UnsupportedDcqlFeatures::NoClaims))]
@@ -684,7 +678,7 @@ mod test {
     where
         F: FnOnce(CredentialQuery) -> CredentialQuery,
     {
-        let mut query = Query::new_example();
+        let mut query = Query::pid_family_name();
         query.credentials = vec![mutate(query.credentials.into_iter().next().unwrap())]
             .try_into()
             .unwrap();

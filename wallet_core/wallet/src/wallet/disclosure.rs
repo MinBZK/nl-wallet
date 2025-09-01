@@ -18,6 +18,7 @@ use attestation_data::auth::Organization;
 use attestation_data::auth::reader_auth::ReaderRegistration;
 use attestation_data::constants::PID_ATTESTATION_TYPE;
 use attestation_data::constants::PID_BSN;
+use attestation_data::constants::PID_RECOVERY_CODE;
 use attestation_data::disclosure_type::DisclosureType;
 use attestation_types::claim_path::ClaimPath;
 use dcql::CredentialFormat;
@@ -38,7 +39,9 @@ use openid4vc::disclosure_session::VpVerifierError;
 use openid4vc::verifier::SessionType;
 use platform_support::attested_key::AttestedKeyHolder;
 use update_policy_model::update_policy::VersionState;
+use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
+use utils::vec_nonempty;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::account_provider::AccountProviderClient;
@@ -66,7 +69,7 @@ use super::uri::identify_uri;
 static LOGIN_ATTESTATION_TYPES: LazyLock<HashSet<&str>> = LazyLock::new(|| HashSet::from([PID_ATTESTATION_TYPE]));
 
 /// A login request will only contain the BSN attribute, which the verifier checks against a BSN
-/// the verifier already posseses for the wallet user. For this reason it should not retain it.
+/// the verifier already possesses for the wallet user. For this reason it should not retain it.
 static LOGIN_CLAIMS: LazyLock<HashMap<CredentialFormat, AttributeRequest>> = LazyLock::new(|| {
     let mdoc_login_claims = AttributeRequest {
         path: vec![
@@ -80,7 +83,7 @@ static LOGIN_CLAIMS: LazyLock<HashMap<CredentialFormat, AttributeRequest>> = Laz
 
     let sd_jwt_login_claims = AttributeRequest {
         path: vec![ClaimPath::SelectByKey(PID_BSN.to_string())].try_into().unwrap(),
-        // TODO (PVW-4139): SD-JWT requests should not have intent_to_retain, fix this one we supper SD-JWT in DCQL.
+        // TODO (PVW-4139): SD-JWT requests should not have intent_to_retain, fix this once we support SD-JWT in DCQL.
         intent_to_retain: false,
     };
 
@@ -146,6 +149,9 @@ pub enum DisclosureError {
         shared_data_with_relying_party_before: bool,
         session_type: SessionType,
     },
+    #[error("cannot request recovery code")]
+    #[category(critical)]
+    RecoveryCodeRequested,
     #[error("error sending instruction to Wallet Provider: {0}")]
     Instruction(#[source] InstructionError),
     #[error("could not increment usage count of mdoc copies in database: {0}")]
@@ -280,6 +286,30 @@ impl RedirectUriPurpose {
     }
 }
 
+fn is_request_for_recovery_code(request: &NormalizedCredentialRequest) -> bool {
+    // Get a normalized claim path for recovery_code if request is for PID
+    let recovery_code_claim_path = match &request.format {
+        CredentialQueryFormat::MsoMdoc { doctype_value } if doctype_value.as_str() == PID_ATTESTATION_TYPE => {
+            Some(vec_nonempty![
+                ClaimPath::SelectByKey(String::from(PID_ATTESTATION_TYPE)),
+                ClaimPath::SelectByKey(String::from(PID_RECOVERY_CODE))
+            ])
+        }
+        CredentialQueryFormat::SdJwt { vct_values }
+            if vct_values.iter().any(|vct| vct.as_str() == PID_ATTESTATION_TYPE) =>
+        {
+            Some(vec_nonempty![ClaimPath::SelectByKey(String::from(PID_RECOVERY_CODE))])
+        }
+        CredentialQueryFormat::MsoMdoc { .. } | CredentialQueryFormat::SdJwt { .. } => None,
+    };
+    recovery_code_claim_path.is_some_and(|claim_path| {
+        request
+            .claims
+            .iter()
+            .any(|attribute_request| attribute_request.path == claim_path)
+    })
+}
+
 impl<CR, UR, S, AKH, APC, DC, IS, DCC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
@@ -375,6 +405,16 @@ where
             .disclosure_client
             .start(disclosure_uri_query, source, &config.rp_trust_anchors())
             .await?;
+
+        // Check for recovery code request
+        if session
+            .credential_requests()
+            .as_ref()
+            .iter()
+            .any(is_request_for_recovery_code)
+        {
+            return Err(DisclosureError::RecoveryCodeRequested);
+        }
 
         // For each disclosure request, fetch the candidates from the database and convert
         // each of them to an `AttestationPresentation` that can be shown to the user.
@@ -725,17 +765,14 @@ where
 
         // Clone some values from `WalletDisclosureSession`, before we have to give away ownership of it.
         let partial_mdocs = attestations
-            .iter()
+            .nonempty_iter()
             .map(|attestation| match attestation.partial_attestation() {
                 PartialAttestation::MsoMdoc { partial_mdoc } => partial_mdoc.as_ref().clone(),
                 PartialAttestation::SdJwt { .. } => {
                     todo!("implement SD-JWT disclosure (PVW-4138)")
                 }
             })
-            .collect_vec()
-            .try_into()
-            // Safe, as the source of the iterator is `VecNonEmpty`.
-            .unwrap();
+            .collect::<VecNonEmpty<_>>();
 
         // Take ownership of the disclosure session and actually perform disclosure, casting any
         // `InstructionError` that occurs during signing to `RemoteEcdsaKeyError::Instruction`.
@@ -861,6 +898,7 @@ mod tests {
     use attestation_data::auth::Organization;
     use attestation_data::auth::reader_auth::ReaderRegistration;
     use attestation_data::constants::PID_ATTESTATION_TYPE;
+    use attestation_data::constants::PID_RECOVERY_CODE;
     use attestation_data::disclosure_type::DisclosureType;
     use attestation_data::x509::generate::mock::generate_reader_mock;
     use attestation_types::claim_path::ClaimPath;
@@ -1503,6 +1541,35 @@ mod tests {
                 !shared_data_with_relying_party_before
         );
         assert!(wallet.session.is_some());
+    }
+
+    #[rstest]
+    #[case(RequestedFormat::MsoMdoc, &[PID_ATTESTATION_TYPE, PID_RECOVERY_CODE])]
+    #[case(RequestedFormat::SdJwt, &[PID_RECOVERY_CODE])]
+    #[tokio::test]
+    async fn test_wallet_start_disclosure_error_recovery_code_requested(
+        #[case] requested_format: RequestedFormat,
+        #[case] path: &[&str],
+    ) {
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
+
+        // Set the requested attribute path to the recovery code
+        setup_disclosure_client_start(&mut wallet.disclosure_client, requested_format, path);
+
+        let mdoc_credential = create_example_pid_mdoc_credential();
+        wallet
+            .mut_storage()
+            .issued_credential_copies
+            .insert(mdoc_credential.attestation_type.clone(), vec![mdoc_credential]);
+
+        // Starting disclosure where the recovery code is requested should result in an error.
+        let error = wallet
+            .start_disclosure(&DISCLOSURE_URI, DisclosureUriSource::QrCode)
+            .await
+            .expect_err("starting disclosure should not succeed");
+
+        assert_matches!(error, DisclosureError::RecoveryCodeRequested);
+        assert!(wallet.session.is_none());
     }
 
     #[rstest]

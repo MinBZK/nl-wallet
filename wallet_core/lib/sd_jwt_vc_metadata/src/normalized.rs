@@ -385,13 +385,15 @@ mod example_constructors {
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
-    use itertools::Itertools;
     use rstest::rstest;
     use serde_json::json;
     use ssri::Integrity;
 
     use attestation_types::claim_path::ClaimPath;
+    use utils::vec_at_least::IntoNonEmptyIterator;
+    use utils::vec_at_least::NonEmptyIterator;
     use utils::vec_at_least::VecNonEmpty;
+    use utils::vec_nonempty;
 
     use crate::chain::SortedTypeMetadata;
     use crate::metadata::ClaimDisplayMetadata;
@@ -481,14 +483,14 @@ mod tests {
         // The JSON schemas should be ordered from leaf to root.
         assert_eq!(normalized.schemas.len().get(), 3);
         assert_eq!(
-            normalized.schemas.iter().collect_vec(),
-            vec![&metadata_v3.schema, &metadata_v2.schema, &metadata.schema]
-                .into_iter()
+            normalized.schemas,
+            vec_nonempty![metadata_v3.schema, metadata_v2.schema, metadata.schema]
+                .into_nonempty_iter()
                 .map(|schema_option| match schema_option {
-                    SchemaOption::Embedded { schema } => schema.as_ref(),
+                    SchemaOption::Embedded { schema } => *schema,
                     _ => unreachable!(),
                 })
-                .collect_vec()
+                .collect::<VecNonEmpty<_>>()
         );
     }
 

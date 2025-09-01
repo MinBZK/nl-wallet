@@ -20,9 +20,9 @@ use crate::AttestationPresentation;
 
 #[derive(Debug, thiserror::Error)]
 pub enum PartialAttestationError {
-    #[error("requested path not present in mdoc attestion: {0}")]
+    #[error("requested path not present in mdoc attestation: {0}")]
     MsoMdoc(#[from] MissingAttributesError),
-    #[error("requested path not present in SD-JWT attestion: {0}")]
+    #[error("requested path not present in SD-JWT attestation: {0}")]
     SdJwt(#[from] sd_jwt::error::Error),
 }
 
@@ -210,7 +210,7 @@ impl PartialAttestation {
 
 impl DisclosableAttestation {
     pub fn try_new<'a>(
-        attestion_copy: StoredAttestationCopy,
+        attestation_copy: StoredAttestationCopy,
         claim_paths: impl IntoIterator<Item = &'a VecNonEmpty<ClaimPath>>,
     ) -> Result<Self, PartialAttestationError> {
         let StoredAttestationCopy {
@@ -218,7 +218,7 @@ impl DisclosableAttestation {
             attestation_copy_id,
             attestation,
             normalized_metadata,
-        } = attestion_copy;
+        } = attestation_copy;
 
         let issuer_registration = attestation.issuer_registration();
         let partial_attestation = PartialAttestation::try_new(attestation, claim_paths)?;
@@ -382,7 +382,7 @@ mod tests {
 
             // The converted `AttestationPresentation` contains multiple attributes.
             let full_presentation = attestation_copy.clone().into_attestation_presentation();
-            assert_eq!(full_presentation.attributes.len(), 3);
+            assert_eq!(full_presentation.attributes.len(), 4);
 
             // Selecting a particular attribute for disclosure should only succeed if the path exists.
             let disclosable_attestation = DisclosableAttestation::try_new(attestation_copy.clone(), [&bsn_path])
