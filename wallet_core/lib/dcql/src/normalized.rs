@@ -1,5 +1,3 @@
-use std::num::NonZero;
-
 use derive_more::IntoIterator;
 use itertools::Itertools;
 use serde::Deserialize;
@@ -89,8 +87,6 @@ pub enum UnsupportedDcqlFeatures {
     // TODO: PVW-4139 support SdJwt
     #[error("format 'dc+sd-jwt' is not supported")]
     SdJwt,
-    #[error("invalid claim path length ({0}), mdoc requires 2")]
-    InvalidClaimPathLength(NonZero<usize>),
     #[error("unsupported ClaimPath variant, only SelectByKey is supported")]
     UnsupportedClaimPathVariant,
     #[error("'intent_to_retain' is mandatory for mso_mdoc format")]
@@ -199,9 +195,6 @@ impl TryFrom<ClaimsQuery> for AttributeRequest {
     fn try_from(source: ClaimsQuery) -> Result<Self, Self::Error> {
         if !source.values.is_empty() {
             return Err(UnsupportedDcqlFeatures::ClaimValues);
-        }
-        if source.path.len().get() != 2 {
-            return Err(UnsupportedDcqlFeatures::InvalidClaimPathLength(source.path.len()));
         }
         if source
             .path
@@ -639,10 +632,6 @@ mod test {
     #[case(query_without_claims(), Err(UnsupportedDcqlFeatures::NoClaims))]
     #[case(query_with_claim_sets(), Err(UnsupportedDcqlFeatures::MultipleClaimSets))]
     #[case(
-        query_with_invalid_claim_path_length(),
-        Err(UnsupportedDcqlFeatures::InvalidClaimPathLength(1.try_into().unwrap())),
-    )]
-    #[case(
         query_with_invalid_claim_path_variant_all(),
         Err(UnsupportedDcqlFeatures::UnsupportedClaimPathVariant)
     )]
@@ -723,22 +712,6 @@ mod test {
                 claim_sets: vec![vec!["1".to_string().try_into().unwrap()].try_into().unwrap()]
                     .try_into()
                     .unwrap(),
-            };
-            c
-        })
-    }
-
-    fn query_with_invalid_claim_path_length() -> Query {
-        let claims_query = {
-            let mut claims_query = mdoc_claims_query();
-            let mut path = claims_query.path.into_inner();
-            path.swap_remove(0);
-            claims_query.path = path.try_into().unwrap();
-            claims_query
-        };
-        mdoc_example_query_mutate_first_credential_query(move |mut c| {
-            c.claims_selection = ClaimsSelection::All {
-                claims: vec![claims_query].try_into().unwrap(),
             };
             c
         })
