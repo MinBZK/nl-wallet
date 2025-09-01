@@ -518,16 +518,16 @@ pub mod mock {
                 .iter()
                 .copied()
                 .enumerate()
-                .map(|(index, (attestation_types, paths))| {
+                .map(|(index, (credential_types, paths))| {
                     let id = format!("sd_jwt_{index}").try_into().unwrap();
                     let format = CredentialQueryFormat::SdJwt {
-                        vct_values: attestation_types
+                        vct_values: credential_types
                             .iter()
                             .copied()
                             .map(str::to_string)
                             .collect::<Vec<_>>()
                             .try_into()
-                            .expect("should contain at least one attestation type"),
+                            .expect("should contain at least one credential type"),
                     };
 
                     (id, format, paths)

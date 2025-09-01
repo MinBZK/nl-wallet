@@ -484,7 +484,7 @@ where
                 .as_ref()
                 .iter()
                 .flat_map(|request| {
-                    request.format.attestation_types().flat_map(|attestation_type| {
+                    request.format.credential_types().flat_map(|attestation_type| {
                         request
                             .claims
                             .iter()

@@ -28,7 +28,7 @@ pub enum CredentialValidationError {
         format!("({id}): expected \"{expected}\", received \"{received}\"")
     }).join(" / "))]
     FormatMismatch(HashMap<CredentialQueryIdentifier, (CredentialFormat, CredentialFormat)>),
-    #[error("received incorrect attestation type for identifier(s): {}", .0.iter().map(|(id, (expected, received))| {
+    #[error("received incorrect credential type for identifier(s): {}", .0.iter().map(|(id, (expected, received))| {
         format!(
             "({}): expected {}, received \"{}\"",
             id,
@@ -36,7 +36,7 @@ pub enum CredentialValidationError {
             received
         )
     }).join(" / "))]
-    AttestationTypeMismatch(HashMap<CredentialQueryIdentifier, (Vec<String>, String)>),
+    CredentialTypeMismatch(HashMap<CredentialQueryIdentifier, (Vec<String>, String)>),
     #[error("requested attributes are missing for identifier(s): {}", .0.iter().map(|(id, paths)| {
         format!("({}): {}", id, paths.iter().map(|path| {
             format!("[{}]", path.iter().join(", "))
@@ -68,7 +68,7 @@ impl<'a> DisclosedCredential<'a> {
         }
     }
 
-    fn attestation_type(&self) -> &str {
+    fn credential_type(&self) -> &str {
         match self {
             Self::MsoMdoc(document) => &document.doc_type,
         }
@@ -150,27 +150,27 @@ impl NormalizedCredentialRequests {
             return Err(CredentialValidationError::FormatMismatch(format_mismatches));
         }
 
-        // Each received credential should be of (one of) the requested attestation type(s) for that query.
-        let attestation_type_mismatches = requests_and_credentials
+        // Each received credential should be of (one of) the requested credential type(s) for that query.
+        let credential_type_mismatches = requests_and_credentials
             .iter()
             .filter_map(|(id, (request, credential))| {
-                let attestation_type = credential.attestation_type();
+                let credential_type = credential.credential_type();
 
-                (!request.format.attestation_types().contains(attestation_type)).then(|| {
+                (!request.format.credential_types().contains(credential_type)).then(|| {
                     (
                         (*id).clone(),
                         (
-                            request.format.attestation_types().map(str::to_string).collect_vec(),
-                            attestation_type.to_string(),
+                            request.format.credential_types().map(str::to_string).collect_vec(),
+                            credential_type.to_string(),
                         ),
                     )
                 })
             })
             .collect::<HashMap<_, _>>();
 
-        if !attestation_type_mismatches.is_empty() {
-            return Err(CredentialValidationError::AttestationTypeMismatch(
-                attestation_type_mismatches,
+        if !credential_type_mismatches.is_empty() {
+            return Err(CredentialValidationError::CredentialTypeMismatch(
+                credential_type_mismatches,
             ));
         }
 
@@ -247,9 +247,9 @@ mod tests {
         ])
     }
 
-    fn wrong_attestation_type_mdoc_requests() -> NormalizedCredentialRequests {
+    fn wrong_credential_type_mdoc_requests() -> NormalizedCredentialRequests {
         NormalizedCredentialRequests::new_mock_mdoc_from_slices(&[(
-            "wrong_attestation_type",
+            "wrong_credential_type",
             &[&[EXAMPLE_NAMESPACE, "family_name"]],
         )])
     }
@@ -313,11 +313,11 @@ mod tests {
         )]))),
     )]
     #[case(
-        wrong_attestation_type_mdoc_requests(),
+        wrong_credential_type_mdoc_requests(),
         HashMap::from([("mdoc_0".try_into().unwrap(), vec![DeviceResponse::example()])]),
-        Err(CredentialValidationError::AttestationTypeMismatch(
+        Err(CredentialValidationError::CredentialTypeMismatch(
             HashMap::from([("mdoc_0".try_into().unwrap(),
-            (vec!["wrong_attestation_type".to_string()], EXAMPLE_DOC_TYPE.to_string()),
+            (vec!["wrong_credential_type".to_string()], EXAMPLE_DOC_TYPE.to_string()),
         )]))),
     )]
     #[case(

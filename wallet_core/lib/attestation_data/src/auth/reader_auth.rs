@@ -57,7 +57,7 @@ impl ReaderRegistration {
 
                 // Check if any of the requested attributes are missing from the
                 // authorized attributes for all requested attestation types.
-                request.format.attestation_types().flat_map(move |attestation_type| {
+                request.format.credential_types().flat_map(move |attestation_type| {
                     let authorized_attributes = self
                         .authorized_attributes
                         .get(attestation_type)

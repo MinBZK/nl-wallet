@@ -32,7 +32,7 @@ impl DisclosureType {
                 let is_login = login_claim.is_some()
                     && request
                         .format
-                        .attestation_types()
+                        .credential_types()
                         .collect::<HashSet<_>>()
                         .is_subset(login_attestation_types)
                     && request.claims.iter().exactly_one().ok() == login_claim;
