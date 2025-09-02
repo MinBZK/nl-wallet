@@ -189,7 +189,7 @@ pub struct SdJwtClaims {
     pub claims: ObjectClaims,
 }
 
-#[nutype(validate(predicate = |n| n != "..."), derive(Debug, Clone, TryFrom, FromStr, PartialEq, Eq, Hash, Serialize, Deserialize))]
+#[nutype(validate(predicate = |name| !["...", "_sd"].contains(&name)), derive(Debug, Clone, TryFrom, FromStr, PartialEq, Eq, Hash, Serialize, Deserialize))]
 pub struct ClaimName(String);
 
 #[skip_serializing_none]
@@ -200,22 +200,22 @@ pub struct ObjectClaims {
 
     /// Non-selectively disclosable claims of the SD-JWT.
     #[serde(flatten)]
-    pub fields: HashMap<ClaimName, ClaimValue>,
+    pub claims: HashMap<ClaimName, ClaimValue>,
 }
 
 impl ObjectClaims {
     fn into_json_value(self) -> serde_json::Value {
         let mut map = Map::from_iter(
-            self.fields
+            self.claims
                 .into_iter()
                 .map(|(k, v)| (k.into_inner(), v.into_json_value())),
         );
 
         let hashes = self
             ._sd
-            .iter()
-            .flat_map(|hashes| hashes.iter())
-            .map(|a| serde_json::Value::String(a.clone()))
+            .into_iter()
+            .flat_map(|digests| digests.into_inner().into_iter())
+            .map(serde_json::Value::String)
             .collect();
 
         map.insert(DIGESTS_KEY.to_string(), serde_json::Value::Array(hashes));
@@ -264,7 +264,7 @@ impl ArrayClaim {
             ArrayClaim::Value(value) => value.into_json_value(),
             ArrayClaim::Hash(hash) => serde_json::Value::Object(Map::from_iter(vec![(
                 ARRAY_DIGEST_KEY.to_string(),
-                serde_json::Value::String(hash.to_string()),
+                serde_json::Value::String(hash),
             )])),
         }
     }
@@ -1569,6 +1569,11 @@ mod test {
     #[case(json!({
         "iss": "https://issuer.example.com/",
         "iat": 1683000000,
+        "...": "not_allowed"
+    }), false)]
+    #[case(json!({
+        "iss": "https://issuer.example.com/",
+        "iat": 1683000000,
         "nationalities":
         ["DE", {"...":"w0I8EKcdCtUPkGCNUrfwVp2xEgNjtoIDlOxc9-PlOhs"}, "US"]
     }), true)]
@@ -1681,10 +1686,11 @@ mod test {
         },
         "_sd_alg": "sha-256"
     }), true)]
-    fn deserialize_spec_examples(#[case] original: serde_json::Value, #[case] is_valid: bool) {
+    fn test_different_serialization_scenarios(#[case] original: serde_json::Value, #[case] is_valid: bool) {
         let deserialized = serde_json::from_value::<SdJwtClaims>(original.clone());
-        dbg!(&deserialized);
+
         assert_eq!(deserialized.is_ok(), is_valid);
+
         if is_valid {
             let serialized = serde_json::to_value(deserialized.unwrap()).unwrap();
             assert_eq!(serialized, original);
@@ -1764,7 +1770,7 @@ mod test {
                         .try_into()
                         .unwrap(),
                 ),
-                fields: HashMap::from([
+                claims: HashMap::from([
                     ("sub".parse().unwrap(), ClaimValue::String("user_42".to_string())),
                     (
                         "object_with_hashes".parse().unwrap(),
@@ -1774,7 +1780,7 @@ mod test {
                                     .try_into()
                                     .unwrap(),
                             ),
-                            fields: HashMap::from([(
+                            claims: HashMap::from([(
                                 "field".parse().unwrap(),
                                 ClaimValue::String("value".to_string()),
                             )]),
@@ -1784,7 +1790,7 @@ mod test {
                         "object_with_array_of_hashes".parse().unwrap(),
                         ClaimValue::Object(ObjectClaims {
                             _sd: None,
-                            fields: HashMap::from([(
+                            claims: HashMap::from([(
                                 "array".parse().unwrap(),
                                 ClaimValue::Array(vec![ArrayClaim::Hash(
                                     "pFndjkZ_VCzmyTa6UjlZo3dh-ko8aIKQc9DlGzhaVYo".to_string(),
@@ -1807,7 +1813,7 @@ mod test {
                                         .try_into()
                                         .unwrap(),
                                 ),
-                                fields: HashMap::new(),
+                                claims: HashMap::new(),
                             })),
                             ArrayClaim::Hash("7Cf6JkPudry3lcbwHgeZ8khAv1U1OSlerP0VkBJrWZ0".to_string()),
                         ]),
