@@ -1,6 +1,10 @@
 use serde_with::DeserializeFromStr;
 use serde_with::SerializeDisplay;
 
+use crate::error::Error;
+use crate::hasher::Hasher;
+use crate::hasher::Sha256Hasher;
+
 /// <https://www.iana.org/assignments/named-information/named-information.xhtml>
 #[derive(
     Debug, Default, Clone, Copy, PartialEq, Eq, strum::EnumString, strum::Display, SerializeDisplay, DeserializeFromStr,
@@ -38,6 +42,15 @@ pub enum SdAlg {
     K12_512,
 }
 
+impl SdAlg {
+    pub fn hasher(self) -> Result<impl Hasher, Error> {
+        match self {
+            SdAlg::Sha256 => Ok(Sha256Hasher),
+            _ => Err(Error::SdAlgHasherNotImplemented(self)),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use rstest::rstest;
@@ -63,7 +76,7 @@ mod tests {
     #[case(SdAlg::Blake2b512, "blake2b-512")]
     #[case(SdAlg::K12_256, "k12-256")]
     #[case(SdAlg::K12_512, "k12-512")]
-    fn sd_alg_display(#[case] alg: SdAlg, #[case] alg_str: &str) {
+    fn test_sd_alg_display(#[case] alg: SdAlg, #[case] alg_str: &str) {
         assert_eq!(alg.to_string(), alg_str);
         let parsed: SdAlg = alg_str.parse().unwrap();
         assert_eq!(parsed, alg);

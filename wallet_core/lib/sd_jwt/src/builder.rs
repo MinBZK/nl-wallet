@@ -45,7 +45,7 @@ impl SdJwtBuilder<Sha256Hasher> {
     /// ## Error
     /// Returns [`Error::DataTypeMismatch`] if `object` is not a valid JSON object.
     pub fn new<T: Serialize>(object: T) -> Result<Self> {
-        Self::new_with_hasher(object, Sha256Hasher::new())
+        Self::new_with_hasher(object, Sha256Hasher)
     }
 }
 

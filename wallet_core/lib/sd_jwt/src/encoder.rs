@@ -41,7 +41,7 @@ impl TryFrom<Value> for SdObjectEncoder<Sha256Hasher> {
     type Error = Error;
 
     fn try_from(value: Value) -> Result<Self> {
-        Self::with_custom_hasher_and_salt_size(value, Sha256Hasher::new(), DEFAULT_SALT_SIZE)
+        Self::with_custom_hasher_and_salt_size(value, Sha256Hasher, DEFAULT_SALT_SIZE)
     }
 }
 
@@ -192,7 +192,7 @@ impl<H: Hasher> SdObjectEncoder<H> {
         }
     }
 
-    fn random_digest(hasher: &dyn Hasher, salt_len: usize, array_entry: bool) -> Result<String> {
+    fn random_digest(hasher: &impl Hasher, salt_len: usize, array_entry: bool) -> Result<String> {
         let mut rng = rand::thread_rng();
         let salt = Self::gen_rand(salt_len);
         let decoy_value_length = rng.gen_range(20..=100);

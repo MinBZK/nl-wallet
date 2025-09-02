@@ -111,12 +111,8 @@ impl KeyBindingJwtBuilder {
     }
 
     /// Builds an [`KeyBindingJwt`] from the data provided to builder.
-    pub(crate) async fn finish(
-        self,
-        sd_jwt: &SdJwt,
-        hasher: &dyn Hasher,
-        signing_key: &impl EcdsaKeySend,
-    ) -> Result<KeyBindingJwt, Error> {
+    pub(crate) async fn finish(self, sd_jwt: &SdJwt, signing_key: &impl EcdsaKeySend) -> Result<KeyBindingJwt, Error> {
+        let hasher = sd_jwt.claims()._sd_alg.unwrap_or_default().hasher()?;
         let sd_hash = hasher.encoded_digest(&sd_jwt.to_string());
 
         let claims = KeyBindingJwtClaims {
@@ -125,13 +121,6 @@ impl KeyBindingJwtBuilder {
             nonce: self.nonce,
             sd_hash,
         };
-
-        if sd_jwt.claims()._sd_alg.unwrap_or_default() != hasher.alg() {
-            return Err(Error::InvalidHasher(format!(
-                "invalid hashing algorithm \"{}\"",
-                hasher.alg()
-            )));
-        }
 
         let verified_jwt = VerifiedJwt::sign(claims, self.header, signing_key).await?;
 
@@ -179,9 +168,7 @@ mod test {
     use crate::key_binding_jwt_claims::KeyBindingJwt;
     use crate::key_binding_jwt_claims::KeyBindingJwtBuilder;
     use crate::key_binding_jwt_claims::KeyBindingJwtClaims;
-    use crate::sd_alg::SdAlg;
     use crate::sd_jwt::SdJwt;
-    use crate::sd_jwt::SdJwtPresentation;
 
     async fn example_kb_jwt(signing_key: &SigningKey, header: Header) -> UnverifiedJwt<KeyBindingJwtClaims> {
         UnverifiedJwt::sign(
@@ -200,16 +187,15 @@ mod test {
 
     #[tokio::test]
     async fn test_key_binding_jwt_builder() {
-        let sd_jwt =
-            SdJwt::parse_and_verify(SIMPLE_STRUCTURED_SD_JWT, &examples_sd_jwt_decoding_key(), &Sha256Hasher).unwrap();
+        let sd_jwt = SdJwt::parse_and_verify(SIMPLE_STRUCTURED_SD_JWT, &examples_sd_jwt_decoding_key()).unwrap();
 
         let signing_key = SigningKey::random(&mut OsRng);
-        let hasher = Sha256Hasher::new();
+        let hasher = Sha256Hasher;
 
         let iat = Utc::now();
 
         let kb_jwt = KeyBindingJwtBuilder::new(iat, String::from("receiver"), String::from("abc123"), Algorithm::ES256)
-            .finish(&sd_jwt, &hasher, &signing_key)
+            .finish(&sd_jwt, &signing_key)
             .await
             .unwrap();
 
@@ -289,34 +275,5 @@ mod test {
         )
         .expect_err("should fail validation");
         assert_matches!(err, Error::Deserialization(msg) if msg == "invalid KB-JWT: unexpected nonce");
-    }
-
-    #[tokio::test]
-    async fn test_algorithm_should_match_sd_jwt() {
-        let sd_jwt = SdJwtPresentation::spec_simple_structured();
-
-        let signing_key = SigningKey::random(&mut OsRng);
-
-        struct TestHasher;
-        impl Hasher for TestHasher {
-            fn digest(&self, _input: &[u8]) -> Vec<u8> {
-                vec![]
-            }
-
-            fn alg(&self) -> SdAlg {
-                SdAlg::Sha256 // must be a valid SdAlg
-            }
-        }
-
-        let result = KeyBindingJwtBuilder::new(
-            Utc::now(),
-            String::from("receiver"),
-            String::from("abc123"),
-            Algorithm::ES256,
-        )
-        .finish(&sd_jwt, &TestHasher, &signing_key)
-        .await;
-
-        assert_matches!(result, Err(Error::InvalidHasher(_)));
     }
 }
