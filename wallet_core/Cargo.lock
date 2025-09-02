@@ -1704,6 +1704,7 @@ dependencies = [
  "derive_more",
  "error_category",
  "itertools 0.14.0",
+ "mdoc",
  "nutype",
  "rstest",
  "serde",
@@ -1788,6 +1789,7 @@ dependencies = [
  "axum",
  "axum-server",
  "config",
+ "dcql",
  "demo_utils",
  "http_utils",
  "indexmap 2.7.1",
@@ -2239,9 +2241,9 @@ checksum = "b3ea1ec5f8307826a5b71094dd91fc04d4ae75d5709b20ad351c7fb4815c86ec"
 
 [[package]]
 name = "flate2"
-version = "1.0.35"
+version = "1.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c936bfdafb507ebbf50b8074c54fa31c5be9a1e7e5f467dd659697041407d07c"
+checksum = "4a3d7db9596fecd151c5f638c0ee5d5bd487b6e0ea232e5dc96d5250f6f94b1d"
 dependencies = [
  "crc32fast",
  "miniz_oxide",
@@ -3685,7 +3687,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fc2f4eb4bc735547cfed7c0a4922cbd04a4655978c09b54f1f7b228750664c34"
 dependencies = [
  "cfg-if",
- "windows-targets 0.48.5",
+ "windows-targets 0.52.6",
 ]
 
 [[package]]
@@ -3796,7 +3798,6 @@ dependencies = [
  "ciborium",
  "coset",
  "crypto",
- "dcql",
  "derive_more",
  "error_category",
  "futures",
@@ -3881,9 +3882,9 @@ checksum = "68354c5c6bd36d73ff3feceb05efa59b6acb7626617f4962be322a825e61f79a"
 
 [[package]]
 name = "miniz_oxide"
-version = "0.8.3"
+version = "0.8.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b8402cab7aefae129c6977bb0ff1b8fd9a04eb5b51efc50a70bea51cda0c7924"
+checksum = "1fa76a2c86f704bdb222d66965fb3d63269ce38518b83cb0575fca855ebb6316"
 dependencies = [
  "adler2",
 ]
@@ -4171,7 +4172,6 @@ dependencies = [
  "biscuit",
  "cfg-if",
  "chrono",
- "ciborium",
  "crypto",
  "dashmap 6.1.0",
  "dcql",
@@ -6535,6 +6535,7 @@ dependencies = [
  "serial_test",
  "server_utils",
  "tempfile",
+ "token_status_list",
  "tokio",
  "tracing",
  "tracing-subscriber",
@@ -6694,6 +6695,32 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "token_status_list"
+version = "0.4.0-dev"
+dependencies = [
+ "axum",
+ "base64 0.22.1",
+ "chrono",
+ "crypto",
+ "derive_more",
+ "flate2",
+ "http_utils",
+ "jsonwebtoken",
+ "jwt",
+ "p256",
+ "regex",
+ "reqwest",
+ "rstest",
+ "serde",
+ "serde_json",
+ "serde_repr",
+ "serde_with",
+ "tests_integration",
+ "thiserror 2.0.11",
+ "tokio",
 ]
 
 [[package]]
@@ -7769,7 +7796,6 @@ dependencies = [
  "tracing-subscriber",
  "tracing-test",
  "trait-variant",
- "url",
  "utils",
  "uuid",
  "wallet_account",

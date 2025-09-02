@@ -1,9 +1,11 @@
+use std::collections::HashMap;
 use std::hash::Hash;
 
 use rustls_pki_types::TrustAnchor;
 
 use crypto::CredentialEcdsaKey;
 use crypto::wscd::DisclosureWscd;
+use dcql::CredentialQueryIdentifier;
 use dcql::normalized::NormalizedCredentialRequests;
 use http_utils::urls::BaseUrl;
 use mdoc::holder::disclosure::PartialMdoc;
@@ -45,7 +47,7 @@ mockall::mock! {
         pub async fn terminate(self) -> Result<Option<BaseUrl>, VpSessionError>;
         pub async fn disclose(
             self,
-            partial_mdocs: VecNonEmpty<PartialMdoc>,
+            partial_attestations: HashMap<CredentialQueryIdentifier, VecNonEmpty<PartialMdoc>>,
         ) -> Result<Option<BaseUrl>, (Self, DisclosureError<VpSessionError>)>;
     }
 }
@@ -69,13 +71,13 @@ impl DisclosureSession for MockDisclosureSession {
 
     async fn disclose<K, W>(
         self,
-        partial_mdocs: VecNonEmpty<PartialMdoc>,
-        _: &W,
+        partial_attestations: HashMap<CredentialQueryIdentifier, VecNonEmpty<PartialMdoc>>,
+        _wscd: &W,
     ) -> Result<Option<BaseUrl>, (Self, DisclosureError<VpSessionError>)>
     where
         K: CredentialEcdsaKey + Eq + Hash,
         W: DisclosureWscd<Key = K, Poa = Poa>,
     {
-        self.disclose(partial_mdocs).await
+        self.disclose(partial_attestations).await
     }
 }

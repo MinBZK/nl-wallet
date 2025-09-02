@@ -10,6 +10,7 @@ workspace = true
 [features]
 examples = []
 mock = []
+test_document = ["mdoc/test"]
 
 [dependencies]
 derive_more = { workspace = true, features = ["into_iterator"] }
@@ -23,7 +24,10 @@ thiserror.workspace = true
 
 attestation_types.path = "../attestation_types"
 error_category.path = "../error_category"
+mdoc.path = "../mdoc"
 utils.path = "../utils"
 
 [dev-dependencies]
 rstest.workspace = true
+
+mdoc = { path = "../mdoc", features = ["examples"] }

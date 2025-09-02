@@ -6,6 +6,7 @@ use itertools::Itertools;
 
 use attestation_data::disclosure::DisclosedAttestation;
 use attestation_data::issuable_document::IssuableDocument;
+use dcql::CredentialQueryIdentifier;
 use http_utils::reqwest::IntoPinnedReqwestClient;
 use http_utils::reqwest::PinnedReqwestClient;
 use http_utils::reqwest::ReqwestClientUrl;
@@ -42,7 +43,7 @@ pub trait AttributesFetcher {
     async fn attributes(
         &self,
         usecase_id: &str,
-        disclosed: &[DisclosedAttestation],
+        disclosed: &HashMap<CredentialQueryIdentifier, VecNonEmpty<DisclosedAttestation>>,
     ) -> Result<Vec<IssuableDocument>, Self::Error>;
 }
 
@@ -67,7 +68,7 @@ impl AttributesFetcher for HttpAttributesFetcher {
     async fn attributes(
         &self,
         usecase_id: &str,
-        disclosed: &[DisclosedAttestation],
+        disclosed: &HashMap<CredentialQueryIdentifier, VecNonEmpty<DisclosedAttestation>>,
     ) -> Result<Vec<IssuableDocument>, Self::Error> {
         let http_client = self
             .urls
@@ -128,7 +129,7 @@ where
     async fn disclosure_result(
         &self,
         usecase_id: &str,
-        disclosed: &[DisclosedAttestation],
+        disclosed: &HashMap<CredentialQueryIdentifier, VecNonEmpty<DisclosedAttestation>>,
     ) -> Result<HashMap<String, String>, DisclosureResultHandlerError> {
         let to_issue = self
             .attributes_fetcher
@@ -192,6 +193,7 @@ mod tests {
     use attestation_data::disclosure::DisclosedAttributes;
     use attestation_data::disclosure::ValidityInfo;
     use attestation_data::issuable_document::IssuableDocument;
+    use dcql::CredentialQueryIdentifier;
     use openid4vc::PostAuthResponseErrorCode;
     use openid4vc::credential::CredentialOffer;
     use openid4vc::issuer::AttestationTypeConfig;
@@ -205,24 +207,31 @@ mod tests {
     use openid4vc::server_state::SessionStoreTimeouts;
     use openid4vc::server_state::SessionToken;
     use openid4vc::verifier::DisclosureResultHandler;
+    use utils::vec_at_least::VecNonEmpty;
+    use utils::vec_nonempty;
 
     use super::AttributesFetcher;
     use super::IssuanceResultHandler;
 
     pub struct TestAttributesFetcher;
 
-    fn mock_disclosed_attrs(attestation_type: String) -> Vec<DisclosedAttestation> {
-        vec![DisclosedAttestation {
-            attestation_type,
-            attributes: DisclosedAttributes::MsoMdoc(IndexMap::new()),
-            issuer_uri: "https://example.com".parse().unwrap(),
-            ca: "ca".to_string(),
-            validity_info: ValidityInfo {
-                signed: Utc::now(),
-                valid_from: Some(Utc::now()),
-                valid_until: Some(Utc::now()),
-            },
-        }]
+    fn mock_disclosed_attrs(
+        attestation_type: String,
+    ) -> HashMap<CredentialQueryIdentifier, VecNonEmpty<DisclosedAttestation>> {
+        HashMap::from([(
+            "id".try_into().unwrap(),
+            vec_nonempty![DisclosedAttestation {
+                attestation_type,
+                attributes: DisclosedAttributes::MsoMdoc(IndexMap::new()),
+                issuer_uri: "https://example.com".parse().unwrap(),
+                ca: "ca".to_string(),
+                validity_info: ValidityInfo {
+                    signed: Utc::now(),
+                    valid_from: Some(Utc::now()),
+                    valid_until: Some(Utc::now()),
+                },
+            }],
+        )])
     }
 
     impl AttributesFetcher for TestAttributesFetcher {
@@ -231,11 +240,11 @@ mod tests {
         async fn attributes(
             &self,
             _usecase_id: &str,
-            disclosed: &[DisclosedAttestation],
+            disclosed: &HashMap<CredentialQueryIdentifier, VecNonEmpty<DisclosedAttestation>>,
         ) -> Result<Vec<IssuableDocument>, Self::Error> {
             // Insert the received attribute type into the issuable document to demonstrate that the
             // issued attributes can depend on the disclosed attributes.
-            let attestation = disclosed.first().unwrap();
+            let attestation = disclosed.values().next().unwrap().first();
 
             Ok(vec![
                 IssuableDocument::try_new(
@@ -259,7 +268,7 @@ mod tests {
         async fn attributes(
             &self,
             _usecase_id: &str,
-            _disclosed: &[DisclosedAttestation],
+            _disclosed: &HashMap<CredentialQueryIdentifier, VecNonEmpty<DisclosedAttestation>>,
         ) -> Result<Vec<IssuableDocument>, Self::Error> {
             Ok(self.0.clone())
         }

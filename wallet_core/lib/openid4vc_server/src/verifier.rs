@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use axum::Form;
@@ -24,6 +25,7 @@ use tracing::warn;
 
 use attestation_data::disclosure::DisclosedAttestation;
 use crypto::keys::EcdsaKeySend;
+use dcql::CredentialQueryIdentifier;
 use http_utils::error::HttpJsonError;
 use http_utils::urls;
 use http_utils::urls::BaseUrl;
@@ -47,6 +49,7 @@ use openid4vc::verifier::UseCases;
 use openid4vc::verifier::Verifier;
 use openid4vc::verifier::WalletAuthResponse;
 use utils::generator::TimeGenerator;
+use utils::vec_at_least::VecNonEmpty;
 
 struct ApplicationState<S, US> {
     verifier: Verifier<S, US>,
@@ -334,7 +337,10 @@ async fn disclosed_attributes<S, US, UC, K>(
     State(state): State<Arc<ApplicationState<S, US>>>,
     Path(session_token): Path<SessionToken>,
     Query(params): Query<DisclosedAttributesParams>,
-) -> Result<Json<Vec<DisclosedAttestation>>, HttpJsonError<VerificationErrorCode>>
+) -> Result<
+    Json<HashMap<CredentialQueryIdentifier, VecNonEmpty<DisclosedAttestation>>>,
+    HttpJsonError<VerificationErrorCode>,
+>
 where
     S: SessionStore<DisclosureData>,
     US: UseCases<Key = K, UseCase = UC>,

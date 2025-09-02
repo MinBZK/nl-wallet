@@ -168,6 +168,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
     use assert_matches::assert_matches;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
@@ -235,7 +237,7 @@ mod tests {
         WalletDisclosureSession::new_proposal(
             RedirectUriPurpose::Issuance,
             DisclosureType::Regular,
-            vec![disclosable_attestation].try_into().unwrap(),
+            HashMap::from([("id".try_into().unwrap(), disclosable_attestation)]),
             disclosure_session,
         )
     }

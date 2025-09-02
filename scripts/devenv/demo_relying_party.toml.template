@@ -91,7 +91,7 @@ claims = [
 ]
 
 [[usecases.job_finder.dcql_query.credentials]]
-id = "my_pid"
+id = "my_degree"
 format = "mso_mdoc"
 meta = { doctype_value = "com.example.degree" }
 claims = [

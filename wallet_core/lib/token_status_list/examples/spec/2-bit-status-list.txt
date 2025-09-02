@@ -1,0 +1,11 @@
+status[0]=1
+status[1993]=2
+status[25460]=1
+status[159495]=3
+status[495669]=1
+status[554353]=1
+status[645645]=2
+status[723232]=1
+status[854545]=1
+status[934534]=2
+status[1000345]=3
