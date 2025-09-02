@@ -7,6 +7,7 @@ class PersonalizePidPreviewScreen : MobileActions() {
     private val screen = find.byValueKey("personalizePidPreviewPage")
     private val acceptButton = find.byValueKey("acceptButton")
     private val rejectButton = find.byValueKey("rejectButton")
+    private val scrollableElement = find.byType(ScrollableType.CustomScrollView.toString())
 
     fun visible() = isElementVisible(screen)
 
@@ -15,21 +16,21 @@ class PersonalizePidPreviewScreen : MobileActions() {
     }
 
     fun confirmButtonsVisible(): Boolean {
-        scrollToEnd(ScrollableType.CustomScrollView)
+        scrollToEnd(scrollableElement)
         return isElementVisible(acceptButton) && isElementVisible(rejectButton)
     }
 
     fun clickAcceptButton() {
-        scrollToEnd(ScrollableType.CustomScrollView)
+        scrollToEnd(scrollableElement)
         clickElement(acceptButton)
     }
 
     fun clickRejectButton() {
-        scrollToEnd(ScrollableType.CustomScrollView)
+        scrollToEnd(scrollableElement)
         clickElement(rejectButton)
     }
 
     fun scrollToEnd() {
-        scrollToEnd(ScrollableType.CustomScrollView)
+        scrollToEnd(scrollableElement)
     }
 }
