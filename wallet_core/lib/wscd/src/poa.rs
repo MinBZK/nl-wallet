@@ -77,10 +77,14 @@ impl Poa {
             ..Header::new(Algorithm::ES256)
         };
 
-        let jwts: VecNonEmpty<_> = try_join_all(keys.as_slice().iter().map(|key| UnverifiedJwt::sign(&payload, &header, *key)))
-            .await?
-            .try_into()
-            .unwrap(); // our iterable is a `VecAtLeastTwo`
+        let jwts: VecNonEmpty<_> = try_join_all(
+            keys.as_slice()
+                .iter()
+                .map(|key| UnverifiedJwt::sign(&payload, &header, *key)),
+        )
+        .await?
+        .try_into()
+        .unwrap(); // our iterable is a `VecAtLeastTwo`
 
         // This unwrap() is safe because we correctly constructed the `jwts` above.
         Ok(jwts.try_into().unwrap())

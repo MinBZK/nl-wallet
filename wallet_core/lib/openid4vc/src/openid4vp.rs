@@ -954,7 +954,9 @@ mod tests {
     async fn test_authorization_request_jwt() {
         let (trust_anchor, rp_keypair, _, auth_request) = setup();
 
-        let auth_request_jwt = UnverifiedJwt::sign_with_certificate(&auth_request, &rp_keypair).await.unwrap();
+        let auth_request_jwt = UnverifiedJwt::sign_with_certificate(&auth_request, &rp_keypair)
+            .await
+            .unwrap();
 
         let (auth_request, cert) = VpAuthorizationRequest::try_new(&auth_request_jwt, &[trust_anchor]).unwrap();
         auth_request.validate(&cert, None).unwrap();

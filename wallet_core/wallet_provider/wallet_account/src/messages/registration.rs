@@ -4,8 +4,8 @@ use serde_with::base64::Base64;
 use serde_with::serde_as;
 
 use crypto::p256_der::DerVerifyingKey;
-use jwt::UnverifiedJwt;
 use jwt::JwtSubject;
+use jwt::UnverifiedJwt;
 use utils::vec_at_least::VecAtLeastTwo;
 
 /// Registration challenge, sent by account server to wallet after the latter requests enrollment.

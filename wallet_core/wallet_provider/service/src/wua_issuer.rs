@@ -17,7 +17,9 @@ use wallet_provider_domain::model::hsm::WalletUserHsm;
 pub trait WuaIssuer {
     type Error: Error + Send + Sync + 'static;
 
-    async fn issue_wua(&self) -> Result<(WrappedKey, String, UnverifiedJwt<JwtCredentialClaims<WuaClaims>>), Self::Error>;
+    async fn issue_wua(
+        &self,
+    ) -> Result<(WrappedKey, String, UnverifiedJwt<JwtCredentialClaims<WuaClaims>>), Self::Error>;
     async fn public_key(&self) -> Result<VerifyingKey, Self::Error>;
 }
 
@@ -48,7 +50,9 @@ where
 {
     type Error = HsmWuaIssuerError;
 
-    async fn issue_wua(&self) -> Result<(WrappedKey, String, UnverifiedJwt<JwtCredentialClaims<WuaClaims>>), Self::Error> {
+    async fn issue_wua(
+        &self,
+    ) -> Result<(WrappedKey, String, UnverifiedJwt<JwtCredentialClaims<WuaClaims>>), Self::Error> {
         let wrapped_privkey = self.hsm.generate_wrapped_key(&self.wrapping_key_identifier).await?;
         let pubkey = *wrapped_privkey.public_key();
 
@@ -93,7 +97,9 @@ pub mod mock {
     impl WuaIssuer for MockWuaIssuer {
         type Error = Infallible;
 
-        async fn issue_wua(&self) -> Result<(WrappedKey, String, UnverifiedJwt<JwtCredentialClaims<WuaClaims>>), Self::Error> {
+        async fn issue_wua(
+            &self,
+        ) -> Result<(WrappedKey, String, UnverifiedJwt<JwtCredentialClaims<WuaClaims>>), Self::Error> {
             let privkey = SigningKey::random(&mut OsRng);
             let pubkey = privkey.verifying_key();
 

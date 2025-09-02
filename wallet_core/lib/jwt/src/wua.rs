@@ -43,7 +43,10 @@ impl Default for WuaClaims {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, Constructor)]
-pub struct WuaDisclosure(UnverifiedJwt<JwtCredentialClaims<WuaClaims>>, UnverifiedJwt<JwtPopClaims>);
+pub struct WuaDisclosure(
+    UnverifiedJwt<JwtCredentialClaims<WuaClaims>>,
+    UnverifiedJwt<JwtPopClaims>,
+);
 
 #[cfg(feature = "test")]
 impl WuaDisclosure {

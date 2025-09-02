@@ -141,8 +141,8 @@ where
                 .into_iter()
                 .map(|(id, count)| {
                     // Note that:
-                    // * The `drain()`` is guaranteed not to panic as the returned `DeviceRespones` should have
-                    //   exactly the same count as the amount of partial mdocs that we submitted for signing.
+                    // * The `drain()`` is guaranteed not to panic as the returned `DeviceRespones` should have exactly
+                    //   the same count as the amount of partial mdocs that we submitted for signing.
                     // * The .`unwrap()` is guaranteed to succeed, as the count is non-zero.
                     let responses = device_responses.drain(..count.get()).collect_vec().try_into().unwrap();
 
