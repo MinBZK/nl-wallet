@@ -540,9 +540,9 @@ pub struct SdJwtPresentationBuilder {
 
 impl SdJwtPresentationBuilder {
     pub(crate) fn new(mut sd_jwt: SdJwt) -> Self {
-        // unwrap is safe, because we know the structure can be serialized as JSON...?
         let payload = sd_jwt.issuer_signed_jwt.payload();
-        let full_payload = serde_json::to_value(&payload.claims).unwrap();
+        let full_payload = serde_json::to_value(&payload.claims)
+            .expect("should never fail because Serialize is derived on ObjectClaims");
 
         let nondisclosed = std::mem::take(&mut sd_jwt.disclosures);
 
