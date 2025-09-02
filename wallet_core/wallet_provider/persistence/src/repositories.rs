@@ -359,6 +359,8 @@ pub mod mock {
                     None => WalletUserAttestation::Android,
                 },
                 recovery_code: None,
+                transfer_session_id: None,
+                destination_wallet_app_version: None,
             })))
         }
 

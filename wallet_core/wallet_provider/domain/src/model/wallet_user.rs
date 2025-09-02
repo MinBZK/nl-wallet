@@ -26,6 +26,8 @@ pub struct WalletUser {
     pub instruction_sequence_number: u64,
     pub attestation: WalletUserAttestation,
     pub recovery_code: Option<String>,
+    pub transfer_session_id: Option<Uuid>,
+    pub destination_wallet_app_version: Option<String>,
 }
 
 #[derive(Debug)]
@@ -121,6 +123,8 @@ SssTb0eI53lvfdvG/xkNcktwsXEIPL1y3lUKn1u1ZhFTnQn4QKmnvaN4uQ==
             instruction_sequence_number: 0,
             attestation: super::WalletUserAttestation::Android,
             recovery_code: None,
+            transfer_session_id: None,
+            destination_wallet_app_version: None,
         }
     }
 }
