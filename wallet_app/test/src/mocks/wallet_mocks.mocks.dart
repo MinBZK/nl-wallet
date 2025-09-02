@@ -6769,6 +6769,28 @@ class MockWalletCoreApi extends _i1.Mock implements _i23.WalletCoreApi {
       ) as _i10.Future<String>);
 
   @override
+  _i10.Future<String> crateApiFullGenerateWalletTransferUri() => (super.noSuchMethod(
+        Invocation.method(
+          #crateApiFullGenerateWalletTransferUri,
+          [],
+        ),
+        returnValue: _i10.Future<String>.value(_i14.dummyValue<String>(
+          this,
+          Invocation.method(
+            #crateApiFullGenerateWalletTransferUri,
+            [],
+          ),
+        )),
+        returnValueForMissingStub: _i10.Future<String>.value(_i14.dummyValue<String>(
+          this,
+          Invocation.method(
+            #crateApiFullGenerateWalletTransferUri,
+            [],
+          ),
+        )),
+      ) as _i10.Future<String>);
+
+  @override
   _i10.Future<List<_i23.WalletEvent>> crateApiFullGetHistory() => (super.noSuchMethod(
         Invocation.method(
           #crateApiFullGetHistory,
@@ -6811,6 +6833,16 @@ class MockWalletCoreApi extends _i1.Mock implements _i23.WalletCoreApi {
           ),
         )),
       ) as _i10.Future<String>);
+
+  @override
+  _i10.Stream<void> crateApiFullGetWalletTransferStateStream() => (super.noSuchMethod(
+        Invocation.method(
+          #crateApiFullGetWalletTransferStateStream,
+          [],
+        ),
+        returnValue: _i10.Stream<void>.empty(),
+        returnValueForMissingStub: _i10.Stream<void>.empty(),
+      ) as _i10.Stream<void>);
 
   @override
   _i10.Future<bool> crateApiFullHasActiveDisclosureSession() => (super.noSuchMethod(
@@ -6864,6 +6896,17 @@ class MockWalletCoreApi extends _i1.Mock implements _i23.WalletCoreApi {
       ) as _i10.Future<void>);
 
   @override
+  _i10.Future<void> crateApiFullInitWalletTransfer({required String? uri}) => (super.noSuchMethod(
+        Invocation.method(
+          #crateApiFullInitWalletTransfer,
+          [],
+          {#uri: uri},
+        ),
+        returnValue: _i10.Future<void>.value(),
+        returnValueForMissingStub: _i10.Future<void>.value(),
+      ) as _i10.Future<void>);
+
+  @override
   _i10.Future<bool> crateApiFullIsBiometricUnlockEnabled() => (super.noSuchMethod(
         Invocation.method(
           #crateApiFullIsBiometricUnlockEnabled,
@@ -6893,6 +6936,17 @@ class MockWalletCoreApi extends _i1.Mock implements _i23.WalletCoreApi {
         returnValue: _i10.Future<_i23.PinValidationResult>.value(_i23.PinValidationResult.Ok),
         returnValueForMissingStub: _i10.Future<_i23.PinValidationResult>.value(_i23.PinValidationResult.Ok),
       ) as _i10.Future<_i23.PinValidationResult>);
+
+  @override
+  _i10.Future<bool> crateApiFullIsWalletTransferPossible({required String? pin}) => (super.noSuchMethod(
+        Invocation.method(
+          #crateApiFullIsWalletTransferPossible,
+          [],
+          {#pin: pin},
+        ),
+        returnValue: _i10.Future<bool>.value(false),
+        returnValueForMissingStub: _i10.Future<bool>.value(false),
+      ) as _i10.Future<bool>);
 
   @override
   _i10.Future<void> crateApiFullLockWallet() => (super.noSuchMethod(
@@ -7024,6 +7078,33 @@ class MockWalletCoreApi extends _i1.Mock implements _i23.WalletCoreApi {
           ),
         )),
       ) as _i10.Future<_i23.StartDisclosureResult>);
+
+  @override
+  _i10.Future<_i23.WalletInstructionResult> crateApiFullStartWalletTransfer({required String? pin}) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #crateApiFullStartWalletTransfer,
+          [],
+          {#pin: pin},
+        ),
+        returnValue: _i10.Future<_i23.WalletInstructionResult>.value(_i14.dummyValue<_i23.WalletInstructionResult>(
+          this,
+          Invocation.method(
+            #crateApiFullStartWalletTransfer,
+            [],
+            {#pin: pin},
+          ),
+        )),
+        returnValueForMissingStub:
+            _i10.Future<_i23.WalletInstructionResult>.value(_i14.dummyValue<_i23.WalletInstructionResult>(
+          this,
+          Invocation.method(
+            #crateApiFullStartWalletTransfer,
+            [],
+            {#pin: pin},
+          ),
+        )),
+      ) as _i10.Future<_i23.WalletInstructionResult>);
 
   @override
   _i10.Future<_i23.WalletInstructionResult> crateApiFullUnlockWallet({required String? pin}) => (super.noSuchMethod(

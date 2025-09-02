@@ -76,7 +76,7 @@ class WalletCore extends BaseEntrypoint<WalletCoreApi, WalletCoreApiImpl, Wallet
   String get codegenVersion => '2.11.1';
 
   @override
-  int get rustContentHash => 290785620;
+  int get rustContentHash => 175452405;
 
   static const kDefaultExternalLibraryLoaderConfig = ExternalLibraryLoaderConfig(
     stem: 'wallet_core',
@@ -126,11 +126,15 @@ abstract class WalletCoreApi extends BaseApi {
 
   Future<String> crateApiFullCreatePinRecoveryRedirectUri();
 
+  Future<String> crateApiFullGenerateWalletTransferUri();
+
   Future<List<WalletEvent>> crateApiFullGetHistory();
 
   Future<List<WalletEvent>> crateApiFullGetHistoryForCard({required String attestationId});
 
   Future<String> crateApiFullGetVersionString();
+
+  Stream<void> crateApiFullGetWalletTransferStateStream();
 
   Future<bool> crateApiFullHasActiveDisclosureSession();
 
@@ -142,11 +146,15 @@ abstract class WalletCoreApi extends BaseApi {
 
   Future<void> crateApiFullInit();
 
+  Future<void> crateApiFullInitWalletTransfer({required String uri});
+
   Future<bool> crateApiFullIsBiometricUnlockEnabled();
 
   Future<bool> crateApiFullIsInitialized();
 
   Future<PinValidationResult> crateApiFullIsValidPin({required String pin});
+
+  Future<bool> crateApiFullIsWalletTransferPossible({required String pin});
 
   Future<void> crateApiFullLockWallet();
 
@@ -167,6 +175,8 @@ abstract class WalletCoreApi extends BaseApi {
   Stream<FlutterVersionState> crateApiFullSetVersionStateStream();
 
   Future<StartDisclosureResult> crateApiFullStartDisclosure({required String uri, required bool isQrCode});
+
+  Future<WalletInstructionResult> crateApiFullStartWalletTransfer({required String pin});
 
   Future<WalletInstructionResult> crateApiFullUnlockWallet({required String pin});
 
@@ -612,6 +622,27 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       );
 
   @override
+  Future<String> crateApiFullGenerateWalletTransferUri() {
+    return handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        return wire.wire__crate__api__full__generate_wallet_transfer_uri(port_);
+      },
+      codec: DcoCodec(
+        decodeSuccessData: dco_decode_String,
+        decodeErrorData: dco_decode_AnyhowException,
+      ),
+      constMeta: kCrateApiFullGenerateWalletTransferUriConstMeta,
+      argValues: [],
+      apiImpl: this,
+    ));
+  }
+
+  TaskConstMeta get kCrateApiFullGenerateWalletTransferUriConstMeta => const TaskConstMeta(
+        debugName: "generate_wallet_transfer_uri",
+        argNames: [],
+      );
+
+  @override
   Future<List<WalletEvent>> crateApiFullGetHistory() {
     return handler.executeNormal(NormalTask(
       callFfi: (port_) {
@@ -673,6 +704,30 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   TaskConstMeta get kCrateApiFullGetVersionStringConstMeta => const TaskConstMeta(
         debugName: "get_version_string",
         argNames: [],
+      );
+
+  @override
+  Stream<void> crateApiFullGetWalletTransferStateStream() {
+    final sink = RustStreamSink<void>();
+    unawaited(handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        var arg0 = cst_encode_StreamSink_unit_Dco(sink);
+        return wire.wire__crate__api__full__get_wallet_transfer_state_stream(port_, arg0);
+      },
+      codec: DcoCodec(
+        decodeSuccessData: dco_decode_unit,
+        decodeErrorData: dco_decode_AnyhowException,
+      ),
+      constMeta: kCrateApiFullGetWalletTransferStateStreamConstMeta,
+      argValues: [sink],
+      apiImpl: this,
+    )));
+    return sink.stream;
+  }
+
+  TaskConstMeta get kCrateApiFullGetWalletTransferStateStreamConstMeta => const TaskConstMeta(
+        debugName: "get_wallet_transfer_state_stream",
+        argNames: ["sink"],
       );
 
   @override
@@ -782,6 +837,28 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       );
 
   @override
+  Future<void> crateApiFullInitWalletTransfer({required String uri}) {
+    return handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        var arg0 = cst_encode_String(uri);
+        return wire.wire__crate__api__full__init_wallet_transfer(port_, arg0);
+      },
+      codec: DcoCodec(
+        decodeSuccessData: dco_decode_unit,
+        decodeErrorData: dco_decode_AnyhowException,
+      ),
+      constMeta: kCrateApiFullInitWalletTransferConstMeta,
+      argValues: [uri],
+      apiImpl: this,
+    ));
+  }
+
+  TaskConstMeta get kCrateApiFullInitWalletTransferConstMeta => const TaskConstMeta(
+        debugName: "init_wallet_transfer",
+        argNames: ["uri"],
+      );
+
+  @override
   Future<bool> crateApiFullIsBiometricUnlockEnabled() {
     return handler.executeNormal(NormalTask(
       callFfi: (port_) {
@@ -842,6 +919,28 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
 
   TaskConstMeta get kCrateApiFullIsValidPinConstMeta => const TaskConstMeta(
         debugName: "is_valid_pin",
+        argNames: ["pin"],
+      );
+
+  @override
+  Future<bool> crateApiFullIsWalletTransferPossible({required String pin}) {
+    return handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        var arg0 = cst_encode_String(pin);
+        return wire.wire__crate__api__full__is_wallet_transfer_possible(port_, arg0);
+      },
+      codec: DcoCodec(
+        decodeSuccessData: dco_decode_bool,
+        decodeErrorData: dco_decode_AnyhowException,
+      ),
+      constMeta: kCrateApiFullIsWalletTransferPossibleConstMeta,
+      argValues: [pin],
+      apiImpl: this,
+    ));
+  }
+
+  TaskConstMeta get kCrateApiFullIsWalletTransferPossibleConstMeta => const TaskConstMeta(
+        debugName: "is_wallet_transfer_possible",
         argNames: ["pin"],
       );
 
@@ -1075,6 +1174,28 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       );
 
   @override
+  Future<WalletInstructionResult> crateApiFullStartWalletTransfer({required String pin}) {
+    return handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        var arg0 = cst_encode_String(pin);
+        return wire.wire__crate__api__full__start_wallet_transfer(port_, arg0);
+      },
+      codec: DcoCodec(
+        decodeSuccessData: dco_decode_wallet_instruction_result,
+        decodeErrorData: dco_decode_AnyhowException,
+      ),
+      constMeta: kCrateApiFullStartWalletTransferConstMeta,
+      argValues: [pin],
+      apiImpl: this,
+    ));
+  }
+
+  TaskConstMeta get kCrateApiFullStartWalletTransferConstMeta => const TaskConstMeta(
+        debugName: "start_wallet_transfer",
+        argNames: ["pin"],
+      );
+
+  @override
   Future<WalletInstructionResult> crateApiFullUnlockWallet({required String pin}) {
     return handler.executeNormal(NormalTask(
       callFfi: (port_) {
@@ -1149,6 +1270,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
 
   @protected
   RustStreamSink<List<WalletEvent>> dco_decode_StreamSink_list_wallet_event_Dco(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    throw UnimplementedError();
+  }
+
+  @protected
+  RustStreamSink<void> dco_decode_StreamSink_unit_Dco(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     throw UnimplementedError();
   }
@@ -1775,6 +1902,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
 
   @protected
   RustStreamSink<List<WalletEvent>> sse_decode_StreamSink_list_wallet_event_Dco(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    throw UnimplementedError('Unreachable ()');
+  }
+
+  @protected
+  RustStreamSink<void> sse_decode_StreamSink_unit_Dco(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     throw UnimplementedError('Unreachable ()');
   }
@@ -2599,6 +2732,18 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         self.setupAndSerialize(
             codec: DcoCodec(
           decodeSuccessData: dco_decode_list_wallet_event,
+          decodeErrorData: dco_decode_AnyhowException,
+        )),
+        serializer);
+  }
+
+  @protected
+  void sse_encode_StreamSink_unit_Dco(RustStreamSink<void> self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(
+        self.setupAndSerialize(
+            codec: DcoCodec(
+          decodeSuccessData: dco_decode_unit,
           decodeErrorData: dco_decode_AnyhowException,
         )),
         serializer);
