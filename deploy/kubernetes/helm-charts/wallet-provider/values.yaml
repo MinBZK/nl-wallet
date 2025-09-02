@@ -169,7 +169,7 @@ logSidecar:
   resources:
     requests:
       cpu: "100m"
-      memory: "16Mi"
+      memory: "64Mi"
     limits:
       cpu: "400m"
-      memory: "32Mi"
+      memory: "128Mi"
