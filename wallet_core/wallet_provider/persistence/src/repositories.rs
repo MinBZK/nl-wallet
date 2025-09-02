@@ -172,6 +172,22 @@ impl WalletUserRepository for Repositories {
     ) -> Result<bool, PersistenceError> {
         wallet_user::has_multiple_active_accounts_by_recovery_code(transaction, recovery_code).await
     }
+
+    async fn prepare_transfer(
+        &self,
+        transaction: &Self::TransactionType,
+        wallet_id: &str,
+        transfer_session_id: Uuid,
+        destination_wallet_app_version: String,
+    ) -> Result<(), PersistenceError> {
+        wallet_user::prepare_transfer(
+            transaction,
+            wallet_id,
+            transfer_session_id,
+            destination_wallet_app_version,
+        )
+        .await
+    }
 }
 
 #[cfg(feature = "mock")]
@@ -302,10 +318,19 @@ pub mod mock {
                 recovery_code: String,
             ) -> Result<(), PersistenceError>;
 
-            async fn has_multiple_active_accounts_by_recovery_code(&self,
+            async fn has_multiple_active_accounts_by_recovery_code(
+                &self,
                 transaction: &MockTransaction,
                 recovery_code: &str,
             ) -> Result<bool, PersistenceError>;
+
+            async fn prepare_transfer(
+                &self,
+                transaction: &MockTransaction,
+                wallet_id: &str,
+                transfer_session_id: Uuid,
+                destination_wallet_app_version: String,
+            ) -> Result<(), PersistenceError>;
         }
 
         impl TransactionStarter for TransactionalWalletUserRepository {
@@ -485,6 +510,16 @@ pub mod mock {
             _recovery_code: &str,
         ) -> Result<bool, PersistenceError> {
             Ok(false)
+        }
+
+        async fn prepare_transfer(
+            &self,
+            _transaction: &Self::TransactionType,
+            _wallet_id: &str,
+            _transfer_session_id: Uuid,
+            _destination_wallet_app_version: String,
+        ) -> Result<(), PersistenceError> {
+            Ok(())
         }
     }
 

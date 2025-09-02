@@ -200,34 +200,51 @@ pub enum RegistrationError {
 pub enum InstructionError {
     #[error("wallet certificate validation error: {0}")]
     WalletCertificate(#[from] WalletCertificateError),
+
     #[error("instruction validation error: {0}")]
     Validation(#[from] InstructionValidationError),
+
     #[error("instruction validation pin error ({0:?})")]
     IncorrectPin(IncorrectPinData),
+
     #[error("instruction validation pin timeout ({0:?})")]
     PinTimeout(PinTimeoutData),
+
     #[error("account is blocked")]
     AccountBlocked,
+
     #[error("instruction result signing error: {0}")]
     Signing(#[source] JwtError),
+
     #[error("persistence error: {0}")]
     Storage(#[from] PersistenceError),
+
     #[error("hsm error: {0}")]
     HsmError(#[from] HsmError),
+
     #[error("WUA issuance: {0}")]
     WuaIssuance(#[source] Box<dyn Error + Send + Sync + 'static>),
+
     #[error("instruction referenced nonexisting key: {0}")]
     NonExistingKey(String),
+
     #[error("PoA construction error: {0}")]
     Poa(#[from] PoaError),
+
     #[error("public key conversion error: {0}")]
     JwkConversion(#[from] JwkConversionError),
+
     #[error("error signing PoP: {0}")]
     PopSigning(#[source] JwtError),
+
     #[error("SD JWT error: {0}")]
     SdJwtError(#[from] sd_jwt::error::Error),
+
     #[error("recovery code missing from SD JWT")]
     MissingRecoveryCode,
+
+    #[error("account is not elligible for transfer")]
+    AccountNotTransferable,
 }
 
 #[derive(Debug, thiserror::Error)]
