@@ -1182,25 +1182,27 @@ another hostname, FQDN or IP address, depending on how you’ve set-up
 <span class="p">}</span>
 </pre></div>
 </div>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">[</span>
-<span class="w">    </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;attestationType&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;com.example.pid&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;attributes&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="nt">&quot;com.example.pid&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">                </span><span class="nt">&quot;family_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;De Bruijn&quot;</span><span class="p">,</span>
-<span class="w">                </span><span class="nt">&quot;own_family_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Molenaar&quot;</span><span class="p">,</span>
-<span class="w">                </span><span class="nt">&quot;given_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Willeke Liselotte&quot;</span>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;credentials&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;attestationType&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;com.example.pid&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;attributes&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="nt">&quot;com.example.pid&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                    </span><span class="nt">&quot;family_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;De Bruijn&quot;</span><span class="p">,</span>
+<span class="w">                    </span><span class="nt">&quot;own_family_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Molenaar&quot;</span><span class="p">,</span>
+<span class="w">                    </span><span class="nt">&quot;given_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Willeke Liselotte&quot;</span>
+<span class="w">                </span><span class="p">}</span>
+<span class="w">            </span><span class="p">},</span>
+<span class="w">            </span><span class="nt">&quot;issuer&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;pid.example.com&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;ca&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ca.example.com&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;validityInfo&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="nt">&quot;signed&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2024-07-20T14:00:58Z&quot;</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;validFrom&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2024-07-20T14:00:58Z&quot;</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;validUntil&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2025-07-20T14:00:58Z&quot;</span>
 <span class="w">            </span><span class="p">}</span>
-<span class="w">        </span><span class="p">},</span>
-<span class="w">        </span><span class="nt">&quot;issuer&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;pid.example.com&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;ca&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ca.example.com&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;validityInfo&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="nt">&quot;signed&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2024-07-20T14:00:58Z&quot;</span><span class="p">,</span>
-<span class="w">            </span><span class="nt">&quot;validFrom&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2024-07-20T14:00:58Z&quot;</span><span class="p">,</span>
-<span class="w">            </span><span class="nt">&quot;validUntil&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2025-07-20T14:00:58Z&quot;</span>
 <span class="w">        </span><span class="p">}</span>
-<span class="w">    </span><span class="p">}</span>
-<span class="p">]</span>
+<span class="w">    </span><span class="p">]</span>
+<span class="p">}</span>
 </pre></div>
 </div>
 </section>

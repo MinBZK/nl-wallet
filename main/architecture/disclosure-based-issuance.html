@@ -142,30 +142,32 @@ In between the two screens, the issuer receives the disclosed attributes, and ca
 <section id="attestation-server">
 <h3>Attestation server<a class="headerlink" href="#attestation-server" title="Link to this heading"></a></h3>
 <p>The attestation server exchanges disclosed attributes for attestations to be issued. It is contacted by the <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> during a disclosure based issuance session to do this. Note that this server does not need to be reachable by the wallet, and it probably should not be directly connected to the internet.</p>
-<p>The attestation server receives an HTTP <code class="docutils literal notranslate"><span class="pre">POST</span></code> by the <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> containing a JSON structure of the same form as the <code class="docutils literal notranslate"><span class="pre">/disclosed_attributes</span></code> endpoint of the <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> returns, as documented in the <a class="reference internal" href="../get-started/create-a-verifier.html#retrieve-disclosure-results"><span class="std std-ref">verifier documentation</span></a>. More specifically, this is a JSON-serialized <code class="docutils literal notranslate"><span class="pre">IndexMap&lt;String,</span> <span class="pre">DocumentDisclosedAttributes&gt;</span></code>. For example:</p>
+<p>The attestation server receives an HTTP <code class="docutils literal notranslate"><span class="pre">POST</span></code> by the <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> containing a JSON structure of the same form as the <code class="docutils literal notranslate"><span class="pre">/disclosed_attributes</span></code> endpoint of the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> returns, as documented in the <a class="reference internal" href="../get-started/create-a-verifier.html#retrieve-disclosure-results"><span class="std std-ref">verifier documentation</span></a>. More specifically, this is a JSON-serialized <code class="docutils literal notranslate"><span class="pre">IndexMap&lt;String,</span> <span class="pre">DocumentDisclosedAttributes&gt;</span></code>. For example:</p>
 <div class="highlight-http notranslate"><div class="highlight"><pre><span></span><span class="nf">POST</span> <span class="nn">/</span> <span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span>
 <span class="na">Content-Type</span><span class="o">:</span> <span class="l">application/json</span>
 <span class="na">Accept</span><span class="o">:</span> <span class="l">*/*</span>
 <span class="na">Host</span><span class="o">:</span> <span class="l">localhost:51560</span>
 <span class="na">Content-Length</span><span class="o">:</span> <span class="l">267</span>
 
-<span class="p">[</span>
-<span class="w">  </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;attestationType&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;com.example.pid&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;attributes&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="nt">&quot;com.example.pid&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;bsn&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;999991772&quot;</span>
+<span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;my_credential&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;attestationType&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;com.example.pid&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;attributes&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;com.example.pid&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">&quot;bsn&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;999991772&quot;</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="nt">&quot;issuerUri&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://cert.issuer.example.com/&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;ca&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ca.pid.example.com&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;validityInfo&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;signed&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2025-04-15T07:02:26Z&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;validFrom&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2025-04-15T07:02:26Z&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;validUntil&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-04-15T07:02:26Z&quot;</span>
 <span class="w">      </span><span class="p">}</span>
-<span class="w">    </span><span class="p">},</span>
-<span class="w">    </span><span class="nt">&quot;issuerUri&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://cert.issuer.example.com/&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;ca&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ca.pid.example.com&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;validityInfo&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="nt">&quot;signed&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2025-04-15T07:02:26Z&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;validFrom&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2025-04-15T07:02:26Z&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;validUntil&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-04-15T07:02:26Z&quot;</span>
 <span class="w">    </span><span class="p">}</span>
-<span class="w">  </span><span class="p">}</span>
-<span class="p">]</span>
+<span class="w">  </span><span class="p">]</span>
+<span class="p">}</span>
 </pre></div>
 </div>
 <p>The <code class="docutils literal notranslate"><span class="pre">attestation_server</span></code> must respond with a JSON-serialized <code class="docutils literal notranslate"><span class="pre">Vec&lt;IssuableDocument&gt;</span></code>. For example:</p>
