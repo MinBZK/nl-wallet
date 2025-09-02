@@ -81,10 +81,10 @@ mod tests {
             attested_key_identifier: "key_id".to_string(),
             pin_salt: b"pin_salt_1234_old".to_vec(),
             wallet_id: "wallet_123".to_string(),
-            wallet_certificate: WalletCertificate::from("thisisdefinitelyvalid_current"),
+            wallet_certificate: "thisis.definitely.valid_current".parse().unwrap(),
         };
         let new_pin_salt = b"pin_salt_1234_new".to_vec();
-        let new_wallet_certificate = WalletCertificate::from("thisisdefinitelyvalid_new");
+        let new_wallet_certificate = "thisis.definitely.valid_new".parse().unwrap();
 
         assert_matches!(
             change_pin_storage

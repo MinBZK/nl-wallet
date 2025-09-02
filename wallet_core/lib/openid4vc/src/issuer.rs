@@ -905,7 +905,7 @@ impl Session<WaitingForResponse> {
     pub fn check_credential_endpoint_access(
         &self,
         access_token: &AccessToken,
-        dpop: &Dpop,
+        dpop: Dpop,
         endpoint: &str,
         issuer_data: &IssuerData<impl EcdsaKeySend, impl WuaTracker>,
     ) -> Result<(), CredentialRequestError> {
@@ -993,7 +993,7 @@ impl Session<WaitingForResponse> {
     ) -> Result<CredentialResponse, CredentialRequestError> {
         let session_data = self.session_data();
 
-        self.check_credential_endpoint_access(&access_token, &dpop, "credential", issuer_data)?;
+        self.check_credential_endpoint_access(&access_token, dpop, "credential", issuer_data)?;
 
         // If we have exactly one credential on offer that matches the credential type that the client is
         // requesting, then we issue that credential.
@@ -1069,7 +1069,7 @@ impl Session<WaitingForResponse> {
     ) -> Result<CredentialResponses, CredentialRequestError> {
         let session_data = self.session_data();
 
-        self.check_credential_endpoint_access(&access_token, &dpop, "batch_credential", issuer_data)?;
+        self.check_credential_endpoint_access(&access_token, dpop, "batch_credential", issuer_data)?;
 
         let previews_and_holder_pubkeys = credential_requests
             .credential_requests
@@ -1251,7 +1251,7 @@ impl CredentialRequestProof {
         let jwt = match self {
             CredentialRequestProof::Jwt { jwt } => jwt,
         };
-        let header = jsonwebtoken::decode_header(&jwt.0)?;
+        let header = jwt.dangerous_parse_header_unverified()?;
         let verifying_key = jwk_to_p256(&header.jwk.ok_or(CredentialRequestError::MissingJwk)?)?;
 
         let mut validation_options = Validation::new(Algorithm::ES256);
@@ -1261,7 +1261,7 @@ impl CredentialRequestProof {
 
         // We use `jsonwebtoken` crate directly instead of our `Jwt` because we need to inspect the header
         let token_data = jsonwebtoken::decode::<JwtPopClaims>(
-            &jwt.0,
+            jwt.as_ref(),
             &EcdsaDecodingKey::from(&verifying_key).0,
             &validation_options,
         )?;

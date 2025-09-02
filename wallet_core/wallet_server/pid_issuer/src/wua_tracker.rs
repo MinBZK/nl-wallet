@@ -96,7 +96,7 @@ mod postgres {
         type Error = DbErr;
 
         async fn track_wua(&self, wua: &VerifiedJwt<JwtCredentialClaims<WuaClaims>>) -> Result<bool, Self::Error> {
-            let shasum = sha256(wua.jwt().0.as_bytes());
+            let shasum = sha256(wua.jwt().as_ref().as_bytes());
             let expires = wua.payload().contents.attributes.exp;
 
             let query_result = used_wuas::Entity::insert(used_wuas::ActiveModel {

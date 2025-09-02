@@ -1030,7 +1030,7 @@ mod tests {
         let keys = pops
             .iter()
             .map(|pop| {
-                let pubkey = jwk_to_p256(&jsonwebtoken::decode_header(&pop.0).unwrap().jwk.unwrap()).unwrap();
+                let pubkey = jwk_to_p256(&pop.dangerous_parse_header_unverified().unwrap().jwk.unwrap()).unwrap();
 
                 pop.parse_and_verify(&(&pubkey).into(), &validations).unwrap();
 

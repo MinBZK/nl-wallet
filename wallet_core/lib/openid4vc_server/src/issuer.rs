@@ -220,13 +220,17 @@ impl Header for DpopHeader {
             return Err(headers::Error::invalid());
         }
 
-        let value = value.to_str().map_err(|_| headers::Error::invalid())?.to_string();
-        Ok(DpopHeader(value.into()))
+        let value = value
+            .to_str()
+            .map_err(|_| headers::Error::invalid())?
+            .parse()
+            .map_err(|_| headers::Error::invalid())?;
+        Ok(DpopHeader(value))
     }
 
     fn encode<E: Extend<HeaderValue>>(&self, values: &mut E) {
         let DpopHeader(dpop) = self;
-        values.extend(HeaderValue::from_bytes(dpop.as_ref().as_bytes()));
+        values.extend(HeaderValue::from_bytes(dpop.as_ref().as_ref().as_bytes()));
     }
 }
 

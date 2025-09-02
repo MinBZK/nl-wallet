@@ -22,7 +22,6 @@ serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true, features = ["std"] }
 serde_with.workspace = true
 thiserror.workspace = true
-x509-parser.workspace = true
 
 crypto.path = "../crypto"
 error_category.path = "../error_category"

@@ -86,7 +86,7 @@ impl StatusListTokenBuilder {
 #[cfg(feature = "axum")]
 impl IntoResponse for StatusListToken {
     fn into_response(self) -> Response {
-        ([(CONTENT_TYPE, TOKEN_STATUS_LIST_JWT_HEADER)], self.0.0.to_string()).into_response()
+        ([(CONTENT_TYPE, TOKEN_STATUS_LIST_JWT_HEADER)], self.0.to_string()).into_response()
     }
 }
 

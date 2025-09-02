@@ -343,7 +343,7 @@ mod tests {
                 always(),
             )
             .return_once(move |_, challenge_request| {
-                assert_eq!(challenge_request.certificate.0, wallet_cert.0);
+                assert_eq!(challenge_request.certificate, wallet_cert);
 
                 match app_identifier_and_next_counter {
                     Some((app_identifier, next_counter)) => {
@@ -404,7 +404,7 @@ mod tests {
                 always(),
             )
             .return_once(move |_, instruction: Instruction<CheckPin>| {
-                assert_eq!(instruction.certificate.0, wallet_cert.0);
+                assert_eq!(instruction.certificate, wallet_cert);
 
                 match app_identifier_and_next_counter {
                     Some((app_identifier, next_counter)) => {

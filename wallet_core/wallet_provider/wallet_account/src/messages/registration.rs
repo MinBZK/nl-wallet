@@ -50,7 +50,7 @@ pub struct Certificate {
 pub type WalletCertificate = UnverifiedJwt<WalletCertificateClaims>;
 
 #[serde_as]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct WalletCertificateClaims {
     pub wallet_id: String,
     #[serde_as(as = "Base64")]

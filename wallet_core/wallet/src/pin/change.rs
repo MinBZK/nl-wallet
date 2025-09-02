@@ -401,7 +401,7 @@ mod test {
             .expect("begin changing PIN should succeed");
 
         assert!(!new_pin_salt.is_empty());
-        assert_eq!(new_wallet_certificate.0, registration_data.wallet_certificate.0);
+        assert_eq!(new_wallet_certificate, registration_data.wallet_certificate);
     }
 
     #[tokio::test]

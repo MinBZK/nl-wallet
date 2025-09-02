@@ -431,7 +431,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         )
         .await
         .map_err(ChallengeError::ChallengeSigning)?
-        .0
+        .as_ref()
         .as_bytes()
         .to_vec();
         Ok(challenge)
@@ -1039,13 +1039,12 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         certificate_signing_pubkey: &EcdsaDecodingKey,
         challenge: &[u8],
     ) -> Result<RegistrationChallengeClaims, RegistrationError> {
-        UnverifiedJwt::parse_and_verify_with_sub(
-            &String::from_utf8(challenge.to_owned())
-                .map_err(RegistrationError::ChallengeDecoding)?
-                .into(),
-            certificate_signing_pubkey,
-        )
-        .map_err(RegistrationError::ChallengeValidation)
+        let jwt: UnverifiedJwt<RegistrationChallengeClaims> = String::from_utf8(challenge.to_owned())
+            .map_err(RegistrationError::ChallengeDecoding)?
+            .parse()
+            .map_err(RegistrationError::ChallengeValidation)?;
+        jwt.parse_and_verify_with_sub(certificate_signing_pubkey)
+            .map_err(RegistrationError::ChallengeValidation)
     }
 
     fn verify_instruction_challenge<'a>(

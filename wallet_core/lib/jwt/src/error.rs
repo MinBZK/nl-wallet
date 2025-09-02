@@ -27,14 +27,6 @@ pub enum JwtError {
     #[category(critical)]
     TrustAnchorKeyFormat(String),
 
-    #[error("failed to parse trust anchor algorithm: {0}")]
-    #[category(critical)]
-    TrustAnchorAlgorithmParsing(#[source] x509_parser::nom::Err<x509_parser::error::X509Error>),
-
-    #[error("failed to parse trust anchor key: {0}")]
-    #[category(critical)]
-    TrustAnchorKeyParsing(#[from] x509_parser::nom::Err<x509_parser::der_parser::error::Error>),
-
     #[error("unexpected amount of parts in JWT credential: expected 3, found {0}")]
     #[category(critical)]
     UnexpectedNumberOfParts(usize),

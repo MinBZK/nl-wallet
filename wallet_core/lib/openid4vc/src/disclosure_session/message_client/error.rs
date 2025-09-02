@@ -24,6 +24,8 @@ pub enum VpMessageClientError {
     AuthGetResponse(Box<DisclosureErrorResponse<GetRequestErrorCode>>),
     #[error("auth request server error response: {0:?}")]
     AuthPostResponse(Box<DisclosureErrorResponse<PostAuthResponseErrorCode>>),
+    #[error("JWT error: {0}")]
+    InvalidJwt(#[from] jwt::error::JwtError),
 }
 
 impl VpMessageClientError {

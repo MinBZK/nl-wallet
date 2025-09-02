@@ -321,10 +321,14 @@ impl SdJwtPresentation {
     pub fn presentation(&self) -> String {
         let disclosures = self.sd_jwt.disclosures.values().join("~");
         let key_bindings = self.key_binding_jwt.as_ref().to_string();
-        [self.sd_jwt.issuer_signed_jwt.jwt().clone().0, disclosures, key_bindings]
-            .into_iter()
-            .filter(|segment| !segment.is_empty())
-            .join("~")
+        [
+            self.sd_jwt.issuer_signed_jwt.jwt().to_string(),
+            disclosures,
+            key_bindings,
+        ]
+        .into_iter()
+        .filter(|segment| !segment.is_empty())
+        .join("~")
     }
 
     pub fn sd_jwt(&self) -> &SdJwt {
@@ -387,9 +391,9 @@ impl SdJwt {
     pub fn presentation(&self) -> String {
         let disclosures = self.disclosures.values().join("~");
         if disclosures.is_empty() {
-            format!("{}~", self.issuer_signed_jwt.jwt().clone().0)
+            format!("{}~", self.issuer_signed_jwt.jwt())
         } else {
-            format!("{}~{}~", self.issuer_signed_jwt.jwt().clone().0, disclosures)
+            format!("{}~{}~", self.issuer_signed_jwt.jwt(), disclosures)
         }
     }
 

@@ -1,9 +1,8 @@
 // Copyright 2020-2024 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
-use std::fmt::Display;
-
 use chrono::Duration;
 use chrono::serde::ts_seconds;
+use derive_more::Display;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::Header;
 use jsonwebtoken::Validation;
@@ -26,14 +25,8 @@ use crate::sd_jwt::SdJwt;
 pub const KB_JWT_HEADER_TYP: &str = "kb+jwt";
 
 /// Representation of a [KB-JWT](https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-12.html#name-key-binding-jwt).
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Display)]
 pub struct KeyBindingJwt(VerifiedJwt<KeyBindingJwtClaims>);
-
-impl Display for KeyBindingJwt {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", &self.0.jwt().0)
-    }
-}
 
 impl KeyBindingJwt {
     pub fn parse_and_verify(
@@ -43,7 +36,7 @@ impl KeyBindingJwt {
         expected_nonce: &str,
         iat_acceptance_window: Duration,
     ) -> error::Result<Self> {
-        let jwt: UnverifiedJwt<KeyBindingJwtClaims> = s.into();
+        let jwt: UnverifiedJwt<KeyBindingJwtClaims> = s.parse()?;
 
         let verified_jwt = VerifiedJwt::<KeyBindingJwtClaims>::try_new(jwt, pubkey, &kb_jwt_validation(expected_aud))?;
         if verified_jwt
@@ -217,7 +210,7 @@ mod test {
         header.typ = Some(String::from("kb+jwt"));
 
         KeyBindingJwt::parse_and_verify(
-            &example_kb_jwt(&signing_key, header).await.0,
+            example_kb_jwt(&signing_key, header).await.as_ref(),
             &EcdsaDecodingKey::from(signing_key.verifying_key()),
             "aud",
             "abc123",
@@ -231,7 +224,9 @@ mod test {
         let signing_key = SigningKey::random(&mut OsRng);
 
         let err = KeyBindingJwt::parse_and_verify(
-            &example_kb_jwt(&signing_key, Header::new(Algorithm::ES256)).await.0,
+            example_kb_jwt(&signing_key, Header::new(Algorithm::ES256))
+                .await
+                .as_ref(),
             &EcdsaDecodingKey::from(signing_key.verifying_key()),
             "aud",
             "abc123",
@@ -249,7 +244,7 @@ mod test {
         header.typ = Some(String::from("kb+jwt"));
 
         let err = KeyBindingJwt::parse_and_verify(
-            &example_kb_jwt(&signing_key, header).await.0,
+            example_kb_jwt(&signing_key, header).await.as_ref(),
             &EcdsaDecodingKey::from(signing_key.verifying_key()),
             "aud",
             "abc123",
@@ -267,7 +262,7 @@ mod test {
         header.typ = Some(String::from("kb+jwt"));
 
         let err = KeyBindingJwt::parse_and_verify(
-            &example_kb_jwt(&signing_key, header).await.0,
+            example_kb_jwt(&signing_key, header).await.as_ref(),
             &EcdsaDecodingKey::from(signing_key.verifying_key()),
             "aud",
             "def456",

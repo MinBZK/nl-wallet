@@ -879,7 +879,6 @@ pub(crate) mod tests {
     use platform_support::utils::mock::MockHardwareUtilities;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
-    use wallet_account::messages::registration::WalletCertificate;
 
     use in_memory_storage::InMemoryDatabaseStorage;
 
@@ -972,7 +971,7 @@ pub(crate) mod tests {
             attested_key_identifier: "key_id".to_string(),
             pin_salt: vec![1, 2, 3, 4],
             wallet_id: "wallet_123".to_string(),
-            wallet_certificate: WalletCertificate::from("thisisdefinitelyvalid"),
+            wallet_certificate: "thisis.definitely.valid".parse().unwrap(),
         };
 
         let mut storage = InMemoryDatabaseStorage::open().await;
@@ -1003,10 +1002,7 @@ pub(crate) mod tests {
         assert!(fetched_registration.is_some());
         let fetched_registration = fetched_registration.unwrap();
         assert_eq!(fetched_registration.pin_salt, registration.pin_salt);
-        assert_eq!(
-            fetched_registration.wallet_certificate.0,
-            registration.wallet_certificate.0
-        );
+        assert_eq!(fetched_registration.wallet_certificate, registration.wallet_certificate);
 
         // Save the registration again, should result in an error.
         let save_result = storage.insert_data(&registration).await;
@@ -1036,8 +1032,8 @@ pub(crate) mod tests {
             updated_registration.pin_salt
         );
         assert_eq!(
-            fetched_after_update_registration.wallet_certificate.0,
-            registration.wallet_certificate.0
+            fetched_after_update_registration.wallet_certificate,
+            registration.wallet_certificate
         );
 
         // Delete registration

@@ -357,9 +357,9 @@ impl MockOpenidMessageClient {
 
     fn dpop(&self, dpop_header: &str) -> Dpop {
         if self.invalidate_dpop {
-            Dpop::from(invalidate_jwt(dpop_header))
+            invalidate_jwt(dpop_header).as_str().parse().unwrap()
         } else {
-            Dpop::from(dpop_header.to_string())
+            dpop_header.parse().unwrap()
         }
     }
 
@@ -367,7 +367,7 @@ impl MockOpenidMessageClient {
         if self.invalidate_pop {
             let invalidated_proof = match credential_request.proof.as_ref().unwrap() {
                 CredentialRequestProof::Jwt { jwt } => CredentialRequestProof::Jwt {
-                    jwt: invalidate_jwt(&jwt.0).into(),
+                    jwt: invalidate_jwt(jwt.as_ref()).parse().unwrap(),
                 },
             };
             credential_request.proof = Some(invalidated_proof);
