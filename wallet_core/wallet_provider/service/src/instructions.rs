@@ -61,15 +61,33 @@ use crate::wua_issuer::WuaIssuer;
 
 pub trait ValidateInstruction {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
-        if wallet_user.pin_change_in_progress() {
-            return Err(InstructionValidationError::PinChangeInProgress);
-        }
-
+        validate_common(wallet_user)?;
         Ok(())
     }
 }
 
-impl ValidateInstruction for CheckPin {}
+fn validate_common(wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+    validate_pin_change_in_progress(wallet_user)?;
+    validate_transfer_in_progress(wallet_user)?;
+    Ok(())
+}
+
+fn validate_pin_change_in_progress(wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+    if wallet_user.pin_change_in_progress() {
+        return Err(InstructionValidationError::PinChangeInProgress);
+    }
+
+    Ok(())
+}
+
+fn validate_transfer_in_progress(wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+    if wallet_user.transfer_in_progress() {
+        return Err(InstructionValidationError::TransferInProgress);
+    }
+
+    Ok(())
+}
+
 impl ValidateInstruction for ChangePinStart {}
 impl ValidateInstruction for PerformIssuance {}
 impl ValidateInstruction for PerformIssuanceWithWua {}
@@ -77,9 +95,7 @@ impl ValidateInstruction for DiscloseRecoveryCode {}
 
 impl ValidateInstruction for Sign {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
-        if wallet_user.pin_change_in_progress() {
-            return Err(InstructionValidationError::PinChangeInProgress);
-        }
+        validate_common(wallet_user)?;
 
         if self
             .messages_with_identifiers
@@ -103,6 +119,22 @@ impl ValidateInstruction for ChangePinCommit {
 
 impl ValidateInstruction for ChangePinRollback {
     fn validate_instruction(&self, _wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+        Ok(())
+    }
+}
+
+impl ValidateInstruction for CheckPin {
+    fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+        validate_pin_change_in_progress(wallet_user)?;
+
+        Ok(())
+    }
+}
+
+impl ValidateInstruction for PrepareTransfer {
+    fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+        validate_pin_change_in_progress(wallet_user)?;
+
         Ok(())
     }
 }
@@ -543,16 +575,16 @@ impl HandleInstruction for PrepareTransfer {
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
         H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
     {
+        let Some(recovery_code) = &wallet_user.recovery_code else {
+            return Err(InstructionError::MissingRecoveryCode);
+        };
+
         let transfer_session_id = match wallet_user.transfer_session_id {
             Some(transfer_session_id) => transfer_session_id.to_string(),
             None => {
                 let transfer_session_id = Uuid::new_v4();
 
                 let tx = user_state.repositories.begin_transaction().await?;
-
-                let Some(recovery_code) = &wallet_user.recovery_code else {
-                    return Err(InstructionError::MissingRecoveryCode);
-                };
 
                 let has_multiple_active_accounts = user_state
                     .repositories
@@ -1078,7 +1110,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn should_handle_prepare_transfer_no_recovery_code() {
+    async fn should_handle_prepare_transfer_no_multiple_accounts() {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
         let mut wallet_user = wallet_user::mock::wallet_user_1();
         wallet_user.recovery_code = Some(String::from("recovery_code_123"));
@@ -1113,7 +1145,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn should_handle_prepare_transfer_no_multiple_accounts() {
+    async fn should_handle_prepare_transfer_no_recovery_code() {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
         let wallet_user = wallet_user::mock::wallet_user_1();
 
@@ -1149,6 +1181,7 @@ mod tests {
         let mut wallet_user = wallet_user::mock::wallet_user_1();
         let expected_transfer_session_id = Uuid::new_v4();
         wallet_user.transfer_session_id = Some(expected_transfer_session_id);
+        wallet_user.recovery_code = Some(String::from("recovery_code_123"));
 
         let wallet_user_repo = MockTransactionalWalletUserRepository::new();
 

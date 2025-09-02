@@ -40,6 +40,10 @@ impl WalletUser {
     pub fn pin_change_in_progress(&self) -> bool {
         self.encrypted_previous_pin_pubkey.is_some()
     }
+
+    pub fn transfer_in_progress(&self) -> bool {
+        self.transfer_session_id.is_some()
+    }
 }
 
 #[derive(Clone, Serialize, Debug)]

@@ -348,6 +348,7 @@ pub mod mock {
         pub challenge: Option<Vec<u8>>,
         pub instruction_sequence_number: u64,
         pub apple_assertion_counter: Option<AssertionCounter>,
+        pub transfer_session_id: Option<Uuid>,
     }
 
     impl WalletUserRepository for WalletUserTestRepo {
@@ -384,7 +385,7 @@ pub mod mock {
                     None => WalletUserAttestation::Android,
                 },
                 recovery_code: None,
-                transfer_session_id: None,
+                transfer_session_id: self.transfer_session_id,
                 destination_wallet_app_version: None,
             })))
         }
