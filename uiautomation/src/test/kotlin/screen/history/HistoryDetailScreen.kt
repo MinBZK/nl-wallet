@@ -11,7 +11,7 @@ class HistoryDetailScreen : MobileActions() {
     private val historyDetailScreenPurposeTitle = find.byText(l10n.getString("historyDetailScreenPurposeTitle"))
     private val historyDetailScreenTermsTitle = find.byText(l10n.getString("historyDetailScreenTermsTitle"))
     private val organizationButtonLabel = find.byText(l10n.getString("organizationButtonLabel"))
-    private val scrollableElement = find.byType(ScrollableType.CustomScrollView.toString())
+    private val scrollableElement = find.byType(ScrollableType.ListView.toString())
 
     fun visible() = isElementVisible(screen, false)
 
