@@ -45,27 +45,21 @@ pub const INVALID_DISCLOSURE_SD_JWT: &str = include_str!("../examples/invalid_di
 
 impl SdJwtPresentation {
     pub fn spec_simple_structured() -> SdJwt {
-        SdJwt::parse_and_verify(SIMPLE_STRUCTURED_SD_JWT, &examples_sd_jwt_decoding_key(), &Sha256Hasher).unwrap()
+        SdJwt::parse_and_verify(SIMPLE_STRUCTURED_SD_JWT, &examples_sd_jwt_decoding_key()).unwrap()
     }
 
     pub fn spec_complex_structured() -> SdJwt {
-        SdJwt::parse_and_verify(
-            COMPLEX_STRUCTURED_SD_JWT,
-            &examples_sd_jwt_decoding_key(),
-            &Sha256Hasher,
-        )
-        .unwrap()
+        SdJwt::parse_and_verify(COMPLEX_STRUCTURED_SD_JWT, &examples_sd_jwt_decoding_key()).unwrap()
     }
 
     pub fn spec_sd_jwt_vc() -> SdJwt {
-        SdJwt::parse_and_verify(SD_JWT_VC, &examples_sd_jwt_decoding_key(), &Sha256Hasher).unwrap()
+        SdJwt::parse_and_verify(SD_JWT_VC, &examples_sd_jwt_decoding_key()).unwrap()
     }
 
     pub fn spec_sd_jwt_kb() -> SdJwtPresentation {
         SdJwtPresentation::parse_and_verify(
             WITH_KB_SD_JWT,
             &examples_sd_jwt_decoding_key(),
-            &Sha256Hasher,
             WITH_KB_SD_JWT_AUD,
             WITH_KB_SD_JWT_NONCE,
             Duration::minutes(2),
