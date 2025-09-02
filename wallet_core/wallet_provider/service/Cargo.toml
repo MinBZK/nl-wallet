@@ -105,7 +105,7 @@ android_attest = { path = "../../lib/android_attest", features = ["mock"] }
 apple_app_attest = { path = "../../lib/apple_app_attest", features = ["mock"] }
 attestation_data = { path = "../../lib/attestation_data", features = ["mock", "generate"] }
 attestation_types = { path = "../../lib/attestation_types" }
-crypto = { path = "../../lib/crypto", features = ["mock_remote_key"] }
+crypto = { path = "../../lib/crypto", features = ["mock_remote_key", "mock_secure_keys"] }
 jwt = { path = "../../lib/jwt", features = ["test"] }
 pid_issuer = { path = "../../wallet_server/pid_issuer", features = ["mock"] }
 platform_support = { path = "../../wallet/platform_support", features = ["mock_attested_key_apple"] }

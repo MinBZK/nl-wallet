@@ -96,6 +96,14 @@ pub trait WalletUserRepository {
         wallet_id: &str,
         assertion_counter: AssertionCounter,
     ) -> Result<()>;
+
+    async fn prepare_transfer(
+        &self,
+        transaction: &Self::TransactionType,
+        wallet_id: &str,
+        transfer_session_id: Uuid,
+        destination_wallet_app_version: String,
+    ) -> Result<()>;
 }
 
 #[cfg(feature = "mock")]
@@ -228,8 +236,18 @@ pub mod mock {
             &self,
             _transaction: &Self::TransactionType,
             _recovery_code: &str,
-        ) -> crate::repository::wallet_user_repository::Result<bool> {
+        ) -> Result<bool> {
             Ok(false)
+        }
+
+        async fn prepare_transfer(
+            &self,
+            _transaction: &Self::TransactionType,
+            _wallet_id: &str,
+            _transfer_session_id: Uuid,
+            _destination_wallet_app_version: String,
+        ) -> Result<()> {
+            Ok(())
         }
     }
 }

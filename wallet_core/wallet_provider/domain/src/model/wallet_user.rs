@@ -26,6 +26,8 @@ pub struct WalletUser {
     pub instruction_sequence_number: u64,
     pub attestation: WalletUserAttestation,
     pub recovery_code: Option<String>,
+    pub transfer_session_id: Option<Uuid>,
+    pub destination_wallet_app_version: Option<String>,
 }
 
 #[derive(Debug)]
@@ -37,6 +39,10 @@ pub enum WalletUserAttestation {
 impl WalletUser {
     pub fn pin_change_in_progress(&self) -> bool {
         self.encrypted_previous_pin_pubkey.is_some()
+    }
+
+    pub fn transfer_in_progress(&self) -> bool {
+        self.transfer_session_id.is_some()
     }
 }
 
@@ -121,6 +127,8 @@ SssTb0eI53lvfdvG/xkNcktwsXEIPL1y3lUKn1u1ZhFTnQn4QKmnvaN4uQ==
             instruction_sequence_number: 0,
             attestation: super::WalletUserAttestation::Android,
             recovery_code: None,
+            transfer_session_id: None,
+            destination_wallet_app_version: None,
         }
     }
 }

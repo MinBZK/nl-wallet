@@ -12,6 +12,7 @@ use wallet_provider_domain::EpochGenerator;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestation;
 use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
 use wallet_provider_domain::repository::Committable;
+use wallet_provider_domain::repository::PersistenceError;
 use wallet_provider_persistence::database::Db;
 use wallet_provider_persistence::entity::wallet_user;
 use wallet_provider_persistence::transaction;
@@ -19,6 +20,7 @@ use wallet_provider_persistence::wallet_user::clear_instruction_challenge;
 use wallet_provider_persistence::wallet_user::commit_pin_change;
 use wallet_provider_persistence::wallet_user::find_wallet_user_by_wallet_id;
 use wallet_provider_persistence::wallet_user::has_multiple_active_accounts_by_recovery_code;
+use wallet_provider_persistence::wallet_user::prepare_transfer;
 use wallet_provider_persistence::wallet_user::register_unsuccessful_pin_entry;
 use wallet_provider_persistence::wallet_user::rollback_pin_change;
 use wallet_provider_persistence::wallet_user::store_recovery_code;
@@ -433,4 +435,46 @@ async fn test_has_multiple_accounts() {
             .await
             .unwrap()
     );
+}
+
+#[tokio::test]
+async fn test_prepare_transfer() {
+    let (db, _, wallet_id, _) = create_test_user().await;
+
+    let transfer_session_id = Uuid::new_v4();
+    let destination_wallet_app_version = "1.0.0";
+
+    prepare_transfer(
+        &db,
+        &wallet_id,
+        transfer_session_id,
+        String::from(destination_wallet_app_version),
+    )
+    .await
+    .unwrap();
+
+    let WalletUserQueryResult::Found(stored_wallet_user) =
+        find_wallet_user_by_wallet_id(&db, &wallet_id).await.unwrap()
+    else {
+        panic!("Could not find wallet user");
+    };
+    assert_eq!(transfer_session_id, stored_wallet_user.transfer_session_id.unwrap());
+
+    // Preparing a transfer for a wallet that is already transferring should return an error
+    let result = prepare_transfer(
+        &db,
+        &wallet_id,
+        Uuid::new_v4(),
+        String::from(destination_wallet_app_version),
+    )
+    .await;
+    assert_matches!(result, Err(PersistenceError::NoRowsUpdated));
+
+    // The existing transfer_session_id should be returned
+    let WalletUserQueryResult::Found(stored_wallet_user) =
+        find_wallet_user_by_wallet_id(&db, &wallet_id).await.unwrap()
+    else {
+        panic!("Could not find wallet user");
+    };
+    assert_eq!(transfer_session_id, stored_wallet_user.transfer_session_id.unwrap());
 }

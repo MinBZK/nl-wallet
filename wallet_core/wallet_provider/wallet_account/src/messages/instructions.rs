@@ -202,6 +202,24 @@ pub struct DiscloseRecoveryCodeResult {
     pub transfer_available: bool,
 }
 
+// PrepareTransfer instruction.
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PrepareTransfer {
+    pub app_version: String,
+}
+
+impl InstructionAndResult for PrepareTransfer {
+    const NAME: &'static str = "prepare_transfer";
+
+    type Result = PrepareTransferResult;
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PrepareTransferResult {
+    pub transfer_session_id: String,
+}
+
 #[cfg(feature = "client")]
 mod client {
     use serde::Serialize;

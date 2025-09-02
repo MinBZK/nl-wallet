@@ -200,54 +200,82 @@ pub enum RegistrationError {
 pub enum InstructionError {
     #[error("wallet certificate validation error: {0}")]
     WalletCertificate(#[from] WalletCertificateError),
+
     #[error("instruction validation error: {0}")]
     Validation(#[from] InstructionValidationError),
+
     #[error("instruction validation pin error ({0:?})")]
     IncorrectPin(IncorrectPinData),
+
     #[error("instruction validation pin timeout ({0:?})")]
     PinTimeout(PinTimeoutData),
+
     #[error("account is blocked")]
     AccountBlocked,
+
     #[error("instruction result signing error: {0}")]
     Signing(#[source] JwtError),
+
     #[error("persistence error: {0}")]
     Storage(#[from] PersistenceError),
+
     #[error("hsm error: {0}")]
     HsmError(#[from] HsmError),
+
     #[error("WUA issuance: {0}")]
     WuaIssuance(#[source] Box<dyn Error + Send + Sync + 'static>),
+
     #[error("instruction referenced nonexisting key: {0}")]
     NonExistingKey(String),
+
     #[error("PoA construction error: {0}")]
     Poa(#[from] PoaError),
+
     #[error("public key conversion error: {0}")]
     JwkConversion(#[from] JwkConversionError),
+
     #[error("error signing PoP: {0}")]
     PopSigning(#[source] JwtError),
+
     #[error("SD JWT error: {0}")]
     SdJwtError(#[from] sd_jwt::error::Error),
+
     #[error("recovery code missing from SD JWT")]
     MissingRecoveryCode,
+
+    #[error("account is not elligible for transfer")]
+    AccountNotTransferable,
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum InstructionValidationError {
     #[error("instruction sequence number mismatch")]
     SequenceNumberMismatch,
+
     #[error("instruction challenge mismatch")]
     ChallengeMismatch,
+
     #[error("instruction challenge timeout")]
     ChallengeTimeout,
+
     #[error("instruction verification failed: {0}")]
     VerificationFailed(#[source] wallet_account::error::DecodeError),
+
     #[error("pin change is in progress")]
     PinChangeInProgress,
+
     #[error("pin change is not in progress")]
     PinChangeNotInProgress,
+
+    #[error("wallet transfer is in progress")]
+    TransferInProgress,
+
     #[error("hsm error: {0}")]
     HsmError(#[from] HsmError),
+
     #[error("WUA already issued")]
     WuaAlreadyIssued,
+
     #[error("received instruction to sign a PoA with the Sign instruction")]
     PoaMessage,
 }
@@ -1327,6 +1355,7 @@ mod tests {
     use p256::ecdsa::SigningKey;
     use p256::ecdsa::VerifyingKey;
     use rstest::rstest;
+    use uuid::Uuid;
     use uuid::uuid;
 
     use android_attest::attestation_extension::key_description::KeyDescription;
@@ -1336,6 +1365,7 @@ mod tests {
     use apple_app_attest::AssertionValidationError;
     use apple_app_attest::MockAttestationCa;
     use crypto::keys::EcdsaKey;
+    use crypto::utils::random_bytes;
     use hsm::model::encrypted::Encrypted;
     use hsm::model::encrypter::Encrypter;
     use hsm::model::mock::MockPkcs11Client;
@@ -1350,6 +1380,7 @@ mod tests {
     use wallet_account::messages::instructions::CheckPin;
     use wallet_account::messages::instructions::InstructionAndResult;
     use wallet_account::messages::instructions::InstructionResult;
+    use wallet_account::messages::instructions::Sign;
     use wallet_account::messages::registration::WalletCertificate;
     use wallet_account::signed::ChallengeResponse;
     use wallet_provider_domain::EpochGenerator;
@@ -1500,6 +1531,7 @@ mod tests {
             challenge: None,
             instruction_sequence_number: 0,
             apple_assertion_counter,
+            transfer_session_id: None,
         };
 
         let user_state = mock::user_state(repo, hsm, wrapping_key_identifier, vec![]);
@@ -2390,6 +2422,59 @@ mod tests {
         assert_eq!(
             "instruction validation error: pin change is in progress",
             error.to_string()
+        );
+    }
+
+    #[tokio::test]
+    async fn test_prepare_transfer_no_other_instructions_allowed() {
+        let (setup, account_server, hw_privkey, cert, mut user_state) =
+            setup_and_do_registration(AttestationType::Google).await;
+
+        let challenge = do_instruction_challenge::<Sign>(&account_server, &hw_privkey, cert.clone(), 45, &user_state)
+            .await
+            .unwrap();
+
+        user_state.repositories = WalletUserTestRepo {
+            challenge: Some(challenge.clone()),
+            transfer_session_id: Some(Uuid::new_v4()),
+            instruction_sequence_number: 43,
+            apple_assertion_counter: match &hw_privkey {
+                MockHardwareKey::Apple(attested_key) => Some(AssertionCounter::from(*attested_key.next_counter() - 1)),
+                MockHardwareKey::Google(_) => None,
+            },
+            ..user_state.repositories.clone()
+        };
+
+        let instruction = hw_privkey
+            .sign_instruction(
+                Sign {
+                    messages_with_identifiers: vec![(random_bytes(32), vec!["key2".to_string()])],
+                    poa_nonce: Some("nonce".to_string()),
+                    poa_aud: "aud".to_string(),
+                },
+                challenge,
+                46,
+                &setup.pin_privkey,
+                cert.clone(),
+            )
+            .await;
+
+        let instruction_result_signing_key = SigningKey::random(&mut OsRng);
+
+        let result = account_server
+            .handle_instruction(
+                instruction,
+                &instruction_result_signing_key,
+                &MockGenerators,
+                &TimeoutPinPolicy,
+                &user_state,
+            )
+            .await
+            .expect_err("instruction validation should fail when transferring");
+
+        assert_matches!(
+            result,
+            InstructionError::Validation(InstructionValidationError::TransferInProgress)
         );
     }
 }
