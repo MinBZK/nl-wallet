@@ -17,7 +17,6 @@ pub mod issuer;
 // Verification code for the server and client.
 pub mod disclosure_session;
 pub mod openid4vp;
-pub mod presentation_exchange;
 pub mod return_url;
 pub mod verifier;
 
