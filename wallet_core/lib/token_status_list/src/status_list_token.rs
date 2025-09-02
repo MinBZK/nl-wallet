@@ -20,7 +20,7 @@ use serde_with::serde_as;
 
 use crypto::EcdsaKey;
 use http_utils::urls::HttpsUri;
-use jwt::Jwt;
+use jwt::UnverifiedJwt;
 use jwt::error::JwtError;
 
 use crate::status_list::PackedStatusList;
@@ -33,7 +33,7 @@ static TOKEN_STATUS_LIST_JWT_HEADER: &str = "application/statuslist+jwt";
 ///
 /// <https://www.ietf.org/archive/id/draft-ietf-oauth-status-list-12.html#name-status-list-token>
 #[derive(Debug, Clone, FromStr, Serialize, Deserialize)]
-pub struct StatusListToken(Jwt<StatusListClaims>);
+pub struct StatusListToken(UnverifiedJwt<StatusListClaims>);
 
 impl StatusListToken {
     pub fn builder(sub: HttpsUri, status_list: PackedStatusList) -> StatusListTokenBuilder {
@@ -78,7 +78,7 @@ impl StatusListTokenBuilder {
             status_list: self.status_list,
         };
 
-        let jwt = Jwt::sign(&claims, &header, key).await?;
+        let jwt = UnverifiedJwt::sign(&claims, &header, key).await?;
         Ok(StatusListToken(jwt))
     }
 }

@@ -43,7 +43,7 @@ use dcql::Query;
 use dcql::normalized::NormalizedCredentialRequests;
 use dcql::normalized::UnsupportedDcqlFeatures;
 use http_utils::urls::BaseUrl;
-use jwt::Jwt;
+use jwt::UnverifiedJwt;
 use jwt::error::JwtError;
 use utils::generator::Generator;
 use utils::vec_at_least::VecNonEmpty;
@@ -943,7 +943,7 @@ where
         response_uri_base: &BaseUrl,
         query: Option<&str>,
         wallet_nonce: Option<String>,
-    ) -> Result<Jwt<VpAuthorizationRequest>, WithRedirectUri<GetAuthRequestError>> {
+    ) -> Result<UnverifiedJwt<VpAuthorizationRequest>, WithRedirectUri<GetAuthRequestError>> {
         let url_params: VerifierUrlParameters =
             serde_urlencoded::from_str(query.ok_or(GetAuthRequestError::QueryParametersMissing)?)
                 .map_err(GetAuthRequestError::QueryParametersDeserialization)?;
@@ -1216,7 +1216,7 @@ impl Session<Created> {
         wallet_nonce: Option<String>,
         use_cases: &impl UseCases<Key = K, UseCase = UC>,
     ) -> Result<
-        (Jwt<VpAuthorizationRequest>, Session<WaitingForResponse>),
+        (UnverifiedJwt<VpAuthorizationRequest>, Session<WaitingForResponse>),
         (WithRedirectUri<GetAuthRequestError>, Session<Done>),
     >
     where
@@ -1262,7 +1262,7 @@ impl Session<Created> {
         use_cases: &impl UseCases<Key = K, UseCase = UC>,
     ) -> Result<
         (
-            Jwt<VpAuthorizationRequest>,
+            UnverifiedJwt<VpAuthorizationRequest>,
             NormalizedVpAuthorizationRequest,
             Option<RedirectUri>,
             EcKeyPair,
@@ -1306,7 +1306,7 @@ impl Session<Created> {
         .map_err(|err| error_with_redirect_uri(&redirect_uri, err))?;
 
         let vp_auth_request = VpAuthorizationRequest::from(auth_request.clone());
-        let jws = Jwt::sign_with_certificate(&vp_auth_request, &usecase.key_pair)
+        let jws = UnverifiedJwt::sign_with_certificate(&vp_auth_request, &usecase.key_pair)
             .await
             .map_err(|err| error_with_redirect_uri(&redirect_uri, err))?;
 

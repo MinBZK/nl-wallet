@@ -33,7 +33,7 @@ use dcql::normalized::NormalizedCredentialRequests;
 use dcql::normalized::UnsupportedDcqlFeatures;
 use error_category::ErrorCategory;
 use http_utils::urls::BaseUrl;
-use jwt::Jwt;
+use jwt::UnverifiedJwt;
 use jwt::error::JwtX5cError;
 use mdoc::DeviceResponse;
 use mdoc::Document;
@@ -291,7 +291,7 @@ impl VpAuthorizationRequest {
     /// Construct a new Authorization Request by verifying an Authorization Request JWT against
     /// the specified trust anchors.
     pub fn try_new(
-        jws: &Jwt<VpAuthorizationRequest>,
+        jws: &UnverifiedJwt<VpAuthorizationRequest>,
         trust_anchors: &[TrustAnchor],
     ) -> Result<(VpAuthorizationRequest, BorrowingCertificate), AuthRequestValidationError> {
         let (auth_request, certificates) = jws.verify_against_trust_anchors_and_audience(
@@ -821,7 +821,7 @@ mod tests {
     use dcql::CredentialQueryFormat;
     use dcql::CredentialQueryIdentifier;
     use dcql::normalized::NormalizedCredentialRequests;
-    use jwt::Jwt;
+    use jwt::UnverifiedJwt;
     use mdoc::DeviceAuthenticationKeyed;
     use mdoc::DeviceResponse;
     use mdoc::DeviceSigned;
@@ -954,7 +954,7 @@ mod tests {
     async fn test_authorization_request_jwt() {
         let (trust_anchor, rp_keypair, _, auth_request) = setup();
 
-        let auth_request_jwt = Jwt::sign_with_certificate(&auth_request, &rp_keypair).await.unwrap();
+        let auth_request_jwt = UnverifiedJwt::sign_with_certificate(&auth_request, &rp_keypair).await.unwrap();
 
         let (auth_request, cert) = VpAuthorizationRequest::try_new(&auth_request_jwt, &[trust_anchor]).unwrap();
         auth_request.validate(&cert, None).unwrap();

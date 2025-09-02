@@ -3,7 +3,7 @@ use std::sync::LazyLock;
 use mime::Mime;
 
 use http_utils::urls::BaseUrl;
-use jwt::Jwt;
+use jwt::UnverifiedJwt;
 
 use crate::errors::AuthorizationErrorCode;
 use crate::errors::ErrorResponse;
@@ -32,7 +32,7 @@ pub trait VpMessageClient {
         &self,
         url: BaseUrl,
         wallet_nonce: Option<String>,
-    ) -> Result<Jwt<VpAuthorizationRequest>, VpMessageClientError>;
+    ) -> Result<UnverifiedJwt<VpAuthorizationRequest>, VpMessageClientError>;
 
     async fn send_authorization_response(
         &self,

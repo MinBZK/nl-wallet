@@ -18,7 +18,7 @@ use crypto::utils as crypto_utils;
 use dcql::normalized::NormalizedCredentialRequest;
 use dcql::normalized::NormalizedCredentialRequests;
 use http_utils::urls::BaseUrl;
-use jwt::Jwt;
+use jwt::UnverifiedJwt;
 use mdoc::SessionTranscript;
 
 use crate::errors::ErrorResponse;
@@ -71,7 +71,7 @@ where
         &self,
         _url: BaseUrl,
         wallet_nonce: Option<String>,
-    ) -> Result<Jwt<VpAuthorizationRequest>, VpMessageClientError> {
+    ) -> Result<UnverifiedJwt<VpAuthorizationRequest>, VpMessageClientError> {
         self.wallet_messages
             .lock()
             .push(WalletMessage::Request(WalletRequest { wallet_nonce }));
@@ -216,10 +216,10 @@ impl MockVerifierSession {
     }
 
     /// Generate the first protocol message of the verifier.
-    fn signed_auth_request(&self, wallet_request: WalletRequest) -> Jwt<VpAuthorizationRequest> {
+    fn signed_auth_request(&self, wallet_request: WalletRequest) -> UnverifiedJwt<VpAuthorizationRequest> {
         let request = self.normalized_auth_request(wallet_request.wallet_nonce).into();
 
-        Jwt::sign_with_certificate(&request, &self.key_pair)
+        UnverifiedJwt::sign_with_certificate(&request, &self.key_pair)
             .now_or_never()
             .unwrap()
             .unwrap()
@@ -237,7 +237,7 @@ impl VpMessageClient for MockVerifierVpMessageClient {
         &self,
         url: BaseUrl,
         wallet_nonce: Option<String>,
-    ) -> Result<Jwt<VpAuthorizationRequest>, VpMessageClientError> {
+    ) -> Result<UnverifiedJwt<VpAuthorizationRequest>, VpMessageClientError> {
         // The URL has to match the one in the session.
         assert_eq!(url, self.session.request_uri_object.request_uri);
 

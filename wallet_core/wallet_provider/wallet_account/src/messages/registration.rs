@@ -4,7 +4,7 @@ use serde_with::base64::Base64;
 use serde_with::serde_as;
 
 use crypto::p256_der::DerVerifyingKey;
-use jwt::Jwt;
+use jwt::UnverifiedJwt;
 use jwt::JwtSubject;
 use utils::vec_at_least::VecAtLeastTwo;
 
@@ -47,7 +47,7 @@ pub struct Certificate {
     pub certificate: WalletCertificate,
 }
 
-pub type WalletCertificate = Jwt<WalletCertificateClaims>;
+pub type WalletCertificate = UnverifiedJwt<WalletCertificateClaims>;
 
 #[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize)]

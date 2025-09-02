@@ -21,7 +21,7 @@ use crypto::p256_der::DerSignature;
 use hsm::model::encrypter::Encrypter;
 use hsm::model::wrapped_key::WrappedKey;
 use hsm::service::HsmError;
-use jwt::Jwt;
+use jwt::UnverifiedJwt;
 use jwt::jwk::jwk_from_p256;
 use jwt::pop::JwtPopClaims;
 use jwt::wua::WuaDisclosure;
@@ -181,7 +181,7 @@ async fn perform_issuance<T, R, H>(
 ) -> Result<
     (
         VecNonEmpty<String>,
-        VecNonEmpty<Jwt<JwtPopClaims>>,
+        VecNonEmpty<UnverifiedJwt<JwtPopClaims>>,
         Option<Poa>,
         Option<WuaDisclosure>,
     ),
@@ -290,7 +290,7 @@ where
         .await
         .map_err(|e| InstructionError::WuaIssuance(Box::new(e)))?;
 
-    let wua_disclosure = Jwt::sign(
+    let wua_disclosure = UnverifiedJwt::sign(
         claims,
         &Header::new(Algorithm::ES256),
         &attestation_key(&wua_wrapped_key, user_state),
@@ -304,7 +304,7 @@ where
 async fn issuance_pops<H>(
     attestation_keys: &VecNonEmpty<HsmCredentialSigningKey<'_, H>>,
     claims: &JwtPopClaims,
-) -> Result<VecNonEmpty<Jwt<JwtPopClaims>>, InstructionError>
+) -> Result<VecNonEmpty<UnverifiedJwt<JwtPopClaims>>, InstructionError>
 where
     H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
 {
@@ -317,7 +317,7 @@ where
             ..Default::default()
         };
 
-        let jwt = Jwt::sign(claims, &header, attestation_key)
+        let jwt = UnverifiedJwt::sign(claims, &header, attestation_key)
             .await
             .map_err(InstructionError::PopSigning)?;
 
@@ -633,7 +633,7 @@ mod tests {
 
     use crypto::utils::random_bytes;
     use hsm::model::wrapped_key::WrappedKey;
-    use jwt::Jwt;
+    use jwt::UnverifiedJwt;
     use jwt::jwk::jwk_to_p256;
     use jwt::pop::JwtPopClaims;
     use jwt::wua::WuaDisclosure;
@@ -893,7 +893,11 @@ mod tests {
             .unwrap()
     }
 
-    fn validate_issuance(pops: &[Jwt<JwtPopClaims>], poa: Option<Poa>, wua_with_disclosure: Option<&WuaDisclosure>) {
+    fn validate_issuance(
+        pops: &[UnverifiedJwt<JwtPopClaims>],
+        poa: Option<Poa>,
+        wua_with_disclosure: Option<&WuaDisclosure>,
+    ) {
         let mut validations = Validation::new(Algorithm::ES256);
         validations.required_spec_claims = HashSet::default();
         validations.set_issuer(&[NL_WALLET_CLIENT_ID]);

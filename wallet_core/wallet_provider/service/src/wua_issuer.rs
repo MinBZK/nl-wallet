@@ -8,7 +8,7 @@ use crypto::p256_der::verifying_key_sha256;
 use hsm::keys::HsmEcdsaKey;
 use hsm::model::wrapped_key::WrappedKey;
 use hsm::service::HsmError;
-use jwt::Jwt;
+use jwt::UnverifiedJwt;
 use jwt::credential::JwtCredentialClaims;
 use jwt::error::JwtError;
 use jwt::wua::WuaClaims;
@@ -17,7 +17,7 @@ use wallet_provider_domain::model::hsm::WalletUserHsm;
 pub trait WuaIssuer {
     type Error: Error + Send + Sync + 'static;
 
-    async fn issue_wua(&self) -> Result<(WrappedKey, String, Jwt<JwtCredentialClaims<WuaClaims>>), Self::Error>;
+    async fn issue_wua(&self) -> Result<(WrappedKey, String, UnverifiedJwt<JwtCredentialClaims<WuaClaims>>), Self::Error>;
     async fn public_key(&self) -> Result<VerifyingKey, Self::Error>;
 }
 
@@ -48,7 +48,7 @@ where
 {
     type Error = HsmWuaIssuerError;
 
-    async fn issue_wua(&self) -> Result<(WrappedKey, String, Jwt<JwtCredentialClaims<WuaClaims>>), Self::Error> {
+    async fn issue_wua(&self) -> Result<(WrappedKey, String, UnverifiedJwt<JwtCredentialClaims<WuaClaims>>), Self::Error> {
         let wrapped_privkey = self.hsm.generate_wrapped_key(&self.wrapping_key_identifier).await?;
         let pubkey = *wrapped_privkey.public_key();
 
@@ -81,7 +81,7 @@ pub mod mock {
 
     use crypto::p256_der::verifying_key_sha256;
     use hsm::model::wrapped_key::WrappedKey;
-    use jwt::Jwt;
+    use jwt::UnverifiedJwt;
     use jwt::credential::JwtCredentialClaims;
     use jwt::wua::WuaClaims;
 
@@ -93,7 +93,7 @@ pub mod mock {
     impl WuaIssuer for MockWuaIssuer {
         type Error = Infallible;
 
-        async fn issue_wua(&self) -> Result<(WrappedKey, String, Jwt<JwtCredentialClaims<WuaClaims>>), Self::Error> {
+        async fn issue_wua(&self) -> Result<(WrappedKey, String, UnverifiedJwt<JwtCredentialClaims<WuaClaims>>), Self::Error> {
             let privkey = SigningKey::random(&mut OsRng);
             let pubkey = privkey.verifying_key();
 

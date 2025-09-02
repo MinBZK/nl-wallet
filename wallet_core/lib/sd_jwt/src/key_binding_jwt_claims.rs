@@ -15,7 +15,7 @@ use serde_with::chrono::Utc;
 
 use crypto::EcdsaKeySend;
 use jwt::EcdsaDecodingKey;
-use jwt::Jwt;
+use jwt::UnverifiedJwt;
 use jwt::VerifiedJwt;
 
 use crate::error;
@@ -44,7 +44,7 @@ impl KeyBindingJwt {
         expected_nonce: &str,
         iat_acceptance_window: Duration,
     ) -> error::Result<Self> {
-        let jwt: Jwt<KeyBindingJwtClaims> = s.into();
+        let jwt: UnverifiedJwt<KeyBindingJwtClaims> = s.into();
 
         let verified_jwt = VerifiedJwt::<KeyBindingJwtClaims>::try_new(jwt, pubkey, &kb_jwt_validation(expected_aud))?;
         if verified_jwt
@@ -170,7 +170,7 @@ mod test {
     use rand_core::OsRng;
 
     use jwt::EcdsaDecodingKey;
-    use jwt::Jwt;
+    use jwt::UnverifiedJwt;
 
     use crate::error::Error;
     use crate::examples::SIMPLE_STRUCTURED_SD_JWT;
@@ -183,8 +183,8 @@ mod test {
     use crate::sd_jwt::SdJwt;
     use crate::sd_jwt::SdJwtPresentation;
 
-    async fn example_kb_jwt(signing_key: &SigningKey, header: Header) -> Jwt<KeyBindingJwtClaims> {
-        Jwt::sign(
+    async fn example_kb_jwt(signing_key: &SigningKey, header: Header) -> UnverifiedJwt<KeyBindingJwtClaims> {
+        UnverifiedJwt::sign(
             &KeyBindingJwtClaims {
                 iat: Utc::now() - Duration::days(2),
                 aud: String::from("aud"),

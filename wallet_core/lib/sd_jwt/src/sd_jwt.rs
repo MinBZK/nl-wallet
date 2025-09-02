@@ -29,7 +29,7 @@ use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateUsage;
 use http_utils::urls::HttpsUri;
 use jwt::EcdsaDecodingKey;
-use jwt::Jwt;
+use jwt::UnverifiedJwt;
 use jwt::VerifiedJwt;
 use jwt::jwk::jwk_to_p256;
 use jwt::validations;
@@ -56,7 +56,7 @@ use crate::key_binding_jwt_claims::RequiredKeyBinding;
 /// as there is no KB-JWT
 #[derive(Debug, Clone, SerializeDisplay, DeserializeFromStr)]
 pub struct UnverifiedSdJwt {
-    issuer_signed: Jwt<SdJwtClaims>,
+    issuer_signed: UnverifiedJwt<SdJwtClaims>,
     disclosures: Vec<String>,
 }
 
@@ -80,7 +80,7 @@ impl FromStr for UnverifiedSdJwt {
         ))?;
 
         let mut segments = s.split('~');
-        let issuer_signed_jwt: Jwt<SdJwtClaims> = segments
+        let issuer_signed_jwt: UnverifiedJwt<SdJwtClaims> = segments
             .next()
             .ok_or(Error::Deserialization(
                 "SD-JWT format is invalid, input doesn't contain an issuer signed JWT".to_string(),
@@ -361,7 +361,7 @@ impl SdJwt {
     fn parse_sd_jwt_unverified(
         sd_jwt: &str,
         hasher: &impl Hasher,
-    ) -> Result<(Jwt<SdJwtClaims>, HashMap<String, Disclosure>)> {
+    ) -> Result<(UnverifiedJwt<SdJwtClaims>, HashMap<String, Disclosure>)> {
         if !sd_jwt.ends_with("~") {
             return Err(Error::Deserialization(
                 "SD-JWT format is invalid, input doesn't and with '~'".to_string(),
@@ -372,7 +372,7 @@ impl SdJwt {
             "SD-JWT format is invalid, input doesn't contain a '~'".to_string(),
         ))?;
 
-        let jwt: Jwt<SdJwtClaims> = sd_jwt_segment.parse()?;
+        let jwt: UnverifiedJwt<SdJwtClaims> = sd_jwt_segment.parse()?;
 
         let disclosures = disclosure_segments
             .split("~")

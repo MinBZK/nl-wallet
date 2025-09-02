@@ -41,7 +41,7 @@ use dcql::Query;
 use dcql::normalized::NormalizedCredentialRequest;
 use dcql::normalized::NormalizedCredentialRequests;
 use http_utils::urls::BaseUrl;
-use jwt::Jwt;
+use jwt::UnverifiedJwt;
 use mdoc::DeviceResponse;
 use mdoc::SessionTranscript;
 use mdoc::holder::disclosure::PartialMdoc;
@@ -143,7 +143,7 @@ fn disclosure_direct() {
     )
     .unwrap();
     let auth_request = iso_auth_request.clone().into();
-    let auth_request_jws = Jwt::sign_with_certificate(&auth_request, &auth_keypair)
+    let auth_request_jws = UnverifiedJwt::sign_with_certificate(&auth_request, &auth_keypair)
         .now_or_never()
         .unwrap()
         .unwrap();
@@ -169,7 +169,7 @@ fn disclosure_direct() {
 
 /// The wallet side: verify the Authorization Request, gather the attestations and encrypt it into a JWE.
 fn disclosure_jwe(
-    auth_request: &Jwt<VpAuthorizationRequest>,
+    auth_request: &UnverifiedJwt<VpAuthorizationRequest>,
     trust_anchors: &[TrustAnchor<'_>],
     issuer_ca: &Ca,
 ) -> String {
@@ -311,10 +311,10 @@ impl VpMessageClient for DirectMockVpMessageClient {
         &self,
         url: BaseUrl,
         _request_nonce: Option<String>,
-    ) -> Result<Jwt<VpAuthorizationRequest>, VpMessageClientError> {
+    ) -> Result<UnverifiedJwt<VpAuthorizationRequest>, VpMessageClientError> {
         assert_eq!(url, self.request_uri);
 
-        let jws = Jwt::sign_with_certificate(&self.auth_request, &self.auth_keypair)
+        let jws = UnverifiedJwt::sign_with_certificate(&self.auth_request, &self.auth_keypair)
             .await
             .unwrap();
         Ok(jws)
@@ -1082,7 +1082,7 @@ where
         &self,
         url: BaseUrl,
         wallet_nonce: Option<String>,
-    ) -> Result<Jwt<VpAuthorizationRequest>, VpMessageClientError> {
+    ) -> Result<UnverifiedJwt<VpAuthorizationRequest>, VpMessageClientError> {
         let path_segments = url.as_ref().path_segments().unwrap().collect_vec();
         let session_token: SessionToken = path_segments[path_segments.len() - 2].to_owned().into();
 

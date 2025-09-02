@@ -17,7 +17,7 @@ use crypto::p256_der::verifying_key_sha256;
 use crypto::wscd::DisclosureResult;
 use crypto::wscd::DisclosureWscd;
 use crypto::wscd::WscdPoa;
-use jwt::Jwt;
+use jwt::UnverifiedJwt;
 use jwt::credential::JwtCredentialClaims;
 use jwt::jwk::jwk_from_p256;
 use jwt::pop::JwtPopClaims;
@@ -146,7 +146,7 @@ impl Wscd for MockRemoteWscd {
                     ..Default::default()
                 };
 
-                Jwt::sign(&claims, &header, attestation_key)
+                UnverifiedJwt::sign(&claims, &header, attestation_key)
                     .now_or_never()
                     .unwrap()
                     .unwrap()
@@ -172,7 +172,7 @@ impl Wscd for MockRemoteWscd {
             .unwrap()
             .unwrap();
 
-            let wua_disclosure = Jwt::sign(&claims, &Header::new(Algorithm::ES256), &wua_key)
+            let wua_disclosure = UnverifiedJwt::sign(&claims, &Header::new(Algorithm::ES256), &wua_key)
                 .now_or_never()
                 .unwrap()
                 .unwrap();
