@@ -296,11 +296,9 @@ impl RedirectUriPurpose {
     fn from_uri(uri: &Url) -> Result<Self, DisclosureError> {
         let purpose = identify_uri(uri)
             .and_then(|uri_type| match uri_type {
-                UriType::PidIssuance => None,
-                UriType::PidRenewal => None,
-                UriType::PinRecovery => None,
                 UriType::Disclosure => Some(Self::Browser),
                 UriType::DisclosureBasedIssuance => Some(Self::Issuance),
+                _ => None,
             })
             .ok_or_else(|| DisclosureError::DisclosureUri(uri.clone()))?;
 
