@@ -20,7 +20,7 @@ Technically, disclosure based issuance is achieved as follows:
 
 The attestation server exchanges disclosed attributes for attestations to be issued. It is contacted by the `issuance_server` during a disclosure based issuance session to do this. Note that this server does not need to be reachable by the wallet, and it probably should not be directly connected to the internet.
 
-The attestation server receives an HTTP `POST` by the `issuance_server` containing a JSON structure of the same form as the `/disclosed_attributes` endpoint of the `issuance_server` returns, as documented in the [verifier documentation](../get-started/create-a-verifier.md#retrieve-disclosure-results). More specifically, this is a JSON-serialized `IndexMap<String, DocumentDisclosedAttributes>`. For example:
+The attestation server receives an HTTP `POST` by the `issuance_server` containing a JSON structure of the same form as the `/disclosed_attributes` endpoint of the `verification_server` returns, as documented in the [verifier documentation](../get-started/create-a-verifier.md#retrieve-disclosure-results). More specifically, this is a JSON-serialized `IndexMap<String, DocumentDisclosedAttributes>`. For example:
 
 ```http
 POST / HTTP/1.1
