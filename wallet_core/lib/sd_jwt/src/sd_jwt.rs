@@ -19,7 +19,6 @@ use nutype::nutype;
 use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde::Serialize;
-use serde_json::Map;
 use serde_json::Number;
 use serde_with::DeserializeFromStr;
 use serde_with::FromInto;
@@ -203,27 +202,6 @@ pub struct ObjectClaims {
     pub claims: HashMap<ClaimName, ClaimValue>,
 }
 
-impl ObjectClaims {
-    fn into_json_value(self) -> serde_json::Value {
-        let mut map = Map::from_iter(
-            self.claims
-                .into_iter()
-                .map(|(k, v)| (k.into_inner(), v.into_json_value())),
-        );
-
-        let hashes = self
-            ._sd
-            .into_iter()
-            .flat_map(|digests| digests.into_inner().into_iter())
-            .map(serde_json::Value::String)
-            .collect();
-
-        map.insert(DIGESTS_KEY.to_string(), serde_json::Value::Array(hashes));
-
-        serde_json::Value::Object(map)
-    }
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 #[serde(untagged)]
 pub enum ClaimValue {
@@ -235,39 +213,12 @@ pub enum ClaimValue {
     String(String),
 }
 
-impl ClaimValue {
-    fn into_json_value(self) -> serde_json::Value {
-        match self {
-            ClaimValue::Array(array) => {
-                serde_json::Value::Array(array.into_iter().map(ArrayClaim::into_json_value).collect())
-            }
-            ClaimValue::Object(object) => object.into_json_value(),
-            ClaimValue::Null => serde_json::Value::Null,
-            ClaimValue::Bool(value) => serde_json::Value::Bool(value),
-            ClaimValue::Number(value) => serde_json::Value::Number(value),
-            ClaimValue::String(value) => serde_json::Value::String(value),
-        }
-    }
-}
-
 #[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 #[serde(untagged)]
 pub enum ArrayClaim {
     Hash(#[serde_as(as = "FromInto<DisclosureHash>")] String),
     Value(ClaimValue),
-}
-
-impl ArrayClaim {
-    fn into_json_value(self) -> serde_json::Value {
-        match self {
-            ArrayClaim::Value(value) => value.into_json_value(),
-            ArrayClaim::Hash(hash) => serde_json::Value::Object(Map::from_iter(vec![(
-                ARRAY_DIGEST_KEY.to_string(),
-                serde_json::Value::String(hash),
-            )])),
-        }
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Default)]
@@ -589,7 +540,9 @@ pub struct SdJwtPresentationBuilder {
 
 impl SdJwtPresentationBuilder {
     pub(crate) fn new(mut sd_jwt: SdJwt) -> Self {
-        let full_payload = sd_jwt.issuer_signed_jwt.payload().claims.clone().into_json_value();
+        // unwrap is safe, because we know the structure can be serialized as JSON...?
+        let payload = sd_jwt.issuer_signed_jwt.payload();
+        let full_payload = serde_json::to_value(&payload.claims).unwrap();
 
         let nondisclosed = std::mem::take(&mut sd_jwt.disclosures);
 
@@ -1297,10 +1250,10 @@ mod test {
         }
 
         let claims = presentation.sd_jwt.issuer_signed_jwt.payload();
-        let serde_json::Value::Object(properties) = &claims.claims.clone().into_json_value() else {
+        let serde_json::Value::Object(properties) = serde_json::to_value(&claims.claims).unwrap() else {
             panic!("unexpected")
         };
-        let not_selectively_disclosable_paths = get_paths(properties);
+        let not_selectively_disclosable_paths = get_paths(&properties);
 
         assert_eq!(
             HashSet::from_iter(expected_disclosed_paths.iter().map(|path| String::from(*path))),
@@ -1488,11 +1441,11 @@ mod test {
             paths
         }
 
-        let claims = presentation.sd_jwt.issuer_signed_jwt.payload();
-        let serde_json::Value::Object(properties) = &claims.claims.clone().into_json_value() else {
+        let payload = presentation.sd_jwt.issuer_signed_jwt.payload();
+        let serde_json::Value::Object(properties) = serde_json::to_value(&payload.claims).unwrap() else {
             panic!("unexpected")
         };
-        let not_selectively_disclosable_paths = get_paths(properties);
+        let not_selectively_disclosable_paths = get_paths(&properties);
 
         let mut actual_disclosed_paths_or_values = HashSet::new();
 
