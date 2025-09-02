@@ -28,7 +28,7 @@ use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use http_utils::tls::pinning::TlsPinningConfig;
-use jwt::Jwt;
+use jwt::UnverifiedJwt;
 use mdoc::holder::Mdoc;
 use openid4vc::Format;
 use openid4vc::disclosure_session::mock::MockDisclosureClient;
@@ -323,7 +323,7 @@ where
 
     /// Generates a valid certificate for the `Wallet`.
     pub fn valid_certificate(wallet_id: Option<String>, hw_pubkey: VerifyingKey) -> WalletCertificate {
-        Jwt::sign_with_sub(
+        UnverifiedJwt::sign_with_sub(
             &Self::valid_certificate_claims(wallet_id, hw_pubkey),
             &ACCOUNT_SERVER_KEYS.certificate_signing_key,
         )
@@ -501,7 +501,7 @@ pub async fn setup_mock_recent_history_callback(
     }
 }
 
-pub fn create_wp_result<T>(result: T) -> Jwt<InstructionResultClaims<T>>
+pub fn create_wp_result<T>(result: T) -> UnverifiedJwt<InstructionResultClaims<T>>
 where
     T: Serialize + DeserializeOwned,
 {
@@ -510,7 +510,7 @@ where
         iss: "wallet_unit_test".to_string(),
         iat: jsonwebtoken::get_current_timestamp(),
     };
-    Jwt::sign_with_sub(&result_claims, &ACCOUNT_SERVER_KEYS.instruction_result_signing_key)
+    UnverifiedJwt::sign_with_sub(&result_claims, &ACCOUNT_SERVER_KEYS.instruction_result_signing_key)
         .now_or_never()
         .unwrap()
         .expect("could not sign instruction result")

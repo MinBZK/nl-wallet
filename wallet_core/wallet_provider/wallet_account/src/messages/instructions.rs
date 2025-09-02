@@ -9,8 +9,8 @@ use serde_with::serde_as;
 
 use crypto::p256_der::DerSignature;
 use crypto::p256_der::DerVerifyingKey;
-use jwt::Jwt;
 use jwt::JwtSubject;
+use jwt::UnverifiedJwt;
 use jwt::pop::JwtPopClaims;
 use jwt::wua::WuaDisclosure;
 use sd_jwt::sd_jwt::UnverifiedSdJwt;
@@ -42,7 +42,7 @@ pub struct InstructionResultMessage<R> {
     pub result: InstructionResult<R>,
 }
 
-pub type InstructionResult<R> = Jwt<InstructionResultClaims<R>>;
+pub type InstructionResult<R> = UnverifiedJwt<InstructionResultClaims<R>>;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct InstructionResultClaims<R> {
@@ -127,7 +127,7 @@ pub struct PerformIssuance {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PerformIssuanceResult {
     pub key_identifiers: VecNonEmpty<String>,
-    pub pops: VecNonEmpty<Jwt<JwtPopClaims>>,
+    pub pops: VecNonEmpty<UnverifiedJwt<JwtPopClaims>>,
     pub poa: Option<Poa>,
 }
 

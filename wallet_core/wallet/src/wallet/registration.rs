@@ -333,7 +333,7 @@ mod tests {
     use apple_app_attest::AssertionCounter;
     use apple_app_attest::VerifiedAttestation;
     use crypto::x509::BorrowingCertificate;
-    use jwt::Jwt;
+    use jwt::UnverifiedJwt;
     use platform_support::attested_key::mock::KeyHolderErrorScenario;
     use platform_support::attested_key::mock::KeyHolderType;
     use wallet_account::messages::registration::RegistrationAttestation;
@@ -717,7 +717,7 @@ mod tests {
                 let other_account_server_key = SigningKey::random(&mut OsRng);
                 let random_pubkey = *SigningKey::random(&mut OsRng).verifying_key();
 
-                let certificate = Jwt::sign_with_sub(
+                let certificate = UnverifiedJwt::sign_with_sub(
                     &WalletWithMocks::valid_certificate_claims(None, random_pubkey),
                     &other_account_server_key,
                 )

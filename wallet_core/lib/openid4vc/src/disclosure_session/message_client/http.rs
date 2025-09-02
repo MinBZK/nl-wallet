@@ -7,7 +7,7 @@ use serde::de::DeserializeOwned;
 
 use http_utils::reqwest::client_builder_accept_json;
 use http_utils::urls::BaseUrl;
-use jwt::Jwt;
+use jwt::UnverifiedJwt;
 
 use crate::errors::DisclosureErrorResponse;
 use crate::errors::ErrorResponse;
@@ -78,7 +78,7 @@ impl VpMessageClient for HttpVpMessageClient {
         &self,
         url: BaseUrl,
         wallet_nonce: Option<String>,
-    ) -> Result<Jwt<VpAuthorizationRequest>, VpMessageClientError> {
+    ) -> Result<UnverifiedJwt<VpAuthorizationRequest>, VpMessageClientError> {
         let method = match wallet_nonce {
             Some(_) => Method::POST,
             None => Method::GET,

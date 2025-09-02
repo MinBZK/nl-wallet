@@ -23,7 +23,7 @@ use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use http_utils::urls::BaseUrl;
 use jwt::JsonJwt;
-use jwt::Jwt;
+use jwt::UnverifiedJwt;
 use openid4vc::CredentialErrorCode;
 use openid4vc::Format;
 use openid4vc::credential::CredentialRequest;
@@ -413,7 +413,7 @@ impl MockOpenidMessageClient {
     }
 
     fn invalidate_poa(poa: Poa) -> Poa {
-        let mut jwts: Vec<Jwt<PoaPayload>> = poa.into(); // a poa always involves at least two keys
+        let mut jwts: Vec<UnverifiedJwt<PoaPayload>> = poa.into(); // a poa always involves at least two keys
         jwts.pop();
         let jwts: VecNonEmpty<_> = jwts.try_into().unwrap(); // jwts always has at least one left after the pop();
         let poa: JsonJwt<PoaPayload> = jwts.try_into().unwrap();

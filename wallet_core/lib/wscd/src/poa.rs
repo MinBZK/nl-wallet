@@ -14,7 +14,7 @@ use serde::Serialize;
 use crypto::keys::EcdsaKey;
 use crypto::wscd::WscdPoa;
 use jwt::JsonJwt;
-use jwt::Jwt;
+use jwt::UnverifiedJwt;
 use jwt::error::JwtError;
 use jwt::jwk::jwk_alg_from_p256;
 use jwt::jwk::jwk_from_p256;
@@ -40,16 +40,16 @@ pub struct PoaPayload {
 #[derive(Debug, Clone, From, AsRef, Serialize, Deserialize)]
 pub struct Poa(JsonJwt<PoaPayload>);
 
-impl TryFrom<VecNonEmpty<Jwt<PoaPayload>>> for Poa {
+impl TryFrom<VecNonEmpty<UnverifiedJwt<PoaPayload>>> for Poa {
     type Error = JwtError;
 
-    fn try_from(source: VecNonEmpty<Jwt<PoaPayload>>) -> Result<Self, Self::Error> {
+    fn try_from(source: VecNonEmpty<UnverifiedJwt<PoaPayload>>) -> Result<Self, Self::Error> {
         let json_jwt: JsonJwt<_> = source.try_into()?;
         Ok(json_jwt.into())
     }
 }
 
-impl From<Poa> for Vec<Jwt<PoaPayload>> {
+impl From<Poa> for Vec<UnverifiedJwt<PoaPayload>> {
     fn from(source: Poa) -> Self {
         source.0.into()
     }
@@ -77,10 +77,14 @@ impl Poa {
             ..Header::new(Algorithm::ES256)
         };
 
-        let jwts: VecNonEmpty<_> = try_join_all(keys.as_slice().iter().map(|key| Jwt::sign(&payload, &header, *key)))
-            .await?
-            .try_into()
-            .unwrap(); // our iterable is a `VecAtLeastTwo`
+        let jwts: VecNonEmpty<_> = try_join_all(
+            keys.as_slice()
+                .iter()
+                .map(|key| UnverifiedJwt::sign(&payload, &header, *key)),
+        )
+        .await?
+        .try_into()
+        .unwrap(); // our iterable is a `VecAtLeastTwo`
 
         // This unwrap() is safe because we correctly constructed the `jwts` above.
         Ok(jwts.try_into().unwrap())
@@ -99,7 +103,7 @@ impl Poa {
         accepted_issuers: &[String],
         expected_nonce: &str,
     ) -> Result<(), PoaVerificationError> {
-        let jwts: Vec<Jwt<_>> = self.into();
+        let jwts: Vec<UnverifiedJwt<_>> = self.into();
 
         if jwts.len() != expected_keys.len() {
             return Err(PoaVerificationError::UnexpectedSignatureCount {
@@ -170,7 +174,7 @@ mod tests {
     use rstest::rstest;
 
     use crypto::mock_remote::MockRemoteEcdsaKey;
-    use jwt::Jwt;
+    use jwt::UnverifiedJwt;
     use jwt::pop::JwtPopClaims;
     use jwt::validations;
     use utils::vec_at_least::VecNonEmpty;
@@ -201,7 +205,7 @@ mod tests {
     async fn it_works() {
         let (poa, key1, key2, iss, aud, nonce) = poa_setup().await;
 
-        let jwts: Vec<Jwt<PoaPayload>> = poa.clone().into();
+        let jwts: Vec<UnverifiedJwt<PoaPayload>> = poa.clone().into();
 
         let mut validations = validations();
         validations.set_audience(&[&aud]);
@@ -268,7 +272,7 @@ mod tests {
     async fn missing_signature() {
         let (poa, key1, _, iss, aud, nonce) = poa_setup().await;
 
-        let mut jwts: Vec<Jwt<PoaPayload>> = poa.into(); // a poa always involves at least two keys
+        let mut jwts: Vec<UnverifiedJwt<PoaPayload>> = poa.into(); // a poa always involves at least two keys
         jwts.pop();
         let jwts: VecNonEmpty<_> = jwts.try_into().unwrap(); // jwts always has at least one left after the pop();
         let poa: Poa = jwts.try_into().unwrap();
