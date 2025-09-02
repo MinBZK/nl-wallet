@@ -165,12 +165,12 @@ impl WalletUserRepository for Repositories {
         wallet_user::store_recovery_code(transaction, wallet_id, recovery_code).await
     }
 
-    async fn has_multiple_accounts(
+    async fn has_multiple_active_accounts_by_recovery_code(
         &self,
         transaction: &Self::TransactionType,
         recovery_code: &str,
     ) -> Result<bool, PersistenceError> {
-        wallet_user::has_multiple_accounts(transaction, recovery_code).await
+        wallet_user::has_multiple_active_accounts_by_recovery_code(transaction, recovery_code).await
     }
 }
 
@@ -302,7 +302,7 @@ pub mod mock {
                 recovery_code: String,
             ) -> Result<(), PersistenceError>;
 
-            async fn has_multiple_accounts(&self,
+            async fn has_multiple_active_accounts_by_recovery_code(&self,
                 transaction: &MockTransaction,
                 recovery_code: &str,
             ) -> Result<bool, PersistenceError>;
@@ -477,7 +477,7 @@ pub mod mock {
             Ok(())
         }
 
-        async fn has_multiple_accounts(
+        async fn has_multiple_active_accounts_by_recovery_code(
             &self,
             _transaction: &Self::TransactionType,
             _recovery_code: &str,

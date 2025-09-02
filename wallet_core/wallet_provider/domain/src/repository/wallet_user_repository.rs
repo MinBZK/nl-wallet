@@ -84,7 +84,11 @@ pub trait WalletUserRepository {
         recovery_code: String,
     ) -> Result<()>;
 
-    async fn has_multiple_accounts(&self, transaction: &Self::TransactionType, recovery_code: &str) -> Result<bool>;
+    async fn has_multiple_active_accounts_by_recovery_code(
+        &self,
+        transaction: &Self::TransactionType,
+        recovery_code: &str,
+    ) -> Result<bool>;
 
     async fn update_apple_assertion_counter(
         &self,
@@ -220,7 +224,7 @@ pub mod mock {
             Ok(())
         }
 
-        async fn has_multiple_accounts(
+        async fn has_multiple_active_accounts_by_recovery_code(
             &self,
             _transaction: &Self::TransactionType,
             _recovery_code: &str,

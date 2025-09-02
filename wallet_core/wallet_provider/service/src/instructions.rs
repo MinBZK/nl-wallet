@@ -516,7 +516,7 @@ impl HandleInstruction for DiscloseRecoveryCode {
 
         let has_multiple_accounts_for_recovery_code = user_state
             .repositories
-            .has_multiple_accounts(&tx, &recovery_code)
+            .has_multiple_active_accounts_by_recovery_code(&tx, &recovery_code)
             .await?;
 
         tx.commit().await?;
@@ -795,7 +795,7 @@ mod tests {
             .expect_store_recovery_code()
             .returning(|_, _, _| Ok(()));
         wallet_user_repo
-            .expect_has_multiple_accounts()
+            .expect_has_multiple_active_accounts_by_recovery_code()
             .returning(|_, _| Ok(false));
 
         instruction

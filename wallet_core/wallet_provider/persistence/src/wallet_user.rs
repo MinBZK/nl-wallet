@@ -530,7 +530,7 @@ where
     }
 }
 
-pub async fn has_multiple_accounts<S, T>(db: &T, recovery_code: &str) -> Result<bool>
+pub async fn has_multiple_active_accounts_by_recovery_code<S, T>(db: &T, recovery_code: &str) -> Result<bool>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,

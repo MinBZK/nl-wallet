@@ -18,7 +18,7 @@ use wallet_provider_persistence::transaction;
 use wallet_provider_persistence::wallet_user::clear_instruction_challenge;
 use wallet_provider_persistence::wallet_user::commit_pin_change;
 use wallet_provider_persistence::wallet_user::find_wallet_user_by_wallet_id;
-use wallet_provider_persistence::wallet_user::has_multiple_accounts;
+use wallet_provider_persistence::wallet_user::has_multiple_active_accounts_by_recovery_code;
 use wallet_provider_persistence::wallet_user::register_unsuccessful_pin_entry;
 use wallet_provider_persistence::wallet_user::rollback_pin_change;
 use wallet_provider_persistence::wallet_user::store_recovery_code;
@@ -388,29 +388,49 @@ async fn test_has_multiple_accounts() {
     store_recovery_code(&db, &wallet_id1, recovery_code.clone())
         .await
         .expect("storing the recovery code should succeed");
-    assert!(!has_multiple_accounts(&db, &recovery_code).await.unwrap());
+    assert!(
+        !has_multiple_active_accounts_by_recovery_code(&db, &recovery_code)
+            .await
+            .unwrap()
+    );
 
     // There are two wallet users having the recovery_code
     store_recovery_code(&db, &wallet_id2, recovery_code.clone())
         .await
         .expect("storing the recovery code should succeed");
-    assert!(has_multiple_accounts(&db, &recovery_code).await.unwrap());
+    assert!(
+        has_multiple_active_accounts_by_recovery_code(&db, &recovery_code)
+            .await
+            .unwrap()
+    );
 
     // There are trhee wallet users having the recovery_code
     store_recovery_code(&db, &wallet_id3, recovery_code.clone())
         .await
         .expect("storing the recovery code should succeed");
-    assert!(has_multiple_accounts(&db, &recovery_code).await.unwrap());
+    assert!(
+        has_multiple_active_accounts_by_recovery_code(&db, &recovery_code)
+            .await
+            .unwrap()
+    );
 
     // After blocking one of the wallet users, there are two wallet users having the recovery_code
     register_unsuccessful_pin_entry(&db, &wallet_id3, true, Utc::now())
         .await
         .unwrap();
-    assert!(has_multiple_accounts(&db, &recovery_code).await.unwrap());
+    assert!(
+        has_multiple_active_accounts_by_recovery_code(&db, &recovery_code)
+            .await
+            .unwrap()
+    );
 
     // After blocking another of the wallet users, there is only one wallet user having the recovery_code
     register_unsuccessful_pin_entry(&db, &wallet_id2, true, Utc::now())
         .await
         .unwrap();
-    assert!(!has_multiple_accounts(&db, &recovery_code).await.unwrap());
+    assert!(
+        !has_multiple_active_accounts_by_recovery_code(&db, &recovery_code)
+            .await
+            .unwrap()
+    );
 }
