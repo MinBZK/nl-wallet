@@ -30,6 +30,7 @@ use attestation_data::x509::generate::mock::generate_issuer_mock;
 use attestation_data::x509::generate::mock::generate_reader_mock;
 use crypto::mock_remote::MockRemoteEcdsaKey;
 use crypto::server_keys::generate::Ca;
+use dcql::CredentialQueryIdentifier;
 use dcql::Query;
 use hsm::service::Pkcs11Hsm;
 use http_utils::error::HttpJsonErrorBody;
@@ -64,6 +65,8 @@ use server_utils::settings::Server;
 use server_utils::settings::Settings;
 use server_utils::settings::Storage;
 use utils::generator::mock::MockTimeGenerator;
+use utils::vec_at_least::VecNonEmpty;
+use utils::vec_nonempty;
 use verification_server::server;
 use verification_server::settings::UseCaseSettings;
 use verification_server::settings::VerifierSettings;
@@ -78,6 +81,18 @@ static EXAMPLE_START_DISCLOSURE_REQUEST: LazyLock<StartDisclosureRequest> = Lazy
     return_url_template: Some("https://return.url/{session_token}".parse().unwrap()),
 });
 
+static EXAMPLE_PID_START_DISCLOSURE_REQUEST_ID: LazyLock<CredentialQueryIdentifier> = LazyLock::new(|| {
+    EXAMPLE_PID_START_DISCLOSURE_REQUEST
+        .dcql_query
+        .as_ref()
+        .unwrap()
+        .credentials
+        .as_ref()
+        .first()
+        .unwrap()
+        .id
+        .clone()
+});
 static EXAMPLE_PID_START_DISCLOSURE_REQUEST: LazyLock<StartDisclosureRequest> =
     LazyLock::new(|| StartDisclosureRequest {
         usecase: USECASE_NAME.to_string(),
@@ -979,7 +994,13 @@ async fn perform_full_disclosure(session_type: SessionType) -> (Client, SessionT
     .unwrap();
 
     let return_url = disclosure_session
-        .disclose(vec![partial_mdoc].try_into().unwrap(), &wscd)
+        .disclose(
+            HashMap::from([(
+                EXAMPLE_PID_START_DISCLOSURE_REQUEST_ID.clone(),
+                vec_nonempty![partial_mdoc],
+            )]),
+            &wscd,
+        )
         .await
         .expect("should disclose attributes successfully");
 
@@ -988,14 +1009,19 @@ async fn perform_full_disclosure(session_type: SessionType) -> (Client, SessionT
     (client, session_token, internal_url, return_url)
 }
 
-fn check_example_disclosed_attributes(disclosed_attributes: &[DisclosedAttestation]) {
+fn check_example_disclosed_attributes(
+    disclosed_attributes: &HashMap<CredentialQueryIdentifier, VecNonEmpty<DisclosedAttestation>>,
+) {
+    assert_eq!(disclosed_attributes.len(), 1);
+    let attestations = disclosed_attributes
+        .get(&EXAMPLE_PID_START_DISCLOSURE_REQUEST_ID)
+        .unwrap();
+
     itertools::assert_equal(
-        disclosed_attributes
-            .iter()
-            .map(|attestation| &attestation.attestation_type),
+        attestations.iter().map(|attestation| &attestation.attestation_type),
         [PID_ATTESTATION_TYPE],
     );
-    let attributes = disclosed_attributes
+    let attributes = attestations
         .iter()
         .find(|attestation| attestation.attestation_type == *PID_ATTESTATION_TYPE)
         .unwrap()
@@ -1023,7 +1049,10 @@ async fn test_disclosed_attributes_without_nonce() {
     assert_eq!(response.status(), StatusCode::OK);
 
     // Check the disclosed attributes against the example attributes.
-    let disclosed_attributes = response.json::<Vec<DisclosedAttestation>>().await.unwrap();
+    let disclosed_attributes = response
+        .json::<HashMap<CredentialQueryIdentifier, VecNonEmpty<DisclosedAttestation>>>()
+        .await
+        .unwrap();
 
     check_example_disclosed_attributes(&disclosed_attributes);
 }
@@ -1070,7 +1099,10 @@ async fn test_disclosed_attributes_with_nonce() {
     assert_eq!(response.status(), StatusCode::OK);
 
     // Check the disclosed attributes against the example attributes.
-    let disclosed_attributes = response.json::<Vec<DisclosedAttestation>>().await.unwrap();
+    let disclosed_attributes = response
+        .json::<HashMap<CredentialQueryIdentifier, VecNonEmpty<DisclosedAttestation>>>()
+        .await
+        .unwrap();
 
     check_example_disclosed_attributes(&disclosed_attributes);
 }
@@ -1114,7 +1146,13 @@ async fn test_disclosed_attributes_failed_session() {
     .unwrap();
 
     disclosure_session
-        .disclose(vec![partial_mdoc].try_into().unwrap(), &MockRemoteWscd::new_example())
+        .disclose(
+            HashMap::from([(
+                EXAMPLE_PID_START_DISCLOSURE_REQUEST_ID.clone(),
+                vec_nonempty![partial_mdoc],
+            )]),
+            &MockRemoteWscd::new_example(),
+        )
         .await
         .expect_err("disclosing attributes should result in an error");
 

@@ -136,23 +136,28 @@ components:
 
     disclosed_attributes:
       description: An object with the resultant disclosed attributes
-      type: array
-      items:
-        type: object
-        properties:
-          attestationType: string
-          attributes:
-            $ref: '#/components/schemas/attributes'
-          issuer:
-            type: string
-          ca:
-            type: string
-          validityInfo:
-            $ref: '#/components/schemas/validity_info'
-        required:
-          - attributes
-          - issuer
-          - validityInfo
+      type: object
+      required:
+        - credentials
+      properties:
+        credentials:
+          type: array
+          items:
+            type: object
+            properties:
+              attestationType: string
+              attributes:
+                $ref: '#/components/schemas/attributes'
+              issuer:
+                type: string
+              ca:
+                type: string
+              validityInfo:
+                $ref: '#/components/schemas/validity_info'
+            required:
+              - attributes
+              - issuer
+              - validityInfo
 
     attributes:
       type: object

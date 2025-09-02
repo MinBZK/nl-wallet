@@ -1005,25 +1005,27 @@ Example responses:
 ```
 
 ```json
-[
-    {
-        "attestationType": "com.example.pid",
-        "attributes": {
-            "com.example.pid": {
-                "family_name": "De Bruijn",
-                "own_family_name": "Molenaar",
-                "given_name": "Willeke Liselotte"
+{
+    "credentials": [
+        {
+            "attestationType": "com.example.pid",
+            "attributes": {
+                "com.example.pid": {
+                    "family_name": "De Bruijn",
+                    "own_family_name": "Molenaar",
+                    "given_name": "Willeke Liselotte"
+                }
+            },
+            "issuer": "pid.example.com",
+            "ca": "ca.example.com",
+            "validityInfo": {
+                "signed": "2024-07-20T14:00:58Z",
+                "validFrom": "2024-07-20T14:00:58Z",
+                "validUntil": "2025-07-20T14:00:58Z"
             }
-        },
-        "issuer": "pid.example.com",
-        "ca": "ca.example.com",
-        "validityInfo": {
-            "signed": "2024-07-20T14:00:58Z",
-            "validFrom": "2024-07-20T14:00:58Z",
-            "validUntil": "2025-07-20T14:00:58Z"
         }
-    }
-]
+    ]
+}
 ```
 
 ## References

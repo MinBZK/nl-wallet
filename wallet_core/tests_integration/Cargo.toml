@@ -215,7 +215,7 @@ attestation_data = { path = "../lib/attestation_data", optional = true, features
 ] }
 configuration_server = { path = "../configuration_server", optional = true }
 crypto = { path = "../lib/crypto", optional = true }
-dcql = { path = "../lib/dcql", optional = true, features = ["mock"] }
+dcql = { path = "../lib/dcql", optional = true, features = ["mock", "test_document"] }
 gba_hc_converter = { path = "../gba_hc_converter", optional = true }
 hsm = { path = "../lib/hsm", optional = true, features = ["test"] }
 http_utils = { path = "../lib/http_utils", optional = true, features = ["client", "server"] }

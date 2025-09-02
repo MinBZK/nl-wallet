@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::collections::HashSet;
 
 use assert_matches::assert_matches;
@@ -7,6 +8,8 @@ use serial_test::serial;
 use url::Url;
 
 use attestation_data::disclosure::DisclosedAttestation;
+use attestation_data::test_document::test_documents_assert_matches_disclosed_attestations;
+use dcql::CredentialQueryIdentifier;
 use dcql::Query;
 use http_utils::error::HttpJsonErrorBody;
 use mdoc::test::TestDocuments;
@@ -14,7 +17,6 @@ use mdoc::test::data::addr_street;
 use mdoc::test::data::pid_family_name;
 use mdoc::test::data::pid_full_name;
 use mdoc::test::data::pid_given_name;
-use mdoc::verifier::DisclosedDocument;
 use openid4vc::return_url::ReturnUrlTemplate;
 use openid4vc::verifier::SessionType;
 use openid4vc::verifier::StatusResponse;
@@ -23,6 +25,7 @@ use openid4vc_server::verifier::StartDisclosureRequest;
 use openid4vc_server::verifier::StartDisclosureResponse;
 use openid4vc_server::verifier::StatusParams;
 use tests_integration::common::*;
+use utils::vec_at_least::VecNonEmpty;
 use wallet::DisclosureUriSource;
 use wallet::errors::DisclosureError;
 
@@ -215,14 +218,12 @@ async fn test_disclosure_usecases_ok(
     let status = response.status();
     assert_eq!(status, StatusCode::OK);
 
-    let disclosed_documents = response.json::<Vec<DisclosedAttestation>>().await.unwrap();
+    let disclosed_documents = response
+        .json::<HashMap<CredentialQueryIdentifier, VecNonEmpty<DisclosedAttestation>>>()
+        .await
+        .unwrap();
 
-    expected_documents.assert_matches(
-        &disclosed_documents
-            .into_iter()
-            .map(DisclosedDocument::from)
-            .collect::<Vec<_>>(),
-    );
+    test_documents_assert_matches_disclosed_attestations(&expected_documents, disclosed_documents);
 }
 
 #[tokio::test]
