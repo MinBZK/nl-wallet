@@ -10,6 +10,7 @@ use sea_orm::ConnectionTrait;
 use sea_orm::EntityTrait;
 use sea_orm::FromQueryResult;
 use sea_orm::JoinType;
+use sea_orm::PaginatorTrait;
 use sea_orm::QueryFilter;
 use sea_orm::QuerySelect;
 use sea_orm::RelationTrait;
@@ -527,4 +528,22 @@ where
         1 => Ok(()),
         _ => panic!("multiple `wallet_user`s with the same `wallet_id`"),
     }
+}
+
+pub async fn has_multiple_active_accounts_by_recovery_code<S, T>(db: &T, recovery_code: &str) -> Result<bool>
+where
+    S: ConnectionTrait,
+    T: PersistenceConnection<S>,
+{
+    let count: u64 = wallet_user::Entity::find()
+        .filter(
+            wallet_user::Column::RecoveryCode
+                .eq(recovery_code)
+                .and(wallet_user::Column::IsBlocked.eq(false)),
+        )
+        .count(db.connection())
+        .await
+        .map_err(|e| PersistenceError::Execution(Box::new(e)))?;
+
+    Ok(count > 1)
 }

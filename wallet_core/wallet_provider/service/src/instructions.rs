@@ -35,6 +35,7 @@ use wallet_account::messages::instructions::ChangePinRollback;
 use wallet_account::messages::instructions::ChangePinStart;
 use wallet_account::messages::instructions::CheckPin;
 use wallet_account::messages::instructions::DiscloseRecoveryCode;
+use wallet_account::messages::instructions::DiscloseRecoveryCodeResult;
 use wallet_account::messages::instructions::PerformIssuance;
 use wallet_account::messages::instructions::PerformIssuanceResult;
 use wallet_account::messages::instructions::PerformIssuanceWithWua;
@@ -483,7 +484,7 @@ impl HandleInstruction for Sign {
 }
 
 impl HandleInstruction for DiscloseRecoveryCode {
-    type Result = ();
+    type Result = DiscloseRecoveryCodeResult;
 
     async fn handle<T, R, H>(
         self,
@@ -510,11 +511,19 @@ impl HandleInstruction for DiscloseRecoveryCode {
         let tx = user_state.repositories.begin_transaction().await?;
         user_state
             .repositories
-            .store_recovery_code(&tx, &wallet_user.wallet_id, recovery_code)
+            .store_recovery_code(&tx, &wallet_user.wallet_id, recovery_code.clone())
             .await?;
+
+        let has_multiple_accounts_for_recovery_code = user_state
+            .repositories
+            .has_multiple_active_accounts_by_recovery_code(&tx, &recovery_code)
+            .await?;
+
         tx.commit().await?;
 
-        Ok(())
+        Ok(DiscloseRecoveryCodeResult {
+            transfer_available: has_multiple_accounts_for_recovery_code,
+        })
     }
 }
 
@@ -785,6 +794,9 @@ mod tests {
         wallet_user_repo
             .expect_store_recovery_code()
             .returning(|_, _, _| Ok(()));
+        wallet_user_repo
+            .expect_has_multiple_active_accounts_by_recovery_code()
+            .returning(|_, _| Ok(false));
 
         instruction
             .handle(
