@@ -956,7 +956,6 @@ impl CredentialResponse {
                 Ok(IssuedCredential::MsoMdoc(Box::new(mdoc)))
             }
             CredentialResponse::SdJwt { credential } => {
-                // TODO: validate SD-JWT against JSON schema (PVW-4687)
                 let sd_jwt = VerifiedSdJwt::parse_and_verify_against_trust_anchors(
                     &credential,
                     &Sha256Hasher,

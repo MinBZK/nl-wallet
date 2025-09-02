@@ -24,6 +24,7 @@ chrono.workspace = true
 derive_more = { workspace = true, features = ["as_ref", "display"] }
 itertools.workspace = true
 jsonwebtoken.workspace = true
+nutype = { workspace = true, features = ["serde"] }
 p256 = { workspace = true, features = ["default", "pem"] }
 rand.workspace = true
 rustls-pki-types.workspace = true

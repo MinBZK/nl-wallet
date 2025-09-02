@@ -40,6 +40,9 @@ pub const WITH_KB_SD_JWT: &str = include_str!("../examples/spec/with_kb.jwt");
 pub const WITH_KB_SD_JWT_AUD: &str = "https://verifier.example.org";
 pub const WITH_KB_SD_JWT_NONCE: &str = "1234567890";
 
+// Constructed from [SIMPLE_STRUCTURED_SD_JWT] with invalid disclosure: ["lklxF5jMYlGTPUovMNIvCA", "country", [{"...": 0}]]
+pub const INVALID_DISCLOSURE_SD_JWT: &str = include_str!("../examples/invalid_disclosure.jwt");
+
 impl SdJwtPresentation {
     pub fn spec_simple_structured() -> SdJwt {
         SdJwt::parse_and_verify(SIMPLE_STRUCTURED_SD_JWT, &examples_sd_jwt_decoding_key(), &Sha256Hasher).unwrap()
