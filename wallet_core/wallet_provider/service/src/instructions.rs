@@ -61,18 +61,13 @@ use crate::wua_issuer::WuaIssuer;
 
 pub trait ValidateInstruction {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
-        validate_common(wallet_user)?;
+        validate_no_pin_change_in_progress(wallet_user)?;
+        validate_no_transfer_in_progress(wallet_user)?;
         Ok(())
     }
 }
 
-fn validate_common(wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
-    validate_pin_change_in_progress(wallet_user)?;
-    validate_transfer_in_progress(wallet_user)?;
-    Ok(())
-}
-
-fn validate_pin_change_in_progress(wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+fn validate_no_pin_change_in_progress(wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
     if wallet_user.pin_change_in_progress() {
         return Err(InstructionValidationError::PinChangeInProgress);
     }
@@ -80,7 +75,7 @@ fn validate_pin_change_in_progress(wallet_user: &WalletUser) -> Result<(), Instr
     Ok(())
 }
 
-fn validate_transfer_in_progress(wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+fn validate_no_transfer_in_progress(wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
     if wallet_user.transfer_in_progress() {
         return Err(InstructionValidationError::TransferInProgress);
     }
@@ -95,7 +90,8 @@ impl ValidateInstruction for DiscloseRecoveryCode {}
 
 impl ValidateInstruction for Sign {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
-        validate_common(wallet_user)?;
+        validate_no_pin_change_in_progress(wallet_user)?;
+        validate_no_transfer_in_progress(wallet_user)?;
 
         if self
             .messages_with_identifiers
@@ -125,7 +121,7 @@ impl ValidateInstruction for ChangePinRollback {
 
 impl ValidateInstruction for CheckPin {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
-        validate_pin_change_in_progress(wallet_user)?;
+        validate_no_pin_change_in_progress(wallet_user)?;
 
         Ok(())
     }
@@ -133,7 +129,7 @@ impl ValidateInstruction for CheckPin {
 
 impl ValidateInstruction for PrepareTransfer {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
-        validate_pin_change_in_progress(wallet_user)?;
+        validate_no_pin_change_in_progress(wallet_user)?;
 
         Ok(())
     }
