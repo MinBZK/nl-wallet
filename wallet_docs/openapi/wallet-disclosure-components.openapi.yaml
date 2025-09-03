@@ -135,29 +135,37 @@ components:
           $ref: '#/components/schemas/session_token'
 
     disclosed_attributes:
-      description: An object with the resultant disclosed attributes
+      description: An array with the resultant disclosed attributes
+      type: array
+      items:
+        type: object
+        properties:
+          id:
+            type: string
+          attestations:
+            type: array
+            items:
+              $ref: '#/components/schemas/disclosed_attestation'
+        required:
+          - id
+          - attestations
+
+    disclosed_attestation:
       type: object
-      required:
-        - credentials
       properties:
-        credentials:
-          type: array
-          items:
-            type: object
-            properties:
-              attestationType: string
-              attributes:
-                $ref: '#/components/schemas/attributes'
-              issuer:
-                type: string
-              ca:
-                type: string
-              validityInfo:
-                $ref: '#/components/schemas/validity_info'
-            required:
-              - attributes
-              - issuer
-              - validityInfo
+        attestation_type: string
+        attributes:
+          $ref: '#/components/schemas/attributes'
+        issuer:
+          type: string
+        ca:
+          type: string
+        validity_info:
+          $ref: '#/components/schemas/validity_info'
+      required:
+        - attributes
+        - issuer
+        - validity_info
 
     attributes:
       type: object
@@ -171,16 +179,16 @@ components:
         signed:
           type: string
           format: date-time
-        validFrom:
+        valid_from:
           type: string
           format: date-time
-        validUntil:
+        valid_until:
           type: string
           format: date-time
       required:
         - signed
-        - validFrom
-        - validUntil
+        - valid_from
+        - valid_until
 
     error_message:
       type: object
