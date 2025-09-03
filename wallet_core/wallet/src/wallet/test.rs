@@ -462,21 +462,6 @@ where
     }
 }
 
-pub fn mock_issuance_event(wallet: &mut TestWalletMockStorage) {
-    wallet
-        .mut_storage()
-        .expect_fetch_recent_wallet_events()
-        .times(1)
-        .returning(|| {
-            Ok(vec![WalletEvent::Issuance {
-                id: Uuid::new_v4(),
-                attestation: Box::new(AttestationPresentation::new_mock()),
-                timestamp: Utc::now(),
-                renewed: false,
-            }])
-        });
-}
-
 pub fn create_disclosure_event(
     attestations: Vec<AttestationPresentation>,
     verifier_certificate: VerifierCertificate,

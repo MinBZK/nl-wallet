@@ -713,7 +713,6 @@ mod tests {
     use crate::wallet::test::create_example_pid_sd_jwt;
     use crate::wallet::test::create_example_preview_data;
     use crate::wallet::test::create_wp_result;
-    use crate::wallet::test::mock_issuance_event;
 
     use super::super::test;
     use super::super::test::TestWalletMockStorage;
@@ -1323,7 +1322,18 @@ mod tests {
             .expect_upsert_data::<InstructionData>()
             .returning(|_| Ok(()));
 
-        mock_issuance_event(&mut wallet);
+        wallet
+            .mut_storage()
+            .expect_fetch_recent_wallet_events()
+            .times(1)
+            .returning(|| {
+                Ok(vec![WalletEvent::Issuance {
+                    id: Uuid::new_v4(),
+                    attestation: Box::new(AttestationPresentation::new_mock()),
+                    timestamp: Utc::now(),
+                    renewed: false,
+                }])
+            });
 
         setup_mock_recovery_code_instructions(&mut wallet);
 
