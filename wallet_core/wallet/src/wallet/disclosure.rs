@@ -5,6 +5,7 @@ use std::sync::LazyLock;
 
 use chrono::Utc;
 use futures::future::try_join_all;
+use indexmap::IndexMap;
 use itertools::Either;
 use itertools::Itertools;
 use tracing::error;
@@ -236,18 +237,18 @@ pub enum RedirectUriPurpose {
 #[derive(Debug, Clone)]
 pub(super) enum WalletDisclosureAttestations {
     Missing,
-    Proposal(HashMap<CredentialQueryIdentifier, DisclosableAttestation>),
+    Proposal(IndexMap<CredentialQueryIdentifier, DisclosableAttestation>),
 }
 
 impl WalletDisclosureAttestations {
-    pub fn proposal(&self) -> Option<&HashMap<CredentialQueryIdentifier, DisclosableAttestation>> {
+    pub fn proposal(&self) -> Option<&IndexMap<CredentialQueryIdentifier, DisclosableAttestation>> {
         match self {
             Self::Missing => None,
             Self::Proposal(attestations) => Some(attestations),
         }
     }
 
-    pub fn into_proposal(self) -> Option<HashMap<CredentialQueryIdentifier, DisclosableAttestation>> {
+    pub fn into_proposal(self) -> Option<IndexMap<CredentialQueryIdentifier, DisclosableAttestation>> {
         match self {
             Self::Missing => None,
             Self::Proposal(attestations) => Some(attestations),
@@ -267,7 +268,7 @@ impl<DCS> WalletDisclosureSession<DCS> {
     pub fn new_proposal(
         redirect_uri_purpose: RedirectUriPurpose,
         disclosure_type: DisclosureType,
-        attestations: HashMap<CredentialQueryIdentifier, DisclosableAttestation>,
+        attestations: IndexMap<CredentialQueryIdentifier, DisclosableAttestation>,
         protocol_state: DCS,
     ) -> Self {
         Self {
@@ -453,7 +454,7 @@ where
         .into_iter()
         .zip(session.credential_requests().as_ref())
         .flat_map(|(attestations, request)| attestations.map(|attestations| (&request.id, attestations)))
-        .collect::<HashMap<_, _>>();
+        .collect::<IndexMap<_, _>>();
 
         // At this point, determine the disclosure type and if data was ever shared with this RP before, as the UI
         // needs this context both for when all requested attributes are present and for when attributes are missing.
@@ -514,7 +515,7 @@ where
         // For now, return an error if multiple attestations are found for a requested attestation type.
         // TODO (PVW-3829): Allow the user to select amongst multiple disclosure candidates.
 
-        let (disclosure_attestations, duplicate_attestation_types): (HashMap<_, _>, Vec<_>) = candidate_attestations
+        let (disclosure_attestations, duplicate_attestation_types): (IndexMap<_, _>, Vec<_>) = candidate_attestations
             .into_iter()
             .partition_map(|(id, candidate_attestations)| {
                 if candidate_attestations.len().get() == 1 {
@@ -905,12 +906,12 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
     use std::collections::HashSet;
     use std::str::FromStr;
     use std::sync::LazyLock;
 
     use assert_matches::assert_matches;
+    use indexmap::IndexMap;
     use itertools::Itertools;
     use mockall::predicate::always;
     use mockall::predicate::eq;
@@ -1133,7 +1134,7 @@ mod tests {
         let session = Session::Disclosure(WalletDisclosureSession::new_proposal(
             RedirectUriPurpose::Browser,
             DisclosureType::Regular,
-            HashMap::from([("id".try_into().unwrap(), disclosable_attestation)]),
+            IndexMap::from([("id".try_into().unwrap(), disclosable_attestation)]),
             disclosure_session,
         ));
 
