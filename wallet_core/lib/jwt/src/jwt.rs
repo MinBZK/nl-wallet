@@ -553,6 +553,7 @@ mod tests {
     use jsonwebtoken::Header;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
+    use rstest::rstest;
     use serde_json::json;
 
     use attestation_data::x509::generate::mock::generate_reader_mock;
@@ -563,6 +564,30 @@ mod tests {
     use utils::generator::TimeGenerator;
 
     use super::*;
+
+    #[derive(Debug, PartialEq, Eq, Deserialize)]
+    struct EmptyPayload {}
+
+    #[rstest]
+    #[case(include_str!("../examples/spec/example.jwt"), "eyJ0eXAiOiJKV1QiLA0KICJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJqb2UiLA0KICJleHAiOjEzMDA4MTkzODAsDQogImh0dHA6Ly9leGFtcGxlLmNvbS9pc19yb290Ijp0cnVlfQ", Algorithm::HS256)]
+    #[case(include_str!("../examples/spec/example_jws.jwt"), "eyJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJqb2UiLA0KICJleHAiOjEzMDA4MTkzODAsDQogImh0dHA6Ly9leGFtcGxlLmNvbS9pc19yb290Ijp0cnVlfQ", Algorithm::RS256)]
+    fn test_unverified_jwt_parse(#[case] jwt: &str, #[case] signed_slice: &str, #[case] alg: Algorithm) {
+        let parsed: UnverifiedJwt<EmptyPayload> = jwt.parse().unwrap();
+        assert_eq!(
+            parsed,
+            UnverifiedJwt {
+                serialization: jwt.to_string(),
+                payload_end: signed_slice.len(),
+                _payload_type: PhantomData
+            }
+        );
+        assert_eq!(parsed.signed_slice(), signed_slice);
+
+        let header = parsed.dangerous_parse_header_unverified().unwrap();
+        assert_eq!(header.alg, alg);
+        let (header, _) = parsed.dangerous_parse_unverified().unwrap();
+        assert_eq!(header.alg, alg);
+    }
 
     #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
     struct ToyMessage {
