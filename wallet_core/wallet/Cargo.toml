@@ -22,7 +22,7 @@ fake_attestation = [
 # Include mock implementations and constructors for testing
 mock = ["dep:mockall", "mdoc/mock", "openid4vc/mock"]
 # Export the traits and actual implementations of the Wallet dependencies
-wallet_deps = ["platform_support/mock"]
+wallet_deps = []
 # Adds serializability for snapshot tests
 snapshot_test = []
 # Various test related functionality

@@ -823,8 +823,6 @@ pub mod in_memory_storage {
     use crypto::utils::random_bytes;
 
     use platform_support::hw_keystore::mock::MockHardwareEncryptionKey;
-    use platform_support::utils::PlatformUtilities;
-    use platform_support::utils::mock::MockHardwareUtilities;
 
     use crate::storage::DatabaseStorage;
     use crate::storage::database::Database;
@@ -833,8 +831,7 @@ pub mod in_memory_storage {
     use crate::storage::sql_cipher_key::SqlCipherKey;
 
     pub async fn open_in_memory_database_storage() -> DatabaseStorage<MockHardwareEncryptionKey> {
-        let mut storage =
-            DatabaseStorage::<MockHardwareEncryptionKey>::new(MockHardwareUtilities::storage_path().await.unwrap());
+        let mut storage = DatabaseStorage::<MockHardwareEncryptionKey>::new("storage_path".into());
 
         // Create a test database, override the database field on Storage.
         let key_bytes = random_bytes(SqlCipherKey::size_with_salt());
