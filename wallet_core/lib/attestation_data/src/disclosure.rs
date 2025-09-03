@@ -109,7 +109,7 @@ impl From<DisclosedAttributes> for IndexMap<NameSpace, IndexMap<DataElementIdent
 /// Attestation that was disclosed; consisting of attributes, validity information, issuer URI and the issuer CA's
 /// common name.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct DisclosedAttestation {
     pub attestation_type: String,
     #[serde(flatten)]
@@ -202,10 +202,10 @@ mod test {
     #[rstest]
     #[case(json!([
         {
-            "attestationType": "com.example.pid",
-            "issuerUri": "https://pid.example.com",
+            "attestation_type": "com.example.pid",
+            "issuer_uri": "https://pid.example.com",
             "ca": "ca.example.com",
-            "validityInfo": {
+            "validity_info": {
                 "signed": "2014-11-28 12:00:09 UTC",
                 "validFrom": "2014-11-28 12:00:09 UTC",
                 "validUntil": "2014-11-28 12:00:09 UTC"
@@ -218,10 +218,10 @@ mod test {
             }
         },
         {
-        "attestationType": "com.example.address",
-            "issuerUri": "https://pid.example.com",
+        "attestation_type": "com.example.address",
+            "issuer_uri": "https://pid.example.com",
             "ca": "ca.example.com",
-            "validityInfo": {
+            "validity_info": {
                 "signed": "2014-11-28 12:00:09 UTC",
                 "validFrom": "2014-11-28 12:00:09 UTC",
                 "validUntil": "2014-11-28 12:00:09 UTC"
@@ -236,10 +236,10 @@ mod test {
     ]))]
     #[case(json!([
         {
-            "attestationType": "com.example.pid",
-            "issuerUri": "https://pid.example.com",
+            "attestation_type": "com.example.pid",
+            "issuer_uri": "https://pid.example.com",
             "ca": "ca.example.com",
-            "validityInfo": {
+            "validity_info": {
                 "signed": "2014-11-28 12:00:09 UTC",
                 "validFrom": "2014-11-28 12:00:09 UTC",
                 "validUntil": "2014-11-28 12:00:09 UTC"
@@ -252,10 +252,10 @@ mod test {
             }
         },
         {
-            "attestationType": "com.example.address",
-            "issuerUri": "https://pid.example.com",
+            "attestation_type": "com.example.address",
+            "issuer_uri": "https://pid.example.com",
             "ca": "ca.example.com",
-            "validityInfo": {
+            "validity_info": {
                 "signed": "2014-11-28 12:00:09 UTC",
                 "validFrom": "2014-11-28 12:00:09 UTC",
                 "validUntil": "2014-11-28 12:00:09 UTC"
@@ -274,10 +274,10 @@ mod test {
     ]))]
     #[case(json!([
         {
-            "attestationType": "com.example.pid",
-            "issuerUri": "https://pid.example.com",
+            "attestation_type": "com.example.pid",
+            "issuer_uri": "https://pid.example.com",
             "ca": "ca.example.com",
-            "validityInfo": {
+            "validity_info": {
                 "signed": "2014-11-28 12:00:09 UTC",
                 "validFrom": "2014-11-28 12:00:09 UTC",
                 "validUntil": "2014-11-28 12:00:09 UTC"

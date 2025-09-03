@@ -8,7 +8,7 @@ use openid4vc::Format;
 /// Attributes of an attestation that was disclosed, but without the DisclosedAttributes enum. This way, we can
 /// deserialize both formats without having to deal with the enum variants in the code that uses this struct.
 #[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct DemoDisclosedAttestation {
     pub attestation_type: String,
     pub attributes: Attributes,
