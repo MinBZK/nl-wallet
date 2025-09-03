@@ -5,14 +5,10 @@ use itertools::Either;
 use itertools::Itertools;
 
 use attestation_types::claim_path::ClaimPath;
-use mdoc::DeviceResponse;
-use mdoc::Document;
-use mdoc::holder::disclosure::MissingAttributesError;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::CredentialFormat;
 use crate::CredentialQueryIdentifier;
-use crate::normalized::NormalizedCredentialRequest;
 use crate::normalized::NormalizedCredentialRequests;
 
 #[derive(Debug, thiserror::Error)]
@@ -45,67 +41,30 @@ pub enum CredentialValidationError {
     MissingAttributes(HashMap<CredentialQueryIdentifier, HashSet<VecNonEmpty<ClaimPath>>>),
 }
 
-/// Ephemeral type that wraps references to format specific types the verifier received from the holder.
-#[derive(Debug, Clone)]
-pub enum DisclosedCredential<'a> {
-    MsoMdoc(&'a Document),
-    // TODO (PVW-4139): Support SD-JWT.
-}
-
-impl<'a> DisclosedCredential<'a> {
-    pub fn new_from_device_response(device_response: &'a DeviceResponse) -> impl Iterator<Item = Self> {
-        device_response
-            .documents
-            .as_deref()
-            .unwrap_or_default()
-            .iter()
-            .map(Self::MsoMdoc)
-    }
-
-    fn format(&self) -> CredentialFormat {
-        match self {
-            Self::MsoMdoc(_) => CredentialFormat::MsoMdoc,
-        }
-    }
-
-    fn credential_type(&self) -> &str {
-        match self {
-            Self::MsoMdoc(document) => &document.doc_type,
-        }
-    }
-
-    fn missing_attributes_for_request(
-        &self,
-        credential_request: &NormalizedCredentialRequest,
-    ) -> HashSet<VecNonEmpty<ClaimPath>> {
-        match self {
-            Self::MsoMdoc(document) => {
-                match document
-                    .issuer_signed
-                    .matches_requested_attributes(credential_request.format_request.claim_paths())
-                {
-                    Ok(()) => HashSet::new(),
-                    Err(MissingAttributesError(missing_attributes)) => missing_attributes,
-                }
-            }
-        }
-    }
+/// This should be implemented on a credential that a verifier receives from the holder.
+pub trait DisclosedCredential {
+    fn format(&self) -> CredentialFormat;
+    fn credential_type(&self) -> &str;
+    fn missing_claim_paths<'a, 'b>(
+        &'a self,
+        request_claim_paths: impl IntoIterator<Item = &'b VecNonEmpty<ClaimPath>>,
+    ) -> HashSet<VecNonEmpty<ClaimPath>>;
 }
 
 impl NormalizedCredentialRequests {
     /// Match keyed credentials received from the holder against a set of normalized DQCL requests.
     pub fn is_satisfied_by_disclosed_credentials(
         &self,
-        disclosed_credentials: &HashMap<&CredentialQueryIdentifier, VecNonEmpty<DisclosedCredential>>,
+        disclosed_credentials: &HashMap<CredentialQueryIdentifier, VecNonEmpty<impl DisclosedCredential>>,
     ) -> Result<(), CredentialValidationError> {
         // Credential queries that allow for multiple responses are not supported, so make the `HashMap` resolve to a
         // single credential. If at least one of the values has more than one credential, this consitutes an error.
         let (mut single_credentials, multiple_credential_ids): (HashMap<_, _>, HashSet<_>) =
             disclosed_credentials.iter().partition_map(|(id, credentials)| {
                 if let Ok(credential) = credentials.iter().exactly_one() {
-                    Either::Left((*id, credential))
+                    Either::Left((id, credential))
                 } else {
-                    Either::Right((*id).clone())
+                    Either::Right(id.clone())
                 }
             });
 
@@ -183,7 +142,7 @@ impl NormalizedCredentialRequests {
         let missing_attribute_credentials = requests_and_credentials
             .into_iter()
             .filter_map(|(id, (request, credential))| {
-                let missing_attributes = credential.missing_attributes_for_request(request);
+                let missing_attributes = credential.missing_claim_paths(request.format_request.claim_paths());
 
                 (!missing_attributes.is_empty()).then(|| (id.clone(), missing_attributes))
             })
@@ -204,14 +163,13 @@ mod tests {
     use std::collections::HashMap;
     use std::collections::HashSet;
 
-    use itertools::Itertools;
     use rstest::rstest;
 
     use attestation_types::claim_path::ClaimPath;
-    use mdoc::DeviceResponse;
+    use mdoc::examples::EXAMPLE_ATTRIBUTES;
     use mdoc::examples::EXAMPLE_DOC_TYPE;
     use mdoc::examples::EXAMPLE_NAMESPACE;
-    use mdoc::examples::Example;
+    use utils::vec_at_least::VecNonEmpty;
     use utils::vec_nonempty;
 
     use crate::CredentialFormat;
@@ -220,6 +178,54 @@ mod tests {
 
     use super::CredentialValidationError;
     use super::DisclosedCredential;
+
+    /// A very simple type that implements [`MockDisclosedCredential`] for testing.
+    struct MockDisclosedCredential {
+        format: CredentialFormat,
+        credential_type: String,
+        claim_paths: HashSet<VecNonEmpty<ClaimPath>>,
+    }
+
+    impl MockDisclosedCredential {
+        pub fn example() -> Self {
+            Self {
+                format: CredentialFormat::MsoMdoc,
+                credential_type: EXAMPLE_DOC_TYPE.to_string(),
+                claim_paths: EXAMPLE_ATTRIBUTES
+                    .iter()
+                    .map(|attribute| {
+                        vec_nonempty![
+                            ClaimPath::SelectByKey(EXAMPLE_NAMESPACE.to_string()),
+                            ClaimPath::SelectByKey(attribute.to_string())
+                        ]
+                    })
+                    .collect(),
+            }
+        }
+    }
+
+    impl DisclosedCredential for MockDisclosedCredential {
+        fn format(&self) -> CredentialFormat {
+            self.format
+        }
+
+        fn credential_type(&self) -> &str {
+            &self.credential_type
+        }
+
+        fn missing_claim_paths<'a, 'b>(
+            &'a self,
+            request_claim_paths: impl IntoIterator<Item = &'b VecNonEmpty<ClaimPath>>,
+        ) -> HashSet<VecNonEmpty<ClaimPath>> {
+            request_claim_paths
+                .into_iter()
+                .collect::<HashSet<_>>()
+                .difference(&self.claim_paths.iter().collect())
+                .copied()
+                .cloned()
+                .collect()
+        }
+    }
 
     fn example_mdoc_single_credential_requests() -> NormalizedCredentialRequests {
         NormalizedCredentialRequests::new_mock_mdoc_from_slices(&[(
@@ -276,41 +282,41 @@ mod tests {
     #[rstest]
     #[case(
         example_mdoc_single_credential_requests(),
-        HashMap::from([("mdoc_0".try_into().unwrap(), vec![DeviceResponse::example()])]),
+        HashMap::from([("mdoc_0".try_into().unwrap(), vec_nonempty![MockDisclosedCredential::example()])]),
         Ok(()),
     )]
     #[case(
         example_mdoc_double_credential_requests(),
         HashMap::from([
-            ("mdoc_0".try_into().unwrap(), vec![DeviceResponse::example()]),
-            ("mdoc_1".try_into().unwrap(), vec![DeviceResponse::example()]),
+            ("mdoc_0".try_into().unwrap(), vec_nonempty![MockDisclosedCredential::example()]),
+            ("mdoc_1".try_into().unwrap(), vec_nonempty![MockDisclosedCredential::example()]),
         ]),
         Ok(()),
     )]
     #[case(
         example_mdoc_double_credential_requests(),
         HashMap::from([
-            ("mdoc_0".try_into().unwrap(), vec![DeviceResponse::example()]),
-            ("mdoc_1".try_into().unwrap(), vec![DeviceResponse::example(), DeviceResponse::example()]),
+            ("mdoc_0".try_into().unwrap(), vec_nonempty![MockDisclosedCredential::example()]),
+            ("mdoc_1".try_into().unwrap(), vec_nonempty![MockDisclosedCredential::example(), MockDisclosedCredential::example()]),
         ]),
         Err(CredentialValidationError::MultipleCredentials(HashSet::from(["mdoc_1".try_into().unwrap()]))),
     )]
     #[case(
         example_mdoc_double_credential_requests(),
-        HashMap::from([("mdoc_1".try_into().unwrap(), vec![DeviceResponse::example()])]),
+        HashMap::from([("mdoc_1".try_into().unwrap(), vec_nonempty![MockDisclosedCredential::example()])]),
         Err(CredentialValidationError::MissingIdentifiers(HashSet::from(["mdoc_0".try_into().unwrap()]))),
     )]
     #[case(
         example_mdoc_single_credential_requests(),
         HashMap::from([
-            ("mdoc_0".try_into().unwrap(), vec![DeviceResponse::example()]),
-            ("mdoc_1".try_into().unwrap(), vec![DeviceResponse::example()]),
+            ("mdoc_0".try_into().unwrap(), vec_nonempty![MockDisclosedCredential::example()]),
+            ("mdoc_1".try_into().unwrap(), vec_nonempty![MockDisclosedCredential::example()]),
         ]),
         Err(CredentialValidationError::UnexpectedIdentifiers(HashSet::from(["mdoc_1".try_into().unwrap()]))),
     )]
     #[case(
         example_sd_jwt_single_credential_requests(),
-        HashMap::from([("sd_jwt_0".try_into().unwrap(), vec![DeviceResponse::example()])]),
+        HashMap::from([("sd_jwt_0".try_into().unwrap(), vec_nonempty![MockDisclosedCredential::example()])]),
         Err(CredentialValidationError::FormatMismatch(
             HashMap::from([("sd_jwt_0".try_into().unwrap(),
             (CredentialFormat::SdJwt, CredentialFormat::MsoMdoc),
@@ -318,7 +324,7 @@ mod tests {
     )]
     #[case(
         wrong_credential_type_mdoc_requests(),
-        HashMap::from([("mdoc_0".try_into().unwrap(), vec![DeviceResponse::example()])]),
+        HashMap::from([("mdoc_0".try_into().unwrap(), vec_nonempty![MockDisclosedCredential::example()])]),
         Err(CredentialValidationError::CredentialTypeMismatch(
             HashMap::from([("mdoc_0".try_into().unwrap(),
             (vec!["wrong_credential_type".to_string()], EXAMPLE_DOC_TYPE.to_string()),
@@ -326,7 +332,7 @@ mod tests {
     )]
     #[case(
         wrong_attributes_mdoc_requests(),
-        HashMap::from([("mdoc_0".try_into().unwrap(), vec![DeviceResponse::example()])]),
+        HashMap::from([("mdoc_0".try_into().unwrap(), vec_nonempty![MockDisclosedCredential::example()])]),
         Err(CredentialValidationError::MissingAttributes(
             HashMap::from([("mdoc_0".try_into().unwrap(),
             HashSet::from([
@@ -343,23 +349,10 @@ mod tests {
     )]
     fn test_normalized_credential_requests_is_satisfied_by_disclosed_credentials(
         #[case] requests: NormalizedCredentialRequests,
-        #[case] device_responses: HashMap<CredentialQueryIdentifier, Vec<DeviceResponse>>,
+        #[case] disclosed_credentials: HashMap<CredentialQueryIdentifier, VecNonEmpty<MockDisclosedCredential>>,
         #[case] expected_result: Result<(), CredentialValidationError>,
     ) {
-        let result = device_responses
-            .iter()
-            .map(|(id, device_responses)| {
-                let disclosed_credentials = device_responses
-                    .iter()
-                    .flat_map(DisclosedCredential::new_from_device_response)
-                    .collect_vec()
-                    .try_into()
-                    .unwrap();
-
-                Ok((id, disclosed_credentials))
-            })
-            .try_collect()
-            .and_then(|disclosed_credentials| requests.is_satisfied_by_disclosed_credentials(&disclosed_credentials));
+        let result = requests.is_satisfied_by_disclosed_credentials(&disclosed_credentials);
 
         assert_eq!(result, expected_result);
     }

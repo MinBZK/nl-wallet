@@ -24,8 +24,9 @@ thiserror.workspace = true
 
 attestation_types.path = "../attestation_types"
 error_category.path = "../error_category"
-mdoc.path = "../mdoc"
 utils.path = "../utils"
+
+mdoc = { path = "../mdoc", optional = true }
 
 [dev-dependencies]
 rstest.workspace = true

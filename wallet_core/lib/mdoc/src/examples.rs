@@ -30,11 +30,12 @@ pub const EXAMPLE_ATTR_NAME: &str = "family_name";
 pub static EXAMPLE_ATTR_VALUE: LazyLock<Value> = LazyLock::new(|| Value::Text("Doe".to_string()));
 
 // Describe what is in `DeviceResponse::example()`.
-pub const EXAMPLE_ATTRIBUTES: [&str; 5] = [
+pub const EXAMPLE_ATTRIBUTES: [&str; 6] = [
     "family_name",
     "issue_date",
     "expiry_date",
     "document_number",
+    "portrait",
     "driving_privileges",
 ];
 

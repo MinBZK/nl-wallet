@@ -28,7 +28,6 @@ use crypto::x509::CertificateError;
 use dcql::CredentialQueryIdentifier;
 use dcql::Query;
 use dcql::disclosure::CredentialValidationError;
-use dcql::disclosure::DisclosedCredential;
 use dcql::normalized::NormalizedCredentialRequests;
 use dcql::normalized::UnsupportedDcqlFeatures;
 use error_category::ErrorCategory;
@@ -38,7 +37,6 @@ use jwt::error::JwtX5cError;
 use mdoc::DeviceResponse;
 use mdoc::Document;
 use mdoc::SessionTranscript;
-use mdoc::errors::Error as MdocError;
 use mdoc::utils::serialization::CborBase64;
 use serde_with::SerializeDisplay;
 use utils::generator::Generator;
@@ -572,7 +570,7 @@ impl VerifiablePresentation {
     }
 
     /// Helper function for extracing all unique public keys in a set of [`VerifiablePresentation`]s.
-    fn unique_keys<'a>(presentations: impl IntoIterator<Item = &'a Self>) -> Result<Vec<VerifyingKey>, MdocError> {
+    fn unique_keys<'a>(presentations: impl IntoIterator<Item = &'a Self>) -> Result<Vec<VerifyingKey>, mdoc::Error> {
         presentations
             .into_iter()
             .flat_map(|presentation| match presentation {
@@ -694,6 +692,12 @@ impl VpAuthorizationResponse {
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
     ) -> Result<HashMap<CredentialQueryIdentifier, VecNonEmpty<DisclosedAttestation>>, AuthResponseError> {
+        // Step 0: Collect all of the unique public keys within all of the disclosed credentials. This is necessary for
+        //         step 2, but we do this now because of ownership rules. If this fails, it means that an mdoc
+        //         credential will never verify, so return that error.
+        let used_keys =
+            VerifiablePresentation::unique_keys(self.vp_token.values()).map_err(AuthResponseError::MdocVerification)?;
+
         // Step 1: Verify the cryptographic integrity of the verifiable presentations
         //         and extract the disclosed attestations from them.
         let session_transcript = LazyCell::new(|| {
@@ -708,7 +712,7 @@ impl VpAuthorizationResponse {
 
         let disclosed_attestations = self
             .vp_token
-            .iter()
+            .into_iter()
             .map(|(id, presentation)| {
                 let attestations = match presentation {
                     VerifiablePresentation::MsoMdoc(device_responses) => device_responses
@@ -739,13 +743,11 @@ impl VpAuthorizationResponse {
                         .map_err(|_| AuthResponseError::NoMdocDocuments(id.clone()))?,
                 };
 
-                Ok((id.clone(), attestations))
+                Ok((id, attestations))
             })
             .collect::<Result<_, AuthResponseError>>()?;
 
         // Step 2: Verify the PoA, if present.
-        let used_keys = VerifiablePresentation::unique_keys(self.vp_token.values())
-            .expect("should always succeed when called after DeviceResponse::verify");
         if used_keys.len() >= 2 {
             self.poa.ok_or(AuthResponseError::MissingPoa)?.verify(
                 &used_keys,
@@ -764,27 +766,9 @@ impl VpAuthorizationResponse {
         }
 
         // Step 4: Check that we received all the attributes that we requested.
-        let disclosed_credentials = self
-            .vp_token
-            .iter()
-            .map(|(id, presentation)| {
-                let credentials = match presentation {
-                    VerifiablePresentation::MsoMdoc(device_responses) => {
-                        VerifiablePresentation::mdoc_documents_iter(device_responses)
-                            .map(DisclosedCredential::MsoMdoc)
-                            .collect_vec()
-                            .try_into()
-                            .expect("should always succeed when called after DeviceResponse::verify")
-                    }
-                };
-
-                (id, credentials)
-            })
-            .collect();
-
         auth_request
             .credential_requests
-            .is_satisfied_by_disclosed_credentials(&disclosed_credentials)
+            .is_satisfied_by_disclosed_credentials(&disclosed_attestations)
             .map_err(AuthResponseError::UnsatisfiedCredentialRequest)?;
 
         Ok(disclosed_attestations)
