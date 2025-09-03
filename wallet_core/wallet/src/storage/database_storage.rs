@@ -879,8 +879,9 @@ pub(crate) mod tests {
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
     use wallet_account::messages::registration::WalletCertificate;
 
+    use in_memory_storage::open_in_memory_database_storage;
+
     use crate::storage::data::RegistrationData;
-    use crate::storage::database_storage::in_memory_storage::open_in_memory_database_storage;
 
     use super::*;
 
