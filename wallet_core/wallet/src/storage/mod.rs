@@ -6,7 +6,7 @@ mod event_log;
 mod key_file;
 mod sql_cipher_key;
 
-#[cfg(any(test, feature = "test"))]
+#[cfg(any(test, feature = "wallet_deps"))]
 pub use database_storage::in_memory_storage;
 
 use chrono::DateTime;

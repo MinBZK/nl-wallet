@@ -818,7 +818,7 @@ fn create_attestation_copy_models(
         .try_collect()
 }
 
-#[cfg(any(test, feature = "test"))]
+#[cfg(any(test, feature = "wallet_deps"))]
 pub mod in_memory_storage {
     use crypto::utils::random_bytes;
 
