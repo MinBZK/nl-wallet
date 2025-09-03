@@ -65,13 +65,13 @@ use crate::config::default_wallet_config;
 use crate::digid::MockDigidClient;
 use crate::pin::key as pin_key;
 use crate::storage::DatabaseStorage;
+use crate::storage::InMemoryDatabaseStorage;
 use crate::storage::KeyData;
 use crate::storage::MockStorage;
 use crate::storage::RegistrationData;
 use crate::storage::Storage;
 use crate::storage::StorageState;
 use crate::storage::WalletEvent;
-use crate::storage::in_memory_storage::open_in_memory_database_storage;
 use crate::update_policy::MockUpdatePolicyRepository;
 use crate::wallet::attestations::AttestationsError;
 use crate::wallet::init::WalletClients;
@@ -331,7 +331,7 @@ impl WalletWithStorage {
         .now_or_never()
         .unwrap();
 
-        let storage = open_in_memory_database_storage().await;
+        let storage = InMemoryDatabaseStorage::open().await;
 
         Wallet::new(
             config_repository,
@@ -348,7 +348,7 @@ impl WalletWithStorage {
         let config_repository =
             UpdatingConfigurationRepository::new(LocalConfigurationRepository::default(), config_server_config).await;
 
-        let storage = open_in_memory_database_storage().await;
+        let storage = InMemoryDatabaseStorage::open().await;
 
         Wallet::init_registration(
             config_repository,
@@ -370,7 +370,7 @@ impl WalletWithStorage {
         .now_or_never()
         .unwrap();
 
-        let storage = open_in_memory_database_storage().await;
+        let storage = InMemoryDatabaseStorage::open().await;
 
         let mut wallet = Wallet::new(
             config_repository,

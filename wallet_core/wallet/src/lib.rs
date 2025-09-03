@@ -84,8 +84,8 @@ pub mod wallet_deps {
     pub use crate::repository::RepositoryUpdateState;
     pub use crate::repository::UpdateableRepository;
     pub use crate::storage::DatabaseStorage;
+    pub use crate::storage::InMemoryDatabaseStorage;
     pub use crate::storage::Storage;
-    pub use crate::storage::in_memory_storage;
     pub use crate::update_policy::HttpUpdatePolicyRepository;
     pub use crate::update_policy::UpdatePolicyRepository;
 }

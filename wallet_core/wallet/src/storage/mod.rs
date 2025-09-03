@@ -7,7 +7,7 @@ mod key_file;
 mod sql_cipher_key;
 
 #[cfg(any(test, feature = "wallet_deps"))]
-pub use database_storage::in_memory_storage;
+pub use database_storage::in_memory_storage::InMemoryDatabaseStorage;
 
 use chrono::DateTime;
 use chrono::Utc;

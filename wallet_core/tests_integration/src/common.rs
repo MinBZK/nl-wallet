@@ -53,7 +53,6 @@ use pid_issuer::settings::PidIssuerSettings;
 use pid_issuer::wua_tracker::WuaTrackerVariant;
 use platform_support::attested_key::mock::KeyHolderType;
 use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
-use platform_support::hw_keystore::mock::MockHardwareEncryptionKey;
 use server_utils::settings::RequesterAuth;
 use server_utils::settings::Server;
 use server_utils::settings::ServerSettings;
@@ -65,14 +64,13 @@ use wallet::Wallet;
 use wallet::WalletClients;
 use wallet::mock::MockDigidClient;
 use wallet::mock::MockDigidSession;
-use wallet::wallet_deps::DatabaseStorage;
 use wallet::wallet_deps::HttpAccountProviderClient;
 use wallet::wallet_deps::HttpConfigurationRepository;
+use wallet::wallet_deps::InMemoryDatabaseStorage;
 use wallet::wallet_deps::UpdatePolicyRepository;
 use wallet::wallet_deps::UpdateableRepository;
 use wallet::wallet_deps::default_config_server_config;
 use wallet::wallet_deps::default_wallet_config;
-use wallet::wallet_deps::in_memory_storage::open_in_memory_database_storage;
 use wallet_configuration::config_server_config::ConfigServerConfiguration;
 use wallet_configuration::wallet_config::WalletConfiguration;
 use wallet_provider::settings::AppleEnvironment;
@@ -130,7 +128,7 @@ pub enum WalletDeviceVendor {
 pub type WalletWithStorage = Wallet<
     HttpConfigurationRepository<TlsPinningConfig>,
     UpdatePolicyRepository,
-    DatabaseStorage<MockHardwareEncryptionKey>,
+    InMemoryDatabaseStorage,
     MockHardwareAttestedKeyHolder,
     HttpAccountProviderClient,
     MockDigidClient<TlsPinningConfig>,
@@ -289,7 +287,7 @@ pub async fn setup_wallet_and_env(
     let mut wallet_clients = WalletClients::new_http(default_reqwest_client_builder()).unwrap();
     setup_mock_digid_client(&mut wallet_clients.digid_client);
 
-    let storage = open_in_memory_database_storage().await;
+    let storage = InMemoryDatabaseStorage::open().await;
 
     let wallet = Wallet::init_registration(
         config_repository,
