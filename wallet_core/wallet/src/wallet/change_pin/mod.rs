@@ -160,14 +160,14 @@ mod tests {
 
     use crate::pin::change::ChangePinStorage;
     use crate::pin::change::State;
+    use crate::wallet::test::TestWalletInMemoryStorage;
     use crate::wallet::test::WalletDeviceVendor;
-    use crate::wallet::test::WalletWithStorage;
     use crate::wallet::test::create_wp_result;
     use crate::wallet::test::valid_certificate;
 
     #[tokio::test]
     async fn test_wallet_begin_and_continue_change_pin() {
-        let mut wallet = WalletWithStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+        let mut wallet = TestWalletInMemoryStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         Arc::get_mut(&mut wallet.account_provider_client)
             .unwrap()

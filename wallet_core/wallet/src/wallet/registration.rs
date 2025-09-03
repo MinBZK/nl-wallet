@@ -341,18 +341,18 @@ mod tests {
     use wallet_account::signed::SequenceNumberComparison;
 
     use crate::account_provider::AccountProviderResponseError;
-    use crate::wallet::test::WalletWithDefaultStorage;
-    use crate::wallet::test::WalletWithStorage;
+    use crate::wallet::test::TestWallet;
+    use crate::wallet::test::TestWalletInMemoryStorage;
     use crate::wallet::test::valid_certificate;
     use crate::wallet::test::valid_certificate_claims;
 
+    use super::super::test::TestWalletMockStorage;
     use super::super::test::WalletDeviceVendor;
-    use super::super::test::WalletWithMocks;
     use super::*;
 
     const PIN: &str = "051097";
 
-    async fn test_register_success(wallet: &mut WalletWithStorage) {
+    async fn test_register_success(wallet: &mut TestWalletInMemoryStorage) {
         // The wallet should report that it is currently unregistered and locked.
         assert!(!wallet.has_registration());
         assert!(wallet.is_locked());
@@ -475,12 +475,12 @@ mod tests {
         #[values(WalletDeviceVendor::Apple, WalletDeviceVendor::Google)] vendor: WalletDeviceVendor,
     ) {
         // Prepare an unregistered wallet.
-        let mut wallet = WalletWithStorage::new_unregistered(vendor).await;
+        let mut wallet = TestWalletInMemoryStorage::new_unregistered(vendor).await;
 
         test_register_success(&mut wallet).await;
     }
 
-    async fn add_key_identifier_to_wallet(wallet: &mut WalletWithStorage) -> String {
+    async fn add_key_identifier_to_wallet(wallet: &mut TestWalletInMemoryStorage) -> String {
         let key_identifier = wallet.key_holder.generate().await.unwrap();
         wallet
             .storage
@@ -499,7 +499,7 @@ mod tests {
     #[tokio::test]
     async fn test_wallet_register_success_apple_key_identifier() {
         // Prepare an unregistered wallet.
-        let mut wallet = WalletWithStorage::new_unregistered(WalletDeviceVendor::Apple).await;
+        let mut wallet = TestWalletInMemoryStorage::new_unregistered(WalletDeviceVendor::Apple).await;
 
         // Set up a key identifier to re-use, both in storage and in the Wallet internal state.
         let key_identifier = add_key_identifier_to_wallet(&mut wallet).await;
@@ -512,7 +512,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_register_error_already_registered() {
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         let error = wallet
             .register(PIN)
@@ -525,7 +525,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_register_error_invalid_pin() {
-        let mut wallet = WalletWithMocks::new_unregistered(WalletDeviceVendor::Apple);
+        let mut wallet = TestWalletMockStorage::new_unregistered(WalletDeviceVendor::Apple).await;
 
         // Try to register with an insecure PIN.
         let error = wallet
@@ -539,7 +539,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_register_error_challenge_request() {
-        let mut wallet = WalletWithMocks::new_unregistered(WalletDeviceVendor::Apple);
+        let mut wallet = TestWalletMockStorage::new_unregistered(WalletDeviceVendor::Apple).await;
 
         // Have the account server respond to the challenge request with a 500 error.
         Arc::get_mut(&mut wallet.account_provider_client)
@@ -556,8 +556,8 @@ mod tests {
         assert_matches!(wallet.registration, WalletRegistration::Unregistered);
     }
 
-    async fn unregistered_wallet_with_registration_challenge(vendor: WalletDeviceVendor) -> WalletWithStorage {
-        let mut wallet = WalletWithStorage::new_unregistered(vendor).await;
+    async fn unregistered_wallet_with_registration_challenge(vendor: WalletDeviceVendor) -> TestWalletInMemoryStorage {
+        let mut wallet = TestWalletInMemoryStorage::new_unregistered(vendor).await;
 
         Arc::get_mut(&mut wallet.account_provider_client)
             .unwrap()
@@ -774,7 +774,7 @@ mod tests {
         );
     }
 
-    fn expect_register_with_random_pubkey<S>(wallet: &mut WalletWithDefaultStorage<S>) {
+    fn expect_register_with_random_pubkey<S>(wallet: &mut TestWallet<S>) {
         // Have the account server respond with a certificate that contains
         // a public key that does not belong to the wallet's attested key.
         Arc::get_mut(&mut wallet.account_provider_client)
@@ -815,7 +815,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_register_error_store_certificate() {
-        let mut wallet = WalletWithMocks::new_unregistered(WalletDeviceVendor::Apple);
+        let mut wallet = TestWalletMockStorage::new_unregistered(WalletDeviceVendor::Apple).await;
 
         Arc::get_mut(&mut wallet.account_provider_client)
             .unwrap()

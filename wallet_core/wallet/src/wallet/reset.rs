@@ -116,12 +116,12 @@ mod tests {
     use crate::attestation::AttestationPresentation;
     use crate::storage::StorageState;
     use crate::wallet::Session;
-    use crate::wallet::test::WalletWithStorage;
+    use crate::wallet::test::TestWalletInMemoryStorage;
 
     use super::super::issuance::WalletIssuanceSession;
     use super::super::test;
+    use super::super::test::TestWalletMockStorage;
     use super::super::test::WalletDeviceVendor;
-    use super::super::test::WalletWithMocks;
     use super::*;
 
     // TODO: Test key deletion for Google attested key.
@@ -129,7 +129,7 @@ mod tests {
     #[tokio::test]
     async fn test_wallet_reset() {
         // Test resetting a registered and unlocked Wallet.
-        let mut wallet = WalletWithStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+        let mut wallet = TestWalletInMemoryStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         // Register callbacks for both documents and history events and clear anything received on them.
         let attestations = test::setup_mock_attestations_callback(&mut wallet)
@@ -170,7 +170,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_reset_full() {
-        let mut wallet = WalletWithStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+        let mut wallet = TestWalletInMemoryStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
         wallet.session = Some(Session::Issuance(WalletIssuanceSession::new(
             true,
             vec![AttestationPresentation::new_mock()].try_into().unwrap(),
@@ -194,7 +194,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_reset_error_not_registered() {
-        let mut wallet = WalletWithMocks::new_unregistered(WalletDeviceVendor::Apple);
+        let mut wallet = TestWalletMockStorage::new_unregistered(WalletDeviceVendor::Apple).await;
 
         // Attempting to reset an unregistered Wallet should result in an error.
         let error = wallet

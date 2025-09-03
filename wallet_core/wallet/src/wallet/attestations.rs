@@ -84,15 +84,15 @@ mod tests {
     use crate::wallet::test::create_example_pid_mdoc;
 
     use super::super::test;
+    use super::super::test::TestWalletMockStorage;
     use super::super::test::WalletDeviceVendor;
-    use super::super::test::WalletWithMocks;
     use super::*;
 
     // Tests both setting and clearing the attestations callback on an unregistered `Wallet`.
     #[tokio::test]
     async fn test_wallet_set_clear_attestations_callback() {
         // Prepare an unregistered wallet.
-        let mut wallet = WalletWithMocks::new_unregistered(WalletDeviceVendor::Apple);
+        let mut wallet = TestWalletMockStorage::new_unregistered(WalletDeviceVendor::Apple).await;
 
         // Register mock document_callback
         let attestations = test::setup_mock_attestations_callback(&mut wallet)
@@ -119,7 +119,7 @@ mod tests {
     // Tests both setting and clearing the documents callback on a registered `Wallet`.
     #[tokio::test]
     async fn test_wallet_set_clear_documents_callback_registered() {
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let issuance_keypair = generate_issuer_mock(&ca, IssuerRegistration::new_mock().into()).unwrap();
@@ -180,7 +180,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_set_attestations_callback_error() {
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         // Have the database return an error on query.
         let storage = wallet.mut_storage();

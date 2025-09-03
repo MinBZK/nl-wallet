@@ -205,7 +205,7 @@ mod tests {
     use crate::storage::PartialAttestation;
     use crate::storage::StoredAttestation;
     use crate::storage::StoredAttestationCopy;
-    use crate::wallet::test::WalletWithMocks;
+    use crate::wallet::test::TestWalletMockStorage;
     use crate::wallet::test::create_example_pid_mdoc;
 
     use super::super::DisclosureBasedIssuanceError;
@@ -248,7 +248,7 @@ mod tests {
     #[tokio::test]
     async fn test_wallet_accept_disclosure_based_issuance() {
         // Prepare a registered and unlocked wallet with an active disclosure session.
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         // Setup wallet disclosure state
         let credential_offer = serde_urlencoded::to_string(CredentialOfferContainer {
@@ -348,7 +348,7 @@ mod tests {
     #[tokio::test]
     async fn test_wallet_accept_disclosure_based_issuance_no_attestations() {
         // Prepare a registered and unlocked wallet with an active disclosure session.
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         // Setup an disclosure based issuance session returning an error that means there are no attestations to offer.
         let mut disclosure_session = setup_wallet_disclosure_session();
@@ -406,7 +406,7 @@ mod tests {
     #[tokio::test]
     async fn test_wallet_accept_disclosure_based_issuance_error_wrong_redirect_uri_purpose() {
         // Prepare a registered and unlocked wallet with an active disclosure session.
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         let mut disclosure_session = setup_wallet_disclosure_session();
         disclosure_session.redirect_uri_purpose = RedirectUriPurpose::Browser;
