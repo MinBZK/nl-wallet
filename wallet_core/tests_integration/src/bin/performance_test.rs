@@ -14,23 +14,21 @@ use openid4vc_server::verifier::StartDisclosureRequest;
 use openid4vc_server::verifier::StartDisclosureResponse;
 use openid4vc_server::verifier::StatusParams;
 use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
-use platform_support::hw_keystore::mock::MockHardwareEncryptionKey;
 use tests_integration::default;
 use tests_integration::fake_digid::fake_digid_auth;
 use tests_integration::logging::init_logging;
 use wallet::DisclosureUriSource;
 use wallet::Wallet;
 use wallet::WalletClients;
-use wallet::wallet_deps::DatabaseStorage;
 use wallet::wallet_deps::HttpAccountProviderClient;
 use wallet::wallet_deps::HttpConfigurationRepository;
 use wallet::wallet_deps::HttpDigidClient;
+use wallet::wallet_deps::InMemoryDatabaseStorage;
 use wallet::wallet_deps::Repository;
 use wallet::wallet_deps::UpdatePolicyRepository;
 use wallet::wallet_deps::UpdateableRepository;
 use wallet::wallet_deps::default_config_server_config;
 use wallet::wallet_deps::default_wallet_config;
-use wallet::wallet_deps::in_memory_storage::open_in_memory_database_storage;
 
 #[ctor]
 fn init() {
@@ -40,7 +38,7 @@ fn init() {
 type PerformanceTestWallet = Wallet<
     HttpConfigurationRepository<TlsPinningConfig>,
     UpdatePolicyRepository,
-    DatabaseStorage<MockHardwareEncryptionKey>,
+    InMemoryDatabaseStorage,
     MockHardwareAttestedKeyHolder,
     HttpAccountProviderClient,
     HttpDigidClient,
@@ -78,7 +76,7 @@ async fn main() {
     let update_policy_repository = UpdatePolicyRepository::init();
     let wallet_clients = WalletClients::new_http(default_reqwest_client_builder()).unwrap();
 
-    let storage = open_in_memory_database_storage().await;
+    let storage = InMemoryDatabaseStorage::open().await;
 
     let mut wallet: PerformanceTestWallet = Wallet::init_registration(
         config_repository,
