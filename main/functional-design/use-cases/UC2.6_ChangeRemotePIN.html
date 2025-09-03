@@ -1,0 +1,386 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Use Case 2.6 Change remote PIN &mdash; NL Wallet 0.4.0-dev documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/custom.css?v=b823da26" />
+
+  
+    <link rel="shortcut icon" href="../../_static/favicon.ico"/>
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=bf7cd258"></script>
+      <script src="../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/js/custom.js?v=48752f09"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="author" title="About these documents" href="../../about.html" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Use Case 3.1 Obtain PID" href="UC3.1_ObtainPidFromProvider.html" />
+    <link rel="prev" title="Use Case 2.3 Unlock the app" href="UC2.3_UnlockTheApp.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #383EDE" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            NL Wallet
+              <img src="../../_static/wallet.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../about.html">About</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Get Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../get-started/preparations.html">Preparations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../get-started/create-a-verifier.html">Create a Verifier</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../get-started/create-an-issuer.html">Create an Issuer</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Architecture</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/components-overview.html">Components Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/disclosure-based-issuance.html">Disclosure-based Issuance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/disclosure-with-openid4vp.html">Disclosure with OpenID4VP</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/issuance-with-openid4vci.html">Issuance with OpenID4VCI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/mobile-app-startup.html">Mobile App Startup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/pin-validation.html">Pin Validation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/wallet-creation.html">Wallet Creation</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Functional Design</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../about.html">About the Functional Design</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../use-cases.html">Use Cases</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="UC1.1_IntroduceTheApp.html">Use Case 1.1 Introduce the app</a></li>
+<li class="toctree-l2"><a class="reference internal" href="UC1.2_OpenTheApp.html">Use Case 1.2 Open the app</a></li>
+<li class="toctree-l2"><a class="reference internal" href="UC1.3_AppTour.html">Use Case 1.3 App tour</a></li>
+<li class="toctree-l2"><a class="reference internal" href="UC2.1_SetupRemotePinAndBiometricsUnlock.html">Use Case 2.1 Setup a remote PIN and biometric unlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="UC2.2_ChangeBiometricUnlock.html">Use Case 2.2 Change biometric unlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="UC2.3_UnlockTheApp.html">Use Case 2.3 Unlock the app</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Use Case 2.6 Change remote PIN</a></li>
+<li class="toctree-l2"><a class="reference internal" href="UC3.1_ObtainPidFromProvider.html">Use Case 3.1 Obtain PID</a></li>
+<li class="toctree-l2"><a class="reference internal" href="UC4.1_ObtainCardsFromEAAIssuer.html">Use Case 4.1 Obtain one or more cards from a (Q)EAA Issuer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="UC5.1_ShareDataWithRP.html">Use Case 5.1 Share data with a Relying Party</a></li>
+<li class="toctree-l2"><a class="reference internal" href="UC5.2_LoginToApplicationOfRP.html">Use Case 5.2 Log in to Relying Party application</a></li>
+<li class="toctree-l2"><a class="reference internal" href="UC6.1_ShowCompleteUsageAndManagementHistory.html">Use Case 6.1 Show complete history</a></li>
+<li class="toctree-l2"><a class="reference internal" href="UC6.2_ShowUsageAndManagementHistoryOfCard.html">Use Case 6.2 Show card history</a></li>
+<li class="toctree-l2"><a class="reference internal" href="UC6.3_ShowHistoryEvent.html">Use Case 6.2 Show card history</a></li>
+<li class="toctree-l2"><a class="reference internal" href="UC7.1_ShowAllAvailableCards.html">Use Case 7.1 Show all available cards</a></li>
+<li class="toctree-l2"><a class="reference internal" href="UC7.2_ShowCardDetails.html">Use Case 7.2 Show card details</a></li>
+<li class="toctree-l2"><a class="reference internal" href="UC9.1_ShowAppMenu.html">Use Case 9.1. Show app menu</a></li>
+<li class="toctree-l2"><a class="reference internal" href="UC9.2_GetAppInformation.html">Use Case 9.2 Get app information</a></li>
+<li class="toctree-l2"><a class="reference internal" href="UC9.3_ChangeAppLanguage.html">Use Case 9.3 Change app language</a></li>
+<li class="toctree-l2"><a class="reference internal" href="UC9.4_WipeAllAppData.html">Use Case 9.4 Wipe all app data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="UC9.6_GetHelp.html">Use Case 9.6 Get help</a></li>
+<li class="toctree-l2"><a class="reference internal" href="UC9.7_LogoutOffTheApp.html">Use Case 9.7 Log out of the app</a></li>
+<li class="toctree-l2"><a class="reference internal" href="UC9.9_ScanQR.html">Use Case 9.9 Scan QR</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../partial-flows.html">Partial Flows</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../partial-flows/PF1.4_ApplyAppUpdatePolicy.html">Partial Flow 1.4 Apply update policy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../partial-flows/PF2.4_ConfirmProtectedAction.html">Partial Flow 2.4 Confirm a protected action</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../partial-flows/PF2.7_ResolveUniversalLink.html">Partial Flow 2.7 Resolve a universal link</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../partial-flows/PF2.8_ValidatePin.html">Partial Flow 2.8 Validate entered PIN</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../logical-test-cases.html">Logical Test Cases</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Development</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../development/generic-issuance.html">Generic Issuance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../development/openapi-specifications.html">OpenAPI Specifications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../development/sd-jwt-vc-profile.html">SD-JWT VC Profile</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../development/specification-references.html">Specification References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../development/sphinx-documentation.html">Sphinx Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../development/updating-rust.html">Updating Rust</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../development/using-lokalise.html">Using Lokalise</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Community</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../community/onboarding.html">Onboarding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../community/create-a-ca.html">Create a CA</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Way of Working</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../way-of-working/definition-of-done.html">Definition of Done</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../way-of-working/merge-requests.html">Merge Requests</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../way-of-working/release-howto.html">Releases Howto</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Release Notes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../release-notes/v0.3.0.html">v0.3.0</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../release-notes/v0.4.0.html">v0.4.0 (in development)</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #383EDE" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">NL Wallet</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content style-external-links">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../use-cases.html">Use Cases</a></li>
+      <li class="breadcrumb-item active">Use Case 2.6 Change remote PIN</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/functional-design/use-cases/UC2.6_ChangeRemotePIN.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="use-case-2-6-change-remote-pin">
+<h1>Use Case 2.6 Change remote PIN<a class="headerlink" href="#use-case-2-6-change-remote-pin" title="Link to this heading"></a></h1>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Aspect</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>Summary</strong></p></td>
+<td><p>The user changes their PIN by first entering the current one, then choosing and confirming a new PIN that meets policy requirements.</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Goal</strong></p></td>
+<td><p>Changing the remote PIN.</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Preconditions</strong></p></td>
+<td><p><ul><li>User completed <a class="reference internal" href="UC3.1_ObtainPidFromProvider.html"><span class="std std-doc">UC3.1 Obtain PID from provider</span></a></li><li>User completed <a class="reference internal" href="UC1.2_OpenTheApp.html"><span class="std std-doc">UC1.2 Open the app</span></a></li></ul></p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Postconditions</strong></p></td>
+<td><p><ul><li>User can use the new PIN in the Wallet.</li><li>User can no longer use the old PIN in the Wallet.</li></ul></p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Triggered by</strong></p></td>
+<td><p><ul><li>User selects ‘Change pin’ in <a class="reference internal" href="UC9.1_ShowAppMenu.html"><span class="std std-doc">UC9.1 Show app menu</span></a>.</li></ul></p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Additional Documentation</strong></p></td>
+<td><p><ul><li><a class="reference internal" href="../../architecture/pin-validation.html"><span class="doc std std-doc">PIN validation</span></a></li></ul></p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Possible errors</strong></p></td>
+<td><p><ul><li>No internet</li><li>Server unreachable</li></ul></p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Logical Test Cases</strong></p></td>
+<td><p><ul><li><a class="reference internal" href="../logical-test-cases.html#ltc76"><span class="std std-ref">LTC56 PIN Change Happy flow</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc77"><span class="std std-ref">LTC61 PIN entries do not match, try again</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc76"><span class="std std-ref">LTC62 PIN entries do not match, choose new PIN</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc77"><span class="std std-ref">LTC63 PIN entry does not conform to policy</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc77"><span class="std std-ref">LTC64 PIN change fails, could not reach server</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc57"><span class="std std-ref">LTC65 PIN change fails, no internet</span></a></li></ul></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<hr class="docutils" />
+<section id="flow">
+<h2>Flow<a class="headerlink" href="#flow" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>#</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Next</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>1</strong></p></td>
+<td><p><strong>PRIMARY SCENARIO</strong></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>1.1</strong></p></td>
+<td><p><strong>System executes partial flow <a class="reference internal" href="../partial-flows/PF2.4_ConfirmProtectedAction.html"><span class="std std-doc">PF2.4 Confirm a protected action</span></a></strong><ul><li>Not cancelable</li></ul></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>1.1a</p></td>
+<td><p>Result: Confirm</p></td>
+<td><p>1.2</p></td>
+</tr>
+<tr class="row-odd"><td><p>1.1b</p></td>
+<td><p>Result: Back</p></td>
+<td><p>Back</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>1.2</strong></p></td>
+<td><p><strong>Displays screen ‘Choose new PIN’</strong><ul><li>Message: Choose a new 6-digit PIN</li><li>Input: 6 digits (0-9) PIN field</li><li>Actions: Back</li></ul></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>1.2a</p></td>
+<td><p>User enters PIN</p></td>
+<td><p>1.3</p></td>
+</tr>
+<tr class="row-even"><td><p>1.2b</p></td>
+<td><p>User selects Back</p></td>
+<td><p>Back</p></td>
+</tr>
+<tr class="row-odd"><td><p>1.2c</p></td>
+<td><p>Error: No internet</p></td>
+<td><p>Error flow: No internet</p></td>
+</tr>
+<tr class="row-even"><td><p>1.2d</p></td>
+<td><p>Error: Server unreachable</p></td>
+<td><p>Error flow: Server unreachable</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>1.3</strong></p></td>
+<td><p><strong>System validates entered PIN against PIN policy</strong><ul><li>Duration: 0.0 - 0.1 seconds</li></ul></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>1.3a</p></td>
+<td><p>Case: PIN matches PIN policy</p></td>
+<td><p>1.4</p></td>
+</tr>
+<tr class="row-odd"><td><p>1.3b</p></td>
+<td><p>Case: PIN does not match PIN policy</p></td>
+<td><p>2</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>1.4</strong></p></td>
+<td><p><strong>System displays screen ‘Repeat PIN’</strong><ul><li>Message: Repeat your new PIN</li><li>Input: 6 digits (0-9) PIN field</li><li>Actions: Back</li></ul></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>1.4a</p></td>
+<td><p>User enters PIN</p></td>
+<td><p>1.5</p></td>
+</tr>
+<tr class="row-even"><td><p>1.4b</p></td>
+<td><p>User selects Back</p></td>
+<td><p>Back</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>1.5</strong></p></td>
+<td><p><strong>System validates PINs match</strong><ul><li>Duration: 0.0 - 0.1 seconds</li></ul></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>1.5a</p></td>
+<td><p>Case: PINs match</p></td>
+<td><p>1.6</p></td>
+</tr>
+<tr class="row-odd"><td><p>1.5b</p></td>
+<td><p>Case: PINs do not match first time</p></td>
+<td><p>3</p></td>
+</tr>
+<tr class="row-even"><td><p>1.5c</p></td>
+<td><p>Case: PINs do not match second time</p></td>
+<td><p>4</p></td>
+</tr>
+<tr class="row-odd"><td><p>1.5d</p></td>
+<td><p>Error: No internet</p></td>
+<td><p>Error flow: No internet</p></td>
+</tr>
+<tr class="row-even"><td><p>1.5e</p></td>
+<td><p>Error: Server unreachable</p></td>
+<td><p>Error flow: Server unreachable</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>1.6</strong></p></td>
+<td><p><strong>System displays screen ‘PIN change success’</strong><ul><li>Message: Success!</li><li>Actions: Dashboard, Settings</li></ul></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>1.6a</p></td>
+<td><p>User selects Dashboard</p></td>
+<td><p>Go to: <a class="reference internal" href="UC7.1_ShowAllAvailableCards.html"><span class="std std-doc">UC7.1 Show all available cards</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p>1.6b</p></td>
+<td><p>User selects Settings</p></td>
+<td><p>End</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>2</strong></p></td>
+<td><p><strong>WHEN PIN DOES NOT SATISFY POLICY (TOO SIMPLE)</strong></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>2.1</strong></p></td>
+<td><p><strong>System displays PIN too simple message</strong><ul><li>Actions: OK</li></ul></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>2.1a</p></td>
+<td><p>User selects OK</p></td>
+<td><p>1.2</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>3</strong></p></td>
+<td><p><strong>WHEN PINs ARE NOT EQUAL (FIRST TIME)</strong></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><strong>3.1</strong></p></td>
+<td><p><strong>System displays PIN is different message</strong><ul><li>Actions: Try Again</li></ul></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>3.1a</p></td>
+<td><p>User selects Try again</p></td>
+<td><p>1.4</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>4</strong></p></td>
+<td><p><strong>WHEN PINs ARE NOT EQUAL (SECOND TIME)</strong></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>4.1</strong></p></td>
+<td><p><strong>System displays PIN is different message</strong><ul><li>Actions: Choose New Pin</li></ul></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>4.1a</p></td>
+<td><p>User selects Choose New Pin</p></td>
+<td><p>1.2</p></td>
+</tr>
+</tbody>
+</table>
+<style>td {vertical-align:top}</style></section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="UC2.3_UnlockTheApp.html" class="btn btn-neutral float-left" title="Use Case 2.3 Unlock the app" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="UC3.1_ObtainPidFromProvider.html" class="btn btn-neutral float-right" title="Use Case 3.1 Obtain PID" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, NL Wallet.</p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    <span class="fa fa-book"> Other Versions</span>
+    v: main
+    <span class="fa fa-caret-down"></span>
+  </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="UC2.6_ChangeRemotePIN.html">main</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(false);
+      });
+  </script> 
+
+</body>
+</html>

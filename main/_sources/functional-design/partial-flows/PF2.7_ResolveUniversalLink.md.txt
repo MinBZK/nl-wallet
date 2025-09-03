@@ -1,0 +1,40 @@
+# Partial Flow 2.7 Resolve a universal link
+
+## Overview
+
+| Aspect                       | Description                                                                                                                                                                                                                                                    |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Summary**                  | The system validates universal link and determines next step for the user.                                                                                                                                                                                     |
+| **Goal**                     | Resolving a universal link invoked by the user.                                                                                                                                                                                                                |
+| **Preconditions**            | *None*                                                                                                                                                                                                                                                         |
+| **Postconditions**           | *None*                                                                                                                                                                                                                                                         |
+| **Used by**                  | <ul><li>[UC1.2 Open the app](../use-cases/UC3.1_ObtainPidFromProvider.md)</li><li>[UC2.3 Unlock the app](../use-cases/UC2.3_UnlockTheApp.md)</li></ul>                                                                                                                                   |
+| **Parameters**               | *None*                                                                                                                                                                                                                                                         |
+| **Possible Results**         | <ul><li>No (valid) universal link</li></ul><i>In case of a valid UL, the system continues with the corresponding use case</i>                                                                                                                                  |
+| **Additional Documentation** | *None*                                                                                                                                                                                                                                                         |
+| **Possible errors**          | <ul><li>No internet</li><li>Server unreachable</li><li>Device incompatible</ul></li>                                                                                                                                                                           |
+| **Logical test cases**       | <ul><li>[LTC43 Open app via universal link](../logical-test-cases.md#ltc43)</li><li>[LTC54 Wallet not created when universal link is invoked](../logical-test-cases.md#ltc54)</li><li>[LTC55 Invalid universal link](../logical-test-cases.md#ltc55)</li></ul> |
+
+---
+
+## Flow
+
+| #       | Description                                                                                                                 | Next                                                                                |
+| ------- | --------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| **1**   | **UNIVERSAL LINK**                                                                                                          |                                                                                     |
+| **1.1** | **System determines whether universal link is present**<ul><li>Provided by the operating system</li></ul>                   |                                                                                     |
+| 1.1a    | Case: universal link is present                                                                                             | 1.2                                                                                 |
+| 1.1b    | Case: universal link is not present                                                                                         | Result: No (valid) universal link                                                   |
+| **1.2** | **System validates universal link**<ul><li>Duration: 0.0 - 0.1 seconds</li></ul>                                            |                                                                                     |
+| 1.2a    | Case: universal link is valid                                                                                               |                                                                                     |
+| 1.2b    | Case: universal link is scanned with external QR scanner (not allowed)                                                      | 2                                                                                   |
+| 1.2c    | Case: universal link is invalid                                                                                             | Result: No (valid) universal link                                                   |
+| **1.3** | **System resolves universal link**<ul><li>Contacts the URL provided in the UL</li><li>Duration: 0.0 - 0.1 seconds</li></ul> |                                                                                     |
+| 1.3a    | Case: UL resolves to issuance flow                                                                                          | Go to: [UC4.1 Obtain cards](../use-cases/UC4.1_ObtainCardsFromEAAIssuer.md)                      |
+| 1.3b    | Case: UL resolves to sharing flow                                                                                           | Go to: [UC5.1 Share data](../use-cases/UC5.1_ShareDataWithRP.md)                                 |
+| 1.3c    | Case: UL resolves to login flow                                                                                             | Go to: [UC5.2 Log in to Relying Party application](../use-cases/UC5.2_LoginToApplicationOfRP.md) |
+| **2**   | **WHEN EXTERNAL QR SCANNER WAS USED**                                                                                       |                                                                                     |
+| **2.1** | **System displays prompt 'Scan QR code with NL Wallet'**<ul><li>Actions: Close, Scan QR code</li></ul>                      |                                                                                     |
+| 2.1a    | User selects Close                                                                                                          | Result: No (valid) universal link                                                   |
+| 2.1b    | User selects Scan QR code                                                                                                   | Go to: [UC9.9 Scan QR](../use-cases/UC9.9_ScanQR.md)                                             |
+<style>td {vertical-align:top}</style>
