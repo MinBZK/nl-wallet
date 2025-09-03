@@ -114,6 +114,7 @@ pub struct StatusListClaims {
 
 #[cfg(test)]
 mod test {
+    use jwt::DEFAULT_VALIDATIONS;
     use p256::ecdsa::SigningKey;
     use p256::elliptic_curve::rand_core::OsRng;
     use serde_json::json;
@@ -152,7 +153,7 @@ mod test {
 
         let (header, claims) = signed
             .0
-            .parse_and_verify_with_header(&key.verifying_key().into(), &jwt::validations())
+            .parse_and_verify_with_header(&key.verifying_key().into(), &DEFAULT_VALIDATIONS)
             .unwrap();
         assert_eq!(header, expected_header);
         // the `iat` claim is set when signing the token

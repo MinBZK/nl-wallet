@@ -13,6 +13,7 @@ use serde::Serialize;
 
 use crypto::keys::EcdsaKey;
 use crypto::wscd::WscdPoa;
+use jwt::DEFAULT_VALIDATIONS;
 use jwt::JsonJwt;
 use jwt::UnverifiedJwt;
 use jwt::error::JwtError;
@@ -20,7 +21,6 @@ use jwt::jwk::jwk_alg_from_p256;
 use jwt::jwk::jwk_from_p256;
 use jwt::jwk::jwk_to_p256;
 use jwt::pop::JwtPopClaims;
-use jwt::validations;
 use utils::vec_at_least::VecAtLeastTwoUnique;
 use utils::vec_at_least::VecNonEmpty;
 
@@ -128,7 +128,7 @@ impl Poa {
         }
 
         // Validate all the JWTs, against the keys in the payload of the JWTs.
-        let mut validations = validations();
+        let mut validations = DEFAULT_VALIDATIONS.to_owned();
         validations.set_audience(&[expected_aud]);
         validations.set_issuer(accepted_issuers);
         for (jwt, jwk) in jwts.into_iter().zip(payload.jwks.as_slice()) {
@@ -174,9 +174,9 @@ mod tests {
     use rstest::rstest;
 
     use crypto::mock_remote::MockRemoteEcdsaKey;
+    use jwt::DEFAULT_VALIDATIONS;
     use jwt::UnverifiedJwt;
     use jwt::pop::JwtPopClaims;
-    use jwt::validations;
     use utils::vec_at_least::VecNonEmpty;
 
     use super::Poa;
@@ -207,7 +207,7 @@ mod tests {
 
         let jwts: Vec<UnverifiedJwt<PoaPayload>> = poa.clone().into();
 
-        let mut validations = validations();
+        let mut validations = DEFAULT_VALIDATIONS.to_owned();
         validations.set_audience(&[&aud]);
         validations.set_issuer(&[&iss]);
 

@@ -558,7 +558,9 @@ pub mod test {
         .await
         .unwrap();
 
-        let wua = VerifiedJwt::try_new(wua, &wua_signing_key.verifying_key().into(), &WUA_JWT_VALIDATIONS).unwrap();
+        let wua = wua
+            .into_verified(&wua_signing_key.verifying_key().into(), &WUA_JWT_VALIDATIONS)
+            .unwrap();
 
         // Checking our WUA for the first time means we haven't seen it before
         assert!(!wua_tracker.track_wua(&wua).await.unwrap());

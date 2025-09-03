@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::fmt::Display;
 use std::str::FromStr;
+use std::sync::LazyLock;
 
 use chrono::DateTime;
 use chrono::Duration;
@@ -36,7 +37,6 @@ use jwt::EcdsaDecodingKey;
 use jwt::UnverifiedJwt;
 use jwt::VerifiedJwt;
 use jwt::jwk::jwk_to_p256;
-use jwt::validations;
 use utils::date_time_seconds::DateTimeSeconds;
 use utils::generator::Generator;
 use utils::spec::SpecOptional;
@@ -106,9 +106,8 @@ impl UnverifiedSdJwt {
         trust_anchors: &[TrustAnchor],
         time: &impl Generator<DateTime<Utc>>,
     ) -> Result<(VerifiedSdJwt, VecNonEmpty<BorrowingCertificate>)> {
-        let (issuer_signed_jwt, leaf_cert) = VerifiedJwt::try_new_against_trust_anchors(
-            self.issuer_signed.clone(),
-            &validations(),
+        let (issuer_signed_jwt, leaf_cert) = self.issuer_signed.clone().into_verified_against_trust_anchors(
+            &SD_JWT_VALIDATIONS,
             time,
             CertificateUsage::Mdl,
             trust_anchors,
@@ -405,7 +404,7 @@ impl SdJwt {
         let (jwt, disclosures) = Self::parse_sd_jwt_unverified(sd_jwt)?;
 
         let issuer_certificates = jwt.extract_x5c_certificates()?;
-        let issuer_signed_jwt = VerifiedJwt::try_new(jwt, pubkey, &sd_jwt_validation())?;
+        let issuer_signed_jwt = jwt.into_verified(pubkey, &SD_JWT_VALIDATIONS)?;
 
         Ok(Self {
             issuer_signed_jwt,
@@ -476,13 +475,8 @@ impl VerifiedSdJwt {
     ) -> Result<VerifiedSdJwt> {
         let (jwt, disclosures) = SdJwt::parse_sd_jwt_unverified(sd_jwt)?;
 
-        let (issuer_signed_jwt, issuer_certificates) = VerifiedJwt::try_new_against_trust_anchors(
-            jwt,
-            &sd_jwt_validation(),
-            time,
-            CertificateUsage::Mdl,
-            trust_anchors,
-        )?;
+        let (issuer_signed_jwt, issuer_certificates) =
+            jwt.into_verified_against_trust_anchors(&SD_JWT_VALIDATIONS, time, CertificateUsage::Mdl, trust_anchors)?;
 
         Ok(Self(SdJwt {
             issuer_signed_jwt,
@@ -499,7 +493,7 @@ impl VerifiedSdJwt {
         let (jwt, disclosures) = SdJwt::parse_sd_jwt_unverified(sd_jwt)?;
 
         let issuer_certificates = jwt.extract_x5c_certificates()?;
-        let issuer_signed_jwt = VerifiedJwt::new_dangerous(jwt)?;
+        let issuer_signed_jwt = VerifiedJwt::dangerous_parse_unverified(jwt.as_ref())?;
 
         Ok(Self(SdJwt {
             issuer_signed_jwt,
@@ -613,14 +607,16 @@ impl UnsignedSdJwtPresentation {
     }
 }
 
-pub(crate) fn sd_jwt_validation() -> Validation {
+pub static SD_JWT_VALIDATIONS: LazyLock<Validation> = LazyLock::new(|| {
     let mut validation = Validation::new(Algorithm::ES256);
+
     validation.validate_aud = false;
     validation.validate_nbf = true;
     validation.leeway = 0;
     validation.required_spec_claims = HashSet::new();
+
     validation
-}
+});
 
 /// Recursively searches for the specified path in the object and disclosures, returning the digests
 /// of objects which are to be disclosed in order to disclose the specified `path.`
@@ -873,7 +869,6 @@ mod test {
 
     use http_utils::urls::HttpsUri;
     use jwt::EcdsaDecodingKey;
-    use jwt::VerifiedJwt;
     use jwt::error::JwtError;
     use utils::date_time_seconds::DateTimeSeconds;
     use utils::spec::SpecOptional;
@@ -891,6 +886,7 @@ mod test {
     use crate::sd_jwt::ClaimValue;
     use crate::sd_jwt::Error;
     use crate::sd_jwt::ObjectClaims;
+    use crate::sd_jwt::SD_JWT_VALIDATIONS;
     use crate::sd_jwt::SdJwt;
     use crate::sd_jwt::SdJwtClaims;
     use crate::sd_jwt::SdJwtPresentation;
@@ -907,7 +903,7 @@ mod test {
 
     impl UnverifiedSdJwt {
         pub fn into_verified(self, pubkey: &EcdsaDecodingKey) -> Result<VerifiedSdJwt> {
-            let issuer_signed_jwt = VerifiedJwt::try_new(self.issuer_signed.clone(), pubkey, &jwt::validations())?;
+            let issuer_signed_jwt = self.issuer_signed.clone().into_verified(pubkey, &SD_JWT_VALIDATIONS)?;
 
             let hasher = issuer_signed_jwt.payload()._sd_alg.unwrap_or_default().hasher()?;
             let disclosures = self.parse_disclosures(&hasher)?;

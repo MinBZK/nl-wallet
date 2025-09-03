@@ -38,7 +38,7 @@ impl KeyBindingJwt {
     ) -> error::Result<Self> {
         let jwt: UnverifiedJwt<KeyBindingJwtClaims> = s.parse()?;
 
-        let verified_jwt = VerifiedJwt::<KeyBindingJwtClaims>::try_new(jwt, pubkey, &kb_jwt_validation(expected_aud))?;
+        let verified_jwt = jwt.into_verified(pubkey, &kb_jwt_validation(expected_aud))?;
         if verified_jwt
             .header()
             .typ

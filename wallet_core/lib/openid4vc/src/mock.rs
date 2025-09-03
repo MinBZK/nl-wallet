@@ -181,9 +181,8 @@ where
         &issuance_data
             .pops
             .first()
-            .dangerous_parse_unverified()
+            .dangerous_parse_header_unverified()
             .unwrap()
-            .0
             .jwk
             .unwrap(),
     )

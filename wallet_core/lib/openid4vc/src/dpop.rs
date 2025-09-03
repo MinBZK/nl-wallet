@@ -162,7 +162,9 @@ impl Dpop {
     fn verify_signature(self, verifying_key: &VerifyingKey) -> Result<VerifiedJwt<DpopPayload>> {
         let mut validation_options = Validation::new(Algorithm::ES256);
         validation_options.required_spec_claims = HashSet::default();
-        let verified_jwt = VerifiedJwt::try_new(self.0, &EcdsaDecodingKey::from(verifying_key), &validation_options)?;
+        let verified_jwt = self
+            .0
+            .into_verified(&EcdsaDecodingKey::from(verifying_key), &validation_options)?;
         Ok(verified_jwt)
     }
 

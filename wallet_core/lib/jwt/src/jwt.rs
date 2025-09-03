@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
-use std::fmt::Display;
 use std::marker::PhantomData;
 use std::str::FromStr;
+use std::sync::LazyLock;
 
 use base64::prelude::*;
 use chrono::DateTime;
@@ -43,7 +43,8 @@ use crate::error::JwtX5cError;
 ///
 /// Presence of the field may be enforced using [`Validation::required_spec_claims`] and/or by including it
 /// explicitly as a field in the (de)serialized type.
-#[derive(Debug, Clone, PartialEq, Eq, SerializeDisplay, DeserializeFromStr)]
+#[derive(Debug, Clone, PartialEq, Eq, Display, SerializeDisplay, DeserializeFromStr)]
+#[display("{serialization}")]
 pub struct UnverifiedJwt<T> {
     serialization: String,
 
@@ -63,12 +64,6 @@ impl<T> FromStr for UnverifiedJwt<T> {
             payload_end,
             _payload_type: PhantomData,
         })
-    }
-}
-
-impl<T> Display for UnverifiedJwt<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.serialization)
     }
 }
 
@@ -93,6 +88,24 @@ impl<T> UnverifiedJwt<T> {
         let header: Header =
             serde_json::from_slice(&BASE64_URL_SAFE_NO_PAD.decode(&self.serialization[..header_end])?)?;
         Ok(header)
+    }
+
+    pub fn extract_x5c_certificates(&self) -> Result<Vec<BorrowingCertificate>, JwtX5cError> {
+        let header = self.dangerous_parse_header_unverified()?;
+
+        let Some(encoded_x5c) = header.x5c else {
+            return Ok(Vec::new());
+        };
+
+        encoded_x5c
+            .iter()
+            .map(|encoded_cert| {
+                BASE64_STANDARD
+                    .decode(encoded_cert)
+                    .map_err(JwtX5cError::CertificateBase64)
+                    .and_then(|bytes| BorrowingCertificate::from_der(bytes).map_err(JwtX5cError::CertificateParsing))
+            })
+            .try_collect()
     }
 
     pub fn signed_slice(&self) -> &str {
@@ -129,24 +142,6 @@ impl<T: DeserializeOwned> UnverifiedJwt<T> {
         let (_, claims) = self.parse_and_verify_with_header(pubkey, validation_options)?;
 
         Ok(claims)
-    }
-
-    pub fn extract_x5c_certificates(&self) -> Result<Vec<BorrowingCertificate>, JwtX5cError> {
-        let header = self.dangerous_parse_header_unverified()?;
-
-        let Some(encoded_x5c) = header.x5c else {
-            return Ok(Vec::new());
-        };
-
-        encoded_x5c
-            .iter()
-            .map(|encoded_cert| {
-                BASE64_STANDARD
-                    .decode(encoded_cert)
-                    .map_err(JwtX5cError::CertificateBase64)
-                    .and_then(|bytes| BorrowingCertificate::from_der(bytes).map_err(JwtX5cError::CertificateParsing))
-            })
-            .try_collect()
     }
 
     /// Verify the JWS against the provided trust anchors, using the X.509 certificate(s) present in the `x5c` JWT
@@ -188,7 +183,7 @@ impl<T: DeserializeOwned> UnverifiedJwt<T> {
 
     /// Verify the JWS against the provided trust anchors, using the X.509 certificate(s) present in the `x5c` JWT
     /// header. The required audience claim is verified as well.
-    pub fn verify_against_trust_anchors_and_audience<A: ToString>(
+    pub fn parse_and_verify_against_trust_anchors_and_audience<A: ToString>(
         &self,
         audience: &[A],
         trust_anchors: &[TrustAnchor],
@@ -212,6 +207,36 @@ impl<T: DeserializeOwned> UnverifiedJwt<T> {
 
         Ok((payload, certificates))
     }
+
+    pub fn into_verified(self, pubkey: &EcdsaDecodingKey, validation_options: &Validation) -> Result<VerifiedJwt<T>> {
+        let (header, payload) = self.parse_and_verify_with_header(pubkey, validation_options)?;
+
+        Ok(VerifiedJwt {
+            header,
+            payload,
+            jwt: self,
+        })
+    }
+
+    pub fn into_verified_against_trust_anchors(
+        self,
+        validation_options: &Validation,
+        time: &impl Generator<DateTime<Utc>>,
+        certificate_usage: CertificateUsage,
+        trust_anchors: &[TrustAnchor],
+    ) -> Result<(VerifiedJwt<T>, VecNonEmpty<BorrowingCertificate>), JwtX5cError> {
+        let (header, payload, certificates) =
+            self.parse_and_verify_against_trust_anchors(trust_anchors, time, certificate_usage, validation_options)?;
+
+        Ok((
+            VerifiedJwt {
+                header,
+                payload,
+                jwt: self,
+            },
+            certificates,
+        ))
+    }
 }
 
 /// A verified JWS, along with its header and payload.
@@ -224,35 +249,16 @@ pub struct VerifiedJwt<T> {
     jwt: UnverifiedJwt<T>,
 }
 
-impl<T> VerifiedJwt<T>
-where
-    T: DeserializeOwned,
-{
-    pub fn try_new(jwt: UnverifiedJwt<T>, pubkey: &EcdsaDecodingKey, validation_options: &Validation) -> Result<Self> {
-        let (header, payload) = jwt.parse_and_verify_with_header(pubkey, validation_options)?;
-
-        Ok(Self { header, payload, jwt })
-    }
-
-    pub fn try_new_against_trust_anchors(
-        jwt: UnverifiedJwt<T>,
-        validation_options: &Validation,
-        time: &impl Generator<DateTime<Utc>>,
-        certificate_usage: CertificateUsage,
-        trust_anchors: &[TrustAnchor],
-    ) -> Result<(Self, VecNonEmpty<BorrowingCertificate>), JwtX5cError> {
-        let (header, payload, certificates) =
-            jwt.parse_and_verify_against_trust_anchors(trust_anchors, time, certificate_usage, validation_options)?;
-
-        Ok((Self { header, payload, jwt }, certificates))
-    }
-
-    pub fn new_dangerous(jwt: UnverifiedJwt<T>) -> Result<Self> {
+impl<T: DeserializeOwned> VerifiedJwt<T> {
+    pub fn dangerous_parse_unverified(s: &str) -> Result<Self> {
+        let jwt = s.parse::<UnverifiedJwt<T>>()?;
         let (header, payload) = jwt.dangerous_parse_unverified()?;
 
         Ok(Self { header, payload, jwt })
     }
+}
 
+impl<T> VerifiedJwt<T> {
     pub fn header(&self) -> &Header {
         &self.header
     }
@@ -365,14 +371,14 @@ where
     }
 }
 
-pub fn validations() -> Validation {
+pub static DEFAULT_VALIDATIONS: LazyLock<Validation> = LazyLock::new(|| {
     let mut validation_options = Validation::new(Algorithm::ES256);
 
     validation_options.required_spec_claims.clear(); // we generally don't use `exp`, don't require it
     validation_options.leeway = 60;
 
     validation_options
-}
+});
 
 pub fn header() -> Header {
     Header {
@@ -388,15 +394,19 @@ pub struct JwtPayload<T> {
     sub: String,
 }
 
+static SUB_JWT_VALIDATIONS: LazyLock<Validation> = LazyLock::new(|| {
+    let mut validations = DEFAULT_VALIDATIONS.to_owned();
+    validations.required_spec_claims.insert("sub".to_string());
+    validations
+});
+
 impl<T> UnverifiedJwt<T>
 where
     T: Serialize + DeserializeOwned + JwtSubject,
 {
     /// Verify the JWT, and parse and return its payload.
     pub fn parse_and_verify_with_sub(&self, pubkey: &EcdsaDecodingKey) -> Result<T> {
-        let mut validation_options = validations();
-        validation_options.required_spec_claims.insert("sub".to_string());
-        self.parse_and_verify(pubkey, &validation_options)
+        self.parse_and_verify(pubkey, &SUB_JWT_VALIDATIONS)
     }
 
     pub async fn sign_with_sub(payload: &T, privkey: &impl SecureEcdsaKey) -> Result<UnverifiedJwt<T>> {
@@ -640,7 +650,7 @@ mod tests {
 
         // the JWT can be verified and parsed back into an identical value
         let parsed = jwt
-            .parse_and_verify(&private_key.verifying_key().into(), &validations())
+            .parse_and_verify(&private_key.verifying_key().into(), &DEFAULT_VALIDATIONS)
             .unwrap();
 
         assert_eq!(t, parsed);
@@ -663,7 +673,7 @@ mod tests {
 
         // we can parse and verify the JWT if we don't require the `sub` field to be present
         let parsed = jwt
-            .parse_and_verify(&private_key.verifying_key().into(), &validations())
+            .parse_and_verify(&private_key.verifying_key().into(), &DEFAULT_VALIDATIONS)
             .unwrap();
 
         assert_eq!(t, parsed);
@@ -731,7 +741,7 @@ mod tests {
 
         let audience: &[String] = &[];
         let (deserialized, certificates) = jwt
-            .verify_against_trust_anchors_and_audience(audience, &[ca.to_trust_anchor()], &TimeGenerator)
+            .parse_and_verify_against_trust_anchors_and_audience(audience, &[ca.to_trust_anchor()], &TimeGenerator)
             .unwrap();
 
         assert_eq!(deserialized, payload);
@@ -793,7 +803,7 @@ mod tests {
         // Verifying this JWT against the CA's trust anchor should succeed.
         let audience: &[String] = &[];
         let (deserialized, certificates) = jwt
-            .verify_against_trust_anchors_and_audience(audience, &[ca.to_trust_anchor()], &TimeGenerator)
+            .parse_and_verify_against_trust_anchors_and_audience(audience, &[ca.to_trust_anchor()], &TimeGenerator)
             .unwrap();
 
         assert_eq!(deserialized, payload);
@@ -812,7 +822,11 @@ mod tests {
 
         let audience: &[String] = &[];
         let err = jwt
-            .verify_against_trust_anchors_and_audience(audience, &[other_ca.to_trust_anchor()], &TimeGenerator)
+            .parse_and_verify_against_trust_anchors_and_audience(
+                audience,
+                &[other_ca.to_trust_anchor()],
+                &TimeGenerator,
+            )
             .unwrap_err();
         assert_matches!(
             err,

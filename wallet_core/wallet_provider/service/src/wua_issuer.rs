@@ -129,6 +129,7 @@ pub mod mock {
 #[cfg(test)]
 mod tests {
     use chrono::Utc;
+    use jwt::DEFAULT_VALIDATIONS;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
 
@@ -157,7 +158,7 @@ mod tests {
         let (wua_privkey, _key_id, wua) = wua_issuer.issue_wua().await.unwrap();
 
         let wua_claims = wua
-            .parse_and_verify(&wua_verifying_key.into(), &jwt::validations())
+            .parse_and_verify(&wua_verifying_key.into(), &DEFAULT_VALIDATIONS)
             .unwrap();
 
         assert_eq!(
