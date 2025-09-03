@@ -18,8 +18,11 @@ use crate::models::config::FlutterConfiguration;
 use crate::models::disclosure::AcceptDisclosureResult;
 use crate::models::disclosure::StartDisclosureResult;
 use crate::models::instruction::DisclosureBasedIssuanceResult;
+use crate::models::instruction::PidIssuanceResult;
 use crate::models::instruction::WalletInstructionResult;
+use crate::models::instruction::WalletTransferInstructionResult;
 use crate::models::pin::PinValidationResult;
+use crate::models::transfer::WalletTransferState;
 use crate::models::uri::IdentifyUriResult;
 use crate::models::version_state::FlutterVersionState;
 use crate::models::wallet_event::WalletEvent;
@@ -288,6 +291,15 @@ pub async fn accept_issuance(pin: String) -> anyhow::Result<WalletInstructionRes
 }
 
 #[flutter_api_error]
+pub async fn accept_pid_issuance(pin: String) -> anyhow::Result<PidIssuanceResult> {
+    let mut wallet = wallet().write().await;
+
+    let result = wallet.accept_issuance(pin).await.try_into()?;
+
+    Ok(result)
+}
+
+#[flutter_api_error]
 pub async fn has_active_issuance_session() -> anyhow::Result<bool> {
     let wallet = wallet().read().await;
 
@@ -384,22 +396,19 @@ pub async fn init_wallet_transfer(_uri: String) -> anyhow::Result<()> {
 }
 
 #[flutter_api_error]
-pub async fn is_wallet_transfer_possible(_pin: String) -> anyhow::Result<bool> {
-    Ok(false)
-}
-
-#[flutter_api_error]
-pub async fn generate_wallet_transfer_uri() -> anyhow::Result<String> {
-    Ok(String::from("https://example.com"))
-}
-
-#[flutter_api_error]
-pub async fn start_wallet_transfer(_pin: String) -> anyhow::Result<WalletInstructionResult> {
+pub async fn confirm_wallet_transfer(_pin: String) -> anyhow::Result<WalletInstructionResult> {
     Ok(WalletInstructionResult::Ok)
 }
 
 #[flutter_api_error]
-pub async fn get_wallet_transfer_state_stream(_sink: StreamSink<()>) -> anyhow::Result<()> {
+pub async fn start_wallet_transfer(_pin: String) -> anyhow::Result<WalletTransferInstructionResult> {
+    Ok(WalletTransferInstructionResult::Ok {
+        transfer_uri: "https://example.com".into(),
+    })
+}
+
+#[flutter_api_error]
+pub async fn get_wallet_transfer_state_stream(_sink: StreamSink<WalletTransferState>) -> anyhow::Result<()> {
     Ok(())
 }
 

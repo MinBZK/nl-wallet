@@ -1,3 +1,4 @@
+use wallet::IssuanceResult;
 use wallet::errors::ChangePinError;
 use wallet::errors::DisclosureBasedIssuanceError;
 use wallet::errors::DisclosureError;
@@ -9,6 +10,16 @@ use super::attestation::AttestationPresentation;
 
 pub enum WalletInstructionResult {
     Ok,
+    InstructionError { error: WalletInstructionError },
+}
+
+pub enum WalletTransferInstructionResult {
+    Ok { transfer_uri: String },
+    InstructionError { error: WalletInstructionError },
+}
+
+pub enum PidIssuanceResult {
+    Ok { transfer_available: bool },
     InstructionError { error: WalletInstructionError },
 }
 
@@ -78,13 +89,34 @@ impl TryFrom<Result<(), WalletUnlockError>> for WalletInstructionResult {
 ///    the nested [InstructionError].
 /// 3. In any other cases, this is an unexpected and/or generic error and the [`PidIssuanceError`] will be returned
 ///    unchanged.
-impl TryFrom<Result<(), IssuanceError>> for WalletInstructionResult {
+impl TryFrom<Result<IssuanceResult, IssuanceError>> for WalletInstructionResult {
     type Error = IssuanceError;
 
-    fn try_from(value: Result<(), IssuanceError>) -> Result<Self, Self::Error> {
+    fn try_from(value: Result<IssuanceResult, IssuanceError>) -> Result<Self, Self::Error> {
         match value {
             Ok(_) => Ok(WalletInstructionResult::Ok),
             Err(IssuanceError::Instruction(instruction_error)) => Ok(WalletInstructionResult::InstructionError {
+                error: instruction_error.try_into().map_err(IssuanceError::Instruction)?,
+            }),
+            Err(error) => Err(error),
+        }
+    }
+}
+
+/// This conversion distinguishes between 3 distinct cases:
+///
+/// 1. In case of a successful result, [`PidIssuanceResult::Ok`] will be returned.
+/// 2. In case of an expected and/or specific error case a different variant of [`PidIssuanceResult`] by mapping the
+///    nested [InstructionError].
+/// 3. In any other cases, this is an unexpected and/or generic error and the [`PidIssuanceError`] will be returned
+///    unchanged.
+impl TryFrom<Result<IssuanceResult, IssuanceError>> for PidIssuanceResult {
+    type Error = IssuanceError;
+
+    fn try_from(value: Result<IssuanceResult, IssuanceError>) -> Result<Self, Self::Error> {
+        match value {
+            Ok(IssuanceResult { transfer_available }) => Ok(PidIssuanceResult::Ok { transfer_available }),
+            Err(IssuanceError::Instruction(instruction_error)) => Ok(PidIssuanceResult::InstructionError {
                 error: instruction_error.try_into().map_err(IssuanceError::Instruction)?,
             }),
             Err(error) => Err(error),

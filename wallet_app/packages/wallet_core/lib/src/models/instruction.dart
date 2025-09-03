@@ -25,6 +25,18 @@ sealed class DisclosureBasedIssuanceResult with _$DisclosureBasedIssuanceResult 
 }
 
 @freezed
+sealed class PidIssuanceResult with _$PidIssuanceResult {
+  const PidIssuanceResult._();
+
+  const factory PidIssuanceResult.ok({
+    required bool transferAvailable,
+  }) = PidIssuanceResult_Ok;
+  const factory PidIssuanceResult.instructionError({
+    required WalletInstructionError error,
+  }) = PidIssuanceResult_InstructionError;
+}
+
+@freezed
 sealed class WalletInstructionError with _$WalletInstructionError {
   const WalletInstructionError._();
 
@@ -46,4 +58,16 @@ sealed class WalletInstructionResult with _$WalletInstructionResult {
   const factory WalletInstructionResult.instructionError({
     required WalletInstructionError error,
   }) = WalletInstructionResult_InstructionError;
+}
+
+@freezed
+sealed class WalletTransferInstructionResult with _$WalletTransferInstructionResult {
+  const WalletTransferInstructionResult._();
+
+  const factory WalletTransferInstructionResult.ok({
+    required String transferUri,
+  }) = WalletTransferInstructionResult_Ok;
+  const factory WalletTransferInstructionResult.instructionError({
+    required WalletInstructionError error,
+  }) = WalletTransferInstructionResult_InstructionError;
 }

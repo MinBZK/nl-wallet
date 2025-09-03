@@ -80,6 +80,11 @@ class WalletCoreMock implements WalletCoreApi {
   }
 
   @override
+  Future<PidIssuanceResult> crateApiFullAcceptPidIssuance({required String pin}) {
+    throw UnimplementedError();
+  }
+
+  @override
   Future<void> crateApiFullCancelIssuance() async => _issuanceManager.cancelIssuance();
 
   @override
@@ -296,27 +301,22 @@ class WalletCoreMock implements WalletCoreApi {
   }
 
   @override
-  Future<String> crateApiFullGenerateWalletTransferUri() {
-    throw UnimplementedError();
-  }
-
-  @override
-  Stream<void> crateApiFullGetWalletTransferStateStream() {
-    throw UnimplementedError();
-  }
-
-  @override
   Future<void> crateApiFullInitWalletTransfer({required String uri}) {
     throw UnimplementedError();
   }
 
   @override
-  Future<bool> crateApiFullIsWalletTransferPossible({required String pin}) {
+  Future<WalletInstructionResult> crateApiFullConfirmWalletTransfer({required String pin}) {
     throw UnimplementedError();
   }
 
   @override
-  Future<WalletInstructionResult> crateApiFullStartWalletTransfer({required String pin}) {
+  Future<WalletTransferInstructionResult> crateApiFullStartWalletTransfer({required String pin}) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Stream<WalletTransferState> crateApiFullGetWalletTransferStateStream() {
     throw UnimplementedError();
   }
 }

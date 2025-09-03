@@ -17,6 +17,7 @@ pub mod image;
 pub mod instruction;
 pub mod localize;
 pub mod pin;
+pub mod transfer;
 pub mod uri;
 pub mod version_state;
 pub mod wallet_event;
