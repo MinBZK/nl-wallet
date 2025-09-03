@@ -265,6 +265,7 @@ mod tests {
     use std::sync::Arc;
 
     use assert_matches::assert_matches;
+    use chrono::Utc;
     use http::StatusCode;
     use mockall::predicate::*;
     use p256::ecdsa::SigningKey;
@@ -390,7 +391,7 @@ mod tests {
         let result_claims = InstructionResultClaims {
             result: (),
             iss: "wallet_unit_test".to_string(),
-            iat: jsonwebtoken::get_current_timestamp(),
+            iat: Utc::now(),
         };
         let result = UnverifiedJwt::sign_with_sub(&result_claims, &ACCOUNT_SERVER_KEYS.instruction_result_signing_key)
             .await
@@ -644,7 +645,7 @@ mod tests {
         let result_claims = InstructionResultClaims {
             result: (),
             iss: "wallet_unit_test".to_string(),
-            iat: jsonwebtoken::get_current_timestamp(),
+            iat: Utc::now(),
         };
         let other_key = SigningKey::random(&mut OsRng);
         let result = UnverifiedJwt::sign_with_sub(&result_claims, &other_key).await.unwrap();

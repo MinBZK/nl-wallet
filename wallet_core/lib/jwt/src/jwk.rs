@@ -2,8 +2,9 @@ use base64::prelude::*;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::Header;
 use jsonwebtoken::jwk;
+pub use jsonwebtoken::jwk::AlgorithmParameters;
 use jsonwebtoken::jwk::EllipticCurve;
-use jsonwebtoken::jwk::Jwk;
+pub use jsonwebtoken::jwk::Jwk;
 use p256::EncodedPoint;
 use p256::ecdsa::VerifyingKey;
 

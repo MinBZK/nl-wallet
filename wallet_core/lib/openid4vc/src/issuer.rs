@@ -14,8 +14,8 @@ use derive_more::From;
 use futures::future::try_join_all;
 use indexmap::IndexMap;
 use itertools::Itertools;
-use jsonwebtoken::Algorithm;
-use jsonwebtoken::Validation;
+use jwt::Algorithm;
+use jwt::Validation;
 use p256::ecdsa::VerifyingKey;
 use reqwest::Method;
 use serde::Deserialize;
@@ -43,7 +43,6 @@ use jwt::EcdsaDecodingKey;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
 use jwt::jwk::jwk_to_p256;
-use jwt::pop::JwtPopClaims;
 use jwt::wua::WuaDisclosure;
 use jwt::wua::WuaError;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
@@ -159,9 +158,6 @@ pub enum CredentialRequestError {
         found.as_ref().unwrap_or(&"<None>".to_string())
     )]
     UnsupportedJwtAlgorithm { expected: String, found: Option<String> },
-
-    #[error("JWT decoding failed: {0}")]
-    JwtDecodingFailed(#[from] jsonwebtoken::errors::Error),
 
     #[error("JWK conversion error: {0}")]
     JwkConversion(#[from] JwkConversionError),
@@ -1260,19 +1256,16 @@ impl CredentialRequestProof {
         validation_options.set_audience(&[credential_issuer_identifier]);
 
         // We use `jsonwebtoken` crate directly instead of our `Jwt` because we need to inspect the header
-        let token_data = jsonwebtoken::decode::<JwtPopClaims>(
-            jwt.as_ref(),
-            &EcdsaDecodingKey::from(&verifying_key).0,
-            &validation_options,
-        )?;
+        let (header, payload) =
+            jwt.parse_and_verify_with_header(&EcdsaDecodingKey::from(&verifying_key), &validation_options)?;
 
-        if token_data.header.typ != Some(OPENID4VCI_VC_POP_JWT_TYPE.to_string()) {
+        if header.typ != Some(OPENID4VCI_VC_POP_JWT_TYPE.to_string()) {
             return Err(CredentialRequestError::UnsupportedJwtAlgorithm {
                 expected: OPENID4VCI_VC_POP_JWT_TYPE.to_string(),
-                found: token_data.header.typ,
+                found: header.typ,
             });
         }
-        if token_data.claims.nonce.as_deref() != Some(nonce) {
+        if payload.nonce.as_deref() != Some(nonce) {
             return Err(CredentialRequestError::IncorrectNonce);
         }
 

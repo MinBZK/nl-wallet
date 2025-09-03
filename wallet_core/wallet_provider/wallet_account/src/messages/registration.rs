@@ -1,3 +1,6 @@
+use chrono::DateTime;
+use chrono::Utc;
+use chrono::serde::ts_seconds;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::base64::Base64;
@@ -60,7 +63,9 @@ pub struct WalletCertificateClaims {
     pub version: u32,
 
     pub iss: String,
-    pub iat: u64,
+
+    #[serde(with = "ts_seconds")]
+    pub iat: DateTime<Utc>,
 }
 
 impl JwtSubject for WalletCertificateClaims {

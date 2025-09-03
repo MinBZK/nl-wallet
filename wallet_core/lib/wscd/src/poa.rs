@@ -3,20 +3,20 @@ use std::collections::HashSet;
 use derive_more::AsRef;
 use derive_more::From;
 use futures::future::try_join_all;
-use jsonwebtoken::Algorithm;
-use jsonwebtoken::Header;
-use jsonwebtoken::jwk;
-use jsonwebtoken::jwk::Jwk;
 use p256::ecdsa::VerifyingKey;
 use serde::Deserialize;
 use serde::Serialize;
 
 use crypto::keys::EcdsaKey;
 use crypto::wscd::WscdPoa;
+use jwt::Algorithm;
 use jwt::DEFAULT_VALIDATIONS;
+use jwt::Header;
 use jwt::JsonJwt;
 use jwt::UnverifiedJwt;
 use jwt::error::JwtError;
+use jwt::jwk::AlgorithmParameters;
+use jwt::jwk::Jwk;
 use jwt::jwk::jwk_alg_from_p256;
 use jwt::jwk::jwk_from_p256;
 use jwt::jwk::jwk_to_p256;
@@ -143,7 +143,7 @@ impl Poa {
         // since it implements Hash, unlike `VerifyingKey`. When comparing if two keys are equal, this type takes
         // exactly the right information into account (the EC curve identifier as well as the x and y coordinates),
         // while discarding irrelevant other keys from the JWK (e.g. `kid`, `x5c` and friends, `use`, `alg`).
-        let associated_keys: HashSet<jwk::AlgorithmParameters> =
+        let associated_keys: HashSet<AlgorithmParameters> =
             payload.jwks.into_inner().into_iter().map(|key| key.algorithm).collect();
         for key in expected_keys {
             let expected_key = jwk_alg_from_p256(key)?;

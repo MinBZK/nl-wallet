@@ -311,6 +311,7 @@ pub mod mock {
 #[cfg(test)]
 mod test {
     use assert_matches::assert_matches;
+    use chrono::Utc;
     use mockall::predicate::eq;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
@@ -346,7 +347,7 @@ mod test {
             pin_pubkey_hash: crypto::utils::random_bytes(32),
             version: 0,
             iss: "pin_change_unit_test".to_string(),
-            iat: jsonwebtoken::get_current_timestamp(),
+            iat: Utc::now(),
         };
 
         let wallet_certificate = UnverifiedJwt::sign_with_sub(&certificate_claims, &certificate_signing_key)

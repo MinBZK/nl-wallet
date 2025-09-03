@@ -46,8 +46,6 @@ use chrono::serde::ts_seconds;
 use derive_more::AsRef;
 use derive_more::Display;
 use derive_more::FromStr;
-use jsonwebtoken::Algorithm;
-use jsonwebtoken::Validation;
 use p256::ecdsa::VerifyingKey;
 use reqwest::Method;
 use serde::Deserialize;
@@ -62,8 +60,10 @@ use url::Url;
 use crypto::keys::EcdsaKey;
 use crypto::utils::random_string;
 use error_category::ErrorCategory;
+use jwt::Algorithm;
 use jwt::EcdsaDecodingKey;
 use jwt::UnverifiedJwt;
+use jwt::Validation;
 use jwt::VerifiedJwt;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
@@ -105,9 +105,6 @@ pub enum DpopError {
     IncorrectJwkPublicKey,
     #[error("failed to convert key from/to JWK format: {0}")]
     JwkConversion(#[from] JwkConversionError),
-    #[error("JWT decoding failed: {0}")]
-    #[category(pd)]
-    JwtDecodingFailed(#[from] jsonwebtoken::errors::Error),
     #[error("JWT error: {0}")]
     Jwt(#[from] JwtError),
 }
@@ -241,13 +238,14 @@ impl Dpop {
 #[cfg(test)]
 mod tests {
     use base64::prelude::*;
-    use jsonwebtoken::Header;
     use p256::ecdsa::SigningKey;
     use p256::elliptic_curve::rand_core::OsRng;
     use reqwest::Method;
     use rstest::rstest;
     use serde::de::DeserializeOwned;
     use url::Url;
+
+    use jwt::Header;
 
     use crate::dpop::DpopPayload;
     use crate::dpop::OPENID4VCI_DPOP_JWT_TYPE;

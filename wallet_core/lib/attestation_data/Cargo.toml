@@ -22,7 +22,6 @@ coset = { workspace = true, features = ["std"] }
 derive_more = { workspace = true, features = ["debug", "display"] }
 indexmap = { workspace = true, features = ["serde"] }
 itertools.workspace = true
-jsonwebtoken.workspace = true
 p256.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true

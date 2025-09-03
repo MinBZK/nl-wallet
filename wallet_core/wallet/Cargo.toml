@@ -87,7 +87,6 @@ apple_app_attest = { path = "../lib/apple_app_attest", optional = true }
 [dev-dependencies]
 aes-gcm = { workspace = true, features = ["std"] }
 assert_matches.workspace = true
-jsonwebtoken.workspace = true
 mockall.workspace = true
 rand_core.workspace = true
 rstest.workspace = true

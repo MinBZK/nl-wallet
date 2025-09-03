@@ -9,9 +9,11 @@ use axum::Json;
 use axum::Router;
 use axum::routing::post;
 use ctor::ctor;
-use jsonwebtoken::Algorithm;
-use jsonwebtoken::EncodingKey;
-use jsonwebtoken::Header;
+use jwt::Algorithm;
+use jwt::Header;
+use jwt::UnverifiedJwt;
+use p256::ecdsa::SigningKey;
+use p256::pkcs8::DecodePrivateKey;
 use reqwest::Certificate;
 use rustls::crypto::CryptoProvider;
 use rustls::crypto::ring;
@@ -254,7 +256,7 @@ pub async fn setup_wallet_and_env(
     served_wallet_config.update_policy_server.http_config.base_url = local_ups_base_url(ups_port);
     served_wallet_config.update_policy_server.http_config.trust_anchors = vec![ups_root_ca.clone()];
 
-    cs_settings.wallet_config_jwt = config_jwt(&served_wallet_config);
+    cs_settings.wallet_config_jwt = config_jwt(&served_wallet_config).await;
 
     let cs_port = start_config_server(cs_settings, cs_root_ca.clone()).await;
     let config_server_config = ConfigServerConfiguration {
@@ -329,18 +331,20 @@ pub fn update_policy_server_settings() -> (UpsSettings, ReqwestTrustAnchor) {
     (settings, root_ca)
 }
 
-pub fn config_jwt(wallet_config: &WalletConfiguration) -> String {
+pub async fn config_jwt(wallet_config: &WalletConfiguration) -> String {
     let key = read_file("config_signing.pem");
 
-    jsonwebtoken::encode(
+    UnverifiedJwt::sign(
+        wallet_config,
         &Header {
             alg: Algorithm::ES256,
             ..Default::default()
         },
-        wallet_config,
-        &EncodingKey::from_ec_pem(&key).unwrap(),
+        &SigningKey::from_pkcs8_pem(&String::from_utf8_lossy(&key)).unwrap(),
     )
+    .await
     .unwrap()
+    .to_string()
 }
 
 pub fn wallet_provider_settings() -> (WpSettings, ReqwestTrustAnchor) {

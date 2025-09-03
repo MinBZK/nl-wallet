@@ -1,7 +1,6 @@
-use jsonwebtoken::jwk;
-
 use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
+use jwt::jwk::AlgorithmParameters;
 
 use crate::POA_JWT_TYP;
 
@@ -30,5 +29,5 @@ pub enum PoaVerificationError {
     #[error("typ field of PoA header had unexpected value: expected 'Some({POA_JWT_TYP})', found '{0:?}'")]
     IncorrectTyp(Option<String>),
     #[error("key missing in PoA: {0:?}")]
-    MissingKey(jwk::AlgorithmParameters),
+    MissingKey(AlgorithmParameters),
 }

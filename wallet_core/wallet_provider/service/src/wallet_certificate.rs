@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use chrono::Utc;
 use p256::ecdsa::VerifyingKey;
 use p256::pkcs8::EncodePublicKey;
 use tracing::debug;
@@ -48,7 +49,7 @@ where
         version: WALLET_CERTIFICATE_VERSION,
 
         iss: issuer,
-        iat: jsonwebtoken::get_current_timestamp(),
+        iat: Utc::now(),
     };
 
     UnverifiedJwt::sign_with_sub(&cert, wallet_certificate_signing_key)

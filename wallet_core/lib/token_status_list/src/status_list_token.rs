@@ -11,8 +11,6 @@ use chrono::Utc;
 use chrono::serde::ts_seconds;
 use chrono::serde::ts_seconds_option;
 use derive_more::FromStr;
-use jsonwebtoken::Algorithm;
-use jsonwebtoken::Header;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::DurationSeconds;
@@ -20,6 +18,8 @@ use serde_with::serde_as;
 
 use crypto::EcdsaKey;
 use http_utils::urls::HttpsUri;
+use jwt::Algorithm;
+use jwt::Header;
 use jwt::UnverifiedJwt;
 use jwt::error::JwtError;
 

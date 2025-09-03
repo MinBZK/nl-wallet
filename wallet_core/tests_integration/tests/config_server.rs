@@ -1,10 +1,11 @@
 use std::env;
 
 use assert_matches::assert_matches;
-use jsonwebtoken::Algorithm;
-use jsonwebtoken::EncodingKey;
-use jsonwebtoken::Header;
+use jwt::Algorithm;
+use jwt::Header;
+use jwt::UnverifiedJwt;
 use p256::ecdsa::SigningKey;
+use p256::pkcs8::DecodePrivateKey;
 use p256::pkcs8::EncodePrivateKey;
 use rand_core::OsRng;
 use regex::Regex;
@@ -32,7 +33,7 @@ async fn test_wallet_config() {
     served_wallet_config.version = 2;
 
     let (mut cs_settings, cs_root_ca) = config_server_settings();
-    cs_settings.wallet_config_jwt = config_jwt(&served_wallet_config);
+    cs_settings.wallet_config_jwt = config_jwt(&served_wallet_config).await;
     let port = start_config_server(cs_settings, cs_root_ca.clone()).await;
 
     let config_server_config = ConfigServerConfiguration {
@@ -82,7 +83,7 @@ async fn test_wallet_config_stale() {
     served_wallet_config.account_server.http_config.base_url = local_wp_base_url(settings.webserver.port);
 
     let (mut cs_settings, cs_root_ca) = config_server_settings();
-    cs_settings.wallet_config_jwt = config_jwt(&served_wallet_config);
+    cs_settings.wallet_config_jwt = config_jwt(&served_wallet_config).await;
     let port = start_config_server(cs_settings, cs_root_ca.clone()).await;
 
     let config_server_config = ConfigServerConfiguration {
@@ -122,17 +123,18 @@ async fn test_wallet_config_signature_verification_failed() {
     let (mut cs_settings, cs_root_ca) = config_server_settings();
     let signing_key = SigningKey::random(&mut OsRng);
     let pkcs8_der = signing_key.to_pkcs8_der().unwrap();
-    let jwt = jsonwebtoken::encode(
+    let jwt = UnverifiedJwt::sign(
+        &served_wallet_config,
         &Header {
             alg: Algorithm::ES256,
             ..Default::default()
         },
-        &served_wallet_config,
-        &EncodingKey::from_ec_der(pkcs8_der.as_bytes()),
+        &SigningKey::from_pkcs8_der(pkcs8_der.as_bytes()).unwrap(),
     )
+    .await
     .unwrap();
     // Serve a wallet configuration as JWT signed by a random key
-    cs_settings.wallet_config_jwt = jwt;
+    cs_settings.wallet_config_jwt = jwt.to_string();
     let port = start_config_server(cs_settings, cs_root_ca.clone()).await;
 
     let config_server_config = ConfigServerConfiguration {

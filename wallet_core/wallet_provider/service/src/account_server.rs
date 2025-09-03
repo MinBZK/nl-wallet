@@ -7,6 +7,7 @@ use std::time::Duration;
 use base64::prelude::*;
 use chrono::DateTime;
 use chrono::Utc;
+use chrono::serde::ts_seconds;
 use derive_more::Constructor;
 use futures::try_join;
 use itertools::Itertools;
@@ -322,7 +323,9 @@ impl From<PinPolicyEvaluation> for InstructionError {
 #[derive(Serialize, Deserialize, Debug)]
 struct RegistrationChallengeClaims {
     wallet_id: String,
-    exp: u64,
+
+    #[serde(with = "ts_seconds")]
+    pub exp: DateTime<Utc>,
 
     /// Random bytes to serve as the actual challenge for the wallet to sign.
     #[serde_as(as = "Base64")]
@@ -425,7 +428,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             &RegistrationChallengeClaims {
                 wallet_id: crypto::utils::random_string(32),
                 random: crypto::utils::random_bytes(32),
-                exp: jsonwebtoken::get_current_timestamp() + 60,
+                exp: (Utc::now() + Duration::from_secs(60)),
             },
             certificate_signing_key,
         )
@@ -1122,7 +1125,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         let claims = InstructionResultClaims {
             result,
             iss: self.name.to_string(),
-            iat: jsonwebtoken::get_current_timestamp(),
+            iat: Utc::now(),
         };
 
         UnverifiedJwt::sign_with_sub(&claims, instruction_result_signing_key)

@@ -16,7 +16,6 @@ base64.workspace = true
 chrono.workspace = true
 derive_more = { workspace = true, features = ["as_ref"] }
 flate2.workspace = true
-jsonwebtoken.workspace = true
 rstest.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
