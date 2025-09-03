@@ -1,22 +1,19 @@
-use std::collections::HashMap;
-
 use itertools::Itertools;
 
-use dcql::CredentialQueryIdentifier;
 use dcql::normalized::NormalizedCredentialRequests;
 use mdoc::test::TestDocument;
 use mdoc::test::TestDocuments;
 use utils::vec_at_least::VecNonEmpty;
 
-use crate::disclosure::DisclosedAttestation;
+use crate::disclosure::DisclosedAttestations;
 use crate::disclosure::DisclosedAttributes;
 
 pub fn test_documents_assert_matches_disclosed_attestations(
     test_documents: &TestDocuments,
-    mut disclosed_attestations: HashMap<CredentialQueryIdentifier, VecNonEmpty<DisclosedAttestation>>,
+    disclosed_attestations: &VecNonEmpty<DisclosedAttestations>,
 ) {
     // Verify the number of responses.
-    assert_eq!(disclosed_attestations.len(), test_documents.len());
+    assert_eq!(disclosed_attestations.len().get(), test_documents.len());
 
     let requests = NormalizedCredentialRequests::from(test_documents.clone());
 
@@ -32,8 +29,11 @@ pub fn test_documents_assert_matches_disclosed_attestations(
     ) in documents.iter().zip_eq(requests.as_ref())
     {
         let attestations = disclosed_attestations
-            .remove(&request.id)
-            .expect("disclosed attestations should include credential query identifier");
+            .iter()
+            .find(|attestations| attestations.id == request.id)
+            .expect("disclosed attestations should include credential query identifier")
+            .attestations
+            .clone();
 
         // The response should contain exactly one attestation.
         assert_eq!(attestations.len().get(), 1);

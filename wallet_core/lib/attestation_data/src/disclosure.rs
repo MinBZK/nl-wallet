@@ -5,10 +5,12 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use crypto::x509::CertificateError;
+use dcql::CredentialQueryIdentifier;
 use http_utils::urls::HttpsUri;
 use mdoc::DataElementIdentifier;
 use mdoc::DataElementValue;
 use mdoc::NameSpace;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::attributes::AttributeError;
 use crate::attributes::AttributeValue;
@@ -119,6 +121,14 @@ pub struct DisclosedAttestation {
     /// The issuer CA's common name
     pub ca: String,
     pub validity_info: ValidityInfo,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DisclosedAttestations {
+    /// The identifier of the [`dcql::CredentialQuery`] that this attestation is a disclosure of.
+    pub id: CredentialQueryIdentifier,
+
+    pub attestations: VecNonEmpty<DisclosedAttestation>,
 }
 
 impl TryFrom<mdoc::verifier::DisclosedDocument> for DisclosedAttestation {

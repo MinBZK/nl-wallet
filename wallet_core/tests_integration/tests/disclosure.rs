@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::collections::HashSet;
 
 use assert_matches::assert_matches;
@@ -7,9 +6,8 @@ use rstest::rstest;
 use serial_test::serial;
 use url::Url;
 
-use attestation_data::disclosure::DisclosedAttestation;
+use attestation_data::disclosure::DisclosedAttestations;
 use attestation_data::test_document::test_documents_assert_matches_disclosed_attestations;
-use dcql::CredentialQueryIdentifier;
 use dcql::Query;
 use http_utils::error::HttpJsonErrorBody;
 use mdoc::test::TestDocuments;
@@ -218,12 +216,9 @@ async fn test_disclosure_usecases_ok(
     let status = response.status();
     assert_eq!(status, StatusCode::OK);
 
-    let disclosed_documents = response
-        .json::<HashMap<CredentialQueryIdentifier, VecNonEmpty<DisclosedAttestation>>>()
-        .await
-        .unwrap();
+    let disclosed_documents = response.json::<VecNonEmpty<DisclosedAttestations>>().await.unwrap();
 
-    test_documents_assert_matches_disclosed_attestations(&expected_documents, disclosed_documents);
+    test_documents_assert_matches_disclosed_attestations(&expected_documents, &disclosed_documents);
 }
 
 #[tokio::test]

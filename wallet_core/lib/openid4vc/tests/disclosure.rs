@@ -25,6 +25,7 @@ use url::Url;
 use attestation_data::attributes::AttributeValue;
 use attestation_data::auth::reader_auth::ReaderRegistration;
 use attestation_data::disclosure::DisclosedAttestation;
+use attestation_data::disclosure::DisclosedAttestations;
 use attestation_data::disclosure::DisclosedAttributes;
 use attestation_data::test_document::test_documents_assert_matches_disclosed_attestations;
 use attestation_data::x509::generate::mock::generate_reader_mock;
@@ -103,11 +104,11 @@ use wscd::wscd::JwtPoaInput;
 use wscd::wscd::Wscd;
 
 fn assert_disclosed_attestations_mdoc_pid(
-    disclosed_attestations: &HashMap<CredentialQueryIdentifier, VecNonEmpty<DisclosedAttestation>>,
+    disclosed_attestations: &IndexMap<CredentialQueryIdentifier, VecNonEmpty<DisclosedAttestation>>,
 ) {
     assert_eq!(disclosed_attestations.len(), 1);
     let disclosed_attestation = disclosed_attestations
-        .get(&"pid".try_into().unwrap())
+        .get(&CredentialQueryIdentifier::try_from("pid").unwrap())
         .expect("disclosed attestations should include pid")
         .iter()
         .exactly_one()
@@ -374,7 +375,7 @@ impl DisclosureResultHandler for MockDisclosureResultHandler {
     async fn disclosure_result(
         &self,
         _usecase_id: &str,
-        _disclosed: &HashMap<CredentialQueryIdentifier, VecNonEmpty<DisclosedAttestation>>,
+        _disclosed: &IndexMap<CredentialQueryIdentifier, VecNonEmpty<DisclosedAttestation>>,
     ) -> Result<HashMap<String, String>, DisclosureResultHandlerError> {
         Ok(self
             .key
@@ -572,9 +573,14 @@ async fn test_client_and_server(
     let disclosed_attestations = verifier
         .disclosed_attributes(&session_token, redirect_uri_nonce)
         .await
+        .unwrap()
+        .into_iter()
+        .map(|(id, attestations)| DisclosedAttestations { id, attestations })
+        .collect_vec()
+        .try_into()
         .unwrap();
 
-    test_documents_assert_matches_disclosed_attestations(&expected_documents, disclosed_attestations);
+    test_documents_assert_matches_disclosed_attestations(&expected_documents, &disclosed_attestations);
 }
 
 #[tokio::test]

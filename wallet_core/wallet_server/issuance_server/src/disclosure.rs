@@ -2,9 +2,11 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use indexmap::IndexMap;
 use itertools::Itertools;
 
 use attestation_data::disclosure::DisclosedAttestation;
+use attestation_data::disclosure::DisclosedAttestations;
 use attestation_data::issuable_document::IssuableDocument;
 use dcql::CredentialQueryIdentifier;
 use http_utils::reqwest::IntoPinnedReqwestClient;
@@ -43,7 +45,7 @@ pub trait AttributesFetcher {
     async fn attributes(
         &self,
         usecase_id: &str,
-        disclosed: &HashMap<CredentialQueryIdentifier, VecNonEmpty<DisclosedAttestation>>,
+        disclosed: &IndexMap<CredentialQueryIdentifier, VecNonEmpty<DisclosedAttestation>>,
     ) -> Result<Vec<IssuableDocument>, Self::Error>;
 }
 
@@ -68,15 +70,21 @@ impl AttributesFetcher for HttpAttributesFetcher {
     async fn attributes(
         &self,
         usecase_id: &str,
-        disclosed: &HashMap<CredentialQueryIdentifier, VecNonEmpty<DisclosedAttestation>>,
+        disclosed: &IndexMap<CredentialQueryIdentifier, VecNonEmpty<DisclosedAttestation>>,
     ) -> Result<Vec<IssuableDocument>, Self::Error> {
         let http_client = self
             .urls
             .get(usecase_id)
             .ok_or_else(|| AttributesFetcherError::UnknownUsecase(usecase_id.to_string()))?;
 
+        let disclosed = disclosed
+            .clone()
+            .into_iter()
+            .map(|(id, attestations)| DisclosedAttestations { id, attestations })
+            .collect_vec();
+
         let to_issue = http_client
-            .send_custom_post(ReqwestClientUrl::Base, |request| request.json(disclosed))
+            .send_custom_post(ReqwestClientUrl::Base, |request| request.json(&disclosed))
             .await?
             .error_for_status()?
             .json()
@@ -129,7 +137,7 @@ where
     async fn disclosure_result(
         &self,
         usecase_id: &str,
-        disclosed: &HashMap<CredentialQueryIdentifier, VecNonEmpty<DisclosedAttestation>>,
+        disclosed: &IndexMap<CredentialQueryIdentifier, VecNonEmpty<DisclosedAttestation>>,
     ) -> Result<HashMap<String, String>, DisclosureResultHandlerError> {
         let to_issue = self
             .attributes_fetcher
@@ -217,8 +225,8 @@ mod tests {
 
     fn mock_disclosed_attrs(
         attestation_type: String,
-    ) -> HashMap<CredentialQueryIdentifier, VecNonEmpty<DisclosedAttestation>> {
-        HashMap::from([(
+    ) -> IndexMap<CredentialQueryIdentifier, VecNonEmpty<DisclosedAttestation>> {
+        IndexMap::from([(
             "id".try_into().unwrap(),
             vec_nonempty![DisclosedAttestation {
                 attestation_type,
@@ -240,7 +248,7 @@ mod tests {
         async fn attributes(
             &self,
             _usecase_id: &str,
-            disclosed: &HashMap<CredentialQueryIdentifier, VecNonEmpty<DisclosedAttestation>>,
+            disclosed: &IndexMap<CredentialQueryIdentifier, VecNonEmpty<DisclosedAttestation>>,
         ) -> Result<Vec<IssuableDocument>, Self::Error> {
             // Insert the received attribute type into the issuable document to demonstrate that the
             // issued attributes can depend on the disclosed attributes.
@@ -268,7 +276,7 @@ mod tests {
         async fn attributes(
             &self,
             _usecase_id: &str,
-            _disclosed: &HashMap<CredentialQueryIdentifier, VecNonEmpty<DisclosedAttestation>>,
+            _disclosed: &IndexMap<CredentialQueryIdentifier, VecNonEmpty<DisclosedAttestation>>,
         ) -> Result<Vec<IssuableDocument>, Self::Error> {
             Ok(self.0.clone())
         }

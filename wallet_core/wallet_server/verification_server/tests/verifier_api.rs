@@ -25,7 +25,7 @@ use url::Url;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::auth::reader_auth::ReaderRegistration;
 use attestation_data::credential_payload::CredentialPayload;
-use attestation_data::disclosure::DisclosedAttestation;
+use attestation_data::disclosure::DisclosedAttestations;
 use attestation_data::x509::generate::mock::generate_issuer_mock;
 use attestation_data::x509::generate::mock::generate_reader_mock;
 use crypto::mock_remote::MockRemoteEcdsaKey;
@@ -1009,13 +1009,14 @@ async fn perform_full_disclosure(session_type: SessionType) -> (Client, SessionT
     (client, session_token, internal_url, return_url)
 }
 
-fn check_example_disclosed_attributes(
-    disclosed_attributes: &HashMap<CredentialQueryIdentifier, VecNonEmpty<DisclosedAttestation>>,
-) {
-    assert_eq!(disclosed_attributes.len(), 1);
+fn check_example_disclosed_attributes(disclosed_attributes: &VecNonEmpty<DisclosedAttestations>) {
+    assert_eq!(disclosed_attributes.len().get(), 1);
     let attestations = disclosed_attributes
-        .get(&EXAMPLE_PID_START_DISCLOSURE_REQUEST_ID)
-        .unwrap();
+        .iter()
+        .find(|attestations| attestations.id == *EXAMPLE_PID_START_DISCLOSURE_REQUEST_ID)
+        .unwrap()
+        .attestations
+        .clone();
 
     itertools::assert_equal(
         attestations.iter().map(|attestation| &attestation.attestation_type),
@@ -1049,10 +1050,7 @@ async fn test_disclosed_attributes_without_nonce() {
     assert_eq!(response.status(), StatusCode::OK);
 
     // Check the disclosed attributes against the example attributes.
-    let disclosed_attributes = response
-        .json::<HashMap<CredentialQueryIdentifier, VecNonEmpty<DisclosedAttestation>>>()
-        .await
-        .unwrap();
+    let disclosed_attributes = response.json::<VecNonEmpty<DisclosedAttestations>>().await.unwrap();
 
     check_example_disclosed_attributes(&disclosed_attributes);
 }
@@ -1099,10 +1097,7 @@ async fn test_disclosed_attributes_with_nonce() {
     assert_eq!(response.status(), StatusCode::OK);
 
     // Check the disclosed attributes against the example attributes.
-    let disclosed_attributes = response
-        .json::<HashMap<CredentialQueryIdentifier, VecNonEmpty<DisclosedAttestation>>>()
-        .await
-        .unwrap();
+    let disclosed_attributes = response.json::<VecNonEmpty<DisclosedAttestations>>().await.unwrap();
 
     check_example_disclosed_attributes(&disclosed_attributes);
 }
