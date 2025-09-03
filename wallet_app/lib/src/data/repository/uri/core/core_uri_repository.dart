@@ -29,6 +29,8 @@ class CoreUriRepository implements UriRepository {
         return DisclosureNavigationRequest(uri.toString());
       case IdentifyUriResult.DisclosureBasedIssuance:
         return IssuanceNavigationRequest(uri.toString());
+      case IdentifyUriResult.Transfer:
+        throw UnimplementedError('Transfer not yet supported');
     }
   }
 }
