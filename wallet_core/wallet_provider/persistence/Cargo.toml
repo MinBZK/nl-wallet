@@ -45,6 +45,7 @@ sea-orm = { workspace = true, features = [
     "with-chrono",
     "with-uuid",
 ] }
+semver = { workspace = true }
 tokio = { workspace = true, features = ["parking_lot", "rt"] }
 tracing.workspace = true
 uuid.workspace = true

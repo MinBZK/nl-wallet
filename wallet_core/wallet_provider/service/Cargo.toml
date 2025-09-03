@@ -52,6 +52,7 @@ jsonwebtoken.workspace = true
 p256 = { workspace = true, features = ["ecdsa", "pem", "std"] }
 rustls-pki-types.workspace = true
 rustls-webpki.workspace = true
+semver = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 serde_with = { workspace = true, features = ["base64"] }

@@ -20,6 +20,7 @@ use sea_orm::sea_query::IntoIden;
 use sea_orm::sea_query::OnConflict;
 use sea_orm::sea_query::Query;
 use sea_orm::sea_query::SimpleExpr;
+use semver::Version;
 use uuid::Uuid;
 
 use apple_app_attest::AssertionCounter;
@@ -560,7 +561,7 @@ pub async fn prepare_transfer<S, T>(
     db: &T,
     wallet_id: &str,
     transfer_session_id: Uuid,
-    destination_wallet_app_version: String,
+    destination_wallet_app_version: Version,
 ) -> Result<()>
 where
     S: ConnectionTrait,
@@ -570,7 +571,7 @@ where
         .col_expr(wallet_user::Column::TransferSessionId, Expr::value(transfer_session_id))
         .col_expr(
             wallet_user::Column::DestinationWalletAppVersion,
-            Expr::value(destination_wallet_app_version),
+            Expr::value(destination_wallet_app_version.to_string()),
         )
         .filter(
             wallet_user::Column::WalletId
@@ -586,4 +587,22 @@ where
         1 => Ok(()),
         _ => panic!("multiple `wallet_user`s with the same `wallet_id`"),
     }
+}
+
+pub async fn find_app_version_by_transfer_session_id<S, T>(db: &T, transfer_session_id: Uuid) -> Result<Option<Version>>
+where
+    S: ConnectionTrait,
+    T: PersistenceConnection<S>,
+{
+    let result: Option<Option<String>> = wallet_user::Entity::find()
+        .select_only()
+        .column(wallet_user::Column::DestinationWalletAppVersion)
+        .filter(wallet_user::Column::TransferSessionId.eq(transfer_session_id))
+        .into_tuple()
+        .one(db.connection())
+        .await
+        .map_err(|e| PersistenceError::Execution(e.into()))?;
+
+    let version = result.flatten().map(|version| Version::parse(&version)).transpose()?;
+    Ok(version)
 }
