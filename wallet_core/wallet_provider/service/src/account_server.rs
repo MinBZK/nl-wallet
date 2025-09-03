@@ -15,6 +15,7 @@ use p256::ecdsa::signature::Verifier;
 use p256::elliptic_curve::pkcs8::DecodePublicKey;
 use rustls_pki_types::CertificateDer;
 use rustls_pki_types::TrustAnchor;
+use semver::Version;
 use serde::Deserialize;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
@@ -245,6 +246,18 @@ pub enum InstructionError {
 
     #[error("account is not elligible for transfer")]
     AccountNotTransferable,
+
+    #[error("there is no account transfer in progress")]
+    NoAccountTransferInProgress,
+
+    #[error(
+        "cannot transfer wallets because of app version mismatch; source: {source_version}, destination: \
+         {destination_version}"
+    )]
+    AppVersionMismatch {
+        source_version: Version,
+        destination_version: Version,
+    },
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -269,6 +282,9 @@ pub enum InstructionValidationError {
 
     #[error("wallet transfer is in progress")]
     TransferInProgress,
+
+    #[error("wallet transfer is not in progress")]
+    TransferNotInProgress,
 
     #[error("hsm error: {0}")]
     HsmError(#[from] HsmError),

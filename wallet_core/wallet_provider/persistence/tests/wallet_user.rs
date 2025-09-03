@@ -2,6 +2,7 @@ use assert_matches::assert_matches;
 use chrono::Utc;
 use p256::ecdsa::VerifyingKey;
 use p256::pkcs8::EncodePublicKey;
+use semver::Version;
 use uuid::Uuid;
 
 use apple_app_attest::AssertionCounter;
@@ -18,6 +19,7 @@ use wallet_provider_persistence::entity::wallet_user;
 use wallet_provider_persistence::transaction;
 use wallet_provider_persistence::wallet_user::clear_instruction_challenge;
 use wallet_provider_persistence::wallet_user::commit_pin_change;
+use wallet_provider_persistence::wallet_user::find_app_version_by_transfer_session_id;
 use wallet_provider_persistence::wallet_user::find_wallet_user_by_wallet_id;
 use wallet_provider_persistence::wallet_user::has_multiple_active_accounts_by_recovery_code;
 use wallet_provider_persistence::wallet_user::prepare_transfer;
@@ -442,13 +444,13 @@ async fn test_prepare_transfer() {
     let (db, _, wallet_id, _) = create_test_user().await;
 
     let transfer_session_id = Uuid::new_v4();
-    let destination_wallet_app_version = "1.0.0";
+    let destination_wallet_app_version = Version::parse("1.0.0").unwrap();
 
     prepare_transfer(
         &db,
         &wallet_id,
         transfer_session_id,
-        String::from(destination_wallet_app_version),
+        destination_wallet_app_version.clone(),
     )
     .await
     .unwrap();
@@ -461,13 +463,7 @@ async fn test_prepare_transfer() {
     assert_eq!(transfer_session_id, stored_wallet_user.transfer_session_id.unwrap());
 
     // Preparing a transfer for a wallet that is already transferring should return an error
-    let result = prepare_transfer(
-        &db,
-        &wallet_id,
-        Uuid::new_v4(),
-        String::from(destination_wallet_app_version),
-    )
-    .await;
+    let result = prepare_transfer(&db, &wallet_id, Uuid::new_v4(), destination_wallet_app_version).await;
     assert_matches!(result, Err(PersistenceError::NoRowsUpdated));
 
     // The existing transfer_session_id should be returned
@@ -477,4 +473,27 @@ async fn test_prepare_transfer() {
         panic!("Could not find wallet user");
     };
     assert_eq!(transfer_session_id, stored_wallet_user.transfer_session_id.unwrap());
+}
+
+#[tokio::test]
+async fn test_find_app_version_by_transfer_session_id() {
+    let (db, _, wallet_id, _) = create_test_user().await;
+
+    let transfer_session_id = Uuid::new_v4();
+    let destination_wallet_app_version = Version::parse("1.2.3").unwrap();
+
+    prepare_transfer(
+        &db,
+        &wallet_id,
+        transfer_session_id,
+        destination_wallet_app_version.clone(),
+    )
+    .await
+    .unwrap();
+
+    let app_version = find_app_version_by_transfer_session_id(&db, transfer_session_id)
+        .await
+        .unwrap();
+
+    assert_eq!(Some(destination_wallet_app_version), app_version);
 }

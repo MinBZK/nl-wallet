@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use chrono::DateTime;
 use chrono::Utc;
 use p256::ecdsa::VerifyingKey;
+use semver::Version;
 use uuid::Uuid;
 
 use apple_app_attest::AssertionCounter;
@@ -102,8 +103,14 @@ pub trait WalletUserRepository {
         transaction: &Self::TransactionType,
         wallet_id: &str,
         transfer_session_id: Uuid,
-        destination_wallet_app_version: String,
+        destination_wallet_app_version: Version,
     ) -> Result<()>;
+
+    async fn find_app_version_by_transfer_session_id(
+        &self,
+        transaction: &Self::TransactionType,
+        transfer_session_id: Uuid,
+    ) -> Result<Option<Version>>;
 }
 
 #[cfg(feature = "mock")]
@@ -245,9 +252,17 @@ pub mod mock {
             _transaction: &Self::TransactionType,
             _wallet_id: &str,
             _transfer_session_id: Uuid,
-            _destination_wallet_app_version: String,
+            _destination_wallet_app_version: Version,
         ) -> Result<()> {
             Ok(())
+        }
+
+        async fn find_app_version_by_transfer_session_id(
+            &self,
+            _transaction: &Self::TransactionType,
+            _transfer_session_id: Uuid,
+        ) -> Result<Option<Version>> {
+            Ok(None)
         }
     }
 }
