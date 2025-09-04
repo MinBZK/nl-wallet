@@ -38,12 +38,12 @@ class ChangePinBloc extends Bloc<ChangePinEvent, ChangePinState> {
     on<ChangePinRetryPressed>(_onRetryPressed);
   }
 
-  Future<void> _onCurrentPinValidated(ChangePinCurrentPinValidated event, emit) async {
+  Future<void> _onCurrentPinValidated(ChangePinCurrentPinValidated event, Emitter<ChangePinState> emit) async {
     _currentPin = event.currentPin;
     emit(const ChangePinSelectNewPinInProgress(0));
   }
 
-  Future<void> _onBackPressedEvent(ChangePinBackPressed event, emit) async {
+  Future<void> _onBackPressedEvent(ChangePinBackPressed event, Emitter<ChangePinState> emit) async {
     if (isEnteringNewPin) {
       await _resetFlow(emit);
     } else if (isConfirmingNewPin) {
@@ -51,7 +51,7 @@ class ChangePinBloc extends Bloc<ChangePinEvent, ChangePinState> {
     }
   }
 
-  Future<void> _onPinDigitPressedEvent(PinDigitPressed event, emit) async {
+  Future<void> _onPinDigitPressedEvent(PinDigitPressed event, Emitter<ChangePinState> emit) async {
     if (_currentPin.length != kPinDigits) throw 'current pin should be available to setup a new pin';
     if (isEnteringNewPin) {
       await _onSelectNewPinDigitEvent(event, emit);
@@ -61,7 +61,7 @@ class ChangePinBloc extends Bloc<ChangePinEvent, ChangePinState> {
   }
 
   /// Handle events for when the user is selecting a new pin
-  Future<void> _onSelectNewPinDigitEvent(event, emit) async {
+  Future<void> _onSelectNewPinDigitEvent(PinDigitPressed event, Emitter<ChangePinState> emit) async {
     _newPin += event.digit.toString();
     if (_newPin.length < kPinDigits) {
       emit(ChangePinSelectNewPinInProgress(_newPin.length));
@@ -81,7 +81,7 @@ class ChangePinBloc extends Bloc<ChangePinEvent, ChangePinState> {
   }
 
   /// Handle events for when the user is confirming the new pin
-  Future<void> _onConfirmNewPinDigitEvent(event, emit) async {
+  Future<void> _onConfirmNewPinDigitEvent(PinDigitPressed event, Emitter<ChangePinState> emit) async {
     if (_newPin.length != kPinDigits) throw 'new pin should already be provided once';
     _confirmNewPin += event.digit.toString();
     if (_confirmNewPin.length != kPinDigits) {
@@ -98,7 +98,7 @@ class ChangePinBloc extends Bloc<ChangePinEvent, ChangePinState> {
   }
 
   /// Updates the PIN from [_currentPin] to [_newPin]
-  Future<void> _changePin(emit) async {
+  Future<void> _changePin(Emitter<ChangePinState> emit) async {
     assert(_currentPin.length == kPinDigits, 'Current pin unavailable');
     assert(_newPin.length == kPinDigits, 'New pin unavailable');
 
@@ -118,7 +118,7 @@ class ChangePinBloc extends Bloc<ChangePinEvent, ChangePinState> {
     );
   }
 
-  Future<void> _onPinBackspacePressedEvent(PinBackspacePressed event, emit) async {
+  Future<void> _onPinBackspacePressedEvent(PinBackspacePressed event, Emitter<ChangePinState> emit) async {
     if (isEnteringNewPin) {
       await _onSelectNewPinBackspaceEvent(event, emit);
     }
@@ -127,17 +127,17 @@ class ChangePinBloc extends Bloc<ChangePinEvent, ChangePinState> {
     }
   }
 
-  Future<void> _onSelectNewPinBackspaceEvent(event, emit) async {
+  Future<void> _onSelectNewPinBackspaceEvent(PinBackspacePressed event, Emitter<ChangePinState> emit) async {
     _newPin = _newPin.removeLastChar;
     emit(ChangePinSelectNewPinInProgress(_newPin.length, afterBackspacePressed: true));
   }
 
-  Future<void> _onConfirmNewPinBackspaceEvent(event, emit) async {
+  Future<void> _onConfirmNewPinBackspaceEvent(PinBackspacePressed event, Emitter<ChangePinState> emit) async {
     _confirmNewPin = _confirmNewPin.removeLastChar;
     emit(ChangePinConfirmNewPinInProgress(_confirmNewPin.length, afterBackspacePressed: true));
   }
 
-  Future<void> _onPinClearPressedEvent(PinClearPressed event, emit) async {
+  Future<void> _onPinClearPressedEvent(PinClearPressed event, Emitter<ChangePinState> emit) async {
     if (isEnteringNewPin) {
       _newPin = '';
       emit(const ChangePinSelectNewPinInProgress(0, afterBackspacePressed: true));
@@ -149,7 +149,7 @@ class ChangePinBloc extends Bloc<ChangePinEvent, ChangePinState> {
   }
 
   // Resets the BLoC to the 'enter new pin' state (i.e. after confirming current pin).
-  Future<void> _onRetryPressed(ChangePinRetryPressed event, emit) async {
+  Future<void> _onRetryPressed(ChangePinRetryPressed event, Emitter<ChangePinState> emit) async {
     if (_currentPin.length != kPinDigits) throw 'current pin should be available to setup a new pin';
     _newPin = '';
     _confirmNewPin = '';
@@ -158,7 +158,7 @@ class ChangePinBloc extends Bloc<ChangePinEvent, ChangePinState> {
   }
 
   /// Resets the BLoC to it's initial state
-  Future<void> _resetFlow(emit) async {
+  Future<void> _resetFlow(Emitter<ChangePinState> emit) async {
     _currentPin = '';
     _newPin = '';
     _confirmNewPin = '';

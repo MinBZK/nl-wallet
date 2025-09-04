@@ -48,14 +48,17 @@ class SetupSecurityBloc extends Bloc<SetupSecurityEvent, SetupSecurityState> {
     on<SkipBiometricsPressed>(_onSkipBiometricsPressed);
   }
 
-  Future<void> _onSetupSecurityBackPressedEvent(event, emit) async {
+  Future<void> _onSetupSecurityBackPressedEvent(
+    SetupSecurityBackPressed event,
+    Emitter<SetupSecurityState> emit,
+  ) async {
     if (state.canGoBack) {
       if (state is SetupSecurityPinConfirmationInProgress) await _resetFlow(emit);
       if (state is SetupSecurityPinConfirmationFailed) await _resetFlow(emit);
     }
   }
 
-  Future<void> _onPinDigitPressedEvent(event, emit) async {
+  Future<void> _onPinDigitPressedEvent(PinDigitPressed event, Emitter<SetupSecurityState> emit) async {
     final state = this.state;
     if (state is SetupSecuritySelectPinInProgress || state is SetupSecuritySelectPinFailed) {
       await _onSelectPinDigitEvent(event, emit);
@@ -65,7 +68,7 @@ class SetupSecurityBloc extends Bloc<SetupSecurityEvent, SetupSecurityState> {
     }
   }
 
-  Future<void> _onSelectPinDigitEvent(event, emit) async {
+  Future<void> _onSelectPinDigitEvent(PinDigitPressed event, Emitter<SetupSecurityState> emit) async {
     _newPin += event.digit.toString();
     if (_newPin.length < kPinDigits) {
       emit(SetupSecuritySelectPinInProgress(_newPin.length));
@@ -84,7 +87,7 @@ class SetupSecurityBloc extends Bloc<SetupSecurityEvent, SetupSecurityState> {
     );
   }
 
-  Future<void> _onConfirmPinDigitEvent(event, emit) async {
+  Future<void> _onConfirmPinDigitEvent(PinDigitPressed event, Emitter<SetupSecurityState> emit) async {
     _confirmPin += event.digit.toString();
     if (_confirmPin.length != kPinDigits) {
       emit(SetupSecurityPinConfirmationInProgress(_confirmPin.length));
@@ -100,7 +103,7 @@ class SetupSecurityBloc extends Bloc<SetupSecurityEvent, SetupSecurityState> {
     }
   }
 
-  Future<void> _createAndUnlockWallet(String pin, emit) async {
+  Future<void> _createAndUnlockWallet(String pin, Emitter<SetupSecurityState> emit) async {
     final result = await createWalletUseCase.invoke(pin);
     await result.process(
       onSuccess: (_) async {
@@ -128,7 +131,7 @@ class SetupSecurityBloc extends Bloc<SetupSecurityEvent, SetupSecurityState> {
     );
   }
 
-  Future<void> _onPinBackspacePressedEvent(event, emit) async {
+  Future<void> _onPinBackspacePressedEvent(PinBackspacePressed event, Emitter<SetupSecurityState> emit) async {
     final state = this.state;
     if (state is SetupSecuritySelectPinInProgress || state is SetupSecuritySelectPinFailed) {
       await _onSelectPinBackspaceEvent(event, emit);
@@ -138,7 +141,7 @@ class SetupSecurityBloc extends Bloc<SetupSecurityEvent, SetupSecurityState> {
     }
   }
 
-  Future<void> _onPinClearPressedEvent(event, emit) async {
+  Future<void> _onPinClearPressedEvent(PinClearPressed event, Emitter<SetupSecurityState> emit) async {
     final state = this.state;
     if (state is SetupSecuritySelectPinInProgress || state is SetupSecuritySelectPinFailed) {
       _newPin = '';
@@ -150,19 +153,19 @@ class SetupSecurityBloc extends Bloc<SetupSecurityEvent, SetupSecurityState> {
     }
   }
 
-  Future<void> _onSelectPinBackspaceEvent(event, emit) async {
+  Future<void> _onSelectPinBackspaceEvent(PinBackspacePressed event, Emitter<SetupSecurityState> emit) async {
     _newPin = _newPin.removeLastChar;
     emit(SetupSecuritySelectPinInProgress(_newPin.length, afterBackspacePressed: true));
   }
 
-  Future<void> _onConfirmPinBackspaceEvent(event, emit) async {
+  Future<void> _onConfirmPinBackspaceEvent(PinBackspacePressed event, Emitter<SetupSecurityState> emit) async {
     _confirmPin = _confirmPin.removeLastChar;
     emit(SetupSecurityPinConfirmationInProgress(_confirmPin.length, afterBackspacePressed: true));
   }
 
-  Future<void> _onRetryPressed(event, emit) => _resetFlow(emit);
+  Future<void> _onRetryPressed(SetupSecurityRetryPressed event, Emitter<SetupSecurityState> emit) => _resetFlow(emit);
 
-  Future<void> _onEnableBiometricsPressed(event, emit) async {
+  Future<void> _onEnableBiometricsPressed(EnableBiometricsPressed event, Emitter<SetupSecurityState> emit) async {
     assert(state is SetupSecurityConfigureBiometrics, 'Can only enable biometrics from the configuration state');
     final result = await setBiometricsUseCase.invoke(enable: true, authenticateBeforeEnabling: true);
     await result.process(
@@ -174,12 +177,12 @@ class SetupSecurityBloc extends Bloc<SetupSecurityEvent, SetupSecurityState> {
     );
   }
 
-  Future<void> _onSkipBiometricsPressed(event, emit) async {
+  Future<void> _onSkipBiometricsPressed(SkipBiometricsPressed event, Emitter<SetupSecurityState> emit) async {
     assert(state is SetupSecurityConfigureBiometrics, 'Can only skip from the configuration state');
     emit(const SetupSecurityCompleted());
   }
 
-  Future<void> _resetFlow(emit) async {
+  Future<void> _resetFlow(Emitter<SetupSecurityState> emit) async {
     _newPin = '';
     _confirmPin = '';
     _confirmAttempt = 0;

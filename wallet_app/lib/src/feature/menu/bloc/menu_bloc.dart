@@ -13,5 +13,5 @@ class MenuBloc extends Bloc<MenuEvent, MenuState> {
     on<MenuLockWalletPressed>(_onLockWalletPressed);
   }
 
-  void _onLockWalletPressed(event, emit) => lockWalletUseCase.invoke();
+  void _onLockWalletPressed(MenuLockWalletPressed event, Emitter<MenuState> emit) => lockWalletUseCase.invoke();
 }

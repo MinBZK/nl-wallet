@@ -6,7 +6,7 @@ import 'package:wallet/src/feature/qr/widget/qr_scanner_active_announcer.dart';
 import '../../../../wallet_app_test_widget.dart';
 import '../../../test_util/test_utils.dart';
 
-main() {
+void main() {
   group('widgets', () {
     testWidgets('No QR code announcement is made after 10 seconds', (tester) async {
       final mock = MockSemanticAnnouncements(tester);

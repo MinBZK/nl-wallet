@@ -27,7 +27,7 @@ class PinBloc extends Bloc<PinEvent, PinState> {
     on<PinClearPressed>(_onClearEvent);
   }
 
-  FutureOr<void> _onEnterDigitEvent(event, emit) async {
+  FutureOr<void> _onEnterDigitEvent(PinDigitPressed event, Emitter<PinState> emit) async {
     if (state is PinValidateInProgress) return;
     _currentPin += event.digit.toString();
     if (_currentPin.length == kPinDigits) {
@@ -38,12 +38,12 @@ class PinBloc extends Bloc<PinEvent, PinState> {
     }
   }
 
-  FutureOr<void> _onRemoveDigitEvent(event, emit) {
+  FutureOr<void> _onRemoveDigitEvent(PinBackspacePressed event, Emitter<PinState> emit) {
     _currentPin = _currentPin.removeLastChar;
     emit(PinEntryInProgress(_currentPin.length, afterBackspacePressed: true));
   }
 
-  Future<void> _onClearEvent(event, emit) async {
+  Future<void> _onClearEvent(PinClearPressed event, Emitter<PinState> emit) async {
     _currentPin = '';
     emit(const PinEntryInProgress(0, afterBackspacePressed: true));
   }
