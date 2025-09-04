@@ -15,12 +15,12 @@ use http_utils::tls::pinning::TlsPinningConfig;
 use jwt::error::JwtError;
 use tests_integration::common::*;
 use wallet::errors::ConfigurationError;
-use wallet::wallet_deps::HttpConfigurationRepository;
-use wallet::wallet_deps::Repository;
-use wallet::wallet_deps::RepositoryUpdateState;
-use wallet::wallet_deps::UpdateableRepository;
-use wallet::wallet_deps::default_config_server_config;
-use wallet::wallet_deps::default_wallet_config;
+use wallet::test::HttpConfigurationRepository;
+use wallet::test::Repository;
+use wallet::test::RepositoryUpdateState;
+use wallet::test::UpdateableRepository;
+use wallet::test::default_config_server_config;
+use wallet::test::default_wallet_config;
 use wallet_configuration::config_server_config::ConfigServerConfiguration;
 
 #[tokio::test]

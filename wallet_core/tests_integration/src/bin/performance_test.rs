@@ -20,15 +20,15 @@ use tests_integration::logging::init_logging;
 use wallet::DisclosureUriSource;
 use wallet::Wallet;
 use wallet::WalletClients;
-use wallet::wallet_deps::HttpAccountProviderClient;
-use wallet::wallet_deps::HttpConfigurationRepository;
-use wallet::wallet_deps::HttpDigidClient;
-use wallet::wallet_deps::InMemoryDatabaseStorage;
-use wallet::wallet_deps::Repository;
-use wallet::wallet_deps::UpdatePolicyRepository;
-use wallet::wallet_deps::UpdateableRepository;
-use wallet::wallet_deps::default_config_server_config;
-use wallet::wallet_deps::default_wallet_config;
+use wallet::test::HttpAccountProviderClient;
+use wallet::test::HttpConfigurationRepository;
+use wallet::test::HttpDigidClient;
+use wallet::test::InMemoryDatabaseStorage;
+use wallet::test::Repository;
+use wallet::test::UpdatePolicyRepository;
+use wallet::test::UpdateableRepository;
+use wallet::test::default_config_server_config;
+use wallet::test::default_wallet_config;
 
 #[ctor]
 fn init() {

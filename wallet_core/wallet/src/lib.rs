@@ -67,18 +67,22 @@ pub mod utils {
     pub use utils::built_info::version_string;
 }
 
-#[cfg(feature = "wallet_deps")]
-pub mod wallet_deps {
+#[cfg(feature = "test")]
+pub mod test {
     pub use crate::account_provider::AccountProviderClient;
     pub use crate::account_provider::HttpAccountProviderClient;
+    pub use crate::account_provider::MockAccountProviderClient;
     pub use crate::config::FileStorageConfigurationRepository;
     pub use crate::config::HttpConfigurationRepository;
+    pub use crate::config::LocalConfigurationRepository;
     pub use crate::config::WalletConfigurationRepository;
     pub use crate::config::default_config_server_config;
     pub use crate::config::default_wallet_config;
     pub use crate::digid::DigidClient;
     pub use crate::digid::DigidSession;
     pub use crate::digid::HttpDigidClient;
+    pub use crate::digid::MockDigidClient;
+    pub use crate::digid::MockDigidSession;
     pub use crate::repository::BackgroundUpdateableRepository;
     pub use crate::repository::Repository;
     pub use crate::repository::RepositoryUpdateState;
@@ -87,14 +91,6 @@ pub mod wallet_deps {
     pub use crate::storage::InMemoryDatabaseStorage;
     pub use crate::storage::Storage;
     pub use crate::update_policy::HttpUpdatePolicyRepository;
-    pub use crate::update_policy::UpdatePolicyRepository;
-}
-
-#[cfg(feature = "mock")]
-pub mod mock {
-    pub use crate::account_provider::MockAccountProviderClient;
-    pub use crate::config::LocalConfigurationRepository;
-    pub use crate::digid::MockDigidClient;
-    pub use crate::digid::MockDigidSession;
     pub use crate::update_policy::MockUpdatePolicyRepository;
+    pub use crate::update_policy::UpdatePolicyRepository;
 }

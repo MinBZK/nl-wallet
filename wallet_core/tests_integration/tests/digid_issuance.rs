@@ -14,10 +14,10 @@ use server_utils::settings::NL_WALLET_CLIENT_ID;
 use server_utils::settings::SecretKey;
 use tests_integration::common::*;
 use tests_integration::fake_digid::fake_digid_auth;
-use wallet::wallet_deps::DigidClient;
-use wallet::wallet_deps::DigidSession;
-use wallet::wallet_deps::HttpDigidClient;
-use wallet::wallet_deps::default_wallet_config;
+use wallet::test::DigidClient;
+use wallet::test::DigidSession;
+use wallet::test::HttpDigidClient;
+use wallet::test::default_wallet_config;
 use wscd::mock_remote::MockRemoteWscd;
 
 /// Test the full PID issuance flow, i.e. including OIDC with nl-rdo-max and retrieving the PID from BRP
