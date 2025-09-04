@@ -23,4 +23,3 @@
 | **1.1** | **System displays screen 'Change Language'**<ul><li>Options: Dutch, English</li><li>Current language is selected</li><li>Actions: Back</li></ul> |      |
 | 1.1a    | User selects inactive option <br>&rarr; App language is changed                                                                                  |      |
 | 1.1b    | User selects Back                                                                                                                                | Back |
-<style>td {vertical-align:top}</style>

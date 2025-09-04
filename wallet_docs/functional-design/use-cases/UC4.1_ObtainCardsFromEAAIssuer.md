@@ -102,4 +102,3 @@
 | 9.1b    | User selects Problem option                                                                                                                                                                                                   | 5.2                                                                     |
 | **9.2** | **System displays screen 'Under construction'**<ul><li>Actions: Back</li></ul>                                                                                                                                                |                                                                         |
 | 9.2a    | User selects Back                                                                                                                                                                                                             | Back                                                                    |
-<style>td {vertical-align:top}</style>

@@ -34,4 +34,3 @@
 | 1.4a    | User selects Close                                                                                                                                                     | 1.1                                                |
 | 1.4b    | User selects To Settings                                                                                                                                               | Go to: [UC9.1 Show app menu](UC9.1_ShowAppMenu.md) |
 | 1.4c    | User selects Help                                                                                                                                                      | Go to: [UC9.6 Get help](UC9.6_GetHelp.md)          |
-<style>td {vertical-align:top}</style>

@@ -38,4 +38,3 @@
 | **2.1** | **System displays forgot PIN screen**<ul><li>Forgot PIN?</li><li>Actions: Delete Wallet, Back</li></ul>                         |                                                           |
 | 2.1a    | User selects Delete Wallet                                                                                                      | Go to: [UC9.4 Wipe all app data](../use-cases/UC9.4_WipeAllAppData.md) |
 | 2.1b    | User selects Back                                                                                                               | Back                                                      |
-<style>td {vertical-align:top}</style>

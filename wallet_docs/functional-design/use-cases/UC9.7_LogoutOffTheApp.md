@@ -31,4 +31,3 @@
 | 1.2b    | User selects Logout                                                                                                           | Go to: [UC2.3 Unlock the app](UC2.3_UnlockTheApp.md) |
 | 1.2c    | Event: User does not respond within inactive_timeout                                                                          | Go to: [UC2.3 Unlock the app](UC2.3_UnlockTheApp.md) |
 | **2**   | **USER LOGS OUT MANUALLY**                                                                                                    | Go to: [UC2.3 Unlock the app](UC2.3_UnlockTheApp.md) |
-<style>td {vertical-align:top}</style>
