@@ -25,7 +25,7 @@ use wallet::errors::IssuanceError;
 use wallet::openid4vc::SessionType;
 use wallet::utils::BaseUrl;
 
-pub async fn wallet_attestations(wallet: &mut WalletWithMocks) -> Vec<AttestationPresentation> {
+pub async fn wallet_attestations(wallet: &mut WalletWithStorage) -> Vec<AttestationPresentation> {
     // Emit attestations into this local variable
     let attestations: Arc<std::sync::Mutex<Vec<AttestationPresentation>>> = Arc::new(std::sync::Mutex::new(vec![]));
 

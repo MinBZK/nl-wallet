@@ -62,15 +62,15 @@ use utils::vec_at_least::VecNonEmpty;
 use verification_server::settings::VerifierSettings;
 use wallet::Wallet;
 use wallet::WalletClients;
-use wallet::mock::MockDigidClient;
-use wallet::mock::MockDigidSession;
-use wallet::mock::StorageStub;
-use wallet::wallet_deps::HttpAccountProviderClient;
-use wallet::wallet_deps::HttpConfigurationRepository;
-use wallet::wallet_deps::UpdatePolicyRepository;
-use wallet::wallet_deps::UpdateableRepository;
-use wallet::wallet_deps::default_config_server_config;
-use wallet::wallet_deps::default_wallet_config;
+use wallet::test::HttpAccountProviderClient;
+use wallet::test::HttpConfigurationRepository;
+use wallet::test::InMemoryDatabaseStorage;
+use wallet::test::MockDigidClient;
+use wallet::test::MockDigidSession;
+use wallet::test::UpdatePolicyRepository;
+use wallet::test::UpdateableRepository;
+use wallet::test::default_config_server_config;
+use wallet::test::default_wallet_config;
 use wallet_configuration::config_server_config::ConfigServerConfiguration;
 use wallet_configuration::wallet_config::WalletConfiguration;
 use wallet_provider::settings::AppleEnvironment;
@@ -125,10 +125,10 @@ pub enum WalletDeviceVendor {
     Google,
 }
 
-pub type WalletWithMocks = Wallet<
+pub type WalletWithStorage = Wallet<
     HttpConfigurationRepository<TlsPinningConfig>,
     UpdatePolicyRepository,
-    StorageStub,
+    InMemoryDatabaseStorage,
     MockHardwareAttestedKeyHolder,
     HttpAccountProviderClient,
     MockDigidClient<TlsPinningConfig>,
@@ -136,7 +136,7 @@ pub type WalletWithMocks = Wallet<
     VpDisclosureClient,
 >;
 
-pub async fn setup_wallet_and_default_env(vendor: WalletDeviceVendor) -> WalletWithMocks {
+pub async fn setup_wallet_and_default_env(vendor: WalletDeviceVendor) -> WalletWithStorage {
     let (wallet, _, _) = setup_wallet_and_env(
         vendor,
         config_server_settings(),
@@ -176,7 +176,7 @@ pub async fn setup_wallet_and_env(
         ReqwestTrustAnchor,
         TlsServerConfig,
     ),
-) -> (WalletWithMocks, DisclosureParameters, BaseUrl) {
+) -> (WalletWithStorage, DisclosureParameters, BaseUrl) {
     let key_holder = match vendor {
         WalletDeviceVendor::Apple => MockHardwareAttestedKeyHolder::generate_apple(
             AttestationEnvironment::Development,
@@ -287,10 +287,12 @@ pub async fn setup_wallet_and_env(
     let mut wallet_clients = WalletClients::new_http(default_reqwest_client_builder()).unwrap();
     setup_mock_digid_client(&mut wallet_clients.digid_client);
 
+    let storage = InMemoryDatabaseStorage::open().await;
+
     let wallet = Wallet::init_registration(
         config_repository,
         update_policy_repository,
-        StorageStub::default(),
+        storage,
         key_holder,
         wallet_clients,
     )
@@ -678,7 +680,7 @@ pub async fn start_gba_hc_converter(settings: GbaSettings) {
     wait_for_server(base_url, std::iter::empty()).await;
 }
 
-pub async fn do_wallet_registration(mut wallet: WalletWithMocks, pin: &str) -> WalletWithMocks {
+pub async fn do_wallet_registration(mut wallet: WalletWithStorage, pin: &str) -> WalletWithStorage {
     // No registration should be loaded initially.
     assert!(!wallet.has_registration());
 
@@ -694,7 +696,7 @@ pub async fn do_wallet_registration(mut wallet: WalletWithMocks, pin: &str) -> W
     wallet
 }
 
-pub async fn do_pid_issuance(mut wallet: WalletWithMocks, pin: String) -> WalletWithMocks {
+pub async fn do_pid_issuance(mut wallet: WalletWithStorage, pin: String) -> WalletWithStorage {
     let redirect_url = wallet
         .create_pid_issuance_auth_url()
         .await

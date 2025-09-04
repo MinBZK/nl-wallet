@@ -19,14 +19,10 @@ fake_attestation = [
     "platform_support/persistent_mock_attested_key",
     "platform_support/xcode_env",
 ]
-# Include mock implementations and constructors for testing
-mock = ["dep:mockall", "mdoc/mock", "openid4vc/mock"]
-# Export the traits and actual implementations of the Wallet dependencies
-wallet_deps = []
 # Adds serializability for snapshot tests
 snapshot_test = []
-# Various test related functionality
-test = []
+# Various test related functionality of Wallet types and dependencies
+test = ["dep:mockall", "mdoc/mock", "openid4vc/mock", "platform_support/mock_hw_keystore"]
 
 [dependencies]
 thiserror.workspace = true

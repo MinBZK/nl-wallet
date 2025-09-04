@@ -20,15 +20,15 @@ use tests_integration::logging::init_logging;
 use wallet::DisclosureUriSource;
 use wallet::Wallet;
 use wallet::WalletClients;
-use wallet::mock::StorageStub;
-use wallet::wallet_deps::HttpAccountProviderClient;
-use wallet::wallet_deps::HttpConfigurationRepository;
-use wallet::wallet_deps::HttpDigidClient;
-use wallet::wallet_deps::Repository;
-use wallet::wallet_deps::UpdatePolicyRepository;
-use wallet::wallet_deps::UpdateableRepository;
-use wallet::wallet_deps::default_config_server_config;
-use wallet::wallet_deps::default_wallet_config;
+use wallet::test::HttpAccountProviderClient;
+use wallet::test::HttpConfigurationRepository;
+use wallet::test::HttpDigidClient;
+use wallet::test::InMemoryDatabaseStorage;
+use wallet::test::Repository;
+use wallet::test::UpdatePolicyRepository;
+use wallet::test::UpdateableRepository;
+use wallet::test::default_config_server_config;
+use wallet::test::default_wallet_config;
 
 #[ctor]
 fn init() {
@@ -38,7 +38,7 @@ fn init() {
 type PerformanceTestWallet = Wallet<
     HttpConfigurationRepository<TlsPinningConfig>,
     UpdatePolicyRepository,
-    StorageStub,
+    InMemoryDatabaseStorage,
     MockHardwareAttestedKeyHolder,
     HttpAccountProviderClient,
     HttpDigidClient,
@@ -76,10 +76,12 @@ async fn main() {
     let update_policy_repository = UpdatePolicyRepository::init();
     let wallet_clients = WalletClients::new_http(default_reqwest_client_builder()).unwrap();
 
+    let storage = InMemoryDatabaseStorage::open().await;
+
     let mut wallet: PerformanceTestWallet = Wallet::init_registration(
         config_repository,
         update_policy_repository,
-        StorageStub::default(),
+        storage,
         MockHardwareAttestedKeyHolder::new_apple_mock(default::attestation_environment(), default::app_identifier()),
         wallet_clients,
     )

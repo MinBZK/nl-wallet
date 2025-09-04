@@ -13,6 +13,7 @@ use rand_core::OsRng;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use ssri::Integrity;
+use uuid::Uuid;
 
 use apple_app_attest::AppIdentifier;
 use apple_app_attest::AttestationEnvironment;
@@ -21,6 +22,7 @@ use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::constants::PID_ATTESTATION_TYPE;
 use attestation_data::credential_payload::CredentialPayload;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
+use attestation_data::disclosure_type::DisclosureType;
 use attestation_data::x509::generate::mock::generate_issuer_mock;
 use crypto::mock_remote::MockRemoteEcdsaKey;
 use crypto::p256_der::DerVerifyingKey;
@@ -31,14 +33,14 @@ use http_utils::tls::pinning::TlsPinningConfig;
 use jwt::UnverifiedJwt;
 use mdoc::holder::Mdoc;
 use openid4vc::Format;
+use openid4vc::disclosure_session::VerifierCertificate;
 use openid4vc::disclosure_session::mock::MockDisclosureClient;
-use openid4vc::issuance_session::CredentialWithMetadata;
-use openid4vc::issuance_session::IssuedCredential;
-use openid4vc::issuance_session::IssuedCredentialCopies;
 use openid4vc::issuance_session::NormalizedCredentialPreview;
 use openid4vc::mock::MockIssuanceSession;
 use openid4vc::token::CredentialPreviewContent;
 use platform_support::attested_key::AttestedKey;
+use platform_support::attested_key::mock::MockAppleAttestedKey;
+use platform_support::attested_key::mock::MockGoogleAttestedKey;
 use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
 use sd_jwt::sd_jwt::VerifiedSdJwt;
 use sd_jwt_vc_metadata::JsonSchemaPropertyFormat;
@@ -47,7 +49,6 @@ use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::SortedTypeMetadataDocuments;
 use sd_jwt_vc_metadata::TypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
-use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
 use utils::generator::Generator;
 use utils::generator::mock::MockTimeGenerator;
 use wallet_account::messages::instructions::InstructionResultClaims;
@@ -55,6 +56,7 @@ use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::messages::registration::WalletCertificateClaims;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
+use crate::DisclosureStatus;
 use crate::account_provider::MockAccountProviderClient;
 use crate::attestation::AttestationPresentation;
 use crate::config::LocalConfigurationRepository;
@@ -63,12 +65,12 @@ use crate::config::default_config_server_config;
 use crate::config::default_wallet_config;
 use crate::digid::MockDigidClient;
 use crate::pin::key as pin_key;
-use crate::storage::KeyedData;
-use crate::storage::KeyedDataResult;
+use crate::storage::InMemoryDatabaseStorage;
+use crate::storage::KeyData;
 use crate::storage::MockStorage;
 use crate::storage::RegistrationData;
+use crate::storage::Storage;
 use crate::storage::StorageState;
-use crate::storage::StorageStub;
 use crate::storage::WalletEvent;
 use crate::update_policy::MockUpdatePolicyRepository;
 use crate::wallet::attestations::AttestationsError;
@@ -98,11 +100,18 @@ pub enum WalletDeviceVendor {
     Google,
 }
 
-/// An alias for the `Wallet<>` with all mock dependencies.
-pub type WalletWithMocks = Wallet<
+pub type MockAttestedKey = AttestedKey<MockAppleAttestedKey, MockGoogleAttestedKey>;
+
+pub trait TestStorageRegistration {
+    async fn init() -> Self;
+    async fn register(&mut self, registration_data: RegistrationData);
+}
+
+/// An alias for the `Wallet<>` with mock dependencies and generic storage.
+pub type TestWallet<S> = Wallet<
     UpdatingConfigurationRepository<LocalConfigurationRepository>,
     MockUpdatePolicyRepository,
-    StorageStub,
+    S,
     MockHardwareAttestedKeyHolder,
     MockAccountProviderClient,
     MockDigidClient<TlsPinningConfig>,
@@ -110,17 +119,11 @@ pub type WalletWithMocks = Wallet<
     MockDisclosureClient,
 >;
 
-/// An alias for the `Wallet<>` with all mock dependencies.
-pub type WalletWithStorageMock = Wallet<
-    UpdatingConfigurationRepository<LocalConfigurationRepository>,
-    MockUpdatePolicyRepository,
-    MockStorage,
-    MockHardwareAttestedKeyHolder,
-    MockAccountProviderClient,
-    MockDigidClient<TlsPinningConfig>,
-    MockIssuanceSession,
-    MockDisclosureClient,
->;
+/// An alias for the `Wallet<>` with all dependencies, including the storage, mocked.
+pub type TestWalletMockStorage = TestWallet<MockStorage>;
+
+/// An alias for the `Wallet<>` with an in-memory SQLite database and mock dependencies.
+pub type TestWalletInMemoryStorage = TestWallet<InMemoryDatabaseStorage>;
 
 /// The account server key material, generated once for testing.
 pub static ACCOUNT_SERVER_KEYS: LazyLock<AccountServerKeys> = LazyLock::new(|| AccountServerKeys {
@@ -206,43 +209,11 @@ pub fn create_example_pid_sd_jwt() -> (VerifiedSdJwt, NormalizedTypeMetadata) {
     (VerifiedSdJwt::new_mock(sd_jwt), metadata)
 }
 
-/// Generates a valid [`CredentialWithMetadata`] that contains a full SD-JWT PID.
-pub fn create_example_pid_sd_jwt_credential() -> CredentialWithMetadata {
-    let (verified_sd_jwt, metadata) = create_example_pid_sd_jwt();
-
-    let (attestation_type, _, _, _) = metadata.into_presentation_components();
-    let metadata_documents = VerifiedTypeMetadataDocuments::nl_pid_example();
-
-    CredentialWithMetadata::new(
-        IssuedCredentialCopies::new_or_panic(
-            vec![IssuedCredential::SdJwt(Box::new(verified_sd_jwt))]
-                .try_into()
-                .unwrap(),
-        ),
-        attestation_type,
-        metadata_documents,
-    )
-}
-
 /// Generates a valid [`Mdoc`] that contains a full mdoc PID.
 pub fn create_example_pid_mdoc() -> Mdoc {
     let credential_payload = CredentialPayload::nl_pid_example(&MockTimeGenerator::default());
 
     mdoc_from_unsigned(credential_payload.previewable_payload, &ISSUER_KEY)
-}
-
-/// Generates a valid [`CredentialWithMetadata`] that contains a full mdoc PID.
-pub fn create_example_pid_mdoc_credential() -> CredentialWithMetadata {
-    let mdoc = create_example_pid_mdoc();
-
-    let attestation_type = mdoc.mso.doc_type.clone();
-    let metadata_documents = VerifiedTypeMetadataDocuments::nl_pid_example();
-
-    CredentialWithMetadata::new(
-        IssuedCredentialCopies::new_or_panic(vec![IssuedCredential::MsoMdoc(Box::new(mdoc))].try_into().unwrap()),
-        attestation_type,
-        metadata_documents,
-    )
 }
 
 /// Generates a valid [`Mdoc`], based on an [`PreviewableCredentialPayload`] and issuer key.
@@ -287,82 +258,125 @@ fn create_wallet_configuration() -> WalletConfiguration {
     config
 }
 
-impl<S>
-    Wallet<
-        UpdatingConfigurationRepository<LocalConfigurationRepository>,
-        MockUpdatePolicyRepository,
-        S,
-        MockHardwareAttestedKeyHolder,
-        MockAccountProviderClient,
-        MockDigidClient<TlsPinningConfig>,
-        MockIssuanceSession,
-        MockDisclosureClient,
-    >
+/// Generates a valid certificate for the `Wallet`.
+pub fn valid_certificate(wallet_id: Option<String>, hw_pubkey: VerifyingKey) -> WalletCertificate {
+    UnverifiedJwt::sign_with_sub(
+        &valid_certificate_claims(wallet_id, hw_pubkey),
+        &ACCOUNT_SERVER_KEYS.certificate_signing_key,
+    )
+    .now_or_never()
+    .unwrap()
+    .unwrap()
+}
+
+/// Generates valid certificate claims for the `Wallet`.
+pub fn valid_certificate_claims(wallet_id: Option<String>, hw_pubkey: VerifyingKey) -> WalletCertificateClaims {
+    let wallet_id = wallet_id.unwrap_or_else(|| crypto::utils::random_string(32));
+
+    WalletCertificateClaims {
+        wallet_id,
+        hw_pubkey: DerVerifyingKey::from(hw_pubkey),
+        pin_pubkey_hash: crypto::utils::random_bytes(32),
+        version: 0,
+        iss: "wallet_unit_test".to_string(),
+        iat: jsonwebtoken::get_current_timestamp(),
+    }
+}
+
+impl TestStorageRegistration for InMemoryDatabaseStorage {
+    async fn init() -> Self {
+        InMemoryDatabaseStorage::open().await
+    }
+
+    async fn register(&mut self, registration_data: RegistrationData) {
+        self.insert_data::<RegistrationData>(&registration_data).await.unwrap();
+    }
+}
+
+impl TestStorageRegistration for MockStorage {
+    async fn init() -> Self {
+        let mut storage = MockStorage::default();
+        storage.expect_state().returning(|| Ok(StorageState::Opened));
+        storage.expect_fetch_data::<RegistrationData>().returning(|| Ok(None));
+        storage.expect_fetch_data::<KeyData>().returning(|| Ok(None));
+        storage
+    }
+
+    async fn register(&mut self, registration_data: RegistrationData) {
+        self.expect_state().returning(|| Ok(StorageState::Opened));
+        self.expect_fetch_data::<RegistrationData>()
+            .returning(move || Ok(Some(registration_data.clone())));
+    }
+}
+
+impl<S> TestWallet<S>
 where
-    S: Default,
+    S: TestStorageRegistration + Storage,
 {
+    pub fn mut_storage(&mut self) -> &mut S {
+        Arc::get_mut(&mut self.storage).unwrap().get_mut()
+    }
+
     /// Creates an unregistered `Wallet` with mock dependencies.
-    pub fn new_unregistered(vendor: WalletDeviceVendor) -> Self {
+    pub async fn new_unregistered(vendor: WalletDeviceVendor) -> Self {
         let config_server_config = default_config_server_config();
         let config_repository = UpdatingConfigurationRepository::new(
             LocalConfigurationRepository::new(create_wallet_configuration()),
             config_server_config,
         )
-        .now_or_never()
-        .unwrap();
+        .await;
 
         Wallet::new(
             config_repository,
             MockUpdatePolicyRepository::default(),
-            S::default(),
+            S::init().await,
             generate_key_holder(vendor),
             WalletClients::default(),
             RegistrationStatus::Unregistered,
         )
     }
 
-    /// Generates a valid certificate for the `Wallet`.
-    pub fn valid_certificate(wallet_id: Option<String>, hw_pubkey: VerifyingKey) -> WalletCertificate {
-        UnverifiedJwt::sign_with_sub(
-            &Self::valid_certificate_claims(wallet_id, hw_pubkey),
-            &ACCOUNT_SERVER_KEYS.certificate_signing_key,
+    pub async fn new_init_registration(vendor: WalletDeviceVendor) -> Result<Self, WalletInitError> {
+        let config_server_config = default_config_server_config();
+        let config_repository =
+            UpdatingConfigurationRepository::new(LocalConfigurationRepository::default(), config_server_config).await;
+
+        Wallet::init_registration(
+            config_repository,
+            MockUpdatePolicyRepository::default(),
+            S::init().await,
+            generate_key_holder(vendor),
+            WalletClients::default(),
         )
-        .now_or_never()
-        .unwrap()
-        .unwrap()
+        .await
     }
 
-    /// Generates valid certificate claims for the `Wallet`.
-    pub fn valid_certificate_claims(wallet_id: Option<String>, hw_pubkey: VerifyingKey) -> WalletCertificateClaims {
-        let wallet_id = wallet_id.unwrap_or_else(|| crypto::utils::random_string(32));
+    pub async fn new_registered_and_unlocked(vendor: WalletDeviceVendor) -> Self {
+        let mut wallet = Self::new_unregistered(vendor).await;
 
-        WalletCertificateClaims {
-            wallet_id,
-            hw_pubkey: DerVerifyingKey::from(hw_pubkey),
-            pin_pubkey_hash: crypto::utils::random_bytes(32),
-            version: 0,
-            iss: "wallet_unit_test".to_string(),
-            iat: jsonwebtoken::get_current_timestamp(),
-        }
+        // Generate registration data.
+        let (registration_data, attested_key) = wallet.registration_data();
+
+        // Store the registration in `Storage`, populate the field on `Wallet` and set the wallet to unlocked.
+        S::register(wallet.mut_storage(), registration_data.clone()).await;
+
+        wallet.registration = WalletRegistration::Registered {
+            attested_key: Arc::new(attested_key),
+            data: registration_data,
+        };
+
+        wallet.lock.unlock();
+
+        wallet
     }
 
-    pub fn mut_storage(&mut self) -> &mut S {
-        Arc::get_mut(&mut self.storage).unwrap().get_mut()
-    }
-}
-
-// Implement a number of methods on the the `Wallet<>` alias that can be used during testing.
-impl WalletWithMocks {
-    /// Creates a registered and unlocked `Wallet` with mock dependencies.
-    pub fn new_registered_and_unlocked(vendor: WalletDeviceVendor) -> Self {
-        let mut wallet = Self::new_unregistered(vendor);
-
-        let (attested_key, attested_key_identifier) = wallet.key_holder.random_key();
+    fn registration_data(&self) -> (RegistrationData, MockAttestedKey) {
+        let (attested_key, attested_key_identifier) = self.key_holder.random_key();
         let verifying_key = match &attested_key {
             AttestedKey::Apple(key) => *key.verifying_key(),
             AttestedKey::Google(key) => *key.verifying_key(),
         };
-        let wallet_certificate = Self::valid_certificate(None, verifying_key);
+        let wallet_certificate = valid_certificate(None, verifying_key);
         let wallet_id = wallet_certificate.dangerous_parse_unverified().unwrap().1.wallet_id;
 
         // Generate registration data.
@@ -373,33 +387,15 @@ impl WalletWithMocks {
             wallet_certificate,
         };
 
-        // Store the registration in `Storage`, populate the field
-        // on `Wallet` and set the wallet to unlocked.
-        let storage = Arc::get_mut(&mut wallet.storage).unwrap().get_mut();
-        storage.state = StorageState::Opened;
-        storage.data.insert(
-            <RegistrationData as KeyedData>::KEY,
-            KeyedDataResult::Data(serde_json::to_string(&registration_data).unwrap()),
-        );
-        wallet.registration = WalletRegistration::Registered {
-            attested_key: Arc::new(attested_key),
-            data: registration_data,
-        };
-        wallet.lock.unlock();
-
-        wallet
+        (registration_data, attested_key)
     }
+}
 
-    /// Creates all mocks and calls `Wallet::init_registration()`.
-    pub async fn new_init_registration(vendor: WalletDeviceVendor) -> Result<Self, WalletInitError> {
-        Self::new_init_registration_with_mocks(StorageStub::default(), generate_key_holder(vendor)).await
-    }
-
-    /// Creates mocks and calls `Wallet::init_registration()`, except for
-    /// the `MockStorage` and `MockHardwareAttestedKeyHolder` instances.
-    pub async fn new_init_registration_with_mocks(
-        storage: StorageStub,
+impl TestWalletMockStorage {
+    /// Allows for overriding the `MockStorage` and `MockHardwareAttestedKeyHolder` instances.
+    pub async fn new_init_registration_with_mock_storage(
         key_holder: MockHardwareAttestedKeyHolder,
+        storage: MockStorage,
     ) -> Result<Self, WalletInitError> {
         let config_server_config = default_config_server_config();
         let config_repository =
@@ -416,53 +412,15 @@ impl WalletWithMocks {
     }
 }
 
-impl WalletWithStorageMock {
-    /// Creates a registered and unlocked `Wallet` with mock dependencies.
-    pub fn new_registered_and_unlocked_with_storage_mock(vendor: WalletDeviceVendor) -> Self {
-        let mut wallet = Self::new_unregistered(vendor);
-
-        let (attested_key, attested_key_identifier) = wallet.key_holder.random_key();
-        let verifying_key = match &attested_key {
-            AttestedKey::Apple(key) => *key.verifying_key(),
-            AttestedKey::Google(key) => *key.verifying_key(),
-        };
-        let wallet_certificate = Self::valid_certificate(None, verifying_key);
-        let wallet_id = wallet_certificate.dangerous_parse_unverified().unwrap().1.wallet_id;
-
-        // Generate registration data.
-        let registration_data = RegistrationData {
-            attested_key_identifier,
-            pin_salt: pin_key::new_pin_salt(),
-            wallet_id,
-            wallet_certificate,
-        };
-
-        let fetch_data_response = registration_data.clone();
-
-        // Store the registration in `Storage`, populate the field
-        // on `Wallet` and set the wallet to unlocked.
-        let storage = Arc::get_mut(&mut wallet.storage).unwrap().get_mut();
-        storage.expect_state().returning(|| Ok(StorageState::Opened));
-        storage
-            .expect_fetch_data::<RegistrationData>()
-            .returning(move || Ok(Some(fetch_data_response.clone())));
-
-        wallet.registration = WalletRegistration::Registered {
-            attested_key: Arc::new(attested_key),
-            data: registration_data,
-        };
-        wallet.lock.unlock();
-
-        wallet
-    }
-}
-
-pub async fn setup_mock_attestations_callback(
-    wallet: &mut WalletWithMocks,
+pub async fn setup_mock_attestations_callback<S>(
+    wallet: &mut TestWallet<S>,
 ) -> Result<
     Arc<Mutex<Vec<Vec<AttestationPresentation>>>>,
     (Arc<Mutex<Vec<Vec<AttestationPresentation>>>>, AttestationsError),
-> {
+>
+where
+    S: Storage,
+{
     // Wrap a `Vec<Attestation>` in both a `Mutex` and `Arc`,
     // so we can write to it from the closure.
     let attestations = Arc::new(Mutex::new(Vec::<Vec<AttestationPresentation>>::with_capacity(1)));
@@ -482,9 +440,12 @@ pub async fn setup_mock_attestations_callback(
     }
 }
 
-pub async fn setup_mock_recent_history_callback(
-    wallet: &mut WalletWithMocks,
-) -> Result<Arc<Mutex<Vec<Vec<WalletEvent>>>>, (Arc<Mutex<Vec<Vec<WalletEvent>>>>, HistoryError)> {
+pub async fn setup_mock_recent_history_callback<S>(
+    wallet: &mut TestWallet<S>,
+) -> Result<Arc<Mutex<Vec<Vec<WalletEvent>>>>, (Arc<Mutex<Vec<Vec<WalletEvent>>>>, HistoryError)>
+where
+    S: Storage,
+{
     // Wrap a `Vec<HistoryEvent>` in both a `Mutex` and `Arc`,
     // so we can write to it from the closure.
     let events = Arc::new(Mutex::new(Vec::<Vec<WalletEvent>>::with_capacity(2)));
@@ -498,6 +459,23 @@ pub async fn setup_mock_recent_history_callback(
     match result {
         Ok(_) => Ok(events),
         Err(e) => Err((events, e)),
+    }
+}
+
+pub fn create_disclosure_event(
+    attestations: Vec<AttestationPresentation>,
+    verifier_certificate: VerifierCertificate,
+    status: DisclosureStatus,
+) -> WalletEvent {
+    let (reader_certificate, reader_registration) = verifier_certificate.into_certificate_and_registration();
+    WalletEvent::Disclosure {
+        id: Uuid::new_v4(),
+        attestations,
+        timestamp: Utc::now(),
+        reader_certificate: Box::new(reader_certificate),
+        reader_registration: Box::new(reader_registration),
+        status,
+        r#type: DisclosureType::Regular,
     }
 }
 

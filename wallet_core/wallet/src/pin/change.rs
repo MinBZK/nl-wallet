@@ -32,7 +32,7 @@ pub trait ChangePinClientError: std::error::Error {
     fn is_network_error(&self) -> bool;
 }
 
-#[cfg_attr(any(test, feature = "mock"), mockall::automock(type Error = mock::ChangePinClientTestError;))]
+#[cfg_attr(any(test, feature = "test"), mockall::automock(type Error = mock::ChangePinClientTestError;))]
 pub trait ChangePinClient {
     type Error: ChangePinClientError;
     async fn start_new_pin(
@@ -45,7 +45,7 @@ pub trait ChangePinClient {
     async fn rollback_new_pin(&self, old_pin: &str) -> Result<(), Self::Error>;
 }
 
-#[cfg_attr(any(test, feature = "mock"), mockall::automock)]
+#[cfg_attr(any(test, feature = "test"), mockall::automock)]
 pub trait ChangePinStorage {
     async fn get_change_pin_state(&self) -> Result<Option<State>, StorageError>;
     async fn store_change_pin_state(&self, state: State) -> Result<(), StorageError>;
@@ -281,7 +281,7 @@ where
     }
 }
 
-#[cfg(any(test, feature = "mock"))]
+#[cfg(any(test, feature = "test"))]
 pub mod mock {
     use super::*;
 
