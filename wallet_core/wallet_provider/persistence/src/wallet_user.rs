@@ -446,21 +446,22 @@ where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
+    let mut query = wallet_user::Entity::update_many();
     if is_blocked {
-        wallet_user::Entity::update_many().col_expr(
+        query = query.col_expr(
             wallet_user::Column::State,
             Expr::value(WalletUserState::Blocked.to_string()),
-        )
-    } else {
-        wallet_user::Entity::update_many()
+        );
     }
-    .col_expr(wallet_user::Column::PinEntries, pin_entries)
-    .col_expr(wallet_user::Column::LastUnsuccessfulPin, Expr::value(datetime))
-    .filter(wallet_user::Column::WalletId.eq(wallet_id))
-    .exec(db.connection())
-    .await
-    .map(|_| ())
-    .map_err(|e| PersistenceError::Execution(e.into()))
+
+    query
+        .col_expr(wallet_user::Column::PinEntries, pin_entries)
+        .col_expr(wallet_user::Column::LastUnsuccessfulPin, Expr::value(datetime))
+        .filter(wallet_user::Column::WalletId.eq(wallet_id))
+        .exec(db.connection())
+        .await
+        .map(|_| ())
+        .map_err(|e| PersistenceError::Execution(e.into()))
 }
 
 async fn update_fields<S, T, C>(db: &T, wallet_id: &str, col_values: Vec<(C, SimpleExpr)>) -> Result<()>
