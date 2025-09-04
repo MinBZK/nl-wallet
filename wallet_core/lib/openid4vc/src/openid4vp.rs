@@ -691,12 +691,6 @@ impl VpAuthorizationResponse {
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
     ) -> Result<HashMap<CredentialQueryIdentifier, VecNonEmpty<DisclosedAttestation>>, AuthResponseError> {
-        // Step 0: Collect all of the unique public keys within all of the disclosed credentials. This is necessary for
-        //         step 2, but we do this now because of ownership rules. If this fails, it means that an mdoc
-        //         credential will never verify, so return that error.
-        let used_keys =
-            VerifiablePresentation::unique_keys(self.vp_token.values()).map_err(AuthResponseError::MdocVerification)?;
-
         // Step 1: Verify the cryptographic integrity of the verifiable presentations
         //         and extract the disclosed attestations from them.
         let session_transcript = LazyCell::new(|| {
@@ -711,7 +705,7 @@ impl VpAuthorizationResponse {
 
         let disclosed_attestations = self
             .vp_token
-            .into_iter()
+            .iter()
             .map(|(id, presentation)| {
                 let attestations = match presentation {
                     VerifiablePresentation::MsoMdoc(device_responses) => device_responses
@@ -742,11 +736,13 @@ impl VpAuthorizationResponse {
                         .map_err(|_| AuthResponseError::NoMdocDocuments(id.clone()))?,
                 };
 
-                Ok((id, attestations))
+                Ok((id.clone(), attestations))
             })
             .collect::<Result<_, AuthResponseError>>()?;
 
         // Step 2: Verify the PoA, if present.
+        let used_keys =
+            VerifiablePresentation::unique_keys(self.vp_token.values()).map_err(AuthResponseError::MdocVerification)?;
         if used_keys.len() >= 2 {
             self.poa.ok_or(AuthResponseError::MissingPoa)?.verify(
                 &used_keys,
