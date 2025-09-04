@@ -23,4 +23,3 @@
 | **1**   | **PRIMARY SCENARIO**                                                                                                                                         |      |
 | **1.1** | **System displays screen 'Need help?'**<ul><li>Message: During the pilot you can reach out to someone of the NL Wallet-team.</li><li>Actions: Back</li></ul> |      |
 | 1.1a    | User selects Back                                                                                                                                            | Back |
-<style>td {vertical-align:top}</style>

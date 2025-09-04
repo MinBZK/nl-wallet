@@ -52,4 +52,3 @@
 | **4**   | **WHEN PINs ARE NOT EQUAL (SECOND TIME)**                                                                                                             |                                                                         |
 | **4.1** | **System displays PIN is different message**<ul><li>Actions: Choose New Pin</li></ul>                                                                 |                                                                         |
 | 4.1a    | User selects Choose New Pin                                                                                                                           | 1.2                                                                     |
-<style>td {vertical-align:top}</style>
