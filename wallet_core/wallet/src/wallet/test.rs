@@ -102,8 +102,8 @@ pub enum WalletDeviceVendor {
 
 pub type MockAttestedKey = AttestedKey<MockAppleAttestedKey, MockGoogleAttestedKey>;
 
-pub trait TestStorageRegistration<S> {
-    async fn init() -> S;
+pub trait TestStorageRegistration {
+    async fn init() -> Self;
     async fn register(&mut self, registration_data: RegistrationData);
 }
 
@@ -283,8 +283,8 @@ pub fn valid_certificate_claims(wallet_id: Option<String>, hw_pubkey: VerifyingK
     }
 }
 
-impl TestStorageRegistration<InMemoryDatabaseStorage> for InMemoryDatabaseStorage {
-    async fn init() -> InMemoryDatabaseStorage {
+impl TestStorageRegistration for InMemoryDatabaseStorage {
+    async fn init() -> Self {
         InMemoryDatabaseStorage::open().await
     }
 
@@ -293,8 +293,8 @@ impl TestStorageRegistration<InMemoryDatabaseStorage> for InMemoryDatabaseStorag
     }
 }
 
-impl TestStorageRegistration<MockStorage> for MockStorage {
-    async fn init() -> MockStorage {
+impl TestStorageRegistration for MockStorage {
+    async fn init() -> Self {
         let mut storage = MockStorage::default();
         storage.expect_state().returning(|| Ok(StorageState::Opened));
         storage.expect_fetch_data::<RegistrationData>().returning(|| Ok(None));
@@ -311,7 +311,7 @@ impl TestStorageRegistration<MockStorage> for MockStorage {
 
 impl<S> TestWallet<S>
 where
-    S: TestStorageRegistration<S> + Storage,
+    S: TestStorageRegistration + Storage,
 {
     pub fn mut_storage(&mut self) -> &mut S {
         Arc::get_mut(&mut self.storage).unwrap().get_mut()
