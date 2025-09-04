@@ -454,8 +454,6 @@ where
     pub async fn accept_issuance(&mut self, pin: String) -> Result<IssuanceResult, IssuanceError>
     where
         UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
-        S: Storage,
-        APC: AccountProviderClient,
     {
         info!("Accepting issuance");
 

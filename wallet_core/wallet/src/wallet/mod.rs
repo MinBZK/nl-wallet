@@ -14,6 +14,7 @@ mod uri;
 
 #[cfg(test)]
 mod test;
+mod transfer;
 
 use std::sync::Arc;
 

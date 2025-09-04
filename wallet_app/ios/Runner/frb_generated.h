@@ -511,7 +511,7 @@ void frbgen_wallet_core_wire__crate__api__full__start_disclosure(int64_t port_,
                                                                  bool is_qr_code);
 
 void frbgen_wallet_core_wire__crate__api__full__start_wallet_transfer(int64_t port_,
-                                                                      struct wire_cst_list_prim_u_8_strict *_pin);
+                                                                      struct wire_cst_list_prim_u_8_strict *pin);
 
 void frbgen_wallet_core_wire__crate__api__full__unlock_wallet(int64_t port_,
                                                               struct wire_cst_list_prim_u_8_strict *pin);

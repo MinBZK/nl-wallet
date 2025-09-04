@@ -1075,7 +1075,7 @@ fn wire__crate__api__full__start_disclosure_impl(
 }
 fn wire__crate__api__full__start_wallet_transfer_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
-    _pin: impl CstDecode<String>,
+    pin: impl CstDecode<String>,
 ) {
     FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
@@ -1084,11 +1084,11 @@ fn wire__crate__api__full__start_wallet_transfer_impl(
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
-            let api__pin = _pin.cst_decode();
+            let api_pin = pin.cst_decode();
             move |context| async move {
                 transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || async move {
-                        let output_ok = crate::api::full::start_wallet_transfer(api__pin).await?;
+                        let output_ok = crate::api::full::start_wallet_transfer(api_pin).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -5062,9 +5062,9 @@ mod io {
     #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__start_wallet_transfer(
         port_: i64,
-        _pin: *mut wire_cst_list_prim_u_8_strict,
+        pin: *mut wire_cst_list_prim_u_8_strict,
     ) {
-        wire__crate__api__full__start_wallet_transfer_impl(port_, _pin)
+        wire__crate__api__full__start_wallet_transfer_impl(port_, pin)
     }
 
     #[unsafe(no_mangle)]

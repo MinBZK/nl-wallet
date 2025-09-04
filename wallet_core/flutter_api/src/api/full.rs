@@ -401,9 +401,14 @@ pub async fn confirm_wallet_transfer(_pin: String) -> anyhow::Result<WalletInstr
 }
 
 #[flutter_api_error]
-pub async fn start_wallet_transfer(_pin: String) -> anyhow::Result<WalletTransferInstructionResult> {
+pub async fn start_wallet_transfer(pin: String) -> anyhow::Result<WalletTransferInstructionResult> {
+    let mut wallet = wallet().write().await;
+
+    // TODO: Skipping properly converting error since PIN is going to be replaced
+    let transfer_uri = wallet.start_transfer(pin).await?;
+
     Ok(WalletTransferInstructionResult::Ok {
-        transfer_uri: "https://example.com".into(),
+        transfer_uri: transfer_uri.to_string(),
     })
 }
 
