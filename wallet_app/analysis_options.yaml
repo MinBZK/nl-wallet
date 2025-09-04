@@ -31,7 +31,7 @@ linter:
     throw_in_finally: true
     unnecessary_statements: true
     # style rules
-    avoid_annotating_with_dynamic: true
+    avoid_annotating_with_dynamic: false
     avoid_bool_literals_in_conditional_expressions: true
     avoid_catching_errors: true
     avoid_double_and_int_checks: true
