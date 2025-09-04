@@ -148,7 +148,7 @@ impl ValidityInfo {
 }
 
 impl IssuerSigned {
-    pub fn public_key(&self) -> Result<VerifyingKey> {
+    pub fn dangerous_public_key(&self) -> Result<VerifyingKey> {
         let public_key = self
             .issuer_auth
             .dangerous_parse_unverified()?
@@ -377,7 +377,7 @@ mod tests {
 
         let public_key = mdoc
             .issuer_signed
-            .public_key()
+            .dangerous_public_key()
             .expect("Could not get public key from from IssuerSigned");
 
         // The example mdoc should contain the generated key.

@@ -574,9 +574,8 @@ impl VerifiablePresentation {
         presentations
             .into_iter()
             .flat_map(|presentation| match presentation {
-                Self::MsoMdoc(device_responses) => {
-                    Self::mdoc_documents_iter(device_responses).map(|document| document.issuer_signed.public_key())
-                }
+                Self::MsoMdoc(device_responses) => Self::mdoc_documents_iter(device_responses)
+                    .map(|document| document.issuer_signed.dangerous_public_key()),
             })
             // Unfortunately `VerifyingKey` does not implement `Hash`, so we have to deduplicate manually.
             .process_results(|iter| iter.dedup().collect())
