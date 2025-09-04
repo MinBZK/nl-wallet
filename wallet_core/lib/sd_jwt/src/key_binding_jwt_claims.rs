@@ -210,7 +210,7 @@ mod test {
         header.typ = Some(String::from("kb+jwt"));
 
         KeyBindingJwt::parse_and_verify(
-            example_kb_jwt(&signing_key, header).await.as_ref(),
+            example_kb_jwt(&signing_key, header).await.serialization(),
             &EcdsaDecodingKey::from(signing_key.verifying_key()),
             "aud",
             "abc123",
@@ -226,7 +226,7 @@ mod test {
         let err = KeyBindingJwt::parse_and_verify(
             example_kb_jwt(&signing_key, Header::new(Algorithm::ES256))
                 .await
-                .as_ref(),
+                .serialization(),
             &EcdsaDecodingKey::from(signing_key.verifying_key()),
             "aud",
             "abc123",
@@ -244,7 +244,7 @@ mod test {
         header.typ = Some(String::from("kb+jwt"));
 
         let err = KeyBindingJwt::parse_and_verify(
-            example_kb_jwt(&signing_key, header).await.as_ref(),
+            example_kb_jwt(&signing_key, header).await.serialization(),
             &EcdsaDecodingKey::from(signing_key.verifying_key()),
             "aud",
             "abc123",
@@ -262,7 +262,7 @@ mod test {
         header.typ = Some(String::from("kb+jwt"));
 
         let err = KeyBindingJwt::parse_and_verify(
-            example_kb_jwt(&signing_key, header).await.as_ref(),
+            example_kb_jwt(&signing_key, header).await.serialization(),
             &EcdsaDecodingKey::from(signing_key.verifying_key()),
             "aud",
             "def456",

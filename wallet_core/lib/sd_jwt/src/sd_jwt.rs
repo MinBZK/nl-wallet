@@ -493,7 +493,7 @@ impl VerifiedSdJwt {
         let (jwt, disclosures) = SdJwt::parse_sd_jwt_unverified(sd_jwt)?;
 
         let issuer_certificates = jwt.extract_x5c_certificates()?;
-        let issuer_signed_jwt = VerifiedJwt::dangerous_parse_unverified(jwt.as_ref())?;
+        let issuer_signed_jwt = VerifiedJwt::dangerous_parse_unverified(jwt.serialization())?;
 
         Ok(Self(SdJwt {
             issuer_signed_jwt,

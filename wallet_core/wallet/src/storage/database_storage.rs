@@ -971,7 +971,7 @@ pub(crate) mod tests {
             attested_key_identifier: "key_id".to_string(),
             pin_salt: vec![1, 2, 3, 4],
             wallet_id: "wallet_123".to_string(),
-            wallet_certificate: "thisis.definitely.valid".parse().unwrap(),
+            wallet_certificate: "this.isa.jwt".parse().unwrap(),
         };
 
         let mut storage = InMemoryDatabaseStorage::open().await;

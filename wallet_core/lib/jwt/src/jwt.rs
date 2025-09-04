@@ -67,12 +67,6 @@ impl<T> FromStr for UnverifiedJwt<T> {
     }
 }
 
-impl<T> AsRef<str> for UnverifiedJwt<T> {
-    fn as_ref(&self) -> &str {
-        &self.serialization
-    }
-}
-
 impl<T> From<VerifiedJwt<T>> for UnverifiedJwt<T> {
     fn from(value: VerifiedJwt<T>) -> Self {
         value.jwt
@@ -106,6 +100,10 @@ impl<T> UnverifiedJwt<T> {
                     .and_then(|bytes| BorrowingCertificate::from_der(bytes).map_err(JwtX5cError::CertificateParsing))
             })
             .try_collect()
+    }
+
+    pub fn serialization(&self) -> &str {
+        &self.serialization
     }
 
     pub fn signed_slice(&self) -> &str {
@@ -626,7 +624,7 @@ mod tests {
         let jwt = UnverifiedJwt::sign_with_sub(&t, &private_key).await.unwrap();
 
         // the JWT has a `sub` with the expected value
-        let jwt_message: HashMap<String, serde_json::Value> = part(1, jwt.as_ref());
+        let jwt_message: HashMap<String, serde_json::Value> = part(1, jwt.serialization());
         assert_eq!(
             *jwt_message.get("sub").unwrap(),
             serde_json::Value::String(ToyMessage::SUB.to_string())
@@ -664,7 +662,7 @@ mod tests {
         // create a new JWT without a `sub`
         let header = header();
         let jwt = UnverifiedJwt::sign(&t, &header, &private_key).await.unwrap();
-        let jwt_message: HashMap<String, serde_json::Value> = part(1, jwt.as_ref());
+        let jwt_message: HashMap<String, serde_json::Value> = part(1, jwt.serialization());
         assert!(!jwt_message.contains_key("sub"));
 
         // verification fails because `sub` is required

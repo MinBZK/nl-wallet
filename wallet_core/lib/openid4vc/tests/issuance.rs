@@ -367,7 +367,7 @@ impl MockOpenidMessageClient {
         if self.invalidate_pop {
             let invalidated_proof = match credential_request.proof.as_ref().unwrap() {
                 CredentialRequestProof::Jwt { jwt } => CredentialRequestProof::Jwt {
-                    jwt: invalidate_jwt(jwt.as_ref()).parse().unwrap(),
+                    jwt: invalidate_jwt(jwt.serialization()).parse().unwrap(),
                 },
             };
             credential_request.proof = Some(invalidated_proof);

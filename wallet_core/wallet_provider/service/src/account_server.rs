@@ -434,7 +434,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         )
         .await
         .map_err(ChallengeError::ChallengeSigning)?
-        .as_ref()
+        .serialization()
         .as_bytes()
         .to_vec();
         Ok(challenge)

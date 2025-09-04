@@ -19,14 +19,6 @@ pub enum JwtError {
     #[category(critical)]
     Signing(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
 
-    #[error("error retrieving verifying key from signing key: {0}")]
-    #[category(critical)]
-    VerifyingKey(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
-
-    #[error("trust anchor key of unexpected format: {0}")]
-    #[category(critical)]
-    TrustAnchorKeyFormat(String),
-
     #[error("unexpected amount of parts in JWT credential: expected 3, found {0}")]
     #[category(critical)]
     UnexpectedNumberOfParts(usize),

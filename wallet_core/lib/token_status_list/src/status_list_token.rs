@@ -114,10 +114,11 @@ pub struct StatusListClaims {
 
 #[cfg(test)]
 mod test {
-    use jwt::DEFAULT_VALIDATIONS;
     use p256::ecdsa::SigningKey;
     use p256::elliptic_curve::rand_core::OsRng;
     use serde_json::json;
+
+    use jwt::DEFAULT_VALIDATIONS;
 
     use super::*;
 

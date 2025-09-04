@@ -230,7 +230,7 @@ impl Header for DpopHeader {
 
     fn encode<E: Extend<HeaderValue>>(&self, values: &mut E) {
         let DpopHeader(dpop) = self;
-        values.extend(HeaderValue::from_bytes(dpop.as_ref().as_ref().as_bytes()));
+        values.extend(HeaderValue::from_bytes(dpop.as_ref().serialization().as_bytes()));
     }
 }
 

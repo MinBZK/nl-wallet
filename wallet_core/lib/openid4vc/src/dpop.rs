@@ -268,11 +268,11 @@ mod tests {
             .unwrap();
 
         // Check the `typ` of the Header
-        let header: Header = part(0, dpop.0.as_ref());
+        let header: Header = part(0, dpop.0.serialization());
         assert_eq!(header.typ, Some(OPENID4VCI_DPOP_JWT_TYPE.to_string()));
 
         // Examine some fields in the claims
-        let claims: DpopPayload = part(1, dpop.0.as_ref());
+        let claims: DpopPayload = part(1, dpop.0.serialization());
         assert_eq!(claims.access_token_hash, access_token.as_ref().map(AccessToken::sha256));
         assert_eq!(claims.http_url, url);
         assert_eq!(claims.http_method, method.to_string());
