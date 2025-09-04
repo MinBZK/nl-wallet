@@ -107,6 +107,7 @@ pub mod mock {
     use hsm::model::encrypted::InitializationVector;
 
     use crate::model::wallet_user::WalletUser;
+    use crate::model::wallet_user::WalletUserAttestation;
     use crate::model::wallet_user::WalletUserState;
 
     pub fn wallet_user_1() -> WalletUser {
@@ -127,7 +128,7 @@ SssTb0eI53lvfdvG/xkNcktwsXEIPL1y3lUKn1u1ZhFTnQn4QKmnvaN4uQ==
             last_unsuccessful_pin_entry: None,
             instruction_challenge: None,
             instruction_sequence_number: 0,
-            attestation: super::WalletUserAttestation::Android,
+            attestation: WalletUserAttestation::Android,
             state: WalletUserState::Active,
         }
     }
