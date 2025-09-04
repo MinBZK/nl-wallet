@@ -9,7 +9,7 @@ use hsm::model::encrypted::Encrypted;
 use hsm::model::encrypter::Decrypter;
 use hsm::service::HsmError;
 use jwt::EcdsaDecodingKey;
-use jwt::Jwt;
+use jwt::UnverifiedJwt;
 use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::messages::registration::WalletCertificateClaims;
 use wallet_provider_domain::model::wallet_user::WalletUser;
@@ -51,7 +51,7 @@ where
         iat: jsonwebtoken::get_current_timestamp(),
     };
 
-    Jwt::sign_with_sub(&cert, wallet_certificate_signing_key)
+    UnverifiedJwt::sign_with_sub(&cert, wallet_certificate_signing_key)
         .await
         .map_err(WalletCertificateError::JwtSigning)
 }
@@ -323,6 +323,7 @@ mod tests {
                 challenge: None,
                 instruction_sequence_number: 42,
                 apple_assertion_counter: None,
+                transfer_session_id: None,
             },
             hsm,
             wrapping_key_identifier.to_string(),
@@ -368,6 +369,7 @@ mod tests {
                 challenge: None,
                 instruction_sequence_number: 0,
                 apple_assertion_counter: None,
+                transfer_session_id: None,
             },
             setup_hsm().await,
             wrapping_key_identifier.to_string(),
@@ -420,6 +422,7 @@ mod tests {
                 challenge: None,
                 instruction_sequence_number: 0,
                 apple_assertion_counter: None,
+                transfer_session_id: None,
             },
             hsm,
             wrapping_key_identifier.to_string(),

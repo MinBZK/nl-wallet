@@ -1,7 +1,10 @@
+use std::collections::HashMap;
+
 use futures::TryFutureExt;
 use reqwest::Client;
 use reqwest::Response;
 
+use dcql::CredentialQueryIdentifier;
 use dcql::Query;
 use demo_utils::disclosure::DemoDisclosedAttestation;
 use http_utils::error::HttpJsonErrorBody;
@@ -83,7 +86,7 @@ impl WalletServerClient {
         &self,
         session_token: SessionToken,
         nonce: Option<String>,
-    ) -> Result<Vec<DemoDisclosedAttestation>, anyhow::Error> {
+    ) -> Result<HashMap<CredentialQueryIdentifier, Vec<DemoDisclosedAttestation>>, anyhow::Error> {
         let mut disclosed_attributes_url = self
             .base_url
             .join(&format!("/disclosure/sessions/{session_token}/disclosed_attributes"));
@@ -115,7 +118,7 @@ impl WalletServerClient {
             .and_then(|response| async { Self::error_for_response(response).await })
             .and_then(|response| async {
                 response
-                    .json::<Vec<DemoDisclosedAttestation>>()
+                    .json::<HashMap<CredentialQueryIdentifier, Vec<DemoDisclosedAttestation>>>()
                     .map_err(anyhow::Error::from)
                     .await
             })

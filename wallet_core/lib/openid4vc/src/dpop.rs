@@ -61,7 +61,7 @@ use crypto::keys::EcdsaKey;
 use crypto::utils::random_string;
 use error_category::ErrorCategory;
 use jwt::EcdsaDecodingKey;
-use jwt::Jwt;
+use jwt::UnverifiedJwt;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
 use jwt::jwk::jwk_jwt_header;
@@ -129,7 +129,7 @@ pub struct DpopPayload {
 }
 
 #[derive(Clone)]
-pub struct Dpop(Jwt<DpopPayload>);
+pub struct Dpop(UnverifiedJwt<DpopPayload>);
 
 impl AsRef<str> for Dpop {
     fn as_ref(&self) -> &str {
@@ -170,7 +170,7 @@ impl Dpop {
             access_token_hash: access_token.map(AccessToken::sha256),
         };
 
-        let jwt = Jwt::sign(&payload, &header, private_key).await?;
+        let jwt = UnverifiedJwt::sign(&payload, &header, private_key).await?;
         Ok(Self(jwt))
     }
 

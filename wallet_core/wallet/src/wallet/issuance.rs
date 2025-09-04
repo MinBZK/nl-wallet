@@ -698,6 +698,7 @@ mod tests {
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
     use utils::generator::mock::MockTimeGenerator;
+    use wallet_account::messages::instructions::DiscloseRecoveryCodeResult;
     use wallet_account::messages::instructions::Instruction;
 
     use crate::WalletEvent;
@@ -1387,7 +1388,9 @@ mod tests {
             .once()
             .returning(|_, _| Ok(crypto::utils::random_bytes(32)));
 
-        let wp_result = create_wp_result(());
+        let wp_result = create_wp_result(DiscloseRecoveryCodeResult {
+            transfer_available: false,
+        });
 
         Arc::get_mut(&mut wallet.account_provider_client)
             .unwrap()

@@ -294,4 +294,29 @@ class WalletCoreMock implements WalletCoreApi {
   Future<void> crateApiFullCancelPinRecovery() {
     throw UnimplementedError();
   }
+
+  @override
+  Future<String> crateApiFullGenerateWalletTransferUri() {
+    throw UnimplementedError();
+  }
+
+  @override
+  Stream<void> crateApiFullGetWalletTransferStateStream() {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> crateApiFullInitWalletTransfer({required String uri}) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<bool> crateApiFullIsWalletTransferPossible({required String pin}) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<WalletInstructionResult> crateApiFullStartWalletTransfer({required String pin}) {
+    throw UnimplementedError();
+  }
 }

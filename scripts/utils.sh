@@ -77,7 +77,7 @@ function base64_url_encode() {
 
 function detect_softhsm() {
   # shellcheck disable=SC2206
-  local locations=("/usr/local/lib" ${NIX_PROFILES:-} ${nativeBuildInputs:-} "${HOMEBREW_PREFIX:+${HOMEBREW_PREFIX}/lib}" "/usr/lib")
+  local locations=("/usr/local/lib" ${NIX_PROFILES:-} ${nativeBuildInputs:-} "${HOMEBREW_PREFIX:+${HOMEBREW_PREFIX}/lib}" "/usr/lib" "opt/softhsm2")
 
   for location in "${locations[@]}"; do
       local library_path

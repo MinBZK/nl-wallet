@@ -7,3 +7,24 @@
 div[role="contentinfo"] {
     display: none;
 }
+
+.wy-nav-content {
+    max-width: 1400px;
+}
+
+.table-notes {
+    margin-bottom: 1rem;
+    font-size: 0.9em;
+    color: var(--pst-color-text-muted, #666);
+}
+.table-notes b,
+.table-notes strong { font-weight: 600; }
+.table-notes sup { font-size: 0.8em; vertical-align: super; }
+
+.rst-content table.docutils ul {
+    margin-bottom: 0;
+}
+
+.rst-content table.docutils td:first-child, .rst-content table.docutils th:first-child, .rst-content table.field-list td:first-child, .rst-content table.field-list th:first-child, .wy-table td:first-child, .wy-table th:first-child {
+    vertical-align: top;
+}

@@ -9,7 +9,7 @@ use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 
 use http_utils::urls::BaseUrl;
-use jwt::Jwt;
+use jwt::UnverifiedJwt;
 use jwt::pop::JwtPopClaims;
 use jwt::wua::WuaDisclosure;
 use mdoc::IssuerSigned;
@@ -90,7 +90,7 @@ impl CredentialRequestType {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "proof_type", rename_all = "snake_case")]
 pub enum CredentialRequestProof {
-    Jwt { jwt: Jwt<JwtPopClaims> },
+    Jwt { jwt: UnverifiedJwt<JwtPopClaims> },
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

@@ -263,44 +263,6 @@ impl TestDocuments {
     pub fn into_first(self) -> Option<TestDocument> {
         self.0.into_iter().next()
     }
-
-    pub fn assert_matches(&self, disclosed_documents: &[DisclosedDocument]) {
-        // verify the number of documents
-        assert_eq!(disclosed_documents.len(), self.len());
-        for (
-            TestDocument {
-                doc_type: expected_doc_type,
-                namespaces: expected_namespaces,
-                issuer_uri: expected_issuer,
-                ..
-            },
-            disclosed_document,
-        ) in self.0.iter().zip(disclosed_documents)
-        {
-            // verify the disclosed doc type
-            assert_eq!(disclosed_document.doc_type, *expected_doc_type);
-            // verify the issuer
-            assert_eq!(disclosed_document.issuer_uri, *expected_issuer);
-            // verify the number of namespaces in this document
-            assert_eq!(disclosed_document.attributes.len(), expected_namespaces.len());
-            // verify the disclosed attributes
-            for (expected_namespace, expected_attributes) in expected_namespaces {
-                let disclosed_attributes = disclosed_document
-                    .attributes
-                    .get(expected_namespace)
-                    .expect("expected namespace not received");
-                // verify the number of the attributes in this namespace
-                assert_eq!(disclosed_attributes.len(), expected_attributes.len());
-                // verify whether all expected attributes exist in this namespace
-                for expected_attribute in expected_attributes {
-                    assert_eq!(
-                        disclosed_attributes.get(&expected_attribute.name),
-                        Some(&expected_attribute.value)
-                    );
-                }
-            }
-        }
-    }
 }
 
 impl From<Vec<TestDocument>> for TestDocuments {
@@ -334,18 +296,7 @@ impl MdocCose<CoseSign1, TaggedBytes<MobileSecurityObject>> {
 
 #[cfg(any(test, feature = "mock"))]
 pub mod data {
-    use itertools::Itertools;
-
-    use attestation_types::claim_path::ClaimPath;
     use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
-    use dcql::ClaimsQuery;
-    use dcql::ClaimsSelection;
-    use dcql::CredentialQuery;
-    use dcql::CredentialQueryFormat;
-    use dcql::Query;
-    use dcql::normalized::AttributeRequest;
-    use dcql::normalized::NormalizedCredentialRequest;
-    use dcql::normalized::NormalizedCredentialRequests;
 
     use super::*;
 
@@ -451,93 +402,5 @@ pub mod data {
             TypeMetadataDocuments::address_example(),
         )]
         .into()
-    }
-
-    fn credential_request_from((id, source): (usize, TestDocument)) -> NormalizedCredentialRequest {
-        let id = format!("id-{id}").try_into().unwrap();
-        let format = CredentialQueryFormat::MsoMdoc {
-            doctype_value: source.doc_type,
-        };
-
-        // unwrap below is safe because claims path is not empty
-        let claims = source
-            .namespaces
-            .into_iter()
-            .flat_map(|(namespace, attrs)| {
-                attrs.into_iter().map(move |entry| AttributeRequest {
-                    path: vec![
-                        ClaimPath::SelectByKey(namespace.clone()),
-                        ClaimPath::SelectByKey(entry.name),
-                    ]
-                    .try_into()
-                    .unwrap(),
-                    intent_to_retain: true,
-                })
-            })
-            .collect_vec()
-            .try_into()
-            .expect("TestDocument has attributes");
-
-        NormalizedCredentialRequest { id, format, claims }
-    }
-
-    impl From<TestDocuments> for NormalizedCredentialRequests {
-        fn from(source: TestDocuments) -> Self {
-            source
-                .0
-                .into_iter()
-                .enumerate()
-                .map(credential_request_from)
-                .collect::<Vec<_>>()
-                .try_into()
-                .unwrap()
-        }
-    }
-
-    fn credential_query_from((id, source): (usize, TestDocument)) -> CredentialQuery {
-        CredentialQuery {
-            id: format!("id-{id}").try_into().unwrap(),
-            format: CredentialQueryFormat::MsoMdoc {
-                doctype_value: source.doc_type,
-            },
-            multiple: false,
-            trusted_authorities: vec![],
-            require_cryptographic_holder_binding: true,
-            claims_selection: ClaimsSelection::All {
-                claims: source
-                    .namespaces
-                    .into_iter()
-                    .flat_map(|(ns, entries)| {
-                        entries.into_iter().map(move |attr| ClaimsQuery {
-                            id: None,
-                            path: vec![ClaimPath::SelectByKey(ns.clone()), ClaimPath::SelectByKey(attr.name)]
-                                .try_into()
-                                .unwrap(),
-                            values: vec![],
-                            intent_to_retain: Some(true),
-                        })
-                    })
-                    .collect::<Vec<_>>()
-                    .try_into()
-                    .unwrap(),
-            },
-        }
-    }
-
-    impl From<TestDocuments> for Query {
-        fn from(source: TestDocuments) -> Self {
-            let credentials = source
-                .0
-                .into_iter()
-                .enumerate()
-                .map(credential_query_from)
-                .collect::<Vec<_>>()
-                .try_into()
-                .unwrap();
-            Self {
-                credentials,
-                credential_sets: vec![],
-            }
-        }
     }
 }

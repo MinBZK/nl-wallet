@@ -11,7 +11,7 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use crate::EcdsaDecodingKey;
-use crate::Jwt;
+use crate::UnverifiedJwt;
 use crate::VerifiedJwt;
 use crate::credential::JwtCredentialClaims;
 use crate::error::JwkConversionError;
@@ -43,15 +43,18 @@ impl Default for WuaClaims {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, Constructor)]
-pub struct WuaDisclosure(Jwt<JwtCredentialClaims<WuaClaims>>, Jwt<JwtPopClaims>);
+pub struct WuaDisclosure(
+    UnverifiedJwt<JwtCredentialClaims<WuaClaims>>,
+    UnverifiedJwt<JwtPopClaims>,
+);
 
 #[cfg(feature = "test")]
 impl WuaDisclosure {
-    pub fn wua(&self) -> &Jwt<JwtCredentialClaims<WuaClaims>> {
+    pub fn wua(&self) -> &UnverifiedJwt<JwtCredentialClaims<WuaClaims>> {
         &self.0
     }
 
-    pub fn wua_pop(&self) -> &Jwt<JwtPopClaims> {
+    pub fn wua_pop(&self) -> &UnverifiedJwt<JwtPopClaims> {
         &self.1
     }
 }

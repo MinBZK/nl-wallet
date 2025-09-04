@@ -26,6 +26,15 @@ architecture/*
 ```
 
 ```{toctree}
+:caption: Functional Design
+:maxdepth: 1
+functional-design/about
+functional-design/use-cases
+functional-design/partial-flows
+functional-design/logical-test-cases
+```
+
+```{toctree}
 :caption: Development
 :maxdepth: 1
 :glob:

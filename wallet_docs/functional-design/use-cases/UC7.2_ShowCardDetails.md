@@ -1,0 +1,44 @@
+# Use Case 7.2 Show card details
+
+## Overview
+
+| Aspect                       | Description                                                                                                 |
+|------------------------------|-------------------------------------------------------------------------------------------------------------|
+| **Summary**                  | The user views the details of a selected card, including its data, activity history and issuer information. |
+| **Goal**                     | Inspecting details and data of a card.                                                                      |
+| **Preconditions**            | *None*                                                                                                      |
+| **Postconditions**           | *None*                                                                                                      |
+| **Triggered by**             | <ul><li>User selects a card in [UC7.1 Show all available cards](UC7.1_ShowAllAvailableCards.md)</li></ul>   |
+| **Additional Documentation** | *None*                                                                                                      |
+| **Possible errors**          | *None*                                                                                                      |
+| **Logical test cases**       | <ul><li>[LTC33 Show Card Details](../logical-test-cases.md#ltc33)</li></ul>                                 |
+
+---
+
+## Flow
+
+| #       | Description                                                                                                                                                                                             | Next                                                                           |
+|---------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------|
+| **1**   | **PRIMARY SCENARIO**                                                                                                                                                                                    |                                                                                |
+| **1.1** | **System displays screen 'Card'**<ul><li>[Card title]</li><li>Actions: Details in this card, Card activities, About the Issuer, Help, Back</li></ul>                                                    |                                                                                |
+| 1.1a    | User selects Details in this card                                                                                                                                                                       | 2                                                                              |
+| 1.1b    | User selects Card activities                                                                                                                                                                            | Go to: [UC6.2 Show card history](UC6.2_ShowUsageAndManagementHistoryOfCard.md) |
+| 1.1c    | User selects About the Issuer                                                                                                                                                                           | 4                                                                              |
+| 1.1d    | User selects Help                                                                                                                                                                                       | Go to: [UC9.6 Get help](UC9.6_GetHelp.md)                                      |
+| 1.1e    | User selects Back                                                                                                                                                                                       | Go to: [UC7.1 Show all available cards](UC7.1_ShowAllAvailableCards.md)        |
+| **2**   | **INSPECT CARD DETAILS**                                                                                                                                                                                |                                                                                |
+| **2.1** | **System displays screen 'Card details'**<ul><li>Message: Do not show this screen to anyone else</li><li>Lists all data from the selected card</li><li>Actions: Details Incorrect, Help, Back</li></ul> |                                                                                |
+| 2.1a    | User selects Details Incorrect                                                                                                                                                                          | 3                                                                              |
+| 2.1b    | User selects Help                                                                                                                                                                                       | Go to: [UC9.6 Get help](UC9.6_GetHelp.md)                                      |
+| 2.1c    | User selects Back                                                                                                                                                                                       | Back                                                                           |
+| **3**   | **WHEN CARD DETAILS ARE INCORRECT**                                                                                                                                                                     |                                                                                |
+| **3.1** | **System displays screen 'Details incorrect?'**<ul><li>Message: Details Incorrect</li><li>Actions: Back</li></ul>                                                                                       |                                                                                |
+| 3.1a    | User selects Back                                                                                                                                                                                       | Back                                                                           |
+| **4**   | **INSPECT ISSUER DETAILS**                                                                                                                                                                              |                                                                                |
+| **4.1** | **System displays screen 'About Organization'**<ul><li>About [Organization]</li><li>Logo and organization details</li><li>Actions: Report Problem, Help, Back</li></ul>                                 |                                                                                |
+| 4.1a    | User selects Report Problem                                                                                                                                                                             | 5                                                                              |
+| 4.1b    | User selects Help                                                                                                                                                                                       | Go to: [UC9.6 Get help](UC9.6_GetHelp.md)                                      |
+| 4.1c    | User selects Back                                                                                                                                                                                       | Back                                                                           |
+| **5**   | **REPORT A PROBLEM**                                                                                                                                                                                    |                                                                                |
+| **5.1** | **System displays screen 'Under construction'**<ul><li>Actions: Back</li></ul>                                                                                                                          |                                                                                |
+| 5.1a    | User selects Back                                                                                                                                                                                       | Back                                                                           |

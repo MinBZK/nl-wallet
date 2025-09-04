@@ -379,6 +379,31 @@ pub async fn unlock_wallet_with_biometrics() -> anyhow::Result<()> {
 }
 
 #[flutter_api_error]
+pub async fn init_wallet_transfer(_uri: String) -> anyhow::Result<()> {
+    Ok(())
+}
+
+#[flutter_api_error]
+pub async fn is_wallet_transfer_possible(_pin: String) -> anyhow::Result<bool> {
+    Ok(false)
+}
+
+#[flutter_api_error]
+pub async fn generate_wallet_transfer_uri() -> anyhow::Result<String> {
+    Ok(String::from("https://example.com"))
+}
+
+#[flutter_api_error]
+pub async fn start_wallet_transfer(_pin: String) -> anyhow::Result<WalletInstructionResult> {
+    Ok(WalletInstructionResult::Ok)
+}
+
+#[flutter_api_error]
+pub async fn get_wallet_transfer_state_stream(_sink: StreamSink<()>) -> anyhow::Result<()> {
+    Ok(())
+}
+
+#[flutter_api_error]
 pub async fn get_history() -> anyhow::Result<Vec<WalletEvent>> {
     let wallet = wallet().read().await;
     let history = wallet.get_history().await?;

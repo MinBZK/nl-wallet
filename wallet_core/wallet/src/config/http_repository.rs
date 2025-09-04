@@ -7,7 +7,7 @@ use tracing::info;
 
 use http_utils::reqwest::IntoPinnedReqwestClient;
 use jwt::EcdsaDecodingKey;
-use jwt::Jwt;
+use jwt::UnverifiedJwt;
 use jwt::validations;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
@@ -20,7 +20,7 @@ use crate::repository::RepositoryUpdateState;
 use crate::repository::UpdateableRepository;
 
 pub struct HttpConfigurationRepository<B> {
-    client: EtagHttpClient<Jwt<WalletConfiguration>, B, ConfigurationError>,
+    client: EtagHttpClient<UnverifiedJwt<WalletConfiguration>, B, ConfigurationError>,
     signing_public_key: EcdsaDecodingKey,
     config: RwLock<Arc<WalletConfiguration>>,
 }

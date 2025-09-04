@@ -273,7 +273,7 @@ mod tests {
     use rstest::rstest;
 
     use apple_app_attest::AssertionCounter;
-    use jwt::Jwt;
+    use jwt::UnverifiedJwt;
     use platform_support::attested_key::AttestedKey;
     use wallet_account::messages::errors::AccountError;
     use wallet_account::messages::errors::IncorrectPinData;
@@ -392,7 +392,7 @@ mod tests {
             iss: "wallet_unit_test".to_string(),
             iat: jsonwebtoken::get_current_timestamp(),
         };
-        let result = Jwt::sign_with_sub(&result_claims, &ACCOUNT_SERVER_KEYS.instruction_result_signing_key)
+        let result = UnverifiedJwt::sign_with_sub(&result_claims, &ACCOUNT_SERVER_KEYS.instruction_result_signing_key)
             .await
             .unwrap();
 
@@ -647,7 +647,7 @@ mod tests {
             iat: jsonwebtoken::get_current_timestamp(),
         };
         let other_key = SigningKey::random(&mut OsRng);
-        let result = Jwt::sign_with_sub(&result_claims, &other_key).await.unwrap();
+        let result = UnverifiedJwt::sign_with_sub(&result_claims, &other_key).await.unwrap();
 
         account_provider_client
             .expect_instruction()

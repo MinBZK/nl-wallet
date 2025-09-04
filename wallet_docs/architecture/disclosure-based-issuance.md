@@ -20,7 +20,7 @@ Technically, disclosure based issuance is achieved as follows:
 
 The attestation server exchanges disclosed attributes for attestations to be issued. It is contacted by the `issuance_server` during a disclosure based issuance session to do this. Note that this server does not need to be reachable by the wallet, and it probably should not be directly connected to the internet.
 
-The attestation server receives an HTTP `POST` by the `issuance_server` containing a JSON structure of the same form as the `/disclosed_attributes` endpoint of the `issuance_server` returns, as documented in the [verifier documentation](../get-started/create-a-verifier.md#retrieve-disclosure-results). More specifically, this is a JSON-serialized `IndexMap<String, DocumentDisclosedAttributes>`. For example:
+The attestation server receives an HTTP `POST` by the `issuance_server` containing a JSON structure of the same form as the `/disclosed_attributes` endpoint of the `verification_server` returns, as documented in the [verifier documentation](../get-started/create-a-verifier.md#retrieve-disclosure-results). More specifically, this is a JSON-serialized `IndexMap<String, DocumentDisclosedAttributes>`. For example:
 
 ```http
 POST / HTTP/1.1
@@ -29,23 +29,25 @@ Accept: */*
 Host: localhost:51560
 Content-Length: 267
 
-[
-  {
-    "attestationType": "com.example.pid",
-    "attributes": {
-      "com.example.pid": {
-        "bsn": "999991772"
+{
+  "my_credential": [
+    {
+      "attestationType": "com.example.pid",
+      "attributes": {
+        "com.example.pid": {
+          "bsn": "999991772"
+        }
+      },
+      "issuerUri": "https://cert.issuer.example.com/",
+      "ca": "ca.pid.example.com",
+      "validityInfo": {
+        "signed": "2025-04-15T07:02:26Z",
+        "validFrom": "2025-04-15T07:02:26Z",
+        "validUntil": "2026-04-15T07:02:26Z"
       }
-    },
-    "issuerUri": "https://cert.issuer.example.com/",
-    "ca": "ca.pid.example.com",
-    "validityInfo": {
-      "signed": "2025-04-15T07:02:26Z",
-      "validFrom": "2025-04-15T07:02:26Z",
-      "validUntil": "2026-04-15T07:02:26Z"
     }
-  }
-]
+  ]
+}
 ```
 
 The `attestation_server` must respond with a JSON-serialized `Vec<IssuableDocument>`. For example:

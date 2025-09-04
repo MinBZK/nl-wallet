@@ -1,11 +1,15 @@
+use std::collections::HashMap;
+use std::collections::VecDeque;
 use std::hash::Hash;
 
+use itertools::Itertools;
 use tracing::info;
 use tracing::warn;
 
 use crypto::CredentialEcdsaKey;
 use crypto::utils::random_string;
 use crypto::wscd::DisclosureWscd;
+use dcql::CredentialQueryIdentifier;
 use dcql::normalized::NormalizedCredentialRequests;
 use http_utils::urls::BaseUrl;
 use mdoc::holder::disclosure::PartialMdoc;
@@ -16,6 +20,7 @@ use wscd::Poa;
 use wscd::wscd::JwtPoaInput;
 
 use crate::openid4vp::NormalizedVpAuthorizationRequest;
+use crate::openid4vp::VerifiablePresentation;
 use crate::openid4vp::VpAuthorizationResponse;
 use crate::verifier::SessionType;
 
@@ -74,7 +79,7 @@ where
 
     async fn disclose<K, W>(
         self,
-        partial_mdocs: VecNonEmpty<PartialMdoc>,
+        partial_attestations: HashMap<CredentialQueryIdentifier, VecNonEmpty<PartialMdoc>>,
         wscd: &W,
     ) -> Result<Option<BaseUrl>, (Self, DisclosureError<VpSessionError>)>
     where
@@ -82,7 +87,6 @@ where
         W: DisclosureWscd<Key = K, Poa = Poa>,
     {
         info!("disclose mdoc documents");
-
         // TODO (PVW-4780): This method assumes that the attestations passed to it only contain those attributes that
         //                  were requested to be disclosed. As the `Wallet` already has to perform this operation in
         //                  order to show the disclosure to the user, we decided to have it pass those reduced versions
@@ -91,46 +95,68 @@ where
         //                  a new type that this method takes which encapsulates a full source attestation and a list
         //                  of the attributes to be disclosed. This type then provides the canonical method of creating
         //                  intermediate types of the attestations that contain a subset of the attributes.
-        let expected_attestation_count = self.auth_request.credential_requests.as_ref().len();
-        if partial_mdocs.len().get() != expected_attestation_count {
-            return Err((
-                self,
-                DisclosureError::before_sharing(
-                    VpClientError::AttestationCountMismatch {
-                        expected: expected_attestation_count,
-                        found: partial_mdocs.len().get(),
-                    }
-                    .into(),
-                ),
-            ));
-        }
+
+        // Lay out all of the partial mdocs in a linear `Vec`, but remember the keys and
+        // attestation counts of the `HashMap`, as we will need to reconstruct this later.
+        let mut id_and_counts = Vec::with_capacity(partial_attestations.len());
+        let partial_mdocs = partial_attestations
+            .into_iter()
+            .flat_map(|(id, partial_mdocs)| {
+                id_and_counts.push((id, partial_mdocs.len()));
+
+                partial_mdocs
+            })
+            .collect_vec();
 
         // Sign Document values based on the remaining contents of these mdocs and retain the keys used for signing.
-        info!("signing disclosed mdoc documents");
-
         let mdoc_nonce = random_string(32);
-        let session_transcript = SessionTranscript::new_oid4vp(
-            &self.auth_request.response_uri,
-            &self.auth_request.client_id,
-            self.auth_request.nonce.clone(),
-            &mdoc_nonce,
-        );
 
-        let poa_input = JwtPoaInput::new(Some(mdoc_nonce.clone()), self.auth_request.client_id.clone());
-        let result =
-            DeviceResponse::sign_from_mdocs(partial_mdocs.into_inner(), &session_transcript, wscd, poa_input).await;
-        let (device_response, poa) = match result {
-            Ok(value) => value,
-            Err(error) => {
-                return Err((
-                    self,
-                    DisclosureError::before_sharing(VpClientError::DeviceResponse(error).into()),
-                ));
-            }
+        let (vp_token, poa) = if let Ok(partial_mdocs) = VecNonEmpty::try_from(partial_mdocs) {
+            info!("signing disclosed mdoc documents");
+
+            let session_transcript = SessionTranscript::new_oid4vp(
+                &self.auth_request.response_uri,
+                &self.auth_request.client_id,
+                self.auth_request.nonce.clone(),
+                &mdoc_nonce,
+            );
+            let poa_input = JwtPoaInput::new(Some(mdoc_nonce.clone()), self.auth_request.client_id.clone());
+
+            let result =
+                DeviceResponse::sign_multiple_from_partial_mdocs(partial_mdocs, &session_transcript, wscd, poa_input)
+                    .await;
+            let (device_responses, poa) = match result {
+                Ok(value) => value,
+                Err(error) => {
+                    return Err((
+                        self,
+                        DisclosureError::before_sharing(VpClientError::DeviceResponse(error).into()),
+                    ));
+                }
+            };
+
+            // Reconstruct a `HashMap` from the identifier and `DeviceResponse`s.
+            let mut device_responses = VecDeque::from(device_responses.into_inner());
+            let vp_token = id_and_counts
+                .into_iter()
+                .map(|(id, count)| {
+                    // Note that:
+                    // * The `drain()`` is guaranteed not to panic as the returned `DeviceRespones` should have exactly
+                    //   the same count as the amount of partial mdocs that we submitted for signing.
+                    // * The .`unwrap()` is guaranteed to succeed, as the count is non-zero.
+                    let responses = device_responses.drain(..count.get()).collect_vec().try_into().unwrap();
+
+                    (id, VerifiablePresentation::new_mdoc(responses))
+                })
+                .collect();
+
+            (vp_token, poa)
+        } else {
+            (HashMap::new(), None)
         };
 
         // Finally, encrypt the response and send it to the verifier.
-        let result = VpAuthorizationResponse::new_encrypted(device_response, &self.auth_request, &mdoc_nonce, poa);
+        let result = VpAuthorizationResponse::new_encrypted(vp_token, &self.auth_request, &mdoc_nonce, poa);
         let jwe = match result {
             Ok(value) => value,
             Err(error) => {
@@ -163,6 +189,7 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
     use std::sync::Arc;
     use std::sync::LazyLock;
 
@@ -182,6 +209,7 @@ mod tests {
     use crypto::server_keys::generate::Ca;
     use dcql::normalized::NormalizedCredentialRequest;
     use mdoc::holder::disclosure::PartialMdoc;
+    use utils::vec_nonempty;
     use wscd::mock_remote::MockRemoteWscd;
 
     use crate::errors::AuthorizationErrorCode;
@@ -276,10 +304,13 @@ mod tests {
     ) {
         let (disclosure_session, verifier_session) =
             setup_disclosure_session(redirect_uri.clone(), [NormalizedCredentialRequest::new_pid_example()]);
-        let (mdoc, wscd) = setup_disclosure_mdoc();
+        let (partial_mdoc, wscd) = setup_disclosure_mdoc();
 
         let disclosure_redirect_uri = disclosure_session
-            .disclose(vec![mdoc].try_into().unwrap(), &wscd)
+            .disclose(
+                HashMap::from([("pid".try_into().unwrap(), vec_nonempty![partial_mdoc])]),
+                &wscd,
+            )
             .now_or_never()
             .unwrap()
             .expect("disclosing mdoc using VpDisclosureSession should succeed");
@@ -297,12 +328,15 @@ mod tests {
         // Calling `VPDisclosureSession::disclose()` with a malfunctioning WSCD should result in an error.
         let (disclosure_session, _verifier_session) =
             setup_disclosure_session(None, [NormalizedCredentialRequest::new_pid_example()]);
-        let (mdoc, mut wscd) = setup_disclosure_mdoc();
+        let (partial_mdoc, mut wscd) = setup_disclosure_mdoc();
 
         wscd.disclosure.has_multi_key_signing_error = true;
 
         let (_disclosure_session, error) = disclosure_session
-            .disclose(vec![mdoc].try_into().unwrap(), &wscd)
+            .disclose(
+                HashMap::from([("pid".try_into().unwrap(), vec_nonempty![partial_mdoc])]),
+                &wscd,
+            )
             .now_or_never()
             .unwrap()
             .expect_err("disclosing mdoc using VpDisclosureSession should not succeed");
@@ -321,7 +355,7 @@ mod tests {
         // Calling `VPDisclosureSession::disclose()` with a malformed encryption key should result in an error.
         let (mut disclosure_session, _verifier_session) =
             setup_disclosure_session(None, [NormalizedCredentialRequest::new_pid_example()]);
-        let (mdoc, wscd) = setup_disclosure_mdoc();
+        let (partial_mdoc, wscd) = setup_disclosure_mdoc();
 
         disclosure_session
             .auth_request
@@ -330,7 +364,10 @@ mod tests {
             .unwrap();
 
         let (_disclosure_session, error) = disclosure_session
-            .disclose(vec![mdoc].try_into().unwrap(), &wscd)
+            .disclose(
+                HashMap::from([("pid".try_into().unwrap(), vec_nonempty![partial_mdoc])]),
+                &wscd,
+            )
             .now_or_never()
             .unwrap()
             .expect_err("disclosing mdoc using VpDisclosureSession should not succeed");
@@ -350,11 +387,14 @@ mod tests {
         F: Fn() -> VpMessageClientError,
     {
         let disclosure_session = setup_disclosure_session_http_error(response_factory);
-        let (mdoc, wscd) = setup_disclosure_mdoc();
+        let (partial_mdoc, wscd) = setup_disclosure_mdoc();
         let wallet_messages = Arc::clone(&disclosure_session.client.wallet_messages);
 
         let (_disclosure_session, error) = disclosure_session
-            .disclose(vec![mdoc].try_into().unwrap(), &wscd)
+            .disclose(
+                HashMap::from([("pid".try_into().unwrap(), vec_nonempty![partial_mdoc])]),
+                &wscd,
+            )
             .now_or_never()
             .unwrap()
             .expect_err("disclosing mdoc using VpDisclosureSession should not succeed");

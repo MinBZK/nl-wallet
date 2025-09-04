@@ -1,9 +1,11 @@
+use std::collections::HashMap;
 use std::hash::Hash;
 
 use rustls_pki_types::TrustAnchor;
 
 use crypto::CredentialEcdsaKey;
 use crypto::wscd::DisclosureWscd;
+use dcql::CredentialQueryIdentifier;
 use dcql::normalized::NormalizedCredentialRequests;
 use http_utils::urls::BaseUrl;
 use mdoc::holder::disclosure::PartialMdoc;
@@ -56,7 +58,7 @@ pub trait DisclosureSession {
     async fn terminate(self) -> Result<Option<BaseUrl>, VpSessionError>;
     async fn disclose<K, W>(
         self,
-        partial_mdocs: VecNonEmpty<PartialMdoc>,
+        partial_attestations: HashMap<CredentialQueryIdentifier, VecNonEmpty<PartialMdoc>>,
         wscd: &W,
     ) -> Result<Option<BaseUrl>, (Self, DisclosureError<VpSessionError>)>
     where

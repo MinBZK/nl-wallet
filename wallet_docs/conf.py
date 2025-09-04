@@ -38,6 +38,7 @@ html_js_files = ['js/custom.js']
 html_static_path = ['_static']
 html_show_sphinx = False
 html_theme = 'sphinx_rtd_theme'
+html_favicon = '_static/img/non-free/favicon.ico'
 
 html_theme_options = {
     'logo_only': False,

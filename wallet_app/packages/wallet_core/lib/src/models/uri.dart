@@ -12,5 +12,6 @@ enum IdentifyUriResult {
   PinRecovery,
   Disclosure,
   DisclosureBasedIssuance,
+  Transfer,
   ;
 }

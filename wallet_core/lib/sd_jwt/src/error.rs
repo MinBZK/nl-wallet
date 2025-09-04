@@ -8,6 +8,8 @@ use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
 use jwt::error::JwtX5cError;
 
+use crate::sd_alg::SdAlg;
+
 /// Alias for a `Result` with the error type [`Error`].
 pub type Result<T> = core::result::Result<T, Error>;
 
@@ -16,9 +18,6 @@ pub type Result<T> = core::result::Result<T, Error>;
 pub enum Error {
     #[error("invalid input: {0}")]
     InvalidDisclosure(String),
-
-    #[error("invalid hasher: {0}")]
-    InvalidHasher(String),
 
     #[error("data type is not expected: {0}")]
     DataTypeMismatch(String),
@@ -85,4 +84,7 @@ pub enum Error {
 
     #[error("cannot traverse object for path: {0}")]
     UnsupportedTraversalPath(ClaimPath),
+
+    #[error("no hasher implemented for sd_alg: {0:?}")]
+    SdAlgHasherNotImplemented(SdAlg),
 }

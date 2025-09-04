@@ -22,8 +22,11 @@ use rstest::rstest;
 use rustls_pki_types::TrustAnchor;
 use url::Url;
 
+use attestation_data::attributes::AttributeValue;
 use attestation_data::auth::reader_auth::ReaderRegistration;
 use attestation_data::disclosure::DisclosedAttestation;
+use attestation_data::disclosure::DisclosedAttributes;
+use attestation_data::test_document::test_documents_assert_matches_disclosed_attestations;
 use attestation_data::x509::generate::mock::generate_reader_mock;
 use crypto::mock_remote::MockRemoteEcdsaKey;
 use crypto::mock_remote::MockRemoteWscdError;
@@ -33,21 +36,20 @@ use crypto::server_keys::generate::mock::RP_CERT_CN;
 use crypto::wscd::DisclosureResult;
 use crypto::wscd::DisclosureWscd;
 use crypto::wscd::WscdPoa;
+use dcql::CredentialQueryIdentifier;
 use dcql::Query;
 use dcql::normalized::NormalizedCredentialRequest;
 use dcql::normalized::NormalizedCredentialRequests;
 use http_utils::urls::BaseUrl;
-use jwt::Jwt;
+use jwt::UnverifiedJwt;
 use mdoc::DeviceResponse;
 use mdoc::SessionTranscript;
 use mdoc::holder::disclosure::PartialMdoc;
 use mdoc::test::TestDocuments;
-use mdoc::test::assert_disclosure_contains;
 use mdoc::test::data::PID;
 use mdoc::test::data::addr_street;
 use mdoc::test::data::pid_full_name;
 use mdoc::test::data::pid_given_name;
-use mdoc::verifier::DisclosedDocument;
 use openid4vc::ErrorResponse;
 use openid4vc::GetRequestErrorCode;
 use openid4vc::PostAuthResponseErrorCode;
@@ -65,6 +67,7 @@ use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
 use openid4vc::mock::test_document_to_mdoc;
 use openid4vc::openid4vp::NormalizedVpAuthorizationRequest;
 use openid4vc::openid4vp::RequestUriMethod;
+use openid4vc::openid4vp::VerifiablePresentation;
 use openid4vc::openid4vp::VpAuthorizationRequest;
 use openid4vc::openid4vp::VpAuthorizationResponse;
 use openid4vc::openid4vp::VpRequestUriObject;
@@ -92,11 +95,34 @@ use openid4vc::verifier::WalletInitiatedUseCases;
 use utils::generator::TimeGenerator;
 use utils::generator::mock::MockTimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
+use utils::vec_nonempty;
 use wscd::Poa;
 use wscd::mock_remote::MockRemoteWscd;
 use wscd::wscd::IssuanceResult;
 use wscd::wscd::JwtPoaInput;
 use wscd::wscd::Wscd;
+
+fn assert_disclosed_attestations_mdoc_pid(
+    disclosed_attestations: &HashMap<CredentialQueryIdentifier, VecNonEmpty<DisclosedAttestation>>,
+) {
+    assert_eq!(disclosed_attestations.len(), 1);
+    let disclosed_attestation = disclosed_attestations
+        .get(&"pid".try_into().unwrap())
+        .expect("disclosed attestations should include pid")
+        .iter()
+        .exactly_one()
+        .expect("there should be only one disclosed attestation");
+
+    assert_eq!(disclosed_attestation.attestation_type, PID);
+
+    let DisclosedAttributes::MsoMdoc(attributes) = &disclosed_attestation.attributes else {
+        panic!("disclosed attributes should be in mdoc format");
+    };
+
+    let family_name = attributes.get(PID).and_then(|name_space| name_space.get("family_name"));
+
+    assert_eq!(family_name, Some(&AttributeValue::Text("De Bruijn".to_string())));
+}
 
 #[test]
 fn disclosure_direct() {
@@ -117,7 +143,7 @@ fn disclosure_direct() {
     )
     .unwrap();
     let auth_request = iso_auth_request.clone().into();
-    let auth_request_jws = Jwt::sign_with_certificate(&auth_request, &auth_keypair)
+    let auth_request_jws = UnverifiedJwt::sign_with_certificate(&auth_request, &auth_keypair)
         .now_or_never()
         .unwrap()
         .unwrap();
@@ -128,7 +154,7 @@ fn disclosure_direct() {
 
     // RP decrypts the response JWE and verifies the contained Authorization Response.
     let (auth_response, mdoc_nonce) = VpAuthorizationResponse::decrypt(&jwe, &encryption_keypair, &nonce).unwrap();
-    let disclosed_attrs = auth_response
+    let disclosed_attestations = auth_response
         .verify(
             &iso_auth_request,
             &[MOCK_WALLET_CLIENT_ID.to_string()],
@@ -138,23 +164,17 @@ fn disclosure_direct() {
         )
         .unwrap();
 
-    assert_disclosure_contains(
-        &disclosed_attrs.into_iter().map(DisclosedDocument::from).collect_vec(),
-        PID,
-        PID,
-        "family_name",
-        &ciborium::Value::Text("De Bruijn".to_string()),
-    );
+    assert_disclosed_attestations_mdoc_pid(&disclosed_attestations);
 }
 
 /// The wallet side: verify the Authorization Request, gather the attestations and encrypt it into a JWE.
 fn disclosure_jwe(
-    auth_request: &Jwt<VpAuthorizationRequest>,
+    auth_request: &UnverifiedJwt<VpAuthorizationRequest>,
     trust_anchors: &[TrustAnchor<'_>],
     issuer_ca: &Ca,
 ) -> String {
     let mdoc_key = MockRemoteEcdsaKey::new(String::from("mdoc_key"), SigningKey::random(&mut OsRng));
-    let partial_mdocs = vec![PartialMdoc::new_mock_with_ca_and_key(issuer_ca, &mdoc_key)];
+    let partial_mdocs = vec_nonempty![PartialMdoc::new_mock_with_ca_and_key(issuer_ca, &mdoc_key)];
     let mdoc_nonce = "mdoc_nonce".to_string();
 
     // Verify the Authorization Request JWE and read the requested attributes.
@@ -170,13 +190,23 @@ fn disclosure_jwe(
     );
     let wscd = MockRemoteWscd::new(vec![mdoc_key]);
     let poa_input = JwtPoaInput::new(Some(auth_request.nonce.clone()), auth_request.client_id.clone());
-    let (device_response, poa) = DeviceResponse::sign_from_mdocs(partial_mdocs, &session_transcript, &wscd, poa_input)
-        .now_or_never()
-        .unwrap()
-        .unwrap();
+    let (device_responses, poa) =
+        DeviceResponse::sign_multiple_from_partial_mdocs(partial_mdocs, &session_transcript, &wscd, poa_input)
+            .now_or_never()
+            .unwrap()
+            .unwrap();
 
     // Put the disclosure in an Authorization Response and encrypt it.
-    VpAuthorizationResponse::new_encrypted(device_response, &auth_request, &mdoc_nonce, poa).unwrap()
+    VpAuthorizationResponse::new_encrypted(
+        HashMap::from([(
+            "pid".try_into().unwrap(),
+            VerifiablePresentation::new_mdoc(device_responses),
+        )]),
+        &auth_request,
+        &mdoc_nonce,
+        poa,
+    )
+    .unwrap()
 }
 
 #[tokio::test]
@@ -192,9 +222,7 @@ async fn disclosure_using_message_client() {
     let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
 
     let mdoc_key = MockRemoteEcdsaKey::new(String::from("mdoc_key"), SigningKey::random(&mut OsRng));
-    let partial_mdocs = vec![PartialMdoc::new_mock_with_ca_and_key(&issuer_ca, &mdoc_key)]
-        .try_into()
-        .unwrap();
+    let partial_mdocs = vec_nonempty![PartialMdoc::new_mock_with_ca_and_key(&issuer_ca, &mdoc_key)];
 
     // Start a session at the "RP"
     let message_client = DirectMockVpMessageClient::new(rp_keypair, vec![issuer_ca.to_trust_anchor().to_owned()]);
@@ -209,7 +237,10 @@ async fn disclosure_using_message_client() {
 
     // Finish the disclosure by sending the attestations to the "RP".
     let wscd = MockRemoteWscd::new(vec![mdoc_key]);
-    session.disclose(partial_mdocs, &wscd).await.unwrap();
+    session
+        .disclose(HashMap::from([("pid".try_into().unwrap(), partial_mdocs)]), &wscd)
+        .await
+        .unwrap();
 }
 
 /// A mock implementation of the `VpMessageClient` trait that implements the RP side of OpenID4VP
@@ -280,10 +311,10 @@ impl VpMessageClient for DirectMockVpMessageClient {
         &self,
         url: BaseUrl,
         _request_nonce: Option<String>,
-    ) -> Result<Jwt<VpAuthorizationRequest>, VpMessageClientError> {
+    ) -> Result<UnverifiedJwt<VpAuthorizationRequest>, VpMessageClientError> {
         assert_eq!(url, self.request_uri);
 
-        let jws = Jwt::sign_with_certificate(&self.auth_request, &self.auth_keypair)
+        let jws = UnverifiedJwt::sign_with_certificate(&self.auth_request, &self.auth_keypair)
             .await
             .unwrap();
         Ok(jws)
@@ -298,7 +329,7 @@ impl VpMessageClient for DirectMockVpMessageClient {
 
         let (auth_response, mdoc_nonce) =
             VpAuthorizationResponse::decrypt(&jwe, &self.encryption_keypair, &self.nonce).unwrap();
-        let disclosed_attrs = auth_response
+        let disclosed_attestations = auth_response
             .verify(
                 &self.auth_request.clone().try_into().unwrap(),
                 &[MOCK_WALLET_CLIENT_ID.to_string()],
@@ -308,13 +339,7 @@ impl VpMessageClient for DirectMockVpMessageClient {
             )
             .unwrap();
 
-        assert_disclosure_contains(
-            &disclosed_attrs.into_iter().map(DisclosedDocument::from).collect_vec(),
-            PID,
-            PID,
-            "family_name",
-            &ciborium::Value::Text("De Bruijn".to_string()),
-        );
+        assert_disclosed_attestations_mdoc_pid(&disclosed_attestations);
 
         Ok(None)
     }
@@ -349,7 +374,7 @@ impl DisclosureResultHandler for MockDisclosureResultHandler {
     async fn disclosure_result(
         &self,
         _usecase_id: &str,
-        _disclosed: &[DisclosedAttestation],
+        _disclosed: &HashMap<CredentialQueryIdentifier, VecNonEmpty<DisclosedAttestation>>,
     ) -> Result<HashMap<String, String>, DisclosureResultHandlerError> {
         Ok(self
             .key
@@ -491,13 +516,13 @@ async fn test_client_and_server(
         .unwrap();
 
     // Finish the disclosure.
-    let partial_mdocs = test_documents_to_partial_mdocs(
+    let partial_attestations = test_documents_to_partial_attestations(
         stored_documents,
         session.credential_requests().as_ref(),
         &issuer_ca,
         &wscd,
     );
-    let redirect_uri = session.disclose(partial_mdocs, &wscd).await.unwrap();
+    let redirect_uri = session.disclose(partial_attestations, &wscd).await.unwrap();
 
     // Check if we received a redirect URI when we should have, based on the use case and session type.
     let should_have_redirect_uri = match (use_case, session_type) {
@@ -544,17 +569,12 @@ async fn test_client_and_server(
     }
 
     // Retrieve the attributes disclosed by the wallet
-    let disclosed_documents = verifier
+    let disclosed_attestations = verifier
         .disclosed_attributes(&session_token, redirect_uri_nonce)
         .await
         .unwrap();
 
-    expected_documents.assert_matches(
-        &disclosed_documents
-            .into_iter()
-            .map(DisclosedDocument::from)
-            .collect_vec(),
-    );
+    test_documents_assert_matches_disclosed_attestations(&expected_documents, disclosed_attestations);
 }
 
 #[tokio::test]
@@ -653,14 +673,14 @@ async fn test_client_and_server_cancel_after_wallet_start() {
     assert_matches!(status_response, StatusResponse::Cancelled);
 
     // Disclosing attributes at this point should result in an error.
-    let partial_mdocs = test_documents_to_partial_mdocs(
+    let partial_attestations = test_documents_to_partial_attestations(
         stored_documents,
         session.credential_requests().as_ref(),
         &issuer_ca,
         &wscd,
     );
     let (_session, error) = session
-        .disclose(partial_mdocs, &wscd)
+        .disclose(partial_attestations, &wscd)
         .await
         .expect_err("should not be able to disclose attributes");
 
@@ -740,14 +760,14 @@ async fn test_disclosure_invalid_poa() {
         .unwrap();
 
     // Finish the disclosure.
-    let partial_mdocs = test_documents_to_partial_mdocs(
+    let partial_attestations = test_documents_to_partial_attestations(
         stored_documents,
         session.credential_requests().as_ref(),
         &issuer_ca,
         &wscd,
     );
     let (_session, error) = session
-        .disclose(partial_mdocs, &wscd)
+        .disclose(partial_attestations, &wscd)
         .await
         .expect_err("should not be able to disclose attributes");
     assert_matches!(
@@ -791,13 +811,13 @@ async fn test_wallet_initiated_usecase_verifier() {
     .unwrap();
 
     // Do the disclosure
-    let partial_mdocs = test_documents_to_partial_mdocs(
+    let partial_attestations = test_documents_to_partial_attestations(
         pid_full_name(),
         session.credential_requests().as_ref(),
         &issuer_ca,
         &wscd,
     );
-    session.disclose(partial_mdocs, &wscd).await.unwrap().unwrap();
+    session.disclose(partial_attestations, &wscd).await.unwrap().unwrap();
 }
 
 #[tokio::test]
@@ -881,7 +901,7 @@ fn setup_wallet_initiated_usecase_verifier() -> (Arc<MockWalletInitiatedUseCaseV
         WalletInitiatedUseCase::try_new(
             generate_reader_mock(&rp_ca, reader_registration.clone()).unwrap(),
             SessionTypeReturnUrl::SameDevice,
-            dcql_query,
+            dcql_query.try_into().unwrap(),
             "https://example.com/redirect_uri".parse().unwrap(),
         )
         .unwrap(),
@@ -960,12 +980,12 @@ fn setup_verifier(
     (verifier, rp_ca.to_trust_anchor().to_owned(), issuer_ca)
 }
 
-fn test_documents_to_partial_mdocs<W>(
+fn test_documents_to_partial_attestations<W>(
     stored_documents: TestDocuments,
     credential_requests: &[NormalizedCredentialRequest],
     issuer_ca: &Ca,
     wscd: &W,
-) -> VecNonEmpty<PartialMdoc>
+) -> HashMap<CredentialQueryIdentifier, VecNonEmpty<PartialMdoc>>
 where
     W: Wscd,
 {
@@ -974,12 +994,11 @@ where
         .zip_eq(credential_requests)
         .map(|(doc, request)| {
             let mdoc = test_document_to_mdoc(doc, issuer_ca, wscd).now_or_never().unwrap();
+            let partial_mdoc = PartialMdoc::try_new(mdoc, request.claim_paths()).unwrap();
 
-            PartialMdoc::try_new(mdoc, request.claim_paths()).unwrap()
+            (request.id.clone(), vec_nonempty![partial_mdoc])
         })
-        .collect_vec()
-        .try_into()
-        .unwrap()
+        .collect()
 }
 
 async fn start_disclosure_session<US, UC>(
@@ -1063,7 +1082,7 @@ where
         &self,
         url: BaseUrl,
         wallet_nonce: Option<String>,
-    ) -> Result<Jwt<VpAuthorizationRequest>, VpMessageClientError> {
+    ) -> Result<UnverifiedJwt<VpAuthorizationRequest>, VpMessageClientError> {
         let path_segments = url.as_ref().path_segments().unwrap().collect_vec();
         let session_token: SessionToken = path_segments[path_segments.len() - 2].to_owned().into();
 

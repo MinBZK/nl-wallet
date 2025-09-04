@@ -50,7 +50,6 @@ use openid4vc::issuance_session::CredentialWithMetadata;
 use openid4vc::issuance_session::IssuedCredential;
 use openid4vc::issuance_session::IssuedCredentialCopies;
 use platform_support::hw_keystore::PlatformEncryptionKey;
-use sd_jwt::hasher::Sha256Hasher;
 use sd_jwt::sd_jwt::VerifiedSdJwt;
 
 use crate::AttestationIdentity;
@@ -197,7 +196,6 @@ impl<K> DatabaseStorage<K> {
                             let sd_jwt = VerifiedSdJwt::dangerous_parse_unverified(
                                 // Since we put utf-8 bytes into the database, we are certain we also get them out.
                                 String::from_utf8(attestation_bytes).unwrap().as_str(),
-                                &Sha256Hasher,
                             )?;
                             StoredAttestation::SdJwt {
                                 sd_jwt: Box::new(sd_jwt),

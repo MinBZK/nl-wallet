@@ -94,6 +94,9 @@ impl From<WalletProviderError> for AccountError {
                 InstructionError::Validation(_)
                 | InstructionError::NonExistingKey(_)
                 | InstructionError::MissingRecoveryCode
+                | InstructionError::AccountNotTransferable
+                | InstructionError::NoAccountTransferInProgress
+                | InstructionError::AppVersionMismatch { .. }
                 | InstructionError::SdJwtError(_) => Self::InstructionValidation,
                 InstructionError::Signing(_)
                 | InstructionError::Storage(_)

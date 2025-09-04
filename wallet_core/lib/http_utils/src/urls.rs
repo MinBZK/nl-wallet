@@ -36,6 +36,7 @@ pub const DEFAULT_UNIVERSAL_LINK_BASE: &str = "walletdebuginteraction://wallet.e
 const ISSUANCE_BASE_PATH: &str = "return-from-digid";
 const DISCLOSURE_BASE_PATH: &str = "disclosure";
 const DISCLOSURE_BASED_ISSUANCE_BASE_PATH: &str = "disclosure_based_issuance";
+const TRANSFER_BASE_PATH: &str = "transfer";
 
 #[inline]
 pub fn issuance_base_uri(universal_link_base: &BaseUrl) -> BaseUrl {
@@ -50,6 +51,11 @@ pub fn disclosure_base_uri(universal_link_base: &BaseUrl) -> BaseUrl {
 #[inline]
 pub fn disclosure_based_issuance_base_uri(universal_link_base: &BaseUrl) -> BaseUrl {
     universal_link_base.join_base_url(DISCLOSURE_BASED_ISSUANCE_BASE_PATH)
+}
+
+#[inline]
+pub fn transfer_base_uri(universal_link_base: &BaseUrl) -> BaseUrl {
+    universal_link_base.join_base_url(TRANSFER_BASE_PATH)
 }
 
 #[nutype(validate(predicate = |u| u.scheme() == "https"), derive(Debug, Clone, TryFrom, FromStr, Display, PartialEq, Eq, Serialize, Deserialize))]

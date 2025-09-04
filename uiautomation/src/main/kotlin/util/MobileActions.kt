@@ -101,16 +101,16 @@ open class MobileActions {
         ListView,
     }
 
-    protected fun scrollToEnd(scrollableType: ScrollableType) {
+    protected fun scrollToEnd(element: FlutterElement) {
         val args = mapOf("dx" to 0, "dy" to -2000, "durationMilliseconds" to 100, "frequency" to 100)
-        driver.executeScript("flutter:scroll", find.byType(scrollableType.toString()), args)
+        driver.executeScript("flutter:scroll", element, args)
     }
 
     protected fun scrollToEndOnDashBoard() {
         val dashboardFinder = find.byType("DashboardScreen")
         val customScrollFinder = find.byDescendant(
             dashboardFinder,
-            find.byType("CustomScrollView"),
+            find.byType("ListView"),
             true, true
         )
         val args = mapOf(

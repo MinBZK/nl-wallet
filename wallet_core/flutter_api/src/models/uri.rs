@@ -7,6 +7,7 @@ pub enum IdentifyUriResult {
     PinRecovery,
     Disclosure,
     DisclosureBasedIssuance,
+    Transfer,
 }
 
 impl TryFrom<Result<UriType, UriIdentificationError>> for IdentifyUriResult {
@@ -20,6 +21,7 @@ impl TryFrom<Result<UriType, UriIdentificationError>> for IdentifyUriResult {
                 UriType::PinRecovery => Ok(Self::PinRecovery),
                 UriType::Disclosure => Ok(Self::Disclosure),
                 UriType::DisclosureBasedIssuance => Ok(Self::DisclosureBasedIssuance),
+                UriType::Transfer => Ok(Self::Transfer),
             },
             Err(e) => Err(e),
         }

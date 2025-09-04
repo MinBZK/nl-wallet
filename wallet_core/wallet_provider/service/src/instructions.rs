@@ -21,7 +21,7 @@ use crypto::p256_der::DerSignature;
 use hsm::model::encrypter::Encrypter;
 use hsm::model::wrapped_key::WrappedKey;
 use hsm::service::HsmError;
-use jwt::Jwt;
+use jwt::UnverifiedJwt;
 use jwt::jwk::jwk_from_p256;
 use jwt::pop::JwtPopClaims;
 use jwt::wua::WuaDisclosure;
@@ -34,11 +34,15 @@ use wallet_account::messages::instructions::ChangePinCommit;
 use wallet_account::messages::instructions::ChangePinRollback;
 use wallet_account::messages::instructions::ChangePinStart;
 use wallet_account::messages::instructions::CheckPin;
+use wallet_account::messages::instructions::ConfirmTransfer;
 use wallet_account::messages::instructions::DiscloseRecoveryCode;
+use wallet_account::messages::instructions::DiscloseRecoveryCodeResult;
 use wallet_account::messages::instructions::PerformIssuance;
 use wallet_account::messages::instructions::PerformIssuanceResult;
 use wallet_account::messages::instructions::PerformIssuanceWithWua;
 use wallet_account::messages::instructions::PerformIssuanceWithWuaResult;
+use wallet_account::messages::instructions::PrepareTransfer;
+use wallet_account::messages::instructions::PrepareTransferResult;
 use wallet_account::messages::instructions::Sign;
 use wallet_account::messages::instructions::SignResult;
 use wallet_provider_domain::model::hsm::WalletUserHsm;
@@ -58,25 +62,38 @@ use crate::wua_issuer::WuaIssuer;
 
 pub trait ValidateInstruction {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
-        if wallet_user.pin_change_in_progress() {
-            return Err(InstructionValidationError::PinChangeInProgress);
-        }
-
+        validate_no_pin_change_in_progress(wallet_user)?;
+        validate_no_transfer_in_progress(wallet_user)?;
         Ok(())
     }
 }
 
-impl ValidateInstruction for CheckPin {}
+fn validate_no_pin_change_in_progress(wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+    if wallet_user.pin_change_in_progress() {
+        return Err(InstructionValidationError::PinChangeInProgress);
+    }
+
+    Ok(())
+}
+
+fn validate_no_transfer_in_progress(wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+    if wallet_user.transfer_in_progress() {
+        return Err(InstructionValidationError::TransferInProgress);
+    }
+
+    Ok(())
+}
+
 impl ValidateInstruction for ChangePinStart {}
 impl ValidateInstruction for PerformIssuance {}
 impl ValidateInstruction for PerformIssuanceWithWua {}
 impl ValidateInstruction for DiscloseRecoveryCode {}
+impl ValidateInstruction for ConfirmTransfer {}
 
 impl ValidateInstruction for Sign {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
-        if wallet_user.pin_change_in_progress() {
-            return Err(InstructionValidationError::PinChangeInProgress);
-        }
+        validate_no_pin_change_in_progress(wallet_user)?;
+        validate_no_transfer_in_progress(wallet_user)?;
 
         if self
             .messages_with_identifiers
@@ -100,6 +117,22 @@ impl ValidateInstruction for ChangePinCommit {
 
 impl ValidateInstruction for ChangePinRollback {
     fn validate_instruction(&self, _wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+        Ok(())
+    }
+}
+
+impl ValidateInstruction for CheckPin {
+    fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+        validate_no_pin_change_in_progress(wallet_user)?;
+
+        Ok(())
+    }
+}
+
+impl ValidateInstruction for PrepareTransfer {
+    fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+        validate_no_pin_change_in_progress(wallet_user)?;
+
         Ok(())
     }
 }
@@ -180,7 +213,7 @@ async fn perform_issuance<T, R, H>(
 ) -> Result<
     (
         VecNonEmpty<String>,
-        VecNonEmpty<Jwt<JwtPopClaims>>,
+        VecNonEmpty<UnverifiedJwt<JwtPopClaims>>,
         Option<Poa>,
         Option<WuaDisclosure>,
     ),
@@ -289,7 +322,7 @@ where
         .await
         .map_err(|e| InstructionError::WuaIssuance(Box::new(e)))?;
 
-    let wua_disclosure = Jwt::sign(
+    let wua_disclosure = UnverifiedJwt::sign(
         claims,
         &Header::new(Algorithm::ES256),
         &attestation_key(&wua_wrapped_key, user_state),
@@ -303,7 +336,7 @@ where
 async fn issuance_pops<H>(
     attestation_keys: &VecNonEmpty<HsmCredentialSigningKey<'_, H>>,
     claims: &JwtPopClaims,
-) -> Result<VecNonEmpty<Jwt<JwtPopClaims>>, InstructionError>
+) -> Result<VecNonEmpty<UnverifiedJwt<JwtPopClaims>>, InstructionError>
 where
     H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
 {
@@ -316,7 +349,7 @@ where
             ..Default::default()
         };
 
-        let jwt = Jwt::sign(claims, &header, attestation_key)
+        let jwt = UnverifiedJwt::sign(claims, &header, attestation_key)
             .await
             .map_err(InstructionError::PopSigning)?;
 
@@ -483,7 +516,7 @@ impl HandleInstruction for Sign {
 }
 
 impl HandleInstruction for DiscloseRecoveryCode {
-    type Result = ();
+    type Result = DiscloseRecoveryCodeResult;
 
     async fn handle<T, R, H>(
         self,
@@ -510,9 +543,102 @@ impl HandleInstruction for DiscloseRecoveryCode {
         let tx = user_state.repositories.begin_transaction().await?;
         user_state
             .repositories
-            .store_recovery_code(&tx, &wallet_user.wallet_id, recovery_code)
+            .store_recovery_code(&tx, &wallet_user.wallet_id, recovery_code.clone())
             .await?;
+
+        let has_multiple_accounts_for_recovery_code = user_state
+            .repositories
+            .has_multiple_active_accounts_by_recovery_code(&tx, &recovery_code)
+            .await?;
+
         tx.commit().await?;
+
+        Ok(DiscloseRecoveryCodeResult {
+            transfer_available: has_multiple_accounts_for_recovery_code,
+        })
+    }
+}
+
+impl HandleInstruction for PrepareTransfer {
+    type Result = PrepareTransferResult;
+
+    async fn handle<T, R, H>(
+        self,
+        wallet_user: &WalletUser,
+        _uuid_generator: &impl Generator<Uuid>,
+        user_state: &UserState<R, H, impl WuaIssuer>,
+    ) -> Result<Self::Result, InstructionError>
+    where
+        T: Committable,
+        R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
+        H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
+    {
+        let Some(recovery_code) = &wallet_user.recovery_code else {
+            return Err(InstructionError::MissingRecoveryCode);
+        };
+
+        let transfer_session_id = match wallet_user.transfer_session_id {
+            Some(transfer_session_id) => transfer_session_id,
+            None => {
+                let transfer_session_id = Uuid::new_v4();
+
+                let tx = user_state.repositories.begin_transaction().await?;
+
+                let has_multiple_active_accounts = user_state
+                    .repositories
+                    .has_multiple_active_accounts_by_recovery_code(&tx, recovery_code)
+                    .await?;
+                if !has_multiple_active_accounts {
+                    return Err(InstructionError::AccountNotTransferable);
+                }
+
+                user_state
+                    .repositories
+                    .prepare_transfer(&tx, &wallet_user.wallet_id, transfer_session_id, self.app_version)
+                    .await?;
+
+                tx.commit().await?;
+
+                transfer_session_id
+            }
+        };
+
+        Ok(PrepareTransferResult { transfer_session_id })
+    }
+}
+
+impl HandleInstruction for ConfirmTransfer {
+    type Result = ();
+
+    async fn handle<T, R, H>(
+        self,
+        _wallet_user: &WalletUser,
+        _uuid_generator: &impl Generator<Uuid>,
+        user_state: &UserState<R, H, impl WuaIssuer>,
+    ) -> Result<Self::Result, InstructionError>
+    where
+        T: Committable,
+        R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
+        H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
+    {
+        let tx = user_state.repositories.begin_transaction().await?;
+
+        let Some(destination_version) = user_state
+            .repositories
+            .find_app_version_by_transfer_session_id(&tx, self.transfer_session_id)
+            .await?
+        else {
+            return Err(InstructionError::NoAccountTransferInProgress);
+        };
+
+        tx.commit().await?;
+
+        if destination_version < self.app_version {
+            return Err(InstructionError::AppVersionMismatch {
+                source_version: self.app_version,
+                destination_version,
+            });
+        }
 
         Ok(())
     }
@@ -606,14 +732,11 @@ fn is_poa_message(message: &[u8]) -> bool {
 mod tests {
     use std::collections::HashMap;
     use std::collections::HashSet;
+    use std::sync::Arc;
+    use std::sync::Mutex;
 
     use assert_matches::assert_matches;
-    use attestation_data::auth::issuer_auth::IssuerRegistration;
-    use attestation_data::constants::PID_RECOVERY_CODE;
-    use attestation_data::x509::generate::mock::generate_issuer_mock;
-    use attestation_types::claim_path::ClaimPath;
     use base64::prelude::*;
-    use crypto::server_keys::generate::Ca;
     use itertools::Itertools;
     use jsonwebtoken::Algorithm;
     use jsonwebtoken::Validation;
@@ -621,19 +744,28 @@ mod tests {
     use p256::ecdsa::signature::Verifier;
     use rand::rngs::OsRng;
     use rstest::rstest;
+    use semver::Version;
+    use uuid::Uuid;
 
+    use attestation_data::auth::issuer_auth::IssuerRegistration;
+    use attestation_data::constants::PID_RECOVERY_CODE;
+    use attestation_data::x509::generate::mock::generate_issuer_mock;
+    use attestation_types::claim_path::ClaimPath;
+    use crypto::server_keys::generate::Ca;
     use crypto::utils::random_bytes;
     use hsm::model::wrapped_key::WrappedKey;
-    use jwt::Jwt;
+    use jwt::UnverifiedJwt;
     use jwt::jwk::jwk_to_p256;
     use jwt::pop::JwtPopClaims;
     use jwt::wua::WuaDisclosure;
     use sd_jwt::sd_jwt::SdJwtPresentation;
     use wallet_account::NL_WALLET_CLIENT_ID;
     use wallet_account::messages::instructions::CheckPin;
+    use wallet_account::messages::instructions::ConfirmTransfer;
     use wallet_account::messages::instructions::DiscloseRecoveryCode;
     use wallet_account::messages::instructions::PerformIssuance;
     use wallet_account::messages::instructions::PerformIssuanceWithWua;
+    use wallet_account::messages::instructions::PrepareTransfer;
     use wallet_account::messages::instructions::Sign;
     use wallet_provider_domain::FixedUuidGenerator;
     use wallet_provider_domain::model::wallet_user;
@@ -644,6 +776,7 @@ mod tests {
     use crate::account_server::InstructionValidationError;
     use crate::account_server::mock;
     use crate::instructions::HandleInstruction;
+    use crate::instructions::InstructionError;
     use crate::instructions::ValidateInstruction;
     use crate::instructions::is_poa_message;
     use crate::wallet_certificate::mock::setup_hsm;
@@ -785,6 +918,9 @@ mod tests {
         wallet_user_repo
             .expect_store_recovery_code()
             .returning(|_, _, _| Ok(()));
+        wallet_user_repo
+            .expect_has_multiple_active_accounts_by_recovery_code()
+            .returning(|_, _| Ok(false));
 
         instruction
             .handle(
@@ -881,7 +1017,11 @@ mod tests {
             .unwrap()
     }
 
-    fn validate_issuance(pops: &[Jwt<JwtPopClaims>], poa: Option<Poa>, wua_with_disclosure: Option<&WuaDisclosure>) {
+    fn validate_issuance(
+        pops: &[UnverifiedJwt<JwtPopClaims>],
+        poa: Option<Poa>,
+        wua_with_disclosure: Option<&WuaDisclosure>,
+    ) {
         let mut validations = Validation::new(Algorithm::ES256);
         validations.required_spec_claims = HashSet::default();
         validations.set_issuer(&[NL_WALLET_CLIENT_ID]);
@@ -960,5 +1100,253 @@ mod tests {
             result.issuance_result.poa,
             Some(&result.wua_disclosure),
         );
+    }
+
+    #[tokio::test]
+    async fn should_handle_prepare_transfer() {
+        let wrapping_key_identifier = "my-wrapping-key-identifier";
+        let mut wallet_user = wallet_user::mock::wallet_user_1();
+        wallet_user.recovery_code = Some(String::from("recovery_code_123"));
+
+        let captured_transfer_session_id: Arc<Mutex<Option<Uuid>>> = Arc::new(Mutex::new(None));
+        let captured = captured_transfer_session_id.clone();
+
+        let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
+        wallet_user_repo
+            .expect_begin_transaction()
+            .returning(|| Ok(MockTransaction));
+        wallet_user_repo
+            .expect_has_multiple_active_accounts_by_recovery_code()
+            .returning(|_, _| Ok(true));
+        wallet_user_repo
+            .expect_prepare_transfer()
+            .withf(move |_, _, transfer_session_id, destination_wallet_app_version| {
+                *captured.lock().unwrap() = Some(*transfer_session_id);
+                destination_wallet_app_version.to_string().as_str() == "1.0.0"
+            })
+            .returning(|_, _, _, _| Ok(()));
+
+        let instruction = PrepareTransfer {
+            app_version: Version::parse("1.0.0").unwrap(),
+        };
+
+        let result = instruction
+            .handle(
+                &wallet_user,
+                &FixedUuidGenerator,
+                &mock::user_state(
+                    wallet_user_repo,
+                    setup_hsm().await,
+                    wrapping_key_identifier.to_string(),
+                    vec![],
+                ),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(
+            captured_transfer_session_id.lock().unwrap().unwrap(),
+            result.transfer_session_id
+        );
+    }
+
+    #[tokio::test]
+    async fn should_handle_prepare_transfer_no_multiple_accounts() {
+        let wrapping_key_identifier = "my-wrapping-key-identifier";
+        let mut wallet_user = wallet_user::mock::wallet_user_1();
+        wallet_user.recovery_code = Some(String::from("recovery_code_123"));
+
+        let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
+        wallet_user_repo
+            .expect_begin_transaction()
+            .returning(|| Ok(MockTransaction));
+        wallet_user_repo
+            .expect_has_multiple_active_accounts_by_recovery_code()
+            .returning(|_, _| Ok(false));
+
+        let instruction = PrepareTransfer {
+            app_version: Version::parse("1.0.0").unwrap(),
+        };
+
+        let result = instruction
+            .handle(
+                &wallet_user,
+                &FixedUuidGenerator,
+                &mock::user_state(
+                    wallet_user_repo,
+                    setup_hsm().await,
+                    wrapping_key_identifier.to_string(),
+                    vec![],
+                ),
+            )
+            .await
+            .expect_err("should fail there are no elligible accounts");
+
+        assert_matches!(result, InstructionError::AccountNotTransferable);
+    }
+
+    #[tokio::test]
+    async fn should_handle_prepare_transfer_no_recovery_code() {
+        let wrapping_key_identifier = "my-wrapping-key-identifier";
+        let wallet_user = wallet_user::mock::wallet_user_1();
+
+        let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
+        wallet_user_repo
+            .expect_begin_transaction()
+            .returning(|| Ok(MockTransaction));
+
+        let instruction = PrepareTransfer {
+            app_version: Version::parse("1.0.0").unwrap(),
+        };
+
+        let result = instruction
+            .handle(
+                &wallet_user,
+                &FixedUuidGenerator,
+                &mock::user_state(
+                    wallet_user_repo,
+                    setup_hsm().await,
+                    wrapping_key_identifier.to_string(),
+                    vec![],
+                ),
+            )
+            .await
+            .expect_err("should fail when recovery code is missing");
+
+        assert_matches!(result, InstructionError::MissingRecoveryCode);
+    }
+
+    #[tokio::test]
+    async fn should_handle_prepare_transfer_already_transferring() {
+        let wrapping_key_identifier = "my-wrapping-key-identifier";
+        let mut wallet_user = wallet_user::mock::wallet_user_1();
+        let expected_transfer_session_id = Uuid::new_v4();
+        wallet_user.transfer_session_id = Some(expected_transfer_session_id);
+        wallet_user.recovery_code = Some(String::from("recovery_code_123"));
+
+        let wallet_user_repo = MockTransactionalWalletUserRepository::new();
+
+        let instruction = PrepareTransfer {
+            app_version: Version::parse("1.0.0").unwrap(),
+        };
+
+        let result = instruction
+            .handle(
+                &wallet_user,
+                &FixedUuidGenerator,
+                &mock::user_state(
+                    wallet_user_repo,
+                    setup_hsm().await,
+                    wrapping_key_identifier.to_string(),
+                    vec![],
+                ),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(expected_transfer_session_id, result.transfer_session_id);
+    }
+
+    #[tokio::test]
+    async fn should_handle_confirm_transfer_happy() {
+        let wrapping_key_identifier = "my-wrapping-key-identifier";
+        let wallet_user = wallet_user::mock::wallet_user_1();
+
+        let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
+        wallet_user_repo
+            .expect_begin_transaction()
+            .returning(|| Ok(MockTransaction));
+        wallet_user_repo
+            .expect_find_app_version_by_transfer_session_id()
+            .returning(|_, _| Ok(Some(Version::parse("2.2.3").unwrap())));
+
+        let instruction = ConfirmTransfer {
+            transfer_session_id: Uuid::new_v4(),
+            app_version: Version::parse("1.2.3").unwrap(),
+        };
+
+        instruction
+            .handle(
+                &wallet_user,
+                &FixedUuidGenerator,
+                &mock::user_state(
+                    wallet_user_repo,
+                    setup_hsm().await,
+                    wrapping_key_identifier.to_string(),
+                    vec![],
+                ),
+            )
+            .await
+            .unwrap();
+    }
+
+    #[tokio::test]
+    async fn should_handle_confirm_transfer_no_transfer_session() {
+        let wrapping_key_identifier = "my-wrapping-key-identifier";
+        let wallet_user = wallet_user::mock::wallet_user_1();
+
+        let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
+        wallet_user_repo
+            .expect_begin_transaction()
+            .returning(|| Ok(MockTransaction));
+        wallet_user_repo
+            .expect_find_app_version_by_transfer_session_id()
+            .returning(|_, _| Ok(None));
+
+        let instruction = ConfirmTransfer {
+            transfer_session_id: Uuid::new_v4(),
+            app_version: Version::parse("1.2.3").unwrap(),
+        };
+
+        let err = instruction
+            .handle(
+                &wallet_user,
+                &FixedUuidGenerator,
+                &mock::user_state(
+                    wallet_user_repo,
+                    setup_hsm().await,
+                    wrapping_key_identifier.to_string(),
+                    vec![],
+                ),
+            )
+            .await
+            .expect_err("should fail when there is no transfer session");
+
+        assert_matches!(err, InstructionError::NoAccountTransferInProgress);
+    }
+
+    #[tokio::test]
+    async fn should_handle_confirm_transfer_wrong_app_version() {
+        let wrapping_key_identifier = "my-wrapping-key-identifier";
+        let wallet_user = wallet_user::mock::wallet_user_1();
+
+        let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
+        wallet_user_repo
+            .expect_begin_transaction()
+            .returning(|| Ok(MockTransaction));
+        wallet_user_repo
+            .expect_find_app_version_by_transfer_session_id()
+            .returning(|_, _| Ok(Some(Version::parse("1.2.3").unwrap())));
+
+        let instruction = ConfirmTransfer {
+            transfer_session_id: Uuid::new_v4(),
+            app_version: Version::parse("2.2.3").unwrap(),
+        };
+
+        let err = instruction
+            .handle(
+                &wallet_user,
+                &FixedUuidGenerator,
+                &mock::user_state(
+                    wallet_user_repo,
+                    setup_hsm().await,
+                    wrapping_key_identifier.to_string(),
+                    vec![],
+                ),
+            )
+            .await
+            .expect_err("should fail when app version is wrong");
+
+        assert_matches!(err, InstructionError::AppVersionMismatch { .. });
     }
 }

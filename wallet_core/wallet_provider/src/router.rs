@@ -23,6 +23,7 @@ use wallet_account::messages::instructions::ChangePinRollback;
 use wallet_account::messages::instructions::ChangePinStart;
 use wallet_account::messages::instructions::CheckPin;
 use wallet_account::messages::instructions::DiscloseRecoveryCode;
+use wallet_account::messages::instructions::DiscloseRecoveryCodeResult;
 use wallet_account::messages::instructions::Instruction;
 use wallet_account::messages::instructions::InstructionAndResult;
 use wallet_account::messages::instructions::InstructionChallengeRequest;
@@ -246,7 +247,7 @@ async fn change_pin_rollback<GRC, PIC>(
 async fn disclose_recovery_code<GRC, PIC>(
     State(state): State<Arc<RouterState<GRC, PIC>>>,
     Json(payload): Json<Instruction<DiscloseRecoveryCode>>,
-) -> Result<(StatusCode, Json<InstructionResultMessage<()>>)> {
+) -> Result<(StatusCode, Json<InstructionResultMessage<DiscloseRecoveryCodeResult>>)> {
     info!("Received disclose recovery code request, handling the DiscloseRecoveryCode instruction");
     let body = state
         .handle_instruction(payload)

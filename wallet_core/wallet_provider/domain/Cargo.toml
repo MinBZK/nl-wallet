@@ -19,6 +19,7 @@ chrono = { workspace = true, features = ["std", "clock", "serde"] }
 derive_more = { workspace = true, features = ["debug"] }
 futures = { workspace = true, features = ["std", "async-await"] }
 p256 = { workspace = true, features = ["ecdsa", "std"] }
+semver = { workspace = true }
 serde.workspace = true
 thiserror.workspace = true
 uuid = { workspace = true, features = ["v4"] }

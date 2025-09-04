@@ -23,10 +23,12 @@ integration_test = ["client", "server", "dep:rustls-pki-types", "dep:android_att
 [dependencies]
 chrono = { workspace = true, features = ["std", "serde"] }
 derive_more = { workspace = true, features = ["constructor"] }
+semver = { workspace = true, features = ["serde"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true, features = ["std", "raw_value"] }
 serde_with = { workspace = true, features = ["base64"] }
 strum = { workspace = true, features = ["derive"] }
+uuid = { workspace = true, features = ["v4", "serde"] }
 
 crypto.path = "../../lib/crypto"
 jwt.path = "../../lib/jwt"

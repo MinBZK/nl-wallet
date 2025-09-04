@@ -315,7 +315,7 @@ mod test {
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
 
-    use jwt::Jwt;
+    use jwt::UnverifiedJwt;
     use wallet_account::messages::registration::WalletCertificateClaims;
 
     use super::*;
@@ -349,7 +349,7 @@ mod test {
             iat: jsonwebtoken::get_current_timestamp(),
         };
 
-        let wallet_certificate = Jwt::sign_with_sub(&certificate_claims, &certificate_signing_key)
+        let wallet_certificate = UnverifiedJwt::sign_with_sub(&certificate_claims, &certificate_signing_key)
             .await
             .unwrap();
 
