@@ -1523,7 +1523,54 @@ mod tests {
         assert!(wallet.session.is_none());
     }
 
-    // TODO (PVW-1879): Add test for `DisclosureError::HistoryRetrieval`.
+    #[tokio::test]
+    async fn test_wallet_disclosure_history_retrieval_error() {
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        setup_disclosure_client_start(
+            &mut wallet.disclosure_client,
+            RequestedFormat::MsoMdoc,
+            DEFAULT_MDOC_REQUESTED_PID_PATH.as_slice(),
+        );
+
+        let mdoc = create_example_pid_mdoc();
+        let attestation_type = mdoc.mso.doc_type.clone();
+        let stored_attestation_copy = StoredAttestationCopy::new(
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            StoredAttestation::MsoMdoc {
+                mdoc: Box::new(mdoc.clone()),
+            },
+            NormalizedTypeMetadata::nl_pid_example(),
+        );
+
+        let expectation_attestation_copy = stored_attestation_copy.clone();
+        wallet
+            .mut_storage()
+            .expect_fetch_unique_attestations_by_type()
+            .withf(move |attestation_types, format| {
+                *attestation_types == HashSet::from([attestation_type.as_str()])
+                    && *format == AttestationFormatQuery::MsoMdoc
+            })
+            .times(1)
+            .return_once(move |_, _| Ok(vec![expectation_attestation_copy.clone()]));
+
+        wallet
+            .mut_storage()
+            .expect_did_share_data_with_relying_party()
+            .return_once(|_| Err(StorageError::AlreadyOpened));
+
+        // Starting disclosure where retrieving whether data has been shared with the relying party fails, should result
+        // in an error.
+        let error = wallet
+            .start_disclosure(&DISCLOSURE_URI, DisclosureUriSource::QrCode)
+            .await
+            .expect_err("starting disclosure should not succeed");
+
+        assert_matches!(error, DisclosureError::HistoryRetrieval(_));
+        assert!(error.return_url().is_none());
+        assert!(wallet.session.is_none());
+    }
 
     #[rstest]
     #[tokio::test]
