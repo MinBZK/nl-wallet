@@ -35,4 +35,3 @@
 | **3.1** | **System displays screen 'App is blocked'**<ul><li>Actions: Help, To Play/App Store</li></ul>            |                                           |
 | 3.1a    | User selects Help                                                                                        | Go to: [UC9.6 Get help](../use-cases/UC9.6_GetHelp.md) |
 | 3.1b    | User selects To Play/App Store <br>&rarr; System opens Play/App Store and suspends app                   |                                           |
-<style>td {vertical-align:top}</style>

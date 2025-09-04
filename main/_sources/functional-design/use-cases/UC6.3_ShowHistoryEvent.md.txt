@@ -45,4 +45,3 @@
 | 6.1a    | User selects Report Problem                                                                                                                                  | 4                                         |
 | 6.1b    | User selects Help                                                                                                                                            | Go to: [UC9.6 Get help](UC9.6_GetHelp.md) |
 | 6.1c    | User selects Back                                                                                                                                            | 1.2                                       |
-<style>td {vertical-align:top}</style>

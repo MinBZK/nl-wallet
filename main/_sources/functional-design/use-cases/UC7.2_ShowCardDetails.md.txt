@@ -42,4 +42,3 @@
 | **5**   | **REPORT A PROBLEM**                                                                                                                                                                                    |                                                                                |
 | **5.1** | **System displays screen 'Under construction'**<ul><li>Actions: Back</li></ul>                                                                                                                          |                                                                                |
 | 5.1a    | User selects Back                                                                                                                                                                                       | Back                                                                           |
-<style>td {vertical-align:top}</style>

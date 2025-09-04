@@ -46,4 +46,3 @@
 | **3**   | **WHEN QR INVALID**                                                                                                   |                                                                                     |
 | **3.1** | **System displays prompt 'Invalid QR'**<ul><li>Actions: OK</li></ul>                                                  |                                                                                     |
 | 3.1a    | User selects OK                                                                                                       | 1.3                                                                                 |
-<style>td {vertical-align:top}</style>

@@ -23,4 +23,3 @@
 | **1.1** | **System displays screen 'Wipe app data'**<ul><li>Message: Do you want to delete all data?</li><li>Actions: Yes Delete, Cancel</li></ul> |                                                            |
 | 1.1a    | User selects Yes Delete <br>&rarr; App deletes local data                                                                                | Go to: [UC1.1 Introduce the app](UC1.1_IntroduceTheApp.md) |
 | 1.1b    | User selects Cancel                                                                                                                      | Back                                                       |
-<style>td {vertical-align:top}</style>
