@@ -55,6 +55,8 @@
   already exists and renews the existing attestation. The only exception is that
   if the attestation will be valid in the future, the attestation will be
   treated as new.
+- The Wallet Provider now supports a new `StartPinRecovery` instruction with
+  which the wallet can start PIN recovery if the user forgot their PIN.
 
 ## Code improvements
 
