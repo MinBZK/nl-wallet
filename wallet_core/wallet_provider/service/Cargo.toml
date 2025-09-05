@@ -48,7 +48,6 @@ derive_more = { workspace = true, features = ["constructor", "into"] }
 futures = { workspace = true, features = ["std", "async-await"] }
 indexmap.workspace = true
 itertools.workspace = true
-jsonwebtoken.workspace = true
 p256 = { workspace = true, features = ["ecdsa", "pem", "std"] }
 rustls-pki-types.workspace = true
 rustls-webpki.workspace = true

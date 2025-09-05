@@ -5,8 +5,6 @@ use std::sync::Arc;
 use base64::prelude::*;
 use futures::future;
 use itertools::Itertools;
-use jsonwebtoken::Algorithm;
-use jsonwebtoken::Header;
 use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
 use serde::Deserialize;
@@ -20,6 +18,8 @@ use crypto::p256_der::DerSignature;
 use hsm::model::encrypter::Encrypter;
 use hsm::model::wrapped_key::WrappedKey;
 use hsm::service::HsmError;
+use jwt::Algorithm;
+use jwt::Header;
 use jwt::UnverifiedJwt;
 use jwt::jwk::jwk_from_p256;
 use jwt::pop::JwtPopClaims;
@@ -822,8 +822,6 @@ mod tests {
     use assert_matches::assert_matches;
     use base64::prelude::*;
     use itertools::Itertools;
-    use jsonwebtoken::Algorithm;
-    use jsonwebtoken::Validation;
     use p256::ecdsa::Signature;
     use p256::ecdsa::SigningKey;
     use p256::ecdsa::signature::Signer;
@@ -840,7 +838,9 @@ mod tests {
     use crypto::server_keys::generate::Ca;
     use crypto::utils::random_bytes;
     use hsm::model::wrapped_key::WrappedKey;
+    use jwt::Algorithm;
     use jwt::UnverifiedJwt;
+    use jwt::Validation;
     use jwt::jwk::jwk_to_p256;
     use jwt::pop::JwtPopClaims;
     use jwt::wua::WuaDisclosure;
@@ -1121,7 +1121,7 @@ mod tests {
         let keys = pops
             .iter()
             .map(|pop| {
-                let pubkey = jwk_to_p256(&jsonwebtoken::decode_header(&pop.0).unwrap().jwk.unwrap()).unwrap();
+                let pubkey = jwk_to_p256(&pop.dangerous_parse_header_unverified().unwrap().jwk.unwrap()).unwrap();
 
                 pop.parse_and_verify(&(&pubkey).into(), &validations).unwrap();
 

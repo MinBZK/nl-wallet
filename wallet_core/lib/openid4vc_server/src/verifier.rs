@@ -216,7 +216,7 @@ where
         HeaderValue::from_static(APPLICATION_OAUTH_AUTHZ_REQ_JWT.as_ref()),
     )]);
 
-    Ok((headers, response.0))
+    Ok((headers, response.to_string()))
 }
 
 async fn post_response<S, US, UC, K>(

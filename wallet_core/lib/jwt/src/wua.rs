@@ -10,6 +10,7 @@ use p256::ecdsa::VerifyingKey;
 use serde::Deserialize;
 use serde::Serialize;
 
+use crate::DEFAULT_VALIDATIONS;
 use crate::EcdsaDecodingKey;
 use crate::UnverifiedJwt;
 use crate::VerifiedJwt;
@@ -18,7 +19,6 @@ use crate::error::JwkConversionError;
 use crate::error::JwtError;
 use crate::jwk::jwk_to_p256;
 use crate::pop::JwtPopClaims;
-use crate::validations;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct WuaClaims {
@@ -77,10 +77,10 @@ impl WuaDisclosure {
         accepted_wallet_client_ids: &[String],
         expected_nonce: &str,
     ) -> Result<(VerifiedJwt<JwtCredentialClaims<WuaClaims>>, VerifyingKey), WuaError> {
-        let verified_jwt = VerifiedJwt::try_new(self.0, issuer_public_key, &WUA_JWT_VALIDATIONS)?;
+        let verified_jwt = self.0.into_verified(issuer_public_key, &WUA_JWT_VALIDATIONS)?;
         let wua_pubkey = jwk_to_p256(&verified_jwt.payload().confirmation.jwk)?;
 
-        let mut validations = validations();
+        let mut validations = DEFAULT_VALIDATIONS.to_owned();
         validations.set_audience(&[expected_aud]);
         validations.set_issuer(accepted_wallet_client_ids);
         let wua_disclosure_claims = self.1.parse_and_verify(&(&wua_pubkey).into(), &validations)?;
@@ -98,7 +98,7 @@ impl WuaDisclosure {
 // NOTE: the returned validation allows for no clock drift: time-based claims such as `exp` are validated
 // without leeway. There must be no clock drift between the WUA issuer and the caller.
 pub static WUA_JWT_VALIDATIONS: LazyLock<Validation> = LazyLock::new(|| {
-    let mut validations = validations();
+    let mut validations = DEFAULT_VALIDATIONS.to_owned();
     validations.leeway = 0;
 
     // Enforce presence and validity of exp.

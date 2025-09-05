@@ -1,5 +1,8 @@
 use std::num::NonZeroUsize;
 
+use chrono::DateTime;
+use chrono::Utc;
+use chrono::serde::ts_seconds;
 use derive_more::Constructor;
 use semver::Version;
 use serde::Deserialize;
@@ -51,7 +54,9 @@ pub struct InstructionResultClaims<R> {
     pub result: R,
 
     pub iss: String,
-    pub iat: u64,
+
+    #[serde(with = "ts_seconds")]
+    pub iat: DateTime<Utc>,
 }
 
 impl<R> JwtSubject for InstructionResultClaims<R> {

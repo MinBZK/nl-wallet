@@ -7,6 +7,9 @@ rust-version.workspace = true
 [lints]
 workspace = true
 
+[lib]
+doctest = false
+
 [features]
 # Include examples from the ISO specification
 examples = ["crypto/examples"]
@@ -17,7 +20,6 @@ mock = ["crypto/mock", "dep:parking_lot", "dep:rand_core"]
 derive_more = { workspace = true, features = ["as_ref", "from", "constructor"] }
 futures = { workspace = true, features = ["std"] }
 itertools.workspace = true
-jsonwebtoken.workspace = true
 parking_lot = { workspace = true, optional = true }
 p256 = { workspace = true, features = ["ecdsa"] }
 serde = { workspace = true, features = ["derive"] }

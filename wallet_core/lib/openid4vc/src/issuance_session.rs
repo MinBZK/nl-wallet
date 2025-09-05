@@ -369,7 +369,7 @@ impl VcMessageClient for HttpVcMessageClient {
     ) -> Result<(TokenResponseWithPreviews, Option<String>), IssuanceSessionError> {
         self.http_client
             .post(url.as_ref())
-            .header(DPOP_HEADER_NAME, dpop_header.as_ref())
+            .header(DPOP_HEADER_NAME, dpop_header.to_string())
             .form(&token_request)
             .send()
             .map_err(IssuanceSessionError::from)
@@ -1019,7 +1019,7 @@ impl IssuanceState {
 
         let access_token_header = "DPoP ".to_string() + self.access_token.as_ref();
 
-        Ok((dpop_header.into(), access_token_header))
+        Ok((dpop_header.to_string(), access_token_header))
     }
 }
 
@@ -1364,7 +1364,7 @@ mod tests {
                 CredentialRequestProof::Jwt { jwt } => jwt,
             };
             let holder_public_key =
-                jwk_to_p256(&jsonwebtoken::decode_header(&proof_jwt.0).unwrap().jwk.unwrap()).unwrap();
+                jwk_to_p256(&proof_jwt.dangerous_parse_header_unverified().unwrap().jwk.unwrap()).unwrap();
 
             self.into_response_from_holder_public_key(&holder_public_key)
         }
@@ -1397,7 +1397,9 @@ mod tests {
             "DPoP ".to_string() + session_state.access_token.as_ref()
         );
 
-        Dpop::from(dpop_header.to_string())
+        dpop_header
+            .parse::<Dpop>()
+            .unwrap()
             .verify_expecting_key(
                 session_state.dpop_private_key.verifying_key(),
                 url,

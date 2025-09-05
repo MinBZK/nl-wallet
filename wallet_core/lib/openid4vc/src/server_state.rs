@@ -300,7 +300,7 @@ where
     type Error = Infallible;
 
     async fn track_wua(&self, wua: &VerifiedJwt<JwtCredentialClaims<WuaClaims>>) -> Result<bool, Self::Error> {
-        let shasum = sha256(wua.jwt().0.as_bytes());
+        let shasum = sha256(wua.to_string().as_bytes());
 
         // We don't have to check for expiry of the WUA, because its type guarantees that it has already been verified.
         if self.seen_wuas.contains_key(&shasum) {
@@ -558,7 +558,9 @@ pub mod test {
         .await
         .unwrap();
 
-        let wua = VerifiedJwt::try_new(wua, &wua_signing_key.verifying_key().into(), &WUA_JWT_VALIDATIONS).unwrap();
+        let wua = wua
+            .into_verified(&wua_signing_key.verifying_key().into(), &WUA_JWT_VALIDATIONS)
+            .unwrap();
 
         // Checking our WUA for the first time means we haven't seen it before
         assert!(!wua_tracker.track_wua(&wua).await.unwrap());

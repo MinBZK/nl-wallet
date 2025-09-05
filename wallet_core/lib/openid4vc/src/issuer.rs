@@ -14,8 +14,6 @@ use derive_more::From;
 use futures::future::try_join_all;
 use indexmap::IndexMap;
 use itertools::Itertools;
-use jsonwebtoken::Algorithm;
-use jsonwebtoken::Validation;
 use p256::ecdsa::VerifyingKey;
 use reqwest::Method;
 use serde::Deserialize;
@@ -39,11 +37,12 @@ use crypto::server_keys::KeyPair;
 use crypto::utils::random_string;
 use http_utils::urls::BaseUrl;
 use http_utils::urls::HttpsUri;
+use jwt::Algorithm;
 use jwt::EcdsaDecodingKey;
+use jwt::Validation;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
 use jwt::jwk::jwk_to_p256;
-use jwt::pop::JwtPopClaims;
 use jwt::wua::WuaDisclosure;
 use jwt::wua::WuaError;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
@@ -159,9 +158,6 @@ pub enum CredentialRequestError {
         found.as_ref().unwrap_or(&"<None>".to_string())
     )]
     UnsupportedJwtAlgorithm { expected: String, found: Option<String> },
-
-    #[error("JWT decoding failed: {0}")]
-    JwtDecodingFailed(#[from] jsonwebtoken::errors::Error),
 
     #[error("JWK conversion error: {0}")]
     JwkConversion(#[from] JwkConversionError),
@@ -905,7 +901,7 @@ impl Session<WaitingForResponse> {
     pub fn check_credential_endpoint_access(
         &self,
         access_token: &AccessToken,
-        dpop: &Dpop,
+        dpop: Dpop,
         endpoint: &str,
         issuer_data: &IssuerData<impl EcdsaKeySend, impl WuaTracker>,
     ) -> Result<(), CredentialRequestError> {
@@ -993,7 +989,7 @@ impl Session<WaitingForResponse> {
     ) -> Result<CredentialResponse, CredentialRequestError> {
         let session_data = self.session_data();
 
-        self.check_credential_endpoint_access(&access_token, &dpop, "credential", issuer_data)?;
+        self.check_credential_endpoint_access(&access_token, dpop, "credential", issuer_data)?;
 
         // If we have exactly one credential on offer that matches the credential type that the client is
         // requesting, then we issue that credential.
@@ -1069,7 +1065,7 @@ impl Session<WaitingForResponse> {
     ) -> Result<CredentialResponses, CredentialRequestError> {
         let session_data = self.session_data();
 
-        self.check_credential_endpoint_access(&access_token, &dpop, "batch_credential", issuer_data)?;
+        self.check_credential_endpoint_access(&access_token, dpop, "batch_credential", issuer_data)?;
 
         let previews_and_holder_pubkeys = credential_requests
             .credential_requests
@@ -1251,7 +1247,7 @@ impl CredentialRequestProof {
         let jwt = match self {
             CredentialRequestProof::Jwt { jwt } => jwt,
         };
-        let header = jsonwebtoken::decode_header(&jwt.0)?;
+        let header = jwt.dangerous_parse_header_unverified()?;
         let verifying_key = jwk_to_p256(&header.jwk.ok_or(CredentialRequestError::MissingJwk)?)?;
 
         let mut validation_options = Validation::new(Algorithm::ES256);
@@ -1260,19 +1256,16 @@ impl CredentialRequestProof {
         validation_options.set_audience(&[credential_issuer_identifier]);
 
         // We use `jsonwebtoken` crate directly instead of our `Jwt` because we need to inspect the header
-        let token_data = jsonwebtoken::decode::<JwtPopClaims>(
-            &jwt.0,
-            &EcdsaDecodingKey::from(&verifying_key).0,
-            &validation_options,
-        )?;
+        let (header, payload) =
+            jwt.parse_and_verify_with_header(&EcdsaDecodingKey::from(&verifying_key), &validation_options)?;
 
-        if token_data.header.typ != Some(OPENID4VCI_VC_POP_JWT_TYPE.to_string()) {
+        if header.typ != Some(OPENID4VCI_VC_POP_JWT_TYPE.to_string()) {
             return Err(CredentialRequestError::UnsupportedJwtAlgorithm {
                 expected: OPENID4VCI_VC_POP_JWT_TYPE.to_string(),
-                found: token_data.header.typ,
+                found: header.typ,
             });
         }
-        if token_data.claims.nonce.as_deref() != Some(nonce) {
+        if payload.nonce.as_deref() != Some(nonce) {
             return Err(CredentialRequestError::IncorrectNonce);
         }
 

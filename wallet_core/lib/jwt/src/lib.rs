@@ -6,3 +6,7 @@ pub mod pop;
 pub mod wua;
 
 pub use jwt::*;
+
+pub use jsonwebtoken::Algorithm;
+pub use jsonwebtoken::Header;
+pub use jsonwebtoken::Validation;
