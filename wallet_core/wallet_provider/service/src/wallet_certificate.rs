@@ -15,12 +15,15 @@ use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::messages::registration::WalletCertificateClaims;
 use wallet_provider_domain::model::wallet_user::WalletUser;
 use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
+use wallet_provider_domain::model::wallet_user::WalletUserState;
 use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::repository::TransactionStarter;
 use wallet_provider_domain::repository::WalletUserRepository;
 
+use crate::account_server::AccountServerPinKeys;
 use crate::account_server::UserState;
 use crate::account_server::WalletCertificateError;
+use crate::instructions::PinCheckOptions;
 use crate::keys::WalletCertificateSigningKey;
 use crate::wua_issuer::WuaIssuer;
 
@@ -61,6 +64,7 @@ pub async fn parse_claims_and_retrieve_wallet_user<T, R>(
     certificate: &WalletCertificate,
     certificate_signing_pubkey: &EcdsaDecodingKey,
     wallet_user_repository: &R,
+    include_blocked: bool,
 ) -> Result<(WalletUser, WalletCertificateClaims), WalletCertificateError>
 where
     T: Committable,
@@ -86,7 +90,9 @@ where
             debug!("No user found for the provided certificate: {}", &claims.wallet_id);
             Err(WalletCertificateError::UserNotRegistered)
         }
-        WalletUserQueryResult::Blocked => {
+        WalletUserQueryResult::Found(user_boxed)
+            if !include_blocked && matches!(user_boxed.state, WalletUserState::Blocked) =>
+        {
             debug!("User found for the provided certificate is blocked");
             Err(WalletCertificateError::UserBlocked)
         }
@@ -97,11 +103,26 @@ where
     }
 }
 
+/// Specifies a PIN public key and what validations to do with it.
+#[derive(Clone)]
+pub enum PinKeyChecks {
+    /// Verify the ECDSA signature over the instruction set with the PIN public key,
+    /// and check that the HMAC of the PIN public key is present in the certificate.
+    /// Normally instructions should use this variant.
+    AllChecks,
+
+    /// Verify only the ECDSA signature over the instruction set with the PIN public key,
+    /// and not that the HMAC of the PIN public key is present in the certificate.
+    /// Only appropriate when the instruction is verified with some other PIN public key
+    /// than the user's stored PIN public key.
+    SkipCertificateMatching,
+}
+
 pub async fn verify_wallet_certificate_public_keys<H>(
     claims: WalletCertificateClaims,
-    pin_public_disclosure_protection_key_identifier: &str,
-    encryption_key_identifier: &str,
+    pin_keys: &AccountServerPinKeys,
     hw_pubkey: &VerifyingKey,
+    pin_checks: PinKeyChecks,
     encrypted_pin_pubkey: Encrypted<VerifyingKey>,
     hsm: &H,
 ) -> Result<(), WalletCertificateError>
@@ -110,35 +131,44 @@ where
 {
     debug!("Decrypt the encrypted pin public key");
 
-    let pin_pubkey = Decrypter::decrypt(hsm, encryption_key_identifier, encrypted_pin_pubkey).await?;
+    if matches!(pin_checks, PinKeyChecks::AllChecks) {
+        let pin_pubkey = Decrypter::decrypt(hsm, &pin_keys.encryption_key_identifier, encrypted_pin_pubkey).await?;
 
-    let pin_hash_verification = verify_pin_pubkey(
-        &pin_pubkey,
-        claims.pin_pubkey_hash,
-        pin_public_disclosure_protection_key_identifier,
-        hsm,
-    )
-    .await;
+        let pin_hash_verification = verify_pin_pubkey(
+            &pin_pubkey,
+            claims.pin_pubkey_hash,
+            &pin_keys.public_disclosure_protection_key_identifier,
+            hsm,
+        )
+        .await;
 
-    debug!("Verifying the pin and hardware public keys matches those in the provided certificate");
+        debug!("Verifying the pin and hardware public keys matches those in the provided certificate");
 
-    if pin_hash_verification.is_err() {
-        Err(WalletCertificateError::PinPubKeyMismatch)
-    } else if hw_pubkey != claims.hw_pubkey.as_inner() {
-        Err(WalletCertificateError::HwPubKeyMismatch)
-    } else {
-        Ok(())
+        if pin_hash_verification.is_err() {
+            return Err(WalletCertificateError::PinPubKeyMismatch);
+        }
     }
+
+    if hw_pubkey != claims.hw_pubkey.as_inner() {
+        return Err(WalletCertificateError::HwPubKeyMismatch);
+    }
+
+    Ok(())
 }
 
+/// - Verify the provided [`WalletCertificate`]
+/// - Retrieve the [`WalletUser`] from the DB using the `wallet_id` from the verified [`WalletCertificate`]
+/// - Check that the provided PIN key and the HW key in the [`WalletUser`] are present in the
+///   (verified) wallet certificate
+/// - Return the [`WalletUser`].
 pub async fn verify_wallet_certificate<T, R, H, F>(
     certificate: &WalletCertificate,
     certificate_signing_pubkey: &EcdsaDecodingKey,
-    pin_public_disclosure_protection_key_identifier: &str,
-    encryption_key_identifier: &str,
+    pin_keys: &AccountServerPinKeys,
+    pin_checks: PinCheckOptions,
     pin_pubkey: F,
     user_state: &UserState<R, H, impl WuaIssuer>,
-) -> Result<WalletUser, WalletCertificateError>
+) -> Result<(WalletUser, Encrypted<VerifyingKey>), WalletCertificateError>
 where
     T: Committable,
     R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
@@ -147,20 +177,27 @@ where
 {
     debug!("Parsing and verifying the provided certificate");
 
-    let (user, claims) =
-        parse_claims_and_retrieve_wallet_user(certificate, certificate_signing_pubkey, &user_state.repositories)
-            .await?;
+    let (user, claims) = parse_claims_and_retrieve_wallet_user(
+        certificate,
+        certificate_signing_pubkey,
+        &user_state.repositories,
+        pin_checks.allow_for_blocked_users,
+    )
+    .await?;
+
+    let pin_pubkey = pin_pubkey(&user);
 
     verify_wallet_certificate_public_keys(
         claims,
-        pin_public_disclosure_protection_key_identifier,
-        encryption_key_identifier,
+        pin_keys,
         &user.hw_pubkey,
-        pin_pubkey(&user),
+        pin_checks.key_checks,
+        pin_pubkey.clone(),
         &user_state.wallet_user_hsm,
     )
     .await?;
-    Ok(user)
+
+    Ok((user, pin_pubkey))
 }
 
 async fn sign_pin_pubkey<H>(
@@ -273,9 +310,12 @@ mod tests {
     use hsm::model::mock::MockPkcs11Client;
     use hsm::service::HsmError;
     use jwt::EcdsaDecodingKey;
+    use wallet_provider_domain::model::wallet_user::WalletUserState;
     use wallet_provider_persistence::repositories::mock::WalletUserTestRepo;
 
+    use crate::account_server::AccountServerPinKeys;
     use crate::account_server::mock::user_state;
+    use crate::instructions::PinCheckOptions;
     use crate::wallet_certificate::mock;
     use crate::wallet_certificate::mock::setup_hsm;
     use crate::wallet_certificate::new_wallet_certificate;
@@ -324,6 +364,7 @@ mod tests {
                 challenge: None,
                 instruction_sequence_number: 42,
                 apple_assertion_counter: None,
+                state: WalletUserState::Active,
                 transfer_session_id: None,
             },
             hsm,
@@ -334,8 +375,12 @@ mod tests {
         verify_wallet_certificate(
             &wallet_certificate,
             &((&setup.signing_pubkey).into()),
-            mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
-            mock::SIGNING_KEY_IDENTIFIER,
+            &AccountServerPinKeys {
+                public_disclosure_protection_key_identifier: mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER
+                    .to_string(),
+                encryption_key_identifier: mock::ENCRYPTION_KEY_IDENTIFIER.to_string(),
+            },
+            PinCheckOptions::default(),
             |wallet_user| wallet_user.encrypted_pin_pubkey.clone(),
             &user_state,
         )
@@ -370,22 +415,28 @@ mod tests {
                 challenge: None,
                 instruction_sequence_number: 0,
                 apple_assertion_counter: None,
+                state: WalletUserState::Active,
                 transfer_session_id: None,
             },
             setup_hsm().await,
             wrapping_key_identifier.to_string(),
             vec![],
         );
+
         verify_wallet_certificate(
             &wallet_certificate,
             &EcdsaDecodingKey::from(&setup.signing_pubkey),
-            mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
-            mock::ENCRYPTION_KEY_IDENTIFIER,
+            &AccountServerPinKeys {
+                public_disclosure_protection_key_identifier: mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER
+                    .to_string(),
+                encryption_key_identifier: mock::ENCRYPTION_KEY_IDENTIFIER.to_string(),
+            },
+            PinCheckOptions::default(),
             |wallet_user| wallet_user.encrypted_pin_pubkey.clone(),
             &user_state,
         )
         .await
-        .expect_err("Should not validate");
+        .expect_err("certificate with incorrect hardware key should not validate");
     }
 
     #[tokio::test]
@@ -423,21 +474,27 @@ mod tests {
                 challenge: None,
                 instruction_sequence_number: 0,
                 apple_assertion_counter: None,
+                state: WalletUserState::Active,
                 transfer_session_id: None,
             },
             hsm,
             wrapping_key_identifier.to_string(),
             vec![],
         );
+
         verify_wallet_certificate(
             &wallet_certificate,
             &EcdsaDecodingKey::from(&setup.signing_pubkey),
-            mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
-            mock::ENCRYPTION_KEY_IDENTIFIER,
+            &AccountServerPinKeys {
+                public_disclosure_protection_key_identifier: mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER
+                    .to_string(),
+                encryption_key_identifier: mock::ENCRYPTION_KEY_IDENTIFIER.to_string(),
+            },
+            PinCheckOptions::default(),
             |wallet_user| wallet_user.encrypted_pin_pubkey.clone(),
             &user_state,
         )
         .await
-        .expect_err("Should not validate");
+        .expect_err("certificate with incorrect PIN key HMAC should not validate");
     }
 }

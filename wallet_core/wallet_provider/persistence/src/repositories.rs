@@ -223,6 +223,7 @@ pub mod mock {
     use wallet_provider_domain::model::wallet_user::WalletUserCreate;
     use wallet_provider_domain::model::wallet_user::WalletUserKeys;
     use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
+    use wallet_provider_domain::model::wallet_user::WalletUserState;
     use wallet_provider_domain::repository::MockTransaction;
     use wallet_provider_domain::repository::MockTransactionStarter;
     use wallet_provider_domain::repository::PersistenceError;
@@ -364,6 +365,7 @@ pub mod mock {
         pub challenge: Option<Vec<u8>>,
         pub instruction_sequence_number: u64,
         pub apple_assertion_counter: Option<AssertionCounter>,
+        pub state: WalletUserState,
         pub transfer_session_id: Option<Uuid>,
     }
 
@@ -400,6 +402,7 @@ pub mod mock {
                     Some(assertion_counter) => WalletUserAttestation::Apple { assertion_counter },
                     None => WalletUserAttestation::Android,
                 },
+                state: self.state,
                 recovery_code: None,
                 transfer_session_id: self.transfer_session_id,
                 destination_wallet_app_version: None,
