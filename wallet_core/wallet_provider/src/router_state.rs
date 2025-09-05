@@ -25,6 +25,7 @@ use wallet_provider_service::account_server::AndroidAttestationConfiguration;
 use wallet_provider_service::account_server::AppleAttestationConfiguration;
 use wallet_provider_service::account_server::UserState;
 use wallet_provider_service::instructions::HandleInstruction;
+use wallet_provider_service::instructions::PinChecks;
 use wallet_provider_service::instructions::ValidateInstruction;
 use wallet_provider_service::keys::InstructionResultSigning;
 use wallet_provider_service::keys::WalletCertificateSigning;
@@ -155,7 +156,7 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
         instruction: Instruction<I>,
     ) -> Result<InstructionResultMessage<R>, WalletProviderError>
     where
-        I: InstructionAndResult<Result = R> + HandleInstruction<Result = R> + ValidateInstruction,
+        I: InstructionAndResult<Result = R> + HandleInstruction<Result = R> + ValidateInstruction + PinChecks,
         R: Serialize + DeserializeOwned,
     {
         let result = self

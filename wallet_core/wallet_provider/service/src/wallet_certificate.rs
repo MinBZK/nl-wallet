@@ -22,6 +22,7 @@ use wallet_provider_domain::repository::WalletUserRepository;
 use crate::account_server::AccountServerPinKeys;
 use crate::account_server::UserState;
 use crate::account_server::WalletCertificateError;
+use crate::instructions::PinCheckOptions;
 use crate::keys::WalletCertificateSigningKey;
 use crate::wua_issuer::WuaIssuer;
 
@@ -107,22 +108,13 @@ pub enum PinKeyChecks {
     /// Verify the ECDSA signature over the instruction set with the PIN public key,
     /// and check that the HMAC of the PIN public key is present in the certificate.
     /// Normally instructions should use this variant.
-    AllChecks(Encrypted<VerifyingKey>),
+    AllChecks,
 
     /// Verify only the ECDSA signature over the instruction set with the PIN public key,
     /// and not that the HMAC of the PIN public key is present in the certificate.
     /// Only appropriate when the instruction is verified with some other PIN public key
     /// than the user's stored PIN public key.
-    SkipCertificateMatching(Encrypted<VerifyingKey>),
-}
-
-impl PinKeyChecks {
-    pub fn into_encrypted_verifying_key(self) -> Encrypted<VerifyingKey> {
-        match self {
-            PinKeyChecks::AllChecks(encrypted) => encrypted,
-            PinKeyChecks::SkipCertificateMatching(encrypted) => encrypted,
-        }
-    }
+    SkipCertificateMatching,
 }
 
 pub async fn verify_wallet_certificate_public_keys<H>(
@@ -130,6 +122,7 @@ pub async fn verify_wallet_certificate_public_keys<H>(
     pin_keys: &AccountServerPinKeys,
     hw_pubkey: &VerifyingKey,
     pin_checks: PinKeyChecks,
+    encrypted_pin_pubkey: Encrypted<VerifyingKey>,
     hsm: &H,
 ) -> Result<(), WalletCertificateError>
 where
@@ -137,7 +130,7 @@ where
 {
     debug!("Decrypt the encrypted pin public key");
 
-    if let PinKeyChecks::AllChecks(encrypted_pin_pubkey) = pin_checks {
+    if matches!(pin_checks, PinKeyChecks::AllChecks) {
         let pin_pubkey = Decrypter::decrypt(hsm, &pin_keys.encryption_key_identifier, encrypted_pin_pubkey).await?;
 
         let pin_hash_verification = verify_pin_pubkey(
@@ -171,15 +164,15 @@ pub async fn verify_wallet_certificate<T, R, H, F>(
     certificate: &WalletCertificate,
     certificate_signing_pubkey: &EcdsaDecodingKey,
     pin_keys: &AccountServerPinKeys,
-    allow_blocked: bool,
-    pin_checks: F,
+    pin_checks: PinCheckOptions,
+    pin_pubkey: F,
     user_state: &UserState<R, H, impl WuaIssuer>,
 ) -> Result<(WalletUser, Encrypted<VerifyingKey>), WalletCertificateError>
 where
     T: Committable,
     R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
     H: Decrypter<VerifyingKey, Error = HsmError> + Hsm<Error = HsmError>,
-    F: Fn(&WalletUser) -> PinKeyChecks,
+    F: Fn(&WalletUser) -> Encrypted<VerifyingKey>,
 {
     debug!("Parsing and verifying the provided certificate");
 
@@ -187,22 +180,23 @@ where
         certificate,
         certificate_signing_pubkey,
         &user_state.repositories,
-        allow_blocked,
+        pin_checks.allow_for_blocked_users,
     )
     .await?;
 
-    let pin_checks = pin_checks(&user);
+    let pin_pubkey = pin_pubkey(&user);
 
     verify_wallet_certificate_public_keys(
         claims,
         pin_keys,
         &user.hw_pubkey,
-        pin_checks.clone(),
+        pin_checks.key_checks,
+        pin_pubkey.clone(),
         &user_state.wallet_user_hsm,
     )
     .await?;
 
-    Ok((user, pin_checks.into_encrypted_verifying_key()))
+    Ok((user, pin_pubkey))
 }
 
 async fn sign_pin_pubkey<H>(
@@ -320,7 +314,7 @@ mod tests {
 
     use crate::account_server::AccountServerPinKeys;
     use crate::account_server::mock::user_state;
-    use crate::wallet_certificate::PinKeyChecks;
+    use crate::instructions::PinCheckOptions;
     use crate::wallet_certificate::mock;
     use crate::wallet_certificate::mock::setup_hsm;
     use crate::wallet_certificate::new_wallet_certificate;
@@ -385,8 +379,8 @@ mod tests {
                     .to_string(),
                 encryption_key_identifier: mock::ENCRYPTION_KEY_IDENTIFIER.to_string(),
             },
-            false,
-            |wallet_user| PinKeyChecks::AllChecks(wallet_user.encrypted_pin_pubkey.clone()),
+            PinCheckOptions::default(),
+            |wallet_user| wallet_user.encrypted_pin_pubkey.clone(),
             &user_state,
         )
         .await
@@ -436,8 +430,8 @@ mod tests {
                     .to_string(),
                 encryption_key_identifier: mock::ENCRYPTION_KEY_IDENTIFIER.to_string(),
             },
-            false,
-            |wallet_user| PinKeyChecks::AllChecks(wallet_user.encrypted_pin_pubkey.clone()),
+            PinCheckOptions::default(),
+            |wallet_user| wallet_user.encrypted_pin_pubkey.clone(),
             &user_state,
         )
         .await
@@ -495,8 +489,8 @@ mod tests {
                     .to_string(),
                 encryption_key_identifier: mock::ENCRYPTION_KEY_IDENTIFIER.to_string(),
             },
-            false,
-            |wallet_user| PinKeyChecks::AllChecks(wallet_user.encrypted_pin_pubkey.clone()),
+            PinCheckOptions::default(),
+            |wallet_user| wallet_user.encrypted_pin_pubkey.clone(),
             &user_state,
         )
         .await

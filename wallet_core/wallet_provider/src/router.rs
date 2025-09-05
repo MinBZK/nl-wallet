@@ -41,6 +41,7 @@ use wallet_account::signed::ChallengeResponse;
 use wallet_provider_service::account_server::GoogleCrlProvider;
 use wallet_provider_service::account_server::IntegrityTokenDecoder;
 use wallet_provider_service::instructions::HandleInstruction;
+use wallet_provider_service::instructions::PinChecks;
 use wallet_provider_service::instructions::ValidateInstruction;
 use wallet_provider_service::wua_issuer::WuaIssuer;
 
@@ -190,7 +191,7 @@ async fn handle_instruction<I, R, GRC, PIC>(
     Json(payload): Json<Instruction<I>>,
 ) -> Result<(StatusCode, Json<InstructionResultMessage<R>>)>
 where
-    I: InstructionAndResult<Result = R> + HandleInstruction<Result = R> + ValidateInstruction,
+    I: InstructionAndResult<Result = R> + HandleInstruction<Result = R> + ValidateInstruction + PinChecks,
     R: Serialize + DeserializeOwned,
 {
     info!("received {} instruction", I::NAME);

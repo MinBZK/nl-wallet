@@ -94,6 +94,7 @@ use wallet_provider_domain::repository::WalletUserRepository;
 use wscd::PoaError;
 
 use crate::instructions::HandleInstruction;
+use crate::instructions::PinChecks;
 use crate::instructions::ValidateInstruction;
 use crate::instructions::perform_issuance;
 use crate::keys::InstructionResultSigningKey;
@@ -721,17 +722,18 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         }?;
 
         debug!("Verifying wallet certificate");
-        let pin_key_checks = if request.instruction_name == ChangePinRollback::NAME {
-            PinKeyChecks::AllChecks(user.encrypted_previous_pin_pubkey.unwrap_or(user.encrypted_pin_pubkey))
+        let encrypted_pin_key = if request.instruction_name == ChangePinRollback::NAME {
+            user.encrypted_previous_pin_pubkey.unwrap_or(user.encrypted_pin_pubkey)
         } else {
-            PinKeyChecks::AllChecks(user.encrypted_pin_pubkey)
+            user.encrypted_pin_pubkey
         };
 
         verify_wallet_certificate_public_keys(
             claims,
             &self.keys.pin_keys,
             &user.hw_pubkey,
-            pin_key_checks,
+            PinKeyChecks::AllChecks,
+            encrypted_pin_key,
             &user_state.wallet_user_hsm,
         )
         .await?;
@@ -781,7 +783,12 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
     where
         T: Committable,
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
-        I: HandleInstruction<Result = IR> + InstructionAndResult + ValidateInstruction + Serialize + DeserializeOwned,
+        I: HandleInstruction<Result = IR>
+            + InstructionAndResult
+            + ValidateInstruction
+            + Serialize
+            + DeserializeOwned
+            + PinChecks,
         IR: Serialize + DeserializeOwned,
         G: Generator<Uuid> + Generator<DateTime<Utc>>,
         H: WalletUserHsm<Error = HsmError>
@@ -790,8 +797,8 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             + Encrypter<VerifyingKey, Error = HsmError>,
     {
         let (wallet_user, instruction_payload) = self
-            .verify_and_extract_instruction(instruction, generators, pin_policy, user_state, false, |wallet_user| {
-                PinKeyChecks::AllChecks(wallet_user.encrypted_pin_pubkey.clone())
+            .verify_and_extract_instruction(instruction, generators, pin_policy, user_state, |wallet_user| {
+                wallet_user.encrypted_pin_pubkey.clone()
             })
             .await?;
 
@@ -829,8 +836,8 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             + Encrypter<VerifyingKey, Error = HsmError>,
     {
         let (wallet_user, instruction_payload) = self
-            .verify_and_extract_instruction(instruction, generators, pin_policy, user_state, false, |wallet_user| {
-                PinKeyChecks::AllChecks(wallet_user.encrypted_pin_pubkey.clone())
+            .verify_and_extract_instruction(instruction, generators, pin_policy, user_state, |wallet_user| {
+                wallet_user.encrypted_pin_pubkey.clone()
             })
             .await?;
 
@@ -901,13 +908,11 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         H: WalletUserHsm<Error = HsmError> + Hsm<Error = HsmError> + Decrypter<VerifyingKey, Error = HsmError>,
     {
         let (wallet_user, _) = self
-            .verify_and_extract_instruction(instruction, generators, pin_policy, user_state, false, |wallet_user| {
-                PinKeyChecks::AllChecks(
-                    wallet_user
-                        .encrypted_previous_pin_pubkey
-                        .clone()
-                        .unwrap_or(wallet_user.encrypted_pin_pubkey.clone()),
-                )
+            .verify_and_extract_instruction(instruction, generators, pin_policy, user_state, |wallet_user| {
+                wallet_user
+                    .encrypted_previous_pin_pubkey
+                    .clone()
+                    .unwrap_or(wallet_user.encrypted_pin_pubkey.clone())
             })
             .await?;
 
@@ -965,8 +970,8 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         .await?;
 
         let (wallet_user, instruction_payload) = self
-            .verify_and_extract_instruction(instruction, generators, pin_policy, user_state, true, |_| {
-                PinKeyChecks::SkipCertificateMatching(encrypted_pin_pubkey.clone())
+            .verify_and_extract_instruction(instruction, generators, pin_policy, user_state, |_| {
+                encrypted_pin_pubkey.clone()
             })
             .await?;
 
@@ -1023,16 +1028,15 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         generators: &G,
         pin_policy: &impl PinPolicyEvaluator,
         user_state: &UserState<R, H, impl WuaIssuer>,
-        allow_blocked: bool,
         pin_pubkey: F,
     ) -> Result<(WalletUser, I), InstructionError>
     where
         T: Committable,
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
-        I: InstructionAndResult + ValidateInstruction,
+        I: InstructionAndResult + ValidateInstruction + PinChecks,
         G: Generator<Uuid> + Generator<DateTime<Utc>>,
         H: Hsm<Error = HsmError> + Decrypter<VerifyingKey, Error = HsmError>,
-        F: Fn(&WalletUser) -> PinKeyChecks,
+        F: Fn(&WalletUser) -> Encrypted<VerifyingKey>,
     {
         debug!("Verifying certificate and retrieving wallet user");
 
@@ -1040,7 +1044,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             &instruction.certificate,
             &self.keys.wallet_certificate_signing_pubkey,
             &self.keys.pin_keys,
-            allow_blocked,
+            I::pin_checks_options(),
             pin_pubkey,
             user_state,
         )
@@ -1567,9 +1571,9 @@ mod tests {
     use wallet_provider_persistence::repositories::mock::WalletUserTestRepo;
 
     use crate::account_server::AccountServerPinKeys;
+    use crate::instructions::PinCheckOptions;
     use crate::keys::WalletCertificateSigningKey;
     use crate::wallet_certificate;
-    use crate::wallet_certificate::PinKeyChecks;
     use crate::wallet_certificate::mock::WalletCertificateSetup;
     use crate::wallet_certificate::mock::setup_hsm;
     use crate::wallet_certificate::verify_wallet_certificate;
@@ -1896,8 +1900,8 @@ mod tests {
                     wallet_certificate::mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER.to_string(),
                 encryption_key_identifier: wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER.to_string(),
             },
-            false,
-            |wallet_user| PinKeyChecks::AllChecks(wallet_user.encrypted_pin_pubkey.clone()),
+            PinCheckOptions::default(),
+            |wallet_user| wallet_user.encrypted_pin_pubkey.clone(),
             &user_state,
         )
         .await
@@ -2304,8 +2308,8 @@ mod tests {
                     wallet_certificate::mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER.to_string(),
                 encryption_key_identifier: wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER.to_string(),
             },
-            false,
-            |wallet_user| PinKeyChecks::AllChecks(wallet_user.encrypted_pin_pubkey.clone()),
+            PinCheckOptions::default(),
+            |wallet_user| wallet_user.encrypted_pin_pubkey.clone(),
             &user_state,
         )
         .await
@@ -2324,8 +2328,8 @@ mod tests {
                     wallet_certificate::mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER.to_string(),
                 encryption_key_identifier: wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER.to_string(),
             },
-            false,
-            |wallet_user| PinKeyChecks::AllChecks(wallet_user.encrypted_pin_pubkey.clone()),
+            PinCheckOptions::default(),
+            |wallet_user| wallet_user.encrypted_pin_pubkey.clone(),
             &user_state,
         )
         .await
@@ -2706,8 +2710,8 @@ mod tests {
                     wallet_certificate::mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER.to_string(),
                 encryption_key_identifier: wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER.to_string(),
             },
-            false,
-            |wallet_user| PinKeyChecks::AllChecks(wallet_user.encrypted_pin_pubkey.clone()),
+            PinCheckOptions::default(),
+            |wallet_user| wallet_user.encrypted_pin_pubkey.clone(),
             &user_state,
         )
         .await

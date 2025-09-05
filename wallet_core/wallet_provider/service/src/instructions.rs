@@ -59,6 +59,7 @@ use wscd::Poa;
 use crate::account_server::InstructionError;
 use crate::account_server::InstructionValidationError;
 use crate::account_server::UserState;
+use crate::wallet_certificate::PinKeyChecks;
 use crate::wua_issuer::WuaIssuer;
 
 pub trait ValidateInstruction {
@@ -148,6 +149,49 @@ impl ValidateInstruction for StartPinRecovery {
 impl ValidateInstruction for PrepareTransfer {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
         validate_no_pin_change_in_progress(wallet_user)
+    }
+}
+
+pub struct PinCheckOptions {
+    pub allow_for_blocked_users: bool,
+    pub key_checks: PinKeyChecks,
+}
+
+impl Default for PinCheckOptions {
+    fn default() -> Self {
+        Self {
+            allow_for_blocked_users: false,
+            key_checks: PinKeyChecks::AllChecks,
+        }
+    }
+}
+
+pub trait PinChecks {
+    fn pin_checks_options() -> PinCheckOptions {
+        Default::default()
+    }
+}
+
+impl PinChecks for ChangePinStart {}
+impl PinChecks for PerformIssuance {}
+impl PinChecks for PerformIssuanceWithWua {}
+impl PinChecks for DiscloseRecoveryCode {}
+impl PinChecks for ConfirmTransfer {}
+impl PinChecks for ChangePinCommit {}
+impl PinChecks for ChangePinRollback {}
+impl PinChecks for CheckPin {}
+impl PinChecks for PrepareTransfer {}
+impl PinChecks for Sign {}
+
+impl PinChecks for StartPinRecovery {
+    fn pin_checks_options() -> PinCheckOptions {
+        PinCheckOptions {
+            // Blocked users should be able to reset their PIN, so don't reject blocked users.
+            allow_for_blocked_users: true,
+
+            // This instruction is signed with the user's new PIN key, whose HMAC is not in the certificate.
+            key_checks: PinKeyChecks::SkipCertificateMatching,
+        }
     }
 }
 
