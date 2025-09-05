@@ -1,4 +1,5 @@
-use std::{fmt::Debug, marker::PhantomData};
+use std::fmt::Debug;
+use std::marker::PhantomData;
 
 #[derive(Clone)]
 pub struct InitializationVector(pub Vec<u8>);
