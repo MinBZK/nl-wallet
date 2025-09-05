@@ -4,8 +4,8 @@ use std::string::FromUtf8Error;
 
 use chrono::DateTime;
 use chrono::Utc;
+use dcql::UniqueIdVec;
 use derive_more::Constructor;
-use indexmap::IndexMap;
 use indexmap::IndexSet;
 use itertools::Itertools;
 use josekit::JoseError;
@@ -24,6 +24,7 @@ use serde_with::skip_serializing_none;
 
 use attestation_data::disclosure::DisclosedAttestation;
 use attestation_data::disclosure::DisclosedAttestationError;
+use attestation_data::disclosure::DisclosedAttestations;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateError;
 use dcql::CredentialQueryIdentifier;
@@ -655,7 +656,7 @@ impl VpAuthorizationResponse {
         accepted_wallet_client_ids: &[String],
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
-    ) -> Result<IndexMap<CredentialQueryIdentifier, VecNonEmpty<DisclosedAttestation>>, AuthResponseError> {
+    ) -> Result<UniqueIdVec<DisclosedAttestations>, AuthResponseError> {
         let (response, mdoc_nonce) = Self::decrypt(jwe, private_key, &auth_request.nonce)?;
 
         response.verify(
@@ -694,7 +695,7 @@ impl VpAuthorizationResponse {
         mdoc_nonce: &str,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
-    ) -> Result<IndexMap<CredentialQueryIdentifier, VecNonEmpty<DisclosedAttestation>>, AuthResponseError> {
+    ) -> Result<UniqueIdVec<DisclosedAttestations>, AuthResponseError> {
         // Step 1: Verify the cryptographic integrity of the verifiable presentations
         //         and extract the disclosed attestations from them.
         let session_transcript = LazyCell::new(|| {
@@ -795,11 +796,18 @@ impl VpAuthorizationResponse {
             .as_ref()
             .iter()
             .map(|credential_request| {
-                // Safety: in step 4 we checked that for each `credential_request`
-                // there is a matching disclosed attestation.
-                disclosed_attestations.remove_entry(&credential_request.id).unwrap()
+                DisclosedAttestations {
+                    // Safety: in step 4 we checked that for each `credential_request`
+                    // there is a matching disclosed attestation.
+                    attestations: disclosed_attestations.remove(&credential_request.id).unwrap(),
+                    id: credential_request.id.clone(),
+                }
             })
             .collect();
+
+        // Safety: this comes from mapping over auth_request.credential_requests, which is
+        // a newtype around a `UniqueIdVec`.
+        let disclosed_attestations = UniqueIdVec::try_new(disclosed_attestations).unwrap();
 
         Ok(disclosed_attestations)
     }
@@ -1305,7 +1313,7 @@ mod tests {
             )
             .unwrap();
 
-        assert_eq!(attestations.len(), 1);
+        assert_eq!(attestations.len().get(), 1);
 
         // `auth_response.verify()` should return the attestations in the same order
         // as `auth_request.credential_requests`.
@@ -1313,10 +1321,10 @@ mod tests {
             .credential_requests
             .as_ref()
             .iter()
-            .zip_eq(attestations.keys())
-            .for_each(|(cred_request, cred_query_identifier)| assert_eq!(cred_request.id, *cred_query_identifier));
+            .zip_eq(attestations.as_ref())
+            .for_each(|(cred_request, attestations)| assert_eq!(cred_request.id, attestations.id));
 
-        let disclosed_attestations = attestations.into_values().next().unwrap();
+        let disclosed_attestations = attestations.into_inner().pop().unwrap().attestations;
 
         assert_eq!(disclosed_attestations.len().get(), 1);
 

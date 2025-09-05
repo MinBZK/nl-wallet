@@ -1,16 +1,16 @@
 use itertools::Itertools;
 
+use dcql::UniqueIdVec;
 use dcql::normalized::NormalizedCredentialRequests;
 use mdoc::test::TestDocument;
 use mdoc::test::TestDocuments;
-use utils::vec_at_least::VecNonEmpty;
 
 use crate::disclosure::DisclosedAttestations;
 use crate::disclosure::DisclosedAttributes;
 
 pub fn test_documents_assert_matches_disclosed_attestations(
     test_documents: &TestDocuments,
-    disclosed_attestations: &VecNonEmpty<DisclosedAttestations>,
+    disclosed_attestations: &UniqueIdVec<DisclosedAttestations>,
 ) {
     // Verify the number of responses.
     assert_eq!(disclosed_attestations.len().get(), test_documents.len());
@@ -29,6 +29,7 @@ pub fn test_documents_assert_matches_disclosed_attestations(
     ) in documents.iter().zip_eq(requests.as_ref())
     {
         let attestations = disclosed_attestations
+            .as_ref()
             .iter()
             .find(|attestations| attestations.id == request.id)
             .expect("disclosed attestations should include credential query identifier")

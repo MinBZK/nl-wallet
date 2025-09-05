@@ -9,6 +9,7 @@ use url::Url;
 use attestation_data::disclosure::DisclosedAttestations;
 use attestation_data::test_document::test_documents_assert_matches_disclosed_attestations;
 use dcql::Query;
+use dcql::UniqueIdVec;
 use http_utils::error::HttpJsonErrorBody;
 use mdoc::test::TestDocuments;
 use mdoc::test::data::addr_street;
@@ -23,7 +24,6 @@ use openid4vc_server::verifier::StartDisclosureRequest;
 use openid4vc_server::verifier::StartDisclosureResponse;
 use openid4vc_server::verifier::StatusParams;
 use tests_integration::common::*;
-use utils::vec_at_least::VecNonEmpty;
 use wallet::DisclosureUriSource;
 use wallet::errors::DisclosureError;
 
@@ -216,7 +216,7 @@ async fn test_disclosure_usecases_ok(
     let status = response.status();
     assert_eq!(status, StatusCode::OK);
 
-    let disclosed_documents = response.json::<VecNonEmpty<DisclosedAttestations>>().await.unwrap();
+    let disclosed_documents = response.json::<UniqueIdVec<DisclosedAttestations>>().await.unwrap();
 
     test_documents_assert_matches_disclosed_attestations(&expected_documents, &disclosed_documents);
 }

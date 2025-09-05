@@ -6,6 +6,7 @@ use serde::Serialize;
 
 use crypto::x509::CertificateError;
 use dcql::CredentialQueryIdentifier;
+use dcql::MayHaveUniqueId;
 use http_utils::urls::HttpsUri;
 use mdoc::DataElementIdentifier;
 use mdoc::DataElementValue;
@@ -129,6 +130,12 @@ pub struct DisclosedAttestations {
     pub id: CredentialQueryIdentifier,
 
     pub attestations: VecNonEmpty<DisclosedAttestation>,
+}
+
+impl MayHaveUniqueId for DisclosedAttestations {
+    fn id(&self) -> Option<&str> {
+        Some(self.id.as_ref())
+    }
 }
 
 impl TryFrom<mdoc::verifier::DisclosedDocument> for DisclosedAttestation {

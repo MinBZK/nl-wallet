@@ -4,6 +4,7 @@ pub mod normalized;
 #[cfg(feature = "test_document")]
 mod test_document;
 
+use std::num::NonZeroUsize;
 use std::ops::Not;
 
 use itertools::Itertools;
@@ -49,7 +50,7 @@ pub struct CredentialQueryIdentifier(String);
 )]
 pub struct ClaimsQueryIdentifier(String);
 
-trait MayHaveUniqueId {
+pub trait MayHaveUniqueId {
     fn id(&self) -> Option<&str>;
 }
 
@@ -81,6 +82,13 @@ where
     validate(with = validate_vec_non_empt_and_unique_ids, error = UniqueIdVecError),
 )]
 pub struct UniqueIdVec<T: MayHaveUniqueId>(Vec<T>);
+
+impl<T: MayHaveUniqueId> UniqueIdVec<T> {
+    pub fn len(&self) -> NonZeroUsize {
+        // Safety: the constructor guarantees the vec is nonempty.
+        self.as_ref().len().try_into().unwrap()
+    }
+}
 
 /// A DCQL query, encoding constraints on the combinations of credentials and claims that are requested.
 /// The Wallet must evaluate the query against the Credentials it holds and returns Presentations matching the query.
