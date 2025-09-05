@@ -29,25 +29,28 @@ Accept: */*
 Host: localhost:51560
 Content-Length: 267
 
-{
-  "my_credential": [
-    {
-      "attestationType": "com.example.pid",
-      "attributes": {
-        "com.example.pid": {
-          "bsn": "999991772"
+[
+  {
+    "id": "my_credential",
+    "attestations": [
+      {
+        "attestation_type": "com.example.pid",
+        "attributes": {
+          "com.example.pid": {
+            "bsn": "999991772"
+          }
+        },
+        "issuer_uri": "https://cert.issuer.example.com/",
+        "ca": "ca.pid.example.com",
+        "validity_info": {
+          "signed": "2025-04-15T07:02:26Z",
+          "valid_from": "2025-04-15T07:02:26Z",
+          "valid_until": "2026-04-15T07:02:26Z"
         }
-      },
-      "issuerUri": "https://cert.issuer.example.com/",
-      "ca": "ca.pid.example.com",
-      "validityInfo": {
-        "signed": "2025-04-15T07:02:26Z",
-        "validFrom": "2025-04-15T07:02:26Z",
-        "validUntil": "2026-04-15T07:02:26Z"
       }
-    }
-  ]
-}
+    ]
+  }
+]
 ```
 
 The `attestation_server` must respond with a JSON-serialized `Vec<IssuableDocument>`. For example:
