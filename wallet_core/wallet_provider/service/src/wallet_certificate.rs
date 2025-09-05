@@ -423,7 +423,7 @@ mod tests {
             wrapping_key_identifier.to_string(),
         );
 
-        if verify_wallet_certificate(
+        verify_wallet_certificate(
             &wallet_certificate,
             &EcdsaDecodingKey::from(&setup.signing_pubkey),
             (
@@ -435,10 +435,7 @@ mod tests {
             &user_state,
         )
         .await
-        .is_ok()
-        {
-            panic!("should not validate")
-        }
+        .expect_err("certificate with incorrect hardware key should not validate");
     }
 
     #[tokio::test]
@@ -482,7 +479,7 @@ mod tests {
             wrapping_key_identifier.to_string(),
         );
 
-        if verify_wallet_certificate(
+        verify_wallet_certificate(
             &wallet_certificate,
             &EcdsaDecodingKey::from(&setup.signing_pubkey),
             (
@@ -494,9 +491,6 @@ mod tests {
             &user_state,
         )
         .await
-        .is_ok()
-        {
-            panic!("should not validate");
-        };
+        .expect_err("certificate with incorrect PIN key HMAC should not validate");
     }
 }

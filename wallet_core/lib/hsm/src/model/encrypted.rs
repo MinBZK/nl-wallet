@@ -1,4 +1,4 @@
-use std::marker::PhantomData;
+use std::{fmt::Debug, marker::PhantomData};
 
 #[derive(Clone)]
 pub struct InitializationVector(pub Vec<u8>);
@@ -17,5 +17,14 @@ impl<T> Encrypted<T> {
             iv,
             _decrypted_data: PhantomData,
         }
+    }
+}
+
+impl<T> Debug for Encrypted<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Encrypted")
+            .field("iv", &self.iv.0)
+            .field("_decrypted_data", &self._decrypted_data)
+            .finish_non_exhaustive()
     }
 }
