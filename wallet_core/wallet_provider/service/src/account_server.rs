@@ -663,6 +663,12 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         }?;
 
         debug!("Verifying wallet certificate");
+        let pin_key_checks = if request.instruction_name == ChangePinRollback::NAME {
+            PinKeyChecks::AllChecks(user.encrypted_previous_pin_pubkey.unwrap_or(user.encrypted_pin_pubkey))
+        } else {
+            PinKeyChecks::AllChecks(user.encrypted_pin_pubkey)
+        };
+
         verify_wallet_certificate_public_keys(
             claims,
             (
@@ -670,11 +676,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
                 &self.keys.encryption_key_identifier,
             ),
             &user.hw_pubkey,
-            if request.instruction_name == ChangePinRollback::NAME {
-                PinKeyChecks::AllChecks(user.encrypted_previous_pin_pubkey.unwrap_or(user.encrypted_pin_pubkey))
-            } else {
-                PinKeyChecks::AllChecks(user.encrypted_pin_pubkey)
-            },
+            pin_key_checks,
             &user_state.wallet_user_hsm,
         )
         .await?;
