@@ -7,6 +7,10 @@ rust-version.workspace = true
 [lints]
 workspace = true
 
+[[bin]]
+name = "wallet_provider_migrations"
+doctest = false
+
 [dependencies]
 async-trait.workspace = true
 # This dependency is a workaround for a bug in sea-orm-cli and can be removed once that is updated to v1.1.15 or more.
