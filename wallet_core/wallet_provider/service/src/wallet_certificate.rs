@@ -19,6 +19,7 @@ use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::repository::TransactionStarter;
 use wallet_provider_domain::repository::WalletUserRepository;
 
+use crate::account_server::AccountServerPinKeys;
 use crate::account_server::UserState;
 use crate::account_server::WalletCertificateError;
 use crate::keys::WalletCertificateSigningKey;
@@ -126,7 +127,7 @@ impl PinKeyChecks {
 
 pub async fn verify_wallet_certificate_public_keys<H>(
     claims: WalletCertificateClaims,
-    key_identifiers: (&str, &str),
+    pin_keys: &AccountServerPinKeys,
     hw_pubkey: &VerifyingKey,
     pin_checks: PinKeyChecks,
     hsm: &H,
@@ -136,15 +137,13 @@ where
 {
     debug!("Decrypt the encrypted pin public key");
 
-    let (pin_public_disclosure_protection_key_identifier, encryption_key_identifier) = key_identifiers;
-
     if let PinKeyChecks::AllChecks(encrypted_pin_pubkey) = pin_checks {
-        let pin_pubkey = Decrypter::decrypt(hsm, encryption_key_identifier, encrypted_pin_pubkey).await?;
+        let pin_pubkey = Decrypter::decrypt(hsm, &pin_keys.encryption_key_identifier, encrypted_pin_pubkey).await?;
 
         let pin_hash_verification = verify_pin_pubkey(
             &pin_pubkey,
             claims.pin_pubkey_hash,
-            pin_public_disclosure_protection_key_identifier,
+            &pin_keys.public_disclosure_protection_key_identifier,
             hsm,
         )
         .await;
@@ -171,7 +170,7 @@ where
 pub async fn verify_wallet_certificate<T, R, H, F>(
     certificate: &WalletCertificate,
     certificate_signing_pubkey: &EcdsaDecodingKey,
-    key_identifiers: (&str, &str),
+    pin_keys: &AccountServerPinKeys,
     allow_blocked: bool,
     pin_checks: F,
     user_state: &UserState<R, H, impl WuaIssuer>,
@@ -196,7 +195,7 @@ where
 
     verify_wallet_certificate_public_keys(
         claims,
-        key_identifiers,
+        pin_keys,
         &user.hw_pubkey,
         pin_checks.clone(),
         &user_state.wallet_user_hsm,
@@ -319,6 +318,7 @@ mod tests {
     use wallet_provider_domain::model::wallet_user::WalletUserState;
     use wallet_provider_persistence::repositories::mock::WalletUserTestRepo;
 
+    use crate::account_server::AccountServerPinKeys;
     use crate::account_server::mock::user_state;
     use crate::wallet_certificate::PinKeyChecks;
     use crate::wallet_certificate::mock;
@@ -378,10 +378,11 @@ mod tests {
         verify_wallet_certificate(
             &wallet_certificate,
             &((&setup.signing_pubkey).into()),
-            (
-                mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
-                mock::SIGNING_KEY_IDENTIFIER,
-            ),
+            &AccountServerPinKeys {
+                public_disclosure_protection_key_identifier: mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER
+                    .to_string(),
+                encryption_key_identifier: mock::ENCRYPTION_KEY_IDENTIFIER.to_string(),
+            },
             false,
             |wallet_user| PinKeyChecks::AllChecks(wallet_user.encrypted_pin_pubkey.clone()),
             &user_state,
@@ -426,10 +427,11 @@ mod tests {
         verify_wallet_certificate(
             &wallet_certificate,
             &EcdsaDecodingKey::from(&setup.signing_pubkey),
-            (
-                mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
-                mock::ENCRYPTION_KEY_IDENTIFIER,
-            ),
+            &AccountServerPinKeys {
+                public_disclosure_protection_key_identifier: mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER
+                    .to_string(),
+                encryption_key_identifier: mock::ENCRYPTION_KEY_IDENTIFIER.to_string(),
+            },
             false,
             |wallet_user| PinKeyChecks::AllChecks(wallet_user.encrypted_pin_pubkey.clone()),
             &user_state,
@@ -482,10 +484,11 @@ mod tests {
         verify_wallet_certificate(
             &wallet_certificate,
             &EcdsaDecodingKey::from(&setup.signing_pubkey),
-            (
-                mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
-                mock::ENCRYPTION_KEY_IDENTIFIER,
-            ),
+            &AccountServerPinKeys {
+                public_disclosure_protection_key_identifier: mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER
+                    .to_string(),
+                encryption_key_identifier: mock::ENCRYPTION_KEY_IDENTIFIER.to_string(),
+            },
             false,
             |wallet_user| PinKeyChecks::AllChecks(wallet_user.encrypted_pin_pubkey.clone()),
             &user_state,
