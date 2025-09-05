@@ -1,0 +1,140 @@
+{{ if .Values.gbaCliTool.enabled }}
+{{ $configMapFile := (print $.Template.BasePath "/cm-gba-hc-converter-zoek-xml.yaml") }}
+{{ $configMapChecksum := sha256sum (tpl (print $configMapFile) .) }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.preloadGbaPod.name}}
+  labels:
+    {{- include "common.labels.component" (list .Values.preloadGbaPod.name .) | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "common.labels.componentSelectorLabels" (list .Values.preloadGbaPod.name .) | nindent 6 }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  revisionHistoryLimit: 2
+  progressDeadlineSeconds: 300
+  template:
+    metadata:
+      name: {{ .Values.preloadGbaPod.name}}
+      annotations:
+        checksum/config: "{{ $configMapChecksum }}"
+      labels:
+        {{- include "common.labels.component" (list .Values.preloadGbaPod.name .) | nindent 8 }}
+        {{ with .Values.preloadGbaPod.extraPodLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ .Values.serviceAccountName }}
+      {{ with .Values.securityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: preload-gba-v-data-pod
+          image: "{{ .Values.global.imageRegistry }}/{{ .Values.imagePreload.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.imagePreload.pullPolicy }}
+          command: [ "sh", "-c", "--" ]
+          args: [ "while true; do sleep 30; done;" ]
+          volumeMounts:
+            - mountPath: /data
+              name: preloaded-gba-v-data-volume
+            - mountPath: /home/nonroot/resources/remote/bsn_zoeken_template.xml
+              name: zoek-xml-volume
+              subPath: bsn_zoeken_template.xml
+          env:
+            - name: RUST_BACKTRACE
+              value: "1"
+            - name: RUST_LOG
+              value: "debug,hyper=warn"
+            - name: GBA_HC_CONVERTER__RUN_MODE__ALL__PRELOADED__XML_PATH
+              value: "/data"
+            - name: GBA_HC_CONVERTER__RUN_MODE__ALL__PRELOADED__ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-gba-hc-converter-secrets
+                  key: encryption_key
+            - name: GBA_HC_CONVERTER__RUN_MODE__ALL__PRELOADED__HMAC_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-gba-hc-converter-secrets
+                  key: hmac_key
+            - name: GBA_HC_CONVERTER__RUN_MODE__ALL__GBAV__ADHOC_URL
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-gba-hc-converter-secrets
+                  key: adhoc_url
+            - name: GBA_HC_CONVERTER__RUN_MODE__ALL__GBAV__USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-gba-hc-converter-secrets
+                  key: username
+            - name: GBA_HC_CONVERTER__RUN_MODE__ALL__GBAV__PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-gba-hc-converter-secrets
+                  key: password
+            - name: GBA_HC_CONVERTER__RUN_MODE__ALL__GBAV__CLIENT_CERTIFICATE_AND_KEY__CERTIFICATE
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-gba-hc-converter-secrets
+                  key: client_cert
+            - name: GBA_HC_CONVERTER__RUN_MODE__ALL__GBAV__CLIENT_CERTIFICATE_AND_KEY__KEY
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-gba-hc-converter-secrets
+                  key: client_cert_key
+            - name: GBA_HC_CONVERTER__RUN_MODE__ALL__GBAV__TRUST_ANCHOR
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-gba-hc-converter-secrets
+                  key: trust_anchor
+            {{ if .Values.gbaCliTool.useRijksweb }}
+            - name: GBA_HC_CONVERTER__RUN_MODE__ALL__GBAV__CA_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-gba-hc-converter-secrets
+                  key: ca_api_key
+            - name: GBAV_PROXY_IP
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-gba-hc-converter-secrets
+                  key: proxy_ip
+            - name: GBAV_PROXY_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-gba-hc-converter-secrets
+                  key: proxy_port
+            - name: GBAV_PROXY_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-gba-hc-converter-secrets
+                  key: proxy_username
+            - name: GBAV_PROXY_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-gba-hc-converter-secrets
+                  key: proxy_password
+            - name: http_proxy
+              value: "http://$(GBAV_PROXY_USERNAME):$(GBAV_PROXY_PASSWORD)@$(GBAV_PROXY_IP):$(GBAV_PROXY_PORT)"
+            - name: https_proxy
+              value: "http://$(GBAV_PROXY_USERNAME):$(GBAV_PROXY_PASSWORD)@$(GBAV_PROXY_IP):$(GBAV_PROXY_PORT)"
+            {{- end }}
+      volumes:
+        - name: preloaded-gba-v-data-volume
+          persistentVolumeClaim:
+            claimName: preloaded-gba-v-data-pvc
+        - name: zoek-xml-volume
+          configMap:
+            name: {{ include "common.names.fullname" . }}-zoek-xml
+{{ end }}
