@@ -459,8 +459,8 @@ mod tests {
             .unwrap()
             .expect("Registration data not present in storage");
         assert_eq!(
-            stored_registration.wallet_certificate.0,
-            generated_certificate.lock().as_ref().unwrap().0
+            &stored_registration.wallet_certificate,
+            generated_certificate.lock().as_ref().unwrap()
         );
         assert!(
             wallet

@@ -370,7 +370,7 @@ mod tests {
                 attested_key_identifier: "key_id_123".to_string(),
                 pin_salt: expected_pin_salt.clone(),
                 wallet_id: "wallet_123".to_string(),
-                wallet_certificate: "thisisjwt".to_string().into(),
+                wallet_certificate: "this.isa.jwt".parse().unwrap(),
             }))
         });
         storage.expect_fetch_data::<KeyData>().returning(|| Ok(None));

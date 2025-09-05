@@ -11,8 +11,6 @@ use chrono::Utc;
 use chrono::serde::ts_seconds;
 use chrono::serde::ts_seconds_option;
 use derive_more::FromStr;
-use jsonwebtoken::Algorithm;
-use jsonwebtoken::Header;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::DurationSeconds;
@@ -20,6 +18,8 @@ use serde_with::serde_as;
 
 use crypto::EcdsaKey;
 use http_utils::urls::HttpsUri;
+use jwt::Algorithm;
+use jwt::Header;
 use jwt::UnverifiedJwt;
 use jwt::error::JwtError;
 
@@ -86,7 +86,7 @@ impl StatusListTokenBuilder {
 #[cfg(feature = "axum")]
 impl IntoResponse for StatusListToken {
     fn into_response(self) -> Response {
-        ([(CONTENT_TYPE, TOKEN_STATUS_LIST_JWT_HEADER)], self.0.0.to_string()).into_response()
+        ([(CONTENT_TYPE, TOKEN_STATUS_LIST_JWT_HEADER)], self.0.to_string()).into_response()
     }
 }
 
@@ -117,6 +117,8 @@ mod test {
     use p256::ecdsa::SigningKey;
     use p256::elliptic_curve::rand_core::OsRng;
     use serde_json::json;
+
+    use jwt::DEFAULT_VALIDATIONS;
 
     use super::*;
 
@@ -152,7 +154,7 @@ mod test {
 
         let (header, claims) = signed
             .0
-            .parse_and_verify_with_header(&key.verifying_key().into(), &jwt::validations())
+            .parse_and_verify_with_header(&key.verifying_key().into(), &DEFAULT_VALIDATIONS)
             .unwrap();
         assert_eq!(header, expected_header);
         // the `iat` claim is set when signing the token
