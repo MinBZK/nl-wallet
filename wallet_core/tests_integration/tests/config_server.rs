@@ -1,9 +1,6 @@
 use std::env;
 
 use assert_matches::assert_matches;
-use jwt::Algorithm;
-use jwt::Header;
-use jwt::UnverifiedJwt;
 use p256::ecdsa::SigningKey;
 use p256::pkcs8::DecodePrivateKey;
 use p256::pkcs8::EncodePrivateKey;
@@ -13,6 +10,9 @@ use reqwest::header::HeaderValue;
 use tokio::fs;
 
 use http_utils::tls::pinning::TlsPinningConfig;
+use jwt::Algorithm;
+use jwt::Header;
+use jwt::UnverifiedJwt;
 use jwt::error::JwtError;
 use tests_integration::common::*;
 use wallet::errors::ConfigurationError;
