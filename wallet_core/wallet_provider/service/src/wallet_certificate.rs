@@ -61,7 +61,7 @@ pub async fn parse_claims_and_retrieve_wallet_user<T, R>(
     certificate: &WalletCertificate,
     certificate_signing_pubkey: &EcdsaDecodingKey,
     wallet_user_repository: &R,
-    allow_blocked: bool,
+    include_blocked: bool,
 ) -> Result<(WalletUser, WalletCertificateClaims), WalletCertificateError>
 where
     T: Committable,
@@ -88,7 +88,7 @@ where
             Err(WalletCertificateError::UserNotRegistered)
         }
         WalletUserQueryResult::Found(user_boxed)
-            if !allow_blocked && matches!(user_boxed.state, WalletUserState::Blocked) =>
+            if !include_blocked && matches!(user_boxed.state, WalletUserState::Blocked) =>
         {
             debug!("User found for the provided certificate is blocked");
             Err(WalletCertificateError::UserBlocked)
