@@ -2,6 +2,10 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ .Values.frontend.name }}
+  {{- with .Values.frontend.extraAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
   labels:
     {{- include "common.labels.component" (list .Values.frontend.name .) | nindent 4 }}
 spec:

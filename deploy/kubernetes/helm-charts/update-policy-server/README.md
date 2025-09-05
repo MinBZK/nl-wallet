@@ -8,11 +8,17 @@
 
 ### Common parameters
 
-| Name               | Description                                   | Value |
-| ------------------ | --------------------------------------------- | ----- |
-| `nameOverride`     | String to partially override chart's fullname | `""`  |
-| `extraPodLabels`   | Labels to add to all deployed objects         | `{}`  |
-| `imagePullSecrets` | Array of secret names for private registries  | `[]`  |
+| Name           | Description                                   | Value |
+| -------------- | --------------------------------------------- | ----- |
+| `nameOverride` | String to partially override chart's fullname | `""`  |
+
+### Annotations and labels
+
+| Name               | Description                                  | Value |
+| ------------------ | -------------------------------------------- | ----- |
+| `extraAnnotations` | Additional annotations for the deployment    | `{}`  |
+| `extraPodLabels`   | Additional labels for the pods               | `{}`  |
+| `imagePullSecrets` | Array of secret names for private registries | `[]`  |
 
 ### Image parameters
 

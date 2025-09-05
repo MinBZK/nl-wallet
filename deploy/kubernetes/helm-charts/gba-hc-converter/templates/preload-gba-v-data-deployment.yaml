@@ -1,11 +1,13 @@
 {{ if .Values.gbaCliTool.enabled }}
-{{ $configMapFile := (print $.Template.BasePath "/cm-gba-hc-converter-zoek-xml.yaml") }}
-{{ $configMapChecksum := sha256sum (tpl (print $configMapFile) .) }}
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ .Values.preloadGbaPod.name}}
+  {{- with .Values.preloadGbaPod.extraAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
   labels:
     {{- include "common.labels.component" (list .Values.preloadGbaPod.name .) | nindent 4 }}
 spec:
@@ -23,8 +25,6 @@ spec:
   template:
     metadata:
       name: {{ .Values.preloadGbaPod.name}}
-      annotations:
-        checksum/config: "{{ $configMapChecksum }}"
       labels:
         {{- include "common.labels.component" (list .Values.preloadGbaPod.name .) | nindent 8 }}
         {{ with .Values.preloadGbaPod.extraPodLabels }}

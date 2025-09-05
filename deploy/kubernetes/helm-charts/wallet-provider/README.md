@@ -33,11 +33,12 @@
 | `imageMigrations.repository` | Repository for the migration container image  | `nil`          |
 | `imageMigrations.pullPolicy` | Image pull policy for the migration container | `IfNotPresent` |
 
-### Pod labels
+### Annotations and labels
 
-| Name             | Description                    | Value |
-| ---------------- | ------------------------------ | ----- |
-| `extraPodLabels` | Additional labels for the pods | `{}`  |
+| Name               | Description                               | Value |
+| ------------------ | ----------------------------------------- | ----- |
+| `extraAnnotations` | Additional annotations for the deployment | `{}`  |
+| `extraPodLabels`   | Additional labels for the pods            | `{}`  |
 
 ### Image pull secrets
 

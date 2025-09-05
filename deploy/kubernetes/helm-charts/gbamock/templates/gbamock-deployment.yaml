@@ -4,6 +4,10 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "common.names.fullname" . }}
+  {{- with .Values.extraAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
   labels:
     {{- include "common.labels.standard" . | nindent 4 }}
 spec:

@@ -1,10 +1,11 @@
-{{ $configMapFile := (print $.Template.BasePath "/cm-gba-hc-converter-zoek-xml.yaml") }}
-{{ $configMapChecksum := sha256sum (tpl (print $configMapFile) .) }}
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "common.names.fullname" . }}
+  {{- with .Values.gbaHcConverter.extraAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
   labels:
     {{- include "common.labels.component" (list .Chart.Name .) | nindent 4 }}
 spec:
@@ -21,8 +22,6 @@ spec:
   progressDeadlineSeconds: 300
   template:
     metadata:
-      annotations:
-        checksum/config: "{{ $configMapChecksum }}"
       labels:
         {{- include "common.labels.componentSelectorLabels" (list .Chart.Name .) | nindent 8 }}
         {{ with .Values.gbaHcConverter.extraPodLabels }}

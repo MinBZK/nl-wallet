@@ -4,6 +4,10 @@ apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: {{ .Values.gbaEncryptTestData.name }}
+  {{- with .Values.gbaEncryptTestData.extraAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
   labels:
     {{- include "common.labels.component" (list .Values.gbaEncryptTestData.name .) | nindent 4 }}
 spec:

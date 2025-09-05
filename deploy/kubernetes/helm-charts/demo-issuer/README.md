@@ -26,11 +26,12 @@
 | `image.pullPolicy` | Image pull policy                  | `IfNotPresent` |
 | `image.tag`        | Image tag                          | `nil`          |
 
-### Pod labels
+### Annotations and labels
 
-| Name             | Description                    | Value |
-| ---------------- | ------------------------------ | ----- |
-| `extraPodLabels` | Additional labels for the pods | `{}`  |
+| Name               | Description                               | Value |
+| ------------------ | ----------------------------------------- | ----- |
+| `extraAnnotations` | Additional annotations for the deployment | `{}`  |
+| `extraPodLabels`   | Additional labels for the pods            | `{}`  |
 
 ### Image pull secrets
 
