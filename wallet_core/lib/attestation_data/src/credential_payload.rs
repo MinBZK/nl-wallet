@@ -487,10 +487,8 @@ mod test {
 
     use attestation_types::claim_path::ClaimPath;
     use attestation_types::qualification::AttestationQualification;
-    use crypto::EcdsaKey;
     use crypto::server_keys::generate::Ca;
     use jwt::Algorithm;
-    use jwt::EcdsaDecodingKey;
     use jwt::jwk::jwk_from_p256;
     use sd_jwt::builder::SdJwtBuilder;
     use sd_jwt::key_binding_jwt_claims::KeyBindingJwtBuilder;
@@ -713,6 +711,7 @@ mod test {
 
     #[tokio::test]
     async fn test_to_sd_jwt() {
+        let time_generator = MockTimeGenerator::default();
         let holder_key = SigningKey::random(&mut OsRng);
 
         let ca = Ca::generate("myca", Default::default()).unwrap();
@@ -730,7 +729,7 @@ mod test {
             "family_name",
             AttributeValue::Text(String::from("De Bruijn")),
             holder_key.verifying_key(),
-            &MockTimeGenerator::default(),
+            &time_generator,
         );
 
         let sd_jwt = credential_payload
@@ -753,9 +752,10 @@ mod test {
             .await
             .unwrap();
 
-        SdJwtPresentation::parse_and_verify(
+        SdJwtPresentation::parse_and_verify_against_trust_anchors(
             &presented_sd_jwt.to_string(),
-            &EcdsaDecodingKey::from(&issuer_key_pair.verifying_key().await.unwrap()),
+            &time_generator,
+            &[ca.to_trust_anchor()],
             "https://aud.example.com",
             "nonce123",
             Duration::days(36500),

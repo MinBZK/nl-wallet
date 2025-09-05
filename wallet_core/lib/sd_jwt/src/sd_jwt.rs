@@ -276,7 +276,39 @@ pub struct SdJwtPresentation {
 }
 
 impl SdJwtPresentation {
-    /// Parses an SD-JWT into its components as [`SdJwt`].
+    fn split_sd_jwt_kb(sd_jwt: &str) -> Result<(&str, &str)> {
+        sd_jwt
+            .rsplit_once("~")
+            .map(|(head, tail)| {
+                let head_with_tilde = &sd_jwt[..head.len() + 1];
+                (head_with_tilde, tail)
+            })
+            .ok_or(Error::Deserialization(
+                "SD-JWT format is invalid, no segments found".to_string(),
+            ))
+    }
+
+    fn parse_and_verify_kb_jwt(
+        kb_segment: &str,
+        sd_jwt: &SdJwt,
+        kb_expected_aud: &str,
+        kb_expected_nonce: &str,
+        kb_iat_acceptance_window: Duration,
+    ) -> Result<KeyBindingJwt> {
+        let Some(RequiredKeyBinding::Jwk(jwk)) = sd_jwt.required_key_bind() else {
+            return Err(Error::MissingJwkKeybinding);
+        };
+
+        KeyBindingJwt::parse_and_verify(
+            kb_segment,
+            &EcdsaDecodingKey::from(&jwk_to_p256(jwk)?),
+            kb_expected_aud,
+            kb_expected_nonce,
+            kb_iat_acceptance_window,
+        )
+    }
+
+    /// Parses an SD-JWT into its components as [`SdJwtPresentation`].
     ///
     /// ## Error
     /// Returns [`Error::Deserialization`] if parsing fails.
@@ -287,25 +319,13 @@ impl SdJwtPresentation {
         kb_expected_nonce: &str,
         kb_iat_acceptance_window: Duration,
     ) -> Result<Self> {
-        let (rest, kb_segment) = sd_jwt
-            .rsplit_once("~")
-            .map(|(head, tail)| {
-                let head_with_tilde = &sd_jwt[..head.len() + 1];
-                (head_with_tilde, tail)
-            })
-            .ok_or(Error::Deserialization(
-                "SD-JWT format is invalid, no segments found".to_string(),
-            ))?;
+        let (rest, kb_segment) = Self::split_sd_jwt_kb(sd_jwt)?;
 
         let sd_jwt = SdJwt::parse_and_verify(rest, issuer_pubkey)?;
 
-        let Some(RequiredKeyBinding::Jwk(jwk)) = sd_jwt.required_key_bind() else {
-            return Err(Error::MissingJwkKeybinding);
-        };
-
-        let key_binding_jwt = KeyBindingJwt::parse_and_verify(
+        let key_binding_jwt = Self::parse_and_verify_kb_jwt(
             kb_segment,
-            &EcdsaDecodingKey::from(&jwk_to_p256(jwk)?),
+            &sd_jwt,
             kb_expected_aud,
             kb_expected_nonce,
             kb_iat_acceptance_window,
@@ -313,6 +333,36 @@ impl SdJwtPresentation {
 
         Ok(Self {
             sd_jwt,
+            key_binding_jwt: key_binding_jwt.into(),
+        })
+    }
+
+    /// Parses an SD-JWT into its components as [`SdJwtPresentation`] while verifying against a set of trust anchors.
+    ///
+    /// ## Error
+    /// Returns [`Error::Deserialization`] if parsing fails.
+    pub fn parse_and_verify_against_trust_anchors(
+        sd_jwt: &str,
+        time: &impl Generator<DateTime<Utc>>,
+        trust_anchors: &[TrustAnchor],
+        kb_expected_aud: &str,
+        kb_expected_nonce: &str,
+        kb_iat_acceptance_window: Duration,
+    ) -> Result<Self> {
+        let (rest, kb_segment) = Self::split_sd_jwt_kb(sd_jwt)?;
+
+        let verified_sd_jwt = VerifiedSdJwt::parse_and_verify_against_trust_anchors(rest, time, trust_anchors)?;
+
+        let key_binding_jwt = Self::parse_and_verify_kb_jwt(
+            kb_segment,
+            verified_sd_jwt.as_ref(),
+            kb_expected_aud,
+            kb_expected_nonce,
+            kb_iat_acceptance_window,
+        )?;
+
+        Ok(Self {
+            sd_jwt: verified_sd_jwt.into_inner(),
             key_binding_jwt: key_binding_jwt.into(),
         })
     }
