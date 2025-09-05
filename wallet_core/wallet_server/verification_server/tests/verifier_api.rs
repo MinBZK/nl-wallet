@@ -1011,12 +1011,12 @@ async fn perform_full_disclosure(session_type: SessionType) -> (Client, SessionT
 
 fn check_example_disclosed_attributes(disclosed_attributes: &VecNonEmpty<DisclosedAttestations>) {
     assert_eq!(disclosed_attributes.len().get(), 1);
-    let attestations = disclosed_attributes
+    let attestations = &disclosed_attributes
         .iter()
         .find(|attestations| attestations.id == *EXAMPLE_PID_START_DISCLOSURE_REQUEST_ID)
+        .as_ref()
         .unwrap()
-        .attestations
-        .clone();
+        .attestations;
 
     itertools::assert_equal(
         attestations.iter().map(|attestation| &attestation.attestation_type),
