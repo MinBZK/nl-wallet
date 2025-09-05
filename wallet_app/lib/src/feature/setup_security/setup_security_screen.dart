@@ -23,11 +23,11 @@ import '../common/widget/text/title_text.dart';
 import '../common/widget/wallet_app_bar.dart';
 import '../error/error_page.dart';
 import '../error/error_screen.dart';
+import '../pin/pin_setup_page.dart';
 import '../pin_dialog/pin_confirmation_error_dialog.dart';
 import '../pin_dialog/pin_validation_error_dialog.dart';
 import 'bloc/setup_security_bloc.dart';
 import 'page/setup_security_completed_page.dart';
-import 'page/setup_security_pin_page.dart';
 
 const _kSelectPinScreenKey = ValueKey('selectPinScreen');
 const _kConfirmPinScreenKey = ValueKey('confirmPinScreen');
@@ -147,7 +147,7 @@ class SetupSecurityScreen extends StatelessWidget {
   }
 
   Widget _buildSelectPinPage(BuildContext context, {required int enteredDigits}) {
-    return SetupSecurityPinPage(
+    return PinSetupPage(
       key: _kSelectPinScreenKey,
       title: context.l10n.setupSecuritySelectPinPageTitle,
       enteredDigits: enteredDigits,
@@ -158,7 +158,7 @@ class SetupSecurityScreen extends StatelessWidget {
   }
 
   Widget _buildPinConfirmationPage(BuildContext context, {required int enteredDigits}) {
-    return SetupSecurityPinPage(
+    return PinSetupPage(
       key: _kConfirmPinScreenKey,
       title: context.l10n.setupSecurityConfirmationPageTitle,
       enteredDigits: enteredDigits,
