@@ -15,10 +15,10 @@ use crate::CredentialFormat;
 use crate::CredentialQuery;
 use crate::CredentialQueryFormat;
 use crate::CredentialQueryIdentifier;
-use crate::MayHaveUniqueId;
 use crate::Query;
-use crate::UniqueIdVec;
-use crate::UniqueIdVecError;
+use crate::unique_id_vec::MayHaveUniqueId;
+use crate::unique_id_vec::UniqueIdVec;
+use crate::unique_id_vec::UniqueIdVecError;
 
 #[derive(Debug, Clone, PartialEq, Eq, IntoIterator, Serialize, Deserialize)]
 pub struct NormalizedCredentialRequests(UniqueIdVec<NormalizedCredentialRequest>);
@@ -191,12 +191,9 @@ impl TryFrom<CredentialQuery> for NormalizedCredentialRequest {
         let request = match source.format {
             CredentialQueryFormat::MsoMdoc { doctype_value } => {
                 let claims = claims
-                    .into_iter()
-                    .map(TryInto::try_into)
-                    .collect::<Result<Vec<_>, _>>()?
-                    .try_into()
-                    // This unwrap is safe, as the source is guaranteed not to be empty.
-                    .unwrap();
+                    .into_nonempty_iter()
+                    .map(MdocAttributeRequest::try_from)
+                    .collect::<Result<_, _>>()?;
 
                 Self::MsoMdoc {
                     id: source.id,
@@ -206,12 +203,9 @@ impl TryFrom<CredentialQuery> for NormalizedCredentialRequest {
             }
             CredentialQueryFormat::SdJwt { vct_values } => {
                 let claims = claims
-                    .into_iter()
-                    .map(TryInto::try_into)
-                    .collect::<Result<Vec<_>, _>>()?
-                    .try_into()
-                    // This unwrap is safe, as the source is guaranteed not to be empty.
-                    .unwrap();
+                    .into_nonempty_iter()
+                    .map(SdJwtAttributeRequest::try_from)
+                    .collect::<Result<_, _>>()?;
 
                 Self::SdJwt {
                     id: source.id,

@@ -1,12 +1,12 @@
 pub mod disclosure;
 pub mod normalized;
+pub mod unique_id_vec;
 
 #[cfg(feature = "test_document")]
 mod test_document;
 
 use std::ops::Not;
 
-use itertools::Itertools;
 use nutype::nutype;
 use serde::Deserialize;
 use serde::Serialize;
@@ -16,6 +16,9 @@ use strum::EnumDiscriminants;
 use attestation_types::claim_path::ClaimPath;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_at_least::VecNonEmptyUnique;
+
+use crate::unique_id_vec::MayHaveUniqueId;
+use crate::unique_id_vec::UniqueIdVec;
 
 #[derive(Debug, thiserror::Error)]
 pub enum IdentifierError {
@@ -48,39 +51,6 @@ pub struct CredentialQueryIdentifier(String);
     validate(with = validate_identifier_str, error = IdentifierError),
 )]
 pub struct ClaimsQueryIdentifier(String);
-
-trait MayHaveUniqueId {
-    fn id(&self) -> Option<&str>;
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum UniqueIdVecError {
-    #[error("source vec is empty")]
-    Empty,
-    #[error("source vec contains items with duplicate identifiers")]
-    DuplicateIds,
-}
-
-fn validate_vec_non_empt_and_unique_ids<T>(items: &[T]) -> Result<(), UniqueIdVecError>
-where
-    T: MayHaveUniqueId,
-{
-    if items.is_empty() {
-        return Err(UniqueIdVecError::Empty);
-    }
-
-    if !items.iter().flat_map(MayHaveUniqueId::id).all_unique() {
-        return Err(UniqueIdVecError::DuplicateIds);
-    }
-
-    Ok(())
-}
-
-#[nutype(
-    derive(Debug, Clone, PartialEq, Eq, AsRef, TryFrom, IntoIterator, Serialize, Deserialize),
-    validate(with = validate_vec_non_empt_and_unique_ids, error = UniqueIdVecError),
-)]
-pub struct UniqueIdVec<T: MayHaveUniqueId>(Vec<T>);
 
 /// A DCQL query, encoding constraints on the combinations of credentials and claims that are requested.
 /// The Wallet must evaluate the query against the Credentials it holds and returns Presentations matching the query.
