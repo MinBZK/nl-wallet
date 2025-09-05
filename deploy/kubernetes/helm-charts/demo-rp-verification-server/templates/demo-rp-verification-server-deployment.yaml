@@ -20,8 +20,8 @@ spec:
     metadata:
       labels:
         {{- include "common.labels.componentSelectorLabels" (list "server" .) | nindent 8 }}
-        {{- if .Values.extraPodlabels }}
-        {{- toYaml .Values.extraPodlabels | nindent 8 }}
+        {{- if .Values.extraPodLabels }}
+        {{- toYaml .Values.extraPodLabels | nindent 8 }}
         {{- end }}
     spec:
       {{- with .Values.imagePullSecrets }}

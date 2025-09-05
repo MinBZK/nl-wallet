@@ -25,7 +25,7 @@ spec:
         checksum/config: "{{ $configMapChecksum }}"
       labels:
         {{- include "common.labels.componentSelectorLabels" (list .Chart.Name .) | nindent 8 }}
-        {{ with .Values.gbaHcConverter.extraPodlabels }}
+        {{ with .Values.gbaHcConverter.extraPodLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
     spec:

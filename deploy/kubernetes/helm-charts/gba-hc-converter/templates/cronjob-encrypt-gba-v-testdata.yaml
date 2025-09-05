@@ -18,7 +18,7 @@ spec:
         metadata:
           labels:
             {{- include "common.labels.component" (list .Values.gbaEncryptTestData.name .) | nindent 12 }}
-            {{- with .Values.gbaEncryptTestData.extraPodlabels }}
+            {{- with .Values.gbaEncryptTestData.extraPodLabels }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
         spec:

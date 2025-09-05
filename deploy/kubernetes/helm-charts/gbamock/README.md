@@ -36,7 +36,7 @@
 
 | Name             | Description                    | Value |
 | ---------------- | ------------------------------ | ----- |
-| `extraPodlabels` | Additional labels for the pods | `{}`  |
+| `extraPodLabels` | Additional labels for the pods | `{}`  |
 
 ### Resource requests and limits
 

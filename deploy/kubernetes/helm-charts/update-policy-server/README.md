@@ -56,9 +56,9 @@
 | Name                        | Description    | Value  |
 | --------------------------- | -------------- | ------ |
 | `resources.requests.cpu`    | CPU request    | `50m`  |
-| `resources.requests.memory` | Memory request | `32Mi` |
+| `resources.requests.memory` | Memory request | `16Mi` |
 | `resources.limits.cpu`      | CPU limit      | `200m` |
-| `resources.limits.memory`   | Memory limit   | `64Mi` |
+| `resources.limits.memory`   | Memory limit   | `32Mi` |
 
 ### Update policy
 

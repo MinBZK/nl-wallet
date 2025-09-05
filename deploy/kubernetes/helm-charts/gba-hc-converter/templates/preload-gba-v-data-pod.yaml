@@ -10,7 +10,7 @@ metadata:
     checksum/config: "{{ $configMapChecksum }}"
   labels:
     {{- include "common.labels.component" (list .Values.preloadGbaPod.name .) | nindent 4 }}
-    {{ with .Values.preloadGbaPod.extraPodlabels }}
+    {{ with .Values.preloadGbaPod.extraPodLabels }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
 spec:

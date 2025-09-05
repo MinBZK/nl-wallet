@@ -57,9 +57,9 @@
 | Name                                       | Description                                                    | Value                                 |
 | ------------------------------------------ | -------------------------------------------------------------- | ------------------------------------- |
 | `gbaHcConverter.replicaCount`              | Number of replicas for the GBA HC Converter                    | `2`                                   |
-| `gbaHcConverter.extraPodlabels`            | Additional labels for the pods                                 | `{}`                                  |
-| `gbaHcConverter.runMode`                   | Run mode for the GBA HC Converter (e.g., ALL, PRELOADED, GBAV) | `ALL`                                 |
-| `gbaHcConverter.envVarNamePreloaded`       | Environment variable name for the preloaded run mode           | `ALL__PRELOADED`                      |
+| `gbaHcConverter.extraPodLabels`            | Additional labels for the pods                                 | `{}`                                  |
+| `gbaHcConverter.runMode`                   | Run mode for the GBA HC Converter (e.g., ALL, PRELOADED, GBAV) | `PRELOADED`                           |
+| `gbaHcConverter.envVarNamePreloaded`       | Environment variable name for the preloaded run mode           | `PRELOADED`                           |
 | `gbaHcConverter.envVarNameGbav`            | Environment variable name for the GBAV run mode                | `ALL__GBAV`                           |
 | `gbaHcConverter.preloadedXmlPath`          | Path to the preloaded XML files                                | `resources/encrypted-gba-v-responses` |
 | `gbaHcConverter.resources.requests.cpu`    | CPU request                                                    | `50m`                                 |
@@ -80,7 +80,7 @@
 | ----------------------------------- | ---------------------------------------------------- | ------------------------ |
 | `gbaEncryptTestData.name`           | Name of the GBA Encrypt Test Data cronjob            | `encrypt-gba-v-testdata` |
 | `gbaEncryptTestData.enabled`        | Enable or disable the GBA Encrypt Test Data          | `false`                  |
-| `gbaEncryptTestData.extraPodlabels` | Additional labels for the GBA Encrypt Test Data pods | `{}`                     |
+| `gbaEncryptTestData.extraPodLabels` | Additional labels for the GBA Encrypt Test Data pods | `{}`                     |
 
 ### Host Aliases
 
@@ -94,7 +94,7 @@
 | ------------------------------------ | --------------------------------------------- | -------------------- |
 | `frontend.replicaCount`              | Number of replicas for the GBA Fetch frontend | `1`                  |
 | `frontend.name`                      | Name of the GBA Fetch frontend application    | `gba-fetch-frontend` |
-| `frontend.extraPodlabels`            | Additional labels for the frontend pods       | `{}`                 |
+| `frontend.extraPodLabels`            | Additional labels for the frontend pods       | `{}`                 |
 | `frontend.ingress.className`         | Ingress class name for the frontend           | `nginx`              |
 | `frontend.ingress.hostname`          | Ingress hostname for the frontend             | `nil`                |
 | `frontend.ingress.tlsSecretName`     | Secret name for the ingress TLS configuration | `nil`                |
@@ -108,7 +108,7 @@
 | Name                           | Description                               | Value                    |
 | ------------------------------ | ----------------------------------------- | ------------------------ |
 | `preloadGbaPod.name`           | Name of the Preload GBA Pod               | `preload-gba-v-data-pod` |
-| `preloadGbaPod.extraPodlabels` | Additional labels for the Preload GBA Pod | `{}`                     |
+| `preloadGbaPod.extraPodLabels` | Additional labels for the Preload GBA Pod | `{}`                     |
 
 ### xml files
 

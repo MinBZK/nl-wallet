@@ -13,7 +13,7 @@ spec:
     metadata:
       labels:
         {{- include "common.labels.standard" . | nindent 8 }}
-        {{- with .Values.extraPodlabels }}
+        {{- with .Values.extraPodLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
     spec:

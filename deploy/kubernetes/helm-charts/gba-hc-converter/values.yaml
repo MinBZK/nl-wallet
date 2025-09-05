@@ -63,7 +63,7 @@ networkPolicy:
 ## @section GBA HC Converter parameters
 ## Parameters for the GBA HC Converter configuration
 ## @param gbaHcConverter.replicaCount Number of replicas for the GBA HC Converter
-## @param gbaHcConverter.extraPodlabels Additional labels for the pods
+## @param gbaHcConverter.extraPodLabels Additional labels for the pods
 ## @param gbaHcConverter.runMode Run mode for the GBA HC Converter (e.g., ALL, PRELOADED, GBAV)
 ## @param gbaHcConverter.envVarNamePreloaded Environment variable name for the preloaded run mode
 ## @param gbaHcConverter.envVarNameGbav Environment variable name for the GBAV run mode
@@ -74,7 +74,7 @@ networkPolicy:
 ## @param gbaHcConverter.resources.limits.memory Memory limit
 gbaHcConverter:
   replicaCount: 2
-  extraPodlabels: {}
+  extraPodLabels: {}
   runMode: PRELOADED
   envVarNamePreloaded: PRELOADED
   envVarNameGbav: ALL__GBAV
@@ -100,12 +100,12 @@ gbaCliTool:
 ## Parameters for the GBA Encrypt Test Data configuration
 ## @param gbaEncryptTestData.name Name of the GBA Encrypt Test Data cronjob
 ## @param gbaEncryptTestData.enabled Enable or disable the GBA Encrypt Test Data
-## @param gbaEncryptTestData.extraPodlabels Additional labels for the GBA Encrypt Test Data pods
+## @param gbaEncryptTestData.extraPodLabels Additional labels for the GBA Encrypt Test Data pods
 ##
 gbaEncryptTestData:
   name: encrypt-gba-v-testdata
   enabled: false
-  extraPodlabels: {}
+  extraPodLabels: {}
 
 ## @section Host Aliases
 ## Host aliases for the containers
@@ -117,7 +117,7 @@ hostAliases: []
 ## Parameters for the GBA Fetch frontend configuration
 ## @param frontend.replicaCount Number of replicas for the GBA Fetch frontend
 ## @param frontend.name Name of the GBA Fetch frontend application
-## @param frontend.extraPodlabels Additional labels for the frontend pods
+## @param frontend.extraPodLabels Additional labels for the frontend pods
 ## @param frontend.ingress.className Ingress class name for the frontend
 ## @param frontend.ingress.hostname Ingress hostname for the frontend
 ## @param frontend.ingress.tlsSecretName Secret name for the ingress TLS configuration
@@ -128,7 +128,7 @@ hostAliases: []
 frontend:
   replicaCount: 1
   name: gba-fetch-frontend
-  extraPodlabels: {}
+  extraPodLabels: {}
   ingress:
     className: nginx
     hostname: null
@@ -144,10 +144,10 @@ frontend:
 ## @section Preload GBA Pod parameters
 ## Parameters for the Preload GBA Pod configuration
 ## @param preloadGbaPod.name Name of the Preload GBA Pod
-## @param preloadGbaPod.extraPodlabels Additional labels for the Preload GBA Pod
+## @param preloadGbaPod.extraPodLabels Additional labels for the Preload GBA Pod
 preloadGbaPod:
   name: preload-gba-v-data-pod
-  extraPodlabels: {}
+  extraPodLabels: {}
 
 ## @section xml files
 ## Parameters for the XML files used in the GBA HC Converter

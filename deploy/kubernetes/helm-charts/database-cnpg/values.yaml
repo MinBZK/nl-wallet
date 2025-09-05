@@ -27,9 +27,9 @@ replicaCount: 2
 
 ## @section Pod labels
 ## Additional labels for the pods
-## @param extraPodlabels Additional labels for the pods
+## @param extraPodLabels Additional labels for the pods
 ##
-extraPodlabels: {}
+extraPodLabels: {}
 
 ## @section Image configuration
 ## Parameters for the Docker image

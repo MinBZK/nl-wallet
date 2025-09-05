@@ -30,7 +30,7 @@
 
 | Name             | Description                    | Value |
 | ---------------- | ------------------------------ | ----- |
-| `extraPodlabels` | Additional labels for the pods | `{}`  |
+| `extraPodLabels` | Additional labels for the pods | `{}`  |
 
 ### Image pull secrets
 
