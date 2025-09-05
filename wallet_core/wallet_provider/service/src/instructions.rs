@@ -56,9 +56,21 @@ use crate::account_server::UserState;
 use crate::wua_issuer::WuaIssuer;
 
 fn default_instruction_validations(wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+    check_pin_change_in_progress(wallet_user)?;
+    check_recovering_pin(wallet_user)?;
+
+    Ok(())
+}
+
+fn check_pin_change_in_progress(wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
     if wallet_user.pin_change_in_progress() {
         return Err(InstructionValidationError::PinChangeInProgress);
     }
+
+    Ok(())
+}
+
+fn check_recovering_pin(wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
     if matches!(wallet_user.state, WalletUserState::RecoveringPin) {
         return Err(InstructionValidationError::PinRecoveryInProgress);
     }
@@ -97,31 +109,19 @@ impl ValidateInstruction for Sign {
 
 impl ValidateInstruction for ChangePinCommit {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
-        if matches!(wallet_user.state, WalletUserState::RecoveringPin) {
-            return Err(InstructionValidationError::PinRecoveryInProgress);
-        }
-
-        Ok(())
+        check_recovering_pin(wallet_user)
     }
 }
 
 impl ValidateInstruction for ChangePinRollback {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
-        if matches!(wallet_user.state, WalletUserState::RecoveringPin) {
-            return Err(InstructionValidationError::PinRecoveryInProgress);
-        }
-
-        Ok(())
+        check_recovering_pin(wallet_user)
     }
 }
 
 impl ValidateInstruction for StartPinRecovery {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
-        if wallet_user.pin_change_in_progress() {
-            return Err(InstructionValidationError::PinChangeInProgress);
-        }
-
-        Ok(())
+        check_pin_change_in_progress(wallet_user)
     }
 }
 
