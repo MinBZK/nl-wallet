@@ -69,4 +69,3 @@
 | **6.1** | **System displays screen 'Details are incorrect'**<ul><li>Message: Details Incorrect</li><li>Actions: Stop, Back</li></ul>                                               |                                                                        |
 | 6.1a    | User selects Stop                                                                                                                                                        | 1.1                                                                    |
 | 6.1b    | User selects Back                                                                                                                                                        | Back                                                                   |
-<style>td {vertical-align:top}</style>

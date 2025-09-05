@@ -43,7 +43,7 @@ pub enum AccountProviderResponseError {
     Account(#[defer] AccountError, Option<String>),
 }
 
-#[cfg_attr(any(test, feature = "mock"), mockall::automock)]
+#[cfg_attr(any(test, feature = "test"), mockall::automock)]
 pub trait AccountProviderClient {
     async fn registration_challenge(&self, client_config: &TlsPinningConfig) -> Result<Vec<u8>, AccountProviderError>;
 

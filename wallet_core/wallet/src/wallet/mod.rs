@@ -14,6 +14,7 @@ mod uri;
 
 #[cfg(test)]
 mod test;
+mod transfer;
 
 use std::sync::Arc;
 
@@ -49,6 +50,7 @@ pub use self::history::RecentHistoryCallback;
 pub use self::init::WalletClients;
 pub use self::init::WalletInitError;
 pub use self::issuance::IssuanceError;
+pub use self::issuance::IssuanceResult;
 pub use self::lock::LockCallback;
 pub use self::lock::UnlockMethod;
 pub use self::lock::WalletUnlockError;

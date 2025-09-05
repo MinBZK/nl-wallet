@@ -3,7 +3,7 @@
 ## Overview
 
 | Aspect                       | Description                                                                                                                                                                                                                                                                                     |
-| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ---------------------------- |-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | **Summary**                  | The user opens the app manually or follows a universal link. The system checks the app version is valid, or forces the user to update.<br>When valid, the system redirects to app introduction or app unlock.                                                                                   |
 | **Goal**                     | Opening the app.                                                                                                                                                                                                                                                                                |
 | **Preconditions**            | <ul><li>App is installed</li><li>App version is allowed</li></ul>                                                                                                                                                                                                                               |
@@ -43,7 +43,6 @@
 | 3.3a    | Case: User has not obtained PID                                                                                   | Resume<sup>3</sup>                                         |
 | **3.4** | **System executes partial flow [PF2.7 Resolve a universal link](../partial-flows/PF2.7_ResolveUniversalLink.md)** |                                                            |
 | 3.4a    | Result: No (valid) universal link                                                                                 | Resume<sup>3</sup>                                         |
-<style>td {vertical-align:top}</style>
 <div class="table-notes">1. We use the iOS terminology 'launch' to that no process was active when opening the app. In Android, this matches the 'cold startup' or 'warm startup' processes. Even without an active process, some resources may already be loaded into memory.</div>
 <div class="table-notes">2. We use the iOS terminology 'resume' to that the app process was already active when opening the app. In Android, this matches the 'hot startup' process.</div>
 <div class="table-notes">3. Resume the state when the app backgrounded/suspended.</div>

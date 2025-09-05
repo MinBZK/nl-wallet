@@ -3,7 +3,7 @@ part of 'change_pin_bloc.dart';
 sealed class ChangePinState extends Equatable {
   const ChangePinState();
 
-  get didGoBack => false;
+  bool get didGoBack => false;
 
   @override
   List<Object?> get props => [didGoBack];

@@ -2,7 +2,7 @@ mod config_file;
 mod data;
 mod file_repository;
 mod http_repository;
-#[cfg(any(test, feature = "mock"))]
+#[cfg(any(test, feature = "test"))]
 mod mock;
 mod updating_repository;
 
@@ -24,7 +24,7 @@ pub use self::updating_repository::UpdatingConfigurationRepository;
 pub type WalletConfigurationRepository =
     UpdatingConfigurationRepository<FileStorageConfigurationRepository<HttpConfigurationRepository<TlsPinningConfig>>>;
 
-#[cfg(any(test, feature = "mock"))]
+#[cfg(any(test, feature = "test"))]
 pub use self::mock::LocalConfigurationRepository;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]

@@ -53,14 +53,13 @@ mod tests {
 
     use crate::pin::change::ChangePinStorage;
     use crate::pin::change::State;
-    use crate::storage::StorageState;
-    use crate::storage::StorageStub;
+    use crate::storage::InMemoryDatabaseStorage;
 
     use super::*;
 
     #[tokio::test]
     async fn test_change_pin_storage() {
-        let storage = StorageStub::new(StorageState::Opened, None);
+        let storage = InMemoryDatabaseStorage::open().await;
         let change_pin_storage = Arc::new(RwLock::new(storage));
 
         assert_matches!(change_pin_storage.get_change_pin_state().await, Ok(None));
@@ -82,10 +81,10 @@ mod tests {
             attested_key_identifier: "key_id".to_string(),
             pin_salt: b"pin_salt_1234_old".to_vec(),
             wallet_id: "wallet_123".to_string(),
-            wallet_certificate: WalletCertificate::from("thisisdefinitelyvalid_current"),
+            wallet_certificate: "this.isa.jwt".parse().unwrap(),
         };
         let new_pin_salt = b"pin_salt_1234_new".to_vec();
-        let new_wallet_certificate = WalletCertificate::from("thisisdefinitelyvalid_new");
+        let new_wallet_certificate = "this.isa.jwt_new".parse().unwrap();
 
         assert_matches!(
             change_pin_storage

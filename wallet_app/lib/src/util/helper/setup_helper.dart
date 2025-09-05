@@ -24,7 +24,7 @@ class SetupHelper {
   }
 
   @visibleForTesting
-  static initWithValue(int totalSteps) => _setTotalSetupSteps = totalSteps;
+  static int initWithValue(int totalSteps) => _setTotalSetupSteps = totalSteps;
 
   // Fetch the total amount of steps the user has to perform during the initial wallet setup.
   // This value is dynamic to make sure it can accommodate the extra 'setup biometrics' step.

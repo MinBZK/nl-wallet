@@ -3,6 +3,7 @@ class MockConstants {
 
   static const pidIssuanceRedirectUri = 'initiate_mock_digid_flow';
   static const pidRenewalRedirectUri = 'initiate_mock_renew_digid_flow';
+  static const pinRecoveryRedirectUri = 'initiate_mock_pin_recovery_flow';
   static const versionString = '0.0.0-mock';
 }
 

@@ -32,7 +32,7 @@ class SignBloc extends Bloc<SignEvent, SignState> {
     on<SignPinConfirmed>(_onPinConfirmed);
     on<SignStopRequested>(_onStopRequested);
     on<SignBackPressed>(_onBackPressed);
-    on<SignUpdateState>((event, emit) => emit(event.state));
+    on<SignUpdateState>((SignUpdateState event, Emitter<SignState> emit) => emit(event.state));
 
     _initSigning(signUri);
   }
@@ -55,7 +55,7 @@ class SignBloc extends Bloc<SignEvent, SignState> {
     );
   }
 
-  Future<void> _onOrganizationApproved(event, emit) async {
+  Future<void> _onOrganizationApproved(SignOrganizationApproved event, Emitter<SignState> emit) async {
     assert(state is SignCheckOrganization, 'State should be SignCheckOrganization when the user approves');
     assert(_startSignResult != null, 'Can not approve organization when result is not available');
     try {
@@ -72,7 +72,7 @@ class SignBloc extends Bloc<SignEvent, SignState> {
     }
   }
 
-  Future<void> _onAgreementChecked(event, emit) async {
+  Future<void> _onAgreementChecked(SignAgreementChecked event, Emitter<SignState> emit) async {
     assert(state is SignCheckAgreement, 'State should be SignCheckAgreement when the user checks the agreement');
     assert(_startSignResult != null, 'Can not check agreement when result is not available');
     assert(
@@ -96,7 +96,7 @@ class SignBloc extends Bloc<SignEvent, SignState> {
     }
   }
 
-  Future<void> _onAgreementApproved(event, emit) async {
+  Future<void> _onAgreementApproved(SignAgreementApproved event, Emitter<SignState> emit) async {
     assert(state is SignConfirmAgreement, 'State should be SignConfirmAgreement when the user approves the agreement');
     assert(_startSignResult != null, 'Can not approve agreement when result is not available');
     try {
@@ -107,7 +107,7 @@ class SignBloc extends Bloc<SignEvent, SignState> {
     }
   }
 
-  Future<void> _onPinConfirmed(event, emit) async {
+  Future<void> _onPinConfirmed(SignPinConfirmed event, Emitter<SignState> emit) async {
     assert(state is SignConfirmPin, 'State should be SignConfirmPin when the user confirms with pin');
     assert(_startSignResult != null, 'Can not confirm pin when result is not available');
     emit(const SignLoadInProgress());
@@ -119,7 +119,7 @@ class SignBloc extends Bloc<SignEvent, SignState> {
     }
   }
 
-  Future<void> _onStopRequested(event, emit) async {
+  Future<void> _onStopRequested(SignStopRequested event, Emitter<SignState> emit) async {
     assert(_startSignResult != null, 'Stop can only be requested after flow is loaded');
     final rejectResult = await _rejectSignAgreementUseCase.invoke();
     await rejectResult.process(
@@ -128,7 +128,7 @@ class SignBloc extends Bloc<SignEvent, SignState> {
     );
   }
 
-  Future<void> _onBackPressed(event, emit) async {
+  Future<void> _onBackPressed(SignBackPressed event, Emitter<SignState> emit) async {
     final state = this.state;
     if (state.canGoBack) {
       if (state is SignCheckAgreement) {

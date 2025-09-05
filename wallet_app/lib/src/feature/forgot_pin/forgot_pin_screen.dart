@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../environment.dart';
+import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/string_extension.dart';
 import '../../wallet_assets.dart';
@@ -54,7 +56,12 @@ class ForgotPinScreen extends StatelessWidget {
       children: [
         TitleText(context.l10n.forgotPinScreenTitle),
         const SizedBox(height: 8),
-        ParagraphedList.splitContent(context.l10n.forgotPinScreenDescription),
+        // TODO(Rob): Remove legacy flow. Awaiting core implementation. PVW-4587
+        ParagraphedList.splitContent(
+          Environment.isMockOrTest
+              ? context.l10n.forgotPinScreenDescription
+              : context.l10n.forgotPinScreenLegacyDescription,
+        ),
         const SizedBox(height: 32),
         const PageIllustration(
           asset: WalletAssets.svg_pin_forgot,
@@ -72,11 +79,8 @@ class ForgotPinScreen extends StatelessWidget {
           padding: EdgeInsets.symmetric(horizontal: 16, vertical: context.isLandscape ? 8 : 24),
           child: Column(
             children: [
-              PrimaryButton(
-                onPressed: () => ResetWalletDialog.show(context),
-                icon: const Icon(Icons.delete_outline_rounded),
-                text: Text.rich(context.l10n.forgotPinScreenCta.toTextSpan(context)),
-              ),
+              // TODO(Rob): Remove legacy flow. Awaiting core implementation. PVW-4587
+              Environment.isMockOrTest ? _buildPinRecoveryButton(context) : _buildPinResetButton(context),
               const SizedBox(height: 12),
               TertiaryButton(
                 onPressed: () => Navigator.maybePop(context),
@@ -90,10 +94,20 @@ class ForgotPinScreen extends StatelessWidget {
     );
   }
 
-  static void show(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (c) => const ForgotPinScreen()),
+  Widget _buildPinRecoveryButton(BuildContext context) {
+    return PrimaryButton(
+      onPressed: () => Navigator.pushNamed(context, WalletRoutes.pinRecoveryRoute),
+      text: Text.rich(context.l10n.forgotPinScreenCta.toTextSpan(context)),
     );
   }
+
+  Widget _buildPinResetButton(BuildContext context) {
+    return PrimaryButton(
+      onPressed: () => ResetWalletDialog.show(context),
+      icon: const Icon(Icons.delete_outline_rounded),
+      text: Text.rich(context.l10n.forgotPinScreenLegacyCta.toTextSpan(context)),
+    );
+  }
+
+  static void show(BuildContext context) => Navigator.pushNamed(context, WalletRoutes.forgotPinRoute);
 }

@@ -32,7 +32,7 @@ pub trait ChangePinClientError: std::error::Error {
     fn is_network_error(&self) -> bool;
 }
 
-#[cfg_attr(any(test, feature = "mock"), mockall::automock(type Error = mock::ChangePinClientTestError;))]
+#[cfg_attr(any(test, feature = "test"), mockall::automock(type Error = mock::ChangePinClientTestError;))]
 pub trait ChangePinClient {
     type Error: ChangePinClientError;
     async fn start_new_pin(
@@ -45,7 +45,7 @@ pub trait ChangePinClient {
     async fn rollback_new_pin(&self, old_pin: &str) -> Result<(), Self::Error>;
 }
 
-#[cfg_attr(any(test, feature = "mock"), mockall::automock)]
+#[cfg_attr(any(test, feature = "test"), mockall::automock)]
 pub trait ChangePinStorage {
     async fn get_change_pin_state(&self) -> Result<Option<State>, StorageError>;
     async fn store_change_pin_state(&self, state: State) -> Result<(), StorageError>;
@@ -281,7 +281,7 @@ where
     }
 }
 
-#[cfg(any(test, feature = "mock"))]
+#[cfg(any(test, feature = "test"))]
 pub mod mock {
     use super::*;
 
@@ -311,6 +311,7 @@ pub mod mock {
 #[cfg(test)]
 mod test {
     use assert_matches::assert_matches;
+    use chrono::Utc;
     use mockall::predicate::eq;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
@@ -346,7 +347,7 @@ mod test {
             pin_pubkey_hash: crypto::utils::random_bytes(32),
             version: 0,
             iss: "pin_change_unit_test".to_string(),
-            iat: jsonwebtoken::get_current_timestamp(),
+            iat: Utc::now(),
         };
 
         let wallet_certificate = UnverifiedJwt::sign_with_sub(&certificate_claims, &certificate_signing_key)
@@ -401,7 +402,7 @@ mod test {
             .expect("begin changing PIN should succeed");
 
         assert!(!new_pin_salt.is_empty());
-        assert_eq!(new_wallet_certificate.0, registration_data.wallet_certificate.0);
+        assert_eq!(new_wallet_certificate, registration_data.wallet_certificate);
     }
 
     #[tokio::test]

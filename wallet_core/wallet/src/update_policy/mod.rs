@@ -1,6 +1,6 @@
 mod background_repository;
 mod http_repository;
-#[cfg(any(test, feature = "mock"))]
+#[cfg(any(test, feature = "test"))]
 mod mock;
 
 use background_repository::BackgroundUpdateableUpdatePolicyRepository;
@@ -12,7 +12,7 @@ use crate::repository::FileStorageError;
 use crate::repository::HttpClientError;
 
 pub use self::http_repository::HttpUpdatePolicyRepository;
-#[cfg(any(test, feature = "mock"))]
+#[cfg(any(test, feature = "test"))]
 pub use self::mock::MockUpdatePolicyRepository;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]

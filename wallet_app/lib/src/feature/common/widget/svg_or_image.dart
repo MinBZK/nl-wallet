@@ -8,27 +8,27 @@ class SvgOrImage extends StatelessWidget {
   final String asset;
   final BoxFit fit;
   final Alignment alignment;
+  final double? width, height;
 
   const SvgOrImage({
     super.key,
     required this.asset,
     this.fit = BoxFit.contain,
     this.alignment = Alignment.center,
+    this.width,
+    this.height,
   });
 
   @override
   Widget build(BuildContext context) {
     switch (asset) {
       case (final String svg) when asset.endsWith('.svg'):
-        return SvgPicture.asset(svg, fit: fit, alignment: alignment);
+        return SvgPicture.asset(svg, fit: fit, alignment: alignment, width: width, height: height);
       case (final String vec) when asset.endsWith('.svg.vec'):
-        return SvgPicture(
-          AssetBytesLoader(vec, assetBundle: DefaultAssetBundle.of(context)),
-          fit: fit,
-          alignment: alignment,
-        );
+        final bytesLoader = AssetBytesLoader(vec, assetBundle: DefaultAssetBundle.of(context));
+        return SvgPicture(bytesLoader, fit: fit, alignment: alignment, width: width, height: height);
       case (final String other):
-        return Image.asset(other, fit: fit, alignment: alignment);
+        return Image.asset(other, fit: fit, alignment: alignment, width: width, height: height);
     }
   }
 }

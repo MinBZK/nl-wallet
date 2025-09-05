@@ -58,7 +58,7 @@ pub enum DigidError {
     App2AppError(App2AppErrorMessage),
 }
 
-#[cfg_attr(any(test, feature = "mock"), mockall::automock(type Session = MockDigidSession<C>;))]
+#[cfg_attr(any(test, feature = "test"), mockall::automock(type Session = MockDigidSession<C>;))]
 pub trait DigidClient<C = TlsPinningConfig>
 where
     C: IntoPinnedReqwestClient + Clone + Hash,
@@ -73,7 +73,7 @@ where
     ) -> Result<Self::Session, DigidError>;
 }
 
-#[cfg_attr(any(test, feature = "mock"), mockall::automock)]
+#[cfg_attr(any(test, feature = "test"), mockall::automock)]
 pub trait DigidSession<C = TlsPinningConfig>
 where
     C: IntoPinnedReqwestClient + Clone + Hash,

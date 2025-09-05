@@ -6,9 +6,9 @@ use parking_lot::RwLock;
 use tracing::info;
 
 use http_utils::reqwest::IntoPinnedReqwestClient;
+use jwt::DEFAULT_VALIDATIONS;
 use jwt::EcdsaDecodingKey;
 use jwt::UnverifiedJwt;
-use jwt::validations;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::config::ConfigurationError;
@@ -63,7 +63,7 @@ where
         let response = self.client.fetch(client_builder).await?;
         match response {
             HttpResponse::Parsed(parsed_response) => {
-                let new_config = parsed_response.parse_and_verify(&self.signing_public_key, &validations())?;
+                let new_config = parsed_response.parse_and_verify(&self.signing_public_key, &DEFAULT_VALIDATIONS)?;
 
                 {
                     let current_config = self.config.read();

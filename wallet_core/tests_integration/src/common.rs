@@ -9,9 +9,8 @@ use axum::Json;
 use axum::Router;
 use axum::routing::post;
 use ctor::ctor;
-use jsonwebtoken::Algorithm;
-use jsonwebtoken::EncodingKey;
-use jsonwebtoken::Header;
+use p256::ecdsa::SigningKey;
+use p256::pkcs8::DecodePrivateKey;
 use reqwest::Certificate;
 use rustls::crypto::CryptoProvider;
 use rustls::crypto::ring;
@@ -42,6 +41,9 @@ use http_utils::urls::BaseUrl;
 use issuance_server::disclosure::AttributesFetcher;
 use issuance_server::disclosure::HttpAttributesFetcher;
 use issuance_server::settings::IssuanceServerSettings;
+use jwt::Algorithm;
+use jwt::Header;
+use jwt::UnverifiedJwt;
 use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::issuance_session::HttpIssuanceSession;
 use openid4vc::issuer::AttributeService;
@@ -62,15 +64,15 @@ use utils::vec_at_least::VecNonEmpty;
 use verification_server::settings::VerifierSettings;
 use wallet::Wallet;
 use wallet::WalletClients;
-use wallet::mock::MockDigidClient;
-use wallet::mock::MockDigidSession;
-use wallet::mock::StorageStub;
-use wallet::wallet_deps::HttpAccountProviderClient;
-use wallet::wallet_deps::HttpConfigurationRepository;
-use wallet::wallet_deps::UpdatePolicyRepository;
-use wallet::wallet_deps::UpdateableRepository;
-use wallet::wallet_deps::default_config_server_config;
-use wallet::wallet_deps::default_wallet_config;
+use wallet::test::HttpAccountProviderClient;
+use wallet::test::HttpConfigurationRepository;
+use wallet::test::InMemoryDatabaseStorage;
+use wallet::test::MockDigidClient;
+use wallet::test::MockDigidSession;
+use wallet::test::UpdatePolicyRepository;
+use wallet::test::UpdateableRepository;
+use wallet::test::default_config_server_config;
+use wallet::test::default_wallet_config;
 use wallet_configuration::config_server_config::ConfigServerConfiguration;
 use wallet_configuration::wallet_config::WalletConfiguration;
 use wallet_provider::settings::AppleEnvironment;
@@ -125,10 +127,10 @@ pub enum WalletDeviceVendor {
     Google,
 }
 
-pub type WalletWithMocks = Wallet<
+pub type WalletWithStorage = Wallet<
     HttpConfigurationRepository<TlsPinningConfig>,
     UpdatePolicyRepository,
-    StorageStub,
+    InMemoryDatabaseStorage,
     MockHardwareAttestedKeyHolder,
     HttpAccountProviderClient,
     MockDigidClient<TlsPinningConfig>,
@@ -136,7 +138,7 @@ pub type WalletWithMocks = Wallet<
     VpDisclosureClient,
 >;
 
-pub async fn setup_wallet_and_default_env(vendor: WalletDeviceVendor) -> WalletWithMocks {
+pub async fn setup_wallet_and_default_env(vendor: WalletDeviceVendor) -> WalletWithStorage {
     let (wallet, _, _) = setup_wallet_and_env(
         vendor,
         config_server_settings(),
@@ -176,7 +178,7 @@ pub async fn setup_wallet_and_env(
         ReqwestTrustAnchor,
         TlsServerConfig,
     ),
-) -> (WalletWithMocks, DisclosureParameters, BaseUrl) {
+) -> (WalletWithStorage, DisclosureParameters, BaseUrl) {
     let key_holder = match vendor {
         WalletDeviceVendor::Apple => MockHardwareAttestedKeyHolder::generate_apple(
             AttestationEnvironment::Development,
@@ -254,7 +256,7 @@ pub async fn setup_wallet_and_env(
     served_wallet_config.update_policy_server.http_config.base_url = local_ups_base_url(ups_port);
     served_wallet_config.update_policy_server.http_config.trust_anchors = vec![ups_root_ca.clone()];
 
-    cs_settings.wallet_config_jwt = config_jwt(&served_wallet_config);
+    cs_settings.wallet_config_jwt = config_jwt(&served_wallet_config).await;
 
     let cs_port = start_config_server(cs_settings, cs_root_ca.clone()).await;
     let config_server_config = ConfigServerConfiguration {
@@ -287,10 +289,12 @@ pub async fn setup_wallet_and_env(
     let mut wallet_clients = WalletClients::new_http(default_reqwest_client_builder()).unwrap();
     setup_mock_digid_client(&mut wallet_clients.digid_client);
 
+    let storage = InMemoryDatabaseStorage::open().await;
+
     let wallet = Wallet::init_registration(
         config_repository,
         update_policy_repository,
-        StorageStub::default(),
+        storage,
         key_holder,
         wallet_clients,
     )
@@ -327,18 +331,20 @@ pub fn update_policy_server_settings() -> (UpsSettings, ReqwestTrustAnchor) {
     (settings, root_ca)
 }
 
-pub fn config_jwt(wallet_config: &WalletConfiguration) -> String {
+pub async fn config_jwt(wallet_config: &WalletConfiguration) -> String {
     let key = read_file("config_signing.pem");
 
-    jsonwebtoken::encode(
+    UnverifiedJwt::sign(
+        wallet_config,
         &Header {
             alg: Algorithm::ES256,
             ..Default::default()
         },
-        wallet_config,
-        &EncodingKey::from_ec_pem(&key).unwrap(),
+        &SigningKey::from_pkcs8_pem(&String::from_utf8_lossy(&key)).unwrap(),
     )
+    .await
     .unwrap()
+    .to_string()
 }
 
 pub fn wallet_provider_settings() -> (WpSettings, ReqwestTrustAnchor) {
@@ -678,7 +684,7 @@ pub async fn start_gba_hc_converter(settings: GbaSettings) {
     wait_for_server(base_url, std::iter::empty()).await;
 }
 
-pub async fn do_wallet_registration(mut wallet: WalletWithMocks, pin: &str) -> WalletWithMocks {
+pub async fn do_wallet_registration(mut wallet: WalletWithStorage, pin: &str) -> WalletWithStorage {
     // No registration should be loaded initially.
     assert!(!wallet.has_registration());
 
@@ -694,7 +700,7 @@ pub async fn do_wallet_registration(mut wallet: WalletWithMocks, pin: &str) -> W
     wallet
 }
 
-pub async fn do_pid_issuance(mut wallet: WalletWithMocks, pin: String) -> WalletWithMocks {
+pub async fn do_pid_issuance(mut wallet: WalletWithStorage, pin: String) -> WalletWithStorage {
     let redirect_url = wallet
         .create_pid_issuance_auth_url()
         .await

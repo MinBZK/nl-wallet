@@ -7,6 +7,9 @@ rust-version.workspace = true
 [lints]
 workspace = true
 
+[lib]
+doctest = false
+
 [[bin]]
 name = "performance_test"
 required-features = ["performance_test"]
@@ -75,10 +78,10 @@ test_common = [
     "dep:http_utils",
     "dep:indexmap",
     "dep:issuance_server",
-    "dep:jsonwebtoken",
     "dep:mdoc",
     "dep:openid4vc",
     "dep:openid4vc_server",
+    "dep:p256",
     "dep:pid_issuer",
     "dep:platform_support",
     "dep:reqwest",
@@ -118,6 +121,7 @@ integration_test = [
     "db_test",
     "hsm_test",
     "dep:assert_matches",
+    "dep:jsonwebtoken",
     "dep:p256",
     "dep:rand_core",
     "dep:regex",
@@ -230,7 +234,7 @@ platform_support = { path = "../wallet/platform_support", optional = true, featu
 server_utils = { path = "../wallet_server/server_utils", optional = true, features = [] }
 update_policy_server = { path = "../update_policy/server", optional = true }
 verification_server = { path = "../wallet_server/verification_server", optional = true, features = [] }
-wallet = { path = "../wallet", optional = true, features = ["mock", "wallet_deps", "test"] }
+wallet = { path = "../wallet", optional = true, features = ["test"] }
 utils = { path = "../lib/utils", optional = true }
 wallet_configuration = { path = "../wallet/configuration", optional = true }
 wallet_provider = { path = "../wallet_provider", optional = true }

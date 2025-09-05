@@ -106,7 +106,7 @@ class _PinKeyboardState extends State<PinKeyboard> with AfterLayoutMixin<PinKeyb
     );
   }
 
-  void _handleKeyEvent(key) {
+  void _handleKeyEvent(KeyEvent? key) {
     if (key is! KeyDownEvent) return;
     final digit = int.tryParse(key.character ?? '');
     if (digit != null) {

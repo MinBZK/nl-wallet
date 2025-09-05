@@ -7,6 +7,9 @@ rust-version.workspace = true
 [lints]
 workspace = true
 
+[lib]
+doctest = false
+
 [[test]]
 name = "issuance"
 path = "tests/issuance.rs"
@@ -58,7 +61,6 @@ http.workspace = true
 indexmap.workspace = true
 itertools.workspace = true
 josekit = { workspace = true, features = ["vendored"] }
-jsonwebtoken.workspace = true
 mime.workspace = true
 nutype = { workspace = true, features = ["serde"] }
 p256 = { workspace = true, features = ["ecdsa", "pem", "serde", "std"] }

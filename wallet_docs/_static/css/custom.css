@@ -20,3 +20,11 @@ div[role="contentinfo"] {
 .table-notes b,
 .table-notes strong { font-weight: 600; }
 .table-notes sup { font-size: 0.8em; vertical-align: super; }
+
+.rst-content table.docutils ul {
+    margin-bottom: 0;
+}
+
+.rst-content table.docutils td:first-child, .rst-content table.docutils th:first-child, .rst-content table.field-list td:first-child, .rst-content table.field-list th:first-child, .wy-table td:first-child, .wy-table th:first-child {
+    vertical-align: top;
+}

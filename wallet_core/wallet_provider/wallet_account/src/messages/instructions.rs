@@ -1,11 +1,16 @@
 use std::num::NonZeroUsize;
 
+use chrono::DateTime;
+use chrono::Utc;
+use chrono::serde::ts_seconds;
 use derive_more::Constructor;
+use semver::Version;
 use serde::Deserialize;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
+use uuid::Uuid;
 
 use crypto::p256_der::DerSignature;
 use crypto::p256_der::DerVerifyingKey;
@@ -49,7 +54,9 @@ pub struct InstructionResultClaims<R> {
     pub result: R,
 
     pub iss: String,
-    pub iat: u64,
+
+    #[serde(with = "ts_seconds")]
+    pub iat: DateTime<Utc>,
 }
 
 impl<R> JwtSubject for InstructionResultClaims<R> {
@@ -111,6 +118,31 @@ impl InstructionAndResult for ChangePinRollback {
     const NAME: &'static str = "change_pin_rollback";
 
     type Result = ();
+}
+
+// StartPinRecovery instruction.
+
+#[serde_as]
+#[derive(Debug, Serialize, Deserialize)]
+pub struct StartPinRecovery {
+    #[serde(flatten)]
+    pub issuance_with_wua_instruction: PerformIssuanceWithWua,
+    #[serde_as(as = "Base64")]
+    pub pin_pubkey: DerVerifyingKey,
+}
+
+#[serde_as]
+#[derive(Debug, Serialize, Deserialize)]
+pub struct StartPinRecoveryResult {
+    #[serde(flatten)]
+    pub issuance_with_wua_result: PerformIssuanceWithWuaResult,
+    pub certificate: WalletCertificate,
+}
+
+impl InstructionAndResult for StartPinRecovery {
+    const NAME: &'static str = "start_pin_recovery";
+
+    type Result = StartPinRecoveryResult;
 }
 
 // PerformIssuance instruction.
@@ -206,7 +238,7 @@ pub struct DiscloseRecoveryCodeResult {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PrepareTransfer {
-    pub app_version: String,
+    pub app_version: Version,
 }
 
 impl InstructionAndResult for PrepareTransfer {
@@ -217,7 +249,21 @@ impl InstructionAndResult for PrepareTransfer {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PrepareTransferResult {
-    pub transfer_session_id: String,
+    pub transfer_session_id: Uuid,
+}
+
+// ConfirmTransfer instruction.
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ConfirmTransfer {
+    pub transfer_session_id: Uuid,
+    pub app_version: Version,
+}
+
+impl InstructionAndResult for ConfirmTransfer {
+    const NAME: &'static str = "confirm_transfer";
+
+    type Result = ();
 }
 
 #[cfg(feature = "client")]

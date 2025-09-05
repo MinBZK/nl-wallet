@@ -65,5 +65,4 @@
 | **6.1** | **System displays forgot PIN screen**<ul><li>Forgot PIN?</li><li>Actions: Delete Wallet, Back</li></ul>                                                            |                                                                         |
 | 6.1a    | User selects Delete Wallet                                                                                                                                         | Go to: [UC9.4 Wipe all app data](UC9.4_WipeAllAppData.md)               |
 | 6.1b    | User selects Back                                                                                                                                                  | Back                                                                    |
-<style>td {vertical-align:top}</style>
 <div class="table-notes">1. Resume the state when the app backgrounded/suspended.</div>

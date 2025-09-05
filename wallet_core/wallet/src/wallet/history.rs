@@ -198,19 +198,20 @@ mod tests {
     use crate::AttestationPresentation;
     use crate::DisclosureStatus;
     use crate::WalletEvent;
+    use crate::errors::StorageError;
     use crate::storage::DataDisclosureStatus;
+    use crate::wallet::test::TestWalletInMemoryStorage;
 
     use super::super::test;
+    use super::super::test::TestWalletMockStorage;
     use super::super::test::WalletDeviceVendor;
-    use super::super::test::WalletWithMocks;
     use super::HistoryError;
-    use super::Wallet;
 
     const PID_DOCTYPE: &str = "com.example.pid";
 
     #[tokio::test]
     async fn test_history_fails_when_not_registered() {
-        let wallet = WalletWithMocks::new_unregistered(WalletDeviceVendor::Apple);
+        let wallet = TestWalletMockStorage::new_unregistered(WalletDeviceVendor::Apple).await;
 
         let error = wallet
             .get_history()
@@ -227,7 +228,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_history_fails_when_locked() {
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         wallet.lock();
 
@@ -246,7 +247,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_history() {
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
+        let mut wallet = TestWalletInMemoryStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         let reader_ca = Ca::generate_reader_mock_ca().unwrap();
         let reader_key = generate_reader_mock(&reader_ca, ReaderRegistration::new_mock().into()).unwrap();
@@ -324,7 +325,7 @@ mod tests {
     #[tokio::test]
     async fn test_set_clear_recent_history_callback() {
         // Prepare an unregistered wallet.
-        let mut wallet = WalletWithMocks::new_unregistered(WalletDeviceVendor::Apple);
+        let mut wallet = TestWalletMockStorage::new_unregistered(WalletDeviceVendor::Apple).await;
 
         // Register mock recent history callback
         let events = test::setup_mock_recent_history_callback(&mut wallet)
@@ -350,7 +351,7 @@ mod tests {
     // Tests both setting and clearing the recent_history callback on a registered `Wallet`.
     #[tokio::test]
     async fn test_set_clear_recent_history_callback_registered() {
-        let mut wallet = Wallet::new_registered_and_unlocked(WalletDeviceVendor::Apple);
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         // The database contains a single Issuance Event
         let event = WalletEvent::Issuance {
@@ -359,7 +360,11 @@ mod tests {
             timestamp: Utc::now(),
             renewed: false,
         };
-        wallet.storage.write().await.event_log.push(event);
+
+        wallet
+            .mut_storage()
+            .expect_fetch_recent_wallet_events()
+            .returning(move || Ok(vec![event.clone()]));
 
         // Register mock recent history callback
         let events = test::setup_mock_recent_history_callback(&mut wallet)
@@ -388,10 +393,13 @@ mod tests {
 
     #[tokio::test]
     async fn test_set_recent_history_callback_error() {
-        let mut wallet = Wallet::new_registered_and_unlocked(WalletDeviceVendor::Apple);
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         // Have the database return an error on query.
-        wallet.storage.write().await.has_query_error = true;
+        wallet
+            .mut_storage()
+            .expect_fetch_recent_wallet_events()
+            .returning(move || Err(StorageError::AlreadyOpened));
 
         // Confirm that setting the callback returns an error.
         let error = wallet

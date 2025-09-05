@@ -84,9 +84,13 @@ import 'package:wallet/src/domain/usecase/pid/cancel_pid_issuance_usecase.dart' 
 import 'package:wallet/src/domain/usecase/pid/continue_pid_issuance_usecase.dart' as _i76;
 import 'package:wallet/src/domain/usecase/pid/get_pid_issuance_url_usecase.dart' as _i74;
 import 'package:wallet/src/domain/usecase/pid/get_pid_renewal_url_usecase.dart' as _i105;
+import 'package:wallet/src/domain/usecase/pin/cancel_pin_recovery_usecase.dart' as _i109;
 import 'package:wallet/src/domain/usecase/pin/change_pin_usecase.dart' as _i92;
 import 'package:wallet/src/domain/usecase/pin/check_is_valid_pin_usecase.dart' as _i68;
 import 'package:wallet/src/domain/usecase/pin/check_pin_usecase.dart' as _i54;
+import 'package:wallet/src/domain/usecase/pin/complete_pin_recovery_usecase.dart' as _i110;
+import 'package:wallet/src/domain/usecase/pin/continue_pin_recovery_usecase.dart' as _i108;
+import 'package:wallet/src/domain/usecase/pin/create_pin_recovery_url_usecase.dart' as _i107;
 import 'package:wallet/src/domain/usecase/pin/disclose_for_issuance_usecase.dart' as _i88;
 import 'package:wallet/src/domain/usecase/pin/unlock_wallet_with_pin_usecase.dart' as _i70;
 import 'package:wallet/src/domain/usecase/qr/decode_qr_usecase.dart' as _i89;
@@ -3126,6 +3130,58 @@ class MockTypedWalletCore extends _i1.Mock implements _i38.TypedWalletCore {
           ),
         )),
       ) as _i10.Future<String>);
+
+  @override
+  _i10.Future<String> createPinRecoveryRedirectUri() => (super.noSuchMethod(
+        Invocation.method(
+          #createPinRecoveryRedirectUri,
+          [],
+        ),
+        returnValue: _i10.Future<String>.value(_i14.dummyValue<String>(
+          this,
+          Invocation.method(
+            #createPinRecoveryRedirectUri,
+            [],
+          ),
+        )),
+        returnValueForMissingStub: _i10.Future<String>.value(_i14.dummyValue<String>(
+          this,
+          Invocation.method(
+            #createPinRecoveryRedirectUri,
+            [],
+          ),
+        )),
+      ) as _i10.Future<String>);
+
+  @override
+  _i10.Future<void> continuePinRecovery(String? uri) => (super.noSuchMethod(
+        Invocation.method(
+          #continuePinRecovery,
+          [uri],
+        ),
+        returnValue: _i10.Future<void>.value(),
+        returnValueForMissingStub: _i10.Future<void>.value(),
+      ) as _i10.Future<void>);
+
+  @override
+  _i10.Future<void> completePinRecovery(String? pin) => (super.noSuchMethod(
+        Invocation.method(
+          #completePinRecovery,
+          [pin],
+        ),
+        returnValue: _i10.Future<void>.value(),
+        returnValueForMissingStub: _i10.Future<void>.value(),
+      ) as _i10.Future<void>);
+
+  @override
+  _i10.Future<void> cancelPinRecovery() => (super.noSuchMethod(
+        Invocation.method(
+          #cancelPinRecovery,
+          [],
+        ),
+        returnValue: _i10.Future<void>.value(),
+        returnValueForMissingStub: _i10.Future<void>.value(),
+      ) as _i10.Future<void>);
 
   @override
   _i10.Future<T> call<T>(_i10.Future<T> Function()? runnable) => (super.noSuchMethod(
@@ -6395,6 +6451,254 @@ class MockGetPidCardsUseCase extends _i1.Mock implements _i106.GetPidCardsUseCas
       ) as _i10.Future<_i50.Result<T>>);
 }
 
+/// A class which mocks [CreatePinRecoveryRedirectUriUseCase].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockCreatePinRecoveryRedirectUriUseCase extends _i1.Mock implements _i107.CreatePinRecoveryRedirectUriUseCase {
+  @override
+  _i10.Future<_i50.Result<String>> invoke() => (super.noSuchMethod(
+        Invocation.method(
+          #invoke,
+          [],
+        ),
+        returnValue: _i10.Future<_i50.Result<String>>.value(_i14.dummyValue<_i50.Result<String>>(
+          this,
+          Invocation.method(
+            #invoke,
+            [],
+          ),
+        )),
+        returnValueForMissingStub: _i10.Future<_i50.Result<String>>.value(_i14.dummyValue<_i50.Result<String>>(
+          this,
+          Invocation.method(
+            #invoke,
+            [],
+          ),
+        )),
+      ) as _i10.Future<_i50.Result<String>>);
+
+  @override
+  _i10.Future<_i50.Result<T>> tryCatch<T>(
+    _i10.Future<T> Function()? future,
+    String? errorDescription,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #tryCatch,
+          [
+            future,
+            errorDescription,
+          ],
+        ),
+        returnValue: _i10.Future<_i50.Result<T>>.value(_i14.dummyValue<_i50.Result<T>>(
+          this,
+          Invocation.method(
+            #tryCatch,
+            [
+              future,
+              errorDescription,
+            ],
+          ),
+        )),
+        returnValueForMissingStub: _i10.Future<_i50.Result<T>>.value(_i14.dummyValue<_i50.Result<T>>(
+          this,
+          Invocation.method(
+            #tryCatch,
+            [
+              future,
+              errorDescription,
+            ],
+          ),
+        )),
+      ) as _i10.Future<_i50.Result<T>>);
+}
+
+/// A class which mocks [ContinuePinRecoveryUseCase].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockContinuePinRecoveryUseCase extends _i1.Mock implements _i108.ContinuePinRecoveryUseCase {
+  @override
+  _i10.Future<_i50.Result<void>> invoke(String? uri) => (super.noSuchMethod(
+        Invocation.method(
+          #invoke,
+          [uri],
+        ),
+        returnValue: _i10.Future<_i50.Result<void>>.value(_i14.dummyValue<_i50.Result<void>>(
+          this,
+          Invocation.method(
+            #invoke,
+            [uri],
+          ),
+        )),
+        returnValueForMissingStub: _i10.Future<_i50.Result<void>>.value(_i14.dummyValue<_i50.Result<void>>(
+          this,
+          Invocation.method(
+            #invoke,
+            [uri],
+          ),
+        )),
+      ) as _i10.Future<_i50.Result<void>>);
+
+  @override
+  _i10.Future<_i50.Result<T>> tryCatch<T>(
+    _i10.Future<T> Function()? future,
+    String? errorDescription,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #tryCatch,
+          [
+            future,
+            errorDescription,
+          ],
+        ),
+        returnValue: _i10.Future<_i50.Result<T>>.value(_i14.dummyValue<_i50.Result<T>>(
+          this,
+          Invocation.method(
+            #tryCatch,
+            [
+              future,
+              errorDescription,
+            ],
+          ),
+        )),
+        returnValueForMissingStub: _i10.Future<_i50.Result<T>>.value(_i14.dummyValue<_i50.Result<T>>(
+          this,
+          Invocation.method(
+            #tryCatch,
+            [
+              future,
+              errorDescription,
+            ],
+          ),
+        )),
+      ) as _i10.Future<_i50.Result<T>>);
+}
+
+/// A class which mocks [CancelPinRecoveryUseCase].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockCancelPinRecoveryUseCase extends _i1.Mock implements _i109.CancelPinRecoveryUseCase {
+  @override
+  _i10.Future<_i50.Result<void>> invoke() => (super.noSuchMethod(
+        Invocation.method(
+          #invoke,
+          [],
+        ),
+        returnValue: _i10.Future<_i50.Result<void>>.value(_i14.dummyValue<_i50.Result<void>>(
+          this,
+          Invocation.method(
+            #invoke,
+            [],
+          ),
+        )),
+        returnValueForMissingStub: _i10.Future<_i50.Result<void>>.value(_i14.dummyValue<_i50.Result<void>>(
+          this,
+          Invocation.method(
+            #invoke,
+            [],
+          ),
+        )),
+      ) as _i10.Future<_i50.Result<void>>);
+
+  @override
+  _i10.Future<_i50.Result<T>> tryCatch<T>(
+    _i10.Future<T> Function()? future,
+    String? errorDescription,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #tryCatch,
+          [
+            future,
+            errorDescription,
+          ],
+        ),
+        returnValue: _i10.Future<_i50.Result<T>>.value(_i14.dummyValue<_i50.Result<T>>(
+          this,
+          Invocation.method(
+            #tryCatch,
+            [
+              future,
+              errorDescription,
+            ],
+          ),
+        )),
+        returnValueForMissingStub: _i10.Future<_i50.Result<T>>.value(_i14.dummyValue<_i50.Result<T>>(
+          this,
+          Invocation.method(
+            #tryCatch,
+            [
+              future,
+              errorDescription,
+            ],
+          ),
+        )),
+      ) as _i10.Future<_i50.Result<T>>);
+}
+
+/// A class which mocks [CompletePinRecoveryUseCase].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockCompletePinRecoveryUseCase extends _i1.Mock implements _i110.CompletePinRecoveryUseCase {
+  @override
+  _i10.Future<_i50.Result<void>> invoke(String? pin) => (super.noSuchMethod(
+        Invocation.method(
+          #invoke,
+          [pin],
+        ),
+        returnValue: _i10.Future<_i50.Result<void>>.value(_i14.dummyValue<_i50.Result<void>>(
+          this,
+          Invocation.method(
+            #invoke,
+            [pin],
+          ),
+        )),
+        returnValueForMissingStub: _i10.Future<_i50.Result<void>>.value(_i14.dummyValue<_i50.Result<void>>(
+          this,
+          Invocation.method(
+            #invoke,
+            [pin],
+          ),
+        )),
+      ) as _i10.Future<_i50.Result<void>>);
+
+  @override
+  _i10.Future<_i50.Result<T>> tryCatch<T>(
+    _i10.Future<T> Function()? future,
+    String? errorDescription,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #tryCatch,
+          [
+            future,
+            errorDescription,
+          ],
+        ),
+        returnValue: _i10.Future<_i50.Result<T>>.value(_i14.dummyValue<_i50.Result<T>>(
+          this,
+          Invocation.method(
+            #tryCatch,
+            [
+              future,
+              errorDescription,
+            ],
+          ),
+        )),
+        returnValueForMissingStub: _i10.Future<_i50.Result<T>>.value(_i14.dummyValue<_i50.Result<T>>(
+          this,
+          Invocation.method(
+            #tryCatch,
+            [
+              future,
+              errorDescription,
+            ],
+          ),
+        )),
+      ) as _i10.Future<_i50.Result<T>>);
+}
+
 /// A class which mocks [WalletCoreApi].
 ///
 /// See the documentation for Mockito's code generation for more information.
@@ -6450,6 +6754,31 @@ class MockWalletCoreApi extends _i1.Mock implements _i23.WalletCoreApi {
           ),
         )),
       ) as _i10.Future<_i23.WalletInstructionResult>);
+
+  @override
+  _i10.Future<_i23.PidIssuanceResult> crateApiFullAcceptPidIssuance({required String? pin}) => (super.noSuchMethod(
+        Invocation.method(
+          #crateApiFullAcceptPidIssuance,
+          [],
+          {#pin: pin},
+        ),
+        returnValue: _i10.Future<_i23.PidIssuanceResult>.value(_i14.dummyValue<_i23.PidIssuanceResult>(
+          this,
+          Invocation.method(
+            #crateApiFullAcceptPidIssuance,
+            [],
+            {#pin: pin},
+          ),
+        )),
+        returnValueForMissingStub: _i10.Future<_i23.PidIssuanceResult>.value(_i14.dummyValue<_i23.PidIssuanceResult>(
+          this,
+          Invocation.method(
+            #crateApiFullAcceptPidIssuance,
+            [],
+            {#pin: pin},
+          ),
+        )),
+      ) as _i10.Future<_i23.PidIssuanceResult>);
 
   @override
   _i10.Future<String?> crateApiFullCancelDisclosure() => (super.noSuchMethod(
@@ -6624,6 +6953,33 @@ class MockWalletCoreApi extends _i1.Mock implements _i23.WalletCoreApi {
       ) as _i10.Future<_i23.WalletInstructionResult>);
 
   @override
+  _i10.Future<_i23.WalletInstructionResult> crateApiFullConfirmWalletTransfer({required String? pin}) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #crateApiFullConfirmWalletTransfer,
+          [],
+          {#pin: pin},
+        ),
+        returnValue: _i10.Future<_i23.WalletInstructionResult>.value(_i14.dummyValue<_i23.WalletInstructionResult>(
+          this,
+          Invocation.method(
+            #crateApiFullConfirmWalletTransfer,
+            [],
+            {#pin: pin},
+          ),
+        )),
+        returnValueForMissingStub:
+            _i10.Future<_i23.WalletInstructionResult>.value(_i14.dummyValue<_i23.WalletInstructionResult>(
+          this,
+          Invocation.method(
+            #crateApiFullConfirmWalletTransfer,
+            [],
+            {#pin: pin},
+          ),
+        )),
+      ) as _i10.Future<_i23.WalletInstructionResult>);
+
+  @override
   _i10.Future<_i23.WalletInstructionResult> crateApiFullContinueChangePin({required String? pin}) =>
       (super.noSuchMethod(
         Invocation.method(
@@ -6769,28 +7125,6 @@ class MockWalletCoreApi extends _i1.Mock implements _i23.WalletCoreApi {
       ) as _i10.Future<String>);
 
   @override
-  _i10.Future<String> crateApiFullGenerateWalletTransferUri() => (super.noSuchMethod(
-        Invocation.method(
-          #crateApiFullGenerateWalletTransferUri,
-          [],
-        ),
-        returnValue: _i10.Future<String>.value(_i14.dummyValue<String>(
-          this,
-          Invocation.method(
-            #crateApiFullGenerateWalletTransferUri,
-            [],
-          ),
-        )),
-        returnValueForMissingStub: _i10.Future<String>.value(_i14.dummyValue<String>(
-          this,
-          Invocation.method(
-            #crateApiFullGenerateWalletTransferUri,
-            [],
-          ),
-        )),
-      ) as _i10.Future<String>);
-
-  @override
   _i10.Future<List<_i23.WalletEvent>> crateApiFullGetHistory() => (super.noSuchMethod(
         Invocation.method(
           #crateApiFullGetHistory,
@@ -6835,14 +7169,14 @@ class MockWalletCoreApi extends _i1.Mock implements _i23.WalletCoreApi {
       ) as _i10.Future<String>);
 
   @override
-  _i10.Stream<void> crateApiFullGetWalletTransferStateStream() => (super.noSuchMethod(
+  _i10.Stream<_i23.WalletTransferState> crateApiFullGetWalletTransferStateStream() => (super.noSuchMethod(
         Invocation.method(
           #crateApiFullGetWalletTransferStateStream,
           [],
         ),
-        returnValue: _i10.Stream<void>.empty(),
-        returnValueForMissingStub: _i10.Stream<void>.empty(),
-      ) as _i10.Stream<void>);
+        returnValue: _i10.Stream<_i23.WalletTransferState>.empty(),
+        returnValueForMissingStub: _i10.Stream<_i23.WalletTransferState>.empty(),
+      ) as _i10.Stream<_i23.WalletTransferState>);
 
   @override
   _i10.Future<bool> crateApiFullHasActiveDisclosureSession() => (super.noSuchMethod(
@@ -6936,17 +7270,6 @@ class MockWalletCoreApi extends _i1.Mock implements _i23.WalletCoreApi {
         returnValue: _i10.Future<_i23.PinValidationResult>.value(_i23.PinValidationResult.Ok),
         returnValueForMissingStub: _i10.Future<_i23.PinValidationResult>.value(_i23.PinValidationResult.Ok),
       ) as _i10.Future<_i23.PinValidationResult>);
-
-  @override
-  _i10.Future<bool> crateApiFullIsWalletTransferPossible({required String? pin}) => (super.noSuchMethod(
-        Invocation.method(
-          #crateApiFullIsWalletTransferPossible,
-          [],
-          {#pin: pin},
-        ),
-        returnValue: _i10.Future<bool>.value(false),
-        returnValueForMissingStub: _i10.Future<bool>.value(false),
-      ) as _i10.Future<bool>);
 
   @override
   _i10.Future<void> crateApiFullLockWallet() => (super.noSuchMethod(
@@ -7080,14 +7403,15 @@ class MockWalletCoreApi extends _i1.Mock implements _i23.WalletCoreApi {
       ) as _i10.Future<_i23.StartDisclosureResult>);
 
   @override
-  _i10.Future<_i23.WalletInstructionResult> crateApiFullStartWalletTransfer({required String? pin}) =>
+  _i10.Future<_i23.WalletTransferInstructionResult> crateApiFullStartWalletTransfer({required String? pin}) =>
       (super.noSuchMethod(
         Invocation.method(
           #crateApiFullStartWalletTransfer,
           [],
           {#pin: pin},
         ),
-        returnValue: _i10.Future<_i23.WalletInstructionResult>.value(_i14.dummyValue<_i23.WalletInstructionResult>(
+        returnValue: _i10.Future<_i23.WalletTransferInstructionResult>.value(
+            _i14.dummyValue<_i23.WalletTransferInstructionResult>(
           this,
           Invocation.method(
             #crateApiFullStartWalletTransfer,
@@ -7095,8 +7419,8 @@ class MockWalletCoreApi extends _i1.Mock implements _i23.WalletCoreApi {
             {#pin: pin},
           ),
         )),
-        returnValueForMissingStub:
-            _i10.Future<_i23.WalletInstructionResult>.value(_i14.dummyValue<_i23.WalletInstructionResult>(
+        returnValueForMissingStub: _i10.Future<_i23.WalletTransferInstructionResult>.value(
+            _i14.dummyValue<_i23.WalletTransferInstructionResult>(
           this,
           Invocation.method(
             #crateApiFullStartWalletTransfer,
@@ -7104,7 +7428,7 @@ class MockWalletCoreApi extends _i1.Mock implements _i23.WalletCoreApi {
             {#pin: pin},
           ),
         )),
-      ) as _i10.Future<_i23.WalletInstructionResult>);
+      ) as _i10.Future<_i23.WalletTransferInstructionResult>);
 
   @override
   _i10.Future<_i23.WalletInstructionResult> crateApiFullUnlockWallet({required String? pin}) => (super.noSuchMethod(

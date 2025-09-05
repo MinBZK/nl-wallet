@@ -22,7 +22,7 @@ pub struct Model {
     pub instruction_sequence_number: i32,
     pub pin_entries: i16,
     pub last_unsuccessful_pin: Option<DateTimeWithTimeZone>,
-    pub is_blocked: bool,
+    pub state: String,
     pub attestation_date_time: DateTimeWithTimeZone,
     #[sea_orm(unique)]
     pub apple_attestation_id: Option<Uuid>,

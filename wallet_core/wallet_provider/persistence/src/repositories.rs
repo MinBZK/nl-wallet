@@ -4,6 +4,7 @@ use chrono::DateTime;
 use chrono::Utc;
 use derive_more::From;
 use p256::ecdsa::VerifyingKey;
+use semver::Version;
 use uuid;
 use uuid::Uuid;
 
@@ -178,7 +179,7 @@ impl WalletUserRepository for Repositories {
         transaction: &Self::TransactionType,
         wallet_id: &str,
         transfer_session_id: Uuid,
-        destination_wallet_app_version: String,
+        destination_wallet_app_version: Version,
     ) -> Result<(), PersistenceError> {
         wallet_user::prepare_transfer(
             transaction,
@@ -187,6 +188,14 @@ impl WalletUserRepository for Repositories {
             destination_wallet_app_version,
         )
         .await
+    }
+
+    async fn find_app_version_by_transfer_session_id(
+        &self,
+        transaction: &Self::TransactionType,
+        transfer_session_id: Uuid,
+    ) -> Result<Option<Version>, PersistenceError> {
+        wallet_user::find_app_version_by_transfer_session_id(transaction, transfer_session_id).await
     }
 }
 
@@ -201,6 +210,7 @@ pub mod mock {
     use p256::ecdsa::SigningKey;
     use p256::ecdsa::VerifyingKey;
     use rand_core::OsRng;
+    use semver::Version;
     use uuid::Uuid;
     use uuid::uuid;
 
@@ -213,6 +223,7 @@ pub mod mock {
     use wallet_provider_domain::model::wallet_user::WalletUserCreate;
     use wallet_provider_domain::model::wallet_user::WalletUserKeys;
     use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
+    use wallet_provider_domain::model::wallet_user::WalletUserState;
     use wallet_provider_domain::repository::MockTransaction;
     use wallet_provider_domain::repository::MockTransactionStarter;
     use wallet_provider_domain::repository::PersistenceError;
@@ -329,8 +340,14 @@ pub mod mock {
                 transaction: &MockTransaction,
                 wallet_id: &str,
                 transfer_session_id: Uuid,
-                destination_wallet_app_version: String,
+                destination_wallet_app_version: Version,
             ) -> Result<(), PersistenceError>;
+
+            async fn find_app_version_by_transfer_session_id(
+                &self,
+                transaction: &MockTransaction,
+                transfer_session_id: Uuid,
+            ) -> Result<Option<Version>, PersistenceError>;
         }
 
         impl TransactionStarter for TransactionalWalletUserRepository {
@@ -348,6 +365,7 @@ pub mod mock {
         pub challenge: Option<Vec<u8>>,
         pub instruction_sequence_number: u64,
         pub apple_assertion_counter: Option<AssertionCounter>,
+        pub state: WalletUserState,
         pub transfer_session_id: Option<Uuid>,
     }
 
@@ -384,6 +402,7 @@ pub mod mock {
                     Some(assertion_counter) => WalletUserAttestation::Apple { assertion_counter },
                     None => WalletUserAttestation::Android,
                 },
+                state: self.state,
                 recovery_code: None,
                 transfer_session_id: self.transfer_session_id,
                 destination_wallet_app_version: None,
@@ -518,9 +537,17 @@ pub mod mock {
             _transaction: &Self::TransactionType,
             _wallet_id: &str,
             _transfer_session_id: Uuid,
-            _destination_wallet_app_version: String,
+            _destination_wallet_app_version: Version,
         ) -> Result<(), PersistenceError> {
             Ok(())
+        }
+
+        async fn find_app_version_by_transfer_session_id(
+            &self,
+            _transaction: &Self::TransactionType,
+            _transfer_session_id: Uuid,
+        ) -> Result<Option<Version>, PersistenceError> {
+            Ok(None)
         }
     }
 

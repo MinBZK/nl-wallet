@@ -27,4 +27,3 @@
 | **2**   | **READ PRIVACY STATEMENT**                                                                                                                             |      |
 | **2.1** | **System displays screen 'Privacy Statement'**<ul><li>Privacy statement Public Wallet (first trial period)</li><li>Actions: Back</li></ul>             |      |
 | 2.1a    | User selects Back                                                                                                                                      | Back |
-<style>td {vertical-align:top}</style>

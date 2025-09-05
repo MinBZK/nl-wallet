@@ -24,6 +24,7 @@ import '../feature/dashboard/bloc/dashboard_bloc.dart';
 import '../feature/dashboard/dashboard_screen.dart';
 import '../feature/disclosure/bloc/disclosure_bloc.dart';
 import '../feature/disclosure/disclosure_screen.dart';
+import '../feature/forgot_pin/forgot_pin_screen.dart';
 import '../feature/history/detail/argument/history_detail_screen_argument.dart';
 import '../feature/history/detail/bloc/history_detail_bloc.dart';
 import '../feature/history/detail/history_detail_screen.dart';
@@ -49,6 +50,8 @@ import '../feature/policy/policy_screen_arguments.dart';
 import '../feature/privacy_policy/privacy_policy_screen.dart';
 import '../feature/qr/bloc/qr_bloc.dart';
 import '../feature/qr/qr_screen.dart';
+import '../feature/recover_pin/bloc/recover_pin_bloc.dart';
+import '../feature/recover_pin/recover_pin_screen.dart';
 import '../feature/renew_pid/bloc/renew_pid_bloc.dart';
 import '../feature/renew_pid/renew_pid_screen.dart';
 import '../feature/settings/settings_screen.dart';
@@ -85,43 +88,47 @@ class WalletRoutes {
     setupSecurityRoute,
     pinRoute,
     pinTimeoutRoute,
+    pinRecoveryRoute,
     pinBlockedRoute,
+    forgotPinRoute,
     updateInfoRoute,
   ];
 
-  static const splashRoute = '/';
-  static const introductionRoute = '/introduction';
-  static const introductionPrivacyRoute = '/introduction/privacy';
   static const aboutRoute = '/about';
-  static const setupSecurityRoute = '/security/setup';
-  static const pinRoute = '/pin';
-  static const pinTimeoutRoute = '/pin/timeout';
-  static const pinBlockedRoute = '/pin/blocked';
-  static const walletPersonalizeRoute = '/wallet/personalize';
-  static const renewPidRoute = '/pid/renew';
-  static const walletHistoryRoute = '/wallet/history';
-  static const dashboardRoute = '/dashboard';
-  static const menuRoute = '/menu';
-  static const cardDetailRoute = '/card/detail';
+  static const biometricsSettingsRoute = '/settings/biometrics';
   static const cardDataRoute = '/card/data';
+  static const cardDetailRoute = '/card/detail';
   static const cardHistoryRoute = '/card/history';
-  static const themeRoute = '/theme';
-  static const disclosureRoute = '/disclosure';
-  static const issuanceRoute = '/issuance';
-  static const signRoute = '/sign';
-  static const policyRoute = '/policy';
-  static const historyDetailRoute = '/history';
   static const changeLanguageRoute = '/language';
   static const changePinRoute = '/change_pin';
-  static const organizationDetailRoute = '/organization';
-  static const settingsRoute = '/settings';
-  static const qrRoute = '/qr';
+  static const dashboardRoute = '/dashboard';
+  static const disclosureRoute = '/disclosure';
+  static const forgotPinRoute = '/forgot_pin';
+  static const historyDetailRoute = '/history';
+  static const introductionPrivacyRoute = '/introduction/privacy';
+  static const introductionRoute = '/introduction';
+  static const issuanceRoute = '/issuance';
   static const loginDetailRoute = '/login_detail';
-  static const biometricsSettingsRoute = '/settings/biometrics';
+  static const menuRoute = '/menu';
+  static const organizationDetailRoute = '/organization';
+  static const pinBlockedRoute = '/pin/blocked';
+  static const pinRoute = '/pin';
+  static const pinRecoveryRoute = '/pin/recovery';
+  static const pinTimeoutRoute = '/pin/timeout';
+  static const policyRoute = '/policy';
   static const privacyPolicyRoute = '/privacy_policy';
-  static const updateInfoRoute = '/update_info';
+  static const qrRoute = '/qr';
+  static const renewPidRoute = '/pid/renew';
+  static const settingsRoute = '/settings';
+  static const setupSecurityRoute = '/security/setup';
+  static const signRoute = '/sign';
+  static const splashRoute = '/';
+  static const themeRoute = '/theme';
   static const tourOverviewRoute = '/tour';
   static const tourVideoRoute = '/tour/video';
+  static const updateInfoRoute = '/update_info';
+  static const walletHistoryRoute = '/wallet/history';
+  static const walletPersonalizeRoute = '/wallet/personalize';
 
   static Route<dynamic> routeFactory(RouteSettings settings) {
     final WidgetBuilder builder = _widgetBuilderFactory(settings);
@@ -174,6 +181,8 @@ class WalletRoutes {
         return _createThemeScreenBuilder;
       case WalletRoutes.disclosureRoute:
         return _createDisclosureScreenBuilder(settings);
+      case WalletRoutes.forgotPinRoute:
+        return _createForgotPinScreenBuilder;
       case WalletRoutes.policyRoute:
         return _createPolicyScreenBuilder(settings);
       case WalletRoutes.issuanceRoute:
@@ -192,6 +201,8 @@ class WalletRoutes {
         return _createChangeLanguageScreenBuilder;
       case WalletRoutes.changePinRoute:
         return _createChangePinScreenBuilder;
+      case WalletRoutes.pinRecoveryRoute:
+        return _createPinRecoveryScreenBuilder(settings);
       case WalletRoutes.pinTimeoutRoute:
         return _createPinTimeoutScreenBuilder(settings);
       case WalletRoutes.pinBlockedRoute:
@@ -233,6 +244,8 @@ Widget _createQrScreenBuilder(BuildContext context) => BlocProvider<QrBloc>(
 Widget _createIntroductionScreenBuilder(BuildContext context) => const IntroductionScreen();
 
 Widget _createIntroductionPrivacyScreenBuilder(BuildContext context) => const IntroductionPrivacyScreen();
+
+Widget _createForgotPinScreenBuilder(BuildContext context) => const ForgotPinScreen();
 
 Widget _createAboutScreenBuilder(BuildContext context) => const AboutScreen();
 
@@ -514,6 +527,27 @@ WidgetBuilder _createRenewPidScreenBuilder(RouteSettings settings) {
         return bloc;
       },
       child: const RenewPidScreen(),
+    );
+  };
+}
+
+WidgetBuilder _createPinRecoveryScreenBuilder(RouteSettings settings) {
+  final argument = Consumable(tryCast<String>(settings.arguments));
+  return (context) {
+    return BlocProvider<RecoverPinBloc>(
+      create: (BuildContext context) {
+        final bloc = RecoverPinBloc(
+          context.read(),
+          context.read(),
+          context.read(),
+          context.read(),
+          context.read(),
+          continueFromDigiD: argument.peek() != null,
+        );
+        if (argument.peek() != null) bloc.add(RecoverPinContinuePinRecovery(argument.value!));
+        return bloc;
+      },
+      child: const RecoverPinScreen(),
     );
   };
 }

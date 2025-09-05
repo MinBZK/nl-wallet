@@ -37,4 +37,3 @@
 | **2.1** | **System displays prompt 'Scan QR code with NL Wallet'**<ul><li>Actions: Close, Scan QR code</li></ul>                      |                                                                                     |
 | 2.1a    | User selects Close                                                                                                          | Result: No (valid) universal link                                                   |
 | 2.1b    | User selects Scan QR code                                                                                                   | Go to: [UC9.9 Scan QR](../use-cases/UC9.9_ScanQR.md)                                             |
-<style>td {vertical-align:top}</style>

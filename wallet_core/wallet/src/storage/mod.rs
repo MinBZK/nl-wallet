@@ -6,11 +6,8 @@ mod event_log;
 mod key_file;
 mod sql_cipher_key;
 
-#[cfg(any(test, feature = "mock"))]
-mod stub;
-
-#[cfg(test)]
-pub use stub::KeyedDataResult;
+#[cfg(any(test, feature = "test"))]
+pub use database_storage::in_memory_storage::InMemoryDatabaseStorage;
 
 use chrono::DateTime;
 use chrono::Utc;
@@ -46,9 +43,6 @@ pub use self::event_log::DataDisclosureStatus;
 pub use self::event_log::DisclosureStatus;
 pub use self::event_log::WalletEvent;
 pub use self::key_file::KeyFileError;
-
-#[cfg(any(test, feature = "mock"))]
-pub use self::stub::StorageStub;
 
 /// This represents the current start of [`Storage`].
 #[derive(Debug, Clone, Copy)]

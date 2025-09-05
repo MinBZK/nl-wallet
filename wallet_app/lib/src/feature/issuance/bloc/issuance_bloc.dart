@@ -101,7 +101,7 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
     }
   }
 
-  Future<void> _onIssuanceBackPressed(event, Emitter<IssuanceState> emit) async {
+  Future<void> _onIssuanceBackPressed(IssuanceBackPressed event, Emitter<IssuanceState> emit) async {
     final state = this.state;
     final startIssuanceResult = _startIssuanceResult;
     if (startIssuanceResult == null) return; // Unknown state, nothing to navigate back to.
@@ -130,7 +130,7 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
     }
   }
 
-  Future<void> _onIssuanceOrganizationApproved(event, Emitter<IssuanceState> emit) async {
+  Future<void> _onIssuanceOrganizationApproved(IssuanceOrganizationApproved event, Emitter<IssuanceState> emit) async {
     final state = this.state;
     if (state is! IssuanceCheckOrganization) throw UnsupportedError('Incorrect state to $state');
     final result = _startIssuanceResult;
@@ -148,7 +148,10 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
     }
   }
 
-  Future<void> _onIssuanceShareRequestedAttributesDeclined(event, Emitter<IssuanceState> emit) async =>
+  Future<void> _onIssuanceShareRequestedAttributesDeclined(
+    IssuanceShareRequestedAttributesDeclined event,
+    Emitter<IssuanceState> emit,
+  ) async =>
       _stopIssuance(emit);
 
   Future<void> _onPinConfirmedForDisclosure(

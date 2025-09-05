@@ -89,4 +89,3 @@
 | 8.1b    | User selects Problem option                                                                                                                                                                                   | 8.2                                                                     |
 | **8.2** | **System displays screen 'Under construction'**<ul><li>Actions: Back</li></ul>                                                                                                                                |                                                                         |
 | 8.2a    | User selects Back                                                                                                                                                                                             | 8.1                                                                     |
-<style>td {vertical-align:top}</style>

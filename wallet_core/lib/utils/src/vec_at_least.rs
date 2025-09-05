@@ -61,7 +61,7 @@ pub type VecAtLeastTwoUnique<T> = VecAtLeastN<T, 2, true>;
 /// Newtype for a [`Vec<T>`] that contains at least `N` values, with optional uniqueness validation.
 /// For convenience, a number of common use cases have been defined as type aliases. Note that a
 /// type with an `N` value of 0 is not valid and will cause a runtime panic when constructed.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Index, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Index, Serialize)]
 pub struct VecAtLeastN<T, const N: usize, const UNIQUE: bool>(Vec<T>);
 
 impl<T, const N: usize, const UNIQUE: bool> VecAtLeastN<T, N, UNIQUE> {
@@ -190,6 +190,21 @@ impl<T, const N: usize, const UNIQUE: bool> AsRef<[T]> for VecAtLeastN<T, N, UNI
 impl<T, const N: usize, const UNIQUE: bool> From<VecAtLeastN<T, N, UNIQUE>> for Vec<T> {
     fn from(value: VecAtLeastN<T, N, UNIQUE>) -> Self {
         value.into_inner()
+    }
+}
+
+impl<'de, T, const N: usize, const UNIQUE: bool> Deserialize<'de> for VecAtLeastN<T, N, UNIQUE>
+where
+    T: Deserialize<'de>,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let inner = Vec::<T>::deserialize(deserializer)?;
+        let vec_at_least_n = Self::new(inner).map_err(de::Error::custom)?;
+
+        Ok(vec_at_least_n)
     }
 }
 
@@ -371,6 +386,7 @@ mod tests {
     use nonempty_collections::IntoNonEmptyIterator;
     use nonempty_collections::NonEmptyIterator;
     use rstest::rstest;
+    use serde_json::json;
 
     use super::VecAtLeastN;
     use super::VecAtLeastTwo;
@@ -398,6 +414,13 @@ mod tests {
         let vec = VecNonEmpty::try_from(input);
 
         assert_eq!(vec.is_ok(), expected_is_ok);
+    }
+
+    #[test]
+    fn test_vec_nonempty_deserialize() {
+        let result = serde_json::from_value::<VecNonEmpty<()>>(json!([]));
+
+        assert!(result.is_err());
     }
 
     #[test]
