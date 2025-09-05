@@ -788,9 +788,9 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         I: HandleInstruction<Result = IR>
             + InstructionAndResult
             + ValidateInstruction
+            + PinChecks
             + Serialize
-            + DeserializeOwned
-            + PinChecks,
+            + DeserializeOwned,
         IR: Serialize + DeserializeOwned,
         G: Generator<Uuid> + Generator<DateTime<Utc>>,
         H: WalletUserHsm<Error = HsmError>
