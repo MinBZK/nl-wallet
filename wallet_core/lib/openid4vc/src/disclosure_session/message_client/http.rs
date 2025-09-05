@@ -99,7 +99,7 @@ impl VpMessageClient for HttpVpMessageClient {
             .and_then(|response| async {
                 let jwt = Self::get_body_from_response::<GetRequestErrorCode>(response)
                     .await?
-                    .into();
+                    .parse()?;
 
                 Ok(jwt)
             })

@@ -204,6 +204,27 @@ void main() {
     );
 
     blocTest<RenewPidBloc, RenewPidState>(
+      'emits RenewPidDigidLoginCancelled when RenewPidLoginWithDigidFailed event is added with cancelledByUser = true',
+      build: () {
+        when(cancelPidIssuanceUseCase.invoke()).thenAnswer((_) async => const Result.success(true));
+        return RenewPidBloc(
+          getPidRenewalUrlUseCase,
+          continuePidIssuanceUseCase,
+          cancelPidIssuanceUseCase,
+          getPidCardsUseCase,
+          continueFromDigiD: false,
+        );
+      },
+      act: (bloc) => bloc.add(
+        const RenewPidLoginWithDigidFailed(
+          cancelledByUser: true,
+          error: GenericError('cancelled', sourceError: 'test'),
+        ),
+      ),
+      expect: () => [isA<RenewPidDigidLoginCancelled>()],
+    );
+
+    blocTest<RenewPidBloc, RenewPidState>(
       'emits RenewPidStopped on stop',
       build: () => RenewPidBloc(
         getPidRenewalUrlUseCase,

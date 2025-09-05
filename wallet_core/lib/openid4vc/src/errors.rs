@@ -82,7 +82,6 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
                 | CredentialRequestError::MdocConversion(_)
                 | CredentialRequestError::SdJwtConversion(_)
                 | CredentialRequestError::CredentialSigning(_)
-                | CredentialRequestError::Jwt(_)
                 | CredentialRequestError::WuaTracking(_) => CredentialErrorCode::ServerError,
 
                 CredentialRequestError::IssuanceError(_)
@@ -101,7 +100,7 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
                 CredentialRequestError::UnsupportedJwtAlgorithm { .. }
                 | CredentialRequestError::MissingJwk
                 | CredentialRequestError::IncorrectNonce
-                | CredentialRequestError::JwtDecodingFailed(_)
+                | CredentialRequestError::Jwt(_)
                 | CredentialRequestError::JwkConversion(_)
                 | CredentialRequestError::MissingCredentialRequestPoP
                 | CredentialRequestError::PoaVerification(_) => CredentialErrorCode::InvalidProof,

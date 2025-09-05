@@ -36,7 +36,7 @@ class BiometricSettingsBloc extends Bloc<BiometricSettingsEvent, BiometricSettin
     on<BiometricUnlockEnabledWithPin>(_onBiometricUnlockEnabled);
   }
 
-  Future<void> _onRefresh(event, emit) async {
+  Future<void> _onRefresh(BiometricLoadTriggered event, Emitter<BiometricSettingsState> emit) async {
     try {
       _supportedBiometrics ??= await getSupportedBiometricsUseCase.invoke();
       final state = await isBiometricLoginEnabledUseCase.invoke();
@@ -47,20 +47,23 @@ class BiometricSettingsBloc extends Bloc<BiometricSettingsEvent, BiometricSettin
     }
   }
 
-  Future<void> _onBiometricUnlockSettingToggled(event, emit) async {
+  Future<void> _onBiometricUnlockSettingToggled(
+    BiometricUnlockToggled event,
+    Emitter<BiometricSettingsState> emit,
+  ) async {
     final localState = state;
     if (localState is BiometricSettingsLoaded) {
       if (localState.biometricLoginEnabled) {
-        await _disableBiometrics(emit, localState);
+        await _disableBiometrics(localState, emit);
       } else {
-        await _enableBiometrics(emit, localState);
+        await _enableBiometrics(localState, emit);
       }
     } else {
       Fimber.e("Can't toggle biometric unlock while in state: $state");
     }
   }
 
-  Future<void> _disableBiometrics(emit, BiometricSettingsLoaded currentState) async {
+  Future<void> _disableBiometrics(BiometricSettingsLoaded currentState, Emitter<BiometricSettingsState> emit) async {
     emit(const BiometricSettingsLoaded(biometricLoginEnabled: false));
     final result = await setBiometricsUseCase.invoke(enable: false, authenticateBeforeEnabling: false);
     await result.process(
@@ -72,7 +75,7 @@ class BiometricSettingsBloc extends Bloc<BiometricSettingsEvent, BiometricSettin
     );
   }
 
-  Future<void> _enableBiometrics(emit, BiometricSettingsLoaded currentState) async {
+  Future<void> _enableBiometrics(BiometricSettingsLoaded currentState, Emitter<BiometricSettingsState> emit) async {
     // Eagerly update the UI
     emit(const BiometricSettingsLoaded(biometricLoginEnabled: true));
 
@@ -98,7 +101,10 @@ class BiometricSettingsBloc extends Bloc<BiometricSettingsEvent, BiometricSettin
     );
   }
 
-  Future<void> _onBiometricUnlockEnabled(event, emit) async {
+  Future<void> _onBiometricUnlockEnabled(
+    BiometricUnlockEnabledWithPin event,
+    Emitter<BiometricSettingsState> emit,
+  ) async {
     final availability = await getAvailableBiometricsUseCase.invoke();
     if (availability == Biometrics.none) {
       Fimber.e('Biometrics can only be enabled if the device supports it.');

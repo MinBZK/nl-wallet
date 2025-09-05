@@ -23,11 +23,11 @@ class MockDigidBloc extends Bloc<MockDigidEvent, MockDigidState> {
     });
   }
 
-  FutureOr<void> _onSplashDismissed(event, emit) async {
+  FutureOr<void> _onSplashDismissed(MockDigidSplashDismissed event, Emitter<MockDigidState> emit) async {
     emit(const MockDigidEnteringPin(0));
   }
 
-  FutureOr<void> _onPinKeyPressed(event, emit) async {
+  FutureOr<void> _onPinKeyPressed(MockDigidPinKeyPressed event, Emitter<MockDigidState> emit) async {
     final state = this.state;
     if (state is MockDigidEnteringPin && state.enteredDigits < 4) {
       emit(MockDigidEnteringPin(state.enteredDigits + 1));
@@ -38,20 +38,20 @@ class MockDigidBloc extends Bloc<MockDigidEvent, MockDigidState> {
     }
   }
 
-  FutureOr<void> _onPinBackspacePressed(event, emit) async {
+  FutureOr<void> _onPinBackspacePressed(MockDigidPinBackspacePressed event, Emitter<MockDigidState> emit) async {
     final state = this.state;
     if (state is MockDigidEnteringPin && state.enteredDigits > 0) {
       emit(MockDigidEnteringPin(state.enteredDigits - 1));
     }
   }
 
-  FutureOr<void> _onConfirmPressed(event, emit) async {
+  FutureOr<void> _onConfirmPressed(MockDigidConfirmPressed event, Emitter<MockDigidState> emit) async {
     emit(const MockDigidLoadInProgress(kDefaultDigidMockDelay));
     await Future.delayed(kDefaultDigidMockDelay);
     emit(MockDigidLoggedIn());
   }
 
-  FutureOr<void> _onDeclinePressed(event, emit) async {
+  FutureOr<void> _onDeclinePressed(MockDigidDeclinePressed event, Emitter<MockDigidState> emit) async {
     emit(MockDigidRejected());
   }
 }

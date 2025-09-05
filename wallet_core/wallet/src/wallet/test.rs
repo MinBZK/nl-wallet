@@ -279,7 +279,7 @@ pub fn valid_certificate_claims(wallet_id: Option<String>, hw_pubkey: VerifyingK
         pin_pubkey_hash: crypto::utils::random_bytes(32),
         version: 0,
         iss: "wallet_unit_test".to_string(),
-        iat: jsonwebtoken::get_current_timestamp(),
+        iat: Utc::now(),
     }
 }
 
@@ -486,7 +486,7 @@ where
     let result_claims = InstructionResultClaims {
         result,
         iss: "wallet_unit_test".to_string(),
-        iat: jsonwebtoken::get_current_timestamp(),
+        iat: Utc::now(),
     };
     UnverifiedJwt::sign_with_sub(&result_claims, &ACCOUNT_SERVER_KEYS.instruction_result_signing_key)
         .now_or_never()

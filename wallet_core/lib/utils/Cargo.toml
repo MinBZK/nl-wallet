@@ -8,9 +8,6 @@ build = "build.rs"
 [lints]
 workspace = true
 
-[lib]
-doctest = false
-
 [features]
 # Include MockTimeGenerator
 mock_time = ["dep:parking_lot"]
@@ -20,6 +17,7 @@ chrono = { workspace = true, features = ["std", "clock", "serde"] }
 derive_more = { workspace = true, features = ["as_ref", "from", "index", "into", "into_iterator"] }
 itertools.workspace = true
 nonempty-collections.workspace = true
+semver.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_with = { workspace = true, features = ["base64", "chrono"] }
 thiserror.workspace = true

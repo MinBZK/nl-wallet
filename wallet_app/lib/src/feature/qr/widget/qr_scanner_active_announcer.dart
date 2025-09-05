@@ -28,7 +28,7 @@ class _QrScannerActiveAnnouncerState extends State<QrScannerActiveAnnouncer> {
     _subscription = periodStream.listen(_onData);
   }
 
-  void _onData(event) {
+  void _onData(dynamic event) {
     SemanticsService.announce(context.l10n.qrScreenScanScannerActiveWCAGAnnouncement, TextDirection.ltr);
   }
 

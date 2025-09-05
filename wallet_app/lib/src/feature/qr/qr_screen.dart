@@ -82,15 +82,15 @@ class QrScreen extends StatelessWidget {
     navigationService.handleNavigationRequest(state.request);
   }
 
-  _buildInitialState() => const SizedBox.shrink();
+  Widget _buildInitialState() => const SizedBox.shrink();
 
-  _buildQrInvalidState() => QrScanner(key: _scannerKey);
+  Widget _buildQrInvalidState() => QrScanner(key: _scannerKey);
 
-  _buildNoPermission(bool isPermanentlyDenied) => QrNoPermission(isPermanentlyDenied: isPermanentlyDenied);
+  Widget _buildNoPermission(bool isPermanentlyDenied) => QrNoPermission(isPermanentlyDenied: isPermanentlyDenied);
 
-  _buildScanning() => QrScanner(key: _scannerKey);
+  Widget _buildScanning() => QrScanner(key: _scannerKey);
 
-  _buildSuccessState(BuildContext context) => Container(
+  Widget _buildSuccessState(BuildContext context) => Container(
         alignment: Alignment.center,
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -105,7 +105,7 @@ class QrScreen extends StatelessWidget {
         ),
       );
 
-  _buildLoading(BuildContext context) => Stack(
+  Widget _buildLoading(BuildContext context) => Stack(
         alignment: Alignment.center,
         children: [
           Visibility(

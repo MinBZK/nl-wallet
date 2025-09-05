@@ -11,6 +11,7 @@ import '../models/image.dart';
 import '../models/instruction.dart';
 import '../models/localize.dart';
 import '../models/pin.dart';
+import '../models/transfer.dart';
 import '../models/uri.dart';
 import '../models/version_state.dart';
 import '../models/wallet_event.dart';
@@ -87,6 +88,9 @@ Future<List<AttestationPresentation>> continuePidIssuance({required String uri})
 Future<WalletInstructionResult> acceptIssuance({required String pin}) =>
     WalletCore.instance.api.crateApiFullAcceptIssuance(pin: pin);
 
+Future<PidIssuanceResult> acceptPidIssuance({required String pin}) =>
+    WalletCore.instance.api.crateApiFullAcceptPidIssuance(pin: pin);
+
 Future<bool> hasActiveIssuanceSession() => WalletCore.instance.api.crateApiFullHasActiveIssuanceSession();
 
 Future<StartDisclosureResult> startDisclosure({required String uri, required bool isQrCode}) =>
@@ -112,15 +116,14 @@ Future<void> unlockWalletWithBiometrics() => WalletCore.instance.api.crateApiFul
 Future<void> initWalletTransfer({required String uri}) =>
     WalletCore.instance.api.crateApiFullInitWalletTransfer(uri: uri);
 
-Future<bool> isWalletTransferPossible({required String pin}) =>
-    WalletCore.instance.api.crateApiFullIsWalletTransferPossible(pin: pin);
+Future<WalletInstructionResult> confirmWalletTransfer({required String pin}) =>
+    WalletCore.instance.api.crateApiFullConfirmWalletTransfer(pin: pin);
 
-Future<String> generateWalletTransferUri() => WalletCore.instance.api.crateApiFullGenerateWalletTransferUri();
-
-Future<WalletInstructionResult> startWalletTransfer({required String pin}) =>
+Future<WalletTransferInstructionResult> startWalletTransfer({required String pin}) =>
     WalletCore.instance.api.crateApiFullStartWalletTransfer(pin: pin);
 
-Stream<void> getWalletTransferStateStream() => WalletCore.instance.api.crateApiFullGetWalletTransferStateStream();
+Stream<WalletTransferState> getWalletTransferStateStream() =>
+    WalletCore.instance.api.crateApiFullGetWalletTransferStateStream();
 
 Future<List<WalletEvent>> getHistory() => WalletCore.instance.api.crateApiFullGetHistory();
 

@@ -125,7 +125,7 @@ class _AutoLockObserverState extends State<AutoLockObserver> with WidgetsBinding
   }
 
   // Show the Timeout Warning Dialog (not called directly due to missing theme for the local context)
-  void _showIdleDialog(_) {
+  void _showIdleDialog(bool _) {
     try {
       // Briefly disable the semantics idle reset timer to avoid resetting the timer when the dialog grabs focus
       _semanticsTimerResetEnabled = false;
@@ -136,7 +136,7 @@ class _AutoLockObserverState extends State<AutoLockObserver> with WidgetsBinding
     }
   }
 
-  void _lockWallet(_) {
+  void _lockWallet(dynamic _) {
     Fimber.d('Locking wallet!');
     _lockWalletUseCase.invoke();
   }

@@ -80,6 +80,12 @@ class NavigationService {
           request.destination,
           arguments: request.argument,
         );
+      case PinRecoveryNavigationRequest():
+        await _navigatorKey.currentState?.pushNamedAndRemoveUntil(
+          request.destination,
+          ModalRoute.withName(WalletRoutes.forgotPinRoute),
+          arguments: request.argument,
+        );
     }
   }
 

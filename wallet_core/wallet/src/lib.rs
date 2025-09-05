@@ -22,6 +22,7 @@ pub use crate::storage::DisclosureStatus;
 pub use crate::storage::WalletEvent;
 pub use crate::wallet::DisclosureProposalPresentation;
 pub use crate::wallet::DisclosureUriSource;
+pub use crate::wallet::IssuanceResult;
 pub use crate::wallet::LockCallback;
 pub use crate::wallet::UnlockMethod;
 pub use crate::wallet::UriType;
