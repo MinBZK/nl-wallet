@@ -277,7 +277,7 @@ where
 }
 
 /// Helper for the [`PerformIssuance`] and [`PerformIssuanceWithWua`] instruction handlers.
-pub(super) async fn perform_issuance<T, R, H>(
+pub async fn perform_issuance<T, R, H>(
     instruction: PerformIssuance,
     issue_wua: bool,
     user_state: &UserState<R, H, impl WuaIssuer>,
