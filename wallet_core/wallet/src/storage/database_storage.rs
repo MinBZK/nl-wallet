@@ -50,7 +50,6 @@ use openid4vc::issuance_session::CredentialWithMetadata;
 use openid4vc::issuance_session::IssuedCredential;
 use openid4vc::issuance_session::IssuedCredentialCopies;
 use platform_support::hw_keystore::PlatformEncryptionKey;
-use sd_jwt::hasher::Sha256Hasher;
 use sd_jwt::sd_jwt::VerifiedSdJwt;
 
 use crate::AttestationIdentity;
@@ -197,7 +196,6 @@ impl<K> DatabaseStorage<K> {
                             let sd_jwt = VerifiedSdJwt::dangerous_parse_unverified(
                                 // Since we put utf-8 bytes into the database, we are certain we also get them out.
                                 String::from_utf8(attestation_bytes).unwrap().as_str(),
-                                &Sha256Hasher,
                             )?;
                             StoredAttestation::SdJwt {
                                 sd_jwt: Box::new(sd_jwt),
@@ -818,6 +816,41 @@ fn create_attestation_copy_models(
         .try_collect()
 }
 
+#[cfg(any(test, feature = "test"))]
+pub mod in_memory_storage {
+    use crypto::utils::random_bytes;
+
+    use platform_support::hw_keystore::mock::MockHardwareEncryptionKey;
+
+    use crate::storage::DatabaseStorage;
+    use crate::storage::database::Database;
+    use crate::storage::database::SqliteUrl;
+    use crate::storage::database_storage::OpenDatabaseStorage;
+    use crate::storage::sql_cipher_key::SqlCipherKey;
+
+    pub type InMemoryDatabaseStorage = DatabaseStorage<MockHardwareEncryptionKey>;
+
+    impl InMemoryDatabaseStorage {
+        pub async fn open() -> Self {
+            let mut storage = DatabaseStorage::<MockHardwareEncryptionKey>::new("storage_path".into());
+
+            // Create a test database, override the database field on Storage.
+            let key_bytes = random_bytes(SqlCipherKey::size_with_salt());
+            let database = Database::open(SqliteUrl::InMemory, key_bytes.as_slice().try_into().unwrap())
+                .await
+                .expect("Could not open in-memory database");
+
+            // Create an encryption key for the key file, which is not actually used,
+            // but still needs to be present.
+            let key_file_key = MockHardwareEncryptionKey::new_random("open_test_database_storage".to_string());
+
+            storage.open_database = OpenDatabaseStorage { database, key_file_key }.into();
+
+            storage
+        }
+    }
+}
+
 #[cfg(test)]
 pub(crate) mod tests {
     use std::ops::Add;
@@ -847,6 +880,8 @@ pub(crate) mod tests {
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
     use wallet_account::messages::registration::WalletCertificate;
+
+    use in_memory_storage::InMemoryDatabaseStorage;
 
     use crate::storage::data::RegistrationData;
 
@@ -931,25 +966,6 @@ pub(crate) mod tests {
         assert!(!MockHardwareEncryptionKey::identifier_exists(&key_file_identifier));
     }
 
-    async fn open_test_database_storage() -> DatabaseStorage<MockHardwareEncryptionKey> {
-        let mut storage =
-            DatabaseStorage::<MockHardwareEncryptionKey>::new(MockHardwareUtilities::storage_path().await.unwrap());
-
-        // Create a test database, override the database field on Storage.
-        let key_bytes = random_bytes(SqlCipherKey::size_with_salt());
-        let database = Database::open(SqliteUrl::InMemory, key_bytes.as_slice().try_into().unwrap())
-            .await
-            .expect("Could not open in-memory database");
-
-        // Create an encryption key for the key file, which is not actually used,
-        // but still needs to be present.
-        let key_file_key = MockHardwareEncryptionKey::new_random("open_test_database_storage".to_string());
-
-        storage.open_database = OpenDatabaseStorage { database, key_file_key }.into();
-
-        storage
-    }
-
     #[tokio::test]
     async fn test_database_keyed_storage() {
         let registration = RegistrationData {
@@ -959,7 +975,7 @@ pub(crate) mod tests {
             wallet_certificate: WalletCertificate::from("thisisdefinitelyvalid"),
         };
 
-        let mut storage = open_test_database_storage().await;
+        let mut storage = InMemoryDatabaseStorage::open().await;
 
         // State should be Opened.
         let state = storage.state().await.unwrap();
@@ -1042,7 +1058,7 @@ pub(crate) mod tests {
         assert!(matches!(state, StorageState::Uninitialized));
 
         // Open the database again and test if upsert stores new data.
-        let mut storage = open_test_database_storage().await;
+        let mut storage = InMemoryDatabaseStorage::open().await;
         storage
             .upsert_data(&registration)
             .await
@@ -1060,7 +1076,7 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn test_mdoc_storage() {
-        let mut storage = open_test_database_storage().await;
+        let mut storage = InMemoryDatabaseStorage::open().await;
 
         // State should be Opened.
         let state = storage.state().await.unwrap();
@@ -1210,7 +1226,7 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn test_sd_jwt_storage() {
-        let mut storage = open_test_database_storage().await;
+        let mut storage = InMemoryDatabaseStorage::open().await;
 
         let state = storage.state().await.unwrap();
         assert!(matches!(state, StorageState::Opened));
@@ -1306,7 +1322,7 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn test_insert_and_update_attestations() {
-        let mut storage = open_test_database_storage().await;
+        let mut storage = InMemoryDatabaseStorage::open().await;
 
         let state = storage.state().await.unwrap();
         assert!(matches!(state, StorageState::Opened));
@@ -1450,7 +1466,7 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn test_storing_disclosure_cancel_event() {
-        let mut storage = open_test_database_storage().await;
+        let mut storage = InMemoryDatabaseStorage::open().await;
 
         // State should be Opened.
         let state = storage.state().await.unwrap();
@@ -1495,7 +1511,7 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn test_storing_disclosure_error_event_without_data() {
-        let mut storage = open_test_database_storage().await;
+        let mut storage = InMemoryDatabaseStorage::open().await;
 
         // State should be Opened.
         let state = storage.state().await.unwrap();
@@ -1540,7 +1556,7 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn test_storing_disclosure_error_event_with_data() {
-        let mut storage = open_test_database_storage().await;
+        let mut storage = InMemoryDatabaseStorage::open().await;
 
         // State should be Opened.
         let state = storage.state().await.unwrap();
@@ -1674,7 +1690,7 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn test_event_log_storage_ordering() {
-        let mut storage = open_test_database_storage().await;
+        let mut storage = InMemoryDatabaseStorage::open().await;
 
         // State should be Opened.
         let state = storage.state().await.unwrap();

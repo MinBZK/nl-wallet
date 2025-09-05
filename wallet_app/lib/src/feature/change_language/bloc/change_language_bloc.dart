@@ -22,7 +22,10 @@ class ChangeLanguageBloc extends Bloc<ChangeLanguageEvent, ChangeLanguageState> 
     on<ChangeLanguageLocaleSelected>(_onChangeLanguageLocaleSelected);
   }
 
-  Future<void> _onChangeLanguageLocaleSelected(event, emit) async {
+  Future<void> _onChangeLanguageLocaleSelected(
+    ChangeLanguageLocaleSelected event,
+    Emitter<ChangeLanguageState> emit,
+  ) async {
     final localState = state;
     if (localState is ChangeLanguageSuccess) {
       await _languageRepository.setPreferredLocale(event.selectedLocale);
@@ -30,7 +33,10 @@ class ChangeLanguageBloc extends Bloc<ChangeLanguageEvent, ChangeLanguageState> 
     }
   }
 
-  Future<void> _onChangeLanguageLoadTriggered(event, emit) async {
+  Future<void> _onChangeLanguageLoadTriggered(
+    ChangeLanguageLoadTriggered event,
+    Emitter<ChangeLanguageState> emit,
+  ) async {
     final locales = await _languageRepository.getAvailableLocales();
     final locale = await _languageRepository.preferredLocale.first ?? _defaultLocaleProvider();
     final languages = locales.map((locale) {

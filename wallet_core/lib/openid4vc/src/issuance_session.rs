@@ -39,7 +39,6 @@ use mdoc::holder::Mdoc;
 use mdoc::utils::cose::CoseError;
 use mdoc::utils::serialization::CborBase64;
 use mdoc::utils::serialization::TaggedBytes;
-use sd_jwt::hasher::Sha256Hasher;
 use sd_jwt::key_binding_jwt_claims::RequiredKeyBinding;
 use sd_jwt::sd_jwt::VerifiedSdJwt;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
@@ -956,13 +955,8 @@ impl CredentialResponse {
                 Ok(IssuedCredential::MsoMdoc(Box::new(mdoc)))
             }
             CredentialResponse::SdJwt { credential } => {
-                // TODO: validate SD-JWT against JSON schema (PVW-4687)
-                let sd_jwt = VerifiedSdJwt::parse_and_verify_against_trust_anchors(
-                    &credential,
-                    &Sha256Hasher,
-                    &TimeGenerator,
-                    trust_anchors,
-                )?;
+                let sd_jwt =
+                    VerifiedSdJwt::parse_and_verify_against_trust_anchors(&credential, &TimeGenerator, trust_anchors)?;
 
                 let issued_credential_payload =
                     sd_jwt.as_ref().into_credential_payload(&preview.normalized_metadata)?;

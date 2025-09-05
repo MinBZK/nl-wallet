@@ -111,7 +111,6 @@ fn complex_sd_jwt() {
 #[tokio::test]
 async fn concealing_property_of_concealable_value_works() -> anyhow::Result<()> {
     let holder_signing_key = SigningKey::random(&mut OsRng);
-    let hasher = Sha256Hasher::new();
     let (sd_jwt, _) = make_sd_jwt(
         json!({
             "iss": "https://issuer.example.com/",
@@ -153,7 +152,6 @@ async fn concealing_property_of_concealable_value_works() -> anyhow::Result<()> 
                 String::from("abcdefghi"),
                 Algorithm::ES256,
             ),
-            &hasher,
             &signing_key,
         )
         .await?;
@@ -164,7 +162,6 @@ async fn concealing_property_of_concealable_value_works() -> anyhow::Result<()> 
 #[tokio::test]
 async fn sd_jwt_without_disclosures_works() -> anyhow::Result<()> {
     let holder_signing_key = SigningKey::random(&mut OsRng);
-    let hasher = Sha256Hasher::new();
     let (sd_jwt, decoding_key) = make_sd_jwt(
         json!({
             "iss": "https://issuer.example.com",
@@ -184,7 +181,7 @@ async fn sd_jwt_without_disclosures_works() -> anyhow::Result<()> {
     // Try to serialize & deserialize `sd_jwt`.
     let sd_jwt = {
         let s = sd_jwt.to_string();
-        SdJwt::parse_and_verify(&s, &decoding_key, &Sha256Hasher)?
+        SdJwt::parse_and_verify(&s, &decoding_key)?
     };
 
     assert!(sd_jwt.disclosures().is_empty());
@@ -200,7 +197,6 @@ async fn sd_jwt_without_disclosures_works() -> anyhow::Result<()> {
                 String::from("abcdefghi"),
                 Algorithm::ES256,
             ),
-            &hasher,
             &holder_signing_key,
         )
         .await?;
@@ -211,7 +207,6 @@ async fn sd_jwt_without_disclosures_works() -> anyhow::Result<()> {
         SdJwtPresentation::parse_and_verify(
             &s,
             &decoding_key,
-            &Sha256Hasher,
             "https://example.com",
             "abcdefghi",
             Duration::days(36500),
@@ -226,7 +221,7 @@ async fn sd_jwt_without_disclosures_works() -> anyhow::Result<()> {
 #[tokio::test]
 async fn sd_jwt_sd_hash() -> anyhow::Result<()> {
     let holder_signing_key = SigningKey::random(&mut OsRng);
-    let hasher = Sha256Hasher::new();
+    let hasher = Sha256Hasher;
 
     let (sd_jwt, _) = make_sd_jwt(
         json!({
@@ -270,7 +265,6 @@ async fn sd_jwt_sd_hash() -> anyhow::Result<()> {
                 String::from("abcdefghi"),
                 Algorithm::ES256,
             ),
-            &hasher,
             &signing_key,
         )
         .await?;
@@ -367,8 +361,6 @@ async fn test_presentation() -> anyhow::Result<()> {
 
     assert_eq!(sd_jwt.issuer_certificate_chain(), &vec![certificate]);
 
-    let hasher = Sha256Hasher::new();
-
     // The holder can withhold from a verifier any concealable claim by calling `conceal`.
     let presented_sd_jwt = sd_jwt
         .into_presentation_builder()
@@ -389,7 +381,6 @@ async fn test_presentation() -> anyhow::Result<()> {
                 String::from("abcdefghi"),
                 Algorithm::ES256,
             ),
-            &hasher,
             &holder_privkey,
         )
         .await?;
@@ -399,7 +390,6 @@ async fn test_presentation() -> anyhow::Result<()> {
     let parsed_presentation = SdJwtPresentation::parse_and_verify(
         &presented_sd_jwt.to_string(),
         &EcdsaDecodingKey::from(issuer_privkey.verifying_key()),
-        &Sha256Hasher,
         "https://example.com",
         "abcdefghi",
         Duration::days(36500),

@@ -12,6 +12,7 @@ import 'package:wallet/src/domain/usecase/biometrics/is_biometric_login_enabled_
 import 'package:wallet/src/domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
 import 'package:wallet/src/feature/setup_security/bloc/setup_security_bloc.dart';
 import 'package:wallet/src/feature/setup_security/setup_security_screen.dart';
+import 'package:wallet/src/util/helper/setup_helper.dart';
 import 'package:wallet/src/util/manager/biometric_unlock_manager.dart';
 
 import '../../../wallet_app_test_widget.dart';
@@ -85,6 +86,9 @@ void main() {
     });
 
     testGoldens('SetupSecurityConfigureBiometrics fingerOnly light', (tester) async {
+      // Configure the SetupHelper with a custom value, impacting the stepper visuals.
+      SetupHelper.initWithValue(9);
+
       await tester.pumpWidgetWithAppWrapper(
         const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
           MockSetupSecurityBloc(),

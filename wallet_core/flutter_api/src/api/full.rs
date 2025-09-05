@@ -18,8 +18,11 @@ use crate::models::config::FlutterConfiguration;
 use crate::models::disclosure::AcceptDisclosureResult;
 use crate::models::disclosure::StartDisclosureResult;
 use crate::models::instruction::DisclosureBasedIssuanceResult;
+use crate::models::instruction::PidIssuanceResult;
 use crate::models::instruction::WalletInstructionResult;
+use crate::models::instruction::WalletTransferInstructionResult;
 use crate::models::pin::PinValidationResult;
+use crate::models::transfer::WalletTransferState;
 use crate::models::uri::IdentifyUriResult;
 use crate::models::version_state::FlutterVersionState;
 use crate::models::wallet_event::WalletEvent;
@@ -288,6 +291,15 @@ pub async fn accept_issuance(pin: String) -> anyhow::Result<WalletInstructionRes
 }
 
 #[flutter_api_error]
+pub async fn accept_pid_issuance(pin: String) -> anyhow::Result<PidIssuanceResult> {
+    let mut wallet = wallet().write().await;
+
+    let result = wallet.accept_issuance(pin).await.try_into()?;
+
+    Ok(result)
+}
+
+#[flutter_api_error]
 pub async fn has_active_issuance_session() -> anyhow::Result<bool> {
     let wallet = wallet().read().await;
 
@@ -375,6 +387,33 @@ pub async fn unlock_wallet_with_biometrics() -> anyhow::Result<()> {
 
     wallet.unlock_without_pin().await?;
 
+    Ok(())
+}
+
+#[flutter_api_error]
+pub async fn init_wallet_transfer(_uri: String) -> anyhow::Result<()> {
+    Ok(())
+}
+
+#[flutter_api_error]
+pub async fn confirm_wallet_transfer(_pin: String) -> anyhow::Result<WalletInstructionResult> {
+    Ok(WalletInstructionResult::Ok)
+}
+
+#[flutter_api_error]
+pub async fn start_wallet_transfer(pin: String) -> anyhow::Result<WalletTransferInstructionResult> {
+    let mut wallet = wallet().write().await;
+
+    // TODO: Skipping properly converting error since PIN is going to be replaced
+    let transfer_uri = wallet.start_transfer(pin).await?;
+
+    Ok(WalletTransferInstructionResult::Ok {
+        transfer_uri: transfer_uri.to_string(),
+    })
+}
+
+#[flutter_api_error]
+pub async fn get_wallet_transfer_state_stream(_sink: StreamSink<WalletTransferState>) -> anyhow::Result<()> {
     Ok(())
 }
 

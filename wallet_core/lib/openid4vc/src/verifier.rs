@@ -38,13 +38,15 @@ use crypto::keys::EcdsaKey;
 use crypto::server_keys::KeyPair;
 use crypto::utils::random_string;
 use crypto::x509::CertificateError;
+use dcql::CredentialQueryIdentifier;
 use dcql::Query;
 use dcql::normalized::NormalizedCredentialRequests;
 use dcql::normalized::UnsupportedDcqlFeatures;
 use http_utils::urls::BaseUrl;
-use jwt::Jwt;
+use jwt::UnverifiedJwt;
 use jwt::error::JwtError;
 use utils::generator::Generator;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::AuthorizationErrorCode;
 use crate::ErrorResponse;
@@ -236,7 +238,7 @@ pub struct Done {
 #[serde(rename_all = "UPPERCASE", tag = "status")]
 enum SessionResult {
     Done {
-        disclosed_attributes: Vec<DisclosedAttestation>,
+        disclosed_attributes: HashMap<CredentialQueryIdentifier, VecNonEmpty<DisclosedAttestation>>,
         redirect_uri_nonce: Option<String>,
     },
     Failed {
@@ -726,7 +728,7 @@ impl<K, S> RpInitiatedUseCases<K, S> {
 #[derive(Debug, Constructor)]
 pub struct WalletInitiatedUseCase<K> {
     data: UseCaseData<K>,
-    dcql_query: Query,
+    credential_requests: NormalizedCredentialRequests,
     return_url_template: ReturnUrlTemplate,
 }
 
@@ -739,7 +741,7 @@ impl<K> WalletInitiatedUseCase<K> {
     pub fn try_new(
         key_pair: KeyPair<K>,
         session_type_return_url: SessionTypeReturnUrl,
-        dcql_query: Query,
+        credential_requests: NormalizedCredentialRequests,
         return_url_template: ReturnUrlTemplate,
     ) -> Result<Self, UseCaseCertificateError> {
         let client_id = client_id_from_key_pair(&key_pair)?;
@@ -749,7 +751,7 @@ impl<K> WalletInitiatedUseCase<K> {
                 client_id,
                 session_type_return_url,
             },
-            dcql_query,
+            credential_requests,
             return_url_template,
         };
 
@@ -771,7 +773,7 @@ impl<K: EcdsaKeySend> UseCase for WalletInitiatedUseCase<K> {
         _return_url_template: Option<ReturnUrlTemplate>,
     ) -> Result<Session<Created>, NewSessionError> {
         let session = Session::<Created>::new(
-            self.dcql_query.clone().try_into()?,
+            self.credential_requests.clone(),
             id,
             self.data.client_id.clone(),
             Some(RedirectUriTemplate {
@@ -847,7 +849,7 @@ pub trait DisclosureResultHandler {
     async fn disclosure_result(
         &self,
         usecase_id: &str,
-        disclosed: &[DisclosedAttestation],
+        disclosed: &HashMap<CredentialQueryIdentifier, VecNonEmpty<DisclosedAttestation>>,
     ) -> Result<HashMap<String, String>, DisclosureResultHandlerError>;
 }
 
@@ -941,7 +943,7 @@ where
         response_uri_base: &BaseUrl,
         query: Option<&str>,
         wallet_nonce: Option<String>,
-    ) -> Result<Jwt<VpAuthorizationRequest>, WithRedirectUri<GetAuthRequestError>> {
+    ) -> Result<UnverifiedJwt<VpAuthorizationRequest>, WithRedirectUri<GetAuthRequestError>> {
         let url_params: VerifierUrlParameters =
             serde_urlencoded::from_str(query.ok_or(GetAuthRequestError::QueryParametersMissing)?)
                 .map_err(GetAuthRequestError::QueryParametersDeserialization)?;
@@ -1074,7 +1076,7 @@ where
         &self,
         session_token: &SessionToken,
         redirect_uri_nonce: Option<String>,
-    ) -> Result<Vec<DisclosedAttestation>, DisclosedAttributesError> {
+    ) -> Result<HashMap<CredentialQueryIdentifier, VecNonEmpty<DisclosedAttestation>>, DisclosedAttributesError> {
         let disclosure_data = session_or_error(self.sessions.as_ref(), session_token).await?.data;
 
         match disclosure_data {
@@ -1214,7 +1216,7 @@ impl Session<Created> {
         wallet_nonce: Option<String>,
         use_cases: &impl UseCases<Key = K, UseCase = UC>,
     ) -> Result<
-        (Jwt<VpAuthorizationRequest>, Session<WaitingForResponse>),
+        (UnverifiedJwt<VpAuthorizationRequest>, Session<WaitingForResponse>),
         (WithRedirectUri<GetAuthRequestError>, Session<Done>),
     >
     where
@@ -1260,7 +1262,7 @@ impl Session<Created> {
         use_cases: &impl UseCases<Key = K, UseCase = UC>,
     ) -> Result<
         (
-            Jwt<VpAuthorizationRequest>,
+            UnverifiedJwt<VpAuthorizationRequest>,
             NormalizedVpAuthorizationRequest,
             Option<RedirectUri>,
             EcKeyPair,
@@ -1304,7 +1306,7 @@ impl Session<Created> {
         .map_err(|err| error_with_redirect_uri(&redirect_uri, err))?;
 
         let vp_auth_request = VpAuthorizationRequest::from(auth_request.clone());
-        let jws = Jwt::sign_with_certificate(&vp_auth_request, &usecase.key_pair)
+        let jws = UnverifiedJwt::sign_with_certificate(&vp_auth_request, &usecase.key_pair)
             .await
             .map_err(|err| error_with_redirect_uri(&redirect_uri, err))?;
 
@@ -1482,7 +1484,7 @@ impl Session<WaitingForResponse> {
 
     fn transition_finish(
         self,
-        disclosed_attributes: Vec<DisclosedAttestation>,
+        disclosed_attributes: HashMap<CredentialQueryIdentifier, VecNonEmpty<DisclosedAttestation>>,
         nonce: Option<String>,
     ) -> Session<Done> {
         self.transition(Done {
@@ -1508,6 +1510,7 @@ mod tests {
     use chrono::DateTime;
     use chrono::Duration;
     use chrono::Utc;
+    use dcql::normalized::NormalizedCredentialRequests;
     use itertools::Itertools;
     use p256::ecdsa::SigningKey;
     use ring::hmac;
@@ -1964,7 +1967,7 @@ mod tests {
                     session_type_return_url: SessionTypeReturnUrl::Neither,
                     client_id: "client_id".to_string(),
                 },
-                dcql_query: Query::pid_family_name(),
+                credential_requests: NormalizedCredentialRequests::new_pid_example(),
                 return_url_template: "https://example.com".parse().unwrap(),
             },
         )]);

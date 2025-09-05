@@ -12,6 +12,7 @@ export 'src/models/image.dart';
 export 'src/models/instruction.dart';
 export 'src/models/localize.dart';
 export 'src/models/pin.dart';
+export 'src/models/transfer.dart';
 export 'src/models/uri.dart';
 export 'src/models/version_state.dart';
 export 'src/models/wallet_event.dart';

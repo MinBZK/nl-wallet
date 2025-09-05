@@ -15,7 +15,7 @@ import '../../../../domain/usecase/pid/cancel_pid_issuance_usecase.dart';
 import '../../../../domain/usecase/pid/continue_pid_issuance_usecase.dart';
 import '../../../../domain/usecase/pid/get_pid_issuance_url_usecase.dart';
 import '../../../../domain/usecase/wallet/is_wallet_initialized_with_pid_usecase.dart';
-import '../../../../wallet_constants.dart';
+import '../../../../util/helper/setup_helper.dart';
 import '../../../../wallet_core/error/core_error.dart';
 
 part 'wallet_personalize_event.dart';
@@ -56,7 +56,10 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
     );
   }
 
-  Future<void> _continuePidIssuance(WalletPersonalizeContinuePidIssuance event, emit) async {
+  Future<void> _continuePidIssuance(
+    WalletPersonalizeContinuePidIssuance event,
+    Emitter<WalletPersonalizeState> emit,
+  ) async {
     emit(const WalletPersonalizeAuthenticating());
     final continueResult = await continuePidIssuanceUseCase.invoke(event.authUrl);
     await continueResult.process(
@@ -78,7 +81,10 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
     );
   }
 
-  Future<void> _onLoginWithDigidClicked(event, emit) async {
+  Future<void> _onLoginWithDigidClicked(
+    WalletPersonalizeLoginWithDigidClicked event,
+    Emitter<WalletPersonalizeState> emit,
+  ) async {
     emit(const WalletPersonalizeLoadingIssuanceUrl());
     // Fixes PVW-2171 (lock during WalletPersonalizeCheckData)
     await cancelPidIssuanceUseCase.invoke();
@@ -99,11 +105,17 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
     );
   }
 
-  Future<void> _onLoginWithDigidSucceeded(WalletPersonalizeLoginWithDigidSucceeded event, emit) async {
+  Future<void> _onLoginWithDigidSucceeded(
+    WalletPersonalizeLoginWithDigidSucceeded event,
+    Emitter<WalletPersonalizeState> emit,
+  ) async {
     emit(WalletPersonalizeCheckData(availableAttributes: event.previewAttributes));
   }
 
-  Future<void> _onLoginWithDigidFailed(WalletPersonalizeLoginWithDigidFailed event, emit) async {
+  Future<void> _onLoginWithDigidFailed(
+    WalletPersonalizeLoginWithDigidFailed event,
+    Emitter<WalletPersonalizeState> emit,
+  ) async {
     emit(WalletPersonalizeLoadInProgress(state.stepperProgress));
     await cancelPidIssuanceUseCase.invoke(); // Confirm cancellation to the server
 
@@ -114,7 +126,7 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
     }
   }
 
-  Future<void> _onAcceptPidFailed(WalletPersonalizeAcceptPidFailed event, emit) async {
+  Future<void> _onAcceptPidFailed(WalletPersonalizeAcceptPidFailed event, Emitter<WalletPersonalizeState> emit) async {
     emit(WalletPersonalizeLoadInProgress(state.stepperProgress));
     await cancelPidIssuanceUseCase.invoke(); // Confirm cancellation to the server
 
@@ -129,22 +141,29 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
     }
   }
 
-  Future<void> _onOfferingVerified(WalletPersonalizeOfferingAccepted event, emit) async {
+  Future<void> _onOfferingVerified(
+    WalletPersonalizeOfferingAccepted event,
+    Emitter<WalletPersonalizeState> emit,
+  ) async {
     emit(WalletPersonalizeConfirmPin(event.previewAttributes));
   }
 
-  Future<void> _onOfferingRejected(event, emit) async {
-    emit(const WalletPersonalizeLoadInProgress(FlowProgress(currentStep: 0, totalSteps: kSetupSteps)));
+  Future<void> _onOfferingRejected(
+    WalletPersonalizeOfferingRejected event,
+    Emitter<WalletPersonalizeState> emit,
+  ) async {
+    emit(WalletPersonalizeLoadInProgress(state.stepperProgress));
     final cancelResult = await cancelPidIssuanceUseCase.invoke();
     if (cancelResult.hasError) Fimber.e('Failed to explicitly reject pid', ex: cancelResult.error);
     emit(const WalletPersonalizeInitial(didGoBack: true));
   }
 
-  Future<void> _onRetryPressed(event, emit) async => emit(const WalletPersonalizeInitial());
+  Future<void> _onRetryPressed(WalletPersonalizeRetryPressed event, Emitter<WalletPersonalizeState> emit) async =>
+      emit(const WalletPersonalizeInitial());
 
-  void _onStateUpdate(WalletPersonalizeUpdateState event, emit) => emit(event.state);
+  void _onStateUpdate(WalletPersonalizeUpdateState event, Emitter<WalletPersonalizeState> emit) => emit(event.state);
 
-  Future<void> _onBackPressed(event, emit) async {
+  Future<void> _onBackPressed(WalletPersonalizeBackPressed event, Emitter<WalletPersonalizeState> emit) async {
     final state = this.state;
     if (state.canGoBack) {
       if (state is WalletPersonalizeConfirmPin) {
@@ -153,7 +172,7 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
     }
   }
 
-  Future<void> _onPinConfirmed(event, emit) async {
+  Future<void> _onPinConfirmed(WalletPersonalizePinConfirmed event, Emitter<WalletPersonalizeState> emit) async {
     final state = this.state;
     if (state is WalletPersonalizeConfirmPin) {
       emit(WalletPersonalizeAddingCards(state.stepperProgress));

@@ -70,9 +70,10 @@ class SignScreen extends StatelessWidget {
   }
 
   Widget? _buildBackButton(BuildContext context) {
-    final canGoBack = context.watch<SignBloc>().state.canGoBack;
-    if (!canGoBack) return null;
+    final state = context.watch<SignBloc>().state;
+    if (!state.canGoBack) return null;
     return BackIconButton(
+      key: ValueKey(state.runtimeType),
       onPressed: () => context.read<SignBloc>().add(const SignBackPressed()),
     );
   }

@@ -1,18 +1,21 @@
 use std::num::NonZeroUsize;
 
 use derive_more::Constructor;
+use semver::Version;
 use serde::Deserialize;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
+use uuid::Uuid;
 
 use crypto::p256_der::DerSignature;
 use crypto::p256_der::DerVerifyingKey;
-use jwt::Jwt;
 use jwt::JwtSubject;
+use jwt::UnverifiedJwt;
 use jwt::pop::JwtPopClaims;
 use jwt::wua::WuaDisclosure;
+use sd_jwt::sd_jwt::UnverifiedSdJwt;
 use utils::vec_at_least::VecNonEmpty;
 use wscd::Poa;
 
@@ -41,7 +44,7 @@ pub struct InstructionResultMessage<R> {
     pub result: InstructionResult<R>,
 }
 
-pub type InstructionResult<R> = Jwt<InstructionResultClaims<R>>;
+pub type InstructionResult<R> = UnverifiedJwt<InstructionResultClaims<R>>;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct InstructionResultClaims<R> {
@@ -151,7 +154,7 @@ pub struct PerformIssuance {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PerformIssuanceResult {
     pub key_identifiers: VecNonEmpty<String>,
-    pub pops: VecNonEmpty<Jwt<JwtPopClaims>>,
+    pub pops: VecNonEmpty<UnverifiedJwt<JwtPopClaims>>,
     pub poa: Option<Poa>,
 }
 
@@ -205,6 +208,57 @@ impl InstructionAndResult for Sign {
     const NAME: &'static str = "sign";
 
     type Result = SignResult;
+}
+
+// DiscloseRecoveryCode instruction.
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DiscloseRecoveryCode {
+    /// PID in SD JWT format with one disclosure: the recovery code
+    pub recovery_code_disclosure: UnverifiedSdJwt,
+}
+
+impl InstructionAndResult for DiscloseRecoveryCode {
+    const NAME: &'static str = "disclose_recovery_code";
+
+    type Result = DiscloseRecoveryCodeResult;
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DiscloseRecoveryCodeResult {
+    pub transfer_available: bool,
+}
+
+// PrepareTransfer instruction.
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PrepareTransfer {
+    pub app_version: Version,
+}
+
+impl InstructionAndResult for PrepareTransfer {
+    const NAME: &'static str = "prepare_transfer";
+
+    type Result = PrepareTransferResult;
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PrepareTransferResult {
+    pub transfer_session_id: Uuid,
+}
+
+// ConfirmTransfer instruction.
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ConfirmTransfer {
+    pub transfer_session_id: Uuid,
+    pub app_version: Version,
+}
+
+impl InstructionAndResult for ConfirmTransfer {
+    const NAME: &'static str = "confirm_transfer";
+
+    type Result = ();
 }
 
 #[cfg(feature = "client")]

@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use chrono::DateTime;
 use chrono::Utc;
 use p256::ecdsa::VerifyingKey;
+use semver::Version;
 use uuid::Uuid;
 
 use apple_app_attest::AssertionCounter;
@@ -77,12 +78,39 @@ pub trait WalletUserRepository {
 
     async fn rollback_pin_change(&self, transaction: &Self::TransactionType, wallet_id: &str) -> Result<()>;
 
+    async fn store_recovery_code(
+        &self,
+        transaction: &Self::TransactionType,
+        wallet_id: &str,
+        recovery_code: String,
+    ) -> Result<()>;
+
+    async fn has_multiple_active_accounts_by_recovery_code(
+        &self,
+        transaction: &Self::TransactionType,
+        recovery_code: &str,
+    ) -> Result<bool>;
+
     async fn update_apple_assertion_counter(
         &self,
         transaction: &Self::TransactionType,
         wallet_id: &str,
         assertion_counter: AssertionCounter,
     ) -> Result<()>;
+
+    async fn prepare_transfer(
+        &self,
+        transaction: &Self::TransactionType,
+        wallet_id: &str,
+        transfer_session_id: Uuid,
+        destination_wallet_app_version: Version,
+    ) -> Result<()>;
+
+    async fn find_app_version_by_transfer_session_id(
+        &self,
+        transaction: &Self::TransactionType,
+        transfer_session_id: Uuid,
+    ) -> Result<Option<Version>>;
 }
 
 #[cfg(feature = "mock")]
@@ -200,6 +228,41 @@ pub mod mock {
             _assertion_counter: AssertionCounter,
         ) -> Result<()> {
             Ok(())
+        }
+
+        async fn store_recovery_code(
+            &self,
+            _transaction: &Self::TransactionType,
+            _wallet_id: &str,
+            _recovery_code: String,
+        ) -> Result<()> {
+            Ok(())
+        }
+
+        async fn has_multiple_active_accounts_by_recovery_code(
+            &self,
+            _transaction: &Self::TransactionType,
+            _recovery_code: &str,
+        ) -> Result<bool> {
+            Ok(false)
+        }
+
+        async fn prepare_transfer(
+            &self,
+            _transaction: &Self::TransactionType,
+            _wallet_id: &str,
+            _transfer_session_id: Uuid,
+            _destination_wallet_app_version: Version,
+        ) -> Result<()> {
+            Ok(())
+        }
+
+        async fn find_app_version_by_transfer_session_id(
+            &self,
+            _transaction: &Self::TransactionType,
+            _transfer_session_id: Uuid,
+        ) -> Result<Option<Version>> {
+            Ok(None)
         }
     }
 }

@@ -215,7 +215,7 @@ attestation_data = { path = "../lib/attestation_data", optional = true, features
 ] }
 configuration_server = { path = "../configuration_server", optional = true }
 crypto = { path = "../lib/crypto", optional = true }
-dcql = { path = "../lib/dcql", optional = true, features = ["mock"] }
+dcql = { path = "../lib/dcql", optional = true, features = ["mock", "test_document"] }
 gba_hc_converter = { path = "../gba_hc_converter", optional = true }
 hsm = { path = "../lib/hsm", optional = true, features = ["test"] }
 http_utils = { path = "../lib/http_utils", optional = true, features = ["client", "server"] }
@@ -230,7 +230,7 @@ platform_support = { path = "../wallet/platform_support", optional = true, featu
 server_utils = { path = "../wallet_server/server_utils", optional = true, features = [] }
 update_policy_server = { path = "../update_policy/server", optional = true }
 verification_server = { path = "../wallet_server/verification_server", optional = true, features = [] }
-wallet = { path = "../wallet", optional = true, features = ["mock", "wallet_deps", "test"] }
+wallet = { path = "../wallet", optional = true, features = ["test"] }
 utils = { path = "../lib/utils", optional = true }
 wallet_configuration = { path = "../wallet/configuration", optional = true }
 wallet_provider = { path = "../wallet_provider", optional = true }
@@ -252,4 +252,5 @@ pid_issuer = { path = "../wallet_server/pid_issuer" }
 platform_support = { path = "../wallet/platform_support", features = ["persistent_mock_attested_key"] }
 sd_jwt = { path = "../lib/sd_jwt", features = ["examples", "test"] }
 server_utils = { path = "../wallet_server/server_utils", features = ["parsed_key_pair_conversion"] }
+token_status_list = { path = "../lib/token_status_list", features = ["axum"] }
 verification_server = { path = "../wallet_server/verification_server", features = ["test"] }

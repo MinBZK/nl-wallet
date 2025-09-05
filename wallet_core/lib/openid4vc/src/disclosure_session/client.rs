@@ -210,6 +210,7 @@ mod tests {
     use mdoc::test::data::PID;
     use mdoc::utils::serialization::CborBase64;
     use utils::generator::mock::MockTimeGenerator;
+    use utils::vec_nonempty;
     use wscd::mock_remote::MockRemoteWscd;
 
     use crate::errors::AuthorizationErrorCode;
@@ -338,11 +339,10 @@ mod tests {
         // Check all of the data the new `VpDisclosureSession` exposes.
         assert_eq!(disclosure_session.session_type(), session_type);
 
-        let expected_credential_requests = NormalizedCredentialRequests::new_mock_mdoc_from_slices(&[(
-            PID,
-            &[&[PID, "bsn"], &[PID, "given_name"], &[PID, "family_name"]],
-        )]);
-        assert_eq!(*disclosure_session.credential_requests(), expected_credential_requests);
+        assert_eq!(
+            *disclosure_session.credential_requests(),
+            NormalizedCredentialRequests::new_pid_example()
+        );
 
         assert_eq!(
             disclosure_session.verifier_certificate().certificate(),
@@ -366,7 +366,10 @@ mod tests {
         let wscd = MockRemoteWscd::new(vec![mdoc_key]);
 
         let disclosure_redirect_uri = disclosure_session
-            .disclose(vec![partial_mdoc].try_into().unwrap(), &wscd)
+            .disclose(
+                HashMap::from([("pid".try_into().unwrap(), vec_nonempty![partial_mdoc])]),
+                &wscd,
+            )
             .now_or_never()
             .unwrap()
             .expect("disclosing mdoc using VpDisclosureSession should succeed");
@@ -391,8 +394,12 @@ mod tests {
 
         assert_eq!(response.vp_token.len(), 1);
 
-        let device_response = match response.vp_token.into_iter().next().unwrap() {
-            VerifiablePresentation::MsoMdoc(CborBase64(device_response)) => device_response,
+        let device_response = match response.vp_token.into_values().next().unwrap() {
+            VerifiablePresentation::MsoMdoc(device_responses) => {
+                let CborBase64(device_response) = device_responses.into_first();
+
+                device_response
+            }
         };
         let disclosed_documents = device_response
             .verify(

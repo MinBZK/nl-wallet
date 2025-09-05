@@ -169,6 +169,7 @@ where
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
+    use indexmap::IndexMap;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
     use uuid::Uuid;
@@ -196,11 +197,17 @@ mod tests {
     use openid4vc::verifier::DisclosureResultHandlerError;
     use openid4vc::verifier::PostAuthResponseError;
     use openid4vc::verifier::ToPostAuthResponseErrorCode;
+    use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use utils::generator::mock::MockTimeGenerator;
 
     use crate::attestation::AttestationPresentation;
+    use crate::storage::ChangePinData;
     use crate::storage::DisclosableAttestation;
     use crate::storage::PartialAttestation;
+    use crate::storage::StoredAttestation;
+    use crate::storage::StoredAttestationCopy;
+    use crate::wallet::test::TestWalletMockStorage;
+    use crate::wallet::test::create_example_pid_mdoc;
 
     use super::super::DisclosureBasedIssuanceError;
     use super::super::Session;
@@ -208,7 +215,6 @@ mod tests {
     use super::super::disclosure::RedirectUriPurpose;
     use super::super::disclosure::WalletDisclosureSession;
     use super::super::test::WalletDeviceVendor;
-    use super::super::test::WalletWithMocks;
     use super::super::test::create_example_preview_data;
 
     const PIN: &str = "051097";
@@ -235,7 +241,7 @@ mod tests {
         WalletDisclosureSession::new_proposal(
             RedirectUriPurpose::Issuance,
             DisclosureType::Regular,
-            vec![disclosable_attestation].try_into().unwrap(),
+            IndexMap::from([("id".try_into().unwrap(), disclosable_attestation)]),
             disclosure_session,
         )
     }
@@ -243,7 +249,7 @@ mod tests {
     #[tokio::test]
     async fn test_wallet_accept_disclosure_based_issuance() {
         // Prepare a registered and unlocked wallet with an active disclosure session.
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         // Setup wallet disclosure state
         let credential_offer = serde_urlencoded::to_string(CredentialOfferContainer {
@@ -282,6 +288,45 @@ mod tests {
             Ok(client)
         });
 
+        wallet
+            .mut_storage()
+            .expect_fetch_data::<ChangePinData>()
+            .returning(|| Ok(None));
+
+        wallet
+            .mut_storage()
+            .expect_increment_attestation_copies_usage_count()
+            .times(1)
+            .return_once(|_| Ok(()));
+
+        wallet
+            .mut_storage()
+            .expect_log_disclosure_event()
+            .times(1)
+            .returning(|_, _, _, _, _| Ok(()));
+
+        wallet
+            .mut_storage()
+            .expect_fetch_recent_wallet_events()
+            .returning(move || Ok(vec![]));
+
+        let mdoc = create_example_pid_mdoc();
+        let stored_attestation_copy = StoredAttestationCopy::new(
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            StoredAttestation::MsoMdoc {
+                mdoc: Box::new(mdoc.clone()),
+            },
+            NormalizedTypeMetadata::nl_pid_example(),
+        );
+
+        let expectation_attestation_copy = stored_attestation_copy.clone();
+        wallet
+            .mut_storage()
+            .expect_fetch_unique_attestations_by_type()
+            .times(1)
+            .returning(move |_, _| Ok(vec![expectation_attestation_copy.clone()]));
+
         // Accept disclosure based issuance
         let previews = wallet
             .continue_disclosure_based_issuance(PIN.to_owned())
@@ -304,7 +349,7 @@ mod tests {
     #[tokio::test]
     async fn test_wallet_accept_disclosure_based_issuance_no_attestations() {
         // Prepare a registered and unlocked wallet with an active disclosure session.
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         // Setup an disclosure based issuance session returning an error that means there are no attestations to offer.
         let mut disclosure_session = setup_wallet_disclosure_session();
@@ -328,6 +373,28 @@ mod tests {
         });
         wallet.session = Some(Session::Disclosure(disclosure_session));
 
+        wallet
+            .mut_storage()
+            .expect_fetch_data::<ChangePinData>()
+            .returning(|| Ok(None));
+
+        wallet
+            .mut_storage()
+            .expect_increment_attestation_copies_usage_count()
+            .times(1)
+            .return_once(|_| Ok(()));
+
+        wallet
+            .mut_storage()
+            .expect_log_disclosure_event()
+            .times(1)
+            .returning(|_, _, _, _, _| Ok(()));
+
+        wallet
+            .mut_storage()
+            .expect_fetch_recent_wallet_events()
+            .returning(move || Ok(vec![]));
+
         let previews = wallet
             .continue_disclosure_based_issuance(PIN.to_owned())
             .await
@@ -340,7 +407,7 @@ mod tests {
     #[tokio::test]
     async fn test_wallet_accept_disclosure_based_issuance_error_wrong_redirect_uri_purpose() {
         // Prepare a registered and unlocked wallet with an active disclosure session.
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         let mut disclosure_session = setup_wallet_disclosure_session();
         disclosure_session.redirect_uri_purpose = RedirectUriPurpose::Browser;

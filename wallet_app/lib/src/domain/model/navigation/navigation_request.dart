@@ -78,6 +78,16 @@ class PidRenewalNavigationRequest extends NavigationRequest {
         );
 }
 
+class PinRecoveryNavigationRequest extends NavigationRequest {
+  PinRecoveryNavigationRequest(String uri)
+      : super(
+          WalletRoutes.pinRecoveryRoute,
+          argument: uri,
+          navigatePrerequisites: [NavigationPrerequisite.walletInitialized],
+          preNavigationActions: [PreNavigationAction.disableUpcomingPageTransition],
+        );
+}
+
 class DisclosureNavigationRequest extends NavigationRequest {
   DisclosureNavigationRequest(String uri, {bool isQrCode = false})
       : super(

@@ -98,10 +98,7 @@ impl Disclosure {
     }
 
     pub fn claim_value(&self) -> &serde_json::Value {
-        match &self.content {
-            DisclosureContent::ObjectProperty(_, _, value) => value,
-            DisclosureContent::ArrayElement(_, value) => value,
-        }
+        self.content.claim_value()
     }
 }
 
@@ -128,6 +125,15 @@ pub enum DisclosureContent {
         /// The claim Value which can be of any type.
         serde_json::Value,
     ),
+}
+
+impl DisclosureContent {
+    pub fn claim_value(&self) -> &serde_json::Value {
+        match &self {
+            DisclosureContent::ObjectProperty(_, _, value) => value,
+            DisclosureContent::ArrayElement(_, value) => value,
+        }
+    }
 }
 
 #[cfg(test)]

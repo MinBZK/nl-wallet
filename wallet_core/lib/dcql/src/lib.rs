@@ -1,4 +1,8 @@
+pub mod disclosure;
 pub mod normalized;
+
+#[cfg(feature = "test_document")]
+mod test_document;
 
 use std::ops::Not;
 
@@ -180,7 +184,7 @@ pub enum CredentialQueryFormat {
 }
 
 impl CredentialQueryFormat {
-    pub fn attestation_types(&self) -> impl Iterator<Item = &str> {
+    pub fn credential_types(&self) -> impl Iterator<Item = &str> {
         match self {
             Self::MsoMdoc { doctype_value } => std::slice::from_ref(doctype_value),
             Self::SdJwt { vct_values } => vct_values.as_slice(),
@@ -247,7 +251,7 @@ pub struct ClaimsQuery {
     pub values: Vec<serde_json::Value>,
 
     /// Whether the RP intends to retain the attribute after disclosure for some amount of time.
-    /// Note: this flag is specific to the mdoc attestation format and should not be present in case of other formats.
+    /// Note: this flag is specific to the mdoc credential format and should not be present in case of other formats.
     ///
     /// <https://openid.net/specs/openid-4-verifiable-presentations-1_0-28.html#name-parameter-in-the-claims-que>
     pub intent_to_retain: Option<bool>,

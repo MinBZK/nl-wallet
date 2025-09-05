@@ -10,7 +10,7 @@ use url::Url;
 
 use http_utils::data_uri::DataUri;
 use http_utils::urls::BaseUrl;
-use jwt::Jwt;
+use jwt::UnverifiedJwt;
 use sd_jwt_vc_metadata::DisplayMetadata;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::RenderingMetadata;
@@ -27,7 +27,7 @@ pub struct IssuerMetadata {
     #[serde(flatten)]
     pub issuer_config: IssuerData,
 
-    pub protected_metadata: Option<Jwt<IssuerDataClaims>>,
+    pub protected_metadata: Option<UnverifiedJwt<IssuerDataClaims>>,
 }
 
 impl IssuerMetadata {

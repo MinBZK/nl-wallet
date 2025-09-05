@@ -333,7 +333,7 @@ mod tests {
     use apple_app_attest::AssertionCounter;
     use apple_app_attest::VerifiedAttestation;
     use crypto::x509::BorrowingCertificate;
-    use jwt::Jwt;
+    use jwt::UnverifiedJwt;
     use platform_support::attested_key::mock::KeyHolderErrorScenario;
     use platform_support::attested_key::mock::KeyHolderType;
     use wallet_account::messages::registration::RegistrationAttestation;
@@ -341,16 +341,18 @@ mod tests {
     use wallet_account::signed::SequenceNumberComparison;
 
     use crate::account_provider::AccountProviderResponseError;
-    use crate::storage::KeyedData;
-    use crate::storage::KeyedDataResult;
+    use crate::wallet::test::TestWallet;
+    use crate::wallet::test::TestWalletInMemoryStorage;
+    use crate::wallet::test::valid_certificate;
+    use crate::wallet::test::valid_certificate_claims;
 
+    use super::super::test::TestWalletMockStorage;
     use super::super::test::WalletDeviceVendor;
-    use super::super::test::WalletWithMocks;
     use super::*;
 
     const PIN: &str = "051097";
 
-    async fn test_register_success(wallet: &mut WalletWithMocks) {
+    async fn test_register_success(wallet: &mut TestWalletInMemoryStorage) {
         // The wallet should report that it is currently unregistered and locked.
         assert!(!wallet.has_registration());
         assert!(wallet.is_locked());
@@ -433,7 +435,7 @@ mod tests {
                 };
 
                 // Generate a valid certificate and wallet id based on on the public key.
-                let certificate = WalletWithMocks::valid_certificate(None, attested_public_key);
+                let certificate = valid_certificate(None, attested_public_key);
                 generated_certificate_clone.lock().replace(certificate.clone());
 
                 Ok(certificate)
@@ -473,12 +475,12 @@ mod tests {
         #[values(WalletDeviceVendor::Apple, WalletDeviceVendor::Google)] vendor: WalletDeviceVendor,
     ) {
         // Prepare an unregistered wallet.
-        let mut wallet = WalletWithMocks::new_unregistered(vendor);
+        let mut wallet = TestWalletInMemoryStorage::new_unregistered(vendor).await;
 
         test_register_success(&mut wallet).await;
     }
 
-    async fn add_key_identifier_to_wallet(wallet: &mut WalletWithMocks) -> String {
+    async fn add_key_identifier_to_wallet(wallet: &mut TestWalletInMemoryStorage) -> String {
         let key_identifier = wallet.key_holder.generate().await.unwrap();
         wallet
             .storage
@@ -497,7 +499,7 @@ mod tests {
     #[tokio::test]
     async fn test_wallet_register_success_apple_key_identifier() {
         // Prepare an unregistered wallet.
-        let mut wallet = WalletWithMocks::new_unregistered(WalletDeviceVendor::Apple);
+        let mut wallet = TestWalletInMemoryStorage::new_unregistered(WalletDeviceVendor::Apple).await;
 
         // Set up a key identifier to re-use, both in storage and in the Wallet internal state.
         let key_identifier = add_key_identifier_to_wallet(&mut wallet).await;
@@ -510,7 +512,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_register_error_already_registered() {
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         let error = wallet
             .register(PIN)
@@ -523,7 +525,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_register_error_invalid_pin() {
-        let mut wallet = WalletWithMocks::new_unregistered(WalletDeviceVendor::Apple);
+        let mut wallet = TestWalletMockStorage::new_unregistered(WalletDeviceVendor::Apple).await;
 
         // Try to register with an insecure PIN.
         let error = wallet
@@ -533,12 +535,11 @@ mod tests {
 
         assert_matches!(error, WalletRegistrationError::InvalidPin(_));
         assert_matches!(wallet.registration, WalletRegistration::Unregistered);
-        assert!(wallet.storage.read().await.data.is_empty());
     }
 
     #[tokio::test]
     async fn test_wallet_register_error_challenge_request() {
-        let mut wallet = WalletWithMocks::new_unregistered(WalletDeviceVendor::Apple);
+        let mut wallet = TestWalletMockStorage::new_unregistered(WalletDeviceVendor::Apple).await;
 
         // Have the account server respond to the challenge request with a 500 error.
         Arc::get_mut(&mut wallet.account_provider_client)
@@ -553,11 +554,10 @@ mod tests {
 
         assert_matches!(error, WalletRegistrationError::ChallengeRequest(_));
         assert_matches!(wallet.registration, WalletRegistration::Unregistered);
-        assert!(wallet.storage.read().await.data.is_empty());
     }
 
-    fn unregistered_wallet_with_registration_challenge(vendor: WalletDeviceVendor) -> WalletWithMocks {
-        let mut wallet = WalletWithMocks::new_unregistered(vendor);
+    async fn unregistered_wallet_with_registration_challenge(vendor: WalletDeviceVendor) -> TestWalletInMemoryStorage {
+        let mut wallet = TestWalletInMemoryStorage::new_unregistered(vendor).await;
 
         Arc::get_mut(&mut wallet.account_provider_client)
             .unwrap()
@@ -571,7 +571,7 @@ mod tests {
         vendor: WalletDeviceVendor,
         error_scenario: KeyHolderErrorScenario,
     ) -> WalletRegistrationError {
-        let mut wallet = unregistered_wallet_with_registration_challenge(vendor);
+        let mut wallet = unregistered_wallet_with_registration_challenge(vendor).await;
 
         // Have the key holder fail in some way.
         wallet.key_holder.error_scenario = error_scenario;
@@ -582,7 +582,16 @@ mod tests {
             .expect_err("Wallet registration should have resulted in error");
 
         assert_matches!(wallet.registration, WalletRegistration::Unregistered);
-        assert!(wallet.storage.read().await.data.is_empty());
+        assert!(
+            wallet
+                .storage
+                .read()
+                .await
+                .fetch_data::<RegistrationData>()
+                .await
+                .unwrap()
+                .is_none()
+        );
 
         error
     }
@@ -622,7 +631,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_register_error_attestation_retryable() {
-        let mut wallet = unregistered_wallet_with_registration_challenge(WalletDeviceVendor::Apple);
+        let mut wallet = unregistered_wallet_with_registration_challenge(WalletDeviceVendor::Apple).await;
 
         // Have the hardware key signing fail.
         wallet.key_holder.error_scenario = KeyHolderErrorScenario::RetryableAttestationError;
@@ -655,7 +664,7 @@ mod tests {
     async fn test_wallet_register_error_registration_request(
         #[values(WalletDeviceVendor::Apple, WalletDeviceVendor::Google)] vendor: WalletDeviceVendor,
     ) {
-        let mut wallet = unregistered_wallet_with_registration_challenge(vendor);
+        let mut wallet = unregistered_wallet_with_registration_challenge(vendor).await;
 
         // Have the account server respond to the registration request with a 401 error.
         Arc::get_mut(&mut wallet.account_provider_client)
@@ -670,12 +679,21 @@ mod tests {
 
         assert_matches!(error, WalletRegistrationError::RegistrationRequest(_));
         assert_matches!(wallet.registration, WalletRegistration::Unregistered);
-        assert!(wallet.storage.read().await.data.is_empty());
+        assert!(
+            wallet
+                .storage
+                .read()
+                .await
+                .fetch_data::<RegistrationData>()
+                .await
+                .unwrap()
+                .is_none()
+        );
     }
 
     #[tokio::test]
     async fn test_wallet_register_error_registration_request_key_identifier() {
-        let mut wallet = unregistered_wallet_with_registration_challenge(WalletDeviceVendor::Apple);
+        let mut wallet = unregistered_wallet_with_registration_challenge(WalletDeviceVendor::Apple).await;
 
         // Set up a key identifier to re-use, both in storage and in the Wallet internal state.
         // This key identifier is no longer re-usable after attestation, so if registration gets as far
@@ -697,7 +715,16 @@ mod tests {
         // by the identifier should be attested and is further unusable.
         assert_matches!(error, WalletRegistrationError::RegistrationRequest(_));
         assert_matches!(wallet.registration, WalletRegistration::Unregistered);
-        assert!(wallet.storage.read().await.data.is_empty());
+        assert!(
+            wallet
+                .storage
+                .read()
+                .await
+                .fetch_data::<RegistrationData>()
+                .await
+                .unwrap()
+                .is_none()
+        );
         assert!(wallet.key_holder.is_attested(&key_identifier));
     }
 
@@ -706,7 +733,7 @@ mod tests {
     async fn test_wallet_register_error_certificate_validation(
         #[values(WalletDeviceVendor::Apple, WalletDeviceVendor::Google)] vendor: WalletDeviceVendor,
     ) {
-        let mut wallet = unregistered_wallet_with_registration_challenge(vendor);
+        let mut wallet = unregistered_wallet_with_registration_challenge(vendor).await;
 
         // Have the account server sign the wallet certificate with
         // a key to which the certificate public key does not belong.
@@ -717,8 +744,8 @@ mod tests {
                 let other_account_server_key = SigningKey::random(&mut OsRng);
                 let random_pubkey = *SigningKey::random(&mut OsRng).verifying_key();
 
-                let certificate = Jwt::sign_with_sub(
-                    &WalletWithMocks::valid_certificate_claims(None, random_pubkey),
+                let certificate = UnverifiedJwt::sign_with_sub(
+                    &valid_certificate_claims(None, random_pubkey),
                     &other_account_server_key,
                 )
                 .now_or_never()
@@ -735,13 +762,19 @@ mod tests {
 
         assert_matches!(error, WalletRegistrationError::CertificateValidation(_));
         assert_matches!(wallet.registration, WalletRegistration::Unregistered);
-        assert!(wallet.storage.read().await.data.is_empty());
+        assert!(
+            wallet
+                .storage
+                .read()
+                .await
+                .fetch_data::<RegistrationData>()
+                .await
+                .unwrap()
+                .is_none()
+        );
     }
 
-    #[tokio::test]
-    async fn test_wallet_register_error_public_key_mismatch() {
-        let mut wallet = unregistered_wallet_with_registration_challenge(WalletDeviceVendor::Google);
-
+    fn expect_register_with_random_pubkey<S>(wallet: &mut TestWallet<S>) {
         // Have the account server respond with a certificate that contains
         // a public key that does not belong to the wallet's attested key.
         Arc::get_mut(&mut wallet.account_provider_client)
@@ -749,10 +782,17 @@ mod tests {
             .expect_register()
             .return_once(|_, _| {
                 let random_pubkey = *SigningKey::random(&mut OsRng).verifying_key();
-                let certificate = WalletWithMocks::valid_certificate(None, random_pubkey);
+                let certificate = valid_certificate(None, random_pubkey);
 
                 Ok(certificate)
             });
+    }
+
+    #[tokio::test]
+    async fn test_wallet_register_error_public_key_mismatch() {
+        let mut wallet = unregistered_wallet_with_registration_challenge(WalletDeviceVendor::Google).await;
+
+        expect_register_with_random_pubkey(&mut wallet);
 
         let error = wallet
             .register(PIN)
@@ -761,28 +801,37 @@ mod tests {
 
         assert_matches!(error, WalletRegistrationError::PublicKeyMismatch);
         assert_matches!(wallet.registration, WalletRegistration::Unregistered);
-        assert!(wallet.storage.read().await.data.is_empty());
+        assert!(
+            wallet
+                .storage
+                .read()
+                .await
+                .fetch_data::<RegistrationData>()
+                .await
+                .unwrap()
+                .is_none()
+        );
     }
 
     #[tokio::test]
     async fn test_wallet_register_error_store_certificate() {
-        let mut wallet = unregistered_wallet_with_registration_challenge(WalletDeviceVendor::Apple);
+        let mut wallet = TestWalletMockStorage::new_unregistered(WalletDeviceVendor::Apple).await;
 
         Arc::get_mut(&mut wallet.account_provider_client)
             .unwrap()
-            .expect_register()
-            .return_once(|_, _| {
-                // Note that this key does not get checked by the wallet for Apple attestation. To prevent having
-                // to extract the public key here, we only perform this test for that particular platform.
-                let random_pubkey = *SigningKey::random(&mut OsRng).verifying_key();
-                let certificate = WalletWithMocks::valid_certificate(None, random_pubkey);
+            .expect_registration_challenge()
+            .return_once(|_| Ok(crypto::utils::random_bytes(32)));
 
-                Ok(certificate)
-            });
+        expect_register_with_random_pubkey(&mut wallet);
+
+        wallet.mut_storage().expect_open_if_needed().return_once(|| Ok(()));
 
         // Have the database return an error
         // when inserting the wallet certificate.
-        wallet.storage.write().await.set_keyed_data_error(RegistrationData::KEY);
+        wallet
+            .mut_storage()
+            .expect_insert_data::<RegistrationData>()
+            .returning(|_| Err(StorageError::AlreadyOpened));
 
         let error = wallet
             .register(PIN)
@@ -792,8 +841,6 @@ mod tests {
         assert_matches!(error, WalletRegistrationError::StoreRegistrationState(_));
         assert!(!wallet.has_registration());
 
-        let data = &wallet.storage.read().await.data;
-        assert_eq!(data.len(), 1);
-        assert_matches!(data.get(RegistrationData::KEY), Some(KeyedDataResult::Error));
+        wallet.mut_storage().checkpoint();
     }
 }

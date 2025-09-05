@@ -1,6 +1,9 @@
 # Index
 
-TODO Add a story here so the index doesn't look so empty
+This is the documentation index of the NL-Wallet. Here you can find information
+related to various aspects of the NL-Wallet ecosystem, like how to get started,
+architecture documentation, notes on various development-related subjects, our
+community effort, our way of working, and an overview of our release versions.
 
 ```{toctree}
 :maxdepth: 1
@@ -10,9 +13,9 @@ about
 ```{toctree}
 :caption: Get Started
 :maxdepth: 1
-get-started/onboarding
-get-started/verifier
-get-started/issuer
+get-started/preparations
+get-started/create-a-verifier
+get-started/create-an-issuer
 ```
 
 ```{toctree}
@@ -23,10 +26,26 @@ architecture/*
 ```
 
 ```{toctree}
+:caption: Functional Design
+:maxdepth: 1
+functional-design/about
+functional-design/use-cases
+functional-design/partial-flows
+functional-design/logical-test-cases
+```
+
+```{toctree}
 :caption: Development
 :maxdepth: 1
 :glob:
 development/*
+```
+
+```{toctree}
+:caption: Community
+:maxdepth: 1
+community/onboarding
+community/create-a-ca
 ```
 
 ```{toctree}

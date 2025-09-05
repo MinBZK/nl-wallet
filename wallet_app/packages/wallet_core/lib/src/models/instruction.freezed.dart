@@ -354,6 +354,334 @@ class _$DisclosureBasedIssuanceResult_InstructionErrorCopyWithImpl<$Res>
 }
 
 /// @nodoc
+mixin _$PidIssuanceResult {
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) || (other.runtimeType == runtimeType && other is PidIssuanceResult);
+  }
+
+  @override
+  int get hashCode => runtimeType.hashCode;
+
+  @override
+  String toString() {
+    return 'PidIssuanceResult()';
+  }
+}
+
+/// @nodoc
+class $PidIssuanceResultCopyWith<$Res> {
+  $PidIssuanceResultCopyWith(PidIssuanceResult _, $Res Function(PidIssuanceResult) __);
+}
+
+/// Adds pattern-matching-related methods to [PidIssuanceResult].
+extension PidIssuanceResultPatterns on PidIssuanceResult {
+  /// A variant of `map` that fallback to returning `orElse`.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case _:
+  ///     return orElse();
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(PidIssuanceResult_Ok value)? ok,
+    TResult Function(PidIssuanceResult_InstructionError value)? instructionError,
+    required TResult orElse(),
+  }) {
+    final _that = this;
+    switch (_that) {
+      case PidIssuanceResult_Ok() when ok != null:
+        return ok(_that);
+      case PidIssuanceResult_InstructionError() when instructionError != null:
+        return instructionError(_that);
+      case _:
+        return orElse();
+    }
+  }
+
+  /// A `switch`-like method, using callbacks.
+  ///
+  /// Callbacks receives the raw object, upcasted.
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case final Subclass2 value:
+  ///     return ...;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(PidIssuanceResult_Ok value) ok,
+    required TResult Function(PidIssuanceResult_InstructionError value) instructionError,
+  }) {
+    final _that = this;
+    switch (_that) {
+      case PidIssuanceResult_Ok():
+        return ok(_that);
+      case PidIssuanceResult_InstructionError():
+        return instructionError(_that);
+    }
+  }
+
+  /// A variant of `map` that fallback to returning `null`.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case _:
+  ///     return null;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(PidIssuanceResult_Ok value)? ok,
+    TResult? Function(PidIssuanceResult_InstructionError value)? instructionError,
+  }) {
+    final _that = this;
+    switch (_that) {
+      case PidIssuanceResult_Ok() when ok != null:
+        return ok(_that);
+      case PidIssuanceResult_InstructionError() when instructionError != null:
+        return instructionError(_that);
+      case _:
+        return null;
+    }
+  }
+
+  /// A variant of `when` that fallback to an `orElse` callback.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case _:
+  ///     return orElse();
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function(bool transferAvailable)? ok,
+    TResult Function(WalletInstructionError error)? instructionError,
+    required TResult orElse(),
+  }) {
+    final _that = this;
+    switch (_that) {
+      case PidIssuanceResult_Ok() when ok != null:
+        return ok(_that.transferAvailable);
+      case PidIssuanceResult_InstructionError() when instructionError != null:
+        return instructionError(_that.error);
+      case _:
+        return orElse();
+    }
+  }
+
+  /// A `switch`-like method, using callbacks.
+  ///
+  /// As opposed to `map`, this offers destructuring.
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case Subclass2(:final field2):
+  ///     return ...;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function(bool transferAvailable) ok,
+    required TResult Function(WalletInstructionError error) instructionError,
+  }) {
+    final _that = this;
+    switch (_that) {
+      case PidIssuanceResult_Ok():
+        return ok(_that.transferAvailable);
+      case PidIssuanceResult_InstructionError():
+        return instructionError(_that.error);
+    }
+  }
+
+  /// A variant of `when` that fallback to returning `null`
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case _:
+  ///     return null;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function(bool transferAvailable)? ok,
+    TResult? Function(WalletInstructionError error)? instructionError,
+  }) {
+    final _that = this;
+    switch (_that) {
+      case PidIssuanceResult_Ok() when ok != null:
+        return ok(_that.transferAvailable);
+      case PidIssuanceResult_InstructionError() when instructionError != null:
+        return instructionError(_that.error);
+      case _:
+        return null;
+    }
+  }
+}
+
+/// @nodoc
+
+class PidIssuanceResult_Ok extends PidIssuanceResult {
+  const PidIssuanceResult_Ok({required this.transferAvailable}) : super._();
+
+  final bool transferAvailable;
+
+  /// Create a copy of PidIssuanceResult
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @pragma('vm:prefer-inline')
+  $PidIssuanceResult_OkCopyWith<PidIssuanceResult_Ok> get copyWith =>
+      _$PidIssuanceResult_OkCopyWithImpl<PidIssuanceResult_Ok>(this, _$identity);
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is PidIssuanceResult_Ok &&
+            (identical(other.transferAvailable, transferAvailable) || other.transferAvailable == transferAvailable));
+  }
+
+  @override
+  int get hashCode => Object.hash(runtimeType, transferAvailable);
+
+  @override
+  String toString() {
+    return 'PidIssuanceResult.ok(transferAvailable: $transferAvailable)';
+  }
+}
+
+/// @nodoc
+abstract mixin class $PidIssuanceResult_OkCopyWith<$Res> implements $PidIssuanceResultCopyWith<$Res> {
+  factory $PidIssuanceResult_OkCopyWith(PidIssuanceResult_Ok value, $Res Function(PidIssuanceResult_Ok) _then) =
+      _$PidIssuanceResult_OkCopyWithImpl;
+  @useResult
+  $Res call({bool transferAvailable});
+}
+
+/// @nodoc
+class _$PidIssuanceResult_OkCopyWithImpl<$Res> implements $PidIssuanceResult_OkCopyWith<$Res> {
+  _$PidIssuanceResult_OkCopyWithImpl(this._self, this._then);
+
+  final PidIssuanceResult_Ok _self;
+  final $Res Function(PidIssuanceResult_Ok) _then;
+
+  /// Create a copy of PidIssuanceResult
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  $Res call({
+    Object? transferAvailable = null,
+  }) {
+    return _then(PidIssuanceResult_Ok(
+      transferAvailable: null == transferAvailable
+          ? _self.transferAvailable
+          : transferAvailable // ignore: cast_nullable_to_non_nullable
+              as bool,
+    ));
+  }
+}
+
+/// @nodoc
+
+class PidIssuanceResult_InstructionError extends PidIssuanceResult {
+  const PidIssuanceResult_InstructionError({required this.error}) : super._();
+
+  final WalletInstructionError error;
+
+  /// Create a copy of PidIssuanceResult
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @pragma('vm:prefer-inline')
+  $PidIssuanceResult_InstructionErrorCopyWith<PidIssuanceResult_InstructionError> get copyWith =>
+      _$PidIssuanceResult_InstructionErrorCopyWithImpl<PidIssuanceResult_InstructionError>(this, _$identity);
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is PidIssuanceResult_InstructionError &&
+            (identical(other.error, error) || other.error == error));
+  }
+
+  @override
+  int get hashCode => Object.hash(runtimeType, error);
+
+  @override
+  String toString() {
+    return 'PidIssuanceResult.instructionError(error: $error)';
+  }
+}
+
+/// @nodoc
+abstract mixin class $PidIssuanceResult_InstructionErrorCopyWith<$Res> implements $PidIssuanceResultCopyWith<$Res> {
+  factory $PidIssuanceResult_InstructionErrorCopyWith(
+          PidIssuanceResult_InstructionError value, $Res Function(PidIssuanceResult_InstructionError) _then) =
+      _$PidIssuanceResult_InstructionErrorCopyWithImpl;
+  @useResult
+  $Res call({WalletInstructionError error});
+
+  $WalletInstructionErrorCopyWith<$Res> get error;
+}
+
+/// @nodoc
+class _$PidIssuanceResult_InstructionErrorCopyWithImpl<$Res>
+    implements $PidIssuanceResult_InstructionErrorCopyWith<$Res> {
+  _$PidIssuanceResult_InstructionErrorCopyWithImpl(this._self, this._then);
+
+  final PidIssuanceResult_InstructionError _self;
+  final $Res Function(PidIssuanceResult_InstructionError) _then;
+
+  /// Create a copy of PidIssuanceResult
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  $Res call({
+    Object? error = null,
+  }) {
+    return _then(PidIssuanceResult_InstructionError(
+      error: null == error
+          ? _self.error
+          : error // ignore: cast_nullable_to_non_nullable
+              as WalletInstructionError,
+    ));
+  }
+
+  /// Create a copy of PidIssuanceResult
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $WalletInstructionErrorCopyWith<$Res> get error {
+    return $WalletInstructionErrorCopyWith<$Res>(_self.error, (value) {
+      return _then(_self.copyWith(error: value));
+    });
+  }
+}
+
+/// @nodoc
 mixin _$WalletInstructionError {
   @override
   bool operator ==(Object other) {
@@ -995,6 +1323,341 @@ class _$WalletInstructionResult_InstructionErrorCopyWithImpl<$Res>
   }
 
   /// Create a copy of WalletInstructionResult
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $WalletInstructionErrorCopyWith<$Res> get error {
+    return $WalletInstructionErrorCopyWith<$Res>(_self.error, (value) {
+      return _then(_self.copyWith(error: value));
+    });
+  }
+}
+
+/// @nodoc
+mixin _$WalletTransferInstructionResult {
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) || (other.runtimeType == runtimeType && other is WalletTransferInstructionResult);
+  }
+
+  @override
+  int get hashCode => runtimeType.hashCode;
+
+  @override
+  String toString() {
+    return 'WalletTransferInstructionResult()';
+  }
+}
+
+/// @nodoc
+class $WalletTransferInstructionResultCopyWith<$Res> {
+  $WalletTransferInstructionResultCopyWith(
+      WalletTransferInstructionResult _, $Res Function(WalletTransferInstructionResult) __);
+}
+
+/// Adds pattern-matching-related methods to [WalletTransferInstructionResult].
+extension WalletTransferInstructionResultPatterns on WalletTransferInstructionResult {
+  /// A variant of `map` that fallback to returning `orElse`.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case _:
+  ///     return orElse();
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(WalletTransferInstructionResult_Ok value)? ok,
+    TResult Function(WalletTransferInstructionResult_InstructionError value)? instructionError,
+    required TResult orElse(),
+  }) {
+    final _that = this;
+    switch (_that) {
+      case WalletTransferInstructionResult_Ok() when ok != null:
+        return ok(_that);
+      case WalletTransferInstructionResult_InstructionError() when instructionError != null:
+        return instructionError(_that);
+      case _:
+        return orElse();
+    }
+  }
+
+  /// A `switch`-like method, using callbacks.
+  ///
+  /// Callbacks receives the raw object, upcasted.
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case final Subclass2 value:
+  ///     return ...;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(WalletTransferInstructionResult_Ok value) ok,
+    required TResult Function(WalletTransferInstructionResult_InstructionError value) instructionError,
+  }) {
+    final _that = this;
+    switch (_that) {
+      case WalletTransferInstructionResult_Ok():
+        return ok(_that);
+      case WalletTransferInstructionResult_InstructionError():
+        return instructionError(_that);
+    }
+  }
+
+  /// A variant of `map` that fallback to returning `null`.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case _:
+  ///     return null;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(WalletTransferInstructionResult_Ok value)? ok,
+    TResult? Function(WalletTransferInstructionResult_InstructionError value)? instructionError,
+  }) {
+    final _that = this;
+    switch (_that) {
+      case WalletTransferInstructionResult_Ok() when ok != null:
+        return ok(_that);
+      case WalletTransferInstructionResult_InstructionError() when instructionError != null:
+        return instructionError(_that);
+      case _:
+        return null;
+    }
+  }
+
+  /// A variant of `when` that fallback to an `orElse` callback.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case _:
+  ///     return orElse();
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function(String transferUri)? ok,
+    TResult Function(WalletInstructionError error)? instructionError,
+    required TResult orElse(),
+  }) {
+    final _that = this;
+    switch (_that) {
+      case WalletTransferInstructionResult_Ok() when ok != null:
+        return ok(_that.transferUri);
+      case WalletTransferInstructionResult_InstructionError() when instructionError != null:
+        return instructionError(_that.error);
+      case _:
+        return orElse();
+    }
+  }
+
+  /// A `switch`-like method, using callbacks.
+  ///
+  /// As opposed to `map`, this offers destructuring.
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case Subclass2(:final field2):
+  ///     return ...;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function(String transferUri) ok,
+    required TResult Function(WalletInstructionError error) instructionError,
+  }) {
+    final _that = this;
+    switch (_that) {
+      case WalletTransferInstructionResult_Ok():
+        return ok(_that.transferUri);
+      case WalletTransferInstructionResult_InstructionError():
+        return instructionError(_that.error);
+    }
+  }
+
+  /// A variant of `when` that fallback to returning `null`
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case _:
+  ///     return null;
+  /// }
+  /// ```
+
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function(String transferUri)? ok,
+    TResult? Function(WalletInstructionError error)? instructionError,
+  }) {
+    final _that = this;
+    switch (_that) {
+      case WalletTransferInstructionResult_Ok() when ok != null:
+        return ok(_that.transferUri);
+      case WalletTransferInstructionResult_InstructionError() when instructionError != null:
+        return instructionError(_that.error);
+      case _:
+        return null;
+    }
+  }
+}
+
+/// @nodoc
+
+class WalletTransferInstructionResult_Ok extends WalletTransferInstructionResult {
+  const WalletTransferInstructionResult_Ok({required this.transferUri}) : super._();
+
+  final String transferUri;
+
+  /// Create a copy of WalletTransferInstructionResult
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @pragma('vm:prefer-inline')
+  $WalletTransferInstructionResult_OkCopyWith<WalletTransferInstructionResult_Ok> get copyWith =>
+      _$WalletTransferInstructionResult_OkCopyWithImpl<WalletTransferInstructionResult_Ok>(this, _$identity);
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is WalletTransferInstructionResult_Ok &&
+            (identical(other.transferUri, transferUri) || other.transferUri == transferUri));
+  }
+
+  @override
+  int get hashCode => Object.hash(runtimeType, transferUri);
+
+  @override
+  String toString() {
+    return 'WalletTransferInstructionResult.ok(transferUri: $transferUri)';
+  }
+}
+
+/// @nodoc
+abstract mixin class $WalletTransferInstructionResult_OkCopyWith<$Res>
+    implements $WalletTransferInstructionResultCopyWith<$Res> {
+  factory $WalletTransferInstructionResult_OkCopyWith(
+          WalletTransferInstructionResult_Ok value, $Res Function(WalletTransferInstructionResult_Ok) _then) =
+      _$WalletTransferInstructionResult_OkCopyWithImpl;
+  @useResult
+  $Res call({String transferUri});
+}
+
+/// @nodoc
+class _$WalletTransferInstructionResult_OkCopyWithImpl<$Res>
+    implements $WalletTransferInstructionResult_OkCopyWith<$Res> {
+  _$WalletTransferInstructionResult_OkCopyWithImpl(this._self, this._then);
+
+  final WalletTransferInstructionResult_Ok _self;
+  final $Res Function(WalletTransferInstructionResult_Ok) _then;
+
+  /// Create a copy of WalletTransferInstructionResult
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  $Res call({
+    Object? transferUri = null,
+  }) {
+    return _then(WalletTransferInstructionResult_Ok(
+      transferUri: null == transferUri
+          ? _self.transferUri
+          : transferUri // ignore: cast_nullable_to_non_nullable
+              as String,
+    ));
+  }
+}
+
+/// @nodoc
+
+class WalletTransferInstructionResult_InstructionError extends WalletTransferInstructionResult {
+  const WalletTransferInstructionResult_InstructionError({required this.error}) : super._();
+
+  final WalletInstructionError error;
+
+  /// Create a copy of WalletTransferInstructionResult
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @pragma('vm:prefer-inline')
+  $WalletTransferInstructionResult_InstructionErrorCopyWith<WalletTransferInstructionResult_InstructionError>
+      get copyWith => _$WalletTransferInstructionResult_InstructionErrorCopyWithImpl<
+          WalletTransferInstructionResult_InstructionError>(this, _$identity);
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is WalletTransferInstructionResult_InstructionError &&
+            (identical(other.error, error) || other.error == error));
+  }
+
+  @override
+  int get hashCode => Object.hash(runtimeType, error);
+
+  @override
+  String toString() {
+    return 'WalletTransferInstructionResult.instructionError(error: $error)';
+  }
+}
+
+/// @nodoc
+abstract mixin class $WalletTransferInstructionResult_InstructionErrorCopyWith<$Res>
+    implements $WalletTransferInstructionResultCopyWith<$Res> {
+  factory $WalletTransferInstructionResult_InstructionErrorCopyWith(
+          WalletTransferInstructionResult_InstructionError value,
+          $Res Function(WalletTransferInstructionResult_InstructionError) _then) =
+      _$WalletTransferInstructionResult_InstructionErrorCopyWithImpl;
+  @useResult
+  $Res call({WalletInstructionError error});
+
+  $WalletInstructionErrorCopyWith<$Res> get error;
+}
+
+/// @nodoc
+class _$WalletTransferInstructionResult_InstructionErrorCopyWithImpl<$Res>
+    implements $WalletTransferInstructionResult_InstructionErrorCopyWith<$Res> {
+  _$WalletTransferInstructionResult_InstructionErrorCopyWithImpl(this._self, this._then);
+
+  final WalletTransferInstructionResult_InstructionError _self;
+  final $Res Function(WalletTransferInstructionResult_InstructionError) _then;
+
+  /// Create a copy of WalletTransferInstructionResult
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  $Res call({
+    Object? error = null,
+  }) {
+    return _then(WalletTransferInstructionResult_InstructionError(
+      error: null == error
+          ? _self.error
+          : error // ignore: cast_nullable_to_non_nullable
+              as WalletInstructionError,
+    ));
+  }
+
+  /// Create a copy of WalletTransferInstructionResult
   /// with the given fields replaced by the non-null parameter values.
   @override
   @pragma('vm:prefer-inline')

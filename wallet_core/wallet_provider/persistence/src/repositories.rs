@@ -4,6 +4,7 @@ use chrono::DateTime;
 use chrono::Utc;
 use derive_more::From;
 use p256::ecdsa::VerifyingKey;
+use semver::Version;
 use uuid;
 use uuid::Uuid;
 
@@ -155,6 +156,47 @@ impl WalletUserRepository for Repositories {
     ) -> Result<(), PersistenceError> {
         wallet_user::update_apple_assertion_counter(transaction, wallet_id, assertion_counter).await
     }
+
+    async fn store_recovery_code(
+        &self,
+        transaction: &Self::TransactionType,
+        wallet_id: &str,
+        recovery_code: String,
+    ) -> Result<(), PersistenceError> {
+        wallet_user::store_recovery_code(transaction, wallet_id, recovery_code).await
+    }
+
+    async fn has_multiple_active_accounts_by_recovery_code(
+        &self,
+        transaction: &Self::TransactionType,
+        recovery_code: &str,
+    ) -> Result<bool, PersistenceError> {
+        wallet_user::has_multiple_active_accounts_by_recovery_code(transaction, recovery_code).await
+    }
+
+    async fn prepare_transfer(
+        &self,
+        transaction: &Self::TransactionType,
+        wallet_id: &str,
+        transfer_session_id: Uuid,
+        destination_wallet_app_version: Version,
+    ) -> Result<(), PersistenceError> {
+        wallet_user::prepare_transfer(
+            transaction,
+            wallet_id,
+            transfer_session_id,
+            destination_wallet_app_version,
+        )
+        .await
+    }
+
+    async fn find_app_version_by_transfer_session_id(
+        &self,
+        transaction: &Self::TransactionType,
+        transfer_session_id: Uuid,
+    ) -> Result<Option<Version>, PersistenceError> {
+        wallet_user::find_app_version_by_transfer_session_id(transaction, transfer_session_id).await
+    }
 }
 
 #[cfg(feature = "mock")]
@@ -168,6 +210,7 @@ pub mod mock {
     use p256::ecdsa::SigningKey;
     use p256::ecdsa::VerifyingKey;
     use rand_core::OsRng;
+    use semver::Version;
     use uuid::Uuid;
     use uuid::uuid;
 
@@ -278,6 +321,33 @@ pub mod mock {
                 wallet_id: &str,
                 assertion_counter: AssertionCounter,
             ) -> Result<(), PersistenceError>;
+
+            async fn store_recovery_code(
+                &self,
+                transaction: &MockTransaction,
+                wallet_id: &str,
+                recovery_code: String,
+            ) -> Result<(), PersistenceError>;
+
+            async fn has_multiple_active_accounts_by_recovery_code(
+                &self,
+                transaction: &MockTransaction,
+                recovery_code: &str,
+            ) -> Result<bool, PersistenceError>;
+
+            async fn prepare_transfer(
+                &self,
+                transaction: &MockTransaction,
+                wallet_id: &str,
+                transfer_session_id: Uuid,
+                destination_wallet_app_version: Version,
+            ) -> Result<(), PersistenceError>;
+
+            async fn find_app_version_by_transfer_session_id(
+                &self,
+                transaction: &MockTransaction,
+                transfer_session_id: Uuid,
+            ) -> Result<Option<Version>, PersistenceError>;
         }
 
         impl TransactionStarter for TransactionalWalletUserRepository {
@@ -296,6 +366,7 @@ pub mod mock {
         pub instruction_sequence_number: u64,
         pub apple_assertion_counter: Option<AssertionCounter>,
         pub state: WalletUserState,
+        pub transfer_session_id: Option<Uuid>,
     }
 
     impl WalletUserRepository for WalletUserTestRepo {
@@ -332,6 +403,9 @@ pub mod mock {
                     None => WalletUserAttestation::Android,
                 },
                 state: self.state,
+                recovery_code: None,
+                transfer_session_id: self.transfer_session_id,
+                destination_wallet_app_version: None,
             })))
         }
 
@@ -439,6 +513,41 @@ pub mod mock {
             _assertion_counter: AssertionCounter,
         ) -> Result<(), PersistenceError> {
             Ok(())
+        }
+
+        async fn store_recovery_code(
+            &self,
+            _transaction: &Self::TransactionType,
+            _wallet_id: &str,
+            _recovery_code: String,
+        ) -> Result<(), PersistenceError> {
+            Ok(())
+        }
+
+        async fn has_multiple_active_accounts_by_recovery_code(
+            &self,
+            _transaction: &Self::TransactionType,
+            _recovery_code: &str,
+        ) -> Result<bool, PersistenceError> {
+            Ok(false)
+        }
+
+        async fn prepare_transfer(
+            &self,
+            _transaction: &Self::TransactionType,
+            _wallet_id: &str,
+            _transfer_session_id: Uuid,
+            _destination_wallet_app_version: Version,
+        ) -> Result<(), PersistenceError> {
+            Ok(())
+        }
+
+        async fn find_app_version_by_transfer_session_id(
+            &self,
+            _transaction: &Self::TransactionType,
+            _transfer_session_id: Uuid,
+        ) -> Result<Option<Version>, PersistenceError> {
+            Ok(None)
         }
     }
 

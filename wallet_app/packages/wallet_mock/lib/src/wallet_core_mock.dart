@@ -25,7 +25,7 @@ class WalletCoreMock implements WalletCoreApi {
   WalletCoreMock(this._pinManager, this._wallet, this._eventLog, this._issuanceManager, this._disclosureManager);
 
   @override
-  Future<StartDisclosureResult> crateApiFullStartDisclosure({required String uri, required bool isQrCode, hint}) async {
+  Future<StartDisclosureResult> crateApiFullStartDisclosure({required String uri, required bool isQrCode}) async {
     final jsonPayload = jsonDecode(Uri.decodeComponent(Uri.parse(uri).fragment));
     final isDisclosureBasedIssuance = jsonPayload['type'] == 'issue';
 
@@ -36,18 +36,18 @@ class WalletCoreMock implements WalletCoreApi {
   }
 
   @override
-  Future<String?> crateApiFullCancelDisclosure({hint}) async {
+  Future<String?> crateApiFullCancelDisclosure() async {
     await _disclosureManager.cancelDisclosure();
     return null;
   }
 
   @override
-  Future<AcceptDisclosureResult> crateApiFullAcceptDisclosure({required String pin, hint}) async {
+  Future<AcceptDisclosureResult> crateApiFullAcceptDisclosure({required String pin}) async {
     return _disclosureManager.acceptDisclosure(pin);
   }
 
   @override
-  Future<WalletInstructionResult> crateApiFullAcceptIssuance({required String pin, hint}) async {
+  Future<WalletInstructionResult> crateApiFullAcceptIssuance({required String pin}) async {
     /// Check if the issuance manager has an active session that should be continued
     if (_issuanceManager.hasActiveIssuanceSession) return _issuanceManager.acceptIssuance(pin, []);
 
@@ -80,45 +80,50 @@ class WalletCoreMock implements WalletCoreApi {
   }
 
   @override
-  Future<void> crateApiFullCancelIssuance({hint}) async => _issuanceManager.cancelIssuance();
+  Future<PidIssuanceResult> crateApiFullAcceptPidIssuance({required String pin}) {
+    throw UnimplementedError();
+  }
 
   @override
-  Future<void> crateApiFullClearAttestationsStream({hint}) async {
+  Future<void> crateApiFullCancelIssuance() async => _issuanceManager.cancelIssuance();
+
+  @override
+  Future<void> crateApiFullClearAttestationsStream() async {
     // Stub only, no need to clear it on the mock
   }
 
   @override
-  Future<void> crateApiFullClearConfigurationStream({hint}) async {
+  Future<void> crateApiFullClearConfigurationStream() async {
     // Stub only, no need to clear it on the mock
   }
 
   @override
-  Future<void> crateApiFullClearVersionStateStream({hint}) async {
+  Future<void> crateApiFullClearVersionStateStream() async {
     // Stub only, no need to clear it on the mock
   }
 
   @override
-  Future<void> crateApiFullClearLockStream({hint}) async {
+  Future<void> crateApiFullClearLockStream() async {
     // Stub only, no need to clear it on the mock
   }
 
   @override
-  Future<void> crateApiFullClearRecentHistoryStream({hint}) async {
+  Future<void> crateApiFullClearRecentHistoryStream() async {
     // Stub only, no need to clear it on the mock
   }
 
   @override
-  Future<List<AttestationPresentation>> crateApiFullContinuePidIssuance({required String uri, hint}) async =>
+  Future<List<AttestationPresentation>> crateApiFullContinuePidIssuance({required String uri}) async =>
       kPidAttestations;
 
   @override
-  Future<String> crateApiFullCreatePidIssuanceRedirectUri({hint}) async => MockConstants.pidIssuanceRedirectUri;
+  Future<String> crateApiFullCreatePidIssuanceRedirectUri() async => MockConstants.pidIssuanceRedirectUri;
 
   @override
-  Future<bool> crateApiFullHasRegistration({hint}) async => _pinManager.isRegistered;
+  Future<bool> crateApiFullHasRegistration() async => _pinManager.isRegistered;
 
   @override
-  Future<IdentifyUriResult> crateApiFullIdentifyUri({required String uri, hint}) async {
+  Future<IdentifyUriResult> crateApiFullIdentifyUri({required String uri}) async {
     final jsonPayload = jsonDecode(Uri.decodeComponent(Uri.parse(uri).fragment));
     final type = jsonPayload['type'] as String;
     if (type == 'verify') return IdentifyUriResult.Disclosure;
@@ -128,13 +133,13 @@ class WalletCoreMock implements WalletCoreApi {
   }
 
   @override
-  Future<void> crateApiFullInit({hint}) async => _isInitialized = true;
+  Future<void> crateApiFullInit() async => _isInitialized = true;
 
   @override
-  Future<bool> crateApiFullIsInitialized({hint}) async => _isInitialized;
+  Future<bool> crateApiFullIsInitialized() async => _isInitialized;
 
   @override
-  Future<PinValidationResult> crateApiFullIsValidPin({required String pin, hint}) async {
+  Future<PinValidationResult> crateApiFullIsValidPin({required String pin}) async {
     const digits = 6;
     if (pin.length != digits) return PinValidationResult.OtherIssue;
     if (pin.split('').toSet().length <= 1) return PinValidationResult.TooFewUniqueDigits;
@@ -157,26 +162,26 @@ class WalletCoreMock implements WalletCoreApi {
   }
 
   @override
-  Future<void> crateApiFullLockWallet({hint}) async => _wallet.lock();
+  Future<void> crateApiFullLockWallet() async => _wallet.lock();
 
   @override
-  Future<void> crateApiFullRegister({required String pin, hint}) async {
+  Future<void> crateApiFullRegister({required String pin}) async {
     _pinManager.setPin(pin);
     _wallet.unlock();
   }
 
   @override
-  Future<void> crateApiFullResetWallet({hint}) async {
+  Future<void> crateApiFullResetWallet() async {
     await _pinManager.resetPin();
     _wallet.reset();
     _eventLog.reset();
   }
 
   @override
-  Stream<List<AttestationPresentation>> crateApiFullSetAttestationsStream({hint}) => _wallet.attestationsStream;
+  Stream<List<AttestationPresentation>> crateApiFullSetAttestationsStream() => _wallet.attestationsStream;
 
   @override
-  Stream<FlutterConfiguration> crateApiFullSetConfigurationStream({hint}) {
+  Stream<FlutterConfiguration> crateApiFullSetConfigurationStream() {
     return Stream.value(
       FlutterConfiguration(
         inactiveWarningTimeout: const Duration(minutes: 1).inSeconds,
@@ -189,15 +194,15 @@ class WalletCoreMock implements WalletCoreApi {
   }
 
   @override
-  Stream<FlutterVersionState> crateApiFullSetVersionStateStream({hint}) {
+  Stream<FlutterVersionState> crateApiFullSetVersionStateStream() {
     return Stream.value(const FlutterVersionState.ok());
   }
 
   @override
-  Stream<bool> crateApiFullSetLockStream({hint}) => _wallet.lockedStream;
+  Stream<bool> crateApiFullSetLockStream() => _wallet.lockedStream;
 
   @override
-  Future<WalletInstructionResult> crateApiFullUnlockWallet({required String pin, hint}) async {
+  Future<WalletInstructionResult> crateApiFullUnlockWallet({required String pin}) async {
     final result = _pinManager.checkPin(pin);
     final bool pinMatches = result is WalletInstructionResult_Ok;
     if (pinMatches) {
@@ -209,23 +214,23 @@ class WalletCoreMock implements WalletCoreApi {
   }
 
   @override
-  Future<List<WalletEvent>> crateApiFullGetHistory({hint}) async => _eventLog.log;
+  Future<List<WalletEvent>> crateApiFullGetHistory() async => _eventLog.log;
 
   @override
-  Future<List<WalletEvent>> crateApiFullGetHistoryForCard({required String attestationId, hint}) async =>
+  Future<List<WalletEvent>> crateApiFullGetHistoryForCard({required String attestationId}) async =>
       _eventLog.logForAttestationId(attestationId);
 
   @override
-  Stream<List<WalletEvent>> crateApiFullSetRecentHistoryStream({hint}) => _eventLog.logStream;
+  Stream<List<WalletEvent>> crateApiFullSetRecentHistoryStream() => _eventLog.logStream;
 
   @override
-  Future<bool> crateApiFullHasActiveDisclosureSession({hint}) async => _disclosureManager.hasActiveDisclosureSession;
+  Future<bool> crateApiFullHasActiveDisclosureSession() async => _disclosureManager.hasActiveDisclosureSession;
 
   @override
-  Future<bool> crateApiFullHasActiveIssuanceSession({hint}) async => _issuanceManager.hasActiveIssuanceSession;
+  Future<bool> crateApiFullHasActiveIssuanceSession() async => _issuanceManager.hasActiveIssuanceSession;
 
   @override
-  Future<DisclosureBasedIssuanceResult> crateApiFullContinueDisclosureBasedIssuance({required String pin, hint}) async {
+  Future<DisclosureBasedIssuanceResult> crateApiFullContinueDisclosureBasedIssuance({required String pin}) async {
     assert(_issuanceManager.hasActiveIssuanceSession, 'invalid state');
     final attestations = await _issuanceManager.discloseForIssuance(pin);
     try {
@@ -238,16 +243,16 @@ class WalletCoreMock implements WalletCoreApi {
   }
 
   @override
-  Future<bool> crateApiFullIsBiometricUnlockEnabled({hint}) async => _isBiometricsEnabled;
+  Future<bool> crateApiFullIsBiometricUnlockEnabled() async => _isBiometricsEnabled;
 
   @override
-  Future<void> crateApiFullUnlockWalletWithBiometrics({hint}) async => _wallet.unlock();
+  Future<void> crateApiFullUnlockWalletWithBiometrics() async => _wallet.unlock();
 
   @override
-  Future<void> crateApiFullSetBiometricUnlock({required bool enable, hint}) async => _isBiometricsEnabled = enable;
+  Future<void> crateApiFullSetBiometricUnlock({required bool enable}) async => _isBiometricsEnabled = enable;
 
   @override
-  Future<WalletInstructionResult> crateApiFullChangePin({required String oldPin, required String newPin, hint}) async {
+  Future<WalletInstructionResult> crateApiFullChangePin({required String oldPin, required String newPin}) async {
     final result = _pinManager.checkPin(oldPin);
     final validationResult = await isValidPin(pin: newPin);
     if (validationResult != PinValidationResult.Ok) throw StateError('Pin should be validated in the flow beforehand');
@@ -257,17 +262,17 @@ class WalletCoreMock implements WalletCoreApi {
   }
 
   @override
-  Future<WalletInstructionResult> crateApiFullContinueChangePin({required String pin, hint}) async {
+  Future<WalletInstructionResult> crateApiFullContinueChangePin({required String pin}) async {
     _pinManager.updatePin(pin);
     await Future.delayed(const Duration(milliseconds: 500));
     return _pinManager.checkPin(pin);
   }
 
   @override
-  Future<WalletInstructionResult> crateApiFullCheckPin({required String pin, hint}) async => _pinManager.checkPin(pin);
+  Future<WalletInstructionResult> crateApiFullCheckPin({required String pin}) async => _pinManager.checkPin(pin);
 
   @override
-  Future<String> crateApiFullGetVersionString({hint}) async => MockConstants.versionString;
+  Future<String> crateApiFullGetVersionString() async => MockConstants.versionString;
 
   @override
   Future<String> crateApiFullCreatePidRenewalRedirectUri() async {
@@ -276,22 +281,46 @@ class WalletCoreMock implements WalletCoreApi {
   }
 
   @override
-  Future<String> crateApiFullCreatePinRecoveryRedirectUri() {
+  Future<String> crateApiFullCreatePinRecoveryRedirectUri() async {
+    await Future.delayed(const Duration(seconds: 1));
+    return MockConstants.pinRecoveryRedirectUri;
+  }
+
+  @override
+  Future<void> crateApiFullContinuePinRecovery({required String uri}) async {
+    await Future.delayed(const Duration(seconds: 1));
+  }
+
+  @override
+  Future<WalletInstructionResult> crateApiFullCompletePinRecovery({required String pin}) async {
+    await Future.delayed(const Duration(seconds: 1));
+    _pinManager.updatePin(pin);
+    _wallet.unlock();
+    return const WalletInstructionResult.ok();
+  }
+
+  @override
+  Future<void> crateApiFullCancelPinRecovery() async {
+    await Future.delayed(const Duration(milliseconds: 300));
+  }
+
+  @override
+  Future<void> crateApiFullInitWalletTransfer({required String uri}) {
     throw UnimplementedError();
   }
 
   @override
-  Future<void> crateApiFullContinuePinRecovery({required String uri}) {
+  Future<WalletInstructionResult> crateApiFullConfirmWalletTransfer({required String pin}) {
     throw UnimplementedError();
   }
 
   @override
-  Future<WalletInstructionResult> crateApiFullCompletePinRecovery({required String pin}) {
+  Future<WalletTransferInstructionResult> crateApiFullStartWalletTransfer({required String pin}) {
     throw UnimplementedError();
   }
 
   @override
-  Future<void> crateApiFullCancelPinRecovery() {
+  Stream<WalletTransferState> crateApiFullGetWalletTransferStateStream() {
     throw UnimplementedError();
   }
 }

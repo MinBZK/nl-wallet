@@ -51,8 +51,12 @@ import 'package:wallet/src/domain/usecase/pid/cancel_pid_issuance_usecase.dart';
 import 'package:wallet/src/domain/usecase/pid/continue_pid_issuance_usecase.dart';
 import 'package:wallet/src/domain/usecase/pid/get_pid_issuance_url_usecase.dart';
 import 'package:wallet/src/domain/usecase/pid/get_pid_renewal_url_usecase.dart';
+import 'package:wallet/src/domain/usecase/pin/cancel_pin_recovery_usecase.dart';
 import 'package:wallet/src/domain/usecase/pin/change_pin_usecase.dart';
 import 'package:wallet/src/domain/usecase/pin/check_is_valid_pin_usecase.dart';
+import 'package:wallet/src/domain/usecase/pin/complete_pin_recovery_usecase.dart';
+import 'package:wallet/src/domain/usecase/pin/continue_pin_recovery_usecase.dart';
+import 'package:wallet/src/domain/usecase/pin/create_pin_recovery_url_usecase.dart';
 import 'package:wallet/src/domain/usecase/pin/disclose_for_issuance_usecase.dart';
 import 'package:wallet/src/domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
 import 'package:wallet/src/domain/usecase/qr/decode_qr_usecase.dart';
@@ -174,6 +178,10 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<FetchTourVideosUseCase>()])
 @GenerateNiceMocks([MockSpec<GetPidRenewalUrlUseCase>()])
 @GenerateNiceMocks([MockSpec<GetPidCardsUseCase>()])
+@GenerateNiceMocks([MockSpec<CreatePinRecoveryRedirectUriUseCase>()])
+@GenerateNiceMocks([MockSpec<ContinuePinRecoveryUseCase>()])
+@GenerateNiceMocks([MockSpec<CancelPinRecoveryUseCase>()])
+@GenerateNiceMocks([MockSpec<CompletePinRecoveryUseCase>()])
 
 /// Core
 @GenerateNiceMocks([MockSpec<WalletCoreApi>()])

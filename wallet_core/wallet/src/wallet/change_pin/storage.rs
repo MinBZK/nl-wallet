@@ -53,14 +53,13 @@ mod tests {
 
     use crate::pin::change::ChangePinStorage;
     use crate::pin::change::State;
-    use crate::storage::StorageState;
-    use crate::storage::StorageStub;
+    use crate::storage::InMemoryDatabaseStorage;
 
     use super::*;
 
     #[tokio::test]
     async fn test_change_pin_storage() {
-        let storage = StorageStub::new(StorageState::Opened, None);
+        let storage = InMemoryDatabaseStorage::open().await;
         let change_pin_storage = Arc::new(RwLock::new(storage));
 
         assert_matches!(change_pin_storage.get_change_pin_state().await, Ok(None));

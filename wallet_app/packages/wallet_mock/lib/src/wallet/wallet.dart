@@ -59,9 +59,9 @@ class Wallet {
     _isLockedSubject.add(true);
   }
 
-  lock() => _isLockedSubject.add(true);
+  void lock() => _isLockedSubject.add(true);
 
-  unlock() => _isLockedSubject.add(false);
+  void unlock() => _isLockedSubject.add(false);
 
   /// Adds the cards to the wallet, if a card with the same attestationType already exists, it is replaced with the new card.
   void add(List<AttestationPresentation> attestations) {

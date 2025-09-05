@@ -25,6 +25,7 @@ pub enum UriType {
     PinRecovery,
     Disclosure,
     DisclosureBasedIssuance,
+    Transfer,
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
@@ -37,14 +38,12 @@ pub enum UriIdentificationError {
 }
 
 pub(super) fn identify_uri(uri: &Url) -> Option<UriType> {
-    if uri
-        .as_str()
-        .starts_with(urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().as_str())
-    {
+    let uri = uri.as_str();
+    if uri.starts_with(urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().as_str()) {
         return Some(UriType::PidIssuance);
     }
 
-    if uri.as_str().starts_with(
+    if uri.starts_with(
         urls::disclosure_based_issuance_base_uri(&UNIVERSAL_LINK_BASE_URL)
             .as_ref()
             .as_str(),
@@ -52,11 +51,12 @@ pub(super) fn identify_uri(uri: &Url) -> Option<UriType> {
         return Some(UriType::DisclosureBasedIssuance);
     }
 
-    if uri
-        .as_str()
-        .starts_with(urls::disclosure_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().as_str())
-    {
+    if uri.starts_with(urls::disclosure_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().as_str()) {
         return Some(UriType::Disclosure);
+    }
+
+    if uri.starts_with(urls::transfer_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().as_str()) {
+        return Some(UriType::Transfer);
     }
 
     None
@@ -95,14 +95,14 @@ mod tests {
     use crate::config::UNIVERSAL_LINK_BASE_URL;
     use crate::digid::MockDigidSession;
 
+    use super::super::test::TestWalletMockStorage;
     use super::super::test::WalletDeviceVendor;
-    use super::super::test::WalletWithMocks;
     use super::*;
 
     #[tokio::test]
     async fn test_wallet_identify_redirect_uri() {
         // Prepare an unregistered wallet.
-        let mut wallet = WalletWithMocks::new_unregistered(WalletDeviceVendor::Apple);
+        let mut wallet = TestWalletMockStorage::new_unregistered(WalletDeviceVendor::Apple).await;
 
         // Set up some URLs to work with.
         let example_uri = "https://example.com/";
@@ -115,6 +115,8 @@ mod tests {
 
         let disclosure_uri = disclosure_uri_base.join("abcd");
         let disclosure_based_issuance_uri = disclosure_based_issuance_uri_base.join("abcd");
+
+        let transfer_uri = urls::transfer_base_uri(&UNIVERSAL_LINK_BASE_URL).join("fghi");
 
         // The example URI should not be recognised.
         assert_matches!(
@@ -153,5 +155,8 @@ mod tests {
             wallet.identify_uri(disclosure_based_issuance_uri.as_str()).unwrap(),
             UriType::DisclosureBasedIssuance
         );
+
+        // The transfer URI should be recognised.
+        assert_matches!(wallet.identify_uri(transfer_uri.as_str()).unwrap(), UriType::Transfer);
     }
 }

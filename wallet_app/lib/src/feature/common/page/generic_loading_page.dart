@@ -84,6 +84,7 @@ class _GenericLoadingPageState extends State<GenericLoadingPage> {
         /// an extra [kDefaultAnimationDuration] so that any animations can settle (this allows the focus change
         /// to behave properly on iOS as well).
         if (!Environment.isTest) await Future.delayed(kDefaultAnimationDuration);
+        if (!mounted) return;
         _titleKey.currentContext?.findRenderObject()?.sendSemanticsEvent(const FocusSemanticEvent());
       });
     }

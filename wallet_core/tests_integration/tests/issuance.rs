@@ -25,7 +25,7 @@ use wallet::errors::IssuanceError;
 use wallet::openid4vc::SessionType;
 use wallet::utils::BaseUrl;
 
-pub async fn wallet_attestations(wallet: &mut WalletWithMocks) -> Vec<AttestationPresentation> {
+pub async fn wallet_attestations(wallet: &mut WalletWithStorage) -> Vec<AttestationPresentation> {
     // Emit attestations into this local variable
     let attestations: Arc<std::sync::Mutex<Vec<AttestationPresentation>>> = Arc::new(std::sync::Mutex::new(vec![]));
 
@@ -69,16 +69,13 @@ async fn test_pid_ok() {
         AttestationAttributeValue::Basic(AttributeValue::Text("999991772".to_string()))
     );
 
-    let recovery_code_attr = pid_attestation
+    // Recovery code is hidden from presentation
+    let recovery_code_result = pid_attestation
         .attributes
         .iter()
-        .find(|a| a.key == vec![PID_RECOVERY_CODE])
-        .unwrap();
+        .find(|a| a.key == vec![PID_RECOVERY_CODE]);
 
-    assert_eq!(
-        recovery_code_attr.value,
-        AttestationAttributeValue::Basic(AttributeValue::Text("123".to_string()))
-    );
+    assert_eq!(recovery_code_result, None);
 }
 
 fn universal_link(issuance_server_url: &BaseUrl) -> Url {

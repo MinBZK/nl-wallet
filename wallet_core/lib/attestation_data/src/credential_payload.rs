@@ -441,6 +441,7 @@ pub mod mock {
     use utils::generator::Generator;
 
     use crate::attributes::AttributeValue;
+    use crate::constants::PID_RECOVERY_CODE;
 
     use super::CredentialPayload;
 
@@ -449,8 +450,19 @@ pub mod mock {
             Self::example_with_attributes(
                 vec![
                     ("bsn", AttributeValue::Text("999999999".to_string())),
+                    (
+                        "recovery_code",
+                        AttributeValue::Text(
+                            "cff292503cba8c4fbf2e5820dcdc468ae00f40c87b1af35513375800128fc00d".to_string(),
+                        ),
+                    ),
                     ("given_name", AttributeValue::Text("Willeke Liselotte".to_string())),
                     ("family_name", AttributeValue::Text("De Bruijn".to_string())),
+                    ("birthdate", AttributeValue::Text("1997-03-11".to_string())),
+                    (
+                        PID_RECOVERY_CODE,
+                        AttributeValue::Text("885ed8a2-f07a-4f77-a8df-2e166f5ebd36".to_string()),
+                    ),
                 ],
                 SigningKey::random(&mut OsRng).verifying_key(),
                 time_generator,
@@ -481,7 +493,6 @@ mod test {
     use jwt::EcdsaDecodingKey;
     use jwt::jwk::jwk_from_p256;
     use sd_jwt::builder::SdJwtBuilder;
-    use sd_jwt::hasher::Sha256Hasher;
     use sd_jwt::key_binding_jwt_claims::KeyBindingJwtBuilder;
     use sd_jwt::key_binding_jwt_claims::RequiredKeyBinding;
     use sd_jwt::sd_jwt::SdJwtPresentation;
@@ -727,7 +738,6 @@ mod test {
             .await
             .unwrap();
 
-        let hasher = Sha256Hasher::new();
         let presented_sd_jwt = sd_jwt
             .into_presentation_builder()
             .finish()
@@ -738,7 +748,6 @@ mod test {
                     String::from("nonce123"),
                     Algorithm::ES256,
                 ),
-                &hasher,
                 &holder_key,
             )
             .await
@@ -747,7 +756,6 @@ mod test {
         SdJwtPresentation::parse_and_verify(
             &presented_sd_jwt.to_string(),
             &EcdsaDecodingKey::from(&issuer_key_pair.verifying_key().await.unwrap()),
-            &Sha256Hasher,
             "https://aud.example.com",
             "nonce123",
             Duration::days(36500),

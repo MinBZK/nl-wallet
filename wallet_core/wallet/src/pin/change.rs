@@ -32,7 +32,7 @@ pub trait ChangePinClientError: std::error::Error {
     fn is_network_error(&self) -> bool;
 }
 
-#[cfg_attr(any(test, feature = "mock"), mockall::automock(type Error = mock::ChangePinClientTestError;))]
+#[cfg_attr(any(test, feature = "test"), mockall::automock(type Error = mock::ChangePinClientTestError;))]
 pub trait ChangePinClient {
     type Error: ChangePinClientError;
     async fn start_new_pin(
@@ -45,7 +45,7 @@ pub trait ChangePinClient {
     async fn rollback_new_pin(&self, old_pin: &str) -> Result<(), Self::Error>;
 }
 
-#[cfg_attr(any(test, feature = "mock"), mockall::automock)]
+#[cfg_attr(any(test, feature = "test"), mockall::automock)]
 pub trait ChangePinStorage {
     async fn get_change_pin_state(&self) -> Result<Option<State>, StorageError>;
     async fn store_change_pin_state(&self, state: State) -> Result<(), StorageError>;
@@ -281,7 +281,7 @@ where
     }
 }
 
-#[cfg(any(test, feature = "mock"))]
+#[cfg(any(test, feature = "test"))]
 pub mod mock {
     use super::*;
 
@@ -315,7 +315,7 @@ mod test {
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
 
-    use jwt::Jwt;
+    use jwt::UnverifiedJwt;
     use wallet_account::messages::registration::WalletCertificateClaims;
 
     use super::*;
@@ -349,7 +349,7 @@ mod test {
             iat: jsonwebtoken::get_current_timestamp(),
         };
 
-        let wallet_certificate = Jwt::sign_with_sub(&certificate_claims, &certificate_signing_key)
+        let wallet_certificate = UnverifiedJwt::sign_with_sub(&certificate_claims, &certificate_signing_key)
             .await
             .unwrap();
 

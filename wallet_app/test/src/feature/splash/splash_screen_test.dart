@@ -1,24 +1,30 @@
 import 'dart:ui';
 
 import 'package:bloc_test/bloc_test.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:wallet/src/domain/usecase/biometrics/get_available_biometrics_usecase.dart';
 import 'package:wallet/src/feature/splash/bloc/splash_bloc.dart';
 import 'package:wallet/src/feature/splash/splash_screen.dart';
 import 'package:wallet/src/navigation/wallet_routes.dart';
 
 import '../../../wallet_app_test_widget.dart';
+import '../../mocks/wallet_mocks.dart';
 import '../../test_util/golden_utils.dart';
 
 class MockSplashBloc extends MockBloc<SplashEvent, SplashState> implements SplashBloc {}
 
 void main() {
   group('goldens', () {
-    testGoldens('SplashScreeon initial light', (tester) async {
+    testGoldens('SplashScreen initial light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const SplashScreen().withState<SplashBloc, SplashState>(
           MockSplashBloc(),
           SplashInitial(),
         ),
+        providers: [
+          RepositoryProvider<GetAvailableBiometricsUseCase>(create: (context) => MockGetAvailableBiometricsUseCase()),
+        ],
       );
       await screenMatchesGolden('initial.light');
     });
@@ -30,6 +36,9 @@ void main() {
           SplashInitial(),
         ),
         brightness: Brightness.dark,
+        providers: [
+          RepositoryProvider<GetAvailableBiometricsUseCase>(create: (context) => MockGetAvailableBiometricsUseCase()),
+        ],
       );
       await screenMatchesGolden('initial.dark');
     });
@@ -42,6 +51,9 @@ void main() {
           MockSplashBloc(),
           const SplashLoaded(isRegistered: false, hasPid: false),
         ),
+        providers: [
+          RepositoryProvider<GetAvailableBiometricsUseCase>(create: (context) => MockGetAvailableBiometricsUseCase()),
+        ],
       );
       await tester.pumpAndSettle();
       expect(find.text(WalletRoutes.introductionRoute), findsOneWidget);
@@ -53,6 +65,9 @@ void main() {
           MockSplashBloc(),
           const SplashLoaded(isRegistered: true, hasPid: false),
         ),
+        providers: [
+          RepositoryProvider<GetAvailableBiometricsUseCase>(create: (context) => MockGetAvailableBiometricsUseCase()),
+        ],
       );
       await tester.pumpAndSettle();
       expect(find.text(WalletRoutes.walletPersonalizeRoute), findsOneWidget);
@@ -64,6 +79,9 @@ void main() {
           MockSplashBloc(),
           const SplashLoaded(isRegistered: true, hasPid: true),
         ),
+        providers: [
+          RepositoryProvider<GetAvailableBiometricsUseCase>(create: (context) => MockGetAvailableBiometricsUseCase()),
+        ],
       );
       await tester.pumpAndSettle();
       expect(find.text(WalletRoutes.dashboardRoute), findsOneWidget);

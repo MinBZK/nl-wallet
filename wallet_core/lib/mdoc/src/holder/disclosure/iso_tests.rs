@@ -6,6 +6,7 @@ use crypto::examples::Examples;
 use crypto::mock_remote::MockRemoteWscd;
 use crypto::server_keys::generate::Ca;
 use utils::vec_at_least::VecNonEmpty;
+use utils::vec_nonempty;
 
 use crate::examples::EXAMPLE_ATTR_NAME;
 use crate::examples::EXAMPLE_ATTR_VALUE;
@@ -45,8 +46,8 @@ fn create_example_device_response(
     let claim_paths = Vec::<VecNonEmpty<ClaimPath>>::from(first_request);
     let partial_mdoc = PartialMdoc::try_new(mdoc, &claim_paths).unwrap();
 
-    let (device_response, _) = DeviceResponse::sign_from_mdocs(
-        vec![partial_mdoc],
+    let (device_responses, _) = DeviceResponse::sign_multiple_from_partial_mdocs(
+        vec_nonempty![partial_mdoc],
         session_transcript,
         &MockRemoteWscd::new_example(),
         (),
@@ -55,7 +56,7 @@ fn create_example_device_response(
     .unwrap()
     .unwrap();
 
-    device_response
+    device_responses.into_first()
 }
 
 /// Construct the example mdoc from the standard and disclose attributes

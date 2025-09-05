@@ -39,9 +39,9 @@ test-rust:
     - name: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-postgres:${BUILD_TAG}"
       alias: postgres
       variables:
-        POSTGRESQL_USER: "postgres"
-        POSTGRESQL_PASSWORD: "postgres"
-        POSTGRESQL_MULTIPLE_DATABASES: "wallet_provider,verification_server,issuance_server,pid_issuer"
+        POSTGRES_USER: "postgres"
+        POSTGRES_PASSWORD: "postgres"
+        POSTGRES_MULTIPLE_DATABASES: "wallet_provider,verification_server,issuance_server,pid_issuer"
   script:
     - |
       cat > scripts/.env <<EOD

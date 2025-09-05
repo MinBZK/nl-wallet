@@ -57,6 +57,7 @@ class CardDataTests : TestBase() {
             { assertTrue(cardDataScreen.dataLabelVisible(cardMetadata.getPidClaimLabel("birthdate")), "data label are not visible") },
             { assertTrue(cardDataScreen.dataAttributeVisible(nationalities[0]), "array attribute is not visible") },
             { assertTrue(cardDataScreen.dataAttributeVisible(nationalities[1]), "array attribute is not visible") },
+            { assertTrue(cardDataScreen.dataLabelAbsent(cardMetadata.getPidClaimLabel("recovery_code")), "recovery code is visible") },
             )
     }
 

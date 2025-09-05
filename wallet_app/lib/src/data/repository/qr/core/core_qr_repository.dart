@@ -52,11 +52,13 @@ class CoreQrRepository implements QrRepository {
       case IdentifyUriResult.PidRenewal:
         return PidRenewalNavigationRequest(rawValue);
       case IdentifyUriResult.PinRecovery:
-        throw UnimplementedError('PinRecovery not yet supported');
+        return PinRecoveryNavigationRequest(rawValue);
       case IdentifyUriResult.Disclosure:
         return DisclosureNavigationRequest(rawValue, isQrCode: true);
       case IdentifyUriResult.DisclosureBasedIssuance:
         return IssuanceNavigationRequest(rawValue, isQrCode: true);
+      case IdentifyUriResult.Transfer:
+        throw UnimplementedError('Transfer not yet supported');
     }
   }
 }

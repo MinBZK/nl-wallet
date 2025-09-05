@@ -94,9 +94,10 @@ class DisclosureScreen extends StatelessWidget {
   }
 
   Widget? _buildBackButton(BuildContext context) {
-    final canGoBack = context.watch<DisclosureBloc>().state.canGoBack;
-    if (!canGoBack) return null;
+    final state = context.watch<DisclosureBloc>().state;
+    if (!state.canGoBack) return null;
     return BackIconButton(
+      key: ValueKey(state.runtimeType),
       onPressed: () => context.bloc.add(const DisclosureBackPressed()),
     );
   }

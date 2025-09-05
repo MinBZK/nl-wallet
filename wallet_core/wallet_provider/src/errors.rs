@@ -91,7 +91,13 @@ impl From<WalletProviderError> for AccountError {
                 InstructionError::IncorrectPin(data) => Self::IncorrectPin(data),
                 InstructionError::PinTimeout(data) => Self::PinTimeout(data),
                 InstructionError::AccountBlocked => Self::AccountBlocked,
-                InstructionError::Validation(_) | InstructionError::NonexistingKey(_) => Self::InstructionValidation,
+                InstructionError::Validation(_)
+                | InstructionError::NonExistingKey(_)
+                | InstructionError::MissingRecoveryCode
+                | InstructionError::AccountNotTransferable
+                | InstructionError::NoAccountTransferInProgress
+                | InstructionError::AppVersionMismatch { .. }
+                | InstructionError::SdJwtError(_) => Self::InstructionValidation,
                 InstructionError::WalletCertificate(WalletCertificateError::UserBlocked) => Self::AccountBlocked,
                 InstructionError::Signing(_)
                 | InstructionError::Storage(_)

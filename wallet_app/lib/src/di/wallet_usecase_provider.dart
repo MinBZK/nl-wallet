@@ -62,12 +62,20 @@ import '../domain/usecase/pid/impl/cancel_pid_issuance_usecase_impl.dart';
 import '../domain/usecase/pid/impl/continue_pid_issuance_usecase_impl.dart';
 import '../domain/usecase/pid/impl/get_pid_issuance_url_usecase_impl.dart';
 import '../domain/usecase/pid/impl/get_pid_renewal_url_usecase_impl.dart';
+import '../domain/usecase/pin/cancel_pin_recovery_usecase.dart';
 import '../domain/usecase/pin/change_pin_usecase.dart';
 import '../domain/usecase/pin/check_is_valid_pin_usecase.dart';
+import '../domain/usecase/pin/complete_pin_recovery_usecase.dart';
+import '../domain/usecase/pin/continue_pin_recovery_usecase.dart';
+import '../domain/usecase/pin/create_pin_recovery_url_usecase.dart';
 import '../domain/usecase/pin/disclose_for_issuance_usecase.dart';
+import '../domain/usecase/pin/impl/cancel_pin_recovery_usecase_impl.dart';
 import '../domain/usecase/pin/impl/change_pin_usecase_impl.dart';
 import '../domain/usecase/pin/impl/check_is_valid_pin_usecase_impl.dart';
 import '../domain/usecase/pin/impl/check_pin_usecase_impl.dart';
+import '../domain/usecase/pin/impl/complete_pin_recovery_usecase_impl.dart';
+import '../domain/usecase/pin/impl/continue_pin_recovery_usecase_impl.dart';
+import '../domain/usecase/pin/impl/create_pin_recovery_url_usecase_impl.dart';
 import '../domain/usecase/pin/impl/disclose_for_issuance_usecase_impl.dart';
 import '../domain/usecase/pin/impl/unlock_wallet_with_pin_usecase_impl.dart';
 import '../domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
@@ -304,6 +312,18 @@ class WalletUseCaseProvider extends StatelessWidget {
         ),
         RepositoryProvider<FetchTourVideosUseCase>(
           create: (context) => FetchTourVideosUseCaseImpl(context.read()),
+        ),
+        RepositoryProvider<CreatePinRecoveryRedirectUriUseCase>(
+          create: (context) => CreatePinRecoveryRedirectUriUseCaseImpl(context.read()),
+        ),
+        RepositoryProvider<ContinuePinRecoveryUseCase>(
+          create: (context) => ContinuePinRecoveryUseCaseImpl(context.read()),
+        ),
+        RepositoryProvider<CompletePinRecoveryUseCase>(
+          create: (context) => CompletePinRecoveryUseCaseImpl(context.read()),
+        ),
+        RepositoryProvider<CancelPinRecoveryUseCase>(
+          create: (context) => CancelPinRecoveryUseCaseImpl(context.read()),
         ),
       ],
       child: child,

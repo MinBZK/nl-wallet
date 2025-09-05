@@ -285,17 +285,18 @@ mod tests {
     use rand_core::OsRng;
 
     use crate::pin::key as pin_key;
-    use crate::storage::StorageStub;
+    use crate::storage::MockStorage;
+    use crate::wallet::test::TestWalletMockStorage;
+    use crate::wallet::test::generate_key_holder;
 
     use super::super::test;
     use super::super::test::WalletDeviceVendor;
-    use super::super::test::WalletWithMocks;
     use super::*;
 
     // Tests if the `Wallet::init_registration()` method completes successfully with the mock generics.
     #[tokio::test]
     async fn test_wallet_init_registration() {
-        let wallet = WalletWithMocks::new_init_registration(WalletDeviceVendor::Apple)
+        let wallet = TestWalletMockStorage::new_init_registration(WalletDeviceVendor::Apple)
             .await
             .expect("Could not initialize wallet");
 
@@ -304,10 +305,16 @@ mod tests {
 
     // Tests the initialization logic on a wallet without a database file.
     #[tokio::test]
-    async fn test_wallet_init_fetch_registration_no_database() {
-        let wallet = WalletWithMocks::new_init_registration(WalletDeviceVendor::Apple)
-            .await
-            .expect("Could not initialize wallet");
+    async fn test_wallet_init_fetch_registration_unopened_database() {
+        let mut storage = MockStorage::default();
+        storage.expect_state().returning(|| Ok(StorageState::Uninitialized));
+
+        let wallet = TestWalletMockStorage::new_init_registration_with_mock_storage(
+            generate_key_holder(WalletDeviceVendor::Apple),
+            storage,
+        )
+        .await
+        .expect("Could not initialize wallet");
 
         // The wallet should have no registration, and no database should be opened.
         assert!(!wallet.registration.is_registered());
@@ -324,13 +331,19 @@ mod tests {
     // Tests the initialization logic on a wallet with a database file, but no registration.
     #[tokio::test]
     async fn test_wallet_init_fetch_registration_no_registration() {
-        let wallet = WalletWithMocks::new_init_registration_with_mocks(
-            StorageStub::new(StorageState::Unopened, None),
-            test::generate_key_holder(WalletDeviceVendor::Apple),
+        let mut storage = MockStorage::default();
+        storage.expect_state().times(1).returning(|| Ok(StorageState::Unopened));
+        storage.expect_open().returning(|| Ok(()));
+        storage.expect_fetch_data::<RegistrationData>().returning(|| Ok(None));
+        storage.expect_fetch_data::<KeyData>().returning(|| Ok(None));
+        storage.expect_state().times(1).returning(|| Ok(StorageState::Opened));
+
+        let wallet = TestWalletMockStorage::new_init_registration_with_mock_storage(
+            generate_key_holder(WalletDeviceVendor::Apple),
+            storage,
         )
         .await
         .expect("Could not initialize wallet");
-
         // The wallet should have no registration, the database should be opened.
         assert!(!wallet.registration.is_registered());
         assert!(!wallet.has_registration());
@@ -347,21 +360,25 @@ mod tests {
         key_holder.populate_key_identifier("key_id_123".to_string(), SigningKey::random(&mut OsRng));
 
         let pin_salt = pin_key::new_pin_salt();
+        let expected_pin_salt = pin_salt.clone();
 
-        let wallet = WalletWithMocks::new_init_registration_with_mocks(
-            StorageStub::new(
-                StorageState::Unopened,
-                Some(RegistrationData {
-                    attested_key_identifier: "key_id_123".to_string(),
-                    pin_salt: pin_salt.clone(),
-                    wallet_id: "wallet_123".to_string(),
-                    wallet_certificate: "thisisjwt".to_string().into(),
-                }),
-            ),
-            key_holder,
-        )
-        .await
-        .expect("Could not initialize wallet");
+        let mut storage = MockStorage::default();
+        storage.expect_state().times(1).returning(|| Ok(StorageState::Unopened));
+        storage.expect_open().returning(|| Ok(()));
+        storage.expect_fetch_data::<RegistrationData>().returning(move || {
+            Ok(Some(RegistrationData {
+                attested_key_identifier: "key_id_123".to_string(),
+                pin_salt: expected_pin_salt.clone(),
+                wallet_id: "wallet_123".to_string(),
+                wallet_certificate: "thisisjwt".to_string().into(),
+            }))
+        });
+        storage.expect_fetch_data::<KeyData>().returning(|| Ok(None));
+        storage.expect_state().times(1).returning(|| Ok(StorageState::Opened));
+
+        let wallet = TestWalletMockStorage::new_init_registration_with_mock_storage(key_holder, storage)
+            .await
+            .expect("Could not initialize wallet");
 
         // The wallet should have a registration, the database should be opened.
         assert!(wallet.registration.is_registered());
@@ -379,17 +396,12 @@ mod tests {
     #[tokio::test]
     #[should_panic]
     async fn test_wallet_init_fetch_with_registration_panic() {
-        let _ = WalletWithMocks::new_init_registration_with_mocks(
-            StorageStub::new(
-                StorageState::Unopened,
-                Some(RegistrationData {
-                    attested_key_identifier: "key_id_321".to_string(),
-                    pin_salt: pin_key::new_pin_salt(),
-                    wallet_id: "wallet_123".to_string(),
-                    wallet_certificate: "thisisjwt".to_string().into(),
-                }),
-            ),
-            test::generate_key_holder(WalletDeviceVendor::Apple),
+        let mut storage = MockStorage::default();
+        storage.expect_state().returning(|| Ok(StorageState::Unopened));
+
+        let _ = TestWalletMockStorage::new_init_registration_with_mock_storage(
+            generate_key_holder(WalletDeviceVendor::Apple),
+            storage,
         )
         .await;
     }

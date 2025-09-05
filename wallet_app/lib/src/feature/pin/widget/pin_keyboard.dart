@@ -47,7 +47,7 @@ class _PinKeyboardState extends State<PinKeyboard> with AfterLayoutMixin<PinKeyb
 
   @override
   FutureOr<void> afterFirstLayout(BuildContext context) {
-    keyboardFocusNode.requestFocus();
+    if (!context.isScreenReaderEnabled) keyboardFocusNode.requestFocus();
   }
 
   @override
@@ -60,7 +60,7 @@ class _PinKeyboardState extends State<PinKeyboard> with AfterLayoutMixin<PinKeyb
   Widget build(BuildContext context) {
     return KeyboardListener(
       focusNode: keyboardFocusNode,
-      autofocus: true,
+      autofocus: !context.isScreenReaderEnabled,
       onKeyEvent: _handleKeyEvent,
       child: ConstrainedBox(
         constraints: BoxConstraints(maxHeight: _maxKeyboardHeight(context)),
@@ -106,7 +106,7 @@ class _PinKeyboardState extends State<PinKeyboard> with AfterLayoutMixin<PinKeyb
     );
   }
 
-  void _handleKeyEvent(key) {
+  void _handleKeyEvent(KeyEvent? key) {
     if (key is! KeyDownEvent) return;
     final digit = int.tryParse(key.character ?? '');
     if (digit != null) {
