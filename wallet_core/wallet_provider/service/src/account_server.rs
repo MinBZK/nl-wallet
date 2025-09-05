@@ -909,7 +909,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
 
         let (wallet_user, instruction_payload) = self
             .verify_and_extract_instruction(instruction, generators, pin_policy, user_state, true, |_| {
-                PinKeyChecks::OnlySignature(encrypted_pin_pubkey.clone())
+                PinKeyChecks::SkipCertificateMatching(encrypted_pin_pubkey.clone())
             })
             .await?;
 

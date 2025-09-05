@@ -112,14 +112,14 @@ pub enum PinKeyChecks {
     /// and not that the HMAC of the PIN public key is present in the certificate.
     /// Only appropriate when the instruction is verified with some other PIN public key
     /// than the user's stored PIN public key.
-    OnlySignature(Encrypted<VerifyingKey>),
+    SkipCertificateMatching(Encrypted<VerifyingKey>),
 }
 
 impl PinKeyChecks {
     pub fn into_encrypted_verifying_key(self) -> Encrypted<VerifyingKey> {
         match self {
             PinKeyChecks::AllChecks(encrypted) => encrypted,
-            PinKeyChecks::OnlySignature(encrypted) => encrypted,
+            PinKeyChecks::SkipCertificateMatching(encrypted) => encrypted,
         }
     }
 }
