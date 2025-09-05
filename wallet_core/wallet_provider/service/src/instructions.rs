@@ -1,6 +1,5 @@
 use std::hash::Hash;
 use std::hash::Hasher;
-use std::num::NonZeroUsize;
 use std::sync::Arc;
 
 use base64::prelude::*;
@@ -185,16 +184,10 @@ impl HandleInstruction for ChangePinCommit {
     }
 }
 
-pub struct IssuanceArguments {
-    pub key_count: NonZeroUsize,
-    pub aud: String,
-    pub nonce: Option<String>,
-    pub issue_wua: bool,
-}
-
 /// Helper for the [`PerformIssuance`] and [`PerformIssuanceWithWua`] instruction handlers.
 pub(super) async fn perform_issuance<T, R, H>(
-    arguments: IssuanceArguments,
+    instruction: PerformIssuance,
+    issue_wua: bool,
     user_state: &UserState<R, H, impl WuaIssuer>,
 ) -> Result<
     (
@@ -212,7 +205,7 @@ where
 {
     let (key_ids, wrapped_keys): (Vec<_>, Vec<_>) = user_state
         .wallet_user_hsm
-        .generate_wrapped_keys(&user_state.wrapping_key_identifier, arguments.key_count)
+        .generate_wrapped_keys(&user_state.wrapping_key_identifier, instruction.key_count)
         .await?
         .into_inner()
         .into_iter()
@@ -228,9 +221,9 @@ where
         .unwrap();
 
     // The JWT claims to be signed in the PoPs and the PoA.
-    let claims = JwtPopClaims::new(arguments.nonce, NL_WALLET_CLIENT_ID.to_string(), arguments.aud);
+    let claims = JwtPopClaims::new(instruction.nonce, NL_WALLET_CLIENT_ID.to_string(), instruction.aud);
 
-    let (wua_key_and_id, wua_disclosure) = if arguments.issue_wua {
+    let (wua_key_and_id, wua_disclosure) = if issue_wua {
         let (key, key_id, wua_disclosure) = wua(&claims, user_state).await?;
         (Some((key, key_id)), Some(wua_disclosure))
     } else {
@@ -239,10 +232,10 @@ where
 
     let pops = issuance_pops(&attestation_keys, &claims).await?;
 
-    let key_count_including_wua = if arguments.issue_wua {
-        arguments.key_count.get() + 1
+    let key_count_including_wua = if issue_wua {
+        instruction.key_count.get() + 1
     } else {
-        arguments.key_count.get()
+        instruction.key_count.get()
     };
     let poa = if key_count_including_wua > 1 {
         let wua_attestation_key = wua_key_and_id.as_ref().map(|(key, _)| attestation_key(key, user_state));
@@ -400,16 +393,7 @@ impl HandleInstruction for PerformIssuance {
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
         H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
     {
-        let (issuance_result, _, wrapped_keys, wua_key_and_id) = perform_issuance(
-            IssuanceArguments {
-                key_count: self.key_count,
-                aud: self.aud,
-                nonce: self.nonce,
-                issue_wua: false,
-            },
-            user_state,
-        )
-        .await?;
+        let (issuance_result, _, wrapped_keys, wua_key_and_id) = perform_issuance(self, false, user_state).await?;
 
         persist_issuance_keys(
             wrapped_keys,
@@ -439,16 +423,8 @@ impl HandleInstruction for PerformIssuanceWithWua {
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
         H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
     {
-        let (issuance_result, wua_with_disclosure, wrapped_keys, wua_key_and_id) = perform_issuance(
-            IssuanceArguments {
-                key_count: self.issuance_instruction.key_count,
-                aud: self.issuance_instruction.aud,
-                nonce: self.issuance_instruction.nonce,
-                issue_wua: true,
-            },
-            user_state,
-        )
-        .await?;
+        let (issuance_result, wua_with_disclosure, wrapped_keys, wua_key_and_id) =
+            perform_issuance(self.issuance_instruction, true, user_state).await?;
 
         persist_issuance_keys(
             wrapped_keys,

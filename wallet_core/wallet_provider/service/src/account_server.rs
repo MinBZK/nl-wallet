@@ -93,7 +93,6 @@ use wallet_provider_domain::repository::WalletUserRepository;
 use wscd::PoaError;
 
 use crate::instructions::HandleInstruction;
-use crate::instructions::IssuanceArguments;
 use crate::instructions::ValidateInstruction;
 use crate::instructions::perform_issuance;
 use crate::keys::InstructionResultSigningKey;
@@ -917,16 +916,8 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         let issuance_instruction = instruction_payload.issuance_with_wua_instruction.issuance_instruction;
 
         // Handle the issuance part without persisting the generated keys
-        let (issuance_result, wua_with_disclosure, _, _) = perform_issuance(
-            IssuanceArguments {
-                key_count: issuance_instruction.key_count,
-                aud: issuance_instruction.aud,
-                nonce: issuance_instruction.nonce,
-                issue_wua: true,
-            },
-            user_state,
-        )
-        .await?;
+        let (issuance_result, wua_with_disclosure, _, _) =
+            perform_issuance(issuance_instruction, true, user_state).await?;
 
         let issuance_with_wua_result = PerformIssuanceWithWuaResult {
             issuance_result,
