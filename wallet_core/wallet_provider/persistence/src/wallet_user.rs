@@ -170,12 +170,12 @@ where
         .await
         .map_err(|e| PersistenceError::Execution(e.into()))?;
 
-    joined_model
+    let query_result = joined_model
         .map(|joined_model| {
             let state: WalletUserState = joined_model
                 .state
                 .parse()
-                .map_err(PersistenceError::UserStateConversion)?;
+                .expect("parsing the wallet user state from the database should always succeed");
 
             let encrypted_pin_pubkey = Encrypted::new(
                 joined_model.encrypted_pin_pubkey_sec1,
@@ -221,9 +221,11 @@ where
                 state,
             };
 
-            Ok(WalletUserQueryResult::Found(Box::new(wallet_user)))
+            WalletUserQueryResult::Found(Box::new(wallet_user))
         })
-        .unwrap_or(Ok(WalletUserQueryResult::NotFound))
+        .unwrap_or(WalletUserQueryResult::NotFound);
+
+    Ok(query_result)
 }
 
 pub async fn clear_instruction_challenge<S, T>(db: &T, wallet_id: &str) -> Result<()>
