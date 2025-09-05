@@ -43,43 +43,39 @@ impl TryFrom<Vec<NormalizedCredentialRequest>> for NormalizedCredentialRequests 
 
 /// Request for a credential.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct NormalizedCredentialRequest {
-    pub id: CredentialQueryIdentifier,
-    pub format_request: FormatCredentialRequest,
-}
-
-impl MayHaveUniqueId for NormalizedCredentialRequest {
-    fn id(&self) -> Option<&str> {
-        Some(self.id.as_ref())
-    }
-}
-
-/// Format specific information for a credential request.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum FormatCredentialRequest {
+pub enum NormalizedCredentialRequest {
     MsoMdoc {
+        id: CredentialQueryIdentifier,
         doctype_value: String,
         claims: VecNonEmpty<MdocAttributeRequest>,
     },
     #[serde(rename = "dc+sd-jwt")]
     SdJwt {
+        id: CredentialQueryIdentifier,
         vct_values: VecNonEmpty<String>,
         claims: VecNonEmpty<SdJwtAttributeRequest>,
     },
 }
 
-impl FormatCredentialRequest {
+impl NormalizedCredentialRequest {
     pub fn format(&self) -> CredentialFormat {
         match self {
-            FormatCredentialRequest::MsoMdoc { .. } => CredentialFormat::MsoMdoc,
-            FormatCredentialRequest::SdJwt { .. } => CredentialFormat::SdJwt,
+            Self::MsoMdoc { .. } => CredentialFormat::MsoMdoc,
+            Self::SdJwt { .. } => CredentialFormat::SdJwt,
+        }
+    }
+
+    pub fn id(&self) -> &CredentialQueryIdentifier {
+        match self {
+            Self::MsoMdoc { id, .. } => id,
+            Self::SdJwt { id, .. } => id,
         }
     }
 
     pub fn credential_types(&self) -> impl Iterator<Item = &str> {
         match self {
-            FormatCredentialRequest::MsoMdoc { doctype_value, .. } => std::slice::from_ref(doctype_value),
-            FormatCredentialRequest::SdJwt { vct_values, .. } => vct_values.as_slice(),
+            Self::MsoMdoc { doctype_value, .. } => std::slice::from_ref(doctype_value),
+            Self::SdJwt { vct_values, .. } => vct_values.as_slice(),
         }
         .iter()
         .map(String::as_str)
@@ -87,9 +83,15 @@ impl FormatCredentialRequest {
 
     pub fn claim_paths(&self) -> impl Iterator<Item = &VecNonEmpty<ClaimPath>> {
         match self {
-            FormatCredentialRequest::MsoMdoc { claims, .. } => Either::Left(claims.iter().map(|claim| &claim.path)),
-            FormatCredentialRequest::SdJwt { claims, .. } => Either::Right(claims.iter().map(|claim| &claim.path)),
+            Self::MsoMdoc { claims, .. } => Either::Left(claims.iter().map(|claim| &claim.path)),
+            Self::SdJwt { claims, .. } => Either::Right(claims.iter().map(|claim| &claim.path)),
         }
+    }
+}
+
+impl MayHaveUniqueId for NormalizedCredentialRequest {
+    fn id(&self) -> Option<&str> {
+        Some(self.id().as_ref())
     }
 }
 
@@ -186,7 +188,7 @@ impl TryFrom<CredentialQuery> for NormalizedCredentialRequest {
             ClaimsSelection::All { claims } => claims,
         };
 
-        let format_request = match source.format {
+        let request = match source.format {
             CredentialQueryFormat::MsoMdoc { doctype_value } => {
                 let claims = claims
                     .into_iter()
@@ -196,7 +198,11 @@ impl TryFrom<CredentialQuery> for NormalizedCredentialRequest {
                     // This unwrap is safe, as the source is guaranteed not to be empty.
                     .unwrap();
 
-                FormatCredentialRequest::MsoMdoc { doctype_value, claims }
+                Self::MsoMdoc {
+                    id: source.id,
+                    doctype_value,
+                    claims,
+                }
             }
             CredentialQueryFormat::SdJwt { vct_values } => {
                 let claims = claims
@@ -207,33 +213,39 @@ impl TryFrom<CredentialQuery> for NormalizedCredentialRequest {
                     // This unwrap is safe, as the source is guaranteed not to be empty.
                     .unwrap();
 
-                FormatCredentialRequest::SdJwt { vct_values, claims }
+                Self::SdJwt {
+                    id: source.id,
+                    vct_values,
+                    claims,
+                }
             }
         };
 
-        let request = Self {
-            id: source.id,
-            format_request,
-        };
         Ok(request)
     }
 }
 
 impl From<NormalizedCredentialRequest> for CredentialQuery {
     fn from(value: NormalizedCredentialRequest) -> Self {
-        let (format, claims) = match value.format_request {
-            FormatCredentialRequest::MsoMdoc { doctype_value, claims } => (
+        let (id, format, claims) = match value {
+            NormalizedCredentialRequest::MsoMdoc {
+                id,
+                doctype_value,
+                claims,
+            } => (
+                id,
                 CredentialQueryFormat::MsoMdoc { doctype_value },
                 claims.into_iter().map(ClaimsQuery::from).collect_vec(),
             ),
-            FormatCredentialRequest::SdJwt { vct_values, claims } => (
+            NormalizedCredentialRequest::SdJwt { id, vct_values, claims } => (
+                id,
                 CredentialQueryFormat::SdJwt { vct_values },
                 claims.into_iter().map(ClaimsQuery::from).collect_vec(),
             ),
         };
 
         Self {
-            id: value.id,
+            id,
             format,
             multiple: false,
             trusted_authorities: vec![],
@@ -337,7 +349,6 @@ pub mod mock {
     use crate::CredentialQueryFormat;
     use crate::Query;
 
-    use super::FormatCredentialRequest;
     use super::MdocAttributeRequest;
     use super::NormalizedCredentialRequest;
     use super::NormalizedCredentialRequests;
@@ -551,8 +562,9 @@ pub mod mock {
                 VecNonEmpty::try_from(claim_path).expect("empy path not allowed")
             });
 
-            let format_request = match format {
-                MockCredentialFormat::MsoMdoc { intent_to_retain } => FormatCredentialRequest::MsoMdoc {
+            match format {
+                MockCredentialFormat::MsoMdoc { intent_to_retain } => Self::MsoMdoc {
+                    id,
                     doctype_value: credential_types_iter
                         .exactly_one()
                         .expect("should have exactly one credential type for mdoc"),
@@ -562,7 +574,8 @@ pub mod mock {
                         .try_into()
                         .expect("should contain at least one claim"),
                 },
-                MockCredentialFormat::SdJwt => FormatCredentialRequest::SdJwt {
+                MockCredentialFormat::SdJwt => Self::SdJwt {
+                    id,
                     vct_values: credential_types_iter
                         .collect_vec()
                         .try_into()
@@ -573,9 +586,7 @@ pub mod mock {
                         .try_into()
                         .expect("should contain at least one claim"),
                 },
-            };
-
-            Self { id, format_request }
+            }
         }
 
         pub fn new_mock_mdoc_iso_example() -> Self {

@@ -76,10 +76,10 @@ impl NormalizedCredentialRequests {
         // credential response, this consitutes an error, as optional credentials are not supported.
         let (requests_and_credentials, missing_ids): (HashMap<_, _>, HashSet<_>) =
             self.as_ref().iter().partition_map(|request| {
-                if let Some(credential) = single_credentials.remove(&request.id) {
-                    Either::Left((&request.id, (request, credential)))
+                if let Some(credential) = single_credentials.remove(request.id()) {
+                    Either::Left((request.id(), (request, credential)))
                 } else {
-                    Either::Right(request.id.clone())
+                    Either::Right(request.id().clone())
                 }
             });
 
@@ -98,7 +98,7 @@ impl NormalizedCredentialRequests {
         let format_mismatches = requests_and_credentials
             .iter()
             .filter_map(|(id, (request, credential))| {
-                let expected_format = request.format_request.format();
+                let expected_format = request.format();
                 let received_format = credential.format();
 
                 (received_format != expected_format).then(|| ((*id).clone(), (expected_format, received_format)))
@@ -115,15 +115,11 @@ impl NormalizedCredentialRequests {
             .filter_map(|(id, (request, credential))| {
                 let credential_type = credential.credential_type();
 
-                (!request.format_request.credential_types().contains(credential_type)).then(|| {
+                (!request.credential_types().contains(credential_type)).then(|| {
                     (
                         (*id).clone(),
                         (
-                            request
-                                .format_request
-                                .credential_types()
-                                .map(str::to_string)
-                                .collect_vec(),
+                            request.credential_types().map(str::to_string).collect_vec(),
                             credential_type.to_string(),
                         ),
                     )
@@ -142,7 +138,7 @@ impl NormalizedCredentialRequests {
         let missing_attribute_credentials = requests_and_credentials
             .into_iter()
             .filter_map(|(id, (request, credential))| {
-                let missing_attributes = credential.missing_claim_paths(request.format_request.claim_paths());
+                let missing_attributes = credential.missing_claim_paths(request.claim_paths());
 
                 (!missing_attributes.is_empty()).then(|| (id.clone(), missing_attributes))
             })

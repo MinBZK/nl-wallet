@@ -3,7 +3,6 @@ use std::collections::HashSet;
 use itertools::Itertools;
 
 use attestation_types::claim_path::ClaimPath;
-use dcql::normalized::FormatCredentialRequest;
 use dcql::normalized::NormalizedCredentialRequest;
 
 use crate::constants::PID_BSN;
@@ -25,10 +24,12 @@ impl DisclosureType {
             .exactly_one()
             .ok()
             .and_then(|request| {
-                match &request.format_request {
+                match request {
                     // ...and for mdoc the doc type is one of the known login types, there is only one claim
                     // requested and that claim is the BSN and will not be retained by the verifier...
-                    FormatCredentialRequest::MsoMdoc { doctype_value, claims } => {
+                    NormalizedCredentialRequest::MsoMdoc {
+                        doctype_value, claims, ..
+                    } => {
                         login_attestation_types.contains(doctype_value.as_str())
                             && claims.iter().exactly_one().ok().is_some_and(|attribute_request| {
                                 ClaimPath::matches_key_path(&attribute_request.path, [doctype_value.as_str(), PID_BSN])
@@ -37,7 +38,7 @@ impl DisclosureType {
                     }
                     // ...or for SD-JWT the VCTs are a subset of the known login types,
                     // there is only one claim requested and that claim is the BSN.
-                    FormatCredentialRequest::SdJwt { vct_values, claims } => {
+                    NormalizedCredentialRequest::SdJwt { vct_values, claims, .. } => {
                         vct_values
                             .iter()
                             .map(String::as_str)

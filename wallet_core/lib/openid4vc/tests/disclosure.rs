@@ -1000,9 +1000,9 @@ where
         .zip_eq(credential_requests)
         .map(|(doc, request)| {
             let mdoc = test_document_to_mdoc(doc, issuer_ca, wscd).now_or_never().unwrap();
-            let partial_mdoc = PartialMdoc::try_new(mdoc, request.format_request.claim_paths()).unwrap();
+            let partial_mdoc = PartialMdoc::try_new(mdoc, request.claim_paths()).unwrap();
 
-            (request.id.clone(), vec_nonempty![partial_mdoc])
+            (request.id().clone(), vec_nonempty![partial_mdoc])
         })
         .collect()
 }

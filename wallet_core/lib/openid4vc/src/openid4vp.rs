@@ -798,7 +798,7 @@ mod tests {
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
     use dcql::CredentialQueryIdentifier;
-    use dcql::normalized::FormatCredentialRequest;
+    use dcql::normalized::NormalizedCredentialRequest;
     use dcql::normalized::NormalizedCredentialRequests;
     use jwt::UnverifiedJwt;
     use mdoc::DeviceAuthenticationKeyed;
@@ -1131,8 +1131,8 @@ mod tests {
             .as_ref()
             .iter()
             .map(|request| {
-                match &request.format_request {
-                    FormatCredentialRequest::MsoMdoc { doctype_value, .. } => {
+                match &request {
+                    NormalizedCredentialRequest::MsoMdoc { doctype_value, .. } => {
                         // Assemble the challenge (serialized Device Authentication) to sign with the mdoc key
                         let device_authentication = TaggedBytes(CborSeq(DeviceAuthenticationKeyed {
                             device_authentication: Default::default(),
@@ -1143,7 +1143,7 @@ mod tests {
 
                         cbor_serialize(&device_authentication).unwrap()
                     }
-                    FormatCredentialRequest::SdJwt { .. } => todo!("PVW-4139 support SdJwt"),
+                    NormalizedCredentialRequest::SdJwt { .. } => todo!("PVW-4139 support SdJwt"),
                 }
             })
             .collect_vec()
@@ -1228,7 +1228,7 @@ mod tests {
             .zip_eq(device_responses)
             .map(|(request, device_response)| {
                 (
-                    request.id.clone(),
+                    request.id().clone(),
                     VerifiablePresentation::new_mdoc(vec_nonempty![device_response]),
                 )
             })

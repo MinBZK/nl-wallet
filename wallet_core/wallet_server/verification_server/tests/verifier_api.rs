@@ -988,7 +988,6 @@ async fn perform_full_disclosure(session_type: SessionType) -> (Client, SessionT
             .as_ref()
             .first()
             .unwrap()
-            .format_request
             .claim_paths(),
     )
     .unwrap();
@@ -1141,7 +1140,6 @@ async fn test_disclosed_attributes_failed_session() {
             .as_ref()
             .first()
             .unwrap()
-            .format_request
             .claim_paths(),
     )
     .unwrap();

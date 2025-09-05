@@ -32,7 +32,7 @@ pub fn test_documents_assert_matches_disclosed_attestations(
     ) in documents.iter().zip_eq(requests.as_ref())
     {
         let attestations = disclosed_attestations
-            .remove(&request.id)
+            .remove(request.id())
             .expect("disclosed attestations should include credential query identifier");
 
         // The response should contain exactly one attestation.

@@ -21,7 +21,6 @@ use attestation_data::constants::PID_RECOVERY_CODE;
 use attestation_data::disclosure_type::DisclosureType;
 use attestation_types::claim_path::ClaimPath;
 use dcql::CredentialQueryIdentifier;
-use dcql::normalized::FormatCredentialRequest;
 use dcql::normalized::NormalizedCredentialRequest;
 use entity::disclosure_event::EventStatus;
 use error_category::ErrorCategory;
@@ -280,14 +279,16 @@ impl RedirectUriPurpose {
 
 /// Check if the PID recovery code is part of a credential request.
 fn is_request_for_recovery_code(request: &NormalizedCredentialRequest) -> bool {
-    match &request.format_request {
-        FormatCredentialRequest::MsoMdoc { doctype_value, claims } => {
+    match &request {
+        NormalizedCredentialRequest::MsoMdoc {
+            doctype_value, claims, ..
+        } => {
             doctype_value.as_str() == PID_ATTESTATION_TYPE
                 && claims
                     .iter()
                     .any(|claim| ClaimPath::matches_key_path(&claim.path, [PID_ATTESTATION_TYPE, PID_RECOVERY_CODE]))
         }
-        FormatCredentialRequest::SdJwt { vct_values, claims } => {
+        NormalizedCredentialRequest::SdJwt { vct_values, claims, .. } => {
             vct_values.iter().any(|vct| vct.as_str() == PID_ATTESTATION_TYPE)
                 && claims
                     .iter()
@@ -312,10 +313,10 @@ where
         storage: &S,
         request: &NormalizedCredentialRequest,
     ) -> Result<Option<VecNonEmpty<DisclosableAttestation>>, StorageError> {
-        let credential_types = request.format_request.credential_types().collect();
-        let format_query = match &request.format_request {
-            FormatCredentialRequest::MsoMdoc { .. } => AttestationFormatQuery::MsoMdoc,
-            FormatCredentialRequest::SdJwt { .. } => AttestationFormatQuery::SdJwt,
+        let credential_types = request.credential_types().collect();
+        let format_query = match &request {
+            NormalizedCredentialRequest::MsoMdoc { .. } => AttestationFormatQuery::MsoMdoc,
+            NormalizedCredentialRequest::SdJwt { .. } => AttestationFormatQuery::SdJwt,
         };
 
         let stored_attestations = storage
@@ -328,13 +329,13 @@ where
                 // Only select those attestations that contain all of the requested attributes.
                 // TODO (PVW-4537): Have this be part of the database query using some index.
                 attestation_copy
-                    .matches_requested_attributes(request.format_request.claim_paths())
+                    .matches_requested_attributes(request.claim_paths())
                     .then(|| {
                         // Create a disclosure proposal by removing any attributes that were not requested from the
                         // presentation attributes. Since the filtering above should remove any attestation in which the
                         // requested claim paths are not present and this is the only error condition, no error should
                         // occur.
-                        DisclosableAttestation::try_new(attestation_copy, request.format_request.claim_paths())
+                        DisclosableAttestation::try_new(attestation_copy, request.claim_paths())
                             .expect("all claim paths should be present in attestation")
                     })
             })
@@ -412,7 +413,7 @@ where
         .map_err(DisclosureError::AttestationRetrieval)?
         .into_iter()
         .zip(session.credential_requests().as_ref())
-        .flat_map(|(attestations, request)| attestations.map(|attestations| (&request.id, attestations)))
+        .flat_map(|(attestations, request)| attestations.map(|attestations| (request.id(), attestations)))
         .collect::<IndexMap<_, _>>();
 
         // At this point, determine the disclosure type and if data was ever shared with this RP before, as the UI
@@ -441,9 +442,8 @@ where
                 .as_ref()
                 .iter()
                 .flat_map(|request| {
-                    request.format_request.credential_types().flat_map(|attestation_type| {
+                    request.credential_types().flat_map(|attestation_type| {
                         request
-                            .format_request
                             .claim_paths()
                             .map(move |claim_path| format!("{}/{}", attestation_type, claim_path.iter().join("/")))
                     })
