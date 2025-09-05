@@ -2294,7 +2294,7 @@ mod tests {
         )
         .await;
 
-        if verify_wallet_certificate(
+        verify_wallet_certificate(
             &new_cert,
             &EcdsaDecodingKey::from(&setup.signing_pubkey),
             &AccountServerPinKeys {
@@ -2307,10 +2307,7 @@ mod tests {
             &user_state,
         )
         .await
-        .is_ok()
-        {
-            panic!("verifying with the old pin_pubkey should fail")
-        };
+        .expect_err("verifying with the old pin_pubkey should fail");
 
         user_state.repositories.encrypted_pin_pubkey = encrypted_new_pin_pubkey.clone();
 
