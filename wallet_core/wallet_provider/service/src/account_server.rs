@@ -634,11 +634,19 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         H: Decrypter<VerifyingKey, Error = HsmError> + Hsm<Error = HsmError>,
     {
         debug!("Parse certificate and retrieving wallet user");
+
+        // Some instructions are allowed for blocked users - but since the user is requesting a challenge,
+        // they haven't sent the instruction yet. So we can't yet make that distinction. So requesting a
+        // challenge has to be allowed for all instructions.
+        // Rejecting blocked users when appropriate, i.e., passing `false` here, will therefore have to be
+        // done when handling the instruction.
+        let allow_blocked = true;
+
         let (user, claims) = parse_claims_and_retrieve_wallet_user(
             &challenge_request.certificate,
             &self.keys.wallet_certificate_signing_pubkey,
             &user_state.repositories,
-            true,
+            allow_blocked,
         )
         .await?;
 
