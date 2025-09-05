@@ -8,6 +8,9 @@ rust-version.workspace = true
 workspace = true
 
 [dependencies]
+itertools.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_with = { workspace = true, features = ["macros"] }
 strum = { workspace = true, features = ["derive"] }
+
+utils.path = "../utils"

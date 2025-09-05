@@ -293,7 +293,7 @@ mod test {
                     &["some_namespace", "another_attribute"],
                 ]
             ),
-        ]),
+        ], None),
         None
     )]
     #[case(
@@ -326,7 +326,7 @@ mod test {
                     &["some_namespace", "another_attribute"],
                 ]
             ),
-        ]),
+        ], None),
         Some(HashMap::from([
             (
                 "some_doctype".to_string(),

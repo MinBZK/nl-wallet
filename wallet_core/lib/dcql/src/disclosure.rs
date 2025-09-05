@@ -228,51 +228,60 @@ mod tests {
     }
 
     fn example_mdoc_single_credential_requests() -> NormalizedCredentialRequests {
-        NormalizedCredentialRequests::new_mock_mdoc_from_slices(&[(
-            EXAMPLE_DOC_TYPE,
-            &[
-                &[EXAMPLE_NAMESPACE, "family_name"],
-                &[EXAMPLE_NAMESPACE, "issue_date"],
-                &[EXAMPLE_NAMESPACE, "expiry_date"],
-                &[EXAMPLE_NAMESPACE, "document_number"],
-                &[EXAMPLE_NAMESPACE, "portrait"],
-                &[EXAMPLE_NAMESPACE, "driving_privileges"],
-            ],
-        )])
+        NormalizedCredentialRequests::new_mock_mdoc_from_slices(
+            &[(
+                EXAMPLE_DOC_TYPE,
+                &[
+                    &[EXAMPLE_NAMESPACE, "family_name"],
+                    &[EXAMPLE_NAMESPACE, "issue_date"],
+                    &[EXAMPLE_NAMESPACE, "expiry_date"],
+                    &[EXAMPLE_NAMESPACE, "document_number"],
+                    &[EXAMPLE_NAMESPACE, "portrait"],
+                    &[EXAMPLE_NAMESPACE, "driving_privileges"],
+                ],
+            )],
+            None,
+        )
     }
 
     fn example_mdoc_double_credential_requests() -> NormalizedCredentialRequests {
-        NormalizedCredentialRequests::new_mock_mdoc_from_slices(&[
-            (
-                EXAMPLE_DOC_TYPE,
-                &[
-                    &[EXAMPLE_NAMESPACE, "driving_privileges"],
-                    &[EXAMPLE_NAMESPACE, "document_number"],
-                ],
-            ),
-            (
-                EXAMPLE_DOC_TYPE,
-                &[&[EXAMPLE_NAMESPACE, "family_name"], &[EXAMPLE_NAMESPACE, "portrait"]],
-            ),
-        ])
+        NormalizedCredentialRequests::new_mock_mdoc_from_slices(
+            &[
+                (
+                    EXAMPLE_DOC_TYPE,
+                    &[
+                        &[EXAMPLE_NAMESPACE, "driving_privileges"],
+                        &[EXAMPLE_NAMESPACE, "document_number"],
+                    ],
+                ),
+                (
+                    EXAMPLE_DOC_TYPE,
+                    &[&[EXAMPLE_NAMESPACE, "family_name"], &[EXAMPLE_NAMESPACE, "portrait"]],
+                ),
+            ],
+            None,
+        )
     }
 
     fn wrong_credential_type_mdoc_requests() -> NormalizedCredentialRequests {
-        NormalizedCredentialRequests::new_mock_mdoc_from_slices(&[(
-            "wrong_credential_type",
-            &[&[EXAMPLE_NAMESPACE, "family_name"]],
-        )])
+        NormalizedCredentialRequests::new_mock_mdoc_from_slices(
+            &[("wrong_credential_type", &[&[EXAMPLE_NAMESPACE, "family_name"]])],
+            None,
+        )
     }
 
     fn wrong_attributes_mdoc_requests() -> NormalizedCredentialRequests {
-        NormalizedCredentialRequests::new_mock_mdoc_from_slices(&[(
-            EXAMPLE_DOC_TYPE,
-            &[
-                &[EXAMPLE_NAMESPACE, "family_name"],
-                &[EXAMPLE_NAMESPACE, "favourite_colour"],
-                &[EXAMPLE_NAMESPACE, "average_airspeed"],
-            ],
-        )])
+        NormalizedCredentialRequests::new_mock_mdoc_from_slices(
+            &[(
+                EXAMPLE_DOC_TYPE,
+                &[
+                    &[EXAMPLE_NAMESPACE, "family_name"],
+                    &[EXAMPLE_NAMESPACE, "favourite_colour"],
+                    &[EXAMPLE_NAMESPACE, "average_airspeed"],
+                ],
+            )],
+            None,
+        )
     }
 
     fn example_sd_jwt_single_credential_requests() -> NormalizedCredentialRequests {

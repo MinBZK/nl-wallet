@@ -17,15 +17,12 @@ pub use openid4vc::disclosure_session::DisclosureUriSource;
 use attestation_data::auth::Organization;
 use attestation_data::auth::reader_auth::ReaderRegistration;
 use attestation_data::constants::PID_ATTESTATION_TYPE;
-use attestation_data::constants::PID_BSN;
 use attestation_data::constants::PID_RECOVERY_CODE;
 use attestation_data::disclosure_type::DisclosureType;
 use attestation_types::claim_path::ClaimPath;
 use dcql::CredentialQueryIdentifier;
 use dcql::normalized::FormatCredentialRequest;
-use dcql::normalized::MdocAttributeRequest;
 use dcql::normalized::NormalizedCredentialRequest;
-use dcql::normalized::SdJwtAttributeRequest;
 use entity::disclosure_event::EventStatus;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
@@ -67,23 +64,6 @@ use super::Wallet;
 use super::uri::identify_uri;
 
 static LOGIN_ATTESTATION_TYPES: LazyLock<HashSet<&str>> = LazyLock::new(|| HashSet::from([PID_ATTESTATION_TYPE]));
-
-/// A login request will only contain the BSN attribute, which the verifier checks against a BSN
-/// the verifier already possesses for the wallet user. For this reason it should not retain it.
-static MDOC_LOGIN_ATTRIBUTE: LazyLock<MdocAttributeRequest> = LazyLock::new(|| MdocAttributeRequest {
-    path: vec_nonempty![
-        ClaimPath::SelectByKey(PID_ATTESTATION_TYPE.to_string()),
-        ClaimPath::SelectByKey(PID_BSN.to_string()),
-    ],
-    intent_to_retain: Some(false),
-});
-
-static SD_JWT_LOGIN_ATTRIBUTE: LazyLock<SdJwtAttributeRequest> = LazyLock::new(|| SdJwtAttributeRequest {
-    path: vec_nonempty![
-        ClaimPath::SelectByKey(PID_ATTESTATION_TYPE.to_string()),
-        ClaimPath::SelectByKey(PID_BSN.to_string()),
-    ],
-});
 
 #[derive(Debug, Clone)]
 pub struct DisclosureProposalPresentation {
@@ -303,21 +283,15 @@ fn is_request_for_recovery_code(request: &NormalizedCredentialRequest) -> bool {
     match &request.format_request {
         FormatCredentialRequest::MsoMdoc { doctype_value, claims } => {
             doctype_value.as_str() == PID_ATTESTATION_TYPE
-                && claims.iter().any(|claim| {
-                    itertools::equal(
-                        claim.path.iter().map(ClaimPath::try_key_path),
-                        [Some(PID_ATTESTATION_TYPE), Some(PID_RECOVERY_CODE)],
-                    )
-                })
+                && claims
+                    .iter()
+                    .any(|claim| ClaimPath::matches_key_path(&claim.path, [PID_ATTESTATION_TYPE, PID_RECOVERY_CODE]))
         }
         FormatCredentialRequest::SdJwt { vct_values, claims } => {
             vct_values.iter().any(|vct| vct.as_str() == PID_ATTESTATION_TYPE)
-                && claims.iter().any(|claim| {
-                    itertools::equal(
-                        claim.path.iter().map(ClaimPath::try_key_path),
-                        [Some(PID_RECOVERY_CODE)],
-                    )
-                })
+                && claims
+                    .iter()
+                    .any(|claim| ClaimPath::matches_key_path(&claim.path, [PID_RECOVERY_CODE]))
         }
     }
 }
@@ -443,12 +417,8 @@ where
 
         // At this point, determine the disclosure type and if data was ever shared with this RP before, as the UI
         // needs this context both for when all requested attributes are present and for when attributes are missing.
-        let disclosure_type = DisclosureType::from_credential_requests(
-            session.credential_requests().as_ref(),
-            &LOGIN_ATTESTATION_TYPES,
-            &MDOC_LOGIN_ATTRIBUTE,
-            &SD_JWT_LOGIN_ATTRIBUTE,
-        );
+        let disclosure_type =
+            DisclosureType::from_credential_requests(session.credential_requests().as_ref(), &LOGIN_ATTESTATION_TYPES);
 
         let verifier_certificate = session.verifier_certificate();
         let shared_data_with_relying_party_before = self
@@ -998,10 +968,10 @@ mod tests {
         requested_pid_path: &[&str],
     ) -> MockDisclosureSession {
         let credential_requests = match requested_format {
-            RequestedFormat::MsoMdoc => NormalizedCredentialRequests::new_mock_mdoc_from_slices(&[(
-                PID_ATTESTATION_TYPE,
-                &[requested_pid_path],
-            )]),
+            RequestedFormat::MsoMdoc => NormalizedCredentialRequests::new_mock_mdoc_from_slices(
+                &[(PID_ATTESTATION_TYPE, &[requested_pid_path])],
+                None,
+            ),
             RequestedFormat::SdJwt => NormalizedCredentialRequests::new_mock_sd_jwt_from_slices(&[(
                 &[PID_ATTESTATION_TYPE],
                 &[requested_pid_path],

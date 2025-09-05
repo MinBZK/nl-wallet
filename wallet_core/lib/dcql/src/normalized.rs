@@ -333,7 +333,6 @@ pub mod mock {
     use crate::ClaimPath;
     use crate::ClaimsQuery;
     use crate::ClaimsSelection;
-    use crate::CredentialFormat;
     use crate::CredentialQuery;
     use crate::CredentialQueryFormat;
     use crate::Query;
@@ -441,7 +440,7 @@ pub mod mock {
     }
 
     impl NormalizedCredentialRequests {
-        pub fn new_mock_mdoc_from_slices(input: &[(&str, &[&[&str]])]) -> Self {
+        pub fn new_mock_mdoc_from_slices(input: &[(&str, &[&[&str]])], intent_to_retain: Option<bool>) -> Self {
             input
                 .iter()
                 .copied()
@@ -449,7 +448,7 @@ pub mod mock {
                 .map(|(index, (doctype, paths))| {
                     NormalizedCredentialRequest::new_mock_from_slices(
                         &format!("mdoc_{index}"),
-                        CredentialFormat::MsoMdoc,
+                        MockCredentialFormat::MsoMdoc { intent_to_retain },
                         &[doctype],
                         paths,
                     )
@@ -467,7 +466,7 @@ pub mod mock {
                 .map(|(index, (credential_types, paths))| {
                     NormalizedCredentialRequest::new_mock_from_slices(
                         &format!("sd_jwt_{index}"),
-                        CredentialFormat::SdJwt,
+                        MockCredentialFormat::SdJwt,
                         credential_types,
                         paths,
                     )
@@ -492,7 +491,7 @@ pub mod mock {
         pub fn example_with_single_credential() -> Self {
             vec![NormalizedCredentialRequest::new_mock_from_slices(
                 "my_credential",
-                CredentialFormat::MsoMdoc,
+                MockCredentialFormat::MsoMdoc { intent_to_retain: None },
                 &["org.iso.7367.1.mVRC"],
                 &[
                     &["org.iso.7367.1", "vehicle_holder"],
@@ -507,13 +506,13 @@ pub mod mock {
             vec![
                 NormalizedCredentialRequest::new_mock_from_slices(
                     "pid",
-                    CredentialFormat::SdJwt,
+                    MockCredentialFormat::SdJwt,
                     &["https://credentials.example.com/identity_credential"],
                     &[&["given_name"], &["family_name"], &["address", "street_address"]],
                 ),
                 NormalizedCredentialRequest::new_mock_from_slices(
                     "mdl",
-                    CredentialFormat::MsoMdoc,
+                    MockCredentialFormat::MsoMdoc { intent_to_retain: None },
                     &["org.iso.7367.1.mVRC"],
                     &[
                         &["org.iso.7367.1", "vehicle_holder"],
@@ -526,10 +525,16 @@ pub mod mock {
         }
     }
 
+    #[derive(Debug, Clone, Copy)]
+    enum MockCredentialFormat {
+        MsoMdoc { intent_to_retain: Option<bool> },
+        SdJwt,
+    }
+
     impl NormalizedCredentialRequest {
-        pub fn new_mock_from_slices(
+        fn new_mock_from_slices(
             id: &str,
-            format: CredentialFormat,
+            format: MockCredentialFormat,
             credential_types: &[&str],
             paths: &[&[&str]],
         ) -> Self {
@@ -547,20 +552,17 @@ pub mod mock {
             });
 
             let format_request = match format {
-                CredentialFormat::MsoMdoc => FormatCredentialRequest::MsoMdoc {
+                MockCredentialFormat::MsoMdoc { intent_to_retain } => FormatCredentialRequest::MsoMdoc {
                     doctype_value: credential_types_iter
                         .exactly_one()
                         .expect("should have exactly one credential type for mdoc"),
                     claims: paths_iter
-                        .map(|path| MdocAttributeRequest {
-                            path,
-                            intent_to_retain: None,
-                        })
+                        .map(|path| MdocAttributeRequest { path, intent_to_retain })
                         .collect_vec()
                         .try_into()
                         .expect("should contain at least one claim"),
                 },
-                CredentialFormat::SdJwt => FormatCredentialRequest::SdJwt {
+                MockCredentialFormat::SdJwt => FormatCredentialRequest::SdJwt {
                     vct_values: credential_types_iter
                         .collect_vec()
                         .try_into()
@@ -584,7 +586,7 @@ pub mod mock {
 
             Self::new_mock_from_slices(
                 "mdoc_iso_example",
-                CredentialFormat::MsoMdoc,
+                MockCredentialFormat::MsoMdoc { intent_to_retain: None },
                 &[EXAMPLE_DOC_TYPE],
                 &attributes.iter().map(Vec::as_slice).collect_vec(),
             )
@@ -593,7 +595,7 @@ pub mod mock {
         pub fn new_mock_mdoc_pid_example() -> Self {
             Self::new_mock_from_slices(
                 "mdoc_pid_example",
-                CredentialFormat::MsoMdoc,
+                MockCredentialFormat::MsoMdoc { intent_to_retain: None },
                 &[PID],
                 &[&[PID, "bsn"], &[PID, "given_name"], &[PID, "family_name"]],
             )
