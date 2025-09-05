@@ -7391,6 +7391,7 @@ dependencies = [
  "nonempty-collections",
  "parking_lot",
  "rstest",
+ "semver",
  "serde",
  "serde_json",
  "serde_with",

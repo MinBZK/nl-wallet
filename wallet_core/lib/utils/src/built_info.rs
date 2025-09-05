@@ -3,6 +3,9 @@
     reason = "This file includes generated code that uses `allow` attributes."
 )]
 use std::env;
+use std::sync::LazyLock;
+
+use semver::Version;
 
 // The file has been placed there by the build script.
 include!(concat!(env!("OUT_DIR"), "/built.rs"));
@@ -23,4 +26,11 @@ pub fn version_string() -> String {
         GIT_COMMIT_HASH_SHORT.unwrap_or("n/a"),
         dirty_flag,
     )
+}
+
+static CURRENT_VERSION: LazyLock<Version> =
+    LazyLock::new(|| Version::parse(PKG_VERSION).expect("should always be a valid semver"));
+
+pub fn version() -> &'static Version {
+    &CURRENT_VERSION
 }

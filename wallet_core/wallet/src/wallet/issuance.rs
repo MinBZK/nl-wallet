@@ -43,6 +43,7 @@ use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 use wallet_account::NL_WALLET_CLIENT_ID;
 use wallet_account::messages::instructions::DiscloseRecoveryCode;
+use wallet_account::messages::instructions::DiscloseRecoveryCodeResult;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::account_provider::AccountProviderClient;
@@ -174,6 +175,11 @@ pub struct WalletIssuanceSession<IS> {
     is_pid: bool,
     preview_attestations: VecNonEmpty<AttestationPresentation>,
     protocol_state: IS,
+}
+
+#[derive(Debug, Clone)]
+pub struct IssuanceResult {
+    pub transfer_available: bool,
 }
 
 impl<CR, UR, S, AKH, APC, DC, IS, DCC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC>
@@ -445,11 +451,9 @@ where
 
     #[instrument(skip_all)]
     #[sentry_capture_error]
-    pub async fn accept_issuance(&mut self, pin: String) -> Result<(), IssuanceError>
+    pub async fn accept_issuance(&mut self, pin: String) -> Result<IssuanceResult, IssuanceError>
     where
         UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
-        S: Storage,
-        APC: AccountProviderClient,
     {
         info!("Accepting issuance");
 
@@ -546,9 +550,11 @@ where
             _ => unreachable!(),
         };
 
+        let mut transfer_available = false;
         if issuance_session.is_pid {
             info!("This is a PID issuance session, therefore disclosing recovery code");
-            self.disclose_recovery_code(&remote_instruction, &issued_credentials_with_metadata)
+            DiscloseRecoveryCodeResult { transfer_available } = self
+                .disclose_recovery_code(&remote_instruction, &issued_credentials_with_metadata)
                 .await?;
         }
 
@@ -588,7 +594,7 @@ where
         self.emit_attestations().await.map_err(IssuanceError::Attestations)?;
         self.emit_recent_history().await.map_err(IssuanceError::EventStorage)?;
 
-        Ok(())
+        Ok(IssuanceResult { transfer_available })
     }
 
     /// Finds the PID SD JWT, creates a disclosure of just the recovery code, and sends it to the remote instruction
@@ -597,7 +603,7 @@ where
         &self,
         instruction_client: &InstructionClient<S, AK, GK, APC>,
         issued_credentials_with_metadata: &[CredentialWithMetadata],
-    ) -> Result<(), IssuanceError> {
+    ) -> Result<DiscloseRecoveryCodeResult, IssuanceError> {
         let pid = issued_credentials_with_metadata
             .iter()
             .find_map(|cred| {
@@ -625,9 +631,8 @@ where
             .send(DiscloseRecoveryCode {
                 recovery_code_disclosure: recovery_code_disclosure.into(),
             })
-            .await?;
-
-        Ok(())
+            .await
+            .map_err(IssuanceError::Instruction)
     }
 }
 

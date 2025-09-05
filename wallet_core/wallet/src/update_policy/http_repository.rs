@@ -4,7 +4,6 @@ use std::time::Duration;
 use std::time::Instant;
 
 use parking_lot::RwLock;
-use semver::Version;
 use serde::de::DeserializeOwned;
 use tracing::info;
 
@@ -12,6 +11,7 @@ use http_utils::tls::pinning::TlsPinningConfig;
 use http_utils::tls::pinning::TlsPinningConfigHash;
 use update_policy_model::update_policy::UpdatePolicyResponse;
 use update_policy_model::update_policy::VersionState;
+use utils::built_info::version;
 
 use crate::repository::HttpClient;
 use crate::repository::HttpResponse;
@@ -26,15 +26,13 @@ pub struct HttpUpdatePolicyRepository {
     state: RwLock<(VersionState, Option<(Instant, TlsPinningConfigHash)>)>,
 }
 
-static CURRENT_VERSION: LazyLock<Version> =
-    LazyLock::new(|| Version::parse(env!("CARGO_PKG_VERSION")).expect("should always be a valid semver"));
 #[expect(clippy::identity_op)]
 static CACHE_DURATION: LazyLock<Duration> = LazyLock::new(|| Duration::from_secs(1 * 60 * 60)); // 1 hour
 
 impl HttpUpdatePolicyRepository {
     #[expect(clippy::new_without_default)] // this will receive some parameters in the future
     pub fn new() -> Self {
-        LazyLock::force(&CURRENT_VERSION); // force a failure as early as possible
+        version(); // force a failure as early as possible
 
         Self {
             client: ReqwestHttpClient::new("update-policy".parse().expect("should be a valid filename")),
@@ -76,14 +74,14 @@ impl UpdateableRepository<VersionState, TlsPinningConfig> for HttpUpdatePolicyRe
                     .is_some_and(|diff| diff < *CACHE_DURATION)
                     && fetched_for == config_hash
             }) {
-                info!("Using cached version state for version {}", *CURRENT_VERSION);
+                info!("Using cached version state for version {}", version());
                 return Ok(RepositoryUpdateState::Cached(current_state));
             }
         }
 
         let body = self.client.fetch(config).await?;
         let new_state = match body {
-            HttpResponse::Parsed(Json(policy)) => policy.into_version_state(&CURRENT_VERSION),
+            HttpResponse::Parsed(Json(policy)) => policy.into_version_state(version()),
             HttpResponse::NotModified => {
                 info!("Update policy has not changed");
                 return Ok(RepositoryUpdateState::Unmodified(self.get()));
@@ -101,7 +99,8 @@ impl UpdateableRepository<VersionState, TlsPinningConfig> for HttpUpdatePolicyRe
 
         info!(
             "Received new update policy, updating the state for version {} to {}",
-            *CURRENT_VERSION, new_state
+            version(),
+            new_state,
         );
 
         let from = lock.0;

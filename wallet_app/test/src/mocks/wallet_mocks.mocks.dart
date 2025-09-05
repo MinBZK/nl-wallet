@@ -6452,6 +6452,31 @@ class MockWalletCoreApi extends _i1.Mock implements _i23.WalletCoreApi {
       ) as _i10.Future<_i23.WalletInstructionResult>);
 
   @override
+  _i10.Future<_i23.PidIssuanceResult> crateApiFullAcceptPidIssuance({required String? pin}) => (super.noSuchMethod(
+        Invocation.method(
+          #crateApiFullAcceptPidIssuance,
+          [],
+          {#pin: pin},
+        ),
+        returnValue: _i10.Future<_i23.PidIssuanceResult>.value(_i14.dummyValue<_i23.PidIssuanceResult>(
+          this,
+          Invocation.method(
+            #crateApiFullAcceptPidIssuance,
+            [],
+            {#pin: pin},
+          ),
+        )),
+        returnValueForMissingStub: _i10.Future<_i23.PidIssuanceResult>.value(_i14.dummyValue<_i23.PidIssuanceResult>(
+          this,
+          Invocation.method(
+            #crateApiFullAcceptPidIssuance,
+            [],
+            {#pin: pin},
+          ),
+        )),
+      ) as _i10.Future<_i23.PidIssuanceResult>);
+
+  @override
   _i10.Future<String?> crateApiFullCancelDisclosure() => (super.noSuchMethod(
         Invocation.method(
           #crateApiFullCancelDisclosure,
@@ -6624,6 +6649,33 @@ class MockWalletCoreApi extends _i1.Mock implements _i23.WalletCoreApi {
       ) as _i10.Future<_i23.WalletInstructionResult>);
 
   @override
+  _i10.Future<_i23.WalletInstructionResult> crateApiFullConfirmWalletTransfer({required String? pin}) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #crateApiFullConfirmWalletTransfer,
+          [],
+          {#pin: pin},
+        ),
+        returnValue: _i10.Future<_i23.WalletInstructionResult>.value(_i14.dummyValue<_i23.WalletInstructionResult>(
+          this,
+          Invocation.method(
+            #crateApiFullConfirmWalletTransfer,
+            [],
+            {#pin: pin},
+          ),
+        )),
+        returnValueForMissingStub:
+            _i10.Future<_i23.WalletInstructionResult>.value(_i14.dummyValue<_i23.WalletInstructionResult>(
+          this,
+          Invocation.method(
+            #crateApiFullConfirmWalletTransfer,
+            [],
+            {#pin: pin},
+          ),
+        )),
+      ) as _i10.Future<_i23.WalletInstructionResult>);
+
+  @override
   _i10.Future<_i23.WalletInstructionResult> crateApiFullContinueChangePin({required String? pin}) =>
       (super.noSuchMethod(
         Invocation.method(
@@ -6769,28 +6821,6 @@ class MockWalletCoreApi extends _i1.Mock implements _i23.WalletCoreApi {
       ) as _i10.Future<String>);
 
   @override
-  _i10.Future<String> crateApiFullGenerateWalletTransferUri() => (super.noSuchMethod(
-        Invocation.method(
-          #crateApiFullGenerateWalletTransferUri,
-          [],
-        ),
-        returnValue: _i10.Future<String>.value(_i14.dummyValue<String>(
-          this,
-          Invocation.method(
-            #crateApiFullGenerateWalletTransferUri,
-            [],
-          ),
-        )),
-        returnValueForMissingStub: _i10.Future<String>.value(_i14.dummyValue<String>(
-          this,
-          Invocation.method(
-            #crateApiFullGenerateWalletTransferUri,
-            [],
-          ),
-        )),
-      ) as _i10.Future<String>);
-
-  @override
   _i10.Future<List<_i23.WalletEvent>> crateApiFullGetHistory() => (super.noSuchMethod(
         Invocation.method(
           #crateApiFullGetHistory,
@@ -6835,14 +6865,14 @@ class MockWalletCoreApi extends _i1.Mock implements _i23.WalletCoreApi {
       ) as _i10.Future<String>);
 
   @override
-  _i10.Stream<void> crateApiFullGetWalletTransferStateStream() => (super.noSuchMethod(
+  _i10.Stream<_i23.WalletTransferState> crateApiFullGetWalletTransferStateStream() => (super.noSuchMethod(
         Invocation.method(
           #crateApiFullGetWalletTransferStateStream,
           [],
         ),
-        returnValue: _i10.Stream<void>.empty(),
-        returnValueForMissingStub: _i10.Stream<void>.empty(),
-      ) as _i10.Stream<void>);
+        returnValue: _i10.Stream<_i23.WalletTransferState>.empty(),
+        returnValueForMissingStub: _i10.Stream<_i23.WalletTransferState>.empty(),
+      ) as _i10.Stream<_i23.WalletTransferState>);
 
   @override
   _i10.Future<bool> crateApiFullHasActiveDisclosureSession() => (super.noSuchMethod(
@@ -6936,17 +6966,6 @@ class MockWalletCoreApi extends _i1.Mock implements _i23.WalletCoreApi {
         returnValue: _i10.Future<_i23.PinValidationResult>.value(_i23.PinValidationResult.Ok),
         returnValueForMissingStub: _i10.Future<_i23.PinValidationResult>.value(_i23.PinValidationResult.Ok),
       ) as _i10.Future<_i23.PinValidationResult>);
-
-  @override
-  _i10.Future<bool> crateApiFullIsWalletTransferPossible({required String? pin}) => (super.noSuchMethod(
-        Invocation.method(
-          #crateApiFullIsWalletTransferPossible,
-          [],
-          {#pin: pin},
-        ),
-        returnValue: _i10.Future<bool>.value(false),
-        returnValueForMissingStub: _i10.Future<bool>.value(false),
-      ) as _i10.Future<bool>);
 
   @override
   _i10.Future<void> crateApiFullLockWallet() => (super.noSuchMethod(
@@ -7080,14 +7099,15 @@ class MockWalletCoreApi extends _i1.Mock implements _i23.WalletCoreApi {
       ) as _i10.Future<_i23.StartDisclosureResult>);
 
   @override
-  _i10.Future<_i23.WalletInstructionResult> crateApiFullStartWalletTransfer({required String? pin}) =>
+  _i10.Future<_i23.WalletTransferInstructionResult> crateApiFullStartWalletTransfer({required String? pin}) =>
       (super.noSuchMethod(
         Invocation.method(
           #crateApiFullStartWalletTransfer,
           [],
           {#pin: pin},
         ),
-        returnValue: _i10.Future<_i23.WalletInstructionResult>.value(_i14.dummyValue<_i23.WalletInstructionResult>(
+        returnValue: _i10.Future<_i23.WalletTransferInstructionResult>.value(
+            _i14.dummyValue<_i23.WalletTransferInstructionResult>(
           this,
           Invocation.method(
             #crateApiFullStartWalletTransfer,
@@ -7095,8 +7115,8 @@ class MockWalletCoreApi extends _i1.Mock implements _i23.WalletCoreApi {
             {#pin: pin},
           ),
         )),
-        returnValueForMissingStub:
-            _i10.Future<_i23.WalletInstructionResult>.value(_i14.dummyValue<_i23.WalletInstructionResult>(
+        returnValueForMissingStub: _i10.Future<_i23.WalletTransferInstructionResult>.value(
+            _i14.dummyValue<_i23.WalletTransferInstructionResult>(
           this,
           Invocation.method(
             #crateApiFullStartWalletTransfer,
@@ -7104,7 +7124,7 @@ class MockWalletCoreApi extends _i1.Mock implements _i23.WalletCoreApi {
             {#pin: pin},
           ),
         )),
-      ) as _i10.Future<_i23.WalletInstructionResult>);
+      ) as _i10.Future<_i23.WalletTransferInstructionResult>);
 
   @override
   _i10.Future<_i23.WalletInstructionResult> crateApiFullUnlockWallet({required String? pin}) => (super.noSuchMethod(
