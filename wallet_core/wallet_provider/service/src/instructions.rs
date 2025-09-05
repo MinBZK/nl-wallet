@@ -485,12 +485,12 @@ impl HandleInstruction for PerformIssuance {
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
         H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
     {
-        let (issuance_result, _, wrapped_keys, wua_key_and_id) = perform_issuance(self, false, user_state).await?;
+        let (issuance_result, _, wrapped_keys, _) = perform_issuance(self, false, user_state).await?;
 
         persist_issuance_keys(
             wrapped_keys,
             issuance_result.key_identifiers.as_ref().to_vec(),
-            wua_key_and_id,
+            None,
             wallet_user,
             uuid_generator,
             user_state,
