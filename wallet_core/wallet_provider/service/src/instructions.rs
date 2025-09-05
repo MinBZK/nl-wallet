@@ -255,6 +255,27 @@ impl HandleInstruction for ChangePinCommit {
     }
 }
 
+pub(super) async fn perform_issuance_with_wua<T, R, H>(
+    instruction: PerformIssuance,
+    user_state: &UserState<R, H, impl WuaIssuer>,
+) -> Result<(PerformIssuanceWithWuaResult, Vec<WrappedKey>, (WrappedKey, String)), InstructionError>
+where
+    T: Committable,
+    R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
+    H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
+{
+    let (issuance_result, wua_disclosure, wrapped_keys, wua_key_and_id) =
+        perform_issuance(instruction, true, user_state).await?;
+
+    let issuance_result = PerformIssuanceWithWuaResult {
+        issuance_result,
+        wua_disclosure: wua_disclosure.unwrap(),
+    };
+
+    // unwrap: `perform_issuance()` included a WUA since we passed it `true` above.
+    Ok((issuance_result, wrapped_keys, wua_key_and_id.unwrap()))
+}
+
 /// Helper for the [`PerformIssuance`] and [`PerformIssuanceWithWua`] instruction handlers.
 pub(super) async fn perform_issuance<T, R, H>(
     instruction: PerformIssuance,
@@ -494,24 +515,24 @@ impl HandleInstruction for PerformIssuanceWithWua {
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
         H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
     {
-        let (issuance_result, wua_with_disclosure, wrapped_keys, wua_key_and_id) =
-            perform_issuance(self.issuance_instruction, true, user_state).await?;
+        let (issuance_with_wua_result, wrapped_keys, wua_key_and_id) =
+            perform_issuance_with_wua(self.issuance_instruction, user_state).await?;
 
         persist_issuance_keys(
             wrapped_keys,
-            issuance_result.key_identifiers.as_ref().to_vec(),
-            wua_key_and_id,
+            issuance_with_wua_result
+                .issuance_result
+                .key_identifiers
+                .as_ref()
+                .to_vec(),
+            Some(wua_key_and_id),
             wallet_user,
             uuid_generator,
             user_state,
         )
         .await?;
 
-        Ok(PerformIssuanceWithWuaResult {
-            issuance_result,
-            // unwrap: `perform_issuance()` included a WUA since we passed it `true` above.
-            wua_disclosure: wua_with_disclosure.unwrap(),
-        })
+        Ok(issuance_with_wua_result)
     }
 }
 

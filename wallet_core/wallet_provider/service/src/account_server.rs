@@ -70,7 +70,6 @@ use wallet_account::messages::instructions::InstructionAndResult;
 use wallet_account::messages::instructions::InstructionChallengeRequest;
 use wallet_account::messages::instructions::InstructionResult;
 use wallet_account::messages::instructions::InstructionResultClaims;
-use wallet_account::messages::instructions::PerformIssuanceWithWuaResult;
 use wallet_account::messages::instructions::StartPinRecovery;
 use wallet_account::messages::instructions::StartPinRecoveryResult;
 use wallet_account::messages::registration::Registration;
@@ -96,7 +95,7 @@ use wscd::PoaError;
 use crate::instructions::HandleInstruction;
 use crate::instructions::PinChecks;
 use crate::instructions::ValidateInstruction;
-use crate::instructions::perform_issuance;
+use crate::instructions::perform_issuance_with_wua;
 use crate::keys::InstructionResultSigningKey;
 use crate::keys::WalletCertificateSigningKey;
 use crate::wallet_certificate::PinKeyChecks;
@@ -978,14 +977,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         let issuance_instruction = instruction_payload.issuance_with_wua_instruction.issuance_instruction;
 
         // Handle the issuance part without persisting the generated keys
-        let (issuance_result, wua_with_disclosure, _, _) =
-            perform_issuance(issuance_instruction, true, user_state).await?;
-
-        let issuance_with_wua_result = PerformIssuanceWithWuaResult {
-            issuance_result,
-            // unwrap: `perform_issuance()` included a WUA since we passed it `true` above.
-            wua_disclosure: wua_with_disclosure.unwrap(),
-        };
+        let (issuance_with_wua_result, _, _) = perform_issuance_with_wua(issuance_instruction, user_state).await?;
 
         let tx = user_state.repositories.begin_transaction().await?;
 
