@@ -118,6 +118,7 @@ integration_test = [
     "db_test",
     "hsm_test",
     "dep:assert_matches",
+    "dep:jsonwebtoken",
     "dep:p256",
     "dep:rand_core",
     "dep:regex",
