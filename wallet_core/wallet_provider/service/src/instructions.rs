@@ -185,11 +185,11 @@ impl HandleInstruction for ChangePinCommit {
     }
 }
 
-pub(super) struct IssuanceArguments {
-    pub(super) key_count: NonZeroUsize,
-    pub(super) aud: String,
-    pub(super) nonce: Option<String>,
-    pub(super) issue_wua: bool,
+pub struct IssuanceArguments {
+    pub key_count: NonZeroUsize,
+    pub aud: String,
+    pub nonce: Option<String>,
+    pub issue_wua: bool,
 }
 
 /// Helper for the [`PerformIssuance`] and [`PerformIssuanceWithWua`] instruction handlers.
