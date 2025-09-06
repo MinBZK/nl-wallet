@@ -4,7 +4,6 @@ use std::string::FromUtf8Error;
 
 use chrono::DateTime;
 use chrono::Utc;
-use dcql::UniqueIdVec;
 use derive_more::Constructor;
 use indexmap::IndexSet;
 use itertools::Itertools;
@@ -29,6 +28,7 @@ use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateError;
 use dcql::CredentialQueryIdentifier;
 use dcql::Query;
+use dcql::UniqueIdVec;
 use dcql::disclosure::CredentialValidationError;
 use dcql::disclosure::DisclosedCredential;
 use dcql::normalized::NormalizedCredentialRequests;
