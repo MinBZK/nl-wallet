@@ -32,6 +32,7 @@ use crypto::mock_remote::MockRemoteEcdsaKey;
 use crypto::server_keys::generate::Ca;
 use dcql::CredentialQueryIdentifier;
 use dcql::Query;
+use dcql::UniqueIdVec;
 use hsm::service::Pkcs11Hsm;
 use http_utils::error::HttpJsonErrorBody;
 use http_utils::reqwest::default_reqwest_client_builder;
@@ -65,7 +66,6 @@ use server_utils::settings::Server;
 use server_utils::settings::Settings;
 use server_utils::settings::Storage;
 use utils::generator::mock::MockTimeGenerator;
-use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 use verification_server::server;
 use verification_server::settings::UseCaseSettings;
@@ -1009,9 +1009,10 @@ async fn perform_full_disclosure(session_type: SessionType) -> (Client, SessionT
     (client, session_token, internal_url, return_url)
 }
 
-fn check_example_disclosed_attributes(disclosed_attributes: &VecNonEmpty<DisclosedAttestations>) {
+fn check_example_disclosed_attributes(disclosed_attributes: &UniqueIdVec<DisclosedAttestations>) {
     assert_eq!(disclosed_attributes.len().get(), 1);
     let attestations = &disclosed_attributes
+        .as_ref()
         .iter()
         .find(|attestations| attestations.id == *EXAMPLE_PID_START_DISCLOSURE_REQUEST_ID)
         .as_ref()
@@ -1050,7 +1051,7 @@ async fn test_disclosed_attributes_without_nonce() {
     assert_eq!(response.status(), StatusCode::OK);
 
     // Check the disclosed attributes against the example attributes.
-    let disclosed_attributes = response.json::<VecNonEmpty<DisclosedAttestations>>().await.unwrap();
+    let disclosed_attributes = response.json::<UniqueIdVec<DisclosedAttestations>>().await.unwrap();
 
     check_example_disclosed_attributes(&disclosed_attributes);
 }
@@ -1097,7 +1098,7 @@ async fn test_disclosed_attributes_with_nonce() {
     assert_eq!(response.status(), StatusCode::OK);
 
     // Check the disclosed attributes against the example attributes.
-    let disclosed_attributes = response.json::<VecNonEmpty<DisclosedAttestations>>().await.unwrap();
+    let disclosed_attributes = response.json::<UniqueIdVec<DisclosedAttestations>>().await.unwrap();
 
     check_example_disclosed_attributes(&disclosed_attributes);
 }
