@@ -28,18 +28,18 @@ pub fn test_documents_assert_matches_disclosed_attestations(
         request,
     ) in documents.iter().zip_eq(requests.as_ref())
     {
-        let attestations = disclosed_attestations
+        let attestations = &disclosed_attestations
             .as_ref()
             .iter()
-            .find(|attestations| attestations.id == request.id)
+            .filter(|attestations| attestations.id == request.id)
+            .exactly_one()
             .expect("disclosed attestations should include credential query identifier")
-            .attestations
-            .clone();
+            .attestations;
 
         // The response should contain exactly one attestation.
         assert_eq!(attestations.len().get(), 1);
 
-        let attestation = attestations.into_first();
+        let attestation = attestations.first();
 
         // Verify the attestation type.
         assert_eq!(attestation.attestation_type, *expected_doc_type);
@@ -48,25 +48,25 @@ pub fn test_documents_assert_matches_disclosed_attestations(
         assert_eq!(attestation.issuer_uri, *expected_issuer);
 
         // Verify the actual attributes.
-        let DisclosedAttributes::MsoMdoc(mut attributes) = attestation.attributes else {
+        let DisclosedAttributes::MsoMdoc(attributes) = &attestation.attributes else {
             panic!("disclosed attributes should be in mdoc format");
         };
 
         assert_eq!(attributes.len(), expected_namespaces.len());
 
         for (expected_namespace, expected_entries) in expected_namespaces {
-            let mut disclosed_namespace = attributes
-                .swap_remove(expected_namespace)
+            let disclosed_namespace = attributes
+                .get(expected_namespace)
                 .expect("disclosed attributes should contain namespace");
 
             assert_eq!(disclosed_namespace.len(), expected_entries.len());
 
             for expected_entry in expected_entries {
                 let attribute = disclosed_namespace
-                    .swap_remove(&expected_entry.name)
+                    .get(&expected_entry.name)
                     .expect("disclosed attributes should contain entry");
 
-                assert_eq!(ciborium::Value::from(attribute), expected_entry.value);
+                assert_eq!(ciborium::Value::from(attribute.clone()), expected_entry.value);
             }
         }
     }
