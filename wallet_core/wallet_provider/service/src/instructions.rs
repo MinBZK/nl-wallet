@@ -412,8 +412,8 @@ where
         .map_err(|e| InstructionError::WuaIssuance(Box::new(e)))?;
 
     let wua_disclosure = UnverifiedJwt::sign(
-        claims,
         &Header::new(Algorithm::ES256),
+        claims,
         &attestation_key(&wua_wrapped_key, user_state),
     )
     .await
@@ -438,7 +438,7 @@ where
             ..Default::default()
         };
 
-        let jwt = UnverifiedJwt::sign(claims, &header, attestation_key)
+        let jwt = UnverifiedJwt::sign(&header, claims, attestation_key)
             .await
             .map_err(InstructionError::PopSigning)?;
 

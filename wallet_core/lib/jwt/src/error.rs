@@ -34,6 +34,10 @@ pub enum JwtError {
     #[error("cannot construct JSON-serialized JWT: received differing payloads: {0}, {1}")]
     #[category(pd)]
     DifferentPayloads(String, String),
+
+    #[error("could not convert Header")]
+    #[category(critical)]
+    HeaderConversion,
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]

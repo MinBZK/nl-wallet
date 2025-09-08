@@ -7,7 +7,7 @@ use serde_with::skip_serializing_none;
 
 use crypto::keys::EcdsaKey;
 
-use crate::UnverifiedJwt;
+use crate::VerifiedJwt;
 use crate::error::JwkConversionError;
 use crate::error::JwtError;
 use crate::jwk::jwk_from_p256;
@@ -43,13 +43,13 @@ where
         iss: String,
         typ: Option<String>,
         attributes: T,
-    ) -> Result<UnverifiedJwt<JwtCredentialClaims<T>>, JwtError> {
-        let jwt = UnverifiedJwt::<JwtCredentialClaims<T>>::sign(
-            &JwtCredentialClaims::<T>::new(holder_pubkey, iss, attributes)?,
-            &Header {
+    ) -> Result<VerifiedJwt<JwtCredentialClaims<T>>, JwtError> {
+        let jwt = VerifiedJwt::<JwtCredentialClaims<T>>::sign(
+            Header {
                 typ: typ.or(Some("jwt".to_string())),
                 ..Header::new(jsonwebtoken::Algorithm::ES256)
             },
+            JwtCredentialClaims::<T>::new(holder_pubkey, iss, attributes)?,
             issuer_privkey,
         )
         .await?;

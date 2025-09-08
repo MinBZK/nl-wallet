@@ -154,7 +154,7 @@ impl<H: Hasher> SdJwtBuilder<H> {
         claims.cnf = Some(RequiredKeyBinding::Jwk(jwk_from_p256(holder_pubkey)?));
         claims.vct_integrity = Some(vct_integrity);
 
-        let verified_jwt = VerifiedJwt::sign(claims, header, issuer_signing_key).await?;
+        let verified_jwt = VerifiedJwt::sign(header, claims, issuer_signing_key).await?;
 
         Ok(SdJwt::new(verified_jwt, issuer_certificates, disclosures))
     }

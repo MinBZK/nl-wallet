@@ -80,7 +80,7 @@ impl Poa {
         let jwts: VecNonEmpty<_> = try_join_all(
             keys.as_slice()
                 .iter()
-                .map(|key| UnverifiedJwt::sign(&payload, &header, *key)),
+                .map(|key| UnverifiedJwt::sign(&header, &payload, *key)),
         )
         .await?
         .try_into()

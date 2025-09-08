@@ -146,7 +146,7 @@ impl Wscd for MockRemoteWscd {
                     ..Default::default()
                 };
 
-                UnverifiedJwt::sign(&claims, &header, attestation_key)
+                UnverifiedJwt::sign(&header, &claims, attestation_key)
                     .now_or_never()
                     .unwrap()
                     .unwrap()
@@ -170,9 +170,10 @@ impl Wscd for MockRemoteWscd {
             )
             .now_or_never()
             .unwrap()
-            .unwrap();
+            .unwrap()
+            .into();
 
-            let wua_disclosure = UnverifiedJwt::sign(&claims, &Header::new(Algorithm::ES256), &wua_key)
+            let wua_disclosure = UnverifiedJwt::sign(&Header::new(Algorithm::ES256), &claims, &wua_key)
                 .now_or_never()
                 .unwrap()
                 .unwrap();

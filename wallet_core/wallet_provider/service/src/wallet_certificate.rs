@@ -10,7 +10,7 @@ use hsm::model::encrypted::Encrypted;
 use hsm::model::encrypter::Decrypter;
 use hsm::service::HsmError;
 use jwt::EcdsaDecodingKey;
-use jwt::UnverifiedJwt;
+use jwt::VerifiedJwt;
 use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::messages::registration::WalletCertificateClaims;
 use wallet_provider_domain::model::wallet_user::WalletUser;
@@ -55,9 +55,10 @@ where
         iat: Utc::now(),
     };
 
-    UnverifiedJwt::sign_with_sub(&cert, wallet_certificate_signing_key)
+    Ok(VerifiedJwt::sign_with_sub(cert, wallet_certificate_signing_key)
         .await
-        .map_err(WalletCertificateError::JwtSigning)
+        .map_err(WalletCertificateError::JwtSigning)?
+        .into())
 }
 
 pub async fn parse_claims_and_retrieve_wallet_user<T, R>(

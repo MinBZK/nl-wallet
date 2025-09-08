@@ -63,7 +63,8 @@ where
             Some(WUA_JWT_TYP.to_string()),
             WuaClaims::new(),
         )
-        .await?;
+        .await?
+        .into();
 
         Ok((wrapped_privkey, verifying_key_sha256(&pubkey), jwt))
     }
@@ -111,7 +112,8 @@ pub mod mock {
                 WuaClaims::new(),
             )
             .await
-            .unwrap();
+            .unwrap()
+            .into();
 
             Ok((
                 WrappedKey::new(privkey.to_bytes().to_vec(), *privkey.verifying_key()),

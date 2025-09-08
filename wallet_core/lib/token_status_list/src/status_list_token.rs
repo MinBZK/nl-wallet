@@ -78,7 +78,7 @@ impl StatusListTokenBuilder {
             status_list: self.status_list,
         };
 
-        let jwt = UnverifiedJwt::sign(&claims, &header, key).await?;
+        let jwt = UnverifiedJwt::sign(&header, &claims, key).await?;
         Ok(StatusListToken(jwt))
     }
 }

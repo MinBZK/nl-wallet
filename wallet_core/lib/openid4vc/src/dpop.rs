@@ -152,7 +152,7 @@ impl Dpop {
             access_token_hash: access_token.map(AccessToken::sha256),
         };
 
-        let jwt = UnverifiedJwt::sign(&payload, &header, private_key).await?;
+        let jwt = UnverifiedJwt::sign(&header, &payload, private_key).await?;
         Ok(Self(jwt))
     }
 
