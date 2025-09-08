@@ -187,7 +187,8 @@ wallet configuration has been renamed, so an updated wallet configuration will
 need to be deployed.</p></li>
 <li><p>flutter_rust_bridge has been updated to 2.11.1, run
 <code class="docutils literal notranslate"><span class="pre">cargo</span> <span class="pre">install</span> <span class="pre">flutter_rust_bridge_codegen</span></code> to update.</p></li>
-<li><p>In the wallet configuration <code class="docutils literal notranslate"><span class="pre">mdoc_trust_anchors</span></code> is renamed to <code class="docutils literal notranslate"><span class="pre">issuer_trust_anchors</span></code>.</p></li>
+<li><p>In the wallet configuration <code class="docutils literal notranslate"><span class="pre">mdoc_trust_anchors</span></code> is renamed to
+<code class="docutils literal notranslate"><span class="pre">issuer_trust_anchors</span></code>.</p></li>
 <li><p>The Recovery Code will now be disclosed to the Wallet Provider after PID
 issuance. It will be stored in the Wallet Provider’s database, so therefore
 the database will have to migrated when deploying this. For the Wallet
@@ -199,6 +200,9 @@ Presentation Exchange. This has caused the JSON for both the verifier’s
 <code class="docutils literal notranslate"><span class="pre">disclosed_attributes</span></code> endpoint and the <code class="docutils literal notranslate"><span class="pre">POST</span></code> endpoint of the attestation
 server as used for disclosure-based issuance to be changed. Please refer to
 the relevant portions of the documentation.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">/disclosed_attributes</span></code> of the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> now instead of
+returning a JSON object returns a JSON array, whose order matches that of the
+DCQL query that started the session.</p></li>
 </ul>
 </section>
 <section id="new-features">
