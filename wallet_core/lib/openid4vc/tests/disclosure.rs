@@ -156,16 +156,15 @@ fn disclosure_direct() {
     let jwe = disclosure_jwe(&auth_request_jws, &[ca.to_trust_anchor()], &issuer_ca);
 
     // RP decrypts the response JWE and verifies the contained Authorization Response.
-    let (auth_response, mdoc_nonce) = VpAuthorizationResponse::decrypt(&jwe, &encryption_keypair, &nonce).unwrap();
-    let disclosed_attestations = auth_response
-        .verify(
-            &iso_auth_request,
-            &[MOCK_WALLET_CLIENT_ID.to_string()],
-            &mdoc_nonce,
-            &MockTimeGenerator::default(),
-            &[issuer_ca.to_trust_anchor()],
-        )
-        .unwrap();
+    let disclosed_attestations = VpAuthorizationResponse::decrypt_and_verify(
+        &jwe,
+        &encryption_keypair,
+        &iso_auth_request,
+        &[MOCK_WALLET_CLIENT_ID.to_string()],
+        &MockTimeGenerator::default(),
+        &[issuer_ca.to_trust_anchor()],
+    )
+    .unwrap();
 
     assert_disclosed_attestations_mdoc_pid(&disclosed_attestations);
 }
@@ -255,10 +254,9 @@ async fn disclosure_using_message_client() {
 /// directly in its methods.
 #[derive(Debug, Clone)]
 struct DirectMockVpMessageClient {
-    nonce: String,
     encryption_keypair: EcKeyPair,
     auth_keypair: KeyPair,
-    auth_request: VpAuthorizationRequest,
+    auth_request: NormalizedVpAuthorizationRequest,
     request_uri: BaseUrl,
     response_uri: BaseUrl,
     trust_anchors: Vec<TrustAnchor<'static>>,
@@ -278,23 +276,20 @@ impl DirectMockVpMessageClient {
             .parse()
             .unwrap();
 
-        let nonce = "nonce".to_string();
         let response_uri: BaseUrl = "https://example.com/response_uri".parse().unwrap();
         let encryption_keypair = EcKeyPair::generate(EcCurve::P256).unwrap();
 
         let auth_request = NormalizedVpAuthorizationRequest::new(
             NormalizedCredentialRequests::new_mock_mdoc_pid_example(),
             auth_keypair.certificate(),
-            nonce.clone(),
+            "nonce".to_string(),
             encryption_keypair.to_jwk_public_key().try_into().unwrap(),
             response_uri.clone(),
             None,
         )
-        .unwrap()
-        .into();
+        .unwrap();
 
         Self {
-            nonce,
             encryption_keypair,
             auth_keypair,
             auth_request,
@@ -322,7 +317,7 @@ impl VpMessageClient for DirectMockVpMessageClient {
     ) -> Result<UnverifiedJwt<VpAuthorizationRequest>, VpMessageClientError> {
         assert_eq!(url, self.request_uri);
 
-        let jws = UnverifiedJwt::sign_with_certificate(&self.auth_request, &self.auth_keypair)
+        let jws = UnverifiedJwt::sign_with_certificate(&self.auth_request.clone().into(), &self.auth_keypair)
             .await
             .unwrap();
         Ok(jws)
@@ -335,17 +330,15 @@ impl VpMessageClient for DirectMockVpMessageClient {
     ) -> Result<Option<BaseUrl>, VpMessageClientError> {
         assert_eq!(url, self.response_uri);
 
-        let (auth_response, mdoc_nonce) =
-            VpAuthorizationResponse::decrypt(&jwe, &self.encryption_keypair, &self.nonce).unwrap();
-        let disclosed_attestations = auth_response
-            .verify(
-                &self.auth_request.clone().try_into().unwrap(),
-                &[MOCK_WALLET_CLIENT_ID.to_string()],
-                &mdoc_nonce,
-                &MockTimeGenerator::default(),
-                &self.trust_anchors,
-            )
-            .unwrap();
+        let disclosed_attestations = VpAuthorizationResponse::decrypt_and_verify(
+            &jwe,
+            &self.encryption_keypair,
+            &self.auth_request,
+            &[MOCK_WALLET_CLIENT_ID.to_string()],
+            &MockTimeGenerator::default(),
+            &self.trust_anchors,
+        )
+        .unwrap();
 
         assert_disclosed_attestations_mdoc_pid(&disclosed_attestations);
 

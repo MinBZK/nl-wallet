@@ -665,7 +665,7 @@ impl VpAuthorizationResponse {
         )
     }
 
-    pub fn decrypt(
+    fn decrypt(
         jwe: &str,
         private_key: &EcKeyPair,
         nonce: &str,
@@ -685,7 +685,7 @@ impl VpAuthorizationResponse {
         Ok((payload, mdoc_nonce))
     }
 
-    pub fn verify(
+    fn verify(
         self,
         auth_request: &NormalizedVpAuthorizationRequest,
         accepted_wallet_client_ids: &[String],
