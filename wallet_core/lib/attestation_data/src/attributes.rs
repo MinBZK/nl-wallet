@@ -421,7 +421,13 @@ impl Attributes {
     ) -> bool {
         claim_paths
             .into_iter()
-            .all(|claim_path| self.get(claim_path).map(|value| value.is_some()).unwrap_or(false))
+            .all(|claim_path| self.get(claim_path).unwrap_or(None).is_some())
+    }
+
+    /// Check if the a value exists at the provided claim path.
+    /// Note that an invalid path will result in a mismatch.
+    pub fn has_claim_path(&self, claim_path: &VecNonEmpty<ClaimPath>) -> bool {
+        self.get(claim_path).unwrap_or(None).is_some()
     }
 
     /// Insert the specified attribute at the specified location.

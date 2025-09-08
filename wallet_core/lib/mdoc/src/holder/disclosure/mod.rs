@@ -11,6 +11,7 @@ mod document;
 mod issuer_signed;
 mod mdoc;
 
+pub use issuer_signed::claim_path_to_mdoc_path;
 pub use mdoc::PartialMdoc;
 
 #[cfg(test)]

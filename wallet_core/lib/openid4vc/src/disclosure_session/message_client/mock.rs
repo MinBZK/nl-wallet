@@ -172,7 +172,9 @@ impl MockVerifierSession {
             request_uri_method,
             String::from(key_pair.certificate().san_dns_name().unwrap().unwrap()),
         );
-        let credential_requests = vec![NormalizedCredentialRequest::new_pid_example()].try_into().unwrap();
+        let credential_requests = vec![NormalizedCredentialRequest::new_mock_mdoc_pid_example()]
+            .try_into()
+            .unwrap();
 
         MockVerifierSession {
             redirect_uri,

@@ -19,7 +19,7 @@ use super::MissingAttributesError;
 /// This will return `None` if:
 /// * Any of the path elements is not a key path.
 /// * The claim path does not consist of two elements.
-fn claim_path_to_mdoc_path(path: &VecNonEmpty<ClaimPath>) -> Option<(&str, &str)> {
+pub fn claim_path_to_mdoc_path(path: &VecNonEmpty<ClaimPath>) -> Option<(&str, &str)> {
     path.iter()
         .map(ClaimPath::try_key_path)
         .collect::<Option<Vec<_>>>()

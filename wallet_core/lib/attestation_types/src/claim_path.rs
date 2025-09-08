@@ -23,6 +23,16 @@ pub enum ClaimPath {
 }
 
 impl ClaimPath {
+    pub fn matches_key_path<'a>(
+        claim_path: impl IntoIterator<Item = &'a Self>,
+        key_path: impl IntoIterator<Item = &'a str>,
+    ) -> bool {
+        itertools::equal(
+            claim_path.into_iter().map(ClaimPath::try_key_path),
+            key_path.into_iter().map(Some),
+        )
+    }
+
     pub fn try_key_path(&self) -> Option<&str> {
         match self {
             ClaimPath::SelectByKey(key) => Some(key.as_str()),

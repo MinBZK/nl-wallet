@@ -1,13 +1,12 @@
 pub mod disclosure;
 pub mod normalized;
+pub mod unique_id_vec;
 
 #[cfg(feature = "test_document")]
 mod test_document;
 
-use std::num::NonZeroUsize;
 use std::ops::Not;
 
-use itertools::Itertools;
 use nutype::nutype;
 use serde::Deserialize;
 use serde::Serialize;
@@ -17,6 +16,9 @@ use strum::EnumDiscriminants;
 use attestation_types::claim_path::ClaimPath;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_at_least::VecNonEmptyUnique;
+
+use crate::unique_id_vec::MayHaveUniqueId;
+use crate::unique_id_vec::UniqueIdVec;
 
 #[derive(Debug, thiserror::Error)]
 pub enum IdentifierError {
@@ -49,46 +51,6 @@ pub struct CredentialQueryIdentifier(String);
     validate(with = validate_identifier_str, error = IdentifierError),
 )]
 pub struct ClaimsQueryIdentifier(String);
-
-pub trait MayHaveUniqueId {
-    fn id(&self) -> Option<&str>;
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum UniqueIdVecError {
-    #[error("source vec is empty")]
-    Empty,
-    #[error("source vec contains items with duplicate identifiers")]
-    DuplicateIds,
-}
-
-fn validate_vec_non_empt_and_unique_ids<T>(items: &[T]) -> Result<(), UniqueIdVecError>
-where
-    T: MayHaveUniqueId,
-{
-    if items.is_empty() {
-        return Err(UniqueIdVecError::Empty);
-    }
-
-    if !items.iter().flat_map(MayHaveUniqueId::id).all_unique() {
-        return Err(UniqueIdVecError::DuplicateIds);
-    }
-
-    Ok(())
-}
-
-#[nutype(
-    derive(Debug, Clone, PartialEq, Eq, AsRef, TryFrom, IntoIterator, Serialize, Deserialize),
-    validate(with = validate_vec_non_empt_and_unique_ids, error = UniqueIdVecError),
-)]
-pub struct UniqueIdVec<T: MayHaveUniqueId>(Vec<T>);
-
-impl<T: MayHaveUniqueId> UniqueIdVec<T> {
-    pub fn len(&self) -> NonZeroUsize {
-        // Safety: the constructor guarantees the vec is nonempty.
-        self.as_ref().len().try_into().unwrap()
-    }
-}
 
 /// A DCQL query, encoding constraints on the combinations of credentials and claims that are requested.
 /// The Wallet must evaluate the query against the Credentials it holds and returns Presentations matching the query.
@@ -191,17 +153,6 @@ pub enum CredentialQueryFormat {
     },
 }
 
-impl CredentialQueryFormat {
-    pub fn credential_types(&self) -> impl Iterator<Item = &str> {
-        match self {
-            Self::MsoMdoc { doctype_value } => std::slice::from_ref(doctype_value),
-            Self::SdJwt { vct_values } => vct_values.as_slice(),
-        }
-        .iter()
-        .map(String::as_str)
-    }
-}
-
 /// Represents a request for one or more credentials to satisfy a particular use case with the Verifier.
 ///
 /// <https://openid.net/specs/openid-4-verifiable-presentations-1_0-28.html#name-credential-set-query>
@@ -279,6 +230,8 @@ const fn bool_value<const B: bool>() -> bool {
 pub mod examples {
     use super::Query;
 
+    pub(crate) const SINGLE_CREDENTIAL_DCQL_QUERY_BYTES: &[u8] =
+        include_bytes!("../examples/spec/single_credential_dcql_query.json");
     pub(crate) const MULTIPLE_CREDENTIALS_DCQL_QUERY_BYTES: &[u8] =
         include_bytes!("../examples/spec/multiple_credentials_dcql_query.json");
     pub(crate) const WITH_CREDENTIAL_SETS_DCQL_QUERY_BYTES: &[u8] =
@@ -291,6 +244,10 @@ pub mod examples {
     impl Query {
         fn from_slice(slice: &[u8]) -> Self {
             serde_json::from_slice::<Query>(slice).unwrap()
+        }
+
+        pub fn example_with_single_credential() -> Self {
+            Self::from_slice(SINGLE_CREDENTIAL_DCQL_QUERY_BYTES)
         }
 
         pub fn example_with_multiple_credentials() -> Self {
@@ -320,6 +277,7 @@ mod tests {
     use super::examples::*;
 
     #[rstest]
+    #[case(SINGLE_CREDENTIAL_DCQL_QUERY_BYTES)]
     #[case(MULTIPLE_CREDENTIALS_DCQL_QUERY_BYTES)]
     #[case(WITH_CREDENTIAL_SETS_DCQL_QUERY_BYTES)]
     #[case(WITH_CLAIM_SETS_DCQL_QUERY_BYTES)]

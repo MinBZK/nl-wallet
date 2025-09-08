@@ -11,6 +11,7 @@ workspace = true
 doctest = false
 
 [dependencies]
+itertools.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_with = { workspace = true, features = ["macros"] }
 strum = { workspace = true, features = ["derive"] }

@@ -28,11 +28,10 @@ use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateError;
 use dcql::CredentialQueryIdentifier;
 use dcql::Query;
-use dcql::UniqueIdVec;
 use dcql::disclosure::CredentialValidationError;
-use dcql::disclosure::DisclosedCredential;
 use dcql::normalized::NormalizedCredentialRequests;
 use dcql::normalized::UnsupportedDcqlFeatures;
+use dcql::unique_id_vec::UniqueIdVec;
 use error_category::ErrorCategory;
 use http_utils::urls::BaseUrl;
 use jwt::UnverifiedJwt;
@@ -40,7 +39,6 @@ use jwt::error::JwtX5cError;
 use mdoc::DeviceResponse;
 use mdoc::Document;
 use mdoc::SessionTranscript;
-use mdoc::errors::Error as MdocError;
 use mdoc::utils::serialization::CborBase64;
 use serde_with::SerializeDisplay;
 use utils::generator::Generator;
@@ -574,13 +572,12 @@ impl VerifiablePresentation {
     }
 
     /// Helper function for extracing all unique public keys in a set of [`VerifiablePresentation`]s.
-    fn unique_keys<'a>(presentations: impl IntoIterator<Item = &'a Self>) -> Result<Vec<VerifyingKey>, MdocError> {
+    fn unique_keys<'a>(presentations: impl IntoIterator<Item = &'a Self>) -> Result<Vec<VerifyingKey>, mdoc::Error> {
         presentations
             .into_iter()
             .flat_map(|presentation| match presentation {
-                Self::MsoMdoc(device_responses) => {
-                    Self::mdoc_documents_iter(device_responses).map(|document| document.issuer_signed.public_key())
-                }
+                Self::MsoMdoc(device_responses) => Self::mdoc_documents_iter(device_responses)
+                    .map(|document| document.issuer_signed.dangerous_public_key()),
             })
             // Unfortunately `VerifyingKey` does not implement `Hash`, so we have to deduplicate manually.
             .process_results(|iter| iter.dedup().collect())
@@ -746,8 +743,8 @@ impl VpAuthorizationResponse {
             .collect::<Result<_, AuthResponseError>>()?;
 
         // Step 2: Verify the PoA, if present.
-        let used_keys = VerifiablePresentation::unique_keys(self.vp_token.values())
-            .expect("should always succeed when called after DeviceResponse::verify");
+        let used_keys =
+            VerifiablePresentation::unique_keys(self.vp_token.values()).map_err(AuthResponseError::MdocVerification)?;
         if used_keys.len() >= 2 {
             self.poa.ok_or(AuthResponseError::MissingPoa)?.verify(
                 &used_keys,
@@ -766,27 +763,9 @@ impl VpAuthorizationResponse {
         }
 
         // Step 4: Check that we received all the attributes that we requested.
-        let disclosed_credentials = self
-            .vp_token
-            .iter()
-            .map(|(id, presentation)| {
-                let credentials = match presentation {
-                    VerifiablePresentation::MsoMdoc(device_responses) => {
-                        VerifiablePresentation::mdoc_documents_iter(device_responses)
-                            .map(DisclosedCredential::MsoMdoc)
-                            .collect_vec()
-                            .try_into()
-                            .expect("should always succeed when called after DeviceResponse::verify")
-                    }
-                };
-
-                (id, credentials)
-            })
-            .collect();
-
         auth_request
             .credential_requests
-            .is_satisfied_by_disclosed_credentials(&disclosed_credentials)
+            .is_satisfied_by_disclosed_credentials(&disclosed_attestations)
             .map_err(AuthResponseError::UnsatisfiedCredentialRequest)?;
 
         // Finally, sort the disclosed attestations into the same order as that of the
@@ -798,15 +777,15 @@ impl VpAuthorizationResponse {
             .map(|credential_request| {
                 // Safety: in step 4 we checked that for each `credential_request`
                 // there is a matching disclosed attestation.
-                let (id, attestations) = disclosed_attestations.remove_entry(&credential_request.id).unwrap();
+                let (id, attestations) = disclosed_attestations.remove_entry(credential_request.id()).unwrap();
 
                 DisclosedAttestations { attestations, id }
             })
-            .collect();
+            .collect_vec();
 
         // Safety: this comes from mapping over auth_request.credential_requests, which is
         // a newtype around a `UniqueIdVec`.
-        let disclosed_attestations = UniqueIdVec::try_new(disclosed_attestations).unwrap();
+        let disclosed_attestations = UniqueIdVec::try_from(disclosed_attestations).unwrap();
 
         Ok(disclosed_attestations)
     }
@@ -839,8 +818,8 @@ mod tests {
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
-    use dcql::CredentialQueryFormat;
     use dcql::CredentialQueryIdentifier;
+    use dcql::normalized::NormalizedCredentialRequest;
     use dcql::normalized::NormalizedCredentialRequests;
     use jwt::UnverifiedJwt;
     use mdoc::DeviceAuthenticationKeyed;
@@ -890,7 +869,7 @@ mod tests {
     }
 
     fn setup() -> (TrustAnchor<'static>, KeyPair, EcKeyPair, VpAuthorizationRequest) {
-        setup_with_credential_requests(NormalizedCredentialRequests::new_big_example())
+        setup_with_credential_requests(NormalizedCredentialRequests::new_mock_mdoc_iso_example())
     }
 
     fn setup_with_credential_requests(
@@ -1172,9 +1151,9 @@ mod tests {
             .credential_requests
             .as_ref()
             .iter()
-            .map(|it| {
-                match &it.format {
-                    CredentialQueryFormat::MsoMdoc { doctype_value } => {
+            .map(|request| {
+                match &request {
+                    NormalizedCredentialRequest::MsoMdoc { doctype_value, .. } => {
                         // Assemble the challenge (serialized Device Authentication) to sign with the mdoc key
                         let device_authentication = TaggedBytes(CborSeq(DeviceAuthenticationKeyed {
                             device_authentication: Default::default(),
@@ -1185,7 +1164,7 @@ mod tests {
 
                         cbor_serialize(&device_authentication).unwrap()
                     }
-                    CredentialQueryFormat::SdJwt { .. } => todo!("PVW-4139 support SdJwt"),
+                    NormalizedCredentialRequest::SdJwt { .. } => todo!("PVW-4139 support SdJwt"),
                 }
             })
             .collect_vec()
@@ -1270,7 +1249,7 @@ mod tests {
             .zip_eq(device_responses)
             .map(|(request, device_response)| {
                 (
-                    request.id.clone(),
+                    request.id().clone(),
                     VerifiablePresentation::new_mdoc(vec_nonempty![device_response]),
                 )
             })
@@ -1281,7 +1260,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_verify_authorization_response() {
-        let (_, _, _, auth_request) = setup_with_credential_requests(NormalizedCredentialRequests::new_pid_example());
+        let (_, _, _, auth_request) =
+            setup_with_credential_requests(NormalizedCredentialRequests::new_mock_mdoc_pid_example());
         let mdoc_nonce = "mdoc_nonce";
 
         let time_generator = MockTimeGenerator::default();
@@ -1321,7 +1301,7 @@ mod tests {
             .as_ref()
             .iter()
             .zip_eq(attestations.as_ref())
-            .for_each(|(cred_request, attestations)| assert_eq!(cred_request.id, attestations.id));
+            .for_each(|(cred_request, attestations)| assert_eq!(*cred_request.id(), attestations.id));
 
         let disclosed_attestations = attestations.into_inner().pop().unwrap().attestations;
 
@@ -1350,9 +1330,9 @@ mod tests {
         NormalizedVpAuthorizationRequest,
     ) {
         let stored_documents = pid_full_name() + addr_street();
-        let items_request = stored_documents.clone().into();
+        let credential_requests = stored_documents.clone().into();
 
-        let (_, _, _, auth_request) = setup_with_credential_requests(items_request);
+        let (_, _, _, auth_request) = setup_with_credential_requests(credential_requests);
 
         let auth_request = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap();
 

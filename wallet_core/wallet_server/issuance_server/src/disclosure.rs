@@ -6,7 +6,7 @@ use itertools::Itertools;
 
 use attestation_data::disclosure::DisclosedAttestations;
 use attestation_data::issuable_document::IssuableDocument;
-use dcql::UniqueIdVec;
+use dcql::unique_id_vec::UniqueIdVec;
 use http_utils::reqwest::IntoPinnedReqwestClient;
 use http_utils::reqwest::PinnedReqwestClient;
 use http_utils::reqwest::ReqwestClientUrl;
@@ -194,7 +194,7 @@ mod tests {
     use attestation_data::disclosure::DisclosedAttributes;
     use attestation_data::disclosure::ValidityInfo;
     use attestation_data::issuable_document::IssuableDocument;
-    use dcql::UniqueIdVec;
+    use dcql::unique_id_vec::UniqueIdVec;
     use openid4vc::PostAuthResponseErrorCode;
     use openid4vc::credential::CredentialOffer;
     use openid4vc::issuer::AttestationTypeConfig;
@@ -216,7 +216,7 @@ mod tests {
     pub struct TestAttributesFetcher;
 
     fn mock_disclosed_attrs(attestation_type: String) -> UniqueIdVec<DisclosedAttestations> {
-        UniqueIdVec::try_new(vec![DisclosedAttestations {
+        UniqueIdVec::try_from(vec![DisclosedAttestations {
             id: "id".try_into().unwrap(),
             attestations: vec_nonempty![DisclosedAttestation {
                 attestation_type,

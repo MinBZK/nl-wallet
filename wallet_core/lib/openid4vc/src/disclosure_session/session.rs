@@ -274,7 +274,7 @@ mod tests {
         F: Fn() -> VpMessageClientError,
     {
         let (disclosure_session, _verifier_session) =
-            setup_disclosure_session(None, [NormalizedCredentialRequest::new_pid_example()]);
+            setup_disclosure_session(None, [NormalizedCredentialRequest::new_mock_mdoc_pid_example()]);
 
         // Replace the `VpDisclosureSession`'s client with one that returns errors.
         let error_client = MockErrorFactoryVpMessageClient::new(response_factory, true);
@@ -302,8 +302,10 @@ mod tests {
     fn test_disclosure_session_disclose_abridged(
         #[values(None, Some("http://example.com/redirect".parse().unwrap()))] redirect_uri: Option<BaseUrl>,
     ) {
-        let (disclosure_session, verifier_session) =
-            setup_disclosure_session(redirect_uri.clone(), [NormalizedCredentialRequest::new_pid_example()]);
+        let (disclosure_session, verifier_session) = setup_disclosure_session(
+            redirect_uri.clone(),
+            [NormalizedCredentialRequest::new_mock_mdoc_pid_example()],
+        );
         let (partial_mdoc, wscd) = setup_disclosure_mdoc();
 
         let disclosure_redirect_uri = disclosure_session
@@ -327,7 +329,7 @@ mod tests {
     fn test_disclosure_session_disclose_error_device_response() {
         // Calling `VPDisclosureSession::disclose()` with a malfunctioning WSCD should result in an error.
         let (disclosure_session, _verifier_session) =
-            setup_disclosure_session(None, [NormalizedCredentialRequest::new_pid_example()]);
+            setup_disclosure_session(None, [NormalizedCredentialRequest::new_mock_mdoc_pid_example()]);
         let (partial_mdoc, mut wscd) = setup_disclosure_mdoc();
 
         wscd.disclosure.has_multi_key_signing_error = true;
@@ -354,7 +356,7 @@ mod tests {
     fn test_disclosure_session_disclose_error_auth_response_encryption() {
         // Calling `VPDisclosureSession::disclose()` with a malformed encryption key should result in an error.
         let (mut disclosure_session, _verifier_session) =
-            setup_disclosure_session(None, [NormalizedCredentialRequest::new_pid_example()]);
+            setup_disclosure_session(None, [NormalizedCredentialRequest::new_mock_mdoc_pid_example()]);
         let (partial_mdoc, wscd) = setup_disclosure_mdoc();
 
         disclosure_session
@@ -440,8 +442,10 @@ mod tests {
     fn test_disclosure_session_terminate(
         #[values(None, Some("http://example.com/redirect".parse().unwrap()))] redirect_uri: Option<BaseUrl>,
     ) {
-        let (disclosure_session, verifier_session) =
-            setup_disclosure_session(redirect_uri.clone(), [NormalizedCredentialRequest::new_pid_example()]);
+        let (disclosure_session, verifier_session) = setup_disclosure_session(
+            redirect_uri.clone(),
+            [NormalizedCredentialRequest::new_mock_mdoc_pid_example()],
+        );
 
         let terminate_redirect_uri = disclosure_session
             .terminate()

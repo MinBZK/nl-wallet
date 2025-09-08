@@ -24,7 +24,7 @@ use tracing::warn;
 
 use attestation_data::disclosure::DisclosedAttestations;
 use crypto::keys::EcdsaKeySend;
-use dcql::UniqueIdVec;
+use dcql::unique_id_vec::UniqueIdVec;
 use http_utils::error::HttpJsonError;
 use http_utils::urls;
 use http_utils::urls::BaseUrl;

@@ -53,14 +53,14 @@ impl ReaderRegistration {
         let unregistered_attributes = requests
             .into_iter()
             .flat_map(|request| {
-                let request_attributes = request.claims.iter().map(|claim| &claim.path).collect::<HashSet<_>>();
+                let request_attributes = request.claim_paths().collect::<HashSet<_>>();
 
                 // Check if any of the requested attributes are missing from the
                 // authorized attributes for all requested attestation types.
-                request.format.credential_types().flat_map(move |attestation_type| {
+                request.credential_types().flat_map(move |credential_type| {
                     let authorized_attributes = self
                         .authorized_attributes
-                        .get(attestation_type)
+                        .get(credential_type)
                         .map(|attributes| attributes.iter().collect::<HashSet<_>>())
                         .unwrap_or_default();
 
@@ -71,7 +71,7 @@ impl ReaderRegistration {
                         .collect::<HashSet<_>>();
 
                     (!unauthorized_attributes.is_empty())
-                        .then(|| (attestation_type.to_string(), unauthorized_attributes))
+                        .then(|| (credential_type.to_string(), unauthorized_attributes))
                 })
             })
             .collect::<HashMap<_, _>>();
@@ -290,7 +290,7 @@ mod test {
                     &["some_namespace", "another_attribute"],
                 ]
             ),
-        ]),
+        ], None),
         None
     )]
     #[case(
@@ -323,7 +323,7 @@ mod test {
                     &["some_namespace", "another_attribute"],
                 ]
             ),
-        ]),
+        ], None),
         Some(HashMap::from([
             (
                 "some_doctype".to_string(),

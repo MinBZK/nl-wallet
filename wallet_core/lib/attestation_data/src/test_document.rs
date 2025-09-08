@@ -1,6 +1,6 @@
+use dcql::unique_id_vec::UniqueIdVec;
 use itertools::Itertools;
 
-use dcql::UniqueIdVec;
 use dcql::normalized::NormalizedCredentialRequests;
 use mdoc::test::TestDocument;
 use mdoc::test::TestDocuments;
@@ -31,7 +31,7 @@ pub fn test_documents_assert_matches_disclosed_attestations(
         let attestations = &disclosed_attestations
             .as_ref()
             .iter()
-            .filter(|attestations| attestations.id == request.id)
+            .filter(|attestations| attestations.id == *request.id())
             .exactly_one()
             .expect("disclosed attestations should include credential query identifier")
             .attestations;

@@ -39,9 +39,9 @@ use crypto::server_keys::KeyPair;
 use crypto::utils::random_string;
 use crypto::x509::CertificateError;
 use dcql::Query;
-use dcql::UniqueIdVec;
 use dcql::normalized::NormalizedCredentialRequests;
 use dcql::normalized::UnsupportedDcqlFeatures;
+use dcql::unique_id_vec::UniqueIdVec;
 use http_utils::urls::BaseUrl;
 use jwt::UnverifiedJwt;
 use jwt::error::JwtError;
@@ -1523,8 +1523,8 @@ mod tests {
     use attestation_data::x509::generate::mock::generate_reader_mock;
     use crypto::server_keys::generate::Ca;
     use dcql::Query;
-    use dcql::UniqueIdVec;
     use dcql::normalized::NormalizedCredentialRequests;
+    use dcql::unique_id_vec::UniqueIdVec;
     use utils::generator::Generator;
     use utils::generator::TimeGenerator;
     use utils::vec_nonempty;
@@ -1644,7 +1644,7 @@ mod tests {
         let result = verifier
             .new_session(
                 usecase_id.to_string(),
-                Some(Query::pid_full_name()),
+                Some(Query::new_mock_mdoc_pid_example()),
                 return_url_template,
             )
             .await;
@@ -1666,7 +1666,7 @@ mod tests {
         let session_token = verifier
             .new_session(
                 DISCLOSURE_USECASE.to_string(),
-                Some(Query::pid_full_name()),
+                Some(Query::new_mock_mdoc_pid_example()),
                 Some("https://example.com/{session_token}".parse().unwrap()),
             )
             .await
@@ -1806,7 +1806,7 @@ mod tests {
     }
 
     fn mock_disclosed_attestations() -> UniqueIdVec<DisclosedAttestations> {
-        UniqueIdVec::try_new(vec![DisclosedAttestations {
+        UniqueIdVec::try_from(vec![DisclosedAttestations {
             id: "id".try_into().unwrap(),
             attestations: vec_nonempty![DisclosedAttestation {
                 attestation_type: "attestation_type".to_string(),
@@ -1983,7 +1983,7 @@ mod tests {
                     session_type_return_url: SessionTypeReturnUrl::Neither,
                     client_id: "client_id".to_string(),
                 },
-                credential_requests: NormalizedCredentialRequests::new_pid_example(),
+                credential_requests: NormalizedCredentialRequests::new_mock_mdoc_pid_example(),
                 return_url_template: "https://example.com".parse().unwrap(),
             },
         )]);
