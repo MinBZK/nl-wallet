@@ -24,7 +24,7 @@ use url::Url;
 
 use attestation_data::attributes::AttributeValue;
 use attestation_data::auth::reader_auth::ReaderRegistration;
-use attestation_data::disclosure::DisclosedAttestation;
+use attestation_data::disclosure::DisclosedAttestations;
 use attestation_data::disclosure::DisclosedAttributes;
 use attestation_data::test_document::test_documents_assert_matches_disclosed_attestations;
 use attestation_data::x509::generate::mock::generate_reader_mock;
@@ -40,6 +40,7 @@ use dcql::CredentialQueryIdentifier;
 use dcql::Query;
 use dcql::normalized::NormalizedCredentialRequest;
 use dcql::normalized::NormalizedCredentialRequests;
+use dcql::unique_id_vec::UniqueIdVec;
 use http_utils::urls::BaseUrl;
 use jwt::UnverifiedJwt;
 use mdoc::DeviceResponse;
@@ -103,13 +104,14 @@ use wscd::wscd::IssuanceResult;
 use wscd::wscd::JwtPoaInput;
 use wscd::wscd::Wscd;
 
-fn assert_disclosed_attestations_mdoc_pid(
-    disclosed_attestations: &HashMap<CredentialQueryIdentifier, VecNonEmpty<DisclosedAttestation>>,
-) {
-    assert_eq!(disclosed_attestations.len(), 1);
+fn assert_disclosed_attestations_mdoc_pid(disclosed_attestations: &UniqueIdVec<DisclosedAttestations>) {
+    assert_eq!(disclosed_attestations.len().get(), 1);
+    let disclosed_attestations = disclosed_attestations.as_ref().first().unwrap();
+
+    assert_eq!(disclosed_attestations.id, "mdoc_pid_example".try_into().unwrap());
+
     let disclosed_attestation = disclosed_attestations
-        .get(&"mdoc_pid_example".try_into().unwrap())
-        .expect("disclosed attestations should include pid")
+        .attestations
         .iter()
         .exactly_one()
         .expect("there should be only one disclosed attestation");
@@ -380,7 +382,7 @@ impl DisclosureResultHandler for MockDisclosureResultHandler {
     async fn disclosure_result(
         &self,
         _usecase_id: &str,
-        _disclosed: &HashMap<CredentialQueryIdentifier, VecNonEmpty<DisclosedAttestation>>,
+        _disclosed: &UniqueIdVec<DisclosedAttestations>,
     ) -> Result<HashMap<String, String>, DisclosureResultHandlerError> {
         Ok(self
             .key
@@ -580,7 +582,7 @@ async fn test_client_and_server(
         .await
         .unwrap();
 
-    test_documents_assert_matches_disclosed_attestations(&expected_documents, disclosed_attestations);
+    test_documents_assert_matches_disclosed_attestations(&expected_documents, &disclosed_attestations);
 }
 
 #[tokio::test]

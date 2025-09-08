@@ -25,13 +25,14 @@ use url::Url;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::auth::reader_auth::ReaderRegistration;
 use attestation_data::credential_payload::CredentialPayload;
-use attestation_data::disclosure::DisclosedAttestation;
+use attestation_data::disclosure::DisclosedAttestations;
 use attestation_data::x509::generate::mock::generate_issuer_mock;
 use attestation_data::x509::generate::mock::generate_reader_mock;
 use crypto::mock_remote::MockRemoteEcdsaKey;
 use crypto::server_keys::generate::Ca;
 use dcql::CredentialQueryIdentifier;
 use dcql::Query;
+use dcql::unique_id_vec::UniqueIdVec;
 use hsm::service::Pkcs11Hsm;
 use http_utils::error::HttpJsonErrorBody;
 use http_utils::reqwest::default_reqwest_client_builder;
@@ -64,7 +65,6 @@ use server_utils::settings::Server;
 use server_utils::settings::Settings;
 use server_utils::settings::Storage;
 use utils::generator::mock::MockTimeGenerator;
-use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 use verification_server::server;
 use verification_server::settings::UseCaseSettings;
@@ -1008,13 +1008,15 @@ async fn perform_full_disclosure(session_type: SessionType) -> (Client, SessionT
     (client, session_token, internal_url, return_url)
 }
 
-fn check_example_disclosed_attributes(
-    disclosed_attributes: &HashMap<CredentialQueryIdentifier, VecNonEmpty<DisclosedAttestation>>,
-) {
-    assert_eq!(disclosed_attributes.len(), 1);
-    let attestations = disclosed_attributes
-        .get(&EXAMPLE_PID_START_DISCLOSURE_REQUEST_ID)
-        .unwrap();
+fn check_example_disclosed_attributes(disclosed_attributes: &UniqueIdVec<DisclosedAttestations>) {
+    assert_eq!(disclosed_attributes.len().get(), 1);
+    let attestations = &disclosed_attributes
+        .as_ref()
+        .iter()
+        .find(|attestations| attestations.id == *EXAMPLE_PID_START_DISCLOSURE_REQUEST_ID)
+        .as_ref()
+        .unwrap()
+        .attestations;
 
     itertools::assert_equal(
         attestations.iter().map(|attestation| &attestation.attestation_type),
@@ -1048,10 +1050,7 @@ async fn test_disclosed_attributes_without_nonce() {
     assert_eq!(response.status(), StatusCode::OK);
 
     // Check the disclosed attributes against the example attributes.
-    let disclosed_attributes = response
-        .json::<HashMap<CredentialQueryIdentifier, VecNonEmpty<DisclosedAttestation>>>()
-        .await
-        .unwrap();
+    let disclosed_attributes = response.json::<UniqueIdVec<DisclosedAttestations>>().await.unwrap();
 
     check_example_disclosed_attributes(&disclosed_attributes);
 }
@@ -1098,10 +1097,7 @@ async fn test_disclosed_attributes_with_nonce() {
     assert_eq!(response.status(), StatusCode::OK);
 
     // Check the disclosed attributes against the example attributes.
-    let disclosed_attributes = response
-        .json::<HashMap<CredentialQueryIdentifier, VecNonEmpty<DisclosedAttestation>>>()
-        .await
-        .unwrap();
+    let disclosed_attributes = response.json::<UniqueIdVec<DisclosedAttestations>>().await.unwrap();
 
     check_example_disclosed_attributes(&disclosed_attributes);
 }

@@ -9,7 +9,9 @@ use serde::Serialize;
 use attestation_types::claim_path::ClaimPath;
 use crypto::x509::CertificateError;
 use dcql::CredentialFormat;
+use dcql::CredentialQueryIdentifier;
 use dcql::disclosure::DisclosedCredential;
+use dcql::unique_id_vec::MayHaveUniqueId;
 use http_utils::urls::HttpsUri;
 use mdoc::DataElementIdentifier;
 use mdoc::DataElementValue;
@@ -118,7 +120,7 @@ impl From<DisclosedAttributes> for IndexMap<NameSpace, IndexMap<DataElementIdent
 /// Attestation that was disclosed; consisting of attributes, validity information, issuer URI and the issuer CA's
 /// common name.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct DisclosedAttestation {
     pub attestation_type: String,
     #[serde(flatten)]
@@ -128,6 +130,20 @@ pub struct DisclosedAttestation {
     /// The issuer CA's common name
     pub ca: String,
     pub validity_info: ValidityInfo,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DisclosedAttestations {
+    /// The identifier of the [`dcql::CredentialQuery`] that this attestation is a disclosure of.
+    pub id: CredentialQueryIdentifier,
+
+    pub attestations: VecNonEmpty<DisclosedAttestation>,
+}
+
+impl MayHaveUniqueId for DisclosedAttestations {
+    fn id(&self) -> Option<&str> {
+        Some(self.id.as_ref())
+    }
 }
 
 impl TryFrom<DisclosedDocument> for DisclosedAttestation {
@@ -312,10 +328,10 @@ mod test {
     #[rstest]
     #[case(json!([
         {
-            "attestationType": "com.example.pid",
-            "issuerUri": "https://pid.example.com",
+            "attestation_type": "com.example.pid",
+            "issuer_uri": "https://pid.example.com",
             "ca": "ca.example.com",
-            "validityInfo": {
+            "validity_info": {
                 "signed": "2014-11-28 12:00:09 UTC",
                 "validFrom": "2014-11-28 12:00:09 UTC",
                 "validUntil": "2014-11-28 12:00:09 UTC"
@@ -328,10 +344,10 @@ mod test {
             }
         },
         {
-        "attestationType": "com.example.address",
-            "issuerUri": "https://pid.example.com",
+        "attestation_type": "com.example.address",
+            "issuer_uri": "https://pid.example.com",
             "ca": "ca.example.com",
-            "validityInfo": {
+            "validity_info": {
                 "signed": "2014-11-28 12:00:09 UTC",
                 "validFrom": "2014-11-28 12:00:09 UTC",
                 "validUntil": "2014-11-28 12:00:09 UTC"
@@ -346,10 +362,10 @@ mod test {
     ]))]
     #[case(json!([
         {
-            "attestationType": "com.example.pid",
-            "issuerUri": "https://pid.example.com",
+            "attestation_type": "com.example.pid",
+            "issuer_uri": "https://pid.example.com",
             "ca": "ca.example.com",
-            "validityInfo": {
+            "validity_info": {
                 "signed": "2014-11-28 12:00:09 UTC",
                 "validFrom": "2014-11-28 12:00:09 UTC",
                 "validUntil": "2014-11-28 12:00:09 UTC"
@@ -362,10 +378,10 @@ mod test {
             }
         },
         {
-            "attestationType": "com.example.address",
-            "issuerUri": "https://pid.example.com",
+            "attestation_type": "com.example.address",
+            "issuer_uri": "https://pid.example.com",
             "ca": "ca.example.com",
-            "validityInfo": {
+            "validity_info": {
                 "signed": "2014-11-28 12:00:09 UTC",
                 "validFrom": "2014-11-28 12:00:09 UTC",
                 "validUntil": "2014-11-28 12:00:09 UTC"
@@ -384,10 +400,10 @@ mod test {
     ]))]
     #[case(json!([
         {
-            "attestationType": "com.example.pid",
-            "issuerUri": "https://pid.example.com",
+            "attestation_type": "com.example.pid",
+            "issuer_uri": "https://pid.example.com",
             "ca": "ca.example.com",
-            "validityInfo": {
+            "validity_info": {
                 "signed": "2014-11-28 12:00:09 UTC",
                 "validFrom": "2014-11-28 12:00:09 UTC",
                 "validUntil": "2014-11-28 12:00:09 UTC"

@@ -2,13 +2,15 @@ use serde::Deserialize;
 
 use attestation_data::attributes::Attributes;
 use attestation_data::disclosure::ValidityInfo;
+use dcql::CredentialQueryIdentifier;
 use http_utils::urls::HttpsUri;
 use openid4vc::Format;
+use utils::vec_at_least::VecNonEmpty;
 
 /// Attributes of an attestation that was disclosed, but without the DisclosedAttributes enum. This way, we can
 /// deserialize both formats without having to deal with the enum variants in the code that uses this struct.
 #[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct DemoDisclosedAttestation {
     pub attestation_type: String,
     pub attributes: Attributes,
@@ -18,6 +20,14 @@ pub struct DemoDisclosedAttestation {
     /// The issuer CA's common name
     pub ca: String,
     pub validity_info: ValidityInfo,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct DemoDisclosedAttestations {
+    /// The identifier of the [`dcql::CredentialQuery`] that this attestation is a disclosure of.
+    pub id: CredentialQueryIdentifier,
+
+    pub attestations: VecNonEmpty<DemoDisclosedAttestation>,
 }
 
 #[cfg(test)]
