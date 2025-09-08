@@ -34,11 +34,13 @@ class RenewPidStopSheet extends StatelessWidget {
         cta: context.l10n.renewPidStopSheetNegativeCta,
         icon: Icons.arrow_back,
       ),
-      extraContent: ListButton(
-        dividerSide: DividerSide.none,
-        onPressed: onReportIssuePressed,
-        text: Text.rich(context.l10n.renewPidStopSheetReportIssueCta.toTextSpan(context)),
-      ),
+      extraContent: onReportIssuePressed != null
+          ? ListButton(
+              dividerSide: DividerSide.none,
+              onPressed: onReportIssuePressed,
+              text: Text.rich(context.l10n.renewPidStopSheetReportIssueCta.toTextSpan(context)),
+            )
+          : null,
       onCancelPressed: onCancelPressed,
       onConfirmPressed: onConfirmPressed,
     );
