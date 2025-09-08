@@ -23,10 +23,12 @@ use serde_with::skip_serializing_none;
 
 use attestation_data::disclosure::DisclosedAttestation;
 use attestation_data::disclosure::DisclosedAttestationError;
+use attestation_data::disclosure::DisclosedAttestations;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateError;
 use dcql::CredentialQueryIdentifier;
 use dcql::Query;
+use dcql::UniqueIdVec;
 use dcql::disclosure::CredentialValidationError;
 use dcql::disclosure::DisclosedCredential;
 use dcql::normalized::NormalizedCredentialRequests;
@@ -654,7 +656,7 @@ impl VpAuthorizationResponse {
         accepted_wallet_client_ids: &[String],
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
-    ) -> Result<HashMap<CredentialQueryIdentifier, VecNonEmpty<DisclosedAttestation>>, AuthResponseError> {
+    ) -> Result<UniqueIdVec<DisclosedAttestations>, AuthResponseError> {
         let (response, mdoc_nonce) = Self::decrypt(jwe, private_key, &auth_request.nonce)?;
 
         response.verify(
@@ -693,7 +695,7 @@ impl VpAuthorizationResponse {
         mdoc_nonce: &str,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
-    ) -> Result<HashMap<CredentialQueryIdentifier, VecNonEmpty<DisclosedAttestation>>, AuthResponseError> {
+    ) -> Result<UniqueIdVec<DisclosedAttestations>, AuthResponseError> {
         // Step 1: Verify the cryptographic integrity of the verifiable presentations
         //         and extract the disclosed attestations from them.
         let session_transcript = LazyCell::new(|| {
@@ -706,7 +708,7 @@ impl VpAuthorizationResponse {
             )
         });
 
-        let disclosed_attestations = self
+        let mut disclosed_attestations: HashMap<_, _> = self
             .vp_token
             .iter()
             .map(|(id, presentation)| {
@@ -786,6 +788,25 @@ impl VpAuthorizationResponse {
             .credential_requests
             .is_satisfied_by_disclosed_credentials(&disclosed_credentials)
             .map_err(AuthResponseError::UnsatisfiedCredentialRequest)?;
+
+        // Finally, sort the disclosed attestations into the same order as that of the
+        // Credential Requests in the DCQL request.
+        let disclosed_attestations = auth_request
+            .credential_requests
+            .as_ref()
+            .iter()
+            .map(|credential_request| {
+                // Safety: in step 4 we checked that for each `credential_request`
+                // there is a matching disclosed attestation.
+                let (id, attestations) = disclosed_attestations.remove_entry(&credential_request.id).unwrap();
+
+                DisclosedAttestations { attestations, id }
+            })
+            .collect();
+
+        // Safety: this comes from mapping over auth_request.credential_requests, which is
+        // a newtype around a `UniqueIdVec`.
+        let disclosed_attestations = UniqueIdVec::try_new(disclosed_attestations).unwrap();
 
         Ok(disclosed_attestations)
     }
@@ -1291,9 +1312,18 @@ mod tests {
             )
             .unwrap();
 
-        assert_eq!(attestations.len(), 1);
+        assert_eq!(attestations.len().get(), 1);
 
-        let disclosed_attestations = attestations.into_values().next().unwrap();
+        // `auth_response.verify()` should return the attestations in the same order
+        // as `auth_request.credential_requests`.
+        auth_request
+            .credential_requests
+            .as_ref()
+            .iter()
+            .zip_eq(attestations.as_ref())
+            .for_each(|(cred_request, attestations)| assert_eq!(cred_request.id, attestations.id));
+
+        let disclosed_attestations = attestations.into_inner().pop().unwrap().attestations;
 
         assert_eq!(disclosed_attestations.len().get(), 1);
 

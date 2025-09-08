@@ -32,21 +32,20 @@ use tracing::debug;
 use tracing::info;
 use tracing::warn;
 
-use attestation_data::disclosure::DisclosedAttestation;
+use attestation_data::disclosure::DisclosedAttestations;
 use crypto::EcdsaKeySend;
 use crypto::keys::EcdsaKey;
 use crypto::server_keys::KeyPair;
 use crypto::utils::random_string;
 use crypto::x509::CertificateError;
-use dcql::CredentialQueryIdentifier;
 use dcql::Query;
+use dcql::UniqueIdVec;
 use dcql::normalized::NormalizedCredentialRequests;
 use dcql::normalized::UnsupportedDcqlFeatures;
 use http_utils::urls::BaseUrl;
 use jwt::UnverifiedJwt;
 use jwt::error::JwtError;
 use utils::generator::Generator;
-use utils::vec_at_least::VecNonEmpty;
 
 use crate::AuthorizationErrorCode;
 use crate::ErrorResponse;
@@ -238,7 +237,7 @@ pub struct Done {
 #[serde(rename_all = "UPPERCASE", tag = "status")]
 enum SessionResult {
     Done {
-        disclosed_attributes: HashMap<CredentialQueryIdentifier, VecNonEmpty<DisclosedAttestation>>,
+        disclosed_attributes: UniqueIdVec<DisclosedAttestations>,
         redirect_uri_nonce: Option<String>,
     },
     Failed {
@@ -849,7 +848,7 @@ pub trait DisclosureResultHandler {
     async fn disclosure_result(
         &self,
         usecase_id: &str,
-        disclosed: &HashMap<CredentialQueryIdentifier, VecNonEmpty<DisclosedAttestation>>,
+        disclosed: &UniqueIdVec<DisclosedAttestations>,
     ) -> Result<HashMap<String, String>, DisclosureResultHandlerError>;
 }
 
@@ -1076,7 +1075,7 @@ where
         &self,
         session_token: &SessionToken,
         redirect_uri_nonce: Option<String>,
-    ) -> Result<HashMap<CredentialQueryIdentifier, VecNonEmpty<DisclosedAttestation>>, DisclosedAttributesError> {
+    ) -> Result<UniqueIdVec<DisclosedAttestations>, DisclosedAttributesError> {
         let disclosure_data = session_or_error(self.sessions.as_ref(), session_token).await?.data;
 
         match disclosure_data {
@@ -1484,7 +1483,7 @@ impl Session<WaitingForResponse> {
 
     fn transition_finish(
         self,
-        disclosed_attributes: HashMap<CredentialQueryIdentifier, VecNonEmpty<DisclosedAttestation>>,
+        disclosed_attributes: UniqueIdVec<DisclosedAttestations>,
         nonce: Option<String>,
     ) -> Session<Done> {
         self.transition(Done {
@@ -1510,7 +1509,6 @@ mod tests {
     use chrono::DateTime;
     use chrono::Duration;
     use chrono::Utc;
-    use dcql::normalized::NormalizedCredentialRequests;
     use itertools::Itertools;
     use p256::ecdsa::SigningKey;
     use ring::hmac;
@@ -1518,11 +1516,18 @@ mod tests {
     use rstest::rstest;
 
     use attestation_data::auth::reader_auth::ReaderRegistration;
+    use attestation_data::disclosure::DisclosedAttestation;
+    use attestation_data::disclosure::DisclosedAttestations;
+    use attestation_data::disclosure::DisclosedAttributes;
+    use attestation_data::disclosure::ValidityInfo;
     use attestation_data::x509::generate::mock::generate_reader_mock;
     use crypto::server_keys::generate::Ca;
     use dcql::Query;
+    use dcql::UniqueIdVec;
+    use dcql::normalized::NormalizedCredentialRequests;
     use utils::generator::Generator;
     use utils::generator::TimeGenerator;
+    use utils::vec_nonempty;
 
     use crate::mock::MOCK_WALLET_CLIENT_ID;
     use crate::server_state::MemorySessionStore;
@@ -1800,6 +1805,24 @@ mod tests {
         ));
     }
 
+    fn mock_disclosed_attestations() -> UniqueIdVec<DisclosedAttestations> {
+        UniqueIdVec::try_new(vec![DisclosedAttestations {
+            id: "id".try_into().unwrap(),
+            attestations: vec_nonempty![DisclosedAttestation {
+                attestation_type: "attestation_type".to_string(),
+                attributes: DisclosedAttributes::MsoMdoc(Default::default()),
+                issuer_uri: "https://issuer.example.com".parse().unwrap(),
+                ca: "ca".to_string(),
+                validity_info: ValidityInfo {
+                    signed: Utc::now(),
+                    valid_from: Some(Utc::now()),
+                    valid_until: Some(Utc::now())
+                },
+            }],
+        }])
+        .unwrap()
+    }
+
     #[tokio::test]
     async fn test_verifier_disclosed_attributes() {
         let verifier = create_verifier();
@@ -1812,7 +1835,7 @@ mod tests {
             "token1".into(),
             DisclosureData::Done(Done {
                 session_result: SessionResult::Done {
-                    disclosed_attributes: Default::default(),
+                    disclosed_attributes: mock_disclosed_attestations(),
                     redirect_uri_nonce: None,
                 },
             }),
@@ -1821,7 +1844,7 @@ mod tests {
             "token2".into(),
             DisclosureData::Done(Done {
                 session_result: SessionResult::Done {
-                    disclosed_attributes: Default::default(),
+                    disclosed_attributes: mock_disclosed_attestations(),
                     redirect_uri_nonce: "this-is-the-nonce".to_string().into(),
                 },
             }),
@@ -1839,30 +1862,23 @@ mod tests {
 
         // The finished session without a return URL should return the
         // attributes, regardless of the return URL nonce provided.
-        assert!(
-            verifier
-                .disclosed_attributes(&"token1".into(), None)
-                .await
-                .expect("should return disclosed attributes")
-                .is_empty()
-        );
-        assert!(
-            verifier
-                .disclosed_attributes(&"token1".into(), "nonsense".to_string().into())
-                .await
-                .expect("should return disclosed attributes")
-                .is_empty()
-        );
+
+        verifier
+            .disclosed_attributes(&"token1".into(), None)
+            .await
+            .expect("should return disclosed attributes");
+
+        verifier
+            .disclosed_attributes(&"token1".into(), "nonsense".to_string().into())
+            .await
+            .expect("should return disclosed attributes");
 
         // The finished session with a return URL should only return the
         // disclosed attributes when given the correct return URL nonce.
-        assert!(
-            verifier
-                .disclosed_attributes(&"token2".into(), "this-is-the-nonce".to_string().into())
-                .await
-                .expect("should return disclosed attributes")
-                .is_empty()
-        );
+        verifier
+            .disclosed_attributes(&"token2".into(), "this-is-the-nonce".to_string().into())
+            .await
+            .expect("should return disclosed attributes");
         assert_matches!(
             verifier
                 .disclosed_attributes(&"token2".into(), "incorrect".to_string().into())

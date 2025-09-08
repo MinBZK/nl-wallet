@@ -25,11 +25,10 @@ use tower_http::trace::TraceLayer;
 use url::Url;
 
 use attestation_data::issuable_document::IssuableDocument;
-use dcql::CredentialQueryIdentifier;
 use demo_utils::LANGUAGE_JS_SHA256;
 use demo_utils::WALLET_WEB_CSS_SHA256;
 use demo_utils::WALLET_WEB_JS_SHA256;
-use demo_utils::disclosure::DemoDisclosedAttestation;
+use demo_utils::disclosure::DemoDisclosedAttestations;
 use demo_utils::error::Result;
 use demo_utils::headers::set_content_security_policy;
 use demo_utils::headers::set_static_cache_control;
@@ -41,6 +40,7 @@ use openid4vc::openid4vp::VpRequestUriObject;
 use openid4vc::verifier::SessionType;
 use openid4vc::verifier::VerifierUrlParameters;
 use utils::path::prefix_local_path;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::settings::Settings;
 use crate::settings::Usecase;
@@ -186,7 +186,7 @@ async fn usecase(
 async fn attestation(
     State(state): State<Arc<ApplicationState>>,
     Path(usecase): Path<String>,
-    Json(disclosed): Json<HashMap<CredentialQueryIdentifier, Vec<DemoDisclosedAttestation>>>,
+    Json(disclosed): Json<VecNonEmpty<DemoDisclosedAttestations>>,
 ) -> Result<Response> {
     let Some(usecase) = state.usecases.get(&usecase) else {
         return Ok(StatusCode::NOT_FOUND.into_response());
@@ -196,8 +196,8 @@ async fn attestation(
     // blindly
     let requested_path = usecase.disclosed.path.iter().map(String::as_str).collect::<Vec<_>>();
     let attribute_value = disclosed
-        .values()
-        .flatten()
+        .iter()
+        .flat_map(|demo_attestations| &demo_attestations.attestations)
         .filter(|attestation| attestation.attestation_type == usecase.disclosed.credential_type)
         .exactly_one()
         .ok()

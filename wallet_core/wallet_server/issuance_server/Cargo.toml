@@ -36,6 +36,7 @@ config = { workspace = true, features = ["toml", "preserve_order"] }
 chrono.workspace = true
 futures = { workspace = true, features = ["std", "async-await"] }
 itertools.workspace = true
+indexmap.workspace = true
 reqwest = { workspace = true, features = ["rustls-tls-webpki-roots"] }
 rustls-pki-types.workspace = true
 serde = { workspace = true, features = ["derive"] }
