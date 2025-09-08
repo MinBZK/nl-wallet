@@ -120,7 +120,10 @@ where
                 self.auth_request.nonce.clone(),
                 &mdoc_nonce,
             );
-            let poa_input = JwtPoaInput::new(Some(mdoc_nonce.clone()), self.auth_request.client_id.clone());
+            let poa_input = JwtPoaInput::new(
+                Some(self.auth_request.nonce.clone()),
+                self.auth_request.client_id.clone(),
+            );
 
             let result =
                 DeviceResponse::sign_multiple_from_partial_mdocs(partial_mdocs, &session_transcript, wscd, poa_input)

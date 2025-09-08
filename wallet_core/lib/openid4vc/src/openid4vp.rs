@@ -750,7 +750,7 @@ impl VpAuthorizationResponse {
                 &used_keys,
                 auth_request.client_id.as_str(),
                 accepted_wallet_client_ids,
-                mdoc_nonce,
+                &auth_request.nonce,
             )?
         }
 
@@ -1235,7 +1235,7 @@ mod tests {
 
         // Sign the challenges using the mdoc key
         let wscd = MockRemoteWscd::default();
-        let poa_input = JwtPoaInput::new(Some(mdoc_nonce.to_string()), auth_request.client_id.clone());
+        let poa_input = JwtPoaInput::new(Some(auth_request.nonce.clone()), auth_request.client_id.clone());
         let (device_signed, poa) = DeviceSigned::new_signatures(keys_and_challenges, &wscd, poa_input)
             .await
             .unwrap();
