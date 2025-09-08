@@ -198,8 +198,10 @@ mod tests {
     use rstest::rstest;
     use serde::de::Error;
 
+    use attestation_data::attributes::AttributeValue;
     use attestation_data::auth::reader_auth::ReaderRegistration;
     use attestation_data::auth::reader_auth::ValidationError;
+    use attestation_data::disclosure::DisclosedAttributes;
     use attestation_types::claim_path::ClaimPath;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
@@ -208,16 +210,15 @@ mod tests {
     use http_utils::urls::BaseUrl;
     use mdoc::holder::disclosure::PartialMdoc;
     use mdoc::test::data::PID;
-    use mdoc::utils::serialization::CborBase64;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_nonempty;
+    use wscd::mock_remote::MOCK_WALLET_CLIENT_ID;
     use wscd::mock_remote::MockRemoteWscd;
 
     use crate::errors::AuthorizationErrorCode;
     use crate::errors::VpAuthorizationErrorCode;
     use crate::openid4vp::AuthRequestValidationError;
     use crate::openid4vp::RequestUriMethod;
-    use crate::openid4vp::VerifiablePresentation;
     use crate::openid4vp::VpAuthorizationResponse;
     use crate::openid4vp::VpRequestUriObject;
     use crate::openid4vp::WalletRequest;
@@ -318,7 +319,7 @@ mod tests {
         )
         .expect("starting a new disclosure session on VpDisclosureClient should succeed");
 
-        {
+        let wallet_nonce = {
             // The verifier should now have recieved a message from the client,
             // which may include a wallet nonce based on the request URI method.
             let wallet_messages = verifier_session.wallet_messages.lock();
@@ -326,15 +327,18 @@ mod tests {
             assert_eq!(wallet_messages.len(), 1);
             let message = wallet_messages.last().unwrap();
 
+            let WalletMessage::Request(WalletRequest { wallet_nonce }) = message else {
+                panic!("wallet should have sent initial request");
+            };
+
             match request_uri_method {
-                RequestUriMethod::GET => {
-                    assert_matches!(message, WalletMessage::Request(WalletRequest { wallet_nonce: None }));
-                }
-                RequestUriMethod::POST => {
-                    assert_matches!(message, WalletMessage::Request(WalletRequest { wallet_nonce: Some(_) }));
-                }
+                RequestUriMethod::GET => assert!(wallet_nonce.is_none()),
+                RequestUriMethod::POST => assert!(wallet_nonce.is_some()),
             }
-        }
+
+            // Extract the wallet nonce for response validation later on.
+            wallet_nonce.as_ref().cloned()
+        };
 
         // Check all of the data the new `VpDisclosureSession` exposes.
         assert_eq!(disclosure_session.session_type(), session_type);
@@ -367,7 +371,7 @@ mod tests {
 
         let disclosure_redirect_uri = disclosure_session
             .disclose(
-                HashMap::from([("pid".try_into().unwrap(), vec_nonempty![partial_mdoc])]),
+                HashMap::from([("mdoc_pid_example".try_into().unwrap(), vec_nonempty![partial_mdoc])]),
                 &wscd,
             )
             .now_or_never()
@@ -388,40 +392,38 @@ mod tests {
         };
 
         // Decrypt and verify the response that was sent by `VpDisclosureSession`.
-        let (response, mdoc_nonce) =
-            VpAuthorizationResponse::decrypt(jwe, &verifier_session.encryption_keypair, &verifier_session.nonce)
-                .expect("decrypting VPDisclosureSession authorization response should succeed");
+        let disclosed_attestations = VpAuthorizationResponse::decrypt_and_verify(
+            jwe,
+            &verifier_session.encryption_keypair,
+            &verifier_session.normalized_auth_request(wallet_nonce),
+            &[MOCK_WALLET_CLIENT_ID.to_string()],
+            &MockTimeGenerator::default(),
+            &[ca.to_trust_anchor()],
+        )
+        .expect("decrypting and verifying VPDisclosureSession authorization response should succeed");
 
-        assert_eq!(response.vp_token.len(), 1);
-
-        let device_response = match response.vp_token.into_values().next().unwrap() {
-            VerifiablePresentation::MsoMdoc(device_responses) => {
-                let CborBase64(device_response) = device_responses.into_first();
-
-                device_response
-            }
-        };
-        let disclosed_documents = device_response
-            .verify(
-                None,
-                &verifier_session.session_transcript(&mdoc_nonce),
-                &MockTimeGenerator::default(),
-                &[ca.to_trust_anchor()],
-            )
-            .expect("mdoc DeviceResponse sent by VPDisclosureSession should be valid");
-
-        // Finally, check that the disclosed attributes match exactly those provided.
-        let disclosed_attributes = disclosed_documents
+        // Finally, check that the disclosed attestations match exactly those provided.
+        let disclosed_attributes = disclosed_attestations
             .iter()
             .exactly_one()
             .ok()
-            .and_then(|document| (document.doc_type == *PID).then_some(document))
-            .and_then(|document| document.attributes.iter().exactly_one().ok())
+            .and_then(|attestations| attestations.attestations.iter().exactly_one().ok())
+            .and_then(|attestation| (attestation.attestation_type.as_str() == PID).then_some(attestation))
+            .and_then(|attestation| match &attestation.attributes {
+                DisclosedAttributes::MsoMdoc(attributes) => attributes.iter().exactly_one().ok(),
+                DisclosedAttributes::SdJwt(_) => None,
+            })
             .and_then(|(namespaces, attributes)| (namespaces == PID).then_some(attributes))
             .map(|attributes| {
                 attributes
-                    .into_iter()
-                    .filter_map(|(key, value)| value.as_text().map(|value| (key.as_str(), value)))
+                    .iter()
+                    .filter_map(|(key, value)| {
+                        match value {
+                            AttributeValue::Text(text) => Some(text),
+                            _ => None,
+                        }
+                        .map(|text| (key.as_str(), text.as_str()))
+                    })
                     .collect_vec()
             })
             .unwrap_or_default();

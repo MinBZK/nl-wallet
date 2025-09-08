@@ -19,7 +19,6 @@ use dcql::normalized::NormalizedCredentialRequest;
 use dcql::normalized::NormalizedCredentialRequests;
 use http_utils::urls::BaseUrl;
 use jwt::UnverifiedJwt;
-use mdoc::SessionTranscript;
 
 use crate::errors::ErrorResponse;
 use crate::errors::VpAuthorizationErrorCode;
@@ -189,14 +188,6 @@ impl MockVerifierSession {
             response_uri,
             wallet_messages: Mutex::new(Vec::new()),
         }
-    }
-
-    pub fn client_id(&self) -> &str {
-        self.key_pair.certificate().san_dns_name().unwrap().unwrap()
-    }
-
-    pub fn session_transcript(&self, mdoc_nonce: &str) -> SessionTranscript {
-        SessionTranscript::new_oid4vp(&self.response_uri, self.client_id(), self.nonce.clone(), mdoc_nonce)
     }
 
     pub fn request_uri_query(&self) -> String {
