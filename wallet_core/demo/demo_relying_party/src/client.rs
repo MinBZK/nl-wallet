@@ -1,12 +1,10 @@
-use std::collections::HashMap;
-
 use futures::TryFutureExt;
 use reqwest::Client;
 use reqwest::Response;
 
-use dcql::CredentialQueryIdentifier;
 use dcql::Query;
-use demo_utils::disclosure::DemoDisclosedAttestation;
+use dcql::unique_id_vec::UniqueIdVec;
+use demo_utils::disclosure::DemoDisclosedAttestations;
 use http_utils::error::HttpJsonErrorBody;
 use http_utils::urls::BaseUrl;
 use openid4vc::return_url::ReturnUrlTemplate;
@@ -86,7 +84,7 @@ impl WalletServerClient {
         &self,
         session_token: SessionToken,
         nonce: Option<String>,
-    ) -> Result<HashMap<CredentialQueryIdentifier, Vec<DemoDisclosedAttestation>>, anyhow::Error> {
+    ) -> Result<UniqueIdVec<DemoDisclosedAttestations>, anyhow::Error> {
         let mut disclosed_attributes_url = self
             .base_url
             .join(&format!("/disclosure/sessions/{session_token}/disclosed_attributes"));
@@ -116,12 +114,7 @@ impl WalletServerClient {
             .send()
             .map_err(anyhow::Error::from)
             .and_then(|response| async { Self::error_for_response(response).await })
-            .and_then(|response| async {
-                response
-                    .json::<HashMap<CredentialQueryIdentifier, Vec<DemoDisclosedAttestation>>>()
-                    .map_err(anyhow::Error::from)
-                    .await
-            })
+            .and_then(|response| async { response.json().map_err(anyhow::Error::from).await })
             .map_err(|error| match error.downcast::<reqwest::Error>() {
                 // Show the prepared error query instead for all reqwest errors.
                 Ok(req_error) => req_error.with_url(error_url).into(),
