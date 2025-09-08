@@ -336,10 +336,7 @@ pub async fn config_jwt(wallet_config: &WalletConfiguration) -> String {
 
     UnverifiedJwt::sign(
         wallet_config,
-        &Header {
-            alg: Algorithm::ES256,
-            ..Default::default()
-        },
+        &Header::new(Algorithm::ES256),
         &SigningKey::from_pkcs8_pem(&String::from_utf8_lossy(&key)).unwrap(),
     )
     .await

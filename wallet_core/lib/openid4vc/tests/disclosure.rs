@@ -43,6 +43,7 @@ use dcql::normalized::NormalizedCredentialRequests;
 use dcql::unique_id_vec::UniqueIdVec;
 use http_utils::urls::BaseUrl;
 use jwt::UnverifiedJwt;
+use jwt::headers::HeaderWithX5c;
 use mdoc::DeviceResponse;
 use mdoc::SessionTranscript;
 use mdoc::holder::disclosure::PartialMdoc;
@@ -172,7 +173,7 @@ fn disclosure_direct() {
 
 /// The wallet side: verify the Authorization Request, gather the attestations and encrypt it into a JWE.
 fn disclosure_jwe(
-    auth_request: &UnverifiedJwt<VpAuthorizationRequest>,
+    auth_request: &UnverifiedJwt<VpAuthorizationRequest, HeaderWithX5c>,
     trust_anchors: &[TrustAnchor<'_>],
     issuer_ca: &Ca,
 ) -> String {
@@ -319,7 +320,7 @@ impl VpMessageClient for DirectMockVpMessageClient {
         &self,
         url: BaseUrl,
         _request_nonce: Option<String>,
-    ) -> Result<UnverifiedJwt<VpAuthorizationRequest>, VpMessageClientError> {
+    ) -> Result<UnverifiedJwt<VpAuthorizationRequest, HeaderWithX5c>, VpMessageClientError> {
         assert_eq!(url, self.request_uri);
 
         let jws = UnverifiedJwt::sign_with_certificate(&self.auth_request, &self.auth_keypair)
@@ -1090,7 +1091,7 @@ where
         &self,
         url: BaseUrl,
         wallet_nonce: Option<String>,
-    ) -> Result<UnverifiedJwt<VpAuthorizationRequest>, VpMessageClientError> {
+    ) -> Result<UnverifiedJwt<VpAuthorizationRequest, HeaderWithX5c>, VpMessageClientError> {
         let path_segments = url.as_ref().path_segments().unwrap().collect_vec();
         let session_token: SessionToken = path_segments[path_segments.len() - 2].to_owned().into();
 

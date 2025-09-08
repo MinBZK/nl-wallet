@@ -16,6 +16,7 @@ use crypto::p256_der::DerSignature;
 use crypto::p256_der::DerVerifyingKey;
 use jwt::JwtSubject;
 use jwt::UnverifiedJwt;
+use jwt::headers::HeaderWithJwkAndTyp;
 use jwt::pop::JwtPopClaims;
 use jwt::wua::WuaDisclosure;
 use sd_jwt::sd_jwt::UnverifiedSdJwt;
@@ -159,7 +160,7 @@ pub struct PerformIssuance {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PerformIssuanceResult {
     pub key_identifiers: VecNonEmpty<String>,
-    pub pops: VecNonEmpty<UnverifiedJwt<JwtPopClaims>>,
+    pub pops: VecNonEmpty<UnverifiedJwt<JwtPopClaims, HeaderWithJwkAndTyp>>,
     pub poa: Option<Poa>,
 }
 

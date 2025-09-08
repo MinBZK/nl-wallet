@@ -36,6 +36,7 @@ use error_category::ErrorCategory;
 use http_utils::urls::BaseUrl;
 use jwt::UnverifiedJwt;
 use jwt::error::JwtX5cError;
+use jwt::headers::HeaderWithX5c;
 use mdoc::DeviceResponse;
 use mdoc::Document;
 use mdoc::SessionTranscript;
@@ -291,7 +292,7 @@ impl VpAuthorizationRequest {
     /// Construct a new Authorization Request by verifying an Authorization Request JWT against
     /// the specified trust anchors.
     pub fn try_new(
-        jws: &UnverifiedJwt<VpAuthorizationRequest>,
+        jws: &UnverifiedJwt<VpAuthorizationRequest, HeaderWithX5c>,
         trust_anchors: &[TrustAnchor],
     ) -> Result<(VpAuthorizationRequest, BorrowingCertificate), AuthRequestValidationError> {
         let (auth_request, certificates) = jws.parse_and_verify_against_trust_anchors_and_audience(

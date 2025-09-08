@@ -1,6 +1,4 @@
 use base64::prelude::*;
-use jsonwebtoken::Algorithm;
-use jsonwebtoken::Header;
 use jsonwebtoken::jwk;
 pub use jsonwebtoken::jwk::AlgorithmParameters;
 use jsonwebtoken::jwk::EllipticCurve;
@@ -11,6 +9,7 @@ use p256::ecdsa::VerifyingKey;
 use crypto::WithVerifyingKey;
 
 use crate::error::JwkConversionError;
+use crate::headers::HeaderWithJwkAndTyp;
 
 pub fn jwk_from_p256(value: &VerifyingKey) -> Result<Jwk, JwkConversionError> {
     let jwk = Jwk {
@@ -52,17 +51,13 @@ pub fn jwk_to_p256(value: &Jwk) -> Result<VerifyingKey, JwkConversionError> {
     Ok(key)
 }
 
-pub async fn jwk_jwt_header(typ: &str, key: &impl WithVerifyingKey) -> Result<Header, JwkConversionError> {
-    let header = Header {
-        typ: Some(typ.to_string()),
-        alg: Algorithm::ES256,
-        jwk: Some(jwk_from_p256(
-            &key.verifying_key()
-                .await
-                .map_err(|e| JwkConversionError::VerifyingKeyFromPrivateKey(e.into()))?,
-        )?),
-        ..Default::default()
-    };
+pub async fn jwk_jwt_header(typ: &str, key: &impl WithVerifyingKey) -> Result<HeaderWithJwkAndTyp, JwkConversionError> {
+    let jwk = jwk_from_p256(
+        &key.verifying_key()
+            .await
+            .map_err(|e| JwkConversionError::VerifyingKeyFromPrivateKey(e.into()))?,
+    )?;
+    let header = HeaderWithJwkAndTyp::new(typ.to_string(), jwk);
     Ok(header)
 }
 

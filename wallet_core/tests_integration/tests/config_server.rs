@@ -125,10 +125,7 @@ async fn test_wallet_config_signature_verification_failed() {
     let pkcs8_der = signing_key.to_pkcs8_der().unwrap();
     let jwt = UnverifiedJwt::sign(
         &served_wallet_config,
-        &Header {
-            alg: Algorithm::ES256,
-            ..Default::default()
-        },
+        &Header::new(Algorithm::ES256),
         &SigningKey::from_pkcs8_der(pkcs8_der.as_bytes()).unwrap(),
     )
     .await

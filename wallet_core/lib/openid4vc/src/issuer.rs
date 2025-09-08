@@ -152,12 +152,8 @@ pub enum CredentialRequestError {
     #[error("incorrect nonce")]
     IncorrectNonce,
 
-    #[error(
-        "unsupported JWT algorithm: expected {}, found {}",
-        expected,
-        found.as_ref().unwrap_or(&"<None>".to_string())
-    )]
-    UnsupportedJwtAlgorithm { expected: String, found: Option<String> },
+    #[error("unsupported JWT typ: expected {}, found {}", expected, found)]
+    UnsupportedJwtTyp { expected: String, found: String },
 
     #[error("JWK conversion error: {0}")]
     JwkConversion(#[from] JwkConversionError),
@@ -1248,10 +1244,10 @@ impl CredentialRequestProof {
             CredentialRequestProof::Jwt { jwt } => jwt,
         };
         let header = jwt.dangerous_parse_header_unverified()?;
-        let verifying_key = jwk_to_p256(&header.jwk.ok_or(CredentialRequestError::MissingJwk)?)?;
+        let verifying_key = jwk_to_p256(&header.jwk)?;
 
         let mut validation_options = Validation::new(Algorithm::ES256);
-        validation_options.required_spec_claims = HashSet::default();
+        validation_options.required_spec_claims = HashSet::from(["aud".to_owned(), "iss".to_owned()]);
         validation_options.set_issuer(accepted_wallet_client_ids);
         validation_options.set_audience(&[credential_issuer_identifier]);
 
@@ -1259,10 +1255,10 @@ impl CredentialRequestProof {
         let (header, payload) =
             jwt.parse_and_verify_with_header(&EcdsaDecodingKey::from(&verifying_key), &validation_options)?;
 
-        if header.typ != Some(OPENID4VCI_VC_POP_JWT_TYPE.to_string()) {
-            return Err(CredentialRequestError::UnsupportedJwtAlgorithm {
+        if header.typ() != OPENID4VCI_VC_POP_JWT_TYPE {
+            return Err(CredentialRequestError::UnsupportedJwtTyp {
                 expected: OPENID4VCI_VC_POP_JWT_TYPE.to_string(),
-                found: header.typ,
+                found: header.typ().to_owned(),
             });
         }
         if payload.nonce.as_deref() != Some(nonce) {

@@ -613,7 +613,7 @@ pub static SD_JWT_VALIDATIONS: LazyLock<Validation> = LazyLock::new(|| {
     validation.validate_aud = false;
     validation.validate_nbf = true;
     validation.leeway = 0;
-    validation.required_spec_claims = HashSet::new();
+    validation.required_spec_claims = HashSet::default(); // remove "exp" from required claims
 
     validation
 });

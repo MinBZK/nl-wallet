@@ -19,8 +19,11 @@ use jwt::Algorithm;
 use jwt::Header;
 use jwt::UnverifiedJwt;
 use jwt::credential::JwtCredentialClaims;
+use jwt::headers::HeaderWithJwkAndTyp;
 use jwt::jwk::jwk_from_p256;
 use jwt::pop::JwtPopClaims;
+use jwt::pop::OPENID4VCI_VC_POP_JWT_TYPE;
+use jwt::wua::WUA_JWT_TYP;
 use jwt::wua::WuaClaims;
 use jwt::wua::WuaDisclosure;
 
@@ -139,12 +142,10 @@ impl Wscd for MockRemoteWscd {
         let pops = attestation_keys
             .iter()
             .map(|attestation_key| {
-                let header = Header {
-                    typ: Some("openid4vci-proof+jwt".to_string()),
-                    alg: Algorithm::ES256,
-                    jwk: Some(jwk_from_p256(attestation_key.verifying_key()).unwrap()),
-                    ..Default::default()
-                };
+                let header = HeaderWithJwkAndTyp::new(
+                    OPENID4VCI_VC_POP_JWT_TYPE.to_owned(),
+                    jwk_from_p256(attestation_key.verifying_key()).unwrap(),
+                );
 
                 UnverifiedJwt::sign(&header, &claims, attestation_key)
                     .now_or_never()
@@ -165,7 +166,7 @@ impl Wscd for MockRemoteWscd {
                 wua_key.verifying_key(),
                 wua_signing_key,
                 MOCK_WALLET_CLIENT_ID.to_string(),
-                Some("wua+jwt".to_string()),
+                WUA_JWT_TYP.to_string(),
                 WuaClaims::new(),
             )
             .now_or_never()

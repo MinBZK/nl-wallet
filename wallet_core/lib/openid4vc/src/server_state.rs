@@ -21,6 +21,7 @@ use crypto::utils::random_string;
 use crypto::utils::sha256;
 use jwt::VerifiedJwt;
 use jwt::credential::JwtCredentialClaims;
+use jwt::headers::HeaderWithTyp;
 use jwt::wua::WuaClaims;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
@@ -249,7 +250,10 @@ pub trait WuaTracker {
     type Error: std::error::Error + Send + Sync + 'static;
 
     /// Return whether or not we have seen this WUA within its validity window, and track this WUA as seen.
-    async fn track_wua(&self, wua: &VerifiedJwt<JwtCredentialClaims<WuaClaims>>) -> Result<bool, Self::Error>;
+    async fn track_wua(
+        &self,
+        wua: &VerifiedJwt<JwtCredentialClaims<WuaClaims>, HeaderWithTyp>,
+    ) -> Result<bool, Self::Error>;
 
     /// Cleanup expired WUAs from this tracker.
     async fn cleanup(&self) -> Result<(), Self::Error>;
@@ -299,7 +303,10 @@ where
 {
     type Error = Infallible;
 
-    async fn track_wua(&self, wua: &VerifiedJwt<JwtCredentialClaims<WuaClaims>>) -> Result<bool, Self::Error> {
+    async fn track_wua(
+        &self,
+        wua: &VerifiedJwt<JwtCredentialClaims<WuaClaims>, HeaderWithTyp>,
+    ) -> Result<bool, Self::Error> {
         let shasum = sha256(wua.to_string().as_bytes());
 
         // We don't have to check for expiry of the WUA, because its type guarantees that it has already been verified.
@@ -549,11 +556,11 @@ pub mod test {
         let wua_signing_key = SigningKey::random(&mut OsRng);
         let wua_privkey = SigningKey::random(&mut OsRng);
 
-        let wua: UnverifiedJwt<_> = JwtCredentialClaims::new_signed(
+        let wua: UnverifiedJwt<_, _> = JwtCredentialClaims::new_signed(
             wua_privkey.verifying_key(),
             &wua_signing_key,
             "iss".to_string(),
-            None,
+            "jwt".to_string(),
             WuaClaims::new(),
         )
         .await

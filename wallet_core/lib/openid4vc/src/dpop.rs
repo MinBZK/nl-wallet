@@ -46,6 +46,7 @@ use chrono::serde::ts_seconds;
 use derive_more::AsRef;
 use derive_more::Display;
 use derive_more::FromStr;
+use jwt::headers::HeaderWithJwkAndTyp;
 use p256::ecdsa::VerifyingKey;
 use reqwest::Method;
 use serde::Deserialize;
@@ -78,13 +79,9 @@ pub const DPOP_NONCE_HEADER_NAME: &str = "DPoP-Nonce";
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
 pub enum DpopError {
-    #[error(
-        "unsupported JWT algorithm: expected {}, found {}",
-        expected,
-        found.as_ref().unwrap_or(&"<None>".to_string())
-    )]
+    #[error("unsupported JWT algorithm: expected {}, found {}", expected, found)]
     #[category(critical)]
-    UnsupportedJwtAlgorithm { expected: String, found: Option<String> },
+    UnsupportedJwtAlgorithm { expected: String, found: String },
     #[error("incorrect DPoP JWT HTTP method")]
     #[category(critical)]
     IncorrectMethod,
@@ -129,7 +126,7 @@ pub struct DpopPayload {
 }
 
 #[derive(Clone, AsRef, FromStr, Display)]
-pub struct Dpop(UnverifiedJwt<DpopPayload>);
+pub struct Dpop(UnverifiedJwt<DpopPayload, HeaderWithJwkAndTyp>);
 
 pub const OPENID4VCI_DPOP_JWT_TYPE: &str = "dpop+jwt";
 
@@ -156,9 +153,9 @@ impl Dpop {
         Ok(Self(jwt))
     }
 
-    fn verify_signature(self, verifying_key: &VerifyingKey) -> Result<VerifiedJwt<DpopPayload>> {
+    fn verify_signature(self, verifying_key: &VerifyingKey) -> Result<VerifiedJwt<DpopPayload, HeaderWithJwkAndTyp>> {
         let mut validation_options = Validation::new(Algorithm::ES256);
-        validation_options.required_spec_claims = HashSet::default();
+        validation_options.required_spec_claims = HashSet::default(); // remove "exp" from required claims
         let verified_jwt = self
             .0
             .into_verified(&EcdsaDecodingKey::from(verifying_key), &validation_options)?;
@@ -166,16 +163,16 @@ impl Dpop {
     }
 
     fn verify_data(
-        verified_dpop: &VerifiedJwt<DpopPayload>,
+        verified_dpop: &VerifiedJwt<DpopPayload, HeaderWithJwkAndTyp>,
         url: &Url,
         method: &Method,
         access_token: Option<&AccessToken>,
         nonce: Option<&str>,
     ) -> Result<()> {
-        if verified_dpop.header().typ != Some(OPENID4VCI_DPOP_JWT_TYPE.to_string()) {
+        if verified_dpop.header().typ() != OPENID4VCI_DPOP_JWT_TYPE {
             return Err(DpopError::UnsupportedJwtAlgorithm {
                 expected: OPENID4VCI_DPOP_JWT_TYPE.to_string(),
-                found: verified_dpop.header().typ.clone(),
+                found: verified_dpop.header().typ().to_string(),
             });
         }
         if verified_dpop.payload().http_method != method.to_string() {
@@ -205,7 +202,7 @@ impl Dpop {
     pub fn verify(self, url: &Url, method: &Method, access_token: Option<&AccessToken>) -> Result<VerifyingKey> {
         // Grab the public key from the JWT header
         let header = self.0.dangerous_parse_header_unverified()?;
-        let verifying_key = jwk_to_p256(&header.jwk.ok_or(DpopError::MissingJwk)?)?;
+        let verifying_key = jwk_to_p256(&header.jwk)?;
 
         let token_data = self.verify_signature(&verifying_key)?;
         Self::verify_data(&token_data, url, method, access_token, None)?;
@@ -226,7 +223,7 @@ impl Dpop {
         Self::verify_data(&verified, url, method, access_token, nonce)?;
 
         // Compare the specified key against the one in the JWT header
-        let contained_key = jwk_to_p256(verified.header().jwk.as_ref().ok_or(DpopError::MissingJwk)?)?;
+        let contained_key = jwk_to_p256(&verified.header().jwk)?;
         if contained_key != *expected_verifying_key {
             return Err(DpopError::IncorrectJwkPublicKey);
         }

@@ -81,7 +81,7 @@ fn kb_jwt_validation(expected_aud: &str) -> Validation {
 /// Builder-style struct to ease the creation of an [`KeyBindingJwt`].
 #[derive(Debug, Clone)]
 pub struct KeyBindingJwtBuilder {
-    header: Header,
+    alg: Algorithm,
     iat: DateTime<Utc>,
     aud: String,
     nonce: String,
@@ -89,24 +89,20 @@ pub struct KeyBindingJwtBuilder {
 
 impl KeyBindingJwtBuilder {
     pub fn new(iat: DateTime<Utc>, aud: String, nonce: String, alg: Algorithm) -> Self {
-        let header = Header {
-            typ: Some(String::from(KB_JWT_HEADER_TYP)),
-            alg,
-            ..Default::default()
-        };
-
-        Self {
-            header,
-            iat,
-            aud,
-            nonce,
-        }
+        Self { alg, iat, aud, nonce }
     }
 
     /// Builds an [`KeyBindingJwt`] from the data provided to builder.
     pub(crate) async fn finish(self, sd_jwt: &SdJwt, signing_key: &impl EcdsaKeySend) -> Result<KeyBindingJwt, Error> {
         let hasher = sd_jwt.claims()._sd_alg.unwrap_or_default().hasher()?;
         let sd_hash = hasher.encoded_digest(&sd_jwt.to_string());
+
+        // TODO use HeaderWithTyp (PVW-4868)
+        let header = Header {
+            typ: Some(String::from(KB_JWT_HEADER_TYP)),
+            alg: self.alg,
+            ..Default::default()
+        };
 
         let claims = KeyBindingJwtClaims {
             iat: self.iat,
@@ -115,7 +111,7 @@ impl KeyBindingJwtBuilder {
             sd_hash,
         };
 
-        let verified_jwt = VerifiedJwt::sign(self.header, claims, signing_key).await?;
+        let verified_jwt = VerifiedJwt::sign(header, claims, signing_key).await?;
 
         Ok(KeyBindingJwt(verified_jwt))
     }

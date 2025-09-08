@@ -62,6 +62,7 @@ impl<H: Hasher> SdJwtBuilder<H> {
         Ok(Self {
             encoder,
             disclosures: HashMap::new(),
+            // TODO add SdJwtHeader type (PVW-4868)
             header: Header {
                 typ: Some(String::from(SD_JWT_HEADER_TYP)),
                 ..Default::default()

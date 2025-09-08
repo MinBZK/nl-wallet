@@ -18,10 +18,9 @@ use serde_with::serde_as;
 
 use crypto::EcdsaKey;
 use http_utils::urls::HttpsUri;
-use jwt::Algorithm;
-use jwt::Header;
 use jwt::UnverifiedJwt;
 use jwt::error::JwtError;
+use jwt::headers::HeaderWithTyp;
 
 use crate::status_list::PackedStatusList;
 
@@ -33,7 +32,7 @@ static TOKEN_STATUS_LIST_JWT_HEADER: &str = "application/statuslist+jwt";
 ///
 /// <https://www.ietf.org/archive/id/draft-ietf-oauth-status-list-12.html#name-status-list-token>
 #[derive(Debug, Clone, FromStr, Serialize, Deserialize)]
-pub struct StatusListToken(UnverifiedJwt<StatusListClaims>);
+pub struct StatusListToken(UnverifiedJwt<StatusListClaims, HeaderWithTyp>);
 
 impl StatusListToken {
     pub fn builder(sub: HttpsUri, status_list: PackedStatusList) -> StatusListTokenBuilder {
@@ -65,10 +64,7 @@ impl StatusListTokenBuilder {
     }
 
     pub async fn sign(self, key: &impl EcdsaKey) -> Result<StatusListToken, JwtError> {
-        let header = Header {
-            typ: Some(TOKEN_STATUS_LIST_JWT_TYP.to_string()),
-            ..Header::new(Algorithm::ES256)
-        };
+        let header = HeaderWithTyp::new(TOKEN_STATUS_LIST_JWT_TYP.to_string());
 
         let claims = StatusListClaims {
             iat: Utc::now(),
@@ -139,8 +135,8 @@ mod test {
             "ttl": 43200
         });
 
-        let expected_header: Header = serde_json::from_value(example_header).unwrap();
-        assert_eq!(expected_header.typ, Some(TOKEN_STATUS_LIST_JWT_TYP.to_string()));
+        let expected_header: HeaderWithTyp = serde_json::from_value(example_header).unwrap();
+        assert_eq!(expected_header.typ, TOKEN_STATUS_LIST_JWT_TYP.to_string());
 
         let expected_claims: StatusListClaims = serde_json::from_value(example_payload).unwrap();
 
@@ -218,7 +214,7 @@ mod test {
         );
         let status_list_token: StatusListToken = response.text().await.unwrap().parse().unwrap();
         let (header, payload) = status_list_token.0.dangerous_parse_unverified().unwrap();
-        assert_eq!(header.typ.unwrap(), TOKEN_STATUS_LIST_JWT_TYP);
+        assert_eq!(header.typ, TOKEN_STATUS_LIST_JWT_TYP);
         assert!(!payload.status_list.is_empty());
     }
 }

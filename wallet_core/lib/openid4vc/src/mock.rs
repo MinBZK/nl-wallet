@@ -183,8 +183,7 @@ where
             .first()
             .dangerous_parse_header_unverified()
             .unwrap()
-            .jwk
-            .unwrap(),
+            .jwk,
     )
     .unwrap();
 

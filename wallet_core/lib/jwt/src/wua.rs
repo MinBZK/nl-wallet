@@ -17,6 +17,7 @@ use crate::VerifiedJwt;
 use crate::credential::JwtCredentialClaims;
 use crate::error::JwkConversionError;
 use crate::error::JwtError;
+use crate::headers::HeaderWithTyp;
 use crate::jwk::jwk_to_p256;
 use crate::pop::JwtPopClaims;
 
@@ -26,7 +27,8 @@ pub struct WuaClaims {
     pub exp: DateTime<Utc>,
 }
 
-pub static WUA_EXPIRY: Duration = Duration::minutes(5);
+pub const WUA_EXPIRY: Duration = Duration::minutes(5);
+pub const WUA_JWT_TYP: &str = "wua+jwt";
 
 impl WuaClaims {
     pub fn new() -> Self {
@@ -44,13 +46,13 @@ impl Default for WuaClaims {
 
 #[derive(Clone, Debug, Serialize, Deserialize, Constructor)]
 pub struct WuaDisclosure(
-    UnverifiedJwt<JwtCredentialClaims<WuaClaims>>,
+    UnverifiedJwt<JwtCredentialClaims<WuaClaims>, HeaderWithTyp>,
     UnverifiedJwt<JwtPopClaims>,
 );
 
 #[cfg(feature = "test")]
 impl WuaDisclosure {
-    pub fn wua(&self) -> &UnverifiedJwt<JwtCredentialClaims<WuaClaims>> {
+    pub fn wua(&self) -> &UnverifiedJwt<JwtCredentialClaims<WuaClaims>, HeaderWithTyp> {
         &self.0
     }
 
@@ -76,7 +78,7 @@ impl WuaDisclosure {
         expected_aud: &str,
         accepted_wallet_client_ids: &[String],
         expected_nonce: &str,
-    ) -> Result<(VerifiedJwt<JwtCredentialClaims<WuaClaims>>, VerifyingKey), WuaError> {
+    ) -> Result<(VerifiedJwt<JwtCredentialClaims<WuaClaims>, HeaderWithTyp>, VerifyingKey), WuaError> {
         let verified_jwt = self.0.into_verified(issuer_public_key, &WUA_JWT_VALIDATIONS)?;
         let wua_pubkey = jwk_to_p256(&verified_jwt.payload().confirmation.jwk)?;
 

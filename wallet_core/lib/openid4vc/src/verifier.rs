@@ -45,6 +45,7 @@ use dcql::unique_id_vec::UniqueIdVec;
 use http_utils::urls::BaseUrl;
 use jwt::UnverifiedJwt;
 use jwt::error::JwtError;
+use jwt::headers::HeaderWithX5c;
 use utils::generator::Generator;
 
 use crate::AuthorizationErrorCode;
@@ -942,7 +943,7 @@ where
         response_uri_base: &BaseUrl,
         query: Option<&str>,
         wallet_nonce: Option<String>,
-    ) -> Result<UnverifiedJwt<VpAuthorizationRequest>, WithRedirectUri<GetAuthRequestError>> {
+    ) -> Result<UnverifiedJwt<VpAuthorizationRequest, HeaderWithX5c>, WithRedirectUri<GetAuthRequestError>> {
         let url_params: VerifierUrlParameters =
             serde_urlencoded::from_str(query.ok_or(GetAuthRequestError::QueryParametersMissing)?)
                 .map_err(GetAuthRequestError::QueryParametersDeserialization)?;
@@ -1215,7 +1216,10 @@ impl Session<Created> {
         wallet_nonce: Option<String>,
         use_cases: &impl UseCases<Key = K, UseCase = UC>,
     ) -> Result<
-        (UnverifiedJwt<VpAuthorizationRequest>, Session<WaitingForResponse>),
+        (
+            UnverifiedJwt<VpAuthorizationRequest, HeaderWithX5c>,
+            Session<WaitingForResponse>,
+        ),
         (WithRedirectUri<GetAuthRequestError>, Session<Done>),
     >
     where
@@ -1261,7 +1265,7 @@ impl Session<Created> {
         use_cases: &impl UseCases<Key = K, UseCase = UC>,
     ) -> Result<
         (
-            UnverifiedJwt<VpAuthorizationRequest>,
+            UnverifiedJwt<VpAuthorizationRequest, HeaderWithX5c>,
             NormalizedVpAuthorizationRequest,
             Option<RedirectUri>,
             EcKeyPair,
