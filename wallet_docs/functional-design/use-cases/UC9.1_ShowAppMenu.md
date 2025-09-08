@@ -1,4 +1,4 @@
-# Use Case 9.1. Show app menu
+# Use Case 9.1 Show app menu
 
 ## Overview
 
