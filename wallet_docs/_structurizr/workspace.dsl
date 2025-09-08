@@ -4,34 +4,38 @@ workspace "Name" "NL-Wallet" {
 
     model {
         u = person "User"
-        ua = person "Wallet Administrator"
+        ua = person "Wallet Technical Support"
+        us = person "Wallet User Support"
         uaPid = person "PID issuer admin"
         uaPb = person "Issuer admin"
 
-        ws = softwareSystem "NL-Wallet Solution" {
+        ws = softwareSystem "NL-Wallet" {
+            wab = group "NL-Wallet App containers" {
             walletApp = container "Wallet app" "" "Android/iOS" {
-                appGui = component "App Frontend" "flutter (dart)"  
-                appFrb = component "Flutter-Rust-Bridge" "dart/rust binding"
+                appGui = component "App Frontend" "" "flutter (dart)"  
                 appCore = component "App core component" "" "rust"
                 appPlatform = component "Platform support" "native functions" "rust"
-                db = component "App database" "" "sqlite" {
-                    tags "Database"
-                }      
             }
+            appDb = container "App database" "" "sqlite" {
+                tags "Database"
+            }      
+            secureElement = container "Secure Element" "" "Secure Enclave, Android Keystore system" 
+            }
+            
             wb = group "NL-Wallet backend containers" {
-                walletProvider = container "walletProvider" "Wallet backend" "axum (rust)" {
+                walletBackend = container "WalletBackend (WP)" "Wallet backend" "axum (rust)" {
                     hsmInstructionClient = component "Assisted wallet Instructions endpoint (/instructions)"
                     walletAccountManager = component "Wallet Accounts endpoint (enroll/create)"
                     walletStatusManager = component "Wallet Status endpoint (/status)"
                 }
-                updateServer = container "UpdateServer" "Serve app update policy" "axum (rust)" {
+                updateServer = container "UpdateServer" "Serve app update policy" "nginx (static)" {
                     updatePolicy = component "Policy configuration" "" "[update policy] section in .toml file" { 
                         tags "File" 
                     }
                 }
 
                 statusList = container "WUA status list" "" "Static content (TSL)"
-                configurationServer = container "ConfigurationServer" "Serve app config file" "axum (rust)"               
+                configurationServer = container "ConfigurationServer" "Serve app config file" "nginx (static)"               
                 db = container "WP database (accounts, WUA status)" "" "postgress" {
                     tags "Database"
                 }                
@@ -39,10 +43,16 @@ workspace "Name" "NL-Wallet" {
             walletHsm = container "HSM device" "dedicated cryptographic hardware" 
             //walletAdminPortal = container "Self Serivce portal" "Selfservice and assitance" "web front-end"
         }
-
+        platformServicesApple = softwareSystem "Apple AppAttest"{
+          tags "External"            
+        }
+        platformServices = softwareSystem "Apple AppAttest / Google Play Integrity"{
+          tags "External"            
+        }
+        
         hc = softwareSystem "BRP-V"
 
-        verifier = softwareSystem "Verifier (OV)" { 
+        verifier = softwareSystem "Verifier" { 
             tags "External" 
             ov = container "OV-component"{
                 verifying = component "Disclosure endpoint"
@@ -50,7 +60,7 @@ workspace "Name" "NL-Wallet" {
 
             rpApp = container "Relying Party application"
         }
-        issuerPb = softwareSystem "Issuer - Disclosure based" { 
+        issuerPb = softwareSystem "(Pub/Q)EAA Issuer" { 
             tags "External" 
 
             vvPbi = container "VV for Disclosure based issuance" {
@@ -77,60 +87,67 @@ workspace "Name" "NL-Wallet" {
             }
             //pidIssuer = container "PID-issuer business logic" "" "Rust app"
             statusList = container "PID attestation status list" "" "Static content (TSL)"
-            gbaHcConverter = container "GBA_hc_converter" "" "Rust app"
-            authServer = container "Authorization server (RDO-max)" "" "Python" 
+            mockUserStorage = container "Demo user storage" "" "Static files" { 
+                tags "Database" 
+            }
+            authServer = container "Authorization server" "" "OIDC/SAML proxy" 
         }
 
         haalCentraal = softwareSystem "BRP V" {
             tags "External"
         }
 
-        digid = softwareSystem "DigiD" {
+        digid = softwareSystem "DigiD" "OIDC/SAML proxy" {
             tags "External"
         }
 
+        issuerPid -> digid "User authentication"
         u -> ws "Uses"
         // u -> ws.walletAdminPortal "Self service"
         u -> ws.walletApp "Uses"
         u -> ws.walletApp.appGui "Has interactions"
-        ua -> ws.updateServer.updatePolicy "Maintain updatepolicy"
+        ua -> ws "Manage system" 
+        us -> ws "Perform user support actions" 
         ua -> ws.configurationServer "Maintain runtime config"
-        //ua -> ws "Manage system" 
+        ua -> ws.updateServer.updatePolicy "Maintain updatepolicy"
 
+        ws -> platformServices "Request/verify app- and keyattestations" 
+        ws -> digid "Start user authentication (onboarding and recovery)"
         ws -> verifier.ov "Present data"
-        issuerPb -> ws "Issue attestations" 
-        ws.walletProvider -> ws.db "Reads from and writes to"
+        //issuerPb -> ws "Issue attestations" 
+        ws.walletApp -> platformServices "Request App/key attestation (Apple AppAttest)"
+        ws.walletBackend -> platformServices "Verify App attestation (Google Play Integrity)"
+        ws.walletApp -> digid "Start authentication for activation/recovery"
+        ws.walletBackend -> ws.db "Reads from and writes to"
 
-        ws.walletApp.appFrb -> ws.walletApp.appGui "Exchange information from frb to GUI"
-        ws.walletApp.appGui -> ws.walletApp.appFrb "Exchange information from GUI to frb"
-        ws.walletApp.appFrb -> ws.walletApp.appCore "Exchange information from core with frb"
-        ws.walletApp.appCore -> ws.walletApp.appFrb "Exchange information from frb to core"
+        ws.walletApp.appCore -> ws.walletApp.appGui "Exchange information from core to GUI"
+        ws.walletApp.appGui -> ws.walletApp.appCore "Exchange information from GUI to core"
         ws.walletApp.appCore -> ws.walletApp.appPlatform "Use platform routines (iOS/Android)"
         ws.walletApp.appCore -> ws.updateServer "Get update policies"
-        ws.walletApp.appCore -> ws.walletProvider.walletAccountManager "WP operations (account, HSM instructions)"
+        ws.walletApp.appCore -> ws.walletBackend.walletAccountManager "WP operations (account, HSM instructions)"
         ws.walletApp.appCore -> ws.configurationServer "Get runtime configuration"
-        ws.walletApp.appCore -> ws.walletProvider.hsmInstructionClient "HSM-assisted operation"
-        ws.walletApp.appCore -> ws.walletApp.db "Store/retrieve attestations, logs, configuration"
+        ws.walletApp.appCore -> ws.walletBackend.hsmInstructionClient "HSM-assisted operation"
+        ws.walletApp.appCore -> ws.appDb "Store/retrieve attestations, logs, configuration"
+        ws.walletApp.appCore -> ws.secureElement "Manage keys, signing ops"
 
         //PID issuer specific
-        ws.walletApp.appCore -> issuerPid.authServer "Authentication for PID-issuance"
+        ws.walletApp.appCore -> issuerPid.authServer "Wallet activation and PID issuance"
 
-        ws.walletProvider -> ws.walletHsm "Call HSM for assisted operation"
-        ws.walletProvider -> ws.statusList "Publish WUA statuslist" 
+        ws.walletBackend -> ws.walletHsm "Call HSM for assisted operation"
+        ws.walletBackend -> ws.statusList "Publish WUA statuslist" 
 
 
-        ws.walletApp -> issuerPb.vvPbi "Interactions with issuer, (disclose based) issuance"
+        ws.walletApp -> issuerPb.vvPbi "Perform disclosure based issuance, Retrieve Status List"
 
         ws.walletApp -> verifier "Disclose attributes to verifier"
 
-        ws.walletProvider.walletAccountManager -> ws.walletProvider.walletStatusManager "Update WUA status"
-        ws.walletProvider.hsmInstructionClient -> ws.walletHsm "Process HSM instruction"
-        ua -> ws.walletProvider.walletAccountManager "Revoke wallet"
-        issuerPid -> ws.statusList "Get WUA status (not in scope WP3)" 
+        ws.walletBackend.walletAccountManager -> ws.walletBackend.walletStatusManager "Update WUA status"
+        ws.walletBackend.hsmInstructionClient -> ws.walletHsm "Process HSM instruction"
+        us -> ws.walletBackend.walletAccountManager "Manage wallet instances"
+        issuerPid -> ws.statusList "Get WUA status" 
 
-        ws.walletApp.appCore -> issuerPid "interactions with PID issuer" 
-        ws.walletApp.appCore -> issuerPid.statusList "Get PID status list" 
-        verifier.ov -> issuerPid.statusList "Get PID status list"
+        ws.walletApp.appCore -> issuerPid.statusList "Get attestation status list (PID)" 
+        //verifier.ov -> issuerPid.statusList "Get attestation status list (PID)"
         uaPid -> issuerPid.vvPid.statusManager "Update PID attestation status" 
         issuerPid.vvPid.statusManager -> issuerPid.statusList "Publish Status List" 
 
@@ -139,18 +156,19 @@ workspace "Name" "NL-Wallet" {
         issuerPid.vvPid.issuing -> issuerPid.authServer "Get authenticated BSN"
 
 
-        issuerPid.vvPid -> issuerPid.gbaHcConverter "Retrieve PID attestation data"
-        issuerPid.authServer -> digid "Retrieve authentication result"
+        issuerPid.vvPid -> issuerPid.mockUserStorage "Retrieve PID attestation data"
+        //issuerPid.authServer -> digid "Retrieve authentication result"
 
-        //issuerPid.pidIssuer -> issuerPid.gbaHcConverter "Fetch PID-Attributes"
-        ws.walletApp.appCore -> issuerPid.vvPid  "Retrieve PID / Disclose WUA (formerly WTE) + PoA" 
+        //issuerPid.pidIssuer -> issuerPid.mockUserStorage "Fetch PID-Attributes"
+        ws.walletApp.appCore -> issuerPid.vvPid  "Retrieve PID / Disclose WUA + PoA" 
         //issuerPid.vvPid.issuing  -> issuerPid.pidIssuer "Retrieve attestation data"
-        issuerPid.vvPid.issuing  -> issuerPid.gbaHcConverter "Retrieve attestation data"
-        issuerPid.gbaHcConverter -> haalCentraal "Call BRP V"
+        issuerPid.vvPid.issuing  -> issuerPid.mockUserStorage "Retrieve attestation data"
+        //issuerPid.mockUserStorage -> haalCentraal "Call BRP V"
 
-        ws.walletApp.appCore -> issuerPb "interactions with EAA issuer" 
+        ws.walletApp.appCore -> issuerPb "Perform disclosure based issuance, retrieve Status List" 
+        ws.walletApp.appCore -> verifier "Perform disclosure of attributes" 
         ws.walletApp.appCore -> issuerPb.statusList "Get attestation status list" 
-        verifier.ov -> issuerPb.statusList "Get attestation status list"
+        //verifier.ov -> issuerPb.statusList "Get attestation status list"
 
         issuerPb.vvPbi.issuing -> issuerPb.ds "Retrieve attestation data for disclosed attestation"
         issuerPb.vvPbi.statusManager -> issuerPb.statusDb "Persist/retrieve attestation status"
@@ -164,44 +182,28 @@ workspace "Name" "NL-Wallet" {
 
     views {
         systemContext ws "AD1NL-Wallet" {
-            include u ws verifier issuerPb
+            include u ws verifier issuerPb issuerPid platformServices digid ua us
         }
 
         systemContext ws "B1PID-Issuer" {
             include u issuerPid ws verifier
         }
 
-        systemContext ws "C2NL-Wallet" {
-            include u ws verifier issuerPid issuerPb
-        }
-
         container ws "D2NL-WalletSystem" {
-            include * 
+            include * platformServices
         }
 
-        container ws "E3NL-WalletSystem" {
-            include * verifier
-        }
-
-        container verifier "FRelyingParty"{
-            include * ws
-        }
-
-        component ws.walletProvider "GD2NL-WalletProvider" {
+        component ws.walletBackend "GD2NL-walletBackend" {
             include * 
             
         }
 
         component ws.walletApp "HD2NL-WalletApp" {
-            include * 
+            include * verifier
         }
 
         systemContext issuerPb "ID3IssuerSoftwareSystem" {
             include *
-        }
-
-        container issuerPb "JD4IssuerSoftwareSystem" {
-            include * ws 
         }
 
         container issuerPid "KD4PID_IssuerSoftwareSystem" {
@@ -216,22 +218,10 @@ workspace "Name" "NL-Wallet" {
             include * uaPb
         }
 
-        component ws.updateServer "O5UpdateServer" {
-            include *
-        }
-
         properties {
             "structurizr.sort" "key"
         }
 
-        dynamic ws {
-            title "Wallet Migration"
-            ws.walletApp -> ws.walletProvider "Disclose recovery code (after Activate new Wallet)"
-            ws.walletProvider -> ws.walletApp "Recovery possible (y/n)"
-            ws.walletApp -> u "Recover? (if possible)"
-            u -> ws.walletApp "Yes Proceed with recovery "
-            ws.walletApp -> ws.walletProvider ""
-        }
       
         styles {
             element "Element" {
@@ -244,12 +234,12 @@ workspace "Name" "NL-Wallet" {
             element "Software System" {
                 background #2b81e9
                 shape Window
-                fontSize 40
+                fontSize 32
             }
             element "Container" {
                 background #2b81e9
                 shape RoundedBox
-                fontSize 40
+                fontSize 32
             }
             element "Component" {
                 background #1056ab
@@ -259,6 +249,11 @@ workspace "Name" "NL-Wallet" {
             element "Database" {
                 shape cylinder
             }
+            element "DatabaseS" {
+                shape cylinder
+                fontSize 25
+            }
+
             element "File" {
                 shape Folder
             }
@@ -273,10 +268,12 @@ workspace "Name" "NL-Wallet" {
             }
             element "External" {
                 background #aaaaaa
+                fontSize 26
+
             }
 
             relationship "Relationship" {
-                fontSize 35
+                fontSize 28
             }
         }
     }
