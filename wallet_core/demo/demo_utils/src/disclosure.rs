@@ -3,6 +3,7 @@ use serde::Deserialize;
 use attestation_data::attributes::Attributes;
 use attestation_data::disclosure::ValidityInfo;
 use dcql::CredentialQueryIdentifier;
+use dcql::unique_id_vec::MayHaveUniqueId;
 use http_utils::urls::HttpsUri;
 use openid4vc::Format;
 use utils::vec_at_least::VecNonEmpty;
@@ -28,6 +29,12 @@ pub struct DemoDisclosedAttestations {
     pub id: CredentialQueryIdentifier,
 
     pub attestations: VecNonEmpty<DemoDisclosedAttestation>,
+}
+
+impl MayHaveUniqueId for DemoDisclosedAttestations {
+    fn id(&self) -> Option<&str> {
+        Some(self.id.as_ref())
+    }
 }
 
 #[cfg(test)]
