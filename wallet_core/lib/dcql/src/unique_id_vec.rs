@@ -1,3 +1,5 @@
+use std::num::NonZeroUsize;
+
 use derive_more::IntoIterator;
 use itertools::Itertools;
 use serde::Deserialize;
@@ -38,6 +40,12 @@ impl<T> UniqueIdVec<T> {
         }
 
         Ok(Self(vec_non_empty))
+    }
+
+    pub fn len(&self) -> NonZeroUsize {
+        let Self(vec_non_empty) = self;
+
+        vec_non_empty.len()
     }
 
     pub fn into_inner(self) -> Vec<T> {
