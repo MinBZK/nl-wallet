@@ -796,12 +796,11 @@ impl VpAuthorizationResponse {
             .as_ref()
             .iter()
             .map(|credential_request| {
-                DisclosedAttestations {
-                    // Safety: in step 4 we checked that for each `credential_request`
-                    // there is a matching disclosed attestation.
-                    attestations: disclosed_attestations.remove(&credential_request.id).unwrap(),
-                    id: credential_request.id.clone(),
-                }
+                // Safety: in step 4 we checked that for each `credential_request`
+                // there is a matching disclosed attestation.
+                let (id, attestations) = disclosed_attestations.remove_entry(&credential_request.id).unwrap();
+
+                DisclosedAttestations { attestations, id }
             })
             .collect();
 
