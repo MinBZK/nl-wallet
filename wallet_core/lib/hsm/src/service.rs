@@ -22,8 +22,8 @@ use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
 use p256::pkcs8::AssociatedOid;
 use r2d2_cryptoki::Pool;
+use r2d2_cryptoki::SessionAuth;
 use r2d2_cryptoki::SessionManager;
-use r2d2_cryptoki::SessionType;
 use r2d2_cryptoki::r2d2::LoggingErrorHandler;
 use sec1::EcParameters;
 
@@ -172,7 +172,8 @@ impl Pkcs11Hsm {
             .first()
             .ok_or(HsmError::NoInitializedSlotAvailable)?;
 
-        let manager = SessionManager::new(pkcs11_client, slot, SessionType::RwUser(AuthPin::new(user_pin)));
+        let session_auth = SessionAuth::RwUser(AuthPin::new(user_pin));
+        let manager = SessionManager::new(pkcs11_client, slot, &session_auth);
 
         let pool = Pool::builder()
             .max_size(max_sessions.into())
@@ -180,6 +181,7 @@ impl Pkcs11Hsm {
             // This makes a pkcs11 call every time a connection is check out of the pool and should be evaluated in a
             // future performance test.
             .test_on_check_out(true)
+            .connection_customizer(session_auth.into_customizer())
             .error_handler(Box::new(LoggingErrorHandler))
             .build(manager)?;
 
@@ -493,14 +495,14 @@ impl Pkcs11Client for Pkcs11Hsm {
     async fn encrypt(
         &self,
         key_handle: PrivateKeyHandle,
-        iv: InitializationVector,
+        mut iv: InitializationVector,
         data: Vec<u8>,
     ) -> Result<(Vec<u8>, InitializationVector)> {
         let pool = self.pool.clone();
 
         spawn::blocking(move || {
             let session = pool.get()?;
-            let gcm_params = GcmParams::new(&iv.0, &[], AES_AUTHENTICATION_TAG_BITS.into());
+            let gcm_params = GcmParams::new(iv.0.as_mut_slice(), &[], AES_AUTHENTICATION_TAG_BITS.into())?;
             let encrypted_data = session.encrypt(&Mechanism::AesGcm(gcm_params), key_handle.0, &data)?;
             Ok((encrypted_data, iv))
         })
@@ -510,14 +512,14 @@ impl Pkcs11Client for Pkcs11Hsm {
     async fn decrypt(
         &self,
         key_handle: PrivateKeyHandle,
-        iv: InitializationVector,
+        mut iv: InitializationVector,
         encrypted_data: Vec<u8>,
     ) -> Result<Vec<u8>> {
         let pool = self.pool.clone();
 
         spawn::blocking(move || {
             let session = pool.get()?;
-            let gcm_params = GcmParams::new(&iv.0, &[], AES_AUTHENTICATION_TAG_BITS.into());
+            let gcm_params = GcmParams::new(iv.0.as_mut_slice(), &[], AES_AUTHENTICATION_TAG_BITS.into())?;
             let data = session.decrypt(&Mechanism::AesGcm(gcm_params), key_handle.0, &encrypted_data)?;
             Ok(data)
         })

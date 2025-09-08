@@ -109,8 +109,7 @@ clio = "0.3.5"
 config = { version = "0.15.7", default-features = false }
 const-decoder = "0.4.0"
 coset = "0.3.8"
-# held back by r2d2-cryptoki
-cryptoki = "0.7.0"
+cryptoki = "0.10.0"
 crypto-common = "0.1.6"
 cstr = "0.2.12"
 csv = "1.3.1"
@@ -158,7 +157,7 @@ predicates = { version = "3.1.3", default-features = false }
 proc-macro2 = "1.0.93"
 quick-xml = "0.38.0"
 quote = "1.0.38"
-r2d2-cryptoki = "0.3.0"
+r2d2-cryptoki = "0.4.0-rc.0"
 # these two crates are held back by p256
 rand = "0.8.5"
 rand_core = "0.6.4"
