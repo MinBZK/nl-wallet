@@ -20,10 +20,12 @@ use wallet_provider_persistence::database::Db;
 use wallet_provider_persistence::repositories::Repositories;
 use wallet_provider_service::account_server::AccountServer;
 use wallet_provider_service::account_server::AccountServerKeys;
+use wallet_provider_service::account_server::AccountServerPinKeys;
 use wallet_provider_service::account_server::AndroidAttestationConfiguration;
 use wallet_provider_service::account_server::AppleAttestationConfiguration;
 use wallet_provider_service::account_server::UserState;
 use wallet_provider_service::instructions::HandleInstruction;
+use wallet_provider_service::instructions::PinChecks;
 use wallet_provider_service::instructions::ValidateInstruction;
 use wallet_provider_service::keys::InstructionResultSigning;
 use wallet_provider_service::keys::WalletCertificateSigning;
@@ -91,9 +93,11 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
             settings.instruction_challenge_timeout,
             AccountServerKeys {
                 wallet_certificate_signing_pubkey: (&certificate_signing_pubkey).into(),
-                encryption_key_identifier: settings.pin_pubkey_encryption_key_identifier,
-                pin_public_disclosure_protection_key_identifier: settings
-                    .pin_public_disclosure_protection_key_identifier,
+                pin_keys: AccountServerPinKeys {
+                    encryption_key_identifier: settings.pin_pubkey_encryption_key_identifier,
+                    public_disclosure_protection_key_identifier: settings
+                        .pin_public_disclosure_protection_key_identifier,
+                },
             },
             apple_config,
             android_config,
@@ -152,7 +156,7 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
         instruction: Instruction<I>,
     ) -> Result<InstructionResultMessage<R>, WalletProviderError>
     where
-        I: InstructionAndResult<Result = R> + HandleInstruction<Result = R> + ValidateInstruction,
+        I: InstructionAndResult<Result = R> + HandleInstruction<Result = R> + ValidateInstruction + PinChecks,
         R: Serialize + DeserializeOwned,
     {
         let result = self

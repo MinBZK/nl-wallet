@@ -98,6 +98,7 @@ impl From<WalletProviderError> for AccountError {
                 | InstructionError::NoAccountTransferInProgress
                 | InstructionError::AppVersionMismatch { .. }
                 | InstructionError::SdJwtError(_) => Self::InstructionValidation,
+                InstructionError::WalletCertificate(WalletCertificateError::UserBlocked) => Self::AccountBlocked,
                 InstructionError::Signing(_)
                 | InstructionError::Storage(_)
                 | InstructionError::WalletCertificate(_)

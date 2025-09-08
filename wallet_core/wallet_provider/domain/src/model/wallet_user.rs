@@ -25,6 +25,7 @@ pub struct WalletUser {
     pub instruction_challenge: Option<InstructionChallenge>,
     pub instruction_sequence_number: u64,
     pub attestation: WalletUserAttestation,
+    pub state: WalletUserState,
     pub recovery_code: Option<String>,
     pub transfer_session_id: Option<Uuid>,
     pub destination_wallet_app_version: Option<String>,
@@ -56,7 +57,6 @@ pub struct InstructionChallenge {
 pub enum WalletUserQueryResult {
     Found(Box<WalletUser>),
     NotFound,
-    Blocked,
 }
 
 #[derive(Debug)]
@@ -67,6 +67,14 @@ pub struct WalletUserCreate {
     pub encrypted_pin_pubkey: Encrypted<VerifyingKey>,
     pub attestation_date_time: DateTime<Utc>,
     pub attestation: WalletUserAttestationCreate,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::Display, strum::EnumString)]
+#[strum(serialize_all = "snake_case")]
+pub enum WalletUserState {
+    Active,
+    Blocked,
+    RecoveringPin,
 }
 
 #[derive(Debug)]
@@ -106,6 +114,8 @@ pub mod mock {
     use hsm::model::encrypted::InitializationVector;
 
     use crate::model::wallet_user::WalletUser;
+    use crate::model::wallet_user::WalletUserAttestation;
+    use crate::model::wallet_user::WalletUserState;
 
     pub fn wallet_user_1() -> WalletUser {
         WalletUser {
@@ -125,7 +135,8 @@ SssTb0eI53lvfdvG/xkNcktwsXEIPL1y3lUKn1u1ZhFTnQn4QKmnvaN4uQ==
             last_unsuccessful_pin_entry: None,
             instruction_challenge: None,
             instruction_sequence_number: 0,
-            attestation: super::WalletUserAttestation::Android,
+            attestation: WalletUserAttestation::Android,
+            state: WalletUserState::Active,
             recovery_code: None,
             transfer_session_id: None,
             destination_wallet_app_version: None,

@@ -1,6 +1,5 @@
 use std::hash::Hash;
 use std::hash::Hasher;
-use std::num::NonZeroUsize;
 use std::sync::Arc;
 
 use base64::prelude::*;
@@ -45,10 +44,12 @@ use wallet_account::messages::instructions::PrepareTransfer;
 use wallet_account::messages::instructions::PrepareTransferResult;
 use wallet_account::messages::instructions::Sign;
 use wallet_account::messages::instructions::SignResult;
+use wallet_account::messages::instructions::StartPinRecovery;
 use wallet_provider_domain::model::hsm::WalletUserHsm;
 use wallet_provider_domain::model::wallet_user::WalletUser;
 use wallet_provider_domain::model::wallet_user::WalletUserKey;
 use wallet_provider_domain::model::wallet_user::WalletUserKeys;
+use wallet_provider_domain::model::wallet_user::WalletUserState;
 use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::repository::TransactionStarter;
 use wallet_provider_domain::repository::WalletUserRepository;
@@ -58,12 +59,14 @@ use wscd::Poa;
 use crate::account_server::InstructionError;
 use crate::account_server::InstructionValidationError;
 use crate::account_server::UserState;
+use crate::wallet_certificate::PinKeyChecks;
 use crate::wua_issuer::WuaIssuer;
 
 pub trait ValidateInstruction {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
         validate_no_pin_change_in_progress(wallet_user)?;
         validate_no_transfer_in_progress(wallet_user)?;
+        validate_no_pin_recovery_in_progress(wallet_user)?;
         Ok(())
     }
 }
@@ -84,6 +87,14 @@ fn validate_no_transfer_in_progress(wallet_user: &WalletUser) -> Result<(), Inst
     Ok(())
 }
 
+fn validate_no_pin_recovery_in_progress(wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+    if matches!(wallet_user.state, WalletUserState::RecoveringPin) {
+        return Err(InstructionValidationError::PinRecoveryInProgress);
+    }
+
+    Ok(())
+}
+
 impl ValidateInstruction for ChangePinStart {}
 impl ValidateInstruction for PerformIssuance {}
 impl ValidateInstruction for PerformIssuanceWithWua {}
@@ -94,6 +105,7 @@ impl ValidateInstruction for Sign {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
         validate_no_pin_change_in_progress(wallet_user)?;
         validate_no_transfer_in_progress(wallet_user)?;
+        validate_no_pin_recovery_in_progress(wallet_user)?;
 
         if self
             .messages_with_identifiers
@@ -110,30 +122,76 @@ impl ValidateInstruction for Sign {
 }
 
 impl ValidateInstruction for ChangePinCommit {
-    fn validate_instruction(&self, _wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
-        Ok(())
+    fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+        validate_no_pin_recovery_in_progress(wallet_user)
     }
 }
 
 impl ValidateInstruction for ChangePinRollback {
-    fn validate_instruction(&self, _wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
-        Ok(())
+    fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+        validate_no_pin_recovery_in_progress(wallet_user)
     }
 }
 
 impl ValidateInstruction for CheckPin {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
         validate_no_pin_change_in_progress(wallet_user)?;
+        validate_no_pin_recovery_in_progress(wallet_user)
+    }
+}
 
-        Ok(())
+impl ValidateInstruction for StartPinRecovery {
+    fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+        validate_no_pin_change_in_progress(wallet_user)
     }
 }
 
 impl ValidateInstruction for PrepareTransfer {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
-        validate_no_pin_change_in_progress(wallet_user)?;
+        validate_no_pin_change_in_progress(wallet_user)
+    }
+}
 
-        Ok(())
+pub struct PinCheckOptions {
+    pub allow_for_blocked_users: bool,
+    pub key_checks: PinKeyChecks,
+}
+
+impl Default for PinCheckOptions {
+    fn default() -> Self {
+        Self {
+            allow_for_blocked_users: false,
+            key_checks: PinKeyChecks::AllChecks,
+        }
+    }
+}
+
+pub trait PinChecks {
+    fn pin_checks_options() -> PinCheckOptions {
+        Default::default()
+    }
+}
+
+impl PinChecks for ChangePinStart {}
+impl PinChecks for PerformIssuance {}
+impl PinChecks for PerformIssuanceWithWua {}
+impl PinChecks for DiscloseRecoveryCode {}
+impl PinChecks for ConfirmTransfer {}
+impl PinChecks for ChangePinCommit {}
+impl PinChecks for ChangePinRollback {}
+impl PinChecks for CheckPin {}
+impl PinChecks for PrepareTransfer {}
+impl PinChecks for Sign {}
+
+impl PinChecks for StartPinRecovery {
+    fn pin_checks_options() -> PinCheckOptions {
+        PinCheckOptions {
+            // Blocked users should be able to reset their PIN, so don't reject blocked users.
+            allow_for_blocked_users: true,
+
+            // This instruction is signed with the user's new PIN key, whose HMAC is not in the certificate.
+            key_checks: PinKeyChecks::SkipCertificateMatching,
+        }
     }
 }
 
@@ -197,25 +255,38 @@ impl HandleInstruction for ChangePinCommit {
     }
 }
 
-struct IssuanceArguments {
-    key_count: NonZeroUsize,
-    aud: String,
-    nonce: Option<String>,
-    issue_wua: bool,
+pub(super) async fn perform_issuance_with_wua<T, R, H>(
+    instruction: PerformIssuance,
+    user_state: &UserState<R, H, impl WuaIssuer>,
+) -> Result<(PerformIssuanceWithWuaResult, Vec<WrappedKey>, (WrappedKey, String)), InstructionError>
+where
+    T: Committable,
+    R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
+    H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
+{
+    let (issuance_result, wua_disclosure, wrapped_keys, wua_key_and_id) =
+        perform_issuance(instruction, true, user_state).await?;
+
+    let issuance_result = PerformIssuanceWithWuaResult {
+        issuance_result,
+        wua_disclosure: wua_disclosure.unwrap(),
+    };
+
+    // unwrap: `perform_issuance()` included a WUA since we passed it `true` above.
+    Ok((issuance_result, wrapped_keys, wua_key_and_id.unwrap()))
 }
 
 /// Helper for the [`PerformIssuance`] and [`PerformIssuanceWithWua`] instruction handlers.
-async fn perform_issuance<T, R, H>(
-    arguments: IssuanceArguments,
-    wallet_user: &WalletUser,
-    uuid_generator: &impl Generator<Uuid>,
+pub async fn perform_issuance<T, R, H>(
+    instruction: PerformIssuance,
+    issue_wua: bool,
     user_state: &UserState<R, H, impl WuaIssuer>,
 ) -> Result<
     (
-        VecNonEmpty<String>,
-        VecNonEmpty<UnverifiedJwt<JwtPopClaims>>,
-        Option<Poa>,
+        PerformIssuanceResult,
         Option<WuaDisclosure>,
+        Vec<WrappedKey>,
+        Option<(WrappedKey, String)>,
     ),
     InstructionError,
 >
@@ -226,7 +297,7 @@ where
 {
     let (key_ids, wrapped_keys): (Vec<_>, Vec<_>) = user_state
         .wallet_user_hsm
-        .generate_wrapped_keys(&user_state.wrapping_key_identifier, arguments.key_count)
+        .generate_wrapped_keys(&user_state.wrapping_key_identifier, instruction.key_count)
         .await?
         .into_inner()
         .into_iter()
@@ -242,9 +313,9 @@ where
         .unwrap();
 
     // The JWT claims to be signed in the PoPs and the PoA.
-    let claims = JwtPopClaims::new(arguments.nonce, NL_WALLET_CLIENT_ID.to_string(), arguments.aud);
+    let claims = JwtPopClaims::new(instruction.nonce, NL_WALLET_CLIENT_ID.to_string(), instruction.aud);
 
-    let (wua_key_and_id, wua_disclosure) = if arguments.issue_wua {
+    let (wua_key_and_id, wua_disclosure) = if issue_wua {
         let (key, key_id, wua_disclosure) = wua(&claims, user_state).await?;
         (Some((key, key_id)), Some(wua_disclosure))
     } else {
@@ -253,10 +324,10 @@ where
 
     let pops = issuance_pops(&attestation_keys, &claims).await?;
 
-    let key_count_including_wua = if arguments.issue_wua {
-        arguments.key_count.get() + 1
+    let key_count_including_wua = if issue_wua {
+        instruction.key_count.get() + 1
     } else {
-        arguments.key_count.get()
+        instruction.key_count.get()
     };
     let poa = if key_count_including_wua > 1 {
         let wua_attestation_key = wua_key_and_id.as_ref().map(|(key, _)| attestation_key(key, user_state));
@@ -278,10 +349,32 @@ where
         None
     };
 
+    let issuance_result = PerformIssuanceResult {
+        key_identifiers: key_ids,
+        pops,
+        poa,
+    };
+
+    Ok((issuance_result, wua_disclosure, wrapped_keys, wua_key_and_id))
+}
+
+async fn persist_issuance_keys<T, R, H>(
+    wrapped_keys: Vec<WrappedKey>,
+    key_ids: Vec<String>,
+    wua_key_and_id: Option<(WrappedKey, String)>,
+    wallet_user: &WalletUser,
+    uuid_generator: &impl Generator<Uuid>,
+    user_state: &UserState<R, H, impl WuaIssuer>,
+) -> Result<(), InstructionError>
+where
+    T: Committable,
+    R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
+    H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
+{
     // Assemble the keys to be stored in the database
     let db_keys = wrapped_keys
         .into_iter()
-        .zip(key_ids.clone())
+        .zip(key_ids)
         .chain(wua_key_and_id.into_iter())
         .map(|(key, key_identifier)| WalletUserKey {
             wallet_user_key_id: uuid_generator.generate(),
@@ -304,7 +397,7 @@ where
         .await?;
     tx.commit().await?;
 
-    Ok((key_ids, pops, poa, wua_disclosure))
+    Ok(())
 }
 
 async fn wua<T, R, H>(
@@ -392,24 +485,19 @@ impl HandleInstruction for PerformIssuance {
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
         H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
     {
-        let (key_identifiers, pops, poa, _) = perform_issuance(
-            IssuanceArguments {
-                key_count: self.key_count,
-                aud: self.aud,
-                nonce: self.nonce,
-                issue_wua: false,
-            },
+        let (issuance_result, _, wrapped_keys, _) = perform_issuance(self, false, user_state).await?;
+
+        persist_issuance_keys(
+            wrapped_keys,
+            issuance_result.key_identifiers.as_ref().to_vec(),
+            None,
             wallet_user,
             uuid_generator,
             user_state,
         )
         .await?;
 
-        Ok(PerformIssuanceResult {
-            key_identifiers,
-            pops,
-            poa,
-        })
+        Ok(issuance_result)
     }
 }
 
@@ -427,28 +515,24 @@ impl HandleInstruction for PerformIssuanceWithWua {
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
         H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
     {
-        let (key_identifiers, pops, poa, wua_with_disclosure) = perform_issuance(
-            IssuanceArguments {
-                key_count: self.issuance_instruction.key_count,
-                aud: self.issuance_instruction.aud,
-                nonce: self.issuance_instruction.nonce,
-                issue_wua: true,
-            },
+        let (issuance_with_wua_result, wrapped_keys, wua_key_and_id) =
+            perform_issuance_with_wua(self.issuance_instruction, user_state).await?;
+
+        persist_issuance_keys(
+            wrapped_keys,
+            issuance_with_wua_result
+                .issuance_result
+                .key_identifiers
+                .as_ref()
+                .to_vec(),
+            Some(wua_key_and_id),
             wallet_user,
             uuid_generator,
             user_state,
         )
         .await?;
 
-        Ok(PerformIssuanceWithWuaResult {
-            issuance_result: PerformIssuanceResult {
-                key_identifiers,
-                pops,
-                poa,
-            },
-            // unwrap: `perform_issuance()` included a WUA since we passed it `true` above.
-            wua_disclosure: wua_with_disclosure.unwrap(),
-        })
+        Ok(issuance_with_wua_result)
     }
 }
 
@@ -738,7 +822,9 @@ mod tests {
     use assert_matches::assert_matches;
     use base64::prelude::*;
     use itertools::Itertools;
+    use p256::ecdsa::Signature;
     use p256::ecdsa::SigningKey;
+    use p256::ecdsa::signature::Signer;
     use p256::ecdsa::signature::Verifier;
     use rand::rngs::OsRng;
     use rstest::rstest;
@@ -760,6 +846,9 @@ mod tests {
     use jwt::wua::WuaDisclosure;
     use sd_jwt::sd_jwt::SdJwtPresentation;
     use wallet_account::NL_WALLET_CLIENT_ID;
+    use wallet_account::messages::instructions::ChangePinCommit;
+    use wallet_account::messages::instructions::ChangePinRollback;
+    use wallet_account::messages::instructions::ChangePinStart;
     use wallet_account::messages::instructions::CheckPin;
     use wallet_account::messages::instructions::ConfirmTransfer;
     use wallet_account::messages::instructions::DiscloseRecoveryCode;
@@ -767,8 +856,10 @@ mod tests {
     use wallet_account::messages::instructions::PerformIssuanceWithWua;
     use wallet_account::messages::instructions::PrepareTransfer;
     use wallet_account::messages::instructions::Sign;
+    use wallet_account::messages::instructions::StartPinRecovery;
     use wallet_provider_domain::FixedUuidGenerator;
     use wallet_provider_domain::model::wallet_user;
+    use wallet_provider_domain::model::wallet_user::WalletUserState;
     use wallet_provider_domain::repository::MockTransaction;
     use wallet_provider_persistence::repositories::mock::MockTransactionalWalletUserRepository;
     use wscd::Poa;
@@ -1100,6 +1191,59 @@ mod tests {
             result.issuance_result.poa,
             Some(&result.wua_disclosure),
         );
+    }
+
+    fn mock_change_pin_start_instruction() -> ChangePinStart {
+        let privkey = SigningKey::random(&mut OsRng);
+        let signature: Signature = privkey.sign("bla".as_bytes());
+        ChangePinStart {
+            pin_pubkey: (*privkey.verifying_key()).into(),
+            pop_pin_pubkey: signature.into(),
+        }
+    }
+
+    fn mock_sign_instruction() -> Sign {
+        Sign {
+            messages_with_identifiers: vec![],
+            poa_nonce: None,
+            poa_aud: "aud".to_string(),
+        }
+    }
+
+    fn mock_start_pin_recovery_instruction() -> StartPinRecovery {
+        StartPinRecovery {
+            issuance_with_wua_instruction: PerformIssuanceWithWua {
+                issuance_instruction: PerformIssuance {
+                    key_count: 1.try_into().unwrap(),
+                    aud: "aud".to_string(),
+                    nonce: None,
+                },
+            },
+            pin_pubkey: (*SigningKey::random(&mut OsRng).verifying_key()).into(),
+        }
+    }
+
+    #[rstest]
+    #[case(Box::new(CheckPin), false)]
+    #[case(Box::new(mock_change_pin_start_instruction()), false)]
+    #[case(Box::new(ChangePinCommit {}), false)]
+    #[case(Box::new(ChangePinRollback {}), false)]
+    #[case(Box::new(mock_sign_instruction()), false)]
+    #[case(Box::new(mock_start_pin_recovery_instruction()), true)]
+    fn test_instruction_validation_during_pin_recovery(
+        #[case] instruction: Box<dyn ValidateInstruction>,
+        #[case] should_succeed: bool,
+    ) {
+        let mut wallet_user = wallet_user::mock::wallet_user_1();
+        wallet_user.state = WalletUserState::RecoveringPin;
+
+        let result = instruction.validate_instruction(&wallet_user);
+
+        if should_succeed {
+            assert_matches!(result, Ok(()));
+        } else {
+            assert_matches!(result, Err(InstructionValidationError::PinRecoveryInProgress));
+        }
     }
 
     #[tokio::test]
