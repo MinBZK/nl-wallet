@@ -1206,7 +1206,7 @@ impl CredentialResponse {
             .into_credential_payload(&attestation_config.metadata)?;
 
         Ok(CredentialResponse::MsoMdoc {
-            credential: Box::new(issuer_signed.into()),
+            credential: Box::new(issuer_signed),
         })
     }
 

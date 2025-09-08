@@ -202,7 +202,7 @@ fn disclosure_jwe(
     VpAuthorizationResponse::new_encrypted(
         HashMap::from([(
             "mdoc_pid_example".try_into().unwrap(),
-            VerifiablePresentation::new_mdoc(device_responses),
+            VerifiablePresentation::MsoMdoc(device_responses),
         )]),
         &auth_request,
         &mdoc_nonce,

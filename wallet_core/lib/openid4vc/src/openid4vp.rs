@@ -19,6 +19,7 @@ use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::DeserializeFromStr;
+use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 
 use attestation_data::disclosure::DisclosedAttestation;
@@ -43,8 +44,6 @@ use mdoc::utils::serialization::CborBase64;
 use serde_with::SerializeDisplay;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
-use utils::vec_at_least::IntoNonEmptyIterator;
-use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use wscd::Poa;
 use wscd::PoaVerificationError;
@@ -547,28 +546,23 @@ pub enum AuthResponseError {
 
 /// Disclosure of a credential, generally containing the issuer-signed credential itself, the disclosed attributes,
 /// and a holder signature over some nonce provided by the verifier.
+#[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum VerifiablePresentation {
     // NB: a `DeviceResponse` can contain disclosures of multiple mdocs. In case of other (not yet supported) formats,
     //     each credential is expected to result in a separate Verifiable Presentation.
-    MsoMdoc(VecNonEmpty<CborBase64<DeviceResponse>>),
+    MsoMdoc(#[serde_as(as = "Vec<CborBase64>")] VecNonEmpty<DeviceResponse>),
 }
 
 impl VerifiablePresentation {
-    pub fn new_mdoc(device_responses: VecNonEmpty<DeviceResponse>) -> Self {
-        let device_responses = device_responses.into_nonempty_iter().map(CborBase64).collect();
-
-        Self::MsoMdoc(device_responses)
-    }
-
     /// Helper function for iterating over all mdoc [`Document`]s in a list of encoded [`DeviceResponse`]s.
     fn mdoc_documents_iter<'a>(
-        device_responses: impl IntoIterator<Item = &'a CborBase64<DeviceResponse>>,
+        device_responses: impl IntoIterator<Item = &'a DeviceResponse>,
     ) -> impl Iterator<Item = &'a Document> {
         device_responses
             .into_iter()
-            .flat_map(|CborBase64(device_response)| device_response.documents.as_deref().unwrap_or_default())
+            .flat_map(|device_response| device_response.documents.as_deref().unwrap_or_default())
     }
 
     /// Helper function for extracing all unique public keys in a set of [`VerifiablePresentation`]s.
@@ -712,7 +706,7 @@ impl VpAuthorizationResponse {
                 let attestations = match presentation {
                     VerifiablePresentation::MsoMdoc(device_responses) => device_responses
                         .iter()
-                        .map(|CborBase64(device_response)| {
+                        .map(|device_response| {
                             // Verify the cryptographic integrity of each mdoc `DeviceResponse`
                             // and extract its disclosed documents...
                             let disclosed_documents = device_response
@@ -832,7 +826,6 @@ mod tests {
     use mdoc::holder::Mdoc;
     use mdoc::test::data::addr_street;
     use mdoc::test::data::pid_full_name;
-    use mdoc::utils::serialization::CborBase64;
     use mdoc::utils::serialization::CborSeq;
     use mdoc::utils::serialization::TaggedBytes;
     use mdoc::utils::serialization::cbor_serialize;
@@ -910,7 +903,7 @@ mod tests {
         let auth_response = VpAuthorizationResponse::new(
             HashMap::from([(
                 "id".try_into().unwrap(),
-                VerifiablePresentation::new_mdoc(vec_nonempty![device_response]),
+                VerifiablePresentation::MsoMdoc(vec_nonempty![device_response]),
             )]),
             None,
             None,
@@ -931,8 +924,8 @@ mod tests {
         assert_eq!(encrypted_identifier, decrypted_identifier);
         assert_eq!(decrypted_device_responses.len().get(), 1);
 
-        let CborBase64(encrypted_device_response) = encrypted_device_responses.into_first();
-        let CborBase64(decrypted_device_response) = decrypted_device_responses.into_first();
+        let encrypted_device_response = encrypted_device_responses.into_first();
+        let decrypted_device_response = decrypted_device_responses.into_first();
 
         assert_eq!(
             decrypted_device_response
@@ -1127,7 +1120,7 @@ mod tests {
 
         assert_eq!(decrypted_device_responses.len().get(), 1);
 
-        let CborBase64(decrypted_device_response) = decrypted_device_responses.into_first();
+        let decrypted_device_response = decrypted_device_responses.into_first();
 
         assert_eq!(
             decrypted_device_response
@@ -1250,7 +1243,7 @@ mod tests {
             .map(|(request, device_response)| {
                 (
                     request.id().clone(),
-                    VerifiablePresentation::new_mdoc(vec_nonempty![device_response]),
+                    VerifiablePresentation::MsoMdoc(vec_nonempty![device_response]),
                 )
             })
             .collect();

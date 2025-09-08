@@ -149,7 +149,7 @@ where
                     // * The .`unwrap()` is guaranteed to succeed, as the count is non-zero.
                     let responses = device_responses.drain(..count.get()).collect_vec().try_into().unwrap();
 
-                    (id, VerifiablePresentation::new_mdoc(responses))
+                    (id, VerifiablePresentation::MsoMdoc(responses))
                 })
                 .collect();
 
