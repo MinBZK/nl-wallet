@@ -2,6 +2,7 @@ use chrono::DateTime;
 use chrono::Utc;
 use derive_more::Debug;
 use p256::ecdsa::VerifyingKey;
+use semver::Version;
 use serde::Serialize;
 use uuid::Uuid;
 
@@ -27,8 +28,17 @@ pub struct WalletUser {
     pub attestation: WalletUserAttestation,
     pub state: WalletUserState,
     pub recovery_code: Option<String>,
-    pub transfer_session_id: Option<Uuid>,
-    pub destination_wallet_app_version: Option<String>,
+    pub transfer_session: Option<TransferSession>,
+}
+
+#[derive(Debug, Clone)]
+pub struct TransferSession {
+    pub id: Uuid,
+    pub destination_wallet_user_id: Uuid,
+    pub transfer_session_id: Uuid,
+    pub destination_wallet_app_version: Version,
+    pub in_progress: bool,
+    pub encrypted_wallet_data: Option<Vec<u8>>,
 }
 
 #[derive(Debug)]
@@ -43,7 +53,7 @@ impl WalletUser {
     }
 
     pub fn transfer_in_progress(&self) -> bool {
-        self.transfer_session_id.is_some()
+        self.transfer_session.as_ref().map(|s| s.in_progress).unwrap_or(false)
     }
 }
 
@@ -138,8 +148,7 @@ SssTb0eI53lvfdvG/xkNcktwsXEIPL1y3lUKn1u1ZhFTnQn4QKmnvaN4uQ==
             attestation: WalletUserAttestation::Android,
             state: WalletUserState::Active,
             recovery_code: None,
-            transfer_session_id: None,
-            destination_wallet_app_version: None,
+            transfer_session: None,
         }
     }
 }

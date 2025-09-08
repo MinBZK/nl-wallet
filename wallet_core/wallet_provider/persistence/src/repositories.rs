@@ -12,6 +12,7 @@ use apple_app_attest::AssertionCounter;
 use hsm::model::encrypted::Encrypted;
 use hsm::model::wrapped_key::WrappedKey;
 use wallet_provider_domain::model::wallet_user::InstructionChallenge;
+use wallet_provider_domain::model::wallet_user::TransferSession;
 use wallet_provider_domain::model::wallet_user::WalletUserCreate;
 use wallet_provider_domain::model::wallet_user::WalletUserKeys;
 use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
@@ -174,28 +175,28 @@ impl WalletUserRepository for Repositories {
         wallet_user::has_multiple_active_accounts_by_recovery_code(transaction, recovery_code).await
     }
 
-    async fn prepare_transfer(
+    async fn create_transfer_session(
         &self,
         transaction: &Self::TransactionType,
-        wallet_id: &str,
+        destination_wallet_user_id: Uuid,
         transfer_session_id: Uuid,
         destination_wallet_app_version: Version,
     ) -> Result<(), PersistenceError> {
-        wallet_user::prepare_transfer(
+        wallet_user::create_transfer_session(
             transaction,
-            wallet_id,
+            destination_wallet_user_id,
             transfer_session_id,
             destination_wallet_app_version,
         )
         .await
     }
 
-    async fn find_app_version_by_transfer_session_id(
+    async fn find_transfer_session_by_transfer_session_id(
         &self,
         transaction: &Self::TransactionType,
         transfer_session_id: Uuid,
-    ) -> Result<Option<Version>, PersistenceError> {
-        wallet_user::find_app_version_by_transfer_session_id(transaction, transfer_session_id).await
+    ) -> Result<Option<TransferSession>, PersistenceError> {
+        wallet_user::find_transfer_session_by_transfer_session_id(transaction, transfer_session_id).await
     }
 }
 
@@ -218,6 +219,7 @@ pub mod mock {
     use hsm::model::encrypted::Encrypted;
     use hsm::model::wrapped_key::WrappedKey;
     use wallet_provider_domain::model::wallet_user::InstructionChallenge;
+    use wallet_provider_domain::model::wallet_user::TransferSession;
     use wallet_provider_domain::model::wallet_user::WalletUser;
     use wallet_provider_domain::model::wallet_user::WalletUserAttestation;
     use wallet_provider_domain::model::wallet_user::WalletUserCreate;
@@ -335,19 +337,19 @@ pub mod mock {
                 recovery_code: &str,
             ) -> Result<bool, PersistenceError>;
 
-            async fn prepare_transfer(
+            async fn create_transfer_session(
                 &self,
                 transaction: &MockTransaction,
-                wallet_id: &str,
+                destination_wallet_user_id: Uuid,
                 transfer_session_id: Uuid,
                 destination_wallet_app_version: Version,
             ) -> Result<(), PersistenceError>;
 
-            async fn find_app_version_by_transfer_session_id(
+            async fn find_transfer_session_by_transfer_session_id(
                 &self,
                 transaction: &MockTransaction,
                 transfer_session_id: Uuid,
-            ) -> Result<Option<Version>, PersistenceError>;
+            ) -> Result<Option<TransferSession>, PersistenceError>;
         }
 
         impl TransactionStarter for TransactionalWalletUserRepository {
@@ -366,7 +368,7 @@ pub mod mock {
         pub instruction_sequence_number: u64,
         pub apple_assertion_counter: Option<AssertionCounter>,
         pub state: WalletUserState,
-        pub transfer_session_id: Option<Uuid>,
+        pub transfer_session: Option<TransferSession>,
     }
 
     impl WalletUserRepository for WalletUserTestRepo {
@@ -404,8 +406,7 @@ pub mod mock {
                 },
                 state: self.state,
                 recovery_code: None,
-                transfer_session_id: self.transfer_session_id,
-                destination_wallet_app_version: None,
+                transfer_session: self.transfer_session.clone(),
             })))
         }
 
@@ -532,21 +533,21 @@ pub mod mock {
             Ok(false)
         }
 
-        async fn prepare_transfer(
+        async fn create_transfer_session(
             &self,
             _transaction: &Self::TransactionType,
-            _wallet_id: &str,
+            _destination_wallet_user_id: Uuid,
             _transfer_session_id: Uuid,
             _destination_wallet_app_version: Version,
         ) -> Result<(), PersistenceError> {
             Ok(())
         }
 
-        async fn find_app_version_by_transfer_session_id(
+        async fn find_transfer_session_by_transfer_session_id(
             &self,
             _transaction: &Self::TransactionType,
             _transfer_session_id: Uuid,
-        ) -> Result<Option<Version>, PersistenceError> {
+        ) -> Result<Option<TransferSession>, PersistenceError> {
             Ok(None)
         }
     }

@@ -1519,6 +1519,7 @@ mod tests {
     use p256::ecdsa::SigningKey;
     use p256::ecdsa::VerifyingKey;
     use rstest::rstest;
+    use semver::Version;
     use uuid::Uuid;
     use uuid::uuid;
 
@@ -1555,6 +1556,7 @@ mod tests {
     use wallet_provider_domain::model::FailingPinPolicy;
     use wallet_provider_domain::model::TimeoutPinPolicy;
     use wallet_provider_domain::model::wallet_user::InstructionChallenge;
+    use wallet_provider_domain::model::wallet_user::TransferSession;
     use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
     use wallet_provider_domain::model::wallet_user::WalletUserState;
     use wallet_provider_domain::repository::Committable;
@@ -1702,7 +1704,7 @@ mod tests {
             instruction_sequence_number: 0,
             apple_assertion_counter,
             state: WalletUserState::Active,
-            transfer_session_id: None,
+            transfer_session: None,
         };
 
         let user_state = mock::user_state(repo, hsm, wrapping_key_identifier, vec![]);
@@ -2731,7 +2733,14 @@ mod tests {
 
         user_state.repositories = WalletUserTestRepo {
             challenge: Some(challenge.clone()),
-            transfer_session_id: Some(Uuid::new_v4()),
+            transfer_session: Some(TransferSession {
+                id: Uuid::new_v4(),
+                destination_wallet_user_id: Uuid::new_v4(),
+                destination_wallet_app_version: Version::parse("3.2.1").unwrap(),
+                transfer_session_id: Uuid::new_v4(),
+                in_progress: true,
+                encrypted_wallet_data: None,
+            }),
             instruction_sequence_number: 43,
             apple_assertion_counter: match &hw_privkey {
                 MockHardwareKey::Apple(attested_key) => Some(AssertionCounter::from(*attested_key.next_counter() - 1)),

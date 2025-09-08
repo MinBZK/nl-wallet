@@ -27,6 +27,7 @@ use apple_app_attest::AssertionCounter;
 use hsm::model::encrypted::Encrypted;
 use hsm::model::encrypted::InitializationVector;
 use wallet_provider_domain::model::wallet_user::InstructionChallenge;
+use wallet_provider_domain::model::wallet_user::TransferSession;
 use wallet_provider_domain::model::wallet_user::WalletUser;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestation;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestationCreate;
@@ -36,6 +37,7 @@ use wallet_provider_domain::model::wallet_user::WalletUserState;
 use wallet_provider_domain::repository::PersistenceError;
 
 use crate::PersistenceConnection;
+use crate::entity::wallet_transfer;
 use crate::entity::wallet_user;
 use crate::entity::wallet_user_android_attestation;
 use crate::entity::wallet_user_apple_attestation;
@@ -104,8 +106,6 @@ where
         apple_attestation_id: Set(apple_attestation_id),
         android_attestation_id: Set(android_attestation_id),
         recovery_code: Set(None),
-        transfer_session_id: Set(None),
-        destination_wallet_app_version: Set(None),
     }
     .insert(connection)
     .await
@@ -131,8 +131,19 @@ struct WalletUserJoinedModel {
     instruction_sequence_number: i32,
     apple_assertion_counter: Option<i64>,
     recovery_code: Option<String>,
-    transfer_session_id: Option<Uuid>,
-    destination_wallet_app_version: Option<String>,
+}
+
+impl From<wallet_transfer::Model> for TransferSession {
+    fn from(value: wallet_transfer::Model) -> Self {
+        Self {
+            id: value.id,
+            destination_wallet_user_id: value.destination_wallet_user_id,
+            transfer_session_id: value.transfer_session_id,
+            destination_wallet_app_version: Version::parse(&value.destination_wallet_app_version).unwrap(),
+            in_progress: value.transfer_in_progress,
+            encrypted_wallet_data: None,
+        }
+    }
 }
 
 /// Find a user by its `wallet_id` and return it, if it exists.
@@ -142,7 +153,7 @@ where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
-    let joined_model = wallet_user::Entity::find()
+    let Some((user_model, transfer_model)) = wallet_user::Entity::find()
         .select_only()
         .column(wallet_user::Column::State)
         .column(wallet_user::Column::Id)
@@ -155,8 +166,6 @@ where
         .column(wallet_user::Column::PinEntries)
         .column(wallet_user::Column::LastUnsuccessfulPin)
         .column(wallet_user::Column::RecoveryCode)
-        .column(wallet_user::Column::TransferSessionId)
-        .column(wallet_user::Column::DestinationWalletAppVersion)
         .column(wallet_user_instruction_challenge::Column::InstructionChallenge)
         .column_as(
             wallet_user_instruction_challenge::Column::ExpirationDateTime,
@@ -176,70 +185,67 @@ where
             wallet_user::Relation::WalletUserAppleAttestation.def(),
         )
         .filter(wallet_user::Column::WalletId.eq(wallet_id))
-        .into_model::<WalletUserJoinedModel>()
+        .find_also_related(wallet_transfer::Entity)
+        .into_model::<WalletUserJoinedModel, wallet_transfer::Model>()
         .one(db.connection())
         .await
-        .map_err(|e| PersistenceError::Execution(e.into()))?;
+        .map_err(|e| PersistenceError::Execution(e.into()))?
+    else {
+        return Ok(WalletUserQueryResult::NotFound);
+    };
 
-    let query_result = joined_model
-        .map(|joined_model| {
-            let state: WalletUserState = joined_model
-                .state
-                .parse()
-                .expect("parsing the wallet user state from the database should always succeed");
+    let state: WalletUserState = user_model
+        .state
+        .parse()
+        .expect("parsing the wallet user state from the database should always succeed");
 
-            let encrypted_pin_pubkey = Encrypted::new(
-                joined_model.encrypted_pin_pubkey_sec1,
-                InitializationVector(joined_model.pin_pubkey_iv),
-            );
-            let encrypted_previous_pin_pubkey = match (
-                joined_model.encrypted_previous_pin_pubkey_sec1,
-                joined_model.previous_pin_pubkey_iv,
-            ) {
-                (Some(sec1), Some(iv)) => Some(Encrypted::new(sec1, InitializationVector(iv))),
-                _ => None,
-            };
-            let instruction_challenge = match (
-                joined_model.instruction_challenge,
-                joined_model.instruction_challenge_expiration_date_time,
-            ) {
-                (Some(instruction_challenge), Some(expiration_date_time)) => Some(InstructionChallenge {
-                    bytes: instruction_challenge,
-                    expiration_date_time: DateTime::<Utc>::from(expiration_date_time),
-                }),
-                _ => None,
-            };
-            let attestation = match joined_model.apple_assertion_counter {
-                Some(counter) => WalletUserAttestation::Apple {
-                    assertion_counter: AssertionCounter::from(u32::try_from(counter).unwrap()),
-                },
-                // If the JOIN results in an assertion counter of NULL, we can safely assume that this
-                // user has registered using an Android attestation instead. This is enforced by the
-                // CHECK statement on the table.
-                None => WalletUserAttestation::Android,
-            };
-            let wallet_user = WalletUser {
-                id: joined_model.id,
-                wallet_id: joined_model.wallet_id,
-                encrypted_pin_pubkey,
-                encrypted_previous_pin_pubkey,
-                hw_pubkey: VerifyingKey::from_public_key_der(&joined_model.hw_pubkey_der).unwrap(),
-                unsuccessful_pin_entries: joined_model.pin_entries.try_into().ok().unwrap_or(u8::MAX),
-                last_unsuccessful_pin_entry: joined_model.last_unsuccessful_pin.map(DateTime::<Utc>::from),
-                instruction_challenge,
-                instruction_sequence_number: u64::try_from(joined_model.instruction_sequence_number).unwrap(),
-                attestation,
-                state,
-                recovery_code: joined_model.recovery_code,
-                transfer_session_id: joined_model.transfer_session_id,
-                destination_wallet_app_version: joined_model.destination_wallet_app_version,
-            };
+    let encrypted_pin_pubkey = Encrypted::new(
+        user_model.encrypted_pin_pubkey_sec1,
+        InitializationVector(user_model.pin_pubkey_iv),
+    );
+    let encrypted_previous_pin_pubkey = match (
+        user_model.encrypted_previous_pin_pubkey_sec1,
+        user_model.previous_pin_pubkey_iv,
+    ) {
+        (Some(sec1), Some(iv)) => Some(Encrypted::new(sec1, InitializationVector(iv))),
+        _ => None,
+    };
+    let instruction_challenge = match (
+        user_model.instruction_challenge,
+        user_model.instruction_challenge_expiration_date_time,
+    ) {
+        (Some(instruction_challenge), Some(expiration_date_time)) => Some(InstructionChallenge {
+            bytes: instruction_challenge,
+            expiration_date_time: DateTime::<Utc>::from(expiration_date_time),
+        }),
+        _ => None,
+    };
+    let attestation = match user_model.apple_assertion_counter {
+        Some(counter) => WalletUserAttestation::Apple {
+            assertion_counter: AssertionCounter::from(u32::try_from(counter).unwrap()),
+        },
+        // If the JOIN results in an assertion counter of NULL, we can safely assume that this
+        // user has registered using an Android attestation instead. This is enforced by the
+        // CHECK statement on the table.
+        None => WalletUserAttestation::Android,
+    };
+    let wallet_user = WalletUser {
+        id: user_model.id,
+        wallet_id: user_model.wallet_id,
+        encrypted_pin_pubkey,
+        encrypted_previous_pin_pubkey,
+        hw_pubkey: VerifyingKey::from_public_key_der(&user_model.hw_pubkey_der).unwrap(),
+        unsuccessful_pin_entries: user_model.pin_entries.try_into().ok().unwrap_or(u8::MAX),
+        last_unsuccessful_pin_entry: user_model.last_unsuccessful_pin.map(DateTime::<Utc>::from),
+        instruction_challenge,
+        instruction_sequence_number: u64::try_from(user_model.instruction_sequence_number).unwrap(),
+        attestation,
+        state,
+        recovery_code: user_model.recovery_code,
+        transfer_session: transfer_model.map(Into::into),
+    };
 
-            WalletUserQueryResult::Found(Box::new(wallet_user))
-        })
-        .unwrap_or(WalletUserQueryResult::NotFound);
-
-    Ok(query_result)
+    Ok(WalletUserQueryResult::Found(Box::new(wallet_user)))
 }
 
 pub async fn clear_instruction_challenge<S, T>(db: &T, wallet_id: &str) -> Result<()>
@@ -569,9 +575,9 @@ where
     Ok(count > 1)
 }
 
-pub async fn prepare_transfer<S, T>(
+pub async fn create_transfer_session<S, T>(
     db: &T,
-    wallet_id: &str,
+    destination_wallet_user_id: Uuid,
     transfer_session_id: Uuid,
     destination_wallet_app_version: Version,
 ) -> Result<()>
@@ -579,42 +585,35 @@ where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
-    let result = wallet_user::Entity::update_many()
-        .col_expr(wallet_user::Column::TransferSessionId, Expr::value(transfer_session_id))
-        .col_expr(
-            wallet_user::Column::DestinationWalletAppVersion,
-            Expr::value(destination_wallet_app_version.to_string()),
-        )
-        .filter(
-            wallet_user::Column::WalletId
-                .eq(wallet_id)
-                .and(wallet_user::Column::TransferSessionId.is_null()),
-        )
-        .exec(db.connection())
-        .await
-        .map_err(|e| PersistenceError::Execution(e.into()))?;
-
-    match result.rows_affected {
-        0 => Err(PersistenceError::NoRowsUpdated),
-        1 => Ok(()),
-        _ => panic!("multiple `wallet_user`s with the same `wallet_id`"),
+    wallet_transfer::ActiveModel {
+        id: Set(Uuid::new_v4()),
+        destination_wallet_user_id: Set(destination_wallet_user_id),
+        transfer_session_id: Set(transfer_session_id),
+        destination_wallet_app_version: Set(destination_wallet_app_version.to_string()),
+        transfer_in_progress: Set(false),
+        encrypted_wallet_data: Set(None),
     }
+    .insert(db.connection())
+    .await
+    .map_err(|e| PersistenceError::Execution(Box::new(e)))?;
+
+    Ok(())
 }
 
-pub async fn find_app_version_by_transfer_session_id<S, T>(db: &T, transfer_session_id: Uuid) -> Result<Option<Version>>
+pub async fn find_transfer_session_by_transfer_session_id<S, T>(
+    db: &T,
+    transfer_session_id: Uuid,
+) -> Result<Option<TransferSession>>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
-    let result: Option<Option<String>> = wallet_user::Entity::find()
-        .select_only()
-        .column(wallet_user::Column::DestinationWalletAppVersion)
-        .filter(wallet_user::Column::TransferSessionId.eq(transfer_session_id))
-        .into_tuple()
+    let result = wallet_transfer::Entity::find()
+        .filter(wallet_transfer::Column::TransferSessionId.eq(transfer_session_id))
+        .into_model::<wallet_transfer::Model>()
         .one(db.connection())
         .await
         .map_err(|e| PersistenceError::Execution(e.into()))?;
 
-    let version = result.flatten().map(|version| Version::parse(&version)).transpose()?;
-    Ok(version)
+    Ok(result.map(Into::into))
 }

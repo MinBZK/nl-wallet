@@ -30,8 +30,6 @@ impl MigrationTrait for Migration {
                     .col(uuid_null(WalletUser::AppleAttestationId))
                     .col(uuid_null(WalletUser::AndroidAttestationId))
                     .col(string_null(WalletUser::RecoveryCode))
-                    .col(uuid_null(WalletUser::TransferSessionId))
-                    .col(string_null(WalletUser::DestinationWalletAppVersion))
                     .check(SimpleExpr::or(
                         // Both of these columns should be used or neither.
                         Expr::col(WalletUser::EncryptedPreviousPinPubkeySec1)
@@ -76,12 +74,6 @@ impl MigrationTrait for Migration {
                             .name("wallet_user_unique_android_attestation_id")
                             .col(WalletUser::AndroidAttestationId),
                     )
-                    .index(
-                        Index::create()
-                            .unique()
-                            .name("wallet_user_unique_transfer_session_id")
-                            .col(WalletUser::TransferSessionId),
-                    )
                     .to_owned(),
             )
             .await?;
@@ -108,6 +100,4 @@ pub enum WalletUser {
     AppleAttestationId,
     AndroidAttestationId,
     RecoveryCode,
-    TransferSessionId,
-    DestinationWalletAppVersion,
 }

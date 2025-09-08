@@ -10,11 +10,11 @@ mod issuance;
 mod lock;
 mod registration;
 mod reset;
+mod transfer;
 mod uri;
 
 #[cfg(test)]
 mod test;
-mod transfer;
 
 use std::sync::Arc;
 

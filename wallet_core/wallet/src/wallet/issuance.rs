@@ -38,12 +38,12 @@ use platform_support::attested_key::AppleAttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::attested_key::GoogleAttestedKey;
 use update_policy_model::update_policy::VersionState;
+use utils::built_info::version;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 use wallet_account::NL_WALLET_CLIENT_ID;
 use wallet_account::messages::instructions::DiscloseRecoveryCode;
-use wallet_account::messages::instructions::DiscloseRecoveryCodeResult;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::account_provider::AccountProviderClient;
@@ -66,6 +66,7 @@ use crate::storage::AttestationFormatQuery;
 use crate::storage::Storage;
 use crate::storage::StorageError;
 use crate::storage::StoredAttestationCopy;
+use crate::transfer::TransferSessionId;
 use crate::wallet::Session;
 use crate::wallet::attestations::AttestationsError;
 
@@ -179,7 +180,7 @@ pub struct WalletIssuanceSession<IS> {
 
 #[derive(Debug, Clone)]
 pub struct IssuanceResult {
-    pub transfer_available: bool,
+    pub transfer_session_id: Option<TransferSessionId>,
 }
 
 impl<CR, UR, S, AKH, APC, DC, IS, DCC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC>
@@ -550,13 +551,13 @@ where
             _ => unreachable!(),
         };
 
-        let mut transfer_available = false;
-        if issuance_session.is_pid {
+        let transfer_session_id = if issuance_session.is_pid {
             info!("This is a PID issuance session, therefore disclosing recovery code");
-            DiscloseRecoveryCodeResult { transfer_available } = self
-                .disclose_recovery_code(&remote_instruction, &issued_credentials_with_metadata)
-                .await?;
-        }
+            self.disclose_recovery_code(&remote_instruction, &issued_credentials_with_metadata)
+                .await?
+        } else {
+            None
+        };
 
         let all_previews = issued_credentials_with_metadata
             .into_iter()
@@ -594,7 +595,7 @@ where
         self.emit_attestations().await.map_err(IssuanceError::Attestations)?;
         self.emit_recent_history().await.map_err(IssuanceError::EventStorage)?;
 
-        Ok(IssuanceResult { transfer_available })
+        Ok(IssuanceResult { transfer_session_id })
     }
 
     /// Finds the PID SD JWT, creates a disclosure of just the recovery code, and sends it to the remote instruction
@@ -603,7 +604,7 @@ where
         &self,
         instruction_client: &InstructionClient<S, AK, GK, APC>,
         issued_credentials_with_metadata: &[CredentialWithMetadata],
-    ) -> Result<DiscloseRecoveryCodeResult, IssuanceError> {
+    ) -> Result<Option<TransferSessionId>, IssuanceError> {
         let pid = issued_credentials_with_metadata
             .iter()
             .find_map(|cred| {
@@ -627,12 +628,15 @@ where
             .map_err(IssuanceError::RecoveryCodeDisclosure)?
             .finish();
 
-        instruction_client
+        let result = instruction_client
             .send(DiscloseRecoveryCode {
                 recovery_code_disclosure: recovery_code_disclosure.into(),
+                app_version: version().clone(),
             })
             .await
-            .map_err(IssuanceError::Instruction)
+            .map_err(IssuanceError::Instruction)?;
+
+        Ok(result.transfer_session_id.map(Into::into))
     }
 }
 
@@ -1394,7 +1398,7 @@ mod tests {
             .returning(|_, _| Ok(crypto::utils::random_bytes(32)));
 
         let wp_result = create_wp_result(DiscloseRecoveryCodeResult {
-            transfer_available: false,
+            transfer_session_id: None,
         });
 
         Arc::get_mut(&mut wallet.account_provider_client)
