@@ -737,8 +737,8 @@ impl VpAuthorizationResponse {
             .collect::<Result<_, AuthResponseError>>()?;
 
         // Step 2: Verify the PoA, if present.
-        let used_keys =
-            VerifiablePresentation::unique_keys(self.vp_token.values()).map_err(AuthResponseError::MdocVerification)?;
+        let used_keys = VerifiablePresentation::unique_keys(self.vp_token.values())
+            .expect("should always succeed when called after DeviceResponse::verify");
         if used_keys.len() >= 2 {
             self.poa.ok_or(AuthResponseError::MissingPoa)?.verify(
                 &used_keys,
@@ -773,7 +773,7 @@ impl VpAuthorizationResponse {
                 // there is a matching disclosed attestation.
                 let (id, attestations) = disclosed_attestations.remove_entry(credential_request.id()).unwrap();
 
-                DisclosedAttestations { attestations, id }
+                DisclosedAttestations { id, attestations }
             })
             .collect_vec();
 
