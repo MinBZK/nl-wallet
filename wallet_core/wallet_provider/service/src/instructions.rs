@@ -643,7 +643,9 @@ impl HandleInstruction for DiscloseRecoveryCode {
             .has_multiple_active_accounts_by_recovery_code(&tx, &recovery_code)
             .await?;
 
-        let transfer_session_id = if has_multiple_accounts_for_recovery_code {
+        let transfer_session_id = if let Some(transfer_session) = &wallet_user.transfer_session {
+            Some(transfer_session.transfer_session_id)
+        } else if has_multiple_accounts_for_recovery_code {
             let transfer_session_id = Uuid::new_v4();
             user_state
                 .repositories
@@ -754,6 +756,8 @@ fn is_poa_message(message: &[u8]) -> bool {
 mod tests {
     use std::collections::HashMap;
     use std::collections::HashSet;
+    use std::sync::Arc;
+    use std::sync::Mutex;
 
     use assert_matches::assert_matches;
     use base64::prelude::*;
@@ -765,6 +769,7 @@ mod tests {
     use rand::rngs::OsRng;
     use rstest::rstest;
     use semver::Version;
+    use uuid::Uuid;
 
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::constants::PID_RECOVERY_CODE;
@@ -780,6 +785,7 @@ mod tests {
     use jwt::pop::JwtPopClaims;
     use jwt::wua::WuaDisclosure;
     use sd_jwt::sd_jwt::SdJwtPresentation;
+    use sd_jwt::sd_jwt::UnverifiedSdJwt;
     use wallet_account::NL_WALLET_CLIENT_ID;
     use wallet_account::messages::instructions::ChangePinCommit;
     use wallet_account::messages::instructions::ChangePinRollback;
@@ -792,6 +798,7 @@ mod tests {
     use wallet_account::messages::instructions::StartPinRecovery;
     use wallet_provider_domain::generator::mock::MockGenerators;
     use wallet_provider_domain::model::wallet_user;
+    use wallet_provider_domain::model::wallet_user::TransferSession;
     use wallet_provider_domain::model::wallet_user::WalletUserState;
     use wallet_provider_domain::repository::MockTransaction;
     use wallet_provider_persistence::repositories::mock::MockTransactionalWalletUserRepository;
@@ -946,7 +953,7 @@ mod tests {
             .expect_has_multiple_active_accounts_by_recovery_code()
             .returning(|_, _| Ok(false));
 
-        instruction
+        let result = instruction
             .handle(
                 &wallet_user,
                 &MockGenerators,
@@ -959,6 +966,185 @@ mod tests {
             )
             .await
             .unwrap();
+
+        assert!(result.transfer_session_id.is_none());
+    }
+
+    #[tokio::test]
+    async fn should_handle_disclose_recovery_code_with_multiple_accounts() {
+        let wallet_user = wallet_user::mock::wallet_user_1();
+        let wrapping_key_identifier = "my-wrapping-key-identifier";
+
+        let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
+        let issuer_key = generate_issuer_mock(&issuer_ca, IssuerRegistration::new_mock().into()).unwrap();
+        let sd_jwt = SdJwtPresentation::example_pid_sd_jwt(&issuer_key);
+
+        let recovery_code_disclosure = sd_jwt
+            .into_presentation_builder()
+            .disclose(
+                &vec![ClaimPath::SelectByKey(PID_RECOVERY_CODE.to_owned())]
+                    .try_into()
+                    .unwrap(),
+            )
+            .unwrap()
+            .finish()
+            .into();
+
+        let instruction = DiscloseRecoveryCode {
+            recovery_code_disclosure,
+            app_version: Version::parse("1.0.0").unwrap(),
+        };
+
+        let transfer_session_id: Arc<Mutex<Option<Uuid>>> = Arc::new(Mutex::new(None));
+        let transfer_session_id_clone = Arc::clone(&transfer_session_id);
+
+        let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
+        wallet_user_repo
+            .expect_begin_transaction()
+            .returning(|| Ok(MockTransaction));
+        wallet_user_repo
+            .expect_store_recovery_code()
+            .returning(|_, _, _| Ok(()));
+        wallet_user_repo
+            .expect_has_multiple_active_accounts_by_recovery_code()
+            .returning(|_, _| Ok(true));
+        wallet_user_repo
+            .expect_create_transfer_session()
+            .withf(move |_, _, session_id, _, _| {
+                transfer_session_id_clone.lock().unwrap().replace(*session_id);
+                true
+            })
+            .returning(|_, _, _, _, _| Ok(()));
+
+        let result = instruction
+            .handle(
+                &wallet_user,
+                &MockGenerators,
+                &mock::user_state(
+                    wallet_user_repo,
+                    setup_hsm().await,
+                    wrapping_key_identifier.to_string(),
+                    vec![issuer_ca.as_borrowing_trust_anchor().to_owned_trust_anchor()],
+                ),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(
+            transfer_session_id.lock().unwrap().unwrap(),
+            result.transfer_session_id.unwrap()
+        );
+    }
+
+    #[tokio::test]
+    async fn should_handle_disclose_recovery_code_with_multiple_accounts_idempotency() {
+        let mut wallet_user = wallet_user::mock::wallet_user_1();
+        let wrapping_key_identifier = "my-wrapping-key-identifier";
+
+        let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
+        let issuer_key = generate_issuer_mock(&issuer_ca, IssuerRegistration::new_mock().into()).unwrap();
+        let sd_jwt = SdJwtPresentation::example_pid_sd_jwt(&issuer_key);
+
+        let recovery_code_disclosure: UnverifiedSdJwt = sd_jwt
+            .into_presentation_builder()
+            .disclose(
+                &vec![ClaimPath::SelectByKey(PID_RECOVERY_CODE.to_owned())]
+                    .try_into()
+                    .unwrap(),
+            )
+            .unwrap()
+            .finish()
+            .into();
+
+        let instruction = DiscloseRecoveryCode {
+            recovery_code_disclosure: recovery_code_disclosure.clone(),
+            app_version: Version::parse("1.0.0").unwrap(),
+        };
+
+        let transfer_session_id: Arc<Mutex<Option<Uuid>>> = Arc::new(Mutex::new(None));
+        let transfer_session_id_clone = Arc::clone(&transfer_session_id);
+
+        let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
+        wallet_user_repo
+            .expect_begin_transaction()
+            .returning(|| Ok(MockTransaction));
+        wallet_user_repo
+            .expect_store_recovery_code()
+            .returning(|_, _, _| Ok(()));
+        wallet_user_repo
+            .expect_has_multiple_active_accounts_by_recovery_code()
+            .returning(|_, _| Ok(true));
+        wallet_user_repo
+            .expect_create_transfer_session()
+            .withf(move |_, _, session_id, _, _| {
+                transfer_session_id_clone.lock().unwrap().replace(*session_id);
+                true
+            })
+            .returning(|_, _, _, _, _| Ok(()));
+
+        let result = instruction
+            .handle(
+                &wallet_user,
+                &MockGenerators,
+                &mock::user_state(
+                    wallet_user_repo,
+                    setup_hsm().await,
+                    wrapping_key_identifier.to_string(),
+                    vec![issuer_ca.as_borrowing_trust_anchor().to_owned_trust_anchor()],
+                ),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(
+            transfer_session_id.lock().unwrap().unwrap(),
+            result.transfer_session_id.unwrap()
+        );
+
+        let instruction = DiscloseRecoveryCode {
+            recovery_code_disclosure,
+            app_version: Version::parse("1.0.0").unwrap(),
+        };
+
+        let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
+        wallet_user_repo
+            .expect_begin_transaction()
+            .returning(|| Ok(MockTransaction));
+        wallet_user_repo
+            .expect_store_recovery_code()
+            .returning(|_, _, _| Ok(()));
+        wallet_user_repo
+            .expect_has_multiple_active_accounts_by_recovery_code()
+            .returning(|_, _| Ok(true));
+        wallet_user_repo.expect_create_transfer_session().never();
+
+        wallet_user.transfer_session = Some(TransferSession {
+            id: Uuid::new_v4(),
+            destination_wallet_user_id: Uuid::new_v4(),
+            transfer_session_id: transfer_session_id.lock().unwrap().unwrap(),
+            destination_wallet_app_version: Version::parse("1.9.8").unwrap(),
+            in_progress: false,
+            encrypted_wallet_data: None,
+        });
+
+        let result = instruction
+            .handle(
+                &wallet_user,
+                &MockGenerators,
+                &mock::user_state(
+                    wallet_user_repo,
+                    setup_hsm().await,
+                    wrapping_key_identifier.to_string(),
+                    vec![issuer_ca.as_borrowing_trust_anchor().to_owned_trust_anchor()],
+                ),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(
+            transfer_session_id.lock().unwrap().unwrap(),
+            result.transfer_session_id.unwrap()
+        );
     }
 
     fn mock_jwt_payload(header: &str) -> Vec<u8> {
