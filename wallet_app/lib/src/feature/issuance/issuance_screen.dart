@@ -30,6 +30,7 @@ import '../error/error_page.dart';
 import '../organization/approve/organization_approve_page.dart';
 import '../report_issue/report_issue_screen.dart';
 import '../report_issue/reporting_group.dart';
+import '../report_issue/reporting_option.dart';
 import 'argument/issuance_screen_argument.dart';
 import 'bloc/issuance_bloc.dart';
 import 'issuance_request_details_screen.dart';
@@ -257,10 +258,7 @@ class IssuanceScreen extends StatelessWidget {
       final stopped = await IssuanceStopSheet.show(
         context,
         organizationName: bloc.relyingParty?.displayName.l10nValue(context),
-        onReportIssuePressed: () => ReportIssueScreen.show(
-          context,
-          ReportingGroup.issuance,
-        ),
+        onReportIssuePressed: () => ReportIssueScreen.show(context, _resolveReportingOptionsForState(context)),
       );
       if (stopped) bloc.add(const IssuanceStopRequested());
     } else {
@@ -372,6 +370,26 @@ class IssuanceScreen extends StatelessWidget {
       visibleOffset: isCheckOrganizationState ? 150 : 80,
       child: TitleText(title),
     );
+  }
+
+  List<ReportingOption> _resolveReportingOptionsForState(BuildContext context) {
+    final state = context.read<IssuanceBloc>().state;
+    switch (state) {
+      case IssuanceCheckOrganization():
+        final attributeCount = state.cardRequests.fold(0, (value, it) => value + it.selection.attributes.length);
+        if (attributeCount == 1) {
+          return ReportingGroup.disclosureConfirmSingleAttribute;
+        } else {
+          return ReportingGroup.disclosureConfirmMultipleAttributes;
+        }
+      case IssuanceReviewCards():
+        return ReportingGroup.issuanceConfirmCards;
+      case IssuanceMissingAttributes():
+        return ReportingGroup.disclosureMissingAttributes;
+      default:
+        Fimber.d('No ReportingOptions provided for $state');
+        return <ReportingOption>[];
+    }
   }
 }
 

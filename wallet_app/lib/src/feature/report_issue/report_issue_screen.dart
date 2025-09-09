@@ -69,9 +69,10 @@ class ReportIssueScreen extends StatelessWidget {
   Widget _buildOptionsSliver(BuildContext context) {
     return SliverList.separated(
       itemBuilder: (c, i) {
+        final option = options[i];
         return MenuItem(
-          leftIcon: const Icon(Icons.history),
-          label: Text(ReportOptionTitleFormatter.map(context, options[i])),
+          leftIcon: option.icon(context.theme.iconTheme.color),
+          label: Text(ReportOptionTitleFormatter.map(context, option)),
           onPressed: () => PlaceholderScreen.showGeneric(context),
         );
       },

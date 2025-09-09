@@ -1,28 +1,35 @@
 import 'reporting_option.dart';
 
 class ReportingGroup {
-  static const List<ReportingOption> disclosureCheckOrganizationForLogin = [
+  static const List<ReportingOption> disclosureCheckOrganization = [
     ReportingOption.unknownOrganization,
     ReportingOption.requestNotInitiated,
     ReportingOption.suspiciousOrganization,
     ReportingOption.impersonatingOrganization,
   ];
 
-  static const List<ReportingOption> disclosureConfirm = [
-    ReportingOption.untrusted,
+  static const List<ReportingOption> disclosureConfirmMultipleAttributes = [
     ReportingOption.overAskingOrganization,
-    ReportingOption.suspiciousOrganization,
     ReportingOption.unreasonableTerms,
+    ReportingOption.suspiciousOrganization,
+    ReportingOption.requestUntrusted,
+  ];
+
+  static const List<ReportingOption> disclosureConfirmSingleAttribute = [
+    ReportingOption.irrelevantAskingOrganization,
+    ReportingOption.unreasonableTerms,
+    ReportingOption.suspiciousOrganization,
+    ReportingOption.requestUntrusted,
+  ];
+
+  static const List<ReportingOption> issuanceConfirmCards = [
+    ReportingOption.incorrectCardData,
+    ReportingOption.unreasonableTerms,
+    ReportingOption.suspiciousOrganization,
   ];
 
   static const List<ReportingOption> disclosureMissingAttributes = [
     ReportingOption.overAskingOrganization,
     ReportingOption.suspiciousOrganization,
-  ];
-
-  static const List<ReportingOption> issuance = [
-    ReportingOption.unreasonableTerms,
-    ReportingOption.suspiciousOrganization,
-    ReportingOption.untrusted,
   ];
 }

@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2025-09-03T16:46:24+02:00",
+    "@@last_modified": "2025-09-04T16:55:39+02:00",
     "aboutScreenDescription": "De NL Wallet wordt gemaakt door de Nederlandse overheid, zodat iedereen digitale diensten veilig en gemakkelijk kan gebruiken.\n\nJe kunt de ontwikkelingen volgen op {url}.",
     "aboutScreenPrivacyCta": "Privacyverklaring",
     "aboutScreenTitle": "Over de NL Wallet",
@@ -450,7 +450,7 @@
     "@fraudCheckPageTitle": {
         "placeholders": {
             "url": {
-                "example": "https:\/\/example.org",
+                "example": "https://example.org",
                 "type": "String"
             }
         }
@@ -834,7 +834,7 @@
     "issuanceSelectCardsPageNoSelectionError": "Kies één of meerdere kaarten om toe te voegen.",
     "issuanceSelectCardsPageStopCta": "Stop",
     "issuanceSelectCardsPageTitle": "De volgende kaarten zijn opgehaald",
-    "issuanceStopSheetDescription": "Als je stopt worden er verder geen gegevens meer opgehaald bij {organization}",
+    "issuanceStopSheetDescription": "Als je stopt, worden er geen kaarten toegevoegd vanuit {organization} aan je NL Wallet.",
     "@issuanceStopSheetDescription": {
         "placeholders": {
             "organization": {
@@ -1180,8 +1180,11 @@
     "reportIssueScreenHeaderTitle": "Welk probleem wil je melden? Je melding wordt anoniem verstuurd.",
     "reportIssueScreenTitle": "Wil je een probleem melden?",
     "reportOptionImpersonatingOrganization": "Deze organisatie doet zich voor als een ander",
-    "reportOptionOverAskingOrganization": "Deze organisatie vraagt te veel gegevens",
+    "reportOptionIncorrectCardData": "De kaartgegevens kloppen niet",
+    "reportOptionIrrelevantAskingOrganization": "Deze organisatie vraagt om onnodige gegevens",
+    "reportOptionOverAskingOrganization": "Deze organisatie vraagt om te veel of onnodige gegevens",
     "reportOptionRequestNotInitiated": "Ik ben deze aanvraag niet gestart",
+    "reportOptionRequestUntrusted": "Ik vertrouw het niet",
     "reportOptionSuspiciousOrganization": "Deze organisatie lijkt verdacht",
     "reportOptionUnknownOrganization": "Ik ken deze organisatie niet",
     "reportOptionUnreasonableTerms": "Ik ben het niet eens met de voorwaarden",

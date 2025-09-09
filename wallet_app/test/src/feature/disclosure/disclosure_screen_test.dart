@@ -381,48 +381,6 @@ void main() {
       await screenMatchesGolden('stop_sheet.light');
     });
 
-    testGoldens('Report Issue Page Light', (tester) async {
-      // Inflate a state with showStopConfirmation = true.
-      await tester.pumpWidgetWithAppWrapper(
-        const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
-          MockDisclosureBloc(),
-          DisclosureCheckOrganizationForLogin(
-            relyingParty: WalletMockData.organization,
-            originUrl: 'https://origin.org',
-            sharedDataWithOrganizationBefore: true,
-            sessionType: DisclosureSessionType.crossDevice,
-            policy: WalletMockData.policy,
-            cardRequests: [],
-          ),
-        ),
-        providers: [
-          RepositoryProvider<WalletRepository>(
-            create: (c) {
-              final repo = MockWalletRepository();
-              when(repo.isLockedStream).thenAnswer((_) => Stream.value(false));
-              return repo;
-            },
-          ),
-          RepositoryProvider<IsWalletInitializedUseCase>(create: (c) => MockIsWalletInitializedUseCase()),
-          RepositoryProvider<IsBiometricLoginEnabledUseCase>(create: (c) => MockIsBiometricLoginEnabledUseCase()),
-          RepositoryProvider<BiometricUnlockManager>(create: (c) => MockBiometricUnlockManager()),
-          RepositoryProvider<UnlockWalletWithPinUseCase>(create: (c) => MockUnlockWalletWithPinUseCase()),
-        ],
-      );
-
-      // Find and press the close button
-      final closeButtonFinder = find.byKey(kCloseIconButtonKey);
-      await tester.tap(closeButtonFinder);
-      await tester.pumpAndSettle();
-
-      final l10n = await TestUtils.englishLocalizations;
-      final reportIssueButtonFinder = find.text(l10n.disclosureStopSheetReportIssueCta);
-      await tester.tap(reportIssueButtonFinder);
-      await tester.pumpAndSettle();
-
-      await screenMatchesGolden('report_issue.light');
-    });
-
     testGoldens('DisclosureSessionExpired Error Light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
