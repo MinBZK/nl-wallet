@@ -105,6 +105,7 @@ pub trait WalletUserRepository {
         destination_wallet_user_id: Uuid,
         transfer_session_id: Uuid,
         destination_wallet_app_version: Version,
+        created: DateTime<Utc>,
     ) -> Result<()>;
 
     async fn find_transfer_session_by_transfer_session_id(
@@ -124,9 +125,9 @@ pub mod mock {
     use super::super::transaction::mock::MockTransaction;
     use super::*;
 
-    pub struct MockWalletUserRepository;
+    pub struct WalletUserRepositoryStub;
 
-    impl WalletUserRepository for MockWalletUserRepository {
+    impl WalletUserRepository for WalletUserRepositoryStub {
         type TransactionType = MockTransaction;
 
         async fn create_wallet_user(
@@ -254,6 +255,7 @@ pub mod mock {
             _destination_wallet_user_id: Uuid,
             _transfer_session_id: Uuid,
             _destination_wallet_app_version: Version,
+            _created: DateTime<Utc>,
         ) -> Result<()> {
             Ok(())
         }

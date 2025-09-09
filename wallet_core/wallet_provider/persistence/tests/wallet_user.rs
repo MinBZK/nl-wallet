@@ -451,6 +451,7 @@ async fn test_create_transfer_session() {
         wallet_user_id,
         transfer_session_id,
         destination_wallet_app_version.clone(),
+        Utc::now(),
     )
     .await
     .unwrap();
@@ -466,7 +467,14 @@ async fn test_create_transfer_session() {
     );
 
     // Preparing a transfer for a wallet that is already transferring should return an error
-    let result = create_transfer_session(&db, wallet_user_id, Uuid::new_v4(), destination_wallet_app_version).await;
+    let result = create_transfer_session(
+        &db,
+        wallet_user_id,
+        Uuid::new_v4(),
+        destination_wallet_app_version,
+        Utc::now(),
+    )
+    .await;
     assert_matches!(result, Err(PersistenceError::Execution(_)));
 
     // The existing transfer_session_id should be returned
@@ -493,6 +501,7 @@ async fn test_find_transfer_session_by_transfer_session_id() {
         wallet_user_id,
         transfer_session_id,
         destination_wallet_app_version.clone(),
+        Utc::now(),
     )
     .await
     .unwrap();

@@ -3,6 +3,8 @@ use std::hash::Hasher;
 use std::sync::Arc;
 
 use base64::prelude::*;
+use chrono::DateTime;
+use chrono::Utc;
 use futures::future;
 use itertools::Itertools;
 use p256::ecdsa::Signature;
@@ -197,31 +199,33 @@ impl PinChecks for StartPinRecovery {
 pub trait HandleInstruction {
     type Result: Serialize;
 
-    async fn handle<T, R, H>(
+    async fn handle<T, R, H, G>(
         self,
         wallet_user: &WalletUser,
-        uuid_generator: &impl Generator<Uuid>,
+        generators: &G,
         user_state: &UserState<R, H, impl WuaIssuer>,
     ) -> Result<Self::Result, InstructionError>
     where
         T: Committable,
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
-        H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>;
+        H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
+        G: Generator<Uuid> + Generator<DateTime<Utc>>;
 }
 
 impl HandleInstruction for CheckPin {
     type Result = ();
 
-    async fn handle<T, R, H>(
+    async fn handle<T, R, H, G>(
         self,
         _wallet_user: &WalletUser,
-        _uuid_generator: &impl Generator<Uuid>,
+        _generators: &G,
         _user_state: &UserState<R, H, impl WuaIssuer>,
     ) -> Result<(), InstructionError>
     where
         T: Committable,
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
         H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
+        G: Generator<Uuid> + Generator<DateTime<Utc>>,
     {
         Ok(())
     }
@@ -230,16 +234,17 @@ impl HandleInstruction for CheckPin {
 impl HandleInstruction for ChangePinCommit {
     type Result = ();
 
-    async fn handle<T, R, H>(
+    async fn handle<T, R, H, G>(
         self,
         wallet_user: &WalletUser,
-        _uuid_generator: &impl Generator<Uuid>,
+        _generators: &G,
         user_state: &UserState<R, H, impl WuaIssuer>,
     ) -> Result<Self::Result, InstructionError>
     where
         T: Committable,
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
         H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
+        G: Generator<Uuid> + Generator<DateTime<Utc>>,
     {
         let tx = user_state.repositories.begin_transaction().await?;
 
@@ -473,16 +478,17 @@ where
 impl HandleInstruction for PerformIssuance {
     type Result = PerformIssuanceResult;
 
-    async fn handle<T, R, H>(
+    async fn handle<T, R, H, G>(
         self,
         wallet_user: &WalletUser,
-        uuid_generator: &impl Generator<Uuid>,
+        generators: &G,
         user_state: &UserState<R, H, impl WuaIssuer>,
     ) -> Result<Self::Result, InstructionError>
     where
         T: Committable,
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
         H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
+        G: Generator<Uuid> + Generator<DateTime<Utc>>,
     {
         let (issuance_result, _, wrapped_keys, _) = perform_issuance(self, false, user_state).await?;
 
@@ -491,7 +497,7 @@ impl HandleInstruction for PerformIssuance {
             issuance_result.key_identifiers.as_ref().to_vec(),
             None,
             wallet_user,
-            uuid_generator,
+            generators,
             user_state,
         )
         .await?;
@@ -503,16 +509,17 @@ impl HandleInstruction for PerformIssuance {
 impl HandleInstruction for PerformIssuanceWithWua {
     type Result = PerformIssuanceWithWuaResult;
 
-    async fn handle<T, R, H>(
+    async fn handle<T, R, H, G>(
         self,
         wallet_user: &WalletUser,
-        uuid_generator: &impl Generator<Uuid>,
+        generators: &G,
         user_state: &UserState<R, H, impl WuaIssuer>,
     ) -> Result<Self::Result, InstructionError>
     where
         T: Committable,
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
         H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
+        G: Generator<Uuid> + Generator<DateTime<Utc>>,
     {
         let (issuance_with_wua_result, wrapped_keys, wua_key_and_id) =
             perform_issuance_with_wua(self.issuance_instruction, user_state).await?;
@@ -526,7 +533,7 @@ impl HandleInstruction for PerformIssuanceWithWua {
                 .to_vec(),
             Some(wua_key_and_id),
             wallet_user,
-            uuid_generator,
+            generators,
             user_state,
         )
         .await?;
@@ -538,16 +545,17 @@ impl HandleInstruction for PerformIssuanceWithWua {
 impl HandleInstruction for Sign {
     type Result = SignResult;
 
-    async fn handle<T, R, H>(
+    async fn handle<T, R, H, G>(
         self,
         wallet_user: &WalletUser,
-        _uuid_generator: &impl Generator<Uuid>,
+        _generators: &G,
         user_state: &UserState<R, H, impl WuaIssuer>,
     ) -> Result<SignResult, InstructionError>
     where
         T: Committable,
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
         H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
+        G: Generator<Uuid> + Generator<DateTime<Utc>>,
     {
         let (data, identifiers): (Vec<_>, Vec<_>) = self.messages_with_identifiers.into_iter().unzip();
 
@@ -601,16 +609,17 @@ impl HandleInstruction for Sign {
 impl HandleInstruction for DiscloseRecoveryCode {
     type Result = DiscloseRecoveryCodeResult;
 
-    async fn handle<T, R, H>(
+    async fn handle<T, R, H, G>(
         self,
         wallet_user: &WalletUser,
-        _uuid_generator: &impl Generator<Uuid>,
+        generators: &G,
         user_state: &UserState<R, H, impl WuaIssuer>,
     ) -> Result<Self::Result, InstructionError>
     where
         T: Committable,
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
         H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
+        G: Generator<Uuid> + Generator<DateTime<Utc>>,
     {
         let (verified_sd_jwt, _) = self
             .recovery_code_disclosure
@@ -638,7 +647,13 @@ impl HandleInstruction for DiscloseRecoveryCode {
             let transfer_session_id = Uuid::new_v4();
             user_state
                 .repositories
-                .create_transfer_session(&tx, wallet_user.id, transfer_session_id, self.app_version)
+                .create_transfer_session(
+                    &tx,
+                    wallet_user.id,
+                    transfer_session_id,
+                    self.app_version,
+                    generators.generate(),
+                )
                 .await?;
             Some(transfer_session_id)
         } else {
@@ -775,7 +790,7 @@ mod tests {
     use wallet_account::messages::instructions::PerformIssuanceWithWua;
     use wallet_account::messages::instructions::Sign;
     use wallet_account::messages::instructions::StartPinRecovery;
-    use wallet_provider_domain::FixedUuidGenerator;
+    use wallet_provider_domain::generator::mock::MockGenerators;
     use wallet_provider_domain::model::wallet_user;
     use wallet_provider_domain::model::wallet_user::WalletUserState;
     use wallet_provider_domain::repository::MockTransaction;
@@ -798,7 +813,7 @@ mod tests {
         instruction
             .handle(
                 &wallet_user,
-                &FixedUuidGenerator,
+                &MockGenerators,
                 &mock::user_state(
                     MockTransactionalWalletUserRepository::new(),
                     setup_hsm().await,
@@ -859,7 +874,7 @@ mod tests {
         let result = instruction
             .handle(
                 &wallet_user,
-                &FixedUuidGenerator,
+                &MockGenerators,
                 &mock::user_state(
                     wallet_user_repo,
                     setup_hsm().await,
@@ -934,7 +949,7 @@ mod tests {
         instruction
             .handle(
                 &wallet_user,
-                &FixedUuidGenerator,
+                &MockGenerators,
                 &mock::user_state(
                     wallet_user_repo,
                     setup_hsm().await,
@@ -1014,7 +1029,7 @@ mod tests {
         instruction
             .handle(
                 &wallet_user,
-                &FixedUuidGenerator,
+                &MockGenerators,
                 &mock::user_state(
                     wallet_user_repo,
                     setup_hsm().await,

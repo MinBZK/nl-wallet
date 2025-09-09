@@ -181,12 +181,14 @@ impl WalletUserRepository for Repositories {
         destination_wallet_user_id: Uuid,
         transfer_session_id: Uuid,
         destination_wallet_app_version: Version,
+        created: DateTime<Utc>,
     ) -> Result<(), PersistenceError> {
         wallet_user::create_transfer_session(
             transaction,
             destination_wallet_user_id,
             transfer_session_id,
             destination_wallet_app_version,
+            created,
         )
         .await
     }
@@ -343,6 +345,7 @@ pub mod mock {
                 destination_wallet_user_id: Uuid,
                 transfer_session_id: Uuid,
                 destination_wallet_app_version: Version,
+                created: DateTime<Utc>,
             ) -> Result<(), PersistenceError>;
 
             async fn find_transfer_session_by_transfer_session_id(
@@ -539,6 +542,7 @@ pub mod mock {
             _destination_wallet_user_id: Uuid,
             _transfer_session_id: Uuid,
             _destination_wallet_app_version: Version,
+            _created: DateTime<Utc>,
         ) -> Result<(), PersistenceError> {
             Ok(())
         }

@@ -580,6 +580,7 @@ pub async fn create_transfer_session<S, T>(
     destination_wallet_user_id: Uuid,
     transfer_session_id: Uuid,
     destination_wallet_app_version: Version,
+    created: DateTime<Utc>,
 ) -> Result<()>
 where
     S: ConnectionTrait,
@@ -591,6 +592,7 @@ where
         transfer_session_id: Set(transfer_session_id),
         destination_wallet_app_version: Set(destination_wallet_app_version.to_string()),
         transfer_in_progress: Set(false),
+        created: Set(created.into()),
         encrypted_wallet_data: Set(None),
     }
     .insert(db.connection())
