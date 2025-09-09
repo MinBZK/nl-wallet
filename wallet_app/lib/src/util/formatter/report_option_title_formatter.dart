@@ -12,14 +12,18 @@ class ReportOptionTitleFormatter {
         return context.l10n.reportOptionRequestNotInitiated;
       case ReportingOption.impersonatingOrganization:
         return context.l10n.reportOptionImpersonatingOrganization;
-      case ReportingOption.untrusted:
-        return context.l10n.reportOptionUntrusted;
+      case ReportingOption.requestUntrusted:
+        return context.l10n.reportOptionRequestUntrusted;
       case ReportingOption.overAskingOrganization:
         return context.l10n.reportOptionOverAskingOrganization;
+      case ReportingOption.irrelevantAskingOrganization:
+        return context.l10n.reportOptionIrrelevantAskingOrganization;
       case ReportingOption.suspiciousOrganization:
         return context.l10n.reportOptionSuspiciousOrganization;
       case ReportingOption.unreasonableTerms:
         return context.l10n.reportOptionUnreasonableTerms;
+      case ReportingOption.incorrectCardData:
+        return context.l10n.reportOptionIncorrectCardData;
     }
   }
 }

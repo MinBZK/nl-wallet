@@ -108,6 +108,9 @@ class WalletAssets {
   static const logo_rp_placeholder = 'assets/non-free/logos/rp_placeholder.png';
 
   // ICONS
+  static const icon_alert_data = 'assets/non-free/icons/alert_data.png';
+  static const icon_alert_fake_id = 'assets/non-free/icons/alert_fake_id.png';
+  static const icon_alert_unidentified_organization = 'assets/non-free/icons/alert_unidentified_organization.png';
   static const icon_card_share = 'assets/non-free/icons/card_share.png';
 
   // VIDEOS

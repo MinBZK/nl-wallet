@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2025-09-03T16:46:24+02:00",
+    "@@last_modified": "2025-09-04T16:55:39+02:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -454,7 +454,7 @@
     "@fraudCheckPageTitle": {
         "placeholders": {
             "url": {
-                "example": "https:\/\/example.org",
+                "example": "https://example.org",
                 "type": "String"
             }
         }
@@ -838,7 +838,7 @@
     "issuanceSelectCardsPageNoSelectionError": "Select one or more cards to add",
     "issuanceSelectCardsPageStopCta": "Stop",
     "issuanceSelectCardsPageTitle": "The following cards have been retrieved.",
-    "issuanceStopSheetDescription": "If you stop, no further data will be retrieved from {organization}",
+    "issuanceStopSheetDescription": "If you stop, no cards will be added from {organization} to your NL Wallet.",
     "@issuanceStopSheetDescription": {
         "placeholders": {
             "organization": {
@@ -1184,8 +1184,11 @@
     "reportIssueScreenHeaderTitle": "Which problem would you like to report? Your report will be sent anonymously.",
     "reportIssueScreenTitle": "Would you like to report a problem?",
     "reportOptionImpersonatingOrganization": "This organization pretends to be someone else",
-    "reportOptionOverAskingOrganization": "This organization asks for too many data",
+    "reportOptionIncorrectCardData": "The card details are incorrect",
+    "reportOptionIrrelevantAskingOrganization": "This organization requests irrelevant data",
+    "reportOptionOverAskingOrganization": "This organization requests too much data or irrelevant data",
     "reportOptionRequestNotInitiated": "I did not start this request",
+    "reportOptionRequestUntrusted": "I do not trust this",
     "reportOptionSuspiciousOrganization": "This organization seems suspicious",
     "reportOptionUnknownOrganization": "I do not know this organization",
     "reportOptionUnreasonableTerms": "I disagree with the terms",

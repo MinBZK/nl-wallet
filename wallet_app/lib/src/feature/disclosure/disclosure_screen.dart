@@ -322,11 +322,16 @@ class DisclosureScreen extends StatelessWidget {
     final state = context.read<DisclosureBloc>().state;
     switch (state) {
       case DisclosureCheckUrl():
+        return ReportingGroup.disclosureCheckOrganization;
       case DisclosureCheckOrganizationForLogin():
-        return ReportingGroup.disclosureCheckOrganizationForLogin;
-      case DisclosureConfirmPin():
+        return ReportingGroup.disclosureConfirmSingleAttribute;
       case DisclosureConfirmDataAttributes():
-        return ReportingGroup.disclosureConfirm;
+        final attributeCount = state.cardRequests.fold(0, (value, it) => value + it.selection.attributes.length);
+        if (attributeCount == 1) {
+          return ReportingGroup.disclosureConfirmSingleAttribute;
+        } else {
+          return ReportingGroup.disclosureConfirmMultipleAttributes;
+        }
       case DisclosureMissingAttributes():
         return ReportingGroup.disclosureMissingAttributes;
       default:
