@@ -4,6 +4,10 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "common.names.fullname" . }}
+  {{- with .Values.extraAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
   labels:
     {{- include "common.labels.standard" . | nindent 4 }}
 spec:
@@ -15,8 +19,8 @@ spec:
     metadata:
       labels:
         {{- include "common.labels.standard" . | nindent 8 }}
-        {{- if .Values.extraPodlabels }}
-        {{- toYaml .Values.extraPodlabels | nindent 8 }}
+        {{- if .Values.extraPodLabels }}
+        {{- toYaml .Values.extraPodLabels | nindent 8 }}
         {{- end }}
     spec:
       {{- with .Values.imagePullSecrets }}

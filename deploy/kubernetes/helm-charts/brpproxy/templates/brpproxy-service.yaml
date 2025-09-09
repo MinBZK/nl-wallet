@@ -4,7 +4,7 @@ metadata:
   name: brpproxy
   labels:
     {{- include "common.labels.standard" . | nindent 4 }}
-    {{- with .Values.extraPodlabels }}
+    {{- with .Values.extraPodLabels }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
 spec:

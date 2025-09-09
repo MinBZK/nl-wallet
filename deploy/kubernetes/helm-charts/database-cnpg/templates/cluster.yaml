@@ -13,7 +13,7 @@ spec:
     {{- end }}
     labels:
       app.kubernetes.io/component: "{{ .Release.Name }}-postgres"
-      {{- with .Values.extraPodlabels }}
+      {{- with .Values.extraPodLabels }}
       {{- toYaml . | nindent 6 }}
       {{- end }}
 
@@ -146,7 +146,7 @@ spec:
   template:
     metadata:
       labels:
-        {{- with $chart.Values.extraPodlabels }}
+        {{- with $chart.Values.extraPodLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
         app.kubernetes.io/component: "{{ $chart.Release.Name}}-pgbouncer"

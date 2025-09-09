@@ -33,11 +33,12 @@
 | `imageMigrations.repository` | Repository for the migration container image  | `nil`          |
 | `imageMigrations.pullPolicy` | Image pull policy for the migration container | `IfNotPresent` |
 
-### Pod labels
+### Annotations and labels
 
-| Name             | Description                    | Value |
-| ---------------- | ------------------------------ | ----- |
-| `extraPodlabels` | Additional labels for the pods | `{}`  |
+| Name               | Description                               | Value |
+| ------------------ | ----------------------------------------- | ----- |
+| `extraAnnotations` | Additional annotations for the deployment | `{}`  |
+| `extraPodLabels`   | Additional labels for the pods            | `{}`  |
 
 ### Image pull secrets
 
@@ -131,6 +132,6 @@
 | `logSidecar.image.pullPolicy`          | Image pull policy for the log container | `IfNotPresent` |
 | `logSidecar.image.tag`                 | Image tag for the log container         | `nil`          |
 | `logSidecar.resources.requests.cpu`    | CPU request of log sidecar              | `100m`         |
-| `logSidecar.resources.requests.memory` | Memory request of log sidecar           | `16Mi`         |
+| `logSidecar.resources.requests.memory` | Memory request of log sidecar           | `64Mi`         |
 | `logSidecar.resources.limits.cpu`      | CPU limit of log sidecar                | `400m`         |
-| `logSidecar.resources.limits.memory`   | Memory limit of log sidecar             | `32Mi`         |
+| `logSidecar.resources.limits.memory`   | Memory limit of log sidecar             | `128Mi`        |

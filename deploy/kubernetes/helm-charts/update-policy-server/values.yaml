@@ -13,9 +13,12 @@ global:
 ##
 nameOverride: ""
 
-## Add labels to all the deployed resources
-## @param extraPodLabels Labels to add to all deployed objects
+## @section Annotations and labels
+## Additional annotations and labels
+## @param extraAnnotations Additional annotations for the deployment
+## @param extraPodLabels Additional labels for the pods
 ##
+extraAnnotations: {}
 extraPodLabels: {}
 
 ## Secrets for pulling images from private registries

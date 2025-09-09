@@ -35,11 +35,13 @@ imagePullSecrets: []
 ##
 nameOverride: ""
 
-## @section Pod labels
-## Additional labels for the pods
-## @param extraPodlabels Additional labels for the pods
+## @section Annotations and labels
+## Additional annotations and labels
+## @param extraAnnotations Additional annotations for the deployment
+## @param extraPodLabels Additional labels for the pods
 ##
-extraPodlabels: {}
+extraAnnotations: {}
+extraPodLabels: {}
 
 ## @section Resource requests and limits
 ## @param resources.requests.cpu CPU request

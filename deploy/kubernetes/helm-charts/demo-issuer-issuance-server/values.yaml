@@ -37,11 +37,13 @@ imageMigrations:
   repository: null
   pullPolicy: IfNotPresent
 
-## @section Pod labels
-## Additional labels for the pods
-## @param extraPodlabels Additional labels for the pods
+## @section Annotations and labels
+## Additional annotations and labels
+## @param extraAnnotations Additional annotations for the deployment
+## @param extraPodLabels Additional labels for the pods
 ##
-extraPodlabels: {}
+extraAnnotations: {}
+extraPodLabels: {}
 
 ## @section Image pull secrets
 ## Secrets for pulling images from private registries
