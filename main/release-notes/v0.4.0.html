@@ -264,8 +264,14 @@ Helm values for update-policy-server and wallet-provider.</p></li>
 <li><p>Configure wallet-provider directly via Deployment instead of separate
 ConfigMap.</p></li>
 <li><p>Capture stdout/stderr from PKCS#11 library and log lines via log library to
-get structured logging</p></li>
-<li><p>Base CI images on Debian Trixie</p></li>
+get structured logging.</p></li>
+<li><p>Base CI images on Debian Trixie.</p></li>
+<li><p>Using <code class="docutils literal notranslate"><span class="pre">extraPodLabels</span></code> (previously <code class="docutils literal notranslate"><span class="pre">extraPodlabels</span></code>) correctly cased in Helm
+charts.</p></li>
+<li><p>Using a Deployment for preload-gba-v-data pod to always keep pod alive.</p></li>
+<li><p>Helm charts have option to add additional annotations on Deployment or
+Cronjob resources.</p></li>
+<li><p>Checksum annotations in Helm charts for GBA pods is removed.</p></li>
 </ul>
 </section>
 </section>
