@@ -136,7 +136,7 @@ spec:
         - name: {{ include "common.names.fullname" . }}-log
           image: "{{ .Values.global.imageRegistry }}/{{ .Values.logSidecar.image.repository }}:{{ .Values.logSidecar.image.tag }}"
           imagePullPolicy: {{ .Values.logSidecar.image.pullPolicy }}
-          command: ['/bin/sh', '-c', 'mkfifo /shared/log && exec cat /shared/log']
+          command: ['/bin/sh', '-c', '[[ -p /shared/log ]] || mkfifo /shared/log; exec cat /shared/log']
           restartPolicy: Always # sidecar
           {{- with .Values.logSidecar.resources }}
           resources:
