@@ -315,7 +315,7 @@ class WalletCoreMock implements WalletCoreApi {
   }
 
   @override
-  Future<WalletTransferInstructionResult> crateApiFullStartWalletTransfer({required String pin}) {
+  Future<String> crateApiFullStartWalletTransfer() {
     throw UnimplementedError();
   }
 

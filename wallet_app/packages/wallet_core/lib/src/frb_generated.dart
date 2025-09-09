@@ -177,7 +177,7 @@ abstract class WalletCoreApi extends BaseApi {
 
   Future<StartDisclosureResult> crateApiFullStartDisclosure({required String uri, required bool isQrCode});
 
-  Future<WalletTransferInstructionResult> crateApiFullStartWalletTransfer({required String pin});
+  Future<String> crateApiFullStartWalletTransfer();
 
   Future<WalletInstructionResult> crateApiFullUnlockWallet({required String pin});
 
@@ -1176,25 +1176,24 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       );
 
   @override
-  Future<WalletTransferInstructionResult> crateApiFullStartWalletTransfer({required String pin}) {
+  Future<String> crateApiFullStartWalletTransfer() {
     return handler.executeNormal(NormalTask(
       callFfi: (port_) {
-        var arg0 = cst_encode_String(pin);
-        return wire.wire__crate__api__full__start_wallet_transfer(port_, arg0);
+        return wire.wire__crate__api__full__start_wallet_transfer(port_);
       },
       codec: DcoCodec(
-        decodeSuccessData: dco_decode_wallet_transfer_instruction_result,
+        decodeSuccessData: dco_decode_String,
         decodeErrorData: dco_decode_AnyhowException,
       ),
       constMeta: kCrateApiFullStartWalletTransferConstMeta,
-      argValues: [pin],
+      argValues: [],
       apiImpl: this,
     ));
   }
 
   TaskConstMeta get kCrateApiFullStartWalletTransferConstMeta => const TaskConstMeta(
         debugName: "start_wallet_transfer",
-        argNames: ["pin"],
+        argNames: [],
       );
 
   @override
@@ -1880,23 +1879,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         return WalletInstructionResult_Ok();
       case 1:
         return WalletInstructionResult_InstructionError(
-          error: dco_decode_box_autoadd_wallet_instruction_error(raw[1]),
-        );
-      default:
-        throw Exception("unreachable");
-    }
-  }
-
-  @protected
-  WalletTransferInstructionResult dco_decode_wallet_transfer_instruction_result(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    switch (raw[0]) {
-      case 0:
-        return WalletTransferInstructionResult_Ok(
-          transferUri: dco_decode_String(raw[1]),
-        );
-      case 1:
-        return WalletTransferInstructionResult_InstructionError(
           error: dco_decode_box_autoadd_wallet_instruction_error(raw[1]),
         );
       default:
@@ -2668,23 +2650,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  WalletTransferInstructionResult sse_decode_wallet_transfer_instruction_result(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-
-    var tag_ = sse_decode_i_32(deserializer);
-    switch (tag_) {
-      case 0:
-        var var_transferUri = sse_decode_String(deserializer);
-        return WalletTransferInstructionResult_Ok(transferUri: var_transferUri);
-      case 1:
-        var var_error = sse_decode_box_autoadd_wallet_instruction_error(deserializer);
-        return WalletTransferInstructionResult_InstructionError(error: var_error);
-      default:
-        throw UnimplementedError('');
-    }
-  }
-
-  @protected
   WalletTransferState sse_decode_wallet_transfer_state(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var inner = sse_decode_i_32(deserializer);
@@ -3439,19 +3404,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       case WalletInstructionResult_Ok():
         sse_encode_i_32(0, serializer);
       case WalletInstructionResult_InstructionError(error: final error):
-        sse_encode_i_32(1, serializer);
-        sse_encode_box_autoadd_wallet_instruction_error(error, serializer);
-    }
-  }
-
-  @protected
-  void sse_encode_wallet_transfer_instruction_result(WalletTransferInstructionResult self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    switch (self) {
-      case WalletTransferInstructionResult_Ok(transferUri: final transferUri):
-        sse_encode_i_32(0, serializer);
-        sse_encode_String(transferUri, serializer);
-      case WalletTransferInstructionResult_InstructionError(error: final error):
         sse_encode_i_32(1, serializer);
         sse_encode_box_autoadd_wallet_instruction_error(error, serializer);
     }

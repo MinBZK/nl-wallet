@@ -42,7 +42,6 @@ use wallet_account::messages::instructions::PerformIssuance;
 use wallet_account::messages::instructions::PerformIssuanceResult;
 use wallet_account::messages::instructions::PerformIssuanceWithWua;
 use wallet_account::messages::instructions::PerformIssuanceWithWuaResult;
-use wallet_account::messages::instructions::PrepareTransfer;
 use wallet_account::messages::instructions::Sign;
 use wallet_account::messages::instructions::SignResult;
 use wallet_account::messages::instructions::StartPinRecovery;
@@ -147,12 +146,6 @@ impl ValidateInstruction for StartPinRecovery {
     }
 }
 
-impl ValidateInstruction for PrepareTransfer {
-    fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
-        validate_no_pin_change_in_progress(wallet_user)
-    }
-}
-
 pub struct PinCheckOptions {
     pub allow_for_blocked_users: bool,
     pub key_checks: PinKeyChecks,
@@ -181,7 +174,6 @@ impl PinChecks for ConfirmTransfer {}
 impl PinChecks for ChangePinCommit {}
 impl PinChecks for ChangePinRollback {}
 impl PinChecks for CheckPin {}
-impl PinChecks for PrepareTransfer {}
 impl PinChecks for Sign {}
 
 impl PinChecks for StartPinRecovery {

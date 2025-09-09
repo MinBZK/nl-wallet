@@ -1073,10 +1073,7 @@ fn wire__crate__api__full__start_disclosure_impl(
         },
     )
 }
-fn wire__crate__api__full__start_wallet_transfer_impl(
-    port_: flutter_rust_bridge::for_generated::MessagePort,
-    pin: impl CstDecode<String>,
-) {
+fn wire__crate__api__full__start_wallet_transfer_impl(port_: flutter_rust_bridge::for_generated::MessagePort) {
     FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "start_wallet_transfer",
@@ -1084,11 +1081,10 @@ fn wire__crate__api__full__start_wallet_transfer_impl(
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
-            let api_pin = pin.cst_decode();
             move |context| async move {
                 transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || async move {
-                        let output_ok = crate::api::full::start_wallet_transfer(api_pin).await?;
+                        let output_ok = crate::api::full::start_wallet_transfer().await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -2148,30 +2144,6 @@ impl SseDecode for crate::models::instruction::WalletInstructionResult {
     }
 }
 
-impl SseDecode for crate::models::instruction::WalletTransferInstructionResult {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut tag_ = <i32>::sse_decode(deserializer);
-        match tag_ {
-            0 => {
-                let mut var_transferUri = <String>::sse_decode(deserializer);
-                return crate::models::instruction::WalletTransferInstructionResult::Ok {
-                    transfer_uri: var_transferUri,
-                };
-            }
-            1 => {
-                let mut var_error = <crate::models::instruction::WalletInstructionError>::sse_decode(deserializer);
-                return crate::models::instruction::WalletTransferInstructionResult::InstructionError {
-                    error: var_error,
-                };
-            }
-            _ => {
-                unimplemented!("");
-            }
-        }
-    }
-}
-
 impl SseDecode for crate::models::transfer::WalletTransferState {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -2887,33 +2859,6 @@ impl flutter_rust_bridge::IntoIntoDart<crate::models::instruction::WalletInstruc
     for crate::models::instruction::WalletInstructionResult
 {
     fn into_into_dart(self) -> crate::models::instruction::WalletInstructionResult {
-        self
-    }
-}
-// Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::models::instruction::WalletTransferInstructionResult {
-    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        match self {
-            crate::models::instruction::WalletTransferInstructionResult::Ok { transfer_uri } => {
-                [0.into_dart(), transfer_uri.into_into_dart().into_dart()].into_dart()
-            }
-            crate::models::instruction::WalletTransferInstructionResult::InstructionError { error } => {
-                [1.into_dart(), error.into_into_dart().into_dart()].into_dart()
-            }
-            _ => {
-                unimplemented!("");
-            }
-        }
-    }
-}
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::models::instruction::WalletTransferInstructionResult
-{
-}
-impl flutter_rust_bridge::IntoIntoDart<crate::models::instruction::WalletTransferInstructionResult>
-    for crate::models::instruction::WalletTransferInstructionResult
-{
-    fn into_into_dart(self) -> crate::models::instruction::WalletTransferInstructionResult {
         self
     }
 }
@@ -3731,25 +3676,6 @@ impl SseEncode for crate::models::instruction::WalletInstructionResult {
     }
 }
 
-impl SseEncode for crate::models::instruction::WalletTransferInstructionResult {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        match self {
-            crate::models::instruction::WalletTransferInstructionResult::Ok { transfer_uri } => {
-                <i32>::sse_encode(0, serializer);
-                <String>::sse_encode(transfer_uri, serializer);
-            }
-            crate::models::instruction::WalletTransferInstructionResult::InstructionError { error } => {
-                <i32>::sse_encode(1, serializer);
-                <crate::models::instruction::WalletInstructionError>::sse_encode(error, serializer);
-            }
-            _ => {
-                unimplemented!("");
-            }
-        }
-    }
-}
-
 impl SseEncode for crate::models::transfer::WalletTransferState {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -4419,28 +4345,6 @@ mod io {
             }
         }
     }
-    impl CstDecode<crate::models::instruction::WalletTransferInstructionResult>
-        for wire_cst_wallet_transfer_instruction_result
-    {
-        // Codec=Cst (C-struct based), see doc to use other codecs
-        fn cst_decode(self) -> crate::models::instruction::WalletTransferInstructionResult {
-            match self.tag {
-                0 => {
-                    let ans = unsafe { self.kind.Ok };
-                    crate::models::instruction::WalletTransferInstructionResult::Ok {
-                        transfer_uri: ans.transfer_uri.cst_decode(),
-                    }
-                }
-                1 => {
-                    let ans = unsafe { self.kind.InstructionError };
-                    crate::models::instruction::WalletTransferInstructionResult::InstructionError {
-                        error: ans.error.cst_decode(),
-                    }
-                }
-                _ => unreachable!(),
-            }
-        }
-    }
     impl NewWithNullPtr for wire_cst_accept_disclosure_result {
         fn new_with_null_ptr() -> Self {
             Self {
@@ -4749,19 +4653,6 @@ mod io {
             Self::new_with_null_ptr()
         }
     }
-    impl NewWithNullPtr for wire_cst_wallet_transfer_instruction_result {
-        fn new_with_null_ptr() -> Self {
-            Self {
-                tag: -1,
-                kind: WalletTransferInstructionResultKind { nil__: () },
-            }
-        }
-    }
-    impl Default for wire_cst_wallet_transfer_instruction_result {
-        fn default() -> Self {
-            Self::new_with_null_ptr()
-        }
-    }
 
     #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__accept_disclosure(
@@ -5060,11 +4951,8 @@ mod io {
     }
 
     #[unsafe(no_mangle)]
-    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__start_wallet_transfer(
-        port_: i64,
-        pin: *mut wire_cst_list_prim_u_8_strict,
-    ) {
-        wire__crate__api__full__start_wallet_transfer_impl(port_, pin)
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__start_wallet_transfer(port_: i64) {
+        wire__crate__api__full__start_wallet_transfer_impl(port_)
     }
 
     #[unsafe(no_mangle)]
@@ -5681,29 +5569,6 @@ mod io {
     #[repr(C)]
     #[derive(Clone, Copy)]
     pub struct wire_cst_WalletInstructionResult_InstructionError {
-        error: *mut wire_cst_wallet_instruction_error,
-    }
-    #[repr(C)]
-    #[derive(Clone, Copy)]
-    pub struct wire_cst_wallet_transfer_instruction_result {
-        tag: i32,
-        kind: WalletTransferInstructionResultKind,
-    }
-    #[repr(C)]
-    #[derive(Clone, Copy)]
-    pub union WalletTransferInstructionResultKind {
-        Ok: wire_cst_WalletTransferInstructionResult_Ok,
-        InstructionError: wire_cst_WalletTransferInstructionResult_InstructionError,
-        nil__: (),
-    }
-    #[repr(C)]
-    #[derive(Clone, Copy)]
-    pub struct wire_cst_WalletTransferInstructionResult_Ok {
-        transfer_uri: *mut wire_cst_list_prim_u_8_strict,
-    }
-    #[repr(C)]
-    #[derive(Clone, Copy)]
-    pub struct wire_cst_WalletTransferInstructionResult_InstructionError {
         error: *mut wire_cst_wallet_instruction_error,
     }
 }

@@ -119,8 +119,7 @@ Future<void> initWalletTransfer({required String uri}) =>
 Future<WalletInstructionResult> confirmWalletTransfer({required String pin}) =>
     WalletCore.instance.api.crateApiFullConfirmWalletTransfer(pin: pin);
 
-Future<WalletTransferInstructionResult> startWalletTransfer({required String pin}) =>
-    WalletCore.instance.api.crateApiFullStartWalletTransfer(pin: pin);
+Future<String> startWalletTransfer() => WalletCore.instance.api.crateApiFullStartWalletTransfer();
 
 Stream<WalletTransferState> getWalletTransferStateStream() =>
     WalletCore.instance.api.crateApiFullGetWalletTransferStateStream();
