@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::collections::HashSet;
 use std::convert::Infallible;
 use std::num::NonZeroU8;
 use std::ops::Add;
@@ -58,7 +57,6 @@ use crate::credential::CredentialRequestProof;
 use crate::credential::CredentialRequests;
 use crate::credential::CredentialResponse;
 use crate::credential::CredentialResponses;
-use crate::credential::OPENID4VCI_VC_POP_JWT_TYPE;
 use crate::dpop::Dpop;
 use crate::dpop::DpopError;
 use crate::metadata;
@@ -152,8 +150,8 @@ pub enum CredentialRequestError {
     #[error("incorrect nonce")]
     IncorrectNonce,
 
-    #[error("unsupported JWT typ: expected {}, found {}", expected, found)]
-    UnsupportedJwtTyp { expected: String, found: String },
+    #[error("unsupported JWT: {0}")]
+    UnsupportedJwt(#[source] JwtError),
 
     #[error("JWK conversion error: {0}")]
     JwkConversion(#[from] JwkConversionError),
@@ -1247,20 +1245,14 @@ impl CredentialRequestProof {
         let verifying_key = jwk_to_p256(&header.jwk)?;
 
         let mut validation_options = Validation::new(Algorithm::ES256);
-        validation_options.required_spec_claims = HashSet::from(["aud".to_owned(), "iss".to_owned()]);
+        validation_options.set_required_spec_claims(&["iss", "aud"]);
         validation_options.set_issuer(accepted_wallet_client_ids);
         validation_options.set_audience(&[credential_issuer_identifier]);
 
-        // We use `jsonwebtoken` crate directly instead of our `Jwt` because we need to inspect the header
-        let (header, payload) =
-            jwt.parse_and_verify_with_header(&EcdsaDecodingKey::from(&verifying_key), &validation_options)?;
+        let payload = jwt
+            .parse_and_verify_with_typ(&EcdsaDecodingKey::from(&verifying_key), &validation_options)
+            .map_err(CredentialRequestError::UnsupportedJwt)?;
 
-        if header.typ() != OPENID4VCI_VC_POP_JWT_TYPE {
-            return Err(CredentialRequestError::UnsupportedJwtTyp {
-                expected: OPENID4VCI_VC_POP_JWT_TYPE.to_string(),
-                found: header.typ().to_owned(),
-            });
-        }
         if payload.nonce.as_deref() != Some(nonce) {
             return Err(CredentialRequestError::IncorrectNonce);
         }

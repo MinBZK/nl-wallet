@@ -15,7 +15,6 @@ use crypto::EcdsaKeySend;
 use crypto::server_keys::KeyPair;
 use error_category::ErrorCategory;
 use http_utils::urls::HttpsUri;
-use jwt::Algorithm;
 use jwt::error::JwkConversionError;
 use jwt::jwk::jwk_from_p256;
 use mdoc::Entry;
@@ -244,8 +243,8 @@ impl CredentialPayload {
         Ok(payload)
     }
 
-    fn from_sd_jwt(
-        sd_jwt: &SdJwt,
+    fn from_sd_jwt<H>(
+        sd_jwt: &SdJwt<H>,
         metadata: Option<&NormalizedTypeMetadata>,
     ) -> Result<Self, SdJwtCredentialPayloadError> {
         let disclosed_object = sd_jwt
@@ -262,7 +261,7 @@ impl CredentialPayload {
         Ok(credential_payload)
     }
 
-    pub fn from_sd_jwt_unvalidated(sd_jwt: &SdJwt) -> Result<Self, SdJwtCredentialPayloadError> {
+    pub fn from_sd_jwt_unvalidated<H>(sd_jwt: &SdJwt<H>) -> Result<Self, SdJwtCredentialPayloadError> {
         Self::from_sd_jwt(sd_jwt, None)
     }
 
@@ -335,7 +334,6 @@ impl CredentialPayload {
                     .map_err(SdJwtCredentialPayloadError::SdJwtCreation)
             })?
             .finish(
-                Algorithm::ES256,
                 vct_integrity,
                 issuer_key.private_key(),
                 vec![issuer_key.certificate().clone()],
@@ -489,8 +487,8 @@ mod test {
     use attestation_types::qualification::AttestationQualification;
     use crypto::EcdsaKey;
     use crypto::server_keys::generate::Ca;
-    use jwt::Algorithm;
     use jwt::EcdsaDecodingKey;
+    use jwt::Header;
     use jwt::jwk::jwk_from_p256;
     use sd_jwt::builder::SdJwtBuilder;
     use sd_jwt::key_binding_jwt_claims::KeyBindingJwtBuilder;
@@ -682,13 +680,7 @@ mod test {
             .unwrap()
             .add_decoys(&[], 2)
             .unwrap()
-            .finish(
-                Algorithm::ES256,
-                Integrity::from(""),
-                &issuer_key,
-                vec![],
-                holder_key.verifying_key(),
-            )
+            .finish(Integrity::from(""), &issuer_key, vec![], holder_key.verifying_key())
             .now_or_never()
             .unwrap()
             .unwrap();
@@ -746,14 +738,13 @@ mod test {
                     DateTime::from_timestamp_millis(1458304832).unwrap(),
                     String::from("https://aud.example.com"),
                     String::from("nonce123"),
-                    Algorithm::ES256,
                 ),
                 &holder_key,
             )
             .await
             .unwrap();
 
-        SdJwtPresentation::parse_and_verify(
+        SdJwtPresentation::<Header>::parse_and_verify(
             &presented_sd_jwt.to_string(),
             &EcdsaDecodingKey::from(&issuer_key_pair.verifying_key().await.unwrap()),
             "https://aud.example.com",

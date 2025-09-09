@@ -5,7 +5,7 @@ use std::collections::HashSet;
 
 use chrono::DateTime;
 use chrono::Duration;
-use jsonwebtoken::Algorithm;
+use jwt::headers::HeaderWithX5c;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 use rand_core::OsRng;
@@ -40,13 +40,7 @@ async fn make_sd_jwt(
         .fold(SdJwtBuilder::new(object).unwrap(), |builder, paths| {
             builder.make_concealable(paths).unwrap()
         })
-        .finish(
-            Algorithm::ES256,
-            Integrity::from(""),
-            &signing_key,
-            vec![],
-            holder_pubkey,
-        )
+        .finish(Integrity::from(""), &signing_key, vec![], holder_pubkey)
         .await
         .unwrap();
 
@@ -75,7 +69,7 @@ fn simple_sd_jwt() {
 
 #[test]
 fn complex_sd_jwt() {
-    let sd_jwt: SdJwt = SdJwtPresentation::spec_complex_structured();
+    let sd_jwt = SdJwtPresentation::spec_complex_structured();
     let disclosed = sd_jwt.to_disclosed_object().unwrap();
     let expected = json!({
         "verified_claims": {
@@ -150,7 +144,6 @@ async fn concealing_property_of_concealable_value_works() -> anyhow::Result<()> 
                 DateTime::from_timestamp_millis(1458304832).unwrap(),
                 String::from("https://example.com"),
                 String::from("abcdefghi"),
-                Algorithm::ES256,
             ),
             &signing_key,
         )
@@ -179,10 +172,7 @@ async fn sd_jwt_without_disclosures_works() -> anyhow::Result<()> {
     println!("{sd_jwt}");
 
     // Try to serialize & deserialize `sd_jwt`.
-    let sd_jwt = {
-        let s = sd_jwt.to_string();
-        SdJwt::parse_and_verify(&s, &decoding_key)?
-    };
+    let sd_jwt = SdJwt::<HeaderWithX5c>::parse_and_verify(&sd_jwt.to_string(), &decoding_key)?;
 
     assert!(sd_jwt.disclosures().is_empty());
 
@@ -195,23 +185,19 @@ async fn sd_jwt_without_disclosures_works() -> anyhow::Result<()> {
                 DateTime::from_timestamp_millis(1458304832).unwrap(),
                 String::from("https://example.com"),
                 String::from("abcdefghi"),
-                Algorithm::ES256,
             ),
             &holder_signing_key,
         )
         .await?;
 
     // Try to serialize & deserialize `with_kb`.
-    let with_kb = {
-        let s = disclosed.to_string();
-        SdJwtPresentation::parse_and_verify(
-            &s,
-            &decoding_key,
-            "https://example.com",
-            "abcdefghi",
-            Duration::days(36500),
-        )?
-    };
+    let with_kb = SdJwtPresentation::<HeaderWithX5c>::parse_and_verify(
+        &disclosed.to_string(),
+        &decoding_key,
+        "https://example.com",
+        "abcdefghi",
+        Duration::days(36500),
+    )?;
 
     assert!(with_kb.sd_jwt().disclosures().is_empty());
 
@@ -263,7 +249,6 @@ async fn sd_jwt_sd_hash() -> anyhow::Result<()> {
                 DateTime::from_timestamp_millis(1458304832).unwrap(),
                 String::from("https://example.com"),
                 String::from("abcdefghi"),
-                Algorithm::ES256,
             ),
             &signing_key,
         )
@@ -351,7 +336,6 @@ async fn test_presentation() -> anyhow::Result<()> {
         .add_decoys(&[ClaimPath::SelectByKey(String::from("nationalities"))], 1)?
         .add_decoys(&[], 2)?
         .finish(
-            Algorithm::ES256,
             Integrity::from(""),
             &issuer_privkey,
             vec![certificate.clone()],
@@ -379,7 +363,6 @@ async fn test_presentation() -> anyhow::Result<()> {
                 DateTime::from_timestamp_millis(1458304832).unwrap(),
                 String::from("https://example.com"),
                 String::from("abcdefghi"),
-                Algorithm::ES256,
             ),
             &holder_privkey,
         )
@@ -387,7 +370,7 @@ async fn test_presentation() -> anyhow::Result<()> {
 
     println!("{}", &presented_sd_jwt);
 
-    let parsed_presentation = SdJwtPresentation::parse_and_verify(
+    let parsed_presentation = SdJwtPresentation::<HeaderWithX5c>::parse_and_verify(
         &presented_sd_jwt.to_string(),
         &EcdsaDecodingKey::from(issuer_privkey.verifying_key()),
         "https://example.com",

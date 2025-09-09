@@ -5,6 +5,7 @@ use jsonwebtoken::jwk::Jwk;
 use serde::Deserialize;
 use serde::Serialize;
 
+use crate::DEFAULT_HEADER;
 use crate::error::JwtError;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Constructor)]
@@ -20,7 +21,10 @@ impl Default for JwtHeader {
 
 impl From<JwtHeader> for Header {
     fn from(value: JwtHeader) -> Self {
-        Header::new(value.alg)
+        Header {
+            alg: value.alg,
+            ..DEFAULT_HEADER.to_owned()
+        }
     }
 }
 
@@ -31,88 +35,37 @@ impl From<Header> for JwtHeader {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct HeaderWithTyp {
-    pub typ: String,
+pub struct HeaderWithJwk {
+    pub jwk: Jwk,
 
     #[serde(flatten)]
     header: JwtHeader,
 }
 
-impl Default for HeaderWithTyp {
-    fn default() -> Self {
-        Self::new("jwt".to_string())
-    }
-}
-
-impl HeaderWithTyp {
-    pub fn new(typ: String) -> Self {
-        Self::new_with_alg(typ, Algorithm::ES256)
-    }
-
-    fn new_with_alg(typ: String, alg: Algorithm) -> HeaderWithTyp {
-        HeaderWithTyp {
-            typ,
-            header: JwtHeader { alg },
-        }
-    }
-}
-
-impl From<HeaderWithTyp> for Header {
-    fn from(value: HeaderWithTyp) -> Self {
-        let mut header: Header = value.header.into();
-        header.typ = Some(value.typ);
-        header
-    }
-}
-
-impl TryFrom<Header> for HeaderWithTyp {
-    type Error = JwtError;
-
-    fn try_from(value: Header) -> Result<Self, Self::Error> {
-        let typ = value.typ.as_ref().ok_or(JwtError::HeaderConversion)?.clone();
-        Ok(HeaderWithTyp {
-            header: value.into(),
-            typ,
-        })
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct HeaderWithJwkAndTyp {
-    pub jwk: Jwk,
-
-    #[serde(flatten)]
-    header: HeaderWithTyp,
-}
-
-impl HeaderWithJwkAndTyp {
-    pub fn new(typ: String, jwk: Jwk) -> Self {
-        HeaderWithJwkAndTyp {
+impl HeaderWithJwk {
+    pub fn new(jwk: Jwk) -> Self {
+        HeaderWithJwk {
             jwk,
-            header: HeaderWithTyp::new(typ),
+            header: JwtHeader::default(),
         }
-    }
-
-    pub fn typ(&self) -> &str {
-        &self.header.typ
     }
 }
 
-impl From<HeaderWithJwkAndTyp> for Header {
-    fn from(value: HeaderWithJwkAndTyp) -> Self {
+impl From<HeaderWithJwk> for Header {
+    fn from(value: HeaderWithJwk) -> Self {
         let mut header: Header = value.header.into();
         header.jwk = Some(value.jwk);
         header
     }
 }
 
-impl TryFrom<Header> for HeaderWithJwkAndTyp {
+impl TryFrom<Header> for HeaderWithJwk {
     type Error = JwtError;
 
     fn try_from(value: Header) -> Result<Self, Self::Error> {
         let jwk = value.jwk.as_ref().ok_or(JwtError::HeaderConversion)?.clone();
-        Ok(HeaderWithJwkAndTyp {
-            header: value.try_into()?,
+        Ok(HeaderWithJwk {
+            header: value.into(),
             jwk,
         })
     }

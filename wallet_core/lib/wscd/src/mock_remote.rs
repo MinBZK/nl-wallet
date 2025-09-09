@@ -15,15 +15,12 @@ use crypto::p256_der::verifying_key_sha256;
 use crypto::wscd::DisclosureResult;
 use crypto::wscd::DisclosureWscd;
 use crypto::wscd::WscdPoa;
-use jwt::Algorithm;
-use jwt::Header;
+use jwt::DEFAULT_HEADER;
 use jwt::UnverifiedJwt;
 use jwt::credential::JwtCredentialClaims;
-use jwt::headers::HeaderWithJwkAndTyp;
+use jwt::headers::HeaderWithJwk;
 use jwt::jwk::jwk_from_p256;
 use jwt::pop::JwtPopClaims;
-use jwt::pop::OPENID4VCI_VC_POP_JWT_TYPE;
-use jwt::wua::WUA_JWT_TYP;
 use jwt::wua::WuaClaims;
 use jwt::wua::WuaDisclosure;
 
@@ -118,6 +115,8 @@ impl DisclosureWscd for MockRemoteWscd {
     }
 }
 
+// TODO OPENID4VCI_VC_POP_JWT_TYPE
+
 impl Wscd for MockRemoteWscd {
     async fn perform_issuance(
         &self,
@@ -142,12 +141,8 @@ impl Wscd for MockRemoteWscd {
         let pops = attestation_keys
             .iter()
             .map(|attestation_key| {
-                let header = HeaderWithJwkAndTyp::new(
-                    OPENID4VCI_VC_POP_JWT_TYPE.to_owned(),
-                    jwk_from_p256(attestation_key.verifying_key()).unwrap(),
-                );
-
-                UnverifiedJwt::sign(&header, &claims, attestation_key)
+                let header = HeaderWithJwk::new(jwk_from_p256(attestation_key.verifying_key()).unwrap());
+                UnverifiedJwt::sign_with_header_and_typ(header, &claims, attestation_key)
                     .now_or_never()
                     .unwrap()
                     .unwrap()
@@ -166,7 +161,6 @@ impl Wscd for MockRemoteWscd {
                 wua_key.verifying_key(),
                 wua_signing_key,
                 MOCK_WALLET_CLIENT_ID.to_string(),
-                WUA_JWT_TYP.to_string(),
                 WuaClaims::new(),
             )
             .now_or_never()
@@ -174,7 +168,7 @@ impl Wscd for MockRemoteWscd {
             .unwrap()
             .into();
 
-            let wua_disclosure = UnverifiedJwt::sign(&Header::new(Algorithm::ES256), &claims, &wua_key)
+            let wua_disclosure = UnverifiedJwt::sign(&*DEFAULT_HEADER, &claims, &wua_key)
                 .now_or_never()
                 .unwrap()
                 .unwrap();

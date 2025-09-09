@@ -7,7 +7,6 @@ use chrono::DateTime;
 use chrono::Utc;
 use futures::future;
 use itertools::Itertools;
-use jwt::headers::HeaderWithJwkAndTyp;
 use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
 use serde::Deserialize;
@@ -21,13 +20,12 @@ use crypto::p256_der::DerSignature;
 use hsm::model::encrypter::Encrypter;
 use hsm::model::wrapped_key::WrappedKey;
 use hsm::service::HsmError;
-use jwt::Algorithm;
-use jwt::Header;
+use jwt::DEFAULT_HEADER;
 use jwt::UnverifiedJwt;
+use jwt::headers::HeaderWithJwk;
 use jwt::jwk::jwk_from_p256;
 use jwt::pop::JwtPopClaims;
 use jwt::wua::WuaDisclosure;
-use openid4vc::credential::OPENID4VCI_VC_POP_JWT_TYPE;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
@@ -412,13 +410,9 @@ where
         .await
         .map_err(|e| InstructionError::WuaIssuance(Box::new(e)))?;
 
-    let wua_disclosure = UnverifiedJwt::sign(
-        &Header::new(Algorithm::ES256),
-        claims,
-        &attestation_key(&wua_wrapped_key, user_state),
-    )
-    .await
-    .map_err(InstructionError::PopSigning)?;
+    let wua_disclosure = UnverifiedJwt::sign(&*DEFAULT_HEADER, claims, &attestation_key(&wua_wrapped_key, user_state))
+        .await
+        .map_err(InstructionError::PopSigning)?;
 
     Ok((wua_wrapped_key, wua_key_id, WuaDisclosure::new(wua, wua_disclosure)))
 }
@@ -426,15 +420,14 @@ where
 async fn issuance_pops<H>(
     attestation_keys: &VecNonEmpty<HsmCredentialSigningKey<'_, H>>,
     claims: &JwtPopClaims,
-) -> Result<VecNonEmpty<UnverifiedJwt<JwtPopClaims, HeaderWithJwkAndTyp>>, InstructionError>
+) -> Result<VecNonEmpty<UnverifiedJwt<JwtPopClaims, HeaderWithJwk>>, InstructionError>
 where
     H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
 {
     let pops = future::try_join_all(attestation_keys.iter().map(|attestation_key| async {
         let public_key = attestation_key.verifying_key().await?;
-        let header = HeaderWithJwkAndTyp::new(OPENID4VCI_VC_POP_JWT_TYPE.to_owned(), jwk_from_p256(&public_key)?);
-
-        let jwt = UnverifiedJwt::sign(&header, claims, attestation_key)
+        let header = HeaderWithJwk::new(jwk_from_p256(&public_key)?);
+        let jwt = UnverifiedJwt::sign_with_header_and_typ(header, claims, attestation_key)
             .await
             .map_err(InstructionError::PopSigning)?;
 
@@ -743,7 +736,6 @@ fn is_poa_message(message: &[u8]) -> bool {
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
-    use std::collections::HashSet;
     use std::sync::Arc;
     use std::sync::Mutex;
 
@@ -769,7 +761,7 @@ mod tests {
     use jwt::Algorithm;
     use jwt::UnverifiedJwt;
     use jwt::Validation;
-    use jwt::headers::HeaderWithJwkAndTyp;
+    use jwt::headers::HeaderWithJwk;
     use jwt::jwk::jwk_to_p256;
     use jwt::pop::JwtPopClaims;
     use jwt::wua::WuaDisclosure;
@@ -1217,12 +1209,12 @@ mod tests {
     }
 
     fn validate_issuance(
-        pops: &[UnverifiedJwt<JwtPopClaims, HeaderWithJwkAndTyp>],
+        pops: &[UnverifiedJwt<JwtPopClaims, HeaderWithJwk>],
         poa: Option<Poa>,
         wua_with_disclosure: Option<&WuaDisclosure>,
     ) {
         let mut validations = Validation::new(Algorithm::ES256);
-        validations.required_spec_claims = HashSet::from(["iss".to_owned(), "aud".to_owned()]);
+        validations.set_required_spec_claims(&["iss", "aud"]);
         validations.set_issuer(&[NL_WALLET_CLIENT_ID]);
         validations.set_audience(&[POP_AUD]);
 

@@ -9,6 +9,7 @@ use axum::Json;
 use axum::Router;
 use axum::routing::post;
 use ctor::ctor;
+use jwt::UnverifiedJwt;
 use p256::ecdsa::SigningKey;
 use p256::pkcs8::DecodePrivateKey;
 use reqwest::Certificate;
@@ -41,9 +42,7 @@ use http_utils::urls::BaseUrl;
 use issuance_server::disclosure::AttributesFetcher;
 use issuance_server::disclosure::HttpAttributesFetcher;
 use issuance_server::settings::IssuanceServerSettings;
-use jwt::Algorithm;
-use jwt::Header;
-use jwt::UnverifiedJwt;
+use jwt::DEFAULT_HEADER;
 use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::issuance_session::HttpIssuanceSession;
 use openid4vc::issuer::AttributeService;
@@ -335,8 +334,8 @@ pub async fn config_jwt(wallet_config: &WalletConfiguration) -> String {
     let key = read_file("config_signing.pem");
 
     UnverifiedJwt::sign(
+        &*DEFAULT_HEADER,
         wallet_config,
-        &Header::new(Algorithm::ES256),
         &SigningKey::from_pkcs8_pem(&String::from_utf8_lossy(&key)).unwrap(),
     )
     .await

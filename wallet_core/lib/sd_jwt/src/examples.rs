@@ -4,8 +4,8 @@ use base64::Engine;
 use base64::prelude::BASE64_URL_SAFE_NO_PAD;
 use chrono::Duration;
 use futures::FutureExt;
-use jsonwebtoken::Algorithm;
 use jsonwebtoken::jwk::Jwk;
+use jwt::Header;
 use p256::ecdsa::SigningKey;
 use rand_core::OsRng;
 use serde_json::json;
@@ -45,19 +45,19 @@ pub const WITH_KB_SD_JWT_NONCE: &str = "1234567890";
 pub const INVALID_DISCLOSURE_SD_JWT: &str = include_str!("../examples/invalid_disclosure.jwt");
 
 impl SdJwtPresentation {
-    pub fn spec_simple_structured() -> SdJwt {
+    pub fn spec_simple_structured() -> SdJwt<Header> {
         SdJwt::parse_and_verify(SIMPLE_STRUCTURED_SD_JWT, &examples_sd_jwt_decoding_key()).unwrap()
     }
 
-    pub fn spec_complex_structured() -> SdJwt {
+    pub fn spec_complex_structured() -> SdJwt<Header> {
         SdJwt::parse_and_verify(COMPLEX_STRUCTURED_SD_JWT, &examples_sd_jwt_decoding_key()).unwrap()
     }
 
-    pub fn spec_sd_jwt_vc() -> SdJwt {
+    pub fn spec_sd_jwt_vc() -> SdJwt<Header> {
         SdJwt::parse_and_verify(SD_JWT_VC, &examples_sd_jwt_decoding_key()).unwrap()
     }
 
-    pub fn spec_sd_jwt_kb() -> SdJwtPresentation {
+    pub fn spec_sd_jwt_kb() -> SdJwtPresentation<Header> {
         SdJwtPresentation::parse_and_verify(
             WITH_KB_SD_JWT,
             &examples_sd_jwt_decoding_key(),
@@ -104,7 +104,6 @@ impl SdJwtPresentation {
             .add_decoys(&[], 2)
             .unwrap()
             .finish(
-                Algorithm::ES256,
                 Integrity::from(random_string(32)),
                 issuer_keypair.private_key(),
                 vec![issuer_keypair.certificate().clone()],

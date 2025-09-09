@@ -9,7 +9,7 @@ use p256::ecdsa::VerifyingKey;
 use crypto::WithVerifyingKey;
 
 use crate::error::JwkConversionError;
-use crate::headers::HeaderWithJwkAndTyp;
+use crate::headers::HeaderWithJwk;
 
 pub fn jwk_from_p256(value: &VerifyingKey) -> Result<Jwk, JwkConversionError> {
     let jwk = Jwk {
@@ -51,14 +51,13 @@ pub fn jwk_to_p256(value: &Jwk) -> Result<VerifyingKey, JwkConversionError> {
     Ok(key)
 }
 
-pub async fn jwk_jwt_header(typ: &str, key: &impl WithVerifyingKey) -> Result<HeaderWithJwkAndTyp, JwkConversionError> {
+pub async fn jwk_jwt_header(key: &impl WithVerifyingKey) -> Result<HeaderWithJwk, JwkConversionError> {
     let jwk = jwk_from_p256(
         &key.verifying_key()
             .await
             .map_err(|e| JwkConversionError::VerifyingKeyFromPrivateKey(e.into()))?,
     )?;
-    let header = HeaderWithJwkAndTyp::new(typ.to_string(), jwk);
-    Ok(header)
+    Ok(HeaderWithJwk::new(jwk))
 }
 
 #[cfg(test)]

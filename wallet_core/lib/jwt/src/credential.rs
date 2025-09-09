@@ -6,11 +6,12 @@ use serde_with::skip_serializing_none;
 
 use crypto::keys::EcdsaKey;
 
+use crate::JwtTyp;
 use crate::VerifiedJwt;
 use crate::error::JwkConversionError;
 use crate::error::JwtError;
-use crate::headers::HeaderWithTyp;
 use crate::jwk::jwk_from_p256;
+use crate::wua::WUA_JWT_TYP;
 
 /// Claims of a JWT credential: the body of the JWT.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -22,9 +23,13 @@ pub struct JwtCredentialClaims<T> {
     pub contents: JwtCredentialContents<T>,
 }
 
+impl<T> JwtTyp for JwtCredentialClaims<T> {
+    const TYP: &'static str = WUA_JWT_TYP;
+}
+
 impl<T> JwtCredentialClaims<T>
 where
-    T: Serialize,
+    T: Serialize + std::fmt::Debug,
 {
     pub fn new(pubkey: &VerifyingKey, iss: String, attributes: T) -> Result<Self, JwkConversionError> {
         let claims = Self {
@@ -41,11 +46,9 @@ where
         holder_pubkey: &VerifyingKey,
         issuer_privkey: &impl EcdsaKey,
         iss: String,
-        typ: String,
         attributes: T,
-    ) -> Result<VerifiedJwt<JwtCredentialClaims<T>, HeaderWithTyp>, JwtError> {
-        let jwt = VerifiedJwt::sign(
-            HeaderWithTyp::new(typ),
+    ) -> Result<VerifiedJwt<JwtCredentialClaims<T>>, JwtError> {
+        let jwt = VerifiedJwt::sign_with_typ(
             JwtCredentialClaims::new(holder_pubkey, iss, attributes)?,
             issuer_privkey,
         )

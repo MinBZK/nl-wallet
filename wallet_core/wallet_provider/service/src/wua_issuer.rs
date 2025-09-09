@@ -1,7 +1,6 @@
 use std::error::Error;
 
 use derive_more::Constructor;
-use jwt::headers::HeaderWithTyp;
 use p256::ecdsa::VerifyingKey;
 
 use crypto::keys::SecureEcdsaKey;
@@ -12,7 +11,6 @@ use hsm::service::HsmError;
 use jwt::UnverifiedJwt;
 use jwt::credential::JwtCredentialClaims;
 use jwt::error::JwtError;
-use jwt::wua::WUA_JWT_TYP;
 use jwt::wua::WuaClaims;
 use wallet_provider_domain::model::hsm::WalletUserHsm;
 
@@ -21,14 +19,7 @@ pub trait WuaIssuer {
 
     async fn issue_wua(
         &self,
-    ) -> Result<
-        (
-            WrappedKey,
-            String,
-            UnverifiedJwt<JwtCredentialClaims<WuaClaims>, HeaderWithTyp>,
-        ),
-        Self::Error,
-    >;
+    ) -> Result<(WrappedKey, String, UnverifiedJwt<JwtCredentialClaims<WuaClaims>>), Self::Error>;
     async fn public_key(&self) -> Result<VerifyingKey, Self::Error>;
 }
 
@@ -59,26 +50,13 @@ where
 
     async fn issue_wua(
         &self,
-    ) -> Result<
-        (
-            WrappedKey,
-            String,
-            UnverifiedJwt<JwtCredentialClaims<WuaClaims>, HeaderWithTyp>,
-        ),
-        Self::Error,
-    > {
+    ) -> Result<(WrappedKey, String, UnverifiedJwt<JwtCredentialClaims<WuaClaims>>), Self::Error> {
         let wrapped_privkey = self.hsm.generate_wrapped_key(&self.wrapping_key_identifier).await?;
         let pubkey = *wrapped_privkey.public_key();
 
-        let jwt = JwtCredentialClaims::new_signed(
-            &pubkey,
-            &self.private_key,
-            self.iss.clone(),
-            WUA_JWT_TYP.to_string(),
-            WuaClaims::new(),
-        )
-        .await?
-        .into();
+        let jwt = JwtCredentialClaims::new_signed(&pubkey, &self.private_key, self.iss.clone(), WuaClaims::new())
+            .await?
+            .into();
 
         Ok((wrapped_privkey, verifying_key_sha256(&pubkey), jwt))
     }
@@ -102,10 +80,8 @@ pub mod mock {
     use hsm::model::wrapped_key::WrappedKey;
     use jwt::UnverifiedJwt;
     use jwt::credential::JwtCredentialClaims;
-    use jwt::headers::HeaderWithTyp;
     use jwt::wua::WuaClaims;
 
-    use super::WUA_JWT_TYP;
     use super::WuaIssuer;
 
     pub struct MockWuaIssuer;
@@ -115,14 +91,7 @@ pub mod mock {
 
         async fn issue_wua(
             &self,
-        ) -> Result<
-            (
-                WrappedKey,
-                String,
-                UnverifiedJwt<JwtCredentialClaims<WuaClaims>, HeaderWithTyp>,
-            ),
-            Self::Error,
-        > {
+        ) -> Result<(WrappedKey, String, UnverifiedJwt<JwtCredentialClaims<WuaClaims>>), Self::Error> {
             let privkey = SigningKey::random(&mut OsRng);
             let pubkey = privkey.verifying_key();
 
@@ -130,7 +99,6 @@ pub mod mock {
                 pubkey,
                 &privkey, // Sign the WUA with its own private key in this test
                 "iss".to_string(),
-                WUA_JWT_TYP.to_string(),
                 WuaClaims::new(),
             )
             .await

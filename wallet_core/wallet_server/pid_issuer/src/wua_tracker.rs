@@ -1,6 +1,5 @@
 use jwt::VerifiedJwt;
 use jwt::credential::JwtCredentialClaims;
-use jwt::headers::HeaderWithTyp;
 use jwt::wua::WuaClaims;
 use openid4vc::server_state::MemoryWuaTracker;
 use openid4vc::server_state::WuaTracker;
@@ -29,10 +28,7 @@ impl WuaTrackerVariant {
 impl WuaTracker for WuaTrackerVariant {
     type Error = DatabaseError;
 
-    async fn track_wua(
-        &self,
-        wua: &VerifiedJwt<JwtCredentialClaims<WuaClaims>, HeaderWithTyp>,
-    ) -> Result<bool, Self::Error> {
+    async fn track_wua(&self, wua: &VerifiedJwt<JwtCredentialClaims<WuaClaims>>) -> Result<bool, Self::Error> {
         match self {
             #[cfg(feature = "postgres")]
             WuaTrackerVariant::Postgres(postgres_wua_tracker) => Ok(postgres_wua_tracker.track_wua(wua).await?),
@@ -69,7 +65,6 @@ mod postgres {
     use crypto::utils::sha256;
     use jwt::VerifiedJwt;
     use jwt::credential::JwtCredentialClaims;
-    use jwt::headers::HeaderWithTyp;
     use jwt::wua::WuaClaims;
     use server_utils::entity::used_wuas;
     use utils::generator::Generator;
@@ -100,10 +95,7 @@ mod postgres {
     {
         type Error = DbErr;
 
-        async fn track_wua(
-            &self,
-            wua: &VerifiedJwt<JwtCredentialClaims<WuaClaims>, HeaderWithTyp>,
-        ) -> Result<bool, Self::Error> {
+        async fn track_wua(&self, wua: &VerifiedJwt<JwtCredentialClaims<WuaClaims>>) -> Result<bool, Self::Error> {
             let shasum = sha256(wua.jwt().serialization().as_bytes());
             let expires = wua.payload().contents.attributes.exp;
 

@@ -4,6 +4,8 @@ use chrono::serde::ts_seconds;
 use serde::Deserialize;
 use serde::Serialize;
 
+use crate::JwtTyp;
+
 pub const OPENID4VCI_VC_POP_JWT_TYPE: &str = "openid4vci-proof+jwt";
 
 /// JWT claims of a PoP (Proof of Possession). Used a.o. as a JWT proof in a Credential Request
@@ -26,4 +28,8 @@ impl JwtPopClaims {
             iat: Utc::now(),
         }
     }
+}
+
+impl JwtTyp for JwtPopClaims {
+    const TYP: &'static str = OPENID4VCI_VC_POP_JWT_TYPE;
 }

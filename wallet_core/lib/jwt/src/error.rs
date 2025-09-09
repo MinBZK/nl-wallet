@@ -38,6 +38,10 @@ pub enum JwtError {
     #[error("could not convert Header")]
     #[category(critical)]
     HeaderConversion,
+
+    #[error("unexpected type: expected {0}, found {1:?}")]
+    #[category(critical)]
+    UnexpectedTyp(String, String),
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]

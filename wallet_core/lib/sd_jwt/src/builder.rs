@@ -6,8 +6,6 @@ use std::collections::HashMap;
 use base64::Engine;
 use base64::prelude::BASE64_STANDARD;
 use itertools::Itertools;
-use jsonwebtoken::Algorithm;
-use jsonwebtoken::Header;
 use p256::ecdsa::VerifyingKey;
 use serde::Serialize;
 use ssri::Integrity;
@@ -15,7 +13,9 @@ use ssri::Integrity;
 use attestation_types::claim_path::ClaimPath;
 use crypto::EcdsaKeySend;
 use crypto::x509::BorrowingCertificate;
+use jwt::JwtTyp;
 use jwt::VerifiedJwt;
+use jwt::headers::HeaderWithX5c;
 use jwt::jwk::jwk_from_p256;
 use utils::vec_at_least::VecNonEmpty;
 
@@ -31,11 +31,14 @@ use crate::sd_jwt::SdJwtClaims;
 
 const SD_JWT_HEADER_TYP: &str = "dc+sd-jwt";
 
+impl JwtTyp for SdJwtClaims {
+    const TYP: &'static str = SD_JWT_HEADER_TYP;
+}
+
 /// Builder structure to create an issuable SD-JWT.
 #[derive(Debug)]
 pub struct SdJwtBuilder<H> {
     encoder: SdObjectEncoder<H>,
-    header: Header,
     disclosures: HashMap<String, Disclosure>,
 }
 
@@ -62,11 +65,6 @@ impl<H: Hasher> SdJwtBuilder<H> {
         Ok(Self {
             encoder,
             disclosures: HashMap::new(),
-            // TODO add SdJwtHeader type (PVW-4868)
-            header: Header {
-                typ: Some(String::from(SD_JWT_HEADER_TYP)),
-                ..Default::default()
-            },
         })
     }
 
@@ -130,7 +128,6 @@ impl<H: Hasher> SdJwtBuilder<H> {
     /// Creates an SD-JWT with the provided data.
     pub async fn finish(
         self,
-        alg: Algorithm,
         vct_integrity: Integrity,
         issuer_signing_key: &impl EcdsaKeySend,
         issuer_certificates: Vec<BorrowingCertificate>,
@@ -139,12 +136,10 @@ impl<H: Hasher> SdJwtBuilder<H> {
         let SdJwtBuilder {
             mut encoder,
             disclosures,
-            mut header,
         } = self;
         encoder.add_sd_alg_property();
 
-        header.alg = alg;
-        header.x5c = Some(
+        let header = HeaderWithX5c::new(
             issuer_certificates
                 .iter()
                 .map(|cert| BASE64_STANDARD.encode(cert.to_vec()))
@@ -154,8 +149,7 @@ impl<H: Hasher> SdJwtBuilder<H> {
         let mut claims = serde_json::from_value::<SdJwtClaims>(encoder.encode())?;
         claims.cnf = Some(RequiredKeyBinding::Jwk(jwk_from_p256(holder_pubkey)?));
         claims.vct_integrity = Some(vct_integrity);
-
-        let verified_jwt = VerifiedJwt::sign(header, claims, issuer_signing_key).await?;
+        let verified_jwt = VerifiedJwt::sign_with_header_and_typ(header, claims, issuer_signing_key).await?;
 
         Ok(SdJwt::new(verified_jwt, issuer_certificates, disclosures))
     }
