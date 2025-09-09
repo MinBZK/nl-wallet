@@ -109,7 +109,8 @@ clio = "0.3.5"
 config = { version = "0.15.7", default-features = false }
 const-decoder = "0.4.0"
 coset = "0.3.8"
-cryptoki = "0.10.0"
+# Pin on newer version due to https://github.com/parallaxsecond/rust-cryptoki/pull/291
+cryptoki = { git = "https://github.com/parallaxsecond/rust-cryptoki.git", rev = "2765af619ed245f8787e46987483bf96179e30cd" }
 crypto-common = "0.1.6"
 cstr = "0.2.12"
 csv = "1.3.1"
@@ -157,7 +158,8 @@ predicates = { version = "3.1.3", default-features = false }
 proc-macro2 = "1.0.93"
 quick-xml = "0.38.0"
 quote = "1.0.38"
-r2d2-cryptoki = "0.4.0-rc.0"
+# Using custom version that uses same cryptoki
+r2d2-cryptoki = { git = "https://github.com/middagj/r2d2-cryptoki", rev = "4ce05e39a5dfc8b54d6f6d74b5ace9ca9bffe40f" }
 # these two crates are held back by p256
 rand = "0.8.5"
 rand_core = "0.6.4"

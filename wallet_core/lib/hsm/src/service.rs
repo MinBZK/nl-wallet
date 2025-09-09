@@ -172,7 +172,7 @@ impl Pkcs11Hsm {
             .first()
             .ok_or(HsmError::NoInitializedSlotAvailable)?;
 
-        let session_auth = SessionAuth::RwUser(AuthPin::new(user_pin));
+        let session_auth = SessionAuth::RwUser(AuthPin::from(user_pin));
         let manager = SessionManager::new(pkcs11_client, slot, &session_auth);
 
         let pool = Pool::builder()
