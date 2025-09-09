@@ -192,7 +192,7 @@ mod tests {
         // The IssuerSigned should be valid
         issuer_signed
             .verify(ValidityRequirement::Valid, &TimeGenerator, trust_anchors)
-            .unwrap();
+            .expect("the IssuerSigned sent in the preview should be valid");
 
         // The issuer certificate generated above should be included in the IssuerAuth
         assert_eq!(
