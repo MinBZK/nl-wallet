@@ -14,7 +14,6 @@ use josekit::jwk::Jwk;
 use josekit::jwk::alg::ec::EcKeyPair;
 use josekit::jwt::JwtPayload;
 use nutype::nutype;
-use p256::ecdsa::VerifyingKey;
 use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde::Serialize;
@@ -38,7 +37,6 @@ use http_utils::urls::BaseUrl;
 use jwt::UnverifiedJwt;
 use jwt::error::JwtX5cError;
 use mdoc::DeviceResponse;
-use mdoc::Document;
 use mdoc::SessionTranscript;
 use mdoc::utils::serialization::CborBase64;
 use serde_with::SerializeDisplay;
@@ -555,29 +553,6 @@ pub enum VerifiablePresentation {
     MsoMdoc(#[serde_as(as = "Vec<CborBase64>")] VecNonEmpty<DeviceResponse>),
 }
 
-impl VerifiablePresentation {
-    /// Helper function for iterating over all mdoc [`Document`]s in a list of encoded [`DeviceResponse`]s.
-    fn mdoc_documents_iter<'a>(
-        device_responses: impl IntoIterator<Item = &'a DeviceResponse>,
-    ) -> impl Iterator<Item = &'a Document> {
-        device_responses
-            .into_iter()
-            .flat_map(|device_response| device_response.documents.as_deref().unwrap_or_default())
-    }
-
-    /// Helper function for extracing all unique public keys in a set of [`VerifiablePresentation`]s.
-    fn unique_keys<'a>(presentations: impl IntoIterator<Item = &'a Self>) -> Result<Vec<VerifyingKey>, mdoc::Error> {
-        presentations
-            .into_iter()
-            .flat_map(|presentation| match presentation {
-                Self::MsoMdoc(device_responses) => Self::mdoc_documents_iter(device_responses)
-                    .map(|document| document.issuer_signed.dangerous_public_key()),
-            })
-            // Unfortunately `VerifyingKey` does not implement `Hash`, so we have to deduplicate manually.
-            .process_results(|iter| iter.dedup().collect())
-    }
-}
-
 // We do not reuse or embed the `AuthorizationResponse` struct from `authorization.rs`, because in no variant
 // of OpenID4VP that we (plan to) support do we need the `code` field from that struct, which is its primary citizen.
 /// An OpenID4VP Authorization Response, with the wallet's disclosed credentials/attributes in the `vp_token`.
@@ -699,6 +674,7 @@ impl VpAuthorizationResponse {
             )
         });
 
+        let mut holder_public_keys = Vec::new();
         let mut disclosed_attestations: HashMap<_, _> = self
             .vp_token
             .iter()
@@ -708,12 +684,19 @@ impl VpAuthorizationResponse {
                         .iter()
                         .map(|device_response| {
                             // Verify the cryptographic integrity of each mdoc `DeviceResponse`
-                            // and extract its disclosed documents...
+                            // and obtain a `DisclosedDocuments` for each.
                             let disclosed_documents = device_response
                                 .verify(None, &session_transcript, time, trust_anchors)
                                 .map_err(AuthResponseError::MdocVerification)?;
 
-                            // ...then attempt to convert them to `DisclosedAttestation`s.
+                            // Retain the used holder public keys for checking the PoA in step 2.
+                            holder_public_keys.extend(
+                                disclosed_documents
+                                    .iter()
+                                    .map(|disclosed_document| disclosed_document.device_key),
+                            );
+
+                            // Then attempt to convert the disclosed documents to `DisclosedAttestation`s.
                             let disclosed_attestations = disclosed_documents
                                 .into_iter()
                                 .map(|disclosed_document| {
@@ -736,12 +719,12 @@ impl VpAuthorizationResponse {
             })
             .collect::<Result<_, AuthResponseError>>()?;
 
-        // Step 2: Verify the PoA, if present.
-        let used_keys = VerifiablePresentation::unique_keys(self.vp_token.values())
-            .expect("should always succeed when called after DeviceResponse::verify");
-        if used_keys.len() >= 2 {
+        // Step 2: Verify the PoA, if present. Unfortunately `VerifyingKey`
+        // does not implement `Hash`, so we have to deduplicate manually.
+        holder_public_keys.dedup();
+        if holder_public_keys.len() >= 2 {
             self.poa.ok_or(AuthResponseError::MissingPoa)?.verify(
-                &used_keys,
+                &holder_public_keys,
                 auth_request.client_id.as_str(),
                 accepted_wallet_client_ids,
                 &auth_request.nonce,
