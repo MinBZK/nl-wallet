@@ -20,7 +20,6 @@ use crate::models::disclosure::StartDisclosureResult;
 use crate::models::instruction::DisclosureBasedIssuanceResult;
 use crate::models::instruction::PidIssuanceResult;
 use crate::models::instruction::WalletInstructionResult;
-use crate::models::instruction::WalletTransferInstructionResult;
 use crate::models::pin::PinValidationResult;
 use crate::models::transfer::WalletTransferState;
 use crate::models::uri::IdentifyUriResult;
@@ -401,15 +400,12 @@ pub async fn confirm_wallet_transfer(_pin: String) -> anyhow::Result<WalletInstr
 }
 
 #[flutter_api_error]
-pub async fn start_wallet_transfer(pin: String) -> anyhow::Result<WalletTransferInstructionResult> {
+pub async fn start_wallet_transfer() -> anyhow::Result<String> {
     let mut wallet = wallet().write().await;
 
-    // TODO: Skipping properly converting error since PIN is going to be replaced
-    let transfer_uri = wallet.start_transfer(pin).await?;
+    let transfer_uri = wallet.start_transfer().await?;
 
-    Ok(WalletTransferInstructionResult::Ok {
-        transfer_uri: transfer_uri.to_string(),
-    })
+    Ok(transfer_uri.to_string())
 }
 
 #[flutter_api_error]

@@ -59,15 +59,3 @@ sealed class WalletInstructionResult with _$WalletInstructionResult {
     required WalletInstructionError error,
   }) = WalletInstructionResult_InstructionError;
 }
-
-@freezed
-sealed class WalletTransferInstructionResult with _$WalletTransferInstructionResult {
-  const WalletTransferInstructionResult._();
-
-  const factory WalletTransferInstructionResult.ok({
-    required String transferUri,
-  }) = WalletTransferInstructionResult_Ok;
-  const factory WalletTransferInstructionResult.instructionError({
-    required WalletInstructionError error,
-  }) = WalletTransferInstructionResult_InstructionError;
-}

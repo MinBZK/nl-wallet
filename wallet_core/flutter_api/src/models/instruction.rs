@@ -13,11 +13,6 @@ pub enum WalletInstructionResult {
     InstructionError { error: WalletInstructionError },
 }
 
-pub enum WalletTransferInstructionResult {
-    Ok { transfer_uri: String },
-    InstructionError { error: WalletInstructionError },
-}
-
 pub enum PidIssuanceResult {
     Ok { transfer_available: bool },
     InstructionError { error: WalletInstructionError },

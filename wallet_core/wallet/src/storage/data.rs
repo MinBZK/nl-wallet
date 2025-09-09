@@ -7,6 +7,7 @@ use serde_with::serde_as;
 use wallet_account::messages::registration::WalletCertificate;
 
 use crate::pin::change::State;
+use crate::transfer::TransferSessionId;
 
 pub trait KeyedData: Serialize + DeserializeOwned {
     const KEY: &'static str;
@@ -60,6 +61,11 @@ pub struct UnlockData {
     pub method: UnlockMethod,
 }
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub struct TransferData {
+    pub transfer_session_id: TransferSessionId,
+}
+
 impl KeyedData for KeyData {
     const KEY: &'static str = "key";
 }
@@ -78,4 +84,8 @@ impl KeyedData for UnlockData {
 
 impl KeyedData for ChangePinData {
     const KEY: &'static str = "change_pin";
+}
+
+impl KeyedData for TransferData {
+    const KEY: &'static str = "transfer_data";
 }

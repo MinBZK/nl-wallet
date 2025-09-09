@@ -228,9 +228,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   WalletInstructionResult dco_decode_wallet_instruction_result(dynamic raw);
 
   @protected
-  WalletTransferInstructionResult dco_decode_wallet_transfer_instruction_result(dynamic raw);
-
-  @protected
   WalletTransferState dco_decode_wallet_transfer_state(dynamic raw);
 
   @protected
@@ -431,9 +428,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   WalletInstructionResult sse_decode_wallet_instruction_result(SseDeserializer deserializer);
-
-  @protected
-  WalletTransferInstructionResult sse_decode_wallet_transfer_instruction_result(SseDeserializer deserializer);
 
   @protected
   WalletTransferState sse_decode_wallet_transfer_state(SseDeserializer deserializer);
@@ -1140,23 +1134,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   }
 
   @protected
-  void cst_api_fill_to_wire_wallet_transfer_instruction_result(
-      WalletTransferInstructionResult apiObj, wire_cst_wallet_transfer_instruction_result wireObj) {
-    if (apiObj is WalletTransferInstructionResult_Ok) {
-      var pre_transfer_uri = cst_encode_String(apiObj.transferUri);
-      wireObj.tag = 0;
-      wireObj.kind.Ok.transfer_uri = pre_transfer_uri;
-      return;
-    }
-    if (apiObj is WalletTransferInstructionResult_InstructionError) {
-      var pre_error = cst_encode_box_autoadd_wallet_instruction_error(apiObj.error);
-      wireObj.tag = 1;
-      wireObj.kind.InstructionError.error = pre_error;
-      return;
-    }
-  }
-
-  @protected
   bool cst_encode_bool(bool raw);
 
   @protected
@@ -1390,9 +1367,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void sse_encode_wallet_instruction_result(WalletInstructionResult self, SseSerializer serializer);
-
-  @protected
-  void sse_encode_wallet_transfer_instruction_result(WalletTransferInstructionResult self, SseSerializer serializer);
 
   @protected
   void sse_encode_wallet_transfer_state(WalletTransferState self, SseSerializer serializer);
@@ -2108,19 +2082,17 @@ class WalletCoreWire implements BaseWire {
 
   void wire__crate__api__full__start_wallet_transfer(
     int port_,
-    ffi.Pointer<wire_cst_list_prim_u_8_strict> pin,
   ) {
     return _wire__crate__api__full__start_wallet_transfer(
       port_,
-      pin,
     );
   }
 
   late final _wire__crate__api__full__start_wallet_transferPtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>>(
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
           'frbgen_wallet_core_wire__crate__api__full__start_wallet_transfer');
-  late final _wire__crate__api__full__start_wallet_transfer = _wire__crate__api__full__start_wallet_transferPtr
-      .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
+  late final _wire__crate__api__full__start_wallet_transfer =
+      _wire__crate__api__full__start_wallet_transferPtr.asFunction<void Function(int)>();
 
   void wire__crate__api__full__unlock_wallet(
     int port_,
@@ -2869,25 +2841,4 @@ final class wire_cst_wallet_instruction_result extends ffi.Struct {
   external int tag;
 
   external WalletInstructionResultKind kind;
-}
-
-final class wire_cst_WalletTransferInstructionResult_Ok extends ffi.Struct {
-  external ffi.Pointer<wire_cst_list_prim_u_8_strict> transfer_uri;
-}
-
-final class wire_cst_WalletTransferInstructionResult_InstructionError extends ffi.Struct {
-  external ffi.Pointer<wire_cst_wallet_instruction_error> error;
-}
-
-final class WalletTransferInstructionResultKind extends ffi.Union {
-  external wire_cst_WalletTransferInstructionResult_Ok Ok;
-
-  external wire_cst_WalletTransferInstructionResult_InstructionError InstructionError;
-}
-
-final class wire_cst_wallet_transfer_instruction_result extends ffi.Struct {
-  @ffi.Int32()
-  external int tag;
-
-  external WalletTransferInstructionResultKind kind;
 }

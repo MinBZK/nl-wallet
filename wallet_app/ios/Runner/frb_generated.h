@@ -377,24 +377,6 @@ typedef struct wire_cst_wallet_instruction_result {
   union WalletInstructionResultKind kind;
 } wire_cst_wallet_instruction_result;
 
-typedef struct wire_cst_WalletTransferInstructionResult_Ok {
-  struct wire_cst_list_prim_u_8_strict *transfer_uri;
-} wire_cst_WalletTransferInstructionResult_Ok;
-
-typedef struct wire_cst_WalletTransferInstructionResult_InstructionError {
-  struct wire_cst_wallet_instruction_error *error;
-} wire_cst_WalletTransferInstructionResult_InstructionError;
-
-typedef union WalletTransferInstructionResultKind {
-  struct wire_cst_WalletTransferInstructionResult_Ok Ok;
-  struct wire_cst_WalletTransferInstructionResult_InstructionError InstructionError;
-} WalletTransferInstructionResultKind;
-
-typedef struct wire_cst_wallet_transfer_instruction_result {
-  int32_t tag;
-  union WalletTransferInstructionResultKind kind;
-} wire_cst_wallet_transfer_instruction_result;
-
 void frbgen_wallet_core_wire__crate__api__full__accept_disclosure(int64_t port_,
                                                                   struct wire_cst_list_prim_u_8_strict *pin);
 
@@ -510,8 +492,7 @@ void frbgen_wallet_core_wire__crate__api__full__start_disclosure(int64_t port_,
                                                                  struct wire_cst_list_prim_u_8_strict *uri,
                                                                  bool is_qr_code);
 
-void frbgen_wallet_core_wire__crate__api__full__start_wallet_transfer(int64_t port_,
-                                                                      struct wire_cst_list_prim_u_8_strict *pin);
+void frbgen_wallet_core_wire__crate__api__full__start_wallet_transfer(int64_t port_);
 
 void frbgen_wallet_core_wire__crate__api__full__unlock_wallet(int64_t port_,
                                                               struct wire_cst_list_prim_u_8_strict *pin);
