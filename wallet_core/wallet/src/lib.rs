@@ -8,6 +8,7 @@ mod pin;
 mod repository;
 mod reqwest;
 mod storage;
+mod transfer;
 mod update_policy;
 mod wallet;
 

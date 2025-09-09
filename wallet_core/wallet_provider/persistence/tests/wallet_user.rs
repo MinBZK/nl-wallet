@@ -19,10 +19,10 @@ use wallet_provider_persistence::entity::wallet_user;
 use wallet_provider_persistence::transaction;
 use wallet_provider_persistence::wallet_user::clear_instruction_challenge;
 use wallet_provider_persistence::wallet_user::commit_pin_change;
-use wallet_provider_persistence::wallet_user::find_app_version_by_transfer_session_id;
+use wallet_provider_persistence::wallet_user::create_transfer_session;
+use wallet_provider_persistence::wallet_user::find_transfer_session_by_transfer_session_id;
 use wallet_provider_persistence::wallet_user::find_wallet_user_by_wallet_id;
 use wallet_provider_persistence::wallet_user::has_multiple_active_accounts_by_recovery_code;
-use wallet_provider_persistence::wallet_user::prepare_transfer;
 use wallet_provider_persistence::wallet_user::register_unsuccessful_pin_entry;
 use wallet_provider_persistence::wallet_user::rollback_pin_change;
 use wallet_provider_persistence::wallet_user::store_recovery_code;
@@ -440,17 +440,18 @@ async fn test_has_multiple_accounts() {
 }
 
 #[tokio::test]
-async fn test_prepare_transfer() {
-    let (db, _, wallet_id, _) = create_test_user().await;
+async fn test_create_transfer_session() {
+    let (db, wallet_user_id, wallet_id, _) = create_test_user().await;
 
     let transfer_session_id = Uuid::new_v4();
     let destination_wallet_app_version = Version::parse("1.0.0").unwrap();
 
-    prepare_transfer(
+    create_transfer_session(
         &db,
-        &wallet_id,
+        wallet_user_id,
         transfer_session_id,
         destination_wallet_app_version.clone(),
+        Utc::now(),
     )
     .await
     .unwrap();
@@ -460,11 +461,21 @@ async fn test_prepare_transfer() {
     else {
         panic!("Could not find wallet user");
     };
-    assert_eq!(transfer_session_id, stored_wallet_user.transfer_session_id.unwrap());
+    assert_eq!(
+        transfer_session_id,
+        stored_wallet_user.transfer_session.unwrap().transfer_session_id
+    );
 
     // Preparing a transfer for a wallet that is already transferring should return an error
-    let result = prepare_transfer(&db, &wallet_id, Uuid::new_v4(), destination_wallet_app_version).await;
-    assert_matches!(result, Err(PersistenceError::NoRowsUpdated));
+    let result = create_transfer_session(
+        &db,
+        wallet_user_id,
+        Uuid::new_v4(),
+        destination_wallet_app_version,
+        Utc::now(),
+    )
+    .await;
+    assert_matches!(result, Err(PersistenceError::Execution(_)));
 
     // The existing transfer_session_id should be returned
     let WalletUserQueryResult::Found(stored_wallet_user) =
@@ -472,28 +483,37 @@ async fn test_prepare_transfer() {
     else {
         panic!("Could not find wallet user");
     };
-    assert_eq!(transfer_session_id, stored_wallet_user.transfer_session_id.unwrap());
+    assert_eq!(
+        transfer_session_id,
+        stored_wallet_user.transfer_session.unwrap().transfer_session_id
+    );
 }
 
 #[tokio::test]
-async fn test_find_app_version_by_transfer_session_id() {
-    let (db, _, wallet_id, _) = create_test_user().await;
+async fn test_find_transfer_session_by_transfer_session_id() {
+    let (db, wallet_user_id, _, _) = create_test_user().await;
 
     let transfer_session_id = Uuid::new_v4();
     let destination_wallet_app_version = Version::parse("1.2.3").unwrap();
 
-    prepare_transfer(
+    create_transfer_session(
         &db,
-        &wallet_id,
+        wallet_user_id,
         transfer_session_id,
         destination_wallet_app_version.clone(),
+        Utc::now(),
     )
     .await
     .unwrap();
 
-    let app_version = find_app_version_by_transfer_session_id(&db, transfer_session_id)
+    let transfer_session = find_transfer_session_by_transfer_session_id(&db, transfer_session_id)
         .await
+        .unwrap()
         .unwrap();
 
-    assert_eq!(Some(destination_wallet_app_version), app_version);
+    assert_eq!(transfer_session_id, transfer_session.transfer_session_id);
+    assert_eq!(
+        destination_wallet_app_version,
+        transfer_session.destination_wallet_app_version
+    );
 }

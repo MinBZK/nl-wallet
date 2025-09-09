@@ -9,6 +9,7 @@ mod m20250102_000001_create_wallet_user_android_attestation_table;
 mod m20250102_000010_create_wallet_user_table;
 mod m20250102_000020_create_wallet_user_key_table;
 mod m20250102_000021_create_wallet_user_challenge_instruction;
+mod m20250102_000030_create_wallet_transfer_table;
 
 pub struct Migrator;
 
@@ -20,6 +21,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20250102_000010_create_wallet_user_table::Migration),
             Box::new(m20250102_000020_create_wallet_user_key_table::Migration),
             Box::new(m20250102_000021_create_wallet_user_challenge_instruction::Migration),
+            Box::new(m20250102_000030_create_wallet_transfer_table::Migration),
         ]
     }
 }

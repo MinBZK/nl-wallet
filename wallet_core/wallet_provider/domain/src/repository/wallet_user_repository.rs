@@ -11,6 +11,7 @@ use hsm::model::encrypted::Encrypted;
 use hsm::model::wrapped_key::WrappedKey;
 
 use crate::model::wallet_user::InstructionChallenge;
+use crate::model::wallet_user::TransferSession;
 use crate::model::wallet_user::WalletUserCreate;
 use crate::model::wallet_user::WalletUserKeys;
 use crate::model::wallet_user::WalletUserQueryResult;
@@ -98,19 +99,20 @@ pub trait WalletUserRepository {
         assertion_counter: AssertionCounter,
     ) -> Result<()>;
 
-    async fn prepare_transfer(
+    async fn create_transfer_session(
         &self,
         transaction: &Self::TransactionType,
-        wallet_id: &str,
+        destination_wallet_user_id: Uuid,
         transfer_session_id: Uuid,
         destination_wallet_app_version: Version,
+        created: DateTime<Utc>,
     ) -> Result<()>;
 
-    async fn find_app_version_by_transfer_session_id(
+    async fn find_transfer_session_by_transfer_session_id(
         &self,
         transaction: &Self::TransactionType,
         transfer_session_id: Uuid,
-    ) -> Result<Option<Version>>;
+    ) -> Result<Option<TransferSession>>;
 }
 
 #[cfg(feature = "mock")]
@@ -123,9 +125,9 @@ pub mod mock {
     use super::super::transaction::mock::MockTransaction;
     use super::*;
 
-    pub struct MockWalletUserRepository;
+    pub struct WalletUserRepositoryStub;
 
-    impl WalletUserRepository for MockWalletUserRepository {
+    impl WalletUserRepository for WalletUserRepositoryStub {
         type TransactionType = MockTransaction;
 
         async fn create_wallet_user(
@@ -247,21 +249,22 @@ pub mod mock {
             Ok(false)
         }
 
-        async fn prepare_transfer(
+        async fn create_transfer_session(
             &self,
             _transaction: &Self::TransactionType,
-            _wallet_id: &str,
+            _destination_wallet_user_id: Uuid,
             _transfer_session_id: Uuid,
             _destination_wallet_app_version: Version,
+            _created: DateTime<Utc>,
         ) -> Result<()> {
             Ok(())
         }
 
-        async fn find_app_version_by_transfer_session_id(
+        async fn find_transfer_session_by_transfer_session_id(
             &self,
             _transaction: &Self::TransactionType,
             _transfer_session_id: Uuid,
-        ) -> Result<Option<Version>> {
+        ) -> Result<Option<TransferSession>> {
             Ok(None)
         }
     }

@@ -12,4 +12,4 @@ pub use self::transaction::mock::MockTransaction;
 #[cfg(feature = "mock")]
 pub use self::transaction::mock::MockTransactionStarter;
 #[cfg(feature = "mock")]
-pub use self::wallet_user_repository::mock::MockWalletUserRepository;
+pub use self::wallet_user_repository::mock::WalletUserRepositoryStub;

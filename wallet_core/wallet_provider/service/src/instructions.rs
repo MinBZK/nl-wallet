@@ -3,6 +3,8 @@ use std::hash::Hasher;
 use std::sync::Arc;
 
 use base64::prelude::*;
+use chrono::DateTime;
+use chrono::Utc;
 use futures::future;
 use itertools::Itertools;
 use p256::ecdsa::Signature;
@@ -41,7 +43,6 @@ use wallet_account::messages::instructions::PerformIssuanceResult;
 use wallet_account::messages::instructions::PerformIssuanceWithWua;
 use wallet_account::messages::instructions::PerformIssuanceWithWuaResult;
 use wallet_account::messages::instructions::PrepareTransfer;
-use wallet_account::messages::instructions::PrepareTransferResult;
 use wallet_account::messages::instructions::Sign;
 use wallet_account::messages::instructions::SignResult;
 use wallet_account::messages::instructions::StartPinRecovery;
@@ -198,31 +199,33 @@ impl PinChecks for StartPinRecovery {
 pub trait HandleInstruction {
     type Result: Serialize;
 
-    async fn handle<T, R, H>(
+    async fn handle<T, R, H, G>(
         self,
         wallet_user: &WalletUser,
-        uuid_generator: &impl Generator<Uuid>,
+        generators: &G,
         user_state: &UserState<R, H, impl WuaIssuer>,
     ) -> Result<Self::Result, InstructionError>
     where
         T: Committable,
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
-        H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>;
+        H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
+        G: Generator<Uuid> + Generator<DateTime<Utc>>;
 }
 
 impl HandleInstruction for CheckPin {
     type Result = ();
 
-    async fn handle<T, R, H>(
+    async fn handle<T, R, H, G>(
         self,
         _wallet_user: &WalletUser,
-        _uuid_generator: &impl Generator<Uuid>,
+        _generators: &G,
         _user_state: &UserState<R, H, impl WuaIssuer>,
     ) -> Result<(), InstructionError>
     where
         T: Committable,
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
         H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
+        G: Generator<Uuid> + Generator<DateTime<Utc>>,
     {
         Ok(())
     }
@@ -231,16 +234,17 @@ impl HandleInstruction for CheckPin {
 impl HandleInstruction for ChangePinCommit {
     type Result = ();
 
-    async fn handle<T, R, H>(
+    async fn handle<T, R, H, G>(
         self,
         wallet_user: &WalletUser,
-        _uuid_generator: &impl Generator<Uuid>,
+        _generators: &G,
         user_state: &UserState<R, H, impl WuaIssuer>,
     ) -> Result<Self::Result, InstructionError>
     where
         T: Committable,
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
         H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
+        G: Generator<Uuid> + Generator<DateTime<Utc>>,
     {
         let tx = user_state.repositories.begin_transaction().await?;
 
@@ -474,16 +478,17 @@ where
 impl HandleInstruction for PerformIssuance {
     type Result = PerformIssuanceResult;
 
-    async fn handle<T, R, H>(
+    async fn handle<T, R, H, G>(
         self,
         wallet_user: &WalletUser,
-        uuid_generator: &impl Generator<Uuid>,
+        generators: &G,
         user_state: &UserState<R, H, impl WuaIssuer>,
     ) -> Result<Self::Result, InstructionError>
     where
         T: Committable,
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
         H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
+        G: Generator<Uuid> + Generator<DateTime<Utc>>,
     {
         let (issuance_result, _, wrapped_keys, _) = perform_issuance(self, false, user_state).await?;
 
@@ -492,7 +497,7 @@ impl HandleInstruction for PerformIssuance {
             issuance_result.key_identifiers.as_ref().to_vec(),
             None,
             wallet_user,
-            uuid_generator,
+            generators,
             user_state,
         )
         .await?;
@@ -504,16 +509,17 @@ impl HandleInstruction for PerformIssuance {
 impl HandleInstruction for PerformIssuanceWithWua {
     type Result = PerformIssuanceWithWuaResult;
 
-    async fn handle<T, R, H>(
+    async fn handle<T, R, H, G>(
         self,
         wallet_user: &WalletUser,
-        uuid_generator: &impl Generator<Uuid>,
+        generators: &G,
         user_state: &UserState<R, H, impl WuaIssuer>,
     ) -> Result<Self::Result, InstructionError>
     where
         T: Committable,
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
         H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
+        G: Generator<Uuid> + Generator<DateTime<Utc>>,
     {
         let (issuance_with_wua_result, wrapped_keys, wua_key_and_id) =
             perform_issuance_with_wua(self.issuance_instruction, user_state).await?;
@@ -527,7 +533,7 @@ impl HandleInstruction for PerformIssuanceWithWua {
                 .to_vec(),
             Some(wua_key_and_id),
             wallet_user,
-            uuid_generator,
+            generators,
             user_state,
         )
         .await?;
@@ -539,16 +545,17 @@ impl HandleInstruction for PerformIssuanceWithWua {
 impl HandleInstruction for Sign {
     type Result = SignResult;
 
-    async fn handle<T, R, H>(
+    async fn handle<T, R, H, G>(
         self,
         wallet_user: &WalletUser,
-        _uuid_generator: &impl Generator<Uuid>,
+        _generators: &G,
         user_state: &UserState<R, H, impl WuaIssuer>,
     ) -> Result<SignResult, InstructionError>
     where
         T: Committable,
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
         H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
+        G: Generator<Uuid> + Generator<DateTime<Utc>>,
     {
         let (data, identifiers): (Vec<_>, Vec<_>) = self.messages_with_identifiers.into_iter().unzip();
 
@@ -602,16 +609,17 @@ impl HandleInstruction for Sign {
 impl HandleInstruction for DiscloseRecoveryCode {
     type Result = DiscloseRecoveryCodeResult;
 
-    async fn handle<T, R, H>(
+    async fn handle<T, R, H, G>(
         self,
         wallet_user: &WalletUser,
-        _uuid_generator: &impl Generator<Uuid>,
+        generators: &G,
         user_state: &UserState<R, H, impl WuaIssuer>,
     ) -> Result<Self::Result, InstructionError>
     where
         T: Committable,
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
         H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
+        G: Generator<Uuid> + Generator<DateTime<Utc>>,
     {
         let (verified_sd_jwt, _) = self
             .recovery_code_disclosure
@@ -635,96 +643,28 @@ impl HandleInstruction for DiscloseRecoveryCode {
             .has_multiple_active_accounts_by_recovery_code(&tx, &recovery_code)
             .await?;
 
-        tx.commit().await?;
-
-        Ok(DiscloseRecoveryCodeResult {
-            transfer_available: has_multiple_accounts_for_recovery_code,
-        })
-    }
-}
-
-impl HandleInstruction for PrepareTransfer {
-    type Result = PrepareTransferResult;
-
-    async fn handle<T, R, H>(
-        self,
-        wallet_user: &WalletUser,
-        _uuid_generator: &impl Generator<Uuid>,
-        user_state: &UserState<R, H, impl WuaIssuer>,
-    ) -> Result<Self::Result, InstructionError>
-    where
-        T: Committable,
-        R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
-        H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
-    {
-        let Some(recovery_code) = &wallet_user.recovery_code else {
-            return Err(InstructionError::MissingRecoveryCode);
-        };
-
-        let transfer_session_id = match wallet_user.transfer_session_id {
-            Some(transfer_session_id) => transfer_session_id,
-            None => {
-                let transfer_session_id = Uuid::new_v4();
-
-                let tx = user_state.repositories.begin_transaction().await?;
-
-                let has_multiple_active_accounts = user_state
-                    .repositories
-                    .has_multiple_active_accounts_by_recovery_code(&tx, recovery_code)
-                    .await?;
-                if !has_multiple_active_accounts {
-                    return Err(InstructionError::AccountNotTransferable);
-                }
-
-                user_state
-                    .repositories
-                    .prepare_transfer(&tx, &wallet_user.wallet_id, transfer_session_id, self.app_version)
-                    .await?;
-
-                tx.commit().await?;
-
-                transfer_session_id
-            }
-        };
-
-        Ok(PrepareTransferResult { transfer_session_id })
-    }
-}
-
-impl HandleInstruction for ConfirmTransfer {
-    type Result = ();
-
-    async fn handle<T, R, H>(
-        self,
-        _wallet_user: &WalletUser,
-        _uuid_generator: &impl Generator<Uuid>,
-        user_state: &UserState<R, H, impl WuaIssuer>,
-    ) -> Result<Self::Result, InstructionError>
-    where
-        T: Committable,
-        R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
-        H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
-    {
-        let tx = user_state.repositories.begin_transaction().await?;
-
-        let Some(destination_version) = user_state
-            .repositories
-            .find_app_version_by_transfer_session_id(&tx, self.transfer_session_id)
-            .await?
-        else {
-            return Err(InstructionError::NoAccountTransferInProgress);
+        let transfer_session_id = if let Some(transfer_session) = &wallet_user.transfer_session {
+            Some(transfer_session.transfer_session_id)
+        } else if has_multiple_accounts_for_recovery_code {
+            let transfer_session_id = Uuid::new_v4();
+            user_state
+                .repositories
+                .create_transfer_session(
+                    &tx,
+                    wallet_user.id,
+                    transfer_session_id,
+                    self.app_version,
+                    generators.generate(),
+                )
+                .await?;
+            Some(transfer_session_id)
+        } else {
+            None
         };
 
         tx.commit().await?;
 
-        if destination_version < self.app_version {
-            return Err(InstructionError::AppVersionMismatch {
-                source_version: self.app_version,
-                destination_version,
-            });
-        }
-
-        Ok(())
+        Ok(DiscloseRecoveryCodeResult { transfer_session_id })
     }
 }
 
@@ -845,20 +785,20 @@ mod tests {
     use jwt::pop::JwtPopClaims;
     use jwt::wua::WuaDisclosure;
     use sd_jwt::sd_jwt::SdJwtPresentation;
+    use sd_jwt::sd_jwt::UnverifiedSdJwt;
     use wallet_account::NL_WALLET_CLIENT_ID;
     use wallet_account::messages::instructions::ChangePinCommit;
     use wallet_account::messages::instructions::ChangePinRollback;
     use wallet_account::messages::instructions::ChangePinStart;
     use wallet_account::messages::instructions::CheckPin;
-    use wallet_account::messages::instructions::ConfirmTransfer;
     use wallet_account::messages::instructions::DiscloseRecoveryCode;
     use wallet_account::messages::instructions::PerformIssuance;
     use wallet_account::messages::instructions::PerformIssuanceWithWua;
-    use wallet_account::messages::instructions::PrepareTransfer;
     use wallet_account::messages::instructions::Sign;
     use wallet_account::messages::instructions::StartPinRecovery;
-    use wallet_provider_domain::FixedUuidGenerator;
+    use wallet_provider_domain::generator::mock::MockGenerators;
     use wallet_provider_domain::model::wallet_user;
+    use wallet_provider_domain::model::wallet_user::TransferSession;
     use wallet_provider_domain::model::wallet_user::WalletUserState;
     use wallet_provider_domain::repository::MockTransaction;
     use wallet_provider_persistence::repositories::mock::MockTransactionalWalletUserRepository;
@@ -867,7 +807,6 @@ mod tests {
     use crate::account_server::InstructionValidationError;
     use crate::account_server::mock;
     use crate::instructions::HandleInstruction;
-    use crate::instructions::InstructionError;
     use crate::instructions::ValidateInstruction;
     use crate::instructions::is_poa_message;
     use crate::wallet_certificate::mock::setup_hsm;
@@ -881,7 +820,7 @@ mod tests {
         instruction
             .handle(
                 &wallet_user,
-                &FixedUuidGenerator,
+                &MockGenerators,
                 &mock::user_state(
                     MockTransactionalWalletUserRepository::new(),
                     setup_hsm().await,
@@ -942,7 +881,7 @@ mod tests {
         let result = instruction
             .handle(
                 &wallet_user,
-                &FixedUuidGenerator,
+                &MockGenerators,
                 &mock::user_state(
                     wallet_user_repo,
                     setup_hsm().await,
@@ -1000,6 +939,7 @@ mod tests {
 
         let instruction = DiscloseRecoveryCode {
             recovery_code_disclosure,
+            app_version: Version::parse("1.0.0").unwrap(),
         };
 
         let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
@@ -1013,10 +953,10 @@ mod tests {
             .expect_has_multiple_active_accounts_by_recovery_code()
             .returning(|_, _| Ok(false));
 
-        instruction
+        let result = instruction
             .handle(
                 &wallet_user,
-                &FixedUuidGenerator,
+                &MockGenerators,
                 &mock::user_state(
                     wallet_user_repo,
                     setup_hsm().await,
@@ -1026,6 +966,185 @@ mod tests {
             )
             .await
             .unwrap();
+
+        assert!(result.transfer_session_id.is_none());
+    }
+
+    #[tokio::test]
+    async fn should_handle_disclose_recovery_code_with_multiple_accounts() {
+        let wallet_user = wallet_user::mock::wallet_user_1();
+        let wrapping_key_identifier = "my-wrapping-key-identifier";
+
+        let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
+        let issuer_key = generate_issuer_mock(&issuer_ca, IssuerRegistration::new_mock().into()).unwrap();
+        let sd_jwt = SdJwtPresentation::example_pid_sd_jwt(&issuer_key);
+
+        let recovery_code_disclosure = sd_jwt
+            .into_presentation_builder()
+            .disclose(
+                &vec![ClaimPath::SelectByKey(PID_RECOVERY_CODE.to_owned())]
+                    .try_into()
+                    .unwrap(),
+            )
+            .unwrap()
+            .finish()
+            .into();
+
+        let instruction = DiscloseRecoveryCode {
+            recovery_code_disclosure,
+            app_version: Version::parse("1.0.0").unwrap(),
+        };
+
+        let transfer_session_id: Arc<Mutex<Option<Uuid>>> = Arc::new(Mutex::new(None));
+        let transfer_session_id_clone = Arc::clone(&transfer_session_id);
+
+        let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
+        wallet_user_repo
+            .expect_begin_transaction()
+            .returning(|| Ok(MockTransaction));
+        wallet_user_repo
+            .expect_store_recovery_code()
+            .returning(|_, _, _| Ok(()));
+        wallet_user_repo
+            .expect_has_multiple_active_accounts_by_recovery_code()
+            .returning(|_, _| Ok(true));
+        wallet_user_repo
+            .expect_create_transfer_session()
+            .withf(move |_, _, session_id, _, _| {
+                transfer_session_id_clone.lock().unwrap().replace(*session_id);
+                true
+            })
+            .returning(|_, _, _, _, _| Ok(()));
+
+        let result = instruction
+            .handle(
+                &wallet_user,
+                &MockGenerators,
+                &mock::user_state(
+                    wallet_user_repo,
+                    setup_hsm().await,
+                    wrapping_key_identifier.to_string(),
+                    vec![issuer_ca.as_borrowing_trust_anchor().to_owned_trust_anchor()],
+                ),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(
+            transfer_session_id.lock().unwrap().unwrap(),
+            result.transfer_session_id.unwrap()
+        );
+    }
+
+    #[tokio::test]
+    async fn should_handle_disclose_recovery_code_with_multiple_accounts_idempotency() {
+        let mut wallet_user = wallet_user::mock::wallet_user_1();
+        let wrapping_key_identifier = "my-wrapping-key-identifier";
+
+        let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
+        let issuer_key = generate_issuer_mock(&issuer_ca, IssuerRegistration::new_mock().into()).unwrap();
+        let sd_jwt = SdJwtPresentation::example_pid_sd_jwt(&issuer_key);
+
+        let recovery_code_disclosure: UnverifiedSdJwt = sd_jwt
+            .into_presentation_builder()
+            .disclose(
+                &vec![ClaimPath::SelectByKey(PID_RECOVERY_CODE.to_owned())]
+                    .try_into()
+                    .unwrap(),
+            )
+            .unwrap()
+            .finish()
+            .into();
+
+        let instruction = DiscloseRecoveryCode {
+            recovery_code_disclosure: recovery_code_disclosure.clone(),
+            app_version: Version::parse("1.0.0").unwrap(),
+        };
+
+        let transfer_session_id: Arc<Mutex<Option<Uuid>>> = Arc::new(Mutex::new(None));
+        let transfer_session_id_clone = Arc::clone(&transfer_session_id);
+
+        let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
+        wallet_user_repo
+            .expect_begin_transaction()
+            .returning(|| Ok(MockTransaction));
+        wallet_user_repo
+            .expect_store_recovery_code()
+            .returning(|_, _, _| Ok(()));
+        wallet_user_repo
+            .expect_has_multiple_active_accounts_by_recovery_code()
+            .returning(|_, _| Ok(true));
+        wallet_user_repo
+            .expect_create_transfer_session()
+            .withf(move |_, _, session_id, _, _| {
+                transfer_session_id_clone.lock().unwrap().replace(*session_id);
+                true
+            })
+            .returning(|_, _, _, _, _| Ok(()));
+
+        let result = instruction
+            .handle(
+                &wallet_user,
+                &MockGenerators,
+                &mock::user_state(
+                    wallet_user_repo,
+                    setup_hsm().await,
+                    wrapping_key_identifier.to_string(),
+                    vec![issuer_ca.as_borrowing_trust_anchor().to_owned_trust_anchor()],
+                ),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(
+            transfer_session_id.lock().unwrap().unwrap(),
+            result.transfer_session_id.unwrap()
+        );
+
+        let instruction = DiscloseRecoveryCode {
+            recovery_code_disclosure,
+            app_version: Version::parse("1.0.0").unwrap(),
+        };
+
+        let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
+        wallet_user_repo
+            .expect_begin_transaction()
+            .returning(|| Ok(MockTransaction));
+        wallet_user_repo
+            .expect_store_recovery_code()
+            .returning(|_, _, _| Ok(()));
+        wallet_user_repo
+            .expect_has_multiple_active_accounts_by_recovery_code()
+            .returning(|_, _| Ok(true));
+        wallet_user_repo.expect_create_transfer_session().never();
+
+        wallet_user.transfer_session = Some(TransferSession {
+            id: Uuid::new_v4(),
+            destination_wallet_user_id: Uuid::new_v4(),
+            transfer_session_id: transfer_session_id.lock().unwrap().unwrap(),
+            destination_wallet_app_version: Version::parse("1.9.8").unwrap(),
+            in_progress: false,
+            encrypted_wallet_data: None,
+        });
+
+        let result = instruction
+            .handle(
+                &wallet_user,
+                &MockGenerators,
+                &mock::user_state(
+                    wallet_user_repo,
+                    setup_hsm().await,
+                    wrapping_key_identifier.to_string(),
+                    vec![issuer_ca.as_borrowing_trust_anchor().to_owned_trust_anchor()],
+                ),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(
+            transfer_session_id.lock().unwrap().unwrap(),
+            result.transfer_session_id.unwrap()
+        );
     }
 
     fn mock_jwt_payload(header: &str) -> Vec<u8> {
@@ -1096,7 +1215,7 @@ mod tests {
         instruction
             .handle(
                 &wallet_user,
-                &FixedUuidGenerator,
+                &MockGenerators,
                 &mock::user_state(
                     wallet_user_repo,
                     setup_hsm().await,
@@ -1244,253 +1363,5 @@ mod tests {
         } else {
             assert_matches!(result, Err(InstructionValidationError::PinRecoveryInProgress));
         }
-    }
-
-    #[tokio::test]
-    async fn should_handle_prepare_transfer() {
-        let wrapping_key_identifier = "my-wrapping-key-identifier";
-        let mut wallet_user = wallet_user::mock::wallet_user_1();
-        wallet_user.recovery_code = Some(String::from("recovery_code_123"));
-
-        let captured_transfer_session_id: Arc<Mutex<Option<Uuid>>> = Arc::new(Mutex::new(None));
-        let captured = captured_transfer_session_id.clone();
-
-        let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
-        wallet_user_repo
-            .expect_begin_transaction()
-            .returning(|| Ok(MockTransaction));
-        wallet_user_repo
-            .expect_has_multiple_active_accounts_by_recovery_code()
-            .returning(|_, _| Ok(true));
-        wallet_user_repo
-            .expect_prepare_transfer()
-            .withf(move |_, _, transfer_session_id, destination_wallet_app_version| {
-                *captured.lock().unwrap() = Some(*transfer_session_id);
-                destination_wallet_app_version.to_string().as_str() == "1.0.0"
-            })
-            .returning(|_, _, _, _| Ok(()));
-
-        let instruction = PrepareTransfer {
-            app_version: Version::parse("1.0.0").unwrap(),
-        };
-
-        let result = instruction
-            .handle(
-                &wallet_user,
-                &FixedUuidGenerator,
-                &mock::user_state(
-                    wallet_user_repo,
-                    setup_hsm().await,
-                    wrapping_key_identifier.to_string(),
-                    vec![],
-                ),
-            )
-            .await
-            .unwrap();
-
-        assert_eq!(
-            captured_transfer_session_id.lock().unwrap().unwrap(),
-            result.transfer_session_id
-        );
-    }
-
-    #[tokio::test]
-    async fn should_handle_prepare_transfer_no_multiple_accounts() {
-        let wrapping_key_identifier = "my-wrapping-key-identifier";
-        let mut wallet_user = wallet_user::mock::wallet_user_1();
-        wallet_user.recovery_code = Some(String::from("recovery_code_123"));
-
-        let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
-        wallet_user_repo
-            .expect_begin_transaction()
-            .returning(|| Ok(MockTransaction));
-        wallet_user_repo
-            .expect_has_multiple_active_accounts_by_recovery_code()
-            .returning(|_, _| Ok(false));
-
-        let instruction = PrepareTransfer {
-            app_version: Version::parse("1.0.0").unwrap(),
-        };
-
-        let result = instruction
-            .handle(
-                &wallet_user,
-                &FixedUuidGenerator,
-                &mock::user_state(
-                    wallet_user_repo,
-                    setup_hsm().await,
-                    wrapping_key_identifier.to_string(),
-                    vec![],
-                ),
-            )
-            .await
-            .expect_err("should fail there are no elligible accounts");
-
-        assert_matches!(result, InstructionError::AccountNotTransferable);
-    }
-
-    #[tokio::test]
-    async fn should_handle_prepare_transfer_no_recovery_code() {
-        let wrapping_key_identifier = "my-wrapping-key-identifier";
-        let wallet_user = wallet_user::mock::wallet_user_1();
-
-        let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
-        wallet_user_repo
-            .expect_begin_transaction()
-            .returning(|| Ok(MockTransaction));
-
-        let instruction = PrepareTransfer {
-            app_version: Version::parse("1.0.0").unwrap(),
-        };
-
-        let result = instruction
-            .handle(
-                &wallet_user,
-                &FixedUuidGenerator,
-                &mock::user_state(
-                    wallet_user_repo,
-                    setup_hsm().await,
-                    wrapping_key_identifier.to_string(),
-                    vec![],
-                ),
-            )
-            .await
-            .expect_err("should fail when recovery code is missing");
-
-        assert_matches!(result, InstructionError::MissingRecoveryCode);
-    }
-
-    #[tokio::test]
-    async fn should_handle_prepare_transfer_already_transferring() {
-        let wrapping_key_identifier = "my-wrapping-key-identifier";
-        let mut wallet_user = wallet_user::mock::wallet_user_1();
-        let expected_transfer_session_id = Uuid::new_v4();
-        wallet_user.transfer_session_id = Some(expected_transfer_session_id);
-        wallet_user.recovery_code = Some(String::from("recovery_code_123"));
-
-        let wallet_user_repo = MockTransactionalWalletUserRepository::new();
-
-        let instruction = PrepareTransfer {
-            app_version: Version::parse("1.0.0").unwrap(),
-        };
-
-        let result = instruction
-            .handle(
-                &wallet_user,
-                &FixedUuidGenerator,
-                &mock::user_state(
-                    wallet_user_repo,
-                    setup_hsm().await,
-                    wrapping_key_identifier.to_string(),
-                    vec![],
-                ),
-            )
-            .await
-            .unwrap();
-
-        assert_eq!(expected_transfer_session_id, result.transfer_session_id);
-    }
-
-    #[tokio::test]
-    async fn should_handle_confirm_transfer_happy() {
-        let wrapping_key_identifier = "my-wrapping-key-identifier";
-        let wallet_user = wallet_user::mock::wallet_user_1();
-
-        let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
-        wallet_user_repo
-            .expect_begin_transaction()
-            .returning(|| Ok(MockTransaction));
-        wallet_user_repo
-            .expect_find_app_version_by_transfer_session_id()
-            .returning(|_, _| Ok(Some(Version::parse("2.2.3").unwrap())));
-
-        let instruction = ConfirmTransfer {
-            transfer_session_id: Uuid::new_v4(),
-            app_version: Version::parse("1.2.3").unwrap(),
-        };
-
-        instruction
-            .handle(
-                &wallet_user,
-                &FixedUuidGenerator,
-                &mock::user_state(
-                    wallet_user_repo,
-                    setup_hsm().await,
-                    wrapping_key_identifier.to_string(),
-                    vec![],
-                ),
-            )
-            .await
-            .unwrap();
-    }
-
-    #[tokio::test]
-    async fn should_handle_confirm_transfer_no_transfer_session() {
-        let wrapping_key_identifier = "my-wrapping-key-identifier";
-        let wallet_user = wallet_user::mock::wallet_user_1();
-
-        let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
-        wallet_user_repo
-            .expect_begin_transaction()
-            .returning(|| Ok(MockTransaction));
-        wallet_user_repo
-            .expect_find_app_version_by_transfer_session_id()
-            .returning(|_, _| Ok(None));
-
-        let instruction = ConfirmTransfer {
-            transfer_session_id: Uuid::new_v4(),
-            app_version: Version::parse("1.2.3").unwrap(),
-        };
-
-        let err = instruction
-            .handle(
-                &wallet_user,
-                &FixedUuidGenerator,
-                &mock::user_state(
-                    wallet_user_repo,
-                    setup_hsm().await,
-                    wrapping_key_identifier.to_string(),
-                    vec![],
-                ),
-            )
-            .await
-            .expect_err("should fail when there is no transfer session");
-
-        assert_matches!(err, InstructionError::NoAccountTransferInProgress);
-    }
-
-    #[tokio::test]
-    async fn should_handle_confirm_transfer_wrong_app_version() {
-        let wrapping_key_identifier = "my-wrapping-key-identifier";
-        let wallet_user = wallet_user::mock::wallet_user_1();
-
-        let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
-        wallet_user_repo
-            .expect_begin_transaction()
-            .returning(|| Ok(MockTransaction));
-        wallet_user_repo
-            .expect_find_app_version_by_transfer_session_id()
-            .returning(|_, _| Ok(Some(Version::parse("1.2.3").unwrap())));
-
-        let instruction = ConfirmTransfer {
-            transfer_session_id: Uuid::new_v4(),
-            app_version: Version::parse("2.2.3").unwrap(),
-        };
-
-        let err = instruction
-            .handle(
-                &wallet_user,
-                &FixedUuidGenerator,
-                &mock::user_state(
-                    wallet_user_repo,
-                    setup_hsm().await,
-                    wrapping_key_identifier.to_string(),
-                    vec![],
-                ),
-            )
-            .await
-            .expect_err("should fail when app version is wrong");
-
-        assert_matches!(err, InstructionError::AppVersionMismatch { .. });
     }
 }

@@ -115,7 +115,9 @@ impl TryFrom<Result<IssuanceResult, IssuanceError>> for PidIssuanceResult {
 
     fn try_from(value: Result<IssuanceResult, IssuanceError>) -> Result<Self, Self::Error> {
         match value {
-            Ok(IssuanceResult { transfer_available }) => Ok(PidIssuanceResult::Ok { transfer_available }),
+            Ok(IssuanceResult { transfer_session_id }) => Ok(PidIssuanceResult::Ok {
+                transfer_available: transfer_session_id.is_some(),
+            }),
             Err(IssuanceError::Instruction(instruction_error)) => Ok(PidIssuanceResult::InstructionError {
                 error: instruction_error.try_into().map_err(IssuanceError::Instruction)?,
             }),

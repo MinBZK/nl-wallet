@@ -221,6 +221,10 @@ impl InstructionAndResult for Sign {
 pub struct DiscloseRecoveryCode {
     /// PID in SD JWT format with one disclosure: the recovery code
     pub recovery_code_disclosure: UnverifiedSdJwt,
+
+    /// App version of the destination wallet for, in case of a wallet transfer, determining if the source wallet is
+    /// compatible with the destination wallet.
+    pub app_version: Version,
 }
 
 impl InstructionAndResult for DiscloseRecoveryCode {
@@ -231,7 +235,7 @@ impl InstructionAndResult for DiscloseRecoveryCode {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DiscloseRecoveryCodeResult {
-    pub transfer_available: bool,
+    pub transfer_session_id: Option<Uuid>,
 }
 
 // PrepareTransfer instruction.
