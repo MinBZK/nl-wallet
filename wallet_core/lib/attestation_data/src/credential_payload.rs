@@ -243,8 +243,8 @@ impl CredentialPayload {
         Ok(payload)
     }
 
-    fn from_sd_jwt<H>(
-        sd_jwt: &SdJwt<H>,
+    fn from_sd_jwt(
+        sd_jwt: &SdJwt,
         metadata: Option<&NormalizedTypeMetadata>,
     ) -> Result<Self, SdJwtCredentialPayloadError> {
         let disclosed_object = sd_jwt
@@ -261,7 +261,7 @@ impl CredentialPayload {
         Ok(credential_payload)
     }
 
-    pub fn from_sd_jwt_unvalidated<H>(sd_jwt: &SdJwt<H>) -> Result<Self, SdJwtCredentialPayloadError> {
+    pub fn from_sd_jwt_unvalidated(sd_jwt: &SdJwt) -> Result<Self, SdJwtCredentialPayloadError> {
         Self::from_sd_jwt(sd_jwt, None)
     }
 

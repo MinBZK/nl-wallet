@@ -143,8 +143,8 @@ impl<H> UnverifiedSdJwt<H> {
     }
 }
 
-impl<H> From<UnsignedSdJwtPresentation<H>> for UnverifiedSdJwt<H> {
-    fn from(presentation: UnsignedSdJwtPresentation<H>) -> Self {
+impl From<UnsignedSdJwtPresentation> for UnverifiedSdJwt {
+    fn from(presentation: UnsignedSdJwtPresentation) -> Self {
         // TODO we could define `into_disclosures` on `SdJwt` and use that here.
         let disclosures = presentation
             .0
@@ -257,13 +257,13 @@ pub struct SdJwt<H = HeaderWithX5c> {
 #[derive(Debug, Clone, Eq, PartialEq, AsRef, Display)]
 pub struct VerifiedSdJwt<H = HeaderWithX5c>(SdJwt<H>);
 
-impl<H> VerifiedSdJwt<H> {
+impl VerifiedSdJwt {
     #[cfg(feature = "test")]
-    pub fn new_dangerous(sd_jwt: SdJwt<H>) -> Self {
+    pub fn new_dangerous(sd_jwt: SdJwt) -> Self {
         Self(sd_jwt)
     }
 
-    pub fn into_inner(self) -> SdJwt<H> {
+    pub fn into_inner(self) -> SdJwt {
         self.0
     }
 }
@@ -335,8 +335,10 @@ impl<H> SdJwtPresentation<H> {
         .filter(|segment| !segment.is_empty())
         .join("~")
     }
+}
 
-    pub fn sd_jwt(&self) -> &SdJwt<H> {
+impl SdJwtPresentation {
+    pub fn sd_jwt(&self) -> &SdJwt {
         &self.sd_jwt
     }
 
@@ -365,10 +367,6 @@ impl<H> SdJwt<H> {
         }
     }
 
-    pub fn header(&self) -> &H {
-        self.issuer_signed_jwt.header()
-    }
-
     pub fn claims(&self) -> &SdJwtClaims {
         self.issuer_signed_jwt.payload()
     }
@@ -381,6 +379,32 @@ impl<H> SdJwt<H> {
         self.claims().cnf.as_ref()
     }
 
+    /// Serializes the components into the final SD-JWT.
+    pub fn presentation(&self) -> String {
+        let disclosures = self.disclosures.values().join("~");
+        if disclosures.is_empty() {
+            format!("{}~", self.issuer_signed_jwt.jwt())
+        } else {
+            format!("{}~{}~", self.issuer_signed_jwt.jwt(), disclosures)
+        }
+    }
+
+    /// Returns the JSON object obtained by replacing all disclosures into their
+    /// corresponding JWT concealable claims.
+    pub fn to_disclosed_object(&self) -> Result<serde_json::Map<String, serde_json::Value>> {
+        let decoder = SdObjectDecoder;
+        let object = serde_json::to_value(self.claims())?;
+
+        decoder.decode(object.as_object().unwrap(), &self.disclosures)
+    }
+}
+
+impl SdJwt {
+    /// Prepares this [`SdJwt`] for a presentation, returning an [`SdJwtPresentationBuilder`].
+    pub fn into_presentation_builder(self) -> SdJwtPresentationBuilder {
+        SdJwtPresentationBuilder::new(self)
+    }
+
     pub fn issuer_certificate_chain(&self) -> &Vec<BorrowingCertificate> {
         &self.issuer_certificates
     }
@@ -390,16 +414,6 @@ impl<H> SdJwt<H> {
         // The certificate containing the public key corresponding to the key used to digitally sign the
         // JWS MUST be the first certificate.
         self.issuer_certificates.first()
-    }
-
-    /// Serializes the components into the final SD-JWT.
-    pub fn presentation(&self) -> String {
-        let disclosures = self.disclosures.values().join("~");
-        if disclosures.is_empty() {
-            format!("{}~", self.issuer_signed_jwt.jwt())
-        } else {
-            format!("{}~{}~", self.issuer_signed_jwt.jwt(), disclosures)
-        }
     }
 }
 
@@ -457,22 +471,6 @@ where
     }
 }
 
-impl<H> SdJwt<H> {
-    /// Prepares this [`SdJwt`] for a presentation, returning an [`SdJwtPresentationBuilder`].
-    pub fn into_presentation_builder(self) -> SdJwtPresentationBuilder<H> {
-        SdJwtPresentationBuilder::new(self)
-    }
-
-    /// Returns the JSON object obtained by replacing all disclosures into their
-    /// corresponding JWT concealable claims.
-    pub fn to_disclosed_object(&self) -> Result<serde_json::Map<String, serde_json::Value>> {
-        let decoder = SdObjectDecoder;
-        let object = serde_json::to_value(self.claims())?;
-
-        decoder.decode(object.as_object().unwrap(), &self.disclosures)
-    }
-}
-
 impl<H> Display for SdJwt<H> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(&(self.presentation()))
@@ -518,7 +516,7 @@ impl VerifiedSdJwt {
     }
 }
 
-impl<H> VerifiedSdJwt<H> {
+impl VerifiedSdJwt {
     pub fn issuer_certificate(&self) -> &BorrowingCertificate {
         let Self(sd_jwt) = self;
 
@@ -527,7 +525,7 @@ impl<H> VerifiedSdJwt<H> {
             .expect("a verified SD-JWT should always contain a certificate")
     }
 
-    pub fn into_presentation_builder(self) -> SdJwtPresentationBuilder<H> {
+    pub fn into_presentation_builder(self) -> SdJwtPresentationBuilder {
         let Self(sd_jwt) = self;
 
         sd_jwt.into_presentation_builder()
@@ -535,7 +533,7 @@ impl<H> VerifiedSdJwt<H> {
 }
 
 #[derive(Clone)]
-pub struct SdJwtPresentationBuilder<H> {
+pub struct SdJwtPresentationBuilder<H = HeaderWithX5c> {
     sd_jwt: SdJwt<H>,
 
     /// Non-disclosed attributes. All attributes start here. Calling `disclose()` moves an attribute from here
@@ -599,7 +597,7 @@ impl<H> SdJwtPresentationBuilder<H> {
     }
 }
 
-impl<H> UnsignedSdJwtPresentation<H> {
+impl UnsignedSdJwtPresentation {
     /// Signs the underlying [`SdJwt`] and returns an SD-JWT presentation containing the issuer signed SD-JWT and
     /// KB-JWT.
     ///
@@ -610,7 +608,7 @@ impl<H> UnsignedSdJwtPresentation<H> {
         self,
         key_binding_jwt_builder: KeyBindingJwtBuilder,
         signing_key: &impl EcdsaKeySend,
-    ) -> Result<SdJwtPresentation<H>> {
+    ) -> Result<SdJwtPresentation> {
         let sd_jwt = self.0;
 
         let kb_jwt = key_binding_jwt_builder.finish(&sd_jwt, signing_key).await?;
