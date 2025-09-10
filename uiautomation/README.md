@@ -126,12 +126,6 @@ By applying the @RetryingTest annotation with the following attributes, you can 
 - The name attribute determines the display name for each individual test invocation.
 - The index attribute will be replaced with the current invocation index.
 
-### @DisplayName
-
-#### @DisplayName("UC 1.2 - Feature ticket title [PVW-1234]")
-
-The @DisplayName enables the creation of custom names for test classes and methods. By using this annotation, you can provide more meaningful and descriptive names that accurately convey the purpose and functionality of your tests.
-
 ### @Tag
 
 #### @Tags(Tag("smoke"), Tag("android"), Tag("ios"))

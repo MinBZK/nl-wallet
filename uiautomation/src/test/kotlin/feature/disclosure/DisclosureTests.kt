@@ -81,7 +81,7 @@ class DisclosureTests : TestBase() {
         disclosureScreen.goBack()
         disclosureScreen.proceed()
         disclosureScreen.share()
-        pinScreen.enterPin(OnboardingNavigator.PIN)
+        pinScreen.enterPin(DEFAULT_PIN)
         disclosureScreen.goToWebsite()
         assertTrue(xyzBankWebPage.identificationSucceededMessageVisible(), "User not identified correctly")
     }
@@ -117,7 +117,7 @@ class DisclosureTests : TestBase() {
         disclosureScreen.goBack()
         disclosureScreen.goBack()
         disclosureScreen.login()
-        pinScreen.enterPin(OnboardingNavigator.PIN)
+        pinScreen.enterPin(DEFAULT_PIN)
         disclosureScreen.goToWebsite()
         assertTrue(amsterdamWebPage.loggedInMessageVisible(), "User not logged in correctly")
     }
@@ -159,7 +159,7 @@ class DisclosureTests : TestBase() {
         assertTrue(disclosureScreen.reportOptionUntrustedVisible(), "Reporting option not visible")
         disclosureScreen.goBack()
         disclosureScreen.share()
-        pinScreen.enterPin(OnboardingNavigator.PIN)
+        pinScreen.enterPin(DEFAULT_PIN)
         disclosureScreen.goToWebsite()
         assertTrue(marketPlaceWebPage.welcomeMessageVisible(), "User not identified correctly")
     }

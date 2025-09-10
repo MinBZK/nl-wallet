@@ -52,7 +52,7 @@ class HistoryTests : TestBase() {
 
         val disclosureScreen = DisclosureApproveOrganizationScreen()
         disclosureScreen.login()
-        PinScreen().enterPin(OnboardingNavigator.PIN)
+        PinScreen().enterPin(DEFAULT_PIN)
 
         disclosureScreen.closeDialog()
         DashboardScreen().clickMenuButton()

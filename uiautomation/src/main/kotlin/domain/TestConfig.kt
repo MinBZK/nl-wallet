@@ -6,4 +6,5 @@ data class TestConfig(
     val platformName: String,
     val platformVersion: String,
     val remote: Boolean,
+    val automationName: String,
 )

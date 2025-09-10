@@ -5,6 +5,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import util.TestInfoHandler.Companion.language
 import util.TestInfoHandler.Companion.locale
+import util.TestInfoHandler.Companion.platformName
 import java.io.File
 
 class TasDataHelper {
@@ -114,7 +115,7 @@ class TasDataHelper {
                 return displayName
             }
         }
-        throw Exception("Cannot find display name for language $language-$locale")
+        throw Exception("Cannot find display name for language/locale $language-$locale")
     }
 
     private fun findClaimLabel(vararg tasFiles: JSONObject, pathValue: String): String {
@@ -165,8 +166,18 @@ class TasDataHelper {
     private fun findExactLanguageEntry(displayArray: JSONArray): JSONObject? {
         for (i in 0 until displayArray.length()) {
             val display = displayArray.getJSONObject(i)
-            if (display.optString("lang") == "$language-$locale") {
-                return display
+
+            when (platformName.lowercase()) {
+                "android" -> {
+                    if (display.optString("lang") == "$language-$locale") {
+                        return display
+                    }
+                }
+                "ios" -> {
+                    if (display.optString("lang") == locale) {
+                        return display
+                    }
+                }
             }
         }
         return null

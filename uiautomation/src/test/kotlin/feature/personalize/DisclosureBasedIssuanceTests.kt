@@ -77,7 +77,7 @@ class DisclosureBasedIssuanceTests : TestBase() {
         assertTrue(disclosureForIssuanceScreen.requestedAttributeVisible(tasData.getPidClaimLabel("bsn")))
         disclosureForIssuanceScreen.goBack();
         disclosureForIssuanceScreen.share()
-        pinScreen.enterPin(OnboardingNavigator.PIN)
+        pinScreen.enterPin(DEFAULT_PIN)
         cardIssuanceScreen.viewDetails()
 
         assertAll(
@@ -90,7 +90,7 @@ class DisclosureBasedIssuanceTests : TestBase() {
         )
         cardIssuanceScreen.clickBackButton()
         cardIssuanceScreen.clickAddButton()
-        pinScreen.enterPin(OnboardingNavigator.PIN)
+        pinScreen.enterPin(DEFAULT_PIN)
         cardIssuanceScreen.clickToDashboardButton()
         assertTrue(dashboardScreen.cardVisible(tasData.getDiplomaVCT()), "Diploma card not visible on dashboard")
     }
@@ -110,7 +110,7 @@ class DisclosureBasedIssuanceTests : TestBase() {
         assertTrue(disclosureForIssuanceScreen.requestedAttributeVisible(tasData.getPidClaimLabel("bsn")))
         disclosureForIssuanceScreen.goBack();
         disclosureForIssuanceScreen.share()
-        pinScreen.enterPin(OnboardingNavigator.PIN)
+        pinScreen.enterPin(DEFAULT_PIN)
         cardIssuanceScreen.viewDetails()
         assertAll(
             { assertTrue(cardIssuanceScreen.organizationInSubtitleVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", INSURANCE)), "Subtitle is not visible") },
@@ -121,7 +121,7 @@ class DisclosureBasedIssuanceTests : TestBase() {
         )
         cardIssuanceScreen.clickBackButton()
         cardIssuanceScreen.clickAddButton()
-        pinScreen.enterPin(OnboardingNavigator.PIN)
+        pinScreen.enterPin(DEFAULT_PIN)
         cardIssuanceScreen.clickToDashboardButton();
         assertTrue(dashboardScreen.cardVisible(tasData.getInsuranceVCT()), "insurance card not visible on dashboard")
     }
@@ -137,7 +137,7 @@ class DisclosureBasedIssuanceTests : TestBase() {
         issuerWebPage.openSameDeviceWalletFlow(platform)
         issuerWebPage.switchToAppContext()
         disclosureForIssuanceScreen.share()
-        pinScreen.enterPin(OnboardingNavigator.PIN)
+        pinScreen.enterPin(DEFAULT_PIN)
         assertTrue(noCardsErrorScreen.titleVisible(), "no card error screen is not visible")
         noCardsErrorScreen.close()
         assertTrue(dashboardScreen.cardVisible(tasData.getPidVCT()), "Pid not visible on dashboard")

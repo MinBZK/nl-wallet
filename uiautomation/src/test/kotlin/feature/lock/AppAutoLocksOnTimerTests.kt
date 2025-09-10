@@ -52,7 +52,7 @@ class AppAutoLocksOnTimerTests : TestBase() {
         personalizeInformScreen.putAppInBackground(65)
         pinScreen = PinScreen()
         assertTrue(pinScreen.pinScreenVisible(), "pin screen is not visible")
-        pinScreen.enterPin("122222")
+        pinScreen.enterPin(DEFAULT_PIN)
         assertTrue(personalizeInformScreen.visible(), "personalize inform screen is not visible")
     }
 

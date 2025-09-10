@@ -35,6 +35,7 @@ scheduled-automation-tests-trigger:
     DEVICE_NAME: "OnePlus 12R"
     PLATFORM_NAME: "Android"
     PLATFORM_VERSION: "14.0"
+    AUTOMATION_NAME: "Flutter"
 
 .run-automation-tests-common-setup:
   resource_group: automation-tests
@@ -57,6 +58,7 @@ scheduled-automation-tests-trigger:
       -Dtest.config.device.name="$DEVICE_NAME"
       -Dtest.config.platform.name="$PLATFORM_NAME"
       -Dtest.config.platform.version="$PLATFORM_VERSION"
+      -Dtest.config.automation.name="$AUTOMATION_NAME"
       -Dtest.config.remote=true
       -Dfile.encoding=UTF-8 || true
     # Allow failure in tests and pass when there are test results (Quality Time should report on failed test)
@@ -135,6 +137,12 @@ run-automation-tests-publish-results:
     - deploy/bin/store-artifact-zip.sh qt/quality-time/junit-results/e2e.zip uiautomation/build/test-results/test/*.xml
     - deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/e2e.zip uiautomation/build/allure-results/*
 
+run-automation-tests-native-driver:
+  extends: .run-automation-tests-default
+  variables:
+    TESTS: "nativesuite.FullTestSuite"
+    AUTOMATION_NAME: "UIAutomator2"
+
 run-automation-smoke-test-ont:
   extends: .run-automation-tests-common-setup
   rules: !reference [.default-branch, rules]
@@ -149,6 +157,7 @@ run-automation-smoke-test-ont:
       -Dtest.config.device.name="$DEVICE_NAME"
       -Dtest.config.platform.name="$PLATFORM_NAME"
       -Dtest.config.platform.version="$PLATFORM_VERSION"
+      -Dtest.config.automation.name="$AUTOMATION_NAME"
       -Dtest.config.remote=true
       -Dfile.encoding=UTF-8
 
@@ -166,6 +175,7 @@ run-automation-smoke-test-ios-ont:
       -Dtest.config.device.name="iPhone 14"
       -Dtest.config.platform.name="IOS"
       -Dtest.config.platform.version="16"
+      -Dtest.config.automation.name="Flutter"
       -Dtest.config.remote=true
       -Dfile.encoding=UTF-8
 

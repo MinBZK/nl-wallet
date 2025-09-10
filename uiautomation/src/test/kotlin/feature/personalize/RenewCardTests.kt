@@ -69,9 +69,9 @@ class RenewCardTests : TestBase() {
         issuerWebPage.openSameDeviceWalletFlow(platform)
         issuerWebPage.switchToAppContext()
         disclosureForIssuanceScreen.share()
-        pinScreen.enterPin(OnboardingNavigator.PIN)
+        pinScreen.enterPin(DEFAULT_PIN)
         cardIssuanceScreen.clickAddButton()
-        pinScreen.enterPin(OnboardingNavigator.PIN)
+        pinScreen.enterPin(DEFAULT_PIN)
         cardIssuanceScreen.clickToDashboardButton()
     }
 
@@ -86,11 +86,11 @@ class RenewCardTests : TestBase() {
         issuerWebPage.openSameDeviceWalletFlow(platform)
         issuerWebPage.switchToAppContext()
         disclosureForIssuanceScreen.share()
-        pinScreen.enterPin(OnboardingNavigator.PIN)
+        pinScreen.enterPin(DEFAULT_PIN)
 
         assertTrue(cardIssuanceScreen.renewCardSectionTitleVisible(), "renew card screen not displayed")
         cardIssuanceScreen.clickAddButton()
-        pinScreen.enterPin(OnboardingNavigator.PIN)
+        pinScreen.enterPin(DEFAULT_PIN)
         cardIssuanceScreen.clickToDashboardButton()
         assertTrue(dashboardScreen.cardVisible(tasData.getInsuranceVCT()), "Insurance card not visible on dashboard")
         dashboardScreen.clickCard(tasData.getInsuranceVCT())

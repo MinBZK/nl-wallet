@@ -282,7 +282,7 @@ open class MobileActions {
         }
     }
 
-    fun enableNetworkConnection() {
+    fun enableInternetConnection() {
         if (testConfig.remote) {
             val sessionId = driver.sessionId.toString()
             BrowserStackHelper.setNetwork(BROWSERSTACK_ENDPOINT, browserStackUserName, browserStackAccessKey, sessionId, "reset" )
