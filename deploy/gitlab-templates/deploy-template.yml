@@ -53,7 +53,7 @@ db-cluster-${DEPLOY_ENV}:
   variables:
     CHART_NAME: database-cnpg
     RELEASE_NAME: db-cluster
-    CONFIG_FILES: "variables/${DEPLOY_ENV}/db-cluster.yaml"
+    CONFIG_FILES: "deploy-variables/${DEPLOY_ENV}/db-cluster.yaml"
   script:
     - !reference [.build-helm-dependency, script]
     - !reference [.parse-config-files, script]
@@ -87,7 +87,7 @@ wallet-provider-${DEPLOY_ENV}:
   variables:
     CHART_NAME: wallet-provider
     RELEASE_NAME: wallet-provider
-    CONFIG_FILES: "variables/general/global.yaml,variables/${DEPLOY_ENV}/wallet-provider.yaml"
+    CONFIG_FILES: "deploy-variables/general/global.yaml,deploy-variables/${DEPLOY_ENV}/wallet-provider.yaml"
 
 pid-issuer-${DEPLOY_ENV}:
   extends: .deploy-helm
@@ -99,7 +99,7 @@ pid-issuer-${DEPLOY_ENV}:
   variables:
     CHART_NAME: pid-issuer
     RELEASE_NAME: pid-issuer
-    CONFIG_FILES: "variables/general/global.yaml,variables/${DEPLOY_ENV}/pid-issuer.yaml"
+    CONFIG_FILES: "deploy-variables/general/global.yaml,deploy-variables/${DEPLOY_ENV}/pid-issuer.yaml"
 
 demo-rp-verification-server-${DEPLOY_ENV}:
   extends: .deploy-helm
@@ -111,7 +111,7 @@ demo-rp-verification-server-${DEPLOY_ENV}:
   variables:
     CHART_NAME: demo-rp-verification-server
     RELEASE_NAME: demo-rp-verification-server
-    CONFIG_FILES: "variables/general/global.yaml,variables/${DEPLOY_ENV}/demo-rp-verification-server.yaml"
+    CONFIG_FILES: "deploy-variables/general/global.yaml,deploy-variables/${DEPLOY_ENV}/demo-rp-verification-server.yaml"
 
 demo-relying-party-${DEPLOY_ENV}:
   extends: .deploy-base
@@ -121,7 +121,7 @@ demo-relying-party-${DEPLOY_ENV}:
   variables:
     CHART_NAME: demo-relying-party
     RELEASE_NAME: demo-relying-party
-    CONFIG_FILES: "variables/general/global.yaml,variables/${DEPLOY_ENV}/demo-relying-party.yaml"
+    CONFIG_FILES: "deploy-variables/general/global.yaml,deploy-variables/${DEPLOY_ENV}/demo-relying-party.yaml"
   script:
     - !reference [.build-helm-dependency, script]
     - !reference [.replace-chart-app-version, script]
@@ -144,7 +144,7 @@ demo-issuer-issuance-server-${DEPLOY_ENV}:
   variables:
     CHART_NAME: demo-issuer-issuance-server
     RELEASE_NAME: demo-issuer-issuance-server
-    CONFIG_FILES: "variables/general/global.yaml,variables/${DEPLOY_ENV}/demo-issuer-issuance-server.yaml"
+    CONFIG_FILES: "deploy-variables/general/global.yaml,deploy-variables/${DEPLOY_ENV}/demo-issuer-issuance-server.yaml"
 
 demo-issuer-${DEPLOY_ENV}:
   extends: .deploy-base
@@ -154,7 +154,7 @@ demo-issuer-${DEPLOY_ENV}:
   variables:
     CHART_NAME: demo-issuer
     RELEASE_NAME: demo-issuer
-    CONFIG_FILES: "variables/general/global.yaml,variables/${DEPLOY_ENV}/demo-issuer.yaml"
+    CONFIG_FILES: "deploy-variables/general/global.yaml,deploy-variables/${DEPLOY_ENV}/demo-issuer.yaml"
   script:
     - !reference [.build-helm-dependency, script]
     - !reference [.replace-chart-app-version, script]
@@ -175,7 +175,7 @@ demo-index-${DEPLOY_ENV}:
   variables:
     CHART_NAME: demo-index
     RELEASE_NAME: demo-index
-    CONFIG_FILES: "variables/general/global.yaml,variables/${DEPLOY_ENV}/demo-index.yaml"
+    CONFIG_FILES: "deploy-variables/general/global.yaml,deploy-variables/${DEPLOY_ENV}/demo-index.yaml"
 
 update-policy-server-${DEPLOY_ENV}:
   extends: .deploy-helm
@@ -185,7 +185,7 @@ update-policy-server-${DEPLOY_ENV}:
   variables:
     CHART_NAME: update-policy-server
     RELEASE_NAME: update-policy-server
-    CONFIG_FILES: "variables/general/global.yaml,variables/${DEPLOY_ENV}/update-policy-server.yaml"
+    CONFIG_FILES: "deploy-variables/general/global.yaml,deploy-variables/${DEPLOY_ENV}/update-policy-server.yaml"
 
 brpproxy-${DEPLOY_ENV}:
   extends: .deploy-base
@@ -195,7 +195,7 @@ brpproxy-${DEPLOY_ENV}:
   variables:
     CHART_NAME: brpproxy
     RELEASE_NAME: brpproxy
-    CONFIG_FILES: "variables/general/global.yaml,variables/${DEPLOY_ENV}/brpproxy.yaml"
+    CONFIG_FILES: "deploy-variables/general/global.yaml,deploy-variables/${DEPLOY_ENV}/brpproxy.yaml"
   script:
     - !reference [.build-helm-dependency, script]
     - !reference [.parse-config-files, script]
@@ -214,7 +214,7 @@ gbamock-${DEPLOY_ENV}:
   variables:
     CHART_NAME: gbamock
     RELEASE_NAME: gbamock
-    CONFIG_FILES: "variables/general/global.yaml,variables/${DEPLOY_ENV}/gbamock.yaml"
+    CONFIG_FILES: "deploy-variables/general/global.yaml,deploy-variables/${DEPLOY_ENV}/gbamock.yaml"
   script:
     - !reference [.build-helm-dependency, script]
     - !reference [.parse-config-files, script]
@@ -233,7 +233,7 @@ gba-hc-converter-${DEPLOY_ENV}:
   variables:
     CHART_NAME: gba-hc-converter
     RELEASE_NAME: gba-hc-converter
-    CONFIG_FILES: "variables/general/global.yaml,variables/${DEPLOY_ENV}/gba-hc-converter.yaml"
+    CONFIG_FILES: "deploy-variables/general/global.yaml,deploy-variables/${DEPLOY_ENV}/gba-hc-converter.yaml"
   script:
     - !reference [.build-helm-dependency, script]
     - !reference [.replace-chart-app-version, script]

@@ -106,13 +106,14 @@
 | `frontend.resources.limits.cpu`      | CPU limit for the frontend container               | `200m`               |
 | `frontend.resources.limits.memory`   | Memory limit for the frontend container            | `128Mi`              |
 
-### Preload GBA Pod parameters
+### Preload GBA deployement parameters
 
-| Name                             | Description                                           | Value                    |
-| -------------------------------- | ----------------------------------------------------- | ------------------------ |
-| `preloadGbaPod.name`             | Name of the Preload GBA Pod                           | `preload-gba-v-data-pod` |
-| `preloadGbaPod.extraAnnotations` | Additional annotations for the Preload GBA Deployment | `{}`                     |
-| `preloadGbaPod.extraPodLabels`   | Additional labels for the Preload GBA Pod             | `{}`                     |
+| Name                          | Description                                           | Value                  |
+| ----------------------------- | ----------------------------------------------------- | ---------------------- |
+| `preloadGba.name`             | Name of the Preload GBA Deployment                    | `preload-gba-v-data`   |
+| `preloadGba.extraAnnotations` | Additional annotations for the Preload GBA Deployment | `{}`                   |
+| `preloadGba.extraPodLabels`   | Additional labels for the Preload GBA Pod             | `{}`                   |
+| `preloadGba.volumeClaimName`  | Name of the Preload GBA Volume Claim                  | `preloaded-gba-v-data` |
 
 ### xml files
 

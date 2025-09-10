@@ -108,7 +108,7 @@ spec:
       volumes:
         - name: preloaded-gba-v-data-volume
           persistentVolumeClaim:
-            claimName: preloaded-gba-v-data-pvc
+            claimName: {{ .Values.preloadGba.volumeClaimName }}
             readOnly: true
         - name: zoek-xml-volume
           configMap:

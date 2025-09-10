@@ -12,4 +12,4 @@ Host GBA fetch frontend: {{ .Values.frontend.ingress.hostname }}
 
 To run the job to encrypt test data, execute:
 
-    kubectl create job --from=cronjob/cronjob-encrypt-gba-v-testdata job-gba-encrypt-test-data-$(date +%s)
+    kubectl create job --from=cronjob/{{ .Values.gbaEncryptTestData.name }} gba-encrypt-test-data-$(date +%s)
