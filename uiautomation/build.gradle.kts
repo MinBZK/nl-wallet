@@ -41,6 +41,7 @@ val testConfigMap = mapOf<String, Any>(
     "test.config.platform.name" to "Android",
     "test.config.platform.version" to 14.0,
     "test.config.remote" to false,
+    "test.config.automation.name" to "Flutter",
 )
 
 tasks.test {

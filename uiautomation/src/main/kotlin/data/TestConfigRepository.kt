@@ -11,6 +11,7 @@ class TestConfigRepository {
             platformName = System.getProperty("test.config.platform.name").lowercase(),
             platformVersion = System.getProperty("test.config.platform.version"),
             remote = System.getProperty("test.config.remote").toBoolean(),
+            automationName = System.getProperty("test.config.automation.name"),
         )
     }
 }

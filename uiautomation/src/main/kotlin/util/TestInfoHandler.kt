@@ -10,7 +10,7 @@ class TestInfoHandler {
         private const val ENGLISH_LANGUAGE_TAG = "english"
         private const val FRANCE_LANGUAGE_TAG = "france"
 
-        private val platformName = testConfig.platformName
+        val platformName = testConfig.platformName
 
         lateinit var sessionName: String
         lateinit var language: String

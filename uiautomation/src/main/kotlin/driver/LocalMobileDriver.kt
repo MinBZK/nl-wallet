@@ -40,7 +40,7 @@ class LocalMobileDriver : WebDriverProvider {
         options.setPlatformVersion(testConfig.platformVersion)
         options.setLanguage(TestInfoHandler.language)
         options.setLocale(TestInfoHandler.locale)
-        options.setAutomationName("Flutter")
+        options.setAutomationName(testConfig.automationName)
         options.setCapability("appium:newCommandTimeout", 120)
 
         // Initialise the local WebDriver with desired capabilities defined above
@@ -52,12 +52,13 @@ class LocalMobileDriver : WebDriverProvider {
             "ios" -> {
                 options.setCapability("appium:autoAcceptAlerts", true)
                 options.setCapability("includeSafariInWebviews", true)
-                options.setCapability("udid", "");
-                options.setCapability("xcodeOrgId", "");
-                options.setCapability("xcodeSigningId", "");
-                options.setCapability("updatedWDABundleId", "");
+                options.setCapability("udid", "00008140-001A0D1A0A38801C");
+                options.setCapability("xcodeOrgId", "XGL6UKBPLP");
+                options.setCapability("xcodeSigningId", "iPhone Developer");
+                options.setCapability("updatedWDABundleId", "nl.ictu.edi.wallet.web-driver-agent-runner.xctrunner");
                 options.setCapability("wdaLaunchTimeout", 60000);
                 options.setCapability("wdaConnectionTimeout", 60000);
+                options.setCapability("nativeWebTap", true)
                 IOSDriver(AppiumServiceProvider.service?.url, options)
             }
             else -> {

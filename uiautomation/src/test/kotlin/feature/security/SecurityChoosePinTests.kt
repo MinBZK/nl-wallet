@@ -85,7 +85,7 @@ class SecurityChoosePinTests : TestBase() {
     @DisplayName("$USE_CASE.6 Upon successful PIN entry, go to Feature 'User confirms PIN'. [$JIRA_ID]")
     fun verifySuccessfulPinEntry(testInfo: TestInfo) {
         setUp(testInfo)
-        pinScreen.enterPin("122222")
+        pinScreen.enterPin(DEFAULT_PIN)
         assertTrue(pinScreen.confirmPinScreenVisible(), "confirm pin screen is not visible")
     }
 

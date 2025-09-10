@@ -2,7 +2,6 @@ package feature.lock
 
 import helper.TestBase
 import navigator.MenuNavigator
-import navigator.OnboardingNavigator
 import navigator.screen.MenuNavigatorScreen
 import org.junit.jupiter.api.Assertions.assertAll
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -69,9 +68,8 @@ class UserEntersPinTests : TestBase() {
         setUp(testInfo)
         val noInternetErrorScreen = NoInternetErrorScreen()
         try {
-            val pin = "122222"
             pinScreen.disableInternetConnection()
-            pinScreen.enterPin(pin)
+            pinScreen.enterPin(DEFAULT_PIN)
             assertAll(
                 { assertTrue(noInternetErrorScreen.headlineVisible(), "Headline is not visible") },
                 { assertTrue(noInternetErrorScreen.descriptionVisible(), "Description is not visible") },
@@ -87,7 +85,7 @@ class UserEntersPinTests : TestBase() {
                 { assertTrue(noInternetErrorScreen.appConfigVisible(), "appConfig is not visible") }
             )
         } finally {
-            noInternetErrorScreen.enableNetworkConnection();
+            noInternetErrorScreen.enableInternetConnection();
         }
     }
 
@@ -133,7 +131,7 @@ class UserEntersPinTests : TestBase() {
     @DisplayName("$USE_CASE.10 Upon valid PIN entry, the last active screen is displayed, or the onboarding if it has not completed, or the dashboard if the app boots. [${JIRA_ID}]")
     fun verifyLastActiveScreen(testInfo: TestInfo) {
         setUp(testInfo)
-        pinScreen.enterPin(OnboardingNavigator.PIN)
+        pinScreen.enterPin(DEFAULT_PIN)
 
         val dashboardScreen = DashboardScreen()
         assertTrue(dashboardScreen.visible(), "dashboard screen is not visible")

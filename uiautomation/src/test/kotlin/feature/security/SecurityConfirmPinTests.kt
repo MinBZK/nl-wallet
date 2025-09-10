@@ -44,7 +44,7 @@ class SecurityConfirmPinTests : TestBase() {
     @DisplayName("$USE_CASE.2 Upon PIN entry, the App asserts that the first and second entry are equal. [$JIRA_ID]")
     fun verifyConfirmPin(testInfo: TestInfo) {
         setUp(testInfo)
-        pinScreen.enterPin(OnboardingNavigator.PIN)
+        pinScreen.enterPin(DEFAULT_PIN)
 
         val securitySetupCompletedScreen = SecuritySetupCompletedScreen()
         assertTrue(securitySetupCompletedScreen.visible(), "setup security completed screen is not visible")

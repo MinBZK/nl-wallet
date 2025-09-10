@@ -23,7 +23,7 @@ class BrowserStackMobileDriver : WebDriverProvider {
         val caps = DesiredCapabilities()
 
         caps.setCapability("appium:newCommandTimeout", 120)
-        caps.setCapability("appium:automationName", "Flutter")
+        caps.setCapability("appium:automationName", testConfig.automationName)
         caps.setCapability("platformName", testConfig.platformName)
         caps.setCapability("appium:platformVersion", testConfig.platformVersion)
         caps.setCapability("appium:deviceName", testConfig.deviceName)
@@ -85,12 +85,11 @@ class BrowserStackMobileDriver : WebDriverProvider {
     companion object {
         private const val CUSTOM_ID_PREFIX_ANDROID_APP = "NLWalletAndroid_"
         private const val CUSTOM_ID_PREFIX_IOS_APP = "NLWalletIos_"
-
         private const val BROWSER_STACK_SERVER_URL = "hub-cloud.browserstack.com/wd/hub"
         private const val BROWSER_STACK_RECENT_APPS_ENDPOINT =
             "https://api-cloud.browserstack.com/app-automate/recent_apps/"
-        private const val BROWSER_STACK_IDLE_TIMEOUT_SECONDS = 60 // Default: 90
-        private const val APPIUM_RETRY_BACKOFF_TIME_MILLIS = 500 // Default: 3000
+        private const val BROWSER_STACK_IDLE_TIMEOUT_SECONDS = 60
+        private const val APPIUM_RETRY_BACKOFF_TIME_MILLIS = 500
         private const val APPIUM_DISABLE_SUPPRESS_ACCESSIBILITY_SERVICE = false
     }
 }

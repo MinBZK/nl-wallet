@@ -71,10 +71,9 @@ class UserEntersPinTests : TestBase() {
     fun verifyNotConnectedErrorMessage(testInfo: TestInfo) {
         try {
             setUp(testInfo)
-            val pin = "122222"
             noInternetErrorScreen = NoInternetErrorScreen()
             pinScreen.disableInternetConnection()
-            pinScreen.enterPin(pin)
+            pinScreen.enterPin(DEFAULT_PIN)
             assertAll(
                 { assertTrue(noInternetErrorScreen.headlineVisible(), "Headline is not visible") },
                 { assertTrue(noInternetErrorScreen.descriptionVisible(), "Description is not visible") },
@@ -90,7 +89,7 @@ class UserEntersPinTests : TestBase() {
                 { assertTrue(noInternetErrorScreen.appConfigVisible(), "appConfig is not visible") }
             )
         } finally {
-            noInternetErrorScreen.enableNetworkConnection();
+            noInternetErrorScreen.enableInternetConnection();
         }
     }
 
@@ -123,7 +122,7 @@ class UserEntersPinTests : TestBase() {
     @DisplayName("$USE_CASE.10 Upon valid PIN entry, the procedure is confirmed. [${JIRA_ID}]")
     fun verifyProcedureConfirmScreen(testInfo: TestInfo) {
         setUp(testInfo)
-        pinScreen.enterPin(OnboardingNavigator.PIN)
+        pinScreen.enterPin(DEFAULT_PIN)
 
         val personalizeSuccessScreen = PersonalizeSuccessScreen()
         assertTrue(personalizeSuccessScreen.visible(), "personalize success screen is not visible")
