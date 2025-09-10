@@ -3,18 +3,18 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .Values.preloadGbaPod.name}}
-  {{- with .Values.preloadGbaPod.extraAnnotations }}
+  name: {{ .Values.preloadGba.name}}
+  {{- with .Values.preloadGba.extraAnnotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
   {{- end }}
   labels:
-    {{- include "common.labels.component" (list .Values.preloadGbaPod.name .) | nindent 4 }}
+    {{- include "common.labels.component" (list .Values.preloadGba.name .) | nindent 4 }}
 spec:
   replicas: 1
   selector:
     matchLabels:
-      {{- include "common.labels.componentSelectorLabels" (list .Values.preloadGbaPod.name .) | nindent 6 }}
+      {{- include "common.labels.componentSelectorLabels" (list .Values.preloadGba.name .) | nindent 6 }}
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -24,10 +24,10 @@ spec:
   progressDeadlineSeconds: 300
   template:
     metadata:
-      name: {{ .Values.preloadGbaPod.name}}
+      name: {{ .Values.preloadGba.name}}
       labels:
-        {{- include "common.labels.component" (list .Values.preloadGbaPod.name .) | nindent 8 }}
-        {{ with .Values.preloadGbaPod.extraPodLabels }}
+        {{- include "common.labels.component" (list .Values.preloadGba.name .) | nindent 8 }}
+        {{ with .Values.preloadGba.extraPodLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
     spec:
