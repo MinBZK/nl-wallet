@@ -83,12 +83,9 @@ impl<T, H: DeserializeOwned> UnverifiedJwt<T, H> {
     }
 }
 
-impl<T, H> UnverifiedJwt<T, H>
-where
-    H: DeserializeOwned + Into<HeaderWithX5c>,
-{
+impl<T> UnverifiedJwt<T, HeaderWithX5c> {
     pub fn extract_x5c_certificates(&self) -> Result<Vec<BorrowingCertificate>, JwtX5cError> {
-        let header: HeaderWithX5c = self.dangerous_parse_header_unverified()?.into();
+        let header = self.dangerous_parse_header_unverified()?;
         header
             .x5c
             .iter()
@@ -164,10 +161,9 @@ impl<T: DeserializeOwned, H> UnverifiedJwt<T, H> {
     }
 }
 
-impl<T, H> UnverifiedJwt<T, H>
+impl<T> UnverifiedJwt<T, HeaderWithX5c>
 where
     T: DeserializeOwned,
-    H: DeserializeOwned + Into<HeaderWithX5c> + TryFrom<Header>,
 {
     /// Verify the JWS against the provided trust anchors, using the X.509 certificate(s) present in the `x5c` JWT
     /// header.
@@ -177,7 +173,7 @@ where
         time: &impl Generator<DateTime<Utc>>,
         certificate_usage: CertificateUsage,
         validation_options: &Validation,
-    ) -> Result<(H, T, VecNonEmpty<BorrowingCertificate>), JwtX5cError> {
+    ) -> Result<(HeaderWithX5c, T, VecNonEmpty<BorrowingCertificate>), JwtX5cError> {
         let certificates = self.extract_x5c_certificates()?;
 
         // Verify the certificate chain against the trust anchors.
@@ -239,7 +235,7 @@ where
         time: &impl Generator<DateTime<Utc>>,
         certificate_usage: CertificateUsage,
         trust_anchors: &[TrustAnchor],
-    ) -> Result<(VerifiedJwt<T, H>, VecNonEmpty<BorrowingCertificate>), JwtX5cError> {
+    ) -> Result<(VerifiedJwt<T, HeaderWithX5c>, VecNonEmpty<BorrowingCertificate>), JwtX5cError> {
         let (header, payload, certificates) =
             self.parse_and_verify_against_trust_anchors(trust_anchors, time, certificate_usage, validation_options)?;
 
