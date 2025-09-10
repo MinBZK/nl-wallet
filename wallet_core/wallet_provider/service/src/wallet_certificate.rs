@@ -10,7 +10,7 @@ use hsm::model::encrypted::Encrypted;
 use hsm::model::encrypter::Decrypter;
 use hsm::service::HsmError;
 use jwt::EcdsaDecodingKey;
-use jwt::VerifiedJwt;
+use jwt::UnverifiedJwt;
 use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::messages::registration::WalletCertificateClaims;
 use wallet_provider_domain::model::wallet_user::WalletUser;
@@ -55,10 +55,9 @@ where
         iat: Utc::now(),
     };
 
-    Ok(VerifiedJwt::sign_with_sub(cert, wallet_certificate_signing_key)
+    UnverifiedJwt::sign_with_sub(cert, wallet_certificate_signing_key)
         .await
-        .map_err(WalletCertificateError::JwtSigning)?
-        .into())
+        .map_err(WalletCertificateError::JwtSigning)
 }
 
 pub async fn parse_claims_and_retrieve_wallet_user<T, R>(
@@ -159,8 +158,8 @@ where
 
 /// - Verify the provided [`WalletCertificate`]
 /// - Retrieve the [`WalletUser`] from the DB using the `wallet_id` from the verified [`WalletCertificate`]
-/// - Check that the provided PIN key and the HW key in the [`WalletUser`] are present in the
-///   (verified) wallet certificate
+/// - Check that the provided PIN key and the HW key in the [`WalletUser`] are present in the (verified) wallet
+///   certificate
 /// - Return the [`WalletUser`].
 pub async fn verify_wallet_certificate<T, R, H, F>(
     certificate: &WalletCertificate,

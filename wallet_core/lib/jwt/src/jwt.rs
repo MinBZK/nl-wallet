@@ -448,26 +448,18 @@ where
     }
 }
 
-impl<T> VerifiedJwt<T, Header>
+impl<T> UnverifiedJwt<T, Header>
 where
     T: Serialize + JwtSubject,
 {
-    pub async fn sign_with_sub(payload: T, privkey: &impl EcdsaKey) -> Result<VerifiedJwt<T, Header>> {
+    pub async fn sign_with_sub(payload: T, privkey: &impl EcdsaKey) -> Result<Self> {
         let claims = PayloadWithSub {
             payload,
             sub: T::SUB.to_owned(),
         };
 
-        let VerifiedJwt {
-            header,
-            payload: PayloadWithSub { payload, .. },
-            jwt,
-        } = VerifiedJwt::sign(DEFAULT_HEADER.to_owned(), claims, privkey).await?;
-        Ok(VerifiedJwt {
-            header,
-            payload,
-            jwt: jwt.into(),
-        })
+        let jwt = UnverifiedJwt::sign(&*DEFAULT_HEADER, &claims, privkey).await?;
+        Ok(jwt.into())
     }
 }
 
@@ -617,6 +609,7 @@ impl<T> VerifiedJwt<T>
 where
     T: Serialize + JwtTyp + std::fmt::Debug,
 {
+    // TODO this should only exist for `UnverifiedJwt`
     pub async fn sign_with_typ(payload: T, privkey: &impl EcdsaKey) -> Result<VerifiedJwt<T>> {
         Self::sign_with_header_and_typ(DEFAULT_HEADER.to_owned(), payload, privkey).await
     }
@@ -818,10 +811,7 @@ mod tests {
         let private_key = SigningKey::random(&mut OsRng);
         let t = ToyMessage::default();
 
-        let jwt: UnverifiedJwt<_> = VerifiedJwt::sign_with_sub(t.clone(), &private_key)
-            .await
-            .unwrap()
-            .into();
+        let jwt: UnverifiedJwt<_> = UnverifiedJwt::sign_with_sub(t.clone(), &private_key).await.unwrap();
 
         // the JWT has a `sub` with the expected value
         let jwt_message: HashMap<String, serde_json::Value> = part(1, jwt.serialization());
