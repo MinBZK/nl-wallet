@@ -58,7 +58,6 @@ class IntroductionTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("UC 1.1 LTC14 User skips introduction")
-    @Tags(Tag("smoke"),Tag("smokeIOS"))
     fun verifySkipIntroButton(testInfo: TestInfo) {
         setUp(testInfo)
 
