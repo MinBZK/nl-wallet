@@ -16,7 +16,7 @@ scheduled-automation-tests-trigger:
     include:
       - local: .gitlab-ci.yml
   variables:
-    SCHEDULED: true
+    SCHEDULED: automation
   when: manual
   allow_failure: true
 
@@ -64,7 +64,7 @@ scheduled-automation-tests-trigger:
     # Allow failure in tests and pass when there are test results (Quality Time should report on failed test)
     - compgen -G "build/test-results/test/*.xml"
   rules:
-    - !reference [.on-schedule, rules]
+    - !reference [.on-schedule-automation, rules]
 
 run-automation-tests-suite-appstart:
   extends: .run-automation-tests-default

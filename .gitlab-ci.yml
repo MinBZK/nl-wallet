@@ -83,10 +83,20 @@ variables:
     - !reference [.default-or-release, rules]
     - !reference [.merge-request-manual, rules]
 
-.on-schedule:
+.on-schedule-automation:
   rules:
-    - if: $CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-    - if: $CI_PIPELINE_SOURCE == "parent_pipeline" && $SCHEDULED == "true"
+    - if: $SCHEDULED == "automation" && $CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $SCHEDULED == "automation" && $CI_PIPELINE_SOURCE == "parent_pipeline"
+
+.on-schedule-trigger-scan:
+  rules:
+    - if: $SCHEDULED == "trigger-scan" && $CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $SCHEDULED == "trigger-scan" && $CI_PIPELINE_SOURCE == "parent_pipeline"
+
+.on-schedule-scan:
+  rules:
+    - if: $SCHEDULED == "scan" && $CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $SCHEDULED == "scan" && $CI_PIPELINE_SOURCE == "parent_pipeline"
 
 .on-mock-build:
   rules:
