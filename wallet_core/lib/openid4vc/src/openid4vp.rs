@@ -513,8 +513,6 @@ pub enum AuthResponseError {
     JwkConversion(#[source] JoseError),
     #[error("error encrypting/decrypting JWE: {0}")]
     Jwe(#[source] JoseError),
-    #[error("apv (nonce) field in JWE had incorrect value")]
-    NonceIncorrect,
     #[error("state had incorrect value: expected {expected:?}, found {found:?}")]
     StateIncorrect {
         expected: Option<String>,
@@ -522,9 +520,7 @@ pub enum AuthResponseError {
     },
     #[error("missing apu field from JWE")]
     MissingApu,
-    #[error("missing apv field from JWE")]
-    MissingApv,
-    #[error("failed to decode apu/apv field from JWE")]
+    #[error("failed to decode apu field from JWE")]
     Utf8(#[from] FromUtf8Error),
     #[error("no Document received in any DeviceResponse for credential query identifier: {0}")]
     #[category(pd)]
@@ -574,22 +570,24 @@ impl VpAuthorizationResponse {
     pub fn new_encrypted(
         vp_token: HashMap<CredentialQueryIdentifier, VerifiablePresentation>,
         auth_request: &NormalizedVpAuthorizationRequest,
-        mdoc_nonce: &str,
+        encryption_nonce: &str,
         poa: Option<Poa>,
     ) -> Result<String, AuthResponseError> {
-        Self::new(vp_token, auth_request.state.clone(), poa).encrypt(auth_request, mdoc_nonce)
+        Self::new(vp_token, auth_request.state.clone(), poa).encrypt(auth_request, encryption_nonce)
     }
 
     fn encrypt(
         &self,
         auth_request: &NormalizedVpAuthorizationRequest,
-        mdoc_nonce: &str,
+        encryption_nonce: &str,
     ) -> Result<String, AuthResponseError> {
         let mut header = JweHeader::new();
         header.set_token_type("JWT");
 
-        // Set the `apu` and `apv` fields to the mdoc nonce and nonce, per the ISO 18013-7 profile.
-        header.set_agreement_partyuinfo(mdoc_nonce);
+        // Set the `apu` and `apv` fields to the holder encryption nonce and nonce, per the ISO 18013-7 profile.
+        // Even when not disclosing mdoc credentials, using a holder-generated nonce for this value is perfectly
+        // acceptable, as the verifier should not make any assumptions about these values in that case.
+        header.set_agreement_partyuinfo(encryption_nonce);
         header.set_agreement_partyvinfo(auth_request.nonce.clone());
 
         // Use the AES key size that the server wants.
@@ -623,12 +621,12 @@ impl VpAuthorizationResponse {
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
     ) -> Result<UniqueIdVec<DisclosedAttestations>, AuthResponseError> {
-        let (response, mdoc_nonce) = Self::decrypt(jwe, private_key, &auth_request.nonce)?;
+        let (response, encryption_nonce) = Self::decrypt(jwe, private_key)?;
 
         response.verify(
             auth_request,
             accepted_wallet_client_ids,
-            &mdoc_nonce,
+            encryption_nonce.as_deref(),
             time,
             trust_anchors,
         )
@@ -637,41 +635,41 @@ impl VpAuthorizationResponse {
     fn decrypt(
         jwe: &str,
         private_key: &EcKeyPair,
-        nonce: &str,
-    ) -> Result<(VpAuthorizationResponse, String), AuthResponseError> {
+    ) -> Result<(VpAuthorizationResponse, Option<String>), AuthResponseError> {
         let decrypter = EcdhEsJweAlgorithm::EcdhEs
             .decrypter_from_jwk(&private_key.to_jwk_key_pair())
             .map_err(AuthResponseError::JwkConversion)?;
         let (payload, header) = josekit::jwt::decode_with_decrypter(jwe, &decrypter).map_err(AuthResponseError::Jwe)?;
 
-        let jwe_nonce = String::from_utf8(header.agreement_partyvinfo().ok_or(AuthResponseError::MissingApv)?)?;
-        if nonce != jwe_nonce {
-            return Err(AuthResponseError::NonceIncorrect);
-        }
-        let mdoc_nonce = String::from_utf8(header.agreement_partyuinfo().ok_or(AuthResponseError::MissingApu)?)?;
+        // Note that it is up to the holder to choose the contents of the `apv` and `apu` fields. We only need the `apu`
+        // value in case a credential in mdoc format was disclosed, as according to the ISO 18013-7 profile this value
+        // should be used when re-constructing the `SessionTranscript`.
+        let encryption_nonce = header.agreement_partyuinfo().map(String::from_utf8).transpose()?;
 
         let payload = serde_json::from_value(serde_json::Value::Object(payload.into()))?;
-        Ok((payload, mdoc_nonce))
+        Ok((payload, encryption_nonce))
     }
 
     fn verify(
         self,
         auth_request: &NormalizedVpAuthorizationRequest,
         accepted_wallet_client_ids: &[String],
-        mdoc_nonce: &str,
+        encryption_nonce: Option<&str>,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
     ) -> Result<UniqueIdVec<DisclosedAttestations>, AuthResponseError> {
         // Step 1: Verify the cryptographic integrity of the verifiable presentations
         //         and extract the disclosed attestations from them.
-        let session_transcript = LazyCell::new(|| {
-            // The mdoc `SessionTranscript` may not be required, so initialize it lazily.
-            SessionTranscript::new_oid4vp(
-                &auth_request.response_uri,
-                &auth_request.client_id,
-                auth_request.nonce.clone(),
-                mdoc_nonce,
-            )
+        let session_transcript = encryption_nonce.map(|encryption_nonce| {
+            LazyCell::new(|| {
+                // The mdoc `SessionTranscript` may not be required, so initialize it lazily.
+                SessionTranscript::new_oid4vp(
+                    &auth_request.response_uri,
+                    &auth_request.client_id,
+                    auth_request.nonce.clone(),
+                    encryption_nonce,
+                )
+            })
         });
 
         let mut holder_public_keys = Vec::new();
@@ -686,7 +684,12 @@ impl VpAuthorizationResponse {
                             // Verify the cryptographic integrity of each mdoc `DeviceResponse`
                             // and obtain a `DisclosedDocuments` for each.
                             let disclosed_documents = device_response
-                                .verify(None, &session_transcript, time, trust_anchors)
+                                .verify(
+                                    None,
+                                    session_transcript.as_deref().ok_or(AuthResponseError::MissingApu)?,
+                                    time,
+                                    trust_anchors,
+                                )
                                 .map_err(AuthResponseError::MdocVerification)?;
 
                             // Retain the used holder public keys for checking the PoA in step 2.
@@ -778,6 +781,7 @@ mod tests {
     use std::borrow::Cow;
     use std::collections::HashMap;
 
+    use assert_matches::assert_matches;
     use chrono::DateTime;
     use chrono::Utc;
     use futures::future::join_all;
@@ -879,7 +883,7 @@ mod tests {
         // an OpenID4VP setting, i.e. with different SessionTranscript contents, so it can't be verified.
         // This is not an issue here because this code only deals with en/decrypting the DeviceResponse into
         // an Authorization Response JWE.
-        let mdoc_nonce = "mdoc_nonce".to_string();
+        let encryption_nonce = "encryption_nonce".to_string();
         let device_response = DeviceResponse::example();
         let auth_request = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap();
         // the ISO examples only use one Mdoc and therefore there is no need for a PoA
@@ -891,12 +895,11 @@ mod tests {
             None,
             None,
         );
-        let jwe = auth_response.encrypt(&auth_request, &mdoc_nonce).unwrap();
+        let jwe = auth_response.encrypt(&auth_request, &encryption_nonce).unwrap();
 
-        let (decrypted, jwe_mdoc_nonce) =
-            VpAuthorizationResponse::decrypt(&jwe, &encryption_privkey, &auth_request.nonce).unwrap();
+        let (decrypted, jwe_encryption_nonce) = VpAuthorizationResponse::decrypt(&jwe, &encryption_privkey).unwrap();
 
-        assert_eq!(mdoc_nonce, jwe_mdoc_nonce);
+        assert_eq!(jwe_encryption_nonce, Some(encryption_nonce));
         assert_eq!(decrypted.vp_token.len(), 1);
 
         let (encrypted_identifier, VerifiablePresentation::MsoMdoc(encrypted_device_responses)) =
@@ -1184,10 +1187,10 @@ mod tests {
     }
 
     /// Manually construct mock `VerifiablePresentation`s and a PoA using
-    /// the given `auth_request`, `issuer_signed` and `mdoc_nonce`.
+    /// the given `auth_request`, `issuer_signed` and `encryption_nonce`.
     async fn setup_vp_token(
         auth_request: &NormalizedVpAuthorizationRequest,
-        mdoc_nonce: &str,
+        encryption_nonce: &str,
         issuer_signed_and_keys: &[(IssuerSigned, MockRemoteEcdsaKey)],
         cas: &[TrustAnchor<'_>],
         time: &impl Generator<DateTime<Utc>>,
@@ -1196,7 +1199,7 @@ mod tests {
             &auth_request.response_uri,
             &auth_request.client_id,
             auth_request.nonce.clone(),
-            mdoc_nonce,
+            encryption_nonce,
         );
 
         let (issuer_signed, keys): (_, Vec<MockRemoteEcdsaKey>) =
@@ -1238,7 +1241,7 @@ mod tests {
     async fn test_verify_authorization_response() {
         let (_, _, _, auth_request) =
             setup_with_credential_requests(NormalizedCredentialRequests::new_mock_mdoc_pid_example());
-        let mdoc_nonce = "mdoc_nonce";
+        let encryption_nonce = "encryption_nonce";
 
         let time_generator = MockTimeGenerator::default();
         let auth_request = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap();
@@ -1249,7 +1252,7 @@ mod tests {
 
         let (vp_token, poa) = setup_vp_token(
             &auth_request,
-            mdoc_nonce,
+            encryption_nonce,
             &vec![(mdoc.issuer_signed, mdoc_key)],
             &[ca.to_trust_anchor()],
             &time_generator,
@@ -1262,7 +1265,7 @@ mod tests {
             .verify(
                 &auth_request,
                 &[MOCK_WALLET_CLIENT_ID.to_string()],
-                mdoc_nonce,
+                Some(encryption_nonce),
                 &time_generator,
                 &[ca.to_trust_anchor()],
             )
@@ -1325,13 +1328,13 @@ mod tests {
 
     #[tokio::test]
     async fn test_verify_poa() {
-        let mdoc_nonce = "mdoc_nonce";
+        let encryption_nonce = "encryption_nonce";
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let trust_anchors = &[ca.to_trust_anchor()];
         let (issuer_signed_and_keys, auth_request) = setup_poa_test(&ca).await;
         let (vp_token, poa) = setup_vp_token(
             &auth_request,
-            mdoc_nonce,
+            encryption_nonce,
             &issuer_signed_and_keys,
             trust_anchors,
             &MockTimeGenerator::default(),
@@ -1343,7 +1346,7 @@ mod tests {
             .verify(
                 &auth_request,
                 &[MOCK_WALLET_CLIENT_ID.to_string()],
-                mdoc_nonce,
+                Some(encryption_nonce),
                 &TimeGenerator,
                 trust_anchors,
             )
@@ -1351,14 +1354,43 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_verify_apu() {
+        let encryption_nonce = "encryption_nonce";
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
+        let trust_anchors = &[ca.to_trust_anchor()];
+        let (issuer_signed_and_keys, auth_request) = setup_poa_test(&ca).await;
+        let (vp_token, poa) = setup_vp_token(
+            &auth_request,
+            encryption_nonce,
+            &issuer_signed_and_keys,
+            trust_anchors,
+            &MockTimeGenerator::default(),
+        )
+        .await;
+
+        let auth_response = VpAuthorizationResponse::new(vp_token, None, poa);
+        let error = auth_response
+            .verify(
+                &auth_request,
+                &[MOCK_WALLET_CLIENT_ID.to_string()],
+                None,
+                &TimeGenerator,
+                trust_anchors,
+            )
+            .expect_err("verifying authorization response should fail");
+
+        assert_matches!(error, AuthResponseError::MissingApu);
+    }
+
+    #[tokio::test]
     async fn test_verify_missing_poa() {
-        let mdoc_nonce = "mdoc_nonce";
+        let encryption_nonce = "encryption_nonce";
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let trust_anchors = &[ca.to_trust_anchor()];
         let (issuer_signed_and_keys, auth_request) = setup_poa_test(&ca).await;
         let (vp_token, _) = setup_vp_token(
             &auth_request,
-            mdoc_nonce,
+            encryption_nonce,
             &issuer_signed_and_keys,
             trust_anchors,
             &MockTimeGenerator::default(),
@@ -1370,7 +1402,7 @@ mod tests {
             .verify(
                 &auth_request,
                 &[MOCK_WALLET_CLIENT_ID.to_string()],
-                mdoc_nonce,
+                Some(encryption_nonce),
                 &TimeGenerator,
                 trust_anchors,
             )
@@ -1380,13 +1412,13 @@ mod tests {
 
     #[tokio::test]
     async fn test_verify_invalid_poa() {
-        let mdoc_nonce = "mdoc_nonce";
+        let encryption_nonce = "encryption_nonce";
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let trust_anchors = &[ca.to_trust_anchor()];
         let (issuer_signed_and_keys, auth_request) = setup_poa_test(&ca).await;
         let (vp_token, poa) = setup_vp_token(
             &auth_request,
-            mdoc_nonce,
+            encryption_nonce,
             &issuer_signed_and_keys,
             trust_anchors,
             &MockTimeGenerator::default(),
@@ -1401,7 +1433,7 @@ mod tests {
             .verify(
                 &auth_request,
                 &[MOCK_WALLET_CLIENT_ID.to_string()],
-                mdoc_nonce,
+                Some(encryption_nonce),
                 &TimeGenerator,
                 trust_anchors,
             )

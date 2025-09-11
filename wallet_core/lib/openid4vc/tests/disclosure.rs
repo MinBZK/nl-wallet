@@ -177,7 +177,7 @@ fn disclosure_jwe(
 ) -> String {
     let mdoc_key = MockRemoteEcdsaKey::new(String::from("mdoc_key"), SigningKey::random(&mut OsRng));
     let partial_mdocs = vec_nonempty![PartialMdoc::new_mock_with_ca_and_key(issuer_ca, &mdoc_key)];
-    let mdoc_nonce = "mdoc_nonce".to_string();
+    let encryption_nonce = "encryption_nonce".to_string();
 
     // Verify the Authorization Request JWE and read the requested attributes.
     let (auth_request, cert) = VpAuthorizationRequest::try_new(auth_request, trust_anchors).unwrap();
@@ -188,7 +188,7 @@ fn disclosure_jwe(
         &auth_request.response_uri,
         &auth_request.client_id,
         auth_request.nonce.clone(),
-        &mdoc_nonce,
+        &encryption_nonce,
     );
     let wscd = MockRemoteWscd::new(vec![mdoc_key]);
     let poa_input = JwtPoaInput::new(Some(auth_request.nonce.clone()), auth_request.client_id.clone());
@@ -205,7 +205,7 @@ fn disclosure_jwe(
             VerifiablePresentation::MsoMdoc(device_responses),
         )]),
         &auth_request,
-        &mdoc_nonce,
+        &encryption_nonce,
         poa,
     )
     .unwrap()

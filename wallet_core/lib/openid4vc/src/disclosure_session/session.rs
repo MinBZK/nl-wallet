@@ -109,7 +109,7 @@ where
             .collect_vec();
 
         // Sign Document values based on the remaining contents of these mdocs and retain the keys used for signing.
-        let mdoc_nonce = random_string(32);
+        let encryption_nonce = random_string(32);
 
         let (vp_token, poa) = if let Ok(partial_mdocs) = VecNonEmpty::try_from(partial_mdocs) {
             info!("signing disclosed mdoc documents");
@@ -118,7 +118,7 @@ where
                 &self.auth_request.response_uri,
                 &self.auth_request.client_id,
                 self.auth_request.nonce.clone(),
-                &mdoc_nonce,
+                &encryption_nonce,
             );
             let poa_input = JwtPoaInput::new(
                 Some(self.auth_request.nonce.clone()),
@@ -159,7 +159,7 @@ where
         };
 
         // Finally, encrypt the response and send it to the verifier.
-        let result = VpAuthorizationResponse::new_encrypted(vp_token, &self.auth_request, &mdoc_nonce, poa);
+        let result = VpAuthorizationResponse::new_encrypted(vp_token, &self.auth_request, &encryption_nonce, poa);
         let jwe = match result {
             Ok(value) => value,
             Err(error) => {
