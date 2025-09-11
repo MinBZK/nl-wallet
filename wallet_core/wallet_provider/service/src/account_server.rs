@@ -260,6 +260,9 @@ pub enum InstructionError {
     #[error("there is no account transfer in progress")]
     NoAccountTransferInProgress,
 
+    #[error("wallet cannot be transferred between accounts having different recovery codes")]
+    AccountTransferWalletsMismatch,
+
     #[error(
         "cannot transfer wallets because of app version mismatch; source: {source_version}, destination: \
          {destination_version}"
@@ -292,6 +295,9 @@ pub enum InstructionValidationError {
 
     #[error("wallet transfer is in progress")]
     TransferInProgress,
+
+    #[error("recovery code is missing")]
+    MissingRecoveryCode,
 
     #[error("hsm error: {0}")]
     HsmError(#[from] HsmError),
@@ -3054,6 +3060,7 @@ mod tests {
                 id: Uuid::new_v4(),
                 destination_wallet_user_id: Uuid::new_v4(),
                 destination_wallet_app_version: Version::parse("3.2.1").unwrap(),
+                destination_wallet_recovery_code: String::from("12345678"),
                 transfer_session_id: Uuid::new_v4(),
                 state: TransferSessionState::ReadyForTransfer,
                 encrypted_wallet_data: None,

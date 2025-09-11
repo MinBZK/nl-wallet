@@ -443,6 +443,10 @@ async fn test_has_multiple_accounts() {
 async fn test_create_transfer_session() {
     let (db, wallet_user_id, wallet_id, _) = create_test_user().await;
 
+    store_recovery_code(&db, &wallet_id, Uuid::new_v4().to_string())
+        .await
+        .expect("storing the recovery code should succeed");
+
     let transfer_session_id = Uuid::new_v4();
     let destination_wallet_app_version = Version::parse("1.0.0").unwrap();
 
@@ -491,7 +495,11 @@ async fn test_create_transfer_session() {
 
 #[tokio::test]
 async fn test_find_transfer_session_by_transfer_session_id() {
-    let (db, wallet_user_id, _, _) = create_test_user().await;
+    let (db, wallet_user_id, wallet_id, _) = create_test_user().await;
+
+    store_recovery_code(&db, &wallet_id, Uuid::new_v4().to_string())
+        .await
+        .expect("storing the recovery code should succeed");
 
     let transfer_session_id = Uuid::new_v4();
     let destination_wallet_app_version = Version::parse("1.2.3").unwrap();

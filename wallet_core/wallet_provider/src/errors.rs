@@ -97,6 +97,7 @@ impl From<WalletProviderError> for AccountError {
                 | InstructionError::InvalidRecoveryCode
                 | InstructionError::AccountNotTransferable
                 | InstructionError::NoAccountTransferInProgress
+                | InstructionError::AccountTransferWalletsMismatch
                 | InstructionError::AppVersionMismatch { .. }
                 | InstructionError::SdJwtError(_) => Self::InstructionValidation,
                 InstructionError::WalletCertificate(WalletCertificateError::UserBlocked) => Self::AccountBlocked,

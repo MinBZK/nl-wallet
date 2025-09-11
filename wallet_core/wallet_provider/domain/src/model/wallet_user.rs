@@ -35,6 +35,7 @@ pub struct WalletUser {
 pub struct TransferSession {
     pub id: Uuid,
     pub destination_wallet_user_id: Uuid,
+    pub destination_wallet_recovery_code: String,
     pub transfer_session_id: Uuid,
     pub destination_wallet_app_version: Version,
     pub state: TransferSessionState,
