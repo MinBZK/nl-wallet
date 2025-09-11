@@ -47,6 +47,7 @@ use wallet_account::messages::instructions::Sign;
 use wallet_account::messages::instructions::SignResult;
 use wallet_account::messages::instructions::StartPinRecovery;
 use wallet_provider_domain::model::hsm::WalletUserHsm;
+use wallet_provider_domain::model::wallet_user::TransferSessionState;
 use wallet_provider_domain::model::wallet_user::WalletUser;
 use wallet_provider_domain::model::wallet_user::WalletUserKey;
 use wallet_provider_domain::model::wallet_user::WalletUserKeys;
@@ -171,7 +172,6 @@ impl PinChecks for ChangePinStart {}
 impl PinChecks for PerformIssuance {}
 impl PinChecks for PerformIssuanceWithWua {}
 impl PinChecks for DiscloseRecoveryCode {}
-impl PinChecks for ConfirmTransfer {}
 impl PinChecks for ChangePinCommit {}
 impl PinChecks for ChangePinRollback {}
 impl PinChecks for CheckPin {}
@@ -671,6 +671,41 @@ impl HandleInstruction for DiscloseRecoveryCode {
     }
 }
 
+impl HandleInstruction for ConfirmTransfer {
+    type Result = ();
+
+    async fn handle<T, R, H, G>(
+        self,
+        wallet_user: &WalletUser,
+        _generators: &G,
+        user_state: &UserState<R, H, impl WuaIssuer>,
+    ) -> Result<Self::Result, InstructionError>
+    where
+        T: Committable,
+        R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
+        H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
+        G: Generator<Uuid> + Generator<DateTime<Utc>>,
+    {
+        match &wallet_user.transfer_session {
+            Some(transfer_session) => {
+                let tx = user_state.repositories.begin_transaction().await?;
+                user_state
+                    .repositories
+                    .update_transfer_session_state(
+                        &tx,
+                        transfer_session.transfer_session_id,
+                        TransferSessionState::ReadyForTransfer,
+                    )
+                    .await?;
+                tx.commit().await?;
+            }
+            None => return Err(InstructionError::NoAccountTransferInProgress),
+        };
+
+        Ok(())
+    }
+}
+
 struct HsmCredentialSigningKey<'a, H> {
     hsm: &'a H,
     wrapped_key: &'a WrappedKey,
@@ -794,6 +829,7 @@ mod tests {
     use wallet_account::messages::instructions::ChangePinRollback;
     use wallet_account::messages::instructions::ChangePinStart;
     use wallet_account::messages::instructions::CheckPin;
+    use wallet_account::messages::instructions::ConfirmTransfer;
     use wallet_account::messages::instructions::DiscloseRecoveryCode;
     use wallet_account::messages::instructions::PerformIssuance;
     use wallet_account::messages::instructions::PerformIssuanceWithWua;
@@ -802,6 +838,7 @@ mod tests {
     use wallet_provider_domain::generator::mock::MockGenerators;
     use wallet_provider_domain::model::wallet_user;
     use wallet_provider_domain::model::wallet_user::TransferSession;
+    use wallet_provider_domain::model::wallet_user::TransferSessionState;
     use wallet_provider_domain::model::wallet_user::WalletUserState;
     use wallet_provider_domain::repository::MockTransaction;
     use wallet_provider_persistence::repositories::mock::MockTransactionalWalletUserRepository;
@@ -810,6 +847,7 @@ mod tests {
     use crate::account_server::InstructionValidationError;
     use crate::account_server::mock;
     use crate::instructions::HandleInstruction;
+    use crate::instructions::InstructionError;
     use crate::instructions::ValidateInstruction;
     use crate::instructions::is_poa_message;
     use crate::wallet_certificate::mock::setup_hsm;
@@ -1124,7 +1162,7 @@ mod tests {
             destination_wallet_user_id: Uuid::new_v4(),
             transfer_session_id: transfer_session_id.lock().unwrap().unwrap(),
             destination_wallet_app_version: Version::parse("1.9.8").unwrap(),
-            in_progress: false,
+            state: TransferSessionState::Created,
             encrypted_wallet_data: None,
         });
 
@@ -1364,5 +1402,73 @@ mod tests {
         } else {
             assert_matches!(result, Err(InstructionValidationError::PinRecoveryInProgress));
         }
+    }
+
+    #[tokio::test]
+    async fn should_handle_confirm_transfer() {
+        let wrapping_key_identifier = "my-wrapping-key-identifier";
+        let mut wallet_user = wallet_user::mock::wallet_user_1();
+
+        let transfer_session_id = Uuid::new_v4();
+
+        wallet_user.transfer_session = Some(TransferSession {
+            id: Uuid::new_v4(),
+            destination_wallet_user_id: Uuid::new_v4(),
+            transfer_session_id,
+            destination_wallet_app_version: Version::parse("1.9.8").unwrap(),
+            state: TransferSessionState::Created,
+            encrypted_wallet_data: None,
+        });
+
+        let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
+        wallet_user_repo
+            .expect_begin_transaction()
+            .returning(|| Ok(MockTransaction));
+        wallet_user_repo
+            .expect_update_transfer_session_state()
+            .returning(|_, _, _| Ok(()));
+
+        let instruction = ConfirmTransfer { transfer_session_id };
+
+        instruction
+            .handle(
+                &wallet_user,
+                &MockGenerators,
+                &mock::user_state(
+                    wallet_user_repo,
+                    setup_hsm().await,
+                    wrapping_key_identifier.to_string(),
+                    vec![],
+                ),
+            )
+            .await
+            .unwrap();
+    }
+
+    #[tokio::test]
+    async fn should_handle_confirm_transfer_error_when_not_in_progress() {
+        let wrapping_key_identifier = "my-wrapping-key-identifier";
+        let mut wallet_user = wallet_user::mock::wallet_user_1();
+        wallet_user.transfer_session = None;
+
+        let wallet_user_repo = MockTransactionalWalletUserRepository::new();
+        let transfer_session_id = Uuid::new_v4();
+        let instruction = ConfirmTransfer { transfer_session_id };
+
+        let err = instruction
+            .handle(
+                &wallet_user,
+                &MockGenerators,
+                &mock::user_state(
+                    wallet_user_repo,
+                    setup_hsm().await,
+                    wrapping_key_identifier.to_string(),
+                    vec![],
+                ),
+            )
+            .await
+            .expect_err("should fail when a transfer session is not in progress");
+
+        assert_matches!(err, InstructionError::NoAccountTransferInProgress)
     }
 }

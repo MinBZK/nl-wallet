@@ -11,6 +11,7 @@ use wallet_configuration::wallet_config::WalletConfiguration;
 use crate::account_provider::AccountProviderClient;
 use crate::digid::DigidClient;
 use crate::errors::ChangePinError;
+use crate::instruction::HwSignedInstructionClient;
 use crate::instruction::InstructionClient;
 use crate::instruction::InstructionClientParameters;
 use crate::pin::change::ChangePinStorage;
@@ -52,9 +53,32 @@ where
             Arc::clone(&self.storage),
             attested_key,
             Arc::clone(&self.account_provider_client),
-            InstructionClientParameters::new(registration_data, client_config, instruction_result_public_key),
+            Arc::new(InstructionClientParameters::new(
+                registration_data,
+                client_config,
+                instruction_result_public_key,
+            )),
         );
 
         Ok(client)
+    }
+
+    pub(super) fn new_hw_signed_instruction_client(
+        &self,
+        attested_key: Arc<AttestedKey<AKH::AppleKey, AKH::GoogleKey>>,
+        registration_data: RegistrationData,
+        client_config: TlsPinningConfig,
+        instruction_result_public_key: EcdsaDecodingKey,
+    ) -> HwSignedInstructionClient<S, AKH::AppleKey, AKH::GoogleKey, APC> {
+        HwSignedInstructionClient::new(
+            Arc::clone(&self.storage),
+            attested_key,
+            Arc::clone(&self.account_provider_client),
+            Arc::new(InstructionClientParameters::new(
+                registration_data,
+                client_config,
+                instruction_result_public_key,
+            )),
+        )
     }
 }

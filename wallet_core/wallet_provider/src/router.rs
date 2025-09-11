@@ -22,8 +22,10 @@ use wallet_account::messages::instructions::ChangePinCommit;
 use wallet_account::messages::instructions::ChangePinRollback;
 use wallet_account::messages::instructions::ChangePinStart;
 use wallet_account::messages::instructions::CheckPin;
+use wallet_account::messages::instructions::ConfirmTransfer;
 use wallet_account::messages::instructions::DiscloseRecoveryCode;
 use wallet_account::messages::instructions::DiscloseRecoveryCodeResult;
+use wallet_account::messages::instructions::HwSignedInstruction;
 use wallet_account::messages::instructions::Instruction;
 use wallet_account::messages::instructions::InstructionAndResult;
 use wallet_account::messages::instructions::InstructionChallengeRequest;
@@ -76,6 +78,10 @@ where
                 .route("/enroll", post(enroll))
                 .route("/createwallet", post(create_wallet))
                 .route("/instructions/challenge", post(instruction_challenge))
+                .route(
+                    &format!("/instructions/hw_signed/{}", ConfirmTransfer::NAME),
+                    post(confirm_transfer),
+                )
                 .route(
                     &format!("/instructions/{}", ChangePinStart::NAME),
                     post(change_pin_start),
@@ -283,6 +289,19 @@ async fn disclose_recovery_code<GRC, PIC>(
         .handle_instruction(payload)
         .await
         .inspect_err(|error| warn!("handling DiscloseRecoveryCode instruction failed: {}", error))?;
+
+    Ok((StatusCode::OK, body.into()))
+}
+
+async fn confirm_transfer<GRC, PIC>(
+    State(state): State<Arc<RouterState<GRC, PIC>>>,
+    Json(payload): Json<HwSignedInstruction<ConfirmTransfer>>,
+) -> Result<(StatusCode, Json<InstructionResultMessage<()>>)> {
+    info!("Received confirm transfer request, handling the ConfirmTransfer instruction");
+    let body = state
+        .handle_hw_signed_instruction(payload)
+        .await
+        .inspect_err(|error| warn!("handling ConfirmTransfer instruction failed: {}", error))?;
 
     Ok((StatusCode::OK, body.into()))
 }

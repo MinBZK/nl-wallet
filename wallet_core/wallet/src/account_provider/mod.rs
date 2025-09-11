@@ -7,6 +7,7 @@ use error_category::ErrorCategory;
 use http_utils::tls::pinning::TlsPinningConfig;
 use wallet_account::messages::errors::AccountError;
 use wallet_account::messages::errors::AccountErrorType;
+use wallet_account::messages::instructions::HwSignedInstruction;
 use wallet_account::messages::instructions::Instruction;
 use wallet_account::messages::instructions::InstructionAndResult;
 use wallet_account::messages::instructions::InstructionChallengeRequest;
@@ -63,6 +64,14 @@ pub trait AccountProviderClient {
         &self,
         client_config: &TlsPinningConfig,
         instruction: Instruction<I>,
+    ) -> Result<InstructionResult<I::Result>, AccountProviderError>
+    where
+        I: InstructionAndResult + 'static;
+
+    async fn hw_signed_instruction<I>(
+        &self,
+        client_config: &TlsPinningConfig,
+        instruction: HwSignedInstruction<I>,
     ) -> Result<InstructionResult<I::Result>, AccountProviderError>
     where
         I: InstructionAndResult + 'static;

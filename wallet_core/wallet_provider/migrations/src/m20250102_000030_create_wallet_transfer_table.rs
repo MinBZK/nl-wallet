@@ -18,7 +18,7 @@ impl MigrationTrait for Migration {
                     .col(uuid(WalletTransfer::DestinationWalletUserId))
                     .col(uuid(WalletTransfer::TransferSessionId))
                     .col(string(WalletTransfer::DestinationWalletAppVersion))
-                    .col(boolean(WalletTransfer::TransferInProgress))
+                    .col(string(WalletTransfer::State).default("created"))
                     .col(timestamp_with_time_zone(WalletTransfer::Created))
                     .col(binary_null(WalletTransfer::EncryptedWalletData))
                     .foreign_key(
@@ -55,7 +55,7 @@ pub enum WalletTransfer {
     DestinationWalletUserId,
     DestinationWalletAppVersion,
     TransferSessionId,
-    TransferInProgress,
+    State,
     Created,
     EncryptedWalletData,
 }

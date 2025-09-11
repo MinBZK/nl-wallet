@@ -9,6 +9,7 @@ use crate::account_provider::AccountProviderError;
 use crate::account_provider::AccountProviderResponseError;
 use crate::storage::StorageError;
 
+pub use self::client::HwSignedInstructionClient;
 pub use self::client::InstructionClient;
 pub use self::client::InstructionClientFactory;
 pub use self::client::InstructionClientParameters;
