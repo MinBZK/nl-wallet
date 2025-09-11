@@ -1624,6 +1624,15 @@ mod tests {
             .withf(move |_, session_id| &transfer_session_id == session_id)
             .returning(move |_, _| Ok(None));
 
+        let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
+        wallet_user_repo
+            .expect_begin_transaction()
+            .returning(|| Ok(MockTransaction));
+        wallet_user_repo
+            .expect_find_transfer_session_by_transfer_session_id()
+            .withf(move |_, session_id| &transfer_session_id == session_id)
+            .returning(move |_, _| Ok(None));
+
         let err = instruction
             .handle(
                 &wallet_user,
