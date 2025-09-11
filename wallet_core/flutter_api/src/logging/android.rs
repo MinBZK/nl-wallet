@@ -19,7 +19,7 @@ const DEFAULT_LEVEL: &tracing::Level = &tracing::Level::INFO;
 pub struct WriterMaker();
 
 impl WriterMaker {
-    fn writer(&self, level: &tracing::Level) -> LogWriter {
+    fn writer(&self, level: &tracing::Level) -> LogWriter<'_> {
         let level = match *level {
             tracing::Level::TRACE => log::Level::Trace,
             tracing::Level::DEBUG => log::Level::Debug,
@@ -37,7 +37,7 @@ impl<'a> MakeWriter<'a> for WriterMaker {
 
     fn make_writer(&'a self) -> Self::Writer {
         // This method may never get called (as there should normally be metadata present),
-        // but if it does we should just pick a debug level ourselves.
+        // but if it does, we should just pick a debug level ourselves.
         self.writer(DEFAULT_LEVEL)
     }
 
@@ -52,7 +52,7 @@ impl<'a> MakeWriter<'a> for WriterMaker {
 /// by [`android_logger`].
 ///
 /// Unfortunately, [`PlatformLogWriter`] implements the [`std::fmt::Write`] trait,
-/// instead of the [`std::io::Write`] trait that is required, so have have to convert
+/// instead of the [`std::io::Write`] trait that is required, so we have to convert
 /// between the two. In practice this means converting the provided by slices back to
 /// strings.
 pub struct LogWriter<'a>(PlatformLogWriter<'a>);
