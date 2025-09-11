@@ -13,7 +13,6 @@ class MenuIconTextButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       button: true,
-      tooltip: context.l10n.generalWCAGMenu,
       attributedLabel: context.l10n.dashboardScreenMenuWCAGLabel.toAttributedString(context),
       excludeSemantics: true,
       onTap: onPressed ?? () => Navigator.pushNamed(context, WalletRoutes.menuRoute),
