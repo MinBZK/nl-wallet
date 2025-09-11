@@ -800,7 +800,6 @@ mod tests {
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
     use dcql::CredentialQueryIdentifier;
-    use dcql::normalized::NormalizedCredentialRequest;
     use dcql::normalized::NormalizedCredentialRequests;
     use jwt::UnverifiedJwt;
     use mdoc::DeviceAuthenticationKeyed;
@@ -1122,31 +1121,23 @@ mod tests {
         assert_eq!(decrypted_document.doc_type, "org.iso.18013.5.1.mDL".to_string());
     }
 
-    fn challenges(
-        auth_request: &NormalizedVpAuthorizationRequest,
-        session_transcript: &SessionTranscript,
-    ) -> Vec<Vec<u8>> {
-        auth_request
-            .credential_requests
-            .as_ref()
+    fn mdoc_challenges(issuer_signed: &[IssuerSigned], session_transcript: &SessionTranscript) -> Vec<Vec<u8>> {
+        issuer_signed
             .iter()
-            .map(|request| {
-                match &request {
-                    NormalizedCredentialRequest::MsoMdoc { doctype_value, .. } => {
-                        // Assemble the challenge (serialized Device Authentication) to sign with the mdoc key
-                        let device_authentication = TaggedBytes(CborSeq(DeviceAuthenticationKeyed {
-                            device_authentication: Default::default(),
-                            session_transcript: Cow::Borrowed(session_transcript),
-                            doc_type: Cow::Borrowed(doctype_value),
-                            device_name_spaces_bytes: IndexMap::new().into(),
-                        }));
+            .map(|isser_signed| {
+                let TaggedBytes(mso) = isser_signed.issuer_auth.dangerous_parse_unverified().unwrap();
 
-                        cbor_serialize(&device_authentication).unwrap()
-                    }
-                    NormalizedCredentialRequest::SdJwt { .. } => todo!("PVW-4139 support SdJwt"),
-                }
+                // Assemble the challenge (serialized Device Authentication) to sign with the mdoc key
+                let device_authentication = TaggedBytes(CborSeq(DeviceAuthenticationKeyed {
+                    device_authentication: Default::default(),
+                    session_transcript: Cow::Borrowed(session_transcript),
+                    doc_type: Cow::Owned(mso.doc_type),
+                    device_name_spaces_bytes: IndexMap::new().into(),
+                }));
+
+                cbor_serialize(&device_authentication).unwrap()
             })
-            .collect_vec()
+            .collect()
     }
 
     /// Build a valid `DeviceResponse` using the given `issuer_signed`, `device_signed` and `session_transcript`.
@@ -1202,10 +1193,9 @@ mod tests {
             encryption_nonce,
         );
 
-        let (issuer_signed, keys): (_, Vec<MockRemoteEcdsaKey>) =
-            issuer_signed_and_keys.iter().map(ToOwned::to_owned).unzip();
+        let (issuer_signed, keys): (Vec<_>, Vec<_>) = issuer_signed_and_keys.iter().map(ToOwned::to_owned).unzip();
 
-        let challenges = challenges(auth_request, &session_transcript);
+        let challenges = mdoc_challenges(&issuer_signed, &session_transcript);
         let keys_and_challenges = challenges
             .iter()
             .zip(&keys)
