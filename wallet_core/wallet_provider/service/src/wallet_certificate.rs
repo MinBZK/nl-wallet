@@ -158,8 +158,8 @@ where
 
 /// - Verify the provided [`WalletCertificate`]
 /// - Retrieve the [`WalletUser`] from the DB using the `wallet_id` from the verified [`WalletCertificate`]
-/// - Check that the provided PIN key and the HW key in the [`WalletUser`] are present in the
-///   (verified) wallet certificate
+/// - Check that the provided PIN key and the HW key in the [`WalletUser`] are present in the (verified) wallet
+///   certificate
 /// - Return the [`WalletUser`].
 pub async fn verify_wallet_certificate<T, R, H, F>(
     certificate: &WalletCertificate,

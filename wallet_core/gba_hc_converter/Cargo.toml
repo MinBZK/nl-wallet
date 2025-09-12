@@ -28,6 +28,7 @@ hex = { workspace = true, features = ["serde"] }
 hmac.workspace = true
 http.workspace = true
 indexmap.workspace = true
+itertools.workspace = true
 nutype = { workspace = true, features = ["regex", "serde"] }
 pem.workspace = true
 quick-xml = { workspace = true, features = ["async-tokio", "serialize", "overlapped-lists"] }
