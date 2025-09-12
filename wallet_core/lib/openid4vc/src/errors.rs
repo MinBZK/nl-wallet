@@ -98,7 +98,6 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
                 }
 
                 CredentialRequestError::UnsupportedJwt(_)
-                | CredentialRequestError::MissingJwk
                 | CredentialRequestError::IncorrectNonce
                 | CredentialRequestError::Jwt(_)
                 | CredentialRequestError::JwkConversion(_)

@@ -83,7 +83,7 @@ impl HeaderWithX5c {
     pub fn new(x5c: Vec<String>) -> Self {
         HeaderWithX5c {
             x5c,
-            header: JwtHeader { alg: Algorithm::ES256 },
+            header: JwtHeader::default(),
         }
     }
 }

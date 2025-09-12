@@ -49,7 +49,7 @@ pub struct UnverifiedJwt<T, H = Header> {
 
     payload_end: usize,
 
-    _payload_type: PhantomData<(T, H)>,
+    _jwt_type: PhantomData<(T, H)>,
 }
 
 impl<T, H> FromStr for UnverifiedJwt<T, H> {
@@ -61,7 +61,7 @@ impl<T, H> FromStr for UnverifiedJwt<T, H> {
         Ok(Self {
             serialization: s.to_owned(),
             payload_end,
-            _payload_type: PhantomData,
+            _jwt_type: PhantomData,
         })
     }
 }
@@ -344,7 +344,7 @@ impl<T: Serialize, H: Serialize> UnverifiedJwt<T, H> {
             serialization: [message, encoded_signature].join("."),
 
             payload_end,
-            _payload_type: PhantomData,
+            _jwt_type: PhantomData,
         })
     }
 }
@@ -416,7 +416,7 @@ impl<T> From<UnverifiedJwt<PayloadWithSub<T>>> for UnverifiedJwt<T> {
         UnverifiedJwt {
             serialization: value.serialization,
             payload_end: value.payload_end,
-            _payload_type: PhantomData,
+            _jwt_type: PhantomData,
         }
     }
 }
@@ -488,7 +488,7 @@ impl<T, H> From<UnverifiedJwt<T, HeaderWithTyp<H>>> for UnverifiedJwt<T, H> {
         UnverifiedJwt {
             serialization: value.serialization,
             payload_end: value.payload_end,
-            _payload_type: PhantomData,
+            _jwt_type: PhantomData,
         }
     }
 }
@@ -499,7 +499,7 @@ impl<T: JwtTyp, H> From<UnverifiedJwt<T, H>> for UnverifiedJwt<T, HeaderWithTyp<
         UnverifiedJwt {
             serialization: value.serialization,
             payload_end: value.payload_end,
-            _payload_type: PhantomData,
+            _jwt_type: PhantomData,
         }
     }
 }
@@ -509,7 +509,7 @@ impl<T: JwtTyp, H> From<&UnverifiedJwt<T, H>> for UnverifiedJwt<T, HeaderWithTyp
         UnverifiedJwt {
             serialization: value.serialization.clone(),
             payload_end: value.payload_end,
-            _payload_type: PhantomData,
+            _jwt_type: PhantomData,
         }
     }
 }
@@ -772,7 +772,7 @@ mod tests {
             UnverifiedJwt {
                 serialization: jwt.to_string(),
                 payload_end: signed_slice.len(),
-                _payload_type: PhantomData
+                _jwt_type: PhantomData
             }
         );
         assert_eq!(parsed.signed_slice(), signed_slice);
@@ -807,7 +807,7 @@ mod tests {
         let private_key = SigningKey::random(&mut OsRng);
         let t = ToyMessage::default();
 
-        let jwt: UnverifiedJwt<_> = UnverifiedJwt::sign_with_sub(t.clone(), &private_key).await.unwrap();
+        let jwt = UnverifiedJwt::sign_with_sub(t.clone(), &private_key).await.unwrap();
 
         // the JWT has a `sub` with the expected value
         let jwt_message: HashMap<String, serde_json::Value> = part(1, jwt.serialization());

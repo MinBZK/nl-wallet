@@ -39,7 +39,7 @@ pub enum JwtError {
     #[category(critical)]
     HeaderConversion,
 
-    #[error("unexpected type: expected {0}, found {1:?}")]
+    #[error("unexpected type: expected {0}, found {1}")]
     #[category(critical)]
     UnexpectedTyp(String, String),
 }

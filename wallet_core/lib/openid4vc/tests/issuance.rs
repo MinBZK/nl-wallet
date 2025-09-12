@@ -24,7 +24,6 @@ use crypto::server_keys::generate::Ca;
 use http_utils::urls::BaseUrl;
 use jwt::JsonJwt;
 use jwt::UnverifiedJwt;
-
 use openid4vc::CredentialErrorCode;
 use openid4vc::Format;
 use openid4vc::credential::CredentialRequest;

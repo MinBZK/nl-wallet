@@ -206,10 +206,6 @@ pub enum IssuanceSessionError {
     #[error("different issuer registrations found in credential previews")]
     #[category(critical)]
     DifferentIssuerRegistrations(#[source] MultipleItemsFound),
-
-    #[error("WP failed to include JWK in PoP JWT header")]
-    #[category(critical)]
-    MissingJwk,
 }
 
 #[derive(Clone, Debug)]

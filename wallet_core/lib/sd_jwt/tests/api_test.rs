@@ -5,7 +5,6 @@ use std::collections::HashSet;
 
 use chrono::DateTime;
 use chrono::Duration;
-use jwt::headers::HeaderWithX5c;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 use rand_core::OsRng;
@@ -17,6 +16,7 @@ use attestation_types::claim_path::ClaimPath;
 use crypto::server_keys::generate::Ca;
 use crypto::x509::BorrowingCertificate;
 use jwt::EcdsaDecodingKey;
+use jwt::headers::HeaderWithX5c;
 use jwt::jwk::jwk_from_p256;
 use sd_jwt::builder::SdJwtBuilder;
 use sd_jwt::disclosure::DisclosureContent;

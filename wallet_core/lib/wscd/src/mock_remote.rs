@@ -115,8 +115,6 @@ impl DisclosureWscd for MockRemoteWscd {
     }
 }
 
-// TODO OPENID4VCI_VC_POP_JWT_TYPE
-
 impl Wscd for MockRemoteWscd {
     async fn perform_issuance(
         &self,

@@ -144,9 +144,6 @@ pub enum CredentialRequestError {
     #[error("credential request ambiguous, use /batch_credential instead")]
     UseBatchIssuance,
 
-    #[error("missing JWK")]
-    MissingJwk,
-
     #[error("incorrect nonce")]
     IncorrectNonce,
 
