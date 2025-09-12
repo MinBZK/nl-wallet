@@ -61,6 +61,7 @@
   treated as new.
 - The Wallet Provider now supports a new `StartPinRecovery` instruction with
   which the wallet can start PIN recovery if the user forgot their PIN.
+- The wallet now start with an empty database on every new version.
 
 ## Code improvements
 
