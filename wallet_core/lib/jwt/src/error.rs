@@ -35,13 +35,25 @@ pub enum JwtError {
     #[category(pd)]
     DifferentPayloads(String, String),
 
-    #[error("could not convert Header")]
+    #[error("Header conversion failed: {0}")]
     #[category(critical)]
-    HeaderConversion,
+    HeaderConversion(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
 
     #[error("unexpected type: expected {0}, found {1}")]
     #[category(critical)]
     UnexpectedTyp(String, String),
+
+    #[error("missing jwk field in JWT header")]
+    #[category(critical)]
+    MissingJwk,
+
+    #[error("missing x5c field in JWT header")]
+    #[category(critical)]
+    MissingX5c,
+
+    #[error("missing typ field in JWT header")]
+    #[category(critical)]
+    MissingTyp,
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]

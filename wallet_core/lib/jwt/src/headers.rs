@@ -63,7 +63,7 @@ impl TryFrom<Header> for HeaderWithJwk {
     type Error = JwtError;
 
     fn try_from(value: Header) -> Result<Self, Self::Error> {
-        let jwk = value.jwk.as_ref().ok_or(JwtError::HeaderConversion)?.clone();
+        let jwk = value.jwk.as_ref().ok_or(JwtError::MissingJwk)?.clone();
         Ok(HeaderWithJwk {
             header: value.into(),
             jwk,
@@ -100,7 +100,7 @@ impl TryFrom<Header> for HeaderWithX5c {
     type Error = JwtError;
 
     fn try_from(value: Header) -> Result<Self, Self::Error> {
-        let x5c = value.x5c.as_ref().ok_or(JwtError::HeaderConversion)?.clone();
+        let x5c = value.x5c.as_ref().ok_or(JwtError::MissingX5c)?.clone();
         Ok(HeaderWithX5c {
             header: value.into(),
             x5c,

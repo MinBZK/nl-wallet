@@ -227,7 +227,7 @@ mod test {
             Duration::days(3),
         )
         .expect_err("should fail validation");
-        assert_matches!(err, Error::JwtParsing(JwtError::HeaderConversion));
+        assert_matches!(err, Error::JwtParsing(JwtError::HeaderConversion(_)));
     }
 
     #[tokio::test]

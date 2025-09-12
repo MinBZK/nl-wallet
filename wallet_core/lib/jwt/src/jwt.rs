@@ -123,7 +123,12 @@ impl<T: DeserializeOwned, H: DeserializeOwned> UnverifiedJwt<T, H> {
     }
 }
 
-impl<T: DeserializeOwned, H: TryFrom<Header>> UnverifiedJwt<T, H> {
+impl<T, H, E> UnverifiedJwt<T, H>
+where
+    T: DeserializeOwned,
+    H: TryFrom<Header, Error = E>,
+    E: std::error::Error + Send + Sync + 'static,
+{
     pub fn parse_and_verify_with_header(
         &self,
         pubkey: &EcdsaDecodingKey,
@@ -132,7 +137,10 @@ impl<T: DeserializeOwned, H: TryFrom<Header>> UnverifiedJwt<T, H> {
         let token_data = jsonwebtoken::decode::<T>(&self.serialization, &pubkey.0, validation_options)
             .map_err(JwtError::Validation)?;
 
-        let header: H = token_data.header.try_into().map_err(|_| JwtError::HeaderConversion)?;
+        let header: H = token_data
+            .header
+            .try_into()
+            .map_err(|e| JwtError::HeaderConversion(Box::new(e)))?;
         Ok((header, token_data.claims))
     }
 
@@ -470,13 +478,17 @@ struct HeaderWithTyp<H> {
     typ: String, // TODO make this a `Cow`
 }
 
-impl<H: TryFrom<Header>> TryFrom<Header> for HeaderWithTyp<H> {
+impl<H, E> TryFrom<Header> for HeaderWithTyp<H>
+where
+    H: TryFrom<Header, Error = E>,
+    E: std::error::Error + Send + Sync + 'static,
+{
     type Error = JwtError;
 
     fn try_from(value: Header) -> Result<Self, Self::Error> {
-        let typ = value.typ.as_ref().ok_or(JwtError::HeaderConversion)?.clone();
+        let typ = value.typ.as_ref().ok_or(JwtError::MissingTyp)?.clone();
         Ok(HeaderWithTyp {
-            header: value.try_into().map_err(|_| JwtError::HeaderConversion)?,
+            header: value.try_into().map_err(|e| JwtError::HeaderConversion(Box::new(e)))?,
             typ,
         })
     }
@@ -514,10 +526,11 @@ impl<T: JwtTyp, H> From<&UnverifiedJwt<T, H>> for UnverifiedJwt<T, HeaderWithTyp
     }
 }
 
-impl<T, H> UnverifiedJwt<T, H>
+impl<T, H, E> UnverifiedJwt<T, H>
 where
-    T: DeserializeOwned + JwtTyp + std::fmt::Debug,
-    H: DeserializeOwned + TryFrom<Header> + std::fmt::Debug,
+    T: DeserializeOwned + JwtTyp,
+    H: DeserializeOwned + TryFrom<Header, Error = E>,
+    E: std::error::Error + Send + Sync + 'static,
 {
     pub fn parse_and_verify_with_typ(&self, pubkey: &EcdsaDecodingKey, validation_options: &Validation) -> Result<T> {
         let jwt: UnverifiedJwt<_, HeaderWithTyp<_>> = self.into();
@@ -551,7 +564,7 @@ where
 impl<T, H> UnverifiedJwt<T, H>
 where
     T: Serialize + JwtTyp,
-    H: Serialize + std::fmt::Debug,
+    H: Serialize,
 {
     pub async fn sign_with_header_and_typ(
         header: H,
@@ -603,7 +616,7 @@ where
 
 impl<T> VerifiedJwt<T>
 where
-    T: Serialize + JwtTyp + std::fmt::Debug,
+    T: Serialize + JwtTyp,
 {
     // TODO this should only exist for `UnverifiedJwt`
     pub async fn sign_with_typ(payload: T, privkey: &impl EcdsaKey) -> Result<VerifiedJwt<T>> {

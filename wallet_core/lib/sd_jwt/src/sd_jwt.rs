@@ -277,9 +277,10 @@ pub struct SdJwtPresentation<H = HeaderWithX5c> {
     key_binding_jwt: SpecOptional<KeyBindingJwt>,
 }
 
-impl<H> SdJwtPresentation<H>
+impl<H, E> SdJwtPresentation<H>
 where
-    H: TryFrom<Header>,
+    H: TryFrom<Header, Error = E>,
+    E: std::error::Error + Send + Sync + 'static,
 {
     /// Parses an SD-JWT into its components as [`SdJwt`].
     ///
@@ -417,9 +418,10 @@ impl SdJwt {
     }
 }
 
-impl<H> SdJwt<H>
+impl<H, E> SdJwt<H>
 where
-    H: TryFrom<Header>,
+    H: TryFrom<Header, Error = E>,
+    E: std::error::Error + Send + Sync + 'static,
 {
     /// Parses an SD-JWT into its components as [`SdJwt`].
     ///
@@ -914,9 +916,10 @@ mod test {
         SdJwt::<Header>::parse_and_verify(encoded_sd_jwt, &examples_sd_jwt_decoding_key()).unwrap();
     }
 
-    impl<H> UnverifiedSdJwt<H>
+    impl<H, E> UnverifiedSdJwt<H>
     where
-        H: TryFrom<Header>,
+        H: TryFrom<Header, Error = E>,
+        E: std::error::Error + Send + Sync + 'static,
     {
         pub fn into_verified(self, pubkey: &EcdsaDecodingKey) -> Result<VerifiedSdJwt<H>> {
             let UnverifiedSdJwt {
