@@ -31,12 +31,14 @@ chrono = { workspace = true, features = ["std", "clock"] }
 cfg-if.workspace = true
 ciborium.workspace = true
 derive_more = { workspace = true, features = ["constructor", "debug"] }
+form_urlencoded.workspace = true
 futures = { workspace = true, features = ["std", "async-await"] }
 http.workspace = true
 indexmap.workspace = true
 itertools.workspace = true
 # This feature is necessary on the transitive dependency sqlx.sqlite so it doesn't rely on a local dynamic library
 libsqlite3-sys = { workspace = true, features = ["bundled-sqlcipher-vendored-openssl"] }
+josekit.workspace = true
 mime.workspace = true
 nutype.workspace = true
 p256 = { workspace = true, features = ["ecdsa", "std"] }
