@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::path::PathBuf;
 
+use cfg_if::cfg_if;
 use chrono::DateTime;
 use chrono::Utc;
 use futures::try_join;
@@ -51,6 +52,8 @@ use openid4vc::issuance_session::IssuedCredential;
 use openid4vc::issuance_session::IssuedCredentialCopies;
 use platform_support::hw_keystore::PlatformEncryptionKey;
 use sd_jwt::sd_jwt::VerifiedSdJwt;
+#[cfg(not(debug_assertions))]
+use utils::built_info::version_identifier;
 
 use crate::AttestationIdentity;
 use crate::AttestationPresentation;
@@ -129,7 +132,17 @@ impl<K> DatabaseStorage<K> {
 
     fn database_path_for_name(&self, name: &str) -> PathBuf {
         // Get path to database as "<storage_path>/<name>.db"
-        self.storage_path.join(format!("{name}.{DATABASE_FILE_EXT}"))
+        cfg_if! {
+            if #[cfg(debug_assertions)] {
+                self.storage_path.join(format!("{name}.{DATABASE_FILE_EXT}"))
+            }
+            else {
+                // Temporarily hack to prevent backwards compatibility problems by including
+                // full version identifier. Should be removed when doing PVW-4707.
+                let version = version_identifier().expect("Version expected for release build");
+                self.storage_path.join(format!("{name}-{version}.{DATABASE_FILE_EXT}"))
+            }
+        }
     }
 
     async fn execute_query<S>(&self, query: S) -> StorageResult<Option<QueryResult>>
