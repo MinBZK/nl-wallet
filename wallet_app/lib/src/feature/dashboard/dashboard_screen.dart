@@ -26,6 +26,7 @@ import '../common/widget/card/wallet_card_item.dart';
 import '../common/widget/centered_loading_indicator.dart';
 import '../common/widget/fade_in_at_offset.dart';
 import '../common/widget/text_with_link.dart';
+import '../common/widget/utility/focus_on_init.dart';
 import '../common/widget/wallet_app_bar.dart';
 import '../common/widget/wallet_scrollbar.dart';
 import 'argument/dashboard_screen_argument.dart';
@@ -87,8 +88,11 @@ class DashboardScreen extends StatelessWidget {
   Widget _buildLeadingMenuButton(BuildContext context) {
     return Align(
       alignment: Alignment.centerLeft,
-      child: MenuIconTextButton(
-        onPressed: () => Navigator.pushNamed(context, WalletRoutes.menuRoute),
+      child: FocusOnInit(
+        key: ValueKey(context.read<DashboardBloc>().state.runtimeType),
+        child: MenuIconTextButton(
+          onPressed: () => Navigator.pushNamed(context, WalletRoutes.menuRoute),
+        ),
       ),
     );
   }

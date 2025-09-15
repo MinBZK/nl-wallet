@@ -41,6 +41,7 @@ class TextWithLink extends StatelessWidget {
         attributedLabel: fullText.toAttributedString(context),
         excludeSemantics: true,
         link: true,
+        button: true,
         child: Text.rich(
           locale: context.activeLocale,
           TextSpan(
