@@ -64,10 +64,10 @@ impl SdJwt {
           "exp": 1883000000,
           "iss": "https://cert.issuer.example.com",
           "attestation_qualification": "QEAA",
-          "bsn": "999991772",
+          "bsn": "999999999",
           "recovery_code": "885ed8a2-f07a-4f77-a8df-2e166f5ebd36",
-          "given_name": "John",
-          "family_name": "Doe",
+          "given_name": "Willeke Liselotte",
+          "family_name": "De Bruijn",
           "birthdate": "1940-01-01"
         });
 

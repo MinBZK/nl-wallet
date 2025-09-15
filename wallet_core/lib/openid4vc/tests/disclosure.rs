@@ -36,7 +36,6 @@ use crypto::server_keys::generate::mock::RP_CERT_CN;
 use crypto::wscd::DisclosureResult;
 use crypto::wscd::DisclosureWscd;
 use crypto::wscd::WscdPoa;
-use dcql::CredentialQueryIdentifier;
 use dcql::Query;
 use dcql::normalized::NormalizedCredentialRequest;
 use dcql::normalized::NormalizedCredentialRequests;
@@ -56,9 +55,11 @@ use openid4vc::ErrorResponse;
 use openid4vc::GetRequestErrorCode;
 use openid4vc::PostAuthResponseErrorCode;
 use openid4vc::VpAuthorizationErrorCode;
+use openid4vc::disclosure_session::DisclosableAttestations;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::DisclosureSession;
 use openid4vc::disclosure_session::DisclosureUriSource;
+use openid4vc::disclosure_session::NonEmptyDisclosableAttestations;
 use openid4vc::disclosure_session::VpClientError;
 use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::disclosure_session::VpDisclosureSession;
@@ -96,7 +97,6 @@ use openid4vc::verifier::WalletInitiatedUseCase;
 use openid4vc::verifier::WalletInitiatedUseCases;
 use utils::generator::TimeGenerator;
 use utils::generator::mock::MockTimeGenerator;
-use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 use wscd::Poa;
 use wscd::mock_remote::MockRemoteWscd;
@@ -243,8 +243,11 @@ async fn disclosure_using_message_client() {
     let wscd = MockRemoteWscd::new(vec![mdoc_key]);
     session
         .disclose(
-            HashMap::from([("mdoc_pid_example".try_into().unwrap(), partial_mdocs)]),
+            DisclosableAttestations::MsoMdoc(HashMap::from([("mdoc_pid_example".try_into().unwrap(), partial_mdocs)]))
+                .try_into()
+                .unwrap(),
             &wscd,
+            &MockTimeGenerator::default(),
         )
         .await
         .unwrap();
@@ -517,13 +520,16 @@ async fn test_client_and_server(
         .unwrap();
 
     // Finish the disclosure.
-    let partial_attestations = test_documents_to_partial_attestations(
+    let disclosable_attestations = test_documents_to_disclosable_attestations(
         stored_documents,
         session.credential_requests().as_ref(),
         &issuer_ca,
         &wscd,
     );
-    let redirect_uri = session.disclose(partial_attestations, &wscd).await.unwrap();
+    let redirect_uri = session
+        .disclose(disclosable_attestations, &wscd, &MockTimeGenerator::default())
+        .await
+        .unwrap();
 
     // Check if we received a redirect URI when we should have, based on the use case and session type.
     let should_have_redirect_uri = match (use_case, session_type) {
@@ -674,14 +680,14 @@ async fn test_client_and_server_cancel_after_wallet_start() {
     assert_matches!(status_response, StatusResponse::Cancelled);
 
     // Disclosing attributes at this point should result in an error.
-    let partial_attestations = test_documents_to_partial_attestations(
+    let disclosable_attestations = test_documents_to_disclosable_attestations(
         stored_documents,
         session.credential_requests().as_ref(),
         &issuer_ca,
         &wscd,
     );
     let (_session, error) = session
-        .disclose(partial_attestations, &wscd)
+        .disclose(disclosable_attestations, &wscd, &MockTimeGenerator::default())
         .await
         .expect_err("should not be able to disclose attributes");
 
@@ -761,14 +767,14 @@ async fn test_disclosure_invalid_poa() {
         .unwrap();
 
     // Finish the disclosure.
-    let partial_attestations = test_documents_to_partial_attestations(
+    let disclosable_attestations = test_documents_to_disclosable_attestations(
         stored_documents,
         session.credential_requests().as_ref(),
         &issuer_ca,
         &wscd,
     );
     let (_session, error) = session
-        .disclose(partial_attestations, &wscd)
+        .disclose(disclosable_attestations, &wscd, &MockTimeGenerator::default())
         .await
         .expect_err("should not be able to disclose attributes");
     assert_matches!(
@@ -812,13 +818,17 @@ async fn test_wallet_initiated_usecase_verifier() {
     .unwrap();
 
     // Do the disclosure
-    let partial_attestations = test_documents_to_partial_attestations(
+    let disclosable_attestations = test_documents_to_disclosable_attestations(
         pid_full_name(),
         session.credential_requests().as_ref(),
         &issuer_ca,
         &wscd,
     );
-    session.disclose(partial_attestations, &wscd).await.unwrap().unwrap();
+    session
+        .disclose(disclosable_attestations, &wscd, &MockTimeGenerator::default())
+        .await
+        .unwrap()
+        .unwrap();
 }
 
 #[tokio::test]
@@ -981,16 +991,16 @@ fn setup_verifier(
     (verifier, rp_ca.to_trust_anchor().to_owned(), issuer_ca)
 }
 
-fn test_documents_to_partial_attestations<W>(
+fn test_documents_to_disclosable_attestations<W>(
     stored_documents: TestDocuments,
     credential_requests: &[NormalizedCredentialRequest],
     issuer_ca: &Ca,
     wscd: &W,
-) -> HashMap<CredentialQueryIdentifier, VecNonEmpty<PartialMdoc>>
+) -> NonEmptyDisclosableAttestations
 where
     W: Wscd,
 {
-    stored_documents
+    let partial_mdocs = stored_documents
         .into_iter()
         .zip_eq(credential_requests)
         .map(|(doc, request)| {
@@ -999,7 +1009,9 @@ where
 
             (request.id().clone(), vec_nonempty![partial_mdoc])
         })
-        .collect()
+        .collect();
+
+    DisclosableAttestations::MsoMdoc(partial_mdocs).try_into().unwrap()
 }
 
 async fn start_disclosure_session<US, UC>(

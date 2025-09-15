@@ -56,6 +56,10 @@ pub enum VpClientError {
     #[error("error creating mdoc device response: {0}")]
     DeviceResponse(#[source] mdoc::Error),
 
+    #[error("error creating SD-JWT presentation: {0}")]
+    #[category(pd)]
+    SdJwtPresentation(#[source] sd_jwt::error::Error),
+
     #[error("error encrypting Authorization Response: {0}")]
     #[category(defer)]
     AuthResponseEncryption(#[source] AuthResponseError),

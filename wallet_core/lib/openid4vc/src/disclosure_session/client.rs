@@ -193,8 +193,6 @@ mod tests {
     use futures::FutureExt;
     use http::StatusCode;
     use itertools::Itertools;
-    use p256::ecdsa::SigningKey;
-    use rand_core::OsRng;
     use rstest::rstest;
     use serde::de::Error;
 
@@ -205,11 +203,15 @@ mod tests {
     use attestation_types::claim_path::ClaimPath;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
+    use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
     use crypto::x509::BorrowingCertificateExtension;
+    use crypto::x509::CertificateUsage;
+    use dcql::CredentialFormat;
     use dcql::normalized::NormalizedCredentialRequests;
     use http_utils::urls::BaseUrl;
     use mdoc::holder::disclosure::PartialMdoc;
     use mdoc::test::data::PID;
+    use sd_jwt::sd_jwt::SdJwt;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_nonempty;
     use wscd::mock_remote::MOCK_WALLET_CLIENT_ID;
@@ -224,6 +226,7 @@ mod tests {
     use crate::openid4vp::WalletRequest;
     use crate::verifier::SessionType;
 
+    use super::super::DisclosableAttestations;
     use super::super::DisclosureClient;
     use super::super::DisclosureSession;
     use super::super::DisclosureUriSource;
@@ -249,11 +252,13 @@ mod tests {
         (Box<VpSessionError>, Arc<MockVerifierSession>),
     >;
 
+    #[expect(clippy::too_many_arguments)]
     fn start_disclosure_session<SF>(
         session_type: SessionType,
         uri_source: DisclosureUriSource,
         request_uri_method: RequestUriMethod,
         redirect_uri: Option<BaseUrl>,
+        credential_format: CredentialFormat,
         reader_registration_pid_attributes: &[&str],
         transform_verifier_session: SF,
     ) -> StartDisclosureResult
@@ -261,14 +266,31 @@ mod tests {
         SF: FnOnce(MockVerifierSession) -> MockVerifierSession,
     {
         // If the list of PID attributes is empty, do not generate a `ReaderRegistration`.
-        let reader_registration = (!reader_registration_pid_attributes.is_empty()).then(|| ReaderRegistration {
-            authorized_attributes: ReaderRegistration::create_attributes(
-                PID.to_string(),
-                PID,
-                reader_registration_pid_attributes.iter().copied(),
-            ),
-            ..ReaderRegistration::new_mock()
+        let reader_registration = (!reader_registration_pid_attributes.is_empty()).then(|| {
+            let authorized_attributes = match credential_format {
+                CredentialFormat::MsoMdoc => ReaderRegistration::create_mdoc_attributes(
+                    PID,
+                    PID,
+                    reader_registration_pid_attributes.iter().copied(),
+                ),
+                CredentialFormat::SdJwt => ReaderRegistration::create_attributes(
+                    PID,
+                    reader_registration_pid_attributes
+                        .iter()
+                        .map(|attribute| std::iter::once(*attribute)),
+                ),
+            };
+
+            ReaderRegistration {
+                authorized_attributes,
+                ..ReaderRegistration::new_mock()
+            }
         });
+
+        let credential_requests = match credential_format {
+            CredentialFormat::MsoMdoc => NormalizedCredentialRequests::new_mock_mdoc_pid_example(),
+            CredentialFormat::SdJwt => NormalizedCredentialRequests::new_mock_sd_jwt_pid_example(),
+        };
 
         // Prepare a mock `VpMessageClient` implementation that embeds everything we need for a disclosure session.
         let verifier_session = MockVerifierSession::new(
@@ -277,6 +299,7 @@ mod tests {
             request_uri_method,
             redirect_uri,
             reader_registration,
+            credential_requests,
         );
         let verifier_session = Arc::new(transform_verifier_session(verifier_session));
         let mock_client = MockVerifierVpMessageClient::new(Arc::clone(&verifier_session));
@@ -304,6 +327,7 @@ mod tests {
     #[case(SessionType::SameDevice, DisclosureUriSource::Link)]
     #[case(SessionType::CrossDevice, DisclosureUriSource::QrCode)]
     fn test_vp_disclosure_client_full(
+        #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] credential_format: CredentialFormat,
         #[case] session_type: SessionType,
         #[case] uri_source: DisclosureUriSource,
         #[values(RequestUriMethod::GET, RequestUriMethod::POST)] request_uri_method: RequestUriMethod,
@@ -314,6 +338,7 @@ mod tests {
             uri_source,
             request_uri_method,
             redirect_uri.clone(),
+            credential_format,
             &["bsn", "given_name", "family_name"],
             std::convert::identity,
         )
@@ -345,7 +370,10 @@ mod tests {
 
         assert_eq!(
             *disclosure_session.credential_requests(),
-            NormalizedCredentialRequests::new_mock_mdoc_pid_example()
+            match credential_format {
+                CredentialFormat::MsoMdoc => NormalizedCredentialRequests::new_mock_mdoc_pid_example(),
+                CredentialFormat::SdJwt => NormalizedCredentialRequests::new_mock_sd_jwt_pid_example(),
+            }
         );
 
         assert_eq!(
@@ -363,17 +391,48 @@ mod tests {
             verifier_session.reader_registration.as_ref().unwrap()
         );
 
-        // Create a test mdoc and disclose it.
+        // Create an attestation and disclose it.
         let ca = Ca::generate_issuer_mock_ca().unwrap();
-        let mdoc_key = MockRemoteEcdsaKey::new("mdoc_key".to_string(), SigningKey::random(&mut OsRng));
-        let partial_mdoc = PartialMdoc::new_mock_with_ca_and_key(&ca, &mdoc_key);
-        let wscd = MockRemoteWscd::new(vec![mdoc_key]);
+        let attestation_key = MockRemoteEcdsaKey::new_random("attestation_key".to_string());
+        let wscd = MockRemoteWscd::new(vec![attestation_key.clone()]);
+
+        let attestations = match credential_format {
+            CredentialFormat::MsoMdoc => {
+                let partial_mdoc = PartialMdoc::new_mock_with_ca_and_key(&ca, &attestation_key);
+
+                DisclosableAttestations::MsoMdoc(HashMap::from([(
+                    "mdoc_pid_example".try_into().unwrap(),
+                    vec_nonempty![partial_mdoc],
+                )]))
+                .try_into()
+                .unwrap()
+            }
+            CredentialFormat::SdJwt => {
+                let issuer_key_pair = ca
+                    .generate_key_pair(ISSUANCE_CERT_CN, CertificateUsage::Mdl, Default::default())
+                    .unwrap();
+                let sd_jwt = SdJwt::example_pid_sd_jwt(&issuer_key_pair, attestation_key.verifying_key());
+                let unsigned_sd_jwt_presentation = sd_jwt
+                    .into_presentation_builder()
+                    .disclose(&vec_nonempty![ClaimPath::SelectByKey("bsn".to_string())])
+                    .unwrap()
+                    .disclose(&vec_nonempty![ClaimPath::SelectByKey("given_name".to_string())])
+                    .unwrap()
+                    .disclose(&vec_nonempty![ClaimPath::SelectByKey("family_name".to_string())])
+                    .unwrap()
+                    .finish();
+
+                DisclosableAttestations::SdJwt(HashMap::from([(
+                    "sd_jwt_pid_example".try_into().unwrap(),
+                    vec_nonempty![(unsigned_sd_jwt_presentation, "attestation_key".to_string())],
+                )]))
+                .try_into()
+                .unwrap()
+            }
+        };
 
         let disclosure_redirect_uri = disclosure_session
-            .disclose(
-                HashMap::from([("mdoc_pid_example".try_into().unwrap(), vec_nonempty![partial_mdoc])]),
-                &wscd,
-            )
+            .disclose(attestations, &wscd, &MockTimeGenerator::default())
             .now_or_never()
             .unwrap()
             .expect("disclosing mdoc using VpDisclosureSession should succeed");
@@ -410,31 +469,43 @@ mod tests {
             .and_then(|attestations| attestations.attestations.iter().exactly_one().ok())
             .and_then(|attestation| (attestation.attestation_type.as_str() == PID).then_some(attestation))
             .and_then(|attestation| match &attestation.attributes {
-                DisclosedAttributes::MsoMdoc(attributes) => attributes.iter().exactly_one().ok(),
-                DisclosedAttributes::SdJwt(_) => None,
-            })
-            .and_then(|(namespaces, attributes)| (namespaces == PID).then_some(attributes))
-            .map(|attributes| {
-                attributes
+                DisclosedAttributes::MsoMdoc(attributes) => attributes
                     .iter()
-                    .filter_map(|(key, value)| {
-                        match value {
-                            AttributeValue::Text(text) => Some(text),
+                    .exactly_one()
+                    .ok()
+                    .and_then(|(namespaces, attributes)| (namespaces == PID).then_some(attributes))
+                    .map(|attributes| {
+                        attributes
+                            .iter()
+                            .filter_map(|(key, value)| {
+                                match value {
+                                    AttributeValue::Text(text) => Some(text),
+                                    _ => None,
+                                }
+                                .map(|text| (key.as_str(), text.as_str()))
+                            })
+                            .collect::<HashSet<_>>()
+                    }),
+                DisclosedAttributes::SdJwt(attributes) => Some(
+                    attributes
+                        .flattened()
+                        .into_iter()
+                        .flat_map(|(path, value)| match (path.iter().exactly_one().ok(), value) {
+                            (Some(path), AttributeValue::Text(text)) => Some((*path, text.as_str())),
                             _ => None,
-                        }
-                        .map(|text| (key.as_str(), text.as_str()))
-                    })
-                    .collect_vec()
+                        })
+                        .collect(),
+                ),
             })
             .unwrap_or_default();
 
-        assert_eq!(
-            disclosed_attributes,
-            vec![
+        assert!(
+            HashSet::from([
                 ("bsn", "999999999"),
                 ("given_name", "Willeke Liselotte"),
                 ("family_name", "De Bruijn"),
-            ]
+            ])
+            .is_subset(&disclosed_attributes)
         );
     }
 
@@ -446,6 +517,7 @@ mod tests {
             DisclosureUriSource::Link,
             RequestUriMethod::POST,
             None,
+            CredentialFormat::MsoMdoc,
             &["bsn", "given_name", "family_name"],
             |mut verifier_session| {
                 verifier_session.request_uri_override = Some(String::new());
@@ -468,6 +540,7 @@ mod tests {
             DisclosureUriSource::Link,
             RequestUriMethod::POST,
             None,
+            CredentialFormat::MsoMdoc,
             &["bsn", "given_name", "family_name"],
             |mut verifier_session| {
                 let mut request_uri = verifier_session.request_uri_object.request_uri.clone().into_inner();
@@ -493,6 +566,7 @@ mod tests {
             DisclosureUriSource::Link,
             RequestUriMethod::POST,
             None,
+            CredentialFormat::MsoMdoc,
             &["bsn", "given_name", "family_name"],
             |mut verifier_session| {
                 let mut request_uri_object: VpRequestUriObject =
@@ -529,6 +603,7 @@ mod tests {
             uri_source,
             RequestUriMethod::POST,
             None,
+            CredentialFormat::MsoMdoc,
             &["bsn", "given_name", "family_name"],
             std::convert::identity,
         )
@@ -551,6 +626,7 @@ mod tests {
             DisclosureUriSource::Link,
             RequestUriMethod::POST,
             None,
+            CredentialFormat::MsoMdoc,
             &["bsn", "given_name", "family_name"],
             |mut verifier_session| {
                 verifier_session.trust_anchors.clear();
@@ -651,6 +727,7 @@ mod tests {
             DisclosureUriSource::Link,
             RequestUriMethod::POST,
             None,
+            CredentialFormat::MsoMdoc,
             &["bsn", "given_name", "family_name"],
             |mut verifier_session| {
                 verifier_session.request_uri_object.client_id = "other_client_id".to_string();
@@ -687,6 +764,7 @@ mod tests {
             DisclosureUriSource::Link,
             RequestUriMethod::POST,
             None,
+            CredentialFormat::MsoMdoc,
             &[],
             std::convert::identity,
         )
@@ -705,8 +783,10 @@ mod tests {
         assert_matches!(&wallet_messages[1], WalletMessage::Error(response) if response.error == expected_error_code);
     }
 
-    #[test]
-    fn test_vp_disclosure_client_start_error_requested_attributes_validation() {
+    #[rstest]
+    fn test_vp_disclosure_client_start_error_requested_attributes_validation(
+        #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] credential_format: CredentialFormat,
+    ) {
         // Calling `VpDisclosureClient::start()` where the Authorization Request contains
         // an attribute that is not in the `ReaderRegistration` should result in an error.
         let (error, verifier_session) = start_disclosure_session(
@@ -714,20 +794,27 @@ mod tests {
             DisclosureUriSource::Link,
             RequestUriMethod::POST,
             None,
+            credential_format,
             &["given_name", "family_name"],
             std::convert::identity,
         )
         .expect_err("starting a new disclosure session on VpDisclosureClient should not succeed");
 
-        let unregistered_attributes = HashMap::from([(
-            PID.to_string(),
-            HashSet::from([vec![
-                ClaimPath::SelectByKey(PID.to_string()),
-                ClaimPath::SelectByKey("bsn".to_string()),
-            ]
-            .try_into()
-            .unwrap()]),
-        )]);
+        let unregistered_attributes = match credential_format {
+            CredentialFormat::MsoMdoc => HashMap::from([(
+                PID.to_string(),
+                HashSet::from([vec![
+                    ClaimPath::SelectByKey(PID.to_string()),
+                    ClaimPath::SelectByKey("bsn".to_string()),
+                ]
+                .try_into()
+                .unwrap()]),
+            )]),
+            CredentialFormat::SdJwt => HashMap::from([(
+                PID.to_string(),
+                HashSet::from([vec![ClaimPath::SelectByKey("bsn".to_string())].try_into().unwrap()]),
+            )]),
+        };
         assert_matches!(*error, VpSessionError::Verifier(VpVerifierError::RequestedAttributesValidation(
             ValidationError::UnregisteredAttributes(unregistered)
         )) if unregistered == unregistered_attributes);

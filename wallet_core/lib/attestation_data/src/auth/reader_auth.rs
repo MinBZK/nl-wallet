@@ -145,22 +145,35 @@ pub mod mock {
 
     impl ReaderRegistration {
         /// Build attributes for [`ReaderRegistration`] from a list of attributes.
+        pub fn create_mdoc_attributes(
+            doc_type: impl Into<String>,
+            name_space: impl Into<String>,
+            attributes: impl IntoIterator<IntoIter = impl ExactSizeIterator<Item = impl Into<String>>>,
+        ) -> HashMap<String, Vec<VecNonEmpty<ClaimPath>>> {
+            let attributes = attributes.into_iter();
+            let attribute_count = attributes.len();
+            let attributes = itertools::repeat_n(name_space.into(), attribute_count)
+                .zip(attributes)
+                .map(|(name_space, attribute)| vec![name_space, attribute.into()]);
+
+            Self::create_attributes(doc_type, attributes)
+        }
+
+        /// Build attributes for [`ReaderRegistration`] from a list of attributes.
         pub fn create_attributes(
-            doc_type: String,
-            namespace: &str,
-            attributes: impl IntoIterator<Item = impl Into<String>>,
+            credential_type: impl Into<String>,
+            attributes: impl IntoIterator<Item = impl IntoIterator<Item = impl Into<String>>>,
         ) -> HashMap<String, Vec<VecNonEmpty<ClaimPath>>> {
             [(
-                doc_type,
+                credential_type.into(),
                 attributes
                     .into_iter()
-                    .map(|attribute| {
-                        vec![
-                            ClaimPath::SelectByKey(String::from(namespace)),
-                            ClaimPath::SelectByKey(attribute.into()),
-                        ]
-                        .try_into()
-                        .unwrap()
+                    .map(|path| {
+                        path.into_iter()
+                            .map(|path_element| ClaimPath::SelectByKey(path_element.into()))
+                            .collect_vec()
+                            .try_into()
+                            .unwrap()
                     })
                     .collect_vec(),
             )]
