@@ -521,27 +521,6 @@ impl<T, H> From<UnverifiedJwt<T, HeaderWithTyp<H>>> for UnverifiedJwt<T, H> {
     }
 }
 
-// "cast" the header, the `typ` must be present
-impl<T: JwtTyp, H> From<UnverifiedJwt<T, H>> for UnverifiedJwt<T, HeaderWithTyp<H>> {
-    fn from(value: UnverifiedJwt<T, H>) -> Self {
-        UnverifiedJwt {
-            serialization: value.serialization,
-            payload_end: value.payload_end,
-            _jwt_type: PhantomData,
-        }
-    }
-}
-
-impl<T: JwtTyp, H> From<&UnverifiedJwt<T, H>> for UnverifiedJwt<T, HeaderWithTyp<H>> {
-    fn from(value: &UnverifiedJwt<T, H>) -> Self {
-        UnverifiedJwt {
-            serialization: value.serialization.clone(),
-            payload_end: value.payload_end,
-            _jwt_type: PhantomData,
-        }
-    }
-}
-
 impl<T, H, E> UnverifiedJwt<T, H>
 where
     T: DeserializeOwned + JwtTyp,
@@ -549,7 +528,13 @@ where
     E: std::error::Error + Send + Sync + 'static,
 {
     pub fn parse_and_verify_with_typ(&self, pubkey: &EcdsaDecodingKey, validation_options: &Validation) -> Result<T> {
-        let jwt: UnverifiedJwt<_, HeaderWithTyp<_>> = self.into();
+        // "cast" the header to one that expects the `typ` field to be present
+        let jwt: UnverifiedJwt<_, HeaderWithTyp<H>> = UnverifiedJwt {
+            serialization: self.serialization.clone(),
+            payload_end: self.payload_end,
+            _jwt_type: PhantomData,
+        };
+
         let (header, claims) = jwt.parse_and_verify_with_header(pubkey, validation_options)?;
         if header.typ != T::TYP {
             return Err(JwtError::UnexpectedTyp(T::TYP.to_owned(), header.typ.into_owned()));
@@ -563,7 +548,13 @@ where
         pubkey: &EcdsaDecodingKey,
         validation_options: &Validation,
     ) -> Result<VerifiedJwt<T, H>> {
-        let jwt: UnverifiedJwt<_, HeaderWithTyp<_>> = self.into();
+        // "cast" the header to one that expects the `typ` field to be present
+        let jwt: UnverifiedJwt<_, HeaderWithTyp<_>> = UnverifiedJwt {
+            serialization: self.serialization,
+            payload_end: self.payload_end,
+            _jwt_type: PhantomData,
+        };
+
         let VerifiedJwt { header, payload, jwt } = jwt.into_verified(pubkey, validation_options)?;
         if header.typ != T::TYP {
             return Err(JwtError::UnexpectedTyp(T::TYP.to_owned(), header.typ.into_owned()));
