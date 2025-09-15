@@ -69,6 +69,9 @@ import '../feature/tour/video/tour_video_screen.dart';
 import '../feature/update/update_info_screen.dart';
 import '../feature/wallet/personalize/bloc/wallet_personalize_bloc.dart';
 import '../feature/wallet/personalize/wallet_personalize_screen.dart';
+import '../feature/wallet_transfer_faq/wallet_transfer_faq_screen.dart';
+import '../feature/wallet_transfer_source/bloc/wallet_transfer_source_bloc.dart';
+import '../feature/wallet_transfer_source/wallet_transfer_source_screen.dart';
 import '../util/cast_util.dart';
 import 'secured_page_route.dart';
 
@@ -129,6 +132,8 @@ class WalletRoutes {
   static const updateInfoRoute = '/update_info';
   static const walletHistoryRoute = '/wallet/history';
   static const walletPersonalizeRoute = '/wallet/personalize';
+  static const walletTransferSourceRoute = '/wallet_transfer/source';
+  static const walletTransferFaqRoute = '/settings/wallet_transfer_faq';
 
   static Route<dynamic> routeFactory(RouteSettings settings) {
     final WidgetBuilder builder = _widgetBuilderFactory(settings);
@@ -223,6 +228,10 @@ class WalletRoutes {
         return _createTourVideoScreenBuilder(settings);
       case WalletRoutes.renewPidRoute:
         return _createRenewPidScreenBuilder(settings);
+      case WalletRoutes.walletTransferSourceRoute:
+        return _createWalletTransferSourceRoute(settings);
+      case WalletRoutes.walletTransferFaqRoute:
+        return _createWalletTransferFaqScreenBuilder;
       default:
         throw UnsupportedError('Unknown route: ${settings.name}');
     }
@@ -551,3 +560,23 @@ WidgetBuilder _createPinRecoveryScreenBuilder(RouteSettings settings) {
     );
   };
 }
+
+WidgetBuilder _createWalletTransferSourceRoute(RouteSettings settings) {
+  final argument = Consumable(tryCast<String>(settings.arguments));
+  return (context) {
+    return BlocProvider<WalletTransferSourceBloc>(
+      create: (BuildContext context) {
+        final bloc = WalletTransferSourceBloc(
+          context.read(),
+          context.read(),
+          context.read(),
+        );
+        if (argument.peek() != null) bloc.add(WalletTransferInitiateTransferEvent(argument.value!));
+        return bloc;
+      },
+      child: const WalletTransferSourceScreen(),
+    );
+  };
+}
+
+Widget _createWalletTransferFaqScreenBuilder(BuildContext context) => const WalletTransferFaqScreen();
