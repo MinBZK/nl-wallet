@@ -9,7 +9,7 @@
   <title>Use Case 4.1 Obtain one or more cards from a (Q)EAA Issuer &mdash; NL Wallet 0.4.0-dev documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
-      <link rel="stylesheet" type="text/css" href="../../_static/css/custom.css?v=ee6b5d6f" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/custom.css?v=67aba2ea" />
 
   
     <link rel="shortcut icon" href="../../_static/favicon.ico"/>
@@ -58,13 +58,21 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Architecture</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/architecture-overview.html">Architecture Overview in C4</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../architecture/c4/system-context.html">System Context (C4)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../architecture/c4/software-system.html">Software System overview</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/architecture-overview.html#relevant-use-cases">Relevant use cases</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../architecture/use-cases/disclosure-based-issuance.html">Disclosure-based Issuance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../architecture/use-cases/disclosure-with-openid4vp.html">Disclosure with OpenID4VP</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../architecture/use-cases/issuance-with-openid4vci.html">Issuance with OpenID4VCI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../architecture/use-cases/mobile-app-startup.html">Mobile App Startup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../architecture/use-cases/pin-validation.html">Pin Validation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../architecture/use-cases/wallet-creation.html">Wallet Creation</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="../../architecture/components-overview.html">Components Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../architecture/disclosure-based-issuance.html">Disclosure-based Issuance</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../architecture/disclosure-with-openid4vp.html">Disclosure with OpenID4VP</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../architecture/issuance-with-openid4vci.html">Issuance with OpenID4VCI</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../architecture/mobile-app-startup.html">Mobile App Startup</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../architecture/pin-validation.html">Pin Validation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../architecture/wallet-creation.html">Wallet Creation</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Functional Design</span></p>
 <ul class="current">
@@ -125,6 +133,10 @@
 <li class="toctree-l1"><a class="reference internal" href="../../way-of-working/merge-requests.html">Merge Requests</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../way-of-working/release-howto.html">Releases Howto</a></li>
 </ul>
+<p class="caption" role="heading"><span class="caption-text">Glossary</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../glossary/glossary.html">Glossary</a></li>
+</ul>
 <p class="caption" role="heading"><span class="caption-text">Release Notes</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../release-notes/v0.3.0.html">v0.3.0</a></li>
@@ -183,7 +195,7 @@
 <td><p><ul><li>User invokes a universal link that contains the URL to a (Q)EAA Issuer.</li><li>User scan a QR <a class="reference internal" href="UC2.1_SetupRemotePinAndBiometricsUnlock.html"><span class="std std-doc">UC9.9 Scan QR</span></a></li></ul></p></td>
 </tr>
 <tr class="row-odd"><td><p><strong>Additional Documentation</strong></p></td>
-<td><p><ul><li><a class="reference internal" href="../../architecture/pin-validation.html"><span class="std std-doc">PIN Validation</span></a></li><li><a class="reference internal" href="../../architecture/issuance-with-openid4vci.html"><span class="std std-doc">Issuance</span></a></li><li><a class="reference internal" href="../../architecture/disclosure-based-issuance.html"><span class="std std-doc">Disclosure Based Issuance</span></a></li></ul></p></td>
+<td><p><ul><li><a class="reference internal" href="../../architecture/use-cases/pin-validation.html"><span class="std std-doc">PIN Validation</span></a></li><li><a class="reference internal" href="../../architecture/use-cases/issuance-with-openid4vci.html"><span class="std std-doc">Issuance</span></a></li><li><a class="reference internal" href="../../architecture/use-cases/disclosure-based-issuance.html"><span class="std std-doc">Disclosure Based Issuance</span></a></li></ul></p></td>
 </tr>
 <tr class="row-even"><td><p><strong>Possible errors</strong></p></td>
 <td><p><ul><li>No internet</li><li>Server unreachable</li><li>Session expired</li><li>Attributes missing</li><li>Known issuer error</li><li>Unknown issuer error</li></ul></p></td>

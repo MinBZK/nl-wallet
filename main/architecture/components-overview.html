@@ -9,7 +9,7 @@
   <title>Components Overview &mdash; NL Wallet 0.4.0-dev documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
-      <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=ee6b5d6f" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=67aba2ea" />
 
   
     <link rel="shortcut icon" href="../_static/favicon.ico"/>
@@ -31,8 +31,8 @@ window.addEventListener("load", () => mermaid.run());
     <link rel="author" title="About these documents" href="../about.html" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Disclosure-based Issuance" href="disclosure-based-issuance.html" />
-    <link rel="prev" title="Create an Issuer" href="../get-started/create-an-issuer.html" /> 
+    <link rel="next" title="About the Functional Design" href="../functional-design/about.html" />
+    <link rel="prev" title="Wallet Creation" href="use-cases/wallet-creation.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -66,13 +66,21 @@ window.addEventListener("load", () => mermaid.run());
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Architecture</span></p>
 <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="architecture-overview.html">Architecture Overview in C4</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="c4/system-context.html">System Context (C4)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="c4/software-system.html">Software System overview</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="architecture-overview.html#relevant-use-cases">Relevant use cases</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="use-cases/disclosure-based-issuance.html">Disclosure-based Issuance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="use-cases/disclosure-with-openid4vp.html">Disclosure with OpenID4VP</a></li>
+<li class="toctree-l2"><a class="reference internal" href="use-cases/issuance-with-openid4vci.html">Issuance with OpenID4VCI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="use-cases/mobile-app-startup.html">Mobile App Startup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="use-cases/pin-validation.html">Pin Validation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="use-cases/wallet-creation.html">Wallet Creation</a></li>
+</ul>
+</li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Components Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="disclosure-based-issuance.html">Disclosure-based Issuance</a></li>
-<li class="toctree-l1"><a class="reference internal" href="disclosure-with-openid4vp.html">Disclosure with OpenID4VP</a></li>
-<li class="toctree-l1"><a class="reference internal" href="issuance-with-openid4vci.html">Issuance with OpenID4VCI</a></li>
-<li class="toctree-l1"><a class="reference internal" href="mobile-app-startup.html">Mobile App Startup</a></li>
-<li class="toctree-l1"><a class="reference internal" href="pin-validation.html">Pin Validation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="wallet-creation.html">Wallet Creation</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Functional Design</span></p>
 <ul>
@@ -133,6 +141,10 @@ window.addEventListener("load", () => mermaid.run());
 <li class="toctree-l1"><a class="reference internal" href="../way-of-working/merge-requests.html">Merge Requests</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../way-of-working/release-howto.html">Releases Howto</a></li>
 </ul>
+<p class="caption" role="heading"><span class="caption-text">Glossary</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../glossary/glossary.html">Glossary</a></li>
+</ul>
 <p class="caption" role="heading"><span class="caption-text">Release Notes</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../release-notes/v0.3.0.html">v0.3.0</a></li>
@@ -165,6 +177,7 @@ window.addEventListener("load", () => mermaid.run());
              
   <section id="components-overview">
 <h1>Components Overview<a class="headerlink" href="#components-overview" title="Link to this heading"></a></h1>
+<p><em>Marked for deletion</em> (will be integrated in <a class="reference internal" href="c4/system-context.html"><span class="std std-doc">C4 Context Diagram</span></a> )</p>
 <p>The diagram below shows a global overview of how the components interact with
 each other. It contains some details about the application layer protocols and
 technologies used, but leaves out exact (data) flow and detailed steps. Arrow
@@ -328,8 +341,8 @@ data.</p>
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="../get-started/create-an-issuer.html" class="btn btn-neutral float-left" title="Create an Issuer" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="disclosure-based-issuance.html" class="btn btn-neutral float-right" title="Disclosure-based Issuance" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="use-cases/wallet-creation.html" class="btn btn-neutral float-left" title="Wallet Creation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../functional-design/about.html" class="btn btn-neutral float-right" title="About the Functional Design" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
