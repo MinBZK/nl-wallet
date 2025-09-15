@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../environment.dart';
 import '../../../data/service/navigation_service.dart';
 import '../../../domain/model/navigation/navigation_request.dart';
+import '../../../navigation/wallet_routes.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../common/widget/button/secondary_button.dart';
 import '../../common/widget/spacer/paragraph_spacer.dart';
@@ -114,6 +115,12 @@ class TextStylesTab extends StatelessWidget {
               context.read<NavigationService>().handleNavigationRequest(NavigationRequest.walletTransfer('uri')),
           icon: const Icon(Icons.move_down_outlined),
           text: const Text('Wallet Transfer (Source)'),
+        ),
+        const SizedBox(height: 12),
+        SecondaryButton(
+          onPressed: () => Navigator.pushNamed(context, WalletRoutes.walletTransferTargetRoute),
+          icon: const Icon(Icons.move_up_outlined),
+          text: const Text('Wallet Transfer (Target)'),
         ),
       ],
     );

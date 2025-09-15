@@ -98,8 +98,12 @@ import '../domain/usecase/transfer/get_wallet_transfer_status_usecase.dart';
 import '../domain/usecase/transfer/impl/cancel_wallet_transfer_usecase_impl.dart';
 import '../domain/usecase/transfer/impl/get_wallet_transfer_status_usecase_impl.dart';
 import '../domain/usecase/transfer/impl/init_wallet_transfer_usecase_impl.dart';
+import '../domain/usecase/transfer/impl/prepare_wallet_transfer_usecase_impl.dart';
+import '../domain/usecase/transfer/impl/skip_wallet_transfer_usecase_impl.dart';
 import '../domain/usecase/transfer/impl/start_wallet_transfer_usecase_impl.dart';
 import '../domain/usecase/transfer/init_wallet_transfer_usecase.dart';
+import '../domain/usecase/transfer/prepare_wallet_transfer_usecase.dart';
+import '../domain/usecase/transfer/skip_wallet_transfer_usecase.dart';
 import '../domain/usecase/transfer/start_wallet_transfer_usecase.dart';
 import '../domain/usecase/update/impl/observe_version_state_usecase_impl.dart';
 import '../domain/usecase/update/observe_version_state_usecase.dart';
@@ -324,8 +328,14 @@ class WalletUseCaseProvider extends StatelessWidget {
         RepositoryProvider<CancelWalletTransferUseCase>(
           create: (context) => CancelWalletTransferUseCaseImpl(),
         ),
+        RepositoryProvider<SkipWalletTransferUseCase>(
+          create: (context) => SkipWalletTransferUseCaseImpl(),
+        ),
         RepositoryProvider<GetWalletTransferStatusUseCase>(
           create: (context) => GetWalletTransferStatusUseCaseImpl(),
+        ),
+        RepositoryProvider<PrepareWalletTransferUseCase>(
+          create: (context) => PrepareWalletTransferUseCaseImpl(),
         ),
         RepositoryProvider<InitWalletTransferUseCase>(
           create: (context) => InitWalletTransferUseCaseImpl(),

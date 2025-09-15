@@ -41,7 +41,7 @@ class WalletTransferSourceBloc extends Bloc<WalletTransferSourceEvent, WalletTra
     Emitter<WalletTransferSourceState> emit,
   ) async {
     emit(const WalletTransferLoading());
-    final result = await _initWalletTransferUseCase.invoke();
+    final result = await _initWalletTransferUseCase.invoke(event.uri);
     await result.process(
       onSuccess: (_) => emit(const WalletTransferIntroduction()),
       onError: (ApplicationError error) => _handleError(error, emit),
