@@ -18,6 +18,7 @@ use tracing::warn;
 
 use crypto::keys::EcdsaKey;
 use crypto::p256_der::DerVerifyingKey;
+use wallet_account::messages::instructions::CancelTransfer;
 use wallet_account::messages::instructions::ChangePinCommit;
 use wallet_account::messages::instructions::ChangePinRollback;
 use wallet_account::messages::instructions::ChangePinStart;
@@ -81,6 +82,10 @@ where
                 .route(
                     &format!("/instructions/hw_signed/{}", ConfirmTransfer::NAME),
                     post(confirm_transfer),
+                )
+                .route(
+                    &format!("/instructions/hw_signed/{}", CancelTransfer::NAME),
+                    post(cancel_transfer),
                 )
                 .route(
                     &format!("/instructions/{}", ChangePinStart::NAME),
@@ -302,6 +307,19 @@ async fn confirm_transfer<GRC, PIC>(
         .handle_hw_signed_instruction(payload)
         .await
         .inspect_err(|error| warn!("handling ConfirmTransfer instruction failed: {}", error))?;
+
+    Ok((StatusCode::OK, body.into()))
+}
+
+async fn cancel_transfer<GRC, PIC>(
+    State(state): State<Arc<RouterState<GRC, PIC>>>,
+    Json(payload): Json<HwSignedInstruction<CancelTransfer>>,
+) -> Result<(StatusCode, Json<InstructionResultMessage<()>>)> {
+    info!("Received confirm transfer request, handling the CancelTransfer instruction");
+    let body = state
+        .handle_hw_signed_instruction(payload)
+        .await
+        .inspect_err(|error| warn!("handling CancelTransfer instruction failed: {}", error))?;
 
     Ok((StatusCode::OK, body.into()))
 }

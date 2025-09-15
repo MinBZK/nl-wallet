@@ -210,6 +210,14 @@ impl WalletUserRepository for Repositories {
     ) -> Result<(), PersistenceError> {
         wallet_user::update_transfer_state(transaction, transfer_session_id, state).await
     }
+
+    async fn clear_wallet_transfer_data(
+        &self,
+        transaction: &Self::TransactionType,
+        transfer_session_id: Uuid,
+    ) -> Result<(), PersistenceError> {
+        wallet_user::clear_wallet_transfer_data(transaction, transfer_session_id).await
+    }
 }
 
 #[cfg(feature = "mock")]
@@ -369,6 +377,12 @@ pub mod mock {
                 transaction: &MockTransaction,
                 transfer_session_id: Uuid,
                 state: TransferSessionState,
+            ) -> Result<(), PersistenceError>;
+
+            async fn clear_wallet_transfer_data(
+                &self,
+                transaction: &MockTransaction,
+                transfer_session_id: Uuid,
             ) -> Result<(), PersistenceError>;
         }
 
@@ -577,6 +591,14 @@ pub mod mock {
             _transaction: &Self::TransactionType,
             _transfer_session_id: Uuid,
             _state: TransferSessionState,
+        ) -> Result<(), PersistenceError> {
+            Ok(())
+        }
+
+        async fn clear_wallet_transfer_data(
+            &self,
+            _transaction: &Self::TransactionType,
+            _transfer_session_id: Uuid,
         ) -> Result<(), PersistenceError> {
             Ok(())
         }

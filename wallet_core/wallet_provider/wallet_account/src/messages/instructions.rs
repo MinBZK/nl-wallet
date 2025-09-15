@@ -259,6 +259,19 @@ impl InstructionAndResult for ConfirmTransfer {
     type Result = ();
 }
 
+// CancelTransfer instruction.
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CancelTransfer {
+    pub transfer_session_id: Uuid,
+}
+
+impl InstructionAndResult for CancelTransfer {
+    const NAME: &'static str = "cancel_transfer";
+
+    type Result = ();
+}
+
 #[cfg(feature = "client")]
 mod client {
     use serde::Serialize;

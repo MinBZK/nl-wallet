@@ -49,6 +49,7 @@ pub enum TransferSessionState {
     ReadyForTransfer,
     Receiving,
     Success,
+    Cancelled,
 }
 
 #[derive(Debug)]
