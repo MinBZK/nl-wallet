@@ -268,6 +268,7 @@ class OrganizationDetailScreen extends StatelessWidget {
       onTapHint: context.l10n.generalWCAGOpenLink,
       excludeSemantics: true,
       attributedLabel: semanticsLabel.toAttributedString(context),
+      button: true,
       link: true,
       onTap: onTap,
       child: ListItem(
