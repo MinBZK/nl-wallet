@@ -16,6 +16,7 @@ import '../../common/widget/text/body_text.dart';
 import '../../common/widget/text/title_text.dart';
 import '../../common/widget/wallet_scrollbar.dart';
 
+const kOrganizationApproveRejectButton = Key('rejectButton');
 const kShowDetailsButtonKey = Key('showDetailsButton');
 
 class OrganizationApprovePage extends StatelessWidget {
@@ -96,7 +97,7 @@ class OrganizationApprovePage extends StatelessWidget {
                       icon: Icon(_primaryIcon()),
                     ),
                     secondaryButton: SecondaryButton(
-                      key: const Key('rejectButton'),
+                      key: kOrganizationApproveRejectButton,
                       onPressed: onDeclinePressed,
                       text: Text.rich(_declineButtonText(context).toTextSpan(context)),
                       icon: const Icon(Icons.block_flipped),

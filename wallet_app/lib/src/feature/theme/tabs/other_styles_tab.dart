@@ -238,7 +238,7 @@ class OtherStylesTab extends StatelessWidget {
           onPressed: () {
             DisclosureStopSheet.show(
               context,
-              organizationName: 'Organization name'.untranslated,
+              organizationName: 'Organization name',
             );
           },
           child: const Text('Disclosure Stop Sheet'),
