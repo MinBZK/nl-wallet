@@ -22,7 +22,7 @@ class DisclosureApproveOrganizationScreen : MobileActions() {
     private val disclosureStopSheetReportIssueCta = find.byText(l10n.getString("disclosureStopSheetReportIssueCta"))
     private val disclosureConfirmDataAttributesSubtitleTerms = find.byText(l10n.getString("disclosureConfirmDataAttributesSubtitleTerms"))
     private val disclosureConfirmDataAttributesCheckConditionsCta = find.byText(l10n.getString("disclosureConfirmDataAttributesCheckConditionsCta"))
-    private val reportOptionUntrusted = find.byText(l10n.getString("reportOptionUntrusted"))
+    private val reportOptionUntrusted = find.byText(l10n.getString("reportOptionRequestUntrusted"))
     private val reportOptionSuspiciousOrganization = find.byText(l10n.getString("reportOptionSuspiciousOrganization"))
     private val scrollableElement = find.byType(ScrollableType.CustomScrollView.toString())
 
