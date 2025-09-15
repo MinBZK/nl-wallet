@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2025-09-11T09:35:15+02:00",
+    "@@last_modified": "2025-09-09T10:51:05+02:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -454,7 +454,7 @@
     "@fraudCheckPageTitle": {
         "placeholders": {
             "url": {
-                "example": "https://example.org",
+                "example": "https:\/\/example.org",
                 "type": "String"
             }
         }
@@ -1191,7 +1191,6 @@
     "reportOptionSuspiciousOrganization": "This organization seems suspicious",
     "reportOptionUnknownOrganization": "I do not know this organization",
     "reportOptionUnreasonableTerms": "I disagree with the terms",
-    "reportOptionUntrusted": "I do not trust this",
     "requestDetailScreenAboutOrganizationCta": "About {organization}",
     "@requestDetailScreenAboutOrganizationCta": {
         "placeholders": {
@@ -1246,6 +1245,7 @@
     },
     "settingsScreenSetupBiometricsNotSupportedSubtitle": "Not supported on this device",
     "settingsScreenTitle": "Settings",
+    "settingsScreenTransferWalletCta": "Move NL Wallet",
     "setupBiometricsPageDescription": "You use your PIN code to share data. Face scan or fingerprint is only for opening the app faster.",
     "setupBiometricsPageEnableCta": "Enable",
     "setupBiometricsPageLocalizedReason": "To unlock the app",
@@ -1449,5 +1449,31 @@
     "walletPersonalizeSetupFailedScreenHeadline": "Setup failed",
     "walletPersonalizeSuccessPageContinueCta": "To my overview",
     "walletPersonalizeSuccessPageDescription": "You can share the data in these cards or use it to log in.",
-    "walletPersonalizeSuccessPageTitle": "Your NL Wallet is ready"
+    "walletPersonalizeSuccessPageTitle": "Your NL Wallet is ready",
+    "walletTransferFaqScreenFooter": "Your data is now on your new phone. The NL Wallet app on your old phone is empty and no longer active.",
+    "walletTransferFaqScreenSection1Content": "Your new phone\nYour old phone with NL Wallet installed",
+    "walletTransferFaqScreenSection1Heading": "You need two phones:",
+    "walletTransferFaqScreenSection2Content": "1. Install the NL Wallet on your new phone.\n2. Log in with your DigiD.\n3. Choose “Yes, transfer”.\n4. You will then see a QR code on your new phone.\n5. Open the app on your old phone and scan the QR code.\n6. Confirm with your PIN code.\n7. Wait until you see: “Transfer successful”.",
+    "walletTransferFaqScreenSection2Heading": "Do you want to transfer your NL Wallet?",
+    "walletTransferFaqScreenTitle": "Transfer NL Wallet to a new phone?",
+    "walletTransferScreenFailedDescription": "This action was unsuccessful. This may have several reasons. Please try again.",
+    "walletTransferScreenFailedTitle": "Move failed",
+    "walletTransferScreenIntroductionCta": "Yes, move",
+    "walletTransferScreenIntroductionDescription": "After moving, the NL Wallet no longer works on this device.",
+    "walletTransferScreenIntroductionTitle": "Do you want to move your NL Wallet to your other device?",
+    "walletTransferScreenLoadingDescription": "Your request is being retrieved",
+    "walletTransferScreenLoadingTitle": "Please wait",
+    "walletTransferScreenStoppedDescription": "Because you stopped, no data will be moved to your other device.",
+    "walletTransferScreenStoppedTitle": "Stopped",
+    "walletTransferScreenSuccessDescription": "This app is empty and no longer active. When opened, the app introduction restarts.\n\nClose this app and use your NL Wallet on your other device.",
+    "walletTransferScreenSuccessTitle": "Move completed",
+    "walletTransferScreenTransferringDescription": "Do not close this screen or stop this action. This will take a few minutes.",
+    "walletTransferScreenTransferringTitle": "NL Wallet is being moved",
+    "walletTransferSourceConfirmPinPageTitle": "Agree with your pin",
+    "walletTransferSourceStopSheetCancelCta": "No",
+    "walletTransferSourceStopSheetConfirmCta": "Yes, stop",
+    "walletTransferSourceStopSheetDescription": "If you stop, no data will be moved to your other device.",
+    "walletTransferSourceStopSheetTitle": "Are you sure you want to stop?",
+    "walletTransferTargetOptOutDialogDescription": "A new NL Wallet will be created on this device. NL Wallet apps are not connected.",
+    "walletTransferTargetOptOutDialogTitle": "Create new NL Wallet?"
 }

@@ -93,6 +93,14 @@ import '../domain/usecase/tour/impl/observe_show_tour_banner_usecase_impl.dart';
 import '../domain/usecase/tour/impl/tour_overview_viewed_usecase_impl.dart';
 import '../domain/usecase/tour/observe_show_tour_banner_usecase.dart';
 import '../domain/usecase/tour/tour_overview_viewed_usecase.dart';
+import '../domain/usecase/transfer/cancel_wallet_transfer_usecase.dart';
+import '../domain/usecase/transfer/get_wallet_transfer_status_usecase.dart';
+import '../domain/usecase/transfer/impl/cancel_wallet_transfer_usecase_impl.dart';
+import '../domain/usecase/transfer/impl/get_wallet_transfer_status_usecase_impl.dart';
+import '../domain/usecase/transfer/impl/init_wallet_transfer_usecase_impl.dart';
+import '../domain/usecase/transfer/impl/start_wallet_transfer_usecase_impl.dart';
+import '../domain/usecase/transfer/init_wallet_transfer_usecase.dart';
+import '../domain/usecase/transfer/start_wallet_transfer_usecase.dart';
 import '../domain/usecase/update/impl/observe_version_state_usecase_impl.dart';
 import '../domain/usecase/update/observe_version_state_usecase.dart';
 import '../domain/usecase/uri/decode_uri_usecase.dart';
@@ -312,6 +320,18 @@ class WalletUseCaseProvider extends StatelessWidget {
         ),
         RepositoryProvider<FetchTourVideosUseCase>(
           create: (context) => FetchTourVideosUseCaseImpl(context.read()),
+        ),
+        RepositoryProvider<CancelWalletTransferUseCase>(
+          create: (context) => CancelWalletTransferUseCaseImpl(),
+        ),
+        RepositoryProvider<GetWalletTransferStatusUseCase>(
+          create: (context) => GetWalletTransferStatusUseCaseImpl(),
+        ),
+        RepositoryProvider<InitWalletTransferUseCase>(
+          create: (context) => InitWalletTransferUseCaseImpl(),
+        ),
+        RepositoryProvider<StartWalletTransferUseCase>(
+          create: (context) => StartWalletTransferUseCaseImpl(),
         ),
         RepositoryProvider<CreatePinRecoveryRedirectUriUseCase>(
           create: (context) => CreatePinRecoveryRedirectUriUseCaseImpl(context.read()),

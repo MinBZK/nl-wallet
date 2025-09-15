@@ -108,6 +108,13 @@ class TextStylesTab extends StatelessWidget {
           icon: const Icon(Icons.document_scanner_outlined),
           text: const Text('sign'),
         ),
+        const SizedBox(height: 12),
+        SecondaryButton(
+          onPressed: () =>
+              context.read<NavigationService>().handleNavigationRequest(NavigationRequest.walletTransfer('uri')),
+          icon: const Icon(Icons.move_down_outlined),
+          text: const Text('Wallet Transfer (Source)'),
+        ),
       ],
     );
   }
