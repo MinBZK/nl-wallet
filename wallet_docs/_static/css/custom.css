@@ -1,5 +1,7 @@
 /* Custom css below */
 
+
+
 .wy-breadcrumbs>li.wy-breadcrumbs-aside {
     display: none;
 }
@@ -28,3 +30,5 @@ div[role="contentinfo"] {
 .rst-content table.docutils td:first-child, .rst-content table.docutils th:first-child, .rst-content table.field-list td:first-child, .rst-content table.field-list th:first-child, .wy-table td:first-child, .wy-table th:first-child {
     vertical-align: top;
 }
+
+img[alt=c4_legend] { width: 45%; text-align: right; border: 1px gray solid; margin-left: auto; display: block; }

@@ -741,7 +741,7 @@ premises or within cloud environment(s) of the verifier (i.e., you).
 
 Let's walk through a typical (cross-device, note on same-device flows in
 following section) disclosure session (for full details, have a look at the
-VV/OV SAD and our [component interaction flow for disclosures](/architecture/disclosure-with-openid4vp)).
+VV/OV SAD and our [component interaction flow for disclosures](/architecture/use-cases/disclosure-with-openid4vp)).
 
 Note the possible session states:
 
