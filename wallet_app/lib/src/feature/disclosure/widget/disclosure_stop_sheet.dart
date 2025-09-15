@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../domain/model/attribute/attribute.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
 import '../../common/sheet/confirm_action_sheet.dart';
@@ -80,7 +79,7 @@ class DisclosureStopSheet extends StatelessWidget {
 
   static Future<bool> show(
     BuildContext context, {
-    LocalizedText? organizationName,
+    String? organizationName,
     VoidCallback? onReportIssuePressed,
     StopDescriptionType descriptionType = StopDescriptionType.generic,
   }) async {
@@ -92,7 +91,7 @@ class DisclosureStopSheet extends StatelessWidget {
         return WalletScrollbar(
           child: SingleChildScrollView(
             child: DisclosureStopSheet(
-              organizationName: organizationName?.l10nValue(context),
+              organizationName: organizationName,
               onReportIssuePressed: onReportIssuePressed,
               onConfirmPressed: () => Navigator.pop(context, true),
               onCancelPressed: () => Navigator.pop(context, false),

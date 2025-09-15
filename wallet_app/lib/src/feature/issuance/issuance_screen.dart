@@ -26,6 +26,7 @@ import '../common/widget/page_illustration.dart';
 import '../common/widget/text/title_text.dart';
 import '../common/widget/wallet_app_bar.dart';
 import '../dashboard/dashboard_screen.dart';
+import '../disclosure/widget/disclosure_stop_sheet.dart';
 import '../error/error_page.dart';
 import '../organization/approve/organization_approve_page.dart';
 import '../report_issue/report_issue_screen.dart';
@@ -254,8 +255,10 @@ class IssuanceScreen extends StatelessWidget {
 
   Future<void> _stopIssuance(BuildContext context) async {
     final bloc = context.bloc;
-    if (bloc.state.showStopConfirmation) {
-      final stopped = await IssuanceStopSheet.show(
+    final state = bloc.state;
+    if (state.showStopConfirmation) {
+      final inDisclosureState = state is IssuanceCheckOrganization || state is IssuanceProvidePinForDisclosure;
+      final stopped = await (inDisclosureState ? DisclosureStopSheet.show : IssuanceStopSheet.show)(
         context,
         organizationName: bloc.relyingParty?.displayName.l10nValue(context),
         onReportIssuePressed: () => ReportIssueScreen.show(context, _resolveReportingOptionsForState(context)),

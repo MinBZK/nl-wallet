@@ -7,6 +7,7 @@ import 'package:wallet/src/data/repository/issuance/issuance_repository.dart';
 import 'package:wallet/src/data/repository/wallet/wallet_repository.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/flow_progress.dart';
+import 'package:wallet/src/domain/model/organization.dart';
 import 'package:wallet/src/domain/model/policy/organization_policy.dart';
 import 'package:wallet/src/domain/model/result/application_error.dart';
 import 'package:wallet/src/domain/usecase/app/check_is_app_initialized_usecase.dart';
@@ -29,7 +30,10 @@ import '../../mocks/wallet_mocks.mocks.dart';
 import '../../test_util/golden_utils.dart';
 import '../../test_util/test_utils.dart';
 
-class MockIssuanceBloc extends MockBloc<IssuanceEvent, IssuanceState> implements IssuanceBloc {}
+class MockIssuanceBloc extends MockBloc<IssuanceEvent, IssuanceState> implements IssuanceBloc {
+  @override
+  Organization? get relyingParty => WalletMockData.organization;
+}
 
 void main() {
   group('goldens', () {
@@ -136,6 +140,7 @@ void main() {
       );
       await screenMatchesGolden('missing_attributes.dark.landscape');
     });
+
     testGoldens('IssuanceProvidePinForDisclosure Light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
@@ -299,6 +304,41 @@ void main() {
         surfaceSize: iphoneXSizeLandscape,
       );
       await screenMatchesGolden('completed.multi_card.dark.landscape');
+    });
+
+    testGoldens('StopSheet Disclosure - light', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
+          MockIssuanceBloc(),
+          IssuanceCheckOrganization(
+            organization: WalletMockData.organization,
+            policy: WalletMockData.policy,
+            purpose: 'sample purpose'.untranslated,
+            cardRequests: [WalletMockData.discloseCardRequestSingleCard],
+          ),
+        ),
+      );
+
+      // Press the stop button
+      await tester.tap(find.byKey(kOrganizationApproveRejectButton));
+      await tester.pumpAndSettle();
+
+      await screenMatchesGolden('stop_sheet.disclosure.light');
+    });
+
+    testGoldens('StopSheet - light', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
+          MockIssuanceBloc(),
+          IssuanceReviewCards.init(cards: [WalletMockData.card.copyWith(attestationId: () => null)]),
+        ),
+      );
+
+      // Press the stop button
+      await tester.tap(find.byKey(kReviewCardsDeclineButtonKey));
+      await tester.pumpAndSettle();
+
+      await screenMatchesGolden('stop_sheet.light');
     });
 
     testGoldens('IssuanceStopped Light', (tester) async {
@@ -482,21 +522,6 @@ void main() {
       );
       await screenMatchesGolden('cancelled_session_error.dark.landscape');
     });
-
-    testGoldens('StopSheet - light', (tester) async {
-      await tester.pumpWidgetWithAppWrapper(
-        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
-          MockIssuanceBloc(),
-          IssuanceReviewCards.init(cards: [WalletMockData.card.copyWith(attestationId: () => null)]),
-        ),
-      );
-
-      // Press the stop button
-      await tester.tap(find.byKey(kReviewCardsDeclineButtonKey));
-      await tester.pumpAndSettle();
-
-      await screenMatchesGolden('stop_sheet.light');
-    });
   });
 
   group('widgets', () {
@@ -561,7 +586,7 @@ void main() {
 
       // Verify the expected stop sheet description text is shown
       final l10n = await TestUtils.englishLocalizations;
-      final organizationName = l10n.organizationFallbackName;
+      final organizationName = WalletMockData.card.issuer.displayName.l10nValueForLocale(const Locale('en'));
       expect(find.text(l10n.issuanceStopSheetDescription(organizationName), findRichText: true), findsOneWidget);
     });
   });
