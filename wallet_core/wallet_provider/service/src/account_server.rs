@@ -102,7 +102,7 @@ use crate::keys::InstructionResultSigningKey;
 use crate::keys::WalletCertificateSigningKey;
 use crate::wallet_certificate::PinKeyChecks;
 use crate::wallet_certificate::new_wallet_certificate;
-use crate::wallet_certificate::parse_and_verify_wallet_certificate_claims_using_hw_public_key;
+use crate::wallet_certificate::parse_and_verify_wallet_cert_using_hw_pubkey;
 use crate::wallet_certificate::verify_wallet_certificate;
 use crate::wallet_certificate::verify_wallet_certificate_pin_public_keys;
 use crate::wua_issuer::WuaIssuer;
@@ -705,7 +705,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         // done when handling the instruction.
         let allow_blocked = true;
 
-        let (user, claims) = parse_and_verify_wallet_certificate_claims_using_hw_public_key(
+        let (user, claims) = parse_and_verify_wallet_cert_using_hw_pubkey(
             &challenge_request.certificate,
             &self.keys.wallet_certificate_signing_pubkey,
             allow_blocked,
@@ -834,7 +834,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         G: Generator<Uuid> + Generator<DateTime<Utc>>,
         H: WalletUserHsm<Error = HsmError> + Hsm<Error = HsmError> + Encrypter<VerifyingKey, Error = HsmError>,
     {
-        let (wallet_user, _) = parse_and_verify_wallet_certificate_claims_using_hw_public_key(
+        let (wallet_user, _) = parse_and_verify_wallet_cert_using_hw_pubkey(
             &instruction.certificate,
             &self.keys.wallet_certificate_signing_pubkey,
             false,

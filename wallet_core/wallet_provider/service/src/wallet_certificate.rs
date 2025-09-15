@@ -172,7 +172,7 @@ where
 {
     debug!("Parsing and verifying the provided certificate");
 
-    let (user, claims) = parse_and_verify_wallet_certificate_claims_using_hw_public_key(
+    let (user, claims) = parse_and_verify_wallet_cert_using_hw_pubkey(
         certificate,
         certificate_signing_pubkey,
         pin_checks.allow_for_blocked_users,
@@ -198,7 +198,7 @@ where
 /// - Retrieve the [`WalletUser`] from the DB using the `wallet_id` from the verified [`WalletCertificate`]
 /// - Check that the HW key in the [`WalletUser`] are present in the (verified) wallet certificate
 /// - Returns a tuple of the [`WalletUser`] and [`WalletCertificateClaims`].
-pub async fn parse_and_verify_wallet_certificate_claims_using_hw_public_key<T, R>(
+pub async fn parse_and_verify_wallet_cert_using_hw_pubkey<T, R>(
     certificate: &WalletCertificate,
     certificate_signing_pubkey: &EcdsaDecodingKey,
     allow_for_blocked_users: bool,
@@ -346,7 +346,7 @@ mod tests {
     use crate::wallet_certificate::mock;
     use crate::wallet_certificate::mock::setup_hsm;
     use crate::wallet_certificate::new_wallet_certificate;
-    use crate::wallet_certificate::parse_and_verify_wallet_certificate_claims_using_hw_public_key;
+    use crate::wallet_certificate::parse_and_verify_wallet_cert_using_hw_pubkey;
     use crate::wallet_certificate::sign_pin_pubkey;
     use crate::wallet_certificate::verify_pin_pubkey;
     use crate::wallet_certificate::verify_wallet_certificate;
@@ -532,7 +532,7 @@ mod tests {
 
         let user_state = init_user_state(hw_pubkey, setup.encrypted_pin_pubkey, hsm);
 
-        parse_and_verify_wallet_certificate_claims_using_hw_public_key(
+        parse_and_verify_wallet_cert_using_hw_pubkey(
             &wallet_certificate,
             &((&setup.signing_pubkey).into()),
             false,
@@ -566,7 +566,7 @@ mod tests {
             setup_hsm().await,
         );
 
-        parse_and_verify_wallet_certificate_claims_using_hw_public_key(
+        parse_and_verify_wallet_cert_using_hw_pubkey(
             &wallet_certificate,
             &EcdsaDecodingKey::from(&setup.signing_pubkey),
             false,
