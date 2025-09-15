@@ -1,10 +1,15 @@
 # Components Overview
 
+*Marked for deletion* (will be integrated in [C4 Context Diagram](./c4/system-context.md) )
+
 The diagram below shows a global overview of how the components interact with
 each other. It contains some details about the application layer protocols and
 technologies used, but leaves out exact (data) flow and detailed steps. Arrow
 directions indicate which party initiated the interaction and not the flow of
 data.
+
+
+
 
 ```{mermaid}
 graph

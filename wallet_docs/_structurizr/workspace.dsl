@@ -228,6 +228,7 @@ workspace "Name" "NL-Wallet" {
                 color #ffffff
             }
             element "Person" {
+                
                 background #09326b
                 shape person
             }

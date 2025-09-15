@@ -20,7 +20,7 @@ get-started/create-an-issuer
 
 ```{toctree}
 :caption: Architecture
-:maxdepth: 1
+:maxdepth: 2
 :glob:
 architecture/*
 ```
@@ -53,6 +53,12 @@ community/create-a-ca
 :maxdepth: 1
 :glob:
 way-of-working/*
+```
+
+```{toctree}
+:caption: Glossary
+:maxdepth: 1
+glossary/glossary
 ```
 
 ```{toctree}

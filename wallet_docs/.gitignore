@@ -10,4 +10,4 @@ __pycache__/
 _build/
 
 # Structurizr working folders
-_structurizr/
+_structurizr/.structurizr
