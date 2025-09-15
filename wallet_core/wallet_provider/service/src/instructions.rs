@@ -719,6 +719,13 @@ impl HandleInstruction for ConfirmTransfer {
             return Err(InstructionError::AccountTransferWalletsMismatch);
         }
 
+        if transfer_session.destination_wallet_app_version < self.app_version {
+            return Err(InstructionError::AppVersionMismatch {
+                source_version: self.app_version,
+                destination_version: transfer_session.destination_wallet_app_version,
+            });
+        }
+
         user_state
             .repositories
             .update_transfer_session_state(
@@ -1437,7 +1444,12 @@ mod tests {
         let mut wallet_user = wallet_user::mock::wallet_user_1();
         wallet_user.recovery_code = Some("recovery_code".to_string());
         let transfer_session_id = Uuid::new_v4();
-        let instruction = ConfirmTransfer { transfer_session_id };
+        let app_version = Version::parse("1.0.0").unwrap();
+
+        let instruction = ConfirmTransfer {
+            transfer_session_id,
+            app_version,
+        };
 
         instruction.validate_instruction(&wallet_user).unwrap();
     }
@@ -1445,6 +1457,7 @@ mod tests {
     #[tokio::test]
     async fn validating_confirm_transfer_should_fail_if_source_is_transferring_itself() {
         let transfer_session_id = Uuid::new_v4();
+        let app_version = Version::parse("1.0.0").unwrap();
 
         let mut wallet_user = wallet_user::mock::wallet_user_1();
         wallet_user.recovery_code = Some("recovery_code".to_string());
@@ -1457,7 +1470,10 @@ mod tests {
             state: TransferSessionState::ReadyForTransfer,
             encrypted_wallet_data: None,
         });
-        let instruction = ConfirmTransfer { transfer_session_id };
+        let instruction = ConfirmTransfer {
+            transfer_session_id,
+            app_version,
+        };
 
         let err = instruction
             .validate_instruction(&wallet_user)
@@ -1470,7 +1486,12 @@ mod tests {
         let mut wallet_user = wallet_user::mock::wallet_user_1();
         wallet_user.recovery_code = None;
         let transfer_session_id = Uuid::new_v4();
-        let instruction = ConfirmTransfer { transfer_session_id };
+        let app_version = Version::parse("1.0.0").unwrap();
+
+        let instruction = ConfirmTransfer {
+            transfer_session_id,
+            app_version,
+        };
 
         let err = instruction
             .validate_instruction(&wallet_user)
@@ -1486,6 +1507,7 @@ mod tests {
         wallet_user.transfer_session = None;
 
         let transfer_session_id = Uuid::new_v4();
+        let app_version = Version::parse("1.0.0").unwrap();
 
         let transfer_session = TransferSession {
             id: Uuid::new_v4(),
@@ -1509,7 +1531,10 @@ mod tests {
             .expect_update_transfer_session_state()
             .returning(|_, _, _| Ok(()));
 
-        let instruction = ConfirmTransfer { transfer_session_id };
+        let instruction = ConfirmTransfer {
+            transfer_session_id,
+            app_version,
+        };
 
         instruction
             .handle(
@@ -1534,6 +1559,7 @@ mod tests {
         wallet_user.transfer_session = None;
 
         let transfer_session_id = Uuid::new_v4();
+        let app_version = Version::parse("1.0.0").unwrap();
 
         let transfer_session = TransferSession {
             id: Uuid::new_v4(),
@@ -1554,7 +1580,10 @@ mod tests {
             .withf(move |_, session_id| &transfer_session_id == session_id)
             .returning(move |_, _| Ok(Some(transfer_session.clone())));
 
-        let instruction = ConfirmTransfer { transfer_session_id };
+        let instruction = ConfirmTransfer {
+            transfer_session_id,
+            app_version,
+        };
 
         let err = instruction
             .handle(
@@ -1580,7 +1609,11 @@ mod tests {
         wallet_user.transfer_session = None;
 
         let transfer_session_id = Uuid::new_v4();
-        let instruction = ConfirmTransfer { transfer_session_id };
+        let app_version = Version::parse("1.0.0").unwrap();
+        let instruction = ConfirmTransfer {
+            transfer_session_id,
+            app_version,
+        };
 
         let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
         wallet_user_repo
@@ -1606,5 +1639,52 @@ mod tests {
             .expect_err("should fail when a transfer session is not in progress");
 
         assert_matches!(err, InstructionError::NoAccountTransferInProgress)
+    }
+
+    #[tokio::test]
+    async fn should_handle_confirm_transfer_wrong_app_version() {
+        let wrapping_key_identifier = "my-wrapping-key-identifier";
+        let mut wallet_user = wallet_user::mock::wallet_user_1();
+        wallet_user.recovery_code = Some(String::from("recovery_code"));
+
+        let transfer_session_id = Uuid::new_v4();
+        let transfer_session = TransferSession {
+            id: Uuid::new_v4(),
+            destination_wallet_user_id: Uuid::new_v4(),
+            transfer_session_id,
+            destination_wallet_recovery_code: String::from("recovery_code"),
+            destination_wallet_app_version: Version::parse("1.2.3").unwrap(),
+            state: TransferSessionState::Created,
+            encrypted_wallet_data: None,
+        };
+
+        let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
+        wallet_user_repo
+            .expect_begin_transaction()
+            .returning(|| Ok(MockTransaction));
+        wallet_user_repo
+            .expect_find_transfer_session_by_transfer_session_id()
+            .returning(move |_, _| Ok(Some(transfer_session.clone())));
+
+        let instruction = ConfirmTransfer {
+            transfer_session_id: Uuid::new_v4(),
+            app_version: Version::parse("2.2.3").unwrap(),
+        };
+
+        let err = instruction
+            .handle(
+                &wallet_user,
+                &MockGenerators,
+                &mock::user_state(
+                    wallet_user_repo,
+                    setup_hsm().await,
+                    wrapping_key_identifier.to_string(),
+                    vec![],
+                ),
+            )
+            .await
+            .expect_err("should fail when app version is wrong");
+
+        assert_matches!(err, InstructionError::AppVersionMismatch { .. });
     }
 }

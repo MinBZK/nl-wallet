@@ -250,6 +250,7 @@ pub struct DiscloseRecoveryCodeResult {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ConfirmTransfer {
     pub transfer_session_id: Uuid,
+    pub app_version: Version,
 }
 
 impl InstructionAndResult for ConfirmTransfer {

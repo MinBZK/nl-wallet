@@ -2537,6 +2537,7 @@ mod tests {
             .unwrap();
 
         let transfer_session_id = Uuid::new_v4();
+        let app_version = Version::parse("1.0.0").unwrap();
 
         let tx = user_state.repositories.begin_transaction().await.unwrap();
         let WalletUserQueryResult::Found(mut user) = user_state
@@ -2554,7 +2555,15 @@ mod tests {
         });
 
         let instruction = hw_privkey
-            .sign_hw_signed_instruction(ConfirmTransfer { transfer_session_id }, challenge, 44, cert)
+            .sign_hw_signed_instruction(
+                ConfirmTransfer {
+                    transfer_session_id,
+                    app_version,
+                },
+                challenge,
+                44,
+                cert,
+            )
             .await;
 
         let error = account_server

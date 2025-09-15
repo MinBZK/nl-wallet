@@ -13,6 +13,7 @@ use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::issuance_session::IssuanceSession;
 use platform_support::attested_key::AttestedKeyHolder;
 use update_policy_model::update_policy::VersionState;
+use utils::built_info::version;
 use wallet_account::messages::instructions::ConfirmTransfer;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
@@ -156,6 +157,7 @@ where
         instruction_client
             .send(ConfirmTransfer {
                 transfer_session_id: transfer_session_id.into(),
+                app_version: version().clone(),
             })
             .await
             .map_err(TransferError::Instruction)?;
