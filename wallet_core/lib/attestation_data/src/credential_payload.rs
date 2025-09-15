@@ -480,6 +480,7 @@ mod test {
     use chrono::Utc;
     use futures::FutureExt;
     use indexmap::IndexMap;
+    use itertools::Itertools;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
     use serde_json::json;
@@ -487,6 +488,8 @@ mod test {
 
     use attestation_types::claim_path::ClaimPath;
     use attestation_types::qualification::AttestationQualification;
+    use crypto::mock_remote::MockRemoteEcdsaKey;
+    use crypto::mock_remote::MockRemoteWscd;
     use crypto::server_keys::generate::Ca;
     use jwt::Algorithm;
     use jwt::jwk::jwk_from_p256;
@@ -498,6 +501,7 @@ mod test {
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::UncheckedTypeMetadata;
     use utils::generator::mock::MockTimeGenerator;
+    use utils::vec_nonempty;
 
     use crate::attributes::Attribute;
     use crate::attributes::AttributeValue;
@@ -709,10 +713,12 @@ mod test {
         assert_eq!(payload, unverified_payload);
     }
 
-    #[tokio::test]
-    async fn test_to_sd_jwt() {
+    #[test]
+    fn test_to_sd_jwt() {
         let time_generator = MockTimeGenerator::default();
-        let holder_key = SigningKey::random(&mut OsRng);
+
+        let holder_key = MockRemoteEcdsaKey::new_random("holder_key".to_string());
+        let wscd = MockRemoteWscd::new(vec![holder_key.clone()]);
 
         let ca = Ca::generate("myca", Default::default()).unwrap();
         let cert_type = CertificateType::from(IssuerRegistration::new_mock());
@@ -734,23 +740,26 @@ mod test {
 
         let sd_jwt = credential_payload
             .into_sd_jwt(&metadata, holder_key.verifying_key(), &issuer_key_pair)
-            .await
+            .now_or_never()
+            .unwrap()
             .unwrap();
 
-        let presented_sd_jwt = sd_jwt
-            .into_presentation_builder()
-            .finish()
-            .sign(
-                KeyBindingJwtBuilder::new(
-                    DateTime::from_timestamp_millis(1458304832).unwrap(),
-                    String::from("https://aud.example.com"),
-                    String::from("nonce123"),
-                    Algorithm::ES256,
-                ),
-                &holder_key,
-            )
-            .await
-            .unwrap();
+        let (presented_sd_jwts, _poa) = SdJwtPresentation::multi_sign(
+            vec_nonempty![(sd_jwt.into_presentation_builder().finish(), "holder_key")],
+            KeyBindingJwtBuilder::new(
+                DateTime::from_timestamp_millis(1458304832).unwrap(),
+                String::from("https://aud.example.com"),
+                String::from("nonce123"),
+                Algorithm::ES256,
+            ),
+            &wscd,
+            (),
+        )
+        .now_or_never()
+        .unwrap()
+        .expect("signing a single SdJwtPresentation using the WSCD should succeed");
+
+        let presented_sd_jwt = presented_sd_jwts.into_iter().exactly_one().unwrap();
 
         SdJwtPresentation::parse_and_verify_against_trust_anchors(
             &presented_sd_jwt.to_string(),

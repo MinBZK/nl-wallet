@@ -13,6 +13,7 @@ use jsonwebtoken::Algorithm;
 use jsonwebtoken::DecodingKey;
 use jsonwebtoken::Header;
 use jsonwebtoken::Validation;
+use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
 use rustls_pki_types::CertificateDer;
 use rustls_pki_types::TrustAnchor;
@@ -23,12 +24,18 @@ use serde_with::DeserializeFromStr;
 use serde_with::SerializeDisplay;
 use serde_with::serde_as;
 
+use crypto::CredentialEcdsaKey;
 use crypto::keys::EcdsaKey;
 use crypto::keys::SecureEcdsaKey;
 use crypto::server_keys::KeyPair;
+use crypto::wscd::DisclosureResult;
+use crypto::wscd::DisclosureWscd;
+use crypto::wscd::WscdPoa;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateUsage;
 use utils::generator::Generator;
+use utils::vec_at_least::IntoNonEmptyIterator;
+use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::error::JwtError;
@@ -74,6 +81,19 @@ impl<T> From<VerifiedJwt<T>> for UnverifiedJwt<T> {
 }
 
 impl<T> UnverifiedJwt<T> {
+    /// Internal constructor that takes an already concatendated header and payload and a signature.
+    fn from_header_payload_and_signature(header_and_payload: String, signature: &Signature) -> Self {
+        let payload_end = header_and_payload.len();
+        let encoded_signature = BASE64_URL_SAFE_NO_PAD.encode(signature.to_bytes());
+        let serialization = header_and_payload + "." + &encoded_signature;
+
+        Self {
+            serialization,
+            payload_end,
+            _payload_type: PhantomData,
+        }
+    }
+
     pub fn dangerous_parse_header_unverified(&self) -> Result<Header> {
         let header_end = self
             .signed_slice()
@@ -320,11 +340,40 @@ impl EcdsaDecodingKey {
 
 impl<T> VerifiedJwt<T>
 where
-    T: Serialize + DeserializeOwned,
+    T: Serialize,
 {
     pub async fn sign(payload: T, header: Header, privkey: &impl EcdsaKey) -> Result<VerifiedJwt<T>> {
         let jwt = UnverifiedJwt::sign(&payload, &header, privkey).await?;
         Ok(VerifiedJwt { header, payload, jwt })
+    }
+
+    /// Have the WSCD sign multiple [`VerifiedJwt`]s at once, producing a PoA if more than one unique key is used.
+    pub async fn multi_sign<W, K, P>(
+        contents_and_keys: VecNonEmpty<(T, Header, &K)>,
+        wscd: &W,
+        poa_input: P::Input,
+    ) -> Result<(VecNonEmpty<Self>, Option<P>)>
+    where
+        W: DisclosureWscd<Key = K, Poa = P>,
+        K: CredentialEcdsaKey,
+        P: WscdPoa,
+    {
+        let (jwts, poa) = UnverifiedJwt::multi_sign(
+            contents_and_keys
+                .nonempty_iter()
+                .map(|(payload, header, key)| (payload, header, *key)),
+            wscd,
+            poa_input,
+        )
+        .await?;
+
+        let verified_jwts = contents_and_keys
+            .into_nonempty_iter()
+            .zip(jwts)
+            .map(|((payload, header, _), jwt)| VerifiedJwt { header, payload, jwt })
+            .collect();
+
+        Ok((verified_jwts, poa))
     }
 }
 
@@ -332,18 +381,98 @@ impl<T> UnverifiedJwt<T>
 where
     T: Serialize,
 {
-    pub async fn sign(payload: &T, header: &Header, privkey: &impl EcdsaKey) -> Result<UnverifiedJwt<T>> {
+    /// Base64 encode and concatentate a header and payload, to be included in a JWT.
+    fn encode_header_and_payload(header: &Header, payload: &T) -> Result<String> {
         let encoded_header = BASE64_URL_SAFE_NO_PAD.encode(serde_json::to_vec(header)?);
-        let encoded_claims = BASE64_URL_SAFE_NO_PAD.encode(serde_json::to_vec(payload)?);
-        let message = [encoded_header, encoded_claims].join(".");
+        let encoded_payload = BASE64_URL_SAFE_NO_PAD.encode(serde_json::to_vec(payload)?);
+
+        let header_and_payload = encoded_header + "." + &encoded_payload;
+
+        Ok(header_and_payload)
+    }
+
+    pub async fn sign(payload: &T, header: &Header, privkey: &impl EcdsaKey) -> Result<Self> {
+        let header_and_payload = Self::encode_header_and_payload(header, payload)?;
 
         let signature = privkey
-            .try_sign(message.as_bytes())
+            .try_sign(header_and_payload.as_bytes())
             .await
             .map_err(|err| JwtError::Signing(Box::new(err)))?;
-        let encoded_signature = BASE64_URL_SAFE_NO_PAD.encode(signature.to_vec());
 
-        [message, encoded_signature].join(".").parse()
+        let jwt = Self::from_header_payload_and_signature(header_and_payload, &signature);
+
+        Ok(jwt)
+    }
+
+    /// Have the WSCD sign multiple [`UnverifiedJwt`]s at once, producing a PoA if more than one unique key is used.
+    pub async fn multi_sign<'a, W, K, P>(
+        contents_and_keys: impl IntoNonEmptyIterator<Item = (&'a T, &Header, &'a K)>,
+        wscd: &W,
+        poa_input: P::Input,
+    ) -> Result<(VecNonEmpty<Self>, Option<P>)>
+    where
+        T: 'a,
+        W: DisclosureWscd<Key = K, Poa = P>,
+        K: CredentialEcdsaKey + 'a,
+        P: WscdPoa,
+    {
+        // Prepare the header and payload combinations for signing, while retaining a copy of that we can return.
+        let (headers_and_payloads, messages_and_keys) = contents_and_keys
+            .into_iter()
+            .map(|(payload, header, key)| {
+                let header_and_payload = Self::encode_header_and_payload(header, payload)?;
+                let message = header_and_payload.clone().into_bytes();
+
+                Ok((header_and_payload, (message, vec![key])))
+            })
+            .process_results::<_, _, JwtError, (Vec<_>, _)>(|iter| iter.unzip())?;
+
+        // Have the WSCD sign the combination of header and payload, also
+        // receiving a PoA if more than one unique key was used for signing.
+        let DisclosureResult { signatures, poa } = wscd
+            .sign(messages_and_keys, poa_input)
+            .await
+            .map_err(|err| JwtError::Signing(Box::new(err)))?;
+
+        // Make sure we received the correct number of signatures.
+        if signatures.len() != headers_and_payloads.len() {
+            return Err(JwtError::Signing(
+                format!(
+                    "incorrect signature count received from WSCD, expected {}, received {}",
+                    headers_and_payloads.len(),
+                    signatures.len()
+                )
+                .into(),
+            ));
+        }
+
+        // Actually create the JWTs by combining their header, payload and received signature.
+        let jwts = headers_and_payloads
+            .into_iter()
+            .zip(signatures)
+            .map(|(header_and_payload, signatures)| {
+                // Again, make sure we received the correct number of signatures.
+                let signature = signatures.into_iter().exactly_one().map_err(|error| {
+                    JwtError::Signing(
+                        format!(
+                            "expected to receive a single signature per JWT from WSCD, received {}",
+                            error.len()
+                        )
+                        .into(),
+                    )
+                })?;
+
+                let jwt = Self::from_header_payload_and_signature(header_and_payload, &signature);
+
+                Ok(jwt)
+            })
+            .collect::<Result<Vec<_>, JwtError>>()?
+            .try_into()
+            // We can unwrap to `VecNonEmpty` safely here, as the source iterator for `headers_and_payloads`
+            // is non-empty and we check the count of the returned signatures.
+            .unwrap();
+
+        Ok((jwts, poa))
     }
 
     /// Sign a payload into a JWS, and put the certificate of the provided keypair in the `x5c` JWT header.
@@ -558,6 +687,7 @@ mod tests {
 
     use assert_matches::assert_matches;
     use base64::prelude::*;
+    use futures::FutureExt;
     use jsonwebtoken::Header;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
@@ -565,11 +695,14 @@ mod tests {
     use serde_json::json;
 
     use attestation_data::x509::generate::mock::generate_reader_mock;
+    use crypto::mock_remote::MockRemoteEcdsaKey;
+    use crypto::mock_remote::MockRemoteWscd;
     use crypto::server_keys::generate::Ca;
     use crypto::x509::CertificateConfiguration;
     use crypto::x509::CertificateError;
     use crypto::x509::CertificateUsage;
     use utils::generator::TimeGenerator;
+    use utils::vec_nonempty;
 
     use super::*;
 
@@ -644,14 +777,118 @@ mod tests {
         let t = ToyMessage::default();
 
         let header = header();
-        let jwt = UnverifiedJwt::sign(&t, &header, &private_key).await.unwrap();
+        let unverified_jwt = UnverifiedJwt::sign(&t, &header, &private_key).await.unwrap();
+        let verified_jwt = VerifiedJwt::sign(t.clone(), header, &private_key).await.unwrap();
 
         // the JWT can be verified and parsed back into an identical value
-        let parsed = jwt
+        let parsed = unverified_jwt
             .parse_and_verify(&private_key.verifying_key().into(), &DEFAULT_VALIDATIONS)
             .unwrap();
 
         assert_eq!(t, parsed);
+
+        // The inner JWT value of `VerifiedJwt` is exactly the same as the `UnverifiedJwt`.
+        let VerifiedJwt { jwt, .. } = verified_jwt;
+        assert_eq!(jwt, unverified_jwt);
+    }
+
+    #[test]
+    fn test_multi_sign_and_verify() {
+        let key1 = MockRemoteEcdsaKey::new_random("key1".to_string());
+        let key2 = MockRemoteEcdsaKey::new_random("key2".to_string());
+        let wscd = MockRemoteWscd::new(vec![key1.clone(), key2.clone()]);
+
+        let message1 = ToyMessage {
+            number: 1,
+            string: "foo".to_string(),
+        };
+        let message2 = ToyMessage {
+            number: 2,
+            string: "bar".to_string(),
+        };
+        let header = header();
+        let mut contents_and_keys = vec_nonempty![(message1.clone(), header.clone(), &key1)];
+
+        // Make both a single `UnverifiedJwt` and a `VerifiedJwt`.
+        let (unverified_jwts, poa1) = UnverifiedJwt::multi_sign(
+            contents_and_keys
+                .nonempty_iter()
+                .map(|(payload, header, key)| (payload, header, *key)),
+            &wscd,
+            (),
+        )
+        .now_or_never()
+        .unwrap()
+        .expect("signing a single JWTs using WSCD should succeed");
+
+        let (verified_jwts, poa2) = VerifiedJwt::multi_sign(contents_and_keys.clone(), &wscd, ())
+            .now_or_never()
+            .unwrap()
+            .expect("signing a single JWTs using WSCD should succeed");
+
+        // Check that the JWT can be parsed back to its input payload.
+        let parsed = unverified_jwts
+            .iter()
+            .exactly_one()
+            .unwrap()
+            .parse_and_verify(&key1.verifying_key().into(), &DEFAULT_VALIDATIONS)
+            .unwrap();
+
+        // Check that the inner JWT of the `VerifiedJwt` is exactly the same as the `UnverifiedJwt`.
+        let unwrapped_verified_jwts = verified_jwts
+            .into_nonempty_iter()
+            .map(|VerifiedJwt { jwt, .. }| jwt)
+            .collect::<VecNonEmpty<_>>();
+        assert_eq!(unwrapped_verified_jwts, unverified_jwts);
+
+        assert_eq!(parsed, message1);
+
+        // Check that no PoA was produced.
+        assert!(poa1.is_none());
+        assert!(poa2.is_none());
+
+        // Make two `UnverifiedJwt`s and two `VerifiedJwt`s.
+        contents_and_keys.push((message2.clone(), header, &key2));
+
+        let (unverified_jwts, poa1) = UnverifiedJwt::multi_sign(
+            contents_and_keys
+                .nonempty_iter()
+                .map(|(payload, header, key)| (payload, header, *key)),
+            &wscd,
+            (),
+        )
+        .now_or_never()
+        .unwrap()
+        .expect("signing multiple JWTs using WSCD should succeed");
+
+        let (verified_jwts, poa2) = VerifiedJwt::multi_sign(contents_and_keys, &wscd, ())
+            .now_or_never()
+            .unwrap()
+            .expect("signing multiple JWTs using WSCD should succeed");
+
+        // Check that the JWTs can be parsed back to their input payload.
+        for ((unverified_jwt, key), expected_message) in unverified_jwts
+            .iter()
+            .zip_eq([&key1, &key2])
+            .zip_eq([&message1, &message2])
+        {
+            let parsed = unverified_jwt
+                .parse_and_verify(&key.verifying_key().into(), &DEFAULT_VALIDATIONS)
+                .unwrap();
+
+            assert_eq!(parsed, *expected_message);
+        }
+
+        // Check that the inner JWTs of the `VerifiedJwt`s are exactly the same as the `UnverifiedJwt`s.
+        let unwrapped_verified_jwts = verified_jwts
+            .into_nonempty_iter()
+            .map(|VerifiedJwt { jwt, .. }| jwt)
+            .collect::<VecNonEmpty<_>>();
+        assert_eq!(unwrapped_verified_jwts, unverified_jwts);
+
+        // Check that a PoA was produced.
+        assert!(poa1.is_some());
+        assert!(poa2.is_some());
     }
 
     #[tokio::test]

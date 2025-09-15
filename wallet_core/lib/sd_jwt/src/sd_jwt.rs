@@ -17,6 +17,7 @@ use jsonwebtoken::Algorithm;
 use jsonwebtoken::Header;
 use jsonwebtoken::Validation;
 use nutype::nutype;
+use p256::ecdsa::VerifyingKey;
 use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde::Serialize;
@@ -29,17 +30,21 @@ use serde_with::skip_serializing_none;
 use ssri::Integrity;
 
 use attestation_types::claim_path::ClaimPath;
+use crypto::CredentialEcdsaKey;
 use crypto::EcdsaKeySend;
+use crypto::wscd::DisclosureWscd;
+use crypto::wscd::WscdPoa;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateUsage;
 use http_utils::urls::HttpsUri;
 use jwt::EcdsaDecodingKey;
 use jwt::UnverifiedJwt;
 use jwt::VerifiedJwt;
-use jwt::jwk::jwk_to_p256;
 use utils::date_time_seconds::DateTimeSeconds;
 use utils::generator::Generator;
 use utils::spec::SpecOptional;
+use utils::vec_at_least::IntoNonEmptyIterator;
+use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_at_least::VecNonEmptyUnique;
 
@@ -276,6 +281,49 @@ pub struct SdJwtPresentation {
 }
 
 impl SdJwtPresentation {
+    /// Create multiple `SdJwtPresentation`s by having the WSCD sign multiple `UnsignedSdJwtPresentation`s,
+    /// using the contents of a single `KeyBindingJwtBuilder`.
+    pub async fn multi_sign<I, W, K, P>(
+        unsigned_presentations_and_keys_ids: VecNonEmpty<(UnsignedSdJwtPresentation, I)>,
+        key_binding_jwt_builder: KeyBindingJwtBuilder,
+        wscd: &W,
+        poa_input: P::Input,
+    ) -> Result<(VecNonEmpty<SdJwtPresentation>, Option<P>)>
+    where
+        I: Into<String>,
+        W: DisclosureWscd<Key = K, Poa = P>,
+        K: CredentialEcdsaKey,
+        P: WscdPoa,
+    {
+        // Create the WSCD keys from the provided key identifiers and public keys present in the `cnf` claim.
+        // Note that the latter is not actually used, as all we do is signing.
+        let sd_jwts_and_keys = unsigned_presentations_and_keys_ids
+            .into_nonempty_iter()
+            .map(|(UnsignedSdJwtPresentation(sd_jwt), key_identifier)| {
+                let key = wscd.new_key(key_identifier, sd_jwt.verifying_key()?);
+
+                Ok((sd_jwt, key))
+            })
+            .collect::<Result<_>>()?;
+
+        // Have the WSCD create `KeyBindingJwt`s and the PoA, if required.
+        let (key_binding_jwts, poa) = key_binding_jwt_builder
+            .multi_finish(&sd_jwts_and_keys, wscd, poa_input)
+            .await?;
+
+        // Combine the `SdJwt`s with the `KeyBindingJwt`s to create `SdJwtPresentation`s.
+        let sd_jwt_presentations = sd_jwts_and_keys
+            .into_nonempty_iter()
+            .zip(key_binding_jwts)
+            .map(|((sd_jwt, _), key_binding_jwt)| SdJwtPresentation {
+                sd_jwt,
+                key_binding_jwt: key_binding_jwt.into(),
+            })
+            .collect();
+
+        Ok((sd_jwt_presentations, poa))
+    }
+
     fn split_sd_jwt_kb(sd_jwt: &str) -> Result<(&str, &str)> {
         sd_jwt
             .rsplit_once("~")
@@ -295,13 +343,9 @@ impl SdJwtPresentation {
         kb_expected_nonce: &str,
         kb_iat_acceptance_window: Duration,
     ) -> Result<KeyBindingJwt> {
-        let Some(RequiredKeyBinding::Jwk(jwk)) = sd_jwt.required_key_bind() else {
-            return Err(Error::MissingJwkKeybinding);
-        };
-
         KeyBindingJwt::parse_and_verify(
             kb_segment,
-            &EcdsaDecodingKey::from(&jwk_to_p256(jwk)?),
+            &EcdsaDecodingKey::from(&sd_jwt.verifying_key()?),
             kb_expected_aud,
             kb_expected_nonce,
             kb_iat_acceptance_window,
@@ -384,8 +428,26 @@ impl SdJwtPresentation {
         &self.sd_jwt
     }
 
+    pub fn into_sd_jwt(self) -> SdJwt {
+        self.sd_jwt
+    }
+
     pub fn key_binding_jwt(&self) -> &KeyBindingJwt {
         self.key_binding_jwt.as_ref()
+    }
+
+    pub fn verifying_key(&self) -> VerifyingKey {
+        // TODO (PVW-4817): The presence of the key binding and the guaranteed that it can be parsed to a `VerifyingKey`
+        //                  is inherent to the type, as this should already have been done by the two ways to construct
+        //                  it:
+        //
+        //                  * When the holder creates this type through `SdJwtPresentationBuilder` by signing a
+        //                    `KeyBindingJwt` with its private key.
+        //                  * When the verifier parses the type from a SD-JWT presentation string.
+        //
+        //                  Unfortunately the presence and validity of the public key is currently not checked for the
+        //                  first method. This sanity check should be added, so we know the guarantee holds.
+        self.sd_jwt.verifying_key().unwrap()
     }
 }
 
@@ -423,6 +485,15 @@ impl SdJwt {
 
     pub fn required_key_bind(&self) -> Option<&RequiredKeyBinding> {
         self.claims().cnf.as_ref()
+    }
+
+    pub fn verifying_key(&self) -> Result<VerifyingKey> {
+        let verifying_key = self
+            .required_key_bind()
+            .ok_or(Error::MissingJwkKeybinding)?
+            .verifying_key()?;
+
+        Ok(verifying_key)
     }
 
     pub fn issuer_certificate_chain(&self) -> &Vec<BorrowingCertificate> {
