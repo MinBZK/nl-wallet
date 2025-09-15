@@ -60,6 +60,10 @@ pub enum TransferError {
     #[error("transfer_session_id not found in storage")]
     #[category(critical)]
     MissingTransferSessionId,
+
+    #[error("wallet is in an invalid state for a transfer")]
+    #[category(critical)]
+    IllegalWalletState,
 }
 
 impl<CR, UR, S, AKH, APC, DC, IS, DCC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC>
@@ -73,11 +77,7 @@ where
     DCC: DisclosureClient,
     APC: AccountProviderClient,
 {
-    #[instrument(skip_all)]
-    #[sentry_capture_error]
-    pub async fn start_transfer(&mut self) -> Result<Url, TransferError> {
-        info!("Start transfer");
-
+    fn validate_transfer_allowed(&self) -> Result<(), TransferError> {
         info!("Checking if blocked");
         if self.is_blocked() {
             return Err(TransferError::VersionBlocked);
@@ -92,6 +92,21 @@ where
         if self.lock.is_locked() {
             return Err(TransferError::Locked);
         }
+
+        info!("Checking if there is no active issuance or disclosure session");
+        if self.session.is_some() {
+            return Err(TransferError::IllegalWalletState);
+        }
+
+        Ok(())
+    }
+
+    #[instrument(skip_all)]
+    #[sentry_capture_error]
+    pub async fn start_transfer(&mut self) -> Result<Url, TransferError> {
+        info!("Start transfer");
+
+        self.validate_transfer_allowed()?;
 
         let Some(transfer_data) = self.storage.read().await.fetch_data::<TransferData>().await? else {
             return Err(TransferError::MissingTransferSessionId);
@@ -128,21 +143,12 @@ where
     pub async fn confirm_transfer(&mut self, transfer_session_id: TransferSessionId) -> Result<(), TransferError> {
         info!("Confirming transfer");
 
-        info!("Checking if blocked");
-        if self.is_blocked() {
-            return Err(TransferError::VersionBlocked);
-        }
+        self.validate_transfer_allowed()?;
 
-        info!("Checking if registered");
         let (attested_key, registration_data) = self
             .registration
             .as_key_and_registration_data()
             .ok_or_else(|| TransferError::NotRegistered)?;
-
-        info!("Checking if locked");
-        if self.lock.is_locked() {
-            return Err(TransferError::Locked);
-        }
 
         let config = self.config_repository.get();
         let instruction_result_public_key = config.account_server.instruction_result_public_key.as_inner().into();
@@ -175,13 +181,65 @@ mod tests {
 
     use wallet_account::messages::instructions::HwSignedInstruction;
 
+    use crate::digid::MockDigidSession;
     use crate::storage::InstructionData;
+    use crate::wallet::Session;
     use crate::wallet::test::create_wp_result;
 
     use super::super::test::TestWalletInMemoryStorage;
     use super::super::test::TestWalletMockStorage;
     use super::super::test::WalletDeviceVendor;
     use super::*;
+
+    #[tokio::test]
+    async fn test_transfer_error_blocked() {
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        wallet.update_policy_repository.state = VersionState::Block;
+
+        let error = wallet
+            .start_transfer()
+            .await
+            .expect_err("Wallet start transfer should have resulted in error");
+
+        assert_matches!(error, TransferError::VersionBlocked);
+    }
+
+    #[tokio::test]
+    async fn test_transfer_error_not_unlocked() {
+        let mut wallet = TestWalletInMemoryStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+        wallet.lock();
+
+        let error = wallet
+            .start_transfer()
+            .await
+            .expect_err("Wallet start transfer should have resulted in error");
+
+        assert_matches!(error, TransferError::Locked);
+    }
+
+    #[tokio::test]
+    async fn test_transfer_error_not_registered() {
+        let wallet = TestWalletMockStorage::new_unregistered(WalletDeviceVendor::Apple).await;
+
+        let error = wallet
+            .validate_transfer_allowed()
+            .expect_err("Wallet start transfer should have resulted in error");
+
+        assert_matches!(error, TransferError::NotRegistered);
+    }
+
+    #[tokio::test]
+    async fn test_transfer_error_issuance_session_active() {
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+        wallet.session = Some(Session::Digid(MockDigidSession::new()));
+
+        let error = wallet
+            .validate_transfer_allowed()
+            .expect_err("Wallet start transfer should have resulted in error");
+
+        assert_matches!(error, TransferError::IllegalWalletState);
+    }
 
     #[tokio::test]
     async fn test_wallet_start_transfer() {
@@ -228,45 +286,6 @@ mod tests {
         assert_eq!(BASE64_URL_SAFE_NO_PAD.decode(value.as_ref()).unwrap().len(), 32);
 
         assert!(pairs.next().is_none());
-    }
-
-    #[tokio::test]
-    async fn test_wallet_start_transfer_error_blocked() {
-        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-
-        wallet.update_policy_repository.state = VersionState::Block;
-
-        let error = wallet
-            .start_transfer()
-            .await
-            .expect_err("Wallet start transfer should have resulted in error");
-
-        assert_matches!(error, TransferError::VersionBlocked);
-    }
-
-    #[tokio::test]
-    async fn test_wallet_start_transfer_error_not_unlocked() {
-        let mut wallet = TestWalletInMemoryStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-        wallet.lock();
-
-        let error = wallet
-            .start_transfer()
-            .await
-            .expect_err("Wallet start transfer should have resulted in error");
-
-        assert_matches!(error, TransferError::Locked);
-    }
-
-    #[tokio::test]
-    async fn test_wallet_start_transfer_error_not_registered() {
-        let mut wallet = TestWalletMockStorage::new_unregistered(WalletDeviceVendor::Apple).await;
-
-        let error = wallet
-            .start_transfer()
-            .await
-            .expect_err("Wallet start transfer should have resulted in error");
-
-        assert_matches!(error, TransferError::NotRegistered);
     }
 
     #[tokio::test]
