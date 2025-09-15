@@ -5,9 +5,8 @@ import org.junit.platform.suite.api.Suite
 import org.junit.platform.suite.api.SuiteDisplayName
 
 @SelectClasses(
-    nativefeature.introduction.IntroductionTests::class,
-    nativefeature.introduction.AppTourVideoTests::class,
+    nativefeature.openapp.OpenAppTests::class,
 )
 @Suite
-@SuiteDisplayName("Introduction Test Suite")
-object IntroductionTestSuite
+@SuiteDisplayName("Open app Test Suite")
+object OpenAppTestSuite

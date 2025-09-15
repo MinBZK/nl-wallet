@@ -113,7 +113,6 @@ class UserEntersPinTests : TestBase() {
                 { assertTrue(temporarilyBlockedScreen.forgotPinButtonVisible(), "Forgot pin button is not visible") },
                 { assertTrue(temporarilyBlockedScreen.timeoutDurationLeftVisible("57"), "Timeout duration is not visible") }
             )
-
         }
     }
 

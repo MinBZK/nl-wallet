@@ -15,7 +15,7 @@ class DashboardScreen : NativeMobileActions() {
 
     fun visible() = elementContainingTextVisible(menuButton) && elementWithTextVisible(scanQRButton)
 
-    fun pidCardsVisible() = cardVisible(cardMetadata.getPidVCT()) && cardVisible(cardMetadata.getAddressVCT())
+    fun pidCardsVisible() = cardVisible(cardMetadata.getPidDisplayName()) && cardVisible(cardMetadata.getAddressDisplayName())
 
     fun cardFaceTextsInActiveLanguage() =
         elementWithTextVisible(pidIdTitleText) && elementWithTextVisible(showDetailsText)
@@ -26,30 +26,25 @@ class DashboardScreen : NativeMobileActions() {
         return pidY < addressY
     }
 
-    fun clickMenuButton() = clickElementWithText(menuButton)
+    fun clickMenuButton() = clickElementContainingText(menuButton)
 
-    fun clickCard(vct: String) {
-        scrollToElementWithText(vct)
-        clickElementWithText(vct)
+    fun clickCard(displayName: String) {
+        clickElementContainingText(displayName)
     }
 
-    fun appTourBannerVisible() = elementWithTextVisible(appTourBannerTitle)
+    fun appTourBannerVisible() = elementContainingTextVisible(appTourBannerTitle.substringBefore("'"))
 
     fun cardTitlesVisible() = elementWithTextVisible(pidIdTitleText) && elementWithTextVisible(pidAddressTitleText)
 
-    fun cardButtonsVisible() {
+    fun cardButtonsVisible() =
         elementWithDescendantAndTextAndVisible(pidIdCard, showDetailsText) &&
             elementWithDescendantAndTextAndVisible(pidAddressCard, showDetailsText)
-    }
 
-    fun cardSubtitleVisible(subtitle: String): Boolean {
-        return elementWithTextVisible(subtitle)
-    }
+    fun cardSubtitleVisible(subtitle: String): Boolean = elementWithTextVisible(subtitle)
 
     fun openQRScanner() = clickElementWithText(scanQRButton)
 
-    private fun cardVisible(vct: String): Boolean {
-        scrollToElementWithText(vct)
-        return elementWithTextVisible(vct)
+    fun cardVisible(displayName: String): Boolean {
+        return elementContainingTextVisible(displayName)
     }
 }

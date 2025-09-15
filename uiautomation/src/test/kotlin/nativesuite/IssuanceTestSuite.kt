@@ -6,7 +6,9 @@ import org.junit.platform.suite.api.SuiteDisplayName
 
 @SelectClasses(
     nativefeature.issuance.PidIssuanceTests::class,
+    nativefeature.issuance.DisclosureBasedIssuanceTests::class,
+    nativefeature.issuance.RenewCardTests::class
 )
 @Suite
-@SuiteDisplayName("Personalize Test Suite")
+@SuiteDisplayName("Issuance Test Suite")
 object IssuanceTestSuite

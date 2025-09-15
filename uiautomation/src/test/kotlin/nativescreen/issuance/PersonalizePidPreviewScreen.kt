@@ -10,9 +10,7 @@ class PersonalizePidPreviewScreen : NativeMobileActions() {
 
     fun visible() = elementWithTextVisible(walletPersonalizeCheckDataOfferingPageTitle)
 
-    fun humanReadableCardDataVisible(cardData: String): Boolean {
-        return elementContainingTextVisible(cardData)
-    }
+    fun humanReadableCardDataVisible(cardData: String): Boolean = elementContainingTextVisible(cardData)
 
     fun confirmButtonsVisible(): Boolean {
         scrollToElementWithText(rejectButton)
@@ -20,6 +18,8 @@ class PersonalizePidPreviewScreen : NativeMobileActions() {
     }
 
     fun clickAcceptButton() {
+        switchToNativeContext()
+        visible()
         scrollToElementWithText(acceptButton)
         clickElementWithText(acceptButton)
     }

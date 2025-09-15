@@ -8,9 +8,7 @@ class PinScreen : NativeMobileActions() {
     private val setupSecuritySelectPinPageTitle = l10n.getString("setupSecuritySelectPinPageTitle")
     private val pinScreenHeader = l10n.getString("pinScreenHeader")
     private val confirmPinScreen = l10n.getString("setupSecurityConfirmationPageTitle")
-
     private val personalizeConfirmPinScreen = l10n.getString("walletPersonalizeConfirmPinPageTitle")
-
     private val backButton = l10n.getString("generalWCAGBack")
     private val appInfoButton = l10n.getString("generalWCAGInfo")
     private val forgotPinButton = l10n.getString("pinScreenForgotPinCta")
@@ -18,14 +16,12 @@ class PinScreen : NativeMobileActions() {
     private val skipBiometricsCta = l10n.getString("setupBiometricsPageSkipCta")
     private val closeAlertDialogButton = l10n.getString("generalOkCta")
     private val closeIncorrectPinAlertDialogButton = l10n.getString("pinErrorDialogCloseCta")
-
     private val pinValidationErrorTooFewUniqueDigits = l10n.getString("pinValidationErrorDialogTooFewUniqueDigitsError")
     private val pinValidationErrorSequentialDigits = l10n.getString("pinValidationErrorDialogAscendingOrDescendingDigitsError")
     private val confirmPinErrorMismatchTitle = l10n.getString("pinConfirmationErrorDialogTitle")
     private val confirmPinErrorMismatchDescription = l10n.getString("pinConfirmationErrorDialogDescription")
     private val confirmPinErrorMismatchFatalTitle = l10n.getString("pinConfirmationErrorDialogFatalTitle")
     private val confirmPinErrorMismatchFatalDescription = l10n.getString("pinConfirmationErrorDialogFatalDescription")
-
     private val pinErrorDialogNonFinalRoundInitialAttempt = l10n.getString("pinErrorDialogNonFinalRoundInitialAttempt")
     private val pinErrorDialogNonFinalRoundFinalAttempt = l10n.getString("pinErrorDialogNonFinalRoundFinalAttempt")
 

@@ -1,7 +1,7 @@
 package nativescreen.web.demo.issuer
 
-import screen.web.demo.shared.DemoBody
-import screen.web.demo.shared.DemoPopup
+import nativescreen.web.demo.shared.DemoBody
+import nativescreen.web.demo.shared.DemoPopup
 import util.NativeMobileActions
 
 class IssuerWebPage : NativeMobileActions() {
@@ -9,19 +9,9 @@ class IssuerWebPage : NativeMobileActions() {
     private val body = DemoBody()
     private val popup = DemoPopup()
 
-    fun openSameDeviceWalletFlow(platform: String) {
-        when (platform) {
-            "ANDROID" -> {
-                body.clickStartButton()
-                popup.clickSameDeviceButton()
-            }
-            "IOS" -> {
-                tapCoordinates(100, 500)
-                tapCoordinates(175, 340)
-            }
-            else -> {
-                throw Exception("Platform $platform is not supported")
-            }
-        }
+    fun openSameDeviceWalletFlow() {
+        Thread.sleep(1000)
+        body.clickStartButton()
+        popup.clickSameDeviceButton()
     }
 }
