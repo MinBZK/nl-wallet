@@ -142,6 +142,7 @@ class PolicyScreen extends StatelessWidget {
             child: Text.rich(context.l10n.policyScreenPolicySectionTitle.toTextSpan(context)),
           ),
           subtitle: Semantics(
+            button: true,
             onTap: () => launchUrlStringCatching(policyUrl, mode: LaunchMode.externalApplication),
             onTapHint: context.l10n.generalWCAGOpenLink,
             child: Text.rich(
