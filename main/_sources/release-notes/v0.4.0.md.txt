@@ -85,7 +85,7 @@
 - Update to Flutter 3.35.1.
 - The UI has been updated to support the 'pin recovery' flow. Currently only
   available in mock builds.
-- The UI has been updated to support the Wallet Transfer (source) flow.
+- The UI has been updated to support the Wallet Transfer (source & target) flow.
   Currently only available in mock builds.
 
 ## Bug fixes
