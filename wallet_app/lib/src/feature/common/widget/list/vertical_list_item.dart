@@ -22,27 +22,30 @@ class VerticalListItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Align(alignment: Alignment.centerLeft, child: icon ?? const SizedBox.shrink()),
-          SizedBox(height: icon == null ? 0 : 16),
-          Semantics(
-            header: true,
-            child: DefaultTextStyle(
-              style: BaseWalletTheme.headlineExtraSmallTextStyle.copyWith(
-                color: context.textTheme.titleMedium?.color,
+      child: Semantics(
+        explicitChildNodes: true /* make sure column's children are announced separately */,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Align(alignment: Alignment.centerLeft, child: icon ?? const SizedBox.shrink()),
+            SizedBox(height: icon == null ? 0 : 16),
+            Semantics(
+              header: true,
+              child: DefaultTextStyle(
+                style: BaseWalletTheme.headlineExtraSmallTextStyle.copyWith(
+                  color: context.textTheme.titleMedium?.color,
+                ),
+                child: title,
               ),
-              child: title,
             ),
-          ),
-          const SizedBox(height: 8),
-          DefaultTextStyle(style: context.textTheme.bodyLarge!, child: subtitle),
-          SizedBox(height: button == null ? 0 : 12),
-          if (button != null) button!,
-        ],
+            const SizedBox(height: 8),
+            DefaultTextStyle(style: context.textTheme.bodyLarge!, child: subtitle),
+            SizedBox(height: button == null ? 0 : 12),
+            if (button != null) button!,
+          ],
+        ),
       ),
     );
   }
