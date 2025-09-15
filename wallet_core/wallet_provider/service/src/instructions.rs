@@ -126,13 +126,15 @@ impl ValidateInstruction for Sign {
 
 impl ValidateInstruction for ChangePinCommit {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
-        validate_no_pin_recovery_in_progress(wallet_user)
+        validate_no_pin_recovery_in_progress(wallet_user)?;
+        validate_no_transfer_in_progress(wallet_user)
     }
 }
 
 impl ValidateInstruction for ChangePinRollback {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
-        validate_no_pin_recovery_in_progress(wallet_user)
+        validate_no_pin_recovery_in_progress(wallet_user)?;
+        validate_no_transfer_in_progress(wallet_user)
     }
 }
 
@@ -145,7 +147,8 @@ impl ValidateInstruction for CheckPin {
 
 impl ValidateInstruction for StartPinRecovery {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
-        validate_no_pin_change_in_progress(wallet_user)
+        validate_no_pin_change_in_progress(wallet_user)?;
+        validate_no_transfer_in_progress(wallet_user)
     }
 }
 
