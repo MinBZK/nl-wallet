@@ -29,7 +29,7 @@ import org.junit.jupiter.api.assertAll
 import org.junitpioneer.jupiter.RetryingTest
 
 @TestMethodOrder(MethodOrderer.DisplayName::class)
-@DisplayName("UC 3.1 App informs User before personalization")
+@DisplayName("UC 3.1 Obtain PID")
 class PidIssuanceTests : TestBase() {
 
     private lateinit var personalizeInformScreen: PersonalizeInformScreen

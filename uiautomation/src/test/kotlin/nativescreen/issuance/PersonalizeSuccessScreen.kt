@@ -15,9 +15,8 @@ class PersonalizeSuccessScreen : NativeMobileActions() {
     fun successMessageVisible() =
         elementWithTextVisible(successTitleText) && elementWithTextVisible(successDescriptionText)
 
-    fun cardsVisible(): Boolean {
-        return elementContainingTextVisible(pidIdCardTitleText) && elementContainingTextVisible(pidAddressCardTitleText)
-    }
+    fun cardsVisible(): Boolean =
+         elementContainingTextVisible(pidIdCardTitleText) && elementContainingTextVisible(pidAddressCardTitleText)
 
     fun clickNextButton() = clickElementWithText(nextButton)
 }

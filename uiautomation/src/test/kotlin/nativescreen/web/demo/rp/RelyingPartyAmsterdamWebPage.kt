@@ -12,21 +12,10 @@ class RelyingPartyAmsterdamWebPage : NativeMobileActions() {
 
     private val loggedInHeaderTextDutchLocator = By.xpath("//h2[text()='Welkom in Mijn Amsterdam']")
 
-    fun loggedInMessageVisible() = isWebElementVisible(findElement(loggedInHeaderTextDutchLocator))
+    fun loggedInMessageVisible() = isWebElementVisible(findWebElement(loggedInHeaderTextDutchLocator))
 
-    fun openSameDeviceWalletFlow(platform: String) {
-        when (platform) {
-            "ANDROID" -> {
-                body.clickStartButton()
-                popup.clickSameDeviceButton()
-            }
-            "IOS" -> {
-                tapCoordinates(100, 500)
-                tapCoordinates(175, 340)
-            }
-            else -> {
-                throw Exception("Platform $platform is not supported")
-            }
-        }
+    fun openSameDeviceWalletFlow() {
+        body.clickStartButton()
+        popup.clickSameDeviceButton()
     }
 }

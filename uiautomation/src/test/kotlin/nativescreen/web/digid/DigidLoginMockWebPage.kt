@@ -11,11 +11,11 @@ class DigidLoginMockWebPage : NativeMobileActions() {
     private val mockLoginButtonLocator = By.linkText("Login / Submit")
 
     fun visible(): Boolean {
-        return isWebElementVisible(findElement(headlineTextLocator))
+        return isWebElementVisible(findWebElement(headlineTextLocator))
     }
 
     fun enterBsn(bsn: String) {
-        val bsnInput = findElement(bsnInputLocator)
+        val bsnInput = findWebElement(bsnInputLocator)
         bsnInput.clear()
         bsnInput.sendKeys(bsn)
         (driver as JavascriptExecutor).executeScript(
@@ -28,7 +28,7 @@ class DigidLoginMockWebPage : NativeMobileActions() {
         )
     }
 
-    fun clickLoginButton() = findElement(mockLoginButtonLocator).click()
+    fun clickLoginButton() = findWebElement(mockLoginButtonLocator).click()
 
     fun login(bsn: String) {
         enterBsn(bsn)

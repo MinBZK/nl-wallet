@@ -9,10 +9,11 @@ class DigidLoginStartWebPage : NativeMobileActions() {
     private val mockLoginButtonLocator = By.linkText("Inloggen met DigiD mock")
 
     fun visible(): Boolean {
-        return isWebElementVisible(findElement(headlineTextLocator))
+        return isWebElementVisible(findWebElement(headlineTextLocator))
     }
 
     fun clickMockLoginButton() {
-        clickWebElement(findElement(mockLoginButtonLocator))
+        switchToWebViewContext()
+        clickWebElement(findWebElement(mockLoginButtonLocator))
     }
 }
