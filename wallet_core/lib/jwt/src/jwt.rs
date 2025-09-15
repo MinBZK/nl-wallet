@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::str::FromStr;
@@ -415,7 +416,7 @@ pub trait JwtSubject {
 struct PayloadWithSub<T> {
     #[serde(flatten)]
     payload: T,
-    sub: String, // TODO make this a `Cow`
+    sub: Cow<'static, str>,
 }
 
 // "downcast" the payload, the `sub` claim can just be "ignored" when parsing
@@ -459,7 +460,7 @@ where
     pub async fn sign_with_sub(payload: T, privkey: &impl EcdsaKey) -> Result<Self> {
         let claims = PayloadWithSub {
             payload,
-            sub: T::SUB.to_owned(),
+            sub: Cow::Borrowed(T::SUB),
         };
 
         let jwt = UnverifiedJwt::sign(&*DEFAULT_HEADER, &claims, privkey).await?;
@@ -475,7 +476,7 @@ pub trait JwtTyp {
 struct HeaderWithTyp<H> {
     #[serde(flatten)]
     header: H,
-    typ: String, // TODO make this a `Cow`
+    typ: Cow<'static, str>,
 }
 
 impl<H, E> TryFrom<Header> for HeaderWithTyp<H>
@@ -486,10 +487,10 @@ where
     type Error = JwtError;
 
     fn try_from(value: Header) -> Result<Self, Self::Error> {
-        let typ = value.typ.as_ref().ok_or(JwtError::MissingTyp)?.clone();
+        let typ = value.typ.as_ref().ok_or(JwtError::MissingTyp)?.to_owned();
         Ok(HeaderWithTyp {
             header: value.try_into().map_err(|e| JwtError::HeaderConversion(Box::new(e)))?,
-            typ,
+            typ: Cow::Owned(typ),
         })
     }
 }
@@ -536,7 +537,7 @@ where
         let jwt: UnverifiedJwt<_, HeaderWithTyp<_>> = self.into();
         let (header, claims) = jwt.parse_and_verify_with_header(pubkey, validation_options)?;
         if header.typ != T::TYP {
-            return Err(JwtError::UnexpectedTyp(T::TYP.to_owned(), header.typ));
+            return Err(JwtError::UnexpectedTyp(T::TYP.to_owned(), header.typ.into_owned()));
         }
 
         Ok(claims)
@@ -550,7 +551,7 @@ where
         let jwt: UnverifiedJwt<_, HeaderWithTyp<_>> = self.into();
         let VerifiedJwt { header, payload, jwt } = jwt.into_verified(pubkey, validation_options)?;
         if header.typ != T::TYP {
-            return Err(JwtError::UnexpectedTyp(T::TYP.to_owned(), header.typ));
+            return Err(JwtError::UnexpectedTyp(T::TYP.to_owned(), header.typ.into_owned()));
         }
 
         Ok(VerifiedJwt {
@@ -573,7 +574,7 @@ where
     ) -> Result<UnverifiedJwt<T, H>> {
         let header = HeaderWithTyp {
             header,
-            typ: T::TYP.to_owned(),
+            typ: Cow::Borrowed(T::TYP),
         };
 
         let jwt = UnverifiedJwt::sign(&header, payload, privkey).await?;
@@ -598,7 +599,7 @@ where
     pub async fn sign_with_header_and_typ(header: H, payload: T, privkey: &impl EcdsaKey) -> Result<VerifiedJwt<T, H>> {
         let header = HeaderWithTyp {
             header,
-            typ: T::TYP.to_owned(),
+            typ: Cow::Borrowed(T::TYP),
         };
 
         let VerifiedJwt {
@@ -1045,7 +1046,7 @@ mod tests {
     fn test_payload_with_sub_deserialize<U: Serialize + DeserializeOwned>(#[case] t: U) {
         let t = PayloadWithSub {
             payload: t,
-            sub: "sub".to_string(),
+            sub: Cow::Borrowed("sub"),
         };
         let _: U = serde_json::from_str(&serde_json::to_string(&t).unwrap()).unwrap();
     }
