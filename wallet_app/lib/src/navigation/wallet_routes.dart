@@ -72,6 +72,8 @@ import '../feature/wallet/personalize/wallet_personalize_screen.dart';
 import '../feature/wallet_transfer_faq/wallet_transfer_faq_screen.dart';
 import '../feature/wallet_transfer_source/bloc/wallet_transfer_source_bloc.dart';
 import '../feature/wallet_transfer_source/wallet_transfer_source_screen.dart';
+import '../feature/wallet_transfer_target/bloc/wallet_transfer_target_bloc.dart';
+import '../feature/wallet_transfer_target/wallet_transfer_target_screen.dart';
 import '../util/cast_util.dart';
 import 'secured_page_route.dart';
 
@@ -133,6 +135,7 @@ class WalletRoutes {
   static const walletHistoryRoute = '/wallet/history';
   static const walletPersonalizeRoute = '/wallet/personalize';
   static const walletTransferSourceRoute = '/wallet_transfer/source';
+  static const walletTransferTargetRoute = '/wallet_transfer/target';
   static const walletTransferFaqRoute = '/settings/wallet_transfer_faq';
 
   static Route<dynamic> routeFactory(RouteSettings settings) {
@@ -230,6 +233,8 @@ class WalletRoutes {
         return _createRenewPidScreenBuilder(settings);
       case WalletRoutes.walletTransferSourceRoute:
         return _createWalletTransferSourceRoute(settings);
+      case WalletRoutes.walletTransferTargetRoute:
+        return _createWalletTransferTargetRoute(settings);
       case WalletRoutes.walletTransferFaqRoute:
         return _createWalletTransferFaqScreenBuilder;
       default:
@@ -575,6 +580,22 @@ WidgetBuilder _createWalletTransferSourceRoute(RouteSettings settings) {
         return bloc;
       },
       child: const WalletTransferSourceScreen(),
+    );
+  };
+}
+
+WidgetBuilder _createWalletTransferTargetRoute(RouteSettings settings) {
+  return (context) {
+    return BlocProvider<WalletTransferTargetBloc>(
+      create: (BuildContext context) {
+        return WalletTransferTargetBloc(
+          context.read(),
+          context.read(),
+          context.read(),
+          context.read(),
+        );
+      },
+      child: const WalletTransferTargetScreen(),
     );
   };
 }

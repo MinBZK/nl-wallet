@@ -60,9 +60,9 @@ class WalletTransferSourceScreen extends StatelessWidget {
                   onCancel: () => _onStopPressed(context),
                 ),
               WalletTransferIntroduction() => TerminalPage(
-                  title: context.l10n.walletTransferScreenIntroductionTitle,
-                  description: context.l10n.walletTransferScreenIntroductionDescription,
-                  primaryButtonCta: context.l10n.walletTransferScreenIntroductionCta,
+                  title: context.l10n.walletTransferSourceScreenIntroductionTitle,
+                  description: context.l10n.walletTransferSourceScreenIntroductionDescription,
+                  primaryButtonCta: context.l10n.walletTransferSourceScreenIntroductionCta,
                   illustration: const PageIllustration(asset: WalletAssets.svg_move_source_confirm),
                   onPrimaryPressed: () => context.bloc.add(const WalletTransferAgreeEvent()),
                   secondaryButtonCta: context.l10n.generalStop,
@@ -79,7 +79,7 @@ class WalletTransferSourceScreen extends StatelessWidget {
               WalletTransferSuccess() => const WalletTransferSourceTransferSuccessPage(),
               WalletTransferStopped() => TerminalPage(
                   title: context.l10n.walletTransferScreenStoppedTitle,
-                  description: context.l10n.walletTransferScreenStoppedDescription,
+                  description: context.l10n.walletTransferSourceScreenStoppedDescription,
                   onPrimaryPressed: pop,
                   primaryButtonCta: context.l10n.generalClose,
                   primaryButtonIcon: const Icon(Icons.close_outlined),
@@ -108,6 +108,7 @@ class WalletTransferSourceScreen extends StatelessWidget {
             return FakePagingAnimatedSwitcher(
               animateBackwards: state.didGoBack,
               child: PopScope(
+                key: ValueKey(state.runtimeType),
                 canPop: _canPop(state),
                 onPopInvokedWithResult: (didPop, result) {
                   if (!didPop) _onPopInvoked(context, state);
@@ -190,14 +191,14 @@ class WalletTransferSourceScreen extends StatelessWidget {
     return switch (state) {
       WalletTransferInitial() => const SizedBox.shrink(),
       WalletTransferLoading() => const SizedBox.shrink(),
-      WalletTransferIntroduction() => TitleText(context.l10n.walletTransferScreenIntroductionTitle),
+      WalletTransferIntroduction() => TitleText(context.l10n.walletTransferSourceScreenIntroductionTitle),
       WalletTransferConfirmPin() => const SizedBox.shrink(),
-      WalletTransferTransferring() => TitleText(context.l10n.walletTransferScreenTransferringTitle),
-      WalletTransferSuccess() => TitleText(context.l10n.walletTransferScreenSuccessTitle),
+      WalletTransferTransferring() => TitleText(context.l10n.walletTransferSourceScreenTransferringTitle),
+      WalletTransferSuccess() => TitleText(context.l10n.walletTransferSourceScreenSuccessTitle),
       WalletTransferStopped() => TitleText(context.l10n.walletTransferScreenStoppedTitle),
       WalletTransferGenericError() => TitleText(context.l10n.errorScreenGenericHeadline),
       WalletTransferNetworkError() => state.hasInternet
-          ? TitleText(context.l10n.errorScreenNoInternetHeadline)
+          ? TitleText(context.l10n.errorScreenServerHeadline)
           : TitleText(context.l10n.errorScreenNoInternetHeadline),
       WalletTransferSessionExpired() => TitleText(context.l10n.errorScreenSessionExpiredHeadline),
       WalletTransferFailed() => TitleText(context.l10n.walletTransferScreenFailedTitle),

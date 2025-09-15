@@ -28,7 +28,7 @@ void main() {
   blocTest(
     'WalletTransferGenericError is emitted when transfer can not be initiated',
     build: createBloc,
-    setUp: () => when(mockInitWalletTransferUseCase.invoke())
+    setUp: () => when(mockInitWalletTransferUseCase.invoke(any))
         .thenAnswer((_) async => const Result.error(GenericError('', sourceError: 'test'))),
     act: (bloc) => bloc.add(const WalletTransferInitiateTransferEvent('https://example.org/transfer')),
     expect: () => [
@@ -41,7 +41,7 @@ void main() {
     'verify happy path',
     build: createBloc,
     setUp: () {
-      when(mockInitWalletTransferUseCase.invoke()).thenAnswer((_) async => const Result.success(null));
+      when(mockInitWalletTransferUseCase.invoke(any)).thenAnswer((_) async => const Result.success(null));
       when(mockGetWalletTransferStatusUseCase.invoke()).thenAnswer(
         (_) => Stream.fromIterable([
           WalletTransferStatus.waitingForApproval,
@@ -97,7 +97,7 @@ void main() {
     'verify transfer failed with generic error',
     build: createBloc,
     setUp: () {
-      when(mockInitWalletTransferUseCase.invoke()).thenAnswer((_) async => const Result.success(null));
+      when(mockInitWalletTransferUseCase.invoke(any)).thenAnswer((_) async => const Result.success(null));
       when(mockGetWalletTransferStatusUseCase.invoke()).thenAnswer((_) => Stream.value(WalletTransferStatus.error));
     },
     act: (bloc) async {

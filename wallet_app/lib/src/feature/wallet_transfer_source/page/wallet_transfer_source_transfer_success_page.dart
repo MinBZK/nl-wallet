@@ -40,10 +40,10 @@ class WalletTransferSourceTransferSuccessPage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  TitleText(context.l10n.walletTransferScreenSuccessTitle),
+                  TitleText(context.l10n.walletTransferSourceScreenSuccessTitle),
                   const SizedBox(height: 8),
                   ParagraphedList.splitContent(
-                    context.l10n.walletTransferScreenSuccessDescription,
+                    context.l10n.walletTransferSourceScreenSuccessDescription,
                   ),
                 ],
               ),
