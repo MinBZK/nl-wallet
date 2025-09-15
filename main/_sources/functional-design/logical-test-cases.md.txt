@@ -160,6 +160,16 @@ from an issuer
 
 ---
 
+### LTC79
+
+#### No cards to be issued
+
+**Given** user has no cards to be issued available at EAA issuer
+**When** user performs disclosure based issuance to retrieve cards  
+**Then** system displays error message that no cards are available for issuance
+
+---
+
 ## Introduction
 
 ### LTC13
