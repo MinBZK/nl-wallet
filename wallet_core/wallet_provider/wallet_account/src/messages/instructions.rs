@@ -14,7 +14,7 @@ use uuid::Uuid;
 
 use crypto::p256_der::DerSignature;
 use crypto::p256_der::DerVerifyingKey;
-use jwt::JwtSubject;
+use jwt::JwtSub;
 use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithJwk;
 use jwt::pop::JwtPopClaims;
@@ -60,7 +60,7 @@ pub struct InstructionResultClaims<R> {
     pub iat: DateTime<Utc>,
 }
 
-impl<R> JwtSubject for InstructionResultClaims<R> {
+impl<R> JwtSub for InstructionResultClaims<R> {
     const SUB: &'static str = "instruction_result";
 }
 

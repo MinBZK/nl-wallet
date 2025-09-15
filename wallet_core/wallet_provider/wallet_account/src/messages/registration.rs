@@ -7,7 +7,7 @@ use serde_with::base64::Base64;
 use serde_with::serde_as;
 
 use crypto::p256_der::DerVerifyingKey;
-use jwt::JwtSubject;
+use jwt::JwtSub;
 use jwt::UnverifiedJwt;
 use utils::vec_at_least::VecAtLeastTwo;
 
@@ -68,7 +68,7 @@ pub struct WalletCertificateClaims {
     pub iat: DateTime<Utc>,
 }
 
-impl JwtSubject for WalletCertificateClaims {
+impl JwtSub for WalletCertificateClaims {
     const SUB: &'static str = "wallet_certificate";
 }
 

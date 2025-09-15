@@ -408,7 +408,7 @@ pub static DEFAULT_VALIDATIONS: LazyLock<Validation> = LazyLock::new(|| {
     validation_options
 });
 
-pub trait JwtSubject {
+pub trait JwtSub {
     const SUB: &'static str;
 }
 
@@ -417,6 +417,15 @@ struct PayloadWithSub<T> {
     #[serde(flatten)]
     payload: T,
     sub: Cow<'static, str>,
+}
+
+impl<T: JwtSub> PayloadWithSub<T> {
+    pub fn new(payload: T) -> Self {
+        PayloadWithSub {
+            payload,
+            sub: Cow::Borrowed(T::SUB),
+        }
+    }
 }
 
 // "downcast" the payload, the `sub` claim can just be "ignored" when parsing
@@ -430,7 +439,7 @@ impl<T> From<UnverifiedJwt<PayloadWithSub<T>>> for UnverifiedJwt<T> {
     }
 }
 
-impl<T: JwtSubject> JwtSubject for PayloadWithSub<T> {
+impl<T: JwtSub> JwtSub for PayloadWithSub<T> {
     const SUB: &'static str = T::SUB;
 }
 
@@ -442,7 +451,7 @@ static SUB_JWT_VALIDATIONS: LazyLock<Validation> = LazyLock::new(|| {
 
 impl<T, H> UnverifiedJwt<T, H>
 where
-    T: DeserializeOwned + JwtSubject,
+    T: DeserializeOwned + JwtSub,
     H: TryFrom<Header>,
 {
     /// Verify the JWT, and parse and return its payload.
@@ -455,13 +464,10 @@ where
 
 impl<T> UnverifiedJwt<T, Header>
 where
-    T: Serialize + JwtSubject,
+    T: Serialize + JwtSub,
 {
     pub async fn sign_with_sub(payload: T, privkey: &impl EcdsaKey) -> Result<Self> {
-        let claims = PayloadWithSub {
-            payload,
-            sub: Cow::Borrowed(T::SUB),
-        };
+        let claims = PayloadWithSub::new(payload);
 
         let jwt = UnverifiedJwt::sign(&*DEFAULT_HEADER, &claims, privkey).await?;
         Ok(jwt.into())
@@ -477,6 +483,15 @@ struct HeaderWithTyp<H> {
     #[serde(flatten)]
     header: H,
     typ: Cow<'static, str>,
+}
+
+impl<H> HeaderWithTyp<H> {
+    pub fn new<T: JwtTyp>(header: H) -> Self {
+        HeaderWithTyp {
+            header,
+            typ: Cow::Borrowed(T::TYP),
+        }
+    }
 }
 
 impl<H, E> TryFrom<Header> for HeaderWithTyp<H>
@@ -572,10 +587,7 @@ where
         payload: &T,
         privkey: &impl EcdsaKey,
     ) -> Result<UnverifiedJwt<T, H>> {
-        let header = HeaderWithTyp {
-            header,
-            typ: Cow::Borrowed(T::TYP),
-        };
+        let header = HeaderWithTyp::new::<T>(header);
 
         let jwt = UnverifiedJwt::sign(&header, payload, privkey).await?;
         Ok(jwt.into())
@@ -597,10 +609,7 @@ where
     H: Serialize,
 {
     pub async fn sign_with_header_and_typ(header: H, payload: T, privkey: &impl EcdsaKey) -> Result<VerifiedJwt<T, H>> {
-        let header = HeaderWithTyp {
-            header,
-            typ: Cow::Borrowed(T::TYP),
-        };
+        let header = HeaderWithTyp::new::<T>(header);
 
         let VerifiedJwt {
             header: HeaderWithTyp { header, .. },
@@ -756,6 +765,7 @@ impl<T, H> TryFrom<VecNonEmpty<UnverifiedJwt<T, H>>> for JsonJwt<T> {
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
+    use std::fmt::Debug;
 
     use assert_matches::assert_matches;
     use base64::prelude::*;
@@ -797,7 +807,7 @@ mod tests {
         assert_eq!(header.alg, alg);
     }
 
-    #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+    #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
     struct ToyMessage {
         number: u8,
         string: String,
@@ -812,7 +822,7 @@ mod tests {
         }
     }
 
-    impl JwtSubject for ToyMessage {
+    impl JwtSub for ToyMessage {
         const SUB: &'static str = "toy_message";
     }
 
@@ -1043,11 +1053,19 @@ mod tests {
     #[case(json!({ "a": [1, 2, 3] }))]
     #[case(json!({ "number": 1, "string": "a" }))]
     #[case(ToyMessage { number: 1, string: "a".to_string() })]
-    fn test_payload_with_sub_deserialize<U: Serialize + DeserializeOwned>(#[case] t: U) {
+    fn test_payload_with_sub_deserialize<U>(#[case] u: U)
+    where
+        U: Serialize + DeserializeOwned + Debug + PartialEq + Eq,
+    {
         let t = PayloadWithSub {
-            payload: t,
+            payload: u,
             sub: Cow::Borrowed("sub"),
         };
-        let _: U = serde_json::from_str(&serde_json::to_string(&t).unwrap()).unwrap();
+        let serialized = serde_json::to_string(&t).unwrap();
+        let deserialized: U = serde_json::from_str(&serialized).unwrap();
+        assert_eq!(deserialized, t.payload);
+        let deserialized: PayloadWithSub<U> = serde_json::from_str(&serialized).unwrap();
+        assert_eq!(deserialized.payload, t.payload);
+        assert_eq!(deserialized.sub, t.sub);
     }
 }

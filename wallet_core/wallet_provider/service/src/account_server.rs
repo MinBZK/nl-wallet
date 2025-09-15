@@ -57,7 +57,7 @@ use hsm::model::encrypter::Decrypter;
 use hsm::model::encrypter::Encrypter;
 use hsm::service::HsmError;
 use jwt::EcdsaDecodingKey;
-use jwt::JwtSubject;
+use jwt::JwtSub;
 use jwt::UnverifiedJwt;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
@@ -334,7 +334,7 @@ struct RegistrationChallengeClaims {
     random: Vec<u8>,
 }
 
-impl JwtSubject for RegistrationChallengeClaims {
+impl JwtSub for RegistrationChallengeClaims {
     const SUB: &'static str = "registration_challenge";
 }
 
