@@ -118,7 +118,7 @@ pub enum PinKeyChecks {
     SkipCertificateMatching,
 }
 
-pub async fn verify_wallet_certificate_pin_public_keys<H>(
+pub async fn verify_wallet_certificate_pin_public_key<H>(
     claims: WalletCertificateClaims,
     pin_keys: &AccountServerPinKeys,
     pin_checks: PinKeyChecks,
@@ -130,22 +130,24 @@ where
 {
     debug!("Decrypt the encrypted pin public key");
 
-    if matches!(pin_checks, PinKeyChecks::AllChecks) {
-        let pin_pubkey = Decrypter::decrypt(hsm, &pin_keys.encryption_key_identifier, encrypted_pin_pubkey).await?;
+    if !matches!(pin_checks, PinKeyChecks::AllChecks) {
+        return Ok(());
+    }
 
-        let pin_hash_verification = verify_pin_pubkey(
-            &pin_pubkey,
-            claims.pin_pubkey_hash,
-            &pin_keys.public_disclosure_protection_key_identifier,
-            hsm,
-        )
-        .await;
+    let pin_pubkey = Decrypter::decrypt(hsm, &pin_keys.encryption_key_identifier, encrypted_pin_pubkey).await?;
 
-        debug!("Verifying the pin and hardware public keys matches those in the provided certificate");
+    let pin_hash_verification = verify_pin_pubkey(
+        &pin_pubkey,
+        claims.pin_pubkey_hash,
+        &pin_keys.public_disclosure_protection_key_identifier,
+        hsm,
+    )
+    .await;
 
-        if pin_hash_verification.is_err() {
-            return Err(WalletCertificateError::PinPubKeyMismatch);
-        }
+    debug!("Verifying the pin and hardware public keys matches those in the provided certificate");
+
+    if pin_hash_verification.is_err() {
+        return Err(WalletCertificateError::PinPubKeyMismatch);
     }
 
     Ok(())
@@ -182,7 +184,7 @@ where
 
     let pin_pubkey = pin_pubkey(&user);
 
-    verify_wallet_certificate_pin_public_keys(
+    verify_wallet_certificate_pin_public_key(
         claims,
         pin_keys,
         pin_checks.key_checks,

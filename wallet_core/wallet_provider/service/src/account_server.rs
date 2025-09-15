@@ -104,7 +104,7 @@ use crate::wallet_certificate::PinKeyChecks;
 use crate::wallet_certificate::new_wallet_certificate;
 use crate::wallet_certificate::parse_and_verify_wallet_cert_using_hw_pubkey;
 use crate::wallet_certificate::verify_wallet_certificate;
-use crate::wallet_certificate::verify_wallet_certificate_pin_public_keys;
+use crate::wallet_certificate::verify_wallet_certificate_pin_public_key;
 use crate::wua_issuer::WuaIssuer;
 
 #[derive(Debug, thiserror::Error)]
@@ -740,7 +740,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             user.encrypted_pin_pubkey
         };
 
-        verify_wallet_certificate_pin_public_keys(
+        verify_wallet_certificate_pin_public_key(
             claims,
             &self.keys.pin_keys,
             PinKeyChecks::AllChecks,
