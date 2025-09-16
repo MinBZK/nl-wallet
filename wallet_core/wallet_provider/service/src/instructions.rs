@@ -11,6 +11,7 @@ use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
 use serde::Deserialize;
 use serde::Serialize;
+use serde_json::Value;
 use tracing::warn;
 use uuid::Uuid;
 
@@ -617,12 +618,14 @@ impl HandleInstruction for DiscloseRecoveryCode {
             .recovery_code_disclosure
             .into_verified_against_trust_anchors(&user_state.pid_issuer_trust_anchors, &TimeGenerator)?;
 
-        let recovery_code = verified_sd_jwt
+        let recovery_code = match verified_sd_jwt
             .as_ref()
             .to_disclosed_object()?
             .remove(PID_RECOVERY_CODE)
-            .ok_or(InstructionError::MissingRecoveryCode)?
-            .to_string();
+        {
+            Some(Value::String(recovery_code)) => recovery_code,
+            _ => return Err(InstructionError::MissingRecoveryCode),
+        };
 
         let tx = user_state.repositories.begin_transaction().await?;
         user_state
