@@ -628,19 +628,27 @@ impl HandleInstruction for DiscloseRecoveryCode {
         };
 
         let tx = user_state.repositories.begin_transaction().await?;
-        user_state
-            .repositories
-            .store_recovery_code(&tx, &wallet_user.wallet_id, recovery_code.clone())
-            .await?;
 
-        let has_multiple_accounts_for_recovery_code = user_state
-            .repositories
-            .has_multiple_active_accounts_by_recovery_code(&tx, &recovery_code)
-            .await?;
+        // Check here as well to prevent failure for retried wallet request
+        match wallet_user.recovery_code.as_ref() {
+            None => {
+                user_state
+                    .repositories
+                    .store_recovery_code(&tx, &wallet_user.wallet_id, recovery_code.clone())
+                    .await?;
+            }
+            // This is a retried request
+            Some(stored) if recovery_code.as_str() == stored => {}
+            _ => return Err(InstructionError::InvalidRecoveryCode),
+        }
 
         let transfer_session_id = if let Some(transfer_session) = &wallet_user.transfer_session {
             Some(transfer_session.transfer_session_id)
-        } else if has_multiple_accounts_for_recovery_code {
+        } else if user_state
+            .repositories
+            .has_multiple_active_accounts_by_recovery_code(&tx, &recovery_code)
+            .await?
+        {
             let transfer_session_id = Uuid::new_v4();
             user_state
                 .repositories
@@ -1101,13 +1109,11 @@ mod tests {
             app_version: Version::parse("1.0.0").unwrap(),
         };
 
+        wallet_user.recovery_code = Some("885ed8a2-f07a-4f77-a8df-2e166f5ebd36".to_string());
         let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
         wallet_user_repo
             .expect_begin_transaction()
             .returning(|| Ok(MockTransaction));
-        wallet_user_repo
-            .expect_store_recovery_code()
-            .returning(|_, _, _| Ok(()));
         wallet_user_repo
             .expect_has_multiple_active_accounts_by_recovery_code()
             .returning(|_, _| Ok(true));

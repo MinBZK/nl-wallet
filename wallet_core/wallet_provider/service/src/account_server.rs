@@ -250,7 +250,10 @@ pub enum InstructionError {
     #[error("recovery code missing from SD JWT")]
     MissingRecoveryCode,
 
-    #[error("account is not elligible for transfer")]
+    #[error("recovery code is invalid")]
+    InvalidRecoveryCode,
+
+    #[error("account is not eligible for transfer")]
     AccountNotTransferable,
 
     #[error("there is no account transfer in progress")]
