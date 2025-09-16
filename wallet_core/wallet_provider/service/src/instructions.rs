@@ -39,6 +39,7 @@ use wallet_account::messages::instructions::ChangePinStart;
 use wallet_account::messages::instructions::CheckPin;
 use wallet_account::messages::instructions::ConfirmTransfer;
 use wallet_account::messages::instructions::DiscloseRecoveryCode;
+use wallet_account::messages::instructions::DiscloseRecoveryCodePinRecovery;
 use wallet_account::messages::instructions::DiscloseRecoveryCodeResult;
 use wallet_account::messages::instructions::GetTransferStatus;
 use wallet_account::messages::instructions::PerformIssuance;
@@ -190,6 +191,13 @@ impl ValidateInstruction for GetTransferStatus {
     }
 }
 
+impl ValidateInstruction for DiscloseRecoveryCodePinRecovery {
+    fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+        validate_no_pin_change_in_progress(wallet_user)?;
+        validate_no_transfer_in_progress(wallet_user)
+    }
+}
+
 pub struct PinCheckOptions {
     pub allow_for_blocked_users: bool,
     pub key_checks: PinKeyChecks,
@@ -214,6 +222,7 @@ impl PinChecks for ChangePinStart {}
 impl PinChecks for PerformIssuance {}
 impl PinChecks for PerformIssuanceWithWua {}
 impl PinChecks for DiscloseRecoveryCode {}
+impl PinChecks for DiscloseRecoveryCodePinRecovery {}
 impl PinChecks for ChangePinCommit {}
 impl PinChecks for ChangePinRollback {}
 impl PinChecks for CheckPin {}
@@ -713,6 +722,52 @@ impl HandleInstruction for DiscloseRecoveryCode {
     }
 }
 
+impl HandleInstruction for DiscloseRecoveryCodePinRecovery {
+    type Result = ();
+
+    async fn handle<T, R, H, G>(
+        self,
+        wallet_user: &WalletUser,
+        _generators: &G,
+        user_state: &UserState<R, H, impl WuaIssuer>,
+    ) -> Result<Self::Result, InstructionError>
+    where
+        T: Committable,
+        R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
+        H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
+        G: Generator<Uuid> + Generator<DateTime<Utc>>,
+    {
+        let (verified_sd_jwt, _) = self
+            .recovery_code_disclosure
+            .into_verified_against_trust_anchors(&user_state.pid_issuer_trust_anchors, &TimeGenerator)?;
+
+        let recovery_code = match verified_sd_jwt
+            .as_ref()
+            .to_disclosed_object()?
+            .remove(PID_RECOVERY_CODE)
+        {
+            Some(Value::String(recovery_code)) => recovery_code,
+            _ => return Err(InstructionError::MissingRecoveryCode),
+        };
+
+        // Idempotency check
+        if wallet_user.state == WalletUserState::Active && wallet_user.recovery_code.as_ref() == Some(&recovery_code) {
+            return Ok(());
+        }
+
+        let tx = user_state.repositories.begin_transaction().await?;
+
+        user_state
+            .repositories
+            .recover_pin_with_recovery_code(&tx, &wallet_user.wallet_id, recovery_code.clone())
+            .await?;
+
+        tx.commit().await?;
+
+        Ok(())
+    }
+}
+
 impl HandleInstruction for ConfirmTransfer {
     type Result = ();
 
@@ -989,6 +1044,7 @@ mod tests {
     use wallet_account::messages::instructions::CheckPin;
     use wallet_account::messages::instructions::ConfirmTransfer;
     use wallet_account::messages::instructions::DiscloseRecoveryCode;
+    use wallet_account::messages::instructions::DiscloseRecoveryCodePinRecovery;
     use wallet_account::messages::instructions::GetTransferStatus;
     use wallet_account::messages::instructions::PerformIssuance;
     use wallet_account::messages::instructions::PerformIssuanceWithWua;
@@ -1344,6 +1400,98 @@ mod tests {
             transfer_session_id.lock().unwrap().unwrap(),
             result.transfer_session_id.unwrap()
         );
+    }
+
+    #[tokio::test]
+    async fn should_handle_disclose_recovery_code_for_pin_recovery() {
+        let wallet_user = wallet_user::mock::wallet_user_1();
+        let wrapping_key_identifier = "my-wrapping-key-identifier";
+
+        let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
+        let issuer_key = generate_issuer_mock(&issuer_ca, IssuerRegistration::new_mock().into()).unwrap();
+        let sd_jwt = SdJwtPresentation::example_pid_sd_jwt(&issuer_key);
+
+        let recovery_code_disclosure = sd_jwt
+            .into_presentation_builder()
+            .disclose(
+                &vec![ClaimPath::SelectByKey(PID_RECOVERY_CODE.to_owned())]
+                    .try_into()
+                    .unwrap(),
+            )
+            .unwrap()
+            .finish()
+            .into();
+
+        let instruction = DiscloseRecoveryCodePinRecovery {
+            recovery_code_disclosure,
+        };
+
+        let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
+        wallet_user_repo
+            .expect_begin_transaction()
+            .returning(|| Ok(MockTransaction));
+        wallet_user_repo
+            .expect_recover_pin_with_recovery_code()
+            .returning(|_, _, _| Ok(()));
+
+        let result = instruction
+            .handle(
+                &wallet_user,
+                &MockGenerators,
+                &mock::user_state(
+                    wallet_user_repo,
+                    setup_hsm().await,
+                    wrapping_key_identifier.to_string(),
+                    vec![issuer_ca.as_borrowing_trust_anchor().to_owned_trust_anchor()],
+                ),
+            )
+            .await;
+
+        assert_matches!(result, Ok(_));
+    }
+
+    #[tokio::test]
+    async fn should_handle_disclose_recovery_code_for_pin_recovery_idempotency() {
+        let mut wallet_user = wallet_user::mock::wallet_user_1();
+        let wrapping_key_identifier = "my-wrapping-key-identifier";
+
+        let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
+        let issuer_key = generate_issuer_mock(&issuer_ca, IssuerRegistration::new_mock().into()).unwrap();
+        let sd_jwt = SdJwtPresentation::example_pid_sd_jwt(&issuer_key);
+
+        let recovery_code_disclosure = sd_jwt
+            .into_presentation_builder()
+            .disclose(
+                &vec![ClaimPath::SelectByKey(PID_RECOVERY_CODE.to_owned())]
+                    .try_into()
+                    .unwrap(),
+            )
+            .unwrap()
+            .finish()
+            .into();
+
+        let instruction = DiscloseRecoveryCodePinRecovery {
+            recovery_code_disclosure,
+        };
+
+        wallet_user.state = WalletUserState::Active;
+        wallet_user.recovery_code = Some("885ed8a2-f07a-4f77-a8df-2e166f5ebd36".to_string());
+        let wallet_user_repo = MockTransactionalWalletUserRepository::new();
+
+        let result = instruction
+            .handle(
+                &wallet_user,
+                &MockGenerators,
+                &mock::user_state(
+                    wallet_user_repo,
+                    setup_hsm().await,
+                    wrapping_key_identifier.to_string(),
+                    vec![issuer_ca.as_borrowing_trust_anchor().to_owned_trust_anchor()],
+                ),
+            )
+            .await;
+
+        assert_matches!(result, Ok(_));
     }
 
     fn mock_jwt_payload(header: &str) -> Vec<u8> {

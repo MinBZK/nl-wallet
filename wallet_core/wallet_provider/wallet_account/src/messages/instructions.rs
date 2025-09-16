@@ -246,6 +246,20 @@ pub struct DiscloseRecoveryCodeResult {
     pub transfer_session_id: Option<Uuid>,
 }
 
+// DiscloseRecoveryCodePinRecovery instruction.
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DiscloseRecoveryCodePinRecovery {
+    /// PID in SD JWT format with one disclosure: the recovery code
+    pub recovery_code_disclosure: UnverifiedSdJwt,
+}
+
+impl InstructionAndResult for DiscloseRecoveryCodePinRecovery {
+    const NAME: &'static str = "disclose_recovery_code_pin_recovery";
+
+    type Result = ();
+}
+
 // ConfirmTransfer instruction.
 
 #[derive(Debug, Serialize, Deserialize)]
