@@ -66,9 +66,10 @@ tracing-subscriber = { workspace = true, optional = true, features = [
 apple_app_attest.path = "../../lib/apple_app_attest"
 crypto.path = "../../lib/crypto"
 hsm.path = "../../lib/hsm"
+utils.path = "../../lib/utils"
+wallet_account.path = "../wallet_account"
 wallet_provider_database_settings.path = "../database_settings"
 wallet_provider_domain.path = "../domain"
-utils.path = "../../lib/utils"
 
 [dev-dependencies]
 assert_matches.workspace = true

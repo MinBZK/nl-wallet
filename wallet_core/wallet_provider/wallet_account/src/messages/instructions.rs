@@ -22,6 +22,7 @@ use sd_jwt::sd_jwt::UnverifiedSdJwt;
 use utils::vec_at_least::VecNonEmpty;
 use wscd::Poa;
 
+use crate::messages::transfer::TransferSessionState;
 use crate::signed::ChallengeRequest;
 use crate::signed::ChallengeResponse;
 use crate::signed::HwSignedChallengeResponse;
@@ -270,6 +271,19 @@ impl InstructionAndResult for CancelTransfer {
     const NAME: &'static str = "cancel_transfer";
 
     type Result = ();
+}
+
+// GetTransferStatus instruction.
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GetTransferStatus {
+    pub transfer_session_id: Uuid,
+}
+
+impl InstructionAndResult for GetTransferStatus {
+    const NAME: &'static str = "get_transfer_status";
+
+    type Result = TransferSessionState;
 }
 
 #[cfg(feature = "client")]

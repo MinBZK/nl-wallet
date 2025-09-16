@@ -15,6 +15,9 @@ use platform_support::attested_key::AttestedKeyHolder;
 use update_policy_model::update_policy::VersionState;
 use utils::built_info::version;
 use wallet_account::messages::instructions::ConfirmTransfer;
+use wallet_account::messages::instructions::GetTransferStatus;
+use wallet_account::messages::instructions::InstructionAndResult;
+use wallet_account::messages::transfer::TransferSessionState;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::Wallet;
@@ -77,30 +80,6 @@ where
     DCC: DisclosureClient,
     APC: AccountProviderClient,
 {
-    fn validate_transfer_allowed(&self) -> Result<(), TransferError> {
-        info!("Checking if blocked");
-        if self.is_blocked() {
-            return Err(TransferError::VersionBlocked);
-        }
-
-        info!("Checking if registered");
-        if !self.registration.is_registered() {
-            return Err(TransferError::NotRegistered);
-        }
-
-        info!("Checking if locked");
-        if self.lock.is_locked() {
-            return Err(TransferError::Locked);
-        }
-
-        info!("Checking if there is no active issuance or disclosure session");
-        if self.session.is_some() {
-            return Err(TransferError::IllegalWalletState);
-        }
-
-        Ok(())
-    }
-
     #[instrument(skip_all)]
     #[sentry_capture_error]
     pub async fn start_transfer(&mut self) -> Result<Url, TransferError> {
@@ -125,24 +104,61 @@ where
 
         Ok(url)
     }
-}
 
-impl<CR, UR, S, AKH, APC, DC, IS, DCC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC>
-where
-    CR: Repository<Arc<WalletConfiguration>>,
-    UR: Repository<VersionState>,
-    S: Storage,
-    AKH: AttestedKeyHolder,
-    DC: DigidClient,
-    IS: IssuanceSession,
-    DCC: DisclosureClient,
-    APC: AccountProviderClient,
-{
     #[instrument(skip_all)]
     #[sentry_capture_error]
     pub async fn confirm_transfer(&mut self, transfer_session_id: TransferSessionId) -> Result<(), TransferError> {
         info!("Confirming transfer");
 
+        self.send_transfer_instruction(ConfirmTransfer {
+            transfer_session_id: transfer_session_id.into(),
+            app_version: version().clone(),
+        })
+        .await
+    }
+
+    #[instrument(skip_all)]
+    #[sentry_capture_error]
+    pub async fn get_transfer_status(
+        &mut self,
+        transfer_session_id: TransferSessionId,
+    ) -> Result<TransferSessionState, TransferError> {
+        info!("Retrieving transfer status");
+
+        self.send_transfer_instruction(GetTransferStatus {
+            transfer_session_id: transfer_session_id.into(),
+        })
+        .await
+    }
+
+    fn validate_transfer_allowed(&self) -> Result<(), TransferError> {
+        info!("Checking if blocked");
+        if self.is_blocked() {
+            return Err(TransferError::VersionBlocked);
+        }
+
+        info!("Checking if registered");
+        if !self.registration.is_registered() {
+            return Err(TransferError::NotRegistered);
+        }
+
+        info!("Checking if locked");
+        if self.lock.is_locked() {
+            return Err(TransferError::Locked);
+        }
+
+        info!("Checking if there is no active issuance or disclosure session");
+        if self.session.is_some() {
+            return Err(TransferError::IllegalWalletState);
+        }
+
+        Ok(())
+    }
+
+    async fn send_transfer_instruction<I>(&self, instruction: I) -> Result<I::Result, TransferError>
+    where
+        I: InstructionAndResult + 'static,
+    {
         self.validate_transfer_allowed()?;
 
         let (attested_key, registration_data) = self
@@ -160,15 +176,12 @@ where
             instruction_result_public_key,
         );
 
-        instruction_client
-            .send(ConfirmTransfer {
-                transfer_session_id: transfer_session_id.into(),
-                app_version: version().clone(),
-            })
+        let result = instruction_client
+            .send(instruction)
             .await
             .map_err(TransferError::Instruction)?;
 
-        Ok(())
+        Ok(result)
     }
 }
 
@@ -326,5 +339,47 @@ mod tests {
             .confirm_transfer(transfer_session_id.into())
             .await
             .expect("Wallet confirm transfer should have succeeded");
+    }
+
+    #[tokio::test]
+    async fn test_wallet_get_transfer_status() {
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        let transfer_session_id = Uuid::new_v4();
+
+        wallet
+            .mut_storage()
+            .expect_fetch_data::<InstructionData>()
+            .returning(|| {
+                Ok(Some(InstructionData {
+                    instruction_sequence_number: 0,
+                }))
+            });
+
+        wallet
+            .mut_storage()
+            .expect_upsert_data::<InstructionData>()
+            .returning(|_| Ok(()));
+
+        Arc::get_mut(&mut wallet.account_provider_client)
+            .unwrap()
+            .expect_instruction_challenge()
+            .once()
+            .returning(|_, _| Ok(crypto::utils::random_bytes(32)));
+
+        let wp_result = create_wp_result(TransferSessionState::ReadyForTransfer);
+
+        Arc::get_mut(&mut wallet.account_provider_client)
+            .unwrap()
+            .expect_hw_signed_instruction()
+            .once()
+            .return_once(move |_, _: HwSignedInstruction<GetTransferStatus>| Ok(wp_result));
+
+        let result = wallet
+            .get_transfer_status(transfer_session_id.into())
+            .await
+            .expect("Wallet confirm transfer should have succeeded");
+
+        assert_eq!(result, TransferSessionState::ReadyForTransfer)
     }
 }

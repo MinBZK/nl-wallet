@@ -26,6 +26,7 @@ use wallet_account::messages::instructions::CheckPin;
 use wallet_account::messages::instructions::ConfirmTransfer;
 use wallet_account::messages::instructions::DiscloseRecoveryCode;
 use wallet_account::messages::instructions::DiscloseRecoveryCodeResult;
+use wallet_account::messages::instructions::GetTransferStatus;
 use wallet_account::messages::instructions::HwSignedInstruction;
 use wallet_account::messages::instructions::Instruction;
 use wallet_account::messages::instructions::InstructionAndResult;
@@ -40,6 +41,7 @@ use wallet_account::messages::registration::Certificate;
 use wallet_account::messages::registration::Challenge;
 use wallet_account::messages::registration::Registration;
 use wallet_account::messages::registration::WalletCertificate;
+use wallet_account::messages::transfer::TransferSessionState;
 use wallet_account::signed::ChallengeResponse;
 use wallet_provider_service::account_server::GoogleCrlProvider;
 use wallet_provider_service::account_server::IntegrityTokenDecoder;
@@ -86,6 +88,10 @@ where
                 .route(
                     &format!("/instructions/hw_signed/{}", CancelTransfer::NAME),
                     post(cancel_transfer),
+                )
+                .route(
+                    &format!("/instructions/hw_signed/{}", GetTransferStatus::NAME),
+                    post(get_transfer_status),
                 )
                 .route(
                     &format!("/instructions/{}", ChangePinStart::NAME),
@@ -320,6 +326,19 @@ async fn cancel_transfer<GRC, PIC>(
         .handle_hw_signed_instruction(payload)
         .await
         .inspect_err(|error| warn!("handling CancelTransfer instruction failed: {}", error))?;
+
+    Ok((StatusCode::OK, body.into()))
+}
+
+async fn get_transfer_status<GRC, PIC>(
+    State(state): State<Arc<RouterState<GRC, PIC>>>,
+    Json(payload): Json<HwSignedInstruction<GetTransferStatus>>,
+) -> Result<(StatusCode, Json<InstructionResultMessage<TransferSessionState>>)> {
+    info!("Received confirm transfer request, handling the GetTransferStatus instruction");
+    let body = state
+        .handle_hw_signed_instruction(payload)
+        .await
+        .inspect_err(|error| warn!("handling GetTransferStatus instruction failed: {}", error))?;
 
     Ok((StatusCode::OK, body.into()))
 }

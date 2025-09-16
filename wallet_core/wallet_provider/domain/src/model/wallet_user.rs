@@ -9,6 +9,7 @@ use uuid::Uuid;
 use apple_app_attest::AssertionCounter;
 use hsm::model::encrypted::Encrypted;
 use hsm::model::wrapped_key::WrappedKey;
+use wallet_account::messages::transfer::TransferSessionState;
 
 pub type WalletId = String;
 
@@ -40,16 +41,6 @@ pub struct TransferSession {
     pub destination_wallet_app_version: Version,
     pub state: TransferSessionState,
     pub encrypted_wallet_data: Option<Vec<u8>>,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::Display, strum::EnumString)]
-#[strum(serialize_all = "snake_case")]
-pub enum TransferSessionState {
-    Created,
-    ReadyForTransfer,
-    Receiving,
-    Success,
-    Cancelled,
 }
 
 #[derive(Debug)]
