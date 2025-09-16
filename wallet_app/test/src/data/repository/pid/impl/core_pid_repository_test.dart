@@ -23,6 +23,7 @@ void main() {
 
   setUp(() {
     core = Mocks.create();
+    provideDummy<PidIssuanceResult>(const PidIssuanceResult.ok(transferAvailable: true));
     cardMapper = CardMapper(
       CardAttributeMapper(CardAttributeValueMapper(), ClaimDisplayMetadataMapper()),
       OrganizationMapper(LocalizedLabelsMapper(), ImageMapper()),
@@ -61,7 +62,7 @@ void main() {
     test('accept offered pid should be propagated to the core', () async {
       const samplePin = '000000';
       await pidRepository.acceptIssuance(samplePin);
-      verify(core.acceptIssuance(samplePin));
+      verify(core.acceptPidIssuance(samplePin));
     });
   });
 }
