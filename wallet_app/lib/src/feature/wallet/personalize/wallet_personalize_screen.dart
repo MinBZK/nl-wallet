@@ -301,7 +301,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
 
   Widget _buildConfirmPinPage(BuildContext context, WalletPersonalizeConfirmPin state) {
     return WalletPersonalizeConfirmPinPage(
-      onPidAccepted: (_) => context.bloc.add(WalletPersonalizePinConfirmed()),
+      onPidAccepted: (result) => context.bloc.add(WalletPersonalizePinConfirmed(result)),
       onAcceptPidFailed: (context, state) => context.bloc.add(WalletPersonalizeAcceptPidFailed(error: state.error)),
     );
   }

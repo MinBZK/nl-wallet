@@ -1,6 +1,7 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
+import 'package:wallet/src/data/repository/pid/pid_repository.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/card/wallet_card.dart';
 import 'package:wallet/src/domain/model/flow_progress.dart';
@@ -97,7 +98,7 @@ void main() {
       await Future.delayed(const Duration(milliseconds: 10));
       bloc.add(WalletPersonalizeOfferingAccepted(WalletMockData.card.attributes));
       await Future.delayed(const Duration(milliseconds: 10));
-      bloc.add(WalletPersonalizePinConfirmed());
+      bloc.add(const WalletPersonalizePinConfirmed(TransferState.unavailable));
     },
     expect: () => [
       const WalletPersonalizeLoadingIssuanceUrl(),
@@ -152,7 +153,7 @@ void main() {
       await Future.delayed(const Duration(milliseconds: 10));
       bloc.add(WalletPersonalizeOfferingAccepted(WalletMockData.card.attributes));
       await Future.delayed(const Duration(milliseconds: 10));
-      bloc.add(WalletPersonalizePinConfirmed());
+      bloc.add(const WalletPersonalizePinConfirmed(TransferState.unavailable));
     },
     expect: () => [
       const WalletPersonalizeAuthenticating(),
