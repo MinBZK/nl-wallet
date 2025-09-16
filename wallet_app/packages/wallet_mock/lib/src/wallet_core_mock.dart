@@ -50,38 +50,28 @@ class WalletCoreMock implements WalletCoreApi {
   Future<WalletInstructionResult> crateApiFullAcceptIssuance({required String pin}) async {
     /// Check if the issuance manager has an active session that should be continued
     if (_issuanceManager.hasActiveIssuanceSession) return _issuanceManager.acceptIssuance(pin, []);
-
-    /// Validate PIN
-    final result = _pinManager.checkPin(pin);
-
-    /// Check if PID is already in wallet (renewal flow)
-    if (!_wallet.isEmpty) {
-      // Not empty so user must have PID, thus trigger renewal.
-      if (result is! WalletInstructionResult_Ok) return result;
-      _wallet.add(kPidAttestations);
-      for (final it in kPidAttestations) {
-        _eventLog.logIssuance(it, isRenewal: true);
-      }
-      return result;
-    }
-
-    /// Continue with PID issuance flow
-    if (result is WalletInstructionResult_InstructionError && result.error is WalletInstructionError_Timeout) {
-      /// PVW-1037 (criteria 6): Handle the special case where the user has forgotten her pin during initial setup.
-      await resetWallet();
-    }
-    if (result is! WalletInstructionResult_Ok) return result;
-
-    // Add the PID cards to the user's wallet
-    _wallet.add(kPidAttestations);
-    // Log the issuance events
-    kPidAttestations.forEach(_eventLog.logIssuance);
-    return result;
+    throw StateError('No active issuance session');
   }
 
   @override
-  Future<PidIssuanceResult> crateApiFullAcceptPidIssuance({required String pin}) {
-    throw UnimplementedError();
+  Future<PidIssuanceResult> crateApiFullAcceptPidIssuance({required String pin}) async {
+    final result = _pinManager.checkPin(pin);
+    final isRenewalFlow = !_wallet.isEmpty;
+
+    switch (result) {
+      case WalletInstructionResult_Ok():
+        _wallet.add(kPidAttestations);
+        for (final it in kPidAttestations) {
+          _eventLog.logIssuance(it, isRenewal: isRenewalFlow);
+        }
+        return const PidIssuanceResult_Ok(transferAvailable: false);
+      case WalletInstructionResult_InstructionError():
+        if (!isRenewalFlow && result.error is WalletInstructionError_Timeout) {
+          /// PVW-1037 (criteria 6): Handle the special case where the user has forgotten her pin during initial setup.
+          await resetWallet();
+        }
+        return PidIssuanceResult_InstructionError(error: result.error);
+    }
   }
 
   @override

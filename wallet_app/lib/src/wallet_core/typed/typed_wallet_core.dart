@@ -103,10 +103,13 @@ class TypedWalletCore {
   Future<core.DisclosureBasedIssuanceResult> continueDisclosureBasedIssuance(String pin) =>
       call(() => core.continueDisclosureBasedIssuance(pin: pin));
 
-  /// Accept offered attestations (includes PID)
+  /// Accept offered attestations
   Future<core.WalletInstructionResult> acceptIssuance(String pin) => call(() => core.acceptIssuance(pin: pin));
 
-  /// Check if there is an active issuance session (includes PID issuance)
+  /// Accept offered PID
+  Future<core.PidIssuanceResult> acceptPidIssuance(String pin) => call(() => core.acceptPidIssuance(pin: pin));
+
+  /// Check if there is an active issuance session
   Future<bool> hasActiveIssuanceSession() => call(core.hasActiveIssuanceSession);
 
   Future<core.StartDisclosureResult> startDisclosure(
