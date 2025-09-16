@@ -9,7 +9,7 @@
   <title>Disclosure-based Issuance &mdash; NL Wallet 0.4.0-dev documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
-      <link rel="stylesheet" type="text/css" href="../../_static/css/custom.css?v=67aba2ea" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/custom.css?v=79eb5478" />
 
   
     <link rel="shortcut icon" href="../../_static/favicon.ico"/>
@@ -66,12 +66,12 @@ window.addEventListener("load", () => mermaid.run());
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Architecture</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="../architecture-overview.html">Architecture Overview in C4</a><ul>
+<li class="toctree-l1"><a class="reference internal" href="../architecture-overview.html">Overview in C4</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../c4/system-context.html">System Context (C4)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../c4/software-system.html">Software System overview</a></li>
 </ul>
 </li>
-<li class="toctree-l1 current"><a class="reference internal" href="../architecture-overview.html#relevant-use-cases">Relevant use cases</a><ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../architecture-overview.html#relevant-use-cases">Relevant Use Cases</a><ul class="current">
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Disclosure-based Issuance</a></li>
 <li class="toctree-l2"><a class="reference internal" href="disclosure-with-openid4vp.html">Disclosure with OpenID4VP</a></li>
 <li class="toctree-l2"><a class="reference internal" href="issuance-with-openid4vci.html">Issuance with OpenID4VCI</a></li>
@@ -84,7 +84,7 @@ window.addEventListener("load", () => mermaid.run());
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Functional Design</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../functional-design/about.html">About the Functional Design</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../functional-design/functional-design.html">Functional Design</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../functional-design/use-cases.html">Use Cases</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC1.1_IntroduceTheApp.html">Use Case 1.1 Introduce the app</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC1.2_OpenTheApp.html">Use Case 1.2 Open the app</a></li>
@@ -165,7 +165,7 @@ window.addEventListener("load", () => mermaid.run());
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
-          <li class="breadcrumb-item"><a href="../architecture-overview.html">Architecture Overview in C4</a></li>
+          <li class="breadcrumb-item"><a href="../architecture-overview.html">Overview in C4</a></li>
       <li class="breadcrumb-item active">Disclosure-based Issuance</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../../_sources/architecture/use-cases/disclosure-based-issuance.md.txt" rel="nofollow"> View page source</a>
@@ -194,7 +194,7 @@ In between the two screens, the issuer receives the disclosed attributes, and ca
 <section id="attestation-server">
 <h3>Attestation server<a class="headerlink" href="#attestation-server" title="Link to this heading"></a></h3>
 <p>The attestation server exchanges disclosed attributes for attestations to be issued. It is contacted by the <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> during a disclosure based issuance session to do this. Note that this server does not need to be reachable by the wallet, and it probably should not be directly connected to the internet.</p>
-<p>The attestation server receives an HTTP <code class="docutils literal notranslate"><span class="pre">POST</span></code> by the <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> containing a JSON structure of the same form as the <code class="docutils literal notranslate"><span class="pre">/disclosed_attributes</span></code> endpoint of the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> returns, as documented in the <a class="reference internal" href="../../get-started/create-a-verifier.html#retrieve-disclosure-results"><span class="std std-ref">verifier documentation</span></a>. More specifically, this is a JSON-serialized <code class="docutils literal notranslate"><span class="pre">IndexMap&lt;String,</span> <span class="pre">DocumentDisclosedAttributes&gt;</span></code>. For example:</p>
+<p>The attestation server receives an HTTP <code class="docutils literal notranslate"><span class="pre">POST</span></code> by the <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> containing a JSON structure of the same form as the <code class="docutils literal notranslate"><span class="pre">/disclosed_attributes</span></code> endpoint of the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> returns, as documented in the <a class="reference internal" href="../../get-started/create-a-verifier.html#verifier-api-specifications"><span class="std std-ref">verifier API documentation</span></a>. More specifically, this is a JSON-serialized <code class="docutils literal notranslate"><span class="pre">IndexMap&lt;String,</span> <span class="pre">DocumentDisclosedAttributes&gt;</span></code>. For example:</p>
 <div class="highlight-http notranslate"><div class="highlight"><pre><span></span><span class="nf">POST</span> <span class="nn">/</span> <span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span>
 <span class="na">Content-Type</span><span class="o">:</span> <span class="l">application/json</span>
 <span class="na">Accept</span><span class="o">:</span> <span class="l">*/*</span>
@@ -286,7 +286,7 @@ In between the two screens, the issuer receives the disclosed attributes, and ca
 </pre></div>
 </div>
 <p>Here, <code class="docutils literal notranslate"><span class="pre">degree</span></code> is an example of a freely choosable identifier that has to be present in the QR/UL that starts the session.</p>
-<p>For the rest of the configuration parameters of the <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code>, see the <a class="reference download internal" download="" href="../../_downloads/cfd0fc70893e7a8e15b716697ef14c54/issuance_server.example.toml"><span class="xref download myst"><code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> example configuration file</span></a> and the <a class="reference internal" href="../../get-started/create-a-verifier.html#retrieve-disclosure-results"><span class="std std-ref">verifier documentation</span></a>.</p>
+<p>For the rest of the configuration parameters of the <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code>, see the <a class="reference download internal" download="" href="../../_downloads/cfd0fc70893e7a8e15b716697ef14c54/issuance_server.example.toml"><span class="xref download myst"><code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> example configuration file</span></a> and the <a class="reference internal" href="../../get-started/create-a-verifier.html#verifier-api-specifications"><span class="std std-ref">verifier api specifications</span></a>.</p>
 </section>
 <section id="qr-ul">
 <h3>QR/UL<a class="headerlink" href="#qr-ul" title="Link to this heading"></a></h3>

@@ -1,4 +1,4 @@
-# Architecture Overview in C4
+# Overview in C4
 
 C4-methodology is used to model the system context and the composition of the software system (see [C4-model](https://www.c4model.com)).
 
@@ -10,7 +10,7 @@ c4/system-context
 c4/software-system
 ```
 
-# Relevant use cases
+# Relevant Use Cases
 
 For architectural relevant use cases, a detailed description and sequence diagrams are provided. 
 

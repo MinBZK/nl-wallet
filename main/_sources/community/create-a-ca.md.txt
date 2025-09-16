@@ -23,7 +23,7 @@ git clone https://github.com/MinBZK/nl-wallet
 cd nl-wallet
 
 # Set and create target directory, identifier for your certificates.
-export TARGET_DIR=../ca-target
+export TARGET_DIR=target/ca-cert
 export IDENTIFIER=foocorp
 mkdir -p "${TARGET_DIR}"
 
@@ -31,10 +31,20 @@ mkdir -p "${TARGET_DIR}"
 cargo run --manifest-path "wallet_core/Cargo.toml" --bin "wallet_ca" ca \
     --common-name "ca.${IDENTIFIER}" \
     --file-prefix "${TARGET_DIR}/ca.${IDENTIFIER}"
+
+# Convert certificate PEM to DER.
+openssl x509 \
+    -in "${TARGET_DIR}/ca.${IDENTIFIER}.crt.pem" -inform PEM \
+    -out "${TARGET_DIR}/ca.${IDENTIFIER}.crt.der" -outform DER
+
+# Convert key PEM to DER.
+openssl pkcs8 -topk8 -nocrypt \
+    -in "${TARGET_DIR}/ca.${IDENTIFIER}.key.pem" -inform PEM \
+    -out "${TARGET_DIR}/ca.${IDENTIFIER}.key.der" -outform DER
 ```
 
-After executing the above commands, you will have two files in the target
-directory you specified.
+After executing the above commands, you will have four files in the target
+directory you specified: The CA certicate and key in both PEM and DER format.
 
 <div class="admonition note">
 <p class="title">Why create your own CA certificates?</p>
