@@ -1,58 +1,78 @@
-# Example config
+# Example verification_server config
+
+# Whether HTTP requests/responses should be logged, default value: false
+log_requests = false
+
+# Emit logs in JSON format, default value: false
+structured_logging = false
+
+# The ephemeral ID secret is used for (rotating) QR code generation, hex
+# encoded, minimally 32 bytes (64 characters)
+ephemeral_id_secret = ""
+
+# Array of CAs with trusted issuers
+issuer_trust_anchors = ["MII..."]
+
+# Array of CAs which sign use case certificates
+reader_trust_anchors = ["MII..."]
 
 # The wallet must be able to reach the server at this URL
-public_url = 'http://localhost:8001/'
-
-issuer_trust_anchors = ["MII..."] # CAs for trusted issuers
-reader_trust_anchors = ["MII..."] # CAs for RP certificates
-
-ephemeral_id_secret = "" # hex encoded, minimally 32 bytes (64 characters)
-
-allow_origins = ["http://localhost:8080"] # or allow_origins = "*"
+public_url = "http://localhost:8001/"
 
 # The base of the Universal Link (UL) of the wallet, used in QRs/ULs
-# Production value is "https://app.example.com/deeplink/"
-universal_link_base_url = "walletdebuginteraction://wallet.edi.rijksoverheid.nl/" # default value
+# Default value: walletdebuginteraction://wallet.edi.rijksoverheid.nl/
+universal_link_base_url = "walletdebuginteraction://wallet.edi.rijksoverheid.nl/"
 
-# Whether HTTP requests/responses should be logged
-log_requests = false # default value
+# The `client_id` values that this server accepts, identifying the wallet
+# implementation (not individual instances, i.e., the `client_id` value of
+# a wallet implementation is constant across all wallets of that implementation)
+# Default value: https://wallet.edi.rijksoverheid.nl
+wallet_client_ids = ["https://wallet.edi.rijksoverheid.nl"]
 
-# Emit logs in JSON format
-structured_logging = false # default value
+# CORS settings. To allow all origins: allow_origins = "*"
+allow_origins = ["http://localhost:8080"]
 
-# `client_id` values that this server accepts, identifying the wallet implementation (not individual instances,
-# i.e., the `client_id` value of a wallet implementation is constant across all wallets of that implementation).
-wallet_client_ids = ["https://wallet.edi.rijksoverheid.nl"] # default value
+# Optional, but required if the `requester_server` section is absent
+[requester_server.authentication]
+api_key = "your_secret_key"
 
-[storage]
-url = 'postgres://postgres:postgres@localhost:5432/verification_server' # or 'memory://'
-
-[wallet_server]
-ip = '127.0.0.1'
-port = 8001
-
-# Endpoints for the requester. Optional; `wallet_server` is used if absent
+# Optional private endpoint for the requester, wallet_server is used if absent
 [requester_server]
 ip = "127.0.0.1"
 port = 8002
 
-# Optional, but required if the above ip/port are absent
-# [requester_server.authentication]
-# api_key = "your_secret_key"
+# Public endpoint for the wallet, also private if requester_server is absent
+[wallet_server]
+ip = "127.0.0.1"
+port = 8001
 
-# Optional, for securing private keys
+# Where to store session state. can be `memory://` or a `postgres://..` url
+# Memory is ephemeral, default value: memory://
+[storage]
+url = "postgres://postgres:postgres@localhost:5432/verification_server"
+
+# Optional, when using an HSM
 [hsm]
 library_path = "/path/to/hsm.so"
 user_pin = "12345678"
 max_sessions = 3
 max_session_lifetime_in_sec = 900
 
+# Use case entries
+# * session_type_return_url: Can be both, same_device (default), or neither
+# * certificate: Base64 encoded DER format certificate
+# * private_key: Base64 encoded DER format private key, or string
+# * private_key_type: Can be hsm or software, when hsm private_key
+#   should contain a string identifying the private key in the HSM
+#
 [usecases.driving_license]
-certificate = "MIIBUTCB96ADAgECAhRl6OcmpjijxCkA1a76/tIvYLtmLDAKBggqhkjOPQQDAjAZMRcwFQYDVQQDDA5jYS5leGFtcGxlLmNvbTAgFw03NTAxMDEwMDAwMDBaGA80MDk2MDEwMTAwMDAwMFowGzEZMBcGA1UEAwwQY2VydC5leGFtcGxlLmNvbTBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABJ/4iuWfQiqAh8PRmfUiM3wj/YMKwLsJ6xTYvT+2rdPW6SXqCOUOcqv7saSirWMKdjzYdfxKqAfSO9SI1Fv8my6jGTAXMBUGA1UdJQEB/wQLMAkGByiBjF0FAQIwCgYIKoZIzj0EAwIDSQAwRgIhAOKwEjS0R06oplVv1BNLNvd0U6cN/IedFLLpRbiIbyLBAiEApVM0esHuTunDjTkStRhlaTA/LFhjYhC+LOpNu5RFXfQ="
-private_key = "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgeWoxq6+7o1oiBXZvSfl91r1DaLWKJHjamWIOEY7aH0WhRANCAASf+Irln0IqgIfD0Zn1IjN8I/2DCsC7CesU2L0/tq3T1ukl6gjlDnKr+7Gkoq1jCnY82HX8SqgH0jvUiNRb/Jsu"
+session_type_return_url = "both"
+certificate = "MII..."
+private_key = "MII..."
 private_key_type = "software"
 
 [usecases.parking_permit]
-certificate = "MIIBUTCB+KADAgECAhUA11suNYBz8xIKnCjrw0S0aTzCMQIwCgYIKoZIzj0EAwIwGTEXMBUGA1UEAwwOY2EuZXhhbXBsZS5jb20wIBcNNzUwMTAxMDAwMDAwWhgPNDA5NjAxMDEwMDAwMDBaMBsxGTAXBgNVBAMMEGNlcnQuZXhhbXBsZS5jb20wWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAAQYYLYHnaX7w16lkSAdAqzqKlf1q+UAiZHj8SYVs8QCmqyCXbVOYaqENLpDzTpdpB8SXI8kCFaE8/u2sphRpKQdoxkwFzAVBgNVHSUBAf8ECzAJBgcogYxdBQECMAoGCCqGSM49BAMCA0gAMEUCIEZInaMVd267PbZkUrPhC+wKJ8i8OTx2sNU1k4QgIdbvAiEArj1ikPO4pBkbzy8H8SdueMKtDT4O70Qn9llNvmultTk="
-private_key = "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQg/q/O39cBrXSmlATl7C3bcuPfikwuLkj0LSXVpdOdOwyhRANCAAQYYLYHnaX7w16lkSAdAqzqKlf1q+UAiZHj8SYVs8QCmqyCXbVOYaqENLpDzTpdpB8SXI8kCFaE8/u2sphRpKQd"
-private_key_type = "software"
+session_type_return_url = "same_device"
+certificate = "MII..."
+private_key = "some_private_key"
+private_key_type = "hsm"

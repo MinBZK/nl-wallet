@@ -1,6 +1,13 @@
 /* Custom css below */
 
+*, html {
+    scroll-behavior: smooth;
+}
 
+#container{
+    overflow-y: scroll;
+    scroll-behavior: smooth;
+}
 
 .wy-breadcrumbs>li.wy-breadcrumbs-aside {
     display: none;

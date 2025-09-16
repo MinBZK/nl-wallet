@@ -35,3 +35,5 @@ playwright-report/
 
 !.env.development
 !.env.test
+
+.flowconfig
