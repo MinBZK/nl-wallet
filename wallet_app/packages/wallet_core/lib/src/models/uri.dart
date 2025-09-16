@@ -13,4 +13,5 @@ enum IdentifyUriResult {
   Disclosure,
   DisclosureBasedIssuance,
   Transfer,
+  ;
 }

@@ -27,11 +27,13 @@ sealed class AcceptDisclosureResult with _$AcceptDisclosureResult {
 enum DisclosureSessionType {
   SameDevice,
   CrossDevice,
+  ;
 }
 
 enum DisclosureType {
   Login,
   Regular,
+  ;
 }
 
 class MissingAttribute {

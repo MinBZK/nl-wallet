@@ -48,7 +48,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   RustStreamSink<List<WalletEvent>> dco_decode_StreamSink_list_wallet_event_Dco(dynamic raw);
 
   @protected
-  RustStreamSink<WalletTransferState> dco_decode_StreamSink_wallet_transfer_state_Dco(dynamic raw);
+  RustStreamSink<TransferSessionState> dco_decode_StreamSink_transfer_session_state_Dco(dynamic raw);
 
   @protected
   String dco_decode_String(dynamic raw);
@@ -207,6 +207,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   StartDisclosureResult dco_decode_start_disclosure_result(dynamic raw);
 
   @protected
+  TransferSessionState dco_decode_transfer_session_state(dynamic raw);
+
+  @protected
   int dco_decode_u_16(dynamic raw);
 
   @protected
@@ -228,9 +231,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   WalletInstructionResult dco_decode_wallet_instruction_result(dynamic raw);
 
   @protected
-  WalletTransferState dco_decode_wallet_transfer_state(dynamic raw);
-
-  @protected
   AnyhowException sse_decode_AnyhowException(SseDeserializer deserializer);
 
   @protected
@@ -244,14 +244,13 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   RustStreamSink<List<AttestationPresentation>> sse_decode_StreamSink_list_attestation_presentation_Dco(
-    SseDeserializer deserializer,
-  );
+      SseDeserializer deserializer);
 
   @protected
   RustStreamSink<List<WalletEvent>> sse_decode_StreamSink_list_wallet_event_Dco(SseDeserializer deserializer);
 
   @protected
-  RustStreamSink<WalletTransferState> sse_decode_StreamSink_wallet_transfer_state_Dco(SseDeserializer deserializer);
+  RustStreamSink<TransferSessionState> sse_decode_StreamSink_transfer_session_state_Dco(SseDeserializer deserializer);
 
   @protected
   String sse_decode_String(SseDeserializer deserializer);
@@ -410,6 +409,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   StartDisclosureResult sse_decode_start_disclosure_result(SseDeserializer deserializer);
 
   @protected
+  TransferSessionState sse_decode_transfer_session_state(SseDeserializer deserializer);
+
+  @protected
   int sse_decode_u_16(SseDeserializer deserializer);
 
   @protected
@@ -431,9 +433,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   WalletInstructionResult sse_decode_wallet_instruction_result(SseDeserializer deserializer);
 
   @protected
-  WalletTransferState sse_decode_wallet_transfer_state(SseDeserializer deserializer);
-
-  @protected
   ffi.Pointer<wire_cst_list_prim_u_8_strict> cst_encode_AnyhowException(AnyhowException raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     throw UnimplementedError();
@@ -442,89 +441,66 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   @protected
   ffi.Pointer<wire_cst_list_prim_u_8_strict> cst_encode_StreamSink_bool_Dco(RustStreamSink<bool> raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
-    return cst_encode_String(
-      raw.setupAndSerialize(
+    return cst_encode_String(raw.setupAndSerialize(
         codec: DcoCodec(
-          decodeSuccessData: dco_decode_bool,
-          decodeErrorData: dco_decode_AnyhowException,
-        ),
-      ),
-    );
+      decodeSuccessData: dco_decode_bool,
+      decodeErrorData: dco_decode_AnyhowException,
+    )));
   }
 
   @protected
   ffi.Pointer<wire_cst_list_prim_u_8_strict> cst_encode_StreamSink_flutter_configuration_Dco(
-    RustStreamSink<FlutterConfiguration> raw,
-  ) {
+      RustStreamSink<FlutterConfiguration> raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
-    return cst_encode_String(
-      raw.setupAndSerialize(
+    return cst_encode_String(raw.setupAndSerialize(
         codec: DcoCodec(
-          decodeSuccessData: dco_decode_flutter_configuration,
-          decodeErrorData: dco_decode_AnyhowException,
-        ),
-      ),
-    );
+      decodeSuccessData: dco_decode_flutter_configuration,
+      decodeErrorData: dco_decode_AnyhowException,
+    )));
   }
 
   @protected
   ffi.Pointer<wire_cst_list_prim_u_8_strict> cst_encode_StreamSink_flutter_version_state_Dco(
-    RustStreamSink<FlutterVersionState> raw,
-  ) {
+      RustStreamSink<FlutterVersionState> raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
-    return cst_encode_String(
-      raw.setupAndSerialize(
+    return cst_encode_String(raw.setupAndSerialize(
         codec: DcoCodec(
-          decodeSuccessData: dco_decode_flutter_version_state,
-          decodeErrorData: dco_decode_AnyhowException,
-        ),
-      ),
-    );
+      decodeSuccessData: dco_decode_flutter_version_state,
+      decodeErrorData: dco_decode_AnyhowException,
+    )));
   }
 
   @protected
   ffi.Pointer<wire_cst_list_prim_u_8_strict> cst_encode_StreamSink_list_attestation_presentation_Dco(
-    RustStreamSink<List<AttestationPresentation>> raw,
-  ) {
+      RustStreamSink<List<AttestationPresentation>> raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
-    return cst_encode_String(
-      raw.setupAndSerialize(
+    return cst_encode_String(raw.setupAndSerialize(
         codec: DcoCodec(
-          decodeSuccessData: dco_decode_list_attestation_presentation,
-          decodeErrorData: dco_decode_AnyhowException,
-        ),
-      ),
-    );
+      decodeSuccessData: dco_decode_list_attestation_presentation,
+      decodeErrorData: dco_decode_AnyhowException,
+    )));
   }
 
   @protected
   ffi.Pointer<wire_cst_list_prim_u_8_strict> cst_encode_StreamSink_list_wallet_event_Dco(
-    RustStreamSink<List<WalletEvent>> raw,
-  ) {
+      RustStreamSink<List<WalletEvent>> raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
-    return cst_encode_String(
-      raw.setupAndSerialize(
+    return cst_encode_String(raw.setupAndSerialize(
         codec: DcoCodec(
-          decodeSuccessData: dco_decode_list_wallet_event,
-          decodeErrorData: dco_decode_AnyhowException,
-        ),
-      ),
-    );
+      decodeSuccessData: dco_decode_list_wallet_event,
+      decodeErrorData: dco_decode_AnyhowException,
+    )));
   }
 
   @protected
-  ffi.Pointer<wire_cst_list_prim_u_8_strict> cst_encode_StreamSink_wallet_transfer_state_Dco(
-    RustStreamSink<WalletTransferState> raw,
-  ) {
+  ffi.Pointer<wire_cst_list_prim_u_8_strict> cst_encode_StreamSink_transfer_session_state_Dco(
+      RustStreamSink<TransferSessionState> raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
-    return cst_encode_String(
-      raw.setupAndSerialize(
+    return cst_encode_String(raw.setupAndSerialize(
         codec: DcoCodec(
-          decodeSuccessData: dco_decode_wallet_transfer_state,
-          decodeErrorData: dco_decode_AnyhowException,
-        ),
-      ),
-    );
+      decodeSuccessData: dco_decode_transfer_session_state,
+      decodeErrorData: dco_decode_AnyhowException,
+    )));
   }
 
   @protected
@@ -535,8 +511,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   ffi.Pointer<wire_cst_attestation_presentation> cst_encode_box_autoadd_attestation_presentation(
-    AttestationPresentation raw,
-  ) {
+      AttestationPresentation raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     final ptr = wire.cst_new_box_autoadd_attestation_presentation();
     cst_api_fill_to_wire_attestation_presentation(raw, ptr.ref);
@@ -591,8 +566,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   ffi.Pointer<wire_cst_wallet_instruction_error> cst_encode_box_autoadd_wallet_instruction_error(
-    WalletInstructionError raw,
-  ) {
+      WalletInstructionError raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     final ptr = wire.cst_new_box_autoadd_wallet_instruction_error();
     cst_api_fill_to_wire_wallet_instruction_error(raw, ptr.ref);
@@ -607,8 +581,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   ffi.Pointer<wire_cst_list_attestation_attribute> cst_encode_list_attestation_attribute(
-    List<AttestationAttribute> raw,
-  ) {
+      List<AttestationAttribute> raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     final ans = wire.cst_new_list_attestation_attribute(raw.length);
     for (var i = 0; i < raw.length; ++i) {
@@ -619,8 +592,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   ffi.Pointer<wire_cst_list_attestation_presentation> cst_encode_list_attestation_presentation(
-    List<AttestationPresentation> raw,
-  ) {
+      List<AttestationPresentation> raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     final ans = wire.cst_new_list_attestation_presentation(raw.length);
     for (var i = 0; i < raw.length; ++i) {
@@ -641,8 +613,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   ffi.Pointer<wire_cst_list_claim_display_metadata> cst_encode_list_claim_display_metadata(
-    List<ClaimDisplayMetadata> raw,
-  ) {
+      List<ClaimDisplayMetadata> raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     final ans = wire.cst_new_list_claim_display_metadata(raw.length);
     for (var i = 0; i < raw.length; ++i) {
@@ -731,8 +702,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   ffi.Pointer<wire_cst_list_attestation_presentation> cst_encode_opt_list_attestation_presentation(
-    List<AttestationPresentation>? raw,
-  ) {
+      List<AttestationPresentation>? raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return raw == null ? ffi.nullptr : cst_encode_list_attestation_presentation(raw);
   }
@@ -751,9 +721,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void cst_api_fill_to_wire_accept_disclosure_result(
-    AcceptDisclosureResult apiObj,
-    wire_cst_accept_disclosure_result wireObj,
-  ) {
+      AcceptDisclosureResult apiObj, wire_cst_accept_disclosure_result wireObj) {
     if (apiObj is AcceptDisclosureResult_Ok) {
       var pre_return_url = cst_encode_opt_String(apiObj.returnUrl);
       wireObj.tag = 0;
@@ -792,9 +760,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void cst_api_fill_to_wire_attestation_presentation(
-    AttestationPresentation apiObj,
-    wire_cst_attestation_presentation wireObj,
-  ) {
+      AttestationPresentation apiObj, wire_cst_attestation_presentation wireObj) {
     cst_api_fill_to_wire_attestation_identity(apiObj.identity, wireObj.identity);
     wireObj.attestation_type = cst_encode_String(apiObj.attestationType);
     wireObj.display_metadata = cst_encode_list_display_metadata(apiObj.displayMetadata);
@@ -842,9 +808,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void cst_api_fill_to_wire_box_autoadd_attestation_presentation(
-    AttestationPresentation apiObj,
-    ffi.Pointer<wire_cst_attestation_presentation> wireObj,
-  ) {
+      AttestationPresentation apiObj, ffi.Pointer<wire_cst_attestation_presentation> wireObj) {
     cst_api_fill_to_wire_attestation_presentation(apiObj, wireObj.ref);
   }
 
@@ -855,9 +819,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void cst_api_fill_to_wire_box_autoadd_image_with_metadata(
-    ImageWithMetadata apiObj,
-    ffi.Pointer<wire_cst_image_with_metadata> wireObj,
-  ) {
+      ImageWithMetadata apiObj, ffi.Pointer<wire_cst_image_with_metadata> wireObj) {
     cst_api_fill_to_wire_image_with_metadata(apiObj, wireObj.ref);
   }
 
@@ -868,33 +830,25 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void cst_api_fill_to_wire_box_autoadd_rendering_metadata(
-    RenderingMetadata apiObj,
-    ffi.Pointer<wire_cst_rendering_metadata> wireObj,
-  ) {
+      RenderingMetadata apiObj, ffi.Pointer<wire_cst_rendering_metadata> wireObj) {
     cst_api_fill_to_wire_rendering_metadata(apiObj, wireObj.ref);
   }
 
   @protected
   void cst_api_fill_to_wire_box_autoadd_request_policy(
-    RequestPolicy apiObj,
-    ffi.Pointer<wire_cst_request_policy> wireObj,
-  ) {
+      RequestPolicy apiObj, ffi.Pointer<wire_cst_request_policy> wireObj) {
     cst_api_fill_to_wire_request_policy(apiObj, wireObj.ref);
   }
 
   @protected
   void cst_api_fill_to_wire_box_autoadd_wallet_instruction_error(
-    WalletInstructionError apiObj,
-    ffi.Pointer<wire_cst_wallet_instruction_error> wireObj,
-  ) {
+      WalletInstructionError apiObj, ffi.Pointer<wire_cst_wallet_instruction_error> wireObj) {
     cst_api_fill_to_wire_wallet_instruction_error(apiObj, wireObj.ref);
   }
 
   @protected
   void cst_api_fill_to_wire_claim_display_metadata(
-    ClaimDisplayMetadata apiObj,
-    wire_cst_claim_display_metadata wireObj,
-  ) {
+      ClaimDisplayMetadata apiObj, wire_cst_claim_display_metadata wireObj) {
     wireObj.lang = cst_encode_String(apiObj.lang);
     wireObj.label = cst_encode_String(apiObj.label);
     wireObj.description = cst_encode_opt_String(apiObj.description);
@@ -902,9 +856,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void cst_api_fill_to_wire_disclosure_based_issuance_result(
-    DisclosureBasedIssuanceResult apiObj,
-    wire_cst_disclosure_based_issuance_result wireObj,
-  ) {
+      DisclosureBasedIssuanceResult apiObj, wire_cst_disclosure_based_issuance_result wireObj) {
     if (apiObj is DisclosureBasedIssuanceResult_Ok) {
       var pre_field0 = cst_encode_list_attestation_presentation(apiObj.field0);
       wireObj.tag = 0;
@@ -1067,9 +1019,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void cst_api_fill_to_wire_start_disclosure_result(
-    StartDisclosureResult apiObj,
-    wire_cst_start_disclosure_result wireObj,
-  ) {
+      StartDisclosureResult apiObj, wire_cst_start_disclosure_result wireObj) {
     if (apiObj is StartDisclosureResult_Request) {
       var pre_relying_party = cst_encode_box_autoadd_organization(apiObj.relyingParty);
       var pre_policy = cst_encode_box_autoadd_request_policy(apiObj.policy);
@@ -1147,9 +1097,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void cst_api_fill_to_wire_wallet_instruction_error(
-    WalletInstructionError apiObj,
-    wire_cst_wallet_instruction_error wireObj,
-  ) {
+      WalletInstructionError apiObj, wire_cst_wallet_instruction_error wireObj) {
     if (apiObj is WalletInstructionError_IncorrectPin) {
       var pre_attempts_left_in_round = cst_encode_u_8(apiObj.attemptsLeftInRound);
       var pre_is_final_round = cst_encode_bool(apiObj.isFinalRound);
@@ -1172,9 +1120,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void cst_api_fill_to_wire_wallet_instruction_result(
-    WalletInstructionResult apiObj,
-    wire_cst_wallet_instruction_result wireObj,
-  ) {
+      WalletInstructionResult apiObj, wire_cst_wallet_instruction_result wireObj) {
     if (apiObj is WalletInstructionResult_Ok) {
       wireObj.tag = 0;
       return;
@@ -1209,6 +1155,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   int cst_encode_pin_validation_result(PinValidationResult raw);
 
   @protected
+  int cst_encode_transfer_session_state(TransferSessionState raw);
+
+  @protected
   int cst_encode_u_16(int raw);
 
   @protected
@@ -1218,9 +1167,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   void cst_encode_unit(void raw);
 
   @protected
-  int cst_encode_wallet_transfer_state(WalletTransferState raw);
-
-  @protected
   void sse_encode_AnyhowException(AnyhowException self, SseSerializer serializer);
 
   @protected
@@ -1228,30 +1174,22 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void sse_encode_StreamSink_flutter_configuration_Dco(
-    RustStreamSink<FlutterConfiguration> self,
-    SseSerializer serializer,
-  );
+      RustStreamSink<FlutterConfiguration> self, SseSerializer serializer);
 
   @protected
   void sse_encode_StreamSink_flutter_version_state_Dco(
-    RustStreamSink<FlutterVersionState> self,
-    SseSerializer serializer,
-  );
+      RustStreamSink<FlutterVersionState> self, SseSerializer serializer);
 
   @protected
   void sse_encode_StreamSink_list_attestation_presentation_Dco(
-    RustStreamSink<List<AttestationPresentation>> self,
-    SseSerializer serializer,
-  );
+      RustStreamSink<List<AttestationPresentation>> self, SseSerializer serializer);
 
   @protected
   void sse_encode_StreamSink_list_wallet_event_Dco(RustStreamSink<List<WalletEvent>> self, SseSerializer serializer);
 
   @protected
-  void sse_encode_StreamSink_wallet_transfer_state_Dco(
-    RustStreamSink<WalletTransferState> self,
-    SseSerializer serializer,
-  );
+  void sse_encode_StreamSink_transfer_session_state_Dco(
+      RustStreamSink<TransferSessionState> self, SseSerializer serializer);
 
   @protected
   void sse_encode_String(String self, SseSerializer serializer);
@@ -1410,6 +1348,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   void sse_encode_start_disclosure_result(StartDisclosureResult self, SseSerializer serializer);
 
   @protected
+  void sse_encode_transfer_session_state(TransferSessionState self, SseSerializer serializer);
+
+  @protected
   void sse_encode_u_16(int self, SseSerializer serializer);
 
   @protected
@@ -1429,9 +1370,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void sse_encode_wallet_instruction_result(WalletInstructionResult self, SseSerializer serializer);
-
-  @protected
-  void sse_encode_wallet_transfer_state(WalletTransferState self, SseSerializer serializer);
 }
 
 // Section: wire_class
@@ -1454,7 +1392,7 @@ class WalletCoreWire implements BaseWire {
 
   /// The symbols are looked up with [lookup].
   WalletCoreWire.fromLookup(ffi.Pointer<T> Function<T extends ffi.NativeType>(String symbolName) lookup)
-    : _lookup = lookup;
+      : _lookup = lookup;
 
   void store_dart_post_cobject(
     DartPostCObjectFnType ptr,
@@ -1464,9 +1402,8 @@ class WalletCoreWire implements BaseWire {
     );
   }
 
-  late final _store_dart_post_cobjectPtr = _lookup<ffi.NativeFunction<ffi.Void Function(DartPostCObjectFnType)>>(
-    'store_dart_post_cobject',
-  );
+  late final _store_dart_post_cobjectPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(DartPostCObjectFnType)>>('store_dart_post_cobject');
   late final _store_dart_post_cobject = _store_dart_post_cobjectPtr.asFunction<void Function(DartPostCObjectFnType)>();
 
   void wire__crate__api__full__accept_disclosure(
@@ -1481,8 +1418,7 @@ class WalletCoreWire implements BaseWire {
 
   late final _wire__crate__api__full__accept_disclosurePtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>>(
-        'frbgen_wallet_core_wire__crate__api__full__accept_disclosure',
-      );
+          'frbgen_wallet_core_wire__crate__api__full__accept_disclosure');
   late final _wire__crate__api__full__accept_disclosure = _wire__crate__api__full__accept_disclosurePtr
       .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
 
@@ -1498,8 +1434,7 @@ class WalletCoreWire implements BaseWire {
 
   late final _wire__crate__api__full__accept_issuancePtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>>(
-        'frbgen_wallet_core_wire__crate__api__full__accept_issuance',
-      );
+          'frbgen_wallet_core_wire__crate__api__full__accept_issuance');
   late final _wire__crate__api__full__accept_issuance = _wire__crate__api__full__accept_issuancePtr
       .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
 
@@ -1515,10 +1450,26 @@ class WalletCoreWire implements BaseWire {
 
   late final _wire__crate__api__full__accept_pid_issuancePtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>>(
-        'frbgen_wallet_core_wire__crate__api__full__accept_pid_issuance',
-      );
+          'frbgen_wallet_core_wire__crate__api__full__accept_pid_issuance');
   late final _wire__crate__api__full__accept_pid_issuance = _wire__crate__api__full__accept_pid_issuancePtr
       .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
+
+  void wire__crate__api__full__acknowledge_wallet_transfer(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> uri,
+  ) {
+    return _wire__crate__api__full__acknowledge_wallet_transfer(
+      port_,
+      uri,
+    );
+  }
+
+  late final _wire__crate__api__full__acknowledge_wallet_transferPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>>(
+          'frbgen_wallet_core_wire__crate__api__full__acknowledge_wallet_transfer');
+  late final _wire__crate__api__full__acknowledge_wallet_transfer =
+      _wire__crate__api__full__acknowledge_wallet_transferPtr
+          .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
 
   void wire__crate__api__full__cancel_disclosure(
     int port_,
@@ -1529,10 +1480,9 @@ class WalletCoreWire implements BaseWire {
   }
 
   late final _wire__crate__api__full__cancel_disclosurePtr = _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
-    'frbgen_wallet_core_wire__crate__api__full__cancel_disclosure',
-  );
-  late final _wire__crate__api__full__cancel_disclosure = _wire__crate__api__full__cancel_disclosurePtr
-      .asFunction<void Function(int)>();
+      'frbgen_wallet_core_wire__crate__api__full__cancel_disclosure');
+  late final _wire__crate__api__full__cancel_disclosure =
+      _wire__crate__api__full__cancel_disclosurePtr.asFunction<void Function(int)>();
 
   void wire__crate__api__full__cancel_issuance(
     int port_,
@@ -1543,10 +1493,9 @@ class WalletCoreWire implements BaseWire {
   }
 
   late final _wire__crate__api__full__cancel_issuancePtr = _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
-    'frbgen_wallet_core_wire__crate__api__full__cancel_issuance',
-  );
-  late final _wire__crate__api__full__cancel_issuance = _wire__crate__api__full__cancel_issuancePtr
-      .asFunction<void Function(int)>();
+      'frbgen_wallet_core_wire__crate__api__full__cancel_issuance');
+  late final _wire__crate__api__full__cancel_issuance =
+      _wire__crate__api__full__cancel_issuancePtr.asFunction<void Function(int)>();
 
   void wire__crate__api__full__cancel_pin_recovery(
     int port_,
@@ -1558,10 +1507,23 @@ class WalletCoreWire implements BaseWire {
 
   late final _wire__crate__api__full__cancel_pin_recoveryPtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
-        'frbgen_wallet_core_wire__crate__api__full__cancel_pin_recovery',
-      );
-  late final _wire__crate__api__full__cancel_pin_recovery = _wire__crate__api__full__cancel_pin_recoveryPtr
-      .asFunction<void Function(int)>();
+          'frbgen_wallet_core_wire__crate__api__full__cancel_pin_recovery');
+  late final _wire__crate__api__full__cancel_pin_recovery =
+      _wire__crate__api__full__cancel_pin_recoveryPtr.asFunction<void Function(int)>();
+
+  void wire__crate__api__full__cancel_wallet_transfer(
+    int port_,
+  ) {
+    return _wire__crate__api__full__cancel_wallet_transfer(
+      port_,
+    );
+  }
+
+  late final _wire__crate__api__full__cancel_wallet_transferPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
+          'frbgen_wallet_core_wire__crate__api__full__cancel_wallet_transfer');
+  late final _wire__crate__api__full__cancel_wallet_transfer =
+      _wire__crate__api__full__cancel_wallet_transferPtr.asFunction<void Function(int)>();
 
   void wire__crate__api__full__change_pin(
     int port_,
@@ -1575,20 +1537,12 @@ class WalletCoreWire implements BaseWire {
     );
   }
 
-  late final _wire__crate__api__full__change_pinPtr =
-      _lookup<
-        ffi.NativeFunction<
-          ffi.Void Function(
-            ffi.Int64,
-            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-          )
-        >
-      >('frbgen_wallet_core_wire__crate__api__full__change_pin');
-  late final _wire__crate__api__full__change_pin = _wire__crate__api__full__change_pinPtr
-      .asFunction<
-        void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
-      >();
+  late final _wire__crate__api__full__change_pinPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>)>>('frbgen_wallet_core_wire__crate__api__full__change_pin');
+  late final _wire__crate__api__full__change_pin = _wire__crate__api__full__change_pinPtr.asFunction<
+      void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
 
   void wire__crate__api__full__check_pin(
     int port_,
@@ -1602,8 +1556,7 @@ class WalletCoreWire implements BaseWire {
 
   late final _wire__crate__api__full__check_pinPtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>>(
-        'frbgen_wallet_core_wire__crate__api__full__check_pin',
-      );
+          'frbgen_wallet_core_wire__crate__api__full__check_pin');
   late final _wire__crate__api__full__check_pin = _wire__crate__api__full__check_pinPtr
       .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
 
@@ -1617,10 +1570,9 @@ class WalletCoreWire implements BaseWire {
 
   late final _wire__crate__api__full__clear_attestations_streamPtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
-        'frbgen_wallet_core_wire__crate__api__full__clear_attestations_stream',
-      );
-  late final _wire__crate__api__full__clear_attestations_stream = _wire__crate__api__full__clear_attestations_streamPtr
-      .asFunction<void Function(int)>();
+          'frbgen_wallet_core_wire__crate__api__full__clear_attestations_stream');
+  late final _wire__crate__api__full__clear_attestations_stream =
+      _wire__crate__api__full__clear_attestations_streamPtr.asFunction<void Function(int)>();
 
   void wire__crate__api__full__clear_configuration_stream(
     int port_,
@@ -1632,8 +1584,7 @@ class WalletCoreWire implements BaseWire {
 
   late final _wire__crate__api__full__clear_configuration_streamPtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
-        'frbgen_wallet_core_wire__crate__api__full__clear_configuration_stream',
-      );
+          'frbgen_wallet_core_wire__crate__api__full__clear_configuration_stream');
   late final _wire__crate__api__full__clear_configuration_stream =
       _wire__crate__api__full__clear_configuration_streamPtr.asFunction<void Function(int)>();
 
@@ -1646,10 +1597,9 @@ class WalletCoreWire implements BaseWire {
   }
 
   late final _wire__crate__api__full__clear_lock_streamPtr = _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
-    'frbgen_wallet_core_wire__crate__api__full__clear_lock_stream',
-  );
-  late final _wire__crate__api__full__clear_lock_stream = _wire__crate__api__full__clear_lock_streamPtr
-      .asFunction<void Function(int)>();
+      'frbgen_wallet_core_wire__crate__api__full__clear_lock_stream');
+  late final _wire__crate__api__full__clear_lock_stream =
+      _wire__crate__api__full__clear_lock_streamPtr.asFunction<void Function(int)>();
 
   void wire__crate__api__full__clear_recent_history_stream(
     int port_,
@@ -1661,8 +1611,7 @@ class WalletCoreWire implements BaseWire {
 
   late final _wire__crate__api__full__clear_recent_history_streamPtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
-        'frbgen_wallet_core_wire__crate__api__full__clear_recent_history_stream',
-      );
+          'frbgen_wallet_core_wire__crate__api__full__clear_recent_history_stream');
   late final _wire__crate__api__full__clear_recent_history_stream =
       _wire__crate__api__full__clear_recent_history_streamPtr.asFunction<void Function(int)>();
 
@@ -1676,8 +1625,7 @@ class WalletCoreWire implements BaseWire {
 
   late final _wire__crate__api__full__clear_version_state_streamPtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
-        'frbgen_wallet_core_wire__crate__api__full__clear_version_state_stream',
-      );
+          'frbgen_wallet_core_wire__crate__api__full__clear_version_state_stream');
   late final _wire__crate__api__full__clear_version_state_stream =
       _wire__crate__api__full__clear_version_state_streamPtr.asFunction<void Function(int)>();
 
@@ -1693,26 +1641,8 @@ class WalletCoreWire implements BaseWire {
 
   late final _wire__crate__api__full__complete_pin_recoveryPtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>>(
-        'frbgen_wallet_core_wire__crate__api__full__complete_pin_recovery',
-      );
+          'frbgen_wallet_core_wire__crate__api__full__complete_pin_recovery');
   late final _wire__crate__api__full__complete_pin_recovery = _wire__crate__api__full__complete_pin_recoveryPtr
-      .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
-
-  void wire__crate__api__full__confirm_wallet_transfer(
-    int port_,
-    ffi.Pointer<wire_cst_list_prim_u_8_strict> _pin,
-  ) {
-    return _wire__crate__api__full__confirm_wallet_transfer(
-      port_,
-      _pin,
-    );
-  }
-
-  late final _wire__crate__api__full__confirm_wallet_transferPtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>>(
-        'frbgen_wallet_core_wire__crate__api__full__confirm_wallet_transfer',
-      );
-  late final _wire__crate__api__full__confirm_wallet_transfer = _wire__crate__api__full__confirm_wallet_transferPtr
       .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
 
   void wire__crate__api__full__continue_change_pin(
@@ -1727,8 +1657,7 @@ class WalletCoreWire implements BaseWire {
 
   late final _wire__crate__api__full__continue_change_pinPtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>>(
-        'frbgen_wallet_core_wire__crate__api__full__continue_change_pin',
-      );
+          'frbgen_wallet_core_wire__crate__api__full__continue_change_pin');
   late final _wire__crate__api__full__continue_change_pin = _wire__crate__api__full__continue_change_pinPtr
       .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
 
@@ -1744,8 +1673,7 @@ class WalletCoreWire implements BaseWire {
 
   late final _wire__crate__api__full__continue_disclosure_based_issuancePtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>>(
-        'frbgen_wallet_core_wire__crate__api__full__continue_disclosure_based_issuance',
-      );
+          'frbgen_wallet_core_wire__crate__api__full__continue_disclosure_based_issuance');
   late final _wire__crate__api__full__continue_disclosure_based_issuance =
       _wire__crate__api__full__continue_disclosure_based_issuancePtr
           .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
@@ -1762,8 +1690,7 @@ class WalletCoreWire implements BaseWire {
 
   late final _wire__crate__api__full__continue_pid_issuancePtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>>(
-        'frbgen_wallet_core_wire__crate__api__full__continue_pid_issuance',
-      );
+          'frbgen_wallet_core_wire__crate__api__full__continue_pid_issuance');
   late final _wire__crate__api__full__continue_pid_issuance = _wire__crate__api__full__continue_pid_issuancePtr
       .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
 
@@ -1779,8 +1706,7 @@ class WalletCoreWire implements BaseWire {
 
   late final _wire__crate__api__full__continue_pin_recoveryPtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>>(
-        'frbgen_wallet_core_wire__crate__api__full__continue_pin_recovery',
-      );
+          'frbgen_wallet_core_wire__crate__api__full__continue_pin_recovery');
   late final _wire__crate__api__full__continue_pin_recovery = _wire__crate__api__full__continue_pin_recoveryPtr
       .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
 
@@ -1794,8 +1720,7 @@ class WalletCoreWire implements BaseWire {
 
   late final _wire__crate__api__full__create_pid_issuance_redirect_uriPtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
-        'frbgen_wallet_core_wire__crate__api__full__create_pid_issuance_redirect_uri',
-      );
+          'frbgen_wallet_core_wire__crate__api__full__create_pid_issuance_redirect_uri');
   late final _wire__crate__api__full__create_pid_issuance_redirect_uri =
       _wire__crate__api__full__create_pid_issuance_redirect_uriPtr.asFunction<void Function(int)>();
 
@@ -1809,8 +1734,7 @@ class WalletCoreWire implements BaseWire {
 
   late final _wire__crate__api__full__create_pid_renewal_redirect_uriPtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
-        'frbgen_wallet_core_wire__crate__api__full__create_pid_renewal_redirect_uri',
-      );
+          'frbgen_wallet_core_wire__crate__api__full__create_pid_renewal_redirect_uri');
   late final _wire__crate__api__full__create_pid_renewal_redirect_uri =
       _wire__crate__api__full__create_pid_renewal_redirect_uriPtr.asFunction<void Function(int)>();
 
@@ -1824,8 +1748,7 @@ class WalletCoreWire implements BaseWire {
 
   late final _wire__crate__api__full__create_pin_recovery_redirect_uriPtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
-        'frbgen_wallet_core_wire__crate__api__full__create_pin_recovery_redirect_uri',
-      );
+          'frbgen_wallet_core_wire__crate__api__full__create_pin_recovery_redirect_uri');
   late final _wire__crate__api__full__create_pin_recovery_redirect_uri =
       _wire__crate__api__full__create_pin_recovery_redirect_uriPtr.asFunction<void Function(int)>();
 
@@ -1838,10 +1761,9 @@ class WalletCoreWire implements BaseWire {
   }
 
   late final _wire__crate__api__full__get_historyPtr = _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
-    'frbgen_wallet_core_wire__crate__api__full__get_history',
-  );
-  late final _wire__crate__api__full__get_history = _wire__crate__api__full__get_historyPtr
-      .asFunction<void Function(int)>();
+      'frbgen_wallet_core_wire__crate__api__full__get_history');
+  late final _wire__crate__api__full__get_history =
+      _wire__crate__api__full__get_historyPtr.asFunction<void Function(int)>();
 
   void wire__crate__api__full__get_history_for_card(
     int port_,
@@ -1855,8 +1777,7 @@ class WalletCoreWire implements BaseWire {
 
   late final _wire__crate__api__full__get_history_for_cardPtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>>(
-        'frbgen_wallet_core_wire__crate__api__full__get_history_for_card',
-      );
+          'frbgen_wallet_core_wire__crate__api__full__get_history_for_card');
   late final _wire__crate__api__full__get_history_for_card = _wire__crate__api__full__get_history_for_cardPtr
       .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
 
@@ -1869,10 +1790,9 @@ class WalletCoreWire implements BaseWire {
   }
 
   late final _wire__crate__api__full__get_version_stringPtr = _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
-    'frbgen_wallet_core_wire__crate__api__full__get_version_string',
-  );
-  late final _wire__crate__api__full__get_version_string = _wire__crate__api__full__get_version_stringPtr
-      .asFunction<void Function(int)>();
+      'frbgen_wallet_core_wire__crate__api__full__get_version_string');
+  late final _wire__crate__api__full__get_version_string =
+      _wire__crate__api__full__get_version_stringPtr.asFunction<void Function(int)>();
 
   void wire__crate__api__full__get_wallet_transfer_state_stream(
     int port_,
@@ -1886,8 +1806,7 @@ class WalletCoreWire implements BaseWire {
 
   late final _wire__crate__api__full__get_wallet_transfer_state_streamPtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>>(
-        'frbgen_wallet_core_wire__crate__api__full__get_wallet_transfer_state_stream',
-      );
+          'frbgen_wallet_core_wire__crate__api__full__get_wallet_transfer_state_stream');
   late final _wire__crate__api__full__get_wallet_transfer_state_stream =
       _wire__crate__api__full__get_wallet_transfer_state_streamPtr
           .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
@@ -1902,8 +1821,7 @@ class WalletCoreWire implements BaseWire {
 
   late final _wire__crate__api__full__has_active_disclosure_sessionPtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
-        'frbgen_wallet_core_wire__crate__api__full__has_active_disclosure_session',
-      );
+          'frbgen_wallet_core_wire__crate__api__full__has_active_disclosure_session');
   late final _wire__crate__api__full__has_active_disclosure_session =
       _wire__crate__api__full__has_active_disclosure_sessionPtr.asFunction<void Function(int)>();
 
@@ -1917,8 +1835,7 @@ class WalletCoreWire implements BaseWire {
 
   late final _wire__crate__api__full__has_active_issuance_sessionPtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
-        'frbgen_wallet_core_wire__crate__api__full__has_active_issuance_session',
-      );
+          'frbgen_wallet_core_wire__crate__api__full__has_active_issuance_session');
   late final _wire__crate__api__full__has_active_issuance_session =
       _wire__crate__api__full__has_active_issuance_sessionPtr.asFunction<void Function(int)>();
 
@@ -1931,10 +1848,9 @@ class WalletCoreWire implements BaseWire {
   }
 
   late final _wire__crate__api__full__has_registrationPtr = _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
-    'frbgen_wallet_core_wire__crate__api__full__has_registration',
-  );
-  late final _wire__crate__api__full__has_registration = _wire__crate__api__full__has_registrationPtr
-      .asFunction<void Function(int)>();
+      'frbgen_wallet_core_wire__crate__api__full__has_registration');
+  late final _wire__crate__api__full__has_registration =
+      _wire__crate__api__full__has_registrationPtr.asFunction<void Function(int)>();
 
   void wire__crate__api__full__identify_uri(
     int port_,
@@ -1948,8 +1864,7 @@ class WalletCoreWire implements BaseWire {
 
   late final _wire__crate__api__full__identify_uriPtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>>(
-        'frbgen_wallet_core_wire__crate__api__full__identify_uri',
-      );
+          'frbgen_wallet_core_wire__crate__api__full__identify_uri');
   late final _wire__crate__api__full__identify_uri = _wire__crate__api__full__identify_uriPtr
       .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
 
@@ -1961,27 +1876,23 @@ class WalletCoreWire implements BaseWire {
     );
   }
 
-  late final _wire__crate__api__full__initPtr = _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
-    'frbgen_wallet_core_wire__crate__api__full__init',
-  );
+  late final _wire__crate__api__full__initPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>('frbgen_wallet_core_wire__crate__api__full__init');
   late final _wire__crate__api__full__init = _wire__crate__api__full__initPtr.asFunction<void Function(int)>();
 
   void wire__crate__api__full__init_wallet_transfer(
     int port_,
-    ffi.Pointer<wire_cst_list_prim_u_8_strict> _uri,
   ) {
     return _wire__crate__api__full__init_wallet_transfer(
       port_,
-      _uri,
     );
   }
 
   late final _wire__crate__api__full__init_wallet_transferPtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>>(
-        'frbgen_wallet_core_wire__crate__api__full__init_wallet_transfer',
-      );
-  late final _wire__crate__api__full__init_wallet_transfer = _wire__crate__api__full__init_wallet_transferPtr
-      .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
+          'frbgen_wallet_core_wire__crate__api__full__init_wallet_transfer');
+  late final _wire__crate__api__full__init_wallet_transfer =
+      _wire__crate__api__full__init_wallet_transferPtr.asFunction<void Function(int)>();
 
   void wire__crate__api__full__is_biometric_unlock_enabled(
     int port_,
@@ -1993,8 +1904,7 @@ class WalletCoreWire implements BaseWire {
 
   late final _wire__crate__api__full__is_biometric_unlock_enabledPtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
-        'frbgen_wallet_core_wire__crate__api__full__is_biometric_unlock_enabled',
-      );
+          'frbgen_wallet_core_wire__crate__api__full__is_biometric_unlock_enabled');
   late final _wire__crate__api__full__is_biometric_unlock_enabled =
       _wire__crate__api__full__is_biometric_unlock_enabledPtr.asFunction<void Function(int)>();
 
@@ -2007,10 +1917,9 @@ class WalletCoreWire implements BaseWire {
   }
 
   late final _wire__crate__api__full__is_initializedPtr = _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
-    'frbgen_wallet_core_wire__crate__api__full__is_initialized',
-  );
-  late final _wire__crate__api__full__is_initialized = _wire__crate__api__full__is_initializedPtr
-      .asFunction<void Function(int)>();
+      'frbgen_wallet_core_wire__crate__api__full__is_initialized');
+  late final _wire__crate__api__full__is_initialized =
+      _wire__crate__api__full__is_initializedPtr.asFunction<void Function(int)>();
 
   void wire__crate__api__full__is_valid_pin(
     int port_,
@@ -2024,8 +1933,7 @@ class WalletCoreWire implements BaseWire {
 
   late final _wire__crate__api__full__is_valid_pinPtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>>(
-        'frbgen_wallet_core_wire__crate__api__full__is_valid_pin',
-      );
+          'frbgen_wallet_core_wire__crate__api__full__is_valid_pin');
   late final _wire__crate__api__full__is_valid_pin = _wire__crate__api__full__is_valid_pinPtr
       .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
 
@@ -2038,10 +1946,9 @@ class WalletCoreWire implements BaseWire {
   }
 
   late final _wire__crate__api__full__lock_walletPtr = _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
-    'frbgen_wallet_core_wire__crate__api__full__lock_wallet',
-  );
-  late final _wire__crate__api__full__lock_wallet = _wire__crate__api__full__lock_walletPtr
-      .asFunction<void Function(int)>();
+      'frbgen_wallet_core_wire__crate__api__full__lock_wallet');
+  late final _wire__crate__api__full__lock_wallet =
+      _wire__crate__api__full__lock_walletPtr.asFunction<void Function(int)>();
 
   void wire__crate__api__full__register(
     int port_,
@@ -2055,10 +1962,9 @@ class WalletCoreWire implements BaseWire {
 
   late final _wire__crate__api__full__registerPtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>>(
-        'frbgen_wallet_core_wire__crate__api__full__register',
-      );
-  late final _wire__crate__api__full__register = _wire__crate__api__full__registerPtr
-      .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
+          'frbgen_wallet_core_wire__crate__api__full__register');
+  late final _wire__crate__api__full__register =
+      _wire__crate__api__full__registerPtr.asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
 
   void wire__crate__api__full__reset_wallet(
     int port_,
@@ -2069,10 +1975,9 @@ class WalletCoreWire implements BaseWire {
   }
 
   late final _wire__crate__api__full__reset_walletPtr = _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
-    'frbgen_wallet_core_wire__crate__api__full__reset_wallet',
-  );
-  late final _wire__crate__api__full__reset_wallet = _wire__crate__api__full__reset_walletPtr
-      .asFunction<void Function(int)>();
+      'frbgen_wallet_core_wire__crate__api__full__reset_wallet');
+  late final _wire__crate__api__full__reset_wallet =
+      _wire__crate__api__full__reset_walletPtr.asFunction<void Function(int)>();
 
   void wire__crate__api__full__set_attestations_stream(
     int port_,
@@ -2086,8 +1991,7 @@ class WalletCoreWire implements BaseWire {
 
   late final _wire__crate__api__full__set_attestations_streamPtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>>(
-        'frbgen_wallet_core_wire__crate__api__full__set_attestations_stream',
-      );
+          'frbgen_wallet_core_wire__crate__api__full__set_attestations_stream');
   late final _wire__crate__api__full__set_attestations_stream = _wire__crate__api__full__set_attestations_streamPtr
       .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
 
@@ -2103,10 +2007,9 @@ class WalletCoreWire implements BaseWire {
 
   late final _wire__crate__api__full__set_biometric_unlockPtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Bool)>>(
-        'frbgen_wallet_core_wire__crate__api__full__set_biometric_unlock',
-      );
-  late final _wire__crate__api__full__set_biometric_unlock = _wire__crate__api__full__set_biometric_unlockPtr
-      .asFunction<void Function(int, bool)>();
+          'frbgen_wallet_core_wire__crate__api__full__set_biometric_unlock');
+  late final _wire__crate__api__full__set_biometric_unlock =
+      _wire__crate__api__full__set_biometric_unlockPtr.asFunction<void Function(int, bool)>();
 
   void wire__crate__api__full__set_configuration_stream(
     int port_,
@@ -2120,8 +2023,7 @@ class WalletCoreWire implements BaseWire {
 
   late final _wire__crate__api__full__set_configuration_streamPtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>>(
-        'frbgen_wallet_core_wire__crate__api__full__set_configuration_stream',
-      );
+          'frbgen_wallet_core_wire__crate__api__full__set_configuration_stream');
   late final _wire__crate__api__full__set_configuration_stream = _wire__crate__api__full__set_configuration_streamPtr
       .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
 
@@ -2137,8 +2039,7 @@ class WalletCoreWire implements BaseWire {
 
   late final _wire__crate__api__full__set_lock_streamPtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>>(
-        'frbgen_wallet_core_wire__crate__api__full__set_lock_stream',
-      );
+          'frbgen_wallet_core_wire__crate__api__full__set_lock_stream');
   late final _wire__crate__api__full__set_lock_stream = _wire__crate__api__full__set_lock_streamPtr
       .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
 
@@ -2154,8 +2055,7 @@ class WalletCoreWire implements BaseWire {
 
   late final _wire__crate__api__full__set_recent_history_streamPtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>>(
-        'frbgen_wallet_core_wire__crate__api__full__set_recent_history_stream',
-      );
+          'frbgen_wallet_core_wire__crate__api__full__set_recent_history_stream');
   late final _wire__crate__api__full__set_recent_history_stream = _wire__crate__api__full__set_recent_history_streamPtr
       .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
 
@@ -2171,8 +2071,7 @@ class WalletCoreWire implements BaseWire {
 
   late final _wire__crate__api__full__set_version_state_streamPtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>>(
-        'frbgen_wallet_core_wire__crate__api__full__set_version_state_stream',
-      );
+          'frbgen_wallet_core_wire__crate__api__full__set_version_state_stream');
   late final _wire__crate__api__full__set_version_state_stream = _wire__crate__api__full__set_version_state_streamPtr
       .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
 
@@ -2190,25 +2089,25 @@ class WalletCoreWire implements BaseWire {
 
   late final _wire__crate__api__full__start_disclosurePtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_list_prim_u_8_strict>, ffi.Bool)>>(
-        'frbgen_wallet_core_wire__crate__api__full__start_disclosure',
-      );
+          'frbgen_wallet_core_wire__crate__api__full__start_disclosure');
   late final _wire__crate__api__full__start_disclosure = _wire__crate__api__full__start_disclosurePtr
       .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>, bool)>();
 
-  void wire__crate__api__full__start_wallet_transfer(
+  void wire__crate__api__full__transfer_wallet(
     int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> _pin,
   ) {
-    return _wire__crate__api__full__start_wallet_transfer(
+    return _wire__crate__api__full__transfer_wallet(
       port_,
+      _pin,
     );
   }
 
-  late final _wire__crate__api__full__start_wallet_transferPtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
-        'frbgen_wallet_core_wire__crate__api__full__start_wallet_transfer',
-      );
-  late final _wire__crate__api__full__start_wallet_transfer = _wire__crate__api__full__start_wallet_transferPtr
-      .asFunction<void Function(int)>();
+  late final _wire__crate__api__full__transfer_walletPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>>(
+          'frbgen_wallet_core_wire__crate__api__full__transfer_wallet');
+  late final _wire__crate__api__full__transfer_wallet = _wire__crate__api__full__transfer_walletPtr
+      .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
 
   void wire__crate__api__full__unlock_wallet(
     int port_,
@@ -2222,8 +2121,7 @@ class WalletCoreWire implements BaseWire {
 
   late final _wire__crate__api__full__unlock_walletPtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>>(
-        'frbgen_wallet_core_wire__crate__api__full__unlock_wallet',
-      );
+          'frbgen_wallet_core_wire__crate__api__full__unlock_wallet');
   late final _wire__crate__api__full__unlock_wallet = _wire__crate__api__full__unlock_walletPtr
       .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
 
@@ -2237,8 +2135,7 @@ class WalletCoreWire implements BaseWire {
 
   late final _wire__crate__api__full__unlock_wallet_with_biometricsPtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
-        'frbgen_wallet_core_wire__crate__api__full__unlock_wallet_with_biometrics',
-      );
+          'frbgen_wallet_core_wire__crate__api__full__unlock_wallet_with_biometrics');
   late final _wire__crate__api__full__unlock_wallet_with_biometrics =
       _wire__crate__api__full__unlock_wallet_with_biometricsPtr.asFunction<void Function(int)>();
 
@@ -2248,8 +2145,7 @@ class WalletCoreWire implements BaseWire {
 
   late final _cst_new_box_autoadd_attestation_presentationPtr =
       _lookup<ffi.NativeFunction<ffi.Pointer<wire_cst_attestation_presentation> Function()>>(
-        'frbgen_wallet_core_cst_new_box_autoadd_attestation_presentation',
-      );
+          'frbgen_wallet_core_cst_new_box_autoadd_attestation_presentation');
   late final _cst_new_box_autoadd_attestation_presentation = _cst_new_box_autoadd_attestation_presentationPtr
       .asFunction<ffi.Pointer<wire_cst_attestation_presentation> Function()>();
 
@@ -2258,10 +2154,9 @@ class WalletCoreWire implements BaseWire {
   }
 
   late final _cst_new_box_autoadd_imagePtr = _lookup<ffi.NativeFunction<ffi.Pointer<wire_cst_image> Function()>>(
-    'frbgen_wallet_core_cst_new_box_autoadd_image',
-  );
-  late final _cst_new_box_autoadd_image = _cst_new_box_autoadd_imagePtr
-      .asFunction<ffi.Pointer<wire_cst_image> Function()>();
+      'frbgen_wallet_core_cst_new_box_autoadd_image');
+  late final _cst_new_box_autoadd_image =
+      _cst_new_box_autoadd_imagePtr.asFunction<ffi.Pointer<wire_cst_image> Function()>();
 
   ffi.Pointer<wire_cst_image_with_metadata> cst_new_box_autoadd_image_with_metadata() {
     return _cst_new_box_autoadd_image_with_metadata();
@@ -2269,10 +2164,9 @@ class WalletCoreWire implements BaseWire {
 
   late final _cst_new_box_autoadd_image_with_metadataPtr =
       _lookup<ffi.NativeFunction<ffi.Pointer<wire_cst_image_with_metadata> Function()>>(
-        'frbgen_wallet_core_cst_new_box_autoadd_image_with_metadata',
-      );
-  late final _cst_new_box_autoadd_image_with_metadata = _cst_new_box_autoadd_image_with_metadataPtr
-      .asFunction<ffi.Pointer<wire_cst_image_with_metadata> Function()>();
+          'frbgen_wallet_core_cst_new_box_autoadd_image_with_metadata');
+  late final _cst_new_box_autoadd_image_with_metadata =
+      _cst_new_box_autoadd_image_with_metadataPtr.asFunction<ffi.Pointer<wire_cst_image_with_metadata> Function()>();
 
   ffi.Pointer<wire_cst_organization> cst_new_box_autoadd_organization() {
     return _cst_new_box_autoadd_organization();
@@ -2280,10 +2174,9 @@ class WalletCoreWire implements BaseWire {
 
   late final _cst_new_box_autoadd_organizationPtr =
       _lookup<ffi.NativeFunction<ffi.Pointer<wire_cst_organization> Function()>>(
-        'frbgen_wallet_core_cst_new_box_autoadd_organization',
-      );
-  late final _cst_new_box_autoadd_organization = _cst_new_box_autoadd_organizationPtr
-      .asFunction<ffi.Pointer<wire_cst_organization> Function()>();
+          'frbgen_wallet_core_cst_new_box_autoadd_organization');
+  late final _cst_new_box_autoadd_organization =
+      _cst_new_box_autoadd_organizationPtr.asFunction<ffi.Pointer<wire_cst_organization> Function()>();
 
   ffi.Pointer<wire_cst_rendering_metadata> cst_new_box_autoadd_rendering_metadata() {
     return _cst_new_box_autoadd_rendering_metadata();
@@ -2291,10 +2184,9 @@ class WalletCoreWire implements BaseWire {
 
   late final _cst_new_box_autoadd_rendering_metadataPtr =
       _lookup<ffi.NativeFunction<ffi.Pointer<wire_cst_rendering_metadata> Function()>>(
-        'frbgen_wallet_core_cst_new_box_autoadd_rendering_metadata',
-      );
-  late final _cst_new_box_autoadd_rendering_metadata = _cst_new_box_autoadd_rendering_metadataPtr
-      .asFunction<ffi.Pointer<wire_cst_rendering_metadata> Function()>();
+          'frbgen_wallet_core_cst_new_box_autoadd_rendering_metadata');
+  late final _cst_new_box_autoadd_rendering_metadata =
+      _cst_new_box_autoadd_rendering_metadataPtr.asFunction<ffi.Pointer<wire_cst_rendering_metadata> Function()>();
 
   ffi.Pointer<wire_cst_request_policy> cst_new_box_autoadd_request_policy() {
     return _cst_new_box_autoadd_request_policy();
@@ -2302,10 +2194,9 @@ class WalletCoreWire implements BaseWire {
 
   late final _cst_new_box_autoadd_request_policyPtr =
       _lookup<ffi.NativeFunction<ffi.Pointer<wire_cst_request_policy> Function()>>(
-        'frbgen_wallet_core_cst_new_box_autoadd_request_policy',
-      );
-  late final _cst_new_box_autoadd_request_policy = _cst_new_box_autoadd_request_policyPtr
-      .asFunction<ffi.Pointer<wire_cst_request_policy> Function()>();
+          'frbgen_wallet_core_cst_new_box_autoadd_request_policy');
+  late final _cst_new_box_autoadd_request_policy =
+      _cst_new_box_autoadd_request_policyPtr.asFunction<ffi.Pointer<wire_cst_request_policy> Function()>();
 
   ffi.Pointer<ffi.Uint64> cst_new_box_autoadd_u_64(
     int value,
@@ -2316,10 +2207,9 @@ class WalletCoreWire implements BaseWire {
   }
 
   late final _cst_new_box_autoadd_u_64Ptr = _lookup<ffi.NativeFunction<ffi.Pointer<ffi.Uint64> Function(ffi.Uint64)>>(
-    'frbgen_wallet_core_cst_new_box_autoadd_u_64',
-  );
-  late final _cst_new_box_autoadd_u_64 = _cst_new_box_autoadd_u_64Ptr
-      .asFunction<ffi.Pointer<ffi.Uint64> Function(int)>();
+      'frbgen_wallet_core_cst_new_box_autoadd_u_64');
+  late final _cst_new_box_autoadd_u_64 =
+      _cst_new_box_autoadd_u_64Ptr.asFunction<ffi.Pointer<ffi.Uint64> Function(int)>();
 
   ffi.Pointer<wire_cst_wallet_instruction_error> cst_new_box_autoadd_wallet_instruction_error() {
     return _cst_new_box_autoadd_wallet_instruction_error();
@@ -2327,8 +2217,7 @@ class WalletCoreWire implements BaseWire {
 
   late final _cst_new_box_autoadd_wallet_instruction_errorPtr =
       _lookup<ffi.NativeFunction<ffi.Pointer<wire_cst_wallet_instruction_error> Function()>>(
-        'frbgen_wallet_core_cst_new_box_autoadd_wallet_instruction_error',
-      );
+          'frbgen_wallet_core_cst_new_box_autoadd_wallet_instruction_error');
   late final _cst_new_box_autoadd_wallet_instruction_error = _cst_new_box_autoadd_wallet_instruction_errorPtr
       .asFunction<ffi.Pointer<wire_cst_wallet_instruction_error> Function()>();
 
@@ -2342,8 +2231,7 @@ class WalletCoreWire implements BaseWire {
 
   late final _cst_new_list_attestation_attributePtr =
       _lookup<ffi.NativeFunction<ffi.Pointer<wire_cst_list_attestation_attribute> Function(ffi.Int32)>>(
-        'frbgen_wallet_core_cst_new_list_attestation_attribute',
-      );
+          'frbgen_wallet_core_cst_new_list_attestation_attribute');
   late final _cst_new_list_attestation_attribute = _cst_new_list_attestation_attributePtr
       .asFunction<ffi.Pointer<wire_cst_list_attestation_attribute> Function(int)>();
 
@@ -2357,8 +2245,7 @@ class WalletCoreWire implements BaseWire {
 
   late final _cst_new_list_attestation_presentationPtr =
       _lookup<ffi.NativeFunction<ffi.Pointer<wire_cst_list_attestation_presentation> Function(ffi.Int32)>>(
-        'frbgen_wallet_core_cst_new_list_attestation_presentation',
-      );
+          'frbgen_wallet_core_cst_new_list_attestation_presentation');
   late final _cst_new_list_attestation_presentation = _cst_new_list_attestation_presentationPtr
       .asFunction<ffi.Pointer<wire_cst_list_attestation_presentation> Function(int)>();
 
@@ -2372,10 +2259,9 @@ class WalletCoreWire implements BaseWire {
 
   late final _cst_new_list_attribute_valuePtr =
       _lookup<ffi.NativeFunction<ffi.Pointer<wire_cst_list_attribute_value> Function(ffi.Int32)>>(
-        'frbgen_wallet_core_cst_new_list_attribute_value',
-      );
-  late final _cst_new_list_attribute_value = _cst_new_list_attribute_valuePtr
-      .asFunction<ffi.Pointer<wire_cst_list_attribute_value> Function(int)>();
+          'frbgen_wallet_core_cst_new_list_attribute_value');
+  late final _cst_new_list_attribute_value =
+      _cst_new_list_attribute_valuePtr.asFunction<ffi.Pointer<wire_cst_list_attribute_value> Function(int)>();
 
   ffi.Pointer<wire_cst_list_claim_display_metadata> cst_new_list_claim_display_metadata(
     int len,
@@ -2387,8 +2273,7 @@ class WalletCoreWire implements BaseWire {
 
   late final _cst_new_list_claim_display_metadataPtr =
       _lookup<ffi.NativeFunction<ffi.Pointer<wire_cst_list_claim_display_metadata> Function(ffi.Int32)>>(
-        'frbgen_wallet_core_cst_new_list_claim_display_metadata',
-      );
+          'frbgen_wallet_core_cst_new_list_claim_display_metadata');
   late final _cst_new_list_claim_display_metadata = _cst_new_list_claim_display_metadataPtr
       .asFunction<ffi.Pointer<wire_cst_list_claim_display_metadata> Function(int)>();
 
@@ -2402,10 +2287,9 @@ class WalletCoreWire implements BaseWire {
 
   late final _cst_new_list_display_metadataPtr =
       _lookup<ffi.NativeFunction<ffi.Pointer<wire_cst_list_display_metadata> Function(ffi.Int32)>>(
-        'frbgen_wallet_core_cst_new_list_display_metadata',
-      );
-  late final _cst_new_list_display_metadata = _cst_new_list_display_metadataPtr
-      .asFunction<ffi.Pointer<wire_cst_list_display_metadata> Function(int)>();
+          'frbgen_wallet_core_cst_new_list_display_metadata');
+  late final _cst_new_list_display_metadata =
+      _cst_new_list_display_metadataPtr.asFunction<ffi.Pointer<wire_cst_list_display_metadata> Function(int)>();
 
   ffi.Pointer<wire_cst_list_localized_string> cst_new_list_localized_string(
     int len,
@@ -2417,10 +2301,9 @@ class WalletCoreWire implements BaseWire {
 
   late final _cst_new_list_localized_stringPtr =
       _lookup<ffi.NativeFunction<ffi.Pointer<wire_cst_list_localized_string> Function(ffi.Int32)>>(
-        'frbgen_wallet_core_cst_new_list_localized_string',
-      );
-  late final _cst_new_list_localized_string = _cst_new_list_localized_stringPtr
-      .asFunction<ffi.Pointer<wire_cst_list_localized_string> Function(int)>();
+          'frbgen_wallet_core_cst_new_list_localized_string');
+  late final _cst_new_list_localized_string =
+      _cst_new_list_localized_stringPtr.asFunction<ffi.Pointer<wire_cst_list_localized_string> Function(int)>();
 
   ffi.Pointer<wire_cst_list_missing_attribute> cst_new_list_missing_attribute(
     int len,
@@ -2432,10 +2315,9 @@ class WalletCoreWire implements BaseWire {
 
   late final _cst_new_list_missing_attributePtr =
       _lookup<ffi.NativeFunction<ffi.Pointer<wire_cst_list_missing_attribute> Function(ffi.Int32)>>(
-        'frbgen_wallet_core_cst_new_list_missing_attribute',
-      );
-  late final _cst_new_list_missing_attribute = _cst_new_list_missing_attributePtr
-      .asFunction<ffi.Pointer<wire_cst_list_missing_attribute> Function(int)>();
+          'frbgen_wallet_core_cst_new_list_missing_attribute');
+  late final _cst_new_list_missing_attribute =
+      _cst_new_list_missing_attributePtr.asFunction<ffi.Pointer<wire_cst_list_missing_attribute> Function(int)>();
 
   ffi.Pointer<wire_cst_list_prim_u_8_strict> cst_new_list_prim_u_8_strict(
     int len,
@@ -2447,10 +2329,9 @@ class WalletCoreWire implements BaseWire {
 
   late final _cst_new_list_prim_u_8_strictPtr =
       _lookup<ffi.NativeFunction<ffi.Pointer<wire_cst_list_prim_u_8_strict> Function(ffi.Int32)>>(
-        'frbgen_wallet_core_cst_new_list_prim_u_8_strict',
-      );
-  late final _cst_new_list_prim_u_8_strict = _cst_new_list_prim_u_8_strictPtr
-      .asFunction<ffi.Pointer<wire_cst_list_prim_u_8_strict> Function(int)>();
+          'frbgen_wallet_core_cst_new_list_prim_u_8_strict');
+  late final _cst_new_list_prim_u_8_strict =
+      _cst_new_list_prim_u_8_strictPtr.asFunction<ffi.Pointer<wire_cst_list_prim_u_8_strict> Function(int)>();
 
   ffi.Pointer<wire_cst_list_wallet_event> cst_new_list_wallet_event(
     int len,
@@ -2462,18 +2343,16 @@ class WalletCoreWire implements BaseWire {
 
   late final _cst_new_list_wallet_eventPtr =
       _lookup<ffi.NativeFunction<ffi.Pointer<wire_cst_list_wallet_event> Function(ffi.Int32)>>(
-        'frbgen_wallet_core_cst_new_list_wallet_event',
-      );
-  late final _cst_new_list_wallet_event = _cst_new_list_wallet_eventPtr
-      .asFunction<ffi.Pointer<wire_cst_list_wallet_event> Function(int)>();
+          'frbgen_wallet_core_cst_new_list_wallet_event');
+  late final _cst_new_list_wallet_event =
+      _cst_new_list_wallet_eventPtr.asFunction<ffi.Pointer<wire_cst_list_wallet_event> Function(int)>();
 
   int dummy_method_to_enforce_bundling() {
     return _dummy_method_to_enforce_bundling();
   }
 
-  late final _dummy_method_to_enforce_bundlingPtr = _lookup<ffi.NativeFunction<ffi.Int64 Function()>>(
-    'dummy_method_to_enforce_bundling',
-  );
+  late final _dummy_method_to_enforce_bundlingPtr =
+      _lookup<ffi.NativeFunction<ffi.Int64 Function()>>('dummy_method_to_enforce_bundling');
   late final _dummy_method_to_enforce_bundling = _dummy_method_to_enforce_bundlingPtr.asFunction<int Function()>();
 }
 

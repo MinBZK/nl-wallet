@@ -1,7 +1,7 @@
-pub enum WalletTransferState {
-    WaitingForScan,
-    WaitingForApproval,
-    Transferring,
-    Error,
+pub enum TransferSessionState {
+    Created,
+    ReadyForTransfer,
+    Receiving,
     Success,
+    Cancelled,
 }

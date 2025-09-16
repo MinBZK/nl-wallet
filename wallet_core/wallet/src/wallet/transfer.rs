@@ -1,14 +1,11 @@
 use std::sync::Arc;
 
-use base64::Engine;
-use base64::prelude::BASE64_URL_SAFE_NO_PAD;
 use tracing::info;
 use tracing::instrument;
 use url::Url;
 
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
-use http_utils::urls;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::issuance_session::IssuanceSession;
 use platform_support::attested_key::AttestedKeyHolder;
@@ -22,7 +19,6 @@ use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::Wallet;
 use crate::account_provider::AccountProviderClient;
-use crate::config::UNIVERSAL_LINK_BASE_URL;
 use crate::digid::DigidClient;
 use crate::errors::ChangePinError;
 use crate::errors::InstructionError;
@@ -32,6 +28,8 @@ use crate::storage::Storage;
 use crate::storage::StorageError;
 use crate::storage::TransferData;
 use crate::transfer::TransferSessionId;
+use crate::transfer::uri::TransferUri;
+use crate::transfer::uri::TransferUriError;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
@@ -67,6 +65,10 @@ pub enum TransferError {
     #[error("wallet is in an invalid state for a transfer")]
     #[category(critical)]
     IllegalWalletState,
+
+    #[error("invalid transfer uri: {0}")]
+    #[category(pd)]
+    TransferUri(#[from] TransferUriError),
 }
 
 impl<CR, UR, S, AKH, APC, DC, IS, DCC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC>
@@ -82,8 +84,8 @@ where
 {
     #[instrument(skip_all)]
     #[sentry_capture_error]
-    pub async fn start_transfer(&mut self) -> Result<Url, TransferError> {
-        info!("Start transfer");
+    pub async fn init_transfer(&mut self) -> Result<Url, TransferError> {
+        info!("Init transfer");
 
         self.validate_transfer_allowed()?;
 
@@ -91,27 +93,23 @@ where
             return Err(TransferError::MissingTransferSessionId);
         };
 
-        let key = crypto::utils::random_bytes(32);
-        // Safe to do it the simple way since it is encoded via Base64 URL safe (base64url)
-        let query = format!(
-            "s={}&k={}",
-            BASE64_URL_SAFE_NO_PAD.encode(transfer_data.transfer_session_id.as_ref()),
-            BASE64_URL_SAFE_NO_PAD.encode(&key),
-        );
+        let transfer_uri = TransferUri {
+            transfer_session_id: transfer_data.transfer_session_id,
+            key: crypto::utils::random_bytes(32),
+        };
 
-        let mut url: Url = urls::transfer_base_uri(&UNIVERSAL_LINK_BASE_URL).into_inner();
-        url.set_fragment(Some(query.as_str()));
-
-        Ok(url)
+        Ok(transfer_uri.into())
     }
 
     #[instrument(skip_all)]
     #[sentry_capture_error]
-    pub async fn confirm_transfer(&mut self, transfer_session_id: TransferSessionId) -> Result<(), TransferError> {
+    pub async fn confirm_transfer(&mut self, uri: Url) -> Result<(), TransferError> {
         info!("Confirming transfer");
 
+        let transfer_uri: TransferUri = uri.try_into()?;
+
         self.send_transfer_instruction(ConfirmTransfer {
-            transfer_session_id: transfer_session_id.into(),
+            transfer_session_id: transfer_uri.transfer_session_id.into(),
             app_version: version().clone(),
         })
         .await
@@ -188,8 +186,6 @@ where
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
-    use url::Host;
-    use url::form_urlencoded;
     use uuid::Uuid;
 
     use wallet_account::messages::instructions::HwSignedInstruction;
@@ -211,7 +207,7 @@ mod tests {
         wallet.update_policy_repository.state = VersionState::Block;
 
         let error = wallet
-            .start_transfer()
+            .init_transfer()
             .await
             .expect_err("Wallet start transfer should have resulted in error");
 
@@ -224,7 +220,7 @@ mod tests {
         wallet.lock();
 
         let error = wallet
-            .start_transfer()
+            .init_transfer()
             .await
             .expect_err("Wallet start transfer should have resulted in error");
 
@@ -270,35 +266,13 @@ mod tests {
             });
 
         let url = wallet
-            .start_transfer()
+            .init_transfer()
             .await
             .expect("Wallet start transfer should have succeeded");
 
-        assert_eq!(url.scheme(), "walletdebuginteraction");
-        assert_eq!(
-            url.host().map(|h| h.to_owned()),
-            Some(Host::parse("wallet.edi.rijksoverheid.nl").unwrap())
-        );
-        assert_eq!(url.path(), "/transfer");
-        assert_eq!(url.query(), None);
-        assert!(url.fragment().is_some());
+        let transfer_uri: TransferUri = url.try_into().expect("URL should be a transfer uri");
 
-        let mut pairs = form_urlencoded::parse(url.fragment().unwrap().as_bytes());
-
-        let (key, value) = pairs.next().unwrap();
-        assert_eq!(key, "s");
-        assert_eq!(
-            BASE64_URL_SAFE_NO_PAD
-                .decode(value.as_ref())
-                .map(|id| Uuid::from_slice(id.as_ref())),
-            Ok(Ok(transfer_session_id))
-        );
-
-        let (key, value) = pairs.next().unwrap();
-        assert_eq!(key, "k");
-        assert_eq!(BASE64_URL_SAFE_NO_PAD.decode(value.as_ref()).unwrap().len(), 32);
-
-        assert!(pairs.next().is_none());
+        assert_eq!(transfer_uri.transfer_session_id.as_ref(), &transfer_session_id);
     }
 
     #[tokio::test]
@@ -335,8 +309,13 @@ mod tests {
             .once()
             .return_once(move |_, _: HwSignedInstruction<ConfirmTransfer>| Ok(wp_result));
 
+        let transfer_uri = TransferUri {
+            transfer_session_id: transfer_session_id.into(),
+            key: crypto::utils::random_bytes(32),
+        };
+
         wallet
-            .confirm_transfer(transfer_session_id.into())
+            .confirm_transfer(transfer_uri.into())
             .await
             .expect("Wallet confirm transfer should have succeeded");
     }

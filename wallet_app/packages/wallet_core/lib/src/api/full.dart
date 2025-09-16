@@ -113,15 +113,17 @@ Future<void> setBiometricUnlock({required bool enable}) =>
 
 Future<void> unlockWalletWithBiometrics() => WalletCore.instance.api.crateApiFullUnlockWalletWithBiometrics();
 
-Future<void> initWalletTransfer({required String uri}) =>
-    WalletCore.instance.api.crateApiFullInitWalletTransfer(uri: uri);
+Future<String> initWalletTransfer() => WalletCore.instance.api.crateApiFullInitWalletTransfer();
 
-Future<WalletInstructionResult> confirmWalletTransfer({required String pin}) =>
-    WalletCore.instance.api.crateApiFullConfirmWalletTransfer(pin: pin);
+Future<void> acknowledgeWalletTransfer({required String uri}) =>
+    WalletCore.instance.api.crateApiFullAcknowledgeWalletTransfer(uri: uri);
 
-Future<String> startWalletTransfer() => WalletCore.instance.api.crateApiFullStartWalletTransfer();
+Future<WalletInstructionResult> transferWallet({required String pin}) =>
+    WalletCore.instance.api.crateApiFullTransferWallet(pin: pin);
 
-Stream<WalletTransferState> getWalletTransferStateStream() =>
+Future<WalletInstructionResult> cancelWalletTransfer() => WalletCore.instance.api.crateApiFullCancelWalletTransfer();
+
+Stream<TransferSessionState> getWalletTransferStateStream() =>
     WalletCore.instance.api.crateApiFullGetWalletTransferStateStream();
 
 Future<List<WalletEvent>> getHistory() => WalletCore.instance.api.crateApiFullGetHistory();

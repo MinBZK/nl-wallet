@@ -11,4 +11,5 @@ enum PinValidationResult {
   TooFewUniqueDigits,
   SequentialDigits,
   OtherIssue,
+  ;
 }
