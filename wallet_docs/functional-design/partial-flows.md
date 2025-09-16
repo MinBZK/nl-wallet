@@ -5,7 +5,7 @@ system. These capture fragments of interaction between the user and external
 systems that appear multiple times across different scenarios, including 
 variations and possible errors. They ensure consistency and clarity in how  
 the system handles repeated patterns of behaviour. Read more about 
-[how the functional design is formalized](./about).
+[how the functional design is formalized](functional-design).
 
 ```{toctree}
 :maxdepth: 1
