@@ -6,8 +6,7 @@ use chrono::Duration;
 use futures::FutureExt;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::jwk::Jwk;
-use p256::ecdsa::SigningKey;
-use rand_core::OsRng;
+use p256::ecdsa::VerifyingKey;
 use serde_json::json;
 use ssri::Integrity;
 
@@ -44,7 +43,7 @@ pub const WITH_KB_SD_JWT_NONCE: &str = "1234567890";
 // 0}]]
 pub const INVALID_DISCLOSURE_SD_JWT: &str = include_str!("../examples/invalid_disclosure.jwt");
 
-impl SdJwtPresentation {
+impl SdJwt {
     pub fn spec_simple_structured() -> SdJwt {
         SdJwt::parse_and_verify(SIMPLE_STRUCTURED_SD_JWT, &examples_sd_jwt_decoding_key()).unwrap()
     }
@@ -57,18 +56,7 @@ impl SdJwtPresentation {
         SdJwt::parse_and_verify(SD_JWT_VC, &examples_sd_jwt_decoding_key()).unwrap()
     }
 
-    pub fn spec_sd_jwt_kb() -> SdJwtPresentation {
-        SdJwtPresentation::parse_and_verify(
-            WITH_KB_SD_JWT,
-            &examples_sd_jwt_decoding_key(),
-            WITH_KB_SD_JWT_AUD,
-            WITH_KB_SD_JWT_NONCE,
-            Duration::minutes(2),
-        )
-        .unwrap()
-    }
-
-    pub fn example_pid_sd_jwt(issuer_keypair: &KeyPair) -> SdJwt {
+    pub fn example_pid_sd_jwt(issuer_keypair: &KeyPair, holder_public_key: &VerifyingKey) -> SdJwt {
         let object = json!({
           "vct": "urn:eudi:pid:nl:1",
           "iat": 1683000000,
@@ -81,8 +69,6 @@ impl SdJwtPresentation {
           "family_name": "Doe",
           "birthdate": "1940-01-01"
         });
-
-        let holder_privkey = SigningKey::random(&mut OsRng);
 
         // issuer signs SD-JWT
         SdJwtBuilder::new(object)
@@ -108,11 +94,24 @@ impl SdJwtPresentation {
                 Integrity::from(random_string(32)),
                 issuer_keypair.private_key(),
                 vec![issuer_keypair.certificate().clone()],
-                holder_privkey.verifying_key(),
+                holder_public_key,
             )
             .now_or_never()
             .unwrap()
             .unwrap()
+    }
+}
+
+impl SdJwtPresentation {
+    pub fn spec_sd_jwt_kb() -> SdJwtPresentation {
+        SdJwtPresentation::parse_and_verify(
+            WITH_KB_SD_JWT,
+            &examples_sd_jwt_decoding_key(),
+            WITH_KB_SD_JWT_AUD,
+            WITH_KB_SD_JWT_NONCE,
+            Duration::minutes(2),
+        )
+        .unwrap()
     }
 }
 

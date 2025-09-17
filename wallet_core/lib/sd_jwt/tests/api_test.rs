@@ -64,7 +64,7 @@ async fn make_sd_jwt(
 
 #[test]
 fn simple_sd_jwt() {
-    let sd_jwt = SdJwtPresentation::spec_simple_structured();
+    let sd_jwt = SdJwt::spec_simple_structured();
     let disclosed = sd_jwt.to_disclosed_object().unwrap();
     let expected = json!({
         "address": {
@@ -84,7 +84,7 @@ fn simple_sd_jwt() {
 
 #[test]
 fn complex_sd_jwt() {
-    let sd_jwt: SdJwt = SdJwtPresentation::spec_complex_structured();
+    let sd_jwt = SdJwt::spec_complex_structured();
     let disclosed = sd_jwt.to_disclosed_object().unwrap();
     let expected = json!({
         "verified_claims": {
