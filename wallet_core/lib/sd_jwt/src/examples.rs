@@ -2,7 +2,8 @@ use std::collections::HashMap;
 
 use base64::Engine;
 use base64::prelude::BASE64_URL_SAFE_NO_PAD;
-use chrono::Duration;
+use chrono::DateTime;
+use chrono::Utc;
 use futures::FutureExt;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::jwk::Jwk;
@@ -15,6 +16,7 @@ use crypto::server_keys::KeyPair;
 use crypto::utils::random_string;
 use jwt::EcdsaDecodingKey;
 use jwt::jwk::jwk_to_p256;
+use utils::generator::Generator;
 
 use crate::builder::SdJwtBuilder;
 use crate::disclosure::Disclosure;
@@ -22,7 +24,6 @@ use crate::disclosure::DisclosureContent;
 use crate::hasher::Hasher;
 use crate::hasher::Sha256Hasher;
 use crate::sd_jwt::SdJwt;
-use crate::sd_jwt::SdJwtPresentation;
 
 // Taken from https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-17.html#name-simple-structured-sd-jwt
 pub const SIMPLE_STRUCTURED_SD_JWT: &str = include_str!("../examples/spec/simple_structured.jwt");
@@ -102,16 +103,10 @@ impl SdJwt {
     }
 }
 
-impl SdJwtPresentation {
-    pub fn spec_sd_jwt_kb() -> SdJwtPresentation {
-        SdJwtPresentation::parse_and_verify(
-            WITH_KB_SD_JWT,
-            &examples_sd_jwt_decoding_key(),
-            WITH_KB_SD_JWT_AUD,
-            WITH_KB_SD_JWT_NONCE,
-            Duration::minutes(2),
-        )
-        .unwrap()
+pub struct KeyBindingExampleTimeGenerator;
+impl Generator<DateTime<Utc>> for KeyBindingExampleTimeGenerator {
+    fn generate(&self) -> DateTime<Utc> {
+        DateTime::from_timestamp(1683000000, 0).unwrap()
     }
 }
 

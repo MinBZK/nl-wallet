@@ -21,6 +21,7 @@ use jwt::EcdsaDecodingKey;
 use jwt::UnverifiedJwt;
 use jwt::VerifiedJwt;
 use jwt::jwk::jwk_to_p256;
+use utils::generator::Generator;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
@@ -43,6 +44,7 @@ impl KeyBindingJwt {
         expected_aud: &str,
         expected_nonce: &str,
         iat_acceptance_window: Duration,
+        time: &impl Generator<DateTime<Utc>>,
     ) -> Result<Self> {
         let jwt: UnverifiedJwt<KeyBindingJwtClaims> = s.parse()?;
 
@@ -62,7 +64,7 @@ impl KeyBindingJwt {
             return Err(Error::Deserialization(String::from("invalid KB-JWT: unexpected nonce")));
         }
 
-        if (verified_jwt.payload().iat + iat_acceptance_window) < Utc::now() {
+        if (verified_jwt.payload().iat + iat_acceptance_window) < time.generate() {
             return Err(Error::Deserialization(String::from(
                 "invalid KB-JWT: iat not in acceptable window",
             )));
@@ -237,6 +239,7 @@ mod test {
     use crypto::mock_remote::MockRemoteWscd;
     use jwt::EcdsaDecodingKey;
     use jwt::UnverifiedJwt;
+    use utils::generator::mock::MockTimeGenerator;
     use utils::vec_at_least::IntoNonEmptyIterator;
     use utils::vec_at_least::NonEmptyIterator;
     use utils::vec_nonempty;
@@ -365,6 +368,7 @@ mod test {
             "aud",
             "abc123",
             Duration::days(3),
+            &MockTimeGenerator::default(),
         )
         .unwrap();
     }
@@ -381,6 +385,7 @@ mod test {
             "aud",
             "abc123",
             Duration::days(3),
+            &MockTimeGenerator::default(),
         )
         .expect_err("should fail validation");
         assert_matches!(err, Error::Deserialization(msg) if msg == "invalid KB-JWT: typ must be \"kb+jwt\"");
@@ -399,6 +404,7 @@ mod test {
             "aud",
             "abc123",
             Duration::days(1),
+            &MockTimeGenerator::default(),
         )
         .expect_err("should fail validation");
         assert_matches!(err, Error::Deserialization(msg) if msg == "invalid KB-JWT: iat not in acceptable window");
@@ -417,6 +423,7 @@ mod test {
             "aud",
             "def456",
             Duration::days(3),
+            &MockTimeGenerator::default(),
         )
         .expect_err("should fail validation");
         assert_matches!(err, Error::Deserialization(msg) if msg == "invalid KB-JWT: unexpected nonce");

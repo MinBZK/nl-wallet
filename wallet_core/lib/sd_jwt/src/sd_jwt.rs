@@ -345,6 +345,7 @@ impl SdJwtPresentation {
         kb_expected_aud: &str,
         kb_expected_nonce: &str,
         kb_iat_acceptance_window: Duration,
+        time: &impl Generator<DateTime<Utc>>,
     ) -> Result<KeyBindingJwt> {
         KeyBindingJwt::parse_and_verify(
             kb_segment,
@@ -352,6 +353,7 @@ impl SdJwtPresentation {
             kb_expected_aud,
             kb_expected_nonce,
             kb_iat_acceptance_window,
+            time,
         )
     }
 
@@ -365,6 +367,7 @@ impl SdJwtPresentation {
         kb_expected_aud: &str,
         kb_expected_nonce: &str,
         kb_iat_acceptance_window: Duration,
+        time: &impl Generator<DateTime<Utc>>,
     ) -> Result<Self> {
         let (rest, kb_segment) = Self::split_sd_jwt_kb(sd_jwt)?;
 
@@ -376,6 +379,7 @@ impl SdJwtPresentation {
             kb_expected_aud,
             kb_expected_nonce,
             kb_iat_acceptance_window,
+            time,
         )?;
 
         Ok(Self {
@@ -406,6 +410,7 @@ impl SdJwtPresentation {
             kb_expected_aud,
             kb_expected_nonce,
             kb_iat_acceptance_window,
+            time,
         )?;
 
         Ok(Self {
@@ -922,7 +927,7 @@ mod mock {
 }
 
 #[cfg(feature = "examples")]
-mod example {
+mod examples {
     use futures::FutureExt;
     use jsonwebtoken::Algorithm;
     use p256::ecdsa::SigningKey;
@@ -1019,6 +1024,7 @@ mod test {
     use crate::encoder::ARRAY_DIGEST_KEY;
     use crate::encoder::DIGESTS_KEY;
     use crate::error::Result;
+    use crate::examples::KeyBindingExampleTimeGenerator;
     use crate::examples::*;
     use crate::key_binding_jwt_claims::KeyBindingJwtBuilder;
     use crate::key_binding_jwt_claims::RequiredKeyBinding;
@@ -1072,7 +1078,8 @@ mod test {
             &examples_sd_jwt_decoding_key(),
             WITH_KB_SD_JWT_AUD,
             WITH_KB_SD_JWT_NONCE,
-            Duration::days(36500),
+            Duration::minutes(10),
+            &KeyBindingExampleTimeGenerator,
         )
         .unwrap();
     }

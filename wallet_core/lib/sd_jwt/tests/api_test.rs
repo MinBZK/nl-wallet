@@ -3,7 +3,6 @@
 
 use std::collections::HashSet;
 
-use chrono::DateTime;
 use chrono::Duration;
 use chrono::SubsecRound;
 use chrono::Utc;
@@ -156,7 +155,7 @@ async fn concealing_property_of_concealable_value_works() -> anyhow::Result<()> 
         .finish()
         .sign(
             KeyBindingJwtBuilder::new(
-                DateTime::from_timestamp_millis(1458304832).unwrap(),
+                Utc::now(),
                 String::from("https://example.com"),
                 String::from("abcdefghi"),
                 Algorithm::ES256,
@@ -201,7 +200,7 @@ async fn sd_jwt_without_disclosures_works() -> anyhow::Result<()> {
         .finish()
         .sign(
             KeyBindingJwtBuilder::new(
-                DateTime::from_timestamp_millis(1458304832).unwrap(),
+                Utc::now(),
                 String::from("https://example.com"),
                 String::from("abcdefghi"),
                 Algorithm::ES256,
@@ -218,7 +217,8 @@ async fn sd_jwt_without_disclosures_works() -> anyhow::Result<()> {
             &decoding_key,
             "https://example.com",
             "abcdefghi",
-            Duration::days(36500),
+            Duration::minutes(10),
+            &MockTimeGenerator::default(),
         )?
     };
 
@@ -268,7 +268,7 @@ async fn sd_jwt_sd_hash() -> anyhow::Result<()> {
         .finish()
         .sign(
             KeyBindingJwtBuilder::new(
-                DateTime::from_timestamp_millis(1458304832).unwrap(),
+                Utc::now(),
                 String::from("https://example.com"),
                 String::from("abcdefghi"),
                 Algorithm::ES256,
@@ -384,7 +384,7 @@ async fn test_presentation() -> anyhow::Result<()> {
         .finish()
         .sign(
             KeyBindingJwtBuilder::new(
-                DateTime::from_timestamp_millis(1458304832).unwrap(),
+                Utc::now(),
                 String::from("https://example.com"),
                 String::from("abcdefghi"),
                 Algorithm::ES256,
@@ -400,7 +400,8 @@ async fn test_presentation() -> anyhow::Result<()> {
         &EcdsaDecodingKey::from(issuer_privkey.verifying_key()),
         "https://example.com",
         "abcdefghi",
-        Duration::days(36500),
+        Duration::minutes(10),
+        &MockTimeGenerator::default(),
     )?;
 
     let disclosed_paths = parsed_presentation
@@ -487,7 +488,7 @@ fn test_wscd_presentation() {
         &[ca.to_trust_anchor()],
         "https://example.com",
         "abcdefghi",
-        Duration::minutes(1),
+        Duration::minutes(10),
     )
     .expect("validating SD-JWT presentation should succeed");
 
