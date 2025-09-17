@@ -790,6 +790,12 @@ where
         }
         // We reached the the value we want to disclose, so add it to the list of digests
         (serde_json::Value::Object(object), ClaimPath::SelectByKey(key)) => {
+            // If the value exists within the object, it is not selectively disclosable
+            // and we do not have to look for the associated disclosure.
+            if object.contains_key(key) {
+                return Ok(digests);
+            }
+
             let digest = find_disclosure_digest_in_object(object, key, disclosures)
                 .ok_or_else(|| Error::ElementNotFound { path: key.clone() })?;
 
@@ -810,15 +816,21 @@ where
         }
         // Disclosing an array's entry.
         (serde_json::Value::Array(arr), ClaimPath::SelectByIndex(index)) => {
-            let digest = arr
-                .get(*index)
-                .and_then(|entry| entry.as_object())
-                .and_then(|object| find_disclosure_digest_in_array(object))
-                .ok_or_else(|| Error::ElementNotFoundInArray {
+            let Some(entry) = arr.get(*index) else {
+                return Err(Error::ElementNotFoundInArray {
                     path: element_key.to_string(),
-                })?;
+                });
+            };
 
-            digests.push(digest);
+            // If the array entry does not look exactly like an array-selective-disclosure object, then this
+            // entry is not selectively disclosable and we do not have to look for the associated disclosure.
+            let digest = entry
+                .as_object()
+                .and_then(|object| find_disclosure_digest_in_array(object));
+            if let Some(digest) = digest {
+                digests.push(digest);
+            }
+
             Ok(digests)
         }
         // Disclosing all array entries
@@ -846,16 +858,21 @@ fn process_array_entry<'a>(
     disclosures: &'a HashMap<String, Disclosure>,
     digests: &mut Vec<&'a str>,
 ) -> Option<&'a serde_json::Value> {
-    entry
+    let digest = entry
         .as_object()
-        .and_then(|object| find_disclosure_digest_in_array(object))
-        .and_then(|digest| {
-            // We're disclosing something within a selectively disclosable array entry.
-            // For the verifier to be able to verify that, we'll also have to disclose that entry.
-            digests.push(digest);
-            disclosures.get(digest)
-        })
-        .map(move |disclosure| disclosure.claim_value())
+        .and_then(|object| find_disclosure_digest_in_array(object));
+
+    if let Some(digest) = digest {
+        // We're disclosing something within a selectively disclosable array entry.
+        // For the verifier to be able to verify that, we'll also have to disclose that entry.
+        digests.push(digest);
+
+        disclosures.get(digest).map(|disclosure| disclosure.claim_value())
+    } else {
+        // This array entry is not selectively disclosable as it does not look like an
+        // array-selective-disclosure object, so we just return it verbatim.
+        Some(entry)
+    }
 }
 
 /// Find the digest of the given `key` in the `object` and `disclosures`.
@@ -1225,6 +1242,18 @@ mod test {
         &["given_name"],
         &["/family_name"],
     )]
+    #[case::flat_single_sd_disclose_all(
+        json!({
+            "iss": "https://iss.example.com",
+            "iat": Utc::now().timestamp(),
+            "given_name": "John",
+            "family_name": "Doe"
+        }),
+        &[vec!["given_name"]],
+        &[vec!["given_name"], vec!["family_name"]],
+        &["given_name"],
+        &["/family_name"],
+    )]
     #[case::flat_no_sd_no_disclose(
         json!({
             "iss": "https://iss.example.com",
@@ -1319,7 +1348,7 @@ mod test {
         #[case] object: serde_json::Value,
         #[case] conceal_paths: &[Vec<&str>],
         #[case] disclose_paths: &[Vec<&str>],
-        #[case] expected_disclosed_paths: &[&str],
+        #[case] expected_disclosure_paths: &[&str],
         #[case] expected_not_selectively_disclosable_paths: &[&str],
     ) {
         let presentation = create_presentation(object, conceal_paths, disclose_paths);
@@ -1356,7 +1385,7 @@ mod test {
         let not_selectively_disclosable_paths = get_paths(&properties);
 
         assert_eq!(
-            HashSet::from_iter(expected_disclosed_paths.iter().map(|path| String::from(*path))),
+            HashSet::from_iter(expected_disclosure_paths.iter().map(|path| String::from(*path))),
             presentation
                 .sd_jwt
                 .disclosures
@@ -1389,6 +1418,17 @@ mod test {
         &["NL", "DE"],
         &["/nationalities"],
     )]
+    #[case::array_all_non_sd(
+        json!({
+            "iss": "https://iss.example.com",
+            "iat": Utc::now().timestamp(),
+            "nationalities": ["NL", "DE"]
+        }),
+        &[vec!["nationalities", "1"]],
+        &[vec!["nationalities", "null"]],
+        &["DE"],
+        &["/nationalities/NL", "/nationalities"],
+    )]
     #[case::array(
         json!({
             "iss": "https://iss.example.com",
@@ -1411,6 +1451,17 @@ mod test {
         &["NL"],
         &["/nationalities/DE", "/nationalities"],
     )]
+    #[case::array_index_non_sd(
+        json!({
+            "iss": "https://iss.example.com",
+            "iat": Utc::now().timestamp(),
+            "nationalities": ["NL", "DE"]
+        }),
+        &[vec!["nationalities", "0"]],
+        &[vec!["nationalities", "0"], vec!["nationalities", "1"]],
+        &["NL"],
+        &["/nationalities/DE", "/nationalities"],
+    )]
     #[case::array(
         json!({
             "iss": "https://iss.example.com",
@@ -1421,6 +1472,21 @@ mod test {
             vec!["nationalities", "0", "country"],
             vec!["nationalities", "1", "country"],
             vec!["nationalities", "0"],
+            vec!["nationalities", "1"],
+            vec!["nationalities"]
+        ],
+        &[vec!["nationalities", "null", "country"]],
+        &["nationalities", "country"],
+        &[],
+    )]
+    #[case::array_all_non_sd_nested(
+        json!({
+            "iss": "https://iss.example.com",
+            "iat": Utc::now().timestamp(),
+            "nationalities": [{"country": "NL"}, {"country": "DE"}]
+        }),
+        &[
+            vec!["nationalities", "1", "country"],
             vec!["nationalities", "1"],
             vec!["nationalities"]
         ],
@@ -1478,6 +1544,21 @@ mod test {
         &["nationalities", "country"],
         &[],
     )]
+    #[case::array_index_non_sd_nested(
+        json!({
+            "iss": "https://iss.example.com",
+            "iat": Utc::now().timestamp(),
+            "nationalities": [{"country": "NL"}, {"country": "DE"}]
+        }),
+        &[
+            vec!["nationalities", "0", "country"],
+            vec!["nationalities", "0"],
+            vec!["nationalities"]
+        ],
+        &[vec!["nationalities", "0", "country"], vec!["nationalities", "1", "country"]],
+        &["nationalities", "country"],
+        &[],
+    )]
     #[case::array(
         json!({
             "iss": "https://iss.example.com",
@@ -1493,7 +1574,7 @@ mod test {
         #[case] object: serde_json::Value,
         #[case] conceal_paths: &[Vec<&str>],
         #[case] disclose_paths: &[Vec<&str>],
-        #[case] expected_disclosed_paths_or_values: &[&str],
+        #[case] expected_disclosure_paths_or_values: &[&str],
         #[case] expected_not_selectively_disclosable_paths_or_values: &[&str],
     ) {
         let presentation = create_presentation(object, conceal_paths, disclose_paths);
@@ -1572,7 +1653,7 @@ mod test {
 
         assert_eq!(
             HashSet::from_iter(
-                expected_disclosed_paths_or_values
+                expected_disclosure_paths_or_values
                     .iter()
                     .map(|path| String::from(*path))
             ),
