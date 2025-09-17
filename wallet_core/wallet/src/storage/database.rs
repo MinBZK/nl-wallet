@@ -67,6 +67,10 @@ impl Database {
         Ok(Self::new(url, connection))
     }
 
+    pub async fn close(self) -> Result<(), DbErr> {
+        self.connection.close().await
+    }
+
     pub async fn close_and_delete(self) -> Result<(), io::Error> {
         // Close the database connection and ignore any errors.
         let _ = self.connection.close().await;

@@ -100,6 +100,14 @@ pub enum StorageError {
 
     #[error("{0}")]
     KeyFile(#[from] KeyFileError),
+
+    #[error("sqlite error: {0}")]
+    #[category(pd)]
+    Sqlite(#[from] rusqlite::Error),
+
+    #[error("join error: {0}")]
+    #[category(pd)]
+    Join(#[from] tokio::task::JoinError),
 }
 
 pub type StorageResult<T> = Result<T, StorageError>;
@@ -117,6 +125,8 @@ pub trait Storage {
     async fn state(&self) -> StorageResult<StorageState>;
 
     async fn open(&mut self) -> StorageResult<()>;
+    async fn export(&mut self) -> StorageResult<Vec<u8>>;
+    async fn import(&mut self, data: Vec<u8>) -> StorageResult<()>;
     async fn clear(&mut self);
 
     async fn open_if_needed(&mut self) -> StorageResult<()> {
