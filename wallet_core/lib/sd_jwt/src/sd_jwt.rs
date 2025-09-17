@@ -31,7 +31,7 @@ use ssri::Integrity;
 
 use attestation_types::claim_path::ClaimPath;
 use crypto::CredentialEcdsaKey;
-use crypto::EcdsaKeySend;
+use crypto::EcdsaKey;
 use crypto::wscd::DisclosureWscd;
 use crypto::wscd::WscdPoa;
 use crypto::x509::BorrowingCertificate;
@@ -721,7 +721,7 @@ impl UnsignedSdJwtPresentation {
     pub async fn sign(
         self,
         key_binding_jwt_builder: KeyBindingJwtBuilder,
-        signing_key: &impl EcdsaKeySend,
+        signing_key: &impl EcdsaKey,
     ) -> Result<SdJwtPresentation> {
         let sd_jwt = self.0;
 

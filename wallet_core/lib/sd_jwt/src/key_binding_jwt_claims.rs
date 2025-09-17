@@ -14,7 +14,7 @@ use serde_with::chrono::DateTime;
 use serde_with::chrono::Utc;
 
 use crypto::CredentialEcdsaKey;
-use crypto::EcdsaKeySend;
+use crypto::EcdsaKey;
 use crypto::wscd::DisclosureWscd;
 use crypto::wscd::WscdPoa;
 use jwt::EcdsaDecodingKey;
@@ -122,7 +122,7 @@ impl KeyBindingJwtBuilder {
     }
 
     /// Builds an [`KeyBindingJwt`] from the data provided to builder.
-    pub(crate) async fn finish(self, sd_jwt: &SdJwt, signing_key: &impl EcdsaKeySend) -> Result<KeyBindingJwt> {
+    pub(crate) async fn finish(self, sd_jwt: &SdJwt, signing_key: &impl EcdsaKey) -> Result<KeyBindingJwt> {
         let sd_hash = Self::sd_hash_for_sd_jwt(sd_jwt)?;
 
         let claims = KeyBindingJwtClaims {
