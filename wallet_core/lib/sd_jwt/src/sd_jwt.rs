@@ -149,14 +149,17 @@ impl UnverifiedSdJwt {
 impl From<UnsignedSdJwtPresentation> for UnverifiedSdJwt {
     fn from(presentation: UnsignedSdJwtPresentation) -> Self {
         // TODO we could define `into_disclosures` on `SdJwt` and use that here.
-        let disclosures = presentation
-            .0
-            .disclosures()
-            .values()
-            .map(ToString::to_string)
-            .collect_vec();
+        let UnsignedSdJwtPresentation(sd_jwt) = presentation;
+
+        let issuer_signed = sd_jwt.issuer_signed_jwt.into();
+        let disclosures = sd_jwt
+            .disclosures
+            .into_values()
+            .map(|disclosure| disclosure.encoded)
+            .collect();
+
         Self {
-            issuer_signed: presentation.0.issuer_signed_jwt.jwt().to_owned(),
+            issuer_signed,
             disclosures,
         }
     }
