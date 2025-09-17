@@ -12,6 +12,7 @@ import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/flow_progress.dart';
 import '../../../domain/model/navigation/navigation_request.dart';
 import '../../../domain/model/result/application_error.dart';
+import '../../../navigation/wallet_routes.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/launch_util.dart';
 import '../../../wallet_assets.dart';
@@ -80,6 +81,9 @@ class WalletPersonalizeScreen extends StatelessWidget {
         context.read<ScrollOffset>().reset(); // Reset provided scrollOffset between pages
         _closeOpenDialogs(context); // Make sure the StopDigidLoginDialog is dismissed on state changes.
         if (state is WalletPersonalizeConnectDigid) _loginWithDigid(context, state.authUrl);
+        if (state is WalletPersonalizeSuccess && state.userCanTransfer) {
+          Navigator.pushNamed(context, WalletRoutes.walletTransferTargetRoute);
+        }
       },
       builder: (context, state) {
         final Widget result = switch (state) {

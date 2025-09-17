@@ -75,15 +75,16 @@ class WalletPersonalizeConfirmPin extends WalletPersonalizeState {
 
 class WalletPersonalizeSuccess extends WalletPersonalizeState {
   final List<WalletCard> addedCards;
+  final bool userCanTransfer;
 
-  const WalletPersonalizeSuccess(this.addedCards);
+  const WalletPersonalizeSuccess({required this.addedCards, required this.userCanTransfer});
 
   @override
   FlowProgress get stepperProgress =>
       FlowProgress(currentStep: SetupHelper.totalSetupSteps, totalSteps: SetupHelper.totalSetupSteps);
 
   @override
-  List<Object?> get props => [addedCards, ...super.props];
+  List<Object?> get props => [addedCards, userCanTransfer, ...super.props];
 }
 
 class WalletPersonalizeFailure extends WalletPersonalizeState {}

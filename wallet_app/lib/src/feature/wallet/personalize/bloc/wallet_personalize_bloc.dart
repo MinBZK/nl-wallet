@@ -50,11 +50,9 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
     on<WalletPersonalizeContinuePidIssuance>(_continuePidIssuance);
 
     // PID sanity check (PVW-2742)
-    isWalletInitializedWithPidUseCase.invoke().then(
-      (initialized) async {
-        if (initialized) await _loadCardsAndEmitSuccessState();
-      },
-    );
+    isWalletInitializedWithPidUseCase.invoke().then((initialized) async {
+      if (initialized) await _loadCardsAndEmitSuccessState();
+    });
   }
 
   Future<void> _continuePidIssuance(
@@ -177,18 +175,25 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
     final state = this.state;
     if (state is WalletPersonalizeConfirmPin) {
       emit(WalletPersonalizeAddingCards(state.stepperProgress));
-      await _loadCardsAndEmitSuccessState();
+      await _loadCardsAndEmitSuccessState(userCanTransfer: event.transferState == TransferState.available);
     } else {
       Fimber.e('Pin confirmed from unexpected screen');
       emit(WalletPersonalizeFailure());
     }
   }
 
-  Future<void> _loadCardsAndEmitSuccessState() async {
+  Future<void> _loadCardsAndEmitSuccessState({bool userCanTransfer = false}) async {
     final result = await getWalletCardsUseCase.invoke();
     await result.process(
       onSuccess: (cards) {
-        add(WalletPersonalizeUpdateState(WalletPersonalizeSuccess(cards)));
+        add(
+          WalletPersonalizeUpdateState(
+            WalletPersonalizeSuccess(
+              addedCards: cards,
+              userCanTransfer: userCanTransfer,
+            ),
+          ),
+        );
       },
       onError: (error) {
         Fimber.e('Failed to fetch cards', ex: error);

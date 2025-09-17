@@ -74,12 +74,12 @@ void main() {
     },
     wait: const Duration(milliseconds: 50),
     verify: (bloc) {
-      expect(bloc.state, WalletPersonalizeSuccess([WalletMockData.card]));
+      expect(bloc.state, WalletPersonalizeSuccess(addedCards: [WalletMockData.card], userCanTransfer: false));
     },
   );
 
   blocTest(
-    'verify successful path to pid issuance',
+    'verify successful path to pid issuance - with wallet transfer option',
     build: () => WalletPersonalizeBloc(
       mockGetWalletCardsUseCase,
       mockGetPidIssuanceUrlUseCase,
@@ -98,7 +98,7 @@ void main() {
       await Future.delayed(const Duration(milliseconds: 10));
       bloc.add(WalletPersonalizeOfferingAccepted(WalletMockData.card.attributes));
       await Future.delayed(const Duration(milliseconds: 10));
-      bloc.add(const WalletPersonalizePinConfirmed(TransferState.unavailable));
+      bloc.add(const WalletPersonalizePinConfirmed(TransferState.available));
     },
     expect: () => [
       const WalletPersonalizeLoadingIssuanceUrl(),
@@ -106,7 +106,7 @@ void main() {
       WalletPersonalizeCheckData(availableAttributes: WalletMockData.card.attributes),
       WalletPersonalizeConfirmPin(WalletMockData.card.attributes),
       const WalletPersonalizeAddingCards(FlowProgress(currentStep: 7, totalSteps: 8)),
-      WalletPersonalizeSuccess([WalletMockData.card]),
+      WalletPersonalizeSuccess(addedCards: [WalletMockData.card], userCanTransfer: true),
     ],
   );
 
@@ -160,7 +160,7 @@ void main() {
       const WalletPersonalizeCheckData(availableAttributes: []),
       WalletPersonalizeConfirmPin(WalletMockData.card.attributes),
       const WalletPersonalizeAddingCards(FlowProgress(currentStep: 7, totalSteps: 8)),
-      WalletPersonalizeSuccess([WalletMockData.card]),
+      WalletPersonalizeSuccess(addedCards: [WalletMockData.card], userCanTransfer: false),
     ],
   );
 
