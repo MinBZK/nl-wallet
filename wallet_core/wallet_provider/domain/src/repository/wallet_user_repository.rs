@@ -12,6 +12,7 @@ use hsm::model::wrapped_key::WrappedKey;
 
 use crate::model::wallet_user::InstructionChallenge;
 use crate::model::wallet_user::TransferSession;
+use crate::model::wallet_user::TransferSessionState;
 use crate::model::wallet_user::WalletUserCreate;
 use crate::model::wallet_user::WalletUserKeys;
 use crate::model::wallet_user::WalletUserQueryResult;
@@ -113,6 +114,13 @@ pub trait WalletUserRepository {
         transaction: &Self::TransactionType,
         transfer_session_id: Uuid,
     ) -> Result<Option<TransferSession>>;
+
+    async fn update_transfer_session_state(
+        &self,
+        transaction: &Self::TransactionType,
+        transfer_session_id: Uuid,
+        state: TransferSessionState,
+    ) -> Result<()>;
 }
 
 #[cfg(feature = "mock")]
@@ -266,6 +274,15 @@ pub mod mock {
             _transfer_session_id: Uuid,
         ) -> Result<Option<TransferSession>> {
             Ok(None)
+        }
+
+        async fn update_transfer_session_state(
+            &self,
+            _transaction: &Self::TransactionType,
+            _transfer_session_id: Uuid,
+            _state: TransferSessionState,
+        ) -> Result<()> {
+            Ok(())
         }
     }
 }

@@ -13,6 +13,7 @@ use hsm::model::encrypted::Encrypted;
 use hsm::model::wrapped_key::WrappedKey;
 use wallet_provider_domain::model::wallet_user::InstructionChallenge;
 use wallet_provider_domain::model::wallet_user::TransferSession;
+use wallet_provider_domain::model::wallet_user::TransferSessionState;
 use wallet_provider_domain::model::wallet_user::WalletUserCreate;
 use wallet_provider_domain::model::wallet_user::WalletUserKeys;
 use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
@@ -200,6 +201,15 @@ impl WalletUserRepository for Repositories {
     ) -> Result<Option<TransferSession>, PersistenceError> {
         wallet_user::find_transfer_session_by_transfer_session_id(transaction, transfer_session_id).await
     }
+
+    async fn update_transfer_session_state(
+        &self,
+        transaction: &Self::TransactionType,
+        transfer_session_id: Uuid,
+        state: TransferSessionState,
+    ) -> Result<(), PersistenceError> {
+        wallet_user::update_transfer_state(transaction, transfer_session_id, state).await
+    }
 }
 
 #[cfg(feature = "mock")]
@@ -222,6 +232,7 @@ pub mod mock {
     use hsm::model::wrapped_key::WrappedKey;
     use wallet_provider_domain::model::wallet_user::InstructionChallenge;
     use wallet_provider_domain::model::wallet_user::TransferSession;
+    use wallet_provider_domain::model::wallet_user::TransferSessionState;
     use wallet_provider_domain::model::wallet_user::WalletUser;
     use wallet_provider_domain::model::wallet_user::WalletUserAttestation;
     use wallet_provider_domain::model::wallet_user::WalletUserCreate;
@@ -353,6 +364,12 @@ pub mod mock {
                 transaction: &MockTransaction,
                 transfer_session_id: Uuid,
             ) -> Result<Option<TransferSession>, PersistenceError>;
+
+            async fn update_transfer_session_state(&self,
+                transaction: &MockTransaction,
+                transfer_session_id: Uuid,
+                state: TransferSessionState,
+            ) -> Result<(), PersistenceError>;
         }
 
         impl TransactionStarter for TransactionalWalletUserRepository {
@@ -553,6 +570,15 @@ pub mod mock {
             _transfer_session_id: Uuid,
         ) -> Result<Option<TransferSession>, PersistenceError> {
             Ok(None)
+        }
+
+        async fn update_transfer_session_state(
+            &self,
+            _transaction: &Self::TransactionType,
+            _transfer_session_id: Uuid,
+            _state: TransferSessionState,
+        ) -> Result<(), PersistenceError> {
+            Ok(())
         }
     }
 

@@ -35,6 +35,7 @@ mock = [
     "wallet_account/client",
     "wallet_provider_domain/mock",
     "wallet_provider_persistence",
+    "wallet_provider_persistence/mock",
     "crypto/mock_secure_keys",
 ]
 # Include and run test that depend on an external PostgreSQL database
@@ -95,6 +96,7 @@ wallet_provider_persistence = { path = "../persistence", features = ["mock"], op
 anyhow.workspace = true
 assert_matches.workspace = true
 hmac = { workspace = true, features = ["std"] }
+mockall.workspace = true
 rand.workspace = true
 rand_core.workspace = true
 rstest.workspace = true

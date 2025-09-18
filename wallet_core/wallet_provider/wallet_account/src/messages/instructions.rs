@@ -24,6 +24,7 @@ use wscd::Poa;
 
 use crate::signed::ChallengeRequest;
 use crate::signed::ChallengeResponse;
+use crate::signed::HwSignedChallengeResponse;
 
 use super::registration::WalletCertificate;
 
@@ -38,6 +39,12 @@ pub struct InstructionChallengeRequest {
 #[derive(Debug, Serialize, Deserialize, Constructor)]
 pub struct Instruction<T> {
     pub instruction: ChallengeResponse<T>,
+    pub certificate: WalletCertificate,
+}
+
+#[derive(Debug, Serialize, Deserialize, Constructor)]
+pub struct HwSignedInstruction<T> {
+    pub instruction: HwSignedChallengeResponse<T>,
     pub certificate: WalletCertificate,
 }
 
@@ -265,7 +272,9 @@ mod client {
     use crate::messages::registration::WalletCertificate;
     use crate::signed::ChallengeRequest;
     use crate::signed::ChallengeResponse;
+    use crate::signed::HwSignedChallengeResponse;
 
+    use super::HwSignedInstruction;
     use super::Instruction;
     use super::InstructionAndResult;
     use super::InstructionChallengeRequest;
@@ -311,6 +320,44 @@ mod client {
                 pin_privkey,
             )
             .await?;
+
+            Ok(Self::new(challenge_response, certificate))
+        }
+    }
+
+    // Constructors for hardware-signed instructions.
+    impl<T> HwSignedInstruction<T>
+    where
+        T: Serialize + DeserializeOwned,
+    {
+        pub async fn new_apple(
+            instruction: T,
+            challenge: Vec<u8>,
+            instruction_sequence_number: u64,
+            attested_key: &impl AppleAttestedKey,
+            certificate: WalletCertificate,
+        ) -> Result<Self, EncodeError> {
+            let challenge_response = HwSignedChallengeResponse::sign_apple(
+                instruction,
+                challenge,
+                instruction_sequence_number,
+                attested_key,
+            )
+            .await?;
+
+            Ok(Self::new(challenge_response, certificate))
+        }
+
+        pub async fn new_google(
+            instruction: T,
+            challenge: Vec<u8>,
+            instruction_sequence_number: u64,
+            hw_privkey: &impl SecureEcdsaKey,
+            certificate: WalletCertificate,
+        ) -> Result<Self, EncodeError> {
+            let challenge_response =
+                HwSignedChallengeResponse::sign_google(instruction, challenge, instruction_sequence_number, hw_privkey)
+                    .await?;
 
             Ok(Self::new(challenge_response, certificate))
         }

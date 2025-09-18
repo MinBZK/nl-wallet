@@ -35,10 +35,20 @@ pub struct WalletUser {
 pub struct TransferSession {
     pub id: Uuid,
     pub destination_wallet_user_id: Uuid,
+    pub destination_wallet_recovery_code: String,
     pub transfer_session_id: Uuid,
     pub destination_wallet_app_version: Version,
-    pub in_progress: bool,
+    pub state: TransferSessionState,
     pub encrypted_wallet_data: Option<Vec<u8>>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::Display, strum::EnumString)]
+#[strum(serialize_all = "snake_case")]
+pub enum TransferSessionState {
+    Created,
+    ReadyForTransfer,
+    Receiving,
+    Success,
 }
 
 #[derive(Debug)]
@@ -53,7 +63,10 @@ impl WalletUser {
     }
 
     pub fn transfer_in_progress(&self) -> bool {
-        self.transfer_session.as_ref().map(|s| s.in_progress).unwrap_or(false)
+        self.transfer_session
+            .as_ref()
+            .map(|s| [TransferSessionState::ReadyForTransfer, TransferSessionState::Receiving].contains(&s.state))
+            .unwrap_or(false)
     }
 }
 

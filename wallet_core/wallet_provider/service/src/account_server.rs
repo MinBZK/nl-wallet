@@ -66,6 +66,7 @@ use wallet_account::messages::errors::IncorrectPinData;
 use wallet_account::messages::errors::PinTimeoutData;
 use wallet_account::messages::instructions::ChangePinRollback;
 use wallet_account::messages::instructions::ChangePinStart;
+use wallet_account::messages::instructions::HwSignedInstruction;
 use wallet_account::messages::instructions::Instruction;
 use wallet_account::messages::instructions::InstructionAndResult;
 use wallet_account::messages::instructions::InstructionChallengeRequest;
@@ -101,9 +102,9 @@ use crate::keys::InstructionResultSigningKey;
 use crate::keys::WalletCertificateSigningKey;
 use crate::wallet_certificate::PinKeyChecks;
 use crate::wallet_certificate::new_wallet_certificate;
-use crate::wallet_certificate::parse_claims_and_retrieve_wallet_user;
+use crate::wallet_certificate::parse_and_verify_wallet_cert_using_hw_pubkey;
 use crate::wallet_certificate::verify_wallet_certificate;
-use crate::wallet_certificate::verify_wallet_certificate_public_keys;
+use crate::wallet_certificate::verify_wallet_certificate_pin_public_key;
 use crate::wua_issuer::WuaIssuer;
 
 #[derive(Debug, thiserror::Error)]
@@ -259,6 +260,9 @@ pub enum InstructionError {
     #[error("there is no account transfer in progress")]
     NoAccountTransferInProgress,
 
+    #[error("wallet cannot be transferred between accounts having different recovery codes")]
+    AccountTransferWalletsMismatch,
+
     #[error(
         "cannot transfer wallets because of app version mismatch; source: {source_version}, destination: \
          {destination_version}"
@@ -291,6 +295,9 @@ pub enum InstructionValidationError {
 
     #[error("wallet transfer is in progress")]
     TransferInProgress,
+
+    #[error("recovery code is missing")]
+    MissingRecoveryCode,
 
     #[error("hsm error: {0}")]
     HsmError(#[from] HsmError),
@@ -698,11 +705,11 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         // done when handling the instruction.
         let allow_blocked = true;
 
-        let (user, claims) = parse_claims_and_retrieve_wallet_user(
+        let (user, claims) = parse_and_verify_wallet_cert_using_hw_pubkey(
             &challenge_request.certificate,
             &self.keys.wallet_certificate_signing_pubkey,
-            &user_state.repositories,
             allow_blocked,
+            &user_state.repositories,
         )
         .await?;
 
@@ -733,10 +740,9 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             user.encrypted_pin_pubkey
         };
 
-        verify_wallet_certificate_public_keys(
+        verify_wallet_certificate_pin_public_key(
             claims,
             &self.keys.pin_keys,
-            &user.hw_pubkey,
             PinKeyChecks::AllChecks,
             encrypted_pin_key,
             &user_state.wallet_user_hsm,
@@ -806,6 +812,78 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
                 wallet_user.encrypted_pin_pubkey.clone()
             })
             .await?;
+
+        let instruction_result = instruction_payload.handle(&wallet_user, generators, user_state).await?;
+
+        self.sign_instruction_result(instruction_result_signing_key, instruction_result)
+            .await
+    }
+
+    pub async fn handle_hw_signed_instruction<T, R, I, IR, G, H>(
+        &self,
+        instruction: HwSignedInstruction<I>,
+        instruction_result_signing_key: &impl InstructionResultSigningKey,
+        generators: &G,
+        user_state: &UserState<R, H, impl WuaIssuer>,
+    ) -> Result<InstructionResult<IR>, InstructionError>
+    where
+        T: Committable,
+        R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
+        I: HandleInstruction<Result = IR> + InstructionAndResult + ValidateInstruction + Serialize + DeserializeOwned,
+        IR: Serialize + DeserializeOwned,
+        G: Generator<Uuid> + Generator<DateTime<Utc>>,
+        H: WalletUserHsm<Error = HsmError> + Hsm<Error = HsmError> + Encrypter<VerifyingKey, Error = HsmError>,
+    {
+        let (wallet_user, _) = parse_and_verify_wallet_cert_using_hw_pubkey(
+            &instruction.certificate,
+            &self.keys.wallet_certificate_signing_pubkey,
+            false,
+            &user_state.repositories,
+        )
+        .await?;
+
+        debug!(
+            "Starting database transaction and instruction handling process for user {}",
+            &wallet_user.id
+        );
+
+        let tx = user_state.repositories.begin_transaction().await?;
+
+        debug!("Clearing instruction challenge");
+
+        user_state
+            .repositories
+            .clear_instruction_challenge(&tx, &wallet_user.wallet_id)
+            .await?;
+
+        debug!("Verifying instruction");
+
+        let verification_result = self.verify_hw_signed_instruction(&instruction, &wallet_user, generators);
+
+        let instruction_payload = match verification_result {
+            Ok((challenge_response_payload, assertion_counter)) => {
+                debug!("Instruction successfully verified, validating instruction");
+
+                challenge_response_payload.payload.validate_instruction(&wallet_user)?;
+
+                Self::update_instruction_counters(
+                    &tx,
+                    &wallet_user,
+                    &user_state.repositories,
+                    challenge_response_payload.sequence_number,
+                    assertion_counter,
+                )
+                .await?;
+
+                tx.commit().await?;
+
+                Ok(challenge_response_payload.payload)
+            }
+            Err(validation_error) => {
+                tx.commit().await?;
+                Err(validation_error)
+            }
+        }?;
 
         let instruction_result = instruction_payload.handle(&wallet_user, generators, user_state).await?;
 
@@ -1114,7 +1192,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
 
         let verification_result = self
             .verify_instruction(
-                instruction,
+                &instruction,
                 wallet_user,
                 pin_pubkey,
                 generators,
@@ -1134,27 +1212,15 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
                     .repositories
                     .reset_unsuccessful_pin_entries(&tx, &wallet_user.wallet_id);
 
-                debug!(
-                    "Updating instruction sequence number to {}",
-                    challenge_response_payload.sequence_number
-                );
-
-                let update_sequence_number = user_state.repositories.update_instruction_sequence_number(
+                let instruction_counters = Self::update_instruction_counters(
                     &tx,
-                    &wallet_user.wallet_id,
+                    wallet_user,
+                    &user_state.repositories,
                     challenge_response_payload.sequence_number,
+                    assertion_counter,
                 );
 
-                if let Some(assertion_counter) = assertion_counter {
-                    let update_assertion_counter = user_state.repositories.update_apple_assertion_counter(
-                        &tx,
-                        &wallet_user.wallet_id,
-                        assertion_counter,
-                    );
-                    try_join!(reset_pin_entries, update_sequence_number, update_assertion_counter)?;
-                } else {
-                    try_join!(reset_pin_entries, update_sequence_number)?;
-                }
+                try_join!(reset_pin_entries, instruction_counters)?;
 
                 tx.commit().await?;
 
@@ -1182,6 +1248,36 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
                 error
             }
         }
+    }
+
+    async fn update_instruction_counters<T, R>(
+        tx: &T,
+        wallet_user: &WalletUser,
+        repositories: &R,
+        instruction_sequence_number: u64,
+        assertion_counter: Option<AssertionCounter>,
+    ) -> Result<(), PersistenceError>
+    where
+        T: Committable,
+        R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
+    {
+        debug!(
+            "Updating instruction sequence number to {}",
+            instruction_sequence_number
+        );
+
+        let update_sequence_number =
+            repositories.update_instruction_sequence_number(tx, &wallet_user.wallet_id, instruction_sequence_number);
+
+        if let Some(assertion_counter) = assertion_counter {
+            let update_assertion_counter =
+                repositories.update_apple_assertion_counter(tx, &wallet_user.wallet_id, assertion_counter);
+            try_join!(update_sequence_number, update_assertion_counter)?;
+        } else {
+            try_join!(update_sequence_number)?;
+        }
+
+        Ok(())
     }
 
     fn verify_registration_challenge(
@@ -1217,7 +1313,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
     /// The `pin_pubkey` is used if provided; if not, the PIN public key from the `wallet_user` is used.
     async fn verify_instruction<I, D>(
         &self,
-        instruction: Instruction<I>,
+        instruction: &Instruction<I>,
         wallet_user: &WalletUser,
         pin_pubkey: Encrypted<VerifyingKey>,
         time_generator: &impl Generator<DateTime<Utc>>,
@@ -1254,6 +1350,40 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
                     &wallet_user.hw_pubkey,
                     &pin_pubkey,
                 )
+                .map(|parsed| (parsed, None)),
+        }
+        .map_err(InstructionValidationError::VerificationFailed)?;
+
+        Ok((parsed, assertion_counter))
+    }
+
+    /// Verify the provided hardware signed instruction for the specified user.
+    fn verify_hw_signed_instruction<I>(
+        &self,
+        instruction: &HwSignedInstruction<I>,
+        wallet_user: &WalletUser,
+        time_generator: &impl Generator<DateTime<Utc>>,
+    ) -> Result<(ChallengeResponsePayload<I>, Option<AssertionCounter>), InstructionValidationError>
+    where
+        I: InstructionAndResult,
+    {
+        let challenge = Self::verify_instruction_challenge(wallet_user, time_generator)?;
+
+        let sequence_number_comparison = SequenceNumberComparison::LargerThan(wallet_user.instruction_sequence_number);
+        let (parsed, assertion_counter) = match wallet_user.attestation {
+            WalletUserAttestation::Apple { assertion_counter } => instruction
+                .instruction
+                .parse_and_verify_apple(
+                    &challenge.bytes,
+                    sequence_number_comparison,
+                    &wallet_user.hw_pubkey,
+                    &self.apple_config.app_identifier,
+                    assertion_counter,
+                )
+                .map(|(parsed, assertion_counter)| (parsed, Some(assertion_counter))),
+            WalletUserAttestation::Android => instruction
+                .instruction
+                .parse_and_verify_google(&challenge.bytes, sequence_number_comparison, &wallet_user.hw_pubkey)
                 .map(|parsed| (parsed, None)),
         }
         .map_err(InstructionValidationError::VerificationFailed)?;
@@ -1508,6 +1638,41 @@ pub mod mock {
             }
             .unwrap()
         }
+
+        pub async fn sign_hw_signed_instruction<T>(
+            &self,
+            instruction: T,
+            challenge: Vec<u8>,
+            instruction_sequence_number: u64,
+            certificate: WalletCertificate,
+        ) -> HwSignedInstruction<T>
+        where
+            T: Serialize + DeserializeOwned,
+        {
+            match self {
+                Self::Apple(attested_key) => {
+                    HwSignedInstruction::new_apple(
+                        instruction,
+                        challenge,
+                        instruction_sequence_number,
+                        attested_key,
+                        certificate,
+                    )
+                    .await
+                }
+                Self::Google(signing_key) => {
+                    HwSignedInstruction::new_google(
+                        instruction,
+                        challenge,
+                        instruction_sequence_number,
+                        signing_key,
+                        certificate,
+                    )
+                    .await
+                }
+            }
+            .unwrap()
+        }
     }
 }
 
@@ -1546,6 +1711,7 @@ mod tests {
     use wallet_account::messages::instructions::ChangePinRollback;
     use wallet_account::messages::instructions::ChangePinStart;
     use wallet_account::messages::instructions::CheckPin;
+    use wallet_account::messages::instructions::ConfirmTransfer;
     use wallet_account::messages::instructions::InstructionAndResult;
     use wallet_account::messages::instructions::InstructionResult;
     use wallet_account::messages::instructions::PerformIssuance;
@@ -1560,6 +1726,7 @@ mod tests {
     use wallet_provider_domain::model::TimeoutPinPolicy;
     use wallet_provider_domain::model::wallet_user::InstructionChallenge;
     use wallet_provider_domain::model::wallet_user::TransferSession;
+    use wallet_provider_domain::model::wallet_user::TransferSessionState;
     use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
     use wallet_provider_domain::model::wallet_user::WalletUserState;
     use wallet_provider_domain::repository::Committable;
@@ -2101,7 +2268,7 @@ mod tests {
                 .await;
             let _ = account_server
                 .verify_instruction(
-                    instruction,
+                    &instruction,
                     &user,
                     user.encrypted_pin_pubkey.clone(),
                     &EpochGenerator,
@@ -2151,7 +2318,7 @@ mod tests {
                 .await;
             let error = account_server
                 .verify_instruction(
-                    instruction,
+                    &instruction,
                     &user,
                     user.encrypted_pin_pubkey.clone(),
                     &EpochGenerator,
@@ -2229,7 +2396,7 @@ mod tests {
                 .await;
             let error = account_server
                 .verify_instruction(
-                    instruction,
+                    &instruction,
                     &user,
                     user.encrypted_pin_pubkey.clone(),
                     &EpochGenerator,
@@ -2242,6 +2409,168 @@ mod tests {
         } else {
             panic!("user should be found")
         }
+    }
+
+    #[tokio::test]
+    #[rstest]
+    async fn valid_hw_signed_instruction_challenge_should_verify(
+        #[values(AttestationType::Apple, AttestationType::Google)] attestation_type: AttestationType,
+    ) {
+        let (_, account_server, hw_privkey, cert, mut user_state) = setup_and_do_registration(attestation_type).await;
+
+        let challenge_request = hw_privkey
+            .sign_instruction_challenge::<ConfirmTransfer>(
+                cert.dangerous_parse_unverified().unwrap().1.wallet_id,
+                1,
+                cert.clone(),
+            )
+            .await;
+
+        let challenge = account_server
+            .instruction_challenge(challenge_request, &EpochGenerator, &user_state)
+            .await
+            .unwrap();
+
+        user_state.repositories.challenge = Some(challenge.clone());
+
+        let tx = user_state.repositories.begin_transaction().await.unwrap();
+        let wallet_user = user_state
+            .repositories
+            .find_wallet_user_by_wallet_id(&tx, "0")
+            .await
+            .unwrap();
+        tx.commit().await.unwrap();
+
+        let WalletUserQueryResult::Found(user) = wallet_user else {
+            panic!("user should be found")
+        };
+
+        let instruction = hw_privkey
+            .sign_hw_signed_instruction(CheckPin, challenge, 44, cert)
+            .await;
+
+        let _ = account_server
+            .verify_hw_signed_instruction(&instruction, &user, &EpochGenerator)
+            .expect("instruction should be valid");
+    }
+
+    #[tokio::test]
+    #[rstest]
+    async fn wrong_hw_signed_instruction_challenge_should_not_verify(
+        #[values(AttestationType::Apple, AttestationType::Google)] attestation_type: AttestationType,
+    ) {
+        let (_, account_server, hw_privkey, cert, mut user_state) = setup_and_do_registration(attestation_type).await;
+
+        let challenge_request = hw_privkey
+            .sign_instruction_challenge::<CheckPin>(
+                cert.dangerous_parse_unverified().unwrap().1.wallet_id,
+                1,
+                cert.clone(),
+            )
+            .await;
+
+        let challenge = account_server
+            .instruction_challenge(challenge_request, &EpochGenerator, &user_state)
+            .await
+            .unwrap();
+
+        user_state.repositories.challenge = Some(crypto::utils::random_bytes(32));
+
+        let tx = user_state.repositories.begin_transaction().await.unwrap();
+        let wallet_user = user_state
+            .repositories
+            .find_wallet_user_by_wallet_id(&tx, "0")
+            .await
+            .unwrap();
+        tx.commit().await.unwrap();
+
+        let WalletUserQueryResult::Found(user) = wallet_user else {
+            panic!("user should be found")
+        };
+
+        let instruction = hw_privkey
+            .sign_hw_signed_instruction(CheckPin, challenge, 44, cert)
+            .await;
+
+        let error = account_server
+            .verify_hw_signed_instruction(&instruction, &user, &EpochGenerator)
+            .expect_err("instruction should not be valid");
+
+        match attestation_type {
+            AttestationType::Apple => {
+                assert_matches!(
+                    error,
+                    InstructionValidationError::VerificationFailed(wallet_account::error::DecodeError::Assertion(
+                        AssertionError::Validation(AssertionValidationError::ChallengeMismatch)
+                    ))
+                );
+            }
+            AttestationType::Google => {
+                assert_matches!(
+                    error,
+                    InstructionValidationError::VerificationFailed(
+                        wallet_account::error::DecodeError::ChallengeMismatch
+                    )
+                );
+            }
+        };
+    }
+
+    #[tokio::test]
+    #[rstest]
+    async fn expired_hw_signed_instruction_challenge_should_not_verify(
+        #[values(AttestationType::Apple, AttestationType::Google)] attestation_type: AttestationType,
+    ) {
+        let (_, account_server, hw_privkey, cert, user_state) = setup_and_do_registration(attestation_type).await;
+
+        let challenge_request = hw_privkey
+            .sign_instruction_challenge::<ConfirmTransfer>(
+                cert.dangerous_parse_unverified().unwrap().1.wallet_id,
+                1,
+                cert.clone(),
+            )
+            .await;
+
+        let challenge = account_server
+            .instruction_challenge(challenge_request, &EpochGenerator, &user_state)
+            .await
+            .unwrap();
+
+        let transfer_session_id = Uuid::new_v4();
+        let app_version = Version::parse("1.0.0").unwrap();
+
+        let tx = user_state.repositories.begin_transaction().await.unwrap();
+        let WalletUserQueryResult::Found(mut user) = user_state
+            .repositories
+            .find_wallet_user_by_wallet_id(&tx, "0")
+            .await
+            .unwrap()
+        else {
+            panic!("user should be found")
+        };
+
+        user.instruction_challenge = Some(InstructionChallenge {
+            bytes: challenge.clone(),
+            expiration_date_time: ExpiredAtEpochGeneretor.generate(),
+        });
+
+        let instruction = hw_privkey
+            .sign_hw_signed_instruction(
+                ConfirmTransfer {
+                    transfer_session_id,
+                    app_version,
+                },
+                challenge,
+                44,
+                cert,
+            )
+            .await;
+
+        let error = account_server
+            .verify_hw_signed_instruction(&instruction, &user, &EpochGenerator)
+            .expect_err("instruction should not be valid");
+
+        assert_matches!(error, InstructionValidationError::ChallengeTimeout);
     }
 
     #[tokio::test]
@@ -2726,7 +3055,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_prepare_transfer_no_other_instructions_allowed() {
+    async fn test_transfer_in_progress_no_other_instructions_allowed() {
         let (setup, account_server, hw_privkey, cert, mut user_state) =
             setup_and_do_registration(AttestationType::Google).await;
 
@@ -2740,8 +3069,9 @@ mod tests {
                 id: Uuid::new_v4(),
                 destination_wallet_user_id: Uuid::new_v4(),
                 destination_wallet_app_version: Version::parse("3.2.1").unwrap(),
+                destination_wallet_recovery_code: String::from("12345678"),
                 transfer_session_id: Uuid::new_v4(),
-                in_progress: true,
+                state: TransferSessionState::ReadyForTransfer,
                 encrypted_wallet_data: None,
             }),
             instruction_sequence_number: 43,

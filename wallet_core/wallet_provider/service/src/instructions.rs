@@ -47,6 +47,7 @@ use wallet_account::messages::instructions::Sign;
 use wallet_account::messages::instructions::SignResult;
 use wallet_account::messages::instructions::StartPinRecovery;
 use wallet_provider_domain::model::hsm::WalletUserHsm;
+use wallet_provider_domain::model::wallet_user::TransferSessionState;
 use wallet_provider_domain::model::wallet_user::WalletUser;
 use wallet_provider_domain::model::wallet_user::WalletUserKey;
 use wallet_provider_domain::model::wallet_user::WalletUserKeys;
@@ -100,7 +101,6 @@ impl ValidateInstruction for ChangePinStart {}
 impl ValidateInstruction for PerformIssuance {}
 impl ValidateInstruction for PerformIssuanceWithWua {}
 impl ValidateInstruction for DiscloseRecoveryCode {}
-impl ValidateInstruction for ConfirmTransfer {}
 
 impl ValidateInstruction for Sign {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
@@ -147,6 +147,20 @@ impl ValidateInstruction for StartPinRecovery {
     }
 }
 
+impl ValidateInstruction for ConfirmTransfer {
+    fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+        if wallet_user.recovery_code.is_none() {
+            return Err(InstructionValidationError::MissingRecoveryCode);
+        };
+
+        validate_no_pin_change_in_progress(wallet_user)?;
+        validate_no_transfer_in_progress(wallet_user)?;
+        validate_no_pin_recovery_in_progress(wallet_user)?;
+
+        Ok(())
+    }
+}
+
 pub struct PinCheckOptions {
     pub allow_for_blocked_users: bool,
     pub key_checks: PinKeyChecks,
@@ -171,7 +185,6 @@ impl PinChecks for ChangePinStart {}
 impl PinChecks for PerformIssuance {}
 impl PinChecks for PerformIssuanceWithWua {}
 impl PinChecks for DiscloseRecoveryCode {}
-impl PinChecks for ConfirmTransfer {}
 impl PinChecks for ChangePinCommit {}
 impl PinChecks for ChangePinRollback {}
 impl PinChecks for CheckPin {}
@@ -671,6 +684,62 @@ impl HandleInstruction for DiscloseRecoveryCode {
     }
 }
 
+impl HandleInstruction for ConfirmTransfer {
+    type Result = ();
+
+    async fn handle<T, R, H, G>(
+        self,
+        wallet_user: &WalletUser,
+        _generators: &G,
+        user_state: &UserState<R, H, impl WuaIssuer>,
+    ) -> Result<Self::Result, InstructionError>
+    where
+        T: Committable,
+        R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
+        H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
+        G: Generator<Uuid> + Generator<DateTime<Utc>>,
+    {
+        let tx = user_state.repositories.begin_transaction().await?;
+
+        let Some(transfer_session) = user_state
+            .repositories
+            .find_transfer_session_by_transfer_session_id(&tx, self.transfer_session_id)
+            .await?
+        else {
+            return Err(InstructionError::NoAccountTransferInProgress);
+        };
+
+        // recovery code of wallet_user (source) should match recovery code of transfer_session (destination)
+        if wallet_user
+            .recovery_code
+            .as_ref()
+            .expect("instruction validation fails if there is no recovery code")
+            != &transfer_session.destination_wallet_recovery_code
+        {
+            return Err(InstructionError::AccountTransferWalletsMismatch);
+        }
+
+        if transfer_session.destination_wallet_app_version < self.app_version {
+            return Err(InstructionError::AppVersionMismatch {
+                source_version: self.app_version,
+                destination_version: transfer_session.destination_wallet_app_version,
+            });
+        }
+
+        user_state
+            .repositories
+            .update_transfer_session_state(
+                &tx,
+                transfer_session.transfer_session_id,
+                TransferSessionState::ReadyForTransfer,
+            )
+            .await?;
+        tx.commit().await?;
+
+        Ok(())
+    }
+}
+
 struct HsmCredentialSigningKey<'a, H> {
     hsm: &'a H,
     wrapped_key: &'a WrappedKey,
@@ -794,6 +863,7 @@ mod tests {
     use wallet_account::messages::instructions::ChangePinRollback;
     use wallet_account::messages::instructions::ChangePinStart;
     use wallet_account::messages::instructions::CheckPin;
+    use wallet_account::messages::instructions::ConfirmTransfer;
     use wallet_account::messages::instructions::DiscloseRecoveryCode;
     use wallet_account::messages::instructions::PerformIssuance;
     use wallet_account::messages::instructions::PerformIssuanceWithWua;
@@ -802,6 +872,7 @@ mod tests {
     use wallet_provider_domain::generator::mock::MockGenerators;
     use wallet_provider_domain::model::wallet_user;
     use wallet_provider_domain::model::wallet_user::TransferSession;
+    use wallet_provider_domain::model::wallet_user::TransferSessionState;
     use wallet_provider_domain::model::wallet_user::WalletUserState;
     use wallet_provider_domain::repository::MockTransaction;
     use wallet_provider_persistence::repositories::mock::MockTransactionalWalletUserRepository;
@@ -810,6 +881,7 @@ mod tests {
     use crate::account_server::InstructionValidationError;
     use crate::account_server::mock;
     use crate::instructions::HandleInstruction;
+    use crate::instructions::InstructionError;
     use crate::instructions::ValidateInstruction;
     use crate::instructions::is_poa_message;
     use crate::wallet_certificate::mock::setup_hsm;
@@ -1123,8 +1195,9 @@ mod tests {
             id: Uuid::new_v4(),
             destination_wallet_user_id: Uuid::new_v4(),
             transfer_session_id: transfer_session_id.lock().unwrap().unwrap(),
+            destination_wallet_recovery_code: String::from("recovery_code"),
             destination_wallet_app_version: Version::parse("1.9.8").unwrap(),
-            in_progress: false,
+            state: TransferSessionState::Created,
             encrypted_wallet_data: None,
         });
 
@@ -1364,5 +1437,254 @@ mod tests {
         } else {
             assert_matches!(result, Err(InstructionValidationError::PinRecoveryInProgress));
         }
+    }
+
+    #[tokio::test]
+    async fn validating_confirm_transfer() {
+        let mut wallet_user = wallet_user::mock::wallet_user_1();
+        wallet_user.recovery_code = Some("recovery_code".to_string());
+        let transfer_session_id = Uuid::new_v4();
+        let app_version = Version::parse("1.0.0").unwrap();
+
+        let instruction = ConfirmTransfer {
+            transfer_session_id,
+            app_version,
+        };
+
+        instruction.validate_instruction(&wallet_user).unwrap();
+    }
+
+    #[tokio::test]
+    async fn validating_confirm_transfer_should_fail_if_source_is_transferring_itself() {
+        let transfer_session_id = Uuid::new_v4();
+        let app_version = Version::parse("1.0.0").unwrap();
+
+        let mut wallet_user = wallet_user::mock::wallet_user_1();
+        wallet_user.recovery_code = Some("recovery_code".to_string());
+        wallet_user.transfer_session = Some(TransferSession {
+            id: Uuid::new_v4(),
+            destination_wallet_user_id: Uuid::new_v4(),
+            transfer_session_id,
+            destination_wallet_recovery_code: String::from("recovery_code"),
+            destination_wallet_app_version: Version::parse("1.9.8").unwrap(),
+            state: TransferSessionState::ReadyForTransfer,
+            encrypted_wallet_data: None,
+        });
+        let instruction = ConfirmTransfer {
+            transfer_session_id,
+            app_version,
+        };
+
+        let err = instruction
+            .validate_instruction(&wallet_user)
+            .expect_err("should fail if source is transferring itself");
+        assert_matches!(err, InstructionValidationError::TransferInProgress);
+    }
+
+    #[tokio::test]
+    async fn validating_confirm_transfer_should_fail_if_source_does_not_have_recovery_code() {
+        let mut wallet_user = wallet_user::mock::wallet_user_1();
+        wallet_user.recovery_code = None;
+        let transfer_session_id = Uuid::new_v4();
+        let app_version = Version::parse("1.0.0").unwrap();
+
+        let instruction = ConfirmTransfer {
+            transfer_session_id,
+            app_version,
+        };
+
+        let err = instruction
+            .validate_instruction(&wallet_user)
+            .expect_err("should fail if source does not have recovery code");
+        assert_matches!(err, InstructionValidationError::MissingRecoveryCode);
+    }
+
+    #[tokio::test]
+    async fn should_handle_confirm_transfer() {
+        let wrapping_key_identifier = "my-wrapping-key-identifier";
+        let mut wallet_user = wallet_user::mock::wallet_user_1();
+        wallet_user.recovery_code = Some(String::from("recovery_code"));
+        wallet_user.transfer_session = None;
+
+        let transfer_session_id = Uuid::new_v4();
+        let app_version = Version::parse("1.0.0").unwrap();
+
+        let transfer_session = TransferSession {
+            id: Uuid::new_v4(),
+            destination_wallet_user_id: Uuid::new_v4(),
+            transfer_session_id,
+            destination_wallet_recovery_code: String::from("recovery_code"),
+            destination_wallet_app_version: Version::parse("1.9.8").unwrap(),
+            state: TransferSessionState::Created,
+            encrypted_wallet_data: None,
+        };
+
+        let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
+        wallet_user_repo
+            .expect_begin_transaction()
+            .returning(|| Ok(MockTransaction));
+        wallet_user_repo
+            .expect_find_transfer_session_by_transfer_session_id()
+            .withf(move |_, session_id| &transfer_session_id == session_id)
+            .returning(move |_, _| Ok(Some(transfer_session.clone())));
+        wallet_user_repo
+            .expect_update_transfer_session_state()
+            .returning(|_, _, _| Ok(()));
+
+        let instruction = ConfirmTransfer {
+            transfer_session_id,
+            app_version,
+        };
+
+        instruction
+            .handle(
+                &wallet_user,
+                &MockGenerators,
+                &mock::user_state(
+                    wallet_user_repo,
+                    setup_hsm().await,
+                    wrapping_key_identifier.to_string(),
+                    vec![],
+                ),
+            )
+            .await
+            .unwrap();
+    }
+
+    #[tokio::test]
+    async fn should_handle_confirm_transfer_should_fail_for_different_recovery_code() {
+        let wrapping_key_identifier = "my-wrapping-key-identifier";
+        let mut wallet_user = wallet_user::mock::wallet_user_1();
+        wallet_user.recovery_code = Some(String::from("recovery_code"));
+        wallet_user.transfer_session = None;
+
+        let transfer_session_id = Uuid::new_v4();
+        let app_version = Version::parse("1.0.0").unwrap();
+
+        let transfer_session = TransferSession {
+            id: Uuid::new_v4(),
+            destination_wallet_user_id: Uuid::new_v4(),
+            transfer_session_id,
+            destination_wallet_recovery_code: String::from("different_recovery_code"),
+            destination_wallet_app_version: Version::parse("1.9.8").unwrap(),
+            state: TransferSessionState::Created,
+            encrypted_wallet_data: None,
+        };
+
+        let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
+        wallet_user_repo
+            .expect_begin_transaction()
+            .returning(|| Ok(MockTransaction));
+        wallet_user_repo
+            .expect_find_transfer_session_by_transfer_session_id()
+            .withf(move |_, session_id| &transfer_session_id == session_id)
+            .returning(move |_, _| Ok(Some(transfer_session.clone())));
+
+        let instruction = ConfirmTransfer {
+            transfer_session_id,
+            app_version,
+        };
+
+        let err = instruction
+            .handle(
+                &wallet_user,
+                &MockGenerators,
+                &mock::user_state(
+                    wallet_user_repo,
+                    setup_hsm().await,
+                    wrapping_key_identifier.to_string(),
+                    vec![],
+                ),
+            )
+            .await
+            .expect_err("should fail when wallet_user does not have a recovery code");
+
+        assert_matches!(err, InstructionError::AccountTransferWalletsMismatch);
+    }
+
+    #[tokio::test]
+    async fn should_handle_confirm_transfer_error_when_not_in_progress() {
+        let wrapping_key_identifier = "my-wrapping-key-identifier";
+        let mut wallet_user = wallet_user::mock::wallet_user_1();
+        wallet_user.transfer_session = None;
+
+        let transfer_session_id = Uuid::new_v4();
+        let app_version = Version::parse("1.0.0").unwrap();
+        let instruction = ConfirmTransfer {
+            transfer_session_id,
+            app_version,
+        };
+
+        let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
+        wallet_user_repo
+            .expect_begin_transaction()
+            .returning(|| Ok(MockTransaction));
+        wallet_user_repo
+            .expect_find_transfer_session_by_transfer_session_id()
+            .withf(move |_, session_id| &transfer_session_id == session_id)
+            .returning(move |_, _| Ok(None));
+
+        let err = instruction
+            .handle(
+                &wallet_user,
+                &MockGenerators,
+                &mock::user_state(
+                    wallet_user_repo,
+                    setup_hsm().await,
+                    wrapping_key_identifier.to_string(),
+                    vec![],
+                ),
+            )
+            .await
+            .expect_err("should fail when a transfer session is not in progress");
+
+        assert_matches!(err, InstructionError::NoAccountTransferInProgress)
+    }
+
+    #[tokio::test]
+    async fn should_handle_confirm_transfer_wrong_app_version() {
+        let wrapping_key_identifier = "my-wrapping-key-identifier";
+        let mut wallet_user = wallet_user::mock::wallet_user_1();
+        wallet_user.recovery_code = Some(String::from("recovery_code"));
+
+        let transfer_session_id = Uuid::new_v4();
+        let transfer_session = TransferSession {
+            id: Uuid::new_v4(),
+            destination_wallet_user_id: Uuid::new_v4(),
+            transfer_session_id,
+            destination_wallet_recovery_code: String::from("recovery_code"),
+            destination_wallet_app_version: Version::parse("1.2.3").unwrap(),
+            state: TransferSessionState::Created,
+            encrypted_wallet_data: None,
+        };
+
+        let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
+        wallet_user_repo
+            .expect_begin_transaction()
+            .returning(|| Ok(MockTransaction));
+        wallet_user_repo
+            .expect_find_transfer_session_by_transfer_session_id()
+            .returning(move |_, _| Ok(Some(transfer_session.clone())));
+
+        let instruction = ConfirmTransfer {
+            transfer_session_id: Uuid::new_v4(),
+            app_version: Version::parse("2.2.3").unwrap(),
+        };
+
+        let err = instruction
+            .handle(
+                &wallet_user,
+                &MockGenerators,
+                &mock::user_state(
+                    wallet_user_repo,
+                    setup_hsm().await,
+                    wrapping_key_identifier.to_string(),
+                    vec![],
+                ),
+            )
+            .await
+            .expect_err("should fail when app version is wrong");
+
+        assert_matches!(err, InstructionError::AppVersionMismatch { .. });
     }
 }
