@@ -3,7 +3,6 @@ use std::collections::HashMap;
 use base64::Engine;
 use base64::prelude::BASE64_URL_SAFE_NO_PAD;
 use url::Url;
-use url::form_urlencoded;
 use uuid::Uuid;
 
 use http_utils::urls;
@@ -21,6 +20,12 @@ pub enum TransferUriError {
 
     #[error("missing query parameter: {0}, in: {1}")]
     MissingQueryParameter(String, String),
+
+    #[error("error deserializing query parameters: {0}")]
+    QueryParameterDeserialization(#[from] serde_urlencoded::de::Error),
+
+    #[error("error serializing query parameters: {0}")]
+    QueryParameterSerialization(#[from] serde_urlencoded::ser::Error),
 
     #[error("invalid uuid: {0}")]
     InvalidUuid(#[from] uuid::Error),
@@ -43,10 +48,7 @@ impl TryFrom<Url> for TransferUri {
             return Err(TransferUriError::InvalidUri(value.to_string()));
         };
 
-        let mut query_params = query
-            .split('&')
-            .flat_map(|pair| form_urlencoded::parse(pair.as_bytes()).collect::<HashMap<_, _>>())
-            .collect::<HashMap<_, _>>();
+        let mut query_params: HashMap<String, String> = serde_urlencoded::from_str(query)?;
 
         let transfer_session_id = Uuid::from_slice(
             &BASE64_URL_SAFE_NO_PAD.decode(
@@ -77,18 +79,22 @@ impl TryFrom<Url> for TransferUri {
     }
 }
 
-impl From<TransferUri> for Url {
-    fn from(value: TransferUri) -> Self {
-        let query = format!(
-            "{TRANSFER_SESSION_ID_QUERY_PARAM_KEY}={}&{KEY_QUERY_PARAM_KEY}={}",
-            BASE64_URL_SAFE_NO_PAD.encode(value.transfer_session_id.as_ref()),
-            BASE64_URL_SAFE_NO_PAD.encode(value.key.as_slice()),
-        );
+impl TryFrom<TransferUri> for Url {
+    type Error = TransferUriError;
+
+    fn try_from(value: TransferUri) -> Result<Self, Self::Error> {
+        let query = serde_urlencoded::to_string(&[
+            (
+                TRANSFER_SESSION_ID_QUERY_PARAM_KEY,
+                BASE64_URL_SAFE_NO_PAD.encode(value.transfer_session_id.as_ref()),
+            ),
+            (KEY_QUERY_PARAM_KEY, BASE64_URL_SAFE_NO_PAD.encode(value.key.as_slice())),
+        ])?;
 
         let mut url: Url = urls::transfer_base_uri(&UNIVERSAL_LINK_BASE_URL).into_inner();
         url.set_fragment(Some(query.as_str()));
 
-        url
+        Ok(url)
     }
 }
 
@@ -114,7 +120,7 @@ mod tests {
             transfer_session_id: transfer_session_id.into(),
             key: transfer_key.clone(),
         };
-        let url: Url = transfer_uri.into();
+        let url: Url = transfer_uri.try_into().unwrap();
 
         assert_eq!(url.scheme(), "walletdebuginteraction");
         assert_eq!(

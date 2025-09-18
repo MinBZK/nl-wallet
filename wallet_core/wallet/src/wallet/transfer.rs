@@ -98,7 +98,7 @@ where
             key: crypto::utils::random_bytes(32),
         };
 
-        Ok(transfer_uri.into())
+        Ok(transfer_uri.try_into()?)
     }
 
     #[instrument(skip_all)]
@@ -315,7 +315,7 @@ mod tests {
         };
 
         wallet
-            .confirm_transfer(transfer_uri.into())
+            .confirm_transfer(transfer_uri.try_into().unwrap())
             .await
             .expect("Wallet confirm transfer should have succeeded");
     }
