@@ -86,7 +86,7 @@ where
 {
     #[instrument(skip_all)]
     #[sentry_capture_error]
-    pub async fn start_transfer(&mut self) -> Result<Url, TransferError> {
+    pub async fn start_transfer(&mut self) -> Result<(EcKeyPair, Url), TransferError> {
         info!("Start transfer");
 
         info!("Checking if blocked");
@@ -118,7 +118,7 @@ where
         let mut url: Url = urls::transfer_base_uri(&UNIVERSAL_LINK_BASE_URL).into_inner();
         url.set_fragment(Some(serde_urlencoded::to_string(query)?.as_str()));
 
-        Ok(url)
+        Ok((key_pair, url))
     }
 }
 
@@ -203,7 +203,7 @@ mod tests {
             .expect_fetch_data::<TransferData>()
             .returning(move || Ok(Some(TransferData { transfer_session_id })));
 
-        let url = wallet
+        let (key_pair, url) = wallet
             .start_transfer()
             .await
             .expect("Wallet start transfer should have succeeded");
@@ -221,6 +221,7 @@ mod tests {
         assert_eq!(query.session_id, transfer_session_id);
         assert_eq!(query.public_key.key_type(), "EC");
         assert_eq!(query.public_key.curve(), Some("P-256"));
+        assert_eq!(query.public_key, key_pair.to_jwk_public_key());
     }
 
     #[tokio::test]
