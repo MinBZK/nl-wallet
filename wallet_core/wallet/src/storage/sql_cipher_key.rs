@@ -3,6 +3,8 @@ use std::fmt::Write;
 
 use derive_more::Constructor;
 
+use crypto::utils::random_bytes;
+
 // Utility function for converting bytes to uppercase hex.
 fn bytes_to_hex(bytes: &[u8]) -> String {
     bytes
@@ -25,6 +27,13 @@ pub struct SqlCipherKey {
 }
 
 impl SqlCipherKey {
+    pub fn new_random_with_salt() -> Self {
+        Self {
+            key: random_bytes(KEY_LENGTH).try_into().unwrap(),
+            salt: random_bytes(SALT_LENGTH).try_into().unwrap(),
+        }
+    }
+
     pub fn size_with_salt() -> usize {
         KEY_LENGTH + SALT_LENGTH
     }

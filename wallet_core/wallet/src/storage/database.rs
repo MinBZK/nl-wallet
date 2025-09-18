@@ -92,8 +92,6 @@ impl Database {
 
 #[cfg(test)]
 mod tests {
-    use crypto::utils::random_bytes;
-
     use super::*;
 
     pub async fn down(db: &Database) -> Result<(), DbErr> {
@@ -122,7 +120,7 @@ mod tests {
         }
 
         // Create a new (encrypted) database.
-        let key = SqlCipherKey::try_from(random_bytes(SqlCipherKey::size_with_salt()).as_slice()).unwrap();
+        let key = SqlCipherKey::new_random_with_salt();
         let db = Database::open(SqliteUrl::InMemory, key)
             .await
             .expect("Could not open database");
@@ -211,7 +209,7 @@ mod tests {
         };
 
         // Create a new (encrypted) database.
-        let key = SqlCipherKey::try_from(random_bytes(SqlCipherKey::size_with_salt()).as_slice()).unwrap();
+        let key = SqlCipherKey::new_random_with_salt();
         let db = Database::open(SqliteUrl::InMemory, key)
             .await
             .expect("Could not open database");

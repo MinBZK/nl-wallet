@@ -907,8 +907,6 @@ fn create_attestation_copy_models(
 
 #[cfg(any(test, feature = "test"))]
 pub mod in_memory_storage {
-    use crypto::utils::random_bytes;
-
     use platform_support::hw_keystore::mock::MockHardwareEncryptionKey;
 
     use crate::storage::DatabaseStorage;
@@ -924,8 +922,8 @@ pub mod in_memory_storage {
             let mut storage = DatabaseStorage::<MockHardwareEncryptionKey>::new("storage_path".into());
 
             // Create a test database, override the database field on Storage.
-            let key_bytes = random_bytes(SqlCipherKey::size_with_salt());
-            let database = Database::open(SqliteUrl::InMemory, key_bytes.as_slice().try_into().unwrap())
+            let key = SqlCipherKey::new_random_with_salt();
+            let database = Database::open(SqliteUrl::InMemory, key)
                 .await
                 .expect("Could not open in-memory database");
 
