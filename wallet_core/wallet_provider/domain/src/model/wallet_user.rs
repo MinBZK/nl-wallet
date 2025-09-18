@@ -57,7 +57,13 @@ impl WalletUser {
     pub fn transfer_in_progress(&self) -> bool {
         self.transfer_session
             .as_ref()
-            .map(|s| [TransferSessionState::ReadyForTransfer, TransferSessionState::Receiving].contains(&s.state))
+            .map(|s| {
+                [
+                    TransferSessionState::ReadyForTransfer,
+                    TransferSessionState::ReadyForDownload,
+                ]
+                .contains(&s.state)
+            })
             .unwrap_or(false)
     }
 }

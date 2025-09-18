@@ -37,7 +37,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueNom,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.11.1";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 1667003955;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 1183541780;
 
 // Section: executor
 
@@ -628,24 +628,18 @@ fn wire__crate__api__full__get_version_string_impl(port_: flutter_rust_bridge::f
         },
     )
 }
-fn wire__crate__api__full__get_wallet_transfer_state_stream_impl(
-    port_: flutter_rust_bridge::for_generated::MessagePort,
-    _sink: impl CstDecode<
-        StreamSink<crate::models::transfer::TransferSessionState, flutter_rust_bridge::for_generated::DcoCodec>,
-    >,
-) {
+fn wire__crate__api__full__get_wallet_transfer_state_impl(port_: flutter_rust_bridge::for_generated::MessagePort) {
     FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "get_wallet_transfer_state_stream",
+            debug_name: "get_wallet_transfer_state",
             port: Some(port_),
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
-            let api__sink = _sink.cst_decode();
             move |context| async move {
                 transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || async move {
-                        let output_ok = crate::api::full::get_wallet_transfer_state_stream(api__sink).await?;
+                        let output_ok = crate::api::full::get_wallet_transfer_state().await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -1241,9 +1235,10 @@ impl CstDecode<crate::models::transfer::TransferSessionState> for i32 {
         match self {
             0 => crate::models::transfer::TransferSessionState::Created,
             1 => crate::models::transfer::TransferSessionState::ReadyForTransfer,
-            2 => crate::models::transfer::TransferSessionState::Receiving,
+            2 => crate::models::transfer::TransferSessionState::ReadyForDownload,
             3 => crate::models::transfer::TransferSessionState::Success,
             4 => crate::models::transfer::TransferSessionState::Cancelled,
+            5 => crate::models::transfer::TransferSessionState::Error,
             _ => unreachable!("Invalid variant for TransferSessionState: {}", self),
         }
     }
@@ -1317,16 +1312,6 @@ impl SseDecode
 
 impl SseDecode
     for StreamSink<Vec<crate::models::wallet_event::WalletEvent>, flutter_rust_bridge::for_generated::DcoCodec>
-{
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut inner = <String>::sse_decode(deserializer);
-        return StreamSink::deserialize(inner);
-    }
-}
-
-impl SseDecode
-    for StreamSink<crate::models::transfer::TransferSessionState, flutter_rust_bridge::for_generated::DcoCodec>
 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -2051,9 +2036,10 @@ impl SseDecode for crate::models::transfer::TransferSessionState {
         return match inner {
             0 => crate::models::transfer::TransferSessionState::Created,
             1 => crate::models::transfer::TransferSessionState::ReadyForTransfer,
-            2 => crate::models::transfer::TransferSessionState::Receiving,
+            2 => crate::models::transfer::TransferSessionState::ReadyForDownload,
             3 => crate::models::transfer::TransferSessionState::Success,
             4 => crate::models::transfer::TransferSessionState::Cancelled,
+            5 => crate::models::transfer::TransferSessionState::Error,
             _ => unreachable!("Invalid variant for TransferSessionState: {}", inner),
         };
     }
@@ -2777,9 +2763,10 @@ impl flutter_rust_bridge::IntoDart for crate::models::transfer::TransferSessionS
         match self {
             Self::Created => 0.into_dart(),
             Self::ReadyForTransfer => 1.into_dart(),
-            Self::Receiving => 2.into_dart(),
+            Self::ReadyForDownload => 2.into_dart(),
             Self::Success => 3.into_dart(),
             Self::Cancelled => 4.into_dart(),
+            Self::Error => 5.into_dart(),
             _ => unreachable!(),
         }
     }
@@ -2950,15 +2937,6 @@ impl SseEncode
 
 impl SseEncode
     for StreamSink<Vec<crate::models::wallet_event::WalletEvent>, flutter_rust_bridge::for_generated::DcoCodec>
-{
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        unimplemented!("")
-    }
-}
-
-impl SseEncode
-    for StreamSink<crate::models::transfer::TransferSessionState, flutter_rust_bridge::for_generated::DcoCodec>
 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -3587,9 +3565,10 @@ impl SseEncode for crate::models::transfer::TransferSessionState {
             match self {
                 crate::models::transfer::TransferSessionState::Created => 0,
                 crate::models::transfer::TransferSessionState::ReadyForTransfer => 1,
-                crate::models::transfer::TransferSessionState::Receiving => 2,
+                crate::models::transfer::TransferSessionState::ReadyForDownload => 2,
                 crate::models::transfer::TransferSessionState::Success => 3,
                 crate::models::transfer::TransferSessionState::Cancelled => 4,
+                crate::models::transfer::TransferSessionState::Error => 5,
                 _ => {
                     unimplemented!("");
                 }
@@ -3801,20 +3780,6 @@ mod io {
         fn cst_decode(
             self,
         ) -> StreamSink<Vec<crate::models::wallet_event::WalletEvent>, flutter_rust_bridge::for_generated::DcoCodec>
-        {
-            let raw: String = self.cst_decode();
-            StreamSink::deserialize(raw)
-        }
-    }
-    impl
-        CstDecode<
-            StreamSink<crate::models::transfer::TransferSessionState, flutter_rust_bridge::for_generated::DcoCodec>,
-        > for *mut wire_cst_list_prim_u_8_strict
-    {
-        // Codec=Cst (C-struct based), see doc to use other codecs
-        fn cst_decode(
-            self,
-        ) -> StreamSink<crate::models::transfer::TransferSessionState, flutter_rust_bridge::for_generated::DcoCodec>
         {
             let raw: String = self.cst_decode();
             StreamSink::deserialize(raw)
@@ -4842,11 +4807,8 @@ mod io {
     }
 
     #[unsafe(no_mangle)]
-    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__get_wallet_transfer_state_stream(
-        port_: i64,
-        _sink: *mut wire_cst_list_prim_u_8_strict,
-    ) {
-        wire__crate__api__full__get_wallet_transfer_state_stream_impl(port_, _sink)
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__get_wallet_transfer_state(port_: i64) {
+        wire__crate__api__full__get_wallet_transfer_state_impl(port_)
     }
 
     #[unsafe(no_mangle)]

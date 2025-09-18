@@ -123,8 +123,7 @@ Future<WalletInstructionResult> transferWallet({required String pin}) =>
 
 Future<WalletInstructionResult> cancelWalletTransfer() => WalletCore.instance.api.crateApiFullCancelWalletTransfer();
 
-Stream<TransferSessionState> getWalletTransferStateStream() =>
-    WalletCore.instance.api.crateApiFullGetWalletTransferStateStream();
+Future<TransferSessionState> getWalletTransferState() => WalletCore.instance.api.crateApiFullGetWalletTransferState();
 
 Future<List<WalletEvent>> getHistory() => WalletCore.instance.api.crateApiFullGetHistory();
 

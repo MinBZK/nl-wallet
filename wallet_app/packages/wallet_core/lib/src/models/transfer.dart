@@ -9,8 +9,9 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 enum TransferSessionState {
   Created,
   ReadyForTransfer,
-  Receiving,
+  ReadyForDownload,
   Success,
   Cancelled,
+  Error,
   ;
 }

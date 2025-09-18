@@ -77,7 +77,7 @@ class WalletCore extends BaseEntrypoint<WalletCoreApi, WalletCoreApiImpl, Wallet
   String get codegenVersion => '2.11.1';
 
   @override
-  int get rustContentHash => 1667003955;
+  int get rustContentHash => 1183541780;
 
   static const kDefaultExternalLibraryLoaderConfig = ExternalLibraryLoaderConfig(
     stem: 'wallet_core',
@@ -139,7 +139,7 @@ abstract class WalletCoreApi extends BaseApi {
 
   Future<String> crateApiFullGetVersionString();
 
-  Stream<TransferSessionState> crateApiFullGetWalletTransferStateStream();
+  Future<TransferSessionState> crateApiFullGetWalletTransferState();
 
   Future<bool> crateApiFullHasActiveDisclosureSession();
 
@@ -754,27 +754,24 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       );
 
   @override
-  Stream<TransferSessionState> crateApiFullGetWalletTransferStateStream() {
-    final sink = RustStreamSink<TransferSessionState>();
-    unawaited(handler.executeNormal(NormalTask(
+  Future<TransferSessionState> crateApiFullGetWalletTransferState() {
+    return handler.executeNormal(NormalTask(
       callFfi: (port_) {
-        var arg0 = cst_encode_StreamSink_transfer_session_state_Dco(sink);
-        return wire.wire__crate__api__full__get_wallet_transfer_state_stream(port_, arg0);
+        return wire.wire__crate__api__full__get_wallet_transfer_state(port_);
       },
       codec: DcoCodec(
-        decodeSuccessData: dco_decode_unit,
+        decodeSuccessData: dco_decode_transfer_session_state,
         decodeErrorData: dco_decode_AnyhowException,
       ),
-      constMeta: kCrateApiFullGetWalletTransferStateStreamConstMeta,
-      argValues: [sink],
+      constMeta: kCrateApiFullGetWalletTransferStateConstMeta,
+      argValues: [],
       apiImpl: this,
-    )));
-    return sink.stream;
+    ));
   }
 
-  TaskConstMeta get kCrateApiFullGetWalletTransferStateStreamConstMeta => const TaskConstMeta(
-        debugName: "get_wallet_transfer_state_stream",
-        argNames: ["sink"],
+  TaskConstMeta get kCrateApiFullGetWalletTransferStateConstMeta => const TaskConstMeta(
+        debugName: "get_wallet_transfer_state",
+        argNames: [],
       );
 
   @override
@@ -1294,12 +1291,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
 
   @protected
   RustStreamSink<List<WalletEvent>> dco_decode_StreamSink_list_wallet_event_Dco(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    throw UnimplementedError();
-  }
-
-  @protected
-  RustStreamSink<TransferSessionState> dco_decode_StreamSink_transfer_session_state_Dco(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     throw UnimplementedError();
   }
@@ -1949,12 +1940,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
 
   @protected
   RustStreamSink<List<WalletEvent>> sse_decode_StreamSink_list_wallet_event_Dco(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    throw UnimplementedError('Unreachable ()');
-  }
-
-  @protected
-  RustStreamSink<TransferSessionState> sse_decode_StreamSink_transfer_session_state_Dco(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     throw UnimplementedError('Unreachable ()');
   }
@@ -2809,19 +2794,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         self.setupAndSerialize(
             codec: DcoCodec(
           decodeSuccessData: dco_decode_list_wallet_event,
-          decodeErrorData: dco_decode_AnyhowException,
-        )),
-        serializer);
-  }
-
-  @protected
-  void sse_encode_StreamSink_transfer_session_state_Dco(
-      RustStreamSink<TransferSessionState> self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_String(
-        self.setupAndSerialize(
-            codec: DcoCodec(
-          decodeSuccessData: dco_decode_transfer_session_state,
           decodeErrorData: dco_decode_AnyhowException,
         )),
         serializer);

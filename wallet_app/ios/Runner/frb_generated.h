@@ -442,8 +442,7 @@ void frbgen_wallet_core_wire__crate__api__full__get_history_for_card(int64_t por
 
 void frbgen_wallet_core_wire__crate__api__full__get_version_string(int64_t port_);
 
-void frbgen_wallet_core_wire__crate__api__full__get_wallet_transfer_state_stream(int64_t port_,
-                                                                                 struct wire_cst_list_prim_u_8_strict *_sink);
+void frbgen_wallet_core_wire__crate__api__full__get_wallet_transfer_state(int64_t port_);
 
 void frbgen_wallet_core_wire__crate__api__full__has_active_disclosure_session(int64_t port_);
 
@@ -579,7 +578,7 @@ static int64_t dummy_method_to_enforce_bundling(void) {
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__get_history);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__get_history_for_card);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__get_version_string);
-    dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__get_wallet_transfer_state_stream);
+    dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__get_wallet_transfer_state);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__has_active_disclosure_session);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__has_active_issuance_session);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__has_registration);

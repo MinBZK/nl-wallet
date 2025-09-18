@@ -6058,13 +6058,17 @@ class MockWalletCoreApi extends _i1.Mock implements _i23.WalletCoreApi {
           as _i10.Future<String>);
 
   @override
-  _i10.Stream<_i23.TransferSessionState> crateApiFullGetWalletTransferStateStream() =>
+  _i10.Future<_i23.TransferSessionState> crateApiFullGetWalletTransferState() =>
       (super.noSuchMethod(
-            Invocation.method(#crateApiFullGetWalletTransferStateStream, []),
-            returnValue: _i10.Stream<_i23.TransferSessionState>.empty(),
-            returnValueForMissingStub: _i10.Stream<_i23.TransferSessionState>.empty(),
+            Invocation.method(#crateApiFullGetWalletTransferState, []),
+            returnValue: _i10.Future<_i23.TransferSessionState>.value(
+              _i23.TransferSessionState.Created,
+            ),
+            returnValueForMissingStub: _i10.Future<_i23.TransferSessionState>.value(
+              _i23.TransferSessionState.Created,
+            ),
           )
-          as _i10.Stream<_i23.TransferSessionState>);
+          as _i10.Future<_i23.TransferSessionState>);
 
   @override
   _i10.Future<bool> crateApiFullHasActiveDisclosureSession() =>

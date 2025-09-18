@@ -48,9 +48,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   RustStreamSink<List<WalletEvent>> dco_decode_StreamSink_list_wallet_event_Dco(dynamic raw);
 
   @protected
-  RustStreamSink<TransferSessionState> dco_decode_StreamSink_transfer_session_state_Dco(dynamic raw);
-
-  @protected
   String dco_decode_String(dynamic raw);
 
   @protected
@@ -248,9 +245,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   RustStreamSink<List<WalletEvent>> sse_decode_StreamSink_list_wallet_event_Dco(SseDeserializer deserializer);
-
-  @protected
-  RustStreamSink<TransferSessionState> sse_decode_StreamSink_transfer_session_state_Dco(SseDeserializer deserializer);
 
   @protected
   String sse_decode_String(SseDeserializer deserializer);
@@ -488,17 +482,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
     return cst_encode_String(raw.setupAndSerialize(
         codec: DcoCodec(
       decodeSuccessData: dco_decode_list_wallet_event,
-      decodeErrorData: dco_decode_AnyhowException,
-    )));
-  }
-
-  @protected
-  ffi.Pointer<wire_cst_list_prim_u_8_strict> cst_encode_StreamSink_transfer_session_state_Dco(
-      RustStreamSink<TransferSessionState> raw) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    return cst_encode_String(raw.setupAndSerialize(
-        codec: DcoCodec(
-      decodeSuccessData: dco_decode_transfer_session_state,
       decodeErrorData: dco_decode_AnyhowException,
     )));
   }
@@ -1188,10 +1171,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   void sse_encode_StreamSink_list_wallet_event_Dco(RustStreamSink<List<WalletEvent>> self, SseSerializer serializer);
 
   @protected
-  void sse_encode_StreamSink_transfer_session_state_Dco(
-      RustStreamSink<TransferSessionState> self, SseSerializer serializer);
-
-  @protected
   void sse_encode_String(String self, SseSerializer serializer);
 
   @protected
@@ -1794,22 +1773,19 @@ class WalletCoreWire implements BaseWire {
   late final _wire__crate__api__full__get_version_string =
       _wire__crate__api__full__get_version_stringPtr.asFunction<void Function(int)>();
 
-  void wire__crate__api__full__get_wallet_transfer_state_stream(
+  void wire__crate__api__full__get_wallet_transfer_state(
     int port_,
-    ffi.Pointer<wire_cst_list_prim_u_8_strict> _sink,
   ) {
-    return _wire__crate__api__full__get_wallet_transfer_state_stream(
+    return _wire__crate__api__full__get_wallet_transfer_state(
       port_,
-      _sink,
     );
   }
 
-  late final _wire__crate__api__full__get_wallet_transfer_state_streamPtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>>(
-          'frbgen_wallet_core_wire__crate__api__full__get_wallet_transfer_state_stream');
-  late final _wire__crate__api__full__get_wallet_transfer_state_stream =
-      _wire__crate__api__full__get_wallet_transfer_state_streamPtr
-          .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
+  late final _wire__crate__api__full__get_wallet_transfer_statePtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
+          'frbgen_wallet_core_wire__crate__api__full__get_wallet_transfer_state');
+  late final _wire__crate__api__full__get_wallet_transfer_state =
+      _wire__crate__api__full__get_wallet_transfer_statePtr.asFunction<void Function(int)>();
 
   void wire__crate__api__full__has_active_disclosure_session(
     int port_,

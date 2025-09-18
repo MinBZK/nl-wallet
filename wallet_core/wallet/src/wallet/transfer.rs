@@ -27,7 +27,6 @@ use crate::repository::Repository;
 use crate::storage::Storage;
 use crate::storage::StorageError;
 use crate::storage::TransferData;
-use crate::transfer::TransferSessionId;
 use crate::transfer::uri::TransferUri;
 use crate::transfer::uri::TransferUriError;
 
@@ -106,6 +105,8 @@ where
     pub async fn confirm_transfer(&mut self, uri: Url) -> Result<(), TransferError> {
         info!("Confirming transfer");
 
+        self.validate_transfer_allowed()?;
+
         let transfer_uri: TransferUri = uri.try_into()?;
 
         self.send_transfer_instruction(ConfirmTransfer {
@@ -117,14 +118,17 @@ where
 
     #[instrument(skip_all)]
     #[sentry_capture_error]
-    pub async fn get_transfer_status(
-        &mut self,
-        transfer_session_id: TransferSessionId,
-    ) -> Result<TransferSessionState, TransferError> {
+    pub async fn get_transfer_status(&mut self) -> Result<TransferSessionState, TransferError> {
         info!("Retrieving transfer status");
 
+        self.validate_transfer_allowed()?;
+
+        let Some(transfer_data) = self.storage.read().await.fetch_data::<TransferData>().await? else {
+            return Err(TransferError::MissingTransferSessionId);
+        };
+
         self.send_transfer_instruction(GetTransferStatus {
-            transfer_session_id: transfer_session_id.into(),
+            transfer_session_id: transfer_data.transfer_session_id.into(),
         })
         .await
     }
@@ -157,8 +161,6 @@ where
     where
         I: InstructionAndResult + 'static,
     {
-        self.validate_transfer_allowed()?;
-
         let (attested_key, registration_data) = self
             .registration
             .as_key_and_registration_data()
@@ -337,6 +339,15 @@ mod tests {
 
         wallet
             .mut_storage()
+            .expect_fetch_data::<TransferData>()
+            .returning(move || {
+                Ok(Some(TransferData {
+                    transfer_session_id: transfer_session_id.into(),
+                }))
+            });
+
+        wallet
+            .mut_storage()
             .expect_upsert_data::<InstructionData>()
             .returning(|_| Ok(()));
 
@@ -355,7 +366,7 @@ mod tests {
             .return_once(move |_, _: HwSignedInstruction<GetTransferStatus>| Ok(wp_result));
 
         let result = wallet
-            .get_transfer_status(transfer_session_id.into())
+            .get_transfer_status()
             .await
             .expect("Wallet confirm transfer should have succeeded");
 

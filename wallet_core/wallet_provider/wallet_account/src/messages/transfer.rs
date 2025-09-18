@@ -6,7 +6,8 @@ use serde::Serialize;
 pub enum TransferSessionState {
     Created,
     ReadyForTransfer,
-    Receiving,
+    ReadyForDownload,
     Success,
     Cancelled,
+    Error,
 }
