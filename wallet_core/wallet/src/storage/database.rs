@@ -122,7 +122,7 @@ mod tests {
         }
 
         // Create a new (encrypted) database.
-        let key = SqlCipherKey::try_from(random_bytes(SqlCipherKey::size()).as_slice()).unwrap();
+        let key = SqlCipherKey::try_from(random_bytes(SqlCipherKey::size_with_salt()).as_slice()).unwrap();
         let db = Database::open(SqliteUrl::InMemory, key)
             .await
             .expect("Could not open database");
