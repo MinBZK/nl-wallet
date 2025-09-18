@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2025-09-17T15:31:27+02:00",
+    "@@last_modified": "2025-09-18T11:09:01+02:00",
     "aboutScreenDescription": "De NL Wallet wordt gemaakt door de Nederlandse overheid, zodat iedereen digitale diensten veilig en gemakkelijk kan gebruiken.\n\nJe kunt de ontwikkelingen volgen op {url}.",
     "aboutScreenPrivacyCta": "Privacyverklaring",
     "aboutScreenTitle": "Over de NL Wallet",
@@ -102,9 +102,7 @@
     "cardDataScreenTitle": "Gegevens uit {title}",
     "cardDetailScreenCardDataCta": "Gegevens in deze kaart",
     "cardDetailScreenCardDataPrivacyWarning": "Houd je gegevens privé",
-    "cardDetailScreenCardDeleteCta": "Kaart verwijderen",
     "cardDetailScreenCardHistoryCta": "Kaartactiviteiten",
-    "cardDetailScreenCardUpdateCta": "Opnieuw ophalen",
     "cardDetailScreenCardValidUntil": "Geldig tot en met {dateTime}",
     "@cardDetailScreenCardValidUntil": {
         "placeholders": {
@@ -115,16 +113,6 @@
         }
     },
     "cardDetailScreenIssuerCta": "Over de uitgever",
-    "cardDetailScreenLatestIssuedOperation": "Laatste update {dateTime}",
-    "@cardDetailScreenLatestIssuedOperation": {
-        "placeholders": {
-            "dateTime": {
-                "example": "April 25 13:31",
-                "type": "String"
-            }
-        }
-    },
-    "cardDetailScreenLatestIssuedOperationUnknown": "Laatste update onbekend",
     "cardDetailScreenLatestSuccessInteraction": "{timeAgo} {shareStatus} met {organization}",
     "@cardDetailScreenLatestSuccessInteraction": {
         "placeholders": {
@@ -143,9 +131,6 @@
         }
     },
     "cardDetailScreenLatestSuccessInteractionUnknown": "Nog nooit gedeeld",
-    "cardDetailScreenNoUpdateAvailableSheetCloseCta": "Sluiten",
-    "cardDetailScreenNoUpdateAvailableSheetDescription": "Er zijn op dit moment geen nieuwe gegevens beschikbaar van deze kaart.\n\nVerwacht je nieuwe gegevens? Dan kan het een paar dagen duren voordat je de nieuwe gegevens kan ophalen. Probeer het later opnieuw.",
-    "cardDetailScreenNoUpdateAvailableSheetTitle": "Je hebt de laatste versie",
     "cardDetailScreenRenewPidCta": "Vervang kaart via DigiD",
     "cardHistoryDisclosureCancelled": "Delen gestopt",
     "cardHistoryDisclosureError": "Delen mogelijk mislukt",

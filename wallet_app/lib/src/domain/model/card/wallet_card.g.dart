@@ -18,7 +18,6 @@ WalletCard _$WalletCardFromJson(Map<String, dynamic> json) => WalletCard(
           ?.map((e) => CardDisplayMetadata.fromJson(e as Map<String, dynamic>))
           .toList() ??
       const [],
-  config: json['config'] == null ? const CardConfig() : CardConfig.fromJson(json['config'] as Map<String, dynamic>),
 );
 
 Map<String, dynamic> _$WalletCardToJson(WalletCard instance) => <String, dynamic>{
@@ -27,5 +26,4 @@ Map<String, dynamic> _$WalletCardToJson(WalletCard instance) => <String, dynamic
   'issuer': instance.issuer.toJson(),
   'metadata': instance.metadata.map((e) => e.toJson()).toList(),
   'attributes': instance.attributes.map((e) => e.toJson()).toList(),
-  'config': instance.config.toJson(),
 };
