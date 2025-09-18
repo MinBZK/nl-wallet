@@ -12,13 +12,13 @@
     - source venv/bin/activate
     - pip3 install -r deploy/git-jira-check/requirements.txt
 
-nightly_git_jira_check:
+nightly-git-jira-check:
   extends: .git-jira-check-base
   script:
     - python3 deploy/git-jira-check/git_jira_sync.py sync-nightly
-  rules: !reference [ .on-schedule, rules ]
+  rules: !reference [ .on-schedule-scan, rules ]
 
-verify_release_check:
+verify-release-check:
   extends: .git-jira-check-base
   script:
     - python3 deploy/git-jira-check/git_jira_sync.py verify-release

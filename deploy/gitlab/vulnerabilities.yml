@@ -2,7 +2,7 @@ dependency-check:
   image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-quality:${BUILD_TAG}"
   extends: .env-k8s
   rules:
-    - !reference [.on-schedule, rules]
+    - !reference [.on-schedule-scan, rules]
     - !reference [.default-or-release-or-merge-request, rules]
   before_script:
     - NVD_API_KEY="$(kubectl get secret nl-wallet-nist-nvd -o jsonpath='{.data.api-key}' | base64 --decode)"
@@ -39,7 +39,7 @@ dependency-check:
 osv-scanner:
   image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-quality:${BUILD_TAG}"
   rules:
-    - !reference [.on-schedule, rules]
+    - !reference [.on-schedule-scan, rules]
     - !reference [.default-or-release-or-merge-request, rules]
   script:
     - |
@@ -57,7 +57,7 @@ osv-scanner:
 rust-audit:
   extends: .rust
   rules:
-    - !reference [.on-schedule, rules]
+    - !reference [.on-schedule-scan, rules]
     - !reference [.default-or-release-or-merge-request, rules]
   before_script:
     - mkdir -p $CI_PROJECT_DIR/.cargo
@@ -73,10 +73,75 @@ rust-audit:
       - audit.json
   allow_failure: true
 
-trivy-scan:
+.trivy:
   image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-quality:${BUILD_TAG}"
+  before_script:
+    - |
+      BASIC_AUTH="${HARBOR_ROBOT_NAME}:$(base64 --decode <<< ${HARBOR_ROBOT_SECRET})"
+      BUILD_IMAGES=(
+      "nl-wallet-demo-relying-party"
+      "nl-wallet-demo-issuer"
+      "nl-wallet-provider-migrations"
+      "nl-wallet-provider"
+      "nl-wallet-server-migrations"
+      "nl-wallet-verification-server"
+      "nl-wallet-issuance-server"
+      "nl-wallet-pid-issuer"
+      "nl-wallet-gba-hc-converter"
+      )
+      CI_IMAGES=(
+      "nl-wallet-app-builder-ci-base"
+      "nl-wallet-app-builder-ci-node"
+      "nl-wallet-app-builder-ci-rust"
+      "nl-wallet-app-builder-ci-flutter"
+      "nl-wallet-app-builder-ci-android"
+      "nl-wallet-app-builder-ci-android-emulator"
+      "nl-wallet-app-builder-ci-playwright"
+      "nl-wallet-app-builder-ci-quality"
+      "nl-wallet-app-builder-ci-ansible"
+      )
+      OTHER_IMAGES=(
+      "nl-rdo-max"
+      "nl-wallet-hsm-simulator"
+      )
+    - set -euo pipefail
+
+trivy-scan:
+  extends: .trivy
   rules:
-    - !reference [.on-schedule, rules]
+    - !reference [.on-schedule-trigger-scan, rules]
+  script:
+    - |
+      reference_from_last_push() {
+        local image=$1
+        local url="https://${HARBOR_REGISTRY}/api/v2.0/projects/${HARBOR_PROJECT}/repositories/${image}/artifacts?page_size=1&page=1&sort=-push_time"
+        local reference="$(curl -fsS --user "${BASIC_AUTH}" "$url" | jq -r '.[0].tags[0].name')"
+        [[ -n $reference ]] || return 1
+        echo "$reference"
+      }
+
+      trigger_new_scan() {
+        local image=$1
+        local reference=$2
+        local url="https://${HARBOR_REGISTRY}/api/v2.0/projects/${HARBOR_PROJECT}/repositories/${image}/artifacts/${reference}/scan"
+        if ! curl -fsS --user "${BASIC_AUTH}" -XPOST "$url"; then
+          >&2 echo "ERROR: Could not trigger new scan for image $image and reference $reference"
+        fi
+      }
+
+      for image in "${CI_IMAGES[@]}"; do
+        trigger_new_scan $image $BUILD_TAG
+      done
+
+      for image in "${OTHER_IMAGES[@]}"; do
+        reference="$(reference_from_last_push $image)"
+        trigger_new_scan $image $reference
+      done
+
+trivy-publish:
+  extends: .trivy
+  rules:
+    - !reference [.on-schedule-scan, rules]
     - !reference [.default-or-release, rules]
   needs:
     - job: build-wallet-provider-image
@@ -103,35 +168,6 @@ trivy-scan:
     - job: build-pid-issuer-image
       artifacts: false
       optional: true
-  before_script:
-    - BUILD_IMAGES=(
-      "nl-wallet-demo-relying-party"
-      "nl-wallet-demo-issuer"
-      "nl-wallet-provider-migrations"
-      "nl-wallet-provider"
-      "nl-wallet-server-migrations"
-      "nl-wallet-verification-server"
-      "nl-wallet-issuance-server"
-      "nl-wallet-pid-issuer"
-      "nl-wallet-gba-hc-converter"
-      )
-      CI_IMAGES=(
-      "nl-wallet-app-builder-ci-base"
-      "nl-wallet-app-builder-ci-node"
-      "nl-wallet-app-builder-ci-rust"
-      "nl-wallet-app-builder-ci-flutter"
-      "nl-wallet-app-builder-ci-android"
-      "nl-wallet-app-builder-ci-android-emulator"
-      "nl-wallet-app-builder-ci-playwright"
-      "nl-wallet-app-builder-ci-quality"
-      "nl-wallet-app-builder-ci-ansible"
-      )
-      OTHER_IMAGES=(
-      "nl-rdo-max"
-      "nl-wallet-hsm-simulator"
-      )
-    - mkdir trivy
-    - set -euo pipefail
   script:
     - |
       BASIC_AUTH="${HARBOR_ROBOT_NAME}:$(base64 --decode <<< ${HARBOR_ROBOT_SECRET})"
@@ -139,7 +175,7 @@ trivy-scan:
       vulnerability_url_last_push() {
         local image=$1
         local url="https://${HARBOR_REGISTRY}/api/v2.0/projects/${HARBOR_PROJECT}/repositories/${image}/artifacts?page_size=1&page=1&sort=-push_time"
-        local href=$(curl -fsS --user "${BASIC_AUTH}" "$url" | jq -r '.[0].addition_links.vulnerabilities.href')
+        local href="$(curl -fsS --user "${BASIC_AUTH}" "$url" | jq -r '.[0].addition_links.vulnerabilities.href')"
         [[ -n $href ]] || return 1
         echo "https://${HARBOR_REGISTRY}${href}"
       }
@@ -148,7 +184,7 @@ trivy-scan:
         local image=$1
         local reference=$2
         local url="https://${HARBOR_REGISTRY}/api/v2.0/projects/${HARBOR_PROJECT}/repositories/${image}/artifacts/${reference}"
-        local href=$(curl -fsS --user "${BASIC_AUTH}" "$url" | jq -r '.addition_links.vulnerabilities.href')
+        local href="$(curl -fsS --user "${BASIC_AUTH}" "$url" | jq -r '.addition_links.vulnerabilities.href')"
         [[ -n $href ]] || return 1
         echo "https://${HARBOR_REGISTRY}${href}"
       }
@@ -167,6 +203,7 @@ trivy-scan:
         urls[$image]="$(vulnerability_url_last_push $image)"
       done
 
+      mkdir trivy
       for image in "${!urls[@]}"; do
         url="${urls[$image]}"
         curl -fsS --user "${BASIC_AUTH}" -o "trivy/${image}.json" "$url"

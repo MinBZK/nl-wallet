@@ -1,7 +1,7 @@
 .zap-base:
   image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-quality:${BUILD_TAG}"
   rules:
-    - !reference [.on-schedule, rules]
+    - !reference [.on-schedule-scan, rules]
     - !reference [.default-branch, rules]
 
 .zap-scan-base:
