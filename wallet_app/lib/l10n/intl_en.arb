@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2025-09-09T15:22:55+02:00",
+    "@@last_modified": "2025-09-17T15:31:27+02:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -443,8 +443,8 @@
     "flashlightEnabledWCAGAnnouncement": "Flashlight turned on",
     "forgotPinScreenCta": "Create a new PIN",
     "forgotPinScreenDescription": "You can create a new PIN to get access again. To do this, confirm your identity with DigiD.",
-    "forgotPinScreenLegacyCta": "Delete wallet",
-    "forgotPinScreenLegacyDescription": "When you forget your PIN, you can no longer use your Wallet.\n\nTo continue using the NL Wallet, you have to start over. Remove your NL Wallet and select a new PIN.",
+    "forgotPinScreenResetCta": "Delete wallet",
+    "forgotPinScreenResetDescription": "When you forget your PIN, you can no longer use your Wallet.\n\nTo continue using the NL Wallet, you have to start over. Remove your NL Wallet and select a new PIN.",
     "forgotPinScreenTitle": "Forgot PIN?",
     "fraudCheckPageAboutCta": "About the website check",
     "fraudCheckPageContinueCta": "Yes, continue",

@@ -190,7 +190,7 @@ class WalletRoutes {
       case WalletRoutes.disclosureRoute:
         return _createDisclosureScreenBuilder(settings);
       case WalletRoutes.forgotPinRoute:
-        return _createForgotPinScreenBuilder;
+        return _createForgotPinScreenBuilder(settings);
       case WalletRoutes.policyRoute:
         return _createPolicyScreenBuilder(settings);
       case WalletRoutes.issuanceRoute:
@@ -259,7 +259,8 @@ Widget _createIntroductionScreenBuilder(BuildContext context) => const Introduct
 
 Widget _createIntroductionPrivacyScreenBuilder(BuildContext context) => const IntroductionPrivacyScreen();
 
-Widget _createForgotPinScreenBuilder(BuildContext context) => const ForgotPinScreen();
+WidgetBuilder _createForgotPinScreenBuilder(RouteSettings settings) => (context) =>
+    ForgotPinScreen(recoveryMethod: tryCast<PinRecoveryMethod>(settings.arguments) ?? PinRecoveryMethod.recoverPin);
 
 Widget _createAboutScreenBuilder(BuildContext context) => const AboutScreen();
 

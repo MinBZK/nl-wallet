@@ -16,7 +16,9 @@ import '../common/widget/wallet_app_bar.dart';
 import '../common/widget/wallet_scrollbar.dart';
 
 class ForgotPinScreen extends StatelessWidget {
-  const ForgotPinScreen({super.key});
+  final PinRecoveryMethod recoveryMethod;
+
+  const ForgotPinScreen({this.recoveryMethod = PinRecoveryMethod.recoverPin, super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -52,15 +54,17 @@ class ForgotPinScreen extends StatelessWidget {
   }
 
   Widget _buildContentSliver(BuildContext context) {
+    final content = switch (recoveryMethod) {
+      PinRecoveryMethod.recoverPin => context.l10n.forgotPinScreenDescription,
+      PinRecoveryMethod.resetWallet => context.l10n.forgotPinScreenResetDescription,
+    };
     return SliverList.list(
       children: [
         TitleText(context.l10n.forgotPinScreenTitle),
         const SizedBox(height: 8),
         // TODO(Rob): Remove legacy flow. Awaiting core implementation. PVW-4587
         ParagraphedList.splitContent(
-          Environment.isMockOrTest
-              ? context.l10n.forgotPinScreenDescription
-              : context.l10n.forgotPinScreenLegacyDescription,
+          Environment.isMockOrTest ? content : context.l10n.forgotPinScreenResetDescription,
         ),
         const SizedBox(height: 32),
         const PageIllustration(
@@ -72,6 +76,10 @@ class ForgotPinScreen extends StatelessWidget {
   }
 
   Widget _buildBottomSection(BuildContext context) {
+    final cta = switch (recoveryMethod) {
+      PinRecoveryMethod.resetWallet => _buildPinResetButton(context),
+      PinRecoveryMethod.recoverPin => _buildPinRecoveryButton(context),
+    };
     return Column(
       children: [
         const Divider(),
@@ -80,7 +88,7 @@ class ForgotPinScreen extends StatelessWidget {
           child: Column(
             children: [
               // TODO(Rob): Remove legacy flow. Awaiting core implementation. PVW-4587
-              Environment.isMockOrTest ? _buildPinRecoveryButton(context) : _buildPinResetButton(context),
+              Environment.isMockOrTest ? cta : _buildPinResetButton(context),
               const SizedBox(height: 12),
               TertiaryButton(
                 onPressed: () => Navigator.maybePop(context),
@@ -105,9 +113,13 @@ class ForgotPinScreen extends StatelessWidget {
     return PrimaryButton(
       onPressed: () => ResetWalletDialog.show(context),
       icon: const Icon(Icons.delete_outline_rounded),
-      text: Text.rich(context.l10n.forgotPinScreenLegacyCta.toTextSpan(context)),
+      text: Text.rich(context.l10n.forgotPinScreenResetCta.toTextSpan(context)),
     );
   }
 
-  static void show(BuildContext context) => Navigator.pushNamed(context, WalletRoutes.forgotPinRoute);
+  static void show(BuildContext context, {PinRecoveryMethod? recoveryMethod}) =>
+      Navigator.pushNamed(context, WalletRoutes.forgotPinRoute, arguments: recoveryMethod);
 }
+
+/// Specify the recovery path that is available to the user
+enum PinRecoveryMethod { resetWallet, recoverPin }
