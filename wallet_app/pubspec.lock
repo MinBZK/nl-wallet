@@ -1051,10 +1051,10 @@ packages:
     dependency: "direct main"
     description:
       name: root_jailbreak_sniffer
-      sha256: "364aae7b9ccbbb09f2d8b81304eb479dc495653c10472b3e13d174b46c22cfed"
+      sha256: "53a6fd0a1bb4f053d1d6dbcdfd8927d9ce94fb22909c586cb62c57adbbefb3fe"
       url: "https://pub.dev"
     source: hosted
-    version: "1.1.1"
+    version: "1.1.2"
   rxdart:
     dependency: "direct main"
     description:
