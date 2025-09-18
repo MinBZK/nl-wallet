@@ -135,7 +135,7 @@ struct WalletUserJoinedModel {
 }
 
 pub fn transfer_session_from_model(
-    model: &wallet_transfer::Model,
+    model: wallet_transfer::Model,
     destination_wallet_recovery_code: String,
 ) -> TransferSession {
     TransferSession {
@@ -148,7 +148,7 @@ pub fn transfer_session_from_model(
             .state
             .parse()
             .expect("parsing the wallet transfer state from the database should always succeed"),
-        encrypted_wallet_data: None,
+        encrypted_wallet_data: model.encrypted_wallet_data,
     }
 }
 
@@ -248,7 +248,7 @@ where
         attestation,
         state,
         recovery_code: user_model.recovery_code.clone(),
-        transfer_session: transfer_model.as_ref().and_then(|transfer| {
+        transfer_session: transfer_model.and_then(|transfer| {
             user_model
                 .recovery_code
                 .map(|recovery_code| transfer_session_from_model(transfer, recovery_code))
@@ -632,7 +632,7 @@ where
         user_model.and_then(|user_model| {
             user_model
                 .recovery_code
-                .map(|recovery_code| transfer_session_from_model(&transfer_model, recovery_code))
+                .map(|recovery_code| transfer_session_from_model(transfer_model, recovery_code))
         })
     });
 
@@ -653,6 +653,25 @@ where
             wallet_transfer::Column::State,
             Expr::value(transfer_session_state.to_string()),
         )
+        .filter(wallet_transfer::Column::TransferSessionId.eq(transer_session_id))
+        .exec(db.connection())
+        .await
+        .map_err(|e| PersistenceError::Execution(e.into()))?;
+
+    match result.rows_affected {
+        0 => Err(PersistenceError::NoRowsUpdated),
+        1 => Ok(()),
+        _ => panic!("multiple `wallet_transfer`s with the same `transfer_session_id`"),
+    }
+}
+
+pub async fn clear_wallet_transfer_data<S, T>(db: &T, transer_session_id: Uuid) -> Result<()>
+where
+    S: ConnectionTrait,
+    T: PersistenceConnection<S>,
+{
+    let result = wallet_transfer::Entity::update_many()
+        .col_expr(wallet_transfer::Column::EncryptedWalletData, Expr::cust("null"))
         .filter(wallet_transfer::Column::TransferSessionId.eq(transer_session_id))
         .exec(db.connection())
         .await

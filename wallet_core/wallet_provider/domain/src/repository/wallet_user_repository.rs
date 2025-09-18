@@ -121,6 +121,12 @@ pub trait WalletUserRepository {
         transfer_session_id: Uuid,
         state: TransferSessionState,
     ) -> Result<()>;
+
+    async fn clear_wallet_transfer_data(
+        &self,
+        transaction: &Self::TransactionType,
+        transfer_session_id: Uuid,
+    ) -> Result<()>;
 }
 
 #[cfg(feature = "mock")]
@@ -281,6 +287,14 @@ pub mod mock {
             _transaction: &Self::TransactionType,
             _transfer_session_id: Uuid,
             _state: TransferSessionState,
+        ) -> Result<()> {
+            Ok(())
+        }
+
+        async fn clear_wallet_transfer_data(
+            &self,
+            _transaction: &Self::TransactionType,
+            _transfer_session_id: Uuid,
         ) -> Result<()> {
             Ok(())
         }
