@@ -403,7 +403,7 @@ pub async fn confirm_wallet_transfer(_pin: String) -> anyhow::Result<WalletInstr
 pub async fn start_wallet_transfer() -> anyhow::Result<String> {
     let mut wallet = wallet().write().await;
 
-    let transfer_uri = wallet.start_transfer().await?;
+    let (_, transfer_uri) = wallet.start_transfer().await?;
 
     Ok(transfer_uri.to_string())
 }

@@ -1,7 +1,9 @@
 use std::sync::Arc;
 
-use base64::Engine;
-use base64::prelude::BASE64_URL_SAFE_NO_PAD;
+use josekit::JoseError;
+use josekit::jwk::KeyPair;
+use josekit::jwk::alg::ec::EcCurve;
+use josekit::jwk::alg::ec::EcKeyPair;
 use tracing::info;
 use tracing::instrument;
 use url::Url;
@@ -28,6 +30,7 @@ use crate::repository::Repository;
 use crate::storage::Storage;
 use crate::storage::StorageError;
 use crate::storage::TransferData;
+use crate::transfer::TransferQuery;
 use crate::transfer::TransferSessionId;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
@@ -60,6 +63,14 @@ pub enum TransferError {
     #[error("transfer_session_id not found in storage")]
     #[category(critical)]
     MissingTransferSessionId,
+
+    #[error("url encoding error: {0}")]
+    #[category(critical)]
+    UrlEncode(#[from] serde_urlencoded::ser::Error),
+
+    #[error("jose error: {0}")]
+    #[category(critical)]
+    JoseError(#[from] JoseError),
 }
 
 impl<CR, UR, S, AKH, APC, DC, IS, DCC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC>
@@ -75,7 +86,7 @@ where
 {
     #[instrument(skip_all)]
     #[sentry_capture_error]
-    pub async fn start_transfer(&mut self) -> Result<Url, TransferError> {
+    pub async fn start_transfer(&mut self) -> Result<(EcKeyPair, Url), TransferError> {
         info!("Start transfer");
 
         info!("Checking if blocked");
@@ -97,18 +108,17 @@ where
             return Err(TransferError::MissingTransferSessionId);
         };
 
-        let key = crypto::utils::random_bytes(32);
-        // Safe to do it the simple way since it is encoded via Base64 URL safe (base64url)
-        let query = format!(
-            "s={}&k={}",
-            BASE64_URL_SAFE_NO_PAD.encode(transfer_data.transfer_session_id.as_ref()),
-            BASE64_URL_SAFE_NO_PAD.encode(&key),
-        );
+        let key_pair = EcKeyPair::generate(EcCurve::P256)?;
+
+        let query = TransferQuery {
+            session_id: transfer_data.transfer_session_id,
+            public_key: key_pair.to_jwk_public_key(),
+        };
 
         let mut url: Url = urls::transfer_base_uri(&UNIVERSAL_LINK_BASE_URL).into_inner();
-        url.set_fragment(Some(query.as_str()));
+        url.set_fragment(Some(serde_urlencoded::to_string(query)?.as_str()));
 
-        Ok(url)
+        Ok((key_pair, url))
     }
 }
 
@@ -170,7 +180,6 @@ where
 mod tests {
     use assert_matches::assert_matches;
     use url::Host;
-    use url::form_urlencoded;
     use uuid::Uuid;
 
     use wallet_account::messages::instructions::HwSignedInstruction;
@@ -187,18 +196,14 @@ mod tests {
     async fn test_wallet_start_transfer() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
-        let transfer_session_id = Uuid::new_v4();
+        let transfer_session_id = TransferSessionId::from(Uuid::new_v4());
 
         wallet
             .mut_storage()
             .expect_fetch_data::<TransferData>()
-            .returning(move || {
-                Ok(Some(TransferData {
-                    transfer_session_id: transfer_session_id.into(),
-                }))
-            });
+            .returning(move || Ok(Some(TransferData { transfer_session_id })));
 
-        let url = wallet
+        let (key_pair, url) = wallet
             .start_transfer()
             .await
             .expect("Wallet start transfer should have succeeded");
@@ -212,22 +217,11 @@ mod tests {
         assert_eq!(url.query(), None);
         assert!(url.fragment().is_some());
 
-        let mut pairs = form_urlencoded::parse(url.fragment().unwrap().as_bytes());
-
-        let (key, value) = pairs.next().unwrap();
-        assert_eq!(key, "s");
-        assert_eq!(
-            BASE64_URL_SAFE_NO_PAD
-                .decode(value.as_ref())
-                .map(|id| Uuid::from_slice(id.as_ref())),
-            Ok(Ok(transfer_session_id))
-        );
-
-        let (key, value) = pairs.next().unwrap();
-        assert_eq!(key, "k");
-        assert_eq!(BASE64_URL_SAFE_NO_PAD.decode(value.as_ref()).unwrap().len(), 32);
-
-        assert!(pairs.next().is_none());
+        let query: TransferQuery = serde_urlencoded::from_str(url.fragment().unwrap()).unwrap();
+        assert_eq!(query.session_id, transfer_session_id);
+        assert_eq!(query.public_key.key_type(), "EC");
+        assert_eq!(query.public_key.curve(), Some("P-256"));
+        assert_eq!(query.public_key, key_pair.to_jwk_public_key());
     }
 
     #[tokio::test]
