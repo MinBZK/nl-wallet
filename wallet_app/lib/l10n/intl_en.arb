@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2025-09-17T15:31:27+02:00",
+    "@@last_modified": "2025-09-18T11:09:01+02:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -106,9 +106,7 @@
     "cardDataScreenTitle": "Data from {title}",
     "cardDetailScreenCardDataCta": "Details in this card",
     "cardDetailScreenCardDataPrivacyWarning": "Keep your details private",
-    "cardDetailScreenCardDeleteCta": "Delete card",
     "cardDetailScreenCardHistoryCta": "Card activities",
-    "cardDetailScreenCardUpdateCta": "Renew data",
     "cardDetailScreenCardValidUntil": "Valid until {dateTime}",
     "@cardDetailScreenCardValidUntil": {
         "placeholders": {
@@ -119,16 +117,6 @@
         }
     },
     "cardDetailScreenIssuerCta": "About the issuer",
-    "cardDetailScreenLatestIssuedOperation": "Latest update {dateTime}",
-    "@cardDetailScreenLatestIssuedOperation": {
-        "placeholders": {
-            "dateTime": {
-                "example": "April 25 13:31",
-                "type": "String"
-            }
-        }
-    },
-    "cardDetailScreenLatestIssuedOperationUnknown": "Latest update unknown",
     "cardDetailScreenLatestSuccessInteraction": "{shareStatus} {timeAgo} with {organization}",
     "@cardDetailScreenLatestSuccessInteraction": {
         "placeholders": {
@@ -147,9 +135,6 @@
         }
     },
     "cardDetailScreenLatestSuccessInteractionUnknown": "Never shared before",
-    "cardDetailScreenNoUpdateAvailableSheetCloseCta": "Close",
-    "cardDetailScreenNoUpdateAvailableSheetDescription": "At the moment, there are no new data available for this card.\n\nExpecting new data? It may take a few days before you can retrieve the new data. Please try again later.",
-    "cardDetailScreenNoUpdateAvailableSheetTitle": "You have the latest version.",
     "cardDetailScreenRenewPidCta": "Replace card via DigiD",
     "cardHistoryDisclosureCancelled": "Sharing stopped",
     "cardHistoryDisclosureError": "Sharing may have failed",
