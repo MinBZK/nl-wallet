@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2025-09-09T15:22:55+02:00",
+    "@@last_modified": "2025-09-17T15:31:27+02:00",
     "aboutScreenDescription": "De NL Wallet wordt gemaakt door de Nederlandse overheid, zodat iedereen digitale diensten veilig en gemakkelijk kan gebruiken.\n\nJe kunt de ontwikkelingen volgen op {url}.",
     "aboutScreenPrivacyCta": "Privacyverklaring",
     "aboutScreenTitle": "Over de NL Wallet",
@@ -439,8 +439,8 @@
     "flashlightEnabledWCAGAnnouncement": "Zaklamp is aangezet",
     "forgotPinScreenCta": "Kies nieuwe pincode",
     "forgotPinScreenDescription": "Je kunt een nieuwe pincode aanmaken om weer toegang te krijgen. Bevestig hiervoor je identiteit met DigiD.",
-    "forgotPinScreenLegacyCta": "Verwijder Wallet",
-    "forgotPinScreenLegacyDescription": "Als je jouw pincode bent vergeten kun je jouw NL Wallet niet meer gebruiken.\n\nWil je weer gebruik maken van de NL Wallet? Dan moet je opnieuw beginnen. Verwijder de NL Wallet en kies een nieuwe pincode.",
+    "forgotPinScreenResetCta": "Verwijder Wallet",
+    "forgotPinScreenResetDescription": "Als je jouw pincode bent vergeten kun je jouw NL Wallet niet meer gebruiken.\n\nWil je weer gebruik maken van de NL Wallet? Dan moet je opnieuw beginnen. Verwijder de NL Wallet en kies een nieuwe pincode.",
     "forgotPinScreenTitle": "Pincode vergeten?",
     "fraudCheckPageAboutCta": "Meer over deze website-controle",
     "fraudCheckPageContinueCta": "Ja, verder",
