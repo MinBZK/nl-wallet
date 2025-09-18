@@ -17,14 +17,14 @@ extension StringExtension on String {
   LocalizedText get untranslated => {const Locale('en'): this};
 
   AttributedString toAttributedString(BuildContext context) => AttributedString(
-        this,
-        attributes: [
-          LocaleStringAttribute(
-            range: fullRange,
-            locale: context.activeLocale,
-          ),
-        ],
-      );
+    this,
+    attributes: [
+      LocaleStringAttribute(
+        range: fullRange,
+        locale: context.activeLocale,
+      ),
+    ],
+  );
 
   TextSpan toTextSpan(BuildContext context) => TextSpan(text: this, locale: context.activeLocale);
 

@@ -173,8 +173,9 @@ void main() {
   });
 
   group('widgets', () {
-    testWidgets('SetupSecurityScreen shows the correct title for SetupSecuritySelectPinInProgress state',
-        (tester) async {
+    testWidgets('SetupSecurityScreen shows the correct title for SetupSecuritySelectPinInProgress state', (
+      tester,
+    ) async {
       await tester.pumpWidgetWithAppWrapper(
         const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
           MockSetupSecurityBloc(),
@@ -191,8 +192,9 @@ void main() {
       expect(titleFinder, findsOneWidget);
     });
 
-    testWidgets('SetupSecurityScreen shows the correct title for SetupSecurityPinConfirmationInProgress state',
-        (tester) async {
+    testWidgets('SetupSecurityScreen shows the correct title for SetupSecurityPinConfirmationInProgress state', (
+      tester,
+    ) async {
       await tester.pumpWidgetWithAppWrapper(
         const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
           MockSetupSecurityBloc(),
@@ -209,8 +211,9 @@ void main() {
       expect(titleFinder, findsOneWidget);
     });
 
-    testWidgets('SetupSecurityScreen shows the server error for SetupSecurityNetworkError hasInternet true',
-        (tester) async {
+    testWidgets('SetupSecurityScreen shows the server error for SetupSecurityNetworkError hasInternet true', (
+      tester,
+    ) async {
       await tester.pumpWidgetWithAppWrapper(
         const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
           MockSetupSecurityBloc(),
@@ -263,8 +266,9 @@ void main() {
       expect(showDetailsCtaFinder, findsOneWidget);
     });
 
-    testWidgets('SetupSecurityScreen shows the device incompatible error for SetupSecurityDeviceIncompatibleError',
-        (tester) async {
+    testWidgets('SetupSecurityScreen shows the device incompatible error for SetupSecurityDeviceIncompatibleError', (
+      tester,
+    ) async {
       await tester.pumpWidgetWithAppWrapper(
         const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
           MockSetupSecurityBloc(),

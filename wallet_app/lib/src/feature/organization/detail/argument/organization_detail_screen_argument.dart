@@ -24,8 +24,8 @@ class OrganizationDetailScreenArgument extends Equatable {
   }
 
   OrganizationDetailScreenArgument.fromMap(Map<String, dynamic> map)
-      : organization = map[_kOrganizationKey],
-        sharedDataWithOrganizationBefore = map[_kSharedDataBeforeKey];
+    : organization = map[_kOrganizationKey],
+      sharedDataWithOrganizationBefore = map[_kSharedDataBeforeKey];
 
   @override
   List<Object?> get props => [organization, sharedDataWithOrganizationBefore];

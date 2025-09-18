@@ -63,8 +63,10 @@ class _HorizontalConfirmButtonsState extends State<HorizontalConfirmButtons> wit
       builder: (context, child) {
         const defaultButtonSizeAsFraction = 0.5;
         final primarySizeTween = Tween<double>(begin: defaultButtonSizeAsFraction, end: 1);
-        final secondaryButtonXAlignmentTween =
-            Tween<double>(begin: -1, end: HorizontalConfirmButtons.kHiddenXAlignment);
+        final secondaryButtonXAlignmentTween = Tween<double>(
+          begin: -1,
+          end: HorizontalConfirmButtons.kHiddenXAlignment,
+        );
         final centralPaddingTween = Tween<double>(begin: ConfirmButtons.kButtonSpacing / 2.0, end: 0);
         return Stack(
           clipBehavior: Clip.none,

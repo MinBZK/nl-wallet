@@ -23,9 +23,10 @@ class StepperIndicator extends StatelessWidget {
     this.totalSteps = 5,
     super.key,
   }) : assert(
-            (totalSteps - currentStep) < 10,
-            'This component was not developed with infinite steps in mind, '
-            'when reaching this threshold the design might have to be re-considered');
+         (totalSteps - currentStep) < 10,
+         'This component was not developed with infinite steps in mind, '
+         'when reaching this threshold the design might have to be re-considered',
+       );
 
   @override
   Widget build(BuildContext context) {

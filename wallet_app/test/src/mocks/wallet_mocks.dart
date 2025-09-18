@@ -105,11 +105,9 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<BuildContext>()])
 @GenerateNiceMocks([MockSpec<VideoPlayerController>()])
 @GenerateNiceMocks([MockSpec<InternetConnectionChecker>()])
-
 /// Mock mappers
 @GenerateNiceMocks([MockSpec<Mapper>()])
 @GenerateNiceMocks([MockSpec<ContextMapper>()])
-
 /// Mock repositories
 @GenerateNiceMocks([MockSpec<PidRepository>()])
 @GenerateNiceMocks([MockSpec<DisclosureRepository>()])
@@ -122,7 +120,6 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<VersionStateRepository>()])
 @GenerateNiceMocks([MockSpec<TourRepository>()])
 @GenerateNiceMocks([MockSpec<IssuanceRepository>()])
-
 /// Mock services
 @GenerateNiceMocks([MockSpec<TypedWalletCore>()])
 @GenerateNiceMocks([MockSpec<NavigationService>()])
@@ -130,7 +127,6 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<ActiveLocaleProvider>()])
 @GenerateNiceMocks([MockSpec<BiometricUnlockManager>()])
 @GenerateNiceMocks([MockSpec<SemanticsEventService>()])
-
 /// Mock use cases
 @GenerateNiceMocks([MockSpec<DecodeUriUseCase>()])
 @GenerateNiceMocks([MockSpec<IsWalletInitializedUseCase>()])
@@ -194,10 +190,8 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<ContinuePinRecoveryUseCase>()])
 @GenerateNiceMocks([MockSpec<CancelPinRecoveryUseCase>()])
 @GenerateNiceMocks([MockSpec<CompletePinRecoveryUseCase>()])
-
 /// Core
 @GenerateNiceMocks([MockSpec<WalletCoreApi>()])
-
 /// Constants
 const kMockPidIssuanceUrl = 'https://example.org';
 

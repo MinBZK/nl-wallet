@@ -27,8 +27,9 @@ class IssuanceStoppedPage extends StatelessWidget {
       onPrimaryPressed: () => onClosePressed(returnUrl),
       secondaryButtonCta: context.l10n.issuanceStoppedPageGiveFeedbackCta,
       onSecondaryButtonPressed: onGiveFeedbackPressed,
-      primaryButtonCta:
-          hasReturnUrl ? context.l10n.issuanceStoppedPageToWebsiteCta : context.l10n.issuanceStoppedPageCloseCta,
+      primaryButtonCta: hasReturnUrl
+          ? context.l10n.issuanceStoppedPageToWebsiteCta
+          : context.l10n.issuanceStoppedPageCloseCta,
       primaryButtonIcon: Icon(hasReturnUrl ? Icons.north_east : Icons.close_outlined),
     );
   }

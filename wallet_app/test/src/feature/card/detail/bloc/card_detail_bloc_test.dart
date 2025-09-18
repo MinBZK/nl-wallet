@@ -44,8 +44,9 @@ void main() {
     build: () => CardDetailBloc(observeWalletCardDetailUseCase, WalletMockData.card),
     act: (bloc) => bloc.add(CardDetailLoadTriggered(WalletMockData.card.attestationId!)),
     setUp: () {
-      when(observeWalletCardDetailUseCase.invoke(WalletMockData.card.attestationId))
-          .thenAnswer((_) => Stream.value(WalletMockData.cardDetail));
+      when(
+        observeWalletCardDetailUseCase.invoke(WalletMockData.card.attestationId),
+      ).thenAnswer((_) => Stream.value(WalletMockData.cardDetail));
     },
     expect: () => [CardDetailLoadSuccess(WalletMockData.cardDetail)],
   );
@@ -55,8 +56,9 @@ void main() {
     build: () => CardDetailBloc(observeWalletCardDetailUseCase, WalletMockData.card),
     act: (bloc) => bloc.add(CardDetailLoadTriggered(WalletMockData.card.attestationId!)),
     setUp: () {
-      when(observeWalletCardDetailUseCase.invoke(WalletMockData.card.attestationId))
-          .thenAnswer((_) => Stream.error('Failed to load card details'));
+      when(
+        observeWalletCardDetailUseCase.invoke(WalletMockData.card.attestationId),
+      ).thenAnswer((_) => Stream.error('Failed to load card details'));
     },
     expect: () => [CardDetailLoadFailure(WalletMockData.card.attestationId!)],
   );

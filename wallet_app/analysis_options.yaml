@@ -93,3 +93,7 @@ linter:
     use_string_buffers: true
     use_test_throws_matchers: true
     use_to_and_as_if_applicable: true
+
+formatter:
+  page_width: 120
+  trailing_commas: preserve

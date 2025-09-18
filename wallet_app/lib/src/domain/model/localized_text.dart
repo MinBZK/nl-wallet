@@ -11,4 +11,4 @@ export 'dart:ui' show Locale;
 /// Extension methods provide functionality to:
 /// - Retrieve the most appropriate translation based on the active locale
 /// - Fall back to alternative translations when the exact locale match isn't available
-typedef LocalizedText = Map<Locale, String /*value*/ >;
+typedef LocalizedText = Map<Locale, String /*value*/>;

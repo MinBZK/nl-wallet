@@ -47,7 +47,9 @@ class ConfirmAgreementPage extends StatelessWidget {
           const SliverSizedBox(height: 16),
           SliverToBoxAdapter(child: _buildDataIncorrectButton(context)),
           const SliverSizedBox(height: 16),
-          SliverToBoxAdapter(child: PolicySection(relyingParty: relyingParty, policy: policy, addSignatureRow: true)),
+          SliverToBoxAdapter(
+            child: PolicySection(relyingParty: relyingParty, policy: policy, addSignatureRow: true),
+          ),
           const SliverToBoxAdapter(child: Divider(height: 32)),
           SliverToBoxAdapter(child: _buildTrustProvider(context)),
           const SliverToBoxAdapter(child: Divider(height: 32)),

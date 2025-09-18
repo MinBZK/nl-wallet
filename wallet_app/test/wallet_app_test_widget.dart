@@ -34,7 +34,7 @@ class WalletAppTestWidget extends StatelessWidget {
         supportedLocales: AppLocalizations.supportedLocales,
         onUnknownRoute: (RouteSettings settings) => PageRouteBuilder(
           opaque: false,
-          pageBuilder: (_, __, ___) => Text(
+          pageBuilder: (_, _, _) => Text(
             settings.name ?? 'unnamed route',
             style: const TextStyle(fontSize: 0 /* rendered but hidden */),
           ),
@@ -84,8 +84,9 @@ extension TestWidgetExtensions on Widget {
         create: (c) {
           assert(bloc is MockBloc || bloc is MockCubit, 'Can only provide mocked state on MockBloc/MockCubit');
 
-          final Stream<S> statesStream =
-              streamStates.isNotEmpty ? Stream<S>.fromIterable(streamStates) : Stream<S>.value(initialState);
+          final Stream<S> statesStream = streamStates.isNotEmpty
+              ? Stream<S>.fromIterable(streamStates)
+              : Stream<S>.value(initialState);
           whenListen(bloc, statesStream, initialState: initialState);
           return bloc;
         },
@@ -96,10 +97,10 @@ extension TestWidgetExtensions on Widget {
   ///
   /// Useful to provide a widget under test with a dependency.
   Widget withDependency<T>(T Function(BuildContext context) create) => Provider(
-        create: (c) => create(c),
-        builder: (context, child) => child!,
-        child: this,
-      );
+    create: (c) => create(c),
+    builder: (context, child) => child!,
+    child: this,
+  );
 }
 
 const iphoneXSize = Size(375, 812);

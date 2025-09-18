@@ -47,19 +47,19 @@ class Organization extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        legalName,
-        displayName,
-        category,
-        description,
-        logo,
-        webUrl,
-        privacyPolicyUrl,
-        city,
-        countryCode,
-        department,
-        kvk,
-      ];
+    id,
+    legalName,
+    displayName,
+    category,
+    description,
+    logo,
+    webUrl,
+    privacyPolicyUrl,
+    city,
+    countryCode,
+    department,
+    kvk,
+  ];
 
   Organization copyWith({LocalizedText? displayName}) {
     return Organization(

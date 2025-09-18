@@ -151,8 +151,7 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
   Future<void> _onIssuanceShareRequestedAttributesDeclined(
     IssuanceShareRequestedAttributesDeclined event,
     Emitter<IssuanceState> emit,
-  ) async =>
-      _stopIssuance(emit);
+  ) async => _stopIssuance(emit);
 
   Future<void> _onPinConfirmedForDisclosure(
     IssuancePinForDisclosureConfirmed event,

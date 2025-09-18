@@ -27,10 +27,10 @@ class IssuanceManager {
 
   /// Get the cards/attributes that have to be disclosed to fulfill [_activeIssuanceResponse], assumes [_activeIssuanceResponse] is non null.
   List<AttestationPresentation> get _requestedAttestationsForActiveRequest => _wallet.getRequestedAttestations(
-        _activeIssuanceResponse!.requestedAttributes.map(
-          (attribute) => attribute.key,
-        ),
-      );
+    _activeIssuanceResponse!.requestedAttributes.map(
+      (attribute) => attribute.key,
+    ),
+  );
 
   IssuanceManager(this._pinManager, this._wallet, this._eventLog);
 
@@ -56,8 +56,9 @@ class IssuanceManager {
         requestType: DisclosureType.Regular,
       );
     } else {
-      final requestedAttributesNotInWallet =
-          _wallet.getMissingAttributeKeys(response.requestedAttributes.map((e) => e.key));
+      final requestedAttributesNotInWallet = _wallet.getMissingAttributeKeys(
+        response.requestedAttributes.map((e) => e.key),
+      );
       final missingAttributes = requestedAttributesNotInWallet.map((key) {
         final associatedLabel = response.requestedAttributes.firstWhere((element) => element.key == key).label;
         return MissingAttribute(labels: associatedLabel.untranslated);
@@ -113,8 +114,8 @@ class IssuanceManager {
         final selectedCards = cardDocTypes.isEmpty
             ? _activeIssuanceResponse!.attestations
             : _activeIssuanceResponse!.attestations
-                .where((card) => cardDocTypes.contains(card.attestationType))
-                .toList();
+                  .where((card) => cardDocTypes.contains(card.attestationType))
+                  .toList();
         _wallet.add(selectedCards);
         selectedCards.forEach(_eventLog.logIssuance);
         _activeIssuanceResponse = null;
@@ -126,7 +127,7 @@ class IssuanceManager {
   }
 
   Future<String?> cancelIssuance() async {
-    if (_activeIssuanceResponse != null && !_itemsHaveBeenDisclosed /* true when already logged */) {
+    if (_activeIssuanceResponse != null && !_itemsHaveBeenDisclosed /* true when already logged */ ) {
       _eventLog.logDisclosureStep(
         _activeIssuanceResponse!.relyingParty,
         _activeIssuanceResponse!.policy,

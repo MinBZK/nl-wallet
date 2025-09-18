@@ -79,8 +79,9 @@ class AppBlockedScreen extends StatelessWidget {
         child: ConfirmButtons(
           primaryButton: PrimaryButton(
             text: Text.rich(
-              (Platform.isIOS ? context.l10n.generalToAppStoreCta : context.l10n.generalToPlayStoreCta)
-                  .toTextSpan(context),
+              (Platform.isIOS ? context.l10n.generalToAppStoreCta : context.l10n.generalToPlayStoreCta).toTextSpan(
+                context,
+              ),
             ),
             icon: const Icon(Icons.north_east_outlined),
             onPressed: () => StoreRedirect.redirect,

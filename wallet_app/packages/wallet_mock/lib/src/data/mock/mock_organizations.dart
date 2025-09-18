@@ -246,7 +246,10 @@ const _kBankOrganization = Organization(
     LocalizedString(language: 'en', value: 'XYZ Bank'),
     LocalizedString(language: 'nl', value: 'XYZ Bank'),
   ],
-  category: [LocalizedString(language: 'en', value: 'Bank'), LocalizedString(language: 'nl', value: 'Bank')],
+  category: [
+    LocalizedString(language: 'en', value: 'Bank'),
+    LocalizedString(language: 'nl', value: 'Bank'),
+  ],
   description: [
     LocalizedString(language: 'en', value: 'The accessible bank for paying, saving and investing.'),
     LocalizedString(language: 'nl', value: 'Maak het leven makkelijk. Regel je financieën digitaal met Jouw Bank.'),

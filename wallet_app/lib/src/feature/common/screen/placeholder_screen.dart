@@ -83,8 +83,9 @@ class PlaceholderScreen extends StatelessWidget {
       description: description,
       illustration: illustration,
     );
-    final route =
-        secured ? SecuredPageRoute(builder: (c) => errorScreen) : MaterialPageRoute(builder: (c) => errorScreen);
+    final route = secured
+        ? SecuredPageRoute(builder: (c) => errorScreen)
+        : MaterialPageRoute(builder: (c) => errorScreen);
     Navigator.push(context, route);
   }
 

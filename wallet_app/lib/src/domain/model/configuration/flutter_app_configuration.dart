@@ -30,10 +30,10 @@ class FlutterAppConfiguration extends Equatable {
 
   @override
   List<Object?> get props => [
-        idleLockTimeout,
-        idleWarningTimeout,
-        backgroundLockTimeout,
-        staticAssetsBaseUrl,
-        version,
-      ];
+    idleLockTimeout,
+    idleWarningTimeout,
+    backgroundLockTimeout,
+    staticAssetsBaseUrl,
+    version,
+  ];
 }

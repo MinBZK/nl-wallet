@@ -25,11 +25,11 @@ class Policy extends Equatable {
 
   @override
   List<Object?> get props => [
-        storageDuration,
-        dataPurpose,
-        dataPurposeDescription,
-        dataIsShared,
-        deletionCanBeRequested,
-        privacyPolicyUrl,
-      ];
+    storageDuration,
+    dataPurpose,
+    dataPurposeDescription,
+    dataIsShared,
+    deletionCanBeRequested,
+    privacyPolicyUrl,
+  ];
 }

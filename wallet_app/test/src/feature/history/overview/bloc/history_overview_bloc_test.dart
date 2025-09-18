@@ -26,8 +26,9 @@ void main() {
   blocTest(
     'verify transition to HistoryOverviewLoadFailure when events can not be loaded',
     build: () => HistoryOverviewBloc(getWalletEventsUseCase),
-    setUp: () => when(getWalletEventsUseCase.invoke())
-        .thenAnswer((_) async => const Result.error(GenericError('', sourceError: 'test'))),
+    setUp: () => when(
+      getWalletEventsUseCase.invoke(),
+    ).thenAnswer((_) async => const Result.error(GenericError('', sourceError: 'test'))),
     act: (bloc) => bloc.add(const HistoryOverviewLoadTriggered()),
     expect: () => [
       const HistoryOverviewLoadInProgress(),

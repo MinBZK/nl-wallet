@@ -27,20 +27,20 @@ class WalletEventMapper extends Mapper<core.WalletEvent, WalletEvent> {
   WalletEvent map(core.WalletEvent input) {
     return switch (input) {
       WalletEvent_Disclosure() => WalletEvent.disclosure(
-          dateTime: DateTime.parse(input.dateTime).toLocal(),
-          relyingParty: _relyingPartyMapper.map(input.relyingParty),
-          purpose: _localizedStringMapper.map(input.purpose),
-          cards: _cardMapper.mapList(input.sharedAttestations ?? []),
-          policy: _policyMapper.map(input.requestPolicy),
-          status: _resolveInteractionStatus(input.status),
-          type: _disclosureTypeMapper.map(input.typ),
-        ),
+        dateTime: DateTime.parse(input.dateTime).toLocal(),
+        relyingParty: _relyingPartyMapper.map(input.relyingParty),
+        purpose: _localizedStringMapper.map(input.purpose),
+        cards: _cardMapper.mapList(input.sharedAttestations ?? []),
+        policy: _policyMapper.map(input.requestPolicy),
+        status: _resolveInteractionStatus(input.status),
+        type: _disclosureTypeMapper.map(input.typ),
+      ),
       WalletEvent_Issuance() => WalletEvent.issuance(
-          dateTime: DateTime.parse(input.dateTime).toLocal(),
-          status: EventStatus.success,
-          card: _cardMapper.map(input.attestation),
-          renewed: input.renewed,
-        ),
+        dateTime: DateTime.parse(input.dateTime).toLocal(),
+        status: EventStatus.success,
+        card: _cardMapper.map(input.attestation),
+        renewed: input.renewed,
+      ),
     };
   }
 

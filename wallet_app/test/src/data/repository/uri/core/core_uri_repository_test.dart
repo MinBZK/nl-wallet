@@ -44,8 +44,9 @@ void main() {
 
     test('Disclosure based issuance uri should result in a IssuanceNavigationRequest', () async {
       const testUri = 'https://disclosure_based_issuance.org';
-      when(mockWalletCore.identifyUri(testUri))
-          .thenAnswer((realInvocation) async => IdentifyUriResult.DisclosureBasedIssuance);
+      when(
+        mockWalletCore.identifyUri(testUri),
+      ).thenAnswer((realInvocation) async => IdentifyUriResult.DisclosureBasedIssuance);
       final result = await uriRepository.processUri(Uri.parse(testUri));
       expect(result, isA<IssuanceNavigationRequest>());
       expect(

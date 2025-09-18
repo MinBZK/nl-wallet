@@ -139,14 +139,18 @@ class OrganizationApprovePage extends StatelessWidget {
 
   static String resolveTitle(BuildContext context, ApprovalPurpose purpose, Organization organization) {
     return switch (purpose) {
-      ApprovalPurpose.issuance =>
-        context.l10n.organizationApprovePageIssuanceTitle(organization.displayName.l10nValue(context)),
-      ApprovalPurpose.disclosure =>
-        context.l10n.organizationApprovePageGenericTitle(organization.displayName.l10nValue(context)),
-      ApprovalPurpose.sign =>
-        context.l10n.organizationApprovePageGenericTitle(organization.displayName.l10nValue(context)),
-      ApprovalPurpose.login =>
-        context.l10n.organizationApprovePageLoginTitle(organization.displayName.l10nValue(context)),
+      ApprovalPurpose.issuance => context.l10n.organizationApprovePageIssuanceTitle(
+        organization.displayName.l10nValue(context),
+      ),
+      ApprovalPurpose.disclosure => context.l10n.organizationApprovePageGenericTitle(
+        organization.displayName.l10nValue(context),
+      ),
+      ApprovalPurpose.sign => context.l10n.organizationApprovePageGenericTitle(
+        organization.displayName.l10nValue(context),
+      ),
+      ApprovalPurpose.login => context.l10n.organizationApprovePageLoginTitle(
+        organization.displayName.l10nValue(context),
+      ),
     };
   }
 

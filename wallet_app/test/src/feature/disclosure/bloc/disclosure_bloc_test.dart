@@ -50,8 +50,9 @@ void main() {
 
   blocTest(
     'when startDisclosure fails, emit generic error',
-    setUp: () => when(startDisclosureUseCase.invoke(any, isQrCode: anyNamed('isQrCode')))
-        .thenAnswer((_) async => const Result.error(GenericError('', sourceError: 'test'))),
+    setUp: () => when(
+      startDisclosureUseCase.invoke(any, isQrCode: anyNamed('isQrCode')),
+    ).thenAnswer((_) async => const Result.error(GenericError('', sourceError: 'test'))),
     build: create,
     act: (bloc) => bloc.add(const DisclosureSessionStarted('')),
     expect: () => [
@@ -62,8 +63,9 @@ void main() {
 
   blocTest(
     'when startDisclosure fails with network issue, emit DisclosureNetworkError(hasInternet: true)',
-    setUp: () => when(startDisclosureUseCase.invoke(any, isQrCode: anyNamed('isQrCode')))
-        .thenAnswer((_) async => const Result.error(NetworkError(hasInternet: true, sourceError: 'test'))),
+    setUp: () => when(
+      startDisclosureUseCase.invoke(any, isQrCode: anyNamed('isQrCode')),
+    ).thenAnswer((_) async => const Result.error(NetworkError(hasInternet: true, sourceError: 'test'))),
     build: create,
     act: (bloc) => bloc.add(const DisclosureSessionStarted('')),
     verify: (bloc) {
@@ -76,8 +78,9 @@ void main() {
   blocTest(
     'when startDisclosure fails with network issue and there is no internet, emit DisclosureNetworkError(hasInternet: false)',
     setUp: () {
-      when(startDisclosureUseCase.invoke(any, isQrCode: anyNamed('isQrCode')))
-          .thenAnswer((_) async => const Result.error(NetworkError(hasInternet: false, sourceError: 'test')));
+      when(
+        startDisclosureUseCase.invoke(any, isQrCode: anyNamed('isQrCode')),
+      ).thenAnswer((_) async => const Result.error(NetworkError(hasInternet: false, sourceError: 'test')));
       when(CoreErrorExtension.networkRepository.hasInternet()).thenAnswer((realInvocation) async {
         await Future.delayed(const Duration(milliseconds: 100));
         return false;
@@ -513,8 +516,9 @@ void main() {
 
   blocTest(
     'startDisclosure is called with isQrCode set to true',
-    setUp: () => when(startDisclosureUseCase.invoke(any, isQrCode: anyNamed('isQrCode')))
-        .thenAnswer((_) async => const Result.error(GenericError('', sourceError: 'test'))),
+    setUp: () => when(
+      startDisclosureUseCase.invoke(any, isQrCode: anyNamed('isQrCode')),
+    ).thenAnswer((_) async => const Result.error(GenericError('', sourceError: 'test'))),
     build: create,
     act: (bloc) => bloc.add(const DisclosureSessionStarted('http://true', isQrCode: true)),
     verify: (_) => verify(startDisclosureUseCase.invoke('http://true', isQrCode: true)).called(1),
@@ -522,8 +526,9 @@ void main() {
 
   blocTest(
     'startDisclosure is called with isQrCode set to false',
-    setUp: () => when(startDisclosureUseCase.invoke(any, isQrCode: anyNamed('isQrCode')))
-        .thenAnswer((_) async => const Result.error(GenericError('', sourceError: 'test'))),
+    setUp: () => when(
+      startDisclosureUseCase.invoke(any, isQrCode: anyNamed('isQrCode')),
+    ).thenAnswer((_) async => const Result.error(GenericError('', sourceError: 'test'))),
     build: create,
     act: (bloc) => bloc.add(const DisclosureSessionStarted('http://false', isQrCode: false)),
     verify: (_) => verify(startDisclosureUseCase.invoke('http://false', isQrCode: false)).called(1),
@@ -626,8 +631,11 @@ void main() {
     act: (bloc) async => bloc.add(const DisclosureSessionStarted('')),
     expect: () => [
       isA<DisclosureLoadInProgress>(),
-      isA<DisclosureGenericError>()
-          .having((error) => error.returnUrl, 'return url matches that of the error', 'https://example.org'),
+      isA<DisclosureGenericError>().having(
+        (error) => error.returnUrl,
+        'return url matches that of the error',
+        'https://example.org',
+      ),
     ],
   );
 
@@ -753,8 +761,9 @@ void main() {
       );
       bloc.add(
         DisclosureAlternativeCardSelected(
-          WalletMockData.discloseCardRequestMultiCard
-              .select(WalletMockData.discloseCardRequestMultiCard.alternatives.first),
+          WalletMockData.discloseCardRequestMultiCard.select(
+            WalletMockData.discloseCardRequestMultiCard.alternatives.first,
+          ),
         ),
       );
       await Future.delayed(const Duration(milliseconds: 25));
@@ -769,8 +778,11 @@ void main() {
     expect: () {
       return [
         isA<DisclosureCheckUrl>(),
-        isA<DisclosureConfirmDataAttributes>()
-            .having((state) => state.cardRequests.map((it) => it.selectedIndex), 'initial selection is all 0', [0, 0]),
+        isA<DisclosureConfirmDataAttributes>().having(
+          (state) => state.cardRequests.map((it) => it.selectedIndex),
+          'initial selection is all 0',
+          [0, 0],
+        ),
         isA<DisclosureConfirmDataAttributes>().having(
           (state) => state.cardRequests.map((it) => it.selectedIndex),
           'update selection of second request',
@@ -825,8 +837,9 @@ void main() {
       );
       bloc.add(
         DisclosureAlternativeCardSelected(
-          WalletMockData.discloseCardRequestMultiCard
-              .select(WalletMockData.discloseCardRequestMultiCard.alternatives.first),
+          WalletMockData.discloseCardRequestMultiCard.select(
+            WalletMockData.discloseCardRequestMultiCard.alternatives.first,
+          ),
         ),
       );
       await Future.delayed(const Duration(milliseconds: 25));
@@ -842,8 +855,11 @@ void main() {
     expect: () {
       return [
         isA<DisclosureCheckUrl>(),
-        isA<DisclosureConfirmDataAttributes>()
-            .having((state) => state.cardRequests.map((it) => it.selectedIndex), 'initial selection is all 0', [0, 0]),
+        isA<DisclosureConfirmDataAttributes>().having(
+          (state) => state.cardRequests.map((it) => it.selectedIndex),
+          'initial selection is all 0',
+          [0, 0],
+        ),
         isA<DisclosureConfirmDataAttributes>().having(
           (state) => state.cardRequests.map((it) => it.selectedIndex),
           'update selection of second request',

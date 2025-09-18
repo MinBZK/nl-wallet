@@ -55,26 +55,26 @@ class ListButton extends StatelessWidget {
   }
 
   ButtonStyle _resolveButtonStyle(BuildContext context) => context.theme.textButtonTheme.style!.copyWith(
-        minimumSize: WidgetStatePropertyAll(
-          Size(0, context.isLandscape ? _kLandscapeButtonHeight : _kButtonHeight),
-        ),
-        padding: WidgetStatePropertyAll(
-          EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: context.isLandscape ? _kLandscapeVerticalPadding : _kVerticalPadding,
-          ),
-        ),
-        shape: const WidgetStatePropertyAll(
-          RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-        ),
-      );
+    minimumSize: WidgetStatePropertyAll(
+      Size(0, context.isLandscape ? _kLandscapeButtonHeight : _kButtonHeight),
+    ),
+    padding: WidgetStatePropertyAll(
+      EdgeInsets.symmetric(
+        horizontal: 16,
+        vertical: context.isLandscape ? _kLandscapeVerticalPadding : _kVerticalPadding,
+      ),
+    ),
+    shape: const WidgetStatePropertyAll(
+      RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+    ),
+  );
 
   ButtonContent _buildContent() => ButtonContent(
-        text: text,
-        icon: icon,
-        iconPosition: iconPosition,
-        mainAxisAlignment: mainAxisAlignment,
-      );
+    text: text,
+    icon: icon,
+    iconPosition: iconPosition,
+    mainAxisAlignment: mainAxisAlignment,
+  );
 
   Divider _buildDivider(BuildContext context) => Divider(height: context.theme.dividerTheme.thickness);
 }

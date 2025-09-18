@@ -58,8 +58,9 @@ void main() {
       'happy path: login with DigiD, confirm attributes, confirm pin, succeed',
       build: () {
         when(getPidRenewalUrlUseCase.invoke()).thenAnswer((_) async => const Result.success('mock_auth_url'));
-        when(continuePidIssuanceUseCase.invoke('mock_auth_url'))
-            .thenAnswer((_) async => Result.success([WalletMockData.textDataAttribute]));
+        when(
+          continuePidIssuanceUseCase.invoke('mock_auth_url'),
+        ).thenAnswer((_) async => Result.success([WalletMockData.textDataAttribute]));
         when(getPidCardsUseCase.invoke()).thenAnswer((_) async => Result.success([WalletMockData.card]));
         when(cancelPidIssuanceUseCase.invoke()).thenAnswer((_) async => const Result.success(true));
         return RenewPidBloc(
@@ -126,8 +127,9 @@ void main() {
     blocTest<RenewPidBloc, RenewPidState>(
       'handles network error when getting DigiD URL',
       build: () {
-        when(getPidRenewalUrlUseCase.invoke())
-            .thenAnswer((_) async => const Result.error(NetworkError(hasInternet: false, sourceError: 'test')));
+        when(
+          getPidRenewalUrlUseCase.invoke(),
+        ).thenAnswer((_) async => const Result.error(NetworkError(hasInternet: false, sourceError: 'test')));
         when(cancelPidIssuanceUseCase.invoke()).thenAnswer((_) async => const Result.success(true));
         return RenewPidBloc(
           getPidRenewalUrlUseCase,
@@ -147,8 +149,9 @@ void main() {
     blocTest<RenewPidBloc, RenewPidState>(
       'handles generic error when getting DigiD URL',
       build: () {
-        when(getPidRenewalUrlUseCase.invoke())
-            .thenAnswer((_) async => const Result.error(GenericError('some error', sourceError: 'ex')));
+        when(
+          getPidRenewalUrlUseCase.invoke(),
+        ).thenAnswer((_) async => const Result.error(GenericError('some error', sourceError: 'ex')));
         when(cancelPidIssuanceUseCase.invoke()).thenAnswer((_) async => const Result.success(true));
         return RenewPidBloc(
           getPidRenewalUrlUseCase,

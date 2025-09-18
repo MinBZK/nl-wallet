@@ -22,10 +22,10 @@ class HistorySectionHeader extends StatelessWidget {
             child: Semantics(
               header: true,
               child: Text.rich(
-                DateFormat(DateFormat.YEAR_MONTH, context.l10n.localeName)
-                    .format(dateTime)
-                    .capitalize
-                    .toTextSpan(context),
+                DateFormat(
+                  DateFormat.YEAR_MONTH,
+                  context.l10n.localeName,
+                ).format(dateTime).capitalize.toTextSpan(context),
                 maxLines: 1,
                 style: context.textTheme.labelSmall,
               ),

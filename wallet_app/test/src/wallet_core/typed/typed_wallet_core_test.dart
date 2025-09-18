@@ -204,8 +204,9 @@ void main() {
           issuer: _kSampleIssuer,
         ),
       ];
-      when(core.crateApiFullSetAttestationsStream())
-          .thenAnswer((realInvocation) => Stream.fromIterable([[], initialCards, updatedCards]));
+      when(
+        core.crateApiFullSetAttestationsStream(),
+      ).thenAnswer((realInvocation) => Stream.fromIterable([[], initialCards, updatedCards]));
 
       expect(
         TypedWalletCore(errorMapper).observeCards(),
@@ -239,8 +240,9 @@ void main() {
           issuer: _kSampleIssuer,
         ),
       ];
-      when(core.crateApiFullSetAttestationsStream())
-          .thenAnswer((realInvocation) => Stream.fromIterable([initialCards, updatedCards]));
+      when(
+        core.crateApiFullSetAttestationsStream(),
+      ).thenAnswer((realInvocation) => Stream.fromIterable([initialCards, updatedCards]));
 
       final typedCore = TypedWalletCore(errorMapper);
 

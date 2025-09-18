@@ -366,8 +366,9 @@ extension WalletCardRenderExtension on WalletCard {
       case null:
         return _kFallbackTextColor;
       case SimpleCardRendering():
-        return rendering.textColor
-                .takeIf((_) => rendering.bgColor != null /* guarantee contrast */ || Environment.isMockOrTest) ??
+        return rendering.textColor.takeIf(
+              (_) => rendering.bgColor != null /* guarantee contrast */ || Environment.isMockOrTest,
+            ) ??
             _kFallbackTextColor;
     }
   }
@@ -379,8 +380,10 @@ extension WalletCardRenderExtension on WalletCard {
       case null:
         return const DecoratedBox(decoration: BoxDecoration(color: _kFallbackBgColor));
       case SimpleCardRendering():
-        final bgColor = rendering.bgColor
-                .takeIf((_) => rendering.textColor != null /* guarantee contrast */ || Environment.isMockOrTest) ??
+        final bgColor =
+            rendering.bgColor.takeIf(
+              (_) => rendering.textColor != null /* guarantee contrast */ || Environment.isMockOrTest,
+            ) ??
             _kFallbackBgColor;
         return DecoratedBox(decoration: BoxDecoration(color: bgColor));
     }

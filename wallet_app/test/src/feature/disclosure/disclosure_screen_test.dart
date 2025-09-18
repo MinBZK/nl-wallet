@@ -442,8 +442,9 @@ void main() {
       expect(find.text(l10n.disclosureSuccessPageShowHistoryCta), findsOneWidget);
     });
 
-    testWidgets('DisclosureScreen shows the no internet error for DisclosureNetworkError(hasInternet=false)',
-        (tester) async {
+    testWidgets('DisclosureScreen shows the no internet error for DisclosureNetworkError(hasInternet=false)', (
+      tester,
+    ) async {
       await tester.pumpWidgetWithAppWrapper(
         const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
           MockDisclosureBloc(),
@@ -630,8 +631,9 @@ void main() {
         );
 
         final l10n = await TestUtils.englishLocalizations;
-        final checkOrgForLoginTitle =
-            l10n.organizationApprovePageLoginTitle(WalletMockData.organization.displayName.testValue);
+        final checkOrgForLoginTitle = l10n.organizationApprovePageLoginTitle(
+          WalletMockData.organization.displayName.testValue,
+        );
         expect(find.textContaining(checkOrgForLoginTitle), findsAtLeast(1));
 
         // Navigate away
@@ -642,8 +644,9 @@ void main() {
         // DisclosureScreen checkOrgForLoginTitle should no longer be visible
         expect(find.text(checkOrgForLoginTitle), findsNothing);
         // Login detail screen checkOrgForLoginTitle should be visible
-        final organizationDetailScreenTitle =
-            l10n.loginDetailScreenTitle(WalletMockData.organization.displayName.testValue);
+        final organizationDetailScreenTitle = l10n.loginDetailScreenTitle(
+          WalletMockData.organization.displayName.testValue,
+        );
         expect(find.text(organizationDetailScreenTitle), findsAtLeast(1));
       },
     );

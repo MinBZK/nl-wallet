@@ -54,8 +54,9 @@ void main() {
     blocTest<RecoverPinBloc, RecoverPinState>(
       'happy path: login with DigiD, continue recovery, choose PIN, confirm PIN, succeed',
       build: () {
-        when(createPinRecoveryRedirectUriUseCase.invoke())
-            .thenAnswer((_) async => const Result.success('mock_auth_url'));
+        when(
+          createPinRecoveryRedirectUriUseCase.invoke(),
+        ).thenAnswer((_) async => const Result.success('mock_auth_url'));
         when(continuePinRecoveryUseCase.invoke(any)).thenAnswer((_) async => const Result<void>.success(null));
         when(checkIsValidPinUseCase.invoke(any)).thenAnswer((_) async => const Result<void>.success(null));
         when(completePinRecoveryUseCase.invoke(any)).thenAnswer((_) async => const Result<void>.success(null));
@@ -142,8 +143,9 @@ void main() {
     blocTest<RecoverPinBloc, RecoverPinState>(
       'handles network error when getting DigiD URL',
       build: () {
-        when(createPinRecoveryRedirectUriUseCase.invoke())
-            .thenAnswer((_) async => const Result<String>.error(NetworkError(hasInternet: false, sourceError: 'test')));
+        when(
+          createPinRecoveryRedirectUriUseCase.invoke(),
+        ).thenAnswer((_) async => const Result<String>.error(NetworkError(hasInternet: false, sourceError: 'test')));
         when(cancelPinRecoveryUseCase.invoke()).thenAnswer((_) async => const Result<void>.success(null));
         return RecoverPinBloc(
           createPinRecoveryRedirectUriUseCase,
@@ -164,8 +166,9 @@ void main() {
     blocTest<RecoverPinBloc, RecoverPinState>(
       'handles generic error when getting DigiD URL',
       build: () {
-        when(createPinRecoveryRedirectUriUseCase.invoke())
-            .thenAnswer((_) async => const Result<String>.error(GenericError('err', sourceError: 'ex')));
+        when(
+          createPinRecoveryRedirectUriUseCase.invoke(),
+        ).thenAnswer((_) async => const Result<String>.error(GenericError('err', sourceError: 'ex')));
         when(cancelPinRecoveryUseCase.invoke()).thenAnswer((_) async => const Result<void>.success(null));
         return RecoverPinBloc(
           createPinRecoveryRedirectUriUseCase,
@@ -240,8 +243,9 @@ void main() {
     blocTest<RecoverPinBloc, RecoverPinState>(
       'retry: RecoverPinRetryPressed triggers RecoverPinLoginWithDigidClicked flow',
       build: () {
-        when(createPinRecoveryRedirectUriUseCase.invoke())
-            .thenAnswer((_) async => const Result.success('mock_auth_url'));
+        when(
+          createPinRecoveryRedirectUriUseCase.invoke(),
+        ).thenAnswer((_) async => const Result.success('mock_auth_url'));
         when(cancelPinRecoveryUseCase.invoke()).thenAnswer((_) async => const Result<void>.success(null));
         return RecoverPinBloc(
           createPinRecoveryRedirectUriUseCase,

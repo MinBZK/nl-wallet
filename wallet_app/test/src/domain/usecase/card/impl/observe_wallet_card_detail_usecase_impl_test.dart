@@ -62,10 +62,12 @@ void main() {
       expect(detail, mockDetail);
 
       // Verify repositories were consulted for the events
-      verify(mockWalletEventRepository.readMostRecentDisclosureEvent(mockCard.attestationId!, EventStatus.success))
-          .called(1);
-      verify(mockWalletEventRepository.readMostRecentIssuanceEvent(mockCard.attestationId!, EventStatus.success))
-          .called(1);
+      verify(
+        mockWalletEventRepository.readMostRecentDisclosureEvent(mockCard.attestationId!, EventStatus.success),
+      ).called(1);
+      verify(
+        mockWalletEventRepository.readMostRecentIssuanceEvent(mockCard.attestationId!, EventStatus.success),
+      ).called(1);
     });
   });
 }

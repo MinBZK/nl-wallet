@@ -39,8 +39,9 @@ class IntroductionProgressStepper extends StatelessWidget {
 
     final currentSemanticsStep = currentStep.toInt() + 1;
     return Semantics(
-      attributedLabel:
-          context.l10n.pageIndicatorSemanticsLabel(currentSemanticsStep, totalSteps).toAttributedString(context),
+      attributedLabel: context.l10n
+          .pageIndicatorSemanticsLabel(currentSemanticsStep, totalSteps)
+          .toAttributedString(context),
       currentValueLength: currentSemanticsStep,
       maxValueLength: totalSteps,
       child: Wrap(

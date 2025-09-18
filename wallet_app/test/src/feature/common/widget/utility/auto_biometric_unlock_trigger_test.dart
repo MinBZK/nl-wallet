@@ -19,8 +19,9 @@ void main() {
   group('widgets', () {
     testWidgets('trigger is not fired when manager reports false', (tester) async {
       when(mockBiometricUnlockManager.shouldTriggerUnlock).thenReturn(false);
-      when(mockBiometricUnlockManager.getAndSetShouldTriggerUnlock(updatedValue: anyNamed('updatedValue')))
-          .thenReturn(false);
+      when(
+        mockBiometricUnlockManager.getAndSetShouldTriggerUnlock(updatedValue: anyNamed('updatedValue')),
+      ).thenReturn(false);
 
       bool isFired = false;
       await tester.pumpWidgetWithAppWrapper(
@@ -35,8 +36,9 @@ void main() {
 
     testWidgets('trigger is fired when manager reports true', (tester) async {
       when(mockBiometricUnlockManager.shouldTriggerUnlock).thenReturn(true);
-      when(mockBiometricUnlockManager.getAndSetShouldTriggerUnlock(updatedValue: anyNamed('updatedValue')))
-          .thenReturn(true);
+      when(
+        mockBiometricUnlockManager.getAndSetShouldTriggerUnlock(updatedValue: anyNamed('updatedValue')),
+      ).thenReturn(true);
 
       bool isFired = false;
       await tester.pumpWidgetWithAppWrapper(
@@ -51,8 +53,9 @@ void main() {
 
     testWidgets('trigger is re-checked and fired onResume', (tester) async {
       when(mockBiometricUnlockManager.shouldTriggerUnlock).thenReturn(false);
-      when(mockBiometricUnlockManager.getAndSetShouldTriggerUnlock(updatedValue: anyNamed('updatedValue')))
-          .thenReturn(false);
+      when(
+        mockBiometricUnlockManager.getAndSetShouldTriggerUnlock(updatedValue: anyNamed('updatedValue')),
+      ).thenReturn(false);
 
       bool isFired = false;
       await tester.pumpWidgetWithAppWrapper(
@@ -65,8 +68,9 @@ void main() {
 
       // Update trigger
       when(mockBiometricUnlockManager.shouldTriggerUnlock).thenReturn(true);
-      when(mockBiometricUnlockManager.getAndSetShouldTriggerUnlock(updatedValue: anyNamed('updatedValue')))
-          .thenReturn(true);
+      when(
+        mockBiometricUnlockManager.getAndSetShouldTriggerUnlock(updatedValue: anyNamed('updatedValue')),
+      ).thenReturn(true);
 
       // Verify nothing happens yet
       expect(isFired, isFalse);

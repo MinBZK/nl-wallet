@@ -38,16 +38,16 @@ class LinkButton extends StatelessWidget {
   }
 
   ButtonStyle _resolveButtonStyle(BuildContext context) => context.theme.textButtonTheme.style!.copyWith(
-        minimumSize: const WidgetStatePropertyAll(
-          Size(0, _kButtonHeight),
-        ),
-        padding: const WidgetStatePropertyAll(
-          EdgeInsets.symmetric(horizontal: 0, vertical: 8),
-        ),
-        shape: const WidgetStatePropertyAll(
-          RoundedRectangleBorder(
-            borderRadius: BorderRadius.zero,
-          ),
-        ),
-      );
+    minimumSize: const WidgetStatePropertyAll(
+      Size(0, _kButtonHeight),
+    ),
+    padding: const WidgetStatePropertyAll(
+      EdgeInsets.symmetric(horizontal: 0, vertical: 8),
+    ),
+    shape: const WidgetStatePropertyAll(
+      RoundedRectangleBorder(
+        borderRadius: BorderRadius.zero,
+      ),
+    ),
+  );
 }

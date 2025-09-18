@@ -60,22 +60,22 @@ class CardHolograph extends StatelessWidget {
   }
 
   Gradient _generateHoloGradient() => LinearGradient(
-        colors: [
-          _kWhite5,
-          Colors.white.withValues(alpha: brightness == Brightness.light ? .6 : .21),
-          _kWhite5,
-        ],
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-      );
+    colors: [
+      _kWhite5,
+      Colors.white.withValues(alpha: brightness == Brightness.light ? .6 : .21),
+      _kWhite5,
+    ],
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+  );
 
   Gradient _generateOutlineGradient() => LinearGradient(
-        colors: [
-          _kWhite0,
-          Colors.white.withValues(alpha: brightness == Brightness.light ? .6 : .21),
-          _kWhite0,
-        ],
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-      );
+    colors: [
+      _kWhite0,
+      Colors.white.withValues(alpha: brightness == Brightness.light ? .6 : .21),
+      _kWhite0,
+    ],
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+  );
 }

@@ -57,9 +57,10 @@ class HistoryDetailLoginPage extends StatelessWidget {
     return switch (event.status) {
       EventStatus.success => context.l10n.historyDetailScreenTitleForLogin(organizationName),
       EventStatus.cancelled => context.l10n.historyDetailScreenStoppedTitleForLogin(organizationName),
-      EventStatus.error => event.hasSharedAttributes
-          ? context.l10n.historyDetailScreenErrorTitleForLogin(organizationName)
-          : context.l10n.historyDetailScreenErrorNoDataSharedTitleForLogin(organizationName),
+      EventStatus.error =>
+        event.hasSharedAttributes
+            ? context.l10n.historyDetailScreenErrorTitleForLogin(organizationName)
+            : context.l10n.historyDetailScreenErrorNoDataSharedTitleForLogin(organizationName),
     };
   }
 }

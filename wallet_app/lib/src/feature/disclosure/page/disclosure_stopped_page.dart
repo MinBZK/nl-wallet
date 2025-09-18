@@ -31,8 +31,9 @@ class DisclosureStoppedPage extends StatelessWidget {
       title: context.l10n.disclosureStoppedPageTitle,
       description: description,
       illustration: const PageIllustration(asset: WalletAssets.svg_stopped),
-      primaryButtonCta:
-          hasReturnUrl ? context.l10n.disclosureStoppedPageToWebsiteCta : context.l10n.disclosureStoppedPageCloseCta,
+      primaryButtonCta: hasReturnUrl
+          ? context.l10n.disclosureStoppedPageToWebsiteCta
+          : context.l10n.disclosureStoppedPageCloseCta,
       primaryButtonIcon: Icon(hasReturnUrl ? Icons.north_east : Icons.close_outlined),
       onPrimaryPressed: () => onClosePressed(returnUrl),
     );

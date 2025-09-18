@@ -47,15 +47,18 @@ class DeeplinkService {
       _appLifecycleService.observe(),
       (uri, state) => state == AppLifecycleState.resumed ? uri : null,
     ).whereNotNull();
-    debounceUntilResumedStream.debounceTime(kResumeDebounceDuration).asyncMap((uri) async {
-      clearController.add(null);
-      final decodeUriResult = await _decodeUriUseCase.invoke(uri);
-      if (decodeUriResult.hasError) throw decodeUriResult.error!;
-      return decodeUriResult.value!;
-    }).listen(
-      (navigationRequest) => _navigationService.handleNavigationRequest(navigationRequest, queueIfNotReady: true),
-      onError: (exception) => Fimber.e('Error while processing deeplink', ex: exception),
-      cancelOnError: false,
-    );
+    debounceUntilResumedStream
+        .debounceTime(kResumeDebounceDuration)
+        .asyncMap((uri) async {
+          clearController.add(null);
+          final decodeUriResult = await _decodeUriUseCase.invoke(uri);
+          if (decodeUriResult.hasError) throw decodeUriResult.error!;
+          return decodeUriResult.value!;
+        })
+        .listen(
+          (navigationRequest) => _navigationService.handleNavigationRequest(navigationRequest, queueIfNotReady: true),
+          onError: (exception) => Fimber.e('Error while processing deeplink', ex: exception),
+          cancelOnError: false,
+        );
   }
 }

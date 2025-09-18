@@ -153,8 +153,8 @@ class ConfirmActionSheet extends StatelessWidget {
     if (confirmButton.color == null) return null;
     return ElevatedButtonThemeData(
       style: ElevatedButtonTheme.of(context).style?.copyWith(
-            backgroundColor: WidgetStatePropertyAll(confirmButton.color!),
-          ),
+        backgroundColor: WidgetStatePropertyAll(confirmButton.color!),
+      ),
     );
   }
 
@@ -162,8 +162,8 @@ class ConfirmActionSheet extends StatelessWidget {
     if (cancelButton.color == null) return null;
     return OutlinedButtonThemeData(
       style: OutlinedButtonTheme.of(context).style?.copyWith(
-            backgroundColor: WidgetStatePropertyAll(cancelButton.color!),
-          ),
+        backgroundColor: WidgetStatePropertyAll(cancelButton.color!),
+      ),
     );
   }
 }

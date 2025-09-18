@@ -203,9 +203,9 @@ class LoginDetailScreen extends StatelessWidget {
           const SizedBox(height: 8),
           BodyText(
             context.read<ContextMapper<OrganizationPolicy, String>>().map(
-                  context,
-                  OrganizationPolicy(organization: organization, policy: policy),
-                ),
+              context,
+              OrganizationPolicy(organization: organization, policy: policy),
+            ),
           ),
           const SizedBox(height: 6),
           LinkButton(

@@ -29,17 +29,19 @@ class TertiaryButton extends StatelessWidget implements FitsWidthWidget {
   }
 
   ButtonContent _buildContent() => ButtonContent(
-        text: text,
-        icon: icon,
-        iconPosition: iconPosition,
-        mainAxisAlignment: mainAxisAlignment,
-      );
+    text: text,
+    icon: icon,
+    iconPosition: iconPosition,
+    mainAxisAlignment: mainAxisAlignment,
+  );
 
   @override
   bool fitsWidth(BuildContext context, double availableWidth) {
     final leftOverWidth = availableWidth - context.theme.buttonTheme.padding.horizontal;
-    final contentWidth =
-        _buildContent().contentWidth(context, context.theme.textButtonTheme.style!.textStyle!.resolve({})!);
+    final contentWidth = _buildContent().contentWidth(
+      context,
+      context.theme.textButtonTheme.style!.textStyle!.resolve({})!,
+    );
     return contentWidth <= leftOverWidth;
   }
 }

@@ -38,9 +38,9 @@ class TerminalPage extends StatelessWidget {
     this.flipButtonOrder = false,
     super.key,
   }) : assert(
-          !flipButtonOrder || secondaryButtonCta != null,
-          'buttons are only flippable when secondary button is available',
-        );
+         !flipButtonOrder || secondaryButtonCta != null,
+         'buttons are only flippable when secondary button is available',
+       );
 
   @override
   Widget build(BuildContext context) {

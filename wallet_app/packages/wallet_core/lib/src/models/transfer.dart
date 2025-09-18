@@ -12,5 +12,4 @@ enum WalletTransferState {
   Transferring,
   Error,
   Success,
-  ;
 }

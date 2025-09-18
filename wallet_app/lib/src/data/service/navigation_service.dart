@@ -126,8 +126,10 @@ class NavigationService {
     try {
       await switch (notification) {
         RecommendUpdateNotification() => UpdateNotificationDialog.show(context),
-        WarnUpdateNotification() =>
-          UpdateNotificationDialog.show(context, timeUntilBlocked: notification.timeUntilBlocked),
+        WarnUpdateNotification() => UpdateNotificationDialog.show(
+          context,
+          timeUntilBlocked: notification.timeUntilBlocked,
+        ),
       };
     } finally {
       // Register that the dialog is no longer visible

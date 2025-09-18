@@ -25,17 +25,17 @@ class AppImageDataConverter extends JsonConverter<AppImageData, Map<String, dyna
   Map<String, dynamic> toJson(AppImageData object) {
     return switch (object) {
       AppAssetImage() => {
-          _kTypeKey: 'asset',
-          _kDataKey: object.name,
-        },
+        _kTypeKey: 'asset',
+        _kDataKey: object.name,
+      },
       AppMemoryImage() => {
-          _kTypeKey: 'base64',
-          _kDataKey: const Base64Encoder().convert(object.data),
-        },
+        _kTypeKey: 'base64',
+        _kDataKey: const Base64Encoder().convert(object.data),
+      },
       SvgImage() => {
-          _kTypeKey: 'svg',
-          _kDataKey: object.data,
-        },
+        _kTypeKey: 'svg',
+        _kDataKey: object.data,
+      },
     };
   }
 }

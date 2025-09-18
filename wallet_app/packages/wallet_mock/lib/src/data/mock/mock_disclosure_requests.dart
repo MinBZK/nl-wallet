@@ -302,7 +302,7 @@ final _kCreateMbAccountRequestedAttributes = [
 
 final _kEmployerPolicy = RequestPolicy(
   dataStorageDurationInMinutes: BigInt.from(60 * 24 * 90),
-// dataPurpose: 'Gegevens controle',
+  // dataPurpose: 'Gegevens controle',
   dataSharedWithThirdParties: false,
   dataDeletionPossible: true,
   policyUrl: _kMockUrl,
@@ -310,7 +310,7 @@ final _kEmployerPolicy = RequestPolicy(
 
 final _kMockMarketPlacePolicy = RequestPolicy(
   dataStorageDurationInMinutes: BigInt.from(60 * 24 * 90),
-// dataPurpose: 'Registreren',
+  // dataPurpose: 'Registreren',
   dataSharedWithThirdParties: false,
   dataDeletionPossible: true,
   policyUrl: _kMockUrl,
@@ -318,7 +318,7 @@ final _kMockMarketPlacePolicy = RequestPolicy(
 
 final _kMockBarPolicy = RequestPolicy(
   dataStorageDurationInMinutes: BigInt.zero,
-// dataPurpose: 'Leeftijd controle',
+  // dataPurpose: 'Leeftijd controle',
   dataSharedWithThirdParties: false,
   dataDeletionPossible: false,
   policyUrl: _kMockUrl,
@@ -326,7 +326,7 @@ final _kMockBarPolicy = RequestPolicy(
 
 final _kMockCarRentalPolicy = RequestPolicy(
   dataStorageDurationInMinutes: BigInt.from(60 * 24 * 90),
-// dataPurpose: 'Rijvaardigheid',
+  // dataPurpose: 'Rijvaardigheid',
   dataSharedWithThirdParties: false,
   dataDeletionPossible: true,
   policyUrl: _kMockUrl,
@@ -334,7 +334,7 @@ final _kMockCarRentalPolicy = RequestPolicy(
 
 final _kMockFirstAidPolicy = RequestPolicy(
   dataStorageDurationInMinutes: BigInt.from(60 * 24 * 365),
-// dataPurpose: 'Zorgverlening',
+  // dataPurpose: 'Zorgverlening',
   dataSharedWithThirdParties: true,
   dataDeletionPossible: true,
   policyUrl: _kMockUrl,
@@ -342,7 +342,7 @@ final _kMockFirstAidPolicy = RequestPolicy(
 
 final _kMockMunicipalityGenericPolicy = RequestPolicy(
   dataStorageDurationInMinutes: BigInt.from(60 * 24 * 90),
-// dataPurpose: 'Gegevens dienen uitsluitend als bewijs',
+  // dataPurpose: 'Gegevens dienen uitsluitend als bewijs',
   dataSharedWithThirdParties: false,
   dataDeletionPossible: true,
   policyUrl: _kMockUrl,
@@ -350,7 +350,7 @@ final _kMockMunicipalityGenericPolicy = RequestPolicy(
 
 final _kMockBankPolicy = RequestPolicy(
   dataStorageDurationInMinutes: BigInt.from(60 * 24 * 90),
-// dataPurpose: 'Gegevens dienen uitsluitend als bewijs',
+  // dataPurpose: 'Gegevens dienen uitsluitend als bewijs',
   dataSharedWithThirdParties: false,
   dataDeletionPossible: true,
   policyUrl: _kMockUrl,
@@ -358,7 +358,7 @@ final _kMockBankPolicy = RequestPolicy(
 
 final _kMockHousingCorpPolicy = RequestPolicy(
   dataStorageDurationInMinutes: BigInt.from(60 * 24 * 90),
-// dataPurpose: 'Gegevens dienen uitsluitend als bewijs',
+  // dataPurpose: 'Gegevens dienen uitsluitend als bewijs',
   dataSharedWithThirdParties: false,
   dataDeletionPossible: true,
   policyUrl: _kMockUrl,
@@ -366,8 +366,8 @@ final _kMockHousingCorpPolicy = RequestPolicy(
 
 final _kMonkeyBikePolicy = RequestPolicy(
   dataStorageDurationInMinutes: BigInt.from(60 * 24 * 90),
-// dataPurpose: 'Gegevens worden ook gebruikt voor andere doelen',
-// dataPurposeDescription: 'De gegevens kunnen worden gebruikt voor marketing en personalisatie.',
+  // dataPurpose: 'Gegevens worden ook gebruikt voor andere doelen',
+  // dataPurposeDescription: 'De gegevens kunnen worden gebruikt voor marketing en personalisatie.',
   dataSharedWithThirdParties: true,
   dataDeletionPossible: true,
   policyUrl: _kMockUrl,

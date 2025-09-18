@@ -246,49 +246,50 @@ class WalletRoutes {
 }
 
 Widget _createSplashScreenBuilder(BuildContext context) => BlocProvider<SplashBloc>(
-      create: (BuildContext context) => SplashBloc(context.read(), context.read())..add(const InitSplashEvent()),
-      child: const SplashScreen(),
-    );
+  create: (BuildContext context) => SplashBloc(context.read(), context.read())..add(const InitSplashEvent()),
+  child: const SplashScreen(),
+);
 
 Widget _createQrScreenBuilder(BuildContext context) => BlocProvider<QrBloc>(
-      create: (BuildContext context) => QrBloc(context.read(), context.read())..add(const QrScanCheckPermission()),
-      child: const QrScreen(),
-    );
+  create: (BuildContext context) => QrBloc(context.read(), context.read())..add(const QrScanCheckPermission()),
+  child: const QrScreen(),
+);
 
 Widget _createIntroductionScreenBuilder(BuildContext context) => const IntroductionScreen();
 
 Widget _createIntroductionPrivacyScreenBuilder(BuildContext context) => const IntroductionPrivacyScreen();
 
-WidgetBuilder _createForgotPinScreenBuilder(RouteSettings settings) => (context) =>
-    ForgotPinScreen(recoveryMethod: tryCast<PinRecoveryMethod>(settings.arguments) ?? PinRecoveryMethod.recoverPin);
+WidgetBuilder _createForgotPinScreenBuilder(RouteSettings settings) =>
+    (context) =>
+        ForgotPinScreen(recoveryMethod: tryCast<PinRecoveryMethod>(settings.arguments) ?? PinRecoveryMethod.recoverPin);
 
 Widget _createAboutScreenBuilder(BuildContext context) => const AboutScreen();
 
 Widget _createPinScreenBuilder(BuildContext context) => BlocProvider<PinBloc>(
-      create: (BuildContext context) => PinBloc(context.read<UnlockWalletWithPinUseCase>()),
-      child: PinScreen(onUnlock: () => Navigator.restorablePushReplacementNamed(context, WalletRoutes.dashboardRoute)),
-    );
+  create: (BuildContext context) => PinBloc(context.read<UnlockWalletWithPinUseCase>()),
+  child: PinScreen(onUnlock: () => Navigator.restorablePushReplacementNamed(context, WalletRoutes.dashboardRoute)),
+);
 
 Widget _createSetupSecurityScreenBuilder(BuildContext context) => BlocProvider<SetupSecurityBloc>(
-      create: (BuildContext context) => SetupSecurityBloc(
-        context.read(),
-        context.read(),
-        context.read(),
-        context.read(),
-      ),
-      child: const SetupSecurityScreen(),
-    );
+  create: (BuildContext context) => SetupSecurityBloc(
+    context.read(),
+    context.read(),
+    context.read(),
+    context.read(),
+  ),
+  child: const SetupSecurityScreen(),
+);
 
 WidgetBuilder _createDashboardScreenBuilder(RouteSettings settings) {
   final DashboardScreenArgument? argument = DashboardScreen.getArgument(settings);
   return (context) => BlocProvider(
-        create: (context) => DashboardBloc(
-          context.read(),
-          context.read(),
-          argument?.cards,
-        )..add(const DashboardLoadTriggered()),
-        child: const DashboardScreen(),
-      );
+    create: (context) => DashboardBloc(
+      context.read(),
+      context.read(),
+      argument?.cards,
+    )..add(const DashboardLoadTriggered()),
+    child: const DashboardScreen(),
+  );
 }
 
 Widget _createMenuScreenBuilder(BuildContext context) {
@@ -335,16 +336,17 @@ WidgetBuilder _createDisclosureScreenBuilder(RouteSettings settings) {
   final args = DisclosureScreen.getArgument(settings);
   return (context) {
     return BlocProvider<DisclosureBloc>(
-      create: (BuildContext context) => DisclosureBloc(
-        context.read(),
-        context.read(),
-        context.read(),
-      )..add(
-          DisclosureSessionStarted(
-            args.uri,
-            isQrCode: args.isQrCode,
+      create: (BuildContext context) =>
+          DisclosureBloc(
+            context.read(),
+            context.read(),
+            context.read(),
+          )..add(
+            DisclosureSessionStarted(
+              args.uri,
+              isQrCode: args.isQrCode,
+            ),
           ),
-        ),
       child: const DisclosureScreen(),
     );
   };
@@ -490,17 +492,17 @@ WidgetBuilder _createOrganizationDetailScreenBuilder(RouteSettings settings) {
 Widget _createSettingsScreenBuilder(BuildContext context) => const SettingsScreen();
 
 Widget _createBiometricsSettingsScreenBuilder(BuildContext context) => BlocProvider<BiometricSettingsBloc>(
-      create: (BuildContext context) {
-        return BiometricSettingsBloc(
-          context.read(),
-          context.read(),
-          context.read(),
-          context.read(),
-          context.read(),
-        )..add(const BiometricLoadTriggered());
-      },
-      child: const BiometricSettingScreen(),
-    );
+  create: (BuildContext context) {
+    return BiometricSettingsBloc(
+      context.read(),
+      context.read(),
+      context.read(),
+      context.read(),
+      context.read(),
+    )..add(const BiometricLoadTriggered());
+  },
+  child: const BiometricSettingScreen(),
+);
 
 Widget _createPrivacyPolicyScreenBuilder(BuildContext context) => const PrivacyPolicyScreen();
 

@@ -18,15 +18,17 @@ final kGoldenSize = const Size(300, 94);
 void main() {
   late AppLocalizations l10n;
 
-  DisclosureEvent disclosureAt(DateTime time, {Organization? relyingParty}) => WalletEvent.disclosure(
-        dateTime: time,
-        status: EventStatus.success,
-        relyingParty: relyingParty ?? WalletMockData.organization,
-        purpose: 'disclosure'.untranslated,
-        cards: [WalletMockData.card],
-        policy: WalletMockData.policy,
-        type: DisclosureType.regular,
-      ) as DisclosureEvent;
+  DisclosureEvent disclosureAt(DateTime time, {Organization? relyingParty}) =>
+      WalletEvent.disclosure(
+            dateTime: time,
+            status: EventStatus.success,
+            relyingParty: relyingParty ?? WalletMockData.organization,
+            purpose: 'disclosure'.untranslated,
+            cards: [WalletMockData.card],
+            policy: WalletMockData.policy,
+            type: DisclosureType.regular,
+          )
+          as DisclosureEvent;
 
   setUp(() async {
     l10n = await TestUtils.englishLocalizations;
@@ -84,26 +86,28 @@ void main() {
       expect(summary.mode, ActivityDisplayMode.lastWeek);
     });
 
-    test('when the provided activities only include activities from the more than a week ago, the mode is lastMonth',
-        () {
-      final summary = ActivitySummary(
-        events: [
-          WalletEvent.issuance(
-            dateTime: DateTime.now().add(const Duration(days: 8)),
-            status: EventStatus.success,
-            card: WalletMockData.card,
-            renewed: false,
-          ),
-          WalletEvent.issuance(
-            dateTime: DateTime.now().add(const Duration(days: 20)),
-            status: EventStatus.success,
-            card: WalletMockData.card,
-            renewed: false,
-          ),
-        ],
-      );
-      expect(summary.mode, ActivityDisplayMode.lastWeek);
-    });
+    test(
+      'when the provided activities only include activities from the more than a week ago, the mode is lastMonth',
+      () {
+        final summary = ActivitySummary(
+          events: [
+            WalletEvent.issuance(
+              dateTime: DateTime.now().add(const Duration(days: 8)),
+              status: EventStatus.success,
+              card: WalletMockData.card,
+              renewed: false,
+            ),
+            WalletEvent.issuance(
+              dateTime: DateTime.now().add(const Duration(days: 20)),
+              status: EventStatus.success,
+              card: WalletMockData.card,
+              renewed: false,
+            ),
+          ],
+        );
+        expect(summary.mode, ActivityDisplayMode.lastWeek);
+      },
+    );
   });
 
   group('widgets', () {

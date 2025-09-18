@@ -58,9 +58,10 @@ class HistoryDetailDisclosePage extends StatelessWidget {
     return switch (event.status) {
       EventStatus.success => context.l10n.historyDetailScreenTitleForDisclosure(organizationName),
       EventStatus.cancelled => context.l10n.historyDetailScreenStoppedTitleForDisclosure(organizationName),
-      EventStatus.error => event.hasSharedAttributes
-          ? context.l10n.historyDetailScreenErrorTitleForDisclosure(organizationName)
-          : context.l10n.historyDetailScreenErrorNoDataSharedTitleForDisclosure(organizationName),
+      EventStatus.error =>
+        event.hasSharedAttributes
+            ? context.l10n.historyDetailScreenErrorTitleForDisclosure(organizationName)
+            : context.l10n.historyDetailScreenErrorNoDataSharedTitleForDisclosure(organizationName),
     };
   }
 }

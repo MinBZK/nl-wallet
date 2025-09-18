@@ -28,14 +28,15 @@ class WalletAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.automaticallyImplyLeading = true,
     this.leadingWidth,
     super.key,
-  })  : assert(
-            progress == null || bottom == null,
-            "Can't provide both a bottom widget and a progress value, "
-            'since the progress is rendered as a bottom widget'),
-        assert(
-          !fadeInTitleOnScroll || (fadeInTitleOnScroll && title != null),
-          'FadeIn only works when title is provided',
-        );
+  }) : assert(
+         progress == null || bottom == null,
+         "Can't provide both a bottom widget and a progress value, "
+         'since the progress is rendered as a bottom widget',
+       ),
+       assert(
+         !fadeInTitleOnScroll || (fadeInTitleOnScroll && title != null),
+         'FadeIn only works when title is provided',
+       );
 
   @override
   Widget build(BuildContext context) {

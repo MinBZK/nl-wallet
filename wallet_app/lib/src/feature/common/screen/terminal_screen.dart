@@ -84,7 +84,8 @@ class TerminalScreen extends StatelessWidget {
       title: config.title,
       description: config.description,
       illustration: config.illustration,
-      primaryButton: config.primaryButton ??
+      primaryButton:
+          config.primaryButton ??
           PrimaryButton(
             text: Text.rich(context.l10n.generalClose.toTextSpan(context)),
             icon: const Icon(Icons.close_outlined),

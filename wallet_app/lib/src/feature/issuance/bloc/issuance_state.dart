@@ -15,11 +15,11 @@ sealed class IssuanceState extends Equatable {
 
   @override
   List<Object?> get props => [
-        stepperProgress,
-        showStopConfirmation,
-        canGoBack,
-        didGoBack,
-      ];
+    stepperProgress,
+    showStopConfirmation,
+    canGoBack,
+    didGoBack,
+  ];
 }
 
 class IssuanceInitial extends IssuanceState {
@@ -116,7 +116,7 @@ class IssuanceProvidePinForDisclosure extends IssuanceState {
 class IssuanceReviewCards extends IssuanceState {
   /// A map of all cards available for selection, where the key is the [WalletCard]
   /// and the value represents whether the card is selected.
-  final Map<WalletCard, bool /* selected */ > selectableCards;
+  final Map<WalletCard, bool /* selected */> selectableCards;
 
   /// Returns the list of cards that are not persisted (i.e., newly created cards).
   List<WalletCard> get offeredCards => selectableCards.keys.where((card) => !card.isPersisted).toList();

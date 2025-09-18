@@ -70,7 +70,7 @@ class MissingAttribute extends Attribute {
   const MissingAttribute({super.key = '', required super.label});
 
   MissingAttribute.untranslated({required super.key, required String label})
-      : super(label: {const Locale('en'): label});
+    : super(label: {const Locale('en'): label});
 
   @override
   List<Object?> get props => [key, label];

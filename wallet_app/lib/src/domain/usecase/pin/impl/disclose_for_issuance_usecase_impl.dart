@@ -9,7 +9,7 @@ class DiscloseForIssuanceUseCaseImpl extends DiscloseForIssuanceUseCase {
 
   @override
   Future<Result<List<WalletCard>>> invoke(String pin) => tryCatch(
-        () => _issuanceRepository.discloseForIssuance(pin),
-        'Failed to disclose for issuance',
-      );
+    () => _issuanceRepository.discloseForIssuance(pin),
+    'Failed to disclose for issuance',
+  );
 }

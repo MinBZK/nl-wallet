@@ -55,13 +55,13 @@ class WalletCard extends Equatable {
 
   @override
   List<Object?> get props => [
-        attestationId,
-        attestationType,
-        issuer,
-        attributes,
-        metadata,
-        config,
-      ];
+    attestationId,
+    attestationType,
+    issuer,
+    attributes,
+    metadata,
+    config,
+  ];
 
   WalletCard copyWith({
     String? Function()? attestationId,

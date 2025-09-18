@@ -16,8 +16,9 @@ void main() {
   blocTest(
     'MenuLockWalletPressed invokes the lock usecase',
     build: OrganizationDetailBloc.new,
-    act: (bloc) => bloc
-        .add(OrganizationProvided(sharedDataWithOrganizationBefore: true, organization: WalletMockData.organization)),
+    act: (bloc) => bloc.add(
+      OrganizationProvided(sharedDataWithOrganizationBefore: true, organization: WalletMockData.organization),
+    ),
   );
 
   group('states', () {
@@ -57,8 +58,10 @@ void main() {
     test('OrganizationProvided equals works', () {
       final a = OrganizationProvided(sharedDataWithOrganizationBefore: true, organization: WalletMockData.organization);
       final b = OrganizationProvided(sharedDataWithOrganizationBefore: true, organization: WalletMockData.organization);
-      final c =
-          OrganizationProvided(sharedDataWithOrganizationBefore: false, organization: WalletMockData.organization);
+      final c = OrganizationProvided(
+        sharedDataWithOrganizationBefore: false,
+        organization: WalletMockData.organization,
+      );
       expect(a, b, reason: 'OrganizationProvided instances should a & b should be equal');
       expect(a, isNot(c), reason: 'OrganizationProvided instances should a & c should not be equal');
     });
