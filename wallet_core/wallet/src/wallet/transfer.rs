@@ -30,6 +30,7 @@ use crate::repository::Repository;
 use crate::storage::Storage;
 use crate::storage::StorageError;
 use crate::storage::TransferData;
+use crate::transfer::TransferQuery;
 use crate::transfer::TransferSessionId;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
@@ -62,6 +63,10 @@ pub enum TransferError {
     #[error("transfer_session_id not found in storage")]
     #[category(critical)]
     MissingTransferSessionId,
+
+    #[error("url encoding error: {0}")]
+    #[category(critical)]
+    UrlEncode(#[from] serde_urlencoded::ser::Error),
 
     #[error("jose error: {0}")]
     #[category(critical)]
@@ -105,13 +110,13 @@ where
 
         let key_pair = EcKeyPair::generate(EcCurve::P256)?;
 
-        let mut query = form_urlencoded::Serializer::new(String::new());
-        query.append_pair("s", &transfer_data.transfer_session_id.to_string());
-        query.append_pair("k", &key_pair.to_jwk_public_key().to_string());
-        let query = query.finish();
+        let query = TransferQuery {
+            session_id: transfer_data.transfer_session_id,
+            public_key: key_pair.to_jwk_public_key(),
+        };
 
         let mut url: Url = urls::transfer_base_uri(&UNIVERSAL_LINK_BASE_URL).into_inner();
-        url.set_fragment(Some(query.as_str()));
+        url.set_fragment(Some(serde_urlencoded::to_string(query)?.as_str()));
 
         Ok(url)
     }
@@ -174,15 +179,12 @@ where
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
-    use josekit::jwk::Jwk;
     use url::Host;
-    use url::form_urlencoded;
     use uuid::Uuid;
 
     use wallet_account::messages::instructions::HwSignedInstruction;
 
     use crate::storage::InstructionData;
-    use crate::transfer::TransferSessionId;
     use crate::wallet::test::create_wp_result;
 
     use super::super::test::TestWalletInMemoryStorage;
@@ -215,19 +217,10 @@ mod tests {
         assert_eq!(url.query(), None);
         assert!(url.fragment().is_some());
 
-        let mut pairs = form_urlencoded::parse(url.fragment().unwrap().as_bytes());
-
-        let (key, value) = pairs.next().unwrap();
-        assert_eq!(key, "s");
-        assert_eq!(value.parse(), Ok(transfer_session_id));
-
-        let (key, value) = pairs.next().unwrap();
-        assert_eq!(key, "k");
-        let public_key: Jwk = serde_json::from_str(&value).unwrap();
-        assert_eq!(public_key.key_type(), "EC");
-        assert_eq!(public_key.curve(), Some("P-256"));
-
-        assert!(pairs.next().is_none());
+        let query: TransferQuery = serde_urlencoded::from_str(url.fragment().unwrap()).unwrap();
+        assert_eq!(query.session_id, transfer_session_id);
+        assert_eq!(query.public_key.key_type(), "EC");
+        assert_eq!(query.public_key.curve(), Some("P-256"));
     }
 
     #[tokio::test]

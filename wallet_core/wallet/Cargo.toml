@@ -31,7 +31,6 @@ chrono = { workspace = true, features = ["std", "clock"] }
 cfg-if.workspace = true
 ciborium.workspace = true
 derive_more = { workspace = true, features = ["constructor", "debug"] }
-form_urlencoded.workspace = true
 futures = { workspace = true, features = ["std", "async-await"] }
 http.workspace = true
 indexmap.workspace = true
@@ -50,11 +49,10 @@ rustls-pki-types.workspace = true
 sanitize-filename.workspace = true
 sea-orm = { workspace = true, features = ["sqlx-sqlite", "runtime-tokio-rustls", "with-uuid"] }
 sea-query.workspace = true
-semver.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 serde_urlencoded.workspace = true
-serde_with = { workspace = true, features = ["base64"] }
+serde_with = { workspace = true, features = ["base64", "json"] }
 strum = { workspace = true, features = ["derive"] }
 tokio = { workspace = true, features = ["sync", "fs"] }
 tracing.workspace = true

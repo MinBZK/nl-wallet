@@ -123,7 +123,6 @@ dotenvy = "0.15.7"
 etag = "4.0.0"
 flate2 = "1.1.2"
 flutter_rust_bridge = { version = "2.7.1", default-features = false }
-form_urlencoded = "1"
 futures = { version = "0.3.31", default-features = false }
 gcloud-auth = { version = "1.0.0", default-features = false }
 hex = "0.4.3"
