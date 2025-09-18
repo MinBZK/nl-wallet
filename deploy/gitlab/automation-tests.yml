@@ -255,7 +255,7 @@ run-performance-test-ont:
       artifacts: true
     - job: deploy-apps-ont
       artifacts: false
-  script: wallet_core/tests_integration/run_performance_test.sh --skip-build 50
+  script: wallet_core/tests_integration/run_performance_test.sh --skip-build
   allow_failure: true
 
 create-pipeline-for-running-test-on-all-browserstack-androids:
