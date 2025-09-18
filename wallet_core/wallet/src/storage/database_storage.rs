@@ -61,6 +61,7 @@ use crate::AttestationPresentation;
 use crate::DisclosureStatus;
 
 use super::AttestationFormatQuery;
+use super::DatabaseExport;
 use super::Storage;
 use super::StorageError;
 use super::StorageResult;
@@ -331,12 +332,6 @@ where
     }
 
     /// This helper method uses [`get_or_create_key_file`] and the utilities in [`platform_support`]
-    /// to construct a key param usable in queries.
-    async fn key_param_for_name(&self, name: &str) -> StorageResult<String> {
-        self.key_for_name(name).await.map(|(_, key)| String::from(key))
-    }
-
-    /// This helper method uses [`get_or_create_key_file`] and the utilities in [`platform_support`]
     /// to construct a [`SqliteUrl`] and a [`SqlCipherKey`], which in turn are used to create a [`Database`]
     /// instance.
     async fn open_encrypted_database(&self, name: &str) -> StorageResult<OpenDatabaseStorage<K>> {
@@ -383,22 +378,23 @@ where
         Ok(())
     }
 
-    async fn export(&mut self) -> StorageResult<Vec<u8>> {
+    async fn export(&mut self) -> StorageResult<DatabaseExport> {
         if let Some(open_database) = self.open_database.take() {
             open_database.database.close().await?;
         };
 
         let database_path = self.database_path_for_name(DATABASE_NAME);
-        let key_param = self.key_param_for_name(DATABASE_NAME).await?;
+        let (_, key) = self.key_for_name(DATABASE_NAME).await?;
 
         tokio::task::spawn_blocking(move || {
             let connection = rusqlite::Connection::open(database_path)?;
-            connection.pragma_update(None, "key", &key_param)?;
+            connection.pragma_update(None, "key", String::from(key))?;
 
+            let export_key = SqlCipherKey::new_random_with_salt();
             let export_file = NamedTempFile::new()?;
             connection.execute(
-                "ATTACH DATABASE ?1 AS export KEY ''",
-                [export_file.path().display().to_string()],
+                "ATTACH DATABASE ?1 AS export KEY ?2",
+                [export_file.path().display().to_string(), String::from(export_key)],
             )?;
             connection.query_row("SELECT sqlcipher_export('export')", [], |row| {
                 row.get::<_, Option<i32>>(0)
@@ -406,30 +402,30 @@ where
             connection.execute("DETACH DATABASE export", [])?;
 
             let data = std::fs::read(export_file.path())?;
-            Ok(data)
+            Ok(DatabaseExport::new(export_key, data))
         })
         .await?
     }
 
-    async fn import(&mut self, data: Vec<u8>) -> StorageResult<()> {
+    async fn import(&mut self, export: DatabaseExport) -> StorageResult<()> {
         if let Some(open_database) = self.open_database.take() {
             open_database.database.close().await?;
         };
 
         let database_path = self.database_path_for_name(DATABASE_NAME);
-        let key_param = self.key_param_for_name(DATABASE_NAME).await?;
-
+        let (_, key) = self.key_for_name(DATABASE_NAME).await?;
         tokio::task::spawn_blocking(move || {
             let import_file = NamedTempFile::new()?;
-            std::fs::write(import_file.path(), data)?;
+            std::fs::write(import_file.path(), export.data)?;
 
             let connection = rusqlite::Connection::open(import_file.path())?;
+            connection.pragma_update(None, "key", String::from(export.key).as_str())?;
 
             // Use temporary file to create encrypted file
             let encrypted_file = NamedTempFile::new()?;
             connection.execute(
                 "ATTACH DATABASE ?1 AS encrypted KEY ?2",
-                [encrypted_file.path().display().to_string(), key_param],
+                [encrypted_file.path().display().to_string(), String::from(key)],
             )?;
             connection.query_row("SELECT sqlcipher_export('encrypted')", [], |row| {
                 row.get::<_, Option<i32>>(0)

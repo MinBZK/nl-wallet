@@ -15,6 +15,10 @@ use sea_orm::DbErr;
 use std::array::TryFromSliceError;
 use std::collections::HashSet;
 use std::io;
+
+use derive_more::Constructor;
+use serde::Deserialize;
+use serde::Serialize;
 use uuid::Uuid;
 
 use attestation_data::disclosure_type::DisclosureType;
@@ -26,6 +30,7 @@ use openid4vc::issuance_session::IssuedCredentialCopies;
 use sd_jwt_vc_metadata::TypeMetadataChainError;
 
 use crate::AttestationPresentation;
+use crate::storage::sql_cipher_key::SqlCipherKey;
 
 pub use self::attestation_copy::DisclosableAttestation;
 pub use self::attestation_copy::PartialAttestation;
@@ -119,14 +124,23 @@ pub enum AttestationFormatQuery {
     SdJwt,
 }
 
+/// Database export with one time key and the data.
+/// Using an encrypted database because SQLCipher exports to file system,
+/// and we do not want an unencrypted file written to disk.
+#[derive(Constructor, Serialize, Deserialize)]
+pub struct DatabaseExport {
+    key: SqlCipherKey,
+    data: Vec<u8>,
+}
+
 /// This trait abstracts the persistent storage for the wallet.
 #[cfg_attr(test, mockall::automock)]
 pub trait Storage {
     async fn state(&self) -> StorageResult<StorageState>;
 
     async fn open(&mut self) -> StorageResult<()>;
-    async fn export(&mut self) -> StorageResult<Vec<u8>>;
-    async fn import(&mut self, data: Vec<u8>) -> StorageResult<()>;
+    async fn export(&mut self) -> StorageResult<DatabaseExport>;
+    async fn import(&mut self, export: DatabaseExport) -> StorageResult<()>;
     async fn clear(&mut self);
 
     async fn open_if_needed(&mut self) -> StorageResult<()> {

@@ -2,6 +2,8 @@ use std::array::TryFromSliceError;
 use std::fmt::Write;
 
 use derive_more::Constructor;
+use serde::Deserialize;
+use serde::Serialize;
 
 use crypto::utils::random_bytes;
 
@@ -20,7 +22,7 @@ const SALT_LENGTH: usize = 16;
 
 /// This represents a 32-bytes encryption key and 16-byte salt. See:
 /// https://www.zetetic.net/sqlcipher/sqlcipher-api/#example-3-raw-key-data-with-explicit-salt-without-key-derivation
-#[derive(Clone, Copy, Constructor)]
+#[derive(Clone, Copy, Constructor, Serialize, Deserialize)]
 pub struct SqlCipherKey {
     key: [u8; KEY_LENGTH],
     salt: [u8; SALT_LENGTH],
