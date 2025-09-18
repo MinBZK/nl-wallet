@@ -17,9 +17,7 @@ class CardDataScreenArgument {
     };
   }
 
-  CardDataScreenArgument.fromMap(Map<String, dynamic> map)
-      : cardId = map[_kCardIdKey],
-        cardTitle = map[_kCardTitleKey];
+  CardDataScreenArgument.fromMap(Map<String, dynamic> map) : cardId = map[_kCardIdKey], cardTitle = map[_kCardTitleKey];
 
   @override
   bool operator ==(Object other) =>
@@ -31,8 +29,8 @@ class CardDataScreenArgument {
 
   @override
   int get hashCode => Object.hash(
-        runtimeType,
-        cardId,
-        cardTitle,
-      );
+    runtimeType,
+    cardId,
+    cardTitle,
+  );
 }

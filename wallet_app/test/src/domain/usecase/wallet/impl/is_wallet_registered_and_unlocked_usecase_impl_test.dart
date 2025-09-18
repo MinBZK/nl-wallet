@@ -32,15 +32,17 @@ void main() {
     expect(result, isTrue);
   });
 
-  test('When wallet is not registered and unlocked, usecase returns false (this state should not occur in practice)',
-      () async {
-    final mockWalletRepository = MockWalletRepository();
-    when(mockWalletRepository.isRegistered()).thenAnswer((_) async => false);
-    when(mockWalletRepository.isLockedStream).thenAnswer((_) => Stream.value(false));
-    final usecase = IsWalletRegisteredAndUnlockedUseCaseImpl(mockWalletRepository);
-    final result = await usecase.invoke();
-    expect(result, isFalse);
-  });
+  test(
+    'When wallet is not registered and unlocked, usecase returns false (this state should not occur in practice)',
+    () async {
+      final mockWalletRepository = MockWalletRepository();
+      when(mockWalletRepository.isRegistered()).thenAnswer((_) async => false);
+      when(mockWalletRepository.isLockedStream).thenAnswer((_) => Stream.value(false));
+      final usecase = IsWalletRegisteredAndUnlockedUseCaseImpl(mockWalletRepository);
+      final result = await usecase.invoke();
+      expect(result, isFalse);
+    },
+  );
 
   test('StateError is thrown when check fails', () async {
     final mockWalletRepository = MockWalletRepository();

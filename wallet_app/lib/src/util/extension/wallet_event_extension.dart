@@ -7,10 +7,10 @@ import 'date_time_extension.dart';
 
 extension WalletEventExtensions on WalletEvent {
   Organization get relyingPartyOrIssuer => switch (this) {
-        DisclosureEvent() => (this as DisclosureEvent).relyingParty,
-        IssuanceEvent() => (this as IssuanceEvent).card.issuer,
-        SignEvent() => (this as SignEvent).relyingParty,
-      };
+    DisclosureEvent() => (this as DisclosureEvent).relyingParty,
+    IssuanceEvent() => (this as IssuanceEvent).card.issuer,
+    SignEvent() => (this as SignEvent).relyingParty,
+  };
 
   bool get wasSuccess => status == EventStatus.success;
 
@@ -21,9 +21,8 @@ extension WalletEventExtensions on WalletEvent {
 
 extension WalletEventListExtensions on List<WalletEvent> {
   List<EventSection> get sectionedByMonth {
-    return groupListsBy((element) => element.dateTime.yearMonth)
-        .entries
-        .map((e) => EventSection(e.key, e.value))
-        .toList();
+    return groupListsBy(
+      (element) => element.dateTime.yearMonth,
+    ).entries.map((e) => EventSection(e.key, e.value)).toList();
   }
 }

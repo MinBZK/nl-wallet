@@ -38,9 +38,9 @@ class ListItem extends StatelessWidget {
     this.dividerSide = DividerSide.none,
     super.key,
   }) : assert(
-          button == null || style == ListItemStyle.vertical,
-          '[button] can only be rendered in vertical style items',
-        );
+         button == null || style == ListItemStyle.vertical,
+         '[button] can only be rendered in vertical style items',
+       );
 
   const ListItem.compact({
     required this.label,

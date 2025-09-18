@@ -57,10 +57,9 @@ class _VideoOverlayState extends State<VideoOverlay> {
     super.initState();
     if (widget.autoPlay) _playVideo();
     widget.controller.addListener(_onVideoTick);
-    _semanticsEventSubscription = context
-        .read<SemanticsEventService>()
-        .actionEventStream
-        .listen((_) => _resetDelayedAutoHideFullScreenControls());
+    _semanticsEventSubscription = context.read<SemanticsEventService>().actionEventStream.listen(
+      (_) => _resetDelayedAutoHideFullScreenControls(),
+    );
   }
 
   void _onVideoTick() {
@@ -112,9 +111,9 @@ class _VideoOverlayState extends State<VideoOverlay> {
   }
 
   Widget _buildBufferIndicator() => Semantics(
-        attributedLabel: context.l10n.videoPlayerBufferingWCAGLabel.toAttributedString(context),
-        child: const CenteredLoadingIndicator(),
-      );
+    attributedLabel: context.l10n.videoPlayerBufferingWCAGLabel.toAttributedString(context),
+    child: const CenteredLoadingIndicator(),
+  );
 
   bool _showBufferIndicator() {
     if (videoPlayerState.isPlaying) return false;

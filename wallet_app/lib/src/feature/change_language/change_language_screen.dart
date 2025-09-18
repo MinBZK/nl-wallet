@@ -139,8 +139,9 @@ class ChangeLanguageScreen extends StatelessWidget {
   /// [AppLocalizations] when the system's Locale does not match any of the supportedLocales.
   AppLocalizations _lookupSystemLocalizations(BuildContext context) {
     final locale = intl.Locale.tryParse(Platform.localeName);
-    final supportedLocale = AppLocalizations.supportedLocales
-        .firstWhereOrNull((supported) => supported.languageCode == locale?.languageCode);
+    final supportedLocale = AppLocalizations.supportedLocales.firstWhereOrNull(
+      (supported) => supported.languageCode == locale?.languageCode,
+    );
     return supportedLocale == null ? context.l10n : lookupAppLocalizations(supportedLocale);
   }
 
@@ -161,8 +162,9 @@ class ChangeLanguageScreen extends StatelessWidget {
       },
       listener: (context, state) async {
         if (state is ChangeLanguageSuccess) {
-          final language = state.availableLanguages
-              .firstWhereOrNull((language) => language.locale.languageCode == state.selectedLocale.languageCode);
+          final language = state.availableLanguages.firstWhereOrNull(
+            (language) => language.locale.languageCode == state.selectedLocale.languageCode,
+          );
           // Avoid conflicting with the announcement of the (now) selected language
           await Future.delayed(Environment.isTest ? Duration.zero : const Duration(milliseconds: 1500));
           await language?.let((it) => _announceNewLanguage(context, it));

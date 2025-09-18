@@ -22,15 +22,15 @@ class ErrorButtonBuilder {
   }) {
     return switch (style) {
       ErrorCtaStyle.retry => PrimaryButton(
-          text: Text.rich((cta ?? context.l10n.generalRetry).toTextSpan(context)),
-          icon: const Icon(Icons.replay_outlined),
-          onPressed: onPressed ?? () => Navigator.maybePop(context),
-        ),
+        text: Text.rich((cta ?? context.l10n.generalRetry).toTextSpan(context)),
+        icon: const Icon(Icons.replay_outlined),
+        onPressed: onPressed ?? () => Navigator.maybePop(context),
+      ),
       ErrorCtaStyle.close => PrimaryButton(
-          text: Text.rich((cta ?? context.l10n.generalClose).toTextSpan(context)),
-          icon: const Icon(Icons.close_outlined),
-          onPressed: onPressed ?? () => Navigator.maybePop(context),
-        ),
+        text: Text.rich((cta ?? context.l10n.generalClose).toTextSpan(context)),
+        icon: const Icon(Icons.close_outlined),
+        onPressed: onPressed ?? () => Navigator.maybePop(context),
+      ),
     };
   }
 

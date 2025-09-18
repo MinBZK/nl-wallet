@@ -20,10 +20,9 @@ class StopDigidLoginDialog extends StatelessWidget {
           child: Text.rich(context.l10n.stopDigidLoginDialogNegativeCta.toTextSpan(context)),
         ),
         TextButton(
-          style: Theme.of(context)
-              .textButtonTheme
-              .style
-              ?.copyWith(foregroundColor: WidgetStatePropertyAll(context.colorScheme.error)),
+          style: Theme.of(
+            context,
+          ).textButtonTheme.style?.copyWith(foregroundColor: WidgetStatePropertyAll(context.colorScheme.error)),
           onPressed: () => Navigator.pop(context, true),
           child: Text.rich(context.l10n.stopDigidLoginDialogPositiveCta.toTextSpan(context)),
         ),

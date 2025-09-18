@@ -34,9 +34,9 @@ class FadeInAtOffset extends StatefulWidget {
     this.scrollController,
     super.key,
   }) : assert(
-          appearOffset < visibleOffset,
-          'appear offset should be smaller than the offset at which the child is fully visible',
-        );
+         appearOffset < visibleOffset,
+         'appear offset should be smaller than the offset at which the child is fully visible',
+       );
 
   @override
   State<FadeInAtOffset> createState() => _FadeInAtOffsetState();
@@ -69,7 +69,7 @@ class _FadeInAtOffsetState extends State<FadeInAtOffset> with AfterLayoutMixin<F
     // never show the [child], as this should mean the original title always stays visible.
     if (maxScrollExtent <= startAppearingAt) return const SizedBox.shrink();
 
-    if (maxScrollExtent > 0 /* if maxScrollExtent is 0, we only animate for the overscroll */) {
+    if (maxScrollExtent > 0 /* if maxScrollExtent is 0, we only animate for the overscroll */ ) {
       // We make sure the widget will always animate to 100% opacity by comparing it with the maximum scrollable extend.
       startAppearingAt = min(widget.appearOffset, maxScrollExtent - 1);
       completelyVisibleAt = min(widget.visibleOffset, maxScrollExtent);
@@ -164,8 +164,9 @@ class ScrollOffsetProvider extends StatelessWidget {
             onNotification: (notification) {
               final scrollOffset = context.read<ScrollOffset>();
               scrollOffset.offset = notification.metrics.hasPixels ? notification.metrics.pixels : 0;
-              scrollOffset.maxScrollExtent =
-                  notification.metrics.hasContentDimensions ? notification.metrics.maxScrollExtent : 0;
+              scrollOffset.maxScrollExtent = notification.metrics.hasContentDimensions
+                  ? notification.metrics.maxScrollExtent
+                  : 0;
               return false;
             },
             child: child,

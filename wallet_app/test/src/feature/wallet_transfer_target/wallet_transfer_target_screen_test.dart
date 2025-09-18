@@ -13,7 +13,8 @@ import '../../test_util/golden_utils.dart';
 class MockWalletTransferTargetBloc extends MockBloc<WalletTransferTargetEvent, WalletTransferTargetState>
     implements WalletTransferTargetBloc {}
 
-const _testQrData = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, '
+const _testQrData =
+    'Lorem ipsum dolor sit amet, consectetur adipiscing elit, '
     'sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.';
 
 void main() {

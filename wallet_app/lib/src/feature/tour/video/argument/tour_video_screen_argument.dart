@@ -25,9 +25,9 @@ class TourVideoScreenArgument {
   }
 
   TourVideoScreenArgument.fromMap(Map<String, dynamic> map)
-      : subtitleUrl = map[_kSubtitleUrlKey],
-        videoUrl = map[_kVideoUrlKey],
-        videoTitle = map[_kVideoTitleKey];
+    : subtitleUrl = map[_kSubtitleUrlKey],
+      videoUrl = map[_kVideoUrlKey],
+      videoTitle = map[_kVideoTitleKey];
 
   @override
   bool operator ==(Object other) =>
@@ -40,9 +40,9 @@ class TourVideoScreenArgument {
 
   @override
   int get hashCode => Object.hash(
-        runtimeType,
-        subtitleUrl,
-        videoUrl,
-        videoTitle,
-      );
+    runtimeType,
+    subtitleUrl,
+    videoUrl,
+    videoTitle,
+  );
 }

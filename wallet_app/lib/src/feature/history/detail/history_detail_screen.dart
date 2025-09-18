@@ -50,9 +50,9 @@ class HistoryDetailScreen extends StatelessWidget {
                       HistoryDetailInitial() => _buildLoading(context),
                       HistoryDetailLoadInProgress() => _buildLoading(context),
                       HistoryDetailLoadSuccess() => PrimaryScrollController(
-                          controller: ScrollController(),
-                          child: _buildSuccess(context, state),
-                        ),
+                        controller: ScrollController(),
+                        child: _buildSuccess(context, state),
+                      ),
                       HistoryDetailLoadFailure() => _buildError(context),
                     };
                   },

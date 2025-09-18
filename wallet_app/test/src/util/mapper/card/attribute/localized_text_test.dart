@@ -21,13 +21,13 @@ void main() {
     });
 
     test(
-        'resolving with a language code that does not exists should default to the english translation if that is available',
-        () {
-      expect(_kSampleCardAttributeLabels.l10nValueForLocale(_kNonExistingLocale), 'Language');
-    });
+      'resolving with a language code that does not exists should default to the english translation if that is available',
+      () {
+        expect(_kSampleCardAttributeLabels.l10nValueForLocale(_kNonExistingLocale), 'Language');
+      },
+    );
 
-    test(
-        'resolving with a language code that does not exists should default to the first available '
+    test('resolving with a language code that does not exists should default to the first available '
         'translation if neither it, nor an english translation can be found', () {
       expect({_kGermanLocale: 'Sprache', _kDutchLocale: 'Taal'}.l10nValueForLocale(_kNonExistingLocale), 'Sprache');
     });

@@ -112,8 +112,7 @@ class TypedWalletCore {
   Future<core.StartDisclosureResult> startDisclosure(
     String uri, {
     bool isQrCode = false,
-  }) =>
-      call(() => core.startDisclosure(uri: uri, isQrCode: isQrCode));
+  }) => call(() => core.startDisclosure(uri: uri, isQrCode: isQrCode));
 
   Future<String?> cancelDisclosure() => call(core.cancelDisclosure);
 

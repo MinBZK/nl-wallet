@@ -64,7 +64,7 @@ class CoreRelyingPartyError extends CoreError {
   final List<LocalizedString>? organizationName;
 
   CoreRelyingPartyError(super.description, {super.data, this.organizationName})
-      : assert(organizationName == null || organizationName.isNotEmpty, 'Do not provide an empty org. name');
+    : assert(organizationName == null || organizationName.isNotEmpty, 'Do not provide an empty org. name');
 
   @override
   List<Object?> get props => [organizationName, ...super.props];

@@ -51,7 +51,7 @@ class UnlockWalletWithBiometricsUseCaseImpl extends UnlockWalletWithBiometricsUs
         _targetPlatform,
         l10n,
         localizedReason: l10n.unlockWithBiometricsReason,
-        useErrorDialogs: false, /* we never want to allow setup at this stage */
+        useErrorDialogs: false /* we never want to allow setup at this stage */,
       );
       if (authenticated) {
         await _walletRepository.unlockWalletWithBiometrics();

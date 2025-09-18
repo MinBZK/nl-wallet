@@ -11,8 +11,9 @@ class PinConfirmationErrorDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final title =
-        retryAllowed ? context.l10n.pinConfirmationErrorDialogTitle : context.l10n.pinConfirmationErrorDialogFatalTitle;
+    final title = retryAllowed
+        ? context.l10n.pinConfirmationErrorDialogTitle
+        : context.l10n.pinConfirmationErrorDialogFatalTitle;
     final content = retryAllowed
         ? context.l10n.pinConfirmationErrorDialogDescription
         : context.l10n.pinConfirmationErrorDialogFatalDescription;

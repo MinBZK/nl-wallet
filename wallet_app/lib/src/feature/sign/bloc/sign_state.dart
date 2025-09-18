@@ -15,11 +15,11 @@ sealed class SignState extends Equatable {
 
   @override
   List<Object?> get props => [
-        showStopConfirmation,
-        canGoBack,
-        didGoBack,
-        stepperProgress,
-      ];
+    showStopConfirmation,
+    canGoBack,
+    didGoBack,
+    stepperProgress,
+  ];
 }
 
 class SignInitial extends SignState {

@@ -19,11 +19,11 @@ class DisplayMetadataMapper extends Mapper<DisplayMetadata, CardDisplayMetadata>
     final CardRendering? result = switch (rendering) {
       null => null,
       RenderingMetadata_Simple() => SimpleCardRendering(
-          bgColor: rendering.backgroundColor?.toColor(),
-          textColor: rendering.textColor?.toColor(),
-          logo: rendering.logo?.image == null ? null : _imageMapper.map(rendering.logo!.image),
-          logoAltText: rendering.logo?.altText,
-        ),
+        bgColor: rendering.backgroundColor?.toColor(),
+        textColor: rendering.textColor?.toColor(),
+        logo: rendering.logo?.image == null ? null : _imageMapper.map(rendering.logo!.image),
+        logoAltText: rendering.logo?.altText,
+      ),
       RenderingMetadata_SvgTemplates() => null,
     };
     return CardDisplayMetadata(

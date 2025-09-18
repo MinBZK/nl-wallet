@@ -11,12 +11,14 @@ void main() {
       double? selectedBrightness;
       // Mock the method channel to see if the widget actually sets the brightness
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
-          const MethodChannel('github.com/aaassseee/screen_brightness'), (MethodCall methodCall) async {
-        if (methodCall.method == 'setApplicationScreenBrightness') {
-          selectedBrightness = methodCall.arguments['brightness'] as double;
-        }
-        return null;
-      });
+        const MethodChannel('github.com/aaassseee/screen_brightness'),
+        (MethodCall methodCall) async {
+          if (methodCall.method == 'setApplicationScreenBrightness') {
+            selectedBrightness = methodCall.arguments['brightness'] as double;
+          }
+          return null;
+        },
+      );
 
       await tester.pumpWidgetWithAppWrapper(const MaxBrightness(child: SizedBox.shrink()));
 

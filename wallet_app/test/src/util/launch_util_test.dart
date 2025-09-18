@@ -6,17 +6,21 @@ const kUrlLauncherMethodChannel = MethodChannel('plugins.flutter.io/url_launcher
 
 void main() {
   setUp(() async {
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(kUrlLauncherMethodChannel, (MethodCall methodCall) async {
-      final url = (methodCall.arguments as Map<Object?, Object?>)['url'];
-      if (url == 'https://example.org/valid') return true;
-      throw UnsupportedError('url not supported: $url');
-    });
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+      kUrlLauncherMethodChannel,
+      (MethodCall methodCall) async {
+        final url = (methodCall.arguments as Map<Object?, Object?>)['url'];
+        if (url == 'https://example.org/valid') return true;
+        throw UnsupportedError('url not supported: $url');
+      },
+    );
   });
 
   tearDown(() async {
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(kUrlLauncherMethodChannel, null);
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+      kUrlLauncherMethodChannel,
+      null,
+    );
   });
 
   test('launchUrlStringCatching does not throw exception with invalid url', () async {

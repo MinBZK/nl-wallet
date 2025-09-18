@@ -20,8 +20,9 @@ class MenuIconTextButton extends StatelessWidget {
         onPressed: onPressed ?? () => Navigator.pushNamed(context, WalletRoutes.menuRoute),
         icon: const Icon(Icons.menu_rounded),
         label: Text.rich(context.l10n.dashboardScreenTitle.toTextSpan(context)),
-        style: context.theme.iconButtonTheme.style
-            ?.copyWith(padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 16))),
+        style: context.theme.iconButtonTheme.style?.copyWith(
+          padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 16)),
+        ),
       ),
     );
   }

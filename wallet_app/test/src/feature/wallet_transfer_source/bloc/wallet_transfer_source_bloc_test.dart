@@ -14,10 +14,10 @@ void main() {
   final MockCancelWalletTransferUseCase mockCancelWalletTransferUseCase = MockCancelWalletTransferUseCase();
 
   WalletTransferSourceBloc createBloc() => WalletTransferSourceBloc(
-        mockInitWalletTransferUseCase,
-        mockGetWalletTransferStatusUseCase,
-        mockCancelWalletTransferUseCase,
-      );
+    mockInitWalletTransferUseCase,
+    mockGetWalletTransferStatusUseCase,
+    mockCancelWalletTransferUseCase,
+  );
 
   blocTest(
     'verify initial state',
@@ -28,8 +28,9 @@ void main() {
   blocTest(
     'WalletTransferGenericError is emitted when transfer can not be initiated',
     build: createBloc,
-    setUp: () => when(mockInitWalletTransferUseCase.invoke(any))
-        .thenAnswer((_) async => const Result.error(GenericError('', sourceError: 'test'))),
+    setUp: () => when(
+      mockInitWalletTransferUseCase.invoke(any),
+    ).thenAnswer((_) async => const Result.error(GenericError('', sourceError: 'test'))),
     act: (bloc) => bloc.add(const WalletTransferInitiateTransferEvent('https://example.org/transfer')),
     expect: () => [
       isA<WalletTransferLoading>(),

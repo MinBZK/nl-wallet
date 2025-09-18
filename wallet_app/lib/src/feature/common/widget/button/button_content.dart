@@ -30,15 +30,15 @@ class ButtonContent extends StatelessWidget {
 
     final children = switch (iconPosition) {
       IconPosition.start => [
-          SizedBox(height: _kIconSize, width: _kIconSize, child: icon),
-          const SizedBox(width: _kSpacing),
-          Flexible(child: text),
-        ],
+        SizedBox(height: _kIconSize, width: _kIconSize, child: icon),
+        const SizedBox(width: _kSpacing),
+        Flexible(child: text),
+      ],
       IconPosition.end => [
-          Flexible(child: text),
-          const SizedBox(width: _kSpacing),
-          SizedBox(height: _kIconSize, width: _kIconSize, child: icon),
-        ],
+        Flexible(child: text),
+        const SizedBox(width: _kSpacing),
+        SizedBox(height: _kIconSize, width: _kIconSize, child: icon),
+      ],
     };
 
     return Row(

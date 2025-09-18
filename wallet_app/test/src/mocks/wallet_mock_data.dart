@@ -115,95 +115,115 @@ abstract class WalletMockData {
     url: 'https://example.org/agreement.pdf',
   );
 
-  static DisclosureEvent get disclosureEvent => WalletEvent.disclosure(
-        dateTime: DateTime(2024, 3, 1),
-        status: EventStatus.success,
-        relyingParty: organization,
-        purpose: 'disclosure'.untranslated,
-        cards: [card],
-        policy: policy,
-        type: DisclosureType.regular,
-      ) as DisclosureEvent;
+  static DisclosureEvent get disclosureEvent =>
+      WalletEvent.disclosure(
+            dateTime: DateTime(2024, 3, 1),
+            status: EventStatus.success,
+            relyingParty: organization,
+            purpose: 'disclosure'.untranslated,
+            cards: [card],
+            policy: policy,
+            type: DisclosureType.regular,
+          )
+          as DisclosureEvent;
 
-  static DisclosureEvent get loginEvent => WalletEvent.disclosure(
-        dateTime: DateTime(2024, 2, 1),
-        status: EventStatus.success,
-        relyingParty: organization,
-        purpose: 'disclosure'.untranslated,
-        cards: [card],
-        policy: policy,
-        type: DisclosureType.login,
-      ) as DisclosureEvent;
+  static DisclosureEvent get loginEvent =>
+      WalletEvent.disclosure(
+            dateTime: DateTime(2024, 2, 1),
+            status: EventStatus.success,
+            relyingParty: organization,
+            purpose: 'disclosure'.untranslated,
+            cards: [card],
+            policy: policy,
+            type: DisclosureType.login,
+          )
+          as DisclosureEvent;
 
-  static DisclosureEvent get failedLoginEvent => WalletEvent.disclosure(
-        dateTime: DateTime(2024, 2, 1),
-        status: EventStatus.error,
-        relyingParty: organization,
-        purpose: 'disclosure'.untranslated,
-        cards: [card],
-        policy: policy,
-        type: DisclosureType.login,
-      ) as DisclosureEvent;
+  static DisclosureEvent get failedLoginEvent =>
+      WalletEvent.disclosure(
+            dateTime: DateTime(2024, 2, 1),
+            status: EventStatus.error,
+            relyingParty: organization,
+            purpose: 'disclosure'.untranslated,
+            cards: [card],
+            policy: policy,
+            type: DisclosureType.login,
+          )
+          as DisclosureEvent;
 
-  static DisclosureEvent get failedLoginEventNothingShared => WalletEvent.disclosure(
-        dateTime: DateTime(2024, 2, 1, 22, 11),
-        status: EventStatus.error,
-        relyingParty: organization,
-        purpose: 'disclosure'.untranslated,
-        cards: const [],
-        policy: policy,
-        type: DisclosureType.login,
-      ) as DisclosureEvent;
+  static DisclosureEvent get failedLoginEventNothingShared =>
+      WalletEvent.disclosure(
+            dateTime: DateTime(2024, 2, 1, 22, 11),
+            status: EventStatus.error,
+            relyingParty: organization,
+            purpose: 'disclosure'.untranslated,
+            cards: const [],
+            policy: policy,
+            type: DisclosureType.login,
+          )
+          as DisclosureEvent;
 
-  static SignEvent get signEvent => WalletEvent.sign(
-        dateTime: DateTime(2024, 1, 1),
-        status: EventStatus.success,
-        relyingParty: organization,
-        policy: policy,
-        document: document,
-      ) as SignEvent;
+  static SignEvent get signEvent =>
+      WalletEvent.sign(
+            dateTime: DateTime(2024, 1, 1),
+            status: EventStatus.success,
+            relyingParty: organization,
+            policy: policy,
+            document: document,
+          )
+          as SignEvent;
 
-  static IssuanceEvent get issuanceEvent => WalletEvent.issuance(
-        dateTime: DateTime(2023, 12, 1),
-        status: EventStatus.success,
-        card: card,
-        renewed: false,
-      ) as IssuanceEvent;
+  static IssuanceEvent get issuanceEvent =>
+      WalletEvent.issuance(
+            dateTime: DateTime(2023, 12, 1),
+            status: EventStatus.success,
+            card: card,
+            renewed: false,
+          )
+          as IssuanceEvent;
 
-  static IssuanceEvent get renewEvent => WalletEvent.issuance(
-        dateTime: DateTime(2025, 2, 1),
-        status: EventStatus.success,
-        card: card,
-        renewed: true,
-      ) as IssuanceEvent;
+  static IssuanceEvent get renewEvent =>
+      WalletEvent.issuance(
+            dateTime: DateTime(2025, 2, 1),
+            status: EventStatus.success,
+            card: card,
+            renewed: true,
+          )
+          as IssuanceEvent;
 
-  static DisclosureEvent get failedDisclosureEvent => WalletEvent.disclosure(
-        dateTime: DateTime(2024, 2, 1),
-        status: EventStatus.error,
-        relyingParty: organization,
-        purpose: 'disclosure'.untranslated,
-        cards: [card],
-        policy: policy,
-        type: DisclosureType.regular,
-      ) as DisclosureEvent;
+  static DisclosureEvent get failedDisclosureEvent =>
+      WalletEvent.disclosure(
+            dateTime: DateTime(2024, 2, 1),
+            status: EventStatus.error,
+            relyingParty: organization,
+            purpose: 'disclosure'.untranslated,
+            cards: [card],
+            policy: policy,
+            type: DisclosureType.regular,
+          )
+          as DisclosureEvent;
 
-  static DisclosureEvent get failedDisclosureEventNothingShared => WalletEvent.disclosure(
-        dateTime: DateTime(2023, 5, 9, 11, 23),
-        status: EventStatus.error,
-        relyingParty: organization,
-        purpose: 'disclosure - nothing shared error'.untranslated,
-        cards: const [],
-        policy: policy,
-        type: DisclosureType.regular,
-      ) as DisclosureEvent;
+  static DisclosureEvent get failedDisclosureEventNothingShared =>
+      WalletEvent.disclosure(
+            dateTime: DateTime(2023, 5, 9, 11, 23),
+            status: EventStatus.error,
+            relyingParty: organization,
+            purpose: 'disclosure - nothing shared error'.untranslated,
+            cards: const [],
+            policy: policy,
+            type: DisclosureType.regular,
+          )
+          as DisclosureEvent;
 
-  static DisclosureEvent get cancelledDisclosureEvent => WalletEvent.disclosure(
-        dateTime: DateTime(2024, 2, 1),
-        status: EventStatus.cancelled,
-        relyingParty: organization,
-        purpose: 'disclosure'.untranslated,
-        cards: [card],
-        policy: policy,
-        type: DisclosureType.regular,
-      ) as DisclosureEvent;
+  static DisclosureEvent get cancelledDisclosureEvent =>
+      WalletEvent.disclosure(
+            dateTime: DateTime(2024, 2, 1),
+            status: EventStatus.cancelled,
+            relyingParty: organization,
+            purpose: 'disclosure'.untranslated,
+            cards: [card],
+            policy: policy,
+            type: DisclosureType.regular,
+          )
+          as DisclosureEvent;
 }

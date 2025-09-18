@@ -35,9 +35,9 @@ void main() {
   });
 
   IssuanceBloc createBloc({bool isRefreshFlow = false}) => IssuanceBloc(
-        startIssuanceUseCase,
-        cancelIssuanceUseCase,
-      );
+    startIssuanceUseCase,
+    cancelIssuanceUseCase,
+  );
 
   blocTest(
     'verify initial state',
@@ -48,8 +48,9 @@ void main() {
   blocTest(
     'IssuanceGenericError is emitted when issuance can not be initiated',
     build: () => createBloc(isRefreshFlow: true),
-    setUp: () => when(startIssuanceUseCase.invoke(any))
-        .thenAnswer((_) async => const Result.error(GenericError('', sourceError: 'test'))),
+    setUp: () => when(
+      startIssuanceUseCase.invoke(any),
+    ).thenAnswer((_) async => const Result.error(GenericError('', sourceError: 'test'))),
     act: (bloc) => bloc.add(const IssuanceSessionStarted('https://example.org')),
     expect: () => [
       isA<IssuanceLoadInProgress>(),
@@ -311,7 +312,11 @@ void main() {
       bloc.add(const IssuanceSessionStarted('https://example.org'));
       await Future.delayed(const Duration(milliseconds: 10));
       bloc.add(const IssuanceOrganizationApproved());
-      bloc.add(const IssuanceConfirmPinFailed(error: SessionError(state: SessionState.expired, sourceError: 'test')));
+      bloc.add(
+        const IssuanceConfirmPinFailed(
+          error: SessionError(state: SessionState.expired, sourceError: 'test'),
+        ),
+      );
       await Future.delayed(const Duration(milliseconds: 10));
     },
     expect: () => [
@@ -335,7 +340,11 @@ void main() {
       bloc.add(const IssuanceSessionStarted('https://example.org'));
       await Future.delayed(const Duration(milliseconds: 10));
       bloc.add(const IssuanceOrganizationApproved());
-      bloc.add(const IssuanceConfirmPinFailed(error: SessionError(state: SessionState.cancelled, sourceError: 'test')));
+      bloc.add(
+        const IssuanceConfirmPinFailed(
+          error: SessionError(state: SessionState.cancelled, sourceError: 'test'),
+        ),
+      );
       await Future.delayed(const Duration(milliseconds: 10));
     },
     expect: () => [
@@ -403,13 +412,22 @@ void main() {
       bloc.add(const IssuanceOrganizationApproved());
     },
     expect: () => [
-      isA<IssuanceCheckOrganization>()
-          .having((it) => it.cardRequests.map((it) => it.selectedIndex), 'verify initial selection', [0]),
-      isA<IssuanceCheckOrganization>()
-          .having((it) => it.cardRequests.map((it) => it.selectedIndex), 'verify altered selection', [1]),
+      isA<IssuanceCheckOrganization>().having(
+        (it) => it.cardRequests.map((it) => it.selectedIndex),
+        'verify initial selection',
+        [0],
+      ),
+      isA<IssuanceCheckOrganization>().having(
+        (it) => it.cardRequests.map((it) => it.selectedIndex),
+        'verify altered selection',
+        [1],
+      ),
       isA<IssuanceProvidePinForDisclosure>(),
-      isA<IssuanceCheckOrganization>()
-          .having((it) => it.cardRequests.map((it) => it.selectedIndex), 'verify altered selection is maintained', [1]),
+      isA<IssuanceCheckOrganization>().having(
+        (it) => it.cardRequests.map((it) => it.selectedIndex),
+        'verify altered selection is maintained',
+        [1],
+      ),
       isA<IssuanceProvidePinForDisclosure>(),
     ],
   );

@@ -11,8 +11,8 @@ class PermissionCheckResult {
   final bool isPermanentlyDenied;
 
   PermissionCheckResult({required this.isGranted, required this.isPermanentlyDenied})
-      : assert(
-          (isGranted && !isPermanentlyDenied) || !isGranted,
-          'Permission can not be both granted and permanently denied',
-        );
+    : assert(
+        (isGranted && !isPermanentlyDenied) || !isGranted,
+        'Permission can not be both granted and permanently denied',
+      );
 }

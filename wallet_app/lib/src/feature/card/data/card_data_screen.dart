@@ -119,8 +119,8 @@ class CardDataScreen extends StatelessWidget {
   }
 
   Widget _buildDataIncorrectButtonSliver(BuildContext context) => SliverToBoxAdapter(
-        child: _buildIncorrectButton(context),
-      );
+    child: _buildIncorrectButton(context),
+  );
 
   Widget _buildIncorrectButton(BuildContext context) {
     return ListButton(

@@ -39,10 +39,12 @@ void main() {
       getWalletEventsForCardUseCase,
     ),
     setUp: () {
-      when(getWalletCardUseCase.invoke(WalletMockData.card.attestationType))
-          .thenAnswer((_) async => Result.success(WalletMockData.card));
-      when(getWalletEventsForCardUseCase.invoke(WalletMockData.card.attestationType))
-          .thenAnswer((_) => Future.value(const Result.success([])));
+      when(
+        getWalletCardUseCase.invoke(WalletMockData.card.attestationType),
+      ).thenAnswer((_) async => Result.success(WalletMockData.card));
+      when(
+        getWalletEventsForCardUseCase.invoke(WalletMockData.card.attestationType),
+      ).thenAnswer((_) => Future.value(const Result.success([])));
     },
     act: (bloc) => bloc.add(CardHistoryLoadTriggered(WalletMockData.card.attestationType)),
     expect: () => [const CardHistoryLoadInProgress(), CardHistoryLoadSuccess(WalletMockData.card, const [])],
@@ -55,8 +57,9 @@ void main() {
       getWalletEventsForCardUseCase,
     ),
     setUp: () {
-      when(getWalletCardUseCase.invoke(WalletMockData.card.attestationType))
-          .thenAnswer((_) async => const Result.error(GenericError('failed to load card', sourceError: 'test')));
+      when(
+        getWalletCardUseCase.invoke(WalletMockData.card.attestationType),
+      ).thenAnswer((_) async => const Result.error(GenericError('failed to load card', sourceError: 'test')));
     },
     act: (bloc) => bloc.add(CardHistoryLoadTriggered(WalletMockData.card.attestationType)),
     expect: () => [const CardHistoryLoadInProgress(), const CardHistoryLoadFailure()],

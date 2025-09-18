@@ -143,9 +143,9 @@ class DisclosureScreen extends StatelessWidget {
   }
 
   Widget _buildInitialLoading(BuildContext context) => GenericLoadingPage(
-        title: context.l10n.disclosureLoadingTitle,
-        description: context.l10n.disclosureLoadingSubtitle,
-      );
+    title: context.l10n.disclosureLoadingTitle,
+    description: context.l10n.disclosureLoadingSubtitle,
+  );
 
   Widget _buildLoading() => const CenteredLoadingIndicator();
 

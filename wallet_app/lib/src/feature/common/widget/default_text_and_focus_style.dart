@@ -26,8 +26,10 @@ class DefaultTextAndFocusStyle extends StatelessWidget {
     if (localTextStyle == null) return child;
 
     // Build current text style with the correct color and underline state
-    TextStyle currentTextStyle =
-        localTextStyle.colorWhenPressedOrFocused(statesController.value, pressedOrFocusedColor);
+    TextStyle currentTextStyle = localTextStyle.colorWhenPressedOrFocused(
+      statesController.value,
+      pressedOrFocusedColor,
+    );
     if (underlineWhenPressedOrFocused) {
       currentTextStyle = currentTextStyle.underlineWhenPressedOrFocused(statesController.value);
     }

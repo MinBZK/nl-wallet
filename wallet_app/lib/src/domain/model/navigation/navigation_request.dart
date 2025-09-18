@@ -58,10 +58,10 @@ sealed class NavigationRequest extends Equatable {
   factory NavigationRequest.sign(String uri) => SignNavigationRequest(uri);
 
   factory NavigationRequest.walletTransfer(String uri) => GenericNavigationRequest(
-        WalletRoutes.walletTransferSourceRoute,
-        argument: uri,
-        navigatePrerequisites: unlockedWithPidPrerequisites,
-      );
+    WalletRoutes.walletTransferSourceRoute,
+    argument: uri,
+    navigatePrerequisites: unlockedWithPidPrerequisites,
+  );
 }
 
 class GenericNavigationRequest extends NavigationRequest {
@@ -75,67 +75,67 @@ class GenericNavigationRequest extends NavigationRequest {
 
 class PidIssuanceNavigationRequest extends NavigationRequest {
   PidIssuanceNavigationRequest(String uri)
-      : super(
-          WalletRoutes.walletPersonalizeRoute,
-          argument: uri,
-          navigatePrerequisites: [
-            NavigationPrerequisite.walletUnlocked,
-            NavigationPrerequisite.walletInitialized,
-          ],
-          preNavigationActions: [
-            PreNavigationAction.disableUpcomingPageTransition,
-          ],
-        );
+    : super(
+        WalletRoutes.walletPersonalizeRoute,
+        argument: uri,
+        navigatePrerequisites: [
+          NavigationPrerequisite.walletUnlocked,
+          NavigationPrerequisite.walletInitialized,
+        ],
+        preNavigationActions: [
+          PreNavigationAction.disableUpcomingPageTransition,
+        ],
+      );
 }
 
 class PidRenewalNavigationRequest extends NavigationRequest {
   PidRenewalNavigationRequest(String uri)
-      : super(
-          WalletRoutes.renewPidRoute,
-          argument: uri,
-          navigatePrerequisites: [
-            NavigationPrerequisite.walletUnlocked,
-            NavigationPrerequisite.walletInitialized,
-          ],
-          preNavigationActions: [
-            PreNavigationAction.disableUpcomingPageTransition,
-          ],
-        );
+    : super(
+        WalletRoutes.renewPidRoute,
+        argument: uri,
+        navigatePrerequisites: [
+          NavigationPrerequisite.walletUnlocked,
+          NavigationPrerequisite.walletInitialized,
+        ],
+        preNavigationActions: [
+          PreNavigationAction.disableUpcomingPageTransition,
+        ],
+      );
 }
 
 class PinRecoveryNavigationRequest extends NavigationRequest {
   PinRecoveryNavigationRequest(String uri)
-      : super(
-          WalletRoutes.pinRecoveryRoute,
-          argument: uri,
-          navigatePrerequisites: [NavigationPrerequisite.walletInitialized],
-          preNavigationActions: [PreNavigationAction.disableUpcomingPageTransition],
-        );
+    : super(
+        WalletRoutes.pinRecoveryRoute,
+        argument: uri,
+        navigatePrerequisites: [NavigationPrerequisite.walletInitialized],
+        preNavigationActions: [PreNavigationAction.disableUpcomingPageTransition],
+      );
 }
 
 class DisclosureNavigationRequest extends NavigationRequest {
   DisclosureNavigationRequest(String uri, {bool isQrCode = false})
-      : super(
-          WalletRoutes.disclosureRoute,
-          argument: DisclosureScreenArgument(uri: uri, isQrCode: isQrCode),
-          navigatePrerequisites: unlockedWithPidPrerequisites,
-        );
+    : super(
+        WalletRoutes.disclosureRoute,
+        argument: DisclosureScreenArgument(uri: uri, isQrCode: isQrCode),
+        navigatePrerequisites: unlockedWithPidPrerequisites,
+      );
 }
 
 class IssuanceNavigationRequest extends NavigationRequest {
   IssuanceNavigationRequest(String uri, {bool isQrCode = false, bool isRefreshFlow = false})
-      : super(
-          WalletRoutes.issuanceRoute,
-          argument: IssuanceScreenArgument(uri: uri, isQrCode: isQrCode, isRefreshFlow: isRefreshFlow),
-          navigatePrerequisites: unlockedWithPidPrerequisites,
-        );
+    : super(
+        WalletRoutes.issuanceRoute,
+        argument: IssuanceScreenArgument(uri: uri, isQrCode: isQrCode, isRefreshFlow: isRefreshFlow),
+        navigatePrerequisites: unlockedWithPidPrerequisites,
+      );
 }
 
 class SignNavigationRequest extends NavigationRequest {
   SignNavigationRequest(String uri)
-      : super(
-          WalletRoutes.signRoute,
-          argument: SignScreenArgument(uri: uri),
-          navigatePrerequisites: unlockedWithPidPrerequisites,
-        );
+    : super(
+        WalletRoutes.signRoute,
+        argument: SignScreenArgument(uri: uri),
+        navigatePrerequisites: unlockedWithPidPrerequisites,
+      );
 }

@@ -58,8 +58,10 @@ class ChangePinScreen extends StatelessWidget {
                 case ChangePinNetworkError():
                   ErrorScreen.showNetwork(context, networkError: tryCast(state), secured: false);
                 case ChangePinSelectNewPinFailed():
-                  await PinValidationErrorDialog.show(context, state.reason)
-                      .then((_) => bloc.add(PinBackspacePressed()));
+                  await PinValidationErrorDialog.show(
+                    context,
+                    state.reason,
+                  ).then((_) => bloc.add(PinBackspacePressed()));
                 case ChangePinConfirmNewPinFailed():
                   await PinConfirmationErrorDialog.show(context, retryAllowed: state.retryAllowed).then((_) {
                     bloc.add(state.retryAllowed ? PinBackspacePressed() : ChangePinRetryPressed());
@@ -71,11 +73,15 @@ class ChangePinScreen extends StatelessWidget {
             builder: (context, state) {
               final Widget result = switch (state) {
                 ChangePinInitial() => _buildEnterCurrentPinPage(context),
-                ChangePinSelectNewPinInProgress() =>
-                  _buildSelectNewPinPage(context, enteredDigits: state.enteredDigits),
+                ChangePinSelectNewPinInProgress() => _buildSelectNewPinPage(
+                  context,
+                  enteredDigits: state.enteredDigits,
+                ),
                 ChangePinSelectNewPinFailed() => _buildSelectNewPinPage(context, enteredDigits: kPinDigits),
-                ChangePinConfirmNewPinInProgress() =>
-                  _buildConfirmNewPinPage(context, enteredDigits: state.enteredDigits),
+                ChangePinConfirmNewPinInProgress() => _buildConfirmNewPinPage(
+                  context,
+                  enteredDigits: state.enteredDigits,
+                ),
                 ChangePinConfirmNewPinFailed() => _buildConfirmNewPinPage(context, enteredDigits: kPinDigits),
                 ChangePinUpdating() => _buildChangePinUpdating(context),
                 ChangePinCompleted() => _buildChangePinSuccess(context),

@@ -37,7 +37,7 @@ class CardDetailBloc extends Bloc<CardDetailEvent, CardDetailState> {
   }
 
   CardDetailBloc(this._observeWalletCardDetailUseCase, WalletCard? preloadedCard)
-      : super(preloadedCard == null ? CardDetailInitial() : CardDetailLoadInProgress(card: preloadedCard)) {
+    : super(preloadedCard == null ? CardDetailInitial() : CardDetailLoadInProgress(card: preloadedCard)) {
     on<CardDetailLoadTriggered>(_onCardDetailLoadTriggered);
   }
 

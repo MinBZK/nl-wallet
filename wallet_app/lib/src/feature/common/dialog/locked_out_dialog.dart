@@ -11,8 +11,9 @@ class LockedOutDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final title = Platform.isIOS ? context.l10n.lockedOutDialogTitleiOSVariant : context.l10n.lockedOutDialogTitle;
-    final description =
-        Platform.isIOS ? context.l10n.lockedOutDialogDescriptioniOSVariant : context.l10n.lockedOutDialogDescription;
+    final description = Platform.isIOS
+        ? context.l10n.lockedOutDialogDescriptioniOSVariant
+        : context.l10n.lockedOutDialogDescription;
     return AlertDialog(
       title: Text.rich(title.toTextSpan(context)),
       content: Text.rich(description.toTextSpan(context)),

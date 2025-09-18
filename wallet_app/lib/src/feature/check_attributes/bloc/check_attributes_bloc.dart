@@ -13,12 +13,12 @@ class CheckAttributesBloc extends Bloc<CheckAttributesEvent, CheckAttributesStat
   final List<WalletCard> cards;
 
   CheckAttributesBloc({required this.cards})
-      : assert(cards.isNotEmpty, 'provide at least one card'),
-        super(
-          cards.length == 1
-              ? CheckAttributesSuccess(card: cards.first, attributes: cards.first.attributes)
-              : CheckAttributesInitial(),
-        ) {
+    : assert(cards.isNotEmpty, 'provide at least one card'),
+      super(
+        cards.length == 1
+            ? CheckAttributesSuccess(card: cards.first, attributes: cards.first.attributes)
+            : CheckAttributesInitial(),
+      ) {
     on<CheckAttributesCardSelected>(_onCardSelected);
   }
 

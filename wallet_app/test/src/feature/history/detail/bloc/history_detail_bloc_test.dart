@@ -25,8 +25,9 @@ void main() {
   blocTest(
     'verify transition to HistoryDetailLoadSuccess when cards can be loaded',
     build: () => HistoryDetailBloc(getWalletCardsUseCase),
-    setUp: () => when(getWalletCardsUseCase.invoke())
-        .thenAnswer((_) async => Result.success([WalletMockData.card, WalletMockData.altCard])),
+    setUp: () => when(
+      getWalletCardsUseCase.invoke(),
+    ).thenAnswer((_) async => Result.success([WalletMockData.card, WalletMockData.altCard])),
     act: (bloc) => bloc.add(HistoryDetailLoadTriggered(event: WalletMockData.disclosureEvent)),
     expect: () => [
       const HistoryDetailLoadInProgress(),

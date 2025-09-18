@@ -203,9 +203,9 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
 
   Widget _buildPrivacySection(BuildContext context) {
     final subtitle = context.read<ContextMapper<OrganizationPolicy, String>>().map(
-          context,
-          OrganizationPolicy(organization: relyingParty, policy: policy),
-        );
+      context,
+      OrganizationPolicy(organization: relyingParty, policy: policy),
+    );
     return ListItem(
       icon: const Icon(Icons.handshake_outlined),
       label: Text.rich(context.l10n.disclosureConfirmDataAttributesSubtitleTerms.toTextSpan(context)),

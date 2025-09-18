@@ -215,14 +215,14 @@ class DisclosureCheckOrganizationForLogin extends DisclosureState {
 
   @override
   List<Object?> get props => [
-        relyingParty,
-        originUrl,
-        sessionType,
-        policy,
-        cardRequests,
-        sharedDataWithOrganizationBefore,
-        ...super.props,
-      ];
+    relyingParty,
+    originUrl,
+    sessionType,
+    policy,
+    cardRequests,
+    sharedDataWithOrganizationBefore,
+    ...super.props,
+  ];
 }
 
 class DisclosureMissingAttributes extends DisclosureState {
@@ -243,16 +243,16 @@ class DisclosureMissingAttributes extends DisclosureState {
     required this.missingAttributes,
     required bool isCrossDevice,
   }) : stepperProgress = FlowProgress(
-          currentStep: isCrossDevice ? 2 : 1,
-          totalSteps: kDisclosureSteps + (isCrossDevice ? kExtraCrossDeviceSteps : 0),
-        );
+         currentStep: isCrossDevice ? 2 : 1,
+         totalSteps: kDisclosureSteps + (isCrossDevice ? kExtraCrossDeviceSteps : 0),
+       );
 
   @override
   List<Object?> get props => [
-        relyingParty,
-        missingAttributes,
-        ...super.props,
-      ];
+    relyingParty,
+    missingAttributes,
+    ...super.props,
+  ];
 }
 
 class DisclosureConfirmDataAttributes extends DisclosureState {
@@ -320,13 +320,13 @@ class DisclosureConfirmDataAttributes extends DisclosureState {
 
   @override
   List<Object?> get props => [
-        relyingParty,
-        requestPurpose,
-        cardRequests,
-        policy,
-        sessionType,
-        ...super.props,
-      ];
+    relyingParty,
+    requestPurpose,
+    cardRequests,
+    policy,
+    sessionType,
+    ...super.props,
+  ];
 }
 
 class DisclosureConfirmPin extends DisclosureState {

@@ -30,16 +30,18 @@ class DisclosureManager {
     final requestOriginBaseUrl = request.relyingParty.webUrl ?? 'http://origin.org';
 
     // Check if all attributes are available
-    final containsAllRequestedAttributes =
-        _wallet.containsAttributes(request.requestedAttributes.map((requestedAttribute) => requestedAttribute.key));
+    final containsAllRequestedAttributes = _wallet.containsAttributes(
+      request.requestedAttributes.map((requestedAttribute) => requestedAttribute.key),
+    );
     if (containsAllRequestedAttributes) {
       final isLoginRequest =
           request.requestedAttributes.length == 1 && request.requestedAttributes.first.key == 'mock_citizenshipNumber';
       return _ongoingDisclosure = StartDisclosureResult.request(
         relyingParty: request.relyingParty,
         policy: request.policy,
-        requestedAttestations:
-            _wallet.getRequestedAttestations(request.requestedAttributes.map((attribute) => attribute.key)),
+        requestedAttestations: _wallet.getRequestedAttestations(
+          request.requestedAttributes.map((attribute) => attribute.key),
+        ),
         sharedDataWithRelyingPartyBefore: _eventLog.includesInteractionWith(request.relyingParty),
         sessionType: DisclosureSessionType.CrossDevice,
         requestOriginBaseUrl: requestOriginBaseUrl,
@@ -47,8 +49,9 @@ class DisclosureManager {
         requestType: isLoginRequest ? DisclosureType.Login : DisclosureType.Regular,
       );
     } else {
-      final requestedAttributesNotInWallet =
-          _wallet.getMissingAttributeKeys(request.requestedAttributes.map((e) => e.key));
+      final requestedAttributesNotInWallet = _wallet.getMissingAttributeKeys(
+        request.requestedAttributes.map((e) => e.key),
+      );
       final missingAttributes = requestedAttributesNotInWallet.map((key) {
         final associatedLabel = request.requestedAttributes.firstWhere((element) => element.key == key).label;
         return MissingAttribute(labels: associatedLabel.untranslated);

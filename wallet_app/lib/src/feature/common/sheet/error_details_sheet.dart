@@ -45,8 +45,9 @@ class ErrorDetailsSheet extends StatelessWidget {
   }
 
   Widget _buildInfoSection(BuildContext context) {
-    final TextStyle? prefixStyle =
-        context.textTheme.bodyMedium?.copyWith(fontVariations: [BaseWalletTheme.fontVariationBold]);
+    final TextStyle? prefixStyle = context.textTheme.bodyMedium?.copyWith(
+      fontVariations: [BaseWalletTheme.fontVariationBold],
+    );
     final items = <Widget>[
       StringVersionText(
         prefixTextStyle: prefixStyle,

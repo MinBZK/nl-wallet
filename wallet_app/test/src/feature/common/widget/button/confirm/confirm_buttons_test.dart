@@ -45,8 +45,9 @@ void main() {
       expect(layoutFinder, findsOneWidget);
     });
 
-    testWidgets('buttons are rendered in vertical layout when both buttons do not fit on a single line',
-        (tester) async {
+    testWidgets('buttons are rendered in vertical layout when both buttons do not fit on a single line', (
+      tester,
+    ) async {
       await tester.pumpWidgetWithAppWrapper(
         const ConfirmButtons(
           primaryButton: PrimaryButton(

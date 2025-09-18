@@ -24,10 +24,10 @@ class WalletCoreForSigning {
 
   /// Get the cards/attributes that have to be disclosed to fulfill [_activeSignRequest], assumes [_activeSignRequest] is non null.
   List<AttestationPresentation> get _requestedAttestationsForActiveRequest => _wallet.getRequestedAttestations(
-        _activeSignRequest!.requestedAttributes.map(
-          (attribute) => attribute.key,
-        ),
-      );
+    _activeSignRequest!.requestedAttributes.map(
+      (attribute) => attribute.key,
+    ),
+  );
 
   WalletCoreForSigning(this._pinManager, this._wallet, this._eventLog);
 
@@ -47,8 +47,9 @@ class WalletCoreForSigning {
         requestedAttestations: _requestedAttestationsForActiveRequest,
       );
     } else {
-      final requestedAttributesNotInWallet =
-          _wallet.getMissingAttributeKeys(request.requestedAttributes.map((e) => e.key));
+      final requestedAttributesNotInWallet = _wallet.getMissingAttributeKeys(
+        request.requestedAttributes.map((e) => e.key),
+      );
       final missingAttributes = requestedAttributesNotInWallet.map((key) {
         final associatedLabel = request.requestedAttributes.firstWhere((element) => element.key == key).label;
         return MissingAttribute(labels: associatedLabel.untranslated);

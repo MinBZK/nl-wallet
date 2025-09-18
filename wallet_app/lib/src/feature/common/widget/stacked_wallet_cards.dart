@@ -25,14 +25,14 @@ class StackedWalletCards extends StatelessWidget {
         padding: EdgeInsets.fromLTRB(0, index * cardOffsetY, 0, 0),
         child: Hero(
           tag: cards[index].hashCode,
-          flightShuttleBuilder: (
-            BuildContext flightContext,
-            Animation<double> animation,
-            HeroFlightDirection flightDirection,
-            BuildContext fromHeroContext,
-            BuildContext toHeroContext,
-          ) =>
-              WalletCardItem.buildShuttleCard(animation, cards[index], ctaAnimation: CtaAnimation.fadeIn),
+          flightShuttleBuilder:
+              (
+                BuildContext flightContext,
+                Animation<double> animation,
+                HeroFlightDirection flightDirection,
+                BuildContext fromHeroContext,
+                BuildContext toHeroContext,
+              ) => WalletCardItem.buildShuttleCard(animation, cards[index], ctaAnimation: CtaAnimation.fadeIn),
           child: MergeSemantics(
             child: Semantics(
               button: onCardPressed != null,

@@ -22,11 +22,11 @@ void main() {
   });
 
   WalletTransferTargetBloc createBloc() => WalletTransferTargetBloc(
-        mockPrepareWalletTransferUseCase,
-        mockGetWalletTransferStatusUseCase,
-        mockCancelWalletTransferUseCase,
-        mockSkipWalletTransferUseCase,
-      );
+    mockPrepareWalletTransferUseCase,
+    mockGetWalletTransferStatusUseCase,
+    mockCancelWalletTransferUseCase,
+    mockSkipWalletTransferUseCase,
+  );
 
   blocTest<WalletTransferTargetBloc, WalletTransferTargetState>(
     'verify initial state',
@@ -64,8 +64,9 @@ void main() {
     blocTest<WalletTransferTargetBloc, WalletTransferTargetState>(
       'prepare transfer fails with GenericError',
       build: createBloc,
-      setUp: () => when(mockPrepareWalletTransferUseCase.invoke())
-          .thenAnswer((_) async => const Result.error(GenericError('prepare_fail', sourceError: 'prepare'))),
+      setUp: () => when(
+        mockPrepareWalletTransferUseCase.invoke(),
+      ).thenAnswer((_) async => const Result.error(GenericError('prepare_fail', sourceError: 'prepare'))),
       act: (bloc) => bloc.add(const WalletTransferOptInEvent()),
       expect: () => [
         const WalletTransferLoadingQrData(),
@@ -111,8 +112,9 @@ void main() {
       build: createBloc,
       setUp: () {
         when(mockPrepareWalletTransferUseCase.invoke()).thenAnswer((_) async => const Result.success(qrData));
-        when(mockGetWalletTransferStatusUseCase.invoke(isTarget: true))
-            .thenAnswer((_) => Stream.error(Exception('Stream failed')));
+        when(
+          mockGetWalletTransferStatusUseCase.invoke(isTarget: true),
+        ).thenAnswer((_) => Stream.error(Exception('Stream failed')));
       },
       act: (bloc) => bloc.add(const WalletTransferOptInEvent()),
       expect: () => [
@@ -141,8 +143,9 @@ void main() {
       setUp: () {
         when(mockPrepareWalletTransferUseCase.invoke()).thenAnswer((_) async => const Result.success(qrData));
         // Let status stream emit waitingForScan to reach the desired state
-        when(mockGetWalletTransferStatusUseCase.invoke(isTarget: true))
-            .thenAnswer((_) => Stream.value(WalletTransferStatus.waitingForScan).asBroadcastStream());
+        when(
+          mockGetWalletTransferStatusUseCase.invoke(isTarget: true),
+        ).thenAnswer((_) => Stream.value(WalletTransferStatus.waitingForScan).asBroadcastStream());
         when(mockCancelWalletTransferUseCase.invoke()).thenAnswer((_) async => const Result.success(null));
       },
       act: (bloc) async {
@@ -176,8 +179,9 @@ void main() {
       build: createBloc,
       setUp: () {
         when(mockPrepareWalletTransferUseCase.invoke()).thenAnswer((_) async => const Result.success(qrData));
-        when(mockGetWalletTransferStatusUseCase.invoke(isTarget: true))
-            .thenAnswer((_) => Stream.value(WalletTransferStatus.waitingForScan).asBroadcastStream());
+        when(
+          mockGetWalletTransferStatusUseCase.invoke(isTarget: true),
+        ).thenAnswer((_) => Stream.value(WalletTransferStatus.waitingForScan).asBroadcastStream());
       },
       act: (bloc) async {
         bloc.add(const WalletTransferOptInEvent());
@@ -198,8 +202,10 @@ void main() {
       setUp: () {
         when(mockPrepareWalletTransferUseCase.invoke()).thenAnswer((_) async => const Result.success(qrData));
         when(mockGetWalletTransferStatusUseCase.invoke(isTarget: true)).thenAnswer(
-          (_) => Stream.fromIterable([WalletTransferStatus.waitingForScan, WalletTransferStatus.transferring])
-              .asBroadcastStream(),
+          (_) => Stream.fromIterable([
+            WalletTransferStatus.waitingForScan,
+            WalletTransferStatus.transferring,
+          ]).asBroadcastStream(),
         );
       },
       act: (bloc) async {

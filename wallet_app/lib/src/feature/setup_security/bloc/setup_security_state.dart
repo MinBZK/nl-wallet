@@ -86,7 +86,7 @@ class SetupSecurityConfigureBiometrics extends SetupSecurityState {
   final Biometrics biometrics;
 
   const SetupSecurityConfigureBiometrics({required this.biometrics})
-      : assert(biometrics != Biometrics.none, 'This state is invalid without supported biometrics');
+    : assert(biometrics != Biometrics.none, 'This state is invalid without supported biometrics');
 
   @override
   FlowProgress get stepperProgress => FlowProgress(currentStep: 4, totalSteps: SetupHelper.totalSetupSteps);

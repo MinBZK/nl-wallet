@@ -57,11 +57,11 @@ void main() {
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
           ErrorDetailsSheet(
-            error: GenericError(
-              'Raw error message',
-              sourceError: Exception('Some exception message'),
-            ),
-          )
+                error: GenericError(
+                  'Raw error message',
+                  sourceError: Exception('Some exception message'),
+                ),
+              )
               .withDependency<GetVersionStringUseCase>((c) => MockGetVersionStringUseCase())
               .withDependency<ConfigurationRepository>((c) => configurationRepository),
           surfaceSize: const Size(350, 341),

@@ -29,8 +29,9 @@ void main() {
     build: () => ChangeLanguageBloc(languageRepository, defaultLocaleProvider),
     act: (bloc) => bloc.add(ChangeLanguageLoadTriggered()),
     setUp: () {
-      when(languageRepository.getAvailableLocales())
-          .thenAnswer((_) => Future.value([const Locale('nl'), const Locale('en')]));
+      when(
+        languageRepository.getAvailableLocales(),
+      ).thenAnswer((_) => Future.value([const Locale('nl'), const Locale('en')]));
       when(languageRepository.preferredLocale).thenAnswer((_) => Stream.value(null));
     },
     expect: () => [
@@ -53,8 +54,9 @@ void main() {
       bloc.add(const ChangeLanguageLocaleSelected(Locale('nl')));
     },
     setUp: () {
-      when(languageRepository.getAvailableLocales())
-          .thenAnswer((_) => Future.value([const Locale('nl'), const Locale('en')]));
+      when(
+        languageRepository.getAvailableLocales(),
+      ).thenAnswer((_) => Future.value([const Locale('nl'), const Locale('en')]));
       when(languageRepository.preferredLocale).thenAnswer((_) => Stream.value(null));
     },
     expect: () => [

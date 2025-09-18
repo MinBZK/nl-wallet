@@ -7,7 +7,7 @@ class CardConfigMapper extends Mapper<String /* attestationId */, CardConfig> {
 
   @override
   CardConfig map(String input) => const CardConfig(
-        updatable: false,
-        removable: false,
-      );
+    updatable: false,
+    removable: false,
+  );
 }

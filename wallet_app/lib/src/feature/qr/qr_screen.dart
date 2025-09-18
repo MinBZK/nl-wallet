@@ -91,31 +91,31 @@ class QrScreen extends StatelessWidget {
   Widget _buildScanning() => QrScanner(key: _scannerKey);
 
   Widget _buildSuccessState(BuildContext context) => Container(
-        alignment: Alignment.center,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.qr_code, color: context.colorScheme.onSurfaceVariant),
-            const SizedBox(height: 8),
-            TextButton(
-              onPressed: () => context.read<QrBloc>().add(const QrScanReset()),
-              child: Text.rich(context.l10n.qrScanTabContinueCta.toTextSpan(context)),
-            ),
-          ],
+    alignment: Alignment.center,
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.qr_code, color: context.colorScheme.onSurfaceVariant),
+        const SizedBox(height: 8),
+        TextButton(
+          onPressed: () => context.read<QrBloc>().add(const QrScanReset()),
+          child: Text.rich(context.l10n.qrScanTabContinueCta.toTextSpan(context)),
         ),
-      );
+      ],
+    ),
+  );
 
   Widget _buildLoading(BuildContext context) => Stack(
-        alignment: Alignment.center,
-        children: [
-          Visibility(
-            visible: false,
-            maintainState: true,
-            child: QrScanner(key: _scannerKey),
-          ),
-          const CenteredLoadingIndicator(),
-        ],
-      );
+    alignment: Alignment.center,
+    children: [
+      Visibility(
+        visible: false,
+        maintainState: true,
+        child: QrScanner(key: _scannerKey),
+      ),
+      const CenteredLoadingIndicator(),
+    ],
+  );
 
   Future<void> _showInvalidQrDialog(BuildContext context) async {
     final qrScanBloc = context.read<QrBloc>();

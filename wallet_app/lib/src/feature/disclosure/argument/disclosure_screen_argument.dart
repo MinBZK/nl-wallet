@@ -17,9 +17,7 @@ class DisclosureScreenArgument {
     };
   }
 
-  DisclosureScreenArgument.fromMap(Map<String, dynamic> map)
-      : isQrCode = map[_kIsQrCodeKey],
-        uri = map[_kUriKey];
+  DisclosureScreenArgument.fromMap(Map<String, dynamic> map) : isQrCode = map[_kIsQrCodeKey], uri = map[_kUriKey];
 
   @override
   bool operator ==(Object other) =>
@@ -31,10 +29,10 @@ class DisclosureScreenArgument {
 
   @override
   int get hashCode => Object.hash(
-        runtimeType,
-        isQrCode,
-        uri,
-      );
+    runtimeType,
+    isQrCode,
+    uri,
+  );
 
   @override
   String toString() {

@@ -8,8 +8,8 @@ class DocumentMapper extends Mapper<core.Document, Document> {
 
   @override
   Document map(core.Document input) => Document(
-        title: input.title,
-        fileName: input.fileName,
-        url: input.url,
-      );
+    title: input.title,
+    fileName: input.fileName,
+    url: input.url,
+  );
 }

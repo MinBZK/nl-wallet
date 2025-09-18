@@ -33,11 +33,11 @@ class SecuredPageRoute<T> extends MaterialPageRoute<T> {
     this.transition = SecuredPageTransition.platform,
     super.settings,
   }) : super(
-          builder: (context) => PinOverlay(
-            isLockedStream: context.read<WalletRepository>().isLockedStream,
-            child: builder(context),
-          ),
-        );
+         builder: (context) => PinOverlay(
+           isLockedStream: context.read<WalletRepository>().isLockedStream,
+           child: builder(context),
+         ),
+       );
 
   @override
   Widget buildTransitions(

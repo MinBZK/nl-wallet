@@ -136,8 +136,9 @@ void main() {
     build: () => ChangePinBloc(checkIsValidPinUseCase, changePinUseCase),
     setUp: () {
       when(checkIsValidPinUseCase.invoke(any)).thenAnswer((_) async => const Result.success(null));
-      when(changePinUseCase.invoke(any, any))
-          .thenAnswer((_) async => const Result.error(NetworkError(hasInternet: true, sourceError: 'test')));
+      when(
+        changePinUseCase.invoke(any, any),
+      ).thenAnswer((_) async => const Result.error(NetworkError(hasInternet: true, sourceError: 'test')));
     },
     act: (bloc) {
       bloc.add(const ChangePinCurrentPinValidated('000111'));
@@ -157,8 +158,9 @@ void main() {
     build: () => ChangePinBloc(checkIsValidPinUseCase, changePinUseCase),
     setUp: () {
       when(checkIsValidPinUseCase.invoke(any)).thenAnswer((_) async => const Result.success(null));
-      when(changePinUseCase.invoke(any, any))
-          .thenAnswer((_) async => const Result.error(GenericError('', sourceError: 'test')));
+      when(
+        changePinUseCase.invoke(any, any),
+      ).thenAnswer((_) async => const Result.error(GenericError('', sourceError: 'test')));
     },
     act: (bloc) {
       bloc.add(const ChangePinCurrentPinValidated('000111'));

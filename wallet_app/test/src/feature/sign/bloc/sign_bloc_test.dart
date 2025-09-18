@@ -39,8 +39,9 @@ void main() {
 
   blocTest(
     'when startSignUseCase fails, emit generic error',
-    setUp: () => when(startSignUseCase.invoke(any))
-        .thenAnswer((_) async => const Result.error(GenericError('', sourceError: 'test'))),
+    setUp: () => when(
+      startSignUseCase.invoke(any),
+    ).thenAnswer((_) async => const Result.error(GenericError('', sourceError: 'test'))),
     build: create,
     expect: () => [isA<SignError>()],
   );
