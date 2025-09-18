@@ -192,7 +192,7 @@ mod tests {
 
     use attestation_data::auth::reader_auth::ReaderRegistration;
     use attestation_data::disclosure_type::DisclosureType;
-    use attestation_data::x509::generate::mock::generate_reader_mock;
+    use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
     use crypto::server_keys::generate::Ca;
 
     use crate::AttestationPresentation;
@@ -250,7 +250,8 @@ mod tests {
         let mut wallet = TestWalletInMemoryStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         let reader_ca = Ca::generate_reader_mock_ca().unwrap();
-        let reader_key = generate_reader_mock(&reader_ca, ReaderRegistration::new_mock().into()).unwrap();
+        let reader_key =
+            generate_reader_mock_with_registration(&reader_ca, ReaderRegistration::new_mock().into()).unwrap();
 
         // history should be empty
         let history = wallet.get_history().await.unwrap();

@@ -105,8 +105,7 @@ impl SdJwtPresentation {
             .unwrap()
             .finish(
                 Integrity::from(random_string(32)),
-                issuer_keypair.private_key(),
-                vec![issuer_keypair.certificate().clone()],
+                issuer_keypair,
                 holder_privkey.verifying_key(),
             )
             .now_or_never()

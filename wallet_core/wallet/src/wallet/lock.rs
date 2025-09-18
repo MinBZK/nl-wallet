@@ -274,7 +274,7 @@ mod tests {
     use rstest::rstest;
 
     use apple_app_attest::AssertionCounter;
-    use jwt::UnverifiedJwt;
+    use jwt::SignedJwt;
     use platform_support::attested_key::AttestedKey;
     use wallet_account::messages::errors::AccountError;
     use wallet_account::messages::errors::IncorrectPinData;
@@ -393,9 +393,10 @@ mod tests {
             iss: "wallet_unit_test".to_string(),
             iat: Utc::now(),
         };
-        let result = UnverifiedJwt::sign_with_sub(result_claims, &ACCOUNT_SERVER_KEYS.instruction_result_signing_key)
+        let result = SignedJwt::sign_with_sub(result_claims, &ACCOUNT_SERVER_KEYS.instruction_result_signing_key)
             .await
-            .unwrap();
+            .unwrap()
+            .into();
 
         Arc::get_mut(&mut wallet.account_provider_client)
             .unwrap()
@@ -648,7 +649,10 @@ mod tests {
             iat: Utc::now(),
         };
         let other_key = SigningKey::random(&mut OsRng);
-        let result = UnverifiedJwt::sign_with_sub(result_claims, &other_key).await.unwrap();
+        let result = SignedJwt::sign_with_sub(result_claims, &other_key)
+            .await
+            .unwrap()
+            .into();
 
         account_provider_client
             .expect_instruction()

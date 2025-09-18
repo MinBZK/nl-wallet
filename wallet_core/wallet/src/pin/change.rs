@@ -312,11 +312,11 @@ pub mod mock {
 mod test {
     use assert_matches::assert_matches;
     use chrono::Utc;
+    use jwt::SignedJwt;
     use mockall::predicate::eq;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
 
-    use jwt::UnverifiedJwt;
     use wallet_account::messages::registration::WalletCertificateClaims;
 
     use super::*;
@@ -350,9 +350,10 @@ mod test {
             iat: Utc::now(),
         };
 
-        let wallet_certificate = UnverifiedJwt::sign_with_sub(certificate_claims, &certificate_signing_key)
+        let wallet_certificate = SignedJwt::sign_with_sub(certificate_claims, &certificate_signing_key)
             .await
-            .unwrap();
+            .unwrap()
+            .into();
 
         let registration_data = RegistrationData {
             attested_key_identifier,

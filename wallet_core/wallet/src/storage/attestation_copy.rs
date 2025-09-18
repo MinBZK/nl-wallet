@@ -108,11 +108,7 @@ impl StoredAttestation {
             Self::MsoMdoc { mdoc } => &mdoc
                 .issuer_certificate()
                 .expect("a stored mdoc attestation should always contain an issuer certificate"),
-            Self::SdJwt { sd_jwt } => sd_jwt
-                .as_ref()
-                .as_ref()
-                .issuer_certificate()
-                .expect("a stored SD-JWT attestation should always contain an issuer certificate"),
+            Self::SdJwt { sd_jwt } => sd_jwt.as_ref().as_ref().issuer_certificate(),
         };
 
         // Note that this means that an `IssuerRegistration` should ALWAYS be backwards compatible.
@@ -279,7 +275,7 @@ mod tests {
     use attestation_data::constants::PID_ATTESTATION_TYPE;
     use attestation_data::constants::PID_BSN;
     use attestation_data::credential_payload::CredentialPayload;
-    use attestation_data::x509::generate::mock::generate_issuer_mock;
+    use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use attestation_types::claim_path::ClaimPath;
     use crypto::keys::WithIdentifier;
     use crypto::mock_remote::MockRemoteEcdsaKey;
@@ -361,7 +357,7 @@ mod tests {
     fn test_stored_attestation_copy() {
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let issuer_registration = IssuerRegistration::new_mock();
-        let issuer_keypair = generate_issuer_mock(&ca, issuer_registration.clone().into()).unwrap();
+        let issuer_keypair = generate_issuer_mock_with_registration(&ca, issuer_registration.clone().into()).unwrap();
 
         let (full_presentations, disclosable_presentations): (Vec<_>, Vec<_>) = [
             mdoc_stored_attestation_copy(&issuer_keypair),

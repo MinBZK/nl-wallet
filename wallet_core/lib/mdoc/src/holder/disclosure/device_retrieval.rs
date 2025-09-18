@@ -86,7 +86,6 @@ mod tests {
 
     use crate::errors::Error;
     use crate::iso::device_retrieval::ReaderAuthenticationBytes;
-    use crate::test::generate_reader_mock;
     use crate::utils::cose;
     use crate::utils::cose::MdocCose;
 
@@ -123,7 +122,7 @@ mod tests {
     async fn test_doc_request_verify() {
         // Create a CA, certificate and private key and trust anchors.
         let ca = Ca::generate_reader_mock_ca().unwrap();
-        let private_key = generate_reader_mock(&ca).unwrap();
+        let private_key = ca.generate_reader_mock().unwrap();
         let trust_anchors = &[ca.to_trust_anchor()];
 
         // Create a basic session transcript, item request and a `DocRequest`.

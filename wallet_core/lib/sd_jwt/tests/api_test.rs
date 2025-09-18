@@ -14,9 +14,7 @@ use ssri::Integrity;
 
 use attestation_types::claim_path::ClaimPath;
 use crypto::server_keys::generate::Ca;
-use crypto::x509::BorrowingCertificate;
 use jwt::EcdsaDecodingKey;
-use jwt::headers::HeaderWithX5c;
 use jwt::jwk::jwk_from_p256;
 use sd_jwt::builder::SdJwtBuilder;
 use sd_jwt::disclosure::DisclosureContent;
@@ -26,25 +24,26 @@ use sd_jwt::key_binding_jwt_claims::KeyBindingJwtBuilder;
 use sd_jwt::sd_jwt::SdJwt;
 use sd_jwt::sd_jwt::SdJwtPresentation;
 use utils::vec_at_least::VecNonEmpty;
+use utils::vec_nonempty;
 
 async fn make_sd_jwt(
     object: Value,
     disclosable_values: impl IntoIterator<Item = VecNonEmpty<ClaimPath>>,
     holder_pubkey: &VerifyingKey,
 ) -> (SdJwt, EcdsaDecodingKey) {
-    let signing_key = SigningKey::random(&mut OsRng);
-    let decoding_key = EcdsaDecodingKey::from(signing_key.verifying_key());
+    let ca = Ca::generate_issuer_mock_ca().unwrap();
+    let issuer_keypair = ca.generate_issuer_mock().unwrap();
 
     let sd_jwt = disclosable_values
         .into_iter()
         .fold(SdJwtBuilder::new(object).unwrap(), |builder, paths| {
             builder.make_concealable(paths).unwrap()
         })
-        .finish(Integrity::from(""), &signing_key, vec![], holder_pubkey)
+        .finish(Integrity::from(""), &issuer_keypair, holder_pubkey)
         .await
         .unwrap();
 
-    (sd_jwt, decoding_key)
+    (sd_jwt, issuer_keypair.certificate().public_key().into())
 }
 
 #[test]
@@ -172,7 +171,7 @@ async fn sd_jwt_without_disclosures_works() -> anyhow::Result<()> {
     println!("{sd_jwt}");
 
     // Try to serialize & deserialize `sd_jwt`.
-    let sd_jwt = SdJwt::<HeaderWithX5c>::parse_and_verify(&sd_jwt.to_string(), &decoding_key)?;
+    let sd_jwt = SdJwt::parse_and_verify(&sd_jwt.to_string(), &decoding_key)?;
 
     assert!(sd_jwt.disclosures().is_empty());
 
@@ -191,7 +190,7 @@ async fn sd_jwt_without_disclosures_works() -> anyhow::Result<()> {
         .await?;
 
     // Try to serialize & deserialize `with_kb`.
-    let with_kb = SdJwtPresentation::<HeaderWithX5c>::parse_and_verify(
+    let with_kb = SdJwtPresentation::parse_and_verify(
         &disclosed.to_string(),
         &decoding_key,
         "https://example.com",
@@ -290,13 +289,12 @@ async fn test_presentation() -> anyhow::Result<()> {
         ]
     });
 
-    let ca = Ca::generate("myca", Default::default())?;
-    let certificate = BorrowingCertificate::from_certificate_der(ca.as_certificate_der().clone())?;
+    let ca = Ca::generate_issuer_mock_ca().unwrap();
+    let issuer_keypair = ca.generate_issuer_mock().unwrap();
 
-    let issuer_privkey = SigningKey::random(&mut OsRng);
     println!(
-        "issuer_privkey pubkey: {0}",
-        serde_json::to_string_pretty(&jwk_from_p256(issuer_privkey.verifying_key())?)?
+        "issuer_keypair pubkey: {0}",
+        serde_json::to_string_pretty(&jwk_from_p256(issuer_keypair.certificate().public_key())?)?
     );
     let holder_privkey = SigningKey::random(&mut OsRng);
     println!(
@@ -335,15 +333,13 @@ async fn test_presentation() -> anyhow::Result<()> {
         )?
         .add_decoys(&[ClaimPath::SelectByKey(String::from("nationalities"))], 1)?
         .add_decoys(&[], 2)?
-        .finish(
-            Integrity::from(""),
-            &issuer_privkey,
-            vec![certificate.clone()],
-            holder_privkey.verifying_key(),
-        )
+        .finish(Integrity::from(""), &issuer_keypair, holder_privkey.verifying_key())
         .await?;
 
-    assert_eq!(sd_jwt.issuer_certificate_chain(), &vec![certificate]);
+    assert_eq!(
+        sd_jwt.issuer_certificate_chain(),
+        &vec_nonempty![issuer_keypair.certificate().to_owned()]
+    );
 
     // The holder can withhold from a verifier any concealable claim by calling `conceal`.
     let presented_sd_jwt = sd_jwt
@@ -370,9 +366,9 @@ async fn test_presentation() -> anyhow::Result<()> {
 
     println!("{}", &presented_sd_jwt);
 
-    let parsed_presentation = SdJwtPresentation::<HeaderWithX5c>::parse_and_verify(
+    let parsed_presentation = SdJwtPresentation::parse_and_verify(
         &presented_sd_jwt.to_string(),
-        &EcdsaDecodingKey::from(issuer_privkey.verifying_key()),
+        &EcdsaDecodingKey::from(issuer_keypair.certificate().public_key()),
         "https://example.com",
         "abcdefghi",
         Duration::days(36500),

@@ -23,13 +23,14 @@ use attestation_data::constants::PID_ATTESTATION_TYPE;
 use attestation_data::credential_payload::CredentialPayload;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::disclosure_type::DisclosureType;
-use attestation_data::x509::generate::mock::generate_issuer_mock;
+use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
 use crypto::mock_remote::MockRemoteEcdsaKey;
 use crypto::p256_der::DerVerifyingKey;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use http_utils::tls::pinning::TlsPinningConfig;
+use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
 use mdoc::holder::Mdoc;
 use openid4vc::Format;
@@ -134,7 +135,7 @@ pub static ACCOUNT_SERVER_KEYS: LazyLock<AccountServerKeys> = LazyLock::new(|| A
 /// The issuer key material, generated once for testing.
 pub static ISSUER_KEY: LazyLock<IssuerKey> = LazyLock::new(|| {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
-    let issuance_key = generate_issuer_mock(&ca, IssuerRegistration::new_mock().into()).unwrap();
+    let issuance_key = generate_issuer_mock_with_registration(&ca, IssuerRegistration::new_mock().into()).unwrap();
     let trust_anchor = ca.as_borrowing_trust_anchor().clone();
 
     IssuerKey {
@@ -260,13 +261,14 @@ fn create_wallet_configuration() -> WalletConfiguration {
 
 /// Generates a valid certificate for the `Wallet`.
 pub fn valid_certificate(wallet_id: Option<String>, hw_pubkey: VerifyingKey) -> WalletCertificate {
-    UnverifiedJwt::sign_with_sub(
+    SignedJwt::sign_with_sub(
         valid_certificate_claims(wallet_id, hw_pubkey),
         &ACCOUNT_SERVER_KEYS.certificate_signing_key,
     )
     .now_or_never()
     .unwrap()
     .unwrap()
+    .into()
 }
 
 /// Generates valid certificate claims for the `Wallet`.
@@ -488,8 +490,9 @@ where
         iss: "wallet_unit_test".to_string(),
         iat: Utc::now(),
     };
-    UnverifiedJwt::sign_with_sub(result_claims, &ACCOUNT_SERVER_KEYS.instruction_result_signing_key)
+    SignedJwt::sign_with_sub(result_claims, &ACCOUNT_SERVER_KEYS.instruction_result_signing_key)
         .now_or_never()
         .unwrap()
         .expect("could not sign instruction result")
+        .into()
 }

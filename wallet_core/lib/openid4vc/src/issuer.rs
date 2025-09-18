@@ -13,6 +13,7 @@ use derive_more::From;
 use futures::future::try_join_all;
 use indexmap::IndexMap;
 use itertools::Itertools;
+use jwt::jwk::jwk_to_p256;
 use p256::ecdsa::VerifyingKey;
 use reqwest::Method;
 use serde::Deserialize;
@@ -41,7 +42,6 @@ use jwt::EcdsaDecodingKey;
 use jwt::Validation;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
-use jwt::jwk::jwk_to_p256;
 use jwt::wua::WuaDisclosure;
 use jwt::wua::WuaError;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
@@ -1235,26 +1235,22 @@ impl CredentialRequestProof {
         accepted_wallet_client_ids: &[impl ToString],
         credential_issuer_identifier: &BaseUrl,
     ) -> Result<VerifyingKey, CredentialRequestError> {
-        let jwt = match self {
-            CredentialRequestProof::Jwt { jwt } => jwt,
-        };
-        let header = jwt.dangerous_parse_header_unverified()?;
-        let verifying_key = jwk_to_p256(&header.jwk)?;
+        let CredentialRequestProof::Jwt { jwt } = self;
 
         let mut validation_options = Validation::new(Algorithm::ES256);
         validation_options.set_required_spec_claims(&["iss", "aud"]);
         validation_options.set_issuer(accepted_wallet_client_ids);
         validation_options.set_audience(&[credential_issuer_identifier]);
 
-        let payload = jwt
-            .parse_and_verify_with_typ(&EcdsaDecodingKey::from(&verifying_key), &validation_options)
+        let (header, payload) = jwt
+            .parse_and_verify_with_jwk_and_typ(&validation_options)
             .map_err(CredentialRequestError::UnsupportedJwt)?;
 
         if payload.nonce.as_deref() != Some(nonce) {
             return Err(CredentialRequestError::IncorrectNonce);
         }
 
-        Ok(verifying_key)
+        Ok(jwk_to_p256(&header.jwk)?)
     }
 }
 
@@ -1266,7 +1262,7 @@ mod tests {
     use tracing_test::traced_test;
 
     use attestation_data::auth::issuer_auth::IssuerRegistration;
-    use attestation_data::x509::generate::mock::generate_issuer_mock;
+    use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use crypto::server_keys::generate::Ca;
 
     use super::*;
@@ -1278,7 +1274,8 @@ mod tests {
     #[test]
     fn test_credential_preview_from_issuable_document() {
         let ca = Ca::generate_issuer_mock_ca().unwrap();
-        let issuance_keypair = generate_issuer_mock(&ca, IssuerRegistration::new_mock().into()).unwrap();
+        let issuance_keypair =
+            generate_issuer_mock_with_registration(&ca, IssuerRegistration::new_mock().into()).unwrap();
         let document = IssuableDocument::new_mock();
         let config = AttestationTypeConfig::try_new(
             document.attestation_type(),

@@ -2,6 +2,7 @@ use std::fmt;
 use std::fmt::Display;
 use std::fmt::Formatter;
 
+use jwt::headers::HeaderWithTyp;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::TryFromInto;
@@ -92,7 +93,7 @@ impl CredentialRequestType {
 #[serde(tag = "proof_type", rename_all = "snake_case")]
 pub enum CredentialRequestProof {
     Jwt {
-        jwt: UnverifiedJwt<JwtPopClaims, HeaderWithJwk>,
+        jwt: UnverifiedJwt<JwtPopClaims, HeaderWithJwk<HeaderWithTyp>>,
     },
 }
 

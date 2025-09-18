@@ -4,6 +4,8 @@ use std::num::NonZeroUsize;
 use derive_more::Debug;
 use futures::FutureExt;
 use itertools::Itertools;
+use jwt::SignedJwt;
+use jwt::headers::JwtHeader;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 use rand_core::OsRng;
@@ -15,11 +17,7 @@ use crypto::p256_der::verifying_key_sha256;
 use crypto::wscd::DisclosureResult;
 use crypto::wscd::DisclosureWscd;
 use crypto::wscd::WscdPoa;
-use jwt::DEFAULT_HEADER;
-use jwt::UnverifiedJwt;
 use jwt::credential::JwtCredentialClaims;
-use jwt::headers::HeaderWithJwk;
-use jwt::jwk::jwk_from_p256;
 use jwt::pop::JwtPopClaims;
 use jwt::wua::WuaClaims;
 use jwt::wua::WuaDisclosure;
@@ -139,11 +137,11 @@ impl Wscd for MockRemoteWscd {
         let pops = attestation_keys
             .iter()
             .map(|attestation_key| {
-                let header = HeaderWithJwk::new(jwk_from_p256(attestation_key.verifying_key()).unwrap());
-                UnverifiedJwt::sign_with_header_and_typ(header, &claims, attestation_key)
+                SignedJwt::sign_with_jwk_and_typ(&claims, attestation_key)
                     .now_or_never()
                     .unwrap()
                     .unwrap()
+                    .into()
             })
             .collect_vec()
             .try_into()
@@ -166,12 +164,12 @@ impl Wscd for MockRemoteWscd {
             .unwrap()
             .into();
 
-            let wua_disclosure = UnverifiedJwt::sign(&*DEFAULT_HEADER, &claims, &wua_key)
+            let wua_disclosure = SignedJwt::sign(&JwtHeader::default(), &claims, &wua_key)
                 .now_or_never()
                 .unwrap()
                 .unwrap();
 
-            (WuaDisclosure::new(wua, wua_disclosure), wua_key)
+            (WuaDisclosure::new(wua, wua_disclosure.into()), wua_key)
         });
 
         let count_including_wua = if include_wua { count.get() + 1 } else { count.get() };

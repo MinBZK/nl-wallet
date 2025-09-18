@@ -58,6 +58,7 @@ use hsm::model::encrypter::Encrypter;
 use hsm::service::HsmError;
 use jwt::EcdsaDecodingKey;
 use jwt::JwtSub;
+use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
@@ -430,7 +431,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         &self,
         certificate_signing_key: &impl WalletCertificateSigningKey,
     ) -> Result<Vec<u8>, ChallengeError> {
-        let challenge = UnverifiedJwt::sign_with_sub(
+        let challenge = SignedJwt::sign_with_sub(
             RegistrationChallengeClaims {
                 wallet_id: crypto::utils::random_string(32),
                 random: crypto::utils::random_bytes(32),
@@ -440,6 +441,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         )
         .await
         .map_err(ChallengeError::ChallengeSigning)?
+        .as_ref()
         .serialization()
         .as_bytes()
         .to_vec();
@@ -1272,8 +1274,9 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             iat: Utc::now(),
         };
 
-        UnverifiedJwt::sign_with_sub(claims, instruction_result_signing_key)
+        SignedJwt::sign_with_sub(claims, instruction_result_signing_key)
             .await
+            .map(Into::into)
             .map_err(InstructionError::Signing)
     }
 }

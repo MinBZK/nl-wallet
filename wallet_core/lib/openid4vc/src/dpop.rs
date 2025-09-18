@@ -61,13 +61,14 @@ use error_category::ErrorCategory;
 use jwt::Algorithm;
 use jwt::EcdsaDecodingKey;
 use jwt::JwtTyp;
+use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
 use jwt::Validation;
 use jwt::VerifiedJwt;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
 use jwt::headers::HeaderWithJwk;
-use jwt::jwk::jwk_jwt_header;
+use jwt::headers::HeaderWithTyp;
 use jwt::jwk::jwk_to_p256;
 
 use crate::token::AccessToken;
@@ -131,7 +132,7 @@ impl JwtTyp for DpopPayload {
 }
 
 #[derive(Clone, AsRef, FromStr, Display)]
-pub struct Dpop(UnverifiedJwt<DpopPayload, HeaderWithJwk>);
+pub struct Dpop(UnverifiedJwt<DpopPayload, HeaderWithJwk<HeaderWithTyp>>);
 
 impl Dpop {
     pub async fn new(
@@ -141,8 +142,6 @@ impl Dpop {
         access_token: Option<&AccessToken>,
         nonce: Option<String>,
     ) -> Result<Self> {
-        let header = jwk_jwt_header(private_key).await?;
-
         let payload = DpopPayload {
             jti: random_string(32),
             iat: Utc::now(),
@@ -151,11 +150,14 @@ impl Dpop {
             nonce,
             access_token_hash: access_token.map(AccessToken::sha256),
         };
-        let jwt = VerifiedJwt::sign_with_header_and_typ(header, payload, private_key).await?;
+        let jwt = SignedJwt::sign_with_jwk_and_typ(&payload, private_key).await?;
         Ok(Self(jwt.into()))
     }
 
-    fn verify_signature(self, verifying_key: &VerifyingKey) -> Result<VerifiedJwt<DpopPayload, HeaderWithJwk>> {
+    fn verify_signature(
+        self,
+        verifying_key: &VerifyingKey,
+    ) -> Result<VerifiedJwt<DpopPayload, HeaderWithJwk<HeaderWithTyp>>> {
         let mut validation_options = Validation::new(Algorithm::ES256);
         validation_options.required_spec_claims.clear(); // remove "exp" from required claims
         let verified = self

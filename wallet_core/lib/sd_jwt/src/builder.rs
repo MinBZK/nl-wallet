@@ -3,19 +3,15 @@
 
 use std::collections::HashMap;
 
-use base64::Engine;
-use base64::prelude::BASE64_STANDARD;
-use itertools::Itertools;
+use crypto::EcdsaKey;
+use crypto::server_keys::KeyPair;
+use jwt::SignedJwt;
 use p256::ecdsa::VerifyingKey;
 use serde::Serialize;
 use ssri::Integrity;
 
 use attestation_types::claim_path::ClaimPath;
-use crypto::EcdsaKeySend;
-use crypto::x509::BorrowingCertificate;
 use jwt::JwtTyp;
-use jwt::VerifiedJwt;
-use jwt::headers::HeaderWithX5c;
 use jwt::jwk::jwk_from_p256;
 use utils::vec_at_least::VecNonEmpty;
 
@@ -129,8 +125,7 @@ impl<H: Hasher> SdJwtBuilder<H> {
     pub async fn finish(
         self,
         vct_integrity: Integrity,
-        issuer_signing_key: &impl EcdsaKeySend,
-        issuer_certificates: Vec<BorrowingCertificate>,
+        issuer_keypair: &KeyPair<impl EcdsaKey>,
         holder_pubkey: &VerifyingKey,
     ) -> Result<SdJwt> {
         let SdJwtBuilder {
@@ -139,19 +134,12 @@ impl<H: Hasher> SdJwtBuilder<H> {
         } = self;
         encoder.add_sd_alg_property();
 
-        let header = HeaderWithX5c::new(
-            issuer_certificates
-                .iter()
-                .map(|cert| BASE64_STANDARD.encode(cert.to_vec()))
-                .collect_vec(),
-        );
-
         let mut claims = serde_json::from_value::<SdJwtClaims>(encoder.encode())?;
         claims.cnf = Some(RequiredKeyBinding::Jwk(jwk_from_p256(holder_pubkey)?));
         claims.vct_integrity = Some(vct_integrity);
-        let verified_jwt = VerifiedJwt::sign_with_header_and_typ(header, claims, issuer_signing_key).await?;
+        let signed_jwt = SignedJwt::sign_with_certificate_and_typ(&claims, issuer_keypair).await?;
 
-        Ok(SdJwt::new(verified_jwt, issuer_certificates, disclosures))
+        Ok(SdJwt::new(signed_jwt.into(), disclosures))
     }
 }
 

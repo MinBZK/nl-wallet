@@ -10,9 +10,9 @@ use reqwest::header::HeaderValue;
 use tokio::fs;
 
 use http_utils::tls::pinning::TlsPinningConfig;
-use jwt::DEFAULT_HEADER;
-use jwt::UnverifiedJwt;
+use jwt::SignedJwt;
 use jwt::error::JwtError;
+use jwt::headers::JwtHeader;
 use tests_integration::common::*;
 use wallet::errors::ConfigurationError;
 use wallet::test::HttpConfigurationRepository;
@@ -122,8 +122,8 @@ async fn test_wallet_config_signature_verification_failed() {
     let (mut cs_settings, cs_root_ca) = config_server_settings();
     let signing_key = SigningKey::random(&mut OsRng);
     let pkcs8_der = signing_key.to_pkcs8_der().unwrap();
-    let jwt = UnverifiedJwt::sign(
-        &*DEFAULT_HEADER,
+    let jwt = SignedJwt::sign(
+        &JwtHeader::default(),
         &served_wallet_config,
         &SigningKey::from_pkcs8_der(pkcs8_der.as_bytes()).unwrap(),
     )

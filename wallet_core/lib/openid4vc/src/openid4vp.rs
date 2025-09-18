@@ -1,9 +1,11 @@
 use std::cell::LazyCell;
 use std::collections::HashMap;
 use std::string::FromUtf8Error;
+use std::sync::LazyLock;
 
 use chrono::DateTime;
 use chrono::Utc;
+use crypto::x509::CertificateUsage;
 use derive_more::Constructor;
 use indexmap::IndexSet;
 use itertools::Itertools;
@@ -13,6 +15,8 @@ use josekit::jwe::alg::ecdh_es::EcdhEsJweAlgorithm;
 use josekit::jwk::Jwk;
 use josekit::jwk::alg::ec::EcKeyPair;
 use josekit::jwt::JwtPayload;
+use jwt::Algorithm;
+use jwt::Validation;
 use nutype::nutype;
 use p256::ecdsa::VerifyingKey;
 use rustls_pki_types::TrustAnchor;
@@ -288,6 +292,12 @@ pub enum AuthRequestValidationError {
     WalletNonceMismatch,
 }
 
+static AUD_VALIDATIONS: LazyLock<Validation> = LazyLock::new(|| {
+    let mut validation = Validation::new(Algorithm::ES256);
+    validation.set_required_spec_claims(&["aud"]);
+    validation
+});
+
 impl VpAuthorizationRequest {
     /// Construct a new Authorization Request by verifying an Authorization Request JWT against
     /// the specified trust anchors.
@@ -295,13 +305,17 @@ impl VpAuthorizationRequest {
         jws: &UnverifiedJwt<VpAuthorizationRequest, HeaderWithX5c>,
         trust_anchors: &[TrustAnchor],
     ) -> Result<(VpAuthorizationRequest, BorrowingCertificate), AuthRequestValidationError> {
-        let (auth_request, certificates) = jws.parse_and_verify_against_trust_anchors_and_audience(
-            &[VpAuthorizationRequestAudience::SelfIssued],
+        let mut validation_options = AUD_VALIDATIONS.to_owned();
+        validation_options.set_audience(&[VpAuthorizationRequestAudience::SelfIssued.to_string()]);
+
+        let (header, auth_request) = jws.parse_and_verify_against_trust_anchors(
             trust_anchors,
             &TimeGenerator,
+            CertificateUsage::ReaderAuth,
+            &validation_options,
         )?;
 
-        Ok((auth_request, certificates.into_first()))
+        Ok((auth_request, header.x5c.into_first()))
     }
 
     /// Validate that an Authorization Request satisfies the following:
@@ -802,6 +816,7 @@ mod tests {
     use std::borrow::Cow;
     use std::collections::HashMap;
 
+    use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
     use chrono::DateTime;
     use chrono::Utc;
     use futures::future::join_all;
@@ -815,14 +830,13 @@ mod tests {
     use serde_json::json;
 
     use attestation_data::disclosure::DisclosedAttributes;
-    use attestation_data::x509::generate::mock::generate_reader_mock;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
     use dcql::CredentialQueryIdentifier;
     use dcql::normalized::NormalizedCredentialRequest;
     use dcql::normalized::NormalizedCredentialRequests;
-    use jwt::UnverifiedJwt;
+    use jwt::SignedJwt;
     use mdoc::DeviceAuthenticationKeyed;
     use mdoc::DeviceResponse;
     use mdoc::DeviceSigned;
@@ -878,7 +892,7 @@ mod tests {
     ) -> (TrustAnchor<'static>, KeyPair, EcKeyPair, VpAuthorizationRequest) {
         let ca = Ca::generate("myca", Default::default()).unwrap();
         let trust_anchor = ca.to_trust_anchor().to_owned();
-        let rp_keypair = generate_reader_mock(&ca, None).unwrap();
+        let rp_keypair = generate_reader_mock_with_registration(&ca, None).unwrap();
 
         let encryption_privkey = EcKeyPair::generate(EcCurve::P256).unwrap();
 
@@ -955,9 +969,10 @@ mod tests {
     async fn test_authorization_request_jwt() {
         let (trust_anchor, rp_keypair, _, auth_request) = setup();
 
-        let auth_request_jwt = UnverifiedJwt::sign_with_certificate(&auth_request, &rp_keypair)
+        let auth_request_jwt = SignedJwt::sign_with_certificate(&auth_request, &rp_keypair)
             .await
-            .unwrap();
+            .unwrap()
+            .into();
 
         let (auth_request, cert) = VpAuthorizationRequest::try_new(&auth_request_jwt, &[trust_anchor]).unwrap();
         auth_request.validate(&cert, None).unwrap();

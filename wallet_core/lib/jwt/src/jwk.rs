@@ -6,10 +6,7 @@ pub use jsonwebtoken::jwk::Jwk;
 use p256::EncodedPoint;
 use p256::ecdsa::VerifyingKey;
 
-use crypto::WithVerifyingKey;
-
 use crate::error::JwkConversionError;
-use crate::headers::HeaderWithJwk;
 
 pub fn jwk_from_p256(value: &VerifyingKey) -> Result<Jwk, JwkConversionError> {
     let jwk = Jwk {
@@ -49,15 +46,6 @@ pub fn jwk_to_p256(value: &Jwk) -> Result<VerifyingKey, JwkConversionError> {
         false,
     ))?;
     Ok(key)
-}
-
-pub async fn jwk_jwt_header(key: &impl WithVerifyingKey) -> Result<HeaderWithJwk, JwkConversionError> {
-    let jwk = jwk_from_p256(
-        &key.verifying_key()
-            .await
-            .map_err(|e| JwkConversionError::VerifyingKeyFromPrivateKey(e.into()))?,
-    )?;
-    Ok(HeaderWithJwk::new(jwk))
 }
 
 #[cfg(test)]

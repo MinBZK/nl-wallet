@@ -1,6 +1,7 @@
 use std::error::Error;
 
 use derive_more::Constructor;
+use jwt::headers::HeaderWithTyp;
 use p256::ecdsa::VerifyingKey;
 
 use crypto::keys::SecureEcdsaKey;
@@ -19,7 +20,14 @@ pub trait WuaIssuer {
 
     async fn issue_wua(
         &self,
-    ) -> Result<(WrappedKey, String, UnverifiedJwt<JwtCredentialClaims<WuaClaims>>), Self::Error>;
+    ) -> Result<
+        (
+            WrappedKey,
+            String,
+            UnverifiedJwt<JwtCredentialClaims<WuaClaims>, HeaderWithTyp>,
+        ),
+        Self::Error,
+    >;
     async fn public_key(&self) -> Result<VerifyingKey, Self::Error>;
 }
 
@@ -50,7 +58,14 @@ where
 
     async fn issue_wua(
         &self,
-    ) -> Result<(WrappedKey, String, UnverifiedJwt<JwtCredentialClaims<WuaClaims>>), Self::Error> {
+    ) -> Result<
+        (
+            WrappedKey,
+            String,
+            UnverifiedJwt<JwtCredentialClaims<WuaClaims>, HeaderWithTyp>,
+        ),
+        Self::Error,
+    > {
         let wrapped_privkey = self.hsm.generate_wrapped_key(&self.wrapping_key_identifier).await?;
         let pubkey = *wrapped_privkey.public_key();
 
@@ -73,6 +88,7 @@ where
 pub mod mock {
     use std::convert::Infallible;
 
+    use jwt::headers::HeaderWithTyp;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
 
@@ -91,7 +107,14 @@ pub mod mock {
 
         async fn issue_wua(
             &self,
-        ) -> Result<(WrappedKey, String, UnverifiedJwt<JwtCredentialClaims<WuaClaims>>), Self::Error> {
+        ) -> Result<
+            (
+                WrappedKey,
+                String,
+                UnverifiedJwt<JwtCredentialClaims<WuaClaims>, HeaderWithTyp>,
+            ),
+            Self::Error,
+        > {
             let privkey = SigningKey::random(&mut OsRng);
             let pubkey = privkey.verifying_key();
 

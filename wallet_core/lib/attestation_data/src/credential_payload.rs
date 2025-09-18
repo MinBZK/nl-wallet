@@ -304,7 +304,7 @@ impl CredentialPayload {
         self,
         type_metadata: &NormalizedTypeMetadata,
         holder_pubkey: &VerifyingKey,
-        issuer_key: &KeyPair<impl EcdsaKeySend>,
+        issuer_keypair: &KeyPair<impl EcdsaKeySend>,
     ) -> Result<SdJwt, SdJwtCredentialPayloadError> {
         let vct_integrity = self.vct_integrity.clone();
 
@@ -333,12 +333,7 @@ impl CredentialPayload {
                     .make_concealable(claims)
                     .map_err(SdJwtCredentialPayloadError::SdJwtCreation)
             })?
-            .finish(
-                vct_integrity,
-                issuer_key.private_key(),
-                vec![issuer_key.certificate().clone()],
-                holder_pubkey,
-            )
+            .finish(vct_integrity, issuer_keypair, holder_pubkey)
             .await?;
 
         Ok(sd_jwt)
@@ -618,7 +613,8 @@ mod test {
         let holder_key = SigningKey::random(&mut OsRng);
         let confirmation_key = jwk_from_p256(holder_key.verifying_key()).unwrap();
 
-        let issuer_key = SigningKey::random(&mut OsRng);
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
+        let issuer_keypair = ca.generate_issuer_mock().unwrap();
 
         let claims = json!({
             "vct": "com.example.pid",
@@ -680,7 +676,7 @@ mod test {
             .unwrap()
             .add_decoys(&[], 2)
             .unwrap()
-            .finish(Integrity::from(""), &issuer_key, vec![], holder_key.verifying_key())
+            .finish(Integrity::from(""), &issuer_keypair, holder_key.verifying_key())
             .now_or_never()
             .unwrap()
             .unwrap();

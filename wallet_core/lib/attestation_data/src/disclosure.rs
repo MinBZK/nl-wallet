@@ -173,7 +173,6 @@ impl TryFrom<SdJwt> for DisclosedAttestation {
 
         let ca = sd_jwt
             .issuer_certificate()
-            .ok_or(DisclosedAttestationError::MissingIssuerCertificate)?
             .issuer_common_names()?
             .first()
             .ok_or(DisclosedAttestationError::EmptyIssuerCommonName)?

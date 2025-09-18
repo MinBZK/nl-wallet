@@ -11,6 +11,7 @@ use chrono::Utc;
 use chrono::serde::ts_seconds;
 use chrono::serde::ts_seconds_option;
 use derive_more::FromStr;
+use jwt::headers::HeaderWithTyp;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::DurationSeconds;
@@ -19,6 +20,7 @@ use serde_with::serde_as;
 use crypto::EcdsaKey;
 use http_utils::urls::HttpsUri;
 use jwt::JwtTyp;
+use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
 use jwt::error::JwtError;
 
@@ -32,7 +34,7 @@ static TOKEN_STATUS_LIST_JWT_HEADER: &str = "application/statuslist+jwt";
 ///
 /// <https://www.ietf.org/archive/id/draft-ietf-oauth-status-list-12.html#name-status-list-token>
 #[derive(Debug, Clone, FromStr, Serialize, Deserialize)]
-pub struct StatusListToken(UnverifiedJwt<StatusListClaims>);
+pub struct StatusListToken(UnverifiedJwt<StatusListClaims, HeaderWithTyp>);
 
 impl StatusListToken {
     pub fn builder(sub: HttpsUri, status_list: PackedStatusList) -> StatusListTokenBuilder {
@@ -72,8 +74,8 @@ impl StatusListTokenBuilder {
             status_list: self.status_list,
         };
 
-        let jwt = UnverifiedJwt::sign_with_typ(&claims, key).await?;
-        Ok(StatusListToken(jwt))
+        let jwt = SignedJwt::sign_with_typ(&claims, key).await?;
+        Ok(StatusListToken(jwt.into()))
     }
 }
 
@@ -155,7 +157,7 @@ mod test {
             .0
             .into_verified_with_typ(&key.verifying_key().into(), &DEFAULT_VALIDATIONS)
             .unwrap();
-        assert_eq!(*verified.header(), expected_header);
+        assert_eq!(Into::<Header>::into(verified.header().to_owned()), expected_header);
         // the `iat` claim is set when signing the token
         assert_eq!(verified.payload().status_list, expected_claims.status_list);
         assert_eq!(verified.payload().sub, expected_claims.sub);
@@ -217,7 +219,7 @@ mod test {
         );
         let status_list_token: StatusListToken = response.text().await.unwrap().parse().unwrap();
         let (header, payload) = status_list_token.0.dangerous_parse_unverified().unwrap();
-        assert_eq!(header.typ, Some(TOKEN_STATUS_LIST_JWT_TYP.to_string()));
+        assert_eq!(header.typ, TOKEN_STATUS_LIST_JWT_TYP.to_string());
         assert!(!payload.status_list.is_empty());
     }
 }

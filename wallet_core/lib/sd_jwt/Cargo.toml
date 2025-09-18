@@ -51,4 +51,4 @@ rand_core.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "fs", "macros"] }
 
-crypto = { path = "../crypto", features = ["generate"] }
+crypto = { path = "../crypto", features = ["generate", "mock"] }

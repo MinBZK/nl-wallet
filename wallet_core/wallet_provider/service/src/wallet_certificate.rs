@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use chrono::Utc;
+use jwt::SignedJwt;
 use p256::ecdsa::VerifyingKey;
 use p256::pkcs8::EncodePublicKey;
 use tracing::debug;
@@ -10,7 +11,6 @@ use hsm::model::encrypted::Encrypted;
 use hsm::model::encrypter::Decrypter;
 use hsm::service::HsmError;
 use jwt::EcdsaDecodingKey;
-use jwt::UnverifiedJwt;
 use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::messages::registration::WalletCertificateClaims;
 use wallet_provider_domain::model::wallet_user::WalletUser;
@@ -55,8 +55,9 @@ where
         iat: Utc::now(),
     };
 
-    UnverifiedJwt::sign_with_sub(cert, wallet_certificate_signing_key)
+    SignedJwt::sign_with_sub(cert, wallet_certificate_signing_key)
         .await
+        .map(Into::into)
         .map_err(WalletCertificateError::JwtSigning)
 }
 

@@ -19,7 +19,6 @@ use crate::iso::device_retrieval::ReaderAuthenticationBytes;
 use crate::iso::disclosure::DeviceResponse;
 use crate::iso::disclosure::IssuerSigned;
 use crate::iso::engagement::DeviceAuthenticationBytes;
-use crate::test::generate_issuer_mock;
 use crate::utils::serialization::cbor_deserialize;
 use crate::utils::serialization::cbor_serialize;
 
@@ -78,7 +77,7 @@ impl DeviceResponse {
 
         // Re sign document with a newly generated certificate that includes a SAN DNS name
         for doc in device_response.documents.as_mut().unwrap() {
-            let new_key = generate_issuer_mock(ca).unwrap();
+            let new_key = ca.generate_issuer_mock().unwrap();
             let new_cert = new_key.certificate();
 
             doc.issuer_signed.issuer_auth.0.unprotected = IssuerSigned::create_unprotected_header(new_cert.to_vec());

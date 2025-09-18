@@ -18,6 +18,7 @@ use josekit::JoseError;
 use josekit::jwk::Jwk;
 use josekit::jwk::alg::ec::EcCurve;
 use josekit::jwk::alg::ec::EcKeyPair;
+use jwt::SignedJwt;
 use ring::hmac;
 use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
@@ -1309,9 +1310,10 @@ impl Session<Created> {
         .map_err(|err| error_with_redirect_uri(&redirect_uri, err))?;
 
         let vp_auth_request = VpAuthorizationRequest::from(auth_request.clone());
-        let jws = UnverifiedJwt::sign_with_certificate(&vp_auth_request, &usecase.key_pair)
+        let jws = SignedJwt::sign_with_certificate(&vp_auth_request, &usecase.key_pair)
             .await
-            .map_err(|err| error_with_redirect_uri(&redirect_uri, err))?;
+            .map_err(|err| error_with_redirect_uri(&redirect_uri, err))?
+            .into();
 
         Ok((jws, auth_request, redirect_uri, encryption_keypair))
     }
@@ -1524,7 +1526,7 @@ mod tests {
     use attestation_data::disclosure::DisclosedAttestations;
     use attestation_data::disclosure::DisclosedAttributes;
     use attestation_data::disclosure::ValidityInfo;
-    use attestation_data::x509::generate::mock::generate_reader_mock;
+    use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
     use crypto::server_keys::generate::Ca;
     use dcql::Query;
     use dcql::normalized::NormalizedCredentialRequests;
@@ -1585,7 +1587,7 @@ mod tests {
             (
                 DISCLOSURE_USECASE_NO_REDIRECT_URI.to_string(),
                 RpInitiatedUseCase::try_new(
-                    generate_reader_mock(&ca, reader_registration.clone()).unwrap(),
+                    generate_reader_mock_with_registration(&ca, reader_registration.clone()).unwrap(),
                     SessionTypeReturnUrl::Neither,
                     None,
                     None,
@@ -1595,7 +1597,7 @@ mod tests {
             (
                 DISCLOSURE_USECASE.to_string(),
                 RpInitiatedUseCase::try_new(
-                    generate_reader_mock(&ca, reader_registration.clone()).unwrap(),
+                    generate_reader_mock_with_registration(&ca, reader_registration.clone()).unwrap(),
                     SessionTypeReturnUrl::SameDevice,
                     None,
                     None,
@@ -1605,7 +1607,7 @@ mod tests {
             (
                 DISCLOSURE_USECASE_ALL_REDIRECT_URI.to_string(),
                 RpInitiatedUseCase::try_new(
-                    generate_reader_mock(&ca, reader_registration).unwrap(),
+                    generate_reader_mock_with_registration(&ca, reader_registration).unwrap(),
                     SessionTypeReturnUrl::Both,
                     None,
                     None,
@@ -1983,7 +1985,7 @@ mod tests {
             DISCLOSURE_USECASE_NO_REDIRECT_URI.to_string(),
             WalletInitiatedUseCase {
                 data: UseCaseData {
-                    key_pair: generate_reader_mock(&ca, reader_registration.clone()).unwrap(),
+                    key_pair: generate_reader_mock_with_registration(&ca, reader_registration.clone()).unwrap(),
                     session_type_return_url: SessionTypeReturnUrl::Neither,
                     client_id: "client_id".to_string(),
                 },

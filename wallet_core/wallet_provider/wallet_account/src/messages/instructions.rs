@@ -4,6 +4,7 @@ use chrono::DateTime;
 use chrono::Utc;
 use chrono::serde::ts_seconds;
 use derive_more::Constructor;
+use jwt::headers::HeaderWithTyp;
 use semver::Version;
 use serde::Deserialize;
 use serde::Serialize;
@@ -160,7 +161,7 @@ pub struct PerformIssuance {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PerformIssuanceResult {
     pub key_identifiers: VecNonEmpty<String>,
-    pub pops: VecNonEmpty<UnverifiedJwt<JwtPopClaims, HeaderWithJwk>>,
+    pub pops: VecNonEmpty<UnverifiedJwt<JwtPopClaims, HeaderWithJwk<HeaderWithTyp>>>,
     pub poa: Option<Poa>,
 }
 

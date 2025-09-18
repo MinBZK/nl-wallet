@@ -7,6 +7,9 @@ use chrono::DateTime;
 use chrono::Utc;
 use futures::future;
 use itertools::Itertools;
+use jwt::SignedJwt;
+use jwt::headers::HeaderWithTyp;
+use jwt::headers::JwtHeader;
 use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
 use serde::Deserialize;
@@ -20,10 +23,9 @@ use crypto::p256_der::DerSignature;
 use hsm::model::encrypter::Encrypter;
 use hsm::model::wrapped_key::WrappedKey;
 use hsm::service::HsmError;
-use jwt::DEFAULT_HEADER;
+
 use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithJwk;
-use jwt::jwk::jwk_from_p256;
 use jwt::pop::JwtPopClaims;
 use jwt::wua::WuaDisclosure;
 use utils::generator::Generator;
@@ -410,9 +412,14 @@ where
         .await
         .map_err(|e| InstructionError::WuaIssuance(Box::new(e)))?;
 
-    let wua_disclosure = UnverifiedJwt::sign(&*DEFAULT_HEADER, claims, &attestation_key(&wua_wrapped_key, user_state))
-        .await
-        .map_err(InstructionError::PopSigning)?;
+    let wua_disclosure = SignedJwt::sign(
+        &JwtHeader::default(),
+        claims,
+        &attestation_key(&wua_wrapped_key, user_state),
+    )
+    .await
+    .map_err(InstructionError::PopSigning)?
+    .into();
 
     Ok((wua_wrapped_key, wua_key_id, WuaDisclosure::new(wua, wua_disclosure)))
 }
@@ -420,16 +427,15 @@ where
 async fn issuance_pops<H>(
     attestation_keys: &VecNonEmpty<HsmCredentialSigningKey<'_, H>>,
     claims: &JwtPopClaims,
-) -> Result<VecNonEmpty<UnverifiedJwt<JwtPopClaims, HeaderWithJwk>>, InstructionError>
+) -> Result<VecNonEmpty<UnverifiedJwt<JwtPopClaims, HeaderWithJwk<HeaderWithTyp>>>, InstructionError>
 where
     H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
 {
     let pops = future::try_join_all(attestation_keys.iter().map(|attestation_key| async {
-        let public_key = attestation_key.verifying_key().await?;
-        let header = HeaderWithJwk::new(jwk_from_p256(&public_key)?);
-        let jwt = UnverifiedJwt::sign_with_header_and_typ(header, claims, attestation_key)
+        let jwt = SignedJwt::sign_with_jwk_and_typ(claims, attestation_key)
             .await
-            .map_err(InstructionError::PopSigning)?;
+            .map_err(InstructionError::PopSigning)?
+            .into();
 
         Ok::<_, InstructionError>(jwt)
     }))
@@ -602,7 +608,7 @@ impl HandleInstruction for DiscloseRecoveryCode {
         H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
         G: Generator<Uuid> + Generator<DateTime<Utc>>,
     {
-        let (verified_sd_jwt, _) = self
+        let verified_sd_jwt = self
             .recovery_code_disclosure
             .into_verified_against_trust_anchors(&user_state.pid_issuer_trust_anchors, &TimeGenerator)?;
 
@@ -742,6 +748,7 @@ mod tests {
     use assert_matches::assert_matches;
     use base64::prelude::*;
     use itertools::Itertools;
+    use jwt::headers::HeaderWithTyp;
     use p256::ecdsa::Signature;
     use p256::ecdsa::SigningKey;
     use p256::ecdsa::signature::Signer;
@@ -753,7 +760,7 @@ mod tests {
 
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::constants::PID_RECOVERY_CODE;
-    use attestation_data::x509::generate::mock::generate_issuer_mock;
+    use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use attestation_types::claim_path::ClaimPath;
     use crypto::server_keys::generate::Ca;
     use crypto::utils::random_bytes;
@@ -904,7 +911,8 @@ mod tests {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
 
         let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
-        let issuer_key = generate_issuer_mock(&issuer_ca, IssuerRegistration::new_mock().into()).unwrap();
+        let issuer_key =
+            generate_issuer_mock_with_registration(&issuer_ca, IssuerRegistration::new_mock().into()).unwrap();
         let sd_jwt = SdJwtPresentation::example_pid_sd_jwt(&issuer_key);
 
         let recovery_code_disclosure = sd_jwt
@@ -957,7 +965,8 @@ mod tests {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
 
         let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
-        let issuer_key = generate_issuer_mock(&issuer_ca, IssuerRegistration::new_mock().into()).unwrap();
+        let issuer_key =
+            generate_issuer_mock_with_registration(&issuer_ca, IssuerRegistration::new_mock().into()).unwrap();
         let sd_jwt = SdJwtPresentation::example_pid_sd_jwt(&issuer_key);
 
         let recovery_code_disclosure = sd_jwt
@@ -1023,7 +1032,8 @@ mod tests {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
 
         let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
-        let issuer_key = generate_issuer_mock(&issuer_ca, IssuerRegistration::new_mock().into()).unwrap();
+        let issuer_key =
+            generate_issuer_mock_with_registration(&issuer_ca, IssuerRegistration::new_mock().into()).unwrap();
         let sd_jwt = SdJwtPresentation::example_pid_sd_jwt(&issuer_key);
 
         let recovery_code_disclosure: UnverifiedSdJwt = sd_jwt
@@ -1209,7 +1219,7 @@ mod tests {
     }
 
     fn validate_issuance(
-        pops: &[UnverifiedJwt<JwtPopClaims, HeaderWithJwk>],
+        pops: &[UnverifiedJwt<JwtPopClaims, HeaderWithJwk<HeaderWithTyp>>],
         poa: Option<Poa>,
         wua_with_disclosure: Option<&WuaDisclosure>,
     ) {
@@ -1221,11 +1231,9 @@ mod tests {
         let keys = pops
             .iter()
             .map(|pop| {
-                let pubkey = jwk_to_p256(&pop.dangerous_parse_header_unverified().unwrap().jwk).unwrap();
+                let (header, _) = pop.parse_and_verify_with_jwk_and_typ(&validations).unwrap();
 
-                pop.parse_and_verify(&(&pubkey).into(), &validations).unwrap();
-
-                pubkey
+                jwk_to_p256(&header.jwk).unwrap()
             })
             .collect_vec();
 
@@ -1243,7 +1251,7 @@ mod tests {
 
             wua_with_disclosure
                 .wua_pop()
-                .parse_and_verify(&((&wua_key).into()), &validations)
+                .parse_and_verify(&(&wua_key).into(), &validations)
                 .unwrap();
 
             wua_key

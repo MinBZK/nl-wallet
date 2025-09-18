@@ -5,6 +5,7 @@ use std::sync::Arc;
 use assert_matches::assert_matches;
 use chrono::Days;
 use indexmap::IndexMap;
+use jwt::headers::HeaderWithTyp;
 use p256::ecdsa::SigningKey;
 use rand_core::OsRng;
 use rstest::rstest;
@@ -16,7 +17,7 @@ use attestation_data::attributes::AttributeValue;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::credential_payload::IntoCredentialPayload;
 use attestation_data::issuable_document::IssuableDocument;
-use attestation_data::x509::generate::mock::generate_issuer_mock;
+use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::qualification::AttestationQualification;
 use crypto::server_keys::KeyPair;
@@ -65,7 +66,7 @@ type MockIssuer = Issuer<MockAttributeService, SigningKey, MemorySessionStore<Is
 
 fn setup_mock_issuer(attestation_count: NonZeroUsize) -> (MockIssuer, TrustAnchor<'static>, BaseUrl, SigningKey) {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
-    let issuance_keypair = generate_issuer_mock(&ca, IssuerRegistration::new_mock().into()).unwrap();
+    let issuance_keypair = generate_issuer_mock_with_registration(&ca, IssuerRegistration::new_mock().into()).unwrap();
 
     setup(
         MockAttributeService {
@@ -413,10 +414,10 @@ impl MockOpenidMessageClient {
     }
 
     fn invalidate_poa(poa: Poa) -> Poa {
-        let mut jwts: Vec<UnverifiedJwt<PoaPayload>> = poa.into(); // a poa always involves at least two keys
+        let mut jwts: Vec<UnverifiedJwt<PoaPayload, HeaderWithTyp>> = poa.into(); // a poa always involves at least two keys
         jwts.pop();
         let jwts: VecNonEmpty<_> = jwts.try_into().unwrap(); // jwts always has at least one left after the pop();
-        let poa: JsonJwt<PoaPayload> = jwts.try_into().unwrap();
+        let poa: JsonJwt<PoaPayload, HeaderWithTyp> = jwts.try_into().unwrap();
 
         poa.into()
     }

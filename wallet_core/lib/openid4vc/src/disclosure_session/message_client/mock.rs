@@ -11,13 +11,14 @@ use rustls_pki_types::TrustAnchor;
 use url::Url;
 
 use attestation_data::auth::reader_auth::ReaderRegistration;
-use attestation_data::x509::generate::mock::generate_reader_mock;
+use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::utils as crypto_utils;
 use dcql::normalized::NormalizedCredentialRequest;
 use dcql::normalized::NormalizedCredentialRequests;
 use http_utils::urls::BaseUrl;
+use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithX5c;
 use mdoc::SessionTranscript;
@@ -161,7 +162,7 @@ impl MockVerifierSession {
         // Generate trust anchors, signing key and certificate containing `ReaderRegistration`.
         let ca = Ca::generate_reader_mock_ca().unwrap();
         let trust_anchors = vec![ca.to_trust_anchor().to_owned()];
-        let key_pair = generate_reader_mock(&ca, reader_registration.clone()).unwrap();
+        let key_pair = generate_reader_mock_with_registration(&ca, reader_registration.clone()).unwrap();
 
         // Generate some OpenID4VP specific session material.
         let nonce = crypto_utils::random_string(32);
@@ -225,10 +226,11 @@ impl MockVerifierSession {
     ) -> UnverifiedJwt<VpAuthorizationRequest, HeaderWithX5c> {
         let request = self.normalized_auth_request(wallet_request.wallet_nonce).into();
 
-        UnverifiedJwt::sign_with_certificate(&request, &self.key_pair)
+        SignedJwt::sign_with_certificate(&request, &self.key_pair)
             .now_or_never()
             .unwrap()
             .unwrap()
+            .into()
     }
 }
 
