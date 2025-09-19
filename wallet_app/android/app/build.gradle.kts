@@ -193,7 +193,6 @@ mapOf(
         args("ndk")
         args(ndkTargets.flatMap { listOf("-t", it) })
         args("-o", jniTargetDir)
-        args("--no-strip")
         args("build", "-p", "flutter_api")
         args(options.args)
         if (dartEnvironmentVariables["ALLOW_INSECURE_URL"] == "true") {
