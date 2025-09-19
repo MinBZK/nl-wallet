@@ -10,6 +10,7 @@ pub struct Model {
     pub id: Uuid,
     pub disclosure_count: u32,
     pub attestation_id: Uuid,
+    pub key_identifier: String,
     pub attestation_format: AttestationFormat,
     pub attestation: Vec<u8>,
 }

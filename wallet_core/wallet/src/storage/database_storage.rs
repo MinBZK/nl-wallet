@@ -7,6 +7,7 @@ use chrono::DateTime;
 use chrono::Utc;
 use futures::try_join;
 use itertools::Itertools;
+use mdoc::holder::Mdoc;
 use sea_orm::ActiveModelTrait;
 use sea_orm::ColumnTrait;
 use sea_orm::Condition;
@@ -183,8 +184,9 @@ impl<K> DatabaseStorage<K> {
             .inner_join(attestation::Entity)
             .column(attestation_copy::Column::Id)
             .column(attestation_copy::Column::AttestationId)
-            .column(attestation_copy::Column::Attestation)
             .column(attestation_copy::Column::AttestationFormat)
+            .column(attestation_copy::Column::KeyIdentifier)
+            .column(attestation_copy::Column::Attestation)
             .column(attestation::Column::TypeMetadata)
             .column_as(attestation_copy::Column::DisclosureCount.min(), "disclosure_count")
             .group_by(attestation_copy::Column::AttestationId)
@@ -195,16 +197,25 @@ impl<K> DatabaseStorage<K> {
             None => select,
         };
 
-        let copies: Vec<(Uuid, Uuid, Vec<u8>, AttestationFormat, TypeMetadataModel)> =
+        let copies: Vec<(Uuid, Uuid, AttestationFormat, String, Vec<u8>, TypeMetadataModel)> =
             select.into_tuple().all(database.connection()).await?;
 
         let attestations = copies
             .into_iter()
             .map(
-                |(attestation_copy_id, attestation_id, attestation_bytes, attestation_format, metadata)| {
+                |(
+                    attestation_copy_id,
+                    attestation_id,
+                    attestation_format,
+                    key_identifier,
+                    attestation_bytes,
+                    metadata,
+                )| {
                     let attestation = match attestation_format {
                         AttestationFormat::Mdoc => {
-                            let mdoc = cbor_deserialize(attestation_bytes.as_slice())?;
+                            let issuer_signed = cbor_deserialize(attestation_bytes.as_slice())?;
+                            let mdoc = Mdoc::dangerous_parse_unverified(issuer_signed, key_identifier)?;
+
                             StoredAttestation::MsoMdoc { mdoc: Box::new(mdoc) }
                         }
                         AttestationFormat::SdJwt => {
@@ -876,23 +887,26 @@ fn create_attestation_copy_models(
         .into_iter()
         .map(|credential| match credential {
             IssuedCredential::MsoMdoc { mdoc } => {
+                let attestation_bytes = cbor_serialize(mdoc.issuer_signed())?;
                 let model = attestation_copy::ActiveModel {
                     id: Set(Uuid::now_v7()),
+                    disclosure_count: Set(0),
                     attestation_id: Set(attestation_id),
-                    attestation: Set(cbor_serialize(&mdoc)?),
                     attestation_format: Set(AttestationFormat::Mdoc),
-                    ..Default::default()
+                    key_identifier: Set(mdoc.into_private_key_id()),
+                    attestation: Set(attestation_bytes),
                 };
 
                 Ok::<_, StorageError>(model)
             }
-            IssuedCredential::SdJwt { sd_jwt, .. } => {
+            IssuedCredential::SdJwt { key_identifier, sd_jwt } => {
                 let model = attestation_copy::ActiveModel {
                     id: Set(Uuid::now_v7()),
+                    disclosure_count: Set(0),
                     attestation_id: Set(attestation_id),
-                    attestation: Set(sd_jwt.to_string().into_bytes()),
                     attestation_format: Set(AttestationFormat::SdJwt),
-                    ..Default::default()
+                    key_identifier: Set(key_identifier),
+                    attestation: Set(sd_jwt.to_string().into_bytes()),
                 };
 
                 Ok(model)
@@ -1204,10 +1218,11 @@ pub(crate) mod tests {
         // The mock mdoc is never deserialized, so it contains `ProtectedHeader { original_data: None, .. }`.
         // When this mdoc is serialized, stored, fetched, and then deserialized again, it will contain
         // `ProtectedHeader { original_data: Some(..), .. }` so the equality check below will fail.
-        // This line fixes that.
-        let mdoc: Mdoc = cbor_deserialize(cbor_serialize(&mdoc).unwrap().as_slice()).unwrap();
-        let credential = IssuedCredential::MsoMdoc { mdoc: mdoc.clone() };
+        // These lines fix that.
+        let issuer_signed = cbor_deserialize(cbor_serialize(mdoc.issuer_signed()).unwrap().as_slice()).unwrap();
+        let mdoc = Mdoc::dangerous_parse_unverified(issuer_signed, mdoc.into_private_key_id()).unwrap();
 
+        let credential = IssuedCredential::MsoMdoc { mdoc: mdoc.clone() };
         let issued_mdoc_copies = IssuedCredentialCopies::new_or_panic(
             vec![credential.clone(), credential.clone(), credential.clone()]
                 .try_into()

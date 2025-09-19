@@ -3,8 +3,6 @@ use std::result::Result;
 use chrono::DateTime;
 use chrono::Utc;
 use rustls_pki_types::TrustAnchor;
-use serde::Deserialize;
-use serde::Serialize;
 use ssri::Integrity;
 
 use crypto::keys::CredentialEcdsaKey;
@@ -14,23 +12,20 @@ use utils::generator::Generator;
 use crate::errors::Error;
 use crate::iso::*;
 use crate::utils::cose::CoseError;
+use crate::utils::serialization::TaggedBytes;
 use crate::verifier::ValidityRequirement;
 
 use super::HolderError;
 
 /// A full mdoc: everything needed to disclose attributes from the mdoc.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Mdoc {
     /// Mobile Security Object of the mdoc. This is also present inside the `issuer_signed`; we include it here for
     /// convenience (fetching it from the `issuer_signed` would involve parsing the COSE inside it).
     mso: MobileSecurityObject,
 
     /// Identifier of the mdoc's private key. Obtain a reference to it with
-    /// [`DisclosureWscd::new_key(private_key_id)`].
-    // Note that even though these fields are not `pub`, to users of this package their data is still accessible
-    // by serializing the mdoc and examining the serialized bytes. This is not a problem because it is essentially
-    // unavoidable: when stored (i.e. serialized), we need to include all of this data to be able to recover a usable
-    // mdoc after deserialization.
+    /// [`DisclosureWscd::new_key(private_key_id, public_key)`].
     private_key_id: String,
     issuer_signed: IssuerSigned,
 }
@@ -52,6 +47,19 @@ impl Mdoc {
         Ok(mdoc)
     }
 
+    /// Construct a new `Mdoc` by parsing the `issuer_auth` field of an `IssuerSigned` without validating it.
+    pub fn dangerous_parse_unverified(issuer_signed: IssuerSigned, private_key_id: String) -> Result<Self, CoseError> {
+        let TaggedBytes(mso) = issuer_signed.issuer_auth.dangerous_parse_unverified()?;
+
+        let mdoc = Self {
+            mso,
+            private_key_id,
+            issuer_signed,
+        };
+
+        Ok(mdoc)
+    }
+
     pub fn doc_type(&self) -> &str {
         &self.mso.doc_type
     }
@@ -62,6 +70,14 @@ impl Mdoc {
 
     pub fn into_issuer_signed(self) -> IssuerSigned {
         self.issuer_signed
+    }
+
+    pub fn private_key_id(&self) -> &str {
+        &self.private_key_id
+    }
+
+    pub fn into_private_key_id(self) -> String {
+        self.private_key_id
     }
 
     pub fn into_components(self) -> (MobileSecurityObject, String, IssuerSigned) {

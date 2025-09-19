@@ -34,6 +34,7 @@ impl MigrationTrait for Migration {
                             .not_null(),
                     )
                     .col(ColumnDef::new(AttestationCopy::AttestationId).uuid().not_null())
+                    .col(ColumnDef::new(AttestationCopy::KeyIdentifier).text().not_null())
                     .col(
                         ColumnDef::new(AttestationCopy::Format)
                             // SQLite doesn't have proper enum support, so we simulate that here with a custom type
@@ -86,6 +87,7 @@ enum AttestationCopy {
     Id,
     DisclosureCount,
     AttestationId,
+    KeyIdentifier,
     #[sea_orm(iden = "attestation_format")]
     Format,
     Attestation,
