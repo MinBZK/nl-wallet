@@ -407,6 +407,8 @@ platform :ios do
     [app_entitlements, ipa_entitlements].map do |xml|
       CFPropertyList.native_types(CFPropertyList::List::new(data: xml).value)
     end.reduce(:merge).tap do |result|
+      # resign does not update application identifier in entitlements if we force a specific entitlements
+      result['application-identifier'] = result['com.apple.developer.team-identifier'] + "." + bundle_id
       File.write('entitlements.plist', result.to_plist(plist_format: CFPropertyList::List::FORMAT_XML))
     end
 
