@@ -804,7 +804,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
                             .ok_or(IssuanceSessionError::MetadataIntegrityMissing),
                     })
                     .process_results(|iter| {
-                        iter.dedup()
+                        iter.unique()
                             .exactly_one()
                             .map_err(|_| IssuanceSessionError::MetadataIntegrityInconsistent)
                     })??;
