@@ -393,7 +393,7 @@ pub async fn unlock_wallet_with_biometrics() -> anyhow::Result<()> {
 pub async fn init_wallet_transfer() -> anyhow::Result<String> {
     let mut wallet = wallet().write().await;
 
-    let transfer_uri = wallet.init_transfer().await?;
+    let (_, transfer_uri) = wallet.init_transfer().await?;
 
     Ok(transfer_uri.to_string())
 }

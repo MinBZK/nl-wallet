@@ -1,46 +1,42 @@
-use std::collections::HashMap;
-
-use base64::Engine;
-use base64::prelude::BASE64_URL_SAFE_NO_PAD;
+use josekit::jwk::Jwk;
+use serde::Deserialize;
+use serde::Serialize;
+use serde_with::json::JsonString;
+use serde_with::serde_as;
 use url::Url;
-use uuid::Uuid;
 
 use http_utils::urls;
 
 use crate::config::UNIVERSAL_LINK_BASE_URL;
 use crate::transfer::TransferSessionId;
 
-const TRANSFER_SESSION_ID_QUERY_PARAM_KEY: &str = "s";
-const KEY_QUERY_PARAM_KEY: &str = "k";
-
 #[derive(Debug, thiserror::Error)]
 pub enum TransferUriError {
     #[error("invalid transfer uri: {0}")]
     InvalidUri(String),
 
-    #[error("missing query parameter: {0}, in: {1}")]
-    MissingQueryParameter(String, String),
-
     #[error("error deserializing query parameters: {0}")]
-    QueryParameterDeserialization(#[from] serde_urlencoded::de::Error),
+    QueryDeserialization(#[from] serde_urlencoded::de::Error),
 
     #[error("error serializing query parameters: {0}")]
-    QueryParameterSerialization(#[from] serde_urlencoded::ser::Error),
-
-    #[error("invalid uuid: {0}")]
-    InvalidUuid(#[from] uuid::Error),
+    QuerySerialization(#[from] serde_urlencoded::ser::Error),
 
     #[error("error decoding from base64: {0}")]
     Base64Decoding(#[from] base64::DecodeError),
 }
 
-#[derive(Debug, PartialEq)]
-pub struct TransferUri {
-    pub transfer_session_id: TransferSessionId,
-    pub key: Vec<u8>,
+#[serde_as]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct TransferQuery {
+    #[serde(rename = "s")]
+    pub session_id: TransferSessionId,
+
+    #[serde(rename = "k")]
+    #[serde_as(as = "JsonString")]
+    pub public_key: Jwk,
 }
 
-impl TryFrom<Url> for TransferUri {
+impl TryFrom<Url> for TransferQuery {
     type Error = TransferUriError;
 
     fn try_from(value: Url) -> Result<Self, Self::Error> {
@@ -48,51 +44,18 @@ impl TryFrom<Url> for TransferUri {
             return Err(TransferUriError::InvalidUri(value.to_string()));
         };
 
-        let mut query_params: HashMap<String, String> = serde_urlencoded::from_str(query)?;
+        let query: TransferQuery = serde_urlencoded::from_str(query)?;
 
-        let transfer_session_id = Uuid::from_slice(
-            &BASE64_URL_SAFE_NO_PAD.decode(
-                query_params
-                    .remove(TRANSFER_SESSION_ID_QUERY_PARAM_KEY)
-                    .ok_or(TransferUriError::MissingQueryParameter(
-                        String::from(TRANSFER_SESSION_ID_QUERY_PARAM_KEY),
-                        value.to_string(),
-                    ))?
-                    .as_bytes(),
-            )?,
-        )?;
-
-        let key = BASE64_URL_SAFE_NO_PAD.decode(
-            query_params
-                .remove(KEY_QUERY_PARAM_KEY)
-                .ok_or(TransferUriError::MissingQueryParameter(
-                    String::from(KEY_QUERY_PARAM_KEY),
-                    value.to_string(),
-                ))?
-                .as_bytes(),
-        )?;
-
-        Ok(TransferUri {
-            transfer_session_id: transfer_session_id.into(),
-            key,
-        })
+        Ok(query)
     }
 }
 
-impl TryFrom<TransferUri> for Url {
+impl TryFrom<TransferQuery> for Url {
     type Error = TransferUriError;
 
-    fn try_from(value: TransferUri) -> Result<Self, Self::Error> {
-        let query = serde_urlencoded::to_string(&[
-            (
-                TRANSFER_SESSION_ID_QUERY_PARAM_KEY,
-                BASE64_URL_SAFE_NO_PAD.encode(value.transfer_session_id.as_ref()),
-            ),
-            (KEY_QUERY_PARAM_KEY, BASE64_URL_SAFE_NO_PAD.encode(value.key.as_slice())),
-        ])?;
-
+    fn try_from(value: TransferQuery) -> Result<Self, Self::Error> {
         let mut url: Url = urls::transfer_base_uri(&UNIVERSAL_LINK_BASE_URL).into_inner();
-        url.set_fragment(Some(query.as_str()));
+        url.set_fragment(Some(serde_urlencoded::to_string(value)?.as_str()));
 
         Ok(url)
     }
@@ -100,27 +63,25 @@ impl TryFrom<TransferUri> for Url {
 
 #[cfg(test)]
 mod tests {
-    use base64::Engine;
-    use base64::prelude::BASE64_URL_SAFE_NO_PAD;
+    use josekit::jwk::KeyPair;
+    use josekit::jwk::alg::ec::EcCurve;
+    use josekit::jwk::alg::ec::EcKeyPair;
     use url::Host;
     use url::Url;
-    use url::form_urlencoded;
     use uuid::Uuid;
 
-    use crypto::utils::random_bytes;
-
-    use crate::transfer::uri::TransferUri;
+    use crate::transfer::uri::TransferQuery;
 
     #[test]
-    fn test_transfer_uri() {
+    fn test_transfer_query() {
         let transfer_session_id = Uuid::new_v4();
-        let transfer_key = random_bytes(32);
+        let key_pair = EcKeyPair::generate(EcCurve::P256).unwrap();
 
-        let transfer_uri = TransferUri {
-            transfer_session_id: transfer_session_id.into(),
-            key: transfer_key.clone(),
+        let transfer_query = TransferQuery {
+            session_id: transfer_session_id.into(),
+            public_key: key_pair.to_jwk_public_key(),
         };
-        let url: Url = transfer_uri.try_into().unwrap();
+        let url: Url = transfer_query.try_into().unwrap();
 
         assert_eq!(url.scheme(), "walletdebuginteraction");
         assert_eq!(
@@ -131,30 +92,10 @@ mod tests {
         assert_eq!(url.query(), None);
         assert!(url.fragment().is_some());
 
-        let mut pairs = form_urlencoded::parse(url.fragment().unwrap().as_bytes());
-
-        let (key, value) = pairs.next().unwrap();
-        assert_eq!(key, "s");
-        assert_eq!(
-            BASE64_URL_SAFE_NO_PAD
-                .decode(value.as_ref())
-                .map(|id| Uuid::from_slice(id.as_ref())),
-            Ok(Ok(transfer_session_id))
-        );
-
-        let (key, value) = pairs.next().unwrap();
-        assert_eq!(key, "k");
-        assert_eq!(BASE64_URL_SAFE_NO_PAD.decode(value.as_ref()).unwrap().len(), 32);
-
-        assert!(pairs.next().is_none());
-
-        let from_url = TransferUri::try_from(url).unwrap();
-        assert_eq!(
-            from_url,
-            TransferUri {
-                transfer_session_id: transfer_session_id.into(),
-                key: transfer_key,
-            }
-        );
+        let query: TransferQuery = serde_urlencoded::from_str(url.fragment().unwrap()).unwrap();
+        assert_eq!(query.session_id, transfer_session_id.into());
+        assert_eq!(query.public_key.key_type(), "EC");
+        assert_eq!(query.public_key.curve(), Some("P-256"));
+        assert_eq!(query.public_key, key_pair.to_jwk_public_key());
     }
 }

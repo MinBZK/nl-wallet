@@ -1,5 +1,9 @@
 use std::sync::Arc;
 
+use josekit::JoseError;
+use josekit::jwk::KeyPair;
+use josekit::jwk::alg::ec::EcCurve;
+use josekit::jwk::alg::ec::EcKeyPair;
 use tracing::info;
 use tracing::instrument;
 use url::Url;
@@ -28,7 +32,7 @@ use crate::repository::Repository;
 use crate::storage::Storage;
 use crate::storage::StorageError;
 use crate::storage::TransferData;
-use crate::transfer::uri::TransferUri;
+use crate::transfer::uri::TransferQuery;
 use crate::transfer::uri::TransferUriError;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
@@ -66,6 +70,10 @@ pub enum TransferError {
     #[category(critical)]
     IllegalWalletState,
 
+    #[error("jose error: {0}")]
+    #[category(critical)]
+    JoseError(#[from] JoseError),
+
     #[error("invalid transfer uri: {0}")]
     #[category(pd)]
     TransferUri(#[from] TransferUriError),
@@ -84,7 +92,7 @@ where
 {
     #[instrument(skip_all)]
     #[sentry_capture_error]
-    pub async fn init_transfer(&mut self) -> Result<Url, TransferError> {
+    pub async fn init_transfer(&mut self) -> Result<(EcKeyPair, Url), TransferError> {
         info!("Init transfer");
 
         self.validate_transfer_allowed()?;
@@ -93,12 +101,16 @@ where
             return Err(TransferError::MissingTransferSessionId);
         };
 
-        let transfer_uri = TransferUri {
-            transfer_session_id: transfer_data.transfer_session_id,
-            key: crypto::utils::random_bytes(32),
+        let key_pair = EcKeyPair::generate(EcCurve::P256)?;
+
+        let query = TransferQuery {
+            session_id: transfer_data.transfer_session_id,
+            public_key: key_pair.to_jwk_public_key(),
         };
 
-        Ok(transfer_uri.try_into()?)
+        let url: Url = query.try_into()?;
+
+        Ok((key_pair, url))
     }
 
     #[instrument(skip_all)]
@@ -108,18 +120,18 @@ where
 
         self.validate_transfer_allowed()?;
 
-        let transfer_uri: TransferUri = uri.try_into()?;
+        let transfer_query: TransferQuery = uri.try_into()?;
 
         self.storage
             .write()
             .await
             .insert_data(&TransferData {
-                transfer_session_id: transfer_uri.transfer_session_id,
+                transfer_session_id: transfer_query.session_id,
             })
             .await?;
 
         self.send_transfer_instruction(ConfirmTransfer {
-            transfer_session_id: transfer_uri.transfer_session_id.into(),
+            transfer_session_id: transfer_query.session_id.into(),
             app_version: version().clone(),
         })
         .await
@@ -210,6 +222,7 @@ where
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
+    use url::Host;
     use uuid::Uuid;
 
     use wallet_account::messages::instructions::HwSignedInstruction;
@@ -289,14 +302,25 @@ mod tests {
                 }))
             });
 
-        let url = wallet
+        let (key_pair, url) = wallet
             .init_transfer()
             .await
             .expect("Wallet init transfer should have succeeded");
 
-        let transfer_uri: TransferUri = url.try_into().expect("URL should be a transfer uri");
+        assert_eq!(url.scheme(), "walletdebuginteraction");
+        assert_eq!(
+            url.host().map(|h| h.to_owned()),
+            Some(Host::parse("wallet.edi.rijksoverheid.nl").unwrap())
+        );
+        assert_eq!(url.path(), "/transfer");
+        assert_eq!(url.query(), None);
+        assert!(url.fragment().is_some());
 
-        assert_eq!(transfer_uri.transfer_session_id.as_ref(), &transfer_session_id);
+        let query: TransferQuery = serde_urlencoded::from_str(url.fragment().unwrap()).unwrap();
+        assert_eq!(query.session_id, transfer_session_id.into());
+        assert_eq!(query.public_key.key_type(), "EC");
+        assert_eq!(query.public_key.curve(), Some("P-256"));
+        assert_eq!(query.public_key, key_pair.to_jwk_public_key());
     }
 
     #[tokio::test]
@@ -338,9 +362,11 @@ mod tests {
             .once()
             .return_once(move |_, _: HwSignedInstruction<ConfirmTransfer>| Ok(wp_result));
 
-        let transfer_uri = TransferUri {
-            transfer_session_id: transfer_session_id.into(),
-            key: crypto::utils::random_bytes(32),
+        let key_pair = EcKeyPair::generate(EcCurve::P256).unwrap();
+
+        let transfer_uri = TransferQuery {
+            session_id: transfer_session_id.into(),
+            public_key: key_pair.to_jwk_public_key(),
         };
 
         wallet
@@ -467,7 +493,7 @@ mod tests {
             .await
             .unwrap();
 
-        let transfer_url = destination_wallet
+        let (_, transfer_url) = destination_wallet
             .init_transfer()
             .await
             .expect("Wallet init transfer should have succeeded");

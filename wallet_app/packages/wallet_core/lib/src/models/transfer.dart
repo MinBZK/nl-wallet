@@ -13,5 +13,4 @@ enum TransferSessionState {
   Success,
   Cancelled,
   Error,
-  ;
 }
