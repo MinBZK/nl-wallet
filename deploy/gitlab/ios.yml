@@ -71,8 +71,7 @@ test-ios:
     - |
       bundle exec fastlane ios sign \
         app_store:"true" \
-        bundle_id:"${INTERNAL_APP_IDENTIFIER}${APP_PACKAGE_IDENTIFIER_SUFFIX:+.$APP_PACKAGE_IDENTIFIER_SUFFIX}" \
-        version:"${VERSION:-}"
+        bundle_id:"${INTERNAL_APP_IDENTIFIER}${APP_PACKAGE_IDENTIFIER_SUFFIX:+.$APP_PACKAGE_IDENTIFIER_SUFFIX}"
   after_script:
     - find $HOME/Library/Developer/Xcode/DerivedData/Runner-* -name '*.xcactivitylog' -print0 | xargs -0 -I{} cp {} wallet_app/ios/
 

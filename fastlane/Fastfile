@@ -335,17 +335,20 @@ platform :ios do
   lane :sign do |options|
 
     bundle_id = options[:bundle_id] || get_app_identifier
-    local_version, _ = get_local_version_and_build
-    version = options[:version].blank? ? local_version : options[:version]
     export_method = options[:app_store] ? "app-store" : "ad-hoc"
     match_type = export_method.sub('-', '')
-    ipa_file = "#{bundle_id}-#{version}.ipa"
-
-    UI.message("Going to sign iOS build with bundle id #{bundle_id} and version #{version} with export method #{export_method}")
 
     # Check for build artifacts
     UI.user_error!("Runner.xcarchive build artifact not found") unless File.exist?("../wallet_app/build/ios/archive/Runner.xcarchive")
     UI.user_error!("Runner.entitlements build artifact not found") unless File.exist?("../wallet_app/build/ios/Runner.entitlements")
+
+    # Get version
+    version = CFPropertyList.native_types(
+      CFPropertyList::List::new(file: '../wallet_app/build/ios/archive/Runner.xcarchive/Info.plist').value
+    )["ApplicationProperties"]["CFBundleShortVersionString"]
+
+    # Info
+    UI.message("Going to sign iOS build with bundle id #{bundle_id} and version #{version} with export method #{export_method}")
 
     # Set up provisioning profiles using match
     match(
@@ -375,6 +378,7 @@ platform :ios do
     end
 
     # Create an .ipa file from the archive produce by Flutter
+    ipa_file = "#{bundle_id}-#{version}.ipa"
     build_app(
       skip_build_archive: true,
       archive_path: "wallet_app/build/ios/archive/Runner.xcarchive",
@@ -399,9 +403,13 @@ platform :ios do
       sh('unzip', '-qd', tmp_path, "../#{ipa_file}")
       # `codesign -d --entitlements - Runner.app --xml` extracts the entitlements of the app
       # and outputs the XML on a single line (last line) after some other output.
-      sh('codesign', '-d', '--entitlements', '-', "#{tmp_path}/Payload/Runner.app", '--xml').rstrip.split('\n')[-1]
+      sh('codesign', '-d', '--entitlements', '-', "#{tmp_path}/Payload/Runner.app", '--xml').rstrip.split("\n")[-1]
     end
-    File.write('entitlements.plist', Plist.parse_xml(app_entitlements).merge(Plist.parse_xml(ipa_entitlements)).to_plist)
+    [app_entitlements, ipa_entitlements].map do |xml|
+      CFPropertyList.native_types(CFPropertyList::List::new(data: xml).value)
+    end.reduce(:merge).tap do |result|
+      File.write('entitlements.plist', result.to_plist(plist_format: CFPropertyList::List::FORMAT_XML))
+    end
 
     # Resign with merged entitlements
     resign(

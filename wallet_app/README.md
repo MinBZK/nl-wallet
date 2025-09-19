@@ -455,7 +455,6 @@ export FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD="{App-specific password}"
   next build number needs to be `{latest_build_numer} + 1`
 - Build app with updated build number
   `CONFIG_ENV=ont UL_HOSTNAME=app.example.com UNIVERSAL_LINK_BASE="https://app.example.com/deeplink/" bundle exec fastlane ios build app_store:true build:{next_build_number} app_name:"NL Wallet (latest)" universal_link_base:app.example.com`
-- Sign build
-  `bundle exec fastlane ios sign`
+- Sign build `bundle exec fastlane ios sign`
 - Upload to TestFlight `bundle exec fastlane ios deploy bundle_id:nl.ictu.edi.wallet.latest`  (login
   with Apple ID + password; app specific password!)
