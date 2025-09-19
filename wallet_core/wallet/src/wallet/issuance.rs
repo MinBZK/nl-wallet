@@ -66,6 +66,7 @@ use crate::storage::AttestationFormatQuery;
 use crate::storage::Storage;
 use crate::storage::StorageError;
 use crate::storage::StoredAttestationCopy;
+use crate::storage::TransferData;
 use crate::transfer::TransferSessionId;
 use crate::wallet::Session;
 use crate::wallet::attestations::AttestationsError;
@@ -169,6 +170,9 @@ pub enum IssuanceError {
     #[error("could not add recovery code disclosure: {0}")]
     #[category(pd)]
     RecoveryCodeDisclosure(sd_jwt::error::Error),
+
+    #[error("error storing transfer data in database: {0}")]
+    TransferDataStorage(#[source] StorageError),
 }
 
 #[derive(Debug, Clone, Constructor)]
@@ -558,6 +562,17 @@ where
         } else {
             None
         };
+
+        if let Some(transfer_session_id) = transfer_session_id.as_ref() {
+            self.storage
+                .write()
+                .await
+                .insert_data(&TransferData {
+                    transfer_session_id: *transfer_session_id,
+                })
+                .await
+                .map_err(IssuanceError::TransferDataStorage)?;
+        }
 
         let all_previews = issued_credentials_with_metadata
             .into_iter()

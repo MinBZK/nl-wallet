@@ -794,7 +794,7 @@ impl HandleInstruction for CancelTransfer {
             .update_transfer_session_state(
                 &tx,
                 transfer_session.transfer_session_id,
-                TransferSessionState::Cancelled,
+                TransferSessionState::Canceled,
             )
             .await?;
 
@@ -1885,7 +1885,7 @@ mod tests {
             .returning(move |_, _| Ok(Some(transfer_session.clone())));
         wallet_user_repo
             .expect_update_transfer_session_state()
-            .withf(move |_, _, state| TransferSessionState::Cancelled == *state)
+            .withf(move |_, _, state| TransferSessionState::Canceled == *state)
             .returning(|_, _, _| Ok(()));
         wallet_user_repo
             .expect_clear_wallet_transfer_data()

@@ -8,6 +8,6 @@ pub enum TransferSessionState {
     ReadyForTransfer,
     ReadyForDownload,
     Success,
-    Cancelled,
+    Canceled,
     Error,
 }
