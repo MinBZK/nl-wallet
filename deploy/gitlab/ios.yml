@@ -45,7 +45,6 @@ test-ios:
       - "fastlane/entitlements.plist"
       - "wallet_app/build/ios/archive/Runner.xcarchive"
       - "wallet_app/build/ios/Runner.entitlements"
-      - "wallet_app/ios/Flutter/Generated.xcconfig"
       - "wallet_app/ios/compile_rust_core.log"
       - "wallet_app/ios/*.xcactivitylog"
   variables:
