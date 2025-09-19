@@ -777,8 +777,9 @@ impl VpAuthorizationResponse {
             })
             .collect::<Result<_, AuthResponseError>>()?;
 
-        // Step 2: Verify the PoA, if present. Unfortunately `VerifyingKey`
-        // does not implement `Hash`, so we have to deduplicate manually.
+        // Step 2: Verify the PoA, if present. Unfortunately `VerifyingKey` does not
+        //         implement `Hash`, so we have to sort and deduplicate manually.
+        holder_public_keys.sort();
         holder_public_keys.dedup();
         if holder_public_keys.len() >= 2 {
             self.poa.ok_or(AuthResponseError::MissingPoa)?.verify(
