@@ -145,21 +145,6 @@ pub mod mock {
 
     impl ReaderRegistration {
         /// Build attributes for [`ReaderRegistration`] from a list of attributes.
-        pub fn create_mdoc_attributes(
-            doc_type: impl Into<String>,
-            name_space: impl Into<String>,
-            attributes: impl IntoIterator<IntoIter = impl ExactSizeIterator<Item = impl Into<String>>>,
-        ) -> HashMap<String, Vec<VecNonEmpty<ClaimPath>>> {
-            let attributes = attributes.into_iter();
-            let attribute_count = attributes.len();
-            let attributes = itertools::repeat_n(name_space.into(), attribute_count)
-                .zip(attributes)
-                .map(|(name_space, attribute)| vec![name_space, attribute.into()]);
-
-            Self::create_attributes(doc_type, attributes)
-        }
-
-        /// Build attributes for [`ReaderRegistration`] from a list of attributes.
         pub fn create_attributes(
             credential_type: impl Into<String>,
             attributes: impl IntoIterator<Item = impl IntoIterator<Item = impl Into<String>>>,
