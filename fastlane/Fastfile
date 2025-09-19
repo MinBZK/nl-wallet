@@ -342,10 +342,12 @@ platform :ios do
     UI.user_error!("Runner.xcarchive build artifact not found") unless File.exist?("../wallet_app/build/ios/archive/Runner.xcarchive")
     UI.user_error!("Runner.entitlements build artifact not found") unless File.exist?("../wallet_app/build/ios/Runner.entitlements")
 
-    # Get version
-    version = CFPropertyList.native_types(
+    # Get default bundle id and version
+    info = CFPropertyList.native_types(
       CFPropertyList::List::new(file: '../wallet_app/build/ios/archive/Runner.xcarchive/Info.plist').value
-    )["ApplicationProperties"]["CFBundleShortVersionString"]
+    )
+    version = info["ApplicationProperties"]["CFBundleShortVersionString"]
+    default_bundle_id = info["ApplicationProperties"]["CFBundleIdentifier"]
 
     # Info
     UI.message("Going to sign iOS build with bundle id #{bundle_id} and version #{version} with export method #{export_method}")
@@ -353,18 +355,9 @@ platform :ios do
     # Set up provisioning profiles using match
     match(
       type: match_type,
-      app_identifier: bundle_id,
+      app_identifier: [bundle_id, default_bundle_id].uniq,
       clone_branch_directly: true,
       readonly: true,
-    )
-
-    # Update the Xcode project so that Flutter can produce a signed build archive
-    update_code_signing_settings(
-      use_automatic_signing: false,
-      path: "wallet_app/ios/Runner.xcodeproj",
-      bundle_identifier: bundle_id,
-      code_sign_identity: "iPhone Distribution",
-      profile_name: Actions.lane_context[SharedValues::MATCH_PROVISIONING_PROFILE_MAPPING][bundle_id]
     )
 
     # No brew installed rsync allowed in path to use xcodebuild -exportArchive
@@ -382,8 +375,14 @@ platform :ios do
     build_app(
       skip_build_archive: true,
       archive_path: "wallet_app/build/ios/archive/Runner.xcarchive",
+      codesigning_identity: "iPhone Distribution",
       export_method: export_method,
-      output_name: ipa_file
+      export_options: {
+        provisioningProfiles: {
+          default_bundle_id => Actions.lane_context[SharedValues::MATCH_PROVISIONING_PROFILE_MAPPING][default_bundle_id],
+        }
+      },
+      output_name: ipa_file,
     )
 
     # Restoring path
@@ -411,12 +410,13 @@ platform :ios do
       File.write('entitlements.plist', result.to_plist(plist_format: CFPropertyList::List::FORMAT_XML))
     end
 
-    # Resign with merged entitlements
+    # Resign with merged entitlements and different bundle id
     resign(
       ipa: ipa_file,
       entitlements: "fastlane/entitlements.plist",
+      bundle_id: bundle_id,
       signing_identity: ENV["sigh_#{bundle_id}_#{match_type}_certificate-name"],
-      provisioning_profile: ENV["sigh_#{bundle_id}_#{match_type}_profile-path"]
+      provisioning_profile: ENV["sigh_#{bundle_id}_#{match_type}_profile-path"],
     )
   end
 
