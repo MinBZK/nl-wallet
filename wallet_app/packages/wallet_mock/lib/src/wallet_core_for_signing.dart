@@ -24,10 +24,10 @@ class WalletCoreForSigning {
 
   /// Get the cards/attributes that have to be disclosed to fulfill [_activeSignRequest], assumes [_activeSignRequest] is non null.
   List<AttestationPresentation> get _requestedAttestationsForActiveRequest => _wallet.getRequestedAttestations(
-        _activeSignRequest!.requestedAttributes.map(
-          (attribute) => attribute.key,
-        ),
-      );
+    _activeSignRequest!.requestedAttributes.map(
+      (attribute) => attribute.key,
+    ),
+  );
 
   WalletCoreForSigning(this._pinManager, this._wallet, this._eventLog);
 
