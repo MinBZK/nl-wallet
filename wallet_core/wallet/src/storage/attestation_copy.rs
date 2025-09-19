@@ -133,7 +133,9 @@ impl StoredAttestationCopy {
         claim_paths: impl IntoIterator<Item = &'b VecNonEmpty<ClaimPath>>,
     ) -> bool {
         match &self.attestation {
-            StoredAttestation::MsoMdoc { mdoc } => mdoc.issuer_signed.matches_requested_attributes(claim_paths).is_ok(),
+            StoredAttestation::MsoMdoc { mdoc } => {
+                mdoc.issuer_signed().matches_requested_attributes(claim_paths).is_ok()
+            }
             StoredAttestation::SdJwt { sd_jwt } => {
                 // Create a temporary CredentialPayload to check if the paths are all present.
                 let credential_payload = credential_payload_from_sd_jwt(sd_jwt.as_ref());
@@ -164,7 +166,7 @@ impl StoredAttestationCopy {
 
         match self.attestation {
             StoredAttestation::MsoMdoc { mdoc } => attestation_presentation_from_issuer_signed(
-                mdoc.issuer_signed,
+                mdoc.into_issuer_signed(),
                 self.attestation_id,
                 self.normalized_metadata,
                 issuer_registration.organization,
@@ -225,7 +227,7 @@ impl DisclosableAttestation {
 
         let presentation = match &partial_attestation {
             PartialAttestation::MsoMdoc { partial_mdoc } => attestation_presentation_from_issuer_signed(
-                partial_mdoc.issuer_signed.clone(),
+                partial_mdoc.issuer_signed().clone(),
                 attestation_id,
                 normalized_metadata,
                 issuer_registration.organization,

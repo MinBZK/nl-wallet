@@ -1125,7 +1125,7 @@ mod tests {
         );
 
         let mdoc = create_example_pid_mdoc();
-        let attestation_type = mdoc.mso.doc_type.clone();
+        let attestation_type = mdoc.doc_type().to_string();
         let stored_attestation_copy = StoredAttestationCopy::new(
             Uuid::new_v4(),
             Uuid::new_v4(),
@@ -1213,8 +1213,8 @@ mod tests {
                     .ok()
                     .and_then(|partial_mdocs| partial_mdocs.into_iter().exactly_one().ok())
                     .and_then(|partial_mdoc| {
-                        (partial_mdoc.doc_type == PID_ATTESTATION_TYPE)
-                            .then_some(partial_mdoc.issuer_signed.into_entries_by_namespace())
+                        (partial_mdoc.doc_type() == PID_ATTESTATION_TYPE)
+                            .then_some(partial_mdoc.into_issuer_signed().into_entries_by_namespace())
                     })
                     .and_then(|name_spaces| name_spaces.into_iter().exactly_one().ok())
                     .and_then(|(name_space, entries)| (name_space == PID_ATTESTATION_TYPE).then_some(entries))
@@ -1518,7 +1518,7 @@ mod tests {
         );
 
         let mdoc = create_example_pid_mdoc();
-        let attestation_type = mdoc.mso.doc_type.clone();
+        let attestation_type = mdoc.doc_type().to_string();
         let stored_attestation_copy = StoredAttestationCopy::new(
             Uuid::new_v4(),
             Uuid::new_v4(),

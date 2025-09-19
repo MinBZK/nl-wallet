@@ -1221,7 +1221,7 @@ pub(crate) mod tests {
                 vec![(
                     CredentialWithMetadata::new(
                         issued_mdoc_copies,
-                        mdoc.mso.doc_type.clone(),
+                        mdoc.doc_type().to_string(),
                         VerifiedTypeMetadataDocuments::nl_pid_example(),
                     ),
                     AttestationPresentation::new_mock(),
@@ -1250,7 +1250,7 @@ pub(crate) mod tests {
 
         // Only one unique `AttestationCopy` should be returned when querying
         // the attestation type, but not when the queried format is SD-JWT.
-        let attestation_types = HashSet::from([mdoc.mso.doc_type.as_str()]);
+        let attestation_types = HashSet::from([mdoc.doc_type()]);
         let fetched_unique_any = storage
             .fetch_unique_attestations_by_type(&attestation_types, AttestationFormatQuery::Any)
             .await

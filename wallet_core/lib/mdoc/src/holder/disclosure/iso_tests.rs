@@ -41,7 +41,7 @@ fn create_example_device_response(
         .into_iter()
         .next()
         .expect("device request should not be empty");
-    assert_eq!(&first_request.doc_type, &mdoc.mso.doc_type);
+    assert_eq!(first_request.doc_type, mdoc.doc_type());
 
     let claim_paths = Vec::<VecNonEmpty<ClaimPath>>::from(first_request);
     let partial_mdoc = PartialMdoc::try_new(mdoc, &claim_paths).unwrap();

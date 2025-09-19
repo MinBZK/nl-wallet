@@ -1274,7 +1274,7 @@ mod tests {
         let (vp_token, poa) = setup_vp_token(
             &auth_request,
             mdoc_nonce,
-            &vec![(mdoc.issuer_signed, mdoc_key)],
+            &vec![(mdoc.into_issuer_signed(), mdoc_key)],
             &[ca.to_trust_anchor()],
             &time_generator,
         )

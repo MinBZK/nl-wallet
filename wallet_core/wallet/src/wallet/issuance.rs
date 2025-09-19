@@ -765,7 +765,7 @@ mod tests {
                 AttestationIdentity::Ephemeral,
                 type_metadata.to_normalized().unwrap(),
                 issuer_registration.organization.clone(),
-                mdoc.issuer_signed.clone().into_entries_by_namespace(),
+                mdoc.issuer_signed().clone().into_entries_by_namespace(),
             )
             .unwrap(),
             IssuedCredential::SdJwt { sd_jwt, .. } => {

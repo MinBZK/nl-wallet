@@ -376,7 +376,7 @@ mod tests {
         let mdoc = Mdoc::new_mock_with_key(&key).await;
 
         let public_key = mdoc
-            .issuer_signed
+            .issuer_signed()
             .dangerous_public_key()
             .expect("Could not get public key from from IssuerSigned");
 
