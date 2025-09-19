@@ -343,6 +343,10 @@ platform :ios do
 
     UI.message("Going to sign iOS build with bundle id #{bundle_id} and version #{version} with export method #{export_method}")
 
+    # Check for build artifacts
+    UI.user_error!("Runner.xcarchive build artifact not found") unless File.exist?("../wallet_app/build/ios/archive/Runner.xcarchive")
+    UI.user_error!("Runner.entitlements build artifact not found") unless File.exist?("../wallet_app/build/ios/Runner.entitlements")
+
     # Set up provisioning profiles using match
     match(
       type: match_type,
