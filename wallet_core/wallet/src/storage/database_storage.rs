@@ -875,7 +875,7 @@ fn create_attestation_copy_models(
         .into_inner()
         .into_iter()
         .map(|credential| match credential {
-            IssuedCredential::MsoMdoc(mdoc) => {
+            IssuedCredential::MsoMdoc { mdoc } => {
                 let model = attestation_copy::ActiveModel {
                     id: Set(Uuid::now_v7()),
                     attestation_id: Set(attestation_id),
@@ -886,7 +886,7 @@ fn create_attestation_copy_models(
 
                 Ok::<_, StorageError>(model)
             }
-            IssuedCredential::SdJwt(sd_jwt) => {
+            IssuedCredential::SdJwt { sd_jwt, .. } => {
                 let model = attestation_copy::ActiveModel {
                     id: Set(Uuid::now_v7()),
                     attestation_id: Set(attestation_id),
@@ -1206,7 +1206,7 @@ pub(crate) mod tests {
         // `ProtectedHeader { original_data: Some(..), .. }` so the equality check below will fail.
         // This line fixes that.
         let mdoc: Mdoc = cbor_deserialize(cbor_serialize(&mdoc).unwrap().as_slice()).unwrap();
-        let credential = IssuedCredential::MsoMdoc(Box::new(mdoc.clone()));
+        let credential = IssuedCredential::MsoMdoc { mdoc: mdoc.clone() };
 
         let issued_mdoc_copies = IssuedCredentialCopies::new_or_panic(
             vec![credential.clone(), credential.clone(), credential.clone()]
@@ -1349,7 +1349,10 @@ pub(crate) mod tests {
         assert!(matches!(state, StorageState::Opened));
 
         let sd_jwt = VerifiedSdJwt::pid_example(&ISSUER_KEY);
-        let credential = IssuedCredential::SdJwt(Box::new(sd_jwt.clone()));
+        let credential = IssuedCredential::SdJwt {
+            key_identifier: "sd_jwt_key_id".to_string(),
+            sd_jwt: sd_jwt.clone(),
+        };
 
         let issued_copies = IssuedCredentialCopies::new_or_panic(
             vec![credential.clone(), credential.clone(), credential.clone()]
@@ -1446,7 +1449,10 @@ pub(crate) mod tests {
 
         // Create issued_copies that will be inserted into the database
         let sd_jwt = VerifiedSdJwt::pid_example(&ISSUER_KEY);
-        let credential = IssuedCredential::SdJwt(Box::new(sd_jwt.clone()));
+        let credential = IssuedCredential::SdJwt {
+            key_identifier: "sd_jwt_key_id".to_string(),
+            sd_jwt: sd_jwt.clone(),
+        };
         let issued_copies = IssuedCredentialCopies::new_or_panic(
             vec![credential.clone(), credential.clone(), credential.clone()]
                 .try_into()
@@ -1502,7 +1508,10 @@ pub(crate) mod tests {
 
         // Create new issued_copies that will be updated
         let sd_jwt = VerifiedSdJwt::pid_example(&ISSUER_KEY);
-        let credential = IssuedCredential::SdJwt(Box::new(sd_jwt.clone()));
+        let credential = IssuedCredential::SdJwt {
+            key_identifier: "sd_jwt_key_id".to_string(),
+            sd_jwt: sd_jwt.clone(),
+        };
         let issued_copies = IssuedCredentialCopies::new_or_panic(
             vec![credential.clone(), credential.clone(), credential.clone()]
                 .try_into()
@@ -1692,7 +1701,10 @@ pub(crate) mod tests {
         );
 
         let sd_jwt = VerifiedSdJwt::pid_example(&ISSUER_KEY);
-        let credential = IssuedCredential::SdJwt(Box::new(sd_jwt.clone()));
+        let credential = IssuedCredential::SdJwt {
+            key_identifier: "sd_jwt_key_id".to_string(),
+            sd_jwt: sd_jwt.clone(),
+        };
 
         let issued_copies = IssuedCredentialCopies::new_or_panic(
             vec![credential.clone(), credential.clone(), credential.clone()]
@@ -1821,7 +1833,10 @@ pub(crate) mod tests {
         let timestamp_even_older = Utc.with_ymd_and_hms(2023, 11, 11, 11, 11, 00).unwrap();
 
         let sd_jwt = VerifiedSdJwt::pid_example(&ISSUER_KEY);
-        let credential = IssuedCredential::SdJwt(Box::new(sd_jwt.clone()));
+        let credential = IssuedCredential::SdJwt {
+            key_identifier: "sd_jwt_key_id".to_string(),
+            sd_jwt: sd_jwt.clone(),
+        };
 
         let issued_copies = IssuedCredentialCopies::new_or_panic(vec![credential.clone()].try_into().unwrap());
         let attestation_type = sd_jwt.as_ref().claims().vct.as_ref().unwrap().to_owned();

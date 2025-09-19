@@ -625,8 +625,8 @@ where
             .find_map(|cred| {
                 (cred.attestation_type == PID_ATTESTATION_TYPE).then(|| {
                     cred.copies.as_ref().iter().find_map(|copy| match copy {
-                        IssuedCredential::MsoMdoc(_) => None,
-                        IssuedCredential::SdJwt(verified_sd_jwt) => Some(verified_sd_jwt.clone()),
+                        IssuedCredential::MsoMdoc { .. } => None,
+                        IssuedCredential::SdJwt { sd_jwt, .. } => Some(sd_jwt.clone()),
                     })
                 })
             })
@@ -751,8 +751,8 @@ mod tests {
     ) -> (MockIssuanceSession, VecNonEmpty<AttestationPresentation>) {
         let mut client = MockIssuanceSession::new();
         let issuer_certificate = match &credential {
-            IssuedCredential::MsoMdoc(mdoc) => mdoc.issuer_certificate().unwrap(),
-            IssuedCredential::SdJwt(sd_jwt) => sd_jwt.as_ref().as_ref().issuer_certificate().unwrap().to_owned(),
+            IssuedCredential::MsoMdoc { mdoc } => mdoc.issuer_certificate().unwrap(),
+            IssuedCredential::SdJwt { sd_jwt, .. } => sd_jwt.as_ref().issuer_certificate().unwrap().to_owned(),
         };
 
         let issuer_registration = match IssuerRegistration::from_certificate(&issuer_certificate) {
@@ -761,14 +761,14 @@ mod tests {
         };
 
         let attestations = vec![match &credential {
-            IssuedCredential::MsoMdoc(mdoc) => AttestationPresentation::create_from_mdoc(
+            IssuedCredential::MsoMdoc { mdoc } => AttestationPresentation::create_from_mdoc(
                 AttestationIdentity::Ephemeral,
                 type_metadata.to_normalized().unwrap(),
                 issuer_registration.organization.clone(),
                 mdoc.issuer_signed.clone().into_entries_by_namespace(),
             )
             .unwrap(),
-            IssuedCredential::SdJwt(sd_jwt) => {
+            IssuedCredential::SdJwt { sd_jwt, .. } => {
                 let payload = sd_jwt
                     .clone()
                     .into_inner()
@@ -1298,7 +1298,10 @@ mod tests {
         // instance of `MdocCopies`, which contains a single valid `Mdoc`.
         let (verified_sd_jwt, metadata) = create_example_pid_sd_jwt();
         let (pid_issuer, attestations) = mock_issuance_session(
-            IssuedCredential::SdJwt(Box::new(verified_sd_jwt.clone())),
+            IssuedCredential::SdJwt {
+                key_identifier: "key_id".to_string(),
+                sd_jwt: verified_sd_jwt.clone(),
+            },
             String::from(PID_ATTESTATION_TYPE),
             VerifiedTypeMetadataDocuments::nl_pid_example(),
         );
@@ -1630,7 +1633,10 @@ mod tests {
         // Have the mock OpenID4VCI session report some mdocs upon accepting.
         let (verified_sd_jwt, _metadata) = create_example_pid_sd_jwt();
         let (pid_issuer, attestations) = mock_issuance_session(
-            IssuedCredential::SdJwt(Box::new(verified_sd_jwt)),
+            IssuedCredential::SdJwt {
+                key_identifier: "key_id".to_string(),
+                sd_jwt: verified_sd_jwt.clone(),
+            },
             String::from(PID_ATTESTATION_TYPE),
             VerifiedTypeMetadataDocuments::nl_pid_example(),
         );
