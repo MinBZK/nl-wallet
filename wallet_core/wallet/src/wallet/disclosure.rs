@@ -701,7 +701,7 @@ where
                 attestations
                     .values()
                     .map(|attestation| attestation.attestation_copy_id())
-                    .dedup()
+                    .unique()
                     .collect(),
             )
             .await;

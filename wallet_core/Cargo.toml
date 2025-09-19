@@ -56,7 +56,7 @@ resolver = "2"
 [workspace.package]
 version = "0.4.0-dev"
 edition = "2024"
-rust-version = "1.89"
+rust-version = "1.90"
 
 [workspace.lints.rust]
 async_fn_in_trait = "allow"
@@ -172,6 +172,8 @@ ring = "0.17.12"
 rpassword = "7.3.1"
 rsa = { version = "0.9.7", default-features = false }
 rstest = "0.24.0"
+# held back by sea-orm / sqlx via libsqlite3-sys
+rusqlite = "0.32.1"
 rustls = { version = "0.23.22", default-features = false }
 rustls-pki-types = "1.11.0"
 rustls-webpki = "0.102.8"
