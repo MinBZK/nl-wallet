@@ -315,15 +315,16 @@ platform :ios do
       )
 
       upload_sentry_symbols
+      extract_entitlements
     end
   end
 
   desc "Extract entitlements file"
-  lane :entitlements do |options|
+  lane :extract_entitlements do |options|
+    # Substitute environment variables (with defaults) during extraction.
+    # This makes the target entitlements file better suitable as artifact.
     File.write("../wallet_app/build/ios/Runner.entitlements",
       File.read("../wallet_app/ios/Runner/Runner.entitlements")
-        # Substitute environment variables (with defaults) during extraction.
-        # This makes the target entitlements file better suitable as artifact.
         .gsub(/\$\(([^:]+):default=([^)]+)\)/) do
           ENV[Regexp.last_match(1)] || Regexp.last_match(2)
         end.tap { |entitlements| UI.message("Entitlements: \n #{entitlements}") }

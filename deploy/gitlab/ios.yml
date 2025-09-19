@@ -68,8 +68,6 @@ test-ios:
         universal_link_base:"${UL_HOSTNAME:-}" \
         build:"$((CI_PIPELINE_IID + APP_BUILD_OFFSET))" \
         version:"${VERSION:-}"
-    # Entitlements file
-    - bundle exec fastlane ios entitlements
     # Sign
     - |
       bundle exec fastlane ios sign \
