@@ -16,7 +16,7 @@ git config --global --add safe.directory $FLUTTER_HOME
 dart --disable-analytics
 flutter config --no-analytics
 
-flutter precache
+flutter precache --android
 flutter doctor --android-licenses
 
 dart pub global activate junitreport 2.0.2
