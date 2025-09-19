@@ -27,6 +27,7 @@ use sea_orm::sea_query::Query;
 use sea_query::OnConflict;
 use sea_query::Order;
 use sea_query::SimpleExpr;
+use tempfile::NamedTempFile;
 use tokio::fs;
 use tracing::warn;
 use uuid::Uuid;
@@ -60,6 +61,7 @@ use crate::AttestationPresentation;
 use crate::DisclosureStatus;
 
 use super::AttestationFormatQuery;
+use super::DatabaseExport;
 use super::Storage;
 use super::StorageError;
 use super::StorageResult;
@@ -305,12 +307,10 @@ where
     K: PlatformEncryptionKey,
 {
     /// This helper method uses [`get_or_create_key_file`] and the utilities in [`platform_support`]
-    /// to construct a [`SqliteUrl`] and a [`SqlCipherKey`], which in turn are used to create a [`Database`]
-    /// instance.
-    async fn open_encrypted_database(&self, name: &str) -> StorageResult<OpenDatabaseStorage<K>> {
+    /// to construct a [`SqlCipherKey`]
+    async fn key_for_name(&self, name: &str) -> StorageResult<(K, SqlCipherKey)> {
         let key_file_alias = key_file_alias_for_name(name);
         let key_file_key_identifier = key_identifier_for_key_file(&key_file_alias);
-        let database_path = self.database_path_for_name(name);
 
         // Get or create the encryption key for the key file contents. The identifier used
         // for this should be globally unique. If this is not the case, the same database is
@@ -327,6 +327,16 @@ where
         )
         .await?;
         let key = SqlCipherKey::try_from(key_bytes.as_slice())?;
+
+        Ok((key_file_key, key))
+    }
+
+    /// This helper method uses [`get_or_create_key_file`] and the utilities in [`platform_support`]
+    /// to construct a [`SqliteUrl`] and a [`SqlCipherKey`], which in turn are used to create a [`Database`]
+    /// instance.
+    async fn open_encrypted_database(&self, name: &str) -> StorageResult<OpenDatabaseStorage<K>> {
+        let database_path = self.database_path_for_name(name);
+        let (key_file_key, key) = self.key_for_name(name).await?;
 
         // Open database at the path, encrypted using the key
         let database = Database::open(SqliteUrl::File(database_path), key).await?;
@@ -366,6 +376,68 @@ where
         self.open_database.replace(open_database);
 
         Ok(())
+    }
+
+    async fn export(&mut self) -> StorageResult<DatabaseExport> {
+        if let Some(open_database) = self.open_database.take() {
+            open_database.database.close().await?;
+        };
+
+        let database_path = self.database_path_for_name(DATABASE_NAME);
+        let (_, key) = self.key_for_name(DATABASE_NAME).await?;
+
+        tokio::task::spawn_blocking(move || {
+            let connection = rusqlite::Connection::open(database_path)?;
+            connection.pragma_update(None, "key", String::from(key))?;
+
+            let export_key = SqlCipherKey::new_random_with_salt();
+            let export_file = NamedTempFile::new()?;
+            connection.execute(
+                "ATTACH DATABASE ?1 AS export KEY ?2",
+                [export_file.path().display().to_string(), String::from(export_key)],
+            )?;
+            connection.query_row("SELECT sqlcipher_export('export')", [], |row| {
+                row.get::<_, Option<i32>>(0)
+            })?;
+            connection.execute("DETACH DATABASE export", [])?;
+
+            let data = std::fs::read(export_file.path())?;
+            Ok(DatabaseExport::new(export_key, data))
+        })
+        .await?
+    }
+
+    async fn import(&mut self, export: DatabaseExport) -> StorageResult<()> {
+        if let Some(open_database) = self.open_database.take() {
+            open_database.database.close().await?;
+        };
+
+        let database_path = self.database_path_for_name(DATABASE_NAME);
+        let (_, key) = self.key_for_name(DATABASE_NAME).await?;
+        tokio::task::spawn_blocking(move || {
+            let import_file = NamedTempFile::new()?;
+            std::fs::write(import_file.path(), export.data)?;
+
+            let connection = rusqlite::Connection::open(import_file.path())?;
+            connection.pragma_update(None, "key", String::from(export.key).as_str())?;
+
+            // Use temporary file to create encrypted file
+            let encrypted_file = NamedTempFile::new()?;
+            connection.execute(
+                "ATTACH DATABASE ?1 AS encrypted KEY ?2",
+                [encrypted_file.path().display().to_string(), String::from(key)],
+            )?;
+            connection.query_row("SELECT sqlcipher_export('encrypted')", [], |row| {
+                row.get::<_, Option<i32>>(0)
+            })?;
+            connection.execute("DETACH DATABASE encrypted", [])?;
+
+            // Rename is atomic in fs
+            std::fs::rename(encrypted_file.path(), database_path)?;
+
+            Ok(())
+        })
+        .await?
     }
 
     /// Clear the contents of the database by closing it and removing both database and key file.
@@ -831,8 +903,6 @@ fn create_attestation_copy_models(
 
 #[cfg(any(test, feature = "test"))]
 pub mod in_memory_storage {
-    use crypto::utils::random_bytes;
-
     use platform_support::hw_keystore::mock::MockHardwareEncryptionKey;
 
     use crate::storage::DatabaseStorage;
@@ -848,8 +918,8 @@ pub mod in_memory_storage {
             let mut storage = DatabaseStorage::<MockHardwareEncryptionKey>::new("storage_path".into());
 
             // Create a test database, override the database field on Storage.
-            let key_bytes = random_bytes(SqlCipherKey::size_with_salt());
-            let database = Database::open(SqliteUrl::InMemory, key_bytes.as_slice().try_into().unwrap())
+            let key = SqlCipherKey::new_random_with_salt();
+            let database = Database::open(SqliteUrl::InMemory, key)
                 .await
                 .expect("Could not open in-memory database");
 
@@ -875,6 +945,8 @@ pub(crate) mod tests {
     use chrono::TimeZone;
     use chrono::Utc;
     use itertools::Itertools;
+    use serde::Deserialize;
+    use serde::Serialize;
     use tokio::fs;
 
     use attestation_data::auth::issuer_auth::IssuerRegistration;
@@ -976,6 +1048,42 @@ pub(crate) mod tests {
         // The database file should be gone and the key file encryption key should be absent.
         assert!(!fs::try_exists(&database_path).await.unwrap());
         assert!(!MockHardwareEncryptionKey::identifier_exists(&key_file_identifier));
+    }
+
+    #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+    struct TestData {
+        data: String,
+    }
+
+    impl KeyedData for TestData {
+        const KEY: &'static str = "test";
+    }
+
+    #[tokio::test]
+    async fn test_export_import() {
+        let test = TestData {
+            data: "Hello World!".to_string(),
+        };
+
+        // Export via block to have everything dropped
+        let transfer = {
+            let tempdir = tempfile::tempdir().unwrap();
+            let mut storage = DatabaseStorage::<MockHardwareEncryptionKey>::new(tempdir.as_ref().to_path_buf());
+
+            storage.open().await.unwrap();
+            storage.insert_data(&test).await.unwrap();
+            storage.export().await.unwrap()
+        };
+
+        // Import via new storage with new key
+        let tempdir = tempfile::tempdir().unwrap();
+        let mut storage = DatabaseStorage::<MockHardwareEncryptionKey>::new(tempdir.as_ref().to_path_buf());
+
+        storage.import(transfer).await.unwrap();
+        storage.open().await.unwrap();
+        let stored: Option<TestData> = storage.fetch_data().await.unwrap();
+
+        assert_eq!(Some(test), stored);
     }
 
     #[tokio::test]
