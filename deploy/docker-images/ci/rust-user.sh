@@ -5,7 +5,7 @@ wget --no-hsts -q -O ./rustup-init https://static.rust-lang.org/rustup/archive/1
 echo "20a06e644b0d9bd2fbdbfd52d42540bdde820ea7df86e92e533c073da0cdd43c  rustup-init" | sha256sum -c
 
 chmod +x ./rustup-init
-./rustup-init -y --default-toolchain 1.89.0 --profile minimal --component clippy,rustfmt
+./rustup-init -y --default-toolchain 1.90.0 --profile minimal --component clippy,rustfmt
 rm ./rustup-init
 
 rustup target add x86_64-unknown-linux-musl x86_64-unknown-linux-gnu

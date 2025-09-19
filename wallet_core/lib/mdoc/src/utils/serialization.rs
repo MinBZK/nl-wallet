@@ -1,4 +1,5 @@
 //! CBOR serialization: wrapper types that modify serialization and specialized (de)serialization implementations.
+use std::borrow::Cow;
 
 use base64::prelude::*;
 use ciborium::tag;
@@ -15,14 +16,13 @@ use serde::ser;
 use serde::ser::Serializer;
 use serde_aux::serde_introspection::serde_introspect;
 use serde_bytes::ByteBuf;
-use std::borrow::Cow;
-use url::Url;
 
 use error_category::ErrorCategory;
 
 use crate::iso::*;
 use crate::utils::cose::CoseKey;
 use crate::utils::cose::MdocCose;
+
 const CBOR_TAG_ENC_CBOR: u64 = 24;
 
 #[derive(thiserror::Error, Debug, ErrorCategory)]
@@ -340,20 +340,6 @@ pub struct ReaderAuthenticationString;
 impl RequiredValueTrait for ReaderAuthenticationString {
     type Type = Cow<'static, str>;
     const REQUIRED_VALUE: Cow<'static, str> = Cow::Borrowed("ReaderAuthentication");
-}
-
-#[derive(Serialize, Deserialize)]
-struct OriginInfoTypeSerialized {
-    #[serde(rename = "type")]
-    typ: u64,
-    #[serde(rename = "Details")] // This is capitalized in the standard for unknown reasons
-    details: Value,
-}
-
-#[derive(Serialize, Deserialize)]
-struct OriginInfoWebsiteDetails {
-    #[serde(rename = "ReferrerUrl")]
-    referrer_url: Url,
 }
 
 // Don't (de)serialize the CBOR tag when we serialize to JSON
