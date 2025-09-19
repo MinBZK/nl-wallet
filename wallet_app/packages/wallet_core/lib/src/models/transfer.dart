@@ -6,10 +6,11 @@
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-enum WalletTransferState {
-  WaitingForScan,
-  WaitingForApproval,
-  Transferring,
-  Error,
+enum TransferSessionState {
+  Created,
+  ReadyForTransfer,
+  ReadyForDownload,
   Success,
+  Cancelled,
+  Error,
 }

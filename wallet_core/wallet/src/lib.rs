@@ -30,6 +30,8 @@ pub use crate::wallet::UriType;
 pub use crate::wallet::Wallet;
 pub use crate::wallet::WalletClients;
 
+pub use wallet_account::messages::transfer::TransferSessionState;
+
 pub mod attestation_data {
     pub use attestation_data::attributes::Attribute;
     pub use attestation_data::attributes::AttributeValue;

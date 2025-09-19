@@ -9,10 +9,10 @@ use uuid::Uuid;
 use apple_app_attest::AssertionCounter;
 use hsm::model::encrypted::Encrypted;
 use hsm::model::wrapped_key::WrappedKey;
+use wallet_account::messages::transfer::TransferSessionState;
 
 use crate::model::wallet_user::InstructionChallenge;
 use crate::model::wallet_user::TransferSession;
-use crate::model::wallet_user::TransferSessionState;
 use crate::model::wallet_user::WalletUserCreate;
 use crate::model::wallet_user::WalletUserKeys;
 use crate::model::wallet_user::WalletUserQueryResult;
