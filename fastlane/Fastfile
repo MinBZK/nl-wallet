@@ -322,6 +322,8 @@ platform :ios do
   lane :entitlements do |options|
     File.write("../wallet_app/build/ios/Runner.entitlements",
       File.read("../wallet_app/ios/Runner/Runner.entitlements")
+        # Substitute environment variables (with defaults) during extraction.
+        # This makes the target entitlements file better suitable as artifact.
         .gsub(/\$\(([^:]+):default=([^)]+)\)/) do
           ENV[Regexp.last_match(1)] || Regexp.last_match(2)
         end.tap { |entitlements| UI.message("Entitlements: \n #{entitlements}") }
@@ -390,6 +392,8 @@ platform :ios do
     app_entitlements = File.read('../wallet_app/build/ios/Runner.entitlements')
     ipa_entitlements = Dir.mktmpdir('nl-wallet-ipa') do |tmp_path|
       sh('unzip', '-qd', tmp_path, "../#{ipa_file}")
+      # `codesign -d --entitlements - Runner.app --xml` extracts the entitlements of the app
+      # and outputs the XML on a single line (last line) after some other output.
       sh('codesign', '-d', '--entitlements', '-', "#{tmp_path}/Payload/Runner.app", '--xml').rstrip.split('\n')[-1]
     end
     File.write('entitlements.plist', Plist.parse_xml(app_entitlements).merge(Plist.parse_xml(ipa_entitlements)).to_plist)
