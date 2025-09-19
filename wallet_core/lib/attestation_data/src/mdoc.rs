@@ -104,7 +104,7 @@ mod test {
                 .into_issuer_signed(metadata_integrity, public_key, issuer_keypair)
                 .await?;
 
-            let mdoc = Mdoc::new_unverified(mso, private_key_id, issuer_signed, K::KEY_TYPE);
+            let mdoc = Mdoc::new_unverified(mso, private_key_id, issuer_signed);
 
             Ok(mdoc)
         }

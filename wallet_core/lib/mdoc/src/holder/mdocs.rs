@@ -8,7 +8,6 @@ use serde::Serialize;
 use ssri::Integrity;
 
 use crypto::keys::CredentialEcdsaKey;
-use crypto::keys::CredentialKeyType;
 use crypto::x509::BorrowingCertificate;
 use utils::generator::Generator;
 
@@ -34,7 +33,6 @@ pub struct Mdoc {
     // mdoc after deserialization.
     pub private_key_id: String,
     pub issuer_signed: IssuerSigned,
-    key_type: CredentialKeyType,
 }
 
 impl Mdoc {
@@ -50,7 +48,6 @@ impl Mdoc {
             mso,
             private_key_id,
             issuer_signed,
-            key_type: K::KEY_TYPE,
         };
         Ok(mdoc)
     }
@@ -76,8 +73,6 @@ impl Mdoc {
 
 #[cfg(any(test, feature = "test"))]
 mod test {
-    use crypto::CredentialKeyType;
-
     use crate::IssuerSigned;
     use crate::MobileSecurityObject;
     use crate::iso::mdocs::IssuerSignedItemBytes;
@@ -85,17 +80,11 @@ mod test {
     use super::Mdoc;
 
     impl Mdoc {
-        pub fn new_unverified(
-            mso: MobileSecurityObject,
-            private_key_id: String,
-            issuer_signed: IssuerSigned,
-            key_type: CredentialKeyType,
-        ) -> Self {
+        pub fn new_unverified(mso: MobileSecurityObject, private_key_id: String, issuer_signed: IssuerSigned) -> Self {
             Self {
                 mso,
                 private_key_id,
                 issuer_signed,
-                key_type,
             }
         }
 
