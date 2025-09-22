@@ -885,6 +885,94 @@ mod tests {
         assert_eq!(t, parsed);
     }
 
+    impl JwtTyp for ToyMessage {}
+
+    #[tokio::test]
+    async fn test_sign_and_verify_with_typ() {
+        let private_key = SigningKey::random(&mut OsRng);
+        let t = ToyMessage::default();
+
+        let jwt: UnverifiedJwt<_, _> = SignedJwt::sign_with_typ(&t, &private_key).await.unwrap().into();
+
+        // the JWT header has a `typ` with the expected value
+        let jwt_header: HashMap<String, serde_json::Value> = part(0, &jwt.serialization);
+        assert_eq!(
+            *jwt_header.get("typ").unwrap(),
+            serde_json::Value::String(ToyMessage::TYP.to_string())
+        );
+
+        // the JWT can be verified and parsed back into an identical value
+        let parsed = jwt
+            .parse_and_verify_with_typ(&private_key.verifying_key().into(), &DEFAULT_VALIDATIONS)
+            .unwrap();
+
+        assert_eq!(t, parsed);
+    }
+
+    #[tokio::test]
+    async fn test_sign_and_verify_with_missing_typ() {
+        let private_key = SigningKey::random(&mut OsRng);
+        let t = ToyMessage::default();
+
+        // sign without `typ`, serialize to string and parse to make the type system forget that this JWT doesn't have a
+        // `HeaderWithTyp`
+        let jwt: UnverifiedJwt<ToyMessage, HeaderWithTyp> = SignedJwt::sign(&JwtHeader::default(), &t, &private_key)
+            .await
+            .unwrap()
+            .to_string()
+            .as_str()
+            .parse()
+            .unwrap();
+
+        // the JWT has no `typ` field
+        let jwt_header: HashMap<String, serde_json::Value> = part(1, &jwt.serialization);
+        assert!(!jwt_header.contains_key("typ"));
+
+        // the JWT cannot be verified with `parse_and_verify_with_typ()`
+        let parsed = jwt
+            .parse_and_verify_with_typ(&private_key.verifying_key().into(), &DEFAULT_VALIDATIONS)
+            .expect_err("should fail because the JWT has no `typ` field");
+
+        assert_matches!(parsed, JwtError::HeaderConversion(_));
+    }
+
+    #[tokio::test]
+    async fn test_sign_and_verify_with_wrong_typ() {
+        let private_key = SigningKey::random(&mut OsRng);
+        let t = ToyMessage::default();
+
+        #[derive(Serialize, Deserialize)]
+        struct OtherMessage;
+
+        impl JwtTyp for OtherMessage {
+            const TYP: &'static str = "wrong_typ";
+        }
+
+        // sign with a `typ` not corresponding to the payload type
+        let jwt: UnverifiedJwt<ToyMessage, HeaderWithTyp> = SignedJwt::sign(
+            &HeaderWithTyp::new::<OtherMessage>(JwtHeader::default()),
+            &t,
+            &private_key,
+        )
+        .await
+        .unwrap()
+        .into();
+
+        // the JWT has a `sub` with the wrong value
+        let jwt_header: HashMap<String, serde_json::Value> = part(0, &jwt.serialization);
+        assert_eq!(
+            *jwt_header.get("typ").unwrap(),
+            serde_json::Value::String(OtherMessage::TYP.to_string())
+        );
+
+        // the JWT cannot be verified with `parse_and_verify_with_typ()`
+        let parsed = jwt
+            .parse_and_verify_with_typ(&private_key.verifying_key().into(), &DEFAULT_VALIDATIONS)
+            .expect_err("should fail because the JWT has the wrong `typ` field");
+
+        assert_matches!(parsed, JwtError::UnexpectedTyp(expected, found) if expected == ToyMessage::TYP && found == OtherMessage::TYP);
+    }
+
     #[tokio::test]
     async fn test_sign_and_verify() {
         let private_key = SigningKey::random(&mut OsRng);
