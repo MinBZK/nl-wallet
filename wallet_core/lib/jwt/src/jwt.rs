@@ -1094,6 +1094,46 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_parse_and_verify_jwt_with_jwk() {
+        let signing_key = SigningKey::random(&mut OsRng);
+
+        let payload = json!({"hello": "world"});
+        let jwt: UnverifiedJwt<_, _> = SignedJwt::sign_with_jwk(&payload, &signing_key).await.unwrap().into();
+
+        let (header, deserialized) = jwt.parse_and_verify_with_jwk(&DEFAULT_VALIDATIONS).unwrap();
+
+        assert_eq!(deserialized, payload);
+        assert_eq!(header.verifying_key().unwrap(), *signing_key.verifying_key());
+
+        let (header, deserialized) = jwt
+            .parse_and_verify_with_expected_jwk(signing_key.verifying_key(), &DEFAULT_VALIDATIONS)
+            .unwrap();
+
+        assert_eq!(deserialized, payload);
+        assert_eq!(header.verifying_key().unwrap(), *signing_key.verifying_key());
+    }
+
+    #[tokio::test]
+    async fn test_parse_and_verify_jwt_with_wrong_jwk() {
+        let signing_key = SigningKey::random(&mut OsRng);
+
+        let payload = json!({"hello": "world"});
+        let jwt: UnverifiedJwt<_, _> = SignedJwt::sign_with_jwk(&payload, &signing_key).await.unwrap().into();
+
+        let (header, deserialized) = jwt.parse_and_verify_with_jwk(&DEFAULT_VALIDATIONS).unwrap();
+
+        assert_eq!(deserialized, payload);
+        assert_eq!(header.verifying_key().unwrap(), *signing_key.verifying_key());
+
+        let wrong_key = SigningKey::random(&mut OsRng);
+        let error = jwt
+            .parse_and_verify_with_expected_jwk(wrong_key.verifying_key(), &DEFAULT_VALIDATIONS)
+            .expect_err("should fail because the expected key is different from the actual key");
+
+        assert_matches!(error, JwtError::Validation(_));
+    }
+
+    #[tokio::test]
     async fn test_parse_and_verify_jwt_with_cert_intermediates() {
         // Generate a chain of certificates
         let ca = Ca::generate_with_intermediate_count("myca", CertificateConfiguration::default(), 3).unwrap();
