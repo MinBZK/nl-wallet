@@ -263,6 +263,9 @@ pub enum InstructionError {
     #[error("wallet cannot be transferred between accounts having different recovery codes")]
     AccountTransferWalletsMismatch,
 
+    #[error("the wallet transfer session is in an illegal state")]
+    AccountTransferIllegalState,
+
     #[error(
         "cannot transfer wallets because of app version mismatch; source: {source_version}, destination: \
          {destination_version}"
@@ -444,7 +447,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             &RegistrationChallengeClaims {
                 wallet_id: crypto::utils::random_string(32),
                 random: crypto::utils::random_bytes(32),
-                exp: (Utc::now() + Duration::from_secs(60)),
+                exp: Utc::now() + Duration::from_secs(60),
             },
             certificate_signing_key,
         )
@@ -1986,7 +1989,7 @@ mod tests {
 
         let encrypted_new_pin_pubkey = Encrypter::<VerifyingKey>::encrypt(
             &MockPkcs11Client::<HsmError>::default(),
-            crate::wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER,
+            wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER,
             new_pin_pubkey,
         )
         .await
@@ -2302,7 +2305,7 @@ mod tests {
             .await
             .unwrap();
 
-        user_state.repositories.challenge = Some(crypto::utils::random_bytes(32));
+        user_state.repositories.challenge = Some(random_bytes(32));
 
         let tx = user_state.repositories.begin_transaction().await.unwrap();
         let wallet_user = user_state
@@ -2474,7 +2477,7 @@ mod tests {
             .await
             .unwrap();
 
-        user_state.repositories.challenge = Some(crypto::utils::random_bytes(32));
+        user_state.repositories.challenge = Some(random_bytes(32));
 
         let tx = user_state.repositories.begin_transaction().await.unwrap();
         let wallet_user = user_state
@@ -2771,10 +2774,7 @@ mod tests {
                 .await
                 .unwrap();
 
-        let pop_pin_pubkey = new_pin_privkey
-            .try_sign(crypto::utils::random_bytes(32).as_slice())
-            .await
-            .unwrap();
+        let pop_pin_pubkey = new_pin_privkey.try_sign(random_bytes(32).as_slice()).await.unwrap();
 
         user_state.repositories = WalletUserTestRepo {
             challenge: Some(challenge.clone()),

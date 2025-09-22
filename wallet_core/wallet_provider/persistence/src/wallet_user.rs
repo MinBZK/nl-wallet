@@ -692,13 +692,20 @@ where
     }
 }
 
-pub async fn clear_wallet_transfer_data<S, T>(db: &T, transer_session_id: Uuid) -> Result<()>
+pub async fn set_wallet_transfer_data<S, T>(
+    db: &T,
+    transer_session_id: Uuid,
+    encrypted_wallet_data: Option<String>,
+) -> Result<()>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
     let result = wallet_transfer::Entity::update_many()
-        .col_expr(wallet_transfer::Column::EncryptedWalletData, Expr::cust("null"))
+        .col_expr(
+            wallet_transfer::Column::EncryptedWalletData,
+            encrypted_wallet_data.map_or(Expr::cust("null"), Expr::value),
+        )
         .filter(wallet_transfer::Column::TransferSessionId.eq(transer_session_id))
         .exec(db.connection())
         .await

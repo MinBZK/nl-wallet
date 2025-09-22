@@ -35,6 +35,7 @@ use wallet_account::messages::instructions::InstructionChallengeRequest;
 use wallet_account::messages::instructions::InstructionResultMessage;
 use wallet_account::messages::instructions::PerformIssuance;
 use wallet_account::messages::instructions::PerformIssuanceWithWua;
+use wallet_account::messages::instructions::SendWalletPayload;
 use wallet_account::messages::instructions::Sign;
 use wallet_account::messages::instructions::StartPinRecovery;
 use wallet_account::messages::instructions::StartPinRecoveryResult;
@@ -133,6 +134,10 @@ where
                 .route(
                     &format!("/instructions/{}", DiscloseRecoveryCodePinRecovery::NAME),
                     post(disclose_recovery_code_pin_recovery),
+                )
+                .route(
+                    &format!("/instructions/{}", SendWalletPayload::NAME),
+                    post(send_wallet_payload),
                 )
                 .layer(TraceLayer::new_for_http())
                 .with_state(Arc::clone(&state)),
@@ -360,6 +365,19 @@ async fn get_transfer_status<GRC, PIC>(
         .handle_hw_signed_instruction(payload)
         .await
         .inspect_err(|error| warn!("handling GetTransferStatus instruction failed: {}", error))?;
+
+    Ok((StatusCode::OK, body.into()))
+}
+
+async fn send_wallet_payload<GRC, PIC>(
+    State(state): State<Arc<RouterState<GRC, PIC>>>,
+    Json(payload): Json<Instruction<SendWalletPayload>>,
+) -> Result<(StatusCode, Json<InstructionResultMessage<()>>)> {
+    info!("Received disclose recovery code request, handling the SendWalletPayload instruction");
+    let body = state
+        .handle_instruction(payload)
+        .await
+        .inspect_err(|error| warn!("handling SendWalletPayload instruction failed: {}", error))?;
 
     Ok((StatusCode::OK, body.into()))
 }
