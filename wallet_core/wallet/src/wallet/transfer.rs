@@ -7,6 +7,7 @@ use josekit::jwk::alg::ec::EcKeyPair;
 use tracing::info;
 use tracing::instrument;
 use url::Url;
+use uuid::Uuid;
 
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
@@ -19,6 +20,7 @@ use wallet_account::messages::instructions::CancelTransfer;
 use wallet_account::messages::instructions::ConfirmTransfer;
 use wallet_account::messages::instructions::GetTransferStatus;
 use wallet_account::messages::instructions::InstructionAndResult;
+use wallet_account::messages::instructions::SendWalletPayload;
 use wallet_account::messages::transfer::TransferSessionState;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
@@ -32,6 +34,9 @@ use crate::repository::Repository;
 use crate::storage::Storage;
 use crate::storage::StorageError;
 use crate::storage::TransferData;
+use crate::storage::TransferKeyData;
+use crate::transfer::database_payload::DatabasePayloadError;
+use crate::transfer::database_payload::WalletDatabasePayload;
 use crate::transfer::uri::TransferQuery;
 use crate::transfer::uri::TransferUriError;
 
@@ -66,13 +71,21 @@ pub enum TransferError {
     #[category(critical)]
     MissingTransferSessionId,
 
+    #[error("transfer public key not found in storage")]
+    #[category(critical)]
+    MissingTransferPublicKey,
+
     #[error("wallet is in an invalid state for a transfer")]
     #[category(critical)]
     IllegalWalletState,
 
-    #[error("jose error: {0}")]
+    #[error("error generating transfer key pair: {0}")]
     #[category(critical)]
-    JoseError(#[from] JoseError),
+    TransferKeyPairGeneration(#[from] JoseError),
+
+    #[error("database payload error: {0}")]
+    #[category(pd)]
+    DatabasePayload(#[from] DatabasePayloadError),
 
     #[error("invalid transfer uri: {0}")]
     #[category(pd)]
@@ -97,11 +110,16 @@ where
 
         self.validate_transfer_allowed()?;
 
-        let Some(transfer_data) = self.storage.read().await.fetch_data::<TransferData>().await? else {
+        let Some(mut transfer_data) = self.storage.read().await.fetch_data::<TransferData>().await? else {
             return Err(TransferError::MissingTransferSessionId);
         };
 
         let key_pair = EcKeyPair::generate(EcCurve::P256)?;
+
+        transfer_data.key_data = Some(TransferKeyData::Destination {
+            private_key: key_pair.to_jwk_private_key(),
+        });
+        self.storage.write().await.upsert_data(&transfer_data).await?;
 
         let query = TransferQuery {
             session_id: transfer_data.transfer_session_id,
@@ -127,6 +145,9 @@ where
             .await
             .insert_data(&TransferData {
                 transfer_session_id: transfer_query.session_id,
+                key_data: Some(TransferKeyData::Source {
+                    public_key: transfer_query.public_key,
+                }),
             })
             .await?;
 
@@ -165,6 +186,53 @@ where
             transfer_session_id: transfer_data.transfer_session_id.into(),
         })
         .await
+    }
+
+    #[instrument(skip_all)]
+    #[sentry_capture_error]
+    pub async fn send_wallet_payload(&mut self, pin: String) -> Result<(), TransferError> {
+        info!("Send wallet payload");
+
+        self.validate_transfer_allowed()?;
+
+        let Some(transfer_data) = self.storage.read().await.fetch_data::<TransferData>().await? else {
+            return Err(TransferError::MissingTransferSessionId);
+        };
+
+        let Some(TransferKeyData::Source { public_key }) = transfer_data.key_data else {
+            return Err(TransferError::MissingTransferPublicKey);
+        };
+
+        let database_export = self.storage.write().await.export().await?;
+        let database_payload = WalletDatabasePayload::new(database_export);
+
+        let transfer_session_id: Uuid = transfer_data.transfer_session_id.into();
+
+        let (attested_key, registration_data) = self
+            .registration
+            .as_key_and_registration_data()
+            .ok_or_else(|| TransferError::NotRegistered)?;
+
+        let config = self.config_repository.get();
+        let instruction_result_public_key = config.account_server.instruction_result_public_key.as_inner().into();
+
+        let remote_instruction = self
+            .new_instruction_client(
+                pin,
+                Arc::clone(attested_key),
+                registration_data.clone(),
+                config.account_server.http_config.clone(),
+                instruction_result_public_key,
+            )
+            .await?;
+
+        remote_instruction
+            .send(SendWalletPayload {
+                transfer_session_id,
+                payload: database_payload.encrypt(&public_key)?,
+            })
+            .await
+            .map_err(TransferError::Instruction)
     }
 
     fn validate_transfer_allowed(&self) -> Result<(), TransferError> {
@@ -222,13 +290,18 @@ where
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
+    use crypto::utils::random_bytes;
+    use parking_lot::Mutex;
     use url::Host;
     use uuid::Uuid;
-
     use wallet_account::messages::instructions::HwSignedInstruction;
+    use wallet_account::messages::instructions::Instruction;
 
     use crate::digid::MockDigidSession;
+    use crate::storage::ChangePinData;
+    use crate::storage::DatabaseExport;
     use crate::storage::InstructionData;
+    use crate::storage::test::SqlCipherKey;
     use crate::wallet::Session;
     use crate::wallet::test::create_wp_result;
 
@@ -299,8 +372,14 @@ mod tests {
             .returning(move || {
                 Ok(Some(TransferData {
                     transfer_session_id: transfer_session_id.into(),
+                    key_data: None,
                 }))
             });
+
+        wallet
+            .mut_storage()
+            .expect_upsert_data::<TransferData>()
+            .returning(|_| Ok(()));
 
         let (key_pair, url) = wallet
             .init_transfer()
@@ -352,7 +431,7 @@ mod tests {
             .unwrap()
             .expect_instruction_challenge()
             .once()
-            .returning(|_, _| Ok(crypto::utils::random_bytes(32)));
+            .returning(|_, _| Ok(random_bytes(32)));
 
         let wp_result = create_wp_result(());
 
@@ -396,6 +475,7 @@ mod tests {
             .returning(move || {
                 Ok(Some(TransferData {
                     transfer_session_id: transfer_session_id.into(),
+                    key_data: None,
                 }))
             });
 
@@ -408,7 +488,7 @@ mod tests {
             .unwrap()
             .expect_instruction_challenge()
             .once()
-            .returning(|_, _| Ok(crypto::utils::random_bytes(32)));
+            .returning(|_, _| Ok(random_bytes(32)));
 
         let wp_result = create_wp_result(());
 
@@ -445,6 +525,7 @@ mod tests {
             .returning(move || {
                 Ok(Some(TransferData {
                     transfer_session_id: transfer_session_id.into(),
+                    key_data: None,
                 }))
             });
 
@@ -457,7 +538,7 @@ mod tests {
             .unwrap()
             .expect_instruction_challenge()
             .once()
-            .returning(|_, _| Ok(crypto::utils::random_bytes(32)));
+            .returning(|_, _| Ok(random_bytes(32)));
 
         let wp_result = create_wp_result(TransferSessionState::ReadyForTransfer);
 
@@ -489,6 +570,7 @@ mod tests {
             .mut_storage()
             .insert_data(&TransferData {
                 transfer_session_id: transfer_session_id.into(),
+                key_data: None,
             })
             .await
             .unwrap();
@@ -504,7 +586,7 @@ mod tests {
             .unwrap()
             .expect_instruction_challenge()
             .once()
-            .returning(|_, _| Ok(crypto::utils::random_bytes(32)));
+            .returning(|_, _| Ok(random_bytes(32)));
 
         let wp_result = create_wp_result(());
 
@@ -525,7 +607,7 @@ mod tests {
             .unwrap()
             .expect_instruction_challenge()
             .once()
-            .returning(|_, _| Ok(crypto::utils::random_bytes(32)));
+            .returning(|_, _| Ok(random_bytes(32)));
 
         let wp_result = create_wp_result(TransferSessionState::ReadyForTransfer);
 
@@ -546,7 +628,7 @@ mod tests {
             .unwrap()
             .expect_instruction_challenge()
             .once()
-            .returning(|_, _| Ok(crypto::utils::random_bytes(32)));
+            .returning(|_, _| Ok(random_bytes(32)));
 
         let wp_result = create_wp_result(TransferSessionState::ReadyForTransfer);
 
@@ -569,7 +651,7 @@ mod tests {
             .unwrap()
             .expect_instruction_challenge()
             .once()
-            .returning(|_, _| Ok(crypto::utils::random_bytes(32)));
+            .returning(|_, _| Ok(random_bytes(32)));
 
         let wp_result = create_wp_result(());
 
@@ -588,7 +670,7 @@ mod tests {
             .unwrap()
             .expect_instruction_challenge()
             .once()
-            .returning(|_, _| Ok(crypto::utils::random_bytes(32)));
+            .returning(|_, _| Ok(random_bytes(32)));
 
         let wp_result = create_wp_result(());
 
@@ -602,5 +684,155 @@ mod tests {
             .cancel_transfer()
             .await
             .expect("Wallet cancel transfer should have succeeded");
+    }
+
+    #[tokio::test]
+    async fn test_send_wallet_payload() {
+        let mut destination_wallet =
+            TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+        let mut source_wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        let transfer_session_id = Uuid::new_v4();
+
+        // Init the transfer on the destination wallet
+
+        destination_wallet
+            .mut_storage()
+            .expect_fetch_data::<TransferData>()
+            .returning(move || {
+                Ok(Some(TransferData {
+                    transfer_session_id: transfer_session_id.into(),
+                    key_data: None,
+                }))
+            });
+
+        destination_wallet
+            .mut_storage()
+            .expect_upsert_data::<TransferData>()
+            .returning(|_| Ok(()));
+
+        let (key_pair, transfer_url) = destination_wallet
+            .init_transfer()
+            .await
+            .expect("Wallet init transfer should have succeeded");
+
+        // Then, confirm the transfer on the source wallet
+
+        source_wallet
+            .mut_storage()
+            .expect_insert_data::<TransferData>()
+            .returning(|_| Ok(()));
+
+        source_wallet
+            .mut_storage()
+            .expect_fetch_data::<InstructionData>()
+            .returning(|| {
+                Ok(Some(InstructionData {
+                    instruction_sequence_number: 0,
+                }))
+            });
+
+        source_wallet
+            .mut_storage()
+            .expect_upsert_data::<InstructionData>()
+            .returning(|_| Ok(()));
+
+        Arc::get_mut(&mut source_wallet.account_provider_client)
+            .unwrap()
+            .expect_instruction_challenge()
+            .once()
+            .returning(|_, _| Ok(random_bytes(32)));
+
+        let wp_result = create_wp_result(());
+
+        Arc::get_mut(&mut source_wallet.account_provider_client)
+            .unwrap()
+            .expect_hw_signed_instruction()
+            .once()
+            .return_once(move |_, _: HwSignedInstruction<ConfirmTransfer>| Ok(wp_result));
+
+        source_wallet
+            .confirm_transfer(transfer_url)
+            .await
+            .expect("Wallet confirm transfer should have succeeded");
+
+        // Send the wallet payload
+
+        let public_key = key_pair.to_jwk_public_key();
+        source_wallet
+            .mut_storage()
+            .expect_fetch_data::<TransferData>()
+            .returning(move || {
+                Ok(Some(TransferData {
+                    transfer_session_id: transfer_session_id.into(),
+                    key_data: Some(TransferKeyData::Source {
+                        public_key: public_key.clone(),
+                    }),
+                }))
+            });
+
+        let database_export_bytes = random_bytes(32);
+        let database_export_key = SqlCipherKey::new_random_with_salt();
+        let expected_database_export = DatabaseExport::new(database_export_key, database_export_bytes.clone());
+        source_wallet
+            .mut_storage()
+            .expect_export()
+            .returning(move || Ok(DatabaseExport::new(database_export_key, database_export_bytes.clone())));
+
+        source_wallet
+            .mut_storage()
+            .expect_fetch_data::<ChangePinData>()
+            .returning(|| Ok(None));
+
+        source_wallet
+            .mut_storage()
+            .expect_fetch_data::<InstructionData>()
+            .returning(|| {
+                Ok(Some(InstructionData {
+                    instruction_sequence_number: 0,
+                }))
+            });
+
+        source_wallet
+            .mut_storage()
+            .expect_upsert_data::<InstructionData>()
+            .returning(|_| Ok(()));
+
+        Arc::get_mut(&mut source_wallet.account_provider_client)
+            .unwrap()
+            .expect_instruction_challenge()
+            .once()
+            .returning(|_, _| Ok(random_bytes(32)));
+
+        let wp_result = create_wp_result(());
+
+        let payload_param: Arc<Mutex<Option<SendWalletPayload>>> = Arc::new(Mutex::new(None));
+        let payload_param_clone = Arc::clone(&payload_param);
+
+        Arc::get_mut(&mut source_wallet.account_provider_client)
+            .unwrap()
+            .expect_instruction()
+            .withf(move |_, instruction| {
+                payload_param_clone
+                    .lock()
+                    .replace(instruction.instruction.dangerous_parse_unverified().unwrap().payload);
+                true
+            })
+            .once()
+            .return_once(move |_, _: Instruction<SendWalletPayload>| Ok(wp_result));
+
+        source_wallet
+            .send_wallet_payload(String::from("12345"))
+            .await
+            .expect("Wallet send payload should have succeeded");
+
+        let instruction = payload_param.lock();
+        let payload = instruction.as_ref().unwrap();
+        assert_eq!(transfer_session_id, payload.transfer_session_id);
+
+        let decrypted_database_export =
+            WalletDatabasePayload::decrypt(payload.payload.as_str(), &key_pair.to_jwk_private_key()).unwrap();
+
+        assert!(decrypted_database_export.as_ref() == &expected_database_export)
     }
 }

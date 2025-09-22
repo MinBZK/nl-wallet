@@ -569,6 +569,7 @@ where
                 .await
                 .insert_data(&TransferData {
                     transfer_session_id: *transfer_session_id,
+                    key_data: None,
                 })
                 .await
                 .map_err(IssuanceError::TransferDataStorage)?;

@@ -42,6 +42,7 @@ pub use self::data::KeyData;
 pub use self::data::KeyedData;
 pub use self::data::RegistrationData;
 pub use self::data::TransferData;
+pub use self::data::TransferKeyData;
 pub use self::data::UnlockData;
 pub use self::data::UnlockMethod;
 pub use self::database_storage::DatabaseStorage;
@@ -49,6 +50,11 @@ pub use self::event_log::DataDisclosureStatus;
 pub use self::event_log::DisclosureStatus;
 pub use self::event_log::WalletEvent;
 pub use self::key_file::KeyFileError;
+
+#[cfg(test)]
+pub mod test {
+    pub use crate::storage::sql_cipher_key::SqlCipherKey;
+}
 
 /// This represents the current start of [`Storage`].
 #[derive(Debug, Clone, Copy)]
@@ -127,7 +133,7 @@ pub enum AttestationFormatQuery {
 /// Database export with one time key and the data.
 /// Using an encrypted database because SQLCipher exports to file system,
 /// and we do not want an unencrypted file written to disk.
-#[derive(Constructor, Serialize, Deserialize)]
+#[derive(Constructor, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DatabaseExport {
     key: SqlCipherKey,
     data: Vec<u8>,
