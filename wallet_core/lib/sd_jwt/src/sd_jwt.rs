@@ -445,7 +445,7 @@ impl SdJwtPresentation {
     }
 
     pub fn verifying_key(&self) -> VerifyingKey {
-        // TODO (PVW-4817): The presence of the key binding and the guaranteed that it can be parsed to a `VerifyingKey`
+        // TODO (PVW-4817): The presence of the key binding and the guarantee that it can be parsed to a `VerifyingKey`
         //                  is inherent to the type, as this should already have been done by the two ways to construct
         //                  it:
         //
