@@ -2,12 +2,12 @@ use std::collections::HashMap;
 
 use base64::Engine;
 use base64::prelude::BASE64_URL_SAFE_NO_PAD;
-use chrono::Duration;
+use chrono::DateTime;
+use chrono::Utc;
 use futures::FutureExt;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::jwk::Jwk;
-use p256::ecdsa::SigningKey;
-use rand_core::OsRng;
+use p256::ecdsa::VerifyingKey;
 use serde_json::json;
 use ssri::Integrity;
 
@@ -16,6 +16,7 @@ use crypto::server_keys::KeyPair;
 use crypto::utils::random_string;
 use jwt::EcdsaDecodingKey;
 use jwt::jwk::jwk_to_p256;
+use utils::generator::Generator;
 
 use crate::builder::SdJwtBuilder;
 use crate::disclosure::Disclosure;
@@ -23,7 +24,6 @@ use crate::disclosure::DisclosureContent;
 use crate::hasher::Hasher;
 use crate::hasher::Sha256Hasher;
 use crate::sd_jwt::SdJwt;
-use crate::sd_jwt::SdJwtPresentation;
 
 // Taken from https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-17.html#name-simple-structured-sd-jwt
 pub const SIMPLE_STRUCTURED_SD_JWT: &str = include_str!("../examples/spec/simple_structured.jwt");
@@ -44,7 +44,7 @@ pub const WITH_KB_SD_JWT_NONCE: &str = "1234567890";
 // 0}]]
 pub const INVALID_DISCLOSURE_SD_JWT: &str = include_str!("../examples/invalid_disclosure.jwt");
 
-impl SdJwtPresentation {
+impl SdJwt {
     pub fn spec_simple_structured() -> SdJwt {
         SdJwt::parse_and_verify(SIMPLE_STRUCTURED_SD_JWT, &examples_sd_jwt_decoding_key()).unwrap()
     }
@@ -57,32 +57,19 @@ impl SdJwtPresentation {
         SdJwt::parse_and_verify(SD_JWT_VC, &examples_sd_jwt_decoding_key()).unwrap()
     }
 
-    pub fn spec_sd_jwt_kb() -> SdJwtPresentation {
-        SdJwtPresentation::parse_and_verify(
-            WITH_KB_SD_JWT,
-            &examples_sd_jwt_decoding_key(),
-            WITH_KB_SD_JWT_AUD,
-            WITH_KB_SD_JWT_NONCE,
-            Duration::minutes(2),
-        )
-        .unwrap()
-    }
-
-    pub fn example_pid_sd_jwt(issuer_keypair: &KeyPair) -> SdJwt {
+    pub fn example_pid_sd_jwt(issuer_keypair: &KeyPair, holder_public_key: &VerifyingKey) -> SdJwt {
         let object = json!({
           "vct": "urn:eudi:pid:nl:1",
           "iat": 1683000000,
           "exp": 1883000000,
           "iss": "https://cert.issuer.example.com",
           "attestation_qualification": "QEAA",
-          "bsn": "999991772",
+          "bsn": "999999999",
           "recovery_code": "885ed8a2-f07a-4f77-a8df-2e166f5ebd36",
-          "given_name": "John",
-          "family_name": "Doe",
+          "given_name": "Willeke Liselotte",
+          "family_name": "De Bruijn",
           "birthdate": "1940-01-01"
         });
-
-        let holder_privkey = SigningKey::random(&mut OsRng);
 
         // issuer signs SD-JWT
         SdJwtBuilder::new(object)
@@ -108,11 +95,18 @@ impl SdJwtPresentation {
                 Integrity::from(random_string(32)),
                 issuer_keypair.private_key(),
                 vec![issuer_keypair.certificate().clone()],
-                holder_privkey.verifying_key(),
+                holder_public_key,
             )
             .now_or_never()
             .unwrap()
             .unwrap()
+    }
+}
+
+pub struct KeyBindingExampleTimeGenerator;
+impl Generator<DateTime<Utc>> for KeyBindingExampleTimeGenerator {
+    fn generate(&self) -> DateTime<Utc> {
+        DateTime::from_timestamp(1683000000, 0).unwrap()
     }
 }
 

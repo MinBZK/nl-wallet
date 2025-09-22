@@ -493,6 +493,12 @@ pub mod mock {
                 .unwrap()
         }
 
+        pub fn new_mock_sd_jwt_pid_example() -> Self {
+            vec![NormalizedCredentialRequest::new_mock_sd_jwt_pid_example()]
+                .try_into()
+                .unwrap()
+        }
+
         pub fn example_with_single_credential() -> Self {
             vec![NormalizedCredentialRequest::new_mock_from_slices(
                 "my_credential",
@@ -603,6 +609,15 @@ pub mod mock {
                 MockCredentialFormat::MsoMdoc { intent_to_retain: None },
                 &[PID],
                 &[&[PID, "bsn"], &[PID, "given_name"], &[PID, "family_name"]],
+            )
+        }
+
+        pub fn new_mock_sd_jwt_pid_example() -> Self {
+            Self::new_mock_from_slices(
+                "sd_jwt_pid_example",
+                MockCredentialFormat::SdJwt,
+                &[PID],
+                &[&["bsn"], &["given_name"], &["family_name"]],
             )
         }
     }

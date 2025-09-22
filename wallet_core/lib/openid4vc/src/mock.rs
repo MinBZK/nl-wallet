@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use chrono::Utc;
 use indexmap::IndexSet;
 use rustls_pki_types::TrustAnchor;
 
@@ -8,7 +7,6 @@ use attestation_data::auth::issuer_auth::IssuerRegistration;
 use crypto::server_keys::generate::Ca;
 use http_utils::urls::BaseUrl;
 use jwt::jwk::jwk_to_p256;
-use mdoc::IssuerSigned;
 use mdoc::holder::Mdoc;
 use mdoc::test::TestDocument;
 use wscd::wscd::Wscd;
@@ -142,16 +140,6 @@ impl TokenRequest {
             redirect_uri: None,
         }
     }
-}
-
-pub async fn test_document_to_issuer_signed<W>(doc: TestDocument, ca: &Ca, wscd: &W) -> (IssuerSigned, W::Key)
-where
-    W: Wscd,
-{
-    let key = generate_key(wscd).await;
-
-    let issuer_signed = doc.issuer_signed(ca, &key, Utc::now()).await;
-    (issuer_signed, key)
 }
 
 pub async fn test_document_to_mdoc<W>(doc: TestDocument, ca: &Ca, wscd: &W) -> Mdoc

@@ -13,6 +13,7 @@ use crate::errors::Error;
 use crate::iso::*;
 use crate::utils::cose::CoseError;
 use crate::utils::serialization::TaggedBytes;
+use crate::verifier::IssuerSignedVerificationResult;
 use crate::verifier::ValidityRequirement;
 
 use super::HolderError;
@@ -38,12 +39,17 @@ impl Mdoc {
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
     ) -> crate::Result<Mdoc> {
-        let (_, mso) = issuer_signed.verify(ValidityRequirement::AllowNotYetValid, time, trust_anchors)?;
+        // Unfortunately we have to discard the `attributes` here, even though
+        // the only consumer of this function will need them right away.
+        let IssuerSignedVerificationResult { mso, .. } =
+            issuer_signed.verify(ValidityRequirement::AllowNotYetValid, time, trust_anchors)?;
+
         let mdoc = Mdoc {
             mso,
             private_key_id,
             issuer_signed,
         };
+
         Ok(mdoc)
     }
 

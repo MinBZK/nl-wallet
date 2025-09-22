@@ -99,11 +99,17 @@ pub struct CredentialResponses {
 }
 
 /// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#name-credential-response>.
+#[serde_as]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "format", rename_all = "snake_case")]
 pub enum CredentialResponse {
-    MsoMdoc { credential: Box<CborBase64<IssuerSigned>> },
-    SdJwt { credential: String },
+    MsoMdoc {
+        #[serde_as(as = "Box<CborBase64>")]
+        credential: Box<IssuerSigned>,
+    },
+    SdJwt {
+        credential: String,
+    },
 }
 
 impl CredentialResponse {

@@ -28,7 +28,7 @@ allow_insecure_url = ["http_utils/allow_insecure_url"]
 # Include mock implementations for testing
 mock = ["dep:mockall", "wscd/mock", "crypto/generate", "mdoc/test"]
 # Include miscellaneous test utilities
-test = ["jwt/test", "wscd/mock", "wscd/mock", "dep:assert_matches", "dep:parking_lot"]
+test = ["jwt/test", "wscd/mock", "dep:assert_matches", "dep:parking_lot"]
 # All features needed to run the integration test
 integration = ["mock", "test", "example_constructors", "attestation_data/test", "attestation_data/test_document"]
 # Credential payload examples
@@ -61,6 +61,7 @@ http.workspace = true
 indexmap.workspace = true
 itertools.workspace = true
 josekit = { workspace = true, features = ["vendored"] }
+jsonwebtoken.workspace = true
 mime.workspace = true
 nutype = { workspace = true, features = ["serde"] }
 p256 = { workspace = true, features = ["ecdsa", "pem", "serde", "std"] }
@@ -116,6 +117,7 @@ dcql = { path = "../dcql", features = ["mock", "test_document"] }
 http_utils = { path = "../http_utils", features = ["insecure_http_client"] }
 jwt = { path = "../jwt", features = ["test"] }
 mdoc = { path = "../mdoc", features = ["test", "mock_example_constructors"] }
+sd_jwt = { path = "../sd_jwt", features = ["examples"] }
 sd_jwt_vc_metadata = { path = "../sd_jwt_vc_metadata", features = ["example_constructors"] }
 utils = { path = "../utils", features = ["mock_time"] }
 wscd = { path = "../wscd", features = ["mock"] }

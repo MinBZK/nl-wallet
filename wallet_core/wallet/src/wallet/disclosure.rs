@@ -28,6 +28,7 @@ use error_category::sentry_capture_error;
 use http_utils::tls::pinning::TlsPinningConfig;
 use http_utils::urls::BaseUrl;
 use mdoc::utils::cose::CoseError;
+use openid4vc::disclosure_session::DisclosableAttestations;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::DisclosureSession;
 use openid4vc::disclosure_session::VpClientError;
@@ -36,6 +37,7 @@ use openid4vc::disclosure_session::VpVerifierError;
 use openid4vc::verifier::SessionType;
 use platform_support::attested_key::AttestedKeyHolder;
 use update_policy_model::update_policy::VersionState;
+use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 use wallet_configuration::wallet_config::WalletConfiguration;
@@ -736,7 +738,7 @@ where
         }
 
         // Clone some values from `WalletDisclosureSession`, before we have to give away ownership of it.
-        let disclosable_attestations = attestations
+        let partial_mdocs = attestations
             .iter()
             .map(|(id, attestation)| {
                 let partial_mdoc = match attestation.partial_attestation() {
@@ -749,6 +751,9 @@ where
                 (id.clone(), vec_nonempty![partial_mdoc])
             })
             .collect();
+        // Unwrapping to `NonEmptyDisclosableAttestations` is safe, as the logic in `accept_disclosure()`
+        // guarantees that `WalletDisclosureSession` contains at least one attestation.
+        let disclosable_attestations = DisclosableAttestations::MsoMdoc(partial_mdocs).try_into().unwrap();
 
         // Take ownership of the disclosure session and actually perform disclosure, casting any
         // `InstructionError` that occurs during signing to `RemoteEcdsaKeyError::Instruction`.
@@ -758,7 +763,7 @@ where
         };
         let result = session
             .protocol_state
-            .disclose(disclosable_attestations, &remote_wscd)
+            .disclose(disclosable_attestations, &remote_wscd, &TimeGenerator)
             .await;
         let return_url = match result {
             Ok(return_url) => return_url.map(BaseUrl::into_inner),
@@ -892,6 +897,7 @@ mod tests {
     use mdoc::utils::cose::CoseError;
     use openid4vc::PostAuthResponseErrorCode;
     use openid4vc::disclosure_session;
+    use openid4vc::disclosure_session::DisclosableAttestations;
     use openid4vc::disclosure_session::DisclosureUriSource;
     use openid4vc::disclosure_session::VerifierCertificate;
     use openid4vc::disclosure_session::VpClientError;
@@ -1203,8 +1209,13 @@ mod tests {
             .protocol_state
             .expect_disclose()
             .times(1)
-            .withf(|partial_mdocs| {
-                // Make sure that only one attestation with a single attribute is disclosed.
+            .withf(|disclosable_attestations| {
+                // Make sure that only one mdoc attestation with a single attribute is disclosed.
+                let DisclosableAttestations::MsoMdoc(partial_mdocs) = disclosable_attestations.clone().into_inner()
+                else {
+                    panic!("disclosed format should be mdoc");
+                };
+
                 partial_mdocs
                     .clone()
                     .into_values()
