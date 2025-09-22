@@ -136,12 +136,7 @@ impl TryFrom<SdJwt> for DisclosedAttestation {
     type Error = DisclosedAttestationError;
 
     fn try_from(sd_jwt: SdJwt) -> Result<Self, Self::Error> {
-        let claims = sd_jwt.claims();
-        let validity_info = ValidityInfo {
-            signed: claims.iat.clone().into_inner().into(),
-            valid_from: claims.nbf.map(Into::into),
-            valid_until: claims.exp.map(Into::into),
-        };
+        let attributes = sd_jwt.to_disclosed_object()?.try_into()?;
 
         let ca = sd_jwt
             .issuer_certificate()
@@ -150,15 +145,21 @@ impl TryFrom<SdJwt> for DisclosedAttestation {
             .first()
             .ok_or(DisclosedAttestationError::EmptyIssuerCommonName)?
             .to_string();
-        let attributes = sd_jwt.to_disclosed_object()?.try_into()?;
+
+        let claims = sd_jwt.into_claims();
+
+        let attestation_type = claims.vct.ok_or(DisclosedAttestationError::MissingAttributes("vct"))?;
+
+        let validity_info = ValidityInfo {
+            signed: claims.iat.into_inner().into(),
+            valid_from: claims.nbf.map(Into::into),
+            valid_until: claims.exp.map(Into::into),
+        };
+
         Ok(DisclosedAttestation {
-            attestation_type: claims
-                .vct
-                .as_ref()
-                .ok_or(DisclosedAttestationError::MissingAttributes("vct"))?
-                .to_owned(),
+            attestation_type,
             attributes,
-            issuer_uri: claims.iss.clone().into_inner(),
+            issuer_uri: claims.iss.into_inner(),
             ca,
             validity_info,
         })

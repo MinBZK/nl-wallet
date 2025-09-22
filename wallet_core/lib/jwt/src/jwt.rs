@@ -285,6 +285,10 @@ impl<T> VerifiedJwt<T> {
         &self.payload
     }
 
+    pub fn into_payload(self) -> T {
+        self.payload
+    }
+
     pub fn jwt(&self) -> &UnverifiedJwt<T> {
         &self.jwt
     }
