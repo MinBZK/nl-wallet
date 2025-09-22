@@ -1,4 +1,4 @@
-# Use Case 6.2 Show card history
+# Use Case 6.3 Show history event
 
 ## Overview
 
