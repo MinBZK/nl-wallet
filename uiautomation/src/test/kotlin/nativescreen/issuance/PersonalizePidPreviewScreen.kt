@@ -10,7 +10,7 @@ class PersonalizePidPreviewScreen : NativeMobileActions() {
 
     fun visible() = elementWithTextVisible(walletPersonalizeCheckDataOfferingPageTitle)
 
-    fun humanReadableCardDataVisible(cardData: String): Boolean = elementContainingTextVisible(cardData)
+    fun humanReadableCardDataVisible(cardData: String) = elementContainingTextVisible(cardData)
 
     fun confirmButtonsVisible(): Boolean {
         scrollToElementWithText(rejectButton)

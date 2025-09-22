@@ -11,6 +11,7 @@ import '../widget/spacer/sliver_sized_box.dart';
 import '../widget/text/body_text.dart';
 import '../widget/text/title_text.dart';
 import '../widget/wallet_app_bar.dart';
+import '../widget/wallet_scrollbar.dart';
 
 class TerminalScreen extends StatelessWidget {
   final String title;
@@ -36,40 +37,43 @@ class TerminalScreen extends StatelessWidget {
         automaticallyImplyLeading: false,
         actions: const [HelpIconButton()],
       ),
-      body: CustomScrollView(
-        slivers: [
-          const SliverSizedBox(height: 12),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: TitleText(title),
+      body: WalletScrollbar(
+        child: CustomScrollView(
+          slivers: [
+            const SliverSizedBox(height: 12),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: TitleText(title),
+              ),
             ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: BodyText(description),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: BodyText(description),
+              ),
             ),
-          ),
-          const SliverSizedBox(height: 24),
-          SliverToBoxAdapter(
-            child: PageIllustration(asset: illustration),
-          ),
-          SliverFillRemaining(
-            hasScrollBody: false,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                const Divider(),
-                ConfirmButtons(
-                  primaryButton: primaryButton,
-                  secondaryButton: secondaryButton ?? const NeverFitsWidthWidget(child: SizedBox.shrink()),
-                  hideSecondaryButton: secondaryButton == null,
-                ),
-              ],
+            const SliverSizedBox(height: 24),
+            SliverToBoxAdapter(
+              child: PageIllustration(asset: illustration),
             ),
-          ),
-        ],
+            const SliverSizedBox(height: 24),
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  const Divider(),
+                  ConfirmButtons(
+                    primaryButton: primaryButton,
+                    secondaryButton: secondaryButton ?? const NeverFitsWidthWidget(child: SizedBox.shrink()),
+                    hideSecondaryButton: secondaryButton == null,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

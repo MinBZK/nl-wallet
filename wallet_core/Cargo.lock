@@ -7744,6 +7744,7 @@ dependencies = [
  "thiserror 2.0.11",
  "utils",
  "uuid",
+ "wallet_account",
 ]
 
 [[package]]
@@ -7779,6 +7780,7 @@ dependencies = [
  "tracing-subscriber",
  "utils",
  "uuid",
+ "wallet_account",
  "wallet_provider_database_settings",
  "wallet_provider_domain",
 ]

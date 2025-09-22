@@ -65,9 +65,9 @@ open class NativeMobileActions {
         return element
     }
 
-    protected fun getTopLeftOfElementWithText(text: String): Pair<Double, Double>? =
+    protected fun getTopLeftOfElementContainingText(text: String): Pair<Double, Double>? =
         try {
-            val element = findElementByText(text)
+            val element = findElementByPartialText(text)
             val r = element.rect
             Pair(r.x.toDouble(), r.y.toDouble())
         } catch (_: Exception) {
@@ -181,12 +181,9 @@ open class NativeMobileActions {
             // the loaded web page and the browser startup screen shortly after browser startup.
             Thread.sleep(1000)
 
-            // Switch to the last window handle (a.k.a. tab) if local
-            val windowHandles = if (testConfig.remote) { setOf() } else { (driver as AppiumDriver).windowHandles }
-
-            if (windowHandles.isNotEmpty()) {
-                driver.switchTo().window(windowHandles.last())
-            }
+            // Switch to the last window handle (a.k.a. tab)
+            val windowHandles = (driver as AppiumDriver).windowHandles
+            driver.switchTo().window(windowHandles.last())
         }
     }
 

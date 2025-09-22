@@ -9,10 +9,10 @@ use uuid::Uuid;
 use apple_app_attest::AssertionCounter;
 use hsm::model::encrypted::Encrypted;
 use hsm::model::wrapped_key::WrappedKey;
+use wallet_account::messages::transfer::TransferSessionState;
 
 use crate::model::wallet_user::InstructionChallenge;
 use crate::model::wallet_user::TransferSession;
-use crate::model::wallet_user::TransferSessionState;
 use crate::model::wallet_user::WalletUserCreate;
 use crate::model::wallet_user::WalletUserKeys;
 use crate::model::wallet_user::WalletUserQueryResult;
@@ -81,6 +81,13 @@ pub trait WalletUserRepository {
     async fn rollback_pin_change(&self, transaction: &Self::TransactionType, wallet_id: &str) -> Result<()>;
 
     async fn store_recovery_code(
+        &self,
+        transaction: &Self::TransactionType,
+        wallet_id: &str,
+        recovery_code: String,
+    ) -> Result<()>;
+
+    async fn recover_pin_with_recovery_code(
         &self,
         transaction: &Self::TransactionType,
         wallet_id: &str,
@@ -247,6 +254,15 @@ pub mod mock {
         }
 
         async fn store_recovery_code(
+            &self,
+            _transaction: &Self::TransactionType,
+            _wallet_id: &str,
+            _recovery_code: String,
+        ) -> Result<()> {
+            Ok(())
+        }
+
+        async fn recover_pin_with_recovery_code(
             &self,
             _transaction: &Self::TransactionType,
             _wallet_id: &str,

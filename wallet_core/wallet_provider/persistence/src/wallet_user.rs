@@ -26,9 +26,9 @@ use uuid::Uuid;
 use apple_app_attest::AssertionCounter;
 use hsm::model::encrypted::Encrypted;
 use hsm::model::encrypted::InitializationVector;
+use wallet_account::messages::transfer::TransferSessionState;
 use wallet_provider_domain::model::wallet_user::InstructionChallenge;
 use wallet_provider_domain::model::wallet_user::TransferSession;
-use wallet_provider_domain::model::wallet_user::TransferSessionState;
 use wallet_provider_domain::model::wallet_user::WalletUser;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestation;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestationCreate;
@@ -555,6 +555,33 @@ where
             wallet_user::Column::WalletId
                 .eq(wallet_id)
                 .and(wallet_user::Column::RecoveryCode.is_null()),
+        )
+        .exec(db.connection())
+        .await
+        .map_err(|e| PersistenceError::Execution(e.into()))?;
+
+    match result.rows_affected {
+        0 => Err(PersistenceError::NoRowsUpdated),
+        1 => Ok(()),
+        _ => panic!("multiple `wallet_user`s with the same `wallet_id`"),
+    }
+}
+
+pub async fn recover_pin_with_recovery_code<S, T>(db: &T, wallet_id: &str, recovery_code: String) -> Result<()>
+where
+    S: ConnectionTrait,
+    T: PersistenceConnection<S>,
+{
+    let result = wallet_user::Entity::update_many()
+        .col_expr(
+            wallet_user::Column::State,
+            Expr::value(WalletUserState::Active.to_string()),
+        )
+        .filter(
+            wallet_user::Column::WalletId
+                .eq(wallet_id)
+                .and(wallet_user::Column::RecoveryCode.eq(recovery_code))
+                .and(wallet_user::Column::State.eq(WalletUserState::RecoveringPin.to_string())),
         )
         .exec(db.connection())
         .await

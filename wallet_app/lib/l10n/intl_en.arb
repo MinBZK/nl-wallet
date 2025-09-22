@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2025-09-18T11:09:01+02:00",
+    "@@last_modified": "2025-09-18T14:27:23+02:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -1031,10 +1031,8 @@
     "pinValidationErrorDialogTitle": "This PIN is too simple",
     "pinValidationErrorDialogTooFewUniqueDigitsError": "Choose a PIN with different digits.",
     "placeholderScreenContractDescription": "The contract will be displayed here.",
-    "placeholderScreenGenericDescription": "Do you have questions or need help? The NL Wallet team is ready to assist you during the trial. Speak to someone, they will help you further.",
+    "placeholderScreenGenericDescription": "Please try again later.",
     "placeholderScreenHeadline": "Sorry, this page is still under construction.",
-    "placeholderScreenHelpDescription": "During the trial, the NL Wallet team is ready to assist you. Speak to someone, and they will help you further.",
-    "placeholderScreenHelpHeadline": "Do you have any questions or need help?",
     "policyScreenDataCanBeDeleted": "You can have data deleted",
     "policyScreenDataCanBeDeletedDescription": "The organization offers a way to have your data deleted.",
     "policyScreenDataCanNotBeDeleted": "You cannot have data deleted",

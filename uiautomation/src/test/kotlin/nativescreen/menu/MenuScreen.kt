@@ -14,7 +14,7 @@ class MenuScreen : NativeMobileActions() {
     private val bottomBackButton = l10n.getString("generalBottomBackCta")
     private val browserTestButton = "Browser Test"
 
-    fun menuListButtonsVisible(): Boolean =
+    fun menuListButtonsVisible() =
         elementWithTextVisible(helpButton) && elementWithTextVisible(historyButton) && elementWithTextVisible(settingsButton) &&
             elementWithTextVisible(feedbackButton) && elementWithTextVisible(aboutButton)
 

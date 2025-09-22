@@ -11,9 +11,9 @@ use uuid::Uuid;
 use apple_app_attest::AssertionCounter;
 use hsm::model::encrypted::Encrypted;
 use hsm::model::wrapped_key::WrappedKey;
+use wallet_account::messages::transfer::TransferSessionState;
 use wallet_provider_domain::model::wallet_user::InstructionChallenge;
 use wallet_provider_domain::model::wallet_user::TransferSession;
-use wallet_provider_domain::model::wallet_user::TransferSessionState;
 use wallet_provider_domain::model::wallet_user::WalletUserCreate;
 use wallet_provider_domain::model::wallet_user::WalletUserKeys;
 use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
@@ -168,6 +168,15 @@ impl WalletUserRepository for Repositories {
         wallet_user::store_recovery_code(transaction, wallet_id, recovery_code).await
     }
 
+    async fn recover_pin_with_recovery_code(
+        &self,
+        transaction: &Self::TransactionType,
+        wallet_id: &str,
+        recovery_code: String,
+    ) -> Result<(), PersistenceError> {
+        wallet_user::recover_pin_with_recovery_code(transaction, wallet_id, recovery_code).await
+    }
+
     async fn has_multiple_active_accounts_by_recovery_code(
         &self,
         transaction: &Self::TransactionType,
@@ -238,9 +247,9 @@ pub mod mock {
     use apple_app_attest::AssertionCounter;
     use hsm::model::encrypted::Encrypted;
     use hsm::model::wrapped_key::WrappedKey;
+    use wallet_account::messages::transfer::TransferSessionState;
     use wallet_provider_domain::model::wallet_user::InstructionChallenge;
     use wallet_provider_domain::model::wallet_user::TransferSession;
-    use wallet_provider_domain::model::wallet_user::TransferSessionState;
     use wallet_provider_domain::model::wallet_user::WalletUser;
     use wallet_provider_domain::model::wallet_user::WalletUserAttestation;
     use wallet_provider_domain::model::wallet_user::WalletUserCreate;
@@ -346,6 +355,13 @@ pub mod mock {
             ) -> Result<(), PersistenceError>;
 
             async fn store_recovery_code(
+                &self,
+                transaction: &MockTransaction,
+                wallet_id: &str,
+                recovery_code: String,
+            ) -> Result<(), PersistenceError>;
+
+            async fn recover_pin_with_recovery_code(
                 &self,
                 transaction: &MockTransaction,
                 wallet_id: &str,
@@ -551,6 +567,15 @@ pub mod mock {
         }
 
         async fn store_recovery_code(
+            &self,
+            _transaction: &Self::TransactionType,
+            _wallet_id: &str,
+            _recovery_code: String,
+        ) -> Result<(), PersistenceError> {
+            Ok(())
+        }
+
+        async fn recover_pin_with_recovery_code(
             &self,
             _transaction: &Self::TransactionType,
             _wallet_id: &str,

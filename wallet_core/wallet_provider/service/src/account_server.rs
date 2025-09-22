@@ -1719,6 +1719,7 @@ mod tests {
     use wallet_account::messages::instructions::Sign;
     use wallet_account::messages::instructions::StartPinRecovery;
     use wallet_account::messages::registration::WalletCertificate;
+    use wallet_account::messages::transfer::TransferSessionState;
     use wallet_account::signed::ChallengeResponse;
     use wallet_provider_domain::EpochGenerator;
     use wallet_provider_domain::generator::mock::MockGenerators;
@@ -1726,7 +1727,6 @@ mod tests {
     use wallet_provider_domain::model::TimeoutPinPolicy;
     use wallet_provider_domain::model::wallet_user::InstructionChallenge;
     use wallet_provider_domain::model::wallet_user::TransferSession;
-    use wallet_provider_domain::model::wallet_user::TransferSessionState;
     use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
     use wallet_provider_domain::model::wallet_user::WalletUserState;
     use wallet_provider_domain::repository::Committable;

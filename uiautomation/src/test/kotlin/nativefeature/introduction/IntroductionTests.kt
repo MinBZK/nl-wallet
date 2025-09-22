@@ -29,7 +29,8 @@ class IntroductionTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("UC 1.1 LTC13 Introduction Happy flow")
+    @DisplayName("LTC13 Introduction Happy flow")
+    @Tags(Tag("nativeSmokeIOS"))
     fun verifyWelcomeScreen(testInfo: TestInfo) {
         setUp(testInfo)
         assertTrue(introductionScreen.page1Visible(), "page 1 is not visible")
@@ -57,7 +58,7 @@ class IntroductionTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("UC 1.1 LTC14 User skips introduction")
+    @DisplayName("LTC14 User skips introduction")
     fun verifySkipIntroButton(testInfo: TestInfo) {
         setUp(testInfo)
 

@@ -15,7 +15,7 @@ class DisclosureIssuanceScreen : NativeMobileActions() {
 
     fun viewDetails() = clickElementWithText(viewDetailsButton)
 
-    fun requestedAttributeVisible(attribute: String): Boolean = elementContainingTextVisible(attribute)
+    fun requestedAttributeVisible(attribute: String) = elementContainingTextVisible(attribute)
 
     fun goBack() = clickElementWithText(goBackButton)
 

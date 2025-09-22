@@ -12,7 +12,7 @@ import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
 
 @TestMethodOrder(MethodOrderer.DisplayName::class)
-@DisplayName("1.2 Open the App")
+@DisplayName("UC1.2 Open the App")
 class OpenAppTests : TestBase() {
 
     private lateinit var introductionScreen: IntroductionScreen
@@ -24,7 +24,7 @@ class OpenAppTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @Tags(Tag("dutch"))
-    @DisplayName("1.2 LTC42 If the device language is set to Dutch, then the app starts in Dutch.")
+    @DisplayName("LTC42 If the device language is set to Dutch, then the app starts in Dutch.")
     fun verifyDutchLanguage(testInfo: TestInfo) {
         setUp(testInfo)
         assertTrue(introductionScreen.nextButtonTextVisible("Volgende"))
@@ -32,7 +32,7 @@ class OpenAppTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @Tags(Tag("english"))
-    @DisplayName("1.2 LTC42 If the device language is set to English, then the app starts in English.")
+    @DisplayName("LTC42 If the device language is set to English, then the app starts in English.")
     fun verifyEnglishLanguage(testInfo: TestInfo) {
         setUp(testInfo)
         assertTrue(introductionScreen.nextButtonTextVisible("Next"))

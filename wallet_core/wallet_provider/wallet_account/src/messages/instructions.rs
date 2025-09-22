@@ -22,6 +22,7 @@ use sd_jwt::sd_jwt::UnverifiedSdJwt;
 use utils::vec_at_least::VecNonEmpty;
 use wscd::Poa;
 
+use crate::messages::transfer::TransferSessionState;
 use crate::signed::ChallengeRequest;
 use crate::signed::ChallengeResponse;
 use crate::signed::HwSignedChallengeResponse;
@@ -245,6 +246,20 @@ pub struct DiscloseRecoveryCodeResult {
     pub transfer_session_id: Option<Uuid>,
 }
 
+// DiscloseRecoveryCodePinRecovery instruction.
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DiscloseRecoveryCodePinRecovery {
+    /// PID in SD JWT format with one disclosure: the recovery code
+    pub recovery_code_disclosure: UnverifiedSdJwt,
+}
+
+impl InstructionAndResult for DiscloseRecoveryCodePinRecovery {
+    const NAME: &'static str = "disclose_recovery_code_pin_recovery";
+
+    type Result = ();
+}
+
 // ConfirmTransfer instruction.
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -270,6 +285,19 @@ impl InstructionAndResult for CancelTransfer {
     const NAME: &'static str = "cancel_transfer";
 
     type Result = ();
+}
+
+// GetTransferStatus instruction.
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GetTransferStatus {
+    pub transfer_session_id: Uuid,
+}
+
+impl InstructionAndResult for GetTransferStatus {
+    const NAME: &'static str = "get_transfer_status";
+
+    type Result = TransferSessionState;
 }
 
 #[cfg(feature = "client")]

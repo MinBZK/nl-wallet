@@ -9,6 +9,7 @@ use uuid::Uuid;
 use apple_app_attest::AssertionCounter;
 use hsm::model::encrypted::Encrypted;
 use hsm::model::wrapped_key::WrappedKey;
+use wallet_account::messages::transfer::TransferSessionState;
 
 pub type WalletId = String;
 
@@ -42,16 +43,6 @@ pub struct TransferSession {
     pub encrypted_wallet_data: Option<Vec<u8>>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::Display, strum::EnumString)]
-#[strum(serialize_all = "snake_case")]
-pub enum TransferSessionState {
-    Created,
-    ReadyForTransfer,
-    Receiving,
-    Success,
-    Cancelled,
-}
-
 #[derive(Debug)]
 pub enum WalletUserAttestation {
     Apple { assertion_counter: AssertionCounter },
@@ -66,7 +57,13 @@ impl WalletUser {
     pub fn transfer_in_progress(&self) -> bool {
         self.transfer_session
             .as_ref()
-            .map(|s| [TransferSessionState::ReadyForTransfer, TransferSessionState::Receiving].contains(&s.state))
+            .map(|s| {
+                [
+                    TransferSessionState::ReadyForTransfer,
+                    TransferSessionState::ReadyForDownload,
+                ]
+                .contains(&s.state)
+            })
             .unwrap_or(false)
     }
 }
