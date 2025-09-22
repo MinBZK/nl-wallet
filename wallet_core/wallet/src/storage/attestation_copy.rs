@@ -59,8 +59,6 @@ pub enum PartialAttestation {
         partial_mdoc: Box<PartialMdoc>,
     },
     SdJwt {
-        // TODO (PVW-4652): Actually use this field during SD-JWT disclosure.
-        #[cfg_attr(not(test), expect(dead_code))]
         key_identifier: String,
         sd_jwt: Box<UnsignedSdJwtPresentation>,
     },
