@@ -18,6 +18,7 @@ use p256::ecdsa::VerifyingKey;
 use rustls_pki_types::CertificateDer;
 use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
+use serde::Deserializer;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use serde_with::DeserializeFromStr;
@@ -124,7 +125,7 @@ impl<T, H: DeserializeOwned> UnverifiedJwt<T, HeaderWithX5c<H>> {
 impl<T, H: DeserializeOwned> UnverifiedJwt<T, HeaderWithJwk<H>> {
     fn extract_jwk(&self) -> Result<VerifyingKey, JwtError> {
         let header = self.dangerous_parse_header_unverified()?;
-        Ok(jwk_to_p256(&header.jwk)?)
+        Ok(header.verifying_key()?)
     }
 }
 
@@ -229,6 +230,26 @@ where
         let pubkey = self.extract_jwk()?;
         self.parse_and_verify_with_header(&(&pubkey).into(), validation_options)
     }
+
+    pub fn parse_and_verify_with_expected_jwk(
+        &self,
+        expected_verifying_key: &VerifyingKey,
+        validation_options: &Validation,
+    ) -> Result<(HeaderWithJwk<H>, T), JwtError> {
+        let (header, payload) =
+            self.parse_and_verify_with_header(&(expected_verifying_key).into(), validation_options)?;
+
+        // Compare the specified key against the one in the JWT header
+        let contained_key = jwk_to_p256(&header.jwk)?;
+        if contained_key != *expected_verifying_key {
+            return Err(JwtError::IncorrectJwkPublicKey(
+                Box::new(*expected_verifying_key),
+                Box::new(contained_key),
+            ));
+        }
+
+        Ok((header, payload))
+    }
 }
 
 impl<T, H, E> UnverifiedJwt<T, HeaderWithX5c<H>>
@@ -287,7 +308,7 @@ impl<T: Serialize, H: Serialize> SignedJwt<T, H> {
         payload: &T,
         keypair: &KeyPair<K>,
     ) -> Result<SignedJwt<T, HeaderWithX5c<H>>, JwtError> {
-        let header = HeaderWithX5c::new(vec_nonempty![keypair.certificate().to_owned()], header);
+        let header = HeaderWithX5c::new(header, vec_nonempty![keypair.certificate().to_owned()]);
         let jwt = SignedJwt::sign(&header, payload, keypair.private_key()).await?;
         Ok(jwt)
     }
@@ -347,12 +368,22 @@ pub struct VerifiedJwt<T, H = JwtHeader> {
     jwt: UnverifiedJwt<T, H>,
 }
 
+/// Dangerously parse a JWT without verifying its signature. These methods should only be used for parsing JWTs that are
+/// read from trusted sources, i.e. databases or configuration files.
 impl<T: DeserializeOwned, H: DeserializeOwned> VerifiedJwt<T, H> {
     pub fn dangerous_parse_unverified(s: &str) -> Result<Self> {
         let jwt = s.parse::<UnverifiedJwt<T, H>>()?;
         let (header, payload) = jwt.dangerous_parse_unverified()?;
 
         Ok(Self { header, payload, jwt })
+    }
+
+    pub fn dangerous_deserialize<'de, D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        Self::dangerous_parse_unverified(&s).map_err(serde::de::Error::custom)
     }
 }
 
@@ -433,6 +464,7 @@ pub trait JwtSub {
 struct PayloadWithSub<T> {
     #[serde(flatten)]
     payload: T,
+
     sub: Cow<'static, str>,
 }
 
@@ -494,7 +526,7 @@ where
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 pub trait JwtTyp {
-    const TYP: &'static str;
+    const TYP: &'static str = "jwt";
 }
 
 impl<T, H, E> UnverifiedJwt<T, HeaderWithTyp<H>>
@@ -569,6 +601,22 @@ where
 
         Ok((header, claims))
     }
+
+    pub fn parse_and_verify_with_expected_jwk_and_typ(
+        &self,
+        expected_verifying_key: &VerifyingKey,
+        validation_options: &Validation,
+    ) -> Result<(HeaderWithJwk<HeaderWithTyp<H>>, T)> {
+        let (header, claims) = self.parse_and_verify_with_expected_jwk(expected_verifying_key, validation_options)?;
+        if header.inner().typ != T::TYP {
+            return Err(JwtError::UnexpectedTyp(
+                T::TYP.to_owned(),
+                header.inner().typ.to_string(),
+            ));
+        }
+
+        Ok((header, claims))
+    }
 }
 
 impl<T, H> SignedJwt<T, H>
@@ -622,32 +670,6 @@ where
         Ok(jwt)
     }
 }
-
-// impl<T, H> VerifiedJwt<T, H>
-// where
-//     T: Serialize + JwtTyp,
-//     H: Serialize,
-// {
-//     pub async fn sign_with_header_and_typ(
-//         header: H,
-//         payload: T,
-//         privkey: &impl EcdsaKey,
-//     ) -> Result<VerifiedJwt<T, HeaderWithTyp<H>>> {
-//         let header = HeaderWithTyp::new::<T>(header);
-
-//         VerifiedJwt::sign(header, payload, privkey).await
-//     }
-// }
-
-// impl<T> VerifiedJwt<T>
-// where
-//     T: Serialize + JwtTyp,
-// {
-//     // TODO this should only exist for `UnverifiedJwt`
-//     pub async fn sign_with_typ(payload: T, privkey: &impl EcdsaKey) -> Result<VerifiedJwt<T, HeaderWithTyp<Header>>>
-// {         Self::sign_with_header_and_typ(DEFAULT_HEADER.to_owned(), payload, privkey).await
-//     }
-// }
 
 /// The JWS JSON serialization, see <https://www.rfc-editor.org/rfc/rfc7515.html#section-7.2>,
 /// which allows for a single payload to be signed by multiple signatures.

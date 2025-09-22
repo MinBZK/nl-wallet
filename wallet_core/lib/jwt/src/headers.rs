@@ -8,6 +8,7 @@ use derive_more::Constructor;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::Header;
 use jsonwebtoken::jwk::Jwk;
+use p256::ecdsa::VerifyingKey;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::base64::Base64;
@@ -18,6 +19,7 @@ use crate::JwtTyp;
 use crate::error::JwkConversionError;
 use crate::error::JwtError;
 use crate::jwk::jwk_from_p256;
+use crate::jwk::jwk_to_p256;
 
 static DEFAULT_HEADER: LazyLock<Header> = LazyLock::new(|| Header {
     alg: Algorithm::ES256,
@@ -91,6 +93,10 @@ impl<H> HeaderWithJwk<H> {
     pub fn inner(&self) -> &H {
         &self.header
     }
+
+    pub fn verifying_key(&self) -> Result<VerifyingKey, JwkConversionError> {
+        jwk_to_p256(&self.jwk)
+    }
 }
 
 impl<H, E> TryFrom<Header> for HeaderWithJwk<H>
@@ -110,7 +116,7 @@ where
 }
 
 #[serde_as]
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Constructor)]
 pub struct HeaderWithX5c<H = JwtHeader> {
     #[serde(flatten)]
     header: H,
@@ -119,15 +125,9 @@ pub struct HeaderWithX5c<H = JwtHeader> {
     pub x5c: VecNonEmpty<BorrowingCertificate>,
 }
 
-impl<H> HeaderWithX5c<H> {
-    pub fn new(x5c: VecNonEmpty<BorrowingCertificate>, header: H) -> Self {
-        HeaderWithX5c { header, x5c }
-    }
-}
-
 impl HeaderWithX5c {
     pub fn from_certs(x5c: VecNonEmpty<BorrowingCertificate>) -> HeaderWithX5c {
-        Self::new(x5c, JwtHeader::default())
+        Self::new(JwtHeader::default(), x5c)
     }
 }
 
@@ -188,25 +188,23 @@ pub struct HeaderWithTyp<H = JwtHeader> {
     #[serde(flatten)]
     header: H,
 
-    pub typ: Cow<'static, str>,
+    pub(crate) typ: Cow<'static, str>,
 }
 
 impl<H> HeaderWithTyp<H> {
-    pub fn new<T: JwtTyp>(header: H) -> Self {
+    pub(crate) fn new<T: JwtTyp>(header: H) -> Self {
         HeaderWithTyp {
             header,
             typ: Cow::Borrowed(T::TYP),
         }
     }
-}
 
-impl<H> HeaderWithTyp<H> {
-    pub fn inner(&self) -> &H {
-        &self.header
+    pub fn typ(&self) -> &str {
+        &self.typ
     }
 
-    pub fn into_inner(self) -> H {
-        self.header
+    pub fn inner(&self) -> &H {
+        &self.header
     }
 }
 

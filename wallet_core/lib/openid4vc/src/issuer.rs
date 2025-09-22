@@ -13,7 +13,6 @@ use derive_more::From;
 use futures::future::try_join_all;
 use indexmap::IndexMap;
 use itertools::Itertools;
-use jwt::jwk::jwk_to_p256;
 use p256::ecdsa::VerifyingKey;
 use reqwest::Method;
 use serde::Deserialize;
@@ -1250,7 +1249,7 @@ impl CredentialRequestProof {
             return Err(CredentialRequestError::IncorrectNonce);
         }
 
-        Ok(jwk_to_p256(&header.jwk)?)
+        Ok(header.verifying_key()?)
     }
 }
 

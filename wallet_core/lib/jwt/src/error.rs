@@ -1,5 +1,6 @@
 use base64::DecodeError;
 use jsonwebtoken::jwk::EllipticCurve;
+use p256::ecdsa::VerifyingKey;
 use p256::ecdsa::signature;
 
 use crypto::x509::CertificateError;
@@ -54,6 +55,10 @@ pub enum JwtError {
     #[error("missing typ field in JWT header")]
     #[category(critical)]
     MissingTyp,
+
+    #[error("JWK in JWT header does not match expected public key: expected {0:?}, found {1:?}")]
+    #[category(critical)]
+    IncorrectJwkPublicKey(Box<VerifyingKey>, Box<VerifyingKey>),
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]

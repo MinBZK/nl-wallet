@@ -18,7 +18,6 @@ use josekit::JoseError;
 use josekit::jwk::Jwk;
 use josekit::jwk::alg::ec::EcCurve;
 use josekit::jwk::alg::ec::EcKeyPair;
-use jwt::SignedJwt;
 use ring::hmac;
 use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
@@ -44,7 +43,7 @@ use dcql::normalized::NormalizedCredentialRequests;
 use dcql::normalized::UnsupportedDcqlFeatures;
 use dcql::unique_id_vec::UniqueIdVec;
 use http_utils::urls::BaseUrl;
-use jwt::UnverifiedJwt;
+use jwt::SignedJwt;
 use jwt::error::JwtError;
 use jwt::headers::HeaderWithX5c;
 use utils::generator::Generator;
@@ -944,7 +943,7 @@ where
         response_uri_base: &BaseUrl,
         query: Option<&str>,
         wallet_nonce: Option<String>,
-    ) -> Result<UnverifiedJwt<VpAuthorizationRequest, HeaderWithX5c>, WithRedirectUri<GetAuthRequestError>> {
+    ) -> Result<SignedJwt<VpAuthorizationRequest, HeaderWithX5c>, WithRedirectUri<GetAuthRequestError>> {
         let url_params: VerifierUrlParameters =
             serde_urlencoded::from_str(query.ok_or(GetAuthRequestError::QueryParametersMissing)?)
                 .map_err(GetAuthRequestError::QueryParametersDeserialization)?;
@@ -1218,7 +1217,7 @@ impl Session<Created> {
         use_cases: &impl UseCases<Key = K, UseCase = UC>,
     ) -> Result<
         (
-            UnverifiedJwt<VpAuthorizationRequest, HeaderWithX5c>,
+            SignedJwt<VpAuthorizationRequest, HeaderWithX5c>,
             Session<WaitingForResponse>,
         ),
         (WithRedirectUri<GetAuthRequestError>, Session<Done>),
@@ -1266,7 +1265,7 @@ impl Session<Created> {
         use_cases: &impl UseCases<Key = K, UseCase = UC>,
     ) -> Result<
         (
-            UnverifiedJwt<VpAuthorizationRequest, HeaderWithX5c>,
+            SignedJwt<VpAuthorizationRequest, HeaderWithX5c>,
             NormalizedVpAuthorizationRequest,
             Option<RedirectUri>,
             EcKeyPair,
@@ -1312,8 +1311,7 @@ impl Session<Created> {
         let vp_auth_request = VpAuthorizationRequest::from(auth_request.clone());
         let jws = SignedJwt::sign_with_certificate(&vp_auth_request, &usecase.key_pair)
             .await
-            .map_err(|err| error_with_redirect_uri(&redirect_uri, err))?
-            .into();
+            .map_err(|err| error_with_redirect_uri(&redirect_uri, err))?;
 
         Ok((jws, auth_request, redirect_uri, encryption_keypair))
     }

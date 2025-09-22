@@ -366,7 +366,7 @@ impl VcMessageClient for HttpVcMessageClient {
         self.http_client
             .post(url.as_ref())
             .header(DPOP_HEADER_NAME, dpop_header.to_string())
-            .form(&token_request)
+            .form(token_request)
             .send()
             .map_err(IssuanceSessionError::from)
             .and_then(|response| async {
@@ -717,7 +717,8 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
                     // We assume here the WP gave us valid JWTs, and leave it up to the issuer to verify these.
                     let header = jwt.dangerous_parse_header_unverified()?;
 
-                    let pubkey = jwk_to_p256(&header.jwk)
+                    let pubkey = header
+                        .verifying_key()
                         .map_err(|e| IssuanceSessionError::VerifyingKeyFromPrivateKey(e.into()))?;
                     let cred_request = CredentialRequest {
                         credential_type: credential_request_type.into(),

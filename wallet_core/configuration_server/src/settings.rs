@@ -7,13 +7,17 @@ use config::File;
 use serde::Deserialize;
 
 use http_utils::tls::server::TlsServerConfig;
+use jwt::VerifiedJwt;
 use utils::path::prefix_local_path;
+use wallet_configuration::wallet_config::WalletConfiguration;
 
 #[derive(Clone, Deserialize)]
 pub struct Settings {
     pub ip: IpAddr,
     pub port: u16,
-    pub wallet_config_jwt: String,
+
+    #[serde(deserialize_with = "VerifiedJwt::dangerous_deserialize")]
+    pub wallet_config_jwt: VerifiedJwt<WalletConfiguration>,
     pub tls_config: TlsServerConfig,
 }
 

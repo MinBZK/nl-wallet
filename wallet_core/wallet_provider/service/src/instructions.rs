@@ -1233,7 +1233,7 @@ mod tests {
             .map(|pop| {
                 let (header, _) = pop.parse_and_verify_with_jwk_and_typ(&validations).unwrap();
 
-                jwk_to_p256(&header.jwk).unwrap()
+                header.verifying_key().unwrap()
             })
             .collect_vec();
 

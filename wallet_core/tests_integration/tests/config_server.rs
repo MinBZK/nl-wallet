@@ -32,7 +32,7 @@ async fn test_wallet_config() {
     served_wallet_config.version = 2;
 
     let (mut cs_settings, cs_root_ca) = config_server_settings();
-    cs_settings.wallet_config_jwt = config_jwt(&served_wallet_config).await;
+    cs_settings.wallet_config_jwt = config_jwt(&served_wallet_config).await.into();
     let port = start_config_server(cs_settings, cs_root_ca.clone()).await;
 
     let config_server_config = ConfigServerConfiguration {
@@ -82,7 +82,7 @@ async fn test_wallet_config_stale() {
     served_wallet_config.account_server.http_config.base_url = local_wp_base_url(settings.webserver.port);
 
     let (mut cs_settings, cs_root_ca) = config_server_settings();
-    cs_settings.wallet_config_jwt = config_jwt(&served_wallet_config).await;
+    cs_settings.wallet_config_jwt = config_jwt(&served_wallet_config).await.into();
     let port = start_config_server(cs_settings, cs_root_ca.clone()).await;
 
     let config_server_config = ConfigServerConfiguration {
@@ -130,7 +130,7 @@ async fn test_wallet_config_signature_verification_failed() {
     .await
     .unwrap();
     // Serve a wallet configuration as JWT signed by a random key
-    cs_settings.wallet_config_jwt = jwt.to_string();
+    cs_settings.wallet_config_jwt = jwt.into();
     let port = start_config_server(cs_settings, cs_root_ca.clone()).await;
 
     let config_server_config = ConfigServerConfiguration {

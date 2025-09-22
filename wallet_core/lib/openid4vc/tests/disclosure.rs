@@ -151,12 +151,11 @@ fn disclosure_direct() {
     let auth_request_jws = SignedJwt::sign_with_certificate(&auth_request, &auth_keypair)
         .now_or_never()
         .unwrap()
-        .unwrap()
-        .into();
+        .unwrap();
 
     // Wallet receives the signed Authorization Request and performs the disclosure.
     let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
-    let jwe = disclosure_jwe(&auth_request_jws, &[ca.to_trust_anchor()], &issuer_ca);
+    let jwe = disclosure_jwe(&auth_request_jws.into(), &[ca.to_trust_anchor()], &issuer_ca);
 
     // RP decrypts the response JWE and verifies the contained Authorization Response.
     let (auth_response, mdoc_nonce) = VpAuthorizationResponse::decrypt(&jwe, &encryption_keypair, &nonce).unwrap();
@@ -1109,7 +1108,7 @@ where
             .await
             .map_err(|error| VpMessageClientError::AuthGetResponse(Box::new(error.into())))?;
 
-        Ok(jws)
+        Ok(jws.into())
     }
 
     async fn send_authorization_response(

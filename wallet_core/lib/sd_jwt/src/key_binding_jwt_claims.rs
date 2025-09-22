@@ -188,8 +188,8 @@ mod test {
         // after calling `sign_with_typ` the value in `header` doesn't actually contain a `typ` field, but it is
         // included in the serialization
         let header: HeaderWithTyp = kb_jwt.0.jwt().dangerous_parse_header_unverified().unwrap();
-        assert_eq!(String::from("kb+jwt"), header.typ);
-        assert_eq!(Algorithm::ES256, header.into_inner().alg);
+        assert_eq!("kb+jwt", header.typ());
+        assert_eq!(Algorithm::ES256, header.inner().alg);
     }
 
     #[tokio::test]

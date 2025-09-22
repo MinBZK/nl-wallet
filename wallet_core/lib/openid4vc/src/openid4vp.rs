@@ -5,7 +5,6 @@ use std::sync::LazyLock;
 
 use chrono::DateTime;
 use chrono::Utc;
-use crypto::x509::CertificateUsage;
 use derive_more::Constructor;
 use indexmap::IndexSet;
 use itertools::Itertools;
@@ -30,6 +29,7 @@ use attestation_data::disclosure::DisclosedAttestationError;
 use attestation_data::disclosure::DisclosedAttestations;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateError;
+use crypto::x509::CertificateUsage;
 use dcql::CredentialQueryIdentifier;
 use dcql::Query;
 use dcql::disclosure::CredentialValidationError;
@@ -816,7 +816,6 @@ mod tests {
     use std::borrow::Cow;
     use std::collections::HashMap;
 
-    use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
     use chrono::DateTime;
     use chrono::Utc;
     use futures::future::join_all;
@@ -830,6 +829,7 @@ mod tests {
     use serde_json::json;
 
     use attestation_data::disclosure::DisclosedAttributes;
+    use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
@@ -971,10 +971,9 @@ mod tests {
 
         let auth_request_jwt = SignedJwt::sign_with_certificate(&auth_request, &rp_keypair)
             .await
-            .unwrap()
-            .into();
+            .unwrap();
 
-        let (auth_request, cert) = VpAuthorizationRequest::try_new(&auth_request_jwt, &[trust_anchor]).unwrap();
+        let (auth_request, cert) = VpAuthorizationRequest::try_new(&auth_request_jwt.into(), &[trust_anchor]).unwrap();
         auth_request.validate(&cert, None).unwrap();
     }
 

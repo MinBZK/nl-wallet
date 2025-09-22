@@ -220,17 +220,13 @@ impl MockVerifierSession {
     }
 
     /// Generate the first protocol message of the verifier.
-    fn signed_auth_request(
-        &self,
-        wallet_request: WalletRequest,
-    ) -> UnverifiedJwt<VpAuthorizationRequest, HeaderWithX5c> {
+    fn signed_auth_request(&self, wallet_request: WalletRequest) -> SignedJwt<VpAuthorizationRequest, HeaderWithX5c> {
         let request = self.normalized_auth_request(wallet_request.wallet_nonce).into();
 
         SignedJwt::sign_with_certificate(&request, &self.key_pair)
             .now_or_never()
             .unwrap()
             .unwrap()
-            .into()
     }
 }
 
@@ -256,7 +252,7 @@ impl VpMessageClient for MockVerifierVpMessageClient {
             .push(WalletMessage::Request(wallet_request.clone()));
         let auth_request = self.session.signed_auth_request(wallet_request);
 
-        Ok(auth_request)
+        Ok(auth_request.into())
     }
 
     async fn send_authorization_response(

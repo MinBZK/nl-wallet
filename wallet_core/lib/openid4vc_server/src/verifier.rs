@@ -6,6 +6,7 @@ use axum::Router;
 use axum::extract::Path;
 use axum::extract::Query;
 use axum::extract::State;
+use axum::response::IntoResponse;
 use axum::routing::delete;
 use axum::routing::get;
 use axum::routing::post;
@@ -15,6 +16,8 @@ use http::Method;
 use http::StatusCode;
 use http::Uri;
 use http::header;
+use jwt::UnverifiedJwt;
+use jwt::headers::HeaderWithX5c;
 use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde::Serialize;
@@ -34,6 +37,7 @@ use openid4vc::GetRequestErrorCode;
 use openid4vc::PostAuthResponseErrorCode;
 use openid4vc::VerificationErrorCode;
 use openid4vc::disclosure_session::APPLICATION_OAUTH_AUTHZ_REQ_JWT;
+use openid4vc::openid4vp::VpAuthorizationRequest;
 use openid4vc::openid4vp::VpResponse;
 use openid4vc::openid4vp::WalletRequest;
 use openid4vc::return_url::ReturnUrlTemplate;
@@ -185,12 +189,26 @@ fn cors_layer(allow_origins: CorsOrigin) -> CorsLayer {
         .allow_methods([Method::GET, Method::DELETE])
 }
 
+struct RequestUriRespone(UnverifiedJwt<VpAuthorizationRequest, HeaderWithX5c>);
+
+impl IntoResponse for RequestUriRespone {
+    fn into_response(self) -> axum::response::Response {
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            header::CONTENT_TYPE,
+            HeaderValue::from_static(APPLICATION_OAUTH_AUTHZ_REQ_JWT.as_ref()),
+        );
+
+        (headers, self.0.to_string()).into_response()
+    }
+}
+
 async fn retrieve_request<S, US, UC, K>(
     uri: Uri,
     State(state): State<Arc<ApplicationState<S, US>>>,
     Path(identifier): Path<String>,
     Form(wallet_request): Form<WalletRequest>,
-) -> Result<(HeaderMap, String), DisclosureErrorResponse<GetRequestErrorCode>>
+) -> Result<RequestUriRespone, DisclosureErrorResponse<GetRequestErrorCode>>
 where
     S: SessionStore<DisclosureData>,
     US: UseCases<Key = K, UseCase = UC>,
@@ -209,12 +227,7 @@ where
 
     info!("processing request for Authorization Request JWT successful, returning response");
 
-    let headers = HeaderMap::from_iter([(
-        header::CONTENT_TYPE,
-        HeaderValue::from_static(APPLICATION_OAUTH_AUTHZ_REQ_JWT.as_ref()),
-    )]);
-
-    Ok((headers, response.to_string()))
+    Ok(RequestUriRespone(response.into()))
 }
 
 async fn post_response<S, US, UC, K>(
