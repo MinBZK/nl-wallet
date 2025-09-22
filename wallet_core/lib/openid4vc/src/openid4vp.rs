@@ -843,7 +843,6 @@ mod tests {
     use josekit::jwk::alg::ec::EcCurve;
     use josekit::jwk::alg::ec::EcKeyPair;
     use jsonwebtoken::Algorithm;
-    use jwt::pop::JwtPopClaims;
     use rustls_pki_types::TrustAnchor;
     use serde_json::json;
 
@@ -859,6 +858,7 @@ mod tests {
     use dcql::normalized::NormalizedCredentialRequest;
     use dcql::normalized::NormalizedCredentialRequests;
     use jwt::UnverifiedJwt;
+    use jwt::pop::JwtPopClaims;
     use mdoc::DeviceResponse;
     use mdoc::SessionTranscript;
     use mdoc::examples::Example;
