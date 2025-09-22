@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wallet/src/feature/common/screen/placeholder_screen.dart';
+import 'package:wallet/src/wallet_assets.dart';
 
 import '../../../../wallet_app_test_widget.dart';
+import '../../../test_util/golden_utils.dart';
 import '../../../test_util/test_utils.dart';
 
 void main() {
@@ -44,26 +46,6 @@ void main() {
       expect(find.text(l10n.placeholderScreenGenericDescription, findRichText: true), findsOneWidget);
     });
 
-    testWidgets('showHelp shows the help placeholder', (tester) async {
-      await tester.pumpWidgetWithAppWrapper(
-        Builder(
-          builder: (context) {
-            return TextButton(
-              child: const Text('help'),
-              onPressed: () => PlaceholderScreen.showHelp(context, secured: false),
-            );
-          },
-        ),
-      );
-      await tester.tap(find.text('help'));
-      await tester.pumpAndSettle();
-
-      final l10n = await TestUtils.englishLocalizations;
-      // Expect generic placeholder copy
-      expect(find.text(l10n.placeholderScreenHelpHeadline, findRichText: true), findsAtLeast(1));
-      expect(find.text(l10n.placeholderScreenHelpDescription, findRichText: true), findsOneWidget);
-    });
-
     testWidgets('showContract shows the contract placeholder', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         Builder(
@@ -82,6 +64,58 @@ void main() {
       // Expect generic placeholder copy
       expect(find.text(l10n.placeholderScreenHeadline, findRichText: true), findsAtLeast(1));
       expect(find.text(l10n.placeholderScreenContractDescription, findRichText: true), findsOneWidget);
+    });
+  });
+
+  group('goldens', () {
+    testGoldens('PlaceholderScreen - custom', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const PlaceholderScreen(
+          headline: 'Custom Headline',
+          description:
+              'Custom Description that is long enough to wrap to multiple lines.\n\nAnd span over multiple paragraphs.',
+          illustration: WalletAssets.svg_error_card_blocked,
+        ),
+      );
+      await screenMatchesGolden('placeholder/custom');
+    });
+
+    testGoldens('PlaceholderScreen - custom - dark - landscape', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const PlaceholderScreen(
+          headline: 'Custom Headline',
+          description:
+              'Custom Description that is long enough to wrap to multiple lines.\n\nAnd span over multiple paragraphs.',
+          illustration: WalletAssets.svg_error_card_blocked,
+        ),
+        brightness: Brightness.dark,
+        surfaceSize: iphoneXSizeLandscape,
+      );
+      await screenMatchesGolden('placeholder/custom.dark.landscape');
+    });
+
+    testGoldens('PlaceholderScreen - showGeneric', (tester) async {
+      final l10n = await TestUtils.englishLocalizations;
+      await tester.pumpWidgetWithAppWrapper(
+        PlaceholderScreen(
+          headline: l10n.placeholderScreenHeadline,
+          description: l10n.placeholderScreenGenericDescription,
+          illustration: WalletAssets.svg_blocked_final,
+        ),
+      );
+      await screenMatchesGolden('placeholder/generic');
+    });
+
+    testGoldens('PlaceholderScreen - showContract', (tester) async {
+      final l10n = await TestUtils.englishLocalizations;
+      await tester.pumpWidgetWithAppWrapper(
+        PlaceholderScreen(
+          headline: l10n.placeholderScreenHeadline,
+          description: l10n.placeholderScreenContractDescription,
+          illustration: WalletAssets.svg_signed,
+        ),
+      );
+      await screenMatchesGolden('placeholder/contract');
     });
   });
 }
