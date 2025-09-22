@@ -14,7 +14,7 @@ class RelyingPartyMonkeyBikeWebPage : NativeMobileActions() {
 
     fun loginFailedMessageVisible() = isWebElementVisible(findWebElement(loginFailedMessage))
 
-    fun openSameDeviceWalletFlow(platform: String) {
+    fun openSameDeviceWalletFlow() {
         body.clickStartButton()
         popup.clickSameDeviceButton()
     }

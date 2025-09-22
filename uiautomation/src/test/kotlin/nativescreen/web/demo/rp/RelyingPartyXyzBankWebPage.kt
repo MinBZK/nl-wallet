@@ -14,7 +14,7 @@ class RelyingPartyXyzBankWebPage : NativeMobileActions() {
 
     fun identificationSucceededMessageVisible() = isWebElementVisible(findWebElement(accountCreatedTextLocator))
 
-    fun openSameDeviceWalletFlow(platform: String) {
+    fun openSameDeviceWalletFlow() {
         body.clickStartButton()
         popup.clickSameDeviceButton()
     }

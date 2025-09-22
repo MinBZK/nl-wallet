@@ -48,8 +48,8 @@ class BrowserStackMobileDriver : WebDriverProvider {
         caps.setCapability("bstack:options", bstack)
 
         val appCustomId = when (testConfig.platformName.lowercase(Locale.US)) {
-            "android" -> CUSTOM_ID_PREFIX_ANDROID_APP + testConfig.appIdentifier
-            "ios"     -> CUSTOM_ID_PREFIX_IOS_APP + testConfig.appIdentifier
+            "android" -> CUSTOM_ID_PREFIX_ANDROID_APP + testConfig.appIdentifier + "_" + testConfig.commitSha
+            "ios"     -> CUSTOM_ID_PREFIX_IOS_APP + testConfig.appIdentifier + "_" + testConfig.commitSha
             else      -> throw IllegalArgumentException("Invalid platform name: ${testConfig.platformName}")
         }
         caps.setCapability(

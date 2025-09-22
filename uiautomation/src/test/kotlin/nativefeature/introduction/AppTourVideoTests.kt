@@ -16,7 +16,7 @@ import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
 
 @TestMethodOrder(MethodOrderer.DisplayName::class)
-@DisplayName("1.3 App tour video player")
+@DisplayName("UC 1.3 App tour video player")
 class AppTourVideoTests : TestBase() {
 
     private lateinit var dashboardScreen: DashboardScreen
@@ -34,7 +34,7 @@ class AppTourVideoTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("1.3 LTC16 User views app tour")
+    @DisplayName("LTC16 User views app tour")
     fun verifyVideoTour(testInfo: TestInfo) {
         setUp(testInfo)
         assertTrue(dashboardScreen.appTourBannerVisible(), "app tour banner is not visible")

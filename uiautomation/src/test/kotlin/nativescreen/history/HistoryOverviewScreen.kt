@@ -25,7 +25,7 @@ class HistoryOverviewScreen : NativeMobileActions() {
 
     fun clickLoginEntryTitle() = clickElementContainingText(disclosureLoginSubtitle)
 
-    fun disclosureOrganizationVisible(organizatioName: String): Boolean = elementContainingTextVisible(organizatioName)
+    fun disclosureOrganizationVisible(organizatioName: String) = elementContainingTextVisible(organizatioName)
 
     fun issuanceSubtitleVisible() = elementContainingTextVisible(historyDetailScreenIssuanceSuccessDescription)
 

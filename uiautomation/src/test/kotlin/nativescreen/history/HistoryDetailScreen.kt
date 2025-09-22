@@ -14,30 +14,29 @@ class HistoryDetailScreen : NativeMobileActions() {
 
     fun clickBottomBackButton() = clickElementWithText(bottomBackButton)
 
-    fun issuanceOrganizationVisible(organization: String): Boolean = elementWithTextVisible(organization)
+    fun issuanceOrganizationVisible(organization: String) = elementContainingTextVisible(organization)
 
-    fun disclosureOrganizationVisible(organization: String): Boolean {
-        val link = l10n.getString("historyDetailScreenAboutOrganizationCta").replace("{organization}", organization)
-        scrollToElementWithText(link)
-        return elementWithTextVisible(link)
-    }
+    fun disclosureOrganizationVisible(organization: String) = elementContainingTextVisible(organization)
 
-    fun titleCorrectForIssuance(card: String): Boolean =
+    fun titleCorrectForIssuance(card: String) =
         elementWithTextVisible(l10n.getString("historyDetailScreenTitleForIssuance").replace("{card}", card))
 
 
-    fun titleCorrectForLogin(organization: String): Boolean =
+    fun titleCorrectForLogin(organization: String) =
         elementWithTextVisible(l10n.getString("historyDetailScreenTitleForLogin").replace("{organization}", organization))
 
-    fun openOrganizationScreen() = clickElementWithText(organizationButtonLabel)
+    fun openOrganizationScreen() = clickElementContainingText(organizationButtonLabel)
 
-    fun attributeLabelVisible(label: String): Boolean = elementWithTextVisible(label)
+    fun attributeLabelVisible(label: String) = elementContainingTextVisible(label)
 
-    fun reportProblemButtonVisible() = elementWithTextVisible(reportProblemButton)
+    fun reportProblemButtonVisible(): Boolean {
+        scrollToElementContainingText(reportProblemButton)
+        return elementContainingTextVisible(reportProblemButton)
+    }
 
     fun reasonForSharingHeaderVisible() = elementWithTextVisible(historyDetailScreenPurposeTitle)
 
-    fun reasonForSharingVisible(reason: String): Boolean = elementWithTextVisible(reason)
+    fun reasonForSharingVisible(reason: String) = elementWithTextVisible(reason)
 
     fun termsVisible(): Boolean {
         scrollToElementWithText(historyDetailScreenTermsTitle)

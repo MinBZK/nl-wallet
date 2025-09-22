@@ -70,7 +70,7 @@ class RenewCardTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("UC4.1 LTC12 Renewing a card")
+    @DisplayName("LTC12 Renewing a card")
     fun verifyInsuranceIssuance(testInfo: TestInfo) {
         setUp(testInfo)
         dashboardScreen.clickMenuButton()
@@ -81,14 +81,14 @@ class RenewCardTests : TestBase() {
         issuerWebPage.switchToNativeContext()
         disclosureForIssuanceScreen.share()
         pinScreen.enterPin(DEFAULT_PIN)
-
         assertTrue(cardIssuanceScreen.renewCardSectionTitleVisible(), "renew card screen not displayed")
+
         cardIssuanceScreen.clickAddButton()
         pinScreen.enterPin(DEFAULT_PIN)
         cardIssuanceScreen.clickToDashboardButton()
         dashboardScreen.scrollToEndOfScreen()
-        dashboardScreen.printPageSource()
         assertTrue(dashboardScreen.cardVisible(tasData.getInsuranceDisplayName()), "Insurance card not visible on dashboard")
+
         dashboardScreen.clickCard(tasData.getInsuranceDisplayName())
         cardDetailScreen.clickCardHistoryButton()
         assertAll(
