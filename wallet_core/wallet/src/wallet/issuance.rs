@@ -1041,7 +1041,7 @@ mod tests {
                     Uuid::new_v4(),
                     Uuid::new_v4(),
                     StoredAttestation::MsoMdoc {
-                        mdoc: Box::new(create_example_pid_mdoc()),
+                        mdoc: create_example_pid_mdoc(),
                     },
                     NormalizedTypeMetadata::nl_pid_example(),
                 )])
@@ -1204,7 +1204,8 @@ mod tests {
             attestation_id,
             Uuid::new_v4(),
             StoredAttestation::SdJwt {
-                sd_jwt: Box::new(VerifiedSdJwt::new_mock(sd_jwt)),
+                key_identifier: "sd_jwt_key_identifier".to_string(),
+                sd_jwt: VerifiedSdJwt::new_mock(sd_jwt),
             },
             normalized_metadata,
         );
@@ -1296,11 +1297,11 @@ mod tests {
 
         // Create a mock OpenID4VCI session that accepts the PID with a single
         // instance of `MdocCopies`, which contains a single valid `Mdoc`.
-        let (verified_sd_jwt, metadata) = create_example_pid_sd_jwt();
+        let (sd_jwt, metadata) = create_example_pid_sd_jwt();
         let (pid_issuer, attestations) = mock_issuance_session(
             IssuedCredential::SdJwt {
                 key_identifier: "key_id".to_string(),
-                sd_jwt: verified_sd_jwt.clone(),
+                sd_jwt: sd_jwt.clone(),
             },
             String::from(PID_ATTESTATION_TYPE),
             VerifiedTypeMetadataDocuments::nl_pid_example(),
@@ -1319,7 +1320,8 @@ mod tests {
                     Uuid::new_v4(),
                     Uuid::new_v4(),
                     StoredAttestation::SdJwt {
-                        sd_jwt: Box::new(verified_sd_jwt),
+                        key_identifier: "sd_jwt_key_identifier".to_string(),
+                        sd_jwt,
                     },
                     metadata,
                 )])
@@ -1708,7 +1710,8 @@ mod tests {
             attestation_id,
             Uuid::new_v4(),
             StoredAttestation::SdJwt {
-                sd_jwt: Box::new(VerifiedSdJwt::new_mock(sd_jwt)),
+                key_identifier: "sd_jwt_key_identifier".to_string(),
+                sd_jwt: VerifiedSdJwt::new_mock(sd_jwt),
             },
             normalized_metadata,
         );
