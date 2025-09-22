@@ -129,6 +129,10 @@ trivy-scan:
         fi
       }
 
+      for image in "${BUILD_IMAGES[@]}"; do
+        trigger_new_scan $image $CI_COMMIT_SHORT_SHA
+      done
+
       for image in "${CI_IMAGES[@]}"; do
         trigger_new_scan $image $BUILD_TAG
       done
