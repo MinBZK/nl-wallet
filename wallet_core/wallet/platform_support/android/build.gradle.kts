@@ -179,7 +179,6 @@ mapOf(
         args("ndk")
         args(ndkTargets.flatMap { listOf("-t", it) })
         args("-o", jniTargetDir)
-        args("--no-strip")
         args("build")
         args(options.args)
     }

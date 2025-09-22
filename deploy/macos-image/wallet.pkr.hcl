@@ -15,7 +15,7 @@ variable "vm_base_name" {
 
 variable "vm_name" {
   type = string
-  default = "sequoia-wallet:0.2.4"
+  default = "sequoia-wallet:0.2.5"
 }
 
 source "tart-cli" "tart" {
@@ -59,7 +59,7 @@ build {
       "flutter config --no-analytics",
       "yes | sdkmanager --licenses",
       "flutter doctor --android-licenses",
-      "flutter precache",
+      "flutter precache --ios",
       "dart pub global activate junitreport 2.0.2",
       "echo 'export PATH=\"$HOME/.pub-cache/bin:$PATH\"' >> ~/.zprofile"
     ]
