@@ -69,7 +69,7 @@ import 'package:wallet/src/domain/usecase/tour/tour_overview_viewed_usecase.dart
 import 'package:wallet/src/domain/usecase/transfer/acknowledge_wallet_transfer_usecase.dart';
 import 'package:wallet/src/domain/usecase/transfer/cancel_wallet_transfer_usecase.dart';
 import 'package:wallet/src/domain/usecase/transfer/get_wallet_transfer_status_usecase.dart';
-import 'package:wallet/src/domain/usecase/transfer/prepare_wallet_transfer_usecase.dart';
+import 'package:wallet/src/domain/usecase/transfer/init_wallet_transfer_usecase.dart';
 import 'package:wallet/src/domain/usecase/transfer/skip_wallet_transfer_usecase.dart';
 import 'package:wallet/src/domain/usecase/transfer/start_wallet_transfer_usecase.dart';
 import 'package:wallet/src/domain/usecase/update/observe_version_state_usecase.dart';
@@ -184,7 +184,7 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<CancelWalletTransferUseCase>()])
 @GenerateNiceMocks([MockSpec<AcknowledgeWalletTransferUseCase>()])
 @GenerateNiceMocks([MockSpec<GetWalletTransferStatusUseCase>()])
-@GenerateNiceMocks([MockSpec<PrepareWalletTransferUseCase>()])
+@GenerateNiceMocks([MockSpec<InitWalletTransferUseCase>()])
 @GenerateNiceMocks([MockSpec<SkipWalletTransferUseCase>()])
 @GenerateNiceMocks([MockSpec<CreatePinRecoveryRedirectUriUseCase>()])
 @GenerateNiceMocks([MockSpec<ContinuePinRecoveryUseCase>()])

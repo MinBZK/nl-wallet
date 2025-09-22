@@ -564,14 +564,15 @@ void main() {
       expect(find.byType(WalletPersonalizeSuccessPage), findsOneWidget);
     });
 
-    testWidgets('Verify WalletPersonalizeSuccess with userCanTransfer = true pushes WalletTransferTargetScreen',
-        (tester) async {
+    testWidgets('Verify WalletPersonalizeSuccess with userCanTransfer = true pushes WalletTransferTargetScreen', (
+      tester,
+    ) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
           MockWalletPersonalizeBloc(),
           const WalletPersonalizeInitial(),
           streamStates: [
-            WalletPersonalizeSuccess(addedCards: [WalletMockData.card, WalletMockData.altCard], userCanTransfer: true)
+            WalletPersonalizeSuccess(addedCards: [WalletMockData.card, WalletMockData.altCard], userCanTransfer: true),
           ],
         ),
       );

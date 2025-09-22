@@ -11,7 +11,7 @@ import '../../../domain/model/result/application_error.dart';
 import '../../../domain/model/transfer/wallet_transfer_status.dart';
 import '../../../domain/usecase/transfer/cancel_wallet_transfer_usecase.dart';
 import '../../../domain/usecase/transfer/get_wallet_transfer_status_usecase.dart';
-import '../../../domain/usecase/transfer/prepare_wallet_transfer_usecase.dart';
+import '../../../domain/usecase/transfer/init_wallet_transfer_usecase.dart';
 import '../../../domain/usecase/transfer/skip_wallet_transfer_usecase.dart';
 import '../../../util/cast_util.dart';
 
@@ -19,7 +19,7 @@ part 'wallet_transfer_target_event.dart';
 part 'wallet_transfer_target_state.dart';
 
 class WalletTransferTargetBloc extends Bloc<WalletTransferTargetEvent, WalletTransferTargetState> {
-  final PrepareWalletTransferUseCase _prepareWalletTransferUseCase;
+  final InitWalletTransferUseCase _initWalletTransferUseCase;
   final GetWalletTransferStatusUseCase _getWalletTransferStatusUseCase;
   final CancelWalletTransferUseCase _cancelWalletTransferUsecase;
   final SkipWalletTransferUseCase _skipWalletTransferUseCase;
@@ -27,7 +27,7 @@ class WalletTransferTargetBloc extends Bloc<WalletTransferTargetEvent, WalletTra
   StreamSubscription? _statusSubscription;
 
   WalletTransferTargetBloc(
-    this._prepareWalletTransferUseCase,
+    this._initWalletTransferUseCase,
     this._getWalletTransferStatusUseCase,
     this._cancelWalletTransferUsecase,
     this._skipWalletTransferUseCase,
@@ -49,7 +49,7 @@ class WalletTransferTargetBloc extends Bloc<WalletTransferTargetEvent, WalletTra
     Emitter<WalletTransferTargetState> emit,
   ) async {
     emit(const WalletTransferLoadingQrData());
-    final result = await _prepareWalletTransferUseCase.invoke();
+    final result = await _initWalletTransferUseCase.invoke();
     await result.process(
       onSuccess: (qrData) async {
         if (state is! WalletTransferLoadingQrData) return; // User cancelled
