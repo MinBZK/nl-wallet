@@ -579,7 +579,7 @@ WidgetBuilder _createWalletTransferSourceRoute(RouteSettings settings) {
           context.read(),
           context.read(),
         );
-        if (argument.peek() != null) bloc.add(WalletTransferInitiateTransferEvent(argument.value!));
+        if (argument.peek() != null) bloc.add(WalletTransferAcknowledgeTransferEvent(argument.value!));
         return bloc;
       },
       child: const WalletTransferSourceScreen(),

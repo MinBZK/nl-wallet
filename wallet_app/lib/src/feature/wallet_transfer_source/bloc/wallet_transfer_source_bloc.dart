@@ -9,39 +9,39 @@ import '../../../domain/model/bloc/network_error_state.dart';
 import '../../../domain/model/flow_progress.dart';
 import '../../../domain/model/result/application_error.dart';
 import '../../../domain/model/transfer/wallet_transfer_status.dart';
+import '../../../domain/usecase/transfer/acknowledge_wallet_transfer_usecase.dart';
 import '../../../domain/usecase/transfer/cancel_wallet_transfer_usecase.dart';
 import '../../../domain/usecase/transfer/get_wallet_transfer_status_usecase.dart';
-import '../../../domain/usecase/transfer/init_wallet_transfer_usecase.dart';
 import '../../../util/cast_util.dart';
 
 part 'wallet_transfer_source_event.dart';
 part 'wallet_transfer_source_state.dart';
 
 class WalletTransferSourceBloc extends Bloc<WalletTransferSourceEvent, WalletTransferSourceState> {
-  final InitWalletTransferUseCase _initWalletTransferUseCase;
+  final AcknowledgeWalletTransferUseCase _ackWalletTransferUseCase;
   final GetWalletTransferStatusUseCase _getWalletTransferStatusUseCase;
   final CancelWalletTransferUseCase _cancelWalletTransferUsecase;
 
   StreamSubscription? _statusSubscription;
 
   WalletTransferSourceBloc(
-    this._initWalletTransferUseCase,
+    this._ackWalletTransferUseCase,
     this._getWalletTransferStatusUseCase,
     this._cancelWalletTransferUsecase,
   ) : super(const WalletTransferInitial()) {
-    on<WalletTransferInitiateTransferEvent>(_initiateTransfer);
+    on<WalletTransferAcknowledgeTransferEvent>(_onAcknowledgeTransfer);
     on<WalletTransferAgreeEvent>(_onTermsAccepted);
     on<WalletTransferPinConfirmedEvent>(_onPinConfirmed);
     on<WalletTransferStopRequestedEvent>(_onStopRequested);
     on<WalletTransferBackPressedEvent>(_onBackPressed);
   }
 
-  Future<void> _initiateTransfer(
-    WalletTransferInitiateTransferEvent event,
+  Future<void> _onAcknowledgeTransfer(
+    WalletTransferAcknowledgeTransferEvent event,
     Emitter<WalletTransferSourceState> emit,
   ) async {
     emit(const WalletTransferLoading());
-    final result = await _initWalletTransferUseCase.invoke(event.uri);
+    final result = await _ackWalletTransferUseCase.invoke(event.uri);
     await result.process(
       onSuccess: (_) => emit(const WalletTransferIntroduction()),
       onError: (ApplicationError error) => _handleError(error, emit),

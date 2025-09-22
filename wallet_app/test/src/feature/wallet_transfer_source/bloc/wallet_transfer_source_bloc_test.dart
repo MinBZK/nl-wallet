@@ -26,12 +26,12 @@ void main() {
   );
 
   blocTest(
-    'WalletTransferGenericError is emitted when transfer can not be initiated',
+    'WalletTransferGenericError is emitted when transfer can not be acknowledged',
     build: createBloc,
     setUp: () => when(
       mockInitWalletTransferUseCase.invoke(any),
     ).thenAnswer((_) async => const Result.error(GenericError('', sourceError: 'test'))),
-    act: (bloc) => bloc.add(const WalletTransferInitiateTransferEvent('https://example.org/transfer')),
+    act: (bloc) => bloc.add(const WalletTransferAcknowledgeTransferEvent('https://example.org/transfer')),
     expect: () => [
       isA<WalletTransferLoading>(),
       isA<WalletTransferGenericError>(),
@@ -52,7 +52,7 @@ void main() {
       );
     },
     act: (bloc) async {
-      bloc.add(const WalletTransferInitiateTransferEvent('https://example.org/transfer'));
+      bloc.add(const WalletTransferAcknowledgeTransferEvent('https://example.org/transfer'));
       await Future.delayed(const Duration(milliseconds: 10));
       bloc.add(const WalletTransferAgreeEvent());
       await Future.delayed(const Duration(milliseconds: 10));
@@ -80,7 +80,7 @@ void main() {
     'verify back pressed event from confirm pin',
     build: createBloc,
     act: (bloc) async {
-      bloc.add(const WalletTransferInitiateTransferEvent('https://example.org/transfer'));
+      bloc.add(const WalletTransferAcknowledgeTransferEvent('https://example.org/transfer'));
       await Future.delayed(const Duration(milliseconds: 10));
       bloc.add(const WalletTransferAgreeEvent());
       await Future.delayed(const Duration(milliseconds: 10));
@@ -102,7 +102,7 @@ void main() {
       when(mockGetWalletTransferStatusUseCase.invoke()).thenAnswer((_) => Stream.value(WalletTransferStatus.error));
     },
     act: (bloc) async {
-      bloc.add(const WalletTransferInitiateTransferEvent('https://example.org/transfer'));
+      bloc.add(const WalletTransferAcknowledgeTransferEvent('https://example.org/transfer'));
       await Future.delayed(const Duration(milliseconds: 10));
       bloc.add(const WalletTransferAgreeEvent());
       await Future.delayed(const Duration(milliseconds: 10));
