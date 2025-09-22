@@ -79,6 +79,8 @@ class WalletTransferTargetBloc extends Bloc<WalletTransferTargetEvent, WalletTra
           emit(WalletTransferFailed(GenericError('transfer_error', sourceError: status)));
         case WalletTransferStatus.success:
           emit(const WalletTransferSuccess());
+        case WalletTransferStatus.cancelled:
+          emit(const WalletTransferStopped());
       }
     });
 

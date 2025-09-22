@@ -150,6 +150,16 @@ class TypedWalletCore {
 
   Future<void> cancelPinRecovery() => call(core.cancelPinRecovery);
 
+  Future<String> initWalletTransfer() => call(core.initWalletTransfer);
+
+  Future<void> acknowledgeWalletTransfer(String uri) => call(() => core.acknowledgeWalletTransfer(uri: uri));
+
+  Future<core.WalletInstructionResult> transferWallet(String pin) => call(() => core.transferWallet(pin: pin));
+
+  Future<core.WalletInstructionResult> cancelWalletTransfer() => call(core.cancelWalletTransfer);
+
+  Future<core.TransferSessionState> getWalletTransferState() => call(core.getWalletTransferState);
+
   /// This function should be used to call through to the core, as it makes sure potential exceptions are processed
   /// before they are (re)thrown.
   Future<T> call<T>(Future<T> Function() runnable) async {
