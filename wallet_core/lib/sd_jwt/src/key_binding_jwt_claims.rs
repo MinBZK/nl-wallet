@@ -155,28 +155,24 @@ impl KeyBindingJwtBuilder {
         let contents_and_keys = sd_jwts_and_keys
             .into_iter()
             .zip(itertools::repeat_n(self, sd_jwt_count))
-            .map(
-                |(
-                    (sd_jwt, key),
-                    KeyBindingJwtBuilder {
-                        header,
-                        iat,
-                        aud,
-                        nonce,
-                    },
-                )| {
-                    let sd_hash = Self::sd_hash_for_sd_jwt(sd_jwt)?;
+            .map(|((sd_jwt, key), builder)| {
+                let KeyBindingJwtBuilder {
+                    header,
+                    iat,
+                    aud,
+                    nonce,
+                } = builder;
+                let sd_hash = Self::sd_hash_for_sd_jwt(sd_jwt)?;
 
-                    let claims = KeyBindingJwtClaims {
-                        iat,
-                        aud,
-                        nonce,
-                        sd_hash,
-                    };
+                let claims = KeyBindingJwtClaims {
+                    iat,
+                    aud,
+                    nonce,
+                    sd_hash,
+                };
 
-                    Ok((claims, header, key))
-                },
-            )
+                Ok((claims, header, key))
+            })
             .collect::<Result<Vec<_>>>()?
             .try_into()
             // This unwrap is safe, as the source iterator is non-empty.
