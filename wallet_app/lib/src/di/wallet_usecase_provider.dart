@@ -341,7 +341,7 @@ class WalletUseCaseProvider extends StatelessWidget {
           create: (context) => AcknowledgeWalletTransferUseCaseImpl(context.read()),
         ),
         RepositoryProvider<StartWalletTransferUseCase>(
-          create: (context) => StartWalletTransferUseCaseImpl(),
+          create: (context) => StartWalletTransferUseCaseImpl(context.read(), context.read()),
         ),
         RepositoryProvider<CreatePinRecoveryRedirectUriUseCase>(
           create: (context) => CreatePinRecoveryRedirectUriUseCaseImpl(context.read()),

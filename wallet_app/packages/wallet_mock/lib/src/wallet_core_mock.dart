@@ -4,9 +4,10 @@ import 'package:wallet_core/core.dart';
 
 import '../mock.dart';
 import 'data/mock/mock_attestations.dart';
-import 'disclosure_manager.dart';
 import 'log/wallet_event_log.dart';
-import 'pin/pin_manager.dart';
+import 'manager/disclosure_manager.dart';
+import 'manager/pin_manager.dart';
+import 'manager/transfer_manager.dart';
 import 'wallet/wallet.dart';
 
 class WalletCoreMock implements WalletCoreApi {
@@ -15,6 +16,7 @@ class WalletCoreMock implements WalletCoreApi {
 
   final IssuanceManager _issuanceManager;
   final DisclosureManager _disclosureManager;
+  final TransferManager _transferManager;
 
   final PinManager _pinManager;
   final Wallet _wallet;
@@ -22,7 +24,14 @@ class WalletCoreMock implements WalletCoreApi {
 
   bool _isBiometricsEnabled = false;
 
-  WalletCoreMock(this._pinManager, this._wallet, this._eventLog, this._issuanceManager, this._disclosureManager);
+  WalletCoreMock(
+    this._pinManager,
+    this._wallet,
+    this._eventLog,
+    this._issuanceManager,
+    this._disclosureManager,
+    this._transferManager,
+  );
 
   @override
   Future<StartDisclosureResult> crateApiFullStartDisclosure({required String uri, required bool isQrCode}) async {
@@ -295,27 +304,24 @@ class WalletCoreMock implements WalletCoreApi {
   }
 
   @override
-  Future<String> crateApiFullInitWalletTransfer() {
-    throw UnimplementedError();
-  }
+  Future<String> crateApiFullInitWalletTransfer() => _transferManager.initWalletTransfer();
 
   @override
-  Future<void> crateApiFullAcknowledgeWalletTransfer({required String uri}) {
-    throw UnimplementedError();
-  }
+  Future<void> crateApiFullAcknowledgeWalletTransfer({required String uri}) async =>
+      _transferManager.acknowledgeWalletTransfer(uri);
 
   @override
-  Future<WalletInstructionResult> crateApiFullTransferWallet({required String pin}) {
-    throw UnimplementedError();
-  }
+  Future<WalletInstructionResult> crateApiFullTransferWallet({required String pin}) async =>
+      _transferManager.transferWallet(pin);
 
   @override
-  Future<WalletInstructionResult> crateApiFullCancelWalletTransfer() {
-    throw UnimplementedError();
+  Future<WalletInstructionResult> crateApiFullCancelWalletTransfer() async {
+    _transferManager.cancelWalletTransfer();
+    return const WalletInstructionResult_Ok();
   }
 
   @override
   Future<TransferSessionState> crateApiFullGetWalletTransferState() {
-    throw UnimplementedError();
+    return _transferManager.getTransferState();
   }
 }

@@ -2,13 +2,13 @@ import 'dart:convert';
 
 import 'package:wallet_core/core.dart';
 
-import 'data/mock/mock_issuance_responses.dart';
-import 'data/model/issuance_response.dart';
-import 'log/wallet_event_log.dart';
-import 'pin/pin_manager.dart';
-import 'util/extension/attestation_presentation_extension.dart';
-import 'util/extension/string_extension.dart';
-import 'wallet/wallet.dart';
+import '../data/mock/mock_issuance_responses.dart';
+import '../data/model/issuance_response.dart';
+import '../log/wallet_event_log.dart';
+import '../util/extension/attestation_presentation_extension.dart';
+import '../util/extension/string_extension.dart';
+import '../wallet/wallet.dart';
+import 'pin_manager.dart';
 
 /// This class manages 'disclosure based issuance' requests. It was initially
 /// a class that exposed an API directly to the user (wallet_app) but since the
