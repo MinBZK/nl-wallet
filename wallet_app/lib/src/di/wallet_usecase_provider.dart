@@ -326,7 +326,7 @@ class WalletUseCaseProvider extends StatelessWidget {
           create: (context) => FetchTourVideosUseCaseImpl(context.read()),
         ),
         RepositoryProvider<CancelWalletTransferUseCase>(
-          create: (context) => CancelWalletTransferUseCaseImpl(),
+          create: (context) => CancelWalletTransferUseCaseImpl(context.read(), context.read()),
         ),
         RepositoryProvider<SkipWalletTransferUseCase>(
           create: (context) => SkipWalletTransferUseCaseImpl(),

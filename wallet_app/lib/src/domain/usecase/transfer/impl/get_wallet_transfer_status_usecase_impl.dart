@@ -2,7 +2,7 @@ import '../../../../data/repository/transfer/transfer_repository.dart';
 import '../../../model/transfer/wallet_transfer_status.dart';
 import '../get_wallet_transfer_status_usecase.dart';
 
-/// Use case for retrieving the status of a wallet transfer.
+/// Use case for observing the status of a wallet transfer.
 ///
 /// This class polls the [TransferRepository] for the current transfer status
 /// and yields the status until a terminal state is reached.
