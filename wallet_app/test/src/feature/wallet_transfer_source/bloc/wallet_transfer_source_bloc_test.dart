@@ -9,12 +9,13 @@ import 'package:wallet/src/feature/wallet_transfer_source/bloc/wallet_transfer_s
 import '../../../mocks/wallet_mocks.dart';
 
 void main() {
-  final MockInitWalletTransferUseCase mockInitWalletTransferUseCase = MockInitWalletTransferUseCase();
+  final MockAcknowledgeWalletTransferUseCase mockAcknowledgeWalletTransferUseCase =
+      MockAcknowledgeWalletTransferUseCase();
   final MockGetWalletTransferStatusUseCase mockGetWalletTransferStatusUseCase = MockGetWalletTransferStatusUseCase();
   final MockCancelWalletTransferUseCase mockCancelWalletTransferUseCase = MockCancelWalletTransferUseCase();
 
   WalletTransferSourceBloc createBloc() => WalletTransferSourceBloc(
-    mockInitWalletTransferUseCase,
+    mockAcknowledgeWalletTransferUseCase,
     mockGetWalletTransferStatusUseCase,
     mockCancelWalletTransferUseCase,
   );
@@ -29,7 +30,7 @@ void main() {
     'WalletTransferGenericError is emitted when transfer can not be acknowledged',
     build: createBloc,
     setUp: () => when(
-      mockInitWalletTransferUseCase.invoke(any),
+      mockAcknowledgeWalletTransferUseCase.invoke(any),
     ).thenAnswer((_) async => const Result.error(GenericError('', sourceError: 'test'))),
     act: (bloc) => bloc.add(const WalletTransferAcknowledgeTransferEvent('https://example.org/transfer')),
     expect: () => [
@@ -42,7 +43,7 @@ void main() {
     'verify happy path',
     build: createBloc,
     setUp: () {
-      when(mockInitWalletTransferUseCase.invoke(any)).thenAnswer((_) async => const Result.success(null));
+      when(mockAcknowledgeWalletTransferUseCase.invoke(any)).thenAnswer((_) async => const Result.success(null));
       when(mockGetWalletTransferStatusUseCase.invoke()).thenAnswer(
         (_) => Stream.fromIterable([
           WalletTransferStatus.waitingForApproval,
@@ -98,7 +99,7 @@ void main() {
     'verify transfer failed with generic error',
     build: createBloc,
     setUp: () {
-      when(mockInitWalletTransferUseCase.invoke(any)).thenAnswer((_) async => const Result.success(null));
+      when(mockAcknowledgeWalletTransferUseCase.invoke(any)).thenAnswer((_) async => const Result.success(null));
       when(mockGetWalletTransferStatusUseCase.invoke()).thenAnswer((_) => Stream.value(WalletTransferStatus.error));
     },
     act: (bloc) async {
