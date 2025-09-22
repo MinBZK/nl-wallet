@@ -220,6 +220,8 @@ impl RequiredKeyBinding {
 #[cfg(test)]
 mod test {
     use assert_matches::assert_matches;
+    use base64::Engine;
+    use base64::prelude::BASE64_URL_SAFE_NO_PAD;
     use chrono::Duration;
     use chrono::Utc;
     use futures::FutureExt;
@@ -266,8 +268,24 @@ mod test {
         .unwrap()
     }
 
-    #[tokio::test]
-    async fn test_key_binding_jwt_builder() {
+    fn header_and_payload_values_for_kb_jwt(
+        KeyBindingJwt(verified_jwt): &KeyBindingJwt,
+    ) -> (serde_json::Value, serde_json::Value) {
+        verified_jwt
+            .jwt()
+            .signed_slice()
+            .split('.')
+            .map(|base64| {
+                let json = String::try_from(BASE64_URL_SAFE_NO_PAD.decode(base64).unwrap()).unwrap();
+
+                serde_json::from_str::<serde_json::Value>(&json).unwrap()
+            })
+            .collect_tuple()
+            .unwrap()
+    }
+
+    #[test]
+    fn test_key_binding_jwt_builder() {
         let sd_jwt = SdJwt::parse_and_verify(SIMPLE_STRUCTURED_SD_JWT, &examples_sd_jwt_decoding_key()).unwrap();
 
         let signing_key = SigningKey::random(&mut OsRng);
@@ -277,17 +295,27 @@ mod test {
 
         let kb_jwt = KeyBindingJwtBuilder::new(iat, String::from("receiver"), String::from("abc123"), Algorithm::ES256)
             .finish(&sd_jwt, &signing_key)
-            .await
-            .unwrap();
+            .now_or_never()
+            .unwrap()
+            .expect("signing a KeyBindingJwt should succeed");
+
+        let (header, payload) = header_and_payload_values_for_kb_jwt(&kb_jwt);
+
+        let expected_header = json!({
+            "typ": "kb+jwt",
+            "alg": Algorithm::ES256
+        });
 
         let sd_hash = hasher.encoded_digest(sd_jwt.presentation().as_str());
+        let expected_payload = json!({
+            "iat": iat.timestamp(),
+            "aud": "receiver",
+            "nonce": "abc123",
+            "sd_hash": sd_hash,
+        });
 
-        assert_eq!(iat.timestamp(), kb_jwt.claims().iat.timestamp());
-        assert_eq!(String::from("receiver"), kb_jwt.claims().aud);
-        assert_eq!(String::from("abc123"), kb_jwt.claims().nonce);
-        assert_eq!(sd_hash, kb_jwt.claims().sd_hash);
-        assert_eq!(Some(String::from("kb+jwt")), kb_jwt.0.header().typ);
-        assert_eq!(Algorithm::ES256, kb_jwt.0.header().alg);
+        assert_eq!(header, expected_header);
+        assert_eq!(payload, expected_payload);
     }
 
     #[test]
@@ -335,19 +363,28 @@ mod test {
 
         let hasher = Sha256Hasher;
 
-        for (sd_jwt, key_binding_jwt) in sd_jwts_and_keys
+        for (sd_jwt, kb_jwt) in sd_jwts_and_keys
             .iter()
             .zip_eq(kb_jwts.iter())
             .map(|((sd_jwt, _), kb_jwt)| (sd_jwt, kb_jwt))
         {
-            let sd_hash = hasher.encoded_digest(sd_jwt.presentation().as_str());
+            let (header, payload) = header_and_payload_values_for_kb_jwt(kb_jwt);
 
-            assert_eq!(iat.timestamp(), key_binding_jwt.claims().iat.timestamp());
-            assert_eq!(String::from("receiver"), key_binding_jwt.claims().aud);
-            assert_eq!(String::from("abc123"), key_binding_jwt.claims().nonce);
-            assert_eq!(sd_hash, key_binding_jwt.claims().sd_hash);
-            assert_eq!(Some(String::from("kb+jwt")), key_binding_jwt.0.header().typ);
-            assert_eq!(Algorithm::ES256, key_binding_jwt.0.header().alg);
+            let expected_header = json!({
+                "typ": "kb+jwt",
+                "alg": Algorithm::ES256
+            });
+
+            let sd_hash = hasher.encoded_digest(sd_jwt.presentation().as_str());
+            let expected_payload = json!({
+                "iat": iat.timestamp(),
+                "aud": "receiver",
+                "nonce": "abc123",
+                "sd_hash": sd_hash,
+            });
+
+            assert_eq!(header, expected_header);
+            assert_eq!(payload, expected_payload);
         }
     }
 
