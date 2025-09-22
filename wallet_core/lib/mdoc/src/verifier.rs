@@ -3,10 +3,10 @@
 use chrono::DateTime;
 use chrono::Utc;
 use indexmap::IndexMap;
+use itertools::Itertools;
 use p256::SecretKey;
 use p256::ecdsa::VerifyingKey;
 use rustls_pki_types::TrustAnchor;
-use serde_with::serde_as;
 use tracing::debug;
 use tracing::warn;
 
@@ -26,7 +26,6 @@ use crate::utils::serialization::cbor_serialize;
 
 /// Attributes of an mdoc that was disclosed in a [`DeviceResponse`], as computed by [`DeviceResponse::verify()`].
 /// Grouped per namespace. Validity information and the attributes issuer's common_name is also included.
-#[serde_as]
 #[derive(Debug, Clone)]
 pub struct DisclosedDocument {
     pub doc_type: String,
@@ -34,6 +33,14 @@ pub struct DisclosedDocument {
     pub issuer_uri: HttpsUri,
     pub ca: String,
     pub validity_info: ValidityInfo,
+    pub device_key: VerifyingKey,
+}
+
+#[derive(Debug, Clone)]
+pub struct IssuerSignedVerificationResult {
+    pub mso: MobileSecurityObject,
+    pub attributes: IndexMap<NameSpace, IndexMap<DataElementIdentifier, DataElementValue>>,
+    pub ca_common_name: String,
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -148,23 +155,12 @@ impl ValidityInfo {
 }
 
 impl IssuerSigned {
-    pub fn dangerous_public_key(&self) -> Result<VerifyingKey> {
-        let public_key = self
-            .issuer_auth
-            .dangerous_parse_unverified()?
-            .0
-            .device_key_info
-            .try_into()?;
-
-        Ok(public_key)
-    }
-
     pub fn verify(
         &self,
         validity: ValidityRequirement,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
-    ) -> Result<(DisclosedDocument, MobileSecurityObject)> {
+    ) -> Result<IssuerSignedVerificationResult> {
         let TaggedBytes(mso) =
             self.issuer_auth
                 .verify_against_trust_anchors(CertificateUsage::Mdl, time, trust_anchors)?;
@@ -187,28 +183,26 @@ impl IssuerSigned {
             .unwrap_or_default();
 
         let signing_cert = self.issuer_auth.signing_cert()?;
-        let mut ca_cns = signing_cert.issuer_common_names()?;
-        if ca_cns.len() != 1 {
-            return Err(VerificationError::UnexpectedCACommonNameCount(ca_cns.len()).into());
-        }
+        let ca_cns = signing_cert.issuer_common_names()?;
+        let ca_common_name = ca_cns
+            .into_iter()
+            .exactly_one()
+            .map_err(|error| VerificationError::UnexpectedCACommonNameCount(error.into_iter().len()))?;
 
         let san_dns_name_or_uris = signing_cert.san_dns_name_or_uris()?;
-        let issuer_uri = match mso.issuer_uri {
-            Some(ref uri) if san_dns_name_or_uris.as_ref().contains(uri) => uri.to_owned(),
+        match mso.issuer_uri {
+            Some(ref uri) if san_dns_name_or_uris.as_ref().contains(uri) => {}
             Some(uri) => return Err(VerificationError::IssuerUriNotFoundInSan(uri, san_dns_name_or_uris).into()),
             None => return Err(VerificationError::MissingIssuerUri.into()),
+        }
+
+        let result = IssuerSignedVerificationResult {
+            mso,
+            attributes,
+            ca_common_name: ca_common_name.to_string(),
         };
 
-        Ok((
-            DisclosedDocument {
-                doc_type: mso.doc_type.clone(),
-                attributes,
-                issuer_uri,
-                ca: String::from(ca_cns.pop().unwrap()),
-                validity_info: mso.validity_info.clone(),
-            },
-            mso,
-        ))
+        Ok(result)
     }
 }
 
@@ -256,7 +250,11 @@ impl Document {
     ) -> Result<DisclosedDocument> {
         debug!("verifying document with doc_type: {:?}", &self.doc_type);
         debug!("verify issuer_signed");
-        let (disclosed_document, mso) = self
+        let IssuerSignedVerificationResult {
+            mso,
+            attributes,
+            ca_common_name,
+        } = self
             .issuer_signed
             .verify(ValidityRequirement::Valid, time, trust_anchors)?;
 
@@ -297,6 +295,16 @@ impl Document {
         }
         debug!("signature valid");
 
+        let disclosed_document = DisclosedDocument {
+            doc_type: mso.doc_type,
+            attributes,
+            // The presence of the `issuer_uri` is guaranteed by `IssuerSigned::verify()`.
+            issuer_uri: mso.issuer_uri.unwrap(),
+            ca: ca_common_name,
+            validity_info: mso.validity_info,
+            device_key,
+        };
+
         Ok(disclosed_document)
     }
 }
@@ -307,11 +315,8 @@ mod tests {
 
     use chrono::Duration;
     use chrono::Utc;
-    use p256::ecdsa::SigningKey;
-    use rand_core::OsRng;
 
     use crypto::examples::Examples;
-    use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
 
     use crate::examples::EXAMPLE_ATTR_NAME;
@@ -320,7 +325,6 @@ mod tests {
     use crate::examples::EXAMPLE_NAMESPACE;
     use crate::examples::Example;
     use crate::examples::IsoCertTimeGenerator;
-    use crate::holder::Mdoc;
     use crate::iso::disclosure::DeviceResponse;
     use crate::iso::engagement::DeviceAuthenticationBytes;
     use crate::iso::mdocs::ValidityInfo;
@@ -367,21 +371,6 @@ mod tests {
         validity
             .verify_is_valid_at(now, ValidityRequirement::AllowNotYetValid)
             .unwrap();
-    }
-
-    #[tokio::test]
-    async fn test_issuer_signed_public_key() {
-        let key = SigningKey::random(&mut OsRng);
-        let key = MockRemoteEcdsaKey::new("identifier".to_string(), key);
-        let mdoc = Mdoc::new_mock_with_key(&key).await;
-
-        let public_key = mdoc
-            .issuer_signed
-            .dangerous_public_key()
-            .expect("Could not get public key from from IssuerSigned");
-
-        // The example mdoc should contain the generated key.
-        assert_eq!(public_key, *key.verifying_key());
     }
 
     /// Verify the example disclosure from the standard.

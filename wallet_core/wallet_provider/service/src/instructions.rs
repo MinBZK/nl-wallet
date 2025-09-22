@@ -1034,7 +1034,7 @@ mod tests {
     use jwt::jwk::jwk_to_p256;
     use jwt::pop::JwtPopClaims;
     use jwt::wua::WuaDisclosure;
-    use sd_jwt::sd_jwt::SdJwtPresentation;
+    use sd_jwt::sd_jwt::SdJwt;
     use sd_jwt::sd_jwt::UnverifiedSdJwt;
     use wallet_account::NL_WALLET_CLIENT_ID;
     use wallet_account::messages::instructions::CancelTransfer;
@@ -1180,7 +1180,8 @@ mod tests {
 
         let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
         let issuer_key = generate_issuer_mock(&issuer_ca, IssuerRegistration::new_mock().into()).unwrap();
-        let sd_jwt = SdJwtPresentation::example_pid_sd_jwt(&issuer_key);
+        let holder_key = SigningKey::random(&mut OsRng);
+        let sd_jwt = SdJwt::example_pid_sd_jwt(&issuer_key, holder_key.verifying_key());
 
         let recovery_code_disclosure = sd_jwt
             .into_presentation_builder()
@@ -1233,7 +1234,8 @@ mod tests {
 
         let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
         let issuer_key = generate_issuer_mock(&issuer_ca, IssuerRegistration::new_mock().into()).unwrap();
-        let sd_jwt = SdJwtPresentation::example_pid_sd_jwt(&issuer_key);
+        let holder_key = SigningKey::random(&mut OsRng);
+        let sd_jwt = SdJwt::example_pid_sd_jwt(&issuer_key, holder_key.verifying_key());
 
         let recovery_code_disclosure = sd_jwt
             .into_presentation_builder()
@@ -1299,7 +1301,8 @@ mod tests {
 
         let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
         let issuer_key = generate_issuer_mock(&issuer_ca, IssuerRegistration::new_mock().into()).unwrap();
-        let sd_jwt = SdJwtPresentation::example_pid_sd_jwt(&issuer_key);
+        let holder_key = SigningKey::random(&mut OsRng);
+        let sd_jwt = SdJwt::example_pid_sd_jwt(&issuer_key, holder_key.verifying_key());
 
         let recovery_code_disclosure: UnverifiedSdJwt = sd_jwt
             .into_presentation_builder()
@@ -1409,7 +1412,8 @@ mod tests {
 
         let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
         let issuer_key = generate_issuer_mock(&issuer_ca, IssuerRegistration::new_mock().into()).unwrap();
-        let sd_jwt = SdJwtPresentation::example_pid_sd_jwt(&issuer_key);
+        let holder_key = SigningKey::random(&mut OsRng);
+        let sd_jwt = SdJwt::example_pid_sd_jwt(&issuer_key, holder_key.verifying_key());
 
         let recovery_code_disclosure = sd_jwt
             .into_presentation_builder()
@@ -1457,7 +1461,8 @@ mod tests {
 
         let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
         let issuer_key = generate_issuer_mock(&issuer_ca, IssuerRegistration::new_mock().into()).unwrap();
-        let sd_jwt = SdJwtPresentation::example_pid_sd_jwt(&issuer_key);
+        let holder_key = SigningKey::random(&mut OsRng);
+        let sd_jwt = SdJwt::example_pid_sd_jwt(&issuer_key, holder_key.verifying_key());
 
         let recovery_code_disclosure = sd_jwt
             .into_presentation_builder()

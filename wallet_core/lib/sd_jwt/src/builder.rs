@@ -13,7 +13,7 @@ use serde::Serialize;
 use ssri::Integrity;
 
 use attestation_types::claim_path::ClaimPath;
-use crypto::EcdsaKeySend;
+use crypto::EcdsaKey;
 use crypto::x509::BorrowingCertificate;
 use jwt::VerifiedJwt;
 use jwt::jwk::jwk_from_p256;
@@ -131,7 +131,7 @@ impl<H: Hasher> SdJwtBuilder<H> {
         self,
         alg: Algorithm,
         vct_integrity: Integrity,
-        issuer_signing_key: &impl EcdsaKeySend,
+        issuer_signing_key: &impl EcdsaKey,
         issuer_certificates: Vec<BorrowingCertificate>,
         holder_pubkey: &VerifyingKey,
     ) -> Result<SdJwt> {

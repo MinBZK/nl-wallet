@@ -12,7 +12,7 @@ filter = 'package(wallet) & test(/^digid::http::/)'
 test-group = 'mock-oidc'
 
 [[profile.default.overrides]]
-filter = 'package(wallet) & test(/test_continue_pid_issuance(|_error_(pid_issuer|document))$/)'
+filter = 'package(wallet) & test(/(test_wallet_accept_disclosure_based_issuance|test_continue_pid_issuance(|_error_(pid_issuer|document)))$/)'
 test-group = 'mock-issuance-session'
 
 [profile.ci]
