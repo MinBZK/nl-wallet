@@ -312,11 +312,11 @@ pub mod mock {
 mod test {
     use assert_matches::assert_matches;
     use chrono::Utc;
-    use jwt::SignedJwt;
     use mockall::predicate::eq;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
 
+    use jwt::SignedJwt;
     use wallet_account::messages::registration::WalletCertificateClaims;
 
     use super::*;

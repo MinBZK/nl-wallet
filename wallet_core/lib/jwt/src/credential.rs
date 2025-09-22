@@ -30,7 +30,7 @@ impl<T> JwtTyp for JwtCredentialClaims<T> {
 
 impl<T> JwtCredentialClaims<T>
 where
-    T: Serialize + std::fmt::Debug,
+    T: Serialize,
 {
     pub fn new(pubkey: &VerifyingKey, iss: String, attributes: T) -> Result<Self, JwkConversionError> {
         let claims = Self {

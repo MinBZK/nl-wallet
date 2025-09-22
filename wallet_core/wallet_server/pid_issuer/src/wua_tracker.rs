@@ -58,7 +58,6 @@ impl WuaTracker for WuaTrackerVariant {
 mod postgres {
     use chrono::DateTime;
     use chrono::Utc;
-    use jwt::headers::HeaderWithTyp;
     use sea_orm::ActiveValue;
     use sea_orm::ColumnTrait;
     use sea_orm::DatabaseConnection;
@@ -70,6 +69,7 @@ mod postgres {
     use crypto::utils::sha256;
     use jwt::VerifiedJwt;
     use jwt::credential::JwtCredentialClaims;
+    use jwt::headers::HeaderWithTyp;
     use jwt::wua::WuaClaims;
     use server_utils::entity::used_wuas;
     use utils::generator::Generator;

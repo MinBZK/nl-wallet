@@ -2,7 +2,6 @@ use std::fmt;
 use std::fmt::Display;
 use std::fmt::Formatter;
 
-use jwt::headers::HeaderWithTyp;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::TryFromInto;
@@ -12,6 +11,7 @@ use serde_with::skip_serializing_none;
 use http_utils::urls::BaseUrl;
 use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithJwk;
+use jwt::headers::HeaderWithTyp;
 use jwt::pop::JwtPopClaims;
 use jwt::wua::WuaDisclosure;
 use mdoc::IssuerSigned;

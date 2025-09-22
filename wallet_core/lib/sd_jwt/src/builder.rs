@@ -3,15 +3,15 @@
 
 use std::collections::HashMap;
 
-use crypto::EcdsaKey;
-use crypto::server_keys::KeyPair;
-use jwt::SignedJwt;
 use p256::ecdsa::VerifyingKey;
 use serde::Serialize;
 use ssri::Integrity;
 
 use attestation_types::claim_path::ClaimPath;
+use crypto::EcdsaKey;
+use crypto::server_keys::KeyPair;
 use jwt::JwtTyp;
+use jwt::SignedJwt;
 use jwt::jwk::jwk_from_p256;
 use utils::vec_at_least::VecNonEmpty;
 

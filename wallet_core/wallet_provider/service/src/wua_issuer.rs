@@ -1,7 +1,6 @@
 use std::error::Error;
 
 use derive_more::Constructor;
-use jwt::headers::HeaderWithTyp;
 use p256::ecdsa::VerifyingKey;
 
 use crypto::keys::SecureEcdsaKey;
@@ -12,6 +11,7 @@ use hsm::service::HsmError;
 use jwt::UnverifiedJwt;
 use jwt::credential::JwtCredentialClaims;
 use jwt::error::JwtError;
+use jwt::headers::HeaderWithTyp;
 use jwt::wua::WuaClaims;
 use wallet_provider_domain::model::hsm::WalletUserHsm;
 
@@ -88,7 +88,6 @@ where
 pub mod mock {
     use std::convert::Infallible;
 
-    use jwt::headers::HeaderWithTyp;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
 
@@ -96,6 +95,7 @@ pub mod mock {
     use hsm::model::wrapped_key::WrappedKey;
     use jwt::UnverifiedJwt;
     use jwt::credential::JwtCredentialClaims;
+    use jwt::headers::HeaderWithTyp;
     use jwt::wua::WuaClaims;
 
     use super::WuaIssuer;

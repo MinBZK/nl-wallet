@@ -7,9 +7,6 @@ use chrono::DateTime;
 use chrono::Utc;
 use futures::future;
 use itertools::Itertools;
-use jwt::SignedJwt;
-use jwt::headers::HeaderWithTyp;
-use jwt::headers::JwtHeader;
 use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
 use serde::Deserialize;
@@ -23,9 +20,11 @@ use crypto::p256_der::DerSignature;
 use hsm::model::encrypter::Encrypter;
 use hsm::model::wrapped_key::WrappedKey;
 use hsm::service::HsmError;
-
+use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithJwk;
+use jwt::headers::HeaderWithTyp;
+use jwt::headers::JwtHeader;
 use jwt::pop::JwtPopClaims;
 use jwt::wua::WuaDisclosure;
 use utils::generator::Generator;
@@ -748,7 +747,6 @@ mod tests {
     use assert_matches::assert_matches;
     use base64::prelude::*;
     use itertools::Itertools;
-    use jwt::headers::HeaderWithTyp;
     use p256::ecdsa::Signature;
     use p256::ecdsa::SigningKey;
     use p256::ecdsa::signature::Signer;
@@ -769,6 +767,7 @@ mod tests {
     use jwt::UnverifiedJwt;
     use jwt::Validation;
     use jwt::headers::HeaderWithJwk;
+    use jwt::headers::HeaderWithTyp;
     use jwt::jwk::jwk_to_p256;
     use jwt::pop::JwtPopClaims;
     use jwt::wua::WuaDisclosure;

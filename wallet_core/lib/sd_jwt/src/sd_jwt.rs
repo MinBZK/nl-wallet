@@ -15,7 +15,6 @@ use derive_more::Display;
 use itertools::Itertools;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::Validation;
-use jwt::headers::HeaderWithTyp;
 use nutype::nutype;
 use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
@@ -37,6 +36,7 @@ use jwt::EcdsaDecodingKey;
 use jwt::Header;
 use jwt::UnverifiedJwt;
 use jwt::VerifiedJwt;
+use jwt::headers::HeaderWithTyp;
 use jwt::headers::HeaderWithX5c;
 use jwt::jwk::jwk_to_p256;
 use utils::date_time_seconds::DateTimeSeconds;
@@ -852,7 +852,6 @@ mod test {
     use chrono::DateTime;
     use chrono::Duration;
     use chrono::Utc;
-    use crypto::server_keys::generate::Ca;
     use futures::FutureExt;
     use itertools::Itertools;
     use jsonwebtoken::errors::ErrorKind;
@@ -867,6 +866,7 @@ mod test {
     use serde_json::json;
     use ssri::Integrity;
 
+    use crypto::server_keys::generate::Ca;
     use http_utils::urls::HttpsUri;
     use jwt::EcdsaDecodingKey;
     use jwt::Header;

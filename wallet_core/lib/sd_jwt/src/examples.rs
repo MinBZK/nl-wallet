@@ -5,7 +5,6 @@ use base64::prelude::BASE64_URL_SAFE_NO_PAD;
 use chrono::Duration;
 use futures::FutureExt;
 use jsonwebtoken::jwk::Jwk;
-use jwt::Header;
 use p256::ecdsa::SigningKey;
 use rand_core::OsRng;
 use serde_json::json;
@@ -15,6 +14,7 @@ use attestation_types::claim_path::ClaimPath;
 use crypto::server_keys::KeyPair;
 use crypto::utils::random_string;
 use jwt::EcdsaDecodingKey;
+use jwt::Header;
 use jwt::jwk::jwk_to_p256;
 
 use crate::builder::SdJwtBuilder;

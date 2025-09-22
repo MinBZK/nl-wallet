@@ -11,7 +11,6 @@ use chrono::Utc;
 use chrono::serde::ts_seconds;
 use chrono::serde::ts_seconds_option;
 use derive_more::FromStr;
-use jwt::headers::HeaderWithTyp;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::DurationSeconds;
@@ -23,6 +22,7 @@ use jwt::JwtTyp;
 use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
 use jwt::error::JwtError;
+use jwt::headers::HeaderWithTyp;
 
 use crate::status_list::PackedStatusList;
 

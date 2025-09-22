@@ -3,8 +3,6 @@ use std::collections::HashSet;
 use derive_more::AsRef;
 use derive_more::From;
 use futures::future::try_join_all;
-use jwt::SignedJwt;
-use jwt::headers::HeaderWithTyp;
 use p256::ecdsa::VerifyingKey;
 use serde::Deserialize;
 use serde::Serialize;
@@ -14,8 +12,10 @@ use crypto::wscd::WscdPoa;
 use jwt::DEFAULT_VALIDATIONS;
 use jwt::JsonJwt;
 use jwt::JwtTyp;
+use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
 use jwt::error::JwtError;
+use jwt::headers::HeaderWithTyp;
 use jwt::jwk::AlgorithmParameters;
 use jwt::jwk::Jwk;
 use jwt::jwk::jwk_alg_from_p256;
@@ -166,7 +166,6 @@ impl WscdPoa for Poa {
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
-    use jwt::headers::HeaderWithTyp;
     use p256::ecdsa::SigningKey;
     use p256::ecdsa::VerifyingKey;
     use rand_core::OsRng;
@@ -175,6 +174,7 @@ mod tests {
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use jwt::DEFAULT_VALIDATIONS;
     use jwt::UnverifiedJwt;
+    use jwt::headers::HeaderWithTyp;
     use jwt::pop::JwtPopClaims;
     use utils::vec_at_least::VecNonEmpty;
 

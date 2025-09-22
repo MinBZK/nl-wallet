@@ -6,9 +6,9 @@ use derive_more::Display;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::Validation;
 use jsonwebtoken::jwk::Jwk;
-use jwt::headers::HeaderWithTyp;
 
 use jwt::SignedJwt;
+use jwt::headers::HeaderWithTyp;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::chrono::DateTime;
@@ -148,6 +148,7 @@ mod test {
     use crate::examples::examples_sd_jwt_decoding_key;
     use crate::hasher::Hasher;
     use crate::hasher::Sha256Hasher;
+    use crate::key_binding_jwt_claims::KB_JWT_HEADER_TYP;
     use crate::key_binding_jwt_claims::KeyBindingJwt;
     use crate::key_binding_jwt_claims::KeyBindingJwtBuilder;
     use crate::key_binding_jwt_claims::KeyBindingJwtClaims;
@@ -188,7 +189,7 @@ mod test {
         // after calling `sign_with_typ` the value in `header` doesn't actually contain a `typ` field, but it is
         // included in the serialization
         let header: HeaderWithTyp = kb_jwt.0.jwt().dangerous_parse_header_unverified().unwrap();
-        assert_eq!("kb+jwt", header.typ());
+        assert_eq!(KB_JWT_HEADER_TYP, header.typ());
         assert_eq!(Algorithm::ES256, header.inner().alg);
     }
 
