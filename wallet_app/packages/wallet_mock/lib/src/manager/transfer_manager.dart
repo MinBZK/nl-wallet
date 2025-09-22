@@ -12,6 +12,8 @@ class TransferManager {
 
   final PinManager _pinManager;
   final Wallet _wallet;
+
+  // ignore: unused_field - Will be used once event log supports transfer events.
   final WalletEventLog _eventLog;
 
   TransferSessionState _currentState = TransferSessionState.Cancelled;
