@@ -57,7 +57,7 @@ class DisclosureBasedIssuanceTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("UC4.1 LTC5 Disclosure based Issuance happy flow")
+    @DisplayName("LTC5 Disclosure based Issuance happy flow, university")
     fun verifyDiplomaIssuance(testInfo: TestInfo) {
         setUp(testInfo)
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
@@ -65,15 +65,17 @@ class DisclosureBasedIssuanceTests : TestBase() {
         indexWebPage.switchToWebViewContext()
         indexWebPage.clickHollandUniversityButton()
         issuerWebPage.openSameDeviceWalletFlow()
+
         disclosureForIssuanceScreen.switchToNativeContext()
         assertTrue(disclosureForIssuanceScreen.organizationNameVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", UNIVERSITY)))
+
         disclosureForIssuanceScreen.viewDetails()
         assertTrue(disclosureForIssuanceScreen.requestedAttributeVisible(tasData.getPidClaimLabel("bsn")))
+
         disclosureForIssuanceScreen.goBack();
         disclosureForIssuanceScreen.share()
         pinScreen.enterPin(DEFAULT_PIN)
         cardIssuanceScreen.viewDetails()
-
         assertAll(
             { assertTrue(cardIssuanceScreen.organizationInSubtitleVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", UNIVERSITY)), "Subtitle is not visible") },
             { assertTrue(cardIssuanceScreen.labelVisible(tasData.getDiplomaClaimLabel("graduation_date")), "Label is not visible") },
@@ -91,7 +93,7 @@ class DisclosureBasedIssuanceTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("UC4.1 LTC5 Disclosure based Issuance happy flow")
+    @DisplayName("LTC5 Disclosure based Issuance happy flow, insurance")
     fun verifyInsuranceIssuance(testInfo: TestInfo) {
         setUp(testInfo)
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
@@ -99,10 +101,13 @@ class DisclosureBasedIssuanceTests : TestBase() {
         indexWebPage.switchToWebViewContext()
         indexWebPage.clickInsuranceButton()
         issuerWebPage.openSameDeviceWalletFlow()
+
         disclosureForIssuanceScreen.switchToNativeContext()
         assertTrue(disclosureForIssuanceScreen.organizationNameVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", INSURANCE)))
+
         disclosureForIssuanceScreen.viewDetails()
         assertTrue(disclosureForIssuanceScreen.requestedAttributeVisible(tasData.getPidClaimLabel("bsn")))
+
         disclosureForIssuanceScreen.goBack();
         disclosureForIssuanceScreen.share()
         pinScreen.enterPin(DEFAULT_PIN)
@@ -114,6 +119,7 @@ class DisclosureBasedIssuanceTests : TestBase() {
             { assertTrue(cardIssuanceScreen.dataVisible(issuanceData.getAttributeValues("insurance", DEFAULT_BSN, "product").first()), "data is not visible") },
             { assertTrue(cardIssuanceScreen.dataVisible(issuanceData.getAttributeValues("insurance", DEFAULT_BSN, "coverage").first()), "data is not visible") },
         )
+
         cardIssuanceScreen.clickBackButton()
         cardIssuanceScreen.clickAddButton()
         pinScreen.enterPin(DEFAULT_PIN)
@@ -123,7 +129,7 @@ class DisclosureBasedIssuanceTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("4.1 LTC79 No cards to be issued")
+    @DisplayName("LTC79 No cards to be issued")
     fun verifyNoInsuranceCardAvailable(testInfo: TestInfo) {
         setUp(testInfo)
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu, "900265462")
@@ -131,10 +137,12 @@ class DisclosureBasedIssuanceTests : TestBase() {
         indexWebPage.switchToWebViewContext()
         indexWebPage.clickInsuranceButton()
         issuerWebPage.openSameDeviceWalletFlow()
+
         disclosureForIssuanceScreen.switchToNativeContext()
         disclosureForIssuanceScreen.share()
         pinScreen.enterPin(DEFAULT_PIN)
         assertTrue(noCardsErrorScreen.titleVisible(), "no card error screen is not visible")
+
         noCardsErrorScreen.close()
         assertTrue(dashboardScreen.cardVisible(tasData.getPidDisplayName()), "Pid not visible on dashboard")
     }

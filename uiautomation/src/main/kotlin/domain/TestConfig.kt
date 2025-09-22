@@ -7,4 +7,5 @@ data class TestConfig(
     val platformVersion: String,
     val remote: Boolean,
     val automationName: String,
+    val commitSha: String,
 )

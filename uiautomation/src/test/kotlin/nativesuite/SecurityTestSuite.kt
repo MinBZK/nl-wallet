@@ -6,6 +6,8 @@ import org.junit.platform.suite.api.SuiteDisplayName
 
 @SelectClasses(
     nativefeature.security.SetupRemotePinTests::class,
+    nativefeature.security.UserEntersPinTests::class,
+    nativefeature.security.UserLocksWalletTests::class,
 )
 @Suite
 @SuiteDisplayName("Security Test Suite")

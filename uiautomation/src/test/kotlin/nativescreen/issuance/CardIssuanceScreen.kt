@@ -23,9 +23,9 @@ class CardIssuanceScreen : NativeMobileActions() {
 
     fun viewDetails() = clickElementWithText(viewDetailsButton)
 
-    fun labelVisible(label: String): Boolean = elementContainingTextVisible(label)
+    fun labelVisible(label: String) = elementContainingTextVisible(label)
 
-    fun dataVisible(data: String): Boolean = elementContainingTextVisible(data)
+    fun dataVisible(data: String) = elementContainingTextVisible(data)
 
     fun organizationInSubtitleVisible(organization: String): Boolean {
         return elementWithTextVisible(l10n.getString("checkAttributesScreenSubtitle").replace("{issuer}",

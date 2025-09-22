@@ -13,9 +13,9 @@ class CardDetailScreen : NativeMobileActions() {
     private val cardHistoryButton = l10n.getString("cardDetailScreenCardHistoryCta")
     private val bottomBackButton = l10n.getString("generalBottomBackCta")
 
-    fun visible() = elementWithTextVisible(cardDetailScreenCardDataCta)
+    fun visible() = elementContainingTextVisible(cardDetailScreenCardDataCta)
 
-    fun cardFaceElements() = elementWithTextVisible(pidIdTitleText)
+    fun cardFaceElements() = elementContainingTextVisible(pidIdTitleText)
 
     fun issuerAndHistoryStates() = elementContainingTextVisible(cardIssuerStateText) && elementContainingTextVisible(cardHistoryStateText)
 

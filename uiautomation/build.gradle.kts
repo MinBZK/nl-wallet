@@ -42,6 +42,7 @@ val testConfigMap = mapOf<String, Any>(
     "test.config.platform.version" to 14.0,
     "test.config.remote" to false,
     "test.config.automation.name" to "Flutter",
+    "test.config.commit.sha" to "local", //only used for browserstack test runs
 )
 
 tasks.test {
@@ -62,6 +63,14 @@ tasks.register<Test>("smokeTest") {
 tasks.register<Test>("smokeTestIOS") {
     useJUnitPlatform {
         includeTags("smokeIOS")
+        exclude("suite/**")
+        exclude("nativesuite/**")
+    }
+}
+
+tasks.register<Test>("nativeSmokeTestIOS") {
+    useJUnitPlatform {
+        includeTags("nativeSmokeIOS")
         exclude("suite/**")
         exclude("nativesuite/**")
     }

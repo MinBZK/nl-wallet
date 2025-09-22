@@ -79,6 +79,7 @@ The following parameters can be used to customize the test run:
 3. `test.config.platform.name`; The name of the platform to be used for testing, use `android` for local Android testing.
 4. `test.config.platform.version`; The version of the platform to be used for testing, for example `14.0`.
 5. `test.config.remote`; The value of this parameter should be set to `false` to run the tests locally, else `true` for BrowserStack test runs.
+6. `test.commit.sha`; The value of this parameter should be set to the CI_COMMIT_SHA of the pipeline run that has uploaded the app to browserstack to test remote, can be left empty for local test runs.
 
 #### Local test run examples:
 
@@ -108,6 +109,7 @@ Remote test run example:
     -Dtest.config.platform.name="Android"
     -Dtest.config.platform.version="14.0"
     -Dtest.config.remote=true
+    -Dtest.commit.sha="$CI_COMMIT_SHA"
 ````
 
 ## Test Annotations
