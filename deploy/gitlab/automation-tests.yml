@@ -60,7 +60,7 @@ scheduled-automation-tests-trigger:
       -Dtest.config.platform.version="$PLATFORM_VERSION"
       -Dtest.config.automation.name="$AUTOMATION_NAME"
       -Dtest.config.remote=true
-      -Dtest.commit.sha="${CI_COMMIT_SHA}"
+      -Dtest.config.commit.sha="${CI_COMMIT_SHA}"
       -Dfile.encoding=UTF-8 || true
     # Allow failure in tests and pass when there are test results (Quality Time should report on failed test)
     - compgen -G "build/test-results/test/*.xml"
@@ -196,7 +196,7 @@ run-automation-smoke-test-ont:
       -Dtest.config.platform.version="$PLATFORM_VERSION"
       -Dtest.config.automation.name="$AUTOMATION_NAME"
       -Dtest.config.remote=true
-      -Dtest.commit.sha="${CI_COMMIT_SHA}"
+      -Dtest.config.commit.sha="${CI_COMMIT_SHA}"
       -Dfile.encoding=UTF-8
 
 
@@ -216,7 +216,7 @@ run-automation-smoke-test-ios-ont:
       -Dtest.config.platform.version="16"
       -Dtest.config.automation.name="Flutter"
       -Dtest.config.remote=true
-      -Dtest.commit.sha="${CI_COMMIT_SHA}"
+      -Dtest.config.commit.sha="${CI_COMMIT_SHA}"
       -Dfile.encoding=UTF-8
 
 run-native-automation-smoke-test-ios-ont:
@@ -235,7 +235,7 @@ run-native-automation-smoke-test-ios-ont:
       -Dtest.config.platform.version="16"
       -Dtest.config.automation.name="XCUITest"
       -Dtest.config.remote=true
-      -Dtest.commit.sha="${CI_COMMIT_SHA}"
+      -Dtest.config.commit.sha="${CI_COMMIT_SHA}"
       -Dfile.encoding=UTF-8
 
 browsertests-format-lint:
@@ -383,7 +383,7 @@ create-pipeline-for-running-test-on-all-browserstack-androids:
               -Dtest.config.platform.name="\$PLATFORM_NAME" \\
               -Dtest.config.platform.version="\$PLATFORM_VERSION" \\
               -Dtest.config.remote=true \\
-              -Dtest.commit.sha="\$CI_COMMIT_SHA" \\
+              -Dtest.config.commit.sha="\$CI_COMMIT_SHA" \\
               -Dfile.encoding=UTF-8
         after_script:
           - |
