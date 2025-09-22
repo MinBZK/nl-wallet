@@ -14,10 +14,10 @@ class HelpIconButton extends StatelessWidget {
     return Semantics(
       button: true,
       attributedLabel: context.l10n.generalWCAGHelp.toAttributedString(context),
-      onTap: onPressed ?? () => PlaceholderScreen.showHelp(context, secured: false),
+      onTap: onPressed ?? () => PlaceholderScreen.showGeneric(context, secured: false),
       excludeSemantics: true,
       child: IconButton(
-        onPressed: onPressed ?? () => PlaceholderScreen.showHelp(context, secured: false),
+        onPressed: onPressed ?? () => PlaceholderScreen.showGeneric(context, secured: false),
         icon: const Icon(Icons.help_outline_rounded),
         tooltip: context.l10n.generalWCAGHelp,
       ),

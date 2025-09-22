@@ -113,7 +113,7 @@ class _MenuScreenState extends State<MenuScreen> with LockStateMixin<MenuScreen>
       MenuItem(
         label: Text.rich(context.l10n.menuScreenHelpCta.toTextSpan(context)),
         leftIcon: const Icon(Icons.help_outline),
-        onPressed: () => PlaceholderScreen.showHelp(context),
+        onPressed: () => PlaceholderScreen.showGeneric(context),
       ),
       MenuItem(
         label: Text.rich(context.l10n.menuScreenScanQrCta.toTextSpan(context)),
