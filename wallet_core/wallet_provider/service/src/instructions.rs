@@ -812,6 +812,7 @@ impl HandleInstruction for ConfirmTransfer {
             .repositories
             .confirm_wallet_transfer(&tx, transfer_session.transfer_session_id)
             .await?;
+
         tx.commit().await?;
 
         Ok(())
@@ -879,6 +880,8 @@ impl HandleInstruction for GetTransferStatus {
         )
         .await?;
 
+        tx.commit().await?;
+
         Ok(transfer_session.state)
     }
 }
@@ -916,6 +919,8 @@ impl HandleInstruction for SendWalletPayload {
             .repositories
             .store_wallet_transfer_data(&tx, transfer_session.transfer_session_id, self.payload)
             .await?;
+
+        tx.commit().await?;
 
         Ok(())
     }
