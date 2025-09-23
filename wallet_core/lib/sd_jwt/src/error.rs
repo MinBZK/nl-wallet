@@ -87,4 +87,10 @@ pub enum Error {
 
     #[error("no hasher implemented for sd_alg: {0:?}")]
     SdAlgHasherNotImplemented(SdAlg),
+
+    #[error("hash occurs multiple times in SD-JWT: {0}")]
+    DuplicateHash(String),
+
+    #[error("SD-JWT contains an unreferenced disclosure with digest {0}")]
+    UnreferencedDisclosure(String),
 }
