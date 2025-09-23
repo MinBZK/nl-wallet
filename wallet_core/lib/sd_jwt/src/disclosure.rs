@@ -23,7 +23,7 @@ pub struct Disclosure {
     pub content: DisclosureContent,
 
     /// Base64Url-encoded disclosure.
-    encoded: String,
+    pub(crate) encoded: String,
 }
 
 impl Display for Disclosure {

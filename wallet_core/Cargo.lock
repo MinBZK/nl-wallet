@@ -4195,6 +4195,7 @@ dependencies = [
  "indexmap 2.7.1",
  "itertools 0.14.0",
  "josekit",
+ "jsonwebtoken",
  "jwt",
  "mdoc",
  "mime",

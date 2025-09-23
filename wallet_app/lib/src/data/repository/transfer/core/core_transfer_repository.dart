@@ -19,7 +19,7 @@ class CoreTransferRepository implements TransferRepository {
   Future<WalletInstructionResult> transferWallet(String pin) => _walletCore.transferWallet(pin);
 
   @override
-  Future<WalletInstructionResult> cancelWalletTransfer() => _walletCore.cancelWalletTransfer();
+  Future<void> cancelWalletTransfer() => _walletCore.cancelWalletTransfer();
 
   @override
   Future<WalletTransferStatus> getWalletTransferState() async {

@@ -2273,23 +2273,13 @@ class MockTransferRepository extends _i1.Mock implements _i38.TransferRepository
           as _i10.Future<_i26.WalletInstructionResult>);
 
   @override
-  _i10.Future<_i26.WalletInstructionResult> cancelWalletTransfer() =>
+  _i10.Future<void> cancelWalletTransfer() =>
       (super.noSuchMethod(
             Invocation.method(#cancelWalletTransfer, []),
-            returnValue: _i10.Future<_i26.WalletInstructionResult>.value(
-              _i14.dummyValue<_i26.WalletInstructionResult>(
-                this,
-                Invocation.method(#cancelWalletTransfer, []),
-              ),
-            ),
-            returnValueForMissingStub: _i10.Future<_i26.WalletInstructionResult>.value(
-              _i14.dummyValue<_i26.WalletInstructionResult>(
-                this,
-                Invocation.method(#cancelWalletTransfer, []),
-              ),
-            ),
+            returnValue: _i10.Future<void>.value(),
+            returnValueForMissingStub: _i10.Future<void>.value(),
           )
-          as _i10.Future<_i26.WalletInstructionResult>);
+          as _i10.Future<void>);
 
   @override
   _i10.Future<_i39.WalletTransferStatus> getWalletTransferState() =>
@@ -2854,23 +2844,13 @@ class MockTypedWalletCore extends _i1.Mock implements _i40.TypedWalletCore {
           as _i10.Future<_i26.WalletInstructionResult>);
 
   @override
-  _i10.Future<_i26.WalletInstructionResult> cancelWalletTransfer() =>
+  _i10.Future<void> cancelWalletTransfer() =>
       (super.noSuchMethod(
             Invocation.method(#cancelWalletTransfer, []),
-            returnValue: _i10.Future<_i26.WalletInstructionResult>.value(
-              _i14.dummyValue<_i26.WalletInstructionResult>(
-                this,
-                Invocation.method(#cancelWalletTransfer, []),
-              ),
-            ),
-            returnValueForMissingStub: _i10.Future<_i26.WalletInstructionResult>.value(
-              _i14.dummyValue<_i26.WalletInstructionResult>(
-                this,
-                Invocation.method(#cancelWalletTransfer, []),
-              ),
-            ),
+            returnValue: _i10.Future<void>.value(),
+            returnValueForMissingStub: _i10.Future<void>.value(),
           )
-          as _i10.Future<_i26.WalletInstructionResult>);
+          as _i10.Future<void>);
 
   @override
   _i10.Future<_i26.TransferSessionState> getWalletTransferState() =>
@@ -5896,23 +5876,13 @@ class MockWalletCoreApi extends _i1.Mock implements _i26.WalletCoreApi {
           as _i10.Future<void>);
 
   @override
-  _i10.Future<_i26.WalletInstructionResult> crateApiFullCancelWalletTransfer() =>
+  _i10.Future<void> crateApiFullCancelWalletTransfer() =>
       (super.noSuchMethod(
             Invocation.method(#crateApiFullCancelWalletTransfer, []),
-            returnValue: _i10.Future<_i26.WalletInstructionResult>.value(
-              _i14.dummyValue<_i26.WalletInstructionResult>(
-                this,
-                Invocation.method(#crateApiFullCancelWalletTransfer, []),
-              ),
-            ),
-            returnValueForMissingStub: _i10.Future<_i26.WalletInstructionResult>.value(
-              _i14.dummyValue<_i26.WalletInstructionResult>(
-                this,
-                Invocation.method(#crateApiFullCancelWalletTransfer, []),
-              ),
-            ),
+            returnValue: _i10.Future<void>.value(),
+            returnValueForMissingStub: _i10.Future<void>.value(),
           )
-          as _i10.Future<_i26.WalletInstructionResult>);
+          as _i10.Future<void>);
 
   @override
   _i10.Future<_i26.WalletInstructionResult> crateApiFullChangePin({

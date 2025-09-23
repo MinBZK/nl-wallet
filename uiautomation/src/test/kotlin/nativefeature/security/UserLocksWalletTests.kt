@@ -38,7 +38,7 @@ class UserLocksWalletTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("LTC69 Manual logout from menu")
-    @Tags(Tag("smoke"))
+    @Tags(Tag("nativesmoke"))
     fun verifyLockedState(testInfo: TestInfo) {
         setUp(testInfo)
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)

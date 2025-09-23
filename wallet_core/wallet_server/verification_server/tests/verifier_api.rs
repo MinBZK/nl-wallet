@@ -39,6 +39,7 @@ use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::urls::BaseUrl;
 use mdoc::holder::Mdoc;
 use mdoc::holder::disclosure::PartialMdoc;
+use openid4vc::disclosure_session::DisclosableAttestations;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::DisclosureSession;
 use openid4vc::disclosure_session::DisclosureUriSource;
@@ -994,11 +995,14 @@ async fn perform_full_disclosure(session_type: SessionType) -> (Client, SessionT
 
     let return_url = disclosure_session
         .disclose(
-            HashMap::from([(
+            DisclosableAttestations::MsoMdoc(HashMap::from([(
                 EXAMPLE_PID_START_DISCLOSURE_REQUEST_ID.clone(),
                 vec_nonempty![partial_mdoc],
-            )]),
+            )]))
+            .try_into()
+            .unwrap(),
             &wscd,
+            &MockTimeGenerator::default(),
         )
         .await
         .expect("should disclose attributes successfully");
@@ -1142,11 +1146,14 @@ async fn test_disclosed_attributes_failed_session() {
 
     disclosure_session
         .disclose(
-            HashMap::from([(
+            DisclosableAttestations::MsoMdoc(HashMap::from([(
                 EXAMPLE_PID_START_DISCLOSURE_REQUEST_ID.clone(),
                 vec_nonempty![partial_mdoc],
-            )]),
+            )]))
+            .try_into()
+            .unwrap(),
             &MockRemoteWscd::new_example(),
+            &MockTimeGenerator::default(),
         )
         .await
         .expect_err("disclosing attributes should result in an error");

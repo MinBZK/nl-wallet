@@ -156,7 +156,7 @@ class TypedWalletCore {
 
   Future<core.WalletInstructionResult> transferWallet(String pin) => call(() => core.transferWallet(pin: pin));
 
-  Future<core.WalletInstructionResult> cancelWalletTransfer() => call(core.cancelWalletTransfer);
+  Future<void> cancelWalletTransfer() => call(core.cancelWalletTransfer);
 
   Future<core.TransferSessionState> getWalletTransferState() => call(core.getWalletTransferState);
 

@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wallet/src/data/repository/transfer/core/core_transfer_repository.dart';
+import 'package:wallet/src/domain/model/result/result.dart';
 import 'package:wallet/src/domain/model/transfer/wallet_transfer_status.dart';
 import 'package:wallet_core/core.dart';
 
@@ -53,13 +54,11 @@ void main() {
     });
 
     group('cancelWalletTransfer', () {
-      test('should call walletCore.cancelWalletTransfer and return its result', () async {
-        const expectedResult = WalletInstructionResult_Ok();
-        when(mockWalletCore.cancelWalletTransfer()).thenAnswer((_) async => expectedResult);
+      test('should call walletCore.cancelWalletTransfer', () async {
+        when(mockWalletCore.cancelWalletTransfer()).thenAnswer((_) async => const Result.success(null));
 
-        final result = await transferRepository.cancelWalletTransfer();
+        await transferRepository.cancelWalletTransfer();
 
-        expect(result, expectedResult);
         verify(mockWalletCore.cancelWalletTransfer()).called(1);
       });
     });

@@ -53,11 +53,18 @@ pub enum VpClientError {
     #[error("error sending OpenID4VP message: {0}")]
     Request(#[source] VpMessageClientError),
 
+    #[error("received credential request with mix of formats from verifier, this is unsupported")]
+    #[category(critical)]
+    MixedFormatCredentialRequest,
+
     #[error("error creating mdoc device response: {0}")]
     DeviceResponse(#[source] mdoc::Error),
 
+    #[error("error creating SD-JWT presentation: {0}")]
+    #[category(pd)]
+    SdJwtPresentation(#[source] sd_jwt::error::Error),
+
     #[error("error encrypting Authorization Response: {0}")]
-    #[category(defer)]
     AuthResponseEncryption(#[source] AuthResponseError),
 }
 
