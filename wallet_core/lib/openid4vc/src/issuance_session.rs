@@ -217,6 +217,7 @@ pub enum IssuedCredential {
         mdoc: Mdoc,
     },
     SdJwt {
+        // This uniquely identifies the holder private key used for this credential, as managed by the WSCD.
         key_identifier: String,
         sd_jwt: VerifiedSdJwt,
     },

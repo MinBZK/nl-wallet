@@ -33,6 +33,8 @@ pub enum StoredAttestation {
         mdoc: Mdoc,
     },
     SdJwt {
+        // Note that the WSCD key identifier is returned here, in case
+        // (part of) the attestation will be disclosed to a verifier
         key_identifier: String,
         sd_jwt: VerifiedSdJwt,
     },
