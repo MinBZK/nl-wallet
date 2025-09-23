@@ -38,8 +38,10 @@
                                 {{ base.trans.xyz_mdoc_index }}
                             {% when "xyz_bank_sd_jwt" %}
                                 {{ base.trans.xyz_sd_jwt_index }}
-                            {% when "university" %}
-                                {{ base.trans.university_index }}
+                            {% when "university_mdoc" %}
+                                {{ base.trans.university_mdoc_index }}
+                            {% when "university_sd_jwt" %}
+                                {{ base.trans.university_sd_jwt_index }}
                             {% when "insurance" %}
                                 {{ base.trans.insurance_index }}
                             {% when "job_finder" %}

@@ -32,7 +32,8 @@ pub const TRANSLATIONS: Translations = Translations {
         xyz_sd_jwt_index: "Open bank account (SD-JWT)",
         monkeybike_index: "Create account",
         job_index: "Apply for a job",
-        university_index: "Get diploma cards",
+        university_mdoc_index: "Get diploma cards (mdoc)",
+        university_sd_jwt_index: "Get diploma cards (SD-JWT)",
         insurance_index: "Get insurance cards",
     },
     nl: Words {
@@ -48,7 +49,8 @@ pub const TRANSLATIONS: Translations = Translations {
         xyz_sd_jwt_index: "Bankrekening openen (SD-JWT)",
         monkeybike_index: "Account aanmaken",
         job_index: "Reageer op vacature",
-        university_index: "Ontvang diploma kaarten",
+        university_mdoc_index: "Ontvang diploma kaarten (mdoc)",
+        university_sd_jwt_index: "Ontvang diploma kaarten (SD-JWT)",
         insurance_index: "Ontvang verzekeringskaarten",
     },
 };
@@ -66,7 +68,8 @@ pub struct Words<'a> {
     pub xyz_sd_jwt_index: &'a str,
     pub monkeybike_index: &'a str,
     pub job_index: &'a str,
-    pub university_index: &'a str,
+    pub university_mdoc_index: &'a str,
+    pub university_sd_jwt_index: &'a str,
     pub insurance_index: &'a str,
 }
 

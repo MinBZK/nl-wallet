@@ -139,7 +139,8 @@ nav a::before {
   background: url("../images/job_finder.svg") no-repeat center center / cover;
 }
 
-#university::before {
+#university_mdoc::before,
+#university_sd_jwt::before {
   background: url("../images/university.svg") no-repeat center center / cover;
 }
 
