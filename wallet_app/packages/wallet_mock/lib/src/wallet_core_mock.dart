@@ -320,7 +320,7 @@ class WalletCoreMock implements WalletCoreApi {
   }
 
   @override
-  Future<WalletInstructionResult> crateApiFullCancelWalletTransfer() {
+  Future<void> crateApiFullCancelWalletTransfer() {
     throw UnimplementedError();
   }
 

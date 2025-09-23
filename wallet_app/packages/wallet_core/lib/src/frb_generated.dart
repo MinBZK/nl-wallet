@@ -101,7 +101,7 @@ abstract class WalletCoreApi extends BaseApi {
 
   Future<void> crateApiFullCancelPinRecovery();
 
-  Future<WalletInstructionResult> crateApiFullCancelWalletTransfer();
+  Future<void> crateApiFullCancelWalletTransfer();
 
   Future<WalletInstructionResult> crateApiFullChangePin({required String oldPin, required String newPin});
 
@@ -360,14 +360,14 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   );
 
   @override
-  Future<WalletInstructionResult> crateApiFullCancelWalletTransfer() {
+  Future<void> crateApiFullCancelWalletTransfer() {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           return wire.wire__crate__api__full__cancel_wallet_transfer(port_);
         },
         codec: DcoCodec(
-          decodeSuccessData: dco_decode_wallet_instruction_result,
+          decodeSuccessData: dco_decode_unit,
           decodeErrorData: dco_decode_AnyhowException,
         ),
         constMeta: kCrateApiFullCancelWalletTransferConstMeta,

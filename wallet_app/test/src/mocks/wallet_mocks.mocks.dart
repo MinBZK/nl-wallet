@@ -5719,23 +5719,13 @@ class MockWalletCoreApi extends _i1.Mock implements _i23.WalletCoreApi {
           as _i10.Future<void>);
 
   @override
-  _i10.Future<_i23.WalletInstructionResult> crateApiFullCancelWalletTransfer() =>
+  _i10.Future<void> crateApiFullCancelWalletTransfer() =>
       (super.noSuchMethod(
             Invocation.method(#crateApiFullCancelWalletTransfer, []),
-            returnValue: _i10.Future<_i23.WalletInstructionResult>.value(
-              _i14.dummyValue<_i23.WalletInstructionResult>(
-                this,
-                Invocation.method(#crateApiFullCancelWalletTransfer, []),
-              ),
-            ),
-            returnValueForMissingStub: _i10.Future<_i23.WalletInstructionResult>.value(
-              _i14.dummyValue<_i23.WalletInstructionResult>(
-                this,
-                Invocation.method(#crateApiFullCancelWalletTransfer, []),
-              ),
-            ),
+            returnValue: _i10.Future<void>.value(),
+            returnValueForMissingStub: _i10.Future<void>.value(),
           )
-          as _i10.Future<_i23.WalletInstructionResult>);
+          as _i10.Future<void>);
 
   @override
   _i10.Future<_i23.WalletInstructionResult> crateApiFullChangePin({
