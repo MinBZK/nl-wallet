@@ -105,7 +105,7 @@ where
 {
     #[instrument(skip_all)]
     #[sentry_capture_error]
-    pub async fn init_transfer(&mut self) -> Result<(EcKeyPair, Url), TransferError> {
+    pub async fn init_transfer(&mut self) -> Result<Url, TransferError> {
         info!("Init transfer");
 
         self.validate_transfer_allowed()?;
@@ -128,7 +128,7 @@ where
 
         let url: Url = query.try_into()?;
 
-        Ok((key_pair, url))
+        Ok(url)
     }
 
     #[instrument(skip_all)]
@@ -291,6 +291,7 @@ where
 mod tests {
     use assert_matches::assert_matches;
     use crypto::utils::random_bytes;
+    use josekit::jwk::Jwk;
     use parking_lot::Mutex;
     use url::Host;
     use uuid::Uuid;
@@ -381,7 +382,7 @@ mod tests {
             .expect_upsert_data::<TransferData>()
             .returning(|_| Ok(()));
 
-        let (key_pair, url) = wallet
+        let url = wallet
             .init_transfer()
             .await
             .expect("Wallet init transfer should have succeeded");
@@ -399,7 +400,6 @@ mod tests {
         assert_eq!(query.session_id, transfer_session_id.into());
         assert_eq!(query.public_key.key_type(), "EC");
         assert_eq!(query.public_key.curve(), Some("P-256"));
-        assert_eq!(query.public_key, key_pair.to_jwk_public_key());
     }
 
     #[tokio::test]
@@ -575,7 +575,7 @@ mod tests {
             .await
             .unwrap();
 
-        let (_, transfer_url) = destination_wallet
+        let transfer_url = destination_wallet
             .init_transfer()
             .await
             .expect("Wallet init transfer should have succeeded");
@@ -706,12 +706,22 @@ mod tests {
                 }))
             });
 
+        let private_key_param: Arc<Mutex<Option<Jwk>>> = Arc::new(Mutex::new(None));
+        let private_key_param_clone = Arc::clone(&private_key_param);
+
         destination_wallet
             .mut_storage()
             .expect_upsert_data::<TransferData>()
+            .withf(move |transfer_data| {
+                if let Some(TransferKeyData::Destination { private_key }) = &transfer_data.key_data {
+                    private_key_param_clone.lock().replace(private_key.clone());
+                }
+
+                true
+            })
             .returning(|_| Ok(()));
 
-        let (key_pair, transfer_url) = destination_wallet
+        let transfer_url = destination_wallet
             .init_transfer()
             .await
             .expect("Wallet init transfer should have succeeded");
@@ -752,13 +762,14 @@ mod tests {
             .return_once(move |_, _: HwSignedInstruction<ConfirmTransfer>| Ok(wp_result));
 
         source_wallet
-            .confirm_transfer(transfer_url)
+            .confirm_transfer(transfer_url.clone())
             .await
             .expect("Wallet confirm transfer should have succeeded");
 
         // Send the wallet payload
 
-        let public_key = key_pair.to_jwk_public_key();
+        let transfer_query: TransferQuery = transfer_url.try_into().unwrap();
+        let public_key = transfer_query.public_key;
         source_wallet
             .mut_storage()
             .expect_fetch_data::<TransferData>()
@@ -831,7 +842,8 @@ mod tests {
         assert_eq!(transfer_session_id, payload.transfer_session_id);
 
         let decrypted_database_export =
-            WalletDatabasePayload::decrypt(payload.payload.as_str(), &key_pair.to_jwk_private_key()).unwrap();
+            WalletDatabasePayload::decrypt(payload.payload.as_str(), private_key_param.lock().as_ref().unwrap())
+                .unwrap();
 
         assert!(decrypted_database_export.as_ref() == &expected_database_export)
     }
