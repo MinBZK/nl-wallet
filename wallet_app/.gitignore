@@ -21,3 +21,9 @@ app.*.map.json
 
 # Build output directories
 build/
+
+# Local coverage reports
+coverage/
+
+# Golden test failures
+**/failures/*.png

@@ -36,14 +36,8 @@ migrate_working_dir/
 # is commented out by default.
 .vscode/
 
-# FVM symlink
-wallet_app/.fvm/flutter_sdk
-
 # Flutter leaves this file behind in the current working directory
 /build/.last_build_id
-
-# Android shared libraries
-jniLibs/
 
 # Android builds
 /*.aab
@@ -62,15 +56,10 @@ jniLibs/
 /fastlane/Preview.html
 /fastlane/screenshots
 /fastlane/test_output
+/fastlane/entitlements.plist
 
-# Golden test failures
-**/failures/*.png
-
-# Local coverage reports
-wallet_app/coverage
-
-# UI automation
-uiautomation/node_modules
+# Fastlane resign
+_floatsignTemp/
 
 # DigiD connector checkout from devenv
 /nl-rdo-max

@@ -17,3 +17,6 @@ key.properties
 /app/debug
 /app/profile
 /app/release
+
+# Android shared libraries
+jniLibs/

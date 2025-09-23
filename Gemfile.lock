@@ -327,6 +327,7 @@ PLATFORMS
   x86_64-linux-musl
 
 DEPENDENCIES
+  CFPropertyList
   activesupport
   cocoapods
   fastlane
