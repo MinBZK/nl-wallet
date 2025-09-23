@@ -86,7 +86,7 @@ class DisclosureTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("LTC23 LTC25 RP Login flow")
-    @Tags(Tag("smoke"))
+    @Tags(Tag("nativesmoke"))
     fun verifyDisclosureLogin(testInfo: TestInfo) {
         setUp(testInfo)
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
