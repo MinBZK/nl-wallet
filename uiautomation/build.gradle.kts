@@ -60,6 +60,17 @@ tasks.register<Test>("smokeTest") {
     }
 }
 
+tasks.register<Test>("nativeSmokeTest") {
+    useJUnitPlatform {
+        includeTags("nativesmoke")
+
+        // Exclude all test suites/wrappers; when using 'includeTags' this is needed to prevent
+        // duplicated test executions and ensure only the actual tagged tests are run.
+        exclude("suite/**")
+        exclude("nativesuite/**")
+    }
+}
+
 tasks.register<Test>("smokeTestIOS") {
     useJUnitPlatform {
         includeTags("smokeIOS")
