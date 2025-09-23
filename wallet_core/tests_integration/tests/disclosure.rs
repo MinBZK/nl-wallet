@@ -47,7 +47,7 @@ async fn get_verifier_status(client: &reqwest::Client, status_url: Url) -> Statu
 )]
 #[case(SessionType::SameDevice,
     Some("http://localhost:3004/return".parse().unwrap()),
-    "xyz_bank",
+    "xyz_bank_mdoc",
     pid_full_name(),
     pid_full_name()
 )]
@@ -66,7 +66,7 @@ async fn get_verifier_status(client: &reqwest::Client, status_url: Url) -> Statu
 )]
 #[case(SessionType::CrossDevice,
     Some("http://localhost:3004/return".parse().unwrap()),
-    "xyz_bank",
+    "xyz_bank_mdoc",
     pid_full_name(),
     pid_full_name()
 )]

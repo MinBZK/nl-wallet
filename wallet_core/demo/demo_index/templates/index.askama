@@ -32,8 +32,10 @@
                                 {{ base.trans.monkeybike_index }}
                             {% when "online_marketplace" %}
                                 {{ base.trans.marketplace_index }}
-                            {% when "xyz_bank" %}
-                                {{ base.trans.xyz_index }}
+                            {% when "xyz_bank_mdoc" %}
+                                {{ base.trans.xyz_mdoc_index }}
+                            {% when "xyz_bank_sd_jwt" %}
+                                {{ base.trans.xyz_sd_jwt_index }}
                             {% when "university" %}
                                 {{ base.trans.university_index }}
                             {% when "insurance" %}

@@ -1,8 +1,6 @@
 :root {
   font-family: "RO Sans", sans-serif;
-  font-feature-settings:
-    "clig" off,
-    "liga" off;
+  font-feature-settings: "clig" off, "liga" off;
   font-size: 16px;
   line-height: 1.5;
 }
@@ -127,7 +125,8 @@ nav a::before {
   background: url("../images/online_marketplace.svg") no-repeat center center / cover;
 }
 
-#xyz_bank::before {
+#xyz_bank_mdoc::before,
+#xyz_bank_sd_jwt::before {
   background: url("../images/xyz_bank.svg") no-repeat center center / cover;
 }
 

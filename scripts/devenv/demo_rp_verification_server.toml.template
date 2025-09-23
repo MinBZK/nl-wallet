@@ -32,7 +32,12 @@ certificate = "${DEMO_RELYING_PARTY_CRT_ONLINE_MARKETPLACE}"
 private_key = "${DEMO_RELYING_PARTY_KEY_ONLINE_MARKETPLACE}"
 private_key_type = "software"
 
-[usecases.xyz_bank]
+[usecases.xyz_bank_mdoc]
+certificate = "${DEMO_RELYING_PARTY_CRT_XYZ_BANK}"
+private_key = "${DEMO_RELYING_PARTY_KEY_XYZ_BANK}"
+private_key_type = "software"
+
+[usecases.xyz_bank_sd_jwt]
 certificate = "${DEMO_RELYING_PARTY_CRT_XYZ_BANK}"
 private_key = "${DEMO_RELYING_PARTY_KEY_XYZ_BANK}"
 private_key_type = "software"
