@@ -42,7 +42,7 @@ void main() {
       build: createBloc,
       setUp: () {
         when(mockInitWalletTransferUseCase.invoke()).thenAnswer((_) async => const Result.success(qrData));
-        when(mockGetWalletTransferStatusUseCase.invoke(isTarget: true)).thenAnswer(
+        when(mockGetWalletTransferStatusUseCase.invoke()).thenAnswer(
           (_) => Stream.fromIterable([
             WalletTransferStatus.waitingForScan,
             WalletTransferStatus.waitingForApproval,
@@ -92,7 +92,7 @@ void main() {
       build: createBloc,
       setUp: () {
         when(mockInitWalletTransferUseCase.invoke()).thenAnswer((_) async => const Result.success(qrData));
-        when(mockGetWalletTransferStatusUseCase.invoke(isTarget: true)).thenAnswer(
+        when(mockGetWalletTransferStatusUseCase.invoke()).thenAnswer(
           (_) => Stream.fromIterable([
             WalletTransferStatus.waitingForScan,
             WalletTransferStatus.error,
@@ -113,7 +113,7 @@ void main() {
       setUp: () {
         when(mockInitWalletTransferUseCase.invoke()).thenAnswer((_) async => const Result.success(qrData));
         when(
-          mockGetWalletTransferStatusUseCase.invoke(isTarget: true),
+          mockGetWalletTransferStatusUseCase.invoke(),
         ).thenAnswer((_) => Stream.error(Exception('Stream failed')));
       },
       act: (bloc) => bloc.add(const WalletTransferOptInEvent()),
@@ -144,13 +144,13 @@ void main() {
         when(mockInitWalletTransferUseCase.invoke()).thenAnswer((_) async => const Result.success(qrData));
         // Let status stream emit waitingForScan to reach the desired state
         when(
-          mockGetWalletTransferStatusUseCase.invoke(isTarget: true),
+          mockGetWalletTransferStatusUseCase.invoke(),
         ).thenAnswer((_) => Stream.value(WalletTransferStatus.waitingForScan).asBroadcastStream());
         when(mockCancelWalletTransferUseCase.invoke()).thenAnswer((_) async => const Result.success(null));
       },
       act: (bloc) async {
         bloc.add(const WalletTransferOptInEvent());
-        await untilCalled(mockGetWalletTransferStatusUseCase.invoke(isTarget: true)); // Ensure OptIn processing starts
+        await untilCalled(mockGetWalletTransferStatusUseCase.invoke()); // Ensure OptIn processing starts
         await Future.delayed(Duration.zero); // Allow stream to emit and bloc to process
         bloc.add(const WalletTransferStopRequestedEvent());
       },
@@ -180,12 +180,12 @@ void main() {
       setUp: () {
         when(mockInitWalletTransferUseCase.invoke()).thenAnswer((_) async => const Result.success(qrData));
         when(
-          mockGetWalletTransferStatusUseCase.invoke(isTarget: true),
+          mockGetWalletTransferStatusUseCase.invoke(),
         ).thenAnswer((_) => Stream.value(WalletTransferStatus.waitingForScan).asBroadcastStream());
       },
       act: (bloc) async {
         bloc.add(const WalletTransferOptInEvent());
-        await untilCalled(mockGetWalletTransferStatusUseCase.invoke(isTarget: true));
+        await untilCalled(mockGetWalletTransferStatusUseCase.invoke());
         await Future.delayed(Duration.zero);
         bloc.add(const WalletTransferBackPressedEvent());
       },
@@ -201,7 +201,7 @@ void main() {
       build: createBloc,
       setUp: () {
         when(mockInitWalletTransferUseCase.invoke()).thenAnswer((_) async => const Result.success(qrData));
-        when(mockGetWalletTransferStatusUseCase.invoke(isTarget: true)).thenAnswer(
+        when(mockGetWalletTransferStatusUseCase.invoke()).thenAnswer(
           (_) => Stream.fromIterable([
             WalletTransferStatus.waitingForScan,
             WalletTransferStatus.transferring,
@@ -210,7 +210,7 @@ void main() {
       },
       act: (bloc) async {
         bloc.add(const WalletTransferOptInEvent());
-        await untilCalled(mockGetWalletTransferStatusUseCase.invoke(isTarget: true));
+        await untilCalled(mockGetWalletTransferStatusUseCase.invoke());
         await Future.delayed(const Duration(milliseconds: 50)); // ensure transferring state is reached
         bloc.add(const WalletTransferBackPressedEvent());
       },

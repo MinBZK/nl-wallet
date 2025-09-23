@@ -67,7 +67,7 @@ class WalletTransferTargetBloc extends Bloc<WalletTransferTargetEvent, WalletTra
 
   FutureOr<void> _startObservingStatus(String qrData, Emitter<WalletTransferTargetState> emit) async {
     await _statusSubscription?.cancel();
-    _statusSubscription = _getWalletTransferStatusUseCase.invoke(isTarget: true).listen((status) {
+    _statusSubscription = _getWalletTransferStatusUseCase.invoke().listen((status) {
       switch (status) {
         case WalletTransferStatus.waitingForScan:
           emit(WalletTransferAwaitingQrScan(qrData));

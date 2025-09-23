@@ -14,6 +14,7 @@ import 'package:wallet/src/data/repository/language/language_repository.dart';
 import 'package:wallet/src/data/repository/network/network_repository.dart';
 import 'package:wallet/src/data/repository/pid/pid_repository.dart';
 import 'package:wallet/src/data/repository/tour/tour_repository.dart';
+import 'package:wallet/src/data/repository/transfer/transfer_repository.dart';
 import 'package:wallet/src/data/repository/version/version_state_repository.dart';
 import 'package:wallet/src/data/repository/wallet/wallet_repository.dart';
 import 'package:wallet/src/data/service/app_lifecycle_service.dart';
@@ -120,6 +121,7 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<VersionStateRepository>()])
 @GenerateNiceMocks([MockSpec<TourRepository>()])
 @GenerateNiceMocks([MockSpec<IssuanceRepository>()])
+@GenerateNiceMocks([MockSpec<TransferRepository>()])
 /// Mock services
 @GenerateNiceMocks([MockSpec<TypedWalletCore>()])
 @GenerateNiceMocks([MockSpec<NavigationService>()])

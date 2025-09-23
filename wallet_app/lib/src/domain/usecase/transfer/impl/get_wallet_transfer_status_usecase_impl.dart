@@ -18,7 +18,7 @@ class GetWalletTransferStatusUseCaseImpl extends GetWalletTransferStatusUseCase 
   GetWalletTransferStatusUseCaseImpl(this._transferRepository);
 
   @override
-  Stream<WalletTransferStatus> invoke({bool isTarget = false}) async* {
+  Stream<WalletTransferStatus> invoke() async* {
     while (true) {
       final status = await _transferRepository.getWalletTransferState();
       yield status;
