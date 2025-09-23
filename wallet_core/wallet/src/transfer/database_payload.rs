@@ -34,6 +34,7 @@ impl WalletDatabasePayload {
         let mut header = JweHeader::new();
         header.set_token_type("JWT");
         header.set_content_encryption(AesgcmJweEncryption::A256gcm.name());
+        header.set_compression("DEF");
 
         let mut payload = JwtPayload::new();
         payload.set_claim(
@@ -80,7 +81,7 @@ mod test {
 
     #[test]
     fn test_encrypt_decrypt() {
-        let database_export_bytes = random_bytes(32);
+        let database_export_bytes = random_bytes(256);
         let database_export_key = SqlCipherKey::new_random_with_salt();
         let database_export = DatabaseExport::new(database_export_key, database_export_bytes.clone());
         let database_payload = WalletDatabasePayload::new(database_export);
