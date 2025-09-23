@@ -89,7 +89,7 @@ pub enum StorageError {
     #[category(pd)]
     MetadataChain(#[from] TypeMetadataChainError),
 
-    #[error("could not encode / decoder mdoc CBOR: {0}")]
+    #[error("could not encode / decode mdoc CBOR: {0}")]
     Cbor(#[from] CborError),
 
     #[error("could not deserialize mdoc IssuerSigned: {0}")]
