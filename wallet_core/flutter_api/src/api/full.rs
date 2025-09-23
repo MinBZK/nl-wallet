@@ -416,8 +416,8 @@ pub async fn transfer_wallet(_pin: String) -> anyhow::Result<WalletInstructionRe
 }
 
 #[flutter_api_error]
-pub async fn cancel_wallet_transfer() -> anyhow::Result<WalletInstructionResult> {
-    Ok(WalletInstructionResult::Ok)
+pub async fn cancel_wallet_transfer() -> anyhow::Result<()> {
+    Ok(())
 }
 
 #[flutter_api_error]
