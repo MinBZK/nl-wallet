@@ -169,7 +169,7 @@ flutter {
 }
 
 dependencies {
-    implementation("net.java.dev.jna:jna:5.7.0@aar") // Java Native Access
+    implementation("net.java.dev.jna:jna:5.17.0@aar") // Java Native Access
 
     implementation(project(path = ":platform_support"))
 }
