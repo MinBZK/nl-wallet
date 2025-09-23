@@ -969,13 +969,16 @@ impl HandleInstruction for ReceiveWalletPayload {
         )
         .await?;
 
-        if transfer_session.state != TransferSessionState::ReadyForDownload {
-            return Err(InstructionError::AccountTransferIllegalState);
-        }
-
-        let Some(payload) = transfer_session.encrypted_wallet_data else {
+        let TransferSession {
+            state: TransferSessionState::ReadyForDownload,
+            encrypted_wallet_data: Some(payload),
+            ..
+        } = transfer_session
+        else {
             return Err(InstructionError::AccountTransferIllegalState);
         };
+
+        tx.commit().await?;
 
         Ok(ReceiveWalletPayloadResult { payload })
     }
