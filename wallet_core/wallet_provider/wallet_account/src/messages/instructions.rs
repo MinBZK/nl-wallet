@@ -300,6 +300,20 @@ impl InstructionAndResult for GetTransferStatus {
     type Result = TransferSessionState;
 }
 
+// SendWalletPayload instruction.
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SendWalletPayload {
+    pub transfer_session_id: Uuid,
+    pub payload: String,
+}
+
+impl InstructionAndResult for SendWalletPayload {
+    const NAME: &'static str = "send_wallet_payload";
+
+    type Result = ();
+}
+
 #[cfg(feature = "client")]
 mod client {
     use serde::Serialize;

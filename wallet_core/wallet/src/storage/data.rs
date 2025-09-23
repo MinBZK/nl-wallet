@@ -1,3 +1,4 @@
+use josekit::jwk::Jwk;
 use serde::Deserialize;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
@@ -61,9 +62,16 @@ pub struct UnlockData {
     pub method: UnlockMethod,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TransferData {
     pub transfer_session_id: TransferSessionId,
+    pub key_data: Option<TransferKeyData>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum TransferKeyData {
+    Source { public_key: Jwk },
+    Destination { private_key: Jwk },
 }
 
 impl KeyedData for KeyData {

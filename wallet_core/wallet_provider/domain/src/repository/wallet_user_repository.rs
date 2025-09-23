@@ -9,7 +9,6 @@ use uuid::Uuid;
 use apple_app_attest::AssertionCounter;
 use hsm::model::encrypted::Encrypted;
 use hsm::model::wrapped_key::WrappedKey;
-use wallet_account::messages::transfer::TransferSessionState;
 
 use crate::model::wallet_user::InstructionChallenge;
 use crate::model::wallet_user::TransferSession;
@@ -65,7 +64,7 @@ pub trait WalletUserRepository {
     async fn find_keys_by_identifiers(
         &self,
         transaction: &Self::TransactionType,
-        wallet_user_id: uuid::Uuid,
+        wallet_user_id: Uuid,
         key_identifiers: &[String],
     ) -> Result<HashMap<String, WrappedKey>>;
 
@@ -122,17 +121,23 @@ pub trait WalletUserRepository {
         transfer_session_id: Uuid,
     ) -> Result<Option<TransferSession>>;
 
-    async fn update_transfer_session_state(
+    async fn confirm_wallet_transfer(
         &self,
         transaction: &Self::TransactionType,
         transfer_session_id: Uuid,
-        state: TransferSessionState,
     ) -> Result<()>;
 
-    async fn clear_wallet_transfer_data(
+    async fn cancel_wallet_transfer(
         &self,
         transaction: &Self::TransactionType,
         transfer_session_id: Uuid,
+    ) -> Result<()>;
+
+    async fn store_wallet_transfer_data(
+        &self,
+        transaction: &Self::TransactionType,
+        transfer_session_id: Uuid,
+        encrypted_wallet_data: String,
     ) -> Result<()>;
 }
 
@@ -169,6 +174,14 @@ pub mod mock {
             )))
         }
 
+        async fn clear_instruction_challenge(
+            &self,
+            _transaction: &Self::TransactionType,
+            _wallet_id: &str,
+        ) -> Result<()> {
+            Ok(())
+        }
+
         async fn update_instruction_challenge_and_sequence_number(
             &self,
             _transaction: &Self::TransactionType,
@@ -184,14 +197,6 @@ pub mod mock {
             _transaction: &Self::TransactionType,
             _wallet_id: &str,
             _instruction_sequence_number: u64,
-        ) -> Result<()> {
-            Ok(())
-        }
-
-        async fn clear_instruction_challenge(
-            &self,
-            _transaction: &Self::TransactionType,
-            _wallet_id: &str,
         ) -> Result<()> {
             Ok(())
         }
@@ -244,15 +249,6 @@ pub mod mock {
             Ok(())
         }
 
-        async fn update_apple_assertion_counter(
-            &self,
-            _transaction: &Self::TransactionType,
-            _wallet_id: &str,
-            _assertion_counter: AssertionCounter,
-        ) -> Result<()> {
-            Ok(())
-        }
-
         async fn store_recovery_code(
             &self,
             _transaction: &Self::TransactionType,
@@ -279,6 +275,15 @@ pub mod mock {
             Ok(false)
         }
 
+        async fn update_apple_assertion_counter(
+            &self,
+            _transaction: &Self::TransactionType,
+            _wallet_id: &str,
+            _assertion_counter: AssertionCounter,
+        ) -> Result<()> {
+            Ok(())
+        }
+
         async fn create_transfer_session(
             &self,
             _transaction: &Self::TransactionType,
@@ -298,19 +303,27 @@ pub mod mock {
             Ok(None)
         }
 
-        async fn update_transfer_session_state(
+        async fn confirm_wallet_transfer(
             &self,
             _transaction: &Self::TransactionType,
             _transfer_session_id: Uuid,
-            _state: TransferSessionState,
         ) -> Result<()> {
             Ok(())
         }
 
-        async fn clear_wallet_transfer_data(
+        async fn cancel_wallet_transfer(
             &self,
             _transaction: &Self::TransactionType,
             _transfer_session_id: Uuid,
+        ) -> Result<()> {
+            Ok(())
+        }
+
+        async fn store_wallet_transfer_data(
+            &self,
+            _transaction: &Self::TransactionType,
+            _transfer_session_id: Uuid,
+            _encrypted_wallet_data: String,
         ) -> Result<()> {
             Ok(())
         }

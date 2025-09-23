@@ -40,7 +40,7 @@ pub struct TransferSession {
     pub transfer_session_id: Uuid,
     pub destination_wallet_app_version: Version,
     pub state: TransferSessionState,
-    pub encrypted_wallet_data: Option<Vec<u8>>,
+    pub encrypted_wallet_data: Option<String>,
 }
 
 #[derive(Debug)]
