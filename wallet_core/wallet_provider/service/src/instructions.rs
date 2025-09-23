@@ -911,6 +911,13 @@ impl HandleInstruction for SendWalletPayload {
         )
         .await?;
 
+        // Make this instruction idempotent by checking if the payload has already been sent
+        if transfer_session.encrypted_wallet_data.is_some()
+            && transfer_session.state == TransferSessionState::ReadyForDownload
+        {
+            return Ok(());
+        }
+
         if transfer_session.state != TransferSessionState::ReadyForTransfer {
             return Err(InstructionError::AccountTransferIllegalState);
         }
@@ -2180,6 +2187,55 @@ mod tests {
                 predicate::eq(payload.clone()),
             )
             .returning(move |_, _, _| Ok(()));
+
+        let instruction = SendWalletPayload {
+            transfer_session_id,
+            payload,
+        };
+
+        instruction
+            .handle(
+                &wallet_user,
+                &MockGenerators,
+                &mock::user_state(
+                    wallet_user_repo,
+                    setup_hsm().await,
+                    wrapping_key_identifier.to_string(),
+                    vec![],
+                ),
+            )
+            .await
+            .unwrap();
+    }
+
+    #[tokio::test]
+    async fn should_handle_send_wallet_payload_idempotency() {
+        let wrapping_key_identifier = "my-wrapping-key-identifier";
+        let mut wallet_user = wallet_user::mock::wallet_user_1();
+        wallet_user.recovery_code = Some(String::from("recovery_code"));
+
+        let transfer_session_id = Uuid::new_v4();
+        let payload = random_string(32);
+
+        let transfer_session = TransferSession {
+            id: Uuid::new_v4(),
+            destination_wallet_user_id: Uuid::new_v4(),
+            transfer_session_id,
+            destination_wallet_recovery_code: String::from("recovery_code"),
+            destination_wallet_app_version: Version::parse("1.9.8").unwrap(),
+            state: TransferSessionState::ReadyForDownload,
+            encrypted_wallet_data: Some(payload.clone()),
+        };
+
+        let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
+        wallet_user_repo
+            .expect_begin_transaction()
+            .returning(|| Ok(MockTransaction));
+        wallet_user_repo
+            .expect_find_transfer_session_by_transfer_session_id()
+            .with(predicate::always(), predicate::eq(transfer_session_id))
+            .returning(move |_, _| Ok(Some(transfer_session.clone())));
+        wallet_user_repo.expect_store_wallet_transfer_data().never();
 
         let instruction = SendWalletPayload {
             transfer_session_id,
