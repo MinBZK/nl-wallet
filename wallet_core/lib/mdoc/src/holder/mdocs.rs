@@ -27,6 +27,7 @@ pub struct Mdoc {
 
     /// Identifier of the mdoc's private key. Obtain a reference to it with
     /// [`DisclosureWscd::new_key(private_key_id, public_key)`].
+    // TODO (PVW-4962): Move this field to the `wallet` crate, as it is a concern of `Wallet`.
     private_key_id: String,
     issuer_signed: IssuerSigned,
 }
