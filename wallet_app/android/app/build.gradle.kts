@@ -67,8 +67,8 @@ val ulIntentFilter =
 android {
     namespace = "nl.rijksoverheid.edi.wallet"
     compileSdk = 36
-    // Use NDK r28b to get 16kB page size
-    ndkVersion = "28.1.13356709"
+    // Use NDK r29 RC 1 because root_jailbreak_sniffer uses it.
+    ndkVersion = "29.0.14033849"
 
     // Note: When using flutter >= 3.27.1 with Java 21, you will see the
     // following (harmless) warnings:
