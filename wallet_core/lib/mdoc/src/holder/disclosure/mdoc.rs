@@ -13,10 +13,10 @@ use super::MissingAttributesError;
 
 #[derive(Debug, Clone)]
 pub struct PartialMdoc {
-    pub doc_type: DocType,
-    pub issuer_signed: IssuerSigned,
-    pub(super) private_key_id: String,
-    pub(super) device_key: DeviceKey,
+    pub(super) doc_type: DocType,
+    pub(super) issuer_signed: IssuerSigned,
+    private_key_id: String,
+    device_key: DeviceKey,
 }
 
 impl PartialMdoc {
@@ -24,16 +24,30 @@ impl PartialMdoc {
         mdoc: Mdoc,
         claim_paths: impl IntoIterator<Item = &'a VecNonEmpty<ClaimPath>>,
     ) -> std::result::Result<Self, MissingAttributesError> {
-        let issuer_signed = mdoc.issuer_signed.into_attribute_subset(claim_paths)?;
+        let (mso, private_key_id, issuer_signed) = mdoc.into_components();
+
+        let issuer_signed = issuer_signed.into_attribute_subset(claim_paths)?;
 
         let partial_mdoc = Self {
-            doc_type: mdoc.mso.doc_type,
+            doc_type: mso.doc_type,
             issuer_signed,
-            private_key_id: mdoc.private_key_id,
-            device_key: mdoc.mso.device_key_info.device_key,
+            private_key_id,
+            device_key: mso.device_key_info.device_key,
         };
 
         Ok(partial_mdoc)
+    }
+
+    pub fn doc_type(&self) -> &str {
+        &self.doc_type
+    }
+
+    pub fn issuer_signed(&self) -> &IssuerSigned {
+        &self.issuer_signed
+    }
+
+    pub fn into_issuer_signed(self) -> IssuerSigned {
+        self.issuer_signed
     }
 
     pub(super) fn credential_key<K, W>(&self, wscd: &W) -> Result<K>

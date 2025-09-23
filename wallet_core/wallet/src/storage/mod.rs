@@ -24,6 +24,7 @@ use uuid::Uuid;
 use attestation_data::disclosure_type::DisclosureType;
 use crypto::x509::BorrowingCertificate;
 use error_category::ErrorCategory;
+use mdoc::utils::cose::CoseError;
 use mdoc::utils::serialization::CborError;
 use openid4vc::issuance_session::CredentialWithMetadata;
 use openid4vc::issuance_session::IssuedCredentialCopies;
@@ -88,8 +89,11 @@ pub enum StorageError {
     #[category(pd)]
     MetadataChain(#[from] TypeMetadataChainError),
 
-    #[error("storage database CBOR error: {0}")]
+    #[error("could not encode / decode mdoc CBOR: {0}")]
     Cbor(#[from] CborError),
+
+    #[error("could not deserialize mdoc IssuerSigned: {0}")]
+    IssuerSigned(#[from] CoseError),
 
     #[error("storage database SD-JWT error: {0}")]
     #[category(pd)]

@@ -316,9 +316,7 @@ mod tests {
         let stored_attestation_copy = StoredAttestationCopy::new(
             Uuid::new_v4(),
             Uuid::new_v4(),
-            StoredAttestation::MsoMdoc {
-                mdoc: Box::new(mdoc.clone()),
-            },
+            StoredAttestation::MsoMdoc { mdoc },
             NormalizedTypeMetadata::nl_pid_example(),
         );
 

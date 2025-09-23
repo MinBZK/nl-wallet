@@ -106,9 +106,10 @@ mod tests {
         )
         .unwrap();
 
+        let (mso, _, issuer_signed) = mdoc.into_components();
         let document = Document {
-            doc_type: mdoc.doc_type().clone(),
-            issuer_signed: mdoc.issuer_signed.clone(),
+            doc_type: mso.doc_type,
+            issuer_signed,
             device_signed: mac_device_signed,
             errors: None,
         };
