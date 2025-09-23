@@ -45,18 +45,6 @@ impl TryFrom<&mdoc::iso::ValidityInfo> for ValidityInfo {
     }
 }
 
-#[cfg(feature = "test")]
-impl From<ValidityInfo> for mdoc::iso::ValidityInfo {
-    fn from(value: ValidityInfo) -> Self {
-        Self {
-            signed: value.signed.into(),
-            valid_from: value.valid_from.unwrap().into(),
-            valid_until: value.valid_until.unwrap().into(),
-            expected_update: None,
-        }
-    }
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "test", derive(derive_more::Unwrap))]
 #[serde(tag = "format", content = "attributes", rename_all = "snake_case")]
@@ -98,22 +86,6 @@ impl TryFrom<serde_json::Map<String, serde_json::Value>> for DisclosedAttributes
                 .collect::<Result<IndexMap<_, _>, Self::Error>>()?
                 .into(),
         ))
-    }
-}
-
-#[cfg(feature = "test")]
-impl From<DisclosedAttributes> for IndexMap<NameSpace, IndexMap<DataElementIdentifier, DataElementValue>> {
-    fn from(attributes: DisclosedAttributes) -> Self {
-        attributes
-            .unwrap_mso_mdoc()
-            .into_iter()
-            .map(|(namespace, attributes)| {
-                (
-                    namespace,
-                    attributes.into_iter().map(|(key, value)| (key, value.into())).collect(),
-                )
-            })
-            .collect()
     }
 }
 
