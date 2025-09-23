@@ -24,4 +24,5 @@ use-cases/issuance-with-openid4vci
 use-cases/mobile-app-startup
 use-cases/pin-validation
 use-cases/wallet-creation
+use-cases/wallet_device_transfer_flow
 ```
