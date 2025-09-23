@@ -178,9 +178,10 @@ where
             Err(error) => return Err(self.report_error_back(auth_request.response_uri, error).await)?,
         };
 
-        // Signing of disclosures using a mix of formats is currently unsupported, because of how we use the
-        // `DisclosureWscd` trait. If the credential request contains this, simply terminate the session and
-        // return an error.
+        // TODO (PVW-4138): Signing of disclosures using a mix of formats is currently unsupported, because of how we
+        //                  use the `DisclosureWscd` trait. If the credential request contains this, simply terminate
+        //                  the session and return an error. In the future, we should change our use of `DisclosureWscd`
+        //                  to support disclosing both mdoc and SD-JWT credentials in the same response.
         let format_count = auth_request
             .credential_requests
             .as_ref()
