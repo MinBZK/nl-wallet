@@ -314,6 +314,24 @@ impl InstructionAndResult for SendWalletPayload {
     type Result = ();
 }
 
+// ReceiveWalletPayload instruction.
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ReceiveWalletPayload {
+    pub transfer_session_id: Uuid,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ReceiveWalletPayloadResult {
+    pub payload: String,
+}
+
+impl InstructionAndResult for ReceiveWalletPayload {
+    const NAME: &'static str = "receive_wallet_payload";
+
+    type Result = ReceiveWalletPayloadResult;
+}
+
 #[cfg(feature = "client")]
 mod client {
     use serde::Serialize;
