@@ -6,7 +6,7 @@
 {% block styles %}
 <link rel="stylesheet" href="../css/demo_bar.css" />
 {% match usecase %}
-{% when "mijn_amsterdam" %}
+{% when "mijn_amsterdam_mdoc" | "mijn_amsterdam_sd_jwt" %}
     <link rel="stylesheet" href="../css/mijn_amsterdam-index.css" />
 {% when "monkey_bike" %}
     <link rel="stylesheet" href="../css/monkey_bike-index.css" />
@@ -28,7 +28,7 @@
 
 {% block content %}
 {% match usecase %}
-{% when "mijn_amsterdam" %}
+{% when "mijn_amsterdam_mdoc" | "mijn_amsterdam_sd_jwt" %}
     {% include "mijn_amsterdam.askama" %}
 {% when "monkey_bike" %}
     {% include "monkey_bike.askama" %}

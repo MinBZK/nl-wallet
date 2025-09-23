@@ -10,12 +10,20 @@ connect_src = ["'self'", "http://${SERVICES_HOST}:${VERIFICATION_SERVER_WS_PORT}
 ip = '0.0.0.0'
 port = ${DEMO_RP_PORT}
 
-[[usecases.mijn_amsterdam.dcql_query.credentials]]
-id = "my_pid"
+[[usecases.mijn_amsterdam_mdoc.dcql_query.credentials]]
+id = "bsn_mdoc"
 format = "mso_mdoc"
 meta = { doctype_value = "urn:eudi:pid:nl:1" }
 claims = [
     { path = ["urn:eudi:pid:nl:1", "bsn"], intent_to_retain = false }
+]
+
+[[usecases.mijn_amsterdam_sd_jwt.dcql_query.credentials]]
+id = "bsn_sd_jwt"
+format = "dc+sd-jwt"
+meta = { vct_values = ["urn:eudi:pid:nl:1"] }
+claims = [
+    { path = ["bsn"] }
 ]
 
 [[usecases.online_marketplace.dcql_query.credentials]]

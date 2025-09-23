@@ -117,7 +117,8 @@ nav a::before {
 }
 
 /* use case icons */
-#mijn_amsterdam::before {
+#mijn_amsterdam_mdoc::before,
+#mijn_amsterdam_sd_jwt::before {
   background: url("../non-free/images/mijn_amsterdam.svg") no-repeat center center / cover;
 }
 

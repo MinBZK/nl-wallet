@@ -26,8 +26,10 @@
                 <a role="button" id="{{ usecase_id }}" href="{{ service.service_url.join(usecase_id) }}/?lang={{ base.selected_lang }}">
                     <span>
                         {% match usecase_id.as_ref() %}
-                            {% when "mijn_amsterdam" %}
-                                {{ base.trans.amsterdam_index }}
+                            {% when "mijn_amsterdam_mdoc" %}
+                                {{ base.trans.amsterdam_mdoc_index }}
+                            {% when "mijn_amsterdam_sd_jwt" %}
+                                {{ base.trans.amsterdam_sd_jwt_index }}
                             {% when "monkey_bike" %}
                                 {{ base.trans.monkeybike_index }}
                             {% when "online_marketplace" %}
