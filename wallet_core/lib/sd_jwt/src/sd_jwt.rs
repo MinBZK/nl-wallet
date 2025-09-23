@@ -36,7 +36,6 @@ use jwt::EcdsaDecodingKey;
 use jwt::Header;
 use jwt::UnverifiedJwt;
 use jwt::VerifiedJwt;
-use jwt::headers::HeaderWithTyp;
 use jwt::headers::HeaderWithX5c;
 use jwt::jwk::jwk_to_p256;
 use utils::date_time_seconds::DateTimeSeconds;
@@ -62,7 +61,7 @@ use crate::sd_alg::SdAlg;
 /// An SD-JWT that has been split into parts but not verified yet. There's no need to keep the SD JWT as serialized form
 /// as there is no KB-JWT
 #[derive(Debug, Clone, SerializeDisplay, DeserializeFromStr)]
-pub struct UnverifiedSdJwt<H = HeaderWithX5c<HeaderWithTyp>> {
+pub struct UnverifiedSdJwt<H = HeaderWithX5c> {
     issuer_signed: UnverifiedJwt<SdJwtClaims, H>,
     disclosures: Vec<String>,
 }
@@ -108,15 +107,12 @@ impl UnverifiedSdJwt {
         trust_anchors: &[TrustAnchor],
         time: &impl Generator<DateTime<Utc>>,
     ) -> Result<VerifiedSdJwt> {
-        let issuer_signed_jwt = self
-            .issuer_signed
-            .clone()
-            .into_verified_against_trust_anchors_with_typ(
-                &SD_JWT_VALIDATIONS,
-                time,
-                CertificateUsage::Mdl,
-                trust_anchors,
-            )?;
+        let issuer_signed_jwt = self.issuer_signed.clone().into_verified_against_trust_anchors(
+            &SD_JWT_VALIDATIONS,
+            time,
+            CertificateUsage::Mdl,
+            trust_anchors,
+        )?;
 
         let hasher = issuer_signed_jwt.payload()._sd_alg.unwrap_or_default().hasher()?;
         let disclosures = Self::parse_disclosures(&self.disclosures, &hasher)?;
@@ -244,13 +240,13 @@ impl From<DisclosureHash> for String {
 /// Representation of an SD-JWT of the format
 /// `<Issuer-signed JWT>~<Disclosure 1>~<Disclosure 2>~...~<Disclosure N>~`.
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub struct SdJwt<H = HeaderWithX5c<HeaderWithTyp>> {
+pub struct SdJwt<H = HeaderWithX5c> {
     issuer_signed_jwt: VerifiedJwt<SdJwtClaims, H>,
     disclosures: HashMap<String, Disclosure>,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, AsRef, Display)]
-pub struct VerifiedSdJwt<H = HeaderWithX5c<HeaderWithTyp>>(SdJwt<H>);
+pub struct VerifiedSdJwt<H = HeaderWithX5c>(SdJwt<H>);
 
 impl VerifiedSdJwt {
     #[cfg(feature = "test")]
@@ -264,10 +260,10 @@ impl VerifiedSdJwt {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, AsRef)]
-pub struct UnsignedSdJwtPresentation<H = HeaderWithX5c<HeaderWithTyp>>(SdJwt<H>);
+pub struct UnsignedSdJwtPresentation<H = HeaderWithX5c>(SdJwt<H>);
 
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub struct SdJwtPresentation<H = HeaderWithX5c<HeaderWithTyp>> {
+pub struct SdJwtPresentation<H = HeaderWithX5c> {
     sd_jwt: SdJwt<H>,
     key_binding_jwt: SpecOptional<KeyBindingJwt>,
 }
@@ -479,12 +475,8 @@ impl VerifiedSdJwt {
     ) -> Result<Self> {
         let (jwt, disclosures) = SdJwt::parse_sd_jwt_unverified(sd_jwt)?;
 
-        let issuer_signed_jwt = jwt.into_verified_against_trust_anchors_with_typ(
-            &SD_JWT_VALIDATIONS,
-            time,
-            CertificateUsage::Mdl,
-            trust_anchors,
-        )?;
+        let issuer_signed_jwt =
+            jwt.into_verified_against_trust_anchors(&SD_JWT_VALIDATIONS, time, CertificateUsage::Mdl, trust_anchors)?;
 
         Ok(Self(SdJwt {
             issuer_signed_jwt,
@@ -521,7 +513,7 @@ impl VerifiedSdJwt {
 }
 
 #[derive(Clone)]
-pub struct SdJwtPresentationBuilder<H = HeaderWithX5c<HeaderWithTyp>> {
+pub struct SdJwtPresentationBuilder<H = HeaderWithX5c> {
     sd_jwt: SdJwt<H>,
 
     /// Non-disclosed attributes. All attributes start here. Calling `disclose()` moves an attribute from here

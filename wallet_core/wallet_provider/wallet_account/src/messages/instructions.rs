@@ -15,9 +15,9 @@ use uuid::Uuid;
 use crypto::p256_der::DerSignature;
 use crypto::p256_der::DerVerifyingKey;
 use jwt::JwtSub;
+use jwt::JwtTyp;
 use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithJwk;
-use jwt::headers::HeaderWithTyp;
 use jwt::pop::JwtPopClaims;
 use jwt::wua::WuaDisclosure;
 use sd_jwt::sd_jwt::UnverifiedSdJwt;
@@ -64,6 +64,8 @@ pub struct InstructionResultClaims<R> {
 impl<R> JwtSub for InstructionResultClaims<R> {
     const SUB: &'static str = "instruction_result";
 }
+
+impl<R> JwtTyp for InstructionResultClaims<R> {}
 
 /// Links an instruction with its result type and name string.
 pub trait InstructionAndResult: Serialize + DeserializeOwned {
@@ -161,7 +163,7 @@ pub struct PerformIssuance {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PerformIssuanceResult {
     pub key_identifiers: VecNonEmpty<String>,
-    pub pops: VecNonEmpty<UnverifiedJwt<JwtPopClaims, HeaderWithJwk<HeaderWithTyp>>>,
+    pub pops: VecNonEmpty<UnverifiedJwt<JwtPopClaims, HeaderWithJwk>>,
     pub poa: Option<Poa>,
 }
 

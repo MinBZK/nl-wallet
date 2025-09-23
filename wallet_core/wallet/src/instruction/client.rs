@@ -170,6 +170,7 @@ where
         let result = signed_result
             .parse_and_verify_with_sub(&self.parameters.instruction_result_public_key)
             .map_err(InstructionError::InstructionResultValidation)?
+            .1
             .result;
 
         Ok(result)

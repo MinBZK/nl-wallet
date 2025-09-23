@@ -37,6 +37,7 @@ use dcql::unique_id_vec::UniqueIdVec;
 use error_category::ErrorCategory;
 use http_utils::urls::BaseUrl;
 use jwt::Algorithm;
+use jwt::JwtTyp;
 use jwt::UnverifiedJwt;
 use jwt::Validation;
 use jwt::error::JwtX5cError;
@@ -114,6 +115,8 @@ pub struct VpAuthorizationRequest {
 
     pub wallet_nonce: Option<String>,
 }
+
+impl JwtTyp for VpAuthorizationRequest {}
 
 #[derive(Debug, Clone, Default, SerializeDisplay, DeserializeFromStr, strum::EnumString, strum::Display)]
 pub enum VpAuthorizationRequestAudience {

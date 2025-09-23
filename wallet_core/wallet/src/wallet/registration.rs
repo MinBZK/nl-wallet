@@ -270,7 +270,7 @@ where
 
         // Double check that the public key returned in the wallet certificate matches that of our hardware key.
         // Note that this public key is only available on Android, on iOS all we have is opaque attestation data.
-        let cert_claims = wallet_certificate
+        let (_, cert_claims) = wallet_certificate
             .parse_and_verify_with_sub(&config.account_server.certificate_public_key.as_inner().into())
             .map_err(WalletRegistrationError::CertificateValidation)?;
 

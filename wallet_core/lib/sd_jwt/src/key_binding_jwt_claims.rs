@@ -8,7 +8,6 @@ use jsonwebtoken::Validation;
 use jsonwebtoken::jwk::Jwk;
 
 use jwt::SignedJwt;
-use jwt::headers::HeaderWithTyp;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::chrono::DateTime;
@@ -33,7 +32,7 @@ impl JwtTyp for KeyBindingJwtClaims {
 
 /// Representation of a [KB-JWT](https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-12.html#name-key-binding-jwt).
 #[derive(Debug, Clone, PartialEq, Eq, Display)]
-pub struct KeyBindingJwt(VerifiedJwt<KeyBindingJwtClaims, HeaderWithTyp>);
+pub struct KeyBindingJwt(VerifiedJwt<KeyBindingJwtClaims>);
 
 impl KeyBindingJwt {
     pub fn parse_and_verify(
@@ -43,9 +42,9 @@ impl KeyBindingJwt {
         expected_nonce: &str,
         iat_acceptance_window: Duration,
     ) -> error::Result<Self> {
-        let jwt: UnverifiedJwt<KeyBindingJwtClaims, HeaderWithTyp> = s.parse()?;
+        let jwt: UnverifiedJwt<KeyBindingJwtClaims> = s.parse()?;
 
-        let verified_jwt = jwt.into_verified_with_typ(pubkey, &kb_jwt_validation(expected_aud))?;
+        let verified_jwt = jwt.into_verified(pubkey, &kb_jwt_validation(expected_aud))?;
         if verified_jwt.payload().nonce != expected_nonce {
             return Err(Error::Deserialization(String::from("invalid KB-JWT: unexpected nonce")));
         }
@@ -103,7 +102,7 @@ impl KeyBindingJwtBuilder {
             sd_hash,
         };
 
-        let signed_jwt = SignedJwt::sign_with_typ(&claims, signing_key).await?;
+        let signed_jwt = SignedJwt::sign(&claims, signing_key).await?;
         Ok(KeyBindingJwt(signed_jwt.into()))
     }
 }
@@ -130,18 +129,17 @@ pub enum RequiredKeyBinding {
 #[cfg(test)]
 mod test {
     use assert_matches::assert_matches;
+    use base64::prelude::*;
     use chrono::Duration;
     use chrono::Utc;
     use jsonwebtoken::Algorithm;
+    use jwt::headers::HeaderWithTyp;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
 
     use jwt::EcdsaDecodingKey;
     use jwt::Header;
     use jwt::SignedJwt;
-    use jwt::error::JwtError;
-    use jwt::headers::HeaderWithTyp;
-    use jwt::headers::JwtHeader;
 
     use crate::error::Error;
     use crate::examples::SIMPLE_STRUCTURED_SD_JWT;
@@ -154,8 +152,8 @@ mod test {
     use crate::key_binding_jwt_claims::KeyBindingJwtClaims;
     use crate::sd_jwt::SdJwt;
 
-    async fn example_kb_jwt(signing_key: &SigningKey) -> SignedJwt<KeyBindingJwtClaims, HeaderWithTyp> {
-        SignedJwt::sign_with_typ(
+    async fn example_kb_jwt(signing_key: &SigningKey) -> SignedJwt<KeyBindingJwtClaims> {
+        SignedJwt::sign(
             &KeyBindingJwtClaims {
                 iat: Utc::now() - Duration::days(2),
                 aud: String::from("aud"),
@@ -188,9 +186,12 @@ mod test {
 
         // after calling `sign_with_typ` the value in `header` doesn't actually contain a `typ` field, but it is
         // included in the serialization
-        let header: HeaderWithTyp = kb_jwt.0.jwt().dangerous_parse_header_unverified().unwrap();
+        let bts = BASE64_URL_SAFE_NO_PAD
+            .decode(kb_jwt.0.jwt().serialization().split('.').take(1).next().unwrap())
+            .unwrap();
+        let header: HeaderWithTyp = serde_json::from_slice(&bts).unwrap();
         assert_eq!(KB_JWT_HEADER_TYP, header.typ());
-        assert_eq!(Algorithm::ES256, header.inner().alg);
+        assert_eq!(Algorithm::ES256, header.into_inner().alg);
     }
 
     #[tokio::test]
@@ -205,34 +206,6 @@ mod test {
             Duration::days(3),
         )
         .unwrap();
-    }
-
-    #[tokio::test]
-    async fn test_parse_should_error_for_wrong_typ() {
-        let signing_key = SigningKey::random(&mut OsRng);
-
-        let jwt = SignedJwt::sign(
-            &JwtHeader::default(),
-            &KeyBindingJwtClaims {
-                iat: Utc::now() - Duration::days(2),
-                aud: String::from("aud"),
-                nonce: String::from("abc123"),
-                sd_hash: String::from("sd_hash"),
-            },
-            &signing_key,
-        )
-        .await
-        .unwrap();
-
-        let err = KeyBindingJwt::parse_and_verify(
-            jwt.as_ref().serialization(),
-            &EcdsaDecodingKey::from(signing_key.verifying_key()),
-            "aud",
-            "abc123",
-            Duration::days(3),
-        )
-        .expect_err("should fail validation");
-        assert_matches!(err, Error::JwtParsing(JwtError::HeaderConversion(_)));
     }
 
     #[tokio::test]

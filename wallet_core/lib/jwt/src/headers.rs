@@ -203,8 +203,8 @@ impl<H> HeaderWithTyp<H> {
         &self.typ
     }
 
-    pub fn inner(&self) -> &H {
-        &self.header
+    pub fn into_inner(self) -> H {
+        self.header
     }
 }
 

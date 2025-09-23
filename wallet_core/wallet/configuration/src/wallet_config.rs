@@ -14,6 +14,7 @@ use crypto::p256_der::DerVerifyingKey;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use http_utils::tls::pinning::TlsPinningConfig;
 use http_utils::urls::BaseUrl;
+use jwt::JwtTyp;
 
 use crate::EnvironmentSpecific;
 use crate::digid::DigidApp2AppConfiguration;
@@ -34,6 +35,8 @@ pub struct WalletConfiguration {
     pub static_assets_base_url: BaseUrl,
     pub version: u64,
 }
+
+impl JwtTyp for WalletConfiguration {}
 
 impl WalletConfiguration {
     pub fn issuer_trust_anchors(&self) -> Vec<TrustAnchor<'_>> {

@@ -68,7 +68,6 @@ use jwt::Validation;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
 use jwt::headers::HeaderWithJwk;
-use jwt::headers::HeaderWithTyp;
 
 use crate::token::AccessToken;
 
@@ -131,7 +130,7 @@ impl JwtTyp for DpopPayload {
 }
 
 #[derive(Clone, AsRef, FromStr, Display)]
-pub struct Dpop(UnverifiedJwt<DpopPayload, HeaderWithJwk<HeaderWithTyp>>);
+pub struct Dpop(UnverifiedJwt<DpopPayload, HeaderWithJwk>);
 
 static DPOP_VALIDATION_OPTIONS: LazyLock<Validation> = LazyLock::new(|| {
     let mut options = Validation::new(Algorithm::ES256);
@@ -155,7 +154,7 @@ impl Dpop {
             nonce,
             access_token_hash: access_token.map(AccessToken::sha256),
         };
-        let jwt = SignedJwt::sign_with_jwk_and_typ(&payload, private_key).await?;
+        let jwt = SignedJwt::sign_with_jwk(&payload, private_key).await?;
         Ok(Self(jwt.into()))
     }
 
@@ -191,7 +190,7 @@ impl Dpop {
     /// This should only be called in the first HTTP request of a protocol. In later requests,
     /// [`Dpop::verify_expecting_key()`] should be used with the public key that this method returns.
     pub fn verify(self, url: &Url, method: &Method, access_token: Option<&AccessToken>) -> Result<VerifyingKey> {
-        let (header, payload) = self.0.parse_and_verify_with_jwk_and_typ(&DPOP_VALIDATION_OPTIONS)?;
+        let (header, payload) = self.0.parse_and_verify_with_jwk(&DPOP_VALIDATION_OPTIONS)?;
         Self::verify_data(&payload, url, method, access_token, None)?;
         Ok(header.verifying_key()?)
     }
@@ -207,7 +206,7 @@ impl Dpop {
     ) -> Result<()> {
         let (_, payload) = self
             .0
-            .parse_and_verify_with_expected_jwk_and_typ(expected_verifying_key, &DPOP_VALIDATION_OPTIONS)?;
+            .parse_and_verify_with_expected_jwk(expected_verifying_key, &DPOP_VALIDATION_OPTIONS)?;
         Self::verify_data(&payload, url, method, access_token, nonce)?;
 
         Ok(())

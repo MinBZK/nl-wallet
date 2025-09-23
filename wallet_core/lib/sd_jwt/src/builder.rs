@@ -137,7 +137,7 @@ impl<H: Hasher> SdJwtBuilder<H> {
         let mut claims = serde_json::from_value::<SdJwtClaims>(encoder.encode())?;
         claims.cnf = Some(RequiredKeyBinding::Jwk(jwk_from_p256(holder_pubkey)?));
         claims.vct_integrity = Some(vct_integrity);
-        let signed_jwt = SignedJwt::sign_with_certificate_and_typ(&claims, issuer_keypair).await?;
+        let signed_jwt = SignedJwt::sign_with_certificate(&claims, issuer_keypair).await?;
 
         Ok(SdJwt::new(signed_jwt.into(), disclosures))
     }

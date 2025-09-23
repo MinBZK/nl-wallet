@@ -10,7 +10,6 @@ use crate::JwtTyp;
 use crate::SignedJwt;
 use crate::error::JwkConversionError;
 use crate::error::JwtError;
-use crate::headers::HeaderWithTyp;
 use crate::jwk::jwk_from_p256;
 use crate::wua::WUA_JWT_TYP;
 
@@ -48,8 +47,8 @@ where
         issuer_privkey: &impl EcdsaKey,
         iss: String,
         attributes: T,
-    ) -> Result<SignedJwt<JwtCredentialClaims<T>, HeaderWithTyp>, JwtError> {
-        let jwt = SignedJwt::sign_with_typ(
+    ) -> Result<SignedJwt<Self>, JwtError> {
+        let jwt = SignedJwt::sign(
             &JwtCredentialClaims::new(holder_pubkey, iss, attributes)?,
             issuer_privkey,
         )

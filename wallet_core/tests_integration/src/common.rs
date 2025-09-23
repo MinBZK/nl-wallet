@@ -42,7 +42,6 @@ use issuance_server::disclosure::AttributesFetcher;
 use issuance_server::disclosure::HttpAttributesFetcher;
 use issuance_server::settings::IssuanceServerSettings;
 use jwt::SignedJwt;
-use jwt::headers::JwtHeader;
 use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::issuance_session::HttpIssuanceSession;
 use openid4vc::issuer::AttributeService;
@@ -334,7 +333,6 @@ pub async fn config_jwt(wallet_config: &WalletConfiguration) -> SignedJwt<Wallet
     let key = read_file("config_signing.pem");
 
     SignedJwt::sign(
-        &JwtHeader::default(),
         wallet_config,
         &SigningKey::from_pkcs8_pem(&String::from_utf8_lossy(&key)).unwrap(),
     )

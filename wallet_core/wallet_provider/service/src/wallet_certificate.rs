@@ -73,7 +73,7 @@ where
 {
     debug!("Parsing and verifying the provided certificate");
 
-    let claims = certificate.parse_and_verify_with_sub(certificate_signing_pubkey)?;
+    let (_, claims) = certificate.parse_and_verify_with_sub(certificate_signing_pubkey)?;
 
     debug!("Starting database transaction");
 

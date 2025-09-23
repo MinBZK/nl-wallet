@@ -23,8 +23,6 @@ use hsm::service::HsmError;
 use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithJwk;
-use jwt::headers::HeaderWithTyp;
-use jwt::headers::JwtHeader;
 use jwt::pop::JwtPopClaims;
 use jwt::wua::WuaDisclosure;
 use utils::generator::Generator;
@@ -411,14 +409,10 @@ where
         .await
         .map_err(|e| InstructionError::WuaIssuance(Box::new(e)))?;
 
-    let wua_disclosure = SignedJwt::sign(
-        &JwtHeader::default(),
-        claims,
-        &attestation_key(&wua_wrapped_key, user_state),
-    )
-    .await
-    .map_err(InstructionError::PopSigning)?
-    .into();
+    let wua_disclosure = SignedJwt::sign(claims, &attestation_key(&wua_wrapped_key, user_state))
+        .await
+        .map_err(InstructionError::PopSigning)?
+        .into();
 
     Ok((wua_wrapped_key, wua_key_id, WuaDisclosure::new(wua, wua_disclosure)))
 }
@@ -426,12 +420,12 @@ where
 async fn issuance_pops<H>(
     attestation_keys: &VecNonEmpty<HsmCredentialSigningKey<'_, H>>,
     claims: &JwtPopClaims,
-) -> Result<VecNonEmpty<UnverifiedJwt<JwtPopClaims, HeaderWithJwk<HeaderWithTyp>>>, InstructionError>
+) -> Result<VecNonEmpty<UnverifiedJwt<JwtPopClaims, HeaderWithJwk>>, InstructionError>
 where
     H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
 {
     let pops = future::try_join_all(attestation_keys.iter().map(|attestation_key| async {
-        let jwt = SignedJwt::sign_with_jwk_and_typ(claims, attestation_key)
+        let jwt = SignedJwt::sign_with_jwk(claims, attestation_key)
             .await
             .map_err(InstructionError::PopSigning)?
             .into();
@@ -767,7 +761,6 @@ mod tests {
     use jwt::UnverifiedJwt;
     use jwt::Validation;
     use jwt::headers::HeaderWithJwk;
-    use jwt::headers::HeaderWithTyp;
     use jwt::jwk::jwk_to_p256;
     use jwt::pop::JwtPopClaims;
     use jwt::wua::WuaDisclosure;
@@ -1218,7 +1211,7 @@ mod tests {
     }
 
     fn validate_issuance(
-        pops: &[UnverifiedJwt<JwtPopClaims, HeaderWithJwk<HeaderWithTyp>>],
+        pops: &[UnverifiedJwt<JwtPopClaims, HeaderWithJwk>],
         poa: Option<Poa>,
         wua_with_disclosure: Option<&WuaDisclosure>,
     ) {
@@ -1230,7 +1223,7 @@ mod tests {
         let keys = pops
             .iter()
             .map(|pop| {
-                let (header, _) = pop.parse_and_verify_with_jwk_and_typ(&validations).unwrap();
+                let (header, _) = pop.parse_and_verify_with_jwk(&validations).unwrap();
 
                 header.verifying_key().unwrap()
             })

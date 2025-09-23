@@ -17,7 +17,6 @@ use crypto::wscd::DisclosureWscd;
 use crypto::wscd::WscdPoa;
 use jwt::SignedJwt;
 use jwt::credential::JwtCredentialClaims;
-use jwt::headers::JwtHeader;
 use jwt::pop::JwtPopClaims;
 use jwt::wua::WuaClaims;
 use jwt::wua::WuaDisclosure;
@@ -137,7 +136,7 @@ impl Wscd for MockRemoteWscd {
         let pops = attestation_keys
             .iter()
             .map(|attestation_key| {
-                SignedJwt::sign_with_jwk_and_typ(&claims, attestation_key)
+                SignedJwt::sign_with_jwk(&claims, attestation_key)
                     .now_or_never()
                     .unwrap()
                     .unwrap()
@@ -164,10 +163,7 @@ impl Wscd for MockRemoteWscd {
             .unwrap()
             .into();
 
-            let wua_disclosure = SignedJwt::sign(&JwtHeader::default(), &claims, &wua_key)
-                .now_or_never()
-                .unwrap()
-                .unwrap();
+            let wua_disclosure = SignedJwt::sign(&claims, &wua_key).now_or_never().unwrap().unwrap();
 
             (WuaDisclosure::new(wua, wua_disclosure.into()), wua_key)
         });

@@ -7622,6 +7622,7 @@ dependencies = [
  "derive_more",
  "etag",
  "http_utils",
+ "jwt",
  "rustls-pki-types",
  "serde",
  "serde_with",

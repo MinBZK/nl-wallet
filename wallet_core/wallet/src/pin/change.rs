@@ -126,7 +126,7 @@ impl<'a, C, S> BeginChangePinOperation<'a, C, S> {
 
     // Perform the same sanity checks as during registration, with the addition of checking the received wallet_id.
     pub fn validate_certificate(&self, certificate: &WalletCertificate) -> ChangePinResult<()> {
-        let cert_claims = certificate
+        let (_, cert_claims) = certificate
             .parse_and_verify_with_sub(&self.certificate_public_key.into())
             .map_err(ChangePinError::CertificateValidation)?;
 

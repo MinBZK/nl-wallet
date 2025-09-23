@@ -58,6 +58,7 @@ use hsm::model::encrypter::Encrypter;
 use hsm::service::HsmError;
 use jwt::EcdsaDecodingKey;
 use jwt::JwtSub;
+use jwt::JwtTyp;
 use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
 use jwt::error::JwkConversionError;
@@ -338,6 +339,8 @@ struct RegistrationChallengeClaims {
 impl JwtSub for RegistrationChallengeClaims {
     const SUB: &'static str = "registration_challenge";
 }
+
+impl JwtTyp for RegistrationChallengeClaims {}
 
 pub struct AppleAttestationConfiguration {
     pub app_identifier: AppIdentifier,
@@ -1193,6 +1196,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             .map_err(RegistrationError::ChallengeValidation)?;
         jwt.parse_and_verify_with_sub(certificate_signing_pubkey)
             .map_err(RegistrationError::ChallengeValidation)
+            .map(|(_, claims)| claims)
     }
 
     fn verify_instruction_challenge<'a>(
@@ -1868,6 +1872,7 @@ mod tests {
         let new_certificate = new_certificate_result
             .parse_and_verify_with_sub(&instruction_result_signing_key.verifying_key().into())
             .expect("Could not parse and verify instruction result")
+            .1
             .result;
 
         (
@@ -1885,7 +1890,7 @@ mod tests {
     ) {
         let (setup, account_server, hw_privkey, cert, user_state) = setup_and_do_registration(attestation_type).await;
 
-        let cert_data = cert
+        let (_, cert_data) = cert
             .parse_and_verify_with_sub(&setup.signing_key.verifying_key().into())
             .expect("Could not parse and verify wallet certificate");
         assert_eq!(cert_data.iss, account_server.name);

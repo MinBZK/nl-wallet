@@ -11,7 +11,6 @@ use hsm::service::HsmError;
 use jwt::UnverifiedJwt;
 use jwt::credential::JwtCredentialClaims;
 use jwt::error::JwtError;
-use jwt::headers::HeaderWithTyp;
 use jwt::wua::WuaClaims;
 use wallet_provider_domain::model::hsm::WalletUserHsm;
 
@@ -20,14 +19,7 @@ pub trait WuaIssuer {
 
     async fn issue_wua(
         &self,
-    ) -> Result<
-        (
-            WrappedKey,
-            String,
-            UnverifiedJwt<JwtCredentialClaims<WuaClaims>, HeaderWithTyp>,
-        ),
-        Self::Error,
-    >;
+    ) -> Result<(WrappedKey, String, UnverifiedJwt<JwtCredentialClaims<WuaClaims>>), Self::Error>;
     async fn public_key(&self) -> Result<VerifyingKey, Self::Error>;
 }
 
@@ -58,14 +50,7 @@ where
 
     async fn issue_wua(
         &self,
-    ) -> Result<
-        (
-            WrappedKey,
-            String,
-            UnverifiedJwt<JwtCredentialClaims<WuaClaims>, HeaderWithTyp>,
-        ),
-        Self::Error,
-    > {
+    ) -> Result<(WrappedKey, String, UnverifiedJwt<JwtCredentialClaims<WuaClaims>>), Self::Error> {
         let wrapped_privkey = self.hsm.generate_wrapped_key(&self.wrapping_key_identifier).await?;
         let pubkey = *wrapped_privkey.public_key();
 
@@ -95,7 +80,6 @@ pub mod mock {
     use hsm::model::wrapped_key::WrappedKey;
     use jwt::UnverifiedJwt;
     use jwt::credential::JwtCredentialClaims;
-    use jwt::headers::HeaderWithTyp;
     use jwt::wua::WuaClaims;
 
     use super::WuaIssuer;
@@ -107,14 +91,7 @@ pub mod mock {
 
         async fn issue_wua(
             &self,
-        ) -> Result<
-            (
-                WrappedKey,
-                String,
-                UnverifiedJwt<JwtCredentialClaims<WuaClaims>, HeaderWithTyp>,
-            ),
-            Self::Error,
-        > {
+        ) -> Result<(WrappedKey, String, UnverifiedJwt<JwtCredentialClaims<WuaClaims>>), Self::Error> {
             let privkey = SigningKey::random(&mut OsRng);
             let pubkey = privkey.verifying_key();
 
@@ -172,7 +149,7 @@ mod tests {
 
         let (wua_privkey, _key_id, wua) = wua_issuer.issue_wua().await.unwrap();
 
-        let wua_claims = wua
+        let (_, wua_claims) = wua
             .parse_and_verify(&wua_verifying_key.into(), &DEFAULT_VALIDATIONS)
             .unwrap();
 

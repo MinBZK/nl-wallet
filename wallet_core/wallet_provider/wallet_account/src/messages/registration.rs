@@ -8,6 +8,7 @@ use serde_with::serde_as;
 
 use crypto::p256_der::DerVerifyingKey;
 use jwt::JwtSub;
+use jwt::JwtTyp;
 use jwt::UnverifiedJwt;
 use utils::vec_at_least::VecAtLeastTwo;
 
@@ -71,6 +72,8 @@ pub struct WalletCertificateClaims {
 impl JwtSub for WalletCertificateClaims {
     const SUB: &'static str = "wallet_certificate";
 }
+
+impl JwtTyp for WalletCertificateClaims {}
 
 #[cfg(feature = "client")]
 mod client {

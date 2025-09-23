@@ -17,7 +17,6 @@ use crate::VerifiedJwt;
 use crate::credential::JwtCredentialClaims;
 use crate::error::JwkConversionError;
 use crate::error::JwtError;
-use crate::headers::HeaderWithTyp;
 use crate::jwk::jwk_to_p256;
 use crate::pop::JwtPopClaims;
 
@@ -46,13 +45,13 @@ impl Default for WuaClaims {
 
 #[derive(Clone, Debug, Serialize, Deserialize, Constructor)]
 pub struct WuaDisclosure(
-    UnverifiedJwt<JwtCredentialClaims<WuaClaims>, HeaderWithTyp>,
+    UnverifiedJwt<JwtCredentialClaims<WuaClaims>>,
     UnverifiedJwt<JwtPopClaims>,
 );
 
 #[cfg(feature = "test")]
 impl WuaDisclosure {
-    pub fn wua(&self) -> &UnverifiedJwt<JwtCredentialClaims<WuaClaims>, HeaderWithTyp> {
+    pub fn wua(&self) -> &UnverifiedJwt<JwtCredentialClaims<WuaClaims>> {
         &self.0
     }
 
@@ -78,14 +77,14 @@ impl WuaDisclosure {
         expected_aud: &str,
         accepted_wallet_client_ids: &[String],
         expected_nonce: &str,
-    ) -> Result<(VerifiedJwt<JwtCredentialClaims<WuaClaims>, HeaderWithTyp>, VerifyingKey), WuaError> {
-        let verified_jwt = self.0.into_verified_with_typ(issuer_public_key, &WUA_JWT_VALIDATIONS)?;
+    ) -> Result<(VerifiedJwt<JwtCredentialClaims<WuaClaims>>, VerifyingKey), WuaError> {
+        let verified_jwt = self.0.into_verified(issuer_public_key, &WUA_JWT_VALIDATIONS)?;
         let wua_pubkey = jwk_to_p256(&verified_jwt.payload().confirmation.jwk)?;
 
         let mut validations = DEFAULT_VALIDATIONS.to_owned();
         validations.set_audience(&[expected_aud]);
         validations.set_issuer(accepted_wallet_client_ids);
-        let wua_disclosure_claims = self.1.parse_and_verify(&(&wua_pubkey).into(), &validations)?;
+        let (_, wua_disclosure_claims) = self.1.parse_and_verify(&(&wua_pubkey).into(), &validations)?;
 
         if wua_disclosure_claims.nonce.as_deref() != Some(expected_nonce) {
             return Err(WuaError::IncorrectNonce);
