@@ -155,10 +155,7 @@ trivy-publish:
     - job: build-wallet-provider-image
       artifacts: false
       optional: true
-    - job: build-wp-migrations-image
-      artifacts: false
-      optional: true
-    - job: build-ws-migrations-image
+    - job: build-wallet-provider-migrations-image
       artifacts: false
       optional: true
     - job: build-demo-relying-party-image
@@ -170,10 +167,19 @@ trivy-publish:
     - job: build-verification-server-image
       artifacts: false
       optional: true
+    - job: build-verification-server-migrations-image
+      artifacts: false
+      optional: true
     - job: build-issuance-server-image
       artifacts: false
       optional: true
+    - job: build-issuance-server-migrations-image
+      artifacts: false
+      optional: true
     - job: build-pid-issuer-image
+      artifacts: false
+      optional: true
+    - job: build-pid-issuer-migrations-image
       artifacts: false
       optional: true
   script:

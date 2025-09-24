@@ -44,11 +44,14 @@ members = [
     "wallet_provider/service",
     "wallet_provider/wallet_account",
     "wallet_server/issuance_server",
+    "wallet_server/issuance_server/migrations",
     "wallet_server/issuer_settings",
     "wallet_server/pid_issuer",
+    "wallet_server/pid_issuer/migrations",
     "wallet_server/server_utils",
     "wallet_server/server_utils/migrations",
     "wallet_server/verification_server",
+    "wallet_server/verification_server/migrations",
 ]
 exclude = ["uniffi-bindgen"]
 resolver = "2"

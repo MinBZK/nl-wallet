@@ -500,7 +500,7 @@ cd nl-wallet
 DATABASE_URL="postgres://$DB_USERNAME:$DB_PASSWORD@$PGHOST:$PGPORT/$DB_NAME" \
 cargo run \
   --manifest-path wallet_core/wallet_server/server_utils/migrations/Cargo.toml \
-  --bin wallet_server_migrations -- fresh
+  --bin verification_server_migrations -- fresh
 ```
 
 You can show the configuration by issuing the following (might be a good idea

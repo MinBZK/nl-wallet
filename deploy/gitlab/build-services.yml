@@ -38,7 +38,7 @@ build-wallet-provider-image:
     DOCKER_FILE_TO_BUILD: wallet_core/wallet_provider/Dockerfile
     DOCKER_IMAGE_NAME: nl-wallet-provider
 
-build-wp-migrations-image:
+build-wallet-provider-migrations-image:
   extends: .build-docker-image
   needs:
     - job: build-wallet-provider-migrations-binary
@@ -91,6 +91,15 @@ build-verification-server-image:
     DOCKER_FILE_TO_BUILD: wallet_core/wallet_server/verification_server/Dockerfile
     DOCKER_IMAGE_NAME: nl-wallet-verification-server
 
+build-verification-server-migrations-image:
+  extends: .build-docker-image
+  needs:
+    - job: build-wallet-server-migrations-binaries
+      artifacts: true
+  variables:
+    DOCKER_FILE_TO_BUILD: wallet_core/wallet_server/verification_server/migrations/Dockerfile
+    DOCKER_IMAGE_NAME: nl-wallet-verification-server-migrations
+
 build-issuance-server-image:
   extends: .build-docker-image
   needs:
@@ -99,6 +108,15 @@ build-issuance-server-image:
   variables:
     DOCKER_FILE_TO_BUILD: wallet_core/wallet_server/issuance_server/Dockerfile
     DOCKER_IMAGE_NAME: nl-wallet-issuance-server
+
+build-issuance-server-migrations-image:
+  extends: .build-docker-image
+  needs:
+    - job: build-wallet-server-migrations-binaries
+      artifacts: true
+  variables:
+    DOCKER_FILE_TO_BUILD: wallet_core/wallet_server/issuance_server/migrations/Dockerfile
+    DOCKER_IMAGE_NAME: nl-wallet-issuance-server-migrations
 
 build-pid-issuer-image:
   extends: .build-docker-image
@@ -109,14 +127,14 @@ build-pid-issuer-image:
     DOCKER_FILE_TO_BUILD: wallet_core/wallet_server/pid_issuer/Dockerfile
     DOCKER_IMAGE_NAME: nl-wallet-pid-issuer
 
-build-ws-migrations-image:
+build-pid-issuer-migrations-image:
   extends: .build-docker-image
   needs:
-    - job: build-wallet-server-migrations-binary
+    - job: build-wallet-server-migrations-binaries
       artifacts: true
   variables:
-    DOCKER_FILE_TO_BUILD: wallet_core/wallet_server/server_utils/migrations/Dockerfile
-    DOCKER_IMAGE_NAME: nl-wallet-server-migrations
+    DOCKER_FILE_TO_BUILD: wallet_core/wallet_server/pid_issuer/migrations/Dockerfile
+    DOCKER_IMAGE_NAME: nl-wallet-pid-issuer-migrations
 
 build-gba-hc-converter-image:
   extends: .build-docker-image
