@@ -12,4 +12,6 @@ abstract class TransferRepository {
   Future<void> cancelWalletTransfer();
 
   Future<WalletTransferStatus> getWalletTransferState();
+
+  Future<void> skipWalletTransfer();
 }

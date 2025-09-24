@@ -33,4 +33,7 @@ class CoreTransferRepository implements TransferRepository {
       TransferSessionState.Error => WalletTransferStatus.error,
     };
   }
+
+  @override
+  Future<void> skipWalletTransfer() => _walletCore.skipWalletTransfer();
 }

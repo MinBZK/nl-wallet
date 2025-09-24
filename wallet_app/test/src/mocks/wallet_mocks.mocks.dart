@@ -2293,6 +2293,15 @@ class MockTransferRepository extends _i1.Mock implements _i38.TransferRepository
             ),
           )
           as _i10.Future<_i39.WalletTransferStatus>);
+
+  @override
+  _i10.Future<void> skipWalletTransfer() =>
+      (super.noSuchMethod(
+            Invocation.method(#skipWalletTransfer, []),
+            returnValue: _i10.Future<void>.value(),
+            returnValueForMissingStub: _i10.Future<void>.value(),
+          )
+          as _i10.Future<void>);
 }
 
 /// A class which mocks [TypedWalletCore].
@@ -2864,6 +2873,15 @@ class MockTypedWalletCore extends _i1.Mock implements _i40.TypedWalletCore {
             ),
           )
           as _i10.Future<_i26.TransferSessionState>);
+
+  @override
+  _i10.Future<void> skipWalletTransfer() =>
+      (super.noSuchMethod(
+            Invocation.method(#skipWalletTransfer, []),
+            returnValue: _i10.Future<void>.value(),
+            returnValueForMissingStub: _i10.Future<void>.value(),
+          )
+          as _i10.Future<void>);
 
   @override
   _i10.Future<T> call<T>(_i10.Future<T> Function()? runnable) =>

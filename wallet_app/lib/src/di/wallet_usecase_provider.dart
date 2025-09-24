@@ -329,7 +329,7 @@ class WalletUseCaseProvider extends StatelessWidget {
           create: (context) => CancelWalletTransferUseCaseImpl(context.read()),
         ),
         RepositoryProvider<SkipWalletTransferUseCase>(
-          create: (context) => SkipWalletTransferUseCaseImpl(),
+          create: (context) => SkipWalletTransferUseCaseImpl(context.read()),
         ),
         RepositoryProvider<GetWalletTransferStatusUseCase>(
           create: (context) => GetWalletTransferStatusUseCaseImpl(context.read()),
