@@ -16,6 +16,7 @@ import '../../common/widget/text/body_text.dart';
 import '../../common/widget/text/title_text.dart';
 import '../../common/widget/wallet_scrollbar.dart';
 
+const kOrganizationApproveRejectButton = Key('rejectButton');
 const kShowDetailsButtonKey = Key('showDetailsButton');
 
 class OrganizationApprovePage extends StatelessWidget {
@@ -96,7 +97,7 @@ class OrganizationApprovePage extends StatelessWidget {
                       icon: Icon(_primaryIcon()),
                     ),
                     secondaryButton: SecondaryButton(
-                      key: const Key('rejectButton'),
+                      key: kOrganizationApproveRejectButton,
                       onPressed: onDeclinePressed,
                       text: Text.rich(_declineButtonText(context).toTextSpan(context)),
                       icon: const Icon(Icons.block_flipped),
@@ -138,14 +139,18 @@ class OrganizationApprovePage extends StatelessWidget {
 
   static String resolveTitle(BuildContext context, ApprovalPurpose purpose, Organization organization) {
     return switch (purpose) {
-      ApprovalPurpose.issuance =>
-        context.l10n.organizationApprovePageIssuanceTitle(organization.displayName.l10nValue(context)),
-      ApprovalPurpose.disclosure =>
-        context.l10n.organizationApprovePageGenericTitle(organization.displayName.l10nValue(context)),
-      ApprovalPurpose.sign =>
-        context.l10n.organizationApprovePageGenericTitle(organization.displayName.l10nValue(context)),
-      ApprovalPurpose.login =>
-        context.l10n.organizationApprovePageLoginTitle(organization.displayName.l10nValue(context)),
+      ApprovalPurpose.issuance => context.l10n.organizationApprovePageIssuanceTitle(
+        organization.displayName.l10nValue(context),
+      ),
+      ApprovalPurpose.disclosure => context.l10n.organizationApprovePageGenericTitle(
+        organization.displayName.l10nValue(context),
+      ),
+      ApprovalPurpose.sign => context.l10n.organizationApprovePageGenericTitle(
+        organization.displayName.l10nValue(context),
+      ),
+      ApprovalPurpose.login => context.l10n.organizationApprovePageLoginTitle(
+        organization.displayName.l10nValue(context),
+      ),
     };
   }
 

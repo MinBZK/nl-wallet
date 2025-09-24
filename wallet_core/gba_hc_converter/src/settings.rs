@@ -39,7 +39,7 @@ pub struct GbavSettings {
     pub username: String,
     pub password: String,
 
-    pub client_certificate_and_key: CertificateAndKey,
+    pub client_authentication: ClientAuthentication,
 
     #[serde_as(as = "Base64")]
     pub trust_anchor: ReqwestTrustAnchor,
@@ -49,9 +49,12 @@ pub struct GbavSettings {
 
 #[serde_as]
 #[derive(Deserialize)]
-pub struct CertificateAndKey {
+pub struct ClientAuthentication {
     #[serde_as(as = "Base64")]
     pub certificate: Vec<u8>,
+
+    #[serde_as(as = "Vec<Base64>")]
+    pub chain: Vec<Vec<u8>>,
 
     #[serde_as(as = "Base64")]
     pub key: Vec<u8>,
@@ -64,7 +67,7 @@ impl HttpGbavClient {
             settings.username,
             settings.password,
             settings.trust_anchor.into_certificate(),
-            settings.client_certificate_and_key,
+            settings.client_authentication,
             settings.ca_api_key,
         )
         .await
@@ -134,7 +137,10 @@ impl Settings {
                 Environment::with_prefix("gba_hc_converter")
                     .separator("__")
                     .prefix_separator("__")
-                    .list_separator(","),
+                    .list_separator(",")
+                    .with_list_parse_key("run_mode.all.gbav.client_authentication.chain")
+                    .with_list_parse_key("run_mode.gbav.client_authentication.chain")
+                    .try_parsing(true),
             )
             .build()?
             .try_deserialize()

@@ -16,6 +16,7 @@ import org.openqa.selenium.WebElement
 import org.openqa.selenium.interactions.PointerInput
 import org.openqa.selenium.interactions.PointerInput.Origin
 import org.openqa.selenium.remote.RemoteWebDriver
+import org.openqa.selenium.remote.RemoteWebElement
 import org.openqa.selenium.support.ui.ExpectedConditions
 import org.openqa.selenium.support.ui.WebDriverWait
 import java.io.IOException
@@ -29,6 +30,12 @@ open class NativeMobileActions {
     protected val cardMetadata = TasDataHelper()
     protected val organizationAuthMetadata = OrganizationAuthMetadataHelper()
 
+    private fun quoteForAndroid(s: String): String =
+        "\"" + s.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
+
+    private fun quoteForIos(s: String): String =
+        "'" + s.replace("\\", "\\\\").replace("'", "\\'") + "'"
+
     protected fun isWebElementVisible(element: WebElement): Boolean {
         val wait = WebDriverWait(driver, Duration.ofMillis(WAIT_FOR_ELEMENT_MAX_WAIT_MILLIS))
         wait.until(ExpectedConditions.visibilityOf(element))
@@ -41,15 +48,26 @@ open class NativeMobileActions {
         element.click()
     }
 
-    protected fun findElement(locator: By): WebElement {
+    protected fun findWebElement(locator: By): WebElement {
         val wait = WebDriverWait(driver, Duration.ofMillis(WAIT_FOR_ELEMENT_MAX_WAIT_MILLIS))
         wait.until(ExpectedConditions.visibilityOfElementLocated(locator))
         return driver.findElement(locator)
     }
 
-    protected fun getTopLeftOfElementWithText(text: String): Pair<Double, Double>? =
+    protected fun scrollToWebElement(locator: By): WebElement {
+        val wait = WebDriverWait(driver, Duration.ofMillis(WAIT_FOR_ELEMENT_MAX_WAIT_MILLIS))
+        val element = wait.until(ExpectedConditions.presenceOfElementLocated(locator))
+        (driver as JavascriptExecutor).executeScript(
+            "arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});",
+            element
+        )
+        wait.until(ExpectedConditions.visibilityOf(element))
+        return element
+    }
+
+    protected fun getTopLeftOfElementContainingText(text: String): Pair<Double, Double>? =
         try {
-            val element = findElementByText(text)
+            val element = findElementByPartialText(text)
             val r = element.rect
             Pair(r.x.toDouble(), r.y.toDouble())
         } catch (_: Exception) {
@@ -58,17 +76,56 @@ open class NativeMobileActions {
 
     fun scrollToElementWithText(text: String): WebElement {
         return when (val platform = platformName()) {
-            "ANDROID" -> driver.findElement(
-                AppiumBy.androidUIAutomator(
-                    "new UiScrollable(new UiSelector().scrollable(true))" +
-                        ".scrollIntoView(new UiSelector().description(\"$text\"))"
+            "ANDROID" -> {
+                val quotedText = quoteForAndroid(text)
+                driver.findElement(
+                    AppiumBy.androidUIAutomator(
+                        "new UiScrollable(new UiSelector().scrollable(true))" +
+                            ".scrollIntoView(new UiSelector().description($quotedText))"
+                    )
                 )
-            )
+            }
             "IOS" -> {
-                val predicate = "name == '$text'"
+                val quotedText = quoteForIos(text)
+                val scroll = driver.findElement(AppiumBy.iOSClassChain("**/XCUIElementTypeScrollView[1]")) as RemoteWebElement
+                val predicate = "name == $quotedText"
+
+                repeat(8) { // cap attempts to avoid infinite loops
+                    val matches = driver.findElements(AppiumBy.iOSNsPredicateString(predicate))
+                    if (matches.any { it.isDisplayed }) return matches.first()
+                    (driver as JavascriptExecutor).executeScript(
+                        "mobile: swipe",
+                        mapOf("element" to scroll.id, "direction" to "up")
+                    )
+                }
+                throw NoSuchElementException("Couldn't bring '$text' into view")
+            }
+            else -> throw IllegalArgumentException("Unsupported platform: $platform")
+        }
+    }
+
+    fun scrollToElementContainingText(text: String): WebElement {
+        return when (val platform = platformName()) {
+            "ANDROID" -> {
+                val quotedText = quoteForAndroid(text)
+                driver.findElement(
+                    AppiumBy.androidUIAutomator(
+                        "new UiScrollable(new UiSelector().scrollable(true))" +
+                            ".scrollIntoView(new UiSelector().descriptionContains($quotedText))"
+                    )
+                )
+            }
+            "IOS" -> {
+                val quotedText = quoteForIos(text)
+                val scroll = driver.findElement(AppiumBy.iOSClassChain("**/XCUIElementTypeScrollView[1]")) as RemoteWebElement
+                val predicate = "name CONTAINS $quotedText"
                 (driver as JavascriptExecutor).executeScript(
                     "mobile: scroll",
-                    mapOf("predicateString" to predicate, "toVisible" to true)
+                    mapOf(
+                        "element" to scroll.id,
+                        "predicateString" to predicate,
+                        "toVisible" to true
+                    )
                 )
                 driver.findElement(AppiumBy.iOSNsPredicateString(predicate))
             }
@@ -122,17 +179,11 @@ open class NativeMobileActions {
             // Explicit timeout; waiting for the browser to be fully started and the viewport stabilized.
             // This fixes the issue where the (Chrome) browser viewport flickers back and forth between
             // the loaded web page and the browser startup screen shortly after browser startup.
-            Thread.sleep(BROWSER_STARTUP_TIMEOUT)
+            Thread.sleep(1000)
 
-            // Switch to the last window handle (a.k.a. tab) if local
-            val windowHandles = if (testConfig.remote) { setOf() } else { (driver as AppiumDriver).windowHandles }
-            if (windowHandles.isNotEmpty()) {
-                if (driver is IOSDriver) {
-                    driver.switchTo().window(windowHandles.last())
-                } else {
-                    driver.switchTo().window(windowHandles.first())
-                }
-            }
+            // Switch to the last window handle (a.k.a. tab)
+            val windowHandles = (driver as AppiumDriver).windowHandles
+            driver.switchTo().window(windowHandles.last())
         }
     }
 
@@ -145,33 +196,36 @@ open class NativeMobileActions {
         if (driver.context != NATIVE_APP_CONTEXT) {
             driver.context(NATIVE_APP_CONTEXT)
         }
+        Thread.sleep(1000)
     }
 
     protected fun getWebModalAnchor(): WebElement {
-        Thread.sleep(MODAL_ANCHOR_DISPLAY_TIMEOUT)
-        val startButton = driver.findElement(By.tagName("nl-wallet-button"))
+        Thread.sleep(BROWSER_STARTUP_TIMEOUT)
+        when (val platform = platformName()) {
+            "ANDROID" -> {
+                val startButton = driver.findElement(By.tagName("nl-wallet-button"))
+                val jsExecutor = driver as JavascriptExecutor
+                val jsScript = "return arguments[0].querySelector('.modal-anchor')"
+                return jsExecutor.executeScript(jsScript, startButton.shadowRoot) as WebElement
+            }
+            "IOS" -> {
+                val wait = WebDriverWait(driver, Duration.ofSeconds(10))
+                val startButton = wait.until(ExpectedConditions.presenceOfElementLocated(By.tagName("nl-wallet-button")))
 
-        val jsExecutor = driver as JavascriptExecutor
-        val jsScript = "return arguments[0].querySelector('.modal-anchor')"
-        return jsExecutor.executeScript(jsScript, startButton.shadowRoot) as WebElement
-    }
-
-    fun tapCoordinates(x: Int, y: Int) {
-        Thread.sleep(PAGE_LOAD_TIMEOUT)
-        try {
-            val finger = PointerInput(PointerInput.Kind.TOUCH, "finger")
-
-            val tap = org.openqa.selenium.interactions.Sequence(finger, 0)
-            tap.addAction(finger.createPointerMove(Duration.ZERO, Origin.viewport(), x, y))
-            tap.addAction(finger.createPointerDown(PointerInput.MouseButton.LEFT.asArg()))
-            tap.addAction(finger.createPointerUp(PointerInput.MouseButton.LEFT.asArg()))
-
-            driver.perform(listOf(tap))
-
-            println("Tapped at coordinates ($x, $y)")
-        } catch (e: Exception) {
-            println("Failed to tap at coordinates ($x, $y): ${e.message}")
-            throw e
+                val js = driver as JavascriptExecutor
+                val modalAnchor = js.executeScript(
+                    """
+                    const host = arguments[0];
+                    if (!host?.shadowRoot) return null;
+                    return host.shadowRoot.querySelector('.modal-anchor');
+                    """.trimIndent(),
+                    startButton
+                ) as WebElement
+                return modalAnchor
+            }
+            else -> {
+                throw IllegalArgumentException("Unsupported platform: $platform")
+            }
         }
     }
 
@@ -301,16 +355,22 @@ open class NativeMobileActions {
     private fun findElementByPartialText(partialText: String, timeoutInSeconds: Long = 5): WebElement {
         val wait = WebDriverWait(driver, Duration.ofSeconds(timeoutInSeconds))
         return when (val platform = platformName()) {
-            "ANDROID" -> wait.until(
-                ExpectedConditions.presenceOfElementLocated(
-                    AppiumBy.androidUIAutomator("new UiSelector().descriptionContains(\"$partialText\")")
+            "ANDROID" -> {
+                val quotedText = quoteForAndroid(partialText)
+                wait.until(
+                    ExpectedConditions.presenceOfElementLocated(
+                        AppiumBy.androidUIAutomator("new UiSelector().descriptionContains($quotedText)")
+                    )
                 )
-            )
-            "IOS" -> wait.until(
-                ExpectedConditions.presenceOfElementLocated(
-                    By.xpath("//*[contains(@name, '$partialText')]")
+            }
+            "IOS" -> {
+                val quotedText = quoteForIos(partialText)
+                wait.until(
+                    ExpectedConditions.presenceOfElementLocated(
+                        By.xpath("//*[contains(@name, $quotedText)]")
+                    )
                 )
-            )
+            }
             else -> throw IllegalArgumentException("Unsupported platform: $platform")
         }
     }
@@ -318,16 +378,22 @@ open class NativeMobileActions {
     private fun findElementByText(text: String, timeoutInSeconds: Long = 5): WebElement {
         val wait = WebDriverWait(driver, Duration.ofSeconds(timeoutInSeconds))
         return when (val platform = platformName()) {
-            "ANDROID" -> wait.until(
-                ExpectedConditions.presenceOfElementLocated(
-                    AppiumBy.androidUIAutomator("new UiSelector().description(\"$text\")")
+            "ANDROID" -> {
+                val quotedText = quoteForAndroid(text)
+                wait.until(
+                    ExpectedConditions.presenceOfElementLocated(
+                        AppiumBy.androidUIAutomator("new UiSelector().description($quotedText)")
+                    )
                 )
-            )
-            "IOS" -> wait.until(
-                ExpectedConditions.presenceOfElementLocated(
-                    AppiumBy.iOSNsPredicateString("name == '$text'")
+            }
+            "IOS" -> {
+                val quotedText = quoteForIos(text)
+                wait.until(
+                    ExpectedConditions.presenceOfElementLocated(
+                        AppiumBy.iOSNsPredicateString("name == $quotedText")
+                    )
                 )
-            )
+            }
             else -> throw IllegalArgumentException("Unsupported platform: $platform")
         }
     }
@@ -337,12 +403,16 @@ open class NativeMobileActions {
         elementText: String
     ): WebElement {
         return when (val platform = platformName()) {
-            "ANDROID" -> driver.findElement(
-                By.xpath("//*[@content-desc='$elementText' and .//*[@content-desc='$descendantElementText']]")
-            )
-            "IOS" -> driver.findElement(
-                By.xpath("//*[@name='$elementText' and .//*[@name='$descendantElementText']]")
-            )
+            "ANDROID" -> {
+                val quotedElementText = quoteForAndroid(elementText)
+                val quotedDescendantElementText = quoteForAndroid(descendantElementText)
+                driver.findElement(By.xpath("//*[@content-desc=$quotedElementText and .//*[@content-desc=$quotedDescendantElementText]]"))
+            }
+            "IOS" -> {
+                val quotedElementText = quoteForIos(elementText)
+                val quotedDescendantElementText = quoteForIos(descendantElementText)
+                driver.findElement(By.xpath("//*[@name=$quotedElementText and .//*[@name=$quotedDescendantElementText]]"))
+            }
             else -> throw IllegalArgumentException("Unsupported platform: $platform")
         }
     }
@@ -393,8 +463,6 @@ open class NativeMobileActions {
         private const val WAIT_FOR_ELEMENT_MAX_WAIT_MILLIS = 8000L
         private const val WAIT_FOR_CONTEXT_MAX_WAIT_MILLIS = 4000L
         private const val BROWSER_STARTUP_TIMEOUT = 2000L
-        const val PAGE_LOAD_TIMEOUT = 4000L
-        private const val MODAL_ANCHOR_DISPLAY_TIMEOUT = 500L
 
         private const val WEB_VIEW_CONTEXT_PREFIX = "WEBVIEW_"
         private const val NATIVE_APP_CONTEXT = "NATIVE_APP"

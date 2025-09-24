@@ -55,6 +55,7 @@ impl LevelPattern {
         })
     }
 }
+
 fn redirect_output_to_log(fd: RawFd) -> Result<thread::JoinHandle<()>, PipeError> {
     let pipe = Pipe::try_new()?;
     let join_handle = thread::spawn(move || {

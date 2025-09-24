@@ -65,7 +65,7 @@ class RecoverPinChooseNewPin extends RecoverPinState {
   FlowProgress get stepperProgress => const FlowProgress(currentStep: 2, totalSteps: kRecoverPinSteps);
 
   const RecoverPinChooseNewPin({required this.authUrl, this.pin = '', this.didGoBack = false})
-      : assert(pin.length <= kPinDigits, 'Pin length should never exceed $kPinDigits');
+    : assert(pin.length <= kPinDigits, 'Pin length should never exceed $kPinDigits');
 
   RecoverPinChooseNewPin copyWith({String? authUrl, String? pin, bool? didGoBack}) {
     return RecoverPinChooseNewPin(
@@ -102,8 +102,8 @@ class RecoverPinConfirmNewPin extends RecoverPinState {
     this.pin = '',
     required this.selectedPin,
     required this.isRetrying,
-  })  : assert(selectedPin.length <= kPinDigits, 'New pin length should never exceed $kPinDigits'),
-        assert(pin.length <= kPinDigits, 'Pin length should never exceed $kPinDigits');
+  }) : assert(selectedPin.length <= kPinDigits, 'New pin length should never exceed $kPinDigits'),
+       assert(pin.length <= kPinDigits, 'Pin length should never exceed $kPinDigits');
 
   RecoverPinConfirmNewPin copyWith({String? authUrl, String? selectedPin, String? pin, bool? isRetrying}) {
     return RecoverPinConfirmNewPin(

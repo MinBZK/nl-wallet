@@ -200,20 +200,6 @@ platform :android do
 end
 
 platform :ios do
-  desc "Build and sign iOS app from CI"
-  lane :ci_build do |options|
-
-    if options[:build_mode].nil? || options[:build_mode] == "release"
-      ensure_env_vars(
-        env_vars: ['CONFIG_ENV']
-      )
-    end
-
-    options[:app_store] = true
-
-    build(options)
-  end
-
   desc "Deploy iOS app from GitLab CI"
   lane :ci_deploy do |options|
     # Get app identifier
@@ -280,7 +266,7 @@ platform :ios do
     end
   end
 
-  desc "Build and sign iOS app"
+  desc "Build iOS app"
   lane :build do |options|
 
     if options[:build_mode].nil? || options[:build_mode] == "release"
@@ -289,9 +275,7 @@ platform :ios do
       )
     end
 
-    bundle_id = options[:bundle_id] || get_app_identifier
     app_name = options[:app_name] || DEFAULT_APP_NAME
-
     universal_link_base = options[:universal_link_base]
     sentry_dsn = ENV["SENTRY_DSN"]
     sentry_environment = ENV["SENTRY_ENVIRONMENT"]
@@ -307,28 +291,10 @@ platform :ios do
 
     UI.user_error!("Invalid build_mode: #{build_mode}") unless ["release", "profile", "debug"].include? build_mode
 
-    export_method = options[:app_store] ? "app-store" : "ad-hoc"
-
     flutter = flutter_cmd
 
-    UI.message("Going to build iOS bundleID #{bundle_id}, name #{app_name}, build name #{version} with number #{build} in mode #{build_mode}, signing for #{export_method}")
+    UI.message("Going to build iOS name #{app_name}, build name #{version} with number #{build} in mode #{build_mode}")
     UI.message("Using UL hostname \"#{universal_link_base}\", #{fake_attestation ? "fake" : "real"} key/app attestation and #{mock_repositories ? "mock repositories" : "Rust core"}")
-
-    # Set up provisioning profiles using match
-    match(
-      type: options[:app_store] ? "appstore" : "adhoc",
-      app_identifier: bundle_id,
-      readonly: true,
-    )
-
-    # Update the Xcode project so that Flutter can produce a signed build archive
-    update_code_signing_settings(
-      use_automatic_signing: false,
-      path: "wallet_app/ios/Runner.xcodeproj",
-      bundle_identifier: bundle_id,
-      code_sign_identity: "iPhone Distribution",
-      profile_name: Actions.lane_context[SharedValues::MATCH_PROVISIONING_PROFILE_MAPPING][bundle_id]
-    )
 
     # Set the app name and have Flutter build it
     Dir.chdir("../wallet_app") do
@@ -337,8 +303,8 @@ platform :ios do
         *flutter, "build", "ipa",
             "--build-number", build.to_s,
             "--build-name", version.to_s,
+            "--no-codesign",
             "--#{build_mode}",
-            "--export-method", export_method,
             "--dart-define=FAKE_ATTESTATION=#{fake_attestation}",
             "--dart-define=MOCK_REPOSITORIES=#{mock_repositories}",
             "--dart-define=DEMO_INDEX_URL=#{demo_index_url}",
@@ -349,13 +315,110 @@ platform :ios do
       )
 
       upload_sentry_symbols
+      extract_entitlements
+    end
+  end
+
+  desc "Extract entitlements file"
+  lane :extract_entitlements do |options|
+    # Substitute environment variables (with defaults) during extraction.
+    # This makes the target entitlements file better suitable as artifact.
+    File.write("../wallet_app/build/ios/Runner.entitlements",
+      File.read("../wallet_app/ios/Runner/Runner.entitlements")
+        .gsub(/\$\(([^:]+):default=([^)]+)\)/) do
+          ENV[Regexp.last_match(1)] || Regexp.last_match(2)
+        end.tap { |entitlements| UI.message("Entitlements: \n #{entitlements}") }
+    )
+  end
+
+  desc "Sign iOS app"
+  lane :sign do |options|
+
+    bundle_id = options[:bundle_id] || get_app_identifier
+    export_method = options[:app_store] ? "app-store" : "ad-hoc"
+    match_type = export_method.sub('-', '')
+
+    # Check for build artifacts
+    UI.user_error!("Runner.xcarchive build artifact not found") unless File.exist?("../wallet_app/build/ios/archive/Runner.xcarchive")
+    UI.user_error!("Runner.entitlements build artifact not found") unless File.exist?("../wallet_app/build/ios/Runner.entitlements")
+
+    # Get default bundle id and version
+    info = CFPropertyList.native_types(
+      CFPropertyList::List::new(file: '../wallet_app/build/ios/archive/Runner.xcarchive/Info.plist').value
+    )
+    version = info["ApplicationProperties"]["CFBundleShortVersionString"]
+    default_bundle_id = info["ApplicationProperties"]["CFBundleIdentifier"]
+
+    # Info
+    UI.message("Going to sign iOS build with bundle id #{bundle_id} and version #{version} with export method #{export_method}")
+
+    # Set up provisioning profiles using match
+    match(
+      type: match_type,
+      app_identifier: [bundle_id, default_bundle_id].uniq,
+      clone_branch_directly: true,
+      readonly: true,
+    )
+
+    # No brew installed rsync allowed in path to use xcodebuild -exportArchive
+    # See https://github.com/fastlane/fastlane/issues/29528
+    if sh('command', '-v', 'rsync').rstrip != "/usr/bin/rsync"
+      UI.important("Putting /usr/bin in front of PATH to force use of Apple rsync")
+      old_path = ENV['PATH']
+      ENV['PATH'] = "/usr/bin/:#{ENV['PATH']}"
+    else
+      old_path = nil
     end
 
     # Create an .ipa file from the archive produce by Flutter
+    ipa_file = "#{bundle_id}-#{version}.ipa"
     build_app(
       skip_build_archive: true,
       archive_path: "wallet_app/build/ios/archive/Runner.xcarchive",
-      output_name: "#{bundle_id}-#{version}.ipa"
+      codesigning_identity: "iPhone Distribution",
+      export_method: export_method,
+      export_options: {
+        provisioningProfiles: {
+          default_bundle_id => Actions.lane_context[SharedValues::MATCH_PROVISIONING_PROFILE_MAPPING][default_bundle_id],
+        }
+      },
+      output_name: ipa_file,
+    )
+
+    # Restoring path
+    if old_path
+      UI.important("Restoring PATH")
+      ENV['PATH'] = old_path
+    end
+
+    # This should be enough but unfortunately xcodebuild -exportArchive does
+    # not merge entitlements when creating an ipa from an xcarchive.
+    # See https://github.com/fastlane/fastlane/issues/21224#issuecomment-2671522132
+    # Simplest solution is to resign the ipa where we can specify the entitlements
+
+    # Merging entitlements from ipa with the extra entitlements set in project
+    app_entitlements = File.read('../wallet_app/build/ios/Runner.entitlements')
+    ipa_entitlements = Dir.mktmpdir('nl-wallet-ipa') do |tmp_path|
+      sh('unzip', '-qd', tmp_path, "../#{ipa_file}")
+      # `codesign -d --entitlements - Runner.app --xml` extracts the entitlements of the app
+      # and outputs the XML on a single line (last line) after some other output.
+      sh('codesign', '-d', '--entitlements', '-', "#{tmp_path}/Payload/Runner.app", '--xml').rstrip.split("\n")[-1]
+    end
+    [app_entitlements, ipa_entitlements].map do |xml|
+      CFPropertyList.native_types(CFPropertyList::List::new(data: xml).value)
+    end.reduce(:merge).tap do |result|
+      # resign does not update application identifier in entitlements if we force a specific entitlements
+      result['application-identifier'] = result['com.apple.developer.team-identifier'] + "." + bundle_id
+      File.write('entitlements.plist', result.to_plist(plist_format: CFPropertyList::List::FORMAT_XML))
+    end
+
+    # Resign with merged entitlements and different bundle id
+    resign(
+      ipa: ipa_file,
+      entitlements: "fastlane/entitlements.plist",
+      bundle_id: bundle_id,
+      signing_identity: ENV["sigh_#{bundle_id}_#{match_type}_certificate-name"],
+      provisioning_profile: ENV["sigh_#{bundle_id}_#{match_type}_profile-path"],
     )
   end
 

@@ -36,46 +36,44 @@ class IntroductionPrivacyScreen extends StatelessWidget {
   }
 
   Widget _buildContent(BuildContext context) {
-    return Column(
-      children: [
-        Expanded(
-          child: WalletScrollbar(
-            child: CustomScrollView(
-              slivers: [
-                SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  sliver: SliverToBoxAdapter(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 12),
-                        TitleText(context.l10n.introductionPrivacyScreenHeadline),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          child: BulletList(
-                            items: context.l10n.introductionPrivacyScreenBulletPoints.split('\n'),
-                            icon: Icon(
-                              Icons.check,
-                              color: context.colorScheme.primary,
-                              size: 18,
-                            ),
-                            rowPadding: const EdgeInsets.symmetric(vertical: 4),
-                          ),
-                        ),
-                      ],
+    return WalletScrollbar(
+      child: CustomScrollView(
+        slivers: [
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            sliver: SliverToBoxAdapter(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 12),
+                  TitleText(context.l10n.introductionPrivacyScreenHeadline),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    child: BulletList(
+                      items: context.l10n.introductionPrivacyScreenBulletPoints.split('\n'),
+                      icon: Icon(
+                        Icons.check,
+                        color: context.colorScheme.primary,
+                        size: 18,
+                      ),
+                      rowPadding: const EdgeInsets.symmetric(vertical: 4),
                     ),
                   ),
-                ),
-                const SliverToBoxAdapter(
-                  child: PageIllustration(asset: WalletAssets.svg_privacy),
-                ),
-                const SliverSizedBox(height: 24),
-              ],
+                ],
+              ),
             ),
           ),
-        ),
-        _buildBottomSection(context),
-      ],
+          const SliverToBoxAdapter(
+            child: PageIllustration(asset: WalletAssets.svg_privacy),
+          ),
+          const SliverSizedBox(height: 24),
+          SliverFillRemaining(
+            hasScrollBody: false,
+            fillOverscroll: false,
+            child: _buildBottomSection(context),
+          ),
+        ],
+      ),
     );
   }
 

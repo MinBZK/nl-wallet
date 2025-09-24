@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
-import 'package:wallet/src/domain/model/card/card_config.dart';
 import 'package:wallet/src/domain/model/card/metadata/card_display_metadata.dart';
 import 'package:wallet/src/domain/model/card/wallet_card.dart';
 import 'package:wallet/src/domain/model/organization.dart';
@@ -28,22 +27,17 @@ const _kSampleCard = core.AttestationPresentation(
 
 void main() {
   late Mapper<CardAttributeWithCardId, DataAttribute> mockCardAttributeMapper;
-  late Mapper<String, CardConfig> mockCardConfigMapper;
   late Mapper<core.Organization, Organization> mockOrganizationMapper;
   late Mapper<core.DisplayMetadata, CardDisplayMetadata> mockDisplayMetadataMapper;
 
   late Mapper<core.AttestationPresentation, WalletCard> mapper;
 
   setUp(() {
-    provideDummy<CardConfig>(const CardConfig());
-
     mockCardAttributeMapper = MockMapper();
-    mockCardConfigMapper = MockMapper();
     mockOrganizationMapper = MockMapper();
     mockDisplayMetadataMapper = MockMapper();
 
     mapper = CardMapper(
-      mockCardConfigMapper,
       mockCardAttributeMapper,
       mockOrganizationMapper,
       mockDisplayMetadataMapper,

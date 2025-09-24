@@ -15,17 +15,11 @@ class NoInternetErrorScreen : NativeMobileActions() {
 
     fun tryAgainButtonVisible() = elementWithTextVisible(tryAgainButton)
 
-    fun appVersionLabelVisible(): Boolean {
-        return elementContainingTextVisible(l10n.getString("generalVersionText"))
-    }
+    fun appVersionLabelVisible() = elementContainingTextVisible(l10n.getString("generalVersionText"))
 
-    fun osVersionLabelVisible(): Boolean  {
-        return elementContainingTextVisible(l10n.getString("generalOsVersionText"))
-    }
+    fun osVersionLabelVisible() = elementContainingTextVisible(l10n.getString("generalOsVersionText"))
 
-    fun appConfigLabelVisible(): Boolean  {
-        return elementContainingTextVisible(l10n.getString("generalConfigVersionText"))
-    }
+    fun appConfigLabelVisible()  = elementContainingTextVisible(l10n.getString("generalConfigVersionText"))
 
     fun appVersionVisible(): Boolean  {
         return getTextFromElementContainingText(l10n.getString("generalVersionText"))

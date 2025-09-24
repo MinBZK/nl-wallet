@@ -55,8 +55,10 @@ void main() {
 
     testGoldens('RenewPidLoadingDigidUrl', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        const RenewPidScreen()
-            .withState<RenewPidBloc, RenewPidState>(MockRenewPidBloc(), const RenewPidLoadingDigidUrl()),
+        const RenewPidScreen().withState<RenewPidBloc, RenewPidState>(
+          MockRenewPidBloc(),
+          const RenewPidLoadingDigidUrl(),
+        ),
       );
       await screenMatchesGolden('loading_digid_url.light');
     });
@@ -73,8 +75,10 @@ void main() {
 
     testGoldens('RenewPidVerifyingDigidAuthentication', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        const RenewPidScreen()
-            .withState<RenewPidBloc, RenewPidState>(MockRenewPidBloc(), const RenewPidVerifyingDigidAuthentication()),
+        const RenewPidScreen().withState<RenewPidBloc, RenewPidState>(
+          MockRenewPidBloc(),
+          const RenewPidVerifyingDigidAuthentication(),
+        ),
       );
       await screenMatchesGolden('verifying_digid_authentication.light');
     });
@@ -91,8 +95,10 @@ void main() {
 
     testGoldens('RenewPidConfirmPin', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        const RenewPidScreen()
-            .withState<RenewPidBloc, RenewPidState>(MockRenewPidBloc(), RenewPidConfirmPin(sampleAttributes)),
+        const RenewPidScreen().withState<RenewPidBloc, RenewPidState>(
+          MockRenewPidBloc(),
+          RenewPidConfirmPin(sampleAttributes),
+        ),
         providers: [
           RepositoryProvider<AcceptOfferedPidUseCase>(create: (c) => MockAcceptOfferedPidUseCase()),
         ],
@@ -102,8 +108,10 @@ void main() {
 
     testGoldens('RenewPidUpdatingCards', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        const RenewPidScreen()
-            .withState<RenewPidBloc, RenewPidState>(MockRenewPidBloc(), const RenewPidUpdatingCards()),
+        const RenewPidScreen().withState<RenewPidBloc, RenewPidState>(
+          MockRenewPidBloc(),
+          const RenewPidUpdatingCards(),
+        ),
         providers: [
           RepositoryProvider<AcceptOfferedPidUseCase>(create: (c) => MockAcceptOfferedPidUseCase()),
         ],
@@ -120,16 +128,20 @@ void main() {
 
     testGoldens('RenewPidDigidMismatch', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        const RenewPidScreen()
-            .withState<RenewPidBloc, RenewPidState>(MockRenewPidBloc(), const RenewPidDigidMismatch()),
+        const RenewPidScreen().withState<RenewPidBloc, RenewPidState>(
+          MockRenewPidBloc(),
+          const RenewPidDigidMismatch(),
+        ),
       );
       await screenMatchesGolden('digid_mismatch.light');
     });
 
     testGoldens('RenewPidDigidLoginCancelled', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        const RenewPidScreen()
-            .withState<RenewPidBloc, RenewPidState>(MockRenewPidBloc(), const RenewPidDigidLoginCancelled()),
+        const RenewPidScreen().withState<RenewPidBloc, RenewPidState>(
+          MockRenewPidBloc(),
+          const RenewPidDigidLoginCancelled(),
+        ),
       );
       await screenMatchesGolden('digid_login_cancelled.light');
     });
@@ -185,7 +197,9 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const RenewPidScreen().withState<RenewPidBloc, RenewPidState>(
           MockRenewPidBloc(),
-          const RenewPidSessionExpired(error: SessionError(state: SessionState.expired, sourceError: 'test')),
+          const RenewPidSessionExpired(
+            error: SessionError(state: SessionState.expired, sourceError: 'test'),
+          ),
         ),
       );
       await screenMatchesGolden('session_expired.light');

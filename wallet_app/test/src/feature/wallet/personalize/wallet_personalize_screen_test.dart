@@ -362,64 +362,66 @@ void main() {
     );
 
     testWidgets(
-        'WalletPersonalizeScreen shows the no internet error for WalletPersonalizeNetworkError(hasInternet=false)',
-        (tester) async {
-      await tester.pumpWidgetWithAppWrapper(
-        const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
-          MockWalletPersonalizeBloc(),
-          const WalletPersonalizeNetworkError(
-            error: NetworkError(hasInternet: false, sourceError: 'test'),
-            hasInternet: false,
+      'WalletPersonalizeScreen shows the no internet error for WalletPersonalizeNetworkError(hasInternet=false)',
+      (tester) async {
+        await tester.pumpWidgetWithAppWrapper(
+          const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
+            MockWalletPersonalizeBloc(),
+            const WalletPersonalizeNetworkError(
+              error: NetworkError(hasInternet: false, sourceError: 'test'),
+              hasInternet: false,
+            ),
           ),
-        ),
-      );
+        );
 
-      await tester.pumpAndSettle();
+        await tester.pumpAndSettle();
 
-      final l10n = await TestUtils.englishLocalizations;
+        final l10n = await TestUtils.englishLocalizations;
 
-      // Verify the 'no internet' title is shown
-      final noInternetHeadlineFinder = find.text(l10n.errorScreenNoInternetHeadline);
-      expect(noInternetHeadlineFinder, findsAtLeastNWidgets(1));
+        // Verify the 'no internet' title is shown
+        final noInternetHeadlineFinder = find.text(l10n.errorScreenNoInternetHeadline);
+        expect(noInternetHeadlineFinder, findsAtLeastNWidgets(1));
 
-      // Verify the 'try again' cta is shown
-      final tryAgainCtaFinder = find.text(l10n.generalRetry);
-      expect(tryAgainCtaFinder, findsOneWidget);
+        // Verify the 'try again' cta is shown
+        final tryAgainCtaFinder = find.text(l10n.generalRetry);
+        expect(tryAgainCtaFinder, findsOneWidget);
 
-      // Verify the 'show details' cta is shown
-      final showDetailsCtaFinder = find.text(l10n.generalShowDetailsCta);
-      expect(showDetailsCtaFinder, findsOneWidget);
-    });
+        // Verify the 'show details' cta is shown
+        final showDetailsCtaFinder = find.text(l10n.generalShowDetailsCta);
+        expect(showDetailsCtaFinder, findsOneWidget);
+      },
+    );
 
     testWidgets(
-        'WalletPersonalizeScreen shows the no internet error for WalletPersonalizeNetworkError(hasInternet=true)',
-        (tester) async {
-      await tester.pumpWidgetWithAppWrapper(
-        const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
-          MockWalletPersonalizeBloc(),
-          const WalletPersonalizeNetworkError(
-            error: NetworkError(hasInternet: true, sourceError: 'test'),
-            hasInternet: true,
+      'WalletPersonalizeScreen shows the no internet error for WalletPersonalizeNetworkError(hasInternet=true)',
+      (tester) async {
+        await tester.pumpWidgetWithAppWrapper(
+          const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
+            MockWalletPersonalizeBloc(),
+            const WalletPersonalizeNetworkError(
+              error: NetworkError(hasInternet: true, sourceError: 'test'),
+              hasInternet: true,
+            ),
           ),
-        ),
-      );
+        );
 
-      await tester.pumpAndSettle();
+        await tester.pumpAndSettle();
 
-      final l10n = await TestUtils.englishLocalizations;
+        final l10n = await TestUtils.englishLocalizations;
 
-      // Verify the 'server error' title is shown
-      final noInternetHeadlineFinder = find.text(l10n.errorScreenServerHeadline);
-      expect(noInternetHeadlineFinder, findsAtLeastNWidgets(1));
+        // Verify the 'server error' title is shown
+        final noInternetHeadlineFinder = find.text(l10n.errorScreenServerHeadline);
+        expect(noInternetHeadlineFinder, findsAtLeastNWidgets(1));
 
-      // Verify the 'try again' cta is shown
-      final tryAgainCtaFinder = find.text(l10n.generalRetry);
-      expect(tryAgainCtaFinder, findsOneWidget);
+        // Verify the 'try again' cta is shown
+        final tryAgainCtaFinder = find.text(l10n.generalRetry);
+        expect(tryAgainCtaFinder, findsOneWidget);
 
-      // Verify the 'show details' cta is shown
-      final showDetailsCtaFinder = find.text(l10n.generalShowDetailsCta);
-      expect(showDetailsCtaFinder, findsOneWidget);
-    });
+        // Verify the 'show details' cta is shown
+        final showDetailsCtaFinder = find.text(l10n.generalShowDetailsCta);
+        expect(showDetailsCtaFinder, findsOneWidget);
+      },
+    );
 
     testWidgets('WalletPersonalizeScreen shows the generic error for SetupSecurityGenericError state', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
@@ -448,8 +450,9 @@ void main() {
       expect(showDetailsCtaFinder, findsOneWidget);
     });
 
-    testWidgets('WalletPersonalizeScreen shows session expired for WalletPersonalizeSessionExpired state',
-        (tester) async {
+    testWidgets('WalletPersonalizeScreen shows session expired for WalletPersonalizeSessionExpired state', (
+      tester,
+    ) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
           MockWalletPersonalizeBloc(),

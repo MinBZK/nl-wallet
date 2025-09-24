@@ -29,9 +29,10 @@ class WalletEventStatusTitleMapper extends ContextMapper<WalletEvent, String> {
     return switch (event.status) {
       EventStatus.success => context.l10n.cardHistoryDisclosureSuccess,
       EventStatus.cancelled => context.l10n.cardHistoryDisclosureCancelled,
-      EventStatus.error => event.hasSharedAttributes
-          ? context.l10n.cardHistoryDisclosureError
-          : context.l10n.cardHistoryDisclosureErrorNoDataShared,
+      EventStatus.error =>
+        event.hasSharedAttributes
+            ? context.l10n.cardHistoryDisclosureError
+            : context.l10n.cardHistoryDisclosureErrorNoDataShared,
     };
   }
 

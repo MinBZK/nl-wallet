@@ -66,6 +66,7 @@ use crate::storage::AttestationFormatQuery;
 use crate::storage::Storage;
 use crate::storage::StorageError;
 use crate::storage::StoredAttestationCopy;
+use crate::storage::TransferData;
 use crate::transfer::TransferSessionId;
 use crate::wallet::Session;
 use crate::wallet::attestations::AttestationsError;
@@ -169,6 +170,9 @@ pub enum IssuanceError {
     #[error("could not add recovery code disclosure: {0}")]
     #[category(pd)]
     RecoveryCodeDisclosure(sd_jwt::error::Error),
+
+    #[error("error storing transfer data in database: {0}")]
+    TransferDataStorage(#[source] StorageError),
 }
 
 #[derive(Debug, Clone, Constructor)]
@@ -559,6 +563,18 @@ where
             None
         };
 
+        if let Some(transfer_session_id) = transfer_session_id.as_ref() {
+            self.storage
+                .write()
+                .await
+                .insert_data(&TransferData {
+                    transfer_session_id: *transfer_session_id,
+                    key_data: None,
+                })
+                .await
+                .map_err(IssuanceError::TransferDataStorage)?;
+        }
+
         let all_previews = issued_credentials_with_metadata
             .into_iter()
             .zip_eq(issuance_session.preview_attestations)
@@ -610,8 +626,8 @@ where
             .find_map(|cred| {
                 (cred.attestation_type == PID_ATTESTATION_TYPE).then(|| {
                     cred.copies.as_ref().iter().find_map(|copy| match copy {
-                        IssuedCredential::MsoMdoc(_) => None,
-                        IssuedCredential::SdJwt(verified_sd_jwt) => Some(verified_sd_jwt.clone()),
+                        IssuedCredential::MsoMdoc { .. } => None,
+                        IssuedCredential::SdJwt { sd_jwt, .. } => Some(sd_jwt.clone()),
                     })
                 })
             })
@@ -736,8 +752,8 @@ mod tests {
     ) -> (MockIssuanceSession, VecNonEmpty<AttestationPresentation>) {
         let mut client = MockIssuanceSession::new();
         let issuer_certificate = match &credential {
-            IssuedCredential::MsoMdoc(mdoc) => mdoc.issuer_certificate().unwrap(),
-            IssuedCredential::SdJwt(sd_jwt) => sd_jwt.as_ref().as_ref().issuer_certificate().to_owned(),
+            IssuedCredential::MsoMdoc { mdoc } => mdoc.issuer_certificate().unwrap(),
+            IssuedCredential::SdJwt { sd_jwt, .. } => sd_jwt.as_ref().issuer_certificate().to_owned(),
         };
 
         let issuer_registration = match IssuerRegistration::from_certificate(&issuer_certificate) {
@@ -746,14 +762,14 @@ mod tests {
         };
 
         let attestations = vec![match &credential {
-            IssuedCredential::MsoMdoc(mdoc) => AttestationPresentation::create_from_mdoc(
+            IssuedCredential::MsoMdoc { mdoc } => AttestationPresentation::create_from_mdoc(
                 AttestationIdentity::Ephemeral,
                 type_metadata.to_normalized().unwrap(),
                 issuer_registration.organization.clone(),
-                mdoc.issuer_signed.clone().into_entries_by_namespace(),
+                mdoc.issuer_signed().clone().into_entries_by_namespace(),
             )
             .unwrap(),
-            IssuedCredential::SdJwt(sd_jwt) => {
+            IssuedCredential::SdJwt { sd_jwt, .. } => {
                 let payload = sd_jwt
                     .clone()
                     .into_inner()
@@ -1026,7 +1042,7 @@ mod tests {
                     Uuid::new_v4(),
                     Uuid::new_v4(),
                     StoredAttestation::MsoMdoc {
-                        mdoc: Box::new(create_example_pid_mdoc()),
+                        mdoc: create_example_pid_mdoc(),
                     },
                     NormalizedTypeMetadata::nl_pid_example(),
                 )])
@@ -1189,7 +1205,8 @@ mod tests {
             attestation_id,
             Uuid::new_v4(),
             StoredAttestation::SdJwt {
-                sd_jwt: Box::new(VerifiedSdJwt::new_mock(sd_jwt)),
+                key_identifier: "sd_jwt_key_identifier".to_string(),
+                sd_jwt: VerifiedSdJwt::new_mock(sd_jwt),
             },
             normalized_metadata,
         );
@@ -1281,9 +1298,12 @@ mod tests {
 
         // Create a mock OpenID4VCI session that accepts the PID with a single
         // instance of `MdocCopies`, which contains a single valid `Mdoc`.
-        let (verified_sd_jwt, metadata) = create_example_pid_sd_jwt();
+        let (sd_jwt, metadata) = create_example_pid_sd_jwt();
         let (pid_issuer, attestations) = mock_issuance_session(
-            IssuedCredential::SdJwt(Box::new(verified_sd_jwt.clone())),
+            IssuedCredential::SdJwt {
+                key_identifier: "key_id".to_string(),
+                sd_jwt: sd_jwt.clone(),
+            },
             String::from(PID_ATTESTATION_TYPE),
             VerifiedTypeMetadataDocuments::nl_pid_example(),
         );
@@ -1301,7 +1321,8 @@ mod tests {
                     Uuid::new_v4(),
                     Uuid::new_v4(),
                     StoredAttestation::SdJwt {
-                        sd_jwt: Box::new(verified_sd_jwt),
+                        key_identifier: "sd_jwt_key_identifier".to_string(),
+                        sd_jwt,
                     },
                     metadata,
                 )])
@@ -1615,7 +1636,10 @@ mod tests {
         // Have the mock OpenID4VCI session report some mdocs upon accepting.
         let (verified_sd_jwt, _metadata) = create_example_pid_sd_jwt();
         let (pid_issuer, attestations) = mock_issuance_session(
-            IssuedCredential::SdJwt(Box::new(verified_sd_jwt)),
+            IssuedCredential::SdJwt {
+                key_identifier: "key_id".to_string(),
+                sd_jwt: verified_sd_jwt.clone(),
+            },
             String::from(PID_ATTESTATION_TYPE),
             VerifiedTypeMetadataDocuments::nl_pid_example(),
         );
@@ -1687,7 +1711,8 @@ mod tests {
             attestation_id,
             Uuid::new_v4(),
             StoredAttestation::SdJwt {
-                sd_jwt: Box::new(VerifiedSdJwt::new_mock(sd_jwt)),
+                key_identifier: "sd_jwt_key_identifier".to_string(),
+                sd_jwt: VerifiedSdJwt::new_mock(sd_jwt),
             },
             normalized_metadata,
         );

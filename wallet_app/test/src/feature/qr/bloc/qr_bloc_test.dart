@@ -18,10 +18,12 @@ void main() {
 
   setUp(() {
     provideDummy<Result<NavigationRequest>>(const Result.success(GenericNavigationRequest('')));
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(const MethodChannel('vibration'), (MethodCall methodCall) {
-      return null;
-    });
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+      const MethodChannel('vibration'),
+      (MethodCall methodCall) {
+        return null;
+      },
+    );
     decodeQrUseCase = MockDecodeQrUseCase();
     checkHasPermissionUseCase = MockCheckHasPermissionUseCase();
   });
@@ -39,8 +41,9 @@ void main() {
     build: () => QrBloc(decodeQrUseCase, checkHasPermissionUseCase),
     act: (bloc) => bloc.add(const QrScanCheckPermission()),
     setUp: () {
-      when(checkHasPermissionUseCase.invoke(Permission.camera))
-          .thenAnswer((_) async => PermissionCheckResult(isGranted: false, isPermanentlyDenied: false));
+      when(
+        checkHasPermissionUseCase.invoke(Permission.camera),
+      ).thenAnswer((_) async => PermissionCheckResult(isGranted: false, isPermanentlyDenied: false));
     },
     expect: () => [const QrScanNoPermission(permanentlyDenied: false)],
   );
@@ -50,8 +53,9 @@ void main() {
     build: () => QrBloc(decodeQrUseCase, checkHasPermissionUseCase),
     act: (bloc) => bloc.add(const QrScanCheckPermission()),
     setUp: () {
-      when(checkHasPermissionUseCase.invoke(Permission.camera))
-          .thenAnswer((_) async => PermissionCheckResult(isGranted: false, isPermanentlyDenied: true));
+      when(
+        checkHasPermissionUseCase.invoke(Permission.camera),
+      ).thenAnswer((_) async => PermissionCheckResult(isGranted: false, isPermanentlyDenied: true));
     },
     expect: () => [const QrScanNoPermission(permanentlyDenied: true)],
   );
@@ -61,8 +65,9 @@ void main() {
     build: () => QrBloc(decodeQrUseCase, checkHasPermissionUseCase),
     act: (bloc) => bloc.add(const QrScanCheckPermission()),
     setUp: () {
-      when(checkHasPermissionUseCase.invoke(Permission.camera))
-          .thenAnswer((_) async => PermissionCheckResult(isGranted: true, isPermanentlyDenied: false));
+      when(
+        checkHasPermissionUseCase.invoke(Permission.camera),
+      ).thenAnswer((_) async => PermissionCheckResult(isGranted: true, isPermanentlyDenied: false));
     },
     expect: () => [QrScanScanning()],
   );
@@ -74,10 +79,12 @@ void main() {
       ..add(const QrScanCheckPermission())
       ..add(const QrScanCodeDetected(Barcode())),
     setUp: () {
-      when(checkHasPermissionUseCase.invoke(Permission.camera))
-          .thenAnswer((_) async => PermissionCheckResult(isGranted: true, isPermanentlyDenied: false));
-      when(decodeQrUseCase.invoke(any))
-          .thenAnswer((_) async => const Result.error(GenericError('', sourceError: 'test')));
+      when(
+        checkHasPermissionUseCase.invoke(Permission.camera),
+      ).thenAnswer((_) async => PermissionCheckResult(isGranted: true, isPermanentlyDenied: false));
+      when(
+        decodeQrUseCase.invoke(any),
+      ).thenAnswer((_) async => const Result.error(GenericError('', sourceError: 'test')));
     },
     wait: const Duration(milliseconds: 100),
     expect: () => [QrScanScanning(), const QrScanLoading(), QrScanFailure()],
@@ -90,10 +97,12 @@ void main() {
       ..add(const QrScanCheckPermission())
       ..add(const QrScanCodeDetected(Barcode())),
     setUp: () {
-      when(checkHasPermissionUseCase.invoke(Permission.camera))
-          .thenAnswer((_) async => PermissionCheckResult(isGranted: true, isPermanentlyDenied: false));
-      when(decodeQrUseCase.invoke(any))
-          .thenAnswer((_) async => const Result.error(GenericError('', sourceError: 'test')));
+      when(
+        checkHasPermissionUseCase.invoke(Permission.camera),
+      ).thenAnswer((_) async => PermissionCheckResult(isGranted: true, isPermanentlyDenied: false));
+      when(
+        decodeQrUseCase.invoke(any),
+      ).thenAnswer((_) async => const Result.error(GenericError('', sourceError: 'test')));
     },
     wait: const Duration(milliseconds: 100),
     expect: () => [QrScanScanning(), const QrScanLoading(), QrScanFailure()],
@@ -106,10 +115,12 @@ void main() {
       ..add(const QrScanCheckPermission())
       ..add(const QrScanCodeDetected(Barcode())),
     setUp: () {
-      when(checkHasPermissionUseCase.invoke(Permission.camera))
-          .thenAnswer((_) async => PermissionCheckResult(isGranted: true, isPermanentlyDenied: false));
-      when(decodeQrUseCase.invoke(any))
-          .thenAnswer((_) async => const Result.success(GenericNavigationRequest('/destination')));
+      when(
+        checkHasPermissionUseCase.invoke(Permission.camera),
+      ).thenAnswer((_) async => PermissionCheckResult(isGranted: true, isPermanentlyDenied: false));
+      when(
+        decodeQrUseCase.invoke(any),
+      ).thenAnswer((_) async => const Result.success(GenericNavigationRequest('/destination')));
     },
     wait: const Duration(milliseconds: 100),
     expect: () => [
@@ -128,10 +139,12 @@ void main() {
       ..add(const QrScanCodeDetected(Barcode(rawValue: 'b')))
       ..add(const QrScanCodeDetected(Barcode(rawValue: 'c'))),
     setUp: () {
-      when(checkHasPermissionUseCase.invoke(Permission.camera))
-          .thenAnswer((_) async => PermissionCheckResult(isGranted: true, isPermanentlyDenied: false));
-      when(decodeQrUseCase.invoke(any))
-          .thenAnswer((_) async => const Result.success(GenericNavigationRequest('/destination')));
+      when(
+        checkHasPermissionUseCase.invoke(Permission.camera),
+      ).thenAnswer((_) async => PermissionCheckResult(isGranted: true, isPermanentlyDenied: false));
+      when(
+        decodeQrUseCase.invoke(any),
+      ).thenAnswer((_) async => const Result.success(GenericNavigationRequest('/destination')));
     },
     verify: (bloc) => verify(decodeQrUseCase.invoke(any)).called(1),
     wait: const Duration(milliseconds: 100),
@@ -156,8 +169,9 @@ void main() {
         ..add(const QrScanCodeDetected(Barcode(rawValue: 'b')));
     },
     setUp: () {
-      when(checkHasPermissionUseCase.invoke(Permission.camera))
-          .thenAnswer((_) async => PermissionCheckResult(isGranted: true, isPermanentlyDenied: false));
+      when(
+        checkHasPermissionUseCase.invoke(Permission.camera),
+      ).thenAnswer((_) async => PermissionCheckResult(isGranted: true, isPermanentlyDenied: false));
       when(decodeQrUseCase.invoke(any)).thenAnswer((invocation) async {
         final Barcode barcode = invocation.positionalArguments.first;
         return Result.success(GenericNavigationRequest(barcode.rawValue!));

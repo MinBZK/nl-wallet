@@ -34,3 +34,7 @@ static CURRENT_VERSION: LazyLock<Version> =
 pub fn version() -> &'static Version {
     &CURRENT_VERSION
 }
+
+pub fn version_identifier() -> Option<&'static str> {
+    GIT_COMMIT_HASH_SHORT
+}

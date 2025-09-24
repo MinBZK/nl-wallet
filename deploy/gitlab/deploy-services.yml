@@ -3,7 +3,7 @@
   rules: !reference [.default-or-release-or-merge-request, rules]
   script:
     # CI variables take precedence over dotenv
-    - . variables/${DEPLOY_ENV}/cluster.env
+    - . deploy-variables/${DEPLOY_ENV}/cluster.env
     - export DEPLOY_ENV
     - export DEPLOY_IMAGE_VERSION="${CI_COMMIT_TAG:-${CI_COMMIT_SHORT_SHA}}"
     - export K8S_CLUSTER
@@ -13,8 +13,8 @@
     name: deploy-${DEPLOY_ENV}
     paths:
       - deploy-${DEPLOY_ENV}.yml
-      - variables/general
-      - variables/${DEPLOY_ENV}
+      - deploy-variables/general
+      - deploy-variables/${DEPLOY_ENV}
 
 create-deployment-demo:
   extends: .create-deployment

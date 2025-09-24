@@ -12,22 +12,11 @@ class RelyingPartyMonkeyBikeWebPage : NativeMobileActions() {
 
     private val loginFailedMessage = By.xpath("//div[@role='alert' and contains(./span/text(), 'Inloggen mislukt. Probeer het opnieuw.')]")
 
-    fun loginFailedMessageVisible() = isWebElementVisible(findElement(loginFailedMessage))
+    fun loginFailedMessageVisible() = isWebElementVisible(findWebElement(loginFailedMessage))
 
-    fun openSameDeviceWalletFlow(platform: String) {
-        when (platform) {
-            "ANDROID" -> {
-                body.clickStartButton()
-                popup.clickSameDeviceButton()
-            }
-            "IOS" -> {
-                tapCoordinates(100, 410)
-                tapCoordinates(175, 345)
-            }
-            else -> {
-                throw Exception("Platform $platform is not supported")
-            }
-        }
+    fun openSameDeviceWalletFlow() {
+        body.clickStartButton()
+        popup.clickSameDeviceButton()
     }
 }
 

@@ -11,6 +11,8 @@ use serde_with::DeserializeFromStr;
 use serde_with::SerializeDisplay;
 
 use crate::error::Error;
+use crate::sd_jwt::ClaimValue;
+use crate::sd_jwt::HashType;
 
 /// A disclosable value.
 /// Both object properties and array elements disclosures are supported.
@@ -23,7 +25,7 @@ pub struct Disclosure {
     pub content: DisclosureContent,
 
     /// Base64Url-encoded disclosure.
-    encoded: String,
+    pub(crate) encoded: String,
 }
 
 impl Display for Disclosure {
@@ -100,6 +102,10 @@ impl Disclosure {
     pub fn claim_value(&self) -> &serde_json::Value {
         self.content.claim_value()
     }
+
+    pub fn hash_type(&self) -> HashType {
+        self.content.hash_type()
+    }
 }
 
 impl PartialEq for Disclosure {
@@ -129,9 +135,20 @@ pub enum DisclosureContent {
 
 impl DisclosureContent {
     pub fn claim_value(&self) -> &serde_json::Value {
-        match &self {
+        match self {
             DisclosureContent::ObjectProperty(_, _, value) => value,
             DisclosureContent::ArrayElement(_, value) => value,
+        }
+    }
+
+    pub(crate) fn parsed_claim_value(&self) -> Result<ClaimValue, serde_json::Error> {
+        serde_json::from_value(self.claim_value().clone())
+    }
+
+    pub(crate) fn hash_type(&self) -> HashType {
+        match &self {
+            DisclosureContent::ObjectProperty(..) => HashType::Object,
+            DisclosureContent::ArrayElement(..) => HashType::Array,
         }
     }
 }

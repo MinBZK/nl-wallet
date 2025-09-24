@@ -42,6 +42,7 @@ val testConfigMap = mapOf<String, Any>(
     "test.config.platform.version" to 14.0,
     "test.config.remote" to false,
     "test.config.automation.name" to "Flutter",
+    "test.config.commit.sha" to "local", //only used for browserstack test runs
 )
 
 tasks.test {
@@ -55,6 +56,18 @@ tasks.register<Test>("smokeTest") {
         // Exclude all test suites/wrappers; when using 'includeTags' this is needed to prevent
         // duplicated test executions and ensure only the actual tagged tests are run.
         exclude("suite/**")
+        exclude("nativesuite/**")
+    }
+}
+
+tasks.register<Test>("nativeSmokeTest") {
+    useJUnitPlatform {
+        includeTags("nativesmoke")
+
+        // Exclude all test suites/wrappers; when using 'includeTags' this is needed to prevent
+        // duplicated test executions and ensure only the actual tagged tests are run.
+        exclude("suite/**")
+        exclude("nativesuite/**")
     }
 }
 
@@ -62,6 +75,15 @@ tasks.register<Test>("smokeTestIOS") {
     useJUnitPlatform {
         includeTags("smokeIOS")
         exclude("suite/**")
+        exclude("nativesuite/**")
+    }
+}
+
+tasks.register<Test>("nativeSmokeTestIOS") {
+    useJUnitPlatform {
+        includeTags("nativeSmokeIOS")
+        exclude("suite/**")
+        exclude("nativesuite/**")
     }
 }
 
@@ -72,6 +94,7 @@ tasks.register<Test>("runOnAll") {
         // Exclude all test suites/wrappers; when using 'includeTags' this is needed to prevent
         // duplicated test executions and ensure only the actual tagged tests are run.
         exclude("suite/**")
+        exclude("nativesuite/**")
     }
 }
 

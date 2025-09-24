@@ -16,7 +16,7 @@ scheduled-automation-tests-trigger:
     include:
       - local: .gitlab-ci.yml
   variables:
-    SCHEDULED: true
+    SCHEDULED: automation
   when: manual
   allow_failure: true
 
@@ -54,17 +54,18 @@ scheduled-automation-tests-trigger:
   extends: .run-automation-tests-common-setup
   script:
     - ./gradlew --no-daemon --info --stacktrace test --tests $TESTS
-      -Dtest.config.app.identifier="${APP_IDENTIFIER}_${CI_COMMIT_SHA}"
+      -Dtest.config.app.identifier="${APP_IDENTIFIER}"
       -Dtest.config.device.name="$DEVICE_NAME"
       -Dtest.config.platform.name="$PLATFORM_NAME"
       -Dtest.config.platform.version="$PLATFORM_VERSION"
       -Dtest.config.automation.name="$AUTOMATION_NAME"
       -Dtest.config.remote=true
+      -Dtest.config.commit.sha="${CI_COMMIT_SHA}"
       -Dfile.encoding=UTF-8 || true
     # Allow failure in tests and pass when there are test results (Quality Time should report on failed test)
     - compgen -G "build/test-results/test/*.xml"
   rules:
-    - !reference [.on-schedule, rules]
+    - !reference [.on-schedule-automation, rules]
 
 run-automation-tests-suite-appstart:
   extends: .run-automation-tests-default
@@ -137,10 +138,46 @@ run-automation-tests-publish-results:
     - deploy/bin/store-artifact-zip.sh qt/quality-time/junit-results/e2e.zip uiautomation/build/test-results/test/*.xml
     - deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/e2e.zip uiautomation/build/allure-results/*
 
-run-automation-tests-native-driver:
+run-automation-card-and-history-tests-native-driver:
   extends: .run-automation-tests-default
   variables:
-    TESTS: "nativesuite.FullTestSuite"
+    TESTS: "nativesuite.CardsAndHistoryTestSuite"
+    AUTOMATION_NAME: "UIAutomator2"
+
+run-automation-disclosure-tests-native-driver:
+  extends: .run-automation-tests-default
+  variables:
+    TESTS: "nativesuite.DisclosureTestSuite"
+    AUTOMATION_NAME: "UIAutomator2"
+
+run-automation-introduction-tests-native-driver:
+  extends: .run-automation-tests-default
+  variables:
+    TESTS: "nativesuite.IntroductionTestSuite"
+    AUTOMATION_NAME: "UIAutomator2"
+
+run-automation-issuance-tests-native-driver:
+  extends: .run-automation-tests-default
+  variables:
+    TESTS: "nativesuite.IssuanceTestSuite"
+    AUTOMATION_NAME: "UIAutomator2"
+
+run-automation-menu-and-settings-tests-native-driver:
+  extends: .run-automation-tests-default
+  variables:
+    TESTS: "nativesuite.MenuAndSettingsTestSuite"
+    AUTOMATION_NAME: "UIAutomator2"
+
+run-automation-open-app-tests-native-driver:
+  extends: .run-automation-tests-default
+  variables:
+    TESTS: "nativesuite.OpenAppTestSuite"
+    AUTOMATION_NAME: "UIAutomator2"
+
+run-automation-security-tests-native-driver:
+  extends: .run-automation-tests-default
+  variables:
+    TESTS: "nativesuite.SecurityTestSuite"
     AUTOMATION_NAME: "UIAutomator2"
 
 run-automation-smoke-test-ont:
@@ -153,12 +190,32 @@ run-automation-smoke-test-ont:
       artifacts: false
   script:
     - ./gradlew --no-daemon --info --stacktrace smokeTest
-      -Dtest.config.app.identifier="${APP_IDENTIFIER}_${CI_COMMIT_SHA}"
+      -Dtest.config.app.identifier="${APP_IDENTIFIER}"
       -Dtest.config.device.name="$DEVICE_NAME"
       -Dtest.config.platform.name="$PLATFORM_NAME"
       -Dtest.config.platform.version="$PLATFORM_VERSION"
       -Dtest.config.automation.name="$AUTOMATION_NAME"
       -Dtest.config.remote=true
+      -Dtest.config.commit.sha="${CI_COMMIT_SHA}"
+      -Dfile.encoding=UTF-8
+
+run-automation-native-smoke-test-ont:
+  extends: .run-automation-tests-common-setup
+  rules: !reference [.default-branch, rules]
+  needs:
+    - job: upload-browserstack-android-app
+      artifacts: false
+    - job: deploy-apps-ont
+      artifacts: false
+  script:
+    - ./gradlew --no-daemon --info --stacktrace nativeSmokeTest
+      -Dtest.config.app.identifier="${APP_IDENTIFIER}"
+      -Dtest.config.device.name="$DEVICE_NAME"
+      -Dtest.config.platform.name="$PLATFORM_NAME"
+      -Dtest.config.platform.version="$PLATFORM_VERSION"
+      -Dtest.config.automation.name="UIAutomator2"
+      -Dtest.config.remote=true
+      -Dtest.config.commit.sha="${CI_COMMIT_SHA}"
       -Dfile.encoding=UTF-8
 
 run-automation-smoke-test-ios-ont:
@@ -171,12 +228,32 @@ run-automation-smoke-test-ios-ont:
       artifacts: false
   script:
     - ./gradlew --no-daemon --info --stacktrace smokeTestIOS
-      -Dtest.config.app.identifier="${APP_IDENTIFIER}_${CI_COMMIT_SHA}"
+      -Dtest.config.app.identifier="${APP_IDENTIFIER}"
       -Dtest.config.device.name="iPhone 14"
       -Dtest.config.platform.name="IOS"
       -Dtest.config.platform.version="16"
       -Dtest.config.automation.name="Flutter"
       -Dtest.config.remote=true
+      -Dtest.config.commit.sha="${CI_COMMIT_SHA}"
+      -Dfile.encoding=UTF-8
+
+run-native-automation-smoke-test-ios-ont:
+  extends: .run-automation-tests-common-setup
+  rules: !reference [.default-branch, rules]
+  needs:
+    - job: upload-browserstack-ios-app
+      artifacts: false
+    - job: deploy-apps-ont
+      artifacts: false
+  script:
+    - ./gradlew --no-daemon --info --stacktrace nativeSmokeTestIOS
+      -Dtest.config.app.identifier="${APP_IDENTIFIER}"
+      -Dtest.config.device.name="iPhone 14"
+      -Dtest.config.platform.name="IOS"
+      -Dtest.config.platform.version="16"
+      -Dtest.config.automation.name="XCUITest"
+      -Dtest.config.remote=true
+      -Dtest.config.commit.sha="${CI_COMMIT_SHA}"
       -Dfile.encoding=UTF-8
 
 browsertests-format-lint:
@@ -255,7 +332,7 @@ run-performance-test-ont:
       artifacts: true
     - job: deploy-apps-ont
       artifacts: false
-  script: wallet_core/tests_integration/run_performance_test.sh --skip-build 50
+  script: wallet_core/tests_integration/run_performance_test.sh --skip-build
   allow_failure: true
 
 create-pipeline-for-running-test-on-all-browserstack-androids:
@@ -324,6 +401,7 @@ create-pipeline-for-running-test-on-all-browserstack-androids:
               -Dtest.config.platform.name="\$PLATFORM_NAME" \\
               -Dtest.config.platform.version="\$PLATFORM_VERSION" \\
               -Dtest.config.remote=true \\
+              -Dtest.config.commit.sha="\$CI_COMMIT_SHA" \\
               -Dfile.encoding=UTF-8
         after_script:
           - |
@@ -335,7 +413,7 @@ create-pipeline-for-running-test-on-all-browserstack-androids:
             mkdir -p "\$CI_PROJECT_DIR/uiautomation/device-data"
             echo "{\\"status\\": \\"\$CI_JOB_STATUS\\", \\"device_name\\": \\"\$DEVICE_NAME\\", \\"platform_version\\": \\"\$PLATFORM_VERSION\\", \\"start_date\\": \\"\$CI_JOB_STARTED_AT\\", \\"end_date\\": \\"\$END_DATE\\"}" > "\$CI_PROJECT_DIR/uiautomation/device-data/\${DEVICE_NAME}_\${PLATFORM_VERSION}.json"
         variables:
-          APP_ID: "${APP_IDENTIFIER}_${CI_COMMIT_SHA}"
+          APP_ID: "${APP_IDENTIFIER}"
           PLATFORM_NAME: "Android"
         allow_failure: true
         artifacts:

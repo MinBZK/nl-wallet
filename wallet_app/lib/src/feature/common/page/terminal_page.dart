@@ -38,46 +38,58 @@ class TerminalPage extends StatelessWidget {
     this.flipButtonOrder = false,
     super.key,
   }) : assert(
-          !flipButtonOrder || secondaryButtonCta != null,
-          'buttons are only flippable when secondary button is available',
-        );
+         !flipButtonOrder || secondaryButtonCta != null,
+         'buttons are only flippable when secondary button is available',
+       );
 
   @override
   Widget build(BuildContext context) {
     return SafeArea(
       bottom: false,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildScrollableSection(context),
-          _buildBottomSection(context),
-        ],
-      ),
+      child: _buildScrollableSection(context),
     );
   }
 
   Widget _buildScrollableSection(BuildContext context) {
-    return Expanded(
-      child: WalletScrollbar(
-        child: ListView(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return WalletScrollbar(
+          child: SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  TitleText(title),
-                  const SizedBox(height: 8),
-                  ParagraphedList.splitContent(description),
+                  _buildContentSection(context),
+                  _buildBottomSection(context),
                 ],
               ),
             ),
-            const SizedBox(height: 24),
-            illustration ?? _buildIllustrationPlaceHolder(context),
-          ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildContentSection(BuildContext context) {
+    return Column(
+      children: [
+        const SizedBox(height: 12),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TitleText(title),
+              const SizedBox(height: 8),
+              ParagraphedList.splitContent(description),
+            ],
+          ),
         ),
-      ),
+        const SizedBox(height: 24),
+        illustration ?? _buildIllustrationPlaceHolder(context),
+        const SizedBox(height: 24),
+      ],
     );
   }
 

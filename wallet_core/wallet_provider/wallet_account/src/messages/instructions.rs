@@ -24,8 +24,10 @@ use sd_jwt::sd_jwt::UnverifiedSdJwt;
 use utils::vec_at_least::VecNonEmpty;
 use wscd::Poa;
 
+use crate::messages::transfer::TransferSessionState;
 use crate::signed::ChallengeRequest;
 use crate::signed::ChallengeResponse;
+use crate::signed::HwSignedChallengeResponse;
 
 use super::registration::WalletCertificate;
 
@@ -40,6 +42,12 @@ pub struct InstructionChallengeRequest {
 #[derive(Debug, Serialize, Deserialize, Constructor)]
 pub struct Instruction<T> {
     pub instruction: ChallengeResponse<T>,
+    pub certificate: WalletCertificate,
+}
+
+#[derive(Debug, Serialize, Deserialize, Constructor)]
+pub struct HwSignedInstruction<T> {
+    pub instruction: HwSignedChallengeResponse<T>,
     pub certificate: WalletCertificate,
 }
 
@@ -242,6 +250,20 @@ pub struct DiscloseRecoveryCodeResult {
     pub transfer_session_id: Option<Uuid>,
 }
 
+// DiscloseRecoveryCodePinRecovery instruction.
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DiscloseRecoveryCodePinRecovery {
+    /// PID in SD JWT format with one disclosure: the recovery code
+    pub recovery_code_disclosure: UnverifiedSdJwt,
+}
+
+impl InstructionAndResult for DiscloseRecoveryCodePinRecovery {
+    const NAME: &'static str = "disclose_recovery_code_pin_recovery";
+
+    type Result = ();
+}
+
 // ConfirmTransfer instruction.
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -254,6 +276,64 @@ impl InstructionAndResult for ConfirmTransfer {
     const NAME: &'static str = "confirm_transfer";
 
     type Result = ();
+}
+
+// CancelTransfer instruction.
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CancelTransfer {
+    pub transfer_session_id: Uuid,
+}
+
+impl InstructionAndResult for CancelTransfer {
+    const NAME: &'static str = "cancel_transfer";
+
+    type Result = ();
+}
+
+// GetTransferStatus instruction.
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GetTransferStatus {
+    pub transfer_session_id: Uuid,
+}
+
+impl InstructionAndResult for GetTransferStatus {
+    const NAME: &'static str = "get_transfer_status";
+
+    type Result = TransferSessionState;
+}
+
+// SendWalletPayload instruction.
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SendWalletPayload {
+    pub transfer_session_id: Uuid,
+    pub payload: String,
+}
+
+impl InstructionAndResult for SendWalletPayload {
+    const NAME: &'static str = "send_wallet_payload";
+
+    type Result = ();
+}
+
+// ReceiveWalletPayload instruction.
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ReceiveWalletPayload {
+    pub transfer_session_id: Uuid,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ReceiveWalletPayloadResult {
+    pub payload: String,
+}
+
+impl InstructionAndResult for ReceiveWalletPayload {
+    const NAME: &'static str = "receive_wallet_payload";
+
+    type Result = ReceiveWalletPayloadResult;
 }
 
 #[cfg(feature = "client")]
@@ -269,7 +349,9 @@ mod client {
     use crate::messages::registration::WalletCertificate;
     use crate::signed::ChallengeRequest;
     use crate::signed::ChallengeResponse;
+    use crate::signed::HwSignedChallengeResponse;
 
+    use super::HwSignedInstruction;
     use super::Instruction;
     use super::InstructionAndResult;
     use super::InstructionChallengeRequest;
@@ -315,6 +397,44 @@ mod client {
                 pin_privkey,
             )
             .await?;
+
+            Ok(Self::new(challenge_response, certificate))
+        }
+    }
+
+    // Constructors for hardware-signed instructions.
+    impl<T> HwSignedInstruction<T>
+    where
+        T: Serialize + DeserializeOwned,
+    {
+        pub async fn new_apple(
+            instruction: T,
+            challenge: Vec<u8>,
+            instruction_sequence_number: u64,
+            attested_key: &impl AppleAttestedKey,
+            certificate: WalletCertificate,
+        ) -> Result<Self, EncodeError> {
+            let challenge_response = HwSignedChallengeResponse::sign_apple(
+                instruction,
+                challenge,
+                instruction_sequence_number,
+                attested_key,
+            )
+            .await?;
+
+            Ok(Self::new(challenge_response, certificate))
+        }
+
+        pub async fn new_google(
+            instruction: T,
+            challenge: Vec<u8>,
+            instruction_sequence_number: u64,
+            hw_privkey: &impl SecureEcdsaKey,
+            certificate: WalletCertificate,
+        ) -> Result<Self, EncodeError> {
+            let challenge_response =
+                HwSignedChallengeResponse::sign_google(instruction, challenge, instruction_sequence_number, hw_privkey)
+                    .await?;
 
             Ok(Self::new(challenge_response, certificate))
         }

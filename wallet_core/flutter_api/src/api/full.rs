@@ -21,7 +21,7 @@ use crate::models::instruction::DisclosureBasedIssuanceResult;
 use crate::models::instruction::PidIssuanceResult;
 use crate::models::instruction::WalletInstructionResult;
 use crate::models::pin::PinValidationResult;
-use crate::models::transfer::WalletTransferState;
+use crate::models::transfer::TransferSessionState;
 use crate::models::uri::IdentifyUriResult;
 use crate::models::version_state::FlutterVersionState;
 use crate::models::wallet_event::WalletEvent;
@@ -390,27 +390,52 @@ pub async fn unlock_wallet_with_biometrics() -> anyhow::Result<()> {
 }
 
 #[flutter_api_error]
-pub async fn init_wallet_transfer(_uri: String) -> anyhow::Result<()> {
-    Ok(())
-}
-
-#[flutter_api_error]
-pub async fn confirm_wallet_transfer(_pin: String) -> anyhow::Result<WalletInstructionResult> {
-    Ok(WalletInstructionResult::Ok)
-}
-
-#[flutter_api_error]
-pub async fn start_wallet_transfer() -> anyhow::Result<String> {
+pub async fn init_wallet_transfer() -> anyhow::Result<String> {
     let mut wallet = wallet().write().await;
 
-    let transfer_uri = wallet.start_transfer().await?;
+    let transfer_uri = wallet.init_transfer().await?;
 
     Ok(transfer_uri.to_string())
 }
 
 #[flutter_api_error]
-pub async fn get_wallet_transfer_state_stream(_sink: StreamSink<WalletTransferState>) -> anyhow::Result<()> {
+pub async fn acknowledge_wallet_transfer(uri: String) -> anyhow::Result<()> {
+    let url = Url::parse(&uri)?;
+
+    let mut wallet = wallet().write().await;
+
+    wallet.confirm_transfer(url).await?;
+
     Ok(())
+}
+
+#[flutter_api_error]
+pub async fn transfer_wallet(_pin: String) -> anyhow::Result<WalletInstructionResult> {
+    // send payload
+    Ok(WalletInstructionResult::Ok)
+}
+
+#[flutter_api_error]
+pub async fn cancel_wallet_transfer() -> anyhow::Result<()> {
+    Ok(())
+}
+
+#[flutter_api_error]
+pub async fn skip_wallet_transfer() -> anyhow::Result<()> {
+    let mut wallet = wallet().write().await;
+
+    wallet.clear_transfer().await?;
+
+    Ok(())
+}
+
+#[flutter_api_error]
+pub async fn get_wallet_transfer_state() -> anyhow::Result<TransferSessionState> {
+    let mut wallet = wallet().write().await;
+
+    let state = wallet.get_transfer_status().await?;
+
+    Ok(state.into())
 }
 
 #[flutter_api_error]

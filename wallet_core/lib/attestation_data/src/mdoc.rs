@@ -104,7 +104,7 @@ mod test {
                 .into_issuer_signed(metadata_integrity, public_key, issuer_keypair)
                 .await?;
 
-            let mdoc = Mdoc::new_unverified(mso, private_key_id, issuer_signed, K::KEY_TYPE);
+            let mdoc = Mdoc::new_unverified(mso, private_key_id, issuer_signed);
 
             Ok(mdoc)
         }
@@ -191,7 +191,7 @@ mod tests {
         // The IssuerSigned should be valid
         issuer_signed
             .verify(ValidityRequirement::Valid, &TimeGenerator, trust_anchors)
-            .unwrap();
+            .expect("the IssuerSigned sent in the preview should be valid");
 
         // The issuer certificate generated above should be included in the IssuerAuth
         assert_eq!(

@@ -73,6 +73,7 @@ pub struct IssuerSigned {
 
 impl IssuerSigned {
     /// Get a list of attributes ([`Entry`] instances) contained in the mdoc, mapped per [`NameSpace`].
+    /// Note that this should only be called after the [`IssuerSigned`] has been validated.
     pub fn into_entries_by_namespace(self) -> IndexMap<NameSpace, Vec<Entry>> {
         self.name_spaces
             .map(|name_spaces| {

@@ -14,7 +14,7 @@ class IssuanceScreenArgument extends Equatable {
   final String? uri;
 
   const IssuanceScreenArgument({this.mockSessionId, required this.isQrCode, this.isRefreshFlow = false, this.uri})
-      : assert(mockSessionId != null || uri != null, 'Either a mockSessionId of a uri is needed to start issuance');
+    : assert(mockSessionId != null || uri != null, 'Either a mockSessionId of a uri is needed to start issuance');
 
   Map<String, dynamic> toMap() {
     return {
@@ -26,10 +26,10 @@ class IssuanceScreenArgument extends Equatable {
   }
 
   IssuanceScreenArgument.fromMap(Map<String, dynamic> map)
-      : mockSessionId = map[_kSessionIdKey],
-        isRefreshFlow = map[_kIsRefreshFlowKey],
-        isQrCode = map[_kIsQrCodeKey],
-        uri = map[_kUriKey];
+    : mockSessionId = map[_kSessionIdKey],
+      isRefreshFlow = map[_kIsRefreshFlowKey],
+      isQrCode = map[_kIsQrCodeKey],
+      uri = map[_kUriKey];
 
   @override
   List<Object?> get props => [uri, isQrCode, isRefreshFlow, uri];

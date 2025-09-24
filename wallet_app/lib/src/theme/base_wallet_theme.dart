@@ -155,38 +155,41 @@ class BaseWalletTheme {
   });
 
   static final baseElevatedButtonTheme = ElevatedButtonThemeData(
-    style: ElevatedButton.styleFrom(
-      elevation: 0,
-      minimumSize: const Size.fromHeight(_buttonMinHeight),
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-      shape: _buttonShape,
-    ).copyWith(
-      iconSize: _baseButtonStyleIconSize,
-      textStyle: _defaultButtonTextStyle,
-    ),
+    style:
+        ElevatedButton.styleFrom(
+          elevation: 0,
+          minimumSize: const Size.fromHeight(_buttonMinHeight),
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+          shape: _buttonShape,
+        ).copyWith(
+          iconSize: _baseButtonStyleIconSize,
+          textStyle: _defaultButtonTextStyle,
+        ),
   );
 
   static final baseOutlinedButtonTheme = OutlinedButtonThemeData(
-    style: OutlinedButton.styleFrom(
-      elevation: 0,
-      minimumSize: const Size.fromHeight(_buttonMinHeight),
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-      shape: _buttonShape,
-    ).copyWith(
-      iconSize: _baseButtonStyleIconSize,
-      textStyle: _defaultButtonTextStyle,
-    ),
+    style:
+        OutlinedButton.styleFrom(
+          elevation: 0,
+          minimumSize: const Size.fromHeight(_buttonMinHeight),
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+          shape: _buttonShape,
+        ).copyWith(
+          iconSize: _baseButtonStyleIconSize,
+          textStyle: _defaultButtonTextStyle,
+        ),
   );
 
   static final baseTextButtonTheme = TextButtonThemeData(
-    style: TextButton.styleFrom(
-      minimumSize: const Size(0, _buttonMinHeight),
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-      shape: _buttonShape,
-    ).copyWith(
-      iconSize: _baseButtonStyleIconSize,
-      textStyle: _defaultButtonTextStyle,
-    ),
+    style:
+        TextButton.styleFrom(
+          minimumSize: const Size(0, _buttonMinHeight),
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+          shape: _buttonShape,
+        ).copyWith(
+          iconSize: _baseButtonStyleIconSize,
+          textStyle: _defaultButtonTextStyle,
+        ),
   );
 
   static final baseIconButtonTheme = IconButtonThemeData(
@@ -218,7 +221,7 @@ class BaseWalletTheme {
     elevation: 0,
     titleTextStyle: baseTextTheme.headlineMedium,
     scrolledUnderElevation: 12,
-    shape: LinearBorder.none, /* hides the app bar divider */
+    shape: LinearBorder.none /* hides the app bar divider */,
   );
 
   static final baseTabBarTheme = TabBarThemeData(
@@ -239,7 +242,7 @@ class BaseWalletTheme {
 
   static const baseIconTheme = IconThemeData(size: 16);
 
-//endregion Other Themes
+  //endregion Other Themes
 }
 
 extension WidgetStateExtensions on Set<WidgetState> {

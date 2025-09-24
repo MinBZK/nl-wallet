@@ -69,6 +69,11 @@ import '../feature/tour/video/tour_video_screen.dart';
 import '../feature/update/update_info_screen.dart';
 import '../feature/wallet/personalize/bloc/wallet_personalize_bloc.dart';
 import '../feature/wallet/personalize/wallet_personalize_screen.dart';
+import '../feature/wallet_transfer_faq/wallet_transfer_faq_screen.dart';
+import '../feature/wallet_transfer_source/bloc/wallet_transfer_source_bloc.dart';
+import '../feature/wallet_transfer_source/wallet_transfer_source_screen.dart';
+import '../feature/wallet_transfer_target/bloc/wallet_transfer_target_bloc.dart';
+import '../feature/wallet_transfer_target/wallet_transfer_target_screen.dart';
 import '../util/cast_util.dart';
 import 'secured_page_route.dart';
 
@@ -129,6 +134,9 @@ class WalletRoutes {
   static const updateInfoRoute = '/update_info';
   static const walletHistoryRoute = '/wallet/history';
   static const walletPersonalizeRoute = '/wallet/personalize';
+  static const walletTransferSourceRoute = '/wallet_transfer/source';
+  static const walletTransferTargetRoute = '/wallet_transfer/target';
+  static const walletTransferFaqRoute = '/settings/wallet_transfer_faq';
 
   static Route<dynamic> routeFactory(RouteSettings settings) {
     final WidgetBuilder builder = _widgetBuilderFactory(settings);
@@ -182,7 +190,7 @@ class WalletRoutes {
       case WalletRoutes.disclosureRoute:
         return _createDisclosureScreenBuilder(settings);
       case WalletRoutes.forgotPinRoute:
-        return _createForgotPinScreenBuilder;
+        return _createForgotPinScreenBuilder(settings);
       case WalletRoutes.policyRoute:
         return _createPolicyScreenBuilder(settings);
       case WalletRoutes.issuanceRoute:
@@ -223,6 +231,12 @@ class WalletRoutes {
         return _createTourVideoScreenBuilder(settings);
       case WalletRoutes.renewPidRoute:
         return _createRenewPidScreenBuilder(settings);
+      case WalletRoutes.walletTransferSourceRoute:
+        return _createWalletTransferSourceRoute(settings);
+      case WalletRoutes.walletTransferTargetRoute:
+        return _createWalletTransferTargetRoute(settings);
+      case WalletRoutes.walletTransferFaqRoute:
+        return _createWalletTransferFaqScreenBuilder;
       default:
         throw UnsupportedError('Unknown route: ${settings.name}');
     }
@@ -232,48 +246,50 @@ class WalletRoutes {
 }
 
 Widget _createSplashScreenBuilder(BuildContext context) => BlocProvider<SplashBloc>(
-      create: (BuildContext context) => SplashBloc(context.read(), context.read())..add(const InitSplashEvent()),
-      child: const SplashScreen(),
-    );
+  create: (BuildContext context) => SplashBloc(context.read(), context.read())..add(const InitSplashEvent()),
+  child: const SplashScreen(),
+);
 
 Widget _createQrScreenBuilder(BuildContext context) => BlocProvider<QrBloc>(
-      create: (BuildContext context) => QrBloc(context.read(), context.read())..add(const QrScanCheckPermission()),
-      child: const QrScreen(),
-    );
+  create: (BuildContext context) => QrBloc(context.read(), context.read())..add(const QrScanCheckPermission()),
+  child: const QrScreen(),
+);
 
 Widget _createIntroductionScreenBuilder(BuildContext context) => const IntroductionScreen();
 
 Widget _createIntroductionPrivacyScreenBuilder(BuildContext context) => const IntroductionPrivacyScreen();
 
-Widget _createForgotPinScreenBuilder(BuildContext context) => const ForgotPinScreen();
+WidgetBuilder _createForgotPinScreenBuilder(RouteSettings settings) =>
+    (context) =>
+        ForgotPinScreen(recoveryMethod: tryCast<PinRecoveryMethod>(settings.arguments) ?? PinRecoveryMethod.recoverPin);
 
 Widget _createAboutScreenBuilder(BuildContext context) => const AboutScreen();
 
 Widget _createPinScreenBuilder(BuildContext context) => BlocProvider<PinBloc>(
-      create: (BuildContext context) => PinBloc(context.read<UnlockWalletWithPinUseCase>()),
-      child: PinScreen(onUnlock: () => Navigator.restorablePushReplacementNamed(context, WalletRoutes.dashboardRoute)),
-    );
+  create: (BuildContext context) => PinBloc(context.read<UnlockWalletWithPinUseCase>()),
+  child: PinScreen(onUnlock: () => Navigator.restorablePushReplacementNamed(context, WalletRoutes.dashboardRoute)),
+);
 
 Widget _createSetupSecurityScreenBuilder(BuildContext context) => BlocProvider<SetupSecurityBloc>(
-      create: (BuildContext context) => SetupSecurityBloc(
-        context.read(),
-        context.read(),
-        context.read(),
-        context.read(),
-      ),
-      child: const SetupSecurityScreen(),
-    );
+  create: (BuildContext context) => SetupSecurityBloc(
+    context.read(),
+    context.read(),
+    context.read(),
+    context.read(),
+  ),
+  child: const SetupSecurityScreen(),
+);
 
 WidgetBuilder _createDashboardScreenBuilder(RouteSettings settings) {
   final DashboardScreenArgument? argument = DashboardScreen.getArgument(settings);
   return (context) => BlocProvider(
-        create: (context) => DashboardBloc(
-          context.read(),
-          context.read(),
-          argument?.cards,
-        )..add(const DashboardLoadTriggered()),
-        child: const DashboardScreen(),
-      );
+    create: (context) => DashboardBloc(
+      context.read(),
+      context.read(),
+      argument?.cards,
+    )..add(const DashboardLoadTriggered()),
+    child: const DashboardScreen(),
+  );
 }
 
 Widget _createMenuScreenBuilder(BuildContext context) {
@@ -320,16 +336,17 @@ WidgetBuilder _createDisclosureScreenBuilder(RouteSettings settings) {
   final args = DisclosureScreen.getArgument(settings);
   return (context) {
     return BlocProvider<DisclosureBloc>(
-      create: (BuildContext context) => DisclosureBloc(
-        context.read(),
-        context.read(),
-        context.read(),
-      )..add(
-          DisclosureSessionStarted(
-            args.uri,
-            isQrCode: args.isQrCode,
+      create: (BuildContext context) =>
+          DisclosureBloc(
+            context.read(),
+            context.read(),
+            context.read(),
+          )..add(
+            DisclosureSessionStarted(
+              args.uri,
+              isQrCode: args.isQrCode,
+            ),
           ),
-        ),
       child: const DisclosureScreen(),
     );
   };
@@ -475,17 +492,17 @@ WidgetBuilder _createOrganizationDetailScreenBuilder(RouteSettings settings) {
 Widget _createSettingsScreenBuilder(BuildContext context) => const SettingsScreen();
 
 Widget _createBiometricsSettingsScreenBuilder(BuildContext context) => BlocProvider<BiometricSettingsBloc>(
-      create: (BuildContext context) {
-        return BiometricSettingsBloc(
-          context.read(),
-          context.read(),
-          context.read(),
-          context.read(),
-          context.read(),
-        )..add(const BiometricLoadTriggered());
-      },
-      child: const BiometricSettingScreen(),
-    );
+  create: (BuildContext context) {
+    return BiometricSettingsBloc(
+      context.read(),
+      context.read(),
+      context.read(),
+      context.read(),
+      context.read(),
+    )..add(const BiometricLoadTriggered());
+  },
+  child: const BiometricSettingScreen(),
+);
 
 Widget _createPrivacyPolicyScreenBuilder(BuildContext context) => const PrivacyPolicyScreen();
 
@@ -551,3 +568,39 @@ WidgetBuilder _createPinRecoveryScreenBuilder(RouteSettings settings) {
     );
   };
 }
+
+WidgetBuilder _createWalletTransferSourceRoute(RouteSettings settings) {
+  final argument = Consumable(tryCast<String>(settings.arguments));
+  return (context) {
+    return BlocProvider<WalletTransferSourceBloc>(
+      create: (BuildContext context) {
+        final bloc = WalletTransferSourceBloc(
+          context.read(),
+          context.read(),
+          context.read(),
+        );
+        if (argument.peek() != null) bloc.add(WalletTransferInitiateTransferEvent(argument.value!));
+        return bloc;
+      },
+      child: const WalletTransferSourceScreen(),
+    );
+  };
+}
+
+WidgetBuilder _createWalletTransferTargetRoute(RouteSettings settings) {
+  return (context) {
+    return BlocProvider<WalletTransferTargetBloc>(
+      create: (BuildContext context) {
+        return WalletTransferTargetBloc(
+          context.read(),
+          context.read(),
+          context.read(),
+          context.read(),
+        );
+      },
+      child: const WalletTransferTargetScreen(),
+    );
+  };
+}
+
+Widget _createWalletTransferFaqScreenBuilder(BuildContext context) => const WalletTransferFaqScreen();

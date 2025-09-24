@@ -2196,6 +2196,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "fallible-iterator"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2acce4a10f12dc2fb14a218589d4f1f62ef011b2d0cc4b3cb1bba8e94da14649"
+
+[[package]]
+name = "fallible-streaming-iterator"
+version = "0.1.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7360491ce676a36bf9bb3c56c1aa791658183a54d2744120f27285738d90465a"
+
+[[package]]
 name = "fancy-regex"
 version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2552,6 +2564,7 @@ dependencies = [
  "http",
  "http_utils",
  "indexmap 2.7.1",
+ "itertools 0.14.0",
  "nutype",
  "pem",
  "quick-xml",
@@ -2802,6 +2815,15 @@ dependencies = [
  "allocator-api2",
  "equivalent",
  "foldhash",
+]
+
+[[package]]
+name = "hashlink"
+version = "0.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6ba4ff7128dee98c7dc9794b6a411377e1404dba1c97deb8d1a55297bd25d8af"
+dependencies = [
+ "hashbrown 0.14.5",
 ]
 
 [[package]]
@@ -4175,6 +4197,7 @@ dependencies = [
  "indexmap 2.7.1",
  "itertools 0.14.0",
  "josekit",
+ "jsonwebtoken",
  "jwt",
  "mdoc",
  "mime",
@@ -5168,6 +5191,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "rusqlite"
+version = "0.32.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7753b721174eb8ff87a9a0e799e2d7bc3749323e773db92e0984debb00019d6e"
+dependencies = [
+ "bitflags 2.8.0",
+ "fallible-iterator",
+ "fallible-streaming-iterator",
+ "hashlink 0.9.1",
+ "libsqlite3-sys",
+ "smallvec",
+]
+
+[[package]]
 name = "rust_decimal"
 version = "1.36.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6126,7 +6163,7 @@ dependencies = [
  "futures-io",
  "futures-util",
  "hashbrown 0.15.2",
- "hashlink",
+ "hashlink 0.10.0",
  "indexmap 2.7.1",
  "log",
  "memchr",
@@ -7517,6 +7554,7 @@ dependencies = [
  "http_utils",
  "indexmap 2.7.1",
  "itertools 0.14.0",
+ "josekit",
  "jwt",
  "libsqlite3-sys",
  "mdoc",
@@ -7532,13 +7570,13 @@ dependencies = [
  "reqwest",
  "ring",
  "rstest",
+ "rusqlite",
  "rustls-pki-types",
  "sanitize-filename",
  "sd_jwt",
  "sd_jwt_vc_metadata",
  "sea-orm",
  "sea-query",
- "semver",
  "serde",
  "serde_json",
  "serde_urlencoded",
@@ -7710,6 +7748,7 @@ dependencies = [
  "thiserror 2.0.11",
  "utils",
  "uuid",
+ "wallet_account",
 ]
 
 [[package]]
@@ -7745,6 +7784,7 @@ dependencies = [
  "tracing-subscriber",
  "utils",
  "uuid",
+ "wallet_account",
  "wallet_provider_database_settings",
  "wallet_provider_domain",
 ]
@@ -7770,6 +7810,7 @@ dependencies = [
  "indexmap 2.7.1",
  "itertools 0.14.0",
  "jwt",
+ "mockall",
  "openid4vc",
  "p256",
  "pid_issuer",

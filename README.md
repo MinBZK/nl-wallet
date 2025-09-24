@@ -175,8 +175,8 @@ and `pid_issuer`. They have a very simple database layout. A good ballpark
 figure is to allocate 100GiB for a wallet_provider instance and 10GiB for
 instances of the verification_server, issuance_server or pid_issuer. Of course,
 these requirements will change with time and duration of usage, and are subject
-to change. Also note that these size requirements assume somewhat serious usage
-- for development purposes you can make do with a lot less.
+to change. Also note that these size requirements assume somewhat serious usage;
+for development purposes you can make do with a lot less.
 
 ##### Rust-based backend services
 
@@ -245,7 +245,7 @@ Make sure `rustc`, and `cargo` are on your path and run the following commands
 to install a few additional utilities we use:
 
 ```shell
-cargo install --locked cargo-edit cargo-expand cargo-ndk cargo-nextest sea-orm-cli
+cargo install --locked cargo-edit cargo-expand 'cargo-ndk@^4' cargo-nextest sea-orm-cli
 cargo install --locked --version 2.11.1 flutter_rust_bridge_codegen
 cargo install --list
 ```

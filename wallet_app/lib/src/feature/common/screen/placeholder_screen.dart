@@ -83,8 +83,9 @@ class PlaceholderScreen extends StatelessWidget {
       description: description,
       illustration: illustration,
     );
-    final route =
-        secured ? SecuredPageRoute(builder: (c) => errorScreen) : MaterialPageRoute(builder: (c) => errorScreen);
+    final route = secured
+        ? SecuredPageRoute(builder: (c) => errorScreen)
+        : MaterialPageRoute(builder: (c) => errorScreen);
     Navigator.push(context, route);
   }
 
@@ -94,17 +95,7 @@ class PlaceholderScreen extends StatelessWidget {
       secured: secured,
       headline: context.l10n.placeholderScreenHeadline,
       description: context.l10n.placeholderScreenGenericDescription,
-      illustration: WalletAssets.svg_placeholder,
-    );
-  }
-
-  static void showHelp(BuildContext context, {bool secured = true}) {
-    show(
-      context,
-      secured: secured,
-      headline: context.l10n.placeholderScreenHelpHeadline,
-      description: context.l10n.placeholderScreenHelpDescription,
-      illustration: WalletAssets.svg_placeholder,
+      illustration: WalletAssets.svg_blocked_final,
     );
   }
 

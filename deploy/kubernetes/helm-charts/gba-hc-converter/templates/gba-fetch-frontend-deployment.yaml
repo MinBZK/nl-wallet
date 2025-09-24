@@ -88,12 +88,17 @@ spec:
                 secretKeyRef:
                   name: nl-wallet-gba-hc-converter-secrets
                   key: password
-            - name: GBA_HC_CONVERTER__RUN_MODE__ALL__GBAV__CLIENT_CERTIFICATE_AND_KEY__CERTIFICATE
+            - name: GBA_HC_CONVERTER__RUN_MODE__ALL__GBAV__CLIENT_AUTHENTICATION__CERTIFICATE
               valueFrom:
                 secretKeyRef:
                   name: nl-wallet-gba-hc-converter-secrets
                   key: client_cert
-            - name: GBA_HC_CONVERTER__RUN_MODE__ALL__GBAV__CLIENT_CERTIFICATE_AND_KEY__KEY
+            - name: GBA_HC_CONVERTER__RUN_MODE__ALL__GBAV__CLIENT_AUTHENTICATION__CHAIN
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-gba-hc-converter-secrets
+                  key: client_cert_chain
+            - name: GBA_HC_CONVERTER__RUN_MODE__ALL__GBAV__CLIENT_AUTHENTICATION__KEY
               valueFrom:
                 secretKeyRef:
                   name: nl-wallet-gba-hc-converter-secrets
@@ -106,7 +111,7 @@ spec:
       volumes:
         - name: preloaded-gba-v-data-volume
           persistentVolumeClaim:
-            claimName: preloaded-gba-v-data-pvc
+            claimName: {{ .Values.preloadGba.volumeClaimName }}
         - name: zoek-xml-volume
           configMap:
             name: {{ include "common.names.fullname" . }}-zoek-xml

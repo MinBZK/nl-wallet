@@ -115,13 +115,14 @@ void main() {
 
 Alignment _getAlignmentThroughParent(WidgetTester tester, Finder finder) {
   return tester
-      .widget<Align>(
-        find.ancestor(
-          of: finder,
-          matching: find.byKey(HorizontalConfirmButtons.secondaryButtonAlignmentKey),
-        ),
-      )
-      .alignment as Alignment;
+          .widget<Align>(
+            find.ancestor(
+              of: finder,
+              matching: find.byKey(HorizontalConfirmButtons.secondaryButtonAlignmentKey),
+            ),
+          )
+          .alignment
+      as Alignment;
 }
 
 bool _getExcludeSemanticsThroughParent(WidgetTester tester, Finder finder) {

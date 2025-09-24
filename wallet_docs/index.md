@@ -20,7 +20,7 @@ get-started/create-an-issuer
 
 ```{toctree}
 :caption: Architecture
-:maxdepth: 1
+:maxdepth: 2
 :glob:
 architecture/*
 ```
@@ -28,7 +28,7 @@ architecture/*
 ```{toctree}
 :caption: Functional Design
 :maxdepth: 1
-functional-design/about
+functional-design/functional-design
 functional-design/use-cases
 functional-design/partial-flows
 functional-design/logical-test-cases
@@ -53,6 +53,12 @@ community/create-a-ca
 :maxdepth: 1
 :glob:
 way-of-working/*
+```
+
+```{toctree}
+:caption: Glossary
+:maxdepth: 1
+glossary/glossary
 ```
 
 ```{toctree}

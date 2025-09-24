@@ -15,13 +15,11 @@ use attestation_data::x509::generate::mock::generate_reader_mock_with_registrati
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::utils as crypto_utils;
-use dcql::normalized::NormalizedCredentialRequest;
 use dcql::normalized::NormalizedCredentialRequests;
 use http_utils::urls::BaseUrl;
 use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithX5c;
-use mdoc::SessionTranscript;
 
 use crate::errors::ErrorResponse;
 use crate::errors::VpAuthorizationErrorCode;
@@ -158,6 +156,7 @@ impl MockVerifierSession {
         request_uri_method: RequestUriMethod,
         redirect_uri: Option<BaseUrl>,
         reader_registration: Option<ReaderRegistration>,
+        credential_requests: NormalizedCredentialRequests,
     ) -> Self {
         // Generate trust anchors, signing key and certificate containing `ReaderRegistration`.
         let ca = Ca::generate_reader_mock_ca().unwrap();
@@ -174,9 +173,6 @@ impl MockVerifierSession {
             request_uri_method,
             String::from(key_pair.certificate().san_dns_name().unwrap().unwrap()),
         );
-        let credential_requests = vec![NormalizedCredentialRequest::new_mock_mdoc_pid_example()]
-            .try_into()
-            .unwrap();
 
         MockVerifierSession {
             redirect_uri,
@@ -191,14 +187,6 @@ impl MockVerifierSession {
             response_uri,
             wallet_messages: Mutex::new(Vec::new()),
         }
-    }
-
-    pub fn client_id(&self) -> &str {
-        self.key_pair.certificate().san_dns_name().unwrap().unwrap()
-    }
-
-    pub fn session_transcript(&self, mdoc_nonce: &str) -> SessionTranscript {
-        SessionTranscript::new_oid4vp(&self.response_uri, self.client_id(), self.nonce.clone(), mdoc_nonce)
     }
 
     pub fn request_uri_query(&self) -> String {

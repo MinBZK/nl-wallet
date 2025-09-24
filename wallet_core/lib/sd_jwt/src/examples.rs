@@ -2,11 +2,12 @@ use std::collections::HashMap;
 
 use base64::Engine;
 use base64::prelude::BASE64_URL_SAFE_NO_PAD;
+use chrono::DateTime;
 use chrono::Duration;
+use chrono::Utc;
 use futures::FutureExt;
 use jsonwebtoken::jwk::Jwk;
-use p256::ecdsa::SigningKey;
-use rand_core::OsRng;
+use p256::ecdsa::VerifyingKey;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_json::json;
@@ -22,6 +23,8 @@ use jwt::Header;
 use jwt::JwtTyp;
 use jwt::jwk::jwk_to_p256;
 use utils::date_time_seconds::DateTimeSeconds;
+use utils::generator::Generator;
+use utils::generator::mock::MockTimeGenerator;
 
 use crate::builder::SdJwtBuilder;
 use crate::disclosure::Disclosure;
@@ -77,7 +80,7 @@ impl JwtTyp for SdJwtExampleClaims {
     const TYP: &'static str = "example+sd-jwt";
 }
 
-impl SdJwtPresentation {
+impl SdJwt {
     pub fn spec_simple_structured() -> SdJwt<SdJwtExampleClaims, Header> {
         SdJwt::parse_and_verify(SIMPLE_STRUCTURED_SD_JWT, &examples_sd_jwt_decoding_key()).unwrap()
     }
@@ -97,25 +100,24 @@ impl SdJwtPresentation {
             WITH_KB_SD_JWT_AUD,
             WITH_KB_SD_JWT_NONCE,
             Duration::minutes(2),
+            &MockTimeGenerator::default(),
         )
         .unwrap()
     }
 
-    pub fn example_pid_sd_jwt(issuer_keypair: &KeyPair) -> SdJwt {
+    pub fn example_pid_sd_jwt(issuer_keypair: &KeyPair, holder_public_key: &VerifyingKey) -> SdJwt {
         let object = json!({
           "vct": "urn:eudi:pid:nl:1",
           "iat": 1683000000,
           "exp": 1883000000,
           "iss": "https://cert.issuer.example.com",
           "attestation_qualification": "QEAA",
-          "bsn": "999991772",
+          "bsn": "999999999",
           "recovery_code": "885ed8a2-f07a-4f77-a8df-2e166f5ebd36",
-          "given_name": "John",
-          "family_name": "Doe",
+          "given_name": "Willeke Liselotte",
+          "family_name": "De Bruijn",
           "birthdate": "1940-01-01"
         });
-
-        let holder_privkey = SigningKey::random(&mut OsRng);
 
         // issuer signs SD-JWT
         SdJwtBuilder::new(object)
@@ -136,14 +138,17 @@ impl SdJwtPresentation {
             .unwrap()
             .add_decoys(&[], 2)
             .unwrap()
-            .finish(
-                Integrity::from(random_string(32)),
-                issuer_keypair,
-                holder_privkey.verifying_key(),
-            )
+            .finish(Integrity::from(random_string(32)), issuer_keypair, holder_public_key)
             .now_or_never()
             .unwrap()
             .unwrap()
+    }
+}
+
+pub struct KeyBindingExampleTimeGenerator;
+impl Generator<DateTime<Utc>> for KeyBindingExampleTimeGenerator {
+    fn generate(&self) -> DateTime<Utc> {
+        DateTime::from_timestamp(1683000000, 0).unwrap()
     }
 }
 

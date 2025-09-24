@@ -47,9 +47,9 @@ class SharedAttributesCard extends StatefulWidget {
     this.showOutdatedFooter = false,
     super.key,
   }) : assert(
-          !(showOutdatedFooter && onChangeCardPressed != null),
-          'Outdated footer can not be shown together with change card button',
-        );
+         !(showOutdatedFooter && onChangeCardPressed != null),
+         'Outdated footer can not be shown together with change card button',
+       );
 
   @override
   State<SharedAttributesCard> createState() => _SharedAttributesCardState();
@@ -270,17 +270,15 @@ class _SharedAttributesCardState extends State<SharedAttributesCard> {
   WidgetStateBorderSide _resolveBorderSide(BuildContext context) {
     return WidgetStateBorderSide.resolveWith(
       (states) {
-        return states.isPressedOrFocused
-            ? null /* default behaviour */
-            : _buildBorderSide(context);
+        return states.isPressedOrFocused ? null /* default behaviour */ : _buildBorderSide(context);
       },
     );
   }
 
   /// Creates a standard border side used for the un-focused state of the card components.
   BorderSide _buildBorderSide(BuildContext context) => BorderSide(
-        color: context.colorScheme.outlineVariant,
-        strokeAlign: BorderSide.strokeAlignOutside,
-        width: 1,
-      );
+    color: context.colorScheme.outlineVariant,
+    strokeAlign: BorderSide.strokeAlignOutside,
+    width: 1,
+  );
 }

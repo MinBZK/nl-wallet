@@ -57,29 +57,36 @@ void main() {
     expect(result.value, missingAttributesResult);
   });
 
-  test('Verify ExternalScannerError is returned when CoreDisclosureSourceMismatchError is thrown for crossDevice',
-      () async {
-    when(repository.startDisclosure(any, isQrCode: anyNamed('isQrCode')))
-        .thenAnswer((_) async => throw const CoreDisclosureSourceMismatchError('', isCrossDevice: true));
+  test(
+    'Verify ExternalScannerError is returned when CoreDisclosureSourceMismatchError is thrown for crossDevice',
+    () async {
+      when(
+        repository.startDisclosure(any, isQrCode: anyNamed('isQrCode')),
+      ).thenAnswer((_) async => throw const CoreDisclosureSourceMismatchError('', isCrossDevice: true));
 
-    final result = await usecase.invoke('disclosureUri', isQrCode: true);
-    expect(result.hasError, isTrue);
-    expect(result.error, isA<ExternalScannerError>());
-  });
+      final result = await usecase.invoke('disclosureUri', isQrCode: true);
+      expect(result.hasError, isTrue);
+      expect(result.error, isA<ExternalScannerError>());
+    },
+  );
 
-  test('Verify ExternalScannerError is NOT returned when CoreDisclosureSourceMismatchError is thrown for sameDevice',
-      () async {
-    when(repository.startDisclosure(any, isQrCode: anyNamed('isQrCode')))
-        .thenAnswer((_) async => throw const CoreDisclosureSourceMismatchError('', isCrossDevice: false));
+  test(
+    'Verify ExternalScannerError is NOT returned when CoreDisclosureSourceMismatchError is thrown for sameDevice',
+    () async {
+      when(
+        repository.startDisclosure(any, isQrCode: anyNamed('isQrCode')),
+      ).thenAnswer((_) async => throw const CoreDisclosureSourceMismatchError('', isCrossDevice: false));
 
-    final result = await usecase.invoke('disclosureUri');
-    expect(result.hasError, isTrue);
-    expect(result.error, isA<GenericError>());
-  });
+      final result = await usecase.invoke('disclosureUri');
+      expect(result.hasError, isTrue);
+      expect(result.error, isA<GenericError>());
+    },
+  );
 
   test('Verify ExpiredError is returned when CoreExpiredSessionError is thrown (retry=true)', () async {
-    when(repository.startDisclosure(any, isQrCode: anyNamed('isQrCode')))
-        .thenAnswer((_) async => throw const CoreExpiredSessionError('expired', canRetry: true));
+    when(
+      repository.startDisclosure(any, isQrCode: anyNamed('isQrCode')),
+    ).thenAnswer((_) async => throw const CoreExpiredSessionError('expired', canRetry: true));
 
     final result = await usecase.invoke('disclosureUri');
     expect(result.hasError, isTrue);
@@ -92,8 +99,9 @@ void main() {
   });
 
   test('Verify ExpiredError is returned when CoreExpiredSessionError is thrown (retry=false)', () async {
-    when(repository.startDisclosure(any, isQrCode: anyNamed('isQrCode')))
-        .thenAnswer((_) async => throw const CoreExpiredSessionError('expired', canRetry: false));
+    when(
+      repository.startDisclosure(any, isQrCode: anyNamed('isQrCode')),
+    ).thenAnswer((_) async => throw const CoreExpiredSessionError('expired', canRetry: false));
 
     final result = await usecase.invoke('disclosureUri');
     expect(result.hasError, isTrue);
@@ -106,8 +114,9 @@ void main() {
   });
 
   test('Verify ExpiredError is returned when CoreCancelledSessionError is thrown ', () async {
-    when(repository.startDisclosure(any, isQrCode: anyNamed('isQrCode')))
-        .thenAnswer((_) async => throw const CoreCancelledSessionError('cancelled'));
+    when(
+      repository.startDisclosure(any, isQrCode: anyNamed('isQrCode')),
+    ).thenAnswer((_) async => throw const CoreCancelledSessionError('cancelled'));
 
     final result = await usecase.invoke('disclosureUri');
     expect(result.hasError, isTrue);
@@ -115,8 +124,9 @@ void main() {
   });
 
   test('Verify NetworkError is returned when CoreNetworkError is thrown ', () async {
-    when(repository.startDisclosure(any, isQrCode: anyNamed('isQrCode')))
-        .thenAnswer((_) async => throw const CoreNetworkError('server'));
+    when(
+      repository.startDisclosure(any, isQrCode: anyNamed('isQrCode')),
+    ).thenAnswer((_) async => throw const CoreNetworkError('server'));
 
     final result = await usecase.invoke('disclosureUri');
     expect(result.hasError, isTrue);
@@ -124,8 +134,9 @@ void main() {
   });
 
   test('Verify GenericError includes returnUrl if CoreGenericError contains it', () async {
-    when(repository.startDisclosure(any, isQrCode: anyNamed('isQrCode')))
-        .thenAnswer((_) async => throw const CoreGenericError('generic', data: {'return_url': 'https://example.org'}));
+    when(
+      repository.startDisclosure(any, isQrCode: anyNamed('isQrCode')),
+    ).thenAnswer((_) async => throw const CoreGenericError('generic', data: {'return_url': 'https://example.org'}));
 
     final result = await usecase.invoke('disclosureUri');
     expect(result.hasError, isTrue);

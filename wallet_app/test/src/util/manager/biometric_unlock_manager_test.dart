@@ -118,21 +118,22 @@ void main() {
   });
 
   test(
-      'verify shouldTriggerUnlock is set correctly when the app is locked in resumed callback (e.g. by AutoLockObserver)',
-      () async {
-    await unlockMockWallet(); // Make sure shouldTriggerUnlock is set to false
-    expect(manager.shouldTriggerUnlock, isFalse);
+    'verify shouldTriggerUnlock is set correctly when the app is locked in resumed callback (e.g. by AutoLockObserver)',
+    () async {
+      await unlockMockWallet(); // Make sure shouldTriggerUnlock is set to false
+      expect(manager.shouldTriggerUnlock, isFalse);
 
-    // Put the app in the background
-    await updateMockLifecycle(AppLifecycleState.hidden);
-    expect(manager.shouldTriggerUnlock, isTrue);
+      // Put the app in the background
+      await updateMockLifecycle(AppLifecycleState.hidden);
+      expect(manager.shouldTriggerUnlock, isTrue);
 
-    // Set lifecycle & lock WITHOUT helper method to simulate race conditions.
-    await Future.wait([
-      Future.microtask(() => lifecycleService.notifyStateChanged(AppLifecycleState.resumed)),
-      Future.microtask(() => mockWalletLockSubject.add(true)),
-    ]);
+      // Set lifecycle & lock WITHOUT helper method to simulate race conditions.
+      await Future.wait([
+        Future.microtask(() => lifecycleService.notifyStateChanged(AppLifecycleState.resumed)),
+        Future.microtask(() => mockWalletLockSubject.add(true)),
+      ]);
 
-    expect(manager.shouldTriggerUnlock, isTrue);
-  });
+      expect(manager.shouldTriggerUnlock, isTrue);
+    },
+  );
 }

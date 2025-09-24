@@ -37,7 +37,6 @@ use jwt::wua::WuaDisclosure;
 use mdoc::ATTR_RANDOM_LENGTH;
 use mdoc::holder::Mdoc;
 use mdoc::utils::cose::CoseError;
-use mdoc::utils::serialization::CborBase64;
 use mdoc::utils::serialization::TaggedBytes;
 use sd_jwt::key_binding_jwt_claims::RequiredKeyBinding;
 use sd_jwt::sd_jwt::VerifiedSdJwt;
@@ -210,8 +209,14 @@ pub enum IssuanceSessionError {
 
 #[derive(Clone, Debug)]
 pub enum IssuedCredential {
-    MsoMdoc(Box<Mdoc>), // TODO: Wrap in similar VerifiedMdoc type (PVW-4132)
-    SdJwt(Box<VerifiedSdJwt>),
+    MsoMdoc {
+        mdoc: Mdoc,
+    },
+    SdJwt {
+        // This uniquely identifies the holder private key used for this credential, as managed by the WSCD.
+        key_identifier: String,
+        sd_jwt: VerifiedSdJwt,
+    },
 }
 
 #[derive(Clone, Debug, Constructor)]
@@ -789,11 +794,10 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
                 let integrity = copies
                     .iter()
                     .map(|cred_copy| match cred_copy {
-                        IssuedCredential::MsoMdoc(mdoc) => {
+                        IssuedCredential::MsoMdoc { mdoc } => {
                             mdoc.type_metadata_integrity().map_err(IssuanceSessionError::Metadata)
                         }
-                        IssuedCredential::SdJwt(sd_jwt) => sd_jwt
-                            .as_ref()
+                        IssuedCredential::SdJwt { sd_jwt, .. } => sd_jwt
                             .as_ref()
                             .claims()
                             .vct_integrity
@@ -801,7 +805,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
                             .ok_or(IssuanceSessionError::MetadataIntegrityMissing),
                     })
                     .process_results(|iter| {
-                        iter.dedup()
+                        iter.unique()
                             .exactly_one()
                             .map_err(|_| IssuanceSessionError::MetadataIntegrityInconsistent)
                     })??;
@@ -906,7 +910,7 @@ impl CredentialResponse {
     /// Create a credential out of the credential response. Also verifies the credential.
     fn into_credential<K: CredentialEcdsaKey>(
         self,
-        key_id: String,
+        key_identifier: String,
         verifying_key: &VerifyingKey,
         preview: &NormalizedCredentialPreview,
         trust_anchors: &[TrustAnchor<'_>],
@@ -915,8 +919,6 @@ impl CredentialResponse {
             CredentialResponse::MsoMdoc {
                 credential: issuer_signed,
             } => {
-                let CborBase64(issuer_signed) = *issuer_signed;
-
                 // Calculate the minimum of all the lengths of the random bytes
                 // included in the attributes of `IssuerSigned`. If this value
                 // is too low, we should not accept the attributes.
@@ -937,7 +939,7 @@ impl CredentialResponse {
                     .map_err(IssuanceSessionError::IssuerCertificate)?;
 
                 // Construct the new mdoc; this also verifies it against the trust anchors.
-                let mdoc = Mdoc::new::<K>(key_id, issuer_signed, &TimeGenerator, trust_anchors)
+                let mdoc = Mdoc::new::<K>(key_identifier, *issuer_signed, &TimeGenerator, trust_anchors)
                     .map_err(IssuanceSessionError::MdocVerification)?;
 
                 let issued_credential_payload = mdoc.clone().into_credential_payload(&preview.normalized_metadata)?;
@@ -949,7 +951,7 @@ impl CredentialResponse {
                     credential_issuer_certificate,
                 )?;
 
-                Ok(IssuedCredential::MsoMdoc(Box::new(mdoc)))
+                Ok(IssuedCredential::MsoMdoc { mdoc })
             }
             CredentialResponse::SdJwt { credential } => {
                 let sd_jwt =
@@ -965,7 +967,7 @@ impl CredentialResponse {
                     sd_jwt.issuer_certificate(),
                 )?;
 
-                Ok(IssuedCredential::SdJwt(Box::new(sd_jwt)))
+                Ok(IssuedCredential::SdJwt { key_identifier, sd_jwt })
             }
         }
     }
@@ -1045,7 +1047,6 @@ mod tests {
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
     use crypto::x509::CertificateError;
-    use mdoc::utils::serialization::CborBase64;
     use mdoc::utils::serialization::TaggedBytes;
     use sd_jwt_vc_metadata::JsonSchemaPropertyType;
     use sd_jwt_vc_metadata::TypeMetadata;
@@ -1374,7 +1375,7 @@ mod tests {
                 .unwrap();
 
             CredentialResponse::MsoMdoc {
-                credential: Box::new(issuer_signed.into()),
+                credential: Box::new(issuer_signed),
             }
         }
     }
@@ -1649,8 +1650,7 @@ mod tests {
         // that contains insufficient random data should fail.
         let credential_response = match credential_response {
             CredentialResponse::MsoMdoc { mut credential } => {
-                let CborBase64(ref mut credential_inner) = *credential;
-                let name_spaces = credential_inner.name_spaces.as_mut().unwrap();
+                let name_spaces = credential.name_spaces.as_mut().unwrap();
 
                 name_spaces.modify_first_attributes(|attributes| {
                     let TaggedBytes(first_item) = attributes.first_mut().unwrap();

@@ -25,16 +25,20 @@ void main() {
   group('goldens', () {
     testGoldens('RecoverPinInitial', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        const RecoverPinScreen()
-            .withState<RecoverPinBloc, RecoverPinState>(MockRecoverPinBloc(), const RecoverPinInitial()),
+        const RecoverPinScreen().withState<RecoverPinBloc, RecoverPinState>(
+          MockRecoverPinBloc(),
+          const RecoverPinInitial(),
+        ),
       );
       await screenMatchesGolden('initial.light');
     });
 
     testGoldens('RecoverPinInitial - dark', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        const RecoverPinScreen()
-            .withState<RecoverPinBloc, RecoverPinState>(MockRecoverPinBloc(), const RecoverPinInitial()),
+        const RecoverPinScreen().withState<RecoverPinBloc, RecoverPinState>(
+          MockRecoverPinBloc(),
+          const RecoverPinInitial(),
+        ),
         brightness: Brightness.dark,
       );
       await screenMatchesGolden('initial.dark');
@@ -42,8 +46,10 @@ void main() {
 
     testGoldens('RecoverPinLoadingDigidUrl', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        const RecoverPinScreen()
-            .withState<RecoverPinBloc, RecoverPinState>(MockRecoverPinBloc(), const RecoverPinLoadingDigidUrl()),
+        const RecoverPinScreen().withState<RecoverPinBloc, RecoverPinState>(
+          MockRecoverPinBloc(),
+          const RecoverPinLoadingDigidUrl(),
+        ),
       );
       await screenMatchesGolden('loading_digid_url.light');
     });
@@ -70,16 +76,20 @@ void main() {
 
     testGoldens('RecoverPinDigidMismatch', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        const RecoverPinScreen()
-            .withState<RecoverPinBloc, RecoverPinState>(MockRecoverPinBloc(), const RecoverPinDigidMismatch()),
+        const RecoverPinScreen().withState<RecoverPinBloc, RecoverPinState>(
+          MockRecoverPinBloc(),
+          const RecoverPinDigidMismatch(),
+        ),
       );
       await screenMatchesGolden('digid_mismatch.light');
     });
 
     testGoldens('RecoverPinStopped', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        const RecoverPinScreen()
-            .withState<RecoverPinBloc, RecoverPinState>(MockRecoverPinBloc(), const RecoverPinStopped()),
+        const RecoverPinScreen().withState<RecoverPinBloc, RecoverPinState>(
+          MockRecoverPinBloc(),
+          const RecoverPinStopped(),
+        ),
       );
       await screenMatchesGolden('stopped.light');
     });
@@ -134,16 +144,20 @@ void main() {
 
     testGoldens('RecoverPinUpdatingPin', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        const RecoverPinScreen()
-            .withState<RecoverPinBloc, RecoverPinState>(MockRecoverPinBloc(), const RecoverPinUpdatingPin()),
+        const RecoverPinScreen().withState<RecoverPinBloc, RecoverPinState>(
+          MockRecoverPinBloc(),
+          const RecoverPinUpdatingPin(),
+        ),
       );
       await screenMatchesGolden('updating_pin.light');
     });
 
     testGoldens('RecoverPinSuccess', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        const RecoverPinScreen()
-            .withState<RecoverPinBloc, RecoverPinState>(MockRecoverPinBloc(), const RecoverPinSuccess()),
+        const RecoverPinScreen().withState<RecoverPinBloc, RecoverPinState>(
+          MockRecoverPinBloc(),
+          const RecoverPinSuccess(),
+        ),
       );
       await screenMatchesGolden('success.light');
     });
@@ -191,8 +205,10 @@ void main() {
 
     testGoldens('RecoverPinDigidLoginCancelled', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        const RecoverPinScreen()
-            .withState<RecoverPinBloc, RecoverPinState>(MockRecoverPinBloc(), const RecoverPinDigidLoginCancelled()),
+        const RecoverPinScreen().withState<RecoverPinBloc, RecoverPinState>(
+          MockRecoverPinBloc(),
+          const RecoverPinDigidLoginCancelled(),
+        ),
       );
       await screenMatchesGolden('digid_login_cancelled.light');
     });

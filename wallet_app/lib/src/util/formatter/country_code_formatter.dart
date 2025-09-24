@@ -10,8 +10,9 @@ class CountryCodeFormatter {
   static String? format(String? countryCode) {
     if (countryCode == null) return null;
     try {
-      final details = CountryCodes.countryCodes()
-          .firstWhereOrNull((details) => details.alpha2Code?.toUpperCase() == countryCode.toUpperCase());
+      final details = CountryCodes.countryCodes().firstWhereOrNull(
+        (details) => details.alpha2Code?.toUpperCase() == countryCode.toUpperCase(),
+      );
       return details?.localizedName ?? details!.name!;
     } catch (exception) {
       Fimber.e('Failed to resolve country label from code: $countryCode', ex: exception);

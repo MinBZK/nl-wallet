@@ -11,7 +11,7 @@ other Markdown parsers; for instance, a table of contents should be written as
 described
 [here](https://sphinx-doc-zh.readthedocs.io/en/latest/markup/toctree.html) and a
 Mermaid diagram should be written as described
-[here](https://github.com/mgaitan/sphinxcontrib-mermaid#markdown-support).
+[here](https://github.com/mgaitan/sphinxcontrib-mermaid#user-content-markdown-support).
 
 When transferring the documentation from pure Markdown to Sphinx with Markdown
 these were the only 2 (small) differences. If something behaves unexpectedly,

@@ -42,6 +42,12 @@ impl<T> SubjectPayload for ChallengeResponsePayload<T> {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ChallengeResponse<T>(SignedMessage<SignedSubjectMessage<ChallengeResponsePayload<T>>>);
 
+/// Wraps a [`ChallengeResponsePayload`], which contains an arbitrary payload and the challenge received in response
+/// to [`ChallengeRequest`]. The Wallet signs it only with one key: either the device's hardware key or Apple attested
+/// key.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct HwSignedChallengeResponse<T>(SignedSubjectMessage<ChallengeResponsePayload<T>>);
+
 #[cfg(feature = "client")]
 pub mod client {
     use serde::Serialize;
@@ -51,6 +57,7 @@ pub mod client {
     use platform_support::attested_key::AppleAttestedKey;
 
     use crate::error::EncodeError;
+    use crate::signed::payload::HwSignedChallengeResponse;
 
     use super::super::EcdsaSignatureType;
     use super::super::SignedMessage;
@@ -164,6 +171,50 @@ pub mod client {
             Ok(Self(outer_signed))
         }
     }
+
+    impl<T> HwSignedChallengeResponse<T> {
+        pub async fn sign_apple<AK>(
+            payload: T,
+            challenge: Vec<u8>,
+            sequence_number: u64,
+            attested_key: &AK,
+        ) -> Result<Self, EncodeError>
+        where
+            T: Serialize,
+            AK: AppleAttestedKey,
+        {
+            let challenge_response = ChallengeResponsePayload {
+                payload,
+                challenge,
+                sequence_number,
+            };
+            let signed = SignedSubjectMessage::sign_apple(challenge_response, attested_key).await?;
+
+            Ok(Self(signed))
+        }
+
+        pub async fn sign_google<HK>(
+            payload: T,
+            challenge: Vec<u8>,
+            sequence_number: u64,
+            hardware_signing_key: &HK,
+        ) -> Result<Self, EncodeError>
+        where
+            T: Serialize,
+            HK: SecureEcdsaKey,
+        {
+            let challenge_response = ChallengeResponsePayload {
+                payload,
+                challenge,
+                sequence_number,
+            };
+            let signed =
+                SignedSubjectMessage::sign_ecdsa(challenge_response, EcdsaSignatureType::Google, hardware_signing_key)
+                    .await?;
+
+            Ok(Self(signed))
+        }
+    }
 }
 
 #[cfg(feature = "server")]
@@ -175,6 +226,7 @@ pub mod server {
     use apple_app_attest::AssertionCounter;
 
     use crate::error::DecodeError;
+    use crate::signed::HwSignedChallengeResponse;
 
     use super::super::ContainsChallenge;
     use super::super::EcdsaSignatureType;
@@ -314,6 +366,15 @@ pub mod server {
         }
     }
 
+    impl<T> ContainsChallenge for ChallengeResponsePayload<T>
+    where
+        T: DeserializeOwned,
+    {
+        fn challenge(&self) -> Result<impl AsRef<[u8]>, DecodeError> {
+            Ok(&self.challenge)
+        }
+    }
+
     impl<T> ChallengeResponse<T> {
         pub fn dangerous_parse_unverified(&self) -> Result<ChallengeResponsePayload<T>, DecodeError>
         where
@@ -365,6 +426,46 @@ pub mod server {
             Ok(challenge_response)
         }
     }
+
+    impl<T> HwSignedChallengeResponse<T> {
+        pub fn parse_and_verify_apple(
+            &self,
+            challenge: &[u8],
+            sequence_number_comparison: SequenceNumberComparison,
+            apple_verifying_key: &VerifyingKey,
+            app_identifier: &AppIdentifier,
+            previous_counter: AssertionCounter,
+        ) -> Result<(ChallengeResponsePayload<T>, AssertionCounter), DecodeError>
+        where
+            T: DeserializeOwned,
+        {
+            let (challenge_response, counter) =
+                self.0
+                    .parse_and_verify_apple(apple_verifying_key, app_identifier, previous_counter, challenge)?;
+
+            challenge_response.verify(challenge, sequence_number_comparison)?;
+
+            Ok((challenge_response, counter))
+        }
+
+        pub fn parse_and_verify_google(
+            &self,
+            challenge: &[u8],
+            sequence_number_comparison: SequenceNumberComparison,
+            hardware_verifying_key: &VerifyingKey,
+        ) -> Result<ChallengeResponsePayload<T>, DecodeError>
+        where
+            T: DeserializeOwned,
+        {
+            let challenge_response = self
+                .0
+                .parse_and_verify_ecdsa(EcdsaSignatureType::Google, hardware_verifying_key)?;
+
+            challenge_response.verify(challenge, sequence_number_comparison)?;
+
+            Ok(challenge_response)
+        }
+    }
 }
 
 #[cfg(all(test, feature = "client", feature = "server"))]
@@ -381,6 +482,7 @@ mod tests {
     use platform_support::attested_key::mock::MockAppleAttestedKey;
 
     use crate::error::DecodeError;
+    use crate::signed::HwSignedChallengeResponse;
 
     use super::ChallengeRequest;
     use super::ChallengeResponse;
@@ -632,6 +734,115 @@ mod tests {
                 SequenceNumberComparison::LargerThan(sequence_number - 1),
                 hw_privkey.verifying_key(),
                 pin_privkey.verifying_key(),
+            )
+            .expect("SignedChallengeResponse should be valid");
+
+        assert_eq!(ToyMessage::default(), verified.payload);
+    }
+
+    #[test]
+    fn test_apple_hw_signed_challenge_response() {
+        let sequence_number = 1337;
+        let challenge = b"challenge";
+        let attested_key = create_mock_apple_attested_key();
+
+        let signed = HwSignedChallengeResponse::sign_apple(
+            ToyMessage::default(),
+            challenge.to_vec(),
+            sequence_number,
+            &attested_key,
+        )
+        .now_or_never()
+        .unwrap()
+        .expect("should sign ChallengeResponse successfully");
+
+        // Verifying against an incorrect challenge should return a `Error::AssertionVerification`.
+        // Note that an `Error::ChallengeMismatch` is not returned, as the challenge is first checked
+        // when validating the Apple assertion.
+        let error = signed
+            .parse_and_verify_apple(
+                b"wrong",
+                SequenceNumberComparison::LargerThan(sequence_number - 1),
+                attested_key.verifying_key(),
+                &attested_key.app_identifier,
+                AssertionCounter::default(),
+            )
+            .expect_err("verifying SignedChallengeResponse should return an error");
+
+        assert_matches!(error, DecodeError::Assertion(_));
+
+        // Verifying against an sequence number that is too low should return a `Error::SequenceNumberMismatch`.
+        let error = signed
+            .parse_and_verify_apple(
+                challenge,
+                SequenceNumberComparison::EqualTo(42),
+                attested_key.verifying_key(),
+                &attested_key.app_identifier,
+                AssertionCounter::default(),
+            )
+            .expect_err("verifying SignedChallengeResponse should return an error");
+
+        assert_matches!(error, DecodeError::SequenceNumberMismatch);
+
+        // Verifying against the correct values should succeed.
+        let (verified, counter) = signed
+            .parse_and_verify_apple(
+                challenge,
+                SequenceNumberComparison::LargerThan(sequence_number - 1),
+                attested_key.verifying_key(),
+                &attested_key.app_identifier,
+                AssertionCounter::default(),
+            )
+            .expect("SignedChallengeResponse should be valid");
+
+        assert_eq!(ToyMessage::default(), verified.payload);
+        assert_eq!(*counter, 1)
+    }
+
+    #[test]
+    fn test_google_hw_signed_challenge_response() {
+        let sequence_number = 1337;
+        let challenge = b"challenge";
+        let hw_privkey = SigningKey::random(&mut OsRng);
+
+        let signed = HwSignedChallengeResponse::sign_google(
+            ToyMessage::default(),
+            challenge.to_vec(),
+            sequence_number,
+            &hw_privkey,
+        )
+        .now_or_never()
+        .unwrap()
+        .expect("should sign ChallengeResponse successfully");
+
+        // Verifying against an incorrect challenge should return a `Error::ChallengeMismatch`.
+        let error = signed
+            .parse_and_verify_google(
+                b"wrong",
+                SequenceNumberComparison::LargerThan(sequence_number - 1),
+                hw_privkey.verifying_key(),
+            )
+            .expect_err("verifying SignedChallengeResponse should return an error");
+
+        assert_matches!(error, DecodeError::ChallengeMismatch);
+
+        // Verifying against an sequence number that is too low should return a `Error::SequenceNumberMismatch`.
+        let error = signed
+            .parse_and_verify_google(
+                challenge,
+                SequenceNumberComparison::EqualTo(42),
+                hw_privkey.verifying_key(),
+            )
+            .expect_err("verifying SignedChallengeResponse should return an error");
+
+        assert_matches!(error, DecodeError::SequenceNumberMismatch);
+
+        // Verifying against the correct values should succeed.
+        let verified = signed
+            .parse_and_verify_google(
+                challenge,
+                SequenceNumberComparison::LargerThan(sequence_number - 1),
+                hw_privkey.verifying_key(),
             )
             .expect("SignedChallengeResponse should be valid");
 

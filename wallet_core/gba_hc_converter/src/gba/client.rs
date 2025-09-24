@@ -5,6 +5,7 @@ use std::str;
 use aes_gcm::Aes256Gcm;
 use base64::prelude::*;
 use http::header;
+use itertools::Itertools;
 use pem::Pem;
 use reqwest::Certificate;
 use reqwest::Identity;
@@ -18,7 +19,7 @@ use crate::gba::encryption::HmacSha256;
 use crate::gba::encryption::decrypt_bytes_from_dir;
 use crate::gba::error::Error;
 use crate::haal_centraal::Bsn;
-use crate::settings::CertificateAndKey;
+use crate::settings::ClientAuthentication;
 use crate::settings::SymmetricKey;
 
 #[trait_variant::make(Send)]
@@ -43,20 +44,30 @@ impl HttpGbavClient {
         username: String,
         password: String,
         trust_anchor: Certificate,
-        client_certificate_and_key: CertificateAndKey,
+        client_authentication: ClientAuthentication,
         ca_api_key: Option<String>,
     ) -> Result<Self, Error> {
-        let cert = Pem::new("CERTIFICATE", client_certificate_and_key.certificate);
-        let key = Pem::new("PRIVATE KEY", client_certificate_and_key.key);
-        let cert_buf = pem::encode(&key) + &pem::encode(&cert);
+        let client_pems = vec![
+            Pem::new("CERTIFICATE", client_authentication.certificate),
+            Pem::new("PRIVATE KEY", client_authentication.key),
+        ]
+        .into_iter()
+        .chain(
+            client_authentication
+                .chain
+                .into_iter()
+                .map(|c| Pem::new("CERTIFICATE", c)),
+        )
+        .map(|pem| pem::encode(&pem))
+        .join("");
+
+        let http_client = tls_pinned_client_builder(std::iter::once(trust_anchor))
+            .identity(Identity::from_pem(client_pems.as_bytes())?)
+            .build()
+            .expect("Could not build reqwest HTTP client");
 
         let vraag_request_template_path = prefix_local_path("resources/remote/bsn_zoeken_template.xml".as_ref());
         let vraag_request_template = tokio::fs::read_to_string(vraag_request_template_path).await?;
-
-        let http_client = tls_pinned_client_builder(std::iter::once(trust_anchor))
-            .identity(Identity::from_pem(cert_buf.as_bytes())?)
-            .build()
-            .expect("Could not build reqwest HTTP client");
 
         let client = Self {
             http_client,

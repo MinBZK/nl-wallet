@@ -41,7 +41,8 @@ class ConfirmButtons extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final availableWidthPerButton = _calculateAvailableWidth(context);
-    final bool buttonsFitHorizontally = primaryButton.fitsWidth(context, availableWidthPerButton) &&
+    final bool buttonsFitHorizontally =
+        primaryButton.fitsWidth(context, availableWidthPerButton) &&
         secondaryButton.fitsWidth(context, availableWidthPerButton);
 
     Widget buttons;

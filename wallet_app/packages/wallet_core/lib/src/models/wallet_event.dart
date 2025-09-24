@@ -16,7 +16,6 @@ enum DisclosureStatus {
   Success,
   Cancelled,
   Error,
-  ;
 }
 
 @freezed

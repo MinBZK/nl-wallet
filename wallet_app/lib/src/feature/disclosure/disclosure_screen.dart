@@ -143,9 +143,9 @@ class DisclosureScreen extends StatelessWidget {
   }
 
   Widget _buildInitialLoading(BuildContext context) => GenericLoadingPage(
-        title: context.l10n.disclosureLoadingTitle,
-        description: context.l10n.disclosureLoadingSubtitle,
-      );
+    title: context.l10n.disclosureLoadingTitle,
+    description: context.l10n.disclosureLoadingSubtitle,
+  );
 
   Widget _buildLoading() => const CenteredLoadingIndicator();
 
@@ -288,7 +288,7 @@ class DisclosureScreen extends StatelessWidget {
     final bloc = context.bloc;
     if (bloc.state.showStopConfirmation) {
       final availableReportOptions = _resolveReportingOptionsForState(context);
-      final organizationName = context.read<DisclosureBloc>().relyingParty?.displayName;
+      final organizationName = context.read<DisclosureBloc>().relyingParty?.displayName.l10nValue(context);
 
       StopDescriptionType stopType = bloc.isLoginFlow ? StopDescriptionType.forLogin : StopDescriptionType.generic;
       stopType = context.bloc.state is DisclosureCheckUrl ? StopDescriptionType.forUrlCheck : stopType;

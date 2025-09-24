@@ -2,10 +2,12 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::path::PathBuf;
 
+use cfg_if::cfg_if;
 use chrono::DateTime;
 use chrono::Utc;
 use futures::try_join;
 use itertools::Itertools;
+use mdoc::holder::Mdoc;
 use sea_orm::ActiveModelTrait;
 use sea_orm::ColumnTrait;
 use sea_orm::Condition;
@@ -26,6 +28,7 @@ use sea_orm::sea_query::Query;
 use sea_query::OnConflict;
 use sea_query::Order;
 use sea_query::SimpleExpr;
+use tempfile::NamedTempFile;
 use tokio::fs;
 use tracing::warn;
 use uuid::Uuid;
@@ -51,12 +54,15 @@ use openid4vc::issuance_session::IssuedCredential;
 use openid4vc::issuance_session::IssuedCredentialCopies;
 use platform_support::hw_keystore::PlatformEncryptionKey;
 use sd_jwt::sd_jwt::VerifiedSdJwt;
+#[cfg(not(debug_assertions))]
+use utils::built_info::version_identifier;
 
 use crate::AttestationIdentity;
 use crate::AttestationPresentation;
 use crate::DisclosureStatus;
 
 use super::AttestationFormatQuery;
+use super::DatabaseExport;
 use super::Storage;
 use super::StorageError;
 use super::StorageResult;
@@ -129,7 +135,17 @@ impl<K> DatabaseStorage<K> {
 
     fn database_path_for_name(&self, name: &str) -> PathBuf {
         // Get path to database as "<storage_path>/<name>.db"
-        self.storage_path.join(format!("{name}.{DATABASE_FILE_EXT}"))
+        cfg_if! {
+            if #[cfg(debug_assertions)] {
+                self.storage_path.join(format!("{name}.{DATABASE_FILE_EXT}"))
+            }
+            else {
+                // Temporarily hack to prevent backwards compatibility problems by including
+                // full version identifier. Should be removed when doing PVW-4707.
+                let version = version_identifier().expect("Version expected for release build");
+                self.storage_path.join(format!("{name}-{version}.{DATABASE_FILE_EXT}"))
+            }
+        }
     }
 
     async fn execute_query<S>(&self, query: S) -> StorageResult<Option<QueryResult>>
@@ -168,8 +184,9 @@ impl<K> DatabaseStorage<K> {
             .inner_join(attestation::Entity)
             .column(attestation_copy::Column::Id)
             .column(attestation_copy::Column::AttestationId)
-            .column(attestation_copy::Column::Attestation)
             .column(attestation_copy::Column::AttestationFormat)
+            .column(attestation_copy::Column::KeyIdentifier)
+            .column(attestation_copy::Column::Attestation)
             .column(attestation::Column::TypeMetadata)
             .column_as(attestation_copy::Column::DisclosureCount.min(), "disclosure_count")
             .group_by(attestation_copy::Column::AttestationId)
@@ -180,26 +197,33 @@ impl<K> DatabaseStorage<K> {
             None => select,
         };
 
-        let copies: Vec<(Uuid, Uuid, Vec<u8>, AttestationFormat, TypeMetadataModel)> =
+        let copies: Vec<(Uuid, Uuid, AttestationFormat, String, Vec<u8>, TypeMetadataModel)> =
             select.into_tuple().all(database.connection()).await?;
 
         let attestations = copies
             .into_iter()
             .map(
-                |(attestation_copy_id, attestation_id, attestation_bytes, attestation_format, metadata)| {
+                |(
+                    attestation_copy_id,
+                    attestation_id,
+                    attestation_format,
+                    key_identifier,
+                    attestation_bytes,
+                    metadata,
+                )| {
                     let attestation = match attestation_format {
                         AttestationFormat::Mdoc => {
-                            let mdoc = cbor_deserialize(attestation_bytes.as_slice())?;
-                            StoredAttestation::MsoMdoc { mdoc: Box::new(mdoc) }
+                            let issuer_signed = cbor_deserialize(attestation_bytes.as_slice())?;
+                            let mdoc = Mdoc::dangerous_parse_unverified(issuer_signed, key_identifier)?;
+
+                            StoredAttestation::MsoMdoc { mdoc }
                         }
                         AttestationFormat::SdJwt => {
                             let sd_jwt = VerifiedSdJwt::dangerous_parse_unverified(
                                 // Since we put utf-8 bytes into the database, we are certain we also get them out.
                                 String::from_utf8(attestation_bytes).unwrap().as_str(),
                             )?;
-                            StoredAttestation::SdJwt {
-                                sd_jwt: Box::new(sd_jwt),
-                            }
+                            StoredAttestation::SdJwt { key_identifier, sd_jwt }
                         }
                     };
 
@@ -292,12 +316,10 @@ where
     K: PlatformEncryptionKey,
 {
     /// This helper method uses [`get_or_create_key_file`] and the utilities in [`platform_support`]
-    /// to construct a [`SqliteUrl`] and a [`SqlCipherKey`], which in turn are used to create a [`Database`]
-    /// instance.
-    async fn open_encrypted_database(&self, name: &str) -> StorageResult<OpenDatabaseStorage<K>> {
+    /// to construct a [`SqlCipherKey`]
+    async fn key_for_name(&self, name: &str) -> StorageResult<(K, SqlCipherKey)> {
         let key_file_alias = key_file_alias_for_name(name);
         let key_file_key_identifier = key_identifier_for_key_file(&key_file_alias);
-        let database_path = self.database_path_for_name(name);
 
         // Get or create the encryption key for the key file contents. The identifier used
         // for this should be globally unique. If this is not the case, the same database is
@@ -314,6 +336,16 @@ where
         )
         .await?;
         let key = SqlCipherKey::try_from(key_bytes.as_slice())?;
+
+        Ok((key_file_key, key))
+    }
+
+    /// This helper method uses [`get_or_create_key_file`] and the utilities in [`platform_support`]
+    /// to construct a [`SqliteUrl`] and a [`SqlCipherKey`], which in turn are used to create a [`Database`]
+    /// instance.
+    async fn open_encrypted_database(&self, name: &str) -> StorageResult<OpenDatabaseStorage<K>> {
+        let database_path = self.database_path_for_name(name);
+        let (key_file_key, key) = self.key_for_name(name).await?;
 
         // Open database at the path, encrypted using the key
         let database = Database::open(SqliteUrl::File(database_path), key).await?;
@@ -353,6 +385,68 @@ where
         self.open_database.replace(open_database);
 
         Ok(())
+    }
+
+    async fn export(&mut self) -> StorageResult<DatabaseExport> {
+        if let Some(open_database) = self.open_database.take() {
+            open_database.database.close().await?;
+        };
+
+        let database_path = self.database_path_for_name(DATABASE_NAME);
+        let (_, key) = self.key_for_name(DATABASE_NAME).await?;
+
+        tokio::task::spawn_blocking(move || {
+            let connection = rusqlite::Connection::open(database_path)?;
+            connection.pragma_update(None, "key", String::from(key))?;
+
+            let export_key = SqlCipherKey::new_random_with_salt();
+            let export_file = NamedTempFile::new()?;
+            connection.execute(
+                "ATTACH DATABASE ?1 AS export KEY ?2",
+                [export_file.path().display().to_string(), String::from(export_key)],
+            )?;
+            connection.query_row("SELECT sqlcipher_export('export')", [], |row| {
+                row.get::<_, Option<i32>>(0)
+            })?;
+            connection.execute("DETACH DATABASE export", [])?;
+
+            let data = std::fs::read(export_file.path())?;
+            Ok(DatabaseExport::new(export_key, data))
+        })
+        .await?
+    }
+
+    async fn import(&mut self, export: DatabaseExport) -> StorageResult<()> {
+        if let Some(open_database) = self.open_database.take() {
+            open_database.database.close().await?;
+        };
+
+        let database_path = self.database_path_for_name(DATABASE_NAME);
+        let (_, key) = self.key_for_name(DATABASE_NAME).await?;
+        tokio::task::spawn_blocking(move || {
+            let import_file = NamedTempFile::new()?;
+            std::fs::write(import_file.path(), export.data)?;
+
+            let connection = rusqlite::Connection::open(import_file.path())?;
+            connection.pragma_update(None, "key", String::from(export.key).as_str())?;
+
+            // Use temporary file to create encrypted file
+            let encrypted_file = NamedTempFile::new()?;
+            connection.execute(
+                "ATTACH DATABASE ?1 AS encrypted KEY ?2",
+                [encrypted_file.path().display().to_string(), String::from(key)],
+            )?;
+            connection.query_row("SELECT sqlcipher_export('encrypted')", [], |row| {
+                row.get::<_, Option<i32>>(0)
+            })?;
+            connection.execute("DETACH DATABASE encrypted", [])?;
+
+            // Rename is atomic in fs
+            std::fs::rename(encrypted_file.path(), database_path)?;
+
+            Ok(())
+        })
+        .await?
     }
 
     /// Clear the contents of the database by closing it and removing both database and key file.
@@ -790,24 +884,27 @@ fn create_attestation_copy_models(
         .into_inner()
         .into_iter()
         .map(|credential| match credential {
-            IssuedCredential::MsoMdoc(mdoc) => {
+            IssuedCredential::MsoMdoc { mdoc } => {
+                let attestation_bytes = cbor_serialize(mdoc.issuer_signed())?;
                 let model = attestation_copy::ActiveModel {
                     id: Set(Uuid::now_v7()),
+                    disclosure_count: Set(0),
                     attestation_id: Set(attestation_id),
-                    attestation: Set(cbor_serialize(&mdoc)?),
                     attestation_format: Set(AttestationFormat::Mdoc),
-                    ..Default::default()
+                    key_identifier: Set(mdoc.into_private_key_id()),
+                    attestation: Set(attestation_bytes),
                 };
 
                 Ok::<_, StorageError>(model)
             }
-            IssuedCredential::SdJwt(sd_jwt) => {
+            IssuedCredential::SdJwt { key_identifier, sd_jwt } => {
                 let model = attestation_copy::ActiveModel {
                     id: Set(Uuid::now_v7()),
+                    disclosure_count: Set(0),
                     attestation_id: Set(attestation_id),
-                    attestation: Set(sd_jwt.to_string().into_bytes()),
                     attestation_format: Set(AttestationFormat::SdJwt),
-                    ..Default::default()
+                    key_identifier: Set(key_identifier),
+                    attestation: Set(sd_jwt.to_string().into_bytes()),
                 };
 
                 Ok(model)
@@ -818,8 +915,6 @@ fn create_attestation_copy_models(
 
 #[cfg(any(test, feature = "test"))]
 pub mod in_memory_storage {
-    use crypto::utils::random_bytes;
-
     use platform_support::hw_keystore::mock::MockHardwareEncryptionKey;
 
     use crate::storage::DatabaseStorage;
@@ -835,8 +930,8 @@ pub mod in_memory_storage {
             let mut storage = DatabaseStorage::<MockHardwareEncryptionKey>::new("storage_path".into());
 
             // Create a test database, override the database field on Storage.
-            let key_bytes = random_bytes(SqlCipherKey::size_with_salt());
-            let database = Database::open(SqliteUrl::InMemory, key_bytes.as_slice().try_into().unwrap())
+            let key = SqlCipherKey::new_random_with_salt();
+            let database = Database::open(SqliteUrl::InMemory, key)
                 .await
                 .expect("Could not open in-memory database");
 
@@ -862,6 +957,8 @@ pub(crate) mod tests {
     use chrono::TimeZone;
     use chrono::Utc;
     use itertools::Itertools;
+    use serde::Deserialize;
+    use serde::Serialize;
     use tokio::fs;
 
     use attestation_data::auth::issuer_auth::IssuerRegistration;
@@ -963,6 +1060,42 @@ pub(crate) mod tests {
         // The database file should be gone and the key file encryption key should be absent.
         assert!(!fs::try_exists(&database_path).await.unwrap());
         assert!(!MockHardwareEncryptionKey::identifier_exists(&key_file_identifier));
+    }
+
+    #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+    struct TestData {
+        data: String,
+    }
+
+    impl KeyedData for TestData {
+        const KEY: &'static str = "test";
+    }
+
+    #[tokio::test]
+    async fn test_export_import() {
+        let test = TestData {
+            data: "Hello World!".to_string(),
+        };
+
+        // Export via block to have everything dropped
+        let transfer = {
+            let tempdir = tempfile::tempdir().unwrap();
+            let mut storage = DatabaseStorage::<MockHardwareEncryptionKey>::new(tempdir.as_ref().to_path_buf());
+
+            storage.open().await.unwrap();
+            storage.insert_data(&test).await.unwrap();
+            storage.export().await.unwrap()
+        };
+
+        // Import via new storage with new key
+        let tempdir = tempfile::tempdir().unwrap();
+        let mut storage = DatabaseStorage::<MockHardwareEncryptionKey>::new(tempdir.as_ref().to_path_buf());
+
+        storage.import(transfer).await.unwrap();
+        storage.open().await.unwrap();
+        let stored: Option<TestData> = storage.fetch_data().await.unwrap();
+
+        assert_eq!(Some(test), stored);
     }
 
     #[tokio::test]
@@ -1083,10 +1216,11 @@ pub(crate) mod tests {
         // The mock mdoc is never deserialized, so it contains `ProtectedHeader { original_data: None, .. }`.
         // When this mdoc is serialized, stored, fetched, and then deserialized again, it will contain
         // `ProtectedHeader { original_data: Some(..), .. }` so the equality check below will fail.
-        // This line fixes that.
-        let mdoc: Mdoc = cbor_deserialize(cbor_serialize(&mdoc).unwrap().as_slice()).unwrap();
-        let credential = IssuedCredential::MsoMdoc(Box::new(mdoc.clone()));
+        // These lines fix that.
+        let issuer_signed = cbor_deserialize(cbor_serialize(mdoc.issuer_signed()).unwrap().as_slice()).unwrap();
+        let mdoc = Mdoc::dangerous_parse_unverified(issuer_signed, mdoc.into_private_key_id()).unwrap();
 
+        let credential = IssuedCredential::MsoMdoc { mdoc: mdoc.clone() };
         let issued_mdoc_copies = IssuedCredentialCopies::new_or_panic(
             vec![credential.clone(), credential.clone(), credential.clone()]
                 .try_into()
@@ -1100,7 +1234,7 @@ pub(crate) mod tests {
                 vec![(
                     CredentialWithMetadata::new(
                         issued_mdoc_copies,
-                        mdoc.mso.doc_type.clone(),
+                        mdoc.doc_type().to_string(),
                         VerifiedTypeMetadataDocuments::nl_pid_example(),
                     ),
                     AttestationPresentation::new_mock(),
@@ -1120,7 +1254,7 @@ pub(crate) mod tests {
 
         assert_matches!(
             &attestation_copy1.attestation,
-            StoredAttestation::MsoMdoc { mdoc: stored } if **stored == mdoc
+            StoredAttestation::MsoMdoc { mdoc: stored } if *stored == mdoc
         );
         assert_eq!(
             attestation_copy1.normalized_metadata,
@@ -1129,7 +1263,7 @@ pub(crate) mod tests {
 
         // Only one unique `AttestationCopy` should be returned when querying
         // the attestation type, but not when the queried format is SD-JWT.
-        let attestation_types = HashSet::from([mdoc.mso.doc_type.as_str()]);
+        let attestation_types = HashSet::from([mdoc.doc_type()]);
         let fetched_unique_any = storage
             .fetch_unique_attestations_by_type(&attestation_types, AttestationFormatQuery::Any)
             .await
@@ -1153,12 +1287,12 @@ pub(crate) mod tests {
         assert_eq!(fetched_unique_any.len(), 1);
         assert_matches!(
             &fetched_unique_any.first().unwrap().attestation,
-            StoredAttestation::MsoMdoc { mdoc: stored } if **stored == mdoc
+            StoredAttestation::MsoMdoc { mdoc: stored } if *stored == mdoc
         );
         assert_eq!(fetched_unique_mdoc.len(), 1);
         assert_matches!(
             &fetched_unique_mdoc.first().unwrap().attestation,
-            StoredAttestation::MsoMdoc { mdoc: stored } if **stored == mdoc
+            StoredAttestation::MsoMdoc { mdoc: stored } if *stored == mdoc
         );
         assert!(fetched_unique_sd_jwt.is_empty());
         assert!(fetched_unique_other.is_empty());
@@ -1180,7 +1314,7 @@ pub(crate) mod tests {
         let attestation_copy2 = fetched_unique_attestation_type.first().unwrap();
         assert_matches!(
             &attestation_copy2.attestation,
-            StoredAttestation::MsoMdoc { mdoc: stored } if **stored == mdoc
+            StoredAttestation::MsoMdoc { mdoc: stored } if *stored == mdoc
         );
         assert_eq!(
             attestation_copy2.normalized_metadata,
@@ -1228,7 +1362,10 @@ pub(crate) mod tests {
         assert!(matches!(state, StorageState::Opened));
 
         let sd_jwt = VerifiedSdJwt::pid_example(&ISSUER_KEY);
-        let credential = IssuedCredential::SdJwt(Box::new(sd_jwt.clone()));
+        let credential = IssuedCredential::SdJwt {
+            key_identifier: "sd_jwt_key_id".to_string(),
+            sd_jwt: sd_jwt.clone(),
+        };
 
         let issued_copies = IssuedCredentialCopies::new_or_panic(
             vec![credential.clone(), credential.clone(), credential.clone()]
@@ -1272,7 +1409,10 @@ pub(crate) mod tests {
 
         assert_matches!(
             &attestation_copy1.attestation,
-            StoredAttestation::SdJwt { sd_jwt: stored } if stored.as_ref() == &sd_jwt
+            StoredAttestation::SdJwt {
+                key_identifier,
+                sd_jwt: stored
+            } if key_identifier == "sd_jwt_key_id" && *stored == sd_jwt
         );
         assert_eq!(
             attestation_copy1.normalized_metadata,
@@ -1305,13 +1445,19 @@ pub(crate) mod tests {
         assert_eq!(fetched_unique_any.len(), 1);
         assert_matches!(
             &fetched_unique_any.first().unwrap().attestation,
-            StoredAttestation::SdJwt { sd_jwt: stored } if stored.as_ref() == &sd_jwt
+            StoredAttestation::SdJwt {
+                key_identifier,
+                sd_jwt: stored
+            } if key_identifier == "sd_jwt_key_id" && *stored == sd_jwt
         );
         assert!(fetched_unique_mdoc.is_empty());
         assert_eq!(fetched_unique_sd_jwt.len(), 1);
         assert_matches!(
             &fetched_unique_sd_jwt.first().unwrap().attestation,
-            StoredAttestation::SdJwt { sd_jwt: stored } if stored.as_ref() == &sd_jwt
+            StoredAttestation::SdJwt {
+                key_identifier,
+                sd_jwt: stored
+            } if key_identifier == "sd_jwt_key_id" && *stored == sd_jwt
         );
         assert!(fetched_unique_other.is_empty());
     }
@@ -1325,7 +1471,10 @@ pub(crate) mod tests {
 
         // Create issued_copies that will be inserted into the database
         let sd_jwt = VerifiedSdJwt::pid_example(&ISSUER_KEY);
-        let credential = IssuedCredential::SdJwt(Box::new(sd_jwt.clone()));
+        let credential = IssuedCredential::SdJwt {
+            key_identifier: "sd_jwt_key_id".to_string(),
+            sd_jwt: sd_jwt.clone(),
+        };
         let issued_copies = IssuedCredentialCopies::new_or_panic(
             vec![credential.clone(), credential.clone(), credential.clone()]
                 .try_into()
@@ -1370,6 +1519,7 @@ pub(crate) mod tests {
         let inserted_attestation_copy = attestations.first().unwrap();
         let StoredAttestation::SdJwt {
             sd_jwt: inserted_attestation,
+            ..
         } = &inserted_attestation_copy.attestation
         else {
             panic!("Attestation is not an SD-JWT")
@@ -1381,7 +1531,10 @@ pub(crate) mod tests {
 
         // Create new issued_copies that will be updated
         let sd_jwt = VerifiedSdJwt::pid_example(&ISSUER_KEY);
-        let credential = IssuedCredential::SdJwt(Box::new(sd_jwt.clone()));
+        let credential = IssuedCredential::SdJwt {
+            key_identifier: "sd_jwt_key_id".to_string(),
+            sd_jwt: sd_jwt.clone(),
+        };
         let issued_copies = IssuedCredentialCopies::new_or_panic(
             vec![credential.clone(), credential.clone(), credential.clone()]
                 .try_into()
@@ -1409,6 +1562,7 @@ pub(crate) mod tests {
         let updated_attestation_copy = attestations.first().unwrap();
         let StoredAttestation::SdJwt {
             sd_jwt: updated_attestation,
+            ..
         } = &updated_attestation_copy.attestation
         else {
             panic!("Attestation is not an SD-JWT")
@@ -1439,6 +1593,7 @@ pub(crate) mod tests {
         let next_updated_attestation_copy = attestations.first().unwrap();
         let StoredAttestation::SdJwt {
             sd_jwt: next_updated_attestation,
+            ..
         } = &next_updated_attestation_copy.attestation
         else {
             panic!("Attestation is not an SD-JWT")
@@ -1571,7 +1726,10 @@ pub(crate) mod tests {
         );
 
         let sd_jwt = VerifiedSdJwt::pid_example(&ISSUER_KEY);
-        let credential = IssuedCredential::SdJwt(Box::new(sd_jwt.clone()));
+        let credential = IssuedCredential::SdJwt {
+            key_identifier: "sd_jwt_key_id".to_string(),
+            sd_jwt: sd_jwt.clone(),
+        };
 
         let issued_copies = IssuedCredentialCopies::new_or_panic(
             vec![credential.clone(), credential.clone(), credential.clone()]
@@ -1598,7 +1756,7 @@ pub(crate) mod tests {
             .expect("Could not insert mdocs");
 
         let StoredAttestationCopy {
-            attestation: StoredAttestation::SdJwt { sd_jwt },
+            attestation: StoredAttestation::SdJwt { sd_jwt, .. },
             attestation_id,
             ..
         } = storage
@@ -1614,16 +1772,12 @@ pub(crate) mod tests {
 
         let normalized_metadata = VerifiedTypeMetadataDocuments::nl_pid_example().to_normalized().unwrap();
 
-        let issuer_certificate = sd_jwt.as_ref().issuer_certificate();
+        let issuer_certificate = sd_jwt.issuer_certificate();
         let issuer_registration = IssuerRegistration::from_certificate(issuer_certificate)
             .unwrap()
             .unwrap();
 
-        let payload = sd_jwt
-            .as_ref()
-            .as_ref()
-            .into_credential_payload(&normalized_metadata)
-            .unwrap();
+        let payload = sd_jwt.as_ref().into_credential_payload(&normalized_metadata).unwrap();
         let attestation = AttestationPresentation::create_from_attributes(
             AttestationIdentity::Fixed { id: attestation_id },
             normalized_metadata,
@@ -1700,7 +1854,10 @@ pub(crate) mod tests {
         let timestamp_even_older = Utc.with_ymd_and_hms(2023, 11, 11, 11, 11, 00).unwrap();
 
         let sd_jwt = VerifiedSdJwt::pid_example(&ISSUER_KEY);
-        let credential = IssuedCredential::SdJwt(Box::new(sd_jwt.clone()));
+        let credential = IssuedCredential::SdJwt {
+            key_identifier: "sd_jwt_key_id".to_string(),
+            sd_jwt: sd_jwt.clone(),
+        };
 
         let issued_copies = IssuedCredentialCopies::new_or_panic(vec![credential.clone()].try_into().unwrap());
         let attestation_type = sd_jwt.as_ref().claims().vct.as_ref().unwrap().to_owned();
@@ -1738,7 +1895,7 @@ pub(crate) mod tests {
             .into_iter()
             .map(|attestation| {
                 let StoredAttestationCopy {
-                    attestation: StoredAttestation::SdJwt { sd_jwt },
+                    attestation: StoredAttestation::SdJwt { sd_jwt, .. },
                     attestation_id,
                     ..
                 } = attestation
@@ -1748,16 +1905,12 @@ pub(crate) mod tests {
 
                 let normalized_metadata = VerifiedTypeMetadataDocuments::nl_pid_example().to_normalized().unwrap();
 
-                let issuer_certificate = sd_jwt.as_ref().issuer_certificate();
+                let issuer_certificate = sd_jwt.issuer_certificate();
                 let issuer_registration = IssuerRegistration::from_certificate(issuer_certificate)
                     .unwrap()
                     .unwrap();
 
-                let payload = sd_jwt
-                    .as_ref()
-                    .as_ref()
-                    .into_credential_payload(&normalized_metadata)
-                    .unwrap();
+                let payload = sd_jwt.as_ref().into_credential_payload(&normalized_metadata).unwrap();
                 AttestationPresentation::create_from_attributes(
                     AttestationIdentity::Fixed { id: attestation_id },
                     normalized_metadata,

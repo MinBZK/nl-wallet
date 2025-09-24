@@ -12,10 +12,9 @@ pub struct Model {
     #[sea_orm(unique)]
     pub transfer_session_id: Uuid,
     pub destination_wallet_app_version: String,
-    pub transfer_in_progress: bool,
+    pub state: String,
     pub created: DateTimeWithTimeZone,
-    #[sea_orm(column_type = "VarBinary(StringLen::None)", nullable)]
-    pub encrypted_wallet_data: Option<Vec<u8>>,
+    pub encrypted_wallet_data: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

@@ -158,8 +158,9 @@ void main() {
         expect(find.byIcon(Icons.play_arrow), findsNothing);
       });
 
-      testWidgets('tapping pause button calls controller.pause() and updates icon to play',
-          (WidgetTester tester) async {
+      testWidgets('tapping pause button calls controller.pause() and updates icon to play', (
+        WidgetTester tester,
+      ) async {
         // Start in playing state
         when(mockController.value).thenReturn(initialVideoValue.copyWith(isPlaying: true));
         await pumpVideoOverlay(tester, controller: mockController, autoPlay: true);
@@ -228,8 +229,9 @@ void main() {
     });
 
     group('Volume Button', () {
-      testWidgets('tapping volume_off calls controller.setVolume(0) and updates icon to volume_up',
-          (WidgetTester tester) async {
+      testWidgets('tapping volume_off calls controller.setVolume(0) and updates icon to volume_up', (
+        WidgetTester tester,
+      ) async {
         // Initial state: volume is on (1.0), icon is volume_off
         when(mockController.value).thenReturn(initialVideoValue.copyWith(volume: 1));
         await pumpVideoOverlay(tester, controller: mockController);
@@ -249,8 +251,9 @@ void main() {
         expect(find.byIcon(Icons.volume_off), findsNothing);
       });
 
-      testWidgets('tapping volume_up calls controller.setVolume(1) and updates icon to volume_off',
-          (WidgetTester tester) async {
+      testWidgets('tapping volume_up calls controller.setVolume(1) and updates icon to volume_off', (
+        WidgetTester tester,
+      ) async {
         // Initial state: volume is off (0), icon is volume_up
         when(mockController.value).thenReturn(initialVideoValue.copyWith(volume: 0));
         await pumpVideoOverlay(tester, controller: mockController);

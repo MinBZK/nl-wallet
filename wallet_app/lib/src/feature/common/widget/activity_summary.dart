@@ -187,12 +187,16 @@ class _ActivitySummaryState extends State<ActivitySummary> {
     } else if (loggedInWithOrganizationNames.length <= 3) {
       /// User shared with >1 (unique) organizations.
       /// Format the first (length - 1) items as "OrgA, OrgB"
-      final commaSeparatedOrganizations =
-          loggedInWithOrganizationNames.toList().sublist(0, loggedInWithOrganizationNames.length - 1).join(', ');
+      final commaSeparatedOrganizations = loggedInWithOrganizationNames
+          .toList()
+          .sublist(0, loggedInWithOrganizationNames.length - 1)
+          .join(', ');
 
       /// Combine the comma separated organisations in a line, where the last organisation is separated by 'and'.
-      return context.l10n
-          .activitySummaryLoggedInMultiple(loggedInWithOrganizationNames.last, commaSeparatedOrganizations);
+      return context.l10n.activitySummaryLoggedInMultiple(
+        loggedInWithOrganizationNames.last,
+        commaSeparatedOrganizations,
+      );
     } else {
       /// Shared with >3 organizations, group the organizations as 'Shared with orgX, orgY and 6 others'
 
@@ -225,12 +229,16 @@ class _ActivitySummaryState extends State<ActivitySummary> {
     } else if (sharedWithOrganizationNames.length <= 3) {
       /// User shared with >1 (unique) organizations.
       /// Format the first (length - 1) items as "OrgA, OrgB"
-      final commaSeparatedOrganizations =
-          sharedWithOrganizationNames.toList().sublist(0, sharedWithOrganizationNames.length - 1).join(', ');
+      final commaSeparatedOrganizations = sharedWithOrganizationNames
+          .toList()
+          .sublist(0, sharedWithOrganizationNames.length - 1)
+          .join(', ');
 
       /// Combine the comma separated organisations in a line, where the last organisation is separated by 'and'.
-      return context.l10n
-          .activitySummarySharedWithMultiple(sharedWithOrganizationNames.last, commaSeparatedOrganizations);
+      return context.l10n.activitySummarySharedWithMultiple(
+        sharedWithOrganizationNames.last,
+        commaSeparatedOrganizations,
+      );
     } else {
       /// Shared with >3 organizations, group the organizations as 'Shared with orgX, orgY and 6 others'
 

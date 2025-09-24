@@ -15,7 +15,7 @@ void main() {
         IssuanceConfirmPinForDisclosurePage(
           bloc: PinBloc(Mocks.create()),
           onPinValidated: (_) {},
-          onConfirmWithPinFailed: (_, __) {},
+          onConfirmWithPinFailed: (_, _) {},
         ),
       );
       await screenMatchesGolden('issuance_confirm_pin/light');
@@ -26,7 +26,7 @@ void main() {
         IssuanceConfirmPinForDisclosurePage(
           bloc: PinBloc(Mocks.create()),
           onPinValidated: (_) {},
-          onConfirmWithPinFailed: (_, __) {},
+          onConfirmWithPinFailed: (_, _) {},
         ),
         brightness: Brightness.dark,
       );
@@ -41,7 +41,7 @@ void main() {
         IssuanceConfirmPinForDisclosurePage(
           bloc: PinBloc(Mocks.create()),
           onPinValidated: (_) {},
-          onConfirmWithPinFailed: (_, __) {},
+          onConfirmWithPinFailed: (_, _) {},
         ),
       );
 

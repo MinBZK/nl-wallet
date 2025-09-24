@@ -8,7 +8,6 @@ use p256::ecdsa::VerifyingKey;
 use p256::ecdsa::signature;
 
 use crypto::keys::CredentialEcdsaKey;
-use crypto::keys::CredentialKeyType;
 use crypto::keys::WithIdentifier;
 use crypto::p256_der::DerSignature;
 use crypto::wscd::DisclosureResult;
@@ -166,6 +165,4 @@ impl WithVerifyingKey for RemoteEcdsaKey {
     }
 }
 
-impl CredentialEcdsaKey for RemoteEcdsaKey {
-    const KEY_TYPE: CredentialKeyType = CredentialKeyType::Remote;
-}
+impl CredentialEcdsaKey for RemoteEcdsaKey {}

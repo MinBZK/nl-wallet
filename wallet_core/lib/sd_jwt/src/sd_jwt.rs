@@ -17,6 +17,7 @@ use jsonwebtoken::Algorithm;
 use jsonwebtoken::Validation;
 use jwt::JwtTyp;
 use nutype::nutype;
+use p256::ecdsa::VerifyingKey;
 use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde::Serialize;
@@ -30,7 +31,10 @@ use serde_with::skip_serializing_none;
 use ssri::Integrity;
 
 use attestation_types::claim_path::ClaimPath;
-use crypto::EcdsaKeySend;
+use crypto::CredentialEcdsaKey;
+use crypto::EcdsaKey;
+use crypto::wscd::DisclosureWscd;
+use crypto::wscd::WscdPoa;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateUsage;
 use http_utils::urls::HttpsUri;
@@ -39,10 +43,11 @@ use jwt::Header;
 use jwt::UnverifiedJwt;
 use jwt::VerifiedJwt;
 use jwt::headers::HeaderWithX5c;
-use jwt::jwk::jwk_to_p256;
 use utils::date_time_seconds::DateTimeSeconds;
 use utils::generator::Generator;
 use utils::spec::SpecOptional;
+use utils::vec_at_least::IntoNonEmptyIterator;
+use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_at_least::VecNonEmptyUnique;
 
@@ -109,15 +114,20 @@ impl UnverifiedSdJwt {
         trust_anchors: &[TrustAnchor],
         time: &impl Generator<DateTime<Utc>>,
     ) -> Result<VerifiedSdJwt> {
-        let issuer_signed_jwt = self.issuer_signed.clone().into_verified_against_trust_anchors(
+        let UnverifiedSdJwt {
+            issuer_signed,
+            disclosures,
+        } = self;
+
+        let issuer_signed_jwt = issuer_signed.into_verified_against_trust_anchors(
             &SD_JWT_VALIDATIONS,
             time,
             CertificateUsage::Mdl,
             trust_anchors,
         )?;
 
-        let hasher = issuer_signed_jwt.payload()._sd_alg.unwrap_or_default().hasher()?;
-        let disclosures = Self::parse_disclosures(&self.disclosures, &hasher)?;
+        let disclosures = Self::parse_and_verify_disclosures(&disclosures, issuer_signed_jwt.payload())?;
+
         Ok(VerifiedSdJwt(SdJwt {
             issuer_signed_jwt,
             disclosures,
@@ -125,17 +135,49 @@ impl UnverifiedSdJwt {
     }
 }
 
-impl<C, H> UnverifiedSdJwt<C, H> {
-    fn parse_disclosures(disclosures: &[String], hasher: &impl Hasher) -> Result<HashMap<String, Disclosure>> {
-        let disclosures = disclosures
+impl UnverifiedSdJwt {
+    /// Parses and verifies disclosures according to <https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-22.html#section-7.1>
+    fn parse_and_verify_disclosures(
+        disclosures: &[String],
+        sd_jwt_claims: &SdJwtClaims,
+    ) -> Result<HashMap<String, Disclosure>> {
+        let hasher = sd_jwt_claims._sd_alg.unwrap_or_default().hasher()?;
+
+        let mut placeholder_digests: HashMap<String, HashType> = sd_jwt_claims.claims.digests().into_iter().collect();
+
+        let disclosures: HashMap<String, Disclosure> = disclosures
             .iter()
             .map(|disclosure| {
                 let hash = hasher.encoded_digest(disclosure);
-                let disclosure = disclosure.parse()?;
-                // TODO verify recursively that the hash is in the issuer_signed_jwt "_sd" array (PVW-4817)
+                let disclosure = disclosure.parse::<Disclosure>()?;
+
+                for (digest, hash_type) in disclosure.content.parsed_claim_value()?.digests() {
+                    // 7.1.4. If any digest value is encountered more than once in the Issuer-signed JWT payload
+                    // (directly or recursively via other Disclosures), the SD-JWT MUST be rejected.
+                    if placeholder_digests.insert(digest.clone(), hash_type).is_some() {
+                        return Err(Error::DuplicateHash(digest));
+                    }
+                }
+
                 Result::Ok((hash, disclosure))
             })
             .try_collect()?;
+
+        // 7.1.5. If any Disclosure was not referenced by digest value in the Issuer-signed JWT (directly or recursively
+        // via other Disclosures), the SD-JWT MUST be rejected.
+        disclosures
+            .iter()
+            .try_for_each(|(digest, disclosure)| match placeholder_digests.get(digest) {
+                // For any disclosure that is referenced, verify that the hash type matches the digest hash type.
+                Some(digest_hash_type) if *digest_hash_type != disclosure.hash_type() => {
+                    Err(Error::DataTypeMismatch(format!(
+                        "Expected an {:?} element, but got an {digest_hash_type:?} element for digest `{digest}`",
+                        disclosure.hash_type()
+                    )))
+                }
+                Some(_) => Ok(()),
+                None => Err(Error::UnreferencedDisclosure(digest.clone())),
+            })?;
 
         Ok(disclosures)
     }
@@ -144,14 +186,17 @@ impl<C, H> UnverifiedSdJwt<C, H> {
 impl From<UnsignedSdJwtPresentation> for UnverifiedSdJwt {
     fn from(presentation: UnsignedSdJwtPresentation) -> Self {
         // TODO we could define `into_disclosures` on `SdJwt` and use that here.
-        let disclosures = presentation
-            .0
-            .disclosures()
-            .values()
-            .map(ToString::to_string)
-            .collect_vec();
+        let UnsignedSdJwtPresentation(sd_jwt) = presentation;
+
+        let issuer_signed = sd_jwt.issuer_signed_jwt.into();
+        let disclosures = sd_jwt
+            .disclosures
+            .into_values()
+            .map(|disclosure| disclosure.encoded)
+            .collect();
+
         Self {
-            issuer_signed: presentation.0.issuer_signed_jwt.into(),
+            issuer_signed,
             disclosures,
         }
     }
@@ -198,6 +243,21 @@ pub struct ObjectClaims {
     pub claims: HashMap<ClaimName, ClaimValue>,
 }
 
+impl ObjectClaims {
+    pub fn digests(&self) -> Vec<(String, HashType)> {
+        let object_digests = self
+            ._sd
+            .iter()
+            .flat_map(|digests| digests.iter().map(|digest| (digest.clone(), HashType::Object)));
+
+        self.claims
+            .values()
+            .flat_map(ClaimValue::digests)
+            .chain(object_digests)
+            .collect()
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 #[serde(untagged)]
 pub enum ClaimValue {
@@ -209,12 +269,33 @@ pub enum ClaimValue {
     String(String),
 }
 
+impl ClaimValue {
+    /// Recursively discover all placeholder digests for arrays and objects.
+    pub fn digests(&self) -> Vec<(String, HashType)> {
+        match self {
+            ClaimValue::Array(claims) => claims.iter().flat_map(ArrayClaim::digests).collect(),
+            ClaimValue::Object(object) => object.digests(),
+            // There are no digests in any primitive value.
+            _ => Default::default(),
+        }
+    }
+}
+
 #[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 #[serde(untagged)]
 pub enum ArrayClaim {
     Hash(#[serde_as(as = "FromInto<DisclosureHash>")] String),
     Value(ClaimValue),
+}
+
+impl ArrayClaim {
+    pub fn digests(&self) -> Vec<(String, HashType)> {
+        match &self {
+            ArrayClaim::Hash(hash) => vec![(hash.clone(), HashType::Array)],
+            ArrayClaim::Value(value) => value.digests(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Default)]
@@ -234,6 +315,12 @@ impl From<DisclosureHash> for String {
     fn from(value: DisclosureHash) -> Self {
         value.hash
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum HashType {
+    Array,
+    Object,
 }
 
 /// Representation of an SD-JWT of the format
@@ -272,47 +359,83 @@ where
     H: TryFrom<Header, Error = E>,
     E: std::error::Error + Send + Sync + 'static,
 {
-    /// Parses an SD-JWT into its components as [`SdJwt`].
+    /// Create multiple `SdJwtPresentation`s by having the WSCD sign multiple `UnsignedSdJwtPresentation`s,
+    /// using the contents of a single `KeyBindingJwtBuilder`.
+    pub async fn sign_multiple<I, W, K, P>(
+        unsigned_presentations_and_keys_ids: VecNonEmpty<(UnsignedSdJwtPresentation<SdJwtClaims, H>, I)>,
+        key_binding_jwt_builder: KeyBindingJwtBuilder,
+        wscd: &W,
+        poa_input: P::Input,
+    ) -> Result<(VecNonEmpty<SdJwtPresentation<SdJwtClaims, H>>, Option<P>)>
+    where
+        I: Into<String>,
+        W: DisclosureWscd<Key = K, Poa = P>,
+        K: CredentialEcdsaKey,
+        P: WscdPoa,
+    {
+        // Create the WSCD keys from the provided key identifiers and public keys present in the `cnf` claim.
+        // Note that the latter is not actually used, as all we do is signing.
+        let sd_jwts_and_keys: VecNonEmpty<(SdJwt<SdJwtClaims, H>, _)> = unsigned_presentations_and_keys_ids
+            .into_nonempty_iter()
+            .map(|(UnsignedSdJwtPresentation(sd_jwt), key_identifier)| {
+                let key = wscd.new_key(key_identifier, sd_jwt.verifying_key()?);
+
+                Ok((sd_jwt, key))
+            })
+            .collect::<Result<_>>()?;
+
+        // Have the WSCD create `KeyBindingJwt`s and the PoA, if required.
+        let (key_binding_jwts, poa) = key_binding_jwt_builder
+            .finish_multiple(&sd_jwts_and_keys, wscd, poa_input)
+            .await?;
+
+        // Combine the `SdJwt`s with the `KeyBindingJwt`s to create `SdJwtPresentation`s.
+        let sd_jwt_presentations = sd_jwts_and_keys
+            .into_nonempty_iter()
+            .zip(key_binding_jwts)
+            .map(|((sd_jwt, _), key_binding_jwt)| SdJwtPresentation {
+                sd_jwt,
+                key_binding_jwt: key_binding_jwt.into(),
+            })
+            .collect();
+
+        Ok((sd_jwt_presentations, poa))
+    }
+}
+
+impl SdJwtPresentation {
+    /// Parses an SD-JWT into its components as [`SdJwtPresentation`] while verifying against a set of trust anchors.
     ///
     /// ## Error
     /// Returns [`Error::Deserialization`] if parsing fails.
-    pub fn parse_and_verify(
+    pub fn parse_and_verify_against_trust_anchors(
         sd_jwt: &str,
-        issuer_pubkey: &EcdsaDecodingKey,
+        time: &impl Generator<DateTime<Utc>>,
+        trust_anchors: &[TrustAnchor],
         kb_expected_aud: &str,
         kb_expected_nonce: &str,
         kb_iat_acceptance_window: Duration,
-    ) -> Result<Self> {
-        let (rest, kb_segment) = sd_jwt
-            .rsplit_once("~")
-            .map(|(head, tail)| {
-                let head_with_tilde = &sd_jwt[..head.len() + 1];
-                (head_with_tilde, tail)
-            })
-            .ok_or(Error::Deserialization(
-                "SD-JWT format is invalid, no segments found".to_string(),
-            ))?;
+    ) -> Result<SdJwtPresentation> {
+        let (rest, kb_segment) = Self::split_sd_jwt_kb(sd_jwt)?;
 
-        let sd_jwt = SdJwt::<SdJwtClaims, H>::parse_and_verify(rest, issuer_pubkey)?;
+        let verified_sd_jwt = VerifiedSdJwt::parse_and_verify_against_trust_anchors(rest, time, trust_anchors)?;
 
-        let Some(RequiredKeyBinding::Jwk(jwk)) = sd_jwt.required_key_bind() else {
-            return Err(Error::MissingJwkKeybinding);
-        };
-
-        let key_binding_jwt = KeyBindingJwt::parse_and_verify(
+        let key_binding_jwt = SdJwtPresentation::parse_and_verify_kb_jwt(
             kb_segment,
-            &EcdsaDecodingKey::from(&jwk_to_p256(jwk)?),
+            verified_sd_jwt.as_ref(),
             kb_expected_aud,
             kb_expected_nonce,
             kb_iat_acceptance_window,
+            time,
         )?;
 
-        Ok(Self {
-            sd_jwt,
+        Ok(SdJwtPresentation {
+            sd_jwt: verified_sd_jwt.into_inner(),
             key_binding_jwt: key_binding_jwt.into(),
         })
     }
 }
+
 impl<C, H> SdJwtPresentation<C, H> {
     pub fn presentation(&self) -> String {
         let disclosures = self.sd_jwt.disclosures.values().join("~");
@@ -326,6 +449,18 @@ impl<C, H> SdJwtPresentation<C, H> {
         .filter(|segment| !segment.is_empty())
         .join("~")
     }
+
+    fn split_sd_jwt_kb(sd_jwt: &str) -> Result<(&str, &str)> {
+        sd_jwt
+            .rsplit_once("~")
+            .map(|(head, tail)| {
+                let head_with_tilde = &sd_jwt[..head.len() + 1];
+                (head_with_tilde, tail)
+            })
+            .ok_or(Error::Deserialization(
+                "SD-JWT format is invalid, no segments found".to_string(),
+            ))
+    }
 }
 
 impl SdJwtPresentation {
@@ -333,8 +468,26 @@ impl SdJwtPresentation {
         &self.sd_jwt
     }
 
+    pub fn into_sd_jwt(self) -> SdJwt {
+        self.sd_jwt
+    }
+
     pub fn key_binding_jwt(&self) -> &KeyBindingJwt {
         self.key_binding_jwt.as_ref()
+    }
+
+    pub fn verifying_key(&self) -> VerifyingKey {
+        // TODO (PVW-4817): The presence of the key binding and the guarantee that it can be parsed to a `VerifyingKey`
+        //                  is inherent to the type, as this should already have been done by the two ways to construct
+        //                  it:
+        //
+        //                  * When the holder creates this type through `SdJwtPresentationBuilder` by signing a
+        //                    `KeyBindingJwt` with its private key.
+        //                  * When the verifier parses the type from a SD-JWT presentation string.
+        //
+        //                  Unfortunately the presence and validity of the public key is currently not checked for the
+        //                  first method. This sanity check should be added, so we know the guarantee holds.
+        self.sd_jwt.verifying_key().unwrap()
     }
 }
 
@@ -409,6 +562,15 @@ impl<H> SdJwt<SdJwtClaims, H> {
         self.claims().cnf.as_ref()
     }
 
+    pub fn verifying_key(&self) -> Result<VerifyingKey> {
+        let verifying_key = self
+            .required_key_bind()
+            .ok_or(Error::MissingJwkKeybinding)?
+            .verifying_key()?;
+
+        Ok(verifying_key)
+    }
+
     pub fn hasher(&self) -> Result<Box<dyn Hasher>> {
         let alg = self.claims()._sd_alg.unwrap_or_default();
         Ok(Box::new(alg.hasher()?))
@@ -469,20 +631,75 @@ where
     }
 }
 
+impl<H, E> SdJwtPresentation<SdJwtClaims, H>
+where
+    H: TryFrom<Header, Error = E>,
+    E: std::error::Error + Send + Sync + 'static,
+{
+    /// Parses an SD-JWT into its components as [`SdJwtPresentation`].
+    ///
+    /// ## Error
+    /// Returns [`Error::Deserialization`] if parsing fails.
+    pub fn parse_and_verify(
+        sd_jwt: &str,
+        issuer_pubkey: &EcdsaDecodingKey,
+        kb_expected_aud: &str,
+        kb_expected_nonce: &str,
+        kb_iat_acceptance_window: Duration,
+        time: &impl Generator<DateTime<Utc>>,
+    ) -> Result<Self> {
+        let (rest, kb_segment) = SdJwtPresentation::<SdJwtClaims, H>::split_sd_jwt_kb(sd_jwt)?;
+
+        let sd_jwt = SdJwt::<SdJwtClaims, H>::parse_and_verify(rest, issuer_pubkey)?;
+
+        let key_binding_jwt = SdJwtPresentation::parse_and_verify_kb_jwt(
+            kb_segment,
+            &sd_jwt,
+            kb_expected_aud,
+            kb_expected_nonce,
+            kb_iat_acceptance_window,
+            time,
+        )?;
+
+        Ok(Self {
+            sd_jwt,
+            key_binding_jwt: key_binding_jwt.into(),
+        })
+    }
+
+    fn parse_and_verify_kb_jwt(
+        kb_segment: &str,
+        sd_jwt: &SdJwt<SdJwtClaims, H>,
+        kb_expected_aud: &str,
+        kb_expected_nonce: &str,
+        kb_iat_acceptance_window: Duration,
+        time: &impl Generator<DateTime<Utc>>,
+    ) -> Result<KeyBindingJwt> {
+        KeyBindingJwt::parse_and_verify(
+            kb_segment,
+            &EcdsaDecodingKey::from(&sd_jwt.verifying_key()?),
+            kb_expected_aud,
+            kb_expected_nonce,
+            kb_iat_acceptance_window,
+            time,
+        )
+    }
+}
+
 impl<C, H> Display for SdJwt<C, H> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(&(self.presentation()))
     }
 }
 
-impl VerifiedSdJwt {
+impl<C: DeserializeOwned + JwtTyp> VerifiedSdJwt<C> {
     /// Parses an SD-JWT into its components as [`VerifiedSdJwt`] verifying against the provided trust anchors.
     pub fn parse_and_verify_against_trust_anchors(
         sd_jwt: &str,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
     ) -> Result<Self> {
-        let (jwt, disclosures) = SdJwt::parse_sd_jwt_unverified(sd_jwt)?;
+        let (jwt, disclosures) = SdJwt::<C>::parse_sd_jwt_unverified(sd_jwt)?;
 
         let issuer_signed_jwt =
             jwt.into_verified_against_trust_anchors(&SD_JWT_VALIDATIONS, time, CertificateUsage::Mdl, trust_anchors)?;
@@ -532,7 +749,7 @@ pub struct SdJwtPresentationBuilder<H = HeaderWithX5c> {
     /// Digests to be disclosed.
     digests_to_be_disclosed: HashSet<String>,
 
-    /// A helper object containing both non-selectively disclosable JWT claims and the `_sd` hashes,
+    /// A helper object containing both non-selectively disclosable JWT claims and the `_sd` digests,
     /// used by `digests_to_disclose()`.
     full_payload: serde_json::Value,
 }
@@ -596,7 +813,7 @@ impl UnsignedSdJwtPresentation {
     pub async fn sign(
         self,
         key_binding_jwt_builder: KeyBindingJwtBuilder,
-        signing_key: &impl EcdsaKeySend,
+        signing_key: &impl EcdsaKey,
     ) -> Result<SdJwtPresentation> {
         let sd_jwt = self.0;
 
@@ -670,6 +887,12 @@ where
         }
         // We reached the the value we want to disclose, so add it to the list of digests
         (serde_json::Value::Object(object), ClaimPath::SelectByKey(key)) => {
+            // If the value exists within the object, it is not selectively disclosable
+            // and we do not have to look for the associated disclosure.
+            if object.contains_key(key) {
+                return Ok(digests);
+            }
+
             let digest = find_disclosure_digest_in_object(object, key, disclosures)
                 .ok_or_else(|| Error::ElementNotFound { path: key.clone() })?;
 
@@ -690,15 +913,21 @@ where
         }
         // Disclosing an array's entry.
         (serde_json::Value::Array(arr), ClaimPath::SelectByIndex(index)) => {
-            let digest = arr
-                .get(*index)
-                .and_then(|entry| entry.as_object())
-                .and_then(|object| find_disclosure_digest_in_array(object))
-                .ok_or_else(|| Error::ElementNotFoundInArray {
+            let Some(entry) = arr.get(*index) else {
+                return Err(Error::ElementNotFoundInArray {
                     path: element_key.to_string(),
-                })?;
+                });
+            };
 
-            digests.push(digest);
+            // If the array entry does not look exactly like an array-selective-disclosure object, then this
+            // entry is not selectively disclosable and we do not have to look for the associated disclosure.
+            let digest = entry
+                .as_object()
+                .and_then(|object| find_disclosure_digest_in_array(object));
+            if let Some(digest) = digest {
+                digests.push(digest);
+            }
+
             Ok(digests)
         }
         // Disclosing all array entries
@@ -726,16 +955,21 @@ fn process_array_entry<'a>(
     disclosures: &'a HashMap<String, Disclosure>,
     digests: &mut Vec<&'a str>,
 ) -> Option<&'a serde_json::Value> {
-    entry
+    let digest = entry
         .as_object()
-        .and_then(|object| find_disclosure_digest_in_array(object))
-        .and_then(|digest| {
-            // We're disclosing something within a selectively disclosable array entry.
-            // For the verifier to be able to verify that, we'll also have to disclose that entry.
-            digests.push(digest);
-            disclosures.get(digest)
-        })
-        .map(move |disclosure| disclosure.claim_value())
+        .and_then(|object| find_disclosure_digest_in_array(object));
+
+    if let Some(digest) = digest {
+        // We're disclosing something within a selectively disclosable array entry.
+        // For the verifier to be able to verify that, we'll also have to disclose that entry.
+        digests.push(digest);
+
+        disclosures.get(digest).map(|disclosure| disclosure.claim_value())
+    } else {
+        // This array entry is not selectively disclosable as it does not look like an
+        // array-selective-disclosure object, so we just return it verbatim.
+        Some(entry)
+    }
 }
 
 /// Find the digest of the given `key` in the `object` and `disclosures`.
@@ -785,7 +1019,7 @@ mod mock {
 }
 
 #[cfg(feature = "examples")]
-mod example {
+mod examples {
     use futures::FutureExt;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
@@ -864,6 +1098,7 @@ mod test {
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
     use rstest::rstest;
+    use serde_json::Value;
     use serde_json::json;
     use ssri::Integrity;
 
@@ -874,10 +1109,14 @@ mod test {
     use utils::date_time_seconds::DateTimeSeconds;
 
     use crate::builder::SdJwtBuilder;
+    use crate::disclosure::Disclosure;
     use crate::disclosure::DisclosureContent;
     use crate::encoder::ARRAY_DIGEST_KEY;
     use crate::encoder::DIGESTS_KEY;
+    use crate::error::Result;
+    use crate::examples::KeyBindingExampleTimeGenerator;
     use crate::examples::*;
+    use crate::hasher::Hasher;
     use crate::key_binding_jwt_claims::KeyBindingJwtBuilder;
     use crate::key_binding_jwt_claims::RequiredKeyBinding;
     use crate::sd_alg::SdAlg;
@@ -921,7 +1160,8 @@ mod test {
             &examples_sd_jwt_decoding_key(),
             WITH_KB_SD_JWT_AUD,
             WITH_KB_SD_JWT_NONCE,
-            Duration::days(36500),
+            Duration::minutes(10),
+            &KeyBindingExampleTimeGenerator,
         )
         .unwrap();
     }
@@ -1097,6 +1337,18 @@ mod test {
         &["given_name"],
         &["/family_name"],
     )]
+    #[case::flat_single_sd_disclose_all(
+        json!({
+            "iss": "https://iss.example.com",
+            "iat": Utc::now().timestamp(),
+            "given_name": "John",
+            "family_name": "Doe"
+        }),
+        &[vec!["given_name"]],
+        &[vec!["given_name"], vec!["family_name"]],
+        &["given_name"],
+        &["/family_name"],
+    )]
     #[case::flat_no_sd_no_disclose(
         json!({
             "iss": "https://iss.example.com",
@@ -1191,7 +1443,7 @@ mod test {
         #[case] object: serde_json::Value,
         #[case] conceal_paths: &[Vec<&str>],
         #[case] disclose_paths: &[Vec<&str>],
-        #[case] expected_disclosed_paths: &[&str],
+        #[case] expected_disclosure_paths: &[&str],
         #[case] expected_not_selectively_disclosable_paths: &[&str],
     ) {
         let presentation = create_presentation(object, conceal_paths, disclose_paths);
@@ -1228,7 +1480,7 @@ mod test {
         let not_selectively_disclosable_paths = get_paths(&properties);
 
         assert_eq!(
-            HashSet::from_iter(expected_disclosed_paths.iter().map(|path| String::from(*path))),
+            HashSet::from_iter(expected_disclosure_paths.iter().map(|path| String::from(*path))),
             presentation
                 .sd_jwt
                 .disclosures
@@ -1261,6 +1513,17 @@ mod test {
         &["NL", "DE"],
         &["/nationalities"],
     )]
+    #[case::array_all_non_sd(
+        json!({
+            "iss": "https://iss.example.com",
+            "iat": Utc::now().timestamp(),
+            "nationalities": ["NL", "DE"]
+        }),
+        &[vec!["nationalities", "1"]],
+        &[vec!["nationalities", "null"]],
+        &["DE"],
+        &["/nationalities/NL", "/nationalities"],
+    )]
     #[case::array(
         json!({
             "iss": "https://iss.example.com",
@@ -1283,6 +1546,17 @@ mod test {
         &["NL"],
         &["/nationalities/DE", "/nationalities"],
     )]
+    #[case::array_index_non_sd(
+        json!({
+            "iss": "https://iss.example.com",
+            "iat": Utc::now().timestamp(),
+            "nationalities": ["NL", "DE"]
+        }),
+        &[vec!["nationalities", "0"]],
+        &[vec!["nationalities", "0"], vec!["nationalities", "1"]],
+        &["NL"],
+        &["/nationalities/DE", "/nationalities"],
+    )]
     #[case::array(
         json!({
             "iss": "https://iss.example.com",
@@ -1293,6 +1567,21 @@ mod test {
             vec!["nationalities", "0", "country"],
             vec!["nationalities", "1", "country"],
             vec!["nationalities", "0"],
+            vec!["nationalities", "1"],
+            vec!["nationalities"]
+        ],
+        &[vec!["nationalities", "null", "country"]],
+        &["nationalities", "country"],
+        &[],
+    )]
+    #[case::array_all_non_sd_nested(
+        json!({
+            "iss": "https://iss.example.com",
+            "iat": Utc::now().timestamp(),
+            "nationalities": [{"country": "NL"}, {"country": "DE"}]
+        }),
+        &[
+            vec!["nationalities", "1", "country"],
             vec!["nationalities", "1"],
             vec!["nationalities"]
         ],
@@ -1350,6 +1639,21 @@ mod test {
         &["nationalities", "country"],
         &[],
     )]
+    #[case::array_index_non_sd_nested(
+        json!({
+            "iss": "https://iss.example.com",
+            "iat": Utc::now().timestamp(),
+            "nationalities": [{"country": "NL"}, {"country": "DE"}]
+        }),
+        &[
+            vec!["nationalities", "0", "country"],
+            vec!["nationalities", "0"],
+            vec!["nationalities"]
+        ],
+        &[vec!["nationalities", "0", "country"], vec!["nationalities", "1", "country"]],
+        &["nationalities", "country"],
+        &[],
+    )]
     #[case::array(
         json!({
             "iss": "https://iss.example.com",
@@ -1365,7 +1669,7 @@ mod test {
         #[case] object: serde_json::Value,
         #[case] conceal_paths: &[Vec<&str>],
         #[case] disclose_paths: &[Vec<&str>],
-        #[case] expected_disclosed_paths_or_values: &[&str],
+        #[case] expected_disclosure_paths_or_values: &[&str],
         #[case] expected_not_selectively_disclosable_paths_or_values: &[&str],
     ) {
         let presentation = create_presentation(object, conceal_paths, disclose_paths);
@@ -1444,7 +1748,7 @@ mod test {
 
         assert_eq!(
             HashSet::from_iter(
-                expected_disclosed_paths_or_values
+                expected_disclosure_paths_or_values
                     .iter()
                     .map(|path| String::from(*path))
             ),
@@ -1632,25 +1936,25 @@ mod test {
             "iat": 1683000000,
             "exp": 1883000000,
             "sub": "user_42",
-            "object_with_hashes": {
+            "object_with_digests": {
                 "_sd": [
                     "gbOsI4Edq2x2Kw-w5wPEzakob9hV1cRD0ATN3oQL9JM",
                 ],
                 "field": "value",
             },
-            "object_with_array_of_hashes": {
+            "object_with_array_of_digests": {
                 "array": [
                     {
                         "...": "pFndjkZ_VCzmyTa6UjlZo3dh-ko8aIKQc9DlGzhaVYo"
                     },
                 ]
             },
-            "array_of_hashes": [
+            "array_of_digests": [
                 {
                     "...": "pFndjkZ_VCzmyTa6UjlZo3dh-ko8aIKQc9DlGzhaVYo"
                 },
             ],
-            "array_of_object_with_hashes": [
+            "array_of_object_with_digests": [
                 {
                     "_sd": [
                         "jsu9yVulwQQlhFlM_3JlzMaSFzglhQG0DpfayQwLUK4"
@@ -1698,7 +2002,7 @@ mod test {
                 claims: HashMap::from([
                     ("sub".parse().unwrap(), ClaimValue::String("user_42".to_string())),
                     (
-                        "object_with_hashes".parse().unwrap(),
+                        "object_with_digests".parse().unwrap(),
                         ClaimValue::Object(ObjectClaims {
                             _sd: Some(
                                 vec!["gbOsI4Edq2x2Kw-w5wPEzakob9hV1cRD0ATN3oQL9JM".to_string()]
@@ -1712,7 +2016,7 @@ mod test {
                         }),
                     ),
                     (
-                        "object_with_array_of_hashes".parse().unwrap(),
+                        "object_with_array_of_digests".parse().unwrap(),
                         ClaimValue::Object(ObjectClaims {
                             _sd: None,
                             claims: HashMap::from([(
@@ -1724,13 +2028,13 @@ mod test {
                         }),
                     ),
                     (
-                        "array_of_hashes".parse().unwrap(),
+                        "array_of_digests".parse().unwrap(),
                         ClaimValue::Array(vec![ArrayClaim::Hash(
                             "pFndjkZ_VCzmyTa6UjlZo3dh-ko8aIKQc9DlGzhaVYo".to_string(),
                         )]),
                     ),
                     (
-                        "array_of_object_with_hashes".parse().unwrap(),
+                        "array_of_object_with_digests".parse().unwrap(),
                         ClaimValue::Array(vec![
                             ArrayClaim::Value(ClaimValue::Object(ObjectClaims {
                                 _sd: Some(
@@ -1747,5 +2051,224 @@ mod test {
             },
         };
         assert_eq!(parsed, expected);
+    }
+
+    fn prepare_disclosure(content: DisclosureContent) -> (String, Disclosure) {
+        let disclosure = Disclosure::try_new(content).unwrap();
+        let hasher = SdAlg::Sha256.hasher().unwrap();
+        let digest = hasher.encoded_digest(disclosure.as_str());
+        (digest, disclosure)
+    }
+
+    fn object_disclosure(key: &'static str, value: serde_json::Value) -> (String, Disclosure) {
+        prepare_disclosure(DisclosureContent::ObjectProperty(
+            crypto::utils::random_string(16),
+            key.to_string(),
+            value,
+        ))
+    }
+
+    fn array_disclosure(value: serde_json::Value) -> (String, Disclosure) {
+        prepare_disclosure(DisclosureContent::ArrayElement(crypto::utils::random_string(16), value))
+    }
+
+    fn parse_and_verify_disclosures(
+        object: Value,
+        disclosures: Vec<Disclosure>,
+    ) -> Result<HashMap<String, Disclosure>> {
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
+        let issuer_keypair = ca.generate_issuer_mock().unwrap();
+        let holder_privkey = SigningKey::random(&mut OsRng);
+
+        let sd_jwt = SdJwtBuilder::new(json!({
+            "iss": "https://issuer.example.com/",
+            "iat": 1683000000,
+        }))
+        .unwrap()
+        .finish(Integrity::from(""), &issuer_keypair, holder_privkey.verifying_key())
+        .now_or_never()
+        .unwrap()
+        .unwrap()
+        .to_string();
+
+        let mut parsed = sd_jwt.parse::<UnverifiedSdJwt>().unwrap();
+        parsed.disclosures = disclosures.into_iter().map(|d| d.to_string()).collect();
+
+        UnverifiedSdJwt::parse_and_verify_disclosures(&parsed.disclosures, &serde_json::from_value(object).unwrap())
+    }
+
+    #[test]
+    fn validate_disclosures() {
+        let (root_object_claim_digest, root_object_claim) = object_disclosure("root_object_claim", json!("some_value"));
+        let (nested_object_claim_digest, nested_object_claim) =
+            object_disclosure("nested_object_claim", json!("some_value"));
+        let (array_object_claim_digest, array_object_claim) =
+            object_disclosure("array_object_claim", json!("some_value"));
+
+        let (array_claim_digest, array_claim) = array_disclosure(json!("some_value"));
+        let (nested_object_array_claim_digest, nested_object_array_claim) = array_disclosure(json!("some_value"));
+        let (nested_array_claim_digest, nested_array_claim) = array_disclosure(json!("some_value"));
+
+        let value = json!({
+            "iss": "https://issuer.example.com/",
+            "iat": 1683000000,
+            "_sd": [
+                &root_object_claim_digest,
+            ],
+            "static_claim": "static",
+            "array_claim": [
+                "static",
+                { "...": &array_claim_digest }
+            ],
+            "nested_object_claim": {
+                "_sd": [&nested_object_claim_digest],
+                "array": [
+                    "static",
+                    { "...": &nested_object_array_claim_digest }
+                ]
+            },
+            "nested_array_claim": [
+                {
+                    "_sd": [&array_object_claim_digest],
+                    "array": [
+                        { "...": &nested_array_claim_digest }
+                    ]
+                }
+            ]
+        });
+
+        let disclosures = vec![
+            root_object_claim,
+            nested_object_claim,
+            array_object_claim,
+            array_claim,
+            nested_object_array_claim,
+            nested_array_claim,
+        ];
+
+        parse_and_verify_disclosures(value, disclosures).unwrap();
+    }
+
+    #[test]
+    fn validate_digests_in_disclosures() {
+        let (root_object_claim_digest, root_object_claim) = object_disclosure("root_object_claim", json!("some_value"));
+        let (nested_object_claim_digest, nested_object_claim) =
+            object_disclosure("nested_object_claim", json!("some_value"));
+        let (array_object_claim_digest, array_object_claim) =
+            object_disclosure("array_object_claim", json!("some_value"));
+
+        let (array_claim_digest, array_claim) = array_disclosure(json!("some_value"));
+        let (nested_object_array_claim_digest, nested_object_array_claim) = array_disclosure(json!("some_value"));
+        let (nested_array_claim_digest, nested_array_claim) = array_disclosure(json!("some_value"));
+
+        let (root_array_claim_digest, root_array_claim) = object_disclosure(
+            "array_claim",
+            json!([
+                "static",
+                { "...": &array_claim_digest }
+            ]),
+        );
+        let (root_nested_object_claim_digest, root_nested_object_claim) = object_disclosure(
+            "nested_object_claim",
+            json!({
+                "_sd": [&nested_object_claim_digest],
+                "array": [
+                    "static",
+                    { "...": &nested_object_array_claim_digest }
+                ]
+            }),
+        );
+        let (root_nested_array_claim_digest, root_nested_array_claim) = object_disclosure(
+            "nested_array_claim",
+            json!([
+                {
+                    "_sd": [&array_object_claim_digest],
+                    "array": [
+                        { "...": &nested_array_claim_digest }
+                    ]
+                }
+            ]),
+        );
+
+        let value = json!({
+            "iss": "https://issuer.example.com/",
+            "iat": 1683000000,
+            "_sd": [
+                &root_object_claim_digest,
+                &root_array_claim_digest,
+                &root_nested_object_claim_digest,
+                &root_nested_array_claim_digest,
+            ],
+            "static_claim": "static"
+        });
+
+        let disclosures = vec![
+            root_object_claim,
+            nested_object_claim,
+            array_object_claim,
+            array_claim,
+            nested_object_array_claim,
+            nested_array_claim,
+            root_array_claim,
+            root_nested_array_claim,
+            root_nested_object_claim,
+        ];
+
+        parse_and_verify_disclosures(value, disclosures).unwrap();
+    }
+
+    #[test]
+    fn validate_disclosures_without_placeholder() {
+        let (root_object_claim_digest, root_object_claim) = object_disclosure("root_object_claim", json!("some_value"));
+
+        let value = json!({
+            "iss": "https://issuer.example.com/",
+            "iat": 1683000000,
+            "static_claim": "static",
+        });
+
+        let disclosures = vec![root_object_claim];
+
+        let error = parse_and_verify_disclosures(value, disclosures).unwrap_err();
+
+        assert_matches!(error, Error::UnreferencedDisclosure(digest) if digest == root_object_claim_digest);
+    }
+
+    #[test]
+    fn validate_disclosures_array_disclosure_in_object() {
+        let (array_claim_digest, array_claim) = array_disclosure(json!("some_value"));
+
+        let value = json!({
+            "iss": "https://issuer.example.com/",
+            "iat": 1683000000,
+            "_sd": [
+                &array_claim_digest,
+            ],
+        });
+
+        let disclosures = vec![array_claim];
+
+        let error = parse_and_verify_disclosures(value, disclosures).unwrap_err();
+
+        assert_matches!(error, Error::DataTypeMismatch(message) if message == format!("Expected an Array element, but got an Object element for digest `{array_claim_digest}`"));
+    }
+
+    #[test]
+    fn validate_disclosures_object_disclosure_in_array() {
+        let (object_claim_digest, object_claim) = object_disclosure("some_field", json!("some_value"));
+
+        let value = json!({
+            "iss": "https://issuer.example.com/",
+            "iat": 1683000000,
+            "some_array": [
+                { "...": &object_claim_digest }
+            ]
+        });
+
+        let disclosures = vec![object_claim];
+
+        let error = parse_and_verify_disclosures(value, disclosures).unwrap_err();
+
+        assert_matches!(error, Error::DataTypeMismatch(message) if message == format!("Expected an Object element, but got an Array element for digest `{object_claim_digest}`"));
     }
 }

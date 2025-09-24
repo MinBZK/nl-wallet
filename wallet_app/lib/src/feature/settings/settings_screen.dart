@@ -7,6 +7,7 @@ import '../../util/extension/biometrics_extension.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/object_extension.dart';
 import '../../util/extension/string_extension.dart';
+import '../../wallet_assets.dart';
 import '../../wallet_constants.dart';
 import '../common/dialog/reset_wallet_dialog.dart';
 import '../common/widget/button/bottom_back_button.dart';
@@ -65,11 +66,13 @@ class SettingsScreen extends StatelessWidget {
               label: Text.rich(
                 context.l10n.settingsScreenSetupBiometricsCta(biometrics.prettyPrint(context)).toTextSpan(context),
               ),
-              subtitle: Text.rich(context.l10n.settingsScreenSetupBiometricsNotSupportedSubtitle.toTextSpan(context))
-                  .takeIf((_) => !biometricsSupported),
+              subtitle: Text.rich(
+                context.l10n.settingsScreenSetupBiometricsNotSupportedSubtitle.toTextSpan(context),
+              ).takeIf((_) => !biometricsSupported),
               leftIcon: Icon(biometrics.icon),
-              onPressed:
-                  biometricsSupported ? () => Navigator.pushNamed(context, WalletRoutes.biometricsSettingsRoute) : null,
+              onPressed: biometricsSupported
+                  ? () => Navigator.pushNamed(context, WalletRoutes.biometricsSettingsRoute)
+                  : null,
             );
           },
         ),
@@ -78,6 +81,12 @@ class SettingsScreen extends StatelessWidget {
           label: Text.rich(context.l10n.settingsScreenChangeLanguageCta.toTextSpan(context)),
           leftIcon: const Icon(Icons.translate),
           onPressed: () => Navigator.pushNamed(context, WalletRoutes.changeLanguageRoute),
+        ),
+        const Divider(),
+        MenuItem(
+          label: Text.rich(context.l10n.settingsScreenTransferWalletCta.toTextSpan(context)),
+          leftIcon: Image.asset(WalletAssets.icon_wallet_transfer, color: context.theme.iconTheme.color),
+          onPressed: () => Navigator.pushNamed(context, WalletRoutes.walletTransferFaqRoute),
         ),
         const Divider(),
         MenuItem(

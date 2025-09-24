@@ -3,8 +3,11 @@
 
 use std::collections::HashSet;
 
-use chrono::DateTime;
 use chrono::Duration;
+use chrono::SubsecRound;
+use chrono::Utc;
+use futures::FutureExt;
+use itertools::Itertools;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 use rand_core::OsRng;
@@ -13,7 +16,10 @@ use serde_json::json;
 use ssri::Integrity;
 
 use attestation_types::claim_path::ClaimPath;
+use crypto::mock_remote::MockRemoteEcdsaKey;
+use crypto::mock_remote::MockRemoteWscd;
 use crypto::server_keys::generate::Ca;
+use crypto::x509::CertificateUsage;
 use jwt::EcdsaDecodingKey;
 use jwt::jwk::jwk_from_p256;
 use sd_jwt::builder::SdJwtBuilder;
@@ -23,6 +29,7 @@ use sd_jwt::hasher::Sha256Hasher;
 use sd_jwt::key_binding_jwt_claims::KeyBindingJwtBuilder;
 use sd_jwt::sd_jwt::SdJwt;
 use sd_jwt::sd_jwt::SdJwtPresentation;
+use utils::generator::mock::MockTimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 
@@ -48,7 +55,7 @@ async fn make_sd_jwt(
 
 #[test]
 fn simple_sd_jwt() {
-    let sd_jwt = SdJwtPresentation::spec_simple_structured();
+    let sd_jwt = SdJwt::spec_simple_structured();
     let disclosed = sd_jwt.to_disclosed_object().unwrap();
     let expected = json!({
         "address": {
@@ -68,7 +75,7 @@ fn simple_sd_jwt() {
 
 #[test]
 fn complex_sd_jwt() {
-    let sd_jwt = SdJwtPresentation::spec_complex_structured();
+    let sd_jwt = SdJwt::spec_complex_structured();
     let disclosed = sd_jwt.to_disclosed_object().unwrap();
     let expected = json!({
         "verified_claims": {
@@ -140,7 +147,7 @@ async fn concealing_property_of_concealable_value_works() -> anyhow::Result<()> 
         .finish()
         .sign(
             KeyBindingJwtBuilder::new(
-                DateTime::from_timestamp_millis(1458304832).unwrap(),
+                Utc::now(),
                 String::from("https://example.com"),
                 String::from("abcdefghi"),
             ),
@@ -181,7 +188,7 @@ async fn sd_jwt_without_disclosures_works() -> anyhow::Result<()> {
         .finish()
         .sign(
             KeyBindingJwtBuilder::new(
-                DateTime::from_timestamp_millis(1458304832).unwrap(),
+                Utc::now(),
                 String::from("https://example.com"),
                 String::from("abcdefghi"),
             ),
@@ -196,6 +203,7 @@ async fn sd_jwt_without_disclosures_works() -> anyhow::Result<()> {
         "https://example.com",
         "abcdefghi",
         Duration::days(36500),
+        &MockTimeGenerator::default(),
     )?;
 
     assert!(with_kb.sd_jwt().disclosures().is_empty());
@@ -240,12 +248,11 @@ async fn sd_jwt_sd_hash() -> anyhow::Result<()> {
     let signing_key = SigningKey::random(&mut OsRng);
 
     let disclosed = sd_jwt
-        .clone()
         .into_presentation_builder()
         .finish()
         .sign(
             KeyBindingJwtBuilder::new(
-                DateTime::from_timestamp_millis(1458304832).unwrap(),
+                Utc::now(),
                 String::from("https://example.com"),
                 String::from("abcdefghi"),
             ),
@@ -256,10 +263,10 @@ async fn sd_jwt_sd_hash() -> anyhow::Result<()> {
     let encoded_kb_jwt = disclosed.to_string();
     let (issued_sd_jwt, _kb) = encoded_kb_jwt.rsplit_once("~").unwrap();
 
-    let actual_sd_hash = disclosed.key_binding_jwt().claims().sd_hash.clone();
+    let actual_sd_hash = &disclosed.key_binding_jwt().claims().sd_hash;
     let expected_sd_hash = hasher.encoded_digest(&format!("{issued_sd_jwt}~"));
 
-    assert_eq!(actual_sd_hash, expected_sd_hash);
+    assert_eq!(*actual_sd_hash, expected_sd_hash);
 
     Ok(())
 }
@@ -356,7 +363,7 @@ async fn test_presentation() -> anyhow::Result<()> {
         .finish()
         .sign(
             KeyBindingJwtBuilder::new(
-                DateTime::from_timestamp_millis(1458304832).unwrap(),
+                Utc::now(),
                 String::from("https://example.com"),
                 String::from("abcdefghi"),
             ),
@@ -371,7 +378,8 @@ async fn test_presentation() -> anyhow::Result<()> {
         &EcdsaDecodingKey::from(issuer_keypair.certificate().public_key()),
         "https://example.com",
         "abcdefghi",
-        Duration::days(36500),
+        Duration::minutes(10),
+        &MockTimeGenerator::default(),
     )?;
 
     let disclosed_paths = parsed_presentation
@@ -387,4 +395,77 @@ async fn test_presentation() -> anyhow::Result<()> {
     assert_eq!(HashSet::from(["email", "address", "street_address"]), disclosed_paths);
 
     Ok(())
+}
+
+#[test]
+fn test_wscd_presentation() {
+    let iat = Utc::now().round_subsecs(0);
+
+    let object = json!({
+        "iss": "https://issuer.example.com",
+        "iat": iat.timestamp(),
+        "given_name": "John",
+        "family_name": "Doe",
+    });
+
+    let ca = Ca::generate("myca", Default::default()).unwrap();
+    let issuer_key_pair = ca
+        .generate_key_pair("mycert", CertificateUsage::Mdl, Default::default())
+        .unwrap();
+
+    let holder_key = MockRemoteEcdsaKey::new_random("holder_key".to_string());
+    let holder_public_key = *holder_key.verifying_key();
+    let wscd = MockRemoteWscd::new(vec![holder_key]);
+
+    // Create a SD-JWT, signed by the issuer.
+    let sd_jwt = SdJwtBuilder::new(object)
+        .unwrap()
+        .make_concealable(vec_nonempty![ClaimPath::SelectByKey(String::from("given_name"))])
+        .unwrap()
+        .make_concealable(vec_nonempty![ClaimPath::SelectByKey(String::from("family_name"))])
+        .unwrap()
+        .finish(Integrity::from(""), &issuer_key_pair, &holder_public_key)
+        .now_or_never()
+        .unwrap()
+        .expect("signing SD-JWT should succeed");
+
+    let unsigned_sd_jwt_presentation = sd_jwt
+        .into_presentation_builder()
+        .disclose(&vec_nonempty![ClaimPath::SelectByKey(String::from("family_name"))])
+        .unwrap()
+        .finish();
+
+    let (sd_jwt_presentations, poa) = SdJwtPresentation::sign_multiple(
+        vec_nonempty![(unsigned_sd_jwt_presentation, "holder_key")],
+        KeyBindingJwtBuilder::new(iat, String::from("https://example.com"), String::from("abcdefghi")),
+        &wscd,
+        (),
+    )
+    .now_or_never()
+    .unwrap()
+    .expect("signing SD-JWT presentation should succeed");
+
+    assert!(poa.is_none());
+
+    let sd_jwt_presentation = sd_jwt_presentations.into_iter().exactly_one().unwrap();
+
+    let parsed_sd_jwt_presentation = SdJwtPresentation::parse_and_verify_against_trust_anchors(
+        &sd_jwt_presentation.to_string(),
+        &MockTimeGenerator::default(),
+        &[ca.to_trust_anchor()],
+        "https://example.com",
+        "abcdefghi",
+        Duration::minutes(10),
+    )
+    .expect("validating SD-JWT presentation should succeed");
+
+    assert_eq!(sd_jwt_presentation, parsed_sd_jwt_presentation);
+
+    let disclosed_object = sd_jwt_presentation.sd_jwt().to_disclosed_object().unwrap();
+
+    assert_eq!(
+        disclosed_object.get("family_name").and_then(|val| val.as_str()),
+        Some("Doe")
+    );
+    assert!(!disclosed_object.contains_key("given_name"));
 }

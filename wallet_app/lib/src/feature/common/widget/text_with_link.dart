@@ -21,11 +21,12 @@ class TextWithLink extends StatelessWidget {
     this.textAlign = TextAlign.start,
     required this.onLinkPressed,
     super.key,
-  })  : assert(fullText.contains(linkText), 'linkText should be part of the full text'),
-        assert(
-            kDebugMode && fullText.split(linkText).length == 2,
-            'Currently only text formatted as "View {cta} for more info" '
-            'is supported (i.e. where linkText is enclosed in the fullText)');
+  }) : assert(fullText.contains(linkText), 'linkText should be part of the full text'),
+       assert(
+         kDebugMode && fullText.split(linkText).length == 2,
+         'Currently only text formatted as "View {cta} for more info" '
+         'is supported (i.e. where linkText is enclosed in the fullText)',
+       );
 
   @override
   Widget build(BuildContext context) {
@@ -41,6 +42,7 @@ class TextWithLink extends StatelessWidget {
         attributedLabel: fullText.toAttributedString(context),
         excludeSemantics: true,
         link: true,
+        button: true,
         child: Text.rich(
           locale: context.activeLocale,
           TextSpan(

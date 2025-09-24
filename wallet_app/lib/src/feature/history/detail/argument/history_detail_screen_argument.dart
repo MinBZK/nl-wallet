@@ -23,7 +23,7 @@ class HistoryDetailScreenArgument {
 
   @override
   int get hashCode => Object.hash(
-        runtimeType,
-        walletEvent,
-      );
+    runtimeType,
+    walletEvent,
+  );
 }

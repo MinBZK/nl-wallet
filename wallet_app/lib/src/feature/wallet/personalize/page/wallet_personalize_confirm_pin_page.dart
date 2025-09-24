@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../domain/usecase/pid/accept_offered_pid_usecase.dart';
 import '../../../../util/extension/build_context_extension.dart';
 import '../../../common/widget/pin_header.dart';
+import '../../../forgot_pin/forgot_pin_screen.dart';
 import '../../../pin/bloc/pin_bloc.dart';
 import '../../../pin/pin_page.dart';
 import '../wallet_personalize_setup_failed_screen.dart';
@@ -35,10 +36,15 @@ class WalletPersonalizeConfirmPinPage extends StatelessWidget {
         },
         onPinValidated: onPidAccepted,
         onPinError: onAcceptPidFailed,
+        pinRecoveryMethod: PinRecoveryMethod.resetWallet,
         onStateChanged: (context, state) {
           /// PVW-2759: Edge case where we want to provide contextualized error copy during the initial setup.
           if (state is PinValidateFailure && state.attemptsLeftInRound == 1) {
-            PinPage.showPinErrorDialog(context, context.l10n.pinErrorDialogRestartSetupWarning);
+            PinPage.showPinErrorDialog(
+              context,
+              context.l10n.pinErrorDialogRestartSetupWarning,
+              recoveryMethod: PinRecoveryMethod.resetWallet,
+            );
             return true;
           }
 

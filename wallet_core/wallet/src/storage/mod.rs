@@ -15,17 +15,23 @@ use sea_orm::DbErr;
 use std::array::TryFromSliceError;
 use std::collections::HashSet;
 use std::io;
+
+use derive_more::Constructor;
+use serde::Deserialize;
+use serde::Serialize;
 use uuid::Uuid;
 
 use attestation_data::disclosure_type::DisclosureType;
 use crypto::x509::BorrowingCertificate;
 use error_category::ErrorCategory;
+use mdoc::utils::cose::CoseError;
 use mdoc::utils::serialization::CborError;
 use openid4vc::issuance_session::CredentialWithMetadata;
 use openid4vc::issuance_session::IssuedCredentialCopies;
 use sd_jwt_vc_metadata::TypeMetadataChainError;
 
 use crate::AttestationPresentation;
+use crate::storage::sql_cipher_key::SqlCipherKey;
 
 pub use self::attestation_copy::DisclosableAttestation;
 pub use self::attestation_copy::PartialAttestation;
@@ -37,6 +43,7 @@ pub use self::data::KeyData;
 pub use self::data::KeyedData;
 pub use self::data::RegistrationData;
 pub use self::data::TransferData;
+pub use self::data::TransferKeyData;
 pub use self::data::UnlockData;
 pub use self::data::UnlockMethod;
 pub use self::database_storage::DatabaseStorage;
@@ -44,6 +51,11 @@ pub use self::event_log::DataDisclosureStatus;
 pub use self::event_log::DisclosureStatus;
 pub use self::event_log::WalletEvent;
 pub use self::key_file::KeyFileError;
+
+#[cfg(test)]
+pub mod test {
+    pub use crate::storage::sql_cipher_key::SqlCipherKey;
+}
 
 /// This represents the current start of [`Storage`].
 #[derive(Debug, Clone, Copy)]
@@ -83,8 +95,11 @@ pub enum StorageError {
     #[category(pd)]
     MetadataChain(#[from] TypeMetadataChainError),
 
-    #[error("storage database CBOR error: {0}")]
+    #[error("could not encode / decode mdoc CBOR: {0}")]
     Cbor(#[from] CborError),
+
+    #[error("could not deserialize mdoc IssuerSigned: {0}")]
+    IssuerSigned(#[from] CoseError),
 
     #[error("storage database SD-JWT error: {0}")]
     #[category(pd)]
@@ -100,6 +115,14 @@ pub enum StorageError {
 
     #[error("{0}")]
     KeyFile(#[from] KeyFileError),
+
+    #[error("sqlite error: {0}")]
+    #[category(pd)]
+    Sqlite(#[from] rusqlite::Error),
+
+    #[error("join error: {0}")]
+    #[category(pd)]
+    Join(#[from] tokio::task::JoinError),
 }
 
 pub type StorageResult<T> = Result<T, StorageError>;
@@ -111,12 +134,23 @@ pub enum AttestationFormatQuery {
     SdJwt,
 }
 
+/// Database export with one time key and the data.
+/// Using an encrypted database because SQLCipher exports to file system,
+/// and we do not want an unencrypted file written to disk.
+#[derive(Constructor, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DatabaseExport {
+    key: SqlCipherKey,
+    data: Vec<u8>,
+}
+
 /// This trait abstracts the persistent storage for the wallet.
 #[cfg_attr(test, mockall::automock)]
 pub trait Storage {
     async fn state(&self) -> StorageResult<StorageState>;
 
     async fn open(&mut self) -> StorageResult<()>;
+    async fn export(&mut self) -> StorageResult<DatabaseExport>;
+    async fn import(&mut self, export: DatabaseExport) -> StorageResult<()>;
     async fn clear(&mut self);
 
     async fn open_if_needed(&mut self) -> StorageResult<()> {

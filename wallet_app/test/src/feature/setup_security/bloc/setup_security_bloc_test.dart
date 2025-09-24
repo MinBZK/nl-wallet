@@ -24,11 +24,11 @@ void main() {
   });
 
   SetupSecurityBloc buildBloc() => SetupSecurityBloc(
-        checkIsValidPinUseCase,
-        createWalletUseCase,
-        getAvailableBiometricsUseCase,
-        setBiometricsUseCase,
-      );
+    checkIsValidPinUseCase,
+    createWalletUseCase,
+    getAvailableBiometricsUseCase,
+    setBiometricsUseCase,
+  );
 
   blocTest(
     'verify initial state',
@@ -121,8 +121,9 @@ void main() {
     'verify state transition when wallet creation fails with network error',
     build: buildBloc,
     setUp: () {
-      when(createWalletUseCase.invoke(any))
-          .thenAnswer((_) async => const Result.error(NetworkError(hasInternet: true, sourceError: 'test')));
+      when(
+        createWalletUseCase.invoke(any),
+      ).thenAnswer((_) async => const Result.error(NetworkError(hasInternet: true, sourceError: 'test')));
     },
     act: (bloc) {
       // Choose initial pin
@@ -142,8 +143,9 @@ void main() {
     'verify state transition when wallet creation fails with generic error',
     build: buildBloc,
     setUp: () {
-      when(createWalletUseCase.invoke(any))
-          .thenAnswer((_) async => const Result.error(GenericError('generic', sourceError: 'test')));
+      when(
+        createWalletUseCase.invoke(any),
+      ).thenAnswer((_) async => const Result.error(GenericError('generic', sourceError: 'test')));
     },
     act: (bloc) {
       // Choose initial pin
@@ -163,8 +165,9 @@ void main() {
     'verify state transition when wallet creation fails due to missing key hardware',
     build: buildBloc,
     setUp: () {
-      when(createWalletUseCase.invoke(any))
-          .thenAnswer((_) async => const Result.error(HardwareUnsupportedError(sourceError: 'test')));
+      when(
+        createWalletUseCase.invoke(any),
+      ).thenAnswer((_) async => const Result.error(HardwareUnsupportedError(sourceError: 'test')));
     },
     act: (bloc) {
       // Choose initial pin

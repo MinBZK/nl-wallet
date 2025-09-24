@@ -268,6 +268,7 @@ class OrganizationDetailScreen extends StatelessWidget {
       onTapHint: context.l10n.generalWCAGOpenLink,
       excludeSemantics: true,
       attributedLabel: semanticsLabel.toAttributedString(context),
+      button: true,
       link: true,
       onTap: onTap,
       child: ListItem(
@@ -318,8 +319,9 @@ class OrganizationDetailScreen extends StatelessWidget {
   }
 
   Widget _buildInteractionRow(BuildContext context, OrganizationDetailSuccess state) {
-    final String interaction =
-        context.l10n.organizationDetailScreenSomeInteractions(state.organization.displayName.l10nValue(context));
+    final String interaction = context.l10n.organizationDetailScreenSomeInteractions(
+      state.organization.displayName.l10nValue(context),
+    );
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(

@@ -103,8 +103,9 @@ class _ScanQrButtonState extends State<ScanQrButton> {
                             textAlign: TextAlign.center,
                             style: context.textTheme.labelLarge?.copyWith(
                               decoration: _statesController.value.isFocused ? TextDecoration.underline : null,
-                              color: context.theme.textButtonTheme.style?.foregroundColor
-                                  ?.resolve(_statesController.value),
+                              color: context.theme.textButtonTheme.style?.foregroundColor?.resolve(
+                                _statesController.value,
+                              ),
                             ),
                           ),
                         ),

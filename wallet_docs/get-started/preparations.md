@@ -9,16 +9,18 @@ option of community onboarding for organizations.
 ## Local development
 
 Before following the various getting started guides, it is imperative that you
-have a fully-functioning local development environment. The [README.md][1] of
-our NL-Wallet git repository thoroughly covers how to set up all the various
-software components, and how to execute tests, run the backend services and run
-the mobile app on an Android emulator or iOS simulator.
+have a fully-functioning local development environment. The development
+requirements section of our git repository's [README.md][1] thoroughly covers
+how to set up all the various software components, and how to execute tests,
+run the backend services and run the mobile app on an Android emulator or iOS
+simulator.
 
 Make sure you follow all the steps and verify that you can execute all tests,
 run the backend, and mobile app without errors before continuing with the guides
 offered here.
 
-[1]: https://github.com/MinBZK/nl-wallet/blob/main/README.md
+[1]: https://github.com/MinBZK/nl-wallet#user-content-development-requirements
+
 
 ## Community onboarding (optional)
 

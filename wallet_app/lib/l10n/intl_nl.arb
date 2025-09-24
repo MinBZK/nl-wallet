@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2025-09-04T16:55:39+02:00",
+    "@@last_modified": "2025-09-18T14:27:23+02:00",
     "aboutScreenDescription": "De NL Wallet wordt gemaakt door de Nederlandse overheid, zodat iedereen digitale diensten veilig en gemakkelijk kan gebruiken.\n\nJe kunt de ontwikkelingen volgen op {url}.",
     "aboutScreenPrivacyCta": "Privacyverklaring",
     "aboutScreenTitle": "Over de NL Wallet",
@@ -102,9 +102,7 @@
     "cardDataScreenTitle": "Gegevens uit {title}",
     "cardDetailScreenCardDataCta": "Gegevens in deze kaart",
     "cardDetailScreenCardDataPrivacyWarning": "Houd je gegevens privé",
-    "cardDetailScreenCardDeleteCta": "Kaart verwijderen",
     "cardDetailScreenCardHistoryCta": "Kaartactiviteiten",
-    "cardDetailScreenCardUpdateCta": "Opnieuw ophalen",
     "cardDetailScreenCardValidUntil": "Geldig tot en met {dateTime}",
     "@cardDetailScreenCardValidUntil": {
         "placeholders": {
@@ -115,16 +113,6 @@
         }
     },
     "cardDetailScreenIssuerCta": "Over de uitgever",
-    "cardDetailScreenLatestIssuedOperation": "Laatste update {dateTime}",
-    "@cardDetailScreenLatestIssuedOperation": {
-        "placeholders": {
-            "dateTime": {
-                "example": "April 25 13:31",
-                "type": "String"
-            }
-        }
-    },
-    "cardDetailScreenLatestIssuedOperationUnknown": "Laatste update onbekend",
     "cardDetailScreenLatestSuccessInteraction": "{timeAgo} {shareStatus} met {organization}",
     "@cardDetailScreenLatestSuccessInteraction": {
         "placeholders": {
@@ -143,9 +131,6 @@
         }
     },
     "cardDetailScreenLatestSuccessInteractionUnknown": "Nog nooit gedeeld",
-    "cardDetailScreenNoUpdateAvailableSheetCloseCta": "Sluiten",
-    "cardDetailScreenNoUpdateAvailableSheetDescription": "Er zijn op dit moment geen nieuwe gegevens beschikbaar van deze kaart.\n\nVerwacht je nieuwe gegevens? Dan kan het een paar dagen duren voordat je de nieuwe gegevens kan ophalen. Probeer het later opnieuw.",
-    "cardDetailScreenNoUpdateAvailableSheetTitle": "Je hebt de laatste versie",
     "cardDetailScreenRenewPidCta": "Vervang kaart via DigiD",
     "cardHistoryDisclosureCancelled": "Delen gestopt",
     "cardHistoryDisclosureError": "Delen mogelijk mislukt",
@@ -439,8 +424,8 @@
     "flashlightEnabledWCAGAnnouncement": "Zaklamp is aangezet",
     "forgotPinScreenCta": "Kies nieuwe pincode",
     "forgotPinScreenDescription": "Je kunt een nieuwe pincode aanmaken om weer toegang te krijgen. Bevestig hiervoor je identiteit met DigiD.",
-    "forgotPinScreenLegacyCta": "Verwijder Wallet",
-    "forgotPinScreenLegacyDescription": "Als je jouw pincode bent vergeten kun je jouw NL Wallet niet meer gebruiken.\n\nWil je weer gebruik maken van de NL Wallet? Dan moet je opnieuw beginnen. Verwijder de NL Wallet en kies een nieuwe pincode.",
+    "forgotPinScreenResetCta": "Verwijder Wallet",
+    "forgotPinScreenResetDescription": "Als je jouw pincode bent vergeten kun je jouw NL Wallet niet meer gebruiken.\n\nWil je weer gebruik maken van de NL Wallet? Dan moet je opnieuw beginnen. Verwijder de NL Wallet en kies een nieuwe pincode.",
     "forgotPinScreenTitle": "Pincode vergeten?",
     "fraudCheckPageAboutCta": "Meer over deze website-controle",
     "fraudCheckPageContinueCta": "Ja, verder",
@@ -450,7 +435,7 @@
     "@fraudCheckPageTitle": {
         "placeholders": {
             "url": {
-                "example": "https://example.org",
+                "example": "https:\/\/example.org",
                 "type": "String"
             }
         }
@@ -537,7 +522,6 @@
     "generalWCAGInfo": "Meer info",
     "generalWCAGLanguageUpdatedAnnouncement": "De taal is gewijzigd naar {language}",
     "generalWCAGLogoutAnnouncement": "Je bent uitgelogd",
-    "generalWCAGMenu": "Menu",
     "generalWCAGOpenLink": "navigeren",
     "generalWCAGQr": "Scan QR code",
     "generalWCAGSeeAllActivities": "Alle activiteiten te bekijken",
@@ -1043,10 +1027,8 @@
     "pinValidationErrorDialogTitle": "Deze pincode is te simpel",
     "pinValidationErrorDialogTooFewUniqueDigitsError": "Kies een pincode met verschillende cijfers.",
     "placeholderScreenContractDescription": "Hier komt het contract te staan.",
-    "placeholderScreenGenericDescription": "Heb je vragen of hulp nodig? Tijdens de beproeving staat het NL Wallet-team voor je klaar. Spreek iemand aan, die zal je verder helpen.",
+    "placeholderScreenGenericDescription": "Probeer het later opnieuw.",
     "placeholderScreenHeadline": "Helaas, aan deze pagina wordt nog gewerkt.",
-    "placeholderScreenHelpDescription": "Tijdens de beproeving staat het NL Wallet-team voor je klaar. Spreek iemand aan, die zal je verder helpen.",
-    "placeholderScreenHelpHeadline": "Heb je vragen of hulp nodig?",
     "policyScreenDataCanBeDeleted": "Je kunt gegevens laten verwijderen",
     "policyScreenDataCanBeDeletedDescription": "De organisatie biedt een manier om je gegevens te laten verwijderen.",
     "policyScreenDataCanNotBeDeleted": "Je kunt gegevens niet laten verwijderen",
@@ -1095,6 +1077,7 @@
     "policyScreenReportIssueCta": "Wil je een probleem melden?",
     "policyScreenSubtitle": "De volgende afspraken gelden alléén voor deze uitnodiging tot delen.",
     "policyScreenTitle": "Afspraken",
+    "qrCodeCodeDialogTitle": "Scan de QR-code met je NL Wallet-app",
     "qrMyCodeTabHowToCta": "Hoe werkt mijn QR code?",
     "qrMyCodeTabHowToSheetCloseCta": "Sluiten",
     "qrMyCodeTabHowToSheetDescription": "Laat de QR-code scannen door een controleur om te beginnen met delen. Vervolgens krijg je een gegevens verzoek. Alleen als je akkoord gaat met het verzoek zullen gegevens worden gedeeld.",
@@ -1188,7 +1171,6 @@
     "reportOptionSuspiciousOrganization": "Deze organisatie lijkt verdacht",
     "reportOptionUnknownOrganization": "Ik ken deze organisatie niet",
     "reportOptionUnreasonableTerms": "Ik ben het niet eens met de voorwaarden",
-    "reportOptionUntrusted": "Ik vertrouw het niet",
     "requestDetailScreenAboutOrganizationCta": "Over {organization}",
     "@requestDetailScreenAboutOrganizationCta": {
         "placeholders": {
@@ -1243,6 +1225,7 @@
     },
     "settingsScreenSetupBiometricsNotSupportedSubtitle": "Niet beschikbaar op dit toestel",
     "settingsScreenTitle": "Instellingen",
+    "settingsScreenTransferWalletCta": "NL Wallet verplaatsen",
     "setupBiometricsPageDescription": "Je pincode gebruik je voor het delen van gegevens. Gezicht-scan of vingerafdruk kun je alleen gebruiken om de app sneller te openen.",
     "setupBiometricsPageEnableCta": "Aanzetten",
     "setupBiometricsPageLocalizedReason": "Om de app te openen",
@@ -1419,7 +1402,7 @@
     "walletPersonalizeDigidErrorPageDigidWebsiteCta": "Ga naar DigiD-website",
     "walletPersonalizeDigidErrorPageLoginWithDigidCta": "Opnieuw inloggen",
     "walletPersonalizeDigidErrorPageTitle": "Inloggen niet gelukt",
-    "walletPersonalizeIntroPageDescription": "Zo haal je je Persoonsgegevens-kaart en Woonadres-kaart op. ",
+    "walletPersonalizeIntroPageDescription": "Zo haal je je Persoonsgegevens-kaart en Woonadres-kaart op.",
     "walletPersonalizeIntroPageDigidWebsiteCta": "Ga naar DigiD-website",
     "walletPersonalizeIntroPageLoginWithDigidCta": "Open de DigiD app",
     "walletPersonalizeIntroPageNoDigidCta": "Geen DigiD?",
@@ -1446,5 +1429,53 @@
     "walletPersonalizeSetupFailedScreenHeadline": "Aanmaken mislukt",
     "walletPersonalizeSuccessPageContinueCta": "Naar mijn overzicht",
     "walletPersonalizeSuccessPageDescription": "Je kunt de gegevens in deze kaarten delen of gebruiken om in te loggen.",
-    "walletPersonalizeSuccessPageTitle": "Je NL Wallet is klaar"
+    "walletPersonalizeSuccessPageTitle": "Je NL Wallet is klaar",
+    "walletTransferAwaitingConfirmationPageCta": "Stop",
+    "walletTransferAwaitingConfirmationPageDescription": "Kies ‘Ja, verplaatsen’ op je andere apparaat als je je NL Wallet naar dit apparaat wilt verplaatsen.  \n\nDeze actie kan niet ongedaan worden gemaakt.",
+    "walletTransferAwaitingConfirmationPageTitle": "Bevestig op je andere apparaat",
+    "walletTransferAwaitingScanPageCenterQrCta": "Centreer de QR-code op het scherm",
+    "walletTransferAwaitingScanPageDescription": "Gebruik de QR-scanner in de NL Wallet op je andere apparaat.",
+    "walletTransferAwaitingScanPageTitle": "Scan de onderstaande QR-code",
+    "walletTransferFaqScreenFooter": "Je gegevens staan nu op je nieuwe telefoon. De NL Wallet app op je oude telefoon is leeg en niet meer actief.",
+    "walletTransferFaqScreenSection1Content": "Je nieuwe telefoon\nJe oude telefoon waar je NL Wallet op staat",
+    "walletTransferFaqScreenSection1Heading": "Je hebt twee telefoons nodig:",
+    "walletTransferFaqScreenSection2Content": "1. Installeer de NL Wallet op je nieuwe telefoon.\n2. Log in met je DigiD.\n3. Kies “Ja, verplaatsen”.\n4. Je ziet dan een QR-code op je nieuwe telefoon.\n5. Open de app op je oude telefoon en scan de QR-code.\n6. Bevestig met je pincode.\n7. Wacht tot er staat: “Verplaatsen gelukt”.",
+    "walletTransferFaqScreenSection2Heading": "Wil je je NL Wallet verplaatsen?",
+    "walletTransferFaqScreenTitle": "NL Wallet verplaatsen naar een nieuwe telefoon?",
+    "walletTransferLoadingQrDescription": "De QR-code wordt aangemaakt",
+    "walletTransferLoadingQrTitle": "Even geduld",
+    "walletTransferScreenFailedDescription": "Deze actie is niet gelukt. Dit kan verschillende oorzaken hebben. Probeer het alstublieft opnieuw.",
+    "walletTransferScreenFailedTitle": "Verplaatsen mislukt",
+    "walletTransferScreenLoadingDescription": "De aanvraag wordt opgehaald",
+    "walletTransferScreenLoadingTitle": "Even geduld",
+    "walletTransferScreenStoppedTitle": "Gestopt",
+    "walletTransferSourceConfirmPinPageTitle": "Geef akkoord met je pincode",
+    "walletTransferSourceScreenIntroductionCta": "Ja, verplaats",
+    "walletTransferSourceScreenIntroductionDescription": "Na het verplaatsen werkt de NL Wallet niet meer op dit apparaat.",
+    "walletTransferSourceScreenIntroductionTitle": "Wil je je NL Wallet naar je andere apparaat verplaatsen?",
+    "walletTransferSourceScreenStoppedDescription": "Omdat je gestopt bent, worden er geen gegevens naar je andere apparaat verplaatst.",
+    "walletTransferSourceScreenSuccessDescription": "Deze app is leeg en niet langer actief. Bij het openen wordt de app-introductie opnieuw gestart.\n\nSluit deze app en gebruik je NL Wallet op je andere apparaat.",
+    "walletTransferSourceScreenSuccessTitle": "Verplaatsen gelukt",
+    "walletTransferSourceScreenTransferringDescription": "Sluit dit scherm niet of stop deze actie niet. Dit duurt enkele minuten.",
+    "walletTransferSourceScreenTransferringTitle": "NL Wallet wordt verplaatst",
+    "walletTransferSourceStopSheetCancelCta": "Nee",
+    "walletTransferSourceStopSheetConfirmCta": "Ja, stop",
+    "walletTransferSourceStopSheetDescription": "Als je stopt, worden er geen gegevens verplaatst naar jouw andere apparaat.",
+    "walletTransferSourceStopSheetTitle": "Weet je zeker dat je wilt stoppen?",
+    "walletTransferTargetOptOutDialogDescription": "Er wordt een nieuwe NL Wallet aangemaakt op dit apparaat. NL Wallet-apps zijn niet met elkaar verbonden.",
+    "walletTransferTargetOptOutDialogTitle": "Nieuwe NL Wallet aanmaken?",
+    "walletTransferTargetScreenIntroductionDescription": "Je hebt al een NL Wallet op een ander apparaat. Je kunt al je kaarten en activiteiten naar dit apparaat verplaatsen.  \n\nNa het verplaatsen werkt de NL Wallet alleen op dit apparaat.",
+    "walletTransferTargetScreenIntroductionOptInCta": "Ja, verplaats",
+    "walletTransferTargetScreenIntroductionOptOutCta": "Nee, maak een nieuwe NL Wallet",
+    "walletTransferTargetScreenIntroductionTitle": "Wil je je NL Wallet naar dit apparaat verplaatsen?",
+    "walletTransferTargetScreenStoppedDescription": "Omdat je gestopt bent, worden er geen gegevens naar dit apparaat verplaatst.",
+    "walletTransferTargetScreenSuccessCta": "Naar mijn overzicht",
+    "walletTransferTargetScreenSuccessDescription": "Al jouw gegevens zitten nu in deze NL Wallet app.",
+    "walletTransferTargetScreenSuccessTitle": "Gelukt! Je NL Wallet is klaar",
+    "walletTransferTargetScreenTransferringDescription": "Sluit dit scherm niet en stop deze actie niet. Het verplaatsen duurt enkele minuten.",
+    "walletTransferTargetScreenTransferringTitle": "NL Wallet wordt verplaatst naar dit apparaat",
+    "walletTransferTargetStopSheetCancelCta": "Nee",
+    "walletTransferTargetStopSheetConfirmCta": "Ja, stop",
+    "walletTransferTargetStopSheetDescription": "Als je stopt, worden er geen gegevens naar dit apparaat verplaatst.",
+    "walletTransferTargetStopSheetTitle": "Weet je zeker dat je wilt stoppen?"
 }

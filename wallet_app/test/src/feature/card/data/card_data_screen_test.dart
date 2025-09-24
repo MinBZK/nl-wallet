@@ -81,8 +81,9 @@ void main() {
       // Validate that the widget exists
       final titleFinder = find.text(l10n.cardDataScreenTitle(WalletMockData.card.title.testValue));
       final labelFinder = find.text(WalletMockData.textDataAttribute.label.l10nValueForLocale(const Locale('en')));
-      final valueFinder = find
-          .text(AttributeValueFormatter.formatWithLocale(const Locale('en'), WalletMockData.textDataAttribute.value));
+      final valueFinder = find.text(
+        AttributeValueFormatter.formatWithLocale(const Locale('en'), WalletMockData.textDataAttribute.value),
+      );
       expect(titleFinder, findsAtLeastNWidgets(1));
       expect(labelFinder, findsOneWidget);
       expect(valueFinder, findsOneWidget);

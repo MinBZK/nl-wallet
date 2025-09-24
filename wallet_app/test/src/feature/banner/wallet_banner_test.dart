@@ -19,8 +19,9 @@ void main() {
       });
 
       test('instances with different internal states should not be equal', () {
-        final banner1 =
-            UpdateAvailableBanner(state: VersionStateWarn(timeUntilBlocked: const Duration(milliseconds: 21)));
+        final banner1 = UpdateAvailableBanner(
+          state: VersionStateWarn(timeUntilBlocked: const Duration(milliseconds: 21)),
+        );
         final banner2 = UpdateAvailableBanner(state: VersionStateWarn(timeUntilBlocked: const Duration(seconds: 1337)));
         expect(banner1, isNot(equals(banner2)));
       });

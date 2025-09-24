@@ -19,6 +19,7 @@ class ParagraphedList extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListView.separated(
       shrinkWrap: true,
+      padding: EdgeInsets.zero,
       physics: const NeverScrollableScrollPhysics(),
       itemBuilder: (c, i) => BodyText(paragraphs[i]),
       separatorBuilder: (BuildContext context, int index) => const ParagraphSpacer(),

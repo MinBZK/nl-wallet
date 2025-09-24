@@ -12,6 +12,7 @@ class TestConfigRepository {
             platformVersion = System.getProperty("test.config.platform.version"),
             remote = System.getProperty("test.config.remote").toBoolean(),
             automationName = System.getProperty("test.config.automation.name"),
+            commitSha = System.getProperty("test.config.commit.sha"),
         )
     }
 }

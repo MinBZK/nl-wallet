@@ -207,7 +207,9 @@ pub struct MdocParts {
 
 impl From<Mdoc> for MdocParts {
     fn from(value: Mdoc) -> Self {
-        Self::new(value.issuer_signed.into_entries_by_namespace(), value.mso)
+        let (mso, _, issuer_signed) = value.into_components();
+
+        Self::new(issuer_signed.into_entries_by_namespace(), mso)
     }
 }
 
@@ -473,6 +475,7 @@ mod test {
     use chrono::Utc;
     use futures::FutureExt;
     use indexmap::IndexMap;
+    use itertools::Itertools;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
     use serde_json::json;
@@ -480,20 +483,19 @@ mod test {
 
     use attestation_types::claim_path::ClaimPath;
     use attestation_types::qualification::AttestationQualification;
-    use crypto::EcdsaKey;
+    use crypto::mock_remote::MockRemoteEcdsaKey;
+    use crypto::mock_remote::MockRemoteWscd;
     use crypto::server_keys::generate::Ca;
-    use jwt::EcdsaDecodingKey;
-    use jwt::Header;
     use jwt::jwk::jwk_from_p256;
     use sd_jwt::builder::SdJwtBuilder;
     use sd_jwt::key_binding_jwt_claims::KeyBindingJwtBuilder;
     use sd_jwt::key_binding_jwt_claims::RequiredKeyBinding;
-    use sd_jwt::sd_jwt::SdJwtClaims;
     use sd_jwt::sd_jwt::SdJwtPresentation;
     use sd_jwt_vc_metadata::JsonSchemaPropertyType;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::UncheckedTypeMetadata;
     use utils::generator::mock::MockTimeGenerator;
+    use utils::vec_nonempty;
 
     use crate::attributes::Attribute;
     use crate::attributes::AttributeValue;
@@ -700,9 +702,12 @@ mod test {
         assert_eq!(payload, unverified_payload);
     }
 
-    #[tokio::test]
-    async fn test_to_sd_jwt() {
-        let holder_key = SigningKey::random(&mut OsRng);
+    #[test]
+    fn test_to_sd_jwt() {
+        let time_generator = MockTimeGenerator::default();
+
+        let holder_key = MockRemoteEcdsaKey::new_random("holder_key".to_string());
+        let wscd = MockRemoteWscd::new(vec![holder_key.clone()]);
 
         let ca = Ca::generate("myca", Default::default()).unwrap();
         let cert_type = CertificateType::from(IssuerRegistration::new_mock());
@@ -719,31 +724,35 @@ mod test {
             "family_name",
             AttributeValue::Text(String::from("De Bruijn")),
             holder_key.verifying_key(),
-            &MockTimeGenerator::default(),
+            &time_generator,
         );
 
         let sd_jwt = credential_payload
             .into_sd_jwt(&metadata, holder_key.verifying_key(), &issuer_key_pair)
-            .await
+            .now_or_never()
+            .unwrap()
             .unwrap();
 
-        let presented_sd_jwt = sd_jwt
-            .into_presentation_builder()
-            .finish()
-            .sign(
-                KeyBindingJwtBuilder::new(
-                    DateTime::from_timestamp_millis(1458304832).unwrap(),
-                    String::from("https://aud.example.com"),
-                    String::from("nonce123"),
-                ),
-                &holder_key,
-            )
-            .await
-            .unwrap();
+        let (presented_sd_jwts, _poa) = SdJwtPresentation::sign_multiple(
+            vec_nonempty![(sd_jwt.into_presentation_builder().finish(), "holder_key")],
+            KeyBindingJwtBuilder::new(
+                DateTime::from_timestamp_millis(1458304832).unwrap(),
+                String::from("https://aud.example.com"),
+                String::from("nonce123"),
+            ),
+            &wscd,
+            (),
+        )
+        .now_or_never()
+        .unwrap()
+        .expect("signing a single SdJwtPresentation using the WSCD should succeed");
 
-        SdJwtPresentation::<SdJwtClaims, Header>::parse_and_verify(
+        let presented_sd_jwt = presented_sd_jwts.into_iter().exactly_one().unwrap();
+
+        SdJwtPresentation::parse_and_verify_against_trust_anchors(
             &presented_sd_jwt.to_string(),
-            &EcdsaDecodingKey::from(&issuer_key_pair.verifying_key().await.unwrap()),
+            &time_generator,
+            &[ca.to_trust_anchor()],
             "https://aud.example.com",
             "nonce123",
             Duration::days(36500),

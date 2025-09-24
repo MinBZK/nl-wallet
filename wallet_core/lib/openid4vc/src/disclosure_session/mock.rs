@@ -1,21 +1,21 @@
-use std::collections::HashMap;
 use std::hash::Hash;
 
+use chrono::DateTime;
+use chrono::Utc;
 use rustls_pki_types::TrustAnchor;
 
 use crypto::CredentialEcdsaKey;
 use crypto::wscd::DisclosureWscd;
-use dcql::CredentialQueryIdentifier;
 use dcql::normalized::NormalizedCredentialRequests;
 use http_utils::urls::BaseUrl;
-use mdoc::holder::disclosure::PartialMdoc;
-use utils::vec_at_least::VecNonEmpty;
+use utils::generator::Generator;
 use wscd::Poa;
 
 use crate::verifier::SessionType;
 
 use super::DisclosureClient;
 use super::DisclosureSession;
+use super::NonEmptyDisclosableAttestations;
 use super::VerifierCertificate;
 use super::error::DisclosureError;
 use super::error::VpSessionError;
@@ -47,7 +47,7 @@ mockall::mock! {
         pub async fn terminate(self) -> Result<Option<BaseUrl>, VpSessionError>;
         pub async fn disclose(
             self,
-            partial_attestations: HashMap<CredentialQueryIdentifier, VecNonEmpty<PartialMdoc>>,
+            attestations: NonEmptyDisclosableAttestations,
         ) -> Result<Option<BaseUrl>, (Self, DisclosureError<VpSessionError>)>;
     }
 }
@@ -71,13 +71,14 @@ impl DisclosureSession for MockDisclosureSession {
 
     async fn disclose<K, W>(
         self,
-        partial_attestations: HashMap<CredentialQueryIdentifier, VecNonEmpty<PartialMdoc>>,
+        attestations: NonEmptyDisclosableAttestations,
         _wscd: &W,
+        _time: &impl Generator<DateTime<Utc>>,
     ) -> Result<Option<BaseUrl>, (Self, DisclosureError<VpSessionError>)>
     where
         K: CredentialEcdsaKey + Eq + Hash,
         W: DisclosureWscd<Key = K, Poa = Poa>,
     {
-        self.disclose(partial_attestations).await
+        self.disclose(attestations).await
     }
 }

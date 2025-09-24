@@ -9,11 +9,11 @@ extension WalletInstructionResultExtension on WalletInstructionResult {
     return switch (this) {
       WalletInstructionResult_Ok() => const Result.success(null),
       WalletInstructionResult_InstructionError(:final error) => Result.error(
-          CheckPinError(
-            error.asCheckPinResult(),
-            sourceError: this,
-          ),
+        CheckPinError(
+          error.asCheckPinResult(),
+          sourceError: this,
         ),
+      ),
     };
   }
 }

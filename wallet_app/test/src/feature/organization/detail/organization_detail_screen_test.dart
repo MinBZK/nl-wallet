@@ -17,8 +17,9 @@ void main() {
   group('goldens', () {
     testGoldens('OrganizationDetailSuccess light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        OrganizationDetailScreen(onReportIssuePressed: () {})
-            .withState<OrganizationDetailBloc, OrganizationDetailState>(
+        OrganizationDetailScreen(
+          onReportIssuePressed: () {},
+        ).withState<OrganizationDetailBloc, OrganizationDetailState>(
           MockOrganizationDetailBloc(),
           OrganizationDetailSuccess(
             organization: WalletMockData.organization,
@@ -32,8 +33,9 @@ void main() {
 
     testGoldens('OrganizationDetailSuccess light - landscape', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        OrganizationDetailScreen(onReportIssuePressed: () {})
-            .withState<OrganizationDetailBloc, OrganizationDetailState>(
+        OrganizationDetailScreen(
+          onReportIssuePressed: () {},
+        ).withState<OrganizationDetailBloc, OrganizationDetailState>(
           MockOrganizationDetailBloc(),
           OrganizationDetailSuccess(
             organization: WalletMockData.organization,
@@ -48,8 +50,9 @@ void main() {
 
     testGoldens('OrganizationDetailSuccess dark', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        OrganizationDetailScreen(onReportIssuePressed: () {})
-            .withState<OrganizationDetailBloc, OrganizationDetailState>(
+        OrganizationDetailScreen(
+          onReportIssuePressed: () {},
+        ).withState<OrganizationDetailBloc, OrganizationDetailState>(
           MockOrganizationDetailBloc(),
           OrganizationDetailSuccess(
             organization: WalletMockData.organization,

@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 use std::hash::Hash;
 
+use chrono::DateTime;
+use chrono::Utc;
+use nutype::nutype;
 use rustls_pki_types::TrustAnchor;
 
 use crypto::CredentialEcdsaKey;
@@ -9,6 +12,8 @@ use dcql::CredentialQueryIdentifier;
 use dcql::normalized::NormalizedCredentialRequests;
 use http_utils::urls::BaseUrl;
 use mdoc::holder::disclosure::PartialMdoc;
+use sd_jwt::sd_jwt::UnsignedSdJwtPresentation;
+use utils::generator::Generator;
 use utils::vec_at_least::VecNonEmpty;
 use wscd::Poa;
 
@@ -49,6 +54,21 @@ pub trait DisclosureClient {
     ) -> Result<Self::Session, VpSessionError>;
 }
 
+#[derive(Debug, Clone)]
+pub enum DisclosableAttestations {
+    MsoMdoc(HashMap<CredentialQueryIdentifier, VecNonEmpty<PartialMdoc>>),
+    SdJwt(HashMap<CredentialQueryIdentifier, VecNonEmpty<(UnsignedSdJwtPresentation, String)>>),
+}
+
+#[nutype(
+    derive(Debug, Clone, AsRef, TryFrom),
+    validate(predicate = |response| match response {
+        DisclosableAttestations::MsoMdoc(map) => !map.is_empty(),
+        DisclosableAttestations::SdJwt(map) => !map.is_empty(),
+    }),
+)]
+pub struct NonEmptyDisclosableAttestations(DisclosableAttestations);
+
 pub trait DisclosureSession {
     fn session_type(&self) -> SessionType;
     /// The identifiers of each [`NormalizedCredentialRequest`] returned are guaranteed to be unique.
@@ -58,8 +78,9 @@ pub trait DisclosureSession {
     async fn terminate(self) -> Result<Option<BaseUrl>, VpSessionError>;
     async fn disclose<K, W>(
         self,
-        partial_attestations: HashMap<CredentialQueryIdentifier, VecNonEmpty<PartialMdoc>>,
+        attestations: NonEmptyDisclosableAttestations,
         wscd: &W,
+        time: &impl Generator<DateTime<Utc>>,
     ) -> Result<Option<BaseUrl>, (Self, DisclosureError<VpSessionError>)>
     where
         K: CredentialEcdsaKey + Eq + Hash,

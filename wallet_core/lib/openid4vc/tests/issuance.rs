@@ -172,13 +172,11 @@ async fn accept_issuance(
                 .into_inner()
                 .into_iter()
                 .for_each(|issued_credential| match issued_credential {
-                    IssuedCredential::MsoMdoc(mdoc) => {
-                        let payload = (*mdoc)
-                            .into_credential_payload(&preview_data.normalized_metadata)
-                            .unwrap();
+                    IssuedCredential::MsoMdoc { mdoc } => {
+                        let payload = mdoc.into_credential_payload(&preview_data.normalized_metadata).unwrap();
                         assert_eq!(payload.previewable_payload, preview_data.content.credential_payload);
                     }
-                    IssuedCredential::SdJwt(_) => {
+                    IssuedCredential::SdJwt { .. } => {
                         panic!("SdJwt should not be issued");
                     }
                 })

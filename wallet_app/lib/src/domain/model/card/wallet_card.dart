@@ -6,7 +6,6 @@ import '../../../util/extension/string_extension.dart';
 import '../../../util/mapper/card/summary_mapper.dart';
 import '../attribute/attribute.dart';
 import '../organization.dart';
-import 'card_config.dart';
 import 'metadata/card_display_metadata.dart';
 
 part 'wallet_card.g.dart';
@@ -28,9 +27,6 @@ class WalletCard extends Equatable {
   /// Data attributes stored in the card
   final List<DataAttribute> attributes;
 
-  /// Configuration settings for card behavior/appearance (used in mock builds)
-  final CardConfig config;
-
   /// Indicates whether the card is persisted in the database.
   bool get isPersisted => attestationId != null;
 
@@ -46,7 +42,6 @@ class WalletCard extends Equatable {
     required this.issuer,
     required this.attributes,
     this.metadata = const [],
-    this.config = const CardConfig(),
   });
 
   factory WalletCard.fromJson(Map<String, dynamic> json) => _$WalletCardFromJson(json);
@@ -55,13 +50,12 @@ class WalletCard extends Equatable {
 
   @override
   List<Object?> get props => [
-        attestationId,
-        attestationType,
-        issuer,
-        attributes,
-        metadata,
-        config,
-      ];
+    attestationId,
+    attestationType,
+    issuer,
+    attributes,
+    metadata,
+  ];
 
   WalletCard copyWith({
     String? Function()? attestationId,
@@ -69,7 +63,6 @@ class WalletCard extends Equatable {
     Organization? issuer,
     List<DataAttribute>? attributes,
     List<CardDisplayMetadata>? metadata,
-    CardConfig? config,
   }) {
     return WalletCard(
       attestationId: attestationId != null ? attestationId() : this.attestationId,
@@ -77,7 +70,6 @@ class WalletCard extends Equatable {
       issuer: issuer ?? this.issuer,
       attributes: attributes ?? this.attributes,
       metadata: metadata ?? this.metadata,
-      config: config ?? this.config,
     );
   }
 }

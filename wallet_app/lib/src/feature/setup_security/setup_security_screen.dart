@@ -88,8 +88,10 @@ class SetupSecurityScreen extends StatelessWidget {
         final Widget result = switch (state) {
           SetupSecuritySelectPinInProgress() => _buildSelectPinPage(context, enteredDigits: state.enteredDigits),
           SetupSecuritySelectPinFailed() => _buildSelectPinPage(context, enteredDigits: kPinDigits),
-          SetupSecurityPinConfirmationInProgress() =>
-            _buildPinConfirmationPage(context, enteredDigits: state.enteredDigits),
+          SetupSecurityPinConfirmationInProgress() => _buildPinConfirmationPage(
+            context,
+            enteredDigits: state.enteredDigits,
+          ),
           SetupSecurityPinConfirmationFailed() => _buildPinConfirmationPage(context, enteredDigits: kPinDigits),
           SetupSecurityCreatingWallet() => _buildCreatingWallet(context, state),
           SetupSecurityCompleted() => _buildSetupCompletedPage(context, state),
@@ -231,8 +233,8 @@ class SetupSecurityScreen extends StatelessWidget {
       SetupSecurityNetworkError() => '',
       SetupSecurityDeviceIncompatibleError() => '',
       SetupSecurityConfigureBiometrics() => context.l10n.setupBiometricsPageTitle(
-          state.biometrics.prettyPrint(context),
-        ),
+        state.biometrics.prettyPrint(context),
+      ),
     };
     if (title.isEmpty) return const SizedBox.shrink();
     return TitleText(title);

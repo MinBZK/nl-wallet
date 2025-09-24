@@ -10,8 +10,8 @@ variables:
   CARGO_INCREMENTAL: 0
   CARGO_PROFILE_TEST_DEBUG: "line-tables-only"
   APP_BUILD_OFFSET: 861
-  BUILD_TAG: 250829-4a185543
-  HSM_CLIENT_TAG: "71e620ac"
+  BUILD_TAG: 250922-aa74abfb
+  HSM_CLIENT_TAG: "37a60c5e"
   BUNDLE_DEPLOYMENT: "true"
   BUNDLE_RETRY: 10
 
@@ -28,7 +28,7 @@ variables:
 .env-macos-runner:
   tags:
     - macos
-  image: sequoia-wallet:0.2.2
+  image: sequoia-wallet:0.2.5
 
 .default-branch:
   rules:
@@ -83,10 +83,20 @@ variables:
     - !reference [.default-or-release, rules]
     - !reference [.merge-request-manual, rules]
 
-.on-schedule:
+.on-schedule-automation:
   rules:
-    - if: $CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-    - if: $CI_PIPELINE_SOURCE == "parent_pipeline" && $SCHEDULED == "true"
+    - if: $SCHEDULED == "automation" && $CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $SCHEDULED == "automation" && $CI_PIPELINE_SOURCE == "parent_pipeline"
+
+.on-schedule-trigger-scan:
+  rules:
+    - if: $SCHEDULED == "trigger-scan" && $CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $SCHEDULED == "trigger-scan" && $CI_PIPELINE_SOURCE == "parent_pipeline"
+
+.on-schedule-scan:
+  rules:
+    - if: $SCHEDULED == "scan" && $CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $SCHEDULED == "scan" && $CI_PIPELINE_SOURCE == "parent_pipeline"
 
 .on-mock-build:
   rules:

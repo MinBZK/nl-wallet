@@ -29,7 +29,7 @@ import org.junit.jupiter.api.assertAll
 import org.junitpioneer.jupiter.RetryingTest
 
 @TestMethodOrder(MethodOrderer.DisplayName::class)
-@DisplayName("UC 3.1 App informs User before personalization")
+@DisplayName("UC 3.1 Obtain PID")
 class PidIssuanceTests : TestBase() {
 
     private lateinit var personalizeInformScreen: PersonalizeInformScreen
@@ -64,7 +64,7 @@ class PidIssuanceTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("UC 3.1 LTC1 PID issuance happy flow")
+    @DisplayName("LTC1 PID issuance happy flow")
     fun verifyPersonalizeInformScreen(testInfo: TestInfo) {
         setUp(testInfo)
         assertTrue(personalizeInformScreen.visible(), "personalize inform screen is not visible")
@@ -123,7 +123,7 @@ class PidIssuanceTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("UC 3.1 LTC3 Authentication with auth server fails")
+    @DisplayName("LTC3 Authentication with auth server fails")
     fun verifySessionCanceledScreen(testInfo: TestInfo) {
         setUp(testInfo)
         personalizeInformScreen.clickDigidLoginButton()
@@ -140,7 +140,7 @@ class PidIssuanceTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("UC 3.1 LTC4 User rejects issued attributes")
+    @DisplayName("LTC4 User rejects issued attributes")
     fun verifyBackButton(testInfo: TestInfo) {
         setUp(testInfo)
         personalizeInformScreen.clickDigidLoginButton()
@@ -158,13 +158,14 @@ class PidIssuanceTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("UC 3.1 LTC2 Issuance fails")
+    @DisplayName("LTC2 Issuance fails")
     fun pidIssuanceFails(testInfo: TestInfo) {
         setUp(testInfo)
         personalizeInformScreen.clickDigidLoginButton()
         digidLoginStartWebPage.switchToWebViewContext()
         digidLoginStartWebPage.clickMockLoginButton()
         digidLoginMockWebPage.login(DEFAULT_BSN)
+
         personalizePidPreviewScreen.switchToNativeContext()
         personalizePidPreviewScreen.clickAcceptButton()
         personalizePidPreviewScreen.disableInternetConnection()

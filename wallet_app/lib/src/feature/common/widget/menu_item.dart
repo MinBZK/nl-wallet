@@ -75,8 +75,9 @@ class _MenuItemState extends State<MenuItem> {
 
   @override
   Widget build(BuildContext context) {
-    final Color? textPressedColor =
-        context.theme.textButtonTheme.style?.foregroundColor?.resolve({WidgetState.pressed});
+    final Color? textPressedColor = context.theme.textButtonTheme.style?.foregroundColor?.resolve({
+      WidgetState.pressed,
+    });
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [

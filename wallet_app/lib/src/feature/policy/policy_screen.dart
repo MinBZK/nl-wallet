@@ -113,8 +113,10 @@ class PolicyScreen extends StatelessWidget {
     );
 
     final policyCta = context.l10n.policyScreenPolicySectionPolicyCta;
-    final fullPolicyDescription =
-        context.l10n.policyScreenPolicySectionText(relyingParty.displayName.l10nValue(context), policyCta);
+    final fullPolicyDescription = context.l10n.policyScreenPolicySectionText(
+      relyingParty.displayName.l10nValue(context),
+      policyCta,
+    );
     final ctaIndex = fullPolicyDescription.indexOf(policyCta);
     final prefix = fullPolicyDescription.substring(0, ctaIndex);
     final suffix = fullPolicyDescription.substring(ctaIndex + policyCta.length, fullPolicyDescription.length);
@@ -142,6 +144,7 @@ class PolicyScreen extends StatelessWidget {
             child: Text.rich(context.l10n.policyScreenPolicySectionTitle.toTextSpan(context)),
           ),
           subtitle: Semantics(
+            button: true,
             onTap: () => launchUrlStringCatching(policyUrl, mode: LaunchMode.externalApplication),
             onTapHint: context.l10n.generalWCAGOpenLink,
             child: Text.rich(

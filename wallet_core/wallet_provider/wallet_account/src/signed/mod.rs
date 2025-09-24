@@ -2,6 +2,7 @@ pub use self::payload::ChallengeRequest;
 pub use self::payload::ChallengeRequestPayload;
 pub use self::payload::ChallengeResponse;
 pub use self::payload::ChallengeResponsePayload;
+pub use self::payload::HwSignedChallengeResponse;
 #[cfg(feature = "server")]
 pub use self::payload::server::SequenceNumberComparison;
 pub use self::signed_message::EcdsaSignatureType;

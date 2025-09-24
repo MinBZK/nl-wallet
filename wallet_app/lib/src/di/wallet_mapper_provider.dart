@@ -6,7 +6,6 @@ import 'package:wallet_mock/mock.dart' as core show Document;
 
 import '../domain/model/app_image_data.dart';
 import '../domain/model/attribute/attribute.dart';
-import '../domain/model/card/card_config.dart';
 import '../domain/model/card/metadata/card_display_metadata.dart';
 import '../domain/model/card/wallet_card.dart';
 import '../domain/model/disclosure/disclosure_session_type.dart';
@@ -22,7 +21,6 @@ import '../util/mapper/card/attribute/card_attribute_value_mapper.dart';
 import '../util/mapper/card/attribute/claim_display_metadata_mapper.dart';
 import '../util/mapper/card/attribute/localized_labels_mapper.dart';
 import '../util/mapper/card/attribute/missing_attribute_mapper.dart';
-import '../util/mapper/card/card_config_mapper.dart';
 import '../util/mapper/card/card_mapper.dart';
 import '../util/mapper/card/metadata_mapper.dart';
 import '../util/mapper/context_mapper.dart';
@@ -81,15 +79,11 @@ class WalletMapperProvider extends StatelessWidget {
         ),
 
         /// Card mappers
-        RepositoryProvider<Mapper<String, CardConfig>>(
-          create: (context) => CardConfigMapper(),
-        ),
         RepositoryProvider<Mapper<core.DisplayMetadata, CardDisplayMetadata>>(
           create: (context) => DisplayMetadataMapper(context.read()),
         ),
         RepositoryProvider<Mapper<core.AttestationPresentation, WalletCard>>(
           create: (context) => CardMapper(
-            context.read(),
             context.read(),
             context.read(),
             context.read(),

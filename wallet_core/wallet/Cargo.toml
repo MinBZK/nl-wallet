@@ -37,6 +37,7 @@ indexmap.workspace = true
 itertools.workspace = true
 # This feature is necessary on the transitive dependency sqlx.sqlite so it doesn't rely on a local dynamic library
 libsqlite3-sys = { workspace = true, features = ["bundled-sqlcipher-vendored-openssl"] }
+josekit.workspace = true
 mime.workspace = true
 nutype.workspace = true
 p256 = { workspace = true, features = ["ecdsa", "std"] }
@@ -44,16 +45,17 @@ parking_lot.workspace = true
 regex.workspace = true
 reqwest = { workspace = true, features = ["json", "rustls-tls-webpki-roots"] }
 ring = { workspace = true, features = ["std"] }
+rusqlite = {workspace = true }
 rustls-pki-types.workspace = true
 sanitize-filename.workspace = true
 sea-orm = { workspace = true, features = ["sqlx-sqlite", "runtime-tokio-rustls", "with-uuid"] }
 sea-query.workspace = true
-semver.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 serde_urlencoded.workspace = true
-serde_with = { workspace = true, features = ["base64"] }
+serde_with = { workspace = true, features = ["base64", "json"] }
 strum = { workspace = true, features = ["derive"] }
+tempfile.workspace = true
 tokio = { workspace = true, features = ["sync", "fs"] }
 tracing.workspace = true
 trait-variant.workspace = true
@@ -92,7 +94,6 @@ rand_core.workspace = true
 rstest.workspace = true
 serial_test.workspace = true
 ssri.workspace = true
-tempfile.workspace = true
 tokio = { workspace = true, features = ["rt", "macros", "test-util", "parking_lot"] }
 wiremock.workspace = true
 

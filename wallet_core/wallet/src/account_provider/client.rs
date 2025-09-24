@@ -12,6 +12,7 @@ use http_utils::reqwest::parse_content_type;
 use http_utils::tls::pinning::TlsPinningConfig;
 use wallet_account::messages::errors::AccountError;
 use wallet_account::messages::errors::AccountErrorType;
+use wallet_account::messages::instructions::HwSignedInstruction;
 use wallet_account::messages::instructions::Instruction;
 use wallet_account::messages::instructions::InstructionAndResult;
 use wallet_account::messages::instructions::InstructionChallengeRequest;
@@ -189,6 +190,25 @@ impl AccountProviderClient for HttpAccountProviderClient<TlsPinningConfig> {
     {
         let message: InstructionResultMessage<I::Result> = self
             .send_json_post_request(client_config, &format!("instructions/{}", I::NAME), &instruction)
+            .await?;
+
+        Ok(message.result)
+    }
+
+    async fn hw_signed_instruction<I>(
+        &self,
+        client_config: &TlsPinningConfig,
+        instruction: HwSignedInstruction<I>,
+    ) -> Result<InstructionResult<I::Result>, AccountProviderError>
+    where
+        I: InstructionAndResult,
+    {
+        let message: InstructionResultMessage<I::Result> = self
+            .send_json_post_request(
+                client_config,
+                &format!("instructions/hw_signed/{}", I::NAME),
+                &instruction,
+            )
             .await?;
 
         Ok(message.result)

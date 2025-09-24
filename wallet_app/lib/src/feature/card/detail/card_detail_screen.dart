@@ -11,13 +11,10 @@ import '../../../util/extension/animation_extension.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/localized_text_extension.dart';
 import '../../../util/extension/string_extension.dart';
-import '../../../util/formatter/card_valid_until_time_formatter.dart';
-import '../../../util/formatter/operation_issued_time_formatter.dart';
 import '../../../util/formatter/time_ago_formatter.dart';
 import '../../../util/mapper/event/wallet_event_status_text_mapper.dart';
 import '../../../wallet_constants.dart';
 import '../../common/screen/placeholder_screen.dart';
-import '../../common/sheet/explanation_sheet.dart';
 import '../../common/widget/animated_fade_in.dart';
 import '../../common/widget/button/button_content.dart';
 import '../../common/widget/button/icon/help_icon_button.dart';
@@ -41,7 +38,6 @@ import 'bloc/card_detail_bloc.dart';
 /// [CardDetailScreen] to slow down the entry transition a bit, making it feel a bit less rushed when the card
 /// animates into place.
 const kPreferredCardDetailEntryTransitionDuration = Duration(milliseconds: 600);
-const _kCardExpiresInDays = 365; // 1 year for demo purposes
 
 class CardDetailScreen extends StatelessWidget {
   static CardDetailScreenArgument getArgument(RouteSettings settings) {
@@ -128,17 +124,19 @@ class CardDetailScreen extends StatelessWidget {
               widthFactor: 0.6,
               child: Hero(
                 tag: card.hashCode,
-                flightShuttleBuilder: (
-                  BuildContext flightContext,
-                  Animation<double> animation,
-                  HeroFlightDirection flightDirection,
-                  BuildContext fromHeroContext,
-                  BuildContext toHeroContext,
-                ) {
-                  animation
-                      .addOnCompleteListener(() => context.read<CardDetailBloc>().notifyEntryTransitionCompleted());
-                  return WalletCardItem.buildShuttleCard(animation, card, ctaAnimation: CtaAnimation.fadeOut);
-                },
+                flightShuttleBuilder:
+                    (
+                      BuildContext flightContext,
+                      Animation<double> animation,
+                      HeroFlightDirection flightDirection,
+                      BuildContext fromHeroContext,
+                      BuildContext toHeroContext,
+                    ) {
+                      animation.addOnCompleteListener(
+                        () => context.read<CardDetailBloc>().notifyEntryTransitionCompleted(),
+                      );
+                      return WalletCardItem.buildShuttleCard(animation, card, ctaAnimation: CtaAnimation.fadeOut);
+                    },
                 child: WalletCardItem.fromWalletCard(context, card),
               ),
             ),
@@ -165,14 +163,14 @@ class CardDetailScreen extends StatelessWidget {
               widthFactor: 0.6,
               child: Hero(
                 tag: card.hashCode,
-                flightShuttleBuilder: (
-                  BuildContext flightContext,
-                  Animation<double> animation,
-                  HeroFlightDirection flightDirection,
-                  BuildContext fromHeroContext,
-                  BuildContext toHeroContext,
-                ) =>
-                    WalletCardItem.buildShuttleCard(animation, card, ctaAnimation: CtaAnimation.fadeIn),
+                flightShuttleBuilder:
+                    (
+                      BuildContext flightContext,
+                      Animation<double> animation,
+                      HeroFlightDirection flightDirection,
+                      BuildContext fromHeroContext,
+                      BuildContext toHeroContext,
+                    ) => WalletCardItem.buildShuttleCard(animation, card, ctaAnimation: CtaAnimation.fadeIn),
                 child: WalletCardItem.fromWalletCard(context, card),
               ),
             ),
@@ -217,19 +215,6 @@ class CardDetailScreen extends StatelessWidget {
           onReportIssuePressed: () => PlaceholderScreen.showGeneric(context),
         ),
       ),
-      if (card.config.updatable)
-        MenuItem(
-          leftIcon: const Icon(Icons.replay_outlined),
-          label: Text.rich(context.l10n.cardDetailScreenCardUpdateCta.toTextSpan(context)),
-          subtitle: Text.rich(_createOperationText(context, detail.mostRecentIssuance).toTextSpan(context)),
-          onPressed: () => _onCardUpdatePressed(context, card),
-        ),
-      if (card.config.removable)
-        MenuItem(
-          leftIcon: const Icon(Icons.delete_outline_rounded),
-          label: Text.rich(context.l10n.cardDetailScreenCardDeleteCta.toTextSpan(context)),
-          onPressed: () => _onCardDeletePressed(context),
-        ),
     ];
     return ListView.separated(
       shrinkWrap: true,
@@ -237,15 +222,6 @@ class CardDetailScreen extends StatelessWidget {
       itemBuilder: (c, i) => rows[i],
       separatorBuilder: (c, i) => const Divider(),
       itemCount: rows.length,
-    );
-  }
-
-  void _showNoUpdateAvailableSheet(BuildContext context) {
-    ExplanationSheet.show(
-      context,
-      title: context.l10n.cardDetailScreenNoUpdateAvailableSheetTitle,
-      description: context.l10n.cardDetailScreenNoUpdateAvailableSheetDescription,
-      closeButtonText: context.l10n.cardDetailScreenNoUpdateAvailableSheetCloseCta,
     );
   }
 
@@ -263,20 +239,6 @@ class CardDetailScreen extends StatelessWidget {
     } else {
       return context.l10n.cardDetailScreenLatestSuccessInteractionUnknown;
     }
-  }
-
-  String _createOperationText(BuildContext context, IssuanceEvent? event) {
-    if (event == null) return context.l10n.cardDetailScreenLatestIssuedOperationUnknown;
-
-    final String issuedTime = OperationIssuedTimeFormatter.format(context, event.dateTime);
-    final String issuedText = context.l10n.cardDetailScreenLatestIssuedOperation(issuedTime);
-
-    // TODO(anyone): Don't hardcode expiry
-    final DateTime validUntil = event.dateTime.add(const Duration(days: _kCardExpiresInDays));
-    final String validUntilTime = CardValidUntilTimeFormatter.format(context, validUntil);
-    final String validUntilText = context.l10n.cardDetailScreenCardValidUntil(validUntilTime);
-
-    return '$issuedText\n$validUntilText';
   }
 
   Widget _buildError(BuildContext context, CardDetailLoadFailure state) {
@@ -318,14 +280,6 @@ class CardDetailScreen extends StatelessWidget {
       WalletRoutes.cardHistoryRoute,
       arguments: attestationId,
     );
-  }
-
-  void _onCardUpdatePressed(BuildContext context, WalletCard card) {
-    _showNoUpdateAvailableSheet(context);
-  }
-
-  void _onCardDeletePressed(BuildContext context) {
-    PlaceholderScreen.showGeneric(context);
   }
 
   Widget _buildBottomSection(BuildContext context, CardDetailState state) {

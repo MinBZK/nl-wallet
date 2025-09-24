@@ -172,6 +172,7 @@ mod tests {
     use indexmap::IndexMap;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
+    use serial_test::serial;
     use uuid::Uuid;
 
     use attestation_data::auth::issuer_auth::IssuerRegistration;
@@ -248,6 +249,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[serial(MockIssuanceSession)]
     async fn test_wallet_accept_disclosure_based_issuance() {
         // Prepare a registered and unlocked wallet with an active disclosure session.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
@@ -315,9 +317,7 @@ mod tests {
         let stored_attestation_copy = StoredAttestationCopy::new(
             Uuid::new_v4(),
             Uuid::new_v4(),
-            StoredAttestation::MsoMdoc {
-                mdoc: Box::new(mdoc.clone()),
-            },
+            StoredAttestation::MsoMdoc { mdoc },
             NormalizedTypeMetadata::nl_pid_example(),
         );
 

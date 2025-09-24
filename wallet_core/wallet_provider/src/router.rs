@@ -18,18 +18,24 @@ use tracing::warn;
 
 use crypto::keys::EcdsaKey;
 use crypto::p256_der::DerVerifyingKey;
+use wallet_account::messages::instructions::CancelTransfer;
 use wallet_account::messages::instructions::ChangePinCommit;
 use wallet_account::messages::instructions::ChangePinRollback;
 use wallet_account::messages::instructions::ChangePinStart;
 use wallet_account::messages::instructions::CheckPin;
+use wallet_account::messages::instructions::ConfirmTransfer;
 use wallet_account::messages::instructions::DiscloseRecoveryCode;
-use wallet_account::messages::instructions::DiscloseRecoveryCodeResult;
+use wallet_account::messages::instructions::DiscloseRecoveryCodePinRecovery;
+use wallet_account::messages::instructions::GetTransferStatus;
+use wallet_account::messages::instructions::HwSignedInstruction;
 use wallet_account::messages::instructions::Instruction;
 use wallet_account::messages::instructions::InstructionAndResult;
 use wallet_account::messages::instructions::InstructionChallengeRequest;
 use wallet_account::messages::instructions::InstructionResultMessage;
 use wallet_account::messages::instructions::PerformIssuance;
 use wallet_account::messages::instructions::PerformIssuanceWithWua;
+use wallet_account::messages::instructions::ReceiveWalletPayload;
+use wallet_account::messages::instructions::SendWalletPayload;
 use wallet_account::messages::instructions::Sign;
 use wallet_account::messages::instructions::StartPinRecovery;
 use wallet_account::messages::instructions::StartPinRecoveryResult;
@@ -77,6 +83,22 @@ where
                 .route("/createwallet", post(create_wallet))
                 .route("/instructions/challenge", post(instruction_challenge))
                 .route(
+                    &format!("/instructions/hw_signed/{}", ConfirmTransfer::NAME),
+                    post(handle_hw_signed_instruction::<ConfirmTransfer, _, _, _>),
+                )
+                .route(
+                    &format!("/instructions/hw_signed/{}", CancelTransfer::NAME),
+                    post(handle_hw_signed_instruction::<CancelTransfer, _, _, _>),
+                )
+                .route(
+                    &format!("/instructions/hw_signed/{}", GetTransferStatus::NAME),
+                    post(handle_hw_signed_instruction::<GetTransferStatus, _, _, _>),
+                )
+                .route(
+                    &format!("/instructions/hw_signed/{}", ReceiveWalletPayload::NAME),
+                    post(handle_hw_signed_instruction::<ReceiveWalletPayload, _, _, _>),
+                )
+                .route(
                     &format!("/instructions/{}", ChangePinStart::NAME),
                     post(change_pin_start),
                 )
@@ -110,7 +132,15 @@ where
                 )
                 .route(
                     &format!("/instructions/{}", DiscloseRecoveryCode::NAME),
-                    post(disclose_recovery_code),
+                    post(handle_instruction::<DiscloseRecoveryCode, _, _, _>),
+                )
+                .route(
+                    &format!("/instructions/{}", DiscloseRecoveryCodePinRecovery::NAME),
+                    post(handle_instruction::<DiscloseRecoveryCodePinRecovery, _, _, _>),
+                )
+                .route(
+                    &format!("/instructions/{}", SendWalletPayload::NAME),
+                    post(handle_instruction::<SendWalletPayload, _, _, _>),
                 )
                 .layer(TraceLayer::new_for_http())
                 .with_state(Arc::clone(&state)),
@@ -203,6 +233,23 @@ where
     Ok((StatusCode::OK, body.into()))
 }
 
+async fn handle_hw_signed_instruction<I, R, GRC, PIC>(
+    State(state): State<Arc<RouterState<GRC, PIC>>>,
+    Json(payload): Json<HwSignedInstruction<I>>,
+) -> Result<(StatusCode, Json<InstructionResultMessage<R>>)>
+where
+    I: InstructionAndResult<Result = R> + HandleInstruction<Result = R> + ValidateInstruction,
+    R: Serialize + DeserializeOwned,
+{
+    info!("received {} instruction", I::NAME);
+    let body = state
+        .handle_hw_signed_instruction(payload)
+        .await
+        .inspect_err(|error| warn!("handling {} instruction failed: {}", I::NAME, error))?;
+
+    Ok((StatusCode::OK, body.into()))
+}
+
 async fn change_pin_start<GRC, PIC>(
     State(state): State<Arc<RouterState<GRC, PIC>>>,
     Json(payload): Json<Instruction<ChangePinStart>>,
@@ -270,19 +317,6 @@ async fn start_pin_recovery<GRC, PIC>(
         .inspect_err(|error| warn!("handling ChangePinStart instruction failed: {}", error))?;
 
     let body = InstructionResultMessage { result };
-
-    Ok((StatusCode::OK, body.into()))
-}
-
-async fn disclose_recovery_code<GRC, PIC>(
-    State(state): State<Arc<RouterState<GRC, PIC>>>,
-    Json(payload): Json<Instruction<DiscloseRecoveryCode>>,
-) -> Result<(StatusCode, Json<InstructionResultMessage<DiscloseRecoveryCodeResult>>)> {
-    info!("Received disclose recovery code request, handling the DiscloseRecoveryCode instruction");
-    let body = state
-        .handle_instruction(payload)
-        .await
-        .inspect_err(|error| warn!("handling DiscloseRecoveryCode instruction failed: {}", error))?;
 
     Ok((StatusCode::OK, body.into()))
 }

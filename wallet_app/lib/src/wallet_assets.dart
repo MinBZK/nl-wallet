@@ -28,6 +28,7 @@ class WalletAssets {
   static const lottie_intro_1 = 'assets/non-free/lottie/1_WELKOM.json';
   static const lottie_intro_2 = 'assets/non-free/lottie/2_VEILIG_INLOGGEN.json';
   static const lottie_intro_3 = 'assets/non-free/lottie/3_EENVOUDIG_DELEN.json';
+  static const lottie_generic_loader = 'assets/non-free/lottie/GENERIC_LOADER.json';
 
   // SVGS
   static const svg_rijks_card_holo = 'assets/non-free/svg/rijks_card_holo.svg';
@@ -68,6 +69,10 @@ class WalletAssets {
   static const svg_tour_icon = 'assets/non-free/svg/NL_WALLET_tour_icon.svg';
   static const svg_phone = 'assets/non-free/svg/NL_WALLET_phone.svg';
   static const svg_no_cards = 'assets/non-free/svg/NL_WALLET_no_card.svg';
+  static const svg_move_source_confirm = 'assets/non-free/svg/NL_WALLET_move_source_confirm.svg';
+  static const svg_move_source_success = 'assets/non-free/svg/NL_WALLET_move_source_success.svg';
+  static const svg_move_destination_permission = 'assets/non-free/svg/NL_WALLET_move_destination_permission.svg';
+  static const svg_move_destination_success = 'assets/non-free/svg/NL_WALLET_move_destination_success.svg';
 
   static const svg_icon_face_id = 'assets/non-free/svg/icon_face_id.svg';
 
@@ -112,6 +117,7 @@ class WalletAssets {
   static const icon_alert_fake_id = 'assets/non-free/icons/alert_fake_id.png';
   static const icon_alert_unidentified_organization = 'assets/non-free/icons/alert_unidentified_organization.png';
   static const icon_card_share = 'assets/non-free/icons/card_share.png';
+  static const icon_wallet_transfer = 'assets/non-free/icons/wallet_transfer.png';
 
   // VIDEOS
   static const slug_placeholder = '{slug}';

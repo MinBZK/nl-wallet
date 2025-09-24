@@ -26,11 +26,11 @@ class DiscloseCardRequest extends Equatable {
   int get id => candidates.hashCode;
 
   DiscloseCardRequest({required this.candidates, this.selectedIndex = 0})
-      : assert(
-          selectedIndex >= 0 && selectedIndex < candidates.length,
-          'selectedIndex must be within valid range of candidates list',
-        ),
-        assert(candidates.isNotEmpty, 'At least one candidate should be provided');
+    : assert(
+        selectedIndex >= 0 && selectedIndex < candidates.length,
+        'selectedIndex must be within valid range of candidates list',
+      ),
+      assert(candidates.isNotEmpty, 'At least one candidate should be provided');
 
   /// Creates a DisclosureCardRequest for a single card with no alternatives
   factory DiscloseCardRequest.fromCard(WalletCard card) => DiscloseCardRequest(candidates: [card]);

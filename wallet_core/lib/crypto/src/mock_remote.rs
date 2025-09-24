@@ -13,7 +13,6 @@ use parking_lot::Mutex;
 use rand_core::OsRng;
 
 use crate::CredentialEcdsaKey;
-use crate::CredentialKeyType;
 use crate::EcdsaKey;
 use crate::SecureEcdsaKey;
 use crate::WithIdentifier;
@@ -75,9 +74,7 @@ impl WithIdentifier for MockRemoteEcdsaKey {
     }
 }
 
-impl CredentialEcdsaKey for MockRemoteEcdsaKey {
-    const KEY_TYPE: CredentialKeyType = CredentialKeyType::Mock;
-}
+impl CredentialEcdsaKey for MockRemoteEcdsaKey {}
 
 #[derive(Debug, thiserror::Error)]
 pub enum MockRemoteWscdError {

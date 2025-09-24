@@ -32,8 +32,9 @@ class Wallet {
 
   List<AttestationPresentation> getRequestedAttestations(Iterable<String> keys) {
     final allRequestedAttributes = keys.map(findAttribute).nonNulls;
-    final cardToAttributes = allRequestedAttributes
-        .groupListsBy((attribute) => _attestations.firstWhere((card) => card.attributes.contains(attribute)));
+    final cardToAttributes = allRequestedAttributes.groupListsBy(
+      (attribute) => _attestations.firstWhere((card) => card.attributes.contains(attribute)),
+    );
     return cardToAttributes.entries
         .map(
           (e) => AttestationPresentation(

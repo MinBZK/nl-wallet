@@ -13,8 +13,8 @@ class CardNavigator : NativeMobileActions() {
         OnboardingNavigator().toScreen(OnboardingNavigatorScreen.Dashboard)
 
         // Navigate card flow
-        val vct = cardMetadata.getPidVCT()
-        if (screen > CardNavigatorScreen.Dashboard) DashboardScreen().clickCard(vct)
+        val pidDisplayName = cardMetadata.getPidDisplayName()
+        if (screen > CardNavigatorScreen.Dashboard) DashboardScreen().clickCard(pidDisplayName)
         if (screen > CardNavigatorScreen.CardDetail) CardDetailScreen().clickCardDataButton()
     }
 }

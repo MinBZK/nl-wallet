@@ -2,6 +2,8 @@ use assert_matches::assert_matches;
 use chrono::Utc;
 use p256::ecdsa::VerifyingKey;
 use p256::pkcs8::EncodePublicKey;
+use sea_orm::ActiveModelTrait;
+use sea_orm::Set;
 use semver::Version;
 use uuid::Uuid;
 
@@ -9,12 +11,15 @@ use apple_app_attest::AssertionCounter;
 use crypto::utils::random_string;
 use hsm::model::encrypted::Encrypted;
 use utils::generator::Generator;
+use wallet_account::messages::transfer::TransferSessionState;
 use wallet_provider_domain::EpochGenerator;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestation;
 use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
 use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::repository::PersistenceError;
+use wallet_provider_persistence::PersistenceConnection;
 use wallet_provider_persistence::database::Db;
+use wallet_provider_persistence::entity::wallet_transfer;
 use wallet_provider_persistence::entity::wallet_user;
 use wallet_provider_persistence::transaction;
 use wallet_provider_persistence::wallet_user::clear_instruction_challenge;
@@ -25,8 +30,10 @@ use wallet_provider_persistence::wallet_user::find_wallet_user_by_wallet_id;
 use wallet_provider_persistence::wallet_user::has_multiple_active_accounts_by_recovery_code;
 use wallet_provider_persistence::wallet_user::register_unsuccessful_pin_entry;
 use wallet_provider_persistence::wallet_user::rollback_pin_change;
+use wallet_provider_persistence::wallet_user::set_wallet_transfer_data;
 use wallet_provider_persistence::wallet_user::store_recovery_code;
 use wallet_provider_persistence::wallet_user::update_apple_assertion_counter;
+use wallet_provider_persistence::wallet_user::update_transfer_state;
 
 use crate::common::encrypted_pin_key;
 
@@ -443,6 +450,10 @@ async fn test_has_multiple_accounts() {
 async fn test_create_transfer_session() {
     let (db, wallet_user_id, wallet_id, _) = create_test_user().await;
 
+    store_recovery_code(&db, &wallet_id, Uuid::new_v4().to_string())
+        .await
+        .expect("storing the recovery code should succeed");
+
     let transfer_session_id = Uuid::new_v4();
     let destination_wallet_app_version = Version::parse("1.0.0").unwrap();
 
@@ -491,7 +502,11 @@ async fn test_create_transfer_session() {
 
 #[tokio::test]
 async fn test_find_transfer_session_by_transfer_session_id() {
-    let (db, wallet_user_id, _, _) = create_test_user().await;
+    let (db, wallet_user_id, wallet_id, _) = create_test_user().await;
+
+    store_recovery_code(&db, &wallet_id, Uuid::new_v4().to_string())
+        .await
+        .expect("storing the recovery code should succeed");
 
     let transfer_session_id = Uuid::new_v4();
     let destination_wallet_app_version = Version::parse("1.2.3").unwrap();
@@ -516,4 +531,114 @@ async fn test_find_transfer_session_by_transfer_session_id() {
         destination_wallet_app_version,
         transfer_session.destination_wallet_app_version
     );
+
+    assert!(
+        find_transfer_session_by_transfer_session_id(&db, Uuid::new_v4())
+            .await
+            .unwrap()
+            .is_none()
+    )
+}
+
+#[tokio::test]
+async fn test_update_transfer_state() {
+    let (db, wallet_user_id, wallet_id, _) = create_test_user().await;
+
+    store_recovery_code(&db, &wallet_id, Uuid::new_v4().to_string())
+        .await
+        .expect("storing the recovery code should succeed");
+
+    let transfer_session_id = Uuid::new_v4();
+    let destination_wallet_app_version = Version::parse("1.2.3").unwrap();
+
+    create_transfer_session(
+        &db,
+        wallet_user_id,
+        transfer_session_id,
+        destination_wallet_app_version.clone(),
+        Utc::now(),
+    )
+    .await
+    .unwrap();
+
+    let transfer_session = find_transfer_session_by_transfer_session_id(&db, transfer_session_id)
+        .await
+        .unwrap()
+        .unwrap();
+
+    assert_eq!(transfer_session_id, transfer_session.transfer_session_id);
+    assert_eq!(transfer_session.state, TransferSessionState::Created);
+
+    update_transfer_state(&db, transfer_session_id, TransferSessionState::ReadyForTransfer)
+        .await
+        .unwrap();
+
+    let transfer_session = find_transfer_session_by_transfer_session_id(&db, transfer_session_id)
+        .await
+        .unwrap()
+        .unwrap();
+
+    assert_eq!(transfer_session_id, transfer_session.transfer_session_id);
+    assert_eq!(transfer_session.state, TransferSessionState::ReadyForTransfer);
+
+    let err = update_transfer_state(&db, Uuid::new_v4(), TransferSessionState::Success)
+        .await
+        .expect_err("Updating a non-existing transfer session should fail");
+    assert_matches!(err, PersistenceError::NoRowsUpdated);
+}
+
+#[tokio::test]
+async fn test_set_wallet_transfer_data() {
+    let (db, wallet_user_id, wallet_id, _) = create_test_user().await;
+
+    store_recovery_code(&db, &wallet_id, Uuid::new_v4().to_string())
+        .await
+        .expect("storing the recovery code should succeed");
+
+    let transfer_session_id = Uuid::new_v4();
+
+    wallet_transfer::ActiveModel {
+        id: Set(Uuid::new_v4()),
+        destination_wallet_user_id: Set(wallet_user_id),
+        transfer_session_id: Set(transfer_session_id),
+        destination_wallet_app_version: Set("1.2.3".to_string()),
+        state: Set(TransferSessionState::Created.to_string()),
+        created: Set(Utc::now().into()),
+        encrypted_wallet_data: Set(Some(random_string(128))),
+    }
+    .insert(db.connection())
+    .await
+    .unwrap();
+
+    let transfer_session = find_transfer_session_by_transfer_session_id(&db, transfer_session_id)
+        .await
+        .unwrap()
+        .unwrap();
+
+    assert!(transfer_session.encrypted_wallet_data.is_some());
+
+    set_wallet_transfer_data(&db, transfer_session_id, None).await.unwrap();
+
+    let transfer_session = find_transfer_session_by_transfer_session_id(&db, transfer_session_id)
+        .await
+        .unwrap()
+        .unwrap();
+
+    assert!(transfer_session.encrypted_wallet_data.is_none());
+
+    set_wallet_transfer_data(&db, transfer_session_id, Some(random_string(32)))
+        .await
+        .unwrap();
+
+    let transfer_session = find_transfer_session_by_transfer_session_id(&db, transfer_session_id)
+        .await
+        .unwrap()
+        .unwrap();
+
+    assert!(transfer_session.encrypted_wallet_data.is_some());
+
+    let err = set_wallet_transfer_data(&db, Uuid::new_v4(), None)
+        .await
+        .expect_err("Updating a non-existing transfer session should fail");
+    assert_matches!(err, PersistenceError::NoRowsUpdated);
 }

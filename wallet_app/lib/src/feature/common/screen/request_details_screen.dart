@@ -48,17 +48,17 @@ class RequestDetailsScreen extends StatelessWidget {
     this.policy,
     super.key,
   }) : assert(
-          sharedAttributes == null || requestedAttributes == null,
-          'Only one of shared/requested attributes should be provided',
-        );
+         sharedAttributes == null || requestedAttributes == null,
+         'Only one of shared/requested attributes should be provided',
+       );
 
   factory RequestDetailsScreen.forDisclosureEvent(String title, DisclosureEvent event) => RequestDetailsScreen(
-        title: title,
-        requestedAttributes: event.cards.takeIf((it) => it.any((card) => card.attributes.isNotEmpty)),
-        purpose: event.purpose,
-        organization: event.relyingParty,
-        policy: OrganizationPolicy(organization: event.relyingParty, policy: event.policy),
-      );
+    title: title,
+    requestedAttributes: event.cards.takeIf((it) => it.any((card) => card.attributes.isNotEmpty)),
+    purpose: event.purpose,
+    organization: event.relyingParty,
+    policy: OrganizationPolicy(organization: event.relyingParty, policy: event.policy),
+  );
 
   @override
   Widget build(BuildContext context) {

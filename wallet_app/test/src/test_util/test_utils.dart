@@ -14,27 +14,33 @@ abstract class TestUtils {
   static void mockSensorsPlugin() {
     // Mock the accelerometer, as this is used by e.g. [CardHolograph] to make it appear reflective.
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
-        const MethodChannel('dev.fluttercommunity.plus/sensors/accelerometer'), (MethodCall methodCall) async {
-      if (methodCall.method == 'listen') {
-        return <String, dynamic>{};
-      }
-      return null;
-    });
+      const MethodChannel('dev.fluttercommunity.plus/sensors/accelerometer'),
+      (MethodCall methodCall) async {
+        if (methodCall.method == 'listen') {
+          return <String, dynamic>{};
+        }
+        return null;
+      },
+    );
 
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
-        const MethodChannel('dev.fluttercommunity.plus/sensors/method'), (MethodCall methodCall) async {
-      if (methodCall.method == 'setGyroscopeSamplingPeriod') {
-        return <String, dynamic>{};
-      }
-      return null;
-    });
+      const MethodChannel('dev.fluttercommunity.plus/sensors/method'),
+      (MethodCall methodCall) async {
+        if (methodCall.method == 'setGyroscopeSamplingPeriod') {
+          return <String, dynamic>{};
+        }
+        return null;
+      },
+    );
 
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
-        const MethodChannel('dev.fluttercommunity.plus/sensors/gyroscope'), (MethodCall methodCall) async {
-      if (methodCall.method == 'cancel') {
-        return <String, dynamic>{};
-      }
-      return null;
-    });
+      const MethodChannel('dev.fluttercommunity.plus/sensors/gyroscope'),
+      (MethodCall methodCall) async {
+        if (methodCall.method == 'cancel') {
+          return <String, dynamic>{};
+        }
+        return null;
+      },
+    );
   }
 }

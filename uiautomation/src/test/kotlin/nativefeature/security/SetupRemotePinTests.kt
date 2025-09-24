@@ -34,7 +34,7 @@ class SetupRemotePinTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("UC2.1 LTC66 Setup PIN happy flow")
+    @DisplayName("LTC66 Setup PIN happy flow")
     fun verifyChoosePinScreenVisible(testInfo: TestInfo) {
         setUp(testInfo)
         assertTrue(pinScreen.setupPinScreenVisible(), "choose pin screen is not visible")
@@ -61,7 +61,7 @@ class SetupRemotePinTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("UC2.1 LTC63 PIN entry does not conform to policy")
+    @DisplayName("LTC63 PIN entry does not conform to policy")
     fun verifyPinTwoUniqueDigitsError(testInfo: TestInfo) {
         setUp(testInfo)
         pinScreen.enterPin("111111")
@@ -86,7 +86,7 @@ class SetupRemotePinTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("UC2.1 LTC61 PIN entries do not match, try again")
+    @DisplayName("LTC61 PIN entries do not match, try again")
     fun verifyIncorrectConfirmPin(testInfo: TestInfo) {
         setUp(testInfo)
         pinScreen.enterPin(DEFAULT_PIN)
@@ -96,7 +96,7 @@ class SetupRemotePinTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("UC2.1 LTC62 PIN entries do not match, choose new PIN")
+    @DisplayName("LTC62 PIN entries do not match, choose new PIN")
     fun verifyRestartChoosePin(testInfo: TestInfo) {
         setUp(testInfo)
         pinScreen.enterPin(DEFAULT_PIN)

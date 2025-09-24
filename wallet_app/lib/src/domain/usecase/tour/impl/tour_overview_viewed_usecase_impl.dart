@@ -9,7 +9,7 @@ class TourOverviewViewedUseCaseImpl extends TourOverviewViewedUseCase {
 
   @override
   Future<Result<void>> invoke() => tryCatch(
-        () async => _tourRepository.setShowTourBanner(showTourBanner: false),
-        'Failed to persist tour banner state',
-      );
+    () async => _tourRepository.setShowTourBanner(showTourBanner: false),
+    'Failed to persist tour banner state',
+  );
 }

@@ -24,8 +24,9 @@ class MissingAttributesPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final closeCta =
-        hasReturnUrl ? context.l10n.missingAttributesPageBackToWebsiteCta : context.l10n.missingAttributesPageCloseCta;
+    final closeCta = hasReturnUrl
+        ? context.l10n.missingAttributesPageBackToWebsiteCta
+        : context.l10n.missingAttributesPageCloseCta;
     final closeIcon = hasReturnUrl ? Icons.north_east_outlined : Icons.close;
     return TerminalPage(
       title: context.l10n.missingAttributesPageTitle,

@@ -9,7 +9,7 @@ class SignScreenArgument {
   final String? uri;
 
   const SignScreenArgument({this.mockSessionId, this.uri})
-      : assert(mockSessionId != null || uri != null, 'Either a mockSessionId of a uri is needed to start signing');
+    : assert(mockSessionId != null || uri != null, 'Either a mockSessionId of a uri is needed to start signing');
 
   Map<String, dynamic> toMap() {
     return {
@@ -18,9 +18,7 @@ class SignScreenArgument {
     };
   }
 
-  SignScreenArgument.fromMap(Map<String, dynamic> map)
-      : mockSessionId = map[_kSessionIdKey],
-        uri = map[_kUriKey];
+  SignScreenArgument.fromMap(Map<String, dynamic> map) : mockSessionId = map[_kSessionIdKey], uri = map[_kUriKey];
 
   @override
   bool operator ==(Object other) =>
@@ -32,8 +30,8 @@ class SignScreenArgument {
 
   @override
   int get hashCode => Object.hash(
-        runtimeType,
-        mockSessionId,
-        uri,
-      );
+    runtimeType,
+    mockSessionId,
+    uri,
+  );
 }

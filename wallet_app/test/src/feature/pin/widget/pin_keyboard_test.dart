@@ -52,8 +52,9 @@ void main() {
       }
     });
 
-    testWidgets('should trigger `onBackspacePressed` callback when the backspace key is pressed',
-        (WidgetTester tester) async {
+    testWidgets('should trigger `onBackspacePressed` callback when the backspace key is pressed', (
+      WidgetTester tester,
+    ) async {
       bool onBackspaceWasPressed = false;
       final pinKeyboard = PinKeyboard(
         onBackspacePressed: () => onBackspaceWasPressed = true,

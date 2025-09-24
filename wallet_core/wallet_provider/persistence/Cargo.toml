@@ -22,7 +22,7 @@ required-features = ["db_test"]
 
 [features]
 # Include mock implementations and constructors for testing
-mock = ["mockall", "dep:rand_core"]
+mock = ["mockall", "dep:rand_core", "wallet_provider_domain/mock"]
 # Include and run test that depend on an external PostgreSQL database
 db_test = [
     "dep:ctor",
@@ -66,9 +66,10 @@ tracing-subscriber = { workspace = true, optional = true, features = [
 apple_app_attest.path = "../../lib/apple_app_attest"
 crypto.path = "../../lib/crypto"
 hsm.path = "../../lib/hsm"
+utils.path = "../../lib/utils"
+wallet_account.path = "../wallet_account"
 wallet_provider_database_settings.path = "../database_settings"
 wallet_provider_domain.path = "../domain"
-utils.path = "../../lib/utils"
 
 [dev-dependencies]
 assert_matches.workspace = true

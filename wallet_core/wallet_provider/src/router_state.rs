@@ -13,6 +13,7 @@ use crypto::keys::EcdsaKey;
 use hsm::keys::HsmEcdsaKey;
 use hsm::service::Pkcs11Hsm;
 use utils::generator::Generator;
+use wallet_account::messages::instructions::HwSignedInstruction;
 use wallet_account::messages::instructions::Instruction;
 use wallet_account::messages::instructions::InstructionAndResult;
 use wallet_account::messages::instructions::InstructionResultMessage;
@@ -166,6 +167,29 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
                 &self.instruction_result_signing_key,
                 self,
                 &self.pin_policy,
+                &self.user_state,
+            )
+            .await?;
+
+        info!("Replying with the instruction result");
+
+        Ok(InstructionResultMessage { result })
+    }
+
+    pub async fn handle_hw_signed_instruction<I, R>(
+        &self,
+        instruction: HwSignedInstruction<I>,
+    ) -> Result<InstructionResultMessage<R>, WalletProviderError>
+    where
+        I: InstructionAndResult<Result = R> + HandleInstruction<Result = R> + ValidateInstruction,
+        R: Serialize + DeserializeOwned,
+    {
+        let result = self
+            .account_server
+            .handle_hw_signed_instruction(
+                instruction,
+                &self.instruction_result_signing_key,
+                self,
                 &self.user_state,
             )
             .await?;

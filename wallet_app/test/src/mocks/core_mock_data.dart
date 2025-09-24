@@ -13,11 +13,17 @@ abstract class CoreMockData {
   static const enDisplayMetadata = DisplayMetadata(lang: 'en', name: 'PID attestation', rendering: null);
   static const nlDisplayMetadata = DisplayMetadata(lang: 'nl', name: 'PID attestatie', rendering: null);
 
-  static const AttestationAttribute attestationAttributeName =
-      AttestationAttribute(key: 'name', labels: [], value: AttributeValue_String(value: 'Willeke'));
+  static const AttestationAttribute attestationAttributeName = AttestationAttribute(
+    key: 'name',
+    labels: [],
+    value: AttributeValue_String(value: 'Willeke'),
+  );
 
-  static const AttestationAttribute attestationAttributeCity =
-      AttestationAttribute(key: 'city', labels: [], value: AttributeValue_String(value: 'Den Haag'));
+  static const AttestationAttribute attestationAttributeCity = AttestationAttribute(
+    key: 'city',
+    labels: [],
+    value: AttributeValue_String(value: 'Den Haag'),
+  );
 
   static const Organization organization = Organization(
     legalName: [LocalizedString(language: 'en', value: 'legalName')],

@@ -10,8 +10,9 @@ import '../../../../mocks/wallet_mocks.mocks.dart';
 void main() {
   test('[android] returns face when strong & face type biometrics is available', () async {
     final mockLocalAuthentication = MockLocalAuthentication();
-    when(mockLocalAuthentication.getAvailableBiometrics())
-        .thenAnswer((_) async => [BiometricType.strong, BiometricType.face]);
+    when(
+      mockLocalAuthentication.getAvailableBiometrics(),
+    ).thenAnswer((_) async => [BiometricType.strong, BiometricType.face]);
     final usecase = GetAvailableBiometricsUseCaseImpl(
       mockLocalAuthentication,
       TargetPlatform.android,
@@ -22,8 +23,9 @@ void main() {
 
   test('[android] returns finger when strong & finger type biometrics is available', () async {
     final mockLocalAuthentication = MockLocalAuthentication();
-    when(mockLocalAuthentication.getAvailableBiometrics())
-        .thenAnswer((_) async => [BiometricType.strong, BiometricType.fingerprint]);
+    when(
+      mockLocalAuthentication.getAvailableBiometrics(),
+    ).thenAnswer((_) async => [BiometricType.strong, BiometricType.fingerprint]);
     final usecase = GetAvailableBiometricsUseCaseImpl(
       mockLocalAuthentication,
       TargetPlatform.android,
@@ -121,8 +123,9 @@ void main() {
 
   test('[iOS] returns some when only face and finger biometric types are available', () async {
     final mockLocalAuthentication = MockLocalAuthentication();
-    when(mockLocalAuthentication.getAvailableBiometrics())
-        .thenAnswer((_) async => [BiometricType.face, BiometricType.fingerprint]);
+    when(
+      mockLocalAuthentication.getAvailableBiometrics(),
+    ).thenAnswer((_) async => [BiometricType.face, BiometricType.fingerprint]);
     final usecase = GetAvailableBiometricsUseCaseImpl(
       mockLocalAuthentication,
       TargetPlatform.iOS,

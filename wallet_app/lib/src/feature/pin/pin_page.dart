@@ -31,12 +31,13 @@ const kNonFinalRoundMLeftoverAttemptsMentionThreshold = 3;
 /// Signature for a function that creates a widget while providing the leftover pin attempts.
 /// [attempts] being null indicates that this is the first attempt.
 /// [isFinalAttempt] being true indicates it's the final attempt (followed by the user being blocked, i.e. no more timeout)
-typedef PinHeaderBuilder = Widget Function(
-  BuildContext context,
-  int? attemptsLeftInRound,
-  //ignore: avoid_positional_boolean_parameters
-  bool isFinalRound,
-);
+typedef PinHeaderBuilder =
+    Widget Function(
+      BuildContext context,
+      int? attemptsLeftInRound,
+      //ignore: avoid_positional_boolean_parameters
+      bool isFinalRound,
+    );
 
 /// Signature for a function that is called on any state change exposed by the [PinBloc]. When this method
 /// is provided AND returns true for the given [PinState], the state is considered consumed and will not be handled
@@ -59,6 +60,10 @@ class PinPage extends StatelessWidget {
   /// the 'biometrics' key appear on the [PinKeyboard].
   final VoidCallback? onBiometricUnlockRequested;
 
+  /// Used to override the recovery method for the pin (defaults to DigiD pin recovery flow).
+  /// This will be passed to the [ForgotPinScreen] when the user taps the "forgot pin" button.
+  final PinRecoveryMethod pinRecoveryMethod;
+
   /// Called for every state change exposed by the [PinBloc]. When [onStateChanged] is
   /// provided and it returns true, the event is not processed by this [PinPage].
   final PinStateInterceptor? onStateChanged;
@@ -79,6 +84,7 @@ class PinPage extends StatelessWidget {
     this.onPinError,
     this.onBiometricUnlockRequested,
     this.headerBuilder,
+    this.pinRecoveryMethod = PinRecoveryMethod.recoverPin,
     this.showTopDivider = false,
     super.key,
   });
@@ -278,7 +284,7 @@ class PinPage extends StatelessWidget {
     return ListButton(
       mainAxisAlignment: context.isLandscape ? MainAxisAlignment.start : MainAxisAlignment.center,
       icon: const Icon(Icons.help_outline_rounded),
-      onPressed: () => ForgotPinScreen.show(context),
+      onPressed: () => ForgotPinScreen.show(context, recoveryMethod: pinRecoveryMethod),
       iconPosition: IconPosition.start,
       text: Text.rich(context.l10n.pinScreenForgotPinCta.toTextSpan(context)),
       dividerSide: DividerSide.top,
@@ -293,10 +299,12 @@ class PinPage extends StatelessWidget {
           opacity: state is PinValidateInProgress ? 0.3 : 1,
           child: PinKeyboard(
             onKeyPressed: _digitKeysEnabled(state) ? (digit) => context.bloc.add(PinDigitPressed(digit)) : null,
-            onBackspacePressed:
-                _backspaceKeyEnabled(state) ? () => context.bloc.add(const PinBackspacePressed()) : null,
-            onBackspaceLongPressed:
-                _backspaceKeyEnabled(state) ? () => context.bloc.add(const PinClearPressed()) : null,
+            onBackspacePressed: _backspaceKeyEnabled(state)
+                ? () => context.bloc.add(const PinBackspacePressed())
+                : null,
+            onBackspaceLongPressed: _backspaceKeyEnabled(state)
+                ? () => context.bloc.add(const PinClearPressed())
+                : null,
             onBiometricsPressed: onBiometricUnlockRequested,
           ),
         );
@@ -351,10 +359,14 @@ class PinPage extends StatelessWidget {
 
   Future<void> _showErrorDialog(BuildContext context, PinValidateFailure reason) async {
     final body = _pinErrorDialogBody(context, reason);
-    return showPinErrorDialog(context, body);
+    return showPinErrorDialog(context, body, recoveryMethod: pinRecoveryMethod);
   }
 
-  static Future<void> showPinErrorDialog(BuildContext context, String description) async {
+  static Future<void> showPinErrorDialog(
+    BuildContext context,
+    String description, {
+    PinRecoveryMethod? recoveryMethod,
+  }) async {
     final title = context.l10n.pinErrorDialogTitle;
     return showDialog<void>(
       context: context,
@@ -369,7 +381,7 @@ class PinPage extends StatelessWidget {
               child: Text.rich(context.l10n.pinErrorDialogForgotCodeCta.toUpperCase().toTextSpan(context)),
               onPressed: () {
                 Navigator.of(context).pop();
-                ForgotPinScreen.show(context);
+                ForgotPinScreen.show(context, recoveryMethod: recoveryMethod);
               },
             ),
             TextButton(

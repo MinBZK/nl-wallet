@@ -25,12 +25,15 @@ class HorizontalListItem extends StatelessWidget {
           SizedBox(width: icon == null ? 0 : 16),
           Expanded(
             child: Semantics(
-              explicitChildNodes: true,
+              explicitChildNodes: true /* make sure column's children are announced separately */,
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  DefaultTextStyle(style: context.textTheme.titleMedium!, child: label),
+                  Semantics(
+                    header: true,
+                    child: DefaultTextStyle(style: context.textTheme.titleMedium!, child: label),
+                  ),
                   const SizedBox(height: 8),
                   DefaultTextStyle(style: context.textTheme.bodyLarge!, child: subtitle),
                 ],

@@ -135,7 +135,8 @@ mod tests {
                     Uuid::new_v4(),
                     Uuid::new_v4(),
                     StoredAttestation::SdJwt {
-                        sd_jwt: Box::new(sd_jwt),
+                        key_identifier: "sd_jwt_key_id".to_string(),
+                        sd_jwt,
                     },
                     NormalizedTypeMetadata::nl_pid_example(),
                 ),
@@ -143,7 +144,7 @@ mod tests {
                     Uuid::new_v4(),
                     Uuid::new_v4(),
                     StoredAttestation::MsoMdoc {
-                        mdoc: Box::new(create_example_pid_mdoc()),
+                        mdoc: create_example_pid_mdoc(),
                     },
                     NormalizedTypeMetadata::nl_pid_example(),
                 ),

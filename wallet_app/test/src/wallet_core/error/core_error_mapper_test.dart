@@ -64,62 +64,69 @@ void main() {
     });
 
     test(
-        'mapping FlutterApiErrorType.redirectUri with invalid data results in CoreRedirectUriError with RedirectError.unknown',
-        () {
-      final error = FlutterApiError(
-        type: FlutterApiErrorType.redirectUri,
-        description: defaultDescription,
-        data: {'redirect_error': 'xxyyzz'},
-      );
-      final errorJson = jsonEncode(error);
-      final result = errorMapper.map(errorJson);
-      expect(result, CoreRedirectUriError(defaultDescription, redirectError: RedirectError.unknown, data: error.data));
-    });
+      'mapping FlutterApiErrorType.redirectUri with invalid data results in CoreRedirectUriError with RedirectError.unknown',
+      () {
+        final error = FlutterApiError(
+          type: FlutterApiErrorType.redirectUri,
+          description: defaultDescription,
+          data: {'redirect_error': 'xxyyzz'},
+        );
+        final errorJson = jsonEncode(error);
+        final result = errorMapper.map(errorJson);
+        expect(
+          result,
+          CoreRedirectUriError(defaultDescription, redirectError: RedirectError.unknown, data: error.data),
+        );
+      },
+    );
 
     test(
-        'mapping FlutterApiErrorType.redirectUri with accessDenied data results in CoreRedirectUriError with RedirectError.accessDenied',
-        () {
-      final error = FlutterApiError(
-        type: FlutterApiErrorType.redirectUri,
-        description: defaultDescription,
-        data: {'redirect_error': 'access_denied'},
-      );
-      final errorJson = jsonEncode(error);
-      final result = errorMapper.map(errorJson);
-      expect(
-        result,
-        CoreRedirectUriError(defaultDescription, redirectError: RedirectError.accessDenied, data: error.data),
-      );
-    });
+      'mapping FlutterApiErrorType.redirectUri with accessDenied data results in CoreRedirectUriError with RedirectError.accessDenied',
+      () {
+        final error = FlutterApiError(
+          type: FlutterApiErrorType.redirectUri,
+          description: defaultDescription,
+          data: {'redirect_error': 'access_denied'},
+        );
+        final errorJson = jsonEncode(error);
+        final result = errorMapper.map(errorJson);
+        expect(
+          result,
+          CoreRedirectUriError(defaultDescription, redirectError: RedirectError.accessDenied, data: error.data),
+        );
+      },
+    );
 
     test(
-        'mapping FlutterApiErrorType.redirectUri with serverError data results in CoreRedirectUriError with RedirectError.serverError',
-        () {
-      final error = FlutterApiError(
-        type: FlutterApiErrorType.redirectUri,
-        description: defaultDescription,
-        data: {'redirect_error': 'server_error'},
-      );
-      final errorJson = jsonEncode(error);
-      final result = errorMapper.map(errorJson);
-      expect(
-        result,
-        CoreRedirectUriError(defaultDescription, redirectError: RedirectError.serverError, data: error.data),
-      );
-    });
+      'mapping FlutterApiErrorType.redirectUri with serverError data results in CoreRedirectUriError with RedirectError.serverError',
+      () {
+        final error = FlutterApiError(
+          type: FlutterApiErrorType.redirectUri,
+          description: defaultDescription,
+          data: {'redirect_error': 'server_error'},
+        );
+        final errorJson = jsonEncode(error);
+        final result = errorMapper.map(errorJson);
+        expect(
+          result,
+          CoreRedirectUriError(defaultDescription, redirectError: RedirectError.serverError, data: error.data),
+        );
+      },
+    );
 
     test(
-        'mapping a FlutterApiErrorType.expiredSession with canRetry data set to true results in CoreExpiredSessionError with canRetry=true',
-        () {
-      final Map<String, dynamic> data = {'can_retry': true};
-      final error = FlutterApiError(
-        type: FlutterApiErrorType.expiredSession,
-        description: defaultDescription,
-        data: data,
-      );
-      final errorJson = jsonEncode(error);
-      final result = errorMapper.map(errorJson);
-      expect(result, CoreExpiredSessionError(defaultDescription, canRetry: true, data: data));
-    });
+      'mapping a FlutterApiErrorType.expiredSession with canRetry data set to true results in CoreExpiredSessionError with canRetry=true',
+      () {
+        final Map<String, dynamic> data = {'can_retry': true};
+        final error = FlutterApiError(
+          type: FlutterApiErrorType.expiredSession,
+          description: defaultDescription,
+          data: data,
+        );
+        final errorJson = jsonEncode(error);
+        final result = errorMapper.map(errorJson);
+        expect(result, CoreExpiredSessionError(defaultDescription, canRetry: true, data: data));
+      },
+    );
   });
 }
