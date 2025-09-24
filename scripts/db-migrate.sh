@@ -5,7 +5,6 @@ set -euo pipefail
 command="${1:-fresh}"
 
 SCRIPTS_DIR="$(cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd -P)"
-BASE_DIR=$(dirname "${SCRIPTS_DIR}")
 
 . $SCRIPTS_DIR/configuration.sh
 

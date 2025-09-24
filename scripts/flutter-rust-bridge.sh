@@ -3,7 +3,7 @@
 set -euo pipefail
 
 SCRIPTS_DIR="$(cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd -P)"
-BASE_DIR=$(dirname "${SCRIPTS_DIR}")
+BASE_DIR="$(dirname "${SCRIPTS_DIR}")"
 
 cd "$BASE_DIR/wallet_app"
 

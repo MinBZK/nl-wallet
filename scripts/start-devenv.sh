@@ -22,7 +22,6 @@ set -o pipefail
 ########################################################################
 
 SCRIPTS_DIR="$(cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd -P)"
-BASE_DIR=$(dirname "${SCRIPTS_DIR}")
 DOCKER_COMPOSE_FILE=${SCRIPTS_DIR}/docker-compose.yml
 
 source "${SCRIPTS_DIR}/utils.sh"

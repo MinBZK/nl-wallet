@@ -6,6 +6,7 @@
 
 BASE64="openssl base64 -e -A"
 SCRIPTS_DIR="$(cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd -P)"
+BASE_DIR="$(dirname "${SCRIPTS_DIR}")"
 source "${SCRIPTS_DIR}/colors.sh"
 
 ########################################################################
