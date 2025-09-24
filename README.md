@@ -559,7 +559,7 @@ cd nl-wallet
 
 # Generate bridge code (note: take a look at git diff afterwards. If flutter
 # analyze later in this guide fails, revert with git checkout -- wallet_app).
-flutter_rust_bridge_codegen generate --config-file wallet_app/flutter_rust_bridge.yaml
+scripts/flutter-rust-bridge.sh
 ```
 
 **A note for Linux users, specifically on non-Debian systems:** You need to set
@@ -570,7 +570,7 @@ for `flutter_rust_bridge_codegen`, you can run as follows:
 
 ```shell
 CPATH="$(clang -v 2>&1 | grep "Selected GCC installation" | rev | cut -d' ' -f1 | rev)/include" \
-flutter_rust_bridge_codegen generate --config-file wallet_app/flutter_rust_bridge.yaml
+scripts/flutter-rust-bridge.sh
 ```
 
 Note that the generated code is checked into our git repository, so generation
