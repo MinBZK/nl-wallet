@@ -46,6 +46,8 @@ use wallet_account::messages::instructions::PerformIssuance;
 use wallet_account::messages::instructions::PerformIssuanceResult;
 use wallet_account::messages::instructions::PerformIssuanceWithWua;
 use wallet_account::messages::instructions::PerformIssuanceWithWuaResult;
+use wallet_account::messages::instructions::ReceiveWalletPayload;
+use wallet_account::messages::instructions::ReceiveWalletPayloadResult;
 use wallet_account::messages::instructions::SendWalletPayload;
 use wallet_account::messages::instructions::Sign;
 use wallet_account::messages::instructions::SignResult;
@@ -193,6 +195,12 @@ impl ValidateInstruction for GetTransferStatus {
 }
 
 impl ValidateInstruction for SendWalletPayload {
+    fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+        validate_transfer_instruction(wallet_user)
+    }
+}
+
+impl ValidateInstruction for ReceiveWalletPayload {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
         validate_transfer_instruction(wallet_user)
     }
@@ -872,6 +880,9 @@ impl HandleInstruction for GetTransferStatus {
     {
         let tx = user_state.repositories.begin_transaction().await?;
 
+        // TODO: PVW-4959: The database query used for checking the prerequisites is quite heavy
+        // (since it retrieves the encrypted wallet data and the complete wallet user) and could
+        // be optimized if necessary.
         let transfer_session = check_transfer_instruction_prerequisites(
             &tx,
             &user_state.repositories,
@@ -930,6 +941,46 @@ impl HandleInstruction for SendWalletPayload {
         tx.commit().await?;
 
         Ok(())
+    }
+}
+
+impl HandleInstruction for ReceiveWalletPayload {
+    type Result = ReceiveWalletPayloadResult;
+
+    async fn handle<T, R, H, G>(
+        self,
+        wallet_user: &WalletUser,
+        _generators: &G,
+        user_state: &UserState<R, H, impl WuaIssuer>,
+    ) -> Result<ReceiveWalletPayloadResult, InstructionError>
+    where
+        T: Committable,
+        R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
+        H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
+        G: Generator<Uuid> + Generator<DateTime<Utc>>,
+    {
+        let tx = user_state.repositories.begin_transaction().await?;
+
+        let transfer_session = check_transfer_instruction_prerequisites(
+            &tx,
+            &user_state.repositories,
+            self.transfer_session_id,
+            wallet_user,
+        )
+        .await?;
+
+        let TransferSession {
+            state: TransferSessionState::ReadyForDownload,
+            encrypted_wallet_data: Some(payload),
+            ..
+        } = transfer_session
+        else {
+            return Err(InstructionError::AccountTransferIllegalState);
+        };
+
+        tx.commit().await?;
+
+        Ok(ReceiveWalletPayloadResult { payload })
     }
 }
 
@@ -1095,6 +1146,7 @@ mod tests {
     use wallet_account::messages::instructions::GetTransferStatus;
     use wallet_account::messages::instructions::PerformIssuance;
     use wallet_account::messages::instructions::PerformIssuanceWithWua;
+    use wallet_account::messages::instructions::ReceiveWalletPayload;
     use wallet_account::messages::instructions::SendWalletPayload;
     use wallet_account::messages::instructions::Sign;
     use wallet_account::messages::instructions::StartPinRecovery;
@@ -2305,6 +2357,146 @@ mod tests {
             )
             .await
             .expect_err("should fail when transfer session is not ReadyForTransfer");
+
+        assert_matches!(err, InstructionError::AccountTransferIllegalState)
+    }
+
+    #[tokio::test]
+    async fn should_handle_receive_wallet_payload() {
+        let wrapping_key_identifier = "my-wrapping-key-identifier";
+        let mut wallet_user = wallet_user::mock::wallet_user_1();
+        wallet_user.recovery_code = Some(String::from("recovery_code"));
+
+        let transfer_session_id = Uuid::new_v4();
+        let payload = random_string(32);
+
+        let transfer_session = TransferSession {
+            id: Uuid::new_v4(),
+            destination_wallet_user_id: Uuid::new_v4(),
+            transfer_session_id,
+            destination_wallet_recovery_code: String::from("recovery_code"),
+            destination_wallet_app_version: Version::parse("1.9.8").unwrap(),
+            state: TransferSessionState::ReadyForDownload,
+            encrypted_wallet_data: Some(payload.clone()),
+        };
+
+        let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
+        wallet_user_repo
+            .expect_begin_transaction()
+            .returning(|| Ok(MockTransaction));
+        wallet_user_repo
+            .expect_find_transfer_session_by_transfer_session_id()
+            .with(predicate::always(), predicate::eq(transfer_session_id))
+            .returning(move |_, _| Ok(Some(transfer_session.clone())));
+
+        let instruction = ReceiveWalletPayload { transfer_session_id };
+
+        let result = instruction
+            .handle(
+                &wallet_user,
+                &MockGenerators,
+                &mock::user_state(
+                    wallet_user_repo,
+                    setup_hsm().await,
+                    wrapping_key_identifier.to_string(),
+                    vec![],
+                ),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(result.payload, payload);
+    }
+
+    #[tokio::test]
+    async fn should_handle_receive_wallet_payload_for_illegal_state() {
+        let wrapping_key_identifier = "my-wrapping-key-identifier";
+        let mut wallet_user = wallet_user::mock::wallet_user_1();
+        wallet_user.recovery_code = Some(String::from("recovery_code"));
+
+        let transfer_session_id = Uuid::new_v4();
+        let payload = random_string(32);
+
+        let transfer_session = TransferSession {
+            id: Uuid::new_v4(),
+            destination_wallet_user_id: Uuid::new_v4(),
+            transfer_session_id,
+            destination_wallet_recovery_code: String::from("recovery_code"),
+            destination_wallet_app_version: Version::parse("1.9.8").unwrap(),
+            state: TransferSessionState::ReadyForTransfer,
+            encrypted_wallet_data: Some(payload.clone()),
+        };
+
+        let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
+        wallet_user_repo
+            .expect_begin_transaction()
+            .returning(|| Ok(MockTransaction));
+        wallet_user_repo
+            .expect_find_transfer_session_by_transfer_session_id()
+            .with(predicate::always(), predicate::eq(transfer_session_id))
+            .returning(move |_, _| Ok(Some(transfer_session.clone())));
+
+        let instruction = ReceiveWalletPayload { transfer_session_id };
+
+        let err = instruction
+            .handle(
+                &wallet_user,
+                &MockGenerators,
+                &mock::user_state(
+                    wallet_user_repo,
+                    setup_hsm().await,
+                    wrapping_key_identifier.to_string(),
+                    vec![],
+                ),
+            )
+            .await
+            .expect_err("should fail for illegal transfer state");
+
+        assert_matches!(err, InstructionError::AccountTransferIllegalState)
+    }
+
+    #[tokio::test]
+    async fn should_handle_receive_wallet_payload_for_empty_wallet_data() {
+        let wrapping_key_identifier = "my-wrapping-key-identifier";
+        let mut wallet_user = wallet_user::mock::wallet_user_1();
+        wallet_user.recovery_code = Some(String::from("recovery_code"));
+
+        let transfer_session_id = Uuid::new_v4();
+
+        let transfer_session = TransferSession {
+            id: Uuid::new_v4(),
+            destination_wallet_user_id: Uuid::new_v4(),
+            transfer_session_id,
+            destination_wallet_recovery_code: String::from("recovery_code"),
+            destination_wallet_app_version: Version::parse("1.9.8").unwrap(),
+            state: TransferSessionState::ReadyForDownload,
+            encrypted_wallet_data: None,
+        };
+
+        let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
+        wallet_user_repo
+            .expect_begin_transaction()
+            .returning(|| Ok(MockTransaction));
+        wallet_user_repo
+            .expect_find_transfer_session_by_transfer_session_id()
+            .with(predicate::always(), predicate::eq(transfer_session_id))
+            .returning(move |_, _| Ok(Some(transfer_session.clone())));
+
+        let instruction = ReceiveWalletPayload { transfer_session_id };
+
+        let err = instruction
+            .handle(
+                &wallet_user,
+                &MockGenerators,
+                &mock::user_state(
+                    wallet_user_repo,
+                    setup_hsm().await,
+                    wrapping_key_identifier.to_string(),
+                    vec![],
+                ),
+            )
+            .await
+            .expect_err("should fail for empty wallet data");
 
         assert_matches!(err, InstructionError::AccountTransferIllegalState)
     }
