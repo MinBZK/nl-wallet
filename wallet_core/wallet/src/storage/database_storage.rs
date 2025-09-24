@@ -663,6 +663,26 @@ where
         Ok(())
     }
 
+    async fn has_any_attestations_with_type(&self, attestation_type: &str) -> StorageResult<bool> {
+        let select_statement = Query::select()
+            .column((attestation::Entity, attestation::Column::Id))
+            .from(attestation::Entity)
+            .and_where(Expr::col(attestation::Column::AttestationType).eq(attestation_type))
+            .take();
+
+        let exists_query = Query::select()
+            .expr_as(Expr::exists(select_statement), Alias::new("attestation_type_exists"))
+            .to_owned();
+
+        let exists_result = self.execute_query(exists_query).await?;
+        let exists = exists_result
+            .map(|result| result.try_get("", "attestation_type_exists"))
+            .transpose()?
+            .unwrap_or(false);
+
+        Ok(exists)
+    }
+
     async fn fetch_unique_attestations(&self) -> StorageResult<Vec<StoredAttestationCopy>> {
         self.query_unique_attestations(None).await
     }
@@ -685,26 +705,6 @@ where
         };
 
         self.query_unique_attestations(Some(condition)).await
-    }
-
-    async fn has_any_attestations_with_type(&self, attestation_type: &str) -> StorageResult<bool> {
-        let select_statement = Query::select()
-            .column((attestation::Entity, attestation::Column::Id))
-            .from(attestation::Entity)
-            .and_where(Expr::col(attestation::Column::AttestationType).eq(attestation_type))
-            .take();
-
-        let exists_query = Query::select()
-            .expr_as(Expr::exists(select_statement), Alias::new("attestation_type_exists"))
-            .to_owned();
-
-        let exists_result = self.execute_query(exists_query).await?;
-        let exists = exists_result
-            .map(|result| result.try_get("", "attestation_type_exists"))
-            .transpose()?
-            .unwrap_or(false);
-
-        Ok(exists)
     }
 
     async fn log_disclosure_event(
