@@ -325,6 +325,11 @@ class WalletCoreMock implements WalletCoreApi {
   }
 
   @override
+  Future<void> crateApiFullSkipWalletTransfer() {
+    throw UnimplementedError();
+  }
+
+  @override
   Future<TransferSessionState> crateApiFullGetWalletTransferState() {
     throw UnimplementedError();
   }

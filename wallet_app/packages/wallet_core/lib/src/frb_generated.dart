@@ -77,7 +77,7 @@ class WalletCore extends BaseEntrypoint<WalletCoreApi, WalletCoreApiImpl, Wallet
   String get codegenVersion => '2.11.1';
 
   @override
-  int get rustContentHash => 1183541780;
+  int get rustContentHash => 1197392980;
 
   static const kDefaultExternalLibraryLoaderConfig = ExternalLibraryLoaderConfig(
     stem: 'wallet_core',
@@ -176,6 +176,8 @@ abstract class WalletCoreApi extends BaseApi {
   Stream<List<WalletEvent>> crateApiFullSetRecentHistoryStream();
 
   Stream<FlutterVersionState> crateApiFullSetVersionStateStream();
+
+  Future<void> crateApiFullSkipWalletTransfer();
 
   Future<StartDisclosureResult> crateApiFullStartDisclosure({required String uri, required bool isQrCode});
 
@@ -1269,6 +1271,29 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   TaskConstMeta get kCrateApiFullSetVersionStateStreamConstMeta => const TaskConstMeta(
     debugName: "set_version_state_stream",
     argNames: ["sink"],
+  );
+
+  @override
+  Future<void> crateApiFullSkipWalletTransfer() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          return wire.wire__crate__api__full__skip_wallet_transfer(port_);
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_unit,
+          decodeErrorData: dco_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiFullSkipWalletTransferConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiFullSkipWalletTransferConstMeta => const TaskConstMeta(
+    debugName: "skip_wallet_transfer",
+    argNames: [],
   );
 
   @override
