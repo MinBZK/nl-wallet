@@ -166,7 +166,7 @@ impl TryFrom<SdJwt> for DisclosedAttestation {
     fn try_from(sd_jwt: SdJwt) -> Result<Self, Self::Error> {
         let claims = sd_jwt.claims();
         let validity_info = ValidityInfo {
-            signed: claims.iat.clone().into_inner().into(),
+            signed: claims.iat.into(),
             valid_from: claims.nbf.map(Into::into),
             valid_until: claims.exp.map(Into::into),
         };
@@ -185,7 +185,7 @@ impl TryFrom<SdJwt> for DisclosedAttestation {
                 .ok_or(DisclosedAttestationError::MissingAttributes("vct"))?
                 .to_owned(),
             attributes,
-            issuer_uri: claims.iss.clone().into_inner(),
+            issuer_uri: claims.iss.to_owned(),
             ca,
             validity_info,
         })

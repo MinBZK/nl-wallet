@@ -21,8 +21,8 @@ use jwt::VerifiedJwt;
 
 use crate::error;
 use crate::error::Error;
-use crate::hasher::Hasher;
 use crate::sd_jwt::SdJwt;
+use crate::sd_jwt::SdJwtClaims;
 
 pub const KB_JWT_HEADER_TYP: &str = "kb+jwt";
 
@@ -89,10 +89,10 @@ impl KeyBindingJwtBuilder {
     /// Builds an [`KeyBindingJwt`] from the data provided to builder.
     pub(crate) async fn finish<H>(
         self,
-        sd_jwt: &SdJwt<H>,
+        sd_jwt: &SdJwt<SdJwtClaims, H>,
         signing_key: &impl EcdsaKeySend,
     ) -> Result<KeyBindingJwt, Error> {
-        let hasher = sd_jwt.claims()._sd_alg.unwrap_or_default().hasher()?;
+        let hasher = sd_jwt.hasher()?;
         let sd_hash = hasher.encoded_digest(&sd_jwt.to_string());
 
         let claims = KeyBindingJwtClaims {
@@ -133,16 +133,16 @@ mod test {
     use chrono::Duration;
     use chrono::Utc;
     use jsonwebtoken::Algorithm;
-    use jwt::headers::HeaderWithTyp;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
 
     use jwt::EcdsaDecodingKey;
     use jwt::Header;
     use jwt::SignedJwt;
+    use jwt::headers::HeaderWithTyp;
 
     use crate::error::Error;
-    use crate::examples::SIMPLE_STRUCTURED_SD_JWT;
+    use crate::examples::SD_JWT_VC;
     use crate::examples::examples_sd_jwt_decoding_key;
     use crate::hasher::Hasher;
     use crate::hasher::Sha256Hasher;
@@ -151,6 +151,7 @@ mod test {
     use crate::key_binding_jwt_claims::KeyBindingJwtBuilder;
     use crate::key_binding_jwt_claims::KeyBindingJwtClaims;
     use crate::sd_jwt::SdJwt;
+    use crate::sd_jwt::SdJwtClaims;
 
     async fn example_kb_jwt(signing_key: &SigningKey) -> SignedJwt<KeyBindingJwtClaims> {
         SignedJwt::sign(
@@ -169,7 +170,7 @@ mod test {
     #[tokio::test]
     async fn test_key_binding_jwt_builder() {
         let sd_jwt =
-            SdJwt::<Header>::parse_and_verify(SIMPLE_STRUCTURED_SD_JWT, &examples_sd_jwt_decoding_key()).unwrap();
+            SdJwt::<SdJwtClaims, Header>::parse_and_verify(SD_JWT_VC, &examples_sd_jwt_decoding_key()).unwrap();
 
         let iat = Utc::now();
         let kb_jwt = KeyBindingJwtBuilder::new(iat, String::from("receiver"), String::from("abc123"))

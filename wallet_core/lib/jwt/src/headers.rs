@@ -61,23 +61,17 @@ pub struct HeaderWithJwk<H = JwtHeader> {
     pub jwk: Jwk,
 }
 
-impl<H> HeaderWithJwk<H> {
-    pub async fn try_from_verifying_key_with_header(
-        key: &impl WithVerifyingKey,
-        header: H,
-    ) -> Result<Self, JwkConversionError> {
+impl HeaderWithJwk {
+    pub async fn try_from_verifying_key(key: &impl WithVerifyingKey) -> Result<Self, JwkConversionError> {
         let jwk = jwk_from_p256(
             &key.verifying_key()
                 .await
                 .map_err(|e| JwkConversionError::VerifyingKeyFromPrivateKey(e.into()))?,
         )?;
-        Ok(HeaderWithJwk { header, jwk })
-    }
-}
-
-impl HeaderWithJwk {
-    pub async fn try_from_verifying_key(key: &impl WithVerifyingKey) -> Result<Self, JwkConversionError> {
-        Self::try_from_verifying_key_with_header(key, JwtHeader::default()).await
+        Ok(HeaderWithJwk {
+            header: JwtHeader::default(),
+            jwk,
+        })
     }
 }
 
@@ -116,7 +110,7 @@ where
 }
 
 #[serde_as]
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Constructor)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct HeaderWithX5c<H = JwtHeader> {
     #[serde(flatten)]
     header: H,
@@ -127,7 +121,10 @@ pub struct HeaderWithX5c<H = JwtHeader> {
 
 impl HeaderWithX5c {
     pub fn from_certs(x5c: VecNonEmpty<BorrowingCertificate>) -> HeaderWithX5c {
-        Self::new(JwtHeader::default(), x5c)
+        HeaderWithX5c {
+            header: JwtHeader::default(),
+            x5c,
+        }
     }
 }
 

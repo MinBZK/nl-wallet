@@ -143,9 +143,7 @@ where
             .header
             .try_into()
             .map_err(|e| JwtError::HeaderConversion(Box::new(e)))?;
-        if header.typ != T::TYP {
-            return Err(JwtError::UnexpectedTyp(T::TYP.to_owned(), header.typ.into_owned()));
-        }
+        T::is_valid_typ(&header.typ)?;
 
         Ok((header.into_inner(), token_data.claims))
     }
@@ -205,6 +203,23 @@ where
         self.parse_and_verify(&pubkey.into(), validation_options)
             .map_err(JwtX5cError::Jwt)
     }
+
+    pub fn into_verified_against_trust_anchors(
+        self,
+        validation_options: &Validation,
+        time: &impl Generator<DateTime<Utc>>,
+        certificate_usage: CertificateUsage,
+        trust_anchors: &[TrustAnchor],
+    ) -> Result<VerifiedJwt<T, HeaderWithX5c<H>>, JwtX5cError> {
+        let (header, payload) =
+            self.parse_and_verify_against_trust_anchors(trust_anchors, time, certificate_usage, validation_options)?;
+
+        Ok(VerifiedJwt {
+            header,
+            payload,
+            jwt: self,
+        })
+    }
 }
 
 impl<T, H, E> UnverifiedJwt<T, HeaderWithJwk<H>>
@@ -241,30 +256,6 @@ where
     }
 }
 
-impl<T, H, E> UnverifiedJwt<T, HeaderWithX5c<H>>
-where
-    T: DeserializeOwned + JwtTyp,
-    H: DeserializeOwned + TryFrom<Header, Error = E>,
-    E: std::error::Error + Send + Sync + 'static,
-{
-    pub fn into_verified_against_trust_anchors(
-        self,
-        validation_options: &Validation,
-        time: &impl Generator<DateTime<Utc>>,
-        certificate_usage: CertificateUsage,
-        trust_anchors: &[TrustAnchor],
-    ) -> Result<VerifiedJwt<T, HeaderWithX5c<H>>, JwtX5cError> {
-        let (header, payload) =
-            self.parse_and_verify_against_trust_anchors(trust_anchors, time, certificate_usage, validation_options)?;
-
-        Ok(VerifiedJwt {
-            header,
-            payload,
-            jwt: self,
-        })
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, AsRef, Display, SerializeDisplay)]
 pub struct SignedJwt<T, H = JwtHeader>(UnverifiedJwt<T, H>);
 
@@ -298,17 +289,6 @@ impl<T: Serialize + JwtTyp> SignedJwt<T> {
     }
 }
 
-impl<T: Serialize + JwtTyp, H: Serialize> SignedJwt<T, H> {
-    async fn sign_with_header_and_certificate<K: EcdsaKey>(
-        header: H,
-        payload: &T,
-        keypair: &KeyPair<K>,
-    ) -> Result<SignedJwt<T, HeaderWithX5c<H>>, JwtError> {
-        let header = HeaderWithX5c::new(header, vec_nonempty![keypair.certificate().to_owned()]);
-        SignedJwt::sign_with_header(&header, payload, keypair.private_key()).await
-    }
-}
-
 impl<T: Serialize + JwtTyp> SignedJwt<SignedJwt<T, HeaderWithX5c>> {
     /// Sign a payload into a JWS, and put the certificate of the provided keypair in the `x5c` JWT header.
     /// The resulting JWS can be verified using [`verify_against_trust_anchors()`].
@@ -319,26 +299,18 @@ impl<T: Serialize + JwtTyp> SignedJwt<SignedJwt<T, HeaderWithX5c>> {
         // The `x5c` header supports certificate chains, but ISO 18013-5 doesn't: it requires that issuer
         // and RP certificates are signed directly by the trust anchor. So we don't support certificate chains
         // here (yet).
-        SignedJwt::sign_with_header_and_certificate(JwtHeader::default(), payload, keypair).await
-    }
-}
-
-impl<T: Serialize + JwtTyp, H: Serialize> SignedJwt<T, HeaderWithJwk<H>> {
-    async fn sign_with_header_and_jwk(
-        header: H,
-        payload: &T,
-        key: &impl EcdsaKey,
-    ) -> Result<SignedJwt<T, HeaderWithJwk<H>>, JwtError> {
-        let header = HeaderWithJwk::try_from_verifying_key_with_header(key, header).await?;
-        SignedJwt::sign_with_header(&header, payload, key).await
+        let header = HeaderWithX5c::from_certs(vec_nonempty![keypair.certificate().to_owned()]);
+        SignedJwt::sign_with_header(&header, payload, keypair.private_key()).await
     }
 }
 
 impl<T: Serialize + JwtTyp> SignedJwt<T, HeaderWithJwk> {
     pub async fn sign_with_jwk(payload: &T, key: &impl EcdsaKey) -> Result<SignedJwt<T, HeaderWithJwk>, JwtError> {
-        SignedJwt::sign_with_header_and_jwk(JwtHeader::default(), payload, key).await
+        let header = HeaderWithJwk::try_from_verifying_key(key).await?;
+        SignedJwt::sign_with_header(&header, payload, key).await
     }
 }
+
 impl<T, H> From<SignedJwt<T, H>> for UnverifiedJwt<T, H> {
     fn from(value: SignedJwt<T, H>) -> Self {
         value.0

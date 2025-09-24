@@ -113,12 +113,14 @@ impl JwtTyp for StatusListClaims {
 
 #[cfg(test)]
 mod test {
+    use base64::prelude::*;
+
     use p256::ecdsa::SigningKey;
     use p256::elliptic_curve::rand_core::OsRng;
     use serde_json::json;
 
     use jwt::DEFAULT_VALIDATIONS;
-    use jwt::Header;
+    use jwt::headers::HeaderWithTyp;
 
     use super::*;
 
@@ -139,8 +141,8 @@ mod test {
             "ttl": 43200
         });
 
-        let expected_header: Header = serde_json::from_value(example_header).unwrap();
-        assert_eq!(expected_header.typ, Some(TOKEN_STATUS_LIST_JWT_TYP.to_string()));
+        let expected_header: HeaderWithTyp = serde_json::from_value(example_header).unwrap();
+        assert_eq!(expected_header.typ(), TOKEN_STATUS_LIST_JWT_TYP);
 
         let expected_claims: StatusListClaims = serde_json::from_value(example_payload).unwrap();
 
@@ -152,11 +154,18 @@ mod test {
             .await
             .unwrap();
 
+        let bts = BASE64_URL_SAFE_NO_PAD
+            .decode(signed.0.serialization().split('.').take(1).next().unwrap())
+            .unwrap();
+        let header: HeaderWithTyp = serde_json::from_slice(&bts).unwrap();
+        assert_eq!(header, expected_header);
+
         let verified = signed
             .0
             .into_verified(&key.verifying_key().into(), &DEFAULT_VALIDATIONS)
             .unwrap();
-        assert_eq!(Into::<Header>::into(verified.header().to_owned()), expected_header);
+        // the `verified.header()` has a different type than `expected_header`
+        assert_eq!(*verified.header(), expected_header.into_inner());
         // the `iat` claim is set when signing the token
         assert_eq!(verified.payload().status_list, expected_claims.status_list);
         assert_eq!(verified.payload().sub, expected_claims.sub);
@@ -217,8 +226,7 @@ mod test {
             TOKEN_STATUS_LIST_JWT_HEADER
         );
         let status_list_token: StatusListToken = response.text().await.unwrap().parse().unwrap();
-        let (header, payload) = status_list_token.0.dangerous_parse_unverified().unwrap();
-        // assert_eq!(header.typ(), TOKEN_STATUS_LIST_JWT_TYP);
+        let (_, payload) = status_list_token.0.dangerous_parse_unverified().unwrap();
         assert!(!payload.status_list.is_empty());
     }
 }
