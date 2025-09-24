@@ -47,7 +47,7 @@ this, `sea-orm-cli` is used, and can be
 installed with:
 
 ```bash
-cargo install sea-orm-cli
+cargo install --locked --version 1.1.16 sea-orm-cli
 ```
 
 From `wallet_core`, run:
