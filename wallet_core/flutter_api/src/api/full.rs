@@ -421,6 +421,15 @@ pub async fn cancel_wallet_transfer() -> anyhow::Result<()> {
 }
 
 #[flutter_api_error]
+pub async fn skip_wallet_transfer() -> anyhow::Result<()> {
+    let mut wallet = wallet().write().await;
+
+    wallet.clear_transfer().await?;
+
+    Ok(())
+}
+
+#[flutter_api_error]
 pub async fn get_wallet_transfer_state() -> anyhow::Result<TransferSessionState> {
     let mut wallet = wallet().write().await;
 
