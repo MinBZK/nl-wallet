@@ -3452,7 +3452,6 @@ dependencies = [
  "tokio",
  "trait-variant",
  "utils",
- "wscd",
 ]
 
 [[package]]
@@ -4483,7 +4482,6 @@ name = "pid_issuer"
 version = "0.4.0-dev"
 dependencies = [
  "anyhow",
- "assert_matches",
  "attestation_data",
  "attestation_types",
  "axum",
@@ -4512,10 +4510,8 @@ dependencies = [
  "server_utils",
  "thiserror 2.0.11",
  "tokio",
- "tracing",
  "url",
  "utils",
- "wscd",
 ]
 
 [[package]]
