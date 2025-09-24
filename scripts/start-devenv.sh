@@ -21,7 +21,7 @@ set -o pipefail
 # Globals and includes
 ########################################################################
 
-SCRIPTS_DIR="$(cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd)"
+SCRIPTS_DIR="$(cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd -P)"
 BASE_DIR=$(dirname "${SCRIPTS_DIR}")
 DOCKER_COMPOSE_FILE=${SCRIPTS_DIR}/docker-compose.yml
 

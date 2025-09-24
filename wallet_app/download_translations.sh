@@ -3,7 +3,7 @@ set -e # break on error
 set -u # warn against undefined variables
 set -o pipefail
 
-SCRIPTS_DIR=$(dirname "$(realpath "$(command -v "${BASH_SOURCE[0]}")")")
+SCRIPTS_DIR="$(cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd -P)"
 
 # Download 'nl-wallet-showcase-app.zip'
 curl --request POST \
