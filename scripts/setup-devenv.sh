@@ -78,6 +78,7 @@ then
 "#!/usr/bin/env bash
 # export DIGID_CONNECTOR_PATH=${DIGID_CONNECTOR_PATH}
 # export DB_HOST=${DB_HOST}
+# export DB_PORT=${DB_PORT}
 # export DB_USERNAME=${DB_USERNAME}
 # export DB_PASSWORD=${DB_PASSWORD}
 # export HSM_LIBRARY_PATH=${HSM_LIBRARY_PATH}
