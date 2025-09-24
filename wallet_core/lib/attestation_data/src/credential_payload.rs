@@ -208,7 +208,9 @@ pub struct MdocParts {
 
 impl From<Mdoc> for MdocParts {
     fn from(value: Mdoc) -> Self {
-        Self::new(value.issuer_signed.into_entries_by_namespace(), value.mso)
+        let (mso, _, issuer_signed) = value.into_components();
+
+        Self::new(issuer_signed.into_entries_by_namespace(), mso)
     }
 }
 

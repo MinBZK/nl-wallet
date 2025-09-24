@@ -26,7 +26,6 @@ use wallet_account::messages::instructions::CheckPin;
 use wallet_account::messages::instructions::ConfirmTransfer;
 use wallet_account::messages::instructions::DiscloseRecoveryCode;
 use wallet_account::messages::instructions::DiscloseRecoveryCodePinRecovery;
-use wallet_account::messages::instructions::DiscloseRecoveryCodeResult;
 use wallet_account::messages::instructions::GetTransferStatus;
 use wallet_account::messages::instructions::HwSignedInstruction;
 use wallet_account::messages::instructions::Instruction;
@@ -35,6 +34,8 @@ use wallet_account::messages::instructions::InstructionChallengeRequest;
 use wallet_account::messages::instructions::InstructionResultMessage;
 use wallet_account::messages::instructions::PerformIssuance;
 use wallet_account::messages::instructions::PerformIssuanceWithWua;
+use wallet_account::messages::instructions::ReceiveWalletPayload;
+use wallet_account::messages::instructions::SendWalletPayload;
 use wallet_account::messages::instructions::Sign;
 use wallet_account::messages::instructions::StartPinRecovery;
 use wallet_account::messages::instructions::StartPinRecoveryResult;
@@ -42,7 +43,6 @@ use wallet_account::messages::registration::Certificate;
 use wallet_account::messages::registration::Challenge;
 use wallet_account::messages::registration::Registration;
 use wallet_account::messages::registration::WalletCertificate;
-use wallet_account::messages::transfer::TransferSessionState;
 use wallet_account::signed::ChallengeResponse;
 use wallet_provider_service::account_server::GoogleCrlProvider;
 use wallet_provider_service::account_server::IntegrityTokenDecoder;
@@ -84,15 +84,19 @@ where
                 .route("/instructions/challenge", post(instruction_challenge))
                 .route(
                     &format!("/instructions/hw_signed/{}", ConfirmTransfer::NAME),
-                    post(confirm_transfer),
+                    post(handle_hw_signed_instruction::<ConfirmTransfer, _, _, _>),
                 )
                 .route(
                     &format!("/instructions/hw_signed/{}", CancelTransfer::NAME),
-                    post(cancel_transfer),
+                    post(handle_hw_signed_instruction::<CancelTransfer, _, _, _>),
                 )
                 .route(
                     &format!("/instructions/hw_signed/{}", GetTransferStatus::NAME),
-                    post(get_transfer_status),
+                    post(handle_hw_signed_instruction::<GetTransferStatus, _, _, _>),
+                )
+                .route(
+                    &format!("/instructions/hw_signed/{}", ReceiveWalletPayload::NAME),
+                    post(handle_hw_signed_instruction::<ReceiveWalletPayload, _, _, _>),
                 )
                 .route(
                     &format!("/instructions/{}", ChangePinStart::NAME),
@@ -128,11 +132,15 @@ where
                 )
                 .route(
                     &format!("/instructions/{}", DiscloseRecoveryCode::NAME),
-                    post(disclose_recovery_code),
+                    post(handle_instruction::<DiscloseRecoveryCode, _, _, _>),
                 )
                 .route(
                     &format!("/instructions/{}", DiscloseRecoveryCodePinRecovery::NAME),
-                    post(disclose_recovery_code_pin_recovery),
+                    post(handle_instruction::<DiscloseRecoveryCodePinRecovery, _, _, _>),
+                )
+                .route(
+                    &format!("/instructions/{}", SendWalletPayload::NAME),
+                    post(handle_instruction::<SendWalletPayload, _, _, _>),
                 )
                 .layer(TraceLayer::new_for_http())
                 .with_state(Arc::clone(&state)),
@@ -225,6 +233,23 @@ where
     Ok((StatusCode::OK, body.into()))
 }
 
+async fn handle_hw_signed_instruction<I, R, GRC, PIC>(
+    State(state): State<Arc<RouterState<GRC, PIC>>>,
+    Json(payload): Json<HwSignedInstruction<I>>,
+) -> Result<(StatusCode, Json<InstructionResultMessage<R>>)>
+where
+    I: InstructionAndResult<Result = R> + HandleInstruction<Result = R> + ValidateInstruction,
+    R: Serialize + DeserializeOwned,
+{
+    info!("received {} instruction", I::NAME);
+    let body = state
+        .handle_hw_signed_instruction(payload)
+        .await
+        .inspect_err(|error| warn!("handling {} instruction failed: {}", I::NAME, error))?;
+
+    Ok((StatusCode::OK, body.into()))
+}
+
 async fn change_pin_start<GRC, PIC>(
     State(state): State<Arc<RouterState<GRC, PIC>>>,
     Json(payload): Json<Instruction<ChangePinStart>>,
@@ -292,74 +317,6 @@ async fn start_pin_recovery<GRC, PIC>(
         .inspect_err(|error| warn!("handling ChangePinStart instruction failed: {}", error))?;
 
     let body = InstructionResultMessage { result };
-
-    Ok((StatusCode::OK, body.into()))
-}
-
-async fn disclose_recovery_code<GRC, PIC>(
-    State(state): State<Arc<RouterState<GRC, PIC>>>,
-    Json(payload): Json<Instruction<DiscloseRecoveryCode>>,
-) -> Result<(StatusCode, Json<InstructionResultMessage<DiscloseRecoveryCodeResult>>)> {
-    info!("Received disclose recovery code request, handling the DiscloseRecoveryCode instruction");
-    let body = state
-        .handle_instruction(payload)
-        .await
-        .inspect_err(|error| warn!("handling DiscloseRecoveryCode instruction failed: {}", error))?;
-
-    Ok((StatusCode::OK, body.into()))
-}
-
-async fn disclose_recovery_code_pin_recovery<GRC, PIC>(
-    State(state): State<Arc<RouterState<GRC, PIC>>>,
-    Json(payload): Json<Instruction<DiscloseRecoveryCodePinRecovery>>,
-) -> Result<(StatusCode, Json<InstructionResultMessage<()>>)> {
-    info!(
-        "Received disclose recovery code pin recovery request, handling the DiscloseRecoveryCodePinRecovery \
-         instruction"
-    );
-    let body = state
-        .handle_instruction(payload)
-        .await
-        .inspect_err(|error| warn!("handling DiscloseRecoveryCodePinRecovery instruction failed: {}", error))?;
-
-    Ok((StatusCode::OK, body.into()))
-}
-
-async fn confirm_transfer<GRC, PIC>(
-    State(state): State<Arc<RouterState<GRC, PIC>>>,
-    Json(payload): Json<HwSignedInstruction<ConfirmTransfer>>,
-) -> Result<(StatusCode, Json<InstructionResultMessage<()>>)> {
-    info!("Received confirm transfer request, handling the ConfirmTransfer instruction");
-    let body = state
-        .handle_hw_signed_instruction(payload)
-        .await
-        .inspect_err(|error| warn!("handling ConfirmTransfer instruction failed: {}", error))?;
-
-    Ok((StatusCode::OK, body.into()))
-}
-
-async fn cancel_transfer<GRC, PIC>(
-    State(state): State<Arc<RouterState<GRC, PIC>>>,
-    Json(payload): Json<HwSignedInstruction<CancelTransfer>>,
-) -> Result<(StatusCode, Json<InstructionResultMessage<()>>)> {
-    info!("Received confirm transfer request, handling the CancelTransfer instruction");
-    let body = state
-        .handle_hw_signed_instruction(payload)
-        .await
-        .inspect_err(|error| warn!("handling CancelTransfer instruction failed: {}", error))?;
-
-    Ok((StatusCode::OK, body.into()))
-}
-
-async fn get_transfer_status<GRC, PIC>(
-    State(state): State<Arc<RouterState<GRC, PIC>>>,
-    Json(payload): Json<HwSignedInstruction<GetTransferStatus>>,
-) -> Result<(StatusCode, Json<InstructionResultMessage<TransferSessionState>>)> {
-    info!("Received confirm transfer request, handling the GetTransferStatus instruction");
-    let body = state
-        .handle_hw_signed_instruction(payload)
-        .await
-        .inspect_err(|error| warn!("handling GetTransferStatus instruction failed: {}", error))?;
 
     Ok((StatusCode::OK, body.into()))
 }

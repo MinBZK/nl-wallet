@@ -3,39 +3,33 @@ use std::result::Result;
 use chrono::DateTime;
 use chrono::Utc;
 use rustls_pki_types::TrustAnchor;
-use serde::Deserialize;
-use serde::Serialize;
 use ssri::Integrity;
 
 use crypto::keys::CredentialEcdsaKey;
-use crypto::keys::CredentialKeyType;
 use crypto::x509::BorrowingCertificate;
 use utils::generator::Generator;
 
 use crate::errors::Error;
 use crate::iso::*;
 use crate::utils::cose::CoseError;
+use crate::utils::serialization::TaggedBytes;
 use crate::verifier::IssuerSignedVerificationResult;
 use crate::verifier::ValidityRequirement;
 
 use super::HolderError;
 
 /// A full mdoc: everything needed to disclose attributes from the mdoc.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Mdoc {
     /// Mobile Security Object of the mdoc. This is also present inside the `issuer_signed`; we include it here for
     /// convenience (fetching it from the `issuer_signed` would involve parsing the COSE inside it).
-    pub mso: MobileSecurityObject,
+    mso: MobileSecurityObject,
 
     /// Identifier of the mdoc's private key. Obtain a reference to it with
-    /// [`DisclosureWscd::new_key(private_key_id)`].
-    // Note that even though these fields are not `pub`, to users of this package their data is still accessible
-    // by serializing the mdoc and examining the serialized bytes. This is not a problem because it is essentially
-    // unavoidable: when stored (i.e. serialized), we need to include all of this data to be able to recover a usable
-    // mdoc after deserialization.
-    pub private_key_id: String,
-    pub issuer_signed: IssuerSigned,
-    key_type: CredentialKeyType,
+    /// [`DisclosureWscd::new_key(private_key_id, public_key)`].
+    // TODO (PVW-4962): Move this field to the `wallet` crate, as it is a concern of `Wallet`.
+    private_key_id: String,
+    issuer_signed: IssuerSigned,
 }
 
 impl Mdoc {
@@ -55,18 +49,56 @@ impl Mdoc {
             mso,
             private_key_id,
             issuer_signed,
-            key_type: K::KEY_TYPE,
         };
 
         Ok(mdoc)
     }
 
-    pub fn issuer_certificate(&self) -> Result<BorrowingCertificate, CoseError> {
-        self.issuer_signed.issuer_auth.signing_cert()
+    /// Construct a new `Mdoc` by parsing the `issuer_auth` field of an `IssuerSigned` without validating it.
+    pub fn dangerous_parse_unverified(issuer_signed: IssuerSigned, private_key_id: String) -> Result<Self, CoseError> {
+        let TaggedBytes(mso) = issuer_signed.issuer_auth.dangerous_parse_unverified()?;
+
+        let mdoc = Self {
+            mso,
+            private_key_id,
+            issuer_signed,
+        };
+
+        Ok(mdoc)
     }
 
-    pub fn doc_type(&self) -> &String {
+    pub fn doc_type(&self) -> &str {
         &self.mso.doc_type
+    }
+
+    pub fn issuer_signed(&self) -> &IssuerSigned {
+        &self.issuer_signed
+    }
+
+    pub fn into_issuer_signed(self) -> IssuerSigned {
+        self.issuer_signed
+    }
+
+    pub fn private_key_id(&self) -> &str {
+        &self.private_key_id
+    }
+
+    pub fn into_private_key_id(self) -> String {
+        self.private_key_id
+    }
+
+    pub fn into_components(self) -> (MobileSecurityObject, String, IssuerSigned) {
+        let Self {
+            mso,
+            private_key_id,
+            issuer_signed,
+        } = self;
+
+        (mso, private_key_id, issuer_signed)
+    }
+
+    pub fn issuer_certificate(&self) -> Result<BorrowingCertificate, CoseError> {
+        self.issuer_signed.issuer_auth.signing_cert()
     }
 
     pub fn type_metadata_integrity(&self) -> Result<&Integrity, Error> {
@@ -82,8 +114,6 @@ impl Mdoc {
 
 #[cfg(any(test, feature = "test"))]
 mod test {
-    use crypto::CredentialKeyType;
-
     use crate::IssuerSigned;
     use crate::MobileSecurityObject;
     use crate::iso::mdocs::IssuerSignedItemBytes;
@@ -91,17 +121,11 @@ mod test {
     use super::Mdoc;
 
     impl Mdoc {
-        pub fn new_unverified(
-            mso: MobileSecurityObject,
-            private_key_id: String,
-            issuer_signed: IssuerSigned,
-            key_type: CredentialKeyType,
-        ) -> Self {
+        pub fn new_unverified(mso: MobileSecurityObject, private_key_id: String, issuer_signed: IssuerSigned) -> Self {
             Self {
                 mso,
                 private_key_id,
                 issuer_signed,
-                key_type,
             }
         }
 
@@ -111,6 +135,77 @@ mod test {
         {
             let name_spaces = self.issuer_signed.name_spaces.as_mut().unwrap();
             name_spaces.modify_attributes(name_space, modify_func);
+        }
+    }
+}
+
+#[cfg(any(test, feature = "mock_example_constructors"))]
+pub mod mock {
+    use p256::ecdsa::SigningKey;
+    use rand_core::OsRng;
+
+    use crypto::examples::EXAMPLE_KEY_IDENTIFIER;
+    use crypto::mock_remote::MockRemoteEcdsaKey;
+    use crypto::server_keys::generate::Ca;
+
+    use crate::examples::IsoCertTimeGenerator;
+    use crate::iso::disclosure::DeviceResponse;
+    use crate::test::data::pid_example;
+
+    use super::Mdoc;
+
+    impl Mdoc {
+        /// Out of the example data structures in the standard, assemble an mdoc.
+        /// The issuer-signed part of the mdoc is based on a [`DeviceResponse`] in which not all attributes of the
+        /// originating mdoc are disclosed. Consequentially, the issuer signed-part of the resulting mdoc misses some
+        /// [`IssuerSignedItem`] instances, i.e. attributes.
+        /// This is because the other attributes are actually nowhere present in the standard so it is impossible to
+        /// construct the example mdoc with all attributes present.
+        ///
+        /// Using tests should not rely on all attributes being present.
+        pub async fn new_example_resigned(ca: &Ca) -> Self {
+            let issuer_signed = DeviceResponse::example_resigned(ca)
+                .await
+                .documents
+                .unwrap()
+                .into_iter()
+                .next()
+                .unwrap()
+                .issuer_signed;
+
+            Mdoc::new::<MockRemoteEcdsaKey>(
+                EXAMPLE_KEY_IDENTIFIER.to_string(),
+                issuer_signed,
+                &IsoCertTimeGenerator,
+                &[ca.to_trust_anchor()],
+            )
+            .unwrap()
+        }
+
+        pub async fn new_mock() -> Self {
+            let ca = Ca::generate_issuer_mock_ca().unwrap();
+            Self::new_mock_with_ca(&ca).await
+        }
+
+        pub async fn new_mock_with_doctype(doc_type: &str) -> Self {
+            let mut mdoc = Self::new_mock().await;
+            mdoc.mso.doc_type = String::from(doc_type);
+            mdoc
+        }
+
+        pub async fn new_mock_with_key(key: &MockRemoteEcdsaKey) -> Self {
+            let ca = Ca::generate_issuer_mock_ca().unwrap();
+            Self::new_mock_with_ca_and_key(&ca, key).await
+        }
+
+        pub async fn new_mock_with_ca(ca: &Ca) -> Self {
+            let key = MockRemoteEcdsaKey::new("identifier".to_owned(), SigningKey::random(&mut OsRng));
+            Self::new_mock_with_ca_and_key(ca, &key).await
+        }
+
+        pub async fn new_mock_with_ca_and_key(ca: &Ca, device_key: &MockRemoteEcdsaKey) -> Self {
+            let test_document = pid_example().into_first().unwrap();
+            test_document.sign(ca, device_key).await
         }
     }
 }

@@ -20,7 +20,7 @@ impl MigrationTrait for Migration {
                     .col(string(WalletTransfer::DestinationWalletAppVersion))
                     .col(string(WalletTransfer::State).default("created"))
                     .col(timestamp_with_time_zone(WalletTransfer::Created))
-                    .col(binary_null(WalletTransfer::EncryptedWalletData))
+                    .col(string_null(WalletTransfer::EncryptedWalletData))
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_wallet_transfer_destination_wallet_user_id")

@@ -14,8 +14,7 @@ pub struct Model {
     pub destination_wallet_app_version: String,
     pub state: String,
     pub created: DateTimeWithTimeZone,
-    #[sea_orm(column_type = "VarBinary(StringLen::None)", nullable)]
-    pub encrypted_wallet_data: Option<Vec<u8>>,
+    pub encrypted_wallet_data: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

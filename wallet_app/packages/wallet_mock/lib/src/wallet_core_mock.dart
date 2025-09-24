@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer';
 
 import 'package:wallet_core/core.dart';
 
@@ -316,6 +317,9 @@ class WalletCoreMock implements WalletCoreApi {
 
   @override
   Future<void> crateApiFullCancelWalletTransfer() async => _transferManager.cancelWalletTransfer();
+
+  @override
+  Future<void> crateApiFullSkipWalletTransfer() async => log('Transfer skipped');
 
   @override
   Future<TransferSessionState> crateApiFullGetWalletTransferState() => _transferManager.getTransferState();

@@ -213,8 +213,14 @@ pub enum IssuanceSessionError {
 
 #[derive(Clone, Debug)]
 pub enum IssuedCredential {
-    MsoMdoc(Box<Mdoc>), // TODO: Wrap in similar VerifiedMdoc type (PVW-4132)
-    SdJwt(Box<VerifiedSdJwt>),
+    MsoMdoc {
+        mdoc: Mdoc,
+    },
+    SdJwt {
+        // This uniquely identifies the holder private key used for this credential, as managed by the WSCD.
+        key_identifier: String,
+        sd_jwt: VerifiedSdJwt,
+    },
 }
 
 #[derive(Clone, Debug, Constructor)]
@@ -791,11 +797,10 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
                 let integrity = copies
                     .iter()
                     .map(|cred_copy| match cred_copy {
-                        IssuedCredential::MsoMdoc(mdoc) => {
+                        IssuedCredential::MsoMdoc { mdoc } => {
                             mdoc.type_metadata_integrity().map_err(IssuanceSessionError::Metadata)
                         }
-                        IssuedCredential::SdJwt(sd_jwt) => sd_jwt
-                            .as_ref()
+                        IssuedCredential::SdJwt { sd_jwt, .. } => sd_jwt
                             .as_ref()
                             .claims()
                             .vct_integrity
@@ -908,7 +913,7 @@ impl CredentialResponse {
     /// Create a credential out of the credential response. Also verifies the credential.
     fn into_credential<K: CredentialEcdsaKey>(
         self,
-        key_id: String,
+        key_identifier: String,
         verifying_key: &VerifyingKey,
         preview: &NormalizedCredentialPreview,
         trust_anchors: &[TrustAnchor<'_>],
@@ -937,7 +942,7 @@ impl CredentialResponse {
                     .map_err(IssuanceSessionError::IssuerCertificate)?;
 
                 // Construct the new mdoc; this also verifies it against the trust anchors.
-                let mdoc = Mdoc::new::<K>(key_id, *issuer_signed, &TimeGenerator, trust_anchors)
+                let mdoc = Mdoc::new::<K>(key_identifier, *issuer_signed, &TimeGenerator, trust_anchors)
                     .map_err(IssuanceSessionError::MdocVerification)?;
 
                 let issued_credential_payload = mdoc.clone().into_credential_payload(&preview.normalized_metadata)?;
@@ -949,7 +954,7 @@ impl CredentialResponse {
                     credential_issuer_certificate,
                 )?;
 
-                Ok(IssuedCredential::MsoMdoc(Box::new(mdoc)))
+                Ok(IssuedCredential::MsoMdoc { mdoc })
             }
             CredentialResponse::SdJwt { credential } => {
                 let sd_jwt =
@@ -965,7 +970,7 @@ impl CredentialResponse {
                     sd_jwt.issuer_certificate(),
                 )?;
 
-                Ok(IssuedCredential::SdJwt(Box::new(sd_jwt)))
+                Ok(IssuedCredential::SdJwt { key_identifier, sd_jwt })
             }
         }
     }

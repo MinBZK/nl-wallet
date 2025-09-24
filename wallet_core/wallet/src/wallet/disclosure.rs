@@ -1065,7 +1065,7 @@ mod tests {
         let (attestation, metadata) = match requested_format {
             RequestedFormat::MsoMdoc => (
                 StoredAttestation::MsoMdoc {
-                    mdoc: Box::new(create_example_pid_mdoc()),
+                    mdoc: create_example_pid_mdoc(),
                 },
                 NormalizedTypeMetadata::nl_pid_example(),
             ),
@@ -1074,7 +1074,8 @@ mod tests {
 
                 (
                     StoredAttestation::SdJwt {
-                        sd_jwt: Box::new(sd_jwt),
+                        key_identifier: "sd_jwt_key_id".to_string(),
+                        sd_jwt,
                     },
                     metadata,
                 )
@@ -1131,13 +1132,11 @@ mod tests {
         );
 
         let mdoc = create_example_pid_mdoc();
-        let attestation_type = mdoc.mso.doc_type.clone();
+        let attestation_type = mdoc.doc_type().to_string();
         let stored_attestation_copy = StoredAttestationCopy::new(
             Uuid::new_v4(),
             Uuid::new_v4(),
-            StoredAttestation::MsoMdoc {
-                mdoc: Box::new(mdoc.clone()),
-            },
+            StoredAttestation::MsoMdoc { mdoc },
             NormalizedTypeMetadata::nl_pid_example(),
         );
 
@@ -1224,8 +1223,8 @@ mod tests {
                     .ok()
                     .and_then(|partial_mdocs| partial_mdocs.into_iter().exactly_one().ok())
                     .and_then(|partial_mdoc| {
-                        (partial_mdoc.doc_type == PID_ATTESTATION_TYPE)
-                            .then_some(partial_mdoc.issuer_signed.into_entries_by_namespace())
+                        (partial_mdoc.doc_type() == PID_ATTESTATION_TYPE)
+                            .then_some(partial_mdoc.into_issuer_signed().into_entries_by_namespace())
                     })
                     .and_then(|name_spaces| name_spaces.into_iter().exactly_one().ok())
                     .and_then(|(name_space, entries)| (name_space == PID_ATTESTATION_TYPE).then_some(entries))
@@ -1529,13 +1528,11 @@ mod tests {
         );
 
         let mdoc = create_example_pid_mdoc();
-        let attestation_type = mdoc.mso.doc_type.clone();
+        let attestation_type = mdoc.doc_type().to_string();
         let stored_attestation_copy = StoredAttestationCopy::new(
             Uuid::new_v4(),
             Uuid::new_v4(),
-            StoredAttestation::MsoMdoc {
-                mdoc: Box::new(mdoc.clone()),
-            },
+            StoredAttestation::MsoMdoc { mdoc },
             NormalizedTypeMetadata::nl_pid_example(),
         );
 
@@ -1634,17 +1631,18 @@ mod tests {
                 Uuid::new_v4(),
                 Uuid::new_v4(),
                 StoredAttestation::MsoMdoc {
-                    mdoc: Box::new(create_example_pid_mdoc()),
+                    mdoc: create_example_pid_mdoc(),
                 },
                 NormalizedTypeMetadata::nl_pid_example(),
             ),
             RequestedFormat::SdJwt => {
-                let (verified_sd_jwt, metadata) = create_example_pid_sd_jwt();
+                let (sd_jwt, metadata) = create_example_pid_sd_jwt();
                 StoredAttestationCopy::new(
                     Uuid::new_v4(),
                     Uuid::new_v4(),
                     StoredAttestation::SdJwt {
-                        sd_jwt: Box::new(verified_sd_jwt),
+                        key_identifier: "sd_jwt_key_id".to_string(),
+                        sd_jwt,
                     },
                     metadata,
                 )
@@ -1720,17 +1718,18 @@ mod tests {
                 Uuid::new_v4(),
                 Uuid::new_v4(),
                 StoredAttestation::MsoMdoc {
-                    mdoc: Box::new(create_example_pid_mdoc()),
+                    mdoc: create_example_pid_mdoc(),
                 },
                 NormalizedTypeMetadata::nl_pid_example(),
             ),
             RequestedFormat::SdJwt => {
-                let (verified_sd_jwt, metadata) = create_example_pid_sd_jwt();
+                let (sd_jwt, metadata) = create_example_pid_sd_jwt();
                 StoredAttestationCopy::new(
                     Uuid::new_v4(),
                     Uuid::new_v4(),
                     StoredAttestation::SdJwt {
-                        sd_jwt: Box::new(verified_sd_jwt),
+                        key_identifier: "sd_jwt_key_id".to_string(),
+                        sd_jwt,
                     },
                     metadata,
                 )

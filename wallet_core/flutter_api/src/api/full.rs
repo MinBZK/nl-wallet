@@ -393,7 +393,7 @@ pub async fn unlock_wallet_with_biometrics() -> anyhow::Result<()> {
 pub async fn init_wallet_transfer() -> anyhow::Result<String> {
     let mut wallet = wallet().write().await;
 
-    let (_, transfer_uri) = wallet.init_transfer().await?;
+    let transfer_uri = wallet.init_transfer().await?;
 
     Ok(transfer_uri.to_string())
 }
@@ -417,6 +417,15 @@ pub async fn transfer_wallet(_pin: String) -> anyhow::Result<WalletInstructionRe
 
 #[flutter_api_error]
 pub async fn cancel_wallet_transfer() -> anyhow::Result<()> {
+    Ok(())
+}
+
+#[flutter_api_error]
+pub async fn skip_wallet_transfer() -> anyhow::Result<()> {
+    let mut wallet = wallet().write().await;
+
+    wallet.clear_transfer().await?;
+
     Ok(())
 }
 

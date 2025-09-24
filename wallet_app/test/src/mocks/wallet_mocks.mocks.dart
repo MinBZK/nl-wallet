@@ -6404,6 +6404,15 @@ class MockWalletCoreApi extends _i1.Mock implements _i26.WalletCoreApi {
           as _i10.Stream<_i26.FlutterVersionState>);
 
   @override
+  _i10.Future<void> crateApiFullSkipWalletTransfer() =>
+      (super.noSuchMethod(
+            Invocation.method(#crateApiFullSkipWalletTransfer, []),
+            returnValue: _i10.Future<void>.value(),
+            returnValueForMissingStub: _i10.Future<void>.value(),
+          )
+          as _i10.Future<void>);
+
+  @override
   _i10.Future<_i26.StartDisclosureResult> crateApiFullStartDisclosure({
     required String? uri,
     required bool? isQrCode,

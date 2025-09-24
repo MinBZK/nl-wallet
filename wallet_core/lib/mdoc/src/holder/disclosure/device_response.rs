@@ -136,7 +136,7 @@ mod tests {
             if let DeviceAuth::DeviceSignature(signature) = &document.device_signed.device_auth {
                 signature
                     .clone_with_payload(device_auth_bytes)
-                    .verify(&(&partial_mdoc.device_key).try_into().unwrap())
+                    .verify(partial_mdoc.credential_key(&wscd).unwrap().verifying_key())
                     .expect("device authentication in DeviceResponse should be valid");
             } else {
                 panic!("device authentication in DeviceResponse should be of signature type");
