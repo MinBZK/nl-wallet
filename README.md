@@ -430,7 +430,10 @@ We need to set `DB_USERNAME` and `DB_PASSWORD`, which are used by the
 `setup-devenv.sh` script to initialize the schemas of the above databases:
 
 ```shell
-export DB_USERNAME=wallet DB_PASSWORD=verysecret
+cat > scripts/.env <<EOD
+DB_USERNAME=wallet
+DB_PASSWORD=verysecret
+EOD
 ```
 
 #### Configuring a local development environment
@@ -439,7 +442,7 @@ After having done all of the above (i.e., you have Rust and Flutter installed,
 you have Docker up and running, configured a PostgreSQL database and installed
 Android Studio and/or Xcode and you're running an Android Emulator or the iOS
 simulator), you are almost ready to configure the local development environment
-with  the help of our `setup-devenv.sh` script. There are two more optional
+with the help of our `setup-devenv.sh` script. There are two more optional
 environment variables to consider setting:
 
 ```shell
@@ -506,7 +509,15 @@ scripts/start-devenv.sh --default
 
 #### Running Rust tests
 
-To run both our unit- and integration tests, we can run the following (note: we
+To run our integration tests you need to have a working database, hsm and
+applied migrations. All needed migrations can be ran via (by default it is a
+reset):
+
+```shell
+scripts/db-migrate.sh
+```
+
+To run both our unit and integration tests, we can run the following (note: we
 use `cargo nextest` here, but you can use regular `cargo test` too):
 
 ```shell
@@ -514,9 +525,8 @@ cd nl-wallet
 cargo nextest run --manifest-path wallet_core/Cargo.toml --features integration_test
 ```
 
-Note that the above runs both unit- and integration tests. The latter requires
-[a running backend](#starting-a-local-development-environment). If you only
-want to run the unit tests, simply don't specify `--features integration_test`.
+Note that the above runs both unit and integration tests. If you only want to
+run the unit tests, simply don't specify `--features integration_test`.
 
 #### Running connected Android tests
 
