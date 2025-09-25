@@ -17,9 +17,9 @@
 
 ## Flow
 
-| #       | Description                                                                                                             | Next                                                        |
-|---------|-------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------|
-| **1**   | **PRIMARY SCENARIO**                                                                                                    |                                                             |
-| **1.1** | **System displays screen 'All activities'**<ul><li>Activities</li><li>Items: Activities</li><li>Actions: Back</li></ul> |                                                             |
-| 1.1a    | User selects Activity                                                                                                   | Go to: [UC6.3 Show card details](UC6.3_ShowHistoryEvent.md) |
-| 1.1b    | User selects Back                                                                                                       | Go to: [UC7.2 Show card details](UC7.2_ShowCardDetails.md)  |
+| #       | Description                                                                                                             | Next                                                         |
+|---------|-------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------|
+| **1**   | **PRIMARY SCENARIO**                                                                                                    |                                                              |
+| **1.1** | **System displays screen 'All activities'**<ul><li>Activities</li><li>Items: Activities</li><li>Actions: Back</li></ul> |                                                              |
+| 1.1a    | User selects Activity                                                                                                   | Go to: [UC6.3 Show history event](UC6.3_ShowHistoryEvent.md) |
+| 1.1b    | User selects Back                                                                                                       | Back                                                         |

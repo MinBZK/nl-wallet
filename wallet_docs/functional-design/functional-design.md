@@ -1,4 +1,4 @@
-# Functional Design
+# About the Functional Design
 
 The functional design (FD) describes the complete functional behaviour of the system, including every interaction with its users and external systems. It contains the following components:
 * **Use Cases (UC)** describes a case in which a user uses the system to achieve some goal.
