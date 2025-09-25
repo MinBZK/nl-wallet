@@ -15,13 +15,6 @@ if [[ -z $crate || $crate == 'server_utils' ]]; then
         --output-dir "$BASE_DIR/wallet_core/wallet_server/server_utils/src/entity"
 fi
 
-if [[ -z $crate || $crate == 'pid_issuer' ]]; then
-    sea-orm-cli generate entity \
-        --database-url "postgres://$DB_USERNAME:$DB_PASSWORD@$DB_HOST:$DB_PORT/pid_issuer" \
-        --output-dir "$BASE_DIR/wallet_core/wallet_server/pid_issuer/src/entity" \
-        --ignore-tables "seaql_migrations,session_state"
-fi
-
 if [[ -z $crate || $crate == 'wallet_provider' ]]; then
     sea-orm-cli generate entity \
         --database-url "postgres://$DB_USERNAME:$DB_PASSWORD@$DB_HOST:$DB_PORT/wallet_provider" \

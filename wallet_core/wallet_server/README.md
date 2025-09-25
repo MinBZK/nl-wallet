@@ -25,9 +25,3 @@ against a verification_server.
 ```shell
 "$(git rev-parse --show-toplevel)"/scripts/generate-db-entity.sh server_utils
 ```
-
-To generate the entities for the pid_issuer you have to run:
-
-```shell
-"$(git rev-parse --show-toplevel)"/scripts/generate-db-entity.sh pid_issuer
-```

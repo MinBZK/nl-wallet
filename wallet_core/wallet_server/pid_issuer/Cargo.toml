@@ -15,11 +15,6 @@ doctest = false
 name = "pid_issuer"
 
 [[test]]
-name = "postgres"
-path = "tests/postgres.rs"
-required-features = ["db_test"]
-
-[[test]]
 name = "settings"
 path = "tests/settings.rs"
 required-features = ["integration_test"]
