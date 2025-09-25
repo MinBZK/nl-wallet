@@ -3,10 +3,12 @@ use std::collections::HashSet;
 use chrono::DateTime;
 use chrono::Utc;
 use indexmap::IndexMap;
+use sd_jwt::sd_jwt::ClaimValue;
 use serde::Deserialize;
 use serde::Serialize;
 
 use attestation_types::claim_path::ClaimPath;
+use attestation_types::qualification::AttestationQualification;
 use crypto::x509::CertificateError;
 use dcql::CredentialFormat;
 use dcql::CredentialQueryIdentifier;
@@ -98,6 +100,7 @@ pub struct DisclosedAttestation {
     #[serde(flatten)]
     pub attributes: DisclosedAttributes,
     pub issuer_uri: HttpsUri,
+    pub attestation_qualification: AttestationQualification,
 
     /// The issuer CA's common name
     pub ca: String,
@@ -126,6 +129,7 @@ impl TryFrom<DisclosedDocument> for DisclosedAttestation {
             attestation_type: doc.doc_type,
             attributes: doc.attributes.try_into()?,
             issuer_uri: doc.issuer_uri,
+            attestation_qualification: doc.attestation_qualification,
             ca: doc.ca,
             validity_info: (&doc.validity_info).try_into()?,
         })
@@ -150,6 +154,19 @@ impl TryFrom<SdJwt> for DisclosedAttestation {
 
         let attestation_type = claims.vct.ok_or(DisclosedAttestationError::MissingAttributes("vct"))?;
 
+        // Manually parse the attestation qualification from the SD-JWT claims.
+        let attestation_qualification = claims
+            .claims
+            .claims
+            .get(&"attestation_qualification".parse().unwrap())
+            .and_then(|value| match value {
+                ClaimValue::String(value) => value.parse().ok(),
+                _ => None,
+            })
+            .ok_or(DisclosedAttestationError::MissingAttributes(
+                "attestation_qualification",
+            ))?;
+
         let validity_info = ValidityInfo {
             signed: claims.iat.into_inner().into(),
             valid_from: claims.nbf.map(Into::into),
@@ -160,6 +177,7 @@ impl TryFrom<SdJwt> for DisclosedAttestation {
             attestation_type,
             attributes,
             issuer_uri: claims.iss.into_inner(),
+            attestation_qualification,
             ca,
             validity_info,
         })
@@ -234,6 +252,7 @@ mod test {
     use serde_json::json;
 
     use attestation_types::claim_path::ClaimPath;
+    use attestation_types::qualification::AttestationQualification;
     use dcql::CredentialFormat;
     use dcql::disclosure::DisclosedCredential;
     use mdoc::examples::EXAMPLE_ATTRIBUTES;
@@ -262,6 +281,7 @@ mod test {
                         .collect(),
                 )])),
                 issuer_uri: "https://example.com".parse().unwrap(),
+                attestation_qualification: AttestationQualification::default(),
                 ca: "Example CA".to_string(),
                 validity_info: ValidityInfo {
                     signed: Utc::now(),
@@ -288,6 +308,7 @@ mod test {
                     .into(),
                 ),
                 issuer_uri: "https://example.com".parse().unwrap(),
+                attestation_qualification: AttestationQualification::default(),
                 ca: "Example CA".to_string(),
                 validity_info: ValidityInfo {
                     signed: Utc::now(),
@@ -303,6 +324,7 @@ mod test {
         {
             "attestation_type": "com.example.pid",
             "issuer_uri": "https://pid.example.com",
+            "attestation_qualification": "EAA",
             "ca": "ca.example.com",
             "validity_info": {
                 "signed": "2014-11-28 12:00:09 UTC",
@@ -317,8 +339,9 @@ mod test {
             }
         },
         {
-        "attestation_type": "com.example.address",
+            "attestation_type": "com.example.address",
             "issuer_uri": "https://pid.example.com",
+            "attestation_qualification": "EAA",
             "ca": "ca.example.com",
             "validity_info": {
                 "signed": "2014-11-28 12:00:09 UTC",
@@ -337,6 +360,7 @@ mod test {
         {
             "attestation_type": "com.example.pid",
             "issuer_uri": "https://pid.example.com",
+            "attestation_qualification": "QEAA",
             "ca": "ca.example.com",
             "validity_info": {
                 "signed": "2014-11-28 12:00:09 UTC",
@@ -353,6 +377,7 @@ mod test {
         {
             "attestation_type": "com.example.address",
             "issuer_uri": "https://pid.example.com",
+            "attestation_qualification": "PuB-EAA",
             "ca": "ca.example.com",
             "validity_info": {
                 "signed": "2014-11-28 12:00:09 UTC",
@@ -375,6 +400,7 @@ mod test {
         {
             "attestation_type": "com.example.pid",
             "issuer_uri": "https://pid.example.com",
+            "attestation_qualification": "EAA",
             "ca": "ca.example.com",
             "validity_info": {
                 "signed": "2014-11-28 12:00:09 UTC",

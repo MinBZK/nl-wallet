@@ -10,6 +10,7 @@ use rustls_pki_types::TrustAnchor;
 use tracing::debug;
 use tracing::warn;
 
+use attestation_types::qualification::AttestationQualification;
 use crypto::x509::CertificateUsage;
 use http_utils::urls::HttpsUri;
 use utils::generator::Generator;
@@ -31,6 +32,7 @@ pub struct DisclosedDocument {
     pub doc_type: String,
     pub attributes: IndexMap<NameSpace, IndexMap<DataElementIdentifier, DataElementValue>>,
     pub issuer_uri: HttpsUri,
+    pub attestation_qualification: AttestationQualification,
     pub ca: String,
     pub validity_info: ValidityInfo,
     pub device_key: VerifyingKey,
@@ -69,6 +71,8 @@ pub enum VerificationError {
     IssuerUriNotFoundInSan(HttpsUri, VecNonEmpty<HttpsUri>),
     #[error("missing issuer URI")]
     MissingIssuerUri,
+    #[error("missing attestation qualification")]
+    MissingAttestationQualification,
 }
 
 impl DeviceResponse {
@@ -267,6 +271,10 @@ impl Document {
             .into());
         }
 
+        let attestation_qualification = mso
+            .attestation_qualification
+            .ok_or(VerificationError::MissingAttestationQualification)?;
+
         debug!("serializing session transcript");
         let session_transcript_bts = cbor_serialize(&TaggedBytes(session_transcript))?;
         debug!("serializing device_authentication");
@@ -300,6 +308,7 @@ impl Document {
             attributes,
             // The presence of the `issuer_uri` is guaranteed by `IssuerSigned::verify()`.
             issuer_uri: mso.issuer_uri.unwrap(),
+            attestation_qualification,
             ca: ca_common_name,
             validity_info: mso.validity_info,
             device_key,

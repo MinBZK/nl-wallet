@@ -28,6 +28,7 @@ use attestation_data::credential_payload::CredentialPayload;
 use attestation_data::disclosure::DisclosedAttestations;
 use attestation_data::x509::generate::mock::generate_issuer_mock;
 use attestation_data::x509::generate::mock::generate_reader_mock;
+use attestation_types::qualification::AttestationQualification;
 use crypto::mock_remote::MockRemoteEcdsaKey;
 use crypto::server_keys::generate::Ca;
 use dcql::CredentialQueryIdentifier;
@@ -1023,8 +1024,13 @@ fn check_example_disclosed_attributes(disclosed_attributes: &UniqueIdVec<Disclos
         .attestations;
 
     itertools::assert_equal(
-        attestations.iter().map(|attestation| &attestation.attestation_type),
-        [PID_ATTESTATION_TYPE],
+        attestations.iter().map(|attestation| {
+            (
+                attestation.attestation_type.as_str(),
+                attestation.attestation_qualification,
+            )
+        }),
+        [(PID_ATTESTATION_TYPE, AttestationQualification::EAA)],
     );
     let attributes = attestations
         .iter()

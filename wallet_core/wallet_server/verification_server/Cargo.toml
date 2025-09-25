@@ -41,6 +41,7 @@ test = [
     "openid4vc/test",
     "openid4vc/mock",
     "server_utils/parsed_key_pair_conversion",
+    "dep:attestation_types",
     "dep:wscd",
 ]
 # Enable integration tests
@@ -81,6 +82,7 @@ sd_jwt_vc_metadata.path = "../../lib/sd_jwt_vc_metadata"
 server_utils.path = "../server_utils"
 utils = { path = "../../lib/utils" }
 
+attestation_types = { path = "../../lib/attestation_types", optional = true }
 wscd = { path = "../../lib/wscd", optional = true, features = ["mock", "examples"] }
 
 [dev-dependencies]

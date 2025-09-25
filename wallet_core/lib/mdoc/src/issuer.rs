@@ -22,12 +22,15 @@ impl IssuerSigned {
 
     #[cfg(any(test, feature = "test"))]
     pub async fn resign(&mut self, key: &KeyPair<impl EcdsaKey>) -> Result<()> {
+        use attestation_types::qualification::AttestationQualification;
+
         use crate::utils::cose::MdocCose;
 
         let mut mso = self.issuer_auth.dangerous_parse_unverified()?.0;
 
         // Update (fill) the issuer_uri to match the new key
         mso.issuer_uri = Some(key.certificate().san_dns_name_or_uris()?.into_first());
+        mso.attestation_qualification = Some(AttestationQualification::default());
 
         self.issuer_auth = MdocCose::sign(&mso.into(), self.issuer_auth.0.unprotected.clone(), key, true).await?;
 

@@ -41,6 +41,7 @@ Content-Length: 267
           }
         },
         "issuer_uri": "https://cert.issuer.example.com/",
+        "attestation_qualification": "QEAA",
         "ca": "ca.pid.example.com",
         "validity_info": {
           "signed": "2025-04-15T07:02:26Z",
