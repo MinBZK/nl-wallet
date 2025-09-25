@@ -1,9 +1,11 @@
-# Wallet recovery use cases
+# Wallet recovery
+
+NL-Wallet supports the following recovery Use Cases: 
 
 1. [PIN Recovery](#pin-recovery): 
 With the PIN Recovery flow, the user can reset a forgotten PIN by reauhtenticating with DigiD. 
 
-2. [PID renewal flow](#pid-renewal-flow):
+2. [PID renewal flow](#pid-renewal):
 PID Renewal allows the user to fetch a new PID attestation in case the current PID is expired or revoked.
 
 3. [Wallet device transfer](#wallet-device-transfer)
@@ -45,7 +47,7 @@ sequenceDiagram
     WP ->> Wallet: New PIN OK, return new PIN certificate, WUA, signed PoP's
     Wallet ->> Wallet: Delete previous PIN data, store new PIN data    
     note over Wallet, PID: Steps 22-24 from PID-issuance flow. <br/> Wallet has requested and received attestations from PID-issuer. 
-    Wallet ->> WP: Disclose Recovery code from new PID-attestation
+    Wallet ->> WP: Send DiscloseRecoveryCodePinRecovery(new PID, with recovery code) instruction
     WP ->> WP: Verify recovery code with account (must match)<br/>Remove private keys that were created for PID-attestation used for recovery<br/>Update account to 'active'
     WP ->> Wallet: Report PIN Recovery success
     Wallet ->> Wallet: Dispose PID used in PIN-recovery process
@@ -54,24 +56,25 @@ sequenceDiagram
 
 
 
-## PID renewal flow
+## PID renewal
 
-PID renewal flow reuses steps from [PID issuance flow](./issuance-with-openid4vci.md) 
+PID Renewal allows the user to fetch a new PID attestation in case the current PID is expired or revoked.
+
+The PID renewal flow reuses steps from [PID issuance flow](./issuance-with-openid4vci.md) 
 
 ```{mermaid}
 sequenceDiagram
     autonumber
     actor User as User
-    participant OS as iOS/Android
     participant Wallet as Wallet App
-    participant WP as Wallet Provider
+    participant WP as Wallet Backend
     participant PID as PID Issuer
     
     note over User, Wallet: Wallet is active, PID is revoked/expired' 
-    User ->> Wallet : Start PID-reissuance
+    User ->> Wallet : Start PID renewal
     note over Wallet, PID:Steps 2-17 from DigiD authentication / PID-issuance flow. <br/> Wallet has received access token from PID Issuer (and PID-preview)
     Wallet ->> Wallet: Check Recovery code in stored PID against recovery code in PID-preview    
-    note over Wallet, PID: Steps 20-23 from PID-issuance flow. <br/> Wallet has requested and received attestations from PID-issuer. WP creates PoPs and new WUA. <br/>Issuance of new WUA will put account into 'recovery' and disable existing keys except the newly created keys for PID issuance.
+    note over Wallet, PID: Steps 20-23 from PID-issuance flow. <br/> Wallet has requested and received attestations from PID-issuer. Wallet Backend creates PoPs and new WUA. <br/>Issuance of new WUA will put account into 'recovery' and disable existing keys except the newly created keys for PID issuance.
     Wallet ->> WP: Disclose recovery code from new PID to WP
     WP ->> WP: Check recovery code with account (fail if not matching) and update account to 'active'
     WP ->> Wallet: New PID accepted
@@ -84,7 +87,10 @@ sequenceDiagram
 
 Wallet device transfer allows the user the move te contents of a wallet installation on a source device to another (destination) device.
 
-### Transfer flow
+### Wallet Device Transfer flow
+
+The sequence diagram below, describes the process and the interactions between the relevant components. 
+
 ```{mermaid}
 sequenceDiagram
     autonumber
@@ -92,9 +98,9 @@ sequenceDiagram
     actor User
     participant WT as Destination Wallet
     participant WS as Source Wallet
-    participant WP as Wallet Backend (WP)
+    participant WP as Wallet Backend
 
-    User ->> WT: Yes start migration (using `transfer_session_id` resulting from recovery_code disclosure in activation) (tranfer_state= created)
+    User ->> WT: Yes start migration (using `transfer_session_id` resulting from recovery_code disclosure in activation) <br/>(tranfer_state= created)
     WT ->> WT: Create asymmetric EC key (using ECIES)
     WT ->> User: Present QR code containing pubkey and transfer_session_id (to be scanned from source device)
     User ->> WS: Open app (with PIN/biometrics), Scan QR from target device (read public key and transfer_session_id)
@@ -107,12 +113,12 @@ sequenceDiagram
     WS ->> WS: Encrypt database to encrypted_payload
     WS ->> WP: send_wallet_payload (transfer_session_id, encrypted_payload)
     WP ->> WP: stash payload for Destination Wallet<br/>transfer_state = ready_for_download
-    note over WT, WP: Poll for payload while not cancelled.
+    note over WT, WP: Poll for payload while not canceled.
     WT ->> WP: receive_payload (transfer_session_id)
     WP ->> WP: while not (ready_for_download) complete from source wallet: return pending else return payload
-    note over WS, WP: Poll transfer status while transfer not completed or cancelled.
+    note over WS, WP: Poll transfer status while transfer not completed or canceled.
     WS ->> WP: check_transfer_status(transfer_session_id)  
-    WP ->> WS: return transfer status (pending, cancelled, completed)  
+    WP ->> WS: return transfer status (pending, canceled, completed)  
     WP ->> WT: Transfer encrypted_payload to Destination Wallet
     WT ->> WT: decrypt data, restore wallet
     WT ->> WP: complete_transfer(transfer_session_id) 
@@ -131,7 +137,7 @@ Data exchanged in Wallet Device transfer is encrypted, using ECIES in JWE. Encry
 
 4. The public key is exchanged from the destination device to the source device using the presented QR-code (step 4). 
 
-11) The transfered data (step 11) is encoded in a JWE using ECIES:  ECDH-ES (for key agreement) + symmetric encryption (AES-GCM).
+11) The data (step 11) is encoded in a JWE using ECIES:  ECDH-ES (for key agreement) + symmetric encryption (AES-GCM).
 
 19. In step 19, the encrypted data is retrieved from the WalletBackend and will be decrypted in the Destionation Wallet.
 
@@ -139,12 +145,12 @@ Data exchanged in Wallet Device transfer is encrypted, using ECIES in JWE. Encry
 
 While transfering, the following states are used in the process:
 
-| Transfer State             | Will be set by                                                        | Next State (s)                                |
-|----------------------------|-----------------------------------------------------------------------|-----------------------------------------------|
-| created                    | After activation of DW, when another account exists for the same user | ready_for_transfer
-| ready_for_transfer         | After scan QR from DW. SW is linked to transfer session.              | ready_for_download, cancelled 
-| ready_for_download         | After upload payload from SW.                                         | completed, cancelled
-| completed                  | DW after succesfull download and processing of payload                | -                    
-| cancelled                  | User can cancel transfer from DW or SW                                | -
+| Transfer State             | State is set when                                                                     | Next State(s)                                 |
+|----------------------------|---------------------------------------------------------------------------------------|-----------------------------------------------|
+| created                    | After activation of Desintation Wallet, when another account exists for the same user | ready_for_transfer, canceled
+| ready_for_transfer         | After scanning QR from Destinaiton Wallet and `confirm_transfer_session` instruction, Source Wallet is linked to transfer session.                              | ready_for_download, canceled 
+| ready_for_download         | After `send_wallet_payload` instruction from Source Wallet                            | completed, canceled
+| completed                  | Destination Wallet after succesfull download (`receive_wallet_payload` instruction ) <br/>and processing of payload confirmed with `complete_transfer`                                | -                    
+| canceled                   | User can cancel transfer from Destinaion Wallet or Source Wallet from any state using `cancel_transfer` instruction. <br/>Not allowed after `completed` state is reached                      | -
 
 
