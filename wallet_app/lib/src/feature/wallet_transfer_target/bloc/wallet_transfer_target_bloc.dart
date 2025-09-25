@@ -71,7 +71,7 @@ class WalletTransferTargetBloc extends Bloc<WalletTransferTargetEvent, WalletTra
       switch (status) {
         case WalletTransferStatus.waitingForScan:
           emit(WalletTransferAwaitingQrScan(qrData));
-        case WalletTransferStatus.waitingForApproval:
+        case WalletTransferStatus.waitingForApprovalAndUpload:
           emit(const WalletTransferAwaitingConfirmation());
         case WalletTransferStatus.transferring:
           emit(const WalletTransferTransferring());

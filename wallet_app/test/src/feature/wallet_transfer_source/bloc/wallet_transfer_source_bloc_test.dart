@@ -46,7 +46,7 @@ void main() {
       when(mockAcknowledgeWalletTransferUseCase.invoke(any)).thenAnswer((_) async => const Result.success(null));
       when(mockGetWalletTransferStatusUseCase.invoke()).thenAnswer(
         (_) => Stream.fromIterable([
-          WalletTransferStatus.waitingForApproval,
+          WalletTransferStatus.waitingForApprovalAndUpload,
           WalletTransferStatus.transferring,
           WalletTransferStatus.success,
         ]),

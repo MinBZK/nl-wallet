@@ -58,7 +58,7 @@ class WalletTransferSourceBloc extends Bloc<WalletTransferSourceEvent, WalletTra
     _statusSubscription = _getWalletTransferStatusUseCase.invoke().listen((status) {
       switch (status) {
         case WalletTransferStatus.waitingForScan:
-        case WalletTransferStatus.waitingForApproval:
+        case WalletTransferStatus.waitingForApprovalAndUpload:
         case WalletTransferStatus.transferring:
           emit(const WalletTransferTransferring());
         case WalletTransferStatus.error:

@@ -74,7 +74,7 @@ void main() {
       test('should return WalletTransferStatus.waitingForApproval when walletCore returns ReadyForTransfer', () async {
         when(mockWalletCore.getWalletTransferState()).thenAnswer((_) async => TransferSessionState.ReadyForTransfer);
         final result = await transferRepository.getWalletTransferState();
-        expect(result, WalletTransferStatus.waitingForApproval);
+        expect(result, WalletTransferStatus.waitingForApprovalAndUpload);
       });
 
       test('should return WalletTransferStatus.transferring when walletCore returns ReadyForDownload', () async {

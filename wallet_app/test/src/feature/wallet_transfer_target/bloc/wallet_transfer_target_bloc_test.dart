@@ -45,7 +45,7 @@ void main() {
         when(mockGetWalletTransferStatusUseCase.invoke()).thenAnswer(
           (_) => Stream.fromIterable([
             WalletTransferStatus.waitingForScan,
-            WalletTransferStatus.waitingForApproval,
+            WalletTransferStatus.waitingForApprovalAndUpload,
             WalletTransferStatus.transferring,
             WalletTransferStatus.success,
           ]),

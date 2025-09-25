@@ -26,7 +26,7 @@ class CoreTransferRepository implements TransferRepository {
     final result = await _walletCore.getWalletTransferState();
     return switch (result) {
       TransferSessionState.Created => WalletTransferStatus.waitingForScan,
-      TransferSessionState.ReadyForTransfer => WalletTransferStatus.waitingForApproval,
+      TransferSessionState.ReadyForTransfer => WalletTransferStatus.waitingForApprovalAndUpload,
       TransferSessionState.ReadyForDownload => WalletTransferStatus.transferring,
       TransferSessionState.Success => WalletTransferStatus.success,
       TransferSessionState.Cancelled => WalletTransferStatus.cancelled,
