@@ -222,7 +222,7 @@ class WalletTransferTargetScreen extends StatelessWidget {
 
     if (skip && context.mounted) {
       context.bloc.add(const WalletTransferOptOutEvent());
-      DashboardScreen.show(context);
+      Navigator.pop(context);
     }
   }
 }

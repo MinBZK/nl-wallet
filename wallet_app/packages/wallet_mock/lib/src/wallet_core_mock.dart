@@ -1,12 +1,14 @@
 import 'dart:convert';
+import 'dart:developer';
 
 import 'package:wallet_core/core.dart';
 
 import '../mock.dart';
 import 'data/mock/mock_attestations.dart';
-import 'disclosure_manager.dart';
 import 'log/wallet_event_log.dart';
-import 'pin/pin_manager.dart';
+import 'manager/disclosure_manager.dart';
+import 'manager/pin_manager.dart';
+import 'manager/transfer_manager.dart';
 import 'wallet/wallet.dart';
 
 class WalletCoreMock implements WalletCoreApi {
@@ -15,6 +17,7 @@ class WalletCoreMock implements WalletCoreApi {
 
   final IssuanceManager _issuanceManager;
   final DisclosureManager _disclosureManager;
+  final TransferManager _transferManager;
 
   final PinManager _pinManager;
   final Wallet _wallet;
@@ -22,7 +25,14 @@ class WalletCoreMock implements WalletCoreApi {
 
   bool _isBiometricsEnabled = false;
 
-  WalletCoreMock(this._pinManager, this._wallet, this._eventLog, this._issuanceManager, this._disclosureManager);
+  WalletCoreMock(
+    this._pinManager,
+    this._wallet,
+    this._eventLog,
+    this._issuanceManager,
+    this._disclosureManager,
+    this._transferManager,
+  );
 
   @override
   Future<StartDisclosureResult> crateApiFullStartDisclosure({required String uri, required bool isQrCode}) async {
@@ -50,38 +60,28 @@ class WalletCoreMock implements WalletCoreApi {
   Future<WalletInstructionResult> crateApiFullAcceptIssuance({required String pin}) async {
     /// Check if the issuance manager has an active session that should be continued
     if (_issuanceManager.hasActiveIssuanceSession) return _issuanceManager.acceptIssuance(pin, []);
-
-    /// Validate PIN
-    final result = _pinManager.checkPin(pin);
-
-    /// Check if PID is already in wallet (renewal flow)
-    if (!_wallet.isEmpty) {
-      // Not empty so user must have PID, thus trigger renewal.
-      if (result is! WalletInstructionResult_Ok) return result;
-      _wallet.add(kPidAttestations);
-      for (final it in kPidAttestations) {
-        _eventLog.logIssuance(it, isRenewal: true);
-      }
-      return result;
-    }
-
-    /// Continue with PID issuance flow
-    if (result is WalletInstructionResult_InstructionError && result.error is WalletInstructionError_Timeout) {
-      /// PVW-1037 (criteria 6): Handle the special case where the user has forgotten her pin during initial setup.
-      await resetWallet();
-    }
-    if (result is! WalletInstructionResult_Ok) return result;
-
-    // Add the PID cards to the user's wallet
-    _wallet.add(kPidAttestations);
-    // Log the issuance events
-    kPidAttestations.forEach(_eventLog.logIssuance);
-    return result;
+    throw StateError('No active issuance session');
   }
 
   @override
-  Future<PidIssuanceResult> crateApiFullAcceptPidIssuance({required String pin}) {
-    throw UnimplementedError();
+  Future<PidIssuanceResult> crateApiFullAcceptPidIssuance({required String pin}) async {
+    final result = _pinManager.checkPin(pin);
+    final isRenewalFlow = !_wallet.isEmpty;
+
+    switch (result) {
+      case WalletInstructionResult_Ok():
+        _wallet.add(kPidAttestations);
+        for (final it in kPidAttestations) {
+          _eventLog.logIssuance(it, isRenewal: isRenewalFlow);
+        }
+        return const PidIssuanceResult_Ok(transferAvailable: false);
+      case WalletInstructionResult_InstructionError():
+        if (!isRenewalFlow && result.error is WalletInstructionError_Timeout) {
+          /// PVW-1037 (criteria 6): Handle the special case where the user has forgotten her pin during initial setup.
+          await resetWallet();
+        }
+        return PidIssuanceResult_InstructionError(error: result.error);
+    }
   }
 
   @override
@@ -305,27 +305,22 @@ class WalletCoreMock implements WalletCoreApi {
   }
 
   @override
-  Future<String> crateApiFullInitWalletTransfer() {
-    throw UnimplementedError();
-  }
+  Future<String> crateApiFullInitWalletTransfer() => _transferManager.initWalletTransfer();
 
   @override
-  Future<void> crateApiFullAcknowledgeWalletTransfer({required String uri}) {
-    throw UnimplementedError();
-  }
+  Future<void> crateApiFullAcknowledgeWalletTransfer({required String uri}) async =>
+      _transferManager.acknowledgeWalletTransfer(uri);
 
   @override
-  Future<WalletInstructionResult> crateApiFullTransferWallet({required String pin}) {
-    throw UnimplementedError();
-  }
+  Future<WalletInstructionResult> crateApiFullTransferWallet({required String pin}) async =>
+      _transferManager.transferWallet(pin);
 
   @override
-  Future<void> crateApiFullCancelWalletTransfer() {
-    throw UnimplementedError();
-  }
+  Future<void> crateApiFullCancelWalletTransfer() async => _transferManager.cancelWalletTransfer();
 
   @override
-  Future<TransferSessionState> crateApiFullGetWalletTransferState() {
-    throw UnimplementedError();
-  }
+  Future<void> crateApiFullSkipWalletTransfer() async => log('Transfer skipped');
+
+  @override
+  Future<TransferSessionState> crateApiFullGetWalletTransferState() => _transferManager.getTransferState();
 }

@@ -37,7 +37,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueNom,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.11.1";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 1183541780;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 1197392980;
 
 // Section: executor
 
@@ -1049,6 +1049,26 @@ fn wire__crate__api__full__set_version_state_stream_impl(
                         let output_ok = Result::<_, ()>::Ok({
                             crate::api::full::set_version_state_stream(api_sink).await;
                         })?;
+                        Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__full__skip_wallet_transfer_impl(port_: flutter_rust_bridge::for_generated::MessagePort) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "skip_wallet_transfer",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            move |context| async move {
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || async move {
+                        let output_ok = crate::api::full::skip_wallet_transfer().await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -4923,6 +4943,11 @@ mod io {
         sink: *mut wire_cst_list_prim_u_8_strict,
     ) {
         wire__crate__api__full__set_version_state_stream_impl(port_, sink)
+    }
+
+    #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__skip_wallet_transfer(port_: i64) {
+        wire__crate__api__full__skip_wallet_transfer_impl(port_)
     }
 
     #[unsafe(no_mangle)]

@@ -33,6 +33,8 @@ import '../data/repository/sign/core/core_sign_repository.dart';
 import '../data/repository/sign/sign_repository.dart';
 import '../data/repository/tour/impl/tour_repository_impl.dart';
 import '../data/repository/tour/tour_repository.dart';
+import '../data/repository/transfer/core/core_transfer_repository.dart';
+import '../data/repository/transfer/transfer_repository.dart';
 import '../data/repository/uri/core/core_uri_repository.dart';
 import '../data/repository/uri/uri_repository.dart';
 import '../data/repository/version/core/core_version_string_repository.dart';
@@ -107,6 +109,9 @@ class WalletRepositoryProvider extends StatelessWidget {
         ),
         RepositoryProvider<BiometricRepository>(
           create: (context) => CoreBiometricRepository(context.read()),
+        ),
+        RepositoryProvider<TransferRepository>(
+          create: (context) => CoreTransferRepository(context.read()),
         ),
         RepositoryProvider<SignRepository>(
           create: (context) => CoreSignRepository(

@@ -488,6 +488,8 @@ void frbgen_wallet_core_wire__crate__api__full__set_recent_history_stream(int64_
 void frbgen_wallet_core_wire__crate__api__full__set_version_state_stream(int64_t port_,
                                                                          struct wire_cst_list_prim_u_8_strict *sink);
 
+void frbgen_wallet_core_wire__crate__api__full__skip_wallet_transfer(int64_t port_);
+
 void frbgen_wallet_core_wire__crate__api__full__start_disclosure(int64_t port_,
                                                                  struct wire_cst_list_prim_u_8_strict *uri,
                                                                  bool is_qr_code);
@@ -597,6 +599,7 @@ static int64_t dummy_method_to_enforce_bundling(void) {
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__set_lock_stream);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__set_recent_history_stream);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__set_version_state_stream);
+    dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__skip_wallet_transfer);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__start_disclosure);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__transfer_wallet);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__unlock_wallet);

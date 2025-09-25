@@ -176,6 +176,16 @@ where
 
     #[instrument(skip_all)]
     #[sentry_capture_error]
+    pub async fn clear_transfer(&mut self) -> Result<(), TransferError> {
+        info!("Clear transfer");
+
+        self.storage.write().await.delete_data::<TransferData>().await?;
+
+        Ok(())
+    }
+
+    #[instrument(skip_all)]
+    #[sentry_capture_error]
     pub async fn get_transfer_status(&mut self) -> Result<TransferSessionState, TransferError> {
         info!("Retrieving transfer status");
 
@@ -538,6 +548,21 @@ mod tests {
             .cancel_transfer()
             .await
             .expect("Wallet cancel transfer should have succeeded");
+    }
+
+    #[tokio::test]
+    async fn test_clear_transfer() {
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        wallet
+            .mut_storage()
+            .expect_delete_data::<TransferData>()
+            .returning(|| Ok(()));
+
+        wallet
+            .clear_transfer()
+            .await
+            .expect("Wallet clear transfer should have succeeded");
     }
 
     #[tokio::test]

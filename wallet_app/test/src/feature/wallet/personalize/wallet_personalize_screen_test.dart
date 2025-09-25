@@ -18,6 +18,7 @@ import 'package:wallet/src/feature/wallet/personalize/page/wallet_personalize_co
 import 'package:wallet/src/feature/wallet/personalize/page/wallet_personalize_intro_page.dart';
 import 'package:wallet/src/feature/wallet/personalize/page/wallet_personalize_success_page.dart';
 import 'package:wallet/src/feature/wallet/personalize/wallet_personalize_screen.dart';
+import 'package:wallet/src/navigation/wallet_routes.dart';
 import 'package:wallet/src/util/extension/string_extension.dart';
 
 import '../../../../wallet_app_test_widget.dart';
@@ -220,7 +221,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
           MockWalletPersonalizeBloc(),
-          WalletPersonalizeSuccess([WalletMockData.card, WalletMockData.altCard]),
+          WalletPersonalizeSuccess(addedCards: [WalletMockData.card, WalletMockData.altCard], userCanTransfer: false),
         ),
       );
       await screenMatchesGolden('wallet_personalize/success.light');
@@ -230,7 +231,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
           MockWalletPersonalizeBloc(),
-          WalletPersonalizeSuccess([WalletMockData.card, WalletMockData.altCard]),
+          WalletPersonalizeSuccess(addedCards: [WalletMockData.card, WalletMockData.altCard], userCanTransfer: false),
         ),
         brightness: Brightness.dark,
       );
@@ -318,7 +319,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
           MockWalletPersonalizeBloc(),
-          WalletPersonalizeSuccess([WalletMockData.card]),
+          WalletPersonalizeSuccess(addedCards: [WalletMockData.card], userCanTransfer: false),
         ),
       );
       final l10n = await TestUtils.englishLocalizations;
@@ -553,14 +554,31 @@ void main() {
       expect(find.byType(WalletPersonalizeConfirmPinPage), findsOneWidget);
     });
 
-    testWidgets('Verify WalletPersonalizeSuccess shows y', (tester) async {
+    testWidgets('Verify WalletPersonalizeSuccess shows success page', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
           MockWalletPersonalizeBloc(),
-          WalletPersonalizeSuccess([WalletMockData.card, WalletMockData.altCard]),
+          WalletPersonalizeSuccess(addedCards: [WalletMockData.card, WalletMockData.altCard], userCanTransfer: false),
         ),
       );
       expect(find.byType(WalletPersonalizeSuccessPage), findsOneWidget);
+    });
+
+    testWidgets('Verify WalletPersonalizeSuccess with userCanTransfer = true pushes WalletTransferTargetScreen', (
+      tester,
+    ) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
+          MockWalletPersonalizeBloc(),
+          const WalletPersonalizeInitial(),
+          streamStates: [
+            WalletPersonalizeSuccess(addedCards: [WalletMockData.card, WalletMockData.altCard], userCanTransfer: true),
+          ],
+        ),
+      );
+
+      // Verify if navigation occurred by checking for the route name (rendered by our test route navigator)
+      expect(find.text(WalletRoutes.walletTransferTargetRoute), findsOneWidget);
     });
 
     testWidgets('Verify WalletPersonalizeFailure shows TerminalPage', (tester) async {

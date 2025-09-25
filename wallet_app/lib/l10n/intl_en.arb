@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2025-09-18T14:27:23+02:00",
+    "@@last_modified": "2025-09-25T15:37:17+02:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -1435,7 +1435,7 @@
     "walletPersonalizeSuccessPageDescription": "You can share the data in these cards or use it to log in.",
     "walletPersonalizeSuccessPageTitle": "Your NL Wallet is ready",
     "walletTransferAwaitingConfirmationPageCta": "Stop",
-    "walletTransferAwaitingConfirmationPageDescription": "Choose ‘Yes, move’ on your other device if you want to move your NL Wallet to this device.\n\nThis action cannot be undone.",
+    "walletTransferAwaitingConfirmationPageDescription": "Choose ‘Yes, move’ and enter your PIN on your other device if you want to move your NL Wallet to this device.\n\nThen wait until the move is finished on both devices.\n\nThis action cannot be undone.",
     "walletTransferAwaitingConfirmationPageTitle": "Confirm on your other device",
     "walletTransferAwaitingScanPageCenterQrCta": "Center QR code on screen",
     "walletTransferAwaitingScanPageDescription": "Use the QR scanner in the NL Wallet on your other device.",

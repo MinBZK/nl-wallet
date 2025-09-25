@@ -37,5 +37,13 @@ class CorePidRepository extends PidRepository {
   Future<bool> hasActiveIssuanceSession() => _walletCore.hasActiveIssuanceSession();
 
   @override
-  Future<WalletInstructionResult> acceptIssuance(String pin) => _walletCore.acceptIssuance(pin);
+  Future<TransferState> acceptIssuance(String pin) async {
+    final result = await _walletCore.acceptPidIssuance(pin);
+    switch (result) {
+      case PidIssuanceResult_Ok():
+        return result.transferAvailable ? TransferState.available : TransferState.unavailable;
+      case PidIssuanceResult_InstructionError():
+        throw result.error; // Makes sure we expose the [WalletInstructionError] as an error.
+    }
+  }
 }

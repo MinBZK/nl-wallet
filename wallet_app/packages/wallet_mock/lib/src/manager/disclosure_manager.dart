@@ -2,11 +2,11 @@ import 'dart:convert';
 
 import 'package:wallet_core/core.dart';
 
-import 'data/mock/mock_disclosure_requests.dart';
-import 'log/wallet_event_log.dart';
-import 'pin/pin_manager.dart';
-import 'util/extension/string_extension.dart';
-import 'wallet/wallet.dart';
+import '../data/mock/mock_disclosure_requests.dart';
+import '../log/wallet_event_log.dart';
+import '../util/extension/string_extension.dart';
+import '../wallet/wallet.dart';
+import 'pin_manager.dart';
 
 /// This class manages (mock) disclosure sessions. Previously this was part of the
 /// [WalletCoreMock] directly but moved for better separation of concerns.

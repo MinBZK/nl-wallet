@@ -21,8 +21,11 @@ void main() {
   late PidRepository pidRepository;
   late CardMapper cardMapper;
 
+  const kMockPidRenewalUrl = 'mock_pid_renewal_url';
+
   setUp(() {
     core = Mocks.create();
+    provideDummy<PidIssuanceResult>(const PidIssuanceResult.ok(transferAvailable: true));
     cardMapper = CardMapper(
       CardAttributeMapper(CardAttributeValueMapper(), ClaimDisplayMetadataMapper()),
       OrganizationMapper(LocalizedLabelsMapper(), ImageMapper()),
@@ -61,7 +64,35 @@ void main() {
     test('accept offered pid should be propagated to the core', () async {
       const samplePin = '000000';
       await pidRepository.acceptIssuance(samplePin);
-      verify(core.acceptIssuance(samplePin));
+      verify(core.acceptPidIssuance(samplePin));
+    });
+
+    test('accept offered pid should propagate errors from the core as WalletInstructionError', () async {
+      const samplePin = '000000';
+      when(core.acceptPidIssuance(samplePin)).thenAnswer(
+        (_) async => const PidIssuanceResult_InstructionError(
+          error: WalletInstructionError.incorrectPin(attemptsLeftInRound: 3, isFinalRound: false),
+        ),
+      );
+
+      expect(() async => pidRepository.acceptIssuance(samplePin), throwsA(isA<WalletInstructionError>()));
+      verify(core.acceptPidIssuance(samplePin));
+    });
+
+    test('renewal url should be fetched through the wallet_core', () async {
+      when(core.createPidRenewalRedirectUri()).thenAnswer((_) async => kMockPidRenewalUrl);
+      expect(await pidRepository.getPidRenewalUrl(), kMockPidRenewalUrl);
+      verify(core.createPidRenewalRedirectUri());
+    });
+
+    test('hasActiveIssuanceSession should check through the wallet_core', () async {
+      when(core.hasActiveIssuanceSession()).thenAnswer((_) async => true);
+      expect(await pidRepository.hasActiveIssuanceSession(), true);
+      verify(core.hasActiveIssuanceSession());
+
+      when(core.hasActiveIssuanceSession()).thenAnswer((_) async => false);
+      expect(await pidRepository.hasActiveIssuanceSession(), false);
+      verify(core.hasActiveIssuanceSession());
     });
   });
 }

@@ -14,6 +14,7 @@ import 'package:wallet/src/data/repository/language/language_repository.dart';
 import 'package:wallet/src/data/repository/network/network_repository.dart';
 import 'package:wallet/src/data/repository/pid/pid_repository.dart';
 import 'package:wallet/src/data/repository/tour/tour_repository.dart';
+import 'package:wallet/src/data/repository/transfer/transfer_repository.dart';
 import 'package:wallet/src/data/repository/version/version_state_repository.dart';
 import 'package:wallet/src/data/repository/wallet/wallet_repository.dart';
 import 'package:wallet/src/data/service/app_lifecycle_service.dart';
@@ -66,10 +67,10 @@ import 'package:wallet/src/domain/usecase/sign/start_sign_usecase.dart';
 import 'package:wallet/src/domain/usecase/tour/fetch_tour_videos_usecase.dart';
 import 'package:wallet/src/domain/usecase/tour/observe_show_tour_banner_usecase.dart';
 import 'package:wallet/src/domain/usecase/tour/tour_overview_viewed_usecase.dart';
+import 'package:wallet/src/domain/usecase/transfer/acknowledge_wallet_transfer_usecase.dart';
 import 'package:wallet/src/domain/usecase/transfer/cancel_wallet_transfer_usecase.dart';
 import 'package:wallet/src/domain/usecase/transfer/get_wallet_transfer_status_usecase.dart';
 import 'package:wallet/src/domain/usecase/transfer/init_wallet_transfer_usecase.dart';
-import 'package:wallet/src/domain/usecase/transfer/prepare_wallet_transfer_usecase.dart';
 import 'package:wallet/src/domain/usecase/transfer/skip_wallet_transfer_usecase.dart';
 import 'package:wallet/src/domain/usecase/transfer/start_wallet_transfer_usecase.dart';
 import 'package:wallet/src/domain/usecase/update/observe_version_state_usecase.dart';
@@ -120,6 +121,7 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<VersionStateRepository>()])
 @GenerateNiceMocks([MockSpec<TourRepository>()])
 @GenerateNiceMocks([MockSpec<IssuanceRepository>()])
+@GenerateNiceMocks([MockSpec<TransferRepository>()])
 /// Mock services
 @GenerateNiceMocks([MockSpec<TypedWalletCore>()])
 @GenerateNiceMocks([MockSpec<NavigationService>()])
@@ -182,9 +184,9 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<GetPidCardsUseCase>()])
 @GenerateNiceMocks([MockSpec<StartWalletTransferUseCase>()])
 @GenerateNiceMocks([MockSpec<CancelWalletTransferUseCase>()])
-@GenerateNiceMocks([MockSpec<InitWalletTransferUseCase>()])
+@GenerateNiceMocks([MockSpec<AcknowledgeWalletTransferUseCase>()])
 @GenerateNiceMocks([MockSpec<GetWalletTransferStatusUseCase>()])
-@GenerateNiceMocks([MockSpec<PrepareWalletTransferUseCase>()])
+@GenerateNiceMocks([MockSpec<InitWalletTransferUseCase>()])
 @GenerateNiceMocks([MockSpec<SkipWalletTransferUseCase>()])
 @GenerateNiceMocks([MockSpec<CreatePinRecoveryRedirectUriUseCase>()])
 @GenerateNiceMocks([MockSpec<ContinuePinRecoveryUseCase>()])
