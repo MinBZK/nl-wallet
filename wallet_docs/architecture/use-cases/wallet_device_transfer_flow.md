@@ -31,11 +31,12 @@ sequenceDiagram
     note over WS, WP: Poll transfer status while transfer not completed or cancelled.
     WS ->> WP: check_transfer_status(transfer_session_id)  
     WP ->> WS: return transfer status (pending, cancelled, completed)  
-    WP ->> WT: Transfer encrypted_payload to WT
+    WP ->> WT: Transfer encrypted_payload to Destination Wallet
     WT ->> WT: decrypt data, restore wallet
     WT ->> WP: complete_transfer(transfer_session_id) 
-    WP ->> WP: transfer_session = complete
+    WP ->> WP: move private keys from Source Wallet to Destination Wallet<br/>transfer_session = complete<br/>source wallet state=transferred
     WP ->> WT: Report session complete
+    WT ->> WT: set imported database as current database<br/>dispose database that was used in onboarding
     WT ->> User: Transfer complete
     WS ->> User: transfer complete (Source wallet now deactivated)
    
@@ -44,15 +45,15 @@ sequenceDiagram
 
 Data exchanged in Wallet Device transfer is encrypted, using ECIES in JWE. Encryption/decryption of data is performed in the following steps from the above Sequence Diagram:
 
-6) The public/private key pair is generated in Step 6. 
+2) The public/private key pair is generated in Step 2. 
 
-7. The public key is exchanged from the destination device to the source device using the presented QR-code (step 7). 
+4. The public key is exchanged from the destination device to the source device using the presented QR-code (step 4). 
 
-15) The transfered data (step 15) is encoded in a JWE using ECIES:  ECDH-ES (for key agreement) + symmetric encryption (AES-GCM).
+11) The transfered data (step 11) is encoded in a JWE using ECIES:  ECDH-ES (for key agreement) + symmetric encryption (AES-GCM).
 
-20. In step 20, the encrypted data is retrieved from the WalletBackend and will be decrypted in the Destionation Wallet.
+19. In step 19, the encrypted data is retrieved from the WalletBackend and will be decrypted in the Destionation Wallet.
 
-# Wallet states during transfer
+## Wallet states during transfer
 
 While transfering, the following states are used in the process:
 
@@ -63,3 +64,5 @@ While transfering, the following states are used in the process:
 | ready_for_download         | After upload payload from SW.                                         | completed, cancelled
 | completed                  | DW after succesfull download and processing of payload                | -                    
 | cancelled                  | User can cancel transfer from DW or SW                                | -
+
+
