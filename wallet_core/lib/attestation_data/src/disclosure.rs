@@ -56,6 +56,21 @@ pub enum DisclosedAttributes {
     SdJwt(Attributes),
 }
 
+impl DisclosedAttributes {
+    pub fn has_claim_path(&self, claim_path: &VecNonEmpty<ClaimPath>) -> bool {
+        match self {
+            Self::MsoMdoc(name_spaces) => claim_path_to_mdoc_path(claim_path)
+                .and_then(|(name_space_id, attribute_id)| {
+                    name_spaces
+                        .get(name_space_id)
+                        .map(|name_space| name_space.contains_key(attribute_id))
+                })
+                .unwrap_or(false),
+            Self::SdJwt(attributes) => attributes.has_claim_path(claim_path),
+        }
+    }
+}
+
 impl TryFrom<IndexMap<NameSpace, IndexMap<DataElementIdentifier, DataElementValue>>> for DisclosedAttributes {
     type Error = AttributeError;
 
@@ -226,20 +241,7 @@ impl DisclosedCredential for DisclosedAttestation {
     ) -> HashSet<VecNonEmpty<ClaimPath>> {
         request_claim_paths
             .into_iter()
-            .flat_map(|claim_path| {
-                let attribute_present = match &self.attributes {
-                    DisclosedAttributes::MsoMdoc(name_spaces) => claim_path_to_mdoc_path(claim_path)
-                        .and_then(|(name_space_id, attribute_id)| {
-                            name_spaces
-                                .get(name_space_id)
-                                .map(|name_space| name_space.contains_key(attribute_id))
-                        })
-                        .unwrap_or(false),
-                    DisclosedAttributes::SdJwt(attributes) => attributes.has_claim_path(claim_path),
-                };
-
-                (!attribute_present).then(|| claim_path.clone())
-            })
+            .flat_map(|claim_path| (!self.attributes.has_claim_path(claim_path)).then(|| claim_path.clone()))
             .collect()
     }
 }
