@@ -216,6 +216,8 @@ where
         };
 
         let database_export = self.storage.write().await.export().await?;
+        self.storage.write().await.open().await?;
+
         let database_payload = WalletDatabasePayload::new(database_export);
 
         let transfer_session_id: Uuid = transfer_data.transfer_session_id.into();
@@ -262,6 +264,7 @@ where
 
         let database_payload = WalletDatabasePayload::decrypt(&result.payload, &private_key)?;
         self.storage.write().await.import(database_payload.into()).await?;
+        self.storage.write().await.open().await?;
 
         Ok(())
     }
@@ -823,6 +826,8 @@ mod tests {
             .expect_export()
             .returning(move || Ok(DatabaseExport::new(database_export_key, database_export_bytes.clone())));
 
+        source_wallet.mut_storage().expect_open().returning(|| Ok(()));
+
         source_wallet
             .mut_storage()
             .expect_fetch_data::<ChangePinData>()
@@ -902,6 +907,8 @@ mod tests {
             .return_once(move |_, _: HwSignedInstruction<ReceiveWalletPayload>| Ok(wp_result));
 
         destination_wallet.mut_storage().expect_import().returning(|_| Ok(()));
+
+        destination_wallet.mut_storage().expect_open().returning(|| Ok(()));
 
         let private_key = private_key_param.lock().as_ref().unwrap().clone();
         destination_wallet
