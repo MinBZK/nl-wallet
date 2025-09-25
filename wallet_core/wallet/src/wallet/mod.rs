@@ -56,6 +56,7 @@ pub use self::lock::UnlockMethod;
 pub use self::lock::WalletUnlockError;
 pub use self::registration::WalletRegistrationError;
 pub use self::reset::ResetError;
+pub use self::transfer::TransferError;
 pub use self::uri::UriIdentificationError;
 pub use self::uri::UriType;
 

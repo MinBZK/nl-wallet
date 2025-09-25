@@ -4,6 +4,7 @@ use wallet::errors::DisclosureBasedIssuanceError;
 use wallet::errors::DisclosureError;
 use wallet::errors::InstructionError;
 use wallet::errors::IssuanceError;
+use wallet::errors::TransferError;
 use wallet::errors::WalletUnlockError;
 
 use super::attestation::AttestationPresentation;
@@ -176,6 +177,27 @@ impl TryFrom<Result<Vec<wallet::AttestationPresentation>, DisclosureBasedIssuanc
                         .map_err(|error| DisclosureBasedIssuanceError::Issuance(IssuanceError::Instruction(error)))?,
                 })
             }
+            Err(error) => Err(error),
+        }
+    }
+}
+
+/// This conversion distinguishes between 3 distinct cases:
+///
+/// 1. In case of a successful result, [`WalletInstructionResult::Ok`] will be returned.
+/// 2. In case of an expected and/or specific error case a different variant of [`WalletInstructionResult`] by mapping
+///    the nested [InstructionError].
+/// 3. In any other cases, this is an unexpected and/or generic error and the [`TransferError`] will be returned
+///    unchanged.
+impl TryFrom<Result<(), TransferError>> for WalletInstructionResult {
+    type Error = TransferError;
+
+    fn try_from(value: Result<(), TransferError>) -> Result<Self, Self::Error> {
+        match value {
+            Ok(_) => Ok(WalletInstructionResult::Ok),
+            Err(TransferError::Instruction(instruction_error)) => Ok(WalletInstructionResult::InstructionError {
+                error: instruction_error.try_into().map_err(TransferError::Instruction)?,
+            }),
             Err(error) => Err(error),
         }
     }
