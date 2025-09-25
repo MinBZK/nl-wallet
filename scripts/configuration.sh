@@ -72,7 +72,6 @@ export DB_HOST="${DB_HOST:-localhost}"
 export DB_PORT="${DB_PORT:-5432}"
 export DB_USERNAME="${DB_USERNAME:-postgres}"
 export DB_PASSWORD="${DB_PASSWORD:-postgres}"
-
 export PGADMIN_DEFAULT_PASSWORD="${PGADMIN_DEFAULT_PASSWORD:-admin}"
 
 # HSM properties, with defaults

@@ -369,7 +369,7 @@ then
     then
         pushd "${WALLET_CORE_DIR}"
         echo -e "${INFO}Running pid_issuer database migrations${NC}"
-        DATABASE_URL="postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:5432/pid_issuer" cargo run --package pid_issuer_migrations --bin pid_issuer_migrations -- fresh
+        DATABASE_URL="postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/pid_issuer" cargo run --package pid_issuer_migrations --bin pid_issuer_migrations -- fresh
         popd
 
         echo -e "${INFO}Start ${ORANGE}pid_issuer${NC}"
@@ -400,7 +400,7 @@ then
     then
         pushd "${WALLET_CORE_DIR}"
         echo -e "${INFO}Running verification_server database migrations${NC}"
-        DATABASE_URL="postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:5432/verification_server" cargo run --package verification_server_migrations --bin verification_server_migrations -- fresh
+        DATABASE_URL="postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/verification_server" cargo run --package verification_server_migrations --bin verification_server_migrations -- fresh
         popd
 
         echo -e "${INFO}Start ${ORANGE}verification_server${NC}"
@@ -431,7 +431,7 @@ then
     then
         pushd "${WALLET_CORE_DIR}"
         echo -e "${INFO}Running issuance_server database migrations${NC}"
-        DATABASE_URL="postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:5432/issuance_server" cargo run --package issuance_server_migrations --bin issuance_server_migrations -- fresh
+        DATABASE_URL="postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/issuance_server" cargo run --package issuance_server_migrations --bin issuance_server_migrations -- fresh
         popd
 
         echo -e "${INFO}Start ${ORANGE}issuance_server${NC}"
