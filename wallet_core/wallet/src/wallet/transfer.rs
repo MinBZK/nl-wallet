@@ -40,6 +40,7 @@ use crate::transfer::database_payload::DatabasePayloadError;
 use crate::transfer::database_payload::WalletDatabasePayload;
 use crate::transfer::uri::TransferQuery;
 use crate::transfer::uri::TransferUriError;
+use crate::wallet::attestations::AttestationsError;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
@@ -91,6 +92,10 @@ pub enum TransferError {
     #[error("invalid transfer uri: {0}")]
     #[category(pd)]
     TransferUri(#[from] TransferUriError),
+
+    #[error("error emitting attestations: {0}")]
+    #[category(pd)]
+    EmitAttestations(#[from] AttestationsError),
 }
 
 impl<CR, UR, S, AKH, APC, DC, IS, DCC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC>
@@ -144,7 +149,7 @@ where
         self.storage
             .write()
             .await
-            .insert_data(&TransferData {
+            .upsert_data(&TransferData {
                 transfer_session_id: transfer_query.session_id,
                 key_data: Some(TransferKeyData::Source {
                     public_key: transfer_query.public_key,
@@ -199,7 +204,9 @@ where
             })
             .await?;
 
-        if status == TransferSessionState::ReadyForDownload {
+        if let Some(TransferKeyData::Destination { .. }) = transfer_data.key_data
+            && status == TransferSessionState::ReadyForDownload
+        {
             self.receive_wallet_payload(transfer_data).await?;
 
             // TODO: PVW-4599: send complete_transfer instruction
@@ -226,7 +233,6 @@ where
         };
 
         let database_export = self.storage.write().await.export().await?;
-        self.storage.write().await.open().await?;
 
         let database_payload = WalletDatabasePayload::new(database_export);
 
@@ -274,7 +280,9 @@ where
 
         let database_payload = WalletDatabasePayload::decrypt(&result.payload, &private_key)?;
         self.storage.write().await.import(database_payload.into()).await?;
-        self.storage.write().await.open().await?;
+
+        self.emit_attestations().await?;
+        self.emit_recent_history().await?;
 
         Ok(())
     }
@@ -456,7 +464,7 @@ mod tests {
 
         wallet
             .mut_storage()
-            .expect_insert_data::<TransferData>()
+            .expect_upsert_data::<TransferData>()
             .returning(|_| Ok(()));
 
         wallet
@@ -791,7 +799,7 @@ mod tests {
 
         source_wallet
             .mut_storage()
-            .expect_insert_data::<TransferData>()
+            .expect_upsert_data::<TransferData>()
             .returning(|_| Ok(()));
 
         source_wallet
@@ -934,6 +942,16 @@ mod tests {
         destination_wallet.mut_storage().expect_import().returning(|_| Ok(()));
 
         destination_wallet.mut_storage().expect_open().returning(|| Ok(()));
+
+        destination_wallet
+            .mut_storage()
+            .expect_fetch_unique_attestations()
+            .returning(|| Ok(vec![]));
+
+        destination_wallet
+            .mut_storage()
+            .expect_fetch_recent_wallet_events()
+            .returning(|| Ok(vec![]));
 
         let private_key = private_key_param.lock().as_ref().unwrap().clone();
         destination_wallet

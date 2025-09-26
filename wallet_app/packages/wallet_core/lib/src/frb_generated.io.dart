@@ -2196,11 +2196,11 @@ class WalletCoreWire implements BaseWire {
 
   void wire__crate__api__full__transfer_wallet(
     int port_,
-    ffi.Pointer<wire_cst_list_prim_u_8_strict> _pin,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> pin,
   ) {
     return _wire__crate__api__full__transfer_wallet(
       port_,
-      _pin,
+      pin,
     );
   }
 

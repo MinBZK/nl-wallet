@@ -20,6 +20,7 @@ use sea_orm::QuerySelect;
 use sea_orm::Set;
 use sea_orm::StatementBuilder;
 use sea_orm::TransactionTrait;
+use sea_orm::prelude::Json;
 use sea_orm::sea_query::Alias;
 use sea_orm::sea_query::BinOper;
 use sea_orm::sea_query::Expr;
@@ -395,7 +396,7 @@ where
         let database_path = self.database_path_for_name(DATABASE_NAME);
         let (_, key) = self.key_for_name(DATABASE_NAME).await?;
 
-        tokio::task::spawn_blocking(move || {
+        let result = tokio::task::spawn_blocking(move || {
             let connection = rusqlite::Connection::open(database_path)?;
             connection.pragma_update(None, "key", String::from(key))?;
 
@@ -411,19 +412,29 @@ where
             connection.execute("DETACH DATABASE export", [])?;
 
             let data = std::fs::read(export_file.path())?;
-            Ok(DatabaseExport::new(export_key, data))
+            StorageResult::Ok(DatabaseExport::new(export_key, data))
         })
-        .await?
+        .await?;
+
+        self.open().await?;
+
+        result
     }
 
     async fn import(&mut self, export: DatabaseExport) -> StorageResult<()> {
+        // Fetch all keyed data of the existing database before import
+        let destination_keyed_data: Vec<(String, Json)> = keyed_data::Entity::find()
+            .into_tuple()
+            .all(self.database()?.connection())
+            .await?;
+
         if let Some(open_database) = self.open_database.take() {
             open_database.database.close().await?;
         };
 
         let database_path = self.database_path_for_name(DATABASE_NAME);
         let (_, key) = self.key_for_name(DATABASE_NAME).await?;
-        tokio::task::spawn_blocking(move || {
+        let _ = tokio::task::spawn_blocking(move || {
             let import_file = NamedTempFile::new()?;
             std::fs::write(import_file.path(), export.data)?;
 
@@ -444,9 +455,21 @@ where
             // Rename is atomic in fs
             std::fs::rename(encrypted_file.path(), database_path)?;
 
-            Ok(())
+            StorageResult::Ok(())
         })
-        .await?
+        .await?;
+
+        // Update the keyed data in the imported database
+        self.open().await?;
+        for (key, json) in destination_keyed_data {
+            keyed_data::Entity::update_many()
+                .col_expr(keyed_data::Column::Data, Expr::value(json))
+                .filter(keyed_data::Column::Key.eq(key))
+                .exec(self.database()?.connection())
+                .await?;
+        }
+
+        Ok(())
     }
 
     /// Clear the contents of the database by closing it and removing both database and key file.
@@ -1091,8 +1114,8 @@ pub(crate) mod tests {
         let tempdir = tempfile::tempdir().unwrap();
         let mut storage = DatabaseStorage::<MockHardwareEncryptionKey>::new(tempdir.as_ref().to_path_buf());
 
-        storage.import(transfer).await.unwrap();
         storage.open().await.unwrap();
+        storage.import(transfer).await.unwrap();
         let stored: Option<TestData> = storage.fetch_data().await.unwrap();
 
         assert_eq!(Some(test), stored);
