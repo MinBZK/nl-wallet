@@ -11,8 +11,9 @@ import 'keyboard_biometric_key.dart';
 import 'keyboard_digit_key.dart';
 import 'keyboard_row.dart';
 
-const _maxHeight = 340.0;
+const _maxHeight = 76.0 * 4.0; // Key Height * Rows
 const _maxHeightAsFractionOfScreen = 0.44;
+const _maxHeightAsFractionOfScreenReducedSpacing = 0.30;
 
 class PinKeyboard extends StatefulWidget {
   final Function(int)? onKeyPressed;
@@ -119,7 +120,10 @@ class _PinKeyboardState extends State<PinKeyboard> with AfterLayoutMixin<PinKeyb
   double _maxKeyboardHeight(BuildContext context) {
     final mq = context.mediaQuery;
     if (mq.orientation == Orientation.portrait) {
-      return min(_maxHeight, mq.size.height * _maxHeightAsFractionOfScreen);
+      final maxHeightFraction = context.reduceSpacing
+          ? _maxHeightAsFractionOfScreenReducedSpacing
+          : _maxHeightAsFractionOfScreen;
+      return min(_maxHeight, mq.size.height * maxHeightFraction);
     } else {
       return _maxHeight;
     }
