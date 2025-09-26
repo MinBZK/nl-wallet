@@ -14,7 +14,7 @@ All three binaries have their own `migrations` binary to update the postgres
 database tables. To migrate for all binaries (including wallet provider) run:
 
 ```shell
-scripts/migrate-db.sh
+"$(git rev-parse --show-toplevel)"/scripts/migrate-db.sh
 ```
 
 ## Generate entities
@@ -23,11 +23,11 @@ To generate the entities for this shared components you have to run our script
 against a verification_server.
 
 ```shell
-scripts/generate-db-entity.sh server_utils
+"$(git rev-parse --show-toplevel)"/scripts/generate-db-entity.sh server_utils
 ```
 
 To generate the entities for the pid_issuer you have to run:
 
 ```shell
-scripts/generate-db-entity.sh pid_issuer
+"$(git rev-parse --show-toplevel)"/scripts/generate-db-entity.sh pid_issuer
 ```

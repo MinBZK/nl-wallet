@@ -514,6 +514,7 @@ applied migrations. All needed migrations can be ran via (by default it is a
 reset):
 
 ```shell
+cd nl-wallet
 scripts/migrate-db.sh
 ```
 
