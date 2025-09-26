@@ -7,8 +7,8 @@ with the NL Wallet app:
 2. issuance_server
 3. pid_server
 
-It also includes a shared `server_utils` crate that contains various tooling and
-utilities for server side implementations of OpenID4VCI and/or OpenID4VP.
+It also includes a shared `server_utils` crate that contains shared settings,
+persistent session state for the `openid4vc` crate and server setup.
 
 All three binaries have their own `migrations` binary to update the postgres
 database tables. To migrate for all binaries (including wallet provider) run:
