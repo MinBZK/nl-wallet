@@ -42,7 +42,7 @@ void main() {
             sharedDataWithOrganizationBefore: false,
           ),
         ),
-        surfaceSize: const Size(375, 812).flipped,
+        surfaceSize: iphoneXSizeLandscape,
       );
 
       await screenMatchesGolden('success.light.landscape');

@@ -16,10 +16,12 @@ import 'src/test_util/test_asset_bundle.dart';
 class WalletAppTestWidget extends StatelessWidget {
   final Widget child;
   final Brightness brightness;
+  final Locale locale;
 
   const WalletAppTestWidget({
     required this.child,
     this.brightness = Brightness.light,
+    this.locale = const Locale('en'),
     super.key,
   });
 
@@ -32,6 +34,7 @@ class WalletAppTestWidget extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
+        locale: locale,
         onUnknownRoute: (RouteSettings settings) => PageRouteBuilder(
           opaque: false,
           pageBuilder: (_, _, _) => Text(
@@ -49,16 +52,18 @@ typedef WidgetWrapper = Widget Function(Widget);
 
 WidgetWrapper walletAppWrapper({
   Brightness brightness = Brightness.light,
+  Locale locale = const Locale('en'),
   List<SingleChildWidget> providers = const [],
 }) {
   return (child) {
     return MultiRepositoryProvider(
       providers: [
-        RepositoryProvider<ActiveLocaleProvider>(create: (context) => TestLocaleProvider()),
+        RepositoryProvider<ActiveLocaleProvider>(create: (context) => TestLocaleProvider(activeLocale: locale)),
         ...providers,
       ],
       child: WalletAppTestWidget(
         brightness: brightness,
+        locale: locale,
         child: child,
       ),
     );
@@ -67,7 +72,9 @@ WidgetWrapper walletAppWrapper({
 
 class TestLocaleProvider extends ActiveLocaleProvider {
   @override
-  Locale get activeLocale => const Locale('en');
+  final Locale activeLocale;
+
+  TestLocaleProvider({this.activeLocale = const Locale('en')});
 
   @override
   Stream<Locale> observe() => Stream.value(activeLocale);
@@ -115,6 +122,7 @@ extension WidgetTesterExtensions on WidgetTester {
     Size surfaceSize = iphoneXSize,
     double textScaleSize = 1.0,
     Brightness brightness = Brightness.light,
+    Locale locale = const Locale('en'),
     List<SingleChildWidget>? providers,
   }) async {
     // Surface / config setup
@@ -126,6 +134,7 @@ extension WidgetTesterExtensions on WidgetTester {
     // Pump the test widget (with basic WalletApp dependencies)
     final wrapperMethod = walletAppWrapper(
       brightness: brightness,
+      locale: locale,
       providers: providers ?? [],
     );
     await pumpWidget(DefaultAssetBundle(bundle: TestAssetBundle(), child: wrapperMethod(widget)));

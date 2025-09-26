@@ -204,6 +204,48 @@ void main() {
       await screenMatchesGolden('confirm_pin.light');
     });
 
+    testGoldens('DisclosureConfirmPin Light - Dutch - Small Device - 2x TextScaling (a11y)', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        RepositoryProvider<AcceptDisclosureUseCase>.value(
+          value: MockAcceptDisclosureUseCase(),
+          child: const DisclosureScreen()
+              .withState<DisclosureBloc, DisclosureState>(
+                MockDisclosureBloc(),
+                DisclosureConfirmPin(relyingParty: WalletMockData.organization, isCrossDevice: false),
+              )
+              .withState<PinBloc, PinState>(
+                MockPinBloc(),
+                const PinEntryInProgress(0),
+              ),
+        ),
+        surfaceSize: const Size(320, 560),
+        textScaleSize: 2,
+        locale: const Locale('nl'),
+      );
+      await screenMatchesGolden('confirm_pin.light.a11y.nl');
+    });
+    testGoldens('DisclosureConfirmPin Dark - Dutch - Small Device - Landscape - 2x TextScaling (a11y)', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        RepositoryProvider<AcceptDisclosureUseCase>.value(
+          value: MockAcceptDisclosureUseCase(),
+          child: const DisclosureScreen()
+              .withState<DisclosureBloc, DisclosureState>(
+                MockDisclosureBloc(),
+                DisclosureConfirmPin(relyingParty: WalletMockData.organization, isCrossDevice: false),
+              )
+              .withState<PinBloc, PinState>(
+                MockPinBloc(),
+                const PinEntryInProgress(0),
+              ),
+        ),
+        surfaceSize: const Size(320, 560).flipped,
+        textScaleSize: 2,
+        brightness: Brightness.dark,
+        locale: const Locale('nl'),
+      );
+      await screenMatchesGolden('confirm_pin.dark.landscape.a11y.nl');
+    });
+
     testGoldens('DisclosureConfirmPin Light - landscape', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         RepositoryProvider<AcceptDisclosureUseCase>.value(
