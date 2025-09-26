@@ -78,9 +78,11 @@ impl Poa {
             .unwrap(), // our iterable is a VecAtLeastTwo
         };
 
-        let jwts: VecNonEmpty<_> = try_join_all(keys.as_slice().iter().map(async |key| {
-            Result::<UnverifiedJwt<_, _>, JwtError>::Ok(SignedJwt::sign(&payload, *key).await?.into())
-        }))
+        let jwts: VecNonEmpty<_> = try_join_all(
+            keys.as_slice()
+                .iter()
+                .map(async |key| Result::<_, JwtError>::Ok(SignedJwt::sign(&payload, *key).await?.into_unverified())),
+        )
         .await?
         .try_into()
         .unwrap(); // our iterable is a `VecAtLeastTwo`

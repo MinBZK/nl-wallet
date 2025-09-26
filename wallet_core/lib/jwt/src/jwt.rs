@@ -403,6 +403,18 @@ impl<T: Serialize + JwtTyp> SignedJwt<T> {
     }
 }
 
+impl<T, H> SignedJwt<T, H> {
+    pub fn into_unverified(self) -> UnverifiedJwt<T, H> {
+        self.into()
+    }
+}
+
+impl<T: DeserializeOwned, H: DeserializeOwned> SignedJwt<T, H> {
+    pub fn into_verified(self) -> VerifiedJwt<T, H> {
+        self.into()
+    }
+}
+
 impl<T, H> From<SignedJwt<T, H>> for UnverifiedJwt<T, H> {
     fn from(value: SignedJwt<T, H>) -> Self {
         value.0
@@ -803,7 +815,10 @@ mod tests {
         let private_key = SigningKey::random(&mut OsRng);
         let t = ToyMessage::default();
 
-        let jwt: UnverifiedJwt<_> = SignedJwt::sign_with_sub(t.clone(), &private_key).await.unwrap().into();
+        let jwt = SignedJwt::sign_with_sub(t.clone(), &private_key)
+            .await
+            .unwrap()
+            .into_unverified();
 
         // the JWT has a `sub` with the expected value
         let jwt_message: HashMap<String, serde_json::Value> = part(1, &jwt.serialization);
@@ -827,7 +842,7 @@ mod tests {
         let private_key = SigningKey::random(&mut OsRng);
         let t = ToyMessage::default();
 
-        let jwt: UnverifiedJwt<_, _> = SignedJwt::sign(&t, &private_key).await.unwrap().into();
+        let jwt = SignedJwt::sign(&t, &private_key).await.unwrap().into_unverified();
 
         // the JWT header has a `typ` with the expected value
         let jwt_header: HashMap<String, serde_json::Value> = part(0, &jwt.serialization);
@@ -884,7 +899,7 @@ mod tests {
         let private_key = SigningKey::random(&mut OsRng);
         let t = ToyMessage::default();
 
-        let unverified_jwt: UnverifiedJwt<_> = SignedJwt::sign(&t, &private_key).await.unwrap().into();
+        let unverified_jwt = SignedJwt::sign(&t, &private_key).await.unwrap().into_unverified();
 
         // the JWT can be verified and parsed back into an identical value
         let (_, parsed) = unverified_jwt
@@ -977,7 +992,7 @@ mod tests {
         let t = ToyMessage::default();
 
         // create a new JWT without a `sub`
-        let jwt: UnverifiedJwt<_> = SignedJwt::sign(&t, &private_key).await.unwrap().into();
+        let jwt = SignedJwt::sign(&t, &private_key).await.unwrap().into_unverified();
         let jwt_message: HashMap<String, serde_json::Value> = part(1, jwt.serialization());
         assert!(!jwt_message.contains_key("sub"));
 
@@ -1005,10 +1020,10 @@ mod tests {
     async fn test_json_jwt_serialization() {
         let private_key = SigningKey::random(&mut OsRng);
 
-        let jwt: UnverifiedJwt<_> = SignedJwt::sign(&ToyMessage::default(), &private_key)
+        let jwt = SignedJwt::sign(&ToyMessage::default(), &private_key)
             .await
             .unwrap()
-            .into();
+            .into_unverified();
 
         let json_jwt_one: JsonJwt<_> = VecNonEmpty::try_from(vec![jwt.clone()]).unwrap().try_into().unwrap();
         assert_matches!(json_jwt_one.signatures, JsonJwtSignatures::Flattened { .. });
@@ -1052,10 +1067,10 @@ mod tests {
         let keypair = generate_reader_mock_with_registration(&ca, None).unwrap();
 
         let payload = json!({"hello": "world"});
-        let jwt: UnverifiedJwt<_, _> = SignedJwt::sign_with_certificate(&payload, &keypair)
+        let jwt = SignedJwt::sign_with_certificate(&payload, &keypair)
             .await
             .unwrap()
-            .into();
+            .into_unverified();
 
         let (header, deserialized) = jwt
             .parse_and_verify_against_trust_anchors(
@@ -1075,7 +1090,10 @@ mod tests {
         let signing_key = SigningKey::random(&mut OsRng);
 
         let payload = json!({"hello": "world"});
-        let jwt: UnverifiedJwt<_, _> = SignedJwt::sign_with_jwk(&payload, &signing_key).await.unwrap().into();
+        let jwt = SignedJwt::sign_with_jwk(&payload, &signing_key)
+            .await
+            .unwrap()
+            .into_unverified();
 
         let (header, deserialized) = jwt.parse_and_verify_with_jwk(&DEFAULT_VALIDATIONS).unwrap();
 
@@ -1095,7 +1113,10 @@ mod tests {
         let signing_key = SigningKey::random(&mut OsRng);
 
         let payload = json!({"hello": "world"});
-        let jwt: UnverifiedJwt<_, _> = SignedJwt::sign_with_jwk(&payload, &signing_key).await.unwrap().into();
+        let jwt = SignedJwt::sign_with_jwk(&payload, &signing_key)
+            .await
+            .unwrap()
+            .into_unverified();
 
         let (header, deserialized) = jwt.parse_and_verify_with_jwk(&DEFAULT_VALIDATIONS).unwrap();
 
@@ -1147,11 +1168,10 @@ mod tests {
             BorrowingCertificate::from_certificate_der(intermediate1.as_certificate_der().to_owned()).unwrap(),
         ];
 
-        let jwt: UnverifiedJwt<_, _> =
-            SignedJwt::sign_with_header(HeaderWithX5c::from_certs(certs), &payload, keypair.private_key())
-                .await
-                .unwrap()
-                .into();
+        let jwt = SignedJwt::sign_with_header(HeaderWithX5c::from_certs(certs), &payload, keypair.private_key())
+            .await
+            .unwrap()
+            .into_unverified();
 
         // Verifying this JWT against the CA's trust anchor should succeed.
         let (header, deserialized) = jwt
@@ -1173,10 +1193,10 @@ mod tests {
         let keypair = generate_reader_mock_with_registration(&ca, None).unwrap();
 
         let payload = json!({"hello": "world"});
-        let jwt: UnverifiedJwt<_, _> = SignedJwt::sign_with_certificate(&payload, &keypair)
+        let jwt = SignedJwt::sign_with_certificate(&payload, &keypair)
             .await
             .unwrap()
-            .into();
+            .into_unverified();
 
         let other_ca = Ca::generate("myca", Default::default()).unwrap();
 

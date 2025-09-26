@@ -328,7 +328,6 @@ pub mod test {
     use parking_lot::RwLock;
     use rand_core::OsRng;
 
-    use jwt::UnverifiedJwt;
     use jwt::wua::WUA_EXPIRY;
     use jwt::wua::WUA_JWT_VALIDATIONS;
 
@@ -549,7 +548,7 @@ pub mod test {
         let wua_signing_key = SigningKey::random(&mut OsRng);
         let wua_privkey = SigningKey::random(&mut OsRng);
 
-        let wua: UnverifiedJwt<_, _> = JwtCredentialClaims::new_signed(
+        let wua = JwtCredentialClaims::new_signed(
             wua_privkey.verifying_key(),
             &wua_signing_key,
             "iss".to_string(),
@@ -557,7 +556,7 @@ pub mod test {
         )
         .await
         .unwrap()
-        .into();
+        .into_unverified();
 
         let wua = wua
             .into_verified(&wua_signing_key.verifying_key().into(), &WUA_JWT_VALIDATIONS)

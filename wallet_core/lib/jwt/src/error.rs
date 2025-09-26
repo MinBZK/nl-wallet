@@ -36,7 +36,7 @@ pub enum JwtError {
     #[category(pd)]
     DifferentPayloads(String, String),
 
-    #[error("Header conversion failed: {0}")]
+    #[error("header conversion failed: {0}")]
     #[category(critical)]
     HeaderConversion(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
 

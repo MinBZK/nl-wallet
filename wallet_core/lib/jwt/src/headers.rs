@@ -2,8 +2,6 @@ use std::borrow::Cow;
 use std::sync::LazyLock;
 
 use base64::prelude::*;
-use crypto::WithVerifyingKey;
-use crypto::x509::BorrowingCertificate;
 use derive_more::Constructor;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::Header;
@@ -13,6 +11,9 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
+
+use crypto::WithVerifyingKey;
+use crypto::x509::BorrowingCertificate;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::JwtTyp;
