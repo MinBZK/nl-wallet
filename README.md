@@ -510,8 +510,7 @@ scripts/start-devenv.sh --default
 #### Running Rust tests
 
 To run our integration tests you need to have a working database, hsm and
-applied migrations. All needed migrations can be ran via (by default it is a
-reset):
+applied migrations. All needed migrations can be ran via:
 
 ```shell
 cd nl-wallet
