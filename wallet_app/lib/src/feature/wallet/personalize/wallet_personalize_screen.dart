@@ -22,12 +22,12 @@ import '../../common/page/terminal_page.dart';
 import '../../common/sheet/confirm_action_sheet.dart';
 import '../../common/widget/button/icon/back_icon_button.dart';
 import '../../common/widget/button/icon/help_icon_button.dart';
-import '../../common/widget/fade_in_at_offset.dart';
 import '../../common/widget/fake_paging_animated_switcher.dart';
 import '../../common/widget/loading_indicator.dart';
 import '../../common/widget/page_illustration.dart';
 import '../../common/widget/svg_or_image.dart';
 import '../../common/widget/text/title_text.dart';
+import '../../common/widget/utility/scroll_offset_provider.dart';
 import '../../common/widget/wallet_app_bar.dart';
 import '../../dashboard/dashboard_screen.dart';
 import '../../error/error_page.dart';
@@ -44,6 +44,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ScrollOffsetProvider(
+      debugLabel: runtimeType.toString(),
       child: Scaffold(
         appBar: _buildAppBar(context),
         restorationId: 'wallet_personalize_scaffold',
