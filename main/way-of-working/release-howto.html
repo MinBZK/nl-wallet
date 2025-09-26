@@ -354,16 +354,16 @@ directory which contains the above mentioned zip files and run:</p>
 <p>When you have these zip files and sha256sum texts, and you made sure they’re
 named correctly, you are ready to create the release description. We will upload
 the zip files and sha256sum texts as artifacts of the release.</p>
-<p>Note on other binaries like <code class="docutils literal notranslate"><span class="pre">wallet_server_migrations</span></code> and schema changes in
-general: When any of our binaries that use a database backend require schema
+<p>Note on other binaries like <code class="docutils literal notranslate"><span class="pre">verification_server_migrations</span></code> and schema changes
+in general: When any of our binaries that use a database backend require schema
 changes in the database, we can provide either documentation that instruct how
-someone can effect the necessary changes, or a <code class="docutils literal notranslate"><span class="pre">wallet_server_migrations</span></code>
+someone can effect the necessary changes, or a <code class="docutils literal notranslate"><span class="pre">verification_server_migrations</span></code>
 utility and clear instructions with regards to how-to-use. When we as a team
-decide to provide a <code class="docutils literal notranslate"><span class="pre">wallet_server_migrations</span></code> binary, make sure that binary is
-included in the verification server zip files, with instructions on how to use
-(i.e., an end-user must be able to update the schema using the provided utility
-by following the additionally supplied read-me or other installation
-instructions).</p>
+decide to provide a <code class="docutils literal notranslate"><span class="pre">verification_server_migrations</span></code> binary, make sure that
+binary is included in the verification server zip files, with instructions on
+how to use (i.e., an end-user must be able to update the schema using the
+provided utility by following the additionally supplied read-me or other
+installation instructions).</p>
 <p>Note about obtaining artifacts automatically: Currently the above is manual. We
 have an issue on Jira which is about creating an artifact uploader. This utility
 is called <code class="docutils literal notranslate"><span class="pre">uploader.mjs</span></code> and can talk to the GitHub releases API and add binary
