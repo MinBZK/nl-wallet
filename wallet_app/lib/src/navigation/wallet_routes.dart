@@ -260,8 +260,7 @@ Widget _createIntroductionScreenBuilder(BuildContext context) => const Introduct
 Widget _createIntroductionPrivacyScreenBuilder(BuildContext context) => const IntroductionPrivacyScreen();
 
 WidgetBuilder _createForgotPinScreenBuilder(RouteSettings settings) =>
-    (context) =>
-        ForgotPinScreen(recoveryMethod: tryCast<PinRecoveryMethod>(settings.arguments) ?? PinRecoveryMethod.recoverPin);
+    (context) => const ForgotPinScreen();
 
 Widget _createAboutScreenBuilder(BuildContext context) => const AboutScreen();
 
