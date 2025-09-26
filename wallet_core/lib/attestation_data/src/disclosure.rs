@@ -69,6 +69,26 @@ impl DisclosedAttributes {
             Self::SdJwt(attributes) => attributes.has_claim_path(claim_path),
         }
     }
+
+    /// Only keep the attributes specified by a list of claim paths, removing any other other claims.
+    pub fn prune<'a>(&mut self, keep_claim_paths: impl IntoIterator<Item = &'a VecNonEmpty<ClaimPath>>) {
+        match self {
+            Self::MsoMdoc(name_spaces) => {
+                let mdoc_paths = keep_claim_paths
+                    .into_iter()
+                    .flat_map(claim_path_to_mdoc_path)
+                    .collect::<HashSet<_>>();
+
+                name_spaces.retain(|doc_type, name_space| {
+                    name_space
+                        .retain(|name_space_id, _| mdoc_paths.contains(&(doc_type.as_str(), name_space_id.as_str())));
+
+                    !name_space.is_empty()
+                });
+            }
+            Self::SdJwt(attributes) => attributes.prune(keep_claim_paths),
+        }
+    }
 }
 
 impl TryFrom<IndexMap<NameSpace, IndexMap<DataElementIdentifier, DataElementValue>>> for DisclosedAttributes {
@@ -250,6 +270,7 @@ impl DisclosedCredential for DisclosedAttestation {
 mod test {
     use chrono::Utc;
     use indexmap::IndexMap;
+    use itertools::Itertools;
     use rstest::rstest;
     use serde_json::json;
 
@@ -319,6 +340,66 @@ mod test {
                 },
             }
         }
+    }
+
+    #[rstest]
+    #[case(&[], &[])]
+    #[case(&[claim_path(&vec_nonempty!["pid", "bsn"])], &[("pid", ["bsn"].as_slice())])]
+    #[case(
+        &[
+            claim_path(&vec_nonempty!["pid", "family_name"]),
+            claim_path(&vec_nonempty!["address", "street_address"]),
+            claim_path(&vec_nonempty!["pid", "given_name"]),
+        ],
+        &[("pid", ["given_name", "family_name"].as_slice()), ("address", ["street_address"].as_slice())],
+    )]
+    #[case(
+        &[
+            claim_path(&vec_nonempty!["pid", "favourite_colour"]),
+            claim_path(&vec_nonempty!["too_short"]),
+            claim_path(&vec_nonempty!["pid", "bsn"]),
+            claim_path(&vec_nonempty!["some", "long", "path"]),
+            claim_path(&vec_nonempty!["swallow", "average_airspeed"]),
+        ],
+        &[("pid", ["bsn"].as_slice())],
+    )]
+    fn test_disclosed_attributes_prune(
+        #[case] keep_claim_paths: &[VecNonEmpty<ClaimPath>],
+        #[case] expected_attributes: &[(&str, &[&str])],
+    ) {
+        let mut pruned_attributes = DisclosedAttributes::MsoMdoc(IndexMap::from([
+            (
+                "pid".to_string(),
+                IndexMap::from([
+                    ("bsn".to_string(), AttributeValue::Text("123456789".to_string())),
+                    ("given_name".to_string(), AttributeValue::Text("John".to_string())),
+                    ("family_name".to_string(), AttributeValue::Text("Doe".to_string())),
+                ]),
+            ),
+            (
+                "address".to_string(),
+                IndexMap::from([
+                    (
+                        "street_address".to_string(),
+                        AttributeValue::Text("Main Street".to_string()),
+                    ),
+                    ("house_number".to_string(), AttributeValue::Text("123".to_string())),
+                ]),
+            ),
+        ]));
+
+        pruned_attributes.prune(keep_claim_paths.iter());
+
+        if let DisclosedAttributes::MsoMdoc(attributes) = &pruned_attributes {
+            for ((name_space_id, attributes), (expected_name_space_id, expected_attributes)) in
+                attributes.iter().zip_eq(expected_attributes.iter())
+            {
+                assert_eq!(name_space_id, expected_name_space_id);
+                itertools::assert_equal(attributes.keys(), expected_attributes.iter());
+            }
+        } else {
+            panic!()
+        };
     }
 
     #[rstest]

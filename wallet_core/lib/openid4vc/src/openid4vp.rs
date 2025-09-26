@@ -804,16 +804,21 @@ impl VpAuthorizationResponse {
             .is_satisfied_by_disclosed_credentials(&disclosed_attestations)
             .map_err(AuthResponseError::UnsatisfiedCredentialRequest)?;
 
-        // Finally, sort the disclosed attestations into the same order as that of the
-        // Credential Requests in the DCQL request.
+        // Step 5: Sort the disclosed attestations into the same order as that of the Credential Requests in the DCQL
+        //         request and remove any attributes that were not present in the respective Credential Tequest.
+        //         Note that the order of the attributes within a `DisclosedAttestation` is undefined.
         let disclosed_attestations = auth_request
             .credential_requests
             .as_ref()
             .iter()
             .map(|credential_request| {
                 // Safety: in step 4 we checked that for each `credential_request`
-                // there is a matching disclosed attestation.
-                let (id, attestations) = disclosed_attestations.remove_entry(credential_request.id()).unwrap();
+                //         there is a matching disclosed attestation.
+                let (id, mut attestations) = disclosed_attestations.remove_entry(credential_request.id()).unwrap();
+
+                for attestation in attestations.iter_mut() {
+                    attestation.attributes.prune(credential_request.claim_paths());
+                }
 
                 DisclosedAttestations { id, attestations }
             })
@@ -835,6 +840,7 @@ pub struct VpResponse {
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
+    use std::collections::HashSet;
 
     use assert_matches::assert_matches;
     use chrono::Utc;
@@ -864,6 +870,7 @@ mod tests {
     use mdoc::examples::Example;
     use mdoc::holder::Mdoc;
     use mdoc::holder::disclosure::PartialMdoc;
+    use mdoc::test::data::PID;
     use mdoc::test::data::addr_street;
     use mdoc::test::data::pid_full_name;
     use sd_jwt::examples::WITH_KB_SD_JWT;
@@ -1243,7 +1250,10 @@ mod tests {
     #[test]
     fn test_verify_mdoc_authorization_response() {
         let (_, _, _, auth_request) =
-            setup_with_credential_requests(NormalizedCredentialRequests::new_mock_mdoc_pid_example());
+            setup_with_credential_requests(NormalizedCredentialRequests::new_mock_mdoc_from_slices(
+                &[(PID, &[&[PID, "given_name"], &[PID, "family_name"]])],
+                None,
+            ));
         let auth_request = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap();
 
         let ca = Ca::generate_issuer_mock_ca().unwrap();
@@ -1279,16 +1289,16 @@ mod tests {
 
         let attestation = disclosed_attestations.into_first();
 
-        assert_eq!("urn:eudi:pid:nl:1", attestation.attestation_type.as_str());
+        assert_eq!(attestation.attestation_type.as_str(), PID);
         let DisclosedAttributes::MsoMdoc(attributes) = &attestation.attributes else {
             panic!("should be mdoc attributes")
         };
 
         let (namespace, mdoc_attributes) = &attributes.first().unwrap();
-        assert_eq!("urn:eudi:pid:nl:1", namespace.as_str());
+        assert_eq!(namespace.as_str(), PID);
 
         assert_eq!(
-            vec!["bsn", "given_name", "family_name"],
+            vec!["given_name", "family_name"],
             mdoc_attributes.keys().map(|key| key.as_str()).collect_vec()
         );
     }
@@ -1404,10 +1414,13 @@ mod tests {
             panic!("should be SD-JWT attributes");
         };
 
-        assert!(attributes.has_claim_paths(&[
-            vec_nonempty![ClaimPath::SelectByKey("bsn".to_string())],
-            vec_nonempty![ClaimPath::SelectByKey("birthdate".to_string())]
-        ]));
+        assert_eq!(
+            attributes.claim_paths().into_iter().collect::<HashSet<_>>(),
+            HashSet::from([
+                vec_nonempty![ClaimPath::SelectByKey("bsn".to_string())],
+                vec_nonempty![ClaimPath::SelectByKey("birthdate".to_string())]
+            ])
+        );
 
         assert_eq!(disclosed_attestations2.attestation_type, "urn:eudi:pid:nl:1");
 
@@ -1415,10 +1428,13 @@ mod tests {
             panic!("should be SD-JWT attributes");
         };
 
-        assert!(attributes.has_claim_paths(&[
-            vec_nonempty![ClaimPath::SelectByKey("given_name".to_string())],
-            vec_nonempty![ClaimPath::SelectByKey("family_name".to_string())]
-        ]));
+        assert_eq!(
+            attributes.claim_paths().into_iter().collect::<HashSet<_>>(),
+            HashSet::from([
+                vec_nonempty![ClaimPath::SelectByKey("given_name".to_string())],
+                vec_nonempty![ClaimPath::SelectByKey("family_name".to_string())]
+            ])
+        );
     }
 
     #[test]

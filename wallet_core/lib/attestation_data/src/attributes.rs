@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::num::TryFromIntError;
 
 use derive_more::AsRef;
@@ -481,6 +482,40 @@ impl Attributes {
             }
         }
     }
+
+    /// Prune attributes from a tree by only keeping those specified by a list of claim paths.
+    pub fn prune<'a>(&mut self, keep_claim_paths: impl IntoIterator<Item = &'a VecNonEmpty<ClaimPath>>) {
+        fn nested_prune(
+            path_prefix: &[&str],
+            attributes: &mut IndexMap<String, Attribute>,
+            keep_claim_paths: &HashSet<Vec<&str>>,
+        ) -> bool {
+            attributes.retain(|path_element, attribute| {
+                let path = path_prefix
+                    .iter()
+                    .copied()
+                    .chain(std::iter::once(path_element.as_str()))
+                    .collect_vec();
+
+                match attribute {
+                    Attribute::Single(_) => keep_claim_paths.contains(&path),
+                    Attribute::Nested(attributes) => nested_prune(&path, attributes, keep_claim_paths),
+                }
+            });
+
+            !attributes.is_empty()
+        }
+
+        // Only key claim paths are supported for now, so if any path contains
+        // an element that is not a key, filter out the entire path.
+        let keep_claim_paths = keep_claim_paths
+            .into_iter()
+            .flat_map(|path| path.iter().map(ClaimPath::try_key_path).collect::<Option<Vec<_>>>())
+            .collect::<HashSet<_>>();
+
+        let Self(attributes) = self;
+        nested_prune(&[], attributes, &keep_claim_paths);
+    }
 }
 
 #[derive(Debug, thiserror::Error, PartialEq)]
@@ -504,6 +539,7 @@ pub mod test {
     use mdoc::NameSpace;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use utils::vec_at_least::VecNonEmpty;
+    use utils::vec_nonempty;
 
     use crate::attributes::Attribute;
     use crate::attributes::AttributeValue;
@@ -922,6 +958,48 @@ pub mod test {
                 )
             })
             .collect()
+    }
+
+    #[rstest]
+    #[case(&[], IndexMap::new())]
+    #[case(
+        &[vec_nonempty![ClaimPath::SelectByKey("name".to_string())]],
+        IndexMap::from([(
+            "name".to_string(),
+            Attribute::Single(AttributeValue::Text("Wallet".to_string())),
+        )]),
+    )]
+    #[case(
+        &[
+            vec_nonempty![ClaimPath::SelectByKey("nothing".to_string())],
+            vec_nonempty![ClaimPath::SelectByKey("address".to_string()), ClaimPath::SelectByKey("street".to_string())],
+            vec_nonempty![ClaimPath::SelectAll],
+            vec_nonempty![ClaimPath::SelectByKey("country".to_string()), ClaimPath::SelectByKey("iso".to_string())],
+            vec_nonempty![ClaimPath::SelectByIndex(0)],
+            vec_nonempty![ClaimPath::SelectByKey("address".to_string()), ClaimPath::SelectByKey("state".to_string())],
+        ],
+        IndexMap::from([
+            (
+                "country".to_string(),
+                Attribute::Nested(IndexMap::from([
+                    ("iso".to_string(), Attribute::Single(AttributeValue::Text("NL".to_string()))),
+                ])),
+            ), (
+                "address".to_string(),
+                Attribute::Nested(IndexMap::from([
+                    ("street".to_string(), Attribute::Single(AttributeValue::Text("Gracht".to_string()))),
+                ])),
+            ),
+        ]),
+    )]
+    fn test_attributes_prune(
+        #[case] keep_claim_paths: &[VecNonEmpty<ClaimPath>],
+        #[case] expected_attributes: IndexMap<String, Attribute>,
+    ) {
+        let mut attributes = example_attributes();
+        attributes.prune(keep_claim_paths);
+
+        assert_eq!(*attributes.as_ref(), expected_attributes);
     }
 
     #[test]
