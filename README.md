@@ -390,7 +390,7 @@ adb shell cmd bluetooth_manager disable
 In order to connect to our locally running services from within the running
 Android emulator, some port mappings have to be made (note that this must
 be done every time the Android emulator is restarted). This is automated in
-our `map_android_ports.sh` script, which our `setup-devenv.sh` script will
+our `map-android-ports.sh` script, which our `setup-devenv.sh` script will
 call automatically when it detects `adb` on the path.
 
 #### Using your own PostgreSQL service (optional)

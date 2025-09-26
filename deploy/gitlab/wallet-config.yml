@@ -1,6 +1,6 @@
 .wallet-config:
   script:
-    - scripts/generate_wallet_config.sh
+    - scripts/generate-wallet-config.sh
       wallet_core/wallet
       "$CONFIG_ENV"
       "$STATIC_HOSTNAME"

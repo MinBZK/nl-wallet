@@ -580,7 +580,7 @@ then
     echo
     echo -e "${SECTION}Configure Android Emulator${NC}"
 
-    "${SCRIPTS_DIR}"/map_android_ports.sh
+    "${SCRIPTS_DIR}"/map-android-ports.sh
 fi
 
 ########################################################################
