@@ -4,7 +4,7 @@ set -e
 
 export CONFIG_ENV=${CONFIG_ENV:-dev}
 
-SCRIPTS_DIR="$(cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd)"
+SCRIPTS_DIR="$(cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd -P)"
 BINARY="$(dirname $SCRIPTS_DIR})/target/release/performance_test"
 
 if [[ ${1:-} == '--skip-build' ]]; then

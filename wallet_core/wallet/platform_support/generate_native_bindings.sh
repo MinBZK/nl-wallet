@@ -9,7 +9,7 @@ if [[ $# -lt 2 ]]; then
 fi
 
 CONFIG_FILE="uniffi.toml"
-SCRIPT_DIR=$(dirname $(realpath ${BASH_SOURCE[0]}))
+SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd -P)"
 
 NATIVE_LANGUAGE=$1
 for MODULE in ${@:2:$#}; do

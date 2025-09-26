@@ -1,6 +1,6 @@
 use sea_orm_migration::prelude::*;
 
-use wallet_server_migrations::Migrator;
+use server_utils_migrations::Migrator;
 
 #[tokio::main]
 async fn main() {

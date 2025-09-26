@@ -238,7 +238,7 @@ pub async fn setup_wallet_and_env(
     )
     .unwrap();
 
-    let wallet_urls = start_verification_server(verifier_settings, Some(hsm.clone())).await;
+    let verifier_server_urls = start_verification_server(verifier_settings, Some(hsm.clone())).await;
     let pid_issuer_port = start_pid_issuer_server(
         issuer_settings,
         Some(hsm.clone()),
@@ -299,7 +299,7 @@ pub async fn setup_wallet_and_env(
     .await
     .expect("Could not create test wallet");
 
-    (wallet, wallet_urls, issuance_server_url)
+    (wallet, verifier_server_urls, issuance_server_url)
 }
 
 pub async fn wallet_user_count(connection: &DatabaseConnection) -> u64 {

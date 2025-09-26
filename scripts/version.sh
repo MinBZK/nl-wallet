@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Get the directory of this script.
-scripts_dir="$(cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd)"
+SCRIPTS_DIR="$(cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd -P)"
 
 # Include utility functions.
 source "${scripts_dir}/utils.sh"

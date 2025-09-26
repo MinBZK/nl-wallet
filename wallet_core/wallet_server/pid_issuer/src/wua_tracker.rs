@@ -66,11 +66,12 @@ mod postgres {
     use jwt::VerifiedJwt;
     use jwt::credential::JwtCredentialClaims;
     use jwt::wua::WuaClaims;
-    use server_utils::entity::used_wuas;
     use utils::generator::Generator;
     use utils::generator::TimeGenerator;
 
     use openid4vc::server_state::WuaTracker;
+
+    use crate::entity::used_wuas;
 
     pub struct PostgresWuaTracker<G = TimeGenerator> {
         time: G,

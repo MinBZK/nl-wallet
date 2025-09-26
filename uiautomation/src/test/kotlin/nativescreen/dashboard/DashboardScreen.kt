@@ -14,7 +14,7 @@ class DashboardScreen : NativeMobileActions() {
     fun visible() = elementContainingTextVisible(menuButton) && elementWithTextVisible(scanQRButton)
 
     fun cardFaceTextsInActiveLanguage() =
-        elementWithTextVisible(pidIdTitleText) && elementWithTextVisible(showDetailsText)
+        elementContainingTextVisible(pidIdTitleText) && elementContainingTextVisible(showDetailsText)
 
     fun checkCardSorting(): Boolean {
         val (_, pidY) = getTopLeftOfElementContainingText(pidIdTitleText)!!

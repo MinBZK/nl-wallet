@@ -6,6 +6,8 @@ dependency-check:
     - !reference [.default-or-release-or-merge-request, rules]
   before_script:
     - NVD_API_KEY="$(kubectl get secret nl-wallet-nist-nvd -o jsonpath='{.data.api-key}' | base64 --decode)"
+    - OSS_INDEX_USERNAME=$(kubectl get secret nl-wallet-oss-index -o jsonpath='{.data.username}' | base64 --decode)
+    - OSS_INDEX_PASSWORD=$(kubectl get secret nl-wallet-oss-index -o jsonpath='{.data.password}' | base64 --decode)
     - (cd wallet_web; npm ci)
     - mkdir -p $CI_PROJECT_DIR/dependency_check_data
   script:
@@ -19,6 +21,8 @@ dependency-check:
       --scan "."
       --suppression $CI_PROJECT_DIR/deploy/dependencies/dependency-check-suppressions.xml
       --nvdApiKey "$NVD_API_KEY"
+      --ossIndexUsername "$OSS_INDEX_USERNAME"
+      --ossIndexPassword "$OSS_INDEX_PASSWORD"
       --failOnCVSS 0.1
   after_script:
     - for ext in json html xml; do deploy/bin/store-artifact.sh dependency-check-report.$ext qt/quality-time/dependency-check/report.$ext; done
@@ -151,10 +155,7 @@ trivy-publish:
     - job: build-wallet-provider-image
       artifacts: false
       optional: true
-    - job: build-wp-migrations-image
-      artifacts: false
-      optional: true
-    - job: build-ws-migrations-image
+    - job: build-wallet-provider-migrations-image
       artifacts: false
       optional: true
     - job: build-demo-relying-party-image
@@ -166,10 +167,19 @@ trivy-publish:
     - job: build-verification-server-image
       artifacts: false
       optional: true
+    - job: build-verification-server-migrations-image
+      artifacts: false
+      optional: true
     - job: build-issuance-server-image
       artifacts: false
       optional: true
+    - job: build-issuance-server-migrations-image
+      artifacts: false
+      optional: true
     - job: build-pid-issuer-image
+      artifacts: false
+      optional: true
+    - job: build-pid-issuer-migrations-image
       artifacts: false
       optional: true
   script:

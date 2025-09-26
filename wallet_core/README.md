@@ -44,8 +44,7 @@ Additionally, the `wallet` crate has some error types provided for internal func
 To regenerate the bindings, run the following command from the root:
 
 ```
-cargo install flutter_rust_bridge_codegen@2.8.0 && \
-flutter_rust_bridge_codegen generate --config-file wallet_app/flutter_rust_bridge.yaml
+scripts/generate-flutter-rust-bridge.sh
 ```
 
 ### Regenerate the TypeScript bindings
@@ -53,7 +52,7 @@ flutter_rust_bridge_codegen generate --config-file wallet_app/flutter_rust_bridg
 To regenerate the bindings used by `wallet_web`, run the following command from the root:
 
 ```
-cargo test --manifest-path wallet_core/Cargo.toml --locked export_bindings --features ts_rs && npx prettier --write wallet_web/lib/models/*.ts
+scripts/generate-web-bindings.sh
 ```
 
 ## Code Conventions

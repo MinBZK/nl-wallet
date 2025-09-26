@@ -167,7 +167,7 @@ class PinPage extends StatelessWidget {
       children: [
         Expanded(child: _buildHeader(headerBuilder ?? _defaultHeaderBuilder)),
         _buildPinField(),
-        const SizedBox(height: 18),
+        SizedBox(height: context.reduceSpacing ? 6 : 18),
         _buildPinKeyboard(),
         SafeArea(
           child: _buildForgotCodeButton(context),
@@ -177,42 +177,38 @@ class PinPage extends StatelessWidget {
   }
 
   Widget _buildLandscape(BuildContext context) {
-    final leftSection = Expanded(
-      child: Column(
-        children: [
-          Expanded(
-            child: SafeArea(
-              right: false,
-              top: false,
-              bottom: false,
-              child: _buildHeader(headerBuilder ?? _defaultHeaderBuilder),
-            ),
-          ),
-          SafeArea(
-            top: false,
+    final leftSection = Column(
+      children: [
+        Expanded(
+          child: SafeArea(
             right: false,
-            child: _buildForgotCodeButton(context),
+            top: false,
+            bottom: false,
+            child: _buildHeader(headerBuilder ?? _defaultHeaderBuilder),
           ),
-        ],
-      ),
-    );
-    final rightSection = Expanded(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-        child: SafeArea(
-          left: false,
-          right: true,
+        ),
+        SafeArea(
           top: false,
-          bottom: false,
-          child: Column(
-            children: [
-              _buildPinField(),
-              const SizedBox(height: 16),
-              Expanded(
-                child: _buildPinKeyboard(),
-              ),
-            ],
-          ),
+          right: false,
+          child: _buildForgotCodeButton(context),
+        ),
+      ],
+    );
+    final rightSection = Padding(
+      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+      child: SafeArea(
+        left: false,
+        right: true,
+        top: false,
+        bottom: false,
+        child: Column(
+          children: [
+            _buildPinField(),
+            const SizedBox(height: 16),
+            Expanded(
+              child: _buildPinKeyboard(),
+            ),
+          ],
         ),
       ),
     );
@@ -223,9 +219,9 @@ class PinPage extends StatelessWidget {
         Expanded(
           child: Row(
             children: [
-              leftSection,
+              Flexible(flex: 5, child: leftSection),
               const VerticalDivider(width: 1),
-              rightSection,
+              Flexible(flex: 4, child: rightSection),
             ],
           ),
         ),
