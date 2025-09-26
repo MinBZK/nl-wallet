@@ -29,7 +29,6 @@ use crate::holder::Mdoc;
 use crate::iso::disclosure::IssuerSigned;
 use crate::iso::mdocs::DataElementValue;
 use crate::iso::mdocs::Entry;
-use crate::utils::cose::CoseError;
 use crate::utils::cose::CoseKey;
 use crate::utils::cose::MdocCose;
 use crate::utils::serialization::TaggedBytes;
@@ -285,12 +284,6 @@ impl std::ops::Add for TestDocuments {
     fn add(mut self, mut rhs: Self) -> Self::Output {
         self.0.append(&mut rhs.0);
         self
-    }
-}
-
-impl MdocCose<CoseSign1, TaggedBytes<MobileSecurityObject>> {
-    pub fn doc_type(&self) -> Result<String, CoseError> {
-        Ok(self.dangerous_parse_unverified()?.0.doc_type)
     }
 }
 
