@@ -60,10 +60,10 @@ verify-flutter-localizations:
     - dart run translations_cleaner list-unused-terms --abort-on-unused # Fail if unused keys are found
   allow_failure: true # Only meant as a warning, our current workflow might introduce keys from other WIP MRs, which could cause false positives.
 
-test-flutter-rust-bindings:
+test-flutter-rust-brdige-codegen:
   extends: [.rust, .flutter]
   rules: !reference [.default-or-release-or-merge-request, rules]
   script:
-    - ../scripts/flutter-rust-bridge.sh
+    - ../scripts/generate-flutter-rust-bridge.sh
     - git diff
     - if [[ -n $(git status --porcelain) ]]; then echo "Code generation results in different files!"; exit 1; fi

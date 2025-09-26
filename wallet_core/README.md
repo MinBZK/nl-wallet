@@ -44,7 +44,7 @@ Additionally, the `wallet` crate has some error types provided for internal func
 To regenerate the bindings, run the following command from the root:
 
 ```
-scripts/flutter-rust-bridge.sh
+scripts/generate-flutter-rust-bridge.sh
 ```
 
 ### Regenerate the TypeScript bindings
@@ -52,7 +52,7 @@ scripts/flutter-rust-bridge.sh
 To regenerate the bindings used by `wallet_web`, run the following command from the root:
 
 ```
-scripts/wallet-web-bindings.sh
+scripts/generate-web-bindings.sh
 ```
 
 ## Code Conventions

@@ -514,7 +514,7 @@ applied migrations. All needed migrations can be ran via (by default it is a
 reset):
 
 ```shell
-scripts/db-migrate.sh
+scripts/migrate-db.sh
 ```
 
 To run both our unit and integration tests, we can run the following (note: we
@@ -569,7 +569,7 @@ cd nl-wallet
 
 # Generate bridge code (note: take a look at git diff afterwards. If flutter
 # analyze later in this guide fails, revert with git checkout -- wallet_app).
-scripts/flutter-rust-bridge.sh
+scripts/generate-flutter-rust-bridge.sh
 ```
 
 **A note for Linux users, specifically on non-Debian systems:** You need to set
@@ -580,7 +580,7 @@ for `flutter_rust_bridge_codegen`, you can run as follows:
 
 ```shell
 CPATH="$(clang -v 2>&1 | grep "Selected GCC installation" | rev | cut -d' ' -f1 | rev)/include" \
-scripts/flutter-rust-bridge.sh
+scripts/generate-flutter-rust-bridge.sh
 ```
 
 Note that the generated code is checked into our git repository, so generation

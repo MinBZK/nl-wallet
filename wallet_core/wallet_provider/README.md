@@ -46,7 +46,7 @@ Every time the database schema changes, the entities need to be regenerated. For
 this we have created a script that uses the `sea-orm-cli`.
 
 ```shell
-scripts/db-entity-generate.sh wallet_provider
+scripts/generate-db-entity.sh wallet_provider
 ```
 
 ## Running integration tests

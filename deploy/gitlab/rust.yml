@@ -48,7 +48,7 @@ test-rust:
       export DB_HOST=postgres
       EOD
     - ./scripts/setup-devenv.sh
-    - ./scripts/db-migrate.sh
+    - ./scripts/migrate-db.sh
     - cd wallet_core
     - RUST_BACKTRACE=1 cargo llvm-cov nextest --features integration_test --locked --lcov --output-path lcov.info
     - cargo llvm-cov report --locked --cobertura --output-path rust-coverage.xml
@@ -101,7 +101,7 @@ test-compilation-performance-test:
   script:
     - cargo check --package "tests_integration" --bin performance_test --features performance_test,allow_insecure_url
 
-test-sea-orm-entity-generate:
+test-sea-orm-generate-entity:
   extends: .test-rust
   rules: !reference [.default-or-release-or-merge-request, rules]
   variables:
@@ -120,8 +120,8 @@ test-sea-orm-entity-generate:
       export DB_HOST=postgres
       EOD
     - ./scripts/setup-devenv.sh # Only needed for wallet-provider settings
-    - ./scripts/db-migrate.sh
-    - ./scripts/db-entity-generate.sh
+    - ./scripts/migrate-db.sh
+    - ./scripts/generate-db-entity.sh
     - git diff
     - if [[ -n $(git status --porcelain) ]]; then echo "Entity generation results in different files!"; exit 1; fi
 
