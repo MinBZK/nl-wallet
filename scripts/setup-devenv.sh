@@ -39,8 +39,7 @@ set -o pipefail
 # Globals and includes
 ########################################################################
 
-SCRIPTS_DIR="$(cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd)"
-BASE_DIR=$(dirname "${SCRIPTS_DIR}")
+SCRIPTS_DIR="$(cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd -P)"
 
 source "${SCRIPTS_DIR}/utils.sh"
 
@@ -78,6 +77,7 @@ then
 "#!/usr/bin/env bash
 # export DIGID_CONNECTOR_PATH=${DIGID_CONNECTOR_PATH}
 # export DB_HOST=${DB_HOST}
+# export DB_PORT=${DB_PORT}
 # export DB_USERNAME=${DB_USERNAME}
 # export DB_PASSWORD=${DB_PASSWORD}
 # export HSM_LIBRARY_PATH=${HSM_LIBRARY_PATH}
@@ -580,7 +580,7 @@ then
     echo
     echo -e "${SECTION}Configure Android Emulator${NC}"
 
-    "${SCRIPTS_DIR}"/map_android_ports.sh
+    "${SCRIPTS_DIR}"/map-android-ports.sh
 fi
 
 ########################################################################

@@ -8,7 +8,7 @@ data:
   encrypt_all.sh: |
     set -euo pipefail
 
-    CUR_DIR="$(cd "$(dirname "$0")" && pwd)"
+    CUR_DIR="$(cd -- "$(dirname -- "$0")" &> /dev/null && pwd -P)"
 
     for file in "${CUR_DIR}"/unencrypted-gba-v-responses/*; do
         if [ -f "$file" ]; then

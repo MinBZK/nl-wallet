@@ -3452,7 +3452,15 @@ dependencies = [
  "tokio",
  "trait-variant",
  "utils",
- "wscd",
+]
+
+[[package]]
+name = "issuance_server_migrations"
+version = "0.4.0-dev"
+dependencies = [
+ "sea-orm-migration",
+ "server_utils_migrations",
+ "tokio",
 ]
 
 [[package]]
@@ -4474,7 +4482,6 @@ name = "pid_issuer"
 version = "0.4.0-dev"
 dependencies = [
  "anyhow",
- "assert_matches",
  "attestation_data",
  "attestation_types",
  "axum",
@@ -4503,10 +4510,17 @@ dependencies = [
  "server_utils",
  "thiserror 2.0.11",
  "tokio",
- "tracing",
  "url",
  "utils",
- "wscd",
+]
+
+[[package]]
+name = "pid_issuer_migrations"
+version = "0.4.0-dev"
+dependencies = [
+ "sea-orm-migration",
+ "server_utils_migrations",
+ "tokio",
 ]
 
 [[package]]
@@ -5981,6 +5995,13 @@ dependencies = [
  "tracing-subscriber",
  "url",
  "utils",
+]
+
+[[package]]
+name = "server_utils_migrations"
+version = "0.4.0-dev"
+dependencies = [
+ "sea-orm-migration",
 ]
 
 [[package]]
@@ -7501,6 +7522,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "verification_server_migrations"
+version = "0.4.0-dev"
+dependencies = [
+ "sea-orm-migration",
+ "server_utils_migrations",
+ "tokio",
+]
+
+[[package]]
 name = "version_check"
 version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7838,14 +7868,6 @@ dependencies = [
  "wallet_provider_persistence",
  "wscd",
  "x509-parser 0.17.0",
-]
-
-[[package]]
-name = "wallet_server_migrations"
-version = "0.4.0-dev"
-dependencies = [
- "sea-orm-migration",
- "tokio",
 ]
 
 [[package]]

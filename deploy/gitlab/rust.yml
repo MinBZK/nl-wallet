@@ -46,17 +46,10 @@ test-rust:
     - |
       cat > scripts/.env <<EOD
       export DB_HOST=postgres
-      export DB_USERNAME=postgres
-      export DB_PASSWORD=postgres
       EOD
     - ./scripts/setup-devenv.sh
+    - ./scripts/migrate-db.sh fresh
     - cd wallet_core
-    - cargo run --bin wallet_provider_migrations --locked -- up
-    - |
-      for name in pid_issuer verification_server issuance_server; do
-        DATABASE_URL="postgres://postgres:postgres@postgres:5432/$name" \
-          cargo run --bin wallet_server_migrations --locked -- up
-      done
     - RUST_BACKTRACE=1 cargo llvm-cov nextest --features integration_test --locked --lcov --output-path lcov.info
     - cargo llvm-cov report --locked --cobertura --output-path rust-coverage.xml
   after_script:
@@ -107,6 +100,30 @@ test-compilation-performance-test:
   rules: !reference [.merge-request, rules]
   script:
     - cargo check --package "tests_integration" --bin performance_test --features performance_test,allow_insecure_url
+
+test-sea-orm-generate-entity:
+  extends: .test-rust
+  rules: !reference [.default-or-release-or-merge-request, rules]
+  variables:
+    SKIP_DIGID_CONNECTOR: "true"
+    SKIP_WALLET_WEB: "true"
+  services:
+    - name: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-postgres:${BUILD_TAG}"
+      alias: postgres
+      variables:
+        POSTGRES_USER: "postgres"
+        POSTGRES_PASSWORD: "postgres"
+        POSTGRES_MULTIPLE_DATABASES: "wallet_provider,verification_server,issuance_server,pid_issuer"
+  script:
+    - |
+      cat > scripts/.env <<EOD
+      export DB_HOST=postgres
+      EOD
+    - ./scripts/setup-devenv.sh # Only needed for wallet-provider settings
+    - ./scripts/migrate-db.sh fresh
+    - ./scripts/generate-db-entity.sh
+    - git diff
+    - if [[ -n $(git status --porcelain) ]]; then echo "Entity generation results in different files!"; exit 1; fi
 
 .build-binary:
   extends: .rust
@@ -189,14 +206,16 @@ build-issuance-server-binary:
       - wallet_core/target/x86_64-unknown-linux-gnu/release/issuance_server
       - wallet_core/target/x86_64-unknown-linux-musl/release/issuance_server
 
-build-wallet-server-migrations-binary:
+build-wallet-server-migrations-binaries:
   extends: .build-binary
   script:
-    - cargo build --locked --target x86_64-unknown-linux-musl --release --package "wallet_server_migrations" --bin wallet_server_migrations
+    - cargo build --locked --target x86_64-unknown-linux-musl --release --package "pid_issuer_migrations" --bin pid_issuer_migrations
+    - cargo build --locked --target x86_64-unknown-linux-musl --release --package "issuance_server_migrations" --bin issuance_server_migrations
+    - cargo build --locked --target x86_64-unknown-linux-musl --release --package "verification_server_migrations" --bin verification_server_migrations
   artifacts:
     name: wallet_server_migrations
     paths:
-      - wallet_core/target/x86_64-unknown-linux-musl/release/wallet_server_migrations
+      - wallet_core/target/x86_64-unknown-linux-musl/release/*_migrations
 
 build-demo-relying-party-binary:
   extends: .build-binary

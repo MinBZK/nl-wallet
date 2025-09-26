@@ -54,7 +54,6 @@ serde_json.workspace = true
 serde_with = { workspace = true, features = ["base64"] }
 thiserror.workspace = true
 tokio = { workspace = true, features = ["parking_lot", "rt-multi-thread", "net"] }
-tracing.workspace = true
 url = { workspace = true, features = ["serde"] }
 
 derive_more = { workspace = true, optional = true, features = ["constructor"] }
@@ -79,10 +78,8 @@ utils = { path = "../../lib/utils" }
 server_utils.path = "../server_utils"
 
 [dev-dependencies]
-assert_matches.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["macros", "test-util"] }
 
 attestation_data = { path = "../../lib/attestation_data", features = ["generate", "mock"] }
 utils = { path = "../../lib/utils", features = ["mock_time"] }
-wscd = { path = "../../lib/wscd", features = ["mock"] }
