@@ -69,6 +69,10 @@ impl MockRemoteWscd {
         let keys = HashMap::from([(EXAMPLE_KEY_IDENTIFIER.to_string(), Examples::static_device_key())]);
         Self::new_signing_keys(keys)
     }
+
+    pub fn create_random_key(&self) -> MockRemoteEcdsaKey {
+        self.disclosure.create_random_key()
+    }
 }
 
 impl Default for MockRemoteWscd {

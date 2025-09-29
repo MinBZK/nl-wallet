@@ -48,7 +48,6 @@ impl TryFrom<&mdoc::iso::ValidityInfo> for ValidityInfo {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(feature = "test", derive(derive_more::Unwrap))]
 #[serde(tag = "format", content = "attributes", rename_all = "snake_case")]
 pub enum DisclosedAttributes {
     MsoMdoc(IndexMap<NameSpace, IndexMap<String, AttributeValue>>),

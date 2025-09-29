@@ -100,7 +100,6 @@ impl TryFrom<serde_json::Value> for AttributeValue {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(any(test, feature = "test"), derive(derive_more::Unwrap))]
 #[serde(untagged)]
 pub enum Attribute {
     Single(AttributeValue),

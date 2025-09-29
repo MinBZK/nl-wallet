@@ -11,6 +11,7 @@ use std::time::Duration;
 use assert_matches::assert_matches;
 use chrono::DateTime;
 use chrono::Utc;
+use futures::FutureExt;
 use http::StatusCode;
 use itertools::Itertools;
 use parking_lot::RwLock;
@@ -26,12 +27,15 @@ use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::auth::reader_auth::ReaderRegistration;
 use attestation_data::credential_payload::CredentialPayload;
 use attestation_data::disclosure::DisclosedAttestations;
+use attestation_data::disclosure::DisclosedAttributes;
 use attestation_data::x509::generate::mock::generate_issuer_mock;
 use attestation_data::x509::generate::mock::generate_reader_mock;
+use attestation_types::claim_path::ClaimPath;
 use attestation_types::qualification::AttestationQualification;
 use crypto::mock_remote::MockRemoteEcdsaKey;
 use crypto::server_keys::generate::Ca;
-use dcql::CredentialQueryIdentifier;
+use dcql::CredentialFormat;
+use dcql::CredentialQuery;
 use dcql::Query;
 use dcql::unique_id_vec::UniqueIdVec;
 use hsm::service::Pkcs11Hsm;
@@ -58,9 +62,8 @@ use openid4vc::verifier::StatusResponse;
 use openid4vc_server::verifier::StartDisclosureRequest;
 use openid4vc_server::verifier::StartDisclosureResponse;
 use openid4vc_server::verifier::StatusParams;
-use sd_jwt_vc_metadata::TypeMetadata;
-use sd_jwt_vc_metadata::TypeMetadataDocuments;
-use sd_jwt_vc_metadata::UncheckedTypeMetadata;
+use sd_jwt::sd_jwt::SdJwt;
+use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use server_utils::settings::Authentication;
 use server_utils::settings::RequesterAuth;
 use server_utils::settings::Server;
@@ -81,25 +84,6 @@ static EXAMPLE_START_DISCLOSURE_REQUEST: LazyLock<StartDisclosureRequest> = Lazy
     dcql_query: Some(Query::new_mock_mdoc_iso_example()),
     return_url_template: Some("https://return.url/{session_token}".parse().unwrap()),
 });
-
-static EXAMPLE_PID_START_DISCLOSURE_REQUEST_ID: LazyLock<CredentialQueryIdentifier> = LazyLock::new(|| {
-    EXAMPLE_PID_START_DISCLOSURE_REQUEST
-        .dcql_query
-        .as_ref()
-        .unwrap()
-        .credentials
-        .as_ref()
-        .first()
-        .unwrap()
-        .id
-        .clone()
-});
-static EXAMPLE_PID_START_DISCLOSURE_REQUEST: LazyLock<StartDisclosureRequest> =
-    LazyLock::new(|| StartDisclosureRequest {
-        usecase: USECASE_NAME.to_string(),
-        dcql_query: Some(Query::new_mock_mdoc_pid_example()),
-        return_url_template: Some("https://return.url/{session_token}".parse().unwrap()),
-    });
 
 fn memory_storage_settings() -> Storage {
     // Set up the default storage timeouts.
@@ -916,40 +900,67 @@ mod db_test {
     }
 }
 
-async fn prepare_example_holder_mocks(issuer_ca: &Ca) -> (Mdoc, MockRemoteWscd) {
-    let payload_preview = CredentialPayload::nl_pid_example(&MockTimeGenerator::default()).previewable_payload;
+fn pid_start_disclosure_request(format: CredentialFormat) -> StartDisclosureRequest {
+    let query = match format {
+        CredentialFormat::MsoMdoc => Query::new_mock_mdoc_pid_example(),
+        CredentialFormat::SdJwt => Query::new_mock_sd_jwt_pid_example(),
+    };
+
+    StartDisclosureRequest {
+        usecase: USECASE_NAME.to_string(),
+        dcql_query: Some(query),
+        return_url_template: Some("https://return.url/{session_token}".parse().unwrap()),
+    }
+}
+
+fn prepare_example_mdoc_mock(issuer_ca: &Ca, wscd: &MockRemoteWscd) -> Mdoc {
+    let credential_payload = CredentialPayload::nl_pid_example(&MockTimeGenerator::default());
 
     let issuer_key_pair = generate_issuer_mock(issuer_ca, Some(IssuerRegistration::new_mock())).unwrap();
 
     // Generate a new private key and use that and the issuer key to sign the Mdoc.
-    let mdoc_private_key_id = crypto::utils::random_string(16);
-    let mdoc_private_key = MockRemoteEcdsaKey::new_random(mdoc_private_key_id.clone());
+    let mdoc_private_key = wscd.create_random_key();
     let mdoc_public_key = mdoc_private_key.verifying_key();
 
-    let unchecked_metadata = UncheckedTypeMetadata::pid_example();
-    let type_metadata = TypeMetadata::try_new(unchecked_metadata.clone()).unwrap();
-    let (_, metadata_integrity, _) = TypeMetadataDocuments::from_single_example(type_metadata);
-
-    let mdoc = payload_preview
+    credential_payload
+        .previewable_payload
         .into_signed_mdoc_unverified::<MockRemoteEcdsaKey>(
-            metadata_integrity,
-            mdoc_private_key_id,
+            credential_payload.vct_integrity,
+            mdoc_private_key.identifier.clone(),
             mdoc_public_key,
             &issuer_key_pair,
         )
-        .await
-        .unwrap();
-
-    // Place the private key in a `MockRemoteWscd` and return it, along with the mdoc.
-    let wscd = MockRemoteWscd::new(vec![mdoc_private_key]);
-
-    (mdoc, wscd)
+        .now_or_never()
+        .unwrap()
+        .unwrap()
 }
 
-async fn perform_full_disclosure(session_type: SessionType) -> (Client, SessionToken, BaseUrl, Option<BaseUrl>) {
+fn prepare_example_sd_jwt_mock(issuer_ca: &Ca, wscd: &MockRemoteWscd) -> (SdJwt, String) {
+    let credential_payload = CredentialPayload::nl_pid_example(&MockTimeGenerator::default());
+    let type_metadata = NormalizedTypeMetadata::nl_pid_example();
+
+    let issuer_key_pair = generate_issuer_mock(issuer_ca, Some(IssuerRegistration::new_mock())).unwrap();
+
+    // Generate a new private key and use that and the issuer key to sign the SD-JWT.
+    let sd_jwt_private_key = wscd.create_random_key();
+    let sd_jwt_public_key = sd_jwt_private_key.verifying_key();
+
+    let sd_jwt = credential_payload
+        .into_sd_jwt(&type_metadata, sd_jwt_public_key, &issuer_key_pair)
+        .now_or_never()
+        .unwrap()
+        .unwrap();
+
+    (sd_jwt, sd_jwt_private_key.identifier)
+}
+
+async fn perform_full_disclosure(
+    session_type: SessionType,
+    format: CredentialFormat,
+) -> (Client, SessionToken, BaseUrl, Option<BaseUrl>) {
     // Start the verification_server and create a disclosure request.
     let (settings, client, session_token, internal_url, issuer_ca, rp_trust_anchor) =
-        start_disclosure(MemorySessionStore::default(), &EXAMPLE_PID_START_DISCLOSURE_REQUEST).await;
+        start_disclosure(MemorySessionStore::default(), &pid_start_disclosure_request(format)).await;
 
     // Fetching the status should return OK, be in the Created state and include a universal link.
     let status_url = format_status_url(&settings.server_settings.public_url, &session_token, Some(session_type));
@@ -958,11 +969,8 @@ async fn perform_full_disclosure(session_type: SessionType) -> (Client, SessionT
         panic!("session should be in CREATED state and a universal link should be provided")
     };
 
-    // Prepare a holder with a valid example Mdoc. Use the query portion of the
-    // universal link to have holder code contact the wallet_sever and start disclosure.
+    // Use the query portion of the universal link to have holder code contact the wallet_sever and start disclosure.
     // This should result in a proposal to disclosure for the holder.
-    let (mdoc, wscd) = prepare_example_holder_mocks(&issuer_ca).await;
-
     let request_uri_query = ul.as_ref().query().unwrap().to_string();
     let uri_source = match session_type {
         SessionType::SameDevice => DisclosureUriSource::Link,
@@ -982,29 +990,48 @@ async fn perform_full_disclosure(session_type: SessionType) -> (Client, SessionT
 
     // Have the holder actually disclosure the example attributes to the verification_server,
     // after which the status endpoint should report that the session is Done.
-    assert_eq!(disclosure_session.credential_requests().as_ref().len(), 1);
-    let partial_mdoc = PartialMdoc::try_new(
-        mdoc,
-        disclosure_session
-            .credential_requests()
-            .as_ref()
-            .first()
-            .unwrap()
-            .claim_paths(),
-    )
-    .unwrap();
+    let wscd = MockRemoteWscd::default();
+
+    let attestations = match format {
+        CredentialFormat::MsoMdoc => {
+            let partial_mdocs = disclosure_session
+                .credential_requests()
+                .as_ref()
+                .iter()
+                .map(|request| {
+                    let mdoc = prepare_example_mdoc_mock(&issuer_ca, &wscd);
+                    let partial_mdoc = PartialMdoc::try_new(mdoc, request.claim_paths()).unwrap();
+
+                    (request.id().clone(), vec_nonempty![partial_mdoc])
+                })
+                .collect();
+
+            DisclosableAttestations::MsoMdoc(partial_mdocs)
+        }
+        CredentialFormat::SdJwt => {
+            let presentations = disclosure_session
+                .credential_requests()
+                .as_ref()
+                .iter()
+                .map(|request| {
+                    let (sd_jwt, key_id) = prepare_example_sd_jwt_mock(&issuer_ca, &wscd);
+                    let presentation = request
+                        .claim_paths()
+                        .fold(sd_jwt.into_presentation_builder(), |builder, path| {
+                            builder.disclose(path).unwrap()
+                        })
+                        .finish();
+
+                    (request.id().clone(), vec_nonempty![(presentation, key_id)])
+                })
+                .collect();
+
+            DisclosableAttestations::SdJwt(presentations)
+        }
+    };
 
     let return_url = disclosure_session
-        .disclose(
-            DisclosableAttestations::MsoMdoc(HashMap::from([(
-                EXAMPLE_PID_START_DISCLOSURE_REQUEST_ID.clone(),
-                vec_nonempty![partial_mdoc],
-            )]))
-            .try_into()
-            .unwrap(),
-            &wscd,
-            &MockTimeGenerator::default(),
-        )
+        .disclose(attestations.try_into().unwrap(), &wscd, &MockTimeGenerator::default())
         .await
         .expect("should disclose attributes successfully");
 
@@ -1013,15 +1040,12 @@ async fn perform_full_disclosure(session_type: SessionType) -> (Client, SessionT
     (client, session_token, internal_url, return_url)
 }
 
-fn check_example_disclosed_attributes(disclosed_attributes: &UniqueIdVec<DisclosedAttestations>) {
+fn check_example_disclosed_attributes(
+    disclosed_attributes: &UniqueIdVec<DisclosedAttestations>,
+    format: CredentialFormat,
+) {
     assert_eq!(disclosed_attributes.len().get(), 1);
-    let attestations = &disclosed_attributes
-        .as_ref()
-        .iter()
-        .find(|attestations| attestations.id == *EXAMPLE_PID_START_DISCLOSURE_REQUEST_ID)
-        .as_ref()
-        .unwrap()
-        .attestations;
+    let attestations = &disclosed_attributes.as_ref().iter().exactly_one().unwrap().attestations;
 
     itertools::assert_equal(
         attestations.iter().map(|attestation| {
@@ -1032,22 +1056,37 @@ fn check_example_disclosed_attributes(disclosed_attributes: &UniqueIdVec<Disclos
         }),
         [(PID_ATTESTATION_TYPE, AttestationQualification::EAA)],
     );
-    let attributes = attestations
+
+    let attributes = &attestations
         .iter()
         .find(|attestation| attestation.attestation_type == *PID_ATTESTATION_TYPE)
         .unwrap()
-        .attributes
-        .clone()
-        .unwrap_mso_mdoc();
-    itertools::assert_equal(attributes.keys(), [PID_ATTESTATION_TYPE]);
-    let (first_entry_name, first_entry_value) = attributes.get(PID_ATTESTATION_TYPE).unwrap().first().unwrap();
-    assert_eq!(first_entry_name, "bsn");
-    assert_eq!(first_entry_value.to_string(), "999999999".to_owned());
+        .attributes;
+
+    match (format, attributes) {
+        (CredentialFormat::MsoMdoc, DisclosedAttributes::MsoMdoc(attributes)) => {
+            itertools::assert_equal(attributes.keys(), [PID_ATTESTATION_TYPE]);
+
+            let bsn_value = attributes.get(PID_ATTESTATION_TYPE).unwrap().get("bsn").unwrap();
+            assert_eq!(bsn_value.to_string(), "999999999");
+        }
+        (CredentialFormat::SdJwt, DisclosedAttributes::SdJwt(attributes)) => {
+            let bsn_value = attributes
+                .get(&vec_nonempty![ClaimPath::SelectByKey("bsn".to_string())])
+                .unwrap()
+                .unwrap();
+            assert_eq!(bsn_value.to_string(), "999999999");
+        }
+        _ => panic!("incorrect credential format received"),
+    }
 }
 
+#[rstest]
 #[tokio::test]
-async fn test_disclosed_attributes_without_nonce() {
-    let (client, session_token, internal_url, _) = perform_full_disclosure(SessionType::CrossDevice).await;
+async fn test_disclosed_attributes_without_nonce(
+    #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] format: CredentialFormat,
+) {
+    let (client, session_token, internal_url, _) = perform_full_disclosure(SessionType::CrossDevice, format).await;
 
     // Check if the disclosed attributes endpoint returns a 200 for the session, with the attributes.
     let disclosed_attributes_url = internal_url.join(&format!(
@@ -1062,12 +1101,16 @@ async fn test_disclosed_attributes_without_nonce() {
     // Check the disclosed attributes against the example attributes.
     let disclosed_attributes = response.json::<UniqueIdVec<DisclosedAttestations>>().await.unwrap();
 
-    check_example_disclosed_attributes(&disclosed_attributes);
+    check_example_disclosed_attributes(&disclosed_attributes, format);
 }
 
+#[rstest]
 #[tokio::test]
-async fn test_disclosed_attributes_with_nonce() {
-    let (client, session_token, internal_url, return_url) = perform_full_disclosure(SessionType::SameDevice).await;
+async fn test_disclosed_attributes_with_nonce(
+    #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] format: CredentialFormat,
+) {
+    let (client, session_token, internal_url, return_url) =
+        perform_full_disclosure(SessionType::SameDevice, format).await;
 
     // Check if the disclosed attributes endpoint returns a 400 error when
     // requesting the attributes without a nonce or with an incorrect nonce.
@@ -1109,7 +1152,7 @@ async fn test_disclosed_attributes_with_nonce() {
     // Check the disclosed attributes against the example attributes.
     let disclosed_attributes = response.json::<UniqueIdVec<DisclosedAttestations>>().await.unwrap();
 
-    check_example_disclosed_attributes(&disclosed_attributes);
+    check_example_disclosed_attributes(&disclosed_attributes, format);
 }
 
 #[tokio::test]
@@ -1153,7 +1196,7 @@ async fn test_disclosed_attributes_failed_session() {
     disclosure_session
         .disclose(
             DisclosableAttestations::MsoMdoc(HashMap::from([(
-                EXAMPLE_PID_START_DISCLOSURE_REQUEST_ID.clone(),
+                CredentialQuery::new_mock_mdoc_iso_example().id,
                 vec_nonempty![partial_mdoc],
             )]))
             .try_into()

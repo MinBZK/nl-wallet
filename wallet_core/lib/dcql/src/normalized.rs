@@ -363,6 +363,10 @@ pub mod mock {
         pub fn new_mock_mdoc_pid_example() -> Self {
             Self::new_mock_single(CredentialQuery::new_mock_mdoc_pid_example())
         }
+
+        pub fn new_mock_sd_jwt_pid_example() -> Self {
+            Self::new_mock_single(CredentialQuery::new_mock_sd_jwt_pid_example())
+        }
     }
 
     impl CredentialQuery {
@@ -441,6 +445,14 @@ pub mod mock {
 
         pub fn new_mock_mdoc_pid_example() -> Self {
             Self::new_mock_mdoc("mdoc_pid_example", PID, PID, &["bsn", "given_name", "family_name"])
+        }
+
+        pub fn new_mock_sd_jwt_pid_example() -> Self {
+            Self::new_mock_sd_jwt(
+                "mock_sd_jwt_example",
+                &[PID],
+                &[&["bsn"], &["given_name"], &["family_name"]],
+            )
         }
     }
 
