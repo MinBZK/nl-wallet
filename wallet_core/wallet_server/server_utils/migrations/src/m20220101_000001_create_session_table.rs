@@ -14,7 +14,7 @@ impl MigrationTrait for Migration {
                     .if_not_exists()
                     .col(ColumnDef::new(SessionState::Type).string().not_null())
                     .col(ColumnDef::new(SessionState::Token).string().not_null())
-                    .col(ColumnDef::new(SessionState::Data).json().not_null())
+                    .col(ColumnDef::new(SessionState::Data).json_binary().not_null())
                     .col(ColumnDef::new(SessionState::Status).string().not_null())
                     .col(
                         ColumnDef::new(SessionState::LastActiveDateTime)
