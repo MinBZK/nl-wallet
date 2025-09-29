@@ -93,16 +93,16 @@ import '../domain/usecase/tour/impl/observe_show_tour_banner_usecase_impl.dart';
 import '../domain/usecase/tour/impl/tour_overview_viewed_usecase_impl.dart';
 import '../domain/usecase/tour/observe_show_tour_banner_usecase.dart';
 import '../domain/usecase/tour/tour_overview_viewed_usecase.dart';
+import '../domain/usecase/transfer/acknowledge_wallet_transfer_usecase.dart';
 import '../domain/usecase/transfer/cancel_wallet_transfer_usecase.dart';
 import '../domain/usecase/transfer/get_wallet_transfer_status_usecase.dart';
+import '../domain/usecase/transfer/impl/acknowledge_wallet_transfer_usecase_impl.dart';
 import '../domain/usecase/transfer/impl/cancel_wallet_transfer_usecase_impl.dart';
 import '../domain/usecase/transfer/impl/get_wallet_transfer_status_usecase_impl.dart';
 import '../domain/usecase/transfer/impl/init_wallet_transfer_usecase_impl.dart';
-import '../domain/usecase/transfer/impl/prepare_wallet_transfer_usecase_impl.dart';
 import '../domain/usecase/transfer/impl/skip_wallet_transfer_usecase_impl.dart';
 import '../domain/usecase/transfer/impl/start_wallet_transfer_usecase_impl.dart';
 import '../domain/usecase/transfer/init_wallet_transfer_usecase.dart';
-import '../domain/usecase/transfer/prepare_wallet_transfer_usecase.dart';
 import '../domain/usecase/transfer/skip_wallet_transfer_usecase.dart';
 import '../domain/usecase/transfer/start_wallet_transfer_usecase.dart';
 import '../domain/usecase/update/impl/observe_version_state_usecase_impl.dart';
@@ -326,22 +326,22 @@ class WalletUseCaseProvider extends StatelessWidget {
           create: (context) => FetchTourVideosUseCaseImpl(context.read()),
         ),
         RepositoryProvider<CancelWalletTransferUseCase>(
-          create: (context) => CancelWalletTransferUseCaseImpl(),
+          create: (context) => CancelWalletTransferUseCaseImpl(context.read()),
         ),
         RepositoryProvider<SkipWalletTransferUseCase>(
-          create: (context) => SkipWalletTransferUseCaseImpl(),
+          create: (context) => SkipWalletTransferUseCaseImpl(context.read()),
         ),
         RepositoryProvider<GetWalletTransferStatusUseCase>(
-          create: (context) => GetWalletTransferStatusUseCaseImpl(),
-        ),
-        RepositoryProvider<PrepareWalletTransferUseCase>(
-          create: (context) => PrepareWalletTransferUseCaseImpl(),
+          create: (context) => GetWalletTransferStatusUseCaseImpl(context.read()),
         ),
         RepositoryProvider<InitWalletTransferUseCase>(
-          create: (context) => InitWalletTransferUseCaseImpl(),
+          create: (context) => InitWalletTransferUseCaseImpl(context.read()),
+        ),
+        RepositoryProvider<AcknowledgeWalletTransferUseCase>(
+          create: (context) => AcknowledgeWalletTransferUseCaseImpl(context.read()),
         ),
         RepositoryProvider<StartWalletTransferUseCase>(
-          create: (context) => StartWalletTransferUseCaseImpl(),
+          create: (context) => StartWalletTransferUseCaseImpl(context.read(), context.read()),
         ),
         RepositoryProvider<CreatePinRecoveryRedirectUriUseCase>(
           create: (context) => CreatePinRecoveryRedirectUriUseCaseImpl(context.read()),

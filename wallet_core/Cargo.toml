@@ -187,7 +187,7 @@ sea-query = { version = "0.32.7", default-features = false }
 sec1 = "0.7.3"
 semver = "1.0.25"
 sentry = { version = "0.36.0", default-features = false }
-serde = "1.0.219"
+serde = "1.0.227"
 serde-aux = "4.5.0"
 serde_bytes = "0.11.15"
 serde_json = { version = "1.0.138", default-features = false }

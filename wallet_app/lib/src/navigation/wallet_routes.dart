@@ -260,8 +260,7 @@ Widget _createIntroductionScreenBuilder(BuildContext context) => const Introduct
 Widget _createIntroductionPrivacyScreenBuilder(BuildContext context) => const IntroductionPrivacyScreen();
 
 WidgetBuilder _createForgotPinScreenBuilder(RouteSettings settings) =>
-    (context) =>
-        ForgotPinScreen(recoveryMethod: tryCast<PinRecoveryMethod>(settings.arguments) ?? PinRecoveryMethod.recoverPin);
+    (context) => const ForgotPinScreen();
 
 Widget _createAboutScreenBuilder(BuildContext context) => const AboutScreen();
 
@@ -579,7 +578,7 @@ WidgetBuilder _createWalletTransferSourceRoute(RouteSettings settings) {
           context.read(),
           context.read(),
         );
-        if (argument.peek() != null) bloc.add(WalletTransferInitiateTransferEvent(argument.value!));
+        if (argument.peek() != null) bloc.add(WalletTransferAcknowledgeTransferEvent(argument.value!));
         return bloc;
       },
       child: const WalletTransferSourceScreen(),

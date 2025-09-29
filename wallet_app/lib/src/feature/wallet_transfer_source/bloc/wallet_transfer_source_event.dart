@@ -7,14 +7,14 @@ abstract class WalletTransferSourceEvent extends Equatable {
   List<Object?> get props => [];
 }
 
-/// Event triggered when the wallet transfer process is initiated.
+/// Event triggered when the wallet transfer process is acknowledged.
 ///
-/// This event contains the URI necessary to initiate the transfer.
-class WalletTransferInitiateTransferEvent extends WalletTransferSourceEvent {
-  /// The URI or identifier needed to initiate the transfer.
+/// This event contains the URI necessary to acknowledge the transfer.
+class WalletTransferAcknowledgeTransferEvent extends WalletTransferSourceEvent {
+  /// The URI or identifier needed to acknowledge the transfer.
   final String uri;
 
-  const WalletTransferInitiateTransferEvent(this.uri);
+  const WalletTransferAcknowledgeTransferEvent(this.uri);
 
   @override
   List<Object?> get props => [...super.props, uri];

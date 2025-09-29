@@ -12,6 +12,7 @@ import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/flow_progress.dart';
 import '../../../domain/model/navigation/navigation_request.dart';
 import '../../../domain/model/result/application_error.dart';
+import '../../../navigation/wallet_routes.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/launch_util.dart';
 import '../../../wallet_assets.dart';
@@ -22,12 +23,12 @@ import '../../common/page/terminal_page.dart';
 import '../../common/sheet/confirm_action_sheet.dart';
 import '../../common/widget/button/icon/back_icon_button.dart';
 import '../../common/widget/button/icon/help_icon_button.dart';
-import '../../common/widget/fade_in_at_offset.dart';
 import '../../common/widget/fake_paging_animated_switcher.dart';
 import '../../common/widget/loading_indicator.dart';
 import '../../common/widget/page_illustration.dart';
 import '../../common/widget/svg_or_image.dart';
 import '../../common/widget/text/title_text.dart';
+import '../../common/widget/utility/scroll_offset_provider.dart';
 import '../../common/widget/wallet_app_bar.dart';
 import '../../dashboard/dashboard_screen.dart';
 import '../../error/error_page.dart';
@@ -44,6 +45,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ScrollOffsetProvider(
+      debugLabel: runtimeType.toString(),
       child: Scaffold(
         appBar: _buildAppBar(context),
         restorationId: 'wallet_personalize_scaffold',
@@ -80,6 +82,9 @@ class WalletPersonalizeScreen extends StatelessWidget {
         context.read<ScrollOffset>().reset(); // Reset provided scrollOffset between pages
         _closeOpenDialogs(context); // Make sure the StopDigidLoginDialog is dismissed on state changes.
         if (state is WalletPersonalizeConnectDigid) _loginWithDigid(context, state.authUrl);
+        if (state is WalletPersonalizeSuccess && state.userCanTransfer) {
+          Navigator.pushNamed(context, WalletRoutes.walletTransferTargetRoute);
+        }
       },
       builder: (context, state) {
         final Widget result = switch (state) {
@@ -301,7 +306,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
 
   Widget _buildConfirmPinPage(BuildContext context, WalletPersonalizeConfirmPin state) {
     return WalletPersonalizeConfirmPinPage(
-      onPidAccepted: (_) => context.bloc.add(WalletPersonalizePinConfirmed()),
+      onPidAccepted: (result) => context.bloc.add(WalletPersonalizePinConfirmed(result)),
       onAcceptPidFailed: (context, state) => context.bloc.add(WalletPersonalizeAcceptPidFailed(error: state.error)),
     );
   }

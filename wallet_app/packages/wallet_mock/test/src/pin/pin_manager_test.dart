@@ -1,6 +1,6 @@
 import 'package:test/test.dart';
 import 'package:wallet_core/core.dart';
-import 'package:wallet_mock/src/pin/pin_manager.dart';
+import 'package:wallet_mock/src/manager/pin_manager.dart';
 
 const kTestValidPin = '909090';
 const kTestInvalidPin = '112233';

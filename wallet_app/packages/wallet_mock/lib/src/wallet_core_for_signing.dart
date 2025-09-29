@@ -5,7 +5,7 @@ import 'package:wallet_core/core.dart';
 import 'data/mock/mock_sign_requests.dart';
 import 'data/model/sign_request.dart';
 import 'log/wallet_event_log.dart';
-import 'pin/pin_manager.dart';
+import 'manager/pin_manager.dart';
 import 'util/extension/string_extension.dart';
 import 'wallet/wallet.dart';
 

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../util/extension/num_extensions.dart';
+import 'utility/scroll_offset_provider.dart';
 
 /// Widget that fades in (using opacity) the provided [child] based on the scroll offset that
 /// it was able to resolve. The scroll offset used for the animation is resolved in based on the
@@ -112,11 +113,15 @@ class _FadeInAtOffsetState extends State<FadeInAtOffset> with AfterLayoutMixin<F
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    MediaQuery.of(context).orientation; // This line is crucial to make sure we actually trigger on orientation changes.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      // This helps 'sync' the scrollOffset after an orientation change
-      if (_afterFirstLayout && context.mounted) setState(() {});
-    });
+
+    // If we are not monitoring a [ScrollController] this is already handled by [ScrollOffsetProvider]
+    if (_scrollController != null) {
+      MediaQuery.of(context).orientation; // Important to monitor the orientation changes.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        // This helps 'sync' the scrollOffset after an orientation change
+        if (_afterFirstLayout && context.mounted) setState(() {});
+      });
+    }
   }
 
   @override
@@ -136,86 +141,4 @@ class _FadeInAtOffsetState extends State<FadeInAtOffset> with AfterLayoutMixin<F
   }
 
   void _onScroll() => setState(() {});
-}
-
-/// Widget that provides a [ScrollOffset] to it's descendants. By default the [ScrollOffset] is
-/// updated based on any incoming [ScrollNotification]s. This behaviour can be overridden with the
-/// [observeScrollNotifications] flag.
-class ScrollOffsetProvider extends StatelessWidget {
-  final Widget child;
-  final String debugLabel;
-  final bool observeScrollNotifications;
-
-  const ScrollOffsetProvider({
-    required this.child,
-    this.debugLabel = '',
-    this.observeScrollNotifications = true,
-    super.key,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (context) => ScrollOffset(debugLabel),
-      child: Builder(
-        builder: (context) {
-          if (!observeScrollNotifications) return child;
-          return NotificationListener<ScrollNotification>(
-            onNotification: (notification) {
-              final scrollOffset = context.read<ScrollOffset>();
-              scrollOffset.offset = notification.metrics.hasPixels ? notification.metrics.pixels : 0;
-              scrollOffset.maxScrollExtent = notification.metrics.hasContentDimensions
-                  ? notification.metrics.maxScrollExtent
-                  : 0;
-              return false;
-            },
-            child: child,
-          );
-        },
-      ),
-    );
-  }
-}
-
-/// A simple object to provide a [ScrollController]s offset to other interested widgets that
-/// could not otherwise observe it. E.g. useful for sibling widgets that can't rely on the
-/// [PrimaryScrollController] or [ScrollNotification]s. In our case it is relevant in the
-/// disclose/issue/sign flows, where there is no clear primary [ScrollController] and the
-/// [WalletAppBar] can't observe the [ScrollNotification]s because it's a sibling, and not
-/// a parent of the scrolling content.
-class ScrollOffset extends ChangeNotifier {
-  final String debugLabel;
-
-  double _offset = 0;
-  double _maxScrollExtent = 0;
-
-  ScrollOffset(this.debugLabel);
-
-  double get offset => _offset;
-
-  double get maxScrollExtent => _maxScrollExtent;
-
-  set offset(double value) {
-    if (_offset == value) return;
-    _offset = value;
-    notifyListeners();
-  }
-
-  set maxScrollExtent(double value) {
-    if (_maxScrollExtent == value) return;
-    _maxScrollExtent = value;
-    notifyListeners();
-  }
-
-  @override
-  String toString() => 'ScrollOffset for $debugLabel. Offset: $_offset, MaxScrollExtent: $maxScrollExtent';
-
-  /// Resets the [ScrollOffset] to it's initial values (i.e. 0)
-  /// Can be useful when scrolling happens within a [PageView], as
-  /// navigating to the next page might not trigger an automatic update.
-  void reset() {
-    _offset = 0;
-    _maxScrollExtent = 0;
-    notifyListeners();
-  }
 }

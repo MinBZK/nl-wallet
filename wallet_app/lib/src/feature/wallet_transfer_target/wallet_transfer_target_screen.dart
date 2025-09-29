@@ -12,11 +12,11 @@ import '../common/sheet/error_details_sheet.dart';
 import '../common/widget/button/icon/back_icon_button.dart';
 import '../common/widget/button/icon/close_icon_button.dart';
 import '../common/widget/button/icon/help_icon_button.dart';
-import '../common/widget/fade_in_at_offset.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
 import '../common/widget/page_illustration.dart';
 import '../common/widget/text/body_text.dart';
 import '../common/widget/text/title_text.dart';
+import '../common/widget/utility/scroll_offset_provider.dart';
 import '../common/widget/wallet_app_bar.dart';
 import '../dashboard/dashboard_screen.dart';
 import '../error/error_page.dart';
@@ -222,7 +222,7 @@ class WalletTransferTargetScreen extends StatelessWidget {
 
     if (skip && context.mounted) {
       context.bloc.add(const WalletTransferOptOutEvent());
-      DashboardScreen.show(context);
+      Navigator.pop(context);
     }
   }
 }

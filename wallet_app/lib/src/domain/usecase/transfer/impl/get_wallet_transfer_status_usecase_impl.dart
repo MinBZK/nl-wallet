@@ -1,24 +1,29 @@
-import 'dart:math';
-
+import '../../../../data/repository/transfer/transfer_repository.dart';
 import '../../../model/transfer/wallet_transfer_status.dart';
 import '../get_wallet_transfer_status_usecase.dart';
 
+/// Use case for observing the status of a wallet transfer.
+///
+/// This class polls the [TransferRepository] for the current transfer status
+/// and yields the status until a terminal state is reached.
 class GetWalletTransferStatusUseCaseImpl extends GetWalletTransferStatusUseCase {
+  final TransferRepository _transferRepository;
+
+  static const List<WalletTransferStatus> _terminalStates = [
+    WalletTransferStatus.success,
+    WalletTransferStatus.cancelled,
+    WalletTransferStatus.error,
+  ];
+
+  GetWalletTransferStatusUseCaseImpl(this._transferRepository);
+
   @override
-  Stream<WalletTransferStatus> invoke({bool isTarget = false}) async* {
-    // TODO(Rob): Mock implementation, implement once core supports get_wallet_transfer_status
-    if (isTarget) {
-      yield WalletTransferStatus.waitingForScan;
-      await Future.delayed(const Duration(seconds: 5));
-      yield WalletTransferStatus.waitingForApproval;
-      await Future.delayed(const Duration(seconds: 5));
-    }
-    yield WalletTransferStatus.transferring;
-    await Future.delayed(const Duration(seconds: 5));
-    if (Random.secure().nextBool()) {
-      yield WalletTransferStatus.error;
-    } else {
-      yield WalletTransferStatus.success;
+  Stream<WalletTransferStatus> invoke() async* {
+    while (true) {
+      final status = await _transferRepository.getWalletTransferState();
+      yield status;
+      if (_terminalStates.contains(status)) return;
+      await Future.delayed(const Duration(seconds: 3));
     }
   }
 }
