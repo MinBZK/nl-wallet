@@ -596,7 +596,7 @@ where
 {
     pub async fn sign_with_sub(payload: T, privkey: &impl EcdsaKey) -> Result<Self> {
         let claims = PayloadWithSub::new(payload);
-        SignedJwt::sign(&claims, privkey).await.map(Into::into) // TODO should this return SignedJwt<PayloadWithSub<T>, JwtHeader> instead?
+        SignedJwt::sign(&claims, privkey).await.map(Into::into)
     }
 }
 
