@@ -114,7 +114,6 @@ mod tests {
     use rand_core::OsRng;
     use ssri::Integrity;
 
-    use crypto::EcdsaKey;
     use crypto::server_keys::generate::Ca;
     use mdoc::holder::Mdoc;
     use mdoc::test::generate_issuer_mock;
@@ -128,7 +127,8 @@ mod tests {
 
     use crate::attributes::Attribute;
     use crate::attributes::AttributeValue;
-    use crate::credential_payload::CredentialPayload;
+    use crate::attributes::Attributes;
+    use crate::constants::PID_ATTESTATION_TYPE;
     use crate::credential_payload::IntoCredentialPayload;
     use crate::credential_payload::MdocCredentialPayloadError;
     use crate::credential_payload::MdocParts;
@@ -140,15 +140,14 @@ mod tests {
         let issuance_key = generate_issuer_mock(&ca).unwrap();
         let trust_anchors = &[ca.to_trust_anchor()];
 
-        let payload_preview: PreviewableCredentialPayload = CredentialPayload::example_with_attributes(
-            vec![
-                ("first_name", AttributeValue::Text("John".to_string())),
-                ("family_name", AttributeValue::Text("Doe".to_string())),
-            ],
-            &issuance_key.verifying_key().await.unwrap(),
+        let payload_preview = PreviewableCredentialPayload::example_with_attributes(
+            PID_ATTESTATION_TYPE,
+            Attributes::example([
+                (["first_name"], AttributeValue::Text("John".to_string())),
+                (["family_name"], AttributeValue::Text("Doe".to_string())),
+            ]),
             &MockTimeGenerator::default(),
-        )
-        .previewable_payload;
+        );
 
         // Note that this resource integrity does not match any metadata source document.
         let metadata_integrity = Integrity::from(crypto::utils::random_bytes(32));

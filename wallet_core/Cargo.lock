@@ -7516,6 +7516,7 @@ dependencies = [
  "serde_with",
  "serial_test",
  "server_utils",
+ "ssri",
  "tokio",
  "tower-http",
  "tracing",

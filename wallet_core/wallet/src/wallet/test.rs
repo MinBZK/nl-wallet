@@ -18,6 +18,7 @@ use uuid::Uuid;
 use apple_app_attest::AppIdentifier;
 use apple_app_attest::AttestationEnvironment;
 use attestation_data::attributes::AttributeValue;
+use attestation_data::attributes::Attributes;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::constants::PID_ATTESTATION_TYPE;
 use attestation_data::credential_payload::CredentialPayload;
@@ -149,12 +150,13 @@ pub fn create_example_credential_payload(
     time_generator: &impl Generator<DateTime<Utc>>,
 ) -> (CredentialPayload, SortedTypeMetadataDocuments, NormalizedTypeMetadata) {
     let credential_payload = CredentialPayload::example_with_attributes(
-        vec![
-            ("family_name", AttributeValue::Text("De Bruijn".to_string())),
-            ("given_name", AttributeValue::Text("Willeke Liselotte".to_string())),
-            ("birth_date", AttributeValue::Text("1997-05-10".to_string())),
-            ("age_over_18", AttributeValue::Bool(true)),
-        ],
+        PID_ATTESTATION_TYPE,
+        Attributes::example([
+            (["family_name"], AttributeValue::Text("De Bruijn".to_string())),
+            (["given_name"], AttributeValue::Text("Willeke Liselotte".to_string())),
+            (["birth_date"], AttributeValue::Text("1997-05-10".to_string())),
+            (["age_over_18"], AttributeValue::Bool(true)),
+        ]),
         SigningKey::random(&mut OsRng).verifying_key(),
         time_generator,
     );
@@ -211,9 +213,9 @@ pub fn create_example_pid_sd_jwt() -> (VerifiedSdJwt, NormalizedTypeMetadata) {
 
 /// Generates a valid [`Mdoc`] that contains a full mdoc PID.
 pub fn create_example_pid_mdoc() -> Mdoc {
-    let credential_payload = CredentialPayload::nl_pid_example(&MockTimeGenerator::default());
+    let preview_payload = PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default());
 
-    mdoc_from_unsigned(credential_payload.previewable_payload, &ISSUER_KEY)
+    mdoc_from_unsigned(preview_payload, &ISSUER_KEY)
 }
 
 /// Generates a valid [`Mdoc`], based on an [`PreviewableCredentialPayload`] and issuer key.

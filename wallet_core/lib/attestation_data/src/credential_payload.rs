@@ -354,25 +354,26 @@ mod examples {
     use chrono::DateTime;
     use chrono::Duration;
     use chrono::Utc;
-    use indexmap::IndexMap;
-    use p256::ecdsa::SigningKey;
     use p256::ecdsa::VerifyingKey;
-    use rand_core::OsRng;
     use ssri::Integrity;
 
     use jwt::jwk::jwk_from_p256;
     use sd_jwt::key_binding_jwt_claims::RequiredKeyBinding;
     use utils::generator::Generator;
 
-    use crate::attributes::Attribute;
     use crate::attributes::AttributeValue;
     use crate::attributes::Attributes;
+    use crate::constants::PID_ATTESTATION_TYPE;
 
     use super::CredentialPayload;
     use super::PreviewableCredentialPayload;
 
     impl CredentialPayload {
-        pub fn example_empty(verifying_key: &VerifyingKey, time_generator: &impl Generator<DateTime<Utc>>) -> Self {
+        pub(super) fn example_with_preview(
+            previewable_payload: PreviewableCredentialPayload,
+            verifying_key: &VerifyingKey,
+            time_generator: &impl Generator<DateTime<Utc>>,
+        ) -> Self {
             let time = time_generator.generate();
 
             let confirmation_key = jwk_from_p256(verifying_key).unwrap();
@@ -382,59 +383,60 @@ mod examples {
                 confirmation_key: RequiredKeyBinding::Jwk(confirmation_key.clone()),
                 vct_integrity: Integrity::from(""),
                 status: None,
-                previewable_payload: PreviewableCredentialPayload {
-                    attestation_type: String::from("urn:eudi:pid:nl:1"),
-                    issuer: "https://cert.issuer.example.com".parse().unwrap(),
-                    expires: Some((time + Duration::days(365)).into()),
-                    not_before: Some((time - Duration::days(1)).into()),
-                    attestation_qualification: Default::default(),
-                    attributes: Attributes::default(),
-                },
+                previewable_payload,
+            }
+        }
+
+        pub fn example_with_attributes(
+            attestation_type: &str,
+            attributes: Attributes,
+            verifying_key: &VerifyingKey,
+            time_generator: &impl Generator<DateTime<Utc>>,
+        ) -> Self {
+            let previewable_payload =
+                PreviewableCredentialPayload::example_with_attributes(attestation_type, attributes, time_generator);
+
+            Self::example_with_preview(previewable_payload, verifying_key, time_generator)
+        }
+    }
+
+    impl PreviewableCredentialPayload {
+        pub fn example_empty(attestation_type: &str, time_generator: &impl Generator<DateTime<Utc>>) -> Self {
+            let time = time_generator.generate();
+
+            Self {
+                attestation_type: attestation_type.to_string(),
+                issuer: "https://cert.issuer.example.com".parse().unwrap(),
+                expires: Some((time + Duration::days(365)).into()),
+                not_before: Some((time - Duration::days(1)).into()),
+                attestation_qualification: Default::default(),
+                attributes: Attributes::default(),
             }
         }
 
         pub fn example_family_name(time_generator: &impl Generator<DateTime<Utc>>) -> Self {
-            Self::example_with_attribute(
-                "family_name",
-                AttributeValue::Text(String::from("De Bruijn")),
-                SigningKey::random(&mut OsRng).verifying_key(),
+            Self::example_with_attributes(
+                PID_ATTESTATION_TYPE,
+                Attributes::example([(["family_name"], AttributeValue::Text(String::from("De Bruijn")))]),
                 time_generator,
             )
         }
 
-        pub fn example_with_attribute(
-            key: &str,
-            attr_value: AttributeValue,
-            verifying_key: &VerifyingKey,
-            time_generator: &impl Generator<DateTime<Utc>>,
-        ) -> Self {
-            Self::example_with_attributes(vec![(key, attr_value)], verifying_key, time_generator)
-        }
-
         pub fn example_with_attributes(
-            attrs: Vec<(&str, AttributeValue)>,
-            verifying_key: &VerifyingKey,
+            attestation_type: &str,
+            attributes: Attributes,
             time_generator: &impl Generator<DateTime<Utc>>,
         ) -> Self {
-            let empty = CredentialPayload::example_empty(verifying_key, time_generator);
-            CredentialPayload {
-                previewable_payload: PreviewableCredentialPayload {
-                    attributes: IndexMap::from_iter(
-                        attrs
-                            .into_iter()
-                            .map(|(name, attr)| (name.to_string(), Attribute::Single(attr))),
-                    )
-                    .into(),
-                    ..empty.previewable_payload
-                },
-                ..empty
+            Self {
+                attributes,
+                ..Self::example_empty(attestation_type, time_generator)
             }
         }
     }
 }
 
 #[cfg(feature = "mock")]
-pub mod mock {
+mod mock {
     use chrono::DateTime;
     use chrono::Utc;
     use p256::ecdsa::SigningKey;
@@ -442,31 +444,34 @@ pub mod mock {
 
     use utils::generator::Generator;
 
-    use crate::attributes::AttributeValue;
-    use crate::constants::PID_RECOVERY_CODE;
+    use crate::attributes::Attributes;
+    use crate::constants::ADDRESS_ATTESTATION_TYPE;
+    use crate::constants::PID_ATTESTATION_TYPE;
 
     use super::CredentialPayload;
+    use super::PreviewableCredentialPayload;
 
     impl CredentialPayload {
         pub fn nl_pid_example(time_generator: &impl Generator<DateTime<Utc>>) -> Self {
-            Self::example_with_attributes(
-                vec![
-                    ("bsn", AttributeValue::Text("999999999".to_string())),
-                    (
-                        "recovery_code",
-                        AttributeValue::Text(
-                            "cff292503cba8c4fbf2e5820dcdc468ae00f40c87b1af35513375800128fc00d".to_string(),
-                        ),
-                    ),
-                    ("given_name", AttributeValue::Text("Willeke Liselotte".to_string())),
-                    ("family_name", AttributeValue::Text("De Bruijn".to_string())),
-                    ("birthdate", AttributeValue::Text("1997-03-11".to_string())),
-                    (
-                        PID_RECOVERY_CODE,
-                        AttributeValue::Text("885ed8a2-f07a-4f77-a8df-2e166f5ebd36".to_string()),
-                    ),
-                ],
+            let previewable_payload = PreviewableCredentialPayload::nl_pid_example(time_generator);
+
+            Self::example_with_preview(
+                previewable_payload,
                 SigningKey::random(&mut OsRng).verifying_key(),
+                time_generator,
+            )
+        }
+    }
+
+    impl PreviewableCredentialPayload {
+        pub fn nl_pid_example(time_generator: &impl Generator<DateTime<Utc>>) -> Self {
+            Self::example_with_attributes(PID_ATTESTATION_TYPE, Attributes::nl_pid_example(), time_generator)
+        }
+
+        pub fn nl_pid_address_example(time_generator: &impl Generator<DateTime<Utc>>) -> Self {
+            Self::example_with_attributes(
+                ADDRESS_ATTESTATION_TYPE,
+                Attributes::nl_pid_address_example(),
                 time_generator,
             )
         }
@@ -507,8 +512,10 @@ mod test {
 
     use crate::attributes::Attribute;
     use crate::attributes::AttributeValue;
+    use crate::attributes::Attributes;
     use crate::attributes::test::complex_attributes;
     use crate::auth::issuer_auth::IssuerRegistration;
+    use crate::constants::PID_ATTESTATION_TYPE;
     use crate::credential_payload::IntoCredentialPayload;
     use crate::credential_payload::SdJwtCredentialPayloadError;
     use crate::x509::CertificateType;
@@ -571,16 +578,16 @@ mod test {
         let holder_key = SigningKey::random(&mut OsRng);
 
         let metadata = NormalizedTypeMetadata::from_single_example(UncheckedTypeMetadata::example_with_claim_name(
-            "urn:eudi:pid:nl:1",
+            PID_ATTESTATION_TYPE,
             "family_name",
             JsonSchemaPropertyType::String,
             None,
         ));
 
-        let example_payload = CredentialPayload::example_family_name(&MockTimeGenerator::default());
+        let preview_payload = PreviewableCredentialPayload::example_family_name(&MockTimeGenerator::default());
 
         let payload = CredentialPayload::from_previewable_credential_payload(
-            example_payload.previewable_payload.clone(),
+            preview_payload.clone(),
             Utc::now().into(),
             holder_key.verifying_key(),
             &metadata,
@@ -590,7 +597,7 @@ mod test {
 
         assert_eq!(
             payload.previewable_payload.attestation_type,
-            example_payload.previewable_payload.attestation_type,
+            preview_payload.attestation_type,
         );
     }
 
@@ -599,16 +606,16 @@ mod test {
         let holder_key = SigningKey::random(&mut OsRng);
 
         let metadata = NormalizedTypeMetadata::from_single_example(UncheckedTypeMetadata::example_with_claim_name(
-            "urn:eudi:pid:nl:1",
+            PID_ATTESTATION_TYPE,
             "family_name",
             JsonSchemaPropertyType::Number,
             None,
         ));
 
-        let example_payload = CredentialPayload::example_family_name(&MockTimeGenerator::default());
+        let preview_payload = PreviewableCredentialPayload::example_family_name(&MockTimeGenerator::default());
 
         let error = CredentialPayload::from_previewable_credential_payload(
-            example_payload.previewable_payload.clone(),
+            preview_payload,
             Utc::now().into(),
             holder_key.verifying_key(),
             &metadata,
@@ -727,15 +734,15 @@ mod test {
         let issuer_key_pair = ca.generate_key_pair("mycert", cert_type, Default::default()).unwrap();
 
         let metadata = NormalizedTypeMetadata::from_single_example(UncheckedTypeMetadata::example_with_claim_name(
-            "urn:eudi:pid:nl:1",
+            PID_ATTESTATION_TYPE,
             "family_name",
             JsonSchemaPropertyType::String,
             None,
         ));
 
-        let credential_payload = CredentialPayload::example_with_attribute(
-            "family_name",
-            AttributeValue::Text(String::from("De Bruijn")),
+        let credential_payload = CredentialPayload::example_with_attributes(
+            PID_ATTESTATION_TYPE,
+            Attributes::example([(["family_name"], AttributeValue::Text(String::from("De Bruijn")))]),
             holder_key.verifying_key(),
             &time_generator,
         );

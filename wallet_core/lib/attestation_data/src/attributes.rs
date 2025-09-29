@@ -525,6 +525,98 @@ pub enum AttributesHandlingError {
     ClaimAlreadyExists,
 }
 
+#[cfg(any(test, feature = "example_credential_payloads"))]
+mod examples {
+    use indexmap::IndexMap;
+
+    use attestation_types::claim_path::ClaimPath;
+    use itertools::Itertools;
+
+    use super::Attribute;
+    use super::AttributeValue;
+    use super::Attributes;
+
+    impl Attributes {
+        pub fn example<'a>(
+            attributes: impl IntoIterator<Item = (impl IntoIterator<Item = &'a str>, AttributeValue)>,
+        ) -> Self {
+            attributes
+                .into_iter()
+                .fold(Self::from(IndexMap::new()), |mut attributes, (path, value)| {
+                    let path = path
+                        .into_iter()
+                        .map(|element| ClaimPath::SelectByKey(element.to_string()))
+                        .collect_vec()
+                        .try_into()
+                        .expect("path should consist of at least one path element");
+
+                    attributes
+                        .insert(&path, Attribute::Single(value))
+                        .expect("paths are inconsistent");
+
+                    attributes
+                })
+        }
+    }
+}
+
+#[cfg(feature = "mock")]
+mod mock {
+    use crate::constants::PID_ADDRESS_GROUP;
+    use crate::constants::PID_AGE_OVER_18;
+    use crate::constants::PID_BIRTH_DATE;
+    use crate::constants::PID_BSN;
+    use crate::constants::PID_FAMILY_NAME;
+    use crate::constants::PID_GIVEN_NAME;
+    use crate::constants::PID_RECOVERY_CODE;
+    use crate::constants::PID_RESIDENT_CITY;
+    use crate::constants::PID_RESIDENT_COUNTRY;
+    use crate::constants::PID_RESIDENT_HOUSE_NUMBER;
+    use crate::constants::PID_RESIDENT_POSTAL_CODE;
+    use crate::constants::PID_RESIDENT_STREET;
+
+    use super::AttributeValue;
+    use super::Attributes;
+
+    impl Attributes {
+        pub fn nl_pid_example() -> Self {
+            Self::example([
+                ([PID_GIVEN_NAME], AttributeValue::Text("Willeke Liselotte".to_string())),
+                ([PID_FAMILY_NAME], AttributeValue::Text("De Bruijn".to_string())),
+                ([PID_BIRTH_DATE], AttributeValue::Text("1997-05-10".to_string())),
+                ([PID_AGE_OVER_18], AttributeValue::Bool(true)),
+                ([PID_BSN], AttributeValue::Text("999991772".to_string())),
+                ([PID_RECOVERY_CODE], AttributeValue::Text("123".to_string())),
+            ])
+        }
+
+        pub fn nl_pid_address_example() -> Self {
+            Self::example([
+                (
+                    [PID_ADDRESS_GROUP, PID_RESIDENT_STREET],
+                    AttributeValue::Text("Turfmarkt".to_string()),
+                ),
+                (
+                    [PID_ADDRESS_GROUP, PID_RESIDENT_HOUSE_NUMBER],
+                    AttributeValue::Text("147".to_string()),
+                ),
+                (
+                    [PID_ADDRESS_GROUP, PID_RESIDENT_POSTAL_CODE],
+                    AttributeValue::Text("2511 DP".to_string()),
+                ),
+                (
+                    [PID_ADDRESS_GROUP, PID_RESIDENT_CITY],
+                    AttributeValue::Text("Den Haag".to_string()),
+                ),
+                (
+                    [PID_ADDRESS_GROUP, PID_RESIDENT_COUNTRY],
+                    AttributeValue::Text("Nederland".to_string()),
+                ),
+            ])
+        }
+    }
+}
+
 #[cfg(test)]
 pub mod test {
     use assert_matches::assert_matches;

@@ -19,6 +19,7 @@ use reqwest::Client;
 use reqwest::Response;
 use rstest::rstest;
 use rustls_pki_types::TrustAnchor;
+use ssri::Integrity;
 use tokio::net::TcpListener;
 use tokio::time;
 use url::Url;
@@ -26,6 +27,7 @@ use url::Url;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::auth::reader_auth::ReaderRegistration;
 use attestation_data::credential_payload::CredentialPayload;
+use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::disclosure::DisclosedAttestations;
 use attestation_data::disclosure::DisclosedAttributes;
 use attestation_data::x509::generate::mock::generate_issuer_mock;
@@ -913,7 +915,7 @@ fn pid_start_disclosure_request(format: CredentialFormat) -> StartDisclosureRequ
 }
 
 fn prepare_example_mdoc_mock(issuer_ca: &Ca, wscd: &MockRemoteWscd) -> Mdoc {
-    let credential_payload = CredentialPayload::nl_pid_example(&MockTimeGenerator::default());
+    let payload_preview = PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default());
 
     let issuer_key_pair = generate_issuer_mock(issuer_ca, Some(IssuerRegistration::new_mock())).unwrap();
 
@@ -921,10 +923,9 @@ fn prepare_example_mdoc_mock(issuer_ca: &Ca, wscd: &MockRemoteWscd) -> Mdoc {
     let mdoc_private_key = wscd.create_random_key();
     let mdoc_public_key = mdoc_private_key.verifying_key();
 
-    credential_payload
-        .previewable_payload
+    payload_preview
         .into_signed_mdoc_unverified(
-            credential_payload.vct_integrity,
+            Integrity::from(""),
             mdoc_private_key.identifier.clone(),
             mdoc_public_key,
             &issuer_key_pair,
@@ -1067,14 +1068,14 @@ fn check_example_disclosed_attributes(
             itertools::assert_equal(attributes.keys(), [PID_ATTESTATION_TYPE]);
 
             let bsn_value = attributes.get(PID_ATTESTATION_TYPE).unwrap().get("bsn").unwrap();
-            assert_eq!(bsn_value.to_string(), "999999999");
+            assert_eq!(bsn_value.to_string(), "999991772");
         }
         (CredentialFormat::SdJwt, DisclosedAttributes::SdJwt(attributes)) => {
             let bsn_value = attributes
                 .get(&vec_nonempty![ClaimPath::SelectByKey("bsn".to_string())])
                 .unwrap()
                 .unwrap();
-            assert_eq!(bsn_value.to_string(), "999999999");
+            assert_eq!(bsn_value.to_string(), "999991772");
         }
         _ => panic!("incorrect credential format received"),
     }

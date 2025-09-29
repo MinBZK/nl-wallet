@@ -60,6 +60,7 @@ test = [
     "dep:sd_jwt_vc_metadata",
     "dep:serde_json",
     "dep:serde_urlencoded",
+    "dep:ssri",
     "dep:url",
     "dep:wscd",
 ]
@@ -93,6 +94,7 @@ rstest = { workspace = true, optional = true }
 serde_urlencoded = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
 serial_test = { workspace = true, optional = true }
+ssri = { workspace = true, optional = true }
 url = { workspace = true, optional = true }
 
 attestation_data.path = "../../lib/attestation_data"
