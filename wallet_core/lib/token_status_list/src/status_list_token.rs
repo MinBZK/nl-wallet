@@ -113,8 +113,6 @@ impl JwtTyp for StatusListClaims {
 
 #[cfg(test)]
 mod test {
-    use base64::prelude::*;
-
     use p256::ecdsa::SigningKey;
     use p256::elliptic_curve::rand_core::OsRng;
     use serde_json::json;
@@ -142,7 +140,7 @@ mod test {
         });
 
         let expected_header: HeaderWithTyp = serde_json::from_value(example_header).unwrap();
-        assert_eq!(expected_header.typ(), TOKEN_STATUS_LIST_JWT_TYP);
+        assert!(expected_header.typ == TOKEN_STATUS_LIST_JWT_TYP);
 
         let expected_claims: StatusListClaims = serde_json::from_value(example_payload).unwrap();
 
@@ -154,18 +152,11 @@ mod test {
             .await
             .unwrap();
 
-        let bts = BASE64_URL_SAFE_NO_PAD
-            .decode(signed.0.serialization().split('.').take(1).next().unwrap())
-            .unwrap();
-        let header: HeaderWithTyp = serde_json::from_slice(&bts).unwrap();
-        assert_eq!(header, expected_header);
-
         let verified = signed
             .0
             .into_verified(&key.verifying_key().into(), &DEFAULT_VALIDATIONS)
             .unwrap();
-        // the `verified.header()` has a different type than `expected_header`
-        assert_eq!(*verified.header(), expected_header.into_inner());
+        assert_eq!(*verified.header(), expected_header);
         // the `iat` claim is set when signing the token
         assert_eq!(verified.payload().status_list, expected_claims.status_list);
         assert_eq!(verified.payload().sub, expected_claims.sub);

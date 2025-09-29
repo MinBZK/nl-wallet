@@ -1,8 +1,6 @@
 use std::borrow::Cow;
-use std::sync::LazyLock;
 
 use base64::prelude::*;
-use derive_more::Constructor;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::Header;
 use jsonwebtoken::jwk::Jwk;
@@ -22,40 +20,56 @@ use crate::error::JwtError;
 use crate::jwk::jwk_from_p256;
 use crate::jwk::jwk_to_p256;
 
-static DEFAULT_HEADER: LazyLock<Header> = LazyLock::new(|| Header {
-    alg: Algorithm::ES256,
-    typ: None,
-    ..Default::default()
-});
+pub(crate) const DEFAULT_JWT_TYP: &str = "jwt";
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Constructor)]
-pub struct JwtHeader {
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct HeaderWithTyp {
     pub alg: Algorithm,
+    pub typ: Cow<'static, str>,
 }
 
-impl Default for JwtHeader {
-    fn default() -> Self {
-        JwtHeader { alg: Algorithm::ES256 }
-    }
-}
-
-impl From<JwtHeader> for Header {
-    fn from(value: JwtHeader) -> Self {
-        Header {
-            alg: value.alg,
-            ..DEFAULT_HEADER.to_owned()
+impl HeaderWithTyp {
+    pub(crate) fn new<T: JwtTyp>() -> Self {
+        HeaderWithTyp {
+            alg: Algorithm::ES256,
+            typ: Cow::Borrowed(T::TYP),
         }
     }
 }
 
-impl From<Header> for JwtHeader {
-    fn from(value: Header) -> Self {
-        JwtHeader { alg: value.alg }
+impl Default for HeaderWithTyp {
+    fn default() -> Self {
+        HeaderWithTyp {
+            alg: Algorithm::ES256,
+            typ: Cow::Borrowed(DEFAULT_JWT_TYP),
+        }
+    }
+}
+
+impl From<HeaderWithTyp> for Header {
+    fn from(value: HeaderWithTyp) -> Self {
+        Header {
+            alg: value.alg,
+            typ: Some(value.typ.into_owned()),
+            ..Default::default()
+        }
+    }
+}
+
+impl TryFrom<Header> for HeaderWithTyp {
+    type Error = JwtError;
+
+    fn try_from(value: Header) -> Result<Self, Self::Error> {
+        let typ = value.typ.ok_or(JwtError::MissingTyp)?;
+        Ok(HeaderWithTyp {
+            alg: value.alg,
+            typ: Cow::Owned(typ),
+        })
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct HeaderWithJwk<H = JwtHeader> {
+pub struct HeaderWithJwk<H = HeaderWithTyp> {
     #[serde(flatten)]
     header: H,
 
@@ -70,7 +84,7 @@ impl HeaderWithJwk {
                 .map_err(|e| JwkConversionError::VerifyingKeyFromPrivateKey(e.into()))?,
         )?;
         Ok(HeaderWithJwk {
-            header: JwtHeader::default(),
+            header: HeaderWithTyp::default(),
             jwk,
         })
     }
@@ -112,7 +126,7 @@ where
 
 #[serde_as]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct HeaderWithX5c<H = JwtHeader> {
+pub struct HeaderWithX5c<H = HeaderWithTyp> {
     #[serde(flatten)]
     header: H,
 
@@ -123,7 +137,7 @@ pub struct HeaderWithX5c<H = JwtHeader> {
 impl HeaderWithX5c {
     pub fn from_certs(x5c: VecNonEmpty<BorrowingCertificate>) -> HeaderWithX5c {
         HeaderWithX5c {
-            header: JwtHeader::default(),
+            header: HeaderWithTyp::default(),
             x5c,
         }
     }
@@ -177,55 +191,6 @@ where
         Ok(HeaderWithX5c {
             header: value.try_into().map_err(|e| JwtError::HeaderConversion(Box::new(e)))?,
             x5c,
-        })
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct HeaderWithTyp<H = JwtHeader> {
-    #[serde(flatten)]
-    header: H,
-
-    pub(crate) typ: Cow<'static, str>,
-}
-
-impl<H> HeaderWithTyp<H> {
-    pub(crate) fn new<T: JwtTyp>(header: H) -> Self {
-        HeaderWithTyp {
-            header,
-            typ: Cow::Borrowed(T::TYP),
-        }
-    }
-
-    pub fn typ(&self) -> &str {
-        &self.typ
-    }
-
-    pub fn into_inner(self) -> H {
-        self.header
-    }
-}
-
-impl<H: Into<Header>> From<HeaderWithTyp<H>> for Header {
-    fn from(value: HeaderWithTyp<H>) -> Self {
-        let mut header: Header = value.header.into();
-        header.typ = Some(value.typ.to_string());
-        header
-    }
-}
-
-impl<H, E> TryFrom<Header> for HeaderWithTyp<H>
-where
-    H: TryFrom<Header, Error = E>,
-    E: std::error::Error + Send + Sync + 'static,
-{
-    type Error = JwtError;
-
-    fn try_from(value: Header) -> Result<Self, Self::Error> {
-        let typ = value.typ.as_ref().ok_or(JwtError::MissingTyp)?.to_owned();
-        Ok(HeaderWithTyp {
-            header: value.try_into().map_err(|e| JwtError::HeaderConversion(Box::new(e)))?,
-            typ: Cow::Owned(typ),
         })
     }
 }

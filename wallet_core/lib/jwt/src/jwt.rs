@@ -41,10 +41,10 @@ use utils::vec_nonempty;
 
 use crate::error::JwtError;
 use crate::error::JwtX5cError;
+use crate::headers::DEFAULT_JWT_TYP;
 use crate::headers::HeaderWithJwk;
 use crate::headers::HeaderWithTyp;
 use crate::headers::HeaderWithX5c;
-use crate::headers::JwtHeader;
 use crate::jwk::jwk_to_p256;
 
 /// JWT type, generic over its contents.
@@ -58,7 +58,7 @@ use crate::jwk::jwk_to_p256;
 /// explicitly as a field in the (de)serialized type.
 #[derive(Debug, Clone, PartialEq, Eq, Display, SerializeDisplay, DeserializeFromStr)]
 #[display("{serialization}")]
-pub struct UnverifiedJwt<T, H = JwtHeader> {
+pub struct UnverifiedJwt<T, H = HeaderWithTyp> {
     serialization: String,
 
     payload_end: usize,
@@ -145,13 +145,15 @@ where
         let token_data = jsonwebtoken::decode::<T>(&self.serialization, &pubkey.0, validation_options)
             .map_err(JwtError::Validation)?;
 
-        let header: HeaderWithTyp<H> = token_data
-            .header
-            .try_into()
-            .map_err(|e| JwtError::HeaderConversion(Box::new(e)))?;
-        T::is_valid_typ(&header.typ)?;
+        T::is_valid_typ(token_data.header.typ.as_deref())?;
 
-        Ok((header.into_inner(), token_data.claims))
+        Ok((
+            token_data
+                .header
+                .try_into()
+                .map_err(|e| JwtError::HeaderConversion(Box::new(e)))?,
+            token_data.claims,
+        ))
     }
 
     pub fn into_verified(
@@ -263,7 +265,7 @@ where
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, AsRef, Display, SerializeDisplay)]
-pub struct SignedJwt<T, H = JwtHeader>(UnverifiedJwt<T, H>);
+pub struct SignedJwt<T, H = HeaderWithTyp>(UnverifiedJwt<T, H>);
 
 impl<T, H> SignedJwt<T, H> {
     /// Internal constructor that takes an already concatendated header and payload and a signature.
@@ -280,9 +282,11 @@ impl<T, H> SignedJwt<T, H> {
     }
 }
 
-impl<T: Serialize + JwtTyp, H: Serialize> SignedJwt<T, H> {
+impl<T: Serialize + JwtTyp, H: Serialize + Into<Header>> SignedJwt<T, H> {
     async fn sign_with_header(header: H, payload: &T, privkey: &impl EcdsaKey) -> Result<SignedJwt<T, H>> {
-        let header = HeaderWithTyp::new::<T>(header);
+        let mut header: Header = header.into();
+        header.typ = Some(T::TYP.to_owned());
+
         let encoded_header = BASE64_URL_SAFE_NO_PAD.encode(serde_json::to_vec(&header)?);
         let encoded_payload = BASE64_URL_SAFE_NO_PAD.encode(serde_json::to_vec(payload)?);
 
@@ -299,8 +303,8 @@ impl<T: Serialize + JwtTyp, H: Serialize> SignedJwt<T, H> {
 }
 
 impl<T: Serialize + JwtTyp> SignedJwt<T> {
-    pub async fn sign(payload: &T, privkey: &impl EcdsaKey) -> Result<SignedJwt<T, JwtHeader>> {
-        SignedJwt::sign_with_header(JwtHeader::default(), payload, privkey).await
+    pub async fn sign(payload: &T, privkey: &impl EcdsaKey) -> Result<SignedJwt<T, HeaderWithTyp>> {
+        SignedJwt::sign_with_header(HeaderWithTyp::default(), payload, privkey).await
     }
 }
 
@@ -339,7 +343,7 @@ impl<T: Serialize + JwtTyp> SignedJwt<T> {
         K: CredentialEcdsaKey + 'a,
         P: WscdPoa,
     {
-        let header = HeaderWithTyp::new::<T>(JwtHeader::default());
+        let header = HeaderWithTyp::new::<T>();
         let encoded_header = BASE64_URL_SAFE_NO_PAD.encode(serde_json::to_vec(&header)?);
 
         // Prepare the header and payload combinations for signing, while retaining a copy of that we can return.
@@ -431,7 +435,7 @@ impl<T: DeserializeOwned, H: DeserializeOwned> From<SignedJwt<T, H>> for Verifie
 /// A verified JWS, along with its header and payload.
 #[derive(Debug, Clone, PartialEq, Eq, Display, SerializeDisplay)]
 #[display("{jwt}")]
-pub struct VerifiedJwt<T, H = JwtHeader> {
+pub struct VerifiedJwt<T, H = HeaderWithTyp> {
     header: H,
     payload: T,
 
@@ -586,7 +590,7 @@ where
     }
 }
 
-impl<T> SignedJwt<T, JwtHeader>
+impl<T> SignedJwt<T, HeaderWithTyp>
 where
     T: Serialize + JwtTyp + JwtSub,
 {
@@ -599,13 +603,15 @@ where
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 pub trait JwtTyp {
-    const TYP: &'static str = "jwt";
+    const TYP: &'static str = DEFAULT_JWT_TYP;
 
-    fn is_valid_typ(header_typ: &str) -> Result<(), JwtError> {
-        if header_typ != Self::TYP {
-            return Err(JwtError::UnexpectedTyp(Self::TYP.to_owned(), header_typ.to_owned()));
+    fn is_valid_typ(header_typ: Option<&str>) -> Result<(), JwtError> {
+        if header_typ.is_none_or(|typ| typ != Self::TYP) {
+            return Err(JwtError::UnexpectedTyp(
+                Self::TYP.to_owned(),
+                header_typ.map(str::to_owned),
+            ));
         }
-
         Ok(())
     }
 }
@@ -615,7 +621,7 @@ impl JwtTyp for serde_json::Value {}
 /// The JWS JSON serialization, see <https://www.rfc-editor.org/rfc/rfc7515.html#section-7.2>,
 /// which allows for a single payload to be signed by multiple signatures.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct JsonJwt<T, H = JwtHeader> {
+pub struct JsonJwt<T, H = HeaderWithTyp> {
     pub payload: String,
     #[serde(flatten)]
     pub signatures: JsonJwtSignatures,
@@ -774,7 +780,7 @@ mod tests {
     #[case(include_str!("../examples/spec/example.jwt"), "eyJ0eXAiOiJKV1QiLA0KICJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJqb2UiLA0KICJleHAiOjEzMDA4MTkzODAsDQogImh0dHA6Ly9leGFtcGxlLmNvbS9pc19yb290Ijp0cnVlfQ", Algorithm::HS256)]
     #[case(include_str!("../examples/spec/example_jws.jwt"), "eyJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJqb2UiLA0KICJleHAiOjEzMDA4MTkzODAsDQogImh0dHA6Ly9leGFtcGxlLmNvbS9pc19yb290Ijp0cnVlfQ", Algorithm::RS256)]
     fn test_unverified_jwt_parse(#[case] jwt: &str, #[case] signed_slice: &str, #[case] alg: Algorithm) {
-        let parsed: UnverifiedJwt<EmptyPayload> = jwt.parse().unwrap();
+        let parsed: UnverifiedJwt<EmptyPayload, Header> = jwt.parse().unwrap();
         assert_eq!(
             parsed,
             UnverifiedJwt {
@@ -876,10 +882,10 @@ mod tests {
         let jwt = UnverifiedJwt {
             serialization: jwt.0.serialization,
             payload_end: jwt.0.payload_end,
-            _jwt_type: PhantomData::<(OtherMessage, JwtHeader)>,
+            _jwt_type: PhantomData::<(OtherMessage, HeaderWithTyp)>,
         };
 
-        // the JWT has a `sub` with the wrong value
+        // the JWT has a `typ` with the wrong value
         let jwt_header: HashMap<String, serde_json::Value> = part(0, &jwt.serialization);
         assert_eq!(
             *jwt_header.get("typ").unwrap(),
@@ -891,7 +897,7 @@ mod tests {
             .parse_and_verify(&private_key.verifying_key().into(), &DEFAULT_VALIDATIONS)
             .expect_err("should fail because the JWT has the wrong `typ` field");
 
-        assert_matches!(parsed, JwtError::UnexpectedTyp(expected, found) if expected == OtherMessage::TYP && found == ToyMessage::TYP);
+        assert_matches!(parsed, JwtError::UnexpectedTyp(expected, Some(found)) if expected == OtherMessage::TYP && found == ToyMessage::TYP);
     }
 
     #[tokio::test]
@@ -1216,7 +1222,7 @@ mod tests {
 
     #[rstest]
     #[case(Header::default())]
-    #[case(JwtHeader::default())]
+    #[case(HeaderWithTyp::default())]
     #[case(ToyMessage { number: 1, string: "a".to_string() })]
     fn test_payload_with_sub_deserialize<U>(#[case] u: U)
     where

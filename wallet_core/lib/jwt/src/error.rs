@@ -40,9 +40,9 @@ pub enum JwtError {
     #[category(critical)]
     HeaderConversion(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
 
-    #[error("unexpected type: expected {0}, found {1}")]
+    #[error("unexpected type: expected {0}, found {1:?}")]
     #[category(critical)]
-    UnexpectedTyp(String, String),
+    UnexpectedTyp(String, Option<String>),
 
     #[error("missing jwk field in JWT header")]
     #[category(critical)]
