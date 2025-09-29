@@ -87,9 +87,11 @@ rust-audit:
       "nl-wallet-demo-issuer"
       "nl-wallet-provider-migrations"
       "nl-wallet-provider"
-      "nl-wallet-server-migrations"
+      "nl-wallet-verification-server-migrations"
       "nl-wallet-verification-server"
+      "nl-wallet-issuance-server-migrations"
       "nl-wallet-issuance-server"
+      "nl-wallet-pid-issuer-migrations"
       "nl-wallet-pid-issuer"
       "nl-wallet-gba-hc-converter"
       )
