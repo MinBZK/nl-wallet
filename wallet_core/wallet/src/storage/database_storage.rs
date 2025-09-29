@@ -997,6 +997,7 @@ pub(crate) mod tests {
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
     use crypto::utils::random_bytes;
+    use crypto::utils::random_string;
     use mdoc::holder::Mdoc;
     use openid4vc::issuance_session::IssuedCredentialCopies;
     use platform_support::hw_keystore::mock::MockHardwareEncryptionKey;
@@ -1105,6 +1106,20 @@ pub(crate) mod tests {
             data: "Hello World!".to_string(),
         };
 
+        let initial_registration = RegistrationData {
+            attested_key_identifier: random_string(16),
+            pin_salt: random_bytes(8),
+            wallet_id: String::from("wallet123"),
+            wallet_certificate: "this.isa.jwt".parse().unwrap(),
+        };
+
+        let exported_registration = RegistrationData {
+            attested_key_identifier: random_string(16),
+            pin_salt: random_bytes(8),
+            wallet_id: String::from("wallet456"),
+            wallet_certificate: "this.isa.jwt".parse().unwrap(),
+        };
+
         // Export via block to have everything dropped
         let transfer = {
             let tempdir = tempfile::tempdir().unwrap();
@@ -1112,6 +1127,7 @@ pub(crate) mod tests {
 
             storage.open().await.unwrap();
             storage.insert_data(&test).await.unwrap();
+            storage.insert_data(&exported_registration).await.unwrap();
             storage.export().await.unwrap()
         };
 
@@ -1120,10 +1136,13 @@ pub(crate) mod tests {
         let mut storage = DatabaseStorage::<MockHardwareEncryptionKey>::new(tempdir.as_ref().to_path_buf());
 
         storage.open().await.unwrap();
+        storage.insert_data(&initial_registration).await.unwrap();
         storage.import(transfer).await.unwrap();
-        let stored: Option<TestData> = storage.fetch_data().await.unwrap();
+        let imported_test_data: Option<TestData> = storage.fetch_data().await.unwrap();
+        let imported_registration_data: Option<RegistrationData> = storage.fetch_data().await.unwrap();
 
-        assert_eq!(Some(test), stored);
+        assert_eq!(Some(test), imported_test_data);
+        assert_eq!(String::from("wallet123"), imported_registration_data.unwrap().wallet_id);
     }
 
     #[tokio::test]
