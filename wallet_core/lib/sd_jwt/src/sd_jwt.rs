@@ -15,7 +15,6 @@ use derive_more::Display;
 use itertools::Itertools;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::Validation;
-use jwt::JwtTyp;
 use nutype::nutype;
 use p256::ecdsa::VerifyingKey;
 use rustls_pki_types::TrustAnchor;
@@ -40,6 +39,7 @@ use crypto::x509::CertificateUsage;
 use http_utils::urls::HttpsUri;
 use jwt::EcdsaDecodingKey;
 use jwt::Header;
+use jwt::JwtTyp;
 use jwt::UnverifiedJwt;
 use jwt::VerifiedJwt;
 use jwt::headers::HeaderWithX5c;
@@ -207,14 +207,14 @@ impl From<UnsignedSdJwtPresentation> for UnverifiedSdJwt {
 pub struct SdJwtClaims {
     pub _sd_alg: Option<SdAlg>,
 
-    // TODO this should be mandatory
+    // TODO this should be mandatory (PVW-4868)
     pub cnf: Option<RequiredKeyBinding>,
 
-    // TODO this should be mandatory
+    // TODO this should be mandatory (PVW-4868)
     #[serde(rename = "vct#integrity")]
     pub vct_integrity: Option<Integrity>,
 
-    // TODO this should be mandatory
+    // TODO this should be mandatory (PVW-4868)
     pub vct: Option<String>,
 
     pub iss: HttpsUri,

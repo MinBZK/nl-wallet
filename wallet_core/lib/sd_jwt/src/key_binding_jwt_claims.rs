@@ -212,11 +212,9 @@ mod test {
     use base64::prelude::*;
     use chrono::Duration;
     use chrono::Utc;
-    use crypto::server_keys::generate::Ca;
     use futures::FutureExt;
     use itertools::Itertools;
     use jsonwebtoken::Algorithm;
-    use jwt::Header;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
     use serde_json::json;
@@ -224,7 +222,9 @@ mod test {
 
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::mock_remote::MockRemoteWscd;
+    use crypto::server_keys::generate::Ca;
     use jwt::EcdsaDecodingKey;
+    use jwt::Header;
     use jwt::SignedJwt;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_at_least::IntoNonEmptyIterator;
