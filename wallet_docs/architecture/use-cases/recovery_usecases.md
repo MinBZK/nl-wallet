@@ -52,7 +52,7 @@ sequenceDiagram
     note over User, WP: Account status is 'blocked' or user forgot PIN 
     User ->> Wallet : Start PIN Recovery 
     note over Wallet, PID:Steps 2-17 from PID-issuance flow. <br/> Wallet has received access token from PID Issuer (and PID-preview)
-    Wallet ->> Wallet: Check Recovery code in stored PID against recovery code in PID-preview    
+    Wallet ->> Wallet: Check Recovery code in stored PID against recovery code in PID-preview<br/>Must match, else terminate with error
     Wallet ->> User: Request new PIN
     User ->> Wallet: Give new PIN (including confirmation)
     Wallet ->> WP: Send start_pin_recovery(new PIN, c_nonce for PID issuance)
