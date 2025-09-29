@@ -23,6 +23,7 @@ use wallet_account::messages::instructions::ChangePinCommit;
 use wallet_account::messages::instructions::ChangePinRollback;
 use wallet_account::messages::instructions::ChangePinStart;
 use wallet_account::messages::instructions::CheckPin;
+use wallet_account::messages::instructions::CompleteTransfer;
 use wallet_account::messages::instructions::ConfirmTransfer;
 use wallet_account::messages::instructions::DiscloseRecoveryCode;
 use wallet_account::messages::instructions::DiscloseRecoveryCodePinRecovery;
@@ -97,6 +98,10 @@ where
                 .route(
                     &format!("/instructions/hw_signed/{}", ReceiveWalletPayload::NAME),
                     post(handle_hw_signed_instruction::<ReceiveWalletPayload, _, _, _>),
+                )
+                .route(
+                    &format!("/instructions/hw_signed/{}", CompleteTransfer::NAME),
+                    post(handle_hw_signed_instruction::<CompleteTransfer, _, _, _>),
                 )
                 .route(
                     &format!("/instructions/{}", ChangePinStart::NAME),

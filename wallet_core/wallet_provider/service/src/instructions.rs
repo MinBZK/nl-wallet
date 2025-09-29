@@ -37,6 +37,7 @@ use wallet_account::messages::instructions::ChangePinCommit;
 use wallet_account::messages::instructions::ChangePinRollback;
 use wallet_account::messages::instructions::ChangePinStart;
 use wallet_account::messages::instructions::CheckPin;
+use wallet_account::messages::instructions::CompleteTransfer;
 use wallet_account::messages::instructions::ConfirmTransfer;
 use wallet_account::messages::instructions::DiscloseRecoveryCode;
 use wallet_account::messages::instructions::DiscloseRecoveryCodePinRecovery;
@@ -201,6 +202,12 @@ impl ValidateInstruction for SendWalletPayload {
 }
 
 impl ValidateInstruction for ReceiveWalletPayload {
+    fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+        validate_transfer_instruction(wallet_user)
+    }
+}
+
+impl ValidateInstruction for CompleteTransfer {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
         validate_transfer_instruction(wallet_user)
     }
@@ -981,6 +988,39 @@ impl HandleInstruction for ReceiveWalletPayload {
         tx.commit().await?;
 
         Ok(ReceiveWalletPayloadResult { payload })
+    }
+}
+
+impl HandleInstruction for CompleteTransfer {
+    type Result = ();
+
+    async fn handle<T, R, H, G>(
+        self,
+        wallet_user: &WalletUser,
+        _generators: &G,
+        user_state: &UserState<R, H, impl WuaIssuer>,
+    ) -> Result<Self::Result, InstructionError>
+    where
+        T: Committable,
+        R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
+        H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
+        G: Generator<Uuid> + Generator<DateTime<Utc>>,
+    {
+        let tx = user_state.repositories.begin_transaction().await?;
+
+        let _transfer_session = check_transfer_instruction_prerequisites(
+            &tx,
+            &user_state.repositories,
+            self.transfer_session_id,
+            wallet_user,
+        )
+        .await?;
+
+        // TODO
+
+        tx.commit().await?;
+
+        Ok(())
     }
 }
 
