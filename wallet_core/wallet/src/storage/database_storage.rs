@@ -20,6 +20,7 @@ use sea_orm::QuerySelect;
 use sea_orm::Set;
 use sea_orm::StatementBuilder;
 use sea_orm::TransactionTrait;
+use sea_orm::prelude::Json;
 use sea_orm::sea_query::Alias;
 use sea_orm::sea_query::BinOper;
 use sea_orm::sea_query::Expr;
@@ -395,7 +396,7 @@ where
         let database_path = self.database_path_for_name(DATABASE_NAME);
         let (_, key) = self.key_for_name(DATABASE_NAME).await?;
 
-        tokio::task::spawn_blocking(move || {
+        let result = tokio::task::spawn_blocking(move || {
             let connection = rusqlite::Connection::open(database_path)?;
             connection.pragma_update(None, "key", String::from(key))?;
 
@@ -411,19 +412,32 @@ where
             connection.execute("DETACH DATABASE export", [])?;
 
             let data = std::fs::read(export_file.path())?;
-            Ok(DatabaseExport::new(export_key, data))
+            StorageResult::Ok(DatabaseExport::new(export_key, data))
         })
-        .await?
+        .await?;
+
+        self.open().await?;
+
+        result
     }
 
     async fn import(&mut self, export: DatabaseExport) -> StorageResult<()> {
-        if let Some(open_database) = self.open_database.take() {
-            open_database.database.close().await?;
-        };
+        // Fetch all keyed data of the existing database before import
+        let destination_keyed_data: Vec<(String, Json)> = keyed_data::Entity::find()
+            .into_tuple()
+            .all(self.database()?.connection())
+            .await?;
+
+        self.open_database
+            .take()
+            .expect("the database is assumed to be open at this point")
+            .database
+            .close()
+            .await?;
 
         let database_path = self.database_path_for_name(DATABASE_NAME);
         let (_, key) = self.key_for_name(DATABASE_NAME).await?;
-        tokio::task::spawn_blocking(move || {
+        let _ = tokio::task::spawn_blocking(move || {
             let import_file = NamedTempFile::new()?;
             std::fs::write(import_file.path(), export.data)?;
 
@@ -444,9 +458,23 @@ where
             // Rename is atomic in fs
             std::fs::rename(encrypted_file.path(), database_path)?;
 
-            Ok(())
+            StorageResult::Ok(())
         })
-        .await?
+        .await?;
+
+        // Update the keyed data in the imported database
+        self.open().await?;
+        let tx = self.database()?.connection().begin().await?;
+        for (key, json) in destination_keyed_data {
+            keyed_data::Entity::update_many()
+                .col_expr(keyed_data::Column::Data, Expr::value(json))
+                .filter(keyed_data::Column::Key.eq(key))
+                .exec(&tx)
+                .await?;
+        }
+        tx.commit().await?;
+
+        Ok(())
     }
 
     /// Clear the contents of the database by closing it and removing both database and key file.
@@ -663,6 +691,26 @@ where
         Ok(())
     }
 
+    async fn has_any_attestations_with_type(&self, attestation_type: &str) -> StorageResult<bool> {
+        let select_statement = Query::select()
+            .column((attestation::Entity, attestation::Column::Id))
+            .from(attestation::Entity)
+            .and_where(Expr::col(attestation::Column::AttestationType).eq(attestation_type))
+            .take();
+
+        let exists_query = Query::select()
+            .expr_as(Expr::exists(select_statement), Alias::new("attestation_type_exists"))
+            .to_owned();
+
+        let exists_result = self.execute_query(exists_query).await?;
+        let exists = exists_result
+            .map(|result| result.try_get("", "attestation_type_exists"))
+            .transpose()?
+            .unwrap_or(false);
+
+        Ok(exists)
+    }
+
     async fn fetch_unique_attestations(&self) -> StorageResult<Vec<StoredAttestationCopy>> {
         self.query_unique_attestations(None).await
     }
@@ -685,26 +733,6 @@ where
         };
 
         self.query_unique_attestations(Some(condition)).await
-    }
-
-    async fn has_any_attestations_with_type(&self, attestation_type: &str) -> StorageResult<bool> {
-        let select_statement = Query::select()
-            .column((attestation::Entity, attestation::Column::Id))
-            .from(attestation::Entity)
-            .and_where(Expr::col(attestation::Column::AttestationType).eq(attestation_type))
-            .take();
-
-        let exists_query = Query::select()
-            .expr_as(Expr::exists(select_statement), Alias::new("attestation_type_exists"))
-            .to_owned();
-
-        let exists_result = self.execute_query(exists_query).await?;
-        let exists = exists_result
-            .map(|result| result.try_get("", "attestation_type_exists"))
-            .transpose()?
-            .unwrap_or(false);
-
-        Ok(exists)
     }
 
     async fn log_disclosure_event(
@@ -969,6 +997,7 @@ pub(crate) mod tests {
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
     use crypto::utils::random_bytes;
+    use crypto::utils::random_string;
     use mdoc::holder::Mdoc;
     use openid4vc::issuance_session::IssuedCredentialCopies;
     use platform_support::hw_keystore::mock::MockHardwareEncryptionKey;
@@ -1077,6 +1106,20 @@ pub(crate) mod tests {
             data: "Hello World!".to_string(),
         };
 
+        let initial_registration = RegistrationData {
+            attested_key_identifier: random_string(16),
+            pin_salt: random_bytes(8),
+            wallet_id: String::from("wallet123"),
+            wallet_certificate: "this.isa.jwt".parse().unwrap(),
+        };
+
+        let exported_registration = RegistrationData {
+            attested_key_identifier: random_string(16),
+            pin_salt: random_bytes(8),
+            wallet_id: String::from("wallet456"),
+            wallet_certificate: "this.isa.jwt".parse().unwrap(),
+        };
+
         // Export via block to have everything dropped
         let transfer = {
             let tempdir = tempfile::tempdir().unwrap();
@@ -1084,6 +1127,7 @@ pub(crate) mod tests {
 
             storage.open().await.unwrap();
             storage.insert_data(&test).await.unwrap();
+            storage.insert_data(&exported_registration).await.unwrap();
             storage.export().await.unwrap()
         };
 
@@ -1091,11 +1135,14 @@ pub(crate) mod tests {
         let tempdir = tempfile::tempdir().unwrap();
         let mut storage = DatabaseStorage::<MockHardwareEncryptionKey>::new(tempdir.as_ref().to_path_buf());
 
-        storage.import(transfer).await.unwrap();
         storage.open().await.unwrap();
-        let stored: Option<TestData> = storage.fetch_data().await.unwrap();
+        storage.insert_data(&initial_registration).await.unwrap();
+        storage.import(transfer).await.unwrap();
+        let imported_test_data: Option<TestData> = storage.fetch_data().await.unwrap();
+        let imported_registration_data: Option<RegistrationData> = storage.fetch_data().await.unwrap();
 
-        assert_eq!(Some(test), stored);
+        assert_eq!(Some(test), imported_test_data);
+        assert_eq!(String::from("wallet123"), imported_registration_data.unwrap().wallet_id);
     }
 
     #[tokio::test]

@@ -20,6 +20,7 @@ use wallet_account::messages::instructions::CancelTransfer;
 use wallet_account::messages::instructions::ConfirmTransfer;
 use wallet_account::messages::instructions::GetTransferStatus;
 use wallet_account::messages::instructions::InstructionAndResult;
+use wallet_account::messages::instructions::ReceiveWalletPayload;
 use wallet_account::messages::instructions::SendWalletPayload;
 use wallet_account::messages::transfer::TransferSessionState;
 use wallet_configuration::wallet_config::WalletConfiguration;
@@ -39,6 +40,7 @@ use crate::transfer::database_payload::DatabasePayloadError;
 use crate::transfer::database_payload::WalletDatabasePayload;
 use crate::transfer::uri::TransferQuery;
 use crate::transfer::uri::TransferUriError;
+use crate::wallet::attestations::AttestationsError;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
@@ -90,6 +92,10 @@ pub enum TransferError {
     #[error("invalid transfer uri: {0}")]
     #[category(pd)]
     TransferUri(#[from] TransferUriError),
+
+    #[error("error emitting attestations: {0}")]
+    #[category(pd)]
+    EmitAttestations(#[from] AttestationsError),
 }
 
 impl<CR, UR, S, AKH, APC, DC, IS, DCC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC>
@@ -143,7 +149,7 @@ where
         self.storage
             .write()
             .await
-            .insert_data(&TransferData {
+            .upsert_data(&TransferData {
                 transfer_session_id: transfer_query.session_id,
                 key_data: Some(TransferKeyData::Source {
                     public_key: transfer_query.public_key,
@@ -192,10 +198,23 @@ where
             return Err(TransferError::MissingTransferSessionId);
         };
 
-        self.send_transfer_instruction(GetTransferStatus {
-            transfer_session_id: transfer_data.transfer_session_id.into(),
-        })
-        .await
+        let status = self
+            .send_transfer_instruction(GetTransferStatus {
+                transfer_session_id: transfer_data.transfer_session_id.into(),
+            })
+            .await?;
+
+        if let Some(TransferKeyData::Destination { .. }) = transfer_data.key_data
+            && status == TransferSessionState::ReadyForDownload
+        {
+            self.receive_wallet_payload(transfer_data).await?;
+
+            // TODO: PVW-4599: send complete_transfer instruction
+
+            return Ok(TransferSessionState::Success);
+        }
+
+        Ok(status)
     }
 
     #[instrument(skip_all)]
@@ -214,6 +233,7 @@ where
         };
 
         let database_export = self.storage.write().await.export().await?;
+
         let database_payload = WalletDatabasePayload::new(database_export);
 
         let transfer_session_id: Uuid = transfer_data.transfer_session_id.into();
@@ -243,6 +263,28 @@ where
             })
             .await
             .map_err(TransferError::Instruction)
+    }
+
+    #[instrument(skip_all)]
+    #[sentry_capture_error]
+    pub async fn receive_wallet_payload(&mut self, transfer_data: TransferData) -> Result<(), TransferError> {
+        let Some(TransferKeyData::Destination { private_key }) = transfer_data.key_data else {
+            return Err(TransferError::IllegalWalletState);
+        };
+
+        let result = self
+            .send_transfer_instruction(ReceiveWalletPayload {
+                transfer_session_id: transfer_data.transfer_session_id.into(),
+            })
+            .await?;
+
+        let database_payload = WalletDatabasePayload::decrypt(&result.payload, &private_key)?;
+        self.storage.write().await.import(database_payload.into()).await?;
+
+        self.emit_attestations().await?;
+        self.emit_recent_history().await?;
+
+        Ok(())
     }
 
     fn validate_transfer_allowed(&self) -> Result<(), TransferError> {
@@ -305,8 +347,10 @@ mod tests {
     use parking_lot::Mutex;
     use url::Host;
     use uuid::Uuid;
+
     use wallet_account::messages::instructions::HwSignedInstruction;
     use wallet_account::messages::instructions::Instruction;
+    use wallet_account::messages::instructions::ReceiveWalletPayloadResult;
 
     use crate::digid::MockDigidSession;
     use crate::storage::ChangePinData;
@@ -420,7 +464,7 @@ mod tests {
 
         wallet
             .mut_storage()
-            .expect_insert_data::<TransferData>()
+            .expect_upsert_data::<TransferData>()
             .returning(|_| Ok(()));
 
         wallet
@@ -755,7 +799,7 @@ mod tests {
 
         source_wallet
             .mut_storage()
-            .expect_insert_data::<TransferData>()
+            .expect_upsert_data::<TransferData>()
             .returning(|_| Ok(()));
 
         source_wallet
@@ -791,7 +835,7 @@ mod tests {
             .await
             .expect("Wallet confirm transfer should have succeeded");
 
-        // Send the wallet payload
+        // Send the wallet payload from the source
 
         let transfer_query: TransferQuery = transfer_url.try_into().unwrap();
         let public_key = transfer_query.public_key;
@@ -814,6 +858,8 @@ mod tests {
             .mut_storage()
             .expect_export()
             .returning(move || Ok(DatabaseExport::new(database_export_key, database_export_bytes.clone())));
+
+        source_wallet.mut_storage().expect_open().returning(|| Ok(()));
 
         source_wallet
             .mut_storage()
@@ -862,8 +908,62 @@ mod tests {
             .await
             .expect("Wallet send payload should have succeeded");
 
-        let instruction = payload_param.lock();
-        let payload = instruction.as_ref().unwrap();
+        // Receive payload on the destination
+        destination_wallet
+            .mut_storage()
+            .expect_fetch_data::<InstructionData>()
+            .returning(|| {
+                Ok(Some(InstructionData {
+                    instruction_sequence_number: 0,
+                }))
+            });
+
+        destination_wallet
+            .mut_storage()
+            .expect_upsert_data::<InstructionData>()
+            .returning(|_| Ok(()));
+
+        Arc::get_mut(&mut destination_wallet.account_provider_client)
+            .unwrap()
+            .expect_instruction_challenge()
+            .once()
+            .returning(|_, _| Ok(random_bytes(32)));
+
+        let payload = payload_param.lock().as_ref().unwrap().payload.clone();
+
+        let wp_result = create_wp_result(ReceiveWalletPayloadResult { payload });
+
+        Arc::get_mut(&mut destination_wallet.account_provider_client)
+            .unwrap()
+            .expect_hw_signed_instruction()
+            .once()
+            .return_once(move |_, _: HwSignedInstruction<ReceiveWalletPayload>| Ok(wp_result));
+
+        destination_wallet.mut_storage().expect_import().returning(|_| Ok(()));
+
+        destination_wallet.mut_storage().expect_open().returning(|| Ok(()));
+
+        destination_wallet
+            .mut_storage()
+            .expect_fetch_unique_attestations()
+            .returning(|| Ok(vec![]));
+
+        destination_wallet
+            .mut_storage()
+            .expect_fetch_recent_wallet_events()
+            .returning(|| Ok(vec![]));
+
+        let private_key = private_key_param.lock().as_ref().unwrap().clone();
+        destination_wallet
+            .receive_wallet_payload(TransferData {
+                transfer_session_id: transfer_session_id.into(),
+                key_data: Some(TransferKeyData::Destination { private_key }),
+            })
+            .await
+            .expect("Wallet receive payload should have succeeded");
+
+        let send_wallet_payload_instruction = payload_param.lock();
+        let payload = send_wallet_payload_instruction.as_ref().unwrap();
         assert_eq!(transfer_session_id, payload.transfer_session_id);
 
         let decrypted_database_export =
