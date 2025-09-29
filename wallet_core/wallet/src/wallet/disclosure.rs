@@ -887,7 +887,7 @@ mod tests {
     use attestation_data::constants::PID_ATTESTATION_TYPE;
     use attestation_data::constants::PID_RECOVERY_CODE;
     use attestation_data::disclosure_type::DisclosureType;
-    use attestation_data::x509::generate::mock::generate_reader_mock;
+    use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
     use attestation_types::claim_path::ClaimPath;
     use crypto::server_keys::generate::Ca;
     use dcql::normalized::NormalizedCredentialRequests;
@@ -1005,7 +1005,7 @@ mod tests {
     ) -> (MockDisclosureSession, VerifierCertificate) {
         let ca = Ca::generate_reader_mock_ca().unwrap();
         let reader_registration = ReaderRegistration::new_mock();
-        let key_pair = generate_reader_mock(&ca, Some(reader_registration)).unwrap();
+        let key_pair = generate_reader_mock_with_registration(&ca, Some(reader_registration)).unwrap();
         let verifier_certificate = VerifierCertificate::try_new(key_pair.into()).unwrap().unwrap();
 
         let disclosure_session = setup_disclosure_session_verifier_certificate(

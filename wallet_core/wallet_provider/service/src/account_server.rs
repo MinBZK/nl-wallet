@@ -57,7 +57,9 @@ use hsm::model::encrypter::Decrypter;
 use hsm::model::encrypter::Encrypter;
 use hsm::service::HsmError;
 use jwt::EcdsaDecodingKey;
-use jwt::JwtSubject;
+use jwt::JwtSub;
+use jwt::JwtTyp;
+use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
@@ -347,9 +349,11 @@ struct RegistrationChallengeClaims {
     random: Vec<u8>,
 }
 
-impl JwtSubject for RegistrationChallengeClaims {
+impl JwtSub for RegistrationChallengeClaims {
     const SUB: &'static str = "registration_challenge";
 }
+
+impl JwtTyp for RegistrationChallengeClaims {}
 
 pub struct AppleAttestationConfiguration {
     pub app_identifier: AppIdentifier,
@@ -443,8 +447,8 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         &self,
         certificate_signing_key: &impl WalletCertificateSigningKey,
     ) -> Result<Vec<u8>, ChallengeError> {
-        let challenge = UnverifiedJwt::sign_with_sub(
-            &RegistrationChallengeClaims {
+        let challenge = SignedJwt::sign_with_sub(
+            RegistrationChallengeClaims {
                 wallet_id: crypto::utils::random_string(32),
                 random: crypto::utils::random_bytes(32),
                 exp: Utc::now() + Duration::from_secs(60),
@@ -453,6 +457,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         )
         .await
         .map_err(ChallengeError::ChallengeSigning)?
+        .as_ref()
         .serialization()
         .as_bytes()
         .to_vec();
@@ -1293,6 +1298,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             .map_err(RegistrationError::ChallengeValidation)?;
         jwt.parse_and_verify_with_sub(certificate_signing_pubkey)
             .map_err(RegistrationError::ChallengeValidation)
+            .map(|(_, claims)| claims)
     }
 
     fn verify_instruction_challenge<'a>(
@@ -1408,8 +1414,9 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             iat: Utc::now(),
         };
 
-        UnverifiedJwt::sign_with_sub(&claims, instruction_result_signing_key)
+        SignedJwt::sign_with_sub(claims, instruction_result_signing_key)
             .await
+            .map(Into::into)
             .map_err(InstructionError::Signing)
     }
 }
@@ -2038,6 +2045,7 @@ mod tests {
         let new_certificate = new_certificate_result
             .parse_and_verify_with_sub(&instruction_result_signing_key.verifying_key().into())
             .expect("Could not parse and verify instruction result")
+            .1
             .result;
 
         (
@@ -2055,7 +2063,7 @@ mod tests {
     ) {
         let (setup, account_server, hw_privkey, cert, user_state) = setup_and_do_registration(attestation_type).await;
 
-        let cert_data = cert
+        let (_, cert_data) = cert
             .parse_and_verify_with_sub(&setup.signing_key.verifying_key().into())
             .expect("Could not parse and verify wallet certificate");
         assert_eq!(cert_data.iss, account_server.name);

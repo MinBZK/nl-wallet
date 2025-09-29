@@ -22,10 +22,9 @@ futures = { workspace = true, features = ["std"] }
 itertools.workspace = true
 parking_lot = { workspace = true, optional = true }
 p256 = { workspace = true, features = ["ecdsa"] }
+rand_core = { workspace = true, optional = true }
 serde = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
-
-rand_core = { workspace = true, optional = true }
 
 crypto = { path = "../crypto/", features = ["mock"] }
 jwt.path = "../jwt"

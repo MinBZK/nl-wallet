@@ -4,7 +4,6 @@ use std::hash::Hash;
 use chrono::DateTime;
 use chrono::Utc;
 use itertools::Itertools;
-use jsonwebtoken::Algorithm;
 use tracing::info;
 use tracing::warn;
 
@@ -159,8 +158,8 @@ where
                     .into_iter()
                     .map(|(id, count)| {
                         // Note that:
-                        // * The `drain()`` is guaranteed not to panic as the returned `DeviceRespones` should have exactly
-                        //   the same count as the amount of partial mdocs that we submitted for signing.
+                        // * The `drain()`` is guaranteed not to panic as the returned `DeviceRespones` should have
+                        //   exactly the same count as the amount of partial mdocs that we submitted for signing.
                         // * The .`unwrap()` is guaranteed to succeed, as the count is non-zero.
                         let responses = received_device_responses
                             .drain(..count.get())
@@ -200,10 +199,10 @@ where
                     iat,
                     self.auth_request.client_id.clone(),
                     self.auth_request.nonce.clone(),
-                    Algorithm::ES256,
                 );
                 let result =
-                    SdJwtPresentation::multi_sign(unsigned_presentations, key_binding_builder, wscd, poa_input).await;
+                    SdJwtPresentation::sign_multiple(unsigned_presentations, key_binding_builder, wscd, poa_input)
+                        .await;
                 let (received_presentations, poa) = match result {
                     Ok(value) => value,
                     Err(error) => {
@@ -220,8 +219,9 @@ where
                     .into_iter()
                     .map(|(id, count)| {
                         // Note that:
-                        // * The `drain()`` is guaranteed not to panic as the returned `DeviceRespones` should have exactly
-                        //   the same count as the amount of unsigned presentations that we submitted for signing.
+                        // * The `drain()`` is guaranteed not to panic as the returned `DeviceRespones` should have
+                        //   exactly the same count as the amount of unsigned presentations that we submitted for
+                        //   signing.
                         // * The .`unwrap()` is guaranteed to succeed, as the count is non-zero.
                         let presentations = received_presentations
                             .drain(..count.get())

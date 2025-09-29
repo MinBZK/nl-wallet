@@ -4,6 +4,7 @@ use mime::Mime;
 
 use http_utils::urls::BaseUrl;
 use jwt::UnverifiedJwt;
+use jwt::headers::HeaderWithX5c;
 
 use crate::errors::AuthorizationErrorCode;
 use crate::errors::ErrorResponse;
@@ -32,7 +33,7 @@ pub trait VpMessageClient {
         &self,
         url: BaseUrl,
         wallet_nonce: Option<String>,
-    ) -> Result<UnverifiedJwt<VpAuthorizationRequest>, VpMessageClientError>;
+    ) -> Result<UnverifiedJwt<VpAuthorizationRequest, HeaderWithX5c>, VpMessageClientError>;
 
     async fn send_authorization_response(
         &self,

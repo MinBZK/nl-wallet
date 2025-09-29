@@ -16,7 +16,7 @@ use attestation_data::attributes::AttributeValue;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::credential_payload::IntoCredentialPayload;
 use attestation_data::issuable_document::IssuableDocument;
-use attestation_data::x509::generate::mock::generate_issuer_mock;
+use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::qualification::AttestationQualification;
 use crypto::server_keys::KeyPair;
@@ -65,7 +65,7 @@ type MockIssuer = Issuer<MockAttributeService, SigningKey, MemorySessionStore<Is
 
 fn setup_mock_issuer(attestation_count: NonZeroUsize) -> (MockIssuer, TrustAnchor<'static>, BaseUrl, SigningKey) {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
-    let issuance_keypair = generate_issuer_mock(&ca, IssuerRegistration::new_mock().into()).unwrap();
+    let issuance_keypair = generate_issuer_mock_with_registration(&ca, IssuerRegistration::new_mock().into()).unwrap();
 
     setup(
         MockAttributeService {

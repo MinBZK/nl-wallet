@@ -1,5 +1,6 @@
 use base64::DecodeError;
 use jsonwebtoken::jwk::EllipticCurve;
+use p256::ecdsa::VerifyingKey;
 use p256::ecdsa::signature;
 
 use crypto::x509::CertificateError;
@@ -34,6 +35,30 @@ pub enum JwtError {
     #[error("cannot construct JSON-serialized JWT: received differing payloads: {0}, {1}")]
     #[category(pd)]
     DifferentPayloads(String, String),
+
+    #[error("header conversion failed: {0}")]
+    #[category(critical)]
+    HeaderConversion(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
+
+    #[error("unexpected type: expected {0}, found {1:?}")]
+    #[category(critical)]
+    UnexpectedTyp(String, Option<String>),
+
+    #[error("missing jwk field in JWT header")]
+    #[category(critical)]
+    MissingJwk,
+
+    #[error("missing x5c field in JWT header")]
+    #[category(critical)]
+    MissingX5c,
+
+    #[error("missing typ field in JWT header")]
+    #[category(critical)]
+    MissingTyp,
+
+    #[error("JWK in JWT header does not match expected public key: expected {0:?}, found {1:?}")]
+    #[category(critical)]
+    IncorrectJwkPublicKey(Box<VerifyingKey>, Box<VerifyingKey>),
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]

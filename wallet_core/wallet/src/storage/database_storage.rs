@@ -964,8 +964,8 @@ pub(crate) mod tests {
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::auth::reader_auth::ReaderRegistration;
     use attestation_data::credential_payload::IntoCredentialPayload;
-    use attestation_data::x509::generate::mock::generate_issuer_mock;
-    use attestation_data::x509::generate::mock::generate_reader_mock;
+    use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
+    use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
     use crypto::utils::random_bytes;
@@ -986,13 +986,13 @@ pub(crate) mod tests {
     static ISSUER_KEY: LazyLock<KeyPair> = LazyLock::new(|| {
         let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
 
-        generate_issuer_mock(&issuer_ca, IssuerRegistration::new_mock().into()).unwrap()
+        generate_issuer_mock_with_registration(&issuer_ca, IssuerRegistration::new_mock().into()).unwrap()
     });
 
     static READER_KEY: LazyLock<KeyPair> = LazyLock::new(|| {
         let reader_ca = Ca::generate_reader_mock_ca().unwrap();
 
-        generate_reader_mock(&reader_ca, ReaderRegistration::new_mock().into()).unwrap()
+        generate_reader_mock_with_registration(&reader_ca, ReaderRegistration::new_mock().into()).unwrap()
     });
 
     #[test]

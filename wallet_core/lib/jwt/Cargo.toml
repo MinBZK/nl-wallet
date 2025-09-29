@@ -24,7 +24,7 @@ rstest.workspace = true
 rustls-pki-types.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true, features = ["std"] }
-serde_with.workspace = true
+serde_with = { workspace = true, features = ["base64"] }
 thiserror.workspace = true
 
 crypto.path = "../crypto"

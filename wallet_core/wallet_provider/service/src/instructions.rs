@@ -21,13 +21,11 @@ use crypto::p256_der::DerSignature;
 use hsm::model::encrypter::Encrypter;
 use hsm::model::wrapped_key::WrappedKey;
 use hsm::service::HsmError;
-use jwt::Algorithm;
-use jwt::Header;
+use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
-use jwt::jwk::jwk_from_p256;
+use jwt::headers::HeaderWithJwk;
 use jwt::pop::JwtPopClaims;
 use jwt::wua::WuaDisclosure;
-use openid4vc::credential::OPENID4VCI_VC_POP_JWT_TYPE;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
@@ -62,8 +60,8 @@ use wallet_provider_domain::model::wallet_user::WalletUserState;
 use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::repository::TransactionStarter;
 use wallet_provider_domain::repository::WalletUserRepository;
-use wscd::POA_JWT_TYP;
 use wscd::Poa;
+use wscd::poa::POA_JWT_TYP;
 
 use crate::account_server::InstructionError;
 use crate::account_server::InstructionValidationError;
@@ -479,13 +477,10 @@ where
         .await
         .map_err(|e| InstructionError::WuaIssuance(Box::new(e)))?;
 
-    let wua_disclosure = UnverifiedJwt::sign(
-        claims,
-        &Header::new(Algorithm::ES256),
-        &attestation_key(&wua_wrapped_key, user_state),
-    )
-    .await
-    .map_err(InstructionError::PopSigning)?;
+    let wua_disclosure = SignedJwt::sign(claims, &attestation_key(&wua_wrapped_key, user_state))
+        .await
+        .map_err(InstructionError::PopSigning)?
+        .into();
 
     Ok((wua_wrapped_key, wua_key_id, WuaDisclosure::new(wua, wua_disclosure)))
 }
@@ -493,22 +488,15 @@ where
 async fn issuance_pops<H>(
     attestation_keys: &VecNonEmpty<HsmCredentialSigningKey<'_, H>>,
     claims: &JwtPopClaims,
-) -> Result<VecNonEmpty<UnverifiedJwt<JwtPopClaims>>, InstructionError>
+) -> Result<VecNonEmpty<UnverifiedJwt<JwtPopClaims, HeaderWithJwk>>, InstructionError>
 where
     H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
 {
     let pops = future::try_join_all(attestation_keys.iter().map(|attestation_key| async {
-        let public_key = attestation_key.verifying_key().await?;
-        let header = Header {
-            typ: Some(OPENID4VCI_VC_POP_JWT_TYPE.to_string()),
-            alg: Algorithm::ES256,
-            jwk: Some(jwk_from_p256(&public_key)?),
-            ..Default::default()
-        };
-
-        let jwt = UnverifiedJwt::sign(claims, &header, attestation_key)
+        let jwt = SignedJwt::sign_with_jwk(claims, attestation_key)
             .await
-            .map_err(InstructionError::PopSigning)?;
+            .map_err(InstructionError::PopSigning)?
+            .into();
 
         Ok::<_, InstructionError>(jwt)
     }))
@@ -681,7 +669,7 @@ impl HandleInstruction for DiscloseRecoveryCode {
         H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
         G: Generator<Uuid> + Generator<DateTime<Utc>>,
     {
-        let (verified_sd_jwt, _) = self
+        let verified_sd_jwt = self
             .recovery_code_disclosure
             .into_verified_against_trust_anchors(&user_state.pid_issuer_trust_anchors, &TimeGenerator)?;
 
@@ -753,7 +741,7 @@ impl HandleInstruction for DiscloseRecoveryCodePinRecovery {
         H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
         G: Generator<Uuid> + Generator<DateTime<Utc>>,
     {
-        let (verified_sd_jwt, _) = self
+        let verified_sd_jwt = self
             .recovery_code_disclosure
             .into_verified_against_trust_anchors(&user_state.pid_issuer_trust_anchors, &TimeGenerator)?;
 
@@ -1101,7 +1089,6 @@ fn is_poa_message(message: &[u8]) -> bool {
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
-    use std::collections::HashSet;
     use std::sync::Arc;
     use std::sync::Mutex;
 
@@ -1120,7 +1107,7 @@ mod tests {
 
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::constants::PID_RECOVERY_CODE;
-    use attestation_data::x509::generate::mock::generate_issuer_mock;
+    use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use attestation_types::claim_path::ClaimPath;
     use crypto::server_keys::generate::Ca;
     use crypto::utils::random_bytes;
@@ -1129,6 +1116,7 @@ mod tests {
     use jwt::Algorithm;
     use jwt::UnverifiedJwt;
     use jwt::Validation;
+    use jwt::headers::HeaderWithJwk;
     use jwt::jwk::jwk_to_p256;
     use jwt::pop::JwtPopClaims;
     use jwt::wua::WuaDisclosure;
@@ -1279,7 +1267,8 @@ mod tests {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
 
         let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
-        let issuer_key = generate_issuer_mock(&issuer_ca, IssuerRegistration::new_mock().into()).unwrap();
+        let issuer_key =
+            generate_issuer_mock_with_registration(&issuer_ca, IssuerRegistration::new_mock().into()).unwrap();
         let holder_key = SigningKey::random(&mut OsRng);
         let sd_jwt = SdJwt::example_pid_sd_jwt(&issuer_key, holder_key.verifying_key());
 
@@ -1333,7 +1322,8 @@ mod tests {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
 
         let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
-        let issuer_key = generate_issuer_mock(&issuer_ca, IssuerRegistration::new_mock().into()).unwrap();
+        let issuer_key =
+            generate_issuer_mock_with_registration(&issuer_ca, IssuerRegistration::new_mock().into()).unwrap();
         let holder_key = SigningKey::random(&mut OsRng);
         let sd_jwt = SdJwt::example_pid_sd_jwt(&issuer_key, holder_key.verifying_key());
 
@@ -1400,7 +1390,8 @@ mod tests {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
 
         let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
-        let issuer_key = generate_issuer_mock(&issuer_ca, IssuerRegistration::new_mock().into()).unwrap();
+        let issuer_key =
+            generate_issuer_mock_with_registration(&issuer_ca, IssuerRegistration::new_mock().into()).unwrap();
         let holder_key = SigningKey::random(&mut OsRng);
         let sd_jwt = SdJwt::example_pid_sd_jwt(&issuer_key, holder_key.verifying_key());
 
@@ -1511,7 +1502,8 @@ mod tests {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
 
         let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
-        let issuer_key = generate_issuer_mock(&issuer_ca, IssuerRegistration::new_mock().into()).unwrap();
+        let issuer_key =
+            generate_issuer_mock_with_registration(&issuer_ca, IssuerRegistration::new_mock().into()).unwrap();
         let holder_key = SigningKey::random(&mut OsRng);
         let sd_jwt = SdJwt::example_pid_sd_jwt(&issuer_key, holder_key.verifying_key());
 
@@ -1560,7 +1552,8 @@ mod tests {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
 
         let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
-        let issuer_key = generate_issuer_mock(&issuer_ca, IssuerRegistration::new_mock().into()).unwrap();
+        let issuer_key =
+            generate_issuer_mock_with_registration(&issuer_ca, IssuerRegistration::new_mock().into()).unwrap();
         let holder_key = SigningKey::random(&mut OsRng);
         let sd_jwt = SdJwt::example_pid_sd_jwt(&issuer_key, holder_key.verifying_key());
 
@@ -1680,23 +1673,21 @@ mod tests {
     }
 
     fn validate_issuance(
-        pops: &[UnverifiedJwt<JwtPopClaims>],
+        pops: &[UnverifiedJwt<JwtPopClaims, HeaderWithJwk>],
         poa: Option<Poa>,
         wua_with_disclosure: Option<&WuaDisclosure>,
     ) {
         let mut validations = Validation::new(Algorithm::ES256);
-        validations.required_spec_claims = HashSet::default();
+        validations.set_required_spec_claims(&["iss", "aud"]);
         validations.set_issuer(&[NL_WALLET_CLIENT_ID]);
         validations.set_audience(&[POP_AUD]);
 
         let keys = pops
             .iter()
             .map(|pop| {
-                let pubkey = jwk_to_p256(&pop.dangerous_parse_header_unverified().unwrap().jwk.unwrap()).unwrap();
+                let (header, _) = pop.parse_and_verify_with_jwk(&validations).unwrap();
 
-                pop.parse_and_verify(&(&pubkey).into(), &validations).unwrap();
-
-                pubkey
+                header.verifying_key().unwrap()
             })
             .collect_vec();
 
@@ -1714,7 +1705,7 @@ mod tests {
 
             wua_with_disclosure
                 .wua_pop()
-                .parse_and_verify(&((&wua_key).into()), &validations)
+                .parse_and_verify(&(&wua_key).into(), &validations)
                 .unwrap();
 
             wua_key

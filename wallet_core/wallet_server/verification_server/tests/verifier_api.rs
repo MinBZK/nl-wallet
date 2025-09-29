@@ -26,8 +26,8 @@ use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::auth::reader_auth::ReaderRegistration;
 use attestation_data::credential_payload::CredentialPayload;
 use attestation_data::disclosure::DisclosedAttestations;
-use attestation_data::x509::generate::mock::generate_issuer_mock;
-use attestation_data::x509::generate::mock::generate_reader_mock;
+use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
+use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
 use crypto::mock_remote::MockRemoteEcdsaKey;
 use crypto::server_keys::generate::Ca;
 use dcql::CredentialQueryIdentifier;
@@ -155,7 +155,7 @@ async fn wallet_server_settings_and_listener(
         .map(ReaderRegistration::mock_from_dcql_query);
 
     // Set up the use case, based on RP CA and reader registration.
-    let usecase_keypair = generate_reader_mock(&rp_ca, reader_registration).unwrap();
+    let usecase_keypair = generate_reader_mock_with_registration(&rp_ca, reader_registration).unwrap();
     let usecases = HashMap::from([(
         USECASE_NAME.to_string(),
         UseCaseSettings {
@@ -918,7 +918,8 @@ mod db_test {
 async fn prepare_example_holder_mocks(issuer_ca: &Ca) -> (Mdoc, MockRemoteWscd) {
     let payload_preview = CredentialPayload::nl_pid_example(&MockTimeGenerator::default()).previewable_payload;
 
-    let issuer_key_pair = generate_issuer_mock(issuer_ca, Some(IssuerRegistration::new_mock())).unwrap();
+    let issuer_key_pair =
+        generate_issuer_mock_with_registration(issuer_ca, Some(IssuerRegistration::new_mock())).unwrap();
 
     // Generate a new private key and use that and the issuer key to sign the Mdoc.
     let mdoc_private_key_id = crypto::utils::random_string(16);

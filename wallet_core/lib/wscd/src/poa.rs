@@ -9,10 +9,10 @@ use serde::Serialize;
 
 use crypto::keys::EcdsaKey;
 use crypto::wscd::WscdPoa;
-use jwt::Algorithm;
 use jwt::DEFAULT_VALIDATIONS;
-use jwt::Header;
 use jwt::JsonJwt;
+use jwt::JwtTyp;
+use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
 use jwt::error::JwtError;
 use jwt::jwk::AlgorithmParameters;
@@ -24,16 +24,21 @@ use jwt::pop::JwtPopClaims;
 use utils::vec_at_least::VecAtLeastTwoUnique;
 use utils::vec_at_least::VecNonEmpty;
 
-use crate::POA_JWT_TYP;
 use crate::error::PoaError;
 use crate::error::PoaVerificationError;
 use crate::wscd::JwtPoaInput;
+
+pub const POA_JWT_TYP: &str = "poa+jwt";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PoaPayload {
     #[serde(flatten)]
     pub payload: JwtPopClaims,
     pub jwks: VecAtLeastTwoUnique<Jwk>,
+}
+
+impl JwtTyp for PoaPayload {
+    const TYP: &'static str = POA_JWT_TYP;
 }
 
 /// A Proof of Association, asserting that a set of credential public keys are managed by a single WSCD.
@@ -44,7 +49,7 @@ impl TryFrom<VecNonEmpty<UnverifiedJwt<PoaPayload>>> for Poa {
     type Error = JwtError;
 
     fn try_from(source: VecNonEmpty<UnverifiedJwt<PoaPayload>>) -> Result<Self, Self::Error> {
-        let json_jwt: JsonJwt<_> = source.try_into()?;
+        let json_jwt: JsonJwt<_, _> = source.try_into()?;
         Ok(json_jwt.into())
     }
 }
@@ -72,15 +77,11 @@ impl Poa {
             .try_into()
             .unwrap(), // our iterable is a VecAtLeastTwo
         };
-        let header = Header {
-            typ: Some(POA_JWT_TYP.to_string()),
-            ..Header::new(Algorithm::ES256)
-        };
 
         let jwts: VecNonEmpty<_> = try_join_all(
             keys.as_slice()
                 .iter()
-                .map(|key| UnverifiedJwt::sign(&payload, &header, *key)),
+                .map(async |key| Result::<_, JwtError>::Ok(SignedJwt::sign(&payload, *key).await?.into_unverified())),
         )
         .await?
         .try_into()
@@ -103,7 +104,7 @@ impl Poa {
         accepted_issuers: &[String],
         expected_nonce: &str,
     ) -> Result<(), PoaVerificationError> {
-        let jwts: Vec<UnverifiedJwt<_>> = self.into();
+        let jwts: Vec<UnverifiedJwt<_, _>> = self.into();
 
         if jwts.len() != expected_keys.len() {
             return Err(PoaVerificationError::UnexpectedSignatureCount {
@@ -133,10 +134,8 @@ impl Poa {
         validations.set_issuer(accepted_issuers);
         for (jwt, jwk) in jwts.into_iter().zip(payload.jwks.as_slice()) {
             let pubkey = jwk_to_p256(jwk)?;
-            let (header, _) = jwt.parse_and_verify_with_header(&(&pubkey).into(), &validations)?;
-            if header.typ.as_deref() != Some(POA_JWT_TYP) {
-                return Err(PoaVerificationError::IncorrectTyp(header.typ));
-            }
+            jwt.parse_and_verify(&(&pubkey).into(), &validations)
+                .map_err(PoaVerificationError::IncorrectTyp)?;
         }
 
         // Check that all keys that must be associated are in the PoA. We use `jwk::AlgorithmParameters` for this

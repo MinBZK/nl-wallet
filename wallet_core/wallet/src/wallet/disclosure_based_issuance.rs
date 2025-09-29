@@ -178,7 +178,7 @@ mod tests {
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::auth::reader_auth::ReaderRegistration;
     use attestation_data::disclosure_type::DisclosureType;
-    use attestation_data::x509::generate::mock::generate_reader_mock;
+    use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
     use mdoc::holder::disclosure::PartialMdoc;
@@ -222,7 +222,8 @@ mod tests {
 
     fn setup_wallet_disclosure_session() -> WalletDisclosureSession<MockDisclosureSession> {
         let reader_ca = Ca::generate_reader_mock_ca().unwrap();
-        let reader_key_pair = generate_reader_mock(&reader_ca, Some(ReaderRegistration::new_mock())).unwrap();
+        let reader_key_pair =
+            generate_reader_mock_with_registration(&reader_ca, Some(ReaderRegistration::new_mock())).unwrap();
         let verifier_certificate = VerifierCertificate::try_new(reader_key_pair.into()).unwrap().unwrap();
 
         let mut disclosure_session = MockDisclosureSession::new();

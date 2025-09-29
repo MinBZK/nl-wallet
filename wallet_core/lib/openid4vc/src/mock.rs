@@ -6,7 +6,6 @@ use rustls_pki_types::TrustAnchor;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use crypto::server_keys::generate::Ca;
 use http_utils::urls::BaseUrl;
-use jwt::jwk::jwk_to_p256;
 use mdoc::holder::Mdoc;
 use mdoc::test::TestDocument;
 use wscd::wscd::Wscd;
@@ -165,16 +164,13 @@ where
         .await
         .unwrap();
 
-    let pubkey = jwk_to_p256(
-        &issuance_data
-            .pops
-            .first()
-            .dangerous_parse_header_unverified()
-            .unwrap()
-            .jwk
-            .unwrap(),
-    )
-    .unwrap();
+    let pubkey = issuance_data
+        .pops
+        .first()
+        .dangerous_parse_header_unverified()
+        .unwrap()
+        .verifying_key()
+        .unwrap();
 
     wscd.new_key(issuance_data.key_identifiers.first(), pubkey)
 }

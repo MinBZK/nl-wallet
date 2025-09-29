@@ -108,7 +108,7 @@ async fn do_registration(
         .await
         .expect("Could not process registration message at account server");
 
-    let cert_data = certificate
+    let (_, cert_data) = certificate
         .parse_and_verify_with_sub(&(&certificate_signing_key.verifying_key().await.unwrap()).into())
         .expect("Could not parse and verify wallet certificate");
 

@@ -20,3 +20,4 @@ url = { workspace = true, features = ["serde"] }
 
 crypto.path = "../../lib/crypto"
 http_utils = { path = "../../lib/http_utils", features = ["client"] }
+jwt.path = "../../lib/jwt"

@@ -26,7 +26,8 @@ pub struct WuaClaims {
     pub exp: DateTime<Utc>,
 }
 
-pub static WUA_EXPIRY: Duration = Duration::minutes(5);
+pub const WUA_EXPIRY: Duration = Duration::minutes(5);
+pub const WUA_JWT_TYP: &str = "wua+jwt";
 
 impl WuaClaims {
     pub fn new() -> Self {
@@ -83,7 +84,7 @@ impl WuaDisclosure {
         let mut validations = DEFAULT_VALIDATIONS.to_owned();
         validations.set_audience(&[expected_aud]);
         validations.set_issuer(accepted_wallet_client_ids);
-        let wua_disclosure_claims = self.1.parse_and_verify(&(&wua_pubkey).into(), &validations)?;
+        let (_, wua_disclosure_claims) = self.1.parse_and_verify(&(&wua_pubkey).into(), &validations)?;
 
         if wua_disclosure_claims.nonce.as_deref() != Some(expected_nonce) {
             return Err(WuaError::IncorrectNonce);

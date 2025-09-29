@@ -97,8 +97,7 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
                     CredentialErrorCode::InvalidToken
                 }
 
-                CredentialRequestError::UnsupportedJwtAlgorithm { .. }
-                | CredentialRequestError::MissingJwk
+                CredentialRequestError::UnsupportedJwt(_)
                 | CredentialRequestError::IncorrectNonce
                 | CredentialRequestError::Jwt(_)
                 | CredentialRequestError::JwkConversion(_)

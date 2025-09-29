@@ -317,6 +317,14 @@ pub mod generate {
             pub fn generate_reader_mock_ca() -> Result<Self, CertificateError> {
                 Self::generate(RP_CA_CN, Default::default())
             }
+
+            pub fn generate_issuer_mock(&self) -> Result<KeyPair, CertificateError> {
+                self.generate_key_pair(ISSUANCE_CERT_CN, CertificateUsage::Mdl, Default::default())
+            }
+
+            pub fn generate_reader_mock(&self) -> Result<KeyPair, CertificateError> {
+                self.generate_key_pair(RP_CERT_CN, CertificateUsage::ReaderAuth, Default::default())
+            }
         }
     }
 }

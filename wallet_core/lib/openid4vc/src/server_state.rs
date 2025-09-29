@@ -552,11 +552,11 @@ pub mod test {
             wua_privkey.verifying_key(),
             &wua_signing_key,
             "iss".to_string(),
-            None,
             WuaClaims::new(),
         )
         .await
-        .unwrap();
+        .unwrap()
+        .into_unverified();
 
         let wua = wua
             .into_verified(&wua_signing_key.verifying_key().into(), &WUA_JWT_VALIDATIONS)

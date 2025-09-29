@@ -75,7 +75,7 @@ mod tests {
     use uuid::Uuid;
 
     use attestation_data::auth::issuer_auth::IssuerRegistration;
-    use attestation_data::x509::generate::mock::generate_issuer_mock;
+    use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use crypto::server_keys::generate::Ca;
     use sd_jwt::sd_jwt::VerifiedSdJwt;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
@@ -122,7 +122,8 @@ mod tests {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         let ca = Ca::generate_issuer_mock_ca().unwrap();
-        let issuance_keypair = generate_issuer_mock(&ca, IssuerRegistration::new_mock().into()).unwrap();
+        let issuance_keypair =
+            generate_issuer_mock_with_registration(&ca, IssuerRegistration::new_mock().into()).unwrap();
 
         let sd_jwt = VerifiedSdJwt::pid_example(&issuance_keypair);
         let attestation_type = sd_jwt.as_ref().claims().vct.as_ref().unwrap().to_owned();

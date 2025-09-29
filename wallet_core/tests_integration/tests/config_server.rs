@@ -10,9 +10,7 @@ use reqwest::header::HeaderValue;
 use tokio::fs;
 
 use http_utils::tls::pinning::TlsPinningConfig;
-use jwt::Algorithm;
-use jwt::Header;
-use jwt::UnverifiedJwt;
+use jwt::SignedJwt;
 use jwt::error::JwtError;
 use tests_integration::common::*;
 use wallet::errors::ConfigurationError;
@@ -33,7 +31,7 @@ async fn test_wallet_config() {
     served_wallet_config.version = 2;
 
     let (mut cs_settings, cs_root_ca) = config_server_settings();
-    cs_settings.wallet_config_jwt = config_jwt(&served_wallet_config).await;
+    cs_settings.wallet_config_jwt = config_jwt(&served_wallet_config).await.into();
     let port = start_config_server(cs_settings, cs_root_ca.clone()).await;
 
     let config_server_config = ConfigServerConfiguration {
@@ -83,7 +81,7 @@ async fn test_wallet_config_stale() {
     served_wallet_config.account_server.http_config.base_url = local_wp_base_url(settings.webserver.port);
 
     let (mut cs_settings, cs_root_ca) = config_server_settings();
-    cs_settings.wallet_config_jwt = config_jwt(&served_wallet_config).await;
+    cs_settings.wallet_config_jwt = config_jwt(&served_wallet_config).await.into();
     let port = start_config_server(cs_settings, cs_root_ca.clone()).await;
 
     let config_server_config = ConfigServerConfiguration {
@@ -123,18 +121,14 @@ async fn test_wallet_config_signature_verification_failed() {
     let (mut cs_settings, cs_root_ca) = config_server_settings();
     let signing_key = SigningKey::random(&mut OsRng);
     let pkcs8_der = signing_key.to_pkcs8_der().unwrap();
-    let jwt = UnverifiedJwt::sign(
+    let jwt = SignedJwt::sign(
         &served_wallet_config,
-        &Header {
-            alg: Algorithm::ES256,
-            ..Default::default()
-        },
         &SigningKey::from_pkcs8_der(pkcs8_der.as_bytes()).unwrap(),
     )
     .await
     .unwrap();
     // Serve a wallet configuration as JWT signed by a random key
-    cs_settings.wallet_config_jwt = jwt.to_string();
+    cs_settings.wallet_config_jwt = jwt.into();
     let port = start_config_server(cs_settings, cs_root_ca.clone()).await;
 
     let config_server_config = ConfigServerConfiguration {

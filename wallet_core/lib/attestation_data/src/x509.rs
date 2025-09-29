@@ -87,7 +87,7 @@ pub mod generate {
 
         use super::*;
 
-        pub fn generate_issuer_mock(
+        pub fn generate_issuer_mock_with_registration(
             ca: &Ca,
             issuer_registration: Option<IssuerRegistration>,
         ) -> Result<KeyPair, CertificateError> {
@@ -98,7 +98,7 @@ pub mod generate {
             )
         }
 
-        pub fn generate_reader_mock(
+        pub fn generate_reader_mock_with_registration(
             ca: &Ca,
             reader_registration: Option<ReaderRegistration>,
         ) -> Result<KeyPair, CertificateError> {
