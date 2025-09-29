@@ -955,7 +955,7 @@ mod tests {
             .iter()
             .exactly_one()
             .unwrap()
-            .0
+            .as_ref()
             .parse_and_verify(&key1.verifying_key().into(), &DEFAULT_VALIDATIONS)
             .unwrap();
 
@@ -981,7 +981,7 @@ mod tests {
             signed_jwts.iter().zip_eq([&key1, &key2]).zip_eq([&message1, &message2])
         {
             let (_, parsed) = signed_jwt
-                .0
+                .as_ref()
                 .parse_and_verify(&key.verifying_key().into(), &DEFAULT_VALIDATIONS)
                 .unwrap();
 
