@@ -8,6 +8,7 @@ import 'package:wallet/src/data/repository/qr/core/core_qr_repository.dart';
 import 'package:wallet/src/domain/model/navigation/navigation_request.dart';
 import 'package:wallet/src/domain/model/qr/edi_qr_code.dart';
 import 'package:wallet/src/feature/disclosure/argument/disclosure_screen_argument.dart';
+import 'package:wallet/src/feature/issuance/argument/issuance_screen_argument.dart';
 import 'package:wallet_core/core.dart';
 
 import '../../../../mocks/wallet_mocks.mocks.dart';
@@ -39,6 +40,56 @@ void main() {
       when(mockWalletCore.identifyUri(testUri)).thenAnswer((realInvocation) async => IdentifyUriResult.PidIssuance);
       final result = await qrRepository.processBarcode(const Barcode(rawValue: testUri));
       expect(result, isA<PidIssuanceNavigationRequest>());
+      expect(
+        result.argument,
+        testUri,
+        reason: 'The original uri should be passed to the correct screen as an argument',
+      );
+    });
+
+    test('Pid Renewal QR code should result in a PidRenewalNavigationRequest', () async {
+      const testUri = 'https://pid_renewal.org';
+      when(mockWalletCore.identifyUri(testUri)).thenAnswer((realInvocation) async => IdentifyUriResult.PidRenewal);
+      final result = await qrRepository.processBarcode(const Barcode(rawValue: testUri));
+      expect(result, NavigationRequest.pidRenewal(testUri));
+      expect(
+        result.argument,
+        testUri,
+        reason: 'The original uri should be passed to the correct screen as an argument',
+      );
+    });
+
+    test('Pin Recovery QR code should result in a PinRecoveryNavigationRequest', () async {
+      const testUri = 'https://pin_recovery.org';
+      when(mockWalletCore.identifyUri(testUri)).thenAnswer((realInvocation) async => IdentifyUriResult.PinRecovery);
+      final result = await qrRepository.processBarcode(const Barcode(rawValue: testUri));
+      expect(result, NavigationRequest.pinRecovery(testUri));
+      expect(
+        result.argument,
+        testUri,
+        reason: 'The original uri should be passed to the correct screen as an argument',
+      );
+    });
+
+    test('Disclosure Based Issuance QR code should result in a DisclosureBasedIssuance NavigationRequest', () async {
+      const testUri = 'https://dbi.org';
+      when(
+        mockWalletCore.identifyUri(testUri),
+      ).thenAnswer((realInvocation) async => IdentifyUriResult.DisclosureBasedIssuance);
+      final result = await qrRepository.processBarcode(const Barcode(rawValue: testUri));
+      expect(result, NavigationRequest.issuance(testUri, isQrCode: true));
+      expect(
+        result.argument,
+        const IssuanceScreenArgument(uri: testUri, isQrCode: true, isRefreshFlow: false, mockSessionId: null),
+        reason: 'The IssuanceScreenArgument should contain the testUri and isQrCode=true flag',
+      );
+    });
+
+    test('Transfer QR code should result in a TransferNavigationRequest', () async {
+      const testUri = 'https://transfer.org';
+      when(mockWalletCore.identifyUri(testUri)).thenAnswer((realInvocation) async => IdentifyUriResult.Transfer);
+      final result = await qrRepository.processBarcode(const Barcode(rawValue: testUri));
+      expect(result, NavigationRequest.walletTransfer(testUri));
       expect(
         result.argument,
         testUri,

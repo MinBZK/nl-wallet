@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2025-09-18T14:27:23+02:00",
+    "@@last_modified": "2025-09-25T15:37:17+02:00",
     "aboutScreenDescription": "De NL Wallet wordt gemaakt door de Nederlandse overheid, zodat iedereen digitale diensten veilig en gemakkelijk kan gebruiken.\n\nJe kunt de ontwikkelingen volgen op {url}.",
     "aboutScreenPrivacyCta": "Privacyverklaring",
     "aboutScreenTitle": "Over de NL Wallet",
@@ -1431,7 +1431,7 @@
     "walletPersonalizeSuccessPageDescription": "Je kunt de gegevens in deze kaarten delen of gebruiken om in te loggen.",
     "walletPersonalizeSuccessPageTitle": "Je NL Wallet is klaar",
     "walletTransferAwaitingConfirmationPageCta": "Stop",
-    "walletTransferAwaitingConfirmationPageDescription": "Kies ‘Ja, verplaatsen’ op je andere apparaat als je je NL Wallet naar dit apparaat wilt verplaatsen.  \n\nDeze actie kan niet ongedaan worden gemaakt.",
+    "walletTransferAwaitingConfirmationPageDescription": "Kies ‘Ja, verplaatsen’ en voer je pincode in op je andere apparaat als je de NL Wallet naar dit apparaat wilt verplaatsen.\n\nWacht dan tot de verplaatsing op beide apparaten is afgerond.\n\nDeze actie kan niet ongedaan worden gemaakt.",
     "walletTransferAwaitingConfirmationPageTitle": "Bevestig op je andere apparaat",
     "walletTransferAwaitingScanPageCenterQrCta": "Centreer de QR-code op het scherm",
     "walletTransferAwaitingScanPageDescription": "Gebruik de QR-scanner in de NL Wallet op je andere apparaat.",

@@ -1,6 +1,7 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
+import 'package:wallet/src/data/repository/pid/pid_repository.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/card/wallet_card.dart';
 import 'package:wallet/src/domain/model/flow_progress.dart';
@@ -73,12 +74,12 @@ void main() {
     },
     wait: const Duration(milliseconds: 50),
     verify: (bloc) {
-      expect(bloc.state, WalletPersonalizeSuccess([WalletMockData.card]));
+      expect(bloc.state, WalletPersonalizeSuccess(addedCards: [WalletMockData.card], userCanTransfer: false));
     },
   );
 
   blocTest(
-    'verify successful path to pid issuance',
+    'verify successful path to pid issuance - with wallet transfer option',
     build: () => WalletPersonalizeBloc(
       mockGetWalletCardsUseCase,
       mockGetPidIssuanceUrlUseCase,
@@ -97,7 +98,7 @@ void main() {
       await Future.delayed(const Duration(milliseconds: 10));
       bloc.add(WalletPersonalizeOfferingAccepted(WalletMockData.card.attributes));
       await Future.delayed(const Duration(milliseconds: 10));
-      bloc.add(WalletPersonalizePinConfirmed());
+      bloc.add(const WalletPersonalizePinConfirmed(TransferState.available));
     },
     expect: () => [
       const WalletPersonalizeLoadingIssuanceUrl(),
@@ -105,7 +106,7 @@ void main() {
       WalletPersonalizeCheckData(availableAttributes: WalletMockData.card.attributes),
       WalletPersonalizeConfirmPin(WalletMockData.card.attributes),
       const WalletPersonalizeAddingCards(FlowProgress(currentStep: 7, totalSteps: 8)),
-      WalletPersonalizeSuccess([WalletMockData.card]),
+      WalletPersonalizeSuccess(addedCards: [WalletMockData.card], userCanTransfer: true),
     ],
   );
 
@@ -152,14 +153,14 @@ void main() {
       await Future.delayed(const Duration(milliseconds: 10));
       bloc.add(WalletPersonalizeOfferingAccepted(WalletMockData.card.attributes));
       await Future.delayed(const Duration(milliseconds: 10));
-      bloc.add(WalletPersonalizePinConfirmed());
+      bloc.add(const WalletPersonalizePinConfirmed(TransferState.unavailable));
     },
     expect: () => [
       const WalletPersonalizeAuthenticating(),
       const WalletPersonalizeCheckData(availableAttributes: []),
       WalletPersonalizeConfirmPin(WalletMockData.card.attributes),
       const WalletPersonalizeAddingCards(FlowProgress(currentStep: 7, totalSteps: 8)),
-      WalletPersonalizeSuccess([WalletMockData.card]),
+      WalletPersonalizeSuccess(addedCards: [WalletMockData.card], userCanTransfer: false),
     ],
   );
 

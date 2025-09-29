@@ -1,5 +1,3 @@
-import 'package:wallet_core/core.dart';
-
 import '../../../domain/model/attribute/attribute.dart';
 
 abstract class PidRepository {
@@ -14,5 +12,8 @@ abstract class PidRepository {
 
   Future<bool> hasActiveIssuanceSession();
 
-  Future<WalletInstructionResult> acceptIssuance(String pin);
+  Future<TransferState> acceptIssuance(String pin);
 }
+
+/// Indicator on whether the user has the option to transfer a previous wallet to this device
+enum TransferState { available, unavailable }
