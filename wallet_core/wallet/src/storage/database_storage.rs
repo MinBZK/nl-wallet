@@ -461,13 +461,15 @@ where
 
         // Update the keyed data in the imported database
         self.open().await?;
+        let tx = self.database()?.connection().begin().await?;
         for (key, json) in destination_keyed_data {
             keyed_data::Entity::update_many()
                 .col_expr(keyed_data::Column::Data, Expr::value(json))
                 .filter(keyed_data::Column::Key.eq(key))
-                .exec(self.database()?.connection())
+                .exec(&tx)
                 .await?;
         }
+        tx.commit().await?;
 
         Ok(())
     }
