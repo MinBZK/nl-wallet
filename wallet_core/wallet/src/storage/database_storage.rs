@@ -428,9 +428,12 @@ where
             .all(self.database()?.connection())
             .await?;
 
-        if let Some(open_database) = self.open_database.take() {
-            open_database.database.close().await?;
-        };
+        self.open_database
+            .take()
+            .expect("the database is assumed to be open at this point")
+            .database
+            .close()
+            .await?;
 
         let database_path = self.database_path_for_name(DATABASE_NAME);
         let (_, key) = self.key_for_name(DATABASE_NAME).await?;
