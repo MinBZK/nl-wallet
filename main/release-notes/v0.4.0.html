@@ -219,6 +219,9 @@ returning a JSON object returns a JSON array, whose order matches that of the
 DCQL query that started the session.</p></li>
 <li><p>The pid_issuer, issuance_server and verification_server have now separate
 migration binaries.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">typ</span></code> field of JWTs is now consistently verified across the codebase.
+Previously, the Wallet configuration was erroneously set to <code class="docutils literal notranslate"><span class="pre">&quot;JOSE+JSON&quot;</span></code>,
+which should be changed to <code class="docutils literal notranslate"><span class="pre">&quot;jwt&quot;</span></code>.</p></li>
 </ul>
 </section>
 <section id="new-features">
