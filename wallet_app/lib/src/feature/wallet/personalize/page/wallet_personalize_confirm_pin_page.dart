@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../data/repository/pid/pid_repository.dart';
 import '../../../../domain/usecase/pid/accept_offered_pid_usecase.dart';
 import '../../../../util/extension/build_context_extension.dart';
 import '../../../common/widget/pin_header.dart';
@@ -10,7 +11,7 @@ import '../../../pin/pin_page.dart';
 import '../wallet_personalize_setup_failed_screen.dart';
 
 class WalletPersonalizeConfirmPinPage extends StatelessWidget {
-  final OnPinValidatedCallback onPidAccepted;
+  final OnPinValidatedCallback<TransferState> onPidAccepted;
 
   /// Callback for when accepting pid fails with an unrecoverable error.
   final OnPinErrorCallback onAcceptPidFailed;
@@ -34,7 +35,7 @@ class WalletPersonalizeConfirmPinPage extends StatelessWidget {
         headerBuilder: (context, attempts, isFinalRound) {
           return PinHeader(title: context.l10n.walletPersonalizeConfirmPinPageTitle);
         },
-        onPinValidated: onPidAccepted,
+        onPinValidated: (result) => onPidAccepted(result as TransferState),
         onPinError: onAcceptPidFailed,
         onStateChanged: (context, state) {
           /// PVW-2759: Edge case where we want to provide contextualized error copy during the initial setup.

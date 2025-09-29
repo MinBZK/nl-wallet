@@ -71,4 +71,11 @@ class WalletPersonalizeRetryPressed extends WalletPersonalizeEvent {}
 
 class WalletPersonalizeBackPressed extends WalletPersonalizeEvent {}
 
-class WalletPersonalizePinConfirmed extends WalletPersonalizeEvent {}
+class WalletPersonalizePinConfirmed extends WalletPersonalizeEvent {
+  final TransferState transferState;
+
+  const WalletPersonalizePinConfirmed(this.transferState);
+
+  @override
+  List<Object?> get props => [transferState, ...super.props];
+}

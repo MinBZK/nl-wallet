@@ -1,10 +1,17 @@
+import '../../../../data/repository/transfer/transfer_repository.dart';
 import '../../../model/result/result.dart';
 import '../cancel_wallet_transfer_usecase.dart';
 
 class CancelWalletTransferUseCaseImpl extends CancelWalletTransferUseCase {
+  final TransferRepository _transferRepository;
+
+  CancelWalletTransferUseCaseImpl(this._transferRepository);
+
   @override
   Future<Result<void>> invoke() async {
-    // TODO(Rob): Implement once core supports cancel_wallet_transfer
-    return const Result.success(null);
+    return tryCatch(
+      _transferRepository.cancelWalletTransfer,
+      'Failed to cancel wallet transfer',
+    );
   }
 }

@@ -103,10 +103,13 @@ class TypedWalletCore {
   Future<core.DisclosureBasedIssuanceResult> continueDisclosureBasedIssuance(String pin) =>
       call(() => core.continueDisclosureBasedIssuance(pin: pin));
 
-  /// Accept offered attestations (includes PID)
+  /// Accept offered attestations
   Future<core.WalletInstructionResult> acceptIssuance(String pin) => call(() => core.acceptIssuance(pin: pin));
 
-  /// Check if there is an active issuance session (includes PID issuance)
+  /// Accept offered PID
+  Future<core.PidIssuanceResult> acceptPidIssuance(String pin) => call(() => core.acceptPidIssuance(pin: pin));
+
+  /// Check if there is an active issuance session
   Future<bool> hasActiveIssuanceSession() => call(core.hasActiveIssuanceSession);
 
   Future<core.StartDisclosureResult> startDisclosure(
@@ -146,6 +149,18 @@ class TypedWalletCore {
   Future<void> completePinRecovery(String pin) => call(() => core.completePinRecovery(pin: pin));
 
   Future<void> cancelPinRecovery() => call(core.cancelPinRecovery);
+
+  Future<String> initWalletTransfer() => call(core.initWalletTransfer);
+
+  Future<void> acknowledgeWalletTransfer(String uri) => call(() => core.acknowledgeWalletTransfer(uri: uri));
+
+  Future<core.WalletInstructionResult> transferWallet(String pin) => call(() => core.transferWallet(pin: pin));
+
+  Future<void> cancelWalletTransfer() => call(core.cancelWalletTransfer);
+
+  Future<core.TransferSessionState> getWalletTransferState() => call(core.getWalletTransferState);
+
+  Future<void> skipWalletTransfer() => call(core.skipWalletTransfer);
 
   /// This function should be used to call through to the core, as it makes sure potential exceptions are processed
   /// before they are (re)thrown.

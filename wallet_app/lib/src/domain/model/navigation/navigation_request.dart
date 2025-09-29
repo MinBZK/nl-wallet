@@ -49,6 +49,8 @@ sealed class NavigationRequest extends Equatable {
 
   factory NavigationRequest.pidRenewal(String uri) => PidRenewalNavigationRequest(uri);
 
+  factory NavigationRequest.pinRecovery(String uri) => PinRecoveryNavigationRequest(uri);
+
   factory NavigationRequest.disclosure(String uri, {bool isQrCode = false}) =>
       DisclosureNavigationRequest(uri, isQrCode: isQrCode);
 

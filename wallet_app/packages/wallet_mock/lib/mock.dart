@@ -2,6 +2,6 @@
 library;
 
 export 'src/data/mock/mock_constants.dart';
-export 'src/issuance_manager.dart';
+export 'src/manager/issuance_manager.dart';
 export 'src/wallet_core.dart'; // Mock specific exports
 export 'src/wallet_core_for_signing.dart';
