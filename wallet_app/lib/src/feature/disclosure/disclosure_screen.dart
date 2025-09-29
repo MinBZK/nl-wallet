@@ -22,6 +22,7 @@ import '../common/widget/centered_loading_indicator.dart';
 import '../common/widget/fade_in_at_offset.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
 import '../common/widget/text/title_text.dart';
+import '../common/widget/utility/scroll_offset_provider.dart';
 import '../common/widget/wallet_app_bar.dart';
 import '../error/error_page.dart';
 import '../fraud_check/fraud_check_page.dart';

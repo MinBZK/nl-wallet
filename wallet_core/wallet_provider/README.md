@@ -43,17 +43,10 @@ from the key by a double underscore `__`.
 ## Generating entity files
 
 Every time the database schema changes, the entities need to be regenerated. For
-this, `sea-orm-cli` is used, and can be
-installed with:
+this we have created a script that uses the `sea-orm-cli`.
 
-```bash
-cargo install sea-orm-cli
-```
-
-From `wallet_core`, run:
-
-```bash
-sea-orm-cli generate entity -o wallet_provider/persistence/src/entity --database-url "postgres://localhost/wallet_provider"
+```shell
+scripts/generate-db-entity.sh wallet_provider
 ```
 
 ## Running integration tests

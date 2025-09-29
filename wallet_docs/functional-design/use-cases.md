@@ -7,6 +7,9 @@ possible variations or errors that may occur. Together, they provide a
 structured view of the system’s functional behaviour. Read more about
 [how the functional design is formalized](functional-design).
 
+The relations between the use cases and how a user can navigate through these use cases 
+is displayed at [use case flow overview](use-case-overview).
+
 
 ```{toctree}
 :caption: Use Cases:

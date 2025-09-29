@@ -28,6 +28,7 @@ architecture/*
 ```{toctree}
 :caption: Functional Design
 :maxdepth: 1
+functional-design/use-case-overview
 functional-design/functional-design
 functional-design/use-cases
 functional-design/partial-flows

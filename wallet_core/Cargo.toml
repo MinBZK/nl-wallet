@@ -44,11 +44,14 @@ members = [
     "wallet_provider/service",
     "wallet_provider/wallet_account",
     "wallet_server/issuance_server",
+    "wallet_server/issuance_server/migrations",
     "wallet_server/issuer_settings",
     "wallet_server/pid_issuer",
+    "wallet_server/pid_issuer/migrations",
     "wallet_server/server_utils",
     "wallet_server/server_utils/migrations",
     "wallet_server/verification_server",
+    "wallet_server/verification_server/migrations",
 ]
 exclude = ["uniffi-bindgen"]
 resolver = "2"
@@ -178,13 +181,13 @@ rustls = { version = "0.23.22", default-features = false }
 rustls-pki-types = "1.11.0"
 rustls-webpki = "0.102.8"
 sanitize-filename = "0.6.0"
-sea-orm = { version = "1.1.8", default-features = false }
-sea-orm-migration = { version = "1.1.4", default-features = false }
-sea-query = { version = "0.32.1", default-features = false }
+sea-orm = { version = "1.1.16", default-features = false }
+sea-orm-migration = { version = "1.1.16", default-features = false }
+sea-query = { version = "0.32.7", default-features = false }
 sec1 = "0.7.3"
 semver = "1.0.25"
 sentry = { version = "0.36.0", default-features = false }
-serde = "1.0.219"
+serde = "1.0.227"
 serde-aux = "4.5.0"
 serde_bytes = "0.11.15"
 serde_json = { version = "1.0.138", default-features = false }

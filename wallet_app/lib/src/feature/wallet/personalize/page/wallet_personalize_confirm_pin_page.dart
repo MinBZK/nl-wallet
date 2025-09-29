@@ -37,7 +37,6 @@ class WalletPersonalizeConfirmPinPage extends StatelessWidget {
         },
         onPinValidated: (result) => onPidAccepted(result as TransferState),
         onPinError: onAcceptPidFailed,
-        pinRecoveryMethod: PinRecoveryMethod.resetWallet,
         onStateChanged: (context, state) {
           /// PVW-2759: Edge case where we want to provide contextualized error copy during the initial setup.
           if (state is PinValidateFailure && state.attemptsLeftInRound == 1) {

@@ -84,6 +84,7 @@ class CardDetailTests : TestBase() {
     @DisplayName("LTC33 The Card attribute labels are multi-lingual")
     fun verifyDataLabelMultiLingual(testInfo: TestInfo) {
         setUp(testInfo)
+        cardDetailScreen.clickCardDataButton()
         assertAll(
             { assertTrue(cardDataScreen.visible(), "card data screen is not visible") },
             { assertTrue(cardDataScreen.dataLabelVisible(cardMetadata.getPidClaimLabel("given_name")), "english data labels are not visible") },

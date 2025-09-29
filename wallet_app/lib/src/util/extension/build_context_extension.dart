@@ -17,6 +17,14 @@ extension BuildContextExtension on BuildContext {
   /// all the devices on is used to check the orientation (and it's wide).
   bool get isLandscape => mediaQuery.orientation == Orientation.landscape;
 
+  /// Defines a breakpoint at which we can opt to reduce spacings to increase the space available for content.
+  bool get reduceSpacing {
+    bool reduceSpacing = false;
+    reduceSpacing = mediaQuery.size.height < 600 && mediaQuery.textScaler.scale(1) >= 1.3;
+    reduceSpacing = reduceSpacing || mediaQuery.textScaler.scale(1) >= 2; // For iOS
+    return reduceSpacing;
+  }
+
   bool get isScreenReaderEnabled => mediaQuery.accessibleNavigation;
 
   ThemeData get theme => Theme.of(this);

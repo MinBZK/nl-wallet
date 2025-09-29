@@ -6,7 +6,7 @@ ephemeral_id_secret = "${DEMO_RP_VERIFICATION_SERVER_EPHEMERAL_ID_SECRET}"
 allow_origins = ["http://${SERVICES_HOST}:${DEMO_RP_PORT}"]
 
 [storage]
-url = 'postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:5432/verification_server'
+url = 'postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/verification_server'
 
 [wallet_server]
 ip = '0.0.0.0'

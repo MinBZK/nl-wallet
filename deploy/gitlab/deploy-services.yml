@@ -33,7 +33,7 @@ create-deployment-ont:
       artifacts: false
     - job: build-wallet-provider-image
       artifacts: false
-    - job: build-wp-migrations-image
+    - job: build-wallet-provider-migrations-image
       artifacts: false
     - job: build-demo-relying-party-image
       artifacts: false
@@ -41,11 +41,15 @@ create-deployment-ont:
       artifacts: false
     - job: build-verification-server-image
       artifacts: false
+    - job: build-verification-server-migrations-image
+      artifacts: false
     - job: build-issuance-server-image
+      artifacts: false
+    - job: build-issuance-server-migrations-image
       artifacts: false
     - job: build-pid-issuer-image
       artifacts: false
-    - job: build-ws-migrations-image
+    - job: build-pid-issuer-migrations-image
       artifacts: false
     - job: build-gba-hc-converter-image
       artifacts: false

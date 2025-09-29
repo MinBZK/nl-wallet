@@ -70,5 +70,3 @@ utils.path = "../../lib/utils"
 indexmap.workspace = true
 p256 = { workspace = true, features = ["ecdsa"] }
 tokio = { workspace = true, features = ["macros", "test-util"] }
-
-wscd = { path = "../../lib/wscd", features = ["mock"] }

@@ -6,8 +6,8 @@ class PersonalizeInformScreen : MobileActions() {
 
     private val screen = find.byValueKey("personalizeInformPage")
 
-    private val digidLoginButton = find.byValueKey("digidLoginCta")
-    private val digidWebsiteButton = find.byValueKey("digidWebsiteCta")
+    private val digidLoginButton = find.byText(l10n.getString("walletPersonalizeIntroPageLoginWithDigidCta"))
+    private val digidWebsiteButton = find.byText(l10n.getString("walletPersonalizeDigidErrorPageDigidWebsiteCta"))
 
     fun visible() = isElementVisible(screen)
 

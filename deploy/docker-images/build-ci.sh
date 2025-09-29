@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 set -euo pipefail
 
-CONTEXT_BASE=$( cd -- "$( dirname -- "$0" )" &> /dev/null && pwd )
+CONTEXT_BASE="$( cd -- "$( dirname -- "$0" )" &> /dev/null && pwd -P )"
 
 # Set IMAGE_NAME from $1
 IMAGE_NAME="$1"

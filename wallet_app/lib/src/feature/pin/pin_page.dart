@@ -60,10 +60,6 @@ class PinPage extends StatelessWidget {
   /// the 'biometrics' key appear on the [PinKeyboard].
   final VoidCallback? onBiometricUnlockRequested;
 
-  /// Used to override the recovery method for the pin (defaults to DigiD pin recovery flow).
-  /// This will be passed to the [ForgotPinScreen] when the user taps the "forgot pin" button.
-  final PinRecoveryMethod pinRecoveryMethod;
-
   /// Called for every state change exposed by the [PinBloc]. When [onStateChanged] is
   /// provided and it returns true, the event is not processed by this [PinPage].
   final PinStateInterceptor? onStateChanged;
@@ -84,7 +80,6 @@ class PinPage extends StatelessWidget {
     this.onPinError,
     this.onBiometricUnlockRequested,
     this.headerBuilder,
-    this.pinRecoveryMethod = PinRecoveryMethod.recoverPin,
     this.showTopDivider = false,
     super.key,
   });
@@ -167,7 +162,7 @@ class PinPage extends StatelessWidget {
       children: [
         Expanded(child: _buildHeader(headerBuilder ?? _defaultHeaderBuilder)),
         _buildPinField(),
-        const SizedBox(height: 18),
+        SizedBox(height: context.reduceSpacing ? 6 : 18),
         _buildPinKeyboard(),
         SafeArea(
           child: _buildForgotCodeButton(context),
@@ -177,42 +172,38 @@ class PinPage extends StatelessWidget {
   }
 
   Widget _buildLandscape(BuildContext context) {
-    final leftSection = Expanded(
-      child: Column(
-        children: [
-          Expanded(
-            child: SafeArea(
-              right: false,
-              top: false,
-              bottom: false,
-              child: _buildHeader(headerBuilder ?? _defaultHeaderBuilder),
-            ),
-          ),
-          SafeArea(
-            top: false,
+    final leftSection = Column(
+      children: [
+        Expanded(
+          child: SafeArea(
             right: false,
-            child: _buildForgotCodeButton(context),
+            top: false,
+            bottom: false,
+            child: _buildHeader(headerBuilder ?? _defaultHeaderBuilder),
           ),
-        ],
-      ),
-    );
-    final rightSection = Expanded(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-        child: SafeArea(
-          left: false,
-          right: true,
+        ),
+        SafeArea(
           top: false,
-          bottom: false,
-          child: Column(
-            children: [
-              _buildPinField(),
-              const SizedBox(height: 16),
-              Expanded(
-                child: _buildPinKeyboard(),
-              ),
-            ],
-          ),
+          right: false,
+          child: _buildForgotCodeButton(context),
+        ),
+      ],
+    );
+    final rightSection = Padding(
+      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+      child: SafeArea(
+        left: false,
+        right: true,
+        top: false,
+        bottom: false,
+        child: Column(
+          children: [
+            _buildPinField(),
+            const SizedBox(height: 16),
+            Expanded(
+              child: _buildPinKeyboard(),
+            ),
+          ],
         ),
       ),
     );
@@ -223,9 +214,9 @@ class PinPage extends StatelessWidget {
         Expanded(
           child: Row(
             children: [
-              leftSection,
+              Flexible(flex: 5, child: leftSection),
               const VerticalDivider(width: 1),
-              rightSection,
+              Flexible(flex: 4, child: rightSection),
             ],
           ),
         ),
@@ -284,7 +275,7 @@ class PinPage extends StatelessWidget {
     return ListButton(
       mainAxisAlignment: context.isLandscape ? MainAxisAlignment.start : MainAxisAlignment.center,
       icon: const Icon(Icons.help_outline_rounded),
-      onPressed: () => ForgotPinScreen.show(context, recoveryMethod: pinRecoveryMethod),
+      onPressed: () => ForgotPinScreen.show(context),
       iconPosition: IconPosition.start,
       text: Text.rich(context.l10n.pinScreenForgotPinCta.toTextSpan(context)),
       dividerSide: DividerSide.top,
@@ -359,7 +350,7 @@ class PinPage extends StatelessWidget {
 
   Future<void> _showErrorDialog(BuildContext context, PinValidateFailure reason) async {
     final body = _pinErrorDialogBody(context, reason);
-    return showPinErrorDialog(context, body, recoveryMethod: pinRecoveryMethod);
+    return showPinErrorDialog(context, body);
   }
 
   static Future<void> showPinErrorDialog(
@@ -381,7 +372,7 @@ class PinPage extends StatelessWidget {
               child: Text.rich(context.l10n.pinErrorDialogForgotCodeCta.toUpperCase().toTextSpan(context)),
               onPressed: () {
                 Navigator.of(context).pop();
-                ForgotPinScreen.show(context, recoveryMethod: recoveryMethod);
+                ForgotPinScreen.show(context);
               },
             ),
             TextButton(

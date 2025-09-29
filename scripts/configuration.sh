@@ -69,6 +69,7 @@ export GOOGLE_CLOUD_PROJECT_NUMBER=304979650398
 # The defaults will work when using the `wallet_core/wallet/wallet_provider/docker-compose.yml` file.
 # Set these properties before executing this script
 export DB_HOST="${DB_HOST:-localhost}"
+export DB_PORT="${DB_PORT:-5432}"
 export DB_USERNAME="${DB_USERNAME:-postgres}"
 export DB_PASSWORD="${DB_PASSWORD:-postgres}"
 export PGADMIN_DEFAULT_PASSWORD="${PGADMIN_DEFAULT_PASSWORD:-admin}"

@@ -39,7 +39,7 @@ test-android:
       artifacts: false
     - job: test-flutter-ui
       artifacts: false
-    - job: test-codegen
+    - job: test-flutter-rust-brdige-codegen
       artifacts: false
     - job: test-rust
       artifacts: false

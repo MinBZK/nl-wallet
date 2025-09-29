@@ -38,6 +38,7 @@ impl Default for ConnectionOptions {
 #[serde(default)]
 pub struct Database {
     pub host: String,
+    pub port: u16,
     pub name: String,
     pub username: Option<String>,
     pub password: Option<String>,
@@ -49,6 +50,7 @@ impl Default for Database {
     fn default() -> Self {
         Self {
             host: String::from("localhost"),
+            port: 5432,
             name: String::from("wallet_provider"),
             username: Some(String::from("postgres")),
             password: Some(String::from("postgres")),
@@ -95,7 +97,10 @@ impl Database {
             })
             .unwrap_or_default();
 
-        format!("postgres://{}{}/{}", username_password, self.host, self.name)
+        format!(
+            "postgres://{}{}:{}/{}",
+            username_password, self.host, self.port, self.name
+        )
     }
 }
 
@@ -103,10 +108,11 @@ impl Database {
 mod tests {
     use crate::Database;
 
-    fn db(host: &str, db_name: &str, username: Option<&str>, password: Option<&str>) -> Database {
+    fn db(host: &str, port: u16, db_name: &str, username: Option<&str>, password: Option<&str>) -> Database {
         Database {
             host: host.to_string(),
             name: db_name.to_string(),
+            port,
             username: username.map(String::from),
             password: password.map(String::from),
             connection_options: Default::default(),
@@ -116,17 +122,20 @@ mod tests {
     #[test]
     fn test_connection_string() {
         assert_eq!(
-            db("host", "db", Some("user"), Some("pwd")).connection_string(),
-            "postgres://user:pwd@host/db"
-        );
-        assert_eq!(db("host", "db", None, None).connection_string(), "postgres://host/db");
-        assert_eq!(
-            db("host", "db", Some("user"), None).connection_string(),
-            "postgres://user@host/db"
+            db("host", 5432, "db", Some("user"), Some("pwd")).connection_string(),
+            "postgres://user:pwd@host:5432/db"
         );
         assert_eq!(
-            db("host", "db", None, Some("pwd")).connection_string(),
-            "postgres://host/db"
+            db("host", 5432, "db", None, None).connection_string(),
+            "postgres://host:5432/db"
+        );
+        assert_eq!(
+            db("host", 5432, "db", Some("user"), None).connection_string(),
+            "postgres://user@host:5432/db"
+        );
+        assert_eq!(
+            db("host", 5432, "db", None, Some("pwd")).connection_string(),
+            "postgres://host:5432/db"
         );
     }
 }
