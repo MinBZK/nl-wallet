@@ -39,7 +39,6 @@ test = [
     "attestation_data/example_credential_payloads",
     "attestation_data/generate",
     "attestation_data/mock",
-    "attestation_data/test",
     "dcql/mock",
     "mdoc/mock_example_constructors",
     "openid4vc/test",
