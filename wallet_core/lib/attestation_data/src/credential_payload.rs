@@ -11,7 +11,7 @@ use serde_with::skip_serializing_none;
 use ssri::Integrity;
 
 use attestation_types::qualification::AttestationQualification;
-use crypto::EcdsaKeySend;
+use crypto::EcdsaKey;
 use crypto::server_keys::KeyPair;
 use error_category::ErrorCategory;
 use http_utils::urls::HttpsUri;
@@ -307,7 +307,7 @@ impl CredentialPayload {
         self,
         type_metadata: &NormalizedTypeMetadata,
         holder_pubkey: &VerifyingKey,
-        issuer_key: &KeyPair<impl EcdsaKeySend>,
+        issuer_key: &KeyPair<impl EcdsaKey>,
     ) -> Result<SdJwt, SdJwtCredentialPayloadError> {
         let vct_integrity = self.vct_integrity.clone();
 
