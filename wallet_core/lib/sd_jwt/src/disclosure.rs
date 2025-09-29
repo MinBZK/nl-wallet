@@ -18,7 +18,6 @@ use crate::sd_jwt::HashType;
 /// Both object properties and array elements disclosures are supported.
 ///
 /// See: https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-07.html#name-disclosures
-// TODO: [PVW-4138] Update link and check spec changes
 #[derive(Debug, Clone, Eq, SerializeDisplay, DeserializeFromStr)]
 pub struct Disclosure {
     /// Indicates whether this disclosure is an object property or array element.
