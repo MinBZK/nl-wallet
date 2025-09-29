@@ -28,6 +28,10 @@ pub enum PartialAttestationError {
 
 /// An attestation that is present in the wallet database, part of [`StoredAttestationCopy`].
 #[derive(Debug, Clone)]
+#[expect(
+    clippy::large_enum_variant,
+    reason = "in practice, variants are less different in size"
+)]
 pub enum StoredAttestation {
     MsoMdoc {
         mdoc: Mdoc,

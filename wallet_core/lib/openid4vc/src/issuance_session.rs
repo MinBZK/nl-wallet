@@ -208,6 +208,10 @@ pub enum IssuanceSessionError {
 }
 
 #[derive(Clone, Debug)]
+#[expect(
+    clippy::large_enum_variant,
+    reason = "in practice, variants are less different in size"
+)]
 pub enum IssuedCredential {
     MsoMdoc {
         mdoc: Mdoc,
