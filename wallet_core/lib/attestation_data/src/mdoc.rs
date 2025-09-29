@@ -79,7 +79,6 @@ mod test {
     use p256::ecdsa::VerifyingKey;
     use ssri::Integrity;
 
-    use crypto::CredentialEcdsaKey;
     use crypto::EcdsaKey;
     use crypto::server_keys::KeyPair;
     use mdoc::holder::Mdoc;
@@ -88,7 +87,7 @@ mod test {
 
     impl PreviewableCredentialPayload {
         /// Construct an [`Mdoc`] directly by signing, skipping validation.
-        pub async fn into_signed_mdoc_unverified<K: CredentialEcdsaKey>(
+        pub async fn into_signed_mdoc_unverified(
             self,
             metadata_integrity: Integrity,
             private_key_id: String,

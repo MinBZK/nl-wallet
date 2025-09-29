@@ -319,7 +319,7 @@ mod tests {
         let mdoc_remote_key = MockRemoteEcdsaKey::new_random("mdoc_key_id".to_string());
         let mdoc = credential_payload
             .previewable_payload
-            .into_signed_mdoc_unverified::<MockRemoteEcdsaKey>(
+            .into_signed_mdoc_unverified(
                 Integrity::from(""),
                 mdoc_remote_key.identifier().to_string(),
                 mdoc_remote_key.verifying_key(),

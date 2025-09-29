@@ -223,7 +223,7 @@ fn mdoc_from_unsigned(preview_payload: PreviewableCredentialPayload, issuer_key:
     let mdoc_public_key = mdoc_remote_key.verifying_key();
 
     preview_payload
-        .into_signed_mdoc_unverified::<MockRemoteEcdsaKey>(
+        .into_signed_mdoc_unverified(
             Integrity::from(""),
             private_key_id,
             mdoc_public_key,

@@ -32,7 +32,6 @@ use attestation_data::x509::generate::mock::generate_issuer_mock;
 use attestation_data::x509::generate::mock::generate_reader_mock;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::qualification::AttestationQualification;
-use crypto::mock_remote::MockRemoteEcdsaKey;
 use crypto::server_keys::generate::Ca;
 use dcql::CredentialFormat;
 use dcql::CredentialQuery;
@@ -924,7 +923,7 @@ fn prepare_example_mdoc_mock(issuer_ca: &Ca, wscd: &MockRemoteWscd) -> Mdoc {
 
     credential_payload
         .previewable_payload
-        .into_signed_mdoc_unverified::<MockRemoteEcdsaKey>(
+        .into_signed_mdoc_unverified(
             credential_payload.vct_integrity,
             mdoc_private_key.identifier.clone(),
             mdoc_public_key,
