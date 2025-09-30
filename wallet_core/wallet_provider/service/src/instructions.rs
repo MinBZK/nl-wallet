@@ -1031,6 +1031,7 @@ impl HandleInstruction for CompleteTransfer {
         .await?;
 
         // TODO
+        // move all attestation private keys to target account
 
         tx.commit().await?;
 

@@ -9,6 +9,8 @@ use sea_orm::EntityTrait;
 use sea_orm::QueryFilter;
 use sea_orm::QuerySelect;
 use sea_orm::Set;
+use sea_orm::prelude::Expr;
+use uuid::Uuid;
 
 use hsm::model::wrapped_key::WrappedKey;
 use wallet_provider_domain::model::wallet_user::WalletUserKeys;
@@ -76,4 +78,19 @@ where
             ))
         })
         .collect()
+}
+
+pub async fn move_keys<S, T>(db: &T, from_wallet_user_id: Uuid, to_wallet_user_id: Uuid) -> Result<()>
+where
+    S: ConnectionTrait,
+    T: PersistenceConnection<S>,
+{
+    wallet_user_key::Entity::update_many()
+        .col_expr(wallet_user_key::Column::WalletUserId, Expr::value(to_wallet_user_id))
+        .filter(wallet_user_key::Column::WalletUserId.eq(from_wallet_user_id))
+        .exec(db.connection())
+        .await
+        .map_err(|e| PersistenceError::Execution(e.into()))?;
+
+    Ok(())
 }

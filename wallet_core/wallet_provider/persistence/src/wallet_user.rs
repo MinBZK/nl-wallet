@@ -115,7 +115,7 @@ where
     Ok(user_id)
 }
 
-#[derive(FromQueryResult, Debug)]
+#[derive(FromQueryResult)]
 struct WalletUserJoinedModel {
     state: String,
     id: Uuid,
