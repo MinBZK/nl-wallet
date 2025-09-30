@@ -90,6 +90,7 @@ use wallet_provider_domain::model::wallet_user::WalletUser;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestation;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestationCreate;
 use wallet_provider_domain::model::wallet_user::WalletUserCreate;
+use wallet_provider_domain::model::wallet_user::WalletUserState;
 use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::repository::PersistenceError;
 use wallet_provider_domain::repository::TransactionStarter;
@@ -958,7 +959,12 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
 
         user_state
             .repositories
-            .change_pin(&tx, wallet_user.wallet_id.as_str(), encrypted_pin_pubkey)
+            .change_pin(
+                &tx,
+                wallet_user.wallet_id.as_str(),
+                encrypted_pin_pubkey,
+                WalletUserState::Active,
+            )
             .await?;
 
         let wallet_certificate = new_wallet_certificate(
@@ -1075,7 +1081,12 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
 
         user_state
             .repositories
-            .change_pin(&tx, wallet_user.wallet_id.as_str(), encrypted_pin_pubkey)
+            .change_pin(
+                &tx,
+                wallet_user.wallet_id.as_str(),
+                encrypted_pin_pubkey,
+                WalletUserState::RecoveringPin,
+            )
             .await?;
 
         let (instruction_result_signing_key, certificate_signing_key) = signing_keys;

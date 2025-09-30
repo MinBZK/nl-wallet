@@ -17,6 +17,7 @@ use wallet_provider_domain::model::wallet_user::TransferSession;
 use wallet_provider_domain::model::wallet_user::WalletUserCreate;
 use wallet_provider_domain::model::wallet_user::WalletUserKeys;
 use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
+use wallet_provider_domain::model::wallet_user::WalletUserState;
 use wallet_provider_domain::repository::PersistenceError;
 use wallet_provider_domain::repository::TransactionStarter;
 use wallet_provider_domain::repository::WalletUserRepository;
@@ -130,8 +131,9 @@ impl WalletUserRepository for Repositories {
         transaction: &Self::TransactionType,
         wallet_id: &str,
         new_encrypted_pin_pubkey: Encrypted<VerifyingKey>,
+        user_state: WalletUserState,
     ) -> Result<(), PersistenceError> {
-        wallet_user::change_pin(transaction, wallet_id, new_encrypted_pin_pubkey).await
+        wallet_user::change_pin(transaction, wallet_id, new_encrypted_pin_pubkey, user_state).await
     }
 
     async fn commit_pin_change(
@@ -344,6 +346,7 @@ pub mod mock {
                 transaction: &MockTransaction,
                 wallet_id: &str,
                 encrypted_pin_pubkey: Encrypted<VerifyingKey>,
+                user_state: WalletUserState,
             ) -> Result<(), PersistenceError>;
 
             async fn commit_pin_change(
@@ -554,6 +557,7 @@ pub mod mock {
             _transaction: &Self::TransactionType,
             _wallet_id: &str,
             _encrypted_pin_pubkey: Encrypted<VerifyingKey>,
+            _user_state: WalletUserState,
         ) -> Result<(), PersistenceError> {
             Ok(())
         }

@@ -15,6 +15,7 @@ use wallet_account::messages::transfer::TransferSessionState;
 use wallet_provider_domain::EpochGenerator;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestation;
 use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
+use wallet_provider_domain::model::wallet_user::WalletUserState;
 use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::repository::PersistenceError;
 use wallet_provider_persistence::PersistenceConnection;
@@ -234,7 +235,7 @@ async fn do_change_pin() -> (
 
     let new_pin = encrypted_pin_key("new_pin_1").await;
 
-    wallet_provider_persistence::wallet_user::change_pin(&db, &wallet_id, new_pin.clone())
+    wallet_provider_persistence::wallet_user::change_pin(&db, &wallet_id, new_pin.clone(), WalletUserState::Active)
         .await
         .expect("Could register unsuccessful pin entry");
 

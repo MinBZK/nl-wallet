@@ -389,7 +389,12 @@ where
     update_pin_entries(db, wallet_id, Expr::value(0), datetime, false).await
 }
 
-pub async fn change_pin<S, T>(db: &T, wallet_id: &str, new_encrypted_pin_pubkey: Encrypted<VerifyingKey>) -> Result<()>
+pub async fn change_pin<S, T>(
+    db: &T,
+    wallet_id: &str,
+    new_encrypted_pin_pubkey: Encrypted<VerifyingKey>,
+    user_state: WalletUserState,
+) -> Result<()>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
@@ -414,6 +419,7 @@ where
                 wallet_user::Column::PreviousPinPubkeyIv,
                 Expr::col(wallet_user::Column::PinPubkeyIv).into(),
             ),
+            (wallet_user::Column::State, Expr::value(user_state.to_string())),
         ],
     )
     .await

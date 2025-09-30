@@ -15,6 +15,7 @@ use crate::model::wallet_user::TransferSession;
 use crate::model::wallet_user::WalletUserCreate;
 use crate::model::wallet_user::WalletUserKeys;
 use crate::model::wallet_user::WalletUserQueryResult;
+use crate::model::wallet_user::WalletUserState;
 
 use super::errors::PersistenceError;
 use super::transaction::Committable;
@@ -73,6 +74,7 @@ pub trait WalletUserRepository {
         transaction: &Self::TransactionType,
         wallet_id: &str,
         encrypted_pin_pubkey: Encrypted<VerifyingKey>,
+        user_state: WalletUserState,
     ) -> Result<()>;
 
     async fn commit_pin_change(&self, transaction: &Self::TransactionType, wallet_id: &str) -> Result<()>;
@@ -237,6 +239,7 @@ pub mod mock {
             _transaction: &Self::TransactionType,
             _wallet_id: &str,
             _encrypted_pin_pubkey: Encrypted<VerifyingKey>,
+            _user_state: WalletUserState,
         ) -> Result<()> {
             Ok(())
         }
