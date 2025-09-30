@@ -121,9 +121,17 @@ pub trait WalletUserRepository {
         transfer_session_id: Uuid,
     ) -> Result<Option<TransferSession>>;
 
+    async fn find_transfer_session_id_by_destination_wallet_user_id(
+        &self,
+        transaction: &Self::TransactionType,
+        destination_wallet_user_id: Uuid,
+    ) -> Result<Option<Uuid>>;
+
     async fn confirm_wallet_transfer(
         &self,
         transaction: &Self::TransactionType,
+        source_wallet_user_id: Uuid,
+        destination_wallet_user_id: Uuid,
         transfer_session_id: Uuid,
     ) -> Result<()>;
 
@@ -131,6 +139,8 @@ pub trait WalletUserRepository {
         &self,
         transaction: &Self::TransactionType,
         transfer_session_id: Uuid,
+        source_wallet_user_id: Option<Uuid>,
+        destination_wallet_user_id: Uuid,
     ) -> Result<()>;
 
     async fn store_wallet_transfer_data(
@@ -303,9 +313,19 @@ pub mod mock {
             Ok(None)
         }
 
+        async fn find_transfer_session_id_by_destination_wallet_user_id(
+            &self,
+            _transaction: &Self::TransactionType,
+            _destination_wallet_user_id: Uuid,
+        ) -> Result<Option<Uuid>> {
+            Ok(None)
+        }
+
         async fn confirm_wallet_transfer(
             &self,
             _transaction: &Self::TransactionType,
+            _source_wallet_user_id: Uuid,
+            _destination_wallet_user_id: Uuid,
             _transfer_session_id: Uuid,
         ) -> Result<()> {
             Ok(())
@@ -315,6 +335,8 @@ pub mod mock {
             &self,
             _transaction: &Self::TransactionType,
             _transfer_session_id: Uuid,
+            _source_wallet_user_id: Option<Uuid>,
+            _destination_wallet_user_id: Uuid,
         ) -> Result<()> {
             Ok(())
         }

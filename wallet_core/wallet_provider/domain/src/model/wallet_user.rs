@@ -29,12 +29,18 @@ pub struct WalletUser {
     pub attestation: WalletUserAttestation,
     pub state: WalletUserState,
     pub recovery_code: Option<String>,
-    pub transfer_session: Option<TransferSession>,
+}
+
+#[derive(Debug)]
+pub struct TransferSessionSummary {
+    pub transfer_session_id: Uuid,
+    pub state: TransferSessionState,
 }
 
 #[derive(Debug, Clone)]
 pub struct TransferSession {
     pub id: Uuid,
+    pub source_wallet_user_id: Option<Uuid>,
     pub destination_wallet_user_id: Uuid,
     pub destination_wallet_recovery_code: String,
     pub transfer_session_id: Uuid,
@@ -55,16 +61,7 @@ impl WalletUser {
     }
 
     pub fn transfer_in_progress(&self) -> bool {
-        self.transfer_session
-            .as_ref()
-            .map(|s| {
-                [
-                    TransferSessionState::ReadyForTransfer,
-                    TransferSessionState::ReadyForDownload,
-                ]
-                .contains(&s.state)
-            })
-            .unwrap_or(false)
+        self.state == WalletUserState::Transferring
     }
 }
 
@@ -96,6 +93,7 @@ pub enum WalletUserState {
     Active,
     Blocked,
     RecoveringPin,
+    Transferring,
 }
 
 #[derive(Debug)]
@@ -159,7 +157,6 @@ SssTb0eI53lvfdvG/xkNcktwsXEIPL1y3lUKn1u1ZhFTnQn4QKmnvaN4uQ==
             attestation: WalletUserAttestation::Android,
             state: WalletUserState::Active,
             recovery_code: None,
-            transfer_session: None,
         }
     }
 }
