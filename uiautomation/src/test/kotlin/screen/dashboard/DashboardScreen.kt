@@ -4,56 +4,37 @@ import util.MobileActions
 
 class DashboardScreen : MobileActions() {
 
-    private val screen = find.byValueKey("dashboardScreen")
+    private val menuButton = l10n.getString("dashboardScreenMenuWCAGLabel")
+    private val pidIdTitleText = cardMetadata.getPidDisplayName()
+    private val pidAddressTitleText = cardMetadata.getAddressDisplayName()
+    private val showDetailsText = l10n.getString("showDetailsCta")
+    private val scanQRButton = l10n.getString("menuScreenScanQrCta")
+    private val appTourBannerTitle = l10n.getString("tourBannerTitle")
 
-    private val menuButton = find.byText(l10n.getString("dashboardScreenTitle"))
-
-    private val pidIdCard = find.byValueKey(cardMetadata.getPidVCT())
-    private val pidAddressCard = find.byValueKey(cardMetadata.getAddressVCT())
-
-    private val pidIdTitleText = find.byText(cardMetadata.getPidDisplayName())
-    private val pidAddressTitleText = find.byText(cardMetadata.getAddressDisplayName())
-    private val showDetailsText = find.byText(l10n.getString("showDetailsCta"))
-    private val scanQRButton = find.byText(l10n.getString("menuScreenScanQrCta"))
-
-    private val appTourBannerTitle = find.byText(l10n.getString("tourBannerTitle"))
-
-    fun visible() = isElementVisible(screen, false)
-
-    fun pidCardsVisible(): Boolean {
-        return cardVisible(cardMetadata.getPidVCT()) && cardVisible(cardMetadata.getAddressVCT())
-    }
+    fun visible() = elementContainingTextVisible(menuButton) && elementWithTextVisible(scanQRButton)
 
     fun cardFaceTextsInActiveLanguage() =
-        isElementVisible(pidIdTitleText, false) && isElementVisible(showDetailsText, false)
+        elementContainingTextVisible(pidIdTitleText) && elementContainingTextVisible(showDetailsText)
 
     fun checkCardSorting(): Boolean {
-        val (_, pidY) = getTopLeft(pidIdCard, false)!!
-        val (_, addressY) = getTopLeft(pidAddressCard, false)!!
+        val (_, pidY) = getTopLeftOfElementContainingText(pidIdTitleText)!!
+        val (_, addressY) = getTopLeftOfElementContainingText(pidAddressTitleText)!!
         return pidY < addressY
     }
 
-    fun clickMenuButton() = clickElement(menuButton, false)
+    fun clickMenuButton() = clickElementContainingText(menuButton)
 
-    fun clickCard(vct: String) {
-        scrollToEndOnDashBoard()
-        clickElement(find.byValueKey(vct), false)
-    }
+    fun clickCard(displayName: String) = clickElementContainingText(displayName)
 
-    fun appTourBannerVisible() = isElementVisible(appTourBannerTitle)
+    fun appTourBannerVisible() = elementContainingTextVisible(appTourBannerTitle.substringBefore("'"))
 
-    fun cardTitlesVisible() = isElementVisible(pidIdTitleText, false) && isElementVisible(pidAddressTitleText, false)
+    fun cardTitlesVisible() = elementContainingTextVisible(pidIdTitleText) && elementContainingTextVisible(pidAddressTitleText)
 
-    fun cardButtonsVisible() = isElementVisible(find.byDescendant(pidIdCard, showDetailsText, false, false))  && isElementVisible(find.byDescendant(pidAddressCard, showDetailsText, false, false))
+    fun cardButtonsVisible() = elementContainingTextVisible(showDetailsText)
 
-    fun cardSubtitleVisible(subtitle: String): Boolean {
-        return isElementVisible(find.byText(subtitle), false)
-    }
+    fun cardSubtitleVisible(subtitle: String) = elementContainingTextVisible(subtitle)
 
-    fun openQRScanner() = clickElement(scanQRButton)
+    fun openQRScanner() = clickElementWithText(scanQRButton)
 
-    fun cardVisible(vct: String): Boolean {
-        scrollToEndOnDashBoard()
-        return isElementVisible(find.byValueKey(vct))
-    }
+    fun cardVisible(displayName: String) = elementContainingTextVisible(displayName)
 }

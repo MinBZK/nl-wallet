@@ -4,157 +4,109 @@ import util.MobileActions
 
 class DisclosureApproveOrganizationScreen : MobileActions() {
 
-    private val loginButton = find.byText(l10n.getString("organizationApprovePageLoginCta"))
-    private val goToWebsiteButton = find.byText(l10n.getString("disclosureSuccessPageToWebsiteCta"))
-    private val yesProceedButton = find.byText(l10n.getString("disclosureConfirmDataAttributesPageApproveCta"))
-    private val shareButton = find.byText(l10n.getString("disclosureConfirmDataAttributesPageApproveCta"))
-    private val closeButton = find.byText(l10n.getString("disclosureSuccessPageCloseCta"))
-    private val attributesMissingMessage = find.byText(l10n.getString("missingAttributesPageTitle"))
-    private val viewActivitiesButton = find.byText(l10n.getString("disclosureSuccessPageShowHistoryCta"))
-    private val viewLoginDisclosureDetailsButton = find.byText(l10n.getString("organizationApprovePageMoreInfoLoginCta"))
-    private val viewDisclosureOrganizationDetailsButton = find.byText(l10n.getString("organizationButtonLabel"))
-    private val goBackButton = find.byText(l10n.getString("generalBottomBackCta"))
-    private val closeDialogButton = find.byValueKey("close_icon_button")
-    private val stopRequestButton = find.byText(l10n.getString("missingAttributesPageCloseCta"))
-    private val readTermsButton = find.byText(l10n.getString("loginDetailScreenAgreementCta"))
-    private val termsSubtitle = find.byText(l10n.getString("policyScreenSubtitle"))
-    private val organizationApprovePageDenyCta = find.byText(l10n.getString("organizationApprovePageDenyCta"))
-    private val disclosureStopSheetReportIssueCta = find.byText(l10n.getString("disclosureStopSheetReportIssueCta"))
-    private val disclosureConfirmDataAttributesSubtitleTerms = find.byText(l10n.getString("disclosureConfirmDataAttributesSubtitleTerms"))
-    private val disclosureConfirmDataAttributesCheckConditionsCta = find.byText(l10n.getString("disclosureConfirmDataAttributesCheckConditionsCta"))
-    private val reportOptionUntrusted = find.byText(l10n.getString("reportOptionRequestUntrusted"))
-    private val reportOptionSuspiciousOrganization = find.byText(l10n.getString("reportOptionSuspiciousOrganization"))
-    private val scrollableElement = find.byType(ScrollableType.CustomScrollView.toString())
+    private val loginButton = l10n.getString("organizationApprovePageLoginCta")
+    private val goToWebsiteButton = l10n.getString("disclosureSuccessPageToWebsiteCta")
+    private val shareButton = l10n.getString("disclosureConfirmDataAttributesPageApproveCta")
+    private val closeButton = l10n.getString("disclosureSuccessPageCloseCta")
+    private val attributesMissingMessage = l10n.getString("missingAttributesPageTitle")
+    private val viewLoginDisclosureDetailsButton = l10n.getString("organizationApprovePageMoreInfoLoginCta")
+    private val viewDisclosureOrganizationDetailsButton = l10n.getString("organizationButtonLabel")
+    private val goBackButton = l10n.getString("generalBottomBackCta")
+    private val stopRequestButton = l10n.getString("missingAttributesPageCloseCta")
+    private val readTermsButton = l10n.getString("loginDetailScreenAgreementCta")
+    private val termsSubtitle = l10n.getString("policyScreenSubtitle")
+    private val organizationApprovePageDenyCta = l10n.getString("organizationApprovePageDenyCta")
+    private val disclosureStopSheetReportIssueCta = l10n.getString("disclosureStopSheetReportIssueCta")
+    private val disclosureConfirmDataAttributesSubtitleTerms = l10n.getString("disclosureConfirmDataAttributesSubtitleTerms")
+    private val disclosureConfirmDataAttributesCheckConditionsCta = l10n.getString("disclosureConfirmDataAttributesCheckConditionsCta")
+    private val reportOptionSuspiciousOrganization = l10n.getString("reportOptionSuspiciousOrganization")
 
-    fun login() = clickElement(loginButton)
+    fun login() = clickElementWithText(loginButton)
 
     fun goToWebsite() {
-        clickElement(goToWebsiteButton)
+        clickElementWithText(goToWebsiteButton)
         switchToWebViewContext()
     }
 
-    fun proceed() = clickElement(yesProceedButton)
-
     fun share() {
-        scrollToEnd(scrollableElement)
-        clickElement(shareButton)
+        scrollToElementWithText(shareButton)
+        clickElementWithText(shareButton)
     }
 
     fun close() {
-        clickElement(closeButton)
+        clickElementWithText(closeButton)
         switchToWebViewContext()
     }
 
-    fun attributesMissingMessageVisible() = isElementVisible(attributesMissingMessage, false)
-
-    fun viewActivities() {
-        clickElement(viewActivitiesButton)
-    }
+    fun attributesMissingMessageVisible() = elementWithTextVisible(attributesMissingMessage)
 
     fun organizationNameForSharingFlowVisible(organizationName: String): Boolean {
-        val selector = l10n.getString("disclosureConfirmDataAttributesShareWithTitle").replace("{organization}", organizationName)
-        val element = find.byText(selector)
-        return isElementVisible(element);
+        val selectorText = l10n.getString("disclosureConfirmDataAttributesShareWithTitle").replace("{organization}", organizationName)
+        return elementWithTextVisible(selectorText);
     }
 
     fun organizationNameForLoginFlowVisible(organizationName: String): Boolean {
-        val selector = l10n.getString("organizationApprovePageLoginTitle").replace("{organization}", organizationName)
-        val element = find.byText(selector)
-        return isElementVisible(element);
+        val selectorText = l10n.getString("organizationApprovePageLoginTitle").replace("{organization}", organizationName)
+        return elementWithTextVisible(selectorText);
     }
 
-    fun viewDisclosureOrganizationDetails() {
-        clickElement(viewDisclosureOrganizationDetailsButton)
-    }
+    fun viewDisclosureOrganizationDetails() = clickElementContainingText(viewDisclosureOrganizationDetailsButton)
 
-    fun viewLoginDisclosureDetails() {
-        clickElement(viewLoginDisclosureDetailsButton)
-    }
+    fun viewLoginDisclosureDetails() = clickElementContainingText(viewLoginDisclosureDetailsButton)
 
-    fun organizationDescriptionOnDetailsVisible(description: String): Boolean {
-        val element = find.byText(description)
-        return isElementVisible(element);
-    }
+    fun organizationDescriptionOnDetailsVisible(description: String): Boolean = elementWithTextVisible(description);
 
-    fun goBack() {
-        clickElement(goBackButton)
-    }
+    fun goBack() = clickElementWithText(goBackButton)
 
-    fun closeDialog() {
-        clickElement(closeDialogButton)
-    }
+    fun stopRequestAfterMissingAttributeFailure() = clickElementWithText(stopRequestButton)
 
-    fun stopRequestAfterMissingAttributeFailure() {
-        clickElement(stopRequestButton)
-    }
-
-    fun closeDisclosureAfterCompletedOrUncompleted() {
-        clickElement(closeButton)
-    }
+    fun closeDisclosureAfterCompletedOrUncompleted() = clickElementWithText(closeButton)
 
     fun viewSharedData(count: String, cardTitle: String) {
         val title = l10n.getString("sharedAttributesCardTitle").replace("{count}", count).replace("{cardTitle}", cardTitle)
         clickElementContainingText(title)
     }
 
-    fun bsnVisible(bsn: String): Boolean {
-        return isElementVisible(find.byText(bsn))
-    }
+    fun bsnVisible(bsn: String) = elementContainingTextVisible(bsn)
 
     fun readTerms() {
-        scrollToEnd(scrollableElement)
-        clickElement(readTermsButton)
+        scrollToElementWithText(readTermsButton)
+        clickElementWithText(readTermsButton)
     }
 
-    fun termsVisible(): Boolean {
-        return isElementVisible(termsSubtitle)
-    }
+    fun termsVisible() = elementWithTextVisible(termsSubtitle)
 
-    fun viewOrganization(organization: String) {
-        clickElement(find.byText(organization))
-    }
+    fun viewOrganization(organization: String) = clickElementContainingText(organization)
 
     fun cancel() {
-        scrollToEnd(scrollableElement)
-        clickElement(organizationApprovePageDenyCta)
+        scrollToElementWithText(organizationApprovePageDenyCta)
+        clickElementWithText(organizationApprovePageDenyCta)
     }
 
-    fun reportProblem() = clickElement(disclosureStopSheetReportIssueCta)
+    fun reportProblem() = clickElementWithText(disclosureStopSheetReportIssueCta)
 
-    fun reportOptionUntrustedVisible() = isElementVisible(reportOptionUntrusted)
-
-    fun reportOptionSuspiciousVisible() = isElementVisible(reportOptionSuspiciousOrganization)
-
+    fun reportOptionSuspiciousVisible() = elementWithTextVisible(reportOptionSuspiciousOrganization)
 
     fun organizationInPresentationRequestHeaderVisible(organization: String): Boolean {
-        val selector = l10n.getString("disclosureConfirmDataAttributesShareWithTitle").replace("{organization}", organization)
-        val element = find.byText(selector)
-        return isElementVisible(element);
+        val selectorText = l10n.getString("disclosureConfirmDataAttributesShareWithTitle").replace("{organization}", organization)
+        return elementWithTextVisible(selectorText);
     }
 
-    fun labelVisible(label: String): Boolean {
-        return isElementVisible(find.byText(label))
-    }
+    fun labelVisible(label: String) = elementContainingTextVisible(label)
 
-    fun dataNotVisible(data: String): Boolean {
-        return !isElementVisible(find.byText(data))
-    }
+    fun dataNotVisible(data: String) = !elementContainingTextVisible(data)
 
-    fun dataVisible(data: String): Boolean {
-        return isElementVisible(find.byText(data))
-    }
+    fun dataVisible(data: String) = elementContainingTextVisible(data)
 
-    fun sharingReasonVisible(reason: String): Boolean {
-        return isElementVisible(find.byText(reason))
-    }
+    fun sharingReasonVisible(reason: String) = elementWithTextVisible(reason)
 
     fun conditionsHeaderVisible(): Boolean {
-        scrollToEnd(scrollableElement)
-        return isElementVisible(disclosureConfirmDataAttributesSubtitleTerms)
+        scrollToElementWithText(disclosureConfirmDataAttributesSubtitleTerms)
+        return elementWithTextVisible(disclosureConfirmDataAttributesSubtitleTerms)
     }
 
     fun conditionsButtonVisible(): Boolean  {
-        scrollToEnd(scrollableElement)
-        return isElementVisible(disclosureConfirmDataAttributesCheckConditionsCta)
+        scrollToElementWithText(disclosureConfirmDataAttributesCheckConditionsCta)
+        return elementWithTextVisible(disclosureConfirmDataAttributesCheckConditionsCta)
     }
 }

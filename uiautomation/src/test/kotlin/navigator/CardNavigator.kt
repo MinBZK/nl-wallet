@@ -4,15 +4,17 @@ import navigator.screen.CardNavigatorScreen
 import navigator.screen.OnboardingNavigatorScreen
 import screen.card.CardDetailScreen
 import screen.dashboard.DashboardScreen
+import util.MobileActions
 
-class CardNavigator {
+class CardNavigator : MobileActions() {
 
-    fun toScreen(screen: CardNavigatorScreen, vct: String = "urn:eudi:pid:nl:1") {
+    fun toScreen(screen: CardNavigatorScreen) {
         // Navigate through onboarding flow
         OnboardingNavigator().toScreen(OnboardingNavigatorScreen.Dashboard)
 
         // Navigate card flow
-        if (screen > CardNavigatorScreen.Dashboard) DashboardScreen().clickCard(vct)
+        val pidDisplayName = cardMetadata.getPidDisplayName()
+        if (screen > CardNavigatorScreen.Dashboard) DashboardScreen().clickCard(pidDisplayName)
         if (screen > CardNavigatorScreen.CardDetail) CardDetailScreen().clickCardDataButton()
     }
 }

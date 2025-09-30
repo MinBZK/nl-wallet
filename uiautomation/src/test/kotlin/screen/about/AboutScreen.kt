@@ -4,7 +4,10 @@ import util.MobileActions
 
 class AboutScreen : MobileActions() {
 
-    private val screen = find.byValueKey("aboutScreen")
+    private val aboutScreenTitle = l10n.getString("aboutScreenTitle")
+    private val backButton = l10n.getString("generalBottomBackCta")
 
-    fun visible() = isElementVisible(screen)
+    fun visible() = elementWithTextVisible(aboutScreenTitle)
+
+    fun goBack() = clickElementWithText(backButton)
 }

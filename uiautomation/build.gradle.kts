@@ -21,7 +21,6 @@ dependencies {
     implementation("com.codeborne:selenide-appium:7.9.4")
     implementation("com.squareup.moshi:moshi-kotlin:1.15.2")
     implementation("io.appium:java-client:10.0.0")
-    implementation("io.github.ashwithpoojary98:appium_flutterfinder_java:1.0.10")
     implementation("io.rest-assured:rest-assured:5.5.5")
     implementation("org.junit.jupiter:junit-jupiter:5.13.4")
     implementation("org.junit-pioneer:junit-pioneer:2.3.0")
@@ -41,7 +40,7 @@ val testConfigMap = mapOf<String, Any>(
     "test.config.platform.name" to "Android",
     "test.config.platform.version" to 14.0,
     "test.config.remote" to false,
-    "test.config.automation.name" to "Flutter",
+    "test.config.automation.name" to "UIAutomator2",
     "test.config.commit.sha" to "local", //only used for browserstack test runs
 )
 
@@ -56,18 +55,6 @@ tasks.register<Test>("smokeTest") {
         // Exclude all test suites/wrappers; when using 'includeTags' this is needed to prevent
         // duplicated test executions and ensure only the actual tagged tests are run.
         exclude("suite/**")
-        exclude("nativesuite/**")
-    }
-}
-
-tasks.register<Test>("nativeSmokeTest") {
-    useJUnitPlatform {
-        includeTags("nativesmoke")
-
-        // Exclude all test suites/wrappers; when using 'includeTags' this is needed to prevent
-        // duplicated test executions and ensure only the actual tagged tests are run.
-        exclude("suite/**")
-        exclude("nativesuite/**")
     }
 }
 
@@ -75,15 +62,6 @@ tasks.register<Test>("smokeTestIOS") {
     useJUnitPlatform {
         includeTags("smokeIOS")
         exclude("suite/**")
-        exclude("nativesuite/**")
-    }
-}
-
-tasks.register<Test>("nativeSmokeTestIOS") {
-    useJUnitPlatform {
-        includeTags("nativeSmokeIOS")
-        exclude("suite/**")
-        exclude("nativesuite/**")
     }
 }
 
@@ -94,7 +72,6 @@ tasks.register<Test>("runOnAll") {
         // Exclude all test suites/wrappers; when using 'includeTags' this is needed to prevent
         // duplicated test executions and ensure only the actual tagged tests are run.
         exclude("suite/**")
-        exclude("nativesuite/**")
     }
 }
 

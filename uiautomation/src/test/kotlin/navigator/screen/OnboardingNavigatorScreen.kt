@@ -13,5 +13,6 @@ enum class OnboardingNavigatorScreen {
     PersonalizePidPreview,
     PersonalizeConfirmIssuance,
     PersonalizeSuccess,
+    PersonalizeTransferWallet,
     Dashboard,
 }

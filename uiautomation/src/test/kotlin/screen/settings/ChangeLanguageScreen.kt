@@ -4,23 +4,21 @@ import util.MobileActions
 
 class ChangeLanguageScreen : MobileActions() {
 
-    private val screen = find.byValueKey("changeLanguageScreen")
+    private val screenTitle = l10n.getString("changeLanguageScreenTitle")
+    private val englishScreenTitle = "Select a language"
+    private val dutchScreenTitle = "Kies een taal"
+    private val englishButton = "English"
+    private val dutchButton = "Nederlands"
 
-    private val englishScreenTitle = find.byText("Select a language")
-    private val dutchScreenTitle = find.byText("Kies een taal")
+    fun visible() = elementWithTextVisible(screenTitle)
 
-    private val englishButton = find.byText("English")
-    private val dutchButton = find.byText("Nederlands")
+    fun englishScreenTitleVisible() = elementWithTextVisible(englishScreenTitle)
 
-    fun visible() = isElementVisible(screen)
+    fun dutchScreenTitleVisible() = elementWithTextVisible(dutchScreenTitle)
 
-    fun englishScreenTitleVisible() = isElementVisible(englishScreenTitle)
+    fun languageButtonsVisible() = elementWithTextVisible(englishButton) && elementWithTextVisible(englishButton)
 
-    fun dutchScreenTitleVisible() = isElementVisible(dutchScreenTitle)
+    fun clickEnglishButton() = clickElementWithText(englishButton)
 
-    fun languageButtonsVisible(): Boolean = isElementVisible(englishButton) && isElementVisible(englishButton)
-
-    fun clickEnglishButton() = clickElement(englishButton)
-
-    fun clickDutchButton() = clickElement(dutchButton)
+    fun clickDutchButton() = clickElementWithText(dutchButton)
 }

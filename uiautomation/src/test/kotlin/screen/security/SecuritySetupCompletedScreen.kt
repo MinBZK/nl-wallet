@@ -4,13 +4,12 @@ import util.MobileActions
 
 class SecuritySetupCompletedScreen : MobileActions() {
 
-    private val screen = find.byValueKey("setupSecurityCompletedPage")
+    private val setupSecurityCompletedPageTitle = l10n.getString("setupSecurityCompletedPageTitle")
+    private val nextButton = l10n.getString("setupSecurityCompletedPageCreateWalletCta")
 
-    private val nextButton = find.byValueKey("primaryButtonCta")
+    fun visible() = elementWithTextVisible(setupSecurityCompletedPageTitle)
 
-    fun visible() = isElementVisible(screen)
+    fun absent() = !elementWithTextVisible(setupSecurityCompletedPageTitle)
 
-    fun absent() = isElementAbsent(screen)
-
-    fun clickNextButton() = clickElement(nextButton)
+    fun clickNextButton() = clickElementWithText(nextButton)
 }
