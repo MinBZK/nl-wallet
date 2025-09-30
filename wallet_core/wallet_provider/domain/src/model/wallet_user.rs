@@ -94,6 +94,7 @@ pub enum WalletUserState {
     Blocked,
     RecoveringPin,
     Transferring,
+    Transferred,
 }
 
 #[derive(Debug)]

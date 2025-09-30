@@ -266,6 +266,9 @@ pub enum InstructionError {
     #[error("the wallet transfer session is in an illegal state")]
     AccountTransferIllegalState,
 
+    #[error("the wallet transfer session has been canceled")]
+    AccountTransferCanceled,
+
     #[error(
         "cannot transfer wallets because of app version mismatch; source: {source_version}, destination: \
          {destination_version}"
@@ -298,6 +301,9 @@ pub enum InstructionValidationError {
 
     #[error("wallet transfer is in progress")]
     TransferInProgress,
+
+    #[error("no wallet transfer is in progress")]
+    NoTransferInProgress,
 
     #[error("recovery code is missing")]
     MissingRecoveryCode,

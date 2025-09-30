@@ -149,6 +149,14 @@ pub trait WalletUserRepository {
         transfer_session_id: Uuid,
         encrypted_wallet_data: String,
     ) -> Result<()>;
+
+    async fn complete_wallet_transfer(
+        &self,
+        transaction: &Self::TransactionType,
+        transfer_session_id: Uuid,
+        source_wallet_user_id: Uuid,
+        destination_wallet_user_id: Uuid,
+    ) -> Result<()>;
 }
 
 #[cfg(feature = "mock")]
@@ -346,6 +354,16 @@ pub mod mock {
             _transaction: &Self::TransactionType,
             _transfer_session_id: Uuid,
             _encrypted_wallet_data: String,
+        ) -> Result<()> {
+            Ok(())
+        }
+
+        async fn complete_wallet_transfer(
+            &self,
+            _transaction: &Self::TransactionType,
+            _transfer_session_id: Uuid,
+            _source_wallet_user_id: Uuid,
+            _destination_wallet_user_id: Uuid,
         ) -> Result<()> {
             Ok(())
         }

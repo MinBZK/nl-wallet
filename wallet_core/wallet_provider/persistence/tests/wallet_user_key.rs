@@ -121,8 +121,7 @@ async fn test_move_keys() {
     )
     .await
     .unwrap()
-    .into_iter()
-    .map(|(id, _key)| id)
+    .into_keys()
     .collect::<HashSet<_>>();
 
     assert_eq!(
@@ -134,8 +133,7 @@ async fn test_move_keys() {
         find_keys_by_identifiers(&db, destination_wallet_user_id, &["destination_key1".to_string()])
             .await
             .unwrap()
-            .into_iter()
-            .map(|(id, _key)| id)
+            .into_keys()
             .collect::<HashSet<_>>();
 
     assert_eq!(
@@ -169,8 +167,7 @@ async fn test_move_keys() {
     )
     .await
     .unwrap()
-    .into_iter()
-    .map(|(id, _key)| id)
+    .into_keys()
     .collect::<HashSet<_>>();
 
     assert_eq!(
