@@ -8,6 +8,7 @@ import nativescreen.introduction.IntroductionScreen
 import nativescreen.issuance.PersonalizeInformScreen
 import nativescreen.issuance.PersonalizePidPreviewScreen
 import nativescreen.issuance.PersonalizeSuccessScreen
+import nativescreen.issuance.TransferWalletScreen
 import nativescreen.security.PinScreen
 import nativescreen.security.SecuritySetupCompletedScreen
 import nativescreen.web.digid.DigidLoginMockWebPage
@@ -27,6 +28,7 @@ class OnboardingNavigator {
         if (screen > OnboardingNavigatorScreen.DigidLoginMockWebPage) DigidLoginMockWebPage().login(bsn)
         if (screen > OnboardingNavigatorScreen.PersonalizePidPreview) PersonalizePidPreviewScreen().clickAcceptButton()
         if (screen > OnboardingNavigatorScreen.PersonalizeConfirmIssuance) PinScreen().enterPin(DEFAULT_PIN)
+        if (screen > OnboardingNavigatorScreen.PersonalizeTransferWallet) TransferWalletScreen().createNewWallet()
         if (screen > OnboardingNavigatorScreen.PersonalizeSuccess) PersonalizeSuccessScreen().clickNextButton()
 
         // App now shows the dashboard screen.
