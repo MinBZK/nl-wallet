@@ -781,12 +781,15 @@ impl HandleInstruction for DiscloseRecoveryCodePinRecovery {
             return Ok(());
         }
 
+        // The PID that was just received has to belong to the same person as the wallet,
+        // which is the case only if they have the same recovery code.
+        if wallet_user.recovery_code != Some(recovery_code) {
+            return Err(InstructionError::InvalidRecoveryCode);
+        }
+
         let tx = user_state.repositories.begin_transaction().await?;
 
-        user_state
-            .repositories
-            .recover_pin_with_recovery_code(&tx, &wallet_user.wallet_id, recovery_code.clone())
-            .await?;
+        user_state.repositories.recover_pin(&tx, &wallet_user.wallet_id).await?;
 
         tx.commit().await?;
 
@@ -1622,9 +1625,7 @@ mod tests {
         wallet_user_repo
             .expect_begin_transaction()
             .returning(|| Ok(MockTransaction));
-        wallet_user_repo
-            .expect_recover_pin_with_recovery_code()
-            .returning(|_, _, _| Ok(()));
+        wallet_user_repo.expect_recover_pin().returning(|_, _| Ok(()));
 
         let result = instruction
             .handle(

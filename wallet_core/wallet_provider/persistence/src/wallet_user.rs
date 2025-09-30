@@ -575,7 +575,7 @@ where
     }
 }
 
-pub async fn recover_pin_with_recovery_code<S, T>(db: &T, wallet_id: &str, recovery_code: String) -> Result<()>
+pub async fn recover_pin<S, T>(db: &T, wallet_id: &str) -> Result<()>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
@@ -588,7 +588,6 @@ where
         .filter(
             wallet_user::Column::WalletId
                 .eq(wallet_id)
-                .and(wallet_user::Column::RecoveryCode.eq(recovery_code))
                 .and(wallet_user::Column::State.eq(WalletUserState::RecoveringPin.to_string())),
         )
         .exec(db.connection())

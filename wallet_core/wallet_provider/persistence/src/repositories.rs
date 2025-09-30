@@ -161,13 +161,8 @@ impl WalletUserRepository for Repositories {
         wallet_user::store_recovery_code(transaction, wallet_id, recovery_code).await
     }
 
-    async fn recover_pin_with_recovery_code(
-        &self,
-        transaction: &Self::TransactionType,
-        wallet_id: &str,
-        recovery_code: String,
-    ) -> Result<(), PersistenceError> {
-        wallet_user::recover_pin_with_recovery_code(transaction, wallet_id, recovery_code).await
+    async fn recover_pin(&self, transaction: &Self::TransactionType, wallet_id: &str) -> Result<(), PersistenceError> {
+        wallet_user::recover_pin(transaction, wallet_id).await
     }
 
     async fn has_multiple_active_accounts_by_recovery_code(
@@ -446,11 +441,10 @@ pub mod mock {
                 recovery_code: String,
             ) -> Result<(), PersistenceError>;
 
-            async fn recover_pin_with_recovery_code(
+            async fn recover_pin(
                 &self,
                 transaction: &MockTransaction,
                 wallet_id: &str,
-                recovery_code: String,
             ) -> Result<(), PersistenceError>;
 
             async fn has_multiple_active_accounts_by_recovery_code(
@@ -675,11 +669,10 @@ pub mod mock {
             Ok(())
         }
 
-        async fn recover_pin_with_recovery_code(
+        async fn recover_pin(
             &self,
             _transaction: &Self::TransactionType,
             _wallet_id: &str,
-            _recovery_code: String,
         ) -> Result<(), PersistenceError> {
             Ok(())
         }
