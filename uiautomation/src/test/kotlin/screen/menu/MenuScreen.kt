@@ -4,55 +4,49 @@ import util.MobileActions
 
 class MenuScreen : MobileActions() {
 
-    private val screen = find.byValueKey("menuScreen")
+    private val appTourVideoButton = l10n.getString("menuScreenTourCta")
+    private val helpButton = l10n.getString("menuScreenHelpCta")
+    private val historyButton = l10n.getString("menuScreenHistoryCta")
+    private val settingsButton = l10n.getString("menuScreenSettingsCta")
+    private val feedbackButton = l10n.getString("menuScreenFeedbackCta")
+    private val aboutButton = l10n.getString("menuScreenAboutCta")
+    private val logoutButton = l10n.getString("menuScreenLockCta")
+    private val bottomBackButton = l10n.getString("generalBottomBackCta")
+    private val browserTestButton = "Browser Test"
 
-    private val appTourVideoButton = find.byText(l10n.getString("menuScreenTourCta"))
-    private val helpButton = find.byText(l10n.getString("menuScreenHelpCta"))
-    private val historyButton = find.byText(l10n.getString("menuScreenHistoryCta"))
-    private val settingsButton = find.byText(l10n.getString("menuScreenSettingsCta"))
-    private val feedbackButton = find.byText(l10n.getString("menuScreenFeedbackCta"))
-    private val aboutButton = find.byText(l10n.getString("menuScreenAboutCta"))
-    private val logoutButton = find.byText(l10n.getString("menuScreenLockCta"))
-    private val bottomBackButton = find.byText(l10n.getString("generalBottomBackCta"))
-    private val browserTestButton = find.byText("Browser Test")
-    private val scrollableElement = find.byAncestor(browserTestButton, find.byType(ScrollableType.ListView.toString()), true, true )
-
-    fun visible() = isElementVisible(screen)
-
-    fun menuListButtonsVisible(): Boolean =
-        isElementVisible(helpButton) && isElementVisible(historyButton) && isElementVisible(settingsButton) &&
-            isElementVisible(feedbackButton) && isElementVisible(aboutButton)
+    fun menuListButtonsVisible() =
+        elementWithTextVisible(helpButton) && elementWithTextVisible(historyButton) && elementWithTextVisible(settingsButton) &&
+            elementWithTextVisible(feedbackButton) && elementWithTextVisible(aboutButton)
 
     fun logoutButtonVisible(): Boolean {
-        scrollToEnd(scrollableElement)
-        return isElementVisible(logoutButton)
+        scrollToElementWithText(logoutButton)
+        return elementWithTextVisible(logoutButton)
     }
 
-    fun clickHelpButton() = clickElement(helpButton)
+    fun clickHelpButton() = clickElementWithText(helpButton)
 
-    fun clickHistoryButton() = clickElement(historyButton)
+    fun clickHistoryButton() = clickElementWithText(historyButton)
 
-    fun clickSettingsButton() = clickElement(settingsButton)
+    fun clickSettingsButton() = clickElementWithText(settingsButton)
 
-    fun clickFeedbackButton() = clickElement(feedbackButton)
+    fun clickFeedbackButton() = clickElementWithText(feedbackButton)
 
     fun clickAboutButton() {
-        scrollToEnd(scrollableElement)
-        clickElement(aboutButton)
+        scrollToElementWithText(aboutButton)
+        clickElementWithText(aboutButton)
     }
 
     fun clickLogoutButton() {
-        scrollToEnd(scrollableElement)
-        clickElement(logoutButton)
+        scrollToElementWithText(logoutButton)
+        clickElementWithText(logoutButton)
     }
 
-    fun clickBottomBackButton() = clickElement(bottomBackButton)
+    fun clickBottomBackButton() = clickElementWithText(bottomBackButton)
 
     fun clickBrowserTestButton() {
-        scrollToEnd(scrollableElement)
-        clickElement(browserTestButton)
-        switchToWebViewContext()
+        scrollToElementWithText(logoutButton)
+        clickElementContainingText(browserTestButton)
     }
 
-    fun clickAppTourVideoButton()= clickElement(appTourVideoButton)
+    fun clickAppTourVideoButton()= clickElementContainingText(appTourVideoButton.substringBefore("'"))
 }

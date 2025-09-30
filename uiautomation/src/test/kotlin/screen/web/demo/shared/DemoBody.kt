@@ -7,5 +7,5 @@ class DemoBody : MobileActions() {
 
     private val startButtonLocator = By.xpath("//nl-wallet-button")
 
-    fun clickStartButton() = clickWebElement(findElement(startButtonLocator))
+    fun clickStartButton() = clickWebElement(findWebElement(startButtonLocator))
 }

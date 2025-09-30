@@ -3,6 +3,9 @@ package feature.disclosure
 import helper.TestBase
 import navigator.MenuNavigator
 import navigator.screen.MenuNavigatorScreen
+import screen.dashboard.DashboardScreen
+import screen.disclosure.ScanWithWalletDialog
+import screen.introduction.IntroductionScreen
 import org.junit.jupiter.api.Assertions.assertAll
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.DisplayName
@@ -10,26 +13,16 @@ import org.junit.jupiter.api.MethodOrderer
 import org.junit.jupiter.api.TestInfo
 import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
-import screen.dashboard.DashboardScreen
-import screen.disclosure.ScanWithWalletDialog
-import screen.introduction.IntroductionScreen
 import java.net.URLEncoder
 
 @TestMethodOrder(MethodOrderer.DisplayName::class)
-@DisplayName("${UniversalLinkTests.USE_CASE} Show app menu [${UniversalLinkTests.JIRA_ID}]")
+@DisplayName("Partial Flow 2.7 Resolve a universal link")
 class UniversalLinkTests : TestBase() {
-
-    companion object {
-        const val USE_CASE = "UC 5.1"
-        const val JIRA_ID = "PVW-1347"
-    }
 
     private lateinit var dashboardScreen: DashboardScreen
     private lateinit var scanWithWalletDialog: ScanWithWalletDialog
     private lateinit var introductionScreen: IntroductionScreen
     private lateinit var expiredUniversalLinkFromCameraApp: String
-
-
 
     fun setUp(testInfo: TestInfo) {
         startDriver(testInfo)
@@ -41,7 +34,7 @@ class UniversalLinkTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.When the App receives a universal link that is the result of scanning a QR (given a list of known QR-scanner/camera apps), the App prompts the user to rescan the QR with the in-app scanner, for security reasons, and offers them the option to open the scanner.[$JIRA_ID]")
+    @DisplayName("LTC46 Universal link is opened via external QR scanner")
     fun verifyScanInAppDialog(testInfo: TestInfo) {
         setUp(testInfo)
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
@@ -56,7 +49,7 @@ class UniversalLinkTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.When the App is installed but not activated, the app shows the onboarding procedure (a message is future work).[$JIRA_ID]")
+    @DisplayName("PF2.7 LTC54 Wallet not created when universal link is invoked")
     fun verifyWhenAppNotActivated(testInfo: TestInfo) {
         setUp(testInfo)
         introductionScreen = IntroductionScreen()

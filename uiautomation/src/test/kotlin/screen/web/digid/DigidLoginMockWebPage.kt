@@ -1,6 +1,7 @@
 package screen.web.digid
 
 import org.openqa.selenium.By
+import org.openqa.selenium.JavascriptExecutor
 import util.MobileActions
 
 class DigidLoginMockWebPage : MobileActions() {
@@ -10,21 +11,24 @@ class DigidLoginMockWebPage : MobileActions() {
     private val mockLoginButtonLocator = By.linkText("Login / Submit")
 
     fun visible(): Boolean {
-        Thread.sleep(PAGE_LOAD_TIMEOUT)
-        return isWebElementVisible(findElement(headlineTextLocator))
+        return isWebElementVisible(findWebElement(headlineTextLocator))
     }
 
     fun enterBsn(bsn: String) {
-        val bsnInput = findElement(bsnInputLocator)
+        val bsnInput = findWebElement(bsnInputLocator)
         bsnInput.clear()
         bsnInput.sendKeys(bsn)
+        (driver as JavascriptExecutor).executeScript(
+            """
+            const el = arguments[0];
+            el.dispatchEvent(new Event('input', {bubbles:true}));
+            el.dispatchEvent(new Event('change', {bubbles:true}));
+            """.trimIndent(),
+            bsnInput
+        )
     }
 
-    fun clickLoginButton() {
-        Thread.sleep(PAGE_LOAD_TIMEOUT)
-        findElement(mockLoginButtonLocator).click()
-        switchToAppContext()
-    }
+    fun clickLoginButton() = findWebElement(mockLoginButtonLocator).click()
 
     fun login(bsn: String) {
         enterBsn(bsn)

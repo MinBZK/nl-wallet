@@ -4,16 +4,16 @@ import util.MobileActions
 
 class InactivityLockWarningNotification : MobileActions() {
 
-    private val notification = find.byText(l10n.getString("idleWarningDialogTitle"))
+    private val notification = l10n.getString("idleWarningDialogTitle")
 
-    private val lockButton = find.byText(l10n.getString("idleWarningDialogLogoutCta").uppercase())
-    private val confirmButton = find.byText(l10n.getString("idleWarningDialogContinueCta").uppercase())
+    private val lockButton = l10n.getString("idleWarningDialogLogoutCta").uppercase()
+    private val confirmButton =l10n.getString("idleWarningDialogContinueCta").uppercase()
 
-    fun visible() = isElementVisible(notification)
+    fun visible() = elementWithTextVisible(notification)
 
-    fun clickLockButton() = clickElement(lockButton)
+    fun clickLockButton() = clickElementWithText(lockButton)
 
-    fun clickConfirmButton() = clickElement(confirmButton)
+    fun clickConfirmButton() = clickElementWithText(confirmButton)
 
-    fun confirmButtonVisible() = isElementVisible(confirmButton)
+    fun confirmButtonVisible() = elementWithTextVisible(confirmButton)
 }

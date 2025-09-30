@@ -35,7 +35,7 @@ scheduled-automation-tests-trigger:
     DEVICE_NAME: "OnePlus 12R"
     PLATFORM_NAME: "Android"
     PLATFORM_VERSION: "14.0"
-    AUTOMATION_NAME: "Flutter"
+    AUTOMATION_NAME: "UIAutomator2"
 
 .run-automation-tests-common-setup:
   resource_group: automation-tests
@@ -67,117 +67,60 @@ scheduled-automation-tests-trigger:
   rules:
     - !reference [.on-schedule-automation, rules]
 
-run-automation-tests-suite-appstart:
-  extends: .run-automation-tests-default
-  variables: { TESTS: "suite.AppStartTestSuite" }
-
-run-automation-tests-suite-introduction:
-  extends: .run-automation-tests-default
-  variables: { TESTS: "suite.IntroductionTestSuite" }
-
-run-automation-tests-suite-security:
-  extends: .run-automation-tests-default
-  variables: { TESTS: "suite.SecurityTestSuite" }
-
-run-automation-tests-suite-confirm:
-  extends: .run-automation-tests-default
-  variables: { TESTS: "suite.ConfirmTestSuite" }
-
-run-automation-tests-suite-personalize:
-  extends: .run-automation-tests-default
-  variables: { TESTS: "suite.PersonalizeTestSuite" }
-
-run-automation-tests-suite-dashboard:
-  extends: .run-automation-tests-default
-  variables: { TESTS: "suite.DashboardTestSuite" }
-
-run-automation-tests-suite-card:
-  extends: .run-automation-tests-default
-  variables: { TESTS: "suite.CardTestSuite" }
-
-run-automation-tests-suite-menu:
-  extends: .run-automation-tests-default
-  variables: { TESTS: "suite.MenuTestSuite" }
-
-run-automation-tests-suite-history:
-  extends: .run-automation-tests-default
-  variables: { TESTS: "suite.HistoryTestSuite" }
-
-run-automation-tests-suite-settings:
-  extends: .run-automation-tests-default
-  variables: { TESTS: "suite.SettingsTestSuite" }
-
-run-automation-tests-suite-lock:
-  extends: .run-automation-tests-default
-  variables: { TESTS: "suite.LockTestSuite" }
-
-run-automation-tests-suite-web:
-  extends: .run-automation-tests-default
-  variables: { TESTS: "suite.WebTestSuite" }
-
-run-automation-tests-suite-disclosure:
-  extends: .run-automation-tests-default
-  variables: { TESTS: "suite.DisclosureTestSuite" }
-
 run-automation-tests-publish-results:
   rules: !reference [.run-automation-tests-default, rules]
   needs:
-    - { job: run-automation-tests-suite-appstart }
-    - { job: run-automation-tests-suite-introduction }
-    - { job: run-automation-tests-suite-security }
-    - { job: run-automation-tests-suite-confirm }
-    - { job: run-automation-tests-suite-personalize }
-    - { job: run-automation-tests-suite-dashboard }
-    - { job: run-automation-tests-suite-card }
-    - { job: run-automation-tests-suite-menu }
-    - { job: run-automation-tests-suite-history }
-    - { job: run-automation-tests-suite-settings }
-    - { job: run-automation-tests-suite-lock }
-    - { job: run-automation-tests-suite-web }
+    - { job: run-automation-card-and-history-tests }
+    - { job: run-automation-disclosure-tests }
+    - { job: run-automation-introduction-tests }
+    - { job: run-automation-issuance-tests }
+    - { job: run-automation-menu-and-settings-tests }
+    - { job: run-automation-open-app-tests }
+    - { job: run-automation-security-tests }
   script:
     - deploy/bin/store-artifact-zip.sh qt/quality-time/junit-results/e2e.zip uiautomation/build/test-results/test/*.xml
     - deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/e2e.zip uiautomation/build/allure-results/*
 
-run-automation-card-and-history-tests-native-driver:
+run-automation-card-and-history-tests:
   extends: .run-automation-tests-default
   variables:
-    TESTS: "nativesuite.CardsAndHistoryTestSuite"
+    TESTS: "suite.CardsAndHistoryTestSuite"
     AUTOMATION_NAME: "UIAutomator2"
 
-run-automation-disclosure-tests-native-driver:
+run-automation-disclosure-tests:
   extends: .run-automation-tests-default
   variables:
-    TESTS: "nativesuite.DisclosureTestSuite"
+    TESTS: "suite.DisclosureTestSuite"
     AUTOMATION_NAME: "UIAutomator2"
 
-run-automation-introduction-tests-native-driver:
+run-automation-introduction-tests:
   extends: .run-automation-tests-default
   variables:
-    TESTS: "nativesuite.IntroductionTestSuite"
+    TESTS: "suite.IntroductionTestSuite"
     AUTOMATION_NAME: "UIAutomator2"
 
-run-automation-issuance-tests-native-driver:
+run-automation-issuance-tests:
   extends: .run-automation-tests-default
   variables:
-    TESTS: "nativesuite.IssuanceTestSuite"
+    TESTS: "suite.IssuanceTestSuite"
     AUTOMATION_NAME: "UIAutomator2"
 
-run-automation-menu-and-settings-tests-native-driver:
+run-automation-menu-and-settings-tests:
   extends: .run-automation-tests-default
   variables:
-    TESTS: "nativesuite.MenuAndSettingsTestSuite"
+    TESTS: "suite.MenuAndSettingsTestSuite"
     AUTOMATION_NAME: "UIAutomator2"
 
-run-automation-open-app-tests-native-driver:
+run-automation-open-app-tests:
   extends: .run-automation-tests-default
   variables:
-    TESTS: "nativesuite.OpenAppTestSuite"
+    TESTS: "suite.OpenAppTestSuite"
     AUTOMATION_NAME: "UIAutomator2"
 
-run-automation-security-tests-native-driver:
+run-automation-security-tests:
   extends: .run-automation-tests-default
   variables:
-    TESTS: "nativesuite.SecurityTestSuite"
+    TESTS: "suite.SecurityTestSuite"
     AUTOMATION_NAME: "UIAutomator2"
 
 run-automation-smoke-test-ont:
@@ -190,25 +133,6 @@ run-automation-smoke-test-ont:
       artifacts: false
   script:
     - ./gradlew --no-daemon --info --stacktrace smokeTest
-      -Dtest.config.app.identifier="${APP_IDENTIFIER}"
-      -Dtest.config.device.name="$DEVICE_NAME"
-      -Dtest.config.platform.name="$PLATFORM_NAME"
-      -Dtest.config.platform.version="$PLATFORM_VERSION"
-      -Dtest.config.automation.name="$AUTOMATION_NAME"
-      -Dtest.config.remote=true
-      -Dtest.config.commit.sha="${CI_COMMIT_SHA}"
-      -Dfile.encoding=UTF-8
-
-run-automation-native-smoke-test-ont:
-  extends: .run-automation-tests-common-setup
-  rules: !reference [.default-branch, rules]
-  needs:
-    - job: upload-browserstack-android-app
-      artifacts: false
-    - job: deploy-apps-ont
-      artifacts: false
-  script:
-    - ./gradlew --no-daemon --info --stacktrace nativeSmokeTest
       -Dtest.config.app.identifier="${APP_IDENTIFIER}"
       -Dtest.config.device.name="$DEVICE_NAME"
       -Dtest.config.platform.name="$PLATFORM_NAME"
@@ -228,25 +152,6 @@ run-automation-smoke-test-ios-ont:
       artifacts: false
   script:
     - ./gradlew --no-daemon --info --stacktrace smokeTestIOS
-      -Dtest.config.app.identifier="${APP_IDENTIFIER}"
-      -Dtest.config.device.name="iPhone 14"
-      -Dtest.config.platform.name="IOS"
-      -Dtest.config.platform.version="16"
-      -Dtest.config.automation.name="Flutter"
-      -Dtest.config.remote=true
-      -Dtest.config.commit.sha="${CI_COMMIT_SHA}"
-      -Dfile.encoding=UTF-8
-
-run-native-automation-smoke-test-ios-ont:
-  extends: .run-automation-tests-common-setup
-  rules: !reference [.default-branch, rules]
-  needs:
-    - job: upload-browserstack-ios-app
-      artifacts: false
-    - job: deploy-apps-ont
-      artifacts: false
-  script:
-    - ./gradlew --no-daemon --info --stacktrace nativeSmokeTestIOS
       -Dtest.config.app.identifier="${APP_IDENTIFIER}"
       -Dtest.config.device.name="iPhone 14"
       -Dtest.config.platform.name="IOS"

@@ -4,29 +4,22 @@ import util.MobileActions
 
 class CardDataScreen : MobileActions() {
 
-    private val screen = find.byValueKey("cardDataScreen")
-    private val dataIncorrectButton = find.byText(l10n.getString("cardDataScreenIncorrectCta"))
-    private val bottomBackButton = find.byText(l10n.getString("generalBottomBackCta"))
+    private val dataIncorrectScreenHeaderTitle = l10n.getString("dataIncorrectScreenHeaderTitle")
+    private val dataIncorrectButton = l10n.getString("cardDataScreenIncorrectCta")
+    private val bottomBackButton = l10n.getString("generalBottomBackCta")
 
-    private val scrollableElement = find.byType(ScrollableType.CustomScrollView.toString())
+    fun visible() = elementContainingTextVisible(dataIncorrectScreenHeaderTitle)
 
-    fun visible() = isElementVisible(screen)
+    fun dataAttributeVisible(attribute: String) = elementContainingTextVisible(attribute)
 
-    fun dataAttributeVisible(attribute: String): Boolean {
-        return isElementVisible(find.byText(attribute))
+    fun dataLabelVisible(label: String) = elementContainingTextVisible(label)
+
+    fun dataLabelAbsent(attribute: String) = !elementContainingTextVisible(attribute)
+
+    fun clickDataIncorrectButton() {
+        scrollToElementWithText(dataIncorrectButton)
+        clickElementWithText(dataIncorrectButton)
     }
 
-    fun dataLabelVisible(attribute: String): Boolean {
-        return isElementVisible(find.byText(attribute))
-    }
-
-    fun dataLabelAbsent(attribute: String): Boolean {
-        return isElementAbsent(find.byText(attribute))
-    }
-
-    fun clickDataIncorrectButton() = clickElement(dataIncorrectButton)
-
-    fun clickBottomBackButton() = clickElement(bottomBackButton)
-
-    fun scrollToEnd() = scrollToEnd(scrollableElement)
+    fun clickBottomBackButton() = clickElementWithText(bottomBackButton)
 }

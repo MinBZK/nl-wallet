@@ -7,5 +7,5 @@ class DigidIdentityCardWebPage : MobileActions() {
 
     private val headlineTextLocator = By.xpath("//h1[text() = 'Identiteitsbewijs']")
 
-    fun visible() = isWebElementVisible(findElement(headlineTextLocator))
+    fun visible() = isWebElementVisible(findWebElement(headlineTextLocator))
 }
