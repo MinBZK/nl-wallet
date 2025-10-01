@@ -1617,7 +1617,10 @@ mod tests {
 
     #[tokio::test]
     async fn should_handle_disclose_recovery_code_for_pin_recovery() {
-        let wallet_user = wallet_user::mock::wallet_user_1();
+        let mut wallet_user = wallet_user::mock::wallet_user_1();
+        wallet_user.state = WalletUserState::RecoveringPin;
+        wallet_user.recovery_code = Some("885ed8a2-f07a-4f77-a8df-2e166f5ebd36".to_string());
+
         let wrapping_key_identifier = "my-wrapping-key-identifier";
 
         let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
