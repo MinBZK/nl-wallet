@@ -71,14 +71,14 @@ pub enum WuaError {
 
 impl WuaDisclosure {
     pub fn verify(
-        self,
+        &self,
         issuer_public_key: &EcdsaDecodingKey,
         expected_aud: &str,
         accepted_wallet_client_ids: &[String],
         expected_nonce: &str,
     ) -> Result<VerifyingKey, WuaError> {
-        let (_, verified_jwt) = self.0.parse_and_verify(issuer_public_key, &WUA_JWT_VALIDATIONS)?;
-        let wua_pubkey = jwk_to_p256(&verified_jwt.confirmation.jwk)?;
+        let (_, verified_wua_claims) = self.0.parse_and_verify(issuer_public_key, &WUA_JWT_VALIDATIONS)?;
+        let wua_pubkey = jwk_to_p256(&verified_wua_claims.confirmation.jwk)?;
 
         let mut validations = DEFAULT_VALIDATIONS.to_owned();
         validations.set_audience(&[expected_aud]);

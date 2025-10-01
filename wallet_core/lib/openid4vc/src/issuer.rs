@@ -897,7 +897,7 @@ impl Session<WaitingForResponse> {
     fn verify_wua(
         &self,
         wua_config: &WuaConfig,
-        attestations: Option<WuaDisclosure>,
+        attestations: Option<&WuaDisclosure>,
         issuer_identifier: &str,
     ) -> Result<VerifyingKey, CredentialRequestError> {
         let wua_disclosure = attestations.ok_or(CredentialRequestError::MissingWua)?;
@@ -914,7 +914,7 @@ impl Session<WaitingForResponse> {
 
     pub fn verify_wua_and_poa(
         &self,
-        attestations: Option<WuaDisclosure>,
+        attestations: Option<&WuaDisclosure>,
         poa: Option<Poa>,
         attestation_keys: impl Iterator<Item = VerifyingKey>,
         issuer_data: &IssuerData<impl EcdsaKeySend>,
@@ -973,7 +973,7 @@ impl Session<WaitingForResponse> {
         let holder_pubkey = credential_request.verify(&session_data.c_nonce, issuer_data)?;
 
         self.verify_wua_and_poa(
-            credential_request.attestations,
+            credential_request.attestations.as_ref(),
             credential_request.poa,
             [holder_pubkey].into_iter(),
             issuer_data,
@@ -1051,7 +1051,7 @@ impl Session<WaitingForResponse> {
             .collect::<Result<Vec<_>, CredentialRequestError>>()?;
 
         self.verify_wua_and_poa(
-            credential_requests.attestations,
+            credential_requests.attestations.as_ref(),
             credential_requests.poa,
             previews_and_holder_pubkeys.iter().map(|(_, _, key)| *key),
             issuer_data,
