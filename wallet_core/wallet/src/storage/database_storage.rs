@@ -421,7 +421,44 @@ where
         result
     }
 
-    async fn import(&mut self, export: DatabaseExport) -> StorageResult<()> {
+    /// Prepare the database import by importing the provided database export into a temporary file.
+    /// The temporary file is then encrypted to the provided temporary `database_file`.
+    async fn prepare_import(&mut self, export: DatabaseExport, database_file: &NamedTempFile) -> StorageResult<()> {
+        if let Some(open_database) = self.open_database.take() {
+            open_database.database.close().await?;
+        }
+
+        let (_, key) = self.key_for_name(DATABASE_NAME).await?;
+        let database_path = database_file.path().display().to_string();
+
+        let _ = tokio::task::spawn_blocking(move || {
+            let import_file = NamedTempFile::new()?;
+            std::fs::write(import_file.path(), export.data)?;
+
+            let connection = rusqlite::Connection::open(import_file.path())?;
+            connection.pragma_update(None, "key", String::from(export.key).as_str())?;
+
+            connection.execute(
+                "ATTACH DATABASE ?1 AS encrypted KEY ?2",
+                [database_path, String::from(key)],
+            )?;
+            connection.query_row("SELECT sqlcipher_export('encrypted')", [], |row| {
+                row.get::<_, Option<i32>>(0)
+            })?;
+            connection.execute("DETACH DATABASE encrypted", [])?;
+
+            StorageResult::Ok(())
+        })
+        .await?;
+
+        self.open().await?;
+
+        Ok(())
+    }
+
+    /// Commit the prepared import by first retrieving all keyed data from the existing database, then switching over
+    /// to the newly imported (encrypted) database, after which the keyed data is then updated in the imported database.
+    async fn commit_import(&mut self, database_file: NamedTempFile) -> StorageResult<()> {
         // Fetch all keyed data of the existing database before import
         let destination_keyed_data: Vec<(String, Json)> = keyed_data::Entity::find()
             .into_tuple()
@@ -435,32 +472,8 @@ where
             .close()
             .await?;
 
-        let database_path = self.database_path_for_name(DATABASE_NAME);
-        let (_, key) = self.key_for_name(DATABASE_NAME).await?;
-        let _ = tokio::task::spawn_blocking(move || {
-            let import_file = NamedTempFile::new()?;
-            std::fs::write(import_file.path(), export.data)?;
-
-            let connection = rusqlite::Connection::open(import_file.path())?;
-            connection.pragma_update(None, "key", String::from(export.key).as_str())?;
-
-            // Use temporary file to create encrypted file
-            let encrypted_file = NamedTempFile::new()?;
-            connection.execute(
-                "ATTACH DATABASE ?1 AS encrypted KEY ?2",
-                [encrypted_file.path().display().to_string(), String::from(key)],
-            )?;
-            connection.query_row("SELECT sqlcipher_export('encrypted')", [], |row| {
-                row.get::<_, Option<i32>>(0)
-            })?;
-            connection.execute("DETACH DATABASE encrypted", [])?;
-
-            // Rename is atomic in fs
-            std::fs::rename(encrypted_file.path(), database_path)?;
-
-            StorageResult::Ok(())
-        })
-        .await?;
+        // Rename the imported database file to the name of the existing database
+        std::fs::rename(database_file.path(), self.database_path_for_name(DATABASE_NAME))?;
 
         // Update the keyed data in the imported database
         self.open().await?;
@@ -1135,9 +1148,12 @@ pub(crate) mod tests {
         let tempdir = tempfile::tempdir().unwrap();
         let mut storage = DatabaseStorage::<MockHardwareEncryptionKey>::new(tempdir.as_ref().to_path_buf());
 
+        let encrypted_file = NamedTempFile::new().unwrap();
+
         storage.open().await.unwrap();
         storage.insert_data(&initial_registration).await.unwrap();
-        storage.import(transfer).await.unwrap();
+        storage.prepare_import(transfer, &encrypted_file).await.unwrap();
+        storage.commit_import(encrypted_file).await.unwrap();
         let imported_test_data: Option<TestData> = storage.fetch_data().await.unwrap();
         let imported_registration_data: Option<RegistrationData> = storage.fetch_data().await.unwrap();
 

@@ -1,9 +1,14 @@
 use std::sync::Arc;
 
 use axum::Router;
+use axum::extract::DefaultBodyLimit;
+use axum::extract::Request;
 use axum::extract::State;
 use axum::http::StatusCode;
+use axum::middleware;
+use axum::middleware::Next;
 use axum::response::Json;
+use axum::response::Response;
 use axum::routing::get;
 use axum::routing::post;
 use futures::TryFutureExt;
@@ -145,9 +150,10 @@ where
                 )
                 .route(
                     &format!("/instructions/{}", SendWalletPayload::NAME),
-                    post(handle_instruction::<SendWalletPayload, _, _, _>),
+                    post(handle_instruction::<SendWalletPayload, _, _, _>).layer(DefaultBodyLimit::disable()),
                 )
                 .layer(TraceLayer::new_for_http())
+                .layer(middleware::from_fn(log_headers))
                 .with_state(Arc::clone(&state)),
         )
         .nest(
@@ -161,6 +167,11 @@ where
 
 fn health_router() -> Router {
     Router::new().route("/health", get(|| async {}))
+}
+
+async fn log_headers(req: Request, next: Next) -> Response {
+    tracing::info!("Headers: {:?}", req.headers());
+    next.run(req).await
 }
 
 async fn enroll<GRC, PIC>(State(state): State<Arc<RouterState<GRC, PIC>>>) -> Result<(StatusCode, Json<Challenge>)> {

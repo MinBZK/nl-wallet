@@ -231,6 +231,7 @@ impl WalletUserRepository for Repositories {
     ) -> Result<(), PersistenceError> {
         wallet_user::update_transfer_state(transaction, transfer_session_id, TransferSessionState::ReadyForTransfer)
             .await?;
+        wallet_user::set_transfer_source(transaction, transfer_session_id, source_wallet_user_id).await?;
         wallet_user::transition_wallet_user_state(
             transaction,
             source_wallet_user_id,
