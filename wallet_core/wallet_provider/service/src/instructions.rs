@@ -917,8 +917,7 @@ impl HandleInstruction for GetTransferStatus {
         let tx = user_state.repositories.begin_transaction().await?;
 
         // TODO: PVW-4959: The database query used for checking the prerequisites is quite heavy
-        // (since it retrieves the encrypted wallet data) and could
-        // be optimized if necessary.
+        // (since it retrieves the encrypted wallet data) and could be optimized if necessary.
         let transfer_session = check_transfer_instruction_prerequisites(
             &tx,
             &user_state.repositories,
