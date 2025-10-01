@@ -41,7 +41,7 @@ fn validate_identifier_str(id: &str) -> Result<(), IdentifierError> {
 }
 
 #[nutype(
-    derive(Debug, Clone, PartialEq, Eq, Hash, Display, AsRef, TryFrom, Serialize, Deserialize),
+    derive(Debug, Clone, PartialEq, Eq, Hash, Display, AsRef, TryFrom, FromStr, Serialize, Deserialize),
     validate(with = validate_identifier_str, error = IdentifierError),
 )]
 pub struct CredentialQueryIdentifier(String);

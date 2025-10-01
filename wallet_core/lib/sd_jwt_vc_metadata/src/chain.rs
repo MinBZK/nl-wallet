@@ -362,7 +362,7 @@ mod example_constructors {
             )
         }
 
-        pub fn address_example() -> (Integrity, Self) {
+        pub fn nl_address_example() -> (Integrity, Self) {
             (
                 Integrity::from(NL_ADDRESS_METADATA_BYTES),
                 Self::new(
@@ -477,7 +477,7 @@ mod test {
     #[rstest]
     #[case(VCT_EXAMPLE_CREDENTIAL, TypeMetadataDocuments::example())]
     #[case("urn:eudi:pid:nl:1", TypeMetadataDocuments::nl_pid_example())]
-    #[case("urn:eudi:pid-address:nl:1", TypeMetadataDocuments::address_example())]
+    #[case("urn:eudi:pid-address:nl:1", TypeMetadataDocuments::nl_address_example())]
     #[case("com.example.degree", TypeMetadataDocuments::degree_example())]
     #[case(VCT_EXAMPLE_CREDENTIAL_V3, TypeMetadataDocuments::example_with_extensions())]
     #[case(VCT_EXAMPLE_CREDENTIAL_V3, reversed_example_with_extension())]

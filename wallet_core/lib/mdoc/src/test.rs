@@ -392,7 +392,7 @@ pub mod data {
                     value: Value::Text("Turfmarkt".to_string()),
                 }],
             )]),
-            TypeMetadataDocuments::address_example(),
+            TypeMetadataDocuments::nl_address_example(),
         )]
         .into()
     }

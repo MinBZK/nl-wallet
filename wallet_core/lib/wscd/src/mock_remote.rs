@@ -81,6 +81,12 @@ impl Default for MockRemoteWscd {
     }
 }
 
+impl AsRef<DisclosureMockRemoteWscd> for MockRemoteWscd {
+    fn as_ref(&self) -> &DisclosureMockRemoteWscd {
+        &self.disclosure
+    }
+}
+
 impl DisclosureWscd for MockRemoteWscd {
     type Key = MockRemoteEcdsaKey;
     type Error = MockRemoteWscdError;
