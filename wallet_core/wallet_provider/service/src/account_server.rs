@@ -51,6 +51,7 @@ use apple_app_attest::AppIdentifier;
 use apple_app_attest::AssertionCounter;
 use apple_app_attest::AttestationEnvironment;
 use apple_app_attest::VerifiedAttestation;
+use crypto::p256_der::verifying_key_sha256;
 use hsm::model::Hsm;
 use hsm::model::encrypted::Encrypted;
 use hsm::model::encrypter::Decrypter;
@@ -90,6 +91,8 @@ use wallet_provider_domain::model::wallet_user::WalletUser;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestation;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestationCreate;
 use wallet_provider_domain::model::wallet_user::WalletUserCreate;
+use wallet_provider_domain::model::wallet_user::WalletUserPinRecoveryKey;
+use wallet_provider_domain::model::wallet_user::WalletUserPinRecoveryKeys;
 use wallet_provider_domain::model::wallet_user::WalletUserState;
 use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::repository::PersistenceError;
@@ -280,6 +283,9 @@ pub enum InstructionError {
         source_version: Version,
         destination_version: Version,
     },
+
+    #[error("cannot recover PIN: received PID does not belong to this wallet account")]
+    PinRecoveryAccountMismatch,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -1081,7 +1087,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         let issuance_instruction = instruction_payload.issuance_with_wua_instruction.issuance_instruction;
 
         // Handle the issuance part without persisting the generated keys
-        let (issuance_with_wua_result, _, _) = perform_issuance_with_wua(issuance_instruction, user_state).await?;
+        let (issuance_with_wua_result, keys, _) = perform_issuance_with_wua(issuance_instruction, user_state).await?;
 
         let tx = user_state.repositories.begin_transaction().await?;
 
@@ -1092,6 +1098,24 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
                 wallet_user.wallet_id.as_str(),
                 encrypted_pin_pubkey,
                 WalletUserState::RecoveringPin,
+            )
+            .await?;
+
+        user_state
+            .repositories
+            .save_pin_recovery_keys(
+                &tx,
+                WalletUserPinRecoveryKeys {
+                    wallet_user_id: wallet_user.id,
+                    keys: keys
+                        .iter()
+                        .map(|key| WalletUserPinRecoveryKey {
+                            wallet_user_key_id: generators.generate(),
+                            key_identifier: verifying_key_sha256(key.public_key()),
+                            pubkey: *key.public_key(),
+                        })
+                        .collect(),
+                },
             )
             .await?;
 

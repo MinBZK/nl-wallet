@@ -767,6 +767,13 @@ impl HandleInstruction for DiscloseRecoveryCodePinRecovery {
             .recovery_code_disclosure
             .into_verified_against_trust_anchors(&user_state.pid_issuer_trust_anchors, &TimeGenerator)?;
 
+        let key = verified_sd_jwt
+            .as_ref()
+            .required_key_bind()
+            .unwrap() // The above verification can't have succeeded if this is absent
+            .verifying_key()
+            .unwrap(); // The above verification can't have succeeded if this fails
+
         let recovery_code = match verified_sd_jwt
             .as_ref()
             .to_disclosed_object()?
@@ -789,7 +796,20 @@ impl HandleInstruction for DiscloseRecoveryCodePinRecovery {
 
         let tx = user_state.repositories.begin_transaction().await?;
 
+        if !user_state
+            .repositories
+            .is_pin_recovery_key(&tx, &wallet_user.wallet_id, key)
+            .await?
+        {
+            return Err(InstructionError::PinRecoveryAccountMismatch);
+        }
+
         user_state.repositories.recover_pin(&tx, &wallet_user.wallet_id).await?;
+
+        user_state
+            .repositories
+            .delete_pin_recovery_keys(&tx, &wallet_user.wallet_id)
+            .await?;
 
         tx.commit().await?;
 
@@ -1625,7 +1645,13 @@ mod tests {
         wallet_user_repo
             .expect_begin_transaction()
             .returning(|| Ok(MockTransaction));
+        wallet_user_repo
+            .expect_is_pin_recovery_key()
+            .returning(|_, _, _| Ok(true));
         wallet_user_repo.expect_recover_pin().returning(|_, _| Ok(()));
+        wallet_user_repo
+            .expect_delete_pin_recovery_keys()
+            .returning(|_, _| Ok(()));
 
         let result = instruction
             .handle(

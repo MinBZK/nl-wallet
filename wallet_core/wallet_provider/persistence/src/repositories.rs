@@ -16,6 +16,7 @@ use wallet_provider_domain::model::wallet_user::InstructionChallenge;
 use wallet_provider_domain::model::wallet_user::TransferSession;
 use wallet_provider_domain::model::wallet_user::WalletUserCreate;
 use wallet_provider_domain::model::wallet_user::WalletUserKeys;
+use wallet_provider_domain::model::wallet_user::WalletUserPinRecoveryKeys;
 use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
 use wallet_provider_domain::model::wallet_user::WalletUserState;
 use wallet_provider_domain::repository::PersistenceError;
@@ -115,6 +116,31 @@ impl WalletUserRepository for Repositories {
         keys: WalletUserKeys,
     ) -> Result<(), PersistenceError> {
         wallet_user_key::create_keys(transaction, keys).await
+    }
+
+    async fn save_pin_recovery_keys(
+        &self,
+        transaction: &Self::TransactionType,
+        keys: WalletUserPinRecoveryKeys,
+    ) -> Result<(), PersistenceError> {
+        wallet_user_key::create_pin_recovery_keys(transaction, keys).await
+    }
+
+    async fn is_pin_recovery_key(
+        &self,
+        transaction: &Self::TransactionType,
+        wallet_id: &str,
+        key: VerifyingKey,
+    ) -> Result<bool, PersistenceError> {
+        wallet_user_key::is_pin_recovery_key(transaction, wallet_id, key).await
+    }
+
+    async fn delete_pin_recovery_keys(
+        &self,
+        transaction: &Self::TransactionType,
+        wallet_id: &str,
+    ) -> Result<(), PersistenceError> {
+        wallet_user_key::delete_pin_recovery_keys(transaction, wallet_id).await
     }
 
     async fn find_keys_by_identifiers(
@@ -333,6 +359,7 @@ pub mod mock {
     use wallet_provider_domain::model::wallet_user::WalletUserAttestation;
     use wallet_provider_domain::model::wallet_user::WalletUserCreate;
     use wallet_provider_domain::model::wallet_user::WalletUserKeys;
+    use wallet_provider_domain::model::wallet_user::WalletUserPinRecoveryKeys;
     use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
     use wallet_provider_domain::model::wallet_user::WalletUserState;
     use wallet_provider_domain::repository::MockTransaction;
@@ -398,6 +425,25 @@ pub mod mock {
                 &self,
                 _transaction: &MockTransaction,
                 _keys: WalletUserKeys,
+            ) -> Result<(), PersistenceError>;
+
+            async fn save_pin_recovery_keys(
+                &self,
+                _transaction: &MockTransaction,
+                _keys: WalletUserPinRecoveryKeys,
+            ) -> Result<(), PersistenceError>;
+
+            async fn is_pin_recovery_key(
+                &self,
+                _transaction: &MockTransaction,
+                _wallet_id: &str,
+                _key: VerifyingKey,
+            ) -> Result<bool, PersistenceError>;
+
+            async fn delete_pin_recovery_keys(
+                &self,
+                transaction: &MockTransaction,
+                wallet_id: &str,
             ) -> Result<(), PersistenceError>;
 
             async fn find_keys_by_identifiers(
@@ -611,6 +657,31 @@ pub mod mock {
             &self,
             _transaction: &Self::TransactionType,
             _keys: WalletUserKeys,
+        ) -> Result<(), PersistenceError> {
+            Ok(())
+        }
+
+        async fn save_pin_recovery_keys(
+            &self,
+            _transaction: &MockTransaction,
+            _keys: WalletUserPinRecoveryKeys,
+        ) -> Result<(), PersistenceError> {
+            Ok(())
+        }
+
+        async fn is_pin_recovery_key(
+            &self,
+            _transaction: &MockTransaction,
+            _wallet_id: &str,
+            _key: VerifyingKey,
+        ) -> Result<bool, PersistenceError> {
+            Ok(true)
+        }
+
+        async fn delete_pin_recovery_keys(
+            &self,
+            _transaction: &MockTransaction,
+            _wallet_id: &str,
         ) -> Result<(), PersistenceError> {
             Ok(())
         }

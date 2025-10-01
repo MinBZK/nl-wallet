@@ -6,6 +6,7 @@ use p256::pkcs8::EncodePublicKey;
 use sea_orm::ColumnTrait;
 use sea_orm::ConnectionTrait;
 use sea_orm::EntityTrait;
+use sea_orm::PaginatorTrait;
 use sea_orm::QueryFilter;
 use sea_orm::QuerySelect;
 use sea_orm::Set;
@@ -14,6 +15,7 @@ use uuid::Uuid;
 
 use hsm::model::wrapped_key::WrappedKey;
 use wallet_provider_domain::model::wallet_user::WalletUserKeys;
+use wallet_provider_domain::model::wallet_user::WalletUserPinRecoveryKeys;
 use wallet_provider_domain::repository::PersistenceError;
 
 use crate::PersistenceConnection;
@@ -35,7 +37,7 @@ where
                 wallet_user_id: Set(create.wallet_user_id),
                 identifier: Set(key_create.key_identifier),
                 public_key: Set(key_create.key.public_key().to_public_key_der()?.into_vec()),
-                encrypted_private_key: Set(key_create.key.wrapped_private_key().to_vec()),
+                encrypted_private_key: Set(Some(key_create.key.wrapped_private_key().to_vec())),
             })
         })
         .collect::<Result<Vec<_>>>()?;
@@ -45,6 +47,74 @@ where
         .await
         .map(|_| ())
         .map_err(|e| PersistenceError::Execution(e.into()))
+}
+
+pub async fn create_pin_recovery_keys<S, T>(db: &T, create: WalletUserPinRecoveryKeys) -> Result<()>
+where
+    S: ConnectionTrait,
+    T: PersistenceConnection<S>,
+{
+    let models = create
+        .keys
+        .into_iter()
+        .map(|key_create| {
+            Ok(wallet_user_key::ActiveModel {
+                id: Set(key_create.wallet_user_key_id),
+                wallet_user_id: Set(create.wallet_user_id),
+                identifier: Set(key_create.key_identifier),
+                public_key: Set(key_create.pubkey.to_public_key_der()?.into_vec()),
+                encrypted_private_key: Set(None),
+            })
+        })
+        .collect::<Result<Vec<_>>>()?;
+
+    wallet_user_key::Entity::insert_many(models)
+        .exec(db.connection())
+        .await
+        .map(|_| ())
+        .map_err(|e| PersistenceError::Execution(e.into()))
+}
+
+pub async fn is_pin_recovery_key<S, T>(db: &T, wallet_id: &str, key: VerifyingKey) -> Result<bool>
+where
+    S: ConnectionTrait,
+    T: PersistenceConnection<S>,
+{
+    let is_recovery_key = match wallet_user_key::Entity::find()
+        .filter(
+            wallet_user_key::Column::WalletUserId
+                .eq(wallet_id)
+                .and(wallet_user_key::Column::PublicKey.eq(key.to_public_key_der()?.into_vec()))
+                .and(wallet_user_key::Column::EncryptedPrivateKey.is_null()),
+        )
+        .count(db.connection())
+        .await
+        .map_err(|e| PersistenceError::Execution(e.into()))?
+    {
+        0 => false,
+        1 => true,
+        _ => panic!("multiple identical public keys found"),
+    };
+
+    Ok(is_recovery_key)
+}
+
+pub async fn delete_pin_recovery_keys<S, T>(db: &T, wallet_id: &str) -> Result<()>
+where
+    S: ConnectionTrait,
+    T: PersistenceConnection<S>,
+{
+    wallet_user_key::Entity::delete_many()
+        .filter(
+            wallet_user_key::Column::WalletUserId
+                .eq(wallet_id)
+                .and(wallet_user_key::Column::EncryptedPrivateKey.is_null()),
+        )
+        .exec(db.connection())
+        .await
+        .map_err(|e| PersistenceError::Execution(e.into()))?;
+
+    Ok(())
 }
 
 pub async fn find_keys_by_identifiers<S, T>(

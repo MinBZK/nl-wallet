@@ -10,9 +10,9 @@ pub struct Model {
     pub wallet_user_id: Uuid,
     pub identifier: String,
     #[sea_orm(column_type = "VarBinary(StringLen::None)")]
-    pub encrypted_private_key: Vec<u8>,
-    #[sea_orm(column_type = "VarBinary(StringLen::None)")]
     pub public_key: Vec<u8>,
+    #[sea_orm(column_type = "VarBinary(StringLen::None)", nullable)]
+    pub encrypted_private_key: Option<Vec<u8>>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
