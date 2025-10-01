@@ -518,14 +518,23 @@ where
     Ok(())
 }
 
-pub async fn update_wallet_user_state<S, T>(db: &T, wallet_user_id: Uuid, state: WalletUserState) -> Result<()>
+pub async fn transition_wallet_user_state<S, T>(
+    db: &T,
+    wallet_user_id: Uuid,
+    from_state: WalletUserState,
+    to_state: WalletUserState,
+) -> Result<()>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
     let result = wallet_user::Entity::update_many()
-        .col_expr(wallet_user::Column::State, Expr::value(state.to_string()))
-        .filter(wallet_user::Column::Id.eq(wallet_user_id))
+        .col_expr(wallet_user::Column::State, Expr::value(to_state.to_string()))
+        .filter(
+            wallet_user::Column::Id
+                .eq(wallet_user_id)
+                .and(wallet_user::Column::State.eq(from_state.to_string())),
+        )
         .exec(db.connection())
         .await
         .map_err(|e| PersistenceError::Execution(e.into()))?;

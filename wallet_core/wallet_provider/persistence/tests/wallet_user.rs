@@ -34,9 +34,9 @@ use wallet_provider_persistence::wallet_user::register_unsuccessful_pin_entry;
 use wallet_provider_persistence::wallet_user::rollback_pin_change;
 use wallet_provider_persistence::wallet_user::set_wallet_transfer_data;
 use wallet_provider_persistence::wallet_user::store_recovery_code;
+use wallet_provider_persistence::wallet_user::transition_wallet_user_state;
 use wallet_provider_persistence::wallet_user::update_apple_assertion_counter;
 use wallet_provider_persistence::wallet_user::update_transfer_state;
-use wallet_provider_persistence::wallet_user::update_wallet_user_state;
 
 use crate::common::encrypted_pin_key;
 
@@ -339,15 +339,31 @@ async fn test_update_wallet_user_state() {
 
     assert_eq!(user.state, WalletUserState::Active.to_string());
 
-    update_wallet_user_state(&db, wallet_user_id, WalletUserState::RecoveringPin)
-        .await
-        .unwrap();
+    transition_wallet_user_state(
+        &db,
+        wallet_user_id,
+        WalletUserState::Active,
+        WalletUserState::RecoveringPin,
+    )
+    .await
+    .unwrap();
 
     let WalletUserQueryResult::Found(user) = find_wallet_user_by_wallet_id(&db, &wallet_id).await.unwrap() else {
         panic!("Could not find wallet user");
     };
 
     assert_eq!(user.state, WalletUserState::RecoveringPin);
+
+    // Does not transition state when coming from different state
+    let err = transition_wallet_user_state(
+        &db,
+        wallet_user_id,
+        WalletUserState::Transferred,
+        WalletUserState::Active,
+    )
+    .await
+    .expect_err("Could not transition state");
+    assert_matches!(err, PersistenceError::NoRowsUpdated);
 }
 
 #[tokio::test]

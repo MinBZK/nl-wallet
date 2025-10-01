@@ -230,10 +230,20 @@ impl WalletUserRepository for Repositories {
     ) -> Result<(), PersistenceError> {
         wallet_user::update_transfer_state(transaction, transfer_session_id, TransferSessionState::ReadyForTransfer)
             .await?;
-        wallet_user::update_wallet_user_state(transaction, source_wallet_user_id, WalletUserState::Transferring)
-            .await?;
-        wallet_user::update_wallet_user_state(transaction, destination_wallet_user_id, WalletUserState::Transferring)
-            .await
+        wallet_user::transition_wallet_user_state(
+            transaction,
+            source_wallet_user_id,
+            WalletUserState::Active,
+            WalletUserState::Transferring,
+        )
+        .await?;
+        wallet_user::transition_wallet_user_state(
+            transaction,
+            destination_wallet_user_id,
+            WalletUserState::Active,
+            WalletUserState::Transferring,
+        )
+        .await
     }
 
     async fn cancel_wallet_transfer(
@@ -244,9 +254,21 @@ impl WalletUserRepository for Repositories {
         destination_wallet_user_id: Uuid,
     ) -> Result<(), PersistenceError> {
         if let Some(wallet_user_id) = source_wallet_user_id {
-            wallet_user::update_wallet_user_state(transaction, wallet_user_id, WalletUserState::Active).await?;
+            wallet_user::transition_wallet_user_state(
+                transaction,
+                wallet_user_id,
+                WalletUserState::Transferring,
+                WalletUserState::Active,
+            )
+            .await?;
         }
-        wallet_user::update_wallet_user_state(transaction, destination_wallet_user_id, WalletUserState::Active).await?;
+        wallet_user::transition_wallet_user_state(
+            transaction,
+            destination_wallet_user_id,
+            WalletUserState::Transferring,
+            WalletUserState::Active,
+        )
+        .await?;
         wallet_user::update_transfer_state(transaction, transfer_session_id, TransferSessionState::Canceled).await?;
         wallet_user::set_wallet_transfer_data(transaction, transfer_session_id, None).await
     }
@@ -272,8 +294,20 @@ impl WalletUserRepository for Repositories {
         wallet_user_key::move_keys(transaction, source_wallet_user_id, destination_wallet_user_id).await?;
         wallet_user::set_wallet_transfer_data(transaction, transfer_session_id, None).await?;
         wallet_user::update_transfer_state(transaction, transfer_session_id, TransferSessionState::Success).await?;
-        wallet_user::update_wallet_user_state(transaction, source_wallet_user_id, WalletUserState::Transferred).await?;
-        wallet_user::update_wallet_user_state(transaction, destination_wallet_user_id, WalletUserState::Active).await?;
+        wallet_user::transition_wallet_user_state(
+            transaction,
+            source_wallet_user_id,
+            WalletUserState::Transferring,
+            WalletUserState::Transferred,
+        )
+        .await?;
+        wallet_user::transition_wallet_user_state(
+            transaction,
+            destination_wallet_user_id,
+            WalletUserState::Transferring,
+            WalletUserState::Active,
+        )
+        .await?;
 
         Ok(())
     }
