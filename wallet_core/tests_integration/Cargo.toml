@@ -100,7 +100,6 @@ test_common = [
     "dep:wallet_provider",
     "dep:wallet_provider_persistence",
     "dep:wallet_provider_service",
-    "dep:wiremock",
     "dep:wscd",
 ]
 # Include the fake_digid submodule
@@ -209,7 +208,6 @@ tracing-subscriber = { workspace = true, optional = true, features = [
     "ansi",
 ] }
 url = { workspace = true, optional = true }
-wiremock = { workspace = true, optional = true }
 
 android_attest = { path = "../lib/android_attest", optional = true }
 apple_app_attest = { path = "../lib/apple_app_attest", optional = true, features = ["mock"] }
