@@ -58,12 +58,6 @@ private_key = "${DEMO_RELYING_PARTY_KEY_JOB_FINDER}"
 private_key_type = "software"
 
 # Integration test cases
-[usecases.multiple_cards]
-session_type_return_url = "neither"
-certificate = "${DEMO_RELYING_PARTY_CRT_MONKEY_BIKE}"
-private_key = "${DEMO_RELYING_PARTY_KEY_MONKEY_BIKE}"
-private_key_type = "software"
-
 [usecases.xyz_bank_no_return_url]
 session_type_return_url = "neither"
 certificate = "${DEMO_RELYING_PARTY_CRT_XYZ_BANK}"
