@@ -33,8 +33,6 @@ pub struct Model {
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
-    #[sea_orm(has_one = "super::wallet_transfer::Entity")]
-    WalletTransfer,
     #[sea_orm(
         belongs_to = "super::wallet_user_android_attestation::Entity",
         from = "Column::AndroidAttestationId",
@@ -55,12 +53,6 @@ pub enum Relation {
     WalletUserInstructionChallenge,
     #[sea_orm(has_many = "super::wallet_user_key::Entity")]
     WalletUserKey,
-}
-
-impl Related<super::wallet_transfer::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::WalletTransfer.def()
-    }
 }
 
 impl Related<super::wallet_user_android_attestation::Entity> for Entity {

@@ -10,6 +10,8 @@ pub struct Model {
     #[sea_orm(unique)]
     pub destination_wallet_user_id: Uuid,
     #[sea_orm(unique)]
+    pub source_wallet_user_id: Option<Uuid>,
+    #[sea_orm(unique)]
     pub transfer_session_id: Uuid,
     pub destination_wallet_app_version: String,
     pub state: String,
@@ -26,13 +28,15 @@ pub enum Relation {
         on_update = "NoAction",
         on_delete = "NoAction"
     )]
-    WalletUser,
-}
-
-impl Related<super::wallet_user::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::WalletUser.def()
-    }
+    WalletUser2,
+    #[sea_orm(
+        belongs_to = "super::wallet_user::Entity",
+        from = "Column::SourceWalletUserId",
+        to = "super::wallet_user::Column::Id",
+        on_update = "NoAction",
+        on_delete = "NoAction"
+    )]
+    WalletUser1,
 }
 
 impl ActiveModelBehavior for ActiveModel {}

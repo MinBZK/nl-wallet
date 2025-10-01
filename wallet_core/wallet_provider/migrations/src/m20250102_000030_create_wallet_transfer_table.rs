@@ -16,6 +16,7 @@ impl MigrationTrait for Migration {
                     .table(WalletTransfer::Table)
                     .col(pk_uuid(WalletTransfer::Id))
                     .col(uuid(WalletTransfer::DestinationWalletUserId))
+                    .col(uuid_null(WalletTransfer::SourceWalletUserId))
                     .col(uuid(WalletTransfer::TransferSessionId))
                     .col(string(WalletTransfer::DestinationWalletAppVersion))
                     .col(string(WalletTransfer::State).default("created"))
@@ -28,11 +29,24 @@ impl MigrationTrait for Migration {
                             .to(WalletUser::Table, WalletUser::Id)
                             .on_delete(ForeignKeyAction::NoAction),
                     )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_wallet_transfer_source_wallet_user_id")
+                            .from(WalletTransfer::Table, WalletTransfer::SourceWalletUserId)
+                            .to(WalletUser::Table, WalletUser::Id)
+                            .on_delete(ForeignKeyAction::NoAction),
+                    )
                     .index(
                         Index::create()
                             .unique()
                             .name("wallet_transfer_unique_destination_wallet_id")
                             .col(WalletTransfer::DestinationWalletUserId),
+                    )
+                    .index(
+                        Index::create()
+                            .unique()
+                            .name("wallet_transfer_unique_source_wallet_id")
+                            .col(WalletTransfer::SourceWalletUserId),
                     )
                     .index(
                         Index::create()
@@ -54,6 +68,7 @@ pub enum WalletTransfer {
     Id,
     DestinationWalletUserId,
     DestinationWalletAppVersion,
+    SourceWalletUserId,
     TransferSessionId,
     State,
     Created,

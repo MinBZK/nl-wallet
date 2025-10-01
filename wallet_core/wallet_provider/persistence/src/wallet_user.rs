@@ -134,24 +134,6 @@ struct WalletUserJoinedModel {
     recovery_code: Option<String>,
 }
 
-pub fn transfer_session_from_model(
-    model: wallet_transfer::Model,
-    destination_wallet_recovery_code: String,
-) -> TransferSession {
-    TransferSession {
-        id: model.id,
-        destination_wallet_user_id: model.destination_wallet_user_id,
-        transfer_session_id: model.transfer_session_id,
-        destination_wallet_app_version: Version::parse(&model.destination_wallet_app_version).unwrap(),
-        destination_wallet_recovery_code,
-        state: model
-            .state
-            .parse()
-            .expect("parsing the wallet transfer state from the database should always succeed"),
-        encrypted_wallet_data: model.encrypted_wallet_data,
-    }
-}
-
 /// Find a user by its `wallet_id` and return it, if it exists.
 /// Note that this function will also return blocked users.
 pub async fn find_wallet_user_by_wallet_id<S, T>(db: &T, wallet_id: &str) -> Result<WalletUserQueryResult>
@@ -159,7 +141,7 @@ where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
-    let Some((user_model, transfer_model)) = wallet_user::Entity::find()
+    let Some(model) = wallet_user::Entity::find()
         .select_only()
         .column(wallet_user::Column::State)
         .column(wallet_user::Column::Id)
@@ -191,8 +173,7 @@ where
             wallet_user::Relation::WalletUserAppleAttestation.def(),
         )
         .filter(wallet_user::Column::WalletId.eq(wallet_id))
-        .find_also_related(wallet_transfer::Entity)
-        .into_model::<WalletUserJoinedModel, wallet_transfer::Model>()
+        .into_model::<WalletUserJoinedModel>()
         .one(db.connection())
         .await
         .map_err(|e| PersistenceError::Execution(e.into()))?
@@ -200,25 +181,22 @@ where
         return Ok(WalletUserQueryResult::NotFound);
     };
 
-    let state: WalletUserState = user_model
+    let state: WalletUserState = model
         .state
         .parse()
         .expect("parsing the wallet user state from the database should always succeed");
 
     let encrypted_pin_pubkey = Encrypted::new(
-        user_model.encrypted_pin_pubkey_sec1,
-        InitializationVector(user_model.pin_pubkey_iv),
+        model.encrypted_pin_pubkey_sec1,
+        InitializationVector(model.pin_pubkey_iv),
     );
-    let encrypted_previous_pin_pubkey = match (
-        user_model.encrypted_previous_pin_pubkey_sec1,
-        user_model.previous_pin_pubkey_iv,
-    ) {
+    let encrypted_previous_pin_pubkey = match (model.encrypted_previous_pin_pubkey_sec1, model.previous_pin_pubkey_iv) {
         (Some(sec1), Some(iv)) => Some(Encrypted::new(sec1, InitializationVector(iv))),
         _ => None,
     };
     let instruction_challenge = match (
-        user_model.instruction_challenge,
-        user_model.instruction_challenge_expiration_date_time,
+        model.instruction_challenge,
+        model.instruction_challenge_expiration_date_time,
     ) {
         (Some(instruction_challenge), Some(expiration_date_time)) => Some(InstructionChallenge {
             bytes: instruction_challenge,
@@ -226,7 +204,7 @@ where
         }),
         _ => None,
     };
-    let attestation = match user_model.apple_assertion_counter {
+    let attestation = match model.apple_assertion_counter {
         Some(counter) => WalletUserAttestation::Apple {
             assertion_counter: AssertionCounter::from(u32::try_from(counter).unwrap()),
         },
@@ -235,24 +213,20 @@ where
         // CHECK statement on the table.
         None => WalletUserAttestation::Android,
     };
+
     let wallet_user = WalletUser {
-        id: user_model.id,
-        wallet_id: user_model.wallet_id,
+        id: model.id,
+        wallet_id: model.wallet_id,
         encrypted_pin_pubkey,
         encrypted_previous_pin_pubkey,
-        hw_pubkey: VerifyingKey::from_public_key_der(&user_model.hw_pubkey_der).unwrap(),
-        unsuccessful_pin_entries: user_model.pin_entries.try_into().ok().unwrap_or(u8::MAX),
-        last_unsuccessful_pin_entry: user_model.last_unsuccessful_pin.map(DateTime::<Utc>::from),
+        hw_pubkey: VerifyingKey::from_public_key_der(&model.hw_pubkey_der).unwrap(),
+        unsuccessful_pin_entries: model.pin_entries.try_into().ok().unwrap_or(u8::MAX),
+        last_unsuccessful_pin_entry: model.last_unsuccessful_pin.map(DateTime::<Utc>::from),
         instruction_challenge,
-        instruction_sequence_number: u64::try_from(user_model.instruction_sequence_number).unwrap(),
+        instruction_sequence_number: u64::try_from(model.instruction_sequence_number).unwrap(),
         attestation,
         state,
-        recovery_code: user_model.recovery_code.clone(),
-        transfer_session: transfer_model.and_then(|transfer| {
-            user_model
-                .recovery_code
-                .map(|recovery_code| transfer_session_from_model(transfer, recovery_code))
-        }),
+        recovery_code: model.recovery_code.clone(),
     };
 
     Ok(WalletUserQueryResult::Found(Box::new(wallet_user)))
@@ -550,6 +524,34 @@ where
     Ok(())
 }
 
+pub async fn transition_wallet_user_state<S, T>(
+    db: &T,
+    wallet_user_id: Uuid,
+    from_state: WalletUserState,
+    to_state: WalletUserState,
+) -> Result<()>
+where
+    S: ConnectionTrait,
+    T: PersistenceConnection<S>,
+{
+    let result = wallet_user::Entity::update_many()
+        .col_expr(wallet_user::Column::State, Expr::value(to_state.to_string()))
+        .filter(
+            wallet_user::Column::Id
+                .eq(wallet_user_id)
+                .and(wallet_user::Column::State.eq(from_state.to_string())),
+        )
+        .exec(db.connection())
+        .await
+        .map_err(|e| PersistenceError::Execution(e.into()))?;
+
+    match result.rows_affected {
+        0 => Err(PersistenceError::NoRowsUpdated),
+        1 => Ok(()),
+        _ => panic!("multiple `wallet_user`s with the same `wallet_id`"),
+    }
+}
+
 pub async fn store_recovery_code<S, T>(db: &T, wallet_id: &str, recovery_code: String) -> Result<()>
 where
     S: ConnectionTrait,
@@ -632,6 +634,7 @@ where
     wallet_transfer::ActiveModel {
         id: Set(Uuid::new_v4()),
         destination_wallet_user_id: Set(destination_wallet_user_id),
+        source_wallet_user_id: Set(None),
         transfer_session_id: Set(transfer_session_id),
         destination_wallet_app_version: Set(destination_wallet_app_version.to_string()),
         state: Set(TransferSessionState::Created.to_string()),
@@ -653,23 +656,67 @@ where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
-    let result = wallet_transfer::Entity::find()
+    type TransferQueryResult = (Uuid, Uuid, Option<Uuid>, Uuid, String, String, Option<String>, String);
+
+    let result: Option<TransferQueryResult> = wallet_transfer::Entity::find()
+        .select_only()
+        .column(wallet_transfer::Column::Id)
+        .column(wallet_transfer::Column::DestinationWalletUserId)
+        .column(wallet_transfer::Column::SourceWalletUserId)
+        .column(wallet_transfer::Column::TransferSessionId)
+        .column(wallet_transfer::Column::DestinationWalletAppVersion)
+        .column(wallet_transfer::Column::State)
+        .column(wallet_transfer::Column::EncryptedWalletData)
+        .column(wallet_user::Column::RecoveryCode)
         .filter(wallet_transfer::Column::TransferSessionId.eq(transfer_session_id))
-        .find_also_related(wallet_user::Entity)
-        .into_model::<wallet_transfer::Model, wallet_user::Model>()
+        .join(JoinType::InnerJoin, wallet_transfer::Relation::WalletUser2.def())
+        .into_tuple()
         .one(db.connection())
         .await
         .map_err(|e| PersistenceError::Execution(e.into()))?;
 
-    let transfer_session = result.and_then(|(transfer_model, user_model)| {
-        user_model.and_then(|user_model| {
-            user_model
-                .recovery_code
-                .map(|recovery_code| transfer_session_from_model(transfer_model, recovery_code))
-        })
-    });
+    let transfer_session = result.map(
+        |(
+            id,
+            destination_wallet_user_id,
+            source_wallet_user_id,
+            transfer_session_id,
+            destination_wallet_app_version,
+            state,
+            encrypted_wallet_data,
+            destination_wallet_recovery_code,
+        )| TransferSession {
+            id,
+            source_wallet_user_id,
+            destination_wallet_user_id,
+            destination_wallet_app_version: Version::parse(&destination_wallet_app_version)
+                .expect("version from database should parse"),
+            transfer_session_id,
+            state: state.parse().expect("state from database should parse"),
+            encrypted_wallet_data,
+            destination_wallet_recovery_code,
+        },
+    );
 
     Ok(transfer_session)
+}
+
+pub async fn find_transfer_session_id_by_destination_wallet_user_id<S, T>(
+    db: &T,
+    destination_wallet_user_id: Uuid,
+) -> Result<Option<Uuid>>
+where
+    S: ConnectionTrait,
+    T: PersistenceConnection<S>,
+{
+    wallet_transfer::Entity::find()
+        .select_only()
+        .column(wallet_transfer::Column::TransferSessionId)
+        .filter(wallet_transfer::Column::DestinationWalletUserId.eq(destination_wallet_user_id))
+        .into_tuple()
+        .one(db.connection())
+        .await
+        .map_err(|e| PersistenceError::Execution(e.into()))
 }
 
 pub async fn update_transfer_state<S, T>(
@@ -685,6 +732,28 @@ where
         .col_expr(
             wallet_transfer::Column::State,
             Expr::value(transfer_session_state.to_string()),
+        )
+        .filter(wallet_transfer::Column::TransferSessionId.eq(transer_session_id))
+        .exec(db.connection())
+        .await
+        .map_err(|e| PersistenceError::Execution(e.into()))?;
+
+    match result.rows_affected {
+        0 => Err(PersistenceError::NoRowsUpdated),
+        1 => Ok(()),
+        _ => panic!("multiple `wallet_transfer`s with the same `transfer_session_id`"),
+    }
+}
+
+pub async fn set_transfer_source<S, T>(db: &T, transer_session_id: Uuid, source_wallet_user_id: Uuid) -> Result<()>
+where
+    S: ConnectionTrait,
+    T: PersistenceConnection<S>,
+{
+    let result = wallet_transfer::Entity::update_many()
+        .col_expr(
+            wallet_transfer::Column::SourceWalletUserId,
+            Expr::value(source_wallet_user_id),
         )
         .filter(wallet_transfer::Column::TransferSessionId.eq(transer_session_id))
         .exec(db.connection())

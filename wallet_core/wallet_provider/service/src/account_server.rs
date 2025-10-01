@@ -269,6 +269,9 @@ pub enum InstructionError {
     #[error("the wallet transfer session is in an illegal state")]
     AccountTransferIllegalState,
 
+    #[error("the wallet transfer session has been canceled")]
+    AccountTransferCanceled,
+
     #[error(
         "cannot transfer wallets because of app version mismatch; source: {source_version}, destination: \
          {destination_version}"
@@ -301,6 +304,9 @@ pub enum InstructionValidationError {
 
     #[error("wallet transfer is in progress")]
     TransferInProgress,
+
+    #[error("no wallet transfer is in progress")]
+    NoTransferInProgress,
 
     #[error("recovery code is missing")]
     MissingRecoveryCode,
@@ -3086,6 +3092,7 @@ mod tests {
             challenge: Some(challenge.clone()),
             transfer_session: Some(TransferSession {
                 id: Uuid::new_v4(),
+                source_wallet_user_id: Some(Uuid::new_v4()),
                 destination_wallet_user_id: Uuid::new_v4(),
                 destination_wallet_app_version: Version::parse("3.2.1").unwrap(),
                 destination_wallet_recovery_code: String::from("12345678"),
@@ -3116,6 +3123,8 @@ mod tests {
             .await;
 
         let instruction_result_signing_key = SigningKey::random(&mut OsRng);
+
+        user_state.repositories.state = WalletUserState::Transferring;
 
         let result = account_server
             .handle_instruction(
