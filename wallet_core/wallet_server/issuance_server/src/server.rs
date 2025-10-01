@@ -13,7 +13,6 @@ use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
 use openid4vc::issuer::TrivialAttributeService;
 use openid4vc::issuer::WuaConfig;
-use openid4vc::server_state::MemoryWuaTracker;
 use openid4vc::server_state::SessionStore;
 use openid4vc::verifier::DisclosureData;
 use openid4vc::verifier::SessionTypeReturnUrl;
@@ -93,7 +92,7 @@ where
         attestation_config,
         &issuer_settings.server_settings.public_url,
         issuer_settings.wallet_client_ids.clone(),
-        Option::<WuaConfig<MemoryWuaTracker>>::None, // The compiler forces us to explicitly specify a type here
+        Option::<WuaConfig>::None, // The compiler forces us to explicitly specify a type here
     ));
 
     let issuance_router = create_issuance_router(Arc::clone(&issuer));

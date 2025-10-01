@@ -7,7 +7,6 @@ use pid_issuer::pid::attributes::BrpPidAttributeService;
 use pid_issuer::pid::brp::client::HttpBrpClient;
 use pid_issuer::server;
 use pid_issuer::settings::PidIssuerSettings;
-use pid_issuer::wua_tracker::WuaTrackerVariant;
 use server_utils::keys::SecretKeyVariant;
 use server_utils::server::wallet_server_main;
 use server_utils::store::DatabaseConnection;
@@ -31,7 +30,6 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
     let db_connection = DatabaseConnection::try_new(storage_settings.url.clone()).await?;
 
     let sessions = Arc::new(SessionStoreVariant::new(db_connection.clone(), storage_settings.into()));
-    let wua_tracker = WuaTrackerVariant::new(db_connection);
 
     let pid_attr_service = BrpPidAttributeService::try_new(
         HttpBrpClient::new(settings.brp_server),
@@ -47,7 +45,6 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
         hsm,
         sessions,
         settings.wua_issuer_pubkey.into_inner(),
-        wua_tracker,
     )
     .await
 }
