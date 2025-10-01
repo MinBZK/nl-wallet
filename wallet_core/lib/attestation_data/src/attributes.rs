@@ -127,6 +127,12 @@ impl TryFrom<serde_json::Value> for Attribute {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum AttributesTraversalBehaviour {
+    AllPaths,
+    OnlyLeaves,
+}
+
 #[derive(Debug, Default, Clone, Eq, PartialEq, Serialize, Deserialize, AsRef, From)]
 pub struct Attributes(IndexMap<String, Attribute>);
 
@@ -338,7 +344,7 @@ impl Attributes {
         result
     }
 
-    pub fn claim_paths(&self) -> Vec<VecNonEmpty<ClaimPath>> {
+    pub fn claim_paths(&self, behaviour: AttributesTraversalBehaviour) -> Vec<VecNonEmpty<ClaimPath>> {
         /// Recursive depth first traversal helper to collect all claim paths from nested attributes.
         ///
         /// Depth first is necessary because the SD-JWT conceal functionality for leaves doesn't work properly if the
@@ -351,6 +357,7 @@ impl Attributes {
             prefix: &[ClaimPath],
             attrs: &IndexMap<String, Attribute>,
             result: &mut Vec<VecNonEmpty<ClaimPath>>,
+            behaviour: AttributesTraversalBehaviour,
         ) {
             for (key, attr) in attrs {
                 let path = prefix
@@ -361,16 +368,21 @@ impl Attributes {
 
                 // If it's a nested attribute, recurse deeper first
                 if let Attribute::Nested(nested) = attr {
-                    traverse_depth_first(&path, nested, result);
+                    traverse_depth_first(&path, nested, result, behaviour);
                 }
 
-                // Push current path after children have been processed (post-order)
-                result.push(VecNonEmpty::try_from(path).unwrap());
+                match (attr, behaviour) {
+                    (Attribute::Nested(_), AttributesTraversalBehaviour::AllPaths) | (Attribute::Single(_), _) => {
+                        // Push current path after children have been processed (post-order)
+                        result.push(VecNonEmpty::try_from(path).unwrap());
+                    }
+                    (Attribute::Nested(_), AttributesTraversalBehaviour::OnlyLeaves) => {}
+                }
             }
         }
 
         let mut result = Vec::with_capacity(self.0.len());
-        traverse_depth_first(&[], self.as_ref(), &mut result);
+        traverse_depth_first(&[], self.as_ref(), &mut result, behaviour);
         result
     }
 
@@ -632,11 +644,12 @@ pub mod test {
     use utils::vec_at_least::VecNonEmpty;
     use utils::vec_nonempty;
 
-    use crate::attributes::Attribute;
-    use crate::attributes::AttributeValue;
-    use crate::attributes::Attributes;
-    use crate::attributes::AttributesError;
-    use crate::attributes::AttributesHandlingError;
+    use super::Attribute;
+    use super::AttributeValue;
+    use super::Attributes;
+    use super::AttributesError;
+    use super::AttributesHandlingError;
+    use super::AttributesTraversalBehaviour;
 
     pub fn complex_attributes() -> IndexMap<String, Attribute> {
         IndexMap::from([
@@ -1285,7 +1298,6 @@ pub mod test {
 
     mod test_claim_paths_from_attributes {
         use attestation_types::claim_path::ClaimPath;
-        use utils::vec_at_least::VecNonEmpty;
 
         use super::*;
 
@@ -1297,10 +1309,10 @@ pub mod test {
             )])
             .into();
 
-            let expected: Vec<VecNonEmpty<_>> =
-                vec![VecNonEmpty::try_from(vec![ClaimPath::SelectByKey(String::from("a"))]).unwrap()];
+            let expected = vec![vec_nonempty![ClaimPath::SelectByKey(String::from("a"))]];
 
-            assert_eq!(result.claim_paths(), expected);
+            assert_eq!(result.claim_paths(AttributesTraversalBehaviour::AllPaths), expected);
+            assert_eq!(result.claim_paths(AttributesTraversalBehaviour::OnlyLeaves), expected);
         }
 
         #[test]
@@ -1329,75 +1341,123 @@ pub mod test {
             ])
             .into();
 
-            let expected: Vec<VecNonEmpty<_>> = vec![
-                vec![ClaimPath::SelectByKey(String::from("b"))],
-                vec![
+            let expected_all = vec![
+                vec_nonempty![ClaimPath::SelectByKey(String::from("b"))],
+                vec_nonempty![
                     ClaimPath::SelectByKey(String::from("a")),
                     ClaimPath::SelectByKey(String::from("a1")),
                     ClaimPath::SelectByKey(String::from("a2")),
                 ],
-                vec![
+                vec_nonempty![
                     ClaimPath::SelectByKey(String::from("a")),
                     ClaimPath::SelectByKey(String::from("a1")),
                     ClaimPath::SelectByKey(String::from("a3")),
                 ],
-                vec![
+                vec_nonempty![
                     ClaimPath::SelectByKey(String::from("a")),
                     ClaimPath::SelectByKey(String::from("a1")),
                 ],
-                vec![ClaimPath::SelectByKey(String::from("a"))],
-            ]
-            .into_iter()
-            .map(|v| VecNonEmpty::try_from(v).unwrap())
-            .collect();
+                vec_nonempty![ClaimPath::SelectByKey(String::from("a"))],
+            ];
 
-            assert_eq!(result.claim_paths(), expected);
+            assert_eq!(result.claim_paths(AttributesTraversalBehaviour::AllPaths), expected_all);
+
+            let expected_leaves = vec![
+                vec_nonempty![ClaimPath::SelectByKey(String::from("b"))],
+                vec_nonempty![
+                    ClaimPath::SelectByKey(String::from("a")),
+                    ClaimPath::SelectByKey(String::from("a1")),
+                    ClaimPath::SelectByKey(String::from("a2")),
+                ],
+                vec_nonempty![
+                    ClaimPath::SelectByKey(String::from("a")),
+                    ClaimPath::SelectByKey(String::from("a1")),
+                    ClaimPath::SelectByKey(String::from("a3")),
+                ],
+            ];
+
+            assert_eq!(
+                result.claim_paths(AttributesTraversalBehaviour::OnlyLeaves),
+                expected_leaves
+            );
         }
 
         #[test]
         fn test_complex() {
             let result: Attributes = complex_attributes().into();
 
-            let expected: Vec<VecNonEmpty<_>> = vec![
-                vec![ClaimPath::SelectByKey(String::from("birth_date"))],
-                vec![
+            let expected_all = vec![
+                vec_nonempty![ClaimPath::SelectByKey(String::from("birth_date"))],
+                vec_nonempty![
                     ClaimPath::SelectByKey(String::from("place_of_birth")),
                     ClaimPath::SelectByKey(String::from("locality")),
                 ],
-                vec![
+                vec_nonempty![
                     ClaimPath::SelectByKey(String::from("place_of_birth")),
                     ClaimPath::SelectByKey(String::from("country")),
                     ClaimPath::SelectByKey(String::from("name")),
                 ],
-                vec![
+                vec_nonempty![
                     ClaimPath::SelectByKey(String::from("place_of_birth")),
                     ClaimPath::SelectByKey(String::from("country")),
                     ClaimPath::SelectByKey(String::from("area_code")),
                 ],
-                vec![
+                vec_nonempty![
                     ClaimPath::SelectByKey(String::from("place_of_birth")),
                     ClaimPath::SelectByKey(String::from("country")),
                 ],
-                vec![ClaimPath::SelectByKey(String::from("place_of_birth"))],
-                vec![
+                vec_nonempty![ClaimPath::SelectByKey(String::from("place_of_birth"))],
+                vec_nonempty![
                     ClaimPath::SelectByKey(String::from("financial")),
                     ClaimPath::SelectByKey(String::from("has_debt")),
                 ],
-                vec![
+                vec_nonempty![
                     ClaimPath::SelectByKey(String::from("financial")),
                     ClaimPath::SelectByKey(String::from("has_job")),
                 ],
-                vec![
+                vec_nonempty![
                     ClaimPath::SelectByKey(String::from("financial")),
                     ClaimPath::SelectByKey(String::from("debt_amount")),
                 ],
-                vec![ClaimPath::SelectByKey(String::from("financial"))],
-            ]
-            .into_iter()
-            .map(|v| VecNonEmpty::try_from(v).unwrap())
-            .collect();
+                vec_nonempty![ClaimPath::SelectByKey(String::from("financial"))],
+            ];
 
-            assert_eq!(result.claim_paths(), expected);
+            assert_eq!(result.claim_paths(AttributesTraversalBehaviour::AllPaths), expected_all);
+
+            let expected_leaves = vec![
+                vec_nonempty![ClaimPath::SelectByKey(String::from("birth_date"))],
+                vec_nonempty![
+                    ClaimPath::SelectByKey(String::from("place_of_birth")),
+                    ClaimPath::SelectByKey(String::from("locality")),
+                ],
+                vec_nonempty![
+                    ClaimPath::SelectByKey(String::from("place_of_birth")),
+                    ClaimPath::SelectByKey(String::from("country")),
+                    ClaimPath::SelectByKey(String::from("name")),
+                ],
+                vec_nonempty![
+                    ClaimPath::SelectByKey(String::from("place_of_birth")),
+                    ClaimPath::SelectByKey(String::from("country")),
+                    ClaimPath::SelectByKey(String::from("area_code")),
+                ],
+                vec_nonempty![
+                    ClaimPath::SelectByKey(String::from("financial")),
+                    ClaimPath::SelectByKey(String::from("has_debt")),
+                ],
+                vec_nonempty![
+                    ClaimPath::SelectByKey(String::from("financial")),
+                    ClaimPath::SelectByKey(String::from("has_job")),
+                ],
+                vec_nonempty![
+                    ClaimPath::SelectByKey(String::from("financial")),
+                    ClaimPath::SelectByKey(String::from("debt_amount")),
+                ],
+            ];
+
+            assert_eq!(
+                result.claim_paths(AttributesTraversalBehaviour::OnlyLeaves),
+                expected_leaves
+            );
         }
     }
 }

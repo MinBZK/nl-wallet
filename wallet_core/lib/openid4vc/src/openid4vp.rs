@@ -852,6 +852,7 @@ mod tests {
     use rustls_pki_types::TrustAnchor;
     use serde_json::json;
 
+    use attestation_data::attributes::AttributesTraversalBehaviour;
     use attestation_data::disclosure::DisclosedAttributes;
     use attestation_data::x509::generate::mock::generate_reader_mock;
     use attestation_types::claim_path::ClaimPath;
@@ -1415,7 +1416,10 @@ mod tests {
         };
 
         assert_eq!(
-            attributes.claim_paths().into_iter().collect::<HashSet<_>>(),
+            attributes
+                .claim_paths(AttributesTraversalBehaviour::OnlyLeaves)
+                .into_iter()
+                .collect::<HashSet<_>>(),
             HashSet::from([
                 vec_nonempty![ClaimPath::SelectByKey("bsn".to_string())],
                 vec_nonempty![ClaimPath::SelectByKey("birthdate".to_string())]
@@ -1429,7 +1433,10 @@ mod tests {
         };
 
         assert_eq!(
-            attributes.claim_paths().into_iter().collect::<HashSet<_>>(),
+            attributes
+                .claim_paths(AttributesTraversalBehaviour::OnlyLeaves)
+                .into_iter()
+                .collect::<HashSet<_>>(),
             HashSet::from([
                 vec_nonempty![ClaimPath::SelectByKey("given_name".to_string())],
                 vec_nonempty![ClaimPath::SelectByKey("family_name".to_string())]

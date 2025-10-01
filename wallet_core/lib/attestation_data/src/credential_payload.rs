@@ -35,6 +35,7 @@ use utils::generator::Generator;
 
 use crate::attributes::Attributes;
 use crate::attributes::AttributesError;
+use crate::attributes::AttributesTraversalBehaviour;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 pub enum SdJwtCredentialPayloadError {
@@ -320,7 +321,7 @@ impl CredentialPayload {
         let sd_jwt = self
             .previewable_payload
             .attributes
-            .claim_paths()
+            .claim_paths(AttributesTraversalBehaviour::AllPaths)
             .into_iter()
             .try_fold(SdJwtBuilder::new(self)?, |builder, claims| {
                 let should_be_selectively_discloseable = match sd_by_claims.get(&claims) {
