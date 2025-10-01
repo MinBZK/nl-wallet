@@ -111,9 +111,14 @@ tracing-test.workspace = true
 ts-rs.workspace = true
 wiremock.workspace = true
 
-attestation_data = { path = "../attestation_data", features = ["generate", "mock", "example_credential_payloads"] }
+attestation_data = { path = "../attestation_data", features = [
+    "generate",
+    "mock",
+    "example_credential_payloads",
+    "test_credential",
+] }
 crypto = { path = "../crypto", features = ["examples"] }
-dcql = { path = "../dcql", features = ["mock", "test_document"] }
+dcql = { path = "../dcql", features = ["mock"] }
 http_utils = { path = "../http_utils", features = ["insecure_http_client"] }
 jwt = { path = "../jwt", features = ["test"] }
 mdoc = { path = "../mdoc", features = ["test", "mock_example_constructors"] }
