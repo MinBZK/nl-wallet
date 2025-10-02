@@ -806,11 +806,6 @@ impl HandleInstruction for DiscloseRecoveryCodePinRecovery {
 
         user_state.repositories.recover_pin(&tx, &wallet_user.wallet_id).await?;
 
-        user_state
-            .repositories
-            .delete_pin_recovery_keys(&tx, &wallet_user.wallet_id)
-            .await?;
-
         tx.commit().await?;
 
         Ok(())
@@ -1652,9 +1647,6 @@ mod tests {
             .expect_is_pin_recovery_key()
             .returning(|_, _, _| Ok(true));
         wallet_user_repo.expect_recover_pin().returning(|_, _| Ok(()));
-        wallet_user_repo
-            .expect_delete_pin_recovery_keys()
-            .returning(|_, _| Ok(()));
 
         let result = instruction
             .handle(

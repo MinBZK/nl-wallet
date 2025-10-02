@@ -76,8 +76,6 @@ pub trait WalletUserRepository {
         key: VerifyingKey,
     ) -> Result<bool>;
 
-    async fn delete_pin_recovery_keys(&self, transaction: &Self::TransactionType, wallet_id: &str) -> Result<()>;
-
     async fn find_keys_by_identifiers(
         &self,
         transaction: &Self::TransactionType,
@@ -269,10 +267,6 @@ pub mod mock {
             _key: VerifyingKey,
         ) -> Result<bool> {
             Ok(true)
-        }
-
-        async fn delete_pin_recovery_keys(&self, _transaction: &Self::TransactionType, _wallet_id: &str) -> Result<()> {
-            Ok(())
         }
 
         async fn find_keys_by_identifiers(
