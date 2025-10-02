@@ -150,7 +150,8 @@ where
                 )
                 .route(
                     &format!("/instructions/{}", SendWalletPayload::NAME),
-                    post(handle_instruction::<SendWalletPayload, _, _, _>).layer(DefaultBodyLimit::disable()),
+                    post(handle_instruction::<SendWalletPayload, _, _, _>)
+                        .layer(DefaultBodyLimit::max(state.max_transfer_upload_size_in_bytes)),
                 )
                 .layer(TraceLayer::new_for_http())
                 .layer(middleware::from_fn(log_headers))

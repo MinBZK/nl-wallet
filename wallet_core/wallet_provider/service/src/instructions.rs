@@ -639,7 +639,7 @@ impl HandleInstruction for Sign {
         let signatures = future::try_join_all(identifiers.iter().zip(data).map(|(identifiers, data)| async {
             let data = Arc::new(data);
             future::try_join_all(identifiers.iter().map(|identifier| async {
-                let wrapped_key = found_keys.get(identifier).cloned().unwrap();
+                let wrapped_key = found_keys.get(identifier).cloned().unwrap(); // TODO: PVW-4979: this panics based on user input!
                 user_state
                     .wallet_user_hsm
                     .sign_wrapped(&user_state.wrapping_key_identifier, wrapped_key, Arc::clone(&data))
