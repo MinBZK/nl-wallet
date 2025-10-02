@@ -1041,7 +1041,6 @@ mod tests {
     async fn test_receive_wallet_payload_should_not_import_when_complete_transfer_returns_canceled() {
         let mut destination_wallet =
             TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-        // let mut source_wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         let transfer_session_id = Uuid::new_v4();
 
