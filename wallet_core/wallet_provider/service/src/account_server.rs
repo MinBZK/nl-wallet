@@ -1734,6 +1734,7 @@ mod tests {
     use chrono::DateTime;
     use chrono::TimeZone;
     use chrono::Utc;
+    use futures::FutureExt;
     use hmac::digest::crypto_common::rand_core::OsRng;
     use p256::ecdsa::SigningKey;
     use p256::ecdsa::VerifyingKey;
@@ -3101,6 +3102,102 @@ mod tests {
         )
         .await
         .expect("checking new pin should succeed");
+    }
+
+    #[tokio::test]
+    async fn test_start_pin_recovery_repository_changes() {
+        let (setup, account_server, hw_privkey, cert, mut user_state) =
+            setup_and_do_registration(AttestationType::Google).await;
+        user_state.repositories.instruction_sequence_number = 42;
+
+        let challenge =
+            do_instruction_challenge::<ChangePinStart>(&account_server, &hw_privkey, cert.clone(), 43, &user_state)
+                .await
+                .unwrap();
+
+        user_state.repositories = WalletUserTestRepo {
+            challenge: Some(challenge.clone()),
+            state: WalletUserState::Active,
+            ..user_state.repositories
+        };
+
+        let new_pin_privkey = SigningKey::random(&mut OsRng);
+        let new_pin_pubkey = *new_pin_privkey.verifying_key();
+
+        let instruction = StartPinRecovery {
+            issuance_with_wua_instruction: PerformIssuanceWithWua {
+                issuance_instruction: PerformIssuance {
+                    key_count: 1.try_into().unwrap(),
+                    aud: "aud".to_string(),
+                    nonce: Some("nonce".to_string()),
+                },
+            },
+            pin_pubkey: new_pin_pubkey.into(),
+        };
+        let instruction = hw_privkey
+            .sign_instruction(instruction, challenge, 46, &new_pin_privkey, cert)
+            .await;
+
+        let instruction_result_signing_key = SigningKey::random(&mut OsRng);
+
+        let mut repositories = MockTransactionalWalletUserRepository::new();
+        repositories
+            .expect_find_wallet_user_by_wallet_id()
+            .times(1)
+            .returning(move |transaction, wallet_id| {
+                user_state
+                    .repositories
+                    .find_wallet_user_by_wallet_id(transaction, wallet_id)
+                    .now_or_never()
+                    .unwrap()
+            });
+        repositories
+            .expect_clear_instruction_challenge()
+            .times(1)
+            .returning(|_, _| Ok(()));
+        repositories
+            .expect_reset_unsuccessful_pin_entries()
+            .times(1)
+            .returning(|_, _| Ok(()));
+        repositories
+            .expect_update_instruction_sequence_number()
+            .times(1)
+            .returning(|_, _, _| Ok(()));
+        repositories
+            .expect_begin_transaction()
+            .times(3)
+            .returning(|| Ok(MockTransaction));
+
+        repositories
+            .expect_change_pin()
+            .times(1)
+            .returning(move |_, _, _, state| {
+                assert_eq!(state, WalletUserState::RecoveringPin);
+                Ok(())
+            });
+        repositories
+            .expect_save_pin_recovery_keys()
+            .times(1)
+            .returning(move |_, _| Ok(()));
+
+        let user_state = UserState {
+            repositories,
+            wallet_user_hsm: user_state.wallet_user_hsm,
+            wua_issuer: user_state.wua_issuer,
+            wrapping_key_identifier: user_state.wrapping_key_identifier,
+            pid_issuer_trust_anchors: user_state.pid_issuer_trust_anchors,
+        };
+
+        account_server
+            .handle_start_pin_recovery_instruction(
+                instruction,
+                (&instruction_result_signing_key, &setup.signing_key),
+                &MockGenerators,
+                &TimeoutPinPolicy,
+                &user_state,
+            )
+            .await
+            .unwrap();
     }
 
     #[tokio::test]
