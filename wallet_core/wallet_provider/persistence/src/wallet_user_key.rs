@@ -99,7 +99,7 @@ where
     Ok(is_recovery_key)
 }
 
-pub async fn delete_pin_recovery_keys<S, T>(db: &T, wallet_id: &str) -> Result<()>
+pub async fn delete_pin_recovery_keys<S, T>(db: &T, wallet_id: Uuid) -> Result<()>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,

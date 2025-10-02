@@ -804,7 +804,7 @@ impl HandleInstruction for DiscloseRecoveryCodePinRecovery {
             return Err(InstructionError::PinRecoveryAccountMismatch);
         }
 
-        user_state.repositories.recover_pin(&tx, &wallet_user.wallet_id).await?;
+        user_state.repositories.recover_pin(&tx, wallet_user.id).await?;
 
         tx.commit().await?;
 
