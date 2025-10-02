@@ -575,33 +575,6 @@ where
     }
 }
 
-pub async fn recover_pin_with_recovery_code<S, T>(db: &T, wallet_id: &str, recovery_code: String) -> Result<()>
-where
-    S: ConnectionTrait,
-    T: PersistenceConnection<S>,
-{
-    let result = wallet_user::Entity::update_many()
-        .col_expr(
-            wallet_user::Column::State,
-            Expr::value(WalletUserState::Active.to_string()),
-        )
-        .filter(
-            wallet_user::Column::WalletId
-                .eq(wallet_id)
-                .and(wallet_user::Column::RecoveryCode.eq(recovery_code))
-                .and(wallet_user::Column::State.eq(WalletUserState::RecoveringPin.to_string())),
-        )
-        .exec(db.connection())
-        .await
-        .map_err(|e| PersistenceError::Execution(e.into()))?;
-
-    match result.rows_affected {
-        0 => Err(PersistenceError::NoRowsUpdated),
-        1 => Ok(()),
-        _ => panic!("multiple `wallet_user`s with the same `wallet_id`"),
-    }
-}
-
 pub async fn has_multiple_active_accounts_by_recovery_code<S, T>(db: &T, recovery_code: &str) -> Result<bool>
 where
     S: ConnectionTrait,
