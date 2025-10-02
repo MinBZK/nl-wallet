@@ -30,7 +30,7 @@ mock = ["dep:mockall", "wscd/mock", "crypto/generate", "mdoc/test"]
 # Include miscellaneous test utilities
 test = ["jwt/test", "wscd/mock", "dep:assert_matches", "dep:parking_lot"]
 # All features needed to run the integration test
-integration = ["mock", "test", "example_constructors", "attestation_data/test_document"]
+integration = ["mock", "test", "example_constructors"]
 # Credential payload examples
 example_credential_payloads = []
 # Offers example constructors
