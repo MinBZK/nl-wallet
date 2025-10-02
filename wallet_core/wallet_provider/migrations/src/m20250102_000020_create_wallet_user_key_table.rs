@@ -19,7 +19,7 @@ impl MigrationTrait for Migration {
                     .col(string(WalletUserKey::Identifier))
                     .col(binary(WalletUserKey::PublicKey))
                     // Allow NULL for PIN recovery private keys, as those don't need to be stored
-                    .col(ColumnDef::new(WalletUserKey::EncryptedPrivateKey).binary().take())
+                    .col(binary_null(WalletUserKey::EncryptedPrivateKey))
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_wallet_user_id")
