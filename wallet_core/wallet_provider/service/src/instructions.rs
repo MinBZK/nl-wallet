@@ -1642,11 +1642,16 @@ mod tests {
         let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
         wallet_user_repo
             .expect_begin_transaction()
+            .times(1)
             .returning(|| Ok(MockTransaction));
         wallet_user_repo
             .expect_is_pin_recovery_key()
-            .returning(|_, _, _| Ok(true));
-        wallet_user_repo.expect_recover_pin().returning(|_, _| Ok(()));
+            .times(1)
+            .returning(move |_, _, key| {
+                assert_eq!(key, *holder_key.verifying_key());
+                Ok(true)
+            });
+        wallet_user_repo.expect_recover_pin().times(1).returning(|_, _| Ok(()));
 
         let result = instruction
             .handle(
@@ -1788,9 +1793,11 @@ mod tests {
         let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
         wallet_user_repo
             .expect_begin_transaction()
+            .times(1)
             .returning(|| Ok(MockTransaction));
         wallet_user_repo
             .expect_is_pin_recovery_key()
+            .times(1)
             .returning(|_, _, _| Ok(false));
 
         let err = instruction
