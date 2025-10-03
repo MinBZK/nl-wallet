@@ -241,8 +241,12 @@ pub async fn create_pin_recovery_redirect_uri() -> anyhow::Result<String> {
 
 #[flutter_api_error]
 pub async fn continue_pin_recovery(uri: String) -> anyhow::Result<()> {
-    // TODO: Implement as part of PVW-4587
-    println!("Recovery URI: {uri}");
+    let url = Url::parse(&uri)?;
+
+    let mut wallet = wallet().write().await;
+
+    wallet.continue_pin_recovery(url).await?;
+
     Ok(())
 }
 
