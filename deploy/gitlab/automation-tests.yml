@@ -32,10 +32,6 @@ scheduled-automation-tests-trigger:
     - set -euxo pipefail
   variables:
     APP_IDENTIFIER: "nl.ictu.edi.wallet.latest"
-    DEVICE_NAME: "OnePlus 12R"
-    PLATFORM_NAME: "Android"
-    PLATFORM_VERSION: "14.0"
-    AUTOMATION_NAME: "UIAutomator2"
 
 .run-automation-tests-common-setup:
   resource_group: automation-tests
@@ -53,14 +49,9 @@ scheduled-automation-tests-trigger:
 .run-automation-tests-default:
   extends: .run-automation-tests-common-setup
   script:
+    - mv browserstack-config/browserstack-oneplus12r-14-NL.yml ./browserstack.yml
     - ./gradlew --no-daemon --info --stacktrace test --tests $TESTS
-      -Dtest.config.app.identifier="${APP_IDENTIFIER}"
-      -Dtest.config.device.name="$DEVICE_NAME"
-      -Dtest.config.platform.name="$PLATFORM_NAME"
-      -Dtest.config.platform.version="$PLATFORM_VERSION"
-      -Dtest.config.automation.name="$AUTOMATION_NAME"
       -Dtest.config.remote=true
-      -Dtest.config.commit.sha="${CI_COMMIT_SHA}"
       -Dfile.encoding=UTF-8 || true
     # Allow failure in tests and pass when there are test results (Quality Time should report on failed test)
     - compgen -G "build/test-results/test/*.xml"
@@ -85,43 +76,48 @@ run-automation-card-and-history-tests:
   extends: .run-automation-tests-default
   variables:
     TESTS: "suite.CardsAndHistoryTestSuite"
-    AUTOMATION_NAME: "UIAutomator2"
 
 run-automation-disclosure-tests:
   extends: .run-automation-tests-default
   variables:
     TESTS: "suite.DisclosureTestSuite"
-    AUTOMATION_NAME: "UIAutomator2"
 
 run-automation-introduction-tests:
   extends: .run-automation-tests-default
   variables:
     TESTS: "suite.IntroductionTestSuite"
-    AUTOMATION_NAME: "UIAutomator2"
 
 run-automation-issuance-tests:
   extends: .run-automation-tests-default
   variables:
     TESTS: "suite.IssuanceTestSuite"
-    AUTOMATION_NAME: "UIAutomator2"
 
 run-automation-menu-and-settings-tests:
   extends: .run-automation-tests-default
   variables:
     TESTS: "suite.MenuAndSettingsTestSuite"
-    AUTOMATION_NAME: "UIAutomator2"
 
 run-automation-open-app-tests:
   extends: .run-automation-tests-default
   variables:
     TESTS: "suite.OpenAppTestSuite"
-    AUTOMATION_NAME: "UIAutomator2"
 
 run-automation-security-tests:
   extends: .run-automation-tests-default
   variables:
     TESTS: "suite.SecurityTestSuite"
-    AUTOMATION_NAME: "UIAutomator2"
+
+.run-automation-english-tests:
+  extends: .run-automation-tests-common-setup
+  script:
+    - mv browserstack-config/browserstack-oneplus12r-14-EN.yml ./browserstack.yml
+    - ./gradlew --no-daemon --info --stacktrace testEnglish
+      -Dtest.config.remote=true
+      -Dfile.encoding=UTF-8 || true
+    # Allow failure in tests and pass when there are test results (Quality Time should report on failed test)
+    - compgen -G "build/test-results/test/*.xml"
+  rules:
+    - !reference [.on-schedule-automation, rules]
 
 run-automation-smoke-test-ont:
   extends: .run-automation-tests-common-setup
@@ -132,14 +128,9 @@ run-automation-smoke-test-ont:
     - job: deploy-apps-ont
       artifacts: false
   script:
+    - mv browserstack-config/browserstack-oneplus12r-14-NL.yml ./browserstack.yml
     - ./gradlew --no-daemon --info --stacktrace smokeTest
-      -Dtest.config.app.identifier="${APP_IDENTIFIER}"
-      -Dtest.config.device.name="$DEVICE_NAME"
-      -Dtest.config.platform.name="$PLATFORM_NAME"
-      -Dtest.config.platform.version="$PLATFORM_VERSION"
-      -Dtest.config.automation.name="UIAutomator2"
       -Dtest.config.remote=true
-      -Dtest.config.commit.sha="${CI_COMMIT_SHA}"
       -Dfile.encoding=UTF-8
 
 run-automation-smoke-test-ios-ont:
@@ -151,14 +142,9 @@ run-automation-smoke-test-ios-ont:
     - job: deploy-apps-ont
       artifacts: false
   script:
+    - mv browserstack-config/browserstack-Iphone16Pro-18-NL.yml ./browserstack.yml
     - ./gradlew --no-daemon --info --stacktrace smokeTestIOS
-      -Dtest.config.app.identifier="${APP_IDENTIFIER}"
-      -Dtest.config.device.name="iPhone 14"
-      -Dtest.config.platform.name="IOS"
-      -Dtest.config.platform.version="16"
-      -Dtest.config.automation.name="XCUITest"
       -Dtest.config.remote=true
-      -Dtest.config.commit.sha="${CI_COMMIT_SHA}"
       -Dfile.encoding=UTF-8
 
 browsertests-format-lint:
@@ -239,127 +225,3 @@ run-performance-test-ont:
       artifacts: false
   script: wallet_core/tests_integration/run_performance_test.sh --skip-build
   allow_failure: true
-
-create-pipeline-for-running-test-on-all-browserstack-androids:
-  resource_group: automation-tests
-  extends: .run-automation-tests-base
-  needs:
-    - !reference [run-automation-smoke-test-ont, needs]
-  rules:
-    - !reference [.default-branch, rules]
-  allow_failure: true
-  when: manual
-  script: |
-      TEST_SETS=$(curl -u "$BROWSERSTACK_USER:$BROWSERSTACK_KEY" -X GET "https://api-cloud.browserstack.com/app-automate/devices.json" |
-                  jq -r '.[] | select(.os == "android" and .realMobile == true) | "\(.device)|\(.os_version)"')
-
-      echo "Retrieved real Android devices: $TEST_SETS"
-
-      if [[ -z $TEST_SETS ]]; then
-        echo "No real Android devices found in BrowserStack!"
-        exit 1
-      fi
-
-      cd "$CI_PROJECT_DIR"
-
-      cat <<EOT > test-all-android-devices.yml
-      include:
-        - ".gitlab-ci.yml"
-      stages:
-        - test
-        - merge-results
-
-      merge-device-data:
-        stage: merge-results
-        rules:
-          - when: manual
-        script:
-          - |
-            mkdir -p merged-data
-            output_file="merged-data/merged-device-data.json"
-            echo "[" > "\$output_file"
-            first=true
-            find . -type f -path "uiautomation/device-data/*.json" -print0 | while IFS= read -r -d '' file; do
-              if [ "\$first" = true ]; then
-                first=false
-              else
-                echo "," >> "\$output_file"
-              fi
-              cat "\$file" >> "\$output_file"
-            done
-            echo "]" >> "\$output_file"
-        artifacts:
-          when: always
-          paths:
-            - merged-data/merged-device-data.json
-
-      .run-automation-test-ont:
-        stage: test
-        rules:
-          - if: \$CI_PIPELINE_SOURCE == "parent_pipeline"
-        extends: .run-automation-tests-common-setup
-        script:
-          - |
-            ./gradlew --no-daemon --info --stacktrace runOnAll \\
-              -Dtest.config.app.identifier="\$APP_ID" \\
-              -Dtest.config.device.name="\$DEVICE_NAME" \\
-              -Dtest.config.platform.name="\$PLATFORM_NAME" \\
-              -Dtest.config.platform.version="\$PLATFORM_VERSION" \\
-              -Dtest.config.remote=true \\
-              -Dtest.config.commit.sha="\$CI_COMMIT_SHA" \\
-              -Dfile.encoding=UTF-8
-        after_script:
-          - |
-            echo "start time: \$CI_JOB_STARTED_AT"
-            export END_DATE=\$(date)
-            echo "end time: \$END_DATE"
-            echo "DEVICE_NAME: \$DEVICE_NAME"
-            echo "PLATFORM_VERSION: \$PLATFORM_VERSION"
-            mkdir -p "\$CI_PROJECT_DIR/uiautomation/device-data"
-            echo "{\\"status\\": \\"\$CI_JOB_STATUS\\", \\"device_name\\": \\"\$DEVICE_NAME\\", \\"platform_version\\": \\"\$PLATFORM_VERSION\\", \\"start_date\\": \\"\$CI_JOB_STARTED_AT\\", \\"end_date\\": \\"\$END_DATE\\"}" > "\$CI_PROJECT_DIR/uiautomation/device-data/\${DEVICE_NAME}_\${PLATFORM_VERSION}.json"
-        variables:
-          APP_ID: "${APP_IDENTIFIER}"
-          PLATFORM_NAME: "Android"
-        allow_failure: true
-        artifacts:
-          name: uiautomation
-          when: always
-          paths:
-            - uiautomation/build/test-results/**/*.xml
-            - uiautomation/build/allure-results
-            - uiautomation/build/reports
-            - uiautomation/device-data
-      EOT
-
-      while IFS="|" read -r DEVICE_NAME PLATFORM_VERSION; do
-        JOB_NAME=$(echo "$DEVICE_NAME" | tr ' ' '_')
-
-        cat <<EOT >> test-all-android-devices.yml
-
-      run-$JOB_NAME$PLATFORM_VERSION:
-        extends: .run-automation-test-ont
-        variables:
-          DEVICE_NAME: "$DEVICE_NAME"
-          PLATFORM_VERSION: "$PLATFORM_VERSION"
-      EOT
-      done <<< "$TEST_SETS"
-
-      echo "Generated test-all-android-devices.yml:"
-      cat test-all-android-devices.yml
-  artifacts:
-    name: browserstack-all-devices
-    paths:
-      - test-all-android-devices.yml
-    expire_in: 1 hour
-
-run-pipeline-for-running-test-on-all-browserstack-androids:
-  rules:
-    - !reference [ .default-branch, rules ]
-  needs:
-    - job: create-pipeline-for-running-test-on-all-browserstack-androids
-      artifacts: true
-  trigger:
-    include:
-      - artifact: test-all-android-devices.yml
-        job: create-pipeline-for-running-test-on-all-browserstack-androids
-    strategy: depend
