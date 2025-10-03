@@ -114,17 +114,29 @@ spec:
                   key: private_key
             - name: VERIFICATION_SERVER__USECASES__online_marketplace__PRIVATE_KEY_TYPE
               value: "software"
-            - name: VERIFICATION_SERVER__USECASES__xyz_bank__CERTIFICATE
+            - name: VERIFICATION_SERVER__USECASES__xyz_bank_mdoc__CERTIFICATE
               valueFrom:
                 secretKeyRef:
                   name: nl-wallet-demo-rp-verification-server-verifier-usecases-xyz-bank
                   key: certificate
-            - name: VERIFICATION_SERVER__USECASES__xyz_bank__PRIVATE_KEY
+            - name: VERIFICATION_SERVER__USECASES__xyz_bank_mdoc__PRIVATE_KEY
               valueFrom:
                 secretKeyRef:
                   name: nl-wallet-demo-rp-verification-server-verifier-usecases-xyz-bank
                   key: private_key
-            - name: VERIFICATION_SERVER__USECASES__xyz_bank__PRIVATE_KEY_TYPE
+            - name: VERIFICATION_SERVER__USECASES__xyz_bank_mdoc__PRIVATE_KEY_TYPE
+              value: "software"
+            - name: VERIFICATION_SERVER__USECASES__xyz_bank_sd_jwt__CERTIFICATE
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-demo-rp-verification-server-verifier-usecases-xyz-bank
+                  key: certificate
+            - name: VERIFICATION_SERVER__USECASES__xyz_bank_sd_jwt__PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-demo-rp-verification-server-verifier-usecases-xyz-bank
+                  key: private_key
+            - name: VERIFICATION_SERVER__USECASES__xyz_bank_sd_jwt__PRIVATE_KEY_TYPE
               value: "software"
             - name: VERIFICATION_SERVER__USECASES__job_finder__CERTIFICATE
               valueFrom:
