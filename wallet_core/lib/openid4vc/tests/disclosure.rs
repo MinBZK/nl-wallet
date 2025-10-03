@@ -52,7 +52,7 @@ use jwt::UnverifiedJwt;
 use mdoc::DeviceResponse;
 use mdoc::SessionTranscript;
 use mdoc::holder::disclosure::PartialMdoc;
-use mdoc::test::data::PID;
+use mdoc::holder::mock::NL_PID_DOC_TYPE;
 use openid4vc::ErrorResponse;
 use openid4vc::GetRequestErrorCode;
 use openid4vc::PostAuthResponseErrorCode;
@@ -116,13 +116,15 @@ fn assert_disclosed_attestations_mdoc_pid(disclosed_attestations: &UniqueIdVec<D
         .exactly_one()
         .expect("there should be only one disclosed attestation");
 
-    assert_eq!(disclosed_attestation.attestation_type, PID);
+    assert_eq!(disclosed_attestation.attestation_type, NL_PID_DOC_TYPE);
 
     let DisclosedAttributes::MsoMdoc(attributes) = &disclosed_attestation.attributes else {
         panic!("disclosed attributes should be in mdoc format");
     };
 
-    let name_space = attributes.get(PID).expect("disclosed attributes should include PID");
+    let name_space = attributes
+        .get(NL_PID_DOC_TYPE)
+        .expect("disclosed attributes should include PID");
 
     assert_eq!(name_space.len(), 3);
     assert_eq!(

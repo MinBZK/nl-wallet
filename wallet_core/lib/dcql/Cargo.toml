@@ -12,8 +12,7 @@ doctest = false
 
 [features]
 examples = []
-mock = ["mdoc/examples"]
-test_document = ["mdoc/test"]
+mock = ["mdoc/examples", "mdoc/mock_example_constructors"]
 
 [dependencies]
 derive_more = { workspace = true, features = ["into_iterator"] }
@@ -34,4 +33,4 @@ mdoc = { path = "../mdoc", optional = true }
 [dev-dependencies]
 rstest.workspace = true
 
-mdoc = { path = "../mdoc", features = ["examples"] }
+mdoc = { path = "../mdoc", features = ["examples", "mock_example_constructors"] }

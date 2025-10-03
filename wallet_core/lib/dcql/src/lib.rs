@@ -2,9 +2,6 @@ pub mod disclosure;
 pub mod normalized;
 pub mod unique_id_vec;
 
-#[cfg(feature = "test_document")]
-mod test_document;
-
 use std::ops::Not;
 
 use nutype::nutype;

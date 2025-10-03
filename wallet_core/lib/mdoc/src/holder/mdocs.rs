@@ -114,9 +114,31 @@ impl Mdoc {
 
 #[cfg(any(test, feature = "test"))]
 mod test {
-    use crate::IssuerSigned;
-    use crate::MobileSecurityObject;
+    use chrono::DateTime;
+    use chrono::TimeDelta;
+    use chrono::Utc;
+    use futures::FutureExt;
+    use indexmap::IndexMap;
+    use ssri::Integrity;
+
+    use crypto::CredentialEcdsaKey;
+    use crypto::server_keys::generate::Ca;
+    use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
+    use crypto::x509::CertificateUsage;
+    use http_utils::urls::HttpsUri;
+    use utils::generator::Generator;
+
+    use crate::iso::disclosure::IssuerSigned;
+    use crate::iso::mdocs::DigestAlgorithm;
+    use crate::iso::mdocs::Entry;
+    use crate::iso::mdocs::IssuerNameSpaces;
     use crate::iso::mdocs::IssuerSignedItemBytes;
+    use crate::iso::mdocs::MobileSecurityObject;
+    use crate::iso::mdocs::MobileSecurityObjectVersion;
+    use crate::iso::mdocs::ValidityInfo;
+    use crate::utils::cose::CoseKey;
+    use crate::utils::cose::MdocCose;
+    use crate::utils::serialization::TaggedBytes;
 
     use super::Mdoc;
 
@@ -127,6 +149,61 @@ mod test {
                 private_key_id,
                 issuer_signed,
             }
+        }
+
+        #[expect(clippy::too_many_arguments)]
+        pub async fn new_unverified_from_data(
+            doc_type: String,
+            issuer_uri: HttpsUri,
+            name_spaces: IndexMap<String, Vec<Entry>>,
+            metadata_integrity: Integrity,
+            ca: &Ca,
+            device_key: &impl CredentialEcdsaKey,
+            time_generator: &impl Generator<DateTime<Utc>>,
+        ) -> Self {
+            let time = time_generator.generate();
+
+            let issuer_key_pair = ca
+                .generate_key_pair(ISSUANCE_CERT_CN, CertificateUsage::Mdl, Default::default())
+                .unwrap();
+
+            let device_public_key = &device_key.verifying_key().await.unwrap();
+            let cose_pubkey = CoseKey::try_from(device_public_key).unwrap();
+
+            let name_spaces = IssuerNameSpaces::try_from(name_spaces).unwrap();
+
+            let mso = MobileSecurityObject {
+                version: MobileSecurityObjectVersion::V1_0,
+                digest_algorithm: DigestAlgorithm::SHA256,
+                doc_type,
+                value_digests: (&name_spaces).try_into().unwrap(),
+                device_key_info: cose_pubkey.into(),
+                validity_info: ValidityInfo {
+                    signed: time.into(),
+                    valid_from: time.into(),
+                    valid_until: (time + TimeDelta::days(365)).into(),
+                    expected_update: None,
+                },
+                issuer_uri: Some(issuer_uri),
+                attestation_qualification: Some(Default::default()),
+                type_metadata_integrity: Some(metadata_integrity),
+            };
+
+            let header = IssuerSigned::create_unprotected_header(issuer_key_pair.certificate().to_vec());
+            let mso_tagged = TaggedBytes(mso);
+            let issuer_auth = MdocCose::sign(&mso_tagged, header, &issuer_key_pair, true)
+                .now_or_never()
+                .unwrap()
+                .unwrap();
+
+            let TaggedBytes(mso) = mso_tagged;
+            let private_key_id = device_key.identifier().to_string();
+            let issuer_signed = IssuerSigned {
+                name_spaces: Some(name_spaces),
+                issuer_auth,
+            };
+
+            Self::new_unverified(mso, private_key_id, issuer_signed)
         }
 
         pub fn modify_attributes<F>(&mut self, name_space: &str, modify_func: F)
@@ -141,18 +218,29 @@ mod test {
 
 #[cfg(any(test, feature = "mock_example_constructors"))]
 pub mod mock {
+    use chrono::DateTime;
+    use chrono::Utc;
+    use ciborium::Value;
+    use indexmap::IndexMap;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
 
+    use crypto::CredentialEcdsaKey;
     use crypto::examples::EXAMPLE_KEY_IDENTIFIER;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
+    use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
+    use sd_jwt_vc_metadata::TypeMetadataDocuments;
+    use utils::generator::Generator;
+    use utils::generator::mock::MockTimeGenerator;
 
     use crate::examples::IsoCertTimeGenerator;
     use crate::iso::disclosure::DeviceResponse;
-    use crate::test::data::pid_example;
+    use crate::iso::mdocs::Entry;
 
     use super::Mdoc;
+
+    pub const NL_PID_DOC_TYPE: &str = "urn:eudi:pid:nl:1";
 
     impl Mdoc {
         /// Out of the example data structures in the standard, assemble an mdoc.
@@ -184,28 +272,47 @@ pub mod mock {
 
         pub async fn new_mock() -> Self {
             let ca = Ca::generate_issuer_mock_ca().unwrap();
-            Self::new_mock_with_ca(&ca).await
-        }
-
-        pub async fn new_mock_with_doctype(doc_type: &str) -> Self {
-            let mut mdoc = Self::new_mock().await;
-            mdoc.mso.doc_type = String::from(doc_type);
-            mdoc
-        }
-
-        pub async fn new_mock_with_key(key: &MockRemoteEcdsaKey) -> Self {
-            let ca = Ca::generate_issuer_mock_ca().unwrap();
-            Self::new_mock_with_ca_and_key(&ca, key).await
-        }
-
-        pub async fn new_mock_with_ca(ca: &Ca) -> Self {
             let key = MockRemoteEcdsaKey::new("identifier".to_owned(), SigningKey::random(&mut OsRng));
-            Self::new_mock_with_ca_and_key(ca, &key).await
+            Self::new_mock_with_ca_and_key(&ca, &key).await
         }
 
         pub async fn new_mock_with_ca_and_key(ca: &Ca, device_key: &MockRemoteEcdsaKey) -> Self {
-            let test_document = pid_example().into_first().unwrap();
-            test_document.sign(ca, device_key).await
+            Self::new_unverified_nl_pid_example(ca, device_key, &MockTimeGenerator::default()).await
+        }
+
+        pub async fn new_unverified_nl_pid_example(
+            ca: &Ca,
+            device_key: &impl CredentialEcdsaKey,
+            time_generator: &impl Generator<DateTime<Utc>>,
+        ) -> Self {
+            let (metadata_integrity, _) = TypeMetadataDocuments::nl_pid_example();
+
+            Self::new_unverified_from_data(
+                NL_PID_DOC_TYPE.to_string(),
+                format!("https://{ISSUANCE_CERT_CN}").parse().unwrap(),
+                IndexMap::from_iter(vec![(
+                    NL_PID_DOC_TYPE.to_string(),
+                    vec![
+                        Entry {
+                            name: "bsn".to_string(),
+                            value: Value::Text("999999999".to_string()),
+                        },
+                        Entry {
+                            name: "given_name".to_string(),
+                            value: Value::Text("Willeke Liselotte".to_string()),
+                        },
+                        Entry {
+                            name: "family_name".to_string(),
+                            value: Value::Text("De Bruijn".to_string()),
+                        },
+                    ],
+                )]),
+                metadata_integrity,
+                ca,
+                device_key,
+                time_generator,
+            )
+            .await
         }
     }
 }

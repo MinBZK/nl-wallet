@@ -6564,7 +6564,6 @@ dependencies = [
  "issuance_server",
  "jsonwebtoken",
  "jwt",
- "mdoc",
  "openid4vc",
  "openid4vc_server",
  "p256",

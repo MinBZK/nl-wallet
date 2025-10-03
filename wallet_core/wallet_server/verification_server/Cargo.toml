@@ -40,7 +40,6 @@ test = [
     "attestation_data/generate",
     "attestation_data/mock",
     "dcql/mock",
-    "mdoc/mock_example_constructors",
     "openid4vc/test",
     "openid4vc/mock",
     "server_utils/parsed_key_pair_conversion",
@@ -108,7 +107,7 @@ server_utils.path = "../server_utils"
 utils = { path = "../../lib/utils" }
 
 attestation_types = { path = "../../lib/attestation_types", optional = true }
-mdoc = { path = "../../lib/mdoc", optional = true }
+mdoc = { path = "../../lib/mdoc", optional = true, features = ["mock_example_constructors"] }
 sd_jwt = { path = "../../lib/sd_jwt", optional = true }
 sd_jwt_vc_metadata = { path = "../../lib/sd_jwt_vc_metadata", optional = true }
 wscd = { path = "../../lib/wscd", optional = true, features = ["mock", "examples"] }

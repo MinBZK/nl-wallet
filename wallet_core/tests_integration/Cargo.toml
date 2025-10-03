@@ -78,7 +78,6 @@ test_common = [
     "dep:http_utils",
     "dep:indexmap",
     "dep:issuance_server",
-    "dep:mdoc",
     "dep:openid4vc",
     "dep:openid4vc_server",
     "dep:p256",
@@ -152,7 +151,6 @@ performance_test = [
     "dep:tokio",
     "dep:tracing",
     "dep:url",
-    "dep:mdoc",
     "dep:openid4vc",
     "dep:openid4vc_server",
     "dep:pid_issuer",
@@ -224,7 +222,6 @@ hsm = { path = "../lib/hsm", optional = true, features = ["test"] }
 http_utils = { path = "../lib/http_utils", optional = true, features = ["client", "server"] }
 issuance_server = { path = "../wallet_server/issuance_server", optional = true }
 jwt.path = "../lib/jwt"
-mdoc = { path = "../lib/mdoc", optional = true, features = ["test"] }
 openid4vc = { path = "../lib/openid4vc", optional = true }
 openid4vc_server = { path = "../lib/openid4vc_server", optional = true, features = ["issuance", "disclosure"] }
 wscd = { path = "../lib/wscd", optional = true, features = ["mock"] }

@@ -22,7 +22,7 @@ fake_attestation = [
 # Adds serializability for snapshot tests
 snapshot_test = []
 # Various test related functionality of Wallet types and dependencies
-test = ["dep:mockall", "mdoc/mock", "openid4vc/mock", "platform_support/mock_hw_keystore"]
+test = ["openid4vc/mock", "platform_support/mock_hw_keystore", "dep:mockall"]
 
 [dependencies]
 thiserror.workspace = true
@@ -45,7 +45,7 @@ parking_lot.workspace = true
 regex.workspace = true
 reqwest = { workspace = true, features = ["json", "rustls-tls-webpki-roots"] }
 ring = { workspace = true, features = ["std"] }
-rusqlite = {workspace = true }
+rusqlite = { workspace = true }
 rustls-pki-types.workspace = true
 sanitize-filename.workspace = true
 sea-orm = { workspace = true, features = ["sqlx-sqlite", "runtime-tokio-rustls", "with-uuid"] }
@@ -103,7 +103,6 @@ crypto = { path = "../lib/crypto", features = ["mock_secure_keys"] }
 dcql = { path = "../lib/dcql", features = ["mock"] }
 http_utils = { path = "../lib/http_utils", features = ["insecure_http_client"] }
 jwt = { path = "../lib/jwt", features = ["test"] }
-mdoc = { path = "../lib/mdoc", features = ["mock_example_constructors", "test"] }
 openid4vc = { path = "../lib/openid4vc", features = [
     "mock",
     "test",
