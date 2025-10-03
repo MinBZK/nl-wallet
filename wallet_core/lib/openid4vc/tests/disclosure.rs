@@ -31,7 +31,7 @@ use attestation_data::test_credential::nl_pid_credentials_all;
 use attestation_data::test_credential::nl_pid_credentials_family_name;
 use attestation_data::test_credential::nl_pid_credentials_full_name;
 use attestation_data::test_credential::nl_pid_credentials_given_name;
-use attestation_data::x509::generate::mock::generate_reader_mock;
+use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
 use crypto::mock_remote::MockRemoteEcdsaKey;
 use crypto::mock_remote::MockRemoteWscd as DisclosureMockRemoteWscd;
 use crypto::mock_remote::MockRemoteWscdError;
@@ -48,7 +48,9 @@ use dcql::Query;
 use dcql::normalized::NormalizedCredentialRequests;
 use dcql::unique_id_vec::UniqueIdVec;
 use http_utils::urls::BaseUrl;
+use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
+use jwt::headers::HeaderWithX5c;
 use mdoc::DeviceResponse;
 use mdoc::SessionTranscript;
 use mdoc::holder::disclosure::PartialMdoc;
@@ -144,7 +146,7 @@ fn assert_disclosed_attestations_mdoc_pid(disclosed_attestations: &UniqueIdVec<D
 #[test]
 fn disclosure_direct() {
     let ca = Ca::generate("myca", Default::default()).unwrap();
-    let auth_keypair = generate_reader_mock(&ca, None).unwrap();
+    let auth_keypair = generate_reader_mock_with_registration(&ca, None).unwrap();
 
     // RP assembles the Authorization Request and signs it into a JWS.
     let nonce = "nonce".to_string();
@@ -160,14 +162,14 @@ fn disclosure_direct() {
     )
     .unwrap();
     let auth_request = iso_auth_request.clone().into();
-    let auth_request_jws = UnverifiedJwt::sign_with_certificate(&auth_request, &auth_keypair)
+    let auth_request_jws = SignedJwt::sign_with_certificate(&auth_request, &auth_keypair)
         .now_or_never()
         .unwrap()
         .unwrap();
 
     // Wallet receives the signed Authorization Request and performs the disclosure.
     let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
-    let jwe = disclosure_jwe(&auth_request_jws, &[ca.to_trust_anchor()], &issuer_ca);
+    let jwe = disclosure_jwe(&auth_request_jws.into(), &[ca.to_trust_anchor()], &issuer_ca);
 
     // RP decrypts the response JWE and verifies the contained Authorization Response.
     let disclosed_attestations = VpAuthorizationResponse::decrypt_and_verify(
@@ -185,7 +187,7 @@ fn disclosure_direct() {
 
 /// The wallet side: verify the Authorization Request, gather the attestations and encrypt it into a JWE.
 fn disclosure_jwe(
-    auth_request: &UnverifiedJwt<VpAuthorizationRequest>,
+    auth_request: &UnverifiedJwt<VpAuthorizationRequest, HeaderWithX5c>,
     trust_anchors: &[TrustAnchor<'_>],
     issuer_ca: &Ca,
 ) -> String {
@@ -237,7 +239,7 @@ async fn disclosure_using_message_client(
     let formats = std::iter::repeat_n(format, test_credentials.as_ref().len()).collect_vec();
 
     let ca = Ca::generate("myca", Default::default()).unwrap();
-    let rp_keypair = generate_reader_mock(
+    let rp_keypair = generate_reader_mock_with_registration(
         &ca,
         Some(ReaderRegistration::mock_from_dcql_query(
             &test_credentials.to_dcql_query(formats.iter().copied()),
@@ -359,12 +361,13 @@ impl VpMessageClient for DirectMockVpMessageClient {
         &self,
         url: BaseUrl,
         _request_nonce: Option<String>,
-    ) -> Result<UnverifiedJwt<VpAuthorizationRequest>, VpMessageClientError> {
+    ) -> Result<UnverifiedJwt<VpAuthorizationRequest, HeaderWithX5c>, VpMessageClientError> {
         assert_eq!(url, self.request_uri);
 
-        let jws = UnverifiedJwt::sign_with_certificate(&self.auth_request.clone().into(), &self.auth_keypair)
+        let jws = SignedJwt::sign_with_certificate(&self.auth_request.clone().into(), &self.auth_keypair)
             .await
-            .unwrap();
+            .unwrap()
+            .into();
         Ok(jws)
     }
 
@@ -926,7 +929,7 @@ fn setup_wallet_initiated_usecase_verifier() -> (
     let usecases = HashMap::from([(
         WALLET_INITIATED_RETURN_URL_USE_CASE.to_string(),
         WalletInitiatedUseCase::try_new(
-            generate_reader_mock(&rp_ca, reader_registration.clone()).unwrap(),
+            generate_reader_mock_with_registration(&rp_ca, reader_registration.clone()).unwrap(),
             SessionTypeReturnUrl::SameDevice,
             dcql_query.try_into().unwrap(),
             "https://example.com/redirect_uri".parse().unwrap(),
@@ -968,7 +971,7 @@ fn setup_verifier(
         (
             NO_RETURN_URL_USE_CASE.to_string(),
             RpInitiatedUseCase::try_new(
-                generate_reader_mock(&rp_ca, reader_registration.clone()).unwrap(),
+                generate_reader_mock_with_registration(&rp_ca, reader_registration.clone()).unwrap(),
                 SessionTypeReturnUrl::Neither,
                 None,
                 None,
@@ -978,7 +981,7 @@ fn setup_verifier(
         (
             DEFAULT_RETURN_URL_USE_CASE.to_string(),
             RpInitiatedUseCase::try_new(
-                generate_reader_mock(&rp_ca, reader_registration.clone()).unwrap(),
+                generate_reader_mock_with_registration(&rp_ca, reader_registration.clone()).unwrap(),
                 SessionTypeReturnUrl::SameDevice,
                 None,
                 None,
@@ -988,7 +991,7 @@ fn setup_verifier(
         (
             ALL_RETURN_URL_USE_CASE.to_string(),
             RpInitiatedUseCase::try_new(
-                generate_reader_mock(&rp_ca, reader_registration).unwrap(),
+                generate_reader_mock_with_registration(&rp_ca, reader_registration).unwrap(),
                 SessionTypeReturnUrl::Both,
                 None,
                 None,
@@ -1097,7 +1100,7 @@ where
         &self,
         url: BaseUrl,
         wallet_nonce: Option<String>,
-    ) -> Result<UnverifiedJwt<VpAuthorizationRequest>, VpMessageClientError> {
+    ) -> Result<UnverifiedJwt<VpAuthorizationRequest, HeaderWithX5c>, VpMessageClientError> {
         let path_segments = url.as_ref().path_segments().unwrap().collect_vec();
         let session_token: SessionToken = path_segments[path_segments.len() - 2].to_owned().into();
 
@@ -1112,7 +1115,7 @@ where
             .await
             .map_err(|error| VpMessageClientError::AuthGetResponse(Box::new(error.into())))?;
 
-        Ok(jws)
+        Ok(jws.into())
     }
 
     async fn send_authorization_response(

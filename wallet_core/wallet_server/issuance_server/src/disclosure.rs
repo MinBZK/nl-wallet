@@ -88,9 +88,9 @@ impl AttributesFetcher for HttpAttributesFetcher {
 
 /// Receives disclosed attributes, exchanges those for attestations to be issued, and creates a new issuance session
 /// by implementing [`DisclosureResultHandler`].
-pub struct IssuanceResultHandler<AF, AS, K, S, W> {
+pub struct IssuanceResultHandler<AF, AS, K, S> {
     pub attributes_fetcher: AF,
-    pub issuer: Arc<Issuer<AS, K, S, W>>,
+    pub issuer: Arc<Issuer<AS, K, S>>,
     pub credential_issuer: BaseUrl,
 }
 
@@ -118,13 +118,12 @@ impl ToPostAuthResponseErrorCode for IssuanceResultHandlerError {
 }
 
 #[async_trait]
-impl<AF, AS, K, S, W> DisclosureResultHandler for IssuanceResultHandler<AF, AS, K, S, W>
+impl<AF, AS, K, S> DisclosureResultHandler for IssuanceResultHandler<AF, AS, K, S>
 where
     AF: AttributesFetcher + Sync,
     AS: AttributeService + Sync,
     S: SessionStore<IssuanceData> + Sync,
     K: Send + Sync,
-    W: Send + Sync,
 {
     async fn disclosure_result(
         &self,
@@ -204,7 +203,6 @@ mod tests {
     use openid4vc::issuer::TrivialAttributeService;
     use openid4vc::issuer::WuaConfig;
     use openid4vc::server_state::MemorySessionStore;
-    use openid4vc::server_state::MemoryWuaTracker;
     use openid4vc::server_state::SessionStore;
     use openid4vc::server_state::SessionStoreTimeouts;
     use openid4vc::server_state::SessionToken;
@@ -275,7 +273,7 @@ mod tests {
         }
     }
 
-    type MockIssuer = Issuer<TrivialAttributeService, SigningKey, MemorySessionStore<IssuanceData>, MemoryWuaTracker>;
+    type MockIssuer = Issuer<TrivialAttributeService, SigningKey, MemorySessionStore<IssuanceData>>;
 
     fn mock_issuer(sessions: Arc<MemorySessionStore<IssuanceData>>) -> MockIssuer {
         Issuer::new(
@@ -284,7 +282,7 @@ mod tests {
             HashMap::<std::string::String, AttestationTypeConfig<SigningKey>>::new().into(),
             &"https://example.com".parse().unwrap(),
             vec![],
-            None::<WuaConfig<MemoryWuaTracker>>,
+            None::<WuaConfig>,
         )
     }
 

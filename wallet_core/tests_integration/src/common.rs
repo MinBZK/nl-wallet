@@ -40,9 +40,7 @@ use http_utils::urls::BaseUrl;
 use issuance_server::disclosure::AttributesFetcher;
 use issuance_server::disclosure::HttpAttributesFetcher;
 use issuance_server::settings::IssuanceServerSettings;
-use jwt::Algorithm;
-use jwt::Header;
-use jwt::UnverifiedJwt;
+use jwt::SignedJwt;
 use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::issuance_session::HttpIssuanceSession;
 use openid4vc::issuer::AttributeService;
@@ -51,7 +49,6 @@ use pid_issuer::pid::mock::MockAttributeService;
 use pid_issuer::pid::mock::mock_issuable_document_address;
 use pid_issuer::pid::mock::mock_issuable_document_pid;
 use pid_issuer::settings::PidIssuerSettings;
-use pid_issuer::wua_tracker::WuaTrackerVariant;
 use platform_support::attested_key::mock::KeyHolderType;
 use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
 use server_utils::settings::RequesterAuth;
@@ -250,7 +247,7 @@ pub async fn setup_wallet_and_env(
     served_wallet_config.update_policy_server.http_config.base_url = local_ups_base_url(ups_port);
     served_wallet_config.update_policy_server.http_config.trust_anchors = vec![ups_root_ca.clone()];
 
-    cs_settings.wallet_config_jwt = config_jwt(&served_wallet_config).await;
+    cs_settings.wallet_config_jwt = config_jwt(&served_wallet_config).await.into();
 
     let cs_port = start_config_server(cs_settings, cs_root_ca.clone()).await;
     let config_server_config = ConfigServerConfiguration {
@@ -325,20 +322,15 @@ pub fn update_policy_server_settings() -> (UpsSettings, ReqwestTrustAnchor) {
     (settings, root_ca)
 }
 
-pub async fn config_jwt(wallet_config: &WalletConfiguration) -> String {
+pub async fn config_jwt(wallet_config: &WalletConfiguration) -> SignedJwt<WalletConfiguration> {
     let key = read_file("config_signing.pem");
 
-    UnverifiedJwt::sign(
+    SignedJwt::sign(
         wallet_config,
-        &Header {
-            alg: Algorithm::ES256,
-            ..Default::default()
-        },
         &SigningKey::from_pkcs8_pem(&String::from_utf8_lossy(&key)).unwrap(),
     )
     .await
     .unwrap()
-    .to_string()
 }
 
 pub fn wallet_provider_settings() -> (WpSettings, ReqwestTrustAnchor) {
@@ -556,7 +548,6 @@ pub async fn start_pid_issuer_server<A: AttributeService + Send + Sync + 'static
         .unwrap();
 
     let issuance_sessions = Arc::new(SessionStoreVariant::new(db_connection.clone(), storage_settings.into()));
-    let wua_tracker = WuaTrackerVariant::new(db_connection);
 
     tokio::spawn(async move {
         if let Err(error) = pid_issuer::server::serve_with_listener(
@@ -566,7 +557,6 @@ pub async fn start_pid_issuer_server<A: AttributeService + Send + Sync + 'static
             hsm,
             issuance_sessions,
             settings.wua_issuer_pubkey.into_inner(),
-            wua_tracker,
         )
         .await
         {

@@ -1,0 +1,32 @@
+userName: ${BROWSERSTACK_USER}
+accessKey: ${BROWSERSTACK_KEY}
+
+framework: junit
+
+platforms:
+  - platformName: ios
+    platformVersion: 18
+    deviceName: iPhone 16 Pro
+    language: "nl"
+    locale: "nl_NL"
+
+app: "NLWalletIos_${APP_IDENTIFIER}_${CI_COMMIT_SHA}"
+
+appiumVersion: "2.18.0"
+buildName: "${CI_PIPELINE_ID}"
+projectName: "NL Wallet Mobile"
+buildIdentifier: "${CI_JOB_ID}"
+
+nativeWebTap: true
+autoAcceptAlerts: true
+'appium:includeSafariInWebviews': true
+automationName: XCUITest
+newCommandTimeout: 120
+networkLogs: true
+video: true
+debug: true
+deviceLogs: true
+appiumLogs: true
+disableAnimations: true
+
+staticWebDriver: false

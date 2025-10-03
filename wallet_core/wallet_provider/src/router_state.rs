@@ -42,6 +42,7 @@ pub struct RouterState<GRC, PIC> {
     pub instruction_result_signing_key: InstructionResultSigning,
     pub certificate_signing_key: WalletCertificateSigning,
     pub user_state: UserState<Repositories, Pkcs11Hsm, HsmWuaIssuer<Pkcs11Hsm>>,
+    pub max_transfer_upload_size_in_bytes: usize,
 }
 
 impl<GRC, PIC> RouterState<GRC, PIC> {
@@ -136,6 +137,7 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
             instruction_result_signing_key,
             certificate_signing_key,
             pin_policy,
+            max_transfer_upload_size_in_bytes: settings.max_transfer_upload_size_in_bytes,
             user_state: UserState {
                 repositories,
                 wallet_user_hsm: hsm,

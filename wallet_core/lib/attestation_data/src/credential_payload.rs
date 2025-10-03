@@ -15,7 +15,6 @@ use crypto::EcdsaKey;
 use crypto::server_keys::KeyPair;
 use error_category::ErrorCategory;
 use http_utils::urls::HttpsUri;
-use jwt::Algorithm;
 use jwt::error::JwkConversionError;
 use jwt::jwk::jwk_from_p256;
 use mdoc::Entry;
@@ -308,7 +307,7 @@ impl CredentialPayload {
         self,
         type_metadata: &NormalizedTypeMetadata,
         holder_pubkey: &VerifyingKey,
-        issuer_key: &KeyPair<impl EcdsaKey>,
+        issuer_keypair: &KeyPair<impl EcdsaKey>,
     ) -> Result<SdJwt, SdJwtCredentialPayloadError> {
         let vct_integrity = self.vct_integrity.clone();
 
@@ -337,13 +336,7 @@ impl CredentialPayload {
                     .make_concealable(claims)
                     .map_err(SdJwtCredentialPayloadError::SdJwtCreation)
             })?
-            .finish(
-                Algorithm::ES256,
-                vct_integrity,
-                issuer_key.private_key(),
-                vec![issuer_key.certificate().clone()],
-                holder_pubkey,
-            )
+            .finish(vct_integrity, issuer_keypair, holder_pubkey)
             .await?;
 
         Ok(sd_jwt)
@@ -499,7 +492,6 @@ mod test {
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::mock_remote::MockRemoteWscd;
     use crypto::server_keys::generate::Ca;
-    use jwt::Algorithm;
     use jwt::jwk::jwk_from_p256;
     use sd_jwt::builder::SdJwtBuilder;
     use sd_jwt::key_binding_jwt_claims::KeyBindingJwtBuilder;
@@ -632,7 +624,8 @@ mod test {
         let holder_key = SigningKey::random(&mut OsRng);
         let confirmation_key = jwk_from_p256(holder_key.verifying_key()).unwrap();
 
-        let issuer_key = SigningKey::random(&mut OsRng);
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
+        let issuer_keypair = ca.generate_issuer_mock().unwrap();
 
         let claims = json!({
             "vct": "com.example.pid",
@@ -694,13 +687,7 @@ mod test {
             .unwrap()
             .add_decoys(&[], 2)
             .unwrap()
-            .finish(
-                Algorithm::ES256,
-                Integrity::from(""),
-                &issuer_key,
-                vec![],
-                holder_key.verifying_key(),
-            )
+            .finish(Integrity::from(""), &issuer_keypair, holder_key.verifying_key())
             .now_or_never()
             .unwrap()
             .unwrap();
@@ -754,13 +741,12 @@ mod test {
             .unwrap()
             .unwrap();
 
-        let (presented_sd_jwts, _poa) = SdJwtPresentation::multi_sign(
+        let (presented_sd_jwts, _poa) = SdJwtPresentation::sign_multiple(
             vec_nonempty![(sd_jwt.into_presentation_builder().finish(), "holder_key")],
             KeyBindingJwtBuilder::new(
                 DateTime::from_timestamp_millis(1458304832).unwrap(),
                 String::from("https://aud.example.com"),
                 String::from("nonce123"),
-                Algorithm::ES256,
             ),
             &wscd,
             (),

@@ -15,11 +15,8 @@ use crypto::p256_der::verifying_key_sha256;
 use crypto::wscd::DisclosureResult;
 use crypto::wscd::DisclosureWscd;
 use crypto::wscd::WscdPoa;
-use jwt::Algorithm;
-use jwt::Header;
-use jwt::UnverifiedJwt;
+use jwt::SignedJwt;
 use jwt::credential::JwtCredentialClaims;
-use jwt::jwk::jwk_from_p256;
 use jwt::pop::JwtPopClaims;
 use jwt::wua::WuaClaims;
 use jwt::wua::WuaDisclosure;
@@ -149,17 +146,11 @@ impl Wscd for MockRemoteWscd {
         let pops = attestation_keys
             .iter()
             .map(|attestation_key| {
-                let header = Header {
-                    typ: Some("openid4vci-proof+jwt".to_string()),
-                    alg: Algorithm::ES256,
-                    jwk: Some(jwk_from_p256(attestation_key.verifying_key()).unwrap()),
-                    ..Default::default()
-                };
-
-                UnverifiedJwt::sign(&claims, &header, attestation_key)
+                SignedJwt::sign_with_jwk(&claims, attestation_key)
                     .now_or_never()
                     .unwrap()
                     .unwrap()
+                    .into()
             })
             .collect_vec()
             .try_into()
@@ -175,19 +166,16 @@ impl Wscd for MockRemoteWscd {
                 wua_key.verifying_key(),
                 wua_signing_key,
                 MOCK_WALLET_CLIENT_ID.to_string(),
-                Some("wua+jwt".to_string()),
                 WuaClaims::new(),
             )
             .now_or_never()
             .unwrap()
-            .unwrap();
+            .unwrap()
+            .into();
 
-            let wua_disclosure = UnverifiedJwt::sign(&claims, &Header::new(Algorithm::ES256), &wua_key)
-                .now_or_never()
-                .unwrap()
-                .unwrap();
+            let wua_disclosure = SignedJwt::sign(&claims, &wua_key).now_or_never().unwrap().unwrap();
 
-            (WuaDisclosure::new(wua, wua_disclosure), wua_key)
+            (WuaDisclosure::new(wua, wua_disclosure.into()), wua_key)
         });
 
         let count_including_wua = if include_wua { count.get() + 1 } else { count.get() };

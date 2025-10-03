@@ -226,7 +226,7 @@ mod tests {
     use indexmap::IndexMap;
 
     use attestation_data::auth::issuer_auth::IssuerRegistration;
-    use attestation_data::x509::generate::mock::generate_issuer_mock;
+    use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use attestation_types::qualification::AttestationQualification;
     use crypto::server_keys::generate::Ca;
     use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
@@ -247,7 +247,7 @@ mod tests {
 
     fn mock_settings() -> IssuerSettings {
         let issuer_ca = Ca::generate_issuer_mock_ca().expect("generate issuer CA failed");
-        let keypair = generate_issuer_mock(&issuer_ca, Some(IssuerRegistration::new_mock()))
+        let keypair = generate_issuer_mock_with_registration(&issuer_ca, Some(IssuerRegistration::new_mock()))
             .expect("generate issuer cert failed")
             .into();
 
@@ -312,8 +312,8 @@ mod tests {
         let mut settings = mock_settings();
 
         let issuer_ca = Ca::generate_issuer_mock_ca().expect("generate issuer CA");
-        let issuer_cert_no_registration =
-            generate_issuer_mock(&issuer_ca, None).expect("generate issuer cert without issuer registration");
+        let issuer_cert_no_registration = generate_issuer_mock_with_registration(&issuer_ca, None)
+            .expect("generate issuer cert without issuer registration");
 
         settings.server_settings.issuer_trust_anchors = vec![issuer_ca.as_borrowing_trust_anchor().clone()];
         settings.attestation_settings = HashMap::from([(

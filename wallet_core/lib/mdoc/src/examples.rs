@@ -74,7 +74,6 @@ mod test {
     use crypto::server_keys::generate::Ca;
 
     use crate::iso::disclosure::IssuerSigned;
-    use crate::test::generate_issuer_mock;
 
     use super::DeviceResponse;
     use super::Example;
@@ -85,7 +84,7 @@ mod test {
 
             // Re sign document with a newly generated certificate that includes a SAN DNS name
             for doc in device_response.documents.as_mut().unwrap() {
-                let new_key = generate_issuer_mock(ca).unwrap();
+                let new_key = ca.generate_issuer_mock().unwrap();
                 let new_cert = new_key.certificate();
 
                 doc.issuer_signed.issuer_auth.0.unprotected =

@@ -126,7 +126,7 @@ impl<'a, C, S> BeginChangePinOperation<'a, C, S> {
 
     // Perform the same sanity checks as during registration, with the addition of checking the received wallet_id.
     pub fn validate_certificate(&self, certificate: &WalletCertificate) -> ChangePinResult<()> {
-        let cert_claims = certificate
+        let (_, cert_claims) = certificate
             .parse_and_verify_with_sub(&self.certificate_public_key.into())
             .map_err(ChangePinError::CertificateValidation)?;
 
@@ -316,7 +316,7 @@ mod test {
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
 
-    use jwt::UnverifiedJwt;
+    use jwt::SignedJwt;
     use wallet_account::messages::registration::WalletCertificateClaims;
 
     use super::*;
@@ -350,9 +350,10 @@ mod test {
             iat: Utc::now(),
         };
 
-        let wallet_certificate = UnverifiedJwt::sign_with_sub(&certificate_claims, &certificate_signing_key)
+        let wallet_certificate = SignedJwt::sign_with_sub(certificate_claims, &certificate_signing_key)
             .await
-            .unwrap();
+            .unwrap()
+            .into();
 
         let registration_data = RegistrationData {
             attested_key_identifier,

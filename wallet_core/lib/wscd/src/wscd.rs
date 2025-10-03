@@ -4,6 +4,7 @@ use derive_more::Constructor;
 
 use crypto::wscd::DisclosureWscd;
 use jwt::UnverifiedJwt;
+use jwt::headers::HeaderWithJwk;
 use jwt::pop::JwtPopClaims;
 use jwt::wua::WuaDisclosure;
 use utils::vec_at_least::VecNonEmpty;
@@ -24,7 +25,7 @@ pub trait Wscd: DisclosureWscd<Poa = Poa> {
 #[derive(Debug, Constructor)]
 pub struct IssuanceResult<P> {
     pub key_identifiers: VecNonEmpty<String>,
-    pub pops: VecNonEmpty<UnverifiedJwt<JwtPopClaims>>,
+    pub pops: VecNonEmpty<UnverifiedJwt<JwtPopClaims, HeaderWithJwk>>,
     pub poa: Option<P>,
     pub wua: Option<WuaDisclosure>,
 }

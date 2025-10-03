@@ -3,27 +3,39 @@ use std::collections::HashMap;
 use base64::Engine;
 use base64::prelude::BASE64_URL_SAFE_NO_PAD;
 use chrono::DateTime;
+use chrono::Duration;
 use chrono::Utc;
 use futures::FutureExt;
-use jsonwebtoken::Algorithm;
 use jsonwebtoken::jwk::Jwk;
 use p256::ecdsa::VerifyingKey;
+use serde::Deserialize;
+use serde::Serialize;
 use serde_json::json;
+use serde_with::skip_serializing_none;
 use ssri::Integrity;
 
 use attestation_types::claim_path::ClaimPath;
 use crypto::server_keys::KeyPair;
 use crypto::utils::random_string;
+use http_utils::urls::HttpsUri;
 use jwt::EcdsaDecodingKey;
+use jwt::Header;
+use jwt::JwtTyp;
 use jwt::jwk::jwk_to_p256;
+use utils::date_time_seconds::DateTimeSeconds;
 use utils::generator::Generator;
+use utils::generator::mock::MockTimeGenerator;
 
 use crate::builder::SdJwtBuilder;
 use crate::disclosure::Disclosure;
 use crate::disclosure::DisclosureContent;
 use crate::hasher::Hasher;
 use crate::hasher::Sha256Hasher;
+use crate::sd_alg::SdAlg;
+use crate::sd_jwt::ObjectClaims;
 use crate::sd_jwt::SdJwt;
+use crate::sd_jwt::SdJwtClaims;
+use crate::sd_jwt::SdJwtPresentation;
 
 // Taken from https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-17.html#name-simple-structured-sd-jwt
 pub const SIMPLE_STRUCTURED_SD_JWT: &str = include_str!("../examples/spec/simple_structured.jwt");
@@ -33,6 +45,9 @@ pub const COMPLEX_STRUCTURED_SD_JWT: &str = include_str!("../examples/spec/compl
 
 // Taken from https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-17.html#name-sd-jwt-based-verifiable-cre
 pub const SD_JWT_VC: &str = include_str!("../examples/spec/sd_jwt_vc.jwt");
+
+// Taken from https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-17.html#name-sd-jwt-based-verifiable-cre
+pub const SD_JWT_VC_WITH_KB: &str = include_str!("../examples/spec/sd_jwt_vc_with_kb.jwt");
 
 // Taken from https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-17.html#name-presentation
 pub const WITH_KB_SD_JWT: &str = include_str!("../examples/spec/with_kb.jwt");
@@ -44,17 +59,50 @@ pub const WITH_KB_SD_JWT_NONCE: &str = "1234567890";
 // 0}]]
 pub const INVALID_DISCLOSURE_SD_JWT: &str = include_str!("../examples/invalid_disclosure.jwt");
 
+#[skip_serializing_none]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SdJwtExampleClaims {
+    pub _sd_alg: Option<SdAlg>,
+
+    pub iss: Option<HttpsUri>,
+
+    pub iat: Option<DateTimeSeconds>,
+
+    pub exp: Option<DateTimeSeconds>,
+
+    pub nbf: Option<DateTimeSeconds>,
+
+    #[serde(flatten)]
+    pub claims: ObjectClaims,
+}
+
+impl JwtTyp for SdJwtExampleClaims {
+    const TYP: &'static str = "example+sd-jwt";
+}
+
 impl SdJwt {
-    pub fn spec_simple_structured() -> SdJwt {
+    pub fn spec_simple_structured() -> SdJwt<SdJwtExampleClaims, Header> {
         SdJwt::parse_and_verify(SIMPLE_STRUCTURED_SD_JWT, &examples_sd_jwt_decoding_key()).unwrap()
     }
 
-    pub fn spec_complex_structured() -> SdJwt {
+    pub fn spec_complex_structured() -> SdJwt<SdJwtExampleClaims, Header> {
         SdJwt::parse_and_verify(COMPLEX_STRUCTURED_SD_JWT, &examples_sd_jwt_decoding_key()).unwrap()
     }
 
-    pub fn spec_sd_jwt_vc() -> SdJwt {
+    pub fn spec_sd_jwt_vc() -> SdJwt<SdJwtClaims, Header> {
         SdJwt::parse_and_verify(SD_JWT_VC, &examples_sd_jwt_decoding_key()).unwrap()
+    }
+
+    pub fn spec_sd_jwt_kb() -> SdJwtPresentation<SdJwtClaims, Header> {
+        SdJwtPresentation::parse_and_verify(
+            WITH_KB_SD_JWT,
+            &examples_sd_jwt_decoding_key(),
+            WITH_KB_SD_JWT_AUD,
+            WITH_KB_SD_JWT_NONCE,
+            Duration::minutes(2),
+            &MockTimeGenerator::default(),
+        )
+        .unwrap()
     }
 
     pub fn example_pid_sd_jwt(issuer_keypair: &KeyPair, holder_public_key: &VerifyingKey) -> SdJwt {
@@ -90,13 +138,7 @@ impl SdJwt {
             .unwrap()
             .add_decoys(&[], 2)
             .unwrap()
-            .finish(
-                Algorithm::ES256,
-                Integrity::from(random_string(32)),
-                issuer_keypair.private_key(),
-                vec![issuer_keypair.certificate().clone()],
-                holder_public_key,
-            )
+            .finish(Integrity::from(random_string(32)), issuer_keypair, holder_public_key)
             .now_or_never()
             .unwrap()
             .unwrap()

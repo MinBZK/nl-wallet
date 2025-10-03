@@ -1,6 +1,7 @@
 use std::cell::LazyCell;
 use std::collections::HashMap;
 use std::string::FromUtf8Error;
+use std::sync::LazyLock;
 
 use chrono::DateTime;
 use chrono::Duration;
@@ -30,6 +31,7 @@ use attestation_data::disclosure::DisclosedAttestationError;
 use attestation_data::disclosure::DisclosedAttestations;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateError;
+use crypto::x509::CertificateUsage;
 use dcql::CredentialQueryIdentifier;
 use dcql::Query;
 use dcql::disclosure::CredentialValidationError;
@@ -38,8 +40,12 @@ use dcql::normalized::UnsupportedDcqlFeatures;
 use dcql::unique_id_vec::UniqueIdVec;
 use error_category::ErrorCategory;
 use http_utils::urls::BaseUrl;
+use jwt::Algorithm;
+use jwt::JwtTyp;
 use jwt::UnverifiedJwt;
+use jwt::Validation;
 use jwt::error::JwtX5cError;
+use jwt::headers::HeaderWithX5c;
 use mdoc::DeviceResponse;
 use mdoc::SessionTranscript;
 use mdoc::utils::serialization::CborBase64;
@@ -115,6 +121,8 @@ pub struct VpAuthorizationRequest {
 
     pub wallet_nonce: Option<String>,
 }
+
+impl JwtTyp for VpAuthorizationRequest {}
 
 #[derive(Debug, Clone, Default, SerializeDisplay, DeserializeFromStr, strum::EnumString, strum::Display)]
 pub enum VpAuthorizationRequestAudience {
@@ -293,20 +301,30 @@ pub enum AuthRequestValidationError {
     WalletNonceMismatch,
 }
 
+static AUD_VALIDATIONS: LazyLock<Validation> = LazyLock::new(|| {
+    let mut validation = Validation::new(Algorithm::ES256);
+    validation.set_required_spec_claims(&["aud"]);
+    validation
+});
+
 impl VpAuthorizationRequest {
     /// Construct a new Authorization Request by verifying an Authorization Request JWT against
     /// the specified trust anchors.
     pub fn try_new(
-        jws: &UnverifiedJwt<VpAuthorizationRequest>,
+        jws: &UnverifiedJwt<VpAuthorizationRequest, HeaderWithX5c>,
         trust_anchors: &[TrustAnchor],
     ) -> Result<(VpAuthorizationRequest, BorrowingCertificate), AuthRequestValidationError> {
-        let (auth_request, certificates) = jws.parse_and_verify_against_trust_anchors_and_audience(
-            &[VpAuthorizationRequestAudience::SelfIssued],
+        let mut validation_options = AUD_VALIDATIONS.to_owned();
+        validation_options.set_audience(&[VpAuthorizationRequestAudience::SelfIssued.to_string()]);
+
+        let (header, auth_request) = jws.parse_and_verify_against_trust_anchors(
             trust_anchors,
             &TimeGenerator,
+            CertificateUsage::ReaderAuth,
+            &validation_options,
         )?;
 
-        Ok((auth_request, certificates.into_first()))
+        Ok((auth_request, header.x5c.into_first()))
     }
 
     /// Validate that an Authorization Request satisfies the following:
@@ -848,7 +866,6 @@ mod tests {
     use itertools::Itertools;
     use josekit::jwk::alg::ec::EcCurve;
     use josekit::jwk::alg::ec::EcKeyPair;
-    use jsonwebtoken::Algorithm;
     use rustls_pki_types::TrustAnchor;
     use serde_json::json;
 
@@ -857,7 +874,7 @@ mod tests {
     use attestation_data::disclosure::DisclosedAttributes;
     use attestation_data::test_credential::nl_pid_address_minimal_address;
     use attestation_data::test_credential::nl_pid_credentials_full_name;
-    use attestation_data::x509::generate::mock::generate_reader_mock;
+    use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
     use attestation_types::claim_path::ClaimPath;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::KeyPair;
@@ -868,7 +885,7 @@ mod tests {
     use dcql::CredentialQueryIdentifier;
     use dcql::normalized::NormalizedCredentialRequest;
     use dcql::normalized::NormalizedCredentialRequests;
-    use jwt::UnverifiedJwt;
+    use jwt::SignedJwt;
     use jwt::pop::JwtPopClaims;
     use mdoc::DeviceResponse;
     use mdoc::SessionTranscript;
@@ -928,7 +945,7 @@ mod tests {
     ) {
         let ca = Ca::generate("myca", Default::default()).unwrap();
         let trust_anchor = ca.to_trust_anchor().to_owned();
-        let rp_keypair = generate_reader_mock(&ca, None).unwrap();
+        let rp_keypair = generate_reader_mock_with_registration(&ca, None).unwrap();
 
         let encryption_privkey = EcKeyPair::generate(EcCurve::P256).unwrap();
 
@@ -1003,12 +1020,12 @@ mod tests {
         let (trust_anchor, rp_keypair, _, auth_request) = setup_mdoc();
 
         let auth_request_jwt =
-            UnverifiedJwt::sign_with_certificate(&VpAuthorizationRequest::from(auth_request), &rp_keypair)
+            SignedJwt::sign_with_certificate(&VpAuthorizationRequest::from(auth_request), &rp_keypair)
                 .now_or_never()
                 .unwrap()
                 .unwrap();
 
-        let (auth_request, cert) = VpAuthorizationRequest::try_new(&auth_request_jwt, &[trust_anchor]).unwrap();
+        let (auth_request, cert) = VpAuthorizationRequest::try_new(&auth_request_jwt.into(), &[trust_anchor]).unwrap();
         auth_request.validate(&cert, None).unwrap();
     }
 
@@ -1367,14 +1384,10 @@ mod tests {
             .finish();
 
         // Sign these into two `SdJwtPresentation`s and a PoA.
-        let kb_jwt_builder = KeyBindingJwtBuilder::new(
-            Utc::now(),
-            auth_request.client_id.clone(),
-            auth_request.nonce.clone(),
-            Algorithm::ES256,
-        );
+        let kb_jwt_builder =
+            KeyBindingJwtBuilder::new(Utc::now(), auth_request.client_id.clone(), auth_request.nonce.clone());
         let poa_input = JwtPoaInput::new(Some(auth_request.nonce.clone()), auth_request.client_id.clone());
-        let (sd_jwt_presentations, poa) = SdJwtPresentation::multi_sign(
+        let (sd_jwt_presentations, poa) = SdJwtPresentation::sign_multiple(
             vec_nonempty![
                 (unsigned_sd_jwt_presentation1, "sd_jwt_key_1"),
                 (unsigned_sd_jwt_presentation2, "sd_jwt_key_2")
@@ -1526,12 +1539,8 @@ mod tests {
             .unwrap()
             .finish();
 
-        let kb_jwt_builder = KeyBindingJwtBuilder::new(
-            Utc::now(),
-            auth_request.client_id.clone(),
-            auth_request.nonce.clone(),
-            Algorithm::ES256,
-        );
+        let kb_jwt_builder =
+            KeyBindingJwtBuilder::new(Utc::now(), auth_request.client_id.clone(), auth_request.nonce.clone());
         let sd_jwt_presentation = unsigned_sd_jwt_presentation
             .sign(kb_jwt_builder, &sd_jwt_holder_key)
             .now_or_never()

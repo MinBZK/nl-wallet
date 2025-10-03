@@ -1,63 +1,66 @@
 package feature.introduction
 
 import helper.TestBase
+import screen.introduction.IntroductionPrivacyScreen
+import screen.introduction.IntroductionScreen
+import screen.introduction.PrivacyPolicyScreen
+import screen.security.PinScreen
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
-import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Tags
 import org.junit.jupiter.api.TestInfo
 import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
-import screen.introduction.IntroductionPrivacyScreen
-import screen.introduction.IntroductionScreen
 
 @TestMethodOrder(MethodOrderer.DisplayName::class)
-@DisplayName("${IntroductionTests.USE_CASE} App displays introductory information [${IntroductionTests.JIRA_ID}]")
+@DisplayName("UC 1.1 Introduce the app")
 class IntroductionTests : TestBase() {
 
-    companion object {
-        const val USE_CASE = "UC 1.1"
-        const val JIRA_ID = "PVW-1218"
-    }
-
     private lateinit var introductionScreen: IntroductionScreen
+    private lateinit var privacyScreen: IntroductionPrivacyScreen
 
     fun setUp(testInfo: TestInfo) {
         startDriver(testInfo)
         introductionScreen = IntroductionScreen()
+        privacyScreen = IntroductionPrivacyScreen()
+
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.1. The App shows a welcome screen so the user knows they are using the NL wallet. [${JIRA_ID}]")
+    @DisplayName("LTC13 Introduction Happy flow")
+    @Tags(Tag("smokeIOS"), Tag("smoke"))
     fun verifyWelcomeScreen(testInfo: TestInfo) {
         setUp(testInfo)
         assertTrue(introductionScreen.page1Visible(), "page 1 is not visible")
-    }
 
-    @Nested
-    @DisplayName("$USE_CASE.2 The App shows a series of explanation screens containing the following: [${JIRA_ID}]")
-    inner class IntroductoryScreens {
+        introductionScreen.clickNextButton() // page 1 -> 2
+        assertTrue(introductionScreen.page2Visible(), "page 2 is not visible")
 
-        @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-        @DisplayName("$USE_CASE.2.1 The security benefits of the app (online identification). 2.2 The privacy benefits of the app (selective disclosure). [${JIRA_ID}]")
-        fun verifyPrivacyScreen(testInfo: TestInfo) {
-            setUp(testInfo)
-            introductionScreen.clickNextButton() // page 1 -> 2
-            assertTrue(introductionScreen.page2Visible(), "page 2 is not visible")
+        introductionScreen.clickNextButton() // page 2 -> 3
+        assertTrue(introductionScreen.page3Visible(), "page 3 is not visible")
 
-            introductionScreen.clickNextButton() // page 2 -> 3
-            assertTrue(introductionScreen.page3Visible(), "page 3 is not visible")
-        }
+        introductionScreen.clickNextButton() // page 3 -> privacy
+        assertTrue(privacyScreen.visible(), "privacy screen is not visible")
+
+        privacyScreen.clickPrivacyButton()
+
+        val privacyPolicyScreen = PrivacyPolicyScreen()
+        assertTrue(privacyPolicyScreen.visible(), "privacy policy screen is not visible")
+
+        privacyPolicyScreen.clickBackButton()
+
+        privacyScreen.clickNextButton()
+
+        val pinScreen = PinScreen()
+        assertTrue(pinScreen.setupPinScreenVisible(), "choose pin screen is not visible")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.3 The App offers a button to skip the intro, leading to the privacy summary. [${JIRA_ID}]")
-    @Tags(Tag("smoke"),Tag("smokeIOS"))
+    @DisplayName("LTC14 User skips introduction")
     fun verifySkipIntroButton(testInfo: TestInfo) {
         setUp(testInfo)
-        val privacyScreen = IntroductionPrivacyScreen()
 
         // Skip from page 1
         introductionScreen.clickSkipButton() // page 1 -> privacy
@@ -80,16 +83,8 @@ class IntroductionTests : TestBase() {
         // Page 3 only contains next button (skip button is gone on last intro page)
         introductionScreen.clickNextButton() // page 3 -> privacy
         assertTrue(privacyScreen.visible(), "privacy screen is not visible")
-    }
 
-    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.4 The explanation screens all display a back-button. [${JIRA_ID}]")
-    fun verifyPageBackButtons(testInfo: TestInfo) {
-        setUp(testInfo)
-        introductionScreen.clickNextButton() // page 1 -> 2
-        assertTrue(introductionScreen.page2Visible(), "page 2 is not visible")
-
-        introductionScreen.clickNextButton() // page 2 -> 3
+        introductionScreen.clickBackButton() // page 3 -> 2
         assertTrue(introductionScreen.page3Visible(), "page 3 is not visible")
 
         introductionScreen.clickBackButton() // page 3 -> 2

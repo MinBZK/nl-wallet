@@ -14,18 +14,24 @@ class DemoIndexWebPage : MobileActions() {
     private val hollandUniversityButtonLocator = By.xpath("//a[@id='university']")
     private val insuranceButtonLocator = By.xpath("//a[@id='insurance']")
 
-    fun visible() = isWebElementVisible(findElement(headerTextLocator))
+    fun visible() = isWebElementVisible(findWebElement(headerTextLocator))
 
-    fun clickAmsterdamButton() = clickWebElement(findElement(amsterdamButtonLocator))
+    fun clickAmsterdamButton() = clickWebElement(findWebElement(amsterdamButtonLocator))
 
-    fun clickXyzBankButton() = clickWebElement(findElement(xyzBankButtonLocator))
+    fun clickXyzBankButton() = clickWebElement(findWebElement(xyzBankButtonLocator))
 
-    fun clickMarketplaceButton() = clickWebElement(findElement(marketplaceButtonLocator))
+    fun clickMarketplaceButton() = clickWebElement(findWebElement(marketplaceButtonLocator))
 
-    fun clickMonkeyBikeButton() = clickWebElement(findElement(monkeyBikeButtonLocator))
+    fun clickMonkeyBikeButton() = clickWebElement(findWebElement(monkeyBikeButtonLocator))
 
-    fun clickHollandUniversityButton() = clickWebElement(findElement(hollandUniversityButtonLocator))
+    fun clickHollandUniversityButton() {
+        scrollToWebElement(hollandUniversityButtonLocator)
+        clickWebElement(findWebElement(hollandUniversityButtonLocator))
+    }
 
-    fun clickInsuranceButton() = clickWebElement(findElement(insuranceButtonLocator))
+    fun clickInsuranceButton() {
+        scrollToWebElement(insuranceButtonLocator)
+        clickWebElement(findWebElement(insuranceButtonLocator))
+    }
 
 }

@@ -4,36 +4,35 @@ import util.MobileActions
 
 class IntroductionScreen : MobileActions() {
 
-    private val page1 = find.byValueKey("introductionPage1")
-    private val page2 = find.byValueKey("introductionPage2")
-    private val page3 = find.byValueKey("introductionPage3")
-
-    private val nextButton by lazy { find.byText(l10n.getString("introductionNextPageCta")) }
-    private val skipButton by lazy { find.byText(l10n.getString("introductionSkipCta")) }
-    private val backButton by lazy { find.byToolTip(l10n.getString("generalWCAGBack")) }
+    private val introductionPage1Title = l10n.getString("introductionPage1Title")
+    private val introductionPage2Title = l10n.getString("introductionPage2Title")
+    private val introductionPage3Title = l10n.getString("introductionPage3Title")
+    private val nextButton = l10n.getString("introductionNextPageCta")
+    private val skipButton = l10n.getString("introductionSkipCta")
+    private val backButton = l10n.getString("generalWCAGBack")
 
     fun page1Visible(): Boolean {
         explicitWait()
-        return isElementVisible(page1, false)
+        return elementWithTextVisible(introductionPage1Title)
     }
 
     fun page2Visible(): Boolean {
         explicitWait()
-        return isElementVisible(page2, false)
+        return elementWithTextVisible(introductionPage2Title)
     }
 
     fun page3Visible(): Boolean {
         explicitWait()
-        return isElementVisible(page3, false)
+        return elementWithTextVisible(introductionPage3Title)
     }
 
-    fun nextButtonTextVisible(text: String) = isElementVisible(find.byText(text), false)
+    fun nextButtonTextVisible(text: String) = elementWithTextVisible(text)
 
-    fun clickNextButton() = clickElement(nextButton, false)
+    fun clickNextButton() = clickElementWithText(nextButton)
 
-    fun clickSkipButton() = clickElement(skipButton, false)
+    fun clickSkipButton() = clickElementWithText(skipButton)
 
-    fun clickBackButton() = clickElement(backButton, false)
+    fun clickBackButton() = clickElementWithText(backButton)
 
     // Explicit wait/sleep to wait for page transition to finish (and button animations to settle).
     // This is needed due to the animations on the intro pages combined with `frameSync = false`.

@@ -30,8 +30,8 @@ use attestation_data::credential_payload::CredentialPayload;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::disclosure::DisclosedAttestations;
 use attestation_data::disclosure::DisclosedAttributes;
-use attestation_data::x509::generate::mock::generate_issuer_mock;
-use attestation_data::x509::generate::mock::generate_reader_mock;
+use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
+use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::qualification::AttestationQualification;
 use crypto::server_keys::generate::Ca;
@@ -141,7 +141,7 @@ async fn wallet_server_settings_and_listener(
         .map(ReaderRegistration::mock_from_dcql_query);
 
     // Set up the use case, based on RP CA and reader registration.
-    let usecase_keypair = generate_reader_mock(&rp_ca, reader_registration).unwrap();
+    let usecase_keypair = generate_reader_mock_with_registration(&rp_ca, reader_registration).unwrap();
     let usecases = HashMap::from([(
         USECASE_NAME.to_string(),
         UseCaseSettings {
@@ -917,7 +917,8 @@ fn pid_start_disclosure_request(format: CredentialFormat) -> StartDisclosureRequ
 fn prepare_example_mdoc_mock(issuer_ca: &Ca, wscd: &MockRemoteWscd) -> Mdoc {
     let payload_preview = PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default());
 
-    let issuer_key_pair = generate_issuer_mock(issuer_ca, Some(IssuerRegistration::new_mock())).unwrap();
+    let issuer_key_pair =
+        generate_issuer_mock_with_registration(issuer_ca, Some(IssuerRegistration::new_mock())).unwrap();
 
     // Generate a new private key and use that and the issuer key to sign the Mdoc.
     let mdoc_private_key = wscd.create_random_key();
@@ -939,7 +940,8 @@ fn prepare_example_sd_jwt_mock(issuer_ca: &Ca, wscd: &MockRemoteWscd) -> (SdJwt,
     let credential_payload = CredentialPayload::nl_pid_example(&MockTimeGenerator::default());
     let type_metadata = NormalizedTypeMetadata::nl_pid_example();
 
-    let issuer_key_pair = generate_issuer_mock(issuer_ca, Some(IssuerRegistration::new_mock())).unwrap();
+    let issuer_key_pair =
+        generate_issuer_mock_with_registration(issuer_ca, Some(IssuerRegistration::new_mock())).unwrap();
 
     // Generate a new private key and use that and the issuer key to sign the SD-JWT.
     let sd_jwt_private_key = wscd.create_random_key();

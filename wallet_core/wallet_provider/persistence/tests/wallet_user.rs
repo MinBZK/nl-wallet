@@ -15,6 +15,7 @@ use wallet_account::messages::transfer::TransferSessionState;
 use wallet_provider_domain::EpochGenerator;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestation;
 use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
+use wallet_provider_domain::model::wallet_user::WalletUserState;
 use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::repository::PersistenceError;
 use wallet_provider_persistence::PersistenceConnection;
@@ -26,12 +27,14 @@ use wallet_provider_persistence::wallet_user::clear_instruction_challenge;
 use wallet_provider_persistence::wallet_user::commit_pin_change;
 use wallet_provider_persistence::wallet_user::create_transfer_session;
 use wallet_provider_persistence::wallet_user::find_transfer_session_by_transfer_session_id;
+use wallet_provider_persistence::wallet_user::find_transfer_session_id_by_destination_wallet_user_id;
 use wallet_provider_persistence::wallet_user::find_wallet_user_by_wallet_id;
 use wallet_provider_persistence::wallet_user::has_multiple_active_accounts_by_recovery_code;
 use wallet_provider_persistence::wallet_user::register_unsuccessful_pin_entry;
 use wallet_provider_persistence::wallet_user::rollback_pin_change;
 use wallet_provider_persistence::wallet_user::set_wallet_transfer_data;
 use wallet_provider_persistence::wallet_user::store_recovery_code;
+use wallet_provider_persistence::wallet_user::transition_wallet_user_state;
 use wallet_provider_persistence::wallet_user::update_apple_assertion_counter;
 use wallet_provider_persistence::wallet_user::update_transfer_state;
 
@@ -234,7 +237,7 @@ async fn do_change_pin() -> (
 
     let new_pin = encrypted_pin_key("new_pin_1").await;
 
-    wallet_provider_persistence::wallet_user::change_pin(&db, &wallet_id, new_pin.clone())
+    wallet_provider_persistence::wallet_user::change_pin(&db, &wallet_id, new_pin.clone(), WalletUserState::Active)
         .await
         .expect("Could register unsuccessful pin entry");
 
@@ -328,6 +331,39 @@ async fn test_update_apple_assertion_counter() {
         }
         _ => panic!(),
     };
+}
+
+#[tokio::test]
+async fn test_update_wallet_user_state() {
+    let (db, wallet_user_id, wallet_id, user) = create_test_user().await;
+
+    assert_eq!(user.state, WalletUserState::Active.to_string());
+
+    transition_wallet_user_state(
+        &db,
+        wallet_user_id,
+        WalletUserState::Active,
+        WalletUserState::RecoveringPin,
+    )
+    .await
+    .unwrap();
+
+    let WalletUserQueryResult::Found(user) = find_wallet_user_by_wallet_id(&db, &wallet_id).await.unwrap() else {
+        panic!("Could not find wallet user");
+    };
+
+    assert_eq!(user.state, WalletUserState::RecoveringPin);
+
+    // Does not transition state when coming from different state
+    let err = transition_wallet_user_state(
+        &db,
+        wallet_user_id,
+        WalletUserState::Transferred,
+        WalletUserState::Active,
+    )
+    .await
+    .expect_err("Could not transition state");
+    assert_matches!(err, PersistenceError::NoRowsUpdated);
 }
 
 #[tokio::test]
@@ -467,15 +503,11 @@ async fn test_create_transfer_session() {
     .await
     .unwrap();
 
-    let WalletUserQueryResult::Found(stored_wallet_user) =
-        find_wallet_user_by_wallet_id(&db, &wallet_id).await.unwrap()
-    else {
-        panic!("Could not find wallet user");
-    };
-    assert_eq!(
-        transfer_session_id,
-        stored_wallet_user.transfer_session.unwrap().transfer_session_id
-    );
+    let transfer_session = find_transfer_session_by_transfer_session_id(&db, transfer_session_id)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(wallet_user_id, transfer_session.destination_wallet_user_id);
 
     // Preparing a transfer for a wallet that is already transferring should return an error
     let result = create_transfer_session(
@@ -489,15 +521,11 @@ async fn test_create_transfer_session() {
     assert_matches!(result, Err(PersistenceError::Execution(_)));
 
     // The existing transfer_session_id should be returned
-    let WalletUserQueryResult::Found(stored_wallet_user) =
-        find_wallet_user_by_wallet_id(&db, &wallet_id).await.unwrap()
-    else {
-        panic!("Could not find wallet user");
-    };
-    assert_eq!(
-        transfer_session_id,
-        stored_wallet_user.transfer_session.unwrap().transfer_session_id
-    );
+    let transfer_session = find_transfer_session_by_transfer_session_id(&db, transfer_session_id)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(transfer_session_id, transfer_session.transfer_session_id);
 }
 
 #[tokio::test]
@@ -538,6 +566,30 @@ async fn test_find_transfer_session_by_transfer_session_id() {
             .unwrap()
             .is_none()
     )
+}
+
+#[tokio::test]
+async fn test_find_transfer_session_id_by_destination_wallet_user_id() {
+    let (db, wallet_user_id, _, _) = create_test_user().await;
+
+    let transfer_session_id = Uuid::new_v4();
+
+    create_transfer_session(
+        &db,
+        wallet_user_id,
+        transfer_session_id,
+        Version::parse("1.2.3").unwrap(),
+        Utc::now(),
+    )
+    .await
+    .unwrap();
+
+    let stored_transfer_session_id = find_transfer_session_id_by_destination_wallet_user_id(&db, wallet_user_id)
+        .await
+        .unwrap()
+        .unwrap();
+
+    assert_eq!(stored_transfer_session_id, transfer_session_id);
 }
 
 #[tokio::test]
@@ -599,6 +651,7 @@ async fn test_set_wallet_transfer_data() {
 
     wallet_transfer::ActiveModel {
         id: Set(Uuid::new_v4()),
+        source_wallet_user_id: Set(None),
         destination_wallet_user_id: Set(wallet_user_id),
         transfer_session_id: Set(transfer_session_id),
         destination_wallet_app_version: Set("1.2.3".to_string()),

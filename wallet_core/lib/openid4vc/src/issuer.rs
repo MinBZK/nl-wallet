@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::collections::HashSet;
 use std::convert::Infallible;
 use std::num::NonZeroU8;
 use std::ops::Add;
@@ -42,7 +41,6 @@ use jwt::EcdsaDecodingKey;
 use jwt::Validation;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
-use jwt::jwk::jwk_to_p256;
 use jwt::wua::WuaDisclosure;
 use jwt::wua::WuaError;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
@@ -58,7 +56,6 @@ use crate::credential::CredentialRequestProof;
 use crate::credential::CredentialRequests;
 use crate::credential::CredentialResponse;
 use crate::credential::CredentialResponses;
-use crate::credential::OPENID4VCI_VC_POP_JWT_TYPE;
 use crate::dpop::Dpop;
 use crate::dpop::DpopError;
 use crate::metadata;
@@ -75,7 +72,6 @@ use crate::server_state::SessionState;
 use crate::server_state::SessionStore;
 use crate::server_state::SessionStoreError;
 use crate::server_state::SessionToken;
-use crate::server_state::WuaTracker;
 use crate::token::AccessToken;
 use crate::token::AuthorizationCode;
 use crate::token::CredentialPreview;
@@ -146,18 +142,11 @@ pub enum CredentialRequestError {
     #[error("credential request ambiguous, use /batch_credential instead")]
     UseBatchIssuance,
 
-    #[error("missing JWK")]
-    MissingJwk,
-
     #[error("incorrect nonce")]
     IncorrectNonce,
 
-    #[error(
-        "unsupported JWT algorithm: expected {}, found {}",
-        expected,
-        found.as_ref().unwrap_or(&"<None>".to_string())
-    )]
-    UnsupportedJwtAlgorithm { expected: String, found: Option<String> },
+    #[error("unsupported JWT: {0}")]
+    UnsupportedJwt(#[source] JwtError),
 
     #[error("JWK conversion error: {0}")]
     JwkConversion(#[from] JwkConversionError),
@@ -179,12 +168,6 @@ pub enum CredentialRequestError {
 
     #[error("missing WUA")]
     MissingWua,
-
-    #[error("error checking WUA usage status: {0}")]
-    WuaTracking(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
-
-    #[error("WUA has already been used")]
-    WuaAlreadyUsed,
 
     #[error("missing PoA")]
     MissingPoa,
@@ -386,19 +369,18 @@ impl<K> AttestationTypeConfig<K> {
 #[derive(Debug, From, AsRef)]
 pub struct AttestationTypesConfig<K>(HashMap<String, AttestationTypeConfig<K>>);
 
-pub struct Issuer<A, K, S, W> {
+pub struct Issuer<A, K, S> {
     sessions: Arc<S>,
     attr_service: A,
-    issuer_data: IssuerData<K, W>,
+    issuer_data: IssuerData<K>,
     sessions_cleanup_task: JoinHandle<()>,
-    wua_cleanup_task: Option<JoinHandle<()>>,
     pub metadata: IssuerMetadata,
 }
 
 /// Fields of the [`Issuer`] needed by the issuance functions.
-pub struct IssuerData<K, W> {
+pub struct IssuerData<K> {
     attestation_config: AttestationTypesConfig<K>,
-    wua_config: Option<WuaConfig<W>>,
+    wua_config: Option<WuaConfig>,
 
     /// URL identifying the issuer; should host ` /.well-known/openid-credential-issuer`,
     /// and MUST be used by the wallet as `aud` in its PoP JWTs.
@@ -411,30 +393,23 @@ pub struct IssuerData<K, W> {
     server_url: BaseUrl,
 }
 
-pub struct WuaConfig<W> {
+pub struct WuaConfig {
     /// Public key of the WUA issuer.
     pub wua_issuer_pubkey: EcdsaDecodingKey,
-
-    /// Tracks recently seen WUAs.
-    pub wua_tracker: Arc<W>,
 }
 
-impl<A, K, S, W> Drop for Issuer<A, K, S, W> {
+impl<A, K, S> Drop for Issuer<A, K, S> {
     fn drop(&mut self) {
         // Stop the tasks at the next .await
         self.sessions_cleanup_task.abort();
-        if let Some(ref wua_cleanup_task) = self.wua_cleanup_task {
-            wua_cleanup_task.abort();
-        }
     }
 }
 
-impl<A, K, S, W> Issuer<A, K, S, W>
+impl<A, K, S> Issuer<A, K, S>
 where
     A: AttributeService,
     K: EcdsaKeySend,
     S: SessionStore<IssuanceData> + Send + Sync + 'static,
-    W: WuaTracker + Send + Sync + 'static,
 {
     pub fn new(
         sessions: Arc<S>,
@@ -442,12 +417,8 @@ where
         attestation_config: AttestationTypesConfig<K>,
         server_url: &BaseUrl,
         wallet_client_ids: Vec<String>,
-        wua_config: Option<WuaConfig<W>>,
+        wua_config: Option<WuaConfig>,
     ) -> Self {
-        let wua_tracker = wua_config
-            .as_ref()
-            .map(|wua_config| Arc::clone(&wua_config.wua_tracker));
-
         let credential_configurations_supported = attestation_config
             .as_ref()
             .iter()
@@ -476,7 +447,6 @@ where
             attr_service,
             issuer_data,
             sessions_cleanup_task: sessions.start_cleanup_task(CLEANUP_INTERVAL_SECONDS),
-            wua_cleanup_task: wua_tracker.map(|wua_tracker| wua_tracker.start_cleanup_task(CLEANUP_INTERVAL_SECONDS)),
             metadata: IssuerMetadata {
                 issuer_config: metadata::IssuerData {
                     credential_issuer: issuer_url.clone(),
@@ -506,7 +476,7 @@ fn logged_issuance_result<T, E: std::error::Error>(result: Result<T, E>) -> Resu
         .inspect_err(|error| info!("Issuance error: {error}"))
 }
 
-impl<A, K, S, W> Issuer<A, K, S, W>
+impl<A, K, S> Issuer<A, K, S>
 where
     S: SessionStore<IssuanceData>,
 {
@@ -526,12 +496,11 @@ where
     }
 }
 
-impl<A, K, S, W> Issuer<A, K, S, W>
+impl<A, K, S> Issuer<A, K, S>
 where
     A: AttributeService,
     K: EcdsaKeySend,
     S: SessionStore<IssuanceData>,
-    W: WuaTracker,
 {
     pub async fn process_token_request(
         &self,
@@ -879,7 +848,7 @@ impl Session<WaitingForResponse> {
         credential_request: CredentialRequest,
         access_token: AccessToken,
         dpop: Dpop,
-        issuer_data: &IssuerData<impl EcdsaKeySend, impl WuaTracker>,
+        issuer_data: &IssuerData<impl EcdsaKeySend>,
     ) -> (Result<CredentialResponse, CredentialRequestError>, Session<Done>) {
         let result = self
             .process_credential_inner(credential_request, access_token, dpop, issuer_data)
@@ -903,7 +872,7 @@ impl Session<WaitingForResponse> {
         access_token: &AccessToken,
         dpop: Dpop,
         endpoint: &str,
-        issuer_data: &IssuerData<impl EcdsaKeySend, impl WuaTracker>,
+        issuer_data: &IssuerData<impl EcdsaKeySend>,
     ) -> Result<(), CredentialRequestError> {
         let session_data = self.session_data();
 
@@ -925,47 +894,37 @@ impl Session<WaitingForResponse> {
         Ok(())
     }
 
-    async fn verify_wua(
+    fn verify_wua(
         &self,
-        wua_config: &WuaConfig<impl WuaTracker>,
-        attestations: Option<WuaDisclosure>,
+        wua_config: &WuaConfig,
+        attestations: Option<&WuaDisclosure>,
         issuer_identifier: &str,
     ) -> Result<VerifyingKey, CredentialRequestError> {
         let wua_disclosure = attestations.ok_or(CredentialRequestError::MissingWua)?;
 
-        let (verified_wua, wua_pubkey) = wua_disclosure.verify(
+        let wua_pubkey = wua_disclosure.verify(
             &wua_config.wua_issuer_pubkey,
             issuer_identifier,
             &self.state.data.accepted_wallet_client_ids,
             &self.state.data.c_nonce,
         )?;
 
-        // Check that the WUA is fresh
-        if wua_config
-            .wua_tracker
-            .track_wua(&verified_wua)
-            .await
-            .map_err(|err| CredentialRequestError::WuaTracking(Box::new(err)))?
-        {
-            return Err(CredentialRequestError::WuaAlreadyUsed);
-        }
-
         Ok(wua_pubkey)
     }
 
-    pub async fn verify_wua_and_poa(
+    pub fn verify_wua_and_poa(
         &self,
-        attestations: Option<WuaDisclosure>,
+        attestations: Option<&WuaDisclosure>,
         poa: Option<Poa>,
         attestation_keys: impl Iterator<Item = VerifyingKey>,
-        issuer_data: &IssuerData<impl EcdsaKeySend, impl WuaTracker>,
+        issuer_data: &IssuerData<impl EcdsaKeySend>,
     ) -> Result<(), CredentialRequestError> {
         let issuer_identifier = issuer_data.credential_issuer_identifier.as_ref().as_str();
 
         let attestation_keys = match &issuer_data.wua_config {
             None => attestation_keys.collect_vec(),
             Some(wua) => {
-                let wua_pubkey = self.verify_wua(wua, attestations, issuer_identifier).await?;
+                let wua_pubkey = self.verify_wua(wua, attestations, issuer_identifier)?;
                 attestation_keys.chain([wua_pubkey]).collect_vec()
             }
         };
@@ -985,7 +944,7 @@ impl Session<WaitingForResponse> {
         credential_request: CredentialRequest,
         access_token: AccessToken,
         dpop: Dpop,
-        issuer_data: &IssuerData<impl EcdsaKeySend, impl WuaTracker>,
+        issuer_data: &IssuerData<impl EcdsaKeySend>,
     ) -> Result<CredentialResponse, CredentialRequestError> {
         let session_data = self.session_data();
 
@@ -1014,12 +973,11 @@ impl Session<WaitingForResponse> {
         let holder_pubkey = credential_request.verify(&session_data.c_nonce, issuer_data)?;
 
         self.verify_wua_and_poa(
-            credential_request.attestations,
+            credential_request.attestations.as_ref(),
             credential_request.poa,
             [holder_pubkey].into_iter(),
             issuer_data,
-        )
-        .await?;
+        )?;
 
         let credential_response = CredentialResponse::new(
             requested_format,
@@ -1037,7 +995,7 @@ impl Session<WaitingForResponse> {
         credential_requests: CredentialRequests,
         access_token: AccessToken,
         dpop: Dpop,
-        issuer_data: &IssuerData<impl EcdsaKeySend, impl WuaTracker>,
+        issuer_data: &IssuerData<impl EcdsaKeySend>,
     ) -> (Result<CredentialResponses, CredentialRequestError>, Session<Done>) {
         let result = self
             .process_batch_credential_inner(credential_requests, access_token, dpop, issuer_data)
@@ -1061,7 +1019,7 @@ impl Session<WaitingForResponse> {
         credential_requests: CredentialRequests,
         access_token: AccessToken,
         dpop: Dpop,
-        issuer_data: &IssuerData<impl EcdsaKeySend, impl WuaTracker>,
+        issuer_data: &IssuerData<impl EcdsaKeySend>,
     ) -> Result<CredentialResponses, CredentialRequestError> {
         let session_data = self.session_data();
 
@@ -1093,12 +1051,11 @@ impl Session<WaitingForResponse> {
             .collect::<Result<Vec<_>, CredentialRequestError>>()?;
 
         self.verify_wua_and_poa(
-            credential_requests.attestations,
+            credential_requests.attestations.as_ref(),
             credential_requests.poa,
             previews_and_holder_pubkeys.iter().map(|(_, _, key)| *key),
             issuer_data,
-        )
-        .await?;
+        )?;
 
         let credential_responses =
             try_join_all(previews_and_holder_pubkeys.into_iter().map(|(preview, format, key)| {
@@ -1146,7 +1103,7 @@ impl CredentialRequest {
     fn verify(
         &self,
         c_nonce: &str,
-        issuer_data: &IssuerData<impl EcdsaKeySend, impl WuaTracker>,
+        issuer_data: &IssuerData<impl EcdsaKeySend>,
     ) -> Result<VerifyingKey, CredentialRequestError> {
         let holder_pubkey = self
             .proof
@@ -1167,7 +1124,7 @@ impl CredentialResponse {
         credential_format: Format,
         preview_credential_payload: PreviewableCredentialPayload,
         holder_pubkey: VerifyingKey,
-        issuer_data: &IssuerData<impl EcdsaKeySend, impl WuaTracker>,
+        issuer_data: &IssuerData<impl EcdsaKeySend>,
     ) -> Result<CredentialResponse, CredentialRequestError> {
         // Get the correct `AttestationTypeConfig` for this attestation type.
         let key_id = preview_credential_payload.attestation_type.as_str();
@@ -1244,32 +1201,22 @@ impl CredentialRequestProof {
         accepted_wallet_client_ids: &[impl ToString],
         credential_issuer_identifier: &BaseUrl,
     ) -> Result<VerifyingKey, CredentialRequestError> {
-        let jwt = match self {
-            CredentialRequestProof::Jwt { jwt } => jwt,
-        };
-        let header = jwt.dangerous_parse_header_unverified()?;
-        let verifying_key = jwk_to_p256(&header.jwk.ok_or(CredentialRequestError::MissingJwk)?)?;
+        let CredentialRequestProof::Jwt { jwt } = self;
 
         let mut validation_options = Validation::new(Algorithm::ES256);
-        validation_options.required_spec_claims = HashSet::default();
+        validation_options.set_required_spec_claims(&["iss", "aud"]);
         validation_options.set_issuer(accepted_wallet_client_ids);
         validation_options.set_audience(&[credential_issuer_identifier]);
 
-        // We use `jsonwebtoken` crate directly instead of our `Jwt` because we need to inspect the header
-        let (header, payload) =
-            jwt.parse_and_verify_with_header(&EcdsaDecodingKey::from(&verifying_key), &validation_options)?;
+        let (header, payload) = jwt
+            .parse_and_verify_with_jwk(&validation_options)
+            .map_err(CredentialRequestError::UnsupportedJwt)?;
 
-        if header.typ != Some(OPENID4VCI_VC_POP_JWT_TYPE.to_string()) {
-            return Err(CredentialRequestError::UnsupportedJwtAlgorithm {
-                expected: OPENID4VCI_VC_POP_JWT_TYPE.to_string(),
-                found: header.typ,
-            });
-        }
         if payload.nonce.as_deref() != Some(nonce) {
             return Err(CredentialRequestError::IncorrectNonce);
         }
 
-        Ok(verifying_key)
+        Ok(header.verifying_key()?)
     }
 }
 
@@ -1281,7 +1228,7 @@ mod tests {
     use tracing_test::traced_test;
 
     use attestation_data::auth::issuer_auth::IssuerRegistration;
-    use attestation_data::x509::generate::mock::generate_issuer_mock;
+    use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use crypto::server_keys::generate::Ca;
 
     use super::*;
@@ -1293,7 +1240,8 @@ mod tests {
     #[test]
     fn test_credential_preview_from_issuable_document() {
         let ca = Ca::generate_issuer_mock_ca().unwrap();
-        let issuance_keypair = generate_issuer_mock(&ca, IssuerRegistration::new_mock().into()).unwrap();
+        let issuance_keypair =
+            generate_issuer_mock_with_registration(&ca, IssuerRegistration::new_mock().into()).unwrap();
         let document = IssuableDocument::new_mock();
         let config = AttestationTypeConfig::try_new(
             document.attestation_type(),

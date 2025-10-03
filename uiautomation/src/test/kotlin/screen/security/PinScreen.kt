@@ -5,98 +5,87 @@ import util.MobileActions
 
 class PinScreen : MobileActions() {
 
-    private val pinScreen = find.byValueKey("pinScreen")
-    private val choosePinScreen = find.byValueKey("selectPinScreen")
-    private val confirmPinScreen = find.byValueKey("confirmPinScreen")
-    private val personalizeConfirmPinScreen = find.byValueKey("personalizeConfirmPinPage")
+    private val setupSecuritySelectPinPageTitle = l10n.getString("setupSecuritySelectPinPageTitle")
+    private val pinScreenHeader = l10n.getString("pinScreenHeader")
+    private val confirmPinScreen = l10n.getString("setupSecurityConfirmationPageTitle")
+    private val personalizeConfirmPinScreen = l10n.getString("walletPersonalizeConfirmPinPageTitle")
+    private val backButton = l10n.getString("generalWCAGBack")
+    private val appInfoButton = l10n.getString("generalWCAGInfo")
+    private val forgotPinButton = l10n.getString("pinScreenForgotPinCta")
+    private val confirmPinErrorFatalCta = l10n.getString("pinConfirmationErrorDialogFatalCta")
+    private val skipBiometricsCta = l10n.getString("setupBiometricsPageSkipCta")
+    private val closeAlertDialogButton = l10n.getString("generalOkCta")
+    private val closeIncorrectPinAlertDialogButton = l10n.getString("pinErrorDialogCloseCta")
+    private val pinValidationErrorTooFewUniqueDigits = l10n.getString("pinValidationErrorDialogTooFewUniqueDigitsError")
+    private val pinValidationErrorSequentialDigits = l10n.getString("pinValidationErrorDialogAscendingOrDescendingDigitsError")
+    private val confirmPinErrorMismatchTitle = l10n.getString("pinConfirmationErrorDialogTitle")
+    private val confirmPinErrorMismatchDescription = l10n.getString("pinConfirmationErrorDialogDescription")
+    private val confirmPinErrorMismatchFatalTitle = l10n.getString("pinConfirmationErrorDialogFatalTitle")
+    private val confirmPinErrorMismatchFatalDescription = l10n.getString("pinConfirmationErrorDialogFatalDescription")
+    private val pinErrorDialogNonFinalRoundInitialAttempt = l10n.getString("pinErrorDialogNonFinalRoundInitialAttempt")
+    private val pinErrorDialogNonFinalRoundFinalAttempt = l10n.getString("pinErrorDialogNonFinalRoundFinalAttempt")
 
-    private val pinKeyboardFirstKey = find.byValueKey("keyboardDigitKey#1")
+    fun setupPinScreenVisible() = elementWithTextVisible(setupSecuritySelectPinPageTitle)
 
-    private val backButton = find.byToolTip(l10n.getString("generalWCAGBack"))
-    private val appInfoButton = find.byToolTip(l10n.getString("generalWCAGInfo"))
-    private val forgotPinButton = find.byText(l10n.getString("pinScreenForgotPinCta"))
-    private val confirmPinErrorFatalCta = find.byText(l10n.getString("pinConfirmationErrorDialogFatalCta"))
-    private val skipBiometricsCta = find.byText(l10n.getString("setupBiometricsPageSkipCta"))
-    private val closeAlertDialogButton = find.byText(l10n.getString("generalOkCta"))
-    private val closeIncorrectPinAlertDialogButton = find.byText(l10n.getString("pinErrorDialogCloseCta"))
+    fun pinScreenVisible() = elementWithTextVisible(pinScreenHeader)
 
-    private val pinValidationErrorTooFewUniqueDigits =
-        find.byText(l10n.getString("pinValidationErrorDialogTooFewUniqueDigitsError"))
-    private val pinValidationErrorSequentialDigits =
-        find.byText(l10n.getString("pinValidationErrorDialogAscendingOrDescendingDigitsError"))
-    private val confirmPinErrorMismatchTitle = find.byText(l10n.getString("pinConfirmationErrorDialogTitle"))
-    private val confirmPinErrorMismatchDescription =
-        find.byText(l10n.getString("pinConfirmationErrorDialogDescription"))
-    private val confirmPinErrorMismatchFatalTitle =
-        find.byText(l10n.getString("pinConfirmationErrorDialogFatalTitle"))
-    private val confirmPinErrorMismatchFatalDescription =
-        find.byText(l10n.getString("pinConfirmationErrorDialogFatalDescription"))
+    fun confirmPinScreenVisible() = elementWithTextVisible(confirmPinScreen)
 
-    private val pinErrorDialogNonFinalRoundInitialAttempt =
-        find.byText(l10n.getString("pinErrorDialogNonFinalRoundInitialAttempt"))
-    private val pinErrorDialogNonFinalRoundFinalAttempt =
-        find.byText(l10n.getString("pinErrorDialogNonFinalRoundFinalAttempt"))
+    fun personalizeConfirmPinScreenVisible() = elementWithTextVisible(personalizeConfirmPinScreen)
 
-    fun pinScreenVisible() = isElementVisible(pinScreen)
+    fun pinKeyboardVisible() = elementWithTextVisible("1")
 
-    fun choosePinScreenVisible() = isElementVisible(choosePinScreen)
+    fun enteredPinAbsent(pin: String) = !elementWithTextVisible(pin)
 
-    fun confirmPinScreenVisible() = isElementVisible(confirmPinScreen)
+    fun choosePinErrorTooFewUniqueDigitsVisible() = elementWithTextVisible(pinValidationErrorTooFewUniqueDigits)
 
-    fun personalizeConfirmPinScreenVisible() = isElementVisible(personalizeConfirmPinScreen)
-
-    fun pinKeyboardVisible() = isElementVisible(pinKeyboardFirstKey)
-
-    fun enteredPinAbsent(pin: String) = isElementAbsent(find.byText(pin))
-
-    fun choosePinErrorTooFewUniqueDigitsVisible() = isElementVisible(pinValidationErrorTooFewUniqueDigits)
-
-    fun choosePinErrorSequentialDigitsVisible() = isElementVisible(pinValidationErrorSequentialDigits)
+    fun choosePinErrorSequentialDigitsVisible() = elementWithTextVisible(pinValidationErrorSequentialDigits)
 
     fun confirmPinErrorMismatchVisible() =
-        isElementVisible(confirmPinErrorMismatchTitle) && isElementVisible(confirmPinErrorMismatchDescription)
+        elementWithTextVisible(confirmPinErrorMismatchTitle) && elementWithTextVisible(confirmPinErrorMismatchDescription)
 
     fun confirmPinErrorMismatchFatalVisible() =
-        isElementVisible(confirmPinErrorMismatchFatalTitle) && isElementVisible(confirmPinErrorMismatchFatalDescription)
+        elementWithTextVisible(confirmPinErrorMismatchFatalTitle) && elementWithTextVisible(confirmPinErrorMismatchFatalDescription)
 
-    fun pinErrorDialogNonFinalRoundInitialAttemptVisible() = isElementVisible(pinErrorDialogNonFinalRoundInitialAttempt)
+    fun pinErrorDialogNonFinalRoundInitialAttemptVisible() = elementWithTextVisible(pinErrorDialogNonFinalRoundInitialAttempt)
 
-    fun clickBackButton() = clickElement(backButton)
+    fun clickBackButton() = clickElementWithText(backButton)
 
-    fun clickAppInfoButton() = clickElement(appInfoButton)
+    fun clickAppInfoButton() = clickElementWithText(appInfoButton)
 
-    fun clickForgotPinButton() = clickElement(forgotPinButton)
+    fun clickForgotPinButton() = clickElementWithText(forgotPinButton)
 
     fun choosePin(pin: String) = enterPin(pin)
 
-    fun confirmPin(pin: String) = enterPin(pin)
+    fun confirmPin(pin: String) {
+        elementWithTextVisible(confirmPinScreen)
+        enterPin(pin)
+    }
 
     fun enterPin(pin: String) {
         for (digit in pin) {
-            val elementKey = "keyboardDigitKey#$digit"
-            clickElement(find.byValueKey(elementKey), false)
+            clickElementWithText(digit.toString())
         }
     }
 
-    fun clickConfirmPinErrorFatalCta() = clickElement(confirmPinErrorFatalCta)
+    fun clickConfirmPinErrorFatalCta() = clickElementWithText(confirmPinErrorFatalCta)
 
     fun skipBiometricsIfConfigurable() {
         if (!testConfig.remote) {
-            if (isElementVisible(skipBiometricsCta)) {
-                clickElement(skipBiometricsCta)
+            if (elementWithTextVisible(skipBiometricsCta)) {
+                clickElementWithText(skipBiometricsCta)
             }
         }
     }
 
-    fun closeAlertDialog() = clickElement(closeAlertDialogButton)
+    fun closeAlertDialog() = clickElementWithText(closeAlertDialogButton)
 
-    fun closePinIncorrectAlertDialog() = clickElement(closeIncorrectPinAlertDialogButton)
+    fun closePinIncorrectAlertDialog() = clickElementWithText(closeIncorrectPinAlertDialogButton)
 
     fun pinErrorDialogNonFinalRoundNonFinalAttemptVisible(retriesLeft: String): Boolean {
-        val selector = l10n.getString("pinErrorDialogNonFinalRoundNonFinalAttempt").replace("{count}", retriesLeft)
-        val element = find.byText(selector)
-        return isElementVisible(element);
+        val selectortext = l10n.getString("pinErrorDialogNonFinalRoundNonFinalAttempt").replace("{count}", retriesLeft)
+        return elementWithTextVisible(selectortext);
     }
 
-    fun pinErrorDialogNonFinalRoundFinalAttemptVisible() = isElementVisible(pinErrorDialogNonFinalRoundFinalAttempt)
+    fun pinErrorDialogNonFinalRoundFinalAttemptVisible() = elementWithTextVisible(pinErrorDialogNonFinalRoundFinalAttempt)
 }

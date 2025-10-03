@@ -81,13 +81,11 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
                 | CredentialRequestError::MissingPrivateKey(_)
                 | CredentialRequestError::MdocConversion(_)
                 | CredentialRequestError::SdJwtConversion(_)
-                | CredentialRequestError::CredentialSigning(_)
-                | CredentialRequestError::WuaTracking(_) => CredentialErrorCode::ServerError,
+                | CredentialRequestError::CredentialSigning(_) => CredentialErrorCode::ServerError,
 
                 CredentialRequestError::IssuanceError(_)
                 | CredentialRequestError::UseBatchIssuance
                 | CredentialRequestError::MissingWua
-                | CredentialRequestError::WuaAlreadyUsed
                 | CredentialRequestError::MissingPoa
                 | CredentialRequestError::CredentialTypeMismatch { .. }
                 | CredentialRequestError::Wua(_)
@@ -97,8 +95,7 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
                     CredentialErrorCode::InvalidToken
                 }
 
-                CredentialRequestError::UnsupportedJwtAlgorithm { .. }
-                | CredentialRequestError::MissingJwk
+                CredentialRequestError::UnsupportedJwt(_)
                 | CredentialRequestError::IncorrectNonce
                 | CredentialRequestError::Jwt(_)
                 | CredentialRequestError::JwkConversion(_)

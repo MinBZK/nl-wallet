@@ -15,7 +15,9 @@ use http::header;
 use tracing::debug;
 use tracing::info;
 
+use jwt::VerifiedJwt;
 use utils::built_info::version_string;
+use wallet_configuration::wallet_config::WalletConfiguration;
 
 use super::settings::Settings;
 
@@ -33,7 +35,7 @@ pub async fn serve_with_listener(listener: TcpListener, settings: Settings) -> R
         "/config/v1",
         Router::new()
             .route("/wallet-config", get(configuration))
-            .with_state(settings.wallet_config_jwt.into_bytes()),
+            .with_state(settings.wallet_config_jwt),
     );
 
     axum_server::from_tcp_rustls(listener, settings.tls_config.into_rustls_config().await?)
@@ -48,12 +50,12 @@ fn health_router() -> Router {
 }
 
 async fn configuration(
-    State(config_jwt): State<Vec<u8>>,
+    State(config_jwt): State<VerifiedJwt<WalletConfiguration>>,
     headers: HeaderMap,
 ) -> std::result::Result<Response, StatusCode> {
     info!("received configuration request");
 
-    let config_entity_tag = EntityTag::from_data(config_jwt.as_ref());
+    let config_entity_tag = EntityTag::from_data(config_jwt.to_string().as_bytes());
 
     if let Some(etag) = headers.get(header::IF_NONE_MATCH) {
         let entity_tag = etag
@@ -69,7 +71,7 @@ async fn configuration(
         }
     }
 
-    let mut resp: Response = config_jwt.into_response();
+    let mut resp: Response = config_jwt.to_string().into_response();
     resp.headers_mut().append(
         header::ETAG,
         // We can safely unwrap here because we know for sure there are no non-ascii characters used.

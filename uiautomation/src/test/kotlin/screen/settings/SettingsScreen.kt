@@ -4,19 +4,17 @@ import util.MobileActions
 
 class SettingsScreen : MobileActions() {
 
-    private val screen = find.byValueKey("settingsScreen")
+    private val screenTitle = l10n.getString("settingsScreenTitle")
+    private val changePinButton = l10n.getString("settingsScreenChangePinCta")
+    private val changeLanguageButton = l10n.getString("settingsScreenChangeLanguageCta")
+    private val clearDataButton = l10n.getString("settingsScreenClearDataCta")
 
-    private val changePinButton = find.byText(l10n.getString("settingsScreenChangePinCta"))
-    private val setupBiometricsButton = find.byText("Open met gezichts-scan of vingerafdruk")
-    private val changeLanguageButton = find.byText(l10n.getString("settingsScreenChangeLanguageCta"))
-    private val clearDataButton = find.byText(l10n.getString("settingsScreenClearDataCta"))
+    fun visible() = elementWithTextVisible(screenTitle)
 
-    fun visible() = isElementVisible(screen)
+    fun settingsButtonsVisible() =
+        elementWithTextVisible(changePinButton) && elementWithTextVisible(changeLanguageButton) && elementWithTextVisible(clearDataButton)
 
-    fun settingsButtonsVisible(): Boolean =
-        isElementVisible(changePinButton) && isElementVisible(changeLanguageButton) && isElementVisible(clearDataButton)
+    fun clickChangeLanguageButton() = clickElementWithText(changeLanguageButton)
 
-    fun clickChangeLanguageButton() = clickElement(changeLanguageButton)
-
-    fun clickClearDataButton() = clickElement(clearDataButton)
+    fun clickClearDataButton() = clickElementWithText(clearDataButton)
 }

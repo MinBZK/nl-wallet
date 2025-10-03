@@ -4,16 +4,16 @@ import util.MobileActions
 
 class QRScanner : MobileActions() {
 
-    private val scanHint = find.byText(l10n.getString("qrScreenScanHint"))
-    private val qrScreenEnableTorchCta = find.byText(l10n.getString("qrScreenEnableTorchCta"))
-    private val qrScreenDisableTorchCta = find.byText(l10n.getString("qrScreenDisableTorchCta"))
-    private val generalBottomBackCta = find.byText(l10n.getString("generalBottomBackCta"))
+    private val scanHint = l10n.getString("qrScreenScanHint")
+    private val qrScreenEnableTorchCta = l10n.getString("qrScreenEnableTorchCta")
+    private val qrScreenDisableTorchCta = l10n.getString("qrScreenDisableTorchCta")
+    private val generalBottomBackCta = l10n.getString("generalBottomBackCta")
 
-    fun visible() = isElementVisible(scanHint)
+    fun visible() = elementWithTextVisible(scanHint)
 
-    fun enableTorch() = clickElement(qrScreenEnableTorchCta)
+    fun enableTorch() = clickElementWithText(qrScreenEnableTorchCta)
 
-    fun disableTorch() = clickElement(qrScreenDisableTorchCta)
+    fun disableTorch() = clickElementWithText(qrScreenDisableTorchCta)
 
-    fun goBack() = clickElement(generalBottomBackCta)
+    fun goBack() = clickElementWithText(generalBottomBackCta)
 }

@@ -5,26 +5,23 @@ import util.MobileActions
 
 class CardDetailScreen : MobileActions() {
 
-    private val screen = find.byValueKey("cardDetailScreen")
+    private val cardDetailScreenCardDataCta = l10n.getString("cardDetailScreenCardDataCta")
+    private val pidIdTitleText = cardMetadata.getPidDisplayName()
+    private val cardIssuerStateText = organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", RVIG)
+    private val cardHistoryStateText = l10n.getString("cardDetailScreenLatestSuccessInteractionUnknown")
+    private val cardDataButton = l10n.getString("cardDetailScreenCardDataCta")
+    private val cardHistoryButton = l10n.getString("cardDetailScreenCardHistoryCta")
+    private val bottomBackButton = l10n.getString("generalBottomBackCta")
 
-    private val pidIdTitleText = find.byText(cardMetadata.getPidDisplayName())
-    private val cardIssuerStateText = find.byText(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", RVIG))
-    private val cardHistoryStateText = find.byText(l10n.getString("cardDetailScreenLatestSuccessInteractionUnknown"))
+    fun visible() = elementContainingTextVisible(cardDetailScreenCardDataCta)
 
-    private val cardDataButton = find.byText(l10n.getString("cardDetailScreenCardDataCta"))
-    private val cardHistoryButton = find.byText(l10n.getString("cardDetailScreenCardHistoryCta"))
-    private val bottomBackButton = find.byText(l10n.getString("generalBottomBackCta"))
+    fun cardFaceElements() = elementContainingTextVisible(pidIdTitleText)
 
-    fun visible() = isElementVisible(screen, false)
+    fun issuerAndHistoryStates() = elementContainingTextVisible(cardIssuerStateText) && elementContainingTextVisible(cardHistoryStateText)
 
-    fun cardFaceElements() = isElementVisible(pidIdTitleText, false)
+    fun clickCardDataButton() = clickElementContainingText(cardDataButton)
 
-    fun issuerAndHistoryStates() =
-        isElementVisible(cardIssuerStateText, false) && isElementVisible(cardHistoryStateText, false)
+    fun clickCardHistoryButton() = clickElementContainingText(cardHistoryButton)
 
-    fun clickCardDataButton() = clickElement(cardDataButton, false)
-
-    fun clickCardHistoryButton() = clickElement(cardHistoryButton, false)
-
-    fun clickBottomBackButton() = clickElement(bottomBackButton, false)
+    fun clickBottomBackButton() = clickElementWithText(bottomBackButton)
 }

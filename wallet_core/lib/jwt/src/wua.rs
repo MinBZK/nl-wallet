@@ -13,7 +13,6 @@ use serde::Serialize;
 use crate::DEFAULT_VALIDATIONS;
 use crate::EcdsaDecodingKey;
 use crate::UnverifiedJwt;
-use crate::VerifiedJwt;
 use crate::credential::JwtCredentialClaims;
 use crate::error::JwkConversionError;
 use crate::error::JwtError;
@@ -26,7 +25,8 @@ pub struct WuaClaims {
     pub exp: DateTime<Utc>,
 }
 
-pub static WUA_EXPIRY: Duration = Duration::minutes(5);
+pub const WUA_EXPIRY: Duration = Duration::minutes(5);
+pub const WUA_JWT_TYP: &str = "wua+jwt";
 
 impl WuaClaims {
     pub fn new() -> Self {
@@ -71,25 +71,25 @@ pub enum WuaError {
 
 impl WuaDisclosure {
     pub fn verify(
-        self,
+        &self,
         issuer_public_key: &EcdsaDecodingKey,
         expected_aud: &str,
         accepted_wallet_client_ids: &[String],
         expected_nonce: &str,
-    ) -> Result<(VerifiedJwt<JwtCredentialClaims<WuaClaims>>, VerifyingKey), WuaError> {
-        let verified_jwt = self.0.into_verified(issuer_public_key, &WUA_JWT_VALIDATIONS)?;
-        let wua_pubkey = jwk_to_p256(&verified_jwt.payload().confirmation.jwk)?;
+    ) -> Result<VerifyingKey, WuaError> {
+        let (_, verified_wua_claims) = self.0.parse_and_verify(issuer_public_key, &WUA_JWT_VALIDATIONS)?;
+        let wua_pubkey = jwk_to_p256(&verified_wua_claims.confirmation.jwk)?;
 
         let mut validations = DEFAULT_VALIDATIONS.to_owned();
         validations.set_audience(&[expected_aud]);
         validations.set_issuer(accepted_wallet_client_ids);
-        let wua_disclosure_claims = self.1.parse_and_verify(&(&wua_pubkey).into(), &validations)?;
+        let (_, wua_disclosure_claims) = self.1.parse_and_verify(&(&wua_pubkey).into(), &validations)?;
 
         if wua_disclosure_claims.nonce.as_deref() != Some(expected_nonce) {
             return Err(WuaError::IncorrectNonce);
         }
 
-        Ok((verified_jwt, wua_pubkey))
+        Ok(wua_pubkey)
     }
 }
 

@@ -1,4 +1,3 @@
-use jsonwebtoken::Header;
 use jsonwebtoken::jwk::Jwk;
 use p256::ecdsa::VerifyingKey;
 use serde::Deserialize;
@@ -7,10 +6,12 @@ use serde_with::skip_serializing_none;
 
 use crypto::keys::EcdsaKey;
 
-use crate::UnverifiedJwt;
+use crate::JwtTyp;
+use crate::SignedJwt;
 use crate::error::JwkConversionError;
 use crate::error::JwtError;
 use crate::jwk::jwk_from_p256;
+use crate::wua::WUA_JWT_TYP;
 
 /// Claims of a JWT credential: the body of the JWT.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -20,6 +21,10 @@ pub struct JwtCredentialClaims<T> {
 
     #[serde(flatten)]
     pub contents: JwtCredentialContents<T>,
+}
+
+impl<T> JwtTyp for JwtCredentialClaims<T> {
+    const TYP: &'static str = WUA_JWT_TYP;
 }
 
 impl<T> JwtCredentialClaims<T>
@@ -41,15 +46,10 @@ where
         holder_pubkey: &VerifyingKey,
         issuer_privkey: &impl EcdsaKey,
         iss: String,
-        typ: Option<String>,
         attributes: T,
-    ) -> Result<UnverifiedJwt<JwtCredentialClaims<T>>, JwtError> {
-        let jwt = UnverifiedJwt::<JwtCredentialClaims<T>>::sign(
-            &JwtCredentialClaims::<T>::new(holder_pubkey, iss, attributes)?,
-            &Header {
-                typ: typ.or(Some("jwt".to_string())),
-                ..Header::new(jsonwebtoken::Algorithm::ES256)
-            },
+    ) -> Result<SignedJwt<Self>, JwtError> {
+        let jwt = SignedJwt::sign(
+            &JwtCredentialClaims::new(holder_pubkey, iss, attributes)?,
             issuer_privkey,
         )
         .await?;

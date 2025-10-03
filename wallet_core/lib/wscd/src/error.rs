@@ -2,8 +2,6 @@ use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
 use jwt::jwk::AlgorithmParameters;
 
-use crate::POA_JWT_TYP;
-
 #[derive(Debug, thiserror::Error)]
 pub enum PoaError {
     #[error("error converting key from/to JWK: {0}")]
@@ -26,8 +24,8 @@ pub enum PoaVerificationError {
     IncorrectNonce,
     #[error("error converting key from/to JWK: {0}")]
     Jwk(#[from] JwkConversionError),
-    #[error("typ field of PoA header had unexpected value: expected 'Some({POA_JWT_TYP})', found '{0:?}'")]
-    IncorrectTyp(Option<String>),
+    #[error("typ field of PoA header had unexpected value: {0}")]
+    IncorrectTyp(#[source] JwtError),
     #[error("key missing in PoA: {0:?}")]
     MissingKey(AlgorithmParameters),
 }

@@ -178,7 +178,6 @@ impl TryFrom<SdJwt> for DisclosedAttestation {
 
         let ca = sd_jwt
             .issuer_certificate()
-            .ok_or(DisclosedAttestationError::MissingIssuerCertificate)?
             .issuer_common_names()?
             .first()
             .ok_or(DisclosedAttestationError::EmptyIssuerCommonName)?
@@ -202,7 +201,7 @@ impl TryFrom<SdJwt> for DisclosedAttestation {
             ))?;
 
         let validity_info = ValidityInfo {
-            signed: claims.iat.into_inner().into(),
+            signed: claims.iat.into(),
             valid_from: claims.nbf.map(Into::into),
             valid_until: claims.exp.map(Into::into),
         };
@@ -210,7 +209,7 @@ impl TryFrom<SdJwt> for DisclosedAttestation {
         Ok(DisclosedAttestation {
             attestation_type,
             attributes,
-            issuer_uri: claims.iss.into_inner(),
+            issuer_uri: claims.iss,
             attestation_qualification,
             ca,
             validity_info,

@@ -19,6 +19,7 @@ use std::io;
 use derive_more::Constructor;
 use serde::Deserialize;
 use serde::Serialize;
+use tempfile::NamedTempFile;
 use uuid::Uuid;
 
 use attestation_data::disclosure_type::DisclosureType;
@@ -150,7 +151,8 @@ pub trait Storage {
 
     async fn open(&mut self) -> StorageResult<()>;
     async fn export(&mut self) -> StorageResult<DatabaseExport>;
-    async fn import(&mut self, export: DatabaseExport) -> StorageResult<()>;
+    async fn prepare_import(&mut self, export: DatabaseExport, database_file: &NamedTempFile) -> StorageResult<()>;
+    async fn commit_import(&mut self, database_file: NamedTempFile) -> StorageResult<()>;
     async fn clear(&mut self);
 
     async fn open_if_needed(&mut self) -> StorageResult<()> {

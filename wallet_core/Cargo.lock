@@ -1316,12 +1316,14 @@ dependencies = [
  "etag",
  "http",
  "http_utils",
+ "jwt",
  "rustls",
  "serde",
  "tokio",
  "tracing",
  "tracing-subscriber",
  "utils",
+ "wallet_configuration",
 ]
 
 [[package]]
@@ -4241,6 +4243,7 @@ dependencies = [
  "dcql",
  "http",
  "http_utils",
+ "jwt",
  "openid4vc",
  "ring",
  "rustls-pki-types",
@@ -7693,6 +7696,7 @@ dependencies = [
  "derive_more",
  "etag",
  "http_utils",
+ "jwt",
  "rustls-pki-types",
  "serde",
  "serde_with",

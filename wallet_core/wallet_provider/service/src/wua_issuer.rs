@@ -41,8 +41,6 @@ pub enum HsmWuaIssuerError {
     PublicKeyError(Box<dyn Error + Send + Sync + 'static>),
 }
 
-static WUA_JWT_TYP: &str = "wua+jwt";
-
 impl<H, K> WuaIssuer for HsmWuaIssuer<H, K>
 where
     H: WalletUserHsm<Error = HsmError>,
@@ -56,14 +54,9 @@ where
         let wrapped_privkey = self.hsm.generate_wrapped_key(&self.wrapping_key_identifier).await?;
         let pubkey = *wrapped_privkey.public_key();
 
-        let jwt = JwtCredentialClaims::new_signed(
-            &pubkey,
-            &self.private_key,
-            self.iss.clone(),
-            Some(WUA_JWT_TYP.to_string()),
-            WuaClaims::new(),
-        )
-        .await?;
+        let jwt = JwtCredentialClaims::new_signed(&pubkey, &self.private_key, self.iss.clone(), WuaClaims::new())
+            .await?
+            .into();
 
         Ok((wrapped_privkey, verifying_key_sha256(&pubkey), jwt))
     }
@@ -89,7 +82,6 @@ pub mod mock {
     use jwt::credential::JwtCredentialClaims;
     use jwt::wua::WuaClaims;
 
-    use super::WUA_JWT_TYP;
     use super::WuaIssuer;
 
     pub struct MockWuaIssuer;
@@ -107,11 +99,11 @@ pub mod mock {
                 pubkey,
                 &privkey, // Sign the WUA with its own private key in this test
                 "iss".to_string(),
-                Some(WUA_JWT_TYP.to_string()),
                 WuaClaims::new(),
             )
             .await
-            .unwrap();
+            .unwrap()
+            .into();
 
             Ok((
                 WrappedKey::new(privkey.to_bytes().to_vec(), *privkey.verifying_key()),
@@ -157,7 +149,7 @@ mod tests {
 
         let (wua_privkey, _key_id, wua) = wua_issuer.issue_wua().await.unwrap();
 
-        let wua_claims = wua
+        let (_, wua_claims) = wua
             .parse_and_verify(&wua_verifying_key.into(), &DEFAULT_VALIDATIONS)
             .unwrap();
 

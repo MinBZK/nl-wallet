@@ -76,6 +76,7 @@ where
             .wallet_certificate
             .parse_and_verify_with_sub(&certificate_public_key.into())
             .expect("stored wallet certificate should be valid")
+            .1
             .hw_pubkey
             .into_inner();
 

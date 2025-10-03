@@ -205,13 +205,13 @@ pub enum IssuanceSessionError {
     #[error("different issuer registrations found in credential previews")]
     #[category(critical)]
     DifferentIssuerRegistrations(#[source] MultipleItemsFound),
-
-    #[error("WP failed to include JWK in PoP JWT header")]
-    #[category(critical)]
-    MissingJwk,
 }
 
 #[derive(Clone, Debug)]
+#[expect(
+    clippy::large_enum_variant,
+    reason = "in practice, variants are less different in size"
+)]
 pub enum IssuedCredential {
     MsoMdoc {
         mdoc: Mdoc,
@@ -375,7 +375,7 @@ impl VcMessageClient for HttpVcMessageClient {
         self.http_client
             .post(url.as_ref())
             .header(DPOP_HEADER_NAME, dpop_header.to_string())
-            .form(&token_request)
+            .form(token_request)
             .send()
             .map_err(IssuanceSessionError::from)
             .and_then(|response| async {
@@ -724,9 +724,10 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
                     let CredentialRequestProof::Jwt { jwt } = &proof;
 
                     // We assume here the WP gave us valid JWTs, and leave it up to the issuer to verify these.
-                    let (header, _) = jwt.dangerous_parse_unverified()?;
+                    let header = jwt.dangerous_parse_header_unverified()?;
 
-                    let pubkey = jwk_to_p256(&header.jwk.ok_or(IssuanceSessionError::MissingJwk)?)
+                    let pubkey = header
+                        .verifying_key()
                         .map_err(|e| IssuanceSessionError::VerifyingKeyFromPrivateKey(e.into()))?;
                     let cred_request = CredentialRequest {
                         credential_type: credential_request_type.into(),
@@ -1045,7 +1046,7 @@ mod tests {
     use attestation_data::auth::LocalizedStrings;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::constants::PID_ATTESTATION_TYPE;
-    use attestation_data::x509::generate::mock::generate_issuer_mock;
+    use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use attestation_types::qualification::AttestationQualification;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::KeyPair;
@@ -1087,7 +1088,7 @@ mod tests {
         type_metadata: TypeMetadata,
         formats: Vec<Format>,
     ) -> Result<HttpIssuanceSession<MockVcMessageClient>, IssuanceSessionError> {
-        let issuance_key = generate_issuer_mock(ca, IssuerRegistration::new_mock().into()).unwrap();
+        let issuance_key = generate_issuer_mock_with_registration(ca, IssuerRegistration::new_mock().into()).unwrap();
 
         let mut mock_msg_client = mock_openid_message_client();
         mock_msg_client
@@ -1233,10 +1234,10 @@ mod tests {
     fn test_start_issuance_error_different_issuer_registrations() {
         let ca = Ca::generate_issuer_mock_ca().unwrap();
 
-        let issuance_key = generate_issuer_mock(&ca, IssuerRegistration::new_mock().into()).unwrap();
+        let issuance_key = generate_issuer_mock_with_registration(&ca, IssuerRegistration::new_mock().into()).unwrap();
         let mut different_org = IssuerRegistration::new_mock();
         different_org.organization.display_name = LocalizedStrings::from(vec![("en", "different org name")]);
-        let different_issuance_key = generate_issuer_mock(&ca, different_org.into()).unwrap();
+        let different_issuance_key = generate_issuer_mock_with_registration(&ca, different_org.into()).unwrap();
 
         let preview_payload =
             PreviewableCredentialPayload::example_empty(PID_ATTESTATION_TYPE, &MockTimeGenerator::default());
@@ -1336,7 +1337,7 @@ mod tests {
             let trust_anchor = ca.to_trust_anchor().to_owned();
 
             let issuer_registration = IssuerRegistration::new_mock();
-            let issuer_key = generate_issuer_mock(&ca, Some(issuer_registration.clone())).unwrap();
+            let issuer_key = generate_issuer_mock_with_registration(&ca, Some(issuer_registration.clone())).unwrap();
             let issuer_certificate = issuer_key.certificate().clone();
 
             let (attestation_type, metadata_integrity, metadata_documents) =
@@ -1367,8 +1368,7 @@ mod tests {
             let proof_jwt = match request.proof.as_ref().unwrap() {
                 CredentialRequestProof::Jwt { jwt } => jwt,
             };
-            let holder_public_key =
-                jwk_to_p256(&proof_jwt.dangerous_parse_header_unverified().unwrap().jwk.unwrap()).unwrap();
+            let holder_public_key = jwk_to_p256(&proof_jwt.dangerous_parse_header_unverified().unwrap().jwk).unwrap();
 
             self.into_response_from_holder_public_key(&holder_public_key)
         }
@@ -1691,7 +1691,8 @@ mod tests {
         // Converting a `CredentialResponse` into an `Mdoc` using a different issuer
         // public key in the preview than is contained within the response should fail.
         let other_ca = Ca::generate_issuer_mock_ca().unwrap();
-        let other_issuance_key = generate_issuer_mock(&other_ca, IssuerRegistration::new_mock().into()).unwrap();
+        let other_issuance_key =
+            generate_issuer_mock_with_registration(&other_ca, IssuerRegistration::new_mock().into()).unwrap();
         let preview_data = NormalizedCredentialPreview {
             content: CredentialPreviewContent {
                 issuer_certificate: other_issuance_key.certificate().clone(),

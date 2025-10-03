@@ -1,9 +1,14 @@
 use std::sync::Arc;
 
 use axum::Router;
+use axum::extract::DefaultBodyLimit;
+use axum::extract::Request;
 use axum::extract::State;
 use axum::http::StatusCode;
+use axum::middleware;
+use axum::middleware::Next;
 use axum::response::Json;
+use axum::response::Response;
 use axum::routing::get;
 use axum::routing::post;
 use futures::TryFutureExt;
@@ -23,6 +28,7 @@ use wallet_account::messages::instructions::ChangePinCommit;
 use wallet_account::messages::instructions::ChangePinRollback;
 use wallet_account::messages::instructions::ChangePinStart;
 use wallet_account::messages::instructions::CheckPin;
+use wallet_account::messages::instructions::CompleteTransfer;
 use wallet_account::messages::instructions::ConfirmTransfer;
 use wallet_account::messages::instructions::DiscloseRecoveryCode;
 use wallet_account::messages::instructions::DiscloseRecoveryCodePinRecovery;
@@ -99,6 +105,10 @@ where
                     post(handle_hw_signed_instruction::<ReceiveWalletPayload, _, _, _>),
                 )
                 .route(
+                    &format!("/instructions/hw_signed/{}", CompleteTransfer::NAME),
+                    post(handle_hw_signed_instruction::<CompleteTransfer, _, _, _>),
+                )
+                .route(
                     &format!("/instructions/{}", ChangePinStart::NAME),
                     post(change_pin_start),
                 )
@@ -140,9 +150,11 @@ where
                 )
                 .route(
                     &format!("/instructions/{}", SendWalletPayload::NAME),
-                    post(handle_instruction::<SendWalletPayload, _, _, _>),
+                    post(handle_instruction::<SendWalletPayload, _, _, _>)
+                        .layer(DefaultBodyLimit::max(state.max_transfer_upload_size_in_bytes)),
                 )
                 .layer(TraceLayer::new_for_http())
+                .layer(middleware::from_fn(log_headers))
                 .with_state(Arc::clone(&state)),
         )
         .nest(
@@ -156,6 +168,11 @@ where
 
 fn health_router() -> Router {
     Router::new().route("/health", get(|| async {}))
+}
+
+async fn log_headers(req: Request, next: Next) -> Response {
+    tracing::info!("Headers: {:?}", req.headers());
+    next.run(req).await
 }
 
 async fn enroll<GRC, PIC>(State(state): State<Arc<RouterState<GRC, PIC>>>) -> Result<(StatusCode, Json<Challenge>)> {

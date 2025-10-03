@@ -51,13 +51,16 @@ use apple_app_attest::AppIdentifier;
 use apple_app_attest::AssertionCounter;
 use apple_app_attest::AttestationEnvironment;
 use apple_app_attest::VerifiedAttestation;
+use crypto::p256_der::verifying_key_sha256;
 use hsm::model::Hsm;
 use hsm::model::encrypted::Encrypted;
 use hsm::model::encrypter::Decrypter;
 use hsm::model::encrypter::Encrypter;
 use hsm::service::HsmError;
 use jwt::EcdsaDecodingKey;
-use jwt::JwtSubject;
+use jwt::JwtSub;
+use jwt::JwtTyp;
+use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
@@ -88,6 +91,9 @@ use wallet_provider_domain::model::wallet_user::WalletUser;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestation;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestationCreate;
 use wallet_provider_domain::model::wallet_user::WalletUserCreate;
+use wallet_provider_domain::model::wallet_user::WalletUserPinRecoveryKey;
+use wallet_provider_domain::model::wallet_user::WalletUserPinRecoveryKeys;
+use wallet_provider_domain::model::wallet_user::WalletUserState;
 use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::repository::PersistenceError;
 use wallet_provider_domain::repository::TransactionStarter;
@@ -266,6 +272,9 @@ pub enum InstructionError {
     #[error("the wallet transfer session is in an illegal state")]
     AccountTransferIllegalState,
 
+    #[error("the wallet transfer session has been canceled")]
+    AccountTransferCanceled,
+
     #[error(
         "cannot transfer wallets because of app version mismatch; source: {source_version}, destination: \
          {destination_version}"
@@ -274,6 +283,9 @@ pub enum InstructionError {
         source_version: Version,
         destination_version: Version,
     },
+
+    #[error("cannot recover PIN: received PID does not belong to this wallet account")]
+    PinRecoveryAccountMismatch,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -298,6 +310,9 @@ pub enum InstructionValidationError {
 
     #[error("wallet transfer is in progress")]
     TransferInProgress,
+
+    #[error("no wallet transfer is in progress")]
+    NoTransferInProgress,
 
     #[error("recovery code is missing")]
     MissingRecoveryCode,
@@ -347,9 +362,11 @@ struct RegistrationChallengeClaims {
     random: Vec<u8>,
 }
 
-impl JwtSubject for RegistrationChallengeClaims {
+impl JwtSub for RegistrationChallengeClaims {
     const SUB: &'static str = "registration_challenge";
 }
+
+impl JwtTyp for RegistrationChallengeClaims {}
 
 pub struct AppleAttestationConfiguration {
     pub app_identifier: AppIdentifier,
@@ -443,8 +460,8 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         &self,
         certificate_signing_key: &impl WalletCertificateSigningKey,
     ) -> Result<Vec<u8>, ChallengeError> {
-        let challenge = UnverifiedJwt::sign_with_sub(
-            &RegistrationChallengeClaims {
+        let challenge = SignedJwt::sign_with_sub(
+            RegistrationChallengeClaims {
                 wallet_id: crypto::utils::random_string(32),
                 random: crypto::utils::random_bytes(32),
                 exp: Utc::now() + Duration::from_secs(60),
@@ -453,6 +470,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         )
         .await
         .map_err(ChallengeError::ChallengeSigning)?
+        .as_ref()
         .serialization()
         .as_bytes()
         .to_vec();
@@ -953,7 +971,12 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
 
         user_state
             .repositories
-            .change_pin(&tx, wallet_user.wallet_id.as_str(), encrypted_pin_pubkey)
+            .change_pin(
+                &tx,
+                wallet_user.wallet_id.as_str(),
+                encrypted_pin_pubkey,
+                WalletUserState::Active,
+            )
             .await?;
 
         let wallet_certificate = new_wallet_certificate(
@@ -1064,13 +1087,36 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         let issuance_instruction = instruction_payload.issuance_with_wua_instruction.issuance_instruction;
 
         // Handle the issuance part without persisting the generated keys
-        let (issuance_with_wua_result, _, _) = perform_issuance_with_wua(issuance_instruction, user_state).await?;
+        let (issuance_with_wua_result, keys, _) = perform_issuance_with_wua(issuance_instruction, user_state).await?;
 
         let tx = user_state.repositories.begin_transaction().await?;
 
         user_state
             .repositories
-            .change_pin(&tx, wallet_user.wallet_id.as_str(), encrypted_pin_pubkey)
+            .change_pin(
+                &tx,
+                wallet_user.wallet_id.as_str(),
+                encrypted_pin_pubkey,
+                WalletUserState::RecoveringPin,
+            )
+            .await?;
+
+        user_state
+            .repositories
+            .save_pin_recovery_keys(
+                &tx,
+                WalletUserPinRecoveryKeys {
+                    wallet_user_id: wallet_user.id,
+                    keys: keys
+                        .iter()
+                        .map(|key| WalletUserPinRecoveryKey {
+                            wallet_user_key_id: generators.generate(),
+                            key_identifier: verifying_key_sha256(key.public_key()),
+                            pubkey: *key.public_key(),
+                        })
+                        .collect(),
+                },
+            )
             .await?;
 
         let (instruction_result_signing_key, certificate_signing_key) = signing_keys;
@@ -1293,6 +1339,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             .map_err(RegistrationError::ChallengeValidation)?;
         jwt.parse_and_verify_with_sub(certificate_signing_pubkey)
             .map_err(RegistrationError::ChallengeValidation)
+            .map(|(_, claims)| claims)
     }
 
     fn verify_instruction_challenge<'a>(
@@ -1408,8 +1455,9 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             iat: Utc::now(),
         };
 
-        UnverifiedJwt::sign_with_sub(&claims, instruction_result_signing_key)
+        SignedJwt::sign_with_sub(claims, instruction_result_signing_key)
             .await
+            .map(Into::into)
             .map_err(InstructionError::Signing)
     }
 }
@@ -1686,6 +1734,7 @@ mod tests {
     use chrono::DateTime;
     use chrono::TimeZone;
     use chrono::Utc;
+    use futures::FutureExt;
     use hmac::digest::crypto_common::rand_core::OsRng;
     use p256::ecdsa::SigningKey;
     use p256::ecdsa::VerifyingKey;
@@ -2038,6 +2087,7 @@ mod tests {
         let new_certificate = new_certificate_result
             .parse_and_verify_with_sub(&instruction_result_signing_key.verifying_key().into())
             .expect("Could not parse and verify instruction result")
+            .1
             .result;
 
         (
@@ -2055,7 +2105,7 @@ mod tests {
     ) {
         let (setup, account_server, hw_privkey, cert, user_state) = setup_and_do_registration(attestation_type).await;
 
-        let cert_data = cert
+        let (_, cert_data) = cert
             .parse_and_verify_with_sub(&setup.signing_key.verifying_key().into())
             .expect("Could not parse and verify wallet certificate");
         assert_eq!(cert_data.iss, account_server.name);
@@ -3055,6 +3105,102 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_start_pin_recovery_repository_changes() {
+        let (setup, account_server, hw_privkey, cert, mut user_state) =
+            setup_and_do_registration(AttestationType::Google).await;
+        user_state.repositories.instruction_sequence_number = 42;
+
+        let challenge =
+            do_instruction_challenge::<ChangePinStart>(&account_server, &hw_privkey, cert.clone(), 43, &user_state)
+                .await
+                .unwrap();
+
+        user_state.repositories = WalletUserTestRepo {
+            challenge: Some(challenge.clone()),
+            state: WalletUserState::Active,
+            ..user_state.repositories
+        };
+
+        let new_pin_privkey = SigningKey::random(&mut OsRng);
+        let new_pin_pubkey = *new_pin_privkey.verifying_key();
+
+        let instruction = StartPinRecovery {
+            issuance_with_wua_instruction: PerformIssuanceWithWua {
+                issuance_instruction: PerformIssuance {
+                    key_count: 1.try_into().unwrap(),
+                    aud: "aud".to_string(),
+                    nonce: Some("nonce".to_string()),
+                },
+            },
+            pin_pubkey: new_pin_pubkey.into(),
+        };
+        let instruction = hw_privkey
+            .sign_instruction(instruction, challenge, 46, &new_pin_privkey, cert)
+            .await;
+
+        let instruction_result_signing_key = SigningKey::random(&mut OsRng);
+
+        let mut repositories = MockTransactionalWalletUserRepository::new();
+        repositories
+            .expect_find_wallet_user_by_wallet_id()
+            .times(1)
+            .returning(move |transaction, wallet_id| {
+                user_state
+                    .repositories
+                    .find_wallet_user_by_wallet_id(transaction, wallet_id)
+                    .now_or_never()
+                    .unwrap()
+            });
+        repositories
+            .expect_clear_instruction_challenge()
+            .times(1)
+            .returning(|_, _| Ok(()));
+        repositories
+            .expect_reset_unsuccessful_pin_entries()
+            .times(1)
+            .returning(|_, _| Ok(()));
+        repositories
+            .expect_update_instruction_sequence_number()
+            .times(1)
+            .returning(|_, _, _| Ok(()));
+        repositories
+            .expect_begin_transaction()
+            .times(3)
+            .returning(|| Ok(MockTransaction));
+
+        repositories
+            .expect_change_pin()
+            .times(1)
+            .returning(move |_, _, _, state| {
+                assert_eq!(state, WalletUserState::RecoveringPin);
+                Ok(())
+            });
+        repositories
+            .expect_save_pin_recovery_keys()
+            .times(1)
+            .returning(move |_, _| Ok(()));
+
+        let user_state = UserState {
+            repositories,
+            wallet_user_hsm: user_state.wallet_user_hsm,
+            wua_issuer: user_state.wua_issuer,
+            wrapping_key_identifier: user_state.wrapping_key_identifier,
+            pid_issuer_trust_anchors: user_state.pid_issuer_trust_anchors,
+        };
+
+        account_server
+            .handle_start_pin_recovery_instruction(
+                instruction,
+                (&instruction_result_signing_key, &setup.signing_key),
+                &MockGenerators,
+                &TimeoutPinPolicy,
+                &user_state,
+            )
+            .await
+            .unwrap();
+    }
+
+    #[tokio::test]
     async fn test_transfer_in_progress_no_other_instructions_allowed() {
         let (setup, account_server, hw_privkey, cert, mut user_state) =
             setup_and_do_registration(AttestationType::Google).await;
@@ -3067,6 +3213,7 @@ mod tests {
             challenge: Some(challenge.clone()),
             transfer_session: Some(TransferSession {
                 id: Uuid::new_v4(),
+                source_wallet_user_id: Some(Uuid::new_v4()),
                 destination_wallet_user_id: Uuid::new_v4(),
                 destination_wallet_app_version: Version::parse("3.2.1").unwrap(),
                 destination_wallet_recovery_code: String::from("12345678"),
@@ -3097,6 +3244,8 @@ mod tests {
             .await;
 
         let instruction_result_signing_key = SigningKey::random(&mut OsRng);
+
+        user_state.repositories.state = WalletUserState::Transferring;
 
         let result = account_server
             .handle_instruction(

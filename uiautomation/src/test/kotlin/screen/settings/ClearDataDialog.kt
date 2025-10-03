@@ -4,17 +4,16 @@ import util.MobileActions
 
 class ClearDataDialog : MobileActions() {
 
-    private val dialogTitle = find.byText(l10n.getString("resetWalletDialogTitle"))
-    private val dialogBody = find.byText(l10n.getString("resetWalletDialogBody"))
+    private val dialogTitle = l10n.getString("resetWalletDialogTitle")
+    private val dialogBody = l10n.getString("resetWalletDialogBody")
+    private val cancelButton = l10n.getString("resetWalletDialogCancelCta")
+    private val confirmButton = l10n.getString("resetWalletDialogConfirmCta")
 
-    private val cancelButton = find.byText(l10n.getString("resetWalletDialogCancelCta"))
-    private val confirmButton = find.byText(l10n.getString("resetWalletDialogConfirmCta"))
+    fun informVisible() = elementWithTextVisible(dialogTitle) && elementWithTextVisible(dialogBody)
 
-    fun informVisible() = isElementVisible(dialogTitle) && isElementVisible(dialogBody)
+    fun cancelButtonVisible() = elementWithTextVisible(cancelButton)
 
-    fun cancelButtonVisible() = isElementVisible(cancelButton)
+    fun confirmButtonVisible() = elementWithTextVisible(confirmButton)
 
-    fun confirmButtonVisible() = isElementVisible(confirmButton)
-
-    fun clickConfirmButton() = clickElement(confirmButton)
+    fun clickConfirmButton() = clickElementWithText(confirmButton)
 }

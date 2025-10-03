@@ -1,5 +1,6 @@
 pub mod credential;
 pub mod error;
+pub mod headers;
 pub mod jwk;
 pub mod jwt;
 pub mod pop;

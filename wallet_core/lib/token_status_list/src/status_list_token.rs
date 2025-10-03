@@ -18,8 +18,8 @@ use serde_with::serde_as;
 
 use crypto::EcdsaKey;
 use http_utils::urls::HttpsUri;
-use jwt::Algorithm;
-use jwt::Header;
+use jwt::JwtTyp;
+use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
 use jwt::error::JwtError;
 
@@ -65,11 +65,6 @@ impl StatusListTokenBuilder {
     }
 
     pub async fn sign(self, key: &impl EcdsaKey) -> Result<StatusListToken, JwtError> {
-        let header = Header {
-            typ: Some(TOKEN_STATUS_LIST_JWT_TYP.to_string()),
-            ..Header::new(Algorithm::ES256)
-        };
-
         let claims = StatusListClaims {
             iat: Utc::now(),
             exp: self.exp,
@@ -78,8 +73,8 @@ impl StatusListTokenBuilder {
             status_list: self.status_list,
         };
 
-        let jwt = UnverifiedJwt::sign(&claims, &header, key).await?;
-        Ok(StatusListToken(jwt))
+        let jwt = SignedJwt::sign(&claims, key).await?;
+        Ok(StatusListToken(jwt.into()))
     }
 }
 
@@ -112,6 +107,10 @@ pub struct StatusListClaims {
     status_list: PackedStatusList,
 }
 
+impl JwtTyp for StatusListClaims {
+    const TYP: &'static str = TOKEN_STATUS_LIST_JWT_TYP;
+}
+
 #[cfg(test)]
 mod test {
     use p256::ecdsa::SigningKey;
@@ -119,6 +118,7 @@ mod test {
     use serde_json::json;
 
     use jwt::DEFAULT_VALIDATIONS;
+    use jwt::headers::HeaderWithTyp;
 
     use super::*;
 
@@ -139,8 +139,8 @@ mod test {
             "ttl": 43200
         });
 
-        let expected_header: Header = serde_json::from_value(example_header).unwrap();
-        assert_eq!(expected_header.typ, Some(TOKEN_STATUS_LIST_JWT_TYP.to_string()));
+        let expected_header: HeaderWithTyp = serde_json::from_value(example_header).unwrap();
+        assert!(expected_header.typ == TOKEN_STATUS_LIST_JWT_TYP);
 
         let expected_claims: StatusListClaims = serde_json::from_value(example_payload).unwrap();
 
@@ -152,16 +152,16 @@ mod test {
             .await
             .unwrap();
 
-        let (header, claims) = signed
+        let verified = signed
             .0
-            .parse_and_verify_with_header(&key.verifying_key().into(), &DEFAULT_VALIDATIONS)
+            .into_verified(&key.verifying_key().into(), &DEFAULT_VALIDATIONS)
             .unwrap();
-        assert_eq!(header, expected_header);
+        assert_eq!(*verified.header(), expected_header);
         // the `iat` claim is set when signing the token
-        assert_eq!(claims.status_list, expected_claims.status_list);
-        assert_eq!(claims.sub, expected_claims.sub);
-        assert_eq!(claims.ttl, expected_claims.ttl);
-        assert_eq!(claims.exp, expected_claims.exp);
+        assert_eq!(verified.payload().status_list, expected_claims.status_list);
+        assert_eq!(verified.payload().sub, expected_claims.sub);
+        assert_eq!(verified.payload().ttl, expected_claims.ttl);
+        assert_eq!(verified.payload().exp, expected_claims.exp);
     }
 
     #[cfg(feature = "axum")]
@@ -217,8 +217,7 @@ mod test {
             TOKEN_STATUS_LIST_JWT_HEADER
         );
         let status_list_token: StatusListToken = response.text().await.unwrap().parse().unwrap();
-        let (header, payload) = status_list_token.0.dangerous_parse_unverified().unwrap();
-        assert_eq!(header.typ.unwrap(), TOKEN_STATUS_LIST_JWT_TYP);
+        let (_, payload) = status_list_token.0.dangerous_parse_unverified().unwrap();
         assert!(!payload.status_list.is_empty());
     }
 }

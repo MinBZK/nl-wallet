@@ -39,18 +39,17 @@ use openid4vc::issuer::Issuer;
 use openid4vc::metadata::IssuerMetadata;
 use openid4vc::oidc;
 use openid4vc::server_state::SessionStore;
-use openid4vc::server_state::WuaTracker;
 use openid4vc::token::AccessToken;
 use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenResponseWithPreviews;
 
-struct ApplicationState<A, K, S, W> {
-    issuer: Arc<Issuer<A, K, S, W>>,
+struct ApplicationState<A, K, S> {
+    issuer: Arc<Issuer<A, K, S>>,
 }
 
 // Implement `Clone` manually, because `#[derive(Clone)]` unnecessarily adds `Clone` bounds on A, K, S and W,
 // which we don't want.
-impl<A, K, S, W> Clone for ApplicationState<A, K, S, W> {
+impl<A, K, S> Clone for ApplicationState<A, K, S> {
     fn clone(&self) -> Self {
         Self {
             issuer: self.issuer.clone(),
@@ -58,12 +57,11 @@ impl<A, K, S, W> Clone for ApplicationState<A, K, S, W> {
     }
 }
 
-pub fn create_issuance_router<A, K, S, W>(issuer: Arc<Issuer<A, K, S, W>>) -> Router
+pub fn create_issuance_router<A, K, S>(issuer: Arc<Issuer<A, K, S>>) -> Router
 where
     A: AttributeService + Send + Sync + 'static,
     K: EcdsaKeySend + Sync + 'static,
     S: SessionStore<IssuanceData> + Send + Sync + 'static,
-    W: WuaTracker + Send + Sync + 'static,
 {
     let application_state = ApplicationState { issuer };
 
@@ -80,14 +78,13 @@ where
 
 // Although there is no standard here mandating what our error response looks like, we use `ErrorResponse`
 // for consistency with the other endpoints.
-async fn oauth_metadata<A, K, S, W>(
-    State(state): State<ApplicationState<A, K, S, W>>,
+async fn oauth_metadata<A, K, S>(
+    State(state): State<ApplicationState<A, K, S>>,
 ) -> Result<Json<oidc::Config>, ErrorResponse<MetadataError>>
 where
     A: AttributeService,
     K: EcdsaKeySend,
     S: SessionStore<IssuanceData>,
-    W: WuaTracker,
 {
     let metadata = state.issuer.oauth_metadata().await.map_err(|error| {
         warn!("retrieving OAuth metadata failed: {}", error);
@@ -102,12 +99,12 @@ where
     Ok(Json(metadata))
 }
 
-async fn metadata<A, K, S, W>(State(state): State<ApplicationState<A, K, S, W>>) -> Json<IssuerMetadata> {
+async fn metadata<A, K, S>(State(state): State<ApplicationState<A, K, S>>) -> Json<IssuerMetadata> {
     Json(state.issuer.metadata.clone())
 }
 
-async fn token<A, K, S, W>(
-    State(state): State<ApplicationState<A, K, S, W>>,
+async fn token<A, K, S>(
+    State(state): State<ApplicationState<A, K, S>>,
     TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
     Form(token_request): Form<TokenRequest>,
 ) -> Result<(HeaderMap, Json<TokenResponseWithPreviews>), ErrorResponse<TokenErrorCode>>
@@ -115,7 +112,6 @@ where
     A: AttributeService,
     K: EcdsaKeySend,
     S: SessionStore<IssuanceData>,
-    W: WuaTracker,
 {
     let (response, dpop_nonce) = state
         .issuer
@@ -132,8 +128,8 @@ where
     Ok((headers, Json(response)))
 }
 
-async fn credential<A, K, S, W>(
-    State(state): State<ApplicationState<A, K, S, W>>,
+async fn credential<A, K, S>(
+    State(state): State<ApplicationState<A, K, S>>,
     TypedHeader(Authorization(authorization_header)): TypedHeader<Authorization<DpopBearer>>,
     TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
     Json(credential_request): Json<CredentialRequest>,
@@ -142,7 +138,6 @@ where
     A: AttributeService,
     K: EcdsaKeySend,
     S: SessionStore<IssuanceData>,
-    W: WuaTracker,
 {
     let access_token = authorization_header.into();
     let response = state
@@ -154,8 +149,8 @@ where
     Ok(Json(response))
 }
 
-async fn batch_credential<A, K, S, W>(
-    State(state): State<ApplicationState<A, K, S, W>>,
+async fn batch_credential<A, K, S>(
+    State(state): State<ApplicationState<A, K, S>>,
     TypedHeader(Authorization(authorization_header)): TypedHeader<Authorization<DpopBearer>>,
     TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
     Json(credential_requests): Json<CredentialRequests>,
@@ -164,7 +159,6 @@ where
     A: AttributeService,
     K: EcdsaKeySend,
     S: SessionStore<IssuanceData>,
-    W: WuaTracker,
 {
     let access_token = authorization_header.into();
     let response = state
@@ -176,8 +170,8 @@ where
     Ok(Json(response))
 }
 
-async fn reject_issuance<A, K, S, W>(
-    State(state): State<ApplicationState<A, K, S, W>>,
+async fn reject_issuance<A, K, S>(
+    State(state): State<ApplicationState<A, K, S>>,
     TypedHeader(Authorization(authorization_header)): TypedHeader<Authorization<DpopBearer>>,
     TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
     uri: Uri,
@@ -186,7 +180,6 @@ where
     A: AttributeService,
     K: EcdsaKeySend,
     S: SessionStore<IssuanceData>,
-    W: WuaTracker,
 {
     let uri_path = &uri.path()[1..]; // strip off leading slash
 

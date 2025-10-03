@@ -63,7 +63,8 @@ where
         let response = self.client.fetch(client_builder).await?;
         match response {
             HttpResponse::Parsed(parsed_response) => {
-                let new_config = parsed_response.parse_and_verify(&self.signing_public_key, &DEFAULT_VALIDATIONS)?;
+                let (_, new_config) =
+                    parsed_response.parse_and_verify(&self.signing_public_key, &DEFAULT_VALIDATIONS)?;
 
                 {
                     let current_config = self.config.read();

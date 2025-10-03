@@ -1,5 +1,6 @@
 use derive_more::AsRef;
 use derive_more::Constructor;
+use derive_more::Into;
 use josekit::JoseError;
 use josekit::jwe::ECDH_ES_A256KW;
 use josekit::jwe::JweHeader;
@@ -26,7 +27,7 @@ pub enum DatabasePayloadError {
     MissingDatabaseClaim,
 }
 
-#[derive(Constructor, AsRef, PartialEq, Eq)]
+#[derive(Constructor, AsRef, Into, PartialEq, Eq)]
 pub struct WalletDatabasePayload(DatabaseExport);
 
 impl WalletDatabasePayload {
@@ -48,7 +49,6 @@ impl WalletDatabasePayload {
         Ok(payload)
     }
 
-    #[cfg(test)] // TODO: remove test annotation in PVW-4598
     pub fn decrypt(jwt: &str, private_key: &Jwk) -> Result<Self, DatabasePayloadError> {
         let decrypter = ECDH_ES_A256KW.decrypter_from_jwk(private_key)?;
 

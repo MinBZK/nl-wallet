@@ -1,12 +1,5 @@
 use std::fmt;
 
-use crypto::server_keys::KeyPair;
-use crypto::server_keys::generate::Ca;
-use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
-use crypto::server_keys::generate::mock::RP_CERT_CN;
-use crypto::x509::CertificateError;
-use crypto::x509::CertificateUsage;
-
 use crate::iso::mdocs::DataElementValue;
 use crate::verifier::DisclosedDocument;
 
@@ -105,12 +98,4 @@ pub fn assert_disclosure_contains(
         .any(|attributes| attributes.get(name) == Some(value));
 
     assert!(contains_attribute)
-}
-
-pub fn generate_issuer_mock(ca: &Ca) -> Result<KeyPair, CertificateError> {
-    ca.generate_key_pair(ISSUANCE_CERT_CN, CertificateUsage::Mdl, Default::default())
-}
-
-pub fn generate_reader_mock(ca: &Ca) -> Result<KeyPair, CertificateError> {
-    ca.generate_key_pair(RP_CERT_CN, CertificateUsage::ReaderAuth, Default::default())
 }

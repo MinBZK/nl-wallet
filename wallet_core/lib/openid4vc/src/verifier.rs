@@ -43,8 +43,9 @@ use dcql::normalized::NormalizedCredentialRequests;
 use dcql::normalized::UnsupportedDcqlFeatures;
 use dcql::unique_id_vec::UniqueIdVec;
 use http_utils::urls::BaseUrl;
-use jwt::UnverifiedJwt;
+use jwt::SignedJwt;
 use jwt::error::JwtError;
+use jwt::headers::HeaderWithX5c;
 use utils::generator::Generator;
 
 use crate::AuthorizationErrorCode;
@@ -942,7 +943,7 @@ where
         response_uri_base: &BaseUrl,
         query: Option<&str>,
         wallet_nonce: Option<String>,
-    ) -> Result<UnverifiedJwt<VpAuthorizationRequest>, WithRedirectUri<GetAuthRequestError>> {
+    ) -> Result<SignedJwt<VpAuthorizationRequest, HeaderWithX5c>, WithRedirectUri<GetAuthRequestError>> {
         let url_params: VerifierUrlParameters =
             serde_urlencoded::from_str(query.ok_or(GetAuthRequestError::QueryParametersMissing)?)
                 .map_err(GetAuthRequestError::QueryParametersDeserialization)?;
@@ -1215,7 +1216,10 @@ impl Session<Created> {
         wallet_nonce: Option<String>,
         use_cases: &impl UseCases<Key = K, UseCase = UC>,
     ) -> Result<
-        (UnverifiedJwt<VpAuthorizationRequest>, Session<WaitingForResponse>),
+        (
+            SignedJwt<VpAuthorizationRequest, HeaderWithX5c>,
+            Session<WaitingForResponse>,
+        ),
         (WithRedirectUri<GetAuthRequestError>, Session<Done>),
     >
     where
@@ -1261,7 +1265,7 @@ impl Session<Created> {
         use_cases: &impl UseCases<Key = K, UseCase = UC>,
     ) -> Result<
         (
-            UnverifiedJwt<VpAuthorizationRequest>,
+            SignedJwt<VpAuthorizationRequest, HeaderWithX5c>,
             NormalizedVpAuthorizationRequest,
             Option<RedirectUri>,
             EcKeyPair,
@@ -1305,7 +1309,7 @@ impl Session<Created> {
         .map_err(|err| error_with_redirect_uri(&redirect_uri, err))?;
 
         let vp_auth_request = VpAuthorizationRequest::from(auth_request.clone());
-        let jws = UnverifiedJwt::sign_with_certificate(&vp_auth_request, &usecase.key_pair)
+        let jws = SignedJwt::sign_with_certificate(&vp_auth_request, &usecase.key_pair)
             .await
             .map_err(|err| error_with_redirect_uri(&redirect_uri, err))?;
 
@@ -1520,7 +1524,7 @@ mod tests {
     use attestation_data::disclosure::DisclosedAttestations;
     use attestation_data::disclosure::DisclosedAttributes;
     use attestation_data::disclosure::ValidityInfo;
-    use attestation_data::x509::generate::mock::generate_reader_mock;
+    use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
     use attestation_types::qualification::AttestationQualification;
     use crypto::server_keys::generate::Ca;
     use dcql::Query;
@@ -1582,7 +1586,7 @@ mod tests {
             (
                 DISCLOSURE_USECASE_NO_REDIRECT_URI.to_string(),
                 RpInitiatedUseCase::try_new(
-                    generate_reader_mock(&ca, reader_registration.clone()).unwrap(),
+                    generate_reader_mock_with_registration(&ca, reader_registration.clone()).unwrap(),
                     SessionTypeReturnUrl::Neither,
                     None,
                     None,
@@ -1592,7 +1596,7 @@ mod tests {
             (
                 DISCLOSURE_USECASE.to_string(),
                 RpInitiatedUseCase::try_new(
-                    generate_reader_mock(&ca, reader_registration.clone()).unwrap(),
+                    generate_reader_mock_with_registration(&ca, reader_registration.clone()).unwrap(),
                     SessionTypeReturnUrl::SameDevice,
                     None,
                     None,
@@ -1602,7 +1606,7 @@ mod tests {
             (
                 DISCLOSURE_USECASE_ALL_REDIRECT_URI.to_string(),
                 RpInitiatedUseCase::try_new(
-                    generate_reader_mock(&ca, reader_registration).unwrap(),
+                    generate_reader_mock_with_registration(&ca, reader_registration).unwrap(),
                     SessionTypeReturnUrl::Both,
                     None,
                     None,
@@ -1981,7 +1985,7 @@ mod tests {
             DISCLOSURE_USECASE_NO_REDIRECT_URI.to_string(),
             WalletInitiatedUseCase {
                 data: UseCaseData {
-                    key_pair: generate_reader_mock(&ca, reader_registration.clone()).unwrap(),
+                    key_pair: generate_reader_mock_with_registration(&ca, reader_registration.clone()).unwrap(),
                     session_type_return_url: SessionTypeReturnUrl::Neither,
                     client_id: "client_id".to_string(),
                 },

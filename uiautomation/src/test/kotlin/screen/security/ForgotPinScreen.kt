@@ -4,12 +4,11 @@ import util.MobileActions
 
 class ForgotPinScreen : MobileActions() {
 
-    private val screen = find.byValueKey("forgotPinScreen")
+    private val title = l10n.getString("forgotPinScreenTitle")
+    private val resetButton = l10n.getString("forgotPinScreenResetCta")
+    private val bottomBackButton = l10n.getString("generalBottomBackCta")
 
-    private val resetButton = find.byText(l10n.getString("forgotPinScreenResetCta"))
-    private val bottomBackButton = find.byText(l10n.getString("generalBottomBackCta"))
-
-    fun visible() = isElementVisible(screen)
+    fun visible() = elementWithTextVisible(title)
 
     fun dataLossTextVisible(): Boolean {
         val description = l10n.getString("forgotPinScreenResetDescription")
@@ -17,10 +16,10 @@ class ForgotPinScreen : MobileActions() {
 
         if (paragraphed.isEmpty()) return false
 
-        return paragraphed.all { isElementVisible(find.byText(it)) }
+        return paragraphed.all { elementContainingTextVisible(it) }
     }
 
-    fun resetButtonVisible() = isElementVisible(resetButton)
+    fun resetButtonVisible() = elementWithTextVisible(resetButton)
 
-    fun clickBottomBackButton() = clickElement(bottomBackButton)
+    fun clickBottomBackButton() = clickElementWithText(bottomBackButton)
 }

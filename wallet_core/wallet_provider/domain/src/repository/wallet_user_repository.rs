@@ -14,7 +14,9 @@ use crate::model::wallet_user::InstructionChallenge;
 use crate::model::wallet_user::TransferSession;
 use crate::model::wallet_user::WalletUserCreate;
 use crate::model::wallet_user::WalletUserKeys;
+use crate::model::wallet_user::WalletUserPinRecoveryKeys;
 use crate::model::wallet_user::WalletUserQueryResult;
+use crate::model::wallet_user::WalletUserState;
 
 use super::errors::PersistenceError;
 use super::transaction::Committable;
@@ -61,6 +63,19 @@ pub trait WalletUserRepository {
 
     async fn save_keys(&self, transaction: &Self::TransactionType, keys: WalletUserKeys) -> Result<()>;
 
+    async fn save_pin_recovery_keys(
+        &self,
+        transaction: &Self::TransactionType,
+        keys: WalletUserPinRecoveryKeys,
+    ) -> Result<()>;
+
+    async fn is_pin_recovery_key(
+        &self,
+        transaction: &Self::TransactionType,
+        wallet_id: &str,
+        key: VerifyingKey,
+    ) -> Result<bool>;
+
     async fn find_keys_by_identifiers(
         &self,
         transaction: &Self::TransactionType,
@@ -73,6 +88,7 @@ pub trait WalletUserRepository {
         transaction: &Self::TransactionType,
         wallet_id: &str,
         encrypted_pin_pubkey: Encrypted<VerifyingKey>,
+        user_state: WalletUserState,
     ) -> Result<()>;
 
     async fn commit_pin_change(&self, transaction: &Self::TransactionType, wallet_id: &str) -> Result<()>;
@@ -86,12 +102,7 @@ pub trait WalletUserRepository {
         recovery_code: String,
     ) -> Result<()>;
 
-    async fn recover_pin_with_recovery_code(
-        &self,
-        transaction: &Self::TransactionType,
-        wallet_id: &str,
-        recovery_code: String,
-    ) -> Result<()>;
+    async fn recover_pin(&self, transaction: &Self::TransactionType, wallet_id: Uuid) -> Result<()>;
 
     async fn has_multiple_active_accounts_by_recovery_code(
         &self,
@@ -121,9 +132,17 @@ pub trait WalletUserRepository {
         transfer_session_id: Uuid,
     ) -> Result<Option<TransferSession>>;
 
+    async fn find_transfer_session_id_by_destination_wallet_user_id(
+        &self,
+        transaction: &Self::TransactionType,
+        destination_wallet_user_id: Uuid,
+    ) -> Result<Option<Uuid>>;
+
     async fn confirm_wallet_transfer(
         &self,
         transaction: &Self::TransactionType,
+        source_wallet_user_id: Uuid,
+        destination_wallet_user_id: Uuid,
         transfer_session_id: Uuid,
     ) -> Result<()>;
 
@@ -131,6 +150,8 @@ pub trait WalletUserRepository {
         &self,
         transaction: &Self::TransactionType,
         transfer_session_id: Uuid,
+        source_wallet_user_id: Option<Uuid>,
+        destination_wallet_user_id: Uuid,
     ) -> Result<()>;
 
     async fn store_wallet_transfer_data(
@@ -138,6 +159,14 @@ pub trait WalletUserRepository {
         transaction: &Self::TransactionType,
         transfer_session_id: Uuid,
         encrypted_wallet_data: String,
+    ) -> Result<()>;
+
+    async fn complete_wallet_transfer(
+        &self,
+        transaction: &Self::TransactionType,
+        transfer_session_id: Uuid,
+        source_wallet_user_id: Uuid,
+        destination_wallet_user_id: Uuid,
     ) -> Result<()>;
 }
 
@@ -223,6 +252,23 @@ pub mod mock {
             Ok(())
         }
 
+        async fn save_pin_recovery_keys(
+            &self,
+            _transaction: &Self::TransactionType,
+            _keys: WalletUserPinRecoveryKeys,
+        ) -> Result<()> {
+            Ok(())
+        }
+
+        async fn is_pin_recovery_key(
+            &self,
+            _transaction: &Self::TransactionType,
+            _wallet_id: &str,
+            _key: VerifyingKey,
+        ) -> Result<bool> {
+            Ok(true)
+        }
+
         async fn find_keys_by_identifiers(
             &self,
             _transaction: &Self::TransactionType,
@@ -237,6 +283,7 @@ pub mod mock {
             _transaction: &Self::TransactionType,
             _wallet_id: &str,
             _encrypted_pin_pubkey: Encrypted<VerifyingKey>,
+            _user_state: WalletUserState,
         ) -> Result<()> {
             Ok(())
         }
@@ -258,12 +305,7 @@ pub mod mock {
             Ok(())
         }
 
-        async fn recover_pin_with_recovery_code(
-            &self,
-            _transaction: &Self::TransactionType,
-            _wallet_id: &str,
-            _recovery_code: String,
-        ) -> Result<()> {
+        async fn recover_pin(&self, _transaction: &Self::TransactionType, _wallet_id: Uuid) -> Result<()> {
             Ok(())
         }
 
@@ -303,9 +345,19 @@ pub mod mock {
             Ok(None)
         }
 
+        async fn find_transfer_session_id_by_destination_wallet_user_id(
+            &self,
+            _transaction: &Self::TransactionType,
+            _destination_wallet_user_id: Uuid,
+        ) -> Result<Option<Uuid>> {
+            Ok(None)
+        }
+
         async fn confirm_wallet_transfer(
             &self,
             _transaction: &Self::TransactionType,
+            _source_wallet_user_id: Uuid,
+            _destination_wallet_user_id: Uuid,
             _transfer_session_id: Uuid,
         ) -> Result<()> {
             Ok(())
@@ -315,6 +367,8 @@ pub mod mock {
             &self,
             _transaction: &Self::TransactionType,
             _transfer_session_id: Uuid,
+            _source_wallet_user_id: Option<Uuid>,
+            _destination_wallet_user_id: Uuid,
         ) -> Result<()> {
             Ok(())
         }
@@ -324,6 +378,16 @@ pub mod mock {
             _transaction: &Self::TransactionType,
             _transfer_session_id: Uuid,
             _encrypted_wallet_data: String,
+        ) -> Result<()> {
+            Ok(())
+        }
+
+        async fn complete_wallet_transfer(
+            &self,
+            _transaction: &Self::TransactionType,
+            _transfer_session_id: Uuid,
+            _source_wallet_user_id: Uuid,
+            _destination_wallet_user_id: Uuid,
         ) -> Result<()> {
             Ok(())
         }

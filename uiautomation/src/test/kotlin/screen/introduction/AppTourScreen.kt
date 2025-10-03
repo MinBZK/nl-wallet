@@ -4,26 +4,25 @@ import util.MobileActions
 
 class AppTourScreen : MobileActions() {
 
-    private val backButton = find.byText(l10n.getString("generalBottomBackCta"))
-    private val title = find.byText(l10n.getString("tourOverviewScreenTitle"))
-    private val subtitle = find.byText(l10n.getString("tourOverviewScreenSubtitle"))
-    private val videoTitle = find.byText(l10n.getString("videoTitle_intro"))
-    private val videoPlayButton = find.bySemanticsLabel(l10n.getString("tourOverviewScreenItemWCAGLabel").replace("{name}", l10n.getString("videoTitle_intro")))
-    private val scrollableElement = find.byType(ScrollableType.CustomScrollView.toString())
+    private val backButton = l10n.getString("generalBottomBackCta")
+    private val title = l10n.getString("tourOverviewScreenTitle")
+    private val subtitle = l10n.getString("tourOverviewScreenSubtitle")
+    private val videoTitle = l10n.getString("videoTitle_intro")
+    private val videoPlayButton = l10n.getString("tourOverviewScreenItemWCAGLabel").replace("{name}", l10n.getString("videoTitle_intro"))
 
     fun clickBackButton() {
-        scrollToEnd(scrollableElement)
-        clickElement(backButton, false)
+        scrollToElementWithText(backButton)
+        clickElementWithText(backButton)
     }
 
-    fun headlineVisible() = isElementVisible(title)
+    fun headlineVisible() = elementWithTextVisible(title)
 
-    fun descriptionVisible() = isElementVisible(subtitle)
+    fun descriptionVisible() = elementContainingTextVisible(subtitle.substringBefore("'"))
 
-    fun videoTitleVisible() = isElementVisible(videoTitle)
+    fun videoTitleVisible() = elementWithTextVisible(videoTitle)
 
-    fun videoPlayButtonVisible() = isElementVisible(videoPlayButton)
+    fun videoPlayButtonVisible() = elementWithTextVisible(videoPlayButton)
 
-    fun playVideo() = clickElement(videoPlayButton)
+    fun playVideo() = clickElementWithText(videoPlayButton)
 
 }

@@ -11,13 +11,15 @@ use rustls_pki_types::TrustAnchor;
 use url::Url;
 
 use attestation_data::auth::reader_auth::ReaderRegistration;
-use attestation_data::x509::generate::mock::generate_reader_mock;
+use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::utils as crypto_utils;
 use dcql::normalized::NormalizedCredentialRequests;
 use http_utils::urls::BaseUrl;
+use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
+use jwt::headers::HeaderWithX5c;
 
 use crate::errors::ErrorResponse;
 use crate::errors::VpAuthorizationErrorCode;
@@ -69,7 +71,7 @@ where
         &self,
         _url: BaseUrl,
         wallet_nonce: Option<String>,
-    ) -> Result<UnverifiedJwt<VpAuthorizationRequest>, VpMessageClientError> {
+    ) -> Result<UnverifiedJwt<VpAuthorizationRequest, HeaderWithX5c>, VpMessageClientError> {
         self.wallet_messages
             .lock()
             .push(WalletMessage::Request(WalletRequest { wallet_nonce }));
@@ -159,7 +161,7 @@ impl MockVerifierSession {
         // Generate trust anchors, signing key and certificate containing `ReaderRegistration`.
         let ca = Ca::generate_reader_mock_ca().unwrap();
         let trust_anchors = vec![ca.to_trust_anchor().to_owned()];
-        let key_pair = generate_reader_mock(&ca, reader_registration.clone()).unwrap();
+        let key_pair = generate_reader_mock_with_registration(&ca, reader_registration.clone()).unwrap();
 
         // Generate some OpenID4VP specific session material.
         let nonce = crypto_utils::random_string(32);
@@ -206,10 +208,10 @@ impl MockVerifierSession {
     }
 
     /// Generate the first protocol message of the verifier.
-    fn signed_auth_request(&self, wallet_request: WalletRequest) -> UnverifiedJwt<VpAuthorizationRequest> {
+    fn signed_auth_request(&self, wallet_request: WalletRequest) -> SignedJwt<VpAuthorizationRequest, HeaderWithX5c> {
         let request = self.normalized_auth_request(wallet_request.wallet_nonce).into();
 
-        UnverifiedJwt::sign_with_certificate(&request, &self.key_pair)
+        SignedJwt::sign_with_certificate(&request, &self.key_pair)
             .now_or_never()
             .unwrap()
             .unwrap()
@@ -227,7 +229,7 @@ impl VpMessageClient for MockVerifierVpMessageClient {
         &self,
         url: BaseUrl,
         wallet_nonce: Option<String>,
-    ) -> Result<UnverifiedJwt<VpAuthorizationRequest>, VpMessageClientError> {
+    ) -> Result<UnverifiedJwt<VpAuthorizationRequest, HeaderWithX5c>, VpMessageClientError> {
         // The URL has to match the one in the session.
         assert_eq!(url, self.session.request_uri_object.request_uri);
 
@@ -238,7 +240,7 @@ impl VpMessageClient for MockVerifierVpMessageClient {
             .push(WalletMessage::Request(wallet_request.clone()));
         let auth_request = self.session.signed_auth_request(wallet_request);
 
-        Ok(auth_request)
+        Ok(auth_request.into())
     }
 
     async fn send_authorization_response(

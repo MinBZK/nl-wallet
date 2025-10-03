@@ -41,6 +41,7 @@ pub struct Settings {
     pub pin_policy: PinPolicySettings,
     pub structured_logging: bool,
     pub capture_and_redirect_logging: Option<PathBuf>,
+    pub max_transfer_upload_size_in_bytes: usize,
 
     #[serde(rename = "instruction_challenge_timeout_in_ms")]
     #[serde_as(as = "DurationMilliSeconds")]
@@ -133,6 +134,7 @@ impl Settings {
             .set_default("android.allow_sideloading", false)?
             .set_default("android.credentials_file", "google-cloud-service-account.json")?
             .set_default("android.play_store_certificate_hashes", Vec::<String>::new())?
+            .set_default("max_transfer_upload_size_in_bytes", 100_000_000)?
             .add_source(File::from(prefix_local_path("wallet_provider.toml".as_ref()).as_ref()).required(false))
             .add_source(
                 Environment::with_prefix("wallet_provider")

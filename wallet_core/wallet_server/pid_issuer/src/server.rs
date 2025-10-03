@@ -11,23 +11,20 @@ use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::Issuer;
 use openid4vc::issuer::WuaConfig;
 use openid4vc::server_state::SessionStore;
-use openid4vc::server_state::WuaTracker;
 use openid4vc_server::issuer::create_issuance_router;
 use server_utils::server::create_wallet_listener;
 use server_utils::server::listen;
 
-pub async fn serve<A, IS, W>(
+pub async fn serve<A, IS>(
     attr_service: A,
     settings: IssuerSettings,
     hsm: Option<Pkcs11Hsm>,
     issuance_sessions: Arc<IS>,
     wua_issuer_pubkey: VerifyingKey,
-    wua_tracker: W,
 ) -> Result<()>
 where
     A: AttributeService + Send + Sync + 'static,
     IS: SessionStore<openid4vc::issuer::IssuanceData> + Send + Sync + 'static,
-    W: WuaTracker + Send + Sync + 'static,
 {
     let listener = create_wallet_listener(&settings.server_settings.wallet_server).await?;
     serve_with_listener(
@@ -37,25 +34,21 @@ where
         hsm,
         issuance_sessions,
         wua_issuer_pubkey,
-        wua_tracker,
     )
     .await
 }
 
-#[expect(clippy::too_many_arguments, reason = "Setup function")]
-pub async fn serve_with_listener<A, IS, W>(
+pub async fn serve_with_listener<A, IS>(
     listener: TcpListener,
     attr_service: A,
     settings: IssuerSettings,
     hsm: Option<Pkcs11Hsm>,
     issuance_sessions: Arc<IS>,
     wua_issuer_pubkey: VerifyingKey,
-    wua_tracker: W,
 ) -> Result<()>
 where
     A: AttributeService + Send + Sync + 'static,
     IS: SessionStore<openid4vc::issuer::IssuanceData> + Send + Sync + 'static,
-    W: WuaTracker + Send + Sync + 'static,
 {
     let log_requests = settings.server_settings.log_requests;
 
@@ -69,7 +62,6 @@ where
         settings.wallet_client_ids,
         Some(WuaConfig {
             wua_issuer_pubkey: (&wua_issuer_pubkey).into(),
-            wua_tracker: Arc::new(wua_tracker),
         }),
     )));
 

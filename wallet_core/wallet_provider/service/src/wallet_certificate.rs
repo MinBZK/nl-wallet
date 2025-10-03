@@ -10,7 +10,7 @@ use hsm::model::encrypted::Encrypted;
 use hsm::model::encrypter::Decrypter;
 use hsm::service::HsmError;
 use jwt::EcdsaDecodingKey;
-use jwt::UnverifiedJwt;
+use jwt::SignedJwt;
 use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::messages::registration::WalletCertificateClaims;
 use wallet_provider_domain::model::wallet_user::WalletUser;
@@ -55,8 +55,9 @@ where
         iat: Utc::now(),
     };
 
-    UnverifiedJwt::sign_with_sub(&cert, wallet_certificate_signing_key)
+    SignedJwt::sign_with_sub(cert, wallet_certificate_signing_key)
         .await
+        .map(Into::into)
         .map_err(WalletCertificateError::JwtSigning)
 }
 
@@ -72,7 +73,7 @@ where
 {
     debug!("Parsing and verifying the provided certificate");
 
-    let claims = certificate.parse_and_verify_with_sub(certificate_signing_pubkey)?;
+    let (_, claims) = certificate.parse_and_verify_with_sub(certificate_signing_pubkey)?;
 
     debug!("Starting database transaction");
 

@@ -4,35 +4,30 @@ import util.MobileActions
 
 class HistoryOverviewScreen : MobileActions() {
 
-    private val screen = find.byValueKey("historyOverviewScreen")
+    private val pidCardTitle = cardMetadata.getPidDisplayName()
+    private val addressCardTitle = cardMetadata.getAddressDisplayName()
+    private val disclosureLoginSubtitle = l10n.getString("cardHistoryLoginSuccess")
+    private val historyDetailScreenIssuanceSuccessDescription= l10n.getString("historyDetailScreenIssuanceSuccessDescription")
+    private val cardHistoryTimelineOperationRenewed = l10n.getString("cardHistoryTimelineOperationRenewed")
+    private val bottomBackButton = l10n.getString("generalBottomBackCta")
 
-    private val pidCardTitle = find.byText(cardMetadata.getPidDisplayName())
-    private val addressCardTitle = find.byText(cardMetadata.getAddressDisplayName())
-    private val disclosureLoginSubtitle = find.byText(l10n.getString("cardHistoryLoginSuccess"))
-    private val historyDetailScreenIssuanceSuccessDescription= find.byText(l10n.getString("historyDetailScreenIssuanceSuccessDescription"))
-    private val cardHistoryTimelineOperationRenewed = find.byText(l10n.getString("cardHistoryTimelineOperationRenewed"))
+    fun visible() = elementWithTextVisible(bottomBackButton)
 
-    private val bottomBackButton = find.byText(l10n.getString("generalBottomBackCta"))
+    fun pidIssuanceLogEntryVisible() = elementContainingTextVisible(pidCardTitle)
 
-    fun visible() = isElementVisible(screen, false)
+    fun addressIssuanceLogEntryVisible() = elementContainingTextVisible(addressCardTitle)
 
-    fun pidIssuanceLogEntryVisible() = isElementVisible(pidCardTitle, false)
+    fun clickPidCardTitle() = clickElementContainingText(pidCardTitle)
 
-    fun addressIssuanceLogEntryVisible() = isElementVisible(addressCardTitle, false)
+    fun clickBottomBackButton() = clickElementWithText(bottomBackButton)
 
-    fun clickPidCardTitle() = clickElement(pidCardTitle, false)
+    fun loginDisclosureLogEntryVisible() = elementContainingTextVisible(disclosureLoginSubtitle)
 
-    fun clickBottomBackButton() = clickElement(bottomBackButton, false)
+    fun clickLoginEntryTitle() = clickElementContainingText(disclosureLoginSubtitle)
 
-    fun loginDisclosureLogEntryVisible() = isElementVisible(disclosureLoginSubtitle, false)
+    fun disclosureOrganizationVisible(organizatioName: String) = elementContainingTextVisible(organizatioName)
 
-    fun clickLoginEntryTitle() = clickElement(disclosureLoginSubtitle)
+    fun issuanceSubtitleVisible() = elementContainingTextVisible(historyDetailScreenIssuanceSuccessDescription)
 
-    fun disclosureOrganizationVisible(organizatioName: String): Boolean {
-        return isElementVisible(find.byText(organizatioName))
-    }
-
-    fun issuanceSubtitleVisible() = isElementVisible(historyDetailScreenIssuanceSuccessDescription)
-
-    fun renewCardSubtitleVisible() = isElementVisible(cardHistoryTimelineOperationRenewed)
+    fun renewCardSubtitleVisible() = elementContainingTextVisible(cardHistoryTimelineOperationRenewed)
 }

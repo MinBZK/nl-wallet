@@ -38,7 +38,7 @@
 //! }
 //! ```
 
-use std::collections::HashSet;
+use std::sync::LazyLock;
 
 use chrono::DateTime;
 use chrono::Utc;
@@ -61,14 +61,13 @@ use crypto::keys::EcdsaKey;
 use crypto::utils::random_string;
 use error_category::ErrorCategory;
 use jwt::Algorithm;
-use jwt::EcdsaDecodingKey;
+use jwt::JwtTyp;
+use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
 use jwt::Validation;
-use jwt::VerifiedJwt;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
-use jwt::jwk::jwk_jwt_header;
-use jwt::jwk::jwk_to_p256;
+use jwt::headers::HeaderWithJwk;
 
 use crate::token::AccessToken;
 
@@ -78,13 +77,9 @@ pub const DPOP_NONCE_HEADER_NAME: &str = "DPoP-Nonce";
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
 pub enum DpopError {
-    #[error(
-        "unsupported JWT algorithm: expected {}, found {}",
-        expected,
-        found.as_ref().unwrap_or(&"<None>".to_string())
-    )]
+    #[error("unsupported JWT: {0}")]
     #[category(critical)]
-    UnsupportedJwtAlgorithm { expected: String, found: Option<String> },
+    UnsupportedJwt(#[source] JwtError),
     #[error("incorrect DPoP JWT HTTP method")]
     #[category(critical)]
     IncorrectMethod,
@@ -128,10 +123,20 @@ pub struct DpopPayload {
     iat: DateTime<Utc>,
 }
 
-#[derive(Clone, AsRef, FromStr, Display)]
-pub struct Dpop(UnverifiedJwt<DpopPayload>);
-
 pub const OPENID4VCI_DPOP_JWT_TYPE: &str = "dpop+jwt";
+
+impl JwtTyp for DpopPayload {
+    const TYP: &'static str = OPENID4VCI_DPOP_JWT_TYPE;
+}
+
+#[derive(Clone, AsRef, FromStr, Display)]
+pub struct Dpop(UnverifiedJwt<DpopPayload, HeaderWithJwk>);
+
+static DPOP_VALIDATION_OPTIONS: LazyLock<Validation> = LazyLock::new(|| {
+    let mut options = Validation::new(Algorithm::ES256);
+    options.required_spec_claims.clear(); // remove "exp" from required claims
+    options
+});
 
 impl Dpop {
     pub async fn new(
@@ -141,8 +146,6 @@ impl Dpop {
         access_token: Option<&AccessToken>,
         nonce: Option<String>,
     ) -> Result<Self> {
-        let header = jwk_jwt_header(OPENID4VCI_DPOP_JWT_TYPE, private_key).await?;
-
         let payload = DpopPayload {
             jti: random_string(32),
             iat: Utc::now(),
@@ -151,40 +154,24 @@ impl Dpop {
             nonce,
             access_token_hash: access_token.map(AccessToken::sha256),
         };
-
-        let jwt = UnverifiedJwt::sign(&payload, &header, private_key).await?;
-        Ok(Self(jwt))
-    }
-
-    fn verify_signature(self, verifying_key: &VerifyingKey) -> Result<VerifiedJwt<DpopPayload>> {
-        let mut validation_options = Validation::new(Algorithm::ES256);
-        validation_options.required_spec_claims = HashSet::default();
-        let verified_jwt = self
-            .0
-            .into_verified(&EcdsaDecodingKey::from(verifying_key), &validation_options)?;
-        Ok(verified_jwt)
+        let jwt = SignedJwt::sign_with_jwk(&payload, private_key).await?;
+        Ok(Self(jwt.into()))
     }
 
     fn verify_data(
-        verified_dpop: &VerifiedJwt<DpopPayload>,
+        verified_dpop: &DpopPayload,
         url: &Url,
         method: &Method,
         access_token: Option<&AccessToken>,
         nonce: Option<&str>,
     ) -> Result<()> {
-        if verified_dpop.header().typ != Some(OPENID4VCI_DPOP_JWT_TYPE.to_string()) {
-            return Err(DpopError::UnsupportedJwtAlgorithm {
-                expected: OPENID4VCI_DPOP_JWT_TYPE.to_string(),
-                found: verified_dpop.header().typ.clone(),
-            });
-        }
-        if verified_dpop.payload().http_method != method.to_string() {
+        if verified_dpop.http_method != method.to_string() {
             return Err(DpopError::IncorrectMethod);
         }
-        if verified_dpop.payload().http_url != *url {
+        if verified_dpop.http_url != *url {
             return Err(DpopError::IncorrectUrl);
         }
-        if verified_dpop.payload().access_token_hash != access_token.map(AccessToken::sha256) {
+        if verified_dpop.access_token_hash != access_token.map(AccessToken::sha256) {
             return Err(DpopError::IncorrectAccessTokenHash);
         }
 
@@ -192,7 +179,7 @@ impl Dpop {
         // Verifying `jti` is not required by its spec (https://datatracker.ietf.org/doc/html/rfc9449).
         // We also do not check the `iat` field, to avoid having to deal with clockdrift.
         // Instead of both of these, the server can specify a `nonce` and later enforce its presence in the DPoP.
-        if verified_dpop.payload().nonce.as_deref() != nonce {
+        if verified_dpop.nonce.as_deref() != nonce {
             return Err(DpopError::IncorrectNonce);
         }
 
@@ -203,14 +190,9 @@ impl Dpop {
     /// This should only be called in the first HTTP request of a protocol. In later requests,
     /// [`Dpop::verify_expecting_key()`] should be used with the public key that this method returns.
     pub fn verify(self, url: &Url, method: &Method, access_token: Option<&AccessToken>) -> Result<VerifyingKey> {
-        // Grab the public key from the JWT header
-        let header = self.0.dangerous_parse_header_unverified()?;
-        let verifying_key = jwk_to_p256(&header.jwk.ok_or(DpopError::MissingJwk)?)?;
-
-        let token_data = self.verify_signature(&verifying_key)?;
-        Self::verify_data(&token_data, url, method, access_token, None)?;
-
-        Ok(verifying_key)
+        let (header, payload) = self.0.parse_and_verify_with_jwk(&DPOP_VALIDATION_OPTIONS)?;
+        Self::verify_data(&payload, url, method, access_token, None)?;
+        Ok(header.verifying_key()?)
     }
 
     /// Verify the DPoP JWT against the specified public key obtained previously from [`Dpop::verify()`].
@@ -222,14 +204,10 @@ impl Dpop {
         access_token: Option<&AccessToken>,
         nonce: Option<&str>,
     ) -> Result<()> {
-        let verified = self.verify_signature(expected_verifying_key)?;
-        Self::verify_data(&verified, url, method, access_token, nonce)?;
-
-        // Compare the specified key against the one in the JWT header
-        let contained_key = jwk_to_p256(verified.header().jwk.as_ref().ok_or(DpopError::MissingJwk)?)?;
-        if contained_key != *expected_verifying_key {
-            return Err(DpopError::IncorrectJwkPublicKey);
-        }
+        let (_, payload) = self
+            .0
+            .parse_and_verify_with_expected_jwk(expected_verifying_key, &DPOP_VALIDATION_OPTIONS)?;
+        Self::verify_data(&payload, url, method, access_token, nonce)?;
 
         Ok(())
     }

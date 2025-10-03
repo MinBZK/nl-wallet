@@ -4,11 +4,11 @@ import util.MobileActions
 
 class ScanWithWalletDialog : MobileActions() {
 
-    private val scanWithWalletDialogTitle = find.byText(l10n.getString("scanWithWalletDialogTitle"))
-    private val scanWithWalletDialogBody = find.byText(l10n.getString("scanWithWalletDialogBody"))
-    private val scanWithWalletDialogScanCta = find.byText(l10n.getString("scanWithWalletDialogScanCta"))
+    private val scanWithWalletDialogTitle = l10n.getString("scanWithWalletDialogTitle")
+    private val scanWithWalletDialogBody = l10n.getString("scanWithWalletDialogBody")
+    private val scanWithWalletDialogScanCta = l10n.getString("scanWithWalletDialogScanCta").uppercase()
 
-    fun visible() = isElementVisible(scanWithWalletDialogTitle)
-    fun scanWithWalletDialogBodyVisible() = isElementVisible(scanWithWalletDialogBody)
-    fun scanWithWalletButtonVisible() = isElementVisible(scanWithWalletDialogScanCta)
+    fun visible() = elementWithTextVisible(scanWithWalletDialogTitle)
+    fun scanWithWalletDialogBodyVisible() = elementWithTextVisible(scanWithWalletDialogBody)
+    fun scanWithWalletButtonVisible() = elementWithTextVisible(scanWithWalletDialogScanCta)
 }

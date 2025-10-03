@@ -4,7 +4,6 @@ import com.codeborne.selenide.Configuration
 import data.TestConfigRepository.Companion.testConfig
 import driver.BrowserStackMobileDriver
 import driver.LocalMobileDriver
-import org.junit.jupiter.api.extension.AfterAllCallback
 import org.junit.jupiter.api.extension.BeforeAllCallback
 import org.junit.jupiter.api.extension.ExtensionContext
 import org.junit.jupiter.api.extension.ExtensionContext.Store.CloseableResource

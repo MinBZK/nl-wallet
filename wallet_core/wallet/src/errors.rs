@@ -32,6 +32,7 @@ pub use crate::wallet::DisclosureError;
 pub use crate::wallet::HistoryError;
 pub use crate::wallet::IssuanceError;
 pub use crate::wallet::ResetError;
+pub use crate::wallet::TransferError;
 pub use crate::wallet::UriIdentificationError;
 pub use crate::wallet::WalletInitError;
 pub use crate::wallet::WalletRegistrationError;

@@ -4,19 +4,18 @@ import util.MobileActions
 
 class IntroductionPrivacyScreen : MobileActions() {
 
-    private val screen = find.byValueKey("introductionPrivacyScreen")
+    private val introductionPrivacyScreenHeadline = l10n.getString("introductionPrivacyScreenHeadline")
+    private val privacyButton = l10n.getString("introductionPrivacyScreenPrivacyCta")
+    private val nextButton = l10n.getString("introductionPrivacyScreenNextCta")
+    private val backButton = l10n.getString("generalWCAGBack")
 
-    private val privacyButton = find.byValueKey("introductionPrivacyScreenPrivacyCta")
-    private val nextButton = find.byValueKey("introductionPrivacyScreenNextCta")
-    private val backButton = find.byToolTip(l10n.getString("generalWCAGBack"))
+    fun visible() = elementWithTextVisible(introductionPrivacyScreenHeadline)
 
-    fun visible() = isElementVisible(screen)
+    fun absent() = !elementWithTextVisible(introductionPrivacyScreenHeadline)
 
-    fun absent() = isElementAbsent(screen, false)
+    fun clickPrivacyButton() = clickElementWithText(privacyButton)
 
-    fun clickPrivacyButton() = clickElement(privacyButton)
+    fun clickNextButton() = clickElementWithText(nextButton)
 
-    fun clickNextButton() = clickElement(nextButton)
-
-    fun clickBackButton() = clickElement(backButton)
+    fun clickBackButton() = clickElementWithText(backButton)
 }
