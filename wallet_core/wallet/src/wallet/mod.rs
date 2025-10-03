@@ -8,6 +8,7 @@ mod init;
 mod instruction_client;
 mod issuance;
 mod lock;
+mod pin_recovery;
 mod registration;
 mod reset;
 mod transfer;
