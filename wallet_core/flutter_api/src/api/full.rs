@@ -232,8 +232,11 @@ pub async fn create_pid_renewal_redirect_uri() -> anyhow::Result<String> {
 
 #[flutter_api_error]
 pub async fn create_pin_recovery_redirect_uri() -> anyhow::Result<String> {
-    // TODO: Implement as part of PVW-4587
-    Ok("pin_recovery_url".into())
+    let mut wallet = wallet().write().await;
+
+    let auth_url = wallet.create_pin_recovery_redirect_uri().await?;
+
+    Ok(auth_url.into())
 }
 
 #[flutter_api_error]

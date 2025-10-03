@@ -235,6 +235,36 @@ where
             return Err(IssuanceError::PidAlreadyPresent);
         }
 
+        self.pid_issuance_auth_url().await
+    }
+
+    pub async fn create_pin_recovery_redirect_uri(&mut self) -> Result<Url, IssuanceError> {
+        info!("Generating DigiD auth URL, starting OpenID connect discovery");
+
+        info!("Checking if blocked");
+        if self.is_blocked() {
+            return Err(IssuanceError::VersionBlocked);
+        }
+
+        info!("Checking if registered");
+        if !self.registration.is_registered() {
+            return Err(IssuanceError::NotRegistered);
+        }
+
+        info!("Checking if locked");
+        if self.lock.is_locked() {
+            return Err(IssuanceError::Locked);
+        }
+
+        info!("Checking if there is an active session");
+        if self.session.is_some() {
+            return Err(IssuanceError::SessionState);
+        }
+
+        self.pid_issuance_auth_url().await
+    }
+
+    async fn pid_issuance_auth_url(&mut self) -> Result<Url, IssuanceError> {
         let pid_issuance_config = &self.config_repository.get().pid_issuance;
         let session = self
             .digid_client
