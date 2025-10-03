@@ -1,7 +1,6 @@
 package feature.openapp
 
 import helper.TestBase
-import screen.introduction.IntroductionScreen
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
@@ -10,6 +9,7 @@ import org.junit.jupiter.api.Tags
 import org.junit.jupiter.api.TestInfo
 import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
+import screen.introduction.IntroductionScreen
 
 @TestMethodOrder(MethodOrderer.DisplayName::class)
 @DisplayName("UC1.2 Open the App")
@@ -23,7 +23,6 @@ class OpenAppTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @Tags(Tag("dutch"))
     @DisplayName("LTC42 If the device language is set to Dutch, then the app starts in Dutch.")
     fun verifyDutchLanguage(testInfo: TestInfo) {
         setUp(testInfo)

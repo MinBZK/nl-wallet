@@ -2,3 +2,5 @@
 /.gradle
 /local.properties
 /build
+/browserstack.yml
+/log

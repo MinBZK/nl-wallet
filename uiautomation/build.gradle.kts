@@ -3,7 +3,6 @@ plugins {
     application
 }
 
-
 group = "nl.ictu.edi.wallet.uiautomation"
 version = "1.0-SNAPSHOT"
 
@@ -15,7 +14,11 @@ kotlin {
     jvmToolchain(jdkVersion = 21)
 }
 
+val browserstackAgent by configurations.creating
+
 dependencies {
+    browserstackAgent("com.browserstack:browserstack-java-sdk:latest.release")
+
     implementation(kotlin("stdlib"))
 
     implementation("com.codeborne:selenide-appium:7.9.4")
@@ -33,27 +36,15 @@ dependencies {
     implementation("org.tomlj:tomlj:1.1.1")
 }
 
-// Test config args and default/fallback values
-val testConfigMap = mapOf<String, Any>(
-    "test.config.app.identifier" to "nl.ictu.edi.wallet.latest",
-    "test.config.device.name" to "emulator-5554",
-    "test.config.platform.name" to "Android",
-    "test.config.platform.version" to 14.0,
-    "test.config.remote" to false,
-    "test.config.automation.name" to "UIAutomator2",
-    "test.config.commit.sha" to "local", //only used for browserstack test runs
-)
-
 tasks.test {
-    useJUnitPlatform()
+    useJUnitPlatform {
+        excludeTags("english")
+    }
 }
 
 tasks.register<Test>("smokeTest") {
     useJUnitPlatform {
         includeTags("smoke")
-
-        // Exclude all test suites/wrappers; when using 'includeTags' this is needed to prevent
-        // duplicated test executions and ensure only the actual tagged tests are run.
         exclude("suite/**")
     }
 }
@@ -65,19 +56,41 @@ tasks.register<Test>("smokeTestIOS") {
     }
 }
 
-tasks.register<Test>("runOnAll") {
+tasks.register<Test>("testEnglish") {
     useJUnitPlatform {
-        includeTags("runonall")
-
-        // Exclude all test suites/wrappers; when using 'includeTags' this is needed to prevent
-        // duplicated test executions and ensure only the actual tagged tests are run.
+        includeTags("english")
         exclude("suite/**")
     }
 }
 
-// Set system properties for test config
 tasks.withType<Test>().configureEach {
-    testConfigMap.forEach { (key, value) ->
-        systemProperty(key, System.getProperty(key, value.toString()))
+    jvmArgs("--add-modules=java.instrument")
+    val testConfigMap = mapOf(
+        "test.config.app.identifier" to "nl.ictu.edi.wallet.latest",
+        "test.config.device.name" to "emulator-5554",
+        "test.config.platform.name" to "Android",
+        "test.config.platform.version" to 14.0,
+        "test.config.remote" to false,
+        "test.config.automation.name" to "UIAutomator2",
+        "test.config.commit.sha" to "",
+    )
+    testConfigMap.forEach { (k, v) ->
+        systemProperty(k, System.getProperty(k, v.toString()))
+    }
+
+    val toolchains = project.extensions.getByType(JavaToolchainService::class.java)
+    javaLauncher.set(toolchains.launcherFor {
+        languageVersion.set(JavaLanguageVersion.of(21))
+    })
+
+    if (System.getProperty("test.config.remote", "false").toBoolean()) {
+        val agentProvider = CommandLineArgumentProvider {
+            val jar = configurations[browserstackAgent.name].files.first {
+                it.name.startsWith("browserstack-java-sdk") && it.extension == "jar"
+            }
+            println("Attaching BrowserStack SDK agent: ${jar.absolutePath}")
+            listOf("-javaagent:${jar.absolutePath}")
+        }
+        jvmArgumentProviders.add(agentProvider)
     }
 }
