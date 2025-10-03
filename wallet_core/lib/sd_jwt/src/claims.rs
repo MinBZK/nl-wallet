@@ -1,6 +1,6 @@
-use std::collections::HashMap;
 use std::iter::Peekable;
 
+use indexmap::IndexMap;
 use itertools::Itertools;
 use nutype::nutype;
 use serde::Deserialize;
@@ -42,7 +42,7 @@ pub struct ObjectClaims {
 
     /// Non-selectively disclosable claims of the SD-JWT.
     #[serde(flatten)]
-    pub claims: HashMap<ClaimName, ClaimValue>,
+    pub claims: IndexMap<ClaimName, ClaimValue>,
 }
 
 impl ObjectClaims {
@@ -64,7 +64,7 @@ impl ObjectClaims {
     }
 
     fn remove(&mut self, key: &ClaimName) -> Option<ClaimValue> {
-        self.claims.remove(key)
+        self.claims.shift_remove(key)
     }
 
     fn insert(&mut self, key: ClaimName, value: ClaimValue) -> Option<ClaimValue> {
@@ -90,7 +90,7 @@ impl ObjectClaims {
         )?;
 
         // Hash the disclosure.
-        let hash = hasher.encoded_digest(disclosure.as_str());
+        let hash = hasher.encoded_digest(disclosure.encoded());
 
         // Add the hash to the "_sd" array if exists; otherwise, create the array and insert the hash.
         self.push_digest(hash);
@@ -131,7 +131,7 @@ impl ObjectClaims {
     fn digests_to_disclose<'a, I>(
         &'a self,
         path: &mut Peekable<I>,
-        disclosures: &'a HashMap<String, Disclosure>,
+        disclosures: &'a IndexMap<String, Disclosure>,
         element_key: &'a ClaimPath,
         has_next: bool,
     ) -> Result<Vec<&'a str>>
@@ -144,7 +144,7 @@ impl ObjectClaims {
         match element_key {
             // We are just traversing to a deeper part of the object.
             ClaimPath::SelectByKey(key) if has_next => {
-                let next_object = match self.claims.get(&key.parse()?) {
+                let next_object = match self.claims.get(&key.parse::<ClaimName>()?) {
                     Some(claim_value) => claim_value,
                     None => {
                         let disclosure = self.find_disclosure_digest(key, disclosures).and_then(|digest| {
@@ -171,7 +171,7 @@ impl ObjectClaims {
                 // If the value exists within the object, it is not selectively disclosable and we do not have to look
                 // for the associated disclosure.
                 // Otherwise we do look for the associated disclosure.
-                if !self.claims.contains_key(&key.parse()?) {
+                if !self.claims.contains_key(&key.parse::<ClaimName>()?) {
                     let digest = self
                         .find_disclosure_digest(key, disclosures)
                         .ok_or_else(|| Error::ElementNotFound { path: key.clone() })?;
@@ -190,7 +190,7 @@ impl ObjectClaims {
     fn find_disclosure_digest<'a>(
         &'a self,
         key: &str,
-        disclosures: &'a HashMap<String, Disclosure>,
+        disclosures: &'a IndexMap<String, Disclosure>,
     ) -> Option<&'a str> {
         self._sd.as_ref().and_then(|digests| {
             digests.iter().map(String::as_str).find(|digest| {
@@ -234,7 +234,10 @@ impl ClaimValue {
                 Some(array_claim) => Ok(Some(array_claim.as_mut_value()?)),
                 None => Ok(None),
             },
-            (ClaimValue::Object(object), ClaimPath::SelectByKey(key)) => Ok(object.claims.get_mut(&key.parse()?)),
+            (ClaimValue::Object(object), ClaimPath::SelectByKey(key)) => {
+                let name: ClaimName = key.parse()?;
+                Ok(object.claims.get_mut(&name))
+            }
             (_, ClaimPath::SelectAll) => Err(Error::UnsupportedTraversalPath(ClaimPath::SelectAll)),
             (element, path) => Err(Error::UnexpectedElement(element.clone(), vec![path.clone()])),
         }
@@ -292,7 +295,7 @@ impl ClaimValue {
                                 error
                             },
                         )?;
-                        let hash = hasher.encoded_digest(disclosure.as_str());
+                        let hash = hasher.encoded_digest(disclosure.encoded());
                         *value = ArrayClaim::Hash(hash);
                         Ok(disclosure)
                     })
@@ -328,7 +331,7 @@ impl ClaimValue {
     pub(crate) fn digests_to_disclose<'a, I>(
         &'a self,
         path: &mut Peekable<I>,
-        disclosures: &'a HashMap<String, Disclosure>,
+        disclosures: &'a IndexMap<String, Disclosure>,
         traversing_array: bool,
     ) -> Result<Vec<&'a str>>
     where
@@ -422,7 +425,7 @@ impl ArrayClaim {
 
     fn process_digests_to_disclose<'a>(
         &'a self,
-        disclosures: &'a HashMap<String, Disclosure>,
+        disclosures: &'a IndexMap<String, Disclosure>,
         digests: &mut Vec<&'a str>,
     ) -> Result<Option<&'a ClaimValue>> {
         let result = match self {

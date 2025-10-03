@@ -9,7 +9,7 @@ pub const ARRAY_DIGEST_KEY: &str = "...";
 pub fn prepare_disclosure(content: DisclosureContent) -> (String, Disclosure) {
     let disclosure = Disclosure::try_new(content).unwrap();
     let hasher = SdAlg::Sha256.hasher().unwrap();
-    let digest = hasher.encoded_digest(disclosure.as_str());
+    let digest = hasher.encoded_digest(disclosure.encoded());
     (digest, disclosure)
 }
 

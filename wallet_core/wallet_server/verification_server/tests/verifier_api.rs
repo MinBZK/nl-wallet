@@ -63,7 +63,7 @@ use openid4vc::verifier::StatusResponse;
 use openid4vc_server::verifier::StartDisclosureRequest;
 use openid4vc_server::verifier::StartDisclosureResponse;
 use openid4vc_server::verifier::StatusParams;
-use sd_jwt::sd_jwt::SdJwt;
+use sd_jwt::builder::SignedSdJwt;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use server_utils::settings::Authentication;
 use server_utils::settings::RequesterAuth;
@@ -936,7 +936,7 @@ fn prepare_example_mdoc_mock(issuer_ca: &Ca, wscd: &MockRemoteWscd) -> Mdoc {
         .unwrap()
 }
 
-fn prepare_example_sd_jwt_mock(issuer_ca: &Ca, wscd: &MockRemoteWscd) -> (SdJwt, String) {
+fn prepare_example_sd_jwt_mock(issuer_ca: &Ca, wscd: &MockRemoteWscd) -> (SignedSdJwt, String) {
     let credential_payload = CredentialPayload::nl_pid_example(&MockTimeGenerator::default());
     let type_metadata = NormalizedTypeMetadata::nl_pid_example();
 
@@ -1019,7 +1019,7 @@ async fn perform_full_disclosure(
                     let (sd_jwt, key_id) = prepare_example_sd_jwt_mock(&issuer_ca, &wscd);
                     let presentation = request
                         .claim_paths()
-                        .fold(sd_jwt.into_presentation_builder(), |builder, path| {
+                        .fold(sd_jwt.into_verified().into_presentation_builder(), |builder, path| {
                             builder.disclose(path).unwrap()
                         })
                         .finish();

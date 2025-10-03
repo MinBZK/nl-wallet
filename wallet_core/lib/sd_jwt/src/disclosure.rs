@@ -42,7 +42,7 @@ impl FromStr for Disclosure {
             .map_err(|_| Error::InvalidDisclosure(format!("Base64 decoding of the disclosure was not possible {s}")))
             .and_then(|data| {
                 serde_json::from_slice(&data).map_err(|_| {
-                    Error::InvalidDisclosure(format!("decoded disclosure could not be serialized as an array {s}"))
+                    Error::InvalidDisclosure(format!("decoded disclosure could not be deserialized as JSON {s}"))
                 })
             })?;
 
@@ -57,12 +57,6 @@ impl FromStr for Disclosure {
 pub(crate) struct DisclosureContentSerializationError {
     pub(crate) content: Box<DisclosureContent>,
     pub(crate) error: serde_json::Error,
-}
-
-impl AsRef<str> for Disclosure {
-    fn as_ref(&self) -> &str {
-        &self.encoded
-    }
 }
 
 impl Disclosure {
@@ -85,10 +79,6 @@ impl Disclosure {
         Ok(Self { content, encoded })
     }
 
-    pub fn as_str(&self) -> &str {
-        self.as_ref()
-    }
-
     pub fn hash_type(&self) -> HashType {
         self.content.hash_type()
     }
@@ -101,6 +91,10 @@ impl Disclosure {
                 ArrayClaim::Value(value) => value.digests(),
             },
         }
+    }
+
+    pub fn encoded(&self) -> &str {
+        &self.encoded
     }
 }
 

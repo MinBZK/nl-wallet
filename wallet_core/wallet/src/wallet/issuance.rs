@@ -632,8 +632,7 @@ where
                 })
             })
             .flatten()
-            .ok_or(IssuanceError::MissingPidSdJwt)?
-            .into_inner();
+            .ok_or(IssuanceError::MissingPidSdJwt)?;
         let recovery_code_disclosure = pid
             .into_presentation_builder()
             .disclose(
@@ -719,7 +718,6 @@ mod tests {
     use openid4vc::oidc::OidcError;
     use openid4vc::token::TokenRequest;
     use openid4vc::token::TokenRequestGrantType;
-    use sd_jwt::sd_jwt::VerifiedSdJwt;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
     use utils::generator::mock::MockTimeGenerator;
@@ -753,7 +751,7 @@ mod tests {
         let mut client = MockIssuanceSession::new();
         let issuer_certificate = match &credential {
             IssuedCredential::MsoMdoc { mdoc } => mdoc.issuer_certificate().unwrap(),
-            IssuedCredential::SdJwt { sd_jwt, .. } => sd_jwt.as_ref().issuer_certificate().to_owned(),
+            IssuedCredential::SdJwt { sd_jwt, .. } => sd_jwt.issuer_certificate().to_owned(),
         };
 
         let issuer_registration = match IssuerRegistration::from_certificate(&issuer_certificate) {
@@ -772,7 +770,6 @@ mod tests {
             IssuedCredential::SdJwt { sd_jwt, .. } => {
                 let payload = sd_jwt
                     .clone()
-                    .into_inner()
                     .into_credential_payload(&type_metadata.to_normalized().unwrap())
                     .unwrap();
                 AttestationPresentation::create_from_attributes(
@@ -1206,7 +1203,7 @@ mod tests {
             Uuid::new_v4(),
             StoredAttestation::SdJwt {
                 key_identifier: "sd_jwt_key_identifier".to_string(),
-                sd_jwt: VerifiedSdJwt::new_mock(sd_jwt),
+                sd_jwt: sd_jwt.into_verified(),
             },
             normalized_metadata,
         );
@@ -1712,7 +1709,7 @@ mod tests {
             Uuid::new_v4(),
             StoredAttestation::SdJwt {
                 key_identifier: "sd_jwt_key_identifier".to_string(),
-                sd_jwt: VerifiedSdJwt::new_mock(sd_jwt),
+                sd_jwt: sd_jwt.into_verified(),
             },
             normalized_metadata,
         );

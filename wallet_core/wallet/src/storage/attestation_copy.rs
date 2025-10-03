@@ -9,7 +9,6 @@ use mdoc::IssuerSigned;
 use mdoc::holder::Mdoc;
 use mdoc::holder::disclosure::MissingAttributesError;
 use mdoc::holder::disclosure::PartialMdoc;
-use sd_jwt::sd_jwt::SdJwt;
 use sd_jwt::sd_jwt::UnsignedSdJwtPresentation;
 use sd_jwt::sd_jwt::VerifiedSdJwt;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
@@ -55,8 +54,8 @@ pub struct StoredAttestationCopy {
     pub(super) normalized_metadata: NormalizedTypeMetadata,
 }
 
-/// An attestation that is present in the wallet database and contains a subset of its original attributes, part of
-/// [`DisclosableAttestation`].
+/// A subset of the attributes of an attestation that is present in the wallet database. In this sense it represents a
+/// partial version of [`DisclosedAttestation`].
 #[derive(Debug, Clone)]
 pub enum PartialAttestation {
     MsoMdoc {
@@ -80,8 +79,8 @@ pub struct DisclosableAttestation {
     presentation: AttestationPresentation,
 }
 
-fn credential_payload_from_sd_jwt(sd_jwt: &impl AsRef<SdJwt>) -> CredentialPayload {
-    CredentialPayload::from_sd_jwt_unvalidated(sd_jwt.as_ref())
+fn credential_payload_from_sd_jwt(sd_jwt: &VerifiedSdJwt) -> CredentialPayload {
+    CredentialPayload::from_sd_jwt_unvalidated(sd_jwt)
         .expect("a stored SD-JWT attestation should convert to CredentialPayload without errors")
 }
 
@@ -101,7 +100,7 @@ fn attestation_presentation_from_issuer_signed(
 }
 
 fn attestation_presentation_from_sd_jwt(
-    sd_jwt: &impl AsRef<SdJwt>,
+    sd_jwt: &VerifiedSdJwt,
     attestation_id: Uuid,
     normalized_metadata: NormalizedTypeMetadata,
     issuer_organization: Organization,
@@ -124,7 +123,7 @@ impl StoredAttestation {
             Self::MsoMdoc { mdoc } => &mdoc
                 .issuer_certificate()
                 .expect("a stored mdoc attestation should always contain an issuer certificate"),
-            Self::SdJwt { sd_jwt, .. } => sd_jwt.as_ref().issuer_certificate(),
+            Self::SdJwt { sd_jwt, .. } => sd_jwt.issuer_certificate(),
         };
 
         // Note that this means that an `IssuerRegistration` should ALWAYS be backwards compatible.
@@ -150,7 +149,7 @@ impl StoredAttestationCopy {
             }
             StoredAttestation::SdJwt { sd_jwt, .. } => {
                 // Create a temporary CredentialPayload to check if the paths are all present.
-                let credential_payload = credential_payload_from_sd_jwt(&sd_jwt);
+                let credential_payload = credential_payload_from_sd_jwt(sd_jwt);
 
                 credential_payload
                     .previewable_payload
@@ -248,7 +247,7 @@ impl DisclosableAttestation {
                 issuer_registration.organization,
             ),
             PartialAttestation::SdJwt { sd_jwt, .. } => attestation_presentation_from_sd_jwt(
-                sd_jwt.as_ref(),
+                sd_jwt.as_ref().as_ref(),
                 attestation_id,
                 normalized_metadata,
                 issuer_registration.organization,
@@ -303,7 +302,6 @@ mod tests {
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
-    use sd_jwt::sd_jwt::VerifiedSdJwt;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_at_least::VecNonEmpty;
@@ -366,7 +364,7 @@ mod tests {
             attestation_copy_id: Uuid::new_v4(),
             attestation: StoredAttestation::SdJwt {
                 key_identifier: "sd_jwt_key_id".to_string(),
-                sd_jwt: VerifiedSdJwt::new_mock(sd_jwt),
+                sd_jwt: sd_jwt.into_verified(),
             },
             normalized_metadata: NormalizedTypeMetadata::nl_pid_example(),
         };

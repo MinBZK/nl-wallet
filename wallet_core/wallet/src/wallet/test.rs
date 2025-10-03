@@ -209,7 +209,7 @@ pub fn create_example_pid_sd_jwt() -> (VerifiedSdJwt, NormalizedTypeMetadata) {
         .unwrap()
         .unwrap();
 
-    (VerifiedSdJwt::new_mock(sd_jwt), metadata)
+    (sd_jwt.into_verified(), metadata)
 }
 
 /// Generates a valid [`Mdoc`] that contains a full mdoc PID.

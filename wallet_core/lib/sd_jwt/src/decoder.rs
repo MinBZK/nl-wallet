@@ -1,5 +1,4 @@
-use std::collections::HashMap;
-
+use indexmap::IndexMap;
 use itertools::Itertools;
 
 use utils::vec_at_least::VecAtLeastN;
@@ -10,7 +9,7 @@ use crate::claims::ObjectClaims;
 use crate::disclosure::Disclosure;
 use crate::error::Error;
 use crate::error::Result;
-use crate::sd_jwt::SdJwtClaims;
+use crate::sd_jwt::SdJwtVcClaims;
 
 /// Substitutes digests in an [`SdJwtClaims`] by their corresponding claim values provided by disclosures.
 pub struct SdObjectDecoder;
@@ -18,7 +17,7 @@ pub struct SdObjectDecoder;
 impl SdObjectDecoder {
     /// Decodes [`SdJwtClaims`] by substituting the digests with their corresponding claim values provided by
     /// `disclosures`.
-    pub fn decode(sd_jwt_claims: &SdJwtClaims, disclosures: &HashMap<String, Disclosure>) -> Result<SdJwtClaims> {
+    pub fn decode(sd_jwt_claims: &SdJwtVcClaims, disclosures: &IndexMap<String, Disclosure>) -> Result<SdJwtVcClaims> {
         // Clone the disclosures locally so we can mutate the HashMap
         let mut disclosures = disclosures.clone();
 
@@ -31,7 +30,7 @@ impl SdObjectDecoder {
         }
 
         // Construct a new SdJwtClaims with the decoded claims and without "_sd_alg" claim
-        let sd_jwt_claims = SdJwtClaims {
+        let sd_jwt_claims = SdJwtVcClaims {
             claims: ClaimValue::Object(claims),
             _sd_alg: None,
             ..sd_jwt_claims.clone()
@@ -42,18 +41,18 @@ impl SdObjectDecoder {
 }
 
 impl ObjectClaims {
-    pub fn decode(&self, disclosures: &mut HashMap<String, Disclosure>) -> Result<Self> {
+    pub fn decode(&self, disclosures: &mut IndexMap<String, Disclosure>) -> Result<Self> {
         let mut disclosed_claims = self
             ._sd
             .iter()
             .flat_map(VecAtLeastN::iter)
-            .filter_map(|digest| disclosures.remove(digest).map(|disclosure| (digest, disclosure)))
+            .filter_map(|digest| disclosures.shift_remove(digest).map(|disclosure| (digest, disclosure)))
             .map(|(digest, disclosure)| {
                 // Verify that the matching disclosure discloses an object property
                 let (_, claim_name, claim_value) = disclosure.content.try_as_object_property(digest)?;
                 Ok((claim_name.clone(), claim_value.clone()))
             })
-            .collect::<Result<HashMap<_, _>>>()?;
+            .collect::<Result<IndexMap<_, _>>>()?;
 
         // Decode the disclosed claims here
         for disclosed_claim in disclosed_claims.values_mut() {
@@ -74,7 +73,7 @@ impl ObjectClaims {
 }
 
 impl ClaimValue {
-    pub fn decode(&self, disclosures: &mut HashMap<String, Disclosure>) -> Result<Self> {
+    pub fn decode(&self, disclosures: &mut IndexMap<String, Disclosure>) -> Result<Self> {
         match self {
             ClaimValue::Array(claims) => {
                 let decoded_claims = claims
@@ -92,9 +91,9 @@ impl ClaimValue {
 }
 
 impl ArrayClaim {
-    pub fn decode(&self, disclosures: &mut HashMap<String, Disclosure>) -> Result<Option<Self>> {
+    pub fn decode(&self, disclosures: &mut IndexMap<String, Disclosure>) -> Result<Option<Self>> {
         let decoded_claim = match self {
-            ArrayClaim::Hash(digest) => match disclosures.remove(digest) {
+            ArrayClaim::Hash(digest) => match disclosures.shift_remove(digest) {
                 Some(disclosure) => {
                     // Verify that the matching disclosure discloses an array element
                     let (_, array_claim) = disclosure.content.try_as_array_element(digest)?;
@@ -115,8 +114,7 @@ impl ArrayClaim {
 // - no _sd or ... are left in the decoded object in cases where they are not expected.
 #[cfg(test)]
 mod test {
-    use std::collections::HashMap;
-
+    use indexmap::IndexMap;
     use rstest::rstest;
     use serde_json::Number;
     use serde_json::json;
@@ -147,7 +145,7 @@ mod test {
         .unwrap();
 
         let decoded = input
-            .decode(&mut HashMap::from_iter([(disclosure_hash, disclosure)]))
+            .decode(&mut IndexMap::from_iter([(disclosure_hash, disclosure)]))
             .unwrap();
 
         assert_eq!(decoded, expected);
@@ -169,7 +167,7 @@ mod test {
             serde_json::from_value::<ClaimValue>(json!(["first_value", "some_value", "last_value"])).unwrap();
 
         let decoded = input
-            .decode(&mut HashMap::from_iter([(disclosure_hash, disclosure)]))
+            .decode(&mut IndexMap::from_iter([(disclosure_hash, disclosure)]))
             .unwrap();
 
         assert_eq!(decoded, expected);
@@ -181,7 +179,7 @@ mod test {
     #[case(ClaimValue::Number(Number::from_u128(42).unwrap()))]
     #[case(ClaimValue::String("some".to_string()))]
     fn decode_primitive_claim_values(#[case] value: ClaimValue) {
-        let decoded = value.decode(&mut HashMap::from_iter([])).unwrap();
+        let decoded = value.decode(&mut IndexMap::from_iter([])).unwrap();
         assert_eq!(decoded, value);
     }
 
@@ -198,7 +196,7 @@ mod test {
         let mut encoder = SdObjectEncoder::try_from(object).unwrap();
         encoder.add_sd_alg_property();
         assert_eq!(encoder.clone().encode()._sd_alg, Some(SdAlg::Sha256));
-        let decoded = SdObjectDecoder::decode(&encoder.encode(), &HashMap::new()).unwrap();
+        let decoded = SdObjectDecoder::decode(&encoder.encode(), &IndexMap::new()).unwrap();
         assert!(decoded._sd_alg.is_none());
     }
 
@@ -232,7 +230,7 @@ mod test {
 
         // There should be a disclosure value for `address`
         assert!(disclosure_content.into_iter().any(|(k, v)| {
-            let disclosure_only_address = HashMap::from([(k, v)]);
+            let disclosure_only_address = IndexMap::from([(k, v)]);
 
             SdObjectDecoder::decode(
                 &serde_json::from_value(claims.clone()).unwrap(),

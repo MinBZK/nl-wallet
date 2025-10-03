@@ -7,6 +7,7 @@ use derive_more::Debug;
 use futures::FutureExt;
 use indexmap::IndexMap;
 use itertools::Itertools;
+use sd_jwt::builder::SignedSdJwt;
 use ssri::Integrity;
 
 use attestation_types::claim_path::ClaimPath;
@@ -23,7 +24,6 @@ use dcql::unique_id_vec::UniqueIdVec;
 use mdoc::Entry;
 use mdoc::holder::Mdoc;
 use mdoc::holder::disclosure::PartialMdoc;
-use sd_jwt::sd_jwt::SdJwt;
 use sd_jwt::sd_jwt::UnsignedSdJwtPresentation;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use utils::generator::mock::MockTimeGenerator;
@@ -306,7 +306,7 @@ impl TestCredential {
             .expect("TestCredential payload preview should convert to mdoc IssuerSigned")
     }
 
-    pub fn to_sd_jwt(&self, issuer_keypair: &KeyPair, wscd: &impl AsRef<MockRemoteWscd>) -> (SdJwt, String) {
+    pub fn to_sd_jwt(&self, issuer_keypair: &KeyPair, wscd: &impl AsRef<MockRemoteWscd>) -> (SignedSdJwt, String) {
         let holder_key = wscd.as_ref().create_random_key();
 
         let (normalized_metadata, _) = self
@@ -345,8 +345,9 @@ impl TestCredential {
         issuer_keypair: &KeyPair,
         wscd: &impl AsRef<MockRemoteWscd>,
     ) -> (UnsignedSdJwtPresentation, String) {
-        let (sd_jwt, identifier) = self.to_sd_jwt(issuer_keypair, wscd);
+        let (signed_sd_jwt, identifier) = self.to_sd_jwt(issuer_keypair, wscd);
 
+        let sd_jwt = signed_sd_jwt.into_verified();
         let presentation = self
             .disclosure_attributes
             .claim_paths(AttributesTraversalBehaviour::OnlyLeaves)

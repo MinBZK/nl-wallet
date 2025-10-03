@@ -3,6 +3,7 @@ use std::collections::HashSet;
 use chrono::DateTime;
 use chrono::Utc;
 use indexmap::IndexMap;
+use sd_jwt::claims::ClaimName;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -20,7 +21,7 @@ use mdoc::NameSpace;
 use mdoc::holder::disclosure::claim_path_to_mdoc_path;
 use mdoc::verifier::DisclosedDocument;
 use sd_jwt::claims::ClaimValue;
-use sd_jwt::sd_jwt::SdJwt;
+use sd_jwt::sd_jwt::VerifiedSdJwtPresentation;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::attributes::AttributeError;
@@ -170,20 +171,20 @@ impl TryFrom<DisclosedDocument> for DisclosedAttestation {
     }
 }
 
-impl TryFrom<SdJwt> for DisclosedAttestation {
+impl TryFrom<VerifiedSdJwtPresentation> for DisclosedAttestation {
     type Error = DisclosedAttestationError;
 
-    fn try_from(sd_jwt: SdJwt) -> Result<Self, Self::Error> {
-        let attributes = sd_jwt.to_disclosed_object()?.try_into()?;
+    fn try_from(sd_jwt_presentation: VerifiedSdJwtPresentation) -> Result<Self, Self::Error> {
+        let attributes = sd_jwt_presentation.sd_jwt().to_disclosed_object()?.try_into()?;
 
-        let ca = sd_jwt
+        let ca = sd_jwt_presentation
             .issuer_certificate()
             .issuer_common_names()?
             .first()
             .ok_or(DisclosedAttestationError::EmptyIssuerCommonName)?
             .to_string();
 
-        let claims = sd_jwt.into_claims();
+        let claims = sd_jwt_presentation.into_claims();
 
         let attestation_type = claims
             .vct
@@ -194,7 +195,7 @@ impl TryFrom<SdJwt> for DisclosedAttestation {
         let attestation_qualification = claims
             .claims()
             .claims
-            .get(&"attestation_qualification".parse().unwrap())
+            .get(&"attestation_qualification".parse::<ClaimName>().unwrap())
             .and_then(|value| match value {
                 ClaimValue::String(value) => value.parse().ok(),
                 _ => None,

@@ -2,9 +2,9 @@ use std::cell::LazyCell;
 use std::collections::HashMap;
 use std::string::FromUtf8Error;
 use std::sync::LazyLock;
+use std::time::Duration;
 
 use chrono::DateTime;
-use chrono::Duration;
 use chrono::Utc;
 use derive_more::Constructor;
 use indexmap::IndexSet;
@@ -49,7 +49,8 @@ use jwt::headers::HeaderWithX5c;
 use mdoc::DeviceResponse;
 use mdoc::SessionTranscript;
 use mdoc::utils::serialization::CborBase64;
-use sd_jwt::sd_jwt::SdJwtPresentation;
+use sd_jwt::sd_jwt::UnverifiedSdJwtPresentation;
+
 use serde_with::SerializeDisplay;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
@@ -63,7 +64,7 @@ use crate::authorization::AuthorizationRequest;
 use crate::authorization::ResponseMode;
 use crate::authorization::ResponseType;
 
-const SD_JWT_IAT_WINDOW_MINUTES: i64 = 15;
+const SD_JWT_IAT_WINDOW_SECONDS: u64 = 15 * 60;
 
 #[derive(Debug, thiserror::Error)]
 pub enum AuthRequestError {
@@ -576,7 +577,7 @@ pub enum VerifiablePresentation {
     // NB: a `DeviceResponse` can contain disclosures of multiple mdocs. In case of other (not yet supported) formats,
     //     each credential is expected to result in a separate Verifiable Presentation.
     MsoMdoc(#[serde_as(as = "Vec<CborBase64>")] VecNonEmpty<DeviceResponse>),
-    SdJwt(VecNonEmpty<String>),
+    SdJwt(VecNonEmpty<UnverifiedSdJwtPresentation>),
 }
 
 /// Manual implementation of [`Deserialize`] for [`VerifiablePresentation`] is necessary, in order to help `serde`
@@ -588,7 +589,11 @@ impl<'de> Deserialize<'de> for VerifiablePresentation {
         // Assume the payloads are SD-JWT if any of them contains a
         // tilde character, which does not occur in URL-safe Base64.
         let verifiable_presentation = if payloads.iter().any(|payload| payload.contains('~')) {
-            Self::SdJwt(payloads)
+            let presentations = payloads
+                .into_nonempty_iter()
+                .map(|sd_jwt| UnverifiedSdJwtPresentation::deserialize(StringDeserializer::new(sd_jwt)))
+                .collect::<Result<_, _>>()?;
+            Self::SdJwt(presentations)
         } else {
             let device_responses = payloads
                 .into_nonempty_iter()
@@ -728,7 +733,7 @@ impl VpAuthorizationResponse {
         let mut holder_public_keys = Vec::new();
         let mut disclosed_attestations: HashMap<_, _> = self
             .vp_token
-            .iter()
+            .into_iter()
             .map(|(id, presentation)| {
                 let attestations = match presentation {
                     VerifiablePresentation::MsoMdoc(device_responses) => device_responses
@@ -770,20 +775,20 @@ impl VpAuthorizationResponse {
                         .try_into()
                         .map_err(|_| AuthResponseError::NoMdocDocuments(id.clone()))?,
                     VerifiablePresentation::SdJwt(sdw_jwt_payloads) => sdw_jwt_payloads
-                        .nonempty_iter()
-                        .map(|sd_jwt| {
-                            let presentation = SdJwtPresentation::parse_and_verify_against_trust_anchors(
-                                sd_jwt,
-                                time,
-                                trust_anchors,
-                                &auth_request.client_id,
-                                &auth_request.nonce,
-                                Duration::minutes(SD_JWT_IAT_WINDOW_MINUTES),
-                            )
-                            .map_err(AuthResponseError::SdJwtVerification)?;
+                        .into_nonempty_iter()
+                        .map(|unverified_presentation| {
+                            let presentation = unverified_presentation
+                                .into_verified_against_trust_anchors(
+                                    trust_anchors,
+                                    &auth_request.client_id,
+                                    &auth_request.nonce,
+                                    Duration::from_secs(SD_JWT_IAT_WINDOW_SECONDS),
+                                    time,
+                                )
+                                .map_err(AuthResponseError::SdJwtVerification)?;
 
-                            holder_public_keys.push(presentation.verifying_key());
-                            let disclosed_attestation = DisclosedAttestation::try_from(presentation.into_sd_jwt())
+                            holder_public_keys.push(presentation.sd_jwt().verifying_key().unwrap()); // TODO unwrap
+                            let disclosed_attestation = DisclosedAttestation::try_from(presentation)
                                 .map_err(AuthResponseError::DisclosedAttestation)?;
 
                             Ok(disclosed_attestation)
@@ -865,7 +870,6 @@ mod tests {
     use std::collections::HashSet;
 
     use assert_matches::assert_matches;
-    use chrono::Utc;
     use futures::FutureExt;
     use itertools::Itertools;
     use josekit::jwk::alg::ec::EcCurve;
@@ -896,10 +900,11 @@ mod tests {
     use mdoc::examples::Example;
     use mdoc::holder::Mdoc;
     use mdoc::holder::disclosure::PartialMdoc;
+
+    use sd_jwt::builder::SignedSdJwt;
     use sd_jwt::examples::WITH_KB_SD_JWT;
-    use sd_jwt::key_binding_jwt_claims::KeyBindingJwtBuilder;
-    use sd_jwt::sd_jwt::SdJwt;
-    use sd_jwt::sd_jwt::SdJwtPresentation;
+    use sd_jwt::key_binding_jwt::KeyBindingJwtBuilder;
+    use sd_jwt::sd_jwt::UnsignedSdJwtPresentation;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_at_least::VecNonEmpty;
     use utils::vec_nonempty;
@@ -1369,8 +1374,8 @@ mod tests {
         let wscd = MockRemoteWscd::new(vec![holder_key1, holder_key2]);
 
         // Create two `UnsignedSdJwtPresentation`s with the requested attributes.
-        let sd_jwt1 = SdJwt::example_pid_sd_jwt(&issuer_key_pair, &holder_public_key1);
-        let unsigned_sd_jwt_presentation1 = sd_jwt1
+        let verified_sd_jwt1 = SignedSdJwt::pid_example(&issuer_key_pair, &holder_public_key1).into_verified();
+        let unsigned_presentation1 = verified_sd_jwt1
             .into_presentation_builder()
             .disclose(&vec_nonempty![ClaimPath::SelectByKey("bsn".to_string())])
             .unwrap()
@@ -1378,8 +1383,8 @@ mod tests {
             .unwrap()
             .finish();
 
-        let sd_jwt2 = SdJwt::example_pid_sd_jwt(&issuer_key_pair, &holder_public_key2);
-        let unsigned_sd_jwt_presentation2 = sd_jwt2
+        let verified_sd_jwt2 = SignedSdJwt::pid_example(&issuer_key_pair, &holder_public_key2).into_verified();
+        let unsigned_presentation2 = verified_sd_jwt2
             .into_presentation_builder()
             .disclose(&vec_nonempty![ClaimPath::SelectByKey("given_name".to_string())])
             .unwrap()
@@ -1388,17 +1393,17 @@ mod tests {
             .finish();
 
         // Sign these into two `SdJwtPresentation`s and a PoA.
-        let kb_jwt_builder =
-            KeyBindingJwtBuilder::new(Utc::now(), auth_request.client_id.clone(), auth_request.nonce.clone());
+        let kb_jwt_builder = KeyBindingJwtBuilder::new(auth_request.client_id.clone(), auth_request.nonce.clone());
         let poa_input = JwtPoaInput::new(Some(auth_request.nonce.clone()), auth_request.client_id.clone());
-        let (sd_jwt_presentations, poa) = SdJwtPresentation::sign_multiple(
+        let (sd_jwt_presentations, poa) = UnsignedSdJwtPresentation::sign_multiple(
             vec_nonempty![
-                (unsigned_sd_jwt_presentation1, "sd_jwt_key_1"),
-                (unsigned_sd_jwt_presentation2, "sd_jwt_key_2")
+                (unsigned_presentation1, "sd_jwt_key_1"),
+                (unsigned_presentation2, "sd_jwt_key_2")
             ],
             kb_jwt_builder,
             &wscd,
             poa_input,
+            &MockTimeGenerator::default(),
         )
         .now_or_never()
         .unwrap()
@@ -1410,11 +1415,11 @@ mod tests {
         let vp_token = HashMap::from([
             (
                 "sd_jwt_0".try_into().unwrap(),
-                VerifiablePresentation::SdJwt(vec_nonempty![sd_jwt_presentation1.to_string()]),
+                VerifiablePresentation::SdJwt(vec_nonempty![sd_jwt_presentation1.into_unverified()]),
             ),
             (
                 "sd_jwt_1".try_into().unwrap(),
-                VerifiablePresentation::SdJwt(vec_nonempty![sd_jwt_presentation2.to_string()]),
+                VerifiablePresentation::SdJwt(vec_nonempty![sd_jwt_presentation2.into_unverified()]),
             ),
         ]);
         let auth_response = VpAuthorizationResponse::new(vp_token, auth_request.state.clone(), poa);
@@ -1532,8 +1537,9 @@ mod tests {
 
         // Create the a SD-JWT holder key and presentation.
         let sd_jwt_holder_key = MockRemoteEcdsaKey::new_random("sd_jwt".to_string());
-        let sd_jwt = SdJwt::example_pid_sd_jwt(&sd_jwt_issuer_key_pair, sd_jwt_holder_key.verifying_key());
-        let unsigned_sd_jwt_presentation = sd_jwt
+        let verified_sd_jwt =
+            SignedSdJwt::pid_example(&sd_jwt_issuer_key_pair, sd_jwt_holder_key.verifying_key()).into_verified();
+        let unsigned_presentation = verified_sd_jwt
             .into_presentation_builder()
             .disclose(&vec_nonempty![ClaimPath::SelectByKey("bsn".to_string())])
             .unwrap()
@@ -1543,10 +1549,9 @@ mod tests {
             .unwrap()
             .finish();
 
-        let kb_jwt_builder =
-            KeyBindingJwtBuilder::new(Utc::now(), auth_request.client_id.clone(), auth_request.nonce.clone());
-        let sd_jwt_presentation = unsigned_sd_jwt_presentation
-            .sign(kb_jwt_builder, &sd_jwt_holder_key)
+        let kb_jwt_builder = KeyBindingJwtBuilder::new(auth_request.client_id.clone(), auth_request.nonce.clone());
+        let sd_jwt_presentation = unsigned_presentation
+            .sign(kb_jwt_builder, &sd_jwt_holder_key, &MockTimeGenerator::default())
             .now_or_never()
             .unwrap()
             .unwrap();
@@ -1559,7 +1564,7 @@ mod tests {
             ),
             (
                 "sd_jwt_pid_example".try_into().unwrap(),
-                VerifiablePresentation::SdJwt(vec_nonempty![sd_jwt_presentation.to_string()]),
+                VerifiablePresentation::SdJwt(vec_nonempty![sd_jwt_presentation.into_unverified()]),
             ),
         ]);
 

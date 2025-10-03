@@ -23,8 +23,9 @@ use mdoc::NameSpace;
 use mdoc::holder::Mdoc;
 use mdoc::utils::crypto::CryptoError;
 use sd_jwt::builder::SdJwtBuilder;
-use sd_jwt::key_binding_jwt_claims::RequiredKeyBinding;
-use sd_jwt::sd_jwt::SdJwt;
+use sd_jwt::builder::SignedSdJwt;
+use sd_jwt::key_binding_jwt::RequiredKeyBinding;
+use sd_jwt::sd_jwt::VerifiedSdJwt;
 use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataError;
@@ -145,7 +146,7 @@ pub trait IntoCredentialPayload {
     fn into_credential_payload(self, metadata: &NormalizedTypeMetadata) -> Result<CredentialPayload, Self::Error>;
 }
 
-impl IntoCredentialPayload for &SdJwt {
+impl IntoCredentialPayload for &VerifiedSdJwt {
     type Error = SdJwtCredentialPayloadError;
 
     fn into_credential_payload(self, metadata: &NormalizedTypeMetadata) -> Result<CredentialPayload, Self::Error> {
@@ -247,7 +248,7 @@ impl CredentialPayload {
     }
 
     fn from_sd_jwt(
-        sd_jwt: &SdJwt,
+        sd_jwt: &VerifiedSdJwt,
         metadata: Option<&NormalizedTypeMetadata>,
     ) -> Result<Self, SdJwtCredentialPayloadError> {
         let disclosed_object = sd_jwt
@@ -260,11 +261,10 @@ impl CredentialPayload {
         }
 
         let credential_payload = serde_json::from_value(disclosed_value)?;
-
         Ok(credential_payload)
     }
 
-    pub fn from_sd_jwt_unvalidated(sd_jwt: &SdJwt) -> Result<Self, SdJwtCredentialPayloadError> {
+    pub fn from_sd_jwt_unvalidated(sd_jwt: &VerifiedSdJwt) -> Result<Self, SdJwtCredentialPayloadError> {
         Self::from_sd_jwt(sd_jwt, None)
     }
 
@@ -308,7 +308,7 @@ impl CredentialPayload {
         type_metadata: &NormalizedTypeMetadata,
         holder_pubkey: &VerifyingKey,
         issuer_keypair: &KeyPair<impl EcdsaKey>,
-    ) -> Result<SdJwt, SdJwtCredentialPayloadError> {
+    ) -> Result<SignedSdJwt, SdJwtCredentialPayloadError> {
         let vct_integrity = self.vct_integrity.clone();
 
         let sd_by_claims = type_metadata
@@ -352,7 +352,7 @@ mod examples {
     use ssri::Integrity;
 
     use jwt::jwk::jwk_from_p256;
-    use sd_jwt::key_binding_jwt_claims::RequiredKeyBinding;
+    use sd_jwt::key_binding_jwt::RequiredKeyBinding;
     use utils::generator::Generator;
 
     use crate::attributes::AttributeValue;
@@ -474,9 +474,9 @@ mod mock {
 
 #[cfg(test)]
 mod test {
+    use std::time::Duration;
+
     use assert_matches::assert_matches;
-    use chrono::DateTime;
-    use chrono::Duration;
     use chrono::TimeZone;
     use chrono::Utc;
     use futures::FutureExt;
@@ -494,9 +494,9 @@ mod test {
     use crypto::server_keys::generate::Ca;
     use jwt::jwk::jwk_from_p256;
     use sd_jwt::builder::SdJwtBuilder;
-    use sd_jwt::key_binding_jwt_claims::KeyBindingJwtBuilder;
-    use sd_jwt::key_binding_jwt_claims::RequiredKeyBinding;
-    use sd_jwt::sd_jwt::SdJwtPresentation;
+    use sd_jwt::key_binding_jwt::KeyBindingJwtBuilder;
+    use sd_jwt::key_binding_jwt::RequiredKeyBinding;
+    use sd_jwt::sd_jwt::UnsignedSdJwtPresentation;
     use sd_jwt_vc_metadata::JsonSchemaPropertyType;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::UncheckedTypeMetadata;
@@ -690,7 +690,8 @@ mod test {
             .finish(Integrity::from(""), &issuer_keypair, holder_key.verifying_key())
             .now_or_never()
             .unwrap()
-            .unwrap();
+            .unwrap()
+            .into_verified();
 
         let metadata =
             NormalizedTypeMetadata::from_single_example(UncheckedTypeMetadata::credential_payload_sd_jwt_metadata());
@@ -741,31 +742,30 @@ mod test {
             .unwrap()
             .unwrap();
 
-        let (presented_sd_jwts, _poa) = SdJwtPresentation::sign_multiple(
-            vec_nonempty![(sd_jwt.into_presentation_builder().finish(), "holder_key")],
-            KeyBindingJwtBuilder::new(
-                DateTime::from_timestamp_millis(1458304832).unwrap(),
-                String::from("https://aud.example.com"),
-                String::from("nonce123"),
-            ),
+        let (presented_sd_jwts, _poa) = UnsignedSdJwtPresentation::sign_multiple(
+            vec_nonempty![(
+                sd_jwt.into_verified().into_presentation_builder().finish(),
+                "holder_key"
+            )],
+            KeyBindingJwtBuilder::new(String::from("https://aud.example.com"), String::from("nonce123")),
             &wscd,
             (),
+            &MockTimeGenerator::default(),
         )
         .now_or_never()
         .unwrap()
         .expect("signing a single SdJwtPresentation using the WSCD should succeed");
 
-        let presented_sd_jwt = presented_sd_jwts.into_iter().exactly_one().unwrap();
-
-        SdJwtPresentation::parse_and_verify_against_trust_anchors(
-            &presented_sd_jwt.to_string(),
-            &time_generator,
-            &[ca.to_trust_anchor()],
-            "https://aud.example.com",
-            "nonce123",
-            Duration::days(36500),
-        )
-        .unwrap();
+        let presented_sd_jwt = presented_sd_jwts.into_iter().exactly_one().unwrap().into_unverified();
+        presented_sd_jwt
+            .into_verified_against_trust_anchors(
+                &[ca.to_trust_anchor()],
+                "https://aud.example.com",
+                "nonce123",
+                Duration::from_secs(60),
+                &time_generator,
+            )
+            .unwrap();
     }
 
     #[test]

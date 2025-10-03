@@ -15,6 +15,7 @@ use jwt::pop::JwtPopClaims;
 use jwt::wua::WuaDisclosure;
 use mdoc::IssuerSigned;
 use mdoc::utils::serialization::CborBase64;
+use sd_jwt::sd_jwt::UnverifiedSdJwt;
 use utils::spec::SpecOptional;
 use utils::vec_at_least::VecNonEmpty;
 use wscd::Poa;
@@ -111,7 +112,7 @@ pub enum CredentialResponse {
         credential: Box<IssuerSigned>,
     },
     SdJwt {
-        credential: String,
+        credential: UnverifiedSdJwt,
     },
 }
 
