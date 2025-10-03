@@ -760,7 +760,6 @@ mod tests {
     use rstest::rstest;
     use serde_json::json;
 
-    use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::mock_remote::MockRemoteWscd;
     use crypto::server_keys::generate::Ca;
@@ -1070,7 +1069,7 @@ mod tests {
     #[tokio::test]
     async fn test_parse_and_verify_jwt_with_cert() {
         let ca = Ca::generate("myca", Default::default()).unwrap();
-        let keypair = generate_reader_mock_with_registration(&ca, None).unwrap();
+        let keypair = ca.generate_reader_mock().unwrap();
 
         let payload = json!({"hello": "world"});
         let jwt = SignedJwt::sign_with_certificate(&payload, &keypair)
@@ -1162,7 +1161,7 @@ mod tests {
                 CertificateConfiguration::default(),
             )
             .unwrap();
-        let keypair = generate_reader_mock_with_registration(&intermediate3, None).unwrap();
+        let keypair = intermediate3.generate_reader_mock().unwrap();
 
         // Construct a JWT with the `x5c` field containing the X.509 certificates
         // of the leaf certificate and the intermediates, in reverse order.
@@ -1196,7 +1195,7 @@ mod tests {
     #[tokio::test]
     async fn test_parse_and_verify_jwt_with_wrong_cert() {
         let ca = Ca::generate("myca", Default::default()).unwrap();
-        let keypair = generate_reader_mock_with_registration(&ca, None).unwrap();
+        let keypair = ca.generate_reader_mock().unwrap();
 
         let payload = json!({"hello": "world"});
         let jwt = SignedJwt::sign_with_certificate(&payload, &keypair)
