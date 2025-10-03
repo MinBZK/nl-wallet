@@ -19,7 +19,7 @@ buildIdentifier: "${CI_JOB_ID}"
 
 nativeWebTap: true
 autoAcceptAlerts: true
-includeSafariInWebviews: true
+'appium:includeSafariInWebviews': true
 automationName: XCUITest
 newCommandTimeout: 120
 networkLogs: true
