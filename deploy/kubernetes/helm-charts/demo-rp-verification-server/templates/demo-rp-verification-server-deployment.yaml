@@ -78,17 +78,29 @@ spec:
                 secretKeyRef:
                   name: nl-wallet-demo-rp-verification-server-verifier-ephemeral-id-secret
                   key: verifier_ephemeral_id_secret
-            - name: VERIFICATION_SERVER__USECASES__mijn_amsterdam__CERTIFICATE
+            - name: VERIFICATION_SERVER__USECASES__mijn_amsterdam_mdoc__CERTIFICATE
               valueFrom:
                 secretKeyRef:
                   name: nl-wallet-demo-rp-verification-server-verifier-usecases-mijn-amsterdam
                   key: certificate
-            - name: VERIFICATION_SERVER__USECASES__mijn_amsterdam__PRIVATE_KEY
+            - name: VERIFICATION_SERVER__USECASES__mijn_amsterdam_mdoc__PRIVATE_KEY
               valueFrom:
                 secretKeyRef:
                   name: nl-wallet-demo-rp-verification-server-verifier-usecases-mijn-amsterdam
                   key: private_key
-            - name: VERIFICATION_SERVER__USECASES__mijn_amsterdam__PRIVATE_KEY_TYPE
+            - name: VERIFICATION_SERVER__USECASES__mijn_amsterdam_mdoc__PRIVATE_KEY_TYPE
+              value: "software"
+            - name: VERIFICATION_SERVER__USECASES__mijn_amsterdam_sd_jwt__CERTIFICATE
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-demo-rp-verification-server-verifier-usecases-mijn-amsterdam
+                  key: certificate
+            - name: VERIFICATION_SERVER__USECASES__mijn_amsterdam_sd_jwt__PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-demo-rp-verification-server-verifier-usecases-mijn-amsterdam
+                  key: private_key
+            - name: VERIFICATION_SERVER__USECASES__mijn_amsterdam_sd_jwt__PRIVATE_KEY_TYPE
               value: "software"
             - name: VERIFICATION_SERVER__USECASES__monkey_bike__CERTIFICATE
               valueFrom:
