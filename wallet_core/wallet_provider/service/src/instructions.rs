@@ -817,7 +817,7 @@ impl HandleInstruction for DiscloseRecoveryCodePinRecovery {
 
         if !user_state
             .repositories
-            .is_pin_recovery_key(&tx, &wallet_user.wallet_id, key)
+            .is_pin_recovery_key(&tx, wallet_user.id, key)
             .await?
         {
             return Err(InstructionError::PinRecoveryAccountMismatch);

@@ -129,7 +129,7 @@ impl WalletUserRepository for Repositories {
     async fn is_pin_recovery_key(
         &self,
         transaction: &Self::TransactionType,
-        wallet_id: &str,
+        wallet_id: Uuid,
         key: VerifyingKey,
     ) -> Result<bool, PersistenceError> {
         wallet_user_key::is_pin_recovery_key(transaction, wallet_id, key).await
@@ -437,7 +437,7 @@ pub mod mock {
             async fn is_pin_recovery_key(
                 &self,
                 _transaction: &MockTransaction,
-                _wallet_id: &str,
+                _wallet_user_id: Uuid,
                 _key: VerifyingKey,
             ) -> Result<bool, PersistenceError>;
 
@@ -667,7 +667,7 @@ pub mod mock {
         async fn is_pin_recovery_key(
             &self,
             _transaction: &MockTransaction,
-            _wallet_id: &str,
+            _wallet_user_id: Uuid,
             _key: VerifyingKey,
         ) -> Result<bool, PersistenceError> {
             Ok(true)
