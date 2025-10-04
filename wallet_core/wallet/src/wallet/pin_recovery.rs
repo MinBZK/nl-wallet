@@ -1,18 +1,21 @@
 use std::sync::Arc;
 
-use error_category::ErrorCategory;
 use futures::lock::Mutex;
 use p256::ecdsa::VerifyingKey;
 use tracing::info;
 use url::Url;
 
+use attestation_data::attributes::AttributeValue;
 use attestation_data::constants::PID_ATTESTATION_TYPE;
 use attestation_data::constants::PID_RECOVERY_CODE;
 use attestation_types::claim_path::ClaimPath;
 use crypto::wscd::DisclosureWscd;
+use error_category::ErrorCategory;
 use jwt::UnverifiedJwt;
+use jwt::error::JwtError;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::issuance_session::IssuanceSession;
+use openid4vc::issuance_session::IssuanceSessionError;
 use openid4vc::issuance_session::IssuedCredential;
 use platform_support::attested_key::AppleAttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
@@ -33,7 +36,11 @@ use crate::AttestationAttributeValue;
 use crate::account_provider::AccountProviderClient;
 use crate::digid::DigidClient;
 use crate::digid::DigidSession;
+use crate::errors::InstructionError;
+use crate::errors::PinKeyError;
+use crate::errors::PinValidationError;
 use crate::errors::RemoteEcdsaKeyError;
+use crate::errors::StorageError;
 use crate::instruction::InstructionClient;
 use crate::instruction::RemoteEcdsaKey;
 use crate::pin::key::PinKey;
@@ -70,6 +77,45 @@ pub enum PinRecoveryError {
     #[error("error during PID issuance: {0}")]
     #[category(defer)]
     Issuance(#[from] IssuanceError),
+
+    #[error("no recovery code found in PID")]
+    #[category(unexpected)]
+    MissingRegistrationCode,
+
+    #[error("recovery code had unexpected format: {0:#?}")]
+    #[category(pd)]
+    InvalidRecoveryCodeFormat(AttestationAttributeValue),
+
+    #[error("incorrect recovery code: expected {expected}, received {received}")]
+    #[category(pd)]
+    IncorrectRecoveryCode {
+        expected: AttributeValue,
+        received: AttributeValue,
+    },
+
+    #[error("the new PIN does not adhere to requirements: {0}")]
+    #[category(expected)]
+    PinValidation(#[from] PinValidationError),
+
+    #[error("error computing PIN public key: {0}")]
+    #[category(unexpected)]
+    PinKey(#[from] PinKeyError),
+
+    #[error("storage error: {0}")]
+    #[category(unexpected)]
+    Storage(#[from] StorageError),
+
+    #[error("no PID received")]
+    #[category(unexpected)]
+    MissingPid,
+
+    #[error("no SD-JWT PID received")]
+    #[category(unexpected)]
+    MissingSdJwtPid,
+
+    #[error("failed to disclose recovery code to WP: {0}")]
+    #[category(defer)]
+    DiscloseRecoveryCode(#[source] InstructionError),
 }
 
 impl<CR, UR, S, AKH, APC, DC, IS, DCC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC>
@@ -164,11 +210,13 @@ where
             .attributes
             .iter()
             .find(|attr| attr.key == vec![PID_RECOVERY_CODE])
-            .expect("TODO")
+            .ok_or(PinRecoveryError::MissingRegistrationCode)?
             .value;
 
         let AttestationAttributeValue::Basic(received_recovery_code) = received_recovery_code else {
-            panic!("TODO");
+            return Err(PinRecoveryError::InvalidRecoveryCodeFormat(
+                received_recovery_code.clone(),
+            ));
         };
 
         let stored_pid_credential_payload = self
@@ -190,7 +238,10 @@ where
             .expect("no recovery code found in PID");
 
         if stored_recovery_code != received_recovery_code {
-            panic!("TODO")
+            return Err(PinRecoveryError::IncorrectRecoveryCode {
+                expected: stored_recovery_code.clone(),
+                received: received_recovery_code.clone(),
+            });
         }
 
         Ok(())
@@ -214,7 +265,7 @@ where
 
         // We don't check if the wallet is blocked, since PIN recovery is allowed in that case.
 
-        validate_pin(&new_pin).expect("TODO");
+        validate_pin(&new_pin)?;
 
         // Both instructions sent to the WP in this method use the new PIN, and therefore also a new salt.
         // So, generate a new salt and use that in the instruction client below.
@@ -248,8 +299,7 @@ where
             pin: &new_pin,
             salt: &new_pin_salt,
         }
-        .verifying_key()
-        .expect("TODO");
+        .verifying_key()?;
 
         let pin_recovery_wscd = PinRecoveryRemoteEcdsaWscd::new(instruction_client.clone(), pin_pubkey.into());
 
@@ -257,7 +307,31 @@ where
             .protocol_state
             .accept_issuance(&config.issuer_trust_anchors(), &pin_recovery_wscd, true)
             .await
-            .expect("TODO see issuance module");
+            .map_err(|error| {
+                match error {
+                    // We knowingly call unwrap() on the downcast to `RemoteEcdsaKeyError` here because we know
+                    // that it is the error type of the `PinRecoveryRemoteEcdsaWscd` we provide above.
+                    IssuanceSessionError::PrivateKeyGeneration(error)
+                    | IssuanceSessionError::Jwt(JwtError::Signing(error)) => {
+                        match *error.downcast::<RemoteEcdsaKeyError>().unwrap() {
+                            RemoteEcdsaKeyError::Instruction(error) => IssuanceError::Instruction(error),
+                            RemoteEcdsaKeyError::Signature(error) => IssuanceError::Signature(error),
+                            RemoteEcdsaKeyError::KeyNotFound(identifier) => IssuanceError::KeyNotFound(identifier),
+                            RemoteEcdsaKeyError::MissingSignature => IssuanceError::MissingSignature,
+                        }
+                    }
+                    _ => IssuanceError::IssuerServer {
+                        organization: Box::new(
+                            issuance_session
+                                .protocol_state
+                                .issuer_registration()
+                                .organization
+                                .clone(),
+                        ),
+                        error,
+                    },
+                }
+            })?;
 
         // Store the new wallet certificate and the new salt.
 
@@ -273,12 +347,7 @@ where
             pin_salt: new_pin_salt,
             ..registration_data.clone()
         };
-        self.storage
-            .write()
-            .await
-            .upsert_data(&registration_data)
-            .await
-            .expect("TODO");
+        self.storage.write().await.upsert_data(&registration_data).await?;
 
         let attested_key = Arc::clone(attested_key);
         self.registration = WalletRegistration::Registered {
@@ -291,7 +360,7 @@ where
         let attestation = issuance_result
             .into_iter()
             .find(|attestation| attestation.attestation_type == PID_ATTESTATION_TYPE)
-            .expect("TODO");
+            .ok_or(PinRecoveryError::MissingPid)?;
 
         let pid = attestation
             .copies
@@ -301,7 +370,7 @@ where
                 IssuedCredential::MsoMdoc { .. } => None,
                 IssuedCredential::SdJwt { sd_jwt, .. } => Some(sd_jwt),
             })
-            .expect("TODO");
+            .ok_or(PinRecoveryError::MissingSdJwtPid)?;
 
         let recovery_code_disclosure = pid
             .into_presentation_builder()
@@ -326,7 +395,7 @@ where
             recovery_code_disclosure,
         })
         .await
-        .expect("TODO");
+        .map_err(PinRecoveryError::DiscloseRecoveryCode)?;
 
         Ok(())
     }
