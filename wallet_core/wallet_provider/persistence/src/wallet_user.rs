@@ -373,30 +373,31 @@ where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
-    update_fields(
-        db,
-        wallet_id,
-        vec![
-            (
-                wallet_user::Column::EncryptedPinPubkeySec1,
-                Expr::value(new_encrypted_pin_pubkey.data),
-            ),
-            (
-                wallet_user::Column::PinPubkeyIv,
-                Expr::value(new_encrypted_pin_pubkey.iv.0),
-            ),
-            (
-                wallet_user::Column::EncryptedPreviousPinPubkeySec1,
-                Expr::col(wallet_user::Column::EncryptedPinPubkeySec1).into(),
-            ),
-            (
-                wallet_user::Column::PreviousPinPubkeyIv,
-                Expr::col(wallet_user::Column::PinPubkeyIv).into(),
-            ),
-            (wallet_user::Column::State, Expr::value(user_state.to_string())),
-        ],
-    )
-    .await
+    let mut fields = vec![
+        (
+            wallet_user::Column::EncryptedPinPubkeySec1,
+            Expr::value(new_encrypted_pin_pubkey.data),
+        ),
+        (
+            wallet_user::Column::PinPubkeyIv,
+            Expr::value(new_encrypted_pin_pubkey.iv.0),
+        ),
+        (wallet_user::Column::State, Expr::value(user_state.to_string())),
+    ];
+
+    if !matches!(user_state, WalletUserState::RecoveringPin) {
+        // During and after PIN recovery, the user's previous PIN is never needed anymore.
+        fields.push((
+            wallet_user::Column::EncryptedPreviousPinPubkeySec1,
+            Expr::col(wallet_user::Column::EncryptedPinPubkeySec1).into(),
+        ));
+        fields.push((
+            wallet_user::Column::PreviousPinPubkeyIv,
+            Expr::col(wallet_user::Column::PinPubkeyIv).into(),
+        ));
+    }
+
+    update_fields(db, wallet_id, fields).await
 }
 
 pub async fn commit_pin_change<S, T>(db: &T, wallet_id: &str) -> Result<()>
