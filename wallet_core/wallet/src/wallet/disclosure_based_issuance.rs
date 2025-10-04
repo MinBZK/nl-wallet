@@ -159,6 +159,7 @@ where
                 credential_offer.credential_issuer,
                 &config.issuer_trust_anchors(),
                 false,
+                true,
             )
             .await?;
 

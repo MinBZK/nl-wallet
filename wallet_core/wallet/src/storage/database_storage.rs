@@ -2017,6 +2017,7 @@ pub(crate) mod tests {
                     normalized_metadata,
                     issuer_registration.organization,
                     &payload.previewable_payload.attributes,
+                    true,
                 )
                 .unwrap()
             })

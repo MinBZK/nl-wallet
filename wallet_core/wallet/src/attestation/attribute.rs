@@ -34,7 +34,7 @@ impl AttestationPresentation {
     ) -> Result<Self, AttestationError> {
         let nested_attributes = Attributes::from_mdoc_attributes(&metadata, mdoc_attributes)?;
 
-        Self::create_from_attributes(identity, metadata, issuer_organization, &nested_attributes)
+        Self::create_from_attributes(identity, metadata, issuer_organization, &nested_attributes, true)
     }
 
     pub(crate) fn create_from_sd_jwt_claims(
@@ -45,7 +45,7 @@ impl AttestationPresentation {
     ) -> Result<Self, AttestationError> {
         let attributes: Attributes = sd_jwt_claims.try_into()?;
 
-        Self::create_from_attributes(identity, metadata, issuer_organization, &attributes)
+        Self::create_from_attributes(identity, metadata, issuer_organization, &attributes, true)
     }
 
     // Construct a new `AttestationPresentation` from a combination of metadata and nested attributes.
@@ -54,6 +54,7 @@ impl AttestationPresentation {
         metadata: NormalizedTypeMetadata,
         issuer: Organization,
         nested_attributes: &Attributes,
+        filter_recovery_code: bool,
     ) -> Result<Self, AttestationError> {
         let (attestation_type, display_metadata, claims, schema) = metadata.into_presentation_components();
 
@@ -120,7 +121,12 @@ impl AttestationPresentation {
             }
             return Err(AttestationError::AttributesNotProcessedByClaim(paths));
         }
-        let attributes = Self::filter_recovery_code(&attestation_type, attributes);
+
+        let attributes = if filter_recovery_code {
+            Self::filter_recovery_code(&attestation_type, attributes)
+        } else {
+            attributes
+        };
 
         // Finally, construct the `AttestationPresentation` type.
         Ok(AttestationPresentation {
@@ -428,6 +434,7 @@ pub mod test {
             type_metadata,
             Organization::new_mock(),
             &attributes,
+            true,
         )
         .expect("creating AttestationPresentation should succeed");
 
@@ -504,6 +511,7 @@ pub mod test {
             type_metadata,
             Organization::new_mock(),
             &attributes,
+            true,
         )
         .expect_err("creating AttestationPresentation should not succeed");
 

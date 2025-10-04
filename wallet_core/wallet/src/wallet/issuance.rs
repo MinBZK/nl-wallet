@@ -378,6 +378,7 @@ where
             config.pid_issuance.pid_issuer_url.clone(),
             &config.issuer_trust_anchors(),
             true,
+            true,
         )
         .await
     }
@@ -389,6 +390,7 @@ where
         issuer_url: BaseUrl,
         issuer_trust_anchors: &Vec<TrustAnchor<'_>>,
         is_pid: bool,
+        filter_recovery_code: bool,
     ) -> Result<Vec<AttestationPresentation>, IssuanceError> {
         let http_client = client_builder_accept_json(default_reqwest_client_builder())
             .build()
@@ -436,6 +438,7 @@ where
                     preview_data.normalized_metadata.clone(),
                     organization.clone(),
                     &preview_data.content.credential_payload.attributes,
+                    filter_recovery_code,
                 )
                 .map_err(|error| IssuanceError::Attestation {
                     organization: Box::new(organization.clone()),
@@ -779,6 +782,7 @@ mod tests {
                     type_metadata.to_normalized().unwrap(),
                     issuer_registration.organization.clone(),
                     &payload.previewable_payload.attributes,
+                    true,
                 )
                 .unwrap()
             }

@@ -153,6 +153,7 @@ where
                 config.pid_issuance.pid_issuer_url.clone(),
                 &config.issuer_trust_anchors(),
                 true,
+                false,
             )
             .await?;
 
