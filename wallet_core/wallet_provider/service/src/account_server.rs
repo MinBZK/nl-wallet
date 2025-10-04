@@ -768,10 +768,15 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             user.encrypted_pin_pubkey
         };
 
+        // In case of the `StartPinRecovery` instruction, the user has used a new PIN that does not match
+        // the HMAC of the old PIN in the user's certificate. Since the user is requesting a challenge,
+        // we don't yet know which instruction they are going to send. So we should not enforce here that
+        // the user's PIN key matches the PIN HMAC in the certificate. This is enforced during instruction
+        // validation, where appropriate.
         verify_wallet_certificate_pin_public_key(
             claims,
             &self.keys.pin_keys,
-            PinKeyChecks::AllChecks,
+            PinKeyChecks::SkipCertificateMatching,
             encrypted_pin_key,
             &user_state.wallet_user_hsm,
         )
