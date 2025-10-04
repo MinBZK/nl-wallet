@@ -45,6 +45,7 @@ use crate::storage::Storage;
 use crate::validate_pin;
 use crate::wallet::IssuanceError;
 use crate::wallet::Session;
+use crate::wallet::WalletRegistration;
 
 use super::Wallet;
 
@@ -279,6 +280,12 @@ where
             .await
             .expect("TODO");
 
+        let attested_key = Arc::clone(attested_key);
+        self.registration = WalletRegistration::Registered {
+            attested_key: Arc::clone(&attested_key),
+            data: registration_data.clone(),
+        };
+
         // Get an SD-JWT copy out of the PID we just received.
 
         let attestation = issuance_result
@@ -308,7 +315,7 @@ where
         // Use a new instruction client that uses our new WP certificate
         self.new_instruction_client(
             new_pin.clone(),
-            Arc::clone(attested_key),
+            Arc::clone(&attested_key),
             registration_data,
             config.account_server.http_config.clone(),
             config.account_server.instruction_result_public_key.as_inner().into(),
