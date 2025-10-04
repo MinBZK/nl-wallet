@@ -55,7 +55,6 @@ pub use self::issuance::IssuanceResult;
 pub use self::lock::LockCallback;
 pub use self::lock::UnlockMethod;
 pub use self::lock::WalletUnlockError;
-pub use self::pin_recovery::PinRecoveryError;
 pub use self::registration::WalletRegistrationError;
 pub use self::reset::ResetError;
 pub use self::transfer::TransferError;

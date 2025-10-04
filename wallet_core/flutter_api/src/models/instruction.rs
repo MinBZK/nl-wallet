@@ -4,7 +4,6 @@ use wallet::errors::DisclosureBasedIssuanceError;
 use wallet::errors::DisclosureError;
 use wallet::errors::InstructionError;
 use wallet::errors::IssuanceError;
-use wallet::errors::PinRecoveryError;
 use wallet::errors::TransferError;
 use wallet::errors::WalletUnlockError;
 
@@ -95,18 +94,6 @@ impl TryFrom<Result<IssuanceResult, IssuanceError>> for WalletInstructionResult 
             Err(IssuanceError::Instruction(instruction_error)) => Ok(WalletInstructionResult::InstructionError {
                 error: instruction_error.try_into().map_err(IssuanceError::Instruction)?,
             }),
-            Err(error) => Err(error),
-        }
-    }
-}
-
-// TODO remove this
-impl TryFrom<Result<(), PinRecoveryError>> for WalletInstructionResult {
-    type Error = PinRecoveryError;
-
-    fn try_from(value: Result<(), PinRecoveryError>) -> Result<Self, Self::Error> {
-        match value {
-            Ok(_) => Ok(WalletInstructionResult::Ok),
             Err(error) => Err(error),
         }
     }
