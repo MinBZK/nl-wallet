@@ -85,3 +85,7 @@ export HSM_TOKEN_DIR=${HSM_TOKEN_DIR:-$DEFAULT_HSM_TOKEN_DIR}
 export WALLET_CLIENT_ID=3e58016e-bc2e-40d5-b4b1-a3e25f6193b9
 
 export SENTRY_ENVIRONMENT=${SENTRY_ENVIRONMENT:-local}
+
+# Optionally use a single CA when generating certs.
+export USE_SINGLE_CA=${USE_SINGLE_CA:-false}
+export USE_SINGLE_CA_PATH=${USE_SINGLE_CA_PATH:-"$TARGET_DIR/single_ca"}

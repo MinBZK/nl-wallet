@@ -121,9 +121,26 @@ function random_bytes {
 # $1 - Target directory
 # $2 - Common name
 function generate_root_ca {
-    openssl req -subj "/C=NL/CN=$2" -nodes -x509 -sha256 -days 1825 -newkey rsa:2048 -keyout "$1/ca.key.pem" -out "$1/ca.crt.pem" > /dev/null
-    openssl pkcs8 -topk8 -inform PEM -outform DER -in "$1/ca.key.pem" -out "$1/ca.key.der" -nocrypt
-    openssl x509 -in "$1/ca.crt.pem" -outform DER -out "$1/ca.crt.der"
+
+    # If single ca is wanted, and exists already, and target dir
+    # is not equal to single ca path, link single ca to target:
+    if [[ ${USE_SINGLE_CA} == true && -f ${USE_SINGLE_CA_PATH}/ca.crt.pem && "$1" != "${USE_SINGLE_CA_PATH}" ]]; then
+        echo -e "${INFO}Single CA exists, re-using by linking files to $1 ${NC}"
+        mkdir -p "$1"
+        ln -sf "${USE_SINGLE_CA_PATH}"/ca.{key,crt}.{pem,der} "$1/"
+
+    # If target ca files already exist:
+    elif [[ -f ${1}/ca.crt.pem ]]; then
+        echo -e "${INFO}CA files in $1 already exist, not (re-)generating${NC}"
+
+    # Else just create:
+    else
+        echo -e "${INFO}Generating CA $2 in ${1}${NC}"
+        mkdir -p "$1"
+        openssl req -subj "/C=NL/CN=$2" -nodes -x509 -sha256 -days 1825 -newkey rsa:2048 -keyout "$1/ca.key.pem" -out "$1/ca.crt.pem" > /dev/null
+        openssl pkcs8 -topk8 -inform PEM -outform DER -in "$1/ca.key.pem" -out "$1/ca.key.der" -nocrypt
+        openssl x509 -in "$1/ca.crt.pem" -outform DER -out "$1/ca.crt.der"
+    fi
 }
 
 # Generate a key and certificate to use for local TLS.
