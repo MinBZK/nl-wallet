@@ -47,14 +47,16 @@ use crate::pin::key::PinKey;
 use crate::pin::key::new_pin_salt;
 use crate::repository::Repository;
 use crate::storage::AttestationFormatQuery;
+use crate::storage::PinRecoveryData;
+use crate::storage::PinRecoveryState;
 use crate::storage::RegistrationData;
 use crate::storage::Storage;
 use crate::validate_pin;
-use crate::wallet::IssuanceError;
-use crate::wallet::Session;
-use crate::wallet::WalletRegistration;
 
+use super::IssuanceError;
+use super::Session;
 use super::Wallet;
+use super::WalletRegistration;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 pub enum PinRecoveryError {
@@ -116,6 +118,13 @@ pub enum PinRecoveryError {
     #[error("failed to disclose recovery code to WP: {0}")]
     #[category(defer)]
     DiscloseRecoveryCode(#[source] InstructionError),
+
+    #[error("PIN recovery in unexpected state: expected {expected:#?}, found {found:#?}")]
+    #[category(unexpected)]
+    UnexpectedState {
+        expected: PinRecoveryState,
+        found: Option<PinRecoveryState>,
+    },
 }
 
 impl<CR, UR, S, AKH, APC, DC, IS, DCC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC>
@@ -129,6 +138,22 @@ where
     DCC: DisclosureClient,
     APC: AccountProviderClient,
 {
+    async fn check_recovery_state(&self, expected: PinRecoveryState) -> Result<(), PinRecoveryError> {
+        let found = self
+            .storage
+            .read()
+            .await
+            .fetch_data::<PinRecoveryData>()
+            .await?
+            .map(|data| data.state);
+
+        if found != Some(expected) {
+            return Err(PinRecoveryError::UnexpectedState { found, expected });
+        }
+
+        Ok(())
+    }
+
     pub async fn create_pin_recovery_redirect_uri(&mut self) -> Result<Url, PinRecoveryError> {
         info!("Generating DigiD auth URL, starting OpenID connect discovery");
 
@@ -152,6 +177,16 @@ where
             return Err(PinRecoveryError::SessionState);
         }
 
+        // No need to check if a `PinRecoveryData` is already stored: we can always start PIN recovery again.
+
+        self.storage
+            .write()
+            .await
+            .upsert_data(&PinRecoveryData {
+                state: PinRecoveryState::Starting,
+            })
+            .await?;
+
         let url = self.pid_issuance_auth_url().await?;
         Ok(url)
     }
@@ -173,6 +208,8 @@ where
         if self.lock.is_locked() {
             return Err(PinRecoveryError::Locked);
         }
+
+        self.check_recovery_state(PinRecoveryState::Starting).await?;
 
         if !matches!(self.session, Some(Session::Digid(..))) {
             return Err(PinRecoveryError::SessionState);
@@ -263,6 +300,8 @@ where
             return Err(PinRecoveryError::SessionState);
         };
 
+        self.check_recovery_state(PinRecoveryState::Starting).await?;
+
         // We don't check if the wallet is blocked, since PIN recovery is allowed in that case.
 
         validate_pin(&new_pin)?;
@@ -302,6 +341,17 @@ where
         .verifying_key()?;
 
         let pin_recovery_wscd = PinRecoveryRemoteEcdsaWscd::new(instruction_client.clone(), pin_pubkey.into());
+
+        // `accept_issuance()` below is the point of no return. If the app is killed between there and completion,
+        // PIN recovery will have to start again from the start.
+
+        self.storage
+            .write()
+            .await
+            .upsert_data(&PinRecoveryData {
+                state: PinRecoveryState::Completing,
+            })
+            .await?;
 
         let issuance_result = issuance_session
             .protocol_state
@@ -396,6 +446,8 @@ where
         })
         .await
         .map_err(PinRecoveryError::DiscloseRecoveryCode)?;
+
+        self.storage.write().await.delete_data::<PinRecoveryData>().await?;
 
         Ok(())
     }

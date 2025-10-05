@@ -74,6 +74,17 @@ pub enum TransferKeyData {
     Destination { private_key: Jwk },
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PinRecoveryState {
+    Starting,
+    Completing,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PinRecoveryData {
+    pub state: PinRecoveryState,
+}
+
 impl KeyedData for KeyData {
     const KEY: &'static str = "key";
 }
@@ -96,4 +107,8 @@ impl KeyedData for ChangePinData {
 
 impl KeyedData for TransferData {
     const KEY: &'static str = "transfer_data";
+}
+
+impl KeyedData for PinRecoveryData {
+    const KEY: &'static str = "pin_recovery";
 }
