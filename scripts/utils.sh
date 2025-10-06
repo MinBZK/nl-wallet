@@ -116,11 +116,19 @@ function random_bytes {
     dd if=/dev/urandom bs="$1" count=1 2>/dev/null
 }
 
-# Generate a key and certificate to use as root CA.
+# Generate or re-use by linking, a key and certificate to use as root CA.
 #
 # $1 - Target directory
 # $2 - Common name
-function generate_root_ca {
+#
+# If USE_SINGLE_CA is "true", and USE_SINGLE_CA_PATH is set to some file
+# system path, the function will check the location of USE_SINGLE_CA_PATH
+# and if a CA exists there, it will link to that instead of generate a
+# new CA. This allows us to switch between single and multiple CA usage
+# transparently. Single CA mode is convenient when doing API traffic
+# inspection where the proxy used uses the same CA to generate in-between
+# certificates to record traffic.
+function generate_or_reuse_root_ca {
 
     # If single ca is wanted, and exists already, and target dir
     # is not equal to single ca path, link single ca to target:
