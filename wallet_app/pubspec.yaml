@@ -66,8 +66,6 @@ dependencies:
 dev_dependencies:
   bloc_test: ^10.0.0
   build_runner: ^2.6.1
-  flutter_driver:
-    sdk: flutter
   flutter_lints: ^6.0.0
   flutter_test:
     sdk: flutter
