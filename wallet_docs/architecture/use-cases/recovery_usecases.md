@@ -15,7 +15,7 @@ The Recovery Code is used in the usecases described below:
 NL-Wallet supports the following use cases that rely on the Recovery Code: 
 
 1. [PIN Recovery](#pin-recovery): 
-With the PIN Recovery flow, the user can reset a forgotten PIN by reauhtenticating with DigiD. 
+With the PIN Recovery flow, the user can reset a forgotten PIN by re-authenticating with DigiD. 
 
 3. [Wallet device transfer](#wallet-device-transfer)
 Wallet Device Transfer will allow transfer of contents from an existing active wallet to a newly activated wallet on another device.
