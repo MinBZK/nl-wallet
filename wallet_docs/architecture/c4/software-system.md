@@ -31,6 +31,8 @@ Relations:
 The App database is an on-device store that is used for storing credentials, app configuration and user preferences. 
 Technology: sqlite (on Android/iOS)
 
+For a description of the database contained in the App database, please see [Information model](../information-model/information-model.md#App-database)
+
 Relations:
 - Wallet app uses the App database [I-101]
 ## 3. Secure Element
@@ -86,6 +88,10 @@ Relations:
 
 ## 8. WP database (accounts, WUA status)
 The WP database contains user account data, and the statuses for issued Wallet Unit Attestations.
+
+For a description of the database contained in the App database, please see [Information model](../information-model/information-model.md#Wallet-Backend-database)
+
+
 Technology: postgres
 Relations:
 - Accessed by WalletBackend  [I-401]
