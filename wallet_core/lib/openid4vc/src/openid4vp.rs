@@ -823,7 +823,11 @@ impl VpAuthorizationResponse {
             .map_err(AuthResponseError::UnsatisfiedCredentialRequest)?;
 
         // Step 5: Sort the disclosed attestations into the same order as that of the Credential Requests in the DCQL
-        //         request and remove any attributes that were not present in the respective Credential Tequest.
+        //         request and remove any attributes that were not present in the respective Credential Request. This
+        //         removal is not a privacy feature, as at this point the attributes have already left the holder.
+        //         However, we discard them here in order to provide a predictable API to the RP by publishing exactly
+        //         those attributes it requested at the `disclosed_attributes` endpoint.
+        //
         //         Note that the order of the attributes within a `DisclosedAttestation` is undefined.
         let disclosed_attestations = auth_request
             .credential_requests
