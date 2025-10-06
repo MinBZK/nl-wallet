@@ -106,6 +106,20 @@ mkdir -p "${TARGET_DIR}/update_policy_server"
 mkdir -p "${TARGET_DIR}/wallet_provider"
 
 ########################################################################
+# Configure CA
+########################################################################
+
+# Create a bad CA for integration testing usage
+echo -e "${SECTION}Configuring a bad CA for integration testing${NC}"
+generate_or_reuse_root_ca "${TARGET_DIR}/bad_ca" "bad-ca"
+
+# Create a single CA if use single SA is requested
+if [[ "${USE_SINGLE_CA}" == 1 && -n ${USE_SINGLE_CA_PATH} ]]; then
+    echo -e "${SECTION}Configuring a single CA for shared usage ${NC}"
+    generate_or_reuse_root_ca "${USE_SINGLE_CA_PATH}" "$(basename "${USE_SINGLE_CA_PATH}")"
+fi
+
+########################################################################
 # Configure digid-connector
 ########################################################################
 
@@ -216,12 +230,8 @@ echo -e "${SECTION}Configure verification_server, issuance_server, pid_issuer, d
 
 cd "${BASE_DIR}"
 
-# Generate root TLS CA
-if [ ! -f "${TARGET_DIR}/demo_issuer/ca.key.pem" ]; then
-    generate_root_ca "${TARGET_DIR}/demo_issuer" "nl-wallet-demo-issuer"
-else
-    echo -e "${INFO}Target file '${TARGET_DIR}/demo_issuer/ca.key.pem' already exists, not (re-)generating root CA"
-fi
+# Generate or re-use CA for configuration server
+generate_or_reuse_root_ca "${TARGET_DIR}/demo_issuer" "nl-wallet-demo-issuer"
 
 generate_ssl_key_pair_with_san "${TARGET_DIR}/demo_issuer" demo_issuer "${TARGET_DIR}/demo_issuer/ca.crt.pem" "${TARGET_DIR}/demo_issuer/ca.key.pem"
 
@@ -375,18 +385,18 @@ render_template "${DEVENV}/performance_test.env" "${BASE_DIR}/wallet_core/tests_
 
 ########################################################################
 # Configure update-policy-server
+########################################################################
 
 echo
 echo -e "${SECTION}Configure update-policy-server${NC}"
 
 cd "${BASE_DIR}"
 
-# Generate root CA
-if [ ! -f "${TARGET_DIR}/update_policy_server/ca.key.pem" ]; then
-    generate_root_ca "${TARGET_DIR}/update_policy_server" "nl-wallet-update-policy-server"
-else
-    echo -e "${INFO}Target file '${TARGET_DIR}/update_policy_server/ca.key.pem' already exists, not (re-)generating root CA"
-fi
+# Generate or re-use CA for update-policy-server
+generate_or_reuse_root_ca "${TARGET_DIR}/update_policy_server" "nl-wallet-update-policy-server"
+
+# Copy bad CA for integration test purposes
+cp "${TARGET_DIR}/bad_ca/ca.crt.der" "${BASE_DIR}/wallet_core/tests_integration/bad.ca.crt.der"
 
 generate_ssl_key_pair_with_san "${TARGET_DIR}/update_policy_server" update_policy_server "${TARGET_DIR}/update_policy_server/ca.crt.pem" "${TARGET_DIR}/update_policy_server/ca.key.pem"
 
@@ -414,13 +424,8 @@ cp "${UPS_DIR}/update_policy_server.toml" "${BASE_DIR}/wallet_core/tests_integra
 echo
 echo -e "${SECTION}Configure wallet_provider${NC}"
 
-
-# Generate root CA
-if [ ! -f "${TARGET_DIR}/wallet_provider/ca.key.pem" ]; then
-    generate_root_ca "${TARGET_DIR}/wallet_provider" "nl-wallet-provider"
-else
-    echo -e "${INFO}Target file '${TARGET_DIR}/wallet_provider/ca.key.pem' already exists, not (re-)generating root CA"
-fi
+# Generate or re-use CA for wallet_provider
+generate_or_reuse_root_ca "${TARGET_DIR}/wallet_provider" "nl-wallet-provider"
 
 generate_ssl_key_pair_with_san "${TARGET_DIR}/wallet_provider" wallet_provider "${TARGET_DIR}/wallet_provider/ca.crt.pem" "${TARGET_DIR}/wallet_provider/ca.key.pem"
 
@@ -504,12 +509,8 @@ echo -e "${SECTION}Configure configuration-server${NC}"
 
 cd "${BASE_DIR}"
 
-# Generate root CA
-if [ ! -f "${TARGET_DIR}/configuration_server/ca.key.pem" ]; then
-    generate_root_ca "${TARGET_DIR}/configuration_server" "nl-wallet-configuration-server"
-else
-    echo -e "${INFO}Target file '${TARGET_DIR}/configuration_server/ca.key.pem' already exists, not (re-)generating root CA"
-fi
+# Generate or re-use CA for configuration-server
+generate_or_reuse_root_ca "${TARGET_DIR}/configuration_server" "nl-wallet-configuration-server"
 
 generate_ssl_key_pair_with_san "${TARGET_DIR}/configuration_server" config_server "${TARGET_DIR}/configuration_server/ca.crt.pem" "${TARGET_DIR}/configuration_server/ca.key.pem"
 

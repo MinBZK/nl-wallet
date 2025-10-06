@@ -116,14 +116,39 @@ function random_bytes {
     dd if=/dev/urandom bs="$1" count=1 2>/dev/null
 }
 
-# Generate a key and certificate to use as root CA.
+# Generate or re-use by linking, a key and certificate to use as root CA.
 #
 # $1 - Target directory
 # $2 - Common name
-function generate_root_ca {
-    openssl req -subj "/C=NL/CN=$2" -nodes -x509 -sha256 -days 1825 -newkey rsa:2048 -keyout "$1/ca.key.pem" -out "$1/ca.crt.pem" > /dev/null
-    openssl pkcs8 -topk8 -inform PEM -outform DER -in "$1/ca.key.pem" -out "$1/ca.key.der" -nocrypt
-    openssl x509 -in "$1/ca.crt.pem" -outform DER -out "$1/ca.crt.der"
+#
+# If USE_SINGLE_CA is "1", and USE_SINGLE_CA_PATH is set to some file
+# system path, the function will check the location of USE_SINGLE_CA_PATH
+# and if a CA exists there, it will link to that instead of generate a
+# new CA. This allows us to switch between single and multiple CA usage
+# transparently. Single CA mode is convenient when doing API traffic
+# inspection where the proxy used uses the same CA to generate in-between
+# certificates to record traffic.
+function generate_or_reuse_root_ca {
+
+    # If single ca is wanted, and exists already, and target dir
+    # is not equal to single ca path, link single ca to target:
+    if [[ ${USE_SINGLE_CA} == 1 && -f ${USE_SINGLE_CA_PATH}/ca.crt.pem && "$1" != "${USE_SINGLE_CA_PATH}" ]]; then
+        echo -e "${INFO}Single CA exists, re-using by linking files to $1 ${NC}"
+        mkdir -p "$1"
+        ln -sf "${USE_SINGLE_CA_PATH}"/ca.{key,crt}.{pem,der} "$1/"
+
+    # If target ca files already exist:
+    elif [[ -f ${1}/ca.crt.pem ]]; then
+        echo -e "${INFO}CA files in $1 already exist, not (re-)generating${NC}"
+
+    # Else just create:
+    else
+        echo -e "${INFO}Generating CA $2 in ${1}${NC}"
+        mkdir -p "$1"
+        openssl req -subj "/C=NL/CN=$2" -nodes -x509 -sha256 -days 1825 -newkey rsa:2048 -keyout "$1/ca.key.pem" -out "$1/ca.crt.pem" > /dev/null
+        openssl pkcs8 -topk8 -inform PEM -outform DER -in "$1/ca.key.pem" -out "$1/ca.key.der" -nocrypt
+        openssl x509 -in "$1/ca.crt.pem" -outform DER -out "$1/ca.crt.der"
+    fi
 }
 
 # Generate a key and certificate to use for local TLS.
