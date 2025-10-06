@@ -121,7 +121,7 @@ function random_bytes {
 # $1 - Target directory
 # $2 - Common name
 #
-# If USE_SINGLE_CA is "true", and USE_SINGLE_CA_PATH is set to some file
+# If USE_SINGLE_CA is "1", and USE_SINGLE_CA_PATH is set to some file
 # system path, the function will check the location of USE_SINGLE_CA_PATH
 # and if a CA exists there, it will link to that instead of generate a
 # new CA. This allows us to switch between single and multiple CA usage
@@ -132,7 +132,7 @@ function generate_or_reuse_root_ca {
 
     # If single ca is wanted, and exists already, and target dir
     # is not equal to single ca path, link single ca to target:
-    if [[ ${USE_SINGLE_CA} == true && -f ${USE_SINGLE_CA_PATH}/ca.crt.pem && "$1" != "${USE_SINGLE_CA_PATH}" ]]; then
+    if [[ ${USE_SINGLE_CA} == 1 && -f ${USE_SINGLE_CA_PATH}/ca.crt.pem && "$1" != "${USE_SINGLE_CA_PATH}" ]]; then
         echo -e "${INFO}Single CA exists, re-using by linking files to $1 ${NC}"
         mkdir -p "$1"
         ln -sf "${USE_SINGLE_CA_PATH}"/ca.{key,crt}.{pem,der} "$1/"

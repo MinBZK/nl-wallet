@@ -114,7 +114,7 @@ echo -e "${SECTION}Configuring a bad CA for integration testing${NC}"
 generate_or_reuse_root_ca "${TARGET_DIR}/bad_ca" "bad-ca"
 
 # Create a single CA if use single SA is requested
-if [[ "${USE_SINGLE_CA}" == true && -n ${USE_SINGLE_CA_PATH} ]]; then
+if [[ "${USE_SINGLE_CA}" == 1 && -n ${USE_SINGLE_CA_PATH} ]]; then
     echo -e "${SECTION}Configuring a single CA for shared usage ${NC}"
     generate_or_reuse_root_ca "${USE_SINGLE_CA_PATH}" "$(basename "${USE_SINGLE_CA_PATH}")"
 fi
