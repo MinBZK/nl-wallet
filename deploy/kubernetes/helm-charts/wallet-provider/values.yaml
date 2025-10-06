@@ -70,6 +70,7 @@ securityContext: {}
 ## @param ingress.tlsSecretName TLS secret name for the ingress
 ## @param ingress.labels Additional labels for the ingress
 ## @param ingress.annotations Additional annotations for the ingress
+## @param ingress.maxBodySize Sets the maximum allowed size of the client request body
 ##
 ingress:
   className: "nginx"
@@ -78,6 +79,7 @@ ingress:
   tlsSecretName: null
   labels: {}
   annotations: {}
+  maxBodySize: "100m"
 
 ## @section Resource requests and limits
 ## @param resources.requests.cpu CPU request
