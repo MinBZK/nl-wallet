@@ -261,7 +261,10 @@ pub async fn complete_pin_recovery(pin: String) -> anyhow::Result<()> {
 
 #[flutter_api_error]
 pub async fn cancel_pin_recovery() -> anyhow::Result<()> {
-    // TODO: Implement as part of PVW-4587
+    let mut wallet = wallet().write().await;
+
+    wallet.cancel_pin_recovery().await?;
+
     Ok(())
 }
 

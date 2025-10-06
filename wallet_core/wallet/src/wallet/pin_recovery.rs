@@ -123,6 +123,10 @@ pub enum PinRecoveryError {
         expected: PinRecoveryState,
         found: Option<PinRecoveryState>,
     },
+
+    #[error("cannot cancel PIN: already committed")]
+    #[category(unexpected)]
+    CommittedToPinRecovery,
 }
 
 impl<CR, UR, S, AKH, APC, DC, IS, DCC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC>
@@ -420,6 +424,39 @@ where
         })
         .await
         .map_err(PinRecoveryError::DiscloseRecoveryCode)?;
+
+        self.storage.write().await.delete_data::<PinRecoveryData>().await?;
+
+        Ok(())
+    }
+
+    pub async fn cancel_pin_recovery(&mut self) -> Result<(), PinRecoveryError> {
+        info!("Checking if registered");
+        if !self.registration.is_registered() {
+            return Err(PinRecoveryError::NotRegistered);
+        }
+
+        info!("Checking if locked");
+        if self.lock.is_locked() {
+            return Err(PinRecoveryError::Locked);
+        }
+
+        // We don't check if the wallet is blocked: PIN recovery is allowed in that case, so cancelling it is too.
+
+        let Some(state) = self
+            .storage
+            .read()
+            .await
+            .fetch_data::<PinRecoveryData>()
+            .await?
+            .map(|data| data.state)
+        else {
+            return Ok(()); // Not currently recovering PIN; nothing to do
+        };
+
+        if matches!(state, PinRecoveryState::Completing) {
+            return Err(PinRecoveryError::CommittedToPinRecovery);
+        }
 
         self.storage.write().await.delete_data::<PinRecoveryData>().await?;
 
