@@ -314,6 +314,9 @@ pub enum InstructionValidationError {
     #[error("no wallet transfer is in progress")]
     NoTransferInProgress,
 
+    #[error("account is transferred")]
+    AccountIsTransferred,
+
     #[error("recovery code is missing")]
     MissingRecoveryCode,
 

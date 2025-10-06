@@ -75,7 +75,15 @@ pub trait ValidateInstruction {
         validate_no_pin_change_in_progress(wallet_user)?;
         validate_no_transfer_in_progress(wallet_user)?;
         validate_no_pin_recovery_in_progress(wallet_user)?;
+        validate_wallet_user_not_transferred(wallet_user)?;
         Ok(())
+    }
+}
+
+fn validate_wallet_user_not_transferred(wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+    match wallet_user.state {
+        WalletUserState::Transferred => Err(InstructionValidationError::AccountIsTransferred),
+        _ => Ok(()),
     }
 }
 
@@ -129,6 +137,7 @@ impl ValidateInstruction for DiscloseRecoveryCode {}
 
 impl ValidateInstruction for Sign {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+        validate_wallet_user_not_transferred(wallet_user)?;
         validate_no_pin_change_in_progress(wallet_user)?;
         validate_no_transfer_in_progress(wallet_user)?;
         validate_no_pin_recovery_in_progress(wallet_user)?;
@@ -149,6 +158,7 @@ impl ValidateInstruction for Sign {
 
 impl ValidateInstruction for ChangePinCommit {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+        validate_wallet_user_not_transferred(wallet_user)?;
         validate_no_pin_recovery_in_progress(wallet_user)?;
         validate_no_transfer_in_progress(wallet_user)
     }
@@ -156,6 +166,7 @@ impl ValidateInstruction for ChangePinCommit {
 
 impl ValidateInstruction for ChangePinRollback {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+        validate_wallet_user_not_transferred(wallet_user)?;
         validate_no_pin_recovery_in_progress(wallet_user)?;
         validate_no_transfer_in_progress(wallet_user)
     }
@@ -163,6 +174,7 @@ impl ValidateInstruction for ChangePinRollback {
 
 impl ValidateInstruction for CheckPin {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+        validate_wallet_user_not_transferred(wallet_user)?;
         validate_no_pin_change_in_progress(wallet_user)?;
         validate_no_pin_recovery_in_progress(wallet_user)
     }
@@ -181,6 +193,7 @@ impl ValidateInstruction for ConfirmTransfer {
             return Err(InstructionValidationError::MissingRecoveryCode);
         };
 
+        validate_wallet_user_not_transferred(wallet_user)?;
         validate_no_pin_change_in_progress(wallet_user)?;
         validate_no_transfer_in_progress(wallet_user)?;
         validate_no_pin_recovery_in_progress(wallet_user)?;
@@ -191,6 +204,7 @@ impl ValidateInstruction for ConfirmTransfer {
 
 impl ValidateInstruction for CancelTransfer {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+        validate_wallet_user_not_transferred(wallet_user)?;
         validate_transfer_instruction(wallet_user)
     }
 }
@@ -203,6 +217,7 @@ impl ValidateInstruction for GetTransferStatus {
 
 impl ValidateInstruction for SendWalletPayload {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+        validate_wallet_user_not_transferred(wallet_user)?;
         validate_transfer_instruction(wallet_user)?;
         validate_transfer_in_progress(wallet_user)
     }
@@ -210,6 +225,7 @@ impl ValidateInstruction for SendWalletPayload {
 
 impl ValidateInstruction for ReceiveWalletPayload {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+        validate_wallet_user_not_transferred(wallet_user)?;
         validate_transfer_instruction(wallet_user)?;
         validate_transfer_in_progress(wallet_user)
     }
@@ -217,6 +233,7 @@ impl ValidateInstruction for ReceiveWalletPayload {
 
 impl ValidateInstruction for CompleteTransfer {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+        validate_wallet_user_not_transferred(wallet_user)?;
         validate_transfer_instruction(wallet_user)?;
         validate_transfer_in_progress(wallet_user)
     }
@@ -224,6 +241,7 @@ impl ValidateInstruction for CompleteTransfer {
 
 impl ValidateInstruction for DiscloseRecoveryCodePinRecovery {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+        validate_wallet_user_not_transferred(wallet_user)?;
         validate_no_pin_change_in_progress(wallet_user)?;
         validate_no_transfer_in_progress(wallet_user)
     }
@@ -639,12 +657,17 @@ impl HandleInstruction for Sign {
         let signatures = future::try_join_all(identifiers.iter().zip(data).map(|(identifiers, data)| async {
             let data = Arc::new(data);
             future::try_join_all(identifiers.iter().map(|identifier| async {
-                let wrapped_key = found_keys.get(identifier).cloned().unwrap(); // TODO: PVW-4979: this panics based on user input!
+                let wrapped_key = found_keys
+                    .get(identifier)
+                    .cloned()
+                    .ok_or(InstructionError::NonExistingKey(identifier.clone()))?;
+
                 user_state
                     .wallet_user_hsm
                     .sign_wrapped(&user_state.wrapping_key_identifier, wrapped_key, Arc::clone(&data))
                     .await
                     .map(DerSignature::from)
+                    .map_err(InstructionError::HsmError)
             }))
             .await
         }))
@@ -2030,6 +2053,28 @@ mod tests {
             assert_matches!(result, Ok(()));
         } else {
             assert_matches!(result, Err(InstructionValidationError::PinRecoveryInProgress));
+        }
+    }
+
+    #[rstest]
+    #[case(Box::new(CheckPin), false)]
+    #[case(Box::new(ChangePinCommit {}), false)]
+    #[case(Box::new(ChangePinRollback {}), false)]
+    #[case(Box::new(CompleteTransfer { transfer_session_id: Uuid::new_v4() }), false)]
+    #[case(Box::new(GetTransferStatus { transfer_session_id: Uuid::new_v4() }), true)]
+    fn validating_instructions_for_transferred_wallet_user(
+        #[case] instruction: Box<dyn ValidateInstruction>,
+        #[case] should_succeed: bool,
+    ) {
+        let mut wallet_user = wallet_user::mock::wallet_user_1();
+        wallet_user.recovery_code = Some("recovery_code".to_string());
+        wallet_user.state = WalletUserState::Transferred;
+
+        let result = instruction.validate_instruction(&wallet_user);
+        if should_succeed {
+            assert_matches!(result, Ok(()));
+        } else {
+            assert_matches!(result, Err(InstructionValidationError::AccountIsTransferred));
         }
     }
 
