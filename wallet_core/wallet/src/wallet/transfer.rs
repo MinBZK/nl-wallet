@@ -264,6 +264,8 @@ where
         let config = self.config_repository.get();
         let instruction_result_public_key = config.account_server.instruction_result_public_key.as_inner().into();
 
+        let payload = database_payload.encrypt(&public_key)?;
+
         let remote_instruction = self
             .new_instruction_client(
                 pin,
@@ -273,8 +275,6 @@ where
                 instruction_result_public_key,
             )
             .await?;
-
-        let payload = database_payload.encrypt(&public_key)?;
 
         remote_instruction
             .send(SendWalletPayload {
