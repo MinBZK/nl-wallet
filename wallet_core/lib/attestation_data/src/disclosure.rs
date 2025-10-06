@@ -3,7 +3,6 @@ use std::collections::HashSet;
 use chrono::DateTime;
 use chrono::Utc;
 use indexmap::IndexMap;
-use sd_jwt::sd_jwt::ClaimValue;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -20,6 +19,7 @@ use mdoc::DataElementValue;
 use mdoc::NameSpace;
 use mdoc::holder::disclosure::claim_path_to_mdoc_path;
 use mdoc::verifier::DisclosedDocument;
+use sd_jwt::sd_jwt::ClaimValue;
 use sd_jwt::sd_jwt::SdJwt;
 use utils::vec_at_least::VecNonEmpty;
 

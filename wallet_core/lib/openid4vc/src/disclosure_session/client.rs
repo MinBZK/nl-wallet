@@ -217,7 +217,6 @@ mod tests {
     use futures::FutureExt;
     use http::StatusCode;
     use itertools::Itertools;
-    use mdoc::holder::mock::NL_PID_DOC_TYPE;
     use rstest::rstest;
     use serde::de::Error;
 
@@ -236,6 +235,7 @@ mod tests {
     use dcql::normalized::NormalizedCredentialRequests;
     use http_utils::urls::BaseUrl;
     use mdoc::holder::disclosure::PartialMdoc;
+    use mdoc::holder::mock::NL_PID_DOC_TYPE;
     use sd_jwt::sd_jwt::SdJwt;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_nonempty;

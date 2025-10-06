@@ -1,7 +1,6 @@
 use std::collections::HashSet;
 
 use assert_matches::assert_matches;
-use attestation_data::test_credential::nl_pid_address_minimal_address;
 use reqwest::StatusCode;
 use rstest::rstest;
 use serial_test::serial;
@@ -9,6 +8,7 @@ use url::Url;
 
 use attestation_data::disclosure::DisclosedAttestations;
 use attestation_data::test_credential::TestCredentials;
+use attestation_data::test_credential::nl_pid_address_minimal_address;
 use attestation_data::test_credential::nl_pid_credentials_family_name;
 use attestation_data::test_credential::nl_pid_credentials_full_name;
 use attestation_data::test_credential::nl_pid_credentials_given_name;
