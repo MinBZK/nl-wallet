@@ -32,6 +32,7 @@ use openid4vc::issuance_session::IssuanceSession;
 use openid4vc::issuance_session::IssuanceSessionError;
 use openid4vc::issuance_session::IssuedCredential;
 use openid4vc::issuance_session::NormalizedCredentialPreview;
+use openid4vc::oidc::OidcError;
 use openid4vc::token::CredentialPreviewError;
 use openid4vc::token::TokenRequest;
 use platform_support::attested_key::AppleAttestedKey;
@@ -101,6 +102,10 @@ pub enum IssuanceError {
 
     #[error("could not finish DigiD session: {0}")]
     DigidSessionFinish(#[source] DigidError),
+
+    #[error("user denied DigiD authentication")]
+    #[category(expected)]
+    DeniedDigiD,
 
     #[error("could not retrieve attestations from issuer: {0}")]
     IssuanceSession(#[from] IssuanceSessionError),
@@ -369,7 +374,13 @@ where
         let token_request = session
             .into_token_request(&pid_issuance_config.digid_http_config, redirect_uri)
             .await
-            .map_err(IssuanceError::DigidSessionFinish)?;
+            .map_err(|error| {
+                if matches!(error, DigidError::Oidc(OidcError::Denied)) {
+                    IssuanceError::DeniedDigiD
+                } else {
+                    IssuanceError::DigidSessionFinish(error)
+                }
+            })?;
 
         let config = self.config_repository.get();
 
@@ -1074,6 +1085,18 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_continue_pid_issuance_user_cancelled() {
+        let mut wallet = setup_wallet_with_digid_session_and_database_mock().await;
+
+        let error = wallet
+            .continue_pid_issuance(Url::parse(&(REDIRECT_URI.to_string() + "?error=access_denied")).unwrap())
+            .await
+            .expect_err("Continuing PID issuance should have resulted in error");
+
+        assert_matches!(error, IssuanceError::DeniedDigiD);
+    }
+
+    #[tokio::test]
     async fn test_continue_pid_issuance_error_locked() {
         // Prepare a registered and locked wallet.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
@@ -1123,7 +1146,14 @@ mod tests {
 
         session
             .expect_into_token_request()
-            .return_once(|_http_config, _redirect_uri| {
+            .return_once(|_http_config, redirect_uri| {
+                if redirect_uri
+                    .query_pairs()
+                    .any(|(key, val)| key == "error" && val == "access_denied")
+                {
+                    return Err(DigidError::Oidc(OidcError::Denied));
+                }
+
                 let token_request = TokenRequest {
                     grant_type: TokenRequestGrantType::PreAuthorizedCode {
                         pre_authorized_code: "123".to_string().into(),

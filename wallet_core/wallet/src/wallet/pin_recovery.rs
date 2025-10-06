@@ -15,6 +15,7 @@ use jwt::UnverifiedJwt;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::issuance_session::IssuanceSession;
 use openid4vc::issuance_session::IssuedCredential;
+use openid4vc::oidc::OidcError;
 use platform_support::attested_key::AppleAttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::attested_key::GoogleAttestedKey;
@@ -33,6 +34,7 @@ use wscd::wscd::Wscd;
 use crate::AttestationAttributeValue;
 use crate::account_provider::AccountProviderClient;
 use crate::digid::DigidClient;
+use crate::digid::DigidError;
 use crate::digid::DigidSession;
 use crate::errors::InstructionError;
 use crate::errors::PinKeyError;
@@ -127,6 +129,10 @@ pub enum PinRecoveryError {
     #[error("cannot cancel PIN: already committed")]
     #[category(unexpected)]
     CommittedToPinRecovery,
+
+    #[error("user denied DigiD authentication")]
+    #[category(expected)]
+    DeniedDigiD,
 }
 
 impl<CR, UR, S, AKH, APC, DC, IS, DCC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC>
@@ -226,7 +232,13 @@ where
         let token_request = session
             .into_token_request(&pid_issuance_config.digid_http_config, redirect_uri)
             .await
-            .map_err(IssuanceError::DigidSessionFinish)?;
+            .map_err(|error| {
+                if matches!(error, DigidError::Oidc(OidcError::Denied)) {
+                    PinRecoveryError::DeniedDigiD
+                } else {
+                    PinRecoveryError::Issuance(IssuanceError::DigidSessionFinish(error))
+                }
+            })?;
 
         let config = self.config_repository.get();
 
