@@ -12,7 +12,7 @@ The Recovery Code is solely intended to be used by the NL Wallet and will be pre
 The Recovery Code is used in the usecases described below:
 
 ## Recovery usecases
-NL-Wallet supports the following use cases that rely on the Recovery Code: 
+NL Wallet supports the following use cases that rely on the Recovery Code: 
 
 1. [PIN Recovery](#pin-recovery): 
 With the PIN Recovery flow, the user can reset a forgotten PIN by re-authenticating with DigiD. 
@@ -74,7 +74,7 @@ sequenceDiagram
 Wallet device transfer allows the user the move te contents of a wallet installation on a source device to another device.
 
 To migrate a wallet from a source device to another destination device, the user can use Wallet Device Transfer flow. In this flow, the user will:
-1. Active a new NL-Wallet instance on the destination device (Destination Wallet) using the regular onboarding flow. After the onboarding flow, the Recovery Code (from the PID) wil be disclosed to NL-Wallet. If the NL-Wallet discovers that another account is active (has the same Recovery Code) a migration possibility will be offered to the user.
+1. Active a new NL Wallet instance on the destination device (Destination Wallet) using the regular onboarding flow. After the onboarding flow, the Recovery Code (from the PID) wil be disclosed to NL Wallet. If the NL Wallet discovers that another account is active (has the same Recovery Code) a migration possibility will be offered to the user.
 2. Transfer the content of his Source Wallet to the Destination Wallet. This is only possible when the identity of the Destination Wallet matches with the registered user identity in the Source Wallet account (has same Recovery Code)
 3. After completion, the contents of the Source Wallet are migrated to the Destination Wallet. The Source Wallet will be emptied.
 
