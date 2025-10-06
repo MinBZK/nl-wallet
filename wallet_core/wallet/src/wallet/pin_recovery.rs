@@ -12,10 +12,8 @@ use attestation_types::claim_path::ClaimPath;
 use crypto::wscd::DisclosureWscd;
 use error_category::ErrorCategory;
 use jwt::UnverifiedJwt;
-use jwt::error::JwtError;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::issuance_session::IssuanceSession;
-use openid4vc::issuance_session::IssuanceSessionError;
 use openid4vc::issuance_session::IssuedCredential;
 use platform_support::attested_key::AppleAttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
@@ -357,31 +355,7 @@ where
             .protocol_state
             .accept_issuance(&config.issuer_trust_anchors(), &pin_recovery_wscd, true)
             .await
-            .map_err(|error| {
-                match error {
-                    // We knowingly call unwrap() on the downcast to `RemoteEcdsaKeyError` here because we know
-                    // that it is the error type of the `PinRecoveryRemoteEcdsaWscd` we provide above.
-                    IssuanceSessionError::PrivateKeyGeneration(error)
-                    | IssuanceSessionError::Jwt(JwtError::Signing(error)) => {
-                        match *error.downcast::<RemoteEcdsaKeyError>().unwrap() {
-                            RemoteEcdsaKeyError::Instruction(error) => IssuanceError::Instruction(error),
-                            RemoteEcdsaKeyError::Signature(error) => IssuanceError::Signature(error),
-                            RemoteEcdsaKeyError::KeyNotFound(identifier) => IssuanceError::KeyNotFound(identifier),
-                            RemoteEcdsaKeyError::MissingSignature => IssuanceError::MissingSignature,
-                        }
-                    }
-                    _ => IssuanceError::IssuerServer {
-                        organization: Box::new(
-                            issuance_session
-                                .protocol_state
-                                .issuer_registration()
-                                .organization
-                                .clone(),
-                        ),
-                        error,
-                    },
-                }
-            })?;
+            .map_err(|error| Self::handle_accept_issuance_error(error, issuance_session))?;
 
         // Store the new wallet certificate and the new salt.
 

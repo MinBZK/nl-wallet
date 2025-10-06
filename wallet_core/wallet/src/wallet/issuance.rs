@@ -512,35 +512,11 @@ where
         let remote_wscd = RemoteEcdsaWscd::new(remote_instruction.clone());
         info!("Signing nonce using Wallet Provider");
 
-        let organization = issuance_session
-            .protocol_state
-            .issuer_registration()
-            .organization
-            .clone();
-
         let issuance_result = issuance_session
             .protocol_state
             .accept_issuance(&config.issuer_trust_anchors(), &remote_wscd, issuance_session.is_pid)
             .await
-            .map_err(|error| {
-                match error {
-                    // We knowingly call unwrap() on the downcast to `RemoteEcdsaKeyError` here because we know
-                    // that it is the error type of the `RemoteEcdsaWscd` we provide above.
-                    IssuanceSessionError::PrivateKeyGeneration(error)
-                    | IssuanceSessionError::Jwt(JwtError::Signing(error)) => {
-                        match *error.downcast::<RemoteEcdsaKeyError>().unwrap() {
-                            RemoteEcdsaKeyError::Instruction(error) => IssuanceError::Instruction(error),
-                            RemoteEcdsaKeyError::Signature(error) => IssuanceError::Signature(error),
-                            RemoteEcdsaKeyError::KeyNotFound(identifier) => IssuanceError::KeyNotFound(identifier),
-                            RemoteEcdsaKeyError::MissingSignature => IssuanceError::MissingSignature,
-                        }
-                    }
-                    _ => IssuanceError::IssuerServer {
-                        organization: Box::new(organization),
-                        error,
-                    },
-                }
-            });
+            .map_err(|error| Self::handle_accept_issuance_error(error, issuance_session));
 
         // Make sure there are no remaining references to the `AttestedKey` value.
         drop(remote_wscd);
@@ -619,6 +595,34 @@ where
         self.emit_recent_history().await.map_err(IssuanceError::EventStorage)?;
 
         Ok(IssuanceResult { transfer_session_id })
+    }
+
+    pub(super) fn handle_accept_issuance_error(
+        error: IssuanceSessionError,
+        issuance_session: &WalletIssuanceSession<IS>,
+    ) -> IssuanceError {
+        match error {
+            // We knowingly call unwrap() on the downcast to `RemoteEcdsaKeyError` here because we know
+            // that it is the error type of the `RemoteEcdsaWscd` we provide above.
+            IssuanceSessionError::PrivateKeyGeneration(error) | IssuanceSessionError::Jwt(JwtError::Signing(error)) => {
+                match *error.downcast::<RemoteEcdsaKeyError>().unwrap() {
+                    RemoteEcdsaKeyError::Instruction(error) => IssuanceError::Instruction(error),
+                    RemoteEcdsaKeyError::Signature(error) => IssuanceError::Signature(error),
+                    RemoteEcdsaKeyError::KeyNotFound(identifier) => IssuanceError::KeyNotFound(identifier),
+                    RemoteEcdsaKeyError::MissingSignature => IssuanceError::MissingSignature,
+                }
+            }
+            _ => IssuanceError::IssuerServer {
+                organization: Box::new(
+                    issuance_session
+                        .protocol_state
+                        .issuer_registration()
+                        .organization
+                        .clone(),
+                ),
+                error,
+            },
+        }
     }
 
     /// Finds the PID SD JWT, creates a disclosure of just the recovery code, and sends it to the remote instruction
