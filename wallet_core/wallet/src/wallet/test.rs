@@ -202,9 +202,8 @@ pub fn create_example_pid_sd_jwt() -> (VerifiedSdJwt, NormalizedTypeMetadata) {
     let credential_payload = CredentialPayload::nl_pid_example(&MockTimeGenerator::default());
     let metadata = NormalizedTypeMetadata::nl_pid_example();
 
-    let holder_privkey = SigningKey::random(&mut OsRng);
     let sd_jwt = credential_payload
-        .into_sd_jwt(&metadata, holder_privkey.verifying_key(), &ISSUER_KEY.issuance_key)
+        .into_sd_jwt(&metadata, &ISSUER_KEY.issuance_key)
         .now_or_never()
         .unwrap()
         .unwrap();

@@ -88,8 +88,8 @@ impl SdJwtClaims for SdJwtExampleClaims {
         &self.claims
     }
 
-    fn cnf(&self) -> Option<&RequiredKeyBinding> {
-        self.cnf.as_ref()
+    fn cnf(&self) -> &RequiredKeyBinding {
+        self.cnf.as_ref().unwrap()
     }
 }
 

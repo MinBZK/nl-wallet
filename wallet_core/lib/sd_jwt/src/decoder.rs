@@ -194,7 +194,6 @@ mod test {
             ],
         });
         let mut encoder = SdObjectEncoder::try_from(object).unwrap();
-        encoder.add_sd_alg_property();
         assert_eq!(encoder.clone().encode()._sd_alg, Some(SdAlg::Sha256));
         let decoded = SdObjectDecoder::decode(&encoder.encode(), &IndexMap::new()).unwrap();
         assert!(decoded._sd_alg.is_none());

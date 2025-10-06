@@ -12,6 +12,10 @@ use serde::Serialize;
 use attestation_types::claim_path::ClaimPath;
 use mdoc::iso::mdocs::Entry;
 use mdoc::iso::mdocs::NameSpace;
+use sd_jwt::claims::ArrayClaim;
+use sd_jwt::claims::ClaimNameError;
+use sd_jwt::claims::ClaimValue;
+use sd_jwt::claims::ObjectClaims;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use utils::vec_at_least::VecNonEmpty;
 
@@ -58,6 +62,20 @@ impl From<AttributeValue> for ciborium::Value {
             AttributeValue::Text(text) => ciborium::Value::Text(text),
             AttributeValue::Null => ciborium::Value::Null,
             AttributeValue::Array(elements) => ciborium::Value::Array(elements.into_iter().map(Self::from).collect()),
+        }
+    }
+}
+
+impl From<AttributeValue> for ClaimValue {
+    fn from(value: AttributeValue) -> Self {
+        match value {
+            AttributeValue::Null => ClaimValue::Null,
+            AttributeValue::Integer(number) => ClaimValue::Number(number.into()),
+            AttributeValue::Bool(boolean) => ClaimValue::Bool(boolean),
+            AttributeValue::Text(text) => ClaimValue::String(text),
+            AttributeValue::Array(elements) => {
+                ClaimValue::Array(elements.into_iter().map(|e| ArrayClaim::Value(Self::from(e))).collect())
+            }
         }
     }
 }
@@ -127,6 +145,25 @@ impl TryFrom<serde_json::Value> for Attribute {
     }
 }
 
+impl TryFrom<Attribute> for ClaimValue {
+    type Error = ClaimNameError;
+
+    fn try_from(value: Attribute) -> Result<Self, Self::Error> {
+        match value {
+            Attribute::Single(attribute_value) => Ok(attribute_value.into()),
+            Attribute::Nested(index_map) => Ok(attributes_to_claim_value(index_map)?),
+        }
+    }
+}
+
+impl TryFrom<Attributes> for ClaimValue {
+    type Error = ClaimNameError;
+
+    fn try_from(value: Attributes) -> Result<Self, Self::Error> {
+        attributes_to_claim_value(value.0)
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 pub enum AttributesTraversalBehaviour {
     AllPaths,
@@ -135,6 +172,16 @@ pub enum AttributesTraversalBehaviour {
 
 #[derive(Debug, Default, Clone, Eq, PartialEq, Serialize, Deserialize, AsRef, From)]
 pub struct Attributes(IndexMap<String, Attribute>);
+
+fn attributes_to_claim_value(attributes: IndexMap<String, Attribute>) -> Result<ClaimValue, ClaimNameError> {
+    Ok(ClaimValue::Object(ObjectClaims {
+        _sd: None,
+        claims: attributes
+            .into_iter()
+            .map(|(k, v)| Ok((k.parse()?, v.try_into()?)))
+            .collect::<Result<_, ClaimNameError>>()?,
+    }))
+}
 
 impl Attributes {
     pub fn into_inner(self) -> IndexMap<String, Attribute> {

@@ -4,6 +4,7 @@ use chrono::DateTime;
 use chrono::Utc;
 use indexmap::IndexMap;
 use p256::ecdsa::VerifyingKey;
+use sd_jwt::claims::ClaimNameError;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::serde_as;
@@ -25,6 +26,7 @@ use mdoc::utils::crypto::CryptoError;
 use sd_jwt::builder::SdJwtBuilder;
 use sd_jwt::builder::SignedSdJwt;
 use sd_jwt::key_binding_jwt::RequiredKeyBinding;
+use sd_jwt::sd_jwt::SdJwtVcClaims;
 use sd_jwt::sd_jwt::VerifiedSdJwt;
 use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
@@ -50,6 +52,10 @@ pub enum SdJwtCredentialPayloadError {
     #[error("error converting from SD-JWT: {0}")]
     #[category(pd)]
     SdJwtSerialization(#[source] sd_jwt::error::Error),
+
+    #[error("error converting AttributeName to ClaimName: {0}")]
+    #[category(pd)]
+    InvalidClaimName(#[from] ClaimNameError),
 
     #[error("error converting to SD-JWT: {0}")]
     #[category(pd)]
@@ -144,6 +150,26 @@ impl PreviewableCredentialPayload {
 pub trait IntoCredentialPayload {
     type Error;
     fn into_credential_payload(self, metadata: &NormalizedTypeMetadata) -> Result<CredentialPayload, Self::Error>;
+}
+
+impl TryFrom<CredentialPayload> for SdJwtVcClaims {
+    type Error = ClaimNameError;
+
+    fn try_from(value: CredentialPayload) -> Result<Self, Self::Error> {
+        Ok(SdJwtVcClaims {
+            vct: value.previewable_payload.attestation_type,
+            vct_integrity: Some(value.vct_integrity),
+            iss: value.previewable_payload.issuer,
+            iat: value.issued_at,
+            exp: value.previewable_payload.expires,
+            nbf: value.previewable_payload.not_before,
+            cnf: value.confirmation_key,
+            attestation_qualification: Some(value.previewable_payload.attestation_qualification),
+            _sd_alg: None, // to be set by SdJwtBuilder
+
+            claims: value.previewable_payload.attributes.try_into()?,
+        })
+    }
 }
 
 impl IntoCredentialPayload for &VerifiedSdJwt {
@@ -306,11 +332,8 @@ impl CredentialPayload {
     pub async fn into_sd_jwt(
         self,
         type_metadata: &NormalizedTypeMetadata,
-        holder_pubkey: &VerifyingKey,
         issuer_keypair: &KeyPair<impl EcdsaKey>,
     ) -> Result<SignedSdJwt, SdJwtCredentialPayloadError> {
-        let vct_integrity = self.vct_integrity.clone();
-
         let sd_by_claims = type_metadata
             .claims()
             .iter()
@@ -322,7 +345,7 @@ impl CredentialPayload {
             .attributes
             .claim_paths(AttributesTraversalBehaviour::AllPaths)
             .into_iter()
-            .try_fold(SdJwtBuilder::new(self)?, |builder, claims| {
+            .try_fold(SdJwtBuilder::new(self.try_into()?)?, |builder, claims| {
                 let should_be_selectively_discloseable = match sd_by_claims.get(&claims) {
                     Some(sd) => !matches!(sd, ClaimSelectiveDisclosureMetadata::Never),
                     None => true,
@@ -336,7 +359,7 @@ impl CredentialPayload {
                     .make_concealable(claims)
                     .map_err(SdJwtCredentialPayloadError::SdJwtCreation)
             })?
-            .finish(vct_integrity, issuer_keypair, holder_pubkey)
+            .finish(issuer_keypair)
             .await?;
 
         Ok(sd_jwt)
@@ -496,6 +519,7 @@ mod test {
     use sd_jwt::builder::SdJwtBuilder;
     use sd_jwt::key_binding_jwt::KeyBindingJwtBuilder;
     use sd_jwt::key_binding_jwt::RequiredKeyBinding;
+    use sd_jwt::sd_jwt::SdJwtVcClaims;
     use sd_jwt::sd_jwt::UnsignedSdJwtPresentation;
     use sd_jwt_vc_metadata::JsonSchemaPropertyType;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
@@ -622,29 +646,24 @@ mod test {
     #[test]
     fn test_from_sd_jwt() {
         let holder_key = SigningKey::random(&mut OsRng);
-        let confirmation_key = jwk_from_p256(holder_key.verifying_key()).unwrap();
 
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let issuer_keypair = ca.generate_issuer_mock().unwrap();
 
-        let claims = json!({
-            "vct": "com.example.pid",
-            "vct#integrity": "sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=",
-            "iss": "https://com.example.org/pid/issuer",
-            "iat": 61,
-            "attestation_qualification": "QEAA",
-            "cnf": {
-                "jwk": confirmation_key
-            },
-            "birth_date": "1963-08-12",
-            "place_of_birth": {
-                "locality": "The Hague",
-                "country": {
-                    "name": "The Netherlands",
-                    "area_code": 33
-                }
-            }
-        });
+        let claims = SdJwtVcClaims::example_from_json(
+            holder_key.verifying_key(),
+            json!({
+                "birth_date": "1963-08-12",
+                "place_of_birth": {
+                    "locality": "The Hague",
+                    "country": {
+                        "name": "The Netherlands",
+                        "area_code": 33
+                    }
+                },
+            }),
+            &MockTimeGenerator::default(),
+        );
 
         let sd_jwt = SdJwtBuilder::new(claims)
             .unwrap()
@@ -687,7 +706,7 @@ mod test {
             .unwrap()
             .add_decoys(&[], 2)
             .unwrap()
-            .finish(Integrity::from(""), &issuer_keypair, holder_key.verifying_key())
+            .finish(&issuer_keypair)
             .now_or_never()
             .unwrap()
             .unwrap()
@@ -700,10 +719,7 @@ mod test {
             .into_credential_payload(&metadata)
             .expect("creating and validating CredentialPayload from SD-JWT should succeed");
 
-        assert_eq!(
-            payload.previewable_payload.attestation_type,
-            sd_jwt.claims().vct.as_ref().unwrap().to_owned()
-        );
+        assert_eq!(payload.previewable_payload.attestation_type, sd_jwt.claims().vct);
 
         let unverified_payload = CredentialPayload::from_sd_jwt_unvalidated(&sd_jwt)
             .expect("creating a CredentialPayload from SD-JWT while not validating metdata should succeed");
@@ -737,7 +753,7 @@ mod test {
         );
 
         let sd_jwt = credential_payload
-            .into_sd_jwt(&metadata, holder_key.verifying_key(), &issuer_key_pair)
+            .into_sd_jwt(&metadata, &issuer_key_pair)
             .now_or_never()
             .unwrap()
             .unwrap();

@@ -1181,11 +1181,7 @@ impl CredentialResponse {
         )?;
 
         let signed_sd_jwt = payload
-            .into_sd_jwt(
-                &attestation_config.metadata,
-                holder_pubkey,
-                &attestation_config.key_pair,
-            )
+            .into_sd_jwt(&attestation_config.metadata, &attestation_config.key_pair)
             .await?;
 
         Ok(CredentialResponse::SdJwt {

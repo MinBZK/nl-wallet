@@ -945,10 +945,9 @@ fn prepare_example_sd_jwt_mock(issuer_ca: &Ca, wscd: &MockRemoteWscd) -> (Signed
 
     // Generate a new private key and use that and the issuer key to sign the SD-JWT.
     let sd_jwt_private_key = wscd.create_random_key();
-    let sd_jwt_public_key = sd_jwt_private_key.verifying_key();
 
     let sd_jwt = credential_payload
-        .into_sd_jwt(&type_metadata, sd_jwt_public_key, &issuer_key_pair)
+        .into_sd_jwt(&type_metadata, &issuer_key_pair)
         .now_or_never()
         .unwrap()
         .unwrap();

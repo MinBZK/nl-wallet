@@ -21,7 +21,7 @@ test = []
 anyhow.workspace = true
 base64.workspace = true
 chrono.workspace = true
-derive_more = { workspace = true, features = ["as_ref", "display"] }
+derive_more = { workspace = true, features = ["as_ref", "display", "from_str"] }
 indexmap.workspace = true
 itertools.workspace = true
 jsonwebtoken.workspace = true

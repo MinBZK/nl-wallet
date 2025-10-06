@@ -1,9 +1,9 @@
-use std::str::FromStr;
 use std::sync::LazyLock;
 use std::time::Duration;
 
 use chrono::serde::ts_seconds;
 use derive_more::Display;
+use derive_more::FromStr;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::Validation;
 use jsonwebtoken::jwk::Jwk;
@@ -22,7 +22,6 @@ use jwt::JwtTyp;
 use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
 use jwt::VerifiedJwt;
-use jwt::error::JwtError;
 use jwt::jwk::jwk_to_p256;
 use utils::generator::Generator;
 use utils::vec_at_least::NonEmptyIterator;
@@ -40,22 +39,12 @@ impl JwtTyp for KeyBindingJwtClaims {
 }
 
 /// Representation of a [KB-JWT](https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-12.html#name-key-binding-jwt).
-#[derive(Debug, Clone, PartialEq, Eq, Display, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Display, FromStr, Serialize, Deserialize)]
 pub struct UnverifiedKeyBindingJwt(UnverifiedJwt<KeyBindingJwtClaims>);
 
 pub type VerifiedKeyBindingJwt = VerifiedJwt<KeyBindingJwtClaims>;
 
 pub type SignedKeyBindingJwt = SignedJwt<KeyBindingJwtClaims>;
-
-// TODO can we derive this?
-impl FromStr for UnverifiedKeyBindingJwt {
-    type Err = JwtError;
-
-    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
-        let unverified: UnverifiedJwt<KeyBindingJwtClaims> = s.parse()?;
-        Ok(Self(unverified))
-    }
-}
 
 impl UnverifiedKeyBindingJwt {
     pub fn into_verified(
@@ -230,7 +219,6 @@ mod test {
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
     use serde_json::json;
-    use ssri::Integrity;
 
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::mock_remote::MockRemoteWscd;
@@ -246,6 +234,7 @@ mod test {
     use crate::error::Error;
     use crate::hasher::Hasher;
     use crate::hasher::Sha256Hasher;
+    use crate::sd_jwt::SdJwtVcClaims;
 
     use super::*;
 
@@ -327,13 +316,13 @@ mod test {
             .into_nonempty_iter()
             .map(|(family_name, key)| {
                 // Create a minimal SD-JWT that contains the holder verifying key as JWK.
-                let sd_jwt = SdJwtBuilder::new(json!({
-                    "iss": "https://iss.example.com",
-                    "iat": iat.timestamp(),
-                    "family_name": family_name
-                }))
+                let sd_jwt = SdJwtBuilder::new(SdJwtVcClaims::example_from_json(
+                    key.verifying_key(),
+                    json!({ "family_name": family_name}),
+                    &MockTimeGenerator::default(),
+                ))
                 .unwrap()
-                .finish(Integrity::from(""), &issuer_keypair, key.verifying_key())
+                .finish(&issuer_keypair)
                 .now_or_never()
                 .unwrap()
                 .unwrap()

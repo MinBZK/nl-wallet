@@ -55,7 +55,8 @@ impl<H: Hasher> SdObjectEncoder<H> {
         })
     }
 
-    pub fn encode(self) -> SdJwtVcClaims {
+    pub fn encode(mut self) -> SdJwtVcClaims {
+        self.object._sd_alg = Some(self.hasher.alg());
         self.object
     }
 
@@ -73,12 +74,6 @@ impl<H: Hasher> SdObjectEncoder<H> {
             Some(claim) => claim.conceal(&last_path, salt, &self.hasher),
             None => Err(Error::ParentNotFound(rest)),
         }
-    }
-
-    /// Adds the `_sd_alg` property to the top level of the object.
-    /// The value is taken from the [`crate::Hasher::alg_name`] implementation.
-    pub fn add_sd_alg_property(&mut self) {
-        self.object._sd_alg = Some(self.hasher.alg());
     }
 
     /// Adds a decoy digest to the specified path.

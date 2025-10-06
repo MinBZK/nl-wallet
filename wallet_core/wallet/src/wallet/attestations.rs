@@ -128,7 +128,7 @@ mod tests {
             generate_issuer_mock_with_registration(&ca, IssuerRegistration::new_mock().into()).unwrap();
         let holder_key = SigningKey::random(&mut OsRng);
         let sd_jwt = SignedSdJwt::pid_example(&issuance_keypair, holder_key.verifying_key()).into_verified();
-        let attestation_type = sd_jwt.claims().vct.as_ref().unwrap().to_owned();
+        let attestation_type = sd_jwt.claims().vct.clone();
 
         let storage = wallet.mut_storage();
         storage.expect_fetch_unique_attestations().return_once(move || {

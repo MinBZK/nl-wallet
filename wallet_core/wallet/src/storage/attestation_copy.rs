@@ -286,8 +286,6 @@ mod tests {
 
     use futures::FutureExt;
     use itertools::Itertools;
-    use p256::ecdsa::SigningKey;
-    use rand_core::OsRng;
     use ssri::Integrity;
     use uuid::Uuid;
 
@@ -347,14 +345,8 @@ mod tests {
 
     fn sd_jwt_stored_attestation_copy(issuer_keypair: &KeyPair) -> (StoredAttestationCopy, VecNonEmpty<ClaimPath>) {
         let credential_payload = CredentialPayload::nl_pid_example(&MockTimeGenerator::default());
-
-        let holder_privkey = SigningKey::random(&mut OsRng);
         let sd_jwt = credential_payload
-            .into_sd_jwt(
-                &NormalizedTypeMetadata::nl_pid_example(),
-                holder_privkey.verifying_key(),
-                issuer_keypair,
-            )
+            .into_sd_jwt(&NormalizedTypeMetadata::nl_pid_example(), issuer_keypair)
             .now_or_never()
             .unwrap()
             .unwrap();

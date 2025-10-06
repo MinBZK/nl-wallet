@@ -325,7 +325,7 @@ impl TestCredential {
         .expect("TestCredential payload preview should convert to CredentialPayload");
 
         let sd_jwt = credential_payload
-            .into_sd_jwt(&normalized_metadata, holder_key.verifying_key(), issuer_keypair)
+            .into_sd_jwt(&normalized_metadata, issuer_keypair)
             .now_or_never()
             .unwrap()
             .expect("TestCredential payload preview should convert to SD-JWT");

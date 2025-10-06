@@ -186,11 +186,6 @@ impl TryFrom<VerifiedSdJwtPresentation> for DisclosedAttestation {
 
         let claims = sd_jwt_presentation.into_claims();
 
-        let attestation_type = claims
-            .vct
-            .clone()
-            .ok_or(DisclosedAttestationError::MissingAttributes("vct"))?;
-
         // Manually parse the attestation qualification from the SD-JWT claims.
         let attestation_qualification = claims
             .claims()
@@ -211,9 +206,9 @@ impl TryFrom<VerifiedSdJwtPresentation> for DisclosedAttestation {
         };
 
         Ok(DisclosedAttestation {
-            attestation_type,
+            attestation_type: claims.vct.clone(),
             attributes,
-            issuer_uri: claims.iss,
+            issuer_uri: claims.iss.clone(),
             attestation_qualification,
             ca,
             validity_info,

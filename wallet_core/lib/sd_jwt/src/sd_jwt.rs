@@ -23,6 +23,7 @@ use serde_with::skip_serializing_none;
 use ssri::Integrity;
 
 use attestation_types::claim_path::ClaimPath;
+use attestation_types::qualification::AttestationQualification;
 use crypto::CredentialEcdsaKey;
 use crypto::EcdsaKey;
 use crypto::wscd::DisclosureWscd;
@@ -36,7 +37,6 @@ use jwt::JwtTyp;
 use jwt::UnverifiedJwt;
 use jwt::VerifiedJwt;
 use jwt::headers::HeaderWithX5c;
-use jwt::jwk::jwk_to_p256;
 use utils::date_time_seconds::DateTimeSeconds;
 use utils::generator::Generator;
 use utils::vec_at_least::IntoNonEmptyIterator;
@@ -58,10 +58,12 @@ use crate::key_binding_jwt::UnverifiedKeyBindingJwt;
 use crate::key_binding_jwt::VerifiedKeyBindingJwt;
 use crate::sd_alg::SdAlg;
 
-pub(crate) trait SdJwtClaims {
+pub(crate) trait SdJwtClaims: JwtTyp {
     fn _sd_alg(&self) -> Option<SdAlg>;
+
+    fn cnf(&self) -> &RequiredKeyBinding;
+
     fn claims(&self) -> &ClaimValue;
-    fn cnf(&self) -> Option<&RequiredKeyBinding>;
 }
 
 impl SdJwtClaims for SdJwtVcClaims {
@@ -69,12 +71,12 @@ impl SdJwtClaims for SdJwtVcClaims {
         self._sd_alg
     }
 
-    fn claims(&self) -> &ClaimValue {
-        &self.claims
+    fn cnf(&self) -> &RequiredKeyBinding {
+        &self.cnf
     }
 
-    fn cnf(&self) -> Option<&RequiredKeyBinding> {
-        self.cnf.as_ref()
+    fn claims(&self) -> &ClaimValue {
+        &self.claims
     }
 }
 
@@ -92,6 +94,27 @@ impl<C, H> UnverifiedSdJwt<C, H> {
             issuer_signed,
             disclosures,
         }
+    }
+
+    fn dangerous_parse_unverified(&self) -> Result<(VerifiedJwt<C, H>, IndexMap<String, Disclosure>)>
+    where
+        C: SdJwtClaims + DeserializeOwned,
+        H: DeserializeOwned,
+    {
+        let issuer_signed = VerifiedJwt::<C, H>::dangerous_parse_unverified(self.issuer_signed.serialization())?;
+
+        let hasher = issuer_signed.payload()._sd_alg().unwrap_or_default().hasher()?;
+        let disclosures = self
+            .disclosures
+            .iter()
+            .map(|segment| {
+                let disclosure: Disclosure = segment.parse()?;
+                let key = hasher.encoded_digest(disclosure.encoded());
+                Result::Ok((key, disclosure))
+            })
+            .try_collect()?;
+
+        Ok((issuer_signed, disclosures))
     }
 }
 
@@ -199,19 +222,7 @@ impl<C: SdJwtClaims, H> UnverifiedSdJwt<C, H> {
 
 impl From<UnsignedSdJwtPresentation> for UnverifiedSdJwt {
     fn from(presentation: UnsignedSdJwtPresentation) -> Self {
-        let UnsignedSdJwtPresentation(sd_jwt) = presentation;
-
-        let issuer_signed = sd_jwt.issuer_signed.into();
-        let disclosures = sd_jwt
-            .disclosures
-            .into_values()
-            .map(|disclosure| disclosure.encoded)
-            .collect();
-
-        Self {
-            issuer_signed,
-            disclosures,
-        }
+        presentation.0.into()
     }
 }
 
@@ -235,15 +246,14 @@ impl From<VerifiedSdJwt> for UnverifiedSdJwt {
 pub struct SdJwtVcClaims {
     pub _sd_alg: Option<SdAlg>,
 
-    // TODO this should be mandatory (PVW-4868)
-    pub cnf: Option<RequiredKeyBinding>,
+    pub cnf: RequiredKeyBinding,
 
-    // TODO this should be mandatory (PVW-4868)
+    // Even though we want this to be mandatory, we allow it to be optional in order for the examples from the spec
+    // to parse.
     #[serde(rename = "vct#integrity")]
     pub vct_integrity: Option<Integrity>,
 
-    // TODO this should be mandatory (PVW-4868)
-    pub vct: Option<String>,
+    pub vct: String,
 
     pub iss: HttpsUri,
 
@@ -253,11 +263,15 @@ pub struct SdJwtVcClaims {
 
     pub nbf: Option<DateTimeSeconds>,
 
+    // Even though we want this to be mandatory, we allow it to be optional in order for the examples from the spec
+    // to parse.
+    pub attestation_qualification: Option<AttestationQualification>,
+
     // In practice this should always be a `ClaimValue::Object`, however `ClaimValue` is used here instead of
     // `ObjectClaims` to make is possible to call `ClaimValue::traverse_by_claim_paths` at this level and return `self`
     // for an empty `claim_path`.
     #[serde(flatten)]
-    pub(crate) claims: ClaimValue,
+    pub claims: ClaimValue,
 }
 
 impl SdJwtVcClaims {
@@ -273,101 +287,6 @@ impl SdJwtVcClaims {
             panic!("Should always be an Object")
         };
         claims
-    }
-}
-
-impl UnsignedSdJwtPresentation {
-    /// Create multiple `SdJwtPresentation`s by having the WSCD sign multiple `UnsignedSdJwtPresentation`s,
-    /// using the contents of a single `KeyBindingJwtBuilder`.
-    pub async fn sign_multiple<I, W, K, P>(
-        unsigned_presentations_and_keys_ids: VecNonEmpty<(UnsignedSdJwtPresentation, I)>,
-        key_binding_jwt_builder: KeyBindingJwtBuilder,
-        wscd: &W,
-        poa_input: P::Input,
-        time: &impl Generator<DateTime<Utc>>,
-    ) -> Result<(VecNonEmpty<SignedSdJwtPresentation>, Option<P>)>
-    where
-        I: Into<String>,
-        W: DisclosureWscd<Key = K, Poa = P>,
-        K: CredentialEcdsaKey,
-        P: WscdPoa,
-    {
-        // Create the WSCD keys from the provided key identifiers and public keys present in the `cnf` claim.
-        // Note that the latter is not actually used, as all we do is signing.
-        let sd_jwts_and_keys: VecNonEmpty<(VerifiedSdJwt, _)> = unsigned_presentations_and_keys_ids
-            .into_nonempty_iter()
-            .map(|(UnsignedSdJwtPresentation(sd_jwt), key_identifier)| {
-                let key = wscd.new_key(key_identifier, sd_jwt.verifying_key()?);
-
-                Ok((sd_jwt, key))
-            })
-            .collect::<Result<_>>()?;
-
-        // Have the WSCD create `KeyBindingJwt`s and the PoA, if required.
-        let (key_binding_jwts, poa) = key_binding_jwt_builder
-            .finish_multiple(&sd_jwts_and_keys, wscd, poa_input, time)
-            .await?;
-
-        // Combine the `SdJwt`s with the `KeyBindingJwt`s to create `SdJwtPresentation`s.
-        let sd_jwt_presentations = sd_jwts_and_keys
-            .into_nonempty_iter()
-            .zip(key_binding_jwts)
-            .map(|((sd_jwt, _), key_binding_jwt)| SignedSdJwtPresentation {
-                sd_jwt,
-                key_binding_jwt,
-            })
-            .collect();
-
-        Ok((sd_jwt_presentations, poa))
-    }
-}
-
-impl UnverifiedSdJwtPresentation {
-    /// Parses an SD-JWT into its components as [`SdJwtPresentation`] while verifying against a set of trust anchors.
-    ///
-    /// ## Error
-    /// Returns [`Error::Deserialization`] if parsing fails.
-    pub fn into_verified_against_trust_anchors(
-        self,
-        trust_anchors: &[TrustAnchor],
-        kb_expected_aud: &str,
-        kb_expected_nonce: &str,
-        kb_iat_acceptance_window: Duration,
-        time: &impl Generator<DateTime<Utc>>,
-    ) -> Result<VerifiedSdJwtPresentation> {
-        let sd_jwt = self.sd_jwt.into_verified_against_trust_anchors(trust_anchors, time)?;
-
-        let key_binding_jwt = self.key_binding_jwt.into_verified(
-            &EcdsaDecodingKey::from(&sd_jwt.verifying_key()?),
-            kb_expected_aud,
-            kb_expected_nonce,
-            kb_iat_acceptance_window,
-            time,
-        )?;
-
-        Ok(VerifiedSdJwtPresentation {
-            sd_jwt,
-            key_binding_jwt,
-        })
-    }
-}
-
-impl<C: SdJwtClaims + DeserializeOwned, H: DeserializeOwned> UnverifiedSdJwt<C, H> {
-    fn dangerous_parse_unverified(&self) -> Result<(VerifiedJwt<C, H>, IndexMap<String, Disclosure>)> {
-        let issuer_signed = VerifiedJwt::<C, H>::dangerous_parse_unverified(self.issuer_signed.serialization())?;
-
-        let hasher = issuer_signed.payload()._sd_alg().unwrap_or_default().hasher()?;
-        let disclosures = self
-            .disclosures
-            .iter()
-            .map(|segment| {
-                let disclosure: Disclosure = segment.parse()?;
-                let key = hasher.encoded_digest(disclosure.encoded());
-                Result::Ok((key, disclosure))
-            })
-            .try_collect()?;
-
-        Ok((issuer_signed, disclosures))
     }
 }
 
@@ -411,15 +330,11 @@ impl<C, H> VerifiedSdJwt<C, H> {
         &self.disclosures
     }
 
-    // TODO would be nice if this would be infallible
-    pub fn verifying_key(&self) -> Result<VerifyingKey>
+    pub fn holder_pubkey(&self) -> Result<VerifyingKey>
     where
         C: SdJwtClaims,
     {
-        self.claims()
-            .cnf()
-            .ok_or(Error::MissingJwkKeybinding)
-            .and_then(|cnf| cnf.verifying_key())
+        self.claims().cnf().verifying_key()
     }
 }
 
@@ -478,6 +393,82 @@ impl<C: SdJwtClaims, H> VerifiedSdJwt<C, H> {
     }
 }
 
+impl UnsignedSdJwtPresentation {
+    /// Create multiple `SdJwtPresentation`s by having the WSCD sign multiple `UnsignedSdJwtPresentation`s,
+    /// using the contents of a single `KeyBindingJwtBuilder`.
+    pub async fn sign_multiple<I, W, K, P>(
+        unsigned_presentations_and_keys_ids: VecNonEmpty<(UnsignedSdJwtPresentation, I)>,
+        key_binding_jwt_builder: KeyBindingJwtBuilder,
+        wscd: &W,
+        poa_input: P::Input,
+        time: &impl Generator<DateTime<Utc>>,
+    ) -> Result<(VecNonEmpty<SignedSdJwtPresentation>, Option<P>)>
+    where
+        I: Into<String>,
+        W: DisclosureWscd<Key = K, Poa = P>,
+        K: CredentialEcdsaKey,
+        P: WscdPoa,
+    {
+        // Create the WSCD keys from the provided key identifiers and public keys present in the `cnf` claim.
+        // Note that the latter is not actually used, as all we do is signing.
+        let sd_jwts_and_keys: VecNonEmpty<(VerifiedSdJwt, _)> = unsigned_presentations_and_keys_ids
+            .into_nonempty_iter()
+            .map(|(UnsignedSdJwtPresentation(sd_jwt), key_identifier)| {
+                let key = wscd.new_key(key_identifier, sd_jwt.holder_pubkey()?);
+
+                Ok((sd_jwt, key))
+            })
+            .collect::<Result<_>>()?;
+
+        // Have the WSCD create `KeyBindingJwt`s and the PoA, if required.
+        let (key_binding_jwts, poa) = key_binding_jwt_builder
+            .finish_multiple(&sd_jwts_and_keys, wscd, poa_input, time)
+            .await?;
+
+        // Combine the `SdJwt`s with the `KeyBindingJwt`s to create `SdJwtPresentation`s.
+        let sd_jwt_presentations = sd_jwts_and_keys
+            .into_nonempty_iter()
+            .zip(key_binding_jwts)
+            .map(|((sd_jwt, _), key_binding_jwt)| SignedSdJwtPresentation {
+                sd_jwt,
+                key_binding_jwt,
+            })
+            .collect();
+
+        Ok((sd_jwt_presentations, poa))
+    }
+}
+
+impl UnverifiedSdJwtPresentation {
+    /// Parses an SD-JWT into its components as [`SdJwtPresentation`] while verifying against a set of trust anchors.
+    ///
+    /// ## Error
+    /// Returns [`Error::Deserialization`] if parsing fails.
+    pub fn into_verified_against_trust_anchors(
+        self,
+        trust_anchors: &[TrustAnchor],
+        kb_expected_aud: &str,
+        kb_expected_nonce: &str,
+        kb_iat_acceptance_window: Duration,
+        time: &impl Generator<DateTime<Utc>>,
+    ) -> Result<VerifiedSdJwtPresentation> {
+        let sd_jwt = self.sd_jwt.into_verified_against_trust_anchors(trust_anchors, time)?;
+
+        let key_binding_jwt = self.key_binding_jwt.into_verified(
+            &EcdsaDecodingKey::from(&sd_jwt.holder_pubkey()?),
+            kb_expected_aud,
+            kb_expected_nonce,
+            kb_iat_acceptance_window,
+            time,
+        )?;
+
+        Ok(VerifiedSdJwtPresentation {
+            sd_jwt,
+            key_binding_jwt,
+        })
+    }
+}
+
 #[derive(Debug, Clone, Eq, PartialEq, SerializeDisplay, DeserializeFromStr)]
 pub struct UnverifiedSdJwtPresentation<C = SdJwtVcClaims, H = HeaderWithX5c> {
     sd_jwt: UnverifiedSdJwt<C, H>,
@@ -529,12 +520,8 @@ where
             .issuer_signed
             .into_verified(issuer_pubkey, &SD_JWT_VALIDATIONS)?;
 
-        let Some(RequiredKeyBinding::Jwk(jwk)) = issuer_signed.payload().cnf().as_ref() else {
-            return Err(Error::MissingJwkKeybinding);
-        };
-
         let key_binding_jwt = self.key_binding_jwt.into_verified(
-            &EcdsaDecodingKey::from(&jwk_to_p256(jwk)?),
+            &EcdsaDecodingKey::from(&issuer_signed.payload().cnf().verifying_key()?),
             kb_expected_aud,
             kb_expected_nonce,
             kb_iat_acceptance_window,
@@ -747,6 +734,68 @@ where
     }
 }
 
+#[cfg(feature = "examples")]
+mod examples {
+    use std::time::Duration;
+
+    use attestation_types::qualification::AttestationQualification;
+    use chrono::DateTime;
+    use chrono::Utc;
+    use p256::ecdsa::VerifyingKey;
+    use serde_json::Value;
+    use serde_json::json;
+
+    use jwt::jwk::jwk_from_p256;
+    use utils::generator::Generator;
+
+    use crate::key_binding_jwt::RequiredKeyBinding;
+
+    use super::SdJwtVcClaims;
+
+    impl SdJwtVcClaims {
+        pub fn pid_example(holder_pubkey: &VerifyingKey, time: &impl Generator<DateTime<Utc>>) -> Self {
+            SdJwtVcClaims {
+                _sd_alg: None,
+                cnf: RequiredKeyBinding::Jwk(jwk_from_p256(holder_pubkey).unwrap()),
+                vct_integrity: Some("sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=".parse().unwrap()),
+                vct: "urn:eudi:pid:nl:1".to_owned(),
+                iss: "https://cert.issuer.example.com".parse().unwrap(),
+                iat: time.generate().into(),
+                exp: Some((time.generate() + Duration::from_secs(365 * 24 * 60 * 60)).into()),
+                nbf: None,
+                attestation_qualification: Some(AttestationQualification::QEAA),
+                claims: serde_json::from_value(json!({
+                    "bsn": "999999999",
+                    "recovery_code": "cff292503cba8c4fbf2e5820dcdc468ae00f40c87b1af35513375800128fc00d",
+                    "given_name": "Willeke Liselotte",
+                    "family_name": "De Bruijn",
+                    "birthdate": "1940-01-01"
+                }))
+                .unwrap(),
+            }
+        }
+
+        pub fn example_from_json(
+            holder_public_key: &VerifyingKey,
+            claims: Value,
+            time: &impl Generator<DateTime<Utc>>,
+        ) -> Self {
+            SdJwtVcClaims {
+                _sd_alg: None,
+                cnf: RequiredKeyBinding::Jwk(jwk_from_p256(holder_public_key).unwrap()),
+                vct_integrity: Some("sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=".parse().unwrap()),
+                vct: "urn:eudi:pid:nl:1".to_owned(),
+                iss: "https://cert.issuer.example.com".parse().unwrap(),
+                iat: time.generate().into(),
+                exp: None,
+                nbf: None,
+                attestation_qualification: Some(AttestationQualification::PubEAA),
+                claims: serde_json::from_value(claims).unwrap(),
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
     use std::collections::HashSet;
@@ -767,7 +816,6 @@ mod test {
     use rstest::rstest;
     use serde_json::Value;
     use serde_json::json;
-    use ssri::Integrity;
 
     use crypto::server_keys::generate::Ca;
     use http_utils::urls::HttpsUri;
@@ -812,15 +860,25 @@ mod test {
     use super::*;
 
     #[rstest]
-    #[case(SIMPLE_STRUCTURED_SD_JWT)]
-    #[case(COMPLEX_STRUCTURED_SD_JWT)]
-    fn parse_unverified_sd_jwt(#[case] encoded: &str) {
-        encoded.parse::<UnverifiedSdJwt<SdJwtExampleClaims, Header>>().unwrap();
+    #[case(SIMPLE_STRUCTURED_SD_JWT, 2)]
+    #[case(COMPLEX_STRUCTURED_SD_JWT, 6)]
+    fn parse_sd_jwt(#[case] encoded: &str, #[case] expected_disclosures: usize) {
+        let sd_jwt = encoded
+            .parse::<UnverifiedSdJwt<SdJwtExampleClaims, Header>>()
+            .unwrap()
+            .into_verified(&examples_sd_jwt_decoding_key())
+            .unwrap();
+        assert_eq!(sd_jwt.disclosures.len(), expected_disclosures);
     }
 
     #[test]
-    fn parse_unverified_sd_jwt_vc() {
-        SD_JWT_VC.parse::<UnverifiedSdJwt<SdJwtVcClaims, Header>>().unwrap();
+    fn parse_vc() {
+        let sd_jwt = SD_JWT_VC
+            .parse::<UnverifiedSdJwt<SdJwtVcClaims, Header>>()
+            .unwrap()
+            .into_verified(&examples_sd_jwt_decoding_key())
+            .unwrap();
+        assert_eq!(sd_jwt.disclosures.len(), 21);
     }
 
     #[test]
@@ -832,7 +890,7 @@ mod test {
                 &examples_sd_jwt_decoding_key(),
                 WITH_KB_SD_JWT_AUD,
                 WITH_KB_SD_JWT_NONCE,
-                Duration::from_secs(36500 * 24 * 60 * 60),
+                Duration::from_secs(10 * 60),
                 &KeyBindingExampleTimeGenerator,
             )
             .unwrap();
@@ -843,45 +901,24 @@ mod test {
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let issuer_keypair = ca.generate_issuer_mock().unwrap();
 
-        let holder_privkey = SigningKey::random(&mut OsRng);
-        let sd_jwt = SdJwtBuilder::new(json!({
-            "iss": "https://iss.example.com",
-            "iat": Utc::now().timestamp(),
-            "exp": (Utc::now() - Duration::from_secs(24 * 60 * 60)).timestamp(),
-        }))
+        let holder_key = SigningKey::random(&mut OsRng);
+        let sd_jwt = SdJwtBuilder::new(SdJwtVcClaims::pid_example(
+            holder_key.verifying_key(),
+            &MockTimeGenerator::epoch(),
+        ))
         .unwrap()
-        .finish(Integrity::from(""), &issuer_keypair, holder_privkey.verifying_key())
+        .finish(&issuer_keypair)
         .await
         .unwrap()
         .to_string();
 
         let err = sd_jwt
-            .parse::<UnverifiedSdJwt<SdJwtExampleClaims, Header>>()
+            .parse::<UnverifiedSdJwt<SdJwtVcClaims, Header>>()
             .unwrap()
             .into_verified(&EcdsaDecodingKey::from(issuer_keypair.certificate().public_key()))
             .expect_err("should fail");
 
         assert_matches!(err, Error::JwtParsing(JwtError::Validation(err)) if err.kind() == &ErrorKind::ExpiredSignature);
-    }
-
-    #[test]
-    fn parse() {
-        let sd_jwt = SIMPLE_STRUCTURED_SD_JWT
-            .parse::<UnverifiedSdJwt<SdJwtExampleClaims, Header>>()
-            .unwrap()
-            .into_verified(&examples_sd_jwt_decoding_key())
-            .unwrap();
-        assert_eq!(sd_jwt.disclosures.len(), 2);
-    }
-
-    #[test]
-    fn parse_vc() {
-        let sd_jwt = SD_JWT_VC
-            .parse::<UnverifiedSdJwt<SdJwtVcClaims, Header>>()
-            .unwrap()
-            .into_verified(&examples_sd_jwt_decoding_key())
-            .unwrap();
-        assert_eq!(sd_jwt.disclosures.len(), 21);
     }
 
     #[test]
@@ -926,18 +963,26 @@ mod test {
 
         let signed_sd_jwt = conceal_paths
             .iter()
-            .fold(SdJwtBuilder::new(object).unwrap(), |builder, path| {
-                builder
-                    .make_concealable(
-                        path.iter()
-                            .map(|p| p.parse().unwrap())
-                            .collect_vec()
-                            .try_into()
-                            .unwrap(),
-                    )
-                    .unwrap()
-            })
-            .finish(Integrity::from(""), &issuer_keypair, holder_key.verifying_key())
+            .fold(
+                SdJwtBuilder::new(SdJwtVcClaims::example_from_json(
+                    holder_key.verifying_key(),
+                    object,
+                    &MockTimeGenerator::default(),
+                ))
+                .unwrap(),
+                |builder, path| {
+                    builder
+                        .make_concealable(
+                            path.iter()
+                                .map(|p| p.parse().unwrap())
+                                .collect_vec()
+                                .try_into()
+                                .unwrap(),
+                        )
+                        .unwrap()
+                },
+            )
+            .finish(&issuer_keypair)
             .now_or_never()
             .unwrap()
             .unwrap();
@@ -1448,47 +1493,111 @@ mod test {
 
     #[rstest]
     #[case(json!({
+        "vct": "com:example:pid:1",
         "iss": "https://issuer.example.com/",
         "iat": 1683000000,
         "given_name": "Alice",
-        "_sd": ["X9yH0Ajrdm1Oij4tWso9UzzKJvPoDxwmuEcO3XAdRC0"]
-    }), true)]
+        "_sd": ["X9yH0Ajrdm1Oij4tWso9UzzKJvPoDxwmuEcO3XAdRC0"],
+        "cnf": {
+            "jwk": {
+                "kty": "EC",
+                "crv": "P-256",
+                "x": "TCAER19Zvu3OHF4j4W4vfSVoHIP1ILilDls7vCeGemc",
+                "y": "ZxjiWWbZMQGHVWKVQ4hbSIirsVfuecCE6t4jT9F2HZQ"
+            }
+        }
+    }), Ok(()))]
     #[case(json!({
+        "vct": "com:example:pid:1",
         "iss": "https://issuer.example.com/",
         "iat": 1683000000,
-        "_sd": [0]
-    }), false)]
+        "_sd": [0],
+        "cnf": {
+            "jwk": {
+                "kty": "EC",
+                "crv": "P-256",
+                "x": "TCAER19Zvu3OHF4j4W4vfSVoHIP1ILilDls7vCeGemc",
+                "y": "ZxjiWWbZMQGHVWKVQ4hbSIirsVfuecCE6t4jT9F2HZQ"
+            }
+        }
+    }), Err("invalid type: integer `0`, expected a string".to_owned()))]
     #[case(json!({
+        "vct": "com:example:pid:1",
         "iss": "https://issuer.example.com/",
         "iat": 1683000000,
         "nested": {
             "_sd": [0]
+        },
+        "cnf": {
+            "jwk": {
+                "kty": "EC",
+                "crv": "P-256",
+                "x": "TCAER19Zvu3OHF4j4W4vfSVoHIP1ILilDls7vCeGemc",
+                "y": "ZxjiWWbZMQGHVWKVQ4hbSIirsVfuecCE6t4jT9F2HZQ"
+            }
         }
-    }), false)]
+    }), Err("data did not match any variant of untagged enum ClaimValue".to_owned()))]
     #[case(json!({
+        "vct": "com:example:pid:1",
         "iss": "https://issuer.example.com/",
         "iat": 1683000000,
         "array": [{
             "_sd": [0]
-        }]
-    }), false)]
+        }],
+        "cnf": {
+            "jwk": {
+                "kty": "EC",
+                "crv": "P-256",
+                "x": "TCAER19Zvu3OHF4j4W4vfSVoHIP1ILilDls7vCeGemc",
+                "y": "ZxjiWWbZMQGHVWKVQ4hbSIirsVfuecCE6t4jT9F2HZQ"
+            }
+        }
+    }), Err("data did not match any variant of untagged enum ClaimValue".to_owned()))]
     #[case(json!({
+        "vct": "com:example:pid:1",
         "iss": "https://issuer.example.com/",
         "iat": 1683000000,
-        "array": [{ "...": 0 }]
-    }), false)]
+        "array": [{ "...": 0 }],
+        "cnf": {
+            "jwk": {
+                "kty": "EC",
+                "crv": "P-256",
+                "x": "TCAER19Zvu3OHF4j4W4vfSVoHIP1ILilDls7vCeGemc",
+                "y": "ZxjiWWbZMQGHVWKVQ4hbSIirsVfuecCE6t4jT9F2HZQ"
+            }
+        }
+    }), Err("data did not match any variant of untagged enum ClaimValue".to_owned()))]
     #[case(json!({
+        "vct": "com:example:pid:1",
         "iss": "https://issuer.example.com/",
         "iat": 1683000000,
-        "...": "not_allowed"
-    }), false)]
+        "...": "not_allowed",
+        "cnf": {
+            "jwk": {
+                "kty": "EC",
+                "crv": "P-256",
+                "x": "TCAER19Zvu3OHF4j4W4vfSVoHIP1ILilDls7vCeGemc",
+                "y": "ZxjiWWbZMQGHVWKVQ4hbSIirsVfuecCE6t4jT9F2HZQ"
+            }
+        }
+    }), Err("ClaimName failed the predicate test. Expected valid ClaimName".to_owned()))]
     #[case(json!({
+        "vct": "com:example:pid:1",
         "iss": "https://issuer.example.com/",
         "iat": 1683000000,
         "nationalities":
-        ["DE", {"...":"w0I8EKcdCtUPkGCNUrfwVp2xEgNjtoIDlOxc9-PlOhs"}, "US"]
-    }), true)]
+        ["DE", {"...":"w0I8EKcdCtUPkGCNUrfwVp2xEgNjtoIDlOxc9-PlOhs"}, "US"],
+        "cnf": {
+            "jwk": {
+                "kty": "EC",
+                "crv": "P-256",
+                "x": "TCAER19Zvu3OHF4j4W4vfSVoHIP1ILilDls7vCeGemc",
+                "y": "ZxjiWWbZMQGHVWKVQ4hbSIirsVfuecCE6t4jT9F2HZQ"
+            }
+        }
+    }), Ok(()))]
     #[case(json!({
+        "vct": "com:example:pid:1",
         "iss": "https://issuer.example.com/",
         "iat": 1683000000,
         "family_name": "Möbius",
@@ -1496,9 +1605,18 @@ mod test {
             { "...": "PmnlrRjhLcwf8zTDdK15HVGwHtPYjddvD362WjBLwro" },
             { "...": "r823HFN6Ba_lpSANYtXqqCBAH-TsQlIzfOK0lRAFLCM" },
             { "...": "nP5GYjwhFm6ESlAeC4NCaIliW4tz0hTrUeoJB3lb5TA" }
-        ]
-    }), true)]
+        ],
+        "cnf": {
+            "jwk": {
+                "kty": "EC",
+                "crv": "P-256",
+                "x": "TCAER19Zvu3OHF4j4W4vfSVoHIP1ILilDls7vCeGemc",
+                "y": "ZxjiWWbZMQGHVWKVQ4hbSIirsVfuecCE6t4jT9F2HZQ"
+            }
+        }
+    }), Ok(()))]
     #[case(json!({
+        "vct": "com:example:pid:1",
         "_sd": [
             "CrQe7S5kqBAHt-nMYXgc6bdt2SH5aTY1sU_M-PgkjPI",
             "JzYjH4svliH0R3PyEMfeZu6Jt69u5qehZo7F7EPYlSE",
@@ -1530,8 +1648,9 @@ mod test {
                 "y": "ZxjiWWbZMQGHVWKVQ4hbSIirsVfuecCE6t4jT9F2HZQ"
             }
         }
-    }), true)]
+    }), Ok(()))]
     #[case(json!({
+        "vct": "com:example:pid:1",
         "iss": "https://issuer.example.com/",
         "iat": 1683000000,
         "exp": 1883000000,
@@ -1544,9 +1663,18 @@ mod test {
                 "WN9r9dCBJ8HTCsS2jKASxTjEyW5m5x65_Z_2ro2jfXM"
             ]
         },
+        "cnf": {
+            "jwk": {
+                "kty": "EC",
+                "crv": "P-256",
+                "x": "TCAER19Zvu3OHF4j4W4vfSVoHIP1ILilDls7vCeGemc",
+                "y": "ZxjiWWbZMQGHVWKVQ4hbSIirsVfuecCE6t4jT9F2HZQ"
+            }
+        },
         "_sd_alg": "sha-256"
-    }), true)]
+    }), Ok(()))]
     #[case(json!({
+        "vct": "com:example:pid:1",
         "iss": "https://issuer.example.com/",
         "iat": 1683000000,
         "exp": 1883000000,
@@ -1559,10 +1687,19 @@ mod test {
             ],
             "country": "DE"
         },
-        "_sd_alg": "sha-256"
+        "_sd_alg": "sha-256",
+        "cnf": {
+            "jwk": {
+                "kty": "EC",
+                "crv": "P-256",
+                "x": "TCAER19Zvu3OHF4j4W4vfSVoHIP1ILilDls7vCeGemc",
+                "y": "ZxjiWWbZMQGHVWKVQ4hbSIirsVfuecCE6t4jT9F2HZQ"
+            }
+        }
     }
-    ), true)]
+    ), Ok(()))]
     #[case(json!({
+        "vct": "com:example:pid:1",
         "_sd": [
             "-aSznId9mWM8ocuQolCllsxVggq1-vHW4OtnhUtVmWw",
             "IKbrYNn3vA7WEFrysvbdBJjDDU_EvQIr0W18vTRpUSg",
@@ -1595,17 +1732,34 @@ mod test {
                 ]
             }
         },
-        "_sd_alg": "sha-256"
-    }), true)]
-    fn test_different_serialization_scenarios(#[case] original: serde_json::Value, #[case] is_valid: bool) {
-        let deserialized = serde_json::from_value::<SdJwtVcClaims>(original.clone());
-
-        assert_eq!(deserialized.is_ok(), is_valid);
-
-        if is_valid {
-            let serialized = serde_json::to_value(deserialized.unwrap()).unwrap();
-            assert_eq!(serialized, original);
+        "_sd_alg": "sha-256",
+        "cnf": {
+            "jwk": {
+                "kty": "EC",
+                "crv": "P-256",
+                "x": "TCAER19Zvu3OHF4j4W4vfSVoHIP1ILilDls7vCeGemc",
+                "y": "ZxjiWWbZMQGHVWKVQ4hbSIirsVfuecCE6t4jT9F2HZQ"
+            }
         }
+    }), Ok(()))]
+    fn test_different_serialization_scenarios(
+        #[case] original: serde_json::Value,
+        #[case] expected: std::result::Result<(), String>,
+    ) {
+        let result = serde_json::from_value::<SdJwtVcClaims>(original.clone());
+        match (result, expected) {
+            (Ok(r), Ok(())) => {
+                let serialized = serde_json::to_value(r).unwrap();
+                assert_eq!(serialized, original);
+            }
+            (Err(e), Err(r)) => assert_eq!(e.to_string(), r.to_string()),
+            (Err(e), Ok(())) => {
+                panic!("assertion failed\n left: {e}\nright: Ok")
+            }
+            (Ok(r), Err(e)) => {
+                panic!("assertion failed\n left: {r:?}\nright: {e}")
+            }
+        };
     }
 
     #[test]
@@ -1615,6 +1769,7 @@ mod test {
                 "CrQe7S5kqBAHt-nMYXgc6bdt2SH5aTY1sU_M-PgkjPI",
             ],
             "iss": "https://issuer.example.com/",
+            "vct": "com:example:pid:1",
             "iat": 1683000000,
             "exp": 1883000000,
             "sub": "user_42",
@@ -1657,9 +1812,8 @@ mod test {
             }
         });
         let parsed: SdJwtVcClaims = serde_json::from_value(value).unwrap();
-
         let expected = SdJwtVcClaims {
-            cnf: Some(RequiredKeyBinding::Jwk(Jwk {
+            cnf: RequiredKeyBinding::Jwk(Jwk {
                 common: Default::default(),
                 algorithm: AlgorithmParameters::EllipticCurve(EllipticCurveKeyParameters {
                     curve: EllipticCurve::P256,
@@ -1667,14 +1821,14 @@ mod test {
                     x: "TCAER19Zvu3OHF4j4W4vfSVoHIP1ILilDls7vCeGemc".to_string(),
                     y: "ZxjiWWbZMQGHVWKVQ4hbSIirsVfuecCE6t4jT9F2HZQ".to_string(),
                 }),
-            })),
+            }),
             _sd_alg: Some(SdAlg::Sha256),
             vct_integrity: None,
             iss: "https://issuer.example.com/".parse::<HttpsUri>().unwrap(),
             iat: DateTimeSeconds::new(DateTime::from_timestamp(1683000000, 0).unwrap()),
             exp: DateTime::from_timestamp(1883000000, 0).map(DateTimeSeconds::new),
             nbf: None,
-            vct: None,
+            vct: "com:example:pid:1".to_string(),
             claims: ClaimValue::Object(ObjectClaims {
                 _sd: Some(
                     vec!["CrQe7S5kqBAHt-nMYXgc6bdt2SH5aTY1sU_M-PgkjPI".to_string()]
@@ -1731,6 +1885,7 @@ mod test {
                     ),
                 ]),
             }),
+            attestation_qualification: None,
         };
         assert_eq!(parsed, expected);
     }
@@ -1741,14 +1896,15 @@ mod test {
     ) -> Result<IndexMap<String, Disclosure>> {
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let issuer_keypair = ca.generate_issuer_mock().unwrap();
-        let holder_privkey = SigningKey::random(&mut OsRng);
+        let holder_key = SigningKey::random(&mut OsRng);
 
-        let sd_jwt = SdJwtBuilder::new(json!({
-            "iss": "https://issuer.example.com/",
-            "iat": 1683000000,
-        }))
+        let sd_jwt = SdJwtBuilder::new(SdJwtVcClaims::example_from_json(
+            holder_key.verifying_key(),
+            json!({}),
+            &MockTimeGenerator::default(),
+        ))
         .unwrap()
-        .finish(Integrity::from(""), &issuer_keypair, holder_privkey.verifying_key())
+        .finish(&issuer_keypair)
         .now_or_never()
         .unwrap()
         .unwrap()

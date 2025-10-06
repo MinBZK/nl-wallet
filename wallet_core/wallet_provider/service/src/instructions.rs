@@ -786,7 +786,7 @@ impl HandleInstruction for DiscloseRecoveryCodePinRecovery {
             .recovery_code_disclosure
             .into_verified_against_trust_anchors(&user_state.pid_issuer_trust_anchors, &TimeGenerator)?;
 
-        let key = verified_sd_jwt.verifying_key().unwrap(); // The above verification can't have succeeded if this fails
+        let key = verified_sd_jwt.holder_pubkey().unwrap(); // The above verification can't have succeeded if this fails
 
         let recovery_code = match verified_sd_jwt.to_disclosed_object()?.remove(PID_RECOVERY_CODE) {
             Some(Value::String(recovery_code)) => recovery_code,

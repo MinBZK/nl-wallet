@@ -1,7 +1,6 @@
 use std::collections::HashSet;
 use std::time::Duration;
 
-use chrono::Utc;
 use futures::FutureExt;
 use itertools::Itertools;
 use p256::ecdsa::SigningKey;
@@ -9,7 +8,6 @@ use p256::ecdsa::VerifyingKey;
 use rand_core::OsRng;
 use serde_json::Value;
 use serde_json::json;
-use ssri::Integrity;
 
 use attestation_types::claim_path::ClaimPath;
 use crypto::mock_remote::MockRemoteEcdsaKey;
@@ -24,29 +22,31 @@ use sd_jwt::disclosure::DisclosureContent;
 use sd_jwt::hasher::Hasher;
 use sd_jwt::hasher::Sha256Hasher;
 use sd_jwt::key_binding_jwt::KeyBindingJwtBuilder;
+use sd_jwt::sd_jwt::SdJwtVcClaims;
 use sd_jwt::sd_jwt::UnsignedSdJwtPresentation;
 use sd_jwt::sd_jwt::UnverifiedSdJwt;
 use sd_jwt::sd_jwt::UnverifiedSdJwtPresentation;
 use sd_jwt::sd_jwt::VerifiedSdJwt;
-use utils::generator::Generator;
 use utils::generator::mock::MockTimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 
 async fn make_sd_jwt(
-    object: Value,
+    claims: Value,
     disclosable_values: impl IntoIterator<Item = VecNonEmpty<ClaimPath>>,
     holder_pubkey: &VerifyingKey,
 ) -> (SignedSdJwt, EcdsaDecodingKey) {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
     let issuer_keypair = ca.generate_issuer_mock().unwrap();
 
+    let claims = SdJwtVcClaims::example_from_json(holder_pubkey, claims, &MockTimeGenerator::default());
+
     let sd_jwt = disclosable_values
         .into_iter()
-        .fold(SdJwtBuilder::new(object).unwrap(), |builder, paths| {
+        .fold(SdJwtBuilder::new(claims).unwrap(), |builder, paths| {
             builder.make_concealable(paths).unwrap()
         })
-        .finish(Integrity::from(""), &issuer_keypair, holder_pubkey)
+        .finish(&issuer_keypair)
         .await
         .unwrap();
 
@@ -274,28 +274,30 @@ async fn sd_jwt_sd_hash() {
 
 #[tokio::test]
 async fn test_presentation() {
-    let object = json!({
-        "iss": "https://issuer.example.com",
-        "iat": 1683000000,
-        "sub": "user_42",
-        "given_name": "John",
-        "family_name": "Doe",
-        "email": "johndoe@example.com",
-        "phone_number": "+1-202-555-0101",
-        "phone_number_verified": true,
-        "address": {
-            "street_address": "123 Main St",
-            "locality": "Anytown",
-            "region": "Anystate",
-            "country": "US"
-        },
-        "birthdate": "1940-01-01",
-        "updated_at": 1570000000,
-        "nationalities": [
-            "US",
-            "DE"
-        ]
-    });
+    let holder_key = SigningKey::random(&mut OsRng);
+
+    let claims = SdJwtVcClaims::example_from_json(
+        holder_key.verifying_key(),
+        json!({
+            "given_name": "John",
+            "family_name": "Doe",
+            "email": "johndoe@example.com",
+            "phone_number": "+1-202-555-0101",
+            "phone_number_verified": true,
+            "address": {
+                "street_address": "123 Main St",
+                "locality": "Anytown",
+                "region": "Anystate",
+                "country": "US"
+            },
+            "birthdate": "1940-01-01",
+            "nationalities": [
+                "US",
+                "DE"
+            ]
+        }),
+        &MockTimeGenerator::default(),
+    );
 
     let ca = Ca::generate_issuer_mock_ca().unwrap();
     let issuer_keypair = ca.generate_issuer_mock().unwrap();
@@ -304,14 +306,13 @@ async fn test_presentation() {
         "issuer_privkey pubkey: {0}",
         serde_json::to_string_pretty(&jwk_from_p256(issuer_keypair.certificate().public_key()).unwrap()).unwrap()
     );
-    let holder_privkey = SigningKey::random(&mut OsRng);
     println!(
-        "holder_privkey pubkey: {0}",
-        serde_json::to_string_pretty(&jwk_from_p256(holder_privkey.verifying_key()).unwrap()).unwrap()
+        "holder_key pubkey: {0}",
+        serde_json::to_string_pretty(&jwk_from_p256(holder_key.verifying_key()).unwrap()).unwrap()
     );
 
     // issuer signs SD-JWT
-    let signed_sd_jwt = SdJwtBuilder::new(object)
+    let signed_sd_jwt = SdJwtBuilder::new(claims)
         .unwrap()
         .make_concealable(vec![ClaimPath::SelectByKey(String::from("email"))].try_into().unwrap())
         .unwrap()
@@ -349,7 +350,7 @@ async fn test_presentation() {
         .unwrap()
         .add_decoys(&[], 2)
         .unwrap()
-        .finish(Integrity::from(""), &issuer_keypair, holder_privkey.verifying_key())
+        .finish(&issuer_keypair)
         .await
         .unwrap();
 
@@ -376,7 +377,7 @@ async fn test_presentation() {
         .finish()
         .sign(
             KeyBindingJwtBuilder::new(String::from("https://example.com"), String::from("abcdefghi")),
-            &holder_privkey,
+            &holder_key,
             &MockTimeGenerator::default(),
         )
         .await
@@ -410,32 +411,33 @@ async fn test_presentation() {
 
 #[test]
 fn test_wscd_presentation() {
-    let time = MockTimeGenerator::new(Utc::now());
+    let time = MockTimeGenerator::default();
 
-    let object = json!({
-        "iss": "https://issuer.example.com",
-        "iat": time.generate().timestamp(),
-        "given_name": "John",
-        "family_name": "Doe",
-    });
+    let holder_key = MockRemoteEcdsaKey::new_random("holder_key".to_string());
+    let claims = SdJwtVcClaims::example_from_json(
+        holder_key.verifying_key(),
+        json!({
+            "given_name": "John",
+            "family_name": "Doe",
+        }),
+        &time,
+    );
 
     let ca = Ca::generate("myca", Default::default()).unwrap();
     let issuer_key_pair = ca
         .generate_key_pair("mycert", CertificateUsage::Mdl, Default::default())
         .unwrap();
 
-    let holder_key = MockRemoteEcdsaKey::new_random("holder_key".to_string());
-    let holder_public_key = *holder_key.verifying_key();
     let wscd = MockRemoteWscd::new(vec![holder_key]);
 
     // Create a SD-JWT, signed by the issuer.
-    let signed_sd_jwt = SdJwtBuilder::new(object)
+    let signed_sd_jwt = SdJwtBuilder::new(claims)
         .unwrap()
         .make_concealable(vec_nonempty![ClaimPath::SelectByKey(String::from("given_name"))])
         .unwrap()
         .make_concealable(vec_nonempty![ClaimPath::SelectByKey(String::from("family_name"))])
         .unwrap()
-        .finish(Integrity::from(""), &issuer_key_pair, &holder_public_key)
+        .finish(&issuer_key_pair)
         .now_or_never()
         .unwrap()
         .expect("signing SD-JWT should succeed");

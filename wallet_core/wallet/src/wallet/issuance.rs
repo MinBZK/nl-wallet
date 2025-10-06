@@ -697,8 +697,6 @@ mod tests {
     use futures::FutureExt;
     use itertools::multiunzip;
     use mockall::predicate::*;
-    use p256::ecdsa::SigningKey;
-    use rand_core::OsRng;
     use rstest::rstest;
     use serial_test::serial;
     use url::Url;
@@ -1185,14 +1183,13 @@ mod tests {
         preview.content.credential_payload.attestation_type = String::from("att_type_1");
         previews.push(preview);
 
-        let holder_key = SigningKey::random(&mut OsRng);
         let ca = Ca::generate("myca", Default::default()).unwrap();
         let cert_type = CertificateType::from(IssuerRegistration::new_mock());
         let issuer_key_pair = ca.generate_key_pair("mycert", cert_type, Default::default()).unwrap();
 
         let (payload, _, normalized_metadata) = create_example_credential_payload(&time_generator);
         let sd_jwt = payload
-            .into_sd_jwt(&normalized_metadata, holder_key.verifying_key(), &issuer_key_pair)
+            .into_sd_jwt(&normalized_metadata, &issuer_key_pair)
             .now_or_never()
             .unwrap()
             .unwrap();
@@ -1688,8 +1685,6 @@ mod tests {
 
     #[test]
     fn test_match_preview_and_stored_attestations() {
-        let holder_key = SigningKey::random(&mut OsRng);
-
         let ca = Ca::generate("myca", Default::default()).unwrap();
         let cert_type = CertificateType::from(IssuerRegistration::new_mock());
         let issuer_key_pair = ca.generate_key_pair("mycert", cert_type, Default::default()).unwrap();
@@ -1698,7 +1693,7 @@ mod tests {
 
         let (payload, _, normalized_metadata) = create_example_credential_payload(&time_generator);
         let sd_jwt = payload
-            .into_sd_jwt(&normalized_metadata, holder_key.verifying_key(), &issuer_key_pair)
+            .into_sd_jwt(&normalized_metadata, &issuer_key_pair)
             .now_or_never()
             .unwrap()
             .unwrap();

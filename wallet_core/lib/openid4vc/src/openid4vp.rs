@@ -554,9 +554,9 @@ pub enum AuthResponseError {
     #[category(pd)]
     NoMdocDocuments(CredentialQueryIdentifier),
     #[error("error verifying disclosed mdoc(s): {0}")]
-    MdocVerification(#[source] mdoc::Error),
+    MdocVerification(#[from] mdoc::Error),
     #[error("error verifying disclosed SD-JWT: {0}")]
-    SdJwtVerification(#[source] sd_jwt::error::Error),
+    SdJwtVerification(#[from] sd_jwt::error::Error),
     #[error("response does not satisfy credential request(s): {0}")]
     UnsatisfiedCredentialRequest(#[source] CredentialValidationError),
     #[error("missing PoA")]
@@ -565,7 +565,7 @@ pub enum AuthResponseError {
     PoaVerification(#[from] PoaVerificationError),
     #[error("error converting disclosed attestations: {0}")]
     #[category(pd)]
-    DisclosedAttestation(#[source] DisclosedAttestationError),
+    DisclosedAttestation(#[from] DisclosedAttestationError),
 }
 
 /// Disclosure of a credential, generally containing the issuer-signed credential itself, the disclosed attributes,
@@ -741,14 +741,12 @@ impl VpAuthorizationResponse {
                         .map(|device_response| {
                             // Verify the cryptographic integrity of each mdoc `DeviceResponse`
                             // and obtain a `DisclosedDocuments` for each.
-                            let disclosed_documents = device_response
-                                .verify(
-                                    None,
-                                    session_transcript.as_deref().ok_or(AuthResponseError::MissingApu)?,
-                                    time,
-                                    trust_anchors,
-                                )
-                                .map_err(AuthResponseError::MdocVerification)?;
+                            let disclosed_documents = device_response.verify(
+                                None,
+                                session_transcript.as_deref().ok_or(AuthResponseError::MissingApu)?,
+                                time,
+                                trust_anchors,
+                            )?;
 
                             // Retain the used holder public keys for checking the PoA in step 2.
                             holder_public_keys.extend(
@@ -777,19 +775,16 @@ impl VpAuthorizationResponse {
                     VerifiablePresentation::SdJwt(sdw_jwt_payloads) => sdw_jwt_payloads
                         .into_nonempty_iter()
                         .map(|unverified_presentation| {
-                            let presentation = unverified_presentation
-                                .into_verified_against_trust_anchors(
-                                    trust_anchors,
-                                    &auth_request.client_id,
-                                    &auth_request.nonce,
-                                    Duration::from_secs(SD_JWT_IAT_WINDOW_SECONDS),
-                                    time,
-                                )
-                                .map_err(AuthResponseError::SdJwtVerification)?;
+                            let presentation = unverified_presentation.into_verified_against_trust_anchors(
+                                trust_anchors,
+                                &auth_request.client_id,
+                                &auth_request.nonce,
+                                Duration::from_secs(SD_JWT_IAT_WINDOW_SECONDS),
+                                time,
+                            )?;
 
-                            holder_public_keys.push(presentation.sd_jwt().verifying_key().unwrap()); // TODO unwrap
-                            let disclosed_attestation = DisclosedAttestation::try_from(presentation)
-                                .map_err(AuthResponseError::DisclosedAttestation)?;
+                            holder_public_keys.push(presentation.sd_jwt().holder_pubkey()?);
+                            let disclosed_attestation = DisclosedAttestation::try_from(presentation)?;
 
                             Ok(disclosed_attestation)
                         })
