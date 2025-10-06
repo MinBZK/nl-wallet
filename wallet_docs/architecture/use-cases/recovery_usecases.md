@@ -56,12 +56,12 @@ sequenceDiagram
     Wallet ->> User: Request new PIN
     User ->> Wallet: Give new PIN (including confirmation)
     Wallet ->> WP: Send start_pin_recovery(new PIN public key, c_nonce for PID issuance)
-    WP ->> WP: Update PIN public key for account<br/> sign Wallet Certificate<br/>genereate new keys (marked as recovery keys)<br/> sign PoP's<br/> issue WUA<br/>set account in 'recovery' state
+    WP ->> WP: Update PIN public key for account<br/> sign Wallet Certificate<br/>genereate new keys (blocked for regular use)<br/> sign PoP's<br/> issue WUA<br/>set account in 'recovery' state
     WP ->> Wallet: New PIN OK, return new Wallet Certificate, WUA, signed PoP's
-    Wallet ->> Wallet: Delete previous PIN data, store new PIN data    
+    Wallet ->> Wallet: Delete previous Wallet Certificate,<br/> store new Wallet Certificate    
     note over Wallet, PID: Steps 22-24 from PID-issuance flow. <br/> Wallet has requested and received attestations from PID-issuer. 
     Wallet ->> WP: Send DiscloseRecoveryCodePinRecovery(new PID, with recovery code) instruction
-    WP ->> WP: Verify recovery code with account (must match)<br/>Remove private keys that were created for PID-attestation used for recovery<br/>Update account to 'active'
+    WP ->> WP: Verify recovery code with account (must match)<br/>Remove private keys that were created at start_pin_recovery<br/>Update account to 'active'
     WP ->> Wallet: Report PIN Recovery success
     Wallet ->> Wallet: Dispose PID used in PIN-recovery process
     Wallet ->> User: Show PIN Recovery complete
@@ -103,21 +103,23 @@ sequenceDiagram
     WS ->> User: Request PIN to confirm data transfer
     User ->> WS: Confirm transfer with PIN
     WS ->> WS: Encrypt database to encrypted_payload
-    WS ->> WP: send_wallet_payload (transfer_session_id, encrypted_payload)
-    WP ->> WP: stash payload for Destination Wallet<br/>transfer_state = ready_for_download
-    WP ->> WS: ok
-    note over WT, WP: From Destination Wallet: poll for payload while not canceled.
-    WT ->> WP: receive_payload (transfer_session_id)
-    WP ->> WP: while not (ready_for_download) complete from source wallet: <br/>return pending else return payload
-    note over WS, WP: From Source Wallet: Poll transfer status while transfer not completed or canceled.
-    WS ->> WP: check_transfer_status(transfer_session_id)  
-    WP ->> WS: return transfer status (pending, canceled, completed)  
-    WP ->> WT: Transfer encrypted_payload to Destination Wallet
-    WT ->> WT: decrypt data, restore wallet
-    WT ->> WP: complete_transfer(transfer_session_id) 
-    WP ->> WP: move private keys from Source Wallet to Destination Wallet<br/>transfer_session = complete<br/>source wallet state=transferred
-    WP ->> WT: Report session complete
-    WT ->> WT: set imported database as current database<br/>dispose database that was used in onboarding
+    par Upload payload from Source Wallet and wait for completion.
+        WS ->> WP: send_wallet_payload (transfer_session_id, encrypted_payload)
+        WP ->> WP: stash payload for Destination Wallet<br/>transfer_state = ready_for_download
+        WP ->> WS: ok
+        note over WS, WP: After upload: Poll transfer status while transfer not completed or canceled.
+        WS ->> WP: check_transfer_status(transfer_session_id)  
+        WP ->> WS: return transfer status (pending, canceled, completed)  
+    and (Wait for and) Receive payload from Wallet Backend and report migration status back to Wallet Bakckend afterwards.
+        WT ->> WP: receive_payload (transfer_session_id)
+        WP ->> WP: while not (ready_for_download) complete from source wallet: <br/>return pending else return payload
+        WP ->> WT: Transfer encrypted_payload to Destination Wallet
+        WT ->> WT: decrypt data, restore wallet
+        WT ->> WP: complete_transfer(transfer_session_id) 
+        WP ->> WP: move private keys from Source Wallet to Destination Wallet<br/>transfer_session = complete<br/>source wallet state=transferred
+        WP ->> WT: Report session complete
+    end
+    WT ->> WT: set imported database as current database<br/>sync instruction counter (from previous database)<br/>dispose previous database that was used in onboarding
     WT ->> User: Transfer complete
     WS ->> User: transfer complete (Source wallet now deactivated)
    
@@ -174,7 +176,7 @@ sequenceDiagram
     Wallet ->> WP: Call DiscloseRecoveryCode(recovery_code) (Recovery Code from new PID is used) to Wallet Backend.
     WP ->> WP: Check recovery code with account (fail if not matching) <br/> and update account to 'active'
     WP ->> Wallet: New PID accepted
-    Wallet ->> Wallet: Store new PID attestation
+    Wallet ->> Wallet: Store new PID attestation (as replacement for previous PID)
     Wallet ->> User: Report success (New PID visible in wallet)
 ```
 
