@@ -14,7 +14,7 @@
 upload-browserstack-android-app:
   extends: .upload-browserstack-base
   needs:
-    - job: build-android-app-ont-profile
+    - job: build-android-app-ont
       artifacts: true
   script:
     - |
@@ -25,7 +25,7 @@ upload-browserstack-android-app:
 upload-browserstack-ios-app:
   extends: .upload-browserstack-base
   needs:
-    - job: build-ios-app-ont-profile
+    - job: build-ios-app-ont
       artifacts: true
   script:
     - |
