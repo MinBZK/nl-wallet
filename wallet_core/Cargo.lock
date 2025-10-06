@@ -1361,15 +1361,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "convert_case"
-version = "0.7.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bb402b8d4c85569410425650ce3eddc7d698ed96d39a73f941b08fb63082f1e7"
-dependencies = [
- "unicode-segmentation",
-]
-
-[[package]]
 name = "cookie"
 version = "0.18.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1854,6 +1845,7 @@ dependencies = [
  "anyhow",
  "askama 0.14.0",
  "attestation_data",
+ "attestation_types",
  "axum",
  "base64 0.22.1",
  "crypto",
@@ -1950,7 +1942,6 @@ version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bda628edc44c4bb645fbe0f758797143e4e07926f7ebf4e9bdfbd3d2ce621df3"
 dependencies = [
- "convert_case 0.7.1",
  "proc-macro2",
  "quote",
  "syn",
@@ -3428,6 +3419,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "attestation_data",
+ "attestation_types",
  "axum",
  "chrono",
  "config",
@@ -3661,7 +3653,7 @@ version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a13b4ddc5dcb32f45dac3d6f606da2a52fdb9964a18427e63cd5ef6c0d13288d"
 dependencies = [
- "convert_case 0.6.0",
+ "convert_case",
  "proc-macro2",
  "quote",
  "syn",
@@ -6574,7 +6566,6 @@ dependencies = [
  "issuance_server",
  "jsonwebtoken",
  "jwt",
- "mdoc",
  "openid4vc",
  "openid4vc_server",
  "p256",
@@ -6608,7 +6599,6 @@ dependencies = [
  "wallet_provider",
  "wallet_provider_persistence",
  "wallet_provider_service",
- "wiremock",
  "wscd",
 ]
 
@@ -7498,6 +7488,7 @@ dependencies = [
  "anyhow",
  "assert_matches",
  "attestation_data",
+ "attestation_types",
  "axum",
  "chrono",
  "config",
@@ -7518,6 +7509,7 @@ dependencies = [
  "ring",
  "rstest",
  "rustls-pki-types",
+ "sd_jwt",
  "sd_jwt_vc_metadata",
  "serde",
  "serde_json",
@@ -7525,6 +7517,7 @@ dependencies = [
  "serde_with",
  "serial_test",
  "server_utils",
+ "ssri",
  "tokio",
  "tower-http",
  "tracing",

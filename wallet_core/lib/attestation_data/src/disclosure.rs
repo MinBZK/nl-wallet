@@ -7,6 +7,7 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use attestation_types::claim_path::ClaimPath;
+use attestation_types::qualification::AttestationQualification;
 use crypto::x509::CertificateError;
 use dcql::CredentialFormat;
 use dcql::CredentialQueryIdentifier;
@@ -18,6 +19,7 @@ use mdoc::DataElementValue;
 use mdoc::NameSpace;
 use mdoc::holder::disclosure::claim_path_to_mdoc_path;
 use mdoc::verifier::DisclosedDocument;
+use sd_jwt::sd_jwt::ClaimValue;
 use sd_jwt::sd_jwt::SdJwt;
 use utils::vec_at_least::VecNonEmpty;
 
@@ -45,25 +47,47 @@ impl TryFrom<&mdoc::iso::ValidityInfo> for ValidityInfo {
     }
 }
 
-#[cfg(feature = "test")]
-impl From<ValidityInfo> for mdoc::iso::ValidityInfo {
-    fn from(value: ValidityInfo) -> Self {
-        Self {
-            signed: value.signed.into(),
-            valid_from: value.valid_from.unwrap().into(),
-            valid_until: value.valid_until.unwrap().into(),
-            expected_update: None,
-        }
-    }
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(feature = "test", derive(derive_more::Unwrap))]
 #[serde(tag = "format", content = "attributes", rename_all = "snake_case")]
 pub enum DisclosedAttributes {
     MsoMdoc(IndexMap<NameSpace, IndexMap<String, AttributeValue>>),
     #[serde(rename = "dc+sd-jwt")]
     SdJwt(Attributes),
+}
+
+impl DisclosedAttributes {
+    pub fn has_claim_path(&self, claim_path: &VecNonEmpty<ClaimPath>) -> bool {
+        match self {
+            Self::MsoMdoc(name_spaces) => claim_path_to_mdoc_path(claim_path)
+                .and_then(|(name_space_id, attribute_id)| {
+                    name_spaces
+                        .get(name_space_id)
+                        .map(|name_space| name_space.contains_key(attribute_id))
+                })
+                .unwrap_or(false),
+            Self::SdJwt(attributes) => attributes.has_claim_path(claim_path),
+        }
+    }
+
+    /// Only keep the attributes specified by a list of claim paths, removing any other other claims.
+    pub fn prune<'a>(&mut self, keep_claim_paths: impl IntoIterator<Item = &'a VecNonEmpty<ClaimPath>>) {
+        match self {
+            Self::MsoMdoc(name_spaces) => {
+                let mdoc_paths = keep_claim_paths
+                    .into_iter()
+                    .flat_map(claim_path_to_mdoc_path)
+                    .collect::<HashSet<_>>();
+
+                name_spaces.retain(|doc_type, name_space| {
+                    name_space
+                        .retain(|name_space_id, _| mdoc_paths.contains(&(doc_type.as_str(), name_space_id.as_str())));
+
+                    !name_space.is_empty()
+                });
+            }
+            Self::SdJwt(attributes) => attributes.prune(keep_claim_paths),
+        }
+    }
 }
 
 impl TryFrom<IndexMap<NameSpace, IndexMap<DataElementIdentifier, DataElementValue>>> for DisclosedAttributes {
@@ -101,22 +125,6 @@ impl TryFrom<serde_json::Map<String, serde_json::Value>> for DisclosedAttributes
     }
 }
 
-#[cfg(feature = "test")]
-impl From<DisclosedAttributes> for IndexMap<NameSpace, IndexMap<DataElementIdentifier, DataElementValue>> {
-    fn from(attributes: DisclosedAttributes) -> Self {
-        attributes
-            .unwrap_mso_mdoc()
-            .into_iter()
-            .map(|(namespace, attributes)| {
-                (
-                    namespace,
-                    attributes.into_iter().map(|(key, value)| (key, value.into())).collect(),
-                )
-            })
-            .collect()
-    }
-}
-
 /// Attestation that was disclosed; consisting of attributes, validity information, issuer URI and the issuer CA's
 /// common name.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -126,6 +134,7 @@ pub struct DisclosedAttestation {
     #[serde(flatten)]
     pub attributes: DisclosedAttributes,
     pub issuer_uri: HttpsUri,
+    pub attestation_qualification: AttestationQualification,
 
     /// The issuer CA's common name
     pub ca: String,
@@ -154,6 +163,7 @@ impl TryFrom<DisclosedDocument> for DisclosedAttestation {
             attestation_type: doc.doc_type,
             attributes: doc.attributes.try_into()?,
             issuer_uri: doc.issuer_uri,
+            attestation_qualification: doc.attestation_qualification,
             ca: doc.ca,
             validity_info: (&doc.validity_info).try_into()?,
         })
@@ -164,12 +174,7 @@ impl TryFrom<SdJwt> for DisclosedAttestation {
     type Error = DisclosedAttestationError;
 
     fn try_from(sd_jwt: SdJwt) -> Result<Self, Self::Error> {
-        let claims = sd_jwt.claims();
-        let validity_info = ValidityInfo {
-            signed: claims.iat.into(),
-            valid_from: claims.nbf.map(Into::into),
-            valid_until: claims.exp.map(Into::into),
-        };
+        let attributes = sd_jwt.to_disclosed_object()?.try_into()?;
 
         let ca = sd_jwt
             .issuer_certificate()
@@ -177,15 +182,35 @@ impl TryFrom<SdJwt> for DisclosedAttestation {
             .first()
             .ok_or(DisclosedAttestationError::EmptyIssuerCommonName)?
             .to_string();
-        let attributes = sd_jwt.to_disclosed_object()?.try_into()?;
+
+        let claims = sd_jwt.into_claims();
+
+        let attestation_type = claims.vct.ok_or(DisclosedAttestationError::MissingAttributes("vct"))?;
+
+        // Manually parse the attestation qualification from the SD-JWT claims.
+        let attestation_qualification = claims
+            .claims
+            .claims
+            .get(&"attestation_qualification".parse().unwrap())
+            .and_then(|value| match value {
+                ClaimValue::String(value) => value.parse().ok(),
+                _ => None,
+            })
+            .ok_or(DisclosedAttestationError::MissingAttributes(
+                "attestation_qualification",
+            ))?;
+
+        let validity_info = ValidityInfo {
+            signed: claims.iat.into(),
+            valid_from: claims.nbf.map(Into::into),
+            valid_until: claims.exp.map(Into::into),
+        };
+
         Ok(DisclosedAttestation {
-            attestation_type: claims
-                .vct
-                .as_ref()
-                .ok_or(DisclosedAttestationError::MissingAttributes("vct"))?
-                .to_owned(),
+            attestation_type,
             attributes,
-            issuer_uri: claims.iss.to_owned(),
+            issuer_uri: claims.iss,
+            attestation_qualification,
             ca,
             validity_info,
         })
@@ -234,20 +259,7 @@ impl DisclosedCredential for DisclosedAttestation {
     ) -> HashSet<VecNonEmpty<ClaimPath>> {
         request_claim_paths
             .into_iter()
-            .flat_map(|claim_path| {
-                let attribute_present = match &self.attributes {
-                    DisclosedAttributes::MsoMdoc(name_spaces) => claim_path_to_mdoc_path(claim_path)
-                        .and_then(|(name_space_id, attribute_id)| {
-                            name_spaces
-                                .get(name_space_id)
-                                .map(|name_space| name_space.contains_key(attribute_id))
-                        })
-                        .unwrap_or(false),
-                    DisclosedAttributes::SdJwt(attributes) => attributes.has_claim_path(claim_path),
-                };
-
-                (!attribute_present).then(|| claim_path.clone())
-            })
+            .flat_map(|claim_path| (!self.attributes.has_claim_path(claim_path)).then(|| claim_path.clone()))
             .collect()
     }
 }
@@ -256,10 +268,12 @@ impl DisclosedCredential for DisclosedAttestation {
 mod test {
     use chrono::Utc;
     use indexmap::IndexMap;
+    use itertools::Itertools;
     use rstest::rstest;
     use serde_json::json;
 
     use attestation_types::claim_path::ClaimPath;
+    use attestation_types::qualification::AttestationQualification;
     use dcql::CredentialFormat;
     use dcql::disclosure::DisclosedCredential;
     use mdoc::examples::EXAMPLE_ATTRIBUTES;
@@ -288,6 +302,7 @@ mod test {
                         .collect(),
                 )])),
                 issuer_uri: "https://example.com".parse().unwrap(),
+                attestation_qualification: AttestationQualification::default(),
                 ca: "Example CA".to_string(),
                 validity_info: ValidityInfo {
                     signed: Utc::now(),
@@ -314,6 +329,7 @@ mod test {
                     .into(),
                 ),
                 issuer_uri: "https://example.com".parse().unwrap(),
+                attestation_qualification: AttestationQualification::default(),
                 ca: "Example CA".to_string(),
                 validity_info: ValidityInfo {
                     signed: Utc::now(),
@@ -325,10 +341,71 @@ mod test {
     }
 
     #[rstest]
+    #[case(&[], &[])]
+    #[case(&[claim_path(&vec_nonempty!["pid", "bsn"])], &[("pid", ["bsn"].as_slice())])]
+    #[case(
+        &[
+            claim_path(&vec_nonempty!["pid", "family_name"]),
+            claim_path(&vec_nonempty!["address", "street_address"]),
+            claim_path(&vec_nonempty!["pid", "given_name"]),
+        ],
+        &[("pid", ["given_name", "family_name"].as_slice()), ("address", ["street_address"].as_slice())],
+    )]
+    #[case(
+        &[
+            claim_path(&vec_nonempty!["pid", "favourite_colour"]),
+            claim_path(&vec_nonempty!["too_short"]),
+            claim_path(&vec_nonempty!["pid", "bsn"]),
+            claim_path(&vec_nonempty!["some", "long", "path"]),
+            claim_path(&vec_nonempty!["swallow", "average_airspeed"]),
+        ],
+        &[("pid", ["bsn"].as_slice())],
+    )]
+    fn test_disclosed_attributes_prune(
+        #[case] keep_claim_paths: &[VecNonEmpty<ClaimPath>],
+        #[case] expected_attributes: &[(&str, &[&str])],
+    ) {
+        let mut pruned_attributes = DisclosedAttributes::MsoMdoc(IndexMap::from([
+            (
+                "pid".to_string(),
+                IndexMap::from([
+                    ("bsn".to_string(), AttributeValue::Text("123456789".to_string())),
+                    ("given_name".to_string(), AttributeValue::Text("John".to_string())),
+                    ("family_name".to_string(), AttributeValue::Text("Doe".to_string())),
+                ]),
+            ),
+            (
+                "address".to_string(),
+                IndexMap::from([
+                    (
+                        "street_address".to_string(),
+                        AttributeValue::Text("Main Street".to_string()),
+                    ),
+                    ("house_number".to_string(), AttributeValue::Text("123".to_string())),
+                ]),
+            ),
+        ]));
+
+        pruned_attributes.prune(keep_claim_paths.iter());
+
+        if let DisclosedAttributes::MsoMdoc(attributes) = &pruned_attributes {
+            for ((name_space_id, attributes), (expected_name_space_id, expected_attributes)) in
+                attributes.iter().zip_eq(expected_attributes.iter())
+            {
+                assert_eq!(name_space_id, expected_name_space_id);
+                itertools::assert_equal(attributes.keys(), expected_attributes.iter());
+            }
+        } else {
+            panic!()
+        };
+    }
+
+    #[rstest]
     #[case(json!([
         {
             "attestation_type": "com.example.pid",
             "issuer_uri": "https://pid.example.com",
+            "attestation_qualification": "EAA",
             "ca": "ca.example.com",
             "validity_info": {
                 "signed": "2014-11-28 12:00:09 UTC",
@@ -343,8 +420,9 @@ mod test {
             }
         },
         {
-        "attestation_type": "com.example.address",
+            "attestation_type": "com.example.address",
             "issuer_uri": "https://pid.example.com",
+            "attestation_qualification": "EAA",
             "ca": "ca.example.com",
             "validity_info": {
                 "signed": "2014-11-28 12:00:09 UTC",
@@ -363,6 +441,7 @@ mod test {
         {
             "attestation_type": "com.example.pid",
             "issuer_uri": "https://pid.example.com",
+            "attestation_qualification": "QEAA",
             "ca": "ca.example.com",
             "validity_info": {
                 "signed": "2014-11-28 12:00:09 UTC",
@@ -379,6 +458,7 @@ mod test {
         {
             "attestation_type": "com.example.address",
             "issuer_uri": "https://pid.example.com",
+            "attestation_qualification": "PuB-EAA",
             "ca": "ca.example.com",
             "validity_info": {
                 "signed": "2014-11-28 12:00:09 UTC",
@@ -401,6 +481,7 @@ mod test {
         {
             "attestation_type": "com.example.pid",
             "issuer_uri": "https://pid.example.com",
+            "attestation_qualification": "EAA",
             "ca": "ca.example.com",
             "validity_info": {
                 "signed": "2014-11-28 12:00:09 UTC",

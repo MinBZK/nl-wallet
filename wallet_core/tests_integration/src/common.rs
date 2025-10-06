@@ -21,7 +21,6 @@ use sea_orm::PaginatorTrait;
 use tokio::net::TcpListener;
 use tokio::time;
 use url::Url;
-use wiremock::MockServer;
 
 use android_attest::android_crl::RevocationStatusList;
 use android_attest::root_public_key::RootPublicKey;
@@ -153,11 +152,6 @@ pub async fn setup_wallet_and_default_env(vendor: WalletDeviceVendor) -> WalletW
 pub struct DisclosureParameters {
     pub verifier_url: BaseUrl,
     pub verifier_internal_url: BaseUrl,
-}
-
-pub struct IssuanceParameters {
-    pub attestation_server: MockServer,
-    pub url: BaseUrl,
 }
 
 /// Create an instance of [`Wallet`].

@@ -193,6 +193,7 @@ mod tests {
     use attestation_data::disclosure::DisclosedAttributes;
     use attestation_data::disclosure::ValidityInfo;
     use attestation_data::issuable_document::IssuableDocument;
+    use attestation_types::qualification::AttestationQualification;
     use dcql::unique_id_vec::UniqueIdVec;
     use openid4vc::PostAuthResponseErrorCode;
     use openid4vc::credential::CredentialOffer;
@@ -220,6 +221,7 @@ mod tests {
                 attestation_type,
                 attributes: DisclosedAttributes::MsoMdoc(IndexMap::new()),
                 issuer_uri: "https://example.com".parse().unwrap(),
+                attestation_qualification: AttestationQualification::default(),
                 ca: "ca".to_string(),
                 validity_info: ValidityInfo {
                     signed: Utc::now(),

@@ -2,6 +2,7 @@ use serde::Deserialize;
 
 use attestation_data::attributes::Attributes;
 use attestation_data::disclosure::ValidityInfo;
+use attestation_types::qualification::AttestationQualification;
 use dcql::CredentialQueryIdentifier;
 use dcql::unique_id_vec::MayHaveUniqueId;
 use http_utils::urls::HttpsUri;
@@ -17,6 +18,7 @@ pub struct DemoDisclosedAttestation {
     pub attributes: Attributes,
     pub format: Format,
     pub issuer_uri: HttpsUri,
+    pub attestation_qualification: AttestationQualification,
 
     /// The issuer CA's common name
     pub ca: String,
@@ -65,6 +67,7 @@ mod test {
                     ]),
                 )])),
                 issuer_uri: "https://cert.issuer.example.com/".parse().unwrap(),
+                attestation_qualification: AttestationQualification::default(),
                 ca: "ca.issuer.example.com".to_string(),
                 validity_info: ValidityInfo {
                     signed: DateTime::UNIX_EPOCH,
@@ -95,6 +98,7 @@ mod test {
                     .into(),
                 ),
                 issuer_uri: "https://cert.issuer.example.com/".parse().unwrap(),
+                attestation_qualification: AttestationQualification::default(),
                 ca: "ca.issuer.example.com".to_string(),
                 validity_info: ValidityInfo {
                     signed: DateTime::UNIX_EPOCH,

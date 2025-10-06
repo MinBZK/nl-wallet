@@ -8,5 +8,5 @@ pub mod issuable_document;
 pub mod mdoc;
 pub mod x509;
 
-#[cfg(feature = "test_document")]
-pub mod test_document;
+#[cfg(feature = "test_credential")]
+pub mod test_credential;

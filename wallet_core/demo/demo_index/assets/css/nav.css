@@ -1,8 +1,6 @@
 :root {
   font-family: "RO Sans", sans-serif;
-  font-feature-settings:
-    "clig" off,
-    "liga" off;
+  font-feature-settings: "clig" off, "liga" off;
   font-size: 16px;
   line-height: 1.5;
 }
@@ -119,7 +117,8 @@ nav a::before {
 }
 
 /* use case icons */
-#mijn_amsterdam::before {
+#mijn_amsterdam_mdoc::before,
+#mijn_amsterdam_sd_jwt::before {
   background: url("../non-free/images/mijn_amsterdam.svg") no-repeat center center / cover;
 }
 
@@ -127,7 +126,8 @@ nav a::before {
   background: url("../images/online_marketplace.svg") no-repeat center center / cover;
 }
 
-#xyz_bank::before {
+#xyz_bank_mdoc::before,
+#xyz_bank_sd_jwt::before {
   background: url("../images/xyz_bank.svg") no-repeat center center / cover;
 }
 
@@ -139,7 +139,8 @@ nav a::before {
   background: url("../images/job_finder.svg") no-repeat center center / cover;
 }
 
-#university::before {
+#university_mdoc::before,
+#university_sd_jwt::before {
   background: url("../images/university.svg") no-repeat center center / cover;
 }
 

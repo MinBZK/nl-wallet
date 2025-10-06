@@ -2,9 +2,6 @@ pub mod disclosure;
 pub mod normalized;
 pub mod unique_id_vec;
 
-#[cfg(feature = "test_document")]
-mod test_document;
-
 use std::ops::Not;
 
 use nutype::nutype;
@@ -41,7 +38,7 @@ fn validate_identifier_str(id: &str) -> Result<(), IdentifierError> {
 }
 
 #[nutype(
-    derive(Debug, Clone, PartialEq, Eq, Hash, Display, AsRef, TryFrom, Serialize, Deserialize),
+    derive(Debug, Clone, PartialEq, Eq, Hash, Display, AsRef, TryFrom, FromStr, Serialize, Deserialize),
     validate(with = validate_identifier_str, error = IdentifierError),
 )]
 pub struct CredentialQueryIdentifier(String);

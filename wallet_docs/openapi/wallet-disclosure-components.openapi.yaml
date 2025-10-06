@@ -156,8 +156,14 @@ components:
         attestation_type: string
         attributes:
           $ref: '#/components/schemas/attributes'
-        issuer:
+        issuer_uri:
           type: string
+        attestation_qualification:
+          type: string
+          enum:
+            - QEAA
+            - PuB-EAA
+            - EAA
         ca:
           type: string
         validity_info:

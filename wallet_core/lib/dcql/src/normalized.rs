@@ -332,7 +332,7 @@ pub mod mock {
     use mdoc::examples::EXAMPLE_ATTRIBUTES;
     use mdoc::examples::EXAMPLE_DOC_TYPE;
     use mdoc::examples::EXAMPLE_NAMESPACE;
-    use mdoc::test::data::PID;
+    use mdoc::holder::mock::NL_PID_DOC_TYPE;
     use utils::vec_at_least::VecNonEmpty;
     use utils::vec_nonempty;
 
@@ -362,6 +362,10 @@ pub mod mock {
 
         pub fn new_mock_mdoc_pid_example() -> Self {
             Self::new_mock_single(CredentialQuery::new_mock_mdoc_pid_example())
+        }
+
+        pub fn new_mock_sd_jwt_pid_example() -> Self {
+            Self::new_mock_single(CredentialQuery::new_mock_sd_jwt_pid_example())
         }
     }
 
@@ -440,7 +444,20 @@ pub mod mock {
         }
 
         pub fn new_mock_mdoc_pid_example() -> Self {
-            Self::new_mock_mdoc("mdoc_pid_example", PID, PID, &["bsn", "given_name", "family_name"])
+            Self::new_mock_mdoc(
+                "mdoc_pid_example",
+                NL_PID_DOC_TYPE,
+                NL_PID_DOC_TYPE,
+                &["bsn", "given_name", "family_name"],
+            )
+        }
+
+        pub fn new_mock_sd_jwt_pid_example() -> Self {
+            Self::new_mock_sd_jwt(
+                "mock_sd_jwt_example",
+                &[NL_PID_DOC_TYPE],
+                &[&["bsn"], &["given_name"], &["family_name"]],
+            )
         }
     }
 
@@ -607,8 +624,12 @@ pub mod mock {
             Self::new_mock_from_slices(
                 "mdoc_pid_example",
                 MockCredentialFormat::MsoMdoc { intent_to_retain: None },
-                &[PID],
-                &[&[PID, "bsn"], &[PID, "given_name"], &[PID, "family_name"]],
+                &[NL_PID_DOC_TYPE],
+                &[
+                    &[NL_PID_DOC_TYPE, "bsn"],
+                    &[NL_PID_DOC_TYPE, "given_name"],
+                    &[NL_PID_DOC_TYPE, "family_name"],
+                ],
             )
         }
 
@@ -616,7 +637,7 @@ pub mod mock {
             Self::new_mock_from_slices(
                 "sd_jwt_pid_example",
                 MockCredentialFormat::SdJwt,
-                &[PID],
+                &[NL_PID_DOC_TYPE],
                 &[&["bsn"], &["given_name"], &["family_name"]],
             )
         }

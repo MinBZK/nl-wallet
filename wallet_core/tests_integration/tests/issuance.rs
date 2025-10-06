@@ -2,11 +2,13 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use indexmap::IndexMap;
+use rstest::rstest;
 use serial_test::serial;
 use url::Url;
 
 use attestation_data::constants::*;
 use attestation_data::issuable_document::IssuableDocument;
+use dcql::CredentialFormat;
 use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
 use http_utils::urls::disclosure_based_issuance_base_uri;
 use openid4vc::ErrorResponse;
@@ -78,16 +80,18 @@ async fn test_pid_ok() {
     assert_eq!(recovery_code_result, None);
 }
 
-fn universal_link(issuance_server_url: &BaseUrl) -> Url {
+fn universal_link(issuance_server_url: &BaseUrl, format: CredentialFormat) -> Url {
     let params = serde_urlencoded::to_string(VerifierUrlParameters {
         session_type: SessionType::SameDevice,
         ephemeral_id_params: None,
     })
     .unwrap();
 
-    let mut issuance_server_url = issuance_server_url
-        .join_base_url("/disclosure/university/request_uri")
-        .into_inner();
+    let issuance_path = match format {
+        CredentialFormat::MsoMdoc => "/disclosure/university_mdoc/request_uri",
+        CredentialFormat::SdJwt => "/disclosure/university_sd_jwt/request_uri",
+    };
+    let mut issuance_server_url = issuance_server_url.join_base_url(issuance_path).into_inner();
     issuance_server_url.set_query(Some(&params));
 
     let query = serde_urlencoded::to_string(VpRequestUriObject {
@@ -242,9 +246,12 @@ async fn test_pid_missing_required_attributes() {
     ));
 }
 
+#[rstest]
 #[tokio::test]
 #[serial(hsm)]
-async fn test_disclosure_based_issuance_ok() {
+async fn test_disclosure_based_issuance_ok(
+    #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] format: CredentialFormat,
+) {
     let pin = "112233";
     let (mut wallet, _, issuance_url) = setup_wallet_and_env(
         WalletDeviceVendor::Apple,
@@ -261,7 +268,7 @@ async fn test_disclosure_based_issuance_ok() {
     wallet = do_pid_issuance(wallet, pin.to_owned()).await;
 
     let _proposal = wallet
-        .start_disclosure(&universal_link(&issuance_url), DisclosureUriSource::Link)
+        .start_disclosure(&universal_link(&issuance_url, format), DisclosureUriSource::Link)
         .await
         .unwrap();
 
@@ -283,9 +290,12 @@ async fn test_disclosure_based_issuance_ok() {
     });
 }
 
+#[rstest]
 #[tokio::test]
 #[serial(hsm)]
-async fn test_disclosure_based_issuance_error_no_attributes() {
+async fn test_disclosure_based_issuance_error_no_attributes(
+    #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] format: CredentialFormat,
+) {
     let (issuance_server_settings, _, di_trust_anchor, di_tls_config) = issuance_server_settings();
 
     let pin = "112233";
@@ -304,7 +314,7 @@ async fn test_disclosure_based_issuance_error_no_attributes() {
     wallet = do_pid_issuance(wallet, pin.to_owned()).await;
 
     let _proposal = wallet
-        .start_disclosure(&universal_link(&issuance_url), DisclosureUriSource::Link)
+        .start_disclosure(&universal_link(&issuance_url, format), DisclosureUriSource::Link)
         .await
         .unwrap();
 
