@@ -195,7 +195,7 @@ where
         info!("Clear transfer");
 
         let Some(transfer_data) = self.storage.read().await.fetch_data::<TransferData>().await? else {
-            return Err(TransferError::MissingTransferSessionId);
+            return Ok(());
         };
 
         self.clear_transfer_data(transfer_data).await?;
@@ -618,6 +618,18 @@ mod tests {
     #[tokio::test]
     async fn test_clear_transfer() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        let transfer_session_id = Uuid::new_v4();
+
+        wallet
+            .mut_storage()
+            .expect_fetch_data::<TransferData>()
+            .returning(move || {
+                Ok(Some(TransferData {
+                    transfer_session_id: transfer_session_id.into(),
+                    key_data: None,
+                }))
+            });
 
         wallet
             .mut_storage()
