@@ -7,7 +7,7 @@ When a user loses their PIN or device or when they wish to migrate their wallet 
 The NL PID Provider includes a persistent Recovery Code as part of the PID that is issued to the NL Wallet in the onboarding process. This Recovery Code is derived from the BSN and shall be consistent across all issuances of PID of the same user to the NL Wallet. 
 The Recovery Code will be stored in the user account (in Wallet Backend, not on user device) after PID issuance.
 
-The Recovery Code is solely intended to be used by the NL-Wallet. NL-Wallet will prevent disclosure requests of the Recovery Code to other Relying Parties.
+The Recovery Code is solely intended to be used by the NL Wallet and will be prevented from being disclosed to Relying Parties.
 
 The Recovery Code is used in the usecases described below:
 
@@ -15,7 +15,7 @@ The Recovery Code is used in the usecases described below:
 NL-Wallet supports the following use cases that rely on the Recovery Code: 
 
 1. [PIN Recovery](#pin-recovery): 
-With the PIN Recovery flow, the user can reset a forgotten PIN by reauhtenticating with DigiD. 
+With the PIN Recovery flow, the user can reset a forgotten PIN by re-authenticating with DigiD. 
 
 3. [Wallet device transfer](#wallet-device-transfer)
 Wallet Device Transfer will allow transfer of contents from an existing active wallet to a newly activated wallet on another device.
