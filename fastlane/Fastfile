@@ -179,7 +179,7 @@ platform :android do
     version = options[:version].blank? ? local_version : options[:version]
 
     browserstack(
-      file: "#{application_id}-#{version || local_version}-release.aab",
+      file: "#{application_id}-#{version || local_version}-release.apk",
       user: browserstack_user,
       key: browserstack_key,
       application_id: application_id,
