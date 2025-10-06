@@ -55,8 +55,8 @@ sequenceDiagram
     Wallet ->> Wallet: Check Recovery code in stored PID against recovery code in PID-preview<br/>Must match, else terminate with error
     Wallet ->> User: Request new PIN
     User ->> Wallet: Give new PIN (including confirmation)
-    Wallet ->> WP: Send start_pin_recovery(new PIN, c_nonce for PID issuance)
-    WP ->> WP: Update PIN for account<br/> sign Wallet Certificate<br/>genereate new keys (marked as recovery keys)<br/> sign PoP's<br/> issue WUA<br/>set account in 'recovery' state
+    Wallet ->> WP: Send start_pin_recovery(new PIN public key, c_nonce for PID issuance)
+    WP ->> WP: Update PIN public key for account<br/> sign Wallet Certificate<br/>genereate new keys (marked as recovery keys)<br/> sign PoP's<br/> issue WUA<br/>set account in 'recovery' state
     WP ->> Wallet: New PIN OK, return new Wallet Certificate, WUA, signed PoP's
     Wallet ->> Wallet: Delete previous PIN data, store new PIN data    
     note over Wallet, PID: Steps 22-24 from PID-issuance flow. <br/> Wallet has requested and received attestations from PID-issuer. 
@@ -140,11 +140,11 @@ While transfering, the following states are used in the process:
 
 | Transfer State             | State is set when                                                                     | Next State(s)                                 |
 |----------------------------|---------------------------------------------------------------------------------------|-----------------------------------------------|
-| created                    | After activation of Desintation Wallet, when another account exists for the same user | ready_for_transfer, canceled
-| ready_for_transfer         | After scanning QR from Destinaiton Wallet and `confirm_transfer_session` instruction, Source Wallet is linked to transfer session.                              | ready_for_download, canceled 
+| created                    | After activation of Destination Wallet, when another account exists for the same user | ready_for_transfer, canceled
+| ready_for_transfer         | After scanning QR from Destination Wallet and `confirm_transfer_session` instruction, Source Wallet is linked to transfer session.                              | ready_for_download, canceled 
 | ready_for_download         | After `send_wallet_payload` instruction from Source Wallet                            | completed, canceled
 | completed                  | Destination Wallet after succesfull download (`receive_wallet_payload` instruction ) <br/>and processing of payload confirmed with `complete_transfer`                                | -                    
-| canceled                   | User can cancel transfer from Destinaion Wallet or Source Wallet from any state using `cancel_transfer` instruction. <br/>Not allowed after `completed` state is reached                      | -
+| canceled                   | User can cancel transfer from Destination Wallet or Source Wallet from any state using `cancel_transfer` instruction. <br/>Not allowed after `completed` state is reached                      | -
 
 
 
@@ -155,7 +155,7 @@ PID Renewal allows the user to fetch a new PID attestation in case the current P
 The PID renewal flow reuses steps from [PID issuance flow](./issuance-with-openid4vci.md) 
 
 
-#### PIN Renewal flow sequence diagram
+#### PID Renewal flow sequence diagram
 
 
 ```{mermaid}
