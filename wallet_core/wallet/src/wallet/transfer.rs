@@ -182,7 +182,11 @@ where
         self.send_transfer_instruction(CancelTransfer {
             transfer_session_id: transfer_data.transfer_session_id.into(),
         })
-        .await
+        .await?;
+
+        self.clear_transfer_data(transfer_data).await?;
+
+        Ok(())
     }
 
     #[instrument(skip_all)]
@@ -190,7 +194,11 @@ where
     pub async fn clear_transfer(&mut self) -> Result<(), TransferError> {
         info!("Clear transfer");
 
-        self.storage.write().await.delete_data::<TransferData>().await?;
+        let Some(transfer_data) = self.storage.read().await.fetch_data::<TransferData>().await? else {
+            return Err(TransferError::MissingTransferSessionId);
+        };
+
+        self.clear_transfer_data(transfer_data).await?;
 
         Ok(())
     }
@@ -217,7 +225,9 @@ where
             }
             (Some(TransferKeyData::Source { .. }), TransferSessionState::Success) => {
                 self.clean_after_transfer().await?;
-                return Ok(TransferSessionState::Success);
+            }
+            (_, TransferSessionState::Canceled) => {
+                self.clear_transfer().await?;
             }
             _ => {}
         }
@@ -339,9 +349,16 @@ where
         Ok(())
     }
 
-    #[instrument(skip_all)]
-    #[sentry_capture_error]
-    pub async fn clean_after_transfer(&mut self) -> Result<(), TransferError> {
+    async fn clear_transfer_data(&mut self, transfer_data: TransferData) -> Result<(), TransferError> {
+        // The destination wallet may keep its transfer session in order to be able to restart it
+        if let Some(TransferKeyData::Source { .. }) = transfer_data.key_data {
+            self.storage.write().await.delete_data::<TransferData>().await?;
+        }
+
+        Ok(())
+    }
+
+    async fn clean_after_transfer(&mut self) -> Result<(), TransferError> {
         self.storage.write().await.clear().await;
         self.storage.write().await.open().await?;
 
