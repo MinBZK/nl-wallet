@@ -1,5 +1,3 @@
-// Copyright 2020-2024 IOTA Stiftung
-// SPDX-License-Identifier: Apache-2.0
 use chrono::Duration;
 use chrono::serde::ts_seconds;
 use derive_more::Display;

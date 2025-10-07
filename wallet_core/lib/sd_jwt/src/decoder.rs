@@ -1,213 +1,110 @@
-// Copyright 2020-2024 IOTA Stiftung
-// SPDX-License-Identifier: Apache-2.0
-
 use std::collections::HashMap;
 
-use serde_json::Map;
-use serde_json::Value;
+use itertools::Itertools;
 
+use utils::vec_at_least::VecAtLeastN;
+
+use crate::claims::ArrayClaim;
+use crate::claims::ClaimValue;
+use crate::claims::ObjectClaims;
 use crate::disclosure::Disclosure;
-use crate::disclosure::DisclosureContent;
-use crate::encoder::ARRAY_DIGEST_KEY;
-use crate::encoder::DIGESTS_KEY;
-use crate::encoder::SD_ALG;
 use crate::error::Error;
+use crate::error::Result;
+use crate::sd_jwt::SdJwtClaims;
 
-const RESERVED_CLAIM_NAMES: &[&str] = &["_sd", "..."];
-
-/// Substitutes digests in an SD-JWT object by their corresponding plain text values provided by disclosures.
+/// Substitutes digests in an [`SdJwtClaims`] by their corresponding claim values provided by disclosures.
 pub struct SdObjectDecoder;
 
 impl SdObjectDecoder {
-    /// Decodes an SD-JWT `object` containing by Substituting the digests with their corresponding
-    /// plain text values provided by `disclosures`.
-    pub fn decode(
-        &self,
-        object: &Map<String, Value>,
-        disclosures: &HashMap<String, Disclosure>,
-    ) -> Result<Map<String, Value>, Error> {
-        // `processed_digests` are kept track of in case one digest appears more than once which
-        // renders the SD-JWT invalid.
-        let mut processed_digests: Vec<String> = vec![];
+    /// Decodes [`SdJwtClaims`] by substituting the digests with their corresponding claim values provided by
+    /// `disclosures`.
+    pub fn decode(sd_jwt_claims: &SdJwtClaims, disclosures: &HashMap<String, Disclosure>) -> Result<SdJwtClaims> {
+        // Clone the disclosures locally so we can mutate the HashMap
+        let mut disclosures = disclosures.clone();
 
-        // Decode the object recursively.
-        let mut decoded = self.decode_object(object, disclosures, &mut processed_digests)?;
+        // Decode all claims from the SD-JWT
+        let claims = sd_jwt_claims.claims().decode(&mut disclosures)?;
 
-        if processed_digests.len() != disclosures.len() {
-            return Err(Error::UnusedDisclosures(
-                disclosures.len().saturating_sub(processed_digests.len()),
-            ));
+        // All disclosures should have been resolved
+        if !disclosures.is_empty() {
+            return Err(Error::UnreferencedDisclosures(disclosures.into_keys().collect()));
         }
 
-        // Remove `_sd_alg` in case it exists.
-        decoded.remove(SD_ALG);
-
-        Ok(decoded)
-    }
-
-    fn decode_object(
-        &self,
-        object: &Map<String, Value>,
-        disclosures: &HashMap<String, Disclosure>,
-        processed_digests: &mut Vec<String>,
-    ) -> Result<Map<String, Value>, Error> {
-        let mut output: Map<String, Value> = Map::new();
-        for (key, value) in object {
-            match value {
-                Value::Object(object) => {
-                    let decoded_object = self.decode_object(object, disclosures, processed_digests)?;
-                    output.insert(key.to_string(), Value::Object(decoded_object));
-                }
-                Value::Array(sd_array) if key == DIGESTS_KEY => {
-                    for digest in sd_array {
-                        if let Some((DisclosureContent::ObjectProperty(_, claim_name, _), decoded_value)) = self
-                            .disclosure_and_decoded_value_for_array_value(
-                                digest,
-                                disclosures,
-                                processed_digests,
-                                |disclosure| Self::verify_disclosure_for_object(disclosure, &output),
-                            )?
-                        {
-                            output.insert(claim_name.clone(), decoded_value);
-                        }
-                    }
-                }
-                Value::Array(array) => {
-                    let decoded_array = self.decode_array(array, disclosures, processed_digests)?;
-                    output.insert(key.to_string(), Value::Array(decoded_array));
-                }
-                _ => {
-                    output.insert(key.to_string(), value.clone());
-                }
-            }
-        }
-        Ok(output)
-    }
-
-    fn decode_array(
-        &self,
-        array: &[Value],
-        disclosures: &HashMap<String, Disclosure>,
-        processed_digests: &mut Vec<String>,
-    ) -> Result<Vec<Value>, Error> {
-        let mut output: Vec<Value> = vec![];
-        for value in array {
-            match value {
-                Value::Object(object) => {
-                    self.decode_array_nested_object(object, disclosures, processed_digests, &mut output)?;
-                }
-                Value::Array(array) => {
-                    // Nested arrays need to be decoded too.
-                    let decoded = self.decode_array(array, disclosures, processed_digests)?;
-                    output.push(Value::Array(decoded));
-                }
-                _ => {
-                    // Append the rest of the values.
-                    output.push(value.clone());
-                }
-            }
-        }
-
-        Ok(output)
-    }
-
-    fn decode_array_nested_object(
-        &self,
-        object: &serde_json::Map<String, serde_json::Value>,
-        disclosures: &HashMap<String, Disclosure>,
-        processed_digests: &mut Vec<String>,
-        output: &mut Vec<Value>,
-    ) -> Result<(), Error> {
-        for (key, value) in object {
-            if key == ARRAY_DIGEST_KEY {
-                if object.keys().len() != 1 {
-                    return Err(Error::InvalidArrayDisclosureObject);
-                }
-
-                if let Some((_, decoded_value)) = self.disclosure_and_decoded_value_for_array_value(
-                    value,
-                    disclosures,
-                    processed_digests,
-                    |disclosure| match disclosure.content {
-                        DisclosureContent::ObjectProperty(_, _, _) => {
-                            Err(Error::InvalidDisclosure("array length must be 2".to_string()))
-                        }
-                        _ => Ok(()),
-                    },
-                )? {
-                    output.push(decoded_value);
-                }
-            } else {
-                let decoded_object = self.decode_object(object, disclosures, processed_digests)?;
-                output.push(Value::Object(decoded_object));
-                break;
-            }
-        }
-
-        Ok(())
-    }
-
-    fn disclosure_and_decoded_value_for_array_value<'a>(
-        &self,
-        digest: &Value,
-        disclosures: &'a HashMap<String, Disclosure>,
-        processed_digests: &mut Vec<String>,
-        verify_disclosure: impl Fn(&Disclosure) -> Result<(), Error>,
-    ) -> Result<Option<(&'a DisclosureContent, Value)>, Error> {
-        let digest_str = digest
-            .as_str()
-            .ok_or(Error::DataTypeMismatch(format!("{digest} is not a string")))?
-            .to_string();
-
-        // Reject if any digests were found more than once.
-        if processed_digests.contains(&digest_str) {
-            return Err(Error::DuplicateDigest(digest_str));
-        }
-
-        // Check if a disclosure of this digest is available
-        // and return it and the decoded value
-        if let Some(disclosure) = disclosures.get(&digest_str) {
-            verify_disclosure(disclosure)?;
-
-            processed_digests.push(digest_str.clone());
-
-            let recursively_decoded = self.decode_claim_value(disclosure, disclosures, processed_digests)?;
-            return Ok(Some((&disclosure.content, recursively_decoded)));
-        }
-
-        Ok(None)
-    }
-
-    fn verify_disclosure_for_object(disclosure: &Disclosure, output: &Map<String, Value>) -> Result<(), Error> {
-        let claim_name = match &disclosure.content {
-            DisclosureContent::ObjectProperty(_, claim_name, _) => Ok(claim_name),
-            _ => Err(Error::DataTypeMismatch(format!("disclosure type error: {disclosure}"))),
-        }?;
-
-        if RESERVED_CLAIM_NAMES.contains(&claim_name.as_str()) {
-            return Err(Error::ReservedClaimNameUsed(claim_name.clone()));
-        }
-
-        if output.contains_key(claim_name) {
-            return Err(Error::ClaimCollision(claim_name.clone()));
-        }
-
-        Ok(())
-    }
-
-    fn decode_claim_value(
-        &self,
-        disclosure: &Disclosure,
-        disclosures: &HashMap<String, Disclosure>,
-        processed_digests: &mut Vec<String>,
-    ) -> Result<Value, Error> {
-        let decoded = match disclosure.claim_value() {
-            Value::Array(sub_arr) => Value::Array(self.decode_array(sub_arr, disclosures, processed_digests)?),
-            Value::Object(sub_obj) => Value::Object(self.decode_object(sub_obj, disclosures, processed_digests)?),
-            _ => disclosure.claim_value().clone(),
+        // Construct a new SdJwtClaims with the decoded claims and without "_sd_alg" claim
+        let sd_jwt_claims = SdJwtClaims {
+            claims: ClaimValue::Object(claims),
+            _sd_alg: None,
+            ..sd_jwt_claims.clone()
         };
 
-        Ok(decoded)
+        Ok(sd_jwt_claims)
+    }
+}
+
+impl ObjectClaims {
+    pub fn decode(&self, disclosures: &mut HashMap<String, Disclosure>) -> Result<Self> {
+        let mut disclosed_claims = self
+            ._sd
+            .iter()
+            .flat_map(VecAtLeastN::iter)
+            .filter_map(|digest| disclosures.remove(digest).map(|disclosure| (digest, disclosure)))
+            .map(|(digest, disclosure)| {
+                // Verify that the matching disclosure discloses an object property
+                let (_, claim_name, claim_value) = disclosure.content.try_as_object_property(digest)?;
+                Ok((claim_name.clone(), claim_value.clone()))
+            })
+            .collect::<Result<HashMap<_, _>>>()?;
+
+        // Decode the disclosed claims here
+        for disclosed_claim in disclosed_claims.values_mut() {
+            *disclosed_claim = disclosed_claim.decode(disclosures)?;
+        }
+
+        for (claim_name, claim_value) in &self.claims {
+            disclosed_claims.insert(claim_name.clone(), claim_value.decode(disclosures)?);
+        }
+
+        let result = Self {
+            claims: disclosed_claims,
+            ..Default::default()
+        };
+
+        Ok(result)
+    }
+}
+
+impl ClaimValue {
+    pub fn decode(&self, disclosures: &mut HashMap<String, Disclosure>) -> Result<Self> {
+        match self {
+            ClaimValue::Array(claims) => {
+                let decoded_claims = claims
+                    .iter()
+                    .map(|claim| claim.decode(disclosures))
+                    .flatten_ok()
+                    .collect::<Result<Vec<_>>>()?;
+
+                Ok(ClaimValue::Array(decoded_claims))
+            }
+            ClaimValue::Object(object) => Ok(ClaimValue::Object(object.decode(disclosures)?)),
+            _ => Ok(self.clone()),
+        }
+    }
+}
+
+impl ArrayClaim {
+    pub fn decode(&self, disclosures: &mut HashMap<String, Disclosure>) -> Result<Option<Self>> {
+        let decoded_claim = match self {
+            ArrayClaim::Hash(digest) => match disclosures.remove(digest) {
+                Some(disclosure) => {
+                    // Verify that the matching disclosure discloses an array element
+                    let (_, array_claim) = disclosure.content.try_as_array_element(digest)?;
+                    array_claim.decode(disclosures)?
+                }
+                None => None,
+            },
+            ArrayClaim::Value(claim_value) => Some(ArrayClaim::Value(claim_value.decode(disclosures)?)),
+        };
+        Ok(decoded_claim)
     }
 }
 
@@ -220,37 +117,96 @@ impl SdObjectDecoder {
 mod test {
     use std::collections::HashMap;
 
+    use rstest::rstest;
+    use serde_json::Number;
     use serde_json::json;
 
+    use crate::claims::ClaimValue;
+    use crate::claims::ObjectClaims;
     use crate::decoder::SdObjectDecoder;
     use crate::encoder::SdObjectEncoder;
     use crate::examples::recursive_disclosures_example;
+    use crate::sd_alg::SdAlg;
+    use crate::test::array_disclosure;
+    use crate::test::object_disclosure;
+
+    #[test]
+    fn decode_object_claim_value() {
+        let (disclosure_hash, disclosure) = object_disclosure("some_claim", json!("some_value"));
+        let (unused_hash, _unused) = object_disclosure("some_claim", json!("some_value"));
+        let input = serde_json::from_value::<ClaimValue>(json!({
+            "_sd": [&unused_hash, &disclosure_hash],
+            "existing_claim": true
+        }))
+        .unwrap();
+
+        let expected = serde_json::from_value::<ClaimValue>(json!({
+            "some_claim": "some_value",
+            "existing_claim": true
+        }))
+        .unwrap();
+
+        let decoded = input
+            .decode(&mut HashMap::from_iter([(disclosure_hash, disclosure)]))
+            .unwrap();
+
+        assert_eq!(decoded, expected);
+    }
+
+    #[test]
+    fn decode_array_claim_value() {
+        let (disclosure_hash, disclosure) = array_disclosure(json!("some_value"));
+        let (unused_hash, _unused) = array_disclosure(json!("some_value"));
+        let input = serde_json::from_value::<ClaimValue>(json!([
+            "first_value",
+            { "...": &unused_hash },
+            { "...": &disclosure_hash },
+            "last_value"
+        ]))
+        .unwrap();
+
+        let expected =
+            serde_json::from_value::<ClaimValue>(json!(["first_value", "some_value", "last_value"])).unwrap();
+
+        let decoded = input
+            .decode(&mut HashMap::from_iter([(disclosure_hash, disclosure)]))
+            .unwrap();
+
+        assert_eq!(decoded, expected);
+    }
+
+    #[rstest]
+    #[case(ClaimValue::Null)]
+    #[case(ClaimValue::Bool(true))]
+    #[case(ClaimValue::Number(Number::from_u128(42).unwrap()))]
+    #[case(ClaimValue::String("some".to_string()))]
+    fn decode_primitive_claim_values(#[case] value: ClaimValue) {
+        let decoded = value.decode(&mut HashMap::from_iter([])).unwrap();
+        assert_eq!(decoded, value);
+    }
 
     #[test]
     fn sd_alg() {
         let object = json!({
-          "id": "did:value",
-          "claim1": [
-            "abc"
-          ],
+            "iss": "https://issuer.url/",
+            "iat": 1683000000,
+            "id": "did:value",
+            "claim1": [
+                "abc"
+            ],
         });
         let mut encoder = SdObjectEncoder::try_from(object).unwrap();
         encoder.add_sd_alg_property();
-        assert_eq!(encoder.clone().encode().get("_sd_alg").unwrap(), "sha-256");
-        let decoder = SdObjectDecoder;
-        let decoded = decoder
-            .decode(encoder.encode().as_object().unwrap(), &HashMap::new())
-            .unwrap();
-        assert!(decoded.get("_sd_alg").is_none());
+        assert_eq!(encoder.clone().encode()._sd_alg, Some(SdAlg::Sha256));
+        let decoded = SdObjectDecoder::decode(&encoder.encode(), &HashMap::new()).unwrap();
+        assert!(decoded._sd_alg.is_none());
     }
 
     #[test]
     fn test_recursive_disclosure() {
         let (claims, disclosure_content) = recursive_disclosures_example();
 
-        let decoded = SdObjectDecoder
-            .decode(claims.as_object().unwrap(), &disclosure_content)
-            .unwrap();
+        let decoded = SdObjectDecoder::decode(&serde_json::from_value(claims).unwrap(), &disclosure_content).unwrap();
 
         let actual = serde_json::to_value(&decoded).unwrap();
 
@@ -263,7 +219,7 @@ mod test {
           },
           "exp": 1883000000,
           "iat": 1683000000,
-          "iss": "https://issuer.example.com",
+          "iss": "https://issuer.example.com/",
           "sub": "6c5c0a49-b589-431d-bae7-219122a9ec2c"
         });
 
@@ -278,10 +234,18 @@ mod test {
         assert!(disclosure_content.into_iter().any(|(k, v)| {
             let disclosure_only_address = HashMap::from([(k, v)]);
 
-            SdObjectDecoder
-                .decode(claims.as_object().unwrap(), &disclosure_only_address)
-                .map(|decoded| decoded.get("address").unwrap().to_string().as_str() == "{}")
-                .unwrap_or(false)
+            SdObjectDecoder::decode(
+                &serde_json::from_value(claims.clone()).unwrap(),
+                &disclosure_only_address,
+            )
+            .map(|decoded| {
+                decoded
+                    .claims()
+                    .get(&"address".parse().unwrap())
+                    .map(|v| matches!(v, ClaimValue::Object(object) if *object == ObjectClaims::default()))
+                    .unwrap_or(false)
+            })
+            .unwrap_or(false)
         }));
     }
 }

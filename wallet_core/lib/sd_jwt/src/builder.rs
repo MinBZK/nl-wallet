@@ -1,6 +1,3 @@
-// Copyright 2020-2024 IOTA Stiftung
-// SPDX-License-Identifier: Apache-2.0
-
 use std::collections::HashMap;
 
 use p256::ecdsa::VerifyingKey;
@@ -77,6 +74,8 @@ impl<H: Hasher> SdJwtBuilder<H> {
     ///  use utils::vec_at_least::VecNonEmpty;
     ///
     ///  let obj = json!({
+    ///   "iss": "https://issuer.example.com/",
+    ///   "iat": 1683000000,
     ///   "id": "did:value",
     ///   "claim1": {
     ///      "abc": true
@@ -134,7 +133,7 @@ impl<H: Hasher> SdJwtBuilder<H> {
         } = self;
         encoder.add_sd_alg_property();
 
-        let mut claims = serde_json::from_value::<SdJwtClaims>(encoder.encode())?;
+        let mut claims = encoder.encode();
         claims.cnf = Some(RequiredKeyBinding::Jwk(jwk_from_p256(holder_pubkey)?));
         claims.vct_integrity = Some(vct_integrity);
         let signed_jwt = SignedJwt::sign_with_certificate(&claims, issuer_keypair).await?;
@@ -163,7 +162,13 @@ mod test {
 
                 #[test]
                 fn can_be_done_for_object_values() {
-                    let result = SdJwtBuilder::new(json!({ "address": {} })).unwrap().make_concealable(
+                    let result = SdJwtBuilder::new(json!({
+                        "iss": "https://issuer.example.com/",
+                        "iat": 1683000000,
+                        "address": {}
+                    }))
+                    .unwrap()
+                    .make_concealable(
                         vec![ClaimPath::SelectByKey(String::from("address"))]
                             .try_into()
                             .unwrap(),
@@ -174,13 +179,17 @@ mod test {
 
                 #[test]
                 fn can_be_done_for_array_elements() {
-                    let result = SdJwtBuilder::new(json!({ "nationalities": ["US", "DE"] }))
-                        .unwrap()
-                        .make_concealable(
-                            vec![ClaimPath::SelectByKey(String::from("nationalities"))]
-                                .try_into()
-                                .unwrap(),
-                        );
+                    let result = SdJwtBuilder::new(json!({
+                        "iss": "https://issuer.example.com/",
+                        "iat": 1683000000,
+                        "nationalities": ["US", "DE"]
+                    }))
+                    .unwrap()
+                    .make_concealable(
+                        vec![ClaimPath::SelectByKey(String::from("nationalities"))]
+                            .try_into()
+                            .unwrap(),
+                    );
 
                     assert!(result.is_ok());
                 }
@@ -191,16 +200,20 @@ mod test {
 
                 #[test]
                 fn can_be_done_for_object_values() {
-                    let result = SdJwtBuilder::new(json!({ "address": { "country": "US" } }))
-                        .unwrap()
-                        .make_concealable(
-                            vec![
-                                ClaimPath::SelectByKey(String::from("address")),
-                                ClaimPath::SelectByKey(String::from("country")),
-                            ]
-                            .try_into()
-                            .unwrap(),
-                        );
+                    let result = SdJwtBuilder::new(json!({
+                        "iss": "https://issuer.example.com/",
+                        "iat": 1683000000,
+                        "address": { "country": "US" }
+                    }))
+                    .unwrap()
+                    .make_concealable(
+                        vec![
+                            ClaimPath::SelectByKey(String::from("address")),
+                            ClaimPath::SelectByKey(String::from("country")),
+                        ]
+                        .try_into()
+                        .unwrap(),
+                    );
 
                     assert!(result.is_ok());
                 }
@@ -208,7 +221,9 @@ mod test {
                 #[test]
                 fn can_be_done_for_array_elements() {
                     let result = SdJwtBuilder::new(json!({
-                      "address": { "contact_person": [ "Jane Dow", "John Doe" ] }
+                        "iss": "https://issuer.example.com/",
+                        "iat": 1683000000,
+                        "address": { "contact_person": [ "Jane Dow", "John Doe" ] }
                     }))
                     .unwrap()
                     .make_concealable(
@@ -234,16 +249,24 @@ mod test {
 
                 #[test]
                 fn returns_an_error_for_nonexistant_object_paths() {
-                    let result = SdJwtBuilder::new(json!({}))
-                        .unwrap()
-                        .make_concealable(vec![ClaimPath::SelectByKey(String::from("email"))].try_into().unwrap());
+                    let result = SdJwtBuilder::new(json!({
+                        "iss": "https://issuer.example.com/",
+                        "iat": 1683000000
+                    }))
+                    .unwrap()
+                    .make_concealable(vec![ClaimPath::SelectByKey(String::from("email"))].try_into().unwrap());
 
-                    assert_matches!(result, Err(Error::DisclosureNotFound(key, _)) if key == "email");
+                    assert_matches!(result, Err(Error::ObjectFieldNotFound(key, _)) if key == "email".parse().unwrap());
                 }
 
                 #[test]
                 fn returns_an_error_for_nonexistant_array_paths() {
-                    let result = SdJwtBuilder::new(json!({})).unwrap().make_concealable(
+                    let result = SdJwtBuilder::new(json!({
+                        "iss": "https://issuer.example.com/",
+                        "iat": 1683000000
+                    }))
+                    .unwrap()
+                    .make_concealable(
                         vec![
                             ClaimPath::SelectByKey(String::from("nationalities")),
                             ClaimPath::SelectByIndex(0),
@@ -258,7 +281,9 @@ mod test {
                 #[test]
                 fn returns_an_error_for_nonexistant_array_entries() {
                     let result = SdJwtBuilder::new(json!({
-                      "nationalities": ["US", "DE"]
+                        "iss": "https://issuer.example.com/",
+                        "iat": 1683000000,
+                        "nationalities": ["US", "DE"]
                     }))
                     .unwrap()
                     .make_concealable(
@@ -280,7 +305,9 @@ mod test {
                 #[test]
                 fn returns_an_error_for_nonexistant_object_paths() {
                     let result = SdJwtBuilder::new(json!({
-                      "address": {}
+                        "iss": "https://issuer.example.com/",
+                        "iat": 1683000000,
+                        "address": {}
                     }))
                     .unwrap()
                     .make_concealable(
@@ -292,13 +319,15 @@ mod test {
                         .unwrap(),
                     );
 
-                    assert_matches!(result, Err(Error::DisclosureNotFound(key, _)) if key == "region");
+                    assert_matches!(result, Err(Error::ObjectFieldNotFound(key, _)) if key == "region".parse().unwrap());
                 }
 
                 #[test]
                 fn returns_an_error_for_nonexistant_array_paths() {
                     let result = SdJwtBuilder::new(json!({
-                      "address": {}
+                        "iss": "https://issuer.example.com/",
+                        "iat": 1683000000,
+                        "address": {}
                     }))
                     .unwrap()
                     .make_concealable(
@@ -317,7 +346,9 @@ mod test {
                 #[test]
                 fn returns_an_error_for_nonexistant_array_entries() {
                     let result = SdJwtBuilder::new(json!({
-                      "address": { "contact_person": [ "Jane Dow", "John Doe" ] }
+                        "iss": "https://issuer.example.com/",
+                        "iat": 1683000000,
+                        "address": { "contact_person": [ "Jane Dow", "John Doe" ] }
                     }))
                     .unwrap()
                     .make_concealable(
@@ -344,16 +375,30 @@ mod test {
 
             #[test]
             fn can_add_zero_object_value_decoys_for_a_path() {
-                let result = SdJwtBuilder::new(json!({})).unwrap().add_decoys(&[], 0);
+                let result = SdJwtBuilder::new(json!({
+                    "iss": "https://issuer.example.com/",
+                    "iat": 1683000000
+                }))
+                .unwrap()
+                .add_decoys(&[], 0);
 
                 assert!(result.is_ok());
             }
 
             #[test]
             fn can_add_object_value_decoys_for_a_path() {
-                let result = SdJwtBuilder::new(json!({})).unwrap().add_decoys(&[], 2);
+                let result = SdJwtBuilder::new(json!({
+                    "iss": "https://issuer.example.com/",
+                    "iat": 1683000000
+                }))
+                .unwrap()
+                .add_decoys(&[], 2);
 
                 assert!(result.is_ok());
+                assert_eq!(
+                    result.unwrap().encoder.object_claims()._sd.as_ref().unwrap().len(),
+                    2.try_into().unwrap()
+                );
             }
         }
 
@@ -362,36 +407,52 @@ mod test {
 
             #[test]
             fn can_add_zero_object_value_decoys_for_a_path() {
-                let result = SdJwtBuilder::new(json!({ "address": {} }))
-                    .unwrap()
-                    .add_decoys(&[ClaimPath::SelectByKey(String::from("address"))], 0);
+                let result = SdJwtBuilder::new(json!({
+                    "iss": "https://issuer.example.com/",
+                    "iat": 1683000000,
+                    "address": {}
+                }))
+                .unwrap()
+                .add_decoys(&[ClaimPath::SelectByKey(String::from("address"))], 0);
 
                 assert!(result.is_ok());
             }
 
             #[test]
             fn can_add_object_value_decoys_for_a_path() {
-                let result = SdJwtBuilder::new(json!({ "address": {} }))
-                    .unwrap()
-                    .add_decoys(&[ClaimPath::SelectByKey(String::from("address"))], 2);
+                let result = SdJwtBuilder::new(json!({
+                    "iss": "https://issuer.example.com/",
+                    "iat": 1683000000,
+                    "address": {}
+                }))
+                .unwrap()
+                .add_decoys(&[ClaimPath::SelectByKey(String::from("address"))], 2);
 
                 assert!(result.is_ok());
             }
 
             #[test]
             fn can_add_zero_array_element_decoys_for_a_path() {
-                let result = SdJwtBuilder::new(json!({ "nationalities": ["US", "DE"] }))
-                    .unwrap()
-                    .add_decoys(&[ClaimPath::SelectByKey(String::from("nationalities"))], 0);
+                let result = SdJwtBuilder::new(json!({
+                    "iss": "https://issuer.example.com/",
+                    "iat": 1683000000,
+                    "nationalities": ["US", "DE"]
+                }))
+                .unwrap()
+                .add_decoys(&[ClaimPath::SelectByKey(String::from("nationalities"))], 0);
 
                 assert!(result.is_ok());
             }
 
             #[test]
             fn can_add_array_element_decoys_for_a_path() {
-                let result = SdJwtBuilder::new(json!({ "nationalities": ["US", "DE"] }))
-                    .unwrap()
-                    .add_decoys(&[ClaimPath::SelectByKey(String::from("nationalities"))], 2);
+                let result = SdJwtBuilder::new(json!({
+                    "iss": "https://issuer.example.com/",
+                    "iat": 1683000000,
+                    "nationalities": ["US", "DE"]
+                }))
+                .unwrap()
+                .add_decoys(&[ClaimPath::SelectByKey(String::from("nationalities"))], 2);
 
                 assert!(result.is_ok());
             }

@@ -27,12 +27,12 @@ use utils::generator::Generator;
 use utils::generator::mock::MockTimeGenerator;
 
 use crate::builder::SdJwtBuilder;
+use crate::claims::ObjectClaims;
 use crate::disclosure::Disclosure;
 use crate::disclosure::DisclosureContent;
 use crate::hasher::Hasher;
 use crate::hasher::Sha256Hasher;
 use crate::sd_alg::SdAlg;
-use crate::sd_jwt::ObjectClaims;
 use crate::sd_jwt::SdJwt;
 use crate::sd_jwt::SdJwtClaims;
 use crate::sd_jwt::SdJwtPresentation;
