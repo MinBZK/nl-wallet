@@ -19,7 +19,7 @@ buildIdentifier: "${CI_JOB_ID}"
 
 autoGrantPermissions: true
 automationName: UIAutomator2
-newCommandTimeout: 120
+newCommandTimeout: 350
 networkLogs: true
 video: true
 debug: true
