@@ -891,11 +891,11 @@ mod tests {
     use uuid::Uuid;
 
     use attestation_data::attributes::AttributeValue;
+    use attestation_data::attributes::Attributes;
     use attestation_data::auth::Organization;
     use attestation_data::auth::reader_auth::ReaderRegistration;
     use attestation_data::constants::PID_ATTESTATION_TYPE;
     use attestation_data::constants::PID_RECOVERY_CODE;
-    use attestation_data::credential_payload::CredentialPayload;
     use attestation_data::disclosure_type::DisclosureType;
     use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
     use attestation_types::claim_path::ClaimPath;
@@ -1238,12 +1238,10 @@ mod tests {
                         .ok()
                         .and_then(|presentations| presentations.iter().exactly_one().ok())
                         .and_then(|(presentation, _)| {
-                            let credential_payload =
-                                CredentialPayload::from_sd_jwt_unvalidated(presentation.as_ref()).unwrap();
+                            let disclosed_attributes: Attributes =
+                                presentation.as_ref().decoded_claims().unwrap().try_into().unwrap();
 
-                            credential_payload
-                                .previewable_payload
-                                .attributes
+                            disclosed_attributes
                                 .flattened()
                                 .into_iter()
                                 .exactly_one()

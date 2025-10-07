@@ -186,14 +186,23 @@ mod test {
     #[test]
     fn sd_alg() {
         let object = json!({
+            "vct": "com.example.pid",
             "iss": "https://issuer.url/",
             "iat": 1683000000,
             "id": "did:value",
             "claim1": [
                 "abc"
             ],
+            "cnf": {
+                "jwk": {
+                    "kty": "EC",
+                    "crv": "P-256",
+                    "x": "TCAER19Zvu3OHF4j4W4vfSVoHIP1ILilDls7vCeGemc",
+                    "y": "ZxjiWWbZMQGHVWKVQ4hbSIirsVfuecCE6t4jT9F2HZQ"
+                }
+            }
         });
-        let mut encoder = SdObjectEncoder::try_from(object).unwrap();
+        let encoder = SdObjectEncoder::try_from(object).unwrap();
         assert_eq!(encoder.clone().encode()._sd_alg, Some(SdAlg::Sha256));
         let decoded = SdObjectDecoder::decode(&encoder.encode(), &IndexMap::new()).unwrap();
         assert!(decoded._sd_alg.is_none());
@@ -205,7 +214,7 @@ mod test {
 
         let decoded = SdObjectDecoder::decode(&serde_json::from_value(claims).unwrap(), &disclosure_content).unwrap();
 
-        let actual = serde_json::to_value(&decoded).unwrap();
+        let actual = serde_json::to_value(decoded.claims()).unwrap();
 
         let expected = json!({
           "address": {
@@ -214,9 +223,6 @@ mod test {
             "region": "Sachsen-Anhalt",
             "street_address": "Schulstr. 12"
           },
-          "exp": 1883000000,
-          "iat": 1683000000,
-          "iss": "https://issuer.example.com/",
           "sub": "6c5c0a49-b589-431d-bae7-219122a9ec2c"
         });
 

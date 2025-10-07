@@ -149,11 +149,20 @@ pub fn recursive_disclosures_example() -> (serde_json::Value, IndexMap<String, D
       "_sd": [
         "HvrKX6fPV0v9K_yCVFBiLFHsMaxcD_114Em6VT8x1lg"
       ],
+      "vct": "com.example.pid",
       "iss": "https://issuer.example.com",
       "iat": 1683000000,
       "exp": 1883000000,
       "sub": "6c5c0a49-b589-431d-bae7-219122a9ec2c",
-      "_sd_alg": "sha-256"
+      "_sd_alg": "sha-256",
+      "cnf": {
+          "jwk": {
+              "kty": "EC",
+              "crv": "P-256",
+              "x": "TCAER19Zvu3OHF4j4W4vfSVoHIP1ILilDls7vCeGemc",
+              "y": "ZxjiWWbZMQGHVWKVQ4hbSIirsVfuecCE6t4jT9F2HZQ"
+          }
+      }
     });
 
     let disclosures = vec![

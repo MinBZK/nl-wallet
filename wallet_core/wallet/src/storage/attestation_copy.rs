@@ -1,5 +1,6 @@
 use uuid::Uuid;
 
+use attestation_data::attributes::Attributes;
 use attestation_data::auth::Organization;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::credential_payload::CredentialPayload;
@@ -79,11 +80,6 @@ pub struct DisclosableAttestation {
     presentation: AttestationPresentation,
 }
 
-fn credential_payload_from_sd_jwt(sd_jwt: &VerifiedSdJwt) -> CredentialPayload {
-    CredentialPayload::from_sd_jwt_unvalidated(sd_jwt)
-        .expect("a stored SD-JWT attestation should convert to CredentialPayload without errors")
-}
-
 fn attestation_presentation_from_issuer_signed(
     issuer_signed: IssuerSigned,
     attestation_id: Uuid,
@@ -105,13 +101,13 @@ fn attestation_presentation_from_sd_jwt(
     normalized_metadata: NormalizedTypeMetadata,
     issuer_organization: Organization,
 ) -> AttestationPresentation {
-    let credential_payload = credential_payload_from_sd_jwt(sd_jwt);
-
-    AttestationPresentation::create_from_attributes(
+    AttestationPresentation::create_from_sd_jwt_claims(
         AttestationIdentity::Fixed { id: attestation_id },
         normalized_metadata,
         issuer_organization,
-        &credential_payload.previewable_payload.attributes,
+        sd_jwt
+            .decoded_claims()
+            .expect("a stored SD-JWT attestation should have decoded claims"),
     )
     .expect("a stored SD-JWT attestation should convert to AttestationPresentation without errors")
 }
@@ -148,13 +144,15 @@ impl StoredAttestationCopy {
                 mdoc.issuer_signed().matches_requested_attributes(claim_paths).is_ok()
             }
             StoredAttestation::SdJwt { sd_jwt, .. } => {
-                // Create a temporary CredentialPayload to check if the paths are all present.
-                let credential_payload = credential_payload_from_sd_jwt(sd_jwt);
+                // TODO VerifiedSdJwt should have a way to directly check if paths are present
+                // Convert to Attributes to check if the paths are all present.
+                let attributes: Attributes = sd_jwt
+                    .decoded_claims()
+                    .expect("a stored SD-JWT attestation should have decoded claims")
+                    .try_into()
+                    .expect("a stored SD-JWT attestation should have decoded claims");
 
-                credential_payload
-                    .previewable_payload
-                    .attributes
-                    .has_claim_paths(claim_paths)
+                attributes.has_claim_paths(claim_paths)
             }
         }
     }
@@ -166,7 +164,8 @@ impl StoredAttestationCopy {
                 CredentialPayload::from_mdoc_unvalidated(mdoc, &self.normalized_metadata)
                     .expect("a stored mdoc attestation should convert to CredentialPayload without errors")
             }
-            StoredAttestation::SdJwt { sd_jwt, .. } => credential_payload_from_sd_jwt(&sd_jwt),
+            StoredAttestation::SdJwt { sd_jwt, .. } => CredentialPayload::from_sd_jwt(&sd_jwt)
+                .expect("a stored SD-JWT attestation should convert to CredentialPayload without errors"),
         }
     }
 

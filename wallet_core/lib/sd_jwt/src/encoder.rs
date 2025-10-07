@@ -149,7 +149,16 @@ mod test {
             "claim1": {
                 "abc": true
             },
-            "claim2": ["arr-value1", "arr-value2"]
+            "claim2": ["arr-value1", "arr-value2"],
+            "vct": "com.example.pid",
+            "cnf": {
+                "jwk": {
+                    "kty": "EC",
+                    "crv": "P-256",
+                    "x": "TCAER19Zvu3OHF4j4W4vfSVoHIP1ILilDls7vCeGemc",
+                    "y": "ZxjiWWbZMQGHVWKVQ4hbSIirsVfuecCE6t4jT9F2HZQ"
+                }
+            }
         })
     }
 

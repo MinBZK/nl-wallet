@@ -1878,12 +1878,11 @@ pub(crate) mod tests {
             .unwrap()
             .unwrap();
 
-        let payload = sd_jwt.into_credential_payload(&normalized_metadata).unwrap();
-        let attestation = AttestationPresentation::create_from_attributes(
+        let attestation = AttestationPresentation::create_from_sd_jwt_claims(
             AttestationIdentity::Fixed { id: attestation_id },
             normalized_metadata,
             issuer_registration.organization,
-            &payload.previewable_payload.attributes,
+            sd_jwt.decoded_claims().unwrap(),
         )
         .unwrap();
 

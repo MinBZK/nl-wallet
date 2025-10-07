@@ -329,13 +329,6 @@ impl<C, H> VerifiedSdJwt<C, H> {
     pub fn disclosures(&self) -> &IndexMap<String, Disclosure> {
         &self.disclosures
     }
-
-    pub fn holder_pubkey(&self) -> Result<VerifyingKey>
-    where
-        C: SdJwtClaims,
-    {
-        self.claims().cnf().verifying_key()
-    }
 }
 
 impl<C> VerifiedSdJwt<C, HeaderWithX5c> {
@@ -353,19 +346,19 @@ impl VerifiedSdJwt {
     pub fn into_presentation_builder(self) -> SdJwtPresentationBuilder {
         SdJwtPresentationBuilder::new(self)
     }
+
+    pub fn holder_pubkey(&self) -> Result<VerifyingKey> {
+        self.claims().cnf().verifying_key()
+    }
 }
 
-impl<C: SdJwtClaims, H> VerifiedSdJwt<C, H> {
+impl VerifiedSdJwt {
     /// Parses an SD-JWT into its components as [`VerifiedSdJwt`] without verifying the signature.
     ///
     /// ## Error
     /// Returns [`Error::Deserialization`] if parsing fails.
-    pub fn dangerous_parse_unverified(s: &str) -> Result<Self>
-    where
-        C: DeserializeOwned,
-        H: DeserializeOwned,
-    {
-        let serialization = s.parse::<UnverifiedSdJwt<C, H>>()?;
+    pub fn dangerous_parse_unverified(s: &str) -> Result<Self> {
+        let serialization = s.parse::<UnverifiedSdJwt>()?;
         let (issuer_signed, disclosures) = serialization.dangerous_parse_unverified()?;
 
         Ok(Self {
@@ -373,23 +366,16 @@ impl<C: SdJwtClaims, H> VerifiedSdJwt<C, H> {
             disclosures,
         })
     }
+}
 
-    /// Returns the JSON object obtained by replacing all disclosures into their
-    /// corresponding JWT concealable claims.
-    pub fn to_disclosed_object(&self) -> Result<serde_json::Map<String, serde_json::Value>>
-    where
-        C: Serialize,
-    {
-        let object = serde_json::to_value(self.claims())?;
-        let sd_jwt_claims = serde_json::from_value(object)?;
-        let sd_jwt_claims = SdObjectDecoder::decode(&sd_jwt_claims, &self.disclosures)?;
-
-        // Serialize the decoded claims, and extract object map
-        let serde_json::Value::Object(decoded) = serde_json::to_value(sd_jwt_claims)? else {
-            unreachable!("because serialized SdJwtClaims is an Value::Object");
+impl<H> VerifiedSdJwt<SdJwtVcClaims, H> {
+    pub fn decoded_claims(&self) -> Result<ObjectClaims> {
+        let claims = SdObjectDecoder::decode(self.claims(), &self.disclosures)?;
+        let ClaimValue::Object(claims) = claims.claims else {
+            panic!("Should always be an Object")
         };
 
-        Ok(decoded)
+        Ok(claims)
     }
 }
 
@@ -452,18 +438,32 @@ impl UnverifiedSdJwtPresentation {
         kb_iat_acceptance_window: Duration,
         time: &impl Generator<DateTime<Utc>>,
     ) -> Result<VerifiedSdJwtPresentation> {
-        let sd_jwt = self.sd_jwt.into_verified_against_trust_anchors(trust_anchors, time)?;
+        // we first verify the SD-JWT, then extract the JWK from the `cnf` claim and use that to verify the KB-JWT
+        // before parsing the disclosures
+        let issuer_signed = self.sd_jwt.issuer_signed.into_verified_against_trust_anchors(
+            &SD_JWT_VALIDATIONS,
+            time,
+            CertificateUsage::Mdl,
+            trust_anchors,
+        )?;
 
         let key_binding_jwt = self.key_binding_jwt.into_verified(
-            &EcdsaDecodingKey::from(&sd_jwt.holder_pubkey()?),
+            &EcdsaDecodingKey::from(&issuer_signed.payload().cnf().verifying_key()?),
             kb_expected_aud,
             kb_expected_nonce,
             kb_iat_acceptance_window,
             time,
         )?;
 
+        let disclosures = UnverifiedSdJwt::<SdJwtVcClaims, HeaderWithX5c>::parse_and_verify_disclosures(
+            &self.sd_jwt.disclosures,
+            issuer_signed.payload(),
+        )?;
         Ok(VerifiedSdJwtPresentation {
-            sd_jwt,
+            sd_jwt: VerifiedSdJwt {
+                issuer_signed,
+                disclosures,
+            },
             key_binding_jwt,
         })
     }
@@ -496,47 +496,6 @@ impl<C, H> FromStr for UnverifiedSdJwtPresentation<C, H> {
 impl<C, H> Display for UnverifiedSdJwtPresentation<C, H> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}{}", self.sd_jwt, self.key_binding_jwt)
-    }
-}
-
-impl<C, H, E> UnverifiedSdJwtPresentation<C, H>
-where
-    C: SdJwtClaims + DeserializeOwned + JwtTyp,
-    H: TryFrom<Header, Error = E>,
-    E: std::error::Error + Send + Sync + 'static,
-{
-    pub fn into_verified(
-        self,
-        issuer_pubkey: &EcdsaDecodingKey,
-        kb_expected_aud: &str,
-        kb_expected_nonce: &str,
-        kb_iat_acceptance_window: Duration,
-        time: &impl Generator<DateTime<Utc>>,
-    ) -> Result<VerifiedSdJwtPresentation<C, H>> {
-        // we first verify the SD-JWT, then extract the JWK from the `cnf` claim and use that to verify the KB-JWT
-        // before parsing the disclosures
-        let issuer_signed = self
-            .sd_jwt
-            .issuer_signed
-            .into_verified(issuer_pubkey, &SD_JWT_VALIDATIONS)?;
-
-        let key_binding_jwt = self.key_binding_jwt.into_verified(
-            &EcdsaDecodingKey::from(&issuer_signed.payload().cnf().verifying_key()?),
-            kb_expected_aud,
-            kb_expected_nonce,
-            kb_iat_acceptance_window,
-            time,
-        )?;
-
-        let disclosures =
-            UnverifiedSdJwt::<C, H>::parse_and_verify_disclosures(&self.sd_jwt.disclosures, issuer_signed.payload())?;
-        Ok(VerifiedSdJwtPresentation {
-            sd_jwt: VerifiedSdJwt {
-                issuer_signed,
-                disclosures,
-            },
-            key_binding_jwt,
-        })
     }
 }
 
@@ -577,8 +536,8 @@ impl<C> VerifiedSdJwtPresentation<C, HeaderWithX5c> {
 }
 
 #[derive(Clone)]
-pub struct SdJwtPresentationBuilder<C = SdJwtVcClaims, H = HeaderWithX5c> {
-    sd_jwt: VerifiedSdJwt<C, H>,
+pub struct SdJwtPresentationBuilder {
+    sd_jwt: VerifiedSdJwt,
 
     /// Non-disclosed attributes. All attributes start here. Calling `disclose()` moves an attribute from here
     /// to `disclosed`.
@@ -592,14 +551,13 @@ pub struct SdJwtPresentationBuilder<C = SdJwtVcClaims, H = HeaderWithX5c> {
     full_payload: SdJwtVcClaims,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, AsRef, DeserializeFromStr, SerializeDisplay)]
-pub struct UnsignedSdJwtPresentation<C = SdJwtVcClaims, H = HeaderWithX5c>(VerifiedSdJwt<C, H>);
+#[derive(Debug, Clone, Eq, PartialEq, AsRef, Serialize)]
+pub struct UnsignedSdJwtPresentation(VerifiedSdJwt);
 
 impl SdJwtPresentationBuilder {
     fn new(mut sd_jwt: VerifiedSdJwt) -> Self {
         let full_payload = sd_jwt.issuer_signed.payload().to_owned();
         let nondisclosed = std::mem::take(&mut sd_jwt.disclosures);
-
         Self {
             sd_jwt,
             nondisclosed,
@@ -724,12 +682,54 @@ where
     H: TryFrom<Header, Error = E>,
     E: std::error::Error + Send + Sync + 'static,
 {
-    pub fn into_verified(self, pubkey: &EcdsaDecodingKey) -> Result<VerifiedSdJwt<C, H>> {
+    pub(crate) fn into_verified(self, pubkey: &EcdsaDecodingKey) -> Result<VerifiedSdJwt<C, H>> {
         let issuer_signed = self.issuer_signed.into_verified(pubkey, &SD_JWT_VALIDATIONS)?;
         let disclosures = Self::parse_and_verify_disclosures(&self.disclosures, issuer_signed.payload())?;
         Ok(VerifiedSdJwt {
             issuer_signed,
             disclosures,
+        })
+    }
+}
+
+#[cfg(any(test, feature = "examples"))]
+impl<C, H, E> UnverifiedSdJwtPresentation<C, H>
+where
+    C: SdJwtClaims + DeserializeOwned + JwtTyp,
+    H: TryFrom<Header, Error = E>,
+    E: std::error::Error + Send + Sync + 'static,
+{
+    pub(crate) fn into_verified(
+        self,
+        issuer_pubkey: &EcdsaDecodingKey,
+        kb_expected_aud: &str,
+        kb_expected_nonce: &str,
+        kb_iat_acceptance_window: Duration,
+        time: &impl Generator<DateTime<Utc>>,
+    ) -> Result<VerifiedSdJwtPresentation<C, H>> {
+        // we first verify the SD-JWT, then extract the JWK from the `cnf` claim and use that to verify the KB-JWT
+        // before parsing the disclosures
+        let issuer_signed = self
+            .sd_jwt
+            .issuer_signed
+            .into_verified(issuer_pubkey, &SD_JWT_VALIDATIONS)?;
+
+        let key_binding_jwt = self.key_binding_jwt.into_verified(
+            &EcdsaDecodingKey::from(&issuer_signed.payload().cnf().verifying_key()?),
+            kb_expected_aud,
+            kb_expected_nonce,
+            kb_iat_acceptance_window,
+            time,
+        )?;
+
+        let disclosures =
+            UnverifiedSdJwt::<C, H>::parse_and_verify_disclosures(&self.sd_jwt.disclosures, issuer_signed.payload())?;
+        Ok(VerifiedSdJwtPresentation {
+            sd_jwt: VerifiedSdJwt {
+                issuer_signed,
+                disclosures,
+            },
+            key_binding_jwt,
         })
     }
 }
@@ -885,6 +885,13 @@ mod test {
     fn parse_kb() {
         WITH_KB_SD_JWT
             .parse::<UnverifiedSdJwtPresentation<SdJwtExampleClaims, Header>>()
+            .unwrap(); // we can only verify SD JWTs with a `cnf` field
+    }
+
+    #[test]
+    fn parse_vc_with_kb() {
+        SD_JWT_VC_WITH_KB
+            .parse::<UnverifiedSdJwtPresentation<SdJwtVcClaims, Header>>()
             .unwrap()
             .into_verified(
                 &examples_sd_jwt_decoding_key(),
@@ -949,7 +956,7 @@ mod test {
             .unwrap()
             .into_verified(&examples_sd_jwt_decoding_key());
 
-        assert_matches!(result, Err(crate::error::Error::Serialization(_)));
+        assert_matches!(result, Err(crate::error::Error::InvalidDisclosure(_)));
     }
 
     fn create_presentation(
@@ -1520,7 +1527,7 @@ mod test {
                 "y": "ZxjiWWbZMQGHVWKVQ4hbSIirsVfuecCE6t4jT9F2HZQ"
             }
         }
-    }), Err("invalid type: integer `0`, expected a string".to_owned()))]
+    }), Err("data did not match any variant of untagged enum ClaimValue".to_owned()))]
     #[case(json!({
         "vct": "com:example:pid:1",
         "iss": "https://issuer.example.com/",
@@ -1580,7 +1587,7 @@ mod test {
                 "y": "ZxjiWWbZMQGHVWKVQ4hbSIirsVfuecCE6t4jT9F2HZQ"
             }
         }
-    }), Err("ClaimName failed the predicate test. Expected valid ClaimName".to_owned()))]
+    }), Err("data did not match any variant of untagged enum ClaimValue".to_owned()))]
     #[case(json!({
         "vct": "com:example:pid:1",
         "iss": "https://issuer.example.com/",

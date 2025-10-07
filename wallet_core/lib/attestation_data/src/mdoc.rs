@@ -82,7 +82,6 @@ mod test {
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use ssri::Integrity;
 
-    use crypto::CredentialEcdsaKey;
     use crypto::EcdsaKey;
     use crypto::server_keys::KeyPair;
     use mdoc::holder::Mdoc;
@@ -109,7 +108,7 @@ mod test {
         }
 
         /// Construct [`SignedSdJwt`] directly by signing, skipping validation.
-        pub async fn into_signed_sd_jwt_unverified<K: CredentialEcdsaKey>(
+        pub async fn into_signed_sd_jwt_unverified(
             self,
             metadata: &NormalizedTypeMetadata,
             metadata_integrity: Integrity,

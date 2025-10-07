@@ -26,7 +26,7 @@ pub enum AttestationError {
     #[category(pd)]
     AttributeError(Vec<String>, #[source] AttributeError),
 
-    #[error("error converting from mdoc attributes: {0}")]
+    #[error("error converting to attributes: {0}")]
     #[category(pd)]
     Attributes(#[from] AttributesError),
 }

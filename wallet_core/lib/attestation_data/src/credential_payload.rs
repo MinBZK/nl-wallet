@@ -57,6 +57,18 @@ pub enum SdJwtCredentialPayloadError {
     #[category(pd)]
     InvalidClaimName(#[from] ClaimNameError),
 
+    #[error("error converting claims to attributes: {0}")]
+    #[category(pd)]
+    InvalidAttributes(#[from] AttributesError),
+
+    #[error("missing Attestation Qualification")]
+    #[category(critical)]
+    MissingAttestationQualification,
+
+    #[error("missing Metadata Integrity")]
+    #[category(critical)]
+    MissingMetadataIntegrity,
+
     #[error("error converting to SD-JWT: {0}")]
     #[category(pd)]
     SdJwtCreation(#[from] sd_jwt::error::Error),
@@ -176,7 +188,9 @@ impl IntoCredentialPayload for &VerifiedSdJwt {
     type Error = SdJwtCredentialPayloadError;
 
     fn into_credential_payload(self, metadata: &NormalizedTypeMetadata) -> Result<CredentialPayload, Self::Error> {
-        CredentialPayload::from_sd_jwt(self, Some(metadata))
+        let payload = CredentialPayload::from_sd_jwt(self)?;
+        metadata.validate(&serde_json::to_value(&payload)?)?;
+        Ok(payload)
     }
 }
 
@@ -273,25 +287,31 @@ impl CredentialPayload {
         Ok(payload)
     }
 
-    fn from_sd_jwt(
-        sd_jwt: &VerifiedSdJwt,
-        metadata: Option<&NormalizedTypeMetadata>,
-    ) -> Result<Self, SdJwtCredentialPayloadError> {
-        let disclosed_object = sd_jwt
-            .to_disclosed_object()
-            .map_err(SdJwtCredentialPayloadError::SdJwtSerialization)?;
-        let disclosed_value = serde_json::Value::Object(disclosed_object);
+    pub fn from_sd_jwt(sd_jwt: &VerifiedSdJwt) -> Result<Self, SdJwtCredentialPayloadError> {
+        let credential_payload = CredentialPayload {
+            issued_at: sd_jwt.claims().iat,
+            confirmation_key: sd_jwt.claims().cnf.to_owned(),
+            vct_integrity: sd_jwt
+                .claims()
+                .vct_integrity
+                .as_ref()
+                .ok_or(SdJwtCredentialPayloadError::MissingMetadataIntegrity)?
+                .to_owned(),
+            status: None,
+            previewable_payload: PreviewableCredentialPayload {
+                attestation_type: sd_jwt.claims().vct.clone(),
+                issuer: sd_jwt.claims().iss.clone(),
+                expires: sd_jwt.claims().exp,
+                not_before: sd_jwt.claims().nbf,
+                attestation_qualification: sd_jwt
+                    .claims()
+                    .attestation_qualification
+                    .ok_or(SdJwtCredentialPayloadError::MissingAttestationQualification)?,
+                attributes: sd_jwt.decoded_claims()?.try_into()?,
+            },
+        };
 
-        if let Some(metadata) = metadata {
-            metadata.validate(&disclosed_value)?;
-        }
-
-        let credential_payload = serde_json::from_value(disclosed_value)?;
         Ok(credential_payload)
-    }
-
-    pub fn from_sd_jwt_unvalidated(sd_jwt: &VerifiedSdJwt) -> Result<Self, SdJwtCredentialPayloadError> {
-        Self::from_sd_jwt(sd_jwt, None)
     }
 
     fn from_mdoc_parts_unvalidated(
@@ -721,7 +741,7 @@ mod test {
 
         assert_eq!(payload.previewable_payload.attestation_type, sd_jwt.claims().vct);
 
-        let unverified_payload = CredentialPayload::from_sd_jwt_unvalidated(&sd_jwt)
+        let unverified_payload = CredentialPayload::from_sd_jwt(&sd_jwt)
             .expect("creating a CredentialPayload from SD-JWT while not validating metdata should succeed");
 
         assert_eq!(payload, unverified_payload);

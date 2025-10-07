@@ -3,7 +3,6 @@ use std::collections::HashSet;
 use chrono::DateTime;
 use chrono::Utc;
 use indexmap::IndexMap;
-use sd_jwt::claims::ClaimName;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -20,13 +19,12 @@ use mdoc::DataElementValue;
 use mdoc::NameSpace;
 use mdoc::holder::disclosure::claim_path_to_mdoc_path;
 use mdoc::verifier::DisclosedDocument;
-use sd_jwt::claims::ClaimValue;
 use sd_jwt::sd_jwt::VerifiedSdJwtPresentation;
 use utils::vec_at_least::VecNonEmpty;
 
-use crate::attributes::AttributeError;
 use crate::attributes::AttributeValue;
 use crate::attributes::Attributes;
+use crate::attributes::AttributesError;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -92,7 +90,7 @@ impl DisclosedAttributes {
 }
 
 impl TryFrom<IndexMap<NameSpace, IndexMap<DataElementIdentifier, DataElementValue>>> for DisclosedAttributes {
-    type Error = AttributeError;
+    type Error = AttributesError;
 
     fn try_from(
         map: IndexMap<NameSpace, IndexMap<DataElementIdentifier, DataElementValue>>,
@@ -109,19 +107,6 @@ impl TryFrom<IndexMap<NameSpace, IndexMap<DataElementIdentifier, DataElementValu
                     ))
                 })
                 .collect::<Result<_, Self::Error>>()?,
-        ))
-    }
-}
-
-impl TryFrom<serde_json::Map<String, serde_json::Value>> for DisclosedAttributes {
-    type Error = AttributeError;
-
-    fn try_from(map: serde_json::Map<String, serde_json::Value>) -> Result<Self, Self::Error> {
-        Ok(DisclosedAttributes::SdJwt(
-            map.into_iter()
-                .map(|(key, attributes)| Ok((key, attributes.try_into()?)))
-                .collect::<Result<IndexMap<_, _>, Self::Error>>()?
-                .into(),
         ))
     }
 }
@@ -175,8 +160,7 @@ impl TryFrom<VerifiedSdJwtPresentation> for DisclosedAttestation {
     type Error = DisclosedAttestationError;
 
     fn try_from(sd_jwt_presentation: VerifiedSdJwtPresentation) -> Result<Self, Self::Error> {
-        let attributes = sd_jwt_presentation.sd_jwt().to_disclosed_object()?.try_into()?;
-
+        let attributes = DisclosedAttributes::SdJwt(sd_jwt_presentation.sd_jwt().decoded_claims()?.try_into()?);
         let ca = sd_jwt_presentation
             .issuer_certificate()
             .issuer_common_names()?
@@ -188,16 +172,8 @@ impl TryFrom<VerifiedSdJwtPresentation> for DisclosedAttestation {
 
         // Manually parse the attestation qualification from the SD-JWT claims.
         let attestation_qualification = claims
-            .claims()
-            .claims
-            .get(&"attestation_qualification".parse::<ClaimName>().unwrap())
-            .and_then(|value| match value {
-                ClaimValue::String(value) => value.parse().ok(),
-                _ => None,
-            })
-            .ok_or(DisclosedAttestationError::MissingAttributes(
-                "attestation_qualification",
-            ))?;
+            .attestation_qualification
+            .ok_or(DisclosedAttestationError::MissingAttestationQualification)?;
 
         let validity_info = ValidityInfo {
             signed: claims.iat.into(),
@@ -206,9 +182,9 @@ impl TryFrom<VerifiedSdJwtPresentation> for DisclosedAttestation {
         };
 
         Ok(DisclosedAttestation {
-            attestation_type: claims.vct.clone(),
+            attestation_type: claims.vct,
             attributes,
-            issuer_uri: claims.iss.clone(),
+            issuer_uri: claims.iss,
             attestation_qualification,
             ca,
             validity_info,
@@ -218,14 +194,14 @@ impl TryFrom<VerifiedSdJwtPresentation> for DisclosedAttestation {
 
 #[derive(Debug, thiserror::Error)]
 pub enum DisclosedAttestationError {
-    #[error("error converting mdoc attributes: {0}")]
-    AttributeError(#[from] AttributeError),
+    #[error("error converting to attributes: {0}")]
+    IntoAttributes(#[from] AttributesError),
 
     #[error("parse error while converting validity_info: {0}")]
     ParseError(#[from] chrono::ParseError),
 
-    #[error("missing SD JWT claim: {0}")]
-    MissingAttributes(&'static str),
+    #[error("missing attestation qualification in SD JWT")]
+    MissingAttestationQualification,
 
     #[error("error converting SD JWT to disclosed object: {0}")]
     DisclosedObjectConversion(#[from] sd_jwt::error::Error),
