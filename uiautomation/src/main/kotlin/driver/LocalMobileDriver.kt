@@ -13,7 +13,7 @@ import util.TestInfoHandler
 
 class LocalMobileDriver : WebDriverProvider {
 
-    private val apkPath = "../nl.ictu.edi.wallet.latest-0.4.0-profile.apk"
+    private val apkPath = "../nl.ictu.edi.wallet.latest-0.4.0-release.apk"
     private val ipaPath = "../nl.ictu.edi.wallet.latest-0.4.0.ipa"
 
     override fun createDriver(capabilities: Capabilities): WebDriver {
@@ -41,7 +41,7 @@ class LocalMobileDriver : WebDriverProvider {
         options.setLanguage(TestInfoHandler.language)
         options.setLocale(TestInfoHandler.locale)
         options.setAutomationName(testConfig.automationName)
-        options.setCapability("appium:newCommandTimeout", 120)
+        options.setCapability("appium:newCommandTimeout", 350)
 
         // Initialise the local WebDriver with desired capabilities defined above
         return when (testConfig.platformName) {
