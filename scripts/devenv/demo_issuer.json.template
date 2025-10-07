@@ -22,8 +22,18 @@
             "attestation_type": "com.example.degree",
             "attributes": {
               "university": "Holland University",
-              "education": "MSc Economics",
+              "education": "BSc Economics",
               "graduation_date": "1970-01-01",
+              "grade": null,
+              "cum_laude": true
+            }
+          },
+          {
+            "attestation_type": "com.example.degree",
+            "attributes": {
+              "university": "Holland University",
+              "education": "MSc Economics",
+              "graduation_date": "1971-01-01",
               "grade": null,
               "cum_laude": false
             }
@@ -43,8 +53,18 @@
             "attestation_type": "com.example.degree",
             "attributes": {
               "university": "Holland University",
-              "education": "MSc Economics",
+              "education": "BSc Economics",
               "graduation_date": "1970-01-01",
+              "grade": null,
+              "cum_laude": true
+            }
+          },
+          {
+            "attestation_type": "com.example.degree",
+            "attributes": {
+              "university": "Holland University",
+              "education": "MSc Economics",
+              "graduation_date": "1971-01-01",
               "grade": null,
               "cum_laude": false
             }
