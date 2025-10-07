@@ -19,7 +19,7 @@ use mdoc::DataElementValue;
 use mdoc::NameSpace;
 use mdoc::holder::disclosure::claim_path_to_mdoc_path;
 use mdoc::verifier::DisclosedDocument;
-use sd_jwt::sd_jwt::ClaimValue;
+use sd_jwt::claims::ClaimValue;
 use sd_jwt::sd_jwt::SdJwt;
 use utils::vec_at_least::VecNonEmpty;
 
@@ -185,11 +185,14 @@ impl TryFrom<SdJwt> for DisclosedAttestation {
 
         let claims = sd_jwt.into_claims();
 
-        let attestation_type = claims.vct.ok_or(DisclosedAttestationError::MissingAttributes("vct"))?;
+        let attestation_type = claims
+            .vct
+            .clone()
+            .ok_or(DisclosedAttestationError::MissingAttributes("vct"))?;
 
         // Manually parse the attestation qualification from the SD-JWT claims.
         let attestation_qualification = claims
-            .claims
+            .claims()
             .claims
             .get(&"attestation_qualification".parse().unwrap())
             .and_then(|value| match value {
