@@ -9,6 +9,13 @@ import helper.TasDataHelper
 import helper.TestBase
 import navigator.MenuNavigator
 import navigator.screen.MenuNavigatorScreen
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.MethodOrderer
+import org.junit.jupiter.api.TestInfo
+import org.junit.jupiter.api.TestMethodOrder
+import org.junit.jupiter.api.assertAll
+import org.junitpioneer.jupiter.RetryingTest
 import screen.dashboard.DashboardScreen
 import screen.error.NoCardsErrorScreen
 import screen.issuance.CardIssuanceScreen
@@ -17,13 +24,6 @@ import screen.menu.MenuScreen
 import screen.security.PinScreen
 import screen.web.demo.DemoIndexWebPage
 import screen.web.demo.issuer.IssuerWebPage
-import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.DisplayName
-import org.junit.jupiter.api.MethodOrderer
-import org.junit.jupiter.api.TestInfo
-import org.junit.jupiter.api.TestMethodOrder
-import org.junit.jupiter.api.assertAll
-import org.junitpioneer.jupiter.RetryingTest
 
 @TestMethodOrder(MethodOrderer.DisplayName::class)
 @DisplayName("Use Case 4.1 Obtain one or more cards from a (Q)EAA Issuer")
@@ -57,13 +57,49 @@ class DisclosureBasedIssuanceTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("LTC5 Disclosure based Issuance happy flow, university")
-    fun verifyDiplomaIssuance(testInfo: TestInfo) {
+    @DisplayName("LTC5 Disclosure based Issuance happy flow, university, SD-JWT")
+    fun verifyDiplomaIssuanceSdJwt(testInfo: TestInfo) {
         setUp(testInfo)
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
         MenuScreen().clickBrowserTestButton()
         indexWebPage.switchToWebViewContext()
-        indexWebPage.clickHollandUniversityButton()
+        indexWebPage.clickHollandUniversitySdJwtButton()
+        issuerWebPage.openSameDeviceWalletFlow()
+
+        disclosureForIssuanceScreen.switchToNativeContext()
+        assertTrue(disclosureForIssuanceScreen.organizationNameVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", UNIVERSITY)))
+
+        disclosureForIssuanceScreen.viewDetails()
+        assertTrue(disclosureForIssuanceScreen.requestedAttributeVisible(tasData.getPidClaimLabel("bsn")))
+
+        disclosureForIssuanceScreen.goBack();
+        disclosureForIssuanceScreen.share()
+        pinScreen.enterPin(DEFAULT_PIN)
+        cardIssuanceScreen.viewDetails()
+        assertAll(
+            { assertTrue(cardIssuanceScreen.organizationInSubtitleVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", UNIVERSITY)), "Subtitle is not visible") },
+            { assertTrue(cardIssuanceScreen.labelVisible(tasData.getDiplomaClaimLabel("graduation_date")), "Label is not visible") },
+            { assertTrue(cardIssuanceScreen.labelVisible(tasData.getDiplomaClaimLabel("grade")), "Label is not visible") },
+            { assertTrue(cardIssuanceScreen.dataVisible(l10n.getString("cardValueNull")), "data is not visible") },
+            { assertTrue(cardIssuanceScreen.dataVisible(issuanceData.getAttributeValues("university", DEFAULT_BSN, "university").first()), "data is not visible") },
+            { assertTrue(cardIssuanceScreen.dataVisible(issuanceData.getAttributeValues("university", DEFAULT_BSN, "education").first()), "data is not visible") },
+        )
+        cardIssuanceScreen.clickBackButton()
+        cardIssuanceScreen.clickAddButton()
+        pinScreen.enterPin(DEFAULT_PIN)
+        cardIssuanceScreen.clickToDashboardButton()
+        dashboardScreen.scrollToEndOfScreen()
+        assertTrue(dashboardScreen.cardVisible(tasData.getDiplomaDisplayName()), "Diploma card not visible on dashboard")
+    }
+
+    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
+    @DisplayName("LTC5 Disclosure based Issuance happy flow, university, MDOC")
+    fun verifyDiplomaIssuanceMdoc(testInfo: TestInfo) {
+        setUp(testInfo)
+        MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
+        MenuScreen().clickBrowserTestButton()
+        indexWebPage.switchToWebViewContext()
+        indexWebPage.clickHollandUniversityMdocButton()
         issuerWebPage.openSameDeviceWalletFlow()
 
         disclosureForIssuanceScreen.switchToNativeContext()
