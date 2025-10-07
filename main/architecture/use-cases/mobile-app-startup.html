@@ -78,6 +78,7 @@ window.addEventListener("load", () => mermaid.run());
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Mobile App Startup</a></li>
 <li class="toctree-l2"><a class="reference internal" href="pin-validation.html">Pin Validation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="wallet-creation.html">Wallet Creation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="recovery_usecases.html">Wallet recovery</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../components-overview.html">Components Overview</a></li>
@@ -192,7 +193,7 @@ window.addEventListener("load", () => mermaid.run());
     participant platform
     participant wallet_app
     participant wallet_core
-    participant wallet_provider
+    participant wallet_provider as Wallet Backend
     title App Startup [1.1]
 
     user-&gt;&gt;platform: open app
@@ -230,7 +231,7 @@ window.addEventListener("load", () => mermaid.run());
     participant platform
     participant wallet_app
     participant wallet_core
-    participant wallet_provider
+    participant wallet_provider as Wallet Backend
     title Configuration stream setup [1.2]
 
     user-&gt;&gt;platform: open app
@@ -251,7 +252,7 @@ window.addEventListener("load", () => mermaid.run());
     participant platform
     participant wallet_app
     participant wallet_core
-    participant wallet_provider
+    participant wallet_provider as Wallet Backend
     title Wallet lock stream setup [1.2]
 
     user-&gt;&gt;platform: open app

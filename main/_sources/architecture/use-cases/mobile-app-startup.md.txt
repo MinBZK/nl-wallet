@@ -17,7 +17,7 @@ sequenceDiagram
     participant platform
     participant wallet_app
     participant wallet_core
-    participant wallet_provider
+    participant wallet_provider as Wallet Backend
     title App Startup [1.1]
 
     user->>platform: open app
@@ -58,7 +58,7 @@ sequenceDiagram
     participant platform
     participant wallet_app
     participant wallet_core
-    participant wallet_provider
+    participant wallet_provider as Wallet Backend
     title Configuration stream setup [1.2]
 
     user->>platform: open app
@@ -81,7 +81,7 @@ sequenceDiagram
     participant platform
     participant wallet_app
     participant wallet_core
-    participant wallet_provider
+    participant wallet_provider as Wallet Backend
     title Wallet lock stream setup [1.2]
 
     user->>platform: open app

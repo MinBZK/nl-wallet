@@ -1,6 +1,6 @@
 # Pin Validation
 
- Pin validation is comprised of two steps, first of the [local](#local-pin-validation) pin validation (when configuring the wallet) to prevent users from selecting a trivial pin. Secondly the [remote](#remote-pin-validation) pin validation, where the user provided pin is compared with the previously registerd pin by the `wallet_provider`.
+ Pin validation is comprised of two steps, first of the [local](#local-pin-validation) pin validation (when configuring the wallet) to prevent users from selecting a trivial pin. Secondly the [remote](#remote-pin-validation) pin validation, where the user provided pin is compared with the previously registerd pin by the `Wallet Backend`.
 
 ## Local pin validation
 
@@ -13,7 +13,7 @@ sequenceDiagram
     participant platform
     participant wallet_app
     participant wallet_core
-    participant wallet_provider
+    participant wallet_provider as Wallet Backend
     title Local Pin Validation [3.1]
 
     user->>wallet_app: enter new pin
@@ -41,7 +41,7 @@ sequenceDiagram
     participant platform
     participant wallet_app
     participant wallet_core
-    participant wallet_provider
+    participant wallet_provider as Wallet Backend
     title Remote Pin Validation [3.2]
 
     user->>wallet_app: enter existing pin

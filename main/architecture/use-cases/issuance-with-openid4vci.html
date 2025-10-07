@@ -78,6 +78,7 @@ window.addEventListener("load", () => mermaid.run());
 <li class="toctree-l2"><a class="reference internal" href="mobile-app-startup.html">Mobile App Startup</a></li>
 <li class="toctree-l2"><a class="reference internal" href="pin-validation.html">Pin Validation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="wallet-creation.html">Wallet Creation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="recovery_usecases.html">Wallet recovery</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../components-overview.html">Components Overview</a></li>
@@ -201,6 +202,7 @@ window.addEventListener("load", () => mermaid.run());
     actor User
     participant OS
     participant Wallet
+    participant WP as Wallet Backend
     participant WalletServer as PID-Issuer
     participant PidAttributeService
     participant AuthServer
@@ -228,7 +230,8 @@ window.addEventListener("load", () => mermaid.run());
     deactivate Wallet
     User-&gt;&gt;-Wallet: approve with PIN
     activate Wallet
-        Wallet-&gt;&gt;Wallet: create PoPs by signing nonce using Wallet Provider
+        Wallet -&gt;&gt; WP: request PoPs with nonce&lt;br/&gt;(PerformIssuanceWithWua instruction)
+        WP -&gt;&gt; Wallet: Return WUA and Signed PoP and PoA
         Wallet-&gt;&gt;+WalletServer: POST /batch_credential(access_token, PoPs)
         note over Wallet: WUA and PoA are included here
         WalletServer-&gt;&gt;WalletServer: verify proofs,  WUA and PoA

@@ -78,6 +78,7 @@ window.addEventListener("load", () => mermaid.run());
 <li class="toctree-l2"><a class="reference internal" href="mobile-app-startup.html">Mobile App Startup</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Pin Validation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="wallet-creation.html">Wallet Creation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="recovery_usecases.html">Wallet recovery</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../components-overview.html">Components Overview</a></li>
@@ -179,7 +180,7 @@ window.addEventListener("load", () => mermaid.run());
              
   <section id="pin-validation">
 <h1>Pin Validation<a class="headerlink" href="#pin-validation" title="Link to this heading"></a></h1>
-<p>Pin validation is comprised of two steps, first of the <a class="reference internal" href="#local-pin-validation">local</a> pin validation (when configuring the wallet) to prevent users from selecting a trivial pin. Secondly the <a class="reference internal" href="#remote-pin-validation">remote</a> pin validation, where the user provided pin is compared with the previously registerd pin by the <code class="docutils literal notranslate"><span class="pre">wallet_provider</span></code>.</p>
+<p>Pin validation is comprised of two steps, first of the <a class="reference internal" href="#local-pin-validation">local</a> pin validation (when configuring the wallet) to prevent users from selecting a trivial pin. Secondly the <a class="reference internal" href="#remote-pin-validation">remote</a> pin validation, where the user provided pin is compared with the previously registerd pin by the <code class="docutils literal notranslate"><span class="pre">Wallet</span> <span class="pre">Backend</span></code>.</p>
 <section id="local-pin-validation">
 <h2>Local pin validation<a class="headerlink" href="#local-pin-validation" title="Link to this heading"></a></h2>
 <p>This diagram illustrates the local validation that happens when the user configures a new pin, to make sure the user does not select a trivial pin like <code class="docutils literal notranslate"><span class="pre">000000</span></code>.</p>
@@ -190,7 +191,7 @@ window.addEventListener("load", () => mermaid.run());
     participant platform
     participant wallet_app
     participant wallet_core
-    participant wallet_provider
+    participant wallet_provider as Wallet Backend
     title Local Pin Validation [3.1]
 
     user-&gt;&gt;wallet_app: enter new pin
@@ -216,7 +217,7 @@ window.addEventListener("load", () => mermaid.run());
     participant platform
     participant wallet_app
     participant wallet_core
-    participant wallet_provider
+    participant wallet_provider as Wallet Backend
     title Remote Pin Validation [3.2]
 
     user-&gt;&gt;wallet_app: enter existing pin
