@@ -64,8 +64,8 @@ pub struct TestCredentials(VecNonEmpty<TestCredential>);
 ///
 /// * Generate the original credential in the form of either a `Mdoc` or `SdJwt` value.
 /// * Generate a DCQL query for either format, normalized or otherwise.
-/// * Generate the partial credential that is to be disclosed,
-///   in the form of either a `PartialMdoc` or `UnsignedSdJwtPresentation`.
+/// * Generate the partial credential that is to be disclosed, in the form of either a `PartialMdoc` or
+///   `UnsignedSdJwtPresentation`.
 /// * Check the credential against a `DisclosedAttributes` value.
 /// * Construct example values, based on the PID and address credential types.
 #[derive(Debug, Clone)]

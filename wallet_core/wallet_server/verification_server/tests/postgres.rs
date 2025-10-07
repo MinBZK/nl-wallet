@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
 use chrono::DateTime;
+use chrono::NaiveDate;
+use chrono::NaiveTime;
 use chrono::Utc;
 use parking_lot::RwLock;
 use serde::Deserialize;
@@ -98,7 +100,14 @@ async fn postgres_session_store() -> PostgresSessionStore {
 type SessionStoreWithMockTime = (PostgresSessionStore<MockTimeGenerator>, Arc<RwLock<DateTime<Utc>>>);
 
 async fn postgres_session_store_with_mock_time() -> SessionStoreWithMockTime {
-    let time_generator = MockTimeGenerator::default();
+    let date = DateTime::from_naive_utc_and_offset(
+        // Use date in the past to not interfere with other tests
+        NaiveDate::from_ymd_opt(1995, 10, 10)
+            .unwrap()
+            .and_time(NaiveTime::default()),
+        Utc,
+    );
+    let time_generator = MockTimeGenerator::new(date);
     let mock_time = Arc::clone(&time_generator.time);
 
     let storage_settings = storage_settings();
