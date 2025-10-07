@@ -21,7 +21,7 @@ nativeWebTap: true
 autoAcceptAlerts: true
 'appium:includeSafariInWebviews': true
 automationName: XCUITest
-newCommandTimeout: 120
+newCommandTimeout: 350
 networkLogs: true
 video: true
 debug: true

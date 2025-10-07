@@ -20,21 +20,38 @@ user_pin = "${HSM_USER_PIN}"
 max_sessions = 3
 max_session_lifetime_in_sec = 900
 
-[disclosure_settings.university]
+[disclosure_settings.university_mdoc]
 private_key_type = "software"
 private_key = "${DEMO_ISSUER_KEY_UNIVERSITY_READER}"
 certificate = "${DEMO_ISSUER_CRT_UNIVERSITY_READER}"
 
-[[disclosure_settings.university.dcql_query.credentials]]
-id = "my_credential"
+[[disclosure_settings.university_mdoc.dcql_query.credentials]]
+id = "bsn_mdoc"
 format = "mso_mdoc"
 meta = { doctype_value = "urn:eudi:pid:nl:1" }
 claims = [
     { path = ["urn:eudi:pid:nl:1", "bsn"], intent_to_retain = true }
 ]
 
-[disclosure_settings.university.attestation_url_config]
-base_url = "https://${SERVICES_HOST}:${DEMO_ISSUER_IS_PORT}/university/"
+[disclosure_settings.university_mdoc.attestation_url_config]
+base_url = "https://${SERVICES_HOST}:${DEMO_ISSUER_IS_PORT}/university_mdoc/"
+trust_anchors = ["${DEMO_ISSUER_ATTESTATION_SERVER_CA_CRT}"]
+
+[disclosure_settings.university_sd_jwt]
+private_key_type = "software"
+private_key = "${DEMO_ISSUER_KEY_UNIVERSITY_READER}"
+certificate = "${DEMO_ISSUER_CRT_UNIVERSITY_READER}"
+
+[[disclosure_settings.university_sd_jwt.dcql_query.credentials]]
+id = "bsn_sd_jwt"
+format = "dc+sd-jwt"
+meta = { vct_values = ["urn:eudi:pid:nl:1"] }
+claims = [
+    { path = ["bsn"] }
+]
+
+[disclosure_settings.university_sd_jwt.attestation_url_config]
+base_url = "https://${SERVICES_HOST}:${DEMO_ISSUER_IS_PORT}/university_sd_jwt/"
 trust_anchors = ["${DEMO_ISSUER_ATTESTATION_SERVER_CA_CRT}"]
 
 [attestation_settings."com.example.degree"]

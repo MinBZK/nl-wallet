@@ -128,7 +128,7 @@ impl Settings {
             .set_default("pin_policy.attempts_per_round", 4)?
             .set_default("pin_policy.timeouts_in_ms", vec![60_000, 300_000, 3_600_000])?
             .set_default("structured_logging", false)?
-            .set_default("instruction_challenge_timeout_in_ms", 15_000)?
+            .set_default("instruction_challenge_timeout_in_ms", 60_000)?
             .set_default("hsm.max_sessions", 10)?
             .set_default("hsm.max_session_lifetime_in_sec", 900)?
             .set_default("android.allow_sideloading", false)?

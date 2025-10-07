@@ -22,7 +22,12 @@ user_pin = "${HSM_USER_PIN}"
 max_sessions = 3
 max_session_lifetime_in_sec = 900
 
-[usecases.mijn_amsterdam]
+[usecases.mijn_amsterdam_mdoc]
+certificate = "${DEMO_RELYING_PARTY_CRT_MIJN_AMSTERDAM}"
+private_key = "${DEMO_RELYING_PARTY_KEY_MIJN_AMSTERDAM}"
+private_key_type = "hsm"
+
+[usecases.mijn_amsterdam_sd_jwt]
 certificate = "${DEMO_RELYING_PARTY_CRT_MIJN_AMSTERDAM}"
 private_key = "${DEMO_RELYING_PARTY_KEY_MIJN_AMSTERDAM}"
 private_key_type = "hsm"
@@ -32,7 +37,12 @@ certificate = "${DEMO_RELYING_PARTY_CRT_ONLINE_MARKETPLACE}"
 private_key = "${DEMO_RELYING_PARTY_KEY_ONLINE_MARKETPLACE}"
 private_key_type = "software"
 
-[usecases.xyz_bank]
+[usecases.xyz_bank_mdoc]
+certificate = "${DEMO_RELYING_PARTY_CRT_XYZ_BANK}"
+private_key = "${DEMO_RELYING_PARTY_KEY_XYZ_BANK}"
+private_key_type = "software"
+
+[usecases.xyz_bank_sd_jwt]
 certificate = "${DEMO_RELYING_PARTY_CRT_XYZ_BANK}"
 private_key = "${DEMO_RELYING_PARTY_KEY_XYZ_BANK}"
 private_key_type = "software"
@@ -48,12 +58,6 @@ private_key = "${DEMO_RELYING_PARTY_KEY_JOB_FINDER}"
 private_key_type = "software"
 
 # Integration test cases
-[usecases.multiple_cards]
-session_type_return_url = "neither"
-certificate = "${DEMO_RELYING_PARTY_CRT_MONKEY_BIKE}"
-private_key = "${DEMO_RELYING_PARTY_KEY_MONKEY_BIKE}"
-private_key_type = "software"
-
 [usecases.xyz_bank_no_return_url]
 session_type_return_url = "neither"
 certificate = "${DEMO_RELYING_PARTY_CRT_XYZ_BANK}"

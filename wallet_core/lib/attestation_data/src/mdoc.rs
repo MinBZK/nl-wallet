@@ -74,26 +74,20 @@ impl PreviewableCredentialPayload {
     }
 }
 
-#[cfg(any(test, feature = "mock"))]
+#[cfg(feature = "mock")]
 mod test {
-    use chrono::Utc;
     use p256::ecdsa::VerifyingKey;
     use ssri::Integrity;
 
-    use crypto::CredentialEcdsaKey;
     use crypto::EcdsaKey;
-    use crypto::EcdsaKeySend;
     use crypto::server_keys::KeyPair;
     use mdoc::holder::Mdoc;
-    use sd_jwt::sd_jwt::VerifiedSdJwt;
-    use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 
-    use crate::credential_payload::CredentialPayload;
     use crate::credential_payload::PreviewableCredentialPayload;
 
     impl PreviewableCredentialPayload {
         /// Construct an [`Mdoc`] directly by signing, skipping validation.
-        pub async fn into_signed_mdoc_unverified<K: CredentialEcdsaKey>(
+        pub async fn into_signed_mdoc_unverified(
             self,
             metadata_integrity: Integrity,
             private_key_id: String,
@@ -108,27 +102,6 @@ mod test {
 
             Ok(mdoc)
         }
-
-        /// Construct [`VerifiedSdJwt`] directly by signing, skipping validation.
-        pub async fn into_signed_sd_jwt_unverified<K: CredentialEcdsaKey>(
-            self,
-            metadata: &NormalizedTypeMetadata,
-            metadata_integrity: Integrity,
-            public_key: &VerifyingKey,
-            issuer_keypair: &KeyPair<impl EcdsaKeySend>,
-        ) -> mdoc::Result<VerifiedSdJwt> {
-            let payload = CredentialPayload::from_previewable_credential_payload(
-                self,
-                Utc::now().into(),
-                public_key,
-                metadata,
-                metadata_integrity,
-            )
-            .unwrap();
-
-            let sd_jwt = payload.into_sd_jwt(metadata, public_key, issuer_keypair).await.unwrap();
-            Ok(VerifiedSdJwt::new_dangerous(sd_jwt))
-        }
     }
 }
 
@@ -141,7 +114,6 @@ mod tests {
     use rand_core::OsRng;
     use ssri::Integrity;
 
-    use crypto::EcdsaKey;
     use crypto::server_keys::generate::Ca;
     use mdoc::holder::Mdoc;
     use mdoc::utils::serialization::TaggedBytes;
@@ -154,7 +126,8 @@ mod tests {
 
     use crate::attributes::Attribute;
     use crate::attributes::AttributeValue;
-    use crate::credential_payload::CredentialPayload;
+    use crate::attributes::Attributes;
+    use crate::constants::PID_ATTESTATION_TYPE;
     use crate::credential_payload::IntoCredentialPayload;
     use crate::credential_payload::MdocCredentialPayloadError;
     use crate::credential_payload::MdocParts;
@@ -166,15 +139,14 @@ mod tests {
         let issuance_key = ca.generate_issuer_mock().unwrap();
         let trust_anchors = &[ca.to_trust_anchor()];
 
-        let payload_preview: PreviewableCredentialPayload = CredentialPayload::example_with_attributes(
-            vec![
-                ("first_name", AttributeValue::Text("John".to_string())),
-                ("family_name", AttributeValue::Text("Doe".to_string())),
-            ],
-            &issuance_key.verifying_key().await.unwrap(),
+        let payload_preview = PreviewableCredentialPayload::example_with_attributes(
+            PID_ATTESTATION_TYPE,
+            Attributes::example([
+                (["first_name"], AttributeValue::Text("John".to_string())),
+                (["family_name"], AttributeValue::Text("Doe".to_string())),
+            ]),
             &MockTimeGenerator::default(),
-        )
-        .previewable_payload;
+        );
 
         // Note that this resource integrity does not match any metadata source document.
         let metadata_integrity = Integrity::from(crypto::utils::random_bytes(32));

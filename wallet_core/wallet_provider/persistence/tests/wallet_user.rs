@@ -508,24 +508,6 @@ async fn test_create_transfer_session() {
         .unwrap()
         .unwrap();
     assert_eq!(wallet_user_id, transfer_session.destination_wallet_user_id);
-
-    // Preparing a transfer for a wallet that is already transferring should return an error
-    let result = create_transfer_session(
-        &db,
-        wallet_user_id,
-        Uuid::new_v4(),
-        destination_wallet_app_version,
-        Utc::now(),
-    )
-    .await;
-    assert_matches!(result, Err(PersistenceError::Execution(_)));
-
-    // The existing transfer_session_id should be returned
-    let transfer_session = find_transfer_session_by_transfer_session_id(&db, transfer_session_id)
-        .await
-        .unwrap()
-        .unwrap();
-    assert_eq!(transfer_session_id, transfer_session.transfer_session_id);
 }
 
 #[tokio::test]

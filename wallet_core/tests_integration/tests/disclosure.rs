@@ -7,17 +7,15 @@ use serial_test::serial;
 use url::Url;
 
 use attestation_data::disclosure::DisclosedAttestations;
-use attestation_data::test_document::test_documents_assert_matches_disclosed_attestations;
-use dcql::CredentialQuery;
+use attestation_data::test_credential::TestCredentials;
+use attestation_data::test_credential::nl_pid_address_minimal_address;
+use attestation_data::test_credential::nl_pid_credentials_family_name;
+use attestation_data::test_credential::nl_pid_credentials_full_name;
+use attestation_data::test_credential::nl_pid_credentials_given_name;
+use dcql::CredentialFormat;
 use dcql::Query;
 use dcql::unique_id_vec::UniqueIdVec;
 use http_utils::error::HttpJsonErrorBody;
-use mdoc::test::TestDocuments;
-use mdoc::test::data::PID;
-use mdoc::test::data::addr_street;
-use mdoc::test::data::pid_family_name;
-use mdoc::test::data::pid_full_name;
-use mdoc::test::data::pid_given_name;
 use openid4vc::return_url::ReturnUrlTemplate;
 use openid4vc::verifier::SessionType;
 use openid4vc::verifier::StatusResponse;
@@ -42,51 +40,50 @@ async fn get_verifier_status(client: &reqwest::Client, status_url: Url) -> Statu
     SessionType::SameDevice,
     None,
     "xyz_bank_no_return_url",
-    pid_full_name(),
-    pid_full_name()
+    nl_pid_credentials_full_name()
 )]
-#[case(SessionType::SameDevice,
+#[case(
+    SessionType::SameDevice,
     Some("http://localhost:3004/return".parse().unwrap()),
-    "xyz_bank",
-    pid_full_name(),
-    pid_full_name()
+    // Note that this use case is exactly the same as "xyz_bank_mdoc" and only differs for the demo RP.
+    "xyz_bank_sd_jwt",
+    nl_pid_credentials_full_name(),
 )]
-#[case(SessionType::SameDevice,
+#[case(
+    SessionType::SameDevice,
     Some("http://localhost:3004/return".parse().unwrap()),
     "xyz_bank_all_return_url",
-    pid_full_name(),
-    pid_full_name()
+    nl_pid_credentials_full_name(),
 )]
 #[case(
     SessionType::CrossDevice,
     None,
     "xyz_bank_no_return_url",
-    pid_full_name(),
-    pid_full_name()
+    nl_pid_credentials_full_name()
 )]
-#[case(SessionType::CrossDevice,
+#[case(
+    SessionType::CrossDevice,
     Some("http://localhost:3004/return".parse().unwrap()),
-    "xyz_bank",
-    pid_full_name(),
-    pid_full_name()
+    // Note that this use case is exactly the same as "xyz_bank_mdoc" and only differs for the demo RP.
+    "xyz_bank_sd_jwt",
+    nl_pid_credentials_full_name(),
 )]
-#[case(SessionType::CrossDevice,
+#[case(
+    SessionType::CrossDevice,
     Some("http://localhost:3004/return".parse().unwrap()),
     "xyz_bank_all_return_url",
-    pid_full_name(),
-    pid_full_name()
+    nl_pid_credentials_full_name(),
+)]
+#[case(
+    SessionType::SameDevice,
+    None,
+    "xyz_bank_no_return_url",
+    nl_pid_credentials_given_name() + nl_pid_credentials_family_name(),
 )]
 #[case(SessionType::SameDevice,
     None,
     "xyz_bank_no_return_url",
-    pid_family_name() + pid_given_name(),
-    pid_family_name() + pid_given_name()
-)]
-#[case(SessionType::SameDevice,
-    None,
-    "multiple_cards",
-    pid_given_name() + addr_street(),
-    pid_given_name() + addr_street()
+    nl_pid_credentials_full_name() + nl_pid_address_minimal_address(),
 )]
 #[tokio::test]
 #[serial(hsm)]
@@ -94,12 +91,12 @@ async fn test_disclosure_usecases_ok(
     #[case] session_type: SessionType,
     #[case] return_url_template: Option<ReturnUrlTemplate>,
     #[case] usecase: String,
-    #[case] test_documents: TestDocuments,
-    #[case] expected_documents: TestDocuments,
+    #[case] test_credentials: TestCredentials,
+    #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] format: CredentialFormat,
 ) {
     let start_request = StartDisclosureRequest {
         usecase: usecase.clone(),
-        dcql_query: Some(test_documents.into()),
+        dcql_query: Some(test_credentials.to_dcql_query(std::iter::repeat_n(format, test_credentials.as_ref().len()))),
         // The setup script is hardcoded to include "http://localhost:3004/" in the `ReaderRegistration`
         // contained in the certificate, so we have to specify a return URL prefixed with that.
         return_url_template,
@@ -161,7 +158,7 @@ async fn test_disclosure_usecases_ok(
         .start_disclosure(&ul.unwrap().into_inner(), source)
         .await
         .expect("should start disclosure");
-    assert_eq!(proposal.attestations.len(), expected_documents.len());
+    assert_eq!(proposal.attestations.len(), test_credentials.as_ref().len());
 
     // after the first wallet interaction it should have the status "Waiting"
     assert_matches!(
@@ -218,9 +215,12 @@ async fn test_disclosure_usecases_ok(
     let status = response.status();
     assert_eq!(status, StatusCode::OK);
 
-    let disclosed_documents = response.json::<UniqueIdVec<DisclosedAttestations>>().await.unwrap();
+    let disclosed_attestations = response.json::<UniqueIdVec<DisclosedAttestations>>().await.unwrap();
 
-    test_documents_assert_matches_disclosed_attestations(&expected_documents, &disclosed_documents);
+    test_credentials.assert_matches_disclosed_attestations(
+        &disclosed_attestations,
+        std::iter::repeat_n(format, test_credentials.as_ref().len()),
+    );
 }
 
 #[tokio::test]
@@ -243,12 +243,7 @@ async fn test_disclosure_without_pid() {
 
     let start_request = StartDisclosureRequest {
         usecase: "xyz_bank_no_return_url".to_owned(),
-        dcql_query: Some(Query::new_mock_single(CredentialQuery::new_mock_mdoc(
-            "pid_full_name",
-            PID,
-            PID,
-            &["given_name", "family_name"],
-        ))),
+        dcql_query: Some(Query::new_mock_mdoc_pid_example()),
         return_url_template: None,
     };
     let response = client
@@ -302,6 +297,7 @@ async fn test_disclosure_without_pid() {
             requested_attributes,
             ..
         } if requested_attributes == HashSet::from([
+            "urn:eudi:pid:nl:1/urn:eudi:pid:nl:1/bsn".to_string(),
             "urn:eudi:pid:nl:1/urn:eudi:pid:nl:1/given_name".to_string(),
             "urn:eudi:pid:nl:1/urn:eudi:pid:nl:1/family_name".to_string(),
         ])

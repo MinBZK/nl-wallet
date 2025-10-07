@@ -5,10 +5,6 @@ import navigator.MenuNavigator
 import navigator.OnboardingNavigator
 import navigator.screen.MenuNavigatorScreen
 import navigator.screen.OnboardingNavigatorScreen
-import screen.issuance.PersonalizeInformScreen
-import screen.menu.MenuScreen
-import screen.security.InactivityLockWarningNotification
-import screen.security.PinScreen
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
@@ -17,6 +13,10 @@ import org.junit.jupiter.api.Tags
 import org.junit.jupiter.api.TestInfo
 import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
+import screen.issuance.PersonalizeInformScreen
+import screen.menu.MenuScreen
+import screen.security.InactivityLockWarningNotification
+import screen.security.PinScreen
 
 @TestMethodOrder(MethodOrderer.DisplayName::class)
 @DisplayName("UC 9.7 Log out of the App")
@@ -51,8 +51,7 @@ class UserLocksWalletTests : TestBase() {
     fun verifyAppLocksAfterInactive(testInfo: TestInfo) {
         setUp(testInfo)
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
-        //for test x is configured to 60 seconds
-        Thread.sleep(61000)
+        Thread.sleep(301000)
         assertTrue(pinScreen.pinScreenVisible(), "pin screen is not visible")
     }
 
@@ -61,7 +60,7 @@ class UserLocksWalletTests : TestBase() {
     fun verifyAppLocksAfterBackground(testInfo: TestInfo) {
         setUp(testInfo)
         OnboardingNavigator().toScreen(OnboardingNavigatorScreen.PersonalizePidPreview)
-        personalizeInformScreen.putAppInBackground(65)
+        personalizeInformScreen.putAppInBackground(305)
         pinScreen.switchToNativeContext()
         assertTrue(pinScreen.pinScreenVisible(), "pin screen is not visible")
         pinScreen.enterPin(DEFAULT_PIN)
@@ -73,13 +72,13 @@ class UserLocksWalletTests : TestBase() {
     fun verifyWarningNotificationBeforeLock(testInfo: TestInfo) {
         setUp(testInfo)
         OnboardingNavigator().toScreen(OnboardingNavigatorScreen.PersonalizePidPreview)
-        Thread.sleep(30000)
+        Thread.sleep(240000)
         inactivityLockWarningNotification.switchToNativeContext()
         assertTrue(inactivityLockWarningNotification.visible())
         assertTrue(inactivityLockWarningNotification.confirmButtonVisible())
         inactivityLockWarningNotification.clickConfirmButton()
         assertTrue(!inactivityLockWarningNotification.visible(), "inactivity warning notification is visible")
-        Thread.sleep(42000)
+        Thread.sleep(240000)
         inactivityLockWarningNotification.clickLockButton()
         assertTrue(pinScreen.pinScreenVisible(), "pin screen is not  visible")
     }

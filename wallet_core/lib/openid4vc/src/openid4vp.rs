@@ -822,16 +822,25 @@ impl VpAuthorizationResponse {
             .is_satisfied_by_disclosed_credentials(&disclosed_attestations)
             .map_err(AuthResponseError::UnsatisfiedCredentialRequest)?;
 
-        // Finally, sort the disclosed attestations into the same order as that of the
-        // Credential Requests in the DCQL request.
+        // Step 5: Sort the disclosed attestations into the same order as that of the Credential Requests in the DCQL
+        //         request and remove any attributes that were not present in the respective Credential Request. This
+        //         removal is not a privacy feature, as at this point the attributes have already left the holder.
+        //         However, we discard them here in order to provide a predictable API to the RP by publishing exactly
+        //         those attributes it requested at the `disclosed_attributes` endpoint.
+        //
+        //         Note that the order of the attributes within a `DisclosedAttestation` is undefined.
         let disclosed_attestations = auth_request
             .credential_requests
             .as_ref()
             .iter()
             .map(|credential_request| {
                 // Safety: in step 4 we checked that for each `credential_request`
-                // there is a matching disclosed attestation.
-                let (id, attestations) = disclosed_attestations.remove_entry(credential_request.id()).unwrap();
+                //         there is a matching disclosed attestation.
+                let (id, mut attestations) = disclosed_attestations.remove_entry(credential_request.id()).unwrap();
+
+                for attestation in attestations.iter_mut() {
+                    attestation.attributes.prune(credential_request.claim_paths());
+                }
 
                 DisclosedAttestations { id, attestations }
             })
@@ -853,6 +862,7 @@ pub struct VpResponse {
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
+    use std::collections::HashSet;
 
     use assert_matches::assert_matches;
     use chrono::Utc;
@@ -863,8 +873,11 @@ mod tests {
     use rustls_pki_types::TrustAnchor;
     use serde_json::json;
 
+    use attestation_data::attributes::AttributesTraversalBehaviour;
+    use attestation_data::constants::PID_ATTESTATION_TYPE;
     use attestation_data::disclosure::DisclosedAttributes;
-
+    use attestation_data::test_credential::nl_pid_address_minimal_address;
+    use attestation_data::test_credential::nl_pid_credentials_full_name;
     use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
     use attestation_types::claim_path::ClaimPath;
     use crypto::mock_remote::MockRemoteEcdsaKey;
@@ -872,6 +885,7 @@ mod tests {
     use crypto::server_keys::generate::Ca;
     use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
     use crypto::x509::CertificateUsage;
+    use dcql::CredentialFormat;
     use dcql::CredentialQueryIdentifier;
     use dcql::normalized::NormalizedCredentialRequest;
     use dcql::normalized::NormalizedCredentialRequests;
@@ -882,8 +896,6 @@ mod tests {
     use mdoc::examples::Example;
     use mdoc::holder::Mdoc;
     use mdoc::holder::disclosure::PartialMdoc;
-    use mdoc::test::data::addr_street;
-    use mdoc::test::data::pid_full_name;
     use sd_jwt::examples::WITH_KB_SD_JWT;
     use sd_jwt::key_binding_jwt_claims::KeyBindingJwtBuilder;
     use sd_jwt::sd_jwt::SdJwt;
@@ -898,7 +910,6 @@ mod tests {
     use crate::AuthorizationErrorCode;
     use crate::VpAuthorizationErrorCode;
     use crate::mock::MOCK_WALLET_CLIENT_ID;
-    use crate::mock::test_document_to_mdoc;
     use crate::openid4vp::AuthResponseError;
     use crate::openid4vp::NormalizedVpAuthorizationRequest;
 
@@ -919,13 +930,23 @@ mod tests {
         );
     }
 
-    fn setup_mdoc() -> (TrustAnchor<'static>, KeyPair, EcKeyPair, VpAuthorizationRequest) {
+    fn setup_mdoc() -> (
+        TrustAnchor<'static>,
+        KeyPair,
+        EcKeyPair,
+        NormalizedVpAuthorizationRequest,
+    ) {
         setup_with_credential_requests(NormalizedCredentialRequests::new_mock_mdoc_iso_example())
     }
 
     fn setup_with_credential_requests(
         credential_requests: NormalizedCredentialRequests,
-    ) -> (TrustAnchor<'static>, KeyPair, EcKeyPair, VpAuthorizationRequest) {
+    ) -> (
+        TrustAnchor<'static>,
+        KeyPair,
+        EcKeyPair,
+        NormalizedVpAuthorizationRequest,
+    ) {
         let ca = Ca::generate("myca", Default::default()).unwrap();
         let trust_anchor = ca.to_trust_anchor().to_owned();
         let rp_keypair = generate_reader_mock_with_registration(&ca, None).unwrap();
@@ -940,8 +961,7 @@ mod tests {
             "https://example.com/response_uri".parse().unwrap(),
             None,
         )
-        .unwrap()
-        .into();
+        .unwrap();
 
         (trust_anchor, rp_keypair, encryption_privkey, auth_request)
     }
@@ -956,7 +976,6 @@ mod tests {
         // an Authorization Response JWE.
         let encryption_nonce = "encryption_nonce".to_string();
         let encrypted_device_response = DeviceResponse::example();
-        let auth_request = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap();
         // the ISO examples only use one Mdoc and therefore there is no need for a PoA
         let auth_response = VpAuthorizationResponse::new(
             HashMap::from([(
@@ -1004,10 +1023,11 @@ mod tests {
     fn test_authorization_request_jwt() {
         let (trust_anchor, rp_keypair, _, auth_request) = setup_mdoc();
 
-        let auth_request_jwt = SignedJwt::sign_with_certificate(&auth_request, &rp_keypair)
-            .now_or_never()
-            .unwrap()
-            .unwrap();
+        let auth_request_jwt =
+            SignedJwt::sign_with_certificate(&VpAuthorizationRequest::from(auth_request), &rp_keypair)
+                .now_or_never()
+                .unwrap()
+                .unwrap();
 
         let (auth_request, cert) = VpAuthorizationRequest::try_new(&auth_request_jwt.into(), &[trust_anchor]).unwrap();
         auth_request.validate(&cert, None).unwrap();
@@ -1224,7 +1244,7 @@ mod tests {
     /// authorization request, partial mdocs and encryption nonce.
     fn setup_mdoc_vp_token(
         auth_request: &NormalizedVpAuthorizationRequest,
-        partial_mdocs: VecNonEmpty<PartialMdoc>,
+        partial_mdocs: HashMap<CredentialQueryIdentifier, VecNonEmpty<PartialMdoc>>,
         encryption_nonce: &str,
         wscd: &MockRemoteWscd,
     ) -> (HashMap<CredentialQueryIdentifier, VerifiablePresentation>, Option<Poa>) {
@@ -1236,22 +1256,29 @@ mod tests {
         );
 
         let poa_input = JwtPoaInput::new(Some(auth_request.nonce.clone()), auth_request.client_id.clone());
-        let (device_responses, poa) =
-            DeviceResponse::sign_multiple_from_partial_mdocs(partial_mdocs, &session_transcript, wscd, poa_input)
-                .now_or_never()
-                .unwrap()
-                .unwrap();
 
-        let vp_token = auth_request
-            .credential_requests
-            .as_ref()
-            .iter()
+        let (query_ids, partial_mdocs) = partial_mdocs
+            .into_iter()
+            .map(|(query_id, partial_mdocs)| (query_id, partial_mdocs.into_iter().exactly_one().unwrap()))
+            .unzip::<_, _, Vec<_>, Vec<_>>();
+
+        let (device_responses, poa) = DeviceResponse::sign_multiple_from_partial_mdocs(
+            partial_mdocs.try_into().unwrap(),
+            &session_transcript,
+            wscd,
+            poa_input,
+        )
+        .now_or_never()
+        .unwrap()
+        .unwrap();
+
+        let vp_token = query_ids
+            .into_iter()
             .zip_eq(device_responses)
-            .map(|(request, device_response)| {
-                (
-                    request.id().clone(),
-                    VerifiablePresentation::MsoMdoc(vec_nonempty![device_response]),
-                )
+            .map(|(query_id, device_response)| {
+                let presentation = VerifiablePresentation::MsoMdoc(vec_nonempty![device_response]);
+
+                (query_id, presentation)
             })
             .collect();
 
@@ -1261,8 +1288,16 @@ mod tests {
     #[test]
     fn test_verify_mdoc_authorization_response() {
         let (_, _, _, auth_request) =
-            setup_with_credential_requests(NormalizedCredentialRequests::new_mock_mdoc_pid_example());
-        let auth_request = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap();
+            setup_with_credential_requests(NormalizedCredentialRequests::new_mock_mdoc_from_slices(
+                &[(
+                    PID_ATTESTATION_TYPE,
+                    &[
+                        &[PID_ATTESTATION_TYPE, "given_name"],
+                        &[PID_ATTESTATION_TYPE, "family_name"],
+                    ],
+                )],
+                None,
+            ));
 
         let ca = Ca::generate_issuer_mock_ca().unwrap();
 
@@ -1276,7 +1311,8 @@ mod tests {
         let wscd = MockRemoteWscd::new(vec![holder_key]);
         let encryption_nonce = "encryption_nonce";
 
-        let (vp_token, poa) = setup_mdoc_vp_token(&auth_request, vec_nonempty![partial_mdoc], encryption_nonce, &wscd);
+        let partial_mdocs = HashMap::from([("mdoc_0".parse().unwrap(), vec_nonempty![partial_mdoc])]);
+        let (vp_token, poa) = setup_mdoc_vp_token(&auth_request, partial_mdocs, encryption_nonce, &wscd);
         let auth_response = VpAuthorizationResponse::new(vp_token, None, poa);
 
         let attestations = auth_response
@@ -1297,16 +1333,16 @@ mod tests {
 
         let attestation = disclosed_attestations.into_first();
 
-        assert_eq!("urn:eudi:pid:nl:1", attestation.attestation_type.as_str());
+        assert_eq!(attestation.attestation_type.as_str(), PID_ATTESTATION_TYPE);
         let DisclosedAttributes::MsoMdoc(attributes) = &attestation.attributes else {
             panic!("should be mdoc attributes")
         };
 
         let (namespace, mdoc_attributes) = &attributes.first().unwrap();
-        assert_eq!("urn:eudi:pid:nl:1", namespace.as_str());
+        assert_eq!(namespace.as_str(), PID_ATTESTATION_TYPE);
 
         assert_eq!(
-            vec!["bsn", "given_name", "family_name"],
+            vec!["given_name", "family_name"],
             mdoc_attributes.keys().map(|key| key.as_str()).collect_vec()
         );
     }
@@ -1316,10 +1352,9 @@ mod tests {
         // Set up an authorization request with two credential queries.
         let (_, _, _, auth_request) =
             setup_with_credential_requests(NormalizedCredentialRequests::new_mock_sd_jwt_from_slices(&[
-                (&["urn:eudi:pid:nl:1"], &[&["bsn"], &["birthdate"]]),
-                (&["urn:eudi:pid:nl:1"], &[&["given_name"], &["family_name"]]),
+                (&[PID_ATTESTATION_TYPE], &[&["bsn"], &["birthdate"]]),
+                (&[PID_ATTESTATION_TYPE], &[&["given_name"], &["family_name"]]),
             ]));
-        let auth_request = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap();
 
         // Setup both issuer and holder keys.
         let ca = Ca::generate_issuer_mock_ca().unwrap();
@@ -1412,27 +1447,39 @@ mod tests {
             .collect_tuple()
             .unwrap();
 
-        assert_eq!(disclosed_attestations1.attestation_type, "urn:eudi:pid:nl:1");
+        assert_eq!(disclosed_attestations1.attestation_type, PID_ATTESTATION_TYPE);
 
         let DisclosedAttributes::SdJwt(attributes) = &disclosed_attestations1.attributes else {
             panic!("should be SD-JWT attributes");
         };
 
-        assert!(attributes.has_claim_paths(&[
-            vec_nonempty![ClaimPath::SelectByKey("bsn".to_string())],
-            vec_nonempty![ClaimPath::SelectByKey("birthdate".to_string())]
-        ]));
+        assert_eq!(
+            attributes
+                .claim_paths(AttributesTraversalBehaviour::OnlyLeaves)
+                .into_iter()
+                .collect::<HashSet<_>>(),
+            HashSet::from([
+                vec_nonempty![ClaimPath::SelectByKey("bsn".to_string())],
+                vec_nonempty![ClaimPath::SelectByKey("birthdate".to_string())]
+            ])
+        );
 
-        assert_eq!(disclosed_attestations2.attestation_type, "urn:eudi:pid:nl:1");
+        assert_eq!(disclosed_attestations2.attestation_type, PID_ATTESTATION_TYPE);
 
         let DisclosedAttributes::SdJwt(attributes) = &disclosed_attestations2.attributes else {
             panic!("should be SD-JWT attributes");
         };
 
-        assert!(attributes.has_claim_paths(&[
-            vec_nonempty![ClaimPath::SelectByKey("given_name".to_string())],
-            vec_nonempty![ClaimPath::SelectByKey("family_name".to_string())]
-        ]));
+        assert_eq!(
+            attributes
+                .claim_paths(AttributesTraversalBehaviour::OnlyLeaves)
+                .into_iter()
+                .collect::<HashSet<_>>(),
+            HashSet::from([
+                vec_nonempty![ClaimPath::SelectByKey("given_name".to_string())],
+                vec_nonempty![ClaimPath::SelectByKey("family_name".to_string())]
+            ])
+        );
     }
 
     #[test]
@@ -1443,7 +1490,6 @@ mod tests {
         let requests = vec![mdoc_request, sd_jwt_request].try_into().unwrap();
 
         let (_, _, _, auth_request) = setup_with_credential_requests(requests);
-        let auth_request = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap();
 
         // Setup the issuer keys.
         let ca = Ca::generate_issuer_mock_ca().unwrap();
@@ -1550,31 +1596,21 @@ mod tests {
         ca: &Ca,
     ) -> (
         NormalizedVpAuthorizationRequest,
-        VecNonEmpty<PartialMdoc>,
+        HashMap<CredentialQueryIdentifier, VecNonEmpty<PartialMdoc>>,
         MockRemoteWscd,
     ) {
-        let stored_documents = pid_full_name() + addr_street();
-        let credential_requests = stored_documents.clone().into();
+        let test_credentials = nl_pid_credentials_full_name() + nl_pid_address_minimal_address();
+        let credential_requests =
+            test_credentials.to_normalized_credential_requests([CredentialFormat::MsoMdoc, CredentialFormat::MsoMdoc]);
 
         let (_, _, _, auth_request) = setup_with_credential_requests(credential_requests);
 
-        let auth_request = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap();
-
+        let issuer_keypair = ca
+            .generate_key_pair(ISSUANCE_CERT_CN, CertificateUsage::Mdl, Default::default())
+            .unwrap();
         let wscd = MockRemoteWscd::default();
 
-        let partial_mdocs = stored_documents
-            .into_iter()
-            .zip(auth_request.credential_requests.as_ref())
-            .map(|(document, request)| {
-                PartialMdoc::try_new(
-                    test_document_to_mdoc(document, ca, &wscd).now_or_never().unwrap(),
-                    request.claim_paths(),
-                )
-                .unwrap()
-            })
-            .collect_vec()
-            .try_into()
-            .unwrap();
+        let partial_mdocs = test_credentials.to_partial_mdocs(&issuer_keypair, &wscd);
 
         (auth_request, partial_mdocs, wscd)
     }

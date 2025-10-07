@@ -510,6 +510,10 @@ impl<C, H> SdJwt<C, H> {
         self.issuer_signed_jwt.payload()
     }
 
+    pub fn into_claims(self) -> C {
+        self.issuer_signed_jwt.into_payload()
+    }
+
     pub fn disclosures(&self) -> &HashMap<String, Disclosure> {
         &self.disclosures
     }

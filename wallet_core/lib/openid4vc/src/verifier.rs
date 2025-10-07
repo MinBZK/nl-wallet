@@ -1525,6 +1525,7 @@ mod tests {
     use attestation_data::disclosure::DisclosedAttributes;
     use attestation_data::disclosure::ValidityInfo;
     use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
+    use attestation_types::qualification::AttestationQualification;
     use crypto::server_keys::generate::Ca;
     use dcql::Query;
     use dcql::normalized::NormalizedCredentialRequests;
@@ -1816,6 +1817,7 @@ mod tests {
                 attestation_type: "attestation_type".to_string(),
                 attributes: DisclosedAttributes::MsoMdoc(Default::default()),
                 issuer_uri: "https://issuer.example.com".parse().unwrap(),
+                attestation_qualification: AttestationQualification::default(),
                 ca: "ca".to_string(),
                 validity_info: ValidityInfo {
                     signed: Utc::now(),

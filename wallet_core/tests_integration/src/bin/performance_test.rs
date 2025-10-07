@@ -117,7 +117,7 @@ async fn main() {
     let client = reqwest::Client::new();
 
     let start_request = StartDisclosureRequest {
-        usecase: "xyz_bank".to_owned(),
+        usecase: "xyz_bank_mdoc".to_owned(),
         dcql_query: Some(Query::new_mock_mdoc_pid_example()),
         return_url_template: Some(relying_party_url.parse().unwrap()),
     };

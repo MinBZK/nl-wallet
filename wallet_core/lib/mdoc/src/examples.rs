@@ -9,7 +9,6 @@ use ciborium::Value;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 
-use crypto::server_keys::generate::Ca;
 use utils::generator::Generator;
 
 #[cfg(test)]
@@ -17,7 +16,6 @@ use crate::iso::device_retrieval::DeviceRequest;
 #[cfg(test)]
 use crate::iso::device_retrieval::ReaderAuthenticationBytes;
 use crate::iso::disclosure::DeviceResponse;
-use crate::iso::disclosure::IssuerSigned;
 use crate::iso::engagement::DeviceAuthenticationBytes;
 use crate::utils::serialization::cbor_deserialize;
 use crate::utils::serialization::cbor_serialize;
@@ -71,21 +69,32 @@ where
     }
 }
 
-impl DeviceResponse {
-    pub async fn example_resigned(ca: &Ca) -> Self {
-        let mut device_response = Self::example();
+#[cfg(any(test, feature = "test"))]
+mod test {
+    use crypto::server_keys::generate::Ca;
 
-        // Re sign document with a newly generated certificate that includes a SAN DNS name
-        for doc in device_response.documents.as_mut().unwrap() {
-            let new_key = ca.generate_issuer_mock().unwrap();
-            let new_cert = new_key.certificate();
+    use crate::iso::disclosure::IssuerSigned;
 
-            doc.issuer_signed.issuer_auth.0.unprotected = IssuerSigned::create_unprotected_header(new_cert.to_vec());
+    use super::DeviceResponse;
+    use super::Example;
 
-            doc.issuer_signed.resign(&new_key).await.unwrap();
+    impl DeviceResponse {
+        pub async fn example_resigned(ca: &Ca) -> Self {
+            let mut device_response = Self::example();
+
+            // Re sign document with a newly generated certificate that includes a SAN DNS name
+            for doc in device_response.documents.as_mut().unwrap() {
+                let new_key = ca.generate_issuer_mock().unwrap();
+                let new_cert = new_key.certificate();
+
+                doc.issuer_signed.issuer_auth.0.unprotected =
+                    IssuerSigned::create_unprotected_header(new_cert.to_vec());
+
+                doc.issuer_signed.resign(&new_key).await.unwrap();
+            }
+
+            device_response
         }
-
-        device_response
     }
 }
 

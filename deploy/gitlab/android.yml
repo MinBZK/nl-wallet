@@ -100,6 +100,12 @@ build-android-app-ont:
     APP_FILE_FORMAT: "aab"
     APP_BUILD_MODE: "release"
 
+build-android-app-apk-ont:
+  extends: .build-android-app-ont
+  variables:
+    APP_FILE_FORMAT: "apk"
+    APP_BUILD_MODE: "release"
+
 .build-android-app-release-tag:
   extends: [.env-k8s, .build-android-app]
   rules: !reference [.release-tag, rules]

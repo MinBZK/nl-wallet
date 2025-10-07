@@ -9,26 +9,13 @@ workspace = true
 
 [features]
 # Include examples from the ISO specification
-examples = ["test"] # TODO PVW-4130: either cleanly separarate test and mock, or merge the two
+examples = []
 # Include miscellaneous test utilities
-test = [
-    "dep:assert_matches",
-    "dep:rstest",
-    "dep:regex",
-    "mock",
-    "crypto/generate",
-    "sd_jwt_vc_metadata/example_constructors",
-    "utils/mock_time",
-]
+test = ["crypto/generate", "crypto/mock", "dep:regex"]
 # Include mock implementations and constructors for testing
-mock = ["crypto/mock"]
+mock = []
 # Include example based constructors to several types for testing
-mock_example_constructors = [
-    "test",            # TODO PVW-4130: either cleanly separarate test and mock, or merge the two
-    "examples",
-    "mock",
-    "crypto/examples",
-]
+mock_example_constructors = ["examples", "test", "crypto/examples", "utils/mock_time", "dep:sd_jwt_vc_metadata"]
 
 [dependencies]
 aes-gcm = { workspace = true, features = ["std"] }
@@ -59,10 +46,7 @@ tokio = { workspace = true, features = ["parking_lot"] }
 tracing.workspace = true
 url = { workspace = true, features = ["serde"] }
 
-assert_matches = { workspace = true, optional = true }
-hex-literal = { workspace = true, optional = true }
 regex = { workspace = true, optional = true }
-rstest = { workspace = true, optional = true }
 
 attestation_types.path = "../attestation_types"
 crypto.path = "../crypto"

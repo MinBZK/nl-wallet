@@ -63,8 +63,6 @@ pub enum PartialAttestation {
         partial_mdoc: Box<PartialMdoc>,
     },
     SdJwt {
-        // TODO (PVW-4652): Actually use this field during SD-JWT disclosure.
-        #[cfg_attr(not(test), expect(dead_code))]
         key_identifier: String,
         sd_jwt: Box<UnsignedSdJwtPresentation>,
     },
@@ -298,6 +296,7 @@ mod tests {
     use attestation_data::constants::PID_ATTESTATION_TYPE;
     use attestation_data::constants::PID_BSN;
     use attestation_data::credential_payload::CredentialPayload;
+    use attestation_data::credential_payload::PreviewableCredentialPayload;
     use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use attestation_types::claim_path::ClaimPath;
     use crypto::keys::WithIdentifier;
@@ -317,12 +316,11 @@ mod tests {
     static ATTESTATION_ID: LazyLock<Uuid> = LazyLock::new(Uuid::new_v4);
 
     fn mdoc_stored_attestation_copy(issuer_keypair: &KeyPair) -> (StoredAttestationCopy, VecNonEmpty<ClaimPath>) {
-        let credential_payload = CredentialPayload::nl_pid_example(&MockTimeGenerator::default());
+        let payload_preview = PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default());
 
         let mdoc_remote_key = MockRemoteEcdsaKey::new_random("mdoc_key_id".to_string());
-        let mdoc = credential_payload
-            .previewable_payload
-            .into_signed_mdoc_unverified::<MockRemoteEcdsaKey>(
+        let mdoc = payload_preview
+            .into_signed_mdoc_unverified(
                 Integrity::from(""),
                 mdoc_remote_key.identifier().to_string(),
                 mdoc_remote_key.verifying_key(),
@@ -403,7 +401,7 @@ mod tests {
 
             // The converted `AttestationPresentation` contains multiple attributes.
             let full_presentation = attestation_copy.clone().into_attestation_presentation();
-            assert_eq!(full_presentation.attributes.len(), 4);
+            assert_eq!(full_presentation.attributes.len(), 5);
 
             // Selecting a particular attribute for disclosure should only succeed if the path exists.
             let disclosable_attestation = DisclosableAttestation::try_new(attestation_copy.clone(), [&bsn_path])
