@@ -12,6 +12,13 @@ import helper.TasDataHelper
 import helper.TestBase
 import navigator.MenuNavigator
 import navigator.screen.MenuNavigatorScreen
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.Tag
+import org.junit.jupiter.api.Tags
+import org.junit.jupiter.api.TestInfo
+import org.junit.jupiter.api.assertAll
+import org.junitpioneer.jupiter.RetryingTest
 import screen.disclosure.DisclosureApproveOrganizationScreen
 import screen.menu.MenuScreen
 import screen.organization.OrganizationDetailScreen
@@ -21,13 +28,6 @@ import screen.web.demo.rp.RelyingPartyAmsterdamWebPage
 import screen.web.demo.rp.RelyingPartyMarketplaceWebPage
 import screen.web.demo.rp.RelyingPartyMonkeyBikeWebPage
 import screen.web.demo.rp.RelyingPartyXyzBankWebPage
-import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.DisplayName
-import org.junit.jupiter.api.Tag
-import org.junit.jupiter.api.Tags
-import org.junit.jupiter.api.TestInfo
-import org.junit.jupiter.api.assertAll
-import org.junitpioneer.jupiter.RetryingTest
 
 class DisclosureTests : TestBase() {
 
@@ -61,13 +61,13 @@ class DisclosureTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("LTC17 LTC21 Share data flow, Opening a bank account")
-    fun verifyDisclosureCreateAccountXyzBank(testInfo: TestInfo) {
+    @DisplayName("LTC17 LTC21 Share data flow, Opening a bank account. MDOC")
+    fun verifyDisclosureCreateAccountXyzBankMdoc(testInfo: TestInfo) {
         setUp(testInfo)
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
         MenuScreen().clickBrowserTestButton()
         overviewWebPage.switchToWebViewContext()
-        overviewWebPage.clickXyzBankButton()
+        overviewWebPage.clickXyzBankMdocButton()
         xyzBankWebPage.openSameDeviceWalletFlow()
         xyzBankWebPage.switchToNativeContext()
         assertTrue(disclosureScreen.organizationNameForSharingFlowVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", XYZ)))
@@ -85,15 +85,74 @@ class DisclosureTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("LTC23 LTC25 RP Login flow")
+    @DisplayName("LTC17 LTC21 Share data flow, Opening a bank account. SD-JWT")
+    fun verifyDisclosureCreateAccountXyzBankSdJwt(testInfo: TestInfo) {
+        setUp(testInfo)
+        MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
+        MenuScreen().clickBrowserTestButton()
+        overviewWebPage.switchToWebViewContext()
+        overviewWebPage.clickXyzBankSdJwtButton()
+        xyzBankWebPage.openSameDeviceWalletFlow()
+        xyzBankWebPage.switchToNativeContext()
+        assertTrue(disclosureScreen.organizationNameForSharingFlowVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", XYZ)))
+        disclosureScreen.viewDisclosureOrganizationDetails()
+        assertTrue(disclosureScreen.organizationDescriptionOnDetailsVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.description", XYZ)))
+        disclosureScreen.goBack();
+        disclosureScreen.cancel()
+        disclosureScreen.reportProblem()
+        assertTrue(disclosureScreen.reportOptionSuspiciousVisible(), "Reporting option not visible")
+        disclosureScreen.goBack()
+        disclosureScreen.share()
+        pinScreen.enterPin(DEFAULT_PIN)
+        disclosureScreen.goToWebsite()
+        assertTrue(xyzBankWebPage.identificationSucceededMessageVisible(), "User not identified correctly")
+    }
+
+    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
+    @DisplayName("LTC23 LTC25 RP Login flow, MDOC")
     @Tags(Tag("smoke"))
-    fun verifyDisclosureLogin(testInfo: TestInfo) {
+    fun verifyDisclosureLoginMdoc(testInfo: TestInfo) {
         setUp(testInfo)
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
         MenuScreen().clickBrowserTestButton()
         amsterdamWebPage.switchToWebViewContext()
         amsterdamWebPage = RelyingPartyAmsterdamWebPage()
-        overviewWebPage.clickAmsterdamButton()
+        overviewWebPage.clickAmsterdamMdocButton()
+        amsterdamWebPage.openSameDeviceWalletFlow()
+        amsterdamWebPage.switchToNativeContext()
+        assertTrue(disclosureScreen.organizationNameForLoginFlowVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", AMSTERDAM)))
+        disclosureScreen.viewLoginDisclosureDetails()
+        disclosureScreen.viewOrganization(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", AMSTERDAM).plus("\nGemeente"))
+        organizationDetailScreen.clickBackButton()
+        disclosureScreen.viewSharedData("1", tasData.getPidDisplayName())
+        assertTrue(disclosureScreen.bsnVisible(DEFAULT_BSN.toCharArray().joinToString(" ")), "BSN not visible")
+        disclosureScreen.goBack()
+        disclosureScreen.goBack()
+        disclosureScreen.cancel()
+        disclosureScreen.reportProblem()
+        assertTrue(disclosureScreen.reportOptionSuspiciousVisible(), "Reporting option not visible")
+        disclosureScreen.goBack()
+        disclosureScreen.viewLoginDisclosureDetails()
+        disclosureScreen.readTerms()
+        assertTrue(disclosureScreen.termsVisible(), "Terms not visible")
+        disclosureScreen.goBack()
+        disclosureScreen.goBack()
+        disclosureScreen.login()
+        pinScreen.enterPin(DEFAULT_PIN)
+        disclosureScreen.goToWebsite()
+        assertTrue(amsterdamWebPage.loggedInMessageVisible(), "User not logged in correctly")
+    }
+
+    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
+    @DisplayName("LTC23 LTC25 RP Login flow, SD-JWT")
+    @Tags(Tag("smoke"))
+    fun verifyDisclosureLoginSdJwt(testInfo: TestInfo) {
+        setUp(testInfo)
+        MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
+        MenuScreen().clickBrowserTestButton()
+        amsterdamWebPage.switchToWebViewContext()
+        amsterdamWebPage = RelyingPartyAmsterdamWebPage()
+        overviewWebPage.clickAmsterdamSdJwtButton()
         amsterdamWebPage.openSameDeviceWalletFlow()
         amsterdamWebPage.switchToNativeContext()
         assertTrue(disclosureScreen.organizationNameForLoginFlowVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", AMSTERDAM)))
