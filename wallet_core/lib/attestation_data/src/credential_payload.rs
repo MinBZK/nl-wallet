@@ -4,7 +4,6 @@ use chrono::DateTime;
 use chrono::Utc;
 use indexmap::IndexMap;
 use p256::ecdsa::VerifyingKey;
-use sd_jwt::claims::ClaimNameError;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::serde_as;
@@ -25,6 +24,7 @@ use mdoc::holder::Mdoc;
 use mdoc::utils::crypto::CryptoError;
 use sd_jwt::builder::SdJwtBuilder;
 use sd_jwt::builder::SignedSdJwt;
+use sd_jwt::claims::ClaimNameError;
 use sd_jwt::key_binding_jwt::RequiredKeyBinding;
 use sd_jwt::sd_jwt::SdJwtVcClaims;
 use sd_jwt::sd_jwt::VerifiedSdJwt;
@@ -88,7 +88,7 @@ pub enum SdJwtCredentialPayloadError {
 /// Converting both an (unsigned) mdoc and SD-JWT document to this struct should yield the same result.
 #[serde_as]
 #[skip_serializing_none]
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize)]
 pub struct CredentialPayload {
     #[serde(rename = "iat")]
     pub issued_at: DateTimeSeconds,

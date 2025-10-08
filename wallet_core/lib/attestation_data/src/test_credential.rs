@@ -7,7 +7,6 @@ use derive_more::Debug;
 use futures::FutureExt;
 use indexmap::IndexMap;
 use itertools::Itertools;
-use sd_jwt::builder::SignedSdJwt;
 use ssri::Integrity;
 
 use attestation_types::claim_path::ClaimPath;
@@ -24,6 +23,7 @@ use dcql::unique_id_vec::UniqueIdVec;
 use mdoc::Entry;
 use mdoc::holder::Mdoc;
 use mdoc::holder::disclosure::PartialMdoc;
+use sd_jwt::builder::SignedSdJwt;
 use sd_jwt::sd_jwt::UnsignedSdJwtPresentation;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use utils::generator::mock::MockTimeGenerator;

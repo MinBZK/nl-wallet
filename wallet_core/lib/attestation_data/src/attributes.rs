@@ -8,6 +8,7 @@ use indexmap::IndexMap;
 use itertools::Itertools;
 use serde::Deserialize;
 use serde::Serialize;
+use serde_json::Number;
 
 use attestation_types::claim_path::ClaimPath;
 use mdoc::iso::mdocs::Entry;
@@ -17,7 +18,6 @@ use sd_jwt::claims::ClaimNameError;
 use sd_jwt::claims::ClaimValue;
 use sd_jwt::claims::ObjectClaims;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
-use serde_json::Number;
 use utils::vec_at_least::VecNonEmpty;
 
 #[derive(Debug, Clone, Display, PartialEq, Eq, Hash, Serialize, Deserialize)]

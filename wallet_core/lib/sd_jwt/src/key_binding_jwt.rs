@@ -146,7 +146,7 @@ impl KeyBindingJwtBuilder {
     {
         // Create a `KeyBindingJwtClaims` for each `SdJwt`, based on the contents of the builder and combine it with the
         // provided key.
-        let kb_iat = time.generate();
+        let iat = time.generate();
 
         let sd_jwt_count = sd_jwts_and_keys.len().get();
         let payloads_and_keys: VecNonEmpty<_> = sd_jwts_and_keys
@@ -157,7 +157,7 @@ impl KeyBindingJwtBuilder {
                 let sd_hash = Self::sd_hash_for_sd_jwt(sd_jwt)?;
 
                 let claims = KeyBindingJwtClaims {
-                    iat: kb_iat,
+                    iat,
                     aud,
                     nonce,
                     sd_hash,

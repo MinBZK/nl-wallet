@@ -235,8 +235,7 @@ impl ClaimValue {
                 None => Ok(None),
             },
             (ClaimValue::Object(object), ClaimPath::SelectByKey(key)) => {
-                let name: ClaimName = key.parse()?;
-                Ok(object.claims.get_mut(&name))
+                Ok(object.claims.get_mut(&key.parse::<ClaimName>()?))
             }
             (_, ClaimPath::SelectAll) => Err(Error::UnsupportedTraversalPath(ClaimPath::SelectAll)),
             (element, path) => Err(Error::UnexpectedElement(element.clone(), vec![path.clone()])),

@@ -895,7 +895,6 @@ mod tests {
     use mdoc::examples::Example;
     use mdoc::holder::Mdoc;
     use mdoc::holder::disclosure::PartialMdoc;
-
     use sd_jwt::builder::SignedSdJwt;
     use sd_jwt::examples::WITH_KB_SD_JWT;
     use sd_jwt::key_binding_jwt::KeyBindingJwtBuilder;

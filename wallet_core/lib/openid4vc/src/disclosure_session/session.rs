@@ -281,7 +281,6 @@ mod tests {
     use http::StatusCode;
     use http_utils::urls::BaseUrl;
     use rstest::rstest;
-    use sd_jwt::builder::SignedSdJwt;
     use serde::de::Error;
     use serde_json::json;
 
@@ -294,6 +293,7 @@ mod tests {
     use dcql::CredentialFormat;
     use dcql::normalized::NormalizedCredentialRequests;
     use mdoc::holder::disclosure::PartialMdoc;
+    use sd_jwt::builder::SignedSdJwt;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_nonempty;
     use wscd::mock_remote::MockRemoteWscd;

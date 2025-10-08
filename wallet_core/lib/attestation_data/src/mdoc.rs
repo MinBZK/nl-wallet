@@ -78,13 +78,13 @@ impl PreviewableCredentialPayload {
 mod test {
     use chrono::Utc;
     use p256::ecdsa::VerifyingKey;
-    use sd_jwt::builder::SignedSdJwt;
-    use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use ssri::Integrity;
 
     use crypto::EcdsaKey;
     use crypto::server_keys::KeyPair;
     use mdoc::holder::Mdoc;
+    use sd_jwt::builder::SignedSdJwt;
+    use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 
     use crate::credential_payload::CredentialPayload;
     use crate::credential_payload::PreviewableCredentialPayload;

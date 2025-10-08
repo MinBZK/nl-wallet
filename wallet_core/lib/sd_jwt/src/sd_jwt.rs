@@ -281,13 +281,6 @@ impl SdJwtVcClaims {
         };
         claims
     }
-
-    pub fn claims_mut(&mut self) -> &mut ObjectClaims {
-        let ClaimValue::Object(claims) = &mut self.claims else {
-            panic!("Should always be an Object")
-        };
-        claims
-    }
 }
 
 /// Representation of an SD-JWT of the format
@@ -350,9 +343,7 @@ impl VerifiedSdJwt {
     pub fn holder_pubkey(&self) -> Result<VerifyingKey> {
         self.claims().cnf().verifying_key()
     }
-}
 
-impl VerifiedSdJwt {
     /// Parses an SD-JWT into its components as [`VerifiedSdJwt`] without verifying the signature.
     ///
     /// ## Error
@@ -372,7 +363,7 @@ impl<H> VerifiedSdJwt<SdJwtVcClaims, H> {
     pub fn decoded_claims(&self) -> Result<ObjectClaims> {
         let claims = SdObjectDecoder::decode(self.claims(), &self.disclosures)?;
         let ClaimValue::Object(claims) = claims.claims else {
-            panic!("Should always be an Object")
+            panic!("should always be an Object after SdObjectDecoder::decode")
         };
 
         Ok(claims)
@@ -425,6 +416,36 @@ impl UnsignedSdJwtPresentation {
     }
 }
 
+#[derive(Debug, Clone, Eq, PartialEq, SerializeDisplay, DeserializeFromStr)]
+pub struct UnverifiedSdJwtPresentation<C = SdJwtVcClaims, H = HeaderWithX5c> {
+    sd_jwt: UnverifiedSdJwt<C, H>,
+    key_binding_jwt: UnverifiedKeyBindingJwt,
+}
+
+impl<C, H> FromStr for UnverifiedSdJwtPresentation<C, H> {
+    type Err = Error;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        let sd_jwt_end = s.rfind("~").ok_or(Error::Deserialization(
+            "SD-JWT format is invalid, no segments found".to_string(),
+        ))? + 1; // the SD-JWT part includes the trailing '~'
+
+        let sd_jwt = s[..sd_jwt_end].parse::<UnverifiedSdJwt<C, H>>()?;
+        let key_binding_jwt = s[sd_jwt_end..].parse::<UnverifiedKeyBindingJwt>()?;
+
+        Ok(Self {
+            sd_jwt,
+            key_binding_jwt,
+        })
+    }
+}
+
+impl<C, H> Display for UnverifiedSdJwtPresentation<C, H> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}{}", self.sd_jwt, self.key_binding_jwt)
+    }
+}
+
 impl UnverifiedSdJwtPresentation {
     /// Parses an SD-JWT into its components as [`SdJwtPresentation`] while verifying against a set of trust anchors.
     ///
@@ -469,36 +490,6 @@ impl UnverifiedSdJwtPresentation {
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, SerializeDisplay, DeserializeFromStr)]
-pub struct UnverifiedSdJwtPresentation<C = SdJwtVcClaims, H = HeaderWithX5c> {
-    sd_jwt: UnverifiedSdJwt<C, H>,
-    key_binding_jwt: UnverifiedKeyBindingJwt,
-}
-
-impl<C, H> FromStr for UnverifiedSdJwtPresentation<C, H> {
-    type Err = Error;
-
-    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
-        let sd_jwt_end = s.rfind("~").ok_or(Error::Deserialization(
-            "SD-JWT format is invalid, no segments found".to_string(),
-        ))? + 1; // the SD-JWT part includes the trailing '~'
-
-        let sd_jwt = s[..sd_jwt_end].parse::<UnverifiedSdJwt<C, H>>()?;
-        let key_binding_jwt = s[sd_jwt_end..].parse::<UnverifiedKeyBindingJwt>()?;
-
-        Ok(Self {
-            sd_jwt,
-            key_binding_jwt,
-        })
-    }
-}
-
-impl<C, H> Display for UnverifiedSdJwtPresentation<C, H> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}{}", self.sd_jwt, self.key_binding_jwt)
-    }
-}
-
 #[derive(Debug, Clone, Eq, PartialEq, SerializeDisplay)]
 pub struct VerifiedSdJwtPresentation<C = SdJwtVcClaims, H = HeaderWithX5c> {
     sd_jwt: VerifiedSdJwt<C, H>,
@@ -516,20 +507,12 @@ impl<C, H> VerifiedSdJwtPresentation<C, H> {
         &self.sd_jwt
     }
 
-    pub fn key_binding_jwt(&self) -> &VerifiedKeyBindingJwt {
-        &self.key_binding_jwt
-    }
-
     pub fn into_claims(self) -> C {
         self.sd_jwt.into_claims()
     }
 }
 
 impl<C> VerifiedSdJwtPresentation<C, HeaderWithX5c> {
-    pub fn issuer_certificate_chain(&self) -> &VecNonEmpty<BorrowingCertificate> {
-        self.sd_jwt.issuer_certificate_chain()
-    }
-
     pub fn issuer_certificate(&self) -> &BorrowingCertificate {
         self.sd_jwt.issuer_certificate()
     }
@@ -568,7 +551,6 @@ impl SdJwtPresentationBuilder {
 
     pub fn disclose(mut self, path: &VecNonEmpty<ClaimPath>) -> Result<Self> {
         // Gather all digests to be disclosed into a set. This can include intermediary attributes as well
-
         self.digests_to_be_disclosed.extend({
             let mut path_segments = path.as_ref().iter().peekable();
             self.full_payload
@@ -618,10 +600,6 @@ impl Display for SignedSdJwtPresentation {
 impl SignedSdJwtPresentation {
     pub fn into_unverified(self) -> UnverifiedSdJwtPresentation {
         self.into()
-    }
-
-    pub fn sd_jwt(&self) -> &VerifiedSdJwt<SdJwtVcClaims, HeaderWithX5c> {
-        &self.sd_jwt
     }
 
     pub fn key_binding_jwt(&self) -> &SignedKeyBindingJwt {
