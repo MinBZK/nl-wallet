@@ -58,7 +58,7 @@ use crate::key_binding_jwt::UnverifiedKeyBindingJwt;
 use crate::key_binding_jwt::VerifiedKeyBindingJwt;
 use crate::sd_alg::SdAlg;
 
-pub(crate) trait SdJwtClaims: JwtTyp {
+pub trait SdJwtClaims: JwtTyp {
     fn _sd_alg(&self) -> Option<SdAlg>;
 
     fn cnf(&self) -> &RequiredKeyBinding;
