@@ -432,12 +432,21 @@ mod apple {
 
     impl MockHardwareAttestedKeyHolder {
         /// Create a key holder that produces mock Apple attested keys by generating a self-signed Apple CA.
-        pub fn generate_apple(environment: AttestationEnvironment, app_identifier: AppIdentifier) -> Self {
+        pub fn generate_apple_for_ca(
+            ca: MockAttestationCa,
+            environment: AttestationEnvironment,
+            app_identifier: AppIdentifier,
+        ) -> Self {
             Self::new(KeyHolderType::Apple {
-                ca: MockAttestationCa::generate(),
+                ca,
                 environment,
                 app_identifier,
             })
+        }
+
+        /// Create a key holder that produces mock Apple attested keys by generating a self-signed Apple CA.
+        pub fn generate_apple(environment: AttestationEnvironment, app_identifier: AppIdentifier) -> Self {
+            Self::generate_apple_for_ca(MockAttestationCa::generate(), environment, app_identifier)
         }
 
         pub(super) fn state_from_apple_key(key: &MockAppleAttestedKey) -> AttestedKeyState {
@@ -510,10 +519,14 @@ mod google {
     impl MockHardwareAttestedKeyHolder {
         #[cfg(feature = "mock_attested_key_google")]
         /// Create a key holder that produces mock Google attested keys by generating a self-signed Google CA chain.
+        pub fn generate_google_for_ca(ca_chain: MockCaChain) -> Self {
+            Self::new(KeyHolderType::Google { ca_chain })
+        }
+
+        #[cfg(feature = "mock_attested_key_google")]
+        /// Create a key holder that produces mock Google attested keys by generating a self-signed Google CA chain.
         pub fn generate_google() -> Self {
-            Self::new(KeyHolderType::Google {
-                ca_chain: MockCaChain::generate(1),
-            })
+            Self::generate_google_for_ca(MockCaChain::generate(1))
         }
 
         #[cfg(feature = "mock_attested_key_google")]

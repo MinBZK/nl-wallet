@@ -23,9 +23,11 @@ use tokio::time;
 use url::Url;
 
 use android_attest::android_crl::RevocationStatusList;
+use android_attest::mock_chain::MockCaChain;
 use android_attest::root_public_key::RootPublicKey;
 use apple_app_attest::AppIdentifier;
 use apple_app_attest::AttestationEnvironment;
+use apple_app_attest::MockAttestationCa;
 use attestation_data::issuable_document::IssuableDocument;
 use configuration_server::settings::Settings as CsSettings;
 use crypto::trust_anchor::BorrowingTrustAnchor;
@@ -49,7 +51,6 @@ use pid_issuer::pid::mock::MockAttributeService;
 use pid_issuer::pid::mock::mock_issuable_document_address;
 use pid_issuer::pid::mock::mock_issuable_document_pid;
 use pid_issuer::settings::PidIssuerSettings;
-use platform_support::attested_key::mock::KeyHolderType;
 use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
 use server_utils::settings::RequesterAuth;
 use server_utils::settings::Server;
@@ -71,6 +72,7 @@ use wallet::test::default_config_server_config;
 use wallet::test::default_wallet_config;
 use wallet_configuration::config_server_config::ConfigServerConfiguration;
 use wallet_configuration::wallet_config::WalletConfiguration;
+use wallet_provider::settings::AndroidRootPublicKey;
 use wallet_provider::settings::AppleEnvironment;
 use wallet_provider::settings::Ios;
 use wallet_provider::settings::Settings as WpSettings;
@@ -134,19 +136,17 @@ pub type WalletWithStorage = Wallet<
     VpDisclosureClient,
 >;
 
-pub async fn setup_wallet_and_default_env(vendor: WalletDeviceVendor) -> WalletWithStorage {
-    let (wallet, _, _) = setup_wallet_and_env(
+pub async fn setup_wallet_and_default_env(
+    vendor: WalletDeviceVendor,
+) -> (WalletWithStorage, DisclosureParameters, BaseUrl) {
+    setup_wallet_and_env(
         vendor,
-        config_server_settings(),
         update_policy_server_settings(),
         wallet_provider_settings(),
-        verification_server_settings(),
         pid_issuer_settings(),
         issuance_server_settings(),
     )
-    .await;
-
-    wallet
+    .await
 }
 
 pub struct DisclosureParameters {
@@ -154,10 +154,82 @@ pub struct DisclosureParameters {
     pub verifier_internal_url: BaseUrl,
 }
 
-/// Create an instance of [`Wallet`].
-#[expect(clippy::too_many_arguments, reason = "Test setup function")]
-pub async fn setup_wallet_and_env(
-    vendor: WalletDeviceVendor,
+pub struct IssuanceParameters {
+    pub attestation_server: MockServer,
+    pub url: BaseUrl,
+}
+
+pub struct MockDeviceConfig {
+    pub app_identifier: AppIdentifier,
+    pub environment: AttestationEnvironment,
+    pub apple_ca: MockAttestationCa,
+    pub google_ca: MockCaChain,
+}
+
+impl Default for MockDeviceConfig {
+    fn default() -> Self {
+        Self {
+            app_identifier: AppIdentifier::new_mock(),
+            environment: AttestationEnvironment::Development,
+            apple_ca: MockAttestationCa::generate(),
+            google_ca: MockCaChain::generate(1),
+        }
+    }
+}
+
+impl MockDeviceConfig {
+    pub fn ios_wp_settings(&self) -> Ios {
+        let apple_environment = match self.environment {
+            AttestationEnvironment::Development => AppleEnvironment::Development,
+            AttestationEnvironment::Production => AppleEnvironment::Production,
+        };
+
+        Ios {
+            team_identifier: self.app_identifier.prefix().to_string(),
+            bundle_identifier: self.app_identifier.bundle_identifier().to_string(),
+            environment: apple_environment,
+            root_certificates: vec![
+                BorrowingTrustAnchor::from_der(self.apple_ca.as_certificate_der().as_ref()).unwrap(),
+            ],
+        }
+    }
+
+    pub fn android_root_public_keys(&self) -> Vec<AndroidRootPublicKey> {
+        vec![RootPublicKey::Rsa(self.google_ca.root_public_key.clone()).into()]
+    }
+
+    pub fn apple_key_holder(&self) -> MockHardwareAttestedKeyHolder {
+        MockHardwareAttestedKeyHolder::generate_apple_for_ca(
+            self.apple_ca.clone(),
+            self.environment,
+            self.app_identifier.clone(),
+        )
+    }
+
+    pub fn google_key_holder(&self) -> MockHardwareAttestedKeyHolder {
+        MockHardwareAttestedKeyHolder::generate_google_for_ca(self.google_ca.clone())
+    }
+}
+
+pub async fn setup_env_default() -> (
+    ConfigServerConfiguration,
+    MockDeviceConfig,
+    WalletConfiguration,
+    BaseUrl,
+    DisclosureParameters,
+) {
+    setup_env(
+        config_server_settings(),
+        update_policy_server_settings(),
+        wallet_provider_settings(),
+        verification_server_settings(),
+        pid_issuer_settings(),
+        crate::common::issuance_server_settings(),
+    )
+    .await
+}
+
+pub async fn setup_env(
     (mut cs_settings, cs_root_ca): (CsSettings, ReqwestTrustAnchor),
     (ups_settings, ups_root_ca): (UpsSettings, ReqwestTrustAnchor),
     (mut wp_settings, wp_root_ca): (WpSettings, ReqwestTrustAnchor),
@@ -169,37 +241,16 @@ pub async fn setup_wallet_and_env(
         ReqwestTrustAnchor,
         TlsServerConfig,
     ),
-) -> (WalletWithStorage, DisclosureParameters, BaseUrl) {
-    let key_holder = match vendor {
-        WalletDeviceVendor::Apple => MockHardwareAttestedKeyHolder::generate_apple(
-            AttestationEnvironment::Development,
-            AppIdentifier::new_mock(),
-        ),
-        WalletDeviceVendor::Google => MockHardwareAttestedKeyHolder::generate_google(),
-    };
-
-    match &key_holder.holder_type {
-        KeyHolderType::Apple {
-            ca,
-            environment,
-            app_identifier,
-        } => {
-            let apple_environment = match environment {
-                AttestationEnvironment::Development => AppleEnvironment::Development,
-                AttestationEnvironment::Production => AppleEnvironment::Production,
-            };
-
-            wp_settings.ios = Ios {
-                team_identifier: app_identifier.prefix().to_string(),
-                bundle_identifier: app_identifier.bundle_identifier().to_string(),
-                environment: apple_environment,
-                root_certificates: vec![BorrowingTrustAnchor::from_der(ca.as_certificate_der().as_ref()).unwrap()],
-            };
-        }
-        KeyHolderType::Google { ca_chain } => {
-            wp_settings.android.root_public_keys = vec![RootPublicKey::Rsa(ca_chain.root_public_key.clone()).into()]
-        }
-    }
+) -> (
+    ConfigServerConfiguration,
+    MockDeviceConfig,
+    WalletConfiguration,
+    BaseUrl,
+    DisclosureParameters,
+) {
+    let mock_device_config = MockDeviceConfig::default();
+    wp_settings.ios = mock_device_config.ios_wp_settings();
+    wp_settings.android.root_public_keys = mock_device_config.android_root_public_keys();
 
     let ups_port = start_update_policy_server(ups_settings, ups_root_ca.clone()).await;
 
@@ -214,6 +265,7 @@ pub async fn setup_wallet_and_env(
 
     let attestation_server_url =
         start_mock_attestation_server(issuable_documents, di_tls_config, di_root_ca.clone()).await;
+
     let attributes_fetcher = HttpAttributesFetcher::try_new(
         issuance_server_settings
             .disclosure_settings
@@ -264,6 +316,21 @@ pub async fn setup_wallet_and_env(
     wallet_config.update_policy_server.http_config.base_url = local_ups_base_url(ups_port);
     wallet_config.update_policy_server.http_config.trust_anchors = vec![ups_root_ca];
 
+    (
+        config_server_config,
+        mock_device_config,
+        wallet_config,
+        issuance_server_url,
+        verifier_server_urls,
+    )
+}
+
+/// Create an instance of [`Wallet`].
+pub async fn setup_wallet(
+    config_server_config: ConfigServerConfiguration,
+    wallet_config: WalletConfiguration,
+    key_holder: MockHardwareAttestedKeyHolder,
+) -> WalletWithStorage {
     let config_repository = HttpConfigurationRepository::new(
         config_server_config.signing_public_key.as_inner().into(),
         tempfile::tempdir().unwrap().into_path(),
@@ -271,6 +338,7 @@ pub async fn setup_wallet_and_env(
     )
     .await
     .unwrap();
+
     config_repository
         .fetch(&config_server_config.http_config)
         .await
@@ -282,7 +350,7 @@ pub async fn setup_wallet_and_env(
 
     let storage = InMemoryDatabaseStorage::open().await;
 
-    let wallet = Wallet::init_registration(
+    Wallet::init_registration(
         config_repository,
         update_policy_repository,
         storage,
@@ -290,7 +358,39 @@ pub async fn setup_wallet_and_env(
         wallet_clients,
     )
     .await
-    .expect("Could not create test wallet");
+    .expect("Could not create test wallet")
+}
+
+/// Create an instance of [`Wallet`].
+pub async fn setup_wallet_and_env(
+    vendor: WalletDeviceVendor,
+    ups_config: (UpsSettings, ReqwestTrustAnchor),
+    wp_config: (WpSettings, ReqwestTrustAnchor),
+    issuer_config: (PidIssuerSettings, VecNonEmpty<IssuableDocument>),
+    issuance_config: (
+        IssuanceServerSettings,
+        Vec<IssuableDocument>,
+        ReqwestTrustAnchor,
+        TlsServerConfig,
+    ),
+) -> (WalletWithStorage, DisclosureParameters, BaseUrl) {
+    let (config_server_config, mock_device_config, wallet_config, issuance_server_url, verifier_server_urls) =
+        setup_env(
+            config_server_settings(),
+            ups_config,
+            wp_config,
+            verification_server_settings(),
+            issuer_config,
+            issuance_config,
+        )
+        .await;
+
+    let key_holder = match vendor {
+        WalletDeviceVendor::Apple => mock_device_config.apple_key_holder(),
+        WalletDeviceVendor::Google => mock_device_config.google_key_holder(),
+    };
+
+    let wallet = setup_wallet(config_server_config, wallet_config, key_holder).await;
 
     (wallet, verifier_server_urls, issuance_server_url)
 }

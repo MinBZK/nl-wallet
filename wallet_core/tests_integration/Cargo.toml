@@ -50,6 +50,11 @@ path = "tests/registration.rs"
 required-features = ["integration_test"]
 
 [[test]]
+name = "transfer"
+path = "tests/transfer.rs"
+required-features = ["integration_test"]
+
+[[test]]
 name = "update_policy_server"
 path = "tests/update_policy_server.rs"
 required-features = ["integration_test"]

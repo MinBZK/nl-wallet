@@ -49,7 +49,7 @@ pub async fn wallet_attestations(wallet: &mut WalletWithStorage) -> Vec<Attestat
 #[serial(hsm)]
 async fn test_pid_ok() {
     let pin = "112233";
-    let mut wallet = setup_wallet_and_default_env(WalletDeviceVendor::Apple).await;
+    let (mut wallet, _, _) = setup_wallet_and_default_env(WalletDeviceVendor::Apple).await;
     wallet = do_wallet_registration(wallet, pin).await;
     wallet = do_pid_issuance(wallet, pin.to_owned()).await;
 
@@ -167,10 +167,8 @@ async fn test_pid_optional_attributes() {
     let pin = "112233";
     let (mut wallet, _, _) = setup_wallet_and_env(
         WalletDeviceVendor::Apple,
-        config_server_settings(),
         update_policy_server_settings(),
         wallet_provider_settings(),
-        verification_server_settings(),
         (
             pid_issuer_settings().0,
             vec![pid_without_optionals(), mock_issuable_document_address()]
@@ -210,10 +208,8 @@ async fn test_pid_missing_required_attributes() {
     let pin = "112233";
     let (mut wallet, _, _) = setup_wallet_and_env(
         WalletDeviceVendor::Apple,
-        config_server_settings(),
         update_policy_server_settings(),
         wallet_provider_settings(),
-        verification_server_settings(),
         (
             pid_issuer_settings().0,
             vec![pid_missing_required(), mock_issuable_document_address()]
@@ -253,16 +249,7 @@ async fn test_disclosure_based_issuance_ok(
     #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] format: CredentialFormat,
 ) {
     let pin = "112233";
-    let (mut wallet, _, issuance_url) = setup_wallet_and_env(
-        WalletDeviceVendor::Apple,
-        config_server_settings(),
-        update_policy_server_settings(),
-        wallet_provider_settings(),
-        verification_server_settings(),
-        pid_issuer_settings(),
-        issuance_server_settings(),
-    )
-    .await;
+    let (mut wallet, _, issuance_url) = setup_wallet_and_default_env(WalletDeviceVendor::Apple).await;
 
     wallet = do_wallet_registration(wallet, pin).await;
     wallet = do_pid_issuance(wallet, pin.to_owned()).await;
@@ -301,10 +288,8 @@ async fn test_disclosure_based_issuance_error_no_attributes(
     let pin = "112233";
     let (mut wallet, _, issuance_url) = setup_wallet_and_env(
         WalletDeviceVendor::Apple,
-        config_server_settings(),
         update_policy_server_settings(),
         wallet_provider_settings(),
-        verification_server_settings(),
         pid_issuer_settings(),
         (issuance_server_settings, vec![], di_trust_anchor, di_tls_config),
     )
