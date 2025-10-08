@@ -75,7 +75,7 @@ impl ObjectClaims {
         // Remove the value from the object
         let value_to_conceal = self
             .remove(&key)
-            .ok_or_else(|| Error::ObjectFieldNotFound(key.clone(), self.clone()))?;
+            .ok_or_else(|| Error::ObjectFieldNotFound(key.clone(), Box::new(self.clone())))?;
 
         // Create a disclosure for the value
         let disclosure = Disclosure::try_new(DisclosureContent::ObjectProperty(salt, key, value_to_conceal)).map_err(
@@ -158,7 +158,7 @@ impl ObjectClaims {
                             let (_, _, claim_value) = disclosure.content.try_as_object_property(key)?;
                             claim_value
                         } else {
-                            return Err(Error::IntermediateElementNotFound { path: key.clone() });
+                            return Err(Error::IntermediateElementNotFound(key.clone()));
                         }
                     }
                 };
@@ -174,14 +174,14 @@ impl ObjectClaims {
                 if !self.claims.contains_key(&key.parse::<ClaimName>()?) {
                     let digest = self
                         .find_disclosure_digest(key, disclosures)
-                        .ok_or_else(|| Error::ElementNotFound { path: key.clone() })?;
+                        .ok_or_else(|| Error::ElementNotFound(key.clone()))?;
 
                     digests.push(digest);
                 }
                 Ok(digests)
             }
             _ => Err(Error::UnexpectedElement(
-                ClaimValue::Object(self.clone()),
+                Box::new(ClaimValue::Object(self.clone())),
                 path.cloned().collect_vec(),
             )),
         }
@@ -238,7 +238,7 @@ impl ClaimValue {
                 Ok(object.claims.get_mut(&key.parse::<ClaimName>()?))
             }
             (_, ClaimPath::SelectAll) => Err(Error::UnsupportedTraversalPath(ClaimPath::SelectAll)),
-            (element, path) => Err(Error::UnexpectedElement(element.clone(), vec![path.clone()])),
+            (element, path) => Err(Error::UnexpectedElement(Box::new(element.clone()), vec![path.clone()])),
         }
     }
 
@@ -323,7 +323,7 @@ impl ClaimValue {
                 object.push_digest(SdObjectEncoder::random_digest(hasher, salt_len, false)?);
                 Ok(())
             }
-            _ => Err(Error::UnexpectedElement(self.clone(), vec![])),
+            _ => Err(Error::UnexpectedElement(Box::new(self.clone()), vec![])),
         }
     }
 
@@ -351,24 +351,22 @@ impl ClaimValue {
                 object_claims.digests_to_disclose(path, disclosures, element_key, has_next)
             }
             (ClaimValue::Array(array_claims), ClaimPath::SelectByIndex(index)) if has_next => {
-                let entry = array_claims.get(*index).ok_or_else(|| Error::ElementNotFoundInArray {
-                    path: element_key.clone(),
-                })?;
+                let entry = array_claims
+                    .get(*index)
+                    .ok_or_else(|| Error::ElementNotFoundInArray(element_key.clone()))?;
 
                 if let Some(next_object) = entry.process_digests_to_disclose(disclosures, &mut digests)? {
                     digests.append(&mut next_object.digests_to_disclose(path, disclosures, false)?);
                 } else {
-                    return Err(Error::ElementNotFoundInArray {
-                        path: element_key.clone(),
-                    });
+                    return Err(Error::ElementNotFoundInArray(element_key.clone()));
                 }
 
                 Ok(digests)
             }
             (ClaimValue::Array(array_claims), ClaimPath::SelectByIndex(index)) => {
-                let entry = array_claims.get(*index).ok_or_else(|| Error::ElementNotFoundInArray {
-                    path: element_key.clone(),
-                })?;
+                let entry = array_claims
+                    .get(*index)
+                    .ok_or_else(|| Error::ElementNotFoundInArray(element_key.clone()))?;
 
                 // If the array entry is an array-selective-disclosure object, then we'll add the digest to the
                 // list of digests to disclose.
@@ -381,9 +379,7 @@ impl ClaimValue {
                 for entry in array_claims {
                     let next_object = entry
                         .process_digests_to_disclose(disclosures, &mut digests)?
-                        .ok_or_else(|| Error::ElementNotFoundInArray {
-                            path: element_key.clone(),
-                        })?;
+                        .ok_or_else(|| Error::ElementNotFoundInArray(element_key.clone()))?;
 
                     if has_next {
                         digests.append(&mut next_object.digests_to_disclose(path, disclosures, true)?);
@@ -391,7 +387,10 @@ impl ClaimValue {
                 }
                 Ok(digests)
             }
-            (element, _) => Err(Error::UnexpectedElement(element.clone(), path.cloned().collect_vec())),
+            (element, _) => Err(Error::UnexpectedElement(
+                Box::new(element.clone()),
+                path.cloned().collect_vec(),
+            )),
         }
     }
 }
