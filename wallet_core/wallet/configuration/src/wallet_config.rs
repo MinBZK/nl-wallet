@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use derive_more::Debug;
 use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
@@ -10,6 +12,8 @@ use crypto::trust_anchor::BorrowingTrustAnchor;
 use http_utils::tls::pinning::TlsPinningConfig;
 use http_utils::urls::BaseUrl;
 use jwt::JwtTyp;
+use utils::vec_at_least::VecAtLeastTwo;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::EnvironmentSpecific;
 use crate::digid::DigidApp2AppConfiguration;
@@ -20,6 +24,7 @@ pub struct WalletConfiguration {
     pub environment: String,
     pub lock_timeouts: LockTimeoutConfiguration,
     pub account_server: AccountServerConfiguration,
+    pub pid_attributes: PidAttributesConfiguration,
     pub pid_issuance: PidIssuanceConfiguration,
     pub disclosure: DisclosureConfiguration,
     #[debug(skip)]
@@ -86,6 +91,24 @@ pub struct AccountServerConfiguration {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UpdatePolicyServerConfiguration {
     pub http_config: TlsPinningConfig,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PidAttributesConfiguration {
+    pub mso_mdoc: HashMap<String, MsoMdocPaths>,
+    pub sd_jwt: HashMap<String, SdJwtPaths>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MsoMdocPaths {
+    pub login: VecAtLeastTwo<String>,
+    pub recovery_code: VecAtLeastTwo<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SdJwtPaths {
+    pub login: VecNonEmpty<String>,
+    pub recovery_code: VecNonEmpty<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
