@@ -191,10 +191,10 @@ impl<S, AK, GK, A> PinRecoveryRemoteEcdsaWscd<S, AK, GK, A> {
             certificate: Mutex::new(None),
         }
     }
+}
 
-    pub fn certificate(self) -> Option<UnverifiedJwt<WalletCertificateClaims>> {
-        self.certificate.into_inner()
-    }
+pub trait PinRecoveryWscd: Wscd {
+    fn certificate(self) -> Option<UnverifiedJwt<WalletCertificateClaims>>;
 }
 
 impl<S, AK, GK, A> DisclosureWscd for PinRecoveryRemoteEcdsaWscd<S, AK, GK, A>
@@ -258,5 +258,17 @@ where
             issuance_result.poa,
             Some(result.issuance_with_wua_result.wua_disclosure),
         ))
+    }
+}
+
+impl<S, AK, GK, A> PinRecoveryWscd for PinRecoveryRemoteEcdsaWscd<S, AK, GK, A>
+where
+    S: Storage,
+    AK: AppleAttestedKey,
+    GK: GoogleAttestedKey,
+    A: AccountProviderClient,
+{
+    fn certificate(self) -> Option<UnverifiedJwt<WalletCertificateClaims>> {
+        self.certificate.into_inner()
     }
 }

@@ -1,3 +1,4 @@
+use std::hash::Hash;
 use std::sync::Arc;
 
 use tracing::info;
@@ -7,6 +8,7 @@ use attestation_data::attributes::AttributeValue;
 use attestation_data::constants::PID_ATTESTATION_TYPE;
 use attestation_data::constants::PID_RECOVERY_CODE;
 use attestation_types::claim_path::ClaimPath;
+use crypto::wscd::DisclosureWscd;
 use error_category::ErrorCategory;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::issuance_session::IssuanceSession;
@@ -28,6 +30,7 @@ use crate::errors::PinKeyError;
 use crate::errors::PinValidationError;
 use crate::errors::StorageError;
 use crate::instruction::PinRecoveryRemoteEcdsaWscd;
+use crate::instruction::PinRecoveryWscd;
 use crate::pin::key::PinKey;
 use crate::pin::key::new_pin_salt;
 use crate::repository::Repository;
@@ -67,7 +70,7 @@ pub enum PinRecoveryError {
 
     #[error("no recovery code found in PID")]
     #[category(unexpected)]
-    MissingRegistrationCode,
+    MissingRecoveryCode,
 
     #[error("recovery code had unexpected format: {0:#?}")]
     #[category(pd)]
@@ -95,10 +98,6 @@ pub enum PinRecoveryError {
     #[error("no PID received")]
     #[category(unexpected)]
     MissingPid,
-
-    #[error("no SD-JWT PID received")]
-    #[category(unexpected)]
-    MissingSdJwtPid,
 
     #[error("failed to disclose recovery code to WP: {0}")]
     #[category(defer)]
@@ -204,11 +203,11 @@ where
 
         self.check_recovery_state(PinRecoveryState::Starting).await?;
 
+        info!("Checking if there is an active DigiD issuance session");
         if !matches!(self.session, Some(Session::Digid(..))) {
             return Err(PinRecoveryError::SessionState);
         }
 
-        info!("Checking if there is an active DigiD issuance session");
         let Some(Session::Digid(session)) = self.session.take() else {
             return Err(PinRecoveryError::SessionState);
         };
@@ -241,12 +240,13 @@ where
             .await?;
 
         let received_recovery_code = &previews
-            .first()
-            .unwrap()
+            .iter()
+            .find(|preview| &preview.attestation_type == PID_ATTESTATION_TYPE)
+            .ok_or(PinRecoveryError::MissingPid)?
             .attributes
             .iter()
             .find(|attr| attr.key == vec![PID_RECOVERY_CODE])
-            .ok_or(PinRecoveryError::MissingRegistrationCode)?
+            .ok_or(PinRecoveryError::MissingRecoveryCode)?
             .value;
 
         let AttestationAttributeValue::Basic(received_recovery_code) = received_recovery_code else {
@@ -284,6 +284,26 @@ where
     }
 
     pub async fn complete_pin_recovery(&mut self, new_pin: String) -> Result<(), PinRecoveryError> {
+        let new_pin_salt = new_pin_salt();
+        let wscd = self.pin_recovery_wscd(new_pin.clone(), new_pin_salt.clone()).await?;
+
+        self.complete_pin_recovery_with_wscd(wscd, new_pin, new_pin_salt).await
+    }
+
+    async fn complete_pin_recovery_with_wscd<P: PinRecoveryWscd>(
+        &mut self,
+        pin_recovery_wscd: P,
+        new_pin: String,
+        new_pin_salt: Vec<u8>,
+    ) -> Result<(), PinRecoveryError>
+    where
+        <P as DisclosureWscd>::Key: Eq + Hash,
+    {
+        info!("Checking if blocked");
+        if self.is_blocked() {
+            return Err(PinRecoveryError::VersionBlocked);
+        }
+
         info!("Checking if registered");
         if !self.registration.is_registered() {
             return Err(PinRecoveryError::NotRegistered);
@@ -294,53 +314,24 @@ where
             return Err(PinRecoveryError::Locked);
         }
 
+        self.check_recovery_state(PinRecoveryState::Starting).await?;
+
         info!("Checking if there is an active issuance session");
         let Some(Session::Issuance(issuance_session)) = &self.session else {
             return Err(PinRecoveryError::SessionState);
         };
-
-        self.check_recovery_state(PinRecoveryState::Starting).await?;
-
-        // We don't check if the wallet is blocked, since PIN recovery is allowed in that case.
 
         validate_pin(&new_pin)?;
 
         // Both instructions sent to the WP in this method use the new PIN, and therefore also a new salt.
         // So, generate a new salt and use that in the instruction client below.
 
-        let (attested_key, current_registration_data) = self
+        let (attested_key, registration_data) = self
             .registration
             .as_key_and_registration_data()
             .expect("missing registration data");
 
-        let new_pin_salt = new_pin_salt();
-        let registration_data = RegistrationData {
-            pin_salt: new_pin_salt.clone(),
-            ..current_registration_data.clone()
-        };
-
         // Accept issuance to obtain the PID. This sends the `StartPinRecovery` instruction to the WP.
-
-        let config = self.config_repository.get();
-        let instruction_client = self
-            .new_instruction_client(
-                new_pin.clone(),
-                Arc::clone(attested_key),
-                registration_data.clone(),
-                config.account_server.http_config.clone(),
-                config.account_server.instruction_result_public_key.as_inner().into(),
-            )
-            .await
-            .map_err(IssuanceError::from)?;
-
-        let pin_pubkey = PinKey {
-            pin: &new_pin,
-            salt: &new_pin_salt,
-        }
-        .verifying_key()?;
-
-        let pin_recovery_wscd = PinRecoveryRemoteEcdsaWscd::new(instruction_client.clone(), pin_pubkey.into());
-
         // `accept_issuance()` below is the point of no return. If the app is killed between there and completion,
         // PIN recovery will have to start again from the start.
 
@@ -352,6 +343,8 @@ where
             })
             .await?;
 
+        let config = self.config_repository.get();
+
         let issuance_result = issuance_session
             .protocol_state
             .accept_issuance(&config.issuer_trust_anchors(), &pin_recovery_wscd, true)
@@ -360,10 +353,7 @@ where
 
         // Store the new wallet certificate and the new salt.
 
-        let new_wallet_certificate = pin_recovery_wscd
-            .certificate()
-            .take()
-            .expect("missing new wallet certificate");
+        let new_wallet_certificate = pin_recovery_wscd.certificate().expect("missing new wallet certificate");
 
         let registration_data = RegistrationData {
             wallet_certificate: new_wallet_certificate,
@@ -383,7 +373,7 @@ where
         let attestation = issuance_result
             .into_iter()
             .find(|attestation| attestation.attestation_type == PID_ATTESTATION_TYPE)
-            .ok_or(PinRecoveryError::MissingPid)?;
+            .expect("no PID received"); // accept_issuance() already checks this against the previews
 
         let pid = attestation
             .copies
@@ -393,12 +383,12 @@ where
                 IssuedCredential::MsoMdoc { .. } => None,
                 IssuedCredential::SdJwt { sd_jwt, .. } => Some(sd_jwt),
             })
-            .ok_or(PinRecoveryError::MissingSdJwtPid)?;
+            .expect("no SD-JWT PID received"); // accept_issuance() already checks this against the previews
 
         let recovery_code_disclosure = pid
             .into_presentation_builder()
             .disclose(&vec_nonempty![ClaimPath::SelectByKey(PID_RECOVERY_CODE.to_string())])
-            .unwrap()
+            .unwrap() // accept_issuance() already checks that the PID has a recovery code
             .finish()
             .into();
 
@@ -456,5 +446,718 @@ where
         self.storage.write().await.delete_data::<PinRecoveryData>().await?;
 
         Ok(())
+    }
+
+    async fn pin_recovery_wscd(
+        &self,
+        new_pin: String,
+        new_pin_salt: Vec<u8>,
+    ) -> Result<
+        PinRecoveryRemoteEcdsaWscd<S, <AKH as AttestedKeyHolder>::AppleKey, <AKH as AttestedKeyHolder>::GoogleKey, APC>,
+        PinRecoveryError,
+    > {
+        let (attested_key, registration_data) = self
+            .registration
+            .as_key_and_registration_data()
+            .expect("missing registration data");
+
+        let registration_data = RegistrationData {
+            pin_salt: new_pin_salt.clone(),
+            ..registration_data.clone()
+        };
+
+        let config = self.config_repository.get();
+        let instruction_client = self
+            .new_instruction_client(
+                new_pin.clone(),
+                Arc::clone(attested_key),
+                registration_data.clone(),
+                config.account_server.http_config.clone(),
+                config.account_server.instruction_result_public_key.as_inner().into(),
+            )
+            .await
+            .map_err(IssuanceError::from)?;
+
+        let pin_pubkey = PinKey {
+            pin: &new_pin,
+            salt: &new_pin_salt,
+        }
+        .verifying_key()?;
+
+        let pin_recovery_wscd = PinRecoveryRemoteEcdsaWscd::new(instruction_client, pin_pubkey);
+
+        Ok(pin_recovery_wscd)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::convert::Infallible;
+    use std::num::NonZeroUsize;
+    use std::str::FromStr;
+    use std::sync::Arc;
+
+    use assert_matches::assert_matches;
+    use p256::ecdsa::VerifyingKey;
+    use rstest::rstest;
+    use serial_test::serial;
+    use url::Url;
+    use uuid::Uuid;
+
+    use attestation_data::attributes::Attribute;
+    use attestation_data::attributes::AttributeValue;
+    use attestation_data::auth::issuer_auth::IssuerRegistration;
+    use attestation_data::constants::PID_ATTESTATION_TYPE;
+    use attestation_data::constants::PID_RECOVERY_CODE;
+    use attestation_types::claim_path::ClaimPath;
+    use crypto::mock_remote::MockRemoteEcdsaKey;
+    use crypto::wscd::DisclosureResult;
+    use crypto::wscd::DisclosureWscd;
+    use crypto::wscd::WscdPoa;
+    use jwt::UnverifiedJwt;
+    use openid4vc::issuance_session::IssuedCredential;
+    use openid4vc::mock::MockIssuanceSession;
+    use openid4vc::oidc::OidcError;
+    use openid4vc::token::TokenRequest;
+    use openid4vc::token::TokenRequestGrantType;
+    use sd_jwt_vc_metadata::NormalizedTypeMetadata;
+    use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
+    use utils::generator::mock::MockTimeGenerator;
+    use utils::vec_nonempty;
+    use wallet_account::messages::instructions::DiscloseRecoveryCodePinRecovery;
+    use wallet_account::messages::instructions::Instruction;
+    use wallet_account::messages::registration::WalletCertificateClaims;
+    use wscd::Poa;
+    use wscd::wscd::Wscd;
+
+    use crate::digid::DigidError;
+    use crate::errors::PinValidationError;
+    use crate::instruction::PinRecoveryWscd;
+    use crate::storage::ChangePinData;
+    use crate::storage::InstructionData;
+    use crate::storage::PinRecoveryData;
+    use crate::storage::PinRecoveryState;
+    use crate::storage::RegistrationData;
+    use crate::storage::StoredAttestation;
+    use crate::storage::StoredAttestationCopy;
+    use crate::test::MockDigidSession;
+    use crate::wallet::Session;
+    use crate::wallet::issuance::WalletIssuanceSession;
+    use crate::wallet::pin_recovery::PinRecoveryError;
+    use crate::wallet::test::TestWalletMockStorage;
+    use crate::wallet::test::WalletDeviceVendor;
+    use crate::wallet::test::create_example_pid_sd_jwt;
+    use crate::wallet::test::create_example_preview_data;
+    use crate::wallet::test::create_wp_result;
+    use crate::wallet::test::mock_issuance_session;
+
+    const AUTH_URL: &str = "http://example.com/auth";
+
+    #[tokio::test]
+    pub async fn create_pin_recovery_redirect_uri() {
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        wallet
+            .mut_storage()
+            .expect_upsert_data::<PinRecoveryData>()
+            .return_once(|_| Ok(()));
+
+        wallet
+            .digid_client
+            .expect_start_session()
+            .return_once(|_digid_config, _http_config, _redirect_uri| {
+                let mut session = MockDigidSession::new();
+
+                session
+                    .expect_auth_url()
+                    .once()
+                    .return_const(Url::parse(AUTH_URL).unwrap());
+
+                Ok(session)
+            });
+
+        wallet.create_pin_recovery_redirect_uri().await.unwrap();
+    }
+
+    #[tokio::test]
+    #[serial(MockIssuanceSession)]
+    pub async fn continue_pin_recovery() {
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        wallet
+            .mut_storage()
+            .expect_fetch_data::<PinRecoveryData>()
+            .once()
+            .returning(|| {
+                Ok(Some(PinRecoveryData {
+                    state: PinRecoveryState::Starting,
+                }))
+            });
+
+        let mut session = MockDigidSession::new();
+        session
+            .expect_into_token_request()
+            .return_once(|_http_config, _redirect_uri| {
+                let token_request = TokenRequest {
+                    grant_type: TokenRequestGrantType::PreAuthorizedCode {
+                        pre_authorized_code: "123".to_string().into(),
+                    },
+                    code_verifier: None,
+                    client_id: None,
+                    redirect_uri: None,
+                };
+
+                Ok(token_request)
+            });
+        wallet.session = Some(Session::Digid(session));
+
+        // Set up the `MockIssuanceSession` to return one `CredentialPreviewState`.
+        let start_context = MockIssuanceSession::start_context();
+        start_context.expect().return_once(|| {
+            let mut client = MockIssuanceSession::new();
+
+            client
+                .expect_normalized_credential_previews()
+                .return_const(vec![create_example_preview_data(&MockTimeGenerator::default())]);
+
+            client.expect_issuer().return_const(IssuerRegistration::new_mock());
+
+            Ok(client)
+        });
+
+        wallet
+            .mut_storage()
+            .expect_fetch_unique_attestations_by_type()
+            .times(2)
+            .returning(|_, _| {
+                Ok(vec![StoredAttestationCopy::new(
+                    Uuid::new_v4(),
+                    Uuid::new_v4(),
+                    StoredAttestation::SdJwt {
+                        key_identifier: "key".to_string(),
+                        sd_jwt: create_example_pid_sd_jwt().0,
+                    },
+                    NormalizedTypeMetadata::nl_pid_example(),
+                )])
+            });
+
+        wallet.continue_pin_recovery(AUTH_URL.parse().unwrap()).await.unwrap();
+    }
+
+    #[tokio::test]
+    pub async fn complete_pin_recovery() {
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        // complete_pin_recovery checks the PIN recovery state.
+        wallet
+            .mut_storage()
+            .expect_fetch_data::<PinRecoveryData>()
+            .once()
+            .returning(|| {
+                Ok(Some(PinRecoveryData {
+                    state: PinRecoveryState::Starting,
+                }))
+            });
+
+        // It then updates the PIN recovery state.
+        wallet
+            .mut_storage()
+            .expect_upsert_data()
+            .once()
+            .returning(|data: &PinRecoveryData| {
+                assert_matches!(data.state, PinRecoveryState::Completing);
+                Ok(())
+            });
+
+        // General expectations for sending instructions.
+        wallet
+            .mut_storage()
+            .expect_fetch_data::<ChangePinData>()
+            .once()
+            .returning(|| Ok(None));
+        wallet
+            .mut_storage()
+            .expect_upsert_data()
+            .once()
+            .returning(|_: &RegistrationData| Ok(()));
+        wallet
+            .mut_storage()
+            .expect_fetch_data::<InstructionData>()
+            .times(2)
+            .returning(|| {
+                Ok(Some(InstructionData {
+                    instruction_sequence_number: 42,
+                }))
+            });
+        wallet
+            .mut_storage()
+            .expect_upsert_data()
+            .times(2)
+            .returning(|_: &InstructionData| Ok(()));
+
+        // Setup expectations for sending `DiscloseRecoveryCodePinRecovery` instruction
+        let account_provider_client = Arc::get_mut(&mut wallet.account_provider_client).unwrap();
+        account_provider_client
+            .expect_instruction_challenge()
+            .once()
+            .returning(|_, _| Ok(crypto::utils::random_bytes(32)));
+        account_provider_client
+            .expect_instruction()
+            .once()
+            .return_once(move |_, _: Instruction<DiscloseRecoveryCodePinRecovery>| Ok(create_wp_result(())));
+
+        // Finally, complete_pin_recovery() deletes the PIN recovery data.
+        wallet
+            .mut_storage()
+            .expect_delete_data::<PinRecoveryData>()
+            .once()
+            .returning(|| Ok(()));
+
+        // Setup the issuance session
+        let (sd_jwt, _metadata) = create_example_pid_sd_jwt();
+        let (pid_issuer, attestations) = mock_issuance_session(
+            IssuedCredential::SdJwt {
+                key_identifier: "key_id".to_string(),
+                sd_jwt: sd_jwt.clone(),
+            },
+            String::from(PID_ATTESTATION_TYPE),
+            VerifiedTypeMetadataDocuments::nl_pid_example(),
+        );
+        wallet.session = Some(Session::Issuance(WalletIssuanceSession::new(
+            true,
+            attestations,
+            pid_issuer,
+        )));
+
+        wallet
+            .complete_pin_recovery_with_wscd(MockPinWscd, "112233".to_string(), vec![1, 2, 3])
+            .await
+            .unwrap();
+    }
+
+    // Failing unit tests for continue_pid_recovery()
+
+    #[rstest]
+    #[case(None)]
+    #[case(Some(PinRecoveryState::Completing))]
+    #[tokio::test]
+    async fn continue_pid_recovery_wrong_state(#[case] found_state: Option<PinRecoveryState>) {
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        wallet
+            .mut_storage()
+            .expect_fetch_data::<PinRecoveryData>()
+            .once()
+            .returning(move || Ok(found_state.map(|state| PinRecoveryData { state })));
+
+        let err = wallet
+            .continue_pin_recovery(AUTH_URL.parse().unwrap())
+            .await
+            .unwrap_err();
+
+        assert_matches!(
+            err,
+            PinRecoveryError::UnexpectedState {
+                expected: PinRecoveryState::Starting,
+                found,
+            } if found == found_state
+        );
+    }
+
+    #[tokio::test]
+    async fn continue_pid_recovery_no_digid_session() {
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        wallet
+            .mut_storage()
+            .expect_fetch_data::<PinRecoveryData>()
+            .once()
+            .returning(move || {
+                Ok(Some(PinRecoveryData {
+                    state: PinRecoveryState::Starting,
+                }))
+            });
+
+        let err = wallet
+            .continue_pin_recovery(AUTH_URL.parse().unwrap())
+            .await
+            .unwrap_err();
+
+        assert_matches!(err, PinRecoveryError::SessionState);
+    }
+
+    #[tokio::test]
+    async fn continue_pid_recovery_has_issuance_session() {
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        wallet
+            .mut_storage()
+            .expect_fetch_data::<PinRecoveryData>()
+            .once()
+            .returning(move || {
+                Ok(Some(PinRecoveryData {
+                    state: PinRecoveryState::Starting,
+                }))
+            });
+
+        setup_issuance_session(&mut wallet);
+
+        let err = wallet
+            .continue_pin_recovery(AUTH_URL.parse().unwrap())
+            .await
+            .unwrap_err();
+
+        assert_matches!(err, PinRecoveryError::SessionState);
+    }
+
+    #[tokio::test]
+    async fn continue_pid_recovery_user_refused() {
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        wallet
+            .mut_storage()
+            .expect_fetch_data::<PinRecoveryData>()
+            .once()
+            .returning(move || {
+                Ok(Some(PinRecoveryData {
+                    state: PinRecoveryState::Starting,
+                }))
+            });
+
+        let mut digid_session = MockDigidSession::new();
+        digid_session
+            .expect_into_token_request()
+            .once()
+            .returning(|_, _| Err(DigidError::Oidc(OidcError::Denied)));
+
+        wallet.session = Some(Session::Digid(digid_session));
+
+        let err = wallet
+            .continue_pin_recovery(AUTH_URL.parse().unwrap())
+            .await
+            .unwrap_err();
+
+        assert_matches!(err, PinRecoveryError::DeniedDigiD);
+    }
+
+    #[tokio::test]
+    #[serial(MockIssuanceSession)]
+    pub async fn continue_pin_recovery_received_no_recovery_code() {
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        wallet
+            .mut_storage()
+            .expect_fetch_data::<PinRecoveryData>()
+            .once()
+            .returning(|| {
+                Ok(Some(PinRecoveryData {
+                    state: PinRecoveryState::Starting,
+                }))
+            });
+
+        let mut session = MockDigidSession::new();
+        session
+            .expect_into_token_request()
+            .return_once(|_http_config, _redirect_uri| {
+                let token_request = TokenRequest {
+                    grant_type: TokenRequestGrantType::PreAuthorizedCode {
+                        pre_authorized_code: "123".to_string().into(),
+                    },
+                    code_verifier: None,
+                    client_id: None,
+                    redirect_uri: None,
+                };
+
+                Ok(token_request)
+            });
+        wallet.session = Some(Session::Digid(session));
+
+        // Set up the `MockIssuanceSession` to return one `CredentialPreviewState`.
+        let start_context = MockIssuanceSession::start_context();
+        start_context.expect().return_once(|| {
+            let mut client = MockIssuanceSession::new();
+
+            // Remove the recovery code attribute from the preview
+            let mut preview = create_example_preview_data(&MockTimeGenerator::default());
+            preview
+                .content
+                .credential_payload
+                .attributes
+                .prune(&[vec_nonempty![ClaimPath::SelectByKey("family_name".to_string())]]);
+
+            client
+                .expect_normalized_credential_previews()
+                .return_const(vec![preview]);
+
+            client.expect_issuer().return_const(IssuerRegistration::new_mock());
+
+            Ok(client)
+        });
+
+        wallet
+            .mut_storage()
+            .expect_fetch_unique_attestations_by_type()
+            .times(1)
+            .returning(|_, _| {
+                Ok(vec![StoredAttestationCopy::new(
+                    Uuid::new_v4(),
+                    Uuid::new_v4(),
+                    StoredAttestation::SdJwt {
+                        key_identifier: "key".to_string(),
+                        sd_jwt: create_example_pid_sd_jwt().0,
+                    },
+                    NormalizedTypeMetadata::nl_pid_example(),
+                )])
+            });
+
+        let err = wallet
+            .continue_pin_recovery(AUTH_URL.parse().unwrap())
+            .await
+            .unwrap_err();
+
+        assert_matches!(err, PinRecoveryError::MissingRecoveryCode);
+    }
+
+    #[tokio::test]
+    #[serial(MockIssuanceSession)]
+    pub async fn continue_pin_recovery_received_wrong_recovery_code() {
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        wallet
+            .mut_storage()
+            .expect_fetch_data::<PinRecoveryData>()
+            .once()
+            .returning(|| {
+                Ok(Some(PinRecoveryData {
+                    state: PinRecoveryState::Starting,
+                }))
+            });
+
+        let mut session = MockDigidSession::new();
+        session
+            .expect_into_token_request()
+            .return_once(|_http_config, _redirect_uri| {
+                let token_request = TokenRequest {
+                    grant_type: TokenRequestGrantType::PreAuthorizedCode {
+                        pre_authorized_code: "123".to_string().into(),
+                    },
+                    code_verifier: None,
+                    client_id: None,
+                    redirect_uri: None,
+                };
+
+                Ok(token_request)
+            });
+        wallet.session = Some(Session::Digid(session));
+
+        // Set up the `MockIssuanceSession` to return one `CredentialPreviewState`.
+        let start_context = MockIssuanceSession::start_context();
+        start_context.expect().return_once(|| {
+            let mut client = MockIssuanceSession::new();
+
+            // Change the recovery code attribute from the preview
+            let mut preview = create_example_preview_data(&MockTimeGenerator::default());
+            let attributes = &mut preview.content.credential_payload.attributes;
+            attributes.prune(&[vec_nonempty![ClaimPath::SelectByKey("family_name".to_string())]]);
+            attributes
+                .insert(
+                    &vec_nonempty![ClaimPath::SelectByKey(PID_RECOVERY_CODE.to_string())],
+                    Attribute::Single(AttributeValue::Text("wrong recovery code".to_string())),
+                )
+                .unwrap();
+
+            client
+                .expect_normalized_credential_previews()
+                .return_const(vec![preview]);
+
+            client.expect_issuer().return_const(IssuerRegistration::new_mock());
+
+            Ok(client)
+        });
+
+        wallet
+            .mut_storage()
+            .expect_fetch_unique_attestations_by_type()
+            .times(2)
+            .returning(|_, _| {
+                Ok(vec![StoredAttestationCopy::new(
+                    Uuid::new_v4(),
+                    Uuid::new_v4(),
+                    StoredAttestation::SdJwt {
+                        key_identifier: "key".to_string(),
+                        sd_jwt: create_example_pid_sd_jwt().0,
+                    },
+                    NormalizedTypeMetadata::nl_pid_example(),
+                )])
+            });
+
+        let err = wallet
+            .continue_pin_recovery(AUTH_URL.parse().unwrap())
+            .await
+            .unwrap_err();
+
+        assert_matches!(err, PinRecoveryError::IncorrectRecoveryCode { .. });
+    }
+
+    // Failing unit tests for complete_pid_recovery()
+
+    #[rstest]
+    #[case(None)]
+    #[case(Some(PinRecoveryState::Completing))]
+    #[tokio::test]
+    async fn complete_pid_recovery_wrong_state(#[case] found_state: Option<PinRecoveryState>) {
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        wallet
+            .mut_storage()
+            .expect_fetch_data::<PinRecoveryData>()
+            .once()
+            .returning(move || Ok(found_state.map(|state| PinRecoveryData { state })));
+
+        // Setup the issuance session
+        setup_issuance_session(&mut wallet);
+
+        let err = wallet
+            .complete_pin_recovery_with_wscd(MockPinWscd, "112233".to_string(), vec![1, 2, 3])
+            .await
+            .unwrap_err();
+
+        assert_matches!(
+            err,
+            PinRecoveryError::UnexpectedState {
+                expected: PinRecoveryState::Starting,
+                found,
+            } if found == found_state
+        );
+    }
+
+    #[tokio::test]
+    async fn complete_pid_recovery_no_issuance_session() {
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        wallet
+            .mut_storage()
+            .expect_fetch_data::<PinRecoveryData>()
+            .once()
+            .returning(move || {
+                Ok(Some(PinRecoveryData {
+                    state: PinRecoveryState::Starting,
+                }))
+            });
+
+        let err = wallet
+            .complete_pin_recovery_with_wscd(MockPinWscd, "112233".to_string(), vec![1, 2, 3])
+            .await
+            .unwrap_err();
+
+        assert_matches!(err, PinRecoveryError::SessionState);
+    }
+
+    #[tokio::test]
+    async fn complete_pid_recovery_has_digid_session() {
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        wallet
+            .mut_storage()
+            .expect_fetch_data::<PinRecoveryData>()
+            .once()
+            .returning(move || {
+                Ok(Some(PinRecoveryData {
+                    state: PinRecoveryState::Starting,
+                }))
+            });
+
+        let err = wallet
+            .complete_pin_recovery_with_wscd(MockPinWscd, "112233".to_string(), vec![1, 2, 3])
+            .await
+            .unwrap_err();
+
+        wallet.session = Some(Session::Digid(MockDigidSession::new()));
+
+        assert_matches!(err, PinRecoveryError::SessionState);
+    }
+
+    #[tokio::test]
+    async fn complete_pid_recovery_too_simple_pin() {
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        wallet
+            .mut_storage()
+            .expect_fetch_data::<PinRecoveryData>()
+            .once()
+            .returning(move || {
+                Ok(Some(PinRecoveryData {
+                    state: PinRecoveryState::Starting,
+                }))
+            });
+
+        // Setup the issuance session
+        setup_issuance_session(&mut wallet);
+
+        let err = wallet
+            .complete_pin_recovery_with_wscd(MockPinWscd, "111111".to_string(), vec![1, 2, 3])
+            .await
+            .unwrap_err();
+
+        assert_matches!(
+            err,
+            PinRecoveryError::PinValidation(PinValidationError::TooFewUniqueDigits)
+        );
+    }
+
+    fn setup_issuance_session(wallet: &mut TestWalletMockStorage) {
+        let (sd_jwt, _metadata) = create_example_pid_sd_jwt();
+        let (pid_issuer, attestations) = mock_issuance_session(
+            IssuedCredential::SdJwt {
+                key_identifier: "key_id".to_string(),
+                sd_jwt: sd_jwt.clone(),
+            },
+            String::from(PID_ATTESTATION_TYPE),
+            VerifiedTypeMetadataDocuments::nl_pid_example(),
+        );
+
+        wallet.session = Some(Session::Issuance(WalletIssuanceSession::new(
+            true,
+            attestations,
+            pid_issuer,
+        )));
+    }
+
+    struct MockPinWscd;
+
+    impl DisclosureWscd for MockPinWscd {
+        type Key = MockRemoteEcdsaKey;
+        type Error = Infallible;
+        type Poa = Poa;
+
+        fn new_key<I: Into<String>>(&self, _identifier: I, _public_key: VerifyingKey) -> Self::Key {
+            unimplemented!()
+        }
+
+        async fn sign(
+            &self,
+            _messages_and_keys: Vec<(Vec<u8>, Vec<&Self::Key>)>,
+            _poa_input: <Self::Poa as WscdPoa>::Input,
+        ) -> Result<DisclosureResult<Self::Poa>, Self::Error> {
+            unimplemented!()
+        }
+    }
+
+    impl Wscd for MockPinWscd {
+        async fn perform_issuance(
+            &self,
+            _count: NonZeroUsize,
+            _aud: String,
+            _nonce: Option<String>,
+            _include_wua: bool,
+        ) -> Result<wscd::wscd::IssuanceResult<Self::Poa>, Self::Error> {
+            unimplemented!()
+        }
+    }
+
+    impl PinRecoveryWscd for MockPinWscd {
+        fn certificate(self) -> Option<UnverifiedJwt<WalletCertificateClaims>> {
+            Some(UnverifiedJwt::from_str("a.b.c").unwrap())
+        }
     }
 }

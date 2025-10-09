@@ -254,9 +254,9 @@ pub async fn continue_pin_recovery(uri: String) -> anyhow::Result<()> {
 pub async fn complete_pin_recovery(pin: String) -> anyhow::Result<()> {
     let mut wallet = wallet().write().await;
 
-    let result = wallet.complete_pin_recovery(pin).await?;
+    wallet.complete_pin_recovery(pin).await?;
 
-    Ok(result)
+    Ok(())
 }
 
 #[flutter_api_error]

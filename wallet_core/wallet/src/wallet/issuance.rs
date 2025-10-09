@@ -727,13 +727,9 @@ mod tests {
     use attestation_data::attributes::AttributeValue;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::constants::PID_ATTESTATION_TYPE;
-    use attestation_data::credential_payload::IntoCredentialPayload;
     use attestation_data::x509::CertificateType;
     use crypto::server_keys::generate::Ca;
-    use crypto::x509::BorrowingCertificateExtension;
-    use openid4vc::issuance_session::CredentialWithMetadata;
     use openid4vc::issuance_session::IssuedCredential;
-    use openid4vc::issuance_session::IssuedCredentialCopies;
     use openid4vc::mock::MockIssuanceSession;
     use openid4vc::oidc::OidcError;
     use openid4vc::token::TokenRequest;
@@ -757,66 +753,12 @@ mod tests {
     use crate::wallet::test::create_example_pid_sd_jwt;
     use crate::wallet::test::create_example_preview_data;
     use crate::wallet::test::create_wp_result;
+    use crate::wallet::test::mock_issuance_session;
 
     use super::super::test;
     use super::super::test::TestWalletMockStorage;
     use super::super::test::WalletDeviceVendor;
     use super::*;
-
-    fn mock_issuance_session(
-        credential: IssuedCredential,
-        attestation_type: String,
-        type_metadata: VerifiedTypeMetadataDocuments,
-    ) -> (MockIssuanceSession, VecNonEmpty<AttestationPresentation>) {
-        let mut client = MockIssuanceSession::new();
-        let issuer_certificate = match &credential {
-            IssuedCredential::MsoMdoc { mdoc } => mdoc.issuer_certificate().unwrap(),
-            IssuedCredential::SdJwt { sd_jwt, .. } => sd_jwt.issuer_certificate().to_owned(),
-        };
-
-        let issuer_registration = match IssuerRegistration::from_certificate(&issuer_certificate) {
-            Ok(Some(registration)) => registration,
-            _ => IssuerRegistration::new_mock(),
-        };
-
-        let attestations = vec![match &credential {
-            IssuedCredential::MsoMdoc { mdoc } => AttestationPresentation::create_from_mdoc(
-                AttestationIdentity::Ephemeral,
-                type_metadata.to_normalized().unwrap(),
-                issuer_registration.organization.clone(),
-                mdoc.issuer_signed().clone().into_entries_by_namespace(),
-            )
-            .unwrap(),
-            IssuedCredential::SdJwt { sd_jwt, .. } => {
-                let payload = sd_jwt
-                    .clone()
-                    .into_credential_payload(&type_metadata.to_normalized().unwrap())
-                    .unwrap();
-                AttestationPresentation::create_from_attributes(
-                    AttestationIdentity::Ephemeral,
-                    type_metadata.to_normalized().unwrap(),
-                    issuer_registration.organization.clone(),
-                    &payload.previewable_payload.attributes,
-                    true,
-                )
-                .unwrap()
-            }
-        }]
-        .try_into()
-        .unwrap();
-
-        client.expect_issuer().return_const(issuer_registration);
-
-        client.expect_accept().return_once(move || {
-            Ok(vec![CredentialWithMetadata::new(
-                IssuedCredentialCopies::new_or_panic(VecNonEmpty::try_from(vec![credential]).unwrap()),
-                attestation_type,
-                type_metadata,
-            )])
-        });
-
-        (client, attestations)
-    }
 
     #[tokio::test]
     async fn test_create_pid_issuance_auth_url() {
