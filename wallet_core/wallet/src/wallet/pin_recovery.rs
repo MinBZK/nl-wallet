@@ -1,7 +1,5 @@
 use std::sync::Arc;
 
-use futures::lock::Mutex;
-use p256::ecdsa::VerifyingKey;
 use tracing::info;
 use url::Url;
 
@@ -9,27 +7,16 @@ use attestation_data::attributes::AttributeValue;
 use attestation_data::constants::PID_ATTESTATION_TYPE;
 use attestation_data::constants::PID_RECOVERY_CODE;
 use attestation_types::claim_path::ClaimPath;
-use crypto::wscd::DisclosureWscd;
 use error_category::ErrorCategory;
-use jwt::UnverifiedJwt;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::issuance_session::IssuanceSession;
 use openid4vc::issuance_session::IssuedCredential;
 use openid4vc::oidc::OidcError;
-use platform_support::attested_key::AppleAttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
-use platform_support::attested_key::GoogleAttestedKey;
 use update_policy_model::update_policy::VersionState;
 use utils::vec_nonempty;
 use wallet_account::messages::instructions::DiscloseRecoveryCodePinRecovery;
-use wallet_account::messages::instructions::PerformIssuance;
-use wallet_account::messages::instructions::PerformIssuanceWithWua;
-use wallet_account::messages::instructions::StartPinRecovery;
-use wallet_account::messages::registration::WalletCertificateClaims;
 use wallet_configuration::wallet_config::WalletConfiguration;
-use wscd::Poa;
-use wscd::wscd::IssuanceResult;
-use wscd::wscd::Wscd;
 
 use crate::AttestationAttributeValue;
 use crate::account_provider::AccountProviderClient;
@@ -39,10 +26,8 @@ use crate::digid::DigidSession;
 use crate::errors::InstructionError;
 use crate::errors::PinKeyError;
 use crate::errors::PinValidationError;
-use crate::errors::RemoteEcdsaKeyError;
 use crate::errors::StorageError;
-use crate::instruction::InstructionClient;
-use crate::instruction::RemoteEcdsaKey;
+use crate::instruction::PinRecoveryRemoteEcdsaWscd;
 use crate::pin::key::PinKey;
 use crate::pin::key::new_pin_salt;
 use crate::repository::Repository;
@@ -376,9 +361,7 @@ where
         // Store the new wallet certificate and the new salt.
 
         let new_wallet_certificate = pin_recovery_wscd
-            .certificate
-            .lock()
-            .await
+            .certificate()
             .take()
             .expect("missing new wallet certificate");
 
@@ -473,91 +456,5 @@ where
         self.storage.write().await.delete_data::<PinRecoveryData>().await?;
 
         Ok(())
-    }
-}
-
-/// An implementation of the [`Wscd`] trait that uses the [`StartPinRecovery`] instruction in its
-/// `perform_issuance` method.
-pub struct PinRecoveryRemoteEcdsaWscd<S, AK, GK, A> {
-    instruction_client: InstructionClient<S, AK, GK, A>,
-
-    /// PIN public key to send in the [`StartPinRecovery`] instruction.
-    pin_key: VerifyingKey,
-
-    /// Stores the new wallet certificate that the WP replies with in [`StartPinRecoveryResult`].
-    certificate: Mutex<Option<UnverifiedJwt<WalletCertificateClaims>>>,
-}
-
-impl<S, AK, GK, A> PinRecoveryRemoteEcdsaWscd<S, AK, GK, A> {
-    fn new(instruction_client: InstructionClient<S, AK, GK, A>, pin_key: VerifyingKey) -> Self {
-        Self {
-            instruction_client,
-            pin_key,
-            certificate: Mutex::new(None),
-        }
-    }
-}
-
-impl<S, AK, GK, A> DisclosureWscd for PinRecoveryRemoteEcdsaWscd<S, AK, GK, A>
-where
-    S: Storage,
-    AK: AppleAttestedKey,
-    GK: GoogleAttestedKey,
-    A: AccountProviderClient,
-{
-    type Key = RemoteEcdsaKey;
-    type Error = RemoteEcdsaKeyError;
-    type Poa = Poa;
-
-    fn new_key<I: Into<String>>(&self, _identifier: I, _public_key: p256::ecdsa::VerifyingKey) -> Self::Key {
-        unimplemented!("new_key() should never be called on PinRecoveryRemoteEcdsaWscd");
-    }
-
-    async fn sign(
-        &self,
-        _messages_and_keys: Vec<(Vec<u8>, Vec<&Self::Key>)>,
-        _poa_input: <Self::Poa as crypto::wscd::WscdPoa>::Input,
-    ) -> Result<crypto::wscd::DisclosureResult<Self::Poa>, Self::Error> {
-        unimplemented!("sign() should never be called on PinRecoveryRemoteEcdsaWscd");
-    }
-}
-
-impl<S, AK, GK, A> Wscd for PinRecoveryRemoteEcdsaWscd<S, AK, GK, A>
-where
-    S: Storage,
-    AK: AppleAttestedKey,
-    GK: GoogleAttestedKey,
-    A: AccountProviderClient,
-{
-    async fn perform_issuance(
-        &self,
-        key_count: std::num::NonZeroUsize,
-        aud: String,
-        nonce: Option<String>,
-        include_wua: bool,
-    ) -> Result<wscd::wscd::IssuanceResult<Self::Poa>, Self::Error> {
-        if !include_wua {
-            panic!("include_wua must always be true for PinRecoveryRemoteEcdsaWscd")
-        }
-
-        let result = self
-            .instruction_client
-            .send(StartPinRecovery {
-                issuance_with_wua_instruction: PerformIssuanceWithWua {
-                    issuance_instruction: PerformIssuance { key_count, aud, nonce },
-                },
-                pin_pubkey: self.pin_key.into(),
-            })
-            .await?;
-
-        self.certificate.lock().await.replace(result.certificate);
-
-        let issuance_result = result.issuance_with_wua_result.issuance_result;
-        Ok(IssuanceResult::new(
-            issuance_result.key_identifiers,
-            issuance_result.pops,
-            issuance_result.poa,
-            Some(result.issuance_with_wua_result.wua_disclosure),
-        ))
     }
 }

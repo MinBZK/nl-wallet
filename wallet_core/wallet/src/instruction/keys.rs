@@ -6,6 +6,7 @@ use crypto::WithVerifyingKey;
 use derive_more::Constructor;
 use p256::ecdsa::VerifyingKey;
 use p256::ecdsa::signature;
+use parking_lot::Mutex;
 
 use crypto::keys::CredentialEcdsaKey;
 use crypto::keys::WithIdentifier;
@@ -13,12 +14,15 @@ use crypto::p256_der::DerSignature;
 use crypto::wscd::DisclosureResult;
 use crypto::wscd::DisclosureWscd;
 use crypto::wscd::WscdPoa;
+use jwt::UnverifiedJwt;
 use platform_support::attested_key::AppleAttestedKey;
 use platform_support::attested_key::GoogleAttestedKey;
 use wallet_account::messages::instructions::PerformIssuance;
 use wallet_account::messages::instructions::PerformIssuanceWithWua;
 use wallet_account::messages::instructions::PerformIssuanceWithWuaResult;
 use wallet_account::messages::instructions::Sign;
+use wallet_account::messages::instructions::StartPinRecovery;
+use wallet_account::messages::registration::WalletCertificateClaims;
 use wscd::Poa;
 use wscd::wscd::IssuanceResult;
 use wscd::wscd::Wscd;
@@ -166,3 +170,93 @@ impl WithVerifyingKey for RemoteEcdsaKey {
 }
 
 impl CredentialEcdsaKey for RemoteEcdsaKey {}
+
+/// An implementation of the [`Wscd`] trait that uses the [`StartPinRecovery`] instruction in its
+/// `perform_issuance` method.
+pub struct PinRecoveryRemoteEcdsaWscd<S, AK, GK, A> {
+    instruction_client: InstructionClient<S, AK, GK, A>,
+
+    /// PIN public key to send in the [`StartPinRecovery`] instruction.
+    pin_key: VerifyingKey,
+
+    /// Stores the new wallet certificate that the WP replies with in [`StartPinRecoveryResult`].
+    certificate: Mutex<Option<UnverifiedJwt<WalletCertificateClaims>>>,
+}
+
+impl<S, AK, GK, A> PinRecoveryRemoteEcdsaWscd<S, AK, GK, A> {
+    pub fn new(instruction_client: InstructionClient<S, AK, GK, A>, pin_key: VerifyingKey) -> Self {
+        Self {
+            instruction_client,
+            pin_key,
+            certificate: Mutex::new(None),
+        }
+    }
+
+    pub fn certificate(self) -> Option<UnverifiedJwt<WalletCertificateClaims>> {
+        self.certificate.into_inner()
+    }
+}
+
+impl<S, AK, GK, A> DisclosureWscd for PinRecoveryRemoteEcdsaWscd<S, AK, GK, A>
+where
+    S: Storage,
+    AK: AppleAttestedKey,
+    GK: GoogleAttestedKey,
+    A: AccountProviderClient,
+{
+    type Key = RemoteEcdsaKey;
+    type Error = RemoteEcdsaKeyError;
+    type Poa = Poa;
+
+    fn new_key<I: Into<String>>(&self, _identifier: I, _public_key: p256::ecdsa::VerifyingKey) -> Self::Key {
+        unimplemented!("new_key() should never be called on PinRecoveryRemoteEcdsaWscd");
+    }
+
+    async fn sign(
+        &self,
+        _messages_and_keys: Vec<(Vec<u8>, Vec<&Self::Key>)>,
+        _poa_input: <Self::Poa as crypto::wscd::WscdPoa>::Input,
+    ) -> Result<crypto::wscd::DisclosureResult<Self::Poa>, Self::Error> {
+        unimplemented!("sign() should never be called on PinRecoveryRemoteEcdsaWscd");
+    }
+}
+
+impl<S, AK, GK, A> Wscd for PinRecoveryRemoteEcdsaWscd<S, AK, GK, A>
+where
+    S: Storage,
+    AK: AppleAttestedKey,
+    GK: GoogleAttestedKey,
+    A: AccountProviderClient,
+{
+    async fn perform_issuance(
+        &self,
+        key_count: std::num::NonZeroUsize,
+        aud: String,
+        nonce: Option<String>,
+        include_wua: bool,
+    ) -> Result<IssuanceResult<Self::Poa>, Self::Error> {
+        if !include_wua {
+            panic!("include_wua must always be true for PinRecoveryRemoteEcdsaWscd")
+        }
+
+        let result = self
+            .instruction_client
+            .send(StartPinRecovery {
+                issuance_with_wua_instruction: PerformIssuanceWithWua {
+                    issuance_instruction: PerformIssuance { key_count, aud, nonce },
+                },
+                pin_pubkey: self.pin_key.into(),
+            })
+            .await?;
+
+        self.certificate.lock().replace(result.certificate);
+
+        let issuance_result = result.issuance_with_wua_result.issuance_result;
+        Ok(IssuanceResult::new(
+            issuance_result.key_identifiers,
+            issuance_result.pops,
+            issuance_result.poa,
+            Some(result.issuance_with_wua_result.wua_disclosure),
+        ))
+    }
+}
