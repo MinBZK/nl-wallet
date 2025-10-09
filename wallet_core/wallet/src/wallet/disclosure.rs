@@ -127,8 +127,6 @@ pub enum DisclosureError {
     Instruction(#[source] InstructionError),
     #[error("could not increment usage count of mdoc copies in database: {0}")]
     IncrementUsageCount(#[source] StorageError),
-    #[error("could not store event in history database: {0}")]
-    EventStorage(#[source] StorageError),
     #[error("error finalizing pin change: {0}")]
     ChangePin(#[from] ChangePinError),
     #[error("error fetching update policy: {0}")]
@@ -547,16 +545,19 @@ where
 
         let return_url = session.protocol_state.terminate().await?.map(BaseUrl::into_inner);
 
-        self.store_disclosure_event(
-            Utc::now(),
-            attestations.try_into().ok(),
-            reader_certificate,
-            session.disclosure_type,
-            EventStatus::Cancelled,
-            DataDisclosureStatus::NotDisclosed,
-        )
-        .await
-        .map_err(DisclosureError::EventStorage)?;
+        if let Err(error) = self
+            .store_disclosure_event(
+                Utc::now(),
+                attestations.try_into().ok(),
+                reader_certificate,
+                session.disclosure_type,
+                EventStatus::Cancelled,
+                DataDisclosureStatus::NotDisclosed,
+            )
+            .await
+        {
+            error!("Could not store cancellation in history: {error}");
+        }
 
         Ok(return_url)
     }
@@ -865,16 +866,19 @@ where
                     .collect_vec()
             })
             .unwrap_or_default();
-        self.store_disclosure_event(
-            Utc::now(),
-            attestation_presentations.try_into().ok(),
-            reader_certificate,
-            session.disclosure_type,
-            EventStatus::Success,
-            DataDisclosureStatus::Disclosed,
-        )
-        .await
-        .map_err(DisclosureError::EventStorage)?;
+        if let Err(error) = self
+            .store_disclosure_event(
+                Utc::now(),
+                attestation_presentations.try_into().ok(),
+                reader_certificate,
+                session.disclosure_type,
+                EventStatus::Success,
+                DataDisclosureStatus::Disclosed,
+            )
+            .await
+        {
+            error!("Could not store disclosure in history: {error}");
+        }
 
         Ok(return_url)
     }
@@ -1989,50 +1993,6 @@ mod tests {
 
         assert_matches!(error, DisclosureError::VpClient(VpClientError::Request(_)));
         assert_eq!(error.return_url(), Some(RETURN_URL.as_ref()));
-        assert!(wallet.session.is_none());
-        assert!(events.lock().pop().unwrap().is_empty());
-    }
-
-    #[rstest]
-    #[tokio::test]
-    async fn test_wallet_cancel_disclosure_error_event_storage(
-        #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] requested_format: CredentialFormat,
-    ) {
-        // Prepare a registered and unlocked wallet with an active disclosure session and a faulty database.
-        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-        let (session, _verifier_certificate) = setup_wallet_disclosure_session(requested_format);
-        wallet.session = Some(session);
-
-        wallet
-            .mut_storage()
-            .expect_fetch_recent_wallet_events()
-            .returning(move || Ok(vec![]));
-        let events = setup_mock_recent_history_callback(&mut wallet).await.unwrap();
-
-        wallet
-            .mut_storage()
-            .expect_log_disclosure_event()
-            .times(1)
-            .return_once(|_, _, _, _, _| Err(StorageError::AlreadyOpened));
-
-        // Cancelling disclosure on a wallet with a faulty database should result
-        // in an error, while the disclosure session should be removed.
-        let Some(Session::Disclosure(session)) = &mut wallet.session else {
-            unreachable!();
-        };
-        session
-            .protocol_state
-            .expect_terminate()
-            .times(1)
-            .return_once(|| Ok(None));
-
-        let error = wallet
-            .cancel_disclosure()
-            .await
-            .expect_err("cancelling disclosure should not succeed");
-
-        assert_matches!(error, DisclosureError::EventStorage(_));
-        assert!(error.return_url().is_none());
         assert!(wallet.session.is_none());
         assert!(events.lock().pop().unwrap().is_empty());
     }
