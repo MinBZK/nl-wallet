@@ -1,9 +1,4 @@
-use std::collections::hash_map::DefaultHasher;
-use std::hash::Hash;
-use std::hash::Hasher;
-
 use derive_more::Debug;
-use etag::EntityTag;
 use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde::Serialize;
@@ -20,7 +15,7 @@ use crate::EnvironmentSpecific;
 use crate::digid::DigidApp2AppConfiguration;
 
 #[serde_as]
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct WalletConfiguration {
     pub environment: String,
     pub lock_timeouts: LockTimeoutConfiguration,
@@ -45,12 +40,6 @@ impl WalletConfiguration {
             .map(|anchor| anchor.as_trust_anchor().clone())
             .collect()
     }
-
-    pub fn to_hash(&self) -> u64 {
-        let mut hasher = DefaultHasher::new();
-        self.hash(&mut hasher);
-        hasher.finish()
-    }
 }
 
 impl EnvironmentSpecific for WalletConfiguration {
@@ -59,13 +48,7 @@ impl EnvironmentSpecific for WalletConfiguration {
     }
 }
 
-impl From<&WalletConfiguration> for EntityTag {
-    fn from(value: &WalletConfiguration) -> Self {
-        EntityTag::new(false, &value.to_hash().to_string())
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LockTimeoutConfiguration {
     /// App inactivity warning timeout in seconds
     pub warning_timeout: u16,
@@ -86,7 +69,7 @@ impl Default for LockTimeoutConfiguration {
 }
 
 #[serde_as]
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AccountServerConfiguration {
     pub http_config: TlsPinningConfig,
     #[debug(skip)]
@@ -100,19 +83,19 @@ pub struct AccountServerConfiguration {
     pub wua_public_key: DerVerifyingKey,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UpdatePolicyServerConfiguration {
     pub http_config: TlsPinningConfig,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PidIssuanceConfiguration {
     pub pid_issuer_url: BaseUrl,
     pub digid: DigidConfiguration,
     pub digid_http_config: TlsPinningConfig,
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DigidConfiguration {
     pub client_id: String,
     #[serde(default)]
@@ -120,7 +103,7 @@ pub struct DigidConfiguration {
 }
 
 #[serde_as]
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DisclosureConfiguration {
     #[debug(skip)]
     #[serde_as(as = "Vec<Base64>")]

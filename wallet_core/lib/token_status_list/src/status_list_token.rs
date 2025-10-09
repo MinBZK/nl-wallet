@@ -26,6 +26,7 @@ use jwt::error::JwtError;
 use crate::status_list::PackedStatusList;
 
 static TOKEN_STATUS_LIST_JWT_TYP: &str = "statuslist+jwt";
+#[cfg(feature = "axum")]
 static TOKEN_STATUS_LIST_JWT_HEADER: &str = "application/statuslist+jwt";
 
 /// A Status List Token embeds a Status List into a token that is cryptographically signed and protects the integrity of

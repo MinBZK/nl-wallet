@@ -31,11 +31,12 @@ pub async fn serve_with_listener(listener: TcpListener, settings: Settings) -> R
     info!("listening on {}", listener.local_addr()?);
     listener.set_nonblocking(true)?;
 
+    let config_entity_tag = EntityTag::from_data(settings.wallet_config_jwt.jwt().serialization().as_bytes());
     let app = Router::new().merge(health_router()).nest(
         "/config/v1",
         Router::new()
             .route("/wallet-config", get(configuration))
-            .with_state(settings.wallet_config_jwt),
+            .with_state((settings.wallet_config_jwt, config_entity_tag)),
     );
 
     axum_server::from_tcp_rustls(listener, settings.tls_config.into_rustls_config().await?)
@@ -50,12 +51,10 @@ fn health_router() -> Router {
 }
 
 async fn configuration(
-    State(config_jwt): State<VerifiedJwt<WalletConfiguration>>,
+    State((config_jwt, config_entity_tag)): State<(VerifiedJwt<WalletConfiguration>, EntityTag)>,
     headers: HeaderMap,
-) -> std::result::Result<Response, StatusCode> {
+) -> Result<Response, StatusCode> {
     info!("received configuration request");
-
-    let config_entity_tag = EntityTag::from_data(config_jwt.to_string().as_bytes());
 
     if let Some(etag) = headers.get(header::IF_NONE_MATCH) {
         let entity_tag = etag
