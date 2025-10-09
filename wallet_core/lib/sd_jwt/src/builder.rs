@@ -116,39 +116,45 @@ impl<H: Hasher> SdJwtBuilder<H> {
     /// - `path`  indicates the claim paths pointing to the value that will be concealed.
     ///
     /// ## Example
-    ///  ```rust
-    ///  use attestation_types::claim_path::ClaimPath;
-    ///  use serde_json::json;
-    ///  use sd_jwt::builder::SdJwtBuilder;
-    ///  use utils::vec_at_least::VecNonEmpty;
+    /// ```rust
+    /// use attestation_types::claim_path::ClaimPath;
+    /// use p256::ecdsa::SigningKey;
+    /// use serde_json::json;
+    /// use sd_jwt::builder::SdJwtBuilder;
+    /// use sd_jwt::sd_jwt::SdJwtVcClaims;
+    /// use utils::generator::mock::MockTimeGenerator;
+    /// use utils::vec_at_least::VecNonEmpty;
+    /// use rand_core::OsRng;
     ///
-    ///  let obj = json!({
-    ///   "iss": "https://issuer.example.com/",
-    ///   "iat": 1683000000,
-    ///   "id": "did:value",
-    ///   "claim1": {
-    ///      "abc": true
-    ///   },
-    ///   "claim2": ["val_1", "val_2"]
+    /// let obj = json!({
+    ///     "id": "did:value",
+    ///     "claim1": {
+    ///         "abc": true
+    ///     },
+    ///     "claim2": ["val_1", "val_2"]
     /// });
-    /// let builder = SdJwtBuilder::new(obj)
-    ///   .unwrap()
-    ///   //conceals "id": "did:value"
-    ///   .make_concealable(VecNonEmpty::try_from(vec![ClaimPath::SelectByKey(String::from("id"))]).unwrap()).unwrap()
-    ///   //"abc": true
-    ///   .make_concealable(VecNonEmpty::try_from(
-    ///       vec![
-    ///          ClaimPath::SelectByKey(String::from("claim1")),
-    ///          ClaimPath::SelectByKey(String::from("abc"))
-    ///       ]
-    ///   ).unwrap()).unwrap()
-    ///   //conceals "val_1"
-    ///   .make_concealable(VecNonEmpty::try_from(
-    ///       vec![
-    ///          ClaimPath::SelectByKey(String::from("claim2")),
-    ///          ClaimPath::SelectByIndex(0)
-    ///       ]
-    ///   ).unwrap()).unwrap();
+    /// let builder = SdJwtBuilder::new(SdJwtVcClaims::example_from_json(
+    ///         SigningKey::random(&mut OsRng).verifying_key(),
+    ///         obj,
+    ///         &MockTimeGenerator::default(),
+    ///     ))
+    ///     .unwrap()
+    ///     //conceals "id": "did:value"
+    ///     .make_concealable(VecNonEmpty::try_from(vec![ClaimPath::SelectByKey(String::from("id"))]).unwrap()).unwrap()
+    ///     //"abc": true
+    ///     .make_concealable(VecNonEmpty::try_from(
+    ///         vec![
+    ///            ClaimPath::SelectByKey(String::from("claim1")),
+    ///            ClaimPath::SelectByKey(String::from("abc"))
+    ///         ]
+    ///     ).unwrap()).unwrap()
+    ///     //conceals "val_1"
+    ///     .make_concealable(VecNonEmpty::try_from(
+    ///         vec![
+    ///            ClaimPath::SelectByKey(String::from("claim2")),
+    ///            ClaimPath::SelectByIndex(0)
+    ///         ]
+    ///     ).unwrap()).unwrap();
     /// ```
     pub fn make_concealable(mut self, path: VecNonEmpty<ClaimPath>) -> Result<Self> {
         let disclosure = self.encoder.conceal(path)?;
