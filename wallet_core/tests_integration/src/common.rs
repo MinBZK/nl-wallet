@@ -334,7 +334,7 @@ pub async fn setup_tempfile_wallet(
     config_server_config: ConfigServerConfiguration,
     wallet_config: WalletConfiguration,
     key_holder: MockHardwareAttestedKeyHolder,
-    tempdir: TempDir,
+    tempdir: &TempDir,
 ) -> WalletWithStorage {
     setup_wallet(config_server_config, wallet_config, key_holder, async move || {
         MockHardwareDatabaseStorage::open_temp_file(tempdir).await
@@ -892,7 +892,7 @@ pub fn universal_link(issuance_server_url: &BaseUrl, format: CredentialFormat) -
 
 pub async fn wallet_attestations(wallet: &mut WalletWithStorage) -> Vec<AttestationPresentation> {
     // Emit attestations into this local variable
-    let attestations: Arc<std::sync::Mutex<Vec<AttestationPresentation>>> = Arc::new(std::sync::Mutex::new(vec![]));
+    let attestations: Arc<std::sync::Mutex<Vec<AttestationPresentation>>> = Arc::default();
 
     {
         let attestations = Arc::clone(&attestations);

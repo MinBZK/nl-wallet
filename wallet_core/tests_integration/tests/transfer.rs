@@ -15,6 +15,12 @@ use wallet::TransferSessionState;
 use wallet::errors::ChangePinError;
 use wallet::errors::InstructionError;
 
+struct WalletData {
+    pub wallet: WalletWithStorage,
+    pub pin: String,
+    pub tempdir: TempDir,
+}
+
 async fn assert_states(
     expected_state: TransferSessionState,
     destination: &mut WalletWithStorage,
@@ -28,7 +34,10 @@ async fn assert_state(expected_state: TransferSessionState, wallet: &mut WalletW
     assert_eq!(wallet.get_transfer_status().await.unwrap(), expected_state);
 }
 
-async fn init_wallets(source_wallet_pin: &str, destination_wallet_pin: &str) -> (WalletWithStorage, WalletWithStorage) {
+async fn init_wallets() -> (WalletData, WalletData) {
+    let source_wallet_pin = "112233";
+    let destination_wallet_pin = "332211";
+
     let source_tempdir = TempDir::new().unwrap();
     let destination_tempdir = TempDir::new().unwrap();
 
@@ -38,11 +47,11 @@ async fn init_wallets(source_wallet_pin: &str, destination_wallet_pin: &str) -> 
         config_server_config.clone(),
         wallet_config.clone(),
         mock_device_config.google_key_holder(),
-        source_tempdir,
+        &source_tempdir,
     )
     .await;
     source = do_wallet_registration(source, source_wallet_pin).await;
-    source = do_pid_issuance(source, source_wallet_pin.to_owned()).await;
+    source = do_pid_issuance(source, String::from(source_wallet_pin)).await;
     source
         .start_disclosure(
             &universal_link(&issuance_url, CredentialFormat::SdJwt),
@@ -51,30 +60,50 @@ async fn init_wallets(source_wallet_pin: &str, destination_wallet_pin: &str) -> 
         .await
         .unwrap();
     source
-        .continue_disclosure_based_issuance(source_wallet_pin.to_owned())
+        .continue_disclosure_based_issuance(String::from(source_wallet_pin))
         .await
         .unwrap();
-    source.accept_issuance(source_wallet_pin.to_owned()).await.unwrap();
+    source.accept_issuance(String::from(source_wallet_pin)).await.unwrap();
 
     let mut destination = setup_tempfile_wallet(
         config_server_config,
         wallet_config,
         mock_device_config.apple_key_holder(),
-        destination_tempdir,
+        &destination_tempdir,
     )
     .await;
     destination = do_wallet_registration(destination, destination_wallet_pin).await;
-    destination = do_pid_issuance(destination, destination_wallet_pin.to_string()).await;
+    destination = do_pid_issuance(destination, String::from(destination_wallet_pin)).await;
 
-    (source, destination)
+    (
+        WalletData {
+            wallet: source,
+            pin: String::from(source_wallet_pin),
+            tempdir: source_tempdir,
+        },
+        WalletData {
+            wallet: destination,
+            pin: String::from(destination_wallet_pin),
+            tempdir: destination_tempdir,
+        },
+    )
 }
 
 #[tokio::test]
 #[serial(hsm)]
 async fn test_wallet_transfer() {
-    let source_wallet_pin = "112233";
-    let destination_wallet_pin = "332211";
-    let (mut source, mut destination) = init_wallets(source_wallet_pin, destination_wallet_pin).await;
+    let (
+        WalletData {
+            wallet: mut source,
+            pin: source_wallet_pin,
+            tempdir: _source_tempdir,
+        },
+        WalletData {
+            wallet: mut destination,
+            pin: destination_wallet_pin,
+            tempdir: _destination_tempdir,
+        },
+    ) = init_wallets().await;
 
     let url = destination.init_transfer().await.unwrap();
 
@@ -86,7 +115,7 @@ async fn test_wallet_transfer() {
 
     // Other instructions are not allowed during transfer
     let err = destination
-        .begin_change_pin(String::from(destination_wallet_pin), String::from("565656"))
+        .begin_change_pin(destination_wallet_pin.clone(), String::from("565656"))
         .await
         .expect_err("should fail during transfer");
     assert_matches!(
@@ -94,7 +123,7 @@ async fn test_wallet_transfer() {
         ChangePinError::Instruction(InstructionError::InstructionValidation)
     );
     let err = source
-        .begin_change_pin(String::from(source_wallet_pin), String::from("565656"))
+        .begin_change_pin(source_wallet_pin.clone(), String::from("565656"))
         .await
         .expect_err("should fail during transfer");
     assert_matches!(
@@ -102,7 +131,7 @@ async fn test_wallet_transfer() {
         ChangePinError::Instruction(InstructionError::InstructionValidation)
     );
 
-    source.send_wallet_payload(source_wallet_pin.to_string()).await.unwrap();
+    source.send_wallet_payload(source_wallet_pin.clone()).await.unwrap();
 
     assert_state(TransferSessionState::ReadyForDownload, &mut source).await;
     assert_state(TransferSessionState::Success, &mut destination).await;
@@ -120,29 +149,41 @@ async fn test_wallet_transfer() {
 #[tokio::test]
 #[serial(hsm)]
 async fn test_wallet_transfer_canceled_from_source() {
-    let source_wallet_pin = "112233";
-    let destination_wallet_pin = "332211";
-    let (mut source, mut destination) = init_wallets(source_wallet_pin, destination_wallet_pin).await;
+    let (mut source_data, mut destination_data) = init_wallets().await;
 
-    let url = destination.init_transfer().await.unwrap();
+    let url = destination_data.wallet.init_transfer().await.unwrap();
 
-    assert_state(TransferSessionState::Created, &mut destination).await;
+    assert_state(TransferSessionState::Created, &mut destination_data.wallet).await;
 
-    source.confirm_transfer(url).await.unwrap();
+    source_data.wallet.confirm_transfer(url).await.unwrap();
 
-    assert_states(TransferSessionState::ReadyForTransfer, &mut destination, &mut source).await;
+    assert_states(
+        TransferSessionState::ReadyForTransfer,
+        &mut destination_data.wallet,
+        &mut source_data.wallet,
+    )
+    .await;
 
-    source.cancel_transfer().await.unwrap();
+    source_data.wallet.cancel_transfer().await.unwrap();
 
-    assert_state(TransferSessionState::Canceled, &mut destination).await;
+    assert_state(TransferSessionState::Canceled, &mut destination_data.wallet).await;
 }
 
 #[tokio::test]
 #[serial(hsm)]
 async fn test_wallet_transfer_canceled_from_destination() {
-    let source_wallet_pin = "112233";
-    let destination_wallet_pin = "332211";
-    let (mut source, mut destination) = init_wallets(source_wallet_pin, destination_wallet_pin).await;
+    let (
+        WalletData {
+            wallet: mut source,
+            pin: source_wallet_pin,
+            tempdir: _source_tempdir,
+        },
+        WalletData {
+            wallet: mut destination,
+            tempdir: _destination_tempdir,
+            ..
+        },
+    ) = init_wallets().await;
 
     let url = destination.init_transfer().await.unwrap();
 
@@ -152,7 +193,7 @@ async fn test_wallet_transfer_canceled_from_destination() {
 
     assert_states(TransferSessionState::ReadyForTransfer, &mut destination, &mut source).await;
 
-    source.send_wallet_payload(source_wallet_pin.to_string()).await.unwrap();
+    source.send_wallet_payload(source_wallet_pin.clone()).await.unwrap();
 
     assert_state(TransferSessionState::ReadyForDownload, &mut source).await;
 

@@ -999,9 +999,10 @@ pub mod test_storage {
             storage
         }
 
-        pub async fn open_temp_file(tempdir: TempDir) -> Self {
+        pub async fn open_temp_file(tempdir: &TempDir) -> Self {
             let database_name = random_string(8);
-            let mut storage = DatabaseStorage::<MockHardwareEncryptionKey>::new(database_name, tempdir.into_path());
+            let mut storage =
+                DatabaseStorage::<MockHardwareEncryptionKey>::new(database_name, tempdir.path().to_path_buf());
             let open_database = storage.open_encrypted_database().await.unwrap();
             storage.open_database = Some(open_database);
             storage
