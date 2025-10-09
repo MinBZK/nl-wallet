@@ -12,7 +12,6 @@ use crypto::trust_anchor::BorrowingTrustAnchor;
 use http_utils::tls::pinning::TlsPinningConfig;
 use http_utils::urls::BaseUrl;
 use jwt::JwtTyp;
-use utils::vec_at_least::VecAtLeastTwo;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::EnvironmentSpecific;
@@ -95,18 +94,12 @@ pub struct UpdatePolicyServerConfiguration {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PidAttributesConfiguration {
-    pub mso_mdoc: HashMap<String, MsoMdocPaths>,
-    pub sd_jwt: HashMap<String, SdJwtPaths>,
+    pub mso_mdoc: HashMap<String, PidAttributePaths>,
+    pub sd_jwt: HashMap<String, PidAttributePaths>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct MsoMdocPaths {
-    pub login: VecAtLeastTwo<String>,
-    pub recovery_code: VecAtLeastTwo<String>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct SdJwtPaths {
+pub struct PidAttributePaths {
     pub login: VecNonEmpty<String>,
     pub recovery_code: VecNonEmpty<String>,
 }
