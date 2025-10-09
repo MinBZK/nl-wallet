@@ -1164,12 +1164,8 @@ pub(crate) mod tests {
         // Export via block to have everything dropped
         let transfer = {
             let tempdir = tempfile::tempdir().unwrap();
-            let mut storage = DatabaseStorage::<MockHardwareEncryptionKey>::new(
-                String::from("export_db"),
-                tempdir.as_ref().to_path_buf(),
-            );
+            let mut storage = DatabaseStorage::open_temp_file(&tempdir).await;
 
-            storage.open().await.unwrap();
             storage.insert_data(&test).await.unwrap();
             storage.insert_data(&exported_registration).await.unwrap();
             storage.export().await.unwrap()
@@ -1177,14 +1173,10 @@ pub(crate) mod tests {
 
         // Import via new storage with new key
         let tempdir = tempfile::tempdir().unwrap();
-        let mut storage = DatabaseStorage::<MockHardwareEncryptionKey>::new(
-            String::from("import_db"),
-            tempdir.as_ref().to_path_buf(),
-        );
+        let mut storage = DatabaseStorage::open_temp_file(&tempdir).await;
 
         let encrypted_file = NamedTempFile::new().unwrap();
 
-        storage.open().await.unwrap();
         storage.insert_data(&initial_registration).await.unwrap();
         storage.prepare_import(transfer, &encrypted_file).await.unwrap();
         storage.commit_import(encrypted_file).await.unwrap();
