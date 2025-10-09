@@ -32,7 +32,6 @@ use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateUsage;
 use http_utils::urls::HttpsUri;
 use jwt::EcdsaDecodingKey;
-use jwt::Header;
 use jwt::JwtTyp;
 use jwt::UnverifiedJwt;
 use jwt::VerifiedJwt;
@@ -657,7 +656,7 @@ static SD_JWT_VALIDATIONS: LazyLock<Validation> = LazyLock::new(|| {
 impl<C, H, E> UnverifiedSdJwt<C, H>
 where
     C: SdJwtClaims + DeserializeOwned + JwtTyp,
-    H: TryFrom<Header, Error = E>,
+    H: TryFrom<jwt::Header, Error = E>,
     E: std::error::Error + Send + Sync + 'static,
 {
     pub(crate) fn into_verified(self, pubkey: &EcdsaDecodingKey) -> Result<VerifiedSdJwt<C, H>> {
@@ -674,7 +673,7 @@ where
 impl<C, H, E> UnverifiedSdJwtPresentation<C, H>
 where
     C: SdJwtClaims + DeserializeOwned + JwtTyp,
-    H: TryFrom<Header, Error = E>,
+    H: TryFrom<jwt::Header, Error = E>,
     E: std::error::Error + Send + Sync + 'static,
 {
     pub(crate) fn into_verified(
