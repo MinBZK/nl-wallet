@@ -18,6 +18,7 @@ use sea_orm::Database;
 use sea_orm::DatabaseConnection;
 use sea_orm::EntityTrait;
 use sea_orm::PaginatorTrait;
+use tempfile::TempDir;
 use tokio::net::TcpListener;
 use tokio::time;
 use url::Url;
@@ -31,6 +32,7 @@ use apple_app_attest::MockAttestationCa;
 use attestation_data::issuable_document::IssuableDocument;
 use configuration_server::settings::Settings as CsSettings;
 use crypto::trust_anchor::BorrowingTrustAnchor;
+use dcql::CredentialFormat;
 use gba_hc_converter::settings::Settings as GbaSettings;
 use hsm::service::Pkcs11Hsm;
 use http_utils::reqwest::ReqwestTrustAnchor;
@@ -39,6 +41,8 @@ use http_utils::reqwest::trusted_reqwest_client_builder;
 use http_utils::tls::pinning::TlsPinningConfig;
 use http_utils::tls::server::TlsServerConfig;
 use http_utils::urls::BaseUrl;
+use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
+use http_utils::urls::disclosure_based_issuance_base_uri;
 use issuance_server::disclosure::AttributesFetcher;
 use issuance_server::disclosure::HttpAttributesFetcher;
 use issuance_server::settings::IssuanceServerSettings;
@@ -46,7 +50,11 @@ use jwt::SignedJwt;
 use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::issuance_session::HttpIssuanceSession;
 use openid4vc::issuer::AttributeService;
+use openid4vc::openid4vp::RequestUriMethod;
+use openid4vc::openid4vp::VpRequestUriObject;
 use openid4vc::token::TokenRequest;
+use openid4vc::verifier::SessionType;
+use openid4vc::verifier::VerifierUrlParameters;
 use pid_issuer::pid::mock::MockAttributeService;
 use pid_issuer::pid::mock::mock_issuable_document_address;
 use pid_issuer::pid::mock::mock_issuable_document_pid;
@@ -59,13 +67,14 @@ use server_utils::store::SessionStoreVariant;
 use update_policy_server::settings::Settings as UpsSettings;
 use utils::vec_at_least::VecNonEmpty;
 use verification_server::settings::VerifierSettings;
+use wallet::AttestationPresentation;
 use wallet::Wallet;
 use wallet::WalletClients;
 use wallet::test::HttpAccountProviderClient;
 use wallet::test::HttpConfigurationRepository;
-use wallet::test::InMemoryDatabaseStorage;
 use wallet::test::MockDigidClient;
 use wallet::test::MockDigidSession;
+use wallet::test::MockHardwareDatabaseStorage;
 use wallet::test::UpdatePolicyRepository;
 use wallet::test::UpdateableRepository;
 use wallet::test::default_config_server_config;
@@ -128,7 +137,7 @@ pub enum WalletDeviceVendor {
 pub type WalletWithStorage = Wallet<
     HttpConfigurationRepository<TlsPinningConfig>,
     UpdatePolicyRepository,
-    InMemoryDatabaseStorage,
+    MockHardwareDatabaseStorage,
     MockHardwareAttestedKeyHolder,
     HttpAccountProviderClient,
     MockDigidClient<TlsPinningConfig>,
@@ -152,11 +161,6 @@ pub async fn setup_wallet_and_default_env(
 pub struct DisclosureParameters {
     pub verifier_url: BaseUrl,
     pub verifier_internal_url: BaseUrl,
-}
-
-pub struct IssuanceParameters {
-    pub attestation_server: MockServer,
-    pub url: BaseUrl,
 }
 
 pub struct MockDeviceConfig {
@@ -325,12 +329,42 @@ pub async fn setup_env(
     )
 }
 
-/// Create an instance of [`Wallet`].
-pub async fn setup_wallet(
+/// Create an instance of [`Wallet`] having temporary file storage.
+pub async fn setup_tempfile_wallet(
+    config_server_config: ConfigServerConfiguration,
+    wallet_config: WalletConfiguration,
+    key_holder: MockHardwareAttestedKeyHolder,
+    tempdir: TempDir,
+) -> WalletWithStorage {
+    setup_wallet(config_server_config, wallet_config, key_holder, async move || {
+        MockHardwareDatabaseStorage::open_temp_file(tempdir).await
+    })
+    .await
+}
+
+/// Create an instance of [`Wallet`] having in-memory storage.
+pub async fn setup_in_memory_wallet(
     config_server_config: ConfigServerConfiguration,
     wallet_config: WalletConfiguration,
     key_holder: MockHardwareAttestedKeyHolder,
 ) -> WalletWithStorage {
+    setup_wallet(config_server_config, wallet_config, key_holder, async || {
+        MockHardwareDatabaseStorage::open_in_memory().await
+    })
+    .await
+}
+
+/// Create an instance of [`Wallet`] having temporary file storage.
+pub async fn setup_wallet<F, Fut>(
+    config_server_config: ConfigServerConfiguration,
+    wallet_config: WalletConfiguration,
+    key_holder: MockHardwareAttestedKeyHolder,
+    storage_generator: F,
+) -> WalletWithStorage
+where
+    F: FnOnce() -> Fut,
+    Fut: Future<Output = MockHardwareDatabaseStorage>,
+{
     let config_repository = HttpConfigurationRepository::new(
         config_server_config.signing_public_key.as_inner().into(),
         tempfile::tempdir().unwrap().into_path(),
@@ -348,12 +382,10 @@ pub async fn setup_wallet(
     let mut wallet_clients = WalletClients::new_http(default_reqwest_client_builder()).unwrap();
     setup_mock_digid_client(&mut wallet_clients.digid_client);
 
-    let storage = InMemoryDatabaseStorage::open().await;
-
     Wallet::init_registration(
         config_repository,
         update_policy_repository,
-        storage,
+        storage_generator().await,
         key_holder,
         wallet_clients,
     )
@@ -390,7 +422,7 @@ pub async fn setup_wallet_and_env(
         WalletDeviceVendor::Google => mock_device_config.google_key_holder(),
     };
 
-    let wallet = setup_wallet(config_server_config, wallet_config, key_holder).await;
+    let wallet = setup_in_memory_wallet(config_server_config, wallet_config, key_holder).await;
 
     (wallet, verifier_server_urls, issuance_server_url)
 }
@@ -829,4 +861,49 @@ pub fn setup_mock_digid_client(digid_client: &mut MockDigidClient<TlsPinningConf
 
             Ok(session)
         });
+}
+
+pub fn universal_link(issuance_server_url: &BaseUrl, format: CredentialFormat) -> Url {
+    let params = serde_urlencoded::to_string(VerifierUrlParameters {
+        session_type: SessionType::SameDevice,
+        ephemeral_id_params: None,
+    })
+    .unwrap();
+
+    let issuance_path = match format {
+        CredentialFormat::MsoMdoc => "/disclosure/university_mdoc/request_uri",
+        CredentialFormat::SdJwt => "/disclosure/university_sd_jwt/request_uri",
+    };
+    let mut issuance_server_url = issuance_server_url.join_base_url(issuance_path).into_inner();
+    issuance_server_url.set_query(Some(&params));
+
+    let query = serde_urlencoded::to_string(VpRequestUriObject {
+        request_uri: issuance_server_url.try_into().unwrap(),
+        request_uri_method: Some(RequestUriMethod::POST),
+        client_id: "university.example.com".to_string(),
+    })
+    .unwrap();
+
+    let mut uri = disclosure_based_issuance_base_uri(&DEFAULT_UNIVERSAL_LINK_BASE.parse().unwrap()).into_inner();
+    uri.set_query(Some(&query));
+
+    uri
+}
+
+pub async fn wallet_attestations(wallet: &mut WalletWithStorage) -> Vec<AttestationPresentation> {
+    // Emit attestations into this local variable
+    let attestations: Arc<std::sync::Mutex<Vec<AttestationPresentation>>> = Arc::new(std::sync::Mutex::new(vec![]));
+
+    {
+        let attestations = Arc::clone(&attestations);
+        wallet
+            .set_attestations_callback(Box::new(move |mut a| {
+                let mut attestations = attestations.lock().unwrap();
+                attestations.append(&mut a);
+            }))
+            .await
+            .unwrap();
+    }
+
+    attestations.lock().unwrap().to_vec()
 }

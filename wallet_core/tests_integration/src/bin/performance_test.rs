@@ -23,7 +23,7 @@ use wallet::WalletClients;
 use wallet::test::HttpAccountProviderClient;
 use wallet::test::HttpConfigurationRepository;
 use wallet::test::HttpDigidClient;
-use wallet::test::InMemoryDatabaseStorage;
+use wallet::test::MockHardwareDatabaseStorage;
 use wallet::test::Repository;
 use wallet::test::UpdatePolicyRepository;
 use wallet::test::UpdateableRepository;
@@ -38,7 +38,7 @@ fn init() {
 type PerformanceTestWallet = Wallet<
     HttpConfigurationRepository<TlsPinningConfig>,
     UpdatePolicyRepository,
-    InMemoryDatabaseStorage,
+    MockHardwareDatabaseStorage,
     MockHardwareAttestedKeyHolder,
     HttpAccountProviderClient,
     HttpDigidClient,
@@ -76,7 +76,7 @@ async fn main() {
     let update_policy_repository = UpdatePolicyRepository::init();
     let wallet_clients = WalletClients::new_http(default_reqwest_client_builder()).unwrap();
 
-    let storage = InMemoryDatabaseStorage::open().await;
+    let storage = MockHardwareDatabaseStorage::open_in_memory().await;
 
     let mut wallet: PerformanceTestWallet = Wallet::init_registration(
         config_repository,

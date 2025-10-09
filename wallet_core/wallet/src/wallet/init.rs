@@ -41,6 +41,8 @@ use super::KeyHolderType;
 use super::Wallet;
 use super::WalletRegistration;
 
+const DATABASE_NAME: &str = "wallet";
+
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
 pub enum WalletInitError {
@@ -119,7 +121,7 @@ where
         let update_policy_repository = UpdatePolicyRepository::init();
 
         let storage_path = HardwareUtilities::storage_path().await?;
-        let storage = DatabaseStorage::<HardwareEncryptionKey>::new(storage_path.clone());
+        let storage = DatabaseStorage::<HardwareEncryptionKey>::new(String::from(DATABASE_NAME), storage_path.clone());
         let config_repository = UpdatingConfigurationRepository::init(
             storage_path.clone(),
             default_config_server_config(),
