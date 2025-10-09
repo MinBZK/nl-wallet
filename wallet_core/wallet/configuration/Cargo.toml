@@ -12,7 +12,6 @@ doctest = false
 
 [dependencies]
 derive_more = { workspace = true, features = ["debug"] }
-etag.workspace = true
 rustls-pki-types.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_with = { workspace = true, features = ["base64"] }
