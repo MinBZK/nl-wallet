@@ -23,16 +23,17 @@ void main() {
       await screenMatchesGolden('light');
     });
 
-    testGoldens('dark', (tester) async {
+    testGoldens('dark - landscape', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const MenuScreen(),
         brightness: Brightness.dark,
+        surfaceSize: iphoneXSizeLandscape,
         providers: [
           Provider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase()),
         ],
       );
 
-      await screenMatchesGolden('dark');
+      await screenMatchesGolden('dark.landscape');
     });
   });
 

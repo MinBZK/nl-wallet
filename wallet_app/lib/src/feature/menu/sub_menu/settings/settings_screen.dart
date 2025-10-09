@@ -1,24 +1,33 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../domain/usecase/biometrics/get_supported_biometrics_usecase.dart';
-import '../../navigation/wallet_routes.dart';
-import '../../util/extension/biometrics_extension.dart';
-import '../../util/extension/build_context_extension.dart';
-import '../../util/extension/object_extension.dart';
-import '../../util/extension/string_extension.dart';
-import '../../wallet_assets.dart';
-import '../../wallet_constants.dart';
-import '../common/dialog/reset_wallet_dialog.dart';
-import '../common/widget/button/bottom_back_button.dart';
-import '../common/widget/menu_item.dart';
-import '../common/widget/text/title_text.dart';
-import '../common/widget/wallet_app_bar.dart';
-import '../common/widget/wallet_scrollbar.dart';
+import '../../../../domain/usecase/biometrics/get_supported_biometrics_usecase.dart';
+import '../../../../navigation/wallet_routes.dart';
+import '../../../../util/extension/biometrics_extension.dart';
+import '../../../../util/extension/build_context_extension.dart';
+import '../../../../util/extension/object_extension.dart';
+import '../../../../util/extension/string_extension.dart';
+import '../../../../wallet_assets.dart';
+import '../../../../wallet_constants.dart';
+import '../../../common/dialog/reset_wallet_dialog.dart';
+import '../../../common/mixin/lock_state_mixin.dart';
+import '../../../common/widget/button/bottom_back_button.dart';
+import '../../../common/widget/menu_item.dart';
+import '../../../common/widget/text/title_text.dart';
+import '../../../common/widget/wallet_app_bar.dart';
+import '../../../common/widget/wallet_scrollbar.dart';
+import '../../../dashboard/dashboard_screen.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> with LockStateMixin<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -99,4 +108,13 @@ class SettingsScreen extends StatelessWidget {
       ],
     );
   }
+
+  @override
+  FutureOr<void> onLock() {
+    /// PVW-3104: Pop the MenuScreen if it's visible while the app gets locked
+    if (ModalRoute.of(context)?.isCurrent ?? false) DashboardScreen.show(context);
+  }
+
+  @override
+  FutureOr<void> onUnlock() {}
 }

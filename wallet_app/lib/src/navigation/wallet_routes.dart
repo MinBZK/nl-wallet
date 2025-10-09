@@ -38,6 +38,9 @@ import '../feature/issuance/issuance_screen.dart';
 import '../feature/login/login_detail_screen.dart';
 import '../feature/menu/bloc/menu_bloc.dart';
 import '../feature/menu/menu_screen.dart';
+import '../feature/menu/sub_menu/contact/contact_screen.dart';
+import '../feature/menu/sub_menu/need_help/need_help_screen.dart';
+import '../feature/menu/sub_menu/settings/settings_screen.dart';
 import '../feature/organization/detail/argument/organization_detail_screen_argument.dart';
 import '../feature/organization/detail/bloc/organization_detail_bloc.dart';
 import '../feature/organization/detail/organization_detail_screen.dart';
@@ -54,7 +57,6 @@ import '../feature/recover_pin/bloc/recover_pin_bloc.dart';
 import '../feature/recover_pin/recover_pin_screen.dart';
 import '../feature/renew_pid/bloc/renew_pid_bloc.dart';
 import '../feature/renew_pid/renew_pid_screen.dart';
-import '../feature/settings/settings_screen.dart';
 import '../feature/setup_security/bloc/setup_security_bloc.dart';
 import '../feature/setup_security/setup_security_screen.dart';
 import '../feature/sign/bloc/sign_bloc.dart';
@@ -106,6 +108,7 @@ class WalletRoutes {
   static const cardHistoryRoute = '/card/history';
   static const changeLanguageRoute = '/language';
   static const changePinRoute = '/change_pin';
+  static const contactRoute = '/menu/contact';
   static const dashboardRoute = '/dashboard';
   static const disclosureRoute = '/disclosure';
   static const forgotPinRoute = '/forgot_pin';
@@ -115,6 +118,7 @@ class WalletRoutes {
   static const issuanceRoute = '/issuance';
   static const loginDetailRoute = '/login_detail';
   static const menuRoute = '/menu';
+  static const needHelpRoute = '/menu/need_help';
   static const organizationDetailRoute = '/organization';
   static const pinBlockedRoute = '/pin/blocked';
   static const pinRoute = '/pin';
@@ -124,7 +128,7 @@ class WalletRoutes {
   static const privacyPolicyRoute = '/privacy_policy';
   static const qrRoute = '/qr';
   static const renewPidRoute = '/pid/renew';
-  static const settingsRoute = '/settings';
+  static const settingsRoute = '/menu/settings';
   static const setupSecurityRoute = '/security/setup';
   static const signRoute = '/sign';
   static const splashRoute = '/';
@@ -185,6 +189,8 @@ class WalletRoutes {
         return _createCardDataScreenBuilder(settings);
       case WalletRoutes.cardHistoryRoute:
         return _createCardHistoryScreenBuilder(settings);
+      case WalletRoutes.contactRoute:
+        return _createContactScreenBuilder;
       case WalletRoutes.themeRoute:
         return _createThemeScreenBuilder;
       case WalletRoutes.disclosureRoute:
@@ -219,6 +225,8 @@ class WalletRoutes {
         return _createLoginDetailScreenBuilder(settings);
       case WalletRoutes.settingsRoute:
         return _createSettingsScreenBuilder;
+      case WalletRoutes.needHelpRoute:
+        return _createNeedHelpScreenBuilder;
       case WalletRoutes.biometricsSettingsRoute:
         return _createBiometricsSettingsScreenBuilder;
       case WalletRoutes.privacyPolicyRoute:
@@ -489,6 +497,10 @@ WidgetBuilder _createOrganizationDetailScreenBuilder(RouteSettings settings) {
 }
 
 Widget _createSettingsScreenBuilder(BuildContext context) => const SettingsScreen();
+
+Widget _createNeedHelpScreenBuilder(BuildContext context) => const NeedHelpScreen();
+
+Widget _createContactScreenBuilder(BuildContext context) => const ContactScreen();
 
 Widget _createBiometricsSettingsScreenBuilder(BuildContext context) => BlocProvider<BiometricSettingsBloc>(
   create: (BuildContext context) {
