@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -14,7 +15,7 @@ import 'bloc/qr_bloc.dart';
 import 'widget/qr_no_permission.dart';
 import 'widget/qr_scanner.dart';
 
-final _scannerKey = Environment.isTest ? ValueKey(DateTime.now()) : GlobalKey();
+final _scannerKey = Environment.isTest ? ValueKey(clock.now()) : GlobalKey();
 
 class QrScreen extends StatelessWidget {
   const QrScreen({super.key});

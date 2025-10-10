@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:wallet_core/core.dart' as core;
 
 import '../../../domain/model/attribute/attribute.dart';
@@ -33,8 +34,8 @@ class CardMapper extends Mapper<core.AttestationPresentation, WalletCard> {
       issuer: _organizationMapper.map(input.issuer),
       // TODO(Daan): Implement status, validFrom & validUntil mapping once Core logic is implemented in [PVW-4566];
       status: CardStatus.valid,
-      validFrom: DateTime.now().subtract(const Duration(days: 1)),
-      validUntil: DateTime.now().add(const Duration(days: 365)),
+      validFrom: clock.now().subtract(const Duration(days: 1)),
+      validUntil: clock.now().add(const Duration(days: 365)),
       metadata: _displayMetadataMapper.mapList(input.displayMetadata),
       attributes: _attributeMapper.mapList(
         input.attributes.map(

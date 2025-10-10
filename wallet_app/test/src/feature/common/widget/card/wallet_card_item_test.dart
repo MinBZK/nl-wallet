@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -157,91 +158,91 @@ void main() {
     testGoldens(
       'Status is rendered - light',
       (tester) async {
-        final card = WalletMockData.card;
+        await withClock(Clock.fixed(DateTime(2025, 1, 1)), () async {
+          await tester.pumpWidgetWithAppWrapper(
+            Builder(
+              builder: (context) {
+                return Column(
+                  spacing: 16,
+                  children: CardStatus.values
+                      .mapIndexed(
+                        (index, status) => WalletCardItem.fromWalletCard(
+                          context,
+                          WalletMockData.card.copyWith(status: status),
+                          onPressed: index % 2 != 0 ? null : () => {},
+                        ),
+                      )
+                      .toList(),
+                );
+              },
+            ),
+            surfaceSize: const Size(330, 1444),
+          );
 
-        await tester.pumpWidgetWithAppWrapper(
-          Builder(
-            builder: (context) {
-              return Column(
-                spacing: 16,
-                children: CardStatus.values
-                    .mapIndexed(
-                      (index, status) => WalletCardItem.fromWalletCard(
-                        context,
-                        card.copyWith(status: status),
-                        onPressed: index % 2 != 0 ? null : () => {},
-                      ),
-                    )
-                    .toList(),
-              );
-            },
-          ),
-          surfaceSize: const Size(330, 1444),
-        );
-
-        await screenMatchesGolden('wallet_card_item/status.light');
+          await screenMatchesGolden('wallet_card_item/status.light');
+        });
       },
     );
 
     testGoldens(
       'Status is rendered - dark',
       (tester) async {
-        final card = WalletMockData.card;
+        await withClock(Clock.fixed(DateTime(2025, 1, 1)), () async {
+          await tester.pumpWidgetWithAppWrapper(
+            brightness: Brightness.dark,
+            Builder(
+              builder: (context) {
+                return Column(
+                  spacing: 16,
+                  children: CardStatus.values
+                      .mapIndexed(
+                        (index, status) => WalletCardItem.fromWalletCard(
+                          context,
+                          WalletMockData.card.copyWith(status: status),
+                          onPressed: index % 2 != 0 ? null : () => {},
+                        ),
+                      )
+                      .toList(),
+                );
+              },
+            ),
+            surfaceSize: const Size(330, 1444),
+          );
 
-        await tester.pumpWidgetWithAppWrapper(
-          brightness: Brightness.dark,
-          Builder(
-            builder: (context) {
-              return Column(
-                spacing: 16,
-                children: CardStatus.values
-                    .mapIndexed(
-                      (index, status) => WalletCardItem.fromWalletCard(
-                        context,
-                        card.copyWith(status: status),
-                        onPressed: index % 2 != 0 ? null : () => {},
-                      ),
-                    )
-                    .toList(),
-              );
-            },
-          ),
-          surfaceSize: const Size(330, 1444),
-        );
-
-        await screenMatchesGolden('wallet_card_item/status.dark');
+          await screenMatchesGolden('wallet_card_item/status.dark');
+        });
       },
     );
 
     testGoldens(
       'Status scaling is rendered',
       (tester) async {
-        final card = WalletMockData.card;
+        await withClock(Clock.fixed(DateTime(2025, 1, 1)), () async {
+          await tester.pumpWidgetWithAppWrapper(
+            Builder(
+              builder: (context) {
+                return MediaQuery(
+                  data: const MediaQueryData(textScaler: TextScaler.linear(2)),
+                  child: Column(
+                    spacing: 16,
+                    children: CardStatus.values
+                        .mapIndexed(
+                          (index, status) => WalletCardItem.fromWalletCard(
+                            context,
+                            WalletMockData.card.copyWith(status: status),
+                            onPressed: () => {},
+                          ),
+                        )
+                        .toList(),
+                  ),
+                );
+              },
+            ),
+            surfaceSize: const Size(330, 2200),
+          );
 
-        await tester.pumpWidgetWithAppWrapper(
-          Builder(
-            builder: (context) {
-              return MediaQuery(
-                data: const MediaQueryData(textScaler: TextScaler.linear(2)),
-                child: Column(
-                  spacing: 16,
-                  children: CardStatus.values
-                      .mapIndexed(
-                        (index, status) => WalletCardItem.fromWalletCard(
-                          context,
-                          card.copyWith(status: status),
-                          onPressed: () => {},
-                        ),
-                      )
-                      .toList(),
-                ),
-              );
-            },
-          ),
-          surfaceSize: const Size(330, 2200),
-        );
-
-        await screenMatchesGolden('wallet_card_item/status.scaling');
+          await screenMatchesGolden('wallet_card_item/status.scaling');
+        });
       },
     );
 

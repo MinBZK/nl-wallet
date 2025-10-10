@@ -1,8 +1,10 @@
+import 'package:clock/clock.dart';
+
 import '../../../../l10n/generated/app_localizations.dart';
 
 class DurationFormatter {
   static String prettyPrintTimeAgo(AppLocalizations l10n, DateTime dateTime) {
-    final difference = dateTime.difference(DateTime.now());
+    final difference = dateTime.difference(clock.now());
     if (difference.isNegative) {
       /// [DateTime] is in the past, format time ago
       if (difference.inDays.abs() >= DateTime.daysPerWeek) {
@@ -20,7 +22,7 @@ class DurationFormatter {
   /// Formats the time difference between [dateTime] and now into a human-readable string.
   /// The difference can be either positive (future date) or negative (past date).
   static String prettyPrintTimeDifference(AppLocalizations l10n, DateTime dateTime) {
-    final difference = dateTime.difference(DateTime.now()).abs();
+    final difference = dateTime.difference(clock.now()).abs();
     String time = '';
     if (difference.inDays >= 1) {
       time = l10n.generalDays(difference.inDays);
