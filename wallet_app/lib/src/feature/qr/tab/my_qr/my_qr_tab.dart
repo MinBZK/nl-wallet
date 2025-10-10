@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
@@ -25,7 +26,7 @@ class MyQrTab extends StatelessWidget {
             height: context.isLandscape ? _kLandscapeQrSize : null,
             child: QrImageView(
               padding: EdgeInsets.zero,
-              data: '{"id": ${Environment.isTest ? 'test' : DateTime.now().millisecondsSinceEpoch}',
+              data: '{"id": ${Environment.isTest ? 'test' : clock.now().millisecondsSinceEpoch}',
               eyeStyle: QrEyeStyle(
                 color: context.theme.primaryColorDark,
                 eyeShape: QrEyeShape.square,

@@ -1,4 +1,5 @@
 import 'package:bloc_test/bloc_test.dart';
+import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
@@ -124,15 +125,17 @@ void main() {
     });
 
     testGoldens('CardDetailLoadSuccess status - expiresSoon', (tester) async {
-      await tester.pumpWidgetWithAppWrapper(
-        CardDetailScreen(
-          cardTitle: WalletMockData.card.title.testValue,
-        ).withState<CardDetailBloc, CardDetailState>(
-          MockCardSummaryBloc(),
-          cardDetailLoadSuccessMock(status: CardStatus.expiresSoon),
-        ),
-      );
-      await screenMatchesGolden('status.expires.soon');
+      await withClock(Clock.fixed(DateTime(2025, 1, 1)), () async {
+        await tester.pumpWidgetWithAppWrapper(
+          CardDetailScreen(
+            cardTitle: WalletMockData.card.title.testValue,
+          ).withState<CardDetailBloc, CardDetailState>(
+            MockCardSummaryBloc(),
+            cardDetailLoadSuccessMock(status: CardStatus.expiresSoon),
+          ),
+        );
+        await screenMatchesGolden('status.expires.soon');
+      });
     });
 
     testGoldens('CardDetailLoadSuccess status - expired', (tester) async {

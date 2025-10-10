@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wallet/l10n/generated/app_localizations.dart';
 import 'package:wallet/src/feature/pin_timeout/widget/pin_timeout_description.dart';
@@ -10,7 +11,7 @@ void main() {
     await tester.pumpWidget(
       WalletAppTestWidget(
         child: PinTimeoutDescription(
-          expiryTime: DateTime.now().add(const Duration(seconds: 125)),
+          expiryTime: clock.now().add(const Duration(seconds: 125)),
           onExpire: () {},
         ),
       ),
@@ -29,7 +30,7 @@ void main() {
     await tester.pumpWidget(
       WalletAppTestWidget(
         child: PinTimeoutDescription(
-          expiryTime: DateTime.now().add(
+          expiryTime: clock.now().add(
             const Duration(
               seconds: 30,
               milliseconds: 750 /* take render time into account */,
@@ -54,7 +55,7 @@ void main() {
     await tester.pumpWidget(
       WalletAppTestWidget(
         child: PinTimeoutDescription(
-          expiryTime: DateTime.now().add(const Duration(milliseconds: 200)),
+          expiryTime: clock.now().add(const Duration(milliseconds: 200)),
           onExpire: () => onExpireCalled = true,
         ),
       ),

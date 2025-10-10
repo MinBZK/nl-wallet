@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 
 import '../../../domain/model/app_image_data.dart';
@@ -66,8 +67,8 @@ const _kMockUrl = 'https://www.example.org';
 const _kMockOtherKey = 'mock_other';
 
 final _kSampleCardStatus = CardStatus.valid;
-final _kSampleCardValidFrom = DateTime.now().add(const Duration(days: 5));
-final _kSampleCardValidUntil = DateTime.now().add(const Duration(days: 35));
+final _kSampleCardValidFrom = clock.now().add(const Duration(days: 5));
+final _kSampleCardValidUntil = clock.now().add(const Duration(days: 35));
 
 final _kSampleCardMetaData = [
   const CardDisplayMetadata(
@@ -140,14 +141,14 @@ final _kSampleOrganization = Organization(
 );
 
 final _kSampleIssuanceEvent = WalletEvent.issuance(
-  dateTime: DateTime.now(),
+  dateTime: clock.now(),
   status: EventStatus.success,
   card: _kSampleCard,
   renewed: false,
 );
 
 final _kSampleInteractionAttribute = WalletEvent.disclosure(
-  dateTime: DateTime.now(),
+  dateTime: clock.now(),
   relyingParty: _kSampleOrganization,
   cards: [_kSampleCard],
   status: EventStatus.success,
@@ -468,7 +469,7 @@ class OtherStylesTab extends StatelessWidget {
         const ThemeSectionSubHeader(title: 'WalletEventRow'),
         WalletEventRow(
           event: WalletEvent.disclosure(
-            dateTime: DateTime.now(),
+            dateTime: clock.now(),
             relyingParty: _kSampleOrganization,
             status: EventStatus.success,
             policy: const Policy(
@@ -498,7 +499,7 @@ class OtherStylesTab extends StatelessWidget {
         const ThemeSectionSubHeader(title: 'WalletEventStatusHeader'),
         WalletEventStatusHeader(
           event: WalletEvent.disclosure(
-            dateTime: DateTime.now(),
+            dateTime: clock.now(),
             relyingParty: _kSampleOrganization,
             status: EventStatus.cancelled,
             policy: const Policy(
@@ -525,7 +526,7 @@ class OtherStylesTab extends StatelessWidget {
           ),
         ),
         const ThemeSectionSubHeader(title: 'HistorySectionHeader'),
-        HistorySectionHeader(dateTime: DateTime.now()),
+        HistorySectionHeader(dateTime: clock.now()),
       ],
     );
   }

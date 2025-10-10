@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wallet/l10n/generated/app_localizations.dart';
@@ -14,7 +15,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         Builder(
           builder: (context) {
-            final expiryTime = DateTime.now().add(const Duration(seconds: 15, milliseconds: 500));
+            final expiryTime = clock.now().add(const Duration(seconds: 15, milliseconds: 500));
             return PinTimeoutScreen(expiryTime: expiryTime);
           },
         ),
@@ -26,7 +27,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         Builder(
           builder: (context) {
-            final expiryTime = DateTime.now().add(const Duration(seconds: 15, milliseconds: 500));
+            final expiryTime = clock.now().add(const Duration(seconds: 15, milliseconds: 500));
             return PinTimeoutScreen(expiryTime: expiryTime);
           },
         ),
@@ -39,7 +40,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         Builder(
           builder: (context) {
-            final expiryTime = DateTime.now().add(const Duration(seconds: 15, milliseconds: 500));
+            final expiryTime = clock.now().add(const Duration(seconds: 15, milliseconds: 500));
             return PinTimeoutScreen(expiryTime: expiryTime);
           },
         ),
@@ -53,7 +54,7 @@ void main() {
     testWidgets('verify PinTimeoutScreen renders expected text', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         PinTimeoutScreen(
-          expiryTime: DateTime.now().add(const Duration(seconds: 5)),
+          expiryTime: clock.now().add(const Duration(seconds: 5)),
         ),
       );
 
@@ -71,7 +72,7 @@ void main() {
       // Provide an expiryTime in the past, causing the callback to trigger asap
       await tester.pumpWidgetWithAppWrapper(
         PinTimeoutScreen(
-          expiryTime: DateTime.now().subtract(const Duration(seconds: 1)),
+          expiryTime: clock.now().subtract(const Duration(seconds: 1)),
           onExpire: () => isCalled = true,
         ),
       );
