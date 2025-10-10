@@ -1,6 +1,7 @@
 use itertools::Itertools;
 use url::Url;
 
+use wallet::DisclosureAttestationOptions;
 use wallet::DisclosureProposalPresentation;
 use wallet::attestation_data::ReaderRegistration;
 use wallet::errors::DisclosureError;
@@ -185,8 +186,13 @@ impl TryFrom<Result<DisclosureProposalPresentation, DisclosureError>> for StartD
                     relying_party: proposal.reader_registration.organization.into(),
                     policy,
                     requested_attestations: proposal
-                        .attestations
+                        .attestation_options
                         .into_iter()
+                        // TODO: Return all disclosure options to Flutter.
+                        .map(|candidates| match candidates {
+                            DisclosureAttestationOptions::Single(presentation) => *presentation,
+                            DisclosureAttestationOptions::Multiple(presentations) => presentations.into_first(),
+                        })
                         .map(AttestationPresentation::from)
                         .collect(),
                     shared_data_with_relying_party_before: proposal.shared_data_with_relying_party_before,

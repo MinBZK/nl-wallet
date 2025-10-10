@@ -41,6 +41,7 @@ use self::attestations::AttestationsCallback;
 use self::disclosure::WalletDisclosureSession;
 use self::issuance::WalletIssuanceSession;
 
+pub use self::disclosure::DisclosureAttestationOptions;
 pub use self::disclosure::DisclosureError;
 pub use self::disclosure::DisclosureProposalPresentation;
 pub use self::disclosure::DisclosureUriSource;

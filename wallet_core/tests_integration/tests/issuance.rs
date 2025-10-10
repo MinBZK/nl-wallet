@@ -205,7 +205,10 @@ async fn test_disclosure_based_issuance_ok(
         .await
         .unwrap();
 
-    let attestation_previews = wallet.continue_disclosure_based_issuance(pin.to_owned()).await.unwrap();
+    let attestation_previews = wallet
+        .continue_disclosure_based_issuance(&[0], pin.to_owned())
+        .await
+        .unwrap();
 
     wallet.accept_issuance(pin.to_owned()).await.unwrap();
 
@@ -250,6 +253,9 @@ async fn test_disclosure_based_issuance_error_no_attributes(
         .unwrap();
 
     // If the issuer has no attestations to issue, we receive an empty vec and no error.
-    let attestations = wallet.continue_disclosure_based_issuance(pin.to_owned()).await.unwrap();
+    let attestations = wallet
+        .continue_disclosure_based_issuance(&[0], pin.to_owned())
+        .await
+        .unwrap();
     assert!(attestations.is_empty());
 }

@@ -36,6 +36,8 @@ use openid4vc::verifier::SessionType;
 use platform_support::attested_key::AttestedKeyHolder;
 use update_policy_model::update_policy::VersionState;
 use utils::generator::TimeGenerator;
+use utils::vec_at_least::NonEmptyIterator;
+use utils::vec_at_least::VecAtLeastTwo;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 use wallet_configuration::wallet_config::PidAttributesConfiguration;
@@ -66,12 +68,18 @@ use super::uri::identify_uri;
 
 #[derive(Debug, Clone)]
 pub struct DisclosureProposalPresentation {
-    pub attestations: Vec<AttestationPresentation>,
+    pub attestation_options: VecNonEmpty<DisclosureAttestationOptions>,
     pub reader_registration: ReaderRegistration,
     pub shared_data_with_relying_party_before: bool,
     pub session_type: SessionType,
     pub disclosure_type: DisclosureType,
     pub purpose: RedirectUriPurpose,
+}
+
+#[derive(Debug, Clone)]
+pub enum DisclosureAttestationOptions {
+    Single(Box<AttestationPresentation>),
+    Multiple(VecAtLeastTwo<AttestationPresentation>),
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
@@ -108,10 +116,6 @@ pub enum DisclosureError {
     HistoryRetrieval(#[source] StorageError),
     #[error("could not fetch candidate attestations from database: {0}")]
     AttestationRetrieval(#[source] StorageError),
-    #[error("multiple candidates found for attestation type(s): {}", .0.join(", "))]
-    // We do not want to leak information about the attestation types in the wallet.
-    #[category(pd)]
-    MultipleCandidates(Vec<String>),
     #[error("not all requested attributes are available, requested: {requested_attributes:?}")]
     #[category(pd)] // Might reveal information about what attributes are stored in the Wallet
     AttributesNotAvailable {
@@ -123,6 +127,8 @@ pub enum DisclosureError {
     #[error("cannot request recovery code")]
     #[category(critical)]
     RecoveryCodeRequested,
+    #[error("incorrect candidates selected: {0}")]
+    AttestationSelection(#[from] DisclosureSelectionError),
     #[error("error sending instruction to Wallet Provider: {0}")]
     Instruction(#[source] InstructionError),
     #[error("could not increment usage count of mdoc copies in database: {0}")]
@@ -205,21 +211,53 @@ pub enum RedirectUriPurpose {
 #[derive(Debug, Clone)]
 pub(super) enum WalletDisclosureAttestations {
     Missing,
-    Proposal(IndexMap<CredentialQueryIdentifier, DisclosableAttestation>),
+    Proposal(IndexMap<CredentialQueryIdentifier, VecNonEmpty<DisclosableAttestation>>),
+}
+
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(critical)]
+pub enum DisclosureSelectionError {
+    #[error("selected query count does not match, expected {expected}, found {found}")]
+    QueryCountMismatch { found: usize, expected: usize },
+    #[error("selected attestation out of bounds for query {query_index}: {attestation_index}")]
+    SelectionOutOfBounds {
+        query_index: usize,
+        attestation_index: usize,
+    },
 }
 
 impl WalletDisclosureAttestations {
-    pub fn proposal(&self) -> Option<&IndexMap<CredentialQueryIdentifier, DisclosableAttestation>> {
+    pub fn select_proposal(
+        &self,
+        selected_indices: &[usize],
+    ) -> Result<Option<IndexMap<&CredentialQueryIdentifier, &DisclosableAttestation>>, DisclosureSelectionError> {
         match self {
-            Self::Missing => None,
-            Self::Proposal(attestations) => Some(attestations),
-        }
-    }
+            Self::Missing => Ok(None),
+            Self::Proposal(attestations) => {
+                if selected_indices.len() != attestations.len() {
+                    return Err(DisclosureSelectionError::QueryCountMismatch {
+                        found: selected_indices.len(),
+                        expected: attestations.len(),
+                    });
+                }
 
-    pub fn into_proposal(self) -> Option<IndexMap<CredentialQueryIdentifier, DisclosableAttestation>> {
-        match self {
-            Self::Missing => None,
-            Self::Proposal(attestations) => Some(attestations),
+                attestations
+                    .iter()
+                    .zip(selected_indices.iter().copied())
+                    .enumerate()
+                    .map(|(query_index, ((id, candidates), selected_index))| {
+                        let attestation = candidates.as_ref().get(selected_index).ok_or(
+                            DisclosureSelectionError::SelectionOutOfBounds {
+                                query_index,
+                                attestation_index: selected_index,
+                            },
+                        )?;
+
+                        Ok((id, attestation))
+                    })
+                    .try_collect()
+                    .map(Some)
+            }
         }
     }
 }
@@ -236,7 +274,7 @@ impl<DCS> WalletDisclosureSession<DCS> {
     pub fn new_proposal(
         redirect_uri_purpose: RedirectUriPurpose,
         disclosure_type: DisclosureType,
-        attestations: IndexMap<CredentialQueryIdentifier, DisclosableAttestation>,
+        attestations: IndexMap<CredentialQueryIdentifier, VecNonEmpty<DisclosableAttestation>>,
         protocol_state: DCS,
     ) -> Self {
         Self {
@@ -420,7 +458,7 @@ where
         .map_err(DisclosureError::AttestationRetrieval)?
         .into_iter()
         .zip(session.credential_requests().as_ref())
-        .flat_map(|(attestations, request)| attestations.map(|attestations| (request.id(), attestations)))
+        .flat_map(|(attestations, request)| attestations.map(|attestations| (request.id().clone(), attestations)))
         .collect::<IndexMap<_, _>>();
 
         // At this point, determine the disclosure type and if data was ever shared with this RP before, as the UI
@@ -475,34 +513,30 @@ where
             });
         }
 
-        // For now, return an error if multiple attestations are found for a requested attestation type.
-        // TODO (PVW-3829): Allow the user to select amongst multiple disclosure candidates.
-
-        let (disclosure_attestations, duplicate_attestation_types): (IndexMap<_, _>, Vec<_>) = candidate_attestations
-            .into_iter()
-            .partition_map(|(id, candidate_attestations)| {
-                if candidate_attestations.len().get() == 1 {
-                    Either::Left((id.clone(), candidate_attestations.into_first()))
-                } else {
-                    Either::Right(candidate_attestations.into_first().into_presentation().attestation_type)
-                }
-            });
-
-        if !duplicate_attestation_types.is_empty() {
-            info!("At least one attestation type has multiple disclosure candidates");
-
-            return Err(DisclosureError::MultipleCandidates(duplicate_attestation_types));
-        }
-
         info!("All attributes in the disclosure request are present in the database, return a proposal to the user");
 
         // Place the proposed attestations in a `DisclosureProposalPresentation`,
         // along with a copy of the `ReaderRegistration`.
+        let attestation_options = candidate_attestations
+            .values()
+            .map(|candidates| {
+                let presentations = candidates
+                    .nonempty_iter()
+                    .map(|candidate| candidate.presentation().clone())
+                    .collect::<VecNonEmpty<_>>();
+
+                if presentations.len().get() > 1 {
+                    DisclosureAttestationOptions::Multiple(presentations.into_inner().try_into().unwrap())
+                } else {
+                    DisclosureAttestationOptions::Single(Box::new(presentations.into_first()))
+                }
+            })
+            .collect_vec()
+            .try_into()
+            // This is safe, as `NormalizedCredentialRequests` guarantees that there is at least one request.
+            .unwrap();
         let proposal = DisclosureProposalPresentation {
-            attestations: disclosure_attestations
-                .values()
-                .map(|attestation| attestation.presentation().clone())
-                .collect(),
+            attestation_options,
             reader_registration: verifier_certificate.registration().clone(),
             shared_data_with_relying_party_before,
             session_type: session.session_type(),
@@ -515,7 +549,7 @@ where
             .replace(Session::Disclosure(WalletDisclosureSession::new_proposal(
                 purpose,
                 disclosure_type,
-                disclosure_attestations,
+                candidate_attestations,
                 session,
             )));
 
@@ -526,17 +560,6 @@ where
         &mut self,
         session: WalletDisclosureSession<DCC::Session>,
     ) -> Result<Option<Url>, DisclosureError> {
-        let attestations = session
-            .attestations
-            .into_proposal()
-            .map(|attestations| {
-                attestations
-                    .into_values()
-                    .map(|attestation| attestation.into_presentation())
-                    .collect_vec()
-            })
-            .unwrap_or_default();
-
         let (reader_certificate, _) = session
             .protocol_state
             .verifier_certificate()
@@ -548,7 +571,8 @@ where
         if let Err(error) = self
             .store_disclosure_event(
                 Utc::now(),
-                attestations.try_into().ok(),
+                // TODO (PVW-5078): Store credential requests in disclosure event.
+                None,
                 reader_certificate,
                 session.disclosure_type,
                 EventStatus::Cancelled,
@@ -621,19 +645,29 @@ where
 
     #[instrument(skip_all)]
     #[sentry_capture_error]
-    pub async fn accept_disclosure(&mut self, pin: String) -> Result<Option<Url>, DisclosureError>
+    pub async fn accept_disclosure(
+        &mut self,
+        selected_indices: &[usize],
+        pin: String,
+    ) -> Result<Option<Url>, DisclosureError>
     where
         S: Storage,
         UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
         APC: AccountProviderClient,
     {
-        self.perform_disclosure(pin, RedirectUriPurpose::Browser, self.config_repository.get().as_ref())
-            .await
+        self.perform_disclosure(
+            selected_indices,
+            pin,
+            RedirectUriPurpose::Browser,
+            self.config_repository.get().as_ref(),
+        )
+        .await
     }
 
     #[instrument(skip_all)]
     pub(super) async fn perform_disclosure(
         &mut self,
+        selected_indices: &[usize],
         pin: String,
         redirect_uri_purpose: RedirectUriPurpose,
         config: &WalletConfiguration,
@@ -677,7 +711,12 @@ where
             });
         }
 
-        let attestations = session.attestations.proposal().ok_or(DisclosureError::SessionState)?;
+        // If selecting attributes returns `None`, this means that attributes
+        // were missing, so this method should not have been called.
+        let attestations = session
+            .attestations
+            .select_proposal(selected_indices)?
+            .ok_or(DisclosureError::SessionState)?;
 
         // Prepare the `RemoteEcdsaWscd` for signing using the provided PIN.
         let instruction_result_public_key = config.account_server.instruction_result_public_key.as_inner().into();
@@ -752,12 +791,18 @@ where
                 .iter()
                 .partition_map(|(id, attestation)| match attestation.partial_attestation() {
                     PartialAttestation::MsoMdoc { partial_mdoc } => {
-                        Either::Left((id.clone(), vec_nonempty![partial_mdoc.as_ref().clone()]))
+                        Either::Left(((*id).clone(), vec_nonempty![partial_mdoc.as_ref().clone()]))
                     }
                     PartialAttestation::SdJwt { key_identifier, sd_jwt } => {
-                        Either::Right((id.clone(), vec_nonempty![(*sd_jwt.clone(), key_identifier.clone())]))
+                        Either::Right(((*id).clone(), vec_nonempty![(*sd_jwt.clone(), key_identifier.clone())]))
                     }
                 });
+        let attestation_presentations = attestations
+            .into_values()
+            .map(|attestation| attestation.presentation().clone())
+            .collect_vec()
+            .try_into()
+            .unwrap();
 
         // This should result in either all partial mdocs or all SD-JWT presentations, which is guaranteed by the logic
         // in `VpDisclosureSession`, which rejects DCQL requests with a mix of formats. Additionally, there will be at
@@ -797,21 +842,11 @@ where
                     } else {
                         DataDisclosureStatus::NotDisclosed
                     };
-                    let attestation_presentations = session
-                        .attestations
-                        .proposal()
-                        .map(|attestations| {
-                            attestations
-                                .values()
-                                .map(|attestation| attestation.presentation().clone())
-                                .collect_vec()
-                        })
-                        .unwrap_or_default();
 
-                    if let Err(e) = self
+                    if let Err(error) = self
                         .store_disclosure_event(
                             Utc::now(),
-                            attestation_presentations.try_into().ok(),
+                            Some(attestation_presentations),
                             reader_certificate,
                             session.disclosure_type,
                             EventStatus::Error,
@@ -819,7 +854,7 @@ where
                         )
                         .await
                     {
-                        error!("Could not store error in history: {e}");
+                        error!("Could not store error in history: {error}");
                     }
                 }
 
@@ -856,20 +891,10 @@ where
         // Disclosure is now successful. Any errors that occur after this point will result in the `Wallet` not having
         // an active disclosure session anymore. Note that these unwraps are safe, as session.attestations was checked
         // to be present above and the source of the iterator is also `VecNonEmpty`.
-        let attestation_presentations = session
-            .attestations
-            .into_proposal()
-            .map(|attestations| {
-                attestations
-                    .into_values()
-                    .map(|attestation| attestation.into_presentation())
-                    .collect_vec()
-            })
-            .unwrap_or_default();
         if let Err(error) = self
             .store_disclosure_event(
                 Utc::now(),
-                attestation_presentations.try_into().ok(),
+                Some(attestation_presentations),
                 reader_certificate,
                 session.disclosure_type,
                 EventStatus::Success,
@@ -898,6 +923,7 @@ mod tests {
     use rstest::rstest;
     use serde::de::Error;
     use url::Url;
+    use utils::vec_nonempty;
     use uuid::Uuid;
 
     use attestation_data::attributes::AttributeValue;
@@ -959,8 +985,10 @@ mod tests {
     use super::super::test::create_example_pid_mdoc;
     use super::super::test::create_example_pid_sd_jwt;
     use super::super::test::setup_mock_recent_history_callback;
+    use super::DisclosureAttestationOptions;
     use super::DisclosureError;
     use super::DisclosureProposalPresentation;
+    use super::DisclosureSelectionError;
     use super::RedirectUriPurpose;
     use super::WalletDisclosureAttestations;
     use super::WalletDisclosureSession;
@@ -1119,7 +1147,7 @@ mod tests {
         let session = Session::Disclosure(WalletDisclosureSession::new_proposal(
             RedirectUriPurpose::Browser,
             DisclosureType::Regular,
-            IndexMap::from([("id".try_into().unwrap(), disclosable_attestation)]),
+            IndexMap::from([("id".try_into().unwrap(), vec_nonempty![disclosable_attestation])]),
             disclosure_session,
         ));
 
@@ -1192,9 +1220,11 @@ mod tests {
                 ..
             } if reader_registration == *verifier_certificate.registration() && !shared_data_with_relying_party_before
         );
-        assert_eq!(proposal.attestations.len(), 1);
+        assert_eq!(proposal.attestation_options.len().get(), 1);
 
-        let presentation = proposal.attestations.first().unwrap();
+        let DisclosureAttestationOptions::Single(presentation) = proposal.attestation_options.first() else {
+            panic!("single proposal attestation expected");
+        };
 
         assert_matches!(presentation.identity, AttestationIdentity::Fixed { .. });
         assert_eq!(presentation.attestation_type, PID_ATTESTATION_TYPE);
@@ -1301,7 +1331,7 @@ mod tests {
             });
 
         let return_url = wallet
-            .accept_disclosure(PIN.to_string())
+            .accept_disclosure(&[0], PIN.to_string())
             .await
             .expect("accepting disclosure should succeed");
 
@@ -1713,54 +1743,6 @@ mod tests {
 
     #[rstest]
     #[tokio::test]
-    async fn test_wallet_start_disclosure_error_multiple_candidates(
-        #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] requested_format: CredentialFormat,
-    ) {
-        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-
-        let stored_attestation_copy = example_pid_stored_attestation_copy(requested_format);
-
-        let expectation_attestation_copy = stored_attestation_copy.clone();
-        wallet
-            .mut_storage()
-            .expect_fetch_unique_attestations_by_type()
-            .times(1)
-            .returning(move |_, _| {
-                Ok(vec![
-                    expectation_attestation_copy.clone(),
-                    expectation_attestation_copy.clone(),
-                ])
-            });
-
-        wallet
-            .mut_storage()
-            .expect_did_share_data_with_relying_party()
-            .return_once(|_| Ok(false));
-
-        let _verifier_certificate = setup_disclosure_client_start(
-            &mut wallet.disclosure_client,
-            requested_format,
-            default_requested_pid_path(requested_format),
-        );
-
-        // Starting disclosure on a wallet that contains multiple instances
-        // of the same attestation type should result in an error.
-        let error = wallet
-            .start_disclosure(&DISCLOSURE_URI, DisclosureUriSource::QrCode)
-            .await
-            .expect_err("starting disclosure should not succeed");
-
-        assert_matches!(
-            &error,
-            DisclosureError::MultipleCandidates(attestation_types)
-                if *attestation_types == vec![PID_ATTESTATION_TYPE.to_string()]
-        );
-        assert!(error.return_url().is_none());
-        assert!(wallet.session.is_none());
-    }
-
-    #[rstest]
-    #[tokio::test]
     async fn test_wallet_cancel_disclosure(
         #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] requested_format: CredentialFormat,
         #[values(false, true)] has_missing_attributes: bool,
@@ -2060,7 +2042,7 @@ mod tests {
             });
 
         let accept_return_url = wallet
-            .accept_disclosure(PIN.to_string())
+            .accept_disclosure(&[0], PIN.to_string())
             .await
             .expect("accepting disclosure should succeed");
 
@@ -2089,7 +2071,7 @@ mod tests {
 
         // Accepting disclosure on a blocked wallet should result in an error.
         let error = wallet
-            .accept_disclosure(PIN.to_string())
+            .accept_disclosure(&[0], PIN.to_string())
             .await
             .expect_err("accepting disclosure should not succeed");
 
@@ -2106,7 +2088,7 @@ mod tests {
 
         // Accepting disclosure on an unregistered wallet should result in an error.
         let error = wallet
-            .accept_disclosure(PIN.to_string())
+            .accept_disclosure(&[0], PIN.to_string())
             .await
             .expect_err("accepting disclosure should not succeed");
 
@@ -2133,7 +2115,7 @@ mod tests {
 
         // Accepting disclosure on a locked wallet should result in an error.
         let error = wallet
-            .accept_disclosure(PIN.to_string())
+            .accept_disclosure(&[0], PIN.to_string())
             .await
             .expect_err("accepting disclosure should not succeed");
 
@@ -2158,7 +2140,7 @@ mod tests {
 
         // Accepting disclosure on a wallet without an active disclosure session should result in an error.
         let error = wallet
-            .accept_disclosure(PIN.to_string())
+            .accept_disclosure(&[0], PIN.to_string())
             .await
             .expect_err("accepting disclosure should not succeed");
 
@@ -2190,7 +2172,7 @@ mod tests {
 
         // Accepting disclosure on a wallet that has a disclosure based issuance session should result in an error.
         let error = wallet
-            .accept_disclosure(PIN.to_string())
+            .accept_disclosure(&[0], PIN.to_string())
             .await
             .expect_err("accepting disclosure should not succeed");
 
@@ -2228,7 +2210,7 @@ mod tests {
 
         // Accepting disclosure on a wallet without an active disclosure session should result in an error.
         let error = wallet
-            .accept_disclosure(PIN.to_string())
+            .accept_disclosure(&[0], PIN.to_string())
             .await
             .expect_err("accepting disclosure should not succeed");
 
@@ -2236,6 +2218,57 @@ mod tests {
         assert!(error.return_url().is_none());
         assert!(wallet.session.is_some());
         assert!(events.lock().pop().unwrap().is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_wallet_accept_disclosure_error_attestation_selection() {
+        // Prepare a registered and unlocked wallet with an active disclosure session that has missing attributes.
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+        let (session, _verifier_certificate) = setup_wallet_disclosure_session(CredentialFormat::SdJwt);
+        wallet.session = Some(session);
+
+        wallet
+            .mut_storage()
+            .expect_fetch_recent_wallet_events()
+            .times(1)
+            .returning(move || Ok(vec![]));
+
+        let events = setup_mock_recent_history_callback(&mut wallet).await.unwrap();
+
+        // Accepting disclosure on a wallet while selecting a non-existant query index should result in an error.
+        let error = wallet
+            .accept_disclosure(&[0, 0], PIN.to_string())
+            .await
+            .expect_err("accepting disclosure should not succeed");
+
+        assert_matches!(
+            error,
+            DisclosureError::AttestationSelection(DisclosureSelectionError::QueryCountMismatch {
+                found: 2,
+                expected: 1
+            })
+        );
+        assert!(error.return_url().is_none());
+        assert!(wallet.session.is_some());
+        assert!(events.lock().last().unwrap().is_empty());
+
+        // Accepting disclosure on a wallet while selecting a non-existant
+        // attestation proposal should result in an error.
+        let error = wallet
+            .accept_disclosure(&[1], PIN.to_string())
+            .await
+            .expect_err("accepting disclosure should not succeed");
+
+        assert_matches!(
+            error,
+            DisclosureError::AttestationSelection(DisclosureSelectionError::SelectionOutOfBounds {
+                query_index: 0,
+                attestation_index: 1
+            })
+        );
+        assert!(error.return_url().is_none());
+        assert!(wallet.session.is_some());
+        assert!(events.lock().last().unwrap().is_empty());
     }
 
     // TODO (PVW-3844): Add tests for continuing a PIN change when accepting disclosure.
@@ -2268,7 +2301,7 @@ mod tests {
         // Accepting disclosure on a wallet with a faulty database should result
         // in an error, the disclosure session should not be removed.
         let error = wallet
-            .accept_disclosure(PIN.to_string())
+            .accept_disclosure(&[0], PIN.to_string())
             .await
             .expect_err("accepting disclosure should not succeed");
 
@@ -2363,7 +2396,8 @@ mod tests {
 
         let copy_ids = session
             .attestations
-            .proposal()
+            .select_proposal(&[0])
+            .unwrap()
             .unwrap()
             .values()
             .map(|attestation| attestation.attestation_copy_id())
@@ -2430,7 +2464,7 @@ mod tests {
 
         // Accepting disclosure when the verifier responds with an invalid request error should result in an error.
         let error = wallet
-            .accept_disclosure(PIN.to_string())
+            .accept_disclosure(&[0], PIN.to_string())
             .await
             .expect_err("accepting disclosure should not succeed");
 
@@ -2517,7 +2551,7 @@ mod tests {
             .return_once(move || Ok(vec![disclosure_event.clone(), disclosure_event.clone()]));
 
         let error = wallet
-            .accept_disclosure(PIN.to_string())
+            .accept_disclosure(&[0], PIN.to_string())
             .await
             .expect_err("accepting disclosure should not succeed");
 
@@ -2593,7 +2627,8 @@ mod tests {
 
         let copy_ids = session
             .attestations
-            .proposal()
+            .select_proposal(&[0])
+            .unwrap()
             .unwrap()
             .values()
             .map(|attestation| attestation.attestation_copy_id())
@@ -2694,7 +2729,7 @@ mod tests {
             });
 
         let error = wallet
-            .accept_disclosure(PIN.to_string())
+            .accept_disclosure(&[0], PIN.to_string())
             .await
             .expect_err("accepting disclosure should not succeed");
 

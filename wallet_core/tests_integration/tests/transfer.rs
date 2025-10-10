@@ -60,7 +60,7 @@ async fn init_wallets() -> (WalletData, WalletData) {
         .await
         .unwrap();
     source
-        .continue_disclosure_based_issuance(String::from(source_wallet_pin))
+        .continue_disclosure_based_issuance(&[0], String::from(source_wallet_pin))
         .await
         .unwrap();
     source.accept_issuance(String::from(source_wallet_pin)).await.unwrap();

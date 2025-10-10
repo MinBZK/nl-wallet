@@ -162,10 +162,10 @@ async fn main() {
         .start_disclosure(&ul.into_inner(), DisclosureUriSource::Link)
         .await
         .expect("Could not start disclosure");
-    assert_eq!(proposal.attestations.len(), 1);
+    assert_eq!(proposal.attestation_options.len().get(), 1);
 
     let return_url = wallet
-        .accept_disclosure(pin.to_owned())
+        .accept_disclosure(&[0], pin.to_owned())
         .await
         .expect("Could not accept disclosure");
 

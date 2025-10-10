@@ -21,6 +21,7 @@ pub use crate::attestation::AttestationPresentation;
 pub use crate::pin::validation::validate_pin;
 pub use crate::storage::DisclosureStatus;
 pub use crate::storage::WalletEvent;
+pub use crate::wallet::DisclosureAttestationOptions;
 pub use crate::wallet::DisclosureProposalPresentation;
 pub use crate::wallet::DisclosureUriSource;
 pub use crate::wallet::IssuanceResult;

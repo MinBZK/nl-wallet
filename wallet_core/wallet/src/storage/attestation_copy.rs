@@ -284,10 +284,6 @@ impl DisclosableAttestation {
     pub fn presentation(&self) -> &AttestationPresentation {
         &self.presentation
     }
-
-    pub fn into_presentation(self) -> AttestationPresentation {
-        self.presentation
-    }
 }
 
 #[cfg(test)]
@@ -425,7 +421,7 @@ mod tests {
                 assert_eq!(key_identifier, "sd_jwt_key_id");
             }
 
-            (full_presentation, disclosable_attestation.into_presentation())
+            (full_presentation, disclosable_attestation.presentation)
         })
         .unzip();
 

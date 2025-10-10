@@ -1,3 +1,6 @@
+use std::sync::atomic::AtomicUsize;
+use std::sync::atomic::Ordering;
+
 use flutter_rust_bridge::frb;
 use flutter_rust_bridge::setup_default_user_utils;
 use tokio::sync::OnceCell;
@@ -28,6 +31,8 @@ use crate::models::wallet_event::WalletEvent;
 use crate::sentry::init_sentry;
 
 static WALLET: OnceCell<RwLock<Wallet>> = OnceCell::const_new();
+// TODO: This a temporary stopgap, to be removed when all disclosure options are sent to Flutter.
+static DISCLOSURE_ATTESTATION_COUNT: AtomicUsize = AtomicUsize::new(0);
 
 fn wallet() -> &'static RwLock<Wallet> {
     WALLET
@@ -316,6 +321,9 @@ pub async fn start_disclosure(uri: String, is_qr_code: bool) -> anyhow::Result<S
     let result = wallet
         .start_disclosure(&url, DisclosureUriSource::new(is_qr_code))
         .await
+        .inspect(|proposal| {
+            DISCLOSURE_ATTESTATION_COUNT.store(proposal.attestation_options.len().get(), Ordering::Relaxed);
+        })
         .try_into()?;
 
     Ok(result)
@@ -334,7 +342,12 @@ pub async fn cancel_disclosure() -> anyhow::Result<Option<String>> {
 pub async fn accept_disclosure(pin: String) -> anyhow::Result<AcceptDisclosureResult> {
     let mut wallet = wallet().write().await;
 
-    let result = wallet.accept_disclosure(pin).await.try_into()?;
+    // Simply select the first candidate of each attestation for now.
+    let attestation_count = DISCLOSURE_ATTESTATION_COUNT.load(Ordering::Relaxed);
+    let result = wallet
+        .accept_disclosure(&vec![0; attestation_count], pin)
+        .await
+        .try_into()?;
 
     Ok(result)
 }
@@ -352,7 +365,12 @@ pub async fn has_active_disclosure_session() -> anyhow::Result<bool> {
 pub async fn continue_disclosure_based_issuance(pin: String) -> anyhow::Result<DisclosureBasedIssuanceResult> {
     let mut wallet = wallet().write().await;
 
-    let result = wallet.continue_disclosure_based_issuance(pin).await.try_into()?;
+    // Simply select the first candidate of each attestation for now.
+    let attestation_count = DISCLOSURE_ATTESTATION_COUNT.load(Ordering::Relaxed);
+    let result = wallet
+        .continue_disclosure_based_issuance(&vec![0; attestation_count], pin)
+        .await
+        .try_into()?;
 
     Ok(result)
 }
