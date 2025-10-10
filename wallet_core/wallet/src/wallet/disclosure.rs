@@ -16,8 +16,6 @@ pub use openid4vc::disclosure_session::DisclosureUriSource;
 
 use attestation_data::auth::Organization;
 use attestation_data::auth::reader_auth::ReaderRegistration;
-use attestation_data::constants::PID_ATTESTATION_TYPE;
-use attestation_data::constants::PID_RECOVERY_CODE;
 use attestation_data::disclosure_type::DisclosureType;
 use attestation_types::claim_path::ClaimPath;
 use dcql::CredentialQueryIdentifier;
@@ -40,6 +38,7 @@ use update_policy_model::update_policy::VersionState;
 use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
+use wallet_configuration::wallet_config::PidAttributesConfiguration;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::account_provider::AccountProviderClient;
@@ -278,22 +277,25 @@ impl RedirectUriPurpose {
 }
 
 /// Check if the PID recovery code is part of a credential request.
-fn is_request_for_recovery_code(request: &NormalizedCredentialRequest) -> bool {
+fn is_request_for_recovery_code(
+    request: &NormalizedCredentialRequest,
+    pid_attributes: &PidAttributesConfiguration,
+) -> bool {
     match &request {
         NormalizedCredentialRequest::MsoMdoc {
             doctype_value, claims, ..
-        } => {
-            doctype_value.as_str() == PID_ATTESTATION_TYPE
-                && claims
-                    .iter()
-                    .any(|claim| ClaimPath::matches_key_path(&claim.path, [PID_ATTESTATION_TYPE, PID_RECOVERY_CODE]))
-        }
-        NormalizedCredentialRequest::SdJwt { vct_values, claims, .. } => {
-            vct_values.iter().any(|vct| vct.as_str() == PID_ATTESTATION_TYPE)
-                && claims
-                    .iter()
-                    .any(|claim| ClaimPath::matches_key_path(&claim.path, [PID_RECOVERY_CODE]))
-        }
+        } => pid_attributes.mso_mdoc.get(doctype_value).is_some_and(|pid_paths| {
+            claims.iter().any(|claim| {
+                ClaimPath::matches_key_path(&claim.path, pid_paths.recovery_code.iter().map(String::as_str))
+            })
+        }),
+        NormalizedCredentialRequest::SdJwt { vct_values, claims, .. } => vct_values.iter().any(|vct| {
+            pid_attributes.sd_jwt.get(vct).is_some_and(|pid_paths| {
+                claims.iter().any(|claim| {
+                    ClaimPath::matches_key_path(&claim.path, pid_paths.recovery_code.iter().map(String::as_str))
+                })
+            })
+        }),
     }
 }
 
@@ -398,7 +400,7 @@ where
             .credential_requests()
             .as_ref()
             .iter()
-            .any(is_request_for_recovery_code)
+            .any(|request| is_request_for_recovery_code(request, &wallet_config.pid_attributes))
         {
             return Err(DisclosureError::RecoveryCodeRequested);
         }
