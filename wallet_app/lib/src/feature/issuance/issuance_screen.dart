@@ -193,8 +193,8 @@ class IssuanceScreen extends StatelessWidget {
   Widget _buildMissingAttributes(BuildContext context, IssuanceMissingAttributes state) {
     return MissingAttributesPage(
       organization: state.organization,
-      onClosePressed: () => _stopIssuance(context),
       missingAttributes: state.missingAttributes,
+      onClosePressed: () => _stopIssuance(context),
       hasReturnUrl: false,
     );
   }
