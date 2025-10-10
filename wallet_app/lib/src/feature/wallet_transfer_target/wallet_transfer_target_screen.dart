@@ -145,8 +145,8 @@ class WalletTransferTargetScreen extends StatelessWidget {
       case WalletTransferIntroduction():
         return CloseIconButton(onPressed: () => _onSkipPressed(context));
       case WalletTransferAwaitingConfirmation():
-      case WalletTransferTransferring():
         return CloseIconButton(onPressed: () => _onStopPressed(context));
+      case WalletTransferTransferring():
       case WalletTransferLoadingQrData():
       case WalletTransferAwaitingQrScan():
       case WalletTransferSuccess():

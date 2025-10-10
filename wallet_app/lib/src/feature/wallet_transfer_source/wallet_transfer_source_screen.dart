@@ -143,8 +143,8 @@ class WalletTransferSourceScreen extends StatelessWidget {
       case WalletTransferLoading():
       case WalletTransferIntroduction():
       case WalletTransferConfirmPin():
-      case WalletTransferTransferring():
         return CloseIconButton(onPressed: () => _onStopPressed(context));
+      case WalletTransferTransferring():
       case WalletTransferSuccess():
       case WalletTransferStopped():
       case WalletTransferGenericError():

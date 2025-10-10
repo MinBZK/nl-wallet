@@ -206,7 +206,7 @@ void main() {
         ),
       );
       // Tap the stop button in the AppBar
-      await tester.tap(find.byIcon(Icons.close_outlined).first);
+      await tester.tap(find.byIcon(Icons.block_flipped).first);
       await tester.pumpAndSettle();
       await screenMatchesGolden('wallet_transfer_transferring_stop_sheet.light');
     });
@@ -221,7 +221,7 @@ void main() {
         surfaceSize: iphoneXSizeLandscape,
       );
       // Tap the stop button in the AppBar
-      await tester.tap(find.byIcon(Icons.close_outlined).first);
+      await tester.tap(find.byIcon(Icons.block_flipped).first);
       await tester.pumpAndSettle();
       await screenMatchesGolden('wallet_transfer_transferring_stop_sheet.dark.landscape');
     });

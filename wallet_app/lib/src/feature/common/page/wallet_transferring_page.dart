@@ -59,7 +59,7 @@ class WalletTransferringPage extends StatelessWidget {
                       ),
                       ListButton(
                         onPressed: onCtaPressed,
-                        icon: const Icon(Icons.close_outlined),
+                        icon: const Icon(Icons.block_flipped),
                         mainAxisAlignment: MainAxisAlignment.center,
                         iconPosition: IconPosition.start,
                         dividerSide: DividerSide.top,
