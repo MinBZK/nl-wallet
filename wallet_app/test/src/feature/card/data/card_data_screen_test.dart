@@ -2,6 +2,7 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
+import 'package:wallet/src/domain/model/card/status/card_status.dart';
 import 'package:wallet/src/feature/card/data/bloc/card_data_bloc.dart';
 import 'package:wallet/src/feature/card/data/card_data_screen.dart';
 import 'package:wallet/src/util/formatter/attribute_value_formatter.dart';
@@ -34,6 +35,83 @@ void main() {
         brightness: Brightness.dark,
       );
       await screenMatchesGolden('success.dark');
+    });
+
+    testGoldens('CardDataLoadSuccess status - validSoon', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const CardDataScreen(cardTitle: 'Title').withState<CardDataBloc, CardDataState>(
+          MockCardDataBloc(),
+          CardDataLoadSuccess(WalletMockData.cardWithStatus(CardStatus.validSoon)),
+        ),
+        brightness: Brightness.dark,
+      );
+      await screenMatchesGolden('status.valid.soon');
+    });
+
+    testGoldens('CardDataLoadSuccess status - valid', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const CardDataScreen(cardTitle: 'Title').withState<CardDataBloc, CardDataState>(
+          MockCardDataBloc(),
+          CardDataLoadSuccess(WalletMockData.cardWithStatus(CardStatus.valid)),
+        ),
+        brightness: Brightness.dark,
+      );
+      await screenMatchesGolden('status.valid');
+    });
+
+    testGoldens('CardDataLoadSuccess status - expiresSoon', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const CardDataScreen(cardTitle: 'Title').withState<CardDataBloc, CardDataState>(
+          MockCardDataBloc(),
+          CardDataLoadSuccess(WalletMockData.cardWithStatus(CardStatus.expiresSoon)),
+        ),
+        brightness: Brightness.dark,
+      );
+      await screenMatchesGolden('status.expires.soon');
+    });
+
+    testGoldens('CardDataLoadSuccess status - expired', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const CardDataScreen(cardTitle: 'Title').withState<CardDataBloc, CardDataState>(
+          MockCardDataBloc(),
+          CardDataLoadSuccess(WalletMockData.cardWithStatus(CardStatus.expired)),
+        ),
+        brightness: Brightness.dark,
+      );
+      await screenMatchesGolden('status.expired');
+    });
+
+    testGoldens('CardDataLoadSuccess status - revoked', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const CardDataScreen(cardTitle: 'Title').withState<CardDataBloc, CardDataState>(
+          MockCardDataBloc(),
+          CardDataLoadSuccess(WalletMockData.cardWithStatus(CardStatus.revoked)),
+        ),
+        brightness: Brightness.dark,
+      );
+      await screenMatchesGolden('status.revoked');
+    });
+
+    testGoldens('CardDataLoadSuccess status - corrupted', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const CardDataScreen(cardTitle: 'Title').withState<CardDataBloc, CardDataState>(
+          MockCardDataBloc(),
+          CardDataLoadSuccess(WalletMockData.cardWithStatus(CardStatus.corrupted)),
+        ),
+        brightness: Brightness.dark,
+      );
+      await screenMatchesGolden('status.corrupted');
+    });
+
+    testGoldens('CardDataLoadSuccess status - unknown', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const CardDataScreen(cardTitle: 'Title').withState<CardDataBloc, CardDataState>(
+          MockCardDataBloc(),
+          CardDataLoadSuccess(WalletMockData.cardWithStatus(CardStatus.unknown)),
+        ),
+        brightness: Brightness.dark,
+      );
+      await screenMatchesGolden('status.unknown');
     });
 
     testGoldens('CardDataInitial state', (tester) async {

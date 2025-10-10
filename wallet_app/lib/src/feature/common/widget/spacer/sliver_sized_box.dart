@@ -4,6 +4,8 @@ class SliverSizedBox extends StatelessWidget {
   final double? width, height;
   final Widget? child;
 
+  static Widget shrink({Widget? child}) => SliverToBoxAdapter(child: SizedBox.shrink(child: child));
+
   const SliverSizedBox({
     this.width,
     this.height,

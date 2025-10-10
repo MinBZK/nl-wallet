@@ -7,6 +7,7 @@ import '../../../util/mapper/card/summary_mapper.dart';
 import '../attribute/attribute.dart';
 import '../organization.dart';
 import 'metadata/card_display_metadata.dart';
+import 'status/card_status.dart';
 
 part 'wallet_card.g.dart';
 
@@ -20,6 +21,15 @@ class WalletCard extends Equatable {
 
   /// Organization that issued this card
   final Organization issuer;
+
+  /// Card status (e.g. valid, expired, revoked)
+  final CardStatus status;
+
+  /// Time from which the card is valid
+  final DateTime validFrom;
+
+  /// Time until the card is valid (expiry date)
+  final DateTime validUntil;
 
   /// Card display metadata for UI rendering
   final List<CardDisplayMetadata> metadata;
@@ -40,6 +50,9 @@ class WalletCard extends Equatable {
     required this.attestationId,
     required this.attestationType,
     required this.issuer,
+    required this.status,
+    required this.validFrom,
+    required this.validUntil,
     required this.attributes,
     this.metadata = const [],
   });
@@ -53,6 +66,9 @@ class WalletCard extends Equatable {
     attestationId,
     attestationType,
     issuer,
+    status,
+    validFrom,
+    validUntil,
     attributes,
     metadata,
   ];
@@ -61,6 +77,9 @@ class WalletCard extends Equatable {
     String? Function()? attestationId,
     String? attestationType,
     Organization? issuer,
+    CardStatus? status,
+    DateTime? validFrom,
+    DateTime? validUntil,
     List<DataAttribute>? attributes,
     List<CardDisplayMetadata>? metadata,
   }) {
@@ -68,6 +87,9 @@ class WalletCard extends Equatable {
       attestationId: attestationId != null ? attestationId() : this.attestationId,
       attestationType: attestationType ?? this.attestationType,
       issuer: issuer ?? this.issuer,
+      status: status ?? this.status,
+      validFrom: validFrom ?? this.validFrom,
+      validUntil: validUntil ?? this.validUntil,
       attributes: attributes ?? this.attributes,
       metadata: metadata ?? this.metadata,
     );
