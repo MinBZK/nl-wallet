@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../../../environment.dart';
 import '../../../../domain/model/attribute/attribute.dart';
 import '../../../../domain/model/card/metadata/card_rendering.dart';
+import '../../../../domain/model/card/status/card_status_metadata.dart';
 import '../../../../domain/model/card/wallet_card.dart';
 import '../../../../theme/base_wallet_theme.dart';
 import '../../../../theme/wallet_theme.dart';
@@ -11,6 +12,8 @@ import '../../../../util/extension/build_context_extension.dart';
 import '../../../../util/extension/locale_extension.dart';
 import '../../../../util/extension/object_extension.dart';
 import '../../../../util/extension/string_extension.dart';
+import '../../../../util/mapper/card/status/card_status_metadata_mapper.dart';
+import '../../../../util/mapper/card/status/card_status_render_type.dart';
 import '../../decoration/shadow_decoration.dart';
 import '../animated_fade_in.dart';
 import '../animated_fade_out.dart';
@@ -22,6 +25,7 @@ import 'card_logo.dart';
 import 'mock_card_background.dart';
 import 'mock_card_holograph.dart';
 import 'show_details_cta.dart';
+import 'status/card_status_info_label.dart';
 
 // Fallback colors used when the issuer does not supply (both) a text and background color.
 // The reason we fall back to these colors even if only one of them is missing is to guarantee
@@ -68,6 +72,9 @@ class WalletCardItem extends StatefulWidget {
   /// Specify how to animate the 'show details' cta on the initial build
   final CtaAnimation? ctaAnimation;
 
+  /// Card status UI metadata (null if no status should be shown)
+  final CardStatusMetadata? cardStatusMetadata;
+
   const WalletCardItem({
     required this.title,
     this.subtitle,
@@ -79,6 +86,7 @@ class WalletCardItem extends StatefulWidget {
     this.showText = true,
     this.scaleText = true,
     this.ctaAnimation,
+    this.cardStatusMetadata,
     super.key,
   });
 
@@ -102,6 +110,7 @@ class WalletCardItem extends StatefulWidget {
       holograph: MockCardHolograph(attestationType: card.attestationType),
       scaleText: scaleText,
       showText: showText,
+      cardStatusMetadata: CardStatusMetadataMapper.map(context, card, CardStatusRenderType.walletCardItem),
       key: key,
     );
   }
@@ -229,7 +238,7 @@ class _WalletCardItemState extends State<WalletCardItem> {
                     children: [
                       Positioned.fill(child: _buildBackground()),
                       _buildContent(context),
-                      _buildPositionedShowDetailsCta(context),
+                      _buildPositionedBottomSection(context),
                       Positioned.fill(child: _buildRippleAndFocus(context)),
                     ],
                   ),
@@ -275,7 +284,7 @@ class _WalletCardItemState extends State<WalletCardItem> {
                 BodyText(widget.subtitle.takeIf((_) => widget.showText) ?? ''),
                 Opacity(
                   opacity: 0,
-                  child: _buildShowDetailsCta(context),
+                  child: _buildBottomSection(context),
                 ), // guarantees correct spacing for the cta rendered at the bottom of the card
               ],
             ),
@@ -291,34 +300,50 @@ class _WalletCardItemState extends State<WalletCardItem> {
     return Focus(
       canRequestFocus: false,
       descendantsAreFocusable: false, // Makes sure the cta doesn't receive separate focus
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: IntrinsicWidth(
-          child: ShowDetailsCta(
-            text: Text.rich(context.l10n.showDetailsCta.toTextSpan(context)),
-            textColor: widget.textColor,
-            onPressed: widget.onPressed,
-            statesController: _statesController,
-          ),
+      child: IntrinsicWidth(
+        child: ShowDetailsCta(
+          text: Text.rich(context.l10n.showDetailsCta.toTextSpan(context)),
+          textColor: widget.textColor,
+          onPressed: widget.onPressed,
+          statesController: _statesController,
         ),
       ),
     );
   }
 
-  Widget _buildPositionedShowDetailsCta(BuildContext context) {
-    final showDetailsCta = widget.onPressed != null;
-    if (!showDetailsCta) return const SizedBox.shrink();
+  Widget _buildPositionedBottomSection(BuildContext context) {
     return Positioned(
       bottom: _kCardContentPadding,
       left: _kCardContentPadding,
       right: _kCardContentPadding,
-      child: switch (widget.ctaAnimation) {
-        null => widget.onPressed == null ? const SizedBox.shrink() : _buildShowDetailsCta(context),
-        CtaAnimation.fadeIn => AnimatedFadeIn(child: _buildShowDetailsCta(context)),
-        CtaAnimation.fadeOut => AnimatedFadeOut(child: _buildShowDetailsCta(context)),
-        CtaAnimation.visible => _buildShowDetailsCta(context),
-        CtaAnimation.invisible => const SizedBox.shrink(),
-      },
+      child: _buildBottomSection(context),
+    );
+  }
+
+  Widget _buildBottomSection(BuildContext context) {
+    final cardStatusMetadata = widget.cardStatusMetadata;
+    final showDetailCta = widget.onPressed != null
+        ? switch (widget.ctaAnimation) {
+            null => _buildShowDetailsCta(context),
+            CtaAnimation.fadeIn => AnimatedFadeIn(child: _buildShowDetailsCta(context)),
+            CtaAnimation.fadeOut => AnimatedFadeOut(child: _buildShowDetailsCta(context)),
+            CtaAnimation.visible => _buildShowDetailsCta(context),
+            CtaAnimation.invisible => const SizedBox.shrink(),
+          }
+        : const SizedBox.shrink();
+
+    return Wrap(
+      alignment: WrapAlignment.spaceBetween,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      runAlignment: WrapAlignment.start,
+      runSpacing: 16,
+      spacing: 16,
+      children: [
+        showDetailCta,
+        if (widget.showText && cardStatusMetadata != null) ...[
+          CardStatusInfoLabel(cardStatusMetadata),
+        ],
+      ],
     );
   }
 

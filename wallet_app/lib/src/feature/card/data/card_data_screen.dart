@@ -3,14 +3,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../domain/model/attribute/attribute.dart';
+import '../../../domain/model/card/wallet_card.dart';
 import '../../../util/cast_util.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
+import '../../../util/mapper/card/status/card_status_metadata_mapper.dart';
+import '../../../util/mapper/card/status/card_status_render_type.dart';
 import '../../../wallet_constants.dart';
 import '../../common/widget/attribute/data_attribute_row.dart';
 import '../../common/widget/button/bottom_back_button.dart';
 import '../../common/widget/button/icon/help_icon_button.dart';
 import '../../common/widget/button/list_button.dart';
+import '../../common/widget/card/status/card_status_info_text.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/spacer/sliver_divider.dart';
 import '../../common/widget/spacer/sliver_sized_box.dart';
@@ -94,6 +98,7 @@ class CardDataScreen extends StatelessWidget {
       slivers: [
         const SliverSizedBox(height: 16),
         const SliverDivider(),
+        _buildCardStatus(context, state.card),
         const SliverSizedBox(height: 24),
         _buildDataAttributes(context, state.card.attributes),
         const SliverSizedBox(height: 24),
@@ -107,6 +112,23 @@ class CardDataScreen extends StatelessWidget {
     return const SliverFillRemaining(
       hasScrollBody: false,
       child: CenteredLoadingIndicator(),
+    );
+  }
+
+  Widget _buildCardStatus(BuildContext context, WalletCard card) {
+    final cardStatusMetadata = CardStatusMetadataMapper.map(context, card, CardStatusRenderType.cardDataScreen);
+    if (cardStatusMetadata == null) return SliverSizedBox.shrink();
+
+    return SliverToBoxAdapter(
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+            child: CardStatusInfoText(cardStatusMetadata),
+          ),
+          const Divider(),
+        ],
+      ),
     );
   }
 

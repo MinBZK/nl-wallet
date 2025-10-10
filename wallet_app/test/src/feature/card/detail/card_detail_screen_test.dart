@@ -2,6 +2,7 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
+import 'package:wallet/src/domain/model/card/status/card_status.dart';
 import 'package:wallet/src/domain/model/card/wallet_card.dart';
 import 'package:wallet/src/domain/model/wallet_card_detail.dart';
 import 'package:wallet/src/feature/card/detail/argument/card_detail_screen_argument.dart';
@@ -19,13 +20,15 @@ import '../../../test_util/test_utils.dart';
 class MockCardSummaryBloc extends MockBloc<CardDetailEvent, CardDetailState> implements CardDetailBloc {}
 
 void main() {
-  final cardDetailLoadSuccessMock = CardDetailLoadSuccess(
-    WalletCardDetail(
-      card: WalletMockData.card,
-      mostRecentIssuance: WalletMockData.issuanceEvent,
-      mostRecentSuccessfulDisclosure: WalletMockData.disclosureEvent,
-    ),
-  );
+  CardDetailLoadSuccess cardDetailLoadSuccessMock({CardStatus status = CardStatus.valid}) {
+    return CardDetailLoadSuccess(
+      WalletCardDetail(
+        card: WalletMockData.cardWithStatus(status),
+        mostRecentIssuance: WalletMockData.issuanceEvent,
+        mostRecentSuccessfulDisclosure: WalletMockData.disclosureEvent,
+      ),
+    );
+  }
 
   group('goldens', () {
     testGoldens('CardDetailLoadSuccess light', (tester) async {
@@ -34,7 +37,7 @@ void main() {
           cardTitle: WalletMockData.card.title.testValue,
         ).withState<CardDetailBloc, CardDetailState>(
           MockCardSummaryBloc(),
-          cardDetailLoadSuccessMock,
+          cardDetailLoadSuccessMock(),
         ),
       );
       await screenMatchesGolden('success.light');
@@ -46,7 +49,7 @@ void main() {
           cardTitle: WalletMockData.card.title.testValue,
         ).withState<CardDetailBloc, CardDetailState>(
           MockCardSummaryBloc(),
-          cardDetailLoadSuccessMock,
+          cardDetailLoadSuccessMock(),
         ),
         brightness: Brightness.dark,
       );
@@ -95,6 +98,90 @@ void main() {
       );
       await screenMatchesGolden('error.light');
     });
+
+    testGoldens('CardDetailLoadSuccess status - validSoon', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        CardDetailScreen(
+          cardTitle: WalletMockData.card.title.testValue,
+        ).withState<CardDetailBloc, CardDetailState>(
+          MockCardSummaryBloc(),
+          cardDetailLoadSuccessMock(status: CardStatus.validSoon),
+        ),
+      );
+      await screenMatchesGolden('status.valid.soon');
+    });
+
+    testGoldens('CardDetailLoadSuccess status - valid', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        CardDetailScreen(
+          cardTitle: WalletMockData.card.title.testValue,
+        ).withState<CardDetailBloc, CardDetailState>(
+          MockCardSummaryBloc(),
+          cardDetailLoadSuccessMock(status: CardStatus.valid),
+        ),
+      );
+      await screenMatchesGolden('status.valid');
+    });
+
+    testGoldens('CardDetailLoadSuccess status - expiresSoon', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        CardDetailScreen(
+          cardTitle: WalletMockData.card.title.testValue,
+        ).withState<CardDetailBloc, CardDetailState>(
+          MockCardSummaryBloc(),
+          cardDetailLoadSuccessMock(status: CardStatus.expiresSoon),
+        ),
+      );
+      await screenMatchesGolden('status.expires.soon');
+    });
+
+    testGoldens('CardDetailLoadSuccess status - expired', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        CardDetailScreen(
+          cardTitle: WalletMockData.card.title.testValue,
+        ).withState<CardDetailBloc, CardDetailState>(
+          MockCardSummaryBloc(),
+          cardDetailLoadSuccessMock(status: CardStatus.expired),
+        ),
+      );
+      await screenMatchesGolden('status.expired');
+    });
+
+    testGoldens('CardDetailLoadSuccess status - revoked', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        CardDetailScreen(
+          cardTitle: WalletMockData.card.title.testValue,
+        ).withState<CardDetailBloc, CardDetailState>(
+          MockCardSummaryBloc(),
+          cardDetailLoadSuccessMock(status: CardStatus.revoked),
+        ),
+      );
+      await screenMatchesGolden('status.revoked');
+    });
+
+    testGoldens('CardDetailLoadSuccess status - corrupted', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        CardDetailScreen(
+          cardTitle: WalletMockData.card.title.testValue,
+        ).withState<CardDetailBloc, CardDetailState>(
+          MockCardSummaryBloc(),
+          cardDetailLoadSuccessMock(status: CardStatus.corrupted),
+        ),
+      );
+      await screenMatchesGolden('status.corrupted');
+    });
+
+    testGoldens('CardDetailLoadSuccess status - unknown', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        CardDetailScreen(
+          cardTitle: WalletMockData.card.title.testValue,
+        ).withState<CardDetailBloc, CardDetailState>(
+          MockCardSummaryBloc(),
+          cardDetailLoadSuccessMock(status: CardStatus.unknown),
+        ),
+      );
+      await screenMatchesGolden('status.unknown');
+    });
   });
 
   group('widgets', () {
@@ -104,7 +191,7 @@ void main() {
           cardTitle: WalletMockData.card.title.testValue,
         ).withState<CardDetailBloc, CardDetailState>(
           MockCardSummaryBloc(),
-          cardDetailLoadSuccessMock,
+          cardDetailLoadSuccessMock(),
         ),
       );
 
@@ -176,6 +263,9 @@ void main() {
         attestationId: 'id',
         attestationType: 'com.example.docType',
         issuer: WalletMockData.organization,
+        status: WalletMockData.status,
+        validFrom: WalletMockData.validFrom,
+        validUntil: WalletMockData.validUntil,
         attributes: const [],
       );
       final CardDetailScreenArgument inputArgument = CardDetailScreenArgument(

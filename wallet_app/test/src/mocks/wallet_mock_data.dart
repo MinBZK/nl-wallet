@@ -3,6 +3,7 @@ import 'package:wallet/src/domain/model/app_image_data.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/card/metadata/card_display_metadata.dart';
 import 'package:wallet/src/domain/model/card/metadata/card_rendering.dart';
+import 'package:wallet/src/domain/model/card/status/card_status.dart';
 import 'package:wallet/src/domain/model/card/wallet_card.dart';
 import 'package:wallet/src/domain/model/disclosure/disclose_card_request.dart';
 import 'package:wallet/src/domain/model/document.dart';
@@ -18,11 +19,17 @@ import 'package:wallet/src/wallet_assets.dart';
 abstract class WalletMockData {
   static Locale testLocale = const Locale('en');
 
+  static final CardStatus status = CardStatus.valid;
+  static final DateTime validFrom = DateTime(2050, 5, 1, 17, 25);
+  static final DateTime validUntil = DateTime(2025, 5, 1, 17, 25);
+
   static WalletCard card = WalletCard(
+    attestationId: 'id',
     attestationType: 'com.example.attestationType',
     issuer: WalletMockData.organization,
-    attributes: [textDataAttribute],
-    attestationId: 'id',
+    status: WalletMockData.status,
+    validFrom: WalletMockData.validFrom,
+    validUntil: WalletMockData.validUntil,
     metadata: [
       CardDisplayMetadata(
         language: testLocale,
@@ -35,12 +42,18 @@ abstract class WalletMockData {
         ),
       ),
     ],
+    attributes: [textDataAttribute],
   );
 
+  static WalletCard cardWithStatus(CardStatus status) => card.copyWith(status: status);
+
   static WalletCard simpleRenderingCard = WalletCard(
+    attestationId: 'id',
     attestationType: 'com.example.attestationType',
     issuer: WalletMockData.organization,
-    attributes: [textDataAttribute],
+    status: WalletMockData.status,
+    validFrom: WalletMockData.validFrom,
+    validUntil: WalletMockData.validUntil,
     metadata: [
       CardDisplayMetadata(
         language: testLocale,
@@ -50,14 +63,16 @@ abstract class WalletMockData {
         rendering: const SimpleCardRendering(textColor: Colors.white, bgColor: Colors.deepPurple),
       ),
     ],
-    attestationId: 'id',
+    attributes: [textDataAttribute],
   );
 
   static WalletCard altCard = WalletCard(
-    issuer: WalletMockData.organization,
-    attestationType: 'com.example.alt.attestationType',
-    attributes: [textDataAttribute, textDataAttribute, textDataAttribute],
     attestationId: 'id2',
+    attestationType: 'com.example.alt.attestationType',
+    issuer: WalletMockData.organization,
+    status: WalletMockData.status,
+    validFrom: WalletMockData.validFrom,
+    validUntil: WalletMockData.validUntil,
     metadata: [
       CardDisplayMetadata(
         language: testLocale,
@@ -70,6 +85,7 @@ abstract class WalletMockData {
         ),
       ),
     ],
+    attributes: [textDataAttribute, textDataAttribute, textDataAttribute],
   );
 
   static DiscloseCardRequest discloseCardRequestSingleCard = DiscloseCardRequest.fromCard(card);
