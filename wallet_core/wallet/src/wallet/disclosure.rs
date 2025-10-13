@@ -921,6 +921,7 @@ mod tests {
     use itertools::Itertools;
     use mockall::predicate::always;
     use mockall::predicate::eq;
+    use mockall::predicate::function;
     use rstest::rstest;
     use serde::de::Error;
     use url::Url;
@@ -972,7 +973,6 @@ mod tests {
     use update_policy_model::update_policy::VersionState;
     use utils::generator::mock::MockTimeGenerator;
 
-    use crate::AttestationPresentation;
     use crate::attestation::AttestationAttributeValue;
     use crate::attestation::AttestationIdentity;
     use crate::attestation::mock::EmptyPresentationConfig;
@@ -984,18 +984,14 @@ mod tests {
     use crate::storage::AttestationFormatQuery;
     use crate::storage::ChangePinData;
     use crate::storage::DisclosableAttestation;
-    use crate::storage::DisclosureStatus;
     use crate::storage::StoredAttestation;
     use crate::storage::StoredAttestationCopy;
-    use crate::storage::WalletEvent;
-    use crate::wallet::test::create_disclosure_event;
 
     use super::super::Session;
     use super::super::test::ISSUER_KEY;
     use super::super::test::TestWalletMockStorage;
     use super::super::test::WalletDeviceVendor;
     use super::super::test::mdoc_from_credential_payload;
-    use super::super::test::setup_mock_recent_history_callback;
     use super::super::test::verified_sd_jwt_from_credential_payload;
     use super::DisclosureAttestationOptions;
     use super::DisclosureError;
@@ -1953,13 +1949,6 @@ mod tests {
         };
         wallet.session = Some(session);
 
-        wallet
-            .mut_storage()
-            .expect_fetch_recent_wallet_events()
-            .returning(move || Ok(vec![]));
-        let events = setup_mock_recent_history_callback(&mut wallet).await.unwrap();
-        wallet.mut_storage().checkpoint();
-
         // Set up the `terminate()` method to return the following.
         let Some(Session::Disclosure(session)) = &mut wallet.session else {
             unreachable!();
@@ -1972,23 +1961,20 @@ mod tests {
             .times(1)
             .return_once(|| Ok(Some(terminate_return_url)));
 
+        // Verify that a disclosure cancel event will be recorded.
+        let reader_certificate = verifier_certificate.certificate().clone();
         wallet
             .mut_storage()
             .expect_log_disclosure_event()
+            .with(
+                always(),
+                eq(vec![]),
+                eq(reader_certificate),
+                eq(EventStatus::Cancelled),
+                eq(DisclosureType::Regular),
+            )
             .times(1)
             .returning(|_, _, _, _, _| Ok(()));
-
-        let verifier_cert = verifier_certificate.clone();
-        wallet
-            .mut_storage()
-            .expect_fetch_recent_wallet_events()
-            .returning(move || {
-                Ok(vec![create_disclosure_event(
-                    vec![],
-                    verifier_cert.clone(),
-                    DisclosureStatus::Cancelled,
-                )])
-            });
 
         // Cancelling disclosure should result in a `Wallet` without a disclosure session.
         let cancel_return_url = wallet
@@ -1998,28 +1984,6 @@ mod tests {
 
         assert_eq!(cancel_return_url.as_ref(), Some(RETURN_URL.as_ref()));
         assert!(wallet.session.is_none());
-
-        // Verify that a disclosure cancel event has been recorded.
-        let recent_events = events.lock();
-        let event = recent_events
-            .last()
-            .unwrap()
-            .iter()
-            .exactly_one()
-            .expect("disclosure should have resulted in a single event");
-
-        assert_matches!(
-            event,
-            WalletEvent::Disclosure {
-                attestations,
-                reader_certificate,
-                reader_registration,
-                status: DisclosureStatus::Cancelled,
-                ..
-            } if attestations.is_empty() &&
-                reader_certificate.as_ref() == verifier_certificate.certificate() &&
-                reader_registration.as_ref() == verifier_certificate.registration()
-        );
     }
 
     #[rstest]
@@ -2034,11 +1998,7 @@ mod tests {
 
         wallet.update_policy_repository.state = VersionState::Block;
 
-        wallet
-            .mut_storage()
-            .expect_fetch_recent_wallet_events()
-            .returning(move || Ok(vec![]));
-        let events = setup_mock_recent_history_callback(&mut wallet).await.unwrap();
+        wallet.mut_storage().expect_log_disclosure_event().never();
 
         // Cancelling disclosure on a blocked wallet should result in an error.
         let error = wallet
@@ -2049,7 +2009,6 @@ mod tests {
         assert_matches!(error, DisclosureError::VersionBlocked);
         assert!(error.return_url().is_none());
         assert!(wallet.session.is_some());
-        assert!(events.lock().pop().unwrap().is_empty());
     }
 
     #[tokio::test]
@@ -2081,12 +2040,7 @@ mod tests {
 
         wallet.lock();
 
-        wallet
-            .mut_storage()
-            .expect_fetch_recent_wallet_events()
-            .returning(move || Ok(vec![]));
-        let events = setup_mock_recent_history_callback(&mut wallet).await.unwrap();
-        wallet.mut_storage().checkpoint();
+        wallet.mut_storage().expect_log_disclosure_event().never();
 
         // Cancelling disclosure on a locked wallet should result in an error.
         let error = wallet
@@ -2097,7 +2051,6 @@ mod tests {
         assert_matches!(error, DisclosureError::Locked);
         assert!(error.return_url().is_none());
         assert!(wallet.session.is_some());
-        assert!(events.lock().pop().unwrap().is_empty());
     }
 
     #[tokio::test]
@@ -2105,12 +2058,7 @@ mod tests {
         // Prepare a registered and unlocked wallet.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
-        wallet
-            .mut_storage()
-            .expect_fetch_recent_wallet_events()
-            .returning(move || Ok(vec![]));
-        let events = setup_mock_recent_history_callback(&mut wallet).await.unwrap();
-        wallet.mut_storage().checkpoint();
+        wallet.mut_storage().expect_log_disclosure_event().never();
 
         // Cancelling disclosure on a wallet without an active disclosure session should result in an error.
         let error = wallet
@@ -2121,7 +2069,6 @@ mod tests {
         assert_matches!(error, DisclosureError::SessionState);
         assert!(error.return_url().is_none());
         assert!(wallet.session.is_none());
-        assert!(events.lock().pop().unwrap().is_empty());
     }
 
     #[rstest]
@@ -2136,12 +2083,7 @@ mod tests {
 
         wallet.session = Some(session);
 
-        wallet
-            .mut_storage()
-            .expect_fetch_recent_wallet_events()
-            .returning(move || Ok(vec![]));
-        let events = setup_mock_recent_history_callback(&mut wallet).await.unwrap();
-        wallet.mut_storage().checkpoint();
+        wallet.mut_storage().expect_log_disclosure_event().never();
 
         // Cancelling disclosure where the verifier returns responds with a HTTP error body containing
         // a redirect URI should result in that URI being available on the returned error.
@@ -2173,7 +2115,6 @@ mod tests {
         assert_matches!(error, DisclosureError::VpClient(VpClientError::Request(_)));
         assert_eq!(error.return_url(), Some(RETURN_URL.as_ref()));
         assert!(wallet.session.is_none());
-        assert!(events.lock().pop().unwrap().is_empty());
     }
 
     /// This contains a lightweight test of `accept_disclosure()`.
@@ -2187,16 +2128,6 @@ mod tests {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
         let (session, verifier_certificate) = setup_wallet_disclosure_session(requested_format);
         wallet.session = Some(session);
-
-        wallet
-            .mut_storage()
-            .expect_fetch_recent_wallet_events()
-            .returning(move || Ok(vec![]));
-
-        let events = setup_mock_recent_history_callback(&mut wallet).await.unwrap();
-
-        // Verify and reset expectations
-        wallet.mut_storage().checkpoint();
 
         // Set up the `disclose()` method to return the following.
         let Some(Session::Disclosure(session)) = &mut wallet.session else {
@@ -2221,22 +2152,19 @@ mod tests {
             .times(1)
             .return_once(|_| Ok(()));
 
+        let (reader_certificate, _) = verifier_certificate.into_certificate_and_registration();
         wallet
             .mut_storage()
             .expect_log_disclosure_event()
+            .with(
+                always(),
+                always(),
+                eq(reader_certificate),
+                eq(EventStatus::Success),
+                eq(DisclosureType::Regular),
+            )
             .times(1)
             .returning(|_, _, _, _, _| Ok(()));
-
-        wallet
-            .mut_storage()
-            .expect_fetch_recent_wallet_events()
-            .returning(move || {
-                Ok(vec![create_disclosure_event(
-                    vec![],
-                    verifier_certificate.clone(),
-                    DisclosureStatus::Success,
-                )])
-            });
 
         let accept_return_url = wallet
             .accept_disclosure(&[0], PIN.to_string())
@@ -2246,7 +2174,6 @@ mod tests {
         // Accepting disclosure should result in a `Wallet` without a disclosure session.
         assert_eq!(accept_return_url.as_ref(), Some(RETURN_URL.as_ref()));
         assert!(wallet.session.is_none());
-        assert_eq!(events.lock().pop().unwrap().len(), 1);
     }
 
     #[tokio::test]
@@ -2258,13 +2185,7 @@ mod tests {
 
         wallet.update_policy_repository.state = VersionState::Block;
 
-        // mock_issuance_event(&mut wallet);
-        wallet
-            .mut_storage()
-            .expect_fetch_recent_wallet_events()
-            .returning(move || Ok(vec![]));
-
-        let events = setup_mock_recent_history_callback(&mut wallet).await.unwrap();
+        wallet.mut_storage().expect_log_disclosure_event().never();
 
         // Accepting disclosure on a blocked wallet should result in an error.
         let error = wallet
@@ -2275,7 +2196,6 @@ mod tests {
         assert_matches!(error, DisclosureError::VersionBlocked);
         assert!(error.return_url().is_none());
         assert!(wallet.session.is_some());
-        assert!(events.lock().pop().unwrap().is_empty());
     }
 
     #[tokio::test]
@@ -2303,12 +2223,7 @@ mod tests {
 
         wallet.lock();
 
-        wallet
-            .mut_storage()
-            .expect_fetch_recent_wallet_events()
-            .returning(move || Ok(vec![]));
-
-        let events = setup_mock_recent_history_callback(&mut wallet).await.unwrap();
+        wallet.mut_storage().expect_log_disclosure_event().never();
 
         // Accepting disclosure on a locked wallet should result in an error.
         let error = wallet
@@ -2319,7 +2234,6 @@ mod tests {
         assert_matches!(error, DisclosureError::Locked);
         assert!(error.return_url().is_none());
         assert!(wallet.session.is_some());
-        assert!(events.lock().pop().unwrap().is_empty());
     }
 
     #[tokio::test]
@@ -2327,13 +2241,7 @@ mod tests {
         // Prepare a registered and unlocked wallet.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
-        wallet
-            .mut_storage()
-            .expect_fetch_recent_wallet_events()
-            .times(1)
-            .returning(move || Ok(vec![]));
-
-        let events = setup_mock_recent_history_callback(&mut wallet).await.unwrap();
+        wallet.mut_storage().expect_log_disclosure_event().never();
 
         // Accepting disclosure on a wallet without an active disclosure session should result in an error.
         let error = wallet
@@ -2344,7 +2252,6 @@ mod tests {
         assert_matches!(error, DisclosureError::SessionState);
         assert!(error.return_url().is_none());
         assert!(wallet.session.is_none());
-        assert!(events.lock().pop().unwrap().is_empty());
     }
 
     #[tokio::test]
@@ -2359,13 +2266,7 @@ mod tests {
         };
         session.redirect_uri_purpose = RedirectUriPurpose::Issuance;
 
-        wallet
-            .mut_storage()
-            .expect_fetch_recent_wallet_events()
-            .times(1)
-            .returning(move || Ok(vec![]));
-
-        let events = setup_mock_recent_history_callback(&mut wallet).await.unwrap();
+        wallet.mut_storage().expect_log_disclosure_event().never();
 
         // Accepting disclosure on a wallet that has a disclosure based issuance session should result in an error.
         let error = wallet
@@ -2382,7 +2283,6 @@ mod tests {
         );
         assert!(error.return_url().is_none());
         assert!(wallet.session.is_some());
-        assert!(events.lock().pop().unwrap().is_empty());
     }
 
     #[tokio::test]
@@ -2397,13 +2297,7 @@ mod tests {
         };
         session.attestations = WalletDisclosureAttestations::Missing;
 
-        wallet
-            .mut_storage()
-            .expect_fetch_recent_wallet_events()
-            .times(1)
-            .returning(move || Ok(vec![]));
-
-        let events = setup_mock_recent_history_callback(&mut wallet).await.unwrap();
+        wallet.mut_storage().expect_log_disclosure_event().never();
 
         // Accepting disclosure on a wallet without an active disclosure session should result in an error.
         let error = wallet
@@ -2414,7 +2308,6 @@ mod tests {
         assert_matches!(error, DisclosureError::SessionState);
         assert!(error.return_url().is_none());
         assert!(wallet.session.is_some());
-        assert!(events.lock().pop().unwrap().is_empty());
     }
 
     #[tokio::test]
@@ -2424,19 +2317,15 @@ mod tests {
         let (session, _verifier_certificate) = setup_wallet_disclosure_session(CredentialFormat::SdJwt);
         wallet.session = Some(session);
 
-        wallet
-            .mut_storage()
-            .expect_fetch_recent_wallet_events()
-            .times(1)
-            .returning(move || Ok(vec![]));
-
-        let events = setup_mock_recent_history_callback(&mut wallet).await.unwrap();
+        wallet.mut_storage().expect_log_disclosure_event().never();
 
         // Accepting disclosure on a wallet while selecting a non-existant query index should result in an error.
         let error = wallet
             .accept_disclosure(&[0, 0], PIN.to_string())
             .await
             .expect_err("accepting disclosure should not succeed");
+
+        wallet.mut_storage().checkpoint();
 
         assert_matches!(
             error,
@@ -2447,7 +2336,8 @@ mod tests {
         );
         assert!(error.return_url().is_none());
         assert!(wallet.session.is_some());
-        assert!(events.lock().last().unwrap().is_empty());
+
+        wallet.mut_storage().expect_log_disclosure_event().never();
 
         // Accepting disclosure on a wallet while selecting a non-existant
         // attestation proposal should result in an error.
@@ -2465,7 +2355,6 @@ mod tests {
         );
         assert!(error.return_url().is_none());
         assert!(wallet.session.is_some());
-        assert!(events.lock().last().unwrap().is_empty());
     }
 
     // TODO (PVW-3844): Add tests for continuing a PIN change when accepting disclosure.
@@ -2474,7 +2363,7 @@ mod tests {
     async fn test_wallet_accept_disclosure_error_increment_usage_count() {
         // Prepare a registered and unlocked wallet with an active disclosure session and a faulty database.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-        let (session, _verifier_certificate) = setup_wallet_disclosure_session(CredentialFormat::MsoMdoc);
+        let (session, verifier_certificate) = setup_wallet_disclosure_session(CredentialFormat::MsoMdoc);
         wallet.session = Some(session);
 
         let storage = wallet.mut_storage();
@@ -2485,8 +2374,16 @@ mod tests {
 
         storage.expect_fetch_data::<ChangePinData>().returning(|| Ok(None));
 
+        let reader_certificate = verifier_certificate.certificate().clone();
         storage
             .expect_log_disclosure_event()
+            .with(
+                always(),
+                eq(vec![]),
+                eq(reader_certificate),
+                eq(EventStatus::Error),
+                eq(DisclosureType::Regular),
+            )
             .times(1)
             .returning(|_, _, _, _, _| Ok(()));
 
@@ -2572,16 +2469,6 @@ mod tests {
         let (session, verifier_certificate) = setup_wallet_disclosure_session(CredentialFormat::MsoMdoc);
         wallet.session = Some(session);
 
-        wallet
-            .mut_storage()
-            .expect_fetch_recent_wallet_events()
-            .times(1)
-            .returning(move || Ok(vec![]));
-
-        let events = setup_mock_recent_history_callback(&mut wallet).await.unwrap();
-
-        wallet.mut_storage().checkpoint();
-
         let Some(Session::Disclosure(session)) = &wallet.session else {
             unreachable!();
         };
@@ -2608,28 +2495,25 @@ mod tests {
             .times(1)
             .returning(|_| Ok(()));
 
+        // Verify that a disclosure error event will be recorded, with attestations if the data was shared.
+        let reader_certificate = verifier_certificate.certificate().clone();
+        let (first_event_attestations_tx, first_event_attestations_rx) = std::sync::mpsc::channel();
         wallet
             .mut_storage()
             .expect_log_disclosure_event()
+            .with(
+                always(),
+                function(move |attestations: &Vec<_>| {
+                    first_event_attestations_tx.send(attestations.clone()).unwrap();
+
+                    attestations.len() == if data_shared { 1 } else { 0 }
+                }),
+                eq(reader_certificate),
+                eq(EventStatus::Error),
+                eq(DisclosureType::Regular),
+            )
             .times(1)
             .returning(|_, _, _, _, _| Ok(()));
-
-        let disclosure_event = create_disclosure_event(
-            if data_shared {
-                vec![AttestationPresentation::new_mock()]
-            } else {
-                vec![]
-            },
-            verifier_certificate.clone(),
-            DisclosureStatus::Error,
-        );
-
-        let disclosure_event_copy = disclosure_event.clone();
-        wallet
-            .mut_storage()
-            .expect_fetch_recent_wallet_events()
-            .times(1)
-            .return_once(move || Ok(vec![disclosure_event_copy]));
 
         let disclose_verifier_certificate = verifier_certificate.clone();
         let Some(Session::Disclosure(session)) = &mut wallet.session else {
@@ -2659,6 +2543,8 @@ mod tests {
             .await
             .expect_err("accepting disclosure should not succeed");
 
+        wallet.mut_storage().checkpoint();
+
         // Check the error type and its return URL and check if the wallet still has an active disclosure session.
         expected_error_type.check_error(&error, &verifier_certificate.registration().organization);
         if expect_return_url {
@@ -2667,30 +2553,6 @@ mod tests {
             assert!(error.return_url().is_none());
         }
         assert!(wallet.session.is_some());
-
-        // Verify that a disclosure error event has been recorded, with attestations if the data was shared.
-        {
-            let recent_events = events.lock();
-            let event = recent_events
-                .last()
-                .unwrap()
-                .iter()
-                .exactly_one()
-                .expect("disclosure should have resulted in a single event");
-
-            assert_matches!(
-                event,
-                WalletEvent::Disclosure {
-                    attestations,
-                    reader_certificate,
-                    reader_registration,
-                    status: DisclosureStatus::Error,
-                    ..
-                } if attestations.len() == if data_shared {1} else {0} &&
-                    reader_certificate.as_ref() == verifier_certificate.certificate() &&
-                    reader_registration.as_ref() == verifier_certificate.registration()
-            );
-        }
 
         // Repeating the disclosure with exactly the same error should result in an
         // increment in usage count and exactly the same disclosure error event.
@@ -2714,8 +2576,6 @@ mod tests {
                 ))
             });
 
-        wallet.mut_storage().checkpoint();
-
         wallet
             .mut_storage()
             .expect_fetch_data::<ChangePinData>()
@@ -2728,17 +2588,20 @@ mod tests {
             .times(1)
             .returning(|_| Ok(()));
 
+        let reader_certificate = verifier_certificate.certificate().clone();
+        let first_event_attestations = first_event_attestations_rx.try_recv().unwrap();
         wallet
             .mut_storage()
             .expect_log_disclosure_event()
+            .with(
+                always(),
+                eq(first_event_attestations),
+                eq(reader_certificate),
+                eq(EventStatus::Error),
+                eq(DisclosureType::Regular),
+            )
             .times(1)
             .returning(|_, _, _, _, _| Ok(()));
-
-        wallet
-            .mut_storage()
-            .expect_fetch_recent_wallet_events()
-            .times(1)
-            .return_once(move || Ok(vec![disclosure_event.clone(), disclosure_event.clone()]));
 
         let error = wallet
             .accept_disclosure(&[0], PIN.to_string())
@@ -2752,31 +2615,6 @@ mod tests {
             assert!(error.return_url().is_none());
         }
         assert!(wallet.session.is_some());
-
-        let recent_events = events.lock();
-        let (first_event, second_event) = recent_events
-            .last()
-            .unwrap()
-            .iter()
-            .collect_tuple()
-            .expect("disclosure should have resulted in two events");
-
-        assert_matches!(
-            (first_event, second_event),
-            (WalletEvent::Disclosure {
-                attestations: first_attestations,
-                    status: DisclosureStatus::Error,
-                ..
-            }, WalletEvent::Disclosure {
-                attestations: second_attestations,
-                reader_certificate,
-                    reader_registration,
-                    status: DisclosureStatus::Error,
-                ..
-            }) if first_attestations == second_attestations &&
-                reader_certificate.as_ref() == verifier_certificate.certificate() &&
-                reader_registration.as_ref() == verifier_certificate.registration()
-        );
     }
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -2804,13 +2642,6 @@ mod tests {
         let (session, verifier_certificate) = setup_wallet_disclosure_session(CredentialFormat::MsoMdoc);
         wallet.session = Some(session);
 
-        wallet
-            .mut_storage()
-            .expect_fetch_recent_wallet_events()
-            .returning(move || Ok(vec![]));
-        let events = setup_mock_recent_history_callback(&mut wallet).await.unwrap();
-        wallet.mut_storage().checkpoint();
-
         let Some(Session::Disclosure(session)) = &wallet.session else {
             unreachable!();
         };
@@ -2837,55 +2668,53 @@ mod tests {
             .times(1)
             .returning(|_| Ok(()));
 
-        let disclose_verifier_certificate = verifier_certificate.clone();
-        let expectation_verifier_certificate = verifier_certificate.clone();
-
+        let reader_certificate = verifier_certificate.certificate().clone();
         match instruction_expectation {
             InstructionExpectation::Retry => {}
             InstructionExpectation::RetryWithEvent => {
+                // Verify that a disclosure error event will be recorded.
                 wallet
                     .mut_storage()
                     .expect_log_disclosure_event()
+                    .with(
+                        always(),
+                        eq(vec![]),
+                        eq(reader_certificate),
+                        eq(EventStatus::Error),
+                        eq(DisclosureType::Regular),
+                    )
                     .times(1)
                     .returning(|_, _, _, _, _| Ok(()));
-
-                wallet
-                    .mut_storage()
-                    .expect_fetch_recent_wallet_events()
-                    .times(1)
-                    .return_once(move || {
-                        Ok(vec![create_disclosure_event(
-                            vec![],
-                            expectation_verifier_certificate.clone(),
-                            DisclosureStatus::Error,
-                        )])
-                    });
             }
             InstructionExpectation::Termination => {
+                // Verify that both a disclosure cancellation and error event are recorded.
+                let error_reader_certificate = reader_certificate.clone();
+
                 wallet
                     .mut_storage()
                     .expect_log_disclosure_event()
-                    .times(2)
+                    .with(
+                        always(),
+                        eq(vec![]),
+                        eq(reader_certificate),
+                        eq(EventStatus::Cancelled),
+                        eq(DisclosureType::Regular),
+                    )
+                    .times(1)
                     .returning(|_, _, _, _, _| Ok(()));
 
                 wallet
                     .mut_storage()
-                    .expect_fetch_recent_wallet_events()
-                    .times(2)
-                    .returning(move || {
-                        Ok(vec![
-                            create_disclosure_event(
-                                vec![],
-                                expectation_verifier_certificate.clone(),
-                                DisclosureStatus::Cancelled,
-                            ),
-                            create_disclosure_event(
-                                vec![],
-                                expectation_verifier_certificate.clone(),
-                                DisclosureStatus::Error,
-                            ),
-                        ])
-                    });
+                    .expect_log_disclosure_event()
+                    .with(
+                        always(),
+                        eq(vec![]),
+                        eq(error_reader_certificate),
+                        eq(EventStatus::Error),
+                        eq(DisclosureType::Regular),
+                    )
+                    .times(1)
+                    .returning(|_, _, _, _, _| Ok(()));
             }
         }
 
@@ -2899,7 +2728,7 @@ mod tests {
             .times(1)
             .return_once(move |_disclosable_attestations| {
                 let mut session = setup_disclosure_session_verifier_certificate(
-                    disclose_verifier_certificate,
+                    verifier_certificate,
                     default_pid_credential_requests(CredentialFormat::MsoMdoc),
                 );
 
@@ -2933,69 +2762,6 @@ mod tests {
             // Otherwise, the session should still be present and the wallet unlocked.
             assert!(wallet.session.is_some());
             assert!(!wallet.is_locked());
-        }
-
-        let recent_events = events.lock();
-        match instruction_expectation {
-            InstructionExpectation::Retry => {
-                assert!(recent_events.last().unwrap().is_empty());
-            }
-            InstructionExpectation::RetryWithEvent => {
-                // Verify that a disclosure error event is recorded.
-                let event = recent_events
-                    .last()
-                    .unwrap()
-                    .iter()
-                    .exactly_one()
-                    .expect("disclosure should have resulted in a single event");
-
-                assert_matches!(
-                    event,
-                    WalletEvent::Disclosure {
-                        attestations,
-                        reader_certificate,
-                        reader_registration,
-                        status: DisclosureStatus::Error,
-                        ..
-                    } if attestations.is_empty() &&
-                        reader_certificate.as_ref() == verifier_certificate.certificate() &&
-                        reader_registration.as_ref() == verifier_certificate.registration()
-                );
-            }
-            InstructionExpectation::Termination => {
-                // Verify that both a disclosure cancellation and error event are recorded.
-                let (first_event, second_event) = recent_events
-                    .last()
-                    .unwrap()
-                    .iter()
-                    .collect_tuple()
-                    .expect("disclosure should have resulted in two events");
-
-                assert_matches!(
-                    first_event,
-                    WalletEvent::Disclosure {
-                        attestations,
-                        reader_certificate,
-                        reader_registration,
-                        status: DisclosureStatus::Cancelled,
-                        ..
-                    } if attestations.is_empty() &&
-                        reader_certificate.as_ref() == verifier_certificate.certificate() &&
-                        reader_registration.as_ref() == verifier_certificate.registration()
-                );
-                assert_matches!(
-                    second_event,
-                    WalletEvent::Disclosure {
-                        attestations,
-                        reader_certificate,
-                        reader_registration,
-                        status: DisclosureStatus::Error,
-                        ..
-                    } if attestations.is_empty() &&
-                        reader_certificate.as_ref() == verifier_certificate.certificate() &&
-                        reader_registration.as_ref() == verifier_certificate.registration()
-                );
-            }
         }
     }
 }

@@ -13,7 +13,6 @@ use rand_core::OsRng;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use ssri::Integrity;
-use uuid::Uuid;
 
 use apple_app_attest::AppIdentifier;
 use apple_app_attest::AttestationEnvironment;
@@ -23,7 +22,6 @@ use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::constants::PID_ATTESTATION_TYPE;
 use attestation_data::credential_payload::CredentialPayload;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
-use attestation_data::disclosure_type::DisclosureType;
 use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
 use crypto::p256_der::DerVerifyingKey;
 use crypto::server_keys::KeyPair;
@@ -34,7 +32,6 @@ use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
 use mdoc::holder::Mdoc;
 use openid4vc::Format;
-use openid4vc::disclosure_session::VerifierCertificate;
 use openid4vc::disclosure_session::mock::MockDisclosureClient;
 use openid4vc::issuance_session::NormalizedCredentialPreview;
 use openid4vc::mock::MockIssuanceSession;
@@ -57,7 +54,6 @@ use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::messages::registration::WalletCertificateClaims;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
-use crate::DisclosureStatus;
 use crate::account_provider::MockAccountProviderClient;
 use crate::attestation::AttestationPresentation;
 use crate::config::LocalConfigurationRepository;
@@ -471,23 +467,6 @@ where
     match result {
         Ok(_) => Ok(events),
         Err(e) => Err((events, e)),
-    }
-}
-
-pub fn create_disclosure_event(
-    attestations: Vec<AttestationPresentation>,
-    verifier_certificate: VerifierCertificate,
-    status: DisclosureStatus,
-) -> WalletEvent {
-    let (reader_certificate, reader_registration) = verifier_certificate.into_certificate_and_registration();
-    WalletEvent::Disclosure {
-        id: Uuid::new_v4(),
-        attestations,
-        timestamp: Utc::now(),
-        reader_certificate: Box::new(reader_certificate),
-        reader_registration: Box::new(reader_registration),
-        status,
-        r#type: DisclosureType::Regular,
     }
 }
 
