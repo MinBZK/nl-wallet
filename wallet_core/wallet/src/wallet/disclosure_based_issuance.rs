@@ -279,7 +279,6 @@ mod tests {
         #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] requested_format: CredentialFormat,
     ) {
         // Prepare a registered and unlocked wallet with an active disclosure session.
-
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         // Setup wallet disclosure state

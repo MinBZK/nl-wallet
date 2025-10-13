@@ -69,10 +69,6 @@ pub enum PinRecoveryError {
     #[category(expected)]
     NotRegistered,
 
-    #[error("wallet is locked")]
-    #[category(expected)]
-    Locked,
-
     #[error("issuance session is not in the correct state")]
     #[category(expected)]
     SessionState,
@@ -174,10 +170,7 @@ where
             return Err(PinRecoveryError::NotRegistered);
         }
 
-        info!("Checking if locked");
-        if self.lock.is_locked() {
-            return Err(PinRecoveryError::Locked);
-        }
+        // Don't check if wallet is locked since PIN recovery is allowed in that case
 
         info!("Checking if there is an active session");
         if self.session.is_some() {
@@ -213,10 +206,7 @@ where
             return Err(PinRecoveryError::NotRegistered);
         }
 
-        info!("Checking if locked");
-        if self.lock.is_locked() {
-            return Err(PinRecoveryError::Locked);
-        }
+        // Don't check if wallet is locked since PIN recovery is allowed in that case
 
         self.check_recovery_state(PinRecoveryState::Starting).await?;
 
@@ -380,10 +370,7 @@ where
             return Err(PinRecoveryError::NotRegistered);
         }
 
-        info!("Checking if locked");
-        if self.lock.is_locked() {
-            return Err(PinRecoveryError::Locked);
-        }
+        // Don't check if wallet is locked since PIN recovery is allowed in that case
 
         self.check_recovery_state(PinRecoveryState::Starting).await?;
 
@@ -494,10 +481,7 @@ where
             return Err(PinRecoveryError::NotRegistered);
         }
 
-        info!("Checking if locked");
-        if self.lock.is_locked() {
-            return Err(PinRecoveryError::Locked);
-        }
+        // Don't check if wallet is locked since PIN recovery is allowed in that case
 
         // We don't check if the wallet is blocked: PIN recovery is allowed in that case, so cancelling it is too.
 
