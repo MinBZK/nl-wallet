@@ -5,6 +5,8 @@ pub const PID_FAMILY_NAME: &str = "family_name";
 pub const PID_GIVEN_NAME: &str = "given_name";
 pub const PID_BIRTH_DATE: &str = "birthdate";
 pub const PID_AGE_OVER_18: &str = "age_over_18";
+// TODO: Move to module level or move module to pid_issuer when PVW-4624 and PVW-5000 are done
+#[cfg(feature = "pid_constants")]
 pub const PID_BSN: &str = "bsn";
 pub const PID_RECOVERY_CODE: &str = "recovery_code";
 pub const PID_NATIONALITY: &str = "nationalities";

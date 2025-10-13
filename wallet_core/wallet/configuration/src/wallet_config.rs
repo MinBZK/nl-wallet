@@ -7,6 +7,7 @@ use serde::Serialize;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
 
+use attestation_data::disclosure_type::DisclosureTypeConfig;
 use crypto::p256_der::DerVerifyingKey;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use http_utils::tls::pinning::TlsPinningConfig;
@@ -96,6 +97,18 @@ pub struct UpdatePolicyServerConfiguration {
 pub struct PidAttributesConfiguration {
     pub mso_mdoc: HashMap<String, PidAttributePaths>,
     pub sd_jwt: HashMap<String, PidAttributePaths>,
+}
+
+impl DisclosureTypeConfig for PidAttributesConfiguration {
+    fn mdoc_login_path(&self, doctype: &str) -> Option<impl Iterator<Item = &str>> {
+        self.mso_mdoc
+            .get(doctype)
+            .map(|paths| paths.login.iter().map(String::as_str))
+    }
+
+    fn sd_jwt_login_path(&self, vct: &str) -> Option<impl Iterator<Item = &str>> {
+        self.sd_jwt.get(vct).map(|paths| paths.login.iter().map(String::as_str))
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
