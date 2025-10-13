@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::sync::Arc;
-use std::sync::LazyLock;
 
 use chrono::Utc;
 use futures::future::try_join_all;
@@ -64,8 +63,6 @@ use crate::wallet::Session;
 use super::UriType;
 use super::Wallet;
 use super::uri::identify_uri;
-
-static LOGIN_ATTESTATION_TYPES: LazyLock<HashSet<&str>> = LazyLock::new(|| HashSet::from([PID_ATTESTATION_TYPE]));
 
 #[derive(Debug, Clone)]
 pub struct DisclosureProposalPresentation {
@@ -379,7 +376,7 @@ where
             return Err(DisclosureError::SessionState);
         }
 
-        let config = &self.config_repository.get().disclosure;
+        let wallet_config = &self.config_repository.get();
 
         let purpose = RedirectUriPurpose::from_uri(uri)?;
         let disclosure_uri_query = uri
@@ -389,7 +386,11 @@ where
         // Start the disclosure session based on the parsed disclosure URI.
         let session = self
             .disclosure_client
-            .start(disclosure_uri_query, source, &config.rp_trust_anchors())
+            .start(
+                disclosure_uri_query,
+                source,
+                &wallet_config.disclosure.rp_trust_anchors(),
+            )
             .await?;
 
         // Check for recovery code request
@@ -421,8 +422,10 @@ where
 
         // At this point, determine the disclosure type and if data was ever shared with this RP before, as the UI
         // needs this context both for when all requested attributes are present and for when attributes are missing.
-        let disclosure_type =
-            DisclosureType::from_credential_requests(session.credential_requests().as_ref(), &LOGIN_ATTESTATION_TYPES);
+        let disclosure_type = DisclosureType::from_credential_requests(
+            session.credential_requests().as_ref(),
+            &wallet_config.pid_attributes,
+        );
 
         let verifier_certificate = session.verifier_certificate();
         let shared_data_with_relying_party_before = self

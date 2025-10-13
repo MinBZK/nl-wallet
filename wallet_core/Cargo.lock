@@ -7692,6 +7692,7 @@ dependencies = [
 name = "wallet_configuration"
 version = "0.4.0-dev"
 dependencies = [
+ "attestation_data",
  "crypto",
  "derive_more",
  "http_utils",
