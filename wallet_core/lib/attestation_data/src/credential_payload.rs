@@ -498,6 +498,16 @@ mod mock {
                 time_generator,
             )
         }
+
+        pub fn nl_pid_address_example(time_generator: &impl Generator<DateTime<Utc>>) -> Self {
+            let previewable_payload = PreviewableCredentialPayload::nl_pid_address_example(time_generator);
+
+            Self::example_with_preview(
+                previewable_payload,
+                SigningKey::random(&mut OsRng).verifying_key(),
+                time_generator,
+            )
+        }
     }
 
     impl PreviewableCredentialPayload {

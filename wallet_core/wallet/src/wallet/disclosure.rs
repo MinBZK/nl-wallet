@@ -911,6 +911,7 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
     use std::collections::HashSet;
     use std::str::FromStr;
     use std::sync::LazyLock;
@@ -926,21 +927,30 @@ mod tests {
     use utils::vec_nonempty;
     use uuid::Uuid;
 
+    use attestation_data::attributes::Attribute;
     use attestation_data::attributes::AttributeValue;
     use attestation_data::attributes::Attributes;
     use attestation_data::auth::Organization;
     use attestation_data::auth::reader_auth::ReaderRegistration;
+    use attestation_data::constants::ADDRESS_ATTESTATION_TYPE;
+    use attestation_data::constants::PID_ADDRESS_GROUP;
     use attestation_data::constants::PID_ATTESTATION_TYPE;
+    use attestation_data::constants::PID_FAMILY_NAME;
+    use attestation_data::constants::PID_GIVEN_NAME;
     use attestation_data::constants::PID_RECOVERY_CODE;
+    use attestation_data::constants::PID_RESIDENT_HOUSE_NUMBER;
+    use attestation_data::constants::PID_RESIDENT_POSTAL_CODE;
+    use attestation_data::credential_payload::CredentialPayload;
     use attestation_data::disclosure_type::DisclosureType;
     use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
-    use attestation_types::claim_path::ClaimPath;
     use crypto::server_keys::generate::Ca;
     use dcql::CredentialFormat;
     use dcql::normalized::NormalizedCredentialRequests;
+    use entity::disclosure_event::EventStatus;
     use http_utils::tls::pinning::TlsPinningConfig;
     use http_utils::urls;
     use http_utils::urls::BaseUrl;
+    use mdoc::iso::mdocs::Entry;
     use mdoc::utils::cose::CoseError;
     use openid4vc::PostAuthResponseErrorCode;
     use openid4vc::disclosure_session;
@@ -960,6 +970,7 @@ mod tests {
     use openid4vc::verifier::SessionType;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use update_policy_model::update_policy::VersionState;
+    use utils::generator::mock::MockTimeGenerator;
 
     use crate::AttestationPresentation;
     use crate::attestation::AttestationAttributeValue;
@@ -980,11 +991,12 @@ mod tests {
     use crate::wallet::test::create_disclosure_event;
 
     use super::super::Session;
+    use super::super::test::ISSUER_KEY;
     use super::super::test::TestWalletMockStorage;
     use super::super::test::WalletDeviceVendor;
-    use super::super::test::create_example_pid_mdoc;
-    use super::super::test::create_example_pid_sd_jwt;
+    use super::super::test::mdoc_from_credential_payload;
     use super::super::test::setup_mock_recent_history_callback;
+    use super::super::test::verified_sd_jwt_from_credential_payload;
     use super::DisclosureAttestationOptions;
     use super::DisclosureError;
     use super::DisclosureProposalPresentation;
@@ -998,59 +1010,69 @@ mod tests {
     const PIN: &str = "051097";
     static RETURN_URL: LazyLock<BaseUrl> =
         LazyLock::new(|| BaseUrl::from_str("https://example.com/return/here").unwrap());
-    static DEFAULT_MDOC_REQUESTED_PID_PATH: LazyLock<Vec<&str>> =
-        LazyLock::new(|| vec![PID_ATTESTATION_TYPE, "family_name"]);
-    static DEFAULT_SD_JWT_REQUESTED_PID_PATH: LazyLock<Vec<&str>> = LazyLock::new(|| vec!["family_name"]);
+    static DEFAULT_MDOC_PID_CREDENTIAL_REQUESTS: LazyLock<NormalizedCredentialRequests> = LazyLock::new(|| {
+        NormalizedCredentialRequests::new_mock_mdoc_from_slices(
+            &[(PID_ATTESTATION_TYPE, &[&[PID_ATTESTATION_TYPE, PID_FAMILY_NAME]])],
+            None,
+        )
+    });
+    static DEFAULT_SD_JWT_PID_CREDENTIAL_REQUESTS: LazyLock<NormalizedCredentialRequests> = LazyLock::new(|| {
+        NormalizedCredentialRequests::new_mock_sd_jwt_from_slices(&[(&[PID_ATTESTATION_TYPE], &[&[PID_FAMILY_NAME]])])
+    });
 
-    fn default_requested_pid_path(requested_format: CredentialFormat) -> &'static [&'static str] {
+    fn default_pid_credential_requests(requested_format: CredentialFormat) -> NormalizedCredentialRequests {
         match requested_format {
-            CredentialFormat::MsoMdoc => DEFAULT_MDOC_REQUESTED_PID_PATH.as_slice(),
-            CredentialFormat::SdJwt => DEFAULT_SD_JWT_REQUESTED_PID_PATH.as_slice(),
+            CredentialFormat::MsoMdoc => DEFAULT_MDOC_PID_CREDENTIAL_REQUESTS.clone(),
+            CredentialFormat::SdJwt => DEFAULT_SD_JWT_PID_CREDENTIAL_REQUESTS.clone(),
         }
     }
 
-    fn example_pid_stored_attestation_copy(requested_format: CredentialFormat) -> StoredAttestationCopy {
-        match requested_format {
+    fn example_stored_attestation_copy(
+        format: CredentialFormat,
+        credential_payload: CredentialPayload,
+        metadata: NormalizedTypeMetadata,
+    ) -> StoredAttestationCopy {
+        match format {
             CredentialFormat::MsoMdoc => StoredAttestationCopy::new(
                 Uuid::new_v4(),
                 Uuid::new_v4(),
                 StoredAttestation::MsoMdoc {
-                    mdoc: create_example_pid_mdoc(),
+                    mdoc: mdoc_from_credential_payload(
+                        credential_payload.previewable_payload,
+                        &ISSUER_KEY.issuance_key,
+                    ),
                 },
-                NormalizedTypeMetadata::nl_pid_example(),
+                metadata,
             ),
-            CredentialFormat::SdJwt => {
-                let (sd_jwt, metadata) = create_example_pid_sd_jwt();
-                StoredAttestationCopy::new(
-                    Uuid::new_v4(),
-                    Uuid::new_v4(),
-                    StoredAttestation::SdJwt {
-                        key_identifier: "sd_jwt_key_id".to_string(),
-                        sd_jwt,
-                    },
-                    metadata,
-                )
-            }
+            CredentialFormat::SdJwt => StoredAttestationCopy::new(
+                Uuid::new_v4(),
+                Uuid::new_v4(),
+                StoredAttestation::SdJwt {
+                    key_identifier: crypto::utils::random_string(16),
+                    sd_jwt: verified_sd_jwt_from_credential_payload(
+                        credential_payload,
+                        &metadata,
+                        &ISSUER_KEY.issuance_key,
+                    ),
+                },
+                metadata,
+            ),
         }
+    }
+
+    fn example_pid_stored_attestation_copy(format: CredentialFormat) -> StoredAttestationCopy {
+        example_stored_attestation_copy(
+            format,
+            CredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
+            NormalizedTypeMetadata::nl_pid_example(),
+        )
     }
 
     // Set up properties for a `MockDisclosureSession`.
     fn setup_disclosure_session_verifier_certificate(
         verifier_certificate: VerifierCertificate,
-        requested_format: CredentialFormat,
-        requested_pid_path: &[&str],
+        credential_requests: NormalizedCredentialRequests,
     ) -> MockDisclosureSession {
-        let credential_requests = match requested_format {
-            CredentialFormat::MsoMdoc => NormalizedCredentialRequests::new_mock_mdoc_from_slices(
-                &[(PID_ATTESTATION_TYPE, &[requested_pid_path])],
-                None,
-            ),
-            CredentialFormat::SdJwt => NormalizedCredentialRequests::new_mock_sd_jwt_from_slices(&[(
-                &[PID_ATTESTATION_TYPE],
-                &[requested_pid_path],
-            )]),
-        };
-
         let mut disclosure_session = MockDisclosureSession::new();
         disclosure_session
             .expect_session_type()
@@ -1067,19 +1089,15 @@ mod tests {
 
     // Set up properties for a `MockDisclosureSession`.
     fn setup_disclosure_session(
-        requested_format: CredentialFormat,
-        requested_pid_path: &[&str],
+        credential_requests: NormalizedCredentialRequests,
     ) -> (MockDisclosureSession, VerifierCertificate) {
         let ca = Ca::generate_reader_mock_ca().unwrap();
         let reader_registration = ReaderRegistration::new_mock();
         let key_pair = generate_reader_mock_with_registration(&ca, Some(reader_registration)).unwrap();
         let verifier_certificate = VerifierCertificate::try_new(key_pair.into()).unwrap().unwrap();
 
-        let disclosure_session = setup_disclosure_session_verifier_certificate(
-            verifier_certificate.clone(),
-            requested_format,
-            requested_pid_path,
-        );
+        let disclosure_session =
+            setup_disclosure_session_verifier_certificate(verifier_certificate.clone(), credential_requests);
 
         (disclosure_session, verifier_certificate)
     }
@@ -1087,10 +1105,9 @@ mod tests {
     /// Set up the expected response of `MockDisclosureClient` when starting a new `MockDisclosureSession`.
     fn setup_disclosure_client_start(
         disclosure_client: &mut MockDisclosureClient,
-        requested_format: CredentialFormat,
-        requested_pid_path: &[&str],
+        credential_requests: NormalizedCredentialRequests,
     ) -> VerifierCertificate {
-        let (disclosure_session, verifier_certificate) = setup_disclosure_session(requested_format, requested_pid_path);
+        let (disclosure_session, verifier_certificate) = setup_disclosure_session(credential_requests);
 
         disclosure_client
             .expect_start()
@@ -1108,7 +1125,7 @@ mod tests {
         VerifierCertificate,
     ) {
         let (disclosure_session, verifier_certificate) =
-            setup_disclosure_session(requested_format, default_requested_pid_path(requested_format));
+            setup_disclosure_session(default_pid_credential_requests(requested_format));
 
         let session = Session::Disclosure(WalletDisclosureSession::new_missing_attributes(
             RedirectUriPurpose::Browser,
@@ -1125,23 +1142,18 @@ mod tests {
         Session<MockDigidSession<TlsPinningConfig>, MockIssuanceSession, MockDisclosureSession>,
         VerifierCertificate,
     ) {
-        let requested_pid_path = default_requested_pid_path(requested_format);
-        let (disclosure_session, verifier_certificate) = setup_disclosure_session(requested_format, requested_pid_path);
-
-        let stored_attestation = example_pid_stored_attestation_copy(requested_format);
+        let credential_requests = default_pid_credential_requests(requested_format);
 
         // Remove any of the attributes not requested from the attestation.
+        let stored_attestation = example_pid_stored_attestation_copy(requested_format);
         let disclosable_attestation = DisclosableAttestation::try_new(
             stored_attestation,
-            &[requested_pid_path
-                .iter()
-                .map(|element| ClaimPath::SelectByKey(element.to_string()))
-                .collect_vec()
-                .try_into()
-                .unwrap()],
+            credential_requests.as_ref().first().unwrap().claim_paths(),
             &EmptyPresentationConfig,
         )
         .unwrap();
+
+        let (disclosure_session, verifier_certificate) = setup_disclosure_session(credential_requests);
 
         // Store that attestation and its `AttestationPresentation` in the session.
         let session = Session::Disclosure(WalletDisclosureSession::new_proposal(
@@ -1154,9 +1166,6 @@ mod tests {
         (session, verifier_certificate)
     }
 
-    // TODO (PVW-3829): Add tests with more elaborate candidation selection, e.g. requests spanning multiple attestation
-    //                  types and multiple attestation type instances with optional attributes.
-
     /// This tests the full happy path for disclosure, calling both
     /// `Wallet::start_disclosure()` and `Wallet::accept_disclosure()`.
     #[rstest]
@@ -1167,46 +1176,131 @@ mod tests {
         // Populate a registered wallet with an example PID.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
-        wallet
-            .mut_storage()
-            .expect_fetch_recent_wallet_events()
-            .returning(move || Ok(vec![]));
-        let events = setup_mock_recent_history_callback(&mut wallet).await.unwrap();
-        wallet.mut_storage().checkpoint();
-
         // Set up the relevant mocks.
-        let verifier_certificate = setup_disclosure_client_start(
-            &mut wallet.disclosure_client,
+        let credential_requests = match requested_format {
+            CredentialFormat::MsoMdoc => NormalizedCredentialRequests::new_mock_mdoc_from_slices(
+                &[
+                    (PID_ATTESTATION_TYPE, &[&[PID_ATTESTATION_TYPE, PID_GIVEN_NAME]]),
+                    (
+                        ADDRESS_ATTESTATION_TYPE,
+                        &[
+                            &[
+                                &format!("{ADDRESS_ATTESTATION_TYPE}.{PID_ADDRESS_GROUP}"),
+                                PID_RESIDENT_POSTAL_CODE,
+                            ],
+                            &[
+                                &format!("{ADDRESS_ATTESTATION_TYPE}.{PID_ADDRESS_GROUP}"),
+                                PID_RESIDENT_HOUSE_NUMBER,
+                            ],
+                        ],
+                    ),
+                ],
+                None,
+            ),
+            CredentialFormat::SdJwt => NormalizedCredentialRequests::new_mock_sd_jwt_from_slices(&[
+                (&[PID_ATTESTATION_TYPE], &[&[PID_GIVEN_NAME]]),
+                (
+                    &[ADDRESS_ATTESTATION_TYPE],
+                    &[
+                        &[PID_ADDRESS_GROUP, PID_RESIDENT_POSTAL_CODE],
+                        &[PID_ADDRESS_GROUP, PID_RESIDENT_HOUSE_NUMBER],
+                    ],
+                ),
+            ]),
+        };
+
+        let verifier_certificate = setup_disclosure_client_start(&mut wallet.disclosure_client, credential_requests);
+
+        // Create three PID attestations.
+        let mut pid_credential_payload = CredentialPayload::nl_pid_example(&MockTimeGenerator::default());
+        let mut attributes_root = pid_credential_payload.previewable_payload.attributes.into_inner();
+        *attributes_root.get_mut(PID_GIVEN_NAME).unwrap() =
+            Attribute::Single(AttributeValue::Text("Andere Naam".to_string()));
+        pid_credential_payload.previewable_payload.attributes = attributes_root.into();
+        let pid1 = example_stored_attestation_copy(
             requested_format,
-            default_requested_pid_path(requested_format),
+            pid_credential_payload.clone(),
+            NormalizedTypeMetadata::nl_pid_example(),
         );
 
-        let stored_attestation_copy = example_pid_stored_attestation_copy(requested_format);
+        let pid2 = example_pid_stored_attestation_copy(requested_format);
 
-        wallet
-            .mut_storage()
-            .expect_did_share_data_with_relying_party()
-            .return_once(|_| Ok(false));
+        let mut attributes_root = pid_credential_payload.previewable_payload.attributes.into_inner();
+        *attributes_root.get_mut(PID_GIVEN_NAME).unwrap() =
+            Attribute::Single(AttributeValue::Text("Iemand Anders".to_string()));
+        pid_credential_payload.previewable_payload.attributes = attributes_root.into();
+        let pid3 = example_stored_attestation_copy(
+            requested_format,
+            pid_credential_payload,
+            NormalizedTypeMetadata::nl_pid_example(),
+        );
 
-        let expectation_attestation_copy = stored_attestation_copy.clone();
+        // Create two address attestations.
+        let mut address_credential_payload = CredentialPayload::nl_pid_address_example(&MockTimeGenerator::default());
+        let address1 = example_stored_attestation_copy(
+            requested_format,
+            address_credential_payload.clone(),
+            NormalizedTypeMetadata::nl_address_example(),
+        );
+
+        let mut attributes_root = address_credential_payload.previewable_payload.attributes.into_inner();
+        let Attribute::Nested(address_group) = attributes_root.get_mut(PID_ADDRESS_GROUP).unwrap() else {
+            panic!("");
+        };
+        *address_group.get_mut(PID_RESIDENT_HOUSE_NUMBER).unwrap() =
+            Attribute::Single(AttributeValue::Text("68".to_string()));
+        *address_group.get_mut(PID_RESIDENT_POSTAL_CODE).unwrap() =
+            Attribute::Single(AttributeValue::Text("2514 GL".to_string()));
+        address_credential_payload.previewable_payload.attributes = attributes_root.into();
+        let address2 = example_stored_attestation_copy(
+            requested_format,
+            address_credential_payload,
+            NormalizedTypeMetadata::nl_address_example(),
+        );
+
+        // The wallet will query the database for both attestation types, mock returning them.
         let expectation_format = match requested_format {
             CredentialFormat::MsoMdoc => AttestationFormatQuery::MsoMdoc,
             CredentialFormat::SdJwt => AttestationFormatQuery::SdJwt,
         };
+
+        for (attestation_type, attestations) in [
+            (PID_ATTESTATION_TYPE, vec![pid1, pid2.clone(), pid3]),
+            (ADDRESS_ATTESTATION_TYPE, vec![address1.clone(), address2]),
+        ] {
+            wallet
+                .mut_storage()
+                .expect_fetch_unique_attestations_by_type()
+                .withf(move |attestation_types, format| {
+                    *attestation_types == HashSet::from([attestation_type]) && *format == expectation_format
+                })
+                .times(1)
+                .return_once(move |_, _| Ok(attestations));
+        }
+
+        // The wallet will check in the database if data was shared with the RP before.
         wallet
             .mut_storage()
-            .expect_fetch_unique_attestations_by_type()
-            .withf(move |attestation_types, format| {
-                *attestation_types == HashSet::from([PID_ATTESTATION_TYPE]) && *format == expectation_format
-            })
+            .expect_did_share_data_with_relying_party()
             .times(1)
-            .return_once(move |_, _| Ok(vec![expectation_attestation_copy.clone()]));
+            .returning(|_| Ok(false));
+
+        // Starting disclosure should not cause attestation copy usage counts to be incremented.
+        wallet
+            .mut_storage()
+            .expect_increment_attestation_copies_usage_count()
+            .never();
+
+        // Starting disclosure should not cause a disclosure event to be recorded yet.
+        wallet.mut_storage().expect_log_disclosure_event().never();
 
         // Starting disclosure should not fail.
         let proposal = wallet
             .start_disclosure(&DISCLOSURE_URI, DisclosureUriSource::QrCode)
             .await
             .expect("starting disclosure should succeed");
+
+        wallet.mut_storage().checkpoint();
 
         // Test that the returned `DisclosureProposalPresentation` contains the processed data we set up earlier.
         assert_matches!(
@@ -1220,118 +1314,219 @@ mod tests {
                 ..
             } if reader_registration == *verifier_certificate.registration() && !shared_data_with_relying_party_before
         );
-        assert_eq!(proposal.attestation_options.len().get(), 1);
+        assert_eq!(proposal.attestation_options.len().get(), 2);
 
-        let DisclosureAttestationOptions::Single(presentation) = proposal.attestation_options.first() else {
-            panic!("single proposal attestation expected");
+        let DisclosureAttestationOptions::Multiple(pid_presentations) = &proposal.attestation_options[0] else {
+            panic!("multiple proposal attestations expected");
         };
 
-        assert_matches!(presentation.identity, AttestationIdentity::Fixed { .. });
-        assert_eq!(presentation.attestation_type, PID_ATTESTATION_TYPE);
-        assert_eq!(presentation.attributes.len(), 1);
+        for (presentation, expected_name) in
+            pid_presentations
+                .iter()
+                .zip_eq(["Andere Naam", "Willeke Liselotte", "Iemand Anders"])
+        {
+            assert_matches!(presentation.identity, AttestationIdentity::Fixed { .. });
+            assert_eq!(presentation.attestation_type, PID_ATTESTATION_TYPE);
+            assert_eq!(presentation.attributes.len(), 1);
 
-        let attribute = presentation.attributes.first().unwrap();
+            let attribute = &presentation.attributes[0];
 
-        assert_eq!(attribute.key, vec!["family_name"]);
-        assert_matches!(
-            &attribute.value,
-            AttestationAttributeValue::Basic(AttributeValue::Text(family_name)) if family_name == "De Bruijn"
-        );
+            assert_eq!(attribute.key, vec![PID_GIVEN_NAME]);
+            assert_matches!(
+                &attribute.value,
+                AttestationAttributeValue::Basic(AttributeValue::Text(given_name)) if given_name == expected_name
+            );
+        }
 
-        // Starting disclosure should not cause attestation copy usage counts to be incremented.
-        wallet
-            .mut_storage()
-            .expect_increment_attestation_copies_usage_count()
-            .never();
+        let DisclosureAttestationOptions::Multiple(address_presentations) = &proposal.attestation_options[1] else {
+            panic!("multiple proposal attestations expected");
+        };
+
+        for (presentation, (expected_house_number, expected_postal_code)) in address_presentations
+            .iter()
+            .zip_eq([("147", "2511 DP"), ("68", "2514 GL")])
+        {
+            assert_matches!(presentation.identity, AttestationIdentity::Fixed { .. });
+            assert_eq!(presentation.attestation_type, ADDRESS_ATTESTATION_TYPE);
+            assert_eq!(presentation.attributes.len(), 2);
+
+            let attribute = &presentation.attributes[0];
+
+            assert_eq!(attribute.key, vec![PID_ADDRESS_GROUP, PID_RESIDENT_HOUSE_NUMBER]);
+            assert_matches!(
+                &attribute.value,
+                AttestationAttributeValue::Basic(AttributeValue::Text(house_number)) if house_number == expected_house_number
+            );
+
+            let attribute = &presentation.attributes[1];
+
+            assert_eq!(attribute.key, vec![PID_ADDRESS_GROUP, PID_RESIDENT_POSTAL_CODE]);
+            assert_matches!(
+                &attribute.value,
+                AttestationAttributeValue::Basic(AttributeValue::Text(postal_code)) if postal_code == expected_postal_code
+            );
+        }
 
         // Test that the `Wallet` now contains a `DisclosureSession`.
-        let Some(Session::Disclosure(session)) = wallet.session.as_mut() else {
+        let Some(Session::Disclosure(session)) = wallet.session.as_ref() else {
             panic!("wallet should contain disclosure session");
         };
         assert_eq!(session.redirect_uri_purpose, RedirectUriPurpose::Browser);
 
-        // Starting disclosure should not have caused events to be recorded yet.
-        assert!(events.lock().last().unwrap().is_empty());
-
-        session
-            .protocol_state
-            .expect_disclose()
-            .times(1)
-            .withf(|disclosable_attestations| {
-                // Make sure that only one attestation with a single attribute is disclosed.
-                match disclosable_attestations.as_ref() {
-                    DisclosableAttestations::MsoMdoc(partial_mdocs) => partial_mdocs
-                        .values()
-                        .exactly_one()
-                        .ok()
-                        .and_then(|partial_mdocs| partial_mdocs.iter().exactly_one().ok())
-                        .and_then(|partial_mdoc| {
-                            (partial_mdoc.doc_type() == PID_ATTESTATION_TYPE)
-                                .then_some(partial_mdoc.issuer_signed().clone().into_entries_by_namespace())
-                        })
-                        .and_then(|name_spaces| name_spaces.into_iter().exactly_one().ok())
-                        .and_then(|(name_space, entries)| (name_space == PID_ATTESTATION_TYPE).then_some(entries))
-                        .and_then(|entries| entries.into_iter().exactly_one().ok())
-                        .map(|entry| entry.name == "family_name")
-                        .unwrap_or(false),
-                    DisclosableAttestations::SdJwt(sd_jwt_presentations) => sd_jwt_presentations
-                        .values()
-                        .exactly_one()
-                        .ok()
-                        .and_then(|presentations| presentations.iter().exactly_one().ok())
-                        .and_then(|(presentation, _)| {
-                            let disclosed_attributes: Attributes =
-                                presentation.as_ref().decoded_claims().unwrap().try_into().unwrap();
-
-                            disclosed_attributes
-                                .flattened()
-                                .into_iter()
-                                .exactly_one()
-                                .ok()
-                                .map(|(path, _)| path.iter().eq(&["family_name"]))
-                        })
-                        .unwrap_or(false),
-                }
-            })
-            .return_once(|_disclosable_attestations| Ok(Some(RETURN_URL.clone())));
-
-        wallet.mut_storage().checkpoint();
-
+        // The wallet will check in the database if there is a PIN change in progress.
         wallet
             .mut_storage()
             .expect_fetch_data::<ChangePinData>()
+            .times(1)
             .returning(|| Ok(None));
 
-        // Test that the attestation usage count got incremented in the database.
+        // The wallet will increment the attestation usage count in the database on disclosure.
         wallet
             .mut_storage()
             .expect_increment_attestation_copies_usage_count()
             .times(1)
-            .return_once(|_| Ok(()));
+            .returning(|_| Ok(()));
 
+        // The wallet will use the OpenID4VP disclosure client to disclose the actual attributes.
+        let Some(Session::Disclosure(session)) = wallet.session.as_mut() else {
+            panic!("wallet should contain disclosure session");
+        };
+        session
+            .protocol_state
+            .expect_disclose()
+            .withf(move |disclosable_attestations| {
+                // Make sure that the correct set of attributes is disclosed.
+                match (requested_format, disclosable_attestations.as_ref()) {
+                    (CredentialFormat::MsoMdoc, DisclosableAttestations::MsoMdoc(partial_mdocs)) => {
+                        let attributes = partial_mdocs
+                            .iter()
+                            .map(|(id, partial_mdocs)| {
+                                let attributes = partial_mdocs
+                                    .iter()
+                                    .map(|partial_mdoc| {
+                                        partial_mdoc.issuer_signed().clone().into_entries_by_namespace()
+                                    })
+                                    .collect_vec();
+
+                                (id.as_ref(), attributes)
+                            })
+                            .collect::<HashMap<_, _>>();
+
+                        let expected_attributes = HashMap::from([
+                            (
+                                "mdoc_0",
+                                vec![IndexMap::from([(
+                                    PID_ATTESTATION_TYPE.to_string(),
+                                    vec![Entry {
+                                        name: PID_GIVEN_NAME.to_string(),
+                                        value: ciborium::Value::Text("Willeke Liselotte".to_string()),
+                                    }],
+                                )])],
+                            ),
+                            (
+                                "mdoc_1",
+                                vec![IndexMap::from([(
+                                    format!("{ADDRESS_ATTESTATION_TYPE}.{PID_ADDRESS_GROUP}"),
+                                    vec![
+                                        Entry {
+                                            name: PID_RESIDENT_HOUSE_NUMBER.to_string(),
+                                            value: ciborium::Value::Text("147".to_string()),
+                                        },
+                                        Entry {
+                                            name: PID_RESIDENT_POSTAL_CODE.to_string(),
+                                            value: ciborium::Value::Text("2511 DP".to_string()),
+                                        },
+                                    ],
+                                )])],
+                            ),
+                        ]);
+
+                        attributes == expected_attributes
+                    }
+                    (CredentialFormat::SdJwt, DisclosableAttestations::SdJwt(sd_jwt_presentations)) => {
+                        let attributes = sd_jwt_presentations
+                            .iter()
+                            .map(|(id, presentations)| {
+                                let attributes = presentations
+                                    .iter()
+                                    .map(|(presentation, _)| {
+                                        let attributes =
+                                            Attributes::try_from(presentation.as_ref().decoded_claims().unwrap())
+                                                .unwrap();
+
+                                        attributes
+                                            .flattened()
+                                            .into_iter()
+                                            .map(|(path, value)| {
+                                                (path.into_iter().map(str::to_string).collect_vec(), value.to_string())
+                                            })
+                                            .collect::<HashMap<_, _>>()
+                                    })
+                                    .collect_vec();
+
+                                (id.as_ref(), attributes)
+                            })
+                            .collect::<HashMap<_, _>>();
+
+                        let expected_attributes = HashMap::from([
+                            (
+                                "sd_jwt_0",
+                                vec![HashMap::from([(
+                                    vec![PID_GIVEN_NAME.to_string()],
+                                    "Willeke Liselotte".to_string(),
+                                )])],
+                            ),
+                            (
+                                "sd_jwt_1",
+                                vec![HashMap::from([
+                                    (
+                                        vec![PID_ADDRESS_GROUP.to_string(), PID_RESIDENT_HOUSE_NUMBER.to_string()],
+                                        "147".to_string(),
+                                    ),
+                                    (
+                                        vec![PID_ADDRESS_GROUP.to_string(), PID_RESIDENT_POSTAL_CODE.to_string()],
+                                        "2511 DP".to_string(),
+                                    ),
+                                ])],
+                            ),
+                        ]);
+
+                        attributes == expected_attributes
+                    }
+                    _ => false,
+                }
+            })
+            .times(1)
+            .returning(|_disclosable_attestations| Ok(Some(RETURN_URL.clone())));
+
+        // The wallet will log a single disclosure event, containing
+        // `AttestationPresentation` values for those attributes disclosed.
+        let reader_certificate = verifier_certificate.certificate().clone();
+        let mut expected_pid_presentation = pid2.into_attestation_presentation(&EmptyPresentationConfig);
+        expected_pid_presentation
+            .attributes
+            .retain(|attribute| attribute.key.iter().eq([PID_GIVEN_NAME]));
+        let mut expected_address_presentation = address1.into_attestation_presentation(&EmptyPresentationConfig);
+        expected_address_presentation.attributes.retain(|attribute| {
+            attribute.key.iter().eq([PID_ADDRESS_GROUP, PID_RESIDENT_HOUSE_NUMBER])
+                || attribute.key.iter().eq([PID_ADDRESS_GROUP, PID_RESIDENT_POSTAL_CODE])
+        });
         wallet
             .mut_storage()
             .expect_log_disclosure_event()
+            .with(
+                always(),
+                eq(vec![expected_pid_presentation, expected_address_presentation]),
+                eq(reader_certificate),
+                eq(EventStatus::Success),
+                eq(DisclosureType::Regular),
+            )
             .times(1)
-            .return_once(|_, _, _, _, _| Ok(()));
+            .returning(|_, _, _, _, _| Ok(()));
 
-        let cert = verifier_certificate.clone();
-        let attestation_presentation = stored_attestation_copy
-            .into_attestation_presentation(&EmptyPresentationConfig)
-            .clone();
-        wallet
-            .mut_storage()
-            .expect_fetch_recent_wallet_events()
-            .returning(move || {
-                Ok(vec![create_disclosure_event(
-                    vec![attestation_presentation.clone()],
-                    cert.clone(),
-                    DisclosureStatus::Success,
-                )])
-            });
-
+        // Accept the disclosure, selecting the contents of `pid2` and `address1`.
         let return_url = wallet
-            .accept_disclosure(&[0], PIN.to_string())
+            .accept_disclosure(&[1, 0], PIN.to_string())
             .await
             .expect("accepting disclosure should succeed");
 
@@ -1339,29 +1534,6 @@ mod tests {
 
         // Check that the disclosure session is no longer present on the wallet.
         assert!(wallet.session.is_none());
-
-        // Verify that a single disclosure success event is logged that contains the revelant information.
-        let recent_events = events.lock();
-        let event = recent_events
-            .last()
-            .unwrap()
-            .iter()
-            .exactly_one()
-            .expect("disclosure should have resulted in a single event");
-
-        assert_matches!(
-            event,
-            WalletEvent::Disclosure {
-                attestations,
-                reader_certificate,
-                reader_registration,
-                status: DisclosureStatus::Success,
-                ..
-            } if attestations.len() == 1 &&
-                attestations.first().unwrap().attestation_type == PID_ATTESTATION_TYPE &&
-                reader_certificate.as_ref() == verifier_certificate.certificate() &&
-                reader_registration.as_ref() == verifier_certificate.registration()
-        );
     }
 
     #[tokio::test]
@@ -1559,8 +1731,7 @@ mod tests {
 
         let _verifier_certificate = setup_disclosure_client_start(
             &mut wallet.disclosure_client,
-            CredentialFormat::MsoMdoc,
-            DEFAULT_MDOC_REQUESTED_PID_PATH.as_slice(),
+            default_pid_credential_requests(CredentialFormat::MsoMdoc),
         );
 
         wallet
@@ -1586,8 +1757,7 @@ mod tests {
 
         setup_disclosure_client_start(
             &mut wallet.disclosure_client,
-            CredentialFormat::MsoMdoc,
-            DEFAULT_MDOC_REQUESTED_PID_PATH.as_slice(),
+            default_pid_credential_requests(CredentialFormat::MsoMdoc),
         );
 
         let stored_attestation_copy = example_pid_stored_attestation_copy(CredentialFormat::MsoMdoc);
@@ -1627,9 +1797,9 @@ mod tests {
     ) {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
-        let requested_pid_path = default_requested_pid_path(requested_format);
+        let credential_requests = default_pid_credential_requests(requested_format);
         let verifier_certificate =
-            setup_disclosure_client_start(&mut wallet.disclosure_client, requested_format, requested_pid_path);
+            setup_disclosure_client_start(&mut wallet.disclosure_client, credential_requests.clone());
 
         wallet
             .mut_storage()
@@ -1649,7 +1819,16 @@ mod tests {
             .await
             .expect_err("starting disclosure should not succeed");
 
-        let expected_attributes = HashSet::from([format!("{}/{}", PID_ATTESTATION_TYPE, requested_pid_path.join("/"))]);
+        let expected_attributes = credential_requests
+            .as_ref()
+            .iter()
+            .flat_map(|request| {
+                request
+                    .claim_paths()
+                    .map(|path| format!("{}/{}", PID_ATTESTATION_TYPE, path.iter().join("/")))
+            })
+            .collect::<HashSet<_>>();
+
         assert_matches!(
             error,
             DisclosureError::AttributesNotAvailable {
@@ -1676,11 +1855,20 @@ mod tests {
         #[case] requested_format: CredentialFormat,
         #[case] path: &[&str],
     ) {
+        let credential_requests = match requested_format {
+            CredentialFormat::MsoMdoc => {
+                NormalizedCredentialRequests::new_mock_mdoc_from_slices(&[(PID_ATTESTATION_TYPE, &[path])], None)
+            }
+            CredentialFormat::SdJwt => {
+                NormalizedCredentialRequests::new_mock_sd_jwt_from_slices(&[(&[PID_ATTESTATION_TYPE], &[path])])
+            }
+        };
+
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         // Set the requested attribute path to something that will not match the mdoc 2-tuple
         // of namespace and attribute, which should lead to no candidates being available.
-        let verifier_certificate = setup_disclosure_client_start(&mut wallet.disclosure_client, requested_format, path);
+        let verifier_certificate = setup_disclosure_client_start(&mut wallet.disclosure_client, credential_requests);
 
         let stored_attestation_copy = example_pid_stored_attestation_copy(requested_format);
 
@@ -1726,10 +1914,19 @@ mod tests {
         #[case] requested_format: CredentialFormat,
         #[case] path: &[&str],
     ) {
+        let credential_requests = match requested_format {
+            CredentialFormat::MsoMdoc => {
+                NormalizedCredentialRequests::new_mock_mdoc_from_slices(&[(PID_ATTESTATION_TYPE, &[path])], None)
+            }
+            CredentialFormat::SdJwt => {
+                NormalizedCredentialRequests::new_mock_sd_jwt_from_slices(&[(&[PID_ATTESTATION_TYPE], &[path])])
+            }
+        };
+
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         // Set the requested attribute path to the recovery code
-        setup_disclosure_client_start(&mut wallet.disclosure_client, requested_format, path);
+        setup_disclosure_client_start(&mut wallet.disclosure_client, credential_requests);
 
         // Starting disclosure where the recovery code is requested should result in an error.
         let error = wallet
@@ -2450,8 +2647,7 @@ mod tests {
                 Err((
                     setup_disclosure_session_verifier_certificate(
                         disclose_verifier_certificate,
-                        CredentialFormat::MsoMdoc,
-                        DEFAULT_MDOC_REQUESTED_PID_PATH.as_slice(),
+                        default_pid_credential_requests(CredentialFormat::MsoMdoc),
                     ),
                     disclosure_error,
                 ))
@@ -2512,8 +2708,7 @@ mod tests {
                 Err((
                     setup_disclosure_session_verifier_certificate(
                         disclose_verifier_certificate,
-                        CredentialFormat::MsoMdoc,
-                        DEFAULT_MDOC_REQUESTED_PID_PATH.as_slice(),
+                        default_pid_credential_requests(CredentialFormat::MsoMdoc),
                     ),
                     disclosure_error,
                 ))
@@ -2705,8 +2900,7 @@ mod tests {
             .return_once(move |_disclosable_attestations| {
                 let mut session = setup_disclosure_session_verifier_certificate(
                     disclose_verifier_certificate,
-                    CredentialFormat::MsoMdoc,
-                    DEFAULT_MDOC_REQUESTED_PID_PATH.as_slice(),
+                    default_pid_credential_requests(CredentialFormat::MsoMdoc),
                 );
 
                 if instruction_expectation == InstructionExpectation::Termination {

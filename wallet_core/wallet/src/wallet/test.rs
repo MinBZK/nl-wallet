@@ -25,7 +25,6 @@ use attestation_data::credential_payload::CredentialPayload;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::disclosure_type::DisclosureType;
 use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
-use crypto::mock_remote::MockRemoteEcdsaKey;
 use crypto::p256_der::DerVerifyingKey;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
@@ -202,34 +201,44 @@ pub fn create_example_pid_sd_jwt() -> (VerifiedSdJwt, NormalizedTypeMetadata) {
     let credential_payload = CredentialPayload::nl_pid_example(&MockTimeGenerator::default());
     let metadata = NormalizedTypeMetadata::nl_pid_example();
 
+    let verified_sd_jwt =
+        verified_sd_jwt_from_credential_payload(credential_payload, &metadata, &ISSUER_KEY.issuance_key);
+
+    (verified_sd_jwt, metadata)
+}
+
+pub fn verified_sd_jwt_from_credential_payload(
+    credential_payload: CredentialPayload,
+    metadata: &NormalizedTypeMetadata,
+    issuer_keypair: &KeyPair,
+) -> VerifiedSdJwt {
     let sd_jwt = credential_payload
-        .into_sd_jwt(&metadata, &ISSUER_KEY.issuance_key)
+        .into_sd_jwt(metadata, issuer_keypair)
         .now_or_never()
         .unwrap()
         .unwrap();
 
-    (sd_jwt.into_verified(), metadata)
+    sd_jwt.into_verified()
 }
 
 /// Generates a valid [`Mdoc`] that contains a full mdoc PID.
 pub fn create_example_pid_mdoc() -> Mdoc {
     let preview_payload = PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default());
 
-    mdoc_from_unsigned(preview_payload, &ISSUER_KEY)
+    mdoc_from_credential_payload(preview_payload, &ISSUER_KEY.issuance_key)
 }
 
 /// Generates a valid [`Mdoc`], based on an [`PreviewableCredentialPayload`] and issuer key.
-fn mdoc_from_unsigned(preview_payload: PreviewableCredentialPayload, issuer_key: &IssuerKey) -> Mdoc {
+pub fn mdoc_from_credential_payload(preview_payload: PreviewableCredentialPayload, issuer_keypair: &KeyPair) -> Mdoc {
     let private_key_id = crypto::utils::random_string(16);
-    let mdoc_remote_key = MockRemoteEcdsaKey::new_random(private_key_id.clone());
-    let mdoc_public_key = mdoc_remote_key.verifying_key();
+    let holder_privkey = SigningKey::random(&mut OsRng);
 
     preview_payload
         .into_signed_mdoc_unverified(
             Integrity::from(""),
             private_key_id,
-            mdoc_public_key,
-            &issuer_key.issuance_key,
+            holder_privkey.verifying_key(),
+            issuer_keypair,
         )
         .now_or_never()
         .unwrap()
