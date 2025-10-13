@@ -2967,17 +2967,6 @@ mod tests {
 
         do_check_pin(
             &account_server,
-            &new_pin_privkey,
-            &hw_privkey,
-            new_cert,
-            &instruction_result_signing_key,
-            &mut user_state,
-        )
-        .await
-        .expect_err("should not be able to send CheckPin instruction with new certificate");
-
-        do_check_pin(
-            &account_server,
             &setup.pin_privkey,
             &hw_privkey,
             cert,

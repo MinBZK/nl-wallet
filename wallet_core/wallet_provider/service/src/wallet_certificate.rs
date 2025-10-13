@@ -104,7 +104,7 @@ where
     }
 }
 
-/// Specifies a PIN public key and what validations to do with it.
+/// Specifies what validations to do with it a PIN public key.
 #[derive(Clone)]
 pub enum PinKeyChecks {
     /// Verify the ECDSA signature over the instruction set with the PIN public key,
