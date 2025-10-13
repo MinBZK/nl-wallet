@@ -34,7 +34,7 @@ use yoke::Yokeable;
 
 use error_category::ErrorCategory;
 use http_utils::urls::HttpsUri;
-use http_utils::urls::HttpsUriParseError;
+use http_utils::urls::HttpsUriError;
 use utils::generator::Generator;
 use utils::vec_at_least::VecAtLeastNError;
 use utils::vec_at_least::VecNonEmpty;
@@ -164,7 +164,7 @@ pub enum CertificateError {
     #[error("missing SAN DNS name or URI, found: {0:?}")]
     MissingSanDnsNameOrUri(#[from] VecAtLeastNError),
     #[error("SAN DNS name is not a URI: {0}")]
-    SanDnsNameOrUriIsNotAnHttpsUri(HttpsUriParseError),
+    SanDnsNameOrUriIsNotAnHttpsUri(HttpsUriError),
 }
 
 /// An x509 certificate, unifying functionality from the following crates:
