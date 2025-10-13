@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use rustls_pki_types::TrustAnchor;
 use tracing::info;
+use tracing::instrument;
 use url::Url;
 
 use attestation_data::attributes::AttributeValue;
@@ -12,6 +13,7 @@ use attestation_data::constants::PID_RECOVERY_CODE;
 use attestation_types::claim_path::ClaimPath;
 use crypto::wscd::DisclosureWscd;
 use error_category::ErrorCategory;
+use error_category::sentry_capture_error;
 use http_utils::reqwest::client_builder_accept_json;
 use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::urls::BaseUrl;
@@ -157,6 +159,8 @@ where
         Ok(())
     }
 
+    #[instrument(skip_all)]
+    #[sentry_capture_error]
     pub async fn create_pin_recovery_redirect_uri(&mut self) -> Result<Url, PinRecoveryError> {
         info!("Generating DigiD auth URL, starting OpenID connect discovery");
 
@@ -194,6 +198,8 @@ where
         Ok(url)
     }
 
+    #[instrument(skip_all)]
+    #[sentry_capture_error]
     pub async fn continue_pin_recovery(&mut self, redirect_uri: Url) -> Result<(), PinRecoveryError> {
         info!("Received redirect URI, processing URI and retrieving access token");
 
@@ -276,6 +282,7 @@ where
         Ok(())
     }
 
+    #[instrument(skip_all)]
     pub(super) async fn pin_recovery_start_issuance(
         &mut self,
         token_request: TokenRequest,
@@ -344,6 +351,8 @@ where
         Ok(recovery_code.clone())
     }
 
+    #[instrument(skip_all)]
+    #[sentry_capture_error]
     pub async fn complete_pin_recovery(&mut self, new_pin: String) -> Result<(), PinRecoveryError> {
         let new_pin_salt = new_pin_salt();
         let wscd = self.pin_recovery_wscd(new_pin.clone(), new_pin_salt.clone()).await?;
@@ -351,6 +360,7 @@ where
         self.complete_pin_recovery_with_wscd(wscd, new_pin, new_pin_salt).await
     }
 
+    #[instrument(skip_all)]
     async fn complete_pin_recovery_with_wscd<P: PinRecoveryWscd>(
         &mut self,
         pin_recovery_wscd: P,
@@ -476,6 +486,8 @@ where
         Ok(())
     }
 
+    #[instrument(skip_all)]
+    #[sentry_capture_error]
     pub async fn cancel_pin_recovery(&mut self) -> Result<(), PinRecoveryError> {
         info!("Checking if registered");
         if !self.registration.is_registered() {
@@ -509,6 +521,7 @@ where
         Ok(())
     }
 
+    #[instrument(skip_all)]
     async fn pin_recovery_wscd(
         &self,
         new_pin: String,
