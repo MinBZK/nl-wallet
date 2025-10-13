@@ -50,6 +50,11 @@ path = "tests/registration.rs"
 required-features = ["integration_test"]
 
 [[test]]
+name = "transfer"
+path = "tests/transfer.rs"
+required-features = ["integration_test"]
+
+[[test]]
 name = "update_policy_server"
 path = "tests/update_policy_server.rs"
 required-features = ["integration_test"]
@@ -86,6 +91,7 @@ test_common = [
     "dep:reqwest",
     "dep:sea-orm",
     "dep:semver",
+    "dep:serde_urlencoded",
     "dep:serde_json",
     "dep:server_utils",
     "dep:tempfile",
@@ -124,7 +130,6 @@ integration_test = [
     "dep:rand_core",
     "dep:regex",
     "dep:rstest",
-    "dep:serde_urlencoded",
     "dep:serial_test",
     "dep:tokio",
     "tokio/macros",
@@ -155,10 +160,10 @@ performance_test = [
     "dep:openid4vc_server",
     "dep:pid_issuer",
     "dep:platform_support",
-    "dep:serde_urlencoded",
     "dep:tempfile",
     "dep:wallet",
     "dep:utils",
+    "dep:serde_urlencoded",
     "dep:server_utils",
     "dep:verification_server",
     "dep:dotenvy",

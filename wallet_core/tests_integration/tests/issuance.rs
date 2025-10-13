@@ -1,21 +1,14 @@
 use std::collections::HashMap;
-use std::sync::Arc;
 
 use indexmap::IndexMap;
 use rstest::rstest;
 use serial_test::serial;
-use url::Url;
 
 use attestation_data::constants::*;
 use attestation_data::issuable_document::IssuableDocument;
 use dcql::CredentialFormat;
-use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
-use http_utils::urls::disclosure_based_issuance_base_uri;
 use openid4vc::ErrorResponse;
 use openid4vc::issuance_session::IssuanceSessionError;
-use openid4vc::openid4vp::RequestUriMethod;
-use openid4vc::openid4vp::VpRequestUriObject;
-use openid4vc::verifier::VerifierUrlParameters;
 use pid_issuer::pid::mock::mock_issuable_document_address;
 use tests_integration::common::*;
 use wallet::AttestationAttributeValue;
@@ -24,32 +17,12 @@ use wallet::DisclosureUriSource;
 use wallet::attestation_data::Attribute;
 use wallet::attestation_data::AttributeValue;
 use wallet::errors::IssuanceError;
-use wallet::openid4vc::SessionType;
-use wallet::utils::BaseUrl;
-
-pub async fn wallet_attestations(wallet: &mut WalletWithStorage) -> Vec<AttestationPresentation> {
-    // Emit attestations into this local variable
-    let attestations: Arc<std::sync::Mutex<Vec<AttestationPresentation>>> = Arc::new(std::sync::Mutex::new(vec![]));
-
-    {
-        let attestations = Arc::clone(&attestations);
-        wallet
-            .set_attestations_callback(Box::new(move |mut a| {
-                let mut attestations = attestations.lock().unwrap();
-                attestations.append(&mut a);
-            }))
-            .await
-            .unwrap();
-    }
-
-    attestations.lock().unwrap().to_vec()
-}
 
 #[tokio::test]
 #[serial(hsm)]
 async fn test_pid_ok() {
     let pin = "112233";
-    let mut wallet = setup_wallet_and_default_env(WalletDeviceVendor::Apple).await;
+    let (mut wallet, _, _) = setup_wallet_and_default_env(WalletDeviceVendor::Apple).await;
     wallet = do_wallet_registration(wallet, pin).await;
     wallet = do_pid_issuance(wallet, pin.to_owned()).await;
 
@@ -78,33 +51,6 @@ async fn test_pid_ok() {
         .find(|a| a.key == vec![PID_RECOVERY_CODE]);
 
     assert_eq!(recovery_code_result, None);
-}
-
-fn universal_link(issuance_server_url: &BaseUrl, format: CredentialFormat) -> Url {
-    let params = serde_urlencoded::to_string(VerifierUrlParameters {
-        session_type: SessionType::SameDevice,
-        ephemeral_id_params: None,
-    })
-    .unwrap();
-
-    let issuance_path = match format {
-        CredentialFormat::MsoMdoc => "/disclosure/university_mdoc/request_uri",
-        CredentialFormat::SdJwt => "/disclosure/university_sd_jwt/request_uri",
-    };
-    let mut issuance_server_url = issuance_server_url.join_base_url(issuance_path).into_inner();
-    issuance_server_url.set_query(Some(&params));
-
-    let query = serde_urlencoded::to_string(VpRequestUriObject {
-        request_uri: issuance_server_url.try_into().unwrap(),
-        request_uri_method: Some(RequestUriMethod::POST),
-        client_id: "university.example.com".to_string(),
-    })
-    .unwrap();
-
-    let mut uri = disclosure_based_issuance_base_uri(&DEFAULT_UNIVERSAL_LINK_BASE.parse().unwrap()).into_inner();
-    uri.set_query(Some(&query));
-
-    uri
 }
 
 fn pid_without_optionals() -> IssuableDocument {
@@ -167,10 +113,8 @@ async fn test_pid_optional_attributes() {
     let pin = "112233";
     let (mut wallet, _, _) = setup_wallet_and_env(
         WalletDeviceVendor::Apple,
-        config_server_settings(),
         update_policy_server_settings(),
         wallet_provider_settings(),
-        verification_server_settings(),
         (
             pid_issuer_settings().0,
             vec![pid_without_optionals(), mock_issuable_document_address()]
@@ -210,10 +154,8 @@ async fn test_pid_missing_required_attributes() {
     let pin = "112233";
     let (mut wallet, _, _) = setup_wallet_and_env(
         WalletDeviceVendor::Apple,
-        config_server_settings(),
         update_policy_server_settings(),
         wallet_provider_settings(),
-        verification_server_settings(),
         (
             pid_issuer_settings().0,
             vec![pid_missing_required(), mock_issuable_document_address()]
@@ -253,16 +195,7 @@ async fn test_disclosure_based_issuance_ok(
     #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] format: CredentialFormat,
 ) {
     let pin = "112233";
-    let (mut wallet, _, issuance_url) = setup_wallet_and_env(
-        WalletDeviceVendor::Apple,
-        config_server_settings(),
-        update_policy_server_settings(),
-        wallet_provider_settings(),
-        verification_server_settings(),
-        pid_issuer_settings(),
-        issuance_server_settings(),
-    )
-    .await;
+    let (mut wallet, _, issuance_url) = setup_wallet_and_default_env(WalletDeviceVendor::Apple).await;
 
     wallet = do_wallet_registration(wallet, pin).await;
     wallet = do_pid_issuance(wallet, pin.to_owned()).await;
@@ -301,10 +234,8 @@ async fn test_disclosure_based_issuance_error_no_attributes(
     let pin = "112233";
     let (mut wallet, _, issuance_url) = setup_wallet_and_env(
         WalletDeviceVendor::Apple,
-        config_server_settings(),
         update_policy_server_settings(),
         wallet_provider_settings(),
-        verification_server_settings(),
         pid_issuer_settings(),
         (issuance_server_settings, vec![], di_trust_anchor, di_tls_config),
     )

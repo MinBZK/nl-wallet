@@ -7,7 +7,7 @@ mod key_file;
 mod sql_cipher_key;
 
 #[cfg(any(test, feature = "test"))]
-pub use database_storage::in_memory_storage::InMemoryDatabaseStorage;
+pub use database_storage::test_storage::MockHardwareDatabaseStorage;
 
 use chrono::DateTime;
 use chrono::Utc;
@@ -124,6 +124,10 @@ pub enum StorageError {
     #[error("join error: {0}")]
     #[category(pd)]
     Join(#[from] tokio::task::JoinError),
+
+    #[error("only file storage can be exported")]
+    #[category(pd)]
+    OnlyFileStorageExport,
 }
 
 pub type StorageResult<T> = Result<T, StorageError>;

@@ -103,16 +103,7 @@ async fn test_disclosure_usecases_ok(
     };
 
     let pin = "112233";
-    let (mut wallet, urls, _) = setup_wallet_and_env(
-        WalletDeviceVendor::Apple,
-        config_server_settings(),
-        update_policy_server_settings(),
-        wallet_provider_settings(),
-        verification_server_settings(),
-        pid_issuer_settings(),
-        issuance_server_settings(),
-    )
-    .await;
+    let (mut wallet, urls, _) = setup_wallet_and_default_env(WalletDeviceVendor::Apple).await;
     wallet = do_wallet_registration(wallet, pin).await;
     wallet = do_pid_issuance(wallet, pin.to_owned()).await;
 
@@ -227,16 +218,7 @@ async fn test_disclosure_usecases_ok(
 #[serial(hsm)]
 async fn test_disclosure_without_pid() {
     let pin = "112233";
-    let (mut wallet, urls, _) = setup_wallet_and_env(
-        WalletDeviceVendor::Apple,
-        config_server_settings(),
-        update_policy_server_settings(),
-        wallet_provider_settings(),
-        verification_server_settings(),
-        pid_issuer_settings(),
-        issuance_server_settings(),
-    )
-    .await;
+    let (mut wallet, urls, _) = setup_wallet_and_default_env(WalletDeviceVendor::Apple).await;
     wallet = do_wallet_registration(wallet, pin).await;
 
     let client = reqwest::Client::new();

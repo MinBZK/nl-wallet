@@ -15,16 +15,7 @@ async fn test_wallet_registration(
     let settings_and_ca = wallet_provider_settings();
     let connection = database_connection(&settings_and_ca.0).await;
 
-    let (wallet, _, _) = setup_wallet_and_env(
-        vendor,
-        config_server_settings(),
-        update_policy_server_settings(),
-        settings_and_ca,
-        verification_server_settings(),
-        pid_issuer_settings(),
-        issuance_server_settings(),
-    )
-    .await;
+    let (wallet, _, _) = setup_wallet_and_default_env(vendor).await;
 
     let before = wallet_user_count(&connection).await;
     do_wallet_registration(wallet, "123344").await;
@@ -42,10 +33,8 @@ async fn test_registration_blocked() {
 
     let (mut wallet, _, _) = setup_wallet_and_env(
         WalletDeviceVendor::Apple,
-        config_server_settings(),
         (settings, root_ca),
         wallet_provider_settings(),
-        verification_server_settings(),
         pid_issuer_settings(),
         issuance_server_settings(),
     )

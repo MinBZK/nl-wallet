@@ -92,7 +92,7 @@ pub mod test {
     pub use crate::repository::RepositoryUpdateState;
     pub use crate::repository::UpdateableRepository;
     pub use crate::storage::DatabaseStorage;
-    pub use crate::storage::InMemoryDatabaseStorage;
+    pub use crate::storage::MockHardwareDatabaseStorage;
     pub use crate::storage::Storage;
     pub use crate::update_policy::HttpUpdatePolicyRepository;
     pub use crate::update_policy::MockUpdatePolicyRepository;
