@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::path::PathBuf;
@@ -98,7 +99,7 @@ fn key_identifier_for_key_file(alias: &str) -> String {
 /// * Executing queries on the database by accepting / returning data structures that are used by [`crate::Wallet`].
 #[derive(Debug)]
 pub struct DatabaseStorage<K> {
-    database_name: String,
+    database_name: Cow<'static, str>,
     storage_path: PathBuf,
     open_database: Option<OpenDatabaseStorage<K>>,
 }
@@ -120,7 +121,7 @@ impl AttestationFormatQuery {
 }
 
 impl<K> DatabaseStorage<K> {
-    pub fn new(database_name: String, storage_path: PathBuf) -> Self {
+    pub fn new(database_name: Cow<'static, str>, storage_path: PathBuf) -> Self {
         DatabaseStorage {
             database_name,
             storage_path,
@@ -964,6 +965,8 @@ fn create_attestation_copy_models(
 
 #[cfg(any(test, feature = "test"))]
 pub mod test_storage {
+    use std::borrow::Cow;
+
     use tempfile::TempDir;
 
     use crypto::utils::random_string;
@@ -979,10 +982,10 @@ pub mod test_storage {
 
     impl MockHardwareDatabaseStorage {
         pub async fn open_in_memory() -> Self {
-            let database_name = "open_test_database_storage".to_string();
+            let database_name = "open_test_database_storage";
 
             let mut storage =
-                DatabaseStorage::<MockHardwareEncryptionKey>::new(database_name.clone(), "storage_path".into());
+                DatabaseStorage::<MockHardwareEncryptionKey>::new(Cow::Borrowed(database_name), "storage_path".into());
 
             // Create a test database, override the database field on Storage.
             let key = SqlCipherKey::new_random_with_salt();
@@ -992,7 +995,7 @@ pub mod test_storage {
 
             // Create an encryption key for the key file, which is not actually used,
             // but still needs to be present.
-            let key_file_key = MockHardwareEncryptionKey::new_random(database_name);
+            let key_file_key = MockHardwareEncryptionKey::new_random(String::from(database_name));
 
             storage.open_database = OpenDatabaseStorage { database, key_file_key }.into();
 
@@ -1001,8 +1004,10 @@ pub mod test_storage {
 
         pub async fn open_temp_file(tempdir: &TempDir) -> Self {
             let database_name = random_string(8);
-            let mut storage =
-                DatabaseStorage::<MockHardwareEncryptionKey>::new(database_name, tempdir.path().to_path_buf());
+            let mut storage = DatabaseStorage::<MockHardwareEncryptionKey>::new(
+                Cow::Owned(database_name),
+                tempdir.path().to_path_buf(),
+            );
             let open_database = storage.open_encrypted_database().await.unwrap();
             storage.open_database = Some(open_database);
             storage
@@ -1070,7 +1075,7 @@ pub(crate) mod tests {
         let name = "test_open_encrypted_database";
 
         let mut storage = DatabaseStorage::<MockHardwareEncryptionKey>::new(
-            name.to_string(),
+            Cow::Borrowed(name),
             MockHardwareUtilities::storage_path().await.unwrap(),
         );
 
@@ -1117,7 +1122,7 @@ pub(crate) mod tests {
         // Re-open the encrypted database, set it on the `DatabaseStorage`
         // instance and then call clear on it in order to delete the database.
         let mut storage = DatabaseStorage::<MockHardwareEncryptionKey>::new(
-            name.to_string(),
+            Cow::Borrowed(name),
             MockHardwareUtilities::storage_path().await.unwrap(),
         );
         storage.open_database = storage

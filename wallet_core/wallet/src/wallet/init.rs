@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::sync::Arc;
 
 use cfg_if::cfg_if;
@@ -121,7 +122,7 @@ where
         let update_policy_repository = UpdatePolicyRepository::init();
 
         let storage_path = HardwareUtilities::storage_path().await?;
-        let storage = DatabaseStorage::<HardwareEncryptionKey>::new(String::from(DATABASE_NAME), storage_path.clone());
+        let storage = DatabaseStorage::<HardwareEncryptionKey>::new(Cow::Borrowed(DATABASE_NAME), storage_path.clone());
         let config_repository = UpdatingConfigurationRepository::init(
             storage_path.clone(),
             default_config_server_config(),
