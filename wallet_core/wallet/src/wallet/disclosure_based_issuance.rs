@@ -159,7 +159,6 @@ where
                 credential_offer.credential_issuer,
                 &config.issuer_trust_anchors(),
                 false,
-                true,
             )
             .await?;
 
@@ -186,6 +185,7 @@ mod tests {
     use dcql::CredentialFormat;
     use mdoc::holder::disclosure::PartialMdoc;
     use openid4vc::DisclosureErrorResponse;
+    use openid4vc::Format;
     use openid4vc::PostAuthResponseErrorCode;
     use openid4vc::credential::CredentialOffer;
     use openid4vc::credential::CredentialOfferContainer;
@@ -279,6 +279,7 @@ mod tests {
         #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] requested_format: CredentialFormat,
     ) {
         // Prepare a registered and unlocked wallet with an active disclosure session.
+
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         // Setup wallet disclosure state
@@ -304,7 +305,7 @@ mod tests {
         wallet.session = Some(Session::Disclosure(disclosure_session));
 
         // Setup wallet issuance state
-        let credential_preview = create_example_preview_data(&MockTimeGenerator::default());
+        let credential_preview = create_example_preview_data(&MockTimeGenerator::default(), Format::MsoMdoc);
         let start_context = MockIssuanceSession::start_context();
         start_context.expect().return_once(|| {
             let mut client = MockIssuanceSession::new();

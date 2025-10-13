@@ -194,12 +194,15 @@ pub fn create_example_credential_payload(
 }
 
 /// Generate valid `CredentialPreviewData`.
-pub fn create_example_preview_data(time_generator: &impl Generator<DateTime<Utc>>) -> NormalizedCredentialPreview {
+pub fn create_example_preview_data(
+    time_generator: &impl Generator<DateTime<Utc>>,
+    format: Format,
+) -> NormalizedCredentialPreview {
     let (credential_payload, raw_metadata, normalized_metadata) = create_example_credential_payload(time_generator);
 
     NormalizedCredentialPreview {
         content: CredentialPreviewContent {
-            copies_per_format: IndexMap::from([(Format::MsoMdoc, NonZeroU8::new(1).unwrap())]),
+            copies_per_format: IndexMap::from([(format, NonZeroU8::new(1).unwrap())]),
             credential_payload: credential_payload.previewable_payload,
             issuer_certificate: ISSUER_KEY.issuance_key.certificate().clone(),
         },

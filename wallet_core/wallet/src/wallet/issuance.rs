@@ -389,7 +389,6 @@ where
             config.pid_issuance.pid_issuer_url.clone(),
             &config.issuer_trust_anchors(),
             true,
-            true,
         )
         .await
     }
@@ -401,7 +400,6 @@ where
         issuer_url: BaseUrl,
         issuer_trust_anchors: &Vec<TrustAnchor<'_>>,
         is_pid: bool,
-        filter_recovery_code: bool,
     ) -> Result<Vec<AttestationPresentation>, IssuanceError> {
         let http_client = client_builder_accept_json(default_reqwest_client_builder())
             .build()
@@ -449,7 +447,7 @@ where
                     preview_data.normalized_metadata.clone(),
                     organization.clone(),
                     &preview_data.content.credential_payload.attributes,
-                    filter_recovery_code,
+                    true,
                 )
                 .map_err(|error| IssuanceError::Attestation {
                     organization: Box::new(organization.clone()),
@@ -729,6 +727,7 @@ mod tests {
     use attestation_data::constants::PID_ATTESTATION_TYPE;
     use attestation_data::x509::CertificateType;
     use crypto::server_keys::generate::Ca;
+    use openid4vc::Format;
     use openid4vc::issuance_session::IssuedCredential;
     use openid4vc::mock::MockIssuanceSession;
     use openid4vc::oidc::OidcError;
@@ -986,7 +985,10 @@ mod tests {
 
             client
                 .expect_normalized_credential_previews()
-                .return_const(vec![create_example_preview_data(&MockTimeGenerator::default())]);
+                .return_const(vec![create_example_preview_data(
+                    &MockTimeGenerator::default(),
+                    Format::MsoMdoc,
+                )]);
 
             client.expect_issuer().return_const(IssuerRegistration::new_mock());
 
@@ -1153,17 +1155,17 @@ mod tests {
         let time_generator = MockTimeGenerator::default();
 
         // When the attestation already exists in the database, we expect the identity to be known
-        let mut previews = vec![create_example_preview_data(&time_generator)];
+        let mut previews = vec![create_example_preview_data(&time_generator, Format::MsoMdoc)];
 
         // When the attestation already exists in the database, but the preview has a newer nbf, it should be
         // considered as a new attestation and the identity is None.
-        let mut preview = create_example_preview_data(&time_generator);
+        let mut preview = create_example_preview_data(&time_generator, Format::MsoMdoc);
         preview.content.credential_payload.not_before = Some(Utc::now().add(Duration::days(365)).into());
         previews.push(preview);
 
         // When the attestation_type is different from the one stored in the database, it should be
         // considered as a new attestation and the identity is None.
-        let mut preview = create_example_preview_data(&time_generator);
+        let mut preview = create_example_preview_data(&time_generator, Format::MsoMdoc);
         preview.content.credential_payload.attestation_type = String::from("att_type_1");
         previews.push(preview);
 
@@ -1694,14 +1696,14 @@ mod tests {
         );
 
         // When the attestation already exists in the database, we expect the identity to be known
-        let previews = [create_example_preview_data(&time_generator)];
+        let previews = [create_example_preview_data(&time_generator, Format::MsoMdoc)];
         let result = match_preview_and_stored_attestations(&previews, vec![stored.clone()], &time_generator);
         let (_, identities): (Vec<_>, Vec<_>) = multiunzip(result);
         assert_eq!(vec![Some(attestation_id)], identities);
 
         // When the attestation already exists in the database, but the preview has a newer nbf, it should be considered
         // as a new attestation and the identity is None.
-        let mut preview = create_example_preview_data(&time_generator);
+        let mut preview = create_example_preview_data(&time_generator, Format::MsoMdoc);
         preview.content.credential_payload.not_before = Some(Utc::now().add(Duration::days(365)).into());
         let previews = [preview];
         let result = match_preview_and_stored_attestations(&previews, vec![stored.clone()], &time_generator);
@@ -1709,7 +1711,7 @@ mod tests {
         assert_eq!(vec![None], identities);
 
         // When the attestation doesn't exists in the database, the identity is None.
-        let mut preview = create_example_preview_data(&time_generator);
+        let mut preview = create_example_preview_data(&time_generator, Format::MsoMdoc);
         preview.content.credential_payload.attestation_type = String::from("att_type_1");
         let previews = [preview];
         let result = match_preview_and_stored_attestations(&previews, vec![stored], &time_generator);

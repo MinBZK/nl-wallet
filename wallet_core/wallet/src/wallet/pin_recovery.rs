@@ -1,26 +1,36 @@
 use std::hash::Hash;
 use std::sync::Arc;
 
+use rustls_pki_types::TrustAnchor;
 use tracing::info;
 use url::Url;
 
 use attestation_data::attributes::AttributeValue;
+use attestation_data::attributes::AttributesHandlingError;
 use attestation_data::constants::PID_ATTESTATION_TYPE;
 use attestation_data::constants::PID_RECOVERY_CODE;
 use attestation_types::claim_path::ClaimPath;
 use crypto::wscd::DisclosureWscd;
 use error_category::ErrorCategory;
+use http_utils::reqwest::client_builder_accept_json;
+use http_utils::reqwest::default_reqwest_client_builder;
+use http_utils::urls::BaseUrl;
+use openid4vc::Format;
 use openid4vc::disclosure_session::DisclosureClient;
+use openid4vc::issuance_session::HttpVcMessageClient;
 use openid4vc::issuance_session::IssuanceSession;
 use openid4vc::issuance_session::IssuedCredential;
 use openid4vc::oidc::OidcError;
+use openid4vc::token::TokenRequest;
 use platform_support::attested_key::AttestedKeyHolder;
 use update_policy_model::update_policy::VersionState;
 use utils::vec_nonempty;
+use wallet_account::NL_WALLET_CLIENT_ID;
 use wallet_account::messages::instructions::DiscloseRecoveryCodePinRecovery;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
-use crate::AttestationAttributeValue;
+use crate::AttestationIdentity;
+use crate::AttestationPresentation;
 use crate::account_provider::AccountProviderClient;
 use crate::digid::DigidClient;
 use crate::digid::DigidError;
@@ -40,6 +50,7 @@ use crate::storage::PinRecoveryState;
 use crate::storage::RegistrationData;
 use crate::storage::Storage;
 use crate::validate_pin;
+use crate::wallet::issuance::WalletIssuanceSession;
 
 use super::IssuanceError;
 use super::Session;
@@ -71,10 +82,6 @@ pub enum PinRecoveryError {
     #[error("no recovery code found in PID")]
     #[category(unexpected)]
     MissingRecoveryCode,
-
-    #[error("recovery code had unexpected format: {0:#?}")]
-    #[category(pd)]
-    InvalidRecoveryCodeFormat(AttestationAttributeValue),
 
     #[error("incorrect recovery code: expected {expected}, received {received}")]
     #[category(pd)]
@@ -117,6 +124,10 @@ pub enum PinRecoveryError {
     #[error("user denied DigiD authentication")]
     #[category(expected)]
     DeniedDigiD,
+
+    #[error("failed to retrieve recovery code attribute: {0}")]
+    #[category(pd)]
+    AttributesHandling(#[from] AttributesHandlingError),
 }
 
 impl<CR, UR, S, AKH, APC, DC, IS, DCC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC>
@@ -229,31 +240,13 @@ where
         // Check the recovery code in the received PID against the one in the stored PID, as otherwise
         // the WP will reject our PIN recovery instructions.
 
-        let previews = self
-            .issuance_fetch_previews(
+        let received_recovery_code = self
+            .pin_recovery_start_issuance(
                 token_request,
                 config.pid_issuance.pid_issuer_url.clone(),
                 &config.issuer_trust_anchors(),
-                true,
-                false,
             )
             .await?;
-
-        let received_recovery_code = &previews
-            .iter()
-            .find(|preview| &preview.attestation_type == PID_ATTESTATION_TYPE)
-            .ok_or(PinRecoveryError::MissingPid)?
-            .attributes
-            .iter()
-            .find(|attr| attr.key == vec![PID_RECOVERY_CODE])
-            .ok_or(PinRecoveryError::MissingRecoveryCode)?
-            .value;
-
-        let AttestationAttributeValue::Basic(received_recovery_code) = received_recovery_code else {
-            return Err(PinRecoveryError::InvalidRecoveryCodeFormat(
-                received_recovery_code.clone(),
-            ));
-        };
 
         let stored_pid_credential_payload = self
             .storage
@@ -273,7 +266,7 @@ where
             .expect("failed to retrieve recovery code from PID")
             .expect("no recovery code found in PID");
 
-        if stored_recovery_code != received_recovery_code {
+        if *stored_recovery_code != received_recovery_code {
             return Err(PinRecoveryError::IncorrectRecoveryCode {
                 expected: stored_recovery_code.clone(),
                 received: received_recovery_code.clone(),
@@ -281,6 +274,74 @@ where
         }
 
         Ok(())
+    }
+
+    pub(super) async fn pin_recovery_start_issuance(
+        &mut self,
+        token_request: TokenRequest,
+        issuer_url: BaseUrl,
+        issuer_trust_anchors: &Vec<TrustAnchor<'_>>,
+    ) -> Result<AttributeValue, PinRecoveryError> {
+        let http_client = client_builder_accept_json(default_reqwest_client_builder())
+            .build()
+            .expect("Could not build reqwest HTTP client");
+
+        let issuance_session = IS::start_issuance(
+            HttpVcMessageClient::new(NL_WALLET_CLIENT_ID.to_string(), http_client),
+            issuer_url,
+            token_request,
+            issuer_trust_anchors,
+        )
+        .await
+        .map_err(IssuanceError::from)?;
+
+        let normalized_credential_previews = issuance_session.normalized_credential_preview();
+
+        let recovery_code = normalized_credential_previews
+            .iter()
+            .find(|preview| {
+                preview.content.copies_per_format.get(&Format::SdJwt).is_some()
+                    && preview.content.credential_payload.attestation_type == PID_ATTESTATION_TYPE
+            })
+            .ok_or(PinRecoveryError::MissingPid)?
+            .content
+            .credential_payload
+            .attributes
+            .get(&vec_nonempty![ClaimPath::SelectByKey(PID_RECOVERY_CODE.to_string())])?
+            .ok_or(PinRecoveryError::MissingRecoveryCode)?
+            .clone();
+
+        info!("successfully received token and previews from issuer");
+        let organization = &issuance_session.issuer_registration().organization;
+        let attestations = normalized_credential_previews
+            .iter()
+            .map(|preview_data| {
+                let attestation = AttestationPresentation::create_from_attributes(
+                    AttestationIdentity::Ephemeral,
+                    preview_data.normalized_metadata.clone(),
+                    organization.clone(),
+                    &preview_data.content.credential_payload.attributes,
+                    true,
+                )
+                .map_err(|error| IssuanceError::Attestation {
+                    organization: Box::new(organization.clone()),
+                    error,
+                })?;
+
+                Ok(attestation)
+            })
+            .collect::<Result<Vec<_>, IssuanceError>>()?;
+
+        // The IssuanceSession trait guarantees that credential_preview_data()
+        // returns at least one value, so this unwrap() is safe.
+        let event_attestations = attestations.clone().try_into().unwrap();
+        self.session.replace(Session::Issuance(WalletIssuanceSession::new(
+            true,
+            event_attestations,
+            issuance_session,
+        )));
+
+        Ok(recovery_code.clone())
     }
 
     pub async fn complete_pin_recovery(&mut self, new_pin: String) -> Result<(), PinRecoveryError> {
@@ -515,6 +576,7 @@ mod tests {
     use crypto::wscd::DisclosureWscd;
     use crypto::wscd::WscdPoa;
     use jwt::UnverifiedJwt;
+    use openid4vc::Format;
     use openid4vc::issuance_session::IssuedCredential;
     use openid4vc::mock::MockIssuanceSession;
     use openid4vc::oidc::OidcError;
@@ -618,7 +680,10 @@ mod tests {
 
             client
                 .expect_normalized_credential_previews()
-                .return_const(vec![create_example_preview_data(&MockTimeGenerator::default())]);
+                .return_const(vec![create_example_preview_data(
+                    &MockTimeGenerator::default(),
+                    Format::SdJwt,
+                )]);
 
             client.expect_issuer().return_const(IssuerRegistration::new_mock());
 
@@ -628,7 +693,7 @@ mod tests {
         wallet
             .mut_storage()
             .expect_fetch_unique_attestations_by_type()
-            .times(2)
+            .once()
             .returning(|_, _| {
                 Ok(vec![StoredAttestationCopy::new(
                     Uuid::new_v4(),
@@ -878,7 +943,7 @@ mod tests {
             let mut client = MockIssuanceSession::new();
 
             // Remove the recovery code attribute from the preview
-            let mut preview = create_example_preview_data(&MockTimeGenerator::default());
+            let mut preview = create_example_preview_data(&MockTimeGenerator::default(), Format::SdJwt);
             preview
                 .content
                 .credential_payload
@@ -893,22 +958,6 @@ mod tests {
 
             Ok(client)
         });
-
-        wallet
-            .mut_storage()
-            .expect_fetch_unique_attestations_by_type()
-            .times(1)
-            .returning(|_, _| {
-                Ok(vec![StoredAttestationCopy::new(
-                    Uuid::new_v4(),
-                    Uuid::new_v4(),
-                    StoredAttestation::SdJwt {
-                        key_identifier: "key".to_string(),
-                        sd_jwt: create_example_pid_sd_jwt().0,
-                    },
-                    NormalizedTypeMetadata::nl_pid_example(),
-                )])
-            });
 
         let err = wallet
             .continue_pin_recovery(AUTH_URL.parse().unwrap())
@@ -956,7 +1005,7 @@ mod tests {
             let mut client = MockIssuanceSession::new();
 
             // Change the recovery code attribute from the preview
-            let mut preview = create_example_preview_data(&MockTimeGenerator::default());
+            let mut preview = create_example_preview_data(&MockTimeGenerator::default(), Format::SdJwt);
             let attributes = &mut preview.content.credential_payload.attributes;
             attributes.prune(&[vec_nonempty![ClaimPath::SelectByKey("family_name".to_string())]]);
             attributes
@@ -978,7 +1027,7 @@ mod tests {
         wallet
             .mut_storage()
             .expect_fetch_unique_attestations_by_type()
-            .times(2)
+            .once()
             .returning(|_, _| {
                 Ok(vec![StoredAttestationCopy::new(
                     Uuid::new_v4(),
