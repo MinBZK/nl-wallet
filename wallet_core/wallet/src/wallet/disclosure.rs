@@ -2293,11 +2293,6 @@ mod tests {
             .times(1)
             .returning(|_, _, _, _, _| Ok(()));
 
-        storage
-            .expect_fetch_recent_wallet_events()
-            .times(1)
-            .returning(|| Ok(vec![]));
-
         // Accepting disclosure on a wallet with a faulty database should result
         // in an error, the disclosure session should not be removed.
         let error = wallet
