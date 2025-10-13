@@ -1,22 +1,16 @@
-use std::collections::HashMap;
+use std::time::Duration;
 
 use base64::Engine;
 use base64::prelude::BASE64_URL_SAFE_NO_PAD;
 use chrono::DateTime;
-use chrono::Duration;
 use chrono::Utc;
-use futures::FutureExt;
+use indexmap::IndexMap;
 use jsonwebtoken::jwk::Jwk;
-use p256::ecdsa::VerifyingKey;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_json::json;
 use serde_with::skip_serializing_none;
-use ssri::Integrity;
 
-use attestation_types::claim_path::ClaimPath;
-use crypto::server_keys::KeyPair;
-use crypto::utils::random_string;
 use http_utils::urls::HttpsUri;
 use jwt::EcdsaDecodingKey;
 use jwt::Header;
@@ -26,16 +20,19 @@ use utils::date_time_seconds::DateTimeSeconds;
 use utils::generator::Generator;
 use utils::generator::mock::MockTimeGenerator;
 
-use crate::builder::SdJwtBuilder;
-use crate::claims::ObjectClaims;
+use crate::claims::ClaimValue;
 use crate::disclosure::Disclosure;
 use crate::disclosure::DisclosureContent;
 use crate::hasher::Hasher;
 use crate::hasher::Sha256Hasher;
+use crate::key_binding_jwt::RequiredKeyBinding;
 use crate::sd_alg::SdAlg;
-use crate::sd_jwt::SdJwt;
 use crate::sd_jwt::SdJwtClaims;
-use crate::sd_jwt::SdJwtPresentation;
+use crate::sd_jwt::SdJwtVcClaims;
+use crate::sd_jwt::UnverifiedSdJwt;
+use crate::sd_jwt::UnverifiedSdJwtPresentation;
+use crate::sd_jwt::VerifiedSdJwt;
+use crate::sd_jwt::VerifiedSdJwtPresentation;
 
 // Taken from https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-17.html#name-simple-structured-sd-jwt
 pub const SIMPLE_STRUCTURED_SD_JWT: &str = include_str!("../examples/spec/simple_structured.jwt");
@@ -66,6 +63,8 @@ pub struct SdJwtExampleClaims {
 
     pub iss: Option<HttpsUri>,
 
+    pub cnf: Option<RequiredKeyBinding>,
+
     pub iat: Option<DateTimeSeconds>,
 
     pub exp: Option<DateTimeSeconds>,
@@ -73,79 +72,71 @@ pub struct SdJwtExampleClaims {
     pub nbf: Option<DateTimeSeconds>,
 
     #[serde(flatten)]
-    pub claims: ObjectClaims,
+    pub claims: ClaimValue,
 }
 
 impl JwtTyp for SdJwtExampleClaims {
     const TYP: &'static str = "example+sd-jwt";
 }
 
-impl SdJwt {
-    pub fn spec_simple_structured() -> SdJwt<SdJwtExampleClaims, Header> {
-        SdJwt::parse_and_verify(SIMPLE_STRUCTURED_SD_JWT, &examples_sd_jwt_decoding_key()).unwrap()
+impl SdJwtClaims for SdJwtExampleClaims {
+    fn _sd_alg(&self) -> Option<SdAlg> {
+        self._sd_alg
     }
 
-    pub fn spec_complex_structured() -> SdJwt<SdJwtExampleClaims, Header> {
-        SdJwt::parse_and_verify(COMPLEX_STRUCTURED_SD_JWT, &examples_sd_jwt_decoding_key()).unwrap()
+    fn claims(&self) -> &ClaimValue {
+        &self.claims
     }
 
-    pub fn spec_sd_jwt_vc() -> SdJwt<SdJwtClaims, Header> {
-        SdJwt::parse_and_verify(SD_JWT_VC, &examples_sd_jwt_decoding_key()).unwrap()
+    fn cnf(&self) -> &RequiredKeyBinding {
+        self.cnf.as_ref().unwrap()
     }
+}
 
-    pub fn spec_sd_jwt_kb() -> SdJwtPresentation<SdJwtClaims, Header> {
-        SdJwtPresentation::parse_and_verify(
-            WITH_KB_SD_JWT,
-            &examples_sd_jwt_decoding_key(),
-            WITH_KB_SD_JWT_AUD,
-            WITH_KB_SD_JWT_NONCE,
-            Duration::minutes(2),
-            &MockTimeGenerator::default(),
-        )
-        .unwrap()
-    }
-
-    pub fn example_pid_sd_jwt(issuer_keypair: &KeyPair, holder_public_key: &VerifyingKey) -> SdJwt {
-        let object = json!({
-          "vct": "urn:eudi:pid:nl:1",
-          "iat": 1683000000,
-          "exp": 1883000000,
-          "iss": "https://cert.issuer.example.com",
-          "attestation_qualification": "QEAA",
-          "bsn": "999999999",
-          "recovery_code": "885ed8a2-f07a-4f77-a8df-2e166f5ebd36",
-          "given_name": "Willeke Liselotte",
-          "family_name": "De Bruijn",
-          "birthdate": "1940-01-01"
-        });
-
-        // issuer signs SD-JWT
-        SdJwtBuilder::new(object)
+impl VerifiedSdJwt {
+    pub fn spec_simple_structured() -> VerifiedSdJwt<SdJwtExampleClaims, Header> {
+        SIMPLE_STRUCTURED_SD_JWT
+            .parse::<UnverifiedSdJwt<SdJwtExampleClaims, Header>>()
             .unwrap()
-            .make_concealable(
-                vec![ClaimPath::SelectByKey(String::from("family_name"))]
-                    .try_into()
-                    .unwrap(),
+            .into_verified(&examples_sd_jwt_decoding_key())
+            .unwrap()
+    }
+
+    pub fn spec_complex_structured() -> VerifiedSdJwt<SdJwtExampleClaims, Header> {
+        COMPLEX_STRUCTURED_SD_JWT
+            .parse::<UnverifiedSdJwt<SdJwtExampleClaims, Header>>()
+            .unwrap()
+            .into_verified(&examples_sd_jwt_decoding_key())
+            .unwrap()
+    }
+
+    pub fn spec_sd_jwt_vc() -> VerifiedSdJwt<SdJwtVcClaims, Header> {
+        SD_JWT_VC
+            .parse::<UnverifiedSdJwt<SdJwtVcClaims, Header>>()
+            .unwrap()
+            .into_verified(&examples_sd_jwt_decoding_key())
+            .unwrap()
+    }
+}
+
+impl VerifiedSdJwtPresentation {
+    pub fn spec_sd_jwt_kb() -> VerifiedSdJwtPresentation<SdJwtExampleClaims, Header> {
+        WITH_KB_SD_JWT
+            .parse::<UnverifiedSdJwtPresentation<SdJwtExampleClaims, Header>>()
+            .unwrap()
+            .into_verified(
+                &examples_sd_jwt_decoding_key(),
+                WITH_KB_SD_JWT_AUD,
+                WITH_KB_SD_JWT_NONCE,
+                Duration::from_secs(2 * 60),
+                &MockTimeGenerator::default(),
             )
-            .unwrap()
-            .make_concealable(vec![ClaimPath::SelectByKey(String::from("bsn"))].try_into().unwrap())
-            .unwrap()
-            .make_concealable(
-                vec![ClaimPath::SelectByKey(String::from("recovery_code"))]
-                    .try_into()
-                    .unwrap(),
-            )
-            .unwrap()
-            .add_decoys(&[], 2)
-            .unwrap()
-            .finish(Integrity::from(random_string(32)), issuer_keypair, holder_public_key)
-            .now_or_never()
-            .unwrap()
             .unwrap()
     }
 }
 
 pub struct KeyBindingExampleTimeGenerator;
+
 impl Generator<DateTime<Utc>> for KeyBindingExampleTimeGenerator {
     fn generate(&self) -> DateTime<Utc> {
         DateTime::from_timestamp(1683000000, 0).unwrap()
@@ -153,16 +144,25 @@ impl Generator<DateTime<Utc>> for KeyBindingExampleTimeGenerator {
 }
 
 // Taken from https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-17.html#name-example-sd-jwt-with-recursi
-pub fn recursive_disclosures_example() -> (serde_json::Value, HashMap<String, Disclosure>) {
+pub fn recursive_disclosures_example() -> (serde_json::Value, IndexMap<String, Disclosure>) {
     let claims = json!({
       "_sd": [
         "HvrKX6fPV0v9K_yCVFBiLFHsMaxcD_114Em6VT8x1lg"
       ],
+      "vct": "com.example.pid",
       "iss": "https://issuer.example.com",
       "iat": 1683000000,
       "exp": 1883000000,
       "sub": "6c5c0a49-b589-431d-bae7-219122a9ec2c",
-      "_sd_alg": "sha-256"
+      "_sd_alg": "sha-256",
+      "cnf": {
+          "jwk": {
+              "kty": "EC",
+              "crv": "P-256",
+              "x": "TCAER19Zvu3OHF4j4W4vfSVoHIP1ILilDls7vCeGemc",
+              "y": "ZxjiWWbZMQGHVWKVQ4hbSIirsVfuecCE6t4jT9F2HZQ"
+          }
+      }
     });
 
     let disclosures = vec![
@@ -173,7 +173,7 @@ pub fn recursive_disclosures_example() -> (serde_json::Value, HashMap<String, Di
         "WyJRZ19PNjR6cUF4ZTQxMmExMDhpcm9BIiwgImFkZHJlc3MiLCB7Il9zZCI6IFsiNnZoOWJxLXpTNEdLTV83R3BnZ1ZiWXp6dTZvT0dYcm1OVkdQSFA3NVVkMCIsICI5Z2pWdVh0ZEZST0NnUnJ0TmNHVVhtRjY1cmRlemlfNkVyX2o3NmttWXlNIiwgIktVUkRQaDRaQzE5LTN0aXotRGYzOVY4ZWlkeTFvVjNhM0gxRGEyTjBnODgiLCAiV045cjlkQ0JKOEhUQ3NTMmpLQVN4VGpFeVc1bTV4NjVfWl8ycm8yamZYTSJdfV0",
     ];
 
-    let disclosure_content = HashMap::from_iter(disclosures.into_iter().map(|disclosure_str| {
+    let disclosure_content = IndexMap::from_iter(disclosures.into_iter().map(|disclosure_str| {
         let disclosure_type: DisclosureContent =
             serde_json::from_slice(&BASE64_URL_SAFE_NO_PAD.decode(disclosure_str).unwrap()).unwrap();
         let disclosure = Disclosure::try_new(disclosure_type).unwrap();

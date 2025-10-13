@@ -72,12 +72,14 @@ mod tests {
     use std::sync::Arc;
 
     use assert_matches::assert_matches;
+    use p256::ecdsa::SigningKey;
+    use rand_core::OsRng;
     use uuid::Uuid;
 
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use crypto::server_keys::generate::Ca;
-    use sd_jwt::sd_jwt::VerifiedSdJwt;
+    use sd_jwt::builder::SignedSdJwt;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 
     use crate::storage::StoredAttestation;
@@ -124,9 +126,9 @@ mod tests {
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let issuance_keypair =
             generate_issuer_mock_with_registration(&ca, IssuerRegistration::new_mock().into()).unwrap();
-
-        let sd_jwt = VerifiedSdJwt::pid_example(&issuance_keypair);
-        let attestation_type = sd_jwt.as_ref().claims().vct.as_ref().unwrap().to_owned();
+        let holder_key = SigningKey::random(&mut OsRng);
+        let sd_jwt = SignedSdJwt::pid_example(&issuance_keypair, holder_key.verifying_key()).into_verified();
+        let attestation_type = sd_jwt.claims().vct.clone();
 
         let storage = wallet.mut_storage();
         storage.expect_fetch_unique_attestations().return_once(move || {

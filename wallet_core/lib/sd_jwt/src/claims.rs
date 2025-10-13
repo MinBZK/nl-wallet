@@ -1,6 +1,6 @@
-use std::collections::HashMap;
 use std::iter::Peekable;
 
+use indexmap::IndexMap;
 use itertools::Itertools;
 use nutype::nutype;
 use serde::Deserialize;
@@ -42,7 +42,7 @@ pub struct ObjectClaims {
 
     /// Non-selectively disclosable claims of the SD-JWT.
     #[serde(flatten)]
-    pub claims: HashMap<ClaimName, ClaimValue>,
+    pub claims: IndexMap<ClaimName, ClaimValue>,
 }
 
 impl ObjectClaims {
@@ -64,7 +64,7 @@ impl ObjectClaims {
     }
 
     fn remove(&mut self, key: &ClaimName) -> Option<ClaimValue> {
-        self.claims.remove(key)
+        self.claims.shift_remove(key)
     }
 
     fn insert(&mut self, key: ClaimName, value: ClaimValue) -> Option<ClaimValue> {
@@ -75,7 +75,7 @@ impl ObjectClaims {
         // Remove the value from the object
         let value_to_conceal = self
             .remove(&key)
-            .ok_or_else(|| Error::ObjectFieldNotFound(key.clone(), self.clone()))?;
+            .ok_or_else(|| Error::ObjectFieldNotFound(key.clone(), Box::new(self.clone())))?;
 
         // Create a disclosure for the value
         let disclosure = Disclosure::try_new(DisclosureContent::ObjectProperty(salt, key, value_to_conceal)).map_err(
@@ -90,7 +90,7 @@ impl ObjectClaims {
         )?;
 
         // Hash the disclosure.
-        let hash = hasher.encoded_digest(disclosure.as_str());
+        let hash = hasher.encoded_digest(disclosure.encoded());
 
         // Add the hash to the "_sd" array if exists; otherwise, create the array and insert the hash.
         self.push_digest(hash);
@@ -131,7 +131,7 @@ impl ObjectClaims {
     fn digests_to_disclose<'a, I>(
         &'a self,
         path: &mut Peekable<I>,
-        disclosures: &'a HashMap<String, Disclosure>,
+        disclosures: &'a IndexMap<String, Disclosure>,
         element_key: &'a ClaimPath,
         has_next: bool,
     ) -> Result<Vec<&'a str>>
@@ -144,7 +144,7 @@ impl ObjectClaims {
         match element_key {
             // We are just traversing to a deeper part of the object.
             ClaimPath::SelectByKey(key) if has_next => {
-                let next_object = match self.claims.get(&key.parse()?) {
+                let next_object = match self.claims.get(&key.parse::<ClaimName>()?) {
                     Some(claim_value) => claim_value,
                     None => {
                         let disclosure = self.find_disclosure_digest(key, disclosures).and_then(|digest| {
@@ -158,7 +158,7 @@ impl ObjectClaims {
                             let (_, _, claim_value) = disclosure.content.try_as_object_property(key)?;
                             claim_value
                         } else {
-                            return Err(Error::IntermediateElementNotFound { path: key.clone() });
+                            return Err(Error::IntermediateElementNotFound(key.clone()));
                         }
                     }
                 };
@@ -171,17 +171,17 @@ impl ObjectClaims {
                 // If the value exists within the object, it is not selectively disclosable and we do not have to look
                 // for the associated disclosure.
                 // Otherwise we do look for the associated disclosure.
-                if !self.claims.contains_key(&key.parse()?) {
+                if !self.claims.contains_key(&key.parse::<ClaimName>()?) {
                     let digest = self
                         .find_disclosure_digest(key, disclosures)
-                        .ok_or_else(|| Error::ElementNotFound { path: key.clone() })?;
+                        .ok_or_else(|| Error::ElementNotFound(key.clone()))?;
 
                     digests.push(digest);
                 }
                 Ok(digests)
             }
             _ => Err(Error::UnexpectedElement(
-                ClaimValue::Object(self.clone()),
+                Box::new(ClaimValue::Object(self.clone())),
                 path.cloned().collect_vec(),
             )),
         }
@@ -190,7 +190,7 @@ impl ObjectClaims {
     fn find_disclosure_digest<'a>(
         &'a self,
         key: &str,
-        disclosures: &'a HashMap<String, Disclosure>,
+        disclosures: &'a IndexMap<String, Disclosure>,
     ) -> Option<&'a str> {
         self._sd.as_ref().and_then(|digests| {
             digests.iter().map(String::as_str).find(|digest| {
@@ -234,9 +234,11 @@ impl ClaimValue {
                 Some(array_claim) => Ok(Some(array_claim.as_mut_value()?)),
                 None => Ok(None),
             },
-            (ClaimValue::Object(object), ClaimPath::SelectByKey(key)) => Ok(object.claims.get_mut(&key.parse()?)),
+            (ClaimValue::Object(object), ClaimPath::SelectByKey(key)) => {
+                Ok(object.claims.get_mut(&key.parse::<ClaimName>()?))
+            }
             (_, ClaimPath::SelectAll) => Err(Error::UnsupportedTraversalPath(ClaimPath::SelectAll)),
-            (element, path) => Err(Error::UnexpectedElement(element.clone(), vec![path.clone()])),
+            (element, path) => Err(Error::UnexpectedElement(Box::new(element.clone()), vec![path.clone()])),
         }
     }
 
@@ -292,7 +294,7 @@ impl ClaimValue {
                                 error
                             },
                         )?;
-                        let hash = hasher.encoded_digest(disclosure.as_str());
+                        let hash = hasher.encoded_digest(disclosure.encoded());
                         *value = ArrayClaim::Hash(hash);
                         Ok(disclosure)
                     })
@@ -321,14 +323,14 @@ impl ClaimValue {
                 object.push_digest(SdObjectEncoder::random_digest(hasher, salt_len, false)?);
                 Ok(())
             }
-            _ => Err(Error::UnexpectedElement(self.clone(), vec![])),
+            _ => Err(Error::UnexpectedElement(Box::new(self.clone()), vec![])),
         }
     }
 
     pub(crate) fn digests_to_disclose<'a, I>(
         &'a self,
         path: &mut Peekable<I>,
-        disclosures: &'a HashMap<String, Disclosure>,
+        disclosures: &'a IndexMap<String, Disclosure>,
         traversing_array: bool,
     ) -> Result<Vec<&'a str>>
     where
@@ -349,24 +351,22 @@ impl ClaimValue {
                 object_claims.digests_to_disclose(path, disclosures, element_key, has_next)
             }
             (ClaimValue::Array(array_claims), ClaimPath::SelectByIndex(index)) if has_next => {
-                let entry = array_claims.get(*index).ok_or_else(|| Error::ElementNotFoundInArray {
-                    path: element_key.clone(),
-                })?;
+                let entry = array_claims
+                    .get(*index)
+                    .ok_or_else(|| Error::ElementNotFoundInArray(element_key.clone()))?;
 
                 if let Some(next_object) = entry.process_digests_to_disclose(disclosures, &mut digests)? {
                     digests.append(&mut next_object.digests_to_disclose(path, disclosures, false)?);
                 } else {
-                    return Err(Error::ElementNotFoundInArray {
-                        path: element_key.clone(),
-                    });
+                    return Err(Error::ElementNotFoundInArray(element_key.clone()));
                 }
 
                 Ok(digests)
             }
             (ClaimValue::Array(array_claims), ClaimPath::SelectByIndex(index)) => {
-                let entry = array_claims.get(*index).ok_or_else(|| Error::ElementNotFoundInArray {
-                    path: element_key.clone(),
-                })?;
+                let entry = array_claims
+                    .get(*index)
+                    .ok_or_else(|| Error::ElementNotFoundInArray(element_key.clone()))?;
 
                 // If the array entry is an array-selective-disclosure object, then we'll add the digest to the
                 // list of digests to disclose.
@@ -379,9 +379,7 @@ impl ClaimValue {
                 for entry in array_claims {
                     let next_object = entry
                         .process_digests_to_disclose(disclosures, &mut digests)?
-                        .ok_or_else(|| Error::ElementNotFoundInArray {
-                            path: element_key.clone(),
-                        })?;
+                        .ok_or_else(|| Error::ElementNotFoundInArray(element_key.clone()))?;
 
                     if has_next {
                         digests.append(&mut next_object.digests_to_disclose(path, disclosures, true)?);
@@ -389,7 +387,10 @@ impl ClaimValue {
                 }
                 Ok(digests)
             }
-            (element, _) => Err(Error::UnexpectedElement(element.clone(), path.cloned().collect_vec())),
+            (element, _) => Err(Error::UnexpectedElement(
+                Box::new(element.clone()),
+                path.cloned().collect_vec(),
+            )),
         }
     }
 }
@@ -422,7 +423,7 @@ impl ArrayClaim {
 
     fn process_digests_to_disclose<'a>(
         &'a self,
-        disclosures: &'a HashMap<String, Disclosure>,
+        disclosures: &'a IndexMap<String, Disclosure>,
         digests: &mut Vec<&'a str>,
     ) -> Result<Option<&'a ClaimValue>> {
         let result = match self {

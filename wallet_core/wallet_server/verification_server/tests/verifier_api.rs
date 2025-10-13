@@ -26,7 +26,6 @@ use url::Url;
 
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::auth::reader_auth::ReaderRegistration;
-use attestation_data::credential_payload::CredentialPayload;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::disclosure::DisclosedAttestations;
 use attestation_data::disclosure::DisclosedAttributes;
@@ -63,7 +62,7 @@ use openid4vc::verifier::StatusResponse;
 use openid4vc_server::verifier::StartDisclosureRequest;
 use openid4vc_server::verifier::StartDisclosureResponse;
 use openid4vc_server::verifier::StatusParams;
-use sd_jwt::sd_jwt::SdJwt;
+use sd_jwt::builder::SignedSdJwt;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use server_utils::settings::Authentication;
 use server_utils::settings::RequesterAuth;
@@ -917,7 +916,7 @@ fn pid_start_disclosure_request(format: CredentialFormat) -> StartDisclosureRequ
 fn prepare_example_mdoc_mock(issuer_ca: &Ca, wscd: &MockRemoteWscd) -> Mdoc {
     let payload_preview = PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default());
 
-    let issuer_key_pair =
+    let issuer_keypair =
         generate_issuer_mock_with_registration(issuer_ca, Some(IssuerRegistration::new_mock())).unwrap();
 
     // Generate a new private key and use that and the issuer key to sign the Mdoc.
@@ -929,26 +928,30 @@ fn prepare_example_mdoc_mock(issuer_ca: &Ca, wscd: &MockRemoteWscd) -> Mdoc {
             Integrity::from(""),
             mdoc_private_key.identifier.clone(),
             mdoc_public_key,
-            &issuer_key_pair,
+            &issuer_keypair,
         )
         .now_or_never()
         .unwrap()
         .unwrap()
 }
 
-fn prepare_example_sd_jwt_mock(issuer_ca: &Ca, wscd: &MockRemoteWscd) -> (SdJwt, String) {
-    let credential_payload = CredentialPayload::nl_pid_example(&MockTimeGenerator::default());
-    let type_metadata = NormalizedTypeMetadata::nl_pid_example();
+fn prepare_example_sd_jwt_mock(issuer_ca: &Ca, wscd: &MockRemoteWscd) -> (SignedSdJwt, String) {
+    let payload_preview = PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default());
+    let metadata = NormalizedTypeMetadata::nl_pid_example();
 
-    let issuer_key_pair =
+    let issuer_keypair =
         generate_issuer_mock_with_registration(issuer_ca, Some(IssuerRegistration::new_mock())).unwrap();
 
     // Generate a new private key and use that and the issuer key to sign the SD-JWT.
     let sd_jwt_private_key = wscd.create_random_key();
-    let sd_jwt_public_key = sd_jwt_private_key.verifying_key();
 
-    let sd_jwt = credential_payload
-        .into_sd_jwt(&type_metadata, sd_jwt_public_key, &issuer_key_pair)
+    let sd_jwt = payload_preview
+        .into_signed_sd_jwt_unverified(
+            &metadata,
+            Integrity::from(""),
+            sd_jwt_private_key.verifying_key(),
+            &issuer_keypair,
+        )
         .now_or_never()
         .unwrap()
         .unwrap();
@@ -1019,7 +1022,7 @@ async fn perform_full_disclosure(
                     let (sd_jwt, key_id) = prepare_example_sd_jwt_mock(&issuer_ca, &wscd);
                     let presentation = request
                         .claim_paths()
-                        .fold(sd_jwt.into_presentation_builder(), |builder, path| {
+                        .fold(sd_jwt.into_verified().into_presentation_builder(), |builder, path| {
                             builder.disclose(path).unwrap()
                         })
                         .finish();

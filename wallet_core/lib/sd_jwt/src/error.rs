@@ -31,25 +31,25 @@ pub enum Error {
     IndexOutOfBounds(usize, Vec<ArrayClaim>),
 
     #[error("object field `{0}` not found in: `{1:?}`")]
-    ObjectFieldNotFound(ClaimName, ObjectClaims),
+    ObjectFieldNotFound(ClaimName, Box<ObjectClaims>),
 
     #[error("couldn't find parent for path: /{}", .0.iter().map(ToString::to_string).join("/"))]
     ParentNotFound(Vec<ClaimPath>),
 
     #[error("unexpected element: {:?}, for path: /{}", .0, .1.iter().map(ToString::to_string).join("/"))]
-    UnexpectedElement(ClaimValue, Vec<ClaimPath>),
+    UnexpectedElement(Box<ClaimValue>, Vec<ClaimPath>),
 
-    #[error("the array element for path: '{path}' cannot be found")]
-    ElementNotFoundInArray { path: ClaimPath },
+    #[error("the array element for path: '{0}' cannot be found")]
+    ElementNotFoundInArray(ClaimPath),
 
     #[error("cannot disclose empty path")]
     EmptyPath,
 
-    #[error("the referenced intermediate element for path: '{path}' cannot be found")]
-    IntermediateElementNotFound { path: String },
+    #[error("the referenced intermediate element for path: '{0}' cannot be found")]
+    IntermediateElementNotFound(String),
 
-    #[error("the referenced element for path: '{path}' cannot be found")]
-    ElementNotFound { path: String },
+    #[error("the referenced element for path: '{0}' cannot be found")]
+    ElementNotFound(String),
 
     #[error("invalid input: {0}")]
     Deserialization(String),

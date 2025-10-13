@@ -1,5 +1,6 @@
 use uuid::Uuid;
 
+use attestation_data::attributes::Attributes;
 use attestation_data::auth::Organization;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::credential_payload::CredentialPayload;
@@ -9,7 +10,6 @@ use mdoc::IssuerSigned;
 use mdoc::holder::Mdoc;
 use mdoc::holder::disclosure::MissingAttributesError;
 use mdoc::holder::disclosure::PartialMdoc;
-use sd_jwt::sd_jwt::SdJwt;
 use sd_jwt::sd_jwt::UnsignedSdJwtPresentation;
 use sd_jwt::sd_jwt::VerifiedSdJwt;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
@@ -55,8 +55,8 @@ pub struct StoredAttestationCopy {
     pub(super) normalized_metadata: NormalizedTypeMetadata,
 }
 
-/// An attestation that is present in the wallet database and contains a subset of its original attributes, part of
-/// [`DisclosableAttestation`].
+/// A subset of the attributes of an attestation that is present in the wallet database. In this sense it represents a
+/// partial version of [`DisclosedAttestation`].
 #[derive(Debug, Clone)]
 pub enum PartialAttestation {
     MsoMdoc {
@@ -80,11 +80,6 @@ pub struct DisclosableAttestation {
     presentation: AttestationPresentation,
 }
 
-fn credential_payload_from_sd_jwt(sd_jwt: &impl AsRef<SdJwt>) -> CredentialPayload {
-    CredentialPayload::from_sd_jwt_unvalidated(sd_jwt.as_ref())
-        .expect("a stored SD-JWT attestation should convert to CredentialPayload without errors")
-}
-
 fn attestation_presentation_from_issuer_signed(
     issuer_signed: IssuerSigned,
     attestation_id: Uuid,
@@ -101,18 +96,18 @@ fn attestation_presentation_from_issuer_signed(
 }
 
 fn attestation_presentation_from_sd_jwt(
-    sd_jwt: &impl AsRef<SdJwt>,
+    sd_jwt: &VerifiedSdJwt,
     attestation_id: Uuid,
     normalized_metadata: NormalizedTypeMetadata,
     issuer_organization: Organization,
 ) -> AttestationPresentation {
-    let credential_payload = credential_payload_from_sd_jwt(sd_jwt);
-
-    AttestationPresentation::create_from_attributes(
+    AttestationPresentation::create_from_sd_jwt_claims(
         AttestationIdentity::Fixed { id: attestation_id },
         normalized_metadata,
         issuer_organization,
-        &credential_payload.previewable_payload.attributes,
+        sd_jwt
+            .decoded_claims()
+            .expect("a stored SD-JWT attestation should have decoded claims"),
     )
     .expect("a stored SD-JWT attestation should convert to AttestationPresentation without errors")
 }
@@ -124,7 +119,7 @@ impl StoredAttestation {
             Self::MsoMdoc { mdoc } => &mdoc
                 .issuer_certificate()
                 .expect("a stored mdoc attestation should always contain an issuer certificate"),
-            Self::SdJwt { sd_jwt, .. } => sd_jwt.as_ref().issuer_certificate(),
+            Self::SdJwt { sd_jwt, .. } => sd_jwt.issuer_certificate(),
         };
 
         // Note that this means that an `IssuerRegistration` should ALWAYS be backwards compatible.
@@ -149,13 +144,15 @@ impl StoredAttestationCopy {
                 mdoc.issuer_signed().matches_requested_attributes(claim_paths).is_ok()
             }
             StoredAttestation::SdJwt { sd_jwt, .. } => {
-                // Create a temporary CredentialPayload to check if the paths are all present.
-                let credential_payload = credential_payload_from_sd_jwt(&sd_jwt);
+                // TODO VerifiedSdJwt should have a way to directly check if paths are present (PVW-4998)
+                // Convert to Attributes to check if the paths are all present.
+                let attributes: Attributes = sd_jwt
+                    .decoded_claims()
+                    .expect("a stored SD-JWT attestation should have decoded claims")
+                    .try_into()
+                    .expect("a stored SD-JWT attestation should have decoded claims");
 
-                credential_payload
-                    .previewable_payload
-                    .attributes
-                    .has_claim_paths(claim_paths)
+                attributes.has_claim_paths(claim_paths)
             }
         }
     }
@@ -167,7 +164,8 @@ impl StoredAttestationCopy {
                 CredentialPayload::from_mdoc_unvalidated(mdoc, &self.normalized_metadata)
                     .expect("a stored mdoc attestation should convert to CredentialPayload without errors")
             }
-            StoredAttestation::SdJwt { sd_jwt, .. } => credential_payload_from_sd_jwt(&sd_jwt),
+            StoredAttestation::SdJwt { sd_jwt, .. } => CredentialPayload::from_sd_jwt(&sd_jwt)
+                .expect("a stored SD-JWT attestation should convert to CredentialPayload without errors"),
         }
     }
 
@@ -248,7 +246,7 @@ impl DisclosableAttestation {
                 issuer_registration.organization,
             ),
             PartialAttestation::SdJwt { sd_jwt, .. } => attestation_presentation_from_sd_jwt(
-                sd_jwt.as_ref(),
+                sd_jwt.as_ref().as_ref(),
                 attestation_id,
                 normalized_metadata,
                 issuer_registration.organization,
@@ -287,8 +285,6 @@ mod tests {
 
     use futures::FutureExt;
     use itertools::Itertools;
-    use p256::ecdsa::SigningKey;
-    use rand_core::OsRng;
     use ssri::Integrity;
     use uuid::Uuid;
 
@@ -303,7 +299,6 @@ mod tests {
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
-    use sd_jwt::sd_jwt::VerifiedSdJwt;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_at_least::VecNonEmpty;
@@ -349,14 +344,8 @@ mod tests {
 
     fn sd_jwt_stored_attestation_copy(issuer_keypair: &KeyPair) -> (StoredAttestationCopy, VecNonEmpty<ClaimPath>) {
         let credential_payload = CredentialPayload::nl_pid_example(&MockTimeGenerator::default());
-
-        let holder_privkey = SigningKey::random(&mut OsRng);
         let sd_jwt = credential_payload
-            .into_sd_jwt(
-                &NormalizedTypeMetadata::nl_pid_example(),
-                holder_privkey.verifying_key(),
-                issuer_keypair,
-            )
+            .into_sd_jwt(&NormalizedTypeMetadata::nl_pid_example(), issuer_keypair)
             .now_or_never()
             .unwrap()
             .unwrap();
@@ -366,7 +355,7 @@ mod tests {
             attestation_copy_id: Uuid::new_v4(),
             attestation: StoredAttestation::SdJwt {
                 key_identifier: "sd_jwt_key_id".to_string(),
-                sd_jwt: VerifiedSdJwt::new_mock(sd_jwt),
+                sd_jwt: sd_jwt.into_verified(),
             },
             normalized_metadata: NormalizedTypeMetadata::nl_pid_example(),
         };

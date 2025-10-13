@@ -38,7 +38,7 @@ use mdoc::ATTR_RANDOM_LENGTH;
 use mdoc::holder::Mdoc;
 use mdoc::utils::cose::CoseError;
 use mdoc::utils::serialization::TaggedBytes;
-use sd_jwt::key_binding_jwt_claims::RequiredKeyBinding;
+use sd_jwt::key_binding_jwt::RequiredKeyBinding;
 use sd_jwt::sd_jwt::VerifiedSdJwt;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::SortedTypeMetadataDocuments;
@@ -802,7 +802,6 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
                             mdoc.type_metadata_integrity().map_err(IssuanceSessionError::Metadata)
                         }
                         IssuedCredential::SdJwt { sd_jwt, .. } => sd_jwt
-                            .as_ref()
                             .claims()
                             .vct_integrity
                             .as_ref()
@@ -958,12 +957,8 @@ impl CredentialResponse {
                 Ok(IssuedCredential::MsoMdoc { mdoc })
             }
             CredentialResponse::SdJwt { credential } => {
-                let sd_jwt =
-                    VerifiedSdJwt::parse_and_verify_against_trust_anchors(&credential, &TimeGenerator, trust_anchors)?;
-
-                let issued_credential_payload =
-                    sd_jwt.as_ref().into_credential_payload(&preview.normalized_metadata)?;
-
+                let sd_jwt = credential.into_verified_against_trust_anchors(trust_anchors, &TimeGenerator)?;
+                let issued_credential_payload = sd_jwt.into_credential_payload(&preview.normalized_metadata)?;
                 Self::validate_credential(
                     preview,
                     verifying_key,
