@@ -144,7 +144,7 @@ impl StoredAttestationCopy {
                 mdoc.issuer_signed().matches_requested_attributes(claim_paths).is_ok()
             }
             StoredAttestation::SdJwt { sd_jwt, .. } => {
-                // TODO VerifiedSdJwt should have a way to directly check if paths are present
+                // TODO VerifiedSdJwt should have a way to directly check if paths are present (PVW-4998)
                 // Convert to Attributes to check if the paths are all present.
                 let attributes: Attributes = sd_jwt
                     .decoded_claims()
