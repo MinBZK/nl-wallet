@@ -25,6 +25,11 @@ path = "tests/digid_issuance.rs"
 required-features = ["digid_test"]
 
 [[test]]
+name = "disclosure_based_issuance"
+path = "tests/disclosure_based_issuance.rs"
+required-features = ["integration_test"]
+
+[[test]]
 name = "disclosure"
 path = "tests/disclosure.rs"
 required-features = ["integration_test"]
