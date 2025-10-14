@@ -126,6 +126,8 @@ where
             return Err(TransferError::MissingTransferSessionId);
         };
 
+        // TODO: detect if transfer session is already in progress, in which case the state should be reset to `Created`
+
         let key_pair = EcKeyPair::generate(EcCurve::P256)?;
 
         transfer_data.key_data = Some(TransferKeyData::Destination {
