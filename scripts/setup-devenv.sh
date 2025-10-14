@@ -116,7 +116,7 @@ USE_SINGLE_CA=0 generate_or_reuse_root_ca "${TARGET_DIR}/bad_ca" "Bad Example CA
 # Create a single CA if use single SA is requested
 if [[ "${USE_SINGLE_CA}" == 1 && -n ${USE_SINGLE_CA_PATH} ]]; then
     echo -e "${SECTION}Configuring a single CA for shared usage ${NC}"
-    generate_or_reuse_root_ca "${USE_SINGLE_CA_PATH}" "Dev Proxy CA"
+    generate_or_reuse_root_ca "${USE_SINGLE_CA_PATH}" "Local Dev CA"
 fi
 
 ########################################################################

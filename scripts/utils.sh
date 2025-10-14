@@ -145,9 +145,10 @@ function generate_or_reuse_root_ca {
     else
         echo -e "${INFO}Generating CA $2 in ${1}${NC}"
         mkdir -p "$1"
-        openssl req -subj "/CN=$2" -nodes -x509 -sha256 -days 1825 -newkey rsa:2048 -keyout "$1/ca.key.pem" -out "$1/ca.crt.pem" > /dev/null
+        openssl req -subj "/CN=$2" -nodes -x509 -sha256 -days 1825 -newkey rsa:2048 -addext "keyUsage=critical,keyCertSign,cRLSign" -addext "basicConstraints=critical,CA:TRUE,pathlen:0" -keyout "$1/ca.key.pem" -out "$1/ca.crt.pem" > /dev/null
         openssl pkcs8 -topk8 -inform PEM -outform DER -in "$1/ca.key.pem" -out "$1/ca.key.der" -nocrypt
         openssl x509 -in "$1/ca.crt.pem" -outform DER -out "$1/ca.crt.der"
+        openssl pkcs12 -export -out "$1/ca.crt.pfx" -inkey "$1/ca.key.pem" -in "$1/ca.crt.pem" -password pass:
     fi
 }
 
