@@ -57,7 +57,7 @@ class DashboardScreen extends StatelessWidget {
         key: const Key('dashboardVisibilityDetector'),
         onVisibilityChanged: (visibilityInfo) {
           if (visibilityInfo.visibleFraction >= 1) {
-            context.read<NavigationService>().processQueue();
+            context.read<NavigationService>().notifyDashboardShown();
             SemanticsService.announce(context.l10n.dashboardScreenOverviewAnnouncement, TextDirection.ltr);
           }
         },

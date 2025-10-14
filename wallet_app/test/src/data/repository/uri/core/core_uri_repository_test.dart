@@ -57,7 +57,7 @@ void main() {
       const testUri = 'https://transfer.org';
       when(mockWalletCore.identifyUri(testUri)).thenAnswer((realInvocation) async => IdentifyUriResult.Transfer);
       final result = await uriRepository.processUri(Uri.parse(testUri));
-      expect(result, NavigationRequest.walletTransfer(testUri));
+      expect(result, NavigationRequest.walletTransferSource(testUri));
     });
   });
 }

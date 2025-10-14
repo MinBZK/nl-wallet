@@ -9,6 +9,8 @@ void main() {
   late NavigationService service;
   late MockCheckNavigationPrerequisitesUseCase mockCheckNavigationPrerequisitesUseCase;
   late MockPerformPreNavigationActionsUseCase mockPerformPreNavigationActionsUseCase;
+  late MockGetWalletStatusUseCase mockGetWalletStatusUseCase;
+  late MockCancelWalletTransferUseCase mockCancelWalletTransferUseCase;
   late MockNavigatorKey navigatorKey;
   late MockNavigatorState navigatorState;
   late MockBuildContext context;
@@ -23,11 +25,16 @@ void main() {
     // Usecases
     mockCheckNavigationPrerequisitesUseCase = MockCheckNavigationPrerequisitesUseCase();
     mockPerformPreNavigationActionsUseCase = MockPerformPreNavigationActionsUseCase();
+    mockGetWalletStatusUseCase = MockGetWalletStatusUseCase();
+    mockGetWalletStatusUseCase = MockGetWalletStatusUseCase();
+    mockCancelWalletTransferUseCase = MockCancelWalletTransferUseCase();
 
     service = NavigationService(
       navigatorKey,
       mockCheckNavigationPrerequisitesUseCase,
       mockPerformPreNavigationActionsUseCase,
+      mockGetWalletStatusUseCase,
+      mockCancelWalletTransferUseCase,
     );
   });
 

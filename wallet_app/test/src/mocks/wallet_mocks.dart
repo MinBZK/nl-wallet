@@ -77,6 +77,7 @@ import 'package:wallet/src/domain/usecase/update/observe_version_state_usecase.d
 import 'package:wallet/src/domain/usecase/uri/decode_uri_usecase.dart';
 import 'package:wallet/src/domain/usecase/version/get_version_string_usecase.dart';
 import 'package:wallet/src/domain/usecase/wallet/create_wallet_usecase.dart';
+import 'package:wallet/src/domain/usecase/wallet/get_wallet_status_usecase.dart';
 import 'package:wallet/src/domain/usecase/wallet/is_wallet_initialized_with_pid_usecase.dart';
 import 'package:wallet/src/domain/usecase/wallet/lock_wallet_usecase.dart';
 import 'package:wallet/src/domain/usecase/wallet/observe_wallet_locked_usecase.dart';
@@ -192,6 +193,7 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<ContinuePinRecoveryUseCase>()])
 @GenerateNiceMocks([MockSpec<CancelPinRecoveryUseCase>()])
 @GenerateNiceMocks([MockSpec<CompletePinRecoveryUseCase>()])
+@GenerateNiceMocks([MockSpec<GetWalletStatusUseCase>()])
 /// Core
 @GenerateNiceMocks([MockSpec<WalletCoreApi>()])
 /// Constants

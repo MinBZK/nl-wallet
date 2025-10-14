@@ -106,7 +106,10 @@ class CoreWalletRepository implements WalletRepository {
     final state = await _walletCore.getWalletState();
     return switch (state) {
       WalletState_Ready() => WalletStatusReady(),
-      WalletState_Transferring() => WalletStatusTransferring(canRetry: state.role == WalletTransferRole.Destination),
+      WalletState_Transferring() => WalletStatusTransferring(switch (state.role) {
+        WalletTransferRole.Source => TransferRole.source,
+        WalletTransferRole.Destination => TransferRole.target,
+      }),
     };
   }
 }

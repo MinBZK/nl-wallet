@@ -39,6 +39,8 @@ class WalletServiceProvider extends StatelessWidget {
             navigatorKey,
             context.read(),
             context.read(),
+            context.read(),
+            context.read(),
           ),
         ),
         RepositoryProvider<DeeplinkService>(

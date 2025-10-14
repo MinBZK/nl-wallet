@@ -61,10 +61,17 @@ sealed class NavigationRequest extends Equatable {
 
   factory NavigationRequest.sign(String uri) => SignNavigationRequest(uri);
 
-  factory NavigationRequest.walletTransfer(String uri) => GenericNavigationRequest(
+  factory NavigationRequest.walletTransferSource(String uri) => GenericNavigationRequest(
     WalletRoutes.walletTransferSourceRoute,
     removeUntil: WalletRoutes.dashboardRoute,
     argument: uri,
+    navigatePrerequisites: unlockedWithPidPrerequisites,
+  );
+
+  factory NavigationRequest.walletTransferTarget({bool isRetry = false}) => GenericNavigationRequest(
+    WalletRoutes.walletTransferTargetRoute,
+    removeUntil: WalletRoutes.dashboardRoute,
+    argument: isRetry,
     navigatePrerequisites: unlockedWithPidPrerequisites,
   );
 }
