@@ -21,6 +21,9 @@ sealed class NavigationRequest extends Equatable {
   /// The destination route to navigate to
   final String destination;
 
+  /// The destination that should be below the new [destination]
+  final String? removeUntil;
+
   /// An optional argument to pass to the destination route
   final Object? argument;
 
@@ -33,17 +36,16 @@ sealed class NavigationRequest extends Equatable {
   const NavigationRequest(
     this.destination, {
     this.argument,
+    this.removeUntil,
     this.navigatePrerequisites = const [],
     this.preNavigationActions = const [],
   });
 
   @override
-  String toString() {
-    return 'NavigationRequest{destination: $destination, argument: $argument}';
-  }
+  String toString() => 'NavigationRequest{destination: $destination, removeUntil: $removeUntil, argument: $argument}';
 
   @override
-  List<Object?> get props => [destination, argument, navigatePrerequisites, preNavigationActions];
+  List<Object?> get props => [destination, removeUntil, argument, navigatePrerequisites, preNavigationActions];
 
   factory NavigationRequest.pidIssuance(String uri) => PidIssuanceNavigationRequest(uri);
 
@@ -61,6 +63,7 @@ sealed class NavigationRequest extends Equatable {
 
   factory NavigationRequest.walletTransfer(String uri) => GenericNavigationRequest(
     WalletRoutes.walletTransferSourceRoute,
+    removeUntil: WalletRoutes.dashboardRoute,
     argument: uri,
     navigatePrerequisites: unlockedWithPidPrerequisites,
   );
@@ -69,6 +72,7 @@ sealed class NavigationRequest extends Equatable {
 class GenericNavigationRequest extends NavigationRequest {
   const GenericNavigationRequest(
     super.destination, {
+    super.removeUntil,
     super.argument,
     super.navigatePrerequisites,
     super.preNavigationActions,
@@ -79,6 +83,7 @@ class PidIssuanceNavigationRequest extends NavigationRequest {
   PidIssuanceNavigationRequest(String uri)
     : super(
         WalletRoutes.walletPersonalizeRoute,
+        removeUntil: WalletRoutes.splashRoute,
         argument: uri,
         navigatePrerequisites: [
           NavigationPrerequisite.walletUnlocked,
@@ -94,6 +99,7 @@ class PidRenewalNavigationRequest extends NavigationRequest {
   PidRenewalNavigationRequest(String uri)
     : super(
         WalletRoutes.renewPidRoute,
+        removeUntil: WalletRoutes.cardDetailRoute,
         argument: uri,
         navigatePrerequisites: [
           NavigationPrerequisite.walletUnlocked,
@@ -109,6 +115,7 @@ class PinRecoveryNavigationRequest extends NavigationRequest {
   PinRecoveryNavigationRequest(String uri)
     : super(
         WalletRoutes.pinRecoveryRoute,
+        removeUntil: WalletRoutes.forgotPinRoute,
         argument: uri,
         navigatePrerequisites: [NavigationPrerequisite.walletInitialized],
         preNavigationActions: [PreNavigationAction.disableUpcomingPageTransition],
@@ -119,6 +126,7 @@ class DisclosureNavigationRequest extends NavigationRequest {
   DisclosureNavigationRequest(String uri, {bool isQrCode = false})
     : super(
         WalletRoutes.disclosureRoute,
+        removeUntil: WalletRoutes.dashboardRoute,
         argument: DisclosureScreenArgument(uri: uri, isQrCode: isQrCode),
         navigatePrerequisites: unlockedWithPidPrerequisites,
       );
@@ -128,6 +136,7 @@ class IssuanceNavigationRequest extends NavigationRequest {
   IssuanceNavigationRequest(String uri, {bool isQrCode = false, bool isRefreshFlow = false})
     : super(
         WalletRoutes.issuanceRoute,
+        removeUntil: WalletRoutes.dashboardRoute,
         argument: IssuanceScreenArgument(uri: uri, isQrCode: isQrCode, isRefreshFlow: isRefreshFlow),
         navigatePrerequisites: unlockedWithPidPrerequisites,
       );
@@ -137,6 +146,7 @@ class SignNavigationRequest extends NavigationRequest {
   SignNavigationRequest(String uri)
     : super(
         WalletRoutes.signRoute,
+        removeUntil: WalletRoutes.dashboardRoute,
         argument: SignScreenArgument(uri: uri),
         navigatePrerequisites: unlockedWithPidPrerequisites,
       );

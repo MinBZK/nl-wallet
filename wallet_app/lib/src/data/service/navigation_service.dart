@@ -12,7 +12,6 @@ import '../../feature/common/dialog/locked_out_dialog.dart';
 import '../../feature/common/dialog/reset_wallet_dialog.dart';
 import '../../feature/common/dialog/scan_with_wallet_dialog.dart';
 import '../../feature/common/dialog/update_notification_dialog.dart';
-import '../../navigation/wallet_routes.dart';
 import '../../util/helper/dialog_helper.dart';
 
 class NavigationService {
@@ -54,38 +53,14 @@ class NavigationService {
       'NavigationPreRequisites should have been validated before calling _navigate!',
     );
     await _performPreNavigationActionsUseCase.invoke(request.preNavigationActions);
-    switch (request) {
-      case PidIssuanceNavigationRequest():
-        await _navigatorKey.currentState?.pushNamedAndRemoveUntil(
-          request.destination,
-          ModalRoute.withName(WalletRoutes.splashRoute),
-          arguments: request.argument,
-        );
-      case PidRenewalNavigationRequest():
-        await _navigatorKey.currentState?.pushNamedAndRemoveUntil(
-          request.destination,
-          ModalRoute.withName(WalletRoutes.cardDetailRoute),
-          arguments: request.argument,
-        );
-      case DisclosureNavigationRequest():
-      case IssuanceNavigationRequest():
-      case SignNavigationRequest():
-        await _navigatorKey.currentState?.pushNamedAndRemoveUntil(
-          request.destination,
-          ModalRoute.withName(WalletRoutes.dashboardRoute),
-          arguments: request.argument,
-        );
-      case GenericNavigationRequest():
-        await _navigatorKey.currentState?.pushNamed(
-          request.destination,
-          arguments: request.argument,
-        );
-      case PinRecoveryNavigationRequest():
-        await _navigatorKey.currentState?.pushNamedAndRemoveUntil(
-          request.destination,
-          ModalRoute.withName(WalletRoutes.forgotPinRoute),
-          arguments: request.argument,
-        );
+    if (request.removeUntil == null) {
+      await _navigatorKey.currentState?.pushNamed(request.destination, arguments: request.argument);
+    } else {
+      await _navigatorKey.currentState?.pushNamedAndRemoveUntil(
+        request.destination,
+        ModalRoute.withName(request.removeUntil!),
+        arguments: request.argument,
+      );
     }
   }
 
