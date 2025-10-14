@@ -570,7 +570,12 @@ pub fn issuance_server_settings() -> (
         key: read_file("di.key.der"),
     };
 
-    (settings, vec![IssuableDocument::new_mock()], root_ca, tls_config)
+    let issuable_documents = vec![
+        IssuableDocument::new_mock_degree("BSc".to_string()),
+        IssuableDocument::new_mock_degree("MSc".to_string()),
+    ];
+
+    (settings, issuable_documents, root_ca, tls_config)
 }
 
 pub fn verification_server_settings() -> VerifierSettings {

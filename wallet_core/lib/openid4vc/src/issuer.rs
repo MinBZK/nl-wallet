@@ -1238,7 +1238,7 @@ mod tests {
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let issuance_keypair =
             generate_issuer_mock_with_registration(&ca, IssuerRegistration::new_mock().into()).unwrap();
-        let document = IssuableDocument::new_mock();
+        let document = IssuableDocument::new_mock_degree("Education".to_string());
         let config = AttestationTypeConfig::try_new(
             document.attestation_type(),
             KeyPair::new_from_signing_key(

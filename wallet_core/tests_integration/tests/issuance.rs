@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use indexmap::IndexMap;
 use rstest::rstest;
 use serial_test::serial;
@@ -12,7 +10,6 @@ use openid4vc::issuance_session::IssuanceSessionError;
 use pid_issuer::pid::mock::mock_issuable_document_address;
 use tests_integration::common::*;
 use wallet::AttestationAttributeValue;
-use wallet::AttestationPresentation;
 use wallet::DisclosureUriSource;
 use wallet::attestation_data::Attribute;
 use wallet::attestation_data::AttributeValue;
@@ -212,18 +209,17 @@ async fn test_disclosure_based_issuance_ok(
 
     wallet.accept_issuance(pin.to_owned()).await.unwrap();
 
-    // With collecting into this map, we willfully ignore the possibility here that the wallet might have
-    // multiple attestation for a single attestation type.
-    let attestations: HashMap<String, AttestationPresentation> = wallet_attestations(&mut wallet)
-        .await
-        .into_iter()
-        .map(|att| (att.attestation_type.clone(), att))
-        .collect();
+    let attestations = wallet_attestations(&mut wallet).await;
 
-    attestation_previews.iter().for_each(|preview| {
-        let attestation = attestations.get(&preview.attestation_type).unwrap();
-        assert_eq!(&attestation.attributes, &preview.attributes);
-    });
+    // Check that every preview attestation is present in the wallet database after issuance.
+    for preview in &attestation_previews {
+        assert!(
+            attestations
+                .iter()
+                .any(|attestation| attestation.attestation_type == preview.attestation_type
+                    && attestation.attributes == preview.attributes)
+        );
+    }
 }
 
 #[rstest]
