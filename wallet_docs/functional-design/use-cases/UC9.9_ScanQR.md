@@ -29,7 +29,7 @@
 | **1.3** | **System displays page 'Scan QR'**<ul><li>Camera view</li><li>Actions: Toggle Flashlight, Back, Help</li></ul>        |                                                                                     |
 | 1.3a    | User scans QR                                                                                                         | 1.4                                                                                 |
 | 1.3b    | User selects Back                                                                                                     | Back                                                                                |
-| 1.3c    | User selects Help                                                                                                     | Go to: [UC9.6 Get help](UC9.6_GetHelp.md)                                           |
+| 1.3c    | User selects Help                                                                                                     | Show placeholder 'under construction'                                           |
 | 1.3d    | User selects Toggle Flashlight <br>&rarr; Flashlight turns on/off                                                     |                                                                                     |
 | **1.4** | **System validates QR**                                                                                               |                                                                                     |
 | 1.4a    | Case: QR is valid                                                                                                     | 1.5                                                                                 |
@@ -41,7 +41,7 @@
 | **2**   | **WHEN NO CAMERA PERMISSION**                                                                                         |                                                                                     |
 | **2.1** | **System displays screen 'Camera permission required'**<ul><li>Actions: Grant Camera Permission, Back, Help</li></ul> |                                                                                     |
 | 2.1a    | User selects Back                                                                                                     | Back                                                                                |
-| 2.1b    | User selects Help                                                                                                     | Go to: [UC9.6 Get help](UC9.6_GetHelp.md)                                           |
+| 2.1b    | User selects Help                                                                                                     | Show placeholder 'under construction'                                           |
 | 2.1c    | User selects Grant Camera Permission                                                                                  | 1.2                                                                                 |
 | **3**   | **WHEN QR INVALID**                                                                                                   |                                                                                     |
 | **3.1** | **System displays prompt 'Invalid QR'**<ul><li>Actions: OK</li></ul>                                                  |                                                                                     |

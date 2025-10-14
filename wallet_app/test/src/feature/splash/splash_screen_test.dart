@@ -45,7 +45,7 @@ void main() {
   });
 
   group('widgets', () {
-    testWidgets('when NOT registered navigate to introduction', (tester) async {
+    testWidgets('when NOT registered navigate to demo screen', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const SplashScreen().withState<SplashBloc, SplashState>(
           MockSplashBloc(),
@@ -56,7 +56,7 @@ void main() {
         ],
       );
       await tester.pumpAndSettle();
-      expect(find.text(WalletRoutes.introductionRoute), findsOneWidget);
+      expect(find.text(WalletRoutes.demoRoute), findsOneWidget);
     });
 
     testWidgets('when registered and pid is NOT available navigate to personalization', (tester) async {

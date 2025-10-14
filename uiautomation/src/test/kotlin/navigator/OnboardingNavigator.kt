@@ -3,6 +3,7 @@ package navigator
 import helper.TestBase.Companion.DEFAULT_BSN
 import helper.TestBase.Companion.DEFAULT_PIN
 import navigator.screen.OnboardingNavigatorScreen
+import screen.demo.DemoScreen
 import screen.introduction.IntroductionPrivacyScreen
 import screen.introduction.IntroductionScreen
 import screen.issuance.PersonalizeInformScreen
@@ -17,6 +18,7 @@ import screen.web.digid.DigidLoginStartWebPage
 class OnboardingNavigator {
 
     fun toScreen(screen: OnboardingNavigatorScreen, bsn: String = DEFAULT_BSN) {
+        if (screen > OnboardingNavigatorScreen.Demo) DemoScreen().clickContinueButton()
         if (screen > OnboardingNavigatorScreen.Introduction) IntroductionScreen().clickSkipButton()
         if (screen > OnboardingNavigatorScreen.IntroductionPrivacy) IntroductionPrivacyScreen().clickNextButton()
         if (screen > OnboardingNavigatorScreen.SecurityChoosePin) PinScreen().choosePin(DEFAULT_PIN)
