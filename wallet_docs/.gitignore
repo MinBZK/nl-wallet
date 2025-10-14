@@ -11,3 +11,6 @@ _build/
 
 # Structurizr working folders
 _structurizr/.structurizr
+
+# Devproxy working folders
+openapi/devproxy/
