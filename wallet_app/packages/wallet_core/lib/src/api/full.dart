@@ -15,6 +15,7 @@ import '../models/transfer.dart';
 import '../models/uri.dart';
 import '../models/version_state.dart';
 import '../models/wallet_event.dart';
+import '../models/wallet_state.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 // These functions are ignored because they are not marked as `pub`: `create_wallet`, `wallet`
@@ -126,6 +127,8 @@ Future<void> cancelWalletTransfer() => WalletCore.instance.api.crateApiFullCance
 Future<void> skipWalletTransfer() => WalletCore.instance.api.crateApiFullSkipWalletTransfer();
 
 Future<TransferSessionState> getWalletTransferState() => WalletCore.instance.api.crateApiFullGetWalletTransferState();
+
+Future<WalletState> getWalletState() => WalletCore.instance.api.crateApiFullGetWalletState();
 
 Future<List<WalletEvent>> getHistory() => WalletCore.instance.api.crateApiFullGetHistory();
 
