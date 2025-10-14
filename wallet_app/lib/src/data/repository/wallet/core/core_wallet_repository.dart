@@ -7,6 +7,7 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:wallet_core/core.dart';
 
 import '../../../../domain/model/pin/pin_validation_error.dart';
+import '../../../../domain/model/wallet_status.dart';
 import '../../../../util/mapper/mapper.dart';
 import '../../../../wallet_core/typed/typed_wallet_core.dart';
 import '../wallet_repository.dart';
@@ -98,5 +99,14 @@ class CoreWalletRepository implements WalletRepository {
       Fimber.e('Stream remained empty, no cards available yet.', ex: ex);
       return false;
     }
+  }
+
+  @override
+  Future<WalletStatus> getWalletStatus() async {
+    final state = await _walletCore.getWalletState();
+    return switch (state) {
+      WalletState_Ready() => WalletStatusReady(),
+      WalletState_Transferring() => WalletStatusTransferring(canRetry: state.role == WalletTransferRole.Destination),
+    };
   }
 }

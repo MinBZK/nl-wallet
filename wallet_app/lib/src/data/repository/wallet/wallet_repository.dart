@@ -1,5 +1,7 @@
 import 'package:wallet_core/core.dart';
 
+import '../../../domain/model/wallet_status.dart';
+
 abstract class WalletRepository {
   /// Stream that indicates whether the wallet is currently locked,
   /// meaning the pin should be provided to interact with the wallet.
@@ -51,4 +53,7 @@ abstract class WalletRepository {
 
   /// Resets the wallet, i.e. removes cards & registration.
   Future<void> resetWallet();
+
+  /// Fetch the current status of the wallet
+  Future<WalletStatus> getWalletStatus();
 }
