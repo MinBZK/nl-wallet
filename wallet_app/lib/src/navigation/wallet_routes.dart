@@ -22,6 +22,7 @@ import '../feature/change_pin/change_pin_screen.dart';
 import '../feature/dashboard/argument/dashboard_screen_argument.dart';
 import '../feature/dashboard/bloc/dashboard_bloc.dart';
 import '../feature/dashboard/dashboard_screen.dart';
+import '../feature/demo/demo_screen.dart';
 import '../feature/disclosure/bloc/disclosure_bloc.dart';
 import '../feature/disclosure/disclosure_screen.dart';
 import '../feature/forgot_pin/forgot_pin_screen.dart';
@@ -110,6 +111,7 @@ class WalletRoutes {
   static const changePinRoute = '/change_pin';
   static const contactRoute = '/menu/contact';
   static const dashboardRoute = '/dashboard';
+  static const demoRoute = '/demo';
   static const disclosureRoute = '/disclosure';
   static const forgotPinRoute = '/forgot_pin';
   static const historyDetailRoute = '/history';
@@ -189,6 +191,8 @@ class WalletRoutes {
         return _createCardDataScreenBuilder(settings);
       case WalletRoutes.cardHistoryRoute:
         return _createCardHistoryScreenBuilder(settings);
+      case WalletRoutes.demoRoute:
+        return _createDemoScreenBuilder;
       case WalletRoutes.contactRoute:
         return _createContactScreenBuilder;
       case WalletRoutes.themeRoute:
@@ -501,6 +505,8 @@ Widget _createSettingsScreenBuilder(BuildContext context) => const SettingsScree
 Widget _createNeedHelpScreenBuilder(BuildContext context) => const NeedHelpScreen();
 
 Widget _createContactScreenBuilder(BuildContext context) => const ContactScreen();
+
+Widget _createDemoScreenBuilder(BuildContext context) => const DemoScreen();
 
 Widget _createBiometricsSettingsScreenBuilder(BuildContext context) => BlocProvider<BiometricSettingsBloc>(
   create: (BuildContext context) {
