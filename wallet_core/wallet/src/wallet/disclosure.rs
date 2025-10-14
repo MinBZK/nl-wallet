@@ -914,7 +914,10 @@ mod tests {
     use std::collections::HashMap;
     use std::collections::HashSet;
     use std::str::FromStr;
+    use std::sync::Arc;
     use std::sync::LazyLock;
+    use std::sync::atomic::AtomicUsize;
+    use std::sync::atomic::Ordering;
 
     use assert_matches::assert_matches;
     use indexmap::IndexMap;
@@ -1160,6 +1163,26 @@ mod tests {
         ));
 
         (session, verifier_certificate)
+    }
+
+    async fn monitor_event_count(wallet: &mut TestWalletMockStorage) -> Arc<AtomicUsize> {
+        wallet
+            .mut_storage()
+            .expect_fetch_recent_wallet_events()
+            .returning(move || Ok(vec![]));
+
+        let event_count = Arc::new(AtomicUsize::new(0));
+        let callback_event_count = Arc::clone(&event_count);
+        wallet
+            .set_recent_history_callback(Box::new(move |_| {
+                callback_event_count.fetch_add(1, Ordering::Relaxed);
+            }))
+            .await
+            .unwrap();
+
+        assert_eq!(event_count.load(Ordering::Relaxed), 1);
+
+        event_count
     }
 
     /// This tests the full happy path for disclosure, calling both
@@ -1520,6 +1543,8 @@ mod tests {
             .times(1)
             .returning(|_, _, _, _, _| Ok(()));
 
+        let event_count = monitor_event_count(&mut wallet).await;
+
         // Accept the disclosure, selecting the contents of `pid2` and `address1`.
         let return_url = wallet
             .accept_disclosure(&[1, 0], PIN.to_string())
@@ -1530,6 +1555,9 @@ mod tests {
 
         // Check that the disclosure session is no longer present on the wallet.
         assert!(wallet.session.is_none());
+
+        // Check that the event was emitted.
+        assert_eq!(event_count.load(Ordering::Relaxed), 2);
     }
 
     #[tokio::test]
@@ -1976,6 +2004,8 @@ mod tests {
             .times(1)
             .returning(|_, _, _, _, _| Ok(()));
 
+        let event_count = monitor_event_count(&mut wallet).await;
+
         // Cancelling disclosure should result in a `Wallet` without a disclosure session.
         let cancel_return_url = wallet
             .cancel_disclosure()
@@ -1984,6 +2014,8 @@ mod tests {
 
         assert_eq!(cancel_return_url.as_ref(), Some(RETURN_URL.as_ref()));
         assert!(wallet.session.is_none());
+
+        assert_eq!(event_count.load(Ordering::Relaxed), 2);
     }
 
     #[rstest]
@@ -2166,6 +2198,8 @@ mod tests {
             .times(1)
             .returning(|_, _, _, _, _| Ok(()));
 
+        let event_count = monitor_event_count(&mut wallet).await;
+
         let accept_return_url = wallet
             .accept_disclosure(&[0], PIN.to_string())
             .await
@@ -2174,6 +2208,8 @@ mod tests {
         // Accepting disclosure should result in a `Wallet` without a disclosure session.
         assert_eq!(accept_return_url.as_ref(), Some(RETURN_URL.as_ref()));
         assert!(wallet.session.is_none());
+
+        assert_eq!(event_count.load(Ordering::Relaxed), 2);
     }
 
     #[tokio::test]
@@ -2515,6 +2551,8 @@ mod tests {
             .times(1)
             .returning(|_, _, _, _, _| Ok(()));
 
+        let event_count = monitor_event_count(&mut wallet).await;
+
         let disclose_verifier_certificate = verifier_certificate.clone();
         let Some(Session::Disclosure(session)) = &mut wallet.session else {
             unreachable!();
@@ -2553,6 +2591,8 @@ mod tests {
             assert!(error.return_url().is_none());
         }
         assert!(wallet.session.is_some());
+
+        assert_eq!(event_count.load(Ordering::Relaxed), 2);
 
         // Repeating the disclosure with exactly the same error should result in an
         // increment in usage count and exactly the same disclosure error event.
@@ -2603,6 +2643,11 @@ mod tests {
             .times(1)
             .returning(|_, _, _, _, _| Ok(()));
 
+        wallet
+            .mut_storage()
+            .expect_fetch_recent_wallet_events()
+            .returning(move || Ok(vec![]));
+
         let error = wallet
             .accept_disclosure(&[0], PIN.to_string())
             .await
@@ -2615,6 +2660,8 @@ mod tests {
             assert!(error.return_url().is_none());
         }
         assert!(wallet.session.is_some());
+
+        assert_eq!(event_count.load(Ordering::Relaxed), 3);
     }
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -2718,6 +2765,8 @@ mod tests {
             }
         }
 
+        let event_count = monitor_event_count(&mut wallet).await;
+
         let Some(Session::Disclosure(session)) = &mut wallet.session else {
             unreachable!();
         };
@@ -2763,5 +2812,13 @@ mod tests {
             assert!(wallet.session.is_some());
             assert!(!wallet.is_locked());
         }
+
+        let expected_event_count = match instruction_expectation {
+            InstructionExpectation::Retry => 1,
+            InstructionExpectation::RetryWithEvent => 2,
+            InstructionExpectation::Termination => 3,
+        };
+
+        assert_eq!(event_count.load(Ordering::Relaxed), expected_event_count);
     }
 }
