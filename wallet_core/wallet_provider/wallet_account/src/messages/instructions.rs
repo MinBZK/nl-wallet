@@ -292,6 +292,19 @@ impl InstructionAndResult for CancelTransfer {
     type Result = ();
 }
 
+// ResetTransfer instruction.
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ResetTransfer {
+    pub transfer_session_id: Uuid,
+}
+
+impl InstructionAndResult for ResetTransfer {
+    const NAME: &'static str = "reset_transfer";
+
+    type Result = ();
+}
+
 // GetTransferStatus instruction.
 
 #[derive(Debug, Serialize, Deserialize)]

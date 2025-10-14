@@ -47,6 +47,7 @@ use wallet_account::messages::instructions::PerformIssuanceWithWua;
 use wallet_account::messages::instructions::PerformIssuanceWithWuaResult;
 use wallet_account::messages::instructions::ReceiveWalletPayload;
 use wallet_account::messages::instructions::ReceiveWalletPayloadResult;
+use wallet_account::messages::instructions::ResetTransfer;
 use wallet_account::messages::instructions::SendWalletPayload;
 use wallet_account::messages::instructions::Sign;
 use wallet_account::messages::instructions::SignResult;
@@ -203,6 +204,13 @@ impl ValidateInstruction for ConfirmTransfer {
 }
 
 impl ValidateInstruction for CancelTransfer {
+    fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+        validate_wallet_user_not_transferred(wallet_user)?;
+        validate_transfer_instruction(wallet_user)
+    }
+}
+
+impl ValidateInstruction for ResetTransfer {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
         validate_wallet_user_not_transferred(wallet_user)?;
         validate_transfer_instruction(wallet_user)
@@ -929,6 +937,57 @@ impl HandleInstruction for CancelTransfer {
     }
 }
 
+impl HandleInstruction for ResetTransfer {
+    type Result = ();
+
+    async fn handle<T, R, H, G>(
+        self,
+        wallet_user: &WalletUser,
+        _generators: &G,
+        user_state: &UserState<R, H, impl WuaIssuer>,
+    ) -> Result<Self::Result, InstructionError>
+    where
+        T: Committable,
+        R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
+        H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
+        G: Generator<Uuid> + Generator<DateTime<Utc>>,
+    {
+        let tx = user_state.repositories.begin_transaction().await?;
+
+        let transfer_session = check_transfer_instruction_prerequisites(
+            &tx,
+            &user_state.repositories,
+            self.transfer_session_id,
+            wallet_user,
+        )
+        .await?;
+
+        if ![
+            TransferSessionState::Canceled,
+            TransferSessionState::Error,
+            TransferSessionState::Created,
+        ]
+        .contains(&transfer_session.state)
+        {
+            return Err(InstructionError::AccountTransferIllegalState);
+        }
+
+        user_state
+            .repositories
+            .reset_wallet_transfer(
+                &tx,
+                transfer_session.transfer_session_id,
+                transfer_session.source_wallet_user_id,
+                transfer_session.destination_wallet_user_id,
+            )
+            .await?;
+
+        tx.commit().await?;
+
+        Ok(())
+    }
+}
+
 impl HandleInstruction for GetTransferStatus {
     type Result = TransferSessionState;
 
@@ -1269,6 +1328,7 @@ mod tests {
     use wallet_account::messages::instructions::PerformIssuance;
     use wallet_account::messages::instructions::PerformIssuanceWithWua;
     use wallet_account::messages::instructions::ReceiveWalletPayload;
+    use wallet_account::messages::instructions::ResetTransfer;
     use wallet_account::messages::instructions::SendWalletPayload;
     use wallet_account::messages::instructions::Sign;
     use wallet_account::messages::instructions::StartPinRecovery;
@@ -2332,6 +2392,7 @@ mod tests {
 
     #[tokio::test]
     #[rstest]
+    #[case(Box::new(ResetTransfer { transfer_session_id: Uuid::new_v4() }))]
     #[case(Box::new(CancelTransfer { transfer_session_id: Uuid::new_v4(), error: false }))]
     #[case(Box::new(GetTransferStatus { transfer_session_id: Uuid::new_v4() }))]
     async fn validating_transfer_instruction(#[case] instruction: Box<dyn ValidateInstruction>) {
@@ -2438,6 +2499,116 @@ mod tests {
             )
             .await
             .expect_err("should fail when the transfer session has already been completed");
+
+        assert_matches!(err, InstructionError::AccountTransferIllegalState);
+    }
+
+    #[tokio::test]
+    async fn should_handle_reset_transfer() {
+        let wrapping_key_identifier = "my-wrapping-key-identifier";
+        let mut wallet_user = wallet_user::mock::wallet_user_1();
+        wallet_user.recovery_code = Some(String::from("recovery_code"));
+
+        let transfer_session_id = Uuid::new_v4();
+        let mut transfer_session = example_transfer_session(transfer_session_id, TransferSessionState::Created);
+        transfer_session.state = TransferSessionState::Canceled;
+        let cloned_transfer_session = transfer_session.clone();
+
+        let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
+        wallet_user_repo
+            .expect_begin_transaction()
+            .returning(|| Ok(MockTransaction));
+        wallet_user_repo
+            .expect_find_transfer_session_by_transfer_session_id()
+            .with(predicate::always(), predicate::eq(transfer_session_id))
+            .returning(move |_, _| Ok(Some(transfer_session.clone())));
+        wallet_user_repo
+            .expect_reset_wallet_transfer()
+            .returning(|_, _, _, _| Ok(()));
+
+        let instruction = ResetTransfer { transfer_session_id };
+
+        instruction
+            .handle(
+                &wallet_user,
+                &MockGenerators,
+                &mock::user_state(
+                    wallet_user_repo,
+                    setup_hsm().await,
+                    wrapping_key_identifier.to_string(),
+                    vec![],
+                ),
+            )
+            .await
+            .unwrap();
+
+        // Instruction should be idempotent
+        let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
+        wallet_user_repo
+            .expect_begin_transaction()
+            .returning(|| Ok(MockTransaction));
+        wallet_user_repo
+            .expect_find_transfer_session_by_transfer_session_id()
+            .with(predicate::always(), predicate::eq(transfer_session_id))
+            .returning(move |_, _| Ok(Some(cloned_transfer_session.clone())));
+        wallet_user_repo
+            .expect_reset_wallet_transfer()
+            .returning(|_, _, _, _| Ok(()));
+
+        let instruction = ResetTransfer { transfer_session_id };
+
+        instruction
+            .handle(
+                &wallet_user,
+                &MockGenerators,
+                &mock::user_state(
+                    wallet_user_repo,
+                    setup_hsm().await,
+                    wrapping_key_identifier.to_string(),
+                    vec![],
+                ),
+            )
+            .await
+            .unwrap();
+    }
+
+    #[tokio::test]
+    async fn should_handle_reset_transfer_illegal_state() {
+        let wrapping_key_identifier = "my-wrapping-key-identifier";
+        let mut wallet_user = wallet_user::mock::wallet_user_1();
+        wallet_user.recovery_code = Some(String::from("recovery_code"));
+
+        let transfer_session_id = Uuid::new_v4();
+        let mut transfer_session = example_transfer_session(transfer_session_id, TransferSessionState::Created);
+        transfer_session.state = TransferSessionState::ReadyForDownload;
+
+        let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
+        wallet_user_repo
+            .expect_begin_transaction()
+            .returning(|| Ok(MockTransaction));
+        wallet_user_repo
+            .expect_find_transfer_session_by_transfer_session_id()
+            .with(predicate::always(), predicate::eq(transfer_session_id))
+            .returning(move |_, _| Ok(Some(transfer_session.clone())));
+        wallet_user_repo
+            .expect_reset_wallet_transfer()
+            .returning(|_, _, _, _| Ok(()));
+
+        let instruction = ResetTransfer { transfer_session_id };
+
+        let err = instruction
+            .handle(
+                &wallet_user,
+                &MockGenerators,
+                &mock::user_state(
+                    wallet_user_repo,
+                    setup_hsm().await,
+                    wrapping_key_identifier.to_string(),
+                    vec![],
+                ),
+            )
+            .await
+            .expect_err("should fail when the transfer session is not in a state where it can be reset");
 
         assert_matches!(err, InstructionError::AccountTransferIllegalState);
     }

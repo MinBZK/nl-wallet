@@ -17,6 +17,7 @@ use uuid::Uuid;
 
 use apple_app_attest::AssertionCounter;
 use crypto::utils::random_bytes;
+use crypto::utils::random_string;
 use hsm::model::encrypted::Encrypted;
 use hsm::model::encrypter::Encrypter;
 use hsm::model::mock::MockPkcs11Client;
@@ -148,4 +149,18 @@ where
         .all(conn)
         .await
         .expect("Could not fetch instruction challenges")
+}
+
+pub async fn create_test_user() -> (Db, Uuid, String, wallet_user::Model) {
+    let db = db_from_env().await.expect("Could not connect to database");
+
+    let wallet_id = random_string(32);
+
+    let wallet_user_id = create_wallet_user_with_random_keys(&db, wallet_id.clone()).await;
+
+    let user = find_wallet_user(&db, wallet_user_id)
+        .await
+        .expect("Wallet user not found");
+
+    (db, wallet_user_id, wallet_id, user)
 }

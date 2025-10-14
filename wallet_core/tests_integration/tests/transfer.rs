@@ -201,3 +201,30 @@ async fn test_wallet_transfer_canceled_from_destination() {
 
     assert_state(TransferSessionState::Canceled, &mut source).await;
 }
+
+#[tokio::test]
+#[serial(hsm)]
+async fn test_retry_transfer_after_canceled() {
+    let (mut source_data, mut destination_data) = init_wallets().await;
+
+    let url = destination_data.wallet.init_transfer().await.unwrap();
+
+    assert_state(TransferSessionState::Created, &mut destination_data.wallet).await;
+
+    source_data.wallet.confirm_transfer(url).await.unwrap();
+
+    assert_states(
+        TransferSessionState::ReadyForTransfer,
+        &mut destination_data.wallet,
+        &mut source_data.wallet,
+    )
+    .await;
+
+    source_data.wallet.cancel_transfer(false).await.unwrap();
+
+    assert_state(TransferSessionState::Canceled, &mut destination_data.wallet).await;
+
+    let url = destination_data.wallet.init_transfer().await.unwrap();
+
+    assert_state(TransferSessionState::Created, &mut destination_data.wallet).await;
+}

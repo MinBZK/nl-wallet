@@ -23,6 +23,7 @@ use wallet_account::messages::instructions::ConfirmTransfer;
 use wallet_account::messages::instructions::GetTransferStatus;
 use wallet_account::messages::instructions::InstructionAndResult;
 use wallet_account::messages::instructions::ReceiveWalletPayload;
+use wallet_account::messages::instructions::ResetTransfer;
 use wallet_account::messages::instructions::SendWalletPayload;
 use wallet_account::messages::transfer::TransferSessionState;
 use wallet_configuration::wallet_config::WalletConfiguration;
@@ -126,7 +127,13 @@ where
             return Err(TransferError::MissingTransferSessionId);
         };
 
-        // TODO: detect if transfer session is already in progress, in which case the state should be reset to `Created`
+        // If there already is a transfer session in progress, the state should be reset to `Created`
+        if transfer_data.key_data.is_some() {
+            self.send_transfer_instruction(ResetTransfer {
+                transfer_session_id: transfer_data.transfer_session_id.into(),
+            })
+            .await?;
+        }
 
         let key_pair = EcKeyPair::generate(EcCurve::P256)?;
 
