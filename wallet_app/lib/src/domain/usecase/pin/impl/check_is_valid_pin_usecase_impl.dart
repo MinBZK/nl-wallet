@@ -1,4 +1,4 @@
-import '../../../../data/repository/wallet/wallet_repository.dart';
+import '../../../../data/repository/pin/pin_repository.dart';
 import '../../../../util/extension/core_error_extension.dart';
 import '../../../../wallet_core/error/core_error.dart';
 import '../../../model/pin/pin_validation_error.dart';
@@ -7,14 +7,14 @@ import '../../../model/result/result.dart';
 import '../check_is_valid_pin_usecase.dart';
 
 class CheckIsValidPinUseCaseImpl extends CheckIsValidPinUseCase {
-  final WalletRepository _walletRepository;
+  final PinRepository _pinRepository;
 
-  CheckIsValidPinUseCaseImpl(this._walletRepository);
+  CheckIsValidPinUseCaseImpl(this._pinRepository);
 
   @override
   Future<Result<void>> invoke(String pin) async {
     try {
-      await _walletRepository.validatePin(pin);
+      await _pinRepository.validatePin(pin);
       return const Result.success(null);
     } on PinValidationError catch (ex) {
       return Result.error(ValidatePinError(ex, sourceError: ex));

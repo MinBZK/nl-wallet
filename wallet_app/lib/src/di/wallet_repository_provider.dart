@@ -56,10 +56,8 @@ class WalletRepositoryProvider extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiRepositoryProvider(
       providers: [
-        RepositoryProvider<WalletRepository>(
-          create: (context) => CoreWalletRepository(context.read(), context.read()),
-        ),
-        RepositoryProvider<PinRepository>(create: (context) => CorePinRepository(context.read())),
+        RepositoryProvider<WalletRepository>(create: (context) => CoreWalletRepository(context.read())),
+        RepositoryProvider<PinRepository>(create: (context) => CorePinRepository(context.read(), context.read())),
         RepositoryProvider<WalletCardRepository>(create: (context) => WalletCardRepositoryImpl(context.read())),
         RepositoryProvider<DataAttributeRepository>(create: (context) => DataAttributeRepositoryImpl(context.read())),
         RepositoryProvider<DisclosureRepository>(

@@ -9,20 +9,20 @@ import 'package:wallet/src/wallet_core/error/core_error.dart';
 import '../../../../mocks/wallet_mocks.mocks.dart';
 
 void main() {
-  late MockWalletRepository walletRepository;
+  late MockPinRepository pinRepository;
 
   late CheckIsValidPinUseCase useCase;
 
   setUp(() {
-    walletRepository = MockWalletRepository();
+    pinRepository = MockPinRepository();
     // Set up default
-    useCase = CheckIsValidPinUseCaseImpl(walletRepository);
+    useCase = CheckIsValidPinUseCaseImpl(pinRepository);
   });
 
   test('should not throw when valid pin is provided', () async {
     try {
       const validPin = '133700';
-      when(walletRepository.validatePin(validPin)).thenAnswer((_) async {});
+      when(pinRepository.validatePin(validPin)).thenAnswer((_) async {});
       await useCase.invoke(validPin);
     } catch (error) {
       expect(error, null);
@@ -31,7 +31,7 @@ void main() {
 
   test('should throw a PinValidationError.other when a pin with less than 6 digits is provided', () async {
     const shorPin = '123';
-    when(walletRepository.validatePin(shorPin)).thenAnswer((_) => throw PinValidationError.other);
+    when(pinRepository.validatePin(shorPin)).thenAnswer((_) => throw PinValidationError.other);
     final result = await useCase.invoke(shorPin);
     expect(result.hasError, isTrue);
     expect(
@@ -46,7 +46,7 @@ void main() {
 
   test('should throw a PinValidationError.sequentialDigits error when 123456 is provided as a pin', () async {
     const sequentialPin = '123456';
-    when(walletRepository.validatePin(sequentialPin)).thenAnswer((_) => throw PinValidationError.sequentialDigits);
+    when(pinRepository.validatePin(sequentialPin)).thenAnswer((_) => throw PinValidationError.sequentialDigits);
     final result = await useCase.invoke(sequentialPin);
     expect(result.hasError, isTrue);
     expect(
@@ -61,7 +61,7 @@ void main() {
 
   test('should throw a PinValidationError.tooFewUniqueDigits error when 555555 is provided as a pin', () async {
     const nonUniquePin = '555555';
-    when(walletRepository.validatePin(nonUniquePin)).thenAnswer((_) => throw PinValidationError.tooFewUniqueDigits);
+    when(pinRepository.validatePin(nonUniquePin)).thenAnswer((_) => throw PinValidationError.tooFewUniqueDigits);
     final result = await useCase.invoke(nonUniquePin);
     expect(result.hasError, isTrue);
     expect(
@@ -77,7 +77,7 @@ void main() {
   test('Should return an application error if a CoreError is internally thrown', () async {
     final sourceError = const CoreGenericError('test');
     const sequentialPin = '123456';
-    when(walletRepository.validatePin(sequentialPin)).thenAnswer((_) => throw sourceError);
+    when(pinRepository.validatePin(sequentialPin)).thenAnswer((_) => throw sourceError);
     final result = await useCase.invoke(sequentialPin);
     expect(result.hasError, isTrue);
     expect(
@@ -92,7 +92,7 @@ void main() {
 
   test('Should return an PinValidationError.other error on unhandled errors', () async {
     const sequentialPin = '123456';
-    when(walletRepository.validatePin(sequentialPin)).thenAnswer((_) => throw Exception('some unexpected error'));
+    when(pinRepository.validatePin(sequentialPin)).thenAnswer((_) => throw Exception('some unexpected error'));
     final result = await useCase.invoke(sequentialPin);
     expect(result.hasError, isTrue);
     expect(
