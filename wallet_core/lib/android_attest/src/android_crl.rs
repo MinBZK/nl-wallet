@@ -106,7 +106,7 @@ pub enum AndroidCrlReason {
 pub enum Error {
     #[error("http error: {0}")]
     Http(#[from] reqwest::Error),
-    #[error("http error: {0}")]
+    #[error("http middleware error: {0}")]
     Middleware(#[from] reqwest_middleware::Error),
     #[error("http status code {0}, with message: {1}")]
     HttpFailure(StatusCode, String),
