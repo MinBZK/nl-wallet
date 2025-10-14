@@ -13,6 +13,7 @@ import 'package:wallet/src/data/repository/issuance/issuance_repository.dart';
 import 'package:wallet/src/data/repository/language/language_repository.dart';
 import 'package:wallet/src/data/repository/network/network_repository.dart';
 import 'package:wallet/src/data/repository/pid/pid_repository.dart';
+import 'package:wallet/src/data/repository/pin/pin_repository.dart';
 import 'package:wallet/src/data/repository/tour/tour_repository.dart';
 import 'package:wallet/src/data/repository/transfer/transfer_repository.dart';
 import 'package:wallet/src/data/repository/version/version_state_repository.dart';
@@ -113,6 +114,7 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<PidRepository>()])
 @GenerateNiceMocks([MockSpec<DisclosureRepository>()])
 @GenerateNiceMocks([MockSpec<WalletRepository>()])
+@GenerateNiceMocks([MockSpec<PinRepository>()])
 @GenerateNiceMocks([MockSpec<WalletCardRepository>()])
 @GenerateNiceMocks([MockSpec<WalletEventRepository>()])
 @GenerateNiceMocks([MockSpec<ConfigurationRepository>()])
