@@ -246,6 +246,10 @@ wallet_provider_service = { path = "../wallet_provider/service", optional = true
 dotenvy = { workspace = true, optional = true }
 
 [dev-dependencies]
+itertools.workspace = true
+
+attestation_types.path = "../lib/attestation_types"
+
 # This enables the automatic running of unit and integration tests for these crates when tests
 # are run from the workspace. The following features are not included in this:
 # * hsm_test

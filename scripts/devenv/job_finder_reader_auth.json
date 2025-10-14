@@ -47,12 +47,17 @@
   "authorizedAttributes": {
     "urn:eudi:pid:nl:1": [
       ["urn:eudi:pid:nl:1", "given_name"],
-      ["urn:eudi:pid:nl:1", "family_name"]
+      ["urn:eudi:pid:nl:1", "family_name"],
+      ["given_name"],
+      ["family_name"]
     ],
     "com.example.degree": [
       ["com.example.degree", "education"],
       ["com.example.degree", "university"],
-      ["com.example.degree", "cum_laude"]
+      ["com.example.degree", "cum_laude"],
+      ["education"],
+      ["university"],
+      ["cum_laude"]
     ]
   }
 }

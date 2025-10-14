@@ -3,6 +3,7 @@ mod attribute;
 use std::collections::HashSet;
 
 use chrono::NaiveDate;
+use derive_more::Display;
 use serde::Deserialize;
 use serde::Serialize;
 use uuid::Uuid;
@@ -80,7 +81,7 @@ pub struct AttestationAttribute {
     pub svg_id: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Display, Serialize, Deserialize)]
 pub enum AttestationAttributeValue {
     Basic(AttributeValue),
     Date(NaiveDate),
