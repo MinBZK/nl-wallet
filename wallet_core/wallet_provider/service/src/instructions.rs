@@ -919,6 +919,7 @@ impl HandleInstruction for CancelTransfer {
                 transfer_session.transfer_session_id,
                 transfer_session.source_wallet_user_id,
                 transfer_session.destination_wallet_user_id,
+                self.error,
             )
             .await?;
 
@@ -2331,7 +2332,7 @@ mod tests {
 
     #[tokio::test]
     #[rstest]
-    #[case(Box::new(CancelTransfer { transfer_session_id: Uuid::new_v4() }))]
+    #[case(Box::new(CancelTransfer { transfer_session_id: Uuid::new_v4(), error: false }))]
     #[case(Box::new(GetTransferStatus { transfer_session_id: Uuid::new_v4() }))]
     async fn validating_transfer_instruction(#[case] instruction: Box<dyn ValidateInstruction>) {
         let mut wallet_user = wallet_user::mock::wallet_user_1();
@@ -2341,7 +2342,7 @@ mod tests {
 
     #[tokio::test]
     #[rstest]
-    #[case(Box::new(CancelTransfer { transfer_session_id: Uuid::new_v4() }))]
+    #[case(Box::new(CancelTransfer { transfer_session_id: Uuid::new_v4(), error: false }))]
     #[case(Box::new(GetTransferStatus { transfer_session_id: Uuid::new_v4() }))]
     async fn validating_transfer_instruction_should_fail_if_source_does_not_have_recovery_code(
         #[case] instruction: Box<dyn ValidateInstruction>,
@@ -2375,9 +2376,12 @@ mod tests {
             .returning(move |_, _| Ok(Some(transfer_session.clone())));
         wallet_user_repo
             .expect_cancel_wallet_transfer()
-            .returning(|_, _, _, _| Ok(()));
+            .returning(|_, _, _, _, _| Ok(()));
 
-        let instruction = CancelTransfer { transfer_session_id };
+        let instruction = CancelTransfer {
+            transfer_session_id,
+            error: false,
+        };
 
         instruction
             .handle(
@@ -2414,9 +2418,12 @@ mod tests {
             .returning(move |_, _| Ok(Some(transfer_session.clone())));
         wallet_user_repo
             .expect_cancel_wallet_transfer()
-            .returning(|_, _, _, _| Ok(()));
+            .returning(|_, _, _, _, _| Ok(()));
 
-        let instruction = CancelTransfer { transfer_session_id };
+        let instruction = CancelTransfer {
+            transfer_session_id,
+            error: false,
+        };
 
         let err = instruction
             .handle(

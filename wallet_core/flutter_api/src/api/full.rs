@@ -422,7 +422,7 @@ pub async fn transfer_wallet(pin: String) -> anyhow::Result<WalletInstructionRes
 pub async fn cancel_wallet_transfer() -> anyhow::Result<()> {
     let mut wallet = wallet().write().await;
 
-    wallet.cancel_transfer().await?;
+    wallet.cancel_transfer(false).await?;
 
     Ok(())
 }

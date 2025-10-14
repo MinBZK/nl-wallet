@@ -13,7 +13,7 @@ path = "tests/api_test.rs"
 required-features = ["examples"]
 
 [features]
-examples = ["futures", "rand_core"]
+examples = ["futures", "rand_core", "utils/mock_time"]
 mock = []
 test = []
 

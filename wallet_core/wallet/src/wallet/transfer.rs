@@ -172,7 +172,7 @@ where
 
     #[instrument(skip_all)]
     #[sentry_capture_error]
-    pub async fn cancel_transfer(&mut self) -> Result<(), TransferError> {
+    pub async fn cancel_transfer(&mut self, error: bool) -> Result<(), TransferError> {
         info!("Canceling transfer status");
 
         let Some(transfer_data) = self.storage.read().await.fetch_data::<TransferData>().await? else {
@@ -181,6 +181,7 @@ where
 
         self.send_transfer_instruction(CancelTransfer {
             transfer_session_id: transfer_data.transfer_session_id.into(),
+            error,
         })
         .await?;
 
@@ -226,7 +227,7 @@ where
             (Some(TransferKeyData::Source { .. }), TransferSessionState::Success) => {
                 self.clean_after_transfer().await?;
             }
-            (_, TransferSessionState::Canceled) => {
+            (_, TransferSessionState::Canceled | TransferSessionState::Error) => {
                 self.clear_transfer().await?;
             }
             _ => {}
@@ -610,7 +611,7 @@ mod tests {
             .return_once(move |_, _: HwSignedInstruction<CancelTransfer>| Ok(wp_result));
 
         wallet
-            .cancel_transfer()
+            .cancel_transfer(false)
             .await
             .expect("Wallet cancel transfer should have succeeded");
     }
@@ -800,7 +801,7 @@ mod tests {
             .return_once(move |_, _: HwSignedInstruction<CancelTransfer>| Ok(wp_result));
 
         destination_wallet
-            .cancel_transfer()
+            .cancel_transfer(false)
             .await
             .expect("Wallet cancel transfer should have succeeded");
 
@@ -819,7 +820,7 @@ mod tests {
             .return_once(move |_, _: HwSignedInstruction<CancelTransfer>| Ok(wp_result));
 
         source_wallet
-            .cancel_transfer()
+            .cancel_transfer(false)
             .await
             .expect("Wallet cancel transfer should have succeeded");
     }

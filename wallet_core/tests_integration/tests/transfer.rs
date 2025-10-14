@@ -164,7 +164,7 @@ async fn test_wallet_transfer_canceled_from_source() {
     )
     .await;
 
-    source_data.wallet.cancel_transfer().await.unwrap();
+    source_data.wallet.cancel_transfer(false).await.unwrap();
 
     assert_state(TransferSessionState::Canceled, &mut destination_data.wallet).await;
 }
@@ -197,7 +197,7 @@ async fn test_wallet_transfer_canceled_from_destination() {
 
     assert_state(TransferSessionState::ReadyForDownload, &mut source).await;
 
-    destination.cancel_transfer().await.unwrap();
+    destination.cancel_transfer(false).await.unwrap();
 
     assert_state(TransferSessionState::Canceled, &mut source).await;
 }

@@ -275,6 +275,7 @@ impl WalletUserRepository for Repositories {
         transfer_session_id: Uuid,
         source_wallet_user_id: Option<Uuid>,
         destination_wallet_user_id: Uuid,
+        error: bool,
     ) -> Result<(), PersistenceError> {
         if let Some(wallet_user_id) = source_wallet_user_id {
             wallet_user::transition_wallet_user_state(
@@ -292,7 +293,16 @@ impl WalletUserRepository for Repositories {
             WalletUserState::Active,
         )
         .await?;
-        wallet_user::update_transfer_state(transaction, transfer_session_id, TransferSessionState::Canceled).await?;
+        wallet_user::update_transfer_state(
+            transaction,
+            transfer_session_id,
+            if error {
+                TransferSessionState::Error
+            } else {
+                TransferSessionState::Canceled
+            },
+        )
+        .await?;
         wallet_user::set_wallet_transfer_data(transaction, transfer_session_id, None).await
     }
 
@@ -528,6 +538,7 @@ pub mod mock {
                 transfer_session_id: Uuid,
                 source_wallet_user_id: Option<Uuid>,
                 destination_wallet_user_id: Uuid,
+                error: bool,
             ) -> Result<(), PersistenceError>;
 
             async fn store_wallet_transfer_data(
@@ -795,6 +806,7 @@ pub mod mock {
             _transfer_session_id: Uuid,
             _source_wallet_user_id: Option<Uuid>,
             _destination_wallet_user_id: Uuid,
+            _error: bool,
         ) -> Result<(), PersistenceError> {
             Ok(())
         }

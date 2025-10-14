@@ -283,6 +283,7 @@ impl InstructionAndResult for ConfirmTransfer {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CancelTransfer {
     pub transfer_session_id: Uuid,
+    pub error: bool,
 }
 
 impl InstructionAndResult for CancelTransfer {

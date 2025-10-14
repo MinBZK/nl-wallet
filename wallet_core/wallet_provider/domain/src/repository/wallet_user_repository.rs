@@ -152,6 +152,7 @@ pub trait WalletUserRepository {
         transfer_session_id: Uuid,
         source_wallet_user_id: Option<Uuid>,
         destination_wallet_user_id: Uuid,
+        error: bool,
     ) -> Result<()>;
 
     async fn store_wallet_transfer_data(
@@ -369,6 +370,7 @@ pub mod mock {
             _transfer_session_id: Uuid,
             _source_wallet_user_id: Option<Uuid>,
             _destination_wallet_user_id: Uuid,
+            _error: bool,
         ) -> Result<()> {
             Ok(())
         }
