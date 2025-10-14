@@ -16,6 +16,7 @@ use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use http_utils::reqwest::client_builder_accept_json;
 use http_utils::reqwest::default_reqwest_client_builder;
+use http_utils::urls;
 use http_utils::urls::BaseUrl;
 use openid4vc::Format;
 use openid4vc::disclosure_session::DisclosureClient;
@@ -34,6 +35,7 @@ use wallet_configuration::wallet_config::WalletConfiguration;
 use crate::AttestationIdentity;
 use crate::AttestationPresentation;
 use crate::account_provider::AccountProviderClient;
+use crate::config::UNIVERSAL_LINK_BASE_URL;
 use crate::digid::DigidClient;
 use crate::digid::DigidError;
 use crate::digid::DigidSession;
@@ -187,8 +189,29 @@ where
             })
             .await?;
 
-        let url = self.pid_issuance_auth_url().await?;
+        let url = self.pin_recovery_auth_url().await?;
         Ok(url)
+    }
+
+    async fn pin_recovery_auth_url(&mut self) -> Result<Url, IssuanceError> {
+        let pid_issuance_config = &self.config_repository.get().pid_issuance;
+        let session = self
+            .digid_client
+            .start_session(
+                pid_issuance_config.digid.clone(),
+                pid_issuance_config.digid_http_config.clone(),
+                urls::pin_recovery_base_uri(&UNIVERSAL_LINK_BASE_URL)
+                    .as_ref()
+                    .to_owned(),
+            )
+            .await
+            .map_err(IssuanceError::DigidSessionStart)?;
+
+        info!("PIN recovery DigiD auth URL generated");
+        let auth_url = session.auth_url().clone();
+        self.session.replace(Session::Digid(session));
+
+        Ok(auth_url)
     }
 
     #[instrument(skip_all)]

@@ -240,10 +240,6 @@ where
             return Err(IssuanceError::PidAlreadyPresent);
         }
 
-        self.pid_issuance_auth_url().await
-    }
-
-    pub(crate) async fn pid_issuance_auth_url(&mut self) -> Result<Url, IssuanceError> {
         let pid_issuance_config = &self.config_repository.get().pid_issuance;
         let session = self
             .digid_client

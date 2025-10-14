@@ -39,6 +39,11 @@ pub enum UriIdentificationError {
 
 pub(super) fn identify_uri(uri: &Url) -> Option<UriType> {
     let uri = uri.as_str();
+
+    if uri.starts_with(urls::pin_recovery_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().as_str()) {
+        return Some(UriType::PinRecovery);
+    }
+
     if uri.starts_with(urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().as_str()) {
         return Some(UriType::PidIssuance);
     }
@@ -80,7 +85,9 @@ where
             None => return Err(UriIdentificationError::Unknown(uri)),
         };
 
-        if matches!(uri_type, UriType::PidIssuance) && !matches!(self.session, Some(Session::Digid(_))) {
+        if matches!(uri_type, UriType::PidIssuance | UriType::PinRecovery)
+            && !matches!(self.session, Some(Session::Digid(_)))
+        {
             return Err(UriIdentificationError::Unknown(uri));
         }
 
