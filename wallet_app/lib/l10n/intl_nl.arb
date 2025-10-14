@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2025-09-30T11:34:24+02:00",
+    "@@last_modified": "2025-10-13T14:21:05+02:00",
     "aboutScreenDescription": "De NL Wallet wordt gemaakt door de Nederlandse overheid, zodat iedereen digitale diensten veilig en gemakkelijk kan gebruiken.\n\nJe kunt de ontwikkelingen volgen op {url}.",
     "aboutScreenPrivacyCta": "Privacyverklaring",
     "aboutScreenTitle": "Over de NL Wallet",
@@ -145,8 +145,10 @@
     "cardHistorySigningCancelled": "Ondertekenen gestopt",
     "cardHistorySigningError": "Ondertekenen mislukt",
     "cardHistorySigningSuccess": "Ondertekend",
+    "cardHistoryTimelineOperationCorrupted": "Kaart werkt niet",
     "cardHistoryTimelineOperationExpired": "Kaart verlopen",
     "cardHistoryTimelineOperationRenewed": "Kaart vernieuwd",
+    "cardHistoryTimelineOperationRevoked": "Kaart teruggenomen",
     "cardPreviewScreenIncorrectCta": "Kloppen de gegevens niet?",
     "cardPreviewScreenIssuedBy": "Kaart uitgegeven door {organization}.",
     "@cardPreviewScreenIssuedBy": {
@@ -258,6 +260,12 @@
     "dataIncorrectScreenDeclineTitle": "Kaart afwijzen",
     "dataIncorrectScreenHeaderDescription": "Laat de gegevens dan aanpassen door de organisatie die ze aanbiedt. Je kunt nu twee dingen doen:",
     "dataIncorrectScreenHeaderTitle": "Kloppen de gegevens niet?",
+    "demoScreenContentBullets": "Het Ministerie van Binnenlandse Zaken (MinBZK) ontwikkelt de app nog.  \nWe verwachten dat de app in 2027 beschikbaar zal zijn.  \nDe app gebruikt alleen testgegevens, geen echte gegevens.  \nTijdens het testen volgen we hoe je de app gebruikt om deze te verbeteren.  \nDe app kan op elk moment worden bijgewerkt, oudere versies werken mogelijk niet.  \nDe app kan soms instabiel zijn.",
+    "demoScreenContentFooter": "Als er iets misgaat, installeer de app dan opnieuw.",
+    "demoScreenContentHeader": "Je gebruikt nu een demoversie van de app.",
+    "demoScreenContinueCta": "Start demo app",
+    "demoScreenMoreInfoCta": "Lees meer op edi.pleio.nl",
+    "demoScreenTitle": "Demo versie NL Wallet",
     "detailsIncorrectScreenDescription": "Als je gegevens niet kloppen kan dat voor problemen zorgen. Neem contact op met de uitgever om je gegevens te laten aanpassen.\n\nWacht je nog op een aanpassing? Het kan even duren voordat die beschikbaar is in de app.",
     "detailsIncorrectScreenTitle": "Kloppen de gegevens niet?",
     "disclosureConfirmDataAttributesCheckConditionsCta": "Lees de afspraak",
@@ -1309,7 +1317,7 @@
             }
         }
     },
-    "sharedAttributesCardOutdatedFooter": "Deze gegevens zijn verouderd.",
+    "sharedAttributesCardOutdatedFooter": "Deze gegevens kloppen niet meer.",
     "sharedAttributesCardTitle": "{count} uit {cardTitle}",
     "showDetailsCta": "Bekijk",
     "signConfirmPinPageDescription": "Hiermee geef je toestemming om gegevens uit te wisselen.",
