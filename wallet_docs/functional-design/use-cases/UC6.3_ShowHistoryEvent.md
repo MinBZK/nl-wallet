@@ -29,7 +29,7 @@
 | **2**   | **INSPECT ACTIVITY DETAILS**                                                                                                                                 |                                           |
 | **2.1** | **System displays screen 'Data activity'**<ul><li># from [Card Title]</li><li>Actions: Details Incorrect, Help, Back</li></ul>                               |                                           |
 | 2.1a    | User selects Details Incorrect                                                                                                                               | 3                                         |
-| 2.1b    | User selects Help                                                                                                                                            | Go to: [UC9.6 Get help](UC9.6_GetHelp.md) |
+| 2.1b    | User selects Help                                                                                                                                            | Show placeholder 'under construction' |
 | 2.1c    | User selects Back                                                                                                                                            | Back                                      |
 | **3**   | **WHEN CARD DETAILS ARE INCORRECT**                                                                                                                          |                                           |
 | **3.1** | **System displays screen 'Details incorrect'**<ul><li>Message: Are your details incorrect?</li><li>Actions: Back</li></ul>                                   |                                           |
@@ -43,5 +43,5 @@
 | **6**   | **INSPECT ORGANIZATION DETAILS**                                                                                                                             |                                           |
 | **6.1** | **System displays screen 'About organization'**<ul><li>About [Organization]</li><li>Actions: Report Problem, Help, Back</li></ul>                            |                                           |
 | 6.1a    | User selects Report Problem                                                                                                                                  | 4                                         |
-| 6.1b    | User selects Help                                                                                                                                            | Go to: [UC9.6 Get help](UC9.6_GetHelp.md) |
+| 6.1b    | User selects Help                                                                                                                                            | Show placeholder 'under construction' |
 | 6.1c    | User selects Back                                                                                                                                            | 1.2                                       |

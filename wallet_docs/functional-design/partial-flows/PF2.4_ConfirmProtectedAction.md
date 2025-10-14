@@ -27,7 +27,7 @@
 | 1.1b    | User selects Forgot PIN                                                                                                         | 2                                                         |
 | 1.1c    | User selects Back                                                                                                               | Result: Back                                              |
 | 1.1d    | User selects Cancel (when Cancelable)                                                                                           | Result: Cancel                                            |
-| 1.1e    | User selects Help                                                                                                               | Go to: [UC9.6 Get help](../use-cases/UC9.6_GetHelp.md)                 |
+| 1.1e    | User selects Help                                                                                                               | Show placeholder 'under construction'                 |
 | **1.2** | **System executes partial flow [PF2.8 Validate PIN](PF2.8_ValidatePin.md)**                                                   |                                                           |
 | 1.2a    | Result: Valid PIN                                                                                                               | 1.3                                                       |
 | 1.2b    | Result: Retry                                                                                                                   | 1.1                                                       |
