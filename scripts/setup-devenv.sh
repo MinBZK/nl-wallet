@@ -529,7 +529,7 @@ generate_wp_signing_key config_signing
 CONFIG_SIGNING_PUBLIC_KEY=$(< "${TARGET_DIR}/wallet_provider/config_signing.pub.der" ${BASE64})
 export CONFIG_SIGNING_PUBLIC_KEY
 
-BASE64_JWS_HEADER=$(echo -n '{"typ":"JOSE+JSON","alg":"ES256"}' | base64_url_encode)
+BASE64_JWS_HEADER=$(echo -n '{"typ":"jwt","alg":"ES256"}' | base64_url_encode)
 BASE64_JWS_PAYLOAD=$(jq --compact-output --join-output "." "${TARGET_DIR}/wallet-config.json" | base64_url_encode)
 BASE64_JWS_SIGNING_INPUT="${BASE64_JWS_HEADER}.${BASE64_JWS_PAYLOAD}"
 DER_SIGNATURE=$(echo -n "$BASE64_JWS_SIGNING_INPUT" \

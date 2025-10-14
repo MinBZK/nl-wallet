@@ -17,6 +17,20 @@
     "instruction_result_public_key": "${WP_INSTRUCTION_RESULT_PUBLIC_KEY}",
     "wua_public_key": "${WP_WUA_PUBLIC_KEY}"
   },
+  "pid_attributes": {
+    "mso_mdoc": {
+      "urn:eudi:pid:nl:1": {
+        "login": ["urn:eudi:pid:nl:1", "bsn"],
+        "recovery_code": ["urn:eudi:pid:nl:1", "recovery_code"]
+      }
+    },
+    "sd_jwt": {
+      "urn:eudi:pid:nl:1": {
+        "login": ["bsn"],
+        "recovery_code": ["recovery_code"]
+      }
+    }
+  },
   "pid_issuance": {
     "pid_issuer_url": "http://${SERVICES_HOST}:${PID_ISSUER_WS_PORT}/issuance/",
     "digid": {

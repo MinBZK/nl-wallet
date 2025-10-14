@@ -8,10 +8,15 @@ use indexmap::IndexMap;
 use itertools::Itertools;
 use serde::Deserialize;
 use serde::Serialize;
+use serde_json::Number;
 
 use attestation_types::claim_path::ClaimPath;
 use mdoc::iso::mdocs::Entry;
 use mdoc::iso::mdocs::NameSpace;
+use sd_jwt::claims::ArrayClaim;
+use sd_jwt::claims::ClaimNameError;
+use sd_jwt::claims::ClaimValue;
+use sd_jwt::claims::ObjectClaims;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use utils::vec_at_least::VecNonEmpty;
 
@@ -32,7 +37,13 @@ pub enum AttributeError {
     FromCborConversion(Box<ciborium::Value>),
 
     #[error("unable to convert number to cbor: {0}")]
-    NumberToCborConversion(#[from] TryFromIntError),
+    NumberFromCborConversion(#[from] TryFromIntError),
+
+    #[error("unable to convert claim value: {0:?}")]
+    FromClaimValueConversion(ClaimValue),
+
+    #[error("unable to convert number from claim value: {0}")]
+    NumberFromClaimValueConversion(Number),
 
     #[error("unable to convert json value: {0}")]
     FromJsonConversion(serde_json::Value),
@@ -43,8 +54,11 @@ pub enum AttributesError {
     #[error("attributes without claim: {0:?}")]
     AttributesWithoutClaim(Vec<Vec<String>>),
 
+    #[error("attribute error at: {0}")]
+    Attribute(#[from] AttributeError),
+
     #[error("attribute error at {0}: {1}")]
-    AttributeError(String, #[source] AttributeError),
+    AttributeAtPath(String, #[source] AttributeError),
 
     #[error("some attributes have not been processed by metadata: {0:?}")]
     SomeAttributesNotProcessed(IndexMap<String, Vec<Entry>>),
@@ -58,6 +72,20 @@ impl From<AttributeValue> for ciborium::Value {
             AttributeValue::Text(text) => ciborium::Value::Text(text),
             AttributeValue::Null => ciborium::Value::Null,
             AttributeValue::Array(elements) => ciborium::Value::Array(elements.into_iter().map(Self::from).collect()),
+        }
+    }
+}
+
+impl From<AttributeValue> for ClaimValue {
+    fn from(value: AttributeValue) -> Self {
+        match value {
+            AttributeValue::Null => ClaimValue::Null,
+            AttributeValue::Integer(number) => ClaimValue::Number(number.into()),
+            AttributeValue::Bool(boolean) => ClaimValue::Bool(boolean),
+            AttributeValue::Text(text) => ClaimValue::String(text),
+            AttributeValue::Array(elements) => {
+                ClaimValue::Array(elements.into_iter().map(|e| ArrayClaim::Value(Self::from(e))).collect())
+            }
         }
     }
 }
@@ -79,22 +107,30 @@ impl TryFrom<ciborium::Value> for AttributeValue {
     }
 }
 
-impl TryFrom<serde_json::Value> for AttributeValue {
+impl TryFrom<ClaimValue> for AttributeValue {
     type Error = AttributeError;
 
-    fn try_from(value: serde_json::Value) -> Result<Self, Self::Error> {
+    fn try_from(value: ClaimValue) -> Result<Self, Self::Error> {
         match value {
-            serde_json::Value::Null => Ok(AttributeValue::Null),
-            serde_json::Value::Bool(bool) => Ok(AttributeValue::Bool(bool)),
-            serde_json::Value::Number(number) => Ok(number
-                .as_i64()
-                .map(AttributeValue::Integer)
-                .ok_or_else(|| AttributeError::FromJsonConversion(serde_json::Value::Number(number)))?),
-            serde_json::Value::String(text) => Ok(AttributeValue::Text(text)),
-            serde_json::Value::Array(elements) => Ok(AttributeValue::Array(
-                elements.into_iter().map(Self::try_from).try_collect()?,
+            ClaimValue::Null => Ok(AttributeValue::Null),
+            ClaimValue::Number(number) => {
+                Ok(AttributeValue::Integer(number.as_i64().ok_or_else(|| {
+                    AttributeError::NumberFromClaimValueConversion(number)
+                })?))
+            }
+            ClaimValue::Bool(boolean) => Ok(AttributeValue::Bool(boolean)),
+            ClaimValue::String(text) => Ok(AttributeValue::Text(text)),
+            ClaimValue::Array(elements) => Ok(AttributeValue::Array(
+                elements
+                    .into_iter()
+                    .filter_map(|value| match value {
+                        ArrayClaim::Value(claim_value) => Some(claim_value.try_into()),
+                        _ => None, // ignore hashes in Arrays
+                    })
+                    .try_collect()?,
             )),
-            _ => Err(AttributeError::FromJsonConversion(value)),
+            // nested objects are handled at the Attribute level
+            _ => Err(AttributeError::FromClaimValueConversion(value)),
         }
     }
 }
@@ -106,25 +142,65 @@ pub enum Attribute {
     Nested(IndexMap<String, Attribute>),
 }
 
-impl TryFrom<serde_json::Value> for Attribute {
-    type Error = AttributeError;
+impl TryFrom<Attribute> for ClaimValue {
+    type Error = ClaimNameError;
 
-    fn try_from(value: serde_json::Value) -> Result<Self, Self::Error> {
+    fn try_from(value: Attribute) -> Result<Self, Self::Error> {
         match value {
-            serde_json::Value::Object(map) => {
-                let attributes = map
-                    .into_iter()
-                    .map(|(key, value)| {
-                        let attribute = Attribute::try_from(value)?;
-                        Ok((key, attribute))
-                    })
-                    .collect::<Result<_, AttributeError>>()?;
-
-                Ok(Attribute::Nested(attributes))
-            }
-            _ => Ok(Attribute::Single(AttributeValue::try_from(value)?)),
+            Attribute::Single(attribute_value) => Ok(attribute_value.into()),
+            Attribute::Nested(index_map) => Ok(attributes_to_claim_value(index_map)?),
         }
     }
+}
+
+impl TryFrom<Attributes> for ClaimValue {
+    type Error = ClaimNameError;
+
+    fn try_from(value: Attributes) -> Result<Self, Self::Error> {
+        attributes_to_claim_value(value.0)
+    }
+}
+
+impl TryFrom<ClaimValue> for Attribute {
+    type Error = AttributeError;
+
+    fn try_from(value: ClaimValue) -> Result<Self, Self::Error> {
+        match value {
+            ClaimValue::Object(object_claims) => Ok(Attribute::Nested(object_claims_to_attributes(object_claims)?.0)),
+            _ => Ok(Attribute::Single(value.try_into()?)),
+        }
+    }
+}
+
+#[derive(Debug, Default, Clone, Eq, PartialEq, Serialize, Deserialize, AsRef, From)]
+pub struct Attributes(IndexMap<String, Attribute>);
+
+impl TryFrom<ObjectClaims> for Attributes {
+    type Error = AttributesError;
+
+    fn try_from(value: ObjectClaims) -> Result<Self, Self::Error> {
+        Ok(object_claims_to_attributes(value)?)
+    }
+}
+
+fn object_claims_to_attributes(object_claims: ObjectClaims) -> Result<Attributes, AttributeError> {
+    Ok(Attributes(
+        object_claims
+            .claims
+            .into_iter()
+            .map(|(k, v)| Ok((k.into_inner(), v.try_into()?)))
+            .collect::<Result<_, AttributeError>>()?,
+    ))
+}
+
+fn attributes_to_claim_value(attributes: IndexMap<String, Attribute>) -> Result<ClaimValue, ClaimNameError> {
+    Ok(ClaimValue::Object(ObjectClaims {
+        _sd: None,
+        claims: attributes
+            .into_iter()
+            .map(|(k, v)| Ok((k.parse()?, v.try_into()?)))
+            .collect::<Result<_, ClaimNameError>>()?,
+    }))
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -132,9 +208,6 @@ pub enum AttributesTraversalBehaviour {
     AllPaths,
     OnlyLeaves,
 }
-
-#[derive(Debug, Default, Clone, Eq, PartialEq, Serialize, Deserialize, AsRef, From)]
-pub struct Attributes(IndexMap<String, Attribute>);
 
 impl Attributes {
     pub fn into_inner(self) -> IndexMap<String, Attribute> {
@@ -264,7 +337,7 @@ impl Attributes {
             [head] => {
                 if let Some(entries) = attributes.get_mut(prefix) {
                     Self::insert_entry(head, entries, result)
-                        .map_err(|error| AttributesError::AttributeError(format!("{prefix}.{head}"), error))?;
+                        .map_err(|error| AttributesError::AttributeAtPath(format!("{prefix}.{head}"), error))?;
 
                     if entries.is_empty() {
                         attributes.swap_remove(prefix);

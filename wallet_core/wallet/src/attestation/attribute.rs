@@ -11,6 +11,7 @@ use attestation_data::constants::PID_RECOVERY_CODE;
 use attestation_types::claim_path::ClaimPath;
 use mdoc::iso::mdocs::Entry;
 use mdoc::iso::mdocs::NameSpace;
+use sd_jwt::claims::ObjectClaims;
 use sd_jwt_vc_metadata::JsonSchemaProperty;
 use sd_jwt_vc_metadata::JsonSchemaPropertyFormat;
 use sd_jwt_vc_metadata::JsonSchemaPropertyType;
@@ -34,6 +35,17 @@ impl AttestationPresentation {
         let nested_attributes = Attributes::from_mdoc_attributes(&metadata, mdoc_attributes)?;
 
         Self::create_from_attributes(identity, metadata, issuer_organization, &nested_attributes)
+    }
+
+    pub(crate) fn create_from_sd_jwt_claims(
+        identity: AttestationIdentity,
+        metadata: NormalizedTypeMetadata,
+        issuer_organization: Organization,
+        sd_jwt_claims: ObjectClaims,
+    ) -> Result<Self, AttestationError> {
+        let attributes: Attributes = sd_jwt_claims.try_into()?;
+
+        Self::create_from_attributes(identity, metadata, issuer_organization, &attributes)
     }
 
     // Construct a new `AttestationPresentation` from a combination of metadata and nested attributes.

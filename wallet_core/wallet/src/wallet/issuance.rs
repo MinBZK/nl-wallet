@@ -632,8 +632,7 @@ where
                 })
             })
             .flatten()
-            .ok_or(IssuanceError::MissingPidSdJwt)?
-            .into_inner();
+            .ok_or(IssuanceError::MissingPidSdJwt)?;
         let recovery_code_disclosure = pid
             .into_presentation_builder()
             .disclose(
@@ -698,8 +697,6 @@ mod tests {
     use futures::FutureExt;
     use itertools::multiunzip;
     use mockall::predicate::*;
-    use p256::ecdsa::SigningKey;
-    use rand_core::OsRng;
     use rstest::rstest;
     use serial_test::serial;
     use url::Url;
@@ -719,7 +716,6 @@ mod tests {
     use openid4vc::oidc::OidcError;
     use openid4vc::token::TokenRequest;
     use openid4vc::token::TokenRequestGrantType;
-    use sd_jwt::sd_jwt::VerifiedSdJwt;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
     use utils::generator::mock::MockTimeGenerator;
@@ -753,7 +749,7 @@ mod tests {
         let mut client = MockIssuanceSession::new();
         let issuer_certificate = match &credential {
             IssuedCredential::MsoMdoc { mdoc } => mdoc.issuer_certificate().unwrap(),
-            IssuedCredential::SdJwt { sd_jwt, .. } => sd_jwt.as_ref().issuer_certificate().to_owned(),
+            IssuedCredential::SdJwt { sd_jwt, .. } => sd_jwt.issuer_certificate().to_owned(),
         };
 
         let issuer_registration = match IssuerRegistration::from_certificate(&issuer_certificate) {
@@ -772,7 +768,6 @@ mod tests {
             IssuedCredential::SdJwt { sd_jwt, .. } => {
                 let payload = sd_jwt
                     .clone()
-                    .into_inner()
                     .into_credential_payload(&type_metadata.to_normalized().unwrap())
                     .unwrap();
                 AttestationPresentation::create_from_attributes(
@@ -1188,14 +1183,13 @@ mod tests {
         preview.content.credential_payload.attestation_type = String::from("att_type_1");
         previews.push(preview);
 
-        let holder_key = SigningKey::random(&mut OsRng);
         let ca = Ca::generate("myca", Default::default()).unwrap();
         let cert_type = CertificateType::from(IssuerRegistration::new_mock());
         let issuer_key_pair = ca.generate_key_pair("mycert", cert_type, Default::default()).unwrap();
 
         let (payload, _, normalized_metadata) = create_example_credential_payload(&time_generator);
         let sd_jwt = payload
-            .into_sd_jwt(&normalized_metadata, holder_key.verifying_key(), &issuer_key_pair)
+            .into_sd_jwt(&normalized_metadata, &issuer_key_pair)
             .now_or_never()
             .unwrap()
             .unwrap();
@@ -1206,7 +1200,7 @@ mod tests {
             Uuid::new_v4(),
             StoredAttestation::SdJwt {
                 key_identifier: "sd_jwt_key_identifier".to_string(),
-                sd_jwt: VerifiedSdJwt::new_mock(sd_jwt),
+                sd_jwt: sd_jwt.into_verified(),
             },
             normalized_metadata,
         );
@@ -1691,8 +1685,6 @@ mod tests {
 
     #[test]
     fn test_match_preview_and_stored_attestations() {
-        let holder_key = SigningKey::random(&mut OsRng);
-
         let ca = Ca::generate("myca", Default::default()).unwrap();
         let cert_type = CertificateType::from(IssuerRegistration::new_mock());
         let issuer_key_pair = ca.generate_key_pair("mycert", cert_type, Default::default()).unwrap();
@@ -1701,7 +1693,7 @@ mod tests {
 
         let (payload, _, normalized_metadata) = create_example_credential_payload(&time_generator);
         let sd_jwt = payload
-            .into_sd_jwt(&normalized_metadata, holder_key.verifying_key(), &issuer_key_pair)
+            .into_sd_jwt(&normalized_metadata, &issuer_key_pair)
             .now_or_never()
             .unwrap()
             .unwrap();
@@ -1712,7 +1704,7 @@ mod tests {
             Uuid::new_v4(),
             StoredAttestation::SdJwt {
                 key_identifier: "sd_jwt_key_identifier".to_string(),
-                sd_jwt: VerifiedSdJwt::new_mock(sd_jwt),
+                sd_jwt: sd_jwt.into_verified(),
             },
             normalized_metadata,
         );

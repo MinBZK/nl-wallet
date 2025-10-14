@@ -4,8 +4,8 @@ export class DemoPage {
   constructor(page) {
     this.page = page
 
-    this.amsterdamMunicipalityButton = "#mijn_amsterdam"
-    this.xyzBankButton = "#xyz_bank"
+    this.amsterdamMunicipalityButton = "#mijn_amsterdam_mdoc"
+    this.xyzBankButton = "#xyz_bank_sd_jwt"
     this.marketplaceButton = "#online_marketplace"
     this.monkeyBikeButton = "#monkey_bike"
 

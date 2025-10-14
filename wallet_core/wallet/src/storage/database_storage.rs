@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::path::PathBuf;
@@ -77,7 +78,6 @@ use super::event_log::WalletEvent;
 use super::key_file;
 use super::sql_cipher_key::SqlCipherKey;
 
-const DATABASE_NAME: &str = "wallet";
 const KEY_FILE_SUFFIX: &str = "_db";
 const DATABASE_FILE_EXT: &str = "db";
 const KEY_IDENTIFIER_PREFIX: &str = "keyfile_";
@@ -99,6 +99,7 @@ fn key_identifier_for_key_file(alias: &str) -> String {
 /// * Executing queries on the database by accepting / returning data structures that are used by [`crate::Wallet`].
 #[derive(Debug)]
 pub struct DatabaseStorage<K> {
+    database_name: Cow<'static, str>,
     storage_path: PathBuf,
     open_database: Option<OpenDatabaseStorage<K>>,
 }
@@ -120,8 +121,9 @@ impl AttestationFormatQuery {
 }
 
 impl<K> DatabaseStorage<K> {
-    pub fn new(storage_path: PathBuf) -> Self {
+    pub fn new(database_name: Cow<'static, str>, storage_path: PathBuf) -> Self {
         DatabaseStorage {
+            database_name,
             storage_path,
             open_database: None,
         }
@@ -134,7 +136,9 @@ impl<K> DatabaseStorage<K> {
         Ok(database)
     }
 
-    fn database_path_for_name(&self, name: &str) -> PathBuf {
+    fn database_path_for_name(&self) -> PathBuf {
+        let name = &self.database_name;
+
         // Get path to database as "<storage_path>/<name>.db"
         cfg_if! {
             if #[cfg(debug_assertions)] {
@@ -318,15 +322,17 @@ where
 {
     /// This helper method uses [`get_or_create_key_file`] and the utilities in [`platform_support`]
     /// to construct a [`SqlCipherKey`]
-    async fn key_for_name(&self, name: &str) -> StorageResult<(K, SqlCipherKey)> {
+    async fn key_for_name(&self) -> StorageResult<(K, SqlCipherKey)> {
+        let name = &self.database_name;
         let key_file_alias = key_file_alias_for_name(name);
         let key_file_key_identifier = key_identifier_for_key_file(&key_file_alias);
 
         // Get or create the encryption key for the key file contents. The identifier used
         // for this should be globally unique. If this is not the case, the same database is
         // being opened multiple times, which is a programmer error and should result in a panic.
-        let key_file_key =
-            K::new_unique(&key_file_key_identifier).expect("database key file key identifier is already in use");
+        let key_file_key = K::new_unique(&key_file_key_identifier).unwrap_or_else(|| {
+            panic!("database key file key identifier ('{key_file_key_identifier}') is already in use")
+        });
 
         // Get database key of the correct length including a salt, stored in encrypted file.
         let key_bytes = key_file::get_or_create_key_file(
@@ -344,9 +350,9 @@ where
     /// This helper method uses [`get_or_create_key_file`] and the utilities in [`platform_support`]
     /// to construct a [`SqliteUrl`] and a [`SqlCipherKey`], which in turn are used to create a [`Database`]
     /// instance.
-    async fn open_encrypted_database(&self, name: &str) -> StorageResult<OpenDatabaseStorage<K>> {
-        let database_path = self.database_path_for_name(name);
-        let (key_file_key, key) = self.key_for_name(name).await?;
+    async fn open_encrypted_database(&self) -> StorageResult<OpenDatabaseStorage<K>> {
+        let database_path = self.database_path_for_name();
+        let (key_file_key, key) = self.key_for_name().await?;
 
         // Open database at the path, encrypted using the key
         let database = Database::open(SqliteUrl::File(database_path), key).await?;
@@ -367,7 +373,7 @@ where
             return Ok(StorageState::Opened);
         }
 
-        let database_path = self.database_path_for_name(DATABASE_NAME);
+        let database_path = self.database_path_for_name();
 
         if fs::try_exists(database_path).await? {
             return Ok(StorageState::Unopened);
@@ -382,19 +388,22 @@ where
             return Err(StorageError::AlreadyOpened);
         }
 
-        let open_database = self.open_encrypted_database(DATABASE_NAME).await?;
+        let open_database = self.open_encrypted_database().await?;
         self.open_database.replace(open_database);
 
         Ok(())
     }
 
     async fn export(&mut self) -> StorageResult<DatabaseExport> {
-        if let Some(open_database) = self.open_database.take() {
-            open_database.database.close().await?;
+        let SqliteUrl::File(database_path) = self.database()?.url.clone() else {
+            return Err(StorageError::OnlyFileStorageExport);
         };
 
-        let database_path = self.database_path_for_name(DATABASE_NAME);
-        let (_, key) = self.key_for_name(DATABASE_NAME).await?;
+        if let Some(open_database) = self.open_database.take() {
+            open_database.database.close().await?;
+        }
+
+        let (_, key) = self.key_for_name().await?;
 
         let result = tokio::task::spawn_blocking(move || {
             let connection = rusqlite::Connection::open(database_path)?;
@@ -428,7 +437,7 @@ where
             open_database.database.close().await?;
         }
 
-        let (_, key) = self.key_for_name(DATABASE_NAME).await?;
+        let (_, key) = self.key_for_name().await?;
         let database_path = database_file.path().display().to_string();
 
         let _ = tokio::task::spawn_blocking(move || {
@@ -473,7 +482,7 @@ where
             .await?;
 
         // Rename the imported database file to the name of the existing database
-        std::fs::rename(database_file.path(), self.database_path_for_name(DATABASE_NAME))?;
+        std::fs::rename(database_file.path(), self.database_path_for_name())?;
 
         // Update the keyed data in the imported database
         self.open().await?;
@@ -498,7 +507,7 @@ where
                 warn!("Could not close and delete database: {}", error);
             }
 
-            let key_file_alias = key_file_alias_for_name(DATABASE_NAME);
+            let key_file_alias = key_file_alias_for_name(&self.database_name);
             if let Err(error) = key_file::delete_key_file(&self.storage_path, &key_file_alias).await {
                 warn!("Could not delete database key file: {}", error);
             }
@@ -955,7 +964,12 @@ fn create_attestation_copy_models(
 }
 
 #[cfg(any(test, feature = "test"))]
-pub mod in_memory_storage {
+pub mod test_storage {
+    use std::borrow::Cow;
+
+    use tempfile::TempDir;
+
+    use crypto::utils::random_string;
     use platform_support::hw_keystore::mock::MockHardwareEncryptionKey;
 
     use crate::storage::DatabaseStorage;
@@ -964,11 +978,14 @@ pub mod in_memory_storage {
     use crate::storage::database_storage::OpenDatabaseStorage;
     use crate::storage::sql_cipher_key::SqlCipherKey;
 
-    pub type InMemoryDatabaseStorage = DatabaseStorage<MockHardwareEncryptionKey>;
+    pub type MockHardwareDatabaseStorage = DatabaseStorage<MockHardwareEncryptionKey>;
 
-    impl InMemoryDatabaseStorage {
-        pub async fn open() -> Self {
-            let mut storage = DatabaseStorage::<MockHardwareEncryptionKey>::new("storage_path".into());
+    impl MockHardwareDatabaseStorage {
+        pub async fn open_in_memory() -> Self {
+            let database_name = "open_test_database_storage";
+
+            let mut storage =
+                DatabaseStorage::<MockHardwareEncryptionKey>::new(Cow::Borrowed(database_name), "storage_path".into());
 
             // Create a test database, override the database field on Storage.
             let key = SqlCipherKey::new_random_with_salt();
@@ -978,10 +995,21 @@ pub mod in_memory_storage {
 
             // Create an encryption key for the key file, which is not actually used,
             // but still needs to be present.
-            let key_file_key = MockHardwareEncryptionKey::new_random("open_test_database_storage".to_string());
+            let key_file_key = MockHardwareEncryptionKey::new_random(String::from(database_name));
 
             storage.open_database = OpenDatabaseStorage { database, key_file_key }.into();
 
+            storage
+        }
+
+        pub async fn open_temp_file(tempdir: &TempDir) -> Self {
+            let database_name = random_string(8);
+            let mut storage = DatabaseStorage::<MockHardwareEncryptionKey>::new(
+                Cow::Owned(database_name),
+                tempdir.path().to_path_buf(),
+            );
+            let open_database = storage.open_encrypted_database().await.unwrap();
+            storage.open_database = Some(open_database);
             storage
         }
     }
@@ -998,6 +1026,8 @@ pub(crate) mod tests {
     use chrono::TimeZone;
     use chrono::Utc;
     use itertools::Itertools;
+    use p256::ecdsa::SigningKey;
+    use rand_core::OsRng;
     use serde::Deserialize;
     use serde::Serialize;
     use tokio::fs;
@@ -1016,10 +1046,11 @@ pub(crate) mod tests {
     use platform_support::hw_keystore::mock::MockHardwareEncryptionKey;
     use platform_support::utils::PlatformUtilities;
     use platform_support::utils::mock::MockHardwareUtilities;
+    use sd_jwt::builder::SignedSdJwt;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
 
-    use in_memory_storage::InMemoryDatabaseStorage;
+    use test_storage::MockHardwareDatabaseStorage;
 
     use crate::storage::data::RegistrationData;
 
@@ -1044,13 +1075,16 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn test_database_open_encrypted_database_and_clear() {
-        let mut storage =
-            DatabaseStorage::<MockHardwareEncryptionKey>::new(MockHardwareUtilities::storage_path().await.unwrap());
-
         let name = "test_open_encrypted_database";
+
+        let mut storage = DatabaseStorage::<MockHardwareEncryptionKey>::new(
+            Cow::Borrowed(name),
+            MockHardwareUtilities::storage_path().await.unwrap(),
+        );
+
         let key_file_alias = key_file_alias_for_name(name);
         let key_file_identifier = key_identifier_for_key_file(&key_file_alias);
-        let database_path = storage.database_path_for_name(name);
+        let database_path = storage.database_path_for_name();
 
         // Make sure we start with a clean slate.
         _ = key_file::delete_key_file(&storage.storage_path, &key_file_alias).await;
@@ -1061,7 +1095,7 @@ pub(crate) mod tests {
 
         // Open the encrypted database.
         let open_database = storage
-            .open_encrypted_database(name)
+            .open_encrypted_database()
             .await
             .expect("Could not open encrypted database");
 
@@ -1090,10 +1124,12 @@ pub(crate) mod tests {
 
         // Re-open the encrypted database, set it on the `DatabaseStorage`
         // instance and then call clear on it in order to delete the database.
-        let mut storage =
-            DatabaseStorage::<MockHardwareEncryptionKey>::new(MockHardwareUtilities::storage_path().await.unwrap());
+        let mut storage = DatabaseStorage::<MockHardwareEncryptionKey>::new(
+            Cow::Borrowed(name),
+            MockHardwareUtilities::storage_path().await.unwrap(),
+        );
         storage.open_database = storage
-            .open_encrypted_database(name)
+            .open_encrypted_database()
             .await
             .expect("Could not open encrypted database")
             .into();
@@ -1136,9 +1172,8 @@ pub(crate) mod tests {
         // Export via block to have everything dropped
         let transfer = {
             let tempdir = tempfile::tempdir().unwrap();
-            let mut storage = DatabaseStorage::<MockHardwareEncryptionKey>::new(tempdir.as_ref().to_path_buf());
+            let mut storage = DatabaseStorage::open_temp_file(&tempdir).await;
 
-            storage.open().await.unwrap();
             storage.insert_data(&test).await.unwrap();
             storage.insert_data(&exported_registration).await.unwrap();
             storage.export().await.unwrap()
@@ -1146,11 +1181,10 @@ pub(crate) mod tests {
 
         // Import via new storage with new key
         let tempdir = tempfile::tempdir().unwrap();
-        let mut storage = DatabaseStorage::<MockHardwareEncryptionKey>::new(tempdir.as_ref().to_path_buf());
+        let mut storage = DatabaseStorage::open_temp_file(&tempdir).await;
 
         let encrypted_file = NamedTempFile::new().unwrap();
 
-        storage.open().await.unwrap();
         storage.insert_data(&initial_registration).await.unwrap();
         storage.prepare_import(transfer, &encrypted_file).await.unwrap();
         storage.commit_import(encrypted_file).await.unwrap();
@@ -1170,7 +1204,7 @@ pub(crate) mod tests {
             wallet_certificate: "this.isa.jwt".parse().unwrap(),
         };
 
-        let mut storage = InMemoryDatabaseStorage::open().await;
+        let mut storage = MockHardwareDatabaseStorage::open_in_memory().await;
 
         // State should be Opened.
         let state = storage.state().await.unwrap();
@@ -1250,7 +1284,7 @@ pub(crate) mod tests {
         assert!(matches!(state, StorageState::Uninitialized));
 
         // Open the database again and test if upsert stores new data.
-        let mut storage = InMemoryDatabaseStorage::open().await;
+        let mut storage = MockHardwareDatabaseStorage::open_in_memory().await;
         storage
             .upsert_data(&registration)
             .await
@@ -1268,7 +1302,7 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn test_mdoc_storage() {
-        let mut storage = InMemoryDatabaseStorage::open().await;
+        let mut storage = MockHardwareDatabaseStorage::open_in_memory().await;
 
         // State should be Opened.
         let state = storage.state().await.unwrap();
@@ -1419,12 +1453,13 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn test_sd_jwt_storage() {
-        let mut storage = InMemoryDatabaseStorage::open().await;
+        let mut storage = MockHardwareDatabaseStorage::open_in_memory().await;
 
         let state = storage.state().await.unwrap();
         assert!(matches!(state, StorageState::Opened));
 
-        let sd_jwt = VerifiedSdJwt::pid_example(&ISSUER_KEY);
+        let holder_key = SigningKey::random(&mut OsRng);
+        let sd_jwt = SignedSdJwt::pid_example(&ISSUER_KEY, holder_key.verifying_key()).into_verified();
         let credential = IssuedCredential::SdJwt {
             key_identifier: "sd_jwt_key_id".to_string(),
             sd_jwt: sd_jwt.clone(),
@@ -1436,7 +1471,7 @@ pub(crate) mod tests {
                 .unwrap(),
         );
 
-        let attestation_type = sd_jwt.as_ref().claims().vct.as_ref().unwrap().to_owned();
+        let attestation_type = sd_jwt.claims().vct.clone();
 
         let attestations = storage
             .fetch_unique_attestations()
@@ -1527,13 +1562,14 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn test_insert_and_update_attestations() {
-        let mut storage = InMemoryDatabaseStorage::open().await;
+        let mut storage = MockHardwareDatabaseStorage::open_in_memory().await;
 
         let state = storage.state().await.unwrap();
         assert!(matches!(state, StorageState::Opened));
 
         // Create issued_copies that will be inserted into the database
-        let sd_jwt = VerifiedSdJwt::pid_example(&ISSUER_KEY);
+        let holder_key = SigningKey::random(&mut OsRng);
+        let sd_jwt = SignedSdJwt::pid_example(&ISSUER_KEY, holder_key.verifying_key()).into_verified();
         let credential = IssuedCredential::SdJwt {
             key_identifier: "sd_jwt_key_id".to_string(),
             sd_jwt: sd_jwt.clone(),
@@ -1544,7 +1580,7 @@ pub(crate) mod tests {
                 .unwrap(),
         );
 
-        let attestation_type = sd_jwt.as_ref().claims().vct.as_ref().unwrap().to_owned();
+        let attestation_type = sd_jwt.claims().vct.clone();
 
         let attestations = storage
             .fetch_unique_attestations()
@@ -1593,10 +1629,11 @@ pub(crate) mod tests {
         assert_eq!(fetched_events.len(), 1);
 
         // Create new issued_copies that will be updated
-        let sd_jwt = VerifiedSdJwt::pid_example(&ISSUER_KEY);
+        let holder_key = SigningKey::random(&mut OsRng);
+        let sd_jwt = SignedSdJwt::pid_example(&ISSUER_KEY, holder_key.verifying_key()).into_verified();
         let credential = IssuedCredential::SdJwt {
             key_identifier: "sd_jwt_key_id".to_string(),
-            sd_jwt: sd_jwt.clone(),
+            sd_jwt,
         };
         let issued_copies = IssuedCredentialCopies::new_or_panic(
             vec![credential.clone(), credential.clone(), credential.clone()]
@@ -1680,7 +1717,7 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn test_storing_disclosure_cancel_event() {
-        let mut storage = InMemoryDatabaseStorage::open().await;
+        let mut storage = MockHardwareDatabaseStorage::open_in_memory().await;
 
         // State should be Opened.
         let state = storage.state().await.unwrap();
@@ -1725,7 +1762,7 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn test_storing_disclosure_error_event_without_data() {
-        let mut storage = InMemoryDatabaseStorage::open().await;
+        let mut storage = MockHardwareDatabaseStorage::open_in_memory().await;
 
         // State should be Opened.
         let state = storage.state().await.unwrap();
@@ -1770,7 +1807,7 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn test_storing_disclosure_error_event_with_data() {
-        let mut storage = InMemoryDatabaseStorage::open().await;
+        let mut storage = MockHardwareDatabaseStorage::open_in_memory().await;
 
         // State should be Opened.
         let state = storage.state().await.unwrap();
@@ -1788,7 +1825,8 @@ pub(crate) mod tests {
                 .unwrap()
         );
 
-        let sd_jwt = VerifiedSdJwt::pid_example(&ISSUER_KEY);
+        let holder_key = SigningKey::random(&mut OsRng);
+        let sd_jwt = SignedSdJwt::pid_example(&ISSUER_KEY, holder_key.verifying_key()).into_verified();
         let credential = IssuedCredential::SdJwt {
             key_identifier: "sd_jwt_key_id".to_string(),
             sd_jwt: sd_jwt.clone(),
@@ -1800,7 +1838,7 @@ pub(crate) mod tests {
                 .unwrap(),
         );
 
-        let attestation_type = sd_jwt.as_ref().claims().vct.as_ref().unwrap().to_owned();
+        let attestation_type = sd_jwt.claims().vct.clone();
 
         // Insert sd_jwt
         storage
@@ -1840,12 +1878,11 @@ pub(crate) mod tests {
             .unwrap()
             .unwrap();
 
-        let payload = sd_jwt.as_ref().into_credential_payload(&normalized_metadata).unwrap();
-        let attestation = AttestationPresentation::create_from_attributes(
+        let attestation = AttestationPresentation::create_from_sd_jwt_claims(
             AttestationIdentity::Fixed { id: attestation_id },
             normalized_metadata,
             issuer_registration.organization,
-            &payload.previewable_payload.attributes,
+            sd_jwt.decoded_claims().unwrap(),
         )
         .unwrap();
 
@@ -1903,7 +1940,7 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn test_event_log_storage_ordering() {
-        let mut storage = InMemoryDatabaseStorage::open().await;
+        let mut storage = MockHardwareDatabaseStorage::open_in_memory().await;
 
         // State should be Opened.
         let state = storage.state().await.unwrap();
@@ -1916,14 +1953,15 @@ pub(crate) mod tests {
         let timestamp_older = Utc.with_ymd_and_hms(2023, 11, 21, 13, 37, 00).unwrap();
         let timestamp_even_older = Utc.with_ymd_and_hms(2023, 11, 11, 11, 11, 00).unwrap();
 
-        let sd_jwt = VerifiedSdJwt::pid_example(&ISSUER_KEY);
+        let holder_key = SigningKey::random(&mut OsRng);
+        let sd_jwt = SignedSdJwt::pid_example(&ISSUER_KEY, holder_key.verifying_key()).into_verified();
         let credential = IssuedCredential::SdJwt {
             key_identifier: "sd_jwt_key_id".to_string(),
             sd_jwt: sd_jwt.clone(),
         };
 
         let issued_copies = IssuedCredentialCopies::new_or_panic(vec![credential.clone()].try_into().unwrap());
-        let attestation_type = sd_jwt.as_ref().claims().vct.as_ref().unwrap().to_owned();
+        let attestation_type = sd_jwt.claims().vct.clone();
 
         // Insert sd_jwts
         storage
@@ -1973,7 +2011,7 @@ pub(crate) mod tests {
                     .unwrap()
                     .unwrap();
 
-                let payload = sd_jwt.as_ref().into_credential_payload(&normalized_metadata).unwrap();
+                let payload = sd_jwt.into_credential_payload(&normalized_metadata).unwrap();
                 AttestationPresentation::create_from_attributes(
                     AttestationIdentity::Fixed { id: attestation_id },
                     normalized_metadata,

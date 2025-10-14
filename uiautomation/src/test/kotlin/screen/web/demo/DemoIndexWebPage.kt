@@ -7,31 +7,44 @@ class DemoIndexWebPage : MobileActions() {
 
     private val headerTextLocator = By.xpath("//h1[text()='NL Wallet demo']")
 
-    private val amsterdamButtonLocator = By.xpath("//a[@id='mijn_amsterdam']")
-    private val xyzBankButtonLocator = By.xpath("//a[@id='xyz_bank']")
+    private val amsterdamMdocButtonLocator = By.xpath("//a[@id='mijn_amsterdam_mdoc']")
+    private val amsterdamSdJwtButtonLocator = By.xpath("//a[@id='mijn_amsterdam_sd_jwt']")
+    private val xyzBankMdocButtonLocator = By.xpath("//a[@id='xyz_bank_mdoc']")
+    private val xyzBankSdJwtButtonLocator = By.xpath("//a[@id='xyz_bank_sd_jwt']")
+
     private val marketplaceButtonLocator = By.xpath("//a[@id='online_marketplace']")
     private val monkeyBikeButtonLocator = By.xpath("//a[@id='monkey_bike']")
-    private val hollandUniversityButtonLocator = By.xpath("//a[@id='university']")
+    private val hollandUniversityMdocButtonLocator = By.xpath("//a[@id='university_mdoc']")
+    private val hollandUniversitySdJwtButtonLocator = By.xpath("//a[@id='university_sd_jwt']")
+
     private val insuranceButtonLocator = By.xpath("//a[@id='insurance']")
 
     fun visible() = isWebElementVisible(findWebElement(headerTextLocator))
 
-    fun clickAmsterdamButton() = clickWebElement(findWebElement(amsterdamButtonLocator))
+    fun clickAmsterdamMdocButton() = clickWebElement(findWebElement(amsterdamMdocButtonLocator))
 
-    fun clickXyzBankButton() = clickWebElement(findWebElement(xyzBankButtonLocator))
+    fun clickAmsterdamSdJwtButton() = clickWebElement(findWebElement(amsterdamSdJwtButtonLocator))
+
+    fun clickXyzBankMdocButton() = clickWebElement(findWebElement(xyzBankMdocButtonLocator))
+
+    fun clickXyzBankSdJwtButton() = clickWebElement(findWebElement(xyzBankSdJwtButtonLocator))
 
     fun clickMarketplaceButton() = clickWebElement(findWebElement(marketplaceButtonLocator))
 
     fun clickMonkeyBikeButton() = clickWebElement(findWebElement(monkeyBikeButtonLocator))
 
-    fun clickHollandUniversityButton() {
-        scrollToWebElement(hollandUniversityButtonLocator)
-        clickWebElement(findWebElement(hollandUniversityButtonLocator))
+    fun clickHollandUniversityMdocButton() {
+        scrollToWebElement(hollandUniversityMdocButtonLocator)
+        clickWebElement(findWebElement(hollandUniversityMdocButtonLocator))
+    }
+
+    fun clickHollandUniversitySdJwtButton() {
+        scrollToWebElement(hollandUniversitySdJwtButtonLocator)
+        clickWebElement(findWebElement(hollandUniversitySdJwtButtonLocator))
     }
 
     fun clickInsuranceButton() {
         scrollToWebElement(insuranceButtonLocator)
         clickWebElement(findWebElement(insuranceButtonLocator))
     }
-
 }

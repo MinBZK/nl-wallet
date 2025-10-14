@@ -21,6 +21,7 @@ import '../common/widget/text/title_text.dart';
 import '../common/widget/utility/do_on_init.dart';
 import '../common/widget/wallet_app_bar.dart';
 import '../common/widget/wallet_scrollbar.dart';
+import '../dashboard/dashboard_screen.dart';
 import 'bloc/menu_bloc.dart';
 
 class MenuScreen extends StatefulWidget {
@@ -113,7 +114,7 @@ class _MenuScreenState extends State<MenuScreen> with LockStateMixin<MenuScreen>
       MenuItem(
         label: Text.rich(context.l10n.menuScreenHelpCta.toTextSpan(context)),
         leftIcon: const Icon(Icons.help_outline),
-        onPressed: () => PlaceholderScreen.showGeneric(context),
+        onPressed: () => Navigator.restorablePushNamed(context, WalletRoutes.needHelpRoute),
       ),
       MenuItem(
         label: Text.rich(context.l10n.menuScreenScanQrCta.toTextSpan(context)),
@@ -164,13 +165,9 @@ class _MenuScreenState extends State<MenuScreen> with LockStateMixin<MenuScreen>
   @override
   void onLock() {
     /// PVW-3104: Pop the MenuScreen if it's visible while the app gets locked
-    if (ModalRoute.of(context)?.isCurrent ?? false) {
-      Navigator.maybePop(context);
-    }
+    if (ModalRoute.of(context)?.isCurrent ?? false) DashboardScreen.show(context);
   }
 
   @override
-  FutureOr<void> onUnlock() {
-    /* unused */
-  }
+  FutureOr<void> onUnlock() {}
 }

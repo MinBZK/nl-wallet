@@ -11,7 +11,9 @@ import '../../../util/extension/animation_extension.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/localized_text_extension.dart';
 import '../../../util/extension/string_extension.dart';
-import '../../../util/formatter/time_ago_formatter.dart';
+import '../../../util/formatter/datetime/duration_formatter.dart';
+import '../../../util/mapper/card/status/card_status_metadata_mapper.dart';
+import '../../../util/mapper/card/status/card_status_render_type.dart';
 import '../../../util/mapper/event/wallet_event_status_text_mapper.dart';
 import '../../../wallet_constants.dart';
 import '../../common/screen/placeholder_screen.dart';
@@ -20,6 +22,7 @@ import '../../common/widget/button/button_content.dart';
 import '../../common/widget/button/icon/help_icon_button.dart';
 import '../../common/widget/button/list_button.dart';
 import '../../common/widget/button/primary_button.dart';
+import '../../common/widget/card/status/card_status_info_text.dart';
 import '../../common/widget/card/wallet_card_item.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/menu_item.dart';
@@ -115,9 +118,20 @@ class CardDetailScreen extends StatelessWidget {
         child: CenteredLoadingIndicator(),
       );
     }
+
+    final cardStatusMetadata = CardStatusMetadataMapper.map(context, card, CardStatusRenderType.cardDetailScreen);
     return SliverMainAxisGroup(
       slivers: [
-        const SliverSizedBox(height: 24 + 8),
+        if (cardStatusMetadata != null) ...[
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: CardStatusInfoText(cardStatusMetadata),
+            ),
+          ),
+        ],
+
+        const SliverSizedBox(height: 24),
         SliverToBoxAdapter(
           child: ExcludeSemantics(
             child: FractionallySizedBox(
@@ -153,10 +167,19 @@ class CardDetailScreen extends StatelessWidget {
 
   Widget _buildDetail(BuildContext context, WalletCardDetail detail) {
     final card = detail.card;
-
+    final cardStatusMetadata = CardStatusMetadataMapper.map(context, card, CardStatusRenderType.cardDetailScreen);
     return SliverMainAxisGroup(
       slivers: [
-        const SliverSizedBox(height: 24 + 8),
+        if (cardStatusMetadata != null) ...[
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: CardStatusInfoText(cardStatusMetadata),
+            ),
+          ),
+        ],
+
+        const SliverSizedBox(height: 24),
         SliverToBoxAdapter(
           child: ExcludeSemantics(
             child: FractionallySizedBox(
@@ -227,7 +250,7 @@ class CardDetailScreen extends StatelessWidget {
 
   String _createInteractionText(BuildContext context, DisclosureEvent? attribute) {
     if (attribute != null) {
-      final String timeAgo = TimeAgoFormatter.format(context, attribute.dateTime);
+      final String timeAgo = DurationFormatter.prettyPrintTimeAgo(context.l10n, attribute.dateTime);
       final String status = WalletEventStatusTextMapper().map(context, attribute).toLowerCase();
       return context.l10n
           .cardDetailScreenLatestSuccessInteraction(

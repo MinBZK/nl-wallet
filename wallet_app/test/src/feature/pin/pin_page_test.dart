@@ -1,4 +1,5 @@
 import 'package:bloc_test/bloc_test.dart';
+import 'package:clock/clock.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wallet/src/domain/model/result/application_error.dart';
 import 'package:wallet/src/feature/pin/bloc/pin_bloc.dart';
@@ -182,7 +183,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         PinPage(onPinValidated: (_) {}).withState<PinBloc, PinState>(
           MockPinBloc(),
-          PinValidateTimeout(DateTime.now().add(const Duration(hours: 3))),
+          PinValidateTimeout(clock.now().add(const Duration(hours: 3))),
         ),
       );
       await tester.pumpAndSettle();

@@ -14,6 +14,7 @@ dependencies:
   app_links: ^6.4.1
   app_settings: ^6.1.1
   bloc_concurrency: ^0.3.0
+  clock: ^1.1.2
   collection: ^1.19.1
   connectivity_plus: ^6.1.5
   country_codes: ^3.3.0

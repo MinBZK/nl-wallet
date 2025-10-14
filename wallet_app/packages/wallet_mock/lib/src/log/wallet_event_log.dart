@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:wallet_core/core.dart';
 
@@ -52,7 +53,7 @@ class WalletEventLog {
     final bool isLogin = sharedAttestations.onlyContainsBsn;
     final event = WalletEvent.disclosure(
       id: 'id123',
-      dateTime: DateTime.now().toIso8601String(),
+      dateTime: clock.now().toIso8601String(),
       relyingParty: disclosure.relyingParty,
       purpose: disclosure.requestPurpose,
       sharedAttestations: sharedAttestations,
@@ -73,7 +74,7 @@ class WalletEventLog {
   }) {
     final event = WalletEvent.disclosure(
       id: 'id123',
-      dateTime: DateTime.now().toIso8601String(),
+      dateTime: clock.now().toIso8601String(),
       relyingParty: organization,
       purpose: purpose ?? ''.untranslated,
       sharedAttestations: sharedAttestations,
@@ -87,7 +88,7 @@ class WalletEventLog {
   void logIssuance(AttestationPresentation attestation, {bool isRenewal = false}) {
     final event = WalletEvent.issuance(
       id: 'id123',
-      dateTime: DateTime.now().toIso8601String(),
+      dateTime: clock.now().toIso8601String(),
       attestation: attestation,
       renewed: isRenewal,
     );

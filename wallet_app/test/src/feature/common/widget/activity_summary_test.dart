@@ -1,5 +1,6 @@
 import 'dart:ui';
 
+import 'package:clock/clock.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wallet/l10n/generated/app_localizations.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
@@ -44,13 +45,13 @@ void main() {
       final summary = ActivitySummary(
         events: [
           WalletEvent.issuance(
-            dateTime: DateTime.now(),
+            dateTime: clock.now(),
             status: EventStatus.success,
             card: WalletMockData.card,
             renewed: false,
           ),
           WalletEvent.issuance(
-            dateTime: DateTime.now(),
+            dateTime: clock.now(),
             status: EventStatus.success,
             card: WalletMockData.card,
             renewed: false,
@@ -64,19 +65,19 @@ void main() {
       final summary = ActivitySummary(
         events: [
           WalletEvent.issuance(
-            dateTime: DateTime.now(),
+            dateTime: clock.now(),
             status: EventStatus.success,
             card: WalletMockData.card,
             renewed: false,
           ),
           WalletEvent.issuance(
-            dateTime: DateTime.now().add(const Duration(days: 3)),
+            dateTime: clock.now().add(const Duration(days: 3)),
             status: EventStatus.success,
             card: WalletMockData.card,
             renewed: false,
           ),
           WalletEvent.issuance(
-            dateTime: DateTime.now().add(const Duration(days: 20)),
+            dateTime: clock.now().add(const Duration(days: 20)),
             status: EventStatus.success,
             card: WalletMockData.card,
             renewed: false,
@@ -92,13 +93,13 @@ void main() {
         final summary = ActivitySummary(
           events: [
             WalletEvent.issuance(
-              dateTime: DateTime.now().add(const Duration(days: 8)),
+              dateTime: clock.now().add(const Duration(days: 8)),
               status: EventStatus.success,
               card: WalletMockData.card,
               renewed: false,
             ),
             WalletEvent.issuance(
-              dateTime: DateTime.now().add(const Duration(days: 20)),
+              dateTime: clock.now().add(const Duration(days: 20)),
               status: EventStatus.success,
               card: WalletMockData.card,
               renewed: false,
@@ -123,7 +124,7 @@ void main() {
         ActivitySummary(
           events: [
             WalletEvent.issuance(
-              dateTime: DateTime.now(),
+              dateTime: clock.now(),
               status: EventStatus.success,
               card: WalletMockData.card,
               renewed: false,
@@ -143,19 +144,19 @@ void main() {
         ActivitySummary(
           events: [
             WalletEvent.issuance(
-              dateTime: DateTime.now(),
+              dateTime: clock.now(),
               status: EventStatus.success,
               card: WalletMockData.card,
               renewed: false,
             ),
             WalletEvent.issuance(
-              dateTime: DateTime.now(),
+              dateTime: clock.now(),
               status: EventStatus.success,
               card: WalletMockData.card,
               renewed: false,
             ),
             WalletEvent.issuance(
-              dateTime: DateTime.now(),
+              dateTime: clock.now(),
               status: EventStatus.success,
               card: WalletMockData.card,
               renewed: false,
@@ -171,7 +172,7 @@ void main() {
     });
 
     testWidgets('relevant organization name is shown', (tester) async {
-      final disclosureEvent = disclosureAt(DateTime.now());
+      final disclosureEvent = disclosureAt(clock.now());
       await tester.pumpWidgetWithAppWrapper(
         ActivitySummary(
           events: [disclosureEvent],
@@ -188,9 +189,9 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         ActivitySummary(
           events: [
-            disclosureAt(DateTime.now()),
-            disclosureAt(DateTime.now()),
-            disclosureAt(DateTime.now()),
+            disclosureAt(clock.now()),
+            disclosureAt(clock.now()),
+            disclosureAt(clock.now()),
           ],
         ),
       );
@@ -206,19 +207,19 @@ void main() {
         ActivitySummary(
           events: [
             disclosureAt(
-              DateTime.now(),
+              clock.now(),
               relyingParty: WalletMockData.organization.copyWith(
                 displayName: 'Org-X'.untranslated,
               ),
             ),
             disclosureAt(
-              DateTime.now(),
+              clock.now(),
               relyingParty: WalletMockData.organization.copyWith(
                 displayName: 'Org-Y'.untranslated,
               ),
             ),
             disclosureAt(
-              DateTime.now(),
+              clock.now(),
               relyingParty: WalletMockData.organization.copyWith(
                 displayName: 'Org-Z'.untranslated,
               ),
@@ -241,25 +242,25 @@ void main() {
         ActivitySummary(
           events: [
             disclosureAt(
-              DateTime.now(),
+              clock.now(),
               relyingParty: WalletMockData.organization.copyWith(
                 displayName: 'Org-X'.untranslated,
               ),
             ),
             disclosureAt(
-              DateTime.now(),
+              clock.now(),
               relyingParty: WalletMockData.organization.copyWith(
                 displayName: 'Org-Y'.untranslated,
               ),
             ),
             disclosureAt(
-              DateTime.now(),
+              clock.now(),
               relyingParty: WalletMockData.organization.copyWith(
                 displayName: 'not-shown-a'.untranslated,
               ),
             ),
             disclosureAt(
-              DateTime.now(),
+              clock.now(),
               relyingParty: WalletMockData.organization.copyWith(
                 displayName: 'not-shown-b'.untranslated,
               ),
@@ -298,7 +299,7 @@ void main() {
         ActivitySummary(
           events: [
             WalletEvent.issuance(
-              dateTime: DateTime.now(),
+              dateTime: clock.now(),
               status: EventStatus.success,
               card: WalletMockData.card,
               renewed: false,
@@ -315,13 +316,13 @@ void main() {
         ActivitySummary(
           events: [
             WalletEvent.issuance(
-              dateTime: DateTime.now(),
+              dateTime: clock.now(),
               status: EventStatus.success,
               card: WalletMockData.card,
               renewed: false,
             ),
             WalletEvent.issuance(
-              dateTime: DateTime.now(),
+              dateTime: clock.now(),
               status: EventStatus.success,
               card: WalletMockData.card,
               renewed: false,
@@ -337,7 +338,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         ActivitySummary(
           events: [
-            disclosureAt(DateTime.now()),
+            disclosureAt(clock.now()),
           ],
         ),
         surfaceSize: Size(kGoldenSize.width, kGoldenSize.height + 22),
@@ -350,15 +351,15 @@ void main() {
         ActivitySummary(
           events: [
             disclosureAt(
-              DateTime.now(),
+              clock.now(),
               relyingParty: WalletMockData.organization.copyWith(displayName: 'Org-X'.untranslated),
             ),
             disclosureAt(
-              DateTime.now(),
+              clock.now(),
               relyingParty: WalletMockData.organization.copyWith(displayName: 'Org-Y'.untranslated),
             ),
             disclosureAt(
-              DateTime.now(),
+              clock.now(),
               relyingParty: WalletMockData.organization.copyWith(displayName: 'Org-Z'.untranslated),
             ),
           ],
@@ -373,19 +374,19 @@ void main() {
         ActivitySummary(
           events: [
             disclosureAt(
-              DateTime.now(),
+              clock.now(),
               relyingParty: WalletMockData.organization.copyWith(displayName: 'Org-A'.untranslated),
             ),
             disclosureAt(
-              DateTime.now(),
+              clock.now(),
               relyingParty: WalletMockData.organization.copyWith(displayName: 'Org-B'.untranslated),
             ),
             disclosureAt(
-              DateTime.now(),
+              clock.now(),
               relyingParty: WalletMockData.organization.copyWith(displayName: 'Org-C'.untranslated),
             ),
             disclosureAt(
-              DateTime.now(),
+              clock.now(),
               relyingParty: WalletMockData.organization.copyWith(displayName: 'Org-D'.untranslated),
             ),
           ],
@@ -399,9 +400,9 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         ActivitySummary(
           events: [
-            disclosureAt(DateTime.now()),
+            disclosureAt(clock.now()),
             WalletEvent.disclosure(
-              dateTime: DateTime.now(),
+              dateTime: clock.now(),
               status: EventStatus.success,
               relyingParty: WalletMockData.organization,
               purpose: 'disclosure'.untranslated,
@@ -410,13 +411,13 @@ void main() {
               type: DisclosureType.login,
             ),
             WalletEvent.issuance(
-              dateTime: DateTime.now(),
+              dateTime: clock.now(),
               status: EventStatus.success,
               card: WalletMockData.card,
               renewed: false,
             ),
             WalletEvent.issuance(
-              dateTime: DateTime.now(),
+              dateTime: clock.now(),
               status: EventStatus.success,
               card: WalletMockData.card,
               renewed: true,

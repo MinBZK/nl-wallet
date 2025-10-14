@@ -240,6 +240,8 @@ impl VerifiedAttestation {
 
 #[cfg(feature = "mock")]
 pub mod mock {
+    use std::sync::Arc;
+
     use coset::CoseKeyBuilder;
     use coset::iana::EllipticCurve;
     use derive_more::Debug;
@@ -271,11 +273,11 @@ pub mod mock {
     use super::AttestationFormat;
     use super::AttestationStatement;
 
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     pub struct MockAttestationCa {
         #[debug("{:?}", certificate.der())]
-        certificate: Certificate,
-        key_pair: KeyPair,
+        certificate: Arc<Certificate>,
+        key_pair: Arc<KeyPair>,
     }
 
     impl MockAttestationCa {
@@ -286,7 +288,10 @@ pub mod mock {
             params.is_ca = IsCa::Ca(BasicConstraints::Constrained(0));
             let certificate = params.self_signed(&key_pair).unwrap();
 
-            Self { certificate, key_pair }
+            Self {
+                certificate: Arc::new(certificate),
+                key_pair: Arc::new(key_pair),
+            }
         }
 
         pub fn as_certificate_der(&self) -> &CertificateDer<'static> {
@@ -305,6 +310,7 @@ pub mod mock {
         use rcgen::PKCS_ECDSA_P384_SHA384;
         use rustls_pki_types::CertificateDer;
         use rustls_pki_types::PrivateKeyDer;
+        use std::sync::Arc;
 
         use crate::MOCK_APPLE_ROOT_CA;
         use crate::MOCK_APPLE_ROOT_CA_KEY;
@@ -332,7 +338,10 @@ pub mod mock {
                 // See: https://github.com/rustls/rcgen/issues/274#issuecomment-2121969453
                 let certificate = params.self_signed(&key_pair)?;
 
-                let ca = Self { certificate, key_pair };
+                let ca = Self {
+                    certificate: Arc::new(certificate),
+                    key_pair: Arc::new(key_pair),
+                };
 
                 Ok(ca)
             }

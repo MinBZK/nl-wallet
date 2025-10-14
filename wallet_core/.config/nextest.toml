@@ -1,11 +1,17 @@
 [test-groups]
-db-hsm = { max-threads = 1 }
+cleanup = { max-threads = 1 }
+hsm = { max-threads = 1 }
 mock-oidc = { max-threads = 1 }
 mock-issuance-session = { max-threads = 1 }
 
 [[profile.default.overrides]]
-filter = 'package(tests_integration*) | (kind(test) & (package(wallet_provider*) | package(pid_issuer) | package(verification_server) | package(issuance_server) | package(hsm)))'
-test-group = 'db-hsm'
+filter = 'package(verification_server) & binary(postgres)'
+test-group = 'cleanup'
+
+[[profile.default.overrides]]
+# Include all tests_integration because not all of the tests can run independently inbetween binaries
+filter = 'package(tests_integration) | (package(wallet_provider) & binary(hsm)) | (package(hsm) & binary(hsm))'
+test-group = 'hsm'
 
 [[profile.default.overrides]]
 filter = 'package(wallet) & test(/^digid::http::/)'

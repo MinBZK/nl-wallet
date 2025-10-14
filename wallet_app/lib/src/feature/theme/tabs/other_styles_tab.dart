@@ -1,9 +1,11 @@
+import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 
 import '../../../domain/model/app_image_data.dart';
 import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/card/metadata/card_display_metadata.dart';
 import '../../../domain/model/card/metadata/card_rendering.dart';
+import '../../../domain/model/card/status/card_status.dart';
 import '../../../domain/model/card/wallet_card.dart';
 import '../../../domain/model/event/wallet_event.dart';
 import '../../../domain/model/flow_progress.dart';
@@ -14,6 +16,8 @@ import '../../../theme/dark_wallet_theme.dart';
 import '../../../theme/light_wallet_theme.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
+import '../../../util/mapper/card/status/card_status_metadata_mapper.dart';
+import '../../../util/mapper/card/status/card_status_render_type.dart';
 import '../../../wallet_assets.dart';
 import '../../common/screen/placeholder_screen.dart';
 import '../../common/sheet/confirm_action_sheet.dart';
@@ -28,6 +32,8 @@ import '../../common/widget/button/icon/back_icon_button.dart';
 import '../../common/widget/button/icon/help_icon_button.dart';
 import '../../common/widget/card/card_logo.dart';
 import '../../common/widget/card/shared_attributes_card.dart';
+import '../../common/widget/card/status/card_status_info_label.dart';
+import '../../common/widget/card/status/card_status_info_text.dart';
 import '../../common/widget/card/wallet_card_item.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/fade_in_at_offset.dart';
@@ -59,6 +65,10 @@ import '../theme_screen.dart';
 const _kMockPurpose = 'Kaart uitgifte';
 const _kMockUrl = 'https://www.example.org';
 const _kMockOtherKey = 'mock_other';
+
+final _kSampleCardStatus = CardStatus.valid;
+final _kSampleCardValidFrom = clock.now().add(const Duration(days: 5));
+final _kSampleCardValidUntil = clock.now().add(const Duration(days: 35));
 
 final _kSampleCardMetaData = [
   const CardDisplayMetadata(
@@ -102,17 +112,23 @@ final _kSampleAttributes = [
 final _kSampleCard = WalletCard(
   attestationId: 'id',
   attestationType: 'attestationType',
+  issuer: _kSampleOrganization,
+  status: _kSampleCardStatus,
+  validFrom: _kSampleCardValidFrom,
+  validUntil: _kSampleCardValidUntil,
   metadata: _kSampleCardMetaData,
   attributes: _kSampleAttributes,
-  issuer: _kSampleOrganization,
 );
 
 final _kAltSampleCard = WalletCard(
   attestationId: 'alt_id',
   attestationType: 'alt_attestationType',
+  issuer: _kSampleOrganization,
+  status: _kSampleCardStatus,
+  validFrom: _kSampleCardValidFrom,
+  validUntil: _kSampleCardValidUntil,
   metadata: _kAltSampleCardMetaData,
   attributes: _kSampleAttributes,
-  issuer: _kSampleOrganization,
 );
 
 final _kSampleOrganization = Organization(
@@ -125,14 +141,14 @@ final _kSampleOrganization = Organization(
 );
 
 final _kSampleIssuanceEvent = WalletEvent.issuance(
-  dateTime: DateTime.now(),
+  dateTime: clock.now(),
   status: EventStatus.success,
   card: _kSampleCard,
   renewed: false,
 );
 
 final _kSampleInteractionAttribute = WalletEvent.disclosure(
-  dateTime: DateTime.now(),
+  dateTime: clock.now(),
   relyingParty: _kSampleOrganization,
   cards: [_kSampleCard],
   status: EventStatus.success,
@@ -360,7 +376,61 @@ class OtherStylesTab extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const ThemeSectionHeader(title: 'Cards'),
-        const SizedBox(height: 12),
+        const SizedBox(height: 16),
+        const ThemeSectionSubHeader(title: 'CardStatusInfoLabel - WalletCardItem'),
+        ...CardStatus.values.map((status) {
+          final statusMetadata = CardStatusMetadataMapper.map(
+            context,
+            _kSampleCard.copyWith(status: status),
+            CardStatusRenderType.walletCardItem,
+          );
+          if (statusMetadata != null) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: CardStatusInfoLabel(statusMetadata),
+            );
+          } else {
+            return const SizedBox.shrink();
+          }
+        }),
+
+        const SizedBox(height: 16),
+        const ThemeSectionSubHeader(title: 'CardStatusInfoText - CardDataScreen'),
+        ...CardStatus.values.map((status) {
+          final statusMetadata = CardStatusMetadataMapper.map(
+            context,
+            _kSampleCard.copyWith(status: status),
+            CardStatusRenderType.cardDataScreen,
+          );
+          if (statusMetadata != null) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: CardStatusInfoText(statusMetadata),
+            );
+          } else {
+            return const SizedBox.shrink();
+          }
+        }),
+
+        const SizedBox(height: 16),
+        const ThemeSectionSubHeader(title: 'CardStatusInfoText - CardDetailScreen'),
+        ...CardStatus.values.map((status) {
+          final statusMetadata = CardStatusMetadataMapper.map(
+            context,
+            _kSampleCard.copyWith(status: status),
+            CardStatusRenderType.cardDetailScreen,
+          );
+          if (statusMetadata != null) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: CardStatusInfoText(statusMetadata),
+            );
+          } else {
+            return const SizedBox.shrink();
+          }
+        }),
+
+        const SizedBox(height: 16),
         const ThemeSectionSubHeader(title: 'WalletCardItem'),
         const WalletCardItem(
           title: 'Card Title',
@@ -368,6 +438,8 @@ class OtherStylesTab extends StatelessWidget {
           subtitle: 'Card subtitle1',
           logo: CardLogo(logo: AppAssetImage(WalletAssets.logo_card_rijksoverheid)),
         ),
+
+        const SizedBox(height: 16),
         const ThemeSectionSubHeader(title: 'StackedWalletCards'),
         StackedWalletCards(
           cards: [
@@ -375,10 +447,14 @@ class OtherStylesTab extends StatelessWidget {
             _kSampleCard,
           ],
         ),
-        const ThemeSectionSubHeader(title: 'SharedWalletCard'),
+
+        const SizedBox(height: 16),
+        const ThemeSectionSubHeader(title: 'SharedAttributesCard'),
         SharedAttributesCard(
-          card: _kSampleCard,
+          card: _kSampleCard.copyWith(status: CardStatus.expired),
           attributes: [_kSampleCard.attributes.first],
+          onPressed: () {},
+          onChangeCardPressed: () {},
         ),
       ],
     );
@@ -393,7 +469,7 @@ class OtherStylesTab extends StatelessWidget {
         const ThemeSectionSubHeader(title: 'WalletEventRow'),
         WalletEventRow(
           event: WalletEvent.disclosure(
-            dateTime: DateTime.now(),
+            dateTime: clock.now(),
             relyingParty: _kSampleOrganization,
             status: EventStatus.success,
             policy: const Policy(
@@ -408,9 +484,12 @@ class OtherStylesTab extends StatelessWidget {
               WalletCard(
                 attestationId: 'id',
                 attestationType: 'attestationType',
+                issuer: _kSampleOrganization,
+                status: _kSampleCardStatus,
+                validFrom: _kSampleCardValidFrom,
+                validUntil: _kSampleCardValidUntil,
                 metadata: _kSampleCardMetaData,
                 attributes: const [],
-                issuer: _kSampleOrganization,
               ),
             ],
             type: DisclosureType.regular,
@@ -420,7 +499,7 @@ class OtherStylesTab extends StatelessWidget {
         const ThemeSectionSubHeader(title: 'WalletEventStatusHeader'),
         WalletEventStatusHeader(
           event: WalletEvent.disclosure(
-            dateTime: DateTime.now(),
+            dateTime: clock.now(),
             relyingParty: _kSampleOrganization,
             status: EventStatus.cancelled,
             policy: const Policy(
@@ -435,16 +514,19 @@ class OtherStylesTab extends StatelessWidget {
               WalletCard(
                 attestationId: 'id',
                 attestationType: 'attestationType',
+                issuer: _kSampleOrganization,
+                status: _kSampleCardStatus,
+                validFrom: _kSampleCardValidFrom,
+                validUntil: _kSampleCardValidUntil,
                 metadata: _kSampleCardMetaData,
                 attributes: const [],
-                issuer: _kSampleOrganization,
               ),
             ],
             type: DisclosureType.regular,
           ),
         ),
         const ThemeSectionSubHeader(title: 'HistorySectionHeader'),
-        HistorySectionHeader(dateTime: DateTime.now()),
+        HistorySectionHeader(dateTime: clock.now()),
       ],
     );
   }
@@ -494,9 +576,12 @@ class OtherStylesTab extends StatelessWidget {
           card: WalletCard(
             attestationId: 'row_id',
             attestationType: 'attestationType',
+            issuer: _kSampleOrganization,
+            status: _kSampleCardStatus,
+            validFrom: _kSampleCardValidFrom,
+            validUntil: _kSampleCardValidUntil,
             metadata: _kSampleCardMetaData,
             attributes: const [],
-            issuer: _kSampleOrganization,
           ),
         ),
         const ThemeSectionSubHeader(title: 'StatusIcon'),

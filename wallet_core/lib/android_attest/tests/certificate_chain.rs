@@ -52,7 +52,13 @@ fn revoked_intermediary_from(mock_ca: &MockCaChain) -> RevocationStatusList {
         entries: HashMap::new(),
     };
     // Get SerialNumber of intermediary
-    let serial_number = mock_ca.last_ca_certificate.params().serial_number.as_ref().unwrap();
+    let serial_number = mock_ca
+        .last_certificate_and_keypair
+        .0
+        .params()
+        .serial_number
+        .as_ref()
+        .unwrap();
     // Insert revoked entry in the CRL
     revocation_list.entries.insert(
         BigUint::from_bytes_be(serial_number.as_ref()),

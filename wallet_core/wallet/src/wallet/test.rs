@@ -67,8 +67,8 @@ use crate::config::default_config_server_config;
 use crate::config::default_wallet_config;
 use crate::digid::MockDigidClient;
 use crate::pin::key as pin_key;
-use crate::storage::InMemoryDatabaseStorage;
 use crate::storage::KeyData;
+use crate::storage::MockHardwareDatabaseStorage;
 use crate::storage::MockStorage;
 use crate::storage::RegistrationData;
 use crate::storage::Storage;
@@ -125,7 +125,7 @@ pub type TestWallet<S> = Wallet<
 pub type TestWalletMockStorage = TestWallet<MockStorage>;
 
 /// An alias for the `Wallet<>` with an in-memory SQLite database and mock dependencies.
-pub type TestWalletInMemoryStorage = TestWallet<InMemoryDatabaseStorage>;
+pub type TestWalletInMemoryStorage = TestWallet<MockHardwareDatabaseStorage>;
 
 /// The account server key material, generated once for testing.
 pub static ACCOUNT_SERVER_KEYS: LazyLock<AccountServerKeys> = LazyLock::new(|| AccountServerKeys {
@@ -202,14 +202,13 @@ pub fn create_example_pid_sd_jwt() -> (VerifiedSdJwt, NormalizedTypeMetadata) {
     let credential_payload = CredentialPayload::nl_pid_example(&MockTimeGenerator::default());
     let metadata = NormalizedTypeMetadata::nl_pid_example();
 
-    let holder_privkey = SigningKey::random(&mut OsRng);
     let sd_jwt = credential_payload
-        .into_sd_jwt(&metadata, holder_privkey.verifying_key(), &ISSUER_KEY.issuance_key)
+        .into_sd_jwt(&metadata, &ISSUER_KEY.issuance_key)
         .now_or_never()
         .unwrap()
         .unwrap();
 
-    (VerifiedSdJwt::new_mock(sd_jwt), metadata)
+    (sd_jwt.into_verified(), metadata)
 }
 
 /// Generates a valid [`Mdoc`] that contains a full mdoc PID.
@@ -287,9 +286,9 @@ pub fn valid_certificate_claims(wallet_id: Option<String>, hw_pubkey: VerifyingK
     }
 }
 
-impl TestStorageRegistration for InMemoryDatabaseStorage {
+impl TestStorageRegistration for MockHardwareDatabaseStorage {
     async fn init() -> Self {
-        InMemoryDatabaseStorage::open().await
+        MockHardwareDatabaseStorage::open_in_memory().await
     }
 
     async fn register(&mut self, registration_data: RegistrationData) {

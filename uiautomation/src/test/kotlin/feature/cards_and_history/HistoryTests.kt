@@ -8,6 +8,13 @@ import helper.TasDataHelper
 import helper.TestBase
 import navigator.OnboardingNavigator
 import navigator.screen.OnboardingNavigatorScreen
+import org.junit.jupiter.api.Assertions.assertAll
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.MethodOrderer
+import org.junit.jupiter.api.TestInfo
+import org.junit.jupiter.api.TestMethodOrder
+import org.junitpioneer.jupiter.RetryingTest
 import screen.card.CardDetailScreen
 import screen.dashboard.DashboardScreen
 import screen.disclosure.DisclosureApproveOrganizationScreen
@@ -19,13 +26,6 @@ import screen.organization.OrganizationDetailScreen
 import screen.security.PinScreen
 import screen.web.demo.DemoIndexWebPage
 import screen.web.demo.rp.RelyingPartyAmsterdamWebPage
-import org.junit.jupiter.api.Assertions.assertAll
-import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.DisplayName
-import org.junit.jupiter.api.MethodOrderer
-import org.junit.jupiter.api.TestInfo
-import org.junit.jupiter.api.TestMethodOrder
-import org.junitpioneer.jupiter.RetryingTest
 
 @TestMethodOrder(MethodOrderer.DisplayName::class)
 @DisplayName("UC6 Complete & card history overview and history events")
@@ -77,7 +77,7 @@ class HistoryTests : TestBase() {
         dashboardScreen.clickMenuButton()
         menuScreen.clickBrowserTestButton()
         overviewWebPage.switchToWebViewContext()
-        overviewWebPage.clickAmsterdamButton()
+        overviewWebPage.clickAmsterdamMdocButton()
         amsterdamWebPage.openSameDeviceWalletFlow()
 
         amsterdamWebPage.switchToNativeContext()

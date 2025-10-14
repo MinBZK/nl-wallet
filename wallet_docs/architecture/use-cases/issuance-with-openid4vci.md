@@ -26,6 +26,7 @@ sequenceDiagram
     actor User
     participant OS
     participant Wallet
+    participant WP as Wallet Backend
     participant WalletServer as PID-Issuer
     participant PidAttributeService
     participant AuthServer
@@ -53,7 +54,8 @@ sequenceDiagram
     deactivate Wallet
     User->>-Wallet: approve with PIN
     activate Wallet
-        Wallet->>Wallet: create PoPs by signing nonce using Wallet Provider
+        Wallet ->> WP: request PoPs with nonce<br/>(PerformIssuanceWithWua instruction)
+        WP ->> Wallet: Return WUA and Signed PoP and PoA
         Wallet->>+WalletServer: POST /batch_credential(access_token, PoPs)
         note over Wallet: WUA and PoA are included here
         WalletServer->>WalletServer: verify proofs,  WUA and PoA

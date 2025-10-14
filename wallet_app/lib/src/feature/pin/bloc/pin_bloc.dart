@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:clock/clock.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -72,7 +73,7 @@ class PinBloc extends Bloc<PinEvent, PinState> {
       case CheckPinResultIncorrect():
         emit(PinValidateFailure(attemptsLeftInRound: result.attemptsLeftInRound, isFinalRound: result.isFinalRound));
       case CheckPinResultTimeout():
-        emit(PinValidateTimeout(DateTime.now().add(Duration(milliseconds: result.timeoutMillis))));
+        emit(PinValidateTimeout(clock.now().add(Duration(milliseconds: result.timeoutMillis))));
       case CheckPinResultBlocked():
         emit(const PinValidateBlocked());
     }

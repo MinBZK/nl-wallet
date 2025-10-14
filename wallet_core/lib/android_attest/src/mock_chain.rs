@@ -1,5 +1,5 @@
 use std::iter;
-use std::rc::Rc;
+use std::sync::Arc;
 
 use der::Any;
 use der::Decode;
@@ -33,13 +33,12 @@ use crate::attestation_extension::key_description::KeyDescription;
 /// Represents a Google CA with a variable number of intermediates. After creation,
 /// this can be used to generate leaf certificates to emulate Android key attestation.
 // TODO: Include a mock key attestation certificate extension.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct MockCaChain {
     certificates_der: Vec<Vec<u8>>,
     pub root_public_key: RsaPublicKey,
-    #[debug("{:?}", last_ca_certificate.der())]
-    pub last_ca_certificate: rcgen::Certificate,
-    last_ca_key_pair: rcgen::KeyPair,
+    #[debug("{:?}", last_certificate_and_keypair.0.der())]
+    pub last_certificate_and_keypair: Arc<(rcgen::Certificate, rcgen::KeyPair)>,
 }
 
 impl MockCaChain {
@@ -53,7 +52,7 @@ impl MockCaChain {
             .rev()
             .scan(
                 None,
-                |prev_cert_and_pair: &mut Option<Rc<(rcgen::Certificate, rcgen::KeyPair)>>, constrained_count| {
+                |prev_cert_and_pair: &mut Option<Arc<(rcgen::Certificate, rcgen::KeyPair)>>, constrained_count| {
                     // Generate an RSA key pair as root CA and ECDSA key pairs as intermediate CAs and set the `IsCa`
                     // value as certificate parameters, using a decrementing intermediate count as constraint.
                     // The intermediates are ECDSA keys as in 'real' certificate chains the final keys in the chain
@@ -85,8 +84,8 @@ impl MockCaChain {
 
                     // Save the certificate and key pair for the next iteration,
                     // using `Rc` to keep the borrow checker happy.
-                    let cert_and_pair = Rc::new((certificate, key_pair));
-                    prev_cert_and_pair.replace(Rc::clone(&cert_and_pair));
+                    let cert_and_pair = Arc::new((certificate, key_pair));
+                    prev_cert_and_pair.replace(Arc::clone(&cert_and_pair));
 
                     // Return the tuple of generated certificate and key pair.
                     Some(cert_and_pair)
@@ -99,7 +98,7 @@ impl MockCaChain {
         let certificates_der = certificates_and_key_pairs
             .iter()
             .rev()
-            .map(Rc::as_ref)
+            .map(Arc::as_ref)
             .map(|(certificate, _)| certificate.der().to_vec())
             .collect();
 
@@ -108,16 +107,13 @@ impl MockCaChain {
         let root_public_key = RsaPublicKey::from_public_key_der(&root_key_pair.public_key_der()).unwrap();
 
         // Save the generated certificate and key pair of the lowest level CA (which may be the root or an
-        // intermediate), so that we can generate leaf certificates. As there should be only one reference
-        // at this point, we can get rid of the `Rc`.
-        let (last_ca_certificate, last_ca_key_pair) =
-            Rc::into_inner(certificates_and_key_pairs.pop().unwrap()).unwrap();
+        // intermediate), so that we can generate leaf certificates. We keep the `Arc` to be able to clone it.
+        let last_certificate_and_keypair = certificates_and_key_pairs.pop().unwrap();
 
         Self {
             certificates_der,
             root_public_key,
-            last_ca_certificate,
-            last_ca_key_pair,
+            last_certificate_and_keypair,
         }
     }
 
@@ -125,7 +121,11 @@ impl MockCaChain {
         // Generate a leaf certificate and convert it to DER.
         let key_pair = KeyPair::generate_for(&PKCS_ECDSA_P256_SHA256).unwrap();
         let certificate = params
-            .signed_by(&key_pair, &self.last_ca_certificate, &self.last_ca_key_pair)
+            .signed_by(
+                &key_pair,
+                &self.last_certificate_and_keypair.0,
+                &self.last_certificate_and_keypair.1,
+            )
             .unwrap()
             .der()
             .to_vec();
@@ -153,7 +153,7 @@ impl MockCaChain {
         let tbs_certificate_der = certificate.tbs_certificate.to_der().unwrap();
 
         // Obtain signing key from chain
-        let signing_key = SigningKey::from_pkcs8_der(self.last_ca_key_pair.serialized_der()).unwrap();
+        let signing_key = SigningKey::from_pkcs8_der(self.last_certificate_and_keypair.1.serialized_der()).unwrap();
 
         // Calculate signature over digest
         let signature: Signature = signing_key.sign(&tbs_certificate_der);
