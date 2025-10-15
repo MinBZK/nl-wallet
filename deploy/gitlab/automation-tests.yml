@@ -107,7 +107,7 @@ run-automation-security-tests:
   variables:
     TESTS: "suite.SecurityTestSuite"
 
-.run-automation-english-tests:
+run-automation-english-tests:
   extends: .run-automation-tests-common-setup
   script:
     - mv browserstack-config/browserstack-oneplus12r-14-EN.yml ./browserstack.yml
