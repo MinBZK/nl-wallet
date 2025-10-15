@@ -7843,13 +7843,10 @@ dependencies = [
  "futures",
  "hmac",
  "hsm",
- "indexmap 2.7.1",
  "itertools 0.14.0",
  "jwt",
  "mockall",
- "openid4vc",
  "p256",
- "pid_issuer",
  "platform_support",
  "rand",
  "rand_core",
@@ -7861,7 +7858,6 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with",
- "sha2",
  "thiserror 2.0.11",
  "tokio",
  "tracing",
@@ -7875,7 +7871,6 @@ dependencies = [
  "wallet_provider_domain",
  "wallet_provider_persistence",
  "wscd",
- "x509-parser 0.17.0",
 ]
 
 [[package]]

@@ -423,6 +423,7 @@ where
             );
 
         info!("successfully received token and previews from issuer");
+        let wallet_config = self.config_repository.get();
         let organization = &issuance_session.issuer_registration().organization;
         let attestations = previews_and_identity
             .into_iter()
@@ -432,6 +433,7 @@ where
                     preview_data.normalized_metadata.clone(),
                     organization.clone(),
                     &preview_data.content.credential_payload.attributes,
+                    &wallet_config.pid_attributes,
                 )
                 .map_err(|error| IssuanceError::Attestation {
                     organization: Box::new(organization.clone()),
@@ -724,6 +726,7 @@ mod tests {
 
     use crate::WalletEvent;
     use crate::attestation::AttestationAttributeValue;
+    use crate::attestation::mock::EmptyPresentationConfig;
     use crate::digid::MockDigidSession;
     use crate::storage::ChangePinData;
     use crate::storage::InstructionData;
@@ -763,6 +766,7 @@ mod tests {
                 type_metadata.to_normalized().unwrap(),
                 issuer_registration.organization.clone(),
                 mdoc.issuer_signed().clone().into_entries_by_namespace(),
+                &EmptyPresentationConfig,
             )
             .unwrap(),
             IssuedCredential::SdJwt { sd_jwt, .. } => {
@@ -775,6 +779,7 @@ mod tests {
                     type_metadata.to_normalized().unwrap(),
                     issuer_registration.organization.clone(),
                     &payload.previewable_payload.attributes,
+                    &EmptyPresentationConfig,
                 )
                 .unwrap()
             }
