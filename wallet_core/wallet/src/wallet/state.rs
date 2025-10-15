@@ -58,7 +58,9 @@ where
                     };
                     WalletState::Transferring { role }
                 })
-                .unwrap_or(WalletState::Ready));
+                .unwrap_or(WalletState::Transferring {
+                    role: WalletTransferRole::Destination,
+                }));
         }
 
         Ok(WalletState::Ready)

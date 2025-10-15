@@ -323,6 +323,9 @@ where
         self.emit_attestations().await?;
         self.emit_recent_history().await?;
 
+        // When the restore is successful, the transfer session can be cleared
+        self.storage.write().await.delete_data::<TransferData>().await?;
+
         Ok(())
     }
 
@@ -1068,6 +1071,12 @@ mod tests {
             .mut_storage()
             .expect_fetch_recent_wallet_events()
             .returning(|| Ok(vec![]));
+
+        // Expect the destination wallet to clean the transfer data after success
+        destination_wallet
+            .mut_storage()
+            .expect_delete_data::<TransferData>()
+            .returning(|| Ok(()));
 
         let private_key = private_key_param.lock().as_ref().unwrap().clone();
         destination_wallet

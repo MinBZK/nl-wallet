@@ -224,7 +224,7 @@ async fn test_retry_transfer_after_canceled() {
 
     assert_state(TransferSessionState::Canceled, &mut destination_data.wallet).await;
 
-    let url = destination_data.wallet.init_transfer().await.unwrap();
+    let _url = destination_data.wallet.init_transfer().await.unwrap();
 
     assert_state(TransferSessionState::Created, &mut destination_data.wallet).await;
 }
