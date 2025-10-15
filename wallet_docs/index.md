@@ -32,6 +32,7 @@ functional-design/use-case-overview
 functional-design/functional-design
 functional-design/use-cases
 functional-design/partial-flows
+functional-design/errors
 functional-design/logical-test-cases
 ```
 
