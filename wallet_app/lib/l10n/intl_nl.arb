@@ -943,6 +943,8 @@
     "mockDigidScreenHeaderTitle": "Inloggen",
     "mockDigidScreenSignInOrganization": "Rijksdienst voor Identiteits­gegevens",
     "mockDigidScreenTitle": "Vertrouwd inloggen met DigiD",
+    "moveStoppedDialogBody": "Er zijn geen gegevens verplaatst naar dit apparaat.\n\nJe NL Wallet is nog steeds actief op je andere apparaat.",
+    "moveStoppedDialogTitle": "Verplaatsen gestopt",
     "needHelpScreenActivitiesSubtitle": "Eerdere gebeurtenissen, organisaties en samenvattingen",
     "needHelpScreenActivitiesTitle": "Activiteiten",
     "needHelpScreenCardsSubtitle": "Kaarten toevoegen en gebruiken",

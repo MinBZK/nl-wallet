@@ -947,6 +947,8 @@
     "mockDigidScreenHeaderTitle": "Login",
     "mockDigidScreenSignInOrganization": "National Office for Identity Data (RvIG)",
     "mockDigidScreenTitle": "Securely login with DigiD",
+    "moveStoppedDialogBody": "No data has been moved to this device.\n\nYour NL Wallet is still active on your other device.",
+    "moveStoppedDialogTitle": "Move stopped",
     "needHelpScreenActivitiesSubtitle": "Previous events, organisations and summaries",
     "needHelpScreenActivitiesTitle": "Activities",
     "needHelpScreenCardsSubtitle": "Adding and using cards",

@@ -1,7 +1,11 @@
+import 'dart:async';
+
+import 'package:after_layout/after_layout.dart';
 import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../data/service/navigation_service.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/string_extension.dart';
 import '../../util/helper/dialog_helper.dart';
@@ -26,8 +30,20 @@ import 'page/wallet_transfer_awaiting_scan_page.dart';
 import 'page/wallet_transfer_target_transferring_page.dart';
 import 'widget/wallet_transfer_target_stop_sheet.dart';
 
-class WalletTransferTargetScreen extends StatelessWidget {
+class WalletTransferTargetScreen extends StatefulWidget {
   const WalletTransferTargetScreen({super.key});
+
+  @override
+  State<WalletTransferTargetScreen> createState() => _WalletTransferTargetScreenState();
+}
+
+class _WalletTransferTargetScreenState extends State<WalletTransferTargetScreen>
+    with AfterLayoutMixin<WalletTransferTargetScreen> {
+  @override
+  FutureOr<void> afterFirstLayout(BuildContext context) {
+    final showRecoveryPopup = ModalRoute.of(context)?.settings.arguments == true;
+    if (showRecoveryPopup) context.read<NavigationService>().showDialog(WalletDialogType.moveStopped);
+  }
 
   @override
   Widget build(BuildContext context) {

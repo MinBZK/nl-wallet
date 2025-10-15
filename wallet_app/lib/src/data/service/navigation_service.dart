@@ -12,6 +12,7 @@ import '../../domain/usecase/transfer/cancel_wallet_transfer_usecase.dart';
 import '../../domain/usecase/wallet/get_wallet_status_usecase.dart';
 import '../../feature/common/dialog/idle_warning_dialog.dart';
 import '../../feature/common/dialog/locked_out_dialog.dart';
+import '../../feature/common/dialog/move_stopped_dialog.dart';
 import '../../feature/common/dialog/reset_wallet_dialog.dart';
 import '../../feature/common/dialog/scan_with_wallet_dialog.dart';
 import '../../feature/common/dialog/update_notification_dialog.dart';
@@ -108,6 +109,7 @@ class NavigationService {
       WalletDialogType.resetWallet => ResetWalletDialog.show(context),
       WalletDialogType.scanWithWallet => ScanWithWalletDialog.show(context),
       WalletDialogType.lockedOut => LockedOutDialog.show(context),
+      WalletDialogType.moveStopped => MoveStoppedDialog.show(context),
     };
   }
 
@@ -136,4 +138,4 @@ class NavigationService {
   Stream<bool> observeUpdateNotificationDialogVisible() => _updateNotificationDialogVisible.stream.distinct();
 }
 
-enum WalletDialogType { idleWarning, resetWallet, scanWithWallet, lockedOut }
+enum WalletDialogType { idleWarning, lockedOut, moveStopped, resetWallet, scanWithWallet }
