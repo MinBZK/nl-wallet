@@ -1185,9 +1185,13 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
       wireObj.tag = 0;
       return;
     }
+    if (apiObj is WalletState_TransferPossible) {
+      wireObj.tag = 1;
+      return;
+    }
     if (apiObj is WalletState_Transferring) {
       var pre_role = cst_encode_wallet_transfer_role(apiObj.role);
-      wireObj.tag = 1;
+      wireObj.tag = 2;
       wireObj.kind.Transferring.role = pre_role;
       return;
     }

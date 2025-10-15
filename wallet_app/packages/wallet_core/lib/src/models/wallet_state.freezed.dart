@@ -55,11 +55,12 @@ extension WalletStatePatterns on WalletState {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( WalletState_Ready value)?  ready,TResult Function( WalletState_Transferring value)?  transferring,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( WalletState_Ready value)?  ready,TResult Function( WalletState_TransferPossible value)?  transferPossible,TResult Function( WalletState_Transferring value)?  transferring,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case WalletState_Ready() when ready != null:
-return ready(_that);case WalletState_Transferring() when transferring != null:
+return ready(_that);case WalletState_TransferPossible() when transferPossible != null:
+return transferPossible(_that);case WalletState_Transferring() when transferring != null:
 return transferring(_that);case _:
   return orElse();
 
@@ -78,11 +79,12 @@ return transferring(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( WalletState_Ready value)  ready,required TResult Function( WalletState_Transferring value)  transferring,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( WalletState_Ready value)  ready,required TResult Function( WalletState_TransferPossible value)  transferPossible,required TResult Function( WalletState_Transferring value)  transferring,}){
 final _that = this;
 switch (_that) {
 case WalletState_Ready():
-return ready(_that);case WalletState_Transferring():
+return ready(_that);case WalletState_TransferPossible():
+return transferPossible(_that);case WalletState_Transferring():
 return transferring(_that);}
 }
 /// A variant of `map` that fallback to returning `null`.
@@ -97,11 +99,12 @@ return transferring(_that);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( WalletState_Ready value)?  ready,TResult? Function( WalletState_Transferring value)?  transferring,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( WalletState_Ready value)?  ready,TResult? Function( WalletState_TransferPossible value)?  transferPossible,TResult? Function( WalletState_Transferring value)?  transferring,}){
 final _that = this;
 switch (_that) {
 case WalletState_Ready() when ready != null:
-return ready(_that);case WalletState_Transferring() when transferring != null:
+return ready(_that);case WalletState_TransferPossible() when transferPossible != null:
+return transferPossible(_that);case WalletState_Transferring() when transferring != null:
 return transferring(_that);case _:
   return null;
 
@@ -119,10 +122,11 @@ return transferring(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  ready,TResult Function( WalletTransferRole role)?  transferring,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  ready,TResult Function()?  transferPossible,TResult Function( WalletTransferRole role)?  transferring,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case WalletState_Ready() when ready != null:
-return ready();case WalletState_Transferring() when transferring != null:
+return ready();case WalletState_TransferPossible() when transferPossible != null:
+return transferPossible();case WalletState_Transferring() when transferring != null:
 return transferring(_that.role);case _:
   return orElse();
 
@@ -141,10 +145,11 @@ return transferring(_that.role);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  ready,required TResult Function( WalletTransferRole role)  transferring,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  ready,required TResult Function()  transferPossible,required TResult Function( WalletTransferRole role)  transferring,}) {final _that = this;
 switch (_that) {
 case WalletState_Ready():
-return ready();case WalletState_Transferring():
+return ready();case WalletState_TransferPossible():
+return transferPossible();case WalletState_Transferring():
 return transferring(_that.role);}
 }
 /// A variant of `when` that fallback to returning `null`
@@ -159,10 +164,11 @@ return transferring(_that.role);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  ready,TResult? Function( WalletTransferRole role)?  transferring,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  ready,TResult? Function()?  transferPossible,TResult? Function( WalletTransferRole role)?  transferring,}) {final _that = this;
 switch (_that) {
 case WalletState_Ready() when ready != null:
-return ready();case WalletState_Transferring() when transferring != null:
+return ready();case WalletState_TransferPossible() when transferPossible != null:
+return transferPossible();case WalletState_Transferring() when transferring != null:
 return transferring(_that.role);case _:
   return null;
 
@@ -195,6 +201,38 @@ int get hashCode => runtimeType.hashCode;
 @override
 String toString() {
   return 'WalletState.ready()';
+}
+
+
+}
+
+
+
+
+/// @nodoc
+
+
+class WalletState_TransferPossible extends WalletState {
+  const WalletState_TransferPossible(): super._();
+  
+
+
+
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is WalletState_TransferPossible);
+}
+
+
+@override
+int get hashCode => runtimeType.hashCode;
+
+@override
+String toString() {
+  return 'WalletState.transferPossible()';
 }
 
 

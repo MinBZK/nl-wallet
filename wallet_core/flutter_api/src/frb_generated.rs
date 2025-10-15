@@ -2224,6 +2224,9 @@ impl SseDecode for crate::models::wallet_state::WalletState {
                 return crate::models::wallet_state::WalletState::Ready;
             }
             1 => {
+                return crate::models::wallet_state::WalletState::TransferPossible;
+            }
+            2 => {
                 let mut var_role = <crate::models::wallet_state::WalletTransferRole>::sse_decode(deserializer);
                 return crate::models::wallet_state::WalletState::Transferring { role: var_role };
             }
@@ -2976,8 +2979,9 @@ impl flutter_rust_bridge::IntoDart for crate::models::wallet_state::WalletState 
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         match self {
             crate::models::wallet_state::WalletState::Ready => [0.into_dart()].into_dart(),
+            crate::models::wallet_state::WalletState::TransferPossible => [1.into_dart()].into_dart(),
             crate::models::wallet_state::WalletState::Transferring { role } => {
-                [1.into_dart(), role.into_into_dart().into_dart()].into_dart()
+                [2.into_dart(), role.into_into_dart().into_dart()].into_dart()
             }
             _ => {
                 unimplemented!("");
@@ -3822,8 +3826,11 @@ impl SseEncode for crate::models::wallet_state::WalletState {
             crate::models::wallet_state::WalletState::Ready => {
                 <i32>::sse_encode(0, serializer);
             }
-            crate::models::wallet_state::WalletState::Transferring { role } => {
+            crate::models::wallet_state::WalletState::TransferPossible => {
                 <i32>::sse_encode(1, serializer);
+            }
+            crate::models::wallet_state::WalletState::Transferring { role } => {
+                <i32>::sse_encode(2, serializer);
                 <crate::models::wallet_state::WalletTransferRole>::sse_encode(role, serializer);
             }
             _ => {
@@ -4490,7 +4497,8 @@ mod io {
         fn cst_decode(self) -> crate::models::wallet_state::WalletState {
             match self.tag {
                 0 => crate::models::wallet_state::WalletState::Ready,
-                1 => {
+                1 => crate::models::wallet_state::WalletState::TransferPossible,
+                2 => {
                     let ans = unsafe { self.kind.Transferring };
                     crate::models::wallet_state::WalletState::Transferring {
                         role: ans.role.cst_decode(),

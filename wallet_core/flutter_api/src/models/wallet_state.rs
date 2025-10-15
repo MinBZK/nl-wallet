@@ -1,5 +1,6 @@
 pub enum WalletState {
     Ready,
+    TransferPossible,
     Transferring { role: WalletTransferRole },
 }
 
@@ -12,6 +13,7 @@ impl From<wallet::WalletState> for WalletState {
     fn from(source: wallet::WalletState) -> Self {
         match source {
             wallet::WalletState::Ready => WalletState::Ready,
+            wallet::WalletState::TransferPossible => WalletState::TransferPossible,
             wallet::WalletState::Transferring { role } => WalletState::Transferring { role: role.into() },
         }
     }

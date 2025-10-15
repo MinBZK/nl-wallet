@@ -27,6 +27,7 @@ pub enum WalletStateError {
 
 pub enum WalletState {
     Ready,
+    TransferPossible,
     Transferring { role: WalletTransferRole },
 }
 
@@ -58,9 +59,7 @@ where
                     };
                     WalletState::Transferring { role }
                 })
-                .unwrap_or(WalletState::Transferring {
-                    role: WalletTransferRole::Destination,
-                }));
+                .unwrap_or(WalletState::TransferPossible));
         }
 
         Ok(WalletState::Ready)

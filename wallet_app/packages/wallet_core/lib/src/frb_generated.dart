@@ -2072,6 +2072,8 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       case 0:
         return WalletState_Ready();
       case 1:
+        return WalletState_TransferPossible();
+      case 2:
         return WalletState_Transferring(
           role: dco_decode_wallet_transfer_role(raw[1]),
         );
@@ -2872,6 +2874,8 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       case 0:
         return WalletState_Ready();
       case 1:
+        return WalletState_TransferPossible();
+      case 2:
         var var_role = sse_decode_wallet_transfer_role(deserializer);
         return WalletState_Transferring(role: var_role);
       default:
@@ -3660,8 +3664,10 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     switch (self) {
       case WalletState_Ready():
         sse_encode_i_32(0, serializer);
-      case WalletState_Transferring(role: final role):
+      case WalletState_TransferPossible():
         sse_encode_i_32(1, serializer);
+      case WalletState_Transferring(role: final role):
+        sse_encode_i_32(2, serializer);
         sse_encode_wallet_transfer_role(role, serializer);
     }
   }
