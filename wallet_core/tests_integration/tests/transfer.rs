@@ -1,3 +1,9 @@
+use std::fs;
+use std::fs::File;
+use std::io::Write;
+use std::path::Path;
+use std::path::PathBuf;
+
 use assert_matches::assert_matches;
 use serial_test::serial;
 use tempfile::TempDir;
@@ -8,7 +14,7 @@ use tests_integration::common::WalletWithStorage;
 use tests_integration::common::do_pid_issuance;
 use tests_integration::common::do_wallet_registration;
 use tests_integration::common::setup_env_default;
-use tests_integration::common::setup_tempfile_wallet;
+use tests_integration::common::setup_file_wallet;
 use tests_integration::common::universal_link;
 use tests_integration::common::wallet_attestations;
 use wallet::TransferSessionState;
@@ -43,11 +49,11 @@ async fn init_wallets() -> (WalletData, WalletData) {
 
     let (config_server_config, mock_device_config, wallet_config, issuance_url, _) = setup_env_default().await;
 
-    let mut source = setup_tempfile_wallet(
+    let mut source = setup_file_wallet(
         config_server_config.clone(),
         wallet_config.clone(),
         mock_device_config.google_key_holder(),
-        &source_tempdir,
+        source_tempdir.path().to_path_buf(),
     )
     .await;
     source = do_wallet_registration(source, source_wallet_pin).await;
@@ -65,11 +71,11 @@ async fn init_wallets() -> (WalletData, WalletData) {
         .unwrap();
     source.accept_issuance(String::from(source_wallet_pin)).await.unwrap();
 
-    let mut destination = setup_tempfile_wallet(
+    let mut destination = setup_file_wallet(
         config_server_config,
         wallet_config,
         mock_device_config.apple_key_holder(),
-        &destination_tempdir,
+        destination_tempdir.path().to_path_buf(),
     )
     .await;
     destination = do_wallet_registration(destination, destination_wallet_pin).await;

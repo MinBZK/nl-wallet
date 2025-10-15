@@ -131,6 +131,7 @@ integration_test = [
     "dep:regex",
     "dep:rstest",
     "dep:serial_test",
+    "dep:zstd",
     "dep:tokio",
     "tokio/macros",
     "tokio/sync",
@@ -211,6 +212,7 @@ tracing-subscriber = { workspace = true, optional = true, features = [
     "ansi",
 ] }
 url = { workspace = true, optional = true }
+zstd = { workspace = true, optional = true }
 
 android_attest = { path = "../lib/android_attest", optional = true }
 apple_app_attest = { path = "../lib/apple_app_attest", optional = true, features = ["mock"] }

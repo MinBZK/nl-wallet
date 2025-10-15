@@ -43,6 +43,7 @@ use entity::attestation;
 use entity::attestation::TypeMetadataModel;
 use entity::attestation_copy;
 use entity::attestation_copy::AttestationFormat;
+use entity::compressed_blob::CompressedBlob;
 use entity::disclosure_event;
 use entity::disclosure_event::EventStatus;
 use entity::disclosure_event_attestation;
@@ -202,7 +203,7 @@ impl<K> DatabaseStorage<K> {
             None => select,
         };
 
-        let copies: Vec<(Uuid, Uuid, AttestationFormat, String, Vec<u8>, TypeMetadataModel)> =
+        let copies: Vec<(Uuid, Uuid, AttestationFormat, String, CompressedBlob, TypeMetadataModel)> =
             select.into_tuple().all(database.connection()).await?;
 
         let attestations = copies
@@ -218,7 +219,7 @@ impl<K> DatabaseStorage<K> {
                 )| {
                     let attestation = match attestation_format {
                         AttestationFormat::Mdoc => {
-                            let issuer_signed = cbor_deserialize(attestation_bytes.as_slice())?;
+                            let issuer_signed = cbor_deserialize(attestation_bytes.decompress()?.as_slice())?;
                             let mdoc = Mdoc::dangerous_parse_unverified(issuer_signed, key_identifier)?;
 
                             StoredAttestation::MsoMdoc { mdoc }
@@ -226,7 +227,7 @@ impl<K> DatabaseStorage<K> {
                         AttestationFormat::SdJwt => {
                             let sd_jwt = VerifiedSdJwt::dangerous_parse_unverified(
                                 // Since we put utf-8 bytes into the database, we are certain we also get them out.
-                                String::from_utf8(attestation_bytes).unwrap().as_str(),
+                                String::from_utf8(attestation_bytes.decompress()?).unwrap().as_str(),
                             )?;
                             StoredAttestation::SdJwt { key_identifier, sd_jwt }
                         }
@@ -942,7 +943,7 @@ fn create_attestation_copy_models(
                     attestation_id: Set(attestation_id),
                     attestation_format: Set(AttestationFormat::Mdoc),
                     key_identifier: Set(mdoc.into_private_key_id()),
-                    attestation: Set(attestation_bytes),
+                    attestation: Set(CompressedBlob::new(&attestation_bytes)?),
                 };
 
                 Ok::<_, StorageError>(model)
@@ -954,7 +955,7 @@ fn create_attestation_copy_models(
                     attestation_id: Set(attestation_id),
                     attestation_format: Set(AttestationFormat::SdJwt),
                     key_identifier: Set(key_identifier),
-                    attestation: Set(sd_jwt.to_string().into_bytes()),
+                    attestation: Set(CompressedBlob::new(&sd_jwt.to_string().into_bytes())?),
                 };
 
                 Ok(model)
@@ -966,8 +967,7 @@ fn create_attestation_copy_models(
 #[cfg(any(test, feature = "test"))]
 pub mod test_storage {
     use std::borrow::Cow;
-
-    use tempfile::TempDir;
+    use std::path::PathBuf;
 
     use crypto::utils::random_string;
     use platform_support::hw_keystore::mock::MockHardwareEncryptionKey;
@@ -1002,12 +1002,9 @@ pub mod test_storage {
             storage
         }
 
-        pub async fn open_temp_file(tempdir: &TempDir) -> Self {
+        pub async fn open_file(path: PathBuf) -> Self {
             let database_name = random_string(8);
-            let mut storage = DatabaseStorage::<MockHardwareEncryptionKey>::new(
-                Cow::Owned(database_name),
-                tempdir.path().to_path_buf(),
-            );
+            let mut storage = DatabaseStorage::<MockHardwareEncryptionKey>::new(Cow::Owned(database_name), path);
             let open_database = storage.open_encrypted_database().await.unwrap();
             storage.open_database = Some(open_database);
             storage
@@ -1174,7 +1171,7 @@ pub(crate) mod tests {
         // Export via block to have everything dropped
         let transfer = {
             let tempdir = tempfile::tempdir().unwrap();
-            let mut storage = DatabaseStorage::open_temp_file(&tempdir).await;
+            let mut storage = DatabaseStorage::open_file(tempdir.path().to_path_buf()).await;
 
             storage.insert_data(&test).await.unwrap();
             storage.insert_data(&exported_registration).await.unwrap();
@@ -1183,7 +1180,7 @@ pub(crate) mod tests {
 
         // Import via new storage with new key
         let tempdir = tempfile::tempdir().unwrap();
-        let mut storage = DatabaseStorage::open_temp_file(&tempdir).await;
+        let mut storage = DatabaseStorage::open_file(tempdir.path().to_path_buf()).await;
 
         let encrypted_file = NamedTempFile::new().unwrap();
 
