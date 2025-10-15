@@ -112,6 +112,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../partial-flows/PF2.8_ValidatePin.html">Partial Flow 2.8 Validate entered PIN</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../errors.html">Errors</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../logical-test-cases.html">Logical Test Cases</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Development</span></p>
@@ -200,7 +201,7 @@
 <td><p><ul><li><a class="reference internal" href="../../architecture/use-cases/mobile-app-startup.html"><span class="std std-doc">App Startup</span></a></li><li><a class="reference external" href="https://developer.apple.com/documentation/xcode/reducing-your-app-s-launch-time">iOS App Activations</a></li><li><a class="reference external" href="https://developer.android.com/topic/performance/vitals/launch-time">Android App startup time</a></li></ul></p></td>
 </tr>
 <tr class="row-even"><td><p><strong>Possible errors</strong></p></td>
-<td><p><ul><li>No internet</li><li>Server unreachable</li></ul></p></td>
+<td><p><ul><li><a class="reference internal" href="../errors.html#device-insecure"><span class="std std-ref">Device Insecure</span></a></li></ul></p></td>
 </tr>
 <tr class="row-odd"><td><p><strong>Logical test cases</strong></p></td>
 <td><p><ul><li><a class="reference internal" href="../logical-test-cases.html#ltc42"><span class="std std-ref">LTC42 Open closed app</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc43"><span class="std std-ref">LTC43 Open app via universal link</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc54"><span class="std std-ref">LTC54 Wallet not created when universal link is invoked</span></a></li></ul></p></td>
@@ -248,70 +249,82 @@
 <td><p>2.2</p></td>
 </tr>
 <tr class="row-odd"><td><p><strong>2.2</strong></p></td>
-<td><p><strong>System executes partial flow <a class="reference internal" href="../partial-flows/PF1.4_ApplyAppUpdatePolicy.html"><span class="std std-doc">PF1.4 Apply update policy</span></a></strong></p></td>
+<td><p><strong>System determines whether app is rooted</strong></p></td>
 <td><p></p></td>
 </tr>
 <tr class="row-even"><td><p>2.2a</p></td>
+<td><p>Case: Device is not rooted</p></td>
+<td><p>3.2</p></td>
+</tr>
+<tr class="row-odd"><td><p>2.2b</p></td>
+<td><p>Case: Device is rooted</p></td>
+<td><p>Error flow: <a class="reference internal" href="../errors.html#device-insecure"><span class="std std-ref">Device Insecure</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><strong>2.3</strong></p></td>
+<td><p><strong>System executes partial flow <a class="reference internal" href="../partial-flows/PF1.4_ApplyAppUpdatePolicy.html"><span class="std std-doc">PF1.4 Apply update policy</span></a></strong></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>2.3a</p></td>
 <td><p>Result: App version is allowed</p></td>
 <td><p>2.3</p></td>
 </tr>
-<tr class="row-odd"><td><p><strong>2.3</strong></p></td>
+<tr class="row-even"><td><p><strong>2.4</strong></p></td>
 <td><p><strong>System determines whether remote PIN is set up</strong></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p>2.3a</p></td>
+<tr class="row-odd"><td><p>2.4a</p></td>
 <td><p>Case: User has setup a remote PIN</p></td>
 <td><p>Go to: <a class="reference internal" href="UC2.3_UnlockTheApp.html"><span class="std std-doc">UC2.3 Unlock the app</span></a></p></td>
 </tr>
-<tr class="row-odd"><td><p>2.3b</p></td>
+<tr class="row-even"><td><p>2.4b</p></td>
 <td><p>Case: User has not setup a remote PIN</p></td>
 <td><p>Go to: <a class="reference internal" href="UC1.1_IntroduceTheApp.html"><span class="std std-doc">UC1.1 Introduce the app</span></a></p></td>
 </tr>
-<tr class="row-even"><td><p><strong>3</strong></p></td>
+<tr class="row-odd"><td><p><strong>3</strong></p></td>
 <td><p><strong>WHEN APP RESUMES</strong></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><strong>3.1</strong></p></td>
+<tr class="row-even"><td><p><strong>3.1</strong></p></td>
 <td><p><strong>System determines whether remote PIN is set up</strong></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p>3.1a</p></td>
+<tr class="row-odd"><td><p>3.1a</p></td>
 <td><p>Case: User has setup a remote PIN</p></td>
 <td><p>3.2</p></td>
 </tr>
-<tr class="row-odd"><td><p>3.1b</p></td>
+<tr class="row-even"><td><p>3.1b</p></td>
 <td><p>Case: User has not setup a remote PIN</p></td>
 <td><p>Resume<sup>3</sup></p></td>
 </tr>
-<tr class="row-even"><td><p><strong>3.2</strong></p></td>
+<tr class="row-odd"><td><p><strong>3.2</strong></p></td>
 <td><p><strong>System determines whether app is locked</strong></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p>3.2a</p></td>
+<tr class="row-even"><td><p>3.2a</p></td>
 <td><p>Case: Wallet is unlocked</p></td>
 <td><p>3.3</p></td>
 </tr>
-<tr class="row-even"><td><p>3.2b</p></td>
+<tr class="row-odd"><td><p>3.2b</p></td>
 <td><p>Case: Wallet is locked</p></td>
 <td><p>Go to: <a class="reference internal" href="UC2.3_UnlockTheApp.html"><span class="std std-doc">UC2.3 Unlock the app</span></a></p></td>
 </tr>
-<tr class="row-odd"><td><p><strong>3.3</strong></p></td>
+<tr class="row-even"><td><p><strong>3.3</strong></p></td>
 <td><p><strong>System determines whether user has obtained PID</strong></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p>3.3a</p></td>
+<tr class="row-odd"><td><p>3.3a</p></td>
 <td><p>Case: User has obtained PID</p></td>
 <td><p>3.4</p></td>
 </tr>
-<tr class="row-odd"><td><p>3.3a</p></td>
+<tr class="row-even"><td><p>3.3a</p></td>
 <td><p>Case: User has not obtained PID</p></td>
 <td><p>Resume<sup>3</sup></p></td>
 </tr>
-<tr class="row-even"><td><p><strong>3.4</strong></p></td>
+<tr class="row-odd"><td><p><strong>3.4</strong></p></td>
 <td><p><strong>System executes partial flow <a class="reference internal" href="../partial-flows/PF2.7_ResolveUniversalLink.html"><span class="std std-doc">PF2.7 Resolve a universal link</span></a></strong></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p>3.4a</p></td>
+<tr class="row-even"><td><p>3.4a</p></td>
 <td><p>Result: No (valid) universal link</p></td>
 <td><p>Resume<sup>3</sup></p></td>
 </tr>

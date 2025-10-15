@@ -112,6 +112,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../partial-flows/PF2.8_ValidatePin.html">Partial Flow 2.8 Validate entered PIN</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../errors.html">Errors</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../logical-test-cases.html">Logical Test Cases</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Development</span></p>
@@ -200,7 +201,7 @@
 <td><p><em>None</em></p></td>
 </tr>
 <tr class="row-even"><td><p><strong>Possible errors</strong></p></td>
-<td><p><ul><li>Generic</li><li>Session expired</ul></li></p></td>
+<td><p><ul><li><a class="reference internal" href="../errors.html#generic-error"><span class="std std-ref">Generic Error</span></a></li><li><a class="reference internal" href="../errors.html#session-expired"><span class="std std-ref">Session Expired</span></a></ul></li></p></td>
 </tr>
 <tr class="row-odd"><td><p><strong>Logical test cases</strong></p></td>
 <td><p><ul><li><a class="reference internal" href="../logical-test-cases.html#ltc6"><span class="std std-ref">LTC6 Invalid universal link</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc7"><span class="std std-ref">LTC7 cross-device generic issuance</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc18"><span class="std std-ref">LTC18 cross-device share data</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc24"><span class="std std-ref">LTC24 cross-device login</span></a></li></ul></p></td>
@@ -295,35 +296,39 @@
 <td><p>Case: QR resolves to login flow</p></td>
 <td><p>Go to: <a class="reference internal" href="UC5.2_LoginToApplicationOfRP.html"><span class="std std-doc">UC5.2 Log in to Relying Party application</span></a></p></td>
 </tr>
-<tr class="row-odd"><td><p><strong>2</strong></p></td>
+<tr class="row-odd"><td><p>1.1e</p></td>
+<td><p>Error: Generic</p></td>
+<td><p>Error flow: <a class="reference internal" href="../errors.html#generic-error"><span class="std std-ref">Generic</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><strong>2</strong></p></td>
 <td><p><strong>WHEN NO CAMERA PERMISSION</strong></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><strong>2.1</strong></p></td>
+<tr class="row-odd"><td><p><strong>2.1</strong></p></td>
 <td><p><strong>System displays screen ‘Camera permission required’</strong><ul><li>Actions: Grant Camera Permission, Back, Help</li></ul></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p>2.1a</p></td>
+<tr class="row-even"><td><p>2.1a</p></td>
 <td><p>User selects Back</p></td>
 <td><p>Back</p></td>
 </tr>
-<tr class="row-even"><td><p>2.1b</p></td>
+<tr class="row-odd"><td><p>2.1b</p></td>
 <td><p>User selects Help</p></td>
 <td><p>Show placeholder ‘under construction’</p></td>
 </tr>
-<tr class="row-odd"><td><p>2.1c</p></td>
+<tr class="row-even"><td><p>2.1c</p></td>
 <td><p>User selects Grant Camera Permission</p></td>
 <td><p>1.2</p></td>
 </tr>
-<tr class="row-even"><td><p><strong>3</strong></p></td>
+<tr class="row-odd"><td><p><strong>3</strong></p></td>
 <td><p><strong>WHEN QR INVALID</strong></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><strong>3.1</strong></p></td>
+<tr class="row-even"><td><p><strong>3.1</strong></p></td>
 <td><p><strong>System displays prompt ‘Invalid QR’</strong><ul><li>Actions: OK</li></ul></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p>3.1a</p></td>
+<tr class="row-odd"><td><p>3.1a</p></td>
 <td><p>User selects OK</p></td>
 <td><p>1.3</p></td>
 </tr>

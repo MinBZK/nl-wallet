@@ -112,6 +112,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../partial-flows/PF2.8_ValidatePin.html">Partial Flow 2.8 Validate entered PIN</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../errors.html">Errors</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../logical-test-cases.html">Logical Test Cases</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Development</span></p>
@@ -200,7 +201,7 @@
 <td><p><ul><li><a class="reference internal" href="../../architecture/use-cases/wallet-creation.html"><span class="doc std std-doc">Wallet creation</span></a></ul></li></p></td>
 </tr>
 <tr class="row-even"><td><p><strong>Possible errors</strong></p></td>
-<td><p><ul><li>No internet</li><li>Server unreachable</li><li>Device incompatible</ul></li></p></td>
+<td><p><ul><li><a class="reference internal" href="../errors.html#no-internet"><span class="std std-ref">No Internet</span></a></li><li><a class="reference internal" href="../errors.html#server-unreachable"><span class="std std-ref">Server Unreachable</span></a></li><li><a class="reference internal" href="../errors.html#device-insecure"><span class="std std-ref">Device Insecure</span></a></li></ul></p></td>
 </tr>
 <tr class="row-odd"><td><p><strong>Logical Test Cases</strong></p></td>
 <td><p><ul><li><a class="reference internal" href="../logical-test-cases.html#ltc61"><span class="std std-ref">LTC61 PIN entries do not match, try again</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc62"><span class="std std-ref">LTC62 PIN entries do not match, choose new PIN</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc63"><span class="std std-ref">LTC63 PIN entry does not conform to policy</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc66"><span class="std std-ref">LTC66 Setup PIN Happy flow</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc67"><span class="std std-ref">LTC67 Setup PIN fails device does not pass app and key attestation</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc74"><span class="std std-ref">LTC74 User skips setting up biometrics</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc75"><span class="std std-ref">LTC75 Device does not support biometrics</span></a></li></ul></p></td>
@@ -293,15 +294,15 @@
 </tr>
 <tr class="row-even"><td><p>1.5b</p></td>
 <td><p>Error: Device insecure</p></td>
-<td><p>Error flow: Device insecure</p></td>
+<td><p>Error flow: <a class="reference internal" href="../errors.html#device-insecure"><span class="std std-ref">Device Insecure</span></a></p></td>
 </tr>
 <tr class="row-odd"><td><p>1.5c</p></td>
 <td><p>Error: No internet</p></td>
-<td><p>Error flow: No internet</p></td>
+<td><p>Error flow: <a class="reference internal" href="../errors.html#no-internet"><span class="std std-ref">No Internet</span></a></p></td>
 </tr>
 <tr class="row-even"><td><p>1.5d</p></td>
 <td><p>Error: Server unreachable</p></td>
-<td><p>Error flow: Server unreachable</p></td>
+<td><p>Error flow: <a class="reference internal" href="../errors.html#server-unreachable"><span class="std std-ref">Server Unreachable</span></a></p></td>
 </tr>
 <tr class="row-odd"><td><p><strong>1.6</strong></p></td>
 <td><p><strong>System determines whether device supports biometrics</strong><ul><li>Duration: 0.0 - 0.1 seconds</li></ul></p></td>

@@ -112,6 +112,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../partial-flows/PF2.8_ValidatePin.html">Partial Flow 2.8 Validate entered PIN</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../errors.html">Errors</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../logical-test-cases.html">Logical Test Cases</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Development</span></p>
@@ -200,7 +201,7 @@
 <td><p><ul><li><a class="reference internal" href="../../architecture/use-cases/disclosure-with-openid4vp.html"><span class="std std-doc">Disclosure with openidp4vp</span></a></li></ul></p></td>
 </tr>
 <tr class="row-even"><td><p><strong>Possible errors</strong></p></td>
-<td><p><ul><li>No internet</li><li>Server unreachable</li><li>Session expired</li><li>Attributes missing</li><li>Known verifier error</li><li>Unknown verifier error</li></ul></p></td>
+<td><p><ul><li><a class="reference internal" href="../errors.html#no-internet"><span class="std std-ref">No Internet</span></a></li><li><a class="reference internal" href="../errors.html#server-unreachable"><span class="std std-ref">Server Unreachable</span></a></li><li><a class="reference internal" href="../errors.html#session-expired"><span class="std std-ref">Session Expired</span></a></li><li><a class="reference internal" href="../errors.html#known-verifier-error"><span class="std std-ref">Known Verifier Error</span></a></li><li><a class="reference internal" href="../errors.html#unknown-verifier-error"><span class="std std-ref">Unknown Verifier Error</span></a></li></ul></p></td>
 </tr>
 <tr class="row-odd"><td><p><strong>Logical test cases</strong></p></td>
 <td><p><ul><li><a class="reference internal" href="../logical-test-cases.html#ltc17"><span class="std std-ref">LTC17 Share data happy flow</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc18"><span class="std std-ref">LTC18 Cross-device share data</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc19"><span class="std std-ref">LTC19 User does not give consent to share data</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc20"><span class="std std-ref">LTC20 User stops at Share data approve organization</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc21"><span class="std std-ref">LTC21 User continues after initially cancelling</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc26"><span class="std std-ref">LTC26 Disclosure fails</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc27"><span class="std std-ref">LTC27 Wallet does not contain requested attributes</span></a></li></ul></p></td>
@@ -237,7 +238,7 @@
 </tr>
 <tr class="row-even"><td><p>1.1c</p></td>
 <td><p>Case: Wallet does not contain requested attribute</p></td>
-<td><p>Error flow: Attributes missing</p></td>
+<td><p>9</p></td>
 </tr>
 <tr class="row-odd"><td><p>1.1d</p></td>
 <td><p>User selects Stop</p></td>
@@ -245,23 +246,23 @@
 </tr>
 <tr class="row-even"><td><p>1.1e</p></td>
 <td><p>Error: Session expired</p></td>
-<td><p>Error flow: Session expired</p></td>
+<td><p>Error flow: <a class="reference internal" href="../errors.html#session-expired"><span class="std std-ref">Session Expired</span></a></p></td>
 </tr>
 <tr class="row-odd"><td><p>1.1f</p></td>
 <td><p>Error: No internet</p></td>
-<td><p>Error flow: No internet</p></td>
+<td><p>Error flow: <a class="reference internal" href="../errors.html#no-internet"><span class="std std-ref">No Internet</span></a></p></td>
 </tr>
 <tr class="row-even"><td><p>1.1g</p></td>
 <td><p>Error: Server unreachable</p></td>
-<td><p>Error flow: Server unreachable</p></td>
+<td><p>Error flow: <a class="reference internal" href="../errors.html#server-unreachable"><span class="std std-ref">Server Unreachable</span></a></p></td>
 </tr>
 <tr class="row-odd"><td><p>1.1h</p></td>
 <td><p>Error: Unknown verifier error</p></td>
-<td><p>Error flow: Unknown verifier error</p></td>
+<td><p>Error flow: <a class="reference internal" href="../errors.html#unknown-verifier-error"><span class="std std-ref">Unknown Verifier Error</span></a></p></td>
 </tr>
 <tr class="row-even"><td><p>1.1i</p></td>
 <td><p>Error: Known verifier error</p></td>
-<td><p>Error flow: Known verifier error</p></td>
+<td><p>Error flow: <a class="reference internal" href="../errors.html#known-verifier-error"><span class="std std-ref">Known Verifier Error</span></a></p></td>
 </tr>
 <tr class="row-odd"><td><p><strong>1.2</strong></p></td>
 <td><p><strong>System displays screen ‘Website check’ (cross-device only)</strong><ul><li>Message: Is the website starting with: [organization url]?</li><li>Actions: Yes continue, Stop, About the website check, Help</li></ul></p></td>
@@ -349,11 +350,11 @@
 </tr>
 <tr class="row-even"><td><p>1.5f</p></td>
 <td><p>Error: No internet</p></td>
-<td><p>Error flow: No internet</p></td>
+<td><p>Error flow: <a class="reference internal" href="../errors.html#no-internet"><span class="std std-ref">No Internet</span></a></p></td>
 </tr>
 <tr class="row-odd"><td><p>1.5g</p></td>
 <td><p>Error: Server unreachable</p></td>
-<td><p>Error flow: Server unreachable</p></td>
+<td><p>Error flow: <a class="reference internal" href="../errors.html#server-unreachable"><span class="std std-ref">Server Unreachable</span></a></p></td>
 </tr>
 <tr class="row-even"><td><p><strong>2</strong></p></td>
 <td><p><strong>STOP</strong></p></td>
@@ -498,6 +499,34 @@
 <tr class="row-odd"><td><p>8.2a</p></td>
 <td><p>User selects Back</p></td>
 <td><p>8.1</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>9</strong></p></td>
+<td><p><strong>WHEN WALLET DOES NOT CONTAIN REQUESTED ATTRIBUTES</strong></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>9.1</strong></p></td>
+<td><p><strong>System displays screen ‘Missing data’</strong><ul><li>Message: See at verifier what is missing, add and try again</li><li>Actions: Close, See details, Help</li></ul></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>9.1a</p></td>
+<td><p>User selects Close</p></td>
+<td><p>2</p></td>
+</tr>
+<tr class="row-odd"><td><p>9.1b</p></td>
+<td><p>User selects See details</p></td>
+<td><p>9.2</p></td>
+</tr>
+<tr class="row-even"><td><p>9.1c</p></td>
+<td><p>User selects Help</p></td>
+<td><p>Show placeholder ‘under construction’</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>9.2</strong></p></td>
+<td><p><strong>System displays bottom sheet ‘Error details’ with list of all requested attributes</strong><ul><li>Actions: Close</li></ul></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>9.2a</p></td>
+<td><p>User selects Close</p></td>
+<td><p>9.1</p></td>
 </tr>
 </tbody>
 </table>
