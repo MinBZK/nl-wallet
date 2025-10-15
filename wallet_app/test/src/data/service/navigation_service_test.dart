@@ -9,8 +9,6 @@ void main() {
   late NavigationService service;
   late MockCheckNavigationPrerequisitesUseCase mockCheckNavigationPrerequisitesUseCase;
   late MockPerformPreNavigationActionsUseCase mockPerformPreNavigationActionsUseCase;
-  late MockGetWalletStatusUseCase mockGetWalletStatusUseCase;
-  late MockCancelWalletTransferUseCase mockCancelWalletTransferUseCase;
   late MockNavigatorKey navigatorKey;
   late MockNavigatorState navigatorState;
   late MockBuildContext context;
@@ -25,16 +23,11 @@ void main() {
     // Usecases
     mockCheckNavigationPrerequisitesUseCase = MockCheckNavigationPrerequisitesUseCase();
     mockPerformPreNavigationActionsUseCase = MockPerformPreNavigationActionsUseCase();
-    mockGetWalletStatusUseCase = MockGetWalletStatusUseCase();
-    mockGetWalletStatusUseCase = MockGetWalletStatusUseCase();
-    mockCancelWalletTransferUseCase = MockCancelWalletTransferUseCase();
 
     service = NavigationService(
       navigatorKey,
       mockCheckNavigationPrerequisitesUseCase,
       mockPerformPreNavigationActionsUseCase,
-      mockGetWalletStatusUseCase,
-      mockCancelWalletTransferUseCase,
     );
   });
 
@@ -163,14 +156,19 @@ void main() {
     });
 
     test(
-      'Verify assertion error is thrown when trying to process the queue while prerequisites are still unmet',
+      'Verify navigation does not occur when prerequisites are not met',
       () async {
         // Disallow navigation
         when(mockCheckNavigationPrerequisitesUseCase.invoke(any)).thenAnswer((_) async => false);
+
+        // Queue event
         await service.handleNavigationRequest(const GenericNavigationRequest('/mock'), queueIfNotReady: true);
 
-        // And process any queue if it exists, while app is still NOT ready
-        expect(() async => service.processQueue(), throwsAssertionError);
+        // Attempt to process queue
+        await service.processQueue();
+
+        // Verify queue was not processed
+        verifyZeroInteractions(navigatorKey.currentState);
       },
     );
   });

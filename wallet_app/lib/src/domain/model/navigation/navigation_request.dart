@@ -11,10 +11,11 @@ export 'navigation_prerequisite.dart';
 export 'pre_navigation_action.dart';
 
 /// Common set of prerequisites: check if the wallet is unlocked, initialized and contains the pid.
-const unlockedWithPidPrerequisites = [
+const unlockedWithPidAndReadyPrerequisites = [
   NavigationPrerequisite.walletUnlocked,
   NavigationPrerequisite.walletInitialized,
   NavigationPrerequisite.pidInitialized,
+  NavigationPrerequisite.walletInReadyState,
 ];
 
 sealed class NavigationRequest extends Equatable {
@@ -65,14 +66,18 @@ sealed class NavigationRequest extends Equatable {
     WalletRoutes.walletTransferSourceRoute,
     removeUntil: WalletRoutes.dashboardRoute,
     argument: uri,
-    navigatePrerequisites: unlockedWithPidPrerequisites,
+    navigatePrerequisites: unlockedWithPidAndReadyPrerequisites,
   );
 
   factory NavigationRequest.walletTransferTarget({bool isRetry = false}) => GenericNavigationRequest(
     WalletRoutes.walletTransferTargetRoute,
     removeUntil: WalletRoutes.dashboardRoute,
     argument: isRetry,
-    navigatePrerequisites: unlockedWithPidPrerequisites,
+    navigatePrerequisites: [
+      NavigationPrerequisite.walletUnlocked,
+      NavigationPrerequisite.walletInitialized,
+      NavigationPrerequisite.pidInitialized,
+    ],
   );
 }
 
@@ -135,7 +140,7 @@ class DisclosureNavigationRequest extends NavigationRequest {
         WalletRoutes.disclosureRoute,
         removeUntil: WalletRoutes.dashboardRoute,
         argument: DisclosureScreenArgument(uri: uri, isQrCode: isQrCode),
-        navigatePrerequisites: unlockedWithPidPrerequisites,
+        navigatePrerequisites: unlockedWithPidAndReadyPrerequisites,
       );
 }
 
@@ -145,7 +150,7 @@ class IssuanceNavigationRequest extends NavigationRequest {
         WalletRoutes.issuanceRoute,
         removeUntil: WalletRoutes.dashboardRoute,
         argument: IssuanceScreenArgument(uri: uri, isQrCode: isQrCode, isRefreshFlow: isRefreshFlow),
-        navigatePrerequisites: unlockedWithPidPrerequisites,
+        navigatePrerequisites: unlockedWithPidAndReadyPrerequisites,
       );
 }
 
@@ -155,6 +160,6 @@ class SignNavigationRequest extends NavigationRequest {
         WalletRoutes.signRoute,
         removeUntil: WalletRoutes.dashboardRoute,
         argument: SignScreenArgument(uri: uri),
-        navigatePrerequisites: unlockedWithPidPrerequisites,
+        navigatePrerequisites: unlockedWithPidAndReadyPrerequisites,
       );
 }
