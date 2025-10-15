@@ -13,7 +13,6 @@ use uuid::Uuid;
 
 use attestation_data::auth::Organization;
 use attestation_data::constants::PID_ATTESTATION_TYPE;
-use attestation_data::constants::PID_RECOVERY_CODE;
 use attestation_data::credential_payload::CredentialPayload;
 use attestation_types::claim_path::ClaimPath;
 use crypto::x509::CertificateError;
@@ -41,6 +40,7 @@ use update_policy_model::update_policy::VersionState;
 use utils::built_info::version;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
+use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use wallet_account::NL_WALLET_CLIENT_ID;
 use wallet_account::messages::instructions::DiscloseRecoveryCode;
@@ -623,25 +623,30 @@ where
         instruction_client: &InstructionClient<S, AK, GK, APC>,
         issued_credentials_with_metadata: &[CredentialWithMetadata],
     ) -> Result<Option<TransferSessionId>, IssuanceError> {
-        let pid = issued_credentials_with_metadata
+        let pid_attributes = &self.config_repository.get().pid_attributes;
+        let (pid, claim_path) = issued_credentials_with_metadata
             .iter()
             .find_map(|cred| {
-                (cred.attestation_type == PID_ATTESTATION_TYPE).then(|| {
+                pid_attributes.sd_jwt.get(&cred.attestation_type).map(|pid_paths| {
                     cred.copies.as_ref().iter().find_map(|copy| match copy {
                         IssuedCredential::MsoMdoc { .. } => None,
-                        IssuedCredential::SdJwt { sd_jwt, .. } => Some(sd_jwt.clone()),
+                        IssuedCredential::SdJwt { sd_jwt, .. } => {
+                            let claim_path = pid_paths
+                                .recovery_code
+                                .nonempty_iter()
+                                .map(|path| ClaimPath::SelectByKey(path.to_string()))
+                                .collect::<VecNonEmpty<_>>();
+                            Some((sd_jwt.clone(), claim_path))
+                        }
                     })
                 })
             })
             .flatten()
             .ok_or(IssuanceError::MissingPidSdJwt)?;
+
         let recovery_code_disclosure = pid
             .into_presentation_builder()
-            .disclose(
-                &vec![ClaimPath::SelectByKey(PID_RECOVERY_CODE.to_owned())]
-                    .try_into()
-                    .unwrap(),
-            )
+            .disclose(&claim_path)
             .map_err(IssuanceError::RecoveryCodeDisclosure)?
             .finish();
 
