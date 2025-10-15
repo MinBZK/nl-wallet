@@ -43,6 +43,7 @@ use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::account_provider::AccountProviderClient;
 use crate::attestation::AttestationPresentation;
+use crate::attestation::AttestationPresentationConfig;
 use crate::digid::DigidClient;
 use crate::errors::ChangePinError;
 use crate::errors::UpdatePolicyError;
@@ -314,6 +315,7 @@ where
     async fn fetch_candidate_attestations(
         storage: &S,
         request: &NormalizedCredentialRequest,
+        presentation_config: &impl AttestationPresentationConfig,
     ) -> Result<Option<VecNonEmpty<DisclosableAttestation>>, StorageError> {
         let credential_types = request.credential_types().collect();
         let format_query = match &request {
@@ -337,7 +339,7 @@ where
                         // presentation attributes. Since the filtering above should remove any attestation in which the
                         // requested claim paths are not present and this is the only error condition, no error should
                         // occur.
-                        DisclosableAttestation::try_new(attestation_copy, request.claim_paths())
+                        DisclosableAttestation::try_new(attestation_copy, request.claim_paths(), presentation_config)
                             .expect("all claim paths should be present in attestation")
                     })
             })
@@ -379,6 +381,7 @@ where
         }
 
         let wallet_config = &self.config_repository.get();
+        let pid_attributes = &wallet_config.pid_attributes;
 
         let purpose = RedirectUriPurpose::from_uri(uri)?;
         let disclosure_uri_query = uri
@@ -400,7 +403,7 @@ where
             .credential_requests()
             .as_ref()
             .iter()
-            .any(|request| is_request_for_recovery_code(request, &wallet_config.pid_attributes))
+            .any(|request| is_request_for_recovery_code(request, pid_attributes))
         {
             return Err(DisclosureError::RecoveryCodeRequested);
         }
@@ -413,7 +416,7 @@ where
                 .credential_requests()
                 .as_ref()
                 .iter()
-                .map(|request| Self::fetch_candidate_attestations(&*storage, request)),
+                .map(|request| Self::fetch_candidate_attestations(&*storage, request, pid_attributes)),
         )
         .await
         .map_err(DisclosureError::AttestationRetrieval)?
@@ -424,10 +427,8 @@ where
 
         // At this point, determine the disclosure type and if data was ever shared with this RP before, as the UI
         // needs this context both for when all requested attributes are present and for when attributes are missing.
-        let disclosure_type = DisclosureType::from_credential_requests(
-            session.credential_requests().as_ref(),
-            &wallet_config.pid_attributes,
-        );
+        let disclosure_type =
+            DisclosureType::from_credential_requests(session.credential_requests().as_ref(), pid_attributes);
 
         let verifier_certificate = session.verifier_certificate();
         let shared_data_with_relying_party_before = self
@@ -497,7 +498,7 @@ where
 
         info!("All attributes in the disclosure request are present in the database, return a proposal to the user");
 
-        // Place the propopsed attestations in a `DisclosureProposalPresentation`,
+        // Place the proposed attestations in a `DisclosureProposalPresentation`,
         // along with a copy of the `ReaderRegistration`.
         let proposal = DisclosureProposalPresentation {
             attestations: disclosure_attestations
@@ -933,6 +934,7 @@ mod tests {
     use crate::AttestationPresentation;
     use crate::attestation::AttestationAttributeValue;
     use crate::attestation::AttestationIdentity;
+    use crate::attestation::mock::EmptyPresentationConfig;
     use crate::config::UNIVERSAL_LINK_BASE_URL;
     use crate::digid::MockDigidSession;
     use crate::errors::InstructionError;
@@ -1105,6 +1107,7 @@ mod tests {
                 .collect_vec()
                 .try_into()
                 .unwrap()],
+            &EmptyPresentationConfig,
         )
         .unwrap();
 
@@ -1279,7 +1282,9 @@ mod tests {
             .return_once(|_, _, _, _, _| Ok(()));
 
         let cert = verifier_certificate.clone();
-        let attestation_presentation = stored_attestation_copy.into_attestation_presentation().clone();
+        let attestation_presentation = stored_attestation_copy
+            .into_attestation_presentation(&EmptyPresentationConfig)
+            .clone();
         wallet
             .mut_storage()
             .expect_fetch_recent_wallet_events()
