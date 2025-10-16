@@ -22,6 +22,7 @@ import 'package:wallet/src/data/service/event/app_event_coordinator.dart';
 import 'package:wallet/src/data/service/navigation_service.dart';
 import 'package:wallet/src/data/service/semantics_event_service.dart';
 import 'package:wallet/src/data/store/active_locale_provider.dart';
+import 'package:wallet/src/domain/app_event/app_event_listener.dart';
 import 'package:wallet/src/domain/model/configuration/flutter_app_configuration.dart';
 import 'package:wallet/src/domain/usecase/app/check_is_app_initialized_usecase.dart';
 import 'package:wallet/src/domain/usecase/biometrics/get_available_biometrics_usecase.dart';
@@ -132,6 +133,7 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<BiometricUnlockManager>()])
 @GenerateNiceMocks([MockSpec<SemanticsEventService>()])
 @GenerateNiceMocks([MockSpec<AppEventCoordinator>()])
+@GenerateNiceMocks([MockSpec<AppEventListener>()])
 /// Mock use cases
 @GenerateNiceMocks([MockSpec<DecodeUriUseCase>()])
 @GenerateNiceMocks([MockSpec<IsWalletInitializedUseCase>()])

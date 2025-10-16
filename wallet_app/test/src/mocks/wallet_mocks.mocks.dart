@@ -3189,6 +3189,11 @@ class MockAppEventCoordinator extends _i1.Mock implements _i52.AppEventCoordinat
   );
 }
 
+/// A class which mocks [AppEventListener].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockAppEventListener extends _i1.Mock implements _i53.AppEventListener {}
+
 /// A class which mocks [DecodeUriUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
