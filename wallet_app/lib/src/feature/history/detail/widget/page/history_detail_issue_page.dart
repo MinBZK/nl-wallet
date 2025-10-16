@@ -79,7 +79,7 @@ class HistoryDetailIssuePage extends StatelessWidget {
 
   static String resolveTitle(BuildContext context, IssuanceEvent event) {
     final cardName = event.card.title.l10nValue(context);
-    return event.renewed
+    return event.eventType == IssuanceEventType.cardRenewed
         ? context.l10n.historyDetailScreenTitleForRenewal(cardName)
         : context.l10n.historyDetailScreenTitleForIssuance(cardName);
   }

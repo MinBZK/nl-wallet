@@ -154,7 +154,7 @@ class _ActivitySummaryState extends State<ActivitySummary> {
     final addedCardsCount = relevantEvents
         .whereType<IssuanceEvent>()
         .where((it) => it.status == EventStatus.success)
-        .where((it) => !it.renewed)
+        .where((it) => it.eventType == IssuanceEventType.cardIssued)
         .length;
     if (addedCardsCount == 0) return null;
     return context.l10n.activitySummaryCardsAdded(addedCardsCount, addedCardsCount);
@@ -165,7 +165,7 @@ class _ActivitySummaryState extends State<ActivitySummary> {
     final updatedCardsCount = relevantEvents
         .whereType<IssuanceEvent>()
         .where((it) => it.status == EventStatus.success)
-        .where((it) => it.renewed)
+        .where((it) => it.eventType == IssuanceEventType.cardRenewed)
         .length;
     if (updatedCardsCount == 0) return null;
     return context.l10n.activitySummaryCardsUpdated(updatedCardsCount, updatedCardsCount);

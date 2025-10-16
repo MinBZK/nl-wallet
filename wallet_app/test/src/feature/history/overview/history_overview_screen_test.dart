@@ -22,7 +22,7 @@ void main() {
       WalletMockData.disclosureEvent,
       WalletMockData.signEvent,
       WalletMockData.issuanceEvent,
-      WalletMockData.renewEvent,
+      WalletMockData.issuanceEventCardRenewed,
     ].sortedBy((card) => card.dateTime).reversed.toList() /* sorting is normally handled by repo layer */,
   );
 

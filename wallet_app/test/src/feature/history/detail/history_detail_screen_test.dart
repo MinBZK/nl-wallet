@@ -54,11 +54,11 @@ void main() {
       await screenMatchesGolden('success.issuance.light');
     });
 
-    testGoldens('HistoryDetailLoadSuccess renewal - light', (tester) async {
+    testGoldens('HistoryDetailLoadSuccess card renewed - light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const HistoryDetailScreen().withState<HistoryDetailBloc, HistoryDetailState>(
           MockHistoryDetailBloc(),
-          HistoryDetailLoadSuccess(WalletMockData.renewEvent),
+          HistoryDetailLoadSuccess(WalletMockData.issuanceEventCardRenewed),
         ),
         providers: [
           RepositoryProvider<ContextMapper<OrganizationPolicy, String>>(
@@ -66,7 +66,7 @@ void main() {
           ),
         ],
       );
-      await screenMatchesGolden('success.renewal.light');
+      await screenMatchesGolden('success.renewed.light');
     });
 
     testGoldens('HistoryDetailLoadSuccess dark', (tester) async {
