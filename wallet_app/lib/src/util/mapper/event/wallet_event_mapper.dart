@@ -39,7 +39,8 @@ class WalletEventMapper extends Mapper<core.WalletEvent, WalletEvent> {
         dateTime: DateTime.parse(input.dateTime).toLocal(),
         status: EventStatus.success,
         card: _cardMapper.map(input.attestation),
-        renewed: input.renewed,
+        // TODO(Daan): Implement issuanceEventType mapping once Core logic is implemented in [PVW-4566];
+        eventType: !input.renewed ? IssuanceEventType.cardIssued : IssuanceEventType.cardRenewed,
       ),
     };
   }
