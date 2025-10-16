@@ -556,7 +556,9 @@ pub enum AuthResponseError {
     #[error("error verifying disclosed mdoc(s): {0}")]
     MdocVerification(#[from] mdoc::Error),
     #[error("error verifying disclosed SD-JWT: {0}")]
-    SdJwtVerification(#[from] sd_jwt::error::Error),
+    SdJwtVerification(#[from] sd_jwt::error::DecoderError),
+    #[error("error converting SD-JWT JWK: {0}")]
+    SdJwtJwkConversion(#[source] jwt::error::JwkConversionError),
     #[error("response does not satisfy credential request(s): {0}")]
     UnsatisfiedCredentialRequest(#[source] CredentialValidationError),
     #[error("missing PoA")]
@@ -783,7 +785,12 @@ impl VpAuthorizationResponse {
                                 time,
                             )?;
 
-                            holder_public_keys.push(presentation.sd_jwt().holder_pubkey()?);
+                            holder_public_keys.push(
+                                presentation
+                                    .sd_jwt()
+                                    .holder_pubkey()
+                                    .map_err(AuthResponseError::SdJwtJwkConversion)?,
+                            );
                             let disclosed_attestation = DisclosedAttestation::try_from(presentation)?;
 
                             Ok(disclosed_attestation)

@@ -9,9 +9,10 @@ use serde_with::SerializeDisplay;
 
 use crate::claims::ArrayClaim;
 use crate::claims::ClaimName;
+use crate::claims::ClaimType;
 use crate::claims::ClaimValue;
-use crate::claims::HashType;
-use crate::error::Error;
+use crate::error::ClaimError;
+use crate::error::DecoderError;
 
 /// A disclosable value.
 /// Both object properties and array elements disclosures are supported.
@@ -34,17 +35,11 @@ impl Display for Disclosure {
 
 /// Parses a Base64 encoded disclosure into a [`Disclosure`].
 impl FromStr for Disclosure {
-    type Err = Error;
+    type Err = DecoderError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let content: DisclosureContent = BASE64_URL_SAFE_NO_PAD
-            .decode(s)
-            .map_err(|_| Error::InvalidDisclosure(format!("Base64 decoding of the disclosure was not possible {s}")))
-            .and_then(|data| {
-                serde_json::from_slice(&data).map_err(|_| {
-                    Error::InvalidDisclosure(format!("decoded disclosure could not be deserialized as JSON {s}"))
-                })
-            })?;
+        let decoded = BASE64_URL_SAFE_NO_PAD.decode(s)?;
+        let content: DisclosureContent = serde_json::from_slice(&decoded)?;
 
         Ok(Self {
             content,
@@ -79,15 +74,15 @@ impl Disclosure {
         Ok(Self { content, encoded })
     }
 
-    pub fn hash_type(&self) -> HashType {
-        self.content.hash_type()
+    pub fn disclosure_type(&self) -> ClaimType {
+        self.content.disclosure_type()
     }
 
-    pub fn digests(&self) -> Vec<(String, HashType)> {
+    pub fn digests(&self) -> Vec<(String, ClaimType)> {
         match &self.content {
             DisclosureContent::ObjectProperty(_, _, claim_value) => claim_value.digests(),
             DisclosureContent::ArrayElement(_, array_claim) => match array_claim {
-                ArrayClaim::Hash(digest) => vec![(digest.clone(), HashType::Array)],
+                ArrayClaim::Hash(digest) => vec![(digest.clone(), ClaimType::Array)],
                 ArrayClaim::Value(value) => value.digests(),
             },
         }
@@ -95,6 +90,19 @@ impl Disclosure {
 
     pub fn encoded(&self) -> &str {
         &self.encoded
+    }
+
+    pub fn verify_matching_claim_type(&self, actual: ClaimType, digest: impl Into<String>) -> Result<(), ClaimError> {
+        let expected = self.disclosure_type();
+        if actual != expected {
+            Err(ClaimError::DisclosureTypeMismatch {
+                expected,
+                actual,
+                digest: digest.into(),
+            })
+        } else {
+            Ok(())
+        }
     }
 }
 
@@ -124,36 +132,34 @@ pub enum DisclosureContent {
 }
 
 impl DisclosureContent {
-    pub fn hash_type(&self) -> HashType {
+    pub fn disclosure_type(&self) -> ClaimType {
         match &self {
-            DisclosureContent::ObjectProperty(..) => HashType::Object,
-            DisclosureContent::ArrayElement(..) => HashType::Array,
+            DisclosureContent::ObjectProperty(..) => ClaimType::Object,
+            DisclosureContent::ArrayElement(..) => ClaimType::Array,
         }
     }
 
-    pub fn try_as_object_property(&self, digest: &str) -> Result<(&String, &ClaimName, &ClaimValue), Error> {
+    pub fn try_as_object_property(&self, digest: &str) -> Result<(&String, &ClaimName, &ClaimValue), ClaimError> {
         if let DisclosureContent::ObjectProperty(salt, name, value) = self {
             Ok((salt, name, value))
         } else {
-            let expected_hash_type = HashType::Object;
-            let actual_hash_type = self.hash_type();
-            Err(Error::DataTypeMismatch(format!(
-                "Expected an {expected_hash_type:?} element, but got an {actual_hash_type:?} element for digest \
-                 `{digest}`"
-            )))
+            Err(ClaimError::DisclosureTypeMismatch {
+                expected: ClaimType::Object,
+                actual: self.disclosure_type(),
+                digest: digest.to_string(),
+            })
         }
     }
 
-    pub fn try_as_array_element(&self, digest: &str) -> Result<(&String, &ArrayClaim), Error> {
+    pub fn try_as_array_element(&self, digest: &str) -> Result<(&String, &ArrayClaim), ClaimError> {
         if let DisclosureContent::ArrayElement(salt, value) = self {
             Ok((salt, value))
         } else {
-            let expected_hash_type = HashType::Array;
-            let actual_hash_type = self.hash_type();
-            Err(Error::DataTypeMismatch(format!(
-                "Expected an {expected_hash_type:?} element, but got an {actual_hash_type:?} element for digest \
-                 `{digest}`"
-            )))
+            Err(ClaimError::DisclosureTypeMismatch {
+                expected: ClaimType::Array,
+                actual: self.disclosure_type(),
+                digest: digest.to_string(),
+            })
         }
     }
 }
@@ -168,7 +174,7 @@ mod test {
     use crypto::utils::random_bytes;
 
     use crate::claims::ClaimValue;
-    use crate::error::Error;
+    use crate::error::DecoderError;
 
     use super::Disclosure;
     use super::DisclosureContent;
@@ -208,6 +214,9 @@ mod test {
         let disclosure = serde_json::to_vec(&json!([salt])).unwrap();
         let encoded = BASE64_URL_SAFE_NO_PAD.encode(disclosure);
 
-        assert_matches!(&encoded.parse::<Disclosure>(), Err(Error::InvalidDisclosure(_)));
+        assert_matches!(
+            &encoded.parse::<Disclosure>(),
+            Err(DecoderError::JsonDeserialization(_))
+        );
     }
 }

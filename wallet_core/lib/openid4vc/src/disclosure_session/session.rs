@@ -209,7 +209,7 @@ where
                     Err(error) => {
                         return Err((
                             self,
-                            DisclosureError::before_sharing(VpClientError::SdJwtPresentation(error).into()),
+                            DisclosureError::before_sharing(VpClientError::SdJwtSigning(error).into()),
                         ));
                     }
                 };
@@ -503,7 +503,7 @@ mod tests {
             error,
             DisclosureError {
                 data_shared,
-                error: VpSessionError::Client(VpClientError::SdJwtPresentation(_))
+                error: VpSessionError::Client(VpClientError::SdJwtSigning(_))
             } if !data_shared
         );
     }

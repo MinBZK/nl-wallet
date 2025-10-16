@@ -204,7 +204,7 @@ pub enum DisclosedAttestationError {
     MissingAttestationQualification,
 
     #[error("error converting SD JWT to disclosed object: {0}")]
-    DisclosedObjectConversion(#[from] sd_jwt::error::Error),
+    DisclosedObjectConversion(#[from] sd_jwt::error::DecoderError),
 
     #[error("missing issuer certificate in SD JWT")]
     MissingIssuerCertificate,

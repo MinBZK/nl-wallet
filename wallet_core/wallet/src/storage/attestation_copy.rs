@@ -23,8 +23,9 @@ use crate::attestation::AttestationPresentationConfig;
 pub enum PartialAttestationError {
     #[error("requested path not present in mdoc attestation: {0}")]
     MsoMdoc(#[from] MissingAttributesError),
+
     #[error("requested path not present in SD-JWT attestation: {0}")]
-    SdJwt(#[from] sd_jwt::error::Error),
+    SdJwt(#[from] sd_jwt::error::ClaimError),
 }
 
 /// An attestation that is present in the wallet database, part of [`StoredAttestationCopy`].

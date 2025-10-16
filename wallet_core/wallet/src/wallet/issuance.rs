@@ -169,7 +169,7 @@ pub enum IssuanceError {
 
     #[error("could not add recovery code disclosure: {0}")]
     #[category(pd)]
-    RecoveryCodeDisclosure(sd_jwt::error::Error),
+    RecoveryCodeDisclosure(sd_jwt::error::ClaimError),
 
     #[error("error storing transfer data in database: {0}")]
     TransferDataStorage(#[source] StorageError),

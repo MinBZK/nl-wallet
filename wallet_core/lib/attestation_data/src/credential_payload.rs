@@ -51,7 +51,7 @@ pub enum SdJwtCredentialPayloadError {
 
     #[error("error converting from SD-JWT: {0}")]
     #[category(pd)]
-    SdJwtSerialization(#[source] sd_jwt::error::Error),
+    SdJwtDecoding(#[from] sd_jwt::error::DecoderError),
 
     #[error("error converting AttributeName to ClaimName: {0}")]
     #[category(pd)]
@@ -71,7 +71,7 @@ pub enum SdJwtCredentialPayloadError {
 
     #[error("error converting to SD-JWT: {0}")]
     #[category(pd)]
-    SdJwtCreation(#[from] sd_jwt::error::Error),
+    SdJwtEncoding(#[from] sd_jwt::error::EncoderError),
 
     #[error("error converting claim path to JSON path: {0}")]
     #[category(pd)]
@@ -365,7 +365,7 @@ impl CredentialPayload {
             .attributes
             .claim_paths(AttributesTraversalBehaviour::AllPaths)
             .into_iter()
-            .try_fold(SdJwtBuilder::new(self.try_into()?)?, |builder, claims| {
+            .try_fold(SdJwtBuilder::new(self.try_into()?), |builder, claims| {
                 let should_be_selectively_discloseable = match sd_by_claims.get(&claims) {
                     Some(sd) => !matches!(sd, ClaimSelectiveDisclosureMetadata::Never),
                     None => true,
@@ -377,7 +377,7 @@ impl CredentialPayload {
 
                 builder
                     .make_concealable(claims)
-                    .map_err(SdJwtCredentialPayloadError::SdJwtCreation)
+                    .map_err(SdJwtCredentialPayloadError::SdJwtEncoding)
             })?
             .finish(issuer_keypair)
             .await?;
@@ -686,7 +686,6 @@ mod test {
         );
 
         let sd_jwt = SdJwtBuilder::new(claims)
-            .unwrap()
             .make_concealable(
                 vec![ClaimPath::SelectByKey(String::from("birth_date"))]
                     .try_into()
