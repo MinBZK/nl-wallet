@@ -24,9 +24,9 @@ pub enum AttestationError {
     #[category(pd)]
     AttributesNotProcessedByClaim(HashSet<Vec<String>>),
 
-    #[error("unable to convert into attestation attribute value at {}: {}", .0.join("."), .1)]
+    #[error("unable to convert into attestation attribute value at {}: {}", .0.as_ref().join("."), .1)]
     #[category(pd)]
-    AttributeError(Vec<String>, #[source] AttributeError),
+    AttributeError(VecNonEmpty<String>, #[source] AttributeError),
 
     #[error("error converting to attributes: {0}")]
     #[category(pd)]
@@ -75,7 +75,7 @@ pub enum AttestationIdentity {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AttestationAttribute {
-    pub key: Vec<String>,
+    pub key: VecNonEmpty<String>,
     pub metadata: Vec<ClaimDisplayMetadata>,
     pub value: AttestationAttributeValue,
     pub svg_id: Option<String>,
@@ -90,6 +90,7 @@ pub enum AttestationAttributeValue {
 #[cfg(test)]
 pub mod mock {
     use attestation_data::auth::Organization;
+    use utils::vec_nonempty;
 
     use super::AttestationIdentity;
     use super::AttestationPresentation;
@@ -110,15 +111,13 @@ pub mod mock {
             Self {
                 identity: AttestationIdentity::Ephemeral,
                 attestation_type: "mock".to_string(),
-                display_metadata: vec![DisplayMetadata {
+                display_metadata: vec_nonempty![DisplayMetadata {
                     lang: "nl".to_string(),
                     name: "mock".to_string(),
                     description: None,
                     summary: None,
                     rendering: None,
-                }]
-                .try_into()
-                .unwrap(),
+                }],
                 issuer: Organization::new_mock(),
                 attributes: vec![],
             }

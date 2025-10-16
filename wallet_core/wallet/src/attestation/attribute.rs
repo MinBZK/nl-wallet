@@ -14,6 +14,7 @@ use sd_jwt_vc_metadata::JsonSchemaProperty;
 use sd_jwt_vc_metadata::JsonSchemaPropertyFormat;
 use sd_jwt_vc_metadata::JsonSchemaPropertyType;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
+use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 
 use super::AttestationAttribute;
@@ -79,6 +80,8 @@ impl AttestationPresentation {
             else {
                 continue;
             };
+            // This is safe as `claim.path` is non-empty.
+            let claim_path = VecNonEmpty::try_from(claim_path).unwrap();
 
             // Extract the JSON Schema properties from the metadata,
             // and try to use the metadata to enrich the attribute value.
@@ -89,12 +92,12 @@ impl AttestationPresentation {
                     .and_then(|properties| properties.get(name))
             });
 
-            // claim.path is also VecNonEmpty
-            let path_with_refs =
-                VecNonEmpty::try_from(claim_path.iter().map(String::as_str).collect::<Vec<&str>>()).unwrap();
-
             // Get value of claim out of the nested attributes via flattened view
             // Cannot use swap_remove here to make the error checking easier
+            let path_with_refs = claim_path
+                .nonempty_iter()
+                .map(String::as_str)
+                .collect::<VecNonEmpty<_>>();
             if let Some(&value) = flattened_attributes.get(&path_with_refs) {
                 let value = match AttestationAttributeValue::try_from_attribute_value(value.clone(), json_property) {
                     Ok(value) => value,
@@ -118,13 +121,16 @@ impl AttestationPresentation {
                 .map(|(path, _)| path.iter().map(ToString::to_string).collect::<Vec<_>>())
                 .collect::<HashSet<_>>();
             for attribute in attributes {
-                paths.remove(&attribute.key);
+                paths.remove(attribute.key.as_ref());
             }
             return Err(AttestationError::AttributesNotProcessedByClaim(paths));
         }
 
         let attributes = match config.filtered_attribute(&attestation_type) {
-            Some(filtered_key) => attributes.into_iter().filter(|attr| attr.key != filtered_key).collect(),
+            Some(filtered_key) => attributes
+                .into_iter()
+                .filter(|attr| attr.key.iter().ne(filtered_key))
+                .collect(),
             None => attributes,
         };
 
@@ -203,6 +209,7 @@ pub mod test {
     use sd_jwt_vc_metadata::JsonSchemaPropertyType;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::UncheckedTypeMetadata;
+    use utils::vec_nonempty;
 
     use crate::config::default_wallet_config;
 
@@ -276,11 +283,11 @@ pub mod test {
         assert_eq!(
             [
                 (
-                    vec![String::from("entry1")],
+                    vec_nonempty![String::from("entry1")],
                     AttestationAttributeValue::Basic(AttributeValue::Text(String::from("value1")))
                 ),
                 (
-                    vec![String::from("entry2")],
+                    vec_nonempty![String::from("entry2")],
                     AttestationAttributeValue::Basic(AttributeValue::Bool(true))
                 ),
             ],
@@ -435,7 +442,7 @@ pub mod test {
             attestation_presentation.attributes,
             vec![
                 AttestationAttribute {
-                    key: vec!["name".to_string()],
+                    key: vec_nonempty!["name".to_string()],
                     metadata: vec![ClaimDisplayMetadata {
                         lang: "en".to_string(),
                         label: "name".to_string(),
@@ -445,7 +452,7 @@ pub mod test {
                     svg_id: None
                 },
                 AttestationAttribute {
-                    key: vec!["birth_date".to_string()],
+                    key: vec_nonempty!["birth_date".to_string()],
                     metadata: vec![ClaimDisplayMetadata {
                         lang: "en".to_string(),
                         label: "birth date".to_string(),
@@ -455,7 +462,7 @@ pub mod test {
                     svg_id: None
                 },
                 AttestationAttribute {
-                    key: vec!["address".to_string(), "street".to_string()],
+                    key: vec_nonempty!["address".to_string(), "street".to_string()],
                     metadata: vec![ClaimDisplayMetadata {
                         lang: "en".to_string(),
                         label: "address street".to_string(),
@@ -465,7 +472,7 @@ pub mod test {
                     svg_id: None
                 },
                 AttestationAttribute {
-                    key: vec!["address".to_string(), "number".to_string()],
+                    key: vec_nonempty!["address".to_string(), "number".to_string()],
                     metadata: vec![ClaimDisplayMetadata {
                         lang: "en".to_string(),
                         label: "address number".to_string(),
@@ -603,7 +610,7 @@ pub mod test {
 
         assert_eq!(
             [(
-                vec![String::from(PID_BSN)],
+                vec_nonempty![String::from(PID_BSN)],
                 AttestationAttributeValue::Basic(AttributeValue::Text(String::from("999991772")))
             ),],
             attrs.as_slice()

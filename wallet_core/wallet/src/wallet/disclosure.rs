@@ -1350,7 +1350,7 @@ mod tests {
 
             let attribute = &presentation.attributes[0];
 
-            assert_eq!(attribute.key, vec![PID_GIVEN_NAME]);
+            assert!(attribute.key.iter().eq([PID_GIVEN_NAME]));
             assert_matches!(
                 &attribute.value,
                 AttestationAttributeValue::Basic(AttributeValue::Text(given_name)) if given_name == expected_name
@@ -1371,7 +1371,7 @@ mod tests {
 
             let attribute = &presentation.attributes[0];
 
-            assert_eq!(attribute.key, vec![PID_ADDRESS_GROUP, PID_RESIDENT_HOUSE_NUMBER]);
+            assert!(attribute.key.iter().eq([PID_ADDRESS_GROUP, PID_RESIDENT_HOUSE_NUMBER]));
             assert_matches!(
                 &attribute.value,
                 AttestationAttributeValue::Basic(AttributeValue::Text(house_number)) if house_number == expected_house_number
@@ -1379,7 +1379,7 @@ mod tests {
 
             let attribute = &presentation.attributes[1];
 
-            assert_eq!(attribute.key, vec![PID_ADDRESS_GROUP, PID_RESIDENT_POSTAL_CODE]);
+            assert!(attribute.key.iter().eq([PID_ADDRESS_GROUP, PID_RESIDENT_POSTAL_CODE]));
             assert_matches!(
                 &attribute.value,
                 AttestationAttributeValue::Basic(AttributeValue::Text(postal_code)) if postal_code == expected_postal_code

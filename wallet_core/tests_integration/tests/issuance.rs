@@ -31,7 +31,7 @@ async fn test_pid_ok() {
     let bsn_attr = pid_attestation
         .attributes
         .iter()
-        .find(|a| a.key == vec![PID_BSN])
+        .find(|a| a.key.iter().eq([PID_BSN]))
         .unwrap();
 
     assert_eq!(
@@ -43,7 +43,7 @@ async fn test_pid_ok() {
     let recovery_code_result = pid_attestation
         .attributes
         .iter()
-        .find(|a| a.key == vec![PID_RECOVERY_CODE]);
+        .find(|a| a.key.iter().eq([PID_RECOVERY_CODE]));
 
     assert_eq!(recovery_code_result, None);
 }
@@ -129,7 +129,7 @@ async fn test_pid_optional_attributes() {
         .find(|attestation| attestation.attestation_type == PID_ATTESTATION_TYPE)
         .expect("should have received PID attestation");
 
-    let bsn_attr = pid_attestation.attributes.iter().find(|a| a.key == vec![PID_BSN]);
+    let bsn_attr = pid_attestation.attributes.iter().find(|a| a.key.iter().eq([PID_BSN]));
 
     match bsn_attr {
         Some(bsn_attr) => assert_eq!(
@@ -139,7 +139,10 @@ async fn test_pid_optional_attributes() {
         None => panic!("BSN attribute not found"),
     }
     // Verify that we didn't get `age_over_18` issued
-    let age_over_18 = pid_attestation.attributes.iter().find(|a| a.key == vec!["age_over_18"]);
+    let age_over_18 = pid_attestation
+        .attributes
+        .iter()
+        .find(|a| a.key.iter().eq(["age_over_18"]));
     assert!(age_over_18.is_none());
 }
 
