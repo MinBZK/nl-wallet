@@ -35,6 +35,7 @@ use wallet_configuration::wallet_config::WalletConfiguration;
 use crate::AttestationIdentity;
 use crate::AttestationPresentation;
 use crate::account_provider::AccountProviderClient;
+use crate::attestation::EmptyPresentationConfig;
 use crate::config::UNIVERSAL_LINK_BASE_URL;
 use crate::digid::DigidClient;
 use crate::digid::DigidError;
@@ -341,7 +342,7 @@ where
                     preview_data.normalized_metadata.clone(),
                     organization.clone(),
                     &preview_data.content.credential_payload.attributes,
-                    true,
+                    &EmptyPresentationConfig,
                 )
                 .map_err(|error| IssuanceError::Attestation {
                     organization: Box::new(organization.clone()),

@@ -934,7 +934,7 @@ mod tests {
     use crate::AttestationPresentation;
     use crate::attestation::AttestationAttributeValue;
     use crate::attestation::AttestationIdentity;
-    use crate::attestation::mock::EmptyPresentationConfig;
+    use crate::attestation::EmptyPresentationConfig;
     use crate::config::UNIVERSAL_LINK_BASE_URL;
     use crate::digid::MockDigidSession;
     use crate::errors::InstructionError;

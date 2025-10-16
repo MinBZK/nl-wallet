@@ -55,6 +55,14 @@ impl AttestationPresentationConfig for PidAttributesConfiguration {
     }
 }
 
+pub struct EmptyPresentationConfig;
+
+impl AttestationPresentationConfig for EmptyPresentationConfig {
+    fn filtered_attribute(&self, _attestation_type: &str) -> Option<&[String]> {
+        None
+    }
+}
+
 // TODO: Separate various concerns: PVW-4675
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AttestationPresentation {
@@ -92,16 +100,7 @@ pub mod mock {
 
     use super::AttestationIdentity;
     use super::AttestationPresentation;
-    use super::AttestationPresentationConfig;
     use super::DisplayMetadata;
-
-    pub struct EmptyPresentationConfig;
-
-    impl AttestationPresentationConfig for EmptyPresentationConfig {
-        fn filtered_attribute(&self, _attestation_type: &str) -> Option<&[String]> {
-            None
-        }
-    }
 
     impl AttestationPresentation {
         /// Create a nearly empty [`AttestationPresentation`] for tests that absolutely need this type.

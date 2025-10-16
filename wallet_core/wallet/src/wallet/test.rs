@@ -70,7 +70,7 @@ use crate::AttestationIdentity;
 use crate::DisclosureStatus;
 use crate::account_provider::MockAccountProviderClient;
 use crate::attestation::AttestationPresentation;
-use crate::attestation::mock::EmptyPresentationConfig;
+use crate::attestation::EmptyPresentationConfig;
 use crate::config::LocalConfigurationRepository;
 use crate::config::UpdatingConfigurationRepository;
 use crate::config::default_config_server_config;
