@@ -602,7 +602,7 @@ where
         .filter(
             wallet_user::Column::RecoveryCode
                 .eq(recovery_code)
-                .and(wallet_user::Column::State.ne(WalletUserState::Blocked.to_string())),
+                .and(wallet_user::Column::State.ne(WalletUserState::Transferred.to_string())),
         )
         .count(db.connection())
         .await

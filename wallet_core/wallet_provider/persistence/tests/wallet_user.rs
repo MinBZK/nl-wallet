@@ -1,5 +1,4 @@
 use assert_matches::assert_matches;
-use chrono::Utc;
 use p256::ecdsa::VerifyingKey;
 use p256::pkcs8::EncodePublicKey;
 use uuid::Uuid;
@@ -435,12 +434,12 @@ async fn test_store_recovery_code() {
 async fn test_has_multiple_accounts() {
     // Prepare three wallet users
     let (db, _, wallet_id1, _) = common::create_test_user().await;
-    let (_, _, wallet_id2, _) = common::create_test_user().await;
-    let (_, _, wallet_id3, _) = common::create_test_user().await;
+    let (_, wallet_user_id2, wallet_id2, _) = common::create_test_user().await;
+    let (_, wallet_user_id3, wallet_id3, _) = common::create_test_user().await;
 
     let recovery_code = Uuid::new_v4().to_string();
 
-    // There is only one wallet user having the recovery_code
+    // There is only one wallet user having the same recovery_code
     store_recovery_code(&db, &wallet_id1, recovery_code.clone())
         .await
         .expect("storing the recovery code should succeed");
@@ -450,7 +449,7 @@ async fn test_has_multiple_accounts() {
             .unwrap()
     );
 
-    // There are two wallet users having the recovery_code
+    // There are two wallet users having the same recovery_code
     store_recovery_code(&db, &wallet_id2, recovery_code.clone())
         .await
         .expect("storing the recovery code should succeed");
@@ -460,7 +459,7 @@ async fn test_has_multiple_accounts() {
             .unwrap()
     );
 
-    // There are trhee wallet users having the recovery_code
+    // There are trhee wallet users having the same recovery_code
     store_recovery_code(&db, &wallet_id3, recovery_code.clone())
         .await
         .expect("storing the recovery code should succeed");
@@ -470,23 +469,52 @@ async fn test_has_multiple_accounts() {
             .unwrap()
     );
 
-    // After blocking one of the wallet users, there are two wallet users having the recovery_code
-    register_unsuccessful_pin_entry(&db, &wallet_id3, true, Utc::now())
-        .await
-        .unwrap();
+    // After setting one of the wallet users to "Transferred", there are two wallet users having the same recovery_code
+    transition_wallet_user_state(
+        &db,
+        wallet_user_id3,
+        WalletUserState::Active,
+        WalletUserState::Transferred,
+    )
+    .await
+    .unwrap();
     assert!(
         has_multiple_active_accounts_by_recovery_code(&db, &recovery_code)
             .await
             .unwrap()
     );
 
-    // After blocking another of the wallet users, there is only one wallet user having the recovery_code
-    register_unsuccessful_pin_entry(&db, &wallet_id2, true, Utc::now())
-        .await
-        .unwrap();
+    // After setting another of the wallet users to "Transferred", there is only one wallet user having the
+    // recovery_code
+    transition_wallet_user_state(
+        &db,
+        wallet_user_id2,
+        WalletUserState::Active,
+        WalletUserState::Transferred,
+    )
+    .await
+    .unwrap();
     assert!(
         !has_multiple_active_accounts_by_recovery_code(&db, &recovery_code)
             .await
             .unwrap()
     );
+    // // Create another wallet user with the same recovery_code
+    // let (_, _, wallet_id4, _) = common::create_test_user().await;
+    // store_recovery_code(&db, &wallet_id4, recovery_code.clone())
+    //     .await
+    //     .expect("storing the recovery code should succeed");
+    // // And it should have multiple active accounts
+    // assert!(
+    //     has_multiple_active_accounts_by_recovery_code(&db, &recovery_code)
+    //         .await
+    //         .unwrap()
+    // );
+    // // When the user state is changed to Transferring, it should not have multiple active accounts anymore
+    // transition_wallet_user_state(&db, &wallet_id4, WalletUserState::Active, WalletUserState::Transferring).await;
+    // assert!(
+    //     !has_multiple_active_accounts_by_recovery_code(&db, &recovery_code)
+    //         .await
+    //         .unwrap()
+    // );
 }
