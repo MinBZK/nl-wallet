@@ -283,21 +283,9 @@ impl WalletUserRepository for Repositories {
         error: bool,
     ) -> Result<(), PersistenceError> {
         if let Some(wallet_user_id) = source_wallet_user_id {
-            wallet_user::transition_wallet_user_state(
-                transaction,
-                wallet_user_id,
-                WalletUserState::Transferring,
-                WalletUserState::Active,
-            )
-            .await?;
+            wallet_user::reset_wallet_user_state(transaction, wallet_user_id).await?;
         }
-        wallet_user::transition_wallet_user_state(
-            transaction,
-            destination_wallet_user_id,
-            WalletUserState::Transferring,
-            WalletUserState::Active,
-        )
-        .await?;
+        wallet_user::reset_wallet_user_state(transaction, destination_wallet_user_id).await?;
         wallet_transfer::update_transfer_state(
             transaction,
             transfer_session_id,

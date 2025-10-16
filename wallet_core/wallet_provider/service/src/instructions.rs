@@ -916,6 +916,10 @@ impl HandleInstruction for CancelTransfer {
         )
         .await?;
 
+        if transfer_session.state == TransferSessionState::Created {
+            return Ok(());
+        }
+
         if transfer_session.state == TransferSessionState::Success {
             return Err(InstructionError::AccountTransferIllegalState);
         }
@@ -2438,6 +2442,47 @@ mod tests {
         wallet_user_repo
             .expect_cancel_wallet_transfer()
             .returning(|_, _, _, _, _| Ok(()));
+
+        let instruction = CancelTransfer {
+            transfer_session_id,
+            error: false,
+        };
+
+        instruction
+            .handle(
+                &wallet_user,
+                &MockGenerators,
+                &mock::user_state(
+                    wallet_user_repo,
+                    setup_hsm().await,
+                    wrapping_key_identifier.to_string(),
+                    vec![],
+                ),
+            )
+            .await
+            .unwrap();
+    }
+
+    #[tokio::test]
+    async fn should_handle_cancel_transfer_when_session_is_created() {
+        let wrapping_key_identifier = "my-wrapping-key-identifier";
+        let mut wallet_user = wallet_user::mock::wallet_user_1();
+        wallet_user.recovery_code = Some(String::from("recovery_code"));
+
+        let transfer_session_id = Uuid::new_v4();
+        let mut transfer_session = example_transfer_session(transfer_session_id, TransferSessionState::Created);
+        transfer_session.encrypted_wallet_data = Some(random_string(32));
+        transfer_session.state = TransferSessionState::Created;
+
+        let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
+        wallet_user_repo
+            .expect_begin_transaction()
+            .returning(|| Ok(MockTransaction));
+        wallet_user_repo
+            .expect_find_transfer_session_by_transfer_session_id()
+            .with(predicate::always(), predicate::eq(transfer_session_id))
+            .returning(move |_, _| Ok(Some(transfer_session.clone())));
+        wallet_user_repo.expect_cancel_wallet_transfer().never();
 
         let instruction = CancelTransfer {
             transfer_session_id,
