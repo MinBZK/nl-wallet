@@ -70,6 +70,7 @@ use crate::AttestationIdentity;
 use crate::DisclosureStatus;
 use crate::account_provider::MockAccountProviderClient;
 use crate::attestation::AttestationPresentation;
+use crate::attestation::mock::EmptyPresentationConfig;
 use crate::config::LocalConfigurationRepository;
 use crate::config::UpdatingConfigurationRepository;
 use crate::config::default_config_server_config;
@@ -534,6 +535,7 @@ pub fn mock_issuance_session(
             type_metadata.to_normalized().unwrap(),
             issuer_registration.organization.clone(),
             mdoc.issuer_signed().clone().into_entries_by_namespace(),
+            &EmptyPresentationConfig,
         )
         .unwrap(),
         IssuedCredential::SdJwt { sd_jwt, .. } => {
@@ -546,7 +548,7 @@ pub fn mock_issuance_session(
                 type_metadata.to_normalized().unwrap(),
                 issuer_registration.organization.clone(),
                 &payload.previewable_payload.attributes,
-                true,
+                &EmptyPresentationConfig,
             )
             .unwrap()
         }

@@ -1,15 +1,18 @@
+use std::sync::Arc;
+
 use tracing::info;
 
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use openid4vc::disclosure_session::DisclosureClient;
 use platform_support::attested_key::AttestedKeyHolder;
+use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::attestation::AttestationPresentation;
 use crate::digid::DigidClient;
+use crate::repository::Repository;
 use crate::storage::Storage;
 use crate::storage::StorageError;
-use crate::storage::StoredAttestationCopy;
 
 use super::Wallet;
 
@@ -24,6 +27,7 @@ pub type AttestationsCallback = Box<dyn FnMut(Vec<AttestationPresentation>) + Se
 
 impl<CR, UR, S, AKH, APC, DC, IS, DCC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC>
 where
+    CR: Repository<Arc<WalletConfiguration>>,
     S: Storage,
     AKH: AttestedKeyHolder,
     DC: DigidClient,
@@ -32,13 +36,14 @@ where
     pub(super) async fn emit_attestations(&mut self) -> Result<(), AttestationsError> {
         info!("Emit attestations from storage");
 
+        let wallet_config = self.config_repository.get();
         let storage = self.storage.read().await;
 
         let attestations = storage
             .fetch_unique_attestations()
             .await?
             .into_iter()
-            .map(StoredAttestationCopy::into_attestation_presentation)
+            .map(|copy| copy.into_attestation_presentation(&wallet_config.pid_attributes))
             .collect();
 
         if let Some(ref mut callback) = self.attestations_callback {
@@ -83,6 +88,7 @@ mod tests {
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 
     use crate::storage::StoredAttestation;
+    use crate::storage::StoredAttestationCopy;
     use crate::wallet::test::create_example_pid_mdoc;
 
     use super::super::test;

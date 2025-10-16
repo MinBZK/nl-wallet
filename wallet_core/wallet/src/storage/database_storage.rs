@@ -1052,6 +1052,7 @@ pub(crate) mod tests {
 
     use test_storage::MockHardwareDatabaseStorage;
 
+    use crate::attestation::mock::EmptyPresentationConfig;
     use crate::storage::data::RegistrationData;
 
     use super::*;
@@ -1883,6 +1884,7 @@ pub(crate) mod tests {
             normalized_metadata,
             issuer_registration.organization,
             sd_jwt.decoded_claims().unwrap(),
+            &EmptyPresentationConfig,
         )
         .unwrap();
 
@@ -2017,7 +2019,7 @@ pub(crate) mod tests {
                     normalized_metadata,
                     issuer_registration.organization,
                     &payload.previewable_payload.attributes,
-                    true,
+                    &EmptyPresentationConfig,
                 )
                 .unwrap()
             })

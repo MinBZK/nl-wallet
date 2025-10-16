@@ -6,8 +6,6 @@ use indexmap::IndexMap;
 use attestation_data::attributes::AttributeValue;
 use attestation_data::attributes::Attributes;
 use attestation_data::auth::Organization;
-use attestation_data::constants::PID_ATTESTATION_TYPE;
-use attestation_data::constants::PID_RECOVERY_CODE;
 use attestation_types::claim_path::ClaimPath;
 use mdoc::iso::mdocs::Entry;
 use mdoc::iso::mdocs::NameSpace;
@@ -23,6 +21,7 @@ use super::AttestationAttributeValue;
 use super::AttestationError;
 use super::AttestationIdentity;
 use super::AttestationPresentation;
+use super::AttestationPresentationConfig;
 use super::AttributeError;
 
 impl AttestationPresentation {
@@ -31,10 +30,11 @@ impl AttestationPresentation {
         metadata: NormalizedTypeMetadata,
         issuer_organization: Organization,
         mdoc_attributes: IndexMap<NameSpace, Vec<Entry>>,
+        config: &impl AttestationPresentationConfig,
     ) -> Result<Self, AttestationError> {
         let nested_attributes = Attributes::from_mdoc_attributes(&metadata, mdoc_attributes)?;
 
-        Self::create_from_attributes(identity, metadata, issuer_organization, &nested_attributes, true)
+        Self::create_from_attributes(identity, metadata, issuer_organization, &nested_attributes, config)
     }
 
     pub(crate) fn create_from_sd_jwt_claims(
@@ -42,10 +42,11 @@ impl AttestationPresentation {
         metadata: NormalizedTypeMetadata,
         issuer_organization: Organization,
         sd_jwt_claims: ObjectClaims,
+        config: &impl AttestationPresentationConfig,
     ) -> Result<Self, AttestationError> {
         let attributes: Attributes = sd_jwt_claims.try_into()?;
 
-        Self::create_from_attributes(identity, metadata, issuer_organization, &attributes, true)
+        Self::create_from_attributes(identity, metadata, issuer_organization, &attributes, config)
     }
 
     // Construct a new `AttestationPresentation` from a combination of metadata and nested attributes.
@@ -54,7 +55,7 @@ impl AttestationPresentation {
         metadata: NormalizedTypeMetadata,
         issuer: Organization,
         nested_attributes: &Attributes,
-        filter_recovery_code: bool,
+        config: &impl AttestationPresentationConfig,
     ) -> Result<Self, AttestationError> {
         let (attestation_type, display_metadata, claims, schema) = metadata.into_presentation_components();
 
@@ -122,10 +123,9 @@ impl AttestationPresentation {
             return Err(AttestationError::AttributesNotProcessedByClaim(paths));
         }
 
-        let attributes = if filter_recovery_code {
-            Self::filter_recovery_code(&attestation_type, attributes)
-        } else {
-            attributes
+        let attributes = match config.filtered_attribute(&attestation_type) {
+            Some(filtered_key) => attributes.into_iter().filter(|attr| attr.key != filtered_key).collect(),
+            None => attributes,
         };
 
         // Finally, construct the `AttestationPresentation` type.
@@ -136,20 +136,6 @@ impl AttestationPresentation {
             issuer,
             attributes,
         })
-    }
-
-    fn filter_recovery_code(
-        attestation_type: &str,
-        attributes: Vec<AttestationAttribute>,
-    ) -> Vec<AttestationAttribute> {
-        if attestation_type == PID_ATTESTATION_TYPE {
-            return attributes
-                .into_iter()
-                .filter(|attr| attr.key != vec![PID_RECOVERY_CODE])
-                .collect();
-        }
-
-        attributes
     }
 }
 
@@ -218,12 +204,15 @@ pub mod test {
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::UncheckedTypeMetadata;
 
+    use crate::test::default_wallet_config;
+
     use super::super::AttestationAttribute;
     use super::super::AttestationAttributeValue;
     use super::super::AttestationError;
     use super::super::AttestationIdentity;
     use super::super::AttestationPresentation;
     use super::super::AttributesError;
+    use super::super::mock::EmptyPresentationConfig;
 
     fn claim_metadata(keys: &[&str]) -> ClaimMetadata {
         ClaimMetadata {
@@ -274,6 +263,7 @@ pub mod test {
             example_metadata(),
             Organization::new_mock(),
             mdoc_attributes,
+            &EmptyPresentationConfig,
         )
         .expect("creating AttestationPresentation should succeed");
 
@@ -313,6 +303,7 @@ pub mod test {
             example_metadata(),
             Organization::new_mock(),
             mdoc_attributes,
+            &EmptyPresentationConfig,
         )
         .expect("creating AttestationPresentation should succeed");
 
@@ -349,6 +340,7 @@ pub mod test {
             metadata,
             Organization::new_mock(),
             mdoc_attributes,
+            &EmptyPresentationConfig,
         )
         .expect_err("creating AttestationPresentation should not succeed");
 
@@ -434,7 +426,7 @@ pub mod test {
             type_metadata,
             Organization::new_mock(),
             &attributes,
-            true,
+            &EmptyPresentationConfig,
         )
         .expect("creating AttestationPresentation should succeed");
 
@@ -511,7 +503,7 @@ pub mod test {
             type_metadata,
             Organization::new_mock(),
             &attributes,
-            true,
+            &EmptyPresentationConfig,
         )
         .expect_err("creating AttestationPresentation should not succeed");
 
@@ -577,6 +569,7 @@ pub mod test {
 
     #[test]
     fn test_filter_recovery_code() {
+        let config = default_wallet_config();
         let mdoc_attributes = IndexMap::from([(
             String::from(PID_ATTESTATION_TYPE),
             vec![
@@ -598,6 +591,7 @@ pub mod test {
             NormalizedTypeMetadata::nl_pid_example(),
             Organization::new_mock(),
             mdoc_attributes,
+            &config.pid_attributes,
         )
         .expect("creating AttestationPresentation should succeed");
 
