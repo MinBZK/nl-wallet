@@ -204,7 +204,7 @@ pub mod test {
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::UncheckedTypeMetadata;
 
-    use crate::test::default_wallet_config;
+    use crate::config::default_wallet_config;
 
     use super::super::AttestationAttribute;
     use super::super::AttestationAttributeValue;

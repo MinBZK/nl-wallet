@@ -313,7 +313,7 @@ mod tests {
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_at_least::VecNonEmpty;
 
-    use crate::test::default_wallet_config;
+    use crate::config::default_wallet_config;
 
     use super::DisclosableAttestation;
     use super::PartialAttestation;
