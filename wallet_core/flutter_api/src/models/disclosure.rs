@@ -60,7 +60,7 @@ pub enum StartDisclosureResult {
     Request {
         relying_party: Organization,
         policy: RequestPolicy,
-        requested_attestations: Vec<AttestationPresentation>,
+        disclosure_options: Vec<DisclosureOptions>,
         shared_data_with_relying_party_before: bool,
         session_type: DisclosureSessionType,
         request_purpose: Vec<LocalizedString>,
@@ -76,6 +76,8 @@ pub enum StartDisclosureResult {
         request_origin_base_url: String,
     },
 }
+
+pub struct DisclosureOptions(pub Vec<AttestationPresentation>);
 
 pub enum AcceptDisclosureResult {
     Ok { return_url: Option<String> },
@@ -185,15 +187,10 @@ impl TryFrom<Result<DisclosureProposalPresentation, DisclosureError>> for StartD
                 let result = StartDisclosureResult::Request {
                     relying_party: proposal.reader_registration.organization.into(),
                     policy,
-                    requested_attestations: proposal
+                    disclosure_options: proposal
                         .attestation_options
                         .into_iter()
-                        // TODO: Return all disclosure options to Flutter.
-                        .map(|candidates| match candidates {
-                            DisclosureAttestationOptions::Single(presentation) => *presentation,
-                            DisclosureAttestationOptions::Multiple(presentations) => presentations.into_first(),
-                        })
-                        .map(AttestationPresentation::from)
+                        .map(DisclosureOptions::from)
                         .collect(),
                     shared_data_with_relying_party_before: proposal.shared_data_with_relying_party_before,
                     session_type: proposal.session_type.into(),
@@ -236,6 +233,23 @@ impl TryFrom<Result<DisclosureProposalPresentation, DisclosureError>> for StartD
                 _ => Err(error),
             },
         }
+    }
+}
+
+impl From<DisclosureAttestationOptions> for DisclosureOptions {
+    fn from(value: DisclosureAttestationOptions) -> Self {
+        let presentations = match value {
+            DisclosureAttestationOptions::Single(presentation) => {
+                vec![AttestationPresentation::from(*presentation)]
+            }
+            DisclosureAttestationOptions::Multiple(presentations) => presentations
+                .into_inner()
+                .into_iter()
+                .map(AttestationPresentation::from)
+                .collect(),
+        };
+
+        Self(presentations)
     }
 }
 
