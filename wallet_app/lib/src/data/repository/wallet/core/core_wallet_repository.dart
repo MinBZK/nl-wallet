@@ -110,6 +110,7 @@ class CoreWalletRepository implements WalletRepository {
         WalletTransferRole.Source => TransferRole.source,
         WalletTransferRole.Destination => TransferRole.target,
       }),
+      WalletState_TransferPossible() => WalletStatusTransferPossible(),
     };
   }
 }
