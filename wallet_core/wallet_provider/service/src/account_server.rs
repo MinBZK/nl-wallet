@@ -1801,6 +1801,7 @@ mod tests {
     use wallet_provider_persistence::repositories::mock::WalletUserTestRepo;
 
     use crate::account_server::AccountServerPinKeys;
+    use crate::account_server::WalletCertificateError;
     use crate::instructions::PinCheckOptions;
     use crate::keys::WalletCertificateSigningKey;
     use crate::wallet_certificate;
@@ -2951,7 +2952,13 @@ mod tests {
         let instruction_result = account_server
             .handle_change_pin_rollback_instruction(
                 hw_privkey
-                    .sign_instruction(ChangePinRollback {}, challenge, 47, &setup.pin_privkey, cert.clone())
+                    .sign_instruction(
+                        ChangePinRollback {},
+                        challenge.clone(),
+                        47,
+                        &setup.pin_privkey,
+                        cert.clone(),
+                    )
                     .await,
                 &instruction_result_signing_key,
                 &MockGenerators,
@@ -2965,6 +2972,30 @@ mod tests {
             .parse_and_verify_with_sub(&instruction_result_signing_key.verifying_key().into())
             .expect("Could not parse and verify instruction result");
 
+        // Check that checking the PIN with the new certificate now fails
+        user_state.repositories = WalletUserTestRepo {
+            challenge: Some(challenge.clone()),
+            ..user_state.repositories.clone()
+        };
+        let instruction_error = account_server
+            .handle_instruction(
+                hw_privkey
+                    .sign_instruction(CheckPin, challenge.clone(), 48, &setup.pin_privkey, new_cert)
+                    .await,
+                &instruction_result_signing_key,
+                &MockGenerators,
+                &FailingPinPolicy,
+                &user_state,
+            )
+            .await
+            .expect_err("checking PIN with new certificate after PIN change was reverted should error");
+
+        assert_matches!(
+            instruction_error,
+            InstructionError::WalletCertificate(WalletCertificateError::PinPubKeyMismatch)
+        );
+
+        // With the old certificate, PIN checking should work.
         do_check_pin(
             &account_server,
             &setup.pin_privkey,
