@@ -27,7 +27,6 @@ use sd_jwt::sd_jwt::UnsignedSdJwtPresentation;
 use sd_jwt::sd_jwt::UnverifiedSdJwt;
 use sd_jwt::sd_jwt::UnverifiedSdJwtPresentation;
 use sd_jwt::sd_jwt::VerifiedSdJwt;
-use utils::generator::Generator;
 use utils::generator::mock::MockTimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
@@ -43,7 +42,7 @@ async fn make_sd_jwt(
     let claims = SdJwtVcClaims::example_from_json(holder_pubkey, claims, &MockTimeGenerator::default());
     let sd_jwt = disclosable_values
         .into_iter()
-        .fold(SdJwtBuilder::new(claims).unwrap(), |builder, paths| {
+        .fold(SdJwtBuilder::new(claims), |builder, paths| {
             builder.make_concealable(paths).unwrap()
         })
         .finish(&issuer_keypair)
@@ -94,8 +93,6 @@ async fn concealing_property_of_concealable_value_works() {
     let holder_signing_key = SigningKey::random(&mut OsRng);
     let (signed_sd_jwt, _) = make_sd_jwt(
         json!({
-            "iss": "https://issuer.example.com/",
-            "iat": 1683000000,
             "parent": {
                 "property1": "value1",
                 "property2": [1, 2, 3]
@@ -141,8 +138,6 @@ async fn sd_jwt_without_disclosures_works() {
     let holder_signing_key = SigningKey::random(&mut OsRng);
     let (signed_sd_jwt, trust_anchors) = make_sd_jwt(
         json!({
-            "iss": "https://issuer.example.com",
-            "iat": time.generate().timestamp(),
             "parent": {
                 "property1": "value1",
                 "property2": [1, 2, 3]
@@ -196,8 +191,6 @@ async fn sd_jwt_sd_hash() {
     let holder_signing_key = SigningKey::random(&mut OsRng);
     let (signed_sd_jwt, _) = make_sd_jwt(
         json!({
-            "iss": "https://issuer.example.com",
-            "iat": 1683000000,
             "parent": {
                 "property1": "value1",
                 "property2": [1, 2, 3]
@@ -293,7 +286,6 @@ async fn test_presentation() {
 
     // issuer signs SD-JWT
     let signed_sd_jwt = SdJwtBuilder::new(claims)
-        .unwrap()
         .make_concealable(vec![ClaimPath::SelectByKey(String::from("email"))].try_into().unwrap())
         .unwrap()
         .make_concealable(
@@ -412,7 +404,6 @@ fn test_wscd_presentation() {
 
     // Create a SD-JWT, signed by the issuer.
     let signed_sd_jwt = SdJwtBuilder::new(claims)
-        .unwrap()
         .make_concealable(vec_nonempty![ClaimPath::SelectByKey(String::from("given_name"))])
         .unwrap()
         .make_concealable(vec_nonempty![ClaimPath::SelectByKey(String::from("family_name"))])

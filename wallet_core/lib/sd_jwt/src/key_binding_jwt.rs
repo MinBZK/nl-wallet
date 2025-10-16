@@ -1,6 +1,8 @@
 use std::sync::LazyLock;
 use std::time::Duration;
 
+use chrono::DateTime;
+use chrono::Utc;
 use chrono::serde::ts_seconds;
 use derive_more::Display;
 use derive_more::FromStr;
@@ -10,8 +12,6 @@ use jsonwebtoken::jwk::Jwk;
 use p256::ecdsa::VerifyingKey;
 use serde::Deserialize;
 use serde::Serialize;
-use serde_with::chrono::DateTime;
-use serde_with::chrono::Utc;
 
 use crypto::CredentialEcdsaKey;
 use crypto::EcdsaKey;
@@ -22,12 +22,14 @@ use jwt::JwtTyp;
 use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
 use jwt::VerifiedJwt;
+use jwt::error::JwkConversionError;
 use jwt::jwk::jwk_to_p256;
 use utils::generator::Generator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 
-use crate::error::Result;
+use crate::error::KeyBindingError;
+use crate::error::SigningError;
 use crate::hasher::Hasher;
 use crate::sd_jwt::SdJwtClaims;
 use crate::sd_jwt::VerifiedSdJwt;
@@ -54,19 +56,24 @@ impl UnverifiedKeyBindingJwt {
         expected_nonce: &str,
         iat_acceptance_window: Duration,
         time: &impl Generator<DateTime<Utc>>,
-    ) -> Result<VerifiedKeyBindingJwt> {
+    ) -> Result<VerifiedKeyBindingJwt, KeyBindingError> {
         let verified = self.0.into_verified(pubkey, &kb_jwt_validation(expected_aud))?;
-        if verified.payload().nonce != expected_nonce {
-            return Err(crate::error::Error::Deserialization(String::from(
-                "invalid KB-JWT: unexpected nonce",
-            )));
-        }
 
-        if (verified.payload().iat + iat_acceptance_window) < time.generate() {
-            return Err(crate::error::Error::Deserialization(String::from(
-                "invalid KB-JWT: iat not in acceptable window",
-            )));
-        }
+        let payload = verified.payload();
+        if payload.nonce != expected_nonce {
+            return Err(KeyBindingError::NonceMismatch(payload.nonce.clone()));
+        };
+
+        let now = time.generate();
+        // TODO (PVW-5074): we should probably also test that payload.iat should not be after now, preferrably including
+        //      a grace period of several seconds to account for clock skew on the other side.
+        if (payload.iat + iat_acceptance_window) < now {
+            return Err(KeyBindingError::InvalidSignatureTimestamp(
+                payload.iat,
+                iat_acceptance_window,
+                now,
+            ));
+        };
 
         Ok(verified)
     }
@@ -102,7 +109,7 @@ impl KeyBindingJwtBuilder {
         Self { aud, nonce }
     }
 
-    fn sd_hash_for_sd_jwt<C: SdJwtClaims, H>(sd_jwt: &VerifiedSdJwt<C, H>) -> Result<String> {
+    fn sd_hash_for_sd_jwt<C: SdJwtClaims, H>(sd_jwt: &VerifiedSdJwt<C, H>) -> Result<String, KeyBindingError> {
         let hasher = sd_jwt.claims()._sd_alg().unwrap_or_default().hasher()?;
 
         let sd_hash = hasher.encoded_digest(&sd_jwt.to_string());
@@ -116,7 +123,7 @@ impl KeyBindingJwtBuilder {
         sd_jwt: &VerifiedSdJwt<C, H>,
         signing_key: &impl EcdsaKey,
         time: &impl Generator<DateTime<Utc>>,
-    ) -> Result<SignedKeyBindingJwt> {
+    ) -> Result<SignedKeyBindingJwt, KeyBindingError> {
         let sd_hash = Self::sd_hash_for_sd_jwt(sd_jwt)?;
 
         let claims = KeyBindingJwtClaims {
@@ -137,7 +144,7 @@ impl KeyBindingJwtBuilder {
         wscd: &W,
         poa_input: P::Input,
         time: &impl Generator<DateTime<Utc>>,
-    ) -> Result<(VecNonEmpty<SignedKeyBindingJwt>, Option<P>)>
+    ) -> Result<(VecNonEmpty<SignedKeyBindingJwt>, Option<P>), SigningError>
     where
         C: SdJwtClaims,
         W: DisclosureWscd<Key = K, Poa = P>,
@@ -165,7 +172,7 @@ impl KeyBindingJwtBuilder {
 
                 Ok((claims, key))
             })
-            .collect::<Result<Vec<_>>>()?
+            .collect::<Result<Vec<_>, KeyBindingError>>()?
             .try_into()
             .unwrap();
 
@@ -201,9 +208,9 @@ pub enum RequiredKeyBinding {
 }
 
 impl RequiredKeyBinding {
-    pub fn verifying_key(&self) -> Result<VerifyingKey> {
+    pub fn verifying_key(&self) -> Result<VerifyingKey, JwkConversionError> {
         let Self::Jwk(jwk) = self;
-        Ok(jwk_to_p256(jwk)?)
+        jwk_to_p256(jwk)
     }
 }
 
@@ -231,7 +238,6 @@ mod test {
     use utils::vec_nonempty;
 
     use crate::builder::SdJwtBuilder;
-    use crate::error::Error;
     use crate::hasher::Hasher;
     use crate::hasher::Sha256Hasher;
     use crate::sd_jwt::SdJwtVcClaims;
@@ -311,6 +317,7 @@ mod test {
         let wscd = MockRemoteWscd::new(vec![key1.clone(), key2.clone()]);
 
         let iat = Utc::now();
+        let mock_time = MockTimeGenerator::new(iat);
 
         let sd_jwts_and_keys = vec_nonempty![("Doe", key1), ("Deer", key2)]
             .into_nonempty_iter()
@@ -319,9 +326,8 @@ mod test {
                 let sd_jwt = SdJwtBuilder::new(SdJwtVcClaims::example_from_json(
                     key.verifying_key(),
                     json!({ "family_name": family_name}),
-                    &MockTimeGenerator::default(),
+                    &mock_time,
                 ))
-                .unwrap()
                 .finish(&issuer_keypair)
                 .now_or_never()
                 .unwrap()
@@ -333,7 +339,7 @@ mod test {
             .collect();
 
         let (kb_jwts, poa) = KeyBindingJwtBuilder::new(String::from("receiver"), String::from("abc123"))
-            .finish_multiple(&sd_jwts_and_keys, &wscd, (), &MockTimeGenerator::default())
+            .finish_multiple(&sd_jwts_and_keys, &wscd, (), &mock_time)
             .now_or_never()
             .unwrap()
             .expect("signing multiple KeyBindingJwt values using WSCD should succeed");
@@ -401,7 +407,8 @@ mod test {
                 &MockTimeGenerator::default(),
             )
             .expect_err("should fail validation");
-        assert_matches!(err, Error::Deserialization(msg) if msg == "invalid KB-JWT: iat not in acceptable window");
+        assert_matches!(err, KeyBindingError::InvalidSignatureTimestamp(_iat, window, _now)
+        if window == Duration::from_secs(24 * 60 * 60));
     }
 
     #[tokio::test]
@@ -420,6 +427,9 @@ mod test {
                 &MockTimeGenerator::default(),
             )
             .expect_err("should fail validation");
-        assert_matches!(err, Error::Deserialization(msg) if msg == "invalid KB-JWT: unexpected nonce");
+        assert_matches!(
+            err,
+            KeyBindingError::NonceMismatch(actual) if &actual == "abc123"
+        );
     }
 }
