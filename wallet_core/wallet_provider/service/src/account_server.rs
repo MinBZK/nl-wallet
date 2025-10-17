@@ -51,6 +51,7 @@ use apple_app_attest::AppIdentifier;
 use apple_app_attest::AssertionCounter;
 use apple_app_attest::AttestationEnvironment;
 use apple_app_attest::VerifiedAttestation;
+use attestation_data::attributes::AttributesError;
 use crypto::p256_der::verifying_key_sha256;
 use hsm::model::Hsm;
 use hsm::model::encrypted::Encrypted;
@@ -252,13 +253,16 @@ pub enum InstructionError {
     PopSigning(#[source] JwtError),
 
     #[error("SD JWT error: {0}")]
-    SdJwtError(#[from] sd_jwt::error::Error),
+    SdJwtError(#[from] sd_jwt::error::DecoderError),
 
     #[error("recovery code missing from SD JWT")]
     MissingRecoveryCode,
 
     #[error("recovery code is invalid")]
     InvalidRecoveryCode,
+
+    #[error("error converting claims into attributes invalid: {0}")]
+    AttributesConversion(#[from] AttributesError),
 
     #[error("account is not eligible for transfer")]
     AccountNotTransferable,

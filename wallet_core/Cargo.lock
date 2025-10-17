@@ -1361,6 +1361,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "convert_case"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bb402b8d4c85569410425650ce3eddc7d698ed96d39a73f941b08fb63082f1e7"
+dependencies = [
+ "unicode-segmentation",
+]
+
+[[package]]
 name = "cookie"
 version = "0.18.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1942,6 +1951,7 @@ version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bda628edc44c4bb645fbe0f758797143e4e07926f7ebf4e9bdfbd3d2ce621df3"
 dependencies = [
+ "convert_case 0.7.1",
  "proc-macro2",
  "quote",
  "syn",
@@ -3653,7 +3663,7 @@ version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a13b4ddc5dcb32f45dac3d6f606da2a52fdb9964a18427e63cd5ef6c0d13288d"
 dependencies = [
- "convert_case",
+ "convert_case 0.6.0",
  "proc-macro2",
  "quote",
  "syn",
@@ -5406,6 +5416,7 @@ dependencies = [
  "derive_more",
  "futures",
  "http_utils",
+ "indexmap 2.7.1",
  "itertools 0.14.0",
  "jsonwebtoken",
  "jwt",
@@ -7691,6 +7702,7 @@ dependencies = [
 name = "wallet_configuration"
 version = "0.4.0-dev"
 dependencies = [
+ "attestation_data",
  "crypto",
  "derive_more",
  "http_utils",
@@ -7841,13 +7853,10 @@ dependencies = [
  "futures",
  "hmac",
  "hsm",
- "indexmap 2.7.1",
  "itertools 0.14.0",
  "jwt",
  "mockall",
- "openid4vc",
  "p256",
- "pid_issuer",
  "platform_support",
  "rand",
  "rand_core",
@@ -7859,7 +7868,6 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with",
- "sha2",
  "thiserror 2.0.11",
  "tokio",
  "tracing",
@@ -7873,7 +7881,6 @@ dependencies = [
  "wallet_provider_domain",
  "wallet_provider_persistence",
  "wscd",
- "x509-parser 0.17.0",
 ]
 
 [[package]]

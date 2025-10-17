@@ -58,8 +58,8 @@ pub fn transfer_base_uri(universal_link_base: &BaseUrl) -> BaseUrl {
     universal_link_base.join_base_url(TRANSFER_BASE_PATH)
 }
 
-#[nutype(validate(predicate = |u| u.scheme() == "https"), derive(Debug, Clone, TryFrom, FromStr, Display, PartialEq, Eq, Serialize, Deserialize))]
-pub struct HttpsUri(Url);
+#[nutype(validate(predicate = |s| s.parse::<Url>().is_ok_and(|u| u.scheme() == "https")), derive(Debug, Clone, TryFrom, FromStr, Into, Display, PartialEq, Eq, Serialize, Deserialize))]
+pub struct HttpsUri(String);
 
 #[nutype(validate(predicate = |u| Origin::is_valid(u)), derive(Debug, Clone, TryFrom, PartialEq, Eq, Deserialize))]
 pub struct Origin(Url);
@@ -180,7 +180,7 @@ mod tests {
     use rstest::rstest;
 
     #[rstest]
-    #[case("https://example.com/", Ok(()))]
+    #[case("http://example.com/", Ok(()))]
     #[case("https://example.com/", Ok(()))]
     #[case("https://example.com/path/", Ok(()))]
     #[case("https://example.com/path", Ok(()))] // this is okay, since the `.join` method will add a trailing slash
@@ -213,6 +213,26 @@ mod tests {
     async fn base_url_join(#[case] value: BaseUrl, #[case] path: &str, #[case] expected: &str) {
         assert_eq!(value.join(path).as_str(), expected);
         assert_eq!(value.join_base_url(path).as_ref().as_str(), expected);
+    }
+
+    #[rstest]
+    #[case("https://example.com", Ok("https://example.com".to_string()))]
+    #[case("https://example.com/", Ok("https://example.com/".to_string()))]
+    #[case("https://example.com/path", Ok("https://example.com/path".to_string()))]
+    #[case("https://example.com/path/", Ok("https://example.com/path/".to_string()))]
+    #[case("https://example.com?query=param", Ok("https://example.com?query=param".to_string()))]
+    #[case("https://example.com/?query=param", Ok("https://example.com/?query=param".to_string()))]
+    #[case("https://example.com#fragment", Ok("https://example.com#fragment".to_string()))]
+    #[case("https://example.com/#fragment", Ok("https://example.com/#fragment".to_string()))]
+    #[case("http://example.com/", Err(()))]
+    #[case("data:image/jpeg;base64,/9j/4AAQSkZJRgABAgAAZABkAAD", Err(()))]
+    #[tokio::test]
+    async fn https_uri(#[case] value: &str, #[case] expected: Result<String, ()>) {
+        // The `HttpsUriError` that `nutype` returns does not implement `PartialEq`
+        assert_eq!(
+            value.parse::<HttpsUri>().map(|u| u.to_string()).map_err(|_| ()),
+            expected
+        );
     }
 
     fn origin_urls(urls: Vec<&'static str>) -> CorsOrigin {

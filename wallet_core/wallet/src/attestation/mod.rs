@@ -15,6 +15,7 @@ use sd_jwt_vc_metadata::ClaimDisplayMetadata;
 use sd_jwt_vc_metadata::DisplayMetadata;
 use sd_jwt_vc_metadata::JsonSchemaPropertyType;
 use utils::vec_at_least::VecNonEmpty;
+use wallet_configuration::wallet_config::PidAttributesConfiguration;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 pub enum AttestationError {
@@ -26,7 +27,7 @@ pub enum AttestationError {
     #[category(pd)]
     AttributeError(Vec<String>, #[source] AttributeError),
 
-    #[error("error converting from mdoc attributes: {0}")]
+    #[error("error converting to attributes: {0}")]
     #[category(pd)]
     Attributes(#[from] AttributesError),
 }
@@ -40,6 +41,18 @@ pub enum AttributeError {
     #[error("unable to parse attribute value into date: {0:?}")]
     #[category(pd)]
     AttributeDateValue(#[from] chrono::ParseError),
+}
+
+pub trait AttestationPresentationConfig {
+    fn filtered_attribute(&self, attestation_type: &str) -> Option<&[String]>;
+}
+
+impl AttestationPresentationConfig for PidAttributesConfiguration {
+    fn filtered_attribute(&self, attribute: &str) -> Option<&[String]> {
+        self.sd_jwt
+            .get(attribute)
+            .map(|pid_paths| pid_paths.recovery_code.as_ref())
+    }
 }
 
 // TODO: Separate various concerns: PVW-4675
@@ -74,12 +87,21 @@ pub enum AttestationAttributeValue {
 }
 
 #[cfg(test)]
-mod mock {
+pub mod mock {
     use attestation_data::auth::Organization;
 
     use super::AttestationIdentity;
     use super::AttestationPresentation;
+    use super::AttestationPresentationConfig;
     use super::DisplayMetadata;
+
+    pub struct EmptyPresentationConfig;
+
+    impl AttestationPresentationConfig for EmptyPresentationConfig {
+        fn filtered_attribute(&self, _attestation_type: &str) -> Option<&[String]> {
+            None
+        }
+    }
 
     impl AttestationPresentation {
         /// Create a nearly empty [`AttestationPresentation`] for tests that absolutely need this type.

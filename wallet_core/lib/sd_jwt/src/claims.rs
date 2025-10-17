@@ -1,6 +1,7 @@
-use std::collections::HashMap;
 use std::iter::Peekable;
 
+use derive_more::Display;
+use indexmap::IndexMap;
 use itertools::Itertools;
 use nutype::nutype;
 use serde::Deserialize;
@@ -17,8 +18,8 @@ use crate::disclosure::Disclosure;
 use crate::disclosure::DisclosureContent;
 use crate::disclosure::DisclosureContentSerializationError;
 use crate::encoder::SdObjectEncoder;
-use crate::error::Error;
-use crate::error::Result;
+use crate::error::ClaimError;
+use crate::error::EncoderError;
 use crate::hasher::Hasher;
 
 #[nutype(
@@ -42,15 +43,15 @@ pub struct ObjectClaims {
 
     /// Non-selectively disclosable claims of the SD-JWT.
     #[serde(flatten)]
-    pub claims: HashMap<ClaimName, ClaimValue>,
+    pub claims: IndexMap<ClaimName, ClaimValue>,
 }
 
 impl ObjectClaims {
-    pub fn digests(&self) -> Vec<(String, HashType)> {
+    pub fn digests(&self) -> Vec<(String, ClaimType)> {
         let object_digests = self
             ._sd
             .iter()
-            .flat_map(|digests| digests.iter().map(|digest| (digest.clone(), HashType::Object)));
+            .flat_map(|digests| digests.iter().map(|digest| (digest.clone(), ClaimType::Object)));
 
         self.claims
             .values()
@@ -64,18 +65,18 @@ impl ObjectClaims {
     }
 
     fn remove(&mut self, key: &ClaimName) -> Option<ClaimValue> {
-        self.claims.remove(key)
+        self.claims.shift_remove(key)
     }
 
     fn insert(&mut self, key: ClaimName, value: ClaimValue) -> Option<ClaimValue> {
         self.claims.insert(key, value)
     }
 
-    fn conceal<H: Hasher>(&mut self, key: ClaimName, salt: String, hasher: &H) -> Result<Disclosure> {
+    fn conceal<H: Hasher>(&mut self, key: ClaimName, salt: String, hasher: &H) -> Result<Disclosure, EncoderError> {
         // Remove the value from the object
         let value_to_conceal = self
             .remove(&key)
-            .ok_or_else(|| Error::ObjectFieldNotFound(key.clone(), self.clone()))?;
+            .ok_or_else(|| ClaimError::ObjectFieldNotFound(key.clone(), Box::new(self.clone())))?;
 
         // Create a disclosure for the value
         let disclosure = Disclosure::try_new(DisclosureContent::ObjectProperty(salt, key, value_to_conceal)).map_err(
@@ -90,7 +91,7 @@ impl ObjectClaims {
         )?;
 
         // Hash the disclosure.
-        let hash = hasher.encoded_digest(disclosure.as_str());
+        let hash = hasher.encoded_digest(disclosure.encoded());
 
         // Add the hash to the "_sd" array if exists; otherwise, create the array and insert the hash.
         self.push_digest(hash);
@@ -131,10 +132,10 @@ impl ObjectClaims {
     fn digests_to_disclose<'a, I>(
         &'a self,
         path: &mut Peekable<I>,
-        disclosures: &'a HashMap<String, Disclosure>,
+        disclosures: &'a IndexMap<String, Disclosure>,
         element_key: &'a ClaimPath,
         has_next: bool,
-    ) -> Result<Vec<&'a str>>
+    ) -> Result<Vec<&'a str>, ClaimError>
     where
         I: ExactSizeIterator<Item = &'a ClaimPath>,
     {
@@ -144,7 +145,7 @@ impl ObjectClaims {
         match element_key {
             // We are just traversing to a deeper part of the object.
             ClaimPath::SelectByKey(key) if has_next => {
-                let next_object = match self.claims.get(&key.parse()?) {
+                let next_object = match self.claims.get(&key.parse::<ClaimName>()?) {
                     Some(claim_value) => claim_value,
                     None => {
                         let disclosure = self.find_disclosure_digest(key, disclosures).and_then(|digest| {
@@ -158,7 +159,7 @@ impl ObjectClaims {
                             let (_, _, claim_value) = disclosure.content.try_as_object_property(key)?;
                             claim_value
                         } else {
-                            return Err(Error::IntermediateElementNotFound { path: key.clone() });
+                            return Err(ClaimError::IntermediateElementNotFound(key.clone()));
                         }
                     }
                 };
@@ -171,17 +172,17 @@ impl ObjectClaims {
                 // If the value exists within the object, it is not selectively disclosable and we do not have to look
                 // for the associated disclosure.
                 // Otherwise we do look for the associated disclosure.
-                if !self.claims.contains_key(&key.parse()?) {
+                if !self.claims.contains_key(&key.parse::<ClaimName>()?) {
                     let digest = self
                         .find_disclosure_digest(key, disclosures)
-                        .ok_or_else(|| Error::ElementNotFound { path: key.clone() })?;
+                        .ok_or_else(|| ClaimError::ElementNotFound(key.clone()))?;
 
                     digests.push(digest);
                 }
                 Ok(digests)
             }
-            _ => Err(Error::UnexpectedElement(
-                ClaimValue::Object(self.clone()),
+            _ => Err(ClaimError::UnexpectedElement(
+                Box::new(ClaimValue::Object(self.clone())),
                 path.cloned().collect_vec(),
             )),
         }
@@ -190,7 +191,7 @@ impl ObjectClaims {
     fn find_disclosure_digest<'a>(
         &'a self,
         key: &str,
-        disclosures: &'a HashMap<String, Disclosure>,
+        disclosures: &'a IndexMap<String, Disclosure>,
     ) -> Option<&'a str> {
         self._sd.as_ref().and_then(|digests| {
             digests.iter().map(String::as_str).find(|digest| {
@@ -206,6 +207,7 @@ impl ObjectClaims {
     }
 }
 
+#[cfg_attr(test, derive(derive_more::Unwrap), unwrap(ref))]
 #[derive(Debug, Clone, Default, Serialize, Deserialize, Eq, PartialEq)]
 #[serde(untagged)]
 pub enum ClaimValue {
@@ -222,26 +224,32 @@ impl ClaimValue {
     pub(crate) fn traverse_by_claim_paths<'a, 'b>(
         &'a mut self,
         mut claim_paths: impl Iterator<Item = &'b ClaimPath>,
-    ) -> Result<Option<&'a mut ClaimValue>> {
+    ) -> Result<Option<&'a mut ClaimValue>, ClaimError> {
         claim_paths.try_fold(Some(self), |maybe_object, claim_path| {
             maybe_object.map_or(Ok(None), |object| object.traverse(claim_path))
         })
     }
 
-    fn traverse<'a>(&'a mut self, claim_path: &ClaimPath) -> Result<Option<&'a mut ClaimValue>> {
+    fn traverse<'a>(&'a mut self, claim_path: &ClaimPath) -> Result<Option<&'a mut ClaimValue>, ClaimError> {
         match (self, claim_path) {
             (ClaimValue::Array(array), ClaimPath::SelectByIndex(index)) => match array.get_mut(*index) {
-                Some(array_claim) => Ok(Some(array_claim.as_mut_value()?)),
+                Some(ArrayClaim::Value(value)) => Ok(Some(value)),
+                Some(ArrayClaim::Hash(_)) => Err(ClaimError::ExpectedArrayElement(claim_path.to_owned())),
                 None => Ok(None),
             },
-            (ClaimValue::Object(object), ClaimPath::SelectByKey(key)) => Ok(object.claims.get_mut(&key.parse()?)),
-            (_, ClaimPath::SelectAll) => Err(Error::UnsupportedTraversalPath(ClaimPath::SelectAll)),
-            (element, path) => Err(Error::UnexpectedElement(element.clone(), vec![path.clone()])),
+            (ClaimValue::Object(object), ClaimPath::SelectByKey(key)) => {
+                Ok(object.claims.get_mut(&key.parse::<ClaimName>()?))
+            }
+            (_, ClaimPath::SelectAll) => Err(ClaimError::UnsupportedTraversalPath(ClaimPath::SelectAll)),
+            (element, path) => Err(ClaimError::UnexpectedElement(
+                Box::new(element.clone()),
+                vec![path.clone()],
+            )),
         }
     }
 
     /// Recursively discover all placeholder digests for arrays and objects.
-    pub fn digests(&self) -> Vec<(String, HashType)> {
+    pub fn digests(&self) -> Vec<(String, ClaimType)> {
         match self {
             ClaimValue::Array(claims) => claims.iter().flat_map(ArrayClaim::digests).collect(),
             ClaimValue::Object(object) => object.digests(),
@@ -250,34 +258,31 @@ impl ClaimValue {
         }
     }
 
-    fn as_mut_object(&mut self) -> Result<&mut ObjectClaims> {
-        if let Self::Object(object) = self {
-            Ok(object)
-        } else {
-            Err(Error::DataTypeMismatch(format!(
-                "expected JSON Object, but got {:?}",
-                self
-            )))
-        }
-    }
-
-    fn as_mut_array(&mut self) -> Result<&mut Vec<ArrayClaim>> {
-        if let Self::Array(array) = self {
-            Ok(array)
-        } else {
-            Err(Error::DataTypeMismatch(format!(
-                "expected JSON Array, but got {:?}",
-                self
-            )))
-        }
-    }
-
-    pub(crate) fn conceal<H: Hasher>(&mut self, path: &ClaimPath, salt: String, hasher: &H) -> Result<Disclosure> {
+    pub(crate) fn conceal<H: Hasher>(
+        &mut self,
+        path: &ClaimPath,
+        salt: String,
+        hasher: &H,
+    ) -> Result<Disclosure, EncoderError> {
         match path {
-            ClaimPath::SelectByKey(key) => self.as_mut_object()?.conceal(key.parse()?, salt, hasher),
+            ClaimPath::SelectByKey(key) => {
+                let Self::Object(object) = self else {
+                    return Err(ClaimError::ClaimTypeMismatch {
+                        expected: ClaimType::Object,
+                        actual: self.clone().into(),
+                        path: path.to_owned(),
+                    })?;
+                };
+                object.conceal(key.parse().map_err(ClaimError::ReservedClaimName)?, salt, hasher)
+            }
             ClaimPath::SelectByIndex(index) => {
-                //
-                let array = self.as_mut_array()?;
+                let Self::Array(array) = self else {
+                    return Err(ClaimError::ClaimTypeMismatch {
+                        expected: ClaimType::Array,
+                        actual: self.clone().into(),
+                        path: path.to_owned(),
+                    })?;
+                };
                 array
                     .get_mut(*index)
                     .map(|value| {
@@ -292,24 +297,29 @@ impl ClaimValue {
                                 error
                             },
                         )?;
-                        let hash = hasher.encoded_digest(disclosure.as_str());
+                        let hash = hasher.encoded_digest(disclosure.encoded());
                         *value = ArrayClaim::Hash(hash);
                         Ok(disclosure)
                     })
-                    .unwrap_or_else(|| Err(Error::IndexOutOfBounds(*index, array.clone())))
+                    .unwrap_or_else(|| Err(ClaimError::IndexOutOfBounds(*index, array.clone()))?)
             }
-            ClaimPath::SelectAll => Err(Error::UnsupportedTraversalPath(path.clone())),
+            ClaimPath::SelectAll => Err(ClaimError::UnsupportedTraversalPath(path.clone()))?,
         }
     }
 
-    pub(crate) fn add_decoy<H: Hasher>(&mut self, path: &[ClaimPath], hasher: &H, salt_len: usize) -> Result<()> {
+    pub(crate) fn add_decoy<H: Hasher>(
+        &mut self,
+        path: &[ClaimPath],
+        hasher: &H,
+        salt_len: usize,
+    ) -> Result<(), EncoderError> {
         let Some(parent) = self.traverse_by_claim_paths(path.iter())? else {
-            return Err(Error::ParentNotFound(path.to_vec()));
+            return Err(ClaimError::ParentNotFound(path.to_vec()))?;
         };
         parent.add_decoy_here(hasher, salt_len)
     }
 
-    fn add_decoy_here<H: Hasher>(&mut self, hasher: &H, salt_len: usize) -> Result<()> {
+    fn add_decoy_here<H: Hasher>(&mut self, hasher: &H, salt_len: usize) -> Result<(), EncoderError> {
         match self {
             ClaimValue::Array(array) => {
                 array.push(ArrayClaim::Hash(SdObjectEncoder::random_digest(
@@ -321,16 +331,16 @@ impl ClaimValue {
                 object.push_digest(SdObjectEncoder::random_digest(hasher, salt_len, false)?);
                 Ok(())
             }
-            _ => Err(Error::UnexpectedElement(self.clone(), vec![])),
+            _ => Err(ClaimError::UnexpectedElement(Box::new(self.clone()), vec![]))?,
         }
     }
 
     pub(crate) fn digests_to_disclose<'a, I>(
         &'a self,
         path: &mut Peekable<I>,
-        disclosures: &'a HashMap<String, Disclosure>,
+        disclosures: &'a IndexMap<String, Disclosure>,
         traversing_array: bool,
-    ) -> Result<Vec<&'a str>>
+    ) -> Result<Vec<&'a str>, ClaimError>
     where
         I: ExactSizeIterator<Item = &'a ClaimPath>,
     {
@@ -339,9 +349,9 @@ impl ClaimValue {
 
         // If we are traversing an array, peekable shouldn't consume the next value
         let (element_key, has_next) = if traversing_array {
-            (*path.peek().ok_or(Error::EmptyPath)?, path.len() > 1)
+            (*path.peek().ok_or(ClaimError::EmptyPath)?, path.len() > 1)
         } else {
-            (path.next().ok_or(Error::EmptyPath)?, path.peek().is_some())
+            (path.next().ok_or(ClaimError::EmptyPath)?, path.peek().is_some())
         };
 
         match (self, element_key) {
@@ -349,24 +359,22 @@ impl ClaimValue {
                 object_claims.digests_to_disclose(path, disclosures, element_key, has_next)
             }
             (ClaimValue::Array(array_claims), ClaimPath::SelectByIndex(index)) if has_next => {
-                let entry = array_claims.get(*index).ok_or_else(|| Error::ElementNotFoundInArray {
-                    path: element_key.clone(),
-                })?;
+                let entry = array_claims
+                    .get(*index)
+                    .ok_or_else(|| ClaimError::ElementNotFoundInArray(element_key.clone()))?;
 
                 if let Some(next_object) = entry.process_digests_to_disclose(disclosures, &mut digests)? {
                     digests.append(&mut next_object.digests_to_disclose(path, disclosures, false)?);
                 } else {
-                    return Err(Error::ElementNotFoundInArray {
-                        path: element_key.clone(),
-                    });
+                    return Err(ClaimError::ElementNotFoundInArray(element_key.clone()));
                 }
 
                 Ok(digests)
             }
             (ClaimValue::Array(array_claims), ClaimPath::SelectByIndex(index)) => {
-                let entry = array_claims.get(*index).ok_or_else(|| Error::ElementNotFoundInArray {
-                    path: element_key.clone(),
-                })?;
+                let entry = array_claims
+                    .get(*index)
+                    .ok_or_else(|| ClaimError::ElementNotFoundInArray(element_key.clone()))?;
 
                 // If the array entry is an array-selective-disclosure object, then we'll add the digest to the
                 // list of digests to disclose.
@@ -379,9 +387,7 @@ impl ClaimValue {
                 for entry in array_claims {
                     let next_object = entry
                         .process_digests_to_disclose(disclosures, &mut digests)?
-                        .ok_or_else(|| Error::ElementNotFoundInArray {
-                            path: element_key.clone(),
-                        })?;
+                        .ok_or_else(|| ClaimError::ElementNotFoundInArray(element_key.clone()))?;
 
                     if has_next {
                         digests.append(&mut next_object.digests_to_disclose(path, disclosures, true)?);
@@ -389,7 +395,10 @@ impl ClaimValue {
                 }
                 Ok(digests)
             }
-            (element, _) => Err(Error::UnexpectedElement(element.clone(), path.cloned().collect_vec())),
+            (element, _) => Err(ClaimError::UnexpectedElement(
+                Box::new(element.clone()),
+                path.cloned().collect_vec(),
+            )),
         }
     }
 }
@@ -403,28 +412,18 @@ pub enum ArrayClaim {
 }
 
 impl ArrayClaim {
-    pub fn digests(&self) -> Vec<(String, HashType)> {
+    pub fn digests(&self) -> Vec<(String, ClaimType)> {
         match &self {
-            ArrayClaim::Hash(hash) => vec![(hash.clone(), HashType::Array)],
+            ArrayClaim::Hash(hash) => vec![(hash.clone(), ClaimType::Array)],
             ArrayClaim::Value(value) => value.digests(),
-        }
-    }
-
-    fn as_mut_value(&mut self) -> Result<&mut ClaimValue> {
-        if let Self::Value(value) = self {
-            Ok(value)
-        } else {
-            Err(Error::DataTypeMismatch(
-                "expected JSON array element, but got an array digest".to_string(),
-            ))
         }
     }
 
     fn process_digests_to_disclose<'a>(
         &'a self,
-        disclosures: &'a HashMap<String, Disclosure>,
+        disclosures: &'a IndexMap<String, Disclosure>,
         digests: &mut Vec<&'a str>,
-    ) -> Result<Option<&'a ClaimValue>> {
+    ) -> Result<Option<&'a ClaimValue>, ClaimError> {
         let result = match self {
             ArrayClaim::Hash(digest) => {
                 // We're disclosing something within a selectively disclosable array entry.
@@ -479,10 +478,27 @@ impl From<DisclosureHash> for String {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum HashType {
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Display)]
+pub enum ClaimType {
     Array,
     Object,
+    String,
+    Number,
+    Bool,
+    Null,
+}
+
+impl From<ClaimValue> for ClaimType {
+    fn from(value: ClaimValue) -> Self {
+        match value {
+            ClaimValue::Array(_) => ClaimType::Array,
+            ClaimValue::Object(_) => ClaimType::Object,
+            ClaimValue::Null => ClaimType::Null,
+            ClaimValue::Bool(_) => ClaimType::Bool,
+            ClaimValue::Number(_) => ClaimType::Number,
+            ClaimValue::String(_) => ClaimType::String,
+        }
+    }
 }
 
 #[cfg(test)]
@@ -534,7 +550,7 @@ mod tests {
 
         // First conceal should result in an Array element disclosure with a value array claim.
         {
-            let array_claims = array_claims.as_array().unwrap();
+            let array_claims = array_claims.unwrap_array_ref();
 
             assert_eq!(array_claims.len(), 3);
             assert_matches!(array_claims[0], ArrayClaim::Value(_));
@@ -555,7 +571,7 @@ mod tests {
             .unwrap();
 
         // Second conceal should result in an Array element disclosure with a hash array claim.
-        let array_claims = array_claims.as_array().unwrap();
+        let array_claims = array_claims.unwrap_array_ref();
 
         assert_eq!(array_claims.len(), 3);
         assert_matches!(array_claims[0], ArrayClaim::Value(_));
@@ -569,29 +585,32 @@ mod tests {
     }
 
     #[rstest]
-    #[case(json!("John Doe"), ClaimPath::SelectByKey("name".to_string()), "DataTypeMismatch(\"expected JSON Object, but got String(\\\"John Doe\\\")\")")]
-    #[case(json!("John Doe"), ClaimPath::SelectByIndex(0), "DataTypeMismatch(\"expected JSON Array, but got String(\\\"John Doe\\\")\")")]
-    #[case(json!("John Doe"), ClaimPath::SelectAll, "UnsupportedTraversalPath(SelectAll)")]
-    #[case(json!(30), ClaimPath::SelectByKey("name".to_string()), "DataTypeMismatch(\"expected JSON Object, but got Number(Number(30))\")")]
-    #[case(json!(30), ClaimPath::SelectByIndex(0), "DataTypeMismatch(\"expected JSON Array, but got Number(Number(30))\")")]
-    #[case(json!(30), ClaimPath::SelectAll, "UnsupportedTraversalPath(SelectAll)")]
-    #[case(json!(false), ClaimPath::SelectByKey("name".to_string()), "DataTypeMismatch(\"expected JSON Object, but got Bool(false)\")")]
-    #[case(json!(false), ClaimPath::SelectByIndex(0), "DataTypeMismatch(\"expected JSON Array, but got Bool(false)\")")]
-    #[case(json!(false), ClaimPath::SelectAll, "UnsupportedTraversalPath(SelectAll)")]
-    #[case(json!(null), ClaimPath::SelectByKey("name".to_string()), "DataTypeMismatch(\"expected JSON Object, but got Null\")")]
-    #[case(json!(null), ClaimPath::SelectByIndex(0), "DataTypeMismatch(\"expected JSON Array, but got Null\")")]
-    #[case(json!(null), ClaimPath::SelectAll, "UnsupportedTraversalPath(SelectAll)")]
+    #[case(json!("John Doe"), "name".parse().unwrap(), ClaimError::ClaimTypeMismatch { expected: ClaimType::Object, actual: ClaimType::String, path: "name".parse().unwrap() })]
+    #[case(json!("John Doe"), "0".parse().unwrap(), ClaimError::ClaimTypeMismatch { expected: ClaimType::Array, actual: ClaimType::String, path: ClaimPath::SelectByIndex(0) })]
+    #[case(json!("John Doe"), ClaimPath::SelectAll, ClaimError::UnsupportedTraversalPath(ClaimPath::SelectAll))]
+    #[case(json!(30), "name".parse().unwrap(), ClaimError::ClaimTypeMismatch { expected: ClaimType::Object, actual: ClaimType::Number, path: "name".parse().unwrap() })]
+    #[case(json!(30), "0".parse().unwrap(), ClaimError::ClaimTypeMismatch { expected: ClaimType::Array, actual: ClaimType::Number, path: ClaimPath::SelectByIndex(0) })]
+    #[case(json!(30), ClaimPath::SelectAll, ClaimError::UnsupportedTraversalPath(ClaimPath::SelectAll))]
+    #[case(json!(false), "name".parse().unwrap(), ClaimError::ClaimTypeMismatch { expected: ClaimType::Object, actual: ClaimType::Bool, path: "name".parse().unwrap() })]
+    #[case(json!(false), "0".parse().unwrap(), ClaimError::ClaimTypeMismatch { expected: ClaimType::Array, actual: ClaimType::Bool, path: ClaimPath::SelectByIndex(0) })]
+    #[case(json!(false), ClaimPath::SelectAll, ClaimError::UnsupportedTraversalPath(ClaimPath::SelectAll))]
+    #[case(json!(null), "name".parse().unwrap(), ClaimError::ClaimTypeMismatch { expected: ClaimType::Object, actual: ClaimType::Null, path: "name".parse().unwrap() })]
+    #[case(json!(null), "0".parse().unwrap(), ClaimError::ClaimTypeMismatch { expected: ClaimType::Array, actual: ClaimType::Null, path: ClaimPath::SelectByIndex(0) })]
+    #[case(json!(null), ClaimPath::SelectAll, ClaimError::UnsupportedTraversalPath(ClaimPath::SelectAll))]
     fn test_claim_value_conceal_primitives(
         #[case] value: serde_json::Value,
         #[case] path: ClaimPath,
-        #[case] expected: &str,
+        #[case] expected: ClaimError,
     ) {
         let mut claim_value: ClaimValue = serde_json::from_value(value).unwrap();
 
         let hasher = Sha256Hasher;
         let error = claim_value.conceal(&path, "salt123".to_string(), &hasher).unwrap_err();
 
-        assert_eq!(format!("{error:?}").as_str(), expected);
+        let EncoderError::ClaimStructure(claims_error) = error else {
+            panic!("assertion failed: expected `EncoderError::ClaimsStructure(_)`");
+        };
+        assert_eq!(claims_error, expected);
     }
 
     #[test]

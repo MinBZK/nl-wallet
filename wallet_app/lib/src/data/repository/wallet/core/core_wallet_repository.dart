@@ -6,9 +6,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:wallet_core/core.dart';
 
-import '../../../../domain/model/pin/pin_validation_error.dart';
 import '../../../../domain/model/wallet_status.dart';
-import '../../../../util/mapper/mapper.dart';
 import '../../../../wallet_core/typed/typed_wallet_core.dart';
 import '../wallet_repository.dart';
 
@@ -21,18 +19,8 @@ class CoreWalletRepository implements WalletRepository {
   ExitFn exit = io.exit;
 
   final TypedWalletCore _walletCore;
-  final Mapper<PinValidationResult, PinValidationError?> _pinValidationErrorMapper;
 
-  CoreWalletRepository(this._walletCore, this._pinValidationErrorMapper);
-
-  @override
-  Future<void> validatePin(String pin) async {
-    final result = await _walletCore.isValidPin(pin);
-    final error = _pinValidationErrorMapper.map(result);
-    if (error != null) {
-      throw error;
-    }
-  }
+  CoreWalletRepository(this._walletCore);
 
   @override
   Future<void> createWallet(String pin) async {
@@ -69,24 +57,6 @@ class CoreWalletRepository implements WalletRepository {
   Future<void> unlockWalletWithBiometrics() async {
     if (!(await isRegistered())) throw walletNotRegisteredError;
     return _walletCore.unlockWithBiometrics();
-  }
-
-  @override
-  Future<WalletInstructionResult> checkPin(String pin) async {
-    if (!(await isRegistered())) throw walletNotRegisteredError;
-    return _walletCore.checkPin(pin);
-  }
-
-  @override
-  Future<WalletInstructionResult> changePin(String oldPin, String newPin) async {
-    if (!(await isRegistered())) throw walletNotRegisteredError;
-    return _walletCore.changePin(oldPin, newPin);
-  }
-
-  @override
-  Future<WalletInstructionResult> continueChangePin(String pin) async {
-    if (!(await isRegistered())) throw walletNotRegisteredError;
-    return _walletCore.continueChangePin(pin);
   }
 
   @override

@@ -9,8 +9,8 @@
 | **Preconditions**            | <ul><li>Device supports biometrics</li></ul>                                                                                                                    |
 | **Postconditions**           | <ul><li>Biometric unlock is enabled OR</li><li>Biometric unlock is disabled</li></ul>                                                                           |
 | **Triggered by**             | <ul><li>User selects 'Unlock with biometric' in [UC9.1 Show app menu](UC9.1_ShowAppMenu.md).</li></ul>                                                          |
-| **Additional Documentation** | <ul><li>[PIN Validation](../../architecture/use-cases/pin-validation.md)</li></ul>                                                                                        |
-| **Possible errors**          | <ul><li>No internet</li><li>Server unreachable</li></ul>                                                                                                        |
+| **Additional Documentation** | <ul><li>[PIN Validation](../../architecture/use-cases/pin-validation.md)</li></ul>                                                                              |
+| **Possible errors**          | *None*                                                                                                                                                          |
 | **Logical Test Cases**       | <ul><li>[LTC76 User disables biometrics](../logical-test-cases.md#ltc76)</li><li>[LTC77 Setup biometrics in settings](../logical-test-cases.md#ltc77)</li></ul> |
 
 ---
@@ -33,4 +33,4 @@
 | **1.4** | **System displays screen 'wallet is secured'**<ul><li>Message: Your NL Wallet is secured</li><li>Actions: Close, To Settings, Help</li></ul>                           |                                                    |
 | 1.4a    | User selects Close                                                                                                                                                     | 1.1                                                |
 | 1.4b    | User selects To Settings                                                                                                                                               | Go to: [UC9.1 Show app menu](UC9.1_ShowAppMenu.md) |
-| 1.4c    | User selects Help                                                                                                                                                      | Go to: [UC9.6 Get help](UC9.6_GetHelp.md)          |
+| 1.4c    | User selects Help                                                                                                                                                      | Show placeholder 'under construction'          |

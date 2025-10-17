@@ -1,3 +1,7 @@
+use std::time::Duration;
+
+use chrono::DateTime;
+use chrono::Utc;
 use itertools::Itertools;
 
 use attestation_types::claim_path::ClaimPath;
@@ -8,21 +12,33 @@ use jwt::error::JwtX5cError;
 use crate::claims::ArrayClaim;
 use crate::claims::ClaimName;
 use crate::claims::ClaimNameError;
+use crate::claims::ClaimType;
 use crate::claims::ClaimValue;
 use crate::claims::ObjectClaims;
 use crate::sd_alg::SdAlg;
 
-/// Alias for a `Result` with the error type [`Error`].
-pub type Result<T> = core::result::Result<T, Error>;
-
 #[derive(Debug, thiserror::Error)]
-#[non_exhaustive]
-pub enum Error {
-    #[error("invalid input: {0}")]
-    InvalidDisclosure(String),
+#[error("no hasher implemented for sd_alg: {0:?}")]
+pub struct SdAlgHasherNotImplemented(pub SdAlg);
 
-    #[error("data type is not expected: {0}")]
-    DataTypeMismatch(String),
+#[derive(Debug, thiserror::Error, PartialEq)]
+pub enum ClaimError {
+    #[error("claim type mismatch; expected {expected}, found `{actual:?}` at path `{path}`")]
+    ClaimTypeMismatch {
+        expected: ClaimType,
+        actual: ClaimType,
+        path: ClaimPath,
+    },
+
+    #[error("expected an array element, but found an array hash at index `{0}`")]
+    ExpectedArrayElement(ClaimPath),
+
+    #[error("disclosure type mismatch; expected {expected}, found {actual} for digest {digest}")]
+    DisclosureTypeMismatch {
+        expected: ClaimType,
+        actual: ClaimType,
+        digest: String,
+    },
 
     #[error("encountered a reserved claim name which cannot be used: {0}")]
     ReservedClaimName(#[from] ClaimNameError),
@@ -31,49 +47,43 @@ pub enum Error {
     IndexOutOfBounds(usize, Vec<ArrayClaim>),
 
     #[error("object field `{0}` not found in: `{1:?}`")]
-    ObjectFieldNotFound(ClaimName, ObjectClaims),
+    ObjectFieldNotFound(ClaimName, Box<ObjectClaims>),
 
     #[error("couldn't find parent for path: /{}", .0.iter().map(ToString::to_string).join("/"))]
     ParentNotFound(Vec<ClaimPath>),
 
     #[error("unexpected element: {:?}, for path: /{}", .0, .1.iter().map(ToString::to_string).join("/"))]
-    UnexpectedElement(ClaimValue, Vec<ClaimPath>),
+    UnexpectedElement(Box<ClaimValue>, Vec<ClaimPath>),
 
-    #[error("the array element for path: '{path}' cannot be found")]
-    ElementNotFoundInArray { path: ClaimPath },
+    #[error("the array element for path: '{0}' cannot be found")]
+    ElementNotFoundInArray(ClaimPath),
 
     #[error("cannot disclose empty path")]
     EmptyPath,
 
-    #[error("the referenced intermediate element for path: '{path}' cannot be found")]
-    IntermediateElementNotFound { path: String },
+    #[error("the referenced intermediate element for path: '{0}' cannot be found")]
+    IntermediateElementNotFound(String),
 
-    #[error("the referenced element for path: '{path}' cannot be found")]
-    ElementNotFound { path: String },
-
-    #[error("invalid input: {0}")]
-    Deserialization(String),
-
-    #[error("error serializing to JSON: {0}")]
-    Serialization(#[from] serde_json::error::Error),
-
-    #[error("error parsing JWT: {0}")]
-    JwtParsing(#[from] JwtError),
-
-    #[error("failed to verify SD-JWT: {0}")]
-    JwtVerification(#[from] JwtX5cError),
-
-    #[error("error creating JWK from verifying key: {0}")]
-    Jwk(#[from] JwkConversionError),
-
-    #[error("missing required JWK key binding")]
-    MissingJwkKeybinding,
+    #[error("the referenced element for path: '{0}' cannot be found")]
+    ElementNotFound(String),
 
     #[error("cannot traverse object for path: {0}")]
     UnsupportedTraversalPath(ClaimPath),
+}
 
-    #[error("no hasher implemented for sd_alg: {0:?}")]
-    SdAlgHasherNotImplemented(SdAlg),
+#[derive(Debug, thiserror::Error)]
+pub enum DecoderError {
+    #[error("unsupported hash algorithm: {0}")]
+    Hasher(#[from] SdAlgHasherNotImplemented),
+
+    #[error("SD-JWT format is invalid, input doesn't end with '~'")]
+    MissingFinalTilde,
+
+    #[error("SD-JWT format is invalid, input doesn't contain an issuer signed JWT")]
+    MissingIssuerSignedJwt,
+
+    #[error("SD-JWT format is invalid, no segments found")]
+    MissingSegments,
 
     #[error("hash occurs multiple times in SD-JWT: {0}")]
     DuplicateHash(String),
@@ -83,4 +93,64 @@ pub enum Error {
 
     #[error("SD-JWT contains additional disclosures with digests {0:?}")]
     UnreferencedDisclosures(Vec<String>),
+
+    #[error("claim structure error: {0}")]
+    ClaimStructure(#[from] ClaimError),
+
+    #[error("base64 decoding of disclosure failed: {0}")]
+    Base64Decoding(#[from] base64::DecodeError),
+
+    #[error("JSON deserialization of disclosure failed: {0}")]
+    JsonDeserialization(#[from] serde_json::Error),
+
+    #[error("error creating JWK from verifying key: {0}")]
+    Jwk(#[from] JwkConversionError),
+
+    #[error("error parsing JWT: {0}")]
+    JwtParsing(#[from] JwtError),
+
+    #[error("failed to verify SD-JWT: {0}")]
+    JwtVerification(#[from] JwtX5cError),
+
+    #[error("invalid KB-JWT: {0}")]
+    KeyBinding(#[from] KeyBindingError),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum EncoderError {
+    #[error("serialization error: {0}")]
+    Serialization(#[from] serde_json::Error),
+
+    #[error("claim structure error: {0}")]
+    ClaimStructure(#[from] ClaimError),
+
+    #[error("signing error: {0}")]
+    Signing(#[from] JwtError),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum KeyBindingError {
+    #[error("unexpected nonce, got `{0}``")]
+    NonceMismatch(String),
+
+    #[error("iat ({0}) not in acceptable window with duration `{1:?}`, current time: `{2}`")]
+    InvalidSignatureTimestamp(DateTime<Utc>, Duration, DateTime<Utc>),
+
+    #[error("jwt error: {0}")]
+    Jwt(#[from] JwtError),
+
+    #[error("unsupported hashing algorithm: {0}")]
+    Hasher(#[from] SdAlgHasherNotImplemented),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum SigningError {
+    #[error("error creating JWK from verifying key: {0}")]
+    Jwk(#[from] JwkConversionError),
+
+    #[error("error signing: {0}")]
+    Jwt(#[from] JwtError),
+
+    #[error("invalid KB-JWT: {0}")]
+    KeyBinding(#[from] KeyBindingError),
 }

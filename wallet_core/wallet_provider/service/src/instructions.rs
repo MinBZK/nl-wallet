@@ -11,10 +11,12 @@ use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
 use serde::Deserialize;
 use serde::Serialize;
-use serde_json::Value;
 use tracing::warn;
+use utils::vec_nonempty;
 use uuid::Uuid;
 
+use attestation_data::attributes::AttributeValue;
+use attestation_data::attributes::Attributes;
 use attestation_data::constants::PID_RECOVERY_CODE;
 use crypto::keys::EcdsaKey;
 use crypto::p256_der::DerSignature;
@@ -722,12 +724,12 @@ impl HandleInstruction for DiscloseRecoveryCode {
             .recovery_code_disclosure
             .into_verified_against_trust_anchors(&user_state.pid_issuer_trust_anchors, &TimeGenerator)?;
 
-        let recovery_code = match verified_sd_jwt
-            .as_ref()
-            .to_disclosed_object()?
-            .remove(PID_RECOVERY_CODE)
+        let disclosed_attributes: Attributes = verified_sd_jwt.decoded_claims()?.try_into()?;
+        let recovery_code = match disclosed_attributes
+            .flattened()
+            .swap_remove(&vec_nonempty![PID_RECOVERY_CODE])
         {
-            Some(Value::String(recovery_code)) => recovery_code,
+            Some(AttributeValue::Text(recovery_code)) => recovery_code,
             _ => return Err(InstructionError::MissingRecoveryCode),
         };
 
@@ -754,7 +756,7 @@ impl HandleInstruction for DiscloseRecoveryCode {
             Some(transfer_session_id)
         } else if user_state
             .repositories
-            .has_multiple_active_accounts_by_recovery_code(&tx, &recovery_code)
+            .has_multiple_active_accounts_by_recovery_code(&tx, recovery_code)
             .await?
         {
             let transfer_session_id = Uuid::new_v4();
@@ -798,30 +800,24 @@ impl HandleInstruction for DiscloseRecoveryCodePinRecovery {
             .recovery_code_disclosure
             .into_verified_against_trust_anchors(&user_state.pid_issuer_trust_anchors, &TimeGenerator)?;
 
-        let key = verified_sd_jwt
-            .as_ref()
-            .required_key_bind()
-            .unwrap() // The above verification can't have succeeded if this is absent
-            .verifying_key()
-            .unwrap(); // The above verification can't have succeeded if this fails
-
-        let recovery_code = match verified_sd_jwt
-            .as_ref()
-            .to_disclosed_object()?
-            .remove(PID_RECOVERY_CODE)
+        let key = verified_sd_jwt.holder_pubkey().unwrap(); // The above verification can't have succeeded if this fails
+        let disclosed_attributes: Attributes = verified_sd_jwt.decoded_claims()?.try_into()?;
+        let recovery_code = match disclosed_attributes
+            .flattened()
+            .swap_remove(&vec_nonempty![PID_RECOVERY_CODE])
         {
-            Some(Value::String(recovery_code)) => recovery_code,
+            Some(AttributeValue::Text(recovery_code)) => recovery_code,
             _ => return Err(InstructionError::MissingRecoveryCode),
         };
 
         // Idempotency check
-        if wallet_user.state == WalletUserState::Active && wallet_user.recovery_code.as_ref() == Some(&recovery_code) {
+        if wallet_user.state == WalletUserState::Active && wallet_user.recovery_code.as_ref() == Some(recovery_code) {
             return Ok(());
         }
 
         // The PID that was just received has to belong to the same person as the wallet,
         // which is the case only if they have the same recovery code.
-        if wallet_user.recovery_code != Some(recovery_code) {
+        if wallet_user.recovery_code.as_ref() != Some(recovery_code) {
             return Err(InstructionError::InvalidRecoveryCode);
         }
 
@@ -1316,7 +1312,7 @@ mod tests {
     use jwt::jwk::jwk_to_p256;
     use jwt::pop::JwtPopClaims;
     use jwt::wua::WuaDisclosure;
-    use sd_jwt::sd_jwt::SdJwt;
+    use sd_jwt::builder::SignedSdJwt;
     use sd_jwt::sd_jwt::UnverifiedSdJwt;
     use wallet_account::NL_WALLET_CLIENT_ID;
     use wallet_account::messages::instructions::CancelTransfer;
@@ -1468,7 +1464,7 @@ mod tests {
         let issuer_key =
             generate_issuer_mock_with_registration(&issuer_ca, IssuerRegistration::new_mock().into()).unwrap();
         let holder_key = SigningKey::random(&mut OsRng);
-        let sd_jwt = SdJwt::example_pid_sd_jwt(&issuer_key, holder_key.verifying_key());
+        let sd_jwt = SignedSdJwt::pid_example(&issuer_key, holder_key.verifying_key()).into_verified();
 
         let recovery_code_disclosure = sd_jwt
             .into_presentation_builder()
@@ -1526,7 +1522,7 @@ mod tests {
         let issuer_key =
             generate_issuer_mock_with_registration(&issuer_ca, IssuerRegistration::new_mock().into()).unwrap();
         let holder_key = SigningKey::random(&mut OsRng);
-        let sd_jwt = SdJwt::example_pid_sd_jwt(&issuer_key, holder_key.verifying_key());
+        let sd_jwt = SignedSdJwt::pid_example(&issuer_key, holder_key.verifying_key()).into_verified();
 
         let recovery_code_disclosure = sd_jwt
             .into_presentation_builder()
@@ -1597,7 +1593,7 @@ mod tests {
         let issuer_key =
             generate_issuer_mock_with_registration(&issuer_ca, IssuerRegistration::new_mock().into()).unwrap();
         let holder_key = SigningKey::random(&mut OsRng);
-        let sd_jwt = SdJwt::example_pid_sd_jwt(&issuer_key, holder_key.verifying_key());
+        let sd_jwt = SignedSdJwt::pid_example(&issuer_key, holder_key.verifying_key()).into_verified();
 
         let recovery_code_disclosure: UnverifiedSdJwt = sd_jwt
             .into_presentation_builder()
@@ -1665,7 +1661,8 @@ mod tests {
 
         let transfer_session_id_clone = Arc::clone(&transfer_session_id);
 
-        wallet_user.recovery_code = Some("885ed8a2-f07a-4f77-a8df-2e166f5ebd36".to_string());
+        wallet_user.recovery_code =
+            Some("cff292503cba8c4fbf2e5820dcdc468ae00f40c87b1af35513375800128fc00d".to_string());
         let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
         wallet_user_repo
             .expect_begin_transaction()
@@ -1702,7 +1699,8 @@ mod tests {
     async fn should_handle_disclose_recovery_code_for_pin_recovery() {
         let mut wallet_user = wallet_user::mock::wallet_user_1();
         wallet_user.state = WalletUserState::RecoveringPin;
-        wallet_user.recovery_code = Some("885ed8a2-f07a-4f77-a8df-2e166f5ebd36".to_string());
+        wallet_user.recovery_code =
+            Some("cff292503cba8c4fbf2e5820dcdc468ae00f40c87b1af35513375800128fc00d".to_string());
 
         let wrapping_key_identifier = "my-wrapping-key-identifier";
 
@@ -1710,7 +1708,7 @@ mod tests {
         let issuer_key =
             generate_issuer_mock_with_registration(&issuer_ca, IssuerRegistration::new_mock().into()).unwrap();
         let holder_key = SigningKey::random(&mut OsRng);
-        let sd_jwt = SdJwt::example_pid_sd_jwt(&issuer_key, holder_key.verifying_key());
+        let sd_jwt = SignedSdJwt::pid_example(&issuer_key, holder_key.verifying_key()).into_verified();
 
         let recovery_code_disclosure = sd_jwt
             .into_presentation_builder()
@@ -1766,7 +1764,7 @@ mod tests {
         let issuer_key =
             generate_issuer_mock_with_registration(&issuer_ca, IssuerRegistration::new_mock().into()).unwrap();
         let holder_key = SigningKey::random(&mut OsRng);
-        let sd_jwt = SdJwt::example_pid_sd_jwt(&issuer_key, holder_key.verifying_key());
+        let sd_jwt = SignedSdJwt::pid_example(&issuer_key, holder_key.verifying_key()).into_verified();
 
         let recovery_code_disclosure = sd_jwt
             .into_presentation_builder()
@@ -1784,7 +1782,8 @@ mod tests {
         };
 
         wallet_user.state = WalletUserState::Active;
-        wallet_user.recovery_code = Some("885ed8a2-f07a-4f77-a8df-2e166f5ebd36".to_string());
+        wallet_user.recovery_code =
+            Some("cff292503cba8c4fbf2e5820dcdc468ae00f40c87b1af35513375800128fc00d".to_string());
         let wallet_user_repo = MockTransactionalWalletUserRepository::new();
 
         let result = instruction
@@ -1815,7 +1814,7 @@ mod tests {
         let issuer_key =
             generate_issuer_mock_with_registration(&issuer_ca, IssuerRegistration::new_mock().into()).unwrap();
         let holder_key = SigningKey::random(&mut OsRng);
-        let sd_jwt = SdJwt::example_pid_sd_jwt(&issuer_key, holder_key.verifying_key());
+        let sd_jwt = SignedSdJwt::pid_example(&issuer_key, holder_key.verifying_key()).into_verified();
 
         let recovery_code_disclosure = sd_jwt
             .into_presentation_builder()
@@ -1853,7 +1852,8 @@ mod tests {
     async fn should_fail_disclose_recovery_code_for_pin_recovery_when_wrong_pin_recovery_key() {
         let mut wallet_user = wallet_user::mock::wallet_user_1();
         wallet_user.state = WalletUserState::RecoveringPin;
-        wallet_user.recovery_code = Some("885ed8a2-f07a-4f77-a8df-2e166f5ebd36".to_string());
+        wallet_user.recovery_code =
+            Some("cff292503cba8c4fbf2e5820dcdc468ae00f40c87b1af35513375800128fc00d".to_string());
 
         let wrapping_key_identifier = "my-wrapping-key-identifier";
 
@@ -1861,7 +1861,7 @@ mod tests {
         let issuer_key =
             generate_issuer_mock_with_registration(&issuer_ca, IssuerRegistration::new_mock().into()).unwrap();
         let holder_key = SigningKey::random(&mut OsRng);
-        let sd_jwt = SdJwt::example_pid_sd_jwt(&issuer_key, holder_key.verifying_key());
+        let sd_jwt = SignedSdJwt::pid_example(&issuer_key, holder_key.verifying_key()).into_verified();
 
         let recovery_code_disclosure = sd_jwt
             .into_presentation_builder()

@@ -31,7 +31,7 @@ class SplashScreen extends StatelessWidget {
             } else if (state.isRegistered) {
               Navigator.restorablePushReplacementNamed(context, WalletRoutes.walletPersonalizeRoute);
             } else {
-              Navigator.restorablePushReplacementNamed(context, WalletRoutes.introductionRoute);
+              Navigator.restorablePushReplacementNamed(context, WalletRoutes.demoRoute);
             }
           }
         },

@@ -390,7 +390,7 @@ async fn test_store_recovery_code() {
         other_wallet_user, WalletUserQueryResult::Found(wallet_user) if wallet_user.recovery_code.is_none()
     );
 
-    let recovery_code = "885ed8a2-f07a-4f77-a8df-2e166f5ebd36".to_string();
+    let recovery_code = "cff292503cba8c4fbf2e5820dcdc468ae00f40c87b1af35513375800128fc00d".to_string();
     // After updating the recovery_code for the first user it should be changed, while the other one should remain null
     store_recovery_code(&db, &other_wallet_id, recovery_code.clone())
         .await

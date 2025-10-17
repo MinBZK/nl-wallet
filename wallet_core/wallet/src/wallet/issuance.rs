@@ -13,7 +13,6 @@ use uuid::Uuid;
 
 use attestation_data::auth::Organization;
 use attestation_data::constants::PID_ATTESTATION_TYPE;
-use attestation_data::constants::PID_RECOVERY_CODE;
 use attestation_data::credential_payload::CredentialPayload;
 use attestation_types::claim_path::ClaimPath;
 use crypto::x509::CertificateError;
@@ -41,6 +40,7 @@ use update_policy_model::update_policy::VersionState;
 use utils::built_info::version;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
+use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use wallet_account::NL_WALLET_CLIENT_ID;
 use wallet_account::messages::instructions::DiscloseRecoveryCode;
@@ -169,7 +169,7 @@ pub enum IssuanceError {
 
     #[error("could not add recovery code disclosure: {0}")]
     #[category(pd)]
-    RecoveryCodeDisclosure(sd_jwt::error::Error),
+    RecoveryCodeDisclosure(sd_jwt::error::ClaimError),
 
     #[error("error storing transfer data in database: {0}")]
     TransferDataStorage(#[source] StorageError),
@@ -423,6 +423,7 @@ where
             );
 
         info!("successfully received token and previews from issuer");
+        let wallet_config = self.config_repository.get();
         let organization = &issuance_session.issuer_registration().organization;
         let attestations = previews_and_identity
             .into_iter()
@@ -432,6 +433,7 @@ where
                     preview_data.normalized_metadata.clone(),
                     organization.clone(),
                     &preview_data.content.credential_payload.attributes,
+                    &wallet_config.pid_attributes,
                 )
                 .map_err(|error| IssuanceError::Attestation {
                     organization: Box::new(organization.clone()),
@@ -621,26 +623,30 @@ where
         instruction_client: &InstructionClient<S, AK, GK, APC>,
         issued_credentials_with_metadata: &[CredentialWithMetadata],
     ) -> Result<Option<TransferSessionId>, IssuanceError> {
-        let pid = issued_credentials_with_metadata
+        let pid_attributes = &self.config_repository.get().pid_attributes;
+        let (pid, claim_path) = issued_credentials_with_metadata
             .iter()
             .find_map(|cred| {
-                (cred.attestation_type == PID_ATTESTATION_TYPE).then(|| {
+                pid_attributes.sd_jwt.get(&cred.attestation_type).map(|pid_paths| {
                     cred.copies.as_ref().iter().find_map(|copy| match copy {
                         IssuedCredential::MsoMdoc { .. } => None,
-                        IssuedCredential::SdJwt { sd_jwt, .. } => Some(sd_jwt.clone()),
+                        IssuedCredential::SdJwt { sd_jwt, .. } => {
+                            let claim_path = pid_paths
+                                .recovery_code
+                                .nonempty_iter()
+                                .map(|path| ClaimPath::SelectByKey(path.to_string()))
+                                .collect::<VecNonEmpty<_>>();
+                            Some((sd_jwt.clone(), claim_path))
+                        }
                     })
                 })
             })
             .flatten()
-            .ok_or(IssuanceError::MissingPidSdJwt)?
-            .into_inner();
+            .ok_or(IssuanceError::MissingPidSdJwt)?;
+
         let recovery_code_disclosure = pid
             .into_presentation_builder()
-            .disclose(
-                &vec![ClaimPath::SelectByKey(PID_RECOVERY_CODE.to_owned())]
-                    .try_into()
-                    .unwrap(),
-            )
+            .disclose(&claim_path)
             .map_err(IssuanceError::RecoveryCodeDisclosure)?
             .finish();
 
@@ -698,8 +704,6 @@ mod tests {
     use futures::FutureExt;
     use itertools::multiunzip;
     use mockall::predicate::*;
-    use p256::ecdsa::SigningKey;
-    use rand_core::OsRng;
     use rstest::rstest;
     use serial_test::serial;
     use url::Url;
@@ -719,7 +723,6 @@ mod tests {
     use openid4vc::oidc::OidcError;
     use openid4vc::token::TokenRequest;
     use openid4vc::token::TokenRequestGrantType;
-    use sd_jwt::sd_jwt::VerifiedSdJwt;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
     use utils::generator::mock::MockTimeGenerator;
@@ -728,6 +731,7 @@ mod tests {
 
     use crate::WalletEvent;
     use crate::attestation::AttestationAttributeValue;
+    use crate::attestation::mock::EmptyPresentationConfig;
     use crate::digid::MockDigidSession;
     use crate::storage::ChangePinData;
     use crate::storage::InstructionData;
@@ -753,7 +757,7 @@ mod tests {
         let mut client = MockIssuanceSession::new();
         let issuer_certificate = match &credential {
             IssuedCredential::MsoMdoc { mdoc } => mdoc.issuer_certificate().unwrap(),
-            IssuedCredential::SdJwt { sd_jwt, .. } => sd_jwt.as_ref().issuer_certificate().to_owned(),
+            IssuedCredential::SdJwt { sd_jwt, .. } => sd_jwt.issuer_certificate().to_owned(),
         };
 
         let issuer_registration = match IssuerRegistration::from_certificate(&issuer_certificate) {
@@ -767,12 +771,12 @@ mod tests {
                 type_metadata.to_normalized().unwrap(),
                 issuer_registration.organization.clone(),
                 mdoc.issuer_signed().clone().into_entries_by_namespace(),
+                &EmptyPresentationConfig,
             )
             .unwrap(),
             IssuedCredential::SdJwt { sd_jwt, .. } => {
                 let payload = sd_jwt
                     .clone()
-                    .into_inner()
                     .into_credential_payload(&type_metadata.to_normalized().unwrap())
                     .unwrap();
                 AttestationPresentation::create_from_attributes(
@@ -780,6 +784,7 @@ mod tests {
                     type_metadata.to_normalized().unwrap(),
                     issuer_registration.organization.clone(),
                     &payload.previewable_payload.attributes,
+                    &EmptyPresentationConfig,
                 )
                 .unwrap()
             }
@@ -1188,14 +1193,13 @@ mod tests {
         preview.content.credential_payload.attestation_type = String::from("att_type_1");
         previews.push(preview);
 
-        let holder_key = SigningKey::random(&mut OsRng);
         let ca = Ca::generate("myca", Default::default()).unwrap();
         let cert_type = CertificateType::from(IssuerRegistration::new_mock());
         let issuer_key_pair = ca.generate_key_pair("mycert", cert_type, Default::default()).unwrap();
 
         let (payload, _, normalized_metadata) = create_example_credential_payload(&time_generator);
         let sd_jwt = payload
-            .into_sd_jwt(&normalized_metadata, holder_key.verifying_key(), &issuer_key_pair)
+            .into_sd_jwt(&normalized_metadata, &issuer_key_pair)
             .now_or_never()
             .unwrap()
             .unwrap();
@@ -1206,7 +1210,7 @@ mod tests {
             Uuid::new_v4(),
             StoredAttestation::SdJwt {
                 key_identifier: "sd_jwt_key_identifier".to_string(),
-                sd_jwt: VerifiedSdJwt::new_mock(sd_jwt),
+                sd_jwt: sd_jwt.into_verified(),
             },
             normalized_metadata,
         );
@@ -1691,8 +1695,6 @@ mod tests {
 
     #[test]
     fn test_match_preview_and_stored_attestations() {
-        let holder_key = SigningKey::random(&mut OsRng);
-
         let ca = Ca::generate("myca", Default::default()).unwrap();
         let cert_type = CertificateType::from(IssuerRegistration::new_mock());
         let issuer_key_pair = ca.generate_key_pair("mycert", cert_type, Default::default()).unwrap();
@@ -1701,7 +1703,7 @@ mod tests {
 
         let (payload, _, normalized_metadata) = create_example_credential_payload(&time_generator);
         let sd_jwt = payload
-            .into_sd_jwt(&normalized_metadata, holder_key.verifying_key(), &issuer_key_pair)
+            .into_sd_jwt(&normalized_metadata, &issuer_key_pair)
             .now_or_never()
             .unwrap()
             .unwrap();
@@ -1712,7 +1714,7 @@ mod tests {
             Uuid::new_v4(),
             StoredAttestation::SdJwt {
                 key_identifier: "sd_jwt_key_identifier".to_string(),
-                sd_jwt: VerifiedSdJwt::new_mock(sd_jwt),
+                sd_jwt: sd_jwt.into_verified(),
             },
             normalized_metadata,
         );

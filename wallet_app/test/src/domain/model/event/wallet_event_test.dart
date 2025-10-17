@@ -42,19 +42,19 @@ void main() {
       dateTime: DateTime(2024),
       status: EventStatus.success,
       card: WalletMockData.card,
-      renewed: false,
+      eventType: IssuanceEventType.cardIssued,
     );
     final identicalEvent = WalletEvent.issuance(
       dateTime: DateTime(2024),
       status: EventStatus.success,
       card: WalletMockData.card,
-      renewed: false,
+      eventType: IssuanceEventType.cardIssued,
     );
     final differentEvent = WalletEvent.issuance(
       dateTime: DateTime(2024),
       status: EventStatus.cancelled,
       card: WalletMockData.card,
-      renewed: false,
+      eventType: IssuanceEventType.cardIssued,
     );
     expect(event, identicalEvent);
     expect(event, isNot(equals(differentEvent)));

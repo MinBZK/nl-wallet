@@ -104,7 +104,7 @@ pub enum StorageError {
 
     #[error("storage database SD-JWT error: {0}")]
     #[category(pd)]
-    SdJwt(#[from] sd_jwt::error::Error),
+    SdJwt(#[from] sd_jwt::error::DecoderError),
 
     #[error("cannot store attestation event having an ephemeral identity")]
     #[category(critical)]

@@ -236,7 +236,7 @@ mod tests {
     use http_utils::urls::BaseUrl;
     use mdoc::holder::disclosure::PartialMdoc;
     use mdoc::holder::mock::NL_PID_DOC_TYPE;
-    use sd_jwt::sd_jwt::SdJwt;
+    use sd_jwt::builder::SignedSdJwt;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_nonempty;
     use wscd::mock_remote::MOCK_WALLET_CLIENT_ID;
@@ -449,8 +449,9 @@ mod tests {
                 let issuer_key_pair = ca
                     .generate_key_pair(ISSUANCE_CERT_CN, CertificateUsage::Mdl, Default::default())
                     .unwrap();
-                let sd_jwt = SdJwt::example_pid_sd_jwt(&issuer_key_pair, attestation_key.verifying_key());
-                let unsigned_sd_jwt_presentation = sd_jwt
+                let verified_sd_jwt =
+                    SignedSdJwt::pid_example(&issuer_key_pair, attestation_key.verifying_key()).into_verified();
+                let unsigned_presentation = verified_sd_jwt
                     .into_presentation_builder()
                     .disclose(&vec_nonempty![ClaimPath::SelectByKey("bsn".to_string())])
                     .unwrap()
@@ -462,7 +463,7 @@ mod tests {
 
                 DisclosableAttestations::SdJwt(HashMap::from([(
                     "sd_jwt_pid_example".try_into().unwrap(),
-                    vec_nonempty![(unsigned_sd_jwt_presentation, "attestation_key".to_string())],
+                    vec_nonempty![(unsigned_presentation, "attestation_key".to_string())],
                 )]))
                 .try_into()
                 .unwrap()

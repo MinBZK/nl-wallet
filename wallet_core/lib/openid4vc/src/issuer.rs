@@ -1180,16 +1180,12 @@ impl CredentialResponse {
             attestation_config.first_metadata_integrity.clone(),
         )?;
 
-        let sd_jwt = payload
-            .into_sd_jwt(
-                &attestation_config.metadata,
-                holder_pubkey,
-                &attestation_config.key_pair,
-            )
+        let signed_sd_jwt = payload
+            .into_sd_jwt(&attestation_config.metadata, &attestation_config.key_pair)
             .await?;
 
         Ok(CredentialResponse::SdJwt {
-            credential: sd_jwt.to_string(),
+            credential: signed_sd_jwt.into_unverified(),
         })
     }
 }

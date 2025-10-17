@@ -1,38 +1,86 @@
-use std::collections::HashMap;
+use std::fmt::Display;
 
-use p256::ecdsa::VerifyingKey;
-use serde::Serialize;
-use ssri::Integrity;
+use indexmap::IndexMap;
+use serde_with::SerializeDisplay;
 
 use attestation_types::claim_path::ClaimPath;
 use crypto::EcdsaKey;
 use crypto::server_keys::KeyPair;
 use jwt::JwtTyp;
 use jwt::SignedJwt;
-use jwt::jwk::jwk_from_p256;
+use jwt::headers::HeaderWithX5c;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::disclosure::Disclosure;
 use crate::encoder::DEFAULT_SALT_SIZE;
 use crate::encoder::SdObjectEncoder;
-use crate::error::Result;
+use crate::error::EncoderError;
 use crate::hasher::Hasher;
 use crate::hasher::Sha256Hasher;
-use crate::key_binding_jwt_claims::RequiredKeyBinding;
-use crate::sd_jwt::SdJwt;
-use crate::sd_jwt::SdJwtClaims;
+use crate::sd_jwt::SdJwtVcClaims;
+use crate::sd_jwt::UnverifiedSdJwt;
+use crate::sd_jwt::VerifiedSdJwt;
 
 const SD_JWT_HEADER_TYP: &str = "dc+sd-jwt";
 
-impl JwtTyp for SdJwtClaims {
+impl JwtTyp for SdJwtVcClaims {
     const TYP: &'static str = SD_JWT_HEADER_TYP;
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, SerializeDisplay)]
+pub struct SignedSdJwt {
+    issuer_signed: SignedJwt<SdJwtVcClaims, HeaderWithX5c>,
+    disclosures: Vec<Disclosure>,
+}
+
+impl Display for SignedSdJwt {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(
+            &std::iter::once(self.issuer_signed.as_ref().serialization())
+                .chain(self.disclosures.iter().map(|d| d.encoded()))
+                .map(|s| format!("{s}~"))
+                .collect::<String>(),
+        )
+    }
+}
+
+impl SignedSdJwt {
+    pub fn into_unverified(self) -> UnverifiedSdJwt {
+        self.into()
+    }
+
+    pub fn into_verified(self) -> VerifiedSdJwt {
+        self.into()
+    }
+}
+
+impl From<SignedSdJwt> for UnverifiedSdJwt {
+    fn from(value: SignedSdJwt) -> Self {
+        let issuer_signed = value.issuer_signed.into_unverified();
+        let disclosures = value.disclosures.iter().map(ToString::to_string).collect();
+        UnverifiedSdJwt::new(issuer_signed, disclosures)
+    }
+}
+
+impl From<SignedSdJwt> for VerifiedSdJwt {
+    fn from(value: SignedSdJwt) -> Self {
+        let issuer_signed = value.issuer_signed.into_verified();
+        // the SignedSdJwt was just created by our own builder, so the hasher should always be implemented
+        let hasher = issuer_signed.payload()._sd_alg.unwrap_or_default().hasher().unwrap();
+        let disclosures = value
+            .disclosures
+            .into_iter()
+            .map(|d| (hasher.encoded_digest(&d.encoded), d))
+            .collect::<IndexMap<_, _>>();
+        VerifiedSdJwt::dangerous_new(issuer_signed, disclosures)
+    }
 }
 
 /// Builder structure to create an issuable SD-JWT.
 #[derive(Debug)]
 pub struct SdJwtBuilder<H> {
     encoder: SdObjectEncoder<H>,
-    disclosures: HashMap<String, Disclosure>,
+    disclosures: Vec<Disclosure>,
 }
 
 impl SdJwtBuilder<Sha256Hasher> {
@@ -40,25 +88,24 @@ impl SdJwtBuilder<Sha256Hasher> {
     ///
     /// ## Error
     /// Returns [`Error::DataTypeMismatch`] if `object` is not a valid JSON object.
-    pub fn new<T: Serialize>(object: T) -> Result<Self> {
-        Self::new_with_hasher(object, Sha256Hasher)
+    pub fn new(claims: SdJwtVcClaims) -> Self {
+        Self::new_with_hasher(claims, Sha256Hasher)
     }
 }
 
 impl<H: Hasher> SdJwtBuilder<H> {
     /// Creates a new [`SdJwtBuilder`] with custom hash function to create digests.
-    pub fn new_with_hasher<T: Serialize>(object: T, hasher: H) -> Result<Self> {
-        Self::new_with_hasher_and_salt_size(object, hasher, DEFAULT_SALT_SIZE)
+    pub fn new_with_hasher(claims: SdJwtVcClaims, hasher: H) -> Self {
+        Self::new_with_hasher_and_salt_size(claims, hasher, DEFAULT_SALT_SIZE)
     }
 
     /// Creates a new [`SdJwtBuilder`] with custom hash function to create digests, and custom salt size.
-    pub fn new_with_hasher_and_salt_size<T: Serialize>(object: T, hasher: H, salt_size: usize) -> Result<Self> {
-        let object = serde_json::to_value(object)?;
-        let encoder = SdObjectEncoder::with_custom_hasher_and_salt_size(object, hasher, salt_size)?;
-        Ok(Self {
+    pub fn new_with_hasher_and_salt_size(claims: SdJwtVcClaims, hasher: H, salt_size: usize) -> Self {
+        let encoder = SdObjectEncoder::with_custom_hasher_and_salt_size(claims, hasher, salt_size);
+        Self {
             encoder,
-            disclosures: HashMap::new(),
-        })
+            disclosures: Vec::new(),
+        }
     }
 
     /// Substitutes a value with the digest of its disclosure.
@@ -67,45 +114,48 @@ impl<H: Hasher> SdJwtBuilder<H> {
     /// - `path`  indicates the claim paths pointing to the value that will be concealed.
     ///
     /// ## Example
-    ///  ```rust
-    ///  use attestation_types::claim_path::ClaimPath;
-    ///  use serde_json::json;
-    ///  use sd_jwt::builder::SdJwtBuilder;
-    ///  use utils::vec_at_least::VecNonEmpty;
+    /// ```rust
+    /// use attestation_types::claim_path::ClaimPath;
+    /// use p256::ecdsa::SigningKey;
+    /// use serde_json::json;
+    /// use sd_jwt::builder::SdJwtBuilder;
+    /// use sd_jwt::sd_jwt::SdJwtVcClaims;
+    /// use utils::generator::mock::MockTimeGenerator;
+    /// use utils::vec_at_least::VecNonEmpty;
+    /// use rand_core::OsRng;
     ///
-    ///  let obj = json!({
-    ///   "iss": "https://issuer.example.com/",
-    ///   "iat": 1683000000,
-    ///   "id": "did:value",
-    ///   "claim1": {
-    ///      "abc": true
-    ///   },
-    ///   "claim2": ["val_1", "val_2"]
+    /// let obj = json!({
+    ///     "id": "did:value",
+    ///     "claim1": {
+    ///         "abc": true
+    ///     },
+    ///     "claim2": ["val_1", "val_2"]
     /// });
-    /// let builder = SdJwtBuilder::new(obj)
-    ///   .unwrap()
-    ///   //conceals "id": "did:value"
-    ///   .make_concealable(VecNonEmpty::try_from(vec![ClaimPath::SelectByKey(String::from("id"))]).unwrap()).unwrap()
-    ///   //"abc": true
-    ///   .make_concealable(VecNonEmpty::try_from(
-    ///       vec![
-    ///          ClaimPath::SelectByKey(String::from("claim1")),
-    ///          ClaimPath::SelectByKey(String::from("abc"))
-    ///       ]
-    ///   ).unwrap()).unwrap()
-    ///   //conceals "val_1"
-    ///   .make_concealable(VecNonEmpty::try_from(
-    ///       vec![
-    ///          ClaimPath::SelectByKey(String::from("claim2")),
-    ///          ClaimPath::SelectByIndex(0)
-    ///       ]
-    ///   ).unwrap()).unwrap();
+    /// let builder = SdJwtBuilder::new(SdJwtVcClaims::example_from_json(
+    ///         SigningKey::random(&mut OsRng).verifying_key(),
+    ///         obj,
+    ///         &MockTimeGenerator::default(),
+    ///     ))
+    ///     //conceals "id": "did:value"
+    ///     .make_concealable(VecNonEmpty::try_from(vec![ClaimPath::SelectByKey(String::from("id"))]).unwrap()).unwrap()
+    ///     //"abc": true
+    ///     .make_concealable(VecNonEmpty::try_from(
+    ///         vec![
+    ///            ClaimPath::SelectByKey(String::from("claim1")),
+    ///            ClaimPath::SelectByKey(String::from("abc"))
+    ///         ]
+    ///     ).unwrap()).unwrap()
+    ///     //conceals "val_1"
+    ///     .make_concealable(VecNonEmpty::try_from(
+    ///         vec![
+    ///            ClaimPath::SelectByKey(String::from("claim2")),
+    ///            ClaimPath::SelectByIndex(0)
+    ///         ]
+    ///     ).unwrap()).unwrap();
     /// ```
-    pub fn make_concealable(mut self, path: VecNonEmpty<ClaimPath>) -> Result<Self> {
+    pub fn make_concealable(mut self, path: VecNonEmpty<ClaimPath>) -> Result<Self, EncoderError> {
         let disclosure = self.encoder.conceal(path)?;
-        self.disclosures
-            .insert(self.encoder.hasher.encoded_digest(disclosure.as_str()), disclosure);
-
+        self.disclosures.push(disclosure);
         Ok(self)
     }
 
@@ -114,42 +164,78 @@ impl<H: Hasher> SdJwtBuilder<H> {
     /// `path`  indicates the claim paths pointing to the value that will be concealed.
     ///
     /// Use `path` = &[] to add decoys to the top level.
-    pub fn add_decoys(mut self, path: &[ClaimPath], number_of_decoys: usize) -> Result<Self> {
+    pub fn add_decoys(mut self, path: &[ClaimPath], number_of_decoys: usize) -> Result<Self, EncoderError> {
         self.encoder.add_decoys(path, number_of_decoys)?;
-
         Ok(self)
     }
 
     /// Creates an SD-JWT with the provided data.
-    pub async fn finish(
-        self,
-        vct_integrity: Integrity,
-        issuer_keypair: &KeyPair<impl EcdsaKey>,
-        holder_pubkey: &VerifyingKey,
-    ) -> Result<SdJwt> {
-        let SdJwtBuilder {
-            mut encoder,
-            disclosures,
-        } = self;
-        encoder.add_sd_alg_property();
+    pub async fn finish(self, issuer_keypair: &KeyPair<impl EcdsaKey>) -> Result<SignedSdJwt, EncoderError> {
+        let claims = self.encoder.encode();
+        let issuer_signed = SignedJwt::sign_with_certificate(&claims, issuer_keypair).await?;
+        Ok(SignedSdJwt {
+            issuer_signed,
+            disclosures: self.disclosures,
+        })
+    }
+}
 
-        let mut claims = encoder.encode();
-        claims.cnf = Some(RequiredKeyBinding::Jwk(jwk_from_p256(holder_pubkey)?));
-        claims.vct_integrity = Some(vct_integrity);
-        let signed_jwt = SignedJwt::sign_with_certificate(&claims, issuer_keypair).await?;
+#[cfg(feature = "examples")]
+mod examples {
+    use futures::FutureExt;
+    use p256::ecdsa::VerifyingKey;
 
-        Ok(SdJwt::new(signed_jwt.into(), disclosures))
+    use attestation_types::claim_path::ClaimPath;
+    use crypto::server_keys::KeyPair;
+    use utils::generator::mock::MockTimeGenerator;
+
+    use crate::sd_jwt::SdJwtVcClaims;
+
+    use super::SdJwtBuilder;
+    use super::SignedSdJwt;
+
+    impl SignedSdJwt {
+        pub fn pid_example(issuer_keypair: &KeyPair, holder_pubkey: &VerifyingKey) -> Self {
+            let claims = SdJwtVcClaims::pid_example(holder_pubkey, &MockTimeGenerator::default());
+
+            // issuer signs SD-JWT
+            SdJwtBuilder::new(claims)
+                .make_concealable(
+                    vec![ClaimPath::SelectByKey(String::from("family_name"))]
+                        .try_into()
+                        .unwrap(),
+                )
+                .unwrap()
+                .make_concealable(vec![ClaimPath::SelectByKey(String::from("bsn"))].try_into().unwrap())
+                .unwrap()
+                .add_decoys(&[], 2)
+                .unwrap()
+                .finish(issuer_keypair)
+                .now_or_never()
+                .unwrap()
+                .unwrap()
+        }
     }
 }
 
 #[cfg(test)]
 mod test {
     use assert_matches::assert_matches;
+    use p256::ecdsa::SigningKey;
+    use rand_core::OsRng;
     use serde_json::json;
 
-    use crate::error::Error;
+    use utils::generator::mock::MockTimeGenerator;
 
     use super::*;
+
+    fn builder_from_json(object: serde_json::Value) -> SdJwtBuilder<Sha256Hasher> {
+        SdJwtBuilder::new(SdJwtVcClaims::example_from_json(
+            SigningKey::random(&mut OsRng).verifying_key(),
+            object,
+            &MockTimeGenerator::default(),
+        ))
+    }
 
     mod marking_properties_as_concealable {
         use super::*;
@@ -162,13 +248,7 @@ mod test {
 
                 #[test]
                 fn can_be_done_for_object_values() {
-                    let result = SdJwtBuilder::new(json!({
-                        "iss": "https://issuer.example.com/",
-                        "iat": 1683000000,
-                        "address": {}
-                    }))
-                    .unwrap()
-                    .make_concealable(
+                    let result = builder_from_json(json!({ "address": {} })).make_concealable(
                         vec![ClaimPath::SelectByKey(String::from("address"))]
                             .try_into()
                             .unwrap(),
@@ -179,13 +259,7 @@ mod test {
 
                 #[test]
                 fn can_be_done_for_array_elements() {
-                    let result = SdJwtBuilder::new(json!({
-                        "iss": "https://issuer.example.com/",
-                        "iat": 1683000000,
-                        "nationalities": ["US", "DE"]
-                    }))
-                    .unwrap()
-                    .make_concealable(
+                    let result = builder_from_json(json!({ "nationalities": ["US", "DE"] })).make_concealable(
                         vec![ClaimPath::SelectByKey(String::from("nationalities"))]
                             .try_into()
                             .unwrap(),
@@ -200,13 +274,7 @@ mod test {
 
                 #[test]
                 fn can_be_done_for_object_values() {
-                    let result = SdJwtBuilder::new(json!({
-                        "iss": "https://issuer.example.com/",
-                        "iat": 1683000000,
-                        "address": { "country": "US" }
-                    }))
-                    .unwrap()
-                    .make_concealable(
+                    let result = builder_from_json(json!({ "address": { "country": "US" } })).make_concealable(
                         vec![
                             ClaimPath::SelectByKey(String::from("address")),
                             ClaimPath::SelectByKey(String::from("country")),
@@ -220,12 +288,9 @@ mod test {
 
                 #[test]
                 fn can_be_done_for_array_elements() {
-                    let result = SdJwtBuilder::new(json!({
-                        "iss": "https://issuer.example.com/",
-                        "iat": 1683000000,
-                        "address": { "contact_person": [ "Jane Dow", "John Doe" ] }
+                    let result = builder_from_json(json!({
+                      "address": { "contact_person": [ "Jane Dow", "John Doe" ] }
                     }))
-                    .unwrap()
                     .make_concealable(
                         vec![
                             ClaimPath::SelectByKey(String::from("address")),
@@ -245,28 +310,21 @@ mod test {
             use super::*;
 
             mod on_top_level {
+                use crate::error::ClaimError;
+
                 use super::*;
 
                 #[test]
                 fn returns_an_error_for_nonexistant_object_paths() {
-                    let result = SdJwtBuilder::new(json!({
-                        "iss": "https://issuer.example.com/",
-                        "iat": 1683000000
-                    }))
-                    .unwrap()
-                    .make_concealable(vec![ClaimPath::SelectByKey(String::from("email"))].try_into().unwrap());
+                    let result = builder_from_json(json!({}))
+                        .make_concealable(vec![ClaimPath::SelectByKey(String::from("email"))].try_into().unwrap());
 
-                    assert_matches!(result, Err(Error::ObjectFieldNotFound(key, _)) if key == "email".parse().unwrap());
+                    assert_matches!(result, Err(EncoderError::ClaimStructure(ClaimError::ObjectFieldNotFound(key, _))) if key == "email".parse().unwrap());
                 }
 
                 #[test]
                 fn returns_an_error_for_nonexistant_array_paths() {
-                    let result = SdJwtBuilder::new(json!({
-                        "iss": "https://issuer.example.com/",
-                        "iat": 1683000000
-                    }))
-                    .unwrap()
-                    .make_concealable(
+                    let result = builder_from_json(json!({})).make_concealable(
                         vec![
                             ClaimPath::SelectByKey(String::from("nationalities")),
                             ClaimPath::SelectByIndex(0),
@@ -275,17 +333,14 @@ mod test {
                         .unwrap(),
                     );
 
-                    assert_matches!(result, Err(Error::ParentNotFound(_)));
+                    assert_matches!(result, Err(EncoderError::ClaimStructure(ClaimError::ParentNotFound(_))));
                 }
 
                 #[test]
                 fn returns_an_error_for_nonexistant_array_entries() {
-                    let result = SdJwtBuilder::new(json!({
-                        "iss": "https://issuer.example.com/",
-                        "iat": 1683000000,
-                        "nationalities": ["US", "DE"]
+                    let result = builder_from_json(json!({
+                      "nationalities": ["US", "DE"]
                     }))
-                    .unwrap()
                     .make_concealable(
                         vec![
                             ClaimPath::SelectByKey(String::from("nationalities")),
@@ -295,21 +350,23 @@ mod test {
                         .unwrap(),
                     );
 
-                    assert_matches!(result, Err(Error::IndexOutOfBounds(2, _)));
+                    assert_matches!(
+                        result,
+                        Err(EncoderError::ClaimStructure(ClaimError::IndexOutOfBounds(2, _)))
+                    );
                 }
             }
 
             mod as_subproperties {
+                use crate::error::ClaimError;
+
                 use super::*;
 
                 #[test]
                 fn returns_an_error_for_nonexistant_object_paths() {
-                    let result = SdJwtBuilder::new(json!({
-                        "iss": "https://issuer.example.com/",
-                        "iat": 1683000000,
-                        "address": {}
+                    let result = builder_from_json(json!({
+                      "address": {}
                     }))
-                    .unwrap()
                     .make_concealable(
                         vec![
                             ClaimPath::SelectByKey(String::from("address")),
@@ -319,17 +376,14 @@ mod test {
                         .unwrap(),
                     );
 
-                    assert_matches!(result, Err(Error::ObjectFieldNotFound(key, _)) if key == "region".parse().unwrap());
+                    assert_matches!(result, Err(EncoderError::ClaimStructure(ClaimError::ObjectFieldNotFound(key, _))) if key == "region".parse().unwrap());
                 }
 
                 #[test]
                 fn returns_an_error_for_nonexistant_array_paths() {
-                    let result = SdJwtBuilder::new(json!({
-                        "iss": "https://issuer.example.com/",
-                        "iat": 1683000000,
-                        "address": {}
+                    let result = builder_from_json(json!({
+                      "address": {}
                     }))
-                    .unwrap()
                     .make_concealable(
                         vec![
                             ClaimPath::SelectByKey(String::from("address")),
@@ -340,17 +394,14 @@ mod test {
                         .unwrap(),
                     );
 
-                    assert_matches!(result, Err(Error::ParentNotFound(_)));
+                    assert_matches!(result, Err(EncoderError::ClaimStructure(ClaimError::ParentNotFound(_))));
                 }
 
                 #[test]
                 fn returns_an_error_for_nonexistant_array_entries() {
-                    let result = SdJwtBuilder::new(json!({
-                        "iss": "https://issuer.example.com/",
-                        "iat": 1683000000,
-                        "address": { "contact_person": [ "Jane Dow", "John Doe" ] }
+                    let result = builder_from_json(json!({
+                      "address": { "contact_person": [ "Jane Dow", "John Doe" ] }
                     }))
-                    .unwrap()
                     .make_concealable(
                         vec![
                             ClaimPath::SelectByKey(String::from("address")),
@@ -361,7 +412,10 @@ mod test {
                         .unwrap(),
                     );
 
-                    assert_matches!(result, Err(Error::IndexOutOfBounds(2, _)));
+                    assert_matches!(
+                        result,
+                        Err(EncoderError::ClaimStructure(ClaimError::IndexOutOfBounds(2, _)))
+                    );
                 }
             }
         }
@@ -375,24 +429,14 @@ mod test {
 
             #[test]
             fn can_add_zero_object_value_decoys_for_a_path() {
-                let result = SdJwtBuilder::new(json!({
-                    "iss": "https://issuer.example.com/",
-                    "iat": 1683000000
-                }))
-                .unwrap()
-                .add_decoys(&[], 0);
+                let result = builder_from_json(json!({})).add_decoys(&[], 0);
 
                 assert!(result.is_ok());
             }
 
             #[test]
             fn can_add_object_value_decoys_for_a_path() {
-                let result = SdJwtBuilder::new(json!({
-                    "iss": "https://issuer.example.com/",
-                    "iat": 1683000000
-                }))
-                .unwrap()
-                .add_decoys(&[], 2);
+                let result = builder_from_json(json!({})).add_decoys(&[], 2);
 
                 assert!(result.is_ok());
                 assert_eq!(
@@ -407,52 +451,32 @@ mod test {
 
             #[test]
             fn can_add_zero_object_value_decoys_for_a_path() {
-                let result = SdJwtBuilder::new(json!({
-                    "iss": "https://issuer.example.com/",
-                    "iat": 1683000000,
-                    "address": {}
-                }))
-                .unwrap()
-                .add_decoys(&[ClaimPath::SelectByKey(String::from("address"))], 0);
+                let result = builder_from_json(json!({ "address": {} }))
+                    .add_decoys(&[ClaimPath::SelectByKey(String::from("address"))], 0);
 
                 assert!(result.is_ok());
             }
 
             #[test]
             fn can_add_object_value_decoys_for_a_path() {
-                let result = SdJwtBuilder::new(json!({
-                    "iss": "https://issuer.example.com/",
-                    "iat": 1683000000,
-                    "address": {}
-                }))
-                .unwrap()
-                .add_decoys(&[ClaimPath::SelectByKey(String::from("address"))], 2);
+                let result = builder_from_json(json!({ "address": {} }))
+                    .add_decoys(&[ClaimPath::SelectByKey(String::from("address"))], 2);
 
                 assert!(result.is_ok());
             }
 
             #[test]
             fn can_add_zero_array_element_decoys_for_a_path() {
-                let result = SdJwtBuilder::new(json!({
-                    "iss": "https://issuer.example.com/",
-                    "iat": 1683000000,
-                    "nationalities": ["US", "DE"]
-                }))
-                .unwrap()
-                .add_decoys(&[ClaimPath::SelectByKey(String::from("nationalities"))], 0);
+                let result = builder_from_json(json!({ "nationalities": ["US", "DE"] }))
+                    .add_decoys(&[ClaimPath::SelectByKey(String::from("nationalities"))], 0);
 
                 assert!(result.is_ok());
             }
 
             #[test]
             fn can_add_array_element_decoys_for_a_path() {
-                let result = SdJwtBuilder::new(json!({
-                    "iss": "https://issuer.example.com/",
-                    "iat": 1683000000,
-                    "nationalities": ["US", "DE"]
-                }))
-                .unwrap()
-                .add_decoys(&[ClaimPath::SelectByKey(String::from("nationalities"))], 2);
+                let result = builder_from_json(json!({ "nationalities": ["US", "DE"] }))
+                    .add_decoys(&[ClaimPath::SelectByKey(String::from("nationalities"))], 2);
 
                 assert!(result.is_ok());
             }

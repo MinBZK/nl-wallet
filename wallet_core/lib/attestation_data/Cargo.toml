@@ -11,10 +11,11 @@ workspace = true
 doctest = false
 
 [features]
-examples = []
+examples = ["pid_constants"]
 example_credential_payloads = ["dep:rand_core"]
 generate = ["dep:rcgen", "crypto/generate"]
-mock = ["example_credential_payloads", "crypto/mock", "mdoc/test", "sd_jwt/test", "dep:rand_core"]
+mock = ["example_credential_payloads", "pid_constants", "crypto/mock", "mdoc/test", "sd_jwt/test", "dep:rand_core"]
+pid_constants = []
 test_credential = ["mock", "dep:futures"]
 
 [dependencies]

@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2025-09-30T11:34:24+02:00",
+    "@@last_modified": "2025-10-13T14:21:05+02:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -149,8 +149,10 @@
     "cardHistorySigningCancelled": "Signing stopped",
     "cardHistorySigningError": "Signing failed",
     "cardHistorySigningSuccess": "Signed",
-    "cardHistoryTimelineOperationExpired": "Card is expired",
+    "cardHistoryTimelineOperationCorrupted": "Card invalid",
+    "cardHistoryTimelineOperationExpired": "Card expired",
     "cardHistoryTimelineOperationRenewed": "Card renewed",
+    "cardHistoryTimelineOperationRevoked": "Card revoked",
     "cardPreviewScreenIncorrectCta": "Are your details incorrect?",
     "cardPreviewScreenIssuedBy": "Card issued by {organization}.",
     "@cardPreviewScreenIssuedBy": {
@@ -262,6 +264,12 @@
     "dataIncorrectScreenDeclineTitle": "Decline card",
     "dataIncorrectScreenHeaderDescription": "Contact the providing organization to request a data update. You have two options now:",
     "dataIncorrectScreenHeaderTitle": "Are your details incorrect?",
+    "demoScreenContentBullets": "The Ministry of the Interior (MinBZK) is still developing the app.\nWe expect the app to be available in 2027.\nThe app uses only test data, not real data.\nDuring testing we will track how you use the app, to make it better.\nThe app can update anytime, older versions may not work.\nThe app may sometimes be unstable.",
+    "demoScreenContentFooter": "If something goes wrong, reinstall the app.",
+    "demoScreenContentHeader": "You are now using a demo version of the app.",
+    "demoScreenContinueCta": "Start demo app",
+    "demoScreenMoreInfoCta": "Read more at edi.pleio.nl",
+    "demoScreenTitle": "Demo version NL Wallet",
     "detailsIncorrectScreenDescription": "If your details are incorrect, it can cause problems. Contact your issuer to change your details.\n\nAre you still waiting for an adjustment? It can take a while before changes appear in the app.",
     "detailsIncorrectScreenTitle": "Are your details incorrect?",
     "disclosureConfirmDataAttributesCheckConditionsCta": "Read the agreement",
