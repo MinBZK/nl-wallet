@@ -26,8 +26,8 @@ class WalletEventStatusColorMapper extends ContextMapper<WalletEvent, Color> {
       IssuanceEventType.cardIssued => false,
       IssuanceEventType.cardRenewed => false,
       IssuanceEventType.cardStatusExpired => true,
-      IssuanceEventType.cardStatusCorrupted => true,
       IssuanceEventType.cardStatusRevoked => true,
+      IssuanceEventType.cardStatusCorrupted => true,
     };
   }
 }

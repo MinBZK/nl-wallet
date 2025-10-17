@@ -37,7 +37,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueNom,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.11.1";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 1197392980;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -677141531;
 
 // Section: executor
 
@@ -629,6 +629,26 @@ fn wire__crate__api__full__get_version_string_impl(port_: flutter_rust_bridge::f
                     let output_ok = Result::<_, ()>::Ok(crate::api::full::get_version_string())?;
                     Ok(output_ok)
                 })())
+            }
+        },
+    )
+}
+fn wire__crate__api__full__get_wallet_state_impl(port_: flutter_rust_bridge::for_generated::MessagePort) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "get_wallet_state",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            move |context| async move {
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || async move {
+                        let output_ok = crate::api::full::get_wallet_state().await?;
+                        Ok(output_ok)
+                    })()
+                    .await,
+                )
             }
         },
     )
@@ -1284,6 +1304,16 @@ impl CstDecode<u8> for u8 {
     // Codec=Cst (C-struct based), see doc to use other codecs
     fn cst_decode(self) -> u8 {
         self
+    }
+}
+impl CstDecode<crate::models::wallet_state::WalletTransferRole> for i32 {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    fn cst_decode(self) -> crate::models::wallet_state::WalletTransferRole {
+        match self {
+            0 => crate::models::wallet_state::WalletTransferRole::Source,
+            1 => crate::models::wallet_state::WalletTransferRole::Destination,
+            _ => unreachable!("Invalid variant for WalletTransferRole: {}", self),
+        }
     }
 }
 impl SseDecode for flutter_rust_bridge::for_generated::anyhow::Error {
@@ -2222,6 +2252,40 @@ impl SseDecode for crate::models::instruction::WalletInstructionResult {
     }
 }
 
+impl SseDecode for crate::models::wallet_state::WalletState {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut tag_ = <i32>::sse_decode(deserializer);
+        match tag_ {
+            0 => {
+                return crate::models::wallet_state::WalletState::Ready;
+            }
+            1 => {
+                return crate::models::wallet_state::WalletState::TransferPossible;
+            }
+            2 => {
+                let mut var_role = <crate::models::wallet_state::WalletTransferRole>::sse_decode(deserializer);
+                return crate::models::wallet_state::WalletState::Transferring { role: var_role };
+            }
+            _ => {
+                unimplemented!("");
+            }
+        }
+    }
+}
+
+impl SseDecode for crate::models::wallet_state::WalletTransferRole {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::models::wallet_state::WalletTransferRole::Source,
+            1 => crate::models::wallet_state::WalletTransferRole::Destination,
+            _ => unreachable!("Invalid variant for WalletTransferRole: {}", inner),
+        };
+    }
+}
+
 fn pde_ffi_dispatcher_primary_impl(
     func_id: i32,
     port: flutter_rust_bridge::for_generated::MessagePort,
@@ -2958,6 +3022,47 @@ impl flutter_rust_bridge::IntoIntoDart<crate::models::instruction::WalletInstruc
     for crate::models::instruction::WalletInstructionResult
 {
     fn into_into_dart(self) -> crate::models::instruction::WalletInstructionResult {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::models::wallet_state::WalletState {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            crate::models::wallet_state::WalletState::Ready => [0.into_dart()].into_dart(),
+            crate::models::wallet_state::WalletState::TransferPossible => [1.into_dart()].into_dart(),
+            crate::models::wallet_state::WalletState::Transferring { role } => {
+                [2.into_dart(), role.into_into_dart().into_dart()].into_dart()
+            }
+            _ => {
+                unimplemented!("");
+            }
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::models::wallet_state::WalletState {}
+impl flutter_rust_bridge::IntoIntoDart<crate::models::wallet_state::WalletState>
+    for crate::models::wallet_state::WalletState
+{
+    fn into_into_dart(self) -> crate::models::wallet_state::WalletState {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::models::wallet_state::WalletTransferRole {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::Source => 0.into_dart(),
+            Self::Destination => 1.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::models::wallet_state::WalletTransferRole {}
+impl flutter_rust_bridge::IntoIntoDart<crate::models::wallet_state::WalletTransferRole>
+    for crate::models::wallet_state::WalletTransferRole
+{
+    fn into_into_dart(self) -> crate::models::wallet_state::WalletTransferRole {
         self
     }
 }
@@ -3789,6 +3894,43 @@ impl SseEncode for crate::models::instruction::WalletInstructionResult {
     }
 }
 
+impl SseEncode for crate::models::wallet_state::WalletState {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        match self {
+            crate::models::wallet_state::WalletState::Ready => {
+                <i32>::sse_encode(0, serializer);
+            }
+            crate::models::wallet_state::WalletState::TransferPossible => {
+                <i32>::sse_encode(1, serializer);
+            }
+            crate::models::wallet_state::WalletState::Transferring { role } => {
+                <i32>::sse_encode(2, serializer);
+                <crate::models::wallet_state::WalletTransferRole>::sse_encode(role, serializer);
+            }
+            _ => {
+                unimplemented!("");
+            }
+        }
+    }
+}
+
+impl SseEncode for crate::models::wallet_state::WalletTransferRole {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::models::wallet_state::WalletTransferRole::Source => 0,
+                crate::models::wallet_state::WalletTransferRole::Destination => 1,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
 #[cfg(not(target_family = "wasm"))]
 mod io {
     // This file is automatically generated, so please do not edit it.
@@ -4459,6 +4601,22 @@ mod io {
             }
         }
     }
+    impl CstDecode<crate::models::wallet_state::WalletState> for wire_cst_wallet_state {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> crate::models::wallet_state::WalletState {
+            match self.tag {
+                0 => crate::models::wallet_state::WalletState::Ready,
+                1 => crate::models::wallet_state::WalletState::TransferPossible,
+                2 => {
+                    let ans = unsafe { self.kind.Transferring };
+                    crate::models::wallet_state::WalletState::Transferring {
+                        role: ans.role.cst_decode(),
+                    }
+                }
+                _ => unreachable!(),
+            }
+        }
+    }
     impl NewWithNullPtr for wire_cst_accept_disclosure_result {
         fn new_with_null_ptr() -> Self {
             Self {
@@ -4779,6 +4937,19 @@ mod io {
             Self::new_with_null_ptr()
         }
     }
+    impl NewWithNullPtr for wire_cst_wallet_state {
+        fn new_with_null_ptr() -> Self {
+            Self {
+                tag: -1,
+                kind: WalletStateKind { nil__: () },
+            }
+        }
+    }
+    impl Default for wire_cst_wallet_state {
+        fn default() -> Self {
+            Self::new_with_null_ptr()
+        }
+    }
 
     #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__accept_disclosure(
@@ -4947,6 +5118,11 @@ mod io {
     #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__get_version_string(port_: i64) {
         wire__crate__api__full__get_version_string_impl(port_)
+    }
+
+    #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__get_wallet_state(port_: i64) {
+        wire__crate__api__full__get_wallet_state_impl(port_)
     }
 
     #[unsafe(no_mangle)]
@@ -5762,6 +5938,23 @@ mod io {
     #[derive(Clone, Copy)]
     pub struct wire_cst_WalletInstructionResult_InstructionError {
         error: *mut wire_cst_wallet_instruction_error,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_wallet_state {
+        tag: i32,
+        kind: WalletStateKind,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub union WalletStateKind {
+        Transferring: wire_cst_WalletState_Transferring,
+        nil__: (),
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_WalletState_Transferring {
+        role: i32,
     }
 }
 #[cfg(not(target_family = "wasm"))]

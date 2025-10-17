@@ -19,6 +19,7 @@ import 'models/transfer.dart';
 import 'models/uri.dart';
 import 'models/version_state.dart';
 import 'models/wallet_event.dart';
+import 'models/wallet_state.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
@@ -240,6 +241,12 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   WalletInstructionResult dco_decode_wallet_instruction_result(dynamic raw);
 
   @protected
+  WalletState dco_decode_wallet_state(dynamic raw);
+
+  @protected
+  WalletTransferRole dco_decode_wallet_transfer_role(dynamic raw);
+
+  @protected
   AnyhowException sse_decode_AnyhowException(SseDeserializer deserializer);
 
   @protected
@@ -450,6 +457,12 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   WalletInstructionResult sse_decode_wallet_instruction_result(SseDeserializer deserializer);
+
+  @protected
+  WalletState sse_decode_wallet_state(SseDeserializer deserializer);
+
+  @protected
+  WalletTransferRole sse_decode_wallet_transfer_role(SseDeserializer deserializer);
 
   @protected
   ffi.Pointer<wire_cst_list_prim_u_8_strict> cst_encode_AnyhowException(AnyhowException raw) {
@@ -1222,6 +1235,24 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   }
 
   @protected
+  void cst_api_fill_to_wire_wallet_state(WalletState apiObj, wire_cst_wallet_state wireObj) {
+    if (apiObj is WalletState_Ready) {
+      wireObj.tag = 0;
+      return;
+    }
+    if (apiObj is WalletState_TransferPossible) {
+      wireObj.tag = 1;
+      return;
+    }
+    if (apiObj is WalletState_Transferring) {
+      var pre_role = cst_encode_wallet_transfer_role(apiObj.role);
+      wireObj.tag = 2;
+      wireObj.kind.Transferring.role = pre_role;
+      return;
+    }
+  }
+
+  @protected
   bool cst_encode_bool(bool raw);
 
   @protected
@@ -1253,6 +1284,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void cst_encode_unit(void raw);
+
+  @protected
+  int cst_encode_wallet_transfer_role(WalletTransferRole raw);
 
   @protected
   void sse_encode_AnyhowException(AnyhowException self, SseSerializer serializer);
@@ -1472,6 +1506,12 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void sse_encode_wallet_instruction_result(WalletInstructionResult self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_wallet_state(WalletState self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_wallet_transfer_role(WalletTransferRole self, SseSerializer serializer);
 }
 
 // Section: wire_class
@@ -1948,6 +1988,20 @@ class WalletCoreWire implements BaseWire {
     'frbgen_wallet_core_wire__crate__api__full__get_version_string',
   );
   late final _wire__crate__api__full__get_version_string = _wire__crate__api__full__get_version_stringPtr
+      .asFunction<void Function(int)>();
+
+  void wire__crate__api__full__get_wallet_state(
+    int port_,
+  ) {
+    return _wire__crate__api__full__get_wallet_state(
+      port_,
+    );
+  }
+
+  late final _wire__crate__api__full__get_wallet_statePtr = _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
+    'frbgen_wallet_core_wire__crate__api__full__get_wallet_state',
+  );
+  late final _wire__crate__api__full__get_wallet_state = _wire__crate__api__full__get_wallet_statePtr
       .asFunction<void Function(int)>();
 
   void wire__crate__api__full__get_wallet_transfer_state(
@@ -3135,4 +3189,20 @@ final class wire_cst_wallet_instruction_result extends ffi.Struct {
   external int tag;
 
   external WalletInstructionResultKind kind;
+}
+
+final class wire_cst_WalletState_Transferring extends ffi.Struct {
+  @ffi.Int32()
+  external int role;
+}
+
+final class WalletStateKind extends ffi.Union {
+  external wire_cst_WalletState_Transferring Transferring;
+}
+
+final class wire_cst_wallet_state extends ffi.Struct {
+  @ffi.Int32()
+  external int tag;
+
+  external WalletStateKind kind;
 }

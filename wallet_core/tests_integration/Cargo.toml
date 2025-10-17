@@ -238,6 +238,7 @@ wscd = { path = "../lib/wscd", optional = true, features = ["mock"] }
 pid_issuer = { path = "../wallet_server/pid_issuer", optional = true, features = ["mock"] }
 platform_support = { path = "../wallet/platform_support", optional = true, features = ["mock"] }
 server_utils = { path = "../wallet_server/server_utils", optional = true, features = [] }
+token_status_list = { path = "../lib/token_status_list", features = ["mock"] }
 update_policy_server = { path = "../update_policy/server", optional = true }
 verification_server = { path = "../wallet_server/verification_server", optional = true, features = [] }
 wallet = { path = "../wallet", optional = true, features = ["test"] }

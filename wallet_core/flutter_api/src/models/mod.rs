@@ -21,3 +21,4 @@ pub mod transfer;
 pub mod uri;
 pub mod version_state;
 pub mod wallet_event;
+pub mod wallet_state;

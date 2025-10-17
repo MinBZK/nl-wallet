@@ -4,8 +4,9 @@ import 'dart:io' as io;
 import 'package:fimber/fimber.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
-import 'package:wallet_core/core.dart';
+import 'package:wallet_core/core.dart' as core;
 
+import '../../../../domain/model/wallet_state.dart';
 import '../../../../wallet_core/typed/typed_wallet_core.dart';
 import '../wallet_repository.dart';
 
@@ -47,7 +48,7 @@ class CoreWalletRepository implements WalletRepository {
   }
 
   @override
-  Future<WalletInstructionResult> unlockWallet(String pin) async {
+  Future<core.WalletInstructionResult> unlockWallet(String pin) async {
     if (!(await isRegistered())) throw walletNotRegisteredError;
     return _walletCore.unlockWallet(pin);
   }
@@ -68,5 +69,18 @@ class CoreWalletRepository implements WalletRepository {
       Fimber.e('Stream remained empty, no cards available yet.', ex: ex);
       return false;
     }
+  }
+
+  @override
+  Future<WalletState> getWalletState() async {
+    final state = await _walletCore.getWalletState();
+    return switch (state) {
+      core.WalletState_Ready() => WalletStateReady(),
+      core.WalletState_Transferring() => WalletStateTransferring(switch (state.role) {
+        core.WalletTransferRole.Source => TransferRole.source,
+        core.WalletTransferRole.Destination => TransferRole.target,
+      }),
+      core.WalletState_TransferPossible() => WalletStateTransferPossible(),
+    };
   }
 }

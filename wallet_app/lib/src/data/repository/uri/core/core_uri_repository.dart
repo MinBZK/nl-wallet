@@ -30,7 +30,7 @@ class CoreUriRepository implements UriRepository {
       case IdentifyUriResult.DisclosureBasedIssuance:
         return IssuanceNavigationRequest(uri.toString());
       case IdentifyUriResult.Transfer:
-        return NavigationRequest.walletTransfer(uri.toString());
+        return NavigationRequest.walletTransferSource(uri.toString());
     }
   }
 }

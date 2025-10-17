@@ -30,6 +30,8 @@ pub use crate::wallet::UnlockMethod;
 pub use crate::wallet::UriType;
 pub use crate::wallet::Wallet;
 pub use crate::wallet::WalletClients;
+pub use crate::wallet::WalletState;
+pub use crate::wallet::WalletTransferRole;
 
 pub use wallet_account::messages::transfer::TransferSessionState;
 

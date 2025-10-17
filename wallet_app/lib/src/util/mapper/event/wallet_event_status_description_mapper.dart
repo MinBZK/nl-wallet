@@ -11,13 +11,13 @@ class WalletEventStatusDescriptionMapper extends ContextMapper<WalletEvent, Stri
   @override
   String map(BuildContext context, WalletEvent input) {
     return switch (input) {
-      DisclosureEvent() => mapDisclosureEvent(context, input),
-      IssuanceEvent() => mapIssuanceEvent(context, input),
-      SignEvent() => mapSignEvent(context, input),
+      DisclosureEvent() => _mapDisclosureEvent(context, input),
+      IssuanceEvent() => _mapIssuanceEvent(context, input),
+      SignEvent() => _mapSignEvent(context, input),
     };
   }
 
-  String mapDisclosureEvent(BuildContext context, DisclosureEvent event) {
+  String _mapDisclosureEvent(BuildContext context, DisclosureEvent event) {
     switch (event.status) {
       case EventStatus.success:
         return '';
@@ -50,15 +50,17 @@ class WalletEventStatusDescriptionMapper extends ContextMapper<WalletEvent, Stri
     };
   }
 
-  String mapIssuanceEvent(BuildContext context, IssuanceEvent event) {
-    return context.l10n.historyDetailScreenIssuanceSuccessDescription;
-    // In the future, I imagine we re-introduce renewal/expiry through separate events.
-    // For reference keeping the correct translations here:
-    // renewal --> context.l10n.historyDetailScreenOperationStatusRenewedDescription;
-    // expiry --> context.l10n.historyDetailScreenOperationStatusExpiredDescription;
+  String _mapIssuanceEvent(BuildContext context, IssuanceEvent event) {
+    return switch (event.eventType) {
+      IssuanceEventType.cardIssued => '', // No description for successful issuance
+      IssuanceEventType.cardRenewed => '', // No description for successful renewal
+      IssuanceEventType.cardStatusExpired => context.l10n.historyDetailScreenIssuanceCardExpiredDescription,
+      IssuanceEventType.cardStatusRevoked => context.l10n.historyDetailScreenIssuanceCardRevokedDescription,
+      IssuanceEventType.cardStatusCorrupted => context.l10n.historyDetailScreenIssuanceCardCorruptedDescription,
+    };
   }
 
-  String mapSignEvent(BuildContext context, SignEvent event) {
+  String _mapSignEvent(BuildContext context, SignEvent event) {
     if (event.status == EventStatus.cancelled) {
       return context.l10n.historyDetailScreenSigningStatusRejectedDescription(
         event.relyingParty.displayName.l10nValue(context),

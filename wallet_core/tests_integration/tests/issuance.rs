@@ -49,7 +49,7 @@ async fn test_pid_ok() {
 }
 
 fn pid_without_optionals() -> IssuableDocument {
-    IssuableDocument::try_new(
+    IssuableDocument::try_new_with_random_id(
         PID_ATTESTATION_TYPE.to_string(),
         IndexMap::from_iter(vec![
             (
@@ -80,7 +80,7 @@ fn pid_without_optionals() -> IssuableDocument {
 }
 
 fn pid_missing_required() -> IssuableDocument {
-    IssuableDocument::try_new(
+    IssuableDocument::try_new_with_random_id(
         PID_ATTESTATION_TYPE.to_string(),
         IndexMap::from_iter(vec![
             (

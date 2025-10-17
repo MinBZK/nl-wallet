@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
+import 'package:wallet/src/data/service/event/app_event_coordinator.dart';
 import 'package:wallet/src/data/service/navigation_service.dart';
 import 'package:wallet/src/domain/usecase/update/observe_version_state_usecase.dart';
 import 'package:wallet/src/feature/banner/cubit/banner_cubit.dart';
@@ -57,6 +58,7 @@ void main() {
           const DashboardLoadInProgress(),
         ),
         providers: [
+          RepositoryProvider<AppEventCoordinator>(create: (c) => MockAppEventCoordinator()),
           RepositoryProvider<NavigationService>(create: (c) => MockNavigationService()),
         ],
       );
@@ -70,6 +72,7 @@ void main() {
           const DashboardLoadFailure(),
         ),
         providers: [
+          RepositoryProvider<AppEventCoordinator>(create: (c) => MockAppEventCoordinator()),
           RepositoryProvider<NavigationService>(create: (c) => MockNavigationService()),
         ],
       );
@@ -181,6 +184,7 @@ void main() {
           DashboardLoadSuccess(cards: [WalletMockData.card, WalletMockData.altCard], history: const []),
         ),
         providers: [
+          RepositoryProvider<AppEventCoordinator>(create: (c) => MockAppEventCoordinator()),
           RepositoryProvider<NavigationService>(create: (c) => MockNavigationService()),
           RepositoryProvider<ObserveVersionStateUsecase>(create: (c) => MockObserveVersionStateUsecase()),
           RepositoryProvider<BannerCubit>(
@@ -218,6 +222,7 @@ Future<void> _pumpSuccessWithVersionState(
     textScaleSize: textScaleSize,
     surfaceSize: surfaceSize,
     providers: [
+      RepositoryProvider<AppEventCoordinator>(create: (c) => MockAppEventCoordinator()),
       RepositoryProvider<NavigationService>(create: (c) => MockNavigationService()),
       RepositoryProvider<ObserveVersionStateUsecase>(
         create: (c) {

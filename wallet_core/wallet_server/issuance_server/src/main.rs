@@ -1,14 +1,18 @@
 use std::sync::Arc;
 
 use anyhow::Result;
+use anyhow::anyhow;
+use itertools::Itertools;
 
 use hsm::service::Pkcs11Hsm;
 use issuance_server::disclosure::HttpAttributesFetcher;
 use issuance_server::server;
 use issuance_server::settings::IssuanceServerSettings;
 use server_utils::server::wallet_server_main;
-use server_utils::store::DatabaseConnection;
 use server_utils::store::SessionStoreVariant;
+use server_utils::store::StoreConnection;
+use server_utils::store::postgres::new_connection;
+use status_lists::postgres::PostgresStatusClaimService;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -25,10 +29,16 @@ async fn main_impl(settings: IssuanceServerSettings) -> Result<()> {
         .transpose()?;
 
     let storage_settings = &settings.issuer_settings.server_settings.storage;
-    let db_connection = DatabaseConnection::try_new(storage_settings.url.clone()).await?;
+    let store_connection = StoreConnection::try_new(storage_settings.url.clone()).await?;
 
-    let issuance_sessions = Arc::new(SessionStoreVariant::new(db_connection.clone(), storage_settings.into()));
-    let disclosure_sessions = Arc::new(SessionStoreVariant::new(db_connection, storage_settings.into()));
+    let issuance_sessions = Arc::new(SessionStoreVariant::new(
+        store_connection.clone(),
+        storage_settings.into(),
+    ));
+    let disclosure_sessions = Arc::new(SessionStoreVariant::new(
+        store_connection.clone(),
+        storage_settings.into(),
+    ));
 
     let attributes_fetcher = HttpAttributesFetcher::try_new(
         settings
@@ -38,6 +48,27 @@ async fn main_impl(settings: IssuanceServerSettings) -> Result<()> {
             .collect(),
     )?;
 
+    let db_connection = match (store_connection, settings.status_lists.storage_url.as_ref()) {
+        (_, Some(url)) => new_connection(url.clone()).await.map_err(anyhow::Error::from),
+        (StoreConnection::Postgres(db_connection), None) => Ok(db_connection),
+        _ => Err(anyhow!(
+            "No database connection configured for status list in issuance server"
+        )),
+    }?;
+    let status_claim_service = PostgresStatusClaimService::try_new(
+        db_connection,
+        settings.status_lists.clone(),
+        &settings
+            .issuer_settings
+            .attestation_settings
+            .as_ref()
+            .keys()
+            .cloned()
+            .collect_vec(),
+    )
+    .await?;
+    status_claim_service.initialize_lists().await?;
+
     // This will block until the server shuts down.
     server::serve(
         settings,
@@ -45,6 +76,7 @@ async fn main_impl(settings: IssuanceServerSettings) -> Result<()> {
         issuance_sessions,
         disclosure_sessions,
         attributes_fetcher,
+        status_claim_service,
     )
     .await
 }
