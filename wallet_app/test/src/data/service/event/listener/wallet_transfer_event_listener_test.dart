@@ -2,25 +2,25 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wallet/src/data/service/event/listener/wallet_transfer_event_listener.dart';
 import 'package:wallet/src/domain/model/navigation/navigation_request.dart';
-import 'package:wallet/src/domain/model/wallet_status.dart';
+import 'package:wallet/src/domain/model/wallet_state.dart';
 
 import '../../../../mocks/wallet_mocks.mocks.dart';
 
 void main() {
   late MockNavigationService navigationService;
-  late MockGetWalletStatusUseCase getWalletStatusUseCase;
+  late MockGetWalletStateUseCase getWalletStateUseCase;
   late MockCancelWalletTransferUseCase cancelWalletTransferUseCase;
   late WalletTransferEventListener listener;
 
   setUp(() {
-    provideDummy<WalletStatus>(WalletStatusReady());
+    provideDummy<WalletState>(WalletStateReady());
 
     navigationService = MockNavigationService();
-    getWalletStatusUseCase = MockGetWalletStatusUseCase();
+    getWalletStateUseCase = MockGetWalletStateUseCase();
     cancelWalletTransferUseCase = MockCancelWalletTransferUseCase();
     listener = WalletTransferEventListener(
       navigationService,
-      getWalletStatusUseCase,
+      getWalletStateUseCase,
       cancelWalletTransferUseCase,
     );
   });
@@ -29,8 +29,8 @@ void main() {
     test(
       'should navigate to wallet transfer screen when status is transfer possible (with isRetry=false)',
       () async {
-        when(getWalletStatusUseCase.invoke()).thenAnswer(
-          (_) async => WalletStatusTransferPossible(),
+        when(getWalletStateUseCase.invoke()).thenAnswer(
+          (_) async => WalletStateTransferPossible(),
         );
 
         await listener.onWalletUnlocked();
@@ -48,8 +48,8 @@ void main() {
     test(
       'should cancel transfer and navigate to transfer screen when status is transferring as target (with isRetry=true)',
       () async {
-        when(getWalletStatusUseCase.invoke()).thenAnswer(
-          (_) async => WalletStatusTransferring(TransferRole.target),
+        when(getWalletStateUseCase.invoke()).thenAnswer(
+          (_) async => WalletStateTransferring(TransferRole.target),
         );
 
         await listener.onWalletUnlocked();
@@ -67,8 +67,8 @@ void main() {
     test(
       'should cancel transfer and not navigate when status is transferring as source',
       () async {
-        when(getWalletStatusUseCase.invoke()).thenAnswer(
-          (_) async => WalletStatusTransferring(TransferRole.source),
+        when(getWalletStateUseCase.invoke()).thenAnswer(
+          (_) async => WalletStateTransferring(TransferRole.source),
         );
 
         await listener.onWalletUnlocked();
@@ -81,7 +81,7 @@ void main() {
     test(
       'should do nothing when wallet status is not transfer related',
       () async {
-        when(getWalletStatusUseCase.invoke()).thenAnswer((_) async => WalletStatusReady());
+        when(getWalletStateUseCase.invoke()).thenAnswer((_) async => WalletStateReady());
 
         await listener.onWalletUnlocked();
 

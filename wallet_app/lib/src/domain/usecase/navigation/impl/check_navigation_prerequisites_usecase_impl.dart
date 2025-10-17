@@ -1,6 +1,6 @@
 import '../../../../data/repository/wallet/wallet_repository.dart';
 import '../../../model/navigation/navigation_request.dart';
-import '../../../model/wallet_status.dart';
+import '../../../model/wallet_state.dart';
 import '../check_navigation_prerequisites_usecase.dart';
 
 class CheckNavigationPrerequisitesUseCaseImpl extends CheckNavigationPrerequisitesUseCase {
@@ -22,7 +22,7 @@ class CheckNavigationPrerequisitesUseCaseImpl extends CheckNavigationPrerequisit
           final containsPid = await _walletRepository.containsPid();
           if (!containsPid) return false;
         case NavigationPrerequisite.walletInReadyState:
-          final inReadyState = await _walletRepository.getWalletStatus() is WalletStatusReady;
+          final inReadyState = await _walletRepository.getWalletState() is WalletStateReady;
           if (!inReadyState) return false;
       }
     }

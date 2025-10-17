@@ -112,9 +112,9 @@ import '../domain/usecase/uri/impl/decode_uri_usecase_impl.dart';
 import '../domain/usecase/version/get_version_string_usecase.dart';
 import '../domain/usecase/version/impl/get_version_string_usecase_impl.dart';
 import '../domain/usecase/wallet/create_wallet_usecase.dart';
-import '../domain/usecase/wallet/get_wallet_status_usecase.dart';
+import '../domain/usecase/wallet/get_wallet_state_usecase.dart';
 import '../domain/usecase/wallet/impl/create_wallet_usecase_impl.dart';
-import '../domain/usecase/wallet/impl/get_wallet_status_usecase_impl.dart';
+import '../domain/usecase/wallet/impl/get_wallet_state_usecase_impl.dart';
 import '../domain/usecase/wallet/impl/is_wallet_initialized_with_pid_impl.dart';
 import '../domain/usecase/wallet/impl/is_wallet_registered_and_unlocked_usecase_impl.dart';
 import '../domain/usecase/wallet/impl/lock_wallet_usecase_impl.dart';
@@ -357,8 +357,8 @@ class WalletUseCaseProvider extends StatelessWidget {
         RepositoryProvider<CancelPinRecoveryUseCase>(
           create: (context) => CancelPinRecoveryUseCaseImpl(context.read()),
         ),
-        RepositoryProvider<GetWalletStatusUseCase>(
-          create: (context) => GetWalletStatusUseCaseImpl(context.read()),
+        RepositoryProvider<GetWalletStateUseCase>(
+          create: (context) => GetWalletStateUseCaseImpl(context.read()),
         ),
       ],
       child: child,

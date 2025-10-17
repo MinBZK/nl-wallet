@@ -1,18 +1,18 @@
 import 'package:fimber/fimber.dart';
 
 import '../../../../data/repository/wallet/wallet_repository.dart';
-import '../../../model/wallet_status.dart';
-import '../get_wallet_status_usecase.dart';
+import '../../../model/wallet_state.dart';
+import '../get_wallet_state_usecase.dart';
 
-class GetWalletStatusUseCaseImpl extends GetWalletStatusUseCase {
+class GetWalletStateUseCaseImpl extends GetWalletStateUseCase {
   final WalletRepository _walletRepository;
 
-  GetWalletStatusUseCaseImpl(this._walletRepository);
+  GetWalletStateUseCaseImpl(this._walletRepository);
 
   @override
-  Future<WalletStatus> invoke() async {
+  Future<WalletState> invoke() async {
     try {
-      return await _walletRepository.getWalletStatus();
+      return await _walletRepository.getWalletState();
     } catch (ex) {
       Fimber.e('Failed to get wallet status', ex: ex);
       throw StateError('Failed to get wallet status');

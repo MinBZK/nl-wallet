@@ -1,6 +1,6 @@
-import 'package:wallet_core/core.dart';
+import 'package:wallet_core/core.dart' as core;
 
-import '../../../domain/model/wallet_status.dart';
+import '../../../domain/model/wallet_state.dart';
 
 abstract class WalletRepository {
   /// Stream that indicates whether the wallet is currently locked,
@@ -16,7 +16,7 @@ abstract class WalletRepository {
   Future<bool> isRegistered();
 
   /// Unlock the wallet, also updates the [isLockedStream] when successful
-  Future<WalletInstructionResult> unlockWallet(String pin);
+  Future<core.WalletInstructionResult> unlockWallet(String pin);
 
   /// Unlock the wallet **without** pin, requires biometric unlock to be enabled.
   /// Also updates the [isLockedStream] when successful.
@@ -36,5 +36,5 @@ abstract class WalletRepository {
   Future<void> resetWallet();
 
   /// Fetch the current status of the wallet
-  Future<WalletStatus> getWalletStatus();
+  Future<WalletState> getWalletState();
 }
