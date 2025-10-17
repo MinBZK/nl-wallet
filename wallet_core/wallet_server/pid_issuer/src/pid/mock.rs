@@ -15,11 +15,11 @@ use utils::vec_at_least::VecNonEmpty;
 pub struct MockAttributeService(VecNonEmpty<IssuableDocument>);
 
 pub fn mock_issuable_document_pid() -> IssuableDocument {
-    IssuableDocument::try_new(PID_ATTESTATION_TYPE.to_string(), Attributes::nl_pid_example()).unwrap()
+    IssuableDocument::try_new_with_random_id(PID_ATTESTATION_TYPE.to_string(), Attributes::nl_pid_example()).unwrap()
 }
 
 pub fn mock_issuable_document_address() -> IssuableDocument {
-    IssuableDocument::try_new(
+    IssuableDocument::try_new_with_random_id(
         ADDRESS_ATTESTATION_TYPE.to_string(),
         Attributes::nl_pid_address_example(),
     )

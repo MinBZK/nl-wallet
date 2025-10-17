@@ -57,6 +57,8 @@ trust_anchors = ["${DEMO_ISSUER_ATTESTATION_SERVER_CA_CRT}"]
 [attestation_settings."com.example.degree"]
 valid_days = 365
 copies_per_format = { "mso_mdoc" = 4, "dc+sd-jwt" = 4 }
+# TODO add correct path in PVW-4558
+status_list_base_url = "https://${SERVICES_HOST}:${CONFIG_SERVER_PORT}/"
 private_key_type = "software"
 private_key = "${DEMO_ISSUER_KEY_UNIVERSITY_ISSUER}"
 certificate = "${DEMO_ISSUER_CRT_UNIVERSITY_ISSUER}"
@@ -81,6 +83,8 @@ trust_anchors = ["${DEMO_ISSUER_ATTESTATION_SERVER_CA_CRT}"]
 [attestation_settings."com.example.insurance"]
 valid_days = 365
 copies_per_format = { "mso_mdoc" = 4, "dc+sd-jwt" = 4 }
+# TODO add correct path in PVW-4558
+status_list_base_url = "https://${SERVICES_HOST}:${CONFIG_SERVER_PORT}/"
 private_key_type = "software"
 private_key = "${DEMO_ISSUER_KEY_INSURANCE_ISSUER}"
 certificate = "${DEMO_ISSUER_CRT_INSURANCE_ISSUER}"

@@ -55,12 +55,13 @@ use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
 use sd_jwt_vc_metadata::TypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use sd_jwt_vc_metadata::UncheckedTypeMetadata;
+use token_status_list::status_service::mock::MockStatusClaimService;
 use utils::vec_at_least::VecNonEmpty;
 use wscd::Poa;
 use wscd::PoaPayload;
 use wscd::mock_remote::MockRemoteWscd;
 
-type MockIssuer = Issuer<MockAttributeService, SigningKey, MemorySessionStore<IssuanceData>>;
+type MockIssuer = Issuer<MockAttributeService, SigningKey, MemorySessionStore<IssuanceData>, MockStatusClaimService>;
 
 fn setup_mock_issuer(attestation_count: NonZeroUsize) -> (MockIssuer, TrustAnchor<'static>, BaseUrl, SigningKey) {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
@@ -68,7 +69,7 @@ fn setup_mock_issuer(attestation_count: NonZeroUsize) -> (MockIssuer, TrustAncho
 
     setup(
         MockAttributeService {
-            attestations: mock_issuable_attestation(attestation_count),
+            documents: mock_issuable_documents(attestation_count),
         },
         &ca,
         &issuance_keypair,
@@ -107,6 +108,7 @@ fn setup(
                         .san_dns_name_or_uris()
                         .unwrap()
                         .into_first(),
+                    "https://cdn.example.com/tsl".parse().unwrap(),
                     AttestationQualification::default(),
                     metadata_documents,
                 )
@@ -125,6 +127,7 @@ fn setup(
         Some(WuaConfig {
             wua_issuer_pubkey: wua_issuer_privkey.verifying_key().into(),
         }),
+        MockStatusClaimService::default(),
     );
 
     (
@@ -527,10 +530,10 @@ fn mock_type_metadata(vct: &str) -> TypeMetadata {
     .unwrap()
 }
 
-fn mock_issuable_attestation(attestation_count: NonZeroUsize) -> VecNonEmpty<IssuableDocument> {
-    (0..attestation_count.get())
+fn mock_issuable_documents(document_count: NonZeroUsize) -> VecNonEmpty<IssuableDocument> {
+    (0..document_count.get())
         .map(|i| {
-            IssuableDocument::try_new(
+            IssuableDocument::try_new_with_random_id(
                 MOCK_ATTESTATION_TYPES[i].to_string(),
                 IndexMap::from_iter(MOCK_ATTRS.iter().map(|(key, val)| {
                     (
@@ -548,14 +551,14 @@ fn mock_issuable_attestation(attestation_count: NonZeroUsize) -> VecNonEmpty<Iss
 }
 
 struct MockAttributeService {
-    attestations: VecNonEmpty<IssuableDocument>,
+    documents: VecNonEmpty<IssuableDocument>,
 }
 
 impl AttributeService for MockAttributeService {
     type Error = std::convert::Infallible;
 
     async fn attributes(&self, _token_request: TokenRequest) -> Result<VecNonEmpty<IssuableDocument>, Self::Error> {
-        Ok(self.attestations.clone())
+        Ok(self.documents.clone())
     }
 
     async fn oauth_metadata(&self, issuer_url: &BaseUrl) -> Result<oidc::Config, Self::Error> {
