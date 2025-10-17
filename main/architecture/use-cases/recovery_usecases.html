@@ -312,9 +312,20 @@ PID Renewal allows the user to fetch a new PID attestation in case the current P
 <li><p>In step 19, the encrypted data is retrieved from the WalletBackend and will be decrypted in the Destionation Wallet.</p></li>
 </ol>
 </section>
-<section id="wallet-states-during-transfer">
-<h4>Wallet states during transfer<a class="headerlink" href="#wallet-states-during-transfer" title="Link to this heading"></a></h4>
-<p>While transfering, the following states are used in the process:</p>
+<section id="alternate-flows">
+<h4>Alternate flows<a class="headerlink" href="#alternate-flows" title="Link to this heading"></a></h4>
+<p>The alternate flows are not modelled withtin the <a class="reference internal" href="#wallet-device-transfer-flow">Wallet Device Transfer sequence Diagram</a>  above. Alternate flows are:</p>
+<ul class="simple">
+<li><p>Cancellation: Before completion Wallet Device Transfer can be cancelled by the user from both the Destination and the Source Wallet any time.</p></li>
+<li><p>Error: An out-of-power device, network failure or unexpected termination of the app may terminate the transfer and leave the transfer in a non-completed state.</p></li>
+</ul>
+<p>As long as the user has not explicitly made a choice to start using the Destination Wallet <strong>without</strong> Wallet Device Transfer, the user will be offered the choice to start a Wallet Device Transfer again, even after Cancellation or Error.</p>
+</section>
+<section id="wallet-transfer-states">
+<h4>Wallet transfer states<a class="headerlink" href="#wallet-transfer-states" title="Link to this heading"></a></h4>
+<p>See the <a class="reference internal" href="#wallet-device-transfer-flow">Wallet Device Transfer sequence Diagram</a> above to see excactly at which point in the process a state update occurs.</p>
+<p>After activating a new NL Wallet (Destination Wallet) when another account exists for the same user, a Wallet Transfer record will be linked to the new account.
+The Wallet Transfer record can have the following states:</p>
 <table class="docutils align-default">
 <thead>
 <tr class="row-odd"><th class="head"><p>Transfer State</p></th>
@@ -324,24 +335,24 @@ PID Renewal allows the user to fetch a new PID attestation in case the current P
 </thead>
 <tbody>
 <tr class="row-even"><td><p>created</p></td>
-<td><p>After activation of Destination Wallet, when another account exists for the same user</p></td>
+<td><p>- Wallet Transfer record is created.<br/>- <code class="docutils literal notranslate"><span class="pre">reset_transfer</span></code> instruction is called when recovering from a failed or cancelled transfer.</p></td>
 <td><p>ready_for_transfer, canceled</p></td>
 </tr>
 <tr class="row-odd"><td><p>ready_for_transfer</p></td>
 <td><p>After scanning QR from Destination Wallet and <code class="docutils literal notranslate"><span class="pre">confirm_transfer_session</span></code> instruction, Source Wallet is linked to transfer session.</p></td>
-<td><p>ready_for_download, canceled</p></td>
+<td><p>ready_for_download, canceled, created</p></td>
 </tr>
 <tr class="row-even"><td><p>ready_for_download</p></td>
 <td><p>After <code class="docutils literal notranslate"><span class="pre">send_wallet_payload</span></code> instruction from Source Wallet</p></td>
-<td><p>completed, canceled</p></td>
+<td><p>completed, canceled, created</p></td>
 </tr>
 <tr class="row-odd"><td><p>completed</p></td>
-<td><p>Destination Wallet after succesfull download (<code class="docutils literal notranslate"><span class="pre">receive_wallet_payload</span></code> instruction ) <br/>and processing of payload confirmed with <code class="docutils literal notranslate"><span class="pre">complete_transfer</span></code></p></td>
+<td><p>Destination Wallet after succesfull download (<code class="docutils literal notranslate"><span class="pre">receive_wallet_payload</span></code> instruction) and processing of payload confirmed with <code class="docutils literal notranslate"><span class="pre">complete_transfer</span></code> instruction.</p></td>
 <td><p>-</p></td>
 </tr>
 <tr class="row-even"><td><p>canceled</p></td>
-<td><p>User can cancel transfer from Destination Wallet or Source Wallet from any state using <code class="docutils literal notranslate"><span class="pre">cancel_transfer</span></code> instruction. <br/>Not allowed after <code class="docutils literal notranslate"><span class="pre">completed</span></code> state is reached</p></td>
-<td><p>-</p></td>
+<td><p>User can cancel transfer from Destination Wallet or Source Wallet from any state before reaching the <code class="docutils literal notranslate"><span class="pre">completed</span></code> state. The <code class="docutils literal notranslate"><span class="pre">cancel_transfer</span></code> instruction is used.</p></td>
+<td><p>created</p></td>
 </tr>
 </tbody>
 </table>
