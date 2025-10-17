@@ -39,7 +39,7 @@ void main() {
       await screenMatchesGolden('success.light');
     });
 
-    testGoldens('HistoryDetailLoadSuccess issuance - light', (tester) async {
+    testGoldens('HistoryDetailLoadSuccess issuance - card issued', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const HistoryDetailScreen().withState<HistoryDetailBloc, HistoryDetailState>(
           MockHistoryDetailBloc(),
@@ -51,7 +51,37 @@ void main() {
           ),
         ],
       );
-      await screenMatchesGolden('success.issuance.light');
+      await screenMatchesGolden('success.card.issued');
+    });
+
+    testGoldens('HistoryDetailLoadSuccess issuance - card renewed', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const HistoryDetailScreen().withState<HistoryDetailBloc, HistoryDetailState>(
+          MockHistoryDetailBloc(),
+          HistoryDetailLoadSuccess(WalletMockData.issuanceEventCardRenewed),
+        ),
+        providers: [
+          RepositoryProvider<ContextMapper<OrganizationPolicy, String>>(
+            create: (c) => PolicyBodyTextMapper(),
+          ),
+        ],
+      );
+      await screenMatchesGolden('success.card.renewed');
+    });
+
+    testGoldens('HistoryDetailLoadSuccess issuance - card status expired', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const HistoryDetailScreen().withState<HistoryDetailBloc, HistoryDetailState>(
+          MockHistoryDetailBloc(),
+          HistoryDetailLoadSuccess(WalletMockData.issuanceEventCardStatusExpired),
+        ),
+        providers: [
+          RepositoryProvider<ContextMapper<OrganizationPolicy, String>>(
+            create: (c) => PolicyBodyTextMapper(),
+          ),
+        ],
+      );
+      await screenMatchesGolden('success.card.status.expired');
     });
 
     testGoldens('HistoryDetailLoadSuccess card renewed - light', (tester) async {
@@ -67,6 +97,36 @@ void main() {
         ],
       );
       await screenMatchesGolden('success.renewed.light');
+    });
+
+    testGoldens('HistoryDetailLoadSuccess issuance - card status revoked', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const HistoryDetailScreen().withState<HistoryDetailBloc, HistoryDetailState>(
+          MockHistoryDetailBloc(),
+          HistoryDetailLoadSuccess(WalletMockData.issuanceEventCardStatusRevoked),
+        ),
+        providers: [
+          RepositoryProvider<ContextMapper<OrganizationPolicy, String>>(
+            create: (c) => PolicyBodyTextMapper(),
+          ),
+        ],
+      );
+      await screenMatchesGolden('success.card.status.revoked');
+    });
+
+    testGoldens('HistoryDetailLoadSuccess issuance - card status corrupted', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const HistoryDetailScreen().withState<HistoryDetailBloc, HistoryDetailState>(
+          MockHistoryDetailBloc(),
+          HistoryDetailLoadSuccess(WalletMockData.issuanceEventCardStatusCorrupted),
+        ),
+        providers: [
+          RepositoryProvider<ContextMapper<OrganizationPolicy, String>>(
+            create: (c) => PolicyBodyTextMapper(),
+          ),
+        ],
+      );
+      await screenMatchesGolden('success.card.status.corrupted');
     });
 
     testGoldens('HistoryDetailLoadSuccess dark', (tester) async {

@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2025-10-13T14:21:05+02:00",
+    "@@last_modified": "2025-10-14T12:34:24+02:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -629,7 +629,12 @@
     "historyDetailScreenErrorNoDataSharedTitleForLogin": "Login failed to {organization}",
     "historyDetailScreenErrorTitleForDisclosure": "Sharing may have failed with {organization}",
     "historyDetailScreenErrorTitleForLogin": "Login may have failed to {organization}",
-    "historyDetailScreenIssuanceSuccessDescription": "Card created",
+    "historyDetailScreenIssuanceCardCorruptedDescription": "This card can no longer be used.",
+    "historyDetailScreenIssuanceCardCorruptedTitle": "Card invalid",
+    "historyDetailScreenIssuanceCardExpiredDescription": "This card can no longer be used.",
+    "historyDetailScreenIssuanceCardExpiredTitle": "Card expired",
+    "historyDetailScreenIssuanceCardRevokedDescription": "This card can no longer be used.",
+    "historyDetailScreenIssuanceCardRevokedTitle": "Card withdrawn by the issuer",
     "historyDetailScreenLoginCancelledDescription": "No data was shared with {organization} because you stopped logging in.",
     "@historyDetailScreenLoginCancelledDescription": {
         "placeholders": {
@@ -686,10 +691,10 @@
     "historyDetailScreenTermsCta": "Read the agreement",
     "historyDetailScreenTermsTitle": "Agreements",
     "historyDetailScreenTitle": "Details",
+    "historyDetailScreenTitleForCardIssued": "{card} created",
+    "historyDetailScreenTitleForCardRenewed": "{card} renewed",
     "historyDetailScreenTitleForDisclosure": "Shared with {organization}",
-    "historyDetailScreenTitleForIssuance": "Created {card} card",
     "historyDetailScreenTitleForLogin": "Logged in to {organization}",
-    "historyDetailScreenTitleForRenewal": "{card} card renewed",
     "historyOverviewScreenTitle": "Activities",
     "idleWarningDialogContinueCta": "Yes, continue",
     "idleWarningDialogDescription": "You will be logged out soon because you haven’t used the app for a while. Choose \"Yes, continue\" for more time.",

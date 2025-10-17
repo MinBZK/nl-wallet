@@ -28,8 +28,8 @@ class WalletEventStatusIconMapper extends Mapper<WalletEvent, IconData?> {
       IssuanceEventType.cardIssued => null,
       IssuanceEventType.cardRenewed => null,
       IssuanceEventType.cardStatusExpired => Icons.event_busy,
-      IssuanceEventType.cardStatusCorrupted => Icons.block_flipped,
       IssuanceEventType.cardStatusRevoked => Icons.close,
+      IssuanceEventType.cardStatusCorrupted => Icons.block_flipped,
     };
   }
 }
