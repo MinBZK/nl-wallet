@@ -18,8 +18,8 @@ class WalletTransferEventListener extends AppEventListener {
 
   @override
   Future<void> onWalletUnlocked() async {
-    final WalletState status = await _getWalletStateUseCase.invoke();
-    switch (status) {
+    final WalletState state = await _getWalletStateUseCase.invoke();
+    switch (state) {
       case WalletStateTransferPossible():
         await _navigationService.handleNavigationRequest(
           NavigationRequest.walletTransferTarget(isRetry: false),
@@ -27,7 +27,7 @@ class WalletTransferEventListener extends AppEventListener {
         );
       case WalletStateTransferring():
         await _cancelWalletTransferUseCase.invoke();
-        if (status.role == TransferRole.target) {
+        if (state.role == TransferRole.target) {
           await _navigationService.handleNavigationRequest(
             NavigationRequest.walletTransferTarget(isRetry: true),
             queueIfNotReady: true,

@@ -35,6 +35,6 @@ abstract class WalletRepository {
   /// Resets the wallet, i.e. removes cards & registration.
   Future<void> resetWallet();
 
-  /// Fetch the current status of the wallet
+  /// Fetch the current state of the wallet
   Future<WalletState> getWalletState();
 }

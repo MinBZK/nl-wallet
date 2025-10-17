@@ -14,8 +14,8 @@ class GetWalletStateUseCaseImpl extends GetWalletStateUseCase {
     try {
       return await _walletRepository.getWalletState();
     } catch (ex) {
-      Fimber.e('Failed to get wallet status', ex: ex);
-      throw StateError('Failed to get wallet status');
+      Fimber.e('Failed to get wallet state', ex: ex);
+      throw StateError('Failed to get wallet state');
     }
   }
 }

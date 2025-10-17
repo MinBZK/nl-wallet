@@ -27,7 +27,7 @@ void main() {
 
   group('onWalletUnlocked', () {
     test(
-      'should navigate to wallet transfer screen when status is transfer possible (with isRetry=false)',
+      'should navigate to wallet transfer screen when state is transfer possible (with isRetry=false)',
       () async {
         when(getWalletStateUseCase.invoke()).thenAnswer(
           (_) async => WalletStateTransferPossible(),
@@ -46,7 +46,7 @@ void main() {
     );
 
     test(
-      'should cancel transfer and navigate to transfer screen when status is transferring as target (with isRetry=true)',
+      'should cancel transfer and navigate to transfer screen when state is transferring as target (with isRetry=true)',
       () async {
         when(getWalletStateUseCase.invoke()).thenAnswer(
           (_) async => WalletStateTransferring(TransferRole.target),
@@ -65,7 +65,7 @@ void main() {
     );
 
     test(
-      'should cancel transfer and not navigate when status is transferring as source',
+      'should cancel transfer and not navigate when state is transferring as source',
       () async {
         when(getWalletStateUseCase.invoke()).thenAnswer(
           (_) async => WalletStateTransferring(TransferRole.source),
@@ -79,7 +79,7 @@ void main() {
     );
 
     test(
-      'should do nothing when wallet status is not transfer related',
+      'should do nothing when wallet state is not transfer related',
       () async {
         when(getWalletStateUseCase.invoke()).thenAnswer((_) async => WalletStateReady());
 
