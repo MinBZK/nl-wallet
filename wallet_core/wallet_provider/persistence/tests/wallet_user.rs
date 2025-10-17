@@ -499,22 +499,4 @@ async fn test_has_multiple_accounts() {
             .await
             .unwrap()
     );
-    // // Create another wallet user with the same recovery_code
-    // let (_, _, wallet_id4, _) = common::create_test_user().await;
-    // store_recovery_code(&db, &wallet_id4, recovery_code.clone())
-    //     .await
-    //     .expect("storing the recovery code should succeed");
-    // // And it should have multiple active accounts
-    // assert!(
-    //     has_multiple_active_accounts_by_recovery_code(&db, &recovery_code)
-    //         .await
-    //         .unwrap()
-    // );
-    // // When the user state is changed to Transferring, it should not have multiple active accounts anymore
-    // transition_wallet_user_state(&db, &wallet_id4, WalletUserState::Active, WalletUserState::Transferring).await;
-    // assert!(
-    //     !has_multiple_active_accounts_by_recovery_code(&db, &recovery_code)
-    //         .await
-    //         .unwrap()
-    // );
 }
