@@ -19,9 +19,11 @@ import 'package:wallet/src/data/repository/transfer/transfer_repository.dart';
 import 'package:wallet/src/data/repository/version/version_state_repository.dart';
 import 'package:wallet/src/data/repository/wallet/wallet_repository.dart';
 import 'package:wallet/src/data/service/app_lifecycle_service.dart';
+import 'package:wallet/src/data/service/event/app_event_coordinator.dart';
 import 'package:wallet/src/data/service/navigation_service.dart';
 import 'package:wallet/src/data/service/semantics_event_service.dart';
 import 'package:wallet/src/data/store/active_locale_provider.dart';
+import 'package:wallet/src/domain/app_event/app_event_listener.dart';
 import 'package:wallet/src/domain/model/configuration/flutter_app_configuration.dart';
 import 'package:wallet/src/domain/usecase/app/check_is_app_initialized_usecase.dart';
 import 'package:wallet/src/domain/usecase/biometrics/get_available_biometrics_usecase.dart';
@@ -78,6 +80,7 @@ import 'package:wallet/src/domain/usecase/update/observe_version_state_usecase.d
 import 'package:wallet/src/domain/usecase/uri/decode_uri_usecase.dart';
 import 'package:wallet/src/domain/usecase/version/get_version_string_usecase.dart';
 import 'package:wallet/src/domain/usecase/wallet/create_wallet_usecase.dart';
+import 'package:wallet/src/domain/usecase/wallet/get_wallet_state_usecase.dart';
 import 'package:wallet/src/domain/usecase/wallet/is_wallet_initialized_with_pid_usecase.dart';
 import 'package:wallet/src/domain/usecase/wallet/lock_wallet_usecase.dart';
 import 'package:wallet/src/domain/usecase/wallet/observe_wallet_locked_usecase.dart';
@@ -131,6 +134,8 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<ActiveLocaleProvider>()])
 @GenerateNiceMocks([MockSpec<BiometricUnlockManager>()])
 @GenerateNiceMocks([MockSpec<SemanticsEventService>()])
+@GenerateNiceMocks([MockSpec<AppEventCoordinator>()])
+@GenerateNiceMocks([MockSpec<AppEventListener>()])
 /// Mock use cases
 @GenerateNiceMocks([MockSpec<DecodeUriUseCase>()])
 @GenerateNiceMocks([MockSpec<IsWalletInitializedUseCase>()])
@@ -194,6 +199,7 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<ContinuePinRecoveryUseCase>()])
 @GenerateNiceMocks([MockSpec<CancelPinRecoveryUseCase>()])
 @GenerateNiceMocks([MockSpec<CompletePinRecoveryUseCase>()])
+@GenerateNiceMocks([MockSpec<GetWalletStateUseCase>()])
 /// Core
 @GenerateNiceMocks([MockSpec<WalletCoreApi>()])
 /// Constants
