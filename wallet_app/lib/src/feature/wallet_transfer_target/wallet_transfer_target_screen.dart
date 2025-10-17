@@ -41,8 +41,8 @@ class _WalletTransferTargetScreenState extends State<WalletTransferTargetScreen>
     with AfterLayoutMixin<WalletTransferTargetScreen> {
   @override
   FutureOr<void> afterFirstLayout(BuildContext context) {
-    final showRecoveryPopup = ModalRoute.of(context)?.settings.arguments == true;
-    if (showRecoveryPopup) context.read<NavigationService>().showDialog(WalletDialogType.moveStopped);
+    final showTransferStoppedDialog = ModalRoute.of(context)?.settings.arguments == true;
+    if (showTransferStoppedDialog) context.read<NavigationService>().showDialog(WalletDialogType.moveStopped);
   }
 
   @override
