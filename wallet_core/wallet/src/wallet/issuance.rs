@@ -711,8 +711,8 @@ mod tests {
 
     use attestation_data::attributes::AttributeValue;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
-    use attestation_data::constants::PID_ATTESTATION_TYPE;
     use attestation_data::credential_payload::IntoCredentialPayload;
+    use attestation_data::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_data::x509::CertificateType;
     use crypto::server_keys::generate::Ca;
     use crypto::x509::BorrowingCertificateExtension;

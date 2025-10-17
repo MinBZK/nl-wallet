@@ -887,8 +887,8 @@ mod tests {
     use serde_json::json;
 
     use attestation_data::attributes::AttributesTraversalBehaviour;
-    use attestation_data::constants::PID_ATTESTATION_TYPE;
     use attestation_data::disclosure::DisclosedAttributes;
+    use attestation_data::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_data::test_credential::nl_pid_address_minimal_address;
     use attestation_data::test_credential::nl_pid_credentials_full_name;
     use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;

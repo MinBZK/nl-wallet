@@ -12,12 +12,8 @@ use p256::ecdsa::VerifyingKey;
 use serde::Deserialize;
 use serde::Serialize;
 use tracing::warn;
-use utils::vec_nonempty;
 use uuid::Uuid;
 
-use attestation_data::attributes::AttributeValue;
-use attestation_data::attributes::Attributes;
-use attestation_data::constants::PID_RECOVERY_CODE;
 use crypto::keys::EcdsaKey;
 use crypto::p256_der::DerSignature;
 use hsm::model::encrypter::Encrypter;
@@ -69,6 +65,7 @@ use wscd::poa::POA_JWT_TYP;
 
 use crate::account_server::InstructionError;
 use crate::account_server::InstructionValidationError;
+use crate::account_server::RecoveryCodeConfig;
 use crate::account_server::UserState;
 use crate::wallet_certificate::PinKeyChecks;
 use crate::wua_issuer::WuaIssuer;
@@ -308,6 +305,7 @@ pub trait HandleInstruction {
         wallet_user: &WalletUser,
         generators: &G,
         user_state: &UserState<R, H, impl WuaIssuer>,
+        recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<Self::Result, InstructionError>
     where
         T: Committable,
@@ -324,6 +322,7 @@ impl HandleInstruction for CheckPin {
         _wallet_user: &WalletUser,
         _generators: &G,
         _user_state: &UserState<R, H, impl WuaIssuer>,
+        _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<(), InstructionError>
     where
         T: Committable,
@@ -343,6 +342,7 @@ impl HandleInstruction for ChangePinCommit {
         wallet_user: &WalletUser,
         _generators: &G,
         user_state: &UserState<R, H, impl WuaIssuer>,
+        _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<Self::Result, InstructionError>
     where
         T: Committable,
@@ -577,6 +577,7 @@ impl HandleInstruction for PerformIssuance {
         wallet_user: &WalletUser,
         generators: &G,
         user_state: &UserState<R, H, impl WuaIssuer>,
+        _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<Self::Result, InstructionError>
     where
         T: Committable,
@@ -608,6 +609,7 @@ impl HandleInstruction for PerformIssuanceWithWua {
         wallet_user: &WalletUser,
         generators: &G,
         user_state: &UserState<R, H, impl WuaIssuer>,
+        _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<Self::Result, InstructionError>
     where
         T: Committable,
@@ -644,6 +646,7 @@ impl HandleInstruction for Sign {
         wallet_user: &WalletUser,
         _generators: &G,
         user_state: &UserState<R, H, impl WuaIssuer>,
+        _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<SignResult, InstructionError>
     where
         T: Committable,
@@ -713,6 +716,7 @@ impl HandleInstruction for DiscloseRecoveryCode {
         wallet_user: &WalletUser,
         generators: &G,
         user_state: &UserState<R, H, impl WuaIssuer>,
+        recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<Self::Result, InstructionError>
     where
         T: Committable,
@@ -724,14 +728,7 @@ impl HandleInstruction for DiscloseRecoveryCode {
             .recovery_code_disclosure
             .into_verified_against_trust_anchors(&user_state.pid_issuer_trust_anchors, &TimeGenerator)?;
 
-        let disclosed_attributes: Attributes = verified_sd_jwt.decoded_claims()?.try_into()?;
-        let recovery_code = match disclosed_attributes
-            .flattened()
-            .swap_remove(&vec_nonempty![PID_RECOVERY_CODE])
-        {
-            Some(AttributeValue::Text(recovery_code)) => recovery_code,
-            _ => return Err(InstructionError::MissingRecoveryCode),
-        };
+        let recovery_code = recovery_code_config.extract_from_sd_jwt(&verified_sd_jwt)?;
 
         let tx = user_state.repositories.begin_transaction().await?;
 
@@ -756,7 +753,7 @@ impl HandleInstruction for DiscloseRecoveryCode {
             Some(transfer_session_id)
         } else if user_state
             .repositories
-            .has_multiple_active_accounts_by_recovery_code(&tx, recovery_code)
+            .has_multiple_active_accounts_by_recovery_code(&tx, &recovery_code)
             .await?
         {
             let transfer_session_id = Uuid::new_v4();
@@ -789,6 +786,7 @@ impl HandleInstruction for DiscloseRecoveryCodePinRecovery {
         wallet_user: &WalletUser,
         _generators: &G,
         user_state: &UserState<R, H, impl WuaIssuer>,
+        recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<Self::Result, InstructionError>
     where
         T: Committable,
@@ -801,23 +799,16 @@ impl HandleInstruction for DiscloseRecoveryCodePinRecovery {
             .into_verified_against_trust_anchors(&user_state.pid_issuer_trust_anchors, &TimeGenerator)?;
 
         let key = verified_sd_jwt.holder_pubkey().unwrap(); // The above verification can't have succeeded if this fails
-        let disclosed_attributes: Attributes = verified_sd_jwt.decoded_claims()?.try_into()?;
-        let recovery_code = match disclosed_attributes
-            .flattened()
-            .swap_remove(&vec_nonempty![PID_RECOVERY_CODE])
-        {
-            Some(AttributeValue::Text(recovery_code)) => recovery_code,
-            _ => return Err(InstructionError::MissingRecoveryCode),
-        };
+        let recovery_code = recovery_code_config.extract_from_sd_jwt(&verified_sd_jwt)?;
 
         // Idempotency check
-        if wallet_user.state == WalletUserState::Active && wallet_user.recovery_code.as_ref() == Some(recovery_code) {
+        if wallet_user.state == WalletUserState::Active && wallet_user.recovery_code.as_ref() == Some(&recovery_code) {
             return Ok(());
         }
 
         // The PID that was just received has to belong to the same person as the wallet,
         // which is the case only if they have the same recovery code.
-        if wallet_user.recovery_code.as_ref() != Some(recovery_code) {
+        if wallet_user.recovery_code != Some(recovery_code) {
             return Err(InstructionError::InvalidRecoveryCode);
         }
 
@@ -847,6 +838,7 @@ impl HandleInstruction for ConfirmTransfer {
         wallet_user: &WalletUser,
         _generators: &G,
         user_state: &UserState<R, H, impl WuaIssuer>,
+        _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<Self::Result, InstructionError>
     where
         T: Committable,
@@ -895,6 +887,7 @@ impl HandleInstruction for CancelTransfer {
         wallet_user: &WalletUser,
         _generators: &G,
         user_state: &UserState<R, H, impl WuaIssuer>,
+        _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<Self::Result, InstructionError>
     where
         T: Committable,
@@ -945,6 +938,7 @@ impl HandleInstruction for ResetTransfer {
         wallet_user: &WalletUser,
         _generators: &G,
         user_state: &UserState<R, H, impl WuaIssuer>,
+        _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<Self::Result, InstructionError>
     where
         T: Committable,
@@ -996,6 +990,7 @@ impl HandleInstruction for GetTransferStatus {
         wallet_user: &WalletUser,
         _generators: &G,
         user_state: &UserState<R, H, impl WuaIssuer>,
+        _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<Self::Result, InstructionError>
     where
         T: Committable,
@@ -1029,6 +1024,7 @@ impl HandleInstruction for SendWalletPayload {
         wallet_user: &WalletUser,
         _generators: &G,
         user_state: &UserState<R, H, impl WuaIssuer>,
+        _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<(), InstructionError>
     where
         T: Committable,
@@ -1076,6 +1072,7 @@ impl HandleInstruction for ReceiveWalletPayload {
         wallet_user: &WalletUser,
         _generators: &G,
         user_state: &UserState<R, H, impl WuaIssuer>,
+        _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<ReceiveWalletPayloadResult, InstructionError>
     where
         T: Committable,
@@ -1116,6 +1113,7 @@ impl HandleInstruction for CompleteTransfer {
         wallet_user: &WalletUser,
         _generators: &G,
         user_state: &UserState<R, H, impl WuaIssuer>,
+        _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<Self::Result, InstructionError>
     where
         T: Committable,
@@ -1297,10 +1295,6 @@ mod tests {
     use semver::Version;
     use uuid::Uuid;
 
-    use attestation_data::auth::issuer_auth::IssuerRegistration;
-    use attestation_data::constants::PID_RECOVERY_CODE;
-    use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
-    use attestation_types::claim_path::ClaimPath;
     use crypto::server_keys::generate::Ca;
     use crypto::utils::random_bytes;
     use crypto::utils::random_string;
@@ -1312,8 +1306,7 @@ mod tests {
     use jwt::jwk::jwk_to_p256;
     use jwt::pop::JwtPopClaims;
     use jwt::wua::WuaDisclosure;
-    use sd_jwt::builder::SignedSdJwt;
-    use sd_jwt::sd_jwt::UnverifiedSdJwt;
+
     use wallet_account::NL_WALLET_CLIENT_ID;
     use wallet_account::messages::instructions::CancelTransfer;
     use wallet_account::messages::instructions::ChangePinCommit;
@@ -1365,6 +1358,7 @@ mod tests {
                     wrapping_key_identifier.to_string(),
                     vec![],
                 ),
+                &mock::RECOVERY_CODE_CONFIG,
             )
             .await
             .unwrap();
@@ -1426,6 +1420,7 @@ mod tests {
                     wrapping_key_identifier.to_string(),
                     vec![],
                 ),
+                &mock::RECOVERY_CODE_CONFIG,
             )
             .await
             .unwrap();
@@ -1461,21 +1456,7 @@ mod tests {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
 
         let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
-        let issuer_key =
-            generate_issuer_mock_with_registration(&issuer_ca, IssuerRegistration::new_mock().into()).unwrap();
-        let holder_key = SigningKey::random(&mut OsRng);
-        let sd_jwt = SignedSdJwt::pid_example(&issuer_key, holder_key.verifying_key()).into_verified();
-
-        let recovery_code_disclosure = sd_jwt
-            .into_presentation_builder()
-            .disclose(
-                &vec![ClaimPath::SelectByKey(PID_RECOVERY_CODE.to_owned())]
-                    .try_into()
-                    .unwrap(),
-            )
-            .unwrap()
-            .finish()
-            .into();
+        let (_, recovery_code_disclosure) = mock::recovery_code_sd_jwt(&issuer_ca);
 
         let instruction = DiscloseRecoveryCode {
             recovery_code_disclosure,
@@ -1506,6 +1487,7 @@ mod tests {
                     wrapping_key_identifier.to_string(),
                     vec![issuer_ca.as_borrowing_trust_anchor().to_owned_trust_anchor()],
                 ),
+                &mock::RECOVERY_CODE_CONFIG,
             )
             .await
             .unwrap();
@@ -1519,21 +1501,7 @@ mod tests {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
 
         let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
-        let issuer_key =
-            generate_issuer_mock_with_registration(&issuer_ca, IssuerRegistration::new_mock().into()).unwrap();
-        let holder_key = SigningKey::random(&mut OsRng);
-        let sd_jwt = SignedSdJwt::pid_example(&issuer_key, holder_key.verifying_key()).into_verified();
-
-        let recovery_code_disclosure = sd_jwt
-            .into_presentation_builder()
-            .disclose(
-                &vec![ClaimPath::SelectByKey(PID_RECOVERY_CODE.to_owned())]
-                    .try_into()
-                    .unwrap(),
-            )
-            .unwrap()
-            .finish()
-            .into();
+        let (_, recovery_code_disclosure) = mock::recovery_code_sd_jwt(&issuer_ca);
 
         let instruction = DiscloseRecoveryCode {
             recovery_code_disclosure,
@@ -1574,6 +1542,7 @@ mod tests {
                     wrapping_key_identifier.to_string(),
                     vec![issuer_ca.as_borrowing_trust_anchor().to_owned_trust_anchor()],
                 ),
+                &mock::RECOVERY_CODE_CONFIG,
             )
             .await
             .unwrap();
@@ -1590,21 +1559,7 @@ mod tests {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
 
         let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
-        let issuer_key =
-            generate_issuer_mock_with_registration(&issuer_ca, IssuerRegistration::new_mock().into()).unwrap();
-        let holder_key = SigningKey::random(&mut OsRng);
-        let sd_jwt = SignedSdJwt::pid_example(&issuer_key, holder_key.verifying_key()).into_verified();
-
-        let recovery_code_disclosure: UnverifiedSdJwt = sd_jwt
-            .into_presentation_builder()
-            .disclose(
-                &vec![ClaimPath::SelectByKey(PID_RECOVERY_CODE.to_owned())]
-                    .try_into()
-                    .unwrap(),
-            )
-            .unwrap()
-            .finish()
-            .into();
+        let (_, recovery_code_disclosure) = mock::recovery_code_sd_jwt(&issuer_ca);
 
         let instruction = DiscloseRecoveryCode {
             recovery_code_disclosure: recovery_code_disclosure.clone(),
@@ -1645,6 +1600,7 @@ mod tests {
                     wrapping_key_identifier.to_string(),
                     vec![issuer_ca.as_borrowing_trust_anchor().to_owned_trust_anchor()],
                 ),
+                &mock::RECOVERY_CODE_CONFIG,
             )
             .await
             .unwrap();
@@ -1685,6 +1641,7 @@ mod tests {
                     wrapping_key_identifier.to_string(),
                     vec![issuer_ca.as_borrowing_trust_anchor().to_owned_trust_anchor()],
                 ),
+                &mock::RECOVERY_CODE_CONFIG,
             )
             .await
             .unwrap();
@@ -1705,21 +1662,7 @@ mod tests {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
 
         let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
-        let issuer_key =
-            generate_issuer_mock_with_registration(&issuer_ca, IssuerRegistration::new_mock().into()).unwrap();
-        let holder_key = SigningKey::random(&mut OsRng);
-        let sd_jwt = SignedSdJwt::pid_example(&issuer_key, holder_key.verifying_key()).into_verified();
-
-        let recovery_code_disclosure = sd_jwt
-            .into_presentation_builder()
-            .disclose(
-                &vec![ClaimPath::SelectByKey(PID_RECOVERY_CODE.to_owned())]
-                    .try_into()
-                    .unwrap(),
-            )
-            .unwrap()
-            .finish()
-            .into();
+        let (holder_key, recovery_code_disclosure) = mock::recovery_code_sd_jwt(&issuer_ca);
 
         let instruction = DiscloseRecoveryCodePinRecovery {
             recovery_code_disclosure,
@@ -1749,6 +1692,7 @@ mod tests {
                     wrapping_key_identifier.to_string(),
                     vec![issuer_ca.as_borrowing_trust_anchor().to_owned_trust_anchor()],
                 ),
+                &mock::RECOVERY_CODE_CONFIG,
             )
             .await;
 
@@ -1761,21 +1705,7 @@ mod tests {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
 
         let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
-        let issuer_key =
-            generate_issuer_mock_with_registration(&issuer_ca, IssuerRegistration::new_mock().into()).unwrap();
-        let holder_key = SigningKey::random(&mut OsRng);
-        let sd_jwt = SignedSdJwt::pid_example(&issuer_key, holder_key.verifying_key()).into_verified();
-
-        let recovery_code_disclosure = sd_jwt
-            .into_presentation_builder()
-            .disclose(
-                &vec![ClaimPath::SelectByKey(PID_RECOVERY_CODE.to_owned())]
-                    .try_into()
-                    .unwrap(),
-            )
-            .unwrap()
-            .finish()
-            .into();
+        let (_, recovery_code_disclosure) = mock::recovery_code_sd_jwt(&issuer_ca);
 
         let instruction = DiscloseRecoveryCodePinRecovery {
             recovery_code_disclosure,
@@ -1796,6 +1726,7 @@ mod tests {
                     wrapping_key_identifier.to_string(),
                     vec![issuer_ca.as_borrowing_trust_anchor().to_owned_trust_anchor()],
                 ),
+                &mock::RECOVERY_CODE_CONFIG,
             )
             .await;
 
@@ -1811,21 +1742,7 @@ mod tests {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
 
         let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
-        let issuer_key =
-            generate_issuer_mock_with_registration(&issuer_ca, IssuerRegistration::new_mock().into()).unwrap();
-        let holder_key = SigningKey::random(&mut OsRng);
-        let sd_jwt = SignedSdJwt::pid_example(&issuer_key, holder_key.verifying_key()).into_verified();
-
-        let recovery_code_disclosure = sd_jwt
-            .into_presentation_builder()
-            .disclose(
-                &vec![ClaimPath::SelectByKey(PID_RECOVERY_CODE.to_owned())]
-                    .try_into()
-                    .unwrap(),
-            )
-            .unwrap()
-            .finish()
-            .into();
+        let (_, recovery_code_disclosure) = mock::recovery_code_sd_jwt(&issuer_ca);
 
         let instruction = DiscloseRecoveryCodePinRecovery {
             recovery_code_disclosure,
@@ -1841,6 +1758,7 @@ mod tests {
                     wrapping_key_identifier.to_string(),
                     vec![issuer_ca.as_borrowing_trust_anchor().to_owned_trust_anchor()],
                 ),
+                &mock::RECOVERY_CODE_CONFIG,
             )
             .await
             .expect_err("PIN recovery should have failed");
@@ -1858,21 +1776,7 @@ mod tests {
         let wrapping_key_identifier = "my-wrapping-key-identifier";
 
         let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
-        let issuer_key =
-            generate_issuer_mock_with_registration(&issuer_ca, IssuerRegistration::new_mock().into()).unwrap();
-        let holder_key = SigningKey::random(&mut OsRng);
-        let sd_jwt = SignedSdJwt::pid_example(&issuer_key, holder_key.verifying_key()).into_verified();
-
-        let recovery_code_disclosure = sd_jwt
-            .into_presentation_builder()
-            .disclose(
-                &vec![ClaimPath::SelectByKey(PID_RECOVERY_CODE.to_owned())]
-                    .try_into()
-                    .unwrap(),
-            )
-            .unwrap()
-            .finish()
-            .into();
+        let (_, recovery_code_disclosure) = mock::recovery_code_sd_jwt(&issuer_ca);
 
         let instruction = DiscloseRecoveryCodePinRecovery {
             recovery_code_disclosure,
@@ -1898,6 +1802,7 @@ mod tests {
                     wrapping_key_identifier.to_string(),
                     vec![issuer_ca.as_borrowing_trust_anchor().to_owned_trust_anchor()],
                 ),
+                &mock::RECOVERY_CODE_CONFIG,
             )
             .await
             .expect_err("PIN recovery should have failed");
@@ -1980,6 +1885,7 @@ mod tests {
                     wrapping_key_identifier.to_string(),
                     vec![],
                 ),
+                &mock::RECOVERY_CODE_CONFIG,
             )
             .await
             .unwrap()
@@ -2248,6 +2154,7 @@ mod tests {
                     wrapping_key_identifier.to_string(),
                     vec![],
                 ),
+                &mock::RECOVERY_CODE_CONFIG,
             )
             .await
             .unwrap();
@@ -2290,6 +2197,7 @@ mod tests {
                     wrapping_key_identifier.to_string(),
                     vec![],
                 ),
+                &mock::RECOVERY_CODE_CONFIG,
             )
             .await
             .expect_err("should fail when wallet_user does not have a recovery code");
@@ -2347,6 +2255,7 @@ mod tests {
                     wrapping_key_identifier.to_string(),
                     vec![],
                 ),
+                &mock::RECOVERY_CODE_CONFIG,
             )
             .await
             .expect_err("should fail when a transfer session is not in progress");
@@ -2387,6 +2296,7 @@ mod tests {
                     wrapping_key_identifier.to_string(),
                     vec![],
                 ),
+                &mock::RECOVERY_CODE_CONFIG,
             )
             .await
             .expect_err("should fail when app version is wrong");
@@ -2458,6 +2368,7 @@ mod tests {
                     wrapping_key_identifier.to_string(),
                     vec![],
                 ),
+                &mock::RECOVERY_CODE_CONFIG,
             )
             .await
             .unwrap();
@@ -2499,6 +2410,7 @@ mod tests {
                     wrapping_key_identifier.to_string(),
                     vec![],
                 ),
+                &mock::RECOVERY_CODE_CONFIG,
             )
             .await
             .unwrap();
@@ -2541,6 +2453,7 @@ mod tests {
                     wrapping_key_identifier.to_string(),
                     vec![],
                 ),
+                &mock::RECOVERY_CODE_CONFIG,
             )
             .await
             .expect_err("should fail when the transfer session has already been completed");
@@ -2583,6 +2496,7 @@ mod tests {
                     wrapping_key_identifier.to_string(),
                     vec![],
                 ),
+                &mock::RECOVERY_CODE_CONFIG,
             )
             .await
             .unwrap();
@@ -2612,6 +2526,7 @@ mod tests {
                     wrapping_key_identifier.to_string(),
                     vec![],
                 ),
+                &mock::RECOVERY_CODE_CONFIG,
             )
             .await
             .unwrap();
@@ -2651,6 +2566,7 @@ mod tests {
                     wrapping_key_identifier.to_string(),
                     vec![],
                 ),
+                &mock::RECOVERY_CODE_CONFIG,
             )
             .await
             .expect_err("should fail when the transfer session is not in a state where it can be reset");
@@ -2689,6 +2605,7 @@ mod tests {
                     wrapping_key_identifier.to_string(),
                     vec![],
                 ),
+                &mock::RECOVERY_CODE_CONFIG,
             )
             .await
             .unwrap();
@@ -2739,6 +2656,7 @@ mod tests {
                     wrapping_key_identifier.to_string(),
                     vec![],
                 ),
+                &mock::RECOVERY_CODE_CONFIG,
             )
             .await
             .unwrap();
@@ -2782,6 +2700,7 @@ mod tests {
                     wrapping_key_identifier.to_string(),
                     vec![],
                 ),
+                &mock::RECOVERY_CODE_CONFIG,
             )
             .await
             .unwrap();
@@ -2823,6 +2742,7 @@ mod tests {
                     wrapping_key_identifier.to_string(),
                     vec![],
                 ),
+                &mock::RECOVERY_CODE_CONFIG,
             )
             .await
             .expect_err("should fail when transfer session is not ReadyForTransfer");
@@ -2864,6 +2784,7 @@ mod tests {
                     wrapping_key_identifier.to_string(),
                     vec![],
                 ),
+                &mock::RECOVERY_CODE_CONFIG,
             )
             .await
             .unwrap();
@@ -2905,6 +2826,7 @@ mod tests {
                     wrapping_key_identifier.to_string(),
                     vec![],
                 ),
+                &mock::RECOVERY_CODE_CONFIG,
             )
             .await
             .expect_err("should fail for illegal transfer state");
@@ -2942,6 +2864,7 @@ mod tests {
                     wrapping_key_identifier.to_string(),
                     vec![],
                 ),
+                &mock::RECOVERY_CODE_CONFIG,
             )
             .await
             .expect_err("should fail for empty wallet data");
@@ -2986,6 +2909,7 @@ mod tests {
                     wrapping_key_identifier.to_string(),
                     vec![],
                 ),
+                &mock::RECOVERY_CODE_CONFIG,
             )
             .await
             .unwrap();
@@ -3027,6 +2951,7 @@ mod tests {
                     wrapping_key_identifier.to_string(),
                     vec![],
                 ),
+                &mock::RECOVERY_CODE_CONFIG,
             )
             .await
             .expect_err("should fail when the transfer session has already been canceled");
@@ -3069,6 +2994,7 @@ mod tests {
                     wrapping_key_identifier.to_string(),
                     vec![],
                 ),
+                &mock::RECOVERY_CODE_CONFIG,
             )
             .await
             .expect_err("should fail when the transfer session has the wrong state");
@@ -3110,6 +3036,7 @@ mod tests {
                     wrapping_key_identifier.to_string(),
                     vec![],
                 ),
+                &mock::RECOVERY_CODE_CONFIG,
             )
             .await
             .unwrap();

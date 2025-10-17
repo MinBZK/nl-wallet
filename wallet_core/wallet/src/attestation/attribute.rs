@@ -189,9 +189,9 @@ pub mod test {
     use attestation_data::attributes::AttributeValue;
     use attestation_data::attributes::Attributes;
     use attestation_data::auth::Organization;
-    use attestation_data::constants::PID_ATTESTATION_TYPE;
-    use attestation_data::constants::PID_BSN;
-    use attestation_data::constants::PID_RECOVERY_CODE;
+    use attestation_data::pid_constants::PID_ATTESTATION_TYPE;
+    use attestation_data::pid_constants::PID_BSN;
+    use attestation_data::pid_constants::PID_RECOVERY_CODE;
     use attestation_types::claim_path::ClaimPath;
     use mdoc::iso::mdocs::DataElementValue;
     use mdoc::iso::mdocs::Entry;

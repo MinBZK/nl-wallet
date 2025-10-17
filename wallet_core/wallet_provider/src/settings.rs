@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::collections::HashSet;
 use std::net::IpAddr;
 use std::path::PathBuf;
@@ -22,6 +23,7 @@ use crypto::trust_anchor::BorrowingTrustAnchor;
 use hsm::settings::Hsm;
 use http_utils::tls::server::TlsServerConfig;
 use utils::path::prefix_local_path;
+use utils::vec_at_least::VecNonEmpty;
 use wallet_provider_database_settings::Database;
 
 #[serde_as]
@@ -34,6 +36,7 @@ pub struct Settings {
     pub pin_public_disclosure_protection_key_identifier: String,
     pub wua_signing_key_identifier: String,
     pub wua_issuer_identifier: String,
+    pub recovery_code_paths: HashMap<String, VecNonEmpty<String>>,
     pub database: Database,
     pub webserver: Webserver,
     pub tls_config: Option<TlsServerConfig>,
