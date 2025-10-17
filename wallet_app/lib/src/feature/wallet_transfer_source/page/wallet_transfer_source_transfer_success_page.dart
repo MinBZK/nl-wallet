@@ -1,24 +1,23 @@
-import 'dart:io';
-import 'dart:math';
-
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../../../util/extension/build_context_extension.dart';
+import '../../../util/extension/string_extension.dart';
 import '../../../wallet_assets.dart';
-import '../../common/widget/button/primary_button.dart';
+import '../../common/widget/button/button_content.dart';
+import '../../common/widget/button/list_button.dart';
 import '../../common/widget/page_illustration.dart';
 import '../../common/widget/paragraphed_list.dart';
 import '../../common/widget/text/title_text.dart';
 import '../../common/widget/wallet_scrollbar.dart';
 
 class WalletTransferSourceTransferSuccessPage extends StatelessWidget {
-  const WalletTransferSourceTransferSuccessPage({super.key});
+  final VoidCallback onCtaPressed;
+
+  const WalletTransferSourceTransferSuccessPage({required this.onCtaPressed, super.key});
 
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      bottom: false,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -57,25 +56,13 @@ class WalletTransferSourceTransferSuccessPage extends StatelessWidget {
   }
 
   Widget _buildBottomSection(BuildContext context) {
-    if (!Platform.isAndroid) {
-      // iOS does not support gracefully closing the app
-      return const SizedBox.shrink();
-    }
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const Divider(),
-        const SizedBox(height: 24),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: PrimaryButton(
-            text: Text(context.l10n.generalClose),
-            icon: const Icon(Icons.close_outlined),
-            onPressed: SystemNavigator.pop,
-          ),
-        ),
-        SizedBox(height: max(24, context.mediaQuery.viewPadding.bottom)),
-      ],
+    return ListButton(
+      dividerSide: DividerSide.top,
+      icon: const Icon(Icons.arrow_forward_outlined),
+      iconPosition: IconPosition.start,
+      mainAxisAlignment: MainAxisAlignment.center,
+      onPressed: onCtaPressed,
+      text: Text.rich(context.l10n.walletTransferSourceScreenSuccessCta.toTextSpan(context)),
     );
   }
 }
