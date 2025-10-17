@@ -92,7 +92,7 @@ fn kb_jwt_validation(expected_aud: &str) -> Validation {
 static BASE_KB_JWT_VALIDATION: LazyLock<Validation> = LazyLock::new(|| {
     let mut validation = Validation::new(Algorithm::ES256);
     validation.validate_nbf = true;
-    validation.leeway = 0;
+    validation.leeway = 5;
     validation.set_required_spec_claims(&["aud"]);
     validation
 });
