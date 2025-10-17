@@ -449,25 +449,35 @@ impl PostgresStatusClaimService {
         };
 
         // Create new list items
-        let items = tokio::task::spawn_blocking(move || {
+        let indices = tokio::task::spawn_blocking(move || {
             let mut indices = (0..list_size.into_inner()).collect::<Vec<_>>();
             indices.shuffle(&mut rand::thread_rng());
-
             indices
-                .into_iter()
-                .enumerate()
-                .map(|(sequence_no, index)| status_list_item::ActiveModel {
-                    attestation_type_id: Set(attestation_type_id),
-                    sequence_no: Set(next_sequence_no + sequence_no as i64),
-                    status_list_id: Set(list_id),
-                    index: Set(index),
-                })
-                .collect::<Vec<_>>()
         })
         .await?;
-        status_list_item::Entity::insert_many(items).exec(&tx).await?;
+
+        // Insert items into batches limited by u16::MAX params
+        let mut next_sequence_no = next_sequence_no as usize;
+        for chunk in indices.chunks((u16::MAX / 4) as usize) {
+            let items = chunk
+                .iter()
+                .enumerate()
+                .map(|(k, index)| status_list_item::ActiveModel {
+                    attestation_type_id: Set(attestation_type_id),
+                    sequence_no: Set((next_sequence_no + k) as i64),
+                    status_list_id: Set(list_id),
+                    index: Set(*index),
+                })
+                .collect::<Vec<_>>();
+            next_sequence_no += items.len();
+            status_list_item::Entity::insert_many(items).exec(&tx).await?;
+        }
 
         // Update next sequence no of attestation type
+        assert_eq!(
+            next_sequence_no, new_next_sequence_no as usize,
+            "Inserted items did not match calculated sequence number"
+        );
         let mut attestation_type = attestation_type.into_active_model();
         attestation_type.next_sequence_no = Set(new_next_sequence_no);
         attestation_type::Entity::update(attestation_type).exec(&tx).await?;
