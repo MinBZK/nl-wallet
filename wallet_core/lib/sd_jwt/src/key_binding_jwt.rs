@@ -57,7 +57,8 @@ impl UnverifiedKeyBindingJwt {
         iat_acceptance_window: Duration,
         time: &impl Generator<DateTime<Utc>>,
     ) -> Result<VerifiedKeyBindingJwt, KeyBindingError> {
-        let verified = self.0.into_verified(pubkey, &kb_jwt_validation(expected_aud))?;
+        let validation_options = kb_jwt_validation(expected_aud);
+        let verified = self.0.into_verified(pubkey, &validation_options)?;
 
         let payload = verified.payload();
         if payload.nonce != expected_nonce {
@@ -65,9 +66,8 @@ impl UnverifiedKeyBindingJwt {
         };
 
         let now = time.generate();
-        // TODO (PVW-5074): we should probably also test that payload.iat should not be after now, preferrably including
-        //      a grace period of several seconds to account for clock skew on the other side.
-        if (payload.iat + iat_acceptance_window) < now {
+        let leeway = Duration::from_secs(validation_options.leeway);
+        if !(payload.iat <= now + leeway && now <= payload.iat + iat_acceptance_window) {
             return Err(KeyBindingError::InvalidSignatureTimestamp(
                 payload.iat,
                 iat_acceptance_window,
