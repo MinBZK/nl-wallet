@@ -25,6 +25,6 @@ enum IssuanceEventType {
   cardIssued,
   cardRenewed,
   cardStatusExpired,
-  cardStatusCorrupted,
   cardStatusRevoked,
+  cardStatusCorrupted,
 }

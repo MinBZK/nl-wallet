@@ -22,7 +22,7 @@ void main() {
       _WidgetTestWrapper(
         widgetBuilder: (context) => RequestDetailCommonBuilders.buildStatusHeader(
           context,
-          event: WalletMockData.disclosureEvent,
+          event: WalletMockData.issuanceEventCardStatusExpired,
           side: DividerSide.bottom,
         ),
       ),
@@ -30,7 +30,7 @@ void main() {
 
     final l10n = await TestUtils.englishLocalizations;
     expect(find.byType(WalletEventStatusHeader), findsOneWidget);
-    expect(find.text(l10n.cardHistoryDisclosureSuccess), findsOneWidget);
+    expect(find.text(l10n.historyDetailScreenIssuanceCardExpiredTitle), findsOneWidget);
   });
 
   testWidgets('buildPurpose', (WidgetTester tester) async {
