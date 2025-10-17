@@ -33,6 +33,7 @@ serde_with = { workspace = true, features = ["base64", "chrono", "hex", "indexma
 ssri.workspace = true
 thiserror.workspace = true
 url = { workspace = true, features = ["serde"] }
+uuid = { workspace =  true, features = ["serde", "v4"] }
 x509-parser = { workspace = true, features = ["verify", "validate"] }
 
 futures = { workspace = true, optional = true }

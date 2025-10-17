@@ -1,0 +1,57 @@
+[package]
+name = "status_lists"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[lib]
+doctest = false
+
+[[test]]
+name = "postgres"
+path = "tests/postgres.rs"
+required-features = ["integration_test"]
+
+[features]
+integration_test = []
+
+[dependencies]
+anyhow.workspace = true
+chrono.workspace = true
+derive_more = { workspace = true, features = ["constructor"] }
+itertools.workspace = true
+log.workspace = true
+rand.workspace = true
+sea-orm = { workspace = true, features = [
+    "macros",
+    "runtime-tokio-rustls",
+    "sqlx-postgres",
+    "with-chrono",
+    "with-json",
+    "with-uuid",
+] }
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+uuid.workspace = true
+url.workspace = true
+
+crypto.path = "../../lib/crypto"
+http_utils.path = "../../lib/http_utils"
+token_status_list.path = "../../lib/token_status_list"
+utils.path = "../../lib/utils"
+
+[dev-dependencies]
+anyhow.workspace = true
+assert_matches.workspace = true
+config.workspace = true
+futures.workspace = true
+indexmap.workspace = true
+tokio = { workspace = true, features = ["macros", "test-util"] }
+uuid = { workspace = true, features = ["v4"] }
+
+server_utils = { path = "../server_utils", features = ["postgres"] }

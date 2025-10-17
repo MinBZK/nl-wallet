@@ -23,22 +23,25 @@ use openid4vc_server::verifier::VerifierFactory;
 use server_utils::keys::PrivateKeyVariant;
 use server_utils::server::create_wallet_listener;
 use server_utils::server::listen;
+use token_status_list::status_service::StatusClaimService;
 
 use crate::disclosure::AttributesFetcher;
 use crate::disclosure::IssuanceResultHandler;
 use crate::settings::IssuanceServerSettings;
 
-pub async fn serve<A, IS, DS>(
+pub async fn serve<A, C, IS, DS>(
     settings: IssuanceServerSettings,
     hsm: Option<Pkcs11Hsm>,
     issuance_sessions: Arc<IS>,
     disclosure_sessions: Arc<DS>,
     attributes_fetcher: A,
+    status_claim_service: C,
 ) -> Result<()>
 where
     IS: SessionStore<IssuanceData> + Send + Sync + 'static,
     DS: SessionStore<DisclosureData> + Send + Sync + 'static,
     A: AttributesFetcher + Sync + 'static,
+    C: StatusClaimService + Sync + 'static,
 {
     serve_with_listener(
         create_wallet_listener(&settings.issuer_settings.server_settings.wallet_server).await?,
@@ -47,22 +50,26 @@ where
         issuance_sessions,
         disclosure_sessions,
         attributes_fetcher,
+        status_claim_service,
     )
     .await
 }
 
-pub async fn serve_with_listener<A, IS, DS>(
+#[expect(clippy::too_many_arguments, reason = "Setup function")]
+pub async fn serve_with_listener<A, C, IS, DS>(
     listener: TcpListener,
     settings: IssuanceServerSettings,
     hsm: Option<Pkcs11Hsm>,
     issuance_sessions: Arc<IS>,
     disclosure_sessions: Arc<DS>,
     attributes_fetcher: A,
+    status_claim_service: C,
 ) -> Result<()>
 where
     IS: SessionStore<IssuanceData> + Send + Sync + 'static,
     DS: SessionStore<DisclosureData> + Send + Sync + 'static,
     A: AttributesFetcher + Sync + 'static,
+    C: StatusClaimService + Sync + 'static,
 {
     let log_requests = settings.issuer_settings.server_settings.log_requests;
     let issuer_settings = settings.issuer_settings;
@@ -92,7 +99,8 @@ where
         attestation_config,
         &issuer_settings.server_settings.public_url,
         issuer_settings.wallet_client_ids.clone(),
-        Option::<WuaConfig>::None, // The compiler forces us to explicitly specify a type here
+        Option::<WuaConfig>::None, // The compiler forces us to explicitly specify a type here,
+        status_claim_service,
     ));
 
     let issuance_router = create_issuance_router(Arc::clone(&issuer));
