@@ -14,7 +14,6 @@ import 'package:flutter/src/widgets/focus_manager.dart' as _i2;
 import 'package:flutter/src/widgets/framework.dart' as _i5;
 import 'package:flutter/src/widgets/notification_listener.dart' as _i16;
 import 'package:flutter/src/widgets/restoration.dart' as _i15;
-import 'package:flutter_rust_bridge/flutter_rust_bridge.dart' as _i120;
 import 'package:internet_connection_checker/internet_connection_checker.dart' as _i8;
 import 'package:local_auth/src/local_auth.dart' as _i45;
 import 'package:local_auth_android/local_auth_android.dart' as _i46;
@@ -5835,7 +5834,7 @@ class MockCompletePinRecoveryUseCase extends _i1.Mock implements _i119.CompleteP
 class MockWalletCoreApi extends _i1.Mock implements _i26.WalletCoreApi {
   @override
   _i10.Future<_i26.AcceptDisclosureResult> crateApiFullAcceptDisclosure({
-    required _i120.Uint64List? selectedIndices,
+    required List<int>? selectedIndices,
     required String? pin,
   }) =>
       (super.noSuchMethod(
@@ -6112,7 +6111,7 @@ class MockWalletCoreApi extends _i1.Mock implements _i26.WalletCoreApi {
 
   @override
   _i10.Future<_i26.DisclosureBasedIssuanceResult> crateApiFullContinueDisclosureBasedIssuance({
-    required _i120.Uint64List? selectedIndices,
+    required List<int>? selectedIndices,
     required String? pin,
   }) =>
       (super.noSuchMethod(

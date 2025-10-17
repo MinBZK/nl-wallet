@@ -14,10 +14,10 @@ void store_dart_post_cobject(DartPostCObjectFnType ptr);
 // EXTRA END
 typedef struct _Dart_Handle* Dart_Handle;
 
-typedef struct wire_cst_list_prim_usize_strict {
-  uintptr_t *ptr;
+typedef struct wire_cst_list_prim_u_16_loose {
+  uint16_t *ptr;
   int32_t len;
-} wire_cst_list_prim_usize_strict;
+} wire_cst_list_prim_u_16_loose;
 
 typedef struct wire_cst_list_prim_u_8_strict {
   uint8_t *ptr;
@@ -240,6 +240,11 @@ typedef struct wire_cst_list_missing_attribute {
   int32_t len;
 } wire_cst_list_missing_attribute;
 
+typedef struct wire_cst_list_prim_u_16_strict {
+  uint16_t *ptr;
+  int32_t len;
+} wire_cst_list_prim_u_16_strict;
+
 typedef struct wire_cst_WalletEvent_Disclosure {
   struct wire_cst_list_prim_u_8_strict *id;
   struct wire_cst_list_prim_u_8_strict *date_time;
@@ -392,7 +397,7 @@ typedef struct wire_cst_wallet_instruction_result {
 } wire_cst_wallet_instruction_result;
 
 void frbgen_wallet_core_wire__crate__api__full__accept_disclosure(int64_t port_,
-                                                                  struct wire_cst_list_prim_usize_strict *selected_indices,
+                                                                  struct wire_cst_list_prim_u_16_loose *selected_indices,
                                                                   struct wire_cst_list_prim_u_8_strict *pin);
 
 void frbgen_wallet_core_wire__crate__api__full__accept_issuance(int64_t port_,
@@ -436,7 +441,7 @@ void frbgen_wallet_core_wire__crate__api__full__continue_change_pin(int64_t port
                                                                     struct wire_cst_list_prim_u_8_strict *pin);
 
 void frbgen_wallet_core_wire__crate__api__full__continue_disclosure_based_issuance(int64_t port_,
-                                                                                   struct wire_cst_list_prim_usize_strict *selected_indices,
+                                                                                   struct wire_cst_list_prim_u_16_loose *selected_indices,
                                                                                    struct wire_cst_list_prim_u_8_strict *pin);
 
 void frbgen_wallet_core_wire__crate__api__full__continue_pid_issuance(int64_t port_,
@@ -550,9 +555,11 @@ struct wire_cst_list_localized_string *frbgen_wallet_core_cst_new_list_localized
 
 struct wire_cst_list_missing_attribute *frbgen_wallet_core_cst_new_list_missing_attribute(int32_t len);
 
-struct wire_cst_list_prim_u_8_strict *frbgen_wallet_core_cst_new_list_prim_u_8_strict(int32_t len);
+struct wire_cst_list_prim_u_16_loose *frbgen_wallet_core_cst_new_list_prim_u_16_loose(int32_t len);
 
-struct wire_cst_list_prim_usize_strict *frbgen_wallet_core_cst_new_list_prim_usize_strict(int32_t len);
+struct wire_cst_list_prim_u_16_strict *frbgen_wallet_core_cst_new_list_prim_u_16_strict(int32_t len);
+
+struct wire_cst_list_prim_u_8_strict *frbgen_wallet_core_cst_new_list_prim_u_8_strict(int32_t len);
 
 struct wire_cst_list_wallet_event *frbgen_wallet_core_cst_new_list_wallet_event(int32_t len);
 static int64_t dummy_method_to_enforce_bundling(void) {
@@ -573,8 +580,9 @@ static int64_t dummy_method_to_enforce_bundling(void) {
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_display_metadata);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_localized_string);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_missing_attribute);
+    dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_prim_u_16_loose);
+    dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_prim_u_16_strict);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_prim_u_8_strict);
-    dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_prim_usize_strict);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_wallet_event);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__accept_disclosure);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__accept_issuance);

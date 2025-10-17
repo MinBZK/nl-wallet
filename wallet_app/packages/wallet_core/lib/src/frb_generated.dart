@@ -88,7 +88,7 @@ class WalletCore extends BaseEntrypoint<WalletCoreApi, WalletCoreApiImpl, Wallet
 
 abstract class WalletCoreApi extends BaseApi {
   Future<AcceptDisclosureResult> crateApiFullAcceptDisclosure({
-    required Uint64List selectedIndices,
+    required List<int> selectedIndices,
     required String pin,
   });
 
@@ -125,7 +125,7 @@ abstract class WalletCoreApi extends BaseApi {
   Future<WalletInstructionResult> crateApiFullContinueChangePin({required String pin});
 
   Future<DisclosureBasedIssuanceResult> crateApiFullContinueDisclosureBasedIssuance({
-    required Uint64List selectedIndices,
+    required List<int> selectedIndices,
     required String pin,
   });
 
@@ -204,13 +204,13 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
 
   @override
   Future<AcceptDisclosureResult> crateApiFullAcceptDisclosure({
-    required Uint64List selectedIndices,
+    required List<int> selectedIndices,
     required String pin,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
-          var arg0 = cst_encode_list_prim_usize_strict(selectedIndices);
+          var arg0 = cst_encode_list_prim_u_16_loose(selectedIndices);
           var arg1 = cst_encode_String(pin);
           return wire.wire__crate__api__full__accept_disclosure(port_, arg0, arg1);
         },
@@ -608,13 +608,13 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
 
   @override
   Future<DisclosureBasedIssuanceResult> crateApiFullContinueDisclosureBasedIssuance({
-    required Uint64List selectedIndices,
+    required List<int> selectedIndices,
     required String pin,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
-          var arg0 = cst_encode_list_prim_usize_strict(selectedIndices);
+          var arg0 = cst_encode_list_prim_u_16_loose(selectedIndices);
           var arg1 = cst_encode_String(pin);
           return wire.wire__crate__api__full__continue_disclosure_based_issuance(port_, arg0, arg1);
         },
@@ -1801,15 +1801,21 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  Uint8List dco_decode_list_prim_u_8_strict(dynamic raw) {
+  List<int> dco_decode_list_prim_u_16_loose(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return raw as Uint8List;
+    return raw as List<int>;
   }
 
   @protected
-  Uint64List dco_decode_list_prim_usize_strict(dynamic raw) {
+  Uint16List dco_decode_list_prim_u_16_strict(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return raw as Uint64List;
+    return raw as Uint16List;
+  }
+
+  @protected
+  Uint8List dco_decode_list_prim_u_8_strict(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as Uint8List;
   }
 
   @protected
@@ -2011,12 +2017,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   void dco_decode_unit(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return;
-  }
-
-  @protected
-  BigInt dco_decode_usize(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return dcoDecodeU64(raw);
   }
 
   @protected
@@ -2526,17 +2526,24 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  List<int> sse_decode_list_prim_u_16_loose(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var len_ = sse_decode_i_32(deserializer);
+    return deserializer.buffer.getUint16List(len_);
+  }
+
+  @protected
+  Uint16List sse_decode_list_prim_u_16_strict(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var len_ = sse_decode_i_32(deserializer);
+    return deserializer.buffer.getUint16List(len_);
+  }
+
+  @protected
   Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var len_ = sse_decode_i_32(deserializer);
     return deserializer.buffer.getUint8List(len_);
-  }
-
-  @protected
-  Uint64List sse_decode_list_prim_usize_strict(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    var len_ = sse_decode_i_32(deserializer);
-    return deserializer.buffer.getUint64List(len_);
   }
 
   @protected
@@ -2802,12 +2809,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   @protected
   void sse_decode_unit(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-  }
-
-  @protected
-  BigInt sse_decode_usize(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    return deserializer.buffer.getBigUint64();
   }
 
   @protected
@@ -3369,17 +3370,24 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  void sse_encode_list_prim_u_16_loose(List<int> self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    serializer.buffer.putUint16List(self is Uint16List ? self : Uint16List.fromList(self));
+  }
+
+  @protected
+  void sse_encode_list_prim_u_16_strict(Uint16List self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    serializer.buffer.putUint16List(self);
+  }
+
+  @protected
   void sse_encode_list_prim_u_8_strict(Uint8List self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.length, serializer);
     serializer.buffer.putUint8List(self);
-  }
-
-  @protected
-  void sse_encode_list_prim_usize_strict(Uint64List self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_i_32(self.length, serializer);
-    serializer.buffer.putUint64List(self);
   }
 
   @protected
@@ -3604,12 +3612,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   @protected
   void sse_encode_unit(void self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-  }
-
-  @protected
-  void sse_encode_usize(BigInt self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    serializer.buffer.putBigUint64(self);
   }
 
   @protected

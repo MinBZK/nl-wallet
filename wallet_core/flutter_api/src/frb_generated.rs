@@ -47,7 +47,7 @@ flutter_rust_bridge::frb_generated_default_handler!();
 
 fn wire__crate__api__full__accept_disclosure_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
-    selected_indices: impl CstDecode<Vec<usize>>,
+    selected_indices: impl CstDecode<Vec<u16>>,
     pin: impl CstDecode<String>,
 ) {
     FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
@@ -433,7 +433,7 @@ fn wire__crate__api__full__continue_change_pin_impl(
 }
 fn wire__crate__api__full__continue_disclosure_based_issuance_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
-    selected_indices: impl CstDecode<Vec<usize>>,
+    selected_indices: impl CstDecode<Vec<u16>>,
     pin: impl CstDecode<String>,
 ) {
     FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
@@ -1286,12 +1286,6 @@ impl CstDecode<u8> for u8 {
         self
     }
 }
-impl CstDecode<usize> for usize {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    fn cst_decode(self) -> usize {
-        self
-    }
-}
 impl SseDecode for flutter_rust_bridge::for_generated::anyhow::Error {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -1796,6 +1790,18 @@ impl SseDecode for Vec<crate::models::disclosure::MissingAttribute> {
     }
 }
 
+impl SseDecode for Vec<u16> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = vec![];
+        for idx_ in 0..len_ {
+            ans_.push(<u16>::sse_decode(deserializer));
+        }
+        return ans_;
+    }
+}
+
 impl SseDecode for Vec<u8> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -1803,18 +1809,6 @@ impl SseDecode for Vec<u8> {
         let mut ans_ = vec![];
         for idx_ in 0..len_ {
             ans_.push(<u8>::sse_decode(deserializer));
-        }
-        return ans_;
-    }
-}
-
-impl SseDecode for Vec<usize> {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut len_ = <i32>::sse_decode(deserializer);
-        let mut ans_ = vec![];
-        for idx_ in 0..len_ {
-            ans_.push(<usize>::sse_decode(deserializer));
         }
         return ans_;
     }
@@ -2132,13 +2126,6 @@ impl SseDecode for u8 {
 impl SseDecode for () {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {}
-}
-
-impl SseDecode for usize {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        deserializer.cursor.read_u64::<NativeEndian>().unwrap() as _
-    }
 }
 
 impl SseDecode for crate::models::wallet_event::WalletEvent {
@@ -3416,22 +3403,22 @@ impl SseEncode for Vec<crate::models::disclosure::MissingAttribute> {
     }
 }
 
+impl SseEncode for Vec<u16> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <u16>::sse_encode(item, serializer);
+        }
+    }
+}
+
 impl SseEncode for Vec<u8> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i32>::sse_encode(self.len() as _, serializer);
         for item in self {
             <u8>::sse_encode(item, serializer);
-        }
-    }
-}
-
-impl SseEncode for Vec<usize> {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <i32>::sse_encode(self.len() as _, serializer);
-        for item in self {
-            <usize>::sse_encode(item, serializer);
         }
     }
 }
@@ -3710,13 +3697,6 @@ impl SseEncode for u8 {
 impl SseEncode for () {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {}
-}
-
-impl SseEncode for usize {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        serializer.cursor.write_u64::<NativeEndian>(self as _).unwrap();
-    }
 }
 
 impl SseEncode for crate::models::wallet_event::WalletEvent {
@@ -4260,18 +4240,27 @@ mod io {
             vec.into_iter().map(CstDecode::cst_decode).collect()
         }
     }
-    impl CstDecode<Vec<u8>> for *mut wire_cst_list_prim_u_8_strict {
+    impl CstDecode<Vec<u16>> for *mut wire_cst_list_prim_u_16_loose {
         // Codec=Cst (C-struct based), see doc to use other codecs
-        fn cst_decode(self) -> Vec<u8> {
+        fn cst_decode(self) -> Vec<u16> {
             unsafe {
                 let wrap = flutter_rust_bridge::for_generated::box_from_leak_ptr(self);
                 flutter_rust_bridge::for_generated::vec_from_leak_ptr(wrap.ptr, wrap.len)
             }
         }
     }
-    impl CstDecode<Vec<usize>> for *mut wire_cst_list_prim_usize_strict {
+    impl CstDecode<Vec<u16>> for *mut wire_cst_list_prim_u_16_strict {
         // Codec=Cst (C-struct based), see doc to use other codecs
-        fn cst_decode(self) -> Vec<usize> {
+        fn cst_decode(self) -> Vec<u16> {
+            unsafe {
+                let wrap = flutter_rust_bridge::for_generated::box_from_leak_ptr(self);
+                flutter_rust_bridge::for_generated::vec_from_leak_ptr(wrap.ptr, wrap.len)
+            }
+        }
+    }
+    impl CstDecode<Vec<u8>> for *mut wire_cst_list_prim_u_8_strict {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> Vec<u8> {
             unsafe {
                 let wrap = flutter_rust_bridge::for_generated::box_from_leak_ptr(self);
                 flutter_rust_bridge::for_generated::vec_from_leak_ptr(wrap.ptr, wrap.len)
@@ -4794,7 +4783,7 @@ mod io {
     #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__accept_disclosure(
         port_: i64,
-        selected_indices: *mut wire_cst_list_prim_usize_strict,
+        selected_indices: *mut wire_cst_list_prim_u_16_loose,
         pin: *mut wire_cst_list_prim_u_8_strict,
     ) {
         wire__crate__api__full__accept_disclosure_impl(port_, selected_indices, pin)
@@ -4905,7 +4894,7 @@ mod io {
     #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__continue_disclosure_based_issuance(
         port_: i64,
-        selected_indices: *mut wire_cst_list_prim_usize_strict,
+        selected_indices: *mut wire_cst_list_prim_u_16_loose,
         pin: *mut wire_cst_list_prim_u_8_strict,
     ) {
         wire__crate__api__full__continue_disclosure_based_issuance_impl(port_, selected_indices, pin)
@@ -5268,8 +5257,8 @@ mod io {
     }
 
     #[unsafe(no_mangle)]
-    pub extern "C" fn frbgen_wallet_core_cst_new_list_prim_u_8_strict(len: i32) -> *mut wire_cst_list_prim_u_8_strict {
-        let ans = wire_cst_list_prim_u_8_strict {
+    pub extern "C" fn frbgen_wallet_core_cst_new_list_prim_u_16_loose(len: i32) -> *mut wire_cst_list_prim_u_16_loose {
+        let ans = wire_cst_list_prim_u_16_loose {
             ptr: flutter_rust_bridge::for_generated::new_leak_vec_ptr(Default::default(), len),
             len,
         };
@@ -5277,10 +5266,19 @@ mod io {
     }
 
     #[unsafe(no_mangle)]
-    pub extern "C" fn frbgen_wallet_core_cst_new_list_prim_usize_strict(
+    pub extern "C" fn frbgen_wallet_core_cst_new_list_prim_u_16_strict(
         len: i32,
-    ) -> *mut wire_cst_list_prim_usize_strict {
-        let ans = wire_cst_list_prim_usize_strict {
+    ) -> *mut wire_cst_list_prim_u_16_strict {
+        let ans = wire_cst_list_prim_u_16_strict {
+            ptr: flutter_rust_bridge::for_generated::new_leak_vec_ptr(Default::default(), len),
+            len,
+        };
+        flutter_rust_bridge::for_generated::new_leak_box_ptr(ans)
+    }
+
+    #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_wallet_core_cst_new_list_prim_u_8_strict(len: i32) -> *mut wire_cst_list_prim_u_8_strict {
+        let ans = wire_cst_list_prim_u_8_strict {
             ptr: flutter_rust_bridge::for_generated::new_leak_vec_ptr(Default::default(), len),
             len,
         };
@@ -5558,14 +5556,20 @@ mod io {
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
-    pub struct wire_cst_list_prim_u_8_strict {
-        ptr: *mut u8,
+    pub struct wire_cst_list_prim_u_16_loose {
+        ptr: *mut u16,
         len: i32,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
-    pub struct wire_cst_list_prim_usize_strict {
-        ptr: *mut usize,
+    pub struct wire_cst_list_prim_u_16_strict {
+        ptr: *mut u16,
+        len: i32,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_list_prim_u_8_strict {
+        ptr: *mut u8,
         len: i32,
     }
     #[repr(C)]

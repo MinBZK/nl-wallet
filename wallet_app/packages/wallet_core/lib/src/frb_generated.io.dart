@@ -159,10 +159,13 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   List<MissingAttribute> dco_decode_list_missing_attribute(dynamic raw);
 
   @protected
-  Uint8List dco_decode_list_prim_u_8_strict(dynamic raw);
+  List<int> dco_decode_list_prim_u_16_loose(dynamic raw);
 
   @protected
-  Uint64List dco_decode_list_prim_usize_strict(dynamic raw);
+  Uint16List dco_decode_list_prim_u_16_strict(dynamic raw);
+
+  @protected
+  Uint8List dco_decode_list_prim_u_8_strict(dynamic raw);
 
   @protected
   List<WalletEvent> dco_decode_list_wallet_event(dynamic raw);
@@ -226,9 +229,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void dco_decode_unit(dynamic raw);
-
-  @protected
-  BigInt dco_decode_usize(dynamic raw);
 
   @protected
   WalletEvent dco_decode_wallet_event(dynamic raw);
@@ -371,10 +371,13 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   List<MissingAttribute> sse_decode_list_missing_attribute(SseDeserializer deserializer);
 
   @protected
-  Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer);
+  List<int> sse_decode_list_prim_u_16_loose(SseDeserializer deserializer);
 
   @protected
-  Uint64List sse_decode_list_prim_usize_strict(SseDeserializer deserializer);
+  Uint16List sse_decode_list_prim_u_16_strict(SseDeserializer deserializer);
+
+  @protected
+  Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer);
 
   @protected
   List<WalletEvent> sse_decode_list_wallet_event(SseDeserializer deserializer);
@@ -438,9 +441,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void sse_decode_unit(SseDeserializer deserializer);
-
-  @protected
-  BigInt sse_decode_usize(SseDeserializer deserializer);
 
   @protected
   WalletEvent sse_decode_wallet_event(SseDeserializer deserializer);
@@ -695,17 +695,27 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   }
 
   @protected
-  ffi.Pointer<wire_cst_list_prim_u_8_strict> cst_encode_list_prim_u_8_strict(Uint8List raw) {
+  ffi.Pointer<wire_cst_list_prim_u_16_loose> cst_encode_list_prim_u_16_loose(List<int> raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
-    final ans = wire.cst_new_list_prim_u_8_strict(raw.length);
+    final ans = wire.cst_new_list_prim_u_16_loose(raw.length);
     ans.ref.ptr.asTypedList(raw.length).setAll(0, raw);
     return ans;
   }
 
   @protected
-  ffi.Pointer<wire_cst_list_prim_usize_strict> cst_encode_list_prim_usize_strict(Uint64List raw) {
+  ffi.Pointer<wire_cst_list_prim_u_16_strict> cst_encode_list_prim_u_16_strict(Uint16List raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
-    throw UnimplementedError('Not implemented in this codec');
+    final ans = wire.cst_new_list_prim_u_16_strict(raw.length);
+    ans.ref.ptr.asTypedList(raw.length).setAll(0, raw);
+    return ans;
+  }
+
+  @protected
+  ffi.Pointer<wire_cst_list_prim_u_8_strict> cst_encode_list_prim_u_8_strict(Uint8List raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    final ans = wire.cst_new_list_prim_u_8_strict(raw.length);
+    ans.ref.ptr.asTypedList(raw.length).setAll(0, raw);
+    return ans;
   }
 
   @protected
@@ -764,12 +774,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   int cst_encode_u_64(BigInt raw) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    return raw.toSigned(64).toInt();
-  }
-
-  @protected
-  int cst_encode_usize(BigInt raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return raw.toSigned(64).toInt();
   }
@@ -1389,10 +1393,13 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   void sse_encode_list_missing_attribute(List<MissingAttribute> self, SseSerializer serializer);
 
   @protected
-  void sse_encode_list_prim_u_8_strict(Uint8List self, SseSerializer serializer);
+  void sse_encode_list_prim_u_16_loose(List<int> self, SseSerializer serializer);
 
   @protected
-  void sse_encode_list_prim_usize_strict(Uint64List self, SseSerializer serializer);
+  void sse_encode_list_prim_u_16_strict(Uint16List self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_list_prim_u_8_strict(Uint8List self, SseSerializer serializer);
 
   @protected
   void sse_encode_list_wallet_event(List<WalletEvent> self, SseSerializer serializer);
@@ -1458,9 +1465,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   void sse_encode_unit(void self, SseSerializer serializer);
 
   @protected
-  void sse_encode_usize(BigInt self, SseSerializer serializer);
-
-  @protected
   void sse_encode_wallet_event(WalletEvent self, SseSerializer serializer);
 
   @protected
@@ -1507,7 +1511,7 @@ class WalletCoreWire implements BaseWire {
 
   void wire__crate__api__full__accept_disclosure(
     int port_,
-    ffi.Pointer<wire_cst_list_prim_usize_strict> selected_indices,
+    ffi.Pointer<wire_cst_list_prim_u_16_loose> selected_indices,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> pin,
   ) {
     return _wire__crate__api__full__accept_disclosure(
@@ -1522,14 +1526,14 @@ class WalletCoreWire implements BaseWire {
         ffi.NativeFunction<
           ffi.Void Function(
             ffi.Int64,
-            ffi.Pointer<wire_cst_list_prim_usize_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_16_loose>,
             ffi.Pointer<wire_cst_list_prim_u_8_strict>,
           )
         >
       >('frbgen_wallet_core_wire__crate__api__full__accept_disclosure');
   late final _wire__crate__api__full__accept_disclosure = _wire__crate__api__full__accept_disclosurePtr
       .asFunction<
-        void Function(int, ffi.Pointer<wire_cst_list_prim_usize_strict>, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
+        void Function(int, ffi.Pointer<wire_cst_list_prim_u_16_loose>, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
       >();
 
   void wire__crate__api__full__accept_issuance(
@@ -1796,7 +1800,7 @@ class WalletCoreWire implements BaseWire {
 
   void wire__crate__api__full__continue_disclosure_based_issuance(
     int port_,
-    ffi.Pointer<wire_cst_list_prim_usize_strict> selected_indices,
+    ffi.Pointer<wire_cst_list_prim_u_16_loose> selected_indices,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> pin,
   ) {
     return _wire__crate__api__full__continue_disclosure_based_issuance(
@@ -1811,7 +1815,7 @@ class WalletCoreWire implements BaseWire {
         ffi.NativeFunction<
           ffi.Void Function(
             ffi.Int64,
-            ffi.Pointer<wire_cst_list_prim_usize_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_16_loose>,
             ffi.Pointer<wire_cst_list_prim_u_8_strict>,
           )
         >
@@ -1819,7 +1823,7 @@ class WalletCoreWire implements BaseWire {
   late final _wire__crate__api__full__continue_disclosure_based_issuance =
       _wire__crate__api__full__continue_disclosure_based_issuancePtr
           .asFunction<
-            void Function(int, ffi.Pointer<wire_cst_list_prim_usize_strict>, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
+            void Function(int, ffi.Pointer<wire_cst_list_prim_u_16_loose>, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
           >();
 
   void wire__crate__api__full__continue_pid_issuance(
@@ -2536,6 +2540,36 @@ class WalletCoreWire implements BaseWire {
   late final _cst_new_list_missing_attribute = _cst_new_list_missing_attributePtr
       .asFunction<ffi.Pointer<wire_cst_list_missing_attribute> Function(int)>();
 
+  ffi.Pointer<wire_cst_list_prim_u_16_loose> cst_new_list_prim_u_16_loose(
+    int len,
+  ) {
+    return _cst_new_list_prim_u_16_loose(
+      len,
+    );
+  }
+
+  late final _cst_new_list_prim_u_16_loosePtr =
+      _lookup<ffi.NativeFunction<ffi.Pointer<wire_cst_list_prim_u_16_loose> Function(ffi.Int32)>>(
+        'frbgen_wallet_core_cst_new_list_prim_u_16_loose',
+      );
+  late final _cst_new_list_prim_u_16_loose = _cst_new_list_prim_u_16_loosePtr
+      .asFunction<ffi.Pointer<wire_cst_list_prim_u_16_loose> Function(int)>();
+
+  ffi.Pointer<wire_cst_list_prim_u_16_strict> cst_new_list_prim_u_16_strict(
+    int len,
+  ) {
+    return _cst_new_list_prim_u_16_strict(
+      len,
+    );
+  }
+
+  late final _cst_new_list_prim_u_16_strictPtr =
+      _lookup<ffi.NativeFunction<ffi.Pointer<wire_cst_list_prim_u_16_strict> Function(ffi.Int32)>>(
+        'frbgen_wallet_core_cst_new_list_prim_u_16_strict',
+      );
+  late final _cst_new_list_prim_u_16_strict = _cst_new_list_prim_u_16_strictPtr
+      .asFunction<ffi.Pointer<wire_cst_list_prim_u_16_strict> Function(int)>();
+
   ffi.Pointer<wire_cst_list_prim_u_8_strict> cst_new_list_prim_u_8_strict(
     int len,
   ) {
@@ -2550,21 +2584,6 @@ class WalletCoreWire implements BaseWire {
       );
   late final _cst_new_list_prim_u_8_strict = _cst_new_list_prim_u_8_strictPtr
       .asFunction<ffi.Pointer<wire_cst_list_prim_u_8_strict> Function(int)>();
-
-  ffi.Pointer<wire_cst_list_prim_usize_strict> cst_new_list_prim_usize_strict(
-    int len,
-  ) {
-    return _cst_new_list_prim_usize_strict(
-      len,
-    );
-  }
-
-  late final _cst_new_list_prim_usize_strictPtr =
-      _lookup<ffi.NativeFunction<ffi.Pointer<wire_cst_list_prim_usize_strict> Function(ffi.Int32)>>(
-        'frbgen_wallet_core_cst_new_list_prim_usize_strict',
-      );
-  late final _cst_new_list_prim_usize_strict = _cst_new_list_prim_usize_strictPtr
-      .asFunction<ffi.Pointer<wire_cst_list_prim_usize_strict> Function(int)>();
 
   ffi.Pointer<wire_cst_list_wallet_event> cst_new_list_wallet_event(
     int len,
@@ -2597,8 +2616,8 @@ typedef DartPostCObjectFnTypeFunction = ffi.Bool Function(DartPort port_id, ffi.
 typedef DartDartPostCObjectFnTypeFunction = bool Function(DartDartPort port_id, ffi.Pointer<ffi.Void> message);
 typedef DartPostCObjectFnType = ffi.Pointer<ffi.NativeFunction<DartPostCObjectFnTypeFunction>>;
 
-final class wire_cst_list_prim_usize_strict extends ffi.Struct {
-  external ffi.Pointer<ffi.UintPtr> ptr;
+final class wire_cst_list_prim_u_16_loose extends ffi.Struct {
+  external ffi.Pointer<ffi.Uint16> ptr;
 
   @ffi.Int32()
   external int len;
@@ -2894,6 +2913,13 @@ final class wire_cst_missing_attribute extends ffi.Struct {
 
 final class wire_cst_list_missing_attribute extends ffi.Struct {
   external ffi.Pointer<wire_cst_missing_attribute> ptr;
+
+  @ffi.Int32()
+  external int len;
+}
+
+final class wire_cst_list_prim_u_16_strict extends ffi.Struct {
+  external ffi.Pointer<ffi.Uint16> ptr;
 
   @ffi.Int32()
   external int len;

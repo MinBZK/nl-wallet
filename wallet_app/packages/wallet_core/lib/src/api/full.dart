@@ -98,13 +98,13 @@ Future<StartDisclosureResult> startDisclosure({required String uri, required boo
 
 Future<String?> cancelDisclosure() => WalletCore.instance.api.crateApiFullCancelDisclosure();
 
-Future<AcceptDisclosureResult> acceptDisclosure({required Uint64List selectedIndices, required String pin}) =>
+Future<AcceptDisclosureResult> acceptDisclosure({required List<int> selectedIndices, required String pin}) =>
     WalletCore.instance.api.crateApiFullAcceptDisclosure(selectedIndices: selectedIndices, pin: pin);
 
 Future<bool> hasActiveDisclosureSession() => WalletCore.instance.api.crateApiFullHasActiveDisclosureSession();
 
 Future<DisclosureBasedIssuanceResult> continueDisclosureBasedIssuance({
-  required Uint64List selectedIndices,
+  required List<int> selectedIndices,
   required String pin,
 }) => WalletCore.instance.api.crateApiFullContinueDisclosureBasedIssuance(selectedIndices: selectedIndices, pin: pin);
 
