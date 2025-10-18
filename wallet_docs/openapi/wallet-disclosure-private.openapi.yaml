@@ -1,11 +1,12 @@
-openapi: '3.1.0'
+openapi: 3.1.0
 info:
   title: 'Wallet Server Disclosure API, Private Endpoint (Requester)'
   description:
-    The API for the verification_server's private endpoint. Optionally authenticated,
-    intended to be accessible only to the relying party's application. It is
-    used for session initiation and disclosed attribute retrieval.
-  version: '1.0.0'
+    The API for the verification_server's private endpoint. Optionally
+    authenticated, intended to be accessible only to the relying party's
+    application. It is used for session initiation and disclosed attribute
+    retrieval.
+  version: 0.4.0-dev
 
 components:
   securitySchemes:
@@ -42,14 +43,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: 'wallet-disclosure-components.openapi.yaml#/components/schemas/session_request'
+              $ref: 'wallet-components.openapi.yaml#/components/schemas/session_request'
       responses:
         '200':
           description: Session created
           content:
             application/json:
               schema:
-                $ref: 'wallet-disclosure-components.openapi.yaml#/components/schemas/token_response'
+                $ref: 'wallet-components.openapi.yaml#/components/schemas/token_response'
 
   /disclosure/sessions/{session_token}/disclosed_attributes:
     parameters:
@@ -58,7 +59,7 @@ paths:
         in: path
         required: true
         schema:
-          $ref: 'wallet-disclosure-components.openapi.yaml#/components/schemas/session_token'
+          $ref: 'wallet-components.openapi.yaml#/components/schemas/session_token'
     get:
       summary: Retrieve disclosed attributes
       responses:
@@ -67,16 +68,16 @@ paths:
           content:
             application/json:
               schema:
-                $ref: 'wallet-disclosure-components.openapi.yaml#/components/schemas/disclosed_attributes'
+                $ref: 'wallet-components.openapi.yaml#/components/schemas/disclosed_attributes'
         400:
           description: Session is not in the required state
           content:
             application/json:
               schema:
-                $ref: 'wallet-disclosure-components.openapi.yaml#/components/schemas/error_message'
+                $ref: 'wallet-components.openapi.yaml#/components/schemas/error_message'
         404:
           description: Unknown session
           content:
             application/json:
               schema:
-                $ref: 'wallet-disclosure-components.openapi.yaml#/components/schemas/error_message'
+                $ref: 'wallet-components.openapi.yaml#/components/schemas/error_message'
