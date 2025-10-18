@@ -24,6 +24,7 @@ use server_utils::settings::NL_WALLET_CLIENT_ID;
 use server_utils::settings::ServerSettings;
 use server_utils::settings::Settings;
 use server_utils::settings::verify_key_pairs;
+use status_lists::settings::StatusListsSettings;
 use utils::generator::TimeGenerator;
 use utils::path::prefix_local_path;
 
@@ -34,6 +35,8 @@ pub struct IssuanceServerSettings {
 
     #[serde(flatten)]
     pub issuer_settings: IssuerSettings,
+
+    pub status_lists: StatusListsSettings,
 
     /// Reader trust anchors are used to verify the keys and certificates in the `disclosure_settings` configuration on
     /// application startup.
@@ -66,6 +69,8 @@ impl ServerSettings for IssuanceServerSettings {
             .set_default("public_url", "http://localhost:8001/")?
             .set_default("log_requests", false)?
             .set_default("structured_logging", false)?
+            .set_default("status_lists.list_size", 100_000)?
+            .set_default("status_lists.create_threshold", 1_000)?
             .set_default("storage.url", "memory://")?
             .set_default(
                 "storage.expiration_minutes",

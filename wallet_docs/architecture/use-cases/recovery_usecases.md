@@ -136,18 +136,29 @@ Data exchanged in Wallet Device transfer is encrypted, using ECIES in JWE. Encry
 
 19. In step 19, the encrypted data is retrieved from the WalletBackend and will be decrypted in the Destionation Wallet.
 
-#### Wallet states during transfer
+#### Alternate flows
+The alternate flows are not modelled withtin the [Wallet Device Transfer sequence Diagram](#wallet-device-transfer-flow)  above. Alternate flows are:
 
-While transfering, the following states are used in the process:
+- Cancellation: Before completion Wallet Device Transfer can be cancelled by the user from both the Destination and the Source Wallet any time. 
 
-| Transfer State             | State is set when                                                                     | Next State(s)                                 |
-|----------------------------|---------------------------------------------------------------------------------------|-----------------------------------------------|
-| created                    | After activation of Destination Wallet, when another account exists for the same user | ready_for_transfer, canceled
-| ready_for_transfer         | After scanning QR from Destination Wallet and `confirm_transfer_session` instruction, Source Wallet is linked to transfer session.                              | ready_for_download, canceled 
-| ready_for_download         | After `send_wallet_payload` instruction from Source Wallet                            | completed, canceled
-| completed                  | Destination Wallet after succesfull download (`receive_wallet_payload` instruction ) <br/>and processing of payload confirmed with `complete_transfer`                                | -                    
-| canceled                   | User can cancel transfer from Destination Wallet or Source Wallet from any state using `cancel_transfer` instruction. <br/>Not allowed after `completed` state is reached                      | -
+- Error: An out-of-power device, network failure or unexpected termination of the app may terminate the transfer and leave the transfer in a non-completed state.
 
+As long as the user has not explicitly made a choice to start using the Destination Wallet **without** Wallet Device Transfer, the user will be offered the choice to start a Wallet Device Transfer again, even after Cancellation or Error.  
+
+#### Wallet transfer states
+See the [Wallet Device Transfer sequence Diagram](#wallet-device-transfer-flow) above to see excactly at which point in the process a state update occurs. 
+
+After activating a new NL Wallet (Destination Wallet) when another account exists for the same user, a Wallet Transfer record will be linked to the new account. 
+The Wallet Transfer record can have the following states:
+
+
+| Transfer State     | State is set when                                                                                                                                                  | Next State(s)                         |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------- |
+| created            | - Wallet Transfer record is created.<br/>- `reset_transfer` instruction is called when recovering from a failed or cancelled transfer.                            | ready_for_transfer, canceled          |
+| ready_for_transfer | After scanning QR from Destination Wallet and `confirm_transfer_session` instruction, Source Wallet is linked to transfer session.                                 | ready_for_download, canceled, created |
+| ready_for_download | After `send_wallet_payload` instruction from Source Wallet                                                                                                         | completed, canceled, created          |
+| completed          | Destination Wallet after succesfull download (`receive_wallet_payload` instruction) and processing of payload confirmed with `complete_transfer` instruction.      | -                                     |
+| canceled           | User can cancel transfer from Destination Wallet or Source Wallet from any state before reaching the `completed` state. The `cancel_transfer` instruction is used. | created                               |
 
 
 ### PID Renewal

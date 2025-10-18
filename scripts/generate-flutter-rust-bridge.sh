@@ -8,7 +8,7 @@ BASE_DIR="$(dirname "${SCRIPTS_DIR}")"
 cd "$BASE_DIR/wallet_app"
 
 flutter pub get --enforce-lockfile
-if [[ -z $CI ]]; then
+if [[ -z ${CI:-} ]]; then
     # Also flutter pub get sub packages on local machines because it does not
     # automatically update transitively. On CI this is not needed as there is
     # no cache yet.

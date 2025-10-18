@@ -20,15 +20,12 @@ use sea_orm::sea_query::IntoIden;
 use sea_orm::sea_query::OnConflict;
 use sea_orm::sea_query::Query;
 use sea_orm::sea_query::SimpleExpr;
-use semver::Version;
 use uuid::Uuid;
 
 use apple_app_attest::AssertionCounter;
 use hsm::model::encrypted::Encrypted;
 use hsm::model::encrypted::InitializationVector;
-use wallet_account::messages::transfer::TransferSessionState;
 use wallet_provider_domain::model::wallet_user::InstructionChallenge;
-use wallet_provider_domain::model::wallet_user::TransferSession;
 use wallet_provider_domain::model::wallet_user::WalletUser;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestation;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestationCreate;
@@ -38,7 +35,6 @@ use wallet_provider_domain::model::wallet_user::WalletUserState;
 use wallet_provider_domain::repository::PersistenceError;
 
 use crate::PersistenceConnection;
-use crate::entity::wallet_transfer;
 use crate::entity::wallet_user;
 use crate::entity::wallet_user_android_attestation;
 use crate::entity::wallet_user_apple_attestation;
@@ -552,6 +548,28 @@ where
     }
 }
 
+pub async fn reset_wallet_user_state<S, T>(db: &T, wallet_user_id: Uuid) -> Result<()>
+where
+    S: ConnectionTrait,
+    T: PersistenceConnection<S>,
+{
+    let result = wallet_user::Entity::update_many()
+        .col_expr(
+            wallet_user::Column::State,
+            Expr::value(WalletUserState::Active.to_string()),
+        )
+        .filter(wallet_user::Column::Id.eq(wallet_user_id))
+        .exec(db.connection())
+        .await
+        .map_err(|e| PersistenceError::Execution(e.into()))?;
+
+    match result.rows_affected {
+        0 => Err(PersistenceError::NoRowsUpdated),
+        1 => Ok(()),
+        _ => panic!("multiple `wallet_user`s with the same `wallet_id`"),
+    }
+}
+
 pub async fn store_recovery_code<S, T>(db: &T, wallet_id: &str, recovery_code: String) -> Result<()>
 where
     S: ConnectionTrait,
@@ -584,184 +602,11 @@ where
         .filter(
             wallet_user::Column::RecoveryCode
                 .eq(recovery_code)
-                .and(wallet_user::Column::State.ne(WalletUserState::Blocked.to_string())),
+                .and(wallet_user::Column::State.ne(WalletUserState::Transferred.to_string())),
         )
         .count(db.connection())
         .await
         .map_err(|e| PersistenceError::Execution(Box::new(e)))?;
 
     Ok(count > 1)
-}
-
-pub async fn create_transfer_session<S, T>(
-    db: &T,
-    destination_wallet_user_id: Uuid,
-    transfer_session_id: Uuid,
-    destination_wallet_app_version: Version,
-    created: DateTime<Utc>,
-) -> Result<()>
-where
-    S: ConnectionTrait,
-    T: PersistenceConnection<S>,
-{
-    wallet_transfer::ActiveModel {
-        id: Set(Uuid::new_v4()),
-        destination_wallet_user_id: Set(destination_wallet_user_id),
-        source_wallet_user_id: Set(None),
-        transfer_session_id: Set(transfer_session_id),
-        destination_wallet_app_version: Set(destination_wallet_app_version.to_string()),
-        state: Set(TransferSessionState::Created.to_string()),
-        created: Set(created.into()),
-        encrypted_wallet_data: Set(None),
-    }
-    .insert(db.connection())
-    .await
-    .map_err(|e| PersistenceError::Execution(Box::new(e)))?;
-
-    Ok(())
-}
-
-pub async fn find_transfer_session_by_transfer_session_id<S, T>(
-    db: &T,
-    transfer_session_id: Uuid,
-) -> Result<Option<TransferSession>>
-where
-    S: ConnectionTrait,
-    T: PersistenceConnection<S>,
-{
-    type TransferQueryResult = (Uuid, Uuid, Option<Uuid>, Uuid, String, String, Option<String>, String);
-
-    let result: Option<TransferQueryResult> = wallet_transfer::Entity::find()
-        .select_only()
-        .column(wallet_transfer::Column::Id)
-        .column(wallet_transfer::Column::DestinationWalletUserId)
-        .column(wallet_transfer::Column::SourceWalletUserId)
-        .column(wallet_transfer::Column::TransferSessionId)
-        .column(wallet_transfer::Column::DestinationWalletAppVersion)
-        .column(wallet_transfer::Column::State)
-        .column(wallet_transfer::Column::EncryptedWalletData)
-        .column(wallet_user::Column::RecoveryCode)
-        .filter(wallet_transfer::Column::TransferSessionId.eq(transfer_session_id))
-        .join(JoinType::InnerJoin, wallet_transfer::Relation::WalletUser2.def())
-        .into_tuple()
-        .one(db.connection())
-        .await
-        .map_err(|e| PersistenceError::Execution(e.into()))?;
-
-    let transfer_session = result.map(
-        |(
-            id,
-            destination_wallet_user_id,
-            source_wallet_user_id,
-            transfer_session_id,
-            destination_wallet_app_version,
-            state,
-            encrypted_wallet_data,
-            destination_wallet_recovery_code,
-        )| TransferSession {
-            id,
-            source_wallet_user_id,
-            destination_wallet_user_id,
-            destination_wallet_app_version: Version::parse(&destination_wallet_app_version)
-                .expect("version from database should parse"),
-            transfer_session_id,
-            state: state.parse().expect("state from database should parse"),
-            encrypted_wallet_data,
-            destination_wallet_recovery_code,
-        },
-    );
-
-    Ok(transfer_session)
-}
-
-pub async fn find_transfer_session_id_by_destination_wallet_user_id<S, T>(
-    db: &T,
-    destination_wallet_user_id: Uuid,
-) -> Result<Option<Uuid>>
-where
-    S: ConnectionTrait,
-    T: PersistenceConnection<S>,
-{
-    wallet_transfer::Entity::find()
-        .select_only()
-        .column(wallet_transfer::Column::TransferSessionId)
-        .filter(wallet_transfer::Column::DestinationWalletUserId.eq(destination_wallet_user_id))
-        .into_tuple()
-        .one(db.connection())
-        .await
-        .map_err(|e| PersistenceError::Execution(e.into()))
-}
-
-pub async fn update_transfer_state<S, T>(
-    db: &T,
-    transer_session_id: Uuid,
-    transfer_session_state: TransferSessionState,
-) -> Result<()>
-where
-    S: ConnectionTrait,
-    T: PersistenceConnection<S>,
-{
-    let result = wallet_transfer::Entity::update_many()
-        .col_expr(
-            wallet_transfer::Column::State,
-            Expr::value(transfer_session_state.to_string()),
-        )
-        .filter(wallet_transfer::Column::TransferSessionId.eq(transer_session_id))
-        .exec(db.connection())
-        .await
-        .map_err(|e| PersistenceError::Execution(e.into()))?;
-
-    match result.rows_affected {
-        0 => Err(PersistenceError::NoRowsUpdated),
-        1 => Ok(()),
-        _ => panic!("multiple `wallet_transfer`s with the same `transfer_session_id`"),
-    }
-}
-
-pub async fn set_transfer_source<S, T>(db: &T, transer_session_id: Uuid, source_wallet_user_id: Uuid) -> Result<()>
-where
-    S: ConnectionTrait,
-    T: PersistenceConnection<S>,
-{
-    let result = wallet_transfer::Entity::update_many()
-        .col_expr(
-            wallet_transfer::Column::SourceWalletUserId,
-            Expr::value(source_wallet_user_id),
-        )
-        .filter(wallet_transfer::Column::TransferSessionId.eq(transer_session_id))
-        .exec(db.connection())
-        .await
-        .map_err(|e| PersistenceError::Execution(e.into()))?;
-
-    match result.rows_affected {
-        0 => Err(PersistenceError::NoRowsUpdated),
-        1 => Ok(()),
-        _ => panic!("multiple `wallet_transfer`s with the same `transfer_session_id`"),
-    }
-}
-
-pub async fn set_wallet_transfer_data<S, T>(
-    db: &T,
-    transer_session_id: Uuid,
-    encrypted_wallet_data: Option<String>,
-) -> Result<()>
-where
-    S: ConnectionTrait,
-    T: PersistenceConnection<S>,
-{
-    let result = wallet_transfer::Entity::update_many()
-        .col_expr(
-            wallet_transfer::Column::EncryptedWalletData,
-            encrypted_wallet_data.map_or(Expr::cust("null"), Expr::value),
-        )
-        .filter(wallet_transfer::Column::TransferSessionId.eq(transer_session_id))
-        .exec(db.connection())
-        .await
-        .map_err(|e| PersistenceError::Execution(e.into()))?;
-
-    match result.rows_affected {
-        0 => Err(PersistenceError::NoRowsUpdated),
-        1 => Ok(()),
-        _ => panic!("multiple `wallet_transfer`s with the same `transfer_session_id`"),
-    }
 }

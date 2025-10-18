@@ -1,7 +1,6 @@
 use std::fmt::Display;
 
 use indexmap::IndexMap;
-use serde::Serialize;
 use serde_with::SerializeDisplay;
 
 use attestation_types::claim_path::ClaimPath;
@@ -15,7 +14,7 @@ use utils::vec_at_least::VecNonEmpty;
 use crate::disclosure::Disclosure;
 use crate::encoder::DEFAULT_SALT_SIZE;
 use crate::encoder::SdObjectEncoder;
-use crate::error::Result;
+use crate::error::EncoderError;
 use crate::hasher::Hasher;
 use crate::hasher::Sha256Hasher;
 use crate::sd_jwt::SdJwtVcClaims;
@@ -89,25 +88,24 @@ impl SdJwtBuilder<Sha256Hasher> {
     ///
     /// ## Error
     /// Returns [`Error::DataTypeMismatch`] if `object` is not a valid JSON object.
-    pub fn new(claims: SdJwtVcClaims) -> Result<Self> {
+    pub fn new(claims: SdJwtVcClaims) -> Self {
         Self::new_with_hasher(claims, Sha256Hasher)
     }
 }
 
 impl<H: Hasher> SdJwtBuilder<H> {
     /// Creates a new [`SdJwtBuilder`] with custom hash function to create digests.
-    pub fn new_with_hasher<T: Serialize>(object: T, hasher: H) -> Result<Self> {
-        Self::new_with_hasher_and_salt_size(object, hasher, DEFAULT_SALT_SIZE)
+    pub fn new_with_hasher(claims: SdJwtVcClaims, hasher: H) -> Self {
+        Self::new_with_hasher_and_salt_size(claims, hasher, DEFAULT_SALT_SIZE)
     }
 
     /// Creates a new [`SdJwtBuilder`] with custom hash function to create digests, and custom salt size.
-    pub fn new_with_hasher_and_salt_size<T: Serialize>(object: T, hasher: H, salt_size: usize) -> Result<Self> {
-        let object = serde_json::to_value(object)?; // TODO remove this serialization step
-        let encoder = SdObjectEncoder::with_custom_hasher_and_salt_size(object, hasher, salt_size)?;
-        Ok(Self {
+    pub fn new_with_hasher_and_salt_size(claims: SdJwtVcClaims, hasher: H, salt_size: usize) -> Self {
+        let encoder = SdObjectEncoder::with_custom_hasher_and_salt_size(claims, hasher, salt_size);
+        Self {
             encoder,
             disclosures: Vec::new(),
-        })
+        }
     }
 
     /// Substitutes a value with the digest of its disclosure.
@@ -138,7 +136,6 @@ impl<H: Hasher> SdJwtBuilder<H> {
     ///         obj,
     ///         &MockTimeGenerator::default(),
     ///     ))
-    ///     .unwrap()
     ///     //conceals "id": "did:value"
     ///     .make_concealable(VecNonEmpty::try_from(vec![ClaimPath::SelectByKey(String::from("id"))]).unwrap()).unwrap()
     ///     //"abc": true
@@ -156,7 +153,7 @@ impl<H: Hasher> SdJwtBuilder<H> {
     ///         ]
     ///     ).unwrap()).unwrap();
     /// ```
-    pub fn make_concealable(mut self, path: VecNonEmpty<ClaimPath>) -> Result<Self> {
+    pub fn make_concealable(mut self, path: VecNonEmpty<ClaimPath>) -> Result<Self, EncoderError> {
         let disclosure = self.encoder.conceal(path)?;
         self.disclosures.push(disclosure);
         Ok(self)
@@ -167,13 +164,13 @@ impl<H: Hasher> SdJwtBuilder<H> {
     /// `path`  indicates the claim paths pointing to the value that will be concealed.
     ///
     /// Use `path` = &[] to add decoys to the top level.
-    pub fn add_decoys(mut self, path: &[ClaimPath], number_of_decoys: usize) -> Result<Self> {
+    pub fn add_decoys(mut self, path: &[ClaimPath], number_of_decoys: usize) -> Result<Self, EncoderError> {
         self.encoder.add_decoys(path, number_of_decoys)?;
         Ok(self)
     }
 
     /// Creates an SD-JWT with the provided data.
-    pub async fn finish(self, issuer_keypair: &KeyPair<impl EcdsaKey>) -> Result<SignedSdJwt> {
+    pub async fn finish(self, issuer_keypair: &KeyPair<impl EcdsaKey>) -> Result<SignedSdJwt, EncoderError> {
         let claims = self.encoder.encode();
         let issuer_signed = SignedJwt::sign_with_certificate(&claims, issuer_keypair).await?;
         Ok(SignedSdJwt {
@@ -203,7 +200,6 @@ mod examples {
 
             // issuer signs SD-JWT
             SdJwtBuilder::new(claims)
-                .unwrap()
                 .make_concealable(
                     vec![ClaimPath::SelectByKey(String::from("family_name"))]
                         .try_into()
@@ -231,8 +227,6 @@ mod test {
 
     use utils::generator::mock::MockTimeGenerator;
 
-    use crate::error::Error;
-
     use super::*;
 
     fn builder_from_json(object: serde_json::Value) -> SdJwtBuilder<Sha256Hasher> {
@@ -241,7 +235,6 @@ mod test {
             object,
             &MockTimeGenerator::default(),
         ))
-        .unwrap()
     }
 
     mod marking_properties_as_concealable {
@@ -317,6 +310,8 @@ mod test {
             use super::*;
 
             mod on_top_level {
+                use crate::error::ClaimError;
+
                 use super::*;
 
                 #[test]
@@ -324,7 +319,7 @@ mod test {
                     let result = builder_from_json(json!({}))
                         .make_concealable(vec![ClaimPath::SelectByKey(String::from("email"))].try_into().unwrap());
 
-                    assert_matches!(result, Err(Error::ObjectFieldNotFound(key, _)) if key == "email".parse().unwrap());
+                    assert_matches!(result, Err(EncoderError::ClaimStructure(ClaimError::ObjectFieldNotFound(key, _))) if key == "email".parse().unwrap());
                 }
 
                 #[test]
@@ -338,7 +333,7 @@ mod test {
                         .unwrap(),
                     );
 
-                    assert_matches!(result, Err(Error::ParentNotFound(_)));
+                    assert_matches!(result, Err(EncoderError::ClaimStructure(ClaimError::ParentNotFound(_))));
                 }
 
                 #[test]
@@ -355,11 +350,16 @@ mod test {
                         .unwrap(),
                     );
 
-                    assert_matches!(result, Err(Error::IndexOutOfBounds(2, _)));
+                    assert_matches!(
+                        result,
+                        Err(EncoderError::ClaimStructure(ClaimError::IndexOutOfBounds(2, _)))
+                    );
                 }
             }
 
             mod as_subproperties {
+                use crate::error::ClaimError;
+
                 use super::*;
 
                 #[test]
@@ -376,7 +376,7 @@ mod test {
                         .unwrap(),
                     );
 
-                    assert_matches!(result, Err(Error::ObjectFieldNotFound(key, _)) if key == "region".parse().unwrap());
+                    assert_matches!(result, Err(EncoderError::ClaimStructure(ClaimError::ObjectFieldNotFound(key, _))) if key == "region".parse().unwrap());
                 }
 
                 #[test]
@@ -394,7 +394,7 @@ mod test {
                         .unwrap(),
                     );
 
-                    assert_matches!(result, Err(Error::ParentNotFound(_)));
+                    assert_matches!(result, Err(EncoderError::ClaimStructure(ClaimError::ParentNotFound(_))));
                 }
 
                 #[test]
@@ -412,7 +412,10 @@ mod test {
                         .unwrap(),
                     );
 
-                    assert_matches!(result, Err(Error::IndexOutOfBounds(2, _)));
+                    assert_matches!(
+                        result,
+                        Err(EncoderError::ClaimStructure(ClaimError::IndexOutOfBounds(2, _)))
+                    );
                 }
             }
         }

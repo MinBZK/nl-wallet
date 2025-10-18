@@ -215,7 +215,17 @@ async fn attestation(
     let documents: Vec<IssuableDocument> = usecase
         .data
         .get(attribute_value)
-        .map(|docs| docs.clone().into_inner())
+        .map(|docs| {
+            docs.iter()
+                .cloned()
+                .map(|doc| {
+                    let (attestation_type, attribute) = doc.into();
+                    IssuableDocument::try_new_with_random_id(attestation_type, attribute)
+                        .map_err(|err| demo_utils::error::Error::from(anyhow::Error::from(err)))
+                })
+                .collect::<Result<Vec<_>>>()
+                .unwrap()
+        })
         .unwrap_or_default();
 
     Ok(Json(documents).into_response())

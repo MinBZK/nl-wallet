@@ -377,6 +377,19 @@ typedef struct wire_cst_wallet_instruction_result {
   union WalletInstructionResultKind kind;
 } wire_cst_wallet_instruction_result;
 
+typedef struct wire_cst_WalletState_Transferring {
+  int32_t role;
+} wire_cst_WalletState_Transferring;
+
+typedef union WalletStateKind {
+  struct wire_cst_WalletState_Transferring Transferring;
+} WalletStateKind;
+
+typedef struct wire_cst_wallet_state {
+  int32_t tag;
+  union WalletStateKind kind;
+} wire_cst_wallet_state;
+
 void frbgen_wallet_core_wire__crate__api__full__accept_disclosure(int64_t port_,
                                                                   struct wire_cst_list_prim_u_8_strict *pin);
 
@@ -441,6 +454,8 @@ void frbgen_wallet_core_wire__crate__api__full__get_history_for_card(int64_t por
                                                                      struct wire_cst_list_prim_u_8_strict *attestation_id);
 
 void frbgen_wallet_core_wire__crate__api__full__get_version_string(int64_t port_);
+
+void frbgen_wallet_core_wire__crate__api__full__get_wallet_state(int64_t port_);
 
 void frbgen_wallet_core_wire__crate__api__full__get_wallet_transfer_state(int64_t port_);
 
@@ -580,6 +595,7 @@ static int64_t dummy_method_to_enforce_bundling(void) {
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__get_history);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__get_history_for_card);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__get_version_string);
+    dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__get_wallet_state);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__get_wallet_transfer_state);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__has_active_disclosure_session);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__has_active_issuance_session);

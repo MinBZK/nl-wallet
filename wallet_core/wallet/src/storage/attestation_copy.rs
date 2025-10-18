@@ -17,13 +17,15 @@ use utils::vec_at_least::VecNonEmpty;
 
 use crate::AttestationIdentity;
 use crate::AttestationPresentation;
+use crate::attestation::AttestationPresentationConfig;
 
 #[derive(Debug, thiserror::Error)]
 pub enum PartialAttestationError {
     #[error("requested path not present in mdoc attestation: {0}")]
     MsoMdoc(#[from] MissingAttributesError),
+
     #[error("requested path not present in SD-JWT attestation: {0}")]
-    SdJwt(#[from] sd_jwt::error::Error),
+    SdJwt(#[from] sd_jwt::error::ClaimError),
 }
 
 /// An attestation that is present in the wallet database, part of [`StoredAttestationCopy`].
@@ -85,12 +87,14 @@ fn attestation_presentation_from_issuer_signed(
     attestation_id: Uuid,
     normalized_metadata: NormalizedTypeMetadata,
     issuer_organization: Organization,
+    config: &impl AttestationPresentationConfig,
 ) -> AttestationPresentation {
     AttestationPresentation::create_from_mdoc(
         AttestationIdentity::Fixed { id: attestation_id },
         normalized_metadata,
         issuer_organization,
         issuer_signed.into_entries_by_namespace(),
+        config,
     )
     .expect("a stored mdoc attestation should convert to AttestationPresentation without errors")
 }
@@ -100,6 +104,7 @@ fn attestation_presentation_from_sd_jwt(
     attestation_id: Uuid,
     normalized_metadata: NormalizedTypeMetadata,
     issuer_organization: Organization,
+    config: &impl AttestationPresentationConfig,
 ) -> AttestationPresentation {
     AttestationPresentation::create_from_sd_jwt_claims(
         AttestationIdentity::Fixed { id: attestation_id },
@@ -108,6 +113,7 @@ fn attestation_presentation_from_sd_jwt(
         sd_jwt
             .decoded_claims()
             .expect("a stored SD-JWT attestation should have decoded claims"),
+        config,
     )
     .expect("a stored SD-JWT attestation should convert to AttestationPresentation without errors")
 }
@@ -171,7 +177,7 @@ impl StoredAttestationCopy {
 
     /// Convert the stored attestation (which may contain a subset of the attributes)
     /// to an [`AttestationPresentation`] that can be displayed to the user.
-    pub fn into_attestation_presentation(self) -> AttestationPresentation {
+    pub fn into_attestation_presentation(self, config: &impl AttestationPresentationConfig) -> AttestationPresentation {
         let issuer_registration = self.attestation.issuer_registration();
 
         match self.attestation {
@@ -180,12 +186,14 @@ impl StoredAttestationCopy {
                 self.attestation_id,
                 self.normalized_metadata,
                 issuer_registration.organization,
+                config,
             ),
             StoredAttestation::SdJwt { sd_jwt, .. } => attestation_presentation_from_sd_jwt(
                 &sd_jwt,
                 self.attestation_id,
                 self.normalized_metadata,
                 issuer_registration.organization,
+                config,
             ),
         }
     }
@@ -227,6 +235,7 @@ impl DisclosableAttestation {
     pub fn try_new<'a>(
         attestation_copy: StoredAttestationCopy,
         claim_paths: impl IntoIterator<Item = &'a VecNonEmpty<ClaimPath>>,
+        presentation_config: &impl AttestationPresentationConfig,
     ) -> Result<Self, PartialAttestationError> {
         let StoredAttestationCopy {
             attestation_id,
@@ -244,12 +253,14 @@ impl DisclosableAttestation {
                 attestation_id,
                 normalized_metadata,
                 issuer_registration.organization,
+                presentation_config,
             ),
             PartialAttestation::SdJwt { sd_jwt, .. } => attestation_presentation_from_sd_jwt(
                 sd_jwt.as_ref().as_ref(),
                 attestation_id,
                 normalized_metadata,
                 issuer_registration.organization,
+                presentation_config,
             ),
         };
 
@@ -302,6 +313,8 @@ mod tests {
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_at_least::VecNonEmpty;
+
+    use crate::config::default_wallet_config;
 
     use super::DisclosableAttestation;
     use super::PartialAttestation;
@@ -367,6 +380,7 @@ mod tests {
 
     #[test]
     fn test_stored_attestation_copy() {
+        let wallet_config = default_wallet_config();
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let issuer_registration = IssuerRegistration::new_mock();
         let issuer_keypair = generate_issuer_mock_with_registration(&ca, issuer_registration.clone().into()).unwrap();
@@ -389,15 +403,19 @@ mod tests {
             assert!(!attestation_copy.matches_requested_attributes([&missing_path]));
 
             // The converted `AttestationPresentation` contains multiple attributes.
-            let full_presentation = attestation_copy.clone().into_attestation_presentation();
+            let full_presentation = attestation_copy
+                .clone()
+                .into_attestation_presentation(&wallet_config.pid_attributes);
             assert_eq!(full_presentation.attributes.len(), 5);
 
             // Selecting a particular attribute for disclosure should only succeed if the path exists.
-            let disclosable_attestation = DisclosableAttestation::try_new(attestation_copy.clone(), [&bsn_path])
-                .expect("converting the full attestation copy to on containing just the BSN should succeed");
+            let disclosable_attestation =
+                DisclosableAttestation::try_new(attestation_copy.clone(), [&bsn_path], &wallet_config.pid_attributes)
+                    .expect("converting the full attestation copy to on containing just the BSN should succeed");
 
-            let _error = DisclosableAttestation::try_new(attestation_copy, [&missing_path])
-                .expect_err("converting the full attestation copy to a partial one should not succeed");
+            let _error =
+                DisclosableAttestation::try_new(attestation_copy, [&missing_path], &wallet_config.pid_attributes)
+                    .expect_err("converting the full attestation copy to a partial one should not succeed");
 
             // The `DisclosableAttestation` contains only one attribute.
             assert_eq!(disclosable_attestation.presentation().attributes.len(), 1);

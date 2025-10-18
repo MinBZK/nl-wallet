@@ -7,8 +7,8 @@ use crate::claims::ArrayClaim;
 use crate::claims::ClaimValue;
 use crate::claims::ObjectClaims;
 use crate::disclosure::Disclosure;
-use crate::error::Error;
-use crate::error::Result;
+use crate::error::ClaimError;
+use crate::error::DecoderError;
 use crate::sd_jwt::SdJwtVcClaims;
 
 /// Substitutes digests in an [`SdJwtClaims`] by their corresponding claim values provided by disclosures.
@@ -17,7 +17,10 @@ pub struct SdObjectDecoder;
 impl SdObjectDecoder {
     /// Decodes [`SdJwtClaims`] by substituting the digests with their corresponding claim values provided by
     /// `disclosures`.
-    pub fn decode(sd_jwt_claims: &SdJwtVcClaims, disclosures: &IndexMap<String, Disclosure>) -> Result<SdJwtVcClaims> {
+    pub fn decode(
+        sd_jwt_claims: &SdJwtVcClaims,
+        disclosures: &IndexMap<String, Disclosure>,
+    ) -> Result<SdJwtVcClaims, DecoderError> {
         // Clone the disclosures locally so we can mutate the HashMap
         let mut disclosures = disclosures.clone();
 
@@ -26,7 +29,7 @@ impl SdObjectDecoder {
 
         // All disclosures should have been resolved
         if !disclosures.is_empty() {
-            return Err(Error::UnreferencedDisclosures(disclosures.into_keys().collect()));
+            return Err(DecoderError::UnreferencedDisclosures(disclosures.into_keys().collect()))?;
         }
 
         // Construct a new SdJwtClaims with the decoded claims and without "_sd_alg" claim
@@ -41,7 +44,7 @@ impl SdObjectDecoder {
 }
 
 impl ObjectClaims {
-    pub fn decode(&self, disclosures: &mut IndexMap<String, Disclosure>) -> Result<Self> {
+    pub fn decode(&self, disclosures: &mut IndexMap<String, Disclosure>) -> Result<Self, ClaimError> {
         let mut disclosed_claims = self
             ._sd
             .iter()
@@ -52,7 +55,7 @@ impl ObjectClaims {
                 let (_, claim_name, claim_value) = disclosure.content.try_as_object_property(digest)?;
                 Ok((claim_name.clone(), claim_value.clone()))
             })
-            .collect::<Result<IndexMap<_, _>>>()?;
+            .collect::<Result<IndexMap<_, _>, ClaimError>>()?;
 
         // Decode the disclosed claims here
         for disclosed_claim in disclosed_claims.values_mut() {
@@ -73,14 +76,14 @@ impl ObjectClaims {
 }
 
 impl ClaimValue {
-    pub fn decode(&self, disclosures: &mut IndexMap<String, Disclosure>) -> Result<Self> {
+    pub fn decode(&self, disclosures: &mut IndexMap<String, Disclosure>) -> Result<Self, ClaimError> {
         match self {
             ClaimValue::Array(claims) => {
                 let decoded_claims = claims
                     .iter()
                     .map(|claim| claim.decode(disclosures))
                     .flatten_ok()
-                    .collect::<Result<Vec<_>>>()?;
+                    .collect::<Result<Vec<_>, ClaimError>>()?;
 
                 Ok(ClaimValue::Array(decoded_claims))
             }
@@ -91,7 +94,7 @@ impl ClaimValue {
 }
 
 impl ArrayClaim {
-    pub fn decode(&self, disclosures: &mut IndexMap<String, Disclosure>) -> Result<Option<Self>> {
+    pub fn decode(&self, disclosures: &mut IndexMap<String, Disclosure>) -> Result<Option<Self>, ClaimError> {
         let decoded_claim = match self {
             ArrayClaim::Hash(digest) => match disclosures.shift_remove(digest) {
                 Some(disclosure) => {

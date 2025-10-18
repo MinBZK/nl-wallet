@@ -110,7 +110,7 @@ pub enum IssuanceSessionError {
 
     #[error("SD-JWT verification failed: {0}")]
     #[category(pd)]
-    SdJwtVerification(#[from] sd_jwt::error::Error),
+    SdJwtVerification(#[from] sd_jwt::error::DecoderError),
 
     #[error("type metadata verification failed: {0}")]
     #[category(critical)]

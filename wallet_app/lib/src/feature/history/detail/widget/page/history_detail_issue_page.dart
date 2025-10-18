@@ -5,7 +5,6 @@ import '../../../../../domain/model/card/wallet_card.dart';
 import '../../../../../domain/model/event/wallet_event.dart';
 import '../../../../../domain/model/organization.dart';
 import '../../../../../util/extension/build_context_extension.dart';
-import '../../../../../util/extension/wallet_event_extension.dart';
 import '../../../../../wallet_constants.dart';
 import '../../../../check_attributes/check_attributes_screen.dart';
 import '../../../../common/builder/request_detail_common_builders.dart';
@@ -33,9 +32,7 @@ class HistoryDetailIssuePage extends StatelessWidget {
         ),
         HistoryDetailTimestamp(dateTime: event.dateTime),
         const SizedBox(height: 24),
-        // Status header (only when not successful)
-        if (!event.wasSuccess)
-          RequestDetailCommonBuilders.buildStatusHeader(context, event: event, side: DividerSide.bottom),
+        RequestDetailCommonBuilders.buildStatusHeader(context, event: event, side: DividerSide.top),
         _buildIssuedCard(context, event.card),
         const SizedBox(height: 24),
         const Divider(),
@@ -79,8 +76,8 @@ class HistoryDetailIssuePage extends StatelessWidget {
 
   static String resolveTitle(BuildContext context, IssuanceEvent event) {
     final cardName = event.card.title.l10nValue(context);
-    return event.renewed
-        ? context.l10n.historyDetailScreenTitleForRenewal(cardName)
-        : context.l10n.historyDetailScreenTitleForIssuance(cardName);
+    return event.eventType == IssuanceEventType.cardRenewed
+        ? context.l10n.historyDetailScreenTitleForCardRenewed(cardName)
+        : context.l10n.historyDetailScreenTitleForCardIssued(cardName);
   }
 }

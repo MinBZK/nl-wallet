@@ -661,6 +661,7 @@ dependencies = [
  "tokio",
  "url",
  "utils",
+ "uuid",
  "x509-parser 0.17.0",
 ]
 
@@ -1361,6 +1362,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "convert_case"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bb402b8d4c85569410425650ce3eddc7d698ed96d39a73f941b08fb63082f1e7"
+dependencies = [
+ "unicode-segmentation",
+]
+
+[[package]]
 name = "cookie"
 version = "0.18.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1782,12 +1792,14 @@ dependencies = [
  "config",
  "dcql",
  "demo_utils",
+ "derive_more",
  "http_utils",
  "indexmap 2.7.1",
  "itertools 0.14.0",
  "openid4vc",
  "serde",
  "serde_urlencoded",
+ "serde_valid",
  "server_utils",
  "strum 0.26.3",
  "tokio",
@@ -1942,6 +1954,7 @@ version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bda628edc44c4bb645fbe0f758797143e4e07926f7ebf4e9bdfbd3d2ce621df3"
 dependencies = [
+ "convert_case 0.7.1",
  "proc-macro2",
  "quote",
  "syn",
@@ -3442,10 +3455,13 @@ dependencies = [
  "serde_urlencoded",
  "serde_with",
  "server_utils",
+ "status_lists",
  "thiserror 2.0.11",
+ "token_status_list",
  "tokio",
  "trait-variant",
  "utils",
+ "uuid",
 ]
 
 [[package]]
@@ -3454,6 +3470,7 @@ version = "0.4.0-dev"
 dependencies = [
  "sea-orm-migration",
  "server_utils_migrations",
+ "status_lists_migrations",
  "tokio",
 ]
 
@@ -3653,7 +3670,7 @@ version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a13b4ddc5dcb32f45dac3d6f606da2a52fdb9964a18427e63cd5ef6c0d13288d"
 dependencies = [
- "convert_case",
+ "convert_case 0.6.0",
  "proc-macro2",
  "quote",
  "syn",
@@ -3981,9 +3998,9 @@ dependencies = [
 
 [[package]]
 name = "nonempty-collections"
-version = "1.0.0"
+version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3761f83543b22e36b7ea1145309acf9c251ef67dd8b186047f85d8cc985272d4"
+checksum = "31a568c637fdf524897b05f5a1a7061e8cd95980a5385d6de2064cb2b4f1cb1c"
 
 [[package]]
 name = "nu-ansi-term"
@@ -4220,6 +4237,7 @@ dependencies = [
  "strfmt",
  "strum 0.26.3",
  "thiserror 2.0.11",
+ "token_status_list",
  "tokio",
  "tracing",
  "tracing-test",
@@ -4227,6 +4245,7 @@ dependencies = [
  "ts-rs",
  "url",
  "utils",
+ "uuid",
  "wiremock",
  "wscd",
 ]
@@ -4247,6 +4266,7 @@ dependencies = [
  "ring",
  "rustls-pki-types",
  "serde",
+ "token_status_list",
  "tower-http",
  "tracing",
  "utils",
@@ -4502,7 +4522,9 @@ dependencies = [
  "serde_json",
  "serde_with",
  "server_utils",
+ "status_lists",
  "thiserror 2.0.11",
+ "token_status_list",
  "tokio",
  "url",
  "utils",
@@ -4512,8 +4534,8 @@ dependencies = [
 name = "pid_issuer_migrations"
 version = "0.4.0-dev"
 dependencies = [
+ "issuance_server_migrations",
  "sea-orm-migration",
- "server_utils_migrations",
  "tokio",
 ]
 
@@ -6387,6 +6409,41 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
+name = "status_lists"
+version = "0.4.0-dev"
+dependencies = [
+ "anyhow",
+ "assert_matches",
+ "chrono",
+ "config",
+ "crypto",
+ "derive_more",
+ "futures",
+ "http_utils",
+ "indexmap 2.7.1",
+ "itertools 0.14.0",
+ "log",
+ "rand",
+ "sea-orm",
+ "serde",
+ "serde_json",
+ "server_utils",
+ "thiserror 2.0.11",
+ "token_status_list",
+ "tokio",
+ "url",
+ "utils",
+ "uuid",
+]
+
+[[package]]
+name = "status_lists_migrations"
+version = "0.4.0-dev"
+dependencies = [
+ "sea-orm-migration",
+]
+
+[[package]]
 name = "str-buf"
 version = "3.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6756,6 +6813,7 @@ dependencies = [
  "base64 0.22.1",
  "chrono",
  "crypto",
+ "dashmap 6.1.0",
  "derive_more",
  "flate2",
  "http_utils",
@@ -6771,6 +6829,10 @@ dependencies = [
  "tests_integration",
  "thiserror 2.0.11",
  "tokio",
+ "trait-variant",
+ "url",
+ "utils",
+ "uuid",
 ]
 
 [[package]]
@@ -7439,6 +7501,7 @@ dependencies = [
  "derive_more",
  "itertools 0.14.0",
  "nonempty-collections",
+ "nutype",
  "parking_lot",
  "rstest",
  "semver",
@@ -7843,13 +7906,10 @@ dependencies = [
  "futures",
  "hmac",
  "hsm",
- "indexmap 2.7.1",
  "itertools 0.14.0",
  "jwt",
  "mockall",
- "openid4vc",
  "p256",
- "pid_issuer",
  "platform_support",
  "rand",
  "rand_core",
@@ -7861,7 +7921,6 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with",
- "sha2",
  "thiserror 2.0.11",
  "tokio",
  "tracing",
@@ -7875,7 +7934,6 @@ dependencies = [
  "wallet_provider_domain",
  "wallet_provider_persistence",
  "wscd",
- "x509-parser 0.17.0",
 ]
 
 [[package]]

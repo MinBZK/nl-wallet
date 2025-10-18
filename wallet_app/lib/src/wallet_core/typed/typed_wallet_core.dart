@@ -162,6 +162,8 @@ class TypedWalletCore {
 
   Future<void> skipWalletTransfer() => call(core.skipWalletTransfer);
 
+  Future<core.WalletState> getWalletState() => call(core.getWalletState);
+
   /// This function should be used to call through to the core, as it makes sure potential exceptions are processed
   /// before they are (re)thrown.
   Future<T> call<T>(Future<T> Function() runnable) async {

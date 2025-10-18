@@ -41,6 +41,7 @@ use wallet_account::messages::instructions::InstructionResultMessage;
 use wallet_account::messages::instructions::PerformIssuance;
 use wallet_account::messages::instructions::PerformIssuanceWithWua;
 use wallet_account::messages::instructions::ReceiveWalletPayload;
+use wallet_account::messages::instructions::ResetTransfer;
 use wallet_account::messages::instructions::SendWalletPayload;
 use wallet_account::messages::instructions::Sign;
 use wallet_account::messages::instructions::StartPinRecovery;
@@ -95,6 +96,10 @@ where
                 .route(
                     &format!("/instructions/hw_signed/{}", CancelTransfer::NAME),
                     post(handle_hw_signed_instruction::<CancelTransfer, _, _, _>),
+                )
+                .route(
+                    &format!("/instructions/hw_signed/{}", ResetTransfer::NAME),
+                    post(handle_hw_signed_instruction::<ResetTransfer, _, _, _>),
                 )
                 .route(
                     &format!("/instructions/hw_signed/{}", GetTransferStatus::NAME),

@@ -4,8 +4,8 @@ class IssuanceEvent extends WalletEvent {
   /// The wallet card associated with this issuance event.
   final WalletCard card;
 
-  /// Indicates whether the card was renewed (true) or newly issued (false).
-  final bool renewed;
+  /// Indicates issuance event type
+  final IssuanceEventType eventType;
 
   @override
   List<DataAttribute> get sharedAttributes => card.attributes;
@@ -14,9 +14,17 @@ class IssuanceEvent extends WalletEvent {
     required super.dateTime,
     required super.status,
     required this.card,
-    required this.renewed,
+    required this.eventType,
   });
 
   @override
-  List<Object?> get props => [dateTime, status, card, renewed];
+  List<Object?> get props => [dateTime, status, card, eventType];
+}
+
+enum IssuanceEventType {
+  cardIssued,
+  cardRenewed,
+  cardStatusExpired,
+  cardStatusRevoked,
+  cardStatusCorrupted,
 }

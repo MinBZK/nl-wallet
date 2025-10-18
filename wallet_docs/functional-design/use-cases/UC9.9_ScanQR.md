@@ -10,7 +10,7 @@
 | **Postconditions**           | *None*                                                                                                                                                                                                                                                                                               |
 | **Triggered by**             | <ul><li>User selects 'Scan QR' in [UC9.1 Show app menu](UC9.1_ShowAppMenu.md)</li><li>User selects 'Scan QR' in [UC7.1 Show all available cards](UC7.1_ShowAllAvailableCards.md)</li></ul>                                                                                                           |
 | **Additional documentation** | *None*                                                                                                                                                                                                                                                                                               |
-| **Possible errors**          | <ul><li>Generic</li><li>Session expired</ul></li>                                                                                                                                                                                                                                                    |
+| **Possible errors**          | <ul><li>[Generic Error](../errors.md#generic-error)</li><li>[Session Expired](../errors.md#session-expired)</ul></li>                                                                                                                                                                                                                                                    |
 | **Logical test cases**       | <ul><li>[LTC6 Invalid universal link](../logical-test-cases.md#ltc6)</li><li>[LTC7 cross-device generic issuance](../logical-test-cases.md#ltc7)</li><li>[LTC18 cross-device share data](../logical-test-cases.md#ltc18)</li><li>[LTC24 cross-device login](../logical-test-cases.md#ltc24)</li></ul> |
 
 ---
@@ -18,7 +18,7 @@
 ## Flow
 
 | #       | Description                                                                                                           | Next                                                                                |
-| ------- | --------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| ------- |-----------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------|
 | **1**   | **PRIMARY SCENARIO**                                                                                                  |                                                                                     |
 | **1.1** | **System determines whether camera permissions were granted**                                                         |                                                                                     |
 | 1.1a    | Case: Camera permissions are granted                                                                                  | 1.3                                                                                 |
@@ -37,7 +37,8 @@
 | **1.5** | **System resolves QR**<ul><li>Contacts the URL provided in the QR</li><li>Duration: 0.0 - 0.1 seconds</li></ul>       |                                                                                     |
 | 1.5a    | Case: QR resolves to issuance flow                                                                                    | Go to: [UC4.1 Obtain cards](UC4.1_ObtainCardsFromEAAIssuer.md)                      |
 | 1.5b    | Case: QR resolves to sharing flow                                                                                     | Go to: [UC5.1 Share data](UC5.1_ShareDataWithRP.md)                                 |
-| 1.5c    | Case: QR resolves to login flow                                                                                       | Go to: [UC5.2 Log in to Relying Party application](UC5.2_LoginToApplicationOfRP.md) |
+| 1.5c    | Case: QR resolves to login flow                                                                                       | Go to: [UC5.2 Log in to Relying Party application](UC5.2_LoginToApplicationOfRP.md) | 
+| 1.1e    | Error: Generic                                                                                                        | Error flow: [Generic](../errors.md#generic-error)                                   |
 | **2**   | **WHEN NO CAMERA PERMISSION**                                                                                         |                                                                                     |
 | **2.1** | **System displays screen 'Camera permission required'**<ul><li>Actions: Grant Camera Permission, Back, Help</li></ul> |                                                                                     |
 | 2.1a    | User selects Back                                                                                                     | Back                                                                                |

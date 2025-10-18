@@ -253,7 +253,7 @@ pub enum InstructionError {
     PopSigning(#[source] JwtError),
 
     #[error("SD JWT error: {0}")]
-    SdJwtError(#[from] sd_jwt::error::Error),
+    SdJwtError(#[from] sd_jwt::error::DecoderError),
 
     #[error("recovery code missing from SD JWT")]
     MissingRecoveryCode,

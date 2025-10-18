@@ -1,7 +1,7 @@
 use serde_with::DeserializeFromStr;
 use serde_with::SerializeDisplay;
 
-use crate::error::Error;
+use crate::error::SdAlgHasherNotImplemented;
 use crate::hasher::Hasher;
 use crate::hasher::Sha256Hasher;
 
@@ -43,10 +43,10 @@ pub enum SdAlg {
 }
 
 impl SdAlg {
-    pub fn hasher(self) -> Result<impl Hasher, Error> {
+    pub fn hasher(self) -> Result<impl Hasher, SdAlgHasherNotImplemented> {
         match self {
             SdAlg::Sha256 => Ok(Sha256Hasher),
-            _ => Err(Error::SdAlgHasherNotImplemented(self)),
+            _ => Err(SdAlgHasherNotImplemented(self)),
         }
     }
 }

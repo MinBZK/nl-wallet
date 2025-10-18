@@ -22,7 +22,7 @@ void main() {
       WalletMockData.disclosureEvent,
       WalletMockData.signEvent,
       WalletMockData.issuanceEvent,
-      WalletMockData.renewEvent,
+      WalletMockData.issuanceEventCardRenewed,
     ].sortedBy((card) => card.dateTime).reversed.toList() /* sorting is normally handled by repo layer */,
   );
 
@@ -179,7 +179,7 @@ void main() {
         ),
       );
       final l10n = await TestUtils.englishLocalizations;
-      expect(find.text(l10n.historyDetailScreenIssuanceSuccessDescription), findsOneWidget);
+      expect(find.text(l10n.cardHistoryIssuanceSuccess), findsOneWidget);
       expect(find.textContaining('December 1'), findsOneWidget);
       expect(find.text(WalletMockData.issuanceEvent.card.title.testValue), findsAtLeast(1));
       expect(find.byType(Image), findsOneWidget);
