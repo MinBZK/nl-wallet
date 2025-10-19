@@ -1,6 +1,6 @@
 openapi: 3.1.0
 info:
-  title: 'Wallet Server Issuance API, Public and Private Endpoints (Wallet and Requester)'
+  title: 'Wallet Server Issuance API'
   description:
     OpenID4VCI Credential Issuance and OpenID4VP Disclosure API for NL Wallet.
     This server provides credential issuance using OpenID4VCI and handles
