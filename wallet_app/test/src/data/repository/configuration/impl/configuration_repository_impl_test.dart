@@ -22,6 +22,7 @@ void main() {
           inactiveWarningTimeout: 3,
           inactiveLockTimeout: 5,
           backgroundLockTimeout: 10,
+          pidAttestationTypes: ['urn:eudi:pid:nl:1'],
           staticAssetsBaseUrl: 'https://example.com/',
           version: BigInt.zero,
         ),
