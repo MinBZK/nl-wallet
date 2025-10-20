@@ -2,6 +2,7 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
+import 'package:wallet/src/domain/model/disclosure/disclose_card_request.dart';
 import 'package:wallet/src/domain/model/disclosure/disclosure_session_type.dart';
 import 'package:wallet/src/domain/model/disclosure/disclosure_type.dart';
 import 'package:wallet/src/domain/model/issuance/start_issuance_result.dart';
@@ -413,18 +414,18 @@ void main() {
     },
     expect: () => [
       isA<IssuanceCheckOrganization>().having(
-        (it) => it.cardRequests.map((it) => it.selectedIndex),
+        (it) => it.cardRequests.selectedIndices,
         'verify initial selection',
         [0],
       ),
       isA<IssuanceCheckOrganization>().having(
-        (it) => it.cardRequests.map((it) => it.selectedIndex),
+        (it) => it.cardRequests.selectedIndices,
         'verify altered selection',
         [1],
       ),
       isA<IssuanceProvidePinForDisclosure>(),
       isA<IssuanceCheckOrganization>().having(
-        (it) => it.cardRequests.map((it) => it.selectedIndex),
+        (it) => it.cardRequests.selectedIndices,
         'verify altered selection is maintained',
         [1],
       ),
