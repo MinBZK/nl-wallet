@@ -40,6 +40,13 @@ impl JwtTyp for KeyBindingJwtClaims {
     const TYP: &'static str = KB_JWT_HEADER_TYP;
 }
 
+pub struct KbVerificationOptions<'a> {
+    pub expected_aud: &'a str,
+    pub expected_nonce: &'a str,
+    pub iat_leeway: u64,
+    pub iat_acceptance_window: Duration,
+}
+
 /// Representation of a [KB-JWT](https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-12.html#name-key-binding-jwt).
 #[derive(Debug, Clone, PartialEq, Eq, Display, FromStr, Serialize, Deserialize)]
 pub struct UnverifiedKeyBindingJwt(UnverifiedJwt<KeyBindingJwtClaims>);
@@ -52,24 +59,24 @@ impl UnverifiedKeyBindingJwt {
     pub fn into_verified(
         self,
         pubkey: &EcdsaDecodingKey,
-        validation_options: &Validation,
-        expected_nonce: &str,
-        iat_acceptance_window: Duration,
+        kb_verification_options: &KbVerificationOptions,
         time: &impl Generator<DateTime<Utc>>,
     ) -> Result<VerifiedKeyBindingJwt, KeyBindingError> {
-        let verified = self.0.into_verified(pubkey, validation_options)?;
+        let validation_options =
+            kb_jwt_validation(kb_verification_options.expected_aud, kb_verification_options.iat_leeway);
+        let verified = self.0.into_verified(pubkey, &validation_options)?;
 
         let payload = verified.payload();
-        if payload.nonce != expected_nonce {
+        if payload.nonce != kb_verification_options.expected_nonce {
             return Err(KeyBindingError::NonceMismatch(payload.nonce.clone()));
         };
 
         let now = time.generate();
         let leeway = Duration::from_secs(validation_options.leeway);
-        if !(payload.iat <= now + leeway && now <= payload.iat + iat_acceptance_window) {
+        if !(payload.iat <= now + leeway && now <= payload.iat + kb_verification_options.iat_acceptance_window) {
             return Err(KeyBindingError::InvalidSignatureTimestamp(
                 payload.iat,
-                iat_acceptance_window,
+                kb_verification_options.iat_acceptance_window,
                 now,
             ));
         };
@@ -82,8 +89,9 @@ impl UnverifiedKeyBindingJwt {
     }
 }
 
-pub(crate) fn kb_jwt_validation(expected_aud: &str) -> Validation {
+pub(crate) fn kb_jwt_validation(expected_aud: &str, leeway: u64) -> Validation {
     let mut validation = BASE_KB_JWT_VALIDATION.to_owned();
+    validation.leeway = leeway;
     validation.set_audience(&[expected_aud]);
     validation
 }
@@ -91,7 +99,6 @@ pub(crate) fn kb_jwt_validation(expected_aud: &str) -> Validation {
 static BASE_KB_JWT_VALIDATION: LazyLock<Validation> = LazyLock::new(|| {
     let mut validation = Validation::new(Algorithm::ES256);
     validation.validate_nbf = true;
-    validation.leeway = 5;
     validation.set_required_spec_claims(&["aud"]);
     validation
 });
@@ -386,15 +393,20 @@ mod test {
     async fn test_parse_should_validate() {
         let signing_key = SigningKey::random(&mut OsRng);
 
+        let kb_verification_options = KbVerificationOptions {
+            expected_aud: "aud",
+            expected_nonce: "abc123",
+            iat_leeway: 0,
+            iat_acceptance_window: Duration::from_secs(3 * 24 * 60 * 60),
+        };
+
         let jwt_str = example_kb_jwt(&signing_key).await.to_string();
         jwt_str
             .parse::<UnverifiedKeyBindingJwt>()
             .unwrap()
             .into_verified(
                 &EcdsaDecodingKey::from(signing_key.verifying_key()),
-                &kb_jwt_validation("aud"),
-                "abc123",
-                Duration::from_secs(3 * 24 * 60 * 60),
+                &kb_verification_options,
                 &MockTimeGenerator::default(),
             )
             .unwrap();
@@ -429,17 +441,16 @@ mod test {
                 && current_time == now_generator.generate()
         };
 
-        let mut validation_options = Validation::new(Algorithm::ES256);
-        validation_options.validate_nbf = true;
-        validation_options.leeway = leeway;
-        validation_options.set_required_spec_claims(&["aud"]);
-        validation_options.set_audience(&["aud"]);
+        let kb_verification_options = KbVerificationOptions {
+            expected_aud: "aud",
+            expected_nonce: "abc123",
+            iat_leeway: leeway,
+            iat_acceptance_window,
+        };
 
         let result = jwt_str.parse::<UnverifiedKeyBindingJwt>().unwrap().into_verified(
             &EcdsaDecodingKey::from(signing_key.verifying_key()),
-            &validation_options,
-            "abc123",
-            iat_acceptance_window,
+            &kb_verification_options,
             &now_generator,
         );
 
@@ -457,14 +468,20 @@ mod test {
         let signing_key = SigningKey::random(&mut OsRng);
 
         let jwt_str = example_kb_jwt(&signing_key).await.to_string();
+
+        let kb_verification_options = KbVerificationOptions {
+            expected_aud: "aud",
+            expected_nonce: "def456",
+            iat_leeway: 0,
+            iat_acceptance_window: Duration::from_secs(3 * 24 * 60 * 60),
+        };
+
         let err = jwt_str
             .parse::<UnverifiedKeyBindingJwt>()
             .unwrap()
             .into_verified(
                 &EcdsaDecodingKey::from(signing_key.verifying_key()),
-                &kb_jwt_validation("aud"),
-                "def456",
-                Duration::from_secs(3 * 24 * 60 * 60),
+                &kb_verification_options,
                 &MockTimeGenerator::default(),
             )
             .expect_err("should fail validation");

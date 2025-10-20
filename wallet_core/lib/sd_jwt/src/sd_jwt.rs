@@ -3,7 +3,6 @@ use std::fmt::Debug;
 use std::fmt::Display;
 use std::str::FromStr;
 use std::sync::LazyLock;
-use std::time::Duration;
 
 use chrono::DateTime;
 use chrono::Utc;
@@ -52,12 +51,12 @@ use crate::error::ClaimError;
 use crate::error::DecoderError;
 use crate::error::SigningError;
 use crate::hasher::Hasher;
+use crate::key_binding_jwt::KbVerificationOptions;
 use crate::key_binding_jwt::KeyBindingJwtBuilder;
 use crate::key_binding_jwt::RequiredKeyBinding;
 use crate::key_binding_jwt::SignedKeyBindingJwt;
 use crate::key_binding_jwt::UnverifiedKeyBindingJwt;
 use crate::key_binding_jwt::VerifiedKeyBindingJwt;
-use crate::key_binding_jwt::kb_jwt_validation;
 use crate::sd_alg::SdAlg;
 
 pub trait SdJwtClaims: JwtTyp {
@@ -443,9 +442,7 @@ impl UnverifiedSdJwtPresentation {
     pub fn into_verified_against_trust_anchors(
         self,
         trust_anchors: &[TrustAnchor],
-        kb_expected_aud: &str,
-        kb_expected_nonce: &str,
-        kb_iat_acceptance_window: Duration,
+        kb_verification_options: &KbVerificationOptions,
         time: &impl Generator<DateTime<Utc>>,
     ) -> Result<VerifiedSdJwtPresentation, DecoderError> {
         // we first verify the SD-JWT, then extract the JWK from the `cnf` claim and use that to verify the KB-JWT
@@ -457,12 +454,9 @@ impl UnverifiedSdJwtPresentation {
             trust_anchors,
         )?;
 
-        let validation_options = kb_jwt_validation(kb_expected_aud);
         let key_binding_jwt = self.key_binding_jwt.into_verified(
             &EcdsaDecodingKey::from(&issuer_signed.payload().cnf().verifying_key()?),
-            &validation_options,
-            kb_expected_nonce,
-            kb_iat_acceptance_window,
+            kb_verification_options,
             time,
         )?;
 
@@ -672,7 +666,7 @@ where
         issuer_pubkey: &EcdsaDecodingKey,
         kb_expected_aud: &str,
         kb_expected_nonce: &str,
-        kb_iat_acceptance_window: Duration,
+        kb_iat_acceptance_window: std::time::Duration,
         time: &impl Generator<DateTime<Utc>>,
     ) -> Result<VerifiedSdJwtPresentation<C, H>, DecoderError> {
         // we first verify the SD-JWT, then extract the JWK from the `cnf` claim and use that to verify the KB-JWT
@@ -682,12 +676,15 @@ where
             .issuer_signed
             .into_verified(issuer_pubkey, &SD_JWT_VALIDATIONS)?;
 
-        let validation_options = kb_jwt_validation(kb_expected_aud);
+        let kb_verification_options = KbVerificationOptions {
+            expected_aud: kb_expected_aud,
+            expected_nonce: kb_expected_nonce,
+            iat_leeway: 0,
+            iat_acceptance_window: kb_iat_acceptance_window,
+        };
         let key_binding_jwt = self.key_binding_jwt.into_verified(
             &EcdsaDecodingKey::from(&issuer_signed.payload().cnf().verifying_key()?),
-            &validation_options,
-            kb_expected_nonce,
-            kb_iat_acceptance_window,
+            &kb_verification_options,
             time,
         )?;
 
@@ -768,6 +765,7 @@ mod examples {
 #[cfg(test)]
 mod test {
     use std::collections::HashSet;
+    use std::time::Duration;
 
     use assert_matches::assert_matches;
     use chrono::DateTime;
