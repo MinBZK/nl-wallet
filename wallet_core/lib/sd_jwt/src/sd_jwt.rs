@@ -57,6 +57,7 @@ use crate::key_binding_jwt::RequiredKeyBinding;
 use crate::key_binding_jwt::SignedKeyBindingJwt;
 use crate::key_binding_jwt::UnverifiedKeyBindingJwt;
 use crate::key_binding_jwt::VerifiedKeyBindingJwt;
+use crate::key_binding_jwt::kb_jwt_validation;
 use crate::sd_alg::SdAlg;
 
 pub trait SdJwtClaims: JwtTyp {
@@ -456,9 +457,10 @@ impl UnverifiedSdJwtPresentation {
             trust_anchors,
         )?;
 
+        let validation_options = kb_jwt_validation(kb_expected_aud);
         let key_binding_jwt = self.key_binding_jwt.into_verified(
             &EcdsaDecodingKey::from(&issuer_signed.payload().cnf().verifying_key()?),
-            kb_expected_aud,
+            &validation_options,
             kb_expected_nonce,
             kb_iat_acceptance_window,
             time,
@@ -680,9 +682,10 @@ where
             .issuer_signed
             .into_verified(issuer_pubkey, &SD_JWT_VALIDATIONS)?;
 
+        let validation_options = kb_jwt_validation(kb_expected_aud);
         let key_binding_jwt = self.key_binding_jwt.into_verified(
             &EcdsaDecodingKey::from(&issuer_signed.payload().cnf().verifying_key()?),
-            kb_expected_aud,
+            &validation_options,
             kb_expected_nonce,
             kb_iat_acceptance_window,
             time,

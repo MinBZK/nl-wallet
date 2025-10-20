@@ -52,13 +52,12 @@ impl UnverifiedKeyBindingJwt {
     pub fn into_verified(
         self,
         pubkey: &EcdsaDecodingKey,
-        expected_aud: &str,
+        validation_options: &Validation,
         expected_nonce: &str,
         iat_acceptance_window: Duration,
         time: &impl Generator<DateTime<Utc>>,
     ) -> Result<VerifiedKeyBindingJwt, KeyBindingError> {
-        let validation_options = kb_jwt_validation(expected_aud);
-        let verified = self.0.into_verified(pubkey, &validation_options)?;
+        let verified = self.0.into_verified(pubkey, validation_options)?;
 
         let payload = verified.payload();
         if payload.nonce != expected_nonce {
@@ -83,7 +82,7 @@ impl UnverifiedKeyBindingJwt {
     }
 }
 
-fn kb_jwt_validation(expected_aud: &str) -> Validation {
+pub(crate) fn kb_jwt_validation(expected_aud: &str) -> Validation {
     let mut validation = BASE_KB_JWT_VALIDATION.to_owned();
     validation.set_audience(&[expected_aud]);
     validation
@@ -219,12 +218,14 @@ mod test {
     use assert_matches::assert_matches;
     use base64::Engine;
     use base64::prelude::*;
+    use chrono::TimeZone;
     use chrono::Utc;
     use futures::FutureExt;
     use itertools::Itertools;
     use jsonwebtoken::Algorithm;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
+    use rstest::rstest;
     use serde_json::json;
 
     use crypto::mock_remote::MockRemoteEcdsaKey;
@@ -245,9 +246,17 @@ mod test {
     use super::*;
 
     async fn example_kb_jwt(signing_key: &SigningKey) -> SignedJwt<KeyBindingJwtClaims> {
+        example_kb_jwt_with_iat(
+            signing_key,
+            Utc::now() - Duration::from_secs(2 * 24 * 60 * 60), // 2 days ago
+        )
+        .await
+    }
+
+    async fn example_kb_jwt_with_iat(signing_key: &SigningKey, iat: DateTime<Utc>) -> SignedJwt<KeyBindingJwtClaims> {
         SignedJwt::sign(
             &KeyBindingJwtClaims {
-                iat: Utc::now() - Duration::from_secs(2 * 24 * 60 * 60), // 2 days ago
+                iat,
                 aud: String::from("aud"),
                 nonce: String::from("abc123"),
                 sd_hash: String::from("sd_hash"),
@@ -383,7 +392,7 @@ mod test {
             .unwrap()
             .into_verified(
                 &EcdsaDecodingKey::from(signing_key.verifying_key()),
-                "aud",
+                &kb_jwt_validation("aud"),
                 "abc123",
                 Duration::from_secs(3 * 24 * 60 * 60),
                 &MockTimeGenerator::default(),
@@ -391,24 +400,56 @@ mod test {
             .unwrap();
     }
 
+    #[rstest]
+    #[case::not_yet_valid(1000, 5, 994, Duration::from_secs(500), false)]
+    #[case::valid_in_leeway(1000, 5, 995, Duration::from_secs(500), true)]
+    #[case::valid(1000, 5, 1200, Duration::from_secs(500), true)]
+    #[case::valid_atwindow_boundary(1000, 5, 1500, Duration::from_secs(500), true)]
+    #[case::expired(1000, 5, 1501, Duration::from_secs(500), false)]
     #[tokio::test]
-    async fn test_parse_should_error_for_wrong_iat() {
+    async fn test_parse_and_verify_iat(
+        #[case] iat_epoch: i64,
+        #[case] leeway: u64,
+        #[case] now_epoch: i64,
+        #[case] iat_acceptance_window: Duration,
+        #[case] expected_valid: bool,
+    ) {
         let signing_key = SigningKey::random(&mut OsRng);
 
-        let jwt_str = example_kb_jwt(&signing_key).await.to_string();
-        let err = jwt_str
-            .parse::<UnverifiedKeyBindingJwt>()
-            .unwrap()
-            .into_verified(
-                &EcdsaDecodingKey::from(signing_key.verifying_key()),
-                "aud",
-                "abc123",
-                Duration::from_secs(24 * 60 * 60),
-                &MockTimeGenerator::default(),
-            )
-            .expect_err("should fail validation");
-        assert_matches!(err, KeyBindingError::InvalidSignatureTimestamp(_iat, window, _now)
-        if window == Duration::from_secs(24 * 60 * 60));
+        let iat_generator = MockTimeGenerator::new(Utc.timestamp_opt(iat_epoch, 0).unwrap());
+        let iat = iat_generator.generate();
+
+        let now_generator = MockTimeGenerator::new(Utc.timestamp_opt(now_epoch, 0).unwrap());
+
+        let jwt_str = example_kb_jwt_with_iat(&signing_key, iat).await.to_string();
+
+        let verify_timestamp = |iat: DateTime<Utc>, window: Duration, current_time: DateTime<Utc>| {
+            window == iat_acceptance_window
+                && iat == iat_generator.generate()
+                && current_time == now_generator.generate()
+        };
+
+        let mut validation_options = Validation::new(Algorithm::ES256);
+        validation_options.validate_nbf = true;
+        validation_options.leeway = leeway;
+        validation_options.set_required_spec_claims(&["aud"]);
+        validation_options.set_audience(&["aud"]);
+
+        let result = jwt_str.parse::<UnverifiedKeyBindingJwt>().unwrap().into_verified(
+            &EcdsaDecodingKey::from(signing_key.verifying_key()),
+            &validation_options,
+            "abc123",
+            iat_acceptance_window,
+            &now_generator,
+        );
+
+        if expected_valid {
+            let _verified_jwt = result.unwrap();
+        } else {
+            let err = result.unwrap_err();
+            assert_matches!(err, KeyBindingError::InvalidSignatureTimestamp(iat, window, now)
+                        if verify_timestamp(iat, window, now));
+        }
     }
 
     #[tokio::test]
@@ -421,7 +462,7 @@ mod test {
             .unwrap()
             .into_verified(
                 &EcdsaDecodingKey::from(signing_key.verifying_key()),
-                "aud",
+                &kb_jwt_validation("aud"),
                 "def456",
                 Duration::from_secs(3 * 24 * 60 * 60),
                 &MockTimeGenerator::default(),
