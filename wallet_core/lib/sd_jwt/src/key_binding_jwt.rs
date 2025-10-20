@@ -240,6 +240,7 @@ mod test {
     use crypto::server_keys::generate::Ca;
     use jwt::EcdsaDecodingKey;
     use jwt::SignedJwt;
+    use jwt::error::JwtError;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_at_least::IntoNonEmptyIterator;
     use utils::vec_at_least::NonEmptyIterator;
@@ -488,6 +489,34 @@ mod test {
         assert_matches!(
             err,
             KeyBindingError::NonceMismatch(actual) if &actual == "abc123"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_parse_should_error_for_invalid_audience() {
+        let signing_key = SigningKey::random(&mut OsRng);
+
+        let kb_verification_options = KbVerificationOptions {
+            expected_aud: "other_aud",
+            expected_nonce: "abc123",
+            iat_leeway: 0,
+            iat_acceptance_window: Duration::from_secs(3 * 24 * 60 * 60),
+        };
+
+        let jwt_str = example_kb_jwt(&signing_key).await.to_string();
+        let err = jwt_str
+            .parse::<UnverifiedKeyBindingJwt>()
+            .unwrap()
+            .into_verified(
+                &EcdsaDecodingKey::from(signing_key.verifying_key()),
+                &kb_verification_options,
+                &MockTimeGenerator::default(),
+            )
+            .expect_err("should fail validation");
+        assert_matches!(
+            err,
+            KeyBindingError::Jwt(JwtError::Validation(error))
+                if *error.kind() == jsonwebtoken::errors::ErrorKind::InvalidAudience
         );
     }
 }
