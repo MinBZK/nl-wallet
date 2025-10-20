@@ -1,9 +1,3 @@
-use std::fs;
-use std::fs::File;
-use std::io::Write;
-use std::path::Path;
-use std::path::PathBuf;
-
 use assert_matches::assert_matches;
 use serial_test::serial;
 use tempfile::TempDir;

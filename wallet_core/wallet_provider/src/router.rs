@@ -17,6 +17,7 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
+use tower_http::decompression::RequestDecompressionLayer;
 use tower_http::trace::TraceLayer;
 use tracing::info;
 use tracing::warn;
@@ -158,6 +159,7 @@ where
                     post(handle_instruction::<SendWalletPayload, _, _, _>)
                         .layer(DefaultBodyLimit::max(state.max_transfer_upload_size_in_bytes)),
                 )
+                .layer(RequestDecompressionLayer::new().zstd(true))
                 .layer(TraceLayer::new_for_http())
                 .layer(middleware::from_fn(log_headers))
                 .with_state(Arc::clone(&state)),

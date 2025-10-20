@@ -37,11 +37,9 @@ impl WalletDatabasePayload {
         header.set_content_encryption(AesgcmJweEncryption::A256gcm.name());
         header.set_compression("DEF");
 
+        let serialized_export = serde_json::to_value(self.0).map_err(DatabasePayloadError::Serialization)?;
         let mut payload = JwtPayload::new();
-        payload.set_claim(
-            DATABASE_CLAIM,
-            Some(serde_json::to_value(self.0).map_err(DatabasePayloadError::Serialization)?),
-        )?;
+        payload.set_claim(DATABASE_CLAIM, Some(serialized_export))?;
 
         let encrypter = ECDH_ES_A256KW.encrypter_from_jwk(public_key)?;
         let payload = josekit::jwt::encode_with_encrypter(&payload, &header, &encrypter)?;

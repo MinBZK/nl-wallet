@@ -58,7 +58,7 @@ serde_with = { workspace = true, features = ["base64", "hex", "chrono"] }
 spki = { workspace = true, features = ["std"] }
 thiserror.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "parking_lot", "net"] }
-tower-http = { workspace = true, features = ["trace", "limit"] }
+tower-http = { workspace = true, features = ["trace", "limit", "decompression-zstd"] }
 tracing.workspace = true
 tracing-subscriber = { workspace = true, features = [
     "std",
@@ -71,6 +71,7 @@ tracing-subscriber = { workspace = true, features = [
     "ansi",
 ] }
 uuid = { workspace = true, features = ["serde", "v4"] }
+zstd.workspace = true
 
 rand_core = { workspace = true, optional = true }
 serial_test = { workspace = true, optional = true }
