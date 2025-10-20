@@ -59,12 +59,6 @@ paths:
             application/json:
               schema:
                 $ref: 'wallet-components.openapi.yaml#/components/schemas/IssuerMetadata'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: 'wallet-components.openapi.yaml#/components/schemas/MetadataError'
 
   /issuance/.well-known/oauth-authorization-server:
     get:
@@ -80,12 +74,6 @@ paths:
             application/json:
               schema:
                 $ref: 'wallet-components.openapi.yaml#/components/schemas/OAuthConfig'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: 'wallet-components.openapi.yaml#/components/schemas/MetadataError'
 
   # Issuance Endpoints
   /issuance/token:
