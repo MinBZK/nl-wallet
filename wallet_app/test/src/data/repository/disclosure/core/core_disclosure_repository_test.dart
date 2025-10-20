@@ -53,8 +53,8 @@ void main() {
   });
 
   test('Call to acceptDisclosure is forwarded to wallet core with correct argument', () async {
-    await repository.acceptDisclosure('123123');
-    verify(mockTypedWalletCore.acceptDisclosure('123123')).called(1);
+    await repository.acceptDisclosure('123123', [0]);
+    verify(mockTypedWalletCore.acceptDisclosure('123123', [0])).called(1);
   });
 
   test('Call to startDisclosure is forwarded to wallet core with correct argument', () async {
@@ -75,8 +75,8 @@ void main() {
           dataDeletionPossible: true,
           policyUrl: 'https://example.org',
         ),
-        requestedAttestations: [],
         requestType: DisclosureType.Login,
+        disclosureOptions: [],
       );
     });
     final result = await repository.startDisclosure('uri', isQrCode: true);

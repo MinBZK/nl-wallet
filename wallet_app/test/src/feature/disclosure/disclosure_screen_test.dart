@@ -193,13 +193,18 @@ void main() {
           child: const DisclosureScreen()
               .withState<DisclosureBloc, DisclosureState>(
                 MockDisclosureBloc(),
-                DisclosureConfirmPin(relyingParty: WalletMockData.organization, isCrossDevice: false),
+                DisclosureConfirmPin(
+                  relyingParty: WalletMockData.organization,
+                  isCrossDevice: false,
+                  selectedIndices: [0],
+                ),
               )
               .withState<PinBloc, PinState>(
                 MockPinBloc(),
                 const PinEntryInProgress(0),
               ),
         ),
+        providers: [RepositoryProvider<DisclosureRepository>(create: (_) => MockDisclosureRepository())],
       );
       await screenMatchesGolden('confirm_pin.light');
     });
@@ -211,7 +216,11 @@ void main() {
           child: const DisclosureScreen()
               .withState<DisclosureBloc, DisclosureState>(
                 MockDisclosureBloc(),
-                DisclosureConfirmPin(relyingParty: WalletMockData.organization, isCrossDevice: false),
+                DisclosureConfirmPin(
+                  relyingParty: WalletMockData.organization,
+                  isCrossDevice: false,
+                  selectedIndices: [0],
+                ),
               )
               .withState<PinBloc, PinState>(
                 MockPinBloc(),
@@ -221,6 +230,7 @@ void main() {
         surfaceSize: const Size(320, 560),
         textScaleSize: 2,
         locale: const Locale('nl'),
+        providers: [RepositoryProvider<DisclosureRepository>(create: (_) => MockDisclosureRepository())],
       );
       await screenMatchesGolden('confirm_pin.light.a11y.nl');
     });
@@ -231,7 +241,11 @@ void main() {
           child: const DisclosureScreen()
               .withState<DisclosureBloc, DisclosureState>(
                 MockDisclosureBloc(),
-                DisclosureConfirmPin(relyingParty: WalletMockData.organization, isCrossDevice: false),
+                DisclosureConfirmPin(
+                  relyingParty: WalletMockData.organization,
+                  isCrossDevice: false,
+                  selectedIndices: [0],
+                ),
               )
               .withState<PinBloc, PinState>(
                 MockPinBloc(),
@@ -242,6 +256,7 @@ void main() {
         textScaleSize: 2,
         brightness: Brightness.dark,
         locale: const Locale('nl'),
+        providers: [RepositoryProvider<DisclosureRepository>(create: (_) => MockDisclosureRepository())],
       );
       await screenMatchesGolden('confirm_pin.dark.landscape.a11y.nl');
     });
@@ -253,7 +268,11 @@ void main() {
           child: const DisclosureScreen()
               .withState<DisclosureBloc, DisclosureState>(
                 MockDisclosureBloc(),
-                DisclosureConfirmPin(relyingParty: WalletMockData.organization, isCrossDevice: false),
+                DisclosureConfirmPin(
+                  relyingParty: WalletMockData.organization,
+                  isCrossDevice: false,
+                  selectedIndices: [0],
+                ),
               )
               .withState<PinBloc, PinState>(
                 MockPinBloc(),
@@ -261,6 +280,7 @@ void main() {
               ),
         ),
         surfaceSize: iphoneXSizeLandscape,
+        providers: [RepositoryProvider<DisclosureRepository>(create: (_) => MockDisclosureRepository())],
       );
       await screenMatchesGolden('confirm_pin.light.landscape');
     });
@@ -828,11 +848,13 @@ void main() {
         await tester.pumpWidgetWithAppWrapper(
           const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
             MockDisclosureBloc(),
-            DisclosureConfirmPin(relyingParty: WalletMockData.organization, isCrossDevice: false),
+            DisclosureConfirmPin(
+              relyingParty: WalletMockData.organization,
+              isCrossDevice: false,
+              selectedIndices: [0],
+            ),
           ),
-          providers: [
-            RepositoryProvider<AcceptDisclosureUseCase>(create: (c) => MockAcceptDisclosureUseCase()),
-          ],
+          providers: [RepositoryProvider<DisclosureRepository>(create: (_) => MockDisclosureRepository())],
         );
 
         expect(find.byType(DisclosureConfirmPinPage), findsOneWidget);

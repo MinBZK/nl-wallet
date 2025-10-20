@@ -42,7 +42,9 @@ class CoreIssuanceRepository implements IssuanceRepository {
     final result = await _walletCore.startDisclosure(issuanceUri, isQrCode: isQrCode);
     switch (result) {
       case core.StartDisclosureResult_Request():
-        final cards = _attestationMapper.mapList(result.requestedAttestations);
+        final List<DiscloseCardRequest> requests = result.disclosureOptions
+            .map((it) => DiscloseCardRequest(candidates: _attestationMapper.mapList(it.field0)))
+            .toList();
         final relyingParty = _relyingPartyMapper.map(result.relyingParty);
         final policy = _requestPolicyMapper.map(result.policy);
         return StartIssuanceReadyToDisclose(
@@ -51,7 +53,7 @@ class CoreIssuanceRepository implements IssuanceRepository {
           requestPurpose: _localizedStringMapper.map(result.requestPurpose),
           sessionType: _disclosureSessionTypeMapper.map(result.sessionType),
           type: _disclosureTypeMapper.map(result.requestType),
-          cardRequests: cards.map(DiscloseCardRequest.fromCard).toList(),
+          cardRequests: requests,
           policy: policy,
           sharedDataWithOrganizationBefore: result.sharedDataWithRelyingPartyBefore,
         );
@@ -70,8 +72,8 @@ class CoreIssuanceRepository implements IssuanceRepository {
   }
 
   @override
-  Future<List<WalletCard>> discloseForIssuance(String pin) async {
-    final result = await _walletCore.continueDisclosureBasedIssuance(pin);
+  Future<List<WalletCard>> discloseForIssuance(String pin, List<int> selectedIndices) async {
+    final result = await _walletCore.continueDisclosureBasedIssuance(pin, selectedIndices);
     switch (result) {
       case core.DisclosureBasedIssuanceResult_Ok():
         return _attestationMapper.mapList(result.field0);

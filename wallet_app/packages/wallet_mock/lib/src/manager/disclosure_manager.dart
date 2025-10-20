@@ -36,12 +36,13 @@ class DisclosureManager {
     if (containsAllRequestedAttributes) {
       final isLoginRequest =
           request.requestedAttributes.length == 1 && request.requestedAttributes.first.key == 'mock_citizenshipNumber';
+      final requestedAttestations = _wallet.getRequestedAttestations(
+        request.requestedAttributes.map((attribute) => attribute.key),
+      );
       return _ongoingDisclosure = StartDisclosureResult.request(
         relyingParty: request.relyingParty,
         policy: request.policy,
-        requestedAttestations: _wallet.getRequestedAttestations(
-          request.requestedAttributes.map((attribute) => attribute.key),
-        ),
+        disclosureOptions: requestedAttestations.map((it) => DisclosureOptions(field0: [it])).toList(),
         sharedDataWithRelyingPartyBefore: _eventLog.includesInteractionWith(request.relyingParty),
         sessionType: DisclosureSessionType.CrossDevice,
         requestOriginBaseUrl: requestOriginBaseUrl,
