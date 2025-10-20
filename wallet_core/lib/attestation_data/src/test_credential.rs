@@ -291,19 +291,29 @@ impl TestCredential {
 
     pub fn to_mdoc(&self, issuer_keypair: &KeyPair, wscd: &impl AsRef<MockRemoteWscd>) -> Mdoc {
         let holder_key = wscd.as_ref().create_random_key();
-        let holder_public_key = *holder_key.verifying_key();
 
-        self.payload_preview
+        let (normalized_metadata, _) = self
+            .metadata_documents
             .clone()
-            .into_signed_mdoc_unverified(
-                self.metadata_integrity(),
-                holder_key.identifier,
-                &holder_public_key,
-                issuer_keypair,
-            )
+            .into_normalized(&self.payload_preview.attestation_type)
+            .expect("TestCredential metadata documents should normalize");
+
+        let credential_payload = CredentialPayload::from_previewable_credential_payload(
+            self.payload_preview.clone(),
+            Utc::now(),
+            holder_key.verifying_key(),
+            &normalized_metadata,
+            self.metadata_integrity(),
+        )
+        .expect("TestCredential payload preview should convert to CredentialPayload");
+
+        let (issuer_signed, mso) = credential_payload
+            .into_signed_mdoc(issuer_keypair)
             .now_or_never()
             .unwrap()
-            .expect("TestCredential payload preview should convert to mdoc IssuerSigned")
+            .expect("TestCredential payload preview should convert to Mdoc");
+
+        Mdoc::new_unverified(mso, holder_key.identifier, issuer_signed)
     }
 
     pub fn to_sd_jwt(&self, issuer_keypair: &KeyPair, wscd: &impl AsRef<MockRemoteWscd>) -> (SignedSdJwt, String) {
@@ -317,7 +327,7 @@ impl TestCredential {
 
         let credential_payload = CredentialPayload::from_previewable_credential_payload(
             self.payload_preview.clone(),
-            Utc::now().into(),
+            Utc::now(),
             holder_key.verifying_key(),
             &normalized_metadata,
             self.metadata_integrity(),
@@ -325,7 +335,7 @@ impl TestCredential {
         .expect("TestCredential payload preview should convert to CredentialPayload");
 
         let sd_jwt = credential_payload
-            .into_sd_jwt(&normalized_metadata, issuer_keypair)
+            .into_signed_sd_jwt(&normalized_metadata, issuer_keypair)
             .now_or_never()
             .unwrap()
             .expect("TestCredential payload preview should convert to SD-JWT");

@@ -87,7 +87,7 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
 
                 CredentialRequestError::IssuanceError(_)
                 | CredentialRequestError::UseBatchIssuance
-                | CredentialRequestError::MissingCredentialRequest(_)
+                | CredentialRequestError::WrongNumberOfCredentialRequests
                 | CredentialRequestError::MissingWua
                 | CredentialRequestError::MissingPoa
                 | CredentialRequestError::CredentialTypeMismatch { .. }

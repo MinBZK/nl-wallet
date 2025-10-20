@@ -1031,7 +1031,7 @@ pub(crate) mod tests {
 
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::auth::reader_auth::ReaderRegistration;
-    use attestation_data::credential_payload::IntoCredentialPayload;
+    use attestation_data::credential_payload::CredentialPayload;
     use attestation_data::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
@@ -2026,7 +2026,7 @@ pub(crate) mod tests {
                     .unwrap()
                     .unwrap();
 
-                let payload = sd_jwt.into_credential_payload(&normalized_metadata).unwrap();
+                let payload = CredentialPayload::from_sd_jwt(sd_jwt, &normalized_metadata).unwrap();
                 AttestationPresentation::create_from_attributes(
                     AttestationIdentity::Fixed { id: attestation_id },
                     normalized_metadata,

@@ -209,7 +209,7 @@ pub fn verified_sd_jwt_from_credential_payload(
     issuer_keypair: &KeyPair,
 ) -> VerifiedSdJwt {
     let sd_jwt = credential_payload
-        .into_sd_jwt(metadata, issuer_keypair)
+        .into_signed_sd_jwt(metadata, issuer_keypair)
         .now_or_never()
         .unwrap()
         .unwrap();
@@ -220,25 +220,34 @@ pub fn verified_sd_jwt_from_credential_payload(
 /// Generates a valid [`Mdoc`] that contains a full mdoc PID.
 pub fn create_example_pid_mdoc() -> Mdoc {
     let preview_payload = PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default());
+    let metadata = NormalizedTypeMetadata::nl_pid_example();
 
-    mdoc_from_credential_payload(preview_payload, &ISSUER_KEY.issuance_key)
+    mdoc_from_credential_payload(preview_payload, &metadata, &ISSUER_KEY.issuance_key)
 }
 
 /// Generates a valid [`Mdoc`], based on an [`PreviewableCredentialPayload`] and issuer key.
-pub fn mdoc_from_credential_payload(preview_payload: PreviewableCredentialPayload, issuer_keypair: &KeyPair) -> Mdoc {
+pub fn mdoc_from_credential_payload(
+    preview_payload: PreviewableCredentialPayload,
+    metadata: &NormalizedTypeMetadata,
+    issuer_keypair: &KeyPair,
+) -> Mdoc {
     let private_key_id = crypto::utils::random_string(16);
     let holder_privkey = SigningKey::random(&mut OsRng);
 
-    preview_payload
-        .into_signed_mdoc_unverified(
-            Integrity::from(""),
-            private_key_id,
-            holder_privkey.verifying_key(),
-            issuer_keypair,
-        )
-        .now_or_never()
-        .unwrap()
-        .unwrap()
+    let (issuer_signed, mso) = CredentialPayload::from_previewable_credential_payload(
+        preview_payload,
+        Utc::now(),
+        holder_privkey.verifying_key(),
+        metadata,
+        Integrity::from(""),
+    )
+    .unwrap()
+    .into_signed_mdoc(issuer_keypair)
+    .now_or_never()
+    .unwrap()
+    .unwrap();
+
+    Mdoc::new_unverified(mso, private_key_id, issuer_signed)
 }
 
 pub fn generate_key_holder(vendor: WalletDeviceVendor) -> MockHardwareAttestedKeyHolder {
