@@ -12,6 +12,3 @@ _build/
 # Structurizr working folders
 _structurizr/.structurizr
 
-# Devproxy working folder
-openapi/devproxy/*
-!openapi/devproxy/devproxyrc.json

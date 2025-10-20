@@ -79,17 +79,17 @@ function set() {
         error "Setting versions of wallet_app, wallet_core, wallet_docs, and wallet_web to: $non_prefixed_version"
 
         # Wallet app (pubspec.yaml):
-        $sed -i "s|^version:[\s]*.*$|version: $non_prefixed_version|g" "$project_root/wallet_app/pubspec.yaml" > /dev/null 2>&1
+        $sed -i "s|^version:[\s]*.*$|version: $non_prefixed_version|" "$project_root/wallet_app/pubspec.yaml" > /dev/null 2>&1
 
         # Wallet core (Cargo.toml):
         cargo set-version --manifest-path "$project_root/wallet_core/Cargo.toml" --workspace "$non_prefixed_version" > /dev/null 2>&1
 
         # Wallet docs (conf.py):
-        $sed -i "s|^version = [\s]*.*$|version = \'$non_prefixed_version\'|g" "$project_root/wallet_docs/conf.py" > /dev/null 2>&1
+        $sed -i "s|^version = [\s]*.*$|version = \'$non_prefixed_version\'|" "$project_root/wallet_docs/conf.py" > /dev/null 2>&1
 
         # Wallet docs (*.openapi.yaml)
         for file in "$project_root/wallet_docs/openapi/"*.openapi.yaml; do
-            $sed -i "s|version:[\s]*.*$|version: $non_prefixed_version|g" "$file" > /dev/null 2>&1
+            $sed -i "s|version:[\s]*.*$|version: $non_prefixed_version|" "$file" > /dev/null 2>&1
         done
 
         # Wallet web (package.json):

@@ -150,8 +150,13 @@ function generate_or_reuse_root_ca {
         # required for usage with devproxy. For background, see:
         # https://github.com/dotnet/dev-proxy/issues/1410
         DATE_FORMAT='+%Y%m%d%H%M%SZ'
-        DATE_FROM="$(is_macos && date -v -26H "$DATE_FORMAT" || date --date='-26 hours' "$DATE_FORMAT")"
-        DATE_TO="$(is_macos && date -v +1y "$DATE_FORMAT" || date --date='+1 year' "$DATE_FORMAT")"
+        if is_macos; then
+            DATE_FROM="$(date -v -26H "$DATE_FORMAT")"
+            DATE_TO="$(date -v +1y "$DATE_FORMAT")"
+        else
+            DATE_FROM="$(date --date='-26 hours' "$DATE_FORMAT")"
+            DATE_TO="$(date --date='+1 year' "$DATE_FORMAT")"
+        fi
 
         openssl req -x509 -sha256 -nodes -newkey rsa:2048 -subj "/CN=$2" -addext "keyUsage=critical,keyCertSign,cRLSign" -addext "basicConstraints=critical,CA:TRUE,pathlen:0" -not_before "$DATE_FROM" -not_after "$DATE_TO" -keyout "$1/ca.key.pem" -out "$1/ca.crt.pem"
         openssl pkcs8 -topk8 -inform PEM -outform DER -nocrypt -in "$1/ca.key.pem" -out "$1/ca.key.der"
