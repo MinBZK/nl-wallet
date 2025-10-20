@@ -1606,12 +1606,14 @@ impl SseDecode for crate::models::config::FlutterConfiguration {
         let mut var_inactiveWarningTimeout = <u16>::sse_decode(deserializer);
         let mut var_inactiveLockTimeout = <u16>::sse_decode(deserializer);
         let mut var_backgroundLockTimeout = <u16>::sse_decode(deserializer);
+        let mut var_pidAttestationTypes = <Vec<String>>::sse_decode(deserializer);
         let mut var_staticAssetsBaseUrl = <String>::sse_decode(deserializer);
         let mut var_version = <u64>::sse_decode(deserializer);
         return crate::models::config::FlutterConfiguration {
             inactive_warning_timeout: var_inactiveWarningTimeout,
             inactive_lock_timeout: var_inactiveLockTimeout,
             background_lock_timeout: var_backgroundLockTimeout,
+            pid_attestation_types: var_pidAttestationTypes,
             static_assets_base_url: var_staticAssetsBaseUrl,
             version: var_version,
         };
@@ -1715,6 +1717,18 @@ impl SseDecode for crate::models::image::ImageWithMetadata {
             image: var_image,
             alt_text: var_altText,
         };
+    }
+}
+
+impl SseDecode for Vec<String> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = vec![];
+        for idx_ in 0..len_ {
+            ans_.push(<String>::sse_decode(deserializer));
+        }
+        return ans_;
     }
 }
 
@@ -2580,6 +2594,7 @@ impl flutter_rust_bridge::IntoDart for crate::models::config::FlutterConfigurati
             self.inactive_warning_timeout.into_into_dart().into_dart(),
             self.inactive_lock_timeout.into_into_dart().into_dart(),
             self.background_lock_timeout.into_into_dart().into_dart(),
+            self.pid_attestation_types.into_into_dart().into_dart(),
             self.static_assets_base_url.into_into_dart().into_dart(),
             self.version.into_into_dart().into_dart(),
         ]
@@ -3327,6 +3342,7 @@ impl SseEncode for crate::models::config::FlutterConfiguration {
         <u16>::sse_encode(self.inactive_warning_timeout, serializer);
         <u16>::sse_encode(self.inactive_lock_timeout, serializer);
         <u16>::sse_encode(self.background_lock_timeout, serializer);
+        <Vec<String>>::sse_encode(self.pid_attestation_types, serializer);
         <String>::sse_encode(self.static_assets_base_url, serializer);
         <u64>::sse_encode(self.version, serializer);
     }
@@ -3425,6 +3441,16 @@ impl SseEncode for crate::models::image::ImageWithMetadata {
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <crate::models::image::Image>::sse_encode(self.image, serializer);
         <String>::sse_encode(self.alt_text, serializer);
+    }
+}
+
+impl SseEncode for Vec<String> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <String>::sse_encode(item, serializer);
+        }
     }
 }
 
@@ -4236,6 +4262,7 @@ mod io {
                 inactive_warning_timeout: self.inactive_warning_timeout.cst_decode(),
                 inactive_lock_timeout: self.inactive_lock_timeout.cst_decode(),
                 background_lock_timeout: self.background_lock_timeout.cst_decode(),
+                pid_attestation_types: self.pid_attestation_types.cst_decode(),
                 static_assets_base_url: self.static_assets_base_url.cst_decode(),
                 version: self.version.cst_decode(),
             }
@@ -4298,6 +4325,16 @@ mod io {
                 image: self.image.cst_decode(),
                 alt_text: self.alt_text.cst_decode(),
             }
+        }
+    }
+    impl CstDecode<Vec<String>> for *mut wire_cst_list_String {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> Vec<String> {
+            let vec = unsafe {
+                let wrap = flutter_rust_bridge::for_generated::box_from_leak_ptr(self);
+                flutter_rust_bridge::for_generated::vec_from_leak_ptr(wrap.ptr, wrap.len)
+            };
+            vec.into_iter().map(CstDecode::cst_decode).collect()
         }
     }
     impl CstDecode<Vec<crate::models::attestation::AttestationAttribute>> for *mut wire_cst_list_attestation_attribute {
@@ -4748,6 +4785,7 @@ mod io {
                 inactive_warning_timeout: Default::default(),
                 inactive_lock_timeout: Default::default(),
                 background_lock_timeout: Default::default(),
+                pid_attestation_types: core::ptr::null_mut(),
                 static_assets_base_url: core::ptr::null_mut(),
                 version: Default::default(),
             }
@@ -5323,6 +5361,18 @@ mod io {
     }
 
     #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_wallet_core_cst_new_list_String(len: i32) -> *mut wire_cst_list_String {
+        let wrap = wire_cst_list_String {
+            ptr: flutter_rust_bridge::for_generated::new_leak_vec_ptr(
+                <*mut wire_cst_list_prim_u_8_strict>::new_with_null_ptr(),
+                len,
+            ),
+            len,
+        };
+        flutter_rust_bridge::for_generated::new_leak_box_ptr(wrap)
+    }
+
+    #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_wallet_core_cst_new_list_attestation_attribute(
         len: i32,
     ) -> *mut wire_cst_list_attestation_attribute {
@@ -5621,6 +5671,7 @@ mod io {
         inactive_warning_timeout: u16,
         inactive_lock_timeout: u16,
         background_lock_timeout: u16,
+        pid_attestation_types: *mut wire_cst_list_String,
         static_assets_base_url: *mut wire_cst_list_prim_u_8_strict,
         version: u64,
     }
@@ -5681,6 +5732,12 @@ mod io {
     pub struct wire_cst_image_with_metadata {
         image: wire_cst_image,
         alt_text: *mut wire_cst_list_prim_u_8_strict,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_list_String {
+        ptr: *mut *mut wire_cst_list_prim_u_8_strict,
+        len: i32,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]

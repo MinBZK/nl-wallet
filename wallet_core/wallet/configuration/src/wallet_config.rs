@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use derive_more::Debug;
+use itertools::Itertools;
 use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde::Serialize;
@@ -97,6 +98,17 @@ pub struct UpdatePolicyServerConfiguration {
 pub struct PidAttributesConfiguration {
     pub mso_mdoc: HashMap<String, PidAttributePaths>,
     pub sd_jwt: HashMap<String, PidAttributePaths>,
+}
+
+impl PidAttributesConfiguration {
+    pub fn pid_attestation_types(&self) -> Vec<String> {
+        [&self.mso_mdoc, &self.sd_jwt]
+            .into_iter()
+            .flat_map(HashMap::keys)
+            .unique()
+            .map(String::to_string)
+            .collect()
+    }
 }
 
 impl DisclosureTypeConfig for PidAttributesConfiguration {

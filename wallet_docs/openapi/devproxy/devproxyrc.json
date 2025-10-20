@@ -1,0 +1,25 @@
+{
+  "$schema": "https://raw.githubusercontent.com/dotnet/dev-proxy/main/schemas/v1.3.0/rc.schema.json",
+  "plugins": [
+    {
+      "enabled": true,
+      "name": "OpenApiSpecGeneratorPlugin",
+      "pluginPath": "~appFolder/plugins/DevProxy.Plugins.dll",
+      "specFormat": "Yaml",
+      "specVersion": "v3_0"
+    }
+  ],
+  "languageModel": {
+    "enabled": false,
+    "model": "qwen3-coder"
+  },
+  "record": true,
+  "logLevel": "information",
+  "newVersionNotification": "stable",
+  "showSkipMessages": true,
+  "showTimestamps": true,
+  "validateSchemas": true,
+  "urlsToWatch": [
+    "*"
+  ]
+}

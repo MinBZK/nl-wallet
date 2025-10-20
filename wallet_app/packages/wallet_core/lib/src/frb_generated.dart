@@ -1693,13 +1693,14 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   FlutterConfiguration dco_decode_flutter_configuration(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 5) throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    if (arr.length != 6) throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
     return FlutterConfiguration(
       inactiveWarningTimeout: dco_decode_u_16(arr[0]),
       inactiveLockTimeout: dco_decode_u_16(arr[1]),
       backgroundLockTimeout: dco_decode_u_16(arr[2]),
-      staticAssetsBaseUrl: dco_decode_String(arr[3]),
-      version: dco_decode_u_64(arr[4]),
+      pidAttestationTypes: dco_decode_list_String(arr[3]),
+      staticAssetsBaseUrl: dco_decode_String(arr[4]),
+      version: dco_decode_u_64(arr[5]),
     );
   }
 
@@ -1776,6 +1777,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       image: dco_decode_image(arr[0]),
       altText: dco_decode_String(arr[1]),
     );
+  }
+
+  @protected
+  List<String> dco_decode_list_String(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_String).toList();
   }
 
   @protected
@@ -2395,12 +2402,14 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     var var_inactiveWarningTimeout = sse_decode_u_16(deserializer);
     var var_inactiveLockTimeout = sse_decode_u_16(deserializer);
     var var_backgroundLockTimeout = sse_decode_u_16(deserializer);
+    var var_pidAttestationTypes = sse_decode_list_String(deserializer);
     var var_staticAssetsBaseUrl = sse_decode_String(deserializer);
     var var_version = sse_decode_u_64(deserializer);
     return FlutterConfiguration(
       inactiveWarningTimeout: var_inactiveWarningTimeout,
       inactiveLockTimeout: var_inactiveLockTimeout,
       backgroundLockTimeout: var_backgroundLockTimeout,
+      pidAttestationTypes: var_pidAttestationTypes,
       staticAssetsBaseUrl: var_staticAssetsBaseUrl,
       version: var_version,
     );
@@ -2476,6 +2485,18 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     var var_image = sse_decode_image(deserializer);
     var var_altText = sse_decode_String(deserializer);
     return ImageWithMetadata(image: var_image, altText: var_altText);
+  }
+
+  @protected
+  List<String> sse_decode_list_String(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <String>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_String(deserializer));
+    }
+    return ans_;
   }
 
   @protected
@@ -3311,6 +3332,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     sse_encode_u_16(self.inactiveWarningTimeout, serializer);
     sse_encode_u_16(self.inactiveLockTimeout, serializer);
     sse_encode_u_16(self.backgroundLockTimeout, serializer);
+    sse_encode_list_String(self.pidAttestationTypes, serializer);
     sse_encode_String(self.staticAssetsBaseUrl, serializer);
     sse_encode_u_64(self.version, serializer);
   }
@@ -3375,6 +3397,15 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_image(self.image, serializer);
     sse_encode_String(self.altText, serializer);
+  }
+
+  @protected
+  void sse_encode_list_String(List<String> self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_String(item, serializer);
+    }
   }
 
   @protected

@@ -968,8 +968,8 @@ To serve the OpenAPI specifications using a [Swagger UI][30] docker container:
 ```shell
 cd nl-wallet
 docker run --name swagger --detach --rm -p 8080:8080 \
--e URLS='[ { url: "openapi/wallet-disclosure-private.openapi.yaml", name: "Private (requester) API" }, { url: "openapi/wallet-disclosure-public.openapi.yaml", name: "Public (wallet) API" } ]' \
--e URLS_PRIMARY_NAME='Private (requester) API' \
+-e URLS='[ { url: "openapi/wallet-disclosure-private.openapi.yaml", name: "Disclosure Private (requester) API" }, { url: "openapi/wallet-disclosure-public.openapi.yaml", name: "Disclosure Public (wallet) API" },  { url: "openapi/wallet-issuance.openapi.yaml", name: "Issuer API" } ]' \
+-e URLS_PRIMARY_NAME='Disclosure Private (requester) API' \
 -v "$(pwd)/wallet_docs/openapi":/usr/share/nginx/html/openapi \
 swaggerapi/swagger-ui
 ```

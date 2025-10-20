@@ -136,6 +136,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   ImageWithMetadata dco_decode_image_with_metadata(dynamic raw);
 
   @protected
+  List<String> dco_decode_list_String(dynamic raw);
+
+  @protected
   List<AttestationAttribute> dco_decode_list_attestation_attribute(dynamic raw);
 
   @protected
@@ -352,6 +355,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   ImageWithMetadata sse_decode_image_with_metadata(SseDeserializer deserializer);
+
+  @protected
+  List<String> sse_decode_list_String(SseDeserializer deserializer);
 
   @protected
   List<AttestationAttribute> sse_decode_list_attestation_attribute(SseDeserializer deserializer);
@@ -619,6 +625,16 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   int cst_encode_i_64(PlatformInt64 raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return raw.toInt();
+  }
+
+  @protected
+  ffi.Pointer<wire_cst_list_String> cst_encode_list_String(List<String> raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    final ans = wire.cst_new_list_String(raw.length);
+    for (var i = 0; i < raw.length; ++i) {
+      ans.ref.ptr[i] = cst_encode_String(raw[i]);
+    }
+    return ans;
   }
 
   @protected
@@ -980,6 +996,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
     wireObj.inactive_warning_timeout = cst_encode_u_16(apiObj.inactiveWarningTimeout);
     wireObj.inactive_lock_timeout = cst_encode_u_16(apiObj.inactiveLockTimeout);
     wireObj.background_lock_timeout = cst_encode_u_16(apiObj.backgroundLockTimeout);
+    wireObj.pid_attestation_types = cst_encode_list_String(apiObj.pidAttestationTypes);
     wireObj.static_assets_base_url = cst_encode_String(apiObj.staticAssetsBaseUrl);
     wireObj.version = cst_encode_u_64(apiObj.version);
   }
@@ -1401,6 +1418,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void sse_encode_image_with_metadata(ImageWithMetadata self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_list_String(List<String> self, SseSerializer serializer);
 
   @protected
   void sse_encode_list_attestation_attribute(List<AttestationAttribute> self, SseSerializer serializer);
@@ -2474,6 +2494,21 @@ class WalletCoreWire implements BaseWire {
   late final _cst_new_box_autoadd_wallet_instruction_error = _cst_new_box_autoadd_wallet_instruction_errorPtr
       .asFunction<ffi.Pointer<wire_cst_wallet_instruction_error> Function()>();
 
+  ffi.Pointer<wire_cst_list_String> cst_new_list_String(
+    int len,
+  ) {
+    return _cst_new_list_String(
+      len,
+    );
+  }
+
+  late final _cst_new_list_StringPtr =
+      _lookup<ffi.NativeFunction<ffi.Pointer<wire_cst_list_String> Function(ffi.Int32)>>(
+        'frbgen_wallet_core_cst_new_list_String',
+      );
+  late final _cst_new_list_String = _cst_new_list_StringPtr
+      .asFunction<ffi.Pointer<wire_cst_list_String> Function(int)>();
+
   ffi.Pointer<wire_cst_list_attestation_attribute> cst_new_list_attestation_attribute(
     int len,
   ) {
@@ -2943,6 +2978,13 @@ final class wire_cst_wallet_instruction_error extends ffi.Struct {
   external WalletInstructionErrorKind kind;
 }
 
+final class wire_cst_list_String extends ffi.Struct {
+  external ffi.Pointer<ffi.Pointer<wire_cst_list_prim_u_8_strict>> ptr;
+
+  @ffi.Int32()
+  external int len;
+}
+
 final class wire_cst_list_attestation_presentation extends ffi.Struct {
   external ffi.Pointer<wire_cst_attestation_presentation> ptr;
 
@@ -3081,6 +3123,8 @@ final class wire_cst_flutter_configuration extends ffi.Struct {
 
   @ffi.Uint16()
   external int background_lock_timeout;
+
+  external ffi.Pointer<wire_cst_list_String> pid_attestation_types;
 
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> static_assets_base_url;
 
