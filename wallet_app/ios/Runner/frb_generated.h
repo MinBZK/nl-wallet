@@ -212,6 +212,11 @@ typedef struct wire_cst_wallet_instruction_error {
   union WalletInstructionErrorKind kind;
 } wire_cst_wallet_instruction_error;
 
+typedef struct wire_cst_list_String {
+  struct wire_cst_list_prim_u_8_strict **ptr;
+  int32_t len;
+} wire_cst_list_String;
+
 typedef struct wire_cst_list_attestation_presentation {
   struct wire_cst_attestation_presentation *ptr;
   int32_t len;
@@ -299,6 +304,7 @@ typedef struct wire_cst_flutter_configuration {
   uint16_t inactive_warning_timeout;
   uint16_t inactive_lock_timeout;
   uint16_t background_lock_timeout;
+  struct wire_cst_list_String *pid_attestation_types;
   struct wire_cst_list_prim_u_8_strict *static_assets_base_url;
   uint64_t version;
 } wire_cst_flutter_configuration;
@@ -533,6 +539,8 @@ uint64_t *frbgen_wallet_core_cst_new_box_autoadd_u_64(uint64_t value);
 
 struct wire_cst_wallet_instruction_error *frbgen_wallet_core_cst_new_box_autoadd_wallet_instruction_error(void);
 
+struct wire_cst_list_String *frbgen_wallet_core_cst_new_list_String(int32_t len);
+
 struct wire_cst_list_attestation_attribute *frbgen_wallet_core_cst_new_list_attestation_attribute(int32_t len);
 
 struct wire_cst_list_attestation_presentation *frbgen_wallet_core_cst_new_list_attestation_presentation(int32_t len);
@@ -560,6 +568,7 @@ static int64_t dummy_method_to_enforce_bundling(void) {
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_request_policy);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_u_64);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_wallet_instruction_error);
+    dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_String);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_attestation_attribute);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_attestation_presentation);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_attribute_value);

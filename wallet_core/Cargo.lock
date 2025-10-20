@@ -7759,6 +7759,7 @@ dependencies = [
  "crypto",
  "derive_more",
  "http_utils",
+ "itertools 0.14.0",
  "jwt",
  "rustls-pki-types",
  "serde",
