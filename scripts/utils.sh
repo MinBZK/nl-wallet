@@ -145,9 +145,23 @@ function generate_or_reuse_root_ca {
     else
         echo -e "${INFO}Generating CA $2 in ${1}${NC}"
         mkdir -p "$1"
-        openssl req -subj "/C=NL/CN=$2" -nodes -x509 -sha256 -days 1825 -newkey rsa:2048 -keyout "$1/ca.key.pem" -out "$1/ca.crt.pem" > /dev/null
-        openssl pkcs8 -topk8 -inform PEM -outform DER -in "$1/ca.key.pem" -out "$1/ca.key.der" -nocrypt
+
+        # Note: 26 hours older than "now" is not arbitrary, but
+        # required for usage with devproxy. For background, see:
+        # https://github.com/dotnet/dev-proxy/issues/1410
+        DATE_FORMAT='+%Y%m%d%H%M%SZ'
+        if is_macos; then
+            DATE_FROM="$(date -v -26H "$DATE_FORMAT")"
+            DATE_TO="$(date -v +1y "$DATE_FORMAT")"
+        else
+            DATE_FROM="$(date --date='-26 hours' "$DATE_FORMAT")"
+            DATE_TO="$(date --date='+1 year' "$DATE_FORMAT")"
+        fi
+
+        openssl req -x509 -sha256 -nodes -newkey rsa:2048 -subj "/CN=$2" -addext "keyUsage=critical,keyCertSign,cRLSign" -addext "basicConstraints=critical,CA:TRUE,pathlen:0" -not_before "$DATE_FROM" -not_after "$DATE_TO" -keyout "$1/ca.key.pem" -out "$1/ca.crt.pem"
+        openssl pkcs8 -topk8 -inform PEM -outform DER -nocrypt -in "$1/ca.key.pem" -out "$1/ca.key.der"
         openssl x509 -in "$1/ca.crt.pem" -outform DER -out "$1/ca.crt.der"
+        openssl pkcs12 -export -out "$1/ca.pfx" -inkey "$1/ca.key.pem" -in "$1/ca.crt.pem" -password pass:
     fi
 }
 

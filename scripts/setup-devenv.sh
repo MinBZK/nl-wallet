@@ -111,12 +111,12 @@ mkdir -p "${TARGET_DIR}/wallet_provider"
 
 # Create a bad CA for integration testing usage
 echo -e "${SECTION}Configuring a bad CA for integration testing${NC}"
-generate_or_reuse_root_ca "${TARGET_DIR}/bad_ca" "bad-ca"
+USE_SINGLE_CA=0 generate_or_reuse_root_ca "${TARGET_DIR}/bad_ca" "Bad Example CA"
 
 # Create a single CA if use single SA is requested
 if [[ "${USE_SINGLE_CA}" == 1 && -n ${USE_SINGLE_CA_PATH} ]]; then
     echo -e "${SECTION}Configuring a single CA for shared usage ${NC}"
-    generate_or_reuse_root_ca "${USE_SINGLE_CA_PATH}" "$(basename "${USE_SINGLE_CA_PATH}")"
+    generate_or_reuse_root_ca "${USE_SINGLE_CA_PATH}" "Local Dev CA"
 fi
 
 ########################################################################
@@ -235,15 +235,15 @@ generate_or_reuse_root_ca "${TARGET_DIR}/demo_issuer" "nl-wallet-demo-issuer"
 
 generate_ssl_key_pair_with_san "${TARGET_DIR}/demo_issuer" demo_issuer "${TARGET_DIR}/demo_issuer/ca.crt.pem" "${TARGET_DIR}/demo_issuer/ca.key.pem"
 
-cp "${TARGET_DIR}/demo_issuer/ca.crt.der" "${BASE_DIR}/wallet_core/tests_integration/di.ca.crt.der"
+ln -sf "${TARGET_DIR}/demo_issuer/ca.crt.der" "${BASE_DIR}/wallet_core/tests_integration/di.ca.crt.der"
 DEMO_ISSUER_ATTESTATION_SERVER_CA_CRT=$(< "${TARGET_DIR}/demo_issuer/ca.crt.der" ${BASE64})
 export DEMO_ISSUER_ATTESTATION_SERVER_CA_CRT
 
-cp "${TARGET_DIR}/demo_issuer/demo_issuer.crt.der" "${BASE_DIR}/wallet_core/tests_integration/di.crt.der"
+ln -sf "${TARGET_DIR}/demo_issuer/demo_issuer.crt.der" "${BASE_DIR}/wallet_core/tests_integration/di.crt.der"
 DEMO_ISSUER_ATTESTATION_SERVER_CERT=$(< "${TARGET_DIR}/demo_issuer/demo_issuer.crt.der" ${BASE64})
 export DEMO_ISSUER_ATTESTATION_SERVER_CERT
 
-cp "${TARGET_DIR}/demo_issuer/demo_issuer.key.der" "${BASE_DIR}/wallet_core/tests_integration/di.key.der"
+ln -sf "${TARGET_DIR}/demo_issuer/demo_issuer.key.der" "${BASE_DIR}/wallet_core/tests_integration/di.key.der"
 DEMO_ISSUER_ATTESTATION_SERVER_KEY=$(< "${TARGET_DIR}/demo_issuer/demo_issuer.key.der" ${BASE64})
 export DEMO_ISSUER_ATTESTATION_SERVER_KEY
 
@@ -398,13 +398,13 @@ cd "${BASE_DIR}"
 # Generate or re-use CA for update-policy-server
 generate_or_reuse_root_ca "${TARGET_DIR}/update_policy_server" "nl-wallet-update-policy-server"
 
-# Copy bad CA for integration test purposes
-cp "${TARGET_DIR}/bad_ca/ca.crt.der" "${BASE_DIR}/wallet_core/tests_integration/bad.ca.crt.der"
+# Link bad CA for integration test purposes
+ln -sf "${TARGET_DIR}/bad_ca/ca.crt.der" "${BASE_DIR}/wallet_core/tests_integration/bad.ca.crt.der"
 
 generate_ssl_key_pair_with_san "${TARGET_DIR}/update_policy_server" update_policy_server "${TARGET_DIR}/update_policy_server/ca.crt.pem" "${TARGET_DIR}/update_policy_server/ca.key.pem"
 
-cp "${TARGET_DIR}/update_policy_server/ca.crt.pem" "${BASE_DIR}/wallet_core/tests_integration/ups.ca.crt.pem"
-cp "${TARGET_DIR}/update_policy_server/ca.crt.der" "${BASE_DIR}/wallet_core/tests_integration/ups.ca.crt.der"
+ln -sf "${TARGET_DIR}/update_policy_server/ca.crt.pem" "${BASE_DIR}/wallet_core/tests_integration/ups.ca.crt.pem"
+ln -sf "${TARGET_DIR}/update_policy_server/ca.crt.der" "${BASE_DIR}/wallet_core/tests_integration/ups.ca.crt.der"
 UPDATE_POLICY_SERVER_CA_CRT=$(< "${TARGET_DIR}/update_policy_server/ca.crt.der" ${BASE64})
 export UPDATE_POLICY_SERVER_CA_CRT
 
@@ -432,7 +432,7 @@ generate_or_reuse_root_ca "${TARGET_DIR}/wallet_provider" "nl-wallet-provider"
 
 generate_ssl_key_pair_with_san "${TARGET_DIR}/wallet_provider" wallet_provider "${TARGET_DIR}/wallet_provider/ca.crt.pem" "${TARGET_DIR}/wallet_provider/ca.key.pem"
 
-cp "${TARGET_DIR}/wallet_provider/ca.crt.der" "${BASE_DIR}/wallet_core/tests_integration/wp.ca.crt.der"
+ln -sf "${TARGET_DIR}/wallet_provider/ca.crt.der" "${BASE_DIR}/wallet_core/tests_integration/wp.ca.crt.der"
 WALLET_PROVIDER_SERVER_CA_CRT=$(< "${TARGET_DIR}/wallet_provider/ca.crt.der" ${BASE64})
 export WALLET_PROVIDER_SERVER_CA_CRT
 
@@ -517,7 +517,7 @@ generate_or_reuse_root_ca "${TARGET_DIR}/configuration_server" "nl-wallet-config
 
 generate_ssl_key_pair_with_san "${TARGET_DIR}/configuration_server" config_server "${TARGET_DIR}/configuration_server/ca.crt.pem" "${TARGET_DIR}/configuration_server/ca.key.pem"
 
-cp "${TARGET_DIR}/configuration_server/ca.crt.der" "${BASE_DIR}/wallet_core/tests_integration/cs.ca.crt.der"
+ln -sf "${TARGET_DIR}/configuration_server/ca.crt.der" "${BASE_DIR}/wallet_core/tests_integration/cs.ca.crt.der"
 CONFIG_SERVER_CA_CRT=$(< "${TARGET_DIR}/configuration_server/ca.crt.der" ${BASE64})
 export CONFIG_SERVER_CA_CRT
 
