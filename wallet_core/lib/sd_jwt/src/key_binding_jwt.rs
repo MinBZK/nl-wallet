@@ -62,8 +62,7 @@ impl UnverifiedKeyBindingJwt {
         kb_verification_options: &KbVerificationOptions,
         time: &impl Generator<DateTime<Utc>>,
     ) -> Result<VerifiedKeyBindingJwt, KeyBindingError> {
-        let validation_options =
-            kb_jwt_validation(kb_verification_options.expected_aud, kb_verification_options.iat_leeway);
+        let validation_options = kb_jwt_validation(kb_verification_options.expected_aud);
         let verified = self.0.into_verified(pubkey, &validation_options)?;
 
         let payload = verified.payload();
@@ -72,7 +71,7 @@ impl UnverifiedKeyBindingJwt {
         };
 
         let now = time.generate();
-        let leeway = Duration::from_secs(validation_options.leeway);
+        let leeway = Duration::from_secs(kb_verification_options.iat_leeway);
         if !(payload.iat <= now + leeway && now <= payload.iat + kb_verification_options.iat_acceptance_window) {
             return Err(KeyBindingError::InvalidSignatureTimestamp(
                 payload.iat,
@@ -89,16 +88,17 @@ impl UnverifiedKeyBindingJwt {
     }
 }
 
-pub(crate) fn kb_jwt_validation(expected_aud: &str, leeway: u64) -> Validation {
+fn kb_jwt_validation(expected_aud: &str) -> Validation {
     let mut validation = BASE_KB_JWT_VALIDATION.to_owned();
-    validation.leeway = leeway;
     validation.set_audience(&[expected_aud]);
     validation
 }
 
 static BASE_KB_JWT_VALIDATION: LazyLock<Validation> = LazyLock::new(|| {
     let mut validation = Validation::new(Algorithm::ES256);
-    validation.validate_nbf = true;
+    validation.validate_aud = true;
+    validation.validate_exp = false;
+    validation.validate_nbf = false;
     validation.set_required_spec_claims(&["aud"]);
     validation
 });
