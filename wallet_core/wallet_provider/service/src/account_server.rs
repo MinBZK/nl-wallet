@@ -1574,6 +1574,7 @@ pub mod mock {
     use std::sync::LazyLock;
 
     use p256::ecdsa::SigningKey;
+    use rand_core::OsRng;
 
     use android_attest::mock_chain::MockCaChain;
     use apple_app_attest::MockAttestationCa;
@@ -1584,7 +1585,6 @@ pub mod mock {
     use crypto::server_keys::generate::Ca;
     use hsm::model::mock::MockPkcs11Client;
     use platform_support::attested_key::mock::MockAppleAttestedKey;
-    use rand_core::OsRng;
     use sd_jwt::builder::SignedSdJwt;
     use sd_jwt::sd_jwt::UnverifiedSdJwt;
     use utils::vec_nonempty;

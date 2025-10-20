@@ -139,8 +139,12 @@ ios:
 
 ## @section Application parameters
 ## @param appIdentifier Application identifier
+## @param recoveryCodePaths.urn:eudi:pid:nl:1 Recovery code path for default PID attestation
 ##
 appIdentifier: null
+recoveryCodePaths:
+  "urn:eudi:pid:nl:1": ["recovery_code"]
+
 
 ## @section Migration parameters
 ## Parameters for the migration configuration
