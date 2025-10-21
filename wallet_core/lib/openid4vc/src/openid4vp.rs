@@ -49,6 +49,7 @@ use jwt::headers::HeaderWithX5c;
 use mdoc::DeviceResponse;
 use mdoc::SessionTranscript;
 use mdoc::utils::serialization::CborBase64;
+use sd_jwt::key_binding_jwt::KbVerificationOptions;
 use sd_jwt::sd_jwt::UnverifiedSdJwtPresentation;
 
 use serde_with::SerializeDisplay;
@@ -64,6 +65,8 @@ use crate::authorization::AuthorizationRequest;
 use crate::authorization::ResponseMode;
 use crate::authorization::ResponseType;
 
+/// Leeway used in the lower end of the `iat` verification, used to account for clock skew.
+const SD_JWT_IAT_LEEWAY_SECONDS: u64 = 5;
 const SD_JWT_IAT_WINDOW_SECONDS: u64 = 15 * 60;
 
 #[derive(Debug, thiserror::Error)]
@@ -777,11 +780,15 @@ impl VpAuthorizationResponse {
                     VerifiablePresentation::SdJwt(sdw_jwt_payloads) => sdw_jwt_payloads
                         .into_nonempty_iter()
                         .map(|unverified_presentation| {
+                            let kb_verification_options = KbVerificationOptions {
+                                expected_aud: &auth_request.client_id,
+                                expected_nonce: &auth_request.nonce,
+                                iat_leeway: SD_JWT_IAT_LEEWAY_SECONDS,
+                                iat_acceptance_window: Duration::from_secs(SD_JWT_IAT_WINDOW_SECONDS),
+                            };
                             let presentation = unverified_presentation.into_verified_against_trust_anchors(
                                 trust_anchors,
-                                &auth_request.client_id,
-                                &auth_request.nonce,
-                                Duration::from_secs(SD_JWT_IAT_WINDOW_SECONDS),
+                                &kb_verification_options,
                                 time,
                             )?;
 

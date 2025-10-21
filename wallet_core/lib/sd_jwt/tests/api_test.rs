@@ -21,6 +21,7 @@ use sd_jwt::builder::SignedSdJwt;
 use sd_jwt::disclosure::DisclosureContent;
 use sd_jwt::hasher::Hasher;
 use sd_jwt::hasher::Sha256Hasher;
+use sd_jwt::key_binding_jwt::KbVerificationOptions;
 use sd_jwt::key_binding_jwt::KeyBindingJwtBuilder;
 use sd_jwt::sd_jwt::SdJwtVcClaims;
 use sd_jwt::sd_jwt::UnsignedSdJwtPresentation;
@@ -169,18 +170,19 @@ async fn sd_jwt_without_disclosures_works() {
         .await
         .unwrap();
 
+    let kb_verification_options = KbVerificationOptions {
+        expected_aud: "https://example.com",
+        expected_nonce: "abcdefghi",
+        iat_leeway: 0,
+        iat_acceptance_window: Duration::from_secs(60),
+    };
+
     // Try to serialize & deserialize `with_kb`.
     let with_kb = &disclosed
         .to_string()
         .parse::<UnverifiedSdJwtPresentation>()
         .unwrap()
-        .into_verified_against_trust_anchors(
-            &trust_anchors,
-            "https://example.com",
-            "abcdefghi",
-            Duration::from_secs(60),
-            &MockTimeGenerator::default(),
-        )
+        .into_verified_against_trust_anchors(&trust_anchors, &kb_verification_options, &MockTimeGenerator::default())
         .unwrap();
 
     assert!(with_kb.sd_jwt().disclosures().is_empty());
@@ -355,15 +357,20 @@ async fn test_presentation() {
         .await
         .unwrap();
 
+    let kb_verification_options = KbVerificationOptions {
+        expected_aud: "https://example.com",
+        expected_nonce: "abcdefghi",
+        iat_leeway: 0,
+        iat_acceptance_window: Duration::from_secs(60),
+    };
+
     let parsed_presentation = signed_presentation
         .to_string()
         .parse::<UnverifiedSdJwtPresentation>()
         .unwrap()
         .into_verified_against_trust_anchors(
             &[ca.to_trust_anchor()],
-            "https://example.com",
-            "abcdefghi",
-            Duration::from_secs(60),
+            &kb_verification_options,
             &MockTimeGenerator::default(),
         )
         .unwrap();
@@ -436,12 +443,17 @@ fn test_wscd_presentation() {
     let signed_presentation = sd_jwt_presentations.into_iter().exactly_one().unwrap();
     let unverified_sd_jwt_presentation = signed_presentation.into_unverified();
 
+    let kb_verification_options = KbVerificationOptions {
+        expected_aud: "https://example.com",
+        expected_nonce: "abcdefghi",
+        iat_leeway: 0,
+        iat_acceptance_window: Duration::from_secs(10 * 60),
+    };
+
     let verified_sd_jwt_presentation = unverified_sd_jwt_presentation
         .into_verified_against_trust_anchors(
             &[ca.to_trust_anchor()],
-            "https://example.com",
-            "abcdefghi",
-            Duration::from_secs(10 * 60),
+            &kb_verification_options,
             &MockTimeGenerator::default(),
         )
         .expect("validating SD-JWT presentation should succeed");
