@@ -43,6 +43,7 @@ use crate::transfer::database_payload::DatabasePayloadError;
 use crate::transfer::database_payload::WalletDatabasePayload;
 use crate::transfer::uri::TransferQuery;
 use crate::transfer::uri::TransferUriError;
+use crate::wallet::WalletRegistration;
 use crate::wallet::attestations::AttestationsError;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
@@ -374,6 +375,11 @@ where
     async fn clean_after_transfer(&mut self) -> Result<(), TransferError> {
         self.storage.write().await.clear().await;
         self.storage.write().await.open().await?;
+
+        self.registration = WalletRegistration::Unregistered;
+
+        self.emit_attestations().await?;
+        self.emit_recent_history().await?;
 
         Ok(())
     }
@@ -1263,11 +1269,23 @@ mod tests {
         let _ = wallet.mut_storage().expect_clear().return_const(());
         wallet.mut_storage().expect_open().returning(|| Ok(()));
 
+        wallet
+            .mut_storage()
+            .expect_fetch_unique_attestations()
+            .returning(|| Ok(vec![]));
+
+        wallet
+            .mut_storage()
+            .expect_fetch_recent_wallet_events()
+            .returning(|| Ok(vec![]));
+
         let result = wallet
             .get_transfer_status()
             .await
             .expect("Wallet get transfer status should have succeeded");
 
-        assert_eq!(result, TransferSessionState::Success)
+        assert_eq!(result, TransferSessionState::Success);
+
+        assert!(!wallet.registration.is_registered());
     }
 }
