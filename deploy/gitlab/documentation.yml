@@ -1,20 +1,22 @@
 build-documentation:
   rules: !reference [.default-or-release-or-merge-request, rules]
   script:
-    - git fetch --all
     - cd wallet_docs
     - python3 -m venv .venv
     - source .venv/bin/activate
     - pip3 install -r requirements.txt
-    - make linkcheck
     # Use sphinx-multiversion on main, sphinx-build on branch
     - |
       echo "Commit ref name is: $CI_COMMIT_REF_NAME"
       if [[ "$CI_COMMIT_REF_NAME" == "main" ]]; then
         echo "Building on main, using sphinx-multiversion to build documentation"
+        git fetch origin main
+        git checkout -b main
+        make linkcheck
         sphinx-multiversion . _build/html -W
       else
         echo "Building on branch, using sphinx-build to build documentation"
+        make linkcheck
         sphinx-build . _build/html -W
       fi
     #GitHub pages needs an index.html at the root of the html folder

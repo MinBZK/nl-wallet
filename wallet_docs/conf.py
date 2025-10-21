@@ -73,7 +73,6 @@ myst_substitutions = {
 
 smv_tag_whitelist = r'^v\d+\.\d+\.\d+$'
 smv_branch_whitelist = r'^main$'
-smv_remote_whitelist = None
 
 linkcheck_report_timeouts_as_broken = False
 linkcheck_ignore = [
