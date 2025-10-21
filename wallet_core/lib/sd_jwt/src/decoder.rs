@@ -96,10 +96,10 @@ impl ClaimValue {
 impl ArrayClaim {
     pub fn decode(&self, disclosures: &mut IndexMap<String, Disclosure>) -> Result<Option<Self>, ClaimError> {
         let decoded_claim = match self {
-            ArrayClaim::Hash(digest) => match disclosures.shift_remove(digest) {
+            ArrayClaim::Hash { digest } => match disclosures.shift_remove(digest) {
                 Some(disclosure) => {
                     // Verify that the matching disclosure discloses an array element
-                    let (_, array_claim) = disclosure.content.try_as_array_element(digest)?;
+                    let (_, array_claim) = disclosure.content.try_as_array_element(digest.as_ref())?;
                     array_claim.decode(disclosures)?
                 }
                 None => None,

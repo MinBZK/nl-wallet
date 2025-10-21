@@ -82,7 +82,7 @@ impl Disclosure {
         match &self.content {
             DisclosureContent::ObjectProperty(_, _, claim_value) => claim_value.digests(),
             DisclosureContent::ArrayElement(_, array_claim) => match array_claim {
-                ArrayClaim::Hash(digest) => vec![(digest.clone(), ClaimType::Array)],
+                ArrayClaim::Hash { digest } => vec![(digest.to_string(), ClaimType::Array)],
                 ArrayClaim::Value(value) => value.digests(),
             },
         }
