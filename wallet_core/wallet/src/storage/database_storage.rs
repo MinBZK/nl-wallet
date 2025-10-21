@@ -713,11 +713,11 @@ where
         Ok(())
     }
 
-    async fn has_any_attestations_with_type(&self, attestation_type: &str) -> StorageResult<bool> {
+    async fn has_any_attestations_with_types(&self, attestation_types: &[String]) -> StorageResult<bool> {
         let select_statement = Query::select()
             .column((attestation::Entity, attestation::Column::Id))
             .from(attestation::Entity)
-            .and_where(Expr::col(attestation::Column::AttestationType).eq(attestation_type))
+            .and_where(Expr::col(attestation::Column::AttestationType).is_in(attestation_types))
             .take();
 
         let exists_query = Query::select()
@@ -1034,6 +1034,7 @@ pub(crate) mod tests {
 
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::auth::reader_auth::ReaderRegistration;
+    use attestation_data::constants::PID_ATTESTATION_TYPE;
     use attestation_data::credential_payload::IntoCredentialPayload;
     use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
@@ -1301,6 +1302,13 @@ pub(crate) mod tests {
         assert_eq!(fetched_registration.pin_salt, registration.pin_salt);
     }
 
+    async fn has_any_pid_attestation_types(storage: &MockHardwareDatabaseStorage) -> bool {
+        storage
+            .has_any_attestations_with_types(&[PID_ATTESTATION_TYPE.to_string()])
+            .await
+            .unwrap()
+    }
+
     #[tokio::test]
     async fn test_mdoc_storage() {
         let mut storage = MockHardwareDatabaseStorage::open_in_memory().await;
@@ -1325,6 +1333,8 @@ pub(crate) mod tests {
                 .unwrap(),
         );
 
+        assert!(!has_any_pid_attestation_types(&storage).await);
+
         // Insert mdocs
         storage
             .insert_credentials(
@@ -1340,6 +1350,8 @@ pub(crate) mod tests {
             )
             .await
             .expect("Could not insert attestations");
+
+        assert!(has_any_pid_attestation_types(&storage).await);
 
         let fetched_unique = storage
             .fetch_unique_attestations()
@@ -1481,6 +1493,8 @@ pub(crate) mod tests {
 
         assert!(attestations.is_empty());
 
+        assert!(!has_any_pid_attestation_types(&storage).await);
+
         // Insert sd_jwts
         storage
             .insert_credentials(
@@ -1495,7 +1509,9 @@ pub(crate) mod tests {
                 )],
             )
             .await
-            .expect("Could not insert mdocs");
+            .expect("Could not insert SD-JWT");
+
+        assert!(has_any_pid_attestation_types(&storage).await);
 
         let fetched_unique = storage
             .fetch_unique_attestations()
