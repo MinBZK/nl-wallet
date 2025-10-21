@@ -7,7 +7,7 @@ class HistoryOverviewScreen : MobileActions() {
     private val pidCardTitle = cardMetadata.getPidDisplayName()
     private val addressCardTitle = cardMetadata.getAddressDisplayName()
     private val disclosureLoginSubtitle = l10n.getString("cardHistoryLoginSuccess")
-    private val historyDetailScreenIssuanceSuccessDescription= l10n.getString("historyDetailScreenIssuanceSuccessDescription")
+    private val cardHistoryIssuanceSuccess= l10n.getString("cardHistoryIssuanceSuccess")
     private val cardHistoryTimelineOperationRenewed = l10n.getString("cardHistoryTimelineOperationRenewed")
     private val bottomBackButton = l10n.getString("generalBottomBackCta")
 
@@ -27,7 +27,7 @@ class HistoryOverviewScreen : MobileActions() {
 
     fun disclosureOrganizationVisible(organizatioName: String) = elementContainingTextVisible(organizatioName)
 
-    fun issuanceSubtitleVisible() = elementContainingTextVisible(historyDetailScreenIssuanceSuccessDescription)
+    fun issuanceSubtitleVisible() = elementContainingTextVisible(cardHistoryIssuanceSuccess)
 
     fun renewCardSubtitleVisible() = elementContainingTextVisible(cardHistoryTimelineOperationRenewed)
 }
