@@ -1,6 +1,8 @@
 use sea_orm::entity::prelude::*;
 use uuid::Uuid;
 
+use crate::compressed_blob::CompressedBlob;
+
 use super::attestation;
 
 #[derive(Clone, Debug, Eq, PartialEq, DeriveEntityModel)]
@@ -12,7 +14,7 @@ pub struct Model {
     pub attestation_id: Uuid,
     pub key_identifier: String,
     pub attestation_format: AttestationFormat,
-    pub attestation: Vec<u8>,
+    pub attestation: CompressedBlob,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, EnumIter, DeriveActiveEnum)]

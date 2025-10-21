@@ -1,5 +1,6 @@
 use std::io;
 use std::net::IpAddr;
+use std::path::PathBuf;
 use std::process;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -18,7 +19,6 @@ use sea_orm::Database;
 use sea_orm::DatabaseConnection;
 use sea_orm::EntityTrait;
 use sea_orm::PaginatorTrait;
-use tempfile::TempDir;
 use tokio::net::TcpListener;
 use tokio::time;
 use url::Url;
@@ -331,14 +331,14 @@ pub async fn setup_env(
 }
 
 /// Create an instance of [`Wallet`] having temporary file storage.
-pub async fn setup_tempfile_wallet(
+pub async fn setup_file_wallet(
     config_server_config: ConfigServerConfiguration,
     wallet_config: WalletConfiguration,
     key_holder: MockHardwareAttestedKeyHolder,
-    tempdir: &TempDir,
+    path: PathBuf,
 ) -> WalletWithStorage {
     setup_wallet(config_server_config, wallet_config, key_holder, async move || {
-        MockHardwareDatabaseStorage::open_temp_file(tempdir).await
+        MockHardwareDatabaseStorage::open_file(path).await
     })
     .await
 }

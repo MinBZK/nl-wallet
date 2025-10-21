@@ -78,6 +78,7 @@ impl<R> JwtTyp for InstructionResultClaims<R> {}
 /// Links an instruction with its result type and name string.
 pub trait InstructionAndResult: Serialize + DeserializeOwned {
     const NAME: &'static str;
+    const COMPRESS: bool = false;
 
     type Result: Serialize + DeserializeOwned;
 }
@@ -328,6 +329,7 @@ pub struct SendWalletPayload {
 
 impl InstructionAndResult for SendWalletPayload {
     const NAME: &'static str = "send_wallet_payload";
+    const COMPRESS: bool = true;
 
     type Result = ();
 }

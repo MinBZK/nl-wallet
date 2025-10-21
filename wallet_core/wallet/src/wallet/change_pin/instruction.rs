@@ -38,6 +38,8 @@ impl ChangePinClientError for AccountProviderError {
             Self::Response(error) => error.is_network_error(),
             Self::Networking(_) => true,
             Self::BaseUrl(_) => false,
+            Self::PayloadSerialization(_) => false,
+            Self::PayloadCompression(_) => false,
         }
     }
 }
