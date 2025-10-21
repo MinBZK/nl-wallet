@@ -152,11 +152,11 @@ mod tests {
     use crate::attributes::Attribute;
     use crate::attributes::AttributeValue;
     use crate::attributes::Attributes;
-    use crate::constants::PID_ATTESTATION_TYPE;
     use crate::credential_payload::IntoCredentialPayload;
     use crate::credential_payload::MdocCredentialPayloadError;
     use crate::credential_payload::MdocParts;
     use crate::credential_payload::PreviewableCredentialPayload;
+    use crate::pid_constants::PID_ATTESTATION_TYPE;
 
     #[tokio::test]
     async fn it_works() {

@@ -900,9 +900,9 @@ mod tests {
     use attestation_data::attributes::Attributes;
     use attestation_data::auth::Organization;
     use attestation_data::auth::reader_auth::ReaderRegistration;
-    use attestation_data::constants::PID_ATTESTATION_TYPE;
-    use attestation_data::constants::PID_RECOVERY_CODE;
     use attestation_data::disclosure_type::DisclosureType;
+    use attestation_data::pid_constants::PID_ATTESTATION_TYPE;
+    use attestation_data::pid_constants::PID_RECOVERY_CODE;
     use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
     use attestation_types::claim_path::ClaimPath;
     use crypto::server_keys::generate::Ca;

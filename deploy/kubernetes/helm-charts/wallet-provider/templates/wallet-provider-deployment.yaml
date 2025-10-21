@@ -131,6 +131,9 @@ spec:
             - name: gcloud-service-account
               mountPath: /google-cloud-service-account.json
               subPath: {{ .Values.android.serviceAccount.secretKey }}
+            - name: wallet-provider-config
+              mountPath: /home/nonroot/wallet_provider.toml
+              subPath: wallet_provider.toml
 
       initContainers:
         - name: {{ include "common.names.fullname" . }}-log
@@ -157,3 +160,6 @@ spec:
         - name: gcloud-service-account
           secret:
             secretName: {{ .Values.android.serviceAccount.secretName }}
+        - name: wallet-provider-config
+          configMap:
+            name: {{ include "common.names.fullname" . }}

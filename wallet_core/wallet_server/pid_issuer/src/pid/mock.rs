@@ -3,8 +3,8 @@ use std::convert::Infallible;
 use derive_more::Constructor;
 
 use attestation_data::attributes::Attributes;
-use attestation_data::constants::*;
 use attestation_data::issuable_document::IssuableDocument;
+use attestation_data::pid_constants::*;
 use http_utils::urls::BaseUrl;
 use openid4vc::issuer::AttributeService;
 use openid4vc::oidc;
