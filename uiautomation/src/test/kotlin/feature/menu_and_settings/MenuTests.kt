@@ -3,9 +3,6 @@ package feature.menu_and_settings
 import helper.TestBase
 import navigator.MenuNavigator
 import navigator.screen.MenuNavigatorScreen
-import screen.history.HistoryOverviewScreen
-import screen.menu.MenuScreen
-import screen.settings.SettingsScreen
 import org.junit.jupiter.api.Assertions.assertAll
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.DisplayName
@@ -13,6 +10,9 @@ import org.junit.jupiter.api.MethodOrderer
 import org.junit.jupiter.api.TestInfo
 import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
+import screen.history.HistoryOverviewScreen
+import screen.menu.MenuScreen
+import screen.settings.SettingsScreen
 
 @TestMethodOrder(MethodOrderer.DisplayName::class)
 @DisplayName("UC 9.1 Show app menu")
