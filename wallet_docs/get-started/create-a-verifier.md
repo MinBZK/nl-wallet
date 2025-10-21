@@ -963,21 +963,9 @@ The API specifications for the [private][15] (also known as the `requester`) and
 [public][16] (also known as the `wallet`) endpoints are available in the
 `wallet_docs/openapi` part of of the git repository.
 
-To serve the OpenAPI specifications using a [Swagger UI][30] docker container:
+Have a look at the [OpenAPI Specifications][30] section to learn how to open and
+use these.
 
-```shell
-cd nl-wallet
-docker run --name swagger --detach --rm -p 8080:8080 \
--e URLS='[ { url: "openapi/wallet-disclosure-private.openapi.yaml", name: "Disclosure Private (requester) API" }, { url: "openapi/wallet-disclosure-public.openapi.yaml", name: "Disclosure Public (wallet) API" },  { url: "openapi/wallet-issuance.openapi.yaml", name: "Issuer API" } ]' \
--e URLS_PRIMARY_NAME='Disclosure Private (requester) API' \
--v "$(pwd)/wallet_docs/openapi":/usr/share/nginx/html/openapi \
-swaggerapi/swagger-ui
-```
-
-Then visit [http://localhost:8080](http://localhost:8080). The above docker
-invocation executes the container in the background. To see the output of the
-docker container, you can run `docker logs -f swagger`. To stop the container
-(and remove it because we specified `--rm`), you can run `docker stop swagger`.
 
 ## How disclosure sessions work
 
@@ -1180,4 +1168,4 @@ need to read the text in a regular text editor or pager to see them.
 [27]: ../community/create-a-ca
 [28]: https://github.com/softhsm/SoftHSMv2
 [29]: https://datatracker.ietf.org/doc/draft-ietf-oauth-selective-disclosure-jwt/
-[30]: https://github.com/swagger-api/swagger-ui
+[30]: ../development/openapi-specifications

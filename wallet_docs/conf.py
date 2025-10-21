@@ -73,9 +73,9 @@ myst_substitutions = {
 
 smv_tag_whitelist = r'^v\d+\.\d+\.\d+$'
 smv_branch_whitelist = r'^main$'
+smv_remote_whitelist = None
 
 linkcheck_report_timeouts_as_broken = False
-
 linkcheck_ignore = [
     r'(?i)^https?://localhost(?::\d{1,5})?(?:[/?#].*)?$',
     r'https://www\.iso\.org/obp/ui/en/#iso:std:iso-iec:18013:-5:ed-1:v1:en'
