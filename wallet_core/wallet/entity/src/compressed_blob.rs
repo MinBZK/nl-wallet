@@ -4,7 +4,8 @@ use std::io::Write;
 
 use sea_orm::entity::prelude::*;
 
-const DICTIONARY: &[u8] = include_bytes!("../../attestation_copy.dict");
+const DICTIONARY_VERSION: u8 = 1;
+const DICTIONARY_V1: &[u8] = include_bytes!("../../attestation_copy_v1.dict");
 
 // Custom type wrapper for compressed data
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -13,18 +14,33 @@ pub struct CompressedBlob(Vec<u8>);
 impl CompressedBlob {
     // Compress data when creating the blob
     pub fn new(data: &[u8]) -> Result<Self, io::Error> {
-        let mut output_buffer = vec![];
-        let mut encoder = zstd::Encoder::with_dictionary(&mut output_buffer, 3, DICTIONARY)?;
+        let mut encoder = zstd::Encoder::with_dictionary(Vec::with_capacity(data.len() / 2), 3, DICTIONARY_V1)?;
         encoder.write_all(data)?;
-        encoder.auto_finish();
+        let compressed = encoder.finish()?;
 
-        Ok(Self(output_buffer))
+        // Prepend version byte
+        let mut result = vec![DICTIONARY_VERSION];
+        result.extend(compressed);
+        Ok(Self(result))
     }
 
     // Decompress when reading
     pub fn decompress(&self) -> Result<Vec<u8>, io::Error> {
+        let version = self.0[0];
+        let compressed = &self.0[1..];
+
+        let dictionary = match version {
+            1 => DICTIONARY_V1,
+            _ => {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    format!("Unknown dictionary version: {}", version),
+                ));
+            }
+        };
+
         let mut output = vec![];
-        zstd::Decoder::with_dictionary(&self.0[..], DICTIONARY)?.read_to_end(&mut output)?;
+        zstd::Decoder::with_dictionary(compressed, dictionary)?.read_to_end(&mut output)?;
 
         Ok(output)
     }
