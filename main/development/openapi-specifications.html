@@ -173,21 +173,41 @@
   <section id="openapi-specifications">
 <h1>OpenAPI Specifications<a class="headerlink" href="#openapi-specifications" title="Link to this heading"></a></h1>
 <p>This directory contains the API documentation for the Wallet (as of this writing
-2025-02-24, specifically, the disclosure API for the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code>’s public
-and private endpoints).</p>
+2025-10-21, specifically, the disclosure API for the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code>’s
+public and private endpoints, and the <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code>’s issuance and
+disclosure-based issuance endpoints).</p>
 <p>There are a couple of documents here:</p>
 <ul class="simple">
-<li><p><a class="reference download internal" download="" href="../_downloads/5667771a9814818497777f124496e7ad/wallet-disclosure-components.openapi.yaml"><span class="xref download myst">wallet-disclosure-components.openapi.yaml</span></a>: An OpenAPIv3 components library
-which is included/used in the private and public API spec documents below.
-You shouldn’t open this in a Swagger/OpenAPI editor/preview on its own;</p></li>
-<li><p><a class="reference download internal" download="" href="../_downloads/7f35158ecf120abaffafc44f9a47febd/wallet-disclosure-private.openapi.yaml"><span class="xref download myst">wallet-disclosure-private.openapi.yaml</span></a>: The private/internal API for the
-<code class="docutils literal notranslate"><span class="pre">verification_server</span></code>’s disclosure functionality;</p></li>
-<li><p><a class="reference download internal" download="" href="../_downloads/971cb4ae9ac0ff66a26e80f9a1b8766a/wallet-disclosure-public.openapi.yaml"><span class="xref download myst">wallet-disclosure-public.openapi.yaml</span></a>: The public/external API for the
-<code class="docutils literal notranslate"><span class="pre">verification_server</span></code>’s disclosure functionality;</p></li>
+<li><p><a class="reference download internal" download="" href="../_downloads/2d0d0f081eea3b62f801372a5254489c/wallet-components.openapi.yaml"><span class="xref download myst">wallet-components.openapi.yaml</span></a>:
+An OpenAPIv3 components library which are used by our API specification
+documents below (you shouldn’t open this in a Swagger/OpenAPI editor/preview
+on its own);</p></li>
+<li><p><a class="reference download internal" download="" href="../_downloads/7f35158ecf120abaffafc44f9a47febd/wallet-disclosure-private.openapi.yaml"><span class="xref download myst">wallet-disclosure-private.openapi.yaml</span></a>:
+The private/internal API for the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code>’s disclosure
+functionality;</p></li>
+<li><p><a class="reference download internal" download="" href="../_downloads/971cb4ae9ac0ff66a26e80f9a1b8766a/wallet-disclosure-public.openapi.yaml"><span class="xref download myst">wallet-disclosure-public.openapi.yaml</span></a>:
+The public/external API for the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code>’s disclosure
+functionality;</p></li>
+<li><p><a class="reference download internal" download="" href="../_downloads/8727d92d17fba09a50a27b0890f39147/wallet-issuance.openapi.yaml"><span class="xref download myst">wallet-issuance.openapi.yaml</span></a>:
+The API for the <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code>’s issuance and disclosure-based issuance
+functionality;</p></li>
 </ul>
-<p>You can “run” the last two OpenAPIv3 documents using Swagger and/or some
-facility in your favorite editor (like Postman, or Redocly in Jetbrains editors
-which comes as a part of the OpenAPI (Swagger) Editor Plugin).</p>
+<p>You can open these OpenAPIv3 documents using Swagger UI and/or some facility in
+your favorite editor (like Postman, or Redocly in Jetbrains editors which comes
+as a part of the OpenAPI (Swagger) Editor Plugin).</p>
+<p>To serve the OpenAPI specifications using a <a class="reference external" href="https://github.com/swagger-api/swagger-ui">Swagger UI</a> docker container:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>nl-wallet
+docker<span class="w"> </span>run<span class="w"> </span>--name<span class="w"> </span>swagger<span class="w"> </span>--detach<span class="w"> </span>--rm<span class="w"> </span>-p<span class="w"> </span><span class="m">8080</span>:8080<span class="w"> </span><span class="se">\</span>
+-e<span class="w"> </span><span class="nv">URLS</span><span class="o">=</span><span class="s1">&#39;[ { url: &quot;openapi/wallet-disclosure-private.openapi.yaml&quot;, name: &quot;Disclosure Private (requester) API&quot; }, { url: &quot;openapi/wallet-disclosure-public.openapi.yaml&quot;, name: &quot;Disclosure Public (wallet) API&quot; },  { url: &quot;openapi/wallet-issuance.openapi.yaml&quot;, name: &quot;Issuer API&quot; } ]&#39;</span><span class="w"> </span><span class="se">\</span>
+-e<span class="w"> </span><span class="nv">URLS_PRIMARY_NAME</span><span class="o">=</span><span class="s1">&#39;Disclosure Private (requester) API&#39;</span><span class="w"> </span><span class="se">\</span>
+-v<span class="w"> </span><span class="s2">&quot;</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span><span class="s2">/wallet_docs/openapi&quot;</span>:/usr/share/nginx/html/openapi<span class="w"> </span><span class="se">\</span>
+swaggerapi/swagger-ui
+</pre></div>
+</div>
+<p>Then visit <a class="reference external" href="http://localhost:8080">http://localhost:8080</a>. The above docker
+invocation executes the container in the background. To see the output of the
+docker container, you can run <code class="docutils literal notranslate"><span class="pre">docker</span> <span class="pre">logs</span> <span class="pre">-f</span> <span class="pre">swagger</span></code>. To stop the container
+(and remove it because we specified <code class="docutils literal notranslate"><span class="pre">--rm</span></code>), you can run <code class="docutils literal notranslate"><span class="pre">docker</span> <span class="pre">stop</span> <span class="pre">swagger</span></code>.</p>
 </section>
 
 

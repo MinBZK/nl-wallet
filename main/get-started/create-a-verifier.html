@@ -1170,19 +1170,8 @@ an error and abort. For more insights into this process,
 <p>The API specifications for the <a class="reference download internal" download="" href="../_downloads/7f35158ecf120abaffafc44f9a47febd/wallet-disclosure-private.openapi.yaml"><span class="xref download myst">private</span></a> (also known as the <code class="docutils literal notranslate"><span class="pre">requester</span></code>) and
 <a class="reference download internal" download="" href="../_downloads/971cb4ae9ac0ff66a26e80f9a1b8766a/wallet-disclosure-public.openapi.yaml"><span class="xref download myst">public</span></a> (also known as the <code class="docutils literal notranslate"><span class="pre">wallet</span></code>) endpoints are available in the
 <code class="docutils literal notranslate"><span class="pre">wallet_docs/openapi</span></code> part of of the git repository.</p>
-<p>To serve the OpenAPI specifications using a <a class="reference external" href="https://github.com/swagger-api/swagger-ui">Swagger UI</a> docker container:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>nl-wallet
-docker<span class="w"> </span>run<span class="w"> </span>--name<span class="w"> </span>swagger<span class="w"> </span>--detach<span class="w"> </span>--rm<span class="w"> </span>-p<span class="w"> </span><span class="m">8080</span>:8080<span class="w"> </span><span class="se">\</span>
--e<span class="w"> </span><span class="nv">URLS</span><span class="o">=</span><span class="s1">&#39;[ { url: &quot;openapi/wallet-disclosure-private.openapi.yaml&quot;, name: &quot;Private (requester) API&quot; }, { url: &quot;openapi/wallet-disclosure-public.openapi.yaml&quot;, name: &quot;Public (wallet) API&quot; } ]&#39;</span><span class="w"> </span><span class="se">\</span>
--e<span class="w"> </span><span class="nv">URLS_PRIMARY_NAME</span><span class="o">=</span><span class="s1">&#39;Private (requester) API&#39;</span><span class="w"> </span><span class="se">\</span>
--v<span class="w"> </span><span class="s2">&quot;</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span><span class="s2">/wallet_docs/openapi&quot;</span>:/usr/share/nginx/html/openapi<span class="w"> </span><span class="se">\</span>
-swaggerapi/swagger-ui
-</pre></div>
-</div>
-<p>Then visit <a class="reference external" href="http://localhost:8080">http://localhost:8080</a>. The above docker
-invocation executes the container in the background. To see the output of the
-docker container, you can run <code class="docutils literal notranslate"><span class="pre">docker</span> <span class="pre">logs</span> <span class="pre">-f</span> <span class="pre">swagger</span></code>. To stop the container
-(and remove it because we specified <code class="docutils literal notranslate"><span class="pre">--rm</span></code>), you can run <code class="docutils literal notranslate"><span class="pre">docker</span> <span class="pre">stop</span> <span class="pre">swagger</span></code>.</p>
+<p>Have a look at the <a class="reference internal" href="../development/openapi-specifications.html"><span class="doc std std-doc">OpenAPI Specifications</span></a> section to learn how to open and
+use these.</p>
 </section>
 <section id="how-disclosure-sessions-work">
 <h2>How disclosure sessions work<a class="headerlink" href="#how-disclosure-sessions-work" title="Link to this heading"></a></h2>

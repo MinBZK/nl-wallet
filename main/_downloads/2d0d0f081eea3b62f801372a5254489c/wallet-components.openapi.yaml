@@ -1,0 +1,718 @@
+# This component library YAML file is included
+# by the public and private OpenAP documents.
+components:
+  schemas:
+    session_request:
+      description: A session request post body
+      type: object
+      properties:
+        usecase:
+          type: string
+        dcql_query:
+          $ref: '#/components/schemas/Query'
+        return_url_template:
+          type: string
+          format: uri
+      required:
+        - usecase
+        - dcql_query
+        - return_url_template
+
+    Query:
+      type: object
+      required:
+        - credentials
+      properties:
+        credentials:
+          type: array
+          items:
+            $ref: '#/components/schemas/CredentialQuery'
+
+    CredentialQuery:
+      type: object
+      required:
+        - id
+        - format
+        - meta
+      properties:
+        id:
+          type: string
+          pattern: '^[A-Za-z0-9_-]+$'
+        format:
+          type: string
+          description: Credential format identifier (e.g. sd+sd-jwt, mso_mdoc)
+        meta:
+          oneOf:
+            - $ref: '#/components/schemas/MsoMdocMeta'
+            - $ref: '#/components/schemas/SdJwtMeta'
+        claims:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClaimsQuery'
+
+    ClaimsQuery:
+      type: object
+      required:
+        - path
+      properties:
+        id:
+          type: string
+        path:
+          $ref: '#/components/schemas/ClaimPath'
+        intent_to_retain:
+          type: boolean
+
+    ClaimPath:
+      type: array
+      items:
+        oneOf:
+          - type: string
+          - type: integer
+            minimum: 0
+          - type: 'null'
+
+    MsoMdocMeta:
+      type: object
+      description: Metadata for mso_mdoc format
+      properties:
+        doctype_value:
+          type: string
+          description: Value for the ISO-compliant mdoc document type
+      required:
+        - doctype_value
+
+    SdJwtMeta:
+      type: object
+      description: Metadata for sd+sd-jwt format
+      properties:
+        vct_values:
+          type: array
+          description: Values for the credential type (vct) claim
+          items:
+            type: string
+      required:
+        - vct_values
+
+    session_token:
+      description: The unique identifier of a session
+      type: string
+      minLength: 32
+      maxLength: 32
+      pattern: '^[a-zA-Z0-9]{32}$'
+
+    session_type:
+      description: The type of the session
+      type: string
+      enum:
+        - cross_device
+        - same_device
+
+    session_status:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+          - CREATED
+          - WAITING_FOR_RESPONSE
+          - DONE
+          - FAILED
+          - CANCELLED
+          - EXPIRED
+        ul:
+          type: string
+          format: uri
+
+    token_response:
+      description: An object containing a session token
+      type: object
+      required:
+        - session_token
+      properties:
+        session_token:
+          $ref: '#/components/schemas/session_token'
+
+    disclosed_attributes:
+      description: An array with the resultant disclosed attributes
+      type: array
+      items:
+        type: object
+        properties:
+          id:
+            type: string
+          attestations:
+            type: array
+            items:
+              $ref: '#/components/schemas/disclosed_attestation'
+        required:
+          - id
+          - attestations
+
+    disclosed_attestation:
+      type: object
+      properties:
+        attestation_type: string
+        attributes:
+          $ref: '#/components/schemas/attributes'
+        issuer_uri:
+          type: string
+        attestation_qualification:
+          type: string
+          enum:
+            - QEAA
+            - PuB-EAA
+            - EAA
+        ca:
+          type: string
+        validity_info:
+          $ref: '#/components/schemas/validity_info'
+      required:
+        - attributes
+        - issuer
+        - validity_info
+
+    attributes:
+      type: object
+      additionalProperties: true
+      example:
+        attributeName: attributeValue
+
+    validity_info:
+      type: object
+      properties:
+        signed:
+          type: string
+          format: date-time
+        valid_from:
+          type: string
+          format: date-time
+        valid_until:
+          type: string
+          format: date-time
+      required:
+        - signed
+        - valid_from
+        - valid_until
+
+    error_message:
+      type: object
+      required:
+        - type
+        - title
+        - status
+        - detail
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: int
+        detail:
+          type string
+
+    ephemeral_id:
+      description: An ephemeral id
+      type: string
+
+    time:
+      description: Time in RFC 3339 format
+      type: string
+      format: date-time
+
+    wallet_nonce:
+      description: A cryptographic nonce
+      type: object
+      required:
+        - wallet_nonce
+      properties:
+        wallet_nonce: string
+
+    vp_token:
+      description: A verifiable presentation token
+      type: object
+      required:
+        - vp_token
+      properties:
+        vp_token: string
+
+    redirect_object:
+      description: A redirect object
+      type: object
+      required:
+        - redirect_uri
+      properties:
+        redirect_uri:
+          type: string
+          format: uri
+
+    oauth_authz_data:
+      description: Oauth authz data
+      type: string
+
+    # Metadata Schemas
+    IssuerMetadata:
+      type: object
+      description: OpenID4VCI Issuer Metadata
+      properties:
+        credential_issuer:
+          type: string
+          format: uri
+          description: The credential issuer identifier
+        credential_endpoint:
+          type: string
+          format: uri
+          description: URL of the credential endpoint
+        batch_credential_endpoint:
+          type: string
+          format: uri
+          description: URL of the batch credential endpoint
+        credential_configurations_supported:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/CredentialConfiguration'
+          description: Supported credential configurations
+        display:
+          type: array
+          items:
+            $ref: '#/components/schemas/DisplayProperties'
+          description: Display properties for the issuer
+      required:
+        - credential_issuer
+        - credential_endpoint
+
+    CredentialConfiguration:
+      type: object
+      description: Configuration for a specific credential type
+      properties:
+        format:
+          type: string
+          enum: [mso_mdoc, dc+sd-jwt]
+          description: Credential format
+        doctype:
+          type: string
+          description: Document type (for mso_mdoc)
+        vct:
+          type: string
+          description: Verifiable credential type (for SD-JWT)
+        cryptographic_binding_methods_supported:
+          type: array
+          items:
+            type: string
+          description: Supported cryptographic binding methods
+        credential_signing_alg_values_supported:
+          type: array
+          items:
+            type: string
+          description: Supported signing algorithms
+        display:
+          type: array
+          items:
+            $ref: '#/components/schemas/DisplayProperties'
+
+    DisplayProperties:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Display name
+        locale:
+          type: string
+          description: Locale code
+        logo:
+          type: object
+          properties:
+            uri:
+              type: string
+              format: uri
+            alt_text:
+              type: string
+        background_color:
+          type: string
+        text_color:
+          type: string
+
+    OAuthConfig:
+      type: object
+      description: OAuth 2.0 Authorization Server Metadata
+      properties:
+        issuer:
+          type: string
+          format: uri
+        token_endpoint:
+          type: string
+          format: uri
+        grant_types_supported:
+          type: array
+          items:
+            type: string
+        token_endpoint_auth_methods_supported:
+          type: array
+          items:
+            type: string
+        dpop_signing_alg_values_supported:
+          type: array
+          items:
+            type: string
+
+    # Token Endpoint Schemas
+    TokenRequest:
+      type: object
+      properties:
+        grant_type:
+          type: string
+          enum: [urn:ietf:params:oauth:grant-type:pre-authorized_code]
+          description: OAuth 2.0 grant type
+        pre-authorized_code:
+          type: string
+          description: Pre-authorized code from credential offer
+        tx_code:
+          type: string
+          description: Transaction code (if required)
+      required:
+        - grant_type
+        - pre-authorized_code
+
+    TokenResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+          description: DPoP-bound access token
+        token_type:
+          type: string
+          enum: [DPoP]
+          description: Token type
+        expires_in:
+          type: integer
+          description: Token lifetime in seconds
+        c_nonce:
+          type: string
+          description: Nonce for proof of possession
+        c_nonce_expires_in:
+          type: integer
+          description: Nonce lifetime in seconds
+        authorization_pending:
+          type: boolean
+          description: Whether authorization is still pending
+      required:
+        - access_token
+        - token_type
+
+    TokenError:
+      type: object
+      properties:
+        error:
+          type: string
+          enum:
+            - invalid_request
+            - invalid_client
+            - invalid_grant
+            - unauthorized_client
+            - unsupported_grant_type
+            - invalid_scope
+        error_description:
+          type: string
+        error_uri:
+          type: string
+          format: uri
+
+    # Credential Endpoint Schemas
+    CredentialRequest:
+      type: object
+      properties:
+        format:
+          type: string
+          enum: [mso_mdoc, dc+sd-jwt]
+          description: Requested credential format
+        doctype:
+          type: string
+          description: Document type (for mso_mdoc)
+        vct:
+          type: string
+          description: Verifiable credential type (for SD-JWT)
+        proof:
+          $ref: '#/components/schemas/ProofOfPossession'
+      required:
+        - format
+
+    CredentialRequests:
+      type: object
+      properties:
+        credential_requests:
+          type: array
+          items:
+            $ref: '#/components/schemas/CredentialRequest'
+          minItems: 1
+      required:
+        - credential_requests
+
+    ProofOfPossession:
+      type: object
+      properties:
+        proof_type:
+          type: string
+          enum: [jwt]
+        jwt:
+          type: string
+          format: jwt
+          description: JWT proof of possession
+      required:
+        - proof_type
+        - jwt
+
+    CredentialResponse:
+      type: object
+      properties:
+        format:
+          type: string
+          enum: [mso_mdoc, dc+sd-jwt]
+        credential:
+          oneOf:
+            - type: string
+              description: Base64-encoded credential (for mso_mdoc)
+            - type: string
+              description: SD-JWT credential string
+        c_nonce:
+          type: string
+          description: New nonce for next request
+        c_nonce_expires_in:
+          type: integer
+          description: Nonce lifetime in seconds
+
+    CredentialResponses:
+      type: object
+      properties:
+        credential_responses:
+          type: array
+          items:
+            $ref: '#/components/schemas/CredentialResponse'
+        c_nonce:
+          type: string
+        c_nonce_expires_in:
+          type: integer
+
+    CredentialError:
+      type: object
+      properties:
+        error:
+          type: string
+          enum:
+            - invalid_request
+            - invalid_token
+            - insufficient_scope
+            - invalid_proof
+            - unsupported_credential_type
+            - unsupported_credential_format
+        error_description:
+          type: string
+        error_uri:
+          type: string
+          format: uri
+        c_nonce:
+          type: string
+        c_nonce_expires_in:
+          type: integer
+
+    # Disclosure Schemas
+    WalletRequest:
+      type: object
+      properties:
+        wallet_nonce:
+          type: string
+          description: Wallet-provided nonce
+
+    WalletAuthResponse:
+      type: object
+      properties:
+        vp_token:
+          type: string
+          description: Verifiable presentation token
+        presentation_submission:
+          type: object
+          description: Presentation submission descriptor
+        state:
+          type: string
+          description: State parameter from authorization request
+      required:
+        - vp_token
+        - presentation_submission
+
+    VpResponse:
+      type: object
+      properties:
+        redirect_uri:
+          type: string
+          format: uri
+          description: URI to redirect the user to after disclosure
+        response_code:
+          type: string
+          description: Response code for the redirect
+
+    SessionType:
+      type: string
+      enum:
+        - same_device
+        - cross_device
+      description: Type of disclosure session
+
+    StatusResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+            - CREATED
+            - WAITING_FOR_RESPONSE
+            - DONE
+            - FAILED
+            - EXPIRED
+            - CANCELLED
+          description: Current session status
+        ul:
+          type: string
+          format: uri
+          description: Universal link for same-device flow
+        engagement_url:
+          type: string
+          format: uri
+          description: Engagement URL for cross-device flow
+
+    StartDisclosureRequest:
+      type: object
+      properties:
+        usecase:
+          type: string
+          description: Use case identifier
+        dcql_query:
+          type: object
+          description: Optional DCQL query to override default
+        return_url_template:
+          type: string
+          description: Template for return URL after disclosure
+      required:
+        - usecase
+
+    StartDisclosureResponse:
+      type: object
+      properties:
+        session_token:
+          type: string
+          description: Session token for this disclosure request
+      required:
+        - session_token
+
+    DisclosedAttestations:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier for this set of attestations
+        attestations:
+          type: array
+          items:
+            $ref: '#/components/schemas/DisclosedAttestation'
+          minItems: 1
+      required:
+        - id
+        - attestations
+
+    DisclosedAttestation:
+      type: object
+      properties:
+        attestation_type:
+          type: string
+          description: Type of attestation
+        attributes:
+          type: object
+          description: Disclosed attributes (format depends on attestation type)
+        issuer_uri:
+          type: string
+          format: uri
+          description: URI of the issuer
+        attestation_qualification:
+          type: string
+          description: Qualification level of the attestation
+        ca:
+          type: string
+          description: Certificate authority
+        validity_info:
+          $ref: '#/components/schemas/ValidityInfo'
+
+    ValidityInfo:
+      type: object
+      properties:
+        signed:
+          type: string
+          format: date-time
+          description: When the attestation was signed
+        valid_from:
+          type: string
+          format: date-time
+          description: Start of validity period
+        valid_until:
+          type: string
+          format: date-time
+          description: End of validity period
+
+    # Error Schemas
+    MetadataError:
+      type: object
+      properties:
+        error:
+          type: string
+          enum: [metadata]
+        error_description:
+          type: string
+        error_uri:
+          type: string
+          format: uri
+
+    GetRequestError:
+      type: object
+      properties:
+        error:
+          type: string
+          enum:
+            - invalid_request
+            - session_not_found
+            - server_error
+        error_description:
+          type: string
+        error_uri:
+          type: string
+          format: uri
+
+    PostAuthResponseError:
+      type: object
+      properties:
+        error:
+          type: string
+          enum:
+            - invalid_request
+            - invalid_presentation
+            - no_issuable_attestations
+            - server_error
+        error_description:
+          type: string
+        error_uri:
+          type: string
+          format: uri
+
+    VerificationError:
+      type: object
+      properties:
+        error:
+          type: string
+          enum:
+            - invalid_request
+            - session_not_found
+            - session_expired
+            - server_error
+        error_description:
+          type: string
+        error_uri:
+          type: string
+          format: uri
