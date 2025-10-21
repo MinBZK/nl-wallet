@@ -139,7 +139,7 @@ pub struct KeyBindingExampleTimeGenerator;
 
 impl Generator<DateTime<Utc>> for KeyBindingExampleTimeGenerator {
     fn generate(&self) -> DateTime<Utc> {
-        DateTime::from_timestamp(1683000000, 0).unwrap()
+        DateTime::from_timestamp(1740818271, 0).unwrap()
     }
 }
 

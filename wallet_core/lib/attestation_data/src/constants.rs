@@ -1,3 +1,5 @@
+// TODO: Move to module level or move module to pid_issuer when PVW-4624 and PVW-5000 are done
+#[cfg(feature = "pid_constants")]
 pub const PID_ATTESTATION_TYPE: &str = "urn:eudi:pid:nl:1";
 pub const ADDRESS_ATTESTATION_TYPE: &str = "urn:eudi:pid-address:nl:1";
 
@@ -8,6 +10,8 @@ pub const PID_AGE_OVER_18: &str = "age_over_18";
 // TODO: Move to module level or move module to pid_issuer when PVW-4624 and PVW-5000 are done
 #[cfg(feature = "pid_constants")]
 pub const PID_BSN: &str = "bsn";
+// TODO: Move to module level or move module to pid_issuer when PVW-4624 and PVW-5000 are done
+#[cfg(feature = "pid_constants")]
 pub const PID_RECOVERY_CODE: &str = "recovery_code";
 pub const PID_NATIONALITY: &str = "nationalities";
 pub const PID_ADDRESS_GROUP: &str = "address";

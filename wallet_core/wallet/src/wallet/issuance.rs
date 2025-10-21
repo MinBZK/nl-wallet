@@ -12,7 +12,6 @@ use url::Url;
 use uuid::Uuid;
 
 use attestation_data::auth::Organization;
-use attestation_data::constants::PID_ATTESTATION_TYPE;
 use attestation_data::credential_payload::CredentialPayload;
 use attestation_types::claim_path::ClaimPath;
 use crypto::x509::CertificateError;
@@ -224,11 +223,12 @@ where
         }
 
         info!("Checking if a pid is already present");
+        let pid_attributes = &self.config_repository.get().pid_attributes;
         let has_pid = self
             .storage
             .write()
             .await
-            .has_any_attestations_with_type(PID_ATTESTATION_TYPE)
+            .has_any_attestations_with_types(&pid_attributes.pid_attestation_types())
             .await
             .map_err(IssuanceError::AttestationQuery)?;
         if has_pid {
@@ -827,7 +827,7 @@ mod tests {
 
         wallet
             .mut_storage()
-            .expect_has_any_attestations_with_type()
+            .expect_has_any_attestations_with_types()
             .return_once(|_| Ok(false));
 
         // Have the `Wallet` generate a DigiD authentication URL and test it.
@@ -922,7 +922,7 @@ mod tests {
 
         wallet
             .mut_storage()
-            .expect_has_any_attestations_with_type()
+            .expect_has_any_attestations_with_types()
             .return_once(|_| Ok(false));
 
         // The error should be forwarded when attempting to create a DigiD authentication URL.
@@ -1406,7 +1406,7 @@ mod tests {
 
         wallet
             .mut_storage()
-            .expect_has_any_attestations_with_type()
+            .expect_has_any_attestations_with_types()
             .return_once(|_| Ok(true));
 
         let err = wallet

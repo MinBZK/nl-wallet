@@ -547,6 +547,7 @@ mod test {
     use crypto::server_keys::generate::Ca;
     use jwt::jwk::jwk_from_p256;
     use sd_jwt::builder::SdJwtBuilder;
+    use sd_jwt::key_binding_jwt::KbVerificationOptions;
     use sd_jwt::key_binding_jwt::KeyBindingJwtBuilder;
     use sd_jwt::key_binding_jwt::RequiredKeyBinding;
     use sd_jwt::sd_jwt::SdJwtVcClaims;
@@ -801,15 +802,16 @@ mod test {
         .unwrap()
         .expect("signing a single SdJwtPresentation using the WSCD should succeed");
 
+        let kb_verification_options = KbVerificationOptions {
+            expected_aud: "https://aud.example.com",
+            expected_nonce: "nonce123",
+            iat_leeway: 5,
+            iat_acceptance_window: Duration::from_secs(60),
+        };
+
         let presented_sd_jwt = presented_sd_jwts.into_iter().exactly_one().unwrap().into_unverified();
         presented_sd_jwt
-            .into_verified_against_trust_anchors(
-                &[ca.to_trust_anchor()],
-                "https://aud.example.com",
-                "nonce123",
-                Duration::from_secs(60),
-                &time_generator,
-            )
+            .into_verified_against_trust_anchors(&[ca.to_trust_anchor()], &kb_verification_options, &time_generator)
             .unwrap();
     }
 

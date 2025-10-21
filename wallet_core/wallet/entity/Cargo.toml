@@ -17,6 +17,7 @@ sea-orm = { workspace = true, features = ["macros", "with-json", "with-uuid", "w
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 uuid.workspace = true
+zstd.workspace = true
 
 attestation_data.path = "../../lib/attestation_data"
 sd_jwt_vc_metadata.path = "../../lib/sd_jwt_vc_metadata"

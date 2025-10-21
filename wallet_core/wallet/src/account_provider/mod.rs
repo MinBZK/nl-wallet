@@ -1,5 +1,7 @@
 mod client;
 
+use std::io;
+
 use reqwest::StatusCode;
 use url::ParseError;
 
@@ -23,12 +25,22 @@ pub use self::client::HttpAccountProviderClient;
 pub enum AccountProviderError {
     #[error("server responded with {0}")]
     Response(#[from] AccountProviderResponseError),
+
     #[error("networking error: {0}")]
     #[category(expected)]
     Networking(#[from] reqwest::Error),
+
     #[error("could not parse base URL: {0}")]
     #[category(pd)]
     BaseUrl(#[from] ParseError),
+
+    #[error("could not serialize payload: {0}")]
+    #[category(pd)]
+    PayloadSerialization(#[source] serde_json::Error),
+
+    #[error("could not compress payload: {0}")]
+    #[category(pd)]
+    PayloadCompression(#[source] io::Error),
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
