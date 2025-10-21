@@ -110,11 +110,6 @@ impl ArrayClaim {
     }
 }
 
-// TODO: [PVW-4138] Add tests for:
-// - encoding and then decoding an input object results in the same input object, also when the object contains
-//   (recursively) conceiled claims,
-// - it uses a more complicated test object than the one below, to hit more features of the encoding/decoding,
-// - no _sd or ... are left in the decoded object in cases where they are not expected.
 #[cfg(test)]
 mod test {
     use indexmap::IndexMap;
@@ -151,6 +146,7 @@ mod test {
             .decode(&mut IndexMap::from_iter([(disclosure_hash, disclosure)]))
             .unwrap();
 
+        // This also tests that the `unused_hash` and in fact the whole `_sd` claim is removed
         assert_eq!(decoded, expected);
     }
 
@@ -173,6 +169,7 @@ mod test {
             .decode(&mut IndexMap::from_iter([(disclosure_hash, disclosure)]))
             .unwrap();
 
+        // This also tests that the `unused_hash` is removed
         assert_eq!(decoded, expected);
     }
 
