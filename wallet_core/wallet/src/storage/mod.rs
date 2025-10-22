@@ -44,7 +44,6 @@ pub use self::data::InstructionData;
 pub use self::data::KeyData;
 pub use self::data::KeyedData;
 pub use self::data::PinRecoveryData;
-pub use self::data::PinRecoveryState;
 pub use self::data::RegistrationData;
 pub use self::data::TransferData;
 pub use self::data::TransferKeyData;

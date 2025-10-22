@@ -51,7 +51,6 @@ use crate::pin::key::new_pin_salt;
 use crate::repository::Repository;
 use crate::storage::AttestationFormatQuery;
 use crate::storage::PinRecoveryData;
-use crate::storage::PinRecoveryState;
 use crate::storage::RegistrationData;
 use crate::storage::Storage;
 use crate::validate_pin;
@@ -110,14 +109,7 @@ pub enum PinRecoveryError {
     #[error("failed to disclose recovery code to WP: {0}")]
     DiscloseRecoveryCode(#[source] InstructionError),
 
-    #[error("PIN recovery in unexpected state: expected {expected:#?}, found {found:#?}")]
-    #[category(unexpected)]
-    UnexpectedState {
-        expected: PinRecoveryState,
-        found: Option<PinRecoveryState>,
-    },
-
-    #[error("cannot cancel PIN: already committed")]
+    #[error("not permitted: already committed to PIN recovery")]
     #[category(unexpected)]
     CommittedToPinRecovery,
 
@@ -154,17 +146,17 @@ where
     DCC: DisclosureClient,
     APC: AccountProviderClient,
 {
-    async fn check_recovery_state(&self, expected: PinRecoveryState) -> Result<(), PinRecoveryError> {
-        let found = self
+    async fn check_recovery_state(&self) -> Result<(), PinRecoveryError> {
+        let committed = self
             .storage
             .read()
             .await
             .fetch_data::<PinRecoveryData>()
             .await?
-            .map(|data| data.state);
+            .is_some();
 
-        if found != Some(expected) {
-            return Err(PinRecoveryError::UnexpectedState { found, expected });
+        if committed {
+            return Err(PinRecoveryError::CommittedToPinRecovery);
         }
 
         Ok(())
@@ -206,14 +198,6 @@ where
         }
 
         // No need to check if a `PinRecoveryData` is already stored: we can always start PIN recovery again.
-
-        self.storage
-            .write()
-            .await
-            .upsert_data(&PinRecoveryData {
-                state: PinRecoveryState::Starting,
-            })
-            .await?;
 
         let url = self.pin_recovery_auth_url().await?;
         Ok(url)
@@ -258,7 +242,7 @@ where
 
         // Don't check if wallet is locked since PIN recovery is allowed in that case
 
-        self.check_recovery_state(PinRecoveryState::Starting).await?;
+        self.check_recovery_state().await?;
 
         info!("Checking if there is an active DigiD issuance session");
         if !matches!(self.session, Some(Session::PinRecovery(PinRecoverySession::Digid(..)))) {
@@ -444,7 +428,7 @@ where
 
         // Don't check if wallet is locked since PIN recovery is allowed in that case
 
-        self.check_recovery_state(PinRecoveryState::Starting).await?;
+        self.check_recovery_state().await?;
 
         info!("Checking if there is an active issuance session");
         let Some(Session::PinRecovery(PinRecoverySession::Issuance(issuance_session))) = &self.session else {
@@ -465,13 +449,7 @@ where
         // `accept_issuance()` below is the point of no return. If the app is killed between there and completion,
         // PIN recovery will have to start again from the start.
 
-        self.storage
-            .write()
-            .await
-            .upsert_data(&PinRecoveryData {
-                state: PinRecoveryState::Completing,
-            })
-            .await?;
+        self.storage.write().await.upsert_data(&PinRecoveryData).await?;
 
         let config = self.config_repository.get();
 
@@ -560,22 +538,9 @@ where
 
         // We don't check if the wallet is blocked: PIN recovery is allowed in that case, so cancelling it is too.
 
-        let Some(state) = self
-            .storage
-            .read()
-            .await
-            .fetch_data::<PinRecoveryData>()
-            .await?
-            .map(|data| data.state)
-        else {
-            return Ok(()); // Not currently recovering PIN; nothing to do
-        };
+        self.check_recovery_state().await?;
 
-        if matches!(state, PinRecoveryState::Completing) {
-            return Err(PinRecoveryError::CommittedToPinRecovery);
-        }
-
-        self.storage.write().await.delete_data::<PinRecoveryData>().await?;
+        self.session = None;
 
         Ok(())
     }
@@ -632,7 +597,6 @@ mod tests {
 
     use assert_matches::assert_matches;
     use p256::ecdsa::VerifyingKey;
-    use rstest::rstest;
     use serial_test::serial;
     use url::Url;
     use uuid::Uuid;
@@ -670,7 +634,6 @@ mod tests {
     use crate::storage::ChangePinData;
     use crate::storage::InstructionData;
     use crate::storage::PinRecoveryData;
-    use crate::storage::PinRecoveryState;
     use crate::storage::RegistrationData;
     use crate::storage::StoredAttestation;
     use crate::storage::StoredAttestationCopy;
@@ -728,11 +691,7 @@ mod tests {
             .mut_storage()
             .expect_fetch_data::<PinRecoveryData>()
             .once()
-            .returning(|| {
-                Ok(Some(PinRecoveryData {
-                    state: PinRecoveryState::Starting,
-                }))
-            });
+            .returning(|| Ok(None));
 
         let mut session = MockDigidSession::new();
         session
@@ -796,21 +755,14 @@ mod tests {
             .mut_storage()
             .expect_fetch_data::<PinRecoveryData>()
             .once()
-            .returning(|| {
-                Ok(Some(PinRecoveryData {
-                    state: PinRecoveryState::Starting,
-                }))
-            });
+            .returning(|| Ok(None));
 
         // It then updates the PIN recovery state.
         wallet
             .mut_storage()
             .expect_upsert_data()
             .once()
-            .returning(|data: &PinRecoveryData| {
-                assert_matches!(data.state, PinRecoveryState::Completing);
-                Ok(())
-            });
+            .returning(|_: &PinRecoveryData| Ok(()));
 
         // General expectations for sending instructions.
         wallet
@@ -889,31 +841,22 @@ mod tests {
 
     // Failing unit tests for continue_pid_recovery()
 
-    #[rstest]
-    #[case(None)]
-    #[case(Some(PinRecoveryState::Completing))]
     #[tokio::test]
-    async fn continue_pid_recovery_wrong_state(#[case] found_state: Option<PinRecoveryState>) {
+    async fn continue_pid_recovery_wrong_state() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         wallet
             .mut_storage()
             .expect_fetch_data::<PinRecoveryData>()
             .once()
-            .returning(move || Ok(found_state.map(|state| PinRecoveryData { state })));
+            .returning(move || Ok(Some(PinRecoveryData)));
 
         let err = wallet
             .continue_pin_recovery(AUTH_URL.parse().unwrap())
             .await
             .unwrap_err();
 
-        assert_matches!(
-            err,
-            PinRecoveryError::UnexpectedState {
-                expected: PinRecoveryState::Starting,
-                found,
-            } if found == found_state
-        );
+        assert_matches!(err, PinRecoveryError::CommittedToPinRecovery);
     }
 
     #[tokio::test]
@@ -924,11 +867,7 @@ mod tests {
             .mut_storage()
             .expect_fetch_data::<PinRecoveryData>()
             .once()
-            .returning(move || {
-                Ok(Some(PinRecoveryData {
-                    state: PinRecoveryState::Starting,
-                }))
-            });
+            .returning(move || Ok(None));
 
         let err = wallet
             .continue_pin_recovery(AUTH_URL.parse().unwrap())
@@ -946,11 +885,7 @@ mod tests {
             .mut_storage()
             .expect_fetch_data::<PinRecoveryData>()
             .once()
-            .returning(move || {
-                Ok(Some(PinRecoveryData {
-                    state: PinRecoveryState::Starting,
-                }))
-            });
+            .returning(move || Ok(None));
 
         setup_issuance_session(&mut wallet);
 
@@ -970,11 +905,7 @@ mod tests {
             .mut_storage()
             .expect_fetch_data::<PinRecoveryData>()
             .once()
-            .returning(move || {
-                Ok(Some(PinRecoveryData {
-                    state: PinRecoveryState::Starting,
-                }))
-            });
+            .returning(move || Ok(None));
 
         let mut digid_session = MockDigidSession::new();
         digid_session
@@ -1001,11 +932,7 @@ mod tests {
             .mut_storage()
             .expect_fetch_data::<PinRecoveryData>()
             .once()
-            .returning(|| {
-                Ok(Some(PinRecoveryData {
-                    state: PinRecoveryState::Starting,
-                }))
-            });
+            .returning(|| Ok(None));
 
         let mut session = MockDigidSession::new();
         session
@@ -1063,11 +990,7 @@ mod tests {
             .mut_storage()
             .expect_fetch_data::<PinRecoveryData>()
             .once()
-            .returning(|| {
-                Ok(Some(PinRecoveryData {
-                    state: PinRecoveryState::Starting,
-                }))
-            });
+            .returning(|| Ok(None));
 
         let mut session = MockDigidSession::new();
         session
@@ -1142,18 +1065,15 @@ mod tests {
 
     // Failing unit tests for complete_pid_recovery()
 
-    #[rstest]
-    #[case(None)]
-    #[case(Some(PinRecoveryState::Completing))]
     #[tokio::test]
-    async fn complete_pid_recovery_wrong_state(#[case] found_state: Option<PinRecoveryState>) {
+    async fn complete_pid_recovery_wrong_state() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         wallet
             .mut_storage()
             .expect_fetch_data::<PinRecoveryData>()
             .once()
-            .returning(move || Ok(found_state.map(|state| PinRecoveryData { state })));
+            .returning(move || Ok(Some(PinRecoveryData)));
 
         // Setup the issuance session
         setup_issuance_session(&mut wallet);
@@ -1163,13 +1083,7 @@ mod tests {
             .await
             .unwrap_err();
 
-        assert_matches!(
-            err,
-            PinRecoveryError::UnexpectedState {
-                expected: PinRecoveryState::Starting,
-                found,
-            } if found == found_state
-        );
+        assert_matches!(err, PinRecoveryError::CommittedToPinRecovery);
     }
 
     #[tokio::test]
@@ -1180,11 +1094,7 @@ mod tests {
             .mut_storage()
             .expect_fetch_data::<PinRecoveryData>()
             .once()
-            .returning(move || {
-                Ok(Some(PinRecoveryData {
-                    state: PinRecoveryState::Starting,
-                }))
-            });
+            .returning(move || Ok(None));
 
         let err = wallet
             .complete_pin_recovery_with_wscd(MockPinWscd, "112233".to_string(), vec![1, 2, 3])
@@ -1202,11 +1112,7 @@ mod tests {
             .mut_storage()
             .expect_fetch_data::<PinRecoveryData>()
             .once()
-            .returning(move || {
-                Ok(Some(PinRecoveryData {
-                    state: PinRecoveryState::Starting,
-                }))
-            });
+            .returning(move || Ok(None));
 
         let err = wallet
             .complete_pin_recovery_with_wscd(MockPinWscd, "112233".to_string(), vec![1, 2, 3])
@@ -1226,11 +1132,7 @@ mod tests {
             .mut_storage()
             .expect_fetch_data::<PinRecoveryData>()
             .once()
-            .returning(move || {
-                Ok(Some(PinRecoveryData {
-                    state: PinRecoveryState::Starting,
-                }))
-            });
+            .returning(move || Ok(None));
 
         // Setup the issuance session
         setup_issuance_session(&mut wallet);
