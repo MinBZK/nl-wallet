@@ -10,6 +10,7 @@ class FlutterConfiguration {
   final int inactiveWarningTimeout;
   final int inactiveLockTimeout;
   final int backgroundLockTimeout;
+  final List<String> pidAttestationTypes;
   final String staticAssetsBaseUrl;
   final BigInt version;
 
@@ -17,6 +18,7 @@ class FlutterConfiguration {
     required this.inactiveWarningTimeout,
     required this.inactiveLockTimeout,
     required this.backgroundLockTimeout,
+    required this.pidAttestationTypes,
     required this.staticAssetsBaseUrl,
     required this.version,
   });
@@ -26,6 +28,7 @@ class FlutterConfiguration {
       inactiveWarningTimeout.hashCode ^
       inactiveLockTimeout.hashCode ^
       backgroundLockTimeout.hashCode ^
+      pidAttestationTypes.hashCode ^
       staticAssetsBaseUrl.hashCode ^
       version.hashCode;
 
@@ -37,6 +40,7 @@ class FlutterConfiguration {
           inactiveWarningTimeout == other.inactiveWarningTimeout &&
           inactiveLockTimeout == other.inactiveLockTimeout &&
           backgroundLockTimeout == other.backgroundLockTimeout &&
+          pidAttestationTypes == other.pidAttestationTypes &&
           staticAssetsBaseUrl == other.staticAssetsBaseUrl &&
           version == other.version;
 }

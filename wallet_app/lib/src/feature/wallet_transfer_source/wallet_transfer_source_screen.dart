@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../domain/model/bloc/error_state.dart';
+import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/helper/dialog_helper.dart';
 import '../../wallet_assets.dart';
@@ -77,7 +78,9 @@ class WalletTransferSourceScreen extends StatelessWidget {
               WalletTransferTransferring() => WalletTransferSourceTransferringPage(
                 onStopPressed: () => _onStopPressed(context),
               ),
-              WalletTransferSuccess() => const WalletTransferSourceTransferSuccessPage(),
+              WalletTransferSuccess() => WalletTransferSourceTransferSuccessPage(
+                onCtaPressed: () => _onCreateWalletPressed(context),
+              ),
               WalletTransferStopped() => TerminalPage(
                 title: context.l10n.walletTransferScreenStoppedTitle,
                 description: context.l10n.walletTransferSourceScreenStoppedDescription,
@@ -158,6 +161,14 @@ class WalletTransferSourceScreen extends StatelessWidget {
   Future<void> _onStopPressed(BuildContext context) async {
     final stopConfirmed = await WalletTransferSourceStopSheet.show(context);
     if (stopConfirmed && context.mounted) context.bloc.add(const WalletTransferStopRequestedEvent());
+  }
+
+  Future<void> _onCreateWalletPressed(BuildContext context) async {
+    // Remove all routes and start splash route
+    await Navigator.of(context).pushNamedAndRemoveUntil(
+      WalletRoutes.splashRoute,
+      ModalRoute.withName(WalletRoutes.splashRoute),
+    );
   }
 
   bool _canPop(WalletTransferSourceState state) {

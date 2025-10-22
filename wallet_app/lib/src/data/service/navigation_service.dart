@@ -4,18 +4,19 @@ import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
 import 'package:rxdart/subjects.dart';
 
+import '../../domain/app_event/app_event_listener.dart';
 import '../../domain/model/update/update_notification.dart';
 import '../../domain/usecase/navigation/check_navigation_prerequisites_usecase.dart';
 import '../../domain/usecase/navigation/perform_pre_navigation_actions_usecase.dart';
 import '../../feature/common/dialog/idle_warning_dialog.dart';
 import '../../feature/common/dialog/locked_out_dialog.dart';
+import '../../feature/common/dialog/move_stopped_dialog.dart';
 import '../../feature/common/dialog/reset_wallet_dialog.dart';
 import '../../feature/common/dialog/scan_with_wallet_dialog.dart';
 import '../../feature/common/dialog/update_notification_dialog.dart';
-import '../../navigation/wallet_routes.dart';
 import '../../util/helper/dialog_helper.dart';
 
-class NavigationService {
+class NavigationService extends AppEventListener {
   /// Key that holds [NavigatorState], used to perform navigation from a non-Widget.
   final GlobalKey<NavigatorState> _navigatorKey;
 
@@ -36,6 +37,9 @@ class NavigationService {
     this._performPreNavigationActionsUseCase,
   );
 
+  @override
+  FutureOr<void> onDashboardShown() => processQueue();
+
   /// Process the provided [NavigationRequest], or queue it if the app is in a state where it can't be handled.
   /// Overrides any previously set [NavigationRequest] if this request has to be queued as well.
   Future<void> handleNavigationRequest(NavigationRequest request, {bool queueIfNotReady = false}) async {
@@ -54,51 +58,31 @@ class NavigationService {
       'NavigationPreRequisites should have been validated before calling _navigate!',
     );
     await _performPreNavigationActionsUseCase.invoke(request.preNavigationActions);
-    switch (request) {
-      case PidIssuanceNavigationRequest():
-        await _navigatorKey.currentState?.pushNamedAndRemoveUntil(
-          request.destination,
-          ModalRoute.withName(WalletRoutes.splashRoute),
-          arguments: request.argument,
-        );
-      case PidRenewalNavigationRequest():
-        await _navigatorKey.currentState?.pushNamedAndRemoveUntil(
-          request.destination,
-          ModalRoute.withName(WalletRoutes.cardDetailRoute),
-          arguments: request.argument,
-        );
-      case DisclosureNavigationRequest():
-      case IssuanceNavigationRequest():
-      case SignNavigationRequest():
-        await _navigatorKey.currentState?.pushNamedAndRemoveUntil(
-          request.destination,
-          ModalRoute.withName(WalletRoutes.dashboardRoute),
-          arguments: request.argument,
-        );
-      case GenericNavigationRequest():
-        await _navigatorKey.currentState?.pushNamed(
-          request.destination,
-          arguments: request.argument,
-        );
-      case PinRecoveryNavigationRequest():
-        await _navigatorKey.currentState?.pushNamedAndRemoveUntil(
-          request.destination,
-          ModalRoute.withName(WalletRoutes.forgotPinRoute),
-          arguments: request.argument,
-        );
+    if (request.removeUntil == null) {
+      await _navigatorKey.currentState?.pushNamed(request.destination, arguments: request.argument);
+    } else {
+      await _navigatorKey.currentState?.pushNamedAndRemoveUntil(
+        request.destination,
+        ModalRoute.withName(request.removeUntil!),
+        arguments: request.argument,
+      );
     }
   }
 
-  /// Consume and process the outstanding [NavigationRequest].
+  /// Attempts to process a previously queued [NavigationRequest].
+  ///
+  /// This checks if a pending request exists and if its navigation prerequisites
+  /// are now met. If so, the request is consumed and executed.
   Future<void> processQueue() async {
-    if (_queuedRequest == null) return;
-    assert(
-      await _checkNavigationPrerequisitesUseCase.invoke(NavigationPrerequisite.values),
-      'processQueue() should only be called when all prerequisites have been met.',
-    );
     final queuedRequest = _queuedRequest;
-    _queuedRequest = null;
-    if (queuedRequest != null) await handleNavigationRequest(queuedRequest);
+    if (queuedRequest == null) return;
+    final readyToProcess = await _checkNavigationPrerequisitesUseCase.invoke(queuedRequest.navigatePrerequisites);
+    if (readyToProcess) {
+      _queuedRequest = null;
+      await handleNavigationRequest(queuedRequest);
+    } else {
+      Fimber.d('Not yet ready to process $_queuedRequest, maintaining queue');
+    }
   }
 
   /// Show the dialog specified by [type]. Useful when caller does not have a valid context.
@@ -112,6 +96,7 @@ class NavigationService {
       WalletDialogType.resetWallet => ResetWalletDialog.show(context),
       WalletDialogType.scanWithWallet => ScanWithWalletDialog.show(context),
       WalletDialogType.lockedOut => LockedOutDialog.show(context),
+      WalletDialogType.moveStopped => MoveStoppedDialog.show(context),
     };
   }
 
@@ -140,4 +125,4 @@ class NavigationService {
   Stream<bool> observeUpdateNotificationDialogVisible() => _updateNotificationDialogVisible.stream.distinct();
 }
 
-enum WalletDialogType { idleWarning, resetWallet, scanWithWallet, lockedOut }
+enum WalletDialogType { idleWarning, lockedOut, moveStopped, resetWallet, scanWithWallet }

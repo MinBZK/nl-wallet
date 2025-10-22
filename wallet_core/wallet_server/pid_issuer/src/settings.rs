@@ -16,6 +16,7 @@ use server_utils::settings::NL_WALLET_CLIENT_ID;
 use server_utils::settings::SecretKey;
 use server_utils::settings::ServerSettings;
 use server_utils::settings::Settings;
+use status_lists::settings::StatusListsSettings;
 use utils::path::prefix_local_path;
 
 #[serde_as]
@@ -31,6 +32,8 @@ pub struct PidIssuerSettings {
 
     #[serde(flatten)]
     pub issuer_settings: IssuerSettings,
+
+    pub status_lists: StatusListsSettings,
 }
 
 #[derive(Clone, Deserialize)]
@@ -51,6 +54,8 @@ impl ServerSettings for PidIssuerSettings {
             .set_default("public_url", "http://localhost:8001/")?
             .set_default("log_requests", false)?
             .set_default("structured_logging", false)?
+            .set_default("status_lists.list_size", 100_000)?
+            .set_default("status_lists.create_threshold", 1_000)?
             .set_default("storage.url", "memory://")?
             .set_default(
                 "storage.expiration_minutes",

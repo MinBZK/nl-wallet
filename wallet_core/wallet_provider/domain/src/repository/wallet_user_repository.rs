@@ -152,6 +152,15 @@ pub trait WalletUserRepository {
         transfer_session_id: Uuid,
         source_wallet_user_id: Option<Uuid>,
         destination_wallet_user_id: Uuid,
+        error: bool,
+    ) -> Result<()>;
+
+    async fn reset_wallet_transfer(
+        &self,
+        transaction: &Self::TransactionType,
+        transfer_session_id: Uuid,
+        source_wallet_user_id: Option<Uuid>,
+        destination_wallet_user_id: Uuid,
     ) -> Result<()>;
 
     async fn store_wallet_transfer_data(
@@ -364,6 +373,17 @@ pub mod mock {
         }
 
         async fn cancel_wallet_transfer(
+            &self,
+            _transaction: &Self::TransactionType,
+            _transfer_session_id: Uuid,
+            _source_wallet_user_id: Option<Uuid>,
+            _destination_wallet_user_id: Uuid,
+            _error: bool,
+        ) -> Result<()> {
+            Ok(())
+        }
+
+        async fn reset_wallet_transfer(
             &self,
             _transaction: &Self::TransactionType,
             _transfer_session_id: Uuid,

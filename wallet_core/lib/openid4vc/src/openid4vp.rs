@@ -49,6 +49,7 @@ use jwt::headers::HeaderWithX5c;
 use mdoc::DeviceResponse;
 use mdoc::SessionTranscript;
 use mdoc::utils::serialization::CborBase64;
+use sd_jwt::key_binding_jwt::KbVerificationOptions;
 use sd_jwt::sd_jwt::UnverifiedSdJwtPresentation;
 
 use serde_with::SerializeDisplay;
@@ -64,6 +65,8 @@ use crate::authorization::AuthorizationRequest;
 use crate::authorization::ResponseMode;
 use crate::authorization::ResponseType;
 
+/// Leeway used in the lower end of the `iat` verification, used to account for clock skew.
+const SD_JWT_IAT_LEEWAY_SECONDS: u64 = 5;
 const SD_JWT_IAT_WINDOW_SECONDS: u64 = 15 * 60;
 
 #[derive(Debug, thiserror::Error)]
@@ -556,7 +559,9 @@ pub enum AuthResponseError {
     #[error("error verifying disclosed mdoc(s): {0}")]
     MdocVerification(#[from] mdoc::Error),
     #[error("error verifying disclosed SD-JWT: {0}")]
-    SdJwtVerification(#[from] sd_jwt::error::Error),
+    SdJwtVerification(#[from] sd_jwt::error::DecoderError),
+    #[error("error converting SD-JWT JWK: {0}")]
+    SdJwtJwkConversion(#[source] jwt::error::JwkConversionError),
     #[error("response does not satisfy credential request(s): {0}")]
     UnsatisfiedCredentialRequest(#[source] CredentialValidationError),
     #[error("missing PoA")]
@@ -775,15 +780,24 @@ impl VpAuthorizationResponse {
                     VerifiablePresentation::SdJwt(sdw_jwt_payloads) => sdw_jwt_payloads
                         .into_nonempty_iter()
                         .map(|unverified_presentation| {
+                            let kb_verification_options = KbVerificationOptions {
+                                expected_aud: &auth_request.client_id,
+                                expected_nonce: &auth_request.nonce,
+                                iat_leeway: SD_JWT_IAT_LEEWAY_SECONDS,
+                                iat_acceptance_window: Duration::from_secs(SD_JWT_IAT_WINDOW_SECONDS),
+                            };
                             let presentation = unverified_presentation.into_verified_against_trust_anchors(
                                 trust_anchors,
-                                &auth_request.client_id,
-                                &auth_request.nonce,
-                                Duration::from_secs(SD_JWT_IAT_WINDOW_SECONDS),
+                                &kb_verification_options,
                                 time,
                             )?;
 
-                            holder_public_keys.push(presentation.sd_jwt().holder_pubkey()?);
+                            holder_public_keys.push(
+                                presentation
+                                    .sd_jwt()
+                                    .holder_pubkey()
+                                    .map_err(AuthResponseError::SdJwtJwkConversion)?,
+                            );
                             let disclosed_attestation = DisclosedAttestation::try_from(presentation)?;
 
                             Ok(disclosed_attestation)
@@ -873,8 +887,8 @@ mod tests {
     use serde_json::json;
 
     use attestation_data::attributes::AttributesTraversalBehaviour;
-    use attestation_data::constants::PID_ATTESTATION_TYPE;
     use attestation_data::disclosure::DisclosedAttributes;
+    use attestation_data::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_data::test_credential::nl_pid_address_minimal_address;
     use attestation_data::test_credential::nl_pid_credentials_full_name;
     use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;

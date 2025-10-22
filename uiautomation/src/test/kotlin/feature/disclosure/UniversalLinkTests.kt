@@ -3,9 +3,6 @@ package feature.disclosure
 import helper.TestBase
 import navigator.MenuNavigator
 import navigator.screen.MenuNavigatorScreen
-import screen.dashboard.DashboardScreen
-import screen.disclosure.ScanWithWalletDialog
-import screen.introduction.IntroductionScreen
 import org.junit.jupiter.api.Assertions.assertAll
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.DisplayName
@@ -13,6 +10,9 @@ import org.junit.jupiter.api.MethodOrderer
 import org.junit.jupiter.api.TestInfo
 import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
+import screen.dashboard.DashboardScreen
+import screen.demo.DemoScreen
+import screen.disclosure.ScanWithWalletDialog
 import java.net.URLEncoder
 
 @TestMethodOrder(MethodOrderer.DisplayName::class)
@@ -21,8 +21,8 @@ class UniversalLinkTests : TestBase() {
 
     private lateinit var dashboardScreen: DashboardScreen
     private lateinit var scanWithWalletDialog: ScanWithWalletDialog
-    private lateinit var introductionScreen: IntroductionScreen
     private lateinit var expiredUniversalLinkFromCameraApp: String
+    private lateinit var demoScreen: DemoScreen
 
     fun setUp(testInfo: TestInfo) {
         startDriver(testInfo)
@@ -52,8 +52,8 @@ class UniversalLinkTests : TestBase() {
     @DisplayName("PF2.7 LTC54 Wallet not created when universal link is invoked")
     fun verifyWhenAppNotActivated(testInfo: TestInfo) {
         setUp(testInfo)
-        introductionScreen = IntroductionScreen()
-        introductionScreen.openUniversalLink(expiredUniversalLinkFromCameraApp)
-        assertTrue(introductionScreen.page1Visible(), "introduction screen is  not visible")
+        demoScreen = DemoScreen()
+        demoScreen.openUniversalLink(expiredUniversalLinkFromCameraApp)
+        assertTrue(demoScreen.visible(), "demo screen is not visible")
     }
 }

@@ -6,10 +6,10 @@ use attestation_data::attributes::Attribute;
 use attestation_data::attributes::AttributeValue;
 use attestation_data::attributes::Attributes;
 use attestation_data::attributes::AttributesHandlingError;
-use attestation_data::constants::PID_ATTESTATION_TYPE;
-use attestation_data::constants::PID_BSN;
-use attestation_data::constants::PID_RECOVERY_CODE;
 use attestation_data::issuable_document::IssuableDocument;
+use attestation_data::pid_constants::PID_ATTESTATION_TYPE;
+use attestation_data::pid_constants::PID_BSN;
+use attestation_data::pid_constants::PID_RECOVERY_CODE;
 use attestation_types::claim_path::ClaimPath;
 use crypto::x509::CertificateError;
 use hsm::service::HsmError;
@@ -115,7 +115,8 @@ impl AttributeService for BrpPidAttributeService {
                 Self::insert_recovery_code(&mut attributes, &self.recovery_code_secret_key).await?;
             }
 
-            IssuableDocument::try_new(attestation_type, attributes).map_err(|_| Error::InvalidIssuableDocuments)
+            IssuableDocument::try_new_with_random_id(attestation_type, attributes)
+                .map_err(|_| Error::InvalidIssuableDocuments)
         }))
         .await?
         .try_into()

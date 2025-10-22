@@ -512,6 +512,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9b34d609dfbaf33d6889b2b7106d3ca345eacad44200913df5ba02bfd31d2ba9"
 
 [[package]]
+name = "async-compression"
+version = "0.4.20"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "310c9bcae737a48ef5cdee3174184e6d548b292739ede61a1f955ef76a738861"
+dependencies = [
+ "futures-core",
+ "memchr",
+ "pin-project-lite",
+ "tokio",
+ "zstd",
+ "zstd-safe",
+]
+
+[[package]]
 name = "async-dropper"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -661,6 +675,7 @@ dependencies = [
  "tokio",
  "url",
  "utils",
+ "uuid",
  "x509-parser 0.17.0",
 ]
 
@@ -1361,6 +1376,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "convert_case"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bb402b8d4c85569410425650ce3eddc7d698ed96d39a73f941b08fb63082f1e7"
+dependencies = [
+ "unicode-segmentation",
+]
+
+[[package]]
 name = "cookie"
 version = "0.18.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1782,12 +1806,14 @@ dependencies = [
  "config",
  "dcql",
  "demo_utils",
+ "derive_more",
  "http_utils",
  "indexmap 2.7.1",
  "itertools 0.14.0",
  "openid4vc",
  "serde",
  "serde_urlencoded",
+ "serde_valid",
  "server_utils",
  "strum 0.26.3",
  "tokio",
@@ -1942,6 +1968,7 @@ version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bda628edc44c4bb645fbe0f758797143e4e07926f7ebf4e9bdfbd3d2ce621df3"
 dependencies = [
+ "convert_case 0.7.1",
  "proc-macro2",
  "quote",
  "syn",
@@ -2089,6 +2116,7 @@ dependencies = [
  "serde",
  "serde_json",
  "uuid",
+ "zstd",
 ]
 
 [[package]]
@@ -3442,10 +3470,13 @@ dependencies = [
  "serde_urlencoded",
  "serde_with",
  "server_utils",
+ "status_lists",
  "thiserror 2.0.11",
+ "token_status_list",
  "tokio",
  "trait-variant",
  "utils",
+ "uuid",
 ]
 
 [[package]]
@@ -3454,6 +3485,7 @@ version = "0.4.0-dev"
 dependencies = [
  "sea-orm-migration",
  "server_utils_migrations",
+ "status_lists_migrations",
  "tokio",
 ]
 
@@ -3653,7 +3685,7 @@ version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a13b4ddc5dcb32f45dac3d6f606da2a52fdb9964a18427e63cd5ef6c0d13288d"
 dependencies = [
- "convert_case",
+ "convert_case 0.6.0",
  "proc-macro2",
  "quote",
  "syn",
@@ -3981,9 +4013,9 @@ dependencies = [
 
 [[package]]
 name = "nonempty-collections"
-version = "1.0.0"
+version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3761f83543b22e36b7ea1145309acf9c251ef67dd8b186047f85d8cc985272d4"
+checksum = "31a568c637fdf524897b05f5a1a7061e8cd95980a5385d6de2064cb2b4f1cb1c"
 
 [[package]]
 name = "nu-ansi-term"
@@ -4221,6 +4253,7 @@ dependencies = [
  "strfmt",
  "strum 0.26.3",
  "thiserror 2.0.11",
+ "token_status_list",
  "tokio",
  "tracing",
  "tracing-test",
@@ -4228,6 +4261,7 @@ dependencies = [
  "ts-rs",
  "url",
  "utils",
+ "uuid",
  "wiremock",
  "wscd",
 ]
@@ -4248,6 +4282,7 @@ dependencies = [
  "ring",
  "rustls-pki-types",
  "serde",
+ "token_status_list",
  "tower-http",
  "tracing",
  "utils",
@@ -4503,7 +4538,9 @@ dependencies = [
  "serde_json",
  "serde_with",
  "server_utils",
+ "status_lists",
  "thiserror 2.0.11",
+ "token_status_list",
  "tokio",
  "url",
  "utils",
@@ -4513,8 +4550,8 @@ dependencies = [
 name = "pid_issuer_migrations"
 version = "0.4.0-dev"
 dependencies = [
+ "issuance_server_migrations",
  "sea-orm-migration",
- "server_utils_migrations",
  "tokio",
 ]
 
@@ -5034,6 +5071,7 @@ version = "0.12.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "43e734407157c3c2034e0258f5e4473ddb361b1e85f95a66690d67264d7cd1da"
 dependencies = [
+ "async-compression",
  "base64 0.22.1",
  "bytes",
  "encoding_rs",
@@ -5063,6 +5101,7 @@ dependencies = [
  "sync_wrapper",
  "tokio",
  "tokio-rustls",
+ "tokio-util",
  "tower 0.5.2",
  "tower-service",
  "url",
@@ -6388,6 +6427,41 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
+name = "status_lists"
+version = "0.4.0-dev"
+dependencies = [
+ "anyhow",
+ "assert_matches",
+ "chrono",
+ "config",
+ "crypto",
+ "derive_more",
+ "futures",
+ "http_utils",
+ "indexmap 2.7.1",
+ "itertools 0.14.0",
+ "log",
+ "rand",
+ "sea-orm",
+ "serde",
+ "serde_json",
+ "server_utils",
+ "thiserror 2.0.11",
+ "token_status_list",
+ "tokio",
+ "url",
+ "utils",
+ "uuid",
+]
+
+[[package]]
+name = "status_lists_migrations"
+version = "0.4.0-dev"
+dependencies = [
+ "sea-orm-migration",
+]
+
+[[package]]
 name = "str-buf"
 version = "3.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6602,6 +6676,7 @@ dependencies = [
  "wallet_provider_persistence",
  "wallet_provider_service",
  "wscd",
+ "zstd",
 ]
 
 [[package]]
@@ -6757,6 +6832,7 @@ dependencies = [
  "base64 0.22.1",
  "chrono",
  "crypto",
+ "dashmap 6.1.0",
  "derive_more",
  "flate2",
  "http_utils",
@@ -6772,6 +6848,10 @@ dependencies = [
  "tests_integration",
  "thiserror 2.0.11",
  "tokio",
+ "trait-variant",
+ "url",
+ "utils",
+ "uuid",
 ]
 
 [[package]]
@@ -6924,9 +7004,11 @@ version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "403fa3b783d4b626a8ad51d766ab03cb6d2dbfc46b1c5d4448395e6628dc9697"
 dependencies = [
+ "async-compression",
  "base64 0.22.1",
  "bitflags 2.8.0",
  "bytes",
+ "futures-core",
  "futures-util",
  "http",
  "http-body",
@@ -7440,6 +7522,7 @@ dependencies = [
  "derive_more",
  "itertools 0.14.0",
  "nonempty-collections",
+ "nutype",
  "parking_lot",
  "rstest",
  "semver",
@@ -7635,6 +7718,7 @@ dependencies = [
  "wallet_migrations",
  "wiremock",
  "wscd",
+ "zstd",
 ]
 
 [[package]]
@@ -7697,6 +7781,7 @@ dependencies = [
  "crypto",
  "derive_more",
  "http_utils",
+ "itertools 0.14.0",
  "jwt",
  "rustls-pki-types",
  "serde",
@@ -7756,6 +7841,7 @@ dependencies = [
  "wallet_provider_domain",
  "wallet_provider_persistence",
  "wallet_provider_service",
+ "zstd",
 ]
 
 [[package]]
@@ -8647,4 +8733,32 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "zstd"
+version = "0.13.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e91ee311a569c327171651566e07972200e76fcfe2242a4fa446149a3881c08a"
+dependencies = [
+ "zstd-safe",
+]
+
+[[package]]
+name = "zstd-safe"
+version = "7.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8f49c4d5f0abb602a93fb8736af2a4f4dd9512e36f7f570d66e65ff867ed3b9d"
+dependencies = [
+ "zstd-sys",
+]
+
+[[package]]
+name = "zstd-sys"
+version = "2.0.16+zstd.1.5.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "91e19ebc2adc8f83e43039e79776e3fda8ca919132d68a1fed6a5faca2683748"
+dependencies = [
+ "cc",
+ "pkg-config",
 ]

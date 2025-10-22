@@ -1,11 +1,11 @@
-openapi: '3.1.0'
+openapi: 3.1.0
 info:
   title: 'Wallet Server Disclosure API, Public Endpoint (Wallet)'
   description:
     The API for the verification_server's public endpoint. Not authenticated,
     reachable by wallet mobile app and relying party's application. It
     exposes the status, cancellation and OpenID4VP request/response functions.
-  version: '1.0.0'
+  version: 0.4.0-dev
 
 servers:
   - url: '{scheme}://{rp_ws_host}:{rp_ws_port}'
@@ -31,13 +31,13 @@ paths:
         in: path
         required: true
         schema:
-          $ref: 'wallet-disclosure-components.openapi.yaml#/components/schemas/session_token'
+          $ref: 'wallet-components.openapi.yaml#/components/schemas/session_token'
       - name: session_type
         description: The type of the session
         in: query
         required: false
         schema:
-          $ref: 'wallet-disclosure-components.openapi.yaml#/components/schemas/session_type'
+          $ref: 'wallet-components.openapi.yaml#/components/schemas/session_type'
     get:
       summary: Check the status of an existing session
       responses:
@@ -46,13 +46,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: 'wallet-disclosure-components.openapi.yaml#/components/schemas/session_status'
+                $ref: 'wallet-components.openapi.yaml#/components/schemas/session_status'
         404:
           description: No session status object found with the provided session_token
           content:
             application/json:
               schema:
-                $ref: 'wallet-disclosure-components.openapi.yaml#/components/schemas/error_message'
+                $ref: 'wallet-components.openapi.yaml#/components/schemas/error_message'
     delete:
       summary: Cancel a session
       responses:
@@ -70,45 +70,45 @@ paths:
         in: path
         required: true
         schema:
-          $ref: 'wallet-disclosure-components.openapi.yaml#/components/schemas/session_token'
+          $ref: 'wallet-components.openapi.yaml#/components/schemas/session_token'
       - name: session_type
         description: The type of the session
         in: query
         required: false
         schema:
-          $ref: 'wallet-disclosure-components.openapi.yaml#/components/schemas/session_type'
+          $ref: 'wallet-components.openapi.yaml#/components/schemas/session_type'
       - name: ephemeral_id
         description: The ephemeral id
         in: query
         required: true
         schema:
-          $ref: 'wallet-disclosure-components.openapi.yaml#/components/schemas/ephemeral_id'
+          $ref: 'wallet-components.openapi.yaml#/components/schemas/ephemeral_id'
       - name: time
         description: The time
         in: query
         required: true
         schema:
-          $ref: 'wallet-disclosure-components.openapi.yaml#/components/schemas/time'
+          $ref: 'wallet-components.openapi.yaml#/components/schemas/time'
     post:
       summary: Do something with a request uri
       requestBody:
         content:
             application/x-www-form-urlencoded:
               schema:
-                $ref: 'wallet-disclosure-components.openapi.yaml#/components/schemas/wallet_nonce'
+                $ref: 'wallet-components.openapi.yaml#/components/schemas/wallet_nonce'
       responses:
         200:
           description: An oauth authz response
           content:
             application/oauth-authz-req+jwt:
               schema:
-                $ref: 'wallet-disclosure-components.openapi.yaml#/components/schemas/oauth_authz_data'
+                $ref: 'wallet-components.openapi.yaml#/components/schemas/oauth_authz_data'
         404:
           description: No session status object found with the provided session_token
           content:
             application/json:
               schema:
-                $ref: 'wallet-disclosure-components.openapi.yaml#/components/schemas/error_message'
+                $ref: 'wallet-components.openapi.yaml#/components/schemas/error_message'
 
   /disclosure/sessions/{session_token}/response_uri:
     parameters:
@@ -117,24 +117,24 @@ paths:
         in: path
         required: true
         schema:
-          $ref: 'wallet-disclosure-components.openapi.yaml#/components/schemas/session_token'
+          $ref: 'wallet-components.openapi.yaml#/components/schemas/session_token'
     post:
       summary: Do something with a response uri
       requestBody:
         content:
           application/x-www-form-urlencoded:
             schema:
-              $ref: 'wallet-disclosure-components.openapi.yaml#/components/schemas/vp_token'
+              $ref: 'wallet-components.openapi.yaml#/components/schemas/vp_token'
       responses:
         200:
           description: A redirect object
           content:
             application/json:
               schema:
-                $ref: 'wallet-disclosure-components.openapi.yaml#/components/schemas/redirect_object'
+                $ref: 'wallet-components.openapi.yaml#/components/schemas/redirect_object'
         404:
           description: No session status object found with the provided session_token
           content:
             application/json:
               schema:
-                $ref: 'wallet-disclosure-components.openapi.yaml#/components/schemas/error_message'
+                $ref: 'wallet-components.openapi.yaml#/components/schemas/error_message'

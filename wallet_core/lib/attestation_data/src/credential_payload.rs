@@ -51,7 +51,7 @@ pub enum SdJwtCredentialPayloadError {
 
     #[error("error converting from SD-JWT: {0}")]
     #[category(pd)]
-    SdJwtSerialization(#[source] sd_jwt::error::Error),
+    SdJwtDecoding(#[from] sd_jwt::error::DecoderError),
 
     #[error("error converting AttributeName to ClaimName: {0}")]
     #[category(pd)]
@@ -71,7 +71,7 @@ pub enum SdJwtCredentialPayloadError {
 
     #[error("error converting to SD-JWT: {0}")]
     #[category(pd)]
-    SdJwtCreation(#[from] sd_jwt::error::Error),
+    SdJwtEncoding(#[from] sd_jwt::error::EncoderError),
 
     #[error("error converting claim path to JSON path: {0}")]
     #[category(pd)]
@@ -365,7 +365,7 @@ impl CredentialPayload {
             .attributes
             .claim_paths(AttributesTraversalBehaviour::AllPaths)
             .into_iter()
-            .try_fold(SdJwtBuilder::new(self.try_into()?)?, |builder, claims| {
+            .try_fold(SdJwtBuilder::new(self.try_into()?), |builder, claims| {
                 let should_be_selectively_discloseable = match sd_by_claims.get(&claims) {
                     Some(sd) => !matches!(sd, ClaimSelectiveDisclosureMetadata::Never),
                     None => true,
@@ -377,7 +377,7 @@ impl CredentialPayload {
 
                 builder
                     .make_concealable(claims)
-                    .map_err(SdJwtCredentialPayloadError::SdJwtCreation)
+                    .map_err(SdJwtCredentialPayloadError::SdJwtEncoding)
             })?
             .finish(issuer_keypair)
             .await?;
@@ -400,7 +400,7 @@ mod examples {
 
     use crate::attributes::AttributeValue;
     use crate::attributes::Attributes;
-    use crate::constants::PID_ATTESTATION_TYPE;
+    use crate::pid_constants::PID_ATTESTATION_TYPE;
 
     use super::CredentialPayload;
     use super::PreviewableCredentialPayload;
@@ -482,8 +482,8 @@ mod mock {
     use utils::generator::Generator;
 
     use crate::attributes::Attributes;
-    use crate::constants::ADDRESS_ATTESTATION_TYPE;
-    use crate::constants::PID_ATTESTATION_TYPE;
+    use crate::pid_constants::ADDRESS_ATTESTATION_TYPE;
+    use crate::pid_constants::PID_ATTESTATION_TYPE;
 
     use super::CredentialPayload;
     use super::PreviewableCredentialPayload;
@@ -537,6 +537,7 @@ mod test {
     use crypto::server_keys::generate::Ca;
     use jwt::jwk::jwk_from_p256;
     use sd_jwt::builder::SdJwtBuilder;
+    use sd_jwt::key_binding_jwt::KbVerificationOptions;
     use sd_jwt::key_binding_jwt::KeyBindingJwtBuilder;
     use sd_jwt::key_binding_jwt::RequiredKeyBinding;
     use sd_jwt::sd_jwt::SdJwtVcClaims;
@@ -552,9 +553,9 @@ mod test {
     use crate::attributes::Attributes;
     use crate::attributes::test::complex_attributes;
     use crate::auth::issuer_auth::IssuerRegistration;
-    use crate::constants::PID_ATTESTATION_TYPE;
     use crate::credential_payload::IntoCredentialPayload;
     use crate::credential_payload::SdJwtCredentialPayloadError;
+    use crate::pid_constants::PID_ATTESTATION_TYPE;
     use crate::x509::CertificateType;
 
     use super::CredentialPayload;
@@ -686,7 +687,6 @@ mod test {
         );
 
         let sd_jwt = SdJwtBuilder::new(claims)
-            .unwrap()
             .make_concealable(
                 vec![ClaimPath::SelectByKey(String::from("birth_date"))]
                     .try_into()
@@ -792,15 +792,16 @@ mod test {
         .unwrap()
         .expect("signing a single SdJwtPresentation using the WSCD should succeed");
 
+        let kb_verification_options = KbVerificationOptions {
+            expected_aud: "https://aud.example.com",
+            expected_nonce: "nonce123",
+            iat_leeway: 5,
+            iat_acceptance_window: Duration::from_secs(60),
+        };
+
         let presented_sd_jwt = presented_sd_jwts.into_iter().exactly_one().unwrap().into_unverified();
         presented_sd_jwt
-            .into_verified_against_trust_anchors(
-                &[ca.to_trust_anchor()],
-                "https://aud.example.com",
-                "nonce123",
-                Duration::from_secs(60),
-                &time_generator,
-            )
+            .into_verified_against_trust_anchors(&[ca.to_trust_anchor()], &kb_verification_options, &time_generator)
             .unwrap();
     }
 

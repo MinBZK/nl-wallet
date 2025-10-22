@@ -115,7 +115,7 @@ run-automation-english-tests:
       -Dtest.config.remote=true
       -Dfile.encoding=UTF-8 || true
     # Allow failure in tests and pass when there are test results (Quality Time should report on failed test)
-    - compgen -G "build/test-results/test/*.xml"
+    - compgen -G "build/test-results/testEnglish/*.xml"
   rules:
     - !reference [.on-schedule-automation, rules]
 

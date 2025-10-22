@@ -7,6 +7,7 @@ use std::num::NonZeroUsize;
 use derive_more::Index;
 use itertools::Itertools;
 use nonempty_collections::FromNonEmptyIterator;
+use nonempty_collections::Singleton;
 use serde::Deserialize;
 use serde::Deserializer;
 use serde::Serialize;
@@ -151,6 +152,12 @@ impl<T, const N: usize> VecAtLeastN<T, N, false> {
     }
 }
 
+impl<A, const N: usize> Extend<A> for VecAtLeastN<A, N, false> {
+    fn extend<T: IntoIterator<Item = A>>(&mut self, iter: T) {
+        self.0.extend(iter);
+    }
+}
+
 /// Should be used as the constructor for types where the uniqueness constraint is set.
 impl<T, const N: usize> TryFrom<Vec<T>> for VecAtLeastN<T, N, false> {
     type Error = VecAtLeastNError;
@@ -160,7 +167,7 @@ impl<T, const N: usize> TryFrom<Vec<T>> for VecAtLeastN<T, N, false> {
     }
 }
 
-/// Should be used as the constructor for types that require uniqeness
+/// Should be used as the constructor for types that require uniqueness
 /// among its items.  Note that this places extra trait bounds on `T`.
 impl<T, const N: usize> TryFrom<Vec<T>> for VecAtLeastN<T, N, true>
 where
@@ -326,6 +333,16 @@ impl<T> FromNonEmptyIterator<T> for VecNonEmpty<T> {
         I: IntoNonEmptyIterator<Item = T>,
     {
         VecNonEmpty::new(iter.into_iter().collect::<Vec<_>>()).unwrap()
+    }
+}
+
+// A type that can be instantiated via a single item
+// <https://docs.rs/nonempty-collections/1.1.0/nonempty_collections/trait.Singleton.html>
+impl<T> Singleton for VecNonEmpty<T> {
+    type Item = T;
+
+    fn singleton(item: Self::Item) -> Self {
+        VecNonEmpty::try_from(vec![item]).unwrap()
     }
 }
 

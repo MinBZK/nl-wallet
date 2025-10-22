@@ -50,6 +50,8 @@ members = [
     "wallet_server/pid_issuer/migrations",
     "wallet_server/server_utils",
     "wallet_server/server_utils/migrations",
+    "wallet_server/status_lists",
+    "wallet_server/status_lists/migrations",
     "wallet_server/verification_server",
     "wallet_server/verification_server/migrations",
 ]
@@ -222,3 +224,4 @@ wiremock = "0.6.2"
 x509-cert = { version = "0.2.5", default-features = false }
 x509-parser = "0.17.0"
 yoke = "0.7.5"
+zstd = "0.13.3"

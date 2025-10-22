@@ -78,13 +78,16 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
         ErrorResponse {
             error: match err {
                 CredentialRequestError::IssuanceError(IssuanceError::SessionStore(_))
-                | CredentialRequestError::MissingPrivateKey(_)
+                | CredentialRequestError::MissingAttestationTypeConfiguration(_)
                 | CredentialRequestError::MdocConversion(_)
                 | CredentialRequestError::SdJwtConversion(_)
-                | CredentialRequestError::CredentialSigning(_) => CredentialErrorCode::ServerError,
+                | CredentialRequestError::CredentialSigning(_)
+                | CredentialRequestError::IncorrectNumberOfStatusClaims(_)
+                | CredentialRequestError::StatusClaimService(_) => CredentialErrorCode::ServerError,
 
                 CredentialRequestError::IssuanceError(_)
                 | CredentialRequestError::UseBatchIssuance
+                | CredentialRequestError::MissingCredentialRequest(_)
                 | CredentialRequestError::MissingWua
                 | CredentialRequestError::MissingPoa
                 | CredentialRequestError::CredentialTypeMismatch { .. }

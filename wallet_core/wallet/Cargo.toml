@@ -43,7 +43,7 @@ nutype.workspace = true
 p256 = { workspace = true, features = ["ecdsa", "std"] }
 parking_lot.workspace = true
 regex.workspace = true
-reqwest = { workspace = true, features = ["json", "rustls-tls-webpki-roots"] }
+reqwest = { workspace = true, features = ["json", "rustls-tls-webpki-roots", "zstd"] }
 ring = { workspace = true, features = ["std"] }
 rusqlite = { workspace = true }
 rustls-pki-types.workspace = true
@@ -61,6 +61,7 @@ tracing.workspace = true
 trait-variant.workspace = true
 url.workspace = true
 uuid = { workspace = true, features = ["v4", "v7"] }
+zstd.workspace = true
 
 mockall = { workspace = true, optional = true }
 

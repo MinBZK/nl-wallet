@@ -131,6 +131,8 @@ abstract class WalletMockData {
     url: 'https://example.org/agreement.pdf',
   );
 
+  /// Disclosure events
+
   static DisclosureEvent get disclosureEvent =>
       WalletEvent.disclosure(
             dateTime: DateTime(2024, 3, 1),
@@ -179,34 +181,6 @@ abstract class WalletMockData {
           )
           as DisclosureEvent;
 
-  static SignEvent get signEvent =>
-      WalletEvent.sign(
-            dateTime: DateTime(2024, 1, 1),
-            status: EventStatus.success,
-            relyingParty: organization,
-            policy: policy,
-            document: document,
-          )
-          as SignEvent;
-
-  static IssuanceEvent get issuanceEvent =>
-      WalletEvent.issuance(
-            dateTime: DateTime(2023, 12, 1),
-            status: EventStatus.success,
-            card: card,
-            renewed: false,
-          )
-          as IssuanceEvent;
-
-  static IssuanceEvent get renewEvent =>
-      WalletEvent.issuance(
-            dateTime: DateTime(2025, 2, 1),
-            status: EventStatus.success,
-            card: card,
-            renewed: true,
-          )
-          as IssuanceEvent;
-
   static DisclosureEvent get failedDisclosureEvent =>
       WalletEvent.disclosure(
             dateTime: DateTime(2024, 2, 1),
@@ -242,4 +216,63 @@ abstract class WalletMockData {
             type: DisclosureType.regular,
           )
           as DisclosureEvent;
+
+  /// Sign events
+
+  static SignEvent get signEvent =>
+      WalletEvent.sign(
+            dateTime: DateTime(2024, 1, 1),
+            status: EventStatus.success,
+            relyingParty: organization,
+            policy: policy,
+            document: document,
+          )
+          as SignEvent;
+
+  /// Issuance events
+
+  static IssuanceEvent get issuanceEvent =>
+      WalletEvent.issuance(
+            dateTime: DateTime(2023, 12, 1),
+            status: EventStatus.success,
+            card: card,
+            eventType: IssuanceEventType.cardIssued,
+          )
+          as IssuanceEvent;
+
+  static IssuanceEvent get issuanceEventCardRenewed =>
+      WalletEvent.issuance(
+            dateTime: DateTime(2025, 2, 1),
+            status: EventStatus.success,
+            card: card,
+            eventType: IssuanceEventType.cardRenewed,
+          )
+          as IssuanceEvent;
+
+  static IssuanceEvent get issuanceEventCardStatusExpired =>
+      WalletEvent.issuance(
+            dateTime: DateTime(2025, 2, 1),
+            status: EventStatus.success,
+            card: cardWithStatus(CardStatus.expired),
+            eventType: IssuanceEventType.cardStatusExpired,
+          )
+          as IssuanceEvent;
+
+  static IssuanceEvent get issuanceEventCardStatusRevoked =>
+      WalletEvent.issuance(
+            dateTime: DateTime(2025, 2, 1),
+            status: EventStatus.success,
+            card: cardWithStatus(CardStatus.revoked),
+            eventType: IssuanceEventType.cardStatusRevoked,
+          )
+          as IssuanceEvent;
+
+  static IssuanceEvent get issuanceEventCardStatusCorrupted =>
+      WalletEvent.issuance(
+            dateTime: DateTime(2025, 2, 1),
+            status: EventStatus.success,
+            card: cardWithStatus(CardStatus.corrupted),
+            eventType: IssuanceEventType.cardStatusCorrupted,
+          )
+          as IssuanceEvent;
 }

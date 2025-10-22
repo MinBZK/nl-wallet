@@ -1,7 +1,6 @@
 use serde::Deserialize;
 use serde::Serialize;
-
-use http_utils::urls::HttpsUri;
+use url::Url;
 
 /// By including a "status" claim in a Referenced Token, the Issuer is referencing a mechanism to retrieve status
 /// information about this Referenced Token. This crate defines one possible member of the "status" object,
@@ -17,20 +16,20 @@ use http_utils::urls::HttpsUri;
 /// ```
 ///
 /// <https://www.ietf.org/archive/id/draft-ietf-oauth-status-list-12.html#name-referenced-token>
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum StatusClaim {
     StatusList(StatusListClaim),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct StatusListClaim {
     /// A non-negative Integer that represents the index to check for status information in the Status List for the
     /// current Referenced Token.
-    idx: u32,
+    pub idx: u32,
 
     /// URI that identifies the Status List Token containing the status information for the Referenced Token.
-    uri: HttpsUri,
+    pub uri: Url,
 }
 
 #[cfg(test)]

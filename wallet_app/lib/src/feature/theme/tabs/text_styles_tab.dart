@@ -112,7 +112,7 @@ class TextStylesTab extends StatelessWidget {
         const SizedBox(height: 12),
         SecondaryButton(
           onPressed: () =>
-              context.read<NavigationService>().handleNavigationRequest(NavigationRequest.walletTransfer('uri')),
+              context.read<NavigationService>().handleNavigationRequest(NavigationRequest.walletTransferSource('uri')),
           icon: const Icon(Icons.move_down_outlined),
           text: const Text('Wallet Transfer (Source)'),
         ),

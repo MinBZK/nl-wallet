@@ -88,9 +88,9 @@ impl AttributesFetcher for HttpAttributesFetcher {
 
 /// Receives disclosed attributes, exchanges those for attestations to be issued, and creates a new issuance session
 /// by implementing [`DisclosureResultHandler`].
-pub struct IssuanceResultHandler<AF, AS, K, S> {
+pub struct IssuanceResultHandler<AF, AS, K, S, C> {
     pub attributes_fetcher: AF,
-    pub issuer: Arc<Issuer<AS, K, S>>,
+    pub issuer: Arc<Issuer<AS, K, S, C>>,
     pub credential_issuer: BaseUrl,
 }
 
@@ -118,12 +118,13 @@ impl ToPostAuthResponseErrorCode for IssuanceResultHandlerError {
 }
 
 #[async_trait]
-impl<AF, AS, K, S> DisclosureResultHandler for IssuanceResultHandler<AF, AS, K, S>
+impl<AF, AS, K, S, C> DisclosureResultHandler for IssuanceResultHandler<AF, AS, K, S, C>
 where
     AF: AttributesFetcher + Sync,
     AS: AttributeService + Sync,
-    S: SessionStore<IssuanceData> + Sync,
     K: Send + Sync,
+    S: SessionStore<IssuanceData> + Sync,
+    C: Send + Sync,
 {
     async fn disclosure_result(
         &self,
@@ -144,7 +145,7 @@ where
 
         let credential_configuration_ids = to_issue
             .iter()
-            .map(|attestation| attestation.attestation_type().to_string())
+            .map(|document| document.attestation_type().to_string())
             .collect();
 
         // Start a new issuance session.
@@ -207,6 +208,7 @@ mod tests {
     use openid4vc::server_state::SessionStoreTimeouts;
     use openid4vc::server_state::SessionToken;
     use openid4vc::verifier::DisclosureResultHandler;
+    use token_status_list::status_service::mock::MockStatusClaimService;
     use utils::vec_nonempty;
 
     use super::AttributesFetcher;
@@ -246,7 +248,7 @@ mod tests {
             let attestation = disclosed.as_ref().first().unwrap().attestations.first();
 
             Ok(vec![
-                IssuableDocument::try_new(
+                IssuableDocument::try_new_with_random_id(
                     attestation.attestation_type.clone(),
                     IndexMap::from([(
                         "attr_name".to_string(),
@@ -273,7 +275,8 @@ mod tests {
         }
     }
 
-    type MockIssuer = Issuer<TrivialAttributeService, SigningKey, MemorySessionStore<IssuanceData>>;
+    type MockIssuer =
+        Issuer<TrivialAttributeService, SigningKey, MemorySessionStore<IssuanceData>, MockStatusClaimService>;
 
     fn mock_issuer(sessions: Arc<MemorySessionStore<IssuanceData>>) -> MockIssuer {
         Issuer::new(
@@ -283,6 +286,7 @@ mod tests {
             &"https://example.com".parse().unwrap(),
             vec![],
             None::<WuaConfig>,
+            MockStatusClaimService::default(),
         )
     }
 

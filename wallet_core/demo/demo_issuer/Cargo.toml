@@ -17,9 +17,11 @@ askama_web = { workspace = true, features = ["axum-0.8"] }
 axum = { workspace = true, features = ["http1", "query", "tokio", "tower-log", "tracing"] }
 axum-server = { workspace = true, features = ["tls-rustls-no-provider"] }
 config = { workspace = true, features = ["preserve_order", "json"] }
+derive_more.workspace = true
 indexmap.workspace = true
 itertools.workspace = true
 serde = { workspace = true, features = ["derive"] }
+serde_valid.workspace = true
 serde_urlencoded.workspace = true
 strum.workspace = true
 tokio = { workspace = true, features = ["parking_lot", "rt-multi-thread", "net"] }

@@ -1,5 +1,6 @@
 #![expect(clippy::too_many_arguments, reason = "Constructor")] // It seems impossible to set this only on the Constructor
 
+use std::collections::HashMap;
 use std::collections::HashSet;
 use std::error::Error;
 use std::time::Duration;
@@ -9,6 +10,7 @@ use chrono::DateTime;
 use chrono::Utc;
 use chrono::serde::ts_seconds;
 use derive_more::Constructor;
+use derive_more::From;
 use futures::try_join;
 use itertools::Itertools;
 use p256::ecdsa::VerifyingKey;
@@ -51,7 +53,10 @@ use apple_app_attest::AppIdentifier;
 use apple_app_attest::AssertionCounter;
 use apple_app_attest::AttestationEnvironment;
 use apple_app_attest::VerifiedAttestation;
+use attestation_data::attributes::AttributeValue;
+use attestation_data::attributes::Attributes;
 use attestation_data::attributes::AttributesError;
+use attestation_types::claim_path::ClaimPath;
 use crypto::p256_der::verifying_key_sha256;
 use hsm::model::Hsm;
 use hsm::model::encrypted::Encrypted;
@@ -65,7 +70,11 @@ use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
+use sd_jwt::sd_jwt::VerifiedSdJwt;
 use utils::generator::Generator;
+use utils::vec_at_least::IntoNonEmptyIterator;
+use utils::vec_at_least::NonEmptyIterator;
+use utils::vec_at_least::VecNonEmpty;
 use wallet_account::messages::errors::IncorrectPinData;
 use wallet_account::messages::errors::PinTimeoutData;
 use wallet_account::messages::instructions::ChangePinRollback;
@@ -253,7 +262,10 @@ pub enum InstructionError {
     PopSigning(#[source] JwtError),
 
     #[error("SD JWT error: {0}")]
-    SdJwtError(#[from] sd_jwt::error::Error),
+    SdJwtError(#[from] sd_jwt::error::DecoderError),
+
+    #[error("unknown PID attestation type: {0}")]
+    UnknownPidAttestationType(String),
 
     #[error("recovery code missing from SD JWT")]
     MissingRecoveryCode,
@@ -441,11 +453,45 @@ pub struct AccountServerPinKeys {
     pub public_disclosure_protection_key_identifier: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, From)]
+pub struct RecoveryCodeConfig(HashMap<String, VecNonEmpty<ClaimPath>>);
+
+impl From<HashMap<String, VecNonEmpty<String>>> for RecoveryCodeConfig {
+    fn from(config: HashMap<String, VecNonEmpty<String>>) -> RecoveryCodeConfig {
+        RecoveryCodeConfig(
+            config
+                .into_iter()
+                .map(|(vct, path)| (vct, path.into_nonempty_iter().map(ClaimPath::SelectByKey).collect()))
+                .collect(),
+        )
+    }
+}
+
+impl RecoveryCodeConfig {
+    pub fn extract_from_sd_jwt(&self, verified_sd_jwt: &VerifiedSdJwt) -> Result<String, InstructionError> {
+        self.0
+            .get(&verified_sd_jwt.claims().vct)
+            .map(|path| {
+                let disclosed_attributes: Attributes = verified_sd_jwt.decoded_claims()?.try_into()?;
+                match disclosed_attributes.get(path).expect("constructed claim_path invalid") {
+                    Some(AttributeValue::Text(recovery_code)) => Ok(recovery_code.to_string()),
+                    _ => Err(InstructionError::MissingRecoveryCode),
+                }
+            })
+            .unwrap_or_else(|| {
+                Err(InstructionError::UnknownPidAttestationType(
+                    verified_sd_jwt.claims().vct.clone(),
+                ))
+            })
+    }
+}
+
 #[derive(Constructor)]
 pub struct AccountServer<GRC = GoogleRevocationListClient, PIC = PlayIntegrityClient> {
     pub name: String,
     instruction_challenge_timeout: Duration,
     keys: AccountServerKeys,
+    recovery_code_paths: RecoveryCodeConfig,
     pub apple_config: AppleAttestationConfiguration,
     pub android_config: AndroidAttestationConfiguration,
     google_crl_client: GRC,
@@ -846,7 +892,9 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             })
             .await?;
 
-        let instruction_result = instruction_payload.handle(&wallet_user, generators, user_state).await?;
+        let instruction_result = instruction_payload
+            .handle(&wallet_user, generators, user_state, &self.recovery_code_paths)
+            .await?;
 
         self.sign_instruction_result(instruction_result_signing_key, instruction_result)
             .await
@@ -918,7 +966,9 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             }
         }?;
 
-        let instruction_result = instruction_payload.handle(&wallet_user, generators, user_state).await?;
+        let instruction_result = instruction_payload
+            .handle(&wallet_user, generators, user_state, &self.recovery_code_paths)
+            .await?;
 
         self.sign_instruction_result(instruction_result_signing_key, instruction_result)
             .await
@@ -1529,11 +1579,20 @@ pub mod mock {
     use std::sync::LazyLock;
 
     use p256::ecdsa::SigningKey;
+    use rand_core::OsRng;
 
     use android_attest::mock_chain::MockCaChain;
     use apple_app_attest::MockAttestationCa;
+    use attestation_data::auth::issuer_auth::IssuerRegistration;
+    use attestation_data::pid_constants::PID_ATTESTATION_TYPE;
+    use attestation_data::pid_constants::PID_RECOVERY_CODE;
+    use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
+    use crypto::server_keys::generate::Ca;
     use hsm::model::mock::MockPkcs11Client;
     use platform_support::attested_key::mock::MockAppleAttestedKey;
+    use sd_jwt::builder::SignedSdJwt;
+    use sd_jwt::sd_jwt::UnverifiedSdJwt;
+    use utils::vec_nonempty;
     use wallet_provider_persistence::repositories::mock::WalletUserTestRepo;
 
     use crate::wallet_certificate;
@@ -1544,6 +1603,16 @@ pub mod mock {
 
     pub static MOCK_APPLE_CA: LazyLock<MockAttestationCa> = LazyLock::new(MockAttestationCa::generate);
     pub static MOCK_GOOGLE_CA_CHAIN: LazyLock<MockCaChain> = LazyLock::new(|| MockCaChain::generate(1));
+
+    pub static RECOVERY_CODE_CONFIG: LazyLock<RecoveryCodeConfig> = LazyLock::new(|| {
+        RecoveryCodeConfig(
+            [(
+                PID_ATTESTATION_TYPE.to_string(),
+                vec_nonempty![ClaimPath::SelectByKey(PID_RECOVERY_CODE.to_string())],
+            )]
+            .into(),
+        )
+    });
 
     pub type MockAccountServer = AccountServer<RevocationStatusList, MockPlayIntegrityClient>;
 
@@ -1585,6 +1654,7 @@ pub mod mock {
                         wallet_certificate::mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER.to_string(),
                 },
             },
+            RECOVERY_CODE_CONFIG.clone(),
             AppleAttestationConfiguration {
                 app_identifier: AppIdentifier::new_mock(),
                 environment: AttestationEnvironment::Development,
@@ -1737,6 +1807,21 @@ pub mod mock {
             .unwrap()
         }
     }
+
+    pub fn recovery_code_sd_jwt(issuer_ca: &Ca) -> (SigningKey, UnverifiedSdJwt) {
+        let issuer_key =
+            generate_issuer_mock_with_registration(issuer_ca, IssuerRegistration::new_mock().into()).unwrap();
+        let holder_key = SigningKey::random(&mut OsRng);
+        let sd_jwt = SignedSdJwt::pid_example(&issuer_key, holder_key.verifying_key()).into_verified();
+
+        let sd_jwt = sd_jwt
+            .into_presentation_builder()
+            .disclose(&vec_nonempty![ClaimPath::SelectByKey(PID_RECOVERY_CODE.to_string())])
+            .unwrap()
+            .finish()
+            .into();
+        (holder_key, sd_jwt)
+    }
 }
 
 #[cfg(test)]
@@ -1761,7 +1846,12 @@ mod tests {
     use apple_app_attest::AssertionError;
     use apple_app_attest::AssertionValidationError;
     use apple_app_attest::MockAttestationCa;
+    use attestation_data::pid_constants::PID_ATTESTATION_TYPE;
+    use attestation_data::pid_constants::PID_BSN;
+    use attestation_data::pid_constants::PID_RECOVERY_CODE;
+    use attestation_types::claim_path::ClaimPath;
     use crypto::keys::EcdsaKey;
+    use crypto::server_keys::generate::Ca;
     use crypto::utils::random_bytes;
     use hsm::model::encrypted::Encrypted;
     use hsm::model::encrypter::Encrypter;
@@ -1769,7 +1859,10 @@ mod tests {
     use hsm::service::HsmError;
     use jwt::EcdsaDecodingKey;
     use platform_support::attested_key::mock::MockAppleAttestedKey;
+    use sd_jwt::sd_jwt::VerifiedSdJwt;
     use utils::generator::Generator;
+    use utils::generator::mock::MockTimeGenerator;
+    use utils::vec_nonempty;
     use wallet_account::messages::errors::IncorrectPinData;
     use wallet_account::messages::instructions::ChangePinCommit;
     use wallet_account::messages::instructions::ChangePinRollback;
@@ -1801,6 +1894,7 @@ mod tests {
     use wallet_provider_persistence::repositories::mock::WalletUserTestRepo;
 
     use crate::account_server::AccountServerPinKeys;
+    use crate::account_server::RecoveryCodeConfig;
     use crate::account_server::WalletCertificateError;
     use crate::instructions::PinCheckOptions;
     use crate::keys::WalletCertificateSigningKey;
@@ -1824,7 +1918,58 @@ mod tests {
     use super::mock::MockAccountServer;
     use super::mock::MockHardwareKey;
     use super::mock::MockUserState;
+    use super::mock::RECOVERY_CODE_CONFIG;
+    use super::mock::recovery_code_sd_jwt;
     use super::mock_play_integrity::MockPlayIntegrityClient;
+
+    fn verified_recovery_code_sd_jwt() -> VerifiedSdJwt {
+        let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
+        recovery_code_sd_jwt(&issuer_ca)
+            .1
+            .into_verified_against_trust_anchors(&[issuer_ca.to_trust_anchor()], &MockTimeGenerator::default())
+            .unwrap()
+    }
+
+    #[test]
+    fn extract_recovery_code() {
+        let result = RECOVERY_CODE_CONFIG.extract_from_sd_jwt(&verified_recovery_code_sd_jwt());
+        assert!(result.is_ok());
+        assert_eq!(
+            result.unwrap(),
+            "cff292503cba8c4fbf2e5820dcdc468ae00f40c87b1af35513375800128fc00d"
+        );
+    }
+
+    #[test]
+    fn extract_recovery_code_incorrect_path() {
+        let config = RecoveryCodeConfig(
+            [(
+                PID_ATTESTATION_TYPE.to_string(),
+                vec_nonempty![ClaimPath::SelectByKey(PID_BSN.to_string())],
+            )]
+            .into(),
+        );
+
+        let result = config.extract_from_sd_jwt(&verified_recovery_code_sd_jwt());
+        assert!(result.is_err());
+        assert_matches!(result.unwrap_err(), InstructionError::MissingRecoveryCode);
+    }
+
+    #[test]
+    fn extract_recovery_code_unknown_attestation_type() {
+        let attestation_type = "urn:eudi:pid:nl:0".to_string();
+        let config = RecoveryCodeConfig(
+            [(
+                attestation_type,
+                vec_nonempty![ClaimPath::SelectByKey(PID_RECOVERY_CODE.to_string())],
+            )]
+            .into(),
+        );
+
+        let result = config.extract_from_sd_jwt(&verified_recovery_code_sd_jwt());
+        assert!(result.is_err());
+        assert_matches!(result.unwrap_err(), InstructionError::UnknownPidAttestationType(r#type) if r#type == PID_ATTESTATION_TYPE);
+    }
 
     async fn do_registration(
         account_server: &MockAccountServer,

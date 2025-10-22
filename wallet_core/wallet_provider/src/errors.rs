@@ -93,6 +93,7 @@ impl From<WalletProviderError> for AccountError {
                 InstructionError::AccountBlocked => Self::AccountBlocked,
                 InstructionError::Validation(_)
                 | InstructionError::NonExistingKey(_)
+                | InstructionError::UnknownPidAttestationType(_)
                 | InstructionError::MissingRecoveryCode
                 | InstructionError::InvalidRecoveryCode
                 | InstructionError::AttributesConversion(_)

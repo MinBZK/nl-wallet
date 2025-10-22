@@ -647,18 +647,18 @@ mod examples {
 
 #[cfg(feature = "mock")]
 mod mock {
-    use crate::constants::PID_ADDRESS_GROUP;
-    use crate::constants::PID_AGE_OVER_18;
-    use crate::constants::PID_BIRTH_DATE;
-    use crate::constants::PID_BSN;
-    use crate::constants::PID_FAMILY_NAME;
-    use crate::constants::PID_GIVEN_NAME;
-    use crate::constants::PID_RECOVERY_CODE;
-    use crate::constants::PID_RESIDENT_CITY;
-    use crate::constants::PID_RESIDENT_COUNTRY;
-    use crate::constants::PID_RESIDENT_HOUSE_NUMBER;
-    use crate::constants::PID_RESIDENT_POSTAL_CODE;
-    use crate::constants::PID_RESIDENT_STREET;
+    use crate::pid_constants::PID_ADDRESS_GROUP;
+    use crate::pid_constants::PID_AGE_OVER_18;
+    use crate::pid_constants::PID_BIRTH_DATE;
+    use crate::pid_constants::PID_BSN;
+    use crate::pid_constants::PID_FAMILY_NAME;
+    use crate::pid_constants::PID_GIVEN_NAME;
+    use crate::pid_constants::PID_RECOVERY_CODE;
+    use crate::pid_constants::PID_RESIDENT_CITY;
+    use crate::pid_constants::PID_RESIDENT_COUNTRY;
+    use crate::pid_constants::PID_RESIDENT_HOUSE_NUMBER;
+    use crate::pid_constants::PID_RESIDENT_POSTAL_CODE;
+    use crate::pid_constants::PID_RESIDENT_STREET;
 
     use super::AttributeValue;
     use super::Attributes;

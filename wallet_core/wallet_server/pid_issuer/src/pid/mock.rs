@@ -3,8 +3,8 @@ use std::convert::Infallible;
 use derive_more::Constructor;
 
 use attestation_data::attributes::Attributes;
-use attestation_data::constants::*;
 use attestation_data::issuable_document::IssuableDocument;
+use attestation_data::pid_constants::*;
 use http_utils::urls::BaseUrl;
 use openid4vc::issuer::AttributeService;
 use openid4vc::oidc;
@@ -15,11 +15,11 @@ use utils::vec_at_least::VecNonEmpty;
 pub struct MockAttributeService(VecNonEmpty<IssuableDocument>);
 
 pub fn mock_issuable_document_pid() -> IssuableDocument {
-    IssuableDocument::try_new(PID_ATTESTATION_TYPE.to_string(), Attributes::nl_pid_example()).unwrap()
+    IssuableDocument::try_new_with_random_id(PID_ATTESTATION_TYPE.to_string(), Attributes::nl_pid_example()).unwrap()
 }
 
 pub fn mock_issuable_document_address() -> IssuableDocument {
-    IssuableDocument::try_new(
+    IssuableDocument::try_new_with_random_id(
         ADDRESS_ATTESTATION_TYPE.to_string(),
         Attributes::nl_pid_address_example(),
     )

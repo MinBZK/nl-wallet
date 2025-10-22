@@ -17,6 +17,7 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
+use tower_http::decompression::RequestDecompressionLayer;
 use tower_http::trace::TraceLayer;
 use tracing::info;
 use tracing::warn;
@@ -41,6 +42,7 @@ use wallet_account::messages::instructions::InstructionResultMessage;
 use wallet_account::messages::instructions::PerformIssuance;
 use wallet_account::messages::instructions::PerformIssuanceWithWua;
 use wallet_account::messages::instructions::ReceiveWalletPayload;
+use wallet_account::messages::instructions::ResetTransfer;
 use wallet_account::messages::instructions::SendWalletPayload;
 use wallet_account::messages::instructions::Sign;
 use wallet_account::messages::instructions::StartPinRecovery;
@@ -95,6 +97,10 @@ where
                 .route(
                     &format!("/instructions/hw_signed/{}", CancelTransfer::NAME),
                     post(handle_hw_signed_instruction::<CancelTransfer, _, _, _>),
+                )
+                .route(
+                    &format!("/instructions/hw_signed/{}", ResetTransfer::NAME),
+                    post(handle_hw_signed_instruction::<ResetTransfer, _, _, _>),
                 )
                 .route(
                     &format!("/instructions/hw_signed/{}", GetTransferStatus::NAME),
@@ -153,6 +159,7 @@ where
                     post(handle_instruction::<SendWalletPayload, _, _, _>)
                         .layer(DefaultBodyLimit::max(state.max_transfer_upload_size_in_bytes)),
                 )
+                .layer(RequestDecompressionLayer::new().zstd(true))
                 .layer(TraceLayer::new_for_http())
                 .layer(middleware::from_fn(log_headers))
                 .with_state(Arc::clone(&state)),

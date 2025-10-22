@@ -89,7 +89,7 @@ void main() {
       const testUri = 'https://transfer.org';
       when(mockWalletCore.identifyUri(testUri)).thenAnswer((realInvocation) async => IdentifyUriResult.Transfer);
       final result = await qrRepository.processBarcode(const Barcode(rawValue: testUri));
-      expect(result, NavigationRequest.walletTransfer(testUri));
+      expect(result, NavigationRequest.walletTransferSource(testUri));
       expect(
         result.argument,
         testUri,

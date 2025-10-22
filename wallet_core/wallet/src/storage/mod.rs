@@ -9,12 +9,13 @@ mod sql_cipher_key;
 #[cfg(any(test, feature = "test"))]
 pub use database_storage::test_storage::MockHardwareDatabaseStorage;
 
-use chrono::DateTime;
-use chrono::Utc;
-use sea_orm::DbErr;
 use std::array::TryFromSliceError;
 use std::collections::HashSet;
 use std::io;
+
+use chrono::DateTime;
+use chrono::Utc;
+use sea_orm::DbErr;
 
 use derive_more::Constructor;
 use serde::Deserialize;
@@ -106,7 +107,7 @@ pub enum StorageError {
 
     #[error("storage database SD-JWT error: {0}")]
     #[category(pd)]
-    SdJwt(#[from] sd_jwt::error::Error),
+    SdJwt(#[from] sd_jwt::error::DecoderError),
 
     #[error("cannot store attestation event having an ephemeral identity")]
     #[category(critical)]
@@ -188,7 +189,7 @@ pub trait Storage {
 
     async fn increment_attestation_copies_usage_count(&mut self, attestation_copy_ids: Vec<Uuid>) -> StorageResult<()>;
 
-    async fn has_any_attestations_with_type(&self, attestation_type: &str) -> StorageResult<bool>;
+    async fn has_any_attestations_with_types(&self, attestation_types: &[String]) -> StorageResult<bool>;
 
     async fn fetch_unique_attestations(&self) -> StorageResult<Vec<StoredAttestationCopy>>;
 

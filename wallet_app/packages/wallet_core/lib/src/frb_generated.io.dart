@@ -19,6 +19,7 @@ import 'models/transfer.dart';
 import 'models/uri.dart';
 import 'models/version_state.dart';
 import 'models/wallet_event.dart';
+import 'models/wallet_state.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
@@ -132,6 +133,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   ImageWithMetadata dco_decode_image_with_metadata(dynamic raw);
 
   @protected
+  List<String> dco_decode_list_String(dynamic raw);
+
+  @protected
   List<AttestationAttribute> dco_decode_list_attestation_attribute(dynamic raw);
 
   @protected
@@ -226,6 +230,12 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   WalletInstructionResult dco_decode_wallet_instruction_result(dynamic raw);
+
+  @protected
+  WalletState dco_decode_wallet_state(dynamic raw);
+
+  @protected
+  WalletTransferRole dco_decode_wallet_transfer_role(dynamic raw);
 
   @protected
   AnyhowException sse_decode_AnyhowException(SseDeserializer deserializer);
@@ -332,6 +342,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   ImageWithMetadata sse_decode_image_with_metadata(SseDeserializer deserializer);
 
   @protected
+  List<String> sse_decode_list_String(SseDeserializer deserializer);
+
+  @protected
   List<AttestationAttribute> sse_decode_list_attestation_attribute(SseDeserializer deserializer);
 
   @protected
@@ -426,6 +439,12 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   WalletInstructionResult sse_decode_wallet_instruction_result(SseDeserializer deserializer);
+
+  @protected
+  WalletState sse_decode_wallet_state(SseDeserializer deserializer);
+
+  @protected
+  WalletTransferRole sse_decode_wallet_transfer_role(SseDeserializer deserializer);
 
   @protected
   ffi.Pointer<wire_cst_list_prim_u_8_strict> cst_encode_AnyhowException(AnyhowException raw) {
@@ -582,6 +601,16 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   int cst_encode_i_64(PlatformInt64 raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return raw.toInt();
+  }
+
+  @protected
+  ffi.Pointer<wire_cst_list_String> cst_encode_list_String(List<String> raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    final ans = wire.cst_new_list_String(raw.length);
+    for (var i = 0; i < raw.length; ++i) {
+      ans.ref.ptr[i] = cst_encode_String(raw[i]);
+    }
+    return ans;
   }
 
   @protected
@@ -912,6 +941,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
     wireObj.inactive_warning_timeout = cst_encode_u_16(apiObj.inactiveWarningTimeout);
     wireObj.inactive_lock_timeout = cst_encode_u_16(apiObj.inactiveLockTimeout);
     wireObj.background_lock_timeout = cst_encode_u_16(apiObj.backgroundLockTimeout);
+    wireObj.pid_attestation_types = cst_encode_list_String(apiObj.pidAttestationTypes);
     wireObj.static_assets_base_url = cst_encode_String(apiObj.staticAssetsBaseUrl);
     wireObj.version = cst_encode_u_64(apiObj.version);
   }
@@ -1167,6 +1197,24 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   }
 
   @protected
+  void cst_api_fill_to_wire_wallet_state(WalletState apiObj, wire_cst_wallet_state wireObj) {
+    if (apiObj is WalletState_Ready) {
+      wireObj.tag = 0;
+      return;
+    }
+    if (apiObj is WalletState_TransferPossible) {
+      wireObj.tag = 1;
+      return;
+    }
+    if (apiObj is WalletState_Transferring) {
+      var pre_role = cst_encode_wallet_transfer_role(apiObj.role);
+      wireObj.tag = 2;
+      wireObj.kind.Transferring.role = pre_role;
+      return;
+    }
+  }
+
+  @protected
   bool cst_encode_bool(bool raw);
 
   @protected
@@ -1198,6 +1246,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void cst_encode_unit(void raw);
+
+  @protected
+  int cst_encode_wallet_transfer_role(WalletTransferRole raw);
 
   @protected
   void sse_encode_AnyhowException(AnyhowException self, SseSerializer serializer);
@@ -1311,6 +1362,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   void sse_encode_image_with_metadata(ImageWithMetadata self, SseSerializer serializer);
 
   @protected
+  void sse_encode_list_String(List<String> self, SseSerializer serializer);
+
+  @protected
   void sse_encode_list_attestation_attribute(List<AttestationAttribute> self, SseSerializer serializer);
 
   @protected
@@ -1405,6 +1459,12 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void sse_encode_wallet_instruction_result(WalletInstructionResult self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_wallet_state(WalletState self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_wallet_transfer_role(WalletTransferRole self, SseSerializer serializer);
 }
 
 // Section: wire_class
@@ -1861,6 +1921,20 @@ class WalletCoreWire implements BaseWire {
     'frbgen_wallet_core_wire__crate__api__full__get_version_string',
   );
   late final _wire__crate__api__full__get_version_string = _wire__crate__api__full__get_version_stringPtr
+      .asFunction<void Function(int)>();
+
+  void wire__crate__api__full__get_wallet_state(
+    int port_,
+  ) {
+    return _wire__crate__api__full__get_wallet_state(
+      port_,
+    );
+  }
+
+  late final _wire__crate__api__full__get_wallet_statePtr = _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
+    'frbgen_wallet_core_wire__crate__api__full__get_wallet_state',
+  );
+  late final _wire__crate__api__full__get_wallet_state = _wire__crate__api__full__get_wallet_statePtr
       .asFunction<void Function(int)>();
 
   void wire__crate__api__full__get_wallet_transfer_state(
@@ -2333,6 +2407,21 @@ class WalletCoreWire implements BaseWire {
   late final _cst_new_box_autoadd_wallet_instruction_error = _cst_new_box_autoadd_wallet_instruction_errorPtr
       .asFunction<ffi.Pointer<wire_cst_wallet_instruction_error> Function()>();
 
+  ffi.Pointer<wire_cst_list_String> cst_new_list_String(
+    int len,
+  ) {
+    return _cst_new_list_String(
+      len,
+    );
+  }
+
+  late final _cst_new_list_StringPtr =
+      _lookup<ffi.NativeFunction<ffi.Pointer<wire_cst_list_String> Function(ffi.Int32)>>(
+        'frbgen_wallet_core_cst_new_list_String',
+      );
+  late final _cst_new_list_String = _cst_new_list_StringPtr
+      .asFunction<ffi.Pointer<wire_cst_list_String> Function(int)>();
+
   ffi.Pointer<wire_cst_list_attestation_attribute> cst_new_list_attestation_attribute(
     int len,
   ) {
@@ -2750,6 +2839,13 @@ final class wire_cst_wallet_instruction_error extends ffi.Struct {
   external WalletInstructionErrorKind kind;
 }
 
+final class wire_cst_list_String extends ffi.Struct {
+  external ffi.Pointer<ffi.Pointer<wire_cst_list_prim_u_8_strict>> ptr;
+
+  @ffi.Int32()
+  external int len;
+}
+
 final class wire_cst_list_attestation_presentation extends ffi.Struct {
   external ffi.Pointer<wire_cst_attestation_presentation> ptr;
 
@@ -2871,6 +2967,8 @@ final class wire_cst_flutter_configuration extends ffi.Struct {
   @ffi.Uint16()
   external int background_lock_timeout;
 
+  external ffi.Pointer<wire_cst_list_String> pid_attestation_types;
+
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> static_assets_base_url;
 
   @ffi.Uint64()
@@ -2978,4 +3076,20 @@ final class wire_cst_wallet_instruction_result extends ffi.Struct {
   external int tag;
 
   external WalletInstructionResultKind kind;
+}
+
+final class wire_cst_WalletState_Transferring extends ffi.Struct {
+  @ffi.Int32()
+  external int role;
+}
+
+final class WalletStateKind extends ffi.Union {
+  external wire_cst_WalletState_Transferring Transferring;
+}
+
+final class wire_cst_wallet_state extends ffi.Struct {
+  @ffi.Int32()
+  external int tag;
+
+  external WalletStateKind kind;
 }

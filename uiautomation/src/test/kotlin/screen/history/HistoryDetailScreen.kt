@@ -19,7 +19,7 @@ class HistoryDetailScreen : MobileActions() {
     fun disclosureOrganizationVisible(organization: String) = elementContainingTextVisible(organization)
 
     fun titleCorrectForIssuance(card: String) =
-        elementWithTextVisible(l10n.getString("historyDetailScreenTitleForIssuance").replace("{card}", card))
+        elementWithTextVisible(l10n.getString("historyDetailScreenTitleForCardIssued").replace("{card}", card))
 
 
     fun titleCorrectForLogin(organization: String) =

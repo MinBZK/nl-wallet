@@ -8,7 +8,7 @@ use tests_integration::common::WalletWithStorage;
 use tests_integration::common::do_pid_issuance;
 use tests_integration::common::do_wallet_registration;
 use tests_integration::common::setup_env_default;
-use tests_integration::common::setup_tempfile_wallet;
+use tests_integration::common::setup_file_wallet;
 use tests_integration::common::universal_link;
 use tests_integration::common::wallet_attestations;
 use wallet::TransferSessionState;
@@ -43,11 +43,11 @@ async fn init_wallets() -> (WalletData, WalletData) {
 
     let (config_server_config, mock_device_config, wallet_config, issuance_url, _) = setup_env_default().await;
 
-    let mut source = setup_tempfile_wallet(
+    let mut source = setup_file_wallet(
         config_server_config.clone(),
         wallet_config.clone(),
         mock_device_config.google_key_holder(),
-        &source_tempdir,
+        source_tempdir.path().to_path_buf(),
     )
     .await;
     source = do_wallet_registration(source, source_wallet_pin).await;
@@ -65,11 +65,11 @@ async fn init_wallets() -> (WalletData, WalletData) {
         .unwrap();
     source.accept_issuance(String::from(source_wallet_pin)).await.unwrap();
 
-    let mut destination = setup_tempfile_wallet(
+    let mut destination = setup_file_wallet(
         config_server_config,
         wallet_config,
         mock_device_config.apple_key_holder(),
-        &destination_tempdir,
+        destination_tempdir.path().to_path_buf(),
     )
     .await;
     destination = do_wallet_registration(destination, destination_wallet_pin).await;
@@ -164,7 +164,7 @@ async fn test_wallet_transfer_canceled_from_source() {
     )
     .await;
 
-    source_data.wallet.cancel_transfer().await.unwrap();
+    source_data.wallet.cancel_transfer(false).await.unwrap();
 
     assert_state(TransferSessionState::Canceled, &mut destination_data.wallet).await;
 }
@@ -197,7 +197,34 @@ async fn test_wallet_transfer_canceled_from_destination() {
 
     assert_state(TransferSessionState::ReadyForDownload, &mut source).await;
 
-    destination.cancel_transfer().await.unwrap();
+    destination.cancel_transfer(false).await.unwrap();
 
     assert_state(TransferSessionState::Canceled, &mut source).await;
+}
+
+#[tokio::test]
+#[serial(hsm)]
+async fn test_retry_transfer_after_canceled() {
+    let (mut source_data, mut destination_data) = init_wallets().await;
+
+    let url = destination_data.wallet.init_transfer().await.unwrap();
+
+    assert_state(TransferSessionState::Created, &mut destination_data.wallet).await;
+
+    source_data.wallet.confirm_transfer(url).await.unwrap();
+
+    assert_states(
+        TransferSessionState::ReadyForTransfer,
+        &mut destination_data.wallet,
+        &mut source_data.wallet,
+    )
+    .await;
+
+    source_data.wallet.cancel_transfer(false).await.unwrap();
+
+    assert_state(TransferSessionState::Canceled, &mut destination_data.wallet).await;
+
+    let _url = destination_data.wallet.init_transfer().await.unwrap();
+
+    assert_state(TransferSessionState::Created, &mut destination_data.wallet).await;
 }

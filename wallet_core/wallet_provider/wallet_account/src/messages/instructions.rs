@@ -78,6 +78,7 @@ impl<R> JwtTyp for InstructionResultClaims<R> {}
 /// Links an instruction with its result type and name string.
 pub trait InstructionAndResult: Serialize + DeserializeOwned {
     const NAME: &'static str;
+    const COMPRESS: bool = false;
 
     type Result: Serialize + DeserializeOwned;
 }
@@ -283,10 +284,24 @@ impl InstructionAndResult for ConfirmTransfer {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CancelTransfer {
     pub transfer_session_id: Uuid,
+    pub error: bool,
 }
 
 impl InstructionAndResult for CancelTransfer {
     const NAME: &'static str = "cancel_transfer";
+
+    type Result = ();
+}
+
+// ResetTransfer instruction.
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ResetTransfer {
+    pub transfer_session_id: Uuid,
+}
+
+impl InstructionAndResult for ResetTransfer {
+    const NAME: &'static str = "reset_transfer";
 
     type Result = ();
 }
@@ -314,6 +329,7 @@ pub struct SendWalletPayload {
 
 impl InstructionAndResult for SendWalletPayload {
     const NAME: &'static str = "send_wallet_payload";
+    const COMPRESS: bool = true;
 
     type Result = ();
 }

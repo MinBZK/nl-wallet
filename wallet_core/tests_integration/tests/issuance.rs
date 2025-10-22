@@ -4,8 +4,8 @@ use indexmap::IndexMap;
 use rstest::rstest;
 use serial_test::serial;
 
-use attestation_data::constants::*;
 use attestation_data::issuable_document::IssuableDocument;
+use attestation_data::pid_constants::*;
 use dcql::CredentialFormat;
 use openid4vc::ErrorResponse;
 use openid4vc::issuance_session::IssuanceSessionError;
@@ -54,7 +54,7 @@ async fn test_pid_ok() {
 }
 
 fn pid_without_optionals() -> IssuableDocument {
-    IssuableDocument::try_new(
+    IssuableDocument::try_new_with_random_id(
         PID_ATTESTATION_TYPE.to_string(),
         IndexMap::from_iter(vec![
             (
@@ -85,7 +85,7 @@ fn pid_without_optionals() -> IssuableDocument {
 }
 
 fn pid_missing_required() -> IssuableDocument {
-    IssuableDocument::try_new(
+    IssuableDocument::try_new_with_random_id(
         PID_ATTESTATION_TYPE.to_string(),
         IndexMap::from_iter(vec![
             (

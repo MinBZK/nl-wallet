@@ -26,6 +26,7 @@ use attestation_data::credential_payload::CredentialPayload;
 use attestation_data::credential_payload::IntoCredentialPayload;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::disclosure_type::DisclosureType;
+use attestation_data::pid_constants::PID_ATTESTATION_TYPE;
 use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
 use crypto::mock_remote::MockRemoteEcdsaKey;
 use crypto::p256_der::DerVerifyingKey;

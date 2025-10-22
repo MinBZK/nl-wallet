@@ -4,11 +4,14 @@ use config::Config;
 use config::ConfigError;
 use config::Environment;
 use config::File;
+use derive_more::Into;
 use indexmap::IndexMap;
 use serde::Deserialize;
+use serde_valid::Validate;
 
 use attestation_data::attributes::AttributeValue;
-use attestation_data::issuable_document::IssuableDocuments;
+use attestation_data::attributes::Attributes;
+use attestation_data::issuable_document::IssuableDocument;
 use http_utils::tls::server::TlsServerConfig;
 use http_utils::urls::BaseUrl;
 use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
@@ -36,9 +39,18 @@ pub struct Server {
 
 #[derive(Deserialize, Clone)]
 pub struct Usecase {
-    pub data: IndexMap<AttributeValue, IssuableDocuments>,
+    pub data: IndexMap<AttributeValue, IssuableDocumentTemplates>,
     pub client_id: String,
     pub disclosed: Disclosed,
+}
+
+pub type IssuableDocumentTemplates = VecNonEmpty<IssuableDocumentTemplate>;
+
+#[derive(Deserialize, Clone, Validate, Into)]
+pub struct IssuableDocumentTemplate {
+    attestation_type: String,
+    #[validate(custom = IssuableDocument::validate_attributes)]
+    attributes: Attributes,
 }
 
 #[derive(Deserialize, Clone)]

@@ -25,6 +25,7 @@ use crate::models::transfer::TransferSessionState;
 use crate::models::uri::IdentifyUriResult;
 use crate::models::version_state::FlutterVersionState;
 use crate::models::wallet_event::WalletEvent;
+use crate::models::wallet_state::WalletState;
 use crate::sentry::init_sentry;
 
 static WALLET: OnceCell<RwLock<Wallet>> = OnceCell::const_new();
@@ -434,7 +435,7 @@ pub async fn transfer_wallet(pin: String) -> anyhow::Result<WalletInstructionRes
 pub async fn cancel_wallet_transfer() -> anyhow::Result<()> {
     let mut wallet = wallet().write().await;
 
-    wallet.cancel_transfer().await?;
+    wallet.cancel_transfer(false).await?;
 
     Ok(())
 }
@@ -453,6 +454,15 @@ pub async fn get_wallet_transfer_state() -> anyhow::Result<TransferSessionState>
     let mut wallet = wallet().write().await;
 
     let state = wallet.get_transfer_status().await?;
+
+    Ok(state.into())
+}
+
+#[flutter_api_error]
+pub async fn get_wallet_state() -> anyhow::Result<WalletState> {
+    let wallet = wallet().read().await;
+
+    let state = wallet.get_state().await?;
 
     Ok(state.into())
 }

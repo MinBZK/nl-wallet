@@ -23,6 +23,7 @@ use wallet_account::messages::instructions::ConfirmTransfer;
 use wallet_account::messages::instructions::GetTransferStatus;
 use wallet_account::messages::instructions::InstructionAndResult;
 use wallet_account::messages::instructions::ReceiveWalletPayload;
+use wallet_account::messages::instructions::ResetTransfer;
 use wallet_account::messages::instructions::SendWalletPayload;
 use wallet_account::messages::transfer::TransferSessionState;
 use wallet_configuration::wallet_config::WalletConfiguration;
@@ -42,6 +43,7 @@ use crate::transfer::database_payload::DatabasePayloadError;
 use crate::transfer::database_payload::WalletDatabasePayload;
 use crate::transfer::uri::TransferQuery;
 use crate::transfer::uri::TransferUriError;
+use crate::wallet::WalletRegistration;
 use crate::wallet::attestations::AttestationsError;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
@@ -126,6 +128,14 @@ where
             return Err(TransferError::MissingTransferSessionId);
         };
 
+        // If there already is a transfer session in progress, the state should be reset to `Created`
+        if transfer_data.key_data.is_some() {
+            self.send_transfer_instruction(ResetTransfer {
+                transfer_session_id: transfer_data.transfer_session_id.into(),
+            })
+            .await?;
+        }
+
         let key_pair = EcKeyPair::generate(EcCurve::P256)?;
 
         transfer_data.key_data = Some(TransferKeyData::Destination {
@@ -172,7 +182,7 @@ where
 
     #[instrument(skip_all)]
     #[sentry_capture_error]
-    pub async fn cancel_transfer(&mut self) -> Result<(), TransferError> {
+    pub async fn cancel_transfer(&mut self, error: bool) -> Result<(), TransferError> {
         info!("Canceling transfer status");
 
         let Some(transfer_data) = self.storage.read().await.fetch_data::<TransferData>().await? else {
@@ -181,10 +191,11 @@ where
 
         self.send_transfer_instruction(CancelTransfer {
             transfer_session_id: transfer_data.transfer_session_id.into(),
+            error,
         })
         .await?;
 
-        self.clear_transfer_data(transfer_data).await?;
+        self.clear_source_transfer_data(transfer_data).await?;
 
         Ok(())
     }
@@ -194,11 +205,11 @@ where
     pub async fn clear_transfer(&mut self) -> Result<(), TransferError> {
         info!("Clear transfer");
 
-        let Some(transfer_data) = self.storage.read().await.fetch_data::<TransferData>().await? else {
+        if self.storage.read().await.fetch_data::<TransferData>().await?.is_none() {
             return Ok(());
         };
 
-        self.clear_transfer_data(transfer_data).await?;
+        self.storage.write().await.delete_data::<TransferData>().await?;
 
         Ok(())
     }
@@ -226,8 +237,8 @@ where
             (Some(TransferKeyData::Source { .. }), TransferSessionState::Success) => {
                 self.clean_after_transfer().await?;
             }
-            (_, TransferSessionState::Canceled) => {
-                self.clear_transfer().await?;
+            (_, TransferSessionState::Canceled | TransferSessionState::Error) => {
+                self.clear_source_transfer_data(transfer_data).await?;
             }
             _ => {}
         }
@@ -313,6 +324,9 @@ where
         self.emit_attestations().await?;
         self.emit_recent_history().await?;
 
+        // When the restore is successful, the transfer session can be cleared
+        self.storage.write().await.delete_data::<TransferData>().await?;
+
         Ok(())
     }
 
@@ -349,7 +363,7 @@ where
         Ok(())
     }
 
-    async fn clear_transfer_data(&mut self, transfer_data: TransferData) -> Result<(), TransferError> {
+    async fn clear_source_transfer_data(&mut self, transfer_data: TransferData) -> Result<(), TransferError> {
         // The destination wallet may keep its transfer session in order to be able to restart it
         if let Some(TransferKeyData::Source { .. }) = transfer_data.key_data {
             self.storage.write().await.delete_data::<TransferData>().await?;
@@ -361,6 +375,11 @@ where
     async fn clean_after_transfer(&mut self) -> Result<(), TransferError> {
         self.storage.write().await.clear().await;
         self.storage.write().await.open().await?;
+
+        self.registration = WalletRegistration::Unregistered;
+
+        self.emit_attestations().await?;
+        self.emit_recent_history().await?;
 
         Ok(())
     }
@@ -610,7 +629,7 @@ mod tests {
             .return_once(move |_, _: HwSignedInstruction<CancelTransfer>| Ok(wp_result));
 
         wallet
-            .cancel_transfer()
+            .cancel_transfer(false)
             .await
             .expect("Wallet cancel transfer should have succeeded");
     }
@@ -800,7 +819,7 @@ mod tests {
             .return_once(move |_, _: HwSignedInstruction<CancelTransfer>| Ok(wp_result));
 
         destination_wallet
-            .cancel_transfer()
+            .cancel_transfer(false)
             .await
             .expect("Wallet cancel transfer should have succeeded");
 
@@ -819,7 +838,7 @@ mod tests {
             .return_once(move |_, _: HwSignedInstruction<CancelTransfer>| Ok(wp_result));
 
         source_wallet
-            .cancel_transfer()
+            .cancel_transfer(false)
             .await
             .expect("Wallet cancel transfer should have succeeded");
     }
@@ -1059,6 +1078,12 @@ mod tests {
             .expect_fetch_recent_wallet_events()
             .returning(|| Ok(vec![]));
 
+        // Expect the destination wallet to clean the transfer data after success
+        destination_wallet
+            .mut_storage()
+            .expect_delete_data::<TransferData>()
+            .returning(|| Ok(()));
+
         let private_key = private_key_param.lock().as_ref().unwrap().clone();
         destination_wallet
             .receive_wallet_payload(TransferData {
@@ -1244,11 +1269,23 @@ mod tests {
         let _ = wallet.mut_storage().expect_clear().return_const(());
         wallet.mut_storage().expect_open().returning(|| Ok(()));
 
+        wallet
+            .mut_storage()
+            .expect_fetch_unique_attestations()
+            .returning(|| Ok(vec![]));
+
+        wallet
+            .mut_storage()
+            .expect_fetch_recent_wallet_events()
+            .returning(|| Ok(vec![]));
+
         let result = wallet
             .get_transfer_status()
             .await
             .expect("Wallet get transfer status should have succeeded");
 
-        assert_eq!(result, TransferSessionState::Success)
+        assert_eq!(result, TransferSessionState::Success);
+
+        assert!(!wallet.registration.is_registered());
     }
 }

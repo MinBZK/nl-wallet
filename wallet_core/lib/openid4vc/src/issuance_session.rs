@@ -110,7 +110,7 @@ pub enum IssuanceSessionError {
 
     #[error("SD-JWT verification failed: {0}")]
     #[category(pd)]
-    SdJwtVerification(#[from] sd_jwt::error::Error),
+    SdJwtVerification(#[from] sd_jwt::error::DecoderError),
 
     #[error("type metadata verification failed: {0}")]
     #[category(critical)]
@@ -1040,7 +1040,7 @@ mod tests {
     use attestation_data::attributes::Attributes;
     use attestation_data::auth::LocalizedStrings;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
-    use attestation_data::constants::PID_ATTESTATION_TYPE;
+    use attestation_data::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use attestation_types::qualification::AttestationQualification;
     use crypto::mock_remote::MockRemoteEcdsaKey;

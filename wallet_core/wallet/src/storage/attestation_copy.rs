@@ -23,8 +23,9 @@ use crate::attestation::AttestationPresentationConfig;
 pub enum PartialAttestationError {
     #[error("requested path not present in mdoc attestation: {0}")]
     MsoMdoc(#[from] MissingAttributesError),
+
     #[error("requested path not present in SD-JWT attestation: {0}")]
-    SdJwt(#[from] sd_jwt::error::Error),
+    SdJwt(#[from] sd_jwt::error::ClaimError),
 }
 
 /// An attestation that is present in the wallet database, part of [`StoredAttestationCopy`].
@@ -299,10 +300,10 @@ mod tests {
     use uuid::Uuid;
 
     use attestation_data::auth::issuer_auth::IssuerRegistration;
-    use attestation_data::constants::PID_ATTESTATION_TYPE;
-    use attestation_data::constants::PID_BSN;
     use attestation_data::credential_payload::CredentialPayload;
     use attestation_data::credential_payload::PreviewableCredentialPayload;
+    use attestation_data::pid_constants::PID_ATTESTATION_TYPE;
+    use attestation_data::pid_constants::PID_BSN;
     use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use attestation_types::claim_path::ClaimPath;
     use crypto::keys::WithIdentifier;
@@ -313,7 +314,7 @@ mod tests {
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_at_least::VecNonEmpty;
 
-    use crate::test::default_wallet_config;
+    use crate::config::default_wallet_config;
 
     use super::DisclosableAttestation;
     use super::PartialAttestation;

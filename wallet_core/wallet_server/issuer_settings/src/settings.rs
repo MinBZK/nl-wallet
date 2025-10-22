@@ -18,6 +18,7 @@ use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::x509::CertificateError;
 use crypto::x509::CertificateUsage;
 use hsm::service::Pkcs11Hsm;
+use http_utils::urls::BaseUrl;
 use http_utils::urls::HttpsUri;
 use openid4vc::Format;
 use openid4vc::issuer::AttestationTypeConfig;
@@ -63,6 +64,8 @@ pub struct AttestationTypeConfigSettings {
 
     pub valid_days: u64,
     pub copies_per_format: IndexMap<Format, NonZeroU8>,
+
+    pub status_list_base_url: BaseUrl,
 
     #[serde(default)]
     pub attestation_qualification: AttestationQualification,
@@ -134,6 +137,7 @@ impl AttestationTypesConfigSettings {
                     Days::new(attestation.valid_days),
                     attestation.copies_per_format,
                     issuer_uri,
+                    attestation.status_list_base_url,
                     attestation.attestation_qualification,
                     metadata_documents,
                 )?;
@@ -258,6 +262,7 @@ mod tests {
                     keypair,
                     valid_days: 365,
                     copies_per_format: IndexMap::from([(Format::MsoMdoc, 10.try_into().unwrap())]),
+                    status_list_base_url: "https://cdn.example.com/tsl".parse().unwrap(),
                     attestation_qualification: AttestationQualification::PubEAA,
                     certificate_san: Some(("https://".to_string() + ISSUANCE_CERT_CN).parse().unwrap()),
                 },
@@ -322,6 +327,7 @@ mod tests {
                 keypair: issuer_cert_no_registration.into(),
                 valid_days: 365,
                 copies_per_format: IndexMap::from([(Format::MsoMdoc, 4.try_into().unwrap())]),
+                status_list_base_url: "https://cdn.example.com/tsl".parse().unwrap(),
                 attestation_qualification: Default::default(),
                 certificate_san: None,
             },

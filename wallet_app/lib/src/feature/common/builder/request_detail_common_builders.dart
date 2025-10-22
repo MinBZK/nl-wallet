@@ -10,6 +10,7 @@ import '../../../domain/model/policy/organization_policy.dart';
 import '../../../domain/model/policy/policy.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
+import '../../../util/extension/wallet_event_extension.dart';
 import '../../../util/mapper/context_mapper.dart';
 import '../../check_attributes/check_attributes_screen.dart';
 import '../../history/detail/widget/wallet_event_status_header.dart';
@@ -27,12 +28,31 @@ import '../widget/list/list_item.dart';
 class RequestDetailCommonBuilders {
   RequestDetailCommonBuilders._();
 
+  /// Returns true if a status header should be shown for the given event.
+  static bool _showStatusHeader(WalletEvent event) {
+    if (event is! IssuanceEvent) {
+      return !event.wasSuccess;
+    } else {
+      final type = event.eventType;
+      if (type == IssuanceEventType.cardStatusExpired ||
+          type == IssuanceEventType.cardStatusRevoked ||
+          type == IssuanceEventType.cardStatusCorrupted) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   static Widget buildStatusHeader(
     BuildContext context, {
     required WalletEvent event,
     DividerSide side = DividerSide.none,
   }) {
+    final showStatusHeader = _showStatusHeader(event);
+    if (!showStatusHeader) return const SizedBox.shrink();
+
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (side.top) const Divider(),
         WalletEventStatusHeader(event: event),

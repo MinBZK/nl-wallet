@@ -15,7 +15,7 @@ variable "vm_base_name" {
 
 variable "vm_name" {
   type = string
-  default = "sequoia-wallet:0.2.5"
+  default = "sequoia-wallet:0.2.6"
 }
 
 source "tart-cli" "tart" {
@@ -54,7 +54,7 @@ build {
       "source ~/.zprofile",
       "set -eux",
       "git -C $FLUTTER_HOME fetch origin",
-      "git -C $FLUTTER_HOME switch --detach 3.35.1",
+      "git -C $FLUTTER_HOME switch --detach 3.35.6",
       "dart --disable-analytics",
       "flutter config --no-analytics",
       "yes | sdkmanager --licenses",

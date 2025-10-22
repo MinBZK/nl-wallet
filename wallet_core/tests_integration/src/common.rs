@@ -1,5 +1,6 @@
 use std::io;
 use std::net::IpAddr;
+use std::path::PathBuf;
 use std::process;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -18,7 +19,6 @@ use sea_orm::Database;
 use sea_orm::DatabaseConnection;
 use sea_orm::EntityTrait;
 use sea_orm::PaginatorTrait;
-use tempfile::TempDir;
 use tokio::net::TcpListener;
 use tokio::time;
 use url::Url;
@@ -64,6 +64,7 @@ use server_utils::settings::RequesterAuth;
 use server_utils::settings::Server;
 use server_utils::settings::ServerSettings;
 use server_utils::store::SessionStoreVariant;
+use token_status_list::status_service::mock::MockStatusClaimService;
 use update_policy_server::settings::Settings as UpsSettings;
 use utils::vec_at_least::VecNonEmpty;
 use verification_server::settings::VerifierSettings;
@@ -330,14 +331,14 @@ pub async fn setup_env(
 }
 
 /// Create an instance of [`Wallet`] having temporary file storage.
-pub async fn setup_tempfile_wallet(
+pub async fn setup_file_wallet(
     config_server_config: ConfigServerConfiguration,
     wallet_config: WalletConfiguration,
     key_holder: MockHardwareAttestedKeyHolder,
-    tempdir: &TempDir,
+    path: PathBuf,
 ) -> WalletWithStorage {
     setup_wallet(config_server_config, wallet_config, key_holder, async move || {
-        MockHardwareDatabaseStorage::open_temp_file(tempdir).await
+        MockHardwareDatabaseStorage::open_file(path).await
     })
     .await
 }
@@ -635,12 +636,18 @@ pub async fn start_issuance_server(
 
     let storage_settings = &settings.issuer_settings.server_settings.storage;
 
-    let db_connection = server_utils::store::DatabaseConnection::try_new(storage_settings.url.clone())
+    let store_connection = server_utils::store::StoreConnection::try_new(storage_settings.url.clone())
         .await
         .unwrap();
 
-    let issuance_sessions = Arc::new(SessionStoreVariant::new(db_connection.clone(), storage_settings.into()));
-    let disclosure_settings = Arc::new(SessionStoreVariant::new(db_connection.clone(), storage_settings.into()));
+    let issuance_sessions = Arc::new(SessionStoreVariant::new(
+        store_connection.clone(),
+        storage_settings.into(),
+    ));
+    let disclosure_settings = Arc::new(SessionStoreVariant::new(
+        store_connection.clone(),
+        storage_settings.into(),
+    ));
 
     tokio::spawn(async move {
         if let Err(error) = issuance_server::server::serve_with_listener(
@@ -650,6 +657,7 @@ pub async fn start_issuance_server(
             issuance_sessions,
             disclosure_settings,
             attributes_fetcher,
+            MockStatusClaimService::default(),
         )
         .await
         {
@@ -675,11 +683,14 @@ pub async fn start_pid_issuer_server<A: AttributeService + Send + Sync + 'static
     let storage_settings = &settings.issuer_settings.server_settings.storage;
     settings.issuer_settings.server_settings.public_url = public_url.clone();
 
-    let db_connection = server_utils::store::DatabaseConnection::try_new(storage_settings.url.clone())
+    let store_connection = server_utils::store::StoreConnection::try_new(storage_settings.url.clone())
         .await
         .unwrap();
 
-    let issuance_sessions = Arc::new(SessionStoreVariant::new(db_connection.clone(), storage_settings.into()));
+    let issuance_sessions = Arc::new(SessionStoreVariant::new(
+        store_connection.clone(),
+        storage_settings.into(),
+    ));
 
     tokio::spawn(async move {
         if let Err(error) = pid_issuer::server::serve_with_listener(
@@ -689,6 +700,7 @@ pub async fn start_pid_issuer_server<A: AttributeService + Send + Sync + 'static
             hsm,
             issuance_sessions,
             settings.wua_issuer_pubkey.into_inner(),
+            MockStatusClaimService::default(),
         )
         .await
         {
@@ -721,11 +733,14 @@ pub async fn start_verification_server(mut settings: VerifierSettings, hsm: Opti
     let storage_settings = &settings.server_settings.storage;
     settings.server_settings.public_url = public_url.clone();
 
-    let db_connection = server_utils::store::DatabaseConnection::try_new(storage_settings.url.clone())
+    let store_connection = server_utils::store::StoreConnection::try_new(storage_settings.url.clone())
         .await
         .unwrap();
 
-    let disclosure_sessions = Arc::new(SessionStoreVariant::new(db_connection.clone(), storage_settings.into()));
+    let disclosure_sessions = Arc::new(SessionStoreVariant::new(
+        store_connection.clone(),
+        storage_settings.into(),
+    ));
 
     tokio::spawn(async move {
         if let Err(error) = verification_server::server::serve_with_listeners(

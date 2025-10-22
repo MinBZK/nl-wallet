@@ -3,7 +3,6 @@ use std::fmt::Debug;
 use std::fmt::Display;
 use std::str::FromStr;
 use std::sync::LazyLock;
-use std::time::Duration;
 
 use chrono::DateTime;
 use chrono::Utc;
@@ -35,6 +34,7 @@ use jwt::EcdsaDecodingKey;
 use jwt::JwtTyp;
 use jwt::UnverifiedJwt;
 use jwt::VerifiedJwt;
+use jwt::error::JwkConversionError;
 use jwt::headers::HeaderWithX5c;
 use utils::date_time_seconds::DateTimeSeconds;
 use utils::generator::Generator;
@@ -42,14 +42,16 @@ use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 
+use crate::claims::ClaimType;
 use crate::claims::ClaimValue;
-use crate::claims::HashType;
 use crate::claims::ObjectClaims;
 use crate::decoder::SdObjectDecoder;
 use crate::disclosure::Disclosure;
-use crate::error::Error;
-use crate::error::Result;
+use crate::error::ClaimError;
+use crate::error::DecoderError;
+use crate::error::SigningError;
 use crate::hasher::Hasher;
+use crate::key_binding_jwt::KbVerificationOptions;
 use crate::key_binding_jwt::KeyBindingJwtBuilder;
 use crate::key_binding_jwt::RequiredKeyBinding;
 use crate::key_binding_jwt::SignedKeyBindingJwt;
@@ -95,7 +97,7 @@ impl<C, H> UnverifiedSdJwt<C, H> {
         }
     }
 
-    fn dangerous_parse_unverified(&self) -> Result<(VerifiedJwt<C, H>, IndexMap<String, Disclosure>)>
+    fn dangerous_parse_unverified(&self) -> Result<VerifiedSdJwt<C, H>, DecoderError>
     where
         C: SdJwtClaims + DeserializeOwned,
         H: DeserializeOwned,
@@ -111,9 +113,12 @@ impl<C, H> UnverifiedSdJwt<C, H> {
                 let key = hasher.encoded_digest(disclosure.encoded());
                 Result::Ok((key, disclosure))
             })
-            .try_collect()?;
+            .collect::<Result<_, DecoderError>>()?;
 
-        Ok((issuer_signed, disclosures))
+        Ok(VerifiedSdJwt {
+            issuer_signed,
+            disclosures,
+        })
     }
 }
 
@@ -129,20 +134,13 @@ impl<C, H> Display for UnverifiedSdJwt<C, H> {
 }
 
 impl<C, H> FromStr for UnverifiedSdJwt<C, H> {
-    type Err = Error;
+    type Err = DecoderError;
 
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
-        let s = s.strip_suffix("~").ok_or(Error::Deserialization(
-            "SD-JWT format is invalid, input doesn't end with '~'".to_string(),
-        ))?;
+        let s = s.strip_suffix("~").ok_or(DecoderError::MissingFinalTilde)?;
 
         let mut segments = s.split('~');
-        let issuer_signed = segments
-            .next()
-            .ok_or(Error::Deserialization(
-                "SD-JWT format is invalid, input doesn't contain an issuer signed JWT".to_string(),
-            ))?
-            .parse()?;
+        let issuer_signed = segments.next().ok_or(DecoderError::MissingIssuerSignedJwt)?.parse()?;
         let disclosures = segments.map(ToString::to_string).collect_vec();
 
         Result::Ok(UnverifiedSdJwt {
@@ -157,7 +155,7 @@ impl UnverifiedSdJwt {
         self,
         trust_anchors: &[TrustAnchor],
         time: &impl Generator<DateTime<Utc>>,
-    ) -> Result<VerifiedSdJwt> {
+    ) -> Result<VerifiedSdJwt, DecoderError> {
         let issuer_signed = self.issuer_signed.into_verified_against_trust_anchors(
             &SD_JWT_VALIDATIONS,
             time,
@@ -176,9 +174,12 @@ impl UnverifiedSdJwt {
 
 impl<C: SdJwtClaims, H> UnverifiedSdJwt<C, H> {
     /// Parses and verifies disclosures according to <https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-22.html#section-7.1>
-    fn parse_and_verify_disclosures(disclosures: &[String], sd_jwt_claims: &C) -> Result<IndexMap<String, Disclosure>> {
+    fn parse_and_verify_disclosures(
+        disclosures: &[String],
+        sd_jwt_claims: &C,
+    ) -> Result<IndexMap<String, Disclosure>, DecoderError> {
         let hasher = sd_jwt_claims._sd_alg().unwrap_or_default().hasher()?;
-        let mut placeholder_digests: IndexMap<String, HashType> =
+        let mut placeholder_digests: IndexMap<String, ClaimType> =
             sd_jwt_claims.claims().digests().into_iter().collect();
 
         let disclosures: IndexMap<String, Disclosure> = disclosures
@@ -187,11 +188,11 @@ impl<C: SdJwtClaims, H> UnverifiedSdJwt<C, H> {
                 let hash = hasher.encoded_digest(disclosure);
                 let disclosure = disclosure.parse::<Disclosure>()?;
 
-                for (digest, hash_type) in disclosure.digests() {
+                for (digest, claim_type) in disclosure.digests() {
                     // 7.1.4. If any digest value is encountered more than once in the Issuer-signed JWT payload
                     // (directly or recursively via other Disclosures), the SD-JWT MUST be rejected.
-                    if placeholder_digests.insert(digest.clone(), hash_type).is_some() {
-                        return Err(Error::DuplicateHash(digest));
+                    if placeholder_digests.insert(digest.clone(), claim_type).is_some() {
+                        return Err(DecoderError::DuplicateHash(digest));
                     }
                 }
 
@@ -205,14 +206,8 @@ impl<C: SdJwtClaims, H> UnverifiedSdJwt<C, H> {
             .iter()
             .try_for_each(|(digest, disclosure)| match placeholder_digests.get(digest) {
                 // For any disclosure that is referenced, verify that the hash type matches the digest hash type.
-                Some(digest_hash_type) if *digest_hash_type != disclosure.hash_type() => {
-                    Err(Error::DataTypeMismatch(format!(
-                        "Expected an {:?} element, but got an {digest_hash_type:?} element for digest `{digest}`",
-                        disclosure.hash_type()
-                    )))
-                }
-                Some(_) => Ok(()),
-                None => Err(Error::UnreferencedDisclosure(digest.clone())),
+                Some(digest_claim_type) => Ok(disclosure.verify_matching_claim_type(*digest_claim_type, digest)?),
+                None => Err(DecoderError::UnreferencedDisclosure(digest.clone())),
             })?;
 
         Ok(disclosures)
@@ -339,7 +334,7 @@ impl VerifiedSdJwt {
         SdJwtPresentationBuilder::new(self)
     }
 
-    pub fn holder_pubkey(&self) -> Result<VerifyingKey> {
+    pub fn holder_pubkey(&self) -> Result<VerifyingKey, JwkConversionError> {
         self.claims().cnf().verifying_key()
     }
 
@@ -347,19 +342,14 @@ impl VerifiedSdJwt {
     ///
     /// ## Error
     /// Returns [`Error::Deserialization`] if parsing fails.
-    pub fn dangerous_parse_unverified(s: &str) -> Result<Self> {
+    pub fn dangerous_parse_unverified(s: &str) -> Result<Self, DecoderError> {
         let serialization = s.parse::<UnverifiedSdJwt>()?;
-        let (issuer_signed, disclosures) = serialization.dangerous_parse_unverified()?;
-
-        Ok(Self {
-            issuer_signed,
-            disclosures,
-        })
+        serialization.dangerous_parse_unverified()
     }
 }
 
 impl<H> VerifiedSdJwt<SdJwtVcClaims, H> {
-    pub fn decoded_claims(&self) -> Result<ObjectClaims> {
+    pub fn decoded_claims(&self) -> Result<ObjectClaims, DecoderError> {
         let claims = SdObjectDecoder::decode(self.claims(), &self.disclosures)?;
         let ClaimValue::Object(claims) = claims.claims else {
             panic!("should always be an Object after SdObjectDecoder::decode")
@@ -378,7 +368,7 @@ impl UnsignedSdJwtPresentation {
         wscd: &W,
         poa_input: P::Input,
         time: &impl Generator<DateTime<Utc>>,
-    ) -> Result<(VecNonEmpty<SignedSdJwtPresentation>, Option<P>)>
+    ) -> Result<(VecNonEmpty<SignedSdJwtPresentation>, Option<P>), SigningError>
     where
         I: Into<String>,
         W: DisclosureWscd<Key = K, Poa = P>,
@@ -394,7 +384,7 @@ impl UnsignedSdJwtPresentation {
 
                 Ok((sd_jwt, key))
             })
-            .collect::<Result<_>>()?;
+            .collect::<Result<_, JwkConversionError>>()?;
 
         // Have the WSCD create `KeyBindingJwt`s and the PoA, if required.
         let (key_binding_jwts, poa) = key_binding_jwt_builder
@@ -422,12 +412,11 @@ pub struct UnverifiedSdJwtPresentation<C = SdJwtVcClaims, H = HeaderWithX5c> {
 }
 
 impl<C, H> FromStr for UnverifiedSdJwtPresentation<C, H> {
-    type Err = Error;
+    type Err = DecoderError;
 
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
-        let sd_jwt_end = s.rfind("~").ok_or(Error::Deserialization(
-            "SD-JWT format is invalid, no segments found".to_string(),
-        ))? + 1; // the SD-JWT part includes the trailing '~'
+        let sd_jwt_end = s.rfind("~").ok_or(DecoderError::MissingSegments)? + 1;
+        // the SD-JWT part includes the trailing '~'
 
         let sd_jwt = s[..sd_jwt_end].parse::<UnverifiedSdJwt<C, H>>()?;
         let key_binding_jwt = s[sd_jwt_end..].parse::<UnverifiedKeyBindingJwt>()?;
@@ -453,11 +442,9 @@ impl UnverifiedSdJwtPresentation {
     pub fn into_verified_against_trust_anchors(
         self,
         trust_anchors: &[TrustAnchor],
-        kb_expected_aud: &str,
-        kb_expected_nonce: &str,
-        kb_iat_acceptance_window: Duration,
+        kb_verification_options: &KbVerificationOptions,
         time: &impl Generator<DateTime<Utc>>,
-    ) -> Result<VerifiedSdJwtPresentation> {
+    ) -> Result<VerifiedSdJwtPresentation, DecoderError> {
         // we first verify the SD-JWT, then extract the JWK from the `cnf` claim and use that to verify the KB-JWT
         // before parsing the disclosures
         let issuer_signed = self.sd_jwt.issuer_signed.into_verified_against_trust_anchors(
@@ -469,9 +456,7 @@ impl UnverifiedSdJwtPresentation {
 
         let key_binding_jwt = self.key_binding_jwt.into_verified(
             &EcdsaDecodingKey::from(&issuer_signed.payload().cnf().verifying_key()?),
-            kb_expected_aud,
-            kb_expected_nonce,
-            kb_iat_acceptance_window,
+            kb_verification_options,
             time,
         )?;
 
@@ -548,7 +533,7 @@ impl SdJwtPresentationBuilder {
         }
     }
 
-    pub fn disclose(mut self, path: &VecNonEmpty<ClaimPath>) -> Result<Self> {
+    pub fn disclose(mut self, path: &VecNonEmpty<ClaimPath>) -> Result<Self, ClaimError> {
         // Gather all digests to be disclosed into a set. This can include intermediary attributes as well
         self.digests_to_be_disclosed.extend({
             let mut path_segments = path.as_ref().iter().peekable();
@@ -627,7 +612,7 @@ impl UnsignedSdJwtPresentation {
         key_binding_jwt_builder: KeyBindingJwtBuilder,
         signing_key: &impl EcdsaKey,
         time: &impl Generator<DateTime<Utc>>,
-    ) -> Result<SignedSdJwtPresentation> {
+    ) -> Result<SignedSdJwtPresentation, SigningError> {
         let sd_jwt = self.0;
 
         let key_binding_jwt = key_binding_jwt_builder.finish(&sd_jwt, signing_key, time).await?;
@@ -659,7 +644,7 @@ where
     H: TryFrom<jwt::Header, Error = E>,
     E: std::error::Error + Send + Sync + 'static,
 {
-    pub(crate) fn into_verified(self, pubkey: &EcdsaDecodingKey) -> Result<VerifiedSdJwt<C, H>> {
+    pub(crate) fn into_verified(self, pubkey: &EcdsaDecodingKey) -> Result<VerifiedSdJwt<C, H>, DecoderError> {
         let issuer_signed = self.issuer_signed.into_verified(pubkey, &SD_JWT_VALIDATIONS)?;
         let disclosures = Self::parse_and_verify_disclosures(&self.disclosures, issuer_signed.payload())?;
         Ok(VerifiedSdJwt {
@@ -681,9 +666,9 @@ where
         issuer_pubkey: &EcdsaDecodingKey,
         kb_expected_aud: &str,
         kb_expected_nonce: &str,
-        kb_iat_acceptance_window: Duration,
+        kb_iat_acceptance_window: std::time::Duration,
         time: &impl Generator<DateTime<Utc>>,
-    ) -> Result<VerifiedSdJwtPresentation<C, H>> {
+    ) -> Result<VerifiedSdJwtPresentation<C, H>, DecoderError> {
         // we first verify the SD-JWT, then extract the JWK from the `cnf` claim and use that to verify the KB-JWT
         // before parsing the disclosures
         let issuer_signed = self
@@ -691,11 +676,15 @@ where
             .issuer_signed
             .into_verified(issuer_pubkey, &SD_JWT_VALIDATIONS)?;
 
+        let kb_verification_options = KbVerificationOptions {
+            expected_aud: kb_expected_aud,
+            expected_nonce: kb_expected_nonce,
+            iat_leeway: 0,
+            iat_acceptance_window: kb_iat_acceptance_window,
+        };
         let key_binding_jwt = self.key_binding_jwt.into_verified(
             &EcdsaDecodingKey::from(&issuer_signed.payload().cnf().verifying_key()?),
-            kb_expected_aud,
-            kb_expected_nonce,
-            kb_iat_acceptance_window,
+            &kb_verification_options,
             time,
         )?;
 
@@ -776,10 +765,10 @@ mod examples {
 #[cfg(test)]
 mod test {
     use std::collections::HashSet;
+    use std::time::Duration;
 
     use assert_matches::assert_matches;
     use chrono::DateTime;
-    use chrono::Utc;
     use futures::FutureExt;
     use itertools::Itertools;
     use jsonwebtoken::errors::ErrorKind;
@@ -805,14 +794,12 @@ mod test {
     use crate::claims::ArrayClaim;
     use crate::disclosure::Disclosure;
     use crate::disclosure::DisclosureContent;
-    use crate::error::Result;
     use crate::examples::KeyBindingExampleTimeGenerator;
     use crate::examples::*;
     use crate::key_binding_jwt::KeyBindingJwtBuilder;
     use crate::key_binding_jwt::RequiredKeyBinding;
     use crate::sd_alg::SdAlg;
     use crate::sd_jwt::ClaimValue;
-    use crate::sd_jwt::Error;
     use crate::sd_jwt::ObjectClaims;
     use crate::sd_jwt::SdJwtVcClaims;
     use crate::sd_jwt::UnverifiedSdJwt;
@@ -820,19 +807,6 @@ mod test {
     use crate::test::DIGESTS_KEY;
     use crate::test::array_disclosure;
     use crate::test::object_disclosure;
-
-    impl ClaimValue {
-        pub fn as_array(&self) -> Result<&Vec<ArrayClaim>> {
-            if let Self::Array(array) = self {
-                Ok(array)
-            } else {
-                Err(Error::DataTypeMismatch(format!(
-                    "expected JSON Array, but got {:?}",
-                    self
-                )))
-            }
-        }
-    }
 
     use super::*;
 
@@ -890,7 +864,6 @@ mod test {
             holder_key.verifying_key(),
             &MockTimeGenerator::epoch(),
         ))
-        .unwrap()
         .finish(&issuer_keypair)
         .await
         .unwrap()
@@ -902,7 +875,7 @@ mod test {
             .into_verified(&EcdsaDecodingKey::from(issuer_keypair.certificate().public_key()))
             .expect_err("should fail");
 
-        assert_matches!(err, Error::JwtParsing(JwtError::Validation(err)) if err.kind() == &ErrorKind::ExpiredSignature);
+        assert_matches!(err, DecoderError::JwtParsing(JwtError::Validation(err)) if err.kind() == &ErrorKind::ExpiredSignature);
     }
 
     #[test]
@@ -913,7 +886,10 @@ mod test {
             .into_verified(&examples_sd_jwt_decoding_key())
             .unwrap();
 
-        let (expected_jwt, expected_disclosures) = SIMPLE_STRUCTURED_SD_JWT
+        let VerifiedSdJwt {
+            issuer_signed: expected_jwt,
+            disclosures: expected_disclosures,
+        } = SIMPLE_STRUCTURED_SD_JWT
             .parse::<UnverifiedSdJwt<SdJwtExampleClaims, Header>>()
             .unwrap()
             .dangerous_parse_unverified()
@@ -933,7 +909,7 @@ mod test {
             .unwrap()
             .into_verified(&examples_sd_jwt_decoding_key());
 
-        assert_matches!(result, Err(crate::error::Error::InvalidDisclosure(_)));
+        assert_matches!(result, Err(DecoderError::JsonDeserialization(_)));
     }
 
     fn create_presentation(
@@ -952,8 +928,7 @@ mod test {
                     holder_key.verifying_key(),
                     object,
                     &MockTimeGenerator::default(),
-                ))
-                .unwrap(),
+                )),
                 |builder, path| {
                     builder
                         .make_concealable(
@@ -1001,8 +976,6 @@ mod test {
     #[rstest]
     #[case::default_nothing_disclosed(
         json!({
-            "iss": "https://iss.example.com",
-            "iat": Utc::now().timestamp(),
             "given_name": "John",
             "family_name": "Doe"
         }),
@@ -1013,8 +986,6 @@ mod test {
     )]
     #[case::flat_sd_all_disclose_single(
         json!({
-            "iss": "https://iss.example.com",
-            "iat": Utc::now().timestamp(),
             "given_name": "John",
             "family_name": "Doe"
         }),
@@ -1025,8 +996,6 @@ mod test {
     )]
     #[case::flat_sd_all_disclose_all(
         json!({
-            "iss": "https://iss.example.com",
-            "iat": Utc::now().timestamp(),
             "given_name": "John",
             "family_name": "Doe"
         }),
@@ -1037,8 +1006,6 @@ mod test {
     )]
     #[case::flat_single_sd(
         json!({
-            "iss": "https://iss.example.com",
-            "iat": Utc::now().timestamp(),
             "given_name": "John",
             "family_name": "Doe"
         }),
@@ -1049,8 +1016,6 @@ mod test {
     )]
     #[case::flat_single_sd_disclose_all(
         json!({
-            "iss": "https://iss.example.com",
-            "iat": Utc::now().timestamp(),
             "given_name": "John",
             "family_name": "Doe"
         }),
@@ -1061,8 +1026,6 @@ mod test {
     )]
     #[case::flat_no_sd_no_disclose(
         json!({
-            "iss": "https://iss.example.com",
-            "iat": Utc::now().timestamp(),
             "given_name": "John",
             "family_name": "Doe"
         }),
@@ -1073,8 +1036,6 @@ mod test {
     )]
     #[case::structured_single_sd_and_disclose(
         json!({
-            "iss": "https://iss.example.com",
-            "iat": Utc::now().timestamp(),
             "address": {
                 "street": "Main st.",
                 "house_number": 4
@@ -1087,8 +1048,6 @@ mod test {
     )]
     #[case::structured_recursive_path_sd_and_single_disclose(
         json!({
-            "iss": "https://iss.example.com",
-            "iat": Utc::now().timestamp(),
             "address": {
                 "street": "Main st.",
                 "house_number": 4
@@ -1101,8 +1060,6 @@ mod test {
     )]
     #[case::structured_all_sd_and_all_disclose(
         json!({
-            "iss": "https://iss.example.com",
-            "iat": Utc::now().timestamp(),
             "address": {
                 "street": "Main st.",
                 "house_number": 4
@@ -1115,8 +1072,6 @@ mod test {
     )]
     #[case::structured_all_sd_and_single_disclose(
         json!({
-            "iss": "https://iss.example.com",
-            "iat": Utc::now().timestamp(),
             "address": {
                 "street": "Main st.",
                 "house_number": 4
@@ -1129,8 +1084,6 @@ mod test {
     )]
     #[case::structured_root_sd_and_root_disclose(
         json!({
-            "iss": "https://iss.example.com",
-            "iat": Utc::now().timestamp(),
             "address": {"street": "Main st.", "house_number": 4 }
         }),
         &[vec!["address"]],
@@ -1140,8 +1093,6 @@ mod test {
     )]
     #[case::array(
         json!({
-            "iss": "https://iss.example.com",
-            "iat": Utc::now().timestamp(),
             "nationalities": ["NL", "DE"]
         }),
         &[vec!["nationalities"]],
@@ -1214,8 +1165,6 @@ mod test {
     #[rstest]
     #[case::array(
         json!({
-            "iss": "https://iss.example.com",
-            "iat": Utc::now().timestamp(),
             "nationalities": ["NL", "DE"]
         }),
         &[vec!["nationalities", "0"], vec!["nationalities", "1"]],
@@ -1225,8 +1174,6 @@ mod test {
     )]
     #[case::array_all_non_sd(
         json!({
-            "iss": "https://iss.example.com",
-            "iat": Utc::now().timestamp(),
             "nationalities": ["NL", "DE"]
         }),
         &[vec!["nationalities", "1"]],
@@ -1236,8 +1183,6 @@ mod test {
     )]
     #[case::array(
         json!({
-            "iss": "https://iss.example.com",
-            "iat": Utc::now().timestamp(),
             "nationalities": ["NL", "DE"]
         }),
         &[vec!["nationalities", "0"], vec!["nationalities", "1"], vec!["nationalities"]],
@@ -1247,8 +1192,6 @@ mod test {
     )]
     #[case::array(
         json!({
-            "iss": "https://iss.example.com",
-            "iat": Utc::now().timestamp(),
             "nationalities": ["NL", "DE"]
         }),
         &[vec!["nationalities", "0"]],
@@ -1258,8 +1201,6 @@ mod test {
     )]
     #[case::array_index_non_sd(
         json!({
-            "iss": "https://iss.example.com",
-            "iat": Utc::now().timestamp(),
             "nationalities": ["NL", "DE"]
         }),
         &[vec!["nationalities", "0"]],
@@ -1269,8 +1210,6 @@ mod test {
     )]
     #[case::array(
         json!({
-            "iss": "https://iss.example.com",
-            "iat": Utc::now().timestamp(),
             "nationalities": [{"country": "NL"}, {"country": "DE"}]
         }),
         &[
@@ -1286,8 +1225,6 @@ mod test {
     )]
     #[case::array_all_non_sd_nested(
         json!({
-            "iss": "https://iss.example.com",
-            "iat": Utc::now().timestamp(),
             "nationalities": [{"country": "NL"}, {"country": "DE"}]
         }),
         &[
@@ -1301,8 +1238,6 @@ mod test {
     )]
     #[case::array(
         json!({
-            "iss": "https://iss.example.com",
-            "iat": Utc::now().timestamp(),
             "nationalities": [{"country": "NL"}, {"country": "DE"}]
         }),
         &[vec!["nationalities", "0"], vec!["nationalities", "1"], vec!["nationalities"]],
@@ -1312,8 +1247,6 @@ mod test {
     )]
     #[case::array(
         json!({
-            "iss": "https://iss.example.com",
-            "iat": Utc::now().timestamp(),
             "nationalities": ["NL", "DE"]
         }),
         &[vec!["nationalities", "0"], vec!["nationalities", "1"]],
@@ -1323,8 +1256,6 @@ mod test {
     )]
     #[case::array(
         json!({
-            "iss": "https://iss.example.com",
-            "iat": Utc::now().timestamp(),
             "nationalities": ["NL", "DE"]
         }),
         &[vec!["nationalities", "0"], vec!["nationalities", "1"], vec!["nationalities"]],
@@ -1334,8 +1265,6 @@ mod test {
     )]
     #[case::array(
         json!({
-            "iss": "https://iss.example.com",
-            "iat": Utc::now().timestamp(),
             "nationalities": [{"country": "NL"}, {"country": "DE"}]
         }),
         &[
@@ -1351,8 +1280,6 @@ mod test {
     )]
     #[case::array_index_non_sd_nested(
         json!({
-            "iss": "https://iss.example.com",
-            "iat": Utc::now().timestamp(),
             "nationalities": [{"country": "NL"}, {"country": "DE"}]
         }),
         &[
@@ -1366,8 +1293,6 @@ mod test {
     )]
     #[case::array(
         json!({
-            "iss": "https://iss.example.com",
-            "iat": Utc::now().timestamp(),
             "nationalities": [{"country": "NL"}, {"country": "DE"}]
         }),
         &[vec!["nationalities", "0"], vec!["nationalities", "1"], vec!["nationalities"]],
@@ -1877,7 +1802,7 @@ mod test {
     fn parse_and_verify_disclosures(
         object: Value,
         disclosures: Vec<Disclosure>,
-    ) -> Result<IndexMap<String, Disclosure>> {
+    ) -> Result<IndexMap<String, Disclosure>, DecoderError> {
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let issuer_keypair = ca.generate_issuer_mock().unwrap();
         let holder_key = SigningKey::random(&mut OsRng);
@@ -1887,7 +1812,6 @@ mod test {
             json!({}),
             &MockTimeGenerator::default(),
         ))
-        .unwrap()
         .finish(&issuer_keypair)
         .now_or_never()
         .unwrap()
@@ -2035,7 +1959,7 @@ mod test {
 
         let error = parse_and_verify_disclosures(value, disclosures).unwrap_err();
 
-        assert_matches!(error, Error::UnreferencedDisclosure(digest) if digest == root_object_claim_digest);
+        assert_matches!(error, DecoderError::UnreferencedDisclosure(digest) if digest == root_object_claim_digest);
     }
 
     #[test]
@@ -2054,7 +1978,9 @@ mod test {
 
         let error = parse_and_verify_disclosures(value, disclosures).unwrap_err();
 
-        assert_matches!(error, Error::DataTypeMismatch(message) if message == format!("Expected an Array element, but got an Object element for digest `{array_claim_digest}`"));
+        assert_matches!(error, DecoderError::ClaimStructure(ClaimError::DisclosureTypeMismatch {
+            expected, actual, digest, }) if
+            expected == ClaimType::Array && actual == ClaimType::Object && digest == array_claim_digest );
     }
 
     #[test]
@@ -2062,17 +1988,19 @@ mod test {
         let (object_claim_digest, object_claim) = object_disclosure("some_field", json!("some_value"));
 
         let value = json!({
-                    "iss": "https://issuer.example.com/",
-                    "iat": 1683000000,
-                    "some_array": [
-        { "...": &object_claim_digest }
-                    ]
-                });
+            "iss": "https://issuer.example.com/",
+            "iat": 1683000000,
+            "some_array": [
+                { "...": &object_claim_digest }
+            ]
+        });
 
         let disclosures = vec![object_claim];
 
         let error = parse_and_verify_disclosures(value, disclosures).unwrap_err();
 
-        assert_matches!(error, Error::DataTypeMismatch(message) if message == format!("Expected an Object element, but got an Array element for digest `{object_claim_digest}`"));
+        assert_matches!(error, DecoderError::ClaimStructure(ClaimError::DisclosureTypeMismatch {
+            expected, actual, digest, }) if
+            expected == ClaimType::Object && actual == ClaimType::Array && digest == object_claim_digest );
     }
 }

@@ -417,6 +417,33 @@ open class MobileActions {
         }
     }
 
+    fun findElementByPartialTextAndPartialSiblingText(
+        text: String,
+        siblingText: String,
+        timeoutInSeconds: Long = 5
+    ): WebElement {
+        val wait = WebDriverWait(driver, Duration.ofSeconds(timeoutInSeconds))
+        return when (val platform = platformName()) {
+            "ANDROID" -> {
+                val quotedText = quoteForAndroid(text)
+                val quotedSibling = quoteForAndroid(siblingText)
+
+                val xpath = "//*[contains(@content-desc, $quotedText) and ../*[contains(@content-desc, $quotedSibling)]]"
+                wait.until(ExpectedConditions.presenceOfElementLocated(AppiumBy.xpath(xpath)))
+            }
+
+            "IOS" -> {
+                val quotedText = quoteForIos(text)
+                val quotedSibling = quoteForIos(siblingText)
+
+                val xpath = "//*[contains(@name, $quotedText) and ../*[contains(@name, $quotedSibling)]]"
+                wait.until(ExpectedConditions.presenceOfElementLocated(By.xpath(xpath)))
+            }
+
+            else -> throw IllegalArgumentException("Unsupported platform: $platform")
+        }
+    }
+
     fun switchToWalletApp() {
         val driver = when (val platform = platformName()) {
             "ANDROID" -> driver as AndroidDriver

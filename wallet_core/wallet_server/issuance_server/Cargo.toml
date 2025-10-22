@@ -46,7 +46,6 @@ serde_urlencoded.workspace = true
 thiserror.workspace = true
 tokio = { workspace = true, features = ["parking_lot", "rt-multi-thread", "net"] }
 trait-variant.workspace = true
-
 sea-orm = { workspace = true, optional = true, features = [
     "macros",
     "runtime-tokio-rustls",
@@ -65,9 +64,14 @@ http_utils.path = "../../lib/http_utils"
 openid4vc = { path = "../../lib/openid4vc", features = ["axum"] }
 openid4vc_server = { path = "../../lib/openid4vc_server", features = ["issuance", "disclosure"] }
 server_utils.path = "../server_utils"
+status_lists.path = "../status_lists"
+token_status_list.path = "../../lib/token_status_list"
 utils.path = "../../lib/utils"
 
 [dev-dependencies]
 indexmap.workspace = true
 p256 = { workspace = true, features = ["ecdsa"] }
 tokio = { workspace = true, features = ["macros", "test-util"] }
+uuid = { workspace = true, features = ["v4"] }
+
+token_status_list = { path = "../../lib/token_status_list", features = ["mock"] }

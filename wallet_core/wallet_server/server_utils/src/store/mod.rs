@@ -26,21 +26,21 @@ pub enum SessionStoreVariant<T> {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum DatabaseError {
+pub enum StoreError {
     #[cfg(feature = "postgres")]
     #[error("database error: {0}")]
     DbError(#[from] sea_orm::DbErr),
 }
 
 #[derive(Debug, Clone)]
-pub enum DatabaseConnection {
+pub enum StoreConnection {
     #[cfg(feature = "postgres")]
     Postgres(sea_orm::DatabaseConnection),
     Memory,
 }
 
-impl DatabaseConnection {
-    pub async fn try_new(url: Url) -> Result<Self, DatabaseError> {
+impl StoreConnection {
+    pub async fn try_new(url: Url) -> Result<Self, StoreError> {
         match url.scheme() {
             #[cfg(feature = "postgres")]
             "postgres" => Ok(Self::Postgres(postgres::new_connection(url).await?)),
@@ -51,13 +51,13 @@ impl DatabaseConnection {
 }
 
 impl<T> SessionStoreVariant<T> {
-    pub fn new(database: DatabaseConnection, timeouts: SessionStoreTimeouts) -> SessionStoreVariant<T> {
-        match database {
+    pub fn new(connection: StoreConnection, timeouts: SessionStoreTimeouts) -> SessionStoreVariant<T> {
+        match connection {
             #[cfg(feature = "postgres")]
-            DatabaseConnection::Postgres(connection) => {
+            StoreConnection::Postgres(connection) => {
                 SessionStoreVariant::Postgres(PostgresSessionStore::new(connection, timeouts))
             }
-            DatabaseConnection::Memory => SessionStoreVariant::Memory(MemorySessionStore::new(timeouts)),
+            StoreConnection::Memory => SessionStoreVariant::Memory(MemorySessionStore::new(timeouts)),
         }
     }
 }
