@@ -8,8 +8,6 @@ use url::Url;
 
 use attestation_data::attributes::AttributeValue;
 use attestation_data::attributes::AttributesHandlingError;
-use attestation_data::constants::PID_ATTESTATION_TYPE;
-use attestation_data::constants::PID_RECOVERY_CODE;
 use attestation_types::claim_path::ClaimPath;
 use crypto::wscd::DisclosureWscd;
 use error_category::ErrorCategory;
@@ -27,9 +25,11 @@ use openid4vc::oidc::OidcError;
 use openid4vc::token::TokenRequest;
 use platform_support::attested_key::AttestedKeyHolder;
 use update_policy_model::update_policy::VersionState;
-use utils::vec_nonempty;
+use utils::vec_at_least::NonEmptyIterator;
+use utils::vec_at_least::VecNonEmpty;
 use wallet_account::NL_WALLET_CLIENT_ID;
 use wallet_account::messages::instructions::DiscloseRecoveryCodePinRecovery;
+use wallet_configuration::wallet_config::PidAttributesConfiguration;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::AttestationIdentity;
@@ -268,11 +268,14 @@ where
             )
             .await?;
 
+        let pid_attestation_types = config.pid_attributes.pid_attestation_types();
+        let pid_attestation_types = pid_attestation_types.iter().map(String::as_str).collect();
+
         let stored_pid_credential_payload = self
             .storage
             .write()
             .await
-            .fetch_unique_attestations_by_type(&[PID_ATTESTATION_TYPE].into(), AttestationFormatQuery::SdJwt)
+            .fetch_unique_attestations_by_type(&pid_attestation_types, AttestationFormatQuery::SdJwt)
             .await
             .map_err(IssuanceError::AttestationQuery)?
             .pop()
@@ -282,7 +285,10 @@ where
         let stored_recovery_code = stored_pid_credential_payload
             .previewable_payload
             .attributes
-            .get(&vec_nonempty![ClaimPath::SelectByKey(PID_RECOVERY_CODE.to_string())])
+            .get(&Self::recovery_code_path(
+                &config.pid_attributes,
+                &stored_pid_credential_payload.previewable_payload.attestation_type,
+            ))
             .expect("failed to retrieve recovery code from PID")
             .expect("no recovery code found in PID");
 
@@ -294,6 +300,17 @@ where
         }
 
         Ok(())
+    }
+
+    fn recovery_code_path(pid_config: &PidAttributesConfiguration, attestation_type: &str) -> VecNonEmpty<ClaimPath> {
+        pid_config
+            .sd_jwt
+            .get(attestation_type)
+            .expect("stored PID had no corresponding PID configuration")
+            .recovery_code
+            .nonempty_iter()
+            .map(|path| ClaimPath::SelectByKey(path.to_string()))
+            .collect()
     }
 
     #[instrument(skip_all)]
@@ -316,19 +333,26 @@ where
         .await
         .map_err(IssuanceError::from)?;
 
-        let normalized_credential_previews = issuance_session.normalized_credential_preview();
+        let config = self.config_repository.get();
+        let pid_attestation_types = config.pid_attributes.pid_attestation_types();
 
-        let recovery_code = normalized_credential_previews
+        let normalized_credential_previews = issuance_session.normalized_credential_preview();
+        let pid_preview = normalized_credential_previews
             .iter()
             .find(|preview| {
                 preview.content.copies_per_format.get(&Format::SdJwt).is_some()
-                    && preview.content.credential_payload.attestation_type == PID_ATTESTATION_TYPE
+                    && pid_attestation_types.contains(&preview.content.credential_payload.attestation_type)
             })
-            .ok_or(PinRecoveryError::MissingPid)?
+            .ok_or(PinRecoveryError::MissingPid)?;
+
+        let recovery_code = pid_preview
             .content
             .credential_payload
             .attributes
-            .get(&vec_nonempty![ClaimPath::SelectByKey(PID_RECOVERY_CODE.to_string())])?
+            .get(&Self::recovery_code_path(
+                &config.pid_attributes,
+                &pid_preview.content.credential_payload.attestation_type,
+            ))?
             .ok_or(PinRecoveryError::MissingRecoveryCode)?
             .clone();
 
@@ -452,11 +476,14 @@ where
 
         // Get an SD-JWT copy out of the PID we just received.
 
+        let pid_attestation_types = config.pid_attributes.pid_attestation_types();
+
         let attestation = issuance_result
             .into_iter()
-            .find(|attestation| attestation.attestation_type == PID_ATTESTATION_TYPE)
+            .find(|attestation| pid_attestation_types.contains(&attestation.attestation_type)) // TODO: check against the actually offered type
             .expect("no PID received"); // accept_issuance() already checks this against the previews
 
+        let pid_attestation_type = attestation.attestation_type;
         let pid = attestation
             .copies
             .into_inner()
@@ -469,7 +496,7 @@ where
 
         let recovery_code_disclosure = pid
             .into_presentation_builder()
-            .disclose(&vec_nonempty![ClaimPath::SelectByKey(PID_RECOVERY_CODE.to_string())])
+            .disclose(&Self::recovery_code_path(&config.pid_attributes, &pid_attestation_type))
             .unwrap() // accept_issuance() already checks that the PID has a recovery code
             .finish()
             .into();
@@ -589,8 +616,6 @@ mod tests {
     use attestation_data::attributes::Attribute;
     use attestation_data::attributes::AttributeValue;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
-    use attestation_data::constants::PID_ATTESTATION_TYPE;
-    use attestation_data::constants::PID_RECOVERY_CODE;
     use attestation_types::claim_path::ClaimPath;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::wscd::DisclosureResult;
@@ -624,6 +649,7 @@ mod tests {
     use crate::storage::StoredAttestation;
     use crate::storage::StoredAttestationCopy;
     use crate::test::MockDigidSession;
+    use crate::test::Repository;
     use crate::wallet::Session;
     use crate::wallet::issuance::WalletIssuanceSession;
     use crate::wallet::pin_recovery::PinRecoveryError;
@@ -800,20 +826,7 @@ mod tests {
             .returning(|| Ok(()));
 
         // Setup the issuance session
-        let (sd_jwt, _metadata) = create_example_pid_sd_jwt();
-        let (pid_issuer, attestations) = mock_issuance_session(
-            IssuedCredential::SdJwt {
-                key_identifier: "key_id".to_string(),
-                sd_jwt: sd_jwt.clone(),
-            },
-            String::from(PID_ATTESTATION_TYPE),
-            VerifiedTypeMetadataDocuments::nl_pid_example(),
-        );
-        wallet.session = Some(Session::Issuance(WalletIssuanceSession::new(
-            true,
-            attestations,
-            pid_issuer,
-        )));
+        setup_issuance_session(&mut wallet);
 
         wallet
             .complete_pin_recovery_with_wscd(MockPinWscd, "112233".to_string(), vec![1, 2, 3])
@@ -1021,17 +1034,22 @@ mod tests {
         wallet.session = Some(Session::Digid(session));
 
         // Set up the `MockIssuanceSession` to return one `CredentialPreviewState`.
+        let config = wallet.config_repository.get();
         let start_context = MockIssuanceSession::start_context();
-        start_context.expect().return_once(|| {
+        start_context.expect().return_once(move || {
             let mut client = MockIssuanceSession::new();
 
             // Change the recovery code attribute from the preview
             let mut preview = create_example_preview_data(&MockTimeGenerator::default(), Format::SdJwt);
+
             let attributes = &mut preview.content.credential_payload.attributes;
             attributes.prune(&[vec_nonempty![ClaimPath::SelectByKey("family_name".to_string())]]);
             attributes
                 .insert(
-                    &vec_nonempty![ClaimPath::SelectByKey(PID_RECOVERY_CODE.to_string())],
+                    &TestWalletMockStorage::recovery_code_path(
+                        &config.pid_attributes,
+                        &preview.content.credential_payload.attestation_type,
+                    ),
                     Attribute::Single(AttributeValue::Text("wrong recovery code".to_string())),
                 )
                 .unwrap();
@@ -1182,7 +1200,15 @@ mod tests {
                 key_identifier: "key_id".to_string(),
                 sd_jwt: sd_jwt.clone(),
             },
-            String::from(PID_ATTESTATION_TYPE),
+            wallet
+                .config_repository
+                .get()
+                .pid_attributes
+                .sd_jwt
+                .keys()
+                .next()
+                .unwrap()
+                .clone(),
             VerifiedTypeMetadataDocuments::nl_pid_example(),
         );
 
