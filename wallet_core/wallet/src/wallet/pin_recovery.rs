@@ -137,6 +137,12 @@ pub enum PinRecoveryError {
     NoPidPresent,
 }
 
+#[derive(Debug)]
+pub(super) enum PinRecoverySession<DS, IS> {
+    Digid(DS),
+    Issuance(WalletIssuanceSession<IS>),
+}
+
 impl<CR, UR, S, AKH, APC, DC, IS, DCC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
@@ -229,7 +235,8 @@ where
 
         info!("PIN recovery DigiD auth URL generated");
         let auth_url = session.auth_url().clone();
-        self.session.replace(Session::Digid(session));
+        self.session
+            .replace(Session::PinRecovery(PinRecoverySession::Digid(session)));
 
         Ok(auth_url)
     }
@@ -254,12 +261,12 @@ where
         self.check_recovery_state(PinRecoveryState::Starting).await?;
 
         info!("Checking if there is an active DigiD issuance session");
-        if !matches!(self.session, Some(Session::Digid(..))) {
+        if !matches!(self.session, Some(Session::PinRecovery(PinRecoverySession::Digid(..)))) {
             return Err(PinRecoveryError::SessionState);
         }
 
-        let Some(Session::Digid(session)) = self.session.take() else {
-            return Err(PinRecoveryError::SessionState);
+        let Some(Session::PinRecovery(PinRecoverySession::Digid(session))) = self.session.take() else {
+            unreachable!("session contained no PinRecoveryDigid"); // we just checked this above
         };
 
         let pid_issuance_config = &self.config_repository.get().pid_issuance;
@@ -399,10 +406,8 @@ where
         // The IssuanceSession trait guarantees that credential_preview_data()
         // returns at least one value, so this unwrap() is safe.
         let event_attestations = attestations.clone().try_into().unwrap();
-        self.session.replace(Session::Issuance(WalletIssuanceSession::new(
-            true,
-            event_attestations,
-            issuance_session,
+        self.session.replace(Session::PinRecovery(PinRecoverySession::Issuance(
+            WalletIssuanceSession::new(true, event_attestations, issuance_session),
         )));
 
         Ok(recovery_code.clone())
@@ -442,7 +447,7 @@ where
         self.check_recovery_state(PinRecoveryState::Starting).await?;
 
         info!("Checking if there is an active issuance session");
-        let Some(Session::Issuance(issuance_session)) = &self.session else {
+        let Some(Session::PinRecovery(PinRecoverySession::Issuance(issuance_session))) = &self.session else {
             return Err(PinRecoveryError::SessionState);
         };
 
@@ -669,6 +674,7 @@ mod tests {
     use crate::storage::RegistrationData;
     use crate::storage::StoredAttestation;
     use crate::storage::StoredAttestationCopy;
+    use crate::wallet::PinRecoverySession;
     use crate::wallet::Session;
     use crate::wallet::issuance::WalletIssuanceSession;
     use crate::wallet::pin_recovery::PinRecoveryError;
@@ -743,7 +749,7 @@ mod tests {
 
                 Ok(token_request)
             });
-        wallet.session = Some(Session::Digid(session));
+        wallet.session = Some(Session::PinRecovery(PinRecoverySession::Digid(session)));
 
         // Set up the `MockIssuanceSession` to return one `CredentialPreviewState`.
         let start_context = MockIssuanceSession::start_context();
@@ -976,7 +982,7 @@ mod tests {
             .once()
             .returning(|_, _| Err(DigidError::Oidc(OidcError::Denied)));
 
-        wallet.session = Some(Session::Digid(digid_session));
+        wallet.session = Some(Session::PinRecovery(PinRecoverySession::Digid(digid_session)));
 
         let err = wallet
             .continue_pin_recovery(AUTH_URL.parse().unwrap())
@@ -1016,7 +1022,7 @@ mod tests {
 
                 Ok(token_request)
             });
-        wallet.session = Some(Session::Digid(session));
+        wallet.session = Some(Session::PinRecovery(PinRecoverySession::Digid(session)));
 
         // Set up the `MockIssuanceSession` to return one `CredentialPreviewState`.
         let start_context = MockIssuanceSession::start_context();
@@ -1078,7 +1084,7 @@ mod tests {
 
                 Ok(token_request)
             });
-        wallet.session = Some(Session::Digid(session));
+        wallet.session = Some(Session::PinRecovery(PinRecoverySession::Digid(session)));
 
         // Set up the `MockIssuanceSession` to return one `CredentialPreviewState`.
         let config = wallet.config_repository.get();
@@ -1207,7 +1213,7 @@ mod tests {
             .await
             .unwrap_err();
 
-        wallet.session = Some(Session::Digid(MockDigidSession::new()));
+        wallet.session = Some(Session::PinRecovery(PinRecoverySession::Digid(MockDigidSession::new())));
 
         assert_matches!(err, PinRecoveryError::SessionState);
     }
@@ -1259,10 +1265,8 @@ mod tests {
             VerifiedTypeMetadataDocuments::nl_pid_example(),
         );
 
-        wallet.session = Some(Session::Issuance(WalletIssuanceSession::new(
-            true,
-            attestations,
-            pid_issuer,
+        wallet.session = Some(Session::PinRecovery(PinRecoverySession::Issuance(
+            WalletIssuanceSession::new(true, attestations, pid_issuer),
         )));
     }
 

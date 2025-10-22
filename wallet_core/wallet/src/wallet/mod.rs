@@ -38,6 +38,7 @@ use crate::lock::WalletLock;
 use crate::storage::DatabaseStorage;
 use crate::storage::RegistrationData;
 use crate::update_policy::UpdatePolicyRepository;
+use crate::wallet::pin_recovery::PinRecoverySession;
 
 use self::attestations::AttestationsCallback;
 use self::disclosure::WalletDisclosureSession;
@@ -104,6 +105,7 @@ enum Session<DS, IS, DCS> {
     Digid(DS),
     Issuance(WalletIssuanceSession<IS>),
     Disclosure(WalletDisclosureSession<DCS>),
+    PinRecovery(PinRecoverySession<DS, IS>),
 }
 
 pub struct Wallet<
