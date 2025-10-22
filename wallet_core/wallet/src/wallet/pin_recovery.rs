@@ -1,7 +1,6 @@
 use std::hash::Hash;
 use std::sync::Arc;
 
-use rustls_pki_types::TrustAnchor;
 use tracing::info;
 use tracing::instrument;
 use url::Url;
@@ -15,7 +14,6 @@ use error_category::sentry_capture_error;
 use http_utils::reqwest::client_builder_accept_json;
 use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::urls;
-use http_utils::urls::BaseUrl;
 use openid4vc::Format;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::issuance_session::HttpVcMessageClient;
@@ -174,12 +172,12 @@ where
         }
 
         info!("Checking if a pid is present");
-        let pid_attributes = &self.config_repository.get().pid_attributes;
+        let config = &self.config_repository.get();
         let has_pid = self
             .storage
             .write()
             .await
-            .has_any_attestations_with_types(&pid_attributes.pid_attestation_types())
+            .has_any_attestations_with_types(&config.pid_attributes.pid_attestation_types())
             .await
             .map_err(PinRecoveryError::AttestationQuery)?;
         if !has_pid {
@@ -195,17 +193,11 @@ where
 
         // No need to check if a `PinRecoveryData` is already stored: we can always start PIN recovery again.
 
-        let url = self.pin_recovery_auth_url().await?;
-        Ok(url)
-    }
-
-    async fn pin_recovery_auth_url(&mut self) -> Result<Url, IssuanceError> {
-        let pid_issuance_config = &self.config_repository.get().pid_issuance;
         let session = self
             .digid_client
             .start_session(
-                pid_issuance_config.digid.clone(),
-                pid_issuance_config.digid_http_config.clone(),
+                config.pid_issuance.digid.clone(),
+                config.pid_issuance.digid_http_config.clone(),
                 urls::pin_recovery_base_uri(&UNIVERSAL_LINK_BASE_URL)
                     .as_ref()
                     .to_owned(),
@@ -249,9 +241,9 @@ where
             unreachable!("session contained no PinRecoveryDigid"); // we just checked this above
         };
 
-        let pid_issuance_config = &self.config_repository.get().pid_issuance;
+        let config = self.config_repository.get();
         let token_request = session
-            .into_token_request(&pid_issuance_config.digid_http_config, redirect_uri)
+            .into_token_request(&config.pid_issuance.digid_http_config, redirect_uri)
             .await
             .map_err(|error| {
                 if matches!(error, DigidError::Oidc(OidcError::Denied)) {
@@ -261,18 +253,10 @@ where
                 }
             })?;
 
-        let config = self.config_repository.get();
-
         // Check the recovery code in the received PID against the one in the stored PID, as otherwise
         // the WP will reject our PIN recovery instructions.
 
-        let received_recovery_code = self
-            .pin_recovery_start_issuance(
-                token_request,
-                config.pid_issuance.pid_issuer_url.clone(),
-                &config.issuer_trust_anchors(),
-            )
-            .await?;
+        let received_recovery_code = self.pin_recovery_start_issuance(token_request, &config).await?;
 
         let pid_attestation_types = config.pid_attributes.pid_attestation_types();
         let pid_attestation_types = pid_attestation_types.iter().map(String::as_str).collect();
@@ -323,8 +307,7 @@ where
     pub(super) async fn pin_recovery_start_issuance(
         &mut self,
         token_request: TokenRequest,
-        issuer_url: BaseUrl,
-        issuer_trust_anchors: &Vec<TrustAnchor<'_>>,
+        config: &WalletConfiguration,
     ) -> Result<AttributeValue, PinRecoveryError> {
         let http_client = client_builder_accept_json(default_reqwest_client_builder())
             .build()
@@ -332,14 +315,13 @@ where
 
         let issuance_session = IS::start_issuance(
             HttpVcMessageClient::new(NL_WALLET_CLIENT_ID.to_string(), http_client),
-            issuer_url,
+            config.pid_issuance.pid_issuer_url.clone(),
             token_request,
-            issuer_trust_anchors,
+            &config.issuer_trust_anchors(),
         )
         .await
         .map_err(IssuanceError::from)?;
 
-        let config = self.config_repository.get();
         let pid_attestation_types = config.pid_attributes.pid_attestation_types();
 
         let normalized_credential_previews = issuance_session.normalized_credential_preview();
@@ -372,10 +354,15 @@ where
     #[instrument(skip_all)]
     #[sentry_capture_error]
     pub async fn complete_pin_recovery(&mut self, new_pin: String) -> Result<(), PinRecoveryError> {
-        let new_pin_salt = new_pin_salt();
-        let wscd = self.pin_recovery_wscd(new_pin.clone(), new_pin_salt.clone()).await?;
+        let config = self.config_repository.get();
 
-        self.complete_pin_recovery_with_wscd(wscd, new_pin, new_pin_salt).await
+        let new_pin_salt = new_pin_salt();
+        let wscd = self
+            .pin_recovery_wscd(new_pin.clone(), new_pin_salt.clone(), &config)
+            .await?;
+
+        self.complete_pin_recovery_with_wscd(wscd, new_pin, new_pin_salt, &config)
+            .await
     }
 
     #[instrument(skip_all)]
@@ -384,6 +371,7 @@ where
         pin_recovery_wscd: P,
         new_pin: String,
         new_pin_salt: Vec<u8>,
+        config: &WalletConfiguration,
     ) -> Result<(), PinRecoveryError>
     where
         <P as DisclosureWscd>::Key: Eq + Hash,
@@ -422,8 +410,6 @@ where
         // PIN recovery will have to start again from the start.
 
         self.storage.write().await.upsert_data(&PinRecoveryData).await?;
-
-        let config = self.config_repository.get();
 
         let issuance_result = issuance_session
             .accept_issuance(&config.issuer_trust_anchors(), &pin_recovery_wscd, true)
@@ -521,6 +507,7 @@ where
         &self,
         new_pin: String,
         new_pin_salt: Vec<u8>,
+        config: &WalletConfiguration,
     ) -> Result<
         PinRecoveryRemoteEcdsaWscd<S, <AKH as AttestedKeyHolder>::AppleKey, <AKH as AttestedKeyHolder>::GoogleKey, APC>,
         PinRecoveryError,
@@ -535,7 +522,6 @@ where
             ..registration_data.clone()
         };
 
-        let config = self.config_repository.get();
         let instruction_client = self
             .new_instruction_client(
                 new_pin.clone(),
@@ -782,7 +768,12 @@ mod tests {
         setup_issuance_session(&mut wallet);
 
         wallet
-            .complete_pin_recovery_with_wscd(MockPinWscd, "112233".to_string(), vec![1, 2, 3])
+            .complete_pin_recovery_with_wscd(
+                MockPinWscd,
+                "112233".to_string(),
+                vec![1, 2, 3],
+                &wallet.config_repository.get(),
+            )
             .await
             .unwrap();
     }
@@ -1049,7 +1040,12 @@ mod tests {
         setup_issuance_session(&mut wallet);
 
         let err = wallet
-            .complete_pin_recovery_with_wscd(MockPinWscd, "112233".to_string(), vec![1, 2, 3])
+            .complete_pin_recovery_with_wscd(
+                MockPinWscd,
+                "112233".to_string(),
+                vec![1, 2, 3],
+                &wallet.config_repository.get(),
+            )
             .await
             .unwrap_err();
 
@@ -1067,7 +1063,12 @@ mod tests {
             .returning(move || Ok(None));
 
         let err = wallet
-            .complete_pin_recovery_with_wscd(MockPinWscd, "112233".to_string(), vec![1, 2, 3])
+            .complete_pin_recovery_with_wscd(
+                MockPinWscd,
+                "112233".to_string(),
+                vec![1, 2, 3],
+                &wallet.config_repository.get(),
+            )
             .await
             .unwrap_err();
 
@@ -1085,7 +1086,12 @@ mod tests {
             .returning(move || Ok(None));
 
         let err = wallet
-            .complete_pin_recovery_with_wscd(MockPinWscd, "112233".to_string(), vec![1, 2, 3])
+            .complete_pin_recovery_with_wscd(
+                MockPinWscd,
+                "112233".to_string(),
+                vec![1, 2, 3],
+                &wallet.config_repository.get(),
+            )
             .await
             .unwrap_err();
 
@@ -1108,7 +1114,12 @@ mod tests {
         setup_issuance_session(&mut wallet);
 
         let err = wallet
-            .complete_pin_recovery_with_wscd(MockPinWscd, "111111".to_string(), vec![1, 2, 3])
+            .complete_pin_recovery_with_wscd(
+                MockPinWscd,
+                "111111".to_string(),
+                vec![1, 2, 3],
+                &wallet.config_repository.get(),
+            )
             .await
             .unwrap_err();
 
