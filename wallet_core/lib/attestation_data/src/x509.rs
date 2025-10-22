@@ -4,6 +4,7 @@ use crypto::x509::BorrowingCertificate;
 use crypto::x509::BorrowingCertificateExtension;
 use crypto::x509::CertificateError;
 use crypto::x509::CertificateUsage;
+use error_category::ErrorCategory;
 
 use crate::auth::issuer_auth::IssuerRegistration;
 use crate::auth::reader_auth::ReaderRegistration;
@@ -15,8 +16,30 @@ pub enum CertificateType {
     ReaderAuth(Option<Box<ReaderRegistration>>),
 }
 
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+pub enum CertificateTypeError {
+    #[error("certificate error: {0}")]
+    #[category(defer)]
+    Certificate(#[from] CertificateError),
+
+    #[error("unknown usage: {0}")]
+    #[category(critical)]
+    UnknownUsage(CertificateUsage),
+}
+
 impl CertificateType {
-    pub fn from_certificate(cert: &BorrowingCertificate) -> Result<Self, CertificateError> {
+    pub fn has_registration(&self) -> bool {
+        matches!(
+            self,
+            CertificateType::Mdl(Some(_)) | CertificateType::ReaderAuth(Some(_))
+        )
+    }
+
+    pub fn has_type(usage: CertificateUsage) -> bool {
+        matches!(usage, CertificateUsage::Mdl | CertificateUsage::ReaderAuth)
+    }
+
+    pub fn from_certificate(cert: &BorrowingCertificate) -> Result<Self, CertificateTypeError> {
         let usage = CertificateUsage::from_certificate(cert.x509_certificate())?;
         let result = match usage {
             CertificateUsage::Mdl => {
@@ -27,6 +50,7 @@ impl CertificateType {
                 let registration: Option<ReaderRegistration> = ReaderRegistration::from_certificate(cert)?;
                 CertificateType::ReaderAuth(registration.map(Box::new))
             }
+            _ => return Err(CertificateTypeError::UnknownUsage(usage)),
         };
 
         Ok(result)
@@ -200,8 +224,8 @@ mod test {
             .unwrap();
 
         // Verify whether the parsed CertificateType equals the original ReaderAuth usage
-        let cert_usage = CertificateType::from_certificate(reader_key_pair.certificate()).unwrap();
-        assert_eq!(cert_usage, reader_auth);
+        let cert_type = CertificateType::from_certificate(reader_key_pair.certificate()).unwrap();
+        assert_eq!(cert_type, reader_auth);
 
         let x509_cert = reader_key_pair.certificate().x509_certificate();
         assert_certificate_common_name(x509_cert, &["mycert"]);
@@ -234,8 +258,8 @@ mod test {
             .unwrap();
 
         // Verify whether the parsed CertificateType equals the original ReaderAuth usage
-        let cert_usage = CertificateType::from_certificate(reader_key_pair.certificate()).unwrap();
-        assert_eq!(cert_usage, reader_auth);
+        let cert_type = CertificateType::from_certificate(reader_key_pair.certificate()).unwrap();
+        assert_eq!(cert_type, reader_auth);
 
         let x509_cert = reader_key_pair.certificate().x509_certificate();
         assert_certificate_common_name(x509_cert, &["mycert"]);

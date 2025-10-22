@@ -12,7 +12,6 @@ use serde::Deserialize;
 use serde::Deserializer;
 use serde::de;
 
-use attestation_data::x509::CertificateType;
 use attestation_types::qualification::AttestationQualification;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::x509::CertificateError;
@@ -65,7 +64,7 @@ pub struct AttestationTypeConfigSettings {
     pub valid_days: u64,
     pub copies_per_format: IndexMap<Format, NonZeroU8>,
 
-    pub status_list_base_url: BaseUrl,
+    pub status_list: StatusListSettings,
 
     #[serde(default)]
     pub attestation_qualification: AttestationQualification,
@@ -73,6 +72,14 @@ pub struct AttestationTypeConfigSettings {
     /// Which of the SAN fields in the issuer certificate to use as the `issuer_uri`/`iss` field in the mdoc/SD-JWT.
     /// If the certificate contains exactly one SAN, then this may be left blank.
     pub certificate_san: Option<HttpsUri>,
+}
+
+#[derive(Clone, Deserialize)]
+pub struct StatusListSettings {
+    pub base_url: BaseUrl,
+
+    #[serde(flatten)]
+    pub keypair: KeyPair,
 }
 
 fn deserialize_type_metadata<'de, D>(deserializer: D) -> Result<TypeMetadataByVct, D::Error>
@@ -137,7 +144,7 @@ impl AttestationTypesConfigSettings {
                     Days::new(attestation.valid_days),
                     attestation.copies_per_format,
                     issuer_uri,
-                    attestation.status_list_base_url,
+                    attestation.status_list.base_url,
                     attestation.attestation_qualification,
                     metadata_documents,
                 )?;
@@ -210,13 +217,7 @@ impl IssuerSettings {
             .map(|(typ, attestation)| (typ.as_ref(), &attestation.keypair))
             .collect();
 
-        verify_key_pairs(
-            &key_pairs,
-            &trust_anchors,
-            CertificateUsage::Mdl,
-            &time,
-            |certificate_type| matches!(certificate_type, CertificateType::Mdl(Some(_))),
-        )?;
+        verify_key_pairs(&key_pairs, &trust_anchors, CertificateUsage::Mdl, &time)?;
 
         Ok(())
     }
@@ -245,6 +246,7 @@ mod tests {
     use server_utils::settings::Storage;
 
     use crate::settings::IssuerSettingsError;
+    use crate::settings::StatusListSettings;
 
     use super::AttestationTypeConfigSettings;
     use super::IssuerSettings;
@@ -255,6 +257,10 @@ mod tests {
             .expect("generate issuer cert failed")
             .into();
 
+        let status_list_keypair = Ca::generate_status_list_mock(&issuer_ca)
+            .expect("generate tsl cert failed")
+            .into();
+
         IssuerSettings {
             attestation_settings: HashMap::from([(
                 "com.example.pid".to_string(),
@@ -262,7 +268,10 @@ mod tests {
                     keypair,
                     valid_days: 365,
                     copies_per_format: IndexMap::from([(Format::MsoMdoc, 10.try_into().unwrap())]),
-                    status_list_base_url: "https://cdn.example.com/tsl".parse().unwrap(),
+                    status_list: StatusListSettings {
+                        base_url: "https://cdn.example.com/tsl".parse().unwrap(),
+                        keypair: status_list_keypair,
+                    },
                     attestation_qualification: AttestationQualification::PubEAA,
                     certificate_san: Some(("https://".to_string() + ISSUANCE_CERT_CN).parse().unwrap()),
                 },
@@ -320,6 +329,10 @@ mod tests {
         let issuer_cert_no_registration = generate_issuer_mock_with_registration(&issuer_ca, None)
             .expect("generate issuer cert without issuer registration");
 
+        let status_list_keypair = Ca::generate_status_list_mock(&issuer_ca)
+            .expect("generate tsl cert failed")
+            .into();
+
         settings.server_settings.issuer_trust_anchors = vec![issuer_ca.as_borrowing_trust_anchor().clone()];
         settings.attestation_settings = HashMap::from([(
             "com.example.no_registration".to_string(),
@@ -327,7 +340,10 @@ mod tests {
                 keypair: issuer_cert_no_registration.into(),
                 valid_days: 365,
                 copies_per_format: IndexMap::from([(Format::MsoMdoc, 4.try_into().unwrap())]),
-                status_list_base_url: "https://cdn.example.com/tsl".parse().unwrap(),
+                status_list: StatusListSettings {
+                    base_url: "https://cdn.example.com/tsl".parse().unwrap(),
+                    keypair: status_list_keypair,
+                },
                 attestation_qualification: Default::default(),
                 certificate_san: None,
             },

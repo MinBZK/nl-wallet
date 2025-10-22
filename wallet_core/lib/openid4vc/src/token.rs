@@ -19,6 +19,7 @@ use url::Url;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::x509::CertificateType;
+use attestation_data::x509::CertificateTypeError;
 use crypto::utils::random_string;
 use crypto::utils::sha256;
 use crypto::x509::BorrowingCertificate;
@@ -222,6 +223,10 @@ pub enum CredentialPreviewError {
     #[error("certificate error: {0}")]
     #[category(defer)]
     Certificate(#[from] CertificateError),
+
+    #[error("certificate type error: {0}")]
+    #[category(defer)]
+    CertificateType(#[from] CertificateTypeError),
 
     #[error("issuer registration not found in certificate")]
     #[category(critical)]

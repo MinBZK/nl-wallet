@@ -4,6 +4,7 @@ use std::time::Duration;
 use chrono::DateTime;
 use chrono::Utc;
 use derive_more::Debug;
+use derive_more::Display;
 use indexmap::IndexMap;
 use p256::ecdsa::VerifyingKey;
 use p256::elliptic_curve::pkcs8::DecodePublicKey;
@@ -42,10 +43,11 @@ use utils::vec_at_least::VecNonEmpty;
 /// Usage of a [`Certificate`], representing its Extended Key Usage (EKU).
 /// [`Certificate::verify()`] receives this as parameter and enforces that it is present in the certificate
 /// being verified.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Display)]
 pub enum CertificateUsage {
     Mdl,
     ReaderAuth,
+    OAuthStatusSigning,
 }
 
 #[rustfmt::skip]
@@ -55,6 +57,8 @@ mod extended_key_usage_oid {
 
     pub const EXTENDED_KEY_USAGE_MDL: &Oid = &oid!(1.0.18013.5.1.2);
     pub const EXTENDED_KEY_USAGE_READER_AUTH: &Oid = &oid!(1.0.18013.5.1.6);
+    // The .127 is made up, the real child node is TDB
+    pub const EXTENDED_KEY_USAGE_TSL: &Oid = &oid!(1.3.6.1.5.5.7.3.127);
 }
 
 use extended_key_usage_oid::*;
@@ -82,6 +86,8 @@ impl CertificateUsage {
             return Ok(Self::Mdl);
         } else if key_usage_oid == EXTENDED_KEY_USAGE_READER_AUTH {
             return Ok(Self::ReaderAuth);
+        } else if key_usage_oid == EXTENDED_KEY_USAGE_TSL {
+            return Ok(Self::OAuthStatusSigning);
         }
 
         Err(CertificateError::IncorrectEku(key_usage_oid.to_id_string()))
@@ -91,6 +97,7 @@ impl CertificateUsage {
         match self {
             CertificateUsage::Mdl => EXTENDED_KEY_USAGE_MDL,
             CertificateUsage::ReaderAuth => EXTENDED_KEY_USAGE_READER_AUTH,
+            CertificateUsage::OAuthStatusSigning => EXTENDED_KEY_USAGE_TSL,
         }
         .as_bytes()
     }

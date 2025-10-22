@@ -3,7 +3,7 @@ use std::error::Error;
 use derive_more::Constructor;
 
 use attestation_data::auth::reader_auth::ValidationError;
-use crypto::x509::CertificateError;
+use attestation_data::x509::CertificateTypeError;
 use error_category::ErrorCategory;
 
 use crate::openid4vp::AuthRequestValidationError;
@@ -91,7 +91,7 @@ pub enum VpVerifierError {
     IncorrectClientId { expected: String, found: String },
 
     #[error("error parsing RP certificate: {0}")]
-    RpCertificate(#[source] CertificateError),
+    RpCertificate(#[source] CertificateTypeError),
 
     #[error("no reader registration in RP certificate")]
     #[category(critical)]

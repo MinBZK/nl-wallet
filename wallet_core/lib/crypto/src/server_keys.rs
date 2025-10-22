@@ -325,6 +325,10 @@ pub mod generate {
             pub fn generate_reader_mock(&self) -> Result<KeyPair, CertificateError> {
                 self.generate_key_pair(RP_CERT_CN, CertificateUsage::ReaderAuth, Default::default())
             }
+
+            pub fn generate_status_list_mock(&self) -> Result<KeyPair, CertificateError> {
+                self.generate_key_pair(RP_CERT_CN, CertificateUsage::OAuthStatusSigning, Default::default())
+            }
         }
     }
 }

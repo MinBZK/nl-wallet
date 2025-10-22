@@ -15,6 +15,7 @@ use serde_with::serde_as;
 use url::Url;
 
 use attestation_data::x509::CertificateType;
+use attestation_data::x509::CertificateTypeError;
 use crypto::p256_der::DerSigningKey;
 use crypto::server_keys::KeyPair as ParsedKeyPair;
 use crypto::trust_anchor::BorrowingTrustAnchor;
@@ -179,7 +180,7 @@ pub enum CertificateVerificationError {
     #[error("invalid key pair `{1}`: {0}")]
     InvalidKeyPair(#[source] CertificateError, String),
     #[error("no CertificateType found in certificate `{1}`: {0}")]
-    NoCertificateType(#[source] CertificateError, String),
+    NoCertificateType(#[source] CertificateTypeError, String),
     #[error("certificate `{0}` is missing CertificateType registration data")]
     IncompleteCertificateType(String),
 }
@@ -192,16 +193,12 @@ pub trait ServerSettings: Sized {
     fn server_settings(&self) -> &Settings;
 }
 
-pub fn verify_key_pairs<F>(
+pub fn verify_key_pairs(
     key_pairs: &[(&str, &KeyPair)],
     trust_anchors: &[TrustAnchor<'_>],
     usage: CertificateUsage,
     time: &impl Generator<DateTime<Utc>>,
-    has_usage_registration: F,
-) -> Result<(), CertificateVerificationError>
-where
-    F: Fn(CertificateType) -> bool,
-{
+) -> Result<(), CertificateVerificationError> {
     if trust_anchors.is_empty() {
         return Err(CertificateVerificationError::MissingTrustAnchors);
     }
@@ -216,14 +213,25 @@ where
                 .map_err(|e| CertificateVerificationError::InvalidCertificate(e, key_pair_id.to_string()))?;
         }
 
+        if !CertificateType::has_type(usage) {
+            continue;
+        }
+
         let certificate_type = CertificateType::from_certificate(&key_pair.certificate)
             .map_err(|e| CertificateVerificationError::NoCertificateType(e, key_pair_id.to_string()))?;
 
-        if !has_usage_registration(certificate_type) {
+        if !certificate_type.has_registration() {
             return Err(CertificateVerificationError::IncompleteCertificateType(
                 key_pair_id.to_string(),
             ));
         }
+
+        // This should be verified before
+        let derived_usage = CertificateUsage::from(&certificate_type);
+        assert_eq!(
+            derived_usage, usage,
+            "Usage derived from CertificateType does not match verified usage"
+        );
     }
 
     Ok(())
