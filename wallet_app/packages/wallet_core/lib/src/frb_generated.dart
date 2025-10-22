@@ -19,6 +19,7 @@ import 'models/transfer.dart';
 import 'models/uri.dart';
 import 'models/version_state.dart';
 import 'models/wallet_event.dart';
+import 'models/wallet_state.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 /// Main entrypoint of the Rust API
@@ -77,7 +78,7 @@ class WalletCore extends BaseEntrypoint<WalletCoreApi, WalletCoreApiImpl, Wallet
   String get codegenVersion => '2.11.1';
 
   @override
-  int get rustContentHash => 1197392980;
+  int get rustContentHash => -677141531;
 
   static const kDefaultExternalLibraryLoaderConfig = ExternalLibraryLoaderConfig(
     stem: 'wallet_core',
@@ -138,6 +139,8 @@ abstract class WalletCoreApi extends BaseApi {
   Future<List<WalletEvent>> crateApiFullGetHistoryForCard({required String attestationId});
 
   Future<String> crateApiFullGetVersionString();
+
+  Future<WalletState> crateApiFullGetWalletState();
 
   Future<TransferSessionState> crateApiFullGetWalletTransferState();
 
@@ -804,6 +807,29 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
 
   TaskConstMeta get kCrateApiFullGetVersionStringConstMeta => const TaskConstMeta(
     debugName: "get_version_string",
+    argNames: [],
+  );
+
+  @override
+  Future<WalletState> crateApiFullGetWalletState() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          return wire.wire__crate__api__full__get_wallet_state(port_);
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_wallet_state,
+          decodeErrorData: dco_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiFullGetWalletStateConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiFullGetWalletStateConstMeta => const TaskConstMeta(
+    debugName: "get_wallet_state",
     argNames: [],
   );
 
@@ -1643,13 +1669,14 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   FlutterConfiguration dco_decode_flutter_configuration(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 5) throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    if (arr.length != 6) throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
     return FlutterConfiguration(
       inactiveWarningTimeout: dco_decode_u_16(arr[0]),
       inactiveLockTimeout: dco_decode_u_16(arr[1]),
       backgroundLockTimeout: dco_decode_u_16(arr[2]),
-      staticAssetsBaseUrl: dco_decode_String(arr[3]),
-      version: dco_decode_u_64(arr[4]),
+      pidAttestationTypes: dco_decode_list_String(arr[3]),
+      staticAssetsBaseUrl: dco_decode_String(arr[4]),
+      version: dco_decode_u_64(arr[5]),
     );
   }
 
@@ -1726,6 +1753,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       image: dco_decode_image(arr[0]),
       altText: dco_decode_String(arr[1]),
     );
+  }
+
+  @protected
+  List<String> dco_decode_list_String(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_String).toList();
   }
 
   @protected
@@ -2040,6 +2073,29 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  WalletState dco_decode_wallet_state(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    switch (raw[0]) {
+      case 0:
+        return WalletState_Ready();
+      case 1:
+        return WalletState_TransferPossible();
+      case 2:
+        return WalletState_Transferring(
+          role: dco_decode_wallet_transfer_role(raw[1]),
+        );
+      default:
+        throw Exception("unreachable");
+    }
+  }
+
+  @protected
+  WalletTransferRole dco_decode_wallet_transfer_role(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return WalletTransferRole.values[raw as int];
+  }
+
+  @protected
   AnyhowException sse_decode_AnyhowException(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var inner = sse_decode_String(deserializer);
@@ -2297,12 +2353,14 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     var var_inactiveWarningTimeout = sse_decode_u_16(deserializer);
     var var_inactiveLockTimeout = sse_decode_u_16(deserializer);
     var var_backgroundLockTimeout = sse_decode_u_16(deserializer);
+    var var_pidAttestationTypes = sse_decode_list_String(deserializer);
     var var_staticAssetsBaseUrl = sse_decode_String(deserializer);
     var var_version = sse_decode_u_64(deserializer);
     return FlutterConfiguration(
       inactiveWarningTimeout: var_inactiveWarningTimeout,
       inactiveLockTimeout: var_inactiveLockTimeout,
       backgroundLockTimeout: var_backgroundLockTimeout,
+      pidAttestationTypes: var_pidAttestationTypes,
       staticAssetsBaseUrl: var_staticAssetsBaseUrl,
       version: var_version,
     );
@@ -2378,6 +2436,18 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     var var_image = sse_decode_image(deserializer);
     var var_altText = sse_decode_String(deserializer);
     return ImageWithMetadata(image: var_image, altText: var_altText);
+  }
+
+  @protected
+  List<String> sse_decode_list_String(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <String>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_String(deserializer));
+    }
+    return ans_;
   }
 
   @protected
@@ -2817,6 +2887,31 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  WalletState sse_decode_wallet_state(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var tag_ = sse_decode_i_32(deserializer);
+    switch (tag_) {
+      case 0:
+        return WalletState_Ready();
+      case 1:
+        return WalletState_TransferPossible();
+      case 2:
+        var var_role = sse_decode_wallet_transfer_role(deserializer);
+        return WalletState_Transferring(role: var_role);
+      default:
+        throw UnimplementedError('');
+    }
+  }
+
+  @protected
+  WalletTransferRole sse_decode_wallet_transfer_role(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return WalletTransferRole.values[inner];
+  }
+
+  @protected
   bool cst_encode_bool(bool raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return raw;
@@ -2880,6 +2975,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   void cst_encode_unit(void raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return raw;
+  }
+
+  @protected
+  int cst_encode_wallet_transfer_role(WalletTransferRole raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return cst_encode_i_32(raw.index);
   }
 
   @protected
@@ -3150,6 +3251,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     sse_encode_u_16(self.inactiveWarningTimeout, serializer);
     sse_encode_u_16(self.inactiveLockTimeout, serializer);
     sse_encode_u_16(self.backgroundLockTimeout, serializer);
+    sse_encode_list_String(self.pidAttestationTypes, serializer);
     sse_encode_String(self.staticAssetsBaseUrl, serializer);
     sse_encode_u_64(self.version, serializer);
   }
@@ -3214,6 +3316,15 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_image(self.image, serializer);
     sse_encode_String(self.altText, serializer);
+  }
+
+  @protected
+  void sse_encode_list_String(List<String> self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_String(item, serializer);
+    }
   }
 
   @protected
@@ -3576,5 +3687,25 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         sse_encode_i_32(1, serializer);
         sse_encode_box_autoadd_wallet_instruction_error(error, serializer);
     }
+  }
+
+  @protected
+  void sse_encode_wallet_state(WalletState self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    switch (self) {
+      case WalletState_Ready():
+        sse_encode_i_32(0, serializer);
+      case WalletState_TransferPossible():
+        sse_encode_i_32(1, serializer);
+      case WalletState_Transferring(role: final role):
+        sse_encode_i_32(2, serializer);
+        sse_encode_wallet_transfer_role(role, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_wallet_transfer_role(WalletTransferRole self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
   }
 }
