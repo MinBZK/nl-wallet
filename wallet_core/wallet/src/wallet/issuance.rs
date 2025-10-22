@@ -183,7 +183,7 @@ pub enum IssuanceError {
 pub struct WalletIssuanceSession<IS> {
     is_pid: bool,
     preview_attestations: VecNonEmpty<AttestationPresentation>,
-    pub(super) protocol_state: IS,
+    protocol_state: IS,
 }
 
 #[derive(Debug, Clone)]
