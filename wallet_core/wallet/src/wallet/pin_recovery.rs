@@ -63,6 +63,7 @@ use super::Wallet;
 use super::WalletRegistration;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(defer)]
 pub enum PinRecoveryError {
     #[category(expected)]
     #[error("app version is blocked")]
@@ -77,7 +78,6 @@ pub enum PinRecoveryError {
     SessionState,
 
     #[error("error during PID issuance: {0}")]
-    #[category(defer)]
     Issuance(#[from] IssuanceError),
 
     #[error("no recovery code found in PID")]
@@ -108,7 +108,6 @@ pub enum PinRecoveryError {
     MissingPid,
 
     #[error("failed to disclose recovery code to WP: {0}")]
-    #[category(defer)]
     DiscloseRecoveryCode(#[source] InstructionError),
 
     #[error("PIN recovery in unexpected state: expected {expected:#?}, found {found:#?}")]
@@ -129,6 +128,13 @@ pub enum PinRecoveryError {
     #[error("failed to retrieve recovery code attribute: {0}")]
     #[category(pd)]
     AttributesHandling(#[from] AttributesHandlingError),
+
+    #[error("could not query attestations in database: {0}")]
+    AttestationQuery(#[source] StorageError),
+
+    #[error("cannot recover PIN without a PID")]
+    #[category(expected)]
+    NoPidPresent,
 }
 
 impl<CR, UR, S, AKH, APC, DC, IS, DCC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC>
@@ -171,6 +177,19 @@ where
         info!("Checking if registered");
         if !self.registration.is_registered() {
             return Err(PinRecoveryError::NotRegistered);
+        }
+
+        info!("Checking if a pid is present");
+        let pid_attributes = &self.config_repository.get().pid_attributes;
+        let has_pid = self
+            .storage
+            .write()
+            .await
+            .has_any_attestations_with_types(&pid_attributes.pid_attestation_types())
+            .await
+            .map_err(PinRecoveryError::AttestationQuery)?;
+        if !has_pid {
+            return Err(PinRecoveryError::NoPidPresent);
         }
 
         // Don't check if wallet is locked since PIN recovery is allowed in that case
@@ -668,6 +687,12 @@ mod tests {
 
         wallet
             .mut_storage()
+            .expect_has_any_attestations_with_types()
+            .once()
+            .return_once(|_| Ok(true));
+
+        wallet
+            .mut_storage()
             .expect_upsert_data::<PinRecoveryData>()
             .return_once(|_| Ok(()));
 
@@ -832,6 +857,28 @@ mod tests {
             .complete_pin_recovery_with_wscd(MockPinWscd, "112233".to_string(), vec![1, 2, 3])
             .await
             .unwrap();
+    }
+
+    // Failing unit tests for create_pin_recovery_redirect_uri()
+
+    #[tokio::test]
+    pub async fn create_pin_recovery_redirect_uri_without_pid() {
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        wallet
+            .mut_storage()
+            .expect_has_any_attestations_with_types()
+            .once()
+            .return_once(|_| Ok(false));
+
+        wallet
+            .mut_storage()
+            .expect_upsert_data::<PinRecoveryData>()
+            .return_once(|_| Ok(()));
+
+        let err = wallet.create_pin_recovery_redirect_uri().await.unwrap_err();
+
+        assert_matches!(err, PinRecoveryError::NoPidPresent);
     }
 
     // Failing unit tests for continue_pid_recovery()
