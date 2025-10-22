@@ -639,8 +639,10 @@ mod tests {
     use wscd::wscd::Wscd;
 
     use crate::digid::DigidError;
+    use crate::digid::MockDigidSession;
     use crate::errors::PinValidationError;
     use crate::instruction::PinRecoveryWscd;
+    use crate::repository::Repository;
     use crate::storage::ChangePinData;
     use crate::storage::InstructionData;
     use crate::storage::PinRecoveryData;
@@ -648,8 +650,6 @@ mod tests {
     use crate::storage::RegistrationData;
     use crate::storage::StoredAttestation;
     use crate::storage::StoredAttestationCopy;
-    use crate::test::MockDigidSession;
-    use crate::test::Repository;
     use crate::wallet::Session;
     use crate::wallet::issuance::WalletIssuanceSession;
     use crate::wallet::pin_recovery::PinRecoveryError;

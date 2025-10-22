@@ -73,7 +73,7 @@ pub mod utils {
     pub use utils::built_info::version_string;
 }
 
-#[cfg(any(test, feature = "test"))]
+#[cfg(feature = "test")]
 pub mod test {
     pub use crate::account_provider::AccountProviderClient;
     pub use crate::account_provider::HttpAccountProviderClient;
