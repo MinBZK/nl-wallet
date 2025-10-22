@@ -263,7 +263,7 @@ where
 
         let stored_pid_credential_payload = self
             .storage
-            .write()
+            .read()
             .await
             .fetch_unique_attestations_by_type(&pid_attestation_types, AttestationFormatQuery::SdJwt)
             .await
