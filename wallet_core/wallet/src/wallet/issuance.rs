@@ -522,7 +522,7 @@ where
             .protocol_state
             .accept_issuance(&config.issuer_trust_anchors(), &remote_wscd, issuance_session.is_pid)
             .await
-            .map_err(|error| Self::handle_accept_issuance_error(error, issuance_session));
+            .map_err(|error| Self::handle_accept_issuance_error(error, &issuance_session.protocol_state));
 
         // Make sure there are no remaining references to the `AttestedKey` value.
         drop(remote_wscd);
@@ -603,10 +603,7 @@ where
         Ok(IssuanceResult { transfer_session_id })
     }
 
-    pub(super) fn handle_accept_issuance_error(
-        error: IssuanceSessionError,
-        issuance_session: &WalletIssuanceSession<IS>,
-    ) -> IssuanceError {
+    pub(super) fn handle_accept_issuance_error(error: IssuanceSessionError, issuance_session: &IS) -> IssuanceError {
         match error {
             // We knowingly call unwrap() on the downcast to `RemoteEcdsaKeyError` here because we know
             // that it is the error type of the `RemoteEcdsaWscd` we provide above.
@@ -619,13 +616,7 @@ where
                 }
             }
             _ => IssuanceError::IssuerServer {
-                organization: Box::new(
-                    issuance_session
-                        .protocol_state
-                        .issuer_registration()
-                        .organization
-                        .clone(),
-                ),
+                organization: Box::new(issuance_session.issuer_registration().organization.clone()),
                 error,
             },
         }

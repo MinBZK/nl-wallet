@@ -32,10 +32,7 @@ use wallet_account::messages::instructions::DiscloseRecoveryCodePinRecovery;
 use wallet_configuration::wallet_config::PidAttributesConfiguration;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
-use crate::AttestationIdentity;
-use crate::AttestationPresentation;
 use crate::account_provider::AccountProviderClient;
-use crate::attestation::EmptyPresentationConfig;
 use crate::config::UNIVERSAL_LINK_BASE_URL;
 use crate::digid::DigidClient;
 use crate::digid::DigidError;
@@ -54,7 +51,6 @@ use crate::storage::PinRecoveryData;
 use crate::storage::RegistrationData;
 use crate::storage::Storage;
 use crate::validate_pin;
-use crate::wallet::issuance::WalletIssuanceSession;
 
 use super::IssuanceError;
 use super::Session;
@@ -132,7 +128,7 @@ pub enum PinRecoveryError {
 #[derive(Debug)]
 pub(super) enum PinRecoverySession<DS, IS> {
     Digid(DS),
-    Issuance(WalletIssuanceSession<IS>),
+    Issuance(IS),
 }
 
 impl<CR, UR, S, AKH, APC, DC, IS, DCC> Wallet<CR, UR, S, AKH, APC, DC, IS, DCC>
@@ -367,34 +363,10 @@ where
             .clone();
 
         info!("successfully received token and previews from issuer");
-        let organization = &issuance_session.issuer_registration().organization;
-        let attestations = normalized_credential_previews
-            .iter()
-            .map(|preview_data| {
-                let attestation = AttestationPresentation::create_from_attributes(
-                    AttestationIdentity::Ephemeral,
-                    preview_data.normalized_metadata.clone(),
-                    organization.clone(),
-                    &preview_data.content.credential_payload.attributes,
-                    &EmptyPresentationConfig,
-                )
-                .map_err(|error| IssuanceError::Attestation {
-                    organization: Box::new(organization.clone()),
-                    error,
-                })?;
+        self.session
+            .replace(Session::PinRecovery(PinRecoverySession::Issuance(issuance_session)));
 
-                Ok(attestation)
-            })
-            .collect::<Result<Vec<_>, IssuanceError>>()?;
-
-        // The IssuanceSession trait guarantees that credential_preview_data()
-        // returns at least one value, so this unwrap() is safe.
-        let event_attestations = attestations.clone().try_into().unwrap();
-        self.session.replace(Session::PinRecovery(PinRecoverySession::Issuance(
-            WalletIssuanceSession::new(true, event_attestations, issuance_session),
-        )));
-
-        Ok(recovery_code.clone())
+        Ok(recovery_code)
     }
 
     #[instrument(skip_all)]
@@ -454,7 +426,6 @@ where
         let config = self.config_repository.get();
 
         let issuance_result = issuance_session
-            .protocol_state
             .accept_issuance(&config.issuer_trust_anchors(), &pin_recovery_wscd, true)
             .await
             .map_err(|error| Self::handle_accept_issuance_error(error, issuance_session))?;
@@ -639,7 +610,6 @@ mod tests {
     use crate::storage::StoredAttestationCopy;
     use crate::wallet::PinRecoverySession;
     use crate::wallet::Session;
-    use crate::wallet::issuance::WalletIssuanceSession;
     use crate::wallet::pin_recovery::PinRecoveryError;
     use crate::wallet::test::TestWalletMockStorage;
     use crate::wallet::test::WalletDeviceVendor;
@@ -1150,7 +1120,7 @@ mod tests {
 
     fn setup_issuance_session(wallet: &mut TestWalletMockStorage) {
         let (sd_jwt, _metadata) = create_example_pid_sd_jwt();
-        let (pid_issuer, attestations) = mock_issuance_session(
+        let (pid_issuer, _) = mock_issuance_session(
             IssuedCredential::SdJwt {
                 key_identifier: "key_id".to_string(),
                 sd_jwt: sd_jwt.clone(),
@@ -1167,9 +1137,7 @@ mod tests {
             VerifiedTypeMetadataDocuments::nl_pid_example(),
         );
 
-        wallet.session = Some(Session::PinRecovery(PinRecoverySession::Issuance(
-            WalletIssuanceSession::new(true, attestations, pid_issuer),
-        )));
+        wallet.session = Some(Session::PinRecovery(PinRecoverySession::Issuance(pid_issuer)));
     }
 
     struct MockPinWscd;
