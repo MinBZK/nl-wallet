@@ -1164,6 +1164,16 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             )
             .await?;
 
+        // Clear the unsuccesful PIN entries, so that even if the user was in timeout before they started
+        // PIN recovery, they can send the `DiscloseRecoveryCodePinRecovery` after this.
+        // This cannot be abused by a malicious user to disable the timeout mechanism, because after this,
+        // this wallet account is committed to PIN recovery and PIN recovery will need to be completed
+        // before the user can do anything else.
+        user_state
+            .repositories
+            .reset_unsuccessful_pin_entries(&tx, &wallet_user.wallet_id)
+            .await?;
+
         let (instruction_result_signing_key, certificate_signing_key) = signing_keys;
 
         let certificate = new_wallet_certificate(
