@@ -14,7 +14,7 @@ doctest = false
 examples = ["pid_constants"]
 example_credential_payloads = ["dep:rand_core"]
 generate = ["dep:rcgen", "crypto/generate"]
-mock = ["example_credential_payloads", "pid_constants", "crypto/mock", "mdoc/test", "sd_jwt/test", "dep:rand_core"]
+mock = ["example_credential_payloads", "pid_constants", "crypto/mock", "mdoc/test", "dep:rand_core"]
 pid_constants = []
 test_credential = ["mock", "dep:futures"]
 
@@ -33,7 +33,7 @@ serde_with = { workspace = true, features = ["base64", "chrono", "hex", "indexma
 ssri.workspace = true
 thiserror.workspace = true
 url = { workspace = true, features = ["serde"] }
-uuid = { workspace =  true, features = ["serde", "v4"] }
+uuid = { workspace = true, features = ["serde", "v4"] }
 x509-parser = { workspace = true, features = ["verify", "validate"] }
 
 futures = { workspace = true, optional = true }
@@ -65,6 +65,5 @@ tokio = { workspace = true, features = ["macros"] }
 
 crypto = { path = "../crypto", features = ["generate", "mock"] }
 dcql = { path = "../dcql", features = ["mock"] }
-sd_jwt = { path = "../sd_jwt", features = ["test"] }
 sd_jwt_vc_metadata = { path = "../sd_jwt_vc_metadata", features = ["example_constructors"] }
 utils = { path = "../utils", features = ["mock_time"] }
