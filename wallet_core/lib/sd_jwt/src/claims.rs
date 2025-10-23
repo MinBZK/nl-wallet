@@ -619,10 +619,9 @@ mod tests {
 
     #[test]
     fn deserialize_nested_string_array() {
-        use ArrayClaim::*;
-        use ClaimValue::*;
-
-        let expected = Array(vec![Value(Array(vec![Value(String("string".to_string()))]))]);
+        let expected = ClaimValue::Array(vec![ArrayClaim::Value(ClaimValue::Array(vec![ArrayClaim::Value(
+            ClaimValue::String("string".to_string()),
+        )]))]);
 
         let value = serde_json::to_value(&expected).unwrap();
         let claim: ClaimValue = serde_json::from_value(value).unwrap();
