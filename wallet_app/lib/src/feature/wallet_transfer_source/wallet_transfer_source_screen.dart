@@ -22,14 +22,53 @@ import '../common/widget/text/title_text.dart';
 import '../common/widget/utility/scroll_offset_provider.dart';
 import '../common/widget/wallet_app_bar.dart';
 import '../error/error_page.dart';
+import '../lock/auto_lock_provider.dart';
 import 'bloc/wallet_transfer_source_bloc.dart';
 import 'page/wallet_transfer_source_confirm_pin_page.dart';
 import 'page/wallet_transfer_source_transfer_success_page.dart';
 import 'page/wallet_transfer_source_transferring_page.dart';
 import 'widget/wallet_transfer_source_stop_sheet.dart';
 
-class WalletTransferSourceScreen extends StatelessWidget {
+class WalletTransferSourceScreen extends StatefulWidget {
   const WalletTransferSourceScreen({super.key});
+
+  @override
+  State<WalletTransferSourceScreen> createState() => _WalletTransferSourceScreenState();
+}
+
+class _WalletTransferSourceScreenState extends State<WalletTransferSourceScreen> {
+  AutoLockProvider? _autoLockProvider;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _autoLockProvider = AutoLockProvider.of(context);
+  }
+
+  @override
+  void dispose() {
+    // Re-enable when screen is disposed
+    _autoLockProvider?.setAutoLock(enabled: true);
+    super.dispose();
+  }
+
+  void _updateAutoLock(WalletTransferSourceState state, BuildContext context) {
+    switch (state) {
+      case WalletTransferConfirmPin():
+      case WalletTransferTransferring():
+      case WalletTransferSuccess():
+        _autoLockProvider?.setAutoLock(enabled: false);
+      case WalletTransferInitial():
+      case WalletTransferLoading():
+      case WalletTransferIntroduction():
+      case WalletTransferStopped():
+      case WalletTransferGenericError():
+      case WalletTransferNetworkError():
+      case WalletTransferSessionExpired():
+      case WalletTransferFailed():
+        _autoLockProvider?.setAutoLock(enabled: true);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -44,6 +83,7 @@ class WalletTransferSourceScreen extends StatelessWidget {
         ),
         body: BlocConsumer<WalletTransferSourceBloc, WalletTransferSourceState>(
           listener: (context, state) {
+            _updateAutoLock(state, context);
             context.read<ScrollOffset>().reset(); // Rest the scrollOffset used by fading title on page transitions
             DialogHelper.dismissOpenDialogs(context); // Dismiss potentially open stop sheet on page transitions
           },
