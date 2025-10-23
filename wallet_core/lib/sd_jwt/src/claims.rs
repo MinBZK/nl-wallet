@@ -92,7 +92,7 @@ impl ObjectClaims {
         // Hash the disclosure.
         let digest = hasher.encoded_digest(disclosure.encoded());
 
-        // Add the digest to the "_sd" array if exists; otherwise, create the array and insert the digest.
+        // Add the digest to the "_sd" array if it exists; otherwise, create the array and insert the digest.
         self.push_digest(digest);
 
         Ok(disclosure)
