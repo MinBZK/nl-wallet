@@ -98,7 +98,8 @@ impl ObjectClaims {
         Ok(disclosure)
     }
 
-    /// Push `new_digest` to the digests in `_sd`. Maintains alphabetical ordering if possible.
+    /// Push `new_digest` to the digests in `_sd`. Maintains alphabetical ordering if possible, as recommended in:
+    /// <https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-22.html#section-4.2.4.1>
     fn push_digest(&mut self, new_digest: String) {
         if self._sd.is_none() {
             // `try_new` will always return `Ok` because the newly created vec is not empty with a single unique value
