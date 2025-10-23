@@ -382,9 +382,10 @@ where
         }
 
         info!("Checking if registered");
-        if !self.registration.is_registered() {
-            return Err(PinRecoveryError::NotRegistered);
-        }
+        let (attested_key, registration_data) = self
+            .registration
+            .as_key_and_registration_data()
+            .ok_or(PinRecoveryError::NotRegistered)?;
 
         // Don't check if wallet is locked since PIN recovery is allowed in that case
 
@@ -396,14 +397,6 @@ where
         };
 
         validate_pin(&new_pin)?;
-
-        // Both instructions sent to the WP in this method use the new PIN, and therefore also a new salt.
-        // So, generate a new salt and use that in the instruction client below.
-
-        let (attested_key, registration_data) = self
-            .registration
-            .as_key_and_registration_data()
-            .expect("missing registration data");
 
         // Accept issuance to obtain the PID. This sends the `StartPinRecovery` instruction to the WP.
         // `accept_issuance()` below is the point of no return. If the app is killed between there and completion,
@@ -515,7 +508,7 @@ where
         let (attested_key, registration_data) = self
             .registration
             .as_key_and_registration_data()
-            .expect("missing registration data");
+            .ok_or(PinRecoveryError::NotRegistered)?;
 
         let registration_data = RegistrationData {
             pin_salt: new_pin_salt.clone(),
