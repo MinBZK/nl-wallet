@@ -133,6 +133,9 @@ pub enum DisclosureError {
     Instruction(#[source] InstructionError),
     #[error("could not increment usage count of mdoc copies in database: {0}")]
     IncrementUsageCount(#[source] StorageError),
+    // TODO (PVW-5113): Have this specific error cause a warning screen instead of a generic error screen in Flutter.
+    #[error("could not store event in history database: {0}")]
+    EventStorage(#[source] StorageError),
     #[error("error finalizing pin change: {0}")]
     ChangePin(#[from] ChangePinError),
     #[error("error fetching update policy: {0}")]
@@ -568,20 +571,17 @@ where
 
         let return_url = session.protocol_state.terminate().await?.map(BaseUrl::into_inner);
 
-        if let Err(error) = self
-            .store_disclosure_event(
-                Utc::now(),
-                // TODO (PVW-5078): Store credential requests in disclosure event.
-                None,
-                reader_certificate,
-                session.disclosure_type,
-                EventStatus::Cancelled,
-                DataDisclosureStatus::NotDisclosed,
-            )
-            .await
-        {
-            error!("Could not store cancellation in history: {error}");
-        }
+        self.store_disclosure_event(
+            Utc::now(),
+            // TODO (PVW-5078): Store credential requests in disclosure event.
+            None,
+            reader_certificate,
+            session.disclosure_type,
+            EventStatus::Cancelled,
+            DataDisclosureStatus::NotDisclosed,
+        )
+        .await
+        .map_err(DisclosureError::EventStorage)?;
 
         Ok(return_url)
     }
@@ -889,19 +889,16 @@ where
         // Disclosure is now successful. Any errors that occur after this point will result in the `Wallet` not having
         // an active disclosure session anymore. Note that these unwraps are safe, as session.attestations was checked
         // to be present above and the source of the iterator is also `VecNonEmpty`.
-        if let Err(error) = self
-            .store_disclosure_event(
-                Utc::now(),
-                Some(attestation_presentations),
-                reader_certificate,
-                session.disclosure_type,
-                EventStatus::Success,
-                DataDisclosureStatus::Disclosed,
-            )
-            .await
-        {
-            error!("Could not store disclosure in history: {error}");
-        }
+        self.store_disclosure_event(
+            Utc::now(),
+            Some(attestation_presentations),
+            reader_certificate,
+            session.disclosure_type,
+            EventStatus::Success,
+            DataDisclosureStatus::Disclosed,
+        )
+        .await
+        .map_err(DisclosureError::EventStorage)?;
 
         Ok(return_url)
     }
@@ -993,6 +990,7 @@ mod tests {
     use super::super::test::TestWalletMockStorage;
     use super::super::test::WalletDeviceVendor;
     use super::super::test::mdoc_from_credential_payload;
+    use super::super::test::setup_mock_recent_history_callback;
     use super::super::test::verified_sd_jwt_from_credential_payload;
     use super::DisclosureAttestationOptions;
     use super::DisclosureError;
@@ -2145,6 +2143,50 @@ mod tests {
         assert_matches!(error, DisclosureError::VpClient(VpClientError::Request(_)));
         assert_eq!(error.return_url(), Some(RETURN_URL.as_ref()));
         assert!(wallet.session.is_none());
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn test_wallet_cancel_disclosure_error_event_storage(
+        #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] requested_format: CredentialFormat,
+    ) {
+        // Prepare a registered and unlocked wallet with an active disclosure session and a faulty database.
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+        let (session, _verifier_certificate) = setup_wallet_disclosure_session(requested_format);
+        wallet.session = Some(session);
+
+        wallet
+            .mut_storage()
+            .expect_fetch_recent_wallet_events()
+            .returning(move || Ok(vec![]));
+        let events = setup_mock_recent_history_callback(&mut wallet).await.unwrap();
+
+        wallet
+            .mut_storage()
+            .expect_log_disclosure_event()
+            .times(1)
+            .return_once(|_, _, _, _, _| Err(StorageError::AlreadyOpened));
+
+        // Cancelling disclosure on a wallet with a faulty database should result
+        // in an error, while the disclosure session should be removed.
+        let Some(Session::Disclosure(session)) = &mut wallet.session else {
+            unreachable!();
+        };
+        session
+            .protocol_state
+            .expect_terminate()
+            .times(1)
+            .return_once(|| Ok(None));
+
+        let error = wallet
+            .cancel_disclosure()
+            .await
+            .expect_err("cancelling disclosure should not succeed");
+
+        assert_matches!(error, DisclosureError::EventStorage(_));
+        assert!(error.return_url().is_none());
+        assert!(wallet.session.is_none());
+        assert!(events.lock().pop().unwrap().is_empty());
     }
 
     /// This contains a lightweight test of `accept_disclosure()`.
