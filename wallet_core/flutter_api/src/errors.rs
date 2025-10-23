@@ -16,6 +16,7 @@ use wallet::errors::HistoryError;
 use wallet::errors::HttpClientError;
 use wallet::errors::InstructionError;
 use wallet::errors::IssuanceError;
+use wallet::errors::PinRecoveryError;
 use wallet::errors::ResetError;
 use wallet::errors::UpdatePolicyError;
 use wallet::errors::UriIdentificationError;
@@ -81,6 +82,9 @@ enum FlutterApiErrorType {
     /// A remote session is cancelled.
     CancelledSession,
 
+    /// The wrong DigiD was used for PID renewal or PIN recovery.
+    WrongDigid,
+
     /// Indicating something unexpected went wrong.
     Generic,
 }
@@ -134,6 +138,7 @@ impl TryFrom<anyhow::Error> for FlutterApiError {
             .or_else(|e| e.downcast::<ResetError>().map(Self::from))
             .or_else(|e| e.downcast::<url::ParseError>().map(Self::from))
             .or_else(|e| e.downcast::<ChangePinError>().map(Self::from))
+            .or_else(|e| e.downcast::<PinRecoveryError>().map(Self::from))
     }
 }
 
@@ -238,6 +243,7 @@ impl FlutterApiErrorFields for IssuanceError {
             | IssuanceError::Attestation { .. }
             | IssuanceError::IssuerServer { .. } => FlutterApiErrorType::Issuer,
             IssuanceError::UpdatePolicy(e) => FlutterApiErrorType::from(e),
+            IssuanceError::DeniedDigiD => FlutterApiErrorType::CancelledSession,
             _ => FlutterApiErrorType::Generic,
         }
     }
@@ -480,6 +486,33 @@ impl FlutterApiErrorFields for ChangePinError {
             | Self::PublicKeyMismatch
             | Self::WalletIdMismatch => FlutterApiErrorType::Generic,
         }
+    }
+}
+
+impl FlutterApiErrorFields for PinRecoveryError {
+    fn typ(&self) -> FlutterApiErrorType {
+        if let Some(network_error) = detect_networking_error(self) {
+            return network_error;
+        }
+
+        match self {
+            PinRecoveryError::VersionBlocked => FlutterApiErrorType::VersionBlocked,
+            PinRecoveryError::NotRegistered | PinRecoveryError::SessionState => FlutterApiErrorType::WalletState,
+            PinRecoveryError::Issuance(issuance_error) => issuance_error.typ(),
+            PinRecoveryError::DeniedDigiD => FlutterApiErrorType::CancelledSession,
+            PinRecoveryError::IncorrectRecoveryCode { .. } => FlutterApiErrorType::WrongDigid,
+            PinRecoveryError::MissingPid | PinRecoveryError::MissingRecoveryCode => FlutterApiErrorType::Issuer,
+            PinRecoveryError::DiscloseRecoveryCode(..) => FlutterApiErrorType::Server,
+            _ => FlutterApiErrorType::Generic,
+        }
+    }
+
+    fn data(&self) -> serde_json::Value {
+        if let Self::Issuance(issuance_error) = self {
+            return issuance_error.data();
+        }
+
+        serde_json::Value::Null
     }
 }
 
