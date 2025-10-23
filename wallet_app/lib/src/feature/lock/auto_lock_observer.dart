@@ -36,17 +36,26 @@ class _AutoLockObserverState extends State<AutoLockObserver> with WidgetsBinding
   StreamSubscription? _inactiveWarningSubscription;
   StreamSubscription? _inactiveSubscription;
 
+  /// Whether auto-locking due to inactivity or backgrounding is currently active.
+  ///
+  /// This can be toggled at runtime by calling [AutoLockProvider.of(context).enableAutoLock(bool)] to temporarily
+  /// prevent the wallet from locking.
+  ///
+  /// Defaults to `true`, but can be globally disabled for development or
+  /// debugging purposes by setting [Environment.disableAutoLock] to `true`.
+  bool _autoLockEnabled = !Environment.disableAutoLock;
+
   /// When true, semantic events will reset the 'user idle' ([_userInteractionStream]) timer
   bool _semanticsTimerResetEnabled = true;
 
-  LockWalletUseCase get _lockWalletUseCase => context.read();
-
+  /// Use case that checks if a wallet is registered and currently unlocked.
   IsWalletRegisteredAndUnlockedUseCase get _isWalletRegisteredAndUnlockedUseCase => context.read();
 
   @override
   Widget build(BuildContext context) {
     return AutoLockProvider(
       resetIdleTimeout: _resetIdleTimeout,
+      setAutoLock: _setAutoLock,
       child: InteractionDetector(
         onInteraction: _resetIdleTimeout,
         child: widget.child,
@@ -57,9 +66,6 @@ class _AutoLockObserverState extends State<AutoLockObserver> with WidgetsBinding
   @override
   void initState() {
     super.initState();
-
-    // Avoid setting up the auto locking behaviour
-    if (Environment.disableAutoLock) return;
 
     _setupNoInteractionListener();
     _setupSemanticActionListener();
@@ -83,6 +89,7 @@ class _AutoLockObserverState extends State<AutoLockObserver> with WidgetsBinding
     _inactiveWarningSubscription?.cancel();
     _inactiveWarningSubscription = _userInteractionStream
         .debounceTime(widget.configuration.idleWarningTimeout)
+        .where((_) => _autoLockEnabled)
         .asyncMap((_) async => _isWalletRegisteredAndUnlockedUseCase.invoke())
         .where((showWarning) => showWarning)
         .listen(_showIdleDialog);
@@ -90,6 +97,7 @@ class _AutoLockObserverState extends State<AutoLockObserver> with WidgetsBinding
     _inactiveSubscription?.cancel();
     _inactiveSubscription = _userInteractionStream
         .debounceTime(widget.configuration.idleLockTimeout)
+        .where((_) => _autoLockEnabled)
         .asyncMap((_) async => _isWalletRegisteredAndUnlockedUseCase.invoke())
         .where((shouldLock) => shouldLock)
         .listen(_lockWallet);
@@ -112,6 +120,14 @@ class _AutoLockObserverState extends State<AutoLockObserver> with WidgetsBinding
     if (state == AppLifecycleState.detached) _startStopwatch();
   }
 
+  void _setAutoLock({required bool enabled}) {
+    if (_autoLockEnabled == enabled) return; // Ignore, nothing changed
+    if (Environment.disableAutoLock) return; // Ignore, auto lock is globally disabled
+    Fimber.d('Auto lock enabled: $enabled');
+    _autoLockEnabled = enabled;
+    if (_autoLockEnabled) _resetIdleTimeout(); // Reset idle timeout (previous idle event might have been muted)
+  }
+
   void _resetIdleTimeout() => _userInteractionStream.add(null);
 
   /// Starts the background lock stopwatch. If it's already running the call is ignored.
@@ -120,7 +136,9 @@ class _AutoLockObserverState extends State<AutoLockObserver> with WidgetsBinding
   /// Locks the app if needed, and reset the stopwatch for future use.
   void _checkAndResetStopwatch() {
     _backgroundStopwatch.stop();
-    if (_backgroundStopwatch.elapsed >= widget.configuration.backgroundLockTimeout) _lockWallet(null);
+    if (_autoLockEnabled && _backgroundStopwatch.elapsed >= widget.configuration.backgroundLockTimeout) {
+      _lockWallet(null);
+    }
     _backgroundStopwatch.reset();
   }
 
@@ -138,7 +156,7 @@ class _AutoLockObserverState extends State<AutoLockObserver> with WidgetsBinding
 
   void _lockWallet(dynamic _) {
     Fimber.d('Locking wallet!');
-    _lockWalletUseCase.invoke();
+    context.read<LockWalletUseCase>().invoke();
   }
 
   @override
