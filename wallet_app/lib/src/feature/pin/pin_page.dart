@@ -64,8 +64,9 @@ class PinPage extends StatelessWidget {
   /// provided and it returns true, the event is not processed by this [PinPage].
   final PinStateInterceptor? onStateChanged;
 
-  /// Called when the [PinBloc] exposes an [ErrorState]. When [onPinError] is provided
-  /// the [ErrorState]s are no longer handled by this [PinPage].
+  /// Called when the [PinBloc] exposes an [ErrorState] (i.e [PinValidateNetworkError]
+  /// or [PinValidateGenericError]). When [onPinError] is provided these [ErrorState]s
+  /// are no longer handled by the [PinPage].
   final OnPinErrorCallback? onPinError;
 
   /// Build a custom header, when null it defaults to [_defaultHeaderBuilder].
