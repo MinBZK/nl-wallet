@@ -180,7 +180,7 @@ pub struct PinRecoveryRemoteEcdsaWscd<S, AK, GK, A> {
     pin_key: VerifyingKey,
 
     /// Stores the new wallet certificate that the WP replies with in [`StartPinRecoveryResult`].
-    certificate: Mutex<Option<UnverifiedJwt<WalletCertificateClaims>>>,
+    certificates: Mutex<Vec<UnverifiedJwt<WalletCertificateClaims>>>,
 }
 
 impl<S, AK, GK, A> PinRecoveryRemoteEcdsaWscd<S, AK, GK, A> {
@@ -188,13 +188,13 @@ impl<S, AK, GK, A> PinRecoveryRemoteEcdsaWscd<S, AK, GK, A> {
         Self {
             instruction_client,
             pin_key,
-            certificate: Mutex::new(None),
+            certificates: Mutex::new(vec![]),
         }
     }
 }
 
 pub trait PinRecoveryWscd: Wscd {
-    fn certificate(self) -> Option<UnverifiedJwt<WalletCertificateClaims>>;
+    fn certificates(self) -> Vec<UnverifiedJwt<WalletCertificateClaims>>;
 }
 
 impl<S, AK, GK, A> DisclosureWscd for PinRecoveryRemoteEcdsaWscd<S, AK, GK, A>
@@ -249,7 +249,7 @@ where
             })
             .await?;
 
-        self.certificate.lock().replace(result.certificate);
+        self.certificates.lock().push(result.certificate);
 
         let issuance_result = result.issuance_with_wua_result.issuance_result;
         Ok(IssuanceResult::new(
@@ -268,7 +268,7 @@ where
     GK: GoogleAttestedKey,
     A: AccountProviderClient,
 {
-    fn certificate(self) -> Option<UnverifiedJwt<WalletCertificateClaims>> {
-        self.certificate.into_inner()
+    fn certificates(self) -> Vec<UnverifiedJwt<WalletCertificateClaims>> {
+        self.certificates.into_inner()
     }
 }

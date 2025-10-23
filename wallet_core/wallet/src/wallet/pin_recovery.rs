@@ -1,6 +1,7 @@
 use std::hash::Hash;
 use std::sync::Arc;
 
+use itertools::Itertools;
 use tracing::info;
 use tracing::instrument;
 use url::Url;
@@ -413,7 +414,11 @@ where
 
         // Store the new wallet certificate and the new salt.
 
-        let new_wallet_certificate = pin_recovery_wscd.certificate().expect("missing new wallet certificate");
+        let new_wallet_certificate = pin_recovery_wscd
+            .certificates()
+            .into_iter()
+            .exactly_one()
+            .expect("expected exactly one certificate");
 
         let registration_data = RegistrationData {
             wallet_certificate: new_wallet_certificate,
@@ -1175,8 +1180,8 @@ mod tests {
     }
 
     impl PinRecoveryWscd for MockPinWscd {
-        fn certificate(self) -> Option<UnverifiedJwt<WalletCertificateClaims>> {
-            Some(UnverifiedJwt::from_str("a.b.c").unwrap())
+        fn certificates(self) -> Vec<UnverifiedJwt<WalletCertificateClaims>> {
+            vec![UnverifiedJwt::from_str("a.b.c").unwrap()]
         }
     }
 }
