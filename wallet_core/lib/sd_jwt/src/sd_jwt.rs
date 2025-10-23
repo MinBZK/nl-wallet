@@ -700,7 +700,7 @@ where
     }
 }
 
-#[cfg(feature = "examples")]
+#[cfg(any(test, feature = "examples"))]
 mod examples {
     use std::time::Duration;
 
