@@ -1,5 +1,6 @@
 use flutter_rust_bridge::frb;
 use flutter_rust_bridge::setup_default_user_utils;
+use itertools::Itertools;
 use tokio::sync::OnceCell;
 use tokio::sync::RwLock;
 use url::Url;
@@ -332,10 +333,12 @@ pub async fn cancel_disclosure() -> anyhow::Result<Option<String>> {
 }
 
 #[flutter_api_error]
-pub async fn accept_disclosure(pin: String) -> anyhow::Result<AcceptDisclosureResult> {
+pub async fn accept_disclosure(selected_indices: Vec<u16>, pin: String) -> anyhow::Result<AcceptDisclosureResult> {
+    let selected_indices = selected_indices.into_iter().map(usize::from).collect_vec();
+
     let mut wallet = wallet().write().await;
 
-    let result = wallet.accept_disclosure(pin).await.try_into()?;
+    let result = wallet.accept_disclosure(&selected_indices, pin).await.try_into()?;
 
     Ok(result)
 }
@@ -350,10 +353,18 @@ pub async fn has_active_disclosure_session() -> anyhow::Result<bool> {
 }
 
 #[flutter_api_error]
-pub async fn continue_disclosure_based_issuance(pin: String) -> anyhow::Result<DisclosureBasedIssuanceResult> {
+pub async fn continue_disclosure_based_issuance(
+    selected_indices: Vec<u16>,
+    pin: String,
+) -> anyhow::Result<DisclosureBasedIssuanceResult> {
+    let selected_indices = selected_indices.into_iter().map(usize::from).collect_vec();
+
     let mut wallet = wallet().write().await;
 
-    let result = wallet.continue_disclosure_based_issuance(pin).await.try_into()?;
+    let result = wallet
+        .continue_disclosure_based_issuance(&selected_indices, pin)
+        .await
+        .try_into()?;
 
     Ok(result)
 }

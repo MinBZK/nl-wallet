@@ -88,7 +88,10 @@ class WalletCore extends BaseEntrypoint<WalletCoreApi, WalletCoreApiImpl, Wallet
 }
 
 abstract class WalletCoreApi extends BaseApi {
-  Future<AcceptDisclosureResult> crateApiFullAcceptDisclosure({required String pin});
+  Future<AcceptDisclosureResult> crateApiFullAcceptDisclosure({
+    required List<int> selectedIndices,
+    required String pin,
+  });
 
   Future<WalletInstructionResult> crateApiFullAcceptIssuance({required String pin});
 
@@ -122,7 +125,10 @@ abstract class WalletCoreApi extends BaseApi {
 
   Future<WalletInstructionResult> crateApiFullContinueChangePin({required String pin});
 
-  Future<DisclosureBasedIssuanceResult> crateApiFullContinueDisclosureBasedIssuance({required String pin});
+  Future<DisclosureBasedIssuanceResult> crateApiFullContinueDisclosureBasedIssuance({
+    required List<int> selectedIndices,
+    required String pin,
+  });
 
   Future<List<AttestationPresentation>> crateApiFullContinuePidIssuance({required String uri});
 
@@ -200,19 +206,23 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   });
 
   @override
-  Future<AcceptDisclosureResult> crateApiFullAcceptDisclosure({required String pin}) {
+  Future<AcceptDisclosureResult> crateApiFullAcceptDisclosure({
+    required List<int> selectedIndices,
+    required String pin,
+  }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
-          var arg0 = cst_encode_String(pin);
-          return wire.wire__crate__api__full__accept_disclosure(port_, arg0);
+          var arg0 = cst_encode_list_prim_u_16_loose(selectedIndices);
+          var arg1 = cst_encode_String(pin);
+          return wire.wire__crate__api__full__accept_disclosure(port_, arg0, arg1);
         },
         codec: DcoCodec(
           decodeSuccessData: dco_decode_accept_disclosure_result,
           decodeErrorData: dco_decode_AnyhowException,
         ),
         constMeta: kCrateApiFullAcceptDisclosureConstMeta,
-        argValues: [pin],
+        argValues: [selectedIndices, pin],
         apiImpl: this,
       ),
     );
@@ -220,7 +230,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
 
   TaskConstMeta get kCrateApiFullAcceptDisclosureConstMeta => const TaskConstMeta(
     debugName: "accept_disclosure",
-    argNames: ["pin"],
+    argNames: ["selectedIndices", "pin"],
   );
 
   @override
@@ -600,19 +610,23 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   );
 
   @override
-  Future<DisclosureBasedIssuanceResult> crateApiFullContinueDisclosureBasedIssuance({required String pin}) {
+  Future<DisclosureBasedIssuanceResult> crateApiFullContinueDisclosureBasedIssuance({
+    required List<int> selectedIndices,
+    required String pin,
+  }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
-          var arg0 = cst_encode_String(pin);
-          return wire.wire__crate__api__full__continue_disclosure_based_issuance(port_, arg0);
+          var arg0 = cst_encode_list_prim_u_16_loose(selectedIndices);
+          var arg1 = cst_encode_String(pin);
+          return wire.wire__crate__api__full__continue_disclosure_based_issuance(port_, arg0, arg1);
         },
         codec: DcoCodec(
           decodeSuccessData: dco_decode_disclosure_based_issuance_result,
           decodeErrorData: dco_decode_AnyhowException,
         ),
         constMeta: kCrateApiFullContinueDisclosureBasedIssuanceConstMeta,
-        argValues: [pin],
+        argValues: [selectedIndices, pin],
         apiImpl: this,
       ),
     );
@@ -620,7 +634,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
 
   TaskConstMeta get kCrateApiFullContinueDisclosureBasedIssuanceConstMeta => const TaskConstMeta(
     debugName: "continue_disclosure_based_issuance",
-    argNames: ["pin"],
+    argNames: ["selectedIndices", "pin"],
   );
 
   @override
@@ -1634,6 +1648,16 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  DisclosureOptions dco_decode_disclosure_options(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 1) throw Exception('unexpected arr length: expect 1 but see ${arr.length}');
+    return DisclosureOptions(
+      field0: dco_decode_list_attestation_presentation(arr[0]),
+    );
+  }
+
+  @protected
   DisclosureSessionType dco_decode_disclosure_session_type(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return DisclosureSessionType.values[raw as int];
@@ -1786,6 +1810,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  List<DisclosureOptions> dco_decode_list_disclosure_options(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_disclosure_options).toList();
+  }
+
+  @protected
   List<DisplayMetadata> dco_decode_list_display_metadata(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_display_metadata).toList();
@@ -1801,6 +1831,18 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   List<MissingAttribute> dco_decode_list_missing_attribute(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_missing_attribute).toList();
+  }
+
+  @protected
+  List<int> dco_decode_list_prim_u_16_loose(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as List<int>;
+  }
+
+  @protected
+  Uint16List dco_decode_list_prim_u_16_strict(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as Uint16List;
   }
 
   @protected
@@ -1959,7 +2001,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         return StartDisclosureResult_Request(
           relyingParty: dco_decode_box_autoadd_organization(raw[1]),
           policy: dco_decode_box_autoadd_request_policy(raw[2]),
-          requestedAttestations: dco_decode_list_attestation_presentation(raw[3]),
+          disclosureOptions: dco_decode_list_disclosure_options(raw[3]),
           sharedDataWithRelyingPartyBefore: dco_decode_bool(raw[4]),
           sessionType: dco_decode_disclosure_session_type(raw[5]),
           requestPurpose: dco_decode_list_localized_string(raw[6]),
@@ -2310,6 +2352,13 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  DisclosureOptions sse_decode_disclosure_options(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_field0 = sse_decode_list_attestation_presentation(deserializer);
+    return DisclosureOptions(field0: var_field0);
+  }
+
+  @protected
   DisclosureSessionType sse_decode_disclosure_session_type(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var inner = sse_decode_i_32(deserializer);
@@ -2499,6 +2548,18 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  List<DisclosureOptions> sse_decode_list_disclosure_options(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <DisclosureOptions>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_disclosure_options(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
   List<DisplayMetadata> sse_decode_list_display_metadata(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
@@ -2532,6 +2593,20 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       ans_.add(sse_decode_missing_attribute(deserializer));
     }
     return ans_;
+  }
+
+  @protected
+  List<int> sse_decode_list_prim_u_16_loose(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var len_ = sse_decode_i_32(deserializer);
+    return deserializer.buffer.getUint16List(len_);
+  }
+
+  @protected
+  Uint16List sse_decode_list_prim_u_16_strict(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var len_ = sse_decode_i_32(deserializer);
+    return deserializer.buffer.getUint16List(len_);
   }
 
   @protected
@@ -2740,7 +2815,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       case 0:
         var var_relyingParty = sse_decode_box_autoadd_organization(deserializer);
         var var_policy = sse_decode_box_autoadd_request_policy(deserializer);
-        var var_requestedAttestations = sse_decode_list_attestation_presentation(deserializer);
+        var var_disclosureOptions = sse_decode_list_disclosure_options(deserializer);
         var var_sharedDataWithRelyingPartyBefore = sse_decode_bool(deserializer);
         var var_sessionType = sse_decode_disclosure_session_type(deserializer);
         var var_requestPurpose = sse_decode_list_localized_string(deserializer);
@@ -2749,7 +2824,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         return StartDisclosureResult_Request(
           relyingParty: var_relyingParty,
           policy: var_policy,
-          requestedAttestations: var_requestedAttestations,
+          disclosureOptions: var_disclosureOptions,
           sharedDataWithRelyingPartyBefore: var_sharedDataWithRelyingPartyBefore,
           sessionType: var_sessionType,
           requestPurpose: var_requestPurpose,
@@ -3218,6 +3293,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  void sse_encode_disclosure_options(DisclosureOptions self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_attestation_presentation(self.field0, serializer);
+  }
+
+  @protected
   void sse_encode_disclosure_session_type(DisclosureSessionType self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.index, serializer);
@@ -3364,6 +3445,15 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  void sse_encode_list_disclosure_options(List<DisclosureOptions> self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_disclosure_options(item, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_list_display_metadata(List<DisplayMetadata> self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.length, serializer);
@@ -3388,6 +3478,20 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     for (final item in self) {
       sse_encode_missing_attribute(item, serializer);
     }
+  }
+
+  @protected
+  void sse_encode_list_prim_u_16_loose(List<int> self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    serializer.buffer.putUint16List(self is Uint16List ? self : Uint16List.fromList(self));
+  }
+
+  @protected
+  void sse_encode_list_prim_u_16_strict(Uint16List self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    serializer.buffer.putUint16List(self);
   }
 
   @protected
@@ -3558,7 +3662,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       case StartDisclosureResult_Request(
         relyingParty: final relyingParty,
         policy: final policy,
-        requestedAttestations: final requestedAttestations,
+        disclosureOptions: final disclosureOptions,
         sharedDataWithRelyingPartyBefore: final sharedDataWithRelyingPartyBefore,
         sessionType: final sessionType,
         requestPurpose: final requestPurpose,
@@ -3568,7 +3672,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         sse_encode_i_32(0, serializer);
         sse_encode_box_autoadd_organization(relyingParty, serializer);
         sse_encode_box_autoadd_request_policy(policy, serializer);
-        sse_encode_list_attestation_presentation(requestedAttestations, serializer);
+        sse_encode_list_disclosure_options(disclosureOptions, serializer);
         sse_encode_bool(sharedDataWithRelyingPartyBefore, serializer);
         sse_encode_disclosure_session_type(sessionType, serializer);
         sse_encode_list_localized_string(requestPurpose, serializer);

@@ -121,6 +121,7 @@ void main() {
         final state = DisclosureConfirmPin(
           relyingParty: mockOrganization,
           isCrossDevice: false,
+          selectedIndices: [0],
         );
         expect(state.stepperProgress, const FlowProgress(currentStep: 2, totalSteps: kDisclosureSteps));
       });
@@ -129,6 +130,7 @@ void main() {
         final state = DisclosureConfirmPin(
           relyingParty: mockOrganization,
           isCrossDevice: true,
+          selectedIndices: [0],
         );
         expect(
           state.stepperProgress,

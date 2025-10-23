@@ -14,17 +14,17 @@ void main() {
 
   setUp(() {
     provideDummy<AcceptDisclosureResult>(const AcceptDisclosureResult.ok());
-    usecase = AcceptDisclosureUseCaseImpl(mockRepo);
+    usecase = AcceptDisclosureUseCaseImpl(mockRepo, []);
   });
 
   test('when acceptDisclosure throws, result is error', () async {
-    when(mockRepo.acceptDisclosure(any)).thenAnswer((_) async => throw const CoreGenericError('expected error'));
+    when(mockRepo.acceptDisclosure(any, any)).thenAnswer((_) async => throw const CoreGenericError('expected error'));
     final result = await usecase.invoke('123123');
     expect(result.hasError, isTrue);
   });
 
   test('when acceptDisclosure returns instruction error, result is error', () async {
-    when(mockRepo.acceptDisclosure(any)).thenThrow(
+    when(mockRepo.acceptDisclosure(any, any)).thenThrow(
       const WalletInstructionError.incorrectPin(attemptsLeftInRound: 3, isFinalRound: false),
     );
     final result = await usecase.invoke('123123');
@@ -33,7 +33,7 @@ void main() {
   });
 
   test('when acceptDisclosure succeeds, result is ok', () async {
-    when(mockRepo.acceptDisclosure(any)).thenAnswer((_) async => 'https://example.org');
+    when(mockRepo.acceptDisclosure(any, any)).thenAnswer((_) async => 'https://example.org');
     final result = await usecase.invoke('123123');
     expect(result.hasError, isFalse);
     expect(result.value, 'https://example.org');

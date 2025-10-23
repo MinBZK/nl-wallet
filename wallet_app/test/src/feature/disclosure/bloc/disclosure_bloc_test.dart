@@ -2,6 +2,7 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:test/test.dart';
 import 'package:wallet/src/data/repository/disclosure/disclosure_repository.dart';
+import 'package:wallet/src/domain/model/disclosure/disclose_card_request.dart';
 import 'package:wallet/src/domain/model/disclosure/disclosure_session_type.dart';
 import 'package:wallet/src/domain/model/disclosure/disclosure_type.dart';
 import 'package:wallet/src/domain/model/result/application_error.dart';
@@ -779,18 +780,18 @@ void main() {
       return [
         isA<DisclosureCheckUrl>(),
         isA<DisclosureConfirmDataAttributes>().having(
-          (state) => state.cardRequests.map((it) => it.selectedIndex),
+          (state) => state.cardRequests.selectedIndices,
           'initial selection is all 0',
           [0, 0],
         ),
         isA<DisclosureConfirmDataAttributes>().having(
-          (state) => state.cardRequests.map((it) => it.selectedIndex),
+          (state) => state.cardRequests.selectedIndices,
           'update selection of second request',
           [0, 1],
         ),
         isA<DisclosureCheckUrl>(),
         isA<DisclosureConfirmDataAttributes>().having(
-          (state) => state.cardRequests.map((it) => it.selectedIndex),
+          (state) => state.cardRequests.selectedIndices,
           'updated selection should be maintained',
           [0, 1],
         ),
@@ -856,18 +857,18 @@ void main() {
       return [
         isA<DisclosureCheckUrl>(),
         isA<DisclosureConfirmDataAttributes>().having(
-          (state) => state.cardRequests.map((it) => it.selectedIndex),
+          (state) => state.cardRequests.selectedIndices,
           'initial selection is all 0',
           [0, 0],
         ),
         isA<DisclosureConfirmDataAttributes>().having(
-          (state) => state.cardRequests.map((it) => it.selectedIndex),
+          (state) => state.cardRequests.selectedIndices,
           'update selection of second request',
           [0, 1],
         ),
         isA<DisclosureConfirmPin>(),
         isA<DisclosureConfirmDataAttributes>().having(
-          (state) => state.cardRequests.map((it) => it.selectedIndex),
+          (state) => state.cardRequests.selectedIndices,
           'updated selection should be maintained after returning from ConfirmPin',
           [0, 1],
         ),

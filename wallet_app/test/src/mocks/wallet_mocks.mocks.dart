@@ -1748,9 +1748,12 @@ class MockDisclosureRepository extends _i1.Mock implements _i23.DisclosureReposi
           as _i10.Future<bool>);
 
   @override
-  _i10.Future<String?> acceptDisclosure(String? pin) =>
+  _i10.Future<String?> acceptDisclosure(
+    String? pin,
+    List<int>? selectedIndices,
+  ) =>
       (super.noSuchMethod(
-            Invocation.method(#acceptDisclosure, [pin]),
+            Invocation.method(#acceptDisclosure, [pin, selectedIndices]),
             returnValue: _i10.Future<String?>.value(),
             returnValueForMissingStub: _i10.Future<String?>.value(),
           )
@@ -2262,9 +2265,12 @@ class MockIssuanceRepository extends _i1.Mock implements _i39.IssuanceRepository
           as _i10.Future<_i24.StartDisclosureResult>);
 
   @override
-  _i10.Future<List<_i9.WalletCard>> discloseForIssuance(String? pin) =>
+  _i10.Future<List<_i9.WalletCard>> discloseForIssuance(
+    String? pin,
+    List<int>? selectedIndices,
+  ) =>
       (super.noSuchMethod(
-            Invocation.method(#discloseForIssuance, [pin]),
+            Invocation.method(#discloseForIssuance, [pin, selectedIndices]),
             returnValue: _i10.Future<List<_i9.WalletCard>>.value(
               <_i9.WalletCard>[],
             ),
@@ -2605,19 +2611,31 @@ class MockTypedWalletCore extends _i1.Mock implements _i42.TypedWalletCore {
           as _i10.Future<List<_i26.AttestationPresentation>>);
 
   @override
-  _i10.Future<_i26.DisclosureBasedIssuanceResult> continueDisclosureBasedIssuance(String? pin) =>
+  _i10.Future<_i26.DisclosureBasedIssuanceResult> continueDisclosureBasedIssuance(
+    String? pin,
+    List<int>? selectedIndices,
+  ) =>
       (super.noSuchMethod(
-            Invocation.method(#continueDisclosureBasedIssuance, [pin]),
+            Invocation.method(#continueDisclosureBasedIssuance, [
+              pin,
+              selectedIndices,
+            ]),
             returnValue: _i10.Future<_i26.DisclosureBasedIssuanceResult>.value(
               _i14.dummyValue<_i26.DisclosureBasedIssuanceResult>(
                 this,
-                Invocation.method(#continueDisclosureBasedIssuance, [pin]),
+                Invocation.method(#continueDisclosureBasedIssuance, [
+                  pin,
+                  selectedIndices,
+                ]),
               ),
             ),
             returnValueForMissingStub: _i10.Future<_i26.DisclosureBasedIssuanceResult>.value(
               _i14.dummyValue<_i26.DisclosureBasedIssuanceResult>(
                 this,
-                Invocation.method(#continueDisclosureBasedIssuance, [pin]),
+                Invocation.method(#continueDisclosureBasedIssuance, [
+                  pin,
+                  selectedIndices,
+                ]),
               ),
             ),
           )
@@ -2710,19 +2728,25 @@ class MockTypedWalletCore extends _i1.Mock implements _i42.TypedWalletCore {
           as _i10.Future<String?>);
 
   @override
-  _i10.Future<_i26.AcceptDisclosureResult> acceptDisclosure(String? pin) =>
+  _i10.Future<_i26.AcceptDisclosureResult> acceptDisclosure(
+    String? pin,
+    List<int>? selectedIndices,
+  ) =>
       (super.noSuchMethod(
-            Invocation.method(#acceptDisclosure, [pin]),
+            Invocation.method(#acceptDisclosure, [pin, selectedIndices]),
             returnValue: _i10.Future<_i26.AcceptDisclosureResult>.value(
               _i14.dummyValue<_i26.AcceptDisclosureResult>(
                 this,
-                Invocation.method(#acceptDisclosure, [pin]),
+                Invocation.method(#acceptDisclosure, [pin, selectedIndices]),
               ),
             ),
             returnValueForMissingStub: _i10.Future<_i26.AcceptDisclosureResult>.value(
               _i14.dummyValue<_i26.AcceptDisclosureResult>(
                 this,
-                Invocation.method(#acceptDisclosure, [pin]),
+                Invocation.method(#acceptDisclosure, [
+                  pin,
+                  selectedIndices,
+                ]),
               ),
             ),
           )
@@ -5968,14 +5992,19 @@ class MockGetWalletStateUseCase extends _i1.Mock implements _i123.GetWalletState
 class MockWalletCoreApi extends _i1.Mock implements _i26.WalletCoreApi {
   @override
   _i10.Future<_i26.AcceptDisclosureResult> crateApiFullAcceptDisclosure({
+    required List<int>? selectedIndices,
     required String? pin,
   }) =>
       (super.noSuchMethod(
-            Invocation.method(#crateApiFullAcceptDisclosure, [], {#pin: pin}),
+            Invocation.method(#crateApiFullAcceptDisclosure, [], {
+              #selectedIndices: selectedIndices,
+              #pin: pin,
+            }),
             returnValue: _i10.Future<_i26.AcceptDisclosureResult>.value(
               _i14.dummyValue<_i26.AcceptDisclosureResult>(
                 this,
                 Invocation.method(#crateApiFullAcceptDisclosure, [], {
+                  #selectedIndices: selectedIndices,
                   #pin: pin,
                 }),
               ),
@@ -5984,6 +6013,7 @@ class MockWalletCoreApi extends _i1.Mock implements _i26.WalletCoreApi {
               _i14.dummyValue<_i26.AcceptDisclosureResult>(
                 this,
                 Invocation.method(#crateApiFullAcceptDisclosure, [], {
+                  #selectedIndices: selectedIndices,
                   #pin: pin,
                 }),
               ),
@@ -6238,12 +6268,15 @@ class MockWalletCoreApi extends _i1.Mock implements _i26.WalletCoreApi {
           as _i10.Future<_i26.WalletInstructionResult>);
 
   @override
-  _i10.Future<_i26.DisclosureBasedIssuanceResult> crateApiFullContinueDisclosureBasedIssuance({required String? pin}) =>
+  _i10.Future<_i26.DisclosureBasedIssuanceResult> crateApiFullContinueDisclosureBasedIssuance({
+    required List<int>? selectedIndices,
+    required String? pin,
+  }) =>
       (super.noSuchMethod(
             Invocation.method(
               #crateApiFullContinueDisclosureBasedIssuance,
               [],
-              {#pin: pin},
+              {#selectedIndices: selectedIndices, #pin: pin},
             ),
             returnValue: _i10.Future<_i26.DisclosureBasedIssuanceResult>.value(
               _i14.dummyValue<_i26.DisclosureBasedIssuanceResult>(
@@ -6251,7 +6284,7 @@ class MockWalletCoreApi extends _i1.Mock implements _i26.WalletCoreApi {
                 Invocation.method(
                   #crateApiFullContinueDisclosureBasedIssuance,
                   [],
-                  {#pin: pin},
+                  {#selectedIndices: selectedIndices, #pin: pin},
                 ),
               ),
             ),
@@ -6261,7 +6294,7 @@ class MockWalletCoreApi extends _i1.Mock implements _i26.WalletCoreApi {
                 Invocation.method(
                   #crateApiFullContinueDisclosureBasedIssuance,
                   [],
-                  {#pin: pin},
+                  {#selectedIndices: selectedIndices, #pin: pin},
                 ),
               ),
             ),

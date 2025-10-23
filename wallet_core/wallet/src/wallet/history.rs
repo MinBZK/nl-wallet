@@ -148,10 +148,10 @@ where
     pub async fn emit_recent_history(&mut self) -> Result<(), StorageError> {
         info!("Emit recent history from storage");
 
-        let storage = self.storage.read().await;
-        let events = storage.fetch_recent_wallet_events().await?;
+        if let Some(recent_history_callback) = &mut self.recent_history_callback {
+            let storage = self.storage.read().await;
+            let events = storage.fetch_recent_wallet_events().await?;
 
-        if let Some(ref mut recent_history_callback) = self.recent_history_callback {
             recent_history_callback(events);
         }
 
