@@ -1,13 +1,16 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:wallet/src/domain/model/result/application_error.dart';
+import 'package:wallet/src/domain/usecase/wallet/observe_wallet_locked_usecase.dart';
 import 'package:wallet/src/feature/wallet_transfer_target/bloc/wallet_transfer_target_bloc.dart';
 import 'package:wallet/src/feature/wallet_transfer_target/wallet_transfer_target_screen.dart';
 import 'package:wallet/src/wallet_assets.dart';
 
 import '../../../wallet_app_test_widget.dart';
+import '../../mocks/wallet_mocks.dart';
 import '../../test_util/golden_utils.dart';
 
 class MockWalletTransferTargetBloc extends MockBloc<WalletTransferTargetEvent, WalletTransferTargetState>
@@ -25,6 +28,7 @@ void main() {
           MockWalletTransferTargetBloc(),
           const WalletTransferIntroduction(),
         ),
+        providers: [RepositoryProvider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase())],
       );
       await screenMatchesGolden('wallet_transfer_introduction.light');
     });
@@ -37,6 +41,7 @@ void main() {
         ),
         brightness: Brightness.dark,
         surfaceSize: iphoneXSizeLandscape,
+        providers: [RepositoryProvider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase())],
       );
       await screenMatchesGolden('wallet_transfer_introduction.dark.landscape');
     });
@@ -47,6 +52,7 @@ void main() {
           MockWalletTransferTargetBloc(),
           const WalletTransferIntroduction(),
         ),
+        providers: [RepositoryProvider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase())],
       );
 
       // Tap the opt out button
@@ -62,6 +68,7 @@ void main() {
           MockWalletTransferTargetBloc(),
           const WalletTransferLoadingQrData(),
         ),
+        providers: [RepositoryProvider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase())],
       );
       await screenMatchesGolden('wallet_transfer_loading_qr_data.light');
     });
@@ -74,6 +81,7 @@ void main() {
         ),
         brightness: Brightness.dark,
         surfaceSize: iphoneXSizeLandscape,
+        providers: [RepositoryProvider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase())],
       );
       await screenMatchesGolden('wallet_transfer_loading_qr_data.dark.landscape');
     });
@@ -84,6 +92,7 @@ void main() {
           MockWalletTransferTargetBloc(),
           const WalletTransferAwaitingQrScan(_testQrData),
         ),
+        providers: [RepositoryProvider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase())],
       );
       await _preCacheWalletLogo(tester);
       await screenMatchesGolden('wallet_transfer_awaiting_qr_scan.light');
@@ -97,6 +106,7 @@ void main() {
         ),
         brightness: Brightness.dark,
         surfaceSize: iphoneXSizeLandscape,
+        providers: [RepositoryProvider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase())],
       );
       await _preCacheWalletLogo(tester);
       await screenMatchesGolden('wallet_transfer_awaiting_qr_scan.dark.landscape');
@@ -108,6 +118,7 @@ void main() {
           MockWalletTransferTargetBloc(),
           const WalletTransferAwaitingQrScan(_testQrData),
         ),
+        providers: [RepositoryProvider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase())],
       );
       await _preCacheWalletLogo(tester);
 
@@ -126,6 +137,7 @@ void main() {
           const WalletTransferAwaitingQrScan(_testQrData),
         ),
         surfaceSize: const Size(834, 1194),
+        providers: [RepositoryProvider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase())],
       );
       await _preCacheWalletLogo(tester);
 
@@ -144,6 +156,7 @@ void main() {
         ),
         brightness: Brightness.dark,
         surfaceSize: iphoneXSizeLandscape,
+        providers: [RepositoryProvider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase())],
       );
       await _preCacheWalletLogo(tester);
 
@@ -160,6 +173,7 @@ void main() {
           MockWalletTransferTargetBloc(),
           const WalletTransferAwaitingConfirmation(),
         ),
+        providers: [RepositoryProvider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase())],
       );
       await screenMatchesGolden('wallet_transfer_awaiting_confirmation.light');
     });
@@ -172,6 +186,7 @@ void main() {
         ),
         brightness: Brightness.dark,
         surfaceSize: iphoneXSizeLandscape,
+        providers: [RepositoryProvider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase())],
       );
       await screenMatchesGolden('wallet_transfer_awaiting_confirmation.dark.landscape');
     });
@@ -182,6 +197,7 @@ void main() {
           MockWalletTransferTargetBloc(),
           const WalletTransferTransferring(),
         ),
+        providers: [RepositoryProvider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase())],
       );
       await screenMatchesGolden('wallet_transfer_transferring.light');
     });
@@ -194,6 +210,7 @@ void main() {
         ),
         brightness: Brightness.dark,
         surfaceSize: iphoneXSizeLandscape,
+        providers: [RepositoryProvider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase())],
       );
       await screenMatchesGolden('wallet_transfer_transferring.dark.landscape');
     });
@@ -204,6 +221,7 @@ void main() {
           MockWalletTransferTargetBloc(),
           const WalletTransferTransferring(),
         ),
+        providers: [RepositoryProvider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase())],
       );
       // Tap the stop button in the AppBar
       await tester.tap(find.byIcon(Icons.block_flipped).first);
@@ -219,6 +237,7 @@ void main() {
         ),
         brightness: Brightness.dark,
         surfaceSize: iphoneXSizeLandscape,
+        providers: [RepositoryProvider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase())],
       );
       // Tap the stop button in the AppBar
       await tester.tap(find.byIcon(Icons.block_flipped).first);
@@ -232,6 +251,7 @@ void main() {
           MockWalletTransferTargetBloc(),
           const WalletTransferSuccess(),
         ),
+        providers: [RepositoryProvider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase())],
       );
       await screenMatchesGolden('wallet_transfer_success.light');
     });
@@ -244,6 +264,7 @@ void main() {
         ),
         brightness: Brightness.dark,
         surfaceSize: iphoneXSizeLandscape,
+        providers: [RepositoryProvider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase())],
       );
       await screenMatchesGolden('wallet_transfer_success.dark.landscape');
     });
@@ -254,6 +275,7 @@ void main() {
           MockWalletTransferTargetBloc(),
           const WalletTransferFailed(GenericError('failed', sourceError: 'failedError')),
         ),
+        providers: [RepositoryProvider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase())],
       );
       await screenMatchesGolden('wallet_transfer_failed.light');
     });
@@ -266,6 +288,7 @@ void main() {
         ),
         brightness: Brightness.dark,
         surfaceSize: iphoneXSizeLandscape,
+        providers: [RepositoryProvider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase())],
       );
       await screenMatchesGolden('wallet_transfer_failed.dark.landscape');
     });
@@ -276,6 +299,7 @@ void main() {
           MockWalletTransferTargetBloc(),
           const WalletTransferStopped(),
         ),
+        providers: [RepositoryProvider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase())],
       );
       await screenMatchesGolden('wallet_transfer_stopped.light');
     });
@@ -288,6 +312,7 @@ void main() {
         ),
         brightness: Brightness.dark,
         surfaceSize: iphoneXSizeLandscape,
+        providers: [RepositoryProvider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase())],
       );
       await screenMatchesGolden('wallet_transfer_stopped.dark.landscape');
     });
@@ -298,6 +323,7 @@ void main() {
           MockWalletTransferTargetBloc(),
           const WalletTransferGenericError(GenericError('generic_error', sourceError: 'mockError')),
         ),
+        providers: [RepositoryProvider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase())],
       );
       await screenMatchesGolden('wallet_transfer_generic_error.light');
     });
@@ -310,6 +336,7 @@ void main() {
         ),
         brightness: Brightness.dark,
         surfaceSize: iphoneXSizeLandscape,
+        providers: [RepositoryProvider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase())],
       );
       await screenMatchesGolden('wallet_transfer_generic_error.dark.landscape');
     });
@@ -320,6 +347,7 @@ void main() {
           MockWalletTransferTargetBloc(),
           const WalletTransferSessionExpired(SessionError(state: SessionState.expired, sourceError: 'sessionError')),
         ),
+        providers: [RepositoryProvider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase())],
       );
       await screenMatchesGolden('wallet_transfer_session_expired.light');
     });
@@ -332,6 +360,7 @@ void main() {
         ),
         brightness: Brightness.dark,
         surfaceSize: iphoneXSizeLandscape,
+        providers: [RepositoryProvider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase())],
       );
       await screenMatchesGolden('wallet_transfer_session_expired.dark.landscape');
     });

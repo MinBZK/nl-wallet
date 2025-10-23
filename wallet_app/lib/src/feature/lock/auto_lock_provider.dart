@@ -3,9 +3,12 @@ import 'package:flutter/widgets.dart';
 class AutoLockProvider extends InheritedWidget {
   final VoidCallback resetIdleTimeout;
 
+  final Function({required bool enabled}) setAutoLock;
+
   const AutoLockProvider({
     super.key,
     required this.resetIdleTimeout,
+    required this.setAutoLock,
     required super.child,
   });
 
@@ -14,7 +17,6 @@ class AutoLockProvider extends InheritedWidget {
   }
 
   @override
-  bool updateShouldNotify(AutoLockProvider oldWidget) {
-    return oldWidget.resetIdleTimeout != resetIdleTimeout;
-  }
+  bool updateShouldNotify(AutoLockProvider oldWidget) =>
+      oldWidget.resetIdleTimeout != resetIdleTimeout || oldWidget.setAutoLock != setAutoLock;
 }
