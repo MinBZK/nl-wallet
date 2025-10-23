@@ -7,7 +7,6 @@ use nutype::nutype;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_json::Number;
-use serde_with::FromInto;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 
@@ -91,15 +90,16 @@ impl ObjectClaims {
         )?;
 
         // Hash the disclosure.
-        let hash = hasher.encoded_digest(disclosure.encoded());
+        let digest = hasher.encoded_digest(disclosure.encoded());
 
-        // Add the hash to the "_sd" array if exists; otherwise, create the array and insert the hash.
-        self.push_digest(hash);
+        // Add the digest to the "_sd" array if it exists; otherwise, create the array and insert the digest.
+        self.push_digest(digest);
 
         Ok(disclosure)
     }
 
-    /// Push `new_digest` to the digests in `_sd`. Maintains alphabetical ordering if possible.
+    /// Push `new_digest` to the digests in `_sd`. Maintains alphabetical ordering if possible, as recommended in:
+    /// <https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-22.html#section-4.2.4.1>
     fn push_digest(&mut self, new_digest: String) {
         if self._sd.is_none() {
             // `try_new` will always return `Ok` because the newly created vec is not empty with a single unique value
@@ -234,7 +234,7 @@ impl ClaimValue {
         match (self, claim_path) {
             (ClaimValue::Array(array), ClaimPath::SelectByIndex(index)) => match array.get_mut(*index) {
                 Some(ArrayClaim::Value(value)) => Ok(Some(value)),
-                Some(ArrayClaim::Hash(_)) => Err(ClaimError::ExpectedArrayElement(claim_path.to_owned())),
+                Some(ArrayClaim::Hash { .. }) => Err(ClaimError::ExpectedArrayElement(claim_path.to_owned())),
                 None => Ok(None),
             },
             (ClaimValue::Object(object), ClaimPath::SelectByKey(key)) => {
@@ -297,8 +297,8 @@ impl ClaimValue {
                                 error
                             },
                         )?;
-                        let hash = hasher.encoded_digest(disclosure.encoded());
-                        *value = ArrayClaim::Hash(hash);
+                        let digest = hasher.encoded_digest(disclosure.encoded());
+                        *value = ArrayClaim::Hash { digest };
                         Ok(disclosure)
                     })
                     .unwrap_or_else(|| Err(ClaimError::IndexOutOfBounds(*index, array.clone()))?)
@@ -322,9 +322,9 @@ impl ClaimValue {
     fn add_decoy_here<H: Hasher>(&mut self, hasher: &H, salt_len: usize) -> Result<(), EncoderError> {
         match self {
             ClaimValue::Array(array) => {
-                array.push(ArrayClaim::Hash(SdObjectEncoder::random_digest(
-                    hasher, salt_len, true,
-                )?));
+                array.push(ArrayClaim::Hash {
+                    digest: SdObjectEncoder::random_digest(hasher, salt_len, true)?,
+                });
                 Ok(())
             }
             ClaimValue::Object(object) => {
@@ -378,8 +378,8 @@ impl ClaimValue {
 
                 // If the array entry is an array-selective-disclosure object, then we'll add the digest to the
                 // list of digests to disclose.
-                if let ArrayClaim::Hash(digest) = entry {
-                    digests.push(digest);
+                if let ArrayClaim::Hash { digest } = entry {
+                    digests.push(digest.as_ref());
                 }
                 Ok(digests)
             }
@@ -407,14 +407,17 @@ impl ClaimValue {
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 #[serde(untagged)]
 pub enum ArrayClaim {
-    Hash(#[serde_as(as = "FromInto<DisclosureHash>")] String),
+    Hash {
+        #[serde(rename = "...")]
+        digest: String,
+    },
     Value(ClaimValue),
 }
 
 impl ArrayClaim {
     pub fn digests(&self) -> Vec<(String, ClaimType)> {
         match &self {
-            ArrayClaim::Hash(hash) => vec![(hash.clone(), ClaimType::Array)],
+            ArrayClaim::Hash { digest } => vec![(digest.to_string(), ClaimType::Array)],
             ArrayClaim::Value(value) => value.digests(),
         }
     }
@@ -425,14 +428,14 @@ impl ArrayClaim {
         digests: &mut Vec<&'a str>,
     ) -> Result<Option<&'a ClaimValue>, ClaimError> {
         let result = match self {
-            ArrayClaim::Hash(digest) => {
+            ArrayClaim::Hash { digest } => {
                 // We're disclosing something within a selectively disclosable array entry.
                 // For the verifier to be able to verify that, we'll also have to disclose that entry.
-                digests.push(digest);
+                digests.push(digest.as_ref());
 
                 match disclosures.get(digest) {
                     Some(disclosure) => {
-                        let (_, value) = disclosure.content.try_as_array_element(digest)?;
+                        let (_, value) = disclosure.content.try_as_array_element(digest.as_ref())?;
                         value.process_digests_to_disclose(disclosures, digests)?
                     }
                     None => None,
@@ -456,25 +459,6 @@ impl From<ClaimValue> for ArrayClaim {
 impl Default for ArrayClaim {
     fn default() -> Self {
         ArrayClaim::Value(Default::default())
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Default)]
-#[serde(deny_unknown_fields)]
-pub struct DisclosureHash {
-    #[serde(rename = "...")]
-    hash: String,
-}
-
-impl From<String> for DisclosureHash {
-    fn from(hash: String) -> Self {
-        Self { hash }
-    }
-}
-
-impl From<DisclosureHash> for String {
-    fn from(value: DisclosureHash) -> Self {
-        value.hash
     }
 }
 
@@ -554,7 +538,7 @@ mod tests {
 
             assert_eq!(array_claims.len(), 3);
             assert_matches!(array_claims[0], ArrayClaim::Value(_));
-            assert_matches!(array_claims[1], ArrayClaim::Hash(_));
+            assert_matches!(array_claims[1], ArrayClaim::Hash { .. });
             assert_matches!(array_claims[2], ArrayClaim::Value(_));
 
             assert_eq!(
@@ -575,12 +559,12 @@ mod tests {
 
         assert_eq!(array_claims.len(), 3);
         assert_matches!(array_claims[0], ArrayClaim::Value(_));
-        assert_matches!(array_claims[1], ArrayClaim::Hash(_));
+        assert_matches!(array_claims[1], ArrayClaim::Hash { .. });
         assert_matches!(array_claims[2], ArrayClaim::Value(_));
 
         assert_matches!(
             disclosure.content,
-            DisclosureContent::ArrayElement(_, ArrayClaim::Hash(_))
+            DisclosureContent::ArrayElement(_, ArrayClaim::Hash { .. })
         );
     }
 
@@ -631,5 +615,17 @@ mod tests {
                 .collect::<Vec<_>>(),
             vec!["alpha", "beta", "delta", "gamma", "zebra"]
         );
+    }
+
+    #[test]
+    fn deserialize_nested_string_array() {
+        let expected = ClaimValue::Array(vec![ArrayClaim::Value(ClaimValue::Array(vec![ArrayClaim::Value(
+            ClaimValue::String("string".to_string()),
+        )]))]);
+
+        let value = serde_json::to_value(&expected).unwrap();
+        let claim: ClaimValue = serde_json::from_value(value).unwrap();
+
+        assert_eq!(claim, expected);
     }
 }
