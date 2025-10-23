@@ -6653,7 +6653,6 @@ dependencies = [
  "rstest",
  "rustls",
  "rustls-pki-types",
- "sd_jwt",
  "sea-orm",
  "semver",
  "serde_json",
