@@ -761,16 +761,20 @@ where
             .clone()
             .into_certificate_and_registration();
 
+        // Generate `AttestationPresentation`s of the disclosed attributes, to store in the disclosure event. Note
+        // that there is guaranteed to be at least one attestation because of the logic in `start_disclosure()`.
+        let attestation_presentations = attestations
+            .values()
+            .map(|attestation| attestation.presentation().clone())
+            .collect_vec()
+            .try_into()
+            .unwrap();
+
         if let Err(error) = result {
             if let Err(e) = self
                 .store_disclosure_event(
                     Utc::now(),
-                    attestations
-                        .values()
-                        .map(|attestation| attestation.presentation().clone())
-                        .collect_vec()
-                        .try_into()
-                        .ok(),
+                    Some(attestation_presentations),
                     reader_certificate,
                     session.disclosure_type,
                     EventStatus::Error,
@@ -797,17 +801,11 @@ where
                         Either::Right(((*id).clone(), vec_nonempty![(*sd_jwt.clone(), key_identifier.clone())]))
                     }
                 });
-        let attestation_presentations = attestations
-            .into_values()
-            .map(|attestation| attestation.presentation().clone())
-            .collect_vec()
-            .try_into()
-            .unwrap();
 
         // This should result in either all partial mdocs or all SD-JWT presentations, which is guaranteed by the logic
         // in `VpDisclosureSession`, which rejects DCQL requests with a mix of formats. Additionally, there will be at
         // least one partial mdoc or SD-JWT presentation, which is guaranteed by `NormalizedCredentialRequests` and the
-        // logic in `perform_disclosure()`.
+        // logic in `start_disclosure()`.
         let partial_mdocs_result = DisclosableAttestations::MsoMdoc(partial_mdocs).try_into();
         let sd_jwt_presentations_result = DisclosableAttestations::SdJwt(sd_jwt_presentations).try_into();
         let disclosable_attestations = match (partial_mdocs_result, sd_jwt_presentations_result) {
