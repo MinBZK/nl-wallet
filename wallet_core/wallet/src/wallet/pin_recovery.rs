@@ -39,6 +39,8 @@ use crate::errors::InstructionError;
 use crate::errors::PinKeyError;
 use crate::errors::PinValidationError;
 use crate::errors::StorageError;
+use crate::instruction::InstructionClient;
+use crate::instruction::InstructionClientParameters;
 use crate::instruction::PinRecoveryRemoteEcdsaWscd;
 use crate::instruction::PinRecoveryWscd;
 use crate::pin::key::PinKey;
@@ -456,15 +458,17 @@ where
         // Finish PIN recovery by sending the second WP instruction.
 
         // Use a new instruction client that uses our new WP certificate
-        self.new_instruction_client(
-            new_pin.clone(),
-            Arc::clone(&attested_key),
-            registration_data,
-            config.account_server.http_config.clone(),
-            config.account_server.instruction_result_public_key.as_inner().into(),
+        InstructionClient::new(
+            new_pin,
+            Arc::clone(&self.storage),
+            attested_key,
+            Arc::clone(&self.account_provider_client),
+            Arc::new(InstructionClientParameters::new(
+                registration_data,
+                config.account_server.http_config.clone(),
+                config.account_server.instruction_result_public_key.as_inner().into(),
+            )),
         )
-        .await
-        .map_err(IssuanceError::from)?
         .send(DiscloseRecoveryCodePinRecovery {
             recovery_code_disclosure,
         })
@@ -581,7 +585,6 @@ mod tests {
     use crate::errors::PinValidationError;
     use crate::instruction::PinRecoveryWscd;
     use crate::repository::Repository;
-    use crate::storage::ChangePinData;
     use crate::storage::InstructionData;
     use crate::storage::PinRecoveryData;
     use crate::storage::RegistrationData;
@@ -714,11 +717,6 @@ mod tests {
             .returning(|_: &PinRecoveryData| Ok(()));
 
         // General expectations for sending instructions.
-        wallet
-            .mut_storage()
-            .expect_fetch_data::<ChangePinData>()
-            .once()
-            .returning(|| Ok(None));
         wallet
             .mut_storage()
             .expect_upsert_data()
