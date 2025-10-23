@@ -400,7 +400,7 @@ mod examples {
 
     use crate::attributes::AttributeValue;
     use crate::attributes::Attributes;
-    use crate::constants::PID_ATTESTATION_TYPE;
+    use crate::pid_constants::PID_ATTESTATION_TYPE;
 
     use super::CredentialPayload;
     use super::PreviewableCredentialPayload;
@@ -482,8 +482,8 @@ mod mock {
     use utils::generator::Generator;
 
     use crate::attributes::Attributes;
-    use crate::constants::ADDRESS_ATTESTATION_TYPE;
-    use crate::constants::PID_ATTESTATION_TYPE;
+    use crate::pid_constants::ADDRESS_ATTESTATION_TYPE;
+    use crate::pid_constants::PID_ATTESTATION_TYPE;
 
     use super::CredentialPayload;
     use super::PreviewableCredentialPayload;
@@ -563,9 +563,9 @@ mod test {
     use crate::attributes::Attributes;
     use crate::attributes::test::complex_attributes;
     use crate::auth::issuer_auth::IssuerRegistration;
-    use crate::constants::PID_ATTESTATION_TYPE;
     use crate::credential_payload::IntoCredentialPayload;
     use crate::credential_payload::SdJwtCredentialPayloadError;
+    use crate::pid_constants::PID_ATTESTATION_TYPE;
     use crate::x509::CertificateType;
 
     use super::CredentialPayload;

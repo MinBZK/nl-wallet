@@ -33,20 +33,20 @@ use utils::vec_nonempty;
 use crate::attributes::AttributeValue;
 use crate::attributes::Attributes;
 use crate::attributes::AttributesTraversalBehaviour;
-use crate::constants::PID_ADDRESS_GROUP;
-use crate::constants::PID_BIRTH_DATE;
-use crate::constants::PID_BSN;
-use crate::constants::PID_FAMILY_NAME;
-use crate::constants::PID_GIVEN_NAME;
-use crate::constants::PID_RESIDENT_CITY;
-use crate::constants::PID_RESIDENT_COUNTRY;
-use crate::constants::PID_RESIDENT_HOUSE_NUMBER;
-use crate::constants::PID_RESIDENT_POSTAL_CODE;
-use crate::constants::PID_RESIDENT_STREET;
 use crate::credential_payload::CredentialPayload;
 use crate::credential_payload::PreviewableCredentialPayload;
 use crate::disclosure::DisclosedAttestations;
 use crate::disclosure::DisclosedAttributes;
+use crate::pid_constants::PID_ADDRESS_GROUP;
+use crate::pid_constants::PID_BIRTH_DATE;
+use crate::pid_constants::PID_BSN;
+use crate::pid_constants::PID_FAMILY_NAME;
+use crate::pid_constants::PID_GIVEN_NAME;
+use crate::pid_constants::PID_RESIDENT_CITY;
+use crate::pid_constants::PID_RESIDENT_COUNTRY;
+use crate::pid_constants::PID_RESIDENT_HOUSE_NUMBER;
+use crate::pid_constants::PID_RESIDENT_POSTAL_CODE;
+use crate::pid_constants::PID_RESIDENT_STREET;
 
 /// A collection of [`TestCredential`] types, which are guaranteed to contain different credential query identifiers.
 /// It provides aggregate versions of the methods present on that type. It also allows [`TestCredentials`] to be be

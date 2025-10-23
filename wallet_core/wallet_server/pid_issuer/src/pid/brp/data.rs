@@ -6,7 +6,7 @@ use serde_with::skip_serializing_none;
 
 use attestation_data::attributes::Attribute;
 use attestation_data::attributes::AttributeValue;
-use attestation_data::constants::*;
+use attestation_data::pid_constants::*;
 use utils::vec_at_least::VecNonEmpty;
 
 #[derive(Deserialize)]
@@ -292,8 +292,8 @@ mod tests {
     use rstest::rstest;
     use serde_json::json;
 
-    use attestation_data::constants::ADDRESS_ATTESTATION_TYPE;
-    use attestation_data::constants::PID_ATTESTATION_TYPE;
+    use attestation_data::pid_constants::ADDRESS_ATTESTATION_TYPE;
+    use attestation_data::pid_constants::PID_ATTESTATION_TYPE;
     use utils::path::prefix_local_path;
 
     use crate::pid::brp::data::BrpPersons;

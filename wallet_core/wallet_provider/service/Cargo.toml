@@ -74,8 +74,8 @@ tracing-subscriber = { workspace = true, optional = true, features = [
 
 android_attest.path = "../../lib/android_attest"
 apple_app_attest.path = "../../lib/apple_app_attest"
-# TODO: Remove "pid_constansts" feature in PVW-5000
-attestation_data = { path = "../../lib/attestation_data", features = ["pid_constants"] }
+attestation_data.path = "../../lib/attestation_data"
+attestation_types.path = "../../lib/attestation_types"
 crypto.path = "../../lib/crypto"
 hsm.path = "../../lib/hsm"
 jwt.path = "../../lib/jwt"
@@ -108,6 +108,7 @@ crypto = { path = "../../lib/crypto", features = ["mock_secure_keys"] }
 jwt = { path = "../../lib/jwt", features = ["test"] }
 platform_support = { path = "../../wallet/platform_support", features = ["mock_attested_key_apple"] }
 sd_jwt = { path = "../../lib/sd_jwt", features = ["examples"] }
+utils = { path = "../../lib/utils", features = ["mock_time"] }
 wallet_account = { path = "../wallet_account", features = ["client", "server"] }
 wallet_provider_domain = { path = "../domain", features = ["mock"] }
 wallet_provider_persistence = { path = "../persistence", features = ["mock"] }

@@ -5,8 +5,6 @@ import helper.TasDataHelper
 import helper.TestBase
 import navigator.OnboardingNavigator
 import navigator.screen.OnboardingNavigatorScreen
-import screen.card.CardDetailScreen
-import screen.dashboard.DashboardScreen
 import org.junit.jupiter.api.Assertions.assertAll
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.DisplayName
@@ -16,6 +14,8 @@ import org.junit.jupiter.api.Tags
 import org.junit.jupiter.api.TestInfo
 import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
+import screen.card.CardDetailScreen
+import screen.dashboard.DashboardScreen
 
 @TestMethodOrder(MethodOrderer.DisplayName::class)
 @DisplayName("Use Case 7.1 Show all available cards")

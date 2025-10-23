@@ -1031,8 +1031,8 @@ pub(crate) mod tests {
 
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::auth::reader_auth::ReaderRegistration;
-    use attestation_data::constants::PID_ATTESTATION_TYPE;
     use attestation_data::credential_payload::IntoCredentialPayload;
+    use attestation_data::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
     use crypto::server_keys::KeyPair;

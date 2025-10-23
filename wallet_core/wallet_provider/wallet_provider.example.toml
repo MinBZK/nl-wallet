@@ -25,6 +25,10 @@ wua_issuer_identifier = "wua-issuer.example.com"
 # Indicates whether logging should be output in a structured (JSON) manner.
 #structured_logging = false
 
+# Recovery code claim path for every attestation type
+[recovery_code_paths]
+"urn:eudi:pid:nl:1" = ["recovery_code"]
+
 [database]
 # host = "localhost"
 # username = "postgres"

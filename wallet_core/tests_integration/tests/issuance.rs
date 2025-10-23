@@ -1,8 +1,8 @@
 use indexmap::IndexMap;
 use serial_test::serial;
 
-use attestation_data::constants::*;
 use attestation_data::issuable_document::IssuableDocument;
+use attestation_data::pid_constants::*;
 use openid4vc::ErrorResponse;
 use openid4vc::issuance_session::IssuanceSessionError;
 use pid_issuer::pid::mock::mock_issuable_document_address;

@@ -101,6 +101,7 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
                         .pin_public_disclosure_protection_key_identifier,
                 },
             },
+            settings.recovery_code_paths.into(),
             apple_config,
             android_config,
             google_crl_client,
