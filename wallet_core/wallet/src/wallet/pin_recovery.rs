@@ -288,7 +288,7 @@ where
         if *stored_recovery_code != received_recovery_code {
             return Err(PinRecoveryError::IncorrectRecoveryCode {
                 expected: stored_recovery_code.clone(),
-                received: received_recovery_code.clone(),
+                received: received_recovery_code,
             });
         }
 
