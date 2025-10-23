@@ -127,8 +127,6 @@ pub enum DisclosureError {
     #[error("cannot request recovery code")]
     #[category(critical)]
     RecoveryCodeRequested,
-    #[error("incorrect candidates selected: {0}")]
-    AttestationSelection(#[from] DisclosureSelectionError),
     #[error("error sending instruction to Wallet Provider: {0}")]
     Instruction(#[source] InstructionError),
     #[error("could not increment usage count of mdoc copies in database: {0}")]
@@ -217,31 +215,23 @@ pub(super) enum WalletDisclosureAttestations {
     Proposal(IndexMap<CredentialQueryIdentifier, VecNonEmpty<DisclosableAttestation>>),
 }
 
-#[derive(Debug, thiserror::Error, ErrorCategory)]
-#[category(critical)]
-pub enum DisclosureSelectionError {
-    #[error("selected query count does not match, expected {expected}, found {found}")]
-    QueryCountMismatch { found: usize, expected: usize },
-    #[error("selected attestation out of bounds for query {query_index}: {attestation_index}")]
-    SelectionOutOfBounds {
-        query_index: usize,
-        attestation_index: usize,
-    },
-}
-
 impl WalletDisclosureAttestations {
+    /// Returns an [`IndexMap`] selecting one attestation per DCQL query from the proposal. Note that this panics when
+    /// [`WalletDisclosureAttestations`] is not a propsal or any of the indices is out of bounds, as this is considered
+    /// programmer error.
     pub fn select_proposal(
         &self,
         selected_indices: &[usize],
-    ) -> Result<Option<IndexMap<&CredentialQueryIdentifier, &DisclosableAttestation>>, DisclosureSelectionError> {
+    ) -> IndexMap<&CredentialQueryIdentifier, &DisclosableAttestation> {
         match self {
-            Self::Missing => Ok(None),
+            Self::Missing => panic!("disclosure proposal selected when missing attributes"),
             Self::Proposal(attestations) => {
                 if selected_indices.len() != attestations.len() {
-                    return Err(DisclosureSelectionError::QueryCountMismatch {
-                        found: selected_indices.len(),
-                        expected: attestations.len(),
-                    });
+                    panic!(
+                        "disclosure attestation count does not match query, expected {}, found {}",
+                        attestations.len(),
+                        selected_indices.len()
+                    );
                 }
 
                 attestations
@@ -249,17 +239,18 @@ impl WalletDisclosureAttestations {
                     .zip(selected_indices.iter().copied())
                     .enumerate()
                     .map(|(query_index, ((id, candidates), selected_index))| {
-                        let attestation = candidates.as_ref().get(selected_index).ok_or(
-                            DisclosureSelectionError::SelectionOutOfBounds {
+                        let Some(attestation) = candidates.as_ref().get(selected_index) else {
+                            panic!(
+                                "selected disclosure attestation out of bounds for query index {} with count {}: {}",
                                 query_index,
-                                attestation_index: selected_index,
-                            },
-                        )?;
+                                candidates.len(),
+                                selected_index,
+                            );
+                        };
 
-                        Ok((id, attestation))
+                        (id, attestation)
                     })
-                    .try_collect()
-                    .map(Some)
+                    .collect()
             }
         }
     }
@@ -704,6 +695,11 @@ where
             return Err(DisclosureError::SessionState);
         };
 
+        // If we do not have a proposal, this method should not have been called, so return an error.
+        if !matches!(session.attestations, WalletDisclosureAttestations::Proposal(_)) {
+            return Err(DisclosureError::SessionState);
+        }
+
         if session.redirect_uri_purpose != redirect_uri_purpose {
             return Err(DisclosureError::UnexpectedRedirectUriPurpose {
                 expected: session.redirect_uri_purpose,
@@ -711,12 +707,8 @@ where
             });
         }
 
-        // If selecting attributes returns `None`, this means that attributes
-        // were missing, so this method should not have been called.
-        let attestations = session
-            .attestations
-            .select_proposal(selected_indices)?
-            .ok_or(DisclosureError::SessionState)?;
+        // Note that this will panic if any of the indices are out of bounds.
+        let attestations = session.attestations.select_proposal(selected_indices);
 
         // Prepare the `RemoteEcdsaWscd` for signing using the provided PIN.
         let instruction_result_public_key = config.account_server.instruction_result_public_key.as_inner().into();
@@ -995,7 +987,6 @@ mod tests {
     use super::DisclosureAttestationOptions;
     use super::DisclosureError;
     use super::DisclosureProposalPresentation;
-    use super::DisclosureSelectionError;
     use super::RedirectUriPurpose;
     use super::WalletDisclosureAttestations;
     use super::WalletDisclosureSession;
@@ -2387,50 +2378,32 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_wallet_accept_disclosure_error_attestation_selection() {
-        // Prepare a registered and unlocked wallet with an active disclosure session that has missing attributes.
+    #[should_panic(expected = "disclosure attestation count does not match query, expected 1, found 2")]
+    async fn test_wallet_accept_disclosure_panic_query_index_out_of_bounds() {
+        // Prepare a registered and unlocked wallet with an active disclosure based issuance session.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
         let (session, _verifier_certificate) = setup_wallet_disclosure_session(CredentialFormat::SdJwt);
         wallet.session = Some(session);
 
         wallet.mut_storage().expect_log_disclosure_event().never();
 
-        // Accepting disclosure on a wallet while selecting a non-existant query index should result in an error.
-        let error = wallet
-            .accept_disclosure(&[0, 0], PIN.to_string())
-            .await
-            .expect_err("accepting disclosure should not succeed");
+        // Accepting disclosure on a wallet while selecting a non-existant query index should result in a panic.
+        let _ = wallet.accept_disclosure(&[0, 0], PIN.to_string()).await;
+    }
 
-        wallet.mut_storage().checkpoint();
-
-        assert_matches!(
-            error,
-            DisclosureError::AttestationSelection(DisclosureSelectionError::QueryCountMismatch {
-                found: 2,
-                expected: 1
-            })
-        );
-        assert!(error.return_url().is_none());
-        assert!(wallet.session.is_some());
+    #[tokio::test]
+    #[should_panic(expected = "selected disclosure attestation out of bounds for query index 0 with count 1: 1")]
+    async fn test_wallet_accept_disclosure_panic_proposal_index_out_of_bounds() {
+        // Prepare a registered and unlocked wallet with an active disclosure based issuance session.
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+        let (session, _verifier_certificate) = setup_wallet_disclosure_session(CredentialFormat::SdJwt);
+        wallet.session = Some(session);
 
         wallet.mut_storage().expect_log_disclosure_event().never();
 
         // Accepting disclosure on a wallet while selecting a non-existant
-        // attestation proposal should result in an error.
-        let error = wallet
-            .accept_disclosure(&[1], PIN.to_string())
-            .await
-            .expect_err("accepting disclosure should not succeed");
-
-        assert_matches!(
-            error,
-            DisclosureError::AttestationSelection(DisclosureSelectionError::SelectionOutOfBounds {
-                query_index: 0,
-                attestation_index: 1
-            })
-        );
-        assert!(error.return_url().is_none());
-        assert!(wallet.session.is_some());
+        // attestation proposal should result in a panic.
+        let _ = wallet.accept_disclosure(&[1], PIN.to_string()).await;
     }
 
     // TODO (PVW-3844): Add tests for continuing a PIN change when accepting disclosure.
@@ -2552,8 +2525,6 @@ mod tests {
         let copy_ids = session
             .attestations
             .select_proposal(&[0])
-            .unwrap()
-            .unwrap()
             .values()
             .map(|attestation| attestation.attestation_copy_id())
             .collect_vec();
@@ -2736,8 +2707,6 @@ mod tests {
         let copy_ids = session
             .attestations
             .select_proposal(&[0])
-            .unwrap()
-            .unwrap()
             .values()
             .map(|attestation| attestation.attestation_copy_id())
             .collect_vec();
