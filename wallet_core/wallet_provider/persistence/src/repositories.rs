@@ -130,10 +130,10 @@ impl WalletUserRepository for Repositories {
     async fn is_pin_recovery_key(
         &self,
         transaction: &Self::TransactionType,
-        wallet_id: Uuid,
+        wallet_user_id: Uuid,
         key: VerifyingKey,
     ) -> Result<bool, PersistenceError> {
-        wallet_user_key::is_pin_recovery_key(transaction, wallet_id, key).await
+        wallet_user_key::is_pin_recovery_key(transaction, wallet_user_id, key).await
     }
 
     async fn find_keys_by_identifiers(
