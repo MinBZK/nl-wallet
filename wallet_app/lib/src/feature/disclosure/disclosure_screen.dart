@@ -2,9 +2,11 @@ import 'package:collection/collection.dart';
 import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../domain/usecase/disclosure/accept_disclosure_usecase.dart';
+import '../../domain/usecase/disclosure/impl/accept_disclosure_usecase_impl.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/cast_util.dart';
 import '../../util/extension/build_context_extension.dart';
@@ -29,7 +31,6 @@ import '../fraud_check/fraud_check_page.dart';
 import '../history/detail/argument/history_detail_screen_argument.dart';
 import '../login/login_detail_screen.dart';
 import '../organization/approve/organization_approve_page.dart';
-import '../pin/bloc/pin_bloc.dart';
 import '../report_issue/report_issue_screen.dart';
 import '../report_issue/reporting_group.dart';
 import '../report_issue/reporting_option.dart';
@@ -222,11 +223,13 @@ class DisclosureScreen extends StatelessWidget {
     final title = state.isLoginFlow
         ? context.l10n.disclosureConfirmPinPageForLoginTitle
         : context.l10n.disclosureConfirmPinPageTitle;
-    return DisclosureConfirmPinPage(
-      title: title,
-      bloc: PinBloc(context.read<AcceptDisclosureUseCase>()),
-      onPinValidated: (returnUrl) => context.bloc.add(DisclosurePinConfirmed(returnUrl: returnUrl)),
-      onConfirmWithPinFailed: (context, state) => context.bloc.add(DisclosureConfirmPinFailed(error: state.error)),
+    return Provider<AcceptDisclosureUseCase>(
+      create: (context) => AcceptDisclosureUseCaseImpl(context.read(), state.selectedIndices),
+      child: DisclosureConfirmPinPage(
+        title: title,
+        onPinValidated: (returnUrl) => context.bloc.add(DisclosurePinConfirmed(returnUrl: returnUrl)),
+        onConfirmWithPinFailed: (context, state) => context.bloc.add(DisclosureConfirmPinFailed(error: state.error)),
+      ),
     );
   }
 

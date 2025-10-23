@@ -99,13 +99,15 @@ Future<StartDisclosureResult> startDisclosure({required String uri, required boo
 
 Future<String?> cancelDisclosure() => WalletCore.instance.api.crateApiFullCancelDisclosure();
 
-Future<AcceptDisclosureResult> acceptDisclosure({required String pin}) =>
-    WalletCore.instance.api.crateApiFullAcceptDisclosure(pin: pin);
+Future<AcceptDisclosureResult> acceptDisclosure({required List<int> selectedIndices, required String pin}) =>
+    WalletCore.instance.api.crateApiFullAcceptDisclosure(selectedIndices: selectedIndices, pin: pin);
 
 Future<bool> hasActiveDisclosureSession() => WalletCore.instance.api.crateApiFullHasActiveDisclosureSession();
 
-Future<DisclosureBasedIssuanceResult> continueDisclosureBasedIssuance({required String pin}) =>
-    WalletCore.instance.api.crateApiFullContinueDisclosureBasedIssuance(pin: pin);
+Future<DisclosureBasedIssuanceResult> continueDisclosureBasedIssuance({
+  required List<int> selectedIndices,
+  required String pin,
+}) => WalletCore.instance.api.crateApiFullContinueDisclosureBasedIssuance(selectedIndices: selectedIndices, pin: pin);
 
 Future<bool> isBiometricUnlockEnabled() => WalletCore.instance.api.crateApiFullIsBiometricUnlockEnabled();
 

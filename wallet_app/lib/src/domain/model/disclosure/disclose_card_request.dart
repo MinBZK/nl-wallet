@@ -9,6 +9,10 @@ class DiscloseCardRequest extends Equatable {
   final int selectedIndex;
 
   /// The list of candidate wallet cards available for selection.
+  ///
+  /// The order of items in this list determines the selection
+  /// and must be preserved when returning values through the API.
+  ///
   /// Must not be empty, as required by the constructor.
   final List<WalletCard> candidates;
 
@@ -44,4 +48,9 @@ class DiscloseCardRequest extends Equatable {
 
   @override
   List<Object?> get props => [selectedIndex, candidates];
+}
+
+extension DiscloseCardRequestListExtension on List<DiscloseCardRequest> {
+  /// Returns a list containing the `selectedIndex` from each [DiscloseCardRequest] in this list.
+  List<int> get selectedIndices => map((request) => request.selectedIndex).toList();
 }

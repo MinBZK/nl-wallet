@@ -100,8 +100,8 @@ class TypedWalletCore {
   Future<List<core.AttestationPresentation>> continuePidIssuance(String uri) =>
       call(() => core.continuePidIssuance(uri: uri));
 
-  Future<core.DisclosureBasedIssuanceResult> continueDisclosureBasedIssuance(String pin) =>
-      call(() => core.continueDisclosureBasedIssuance(pin: pin));
+  Future<core.DisclosureBasedIssuanceResult> continueDisclosureBasedIssuance(String pin, List<int> selectedIndices) =>
+      call(() => core.continueDisclosureBasedIssuance(selectedIndices: selectedIndices, pin: pin));
 
   /// Accept offered attestations
   Future<core.WalletInstructionResult> acceptIssuance(String pin) => call(() => core.acceptIssuance(pin: pin));
@@ -119,7 +119,8 @@ class TypedWalletCore {
 
   Future<String?> cancelDisclosure() => call(core.cancelDisclosure);
 
-  Future<core.AcceptDisclosureResult> acceptDisclosure(String pin) => call(() => core.acceptDisclosure(pin: pin));
+  Future<core.AcceptDisclosureResult> acceptDisclosure(String pin, List<int> selectedIndices) =>
+      call(() => core.acceptDisclosure(selectedIndices: selectedIndices, pin: pin));
 
   Future<bool> hasActiveDisclosureSession() => call(core.hasActiveDisclosureSession);
 
@@ -194,7 +195,7 @@ class TypedWalletCore {
       return error;
     } catch (exception) {
       Fimber.e(
-        'Failed to map exception to CoreError, returning original exception',
+        'Failed to map exception ($ex) to CoreError, returning original exception',
         ex: exception,
       );
       return ex;

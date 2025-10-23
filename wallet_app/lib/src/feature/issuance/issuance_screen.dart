@@ -2,9 +2,12 @@ import 'package:collection/collection.dart';
 import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../domain/model/attribute/attribute.dart';
+import '../../domain/usecase/pin/disclose_for_issuance_usecase.dart';
+import '../../domain/usecase/pin/impl/disclose_for_issuance_usecase_impl.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/cast_util.dart';
 import '../../util/extension/build_context_extension.dart';
@@ -113,7 +116,7 @@ class IssuanceScreen extends StatelessWidget {
           IssuanceCompleted() => _buildIssuanceCompletedPage(context, state),
           IssuanceStopped() => _buildStoppedPage(context, state),
           IssuanceGenericError() => _buildGenericErrorPage(context),
-          IssuanceProvidePinForDisclosure() => _buildProvidePinForDisclosurePage(context),
+          IssuanceProvidePinForDisclosure() => _buildProvidePinForDisclosurePage(context, state),
           IssuanceProvidePinForIssuance() => _buildProvidePinForIssuancePage(context, state),
           IssuanceNoCardsRetrieved() => _buildNoCardsReceived(context, state),
           IssuanceExternalScannerError() => _buildGenericErrorPage(context),
@@ -199,11 +202,14 @@ class IssuanceScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildProvidePinForDisclosurePage(BuildContext context) {
-    return IssuanceConfirmPinForDisclosurePage(
-      onPinValidated: (cards) => context.bloc.add(IssuancePinForDisclosureConfirmed(cards: cards)),
-      onConfirmWithPinFailed: (context, errorState) => context.bloc.add(
-        IssuanceConfirmPinFailed(error: errorState.error),
+  Widget _buildProvidePinForDisclosurePage(BuildContext context, IssuanceProvidePinForDisclosure state) {
+    return Provider<DiscloseForIssuanceUseCase>(
+      create: (context) => DiscloseForIssuanceUseCaseImpl(context.read(), state.selectedIndices),
+      child: IssuanceConfirmPinForDisclosurePage(
+        onPinValidated: (cards) => context.bloc.add(IssuancePinForDisclosureConfirmed(cards: cards)),
+        onConfirmWithPinFailed: (context, errorState) => context.bloc.add(
+          IssuanceConfirmPinFailed(error: errorState.error),
+        ),
       ),
     );
   }

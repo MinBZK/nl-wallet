@@ -38,7 +38,9 @@ class CoreDisclosureRepository implements DisclosureRepository {
     final result = await _walletCore.startDisclosure(disclosureUri, isQrCode: isQrCode);
     switch (result) {
       case core.StartDisclosureResult_Request():
-        final cards = _attestationMapper.mapList(result.requestedAttestations);
+        final List<DiscloseCardRequest> requests = result.disclosureOptions
+            .map((it) => DiscloseCardRequest(candidates: _attestationMapper.mapList(it.field0)))
+            .toList();
         final relyingParty = _relyingPartyMapper.map(result.relyingParty);
         final policy = _requestPolicyMapper.map(result.policy);
         return StartDisclosureReadyToDisclose(
@@ -47,7 +49,7 @@ class CoreDisclosureRepository implements DisclosureRepository {
           requestPurpose: _localizedStringMapper.map(result.requestPurpose),
           sessionType: _disclosureSessionTypeMapper.map(result.sessionType),
           type: _disclosureTypeMapper.map(result.requestType),
-          cardRequests: cards.map(DiscloseCardRequest.fromCard).toList(),
+          cardRequests: requests,
           policy: policy,
           sharedDataWithOrganizationBefore: result.sharedDataWithRelyingPartyBefore,
         );
@@ -72,8 +74,8 @@ class CoreDisclosureRepository implements DisclosureRepository {
   Future<bool> hasActiveDisclosureSession() => _walletCore.hasActiveDisclosureSession();
 
   @override
-  Future<String?> acceptDisclosure(String pin) async {
-    final result = await _walletCore.acceptDisclosure(pin);
+  Future<String?> acceptDisclosure(String pin, List<int> selectedIndices) async {
+    final result = await _walletCore.acceptDisclosure(pin, selectedIndices);
     switch (result) {
       case core.AcceptDisclosureResult_Ok():
         return result.returnUrl;

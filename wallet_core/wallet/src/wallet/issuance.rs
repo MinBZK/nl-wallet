@@ -726,6 +726,7 @@ mod tests {
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
     use utils::generator::mock::MockTimeGenerator;
+    use utils::vec_nonempty;
     use wallet_account::messages::instructions::DiscloseRecoveryCodeResult;
     use wallet_account::messages::instructions::Instruction;
 
@@ -1064,7 +1065,7 @@ mod tests {
         let attestation = attestations.into_iter().next().unwrap();
         assert_matches!(attestation.identity, AttestationIdentity::Ephemeral);
         assert_eq!(attestation.attributes.len(), 4);
-        assert_eq!(attestation.attributes[0].key, vec!["family_name".to_string()]);
+        assert_eq!(attestation.attributes[0].key, vec_nonempty!["family_name".to_string()]);
         assert_matches!(
             &attestation.attributes[0].value,
             AttestationAttributeValue::Basic(AttributeValue::Text(string)) if string == "De Bruijn"

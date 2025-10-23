@@ -379,6 +379,12 @@ mod example_constructors {
         pub fn nl_pid_example() -> Self {
             VerifiedTypeMetadataDocuments::nl_pid_example().to_normalized().unwrap()
         }
+
+        pub fn nl_address_example() -> Self {
+            VerifiedTypeMetadataDocuments::nl_address_example()
+                .to_normalized()
+                .unwrap()
+        }
     }
 }
 

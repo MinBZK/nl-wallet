@@ -124,7 +124,7 @@ pub struct AttestationAttribute {
 impl From<wallet::AttestationAttribute> for AttestationAttribute {
     fn from(value: wallet::AttestationAttribute) -> Self {
         Self {
-            key: value.key.join("__"),
+            key: value.key.as_ref().join("__"),
             labels: value.metadata.into_iter().map(ClaimDisplayMetadata::from).collect(),
             value: value.value.into(),
             svg_id: value.svg_id,

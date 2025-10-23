@@ -149,7 +149,10 @@ async fn test_disclosure_usecases_ok(
         .start_disclosure(&ul.unwrap().into_inner(), source)
         .await
         .expect("should start disclosure");
-    assert_eq!(proposal.attestations.len(), test_credentials.as_ref().len());
+    assert_eq!(
+        proposal.attestation_options.len().get(),
+        test_credentials.as_ref().len()
+    );
 
     // after the first wallet interaction it should have the status "Waiting"
     assert_matches!(
@@ -161,8 +164,9 @@ async fn test_disclosure_usecases_ok(
     let response = client.get(disclosed_attributes_url.clone()).send().await.unwrap();
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
+    let attestation_count = test_credentials.as_ref().len();
     let return_url = wallet
-        .accept_disclosure(pin.to_owned())
+        .accept_disclosure(&vec![0; attestation_count], pin.to_owned())
         .await
         .expect("Could not accept disclosure");
 

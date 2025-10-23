@@ -47,6 +47,7 @@ flutter_rust_bridge::frb_generated_default_handler!();
 
 fn wire__crate__api__full__accept_disclosure_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
+    selected_indices: impl CstDecode<Vec<u16>>,
     pin: impl CstDecode<String>,
 ) {
     FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
@@ -56,11 +57,12 @@ fn wire__crate__api__full__accept_disclosure_impl(
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
+            let api_selected_indices = selected_indices.cst_decode();
             let api_pin = pin.cst_decode();
             move |context| async move {
                 transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || async move {
-                        let output_ok = crate::api::full::accept_disclosure(api_pin).await?;
+                        let output_ok = crate::api::full::accept_disclosure(api_selected_indices, api_pin).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -431,6 +433,7 @@ fn wire__crate__api__full__continue_change_pin_impl(
 }
 fn wire__crate__api__full__continue_disclosure_based_issuance_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
+    selected_indices: impl CstDecode<Vec<u16>>,
     pin: impl CstDecode<String>,
 ) {
     FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
@@ -440,11 +443,13 @@ fn wire__crate__api__full__continue_disclosure_based_issuance_impl(
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
+            let api_selected_indices = selected_indices.cst_decode();
             let api_pin = pin.cst_decode();
             move |context| async move {
                 transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || async move {
-                        let output_ok = crate::api::full::continue_disclosure_based_issuance(api_pin).await?;
+                        let output_ok =
+                            crate::api::full::continue_disclosure_based_issuance(api_selected_indices, api_pin).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -1532,6 +1537,14 @@ impl SseDecode for crate::models::instruction::DisclosureBasedIssuanceResult {
     }
 }
 
+impl SseDecode for crate::models::disclosure::DisclosureOptions {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_field0 = <Vec<crate::models::attestation::AttestationPresentation>>::sse_decode(deserializer);
+        return crate::models::disclosure::DisclosureOptions(var_field0);
+    }
+}
+
 impl SseDecode for crate::models::disclosure::DisclosureSessionType {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -1773,6 +1786,18 @@ impl SseDecode for Vec<crate::models::attestation::ClaimDisplayMetadata> {
     }
 }
 
+impl SseDecode for Vec<crate::models::disclosure::DisclosureOptions> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = vec![];
+        for idx_ in 0..len_ {
+            ans_.push(<crate::models::disclosure::DisclosureOptions>::sse_decode(deserializer));
+        }
+        return ans_;
+    }
+}
+
 impl SseDecode for Vec<crate::models::attestation::DisplayMetadata> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -1804,6 +1829,18 @@ impl SseDecode for Vec<crate::models::disclosure::MissingAttribute> {
         let mut ans_ = vec![];
         for idx_ in 0..len_ {
             ans_.push(<crate::models::disclosure::MissingAttribute>::sse_decode(deserializer));
+        }
+        return ans_;
+    }
+}
+
+impl SseDecode for Vec<u16> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = vec![];
+        for idx_ in 0..len_ {
+            ans_.push(<u16>::sse_decode(deserializer));
         }
         return ans_;
     }
@@ -2051,8 +2088,8 @@ impl SseDecode for crate::models::disclosure::StartDisclosureResult {
             0 => {
                 let mut var_relyingParty = <crate::models::disclosure::Organization>::sse_decode(deserializer);
                 let mut var_policy = <crate::models::disclosure::RequestPolicy>::sse_decode(deserializer);
-                let mut var_requestedAttestations =
-                    <Vec<crate::models::attestation::AttestationPresentation>>::sse_decode(deserializer);
+                let mut var_disclosureOptions =
+                    <Vec<crate::models::disclosure::DisclosureOptions>>::sse_decode(deserializer);
                 let mut var_sharedDataWithRelyingPartyBefore = <bool>::sse_decode(deserializer);
                 let mut var_sessionType = <crate::models::disclosure::DisclosureSessionType>::sse_decode(deserializer);
                 let mut var_requestPurpose = <Vec<crate::models::localize::LocalizedString>>::sse_decode(deserializer);
@@ -2061,7 +2098,7 @@ impl SseDecode for crate::models::disclosure::StartDisclosureResult {
                 return crate::models::disclosure::StartDisclosureResult::Request {
                     relying_party: var_relyingParty,
                     policy: var_policy,
-                    requested_attestations: var_requestedAttestations,
+                    disclosure_options: var_disclosureOptions,
                     shared_data_with_relying_party_before: var_sharedDataWithRelyingPartyBefore,
                     session_type: var_sessionType,
                     request_purpose: var_requestPurpose,
@@ -2461,6 +2498,20 @@ impl flutter_rust_bridge::IntoIntoDart<crate::models::instruction::DisclosureBas
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::models::disclosure::DisclosureOptions {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [self.0.into_into_dart().into_dart()].into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::models::disclosure::DisclosureOptions {}
+impl flutter_rust_bridge::IntoIntoDart<crate::models::disclosure::DisclosureOptions>
+    for crate::models::disclosure::DisclosureOptions
+{
+    fn into_into_dart(self) -> crate::models::disclosure::DisclosureOptions {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::models::disclosure::DisclosureSessionType {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         match self {
@@ -2807,7 +2858,7 @@ impl flutter_rust_bridge::IntoDart for crate::models::disclosure::StartDisclosur
             crate::models::disclosure::StartDisclosureResult::Request {
                 relying_party,
                 policy,
-                requested_attestations,
+                disclosure_options,
                 shared_data_with_relying_party_before,
                 session_type,
                 request_purpose,
@@ -2817,7 +2868,7 @@ impl flutter_rust_bridge::IntoDart for crate::models::disclosure::StartDisclosur
                 0.into_dart(),
                 relying_party.into_into_dart().into_dart(),
                 policy.into_into_dart().into_dart(),
-                requested_attestations.into_into_dart().into_dart(),
+                disclosure_options.into_into_dart().into_dart(),
                 shared_data_with_relying_party_before.into_into_dart().into_dart(),
                 session_type.into_into_dart().into_dart(),
                 request_purpose.into_into_dart().into_dart(),
@@ -3218,6 +3269,13 @@ impl SseEncode for crate::models::instruction::DisclosureBasedIssuanceResult {
     }
 }
 
+impl SseEncode for crate::models::disclosure::DisclosureOptions {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <Vec<crate::models::attestation::AttestationPresentation>>::sse_encode(self.0, serializer);
+    }
+}
+
 impl SseEncode for crate::models::disclosure::DisclosureSessionType {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -3436,6 +3494,16 @@ impl SseEncode for Vec<crate::models::attestation::ClaimDisplayMetadata> {
     }
 }
 
+impl SseEncode for Vec<crate::models::disclosure::DisclosureOptions> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::models::disclosure::DisclosureOptions>::sse_encode(item, serializer);
+        }
+    }
+}
+
 impl SseEncode for Vec<crate::models::attestation::DisplayMetadata> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -3462,6 +3530,16 @@ impl SseEncode for Vec<crate::models::disclosure::MissingAttribute> {
         <i32>::sse_encode(self.len() as _, serializer);
         for item in self {
             <crate::models::disclosure::MissingAttribute>::sse_encode(item, serializer);
+        }
+    }
+}
+
+impl SseEncode for Vec<u16> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <u16>::sse_encode(item, serializer);
         }
     }
 }
@@ -3666,7 +3744,7 @@ impl SseEncode for crate::models::disclosure::StartDisclosureResult {
             crate::models::disclosure::StartDisclosureResult::Request {
                 relying_party,
                 policy,
-                requested_attestations,
+                disclosure_options,
                 shared_data_with_relying_party_before,
                 session_type,
                 request_purpose,
@@ -3676,10 +3754,7 @@ impl SseEncode for crate::models::disclosure::StartDisclosureResult {
                 <i32>::sse_encode(0, serializer);
                 <crate::models::disclosure::Organization>::sse_encode(relying_party, serializer);
                 <crate::models::disclosure::RequestPolicy>::sse_encode(policy, serializer);
-                <Vec<crate::models::attestation::AttestationPresentation>>::sse_encode(
-                    requested_attestations,
-                    serializer,
-                );
+                <Vec<crate::models::disclosure::DisclosureOptions>>::sse_encode(disclosure_options, serializer);
                 <bool>::sse_encode(shared_data_with_relying_party_before, serializer);
                 <crate::models::disclosure::DisclosureSessionType>::sse_encode(session_type, serializer);
                 <Vec<crate::models::localize::LocalizedString>>::sse_encode(request_purpose, serializer);
@@ -4162,6 +4237,12 @@ mod io {
             }
         }
     }
+    impl CstDecode<crate::models::disclosure::DisclosureOptions> for wire_cst_disclosure_options {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> crate::models::disclosure::DisclosureOptions {
+            crate::models::disclosure::DisclosureOptions(self.field0.cst_decode())
+        }
+    }
     impl CstDecode<crate::models::attestation::DisplayMetadata> for wire_cst_display_metadata {
         // Codec=Cst (C-struct based), see doc to use other codecs
         fn cst_decode(self) -> crate::models::attestation::DisplayMetadata {
@@ -4298,6 +4379,16 @@ mod io {
             vec.into_iter().map(CstDecode::cst_decode).collect()
         }
     }
+    impl CstDecode<Vec<crate::models::disclosure::DisclosureOptions>> for *mut wire_cst_list_disclosure_options {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> Vec<crate::models::disclosure::DisclosureOptions> {
+            let vec = unsafe {
+                let wrap = flutter_rust_bridge::for_generated::box_from_leak_ptr(self);
+                flutter_rust_bridge::for_generated::vec_from_leak_ptr(wrap.ptr, wrap.len)
+            };
+            vec.into_iter().map(CstDecode::cst_decode).collect()
+        }
+    }
     impl CstDecode<Vec<crate::models::attestation::DisplayMetadata>> for *mut wire_cst_list_display_metadata {
         // Codec=Cst (C-struct based), see doc to use other codecs
         fn cst_decode(self) -> Vec<crate::models::attestation::DisplayMetadata> {
@@ -4326,6 +4417,24 @@ mod io {
                 flutter_rust_bridge::for_generated::vec_from_leak_ptr(wrap.ptr, wrap.len)
             };
             vec.into_iter().map(CstDecode::cst_decode).collect()
+        }
+    }
+    impl CstDecode<Vec<u16>> for *mut wire_cst_list_prim_u_16_loose {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> Vec<u16> {
+            unsafe {
+                let wrap = flutter_rust_bridge::for_generated::box_from_leak_ptr(self);
+                flutter_rust_bridge::for_generated::vec_from_leak_ptr(wrap.ptr, wrap.len)
+            }
+        }
+    }
+    impl CstDecode<Vec<u16>> for *mut wire_cst_list_prim_u_16_strict {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> Vec<u16> {
+            unsafe {
+                let wrap = flutter_rust_bridge::for_generated::box_from_leak_ptr(self);
+                flutter_rust_bridge::for_generated::vec_from_leak_ptr(wrap.ptr, wrap.len)
+            }
         }
     }
     impl CstDecode<Vec<u8>> for *mut wire_cst_list_prim_u_8_strict {
@@ -4439,7 +4548,7 @@ mod io {
                     crate::models::disclosure::StartDisclosureResult::Request {
                         relying_party: ans.relying_party.cst_decode(),
                         policy: ans.policy.cst_decode(),
-                        requested_attestations: ans.requested_attestations.cst_decode(),
+                        disclosure_options: ans.disclosure_options.cst_decode(),
                         shared_data_with_relying_party_before: ans.shared_data_with_relying_party_before.cst_decode(),
                         session_type: ans.session_type.cst_decode(),
                         request_purpose: ans.request_purpose.cst_decode(),
@@ -4638,6 +4747,18 @@ mod io {
         }
     }
     impl Default for wire_cst_disclosure_based_issuance_result {
+        fn default() -> Self {
+            Self::new_with_null_ptr()
+        }
+    }
+    impl NewWithNullPtr for wire_cst_disclosure_options {
+        fn new_with_null_ptr() -> Self {
+            Self {
+                field0: core::ptr::null_mut(),
+            }
+        }
+    }
+    impl Default for wire_cst_disclosure_options {
         fn default() -> Self {
             Self::new_with_null_ptr()
         }
@@ -4871,9 +4992,10 @@ mod io {
     #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__accept_disclosure(
         port_: i64,
+        selected_indices: *mut wire_cst_list_prim_u_16_loose,
         pin: *mut wire_cst_list_prim_u_8_strict,
     ) {
-        wire__crate__api__full__accept_disclosure_impl(port_, pin)
+        wire__crate__api__full__accept_disclosure_impl(port_, selected_indices, pin)
     }
 
     #[unsafe(no_mangle)]
@@ -4981,9 +5103,10 @@ mod io {
     #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__continue_disclosure_based_issuance(
         port_: i64,
+        selected_indices: *mut wire_cst_list_prim_u_16_loose,
         pin: *mut wire_cst_list_prim_u_8_strict,
     ) {
-        wire__crate__api__full__continue_disclosure_based_issuance_impl(port_, pin)
+        wire__crate__api__full__continue_disclosure_based_issuance_impl(port_, selected_indices, pin)
     }
 
     #[unsafe(no_mangle)]
@@ -5304,6 +5427,20 @@ mod io {
     }
 
     #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_wallet_core_cst_new_list_disclosure_options(
+        len: i32,
+    ) -> *mut wire_cst_list_disclosure_options {
+        let wrap = wire_cst_list_disclosure_options {
+            ptr: flutter_rust_bridge::for_generated::new_leak_vec_ptr(
+                <wire_cst_disclosure_options>::new_with_null_ptr(),
+                len,
+            ),
+            len,
+        };
+        flutter_rust_bridge::for_generated::new_leak_box_ptr(wrap)
+    }
+
+    #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_wallet_core_cst_new_list_display_metadata(
         len: i32,
     ) -> *mut wire_cst_list_display_metadata {
@@ -5343,6 +5480,26 @@ mod io {
             len,
         };
         flutter_rust_bridge::for_generated::new_leak_box_ptr(wrap)
+    }
+
+    #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_wallet_core_cst_new_list_prim_u_16_loose(len: i32) -> *mut wire_cst_list_prim_u_16_loose {
+        let ans = wire_cst_list_prim_u_16_loose {
+            ptr: flutter_rust_bridge::for_generated::new_leak_vec_ptr(Default::default(), len),
+            len,
+        };
+        flutter_rust_bridge::for_generated::new_leak_box_ptr(ans)
+    }
+
+    #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_wallet_core_cst_new_list_prim_u_16_strict(
+        len: i32,
+    ) -> *mut wire_cst_list_prim_u_16_strict {
+        let ans = wire_cst_list_prim_u_16_strict {
+            ptr: flutter_rust_bridge::for_generated::new_leak_vec_ptr(Default::default(), len),
+            len,
+        };
+        flutter_rust_bridge::for_generated::new_leak_box_ptr(ans)
     }
 
     #[unsafe(no_mangle)]
@@ -5496,6 +5653,11 @@ mod io {
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
+    pub struct wire_cst_disclosure_options {
+        field0: *mut wire_cst_list_attestation_presentation,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
     pub struct wire_cst_display_metadata {
         lang: *mut wire_cst_list_prim_u_8_strict,
         name: *mut wire_cst_list_prim_u_8_strict,
@@ -5603,6 +5765,12 @@ mod io {
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
+    pub struct wire_cst_list_disclosure_options {
+        ptr: *mut wire_cst_disclosure_options,
+        len: i32,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
     pub struct wire_cst_list_display_metadata {
         ptr: *mut wire_cst_display_metadata,
         len: i32,
@@ -5617,6 +5785,18 @@ mod io {
     #[derive(Clone, Copy)]
     pub struct wire_cst_list_missing_attribute {
         ptr: *mut wire_cst_missing_attribute,
+        len: i32,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_list_prim_u_16_loose {
+        ptr: *mut u16,
+        len: i32,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_list_prim_u_16_strict {
+        ptr: *mut u16,
         len: i32,
     }
     #[repr(C)]
@@ -5725,7 +5905,7 @@ mod io {
     pub struct wire_cst_StartDisclosureResult_Request {
         relying_party: *mut wire_cst_organization,
         policy: *mut wire_cst_request_policy,
-        requested_attestations: *mut wire_cst_list_attestation_presentation,
+        disclosure_options: *mut wire_cst_list_disclosure_options,
         shared_data_with_relying_party_before: bool,
         session_type: i32,
         request_purpose: *mut wire_cst_list_localized_string,

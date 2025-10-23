@@ -284,10 +284,6 @@ impl DisclosableAttestation {
     pub fn presentation(&self) -> &AttestationPresentation {
         &self.presentation
     }
-
-    pub fn into_presentation(self) -> AttestationPresentation {
-        self.presentation
-    }
 }
 
 #[cfg(test)]
@@ -296,6 +292,8 @@ mod tests {
 
     use futures::FutureExt;
     use itertools::Itertools;
+    use p256::ecdsa::SigningKey;
+    use rand_core::OsRng;
     use ssri::Integrity;
     use uuid::Uuid;
 
@@ -306,8 +304,6 @@ mod tests {
     use attestation_data::pid_constants::PID_BSN;
     use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use attestation_types::claim_path::ClaimPath;
-    use crypto::keys::WithIdentifier;
-    use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
@@ -326,12 +322,12 @@ mod tests {
     fn mdoc_stored_attestation_copy(issuer_keypair: &KeyPair) -> (StoredAttestationCopy, VecNonEmpty<ClaimPath>) {
         let payload_preview = PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default());
 
-        let mdoc_remote_key = MockRemoteEcdsaKey::new_random("mdoc_key_id".to_string());
+        let holder_privkey = SigningKey::random(&mut OsRng);
         let mdoc = payload_preview
             .into_signed_mdoc_unverified(
                 Integrity::from(""),
-                mdoc_remote_key.identifier().to_string(),
-                mdoc_remote_key.verifying_key(),
+                "mdoc_key_id".to_string(),
+                holder_privkey.verifying_key(),
                 issuer_keypair,
             )
             .now_or_never()
@@ -425,7 +421,7 @@ mod tests {
                 assert_eq!(key_identifier, "sd_jwt_key_id");
             }
 
-            (full_presentation, disclosable_attestation.into_presentation())
+            (full_presentation, disclosable_attestation.presentation)
         })
         .unzip();
 
