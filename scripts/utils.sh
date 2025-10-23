@@ -330,7 +330,7 @@ function generate_pid_issuer_key_pair {
         --public-key-file "${TARGET_DIR}/pid_issuer/issuer.pub.pem" \
         --ca-key-file "${TARGET_DIR}/ca.issuer.key.pem" \
         --ca-crt-file "${TARGET_DIR}/ca.issuer.crt.pem" \
-        --common-name "cert.issuer.example.com" \
+        --common-name "pid.example.com" \
         --issuer-auth-file "${DEVENV}/rvig_issuer_auth.json" \
         --file-prefix "${TARGET_DIR}/pid_issuer/issuer" \
         --force
@@ -349,7 +349,7 @@ function generate_pid_issuer_tsl_key_pair {
         --bin wallet_ca tsl \
         --ca-key-file "${TARGET_DIR}/ca.issuer.key.pem" \
         --ca-crt-file "${TARGET_DIR}/ca.issuer.crt.pem" \
-        --common-name "cert.issuer.example.com" \
+        --common-name "pid.example.com" \
         --file-prefix "${TARGET_DIR}/pid_issuer/tsl" \
         --force
 

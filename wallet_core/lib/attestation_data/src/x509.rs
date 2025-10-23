@@ -104,6 +104,7 @@ pub mod generate {
         use crypto::server_keys::KeyPair;
         use crypto::server_keys::generate::Ca;
         use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
+        use crypto::server_keys::generate::mock::PID_ISSUER_CERT_CN;
         use crypto::server_keys::generate::mock::RP_CERT_CN;
 
         use crate::auth::issuer_auth::IssuerRegistration;
@@ -117,6 +118,17 @@ pub mod generate {
         ) -> Result<KeyPair, CertificateError> {
             ca.generate_key_pair(
                 ISSUANCE_CERT_CN,
+                CertificateType::Mdl(issuer_registration.map(Box::new)),
+                Default::default(),
+            )
+        }
+
+        pub fn generate_pid_issuer_mock_with_registration(
+            ca: &Ca,
+            issuer_registration: Option<IssuerRegistration>,
+        ) -> Result<KeyPair, CertificateError> {
+            ca.generate_key_pair(
+                PID_ISSUER_CERT_CN,
                 CertificateType::Mdl(issuer_registration.map(Box::new)),
                 Default::default(),
             )

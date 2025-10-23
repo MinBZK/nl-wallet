@@ -897,6 +897,7 @@ mod tests {
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
     use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
+    use crypto::server_keys::generate::mock::PID_ISSUER_CERT_CN;
     use crypto::x509::CertificateUsage;
     use dcql::CredentialFormat;
     use dcql::CredentialQueryIdentifier;
@@ -1619,7 +1620,7 @@ mod tests {
         let (_, _, _, auth_request) = setup_with_credential_requests(credential_requests);
 
         let issuer_keypair = ca
-            .generate_key_pair(ISSUANCE_CERT_CN, CertificateUsage::Mdl, Default::default())
+            .generate_key_pair(PID_ISSUER_CERT_CN, CertificateUsage::Mdl, Default::default())
             .unwrap();
         let wscd = MockRemoteWscd::default();
 

@@ -38,6 +38,7 @@ use crypto::mock_remote::MockRemoteWscdError;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
+use crypto::server_keys::generate::mock::PID_ISSUER_CERT_CN;
 use crypto::server_keys::generate::mock::RP_CERT_CN;
 use crypto::wscd::DisclosureResult;
 use crypto::wscd::DisclosureWscd;
@@ -249,7 +250,7 @@ async fn disclosure_using_message_client(
 
     let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
     let issuer_keypair = issuer_ca
-        .generate_key_pair(ISSUANCE_CERT_CN, CertificateUsage::Mdl, Default::default())
+        .generate_key_pair(PID_ISSUER_CERT_CN, CertificateUsage::Mdl, Default::default())
         .unwrap();
 
     // Initialize the "wallet"
@@ -962,7 +963,7 @@ fn setup_verifier(
     let rp_ca = Ca::generate_reader_mock_ca().unwrap();
 
     let issuer_keypair = issuer_ca
-        .generate_key_pair(ISSUANCE_CERT_CN, CertificateUsage::Mdl, Default::default())
+        .generate_key_pair(PID_ISSUER_CERT_CN, CertificateUsage::Mdl, Default::default())
         .unwrap();
 
     // Initialize the verifier
