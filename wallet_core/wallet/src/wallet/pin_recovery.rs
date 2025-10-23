@@ -510,14 +510,20 @@ where
             .as_key_and_registration_data()
             .ok_or(PinRecoveryError::NotRegistered)?;
 
+        let pin_pubkey = PinKey {
+            pin: &new_pin,
+            salt: &new_pin_salt,
+        }
+        .verifying_key()?;
+
         let registration_data = RegistrationData {
-            pin_salt: new_pin_salt.clone(),
+            pin_salt: new_pin_salt,
             ..registration_data.clone()
         };
 
         let instruction_client = self
             .new_instruction_client(
-                new_pin.clone(),
+                new_pin,
                 Arc::clone(attested_key),
                 registration_data.clone(),
                 config.account_server.http_config.clone(),
@@ -525,12 +531,6 @@ where
             )
             .await
             .map_err(IssuanceError::from)?;
-
-        let pin_pubkey = PinKey {
-            pin: &new_pin,
-            salt: &new_pin_salt,
-        }
-        .verifying_key()?;
 
         let pin_recovery_wscd = PinRecoveryRemoteEcdsaWscd::new(instruction_client, pin_pubkey);
 
