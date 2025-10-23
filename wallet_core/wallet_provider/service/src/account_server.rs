@@ -116,11 +116,9 @@ use crate::instructions::ValidateInstruction;
 use crate::instructions::perform_issuance_with_wua;
 use crate::keys::InstructionResultSigningKey;
 use crate::keys::WalletCertificateSigningKey;
-use crate::wallet_certificate::PinKeyChecks;
 use crate::wallet_certificate::new_wallet_certificate;
 use crate::wallet_certificate::parse_and_verify_wallet_cert_using_hw_pubkey;
 use crate::wallet_certificate::verify_wallet_certificate;
-use crate::wallet_certificate::verify_wallet_certificate_pin_public_key;
 use crate::wua_issuer::WuaIssuer;
 
 #[derive(Debug, thiserror::Error)]
@@ -807,26 +805,11 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
                 .map(|request| (request, None)),
         }?;
 
-        debug!("Verifying wallet certificate");
-        let encrypted_pin_key = if request.instruction_name == ChangePinRollback::NAME {
-            user.encrypted_previous_pin_pubkey.unwrap_or(user.encrypted_pin_pubkey)
-        } else {
-            user.encrypted_pin_pubkey
-        };
-
         // In case of the `StartPinRecovery` instruction, the user has used a new PIN that does not match
         // the HMAC of the old PIN in the user's certificate. Since the user is requesting a challenge,
         // we don't yet know which instruction they are going to send. So we should not enforce here that
         // the user's PIN key matches the PIN HMAC in the certificate. This is enforced during instruction
         // validation, where appropriate.
-        verify_wallet_certificate_pin_public_key(
-            claims,
-            &self.keys.pin_keys,
-            PinKeyChecks::SkipCertificateMatching,
-            encrypted_pin_key,
-            &user_state.wallet_user_hsm,
-        )
-        .await?;
 
         debug!("Challenge request valid, persisting generated challenge and incremented sequence number");
         let challenge = InstructionChallenge {
