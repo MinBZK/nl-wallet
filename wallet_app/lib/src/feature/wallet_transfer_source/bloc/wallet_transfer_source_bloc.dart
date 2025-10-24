@@ -34,6 +34,7 @@ class WalletTransferSourceBloc extends Bloc<WalletTransferSourceEvent, WalletTra
     on<WalletTransferPinConfirmedEvent>(_onPinConfirmed);
     on<WalletTransferStopRequestedEvent>(_onStopRequested);
     on<WalletTransferBackPressedEvent>(_onBackPressed);
+    on<WalletTransferPinConfirmationFailed>(_onPinConfirmationFailed);
   }
 
   Future<void> _onAcknowledgeTransfer(
@@ -93,10 +94,15 @@ class WalletTransferSourceBloc extends Bloc<WalletTransferSourceEvent, WalletTra
     if (state is WalletTransferConfirmPin) emit(const WalletTransferIntroduction(didGoBack: true));
   }
 
+  FutureOr<void> _onPinConfirmationFailed(
+    WalletTransferPinConfirmationFailed event,
+    Emitter<WalletTransferSourceState> emit,
+  ) => _handleError(event.error, emit);
+
   Future<void> _handleError(ApplicationError error, Emitter<WalletTransferSourceState> emit) async {
     switch (error) {
       case NetworkError():
-        emit(WalletTransferGenericError(error));
+        emit(WalletTransferNetworkError(error));
       case SessionError():
         emit(WalletTransferSessionExpired(error));
       default:
