@@ -23,6 +23,7 @@ import '../common/widget/utility/scroll_offset_provider.dart';
 import '../common/widget/wallet_app_bar.dart';
 import '../error/error_page.dart';
 import '../lock/auto_lock_provider.dart';
+import '../pin/bloc/pin_bloc.dart';
 import 'bloc/wallet_transfer_source_bloc.dart';
 import 'page/wallet_transfer_source_confirm_pin_page.dart';
 import 'page/wallet_transfer_source_transfer_success_page.dart';
@@ -160,7 +161,7 @@ class _WalletTransferSourceScreenState extends State<WalletTransferSourceScreen>
               animateBackwards: state.didGoBack,
               child: PopScope(
                 key: ValueKey(state.runtimeType),
-                canPop: _canPop(state),
+                canPop: _canPop(context, state),
                 onPopInvokedWithResult: (didPop, result) {
                   if (!didPop) _onPopInvoked(context, state);
                 },
@@ -176,6 +177,8 @@ class _WalletTransferSourceScreenState extends State<WalletTransferSourceScreen>
   Widget? _buildBackButton(BuildContext context) {
     final canGoBack = context.watch<WalletTransferSourceBloc>().state.canGoBack;
     if (!canGoBack) return null;
+    final isConfirmingPin = context.watch<PinBloc?>()?.state is PinValidateInProgress;
+    if (isConfirmingPin) return null;
     return BackIconButton(onPressed: () => context.bloc.add(const WalletTransferBackPressedEvent()));
   }
 
@@ -211,7 +214,9 @@ class _WalletTransferSourceScreenState extends State<WalletTransferSourceScreen>
     );
   }
 
-  bool _canPop(WalletTransferSourceState state) {
+  bool _canPop(BuildContext context, WalletTransferSourceState state) {
+    final isConfirmingPin = context.watch<PinBloc?>()?.state is PinValidateInProgress;
+    if (isConfirmingPin) return false;
     switch (state) {
       case WalletTransferInitial():
       case WalletTransferStopped():
