@@ -168,15 +168,20 @@ mod test;
 
 #[cfg(test)]
 mod tests {
-
-    use crypto::server_keys::generate::Ca;
+    use assert_matches::assert_matches;
     use futures::FutureExt;
+    use rstest::rstest;
     use serde_json::json;
 
     use attestation_types::claim_path::ClaimPath;
+    use crypto::server_keys::KeyPair;
+    use crypto::server_keys::generate::Ca;
+    use utils::vec_at_least::VecNonEmpty;
     use utils::vec_nonempty;
 
     use crate::builder::SdJwtBuilder;
+    use crate::builder::SignedSdJwt;
+    use crate::error::ClaimError;
     use crate::sd_jwt::SdJwtVcClaims;
 
     fn test_object() -> SdJwtVcClaims {
@@ -226,122 +231,195 @@ mod tests {
         let issuer_keypair = issuer_ca.generate_issuer_mock().unwrap();
 
         let input = test_object();
-        let builder = SdJwtBuilder::new(input);
 
         // conceal all claims, and encode as an SD-JWT
-        let sd_jwt = builder
-            .make_concealable(vec_nonempty![ClaimPath::SelectByKey("root_value".to_string())])
-            .unwrap()
-            .make_concealable(vec_nonempty![
-                ClaimPath::SelectByKey("root_array".to_string()),
-                ClaimPath::SelectByIndex(0)
-            ])
-            .unwrap()
-            .make_concealable(vec_nonempty![
-                ClaimPath::SelectByKey("root_array".to_string()),
-                ClaimPath::SelectByIndex(1)
-            ])
-            .unwrap()
-            .make_concealable(vec_nonempty![
-                ClaimPath::SelectByKey("root_array".to_string()),
-                ClaimPath::SelectByIndex(2)
-            ])
-            .unwrap()
-            .make_concealable(vec_nonempty![ClaimPath::SelectByKey("root_array".to_string())])
-            .unwrap()
-            .make_concealable(vec_nonempty![
-                ClaimPath::SelectByKey("root_object".to_string()),
-                ClaimPath::SelectByKey("object_value".to_string())
-            ])
-            .unwrap()
-            .make_concealable(vec_nonempty![
-                ClaimPath::SelectByKey("root_object".to_string()),
-                ClaimPath::SelectByKey("object_array".to_string()),
-                ClaimPath::SelectByIndex(0)
-            ])
-            .unwrap()
-            .make_concealable(vec_nonempty![
-                ClaimPath::SelectByKey("root_object".to_string()),
-                ClaimPath::SelectByKey("object_array".to_string()),
-                ClaimPath::SelectByIndex(1)
-            ])
-            .unwrap()
-            .make_concealable(vec_nonempty![
-                ClaimPath::SelectByKey("root_object".to_string()),
-                ClaimPath::SelectByKey("object_array".to_string()),
-                ClaimPath::SelectByIndex(2)
-            ])
-            .unwrap()
-            .make_concealable(vec_nonempty![
-                ClaimPath::SelectByKey("root_object".to_string()),
-                ClaimPath::SelectByKey("object_array".to_string())
-            ])
-            .unwrap()
-            .make_concealable(vec_nonempty![ClaimPath::SelectByKey("root_object".to_string())])
-            .unwrap()
-            .finish(&issuer_keypair)
-            .now_or_never()
-            .unwrap()
-            .unwrap();
+        let sd_jwt = conceal_test_object(&issuer_keypair, input, all_claims());
 
         // disclose all claims
-        let verified_sd_jwt = sd_jwt.into_verified();
-        let unsigned_sd_jwt = verified_sd_jwt
-            .into_presentation_builder()
-            .disclose(&vec_nonempty![ClaimPath::SelectByKey("root_value".to_string())])
-            .unwrap()
-            .disclose(&vec_nonempty![
-                ClaimPath::SelectByKey("root_array".to_string()),
-                ClaimPath::SelectByIndex(0)
-            ])
-            .unwrap()
-            .disclose(&vec_nonempty![
-                ClaimPath::SelectByKey("root_array".to_string()),
-                ClaimPath::SelectByIndex(1)
-            ])
-            .unwrap()
-            .disclose(&vec_nonempty![
-                ClaimPath::SelectByKey("root_array".to_string()),
-                ClaimPath::SelectByIndex(2)
-            ])
-            .unwrap()
-            .disclose(&vec_nonempty![ClaimPath::SelectByKey("root_array".to_string())])
-            .unwrap()
-            .disclose(&vec_nonempty![
-                ClaimPath::SelectByKey("root_object".to_string()),
-                ClaimPath::SelectByKey("object_value".to_string())
-            ])
-            .unwrap()
-            .disclose(&vec_nonempty![
-                ClaimPath::SelectByKey("root_object".to_string()),
-                ClaimPath::SelectByKey("object_array".to_string()),
-                ClaimPath::SelectByIndex(0)
-            ])
-            .unwrap()
-            .disclose(&vec_nonempty![
-                ClaimPath::SelectByKey("root_object".to_string()),
-                ClaimPath::SelectByKey("object_array".to_string()),
-                ClaimPath::SelectByIndex(1)
-            ])
-            .unwrap()
-            .disclose(&vec_nonempty![
-                ClaimPath::SelectByKey("root_object".to_string()),
-                ClaimPath::SelectByKey("object_array".to_string()),
-                ClaimPath::SelectByIndex(2)
-            ])
-            .unwrap()
-            .disclose(&vec_nonempty![
-                ClaimPath::SelectByKey("root_object".to_string()),
-                ClaimPath::SelectByKey("object_array".to_string())
-            ])
-            .unwrap()
-            .disclose(&vec_nonempty![ClaimPath::SelectByKey("root_object".to_string())])
-            .unwrap()
-            .finish();
+        let unsigned_sd_jwt = disclose_claims(sd_jwt.into_verified(), &all_claims());
 
         // decode the disclosed SD-JWT
         let claims = unsigned_sd_jwt.as_ref().decoded_claims().unwrap();
 
         assert_eq!(&claims, test_object().claims());
+    }
+
+    #[rstest]
+    #[case(all_claims(), vec![ClaimPath::SelectByKey("root_value".to_string())], true)]
+    #[case(selected_claims(), vec![ClaimPath::SelectByKey("root_value".to_string())], false)]
+    #[case(all_claims(), vec![ClaimPath::SelectByKey("root_array".to_string())], true)]
+    #[case(selected_claims(), vec![ClaimPath::SelectByKey("root_array".to_string())], false)]
+    #[case(all_claims(), vec![ClaimPath::SelectByKey("root_array".to_string()), ClaimPath::SelectByIndex(0)], true)]
+    #[case(selected_claims(), vec![ClaimPath::SelectByKey("root_array".to_string()), ClaimPath::SelectByIndex(0)], false)]
+    #[case(all_claims(), vec![ClaimPath::SelectByKey("root_array".to_string()), ClaimPath::SelectByIndex(1)], true)]
+    #[case(selected_claims(), vec![ClaimPath::SelectByKey("root_array".to_string()), ClaimPath::SelectByIndex(1)], true)]
+    #[case(all_claims(), vec![ClaimPath::SelectByKey("root_object".to_string())], true)]
+    #[case(selected_claims(), vec![ClaimPath::SelectByKey("root_object".to_string())], true)]
+    #[case(all_claims(), vec![ClaimPath::SelectByKey("root_object".to_string()), ClaimPath::SelectByKey("object_array".to_string()), ClaimPath::SelectByIndex(0)], true)]
+    #[case(selected_claims(), vec![ClaimPath::SelectByKey("root_object".to_string()), ClaimPath::SelectByKey("object_array".to_string()), ClaimPath::SelectByIndex(0)], true)]
+    #[case(double_concealed_array_claims(), vec![ClaimPath::SelectByKey("root_array".to_string()), ClaimPath::SelectByIndex(2), ClaimPath::SelectByKey("array_object_value".to_string())], true)]
+    fn test_is_selectively_disclosable(
+        #[case] concealed_claims: Vec<VecNonEmpty<ClaimPath>>,
+        #[case] path: Vec<ClaimPath>,
+        #[case] should_succeed: bool,
+    ) {
+        let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
+        let issuer_keypair = issuer_ca.generate_issuer_mock().unwrap();
+
+        let input = test_object();
+
+        // conceal claims, and encode as an SD-JWT
+        let sd_jwt = conceal_test_object(&issuer_keypair, input, concealed_claims);
+        let verified_sd_jwt = sd_jwt.into_verified();
+
+        assert_eq!(
+            verified_sd_jwt.is_selectively_disclosable(&path).unwrap(),
+            should_succeed
+        );
+    }
+
+    #[rstest]
+    #[case(all_claims(),
+           vec![],
+           |actual| assert_eq!(actual, ClaimError::EmptyPath)
+    )]
+    #[case(all_claims(),
+           vec![ClaimPath::SelectByIndex(0)],
+           |actual| assert_matches!(actual, ClaimError::UnexpectedElement(_, path) if path == vec![ClaimPath::SelectByIndex(0)])
+    )]
+    #[case(all_claims(),
+           vec![ClaimPath::SelectAll],
+           |actual| assert_eq!(actual, ClaimError::UnsupportedTraversalPath(ClaimPath::SelectAll))
+    )]
+    #[case(all_claims(),
+           vec![ClaimPath::SelectByKey("missing_root_value".to_string())],
+           |actual| assert_matches!(actual, ClaimError::ObjectFieldNotFound(claim_name, _) if claim_name.as_str() == "missing_root_value")
+    )]
+    #[case(all_claims(),
+           vec![ClaimPath::SelectByKey("root_array".to_string()), ClaimPath::SelectByIndex(3)],
+           |actual| assert_matches!(actual, ClaimError::IndexOutOfBounds(index, array) if index == 3 && array.len() == 3)
+    )]
+    #[case(all_claims(),
+           vec![ClaimPath::SelectByKey("root_object".to_string()), ClaimPath::SelectByKey("object_array".to_string()), ClaimPath::SelectByIndex(3)],
+           |actual| assert_matches!(actual, ClaimError::IndexOutOfBounds(index, array) if index == 3 && array.len() == 3)
+    )]
+    #[case(all_claims(),
+           vec![ClaimPath::SelectByKey("root_object".to_string()), ClaimPath::SelectByKey("missing_nested_value".to_string())],
+           |actual| assert_matches!(actual, ClaimError::ObjectFieldNotFound(claim_name, _) if claim_name.as_ref() == "missing_nested_value")
+    )]
+    #[case(all_claims(),
+           vec![ClaimPath::SelectByKey("root_object".to_string()), ClaimPath::SelectByKey("missing_nested_value".to_string()), ClaimPath::SelectByIndex(0)],
+           |actual| assert_matches!(actual, ClaimError::ObjectFieldNotFound(claim_name, _) if claim_name.as_ref() == "missing_nested_value")
+    )]
+    fn test_is_selectively_disclosable_errors(
+        #[case] concealed_claims: Vec<VecNonEmpty<ClaimPath>>,
+        #[case] path: Vec<ClaimPath>,
+        #[case] verify_expected_error: impl FnOnce(ClaimError),
+    ) {
+        let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
+        let issuer_keypair = issuer_ca.generate_issuer_mock().unwrap();
+
+        let input = test_object();
+
+        // conceal claims, and encode as an SD-JWT
+        let sd_jwt = conceal_test_object(&issuer_keypair, input, concealed_claims);
+        let verified_sd_jwt = sd_jwt.into_verified();
+
+        let error = verified_sd_jwt.is_selectively_disclosable(&path).unwrap_err();
+
+        verify_expected_error(error);
+    }
+
+    fn disclose_claims(
+        verified_sd_jwt: crate::sd_jwt::VerifiedSdJwt,
+        all_claims: &[VecNonEmpty<ClaimPath>],
+    ) -> crate::sd_jwt::UnsignedSdJwtPresentation {
+        let mut presentation_builder = verified_sd_jwt.into_presentation_builder();
+
+        for claim_path in all_claims {
+            presentation_builder = presentation_builder.disclose(claim_path).unwrap();
+        }
+
+        presentation_builder.finish()
+    }
+
+    fn conceal_test_object(
+        issuer_keypair: &KeyPair,
+        input: SdJwtVcClaims,
+        claims_to_conceal: Vec<VecNonEmpty<ClaimPath>>,
+    ) -> SignedSdJwt {
+        let mut builder = SdJwtBuilder::new(input);
+
+        for claim_to_conceal in claims_to_conceal {
+            builder = builder.make_concealable(claim_to_conceal).unwrap();
+        }
+
+        builder.finish(issuer_keypair).now_or_never().unwrap().unwrap()
+    }
+
+    fn all_claims() -> Vec<VecNonEmpty<ClaimPath>> {
+        vec![
+            vec_nonempty![ClaimPath::SelectByKey("root_value".to_string())],
+            vec_nonempty![
+                ClaimPath::SelectByKey("root_array".to_string()),
+                ClaimPath::SelectByIndex(0)
+            ],
+            vec_nonempty![
+                ClaimPath::SelectByKey("root_array".to_string()),
+                ClaimPath::SelectByIndex(1)
+            ],
+            vec_nonempty![
+                ClaimPath::SelectByKey("root_array".to_string()),
+                ClaimPath::SelectByIndex(2)
+            ],
+            vec_nonempty![ClaimPath::SelectByKey("root_array".to_string())],
+            vec_nonempty![
+                ClaimPath::SelectByKey("root_object".to_string()),
+                ClaimPath::SelectByKey("object_value".to_string())
+            ],
+            vec_nonempty![
+                ClaimPath::SelectByKey("root_object".to_string()),
+                ClaimPath::SelectByKey("object_array".to_string()),
+                ClaimPath::SelectByIndex(0)
+            ],
+            vec_nonempty![
+                ClaimPath::SelectByKey("root_object".to_string()),
+                ClaimPath::SelectByKey("object_array".to_string()),
+                ClaimPath::SelectByIndex(1)
+            ],
+            vec_nonempty![
+                ClaimPath::SelectByKey("root_object".to_string()),
+                ClaimPath::SelectByKey("object_array".to_string()),
+                ClaimPath::SelectByIndex(2)
+            ],
+            vec_nonempty![
+                ClaimPath::SelectByKey("root_object".to_string()),
+                ClaimPath::SelectByKey("object_array".to_string())
+            ],
+            vec_nonempty![ClaimPath::SelectByKey("root_object".to_string())],
+        ]
+    }
+
+    fn selected_claims() -> Vec<VecNonEmpty<ClaimPath>> {
+        vec![
+            vec_nonempty![
+                ClaimPath::SelectByKey("root_array".to_string()),
+                ClaimPath::SelectByIndex(1)
+            ],
+            vec_nonempty![ClaimPath::SelectByKey("root_object".to_string())],
+        ]
+    }
+
+    fn double_concealed_array_claims() -> Vec<VecNonEmpty<ClaimPath>> {
+        vec![
+            vec_nonempty![
+                ClaimPath::SelectByKey("root_array".to_string()),
+                ClaimPath::SelectByIndex(2)
+            ],
+            vec_nonempty![
+                ClaimPath::SelectByKey("root_array".to_string()),
+                ClaimPath::SelectByIndex(2)
+            ],
+        ]
     }
 }

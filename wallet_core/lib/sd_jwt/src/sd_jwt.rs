@@ -361,6 +361,12 @@ impl VerifiedSdJwt {
         let serialization = s.parse::<UnverifiedSdJwt>()?;
         serialization.dangerous_parse_unverified()
     }
+
+    pub fn is_selectively_disclosable(&self, claim_paths: &[ClaimPath]) -> Result<bool, ClaimError> {
+        self.claims()
+            .claims
+            .is_selectively_disclosable(claim_paths.iter().peekable(), &self.disclosures)
+    }
 }
 
 impl<H> VerifiedSdJwt<SdJwtVcClaims, H> {

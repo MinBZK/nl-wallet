@@ -69,6 +69,9 @@ pub enum ClaimError {
 
     #[error("cannot traverse object for path: {0}")]
     UnsupportedTraversalPath(ClaimPath),
+
+    #[error("no disclosure found with digest: {0}, for path: `{1:?}`")]
+    DisclosureNotFound(String, Vec<ClaimPath>),
 }
 
 #[derive(Debug, thiserror::Error)]
