@@ -354,7 +354,7 @@ where
         };
 
         let stored_attestations = storage
-            .fetch_unique_attestations_by_type(&credential_types, format_query)
+            .fetch_unique_attestations_by_types(&credential_types, format_query)
             .await?;
 
         let candidate_attestations = stored_attestations
@@ -1276,7 +1276,7 @@ mod tests {
         ] {
             wallet
                 .mut_storage()
-                .expect_fetch_unique_attestations_by_type()
+                .expect_fetch_unique_attestations_by_types()
                 .withf(move |attestation_types, format| {
                     *attestation_types == HashSet::from([attestation_type]) && *format == expectation_format
                 })
@@ -1747,7 +1747,7 @@ mod tests {
 
         wallet
             .mut_storage()
-            .expect_fetch_unique_attestations_by_type()
+            .expect_fetch_unique_attestations_by_types()
             .times(1)
             .returning(move |_, _| Err(StorageError::AlreadyOpened));
 
@@ -1776,7 +1776,7 @@ mod tests {
         let expectation_attestation_copy = stored_attestation_copy.clone();
         wallet
             .mut_storage()
-            .expect_fetch_unique_attestations_by_type()
+            .expect_fetch_unique_attestations_by_types()
             .withf(move |attestation_types, format| {
                 *attestation_types == HashSet::from([PID_ATTESTATION_TYPE])
                     && *format == AttestationFormatQuery::MsoMdoc
@@ -1814,7 +1814,7 @@ mod tests {
 
         wallet
             .mut_storage()
-            .expect_fetch_unique_attestations_by_type()
+            .expect_fetch_unique_attestations_by_types()
             .times(1)
             .returning(move |_, _| Ok(vec![]));
 
@@ -1886,7 +1886,7 @@ mod tests {
         let expectation_attestation_copy = stored_attestation_copy.clone();
         wallet
             .mut_storage()
-            .expect_fetch_unique_attestations_by_type()
+            .expect_fetch_unique_attestations_by_types()
             .times(1)
             .returning(move |_, _| Ok(vec![expectation_attestation_copy.clone()]));
 

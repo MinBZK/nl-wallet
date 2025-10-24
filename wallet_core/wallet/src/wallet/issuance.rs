@@ -405,7 +405,7 @@ where
             .storage
             .read()
             .await
-            .fetch_unique_attestations_by_type(&preview_attestation_types, AttestationFormatQuery::Any)
+            .fetch_unique_attestations_by_types(&preview_attestation_types, AttestationFormatQuery::Any)
             .await
             .map_err(IssuanceError::AttestationQuery)?;
 
@@ -1033,7 +1033,7 @@ mod tests {
 
         wallet
             .mut_storage()
-            .expect_fetch_unique_attestations_by_type()
+            .expect_fetch_unique_attestations_by_types()
             .times(1)
             .returning(|_, _| {
                 let (mdoc, metadata) = create_example_pid_mdoc();
@@ -1209,7 +1209,7 @@ mod tests {
 
         let storage = wallet.mut_storage();
         storage
-            .expect_fetch_unique_attestations_by_type()
+            .expect_fetch_unique_attestations_by_types()
             .return_once(move |_attestation_types, _format| Ok(vec![stored]));
 
         // Set up the `MockIssuanceSession` to return one `CredentialPreviewState`.

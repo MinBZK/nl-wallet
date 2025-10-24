@@ -191,7 +191,14 @@ pub trait Storage {
 
     async fn fetch_unique_attestations(&self) -> StorageResult<Vec<StoredAttestationCopy>>;
 
-    async fn fetch_unique_attestations_by_type<'a>(
+    /// Returns a single attestation copy for each stored attestation for which the attestation type is equal to one of
+    /// the types requested. If a specific format is requested by providing `AttestationFormatQuery::MsoMdoc` or
+    /// `AttestationFormatQuery::SdJwt`, the returned copy will be of that format and only provided if available. If
+    /// `AttestationFormatQuery::Any` is specified, the format of the returned copy will be either one.
+    ///
+    /// Additionally, if `AttestationFormatQuery::SdJwt` is requested, the returned attestation copies will also include
+    /// those that extend at least one of the requested attestation types.
+    async fn fetch_unique_attestations_by_types<'a>(
         &'a self,
         attestation_types: &HashSet<&'a str>,
         format_query: AttestationFormatQuery,

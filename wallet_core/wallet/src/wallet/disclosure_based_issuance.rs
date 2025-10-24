@@ -345,7 +345,7 @@ mod tests {
         let expectation_attestation_copy = stored_attestation_copy.clone();
         wallet
             .mut_storage()
-            .expect_fetch_unique_attestations_by_type()
+            .expect_fetch_unique_attestations_by_types()
             .times(1)
             .returning(move |_, _| Ok(vec![expectation_attestation_copy.clone()]));
 
