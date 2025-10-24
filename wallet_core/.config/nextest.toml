@@ -3,6 +3,7 @@ cleanup = { max-threads = 1 }
 hsm = { max-threads = 1 }
 mock-oidc = { max-threads = 1 }
 mock-issuance-session = { max-threads = 1 }
+mock-pkce = { max-threads = 1 }
 
 [[profile.default.overrides]]
 filter = 'package(verification_server) & binary(postgres)'
@@ -20,6 +21,10 @@ test-group = 'mock-oidc'
 [[profile.default.overrides]]
 filter = 'package(wallet) & test(/(test_wallet_accept_disclosure_based_issuance|test_continue_pid_issuance(|_error_(pid_issuer|document)))$/)'
 test-group = 'mock-issuance-session'
+
+[[profile.default.overrides]]
+filter = 'package(openid4vc) & test(/(test_start_and_into_token_request|test_user_cancels)$/)'
+test-group = 'mock-pkce'
 
 [profile.ci]
 fail-fast = false
