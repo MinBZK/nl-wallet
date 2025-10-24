@@ -40,6 +40,7 @@ use attestation_data::disclosure_type::DisclosureType;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::BorrowingCertificateExtension;
 use entity::attestation;
+use entity::attestation::ExtendedTypesModel;
 use entity::attestation::TypeMetadataModel;
 use entity::attestation_copy;
 use entity::attestation_copy::AttestationFormat;
@@ -598,6 +599,7 @@ where
                     CredentialWithMetadata {
                         copies,
                         attestation_type,
+                        extended_attestation_types,
                         metadata_documents,
                     },
                     attestation_presentation,
@@ -607,6 +609,7 @@ where
                     let attestation_model = attestation::ActiveModel {
                         id: Set(attestation_id),
                         attestation_type: Set(attestation_type),
+                        extended_types: Set(ExtendedTypesModel::new(extended_attestation_types)),
                         type_metadata: Set(TypeMetadataModel::new(metadata_documents)),
                     };
 
@@ -1339,7 +1342,8 @@ pub(crate) mod tests {
                 vec![(
                     CredentialWithMetadata::new(
                         issued_mdoc_copies,
-                        mdoc.doc_type().to_string(),
+                        mdoc.doc_type(),
+                        NormalizedTypeMetadata::nl_pid_example().extended_vcts(),
                         VerifiedTypeMetadataDocuments::nl_pid_example(),
                     ),
                     AttestationPresentation::new_mock(),
@@ -1500,6 +1504,7 @@ pub(crate) mod tests {
                     CredentialWithMetadata::new(
                         issued_copies,
                         attestation_type.clone(),
+                        NormalizedTypeMetadata::nl_pid_example().extended_vcts(),
                         VerifiedTypeMetadataDocuments::nl_pid_example(),
                     ),
                     AttestationPresentation::new_mock(),
@@ -1613,6 +1618,7 @@ pub(crate) mod tests {
                     CredentialWithMetadata::new(
                         issued_copies.clone(),
                         attestation_type,
+                        NormalizedTypeMetadata::nl_pid_example().extended_vcts(),
                         VerifiedTypeMetadataDocuments::nl_pid_example(),
                     ),
                     attestation_presentation.clone(),
@@ -1862,6 +1868,7 @@ pub(crate) mod tests {
                     CredentialWithMetadata::new(
                         issued_copies,
                         attestation_type,
+                        NormalizedTypeMetadata::nl_pid_example().extended_vcts(),
                         VerifiedTypeMetadataDocuments::nl_pid_example(),
                     ),
                     AttestationPresentation::new_mock(),
@@ -1979,6 +1986,9 @@ pub(crate) mod tests {
         let attestation_type = sd_jwt.claims().vct.clone();
 
         // Insert sd_jwts
+        let normalized_metadata = NormalizedTypeMetadata::nl_pid_example();
+        let metadata_documents = VerifiedTypeMetadataDocuments::nl_pid_example();
+
         storage
             .insert_credentials(
                 timestamp,
@@ -1987,7 +1997,8 @@ pub(crate) mod tests {
                         CredentialWithMetadata::new(
                             issued_copies.clone(),
                             attestation_type.clone(),
-                            VerifiedTypeMetadataDocuments::nl_pid_example(),
+                            normalized_metadata.extended_vcts(),
+                            metadata_documents.clone(),
                         ),
                         AttestationPresentation::new_mock(),
                     ),
@@ -1995,7 +2006,8 @@ pub(crate) mod tests {
                         CredentialWithMetadata::new(
                             issued_copies,
                             attestation_type,
-                            VerifiedTypeMetadataDocuments::nl_pid_example(),
+                            normalized_metadata.extended_vcts(),
+                            metadata_documents,
                         ),
                         AttestationPresentation::new_mock(),
                     ),

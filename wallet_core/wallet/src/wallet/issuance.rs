@@ -747,6 +747,8 @@ mod tests {
         attestation_type: String,
         type_metadata: VerifiedTypeMetadataDocuments,
     ) -> (MockIssuanceSession, VecNonEmpty<AttestationPresentation>) {
+        let normalized_type_metadata = type_metadata.to_normalized().unwrap();
+
         let mut client = MockIssuanceSession::new();
         let issuer_certificate = match &credential {
             IssuedCredential::MsoMdoc { mdoc } => mdoc.issuer_certificate().unwrap(),
@@ -761,7 +763,7 @@ mod tests {
         let attestations = vec![match &credential {
             IssuedCredential::MsoMdoc { mdoc } => AttestationPresentation::create_from_mdoc(
                 AttestationIdentity::Ephemeral,
-                type_metadata.to_normalized().unwrap(),
+                normalized_type_metadata.clone(),
                 issuer_registration.organization.clone(),
                 mdoc.issuer_signed().clone().into_entries_by_namespace(),
                 &EmptyPresentationConfig,
@@ -771,7 +773,7 @@ mod tests {
                 let attributes = sd_jwt.decoded_claims().unwrap().try_into().unwrap();
                 AttestationPresentation::create_from_attributes(
                     AttestationIdentity::Ephemeral,
-                    type_metadata.to_normalized().unwrap(),
+                    normalized_type_metadata.clone(),
                     issuer_registration.organization.clone(),
                     &attributes,
                     &EmptyPresentationConfig,
@@ -788,6 +790,7 @@ mod tests {
             Ok(vec![CredentialWithMetadata::new(
                 IssuedCredentialCopies::new_or_panic(VecNonEmpty::try_from(vec![credential]).unwrap()),
                 attestation_type,
+                normalized_type_metadata.extended_vcts(),
                 type_metadata,
             )])
         });

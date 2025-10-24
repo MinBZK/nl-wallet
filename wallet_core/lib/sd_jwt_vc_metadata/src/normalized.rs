@@ -162,6 +162,10 @@ impl NormalizedTypeMetadata {
         self.vcts.first()
     }
 
+    pub fn extended_vcts(&self) -> impl Iterator<Item = &str> {
+        self.vcts.iter().skip(1).map(String::as_str)
+    }
+
     pub fn display(&self) -> &[DisplayMetadata] {
         self.display.as_ref()
     }
