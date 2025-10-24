@@ -38,6 +38,7 @@ use crypto::keys::EcdsaKey;
 use crypto::server_keys::KeyPair;
 use crypto::utils::random_string;
 use crypto::x509::CertificateError;
+use dcql::CredentialFormat;
 use dcql::Query;
 use dcql::normalized::NormalizedCredentialRequests;
 use dcql::normalized::UnsupportedDcqlFeatures;
@@ -566,6 +567,9 @@ pub struct RpInitiatedUseCases<K, S> {
 pub enum NewDisclosureUseCaseError {
     #[error(transparent)]
     UseCaseCertificate(#[from] UseCaseCertificateError),
+
+    #[error("additional accepted attestation types can only be configured for the SD-JWT format")]
+    WrongFormatForAdditionalAcceptedAttestationTypes,
 }
 
 impl<K> RpInitiatedUseCase<K> {
@@ -577,6 +581,18 @@ impl<K> RpInitiatedUseCase<K> {
         additional_accepted_attestation_types: Option<VecNonEmpty<String>>,
     ) -> Result<Self, NewDisclosureUseCaseError> {
         let client_id = client_id_from_key_pair(&key_pair)?;
+
+        // Additional accepted attestation types can only be configured for the SD-JWT format.
+        if let Some(requests) = &credential_requests
+            && additional_accepted_attestation_types.is_some()
+            && requests
+                .as_ref()
+                .iter()
+                .any(|request| request.format() == CredentialFormat::MsoMdoc)
+        {
+            return Err(NewDisclosureUseCaseError::WrongFormatForAdditionalAcceptedAttestationTypes);
+        }
+
         let use_case = Self {
             data: UseCaseData {
                 key_pair,
@@ -1545,9 +1561,12 @@ mod tests {
     use attestation_data::disclosure::DisclosedAttestations;
     use attestation_data::disclosure::DisclosedAttributes;
     use attestation_data::disclosure::ValidityInfo;
+    use attestation_data::test_credential::TestCredential;
+    use attestation_data::test_credential::TestCredentials;
     use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
     use attestation_types::qualification::AttestationQualification;
     use crypto::server_keys::generate::Ca;
+    use dcql::CredentialFormat;
     use dcql::Query;
     use dcql::normalized::NormalizedCredentialRequests;
     use dcql::unique_id_vec::UniqueIdVec;
@@ -1559,6 +1578,7 @@ mod tests {
     use crate::server_state::MemorySessionStore;
     use crate::server_state::SessionStore;
     use crate::server_state::SessionToken;
+    use crate::verifier::NewDisclosureUseCaseError;
 
     use super::AuthorizationErrorCode;
     use super::DisclosedAttributesError;
@@ -1652,6 +1672,41 @@ mod tests {
             None,
             vec![MOCK_WALLET_CLIENT_ID.to_string()],
         )
+    }
+
+    #[test]
+    fn test_additional_accepted_attestation_types() {
+        let ca = Ca::generate_reader_mock_ca().unwrap();
+        let reader_registration = Some(ReaderRegistration::new_mock());
+
+        let credential = TestCredential::new_nl_pid_given_name();
+        let credentials = TestCredentials::new(vec_nonempty![credential]);
+        let requests = credentials.to_normalized_credential_requests([CredentialFormat::MsoMdoc].into_iter());
+
+        let err = RpInitiatedUseCase::try_new(
+            generate_reader_mock_with_registration(&ca, reader_registration.clone()).unwrap(),
+            SessionTypeReturnUrl::Neither,
+            Some(requests),
+            None,
+            Some(vec_nonempty![String::from("accepted_vct")]),
+        )
+        .expect_err("should fail for mso-mdoc format");
+
+        assert_matches!(
+            err,
+            NewDisclosureUseCaseError::WrongFormatForAdditionalAcceptedAttestationTypes
+        );
+
+        // Creating the use case for SD-JWT should succeed
+        let requests = credentials.to_normalized_credential_requests([CredentialFormat::SdJwt].into_iter());
+        RpInitiatedUseCase::try_new(
+            generate_reader_mock_with_registration(&ca, reader_registration.clone()).unwrap(),
+            SessionTypeReturnUrl::Neither,
+            Some(requests),
+            None,
+            Some(vec_nonempty![String::from("accepted_vct")]),
+        )
+        .unwrap();
     }
 
     #[rstest]
