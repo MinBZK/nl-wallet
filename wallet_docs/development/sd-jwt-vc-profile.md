@@ -258,7 +258,7 @@ _Motivation_
 
 To mitigate the risks mentioned we will currenty not allow the use of external
 resources. Part of the risks might also be mitigated by requirements to the
-scheme that NL-Wallet is part of. Distributing Type Metadata (and related
+scheme that NL Wallet is part of. Distributing Type Metadata (and related
 resources) is not yet addressed in ARF or other frameworks.
 
 _Implication_

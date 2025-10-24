@@ -491,12 +491,12 @@ output.
 
 For example, after having run `setup-devenv.sh`, you could run `start-devenv.sh`
 with the `--all`, which starts everything, including a dockerized PostgreSQL
-database and the NL-Wallet flutter app itself (which means that you need to have
+database and the NL Wallet flutter app itself (which means that you need to have
 an Android emulator or iOS simulator running already, or you have otherwise
 connected a mobile target for flutter to connect and deploy to).
 
 Conveniently, you could run with the `--default` flag, which starts everything
-except PostgreSQL and the NL-Wallet app. We use this mode of running a lot when
+except PostgreSQL and the NL Wallet app. We use this mode of running a lot when
 developing locally: simply start your own PostgreSQL, dockerized or locally and
 then `scripts/start-devenv.sh --default` to bring up all backend services. You
 can then work on the code and simply `flutter run` in the `wallet_app` directory
@@ -552,7 +552,7 @@ flutter pub get
 flutter run # 🎉
 ```
 
-After a few moments, you should see the NL-Wallet app appear on your (emulated
+After a few moments, you should see the NL Wallet app appear on your (emulated
 or simulated) device. The app will interact with the backend services started
 by `start-devenv.sh`.
 

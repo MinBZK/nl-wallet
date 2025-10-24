@@ -1,12 +1,12 @@
 # Create a Verifier
 
 You want to verify certain attributes of a natural person which can be disclosed
-to you by the NL-Wallet.
+to you by the NL Wallet.
 
 A verifier (also known as a "relying party" or an "ontvangde voorziening",
 essentially an entity that wants to verify attestations presented by the
-NL-Wallet) will want to have a global idea of what they needs to do when
-integrating their application with the NL-Wallet environment.
+NL Wallet) will want to have a global idea of what they needs to do when
+integrating their application with the NL Wallet environment.
 
 This document provides a global outline of components used, the necessary
 decisions, data, and certificate(s), and guides the setup of a so-called
@@ -14,7 +14,7 @@ verifier/relying-party/ontvangende-voorziening plus integration thereof with
 their own frontend and backend.
 
 <div class="admonition note"><p class="title">Open-source software</p>
-Did you know that the NL-Wallet platform is fully open-source? You can find
+Did you know that the NL Wallet platform is fully open-source? You can find
 [the project on GitHub][6].
 </div>
 
@@ -70,37 +70,37 @@ session. The main components described in the diagram are:
 - Relying Party Application: An app running on-premises or in-cloud of the
   verifier that needs to do something with the result of a verification of
   attributes;
-- [Wallet App][18]: The NL-Wallet app running on a mobile device;
+- [Wallet App][18]: The NL Wallet app running on a mobile device;
 
 Missing from the above diagram, but worth mentioning:
 
 - [Wallet Web][14] The frontend helper JavaScript/TypeScript library which helps
-  verifiers integrate their application with the NL-Wallet platform.
+  verifiers integrate their application with the NL Wallet platform.
 
 <div class="admonition seealso"><p class="title">Architecture documentation</p>
 This document is about setting up a verifier. To have a broader view of the
-NL-Wallet platform as a whole, you can have a look at the [Architecture
+NL Wallet platform as a whole, you can have a look at the [Architecture
 Documents][5].
 </div>
 
 ### Plaform components overview
 
-The NL-Wallet platform consists of:
+The NL Wallet platform consists of:
 
   * **Issuers**: (also known as Verstrekkende Voorzieningen), which can issue
     attested attributes;
   * **Verifiers**: (also known as Ontvangende Voorzieningen or Relying Parties),
     which can verify attested attributes they are interested in, and which this
     document is mainly about;
-  * **Backend**: services that run in the NL-Wallet datacenter(s) or cloud that
+  * **Backend**: services that run in the NL Wallet datacenter(s) or cloud that
     facilitate various functions for the mobile app (usually not interacted with
     directly, by either Issuers or Verifiers);
-  * **App**: the NL-Wallet mobile app, which contains attested attributes,
+  * **App**: the NL Wallet mobile app, which contains attested attributes,
     received from Issuers, and which it can disclose to Verifiers.
 
 Verifiers configure and maintain a `verification_server` on their own premises
 or cloud environments, which they integrate with their own application, and which
-interacts with the NL-Wallet app, in order to verify attested attributes.
+interacts with the NL Wallet app, in order to verify attested attributes.
 
 ## Creating a reader authentication document
 
@@ -117,7 +117,7 @@ the app.
 <div class="admonition note"><p class="title">Onboarding optional</p>
 Do note that onboarding is not strictly necessary - you *can* follow all steps
 in this guide and observe things working in a local development environment -
-but when you want to test your verifier with the NL-Wallet platform (i.e., our
+but when you want to test your verifier with the NL Wallet platform (i.e., our
 backend and mobile apps in our acceptance and pre-production environments), you
 do need to be onboarded to get access to those environments.
 </div>
@@ -127,7 +127,7 @@ do need to be onboarded to get access to those environments.
 A reader certificate contains a bunch of metadata, which we store as a part
 of the certificate in a so-called X.509v3 extension. We use this data to know
 which attested attribute you want to verify, and to present a view of you, the
-verifier in the NL-Wallet app GUI.
+verifier in the NL Wallet app GUI.
 
 **REQUIRED_DATA**
 
@@ -263,12 +263,12 @@ sections, we're going to need it.
 <p>The data from `reader_auth.json` is used in various parts of the app. For
 illustrative purposes, see below a screenshot of a screen showing details
 about the municipality of Amsterdam:</p>
-<img src="/_static/img/non-free/reader_auth_json_in_use.gif" alt="A screenshot showing reader_auth.json data used within the NL-Wallet app." width="300"/>
+<img src="/_static/img/non-free/reader_auth_json_in_use.gif" alt="A screenshot showing reader_auth.json data used within the NL Wallet app." width="300"/>
 </div>
 
 ## Creating a reader certificate
 
-Let's create the reader certificate. We're going to clone the NL-Wallet
+Let's create the reader certificate. We're going to clone the NL Wallet
 repository, enter its directory, set a target directory and specify an
 identifier (this identifies your organization, and should be in lowercase
 characters a-z, can end with numbers but may not begin with them).
@@ -299,15 +299,15 @@ You need a CA certificate and key. By default, when you're running locally, the
 `setup-devenv.sh` script will have created these for you. You can also opt to
 create your own custom self-signed CA certificate and key, which is documented
 in the [Create a CA][27] document, and which is required if you need to
-participate in the NL-Wallet community platform.
+participate in the NL Wallet community platform.
 </div>
 
 <div class="admonition caution">
-<p class="title">Do you intend to test your verifier on the NL-Wallet platform?</p>
+<p class="title">Do you intend to test your verifier on the NL Wallet platform?</p>
 You can test your verifier locally (more or less exactly like we do with our
 `mock-relying-party` app) for which you don't need anything except the code in
-our git repository. But if you want to test your verifier with the NL-Wallet
-platform (i.e., the NL-Wallet apps on our Test Flight and Play Store Beta
+our git repository. But if you want to test your verifier with the NL Wallet
+platform (i.e., the NL Wallet apps on our Test Flight and Play Store Beta
 environments plus backends), you will need to have succesfully completed the
 [onboarding](../community/onboarding) process.
 </div>
@@ -343,19 +343,19 @@ openssl pkcs8 -topk8 -nocrypt \
 
 The used CA public certificate (referenced in the previous `wallet_ca` command)
 needs to be in the list of various so-called trust anchors. Specifically,
-issuers and the NL-Wallet app itself need to know if this CA is a trusted CA,
+issuers and the NL Wallet app itself need to know if this CA is a trusted CA,
 and our software "knows" that by checking its trust anchors.
 
 When you run locally, when using `setup-devenv.sh` and `start-devenv.sh`, the
 generated CA certificate is automatically added to the trust anchors within the
-configuration files of pid_issuer, demo_issuer, and the NL-Wallet app config.
+configuration files of pid_issuer, demo_issuer, and the NL Wallet app config.
 
 When you [create your own CA][27], you need to make sure the public key of your
 CA is in the relevant trust anchor configuration settings. When you are a
-member of the [NL-Wallet community][11], and so using NL-Wallet managed backend
+member of the [NL Wallet community][11], and so using NL Wallet managed backend
 services and mobile apps, this is done for you (i.e., you just need to sign
 your reader certificate with your CA, which the `wallet_ca` utility invocation
-above did for you, and during the NL-Wallet community [onboarding][11] process
+above did for you, and during the NL Wallet community [onboarding][11] process
 you shared your CA certificate with the operations team who ensure your CA is
 in the various trust anchor lists).
 
@@ -547,7 +547,7 @@ EOF
 
 <div class="admonition note">
 <p class="title">Optional runtime logging using env_logger</p>
-In addition to the above, the NL-Wallet uses [env_logger][17], which means you
+In addition to the above, the NL Wallet uses [env_logger][17], which means you
 can use the `RUST_LOG` environment variable when running `verification_server`
 later on. For example, to run with debug log output, you can prefix the command
 with the `RUST_LOG` environment variable: `RUST_LOG=debug ./verification_server`
@@ -621,7 +621,7 @@ unset VS_ISSUER_TRUST_ANCHORS VS_READER_TRUST_ANCHORS
 
 #### Determine public URL
 
-The `public_url` is the URL that is used by the NL-wallet app to reach the
+The `public_url` is the URL that is used by the NL Wallet app to reach the
 public address and port of the `verification_server`:
 
 ```shell
@@ -635,7 +635,7 @@ EOF
 <p class="title">Use a valid domain name here</p>
 In the above, we use `verify.example.com` as the fully-qualified domain name.
 Technically, this domain needs not be world-reachable, but it does need to DNS
-resolve for the NL-wallet app and the verification server. Make sure you use a
+resolve for the NL Wallet app and the verification server. Make sure you use a
 domain that is yours and that you control.
 </div>
 
@@ -652,12 +652,12 @@ The `verification_server` uses the universal link base URL to construct the
 correct environment-specific universal link. A universal link is used to to
 associate a specific domain name and/or part of an URL with a specific app on
 the mobile device. In our case, it results in the link provided by the
-`verification_server` being handled by the NL-Wallet app when a user clicks
+`verification_server` being handled by the NL Wallet app when a user clicks
 on the link or scans the QR code.
 
 A universal link base URL is usually associated with a specific backend
 environment like pre-production or testing. When you're integrating with the
-NL-Wallet platform, you would use a universal link base URL that was provided
+NL Wallet platform, you would use a universal link base URL that was provided
 to you as part of our community [onboarding][11] process.
 
 ```shell
@@ -697,7 +697,7 @@ settings.
 
 ##### Configuring allowed client IDs
 
-You can restrict which NL-Wallet apps are accepted by the verification server
+You can restrict which NL Wallet apps are accepted by the verification server
 by configuring a `wallet_client_ids` array. The entries of this array would
 contain the `client_id` value of a wallet implementation. This allows you to
 allow-list groups of wallet apps based on their `client_id` value. For example,
@@ -753,7 +753,7 @@ The server can be configured to listen on a single IP address and port, or with
 a separate private (requester) and public (wallet) IP address and port. The
 private address can be internal and should be reachable to the application that
 integrates with the verifier. The public address needs to be reachable by apps
-like the NL-Wallet mobile app.
+like the NL Wallet mobile app.
 
 In our case, we'll configure separate addresses and ports for the private and
 public interfaces:
@@ -969,12 +969,12 @@ use these.
 
 ## How disclosure sessions work
 
-Now that you can interact with the NL-Wallet platform, you are ready to start
+Now that you can interact with the NL Wallet platform, you are ready to start
 working on integrating your own application.
 
 The previously configured `verification_server`, is a software component
-developed by the NL-Wallet team which you as a verifier run on-premises or
-within your cloud environment in order to interact with the NL-Wallet platform.
+developed by the NL Wallet team which you as a verifier run on-premises or
+within your cloud environment in order to interact with the NL Wallet platform.
 
 In the following subsections we'll give you a high-level overview of what a
 verifier looks like, how to integrate it with your application and some
@@ -1001,7 +1001,7 @@ Note the possible session states:
 Note the "actors/components" we distinguish between:
 
 - `user`: _user of the app, initiating an attribute disclosure session_
-- `wallet_app`: _the NL-Wallet app, running on a users' mobile phone_
+- `wallet_app`: _the NL Wallet app, running on a users' mobile phone_
 - `verification_server`: _the verification_server component of the OV_
 - `rp_frontend`: _the (JavaScript/HTML/CSS) frontend of the verifier app_
   _can be-or-use previously mentioned `wallet_web` JavaScript helper library_
@@ -1080,11 +1080,11 @@ Same-device flow, the resulting Universal link can be directly opened by the
 
 ## Requirements applicable to your application
 
-Below you'll find a list of things to know about the NL-Wallet platform and more
+Below you'll find a list of things to know about the NL Wallet platform and more
 specifically, what you need to keep in mind when you integrate the usage of the
 app for identification or verification of attributes with your application:
 
-- The NL-Wallet app presents attestations using the [OpenID4VP][10] protocol
+- The NL Wallet app presents attestations using the [OpenID4VP][10] protocol
   standard using either the [SD-JWT][29] or the [ISO/IEC 18013-5:2021 MDOC][8]
   credential format;
 - Any disclosure session initiation request must include the reason why the
@@ -1097,8 +1097,8 @@ app for identification or verification of attributes with your application:
 - The standard buttons for login and sharing should be used, but one can use
   custom button text (within reason);
 - Button styling and call-to-action can be customized by verifier;
-- The text "NL-Wallet" should always be visible in the call-to-action;
-- Logo of "NL-Wallet" should be visible next to the call-to-action.
+- The text "NL Wallet" should always be visible in the call-to-action;
+- Logo of "NL Wallet" should be visible next to the call-to-action.
 
 ## Integrating your app with your verification server
 
@@ -1129,7 +1129,7 @@ OV Result":
 The above is described in more detail in the previous section
 [detailing an example disclosure flow](#what-a-disclosure-session-looks-like).
 
-It's worth noting that the NL-Wallet team has developed a JavaScript library
+It's worth noting that the NL Wallet team has developed a JavaScript library
 (called `wallet_web`) that handles the status check loop and status return for
 you.
 

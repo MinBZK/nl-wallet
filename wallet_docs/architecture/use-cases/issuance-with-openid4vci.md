@@ -2,9 +2,11 @@
 
 ## PID issuance
 
-This diagram shows how we use OpenID4VCI in the pre-authorized code flow to issue the PID.
+This diagram shows how we use [OpenID4VCI][1] in the [Pre-Authorized Code Flow][2] to issue the [PID][3].
 
-In this protocol, the wallet starts a normal OpenID Connect session at the AuthServer (DigiD/`nl-rdo-max`), obtaining an authorization code. Next, the wallet uses this code to start the OpenID4VCI issuance protocol in the pre-authorized code flow with the Wallet Server. The Wallet Server finishes the OpenID Connect session with the AuthServer to discover the identity of the wallet user, allowing it to finish issuance.
+Using this protocol, the wallet starts a normal OpenID Connect session at the AuthServer (which in our case usually usually is [DigiD][5] through [nl-rdo-max][4]), from which it obtains an authorization code.
+
+Next, the wallet uses this code to start the OpenID4VCI issuance protocol in the pre-authorized code flow with the Wallet Server. The Wallet Server finishes the OpenID Connect session with the AuthServer to discover the identity of the wallet user, allowing it to finish issuance.
 
 In the diagram below we introduce an actor called the PidAttributeService, whose responsibility it is to produce the attributes to be issued given the pre-authorized code. In the case of PID issuance it can do this by finishing the OpenID session at the AuthServer that the wallet started. (This actor is a library part of the WalletServer, as opposed to a separate HTTP server; we include it as separate actor here to separate responsibilities.)
 
@@ -107,3 +109,16 @@ sequenceDiagram
         WalletServer->>-Wallet: attestations
     deactivate Wallet
 ```
+
+
+## References
+
+Below you'll find a collection of links which we reference to through the
+entire text. Note that they don't display when rendered within a website, you
+need to read the text in a regular text editor or pager to see them.
+
+[1]: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-final.html
+[2]: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-final.html#name-pre-authorized-code-flow
+[3]: https://eu-digital-identity-wallet.github.io/eudi-doc-architecture-and-reference-framework/latest/annexes/annex-3/annex-3.01-pid-rulebook
+[4]: https://github.com/minvws/nl-rdo-max
+[5]: https://www.logius.nl/onze-dienstverlening/toegang/digid
