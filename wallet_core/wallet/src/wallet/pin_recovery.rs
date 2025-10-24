@@ -126,6 +126,16 @@ pub enum PinRecoveryError {
     NoPidPresent,
 }
 
+impl From<DigidError> for PinRecoveryError {
+    fn from(error: DigidError) -> Self {
+        if matches!(error, DigidError::Oidc(OidcError::Denied)) {
+            PinRecoveryError::DeniedDigiD
+        } else {
+            PinRecoveryError::Issuance(IssuanceError::DigidSessionFinish(error))
+        }
+    }
+}
+
 #[derive(Debug)]
 pub(super) enum PinRecoverySession<DS, IS> {
     Digid(DS),
@@ -247,14 +257,7 @@ where
         let config = self.config_repository.get();
         let token_request = session
             .into_token_request(&config.pid_issuance.digid_http_config, redirect_uri)
-            .await
-            .map_err(|error| {
-                if matches!(error, DigidError::Oidc(OidcError::Denied)) {
-                    PinRecoveryError::DeniedDigiD
-                } else {
-                    PinRecoveryError::Issuance(IssuanceError::DigidSessionFinish(error))
-                }
-            })?;
+            .await?;
 
         // Check the recovery code in the received PID against the one in the stored PID, as otherwise
         // the WP will reject our PIN recovery instructions.

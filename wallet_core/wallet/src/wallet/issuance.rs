@@ -179,6 +179,16 @@ pub enum IssuanceError {
     TransferDataStorage(#[source] StorageError),
 }
 
+impl From<DigidError> for IssuanceError {
+    fn from(error: DigidError) -> Self {
+        if matches!(error, DigidError::Oidc(OidcError::Denied)) {
+            IssuanceError::DeniedDigiD
+        } else {
+            IssuanceError::DigidSessionFinish(error)
+        }
+    }
+}
+
 #[derive(Debug, Clone, Constructor)]
 pub struct WalletIssuanceSession<IS> {
     is_pid: bool,
@@ -369,14 +379,7 @@ where
         let pid_issuance_config = &self.config_repository.get().pid_issuance;
         let token_request = session
             .into_token_request(&pid_issuance_config.digid_http_config, redirect_uri)
-            .await
-            .map_err(|error| {
-                if matches!(error, DigidError::Oidc(OidcError::Denied)) {
-                    IssuanceError::DeniedDigiD
-                } else {
-                    IssuanceError::DigidSessionFinish(error)
-                }
-            })?;
+            .await?;
 
         let config = self.config_repository.get();
 
