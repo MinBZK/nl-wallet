@@ -42,6 +42,7 @@ use server_utils::settings::Settings;
 use server_utils::settings::verify_key_pairs;
 use utils::generator::TimeGenerator;
 use utils::path::prefix_local_path;
+use utils::vec_at_least::VecNonEmpty;
 
 const MIN_KEY_LENGTH_BYTES: usize = 32;
 
@@ -90,6 +91,7 @@ pub struct UseCaseSettings {
     pub key_pair: KeyPair,
 
     pub dcql_query: Option<Query>,
+    pub additional_accepted_attestation_types: Option<VecNonEmpty<String>>,
     pub return_url_template: Option<ReturnUrlTemplate>,
 }
 
@@ -123,6 +125,7 @@ impl UseCaseSettings {
             self.session_type_return_url,
             self.dcql_query.map(TryInto::try_into).transpose()?,
             self.return_url_template,
+            self.additional_accepted_attestation_types,
         )?;
 
         Ok(use_case)

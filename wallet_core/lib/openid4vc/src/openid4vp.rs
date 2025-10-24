@@ -683,6 +683,7 @@ impl VpAuthorizationResponse {
         accepted_wallet_client_ids: &[String],
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
+        additional_accepted_attestation_types: &[String],
     ) -> Result<UniqueIdVec<DisclosedAttestations>, AuthResponseError> {
         let (response, encryption_nonce) = Self::decrypt(jwe, private_key)?;
 
@@ -692,6 +693,7 @@ impl VpAuthorizationResponse {
             encryption_nonce.as_deref(),
             time,
             trust_anchors,
+            additional_accepted_attestation_types,
         )
     }
 
@@ -720,6 +722,7 @@ impl VpAuthorizationResponse {
         encryption_nonce: Option<&str>,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
+        additional_accepted_attestation_types: &[String],
     ) -> Result<UniqueIdVec<DisclosedAttestations>, AuthResponseError> {
         // Step 1: Verify the cryptographic integrity of the verifiable presentations
         //         and extract the disclosed attestations from them.
@@ -833,7 +836,7 @@ impl VpAuthorizationResponse {
         // Step 4: Check that we received all the attributes that we requested.
         auth_request
             .credential_requests
-            .is_satisfied_by_disclosed_credentials(&disclosed_attestations)
+            .is_satisfied_by_disclosed_credentials(&disclosed_attestations, additional_accepted_attestation_types)
             .map_err(AuthResponseError::UnsatisfiedCredentialRequest)?;
 
         // Step 5: Sort the disclosed attestations into the same order as that of the Credential Requests in the DCQL
@@ -1335,6 +1338,7 @@ mod tests {
                 Some(encryption_nonce),
                 &MockTimeGenerator::default(),
                 &[ca.to_trust_anchor()],
+                &[],
             )
             .expect("VpAuthorizationResponse should be valid");
 
@@ -1439,6 +1443,7 @@ mod tests {
                 None,
                 &MockTimeGenerator::default(),
                 &[ca.to_trust_anchor()],
+                &[],
             )
             .expect("VpAuthorizationResponse should be valid");
 
@@ -1599,6 +1604,7 @@ mod tests {
                 Some(encryption_nonce),
                 &MockTimeGenerator::default(),
                 &[ca.to_trust_anchor()],
+                &[],
             )
             .expect("VpAuthorizationResponse should be valid");
 
@@ -1643,6 +1649,7 @@ mod tests {
                 Some(encryption_nonce),
                 &MockTimeGenerator::default(),
                 &[ca.to_trust_anchor()],
+                &[],
             )
             .unwrap();
     }
@@ -1662,6 +1669,7 @@ mod tests {
                 None,
                 &MockTimeGenerator::default(),
                 &[ca.to_trust_anchor()],
+                &[],
             )
             .expect_err("verifying authorization response should fail");
 
@@ -1683,6 +1691,7 @@ mod tests {
                 Some(encryption_nonce),
                 &MockTimeGenerator::default(),
                 &[ca.to_trust_anchor()],
+                &[],
             )
             .expect_err("should fail due to missing PoA");
 
@@ -1707,6 +1716,7 @@ mod tests {
                 Some(encryption_nonce),
                 &MockTimeGenerator::default(),
                 &[ca.to_trust_anchor()],
+                &[],
             )
             .expect_err("should fail due to missing PoA");
 

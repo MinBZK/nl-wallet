@@ -147,6 +147,7 @@ async fn wallet_server_settings_and_listener(
             session_type_return_url: SessionTypeReturnUrl::SameDevice,
             key_pair: usecase_keypair.into(),
             dcql_query: None,
+            additional_accepted_attestation_types: None,
             return_url_template: None,
         },
     )])

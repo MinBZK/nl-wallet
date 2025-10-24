@@ -47,6 +47,7 @@ use jwt::SignedJwt;
 use jwt::error::JwtError;
 use jwt::headers::HeaderWithX5c;
 use utils::generator::Generator;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::AuthorizationErrorCode;
 use crate::ErrorResponse;
@@ -215,6 +216,7 @@ pub struct Created {
     credential_requests: NormalizedCredentialRequests,
     usecase_id: String,
     client_id: String,
+    additional_accepted_attestation_types: Option<VecNonEmpty<String>>,
     redirect_uri_template: Option<RedirectUriTemplate>,
 }
 
@@ -222,6 +224,7 @@ pub struct Created {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct WaitingForResponse {
     auth_request: NormalizedVpAuthorizationRequest,
+    additional_accepted_attestation_types: Option<VecNonEmpty<String>>,
     usecase_id: String,
     encryption_key: EncryptionPrivateKey,
     redirect_uri: Option<RedirectUri>,
@@ -508,6 +511,7 @@ pub struct UseCaseData<K> {
     pub key_pair: KeyPair<K>,
     pub client_id: String,
     pub session_type_return_url: SessionTypeReturnUrl,
+    pub additional_accepted_attestation_types: Option<VecNonEmpty<String>>,
 }
 
 pub trait UseCase {
@@ -570,6 +574,7 @@ impl<K> RpInitiatedUseCase<K> {
         session_type_return_url: SessionTypeReturnUrl,
         credential_requests: Option<NormalizedCredentialRequests>,
         return_url_template: Option<ReturnUrlTemplate>,
+        additional_accepted_attestation_types: Option<VecNonEmpty<String>>,
     ) -> Result<Self, NewDisclosureUseCaseError> {
         let client_id = client_id_from_key_pair(&key_pair)?;
         let use_case = Self {
@@ -577,6 +582,7 @@ impl<K> RpInitiatedUseCase<K> {
                 key_pair,
                 client_id,
                 session_type_return_url,
+                additional_accepted_attestation_types,
             },
             credential_requests,
             return_url_template,
@@ -628,6 +634,7 @@ impl<K: EcdsaKeySend> UseCase for RpInitiatedUseCase<K> {
             credential_requests,
             id,
             self.data.client_id.clone(),
+            self.data.additional_accepted_attestation_types.clone(),
             redirect_uri_template,
         );
         Ok(session)
@@ -750,6 +757,7 @@ impl<K> WalletInitiatedUseCase<K> {
                 key_pair,
                 client_id,
                 session_type_return_url,
+                additional_accepted_attestation_types: None,
             },
             credential_requests,
             return_url_template,
@@ -776,6 +784,7 @@ impl<K: EcdsaKeySend> UseCase for WalletInitiatedUseCase<K> {
             self.credential_requests.clone(),
             id,
             self.data.client_id.clone(),
+            None,
             Some(RedirectUriTemplate {
                 template: self.return_url_template.clone(),
                 share_on_error: false,
@@ -1192,6 +1201,7 @@ impl Session<Created> {
         credential_requests: NormalizedCredentialRequests,
         usecase_id: String,
         client_id: String,
+        additional_accepted_attestation_types: Option<VecNonEmpty<String>>,
         redirect_uri_template: Option<RedirectUriTemplate>,
     ) -> Session<Created> {
         Session::<Created> {
@@ -1199,6 +1209,7 @@ impl Session<Created> {
                 SessionToken::new_random(),
                 Created {
                     credential_requests,
+                    additional_accepted_attestation_types,
                     usecase_id,
                     client_id,
                     redirect_uri_template,
@@ -1238,6 +1249,11 @@ impl Session<Created> {
                     redirect_uri,
                     encryption_key: EncryptionPrivateKey::from(enc_keypair),
                     usecase_id: self.state.data.usecase_id.clone(),
+                    additional_accepted_attestation_types: self
+                        .state
+                        .data
+                        .additional_accepted_attestation_types
+                        .clone(),
                 };
                 let next = self.transition(next);
                 Ok((jws, next))
@@ -1419,6 +1435,11 @@ impl Session<WaitingForResponse> {
             accepted_wallet_client_ids,
             time,
             trust_anchors,
+            self.state()
+                .additional_accepted_attestation_types
+                .as_ref()
+                .map(VecNonEmpty::as_ref)
+                .unwrap_or_default(),
         ) {
             Ok(disclosed) => disclosed,
             Err(err) => return self.handle_err(err.into()),
@@ -1590,6 +1611,7 @@ mod tests {
                     SessionTypeReturnUrl::Neither,
                     None,
                     None,
+                    None,
                 )
                 .unwrap(),
             ),
@@ -1600,6 +1622,7 @@ mod tests {
                     SessionTypeReturnUrl::SameDevice,
                     None,
                     None,
+                    None,
                 )
                 .unwrap(),
             ),
@@ -1608,6 +1631,7 @@ mod tests {
                 RpInitiatedUseCase::try_new(
                     generate_reader_mock_with_registration(&ca, reader_registration).unwrap(),
                     SessionTypeReturnUrl::Both,
+                    None,
                     None,
                     None,
                 )
@@ -1988,6 +2012,7 @@ mod tests {
                     key_pair: generate_reader_mock_with_registration(&ca, reader_registration.clone()).unwrap(),
                     session_type_return_url: SessionTypeReturnUrl::Neither,
                     client_id: "client_id".to_string(),
+                    additional_accepted_attestation_types: None,
                 },
                 credential_requests: NormalizedCredentialRequests::new_mock_mdoc_pid_example(),
                 return_url_template: "https://example.com".parse().unwrap(),

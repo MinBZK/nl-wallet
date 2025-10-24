@@ -497,6 +497,7 @@ mod tests {
             &[MOCK_WALLET_CLIENT_ID.to_string()],
             &MockTimeGenerator::default(),
             &[ca.to_trust_anchor()],
+            &[],
         )
         .expect("decrypting and verifying VPDisclosureSession authorization response should succeed");
 

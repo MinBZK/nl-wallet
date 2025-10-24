@@ -179,6 +179,7 @@ fn disclosure_direct() {
         &[MOCK_WALLET_CLIENT_ID.to_string()],
         &MockTimeGenerator::default(),
         &[issuer_ca.to_trust_anchor()],
+        &[],
     )
     .unwrap();
 
@@ -385,6 +386,7 @@ impl VpMessageClient for DirectMockVpMessageClient {
             &[MOCK_WALLET_CLIENT_ID.to_string()],
             &MockTimeGenerator::default(),
             &self.trust_anchors,
+            &[],
         )
         .unwrap();
 
@@ -975,6 +977,7 @@ fn setup_verifier(
                 SessionTypeReturnUrl::Neither,
                 None,
                 None,
+                None,
             )
             .unwrap(),
         ),
@@ -985,6 +988,7 @@ fn setup_verifier(
                 SessionTypeReturnUrl::SameDevice,
                 None,
                 None,
+                None,
             )
             .unwrap(),
         ),
@@ -993,6 +997,7 @@ fn setup_verifier(
             RpInitiatedUseCase::try_new(
                 generate_reader_mock_with_registration(&rp_ca, reader_registration).unwrap(),
                 SessionTypeReturnUrl::Both,
+                None,
                 None,
                 None,
             )
