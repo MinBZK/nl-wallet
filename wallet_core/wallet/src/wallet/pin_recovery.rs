@@ -459,7 +459,7 @@ where
         let recovery_code_disclosure = pid
             .into_presentation_builder()
             .disclose(&Self::recovery_code_path(&config.pid_attributes, &pid_attestation_type))
-            .unwrap() // accept_issuance() already checks that the PID has a recovery code
+            .unwrap() // accept_issuance() already checks against the previews that the PID has a recovery code
             .finish()
             .into();
 
