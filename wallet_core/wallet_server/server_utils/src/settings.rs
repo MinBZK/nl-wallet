@@ -181,8 +181,6 @@ pub enum CertificateVerificationError {
     InvalidKeyPair(#[source] CertificateError, String),
     #[error("no CertificateType found in certificate `{1}`: {0}")]
     NoCertificateType(#[source] CertificateTypeError, String),
-    #[error("certificate `{0}` is missing CertificateType registration data")]
-    IncompleteCertificateType(String),
 }
 
 pub trait ServerSettings: Sized {
@@ -219,12 +217,6 @@ pub fn verify_key_pairs(
 
         let certificate_type = CertificateType::from_certificate(&key_pair.certificate)
             .map_err(|e| CertificateVerificationError::NoCertificateType(e, key_pair_id.to_string()))?;
-
-        if !certificate_type.has_registration() {
-            return Err(CertificateVerificationError::IncompleteCertificateType(
-                key_pair_id.to_string(),
-            ));
-        }
 
         // This should be verified before
         let derived_usage = CertificateUsage::from(&certificate_type);

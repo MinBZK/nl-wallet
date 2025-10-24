@@ -891,7 +891,7 @@ mod tests {
     use attestation_data::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_data::test_credential::nl_pid_address_minimal_address;
     use attestation_data::test_credential::nl_pid_credentials_full_name;
-    use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
+
     use attestation_types::claim_path::ClaimPath;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::KeyPair;
@@ -963,7 +963,7 @@ mod tests {
     ) {
         let ca = Ca::generate("myca", Default::default()).unwrap();
         let trust_anchor = ca.to_trust_anchor().to_owned();
-        let rp_keypair = generate_reader_mock_with_registration(&ca, None).unwrap();
+        let rp_keypair = ca.generate_reader_mock().unwrap();
 
         let encryption_privkey = EcKeyPair::generate(EcCurve::P256).unwrap();
 

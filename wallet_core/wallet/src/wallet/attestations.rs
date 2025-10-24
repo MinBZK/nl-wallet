@@ -130,8 +130,7 @@ mod tests {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         let ca = Ca::generate_issuer_mock_ca().unwrap();
-        let issuance_keypair =
-            generate_issuer_mock_with_registration(&ca, IssuerRegistration::new_mock().into()).unwrap();
+        let issuance_keypair = generate_issuer_mock_with_registration(&ca, IssuerRegistration::new_mock()).unwrap();
         let holder_key = SigningKey::random(&mut OsRng);
         let sd_jwt = SignedSdJwt::pid_example(&issuance_keypair, holder_key.verifying_key()).into_verified();
         let attestation_type = sd_jwt.claims().vct.clone();

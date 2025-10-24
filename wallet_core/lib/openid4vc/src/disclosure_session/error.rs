@@ -93,9 +93,9 @@ pub enum VpVerifierError {
     #[error("error parsing RP certificate: {0}")]
     RpCertificate(#[source] CertificateTypeError),
 
-    #[error("no reader registration in RP certificate")]
+    #[error("RP certificate is not a reader certificate")]
     #[category(critical)]
-    MissingReaderRegistration,
+    NoReaderCertificate,
 
     #[error("error validating requested attributes: {0}")]
     RequestedAttributesValidation(#[source] ValidationError),

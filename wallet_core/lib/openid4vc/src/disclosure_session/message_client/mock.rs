@@ -161,7 +161,12 @@ impl MockVerifierSession {
         // Generate trust anchors, signing key and certificate containing `ReaderRegistration`.
         let ca = Ca::generate_reader_mock_ca().unwrap();
         let trust_anchors = vec![ca.to_trust_anchor().to_owned()];
-        let key_pair = generate_reader_mock_with_registration(&ca, reader_registration.clone()).unwrap();
+        let key_pair = match &reader_registration {
+            Some(reader_registration) => {
+                generate_reader_mock_with_registration(&ca, reader_registration.clone()).unwrap()
+            }
+            None => ca.generate_reader_mock().unwrap(),
+        };
 
         // Generate some OpenID4VP specific session material.
         let nonce = crypto_utils::random_string(32);

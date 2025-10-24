@@ -134,10 +134,7 @@ async fn wallet_server_settings_and_listener(
     let rp_ca = Ca::generate_reader_mock_ca().unwrap();
     let reader_trust_anchors = vec![rp_ca.as_borrowing_trust_anchor().clone()];
     let rp_trust_anchor = rp_ca.to_trust_anchor().to_owned();
-    let reader_registration = request
-        .dcql_query
-        .as_ref()
-        .map(ReaderRegistration::mock_from_dcql_query);
+    let reader_registration = ReaderRegistration::mock_from_dcql_query(request.dcql_query.as_ref().unwrap());
 
     // Set up the use case, based on RP CA and reader registration.
     let usecase_keypair = generate_reader_mock_with_registration(&rp_ca, reader_registration).unwrap();
@@ -916,8 +913,7 @@ fn pid_start_disclosure_request(format: CredentialFormat) -> StartDisclosureRequ
 fn prepare_example_mdoc_mock(issuer_ca: &Ca, wscd: &MockRemoteWscd) -> Mdoc {
     let payload_preview = PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default());
 
-    let issuer_keypair =
-        generate_pid_issuer_mock_with_registration(issuer_ca, Some(IssuerRegistration::new_mock())).unwrap();
+    let issuer_keypair = generate_pid_issuer_mock_with_registration(issuer_ca, IssuerRegistration::new_mock()).unwrap();
 
     // Generate a new private key and use that and the issuer key to sign the Mdoc.
     let mdoc_private_key = wscd.create_random_key();
@@ -939,8 +935,7 @@ fn prepare_example_sd_jwt_mock(issuer_ca: &Ca, wscd: &MockRemoteWscd) -> (Signed
     let payload_preview = PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default());
     let metadata = NormalizedTypeMetadata::nl_pid_example();
 
-    let issuer_keypair =
-        generate_pid_issuer_mock_with_registration(issuer_ca, Some(IssuerRegistration::new_mock())).unwrap();
+    let issuer_keypair = generate_pid_issuer_mock_with_registration(issuer_ca, IssuerRegistration::new_mock()).unwrap();
 
     // Generate a new private key and use that and the issuer key to sign the SD-JWT.
     let sd_jwt_private_key = wscd.create_random_key();

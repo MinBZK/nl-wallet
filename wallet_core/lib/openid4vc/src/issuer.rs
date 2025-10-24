@@ -1360,8 +1360,7 @@ mod tests {
     #[test]
     fn test_credential_preview_from_issuable_document() {
         let ca = Ca::generate_issuer_mock_ca().unwrap();
-        let issuance_keypair =
-            generate_issuer_mock_with_registration(&ca, IssuerRegistration::new_mock().into()).unwrap();
+        let issuance_keypair = generate_issuer_mock_with_registration(&ca, IssuerRegistration::new_mock()).unwrap();
         let document = IssuableDocument::new_mock_degree("Education".to_string());
         let config = AttestationTypeConfig::try_new(
             document.attestation_type(),

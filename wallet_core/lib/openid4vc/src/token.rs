@@ -210,9 +210,8 @@ impl CredentialPreview {
     }
 
     pub fn issuer_registration(&self) -> Result<IssuerRegistration, CredentialPreviewError> {
-        let CertificateType::Mdl(Some(issuer)) = CertificateType::from_certificate(&self.content.issuer_certificate)?
-        else {
-            Err(CredentialPreviewError::NoIssuerRegistration)?
+        let CertificateType::Mdl(issuer) = CertificateType::from_certificate(&self.content.issuer_certificate)? else {
+            Err(CredentialPreviewError::NoIssuerCertificate)?
         };
         Ok(*issuer)
     }
@@ -228,9 +227,9 @@ pub enum CredentialPreviewError {
     #[category(defer)]
     CertificateType(#[from] CertificateTypeError),
 
-    #[error("issuer registration not found in certificate")]
+    #[error("certificate is not an issuer certificate")]
     #[category(critical)]
-    NoIssuerRegistration,
+    NoIssuerCertificate,
 
     #[error("issuer URI {0} not found in SAN {1:?}")]
     #[category(pd)]

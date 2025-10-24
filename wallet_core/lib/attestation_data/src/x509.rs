@@ -12,8 +12,8 @@ use crate::auth::reader_auth::ReaderRegistration;
 /// Acts as configuration for the [Certificate::new] function.
 #[derive(Debug, Clone, PartialEq)]
 pub enum CertificateType {
-    Mdl(Option<Box<IssuerRegistration>>),
-    ReaderAuth(Option<Box<ReaderRegistration>>),
+    Mdl(Box<IssuerRegistration>),
+    ReaderAuth(Box<ReaderRegistration>),
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
@@ -25,16 +25,17 @@ pub enum CertificateTypeError {
     #[error("unknown usage: {0}")]
     #[category(critical)]
     UnknownUsage(CertificateUsage),
+
+    #[error("issuer registration not found")]
+    #[category(critical)]
+    IssuerRegistrationNotFound,
+
+    #[error("reader registration not found")]
+    #[category(critical)]
+    ReaderRegistrationNotFound,
 }
 
 impl CertificateType {
-    pub fn has_registration(&self) -> bool {
-        matches!(
-            self,
-            CertificateType::Mdl(Some(_)) | CertificateType::ReaderAuth(Some(_))
-        )
-    }
-
     pub fn has_type(usage: CertificateUsage) -> bool {
         matches!(usage, CertificateUsage::Mdl | CertificateUsage::ReaderAuth)
     }
@@ -43,12 +44,16 @@ impl CertificateType {
         let usage = CertificateUsage::from_certificate(cert.x509_certificate())?;
         let result = match usage {
             CertificateUsage::Mdl => {
-                let registration: Option<IssuerRegistration> = IssuerRegistration::from_certificate(cert)?;
-                CertificateType::Mdl(registration.map(Box::new))
+                let Some(registration) = IssuerRegistration::from_certificate(cert)? else {
+                    return Err(CertificateTypeError::IssuerRegistrationNotFound);
+                };
+                CertificateType::Mdl(registration.into())
             }
             CertificateUsage::ReaderAuth => {
-                let registration: Option<ReaderRegistration> = ReaderRegistration::from_certificate(cert)?;
-                CertificateType::ReaderAuth(registration.map(Box::new))
+                let Some(registration) = ReaderRegistration::from_certificate(cert)? else {
+                    return Err(CertificateTypeError::ReaderRegistrationNotFound);
+                };
+                CertificateType::ReaderAuth(registration.into())
             }
             _ => return Err(CertificateTypeError::UnknownUsage(usage)),
         };
@@ -81,21 +86,12 @@ pub mod generate {
         type Error = CertificateError;
 
         fn try_from(source: CertificateType) -> Result<Vec<CustomExtension>, CertificateError> {
-            let usage = CertificateUsage::from(&source);
-            let mut extensions = vec![usage.into()];
-
-            match source {
-                CertificateType::ReaderAuth(Some(reader_registration)) => {
-                    let ext_reader_auth = reader_registration.to_custom_ext()?;
-                    extensions.push(ext_reader_auth);
-                }
-                CertificateType::Mdl(Some(issuer_registration)) => {
-                    let ext_issuer_auth = issuer_registration.to_custom_ext()?;
-                    extensions.push(ext_issuer_auth);
-                }
-                _ => {}
+            let usage = CertificateUsage::from(&source).into();
+            let extension = match source {
+                CertificateType::ReaderAuth(reader_registration) => reader_registration.to_custom_ext()?,
+                CertificateType::Mdl(issuer_registration) => issuer_registration.to_custom_ext()?,
             };
-            Ok(extensions)
+            Ok(vec![usage, extension])
         }
     }
 
@@ -114,33 +110,33 @@ pub mod generate {
 
         pub fn generate_issuer_mock_with_registration(
             ca: &Ca,
-            issuer_registration: Option<IssuerRegistration>,
+            issuer_registration: IssuerRegistration,
         ) -> Result<KeyPair, CertificateError> {
             ca.generate_key_pair(
                 ISSUANCE_CERT_CN,
-                CertificateType::Mdl(issuer_registration.map(Box::new)),
+                CertificateType::Mdl(issuer_registration.into()),
                 Default::default(),
             )
         }
 
         pub fn generate_pid_issuer_mock_with_registration(
             ca: &Ca,
-            issuer_registration: Option<IssuerRegistration>,
+            issuer_registration: IssuerRegistration,
         ) -> Result<KeyPair, CertificateError> {
             ca.generate_key_pair(
                 PID_ISSUER_CERT_CN,
-                CertificateType::Mdl(issuer_registration.map(Box::new)),
+                CertificateType::Mdl(issuer_registration.into()),
                 Default::default(),
             )
         }
 
         pub fn generate_reader_mock_with_registration(
             ca: &Ca,
-            reader_registration: Option<ReaderRegistration>,
+            reader_registration: ReaderRegistration,
         ) -> Result<KeyPair, CertificateError> {
             ca.generate_key_pair(
                 RP_CERT_CN,
-                CertificateType::ReaderAuth(reader_registration.map(Box::new)),
+                CertificateType::ReaderAuth(reader_registration.into()),
                 Default::default(),
             )
         }

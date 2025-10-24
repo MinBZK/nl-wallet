@@ -12,7 +12,7 @@ pub struct VerifierCertificate {
 impl VerifierCertificate {
     pub fn try_new(certificate: BorrowingCertificate) -> Result<Option<Self>, CertificateTypeError> {
         let verifier_certificate = match CertificateType::from_certificate(&certificate)? {
-            CertificateType::ReaderAuth(Some(reader_registration)) => Some(Self {
+            CertificateType::ReaderAuth(reader_registration) => Some(Self {
                 certificate,
                 registration: *reader_registration,
             }),

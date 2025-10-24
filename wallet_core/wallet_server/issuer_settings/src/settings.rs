@@ -231,6 +231,7 @@ mod tests {
     use indexmap::IndexMap;
 
     use attestation_data::auth::issuer_auth::IssuerRegistration;
+    use attestation_data::x509::CertificateTypeError;
     use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use attestation_types::qualification::AttestationQualification;
     use crypto::server_keys::generate::Ca;
@@ -253,7 +254,7 @@ mod tests {
 
     fn mock_settings() -> IssuerSettings {
         let issuer_ca = Ca::generate_issuer_mock_ca().expect("generate issuer CA failed");
-        let keypair = generate_issuer_mock_with_registration(&issuer_ca, Some(IssuerRegistration::new_mock()))
+        let keypair = generate_issuer_mock_with_registration(&issuer_ca, IssuerRegistration::new_mock())
             .expect("generate issuer cert failed")
             .into();
 
@@ -326,7 +327,8 @@ mod tests {
         let mut settings = mock_settings();
 
         let issuer_ca = Ca::generate_issuer_mock_ca().expect("generate issuer CA");
-        let issuer_cert_no_registration = generate_issuer_mock_with_registration(&issuer_ca, None)
+        let issuer_cert_no_registration = issuer_ca
+            .generate_issuer_mock()
             .expect("generate issuer cert without issuer registration");
 
         let status_list_keypair = Ca::generate_status_list_mock(&issuer_ca)
@@ -368,7 +370,7 @@ mod tests {
 
         assert_matches!(
             settings.validate().expect_err("should fail"),
-            IssuerSettingsError::CertificateVerification(CertificateVerificationError::IncompleteCertificateType(key))
+            IssuerSettingsError::CertificateVerification(CertificateVerificationError::NoCertificateType(CertificateTypeError::IssuerRegistrationNotFound, key))
                 if key == "com.example.no_registration"
         );
     }
