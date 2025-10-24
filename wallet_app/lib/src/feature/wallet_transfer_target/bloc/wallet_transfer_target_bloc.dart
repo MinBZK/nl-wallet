@@ -97,9 +97,22 @@ class WalletTransferTargetBloc extends Bloc<WalletTransferTargetEvent, WalletTra
     WalletTransferStopRequestedEvent event,
     Emitter<WalletTransferTargetState> emit,
   ) async {
-    unawaited(_statusSubscription?.cancel());
-    await _cancelWalletTransferUsecase.invoke();
-    emit(const WalletTransferStopped());
+    final result = await _cancelWalletTransferUsecase.invoke();
+    // We only want to emit a new state if the wallet is not already in a success/error state
+    bool maintainState(WalletTransferTargetState state) => state is WalletTransferSuccess || state is ErrorState;
+    await result.process(
+      onSuccess: (_) {
+        _statusSubscription?.cancel();
+        if (maintainState(state)) return;
+        emit(const WalletTransferStopped());
+      },
+      onError: (ex) {
+        Fimber.e('Failed to cancel wallet transfer', ex: ex);
+        _statusSubscription?.cancel();
+        if (maintainState(state)) return;
+        _handleError(ex, emit);
+      },
+    );
   }
 
   FutureOr<void> _onBackPressed(WalletTransferBackPressedEvent event, Emitter<WalletTransferTargetState> emit) async {

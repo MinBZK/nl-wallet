@@ -1,6 +1,7 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
+import 'package:rxdart/rxdart.dart';
 import 'package:wallet/src/domain/model/result/application_error.dart';
 import 'package:wallet/src/domain/model/result/result.dart';
 import 'package:wallet/src/domain/model/transfer/wallet_transfer_status.dart';
@@ -49,15 +50,17 @@ void main() {
           WalletTransferStatus.waitingForApprovalAndUpload,
           WalletTransferStatus.transferring,
           WalletTransferStatus.success,
-        ]),
+        ]).delay(const Duration(milliseconds: 10)),
       );
     },
     act: (bloc) async {
       bloc.add(const WalletTransferAcknowledgeTransferEvent('https://example.org/transfer'));
-      await Future.delayed(const Duration(milliseconds: 10));
+      await Future.delayed(Duration.zero);
       bloc.add(const WalletTransferAgreeEvent());
-      await Future.delayed(const Duration(milliseconds: 10));
+      await Future.delayed(Duration.zero);
       bloc.add(const WalletTransferPinConfirmedEvent());
+      // Wait for (mock) stream to emit
+      await Future.delayed(const Duration(milliseconds: 20));
     },
     expect: () => [
       isA<WalletTransferLoading>(),
@@ -82,9 +85,9 @@ void main() {
     build: createBloc,
     act: (bloc) async {
       bloc.add(const WalletTransferAcknowledgeTransferEvent('https://example.org/transfer'));
-      await Future.delayed(const Duration(milliseconds: 10));
+      await Future.delayed(Duration.zero);
       bloc.add(const WalletTransferAgreeEvent());
-      await Future.delayed(const Duration(milliseconds: 10));
+      await Future.delayed(Duration.zero);
       bloc.add(const WalletTransferBackPressedEvent());
     },
     expect: () => [
@@ -100,14 +103,18 @@ void main() {
     build: createBloc,
     setUp: () {
       when(mockAcknowledgeWalletTransferUseCase.invoke(any)).thenAnswer((_) async => const Result.success(null));
-      when(mockGetWalletTransferStatusUseCase.invoke()).thenAnswer((_) => Stream.value(WalletTransferStatus.error));
+      when(
+        mockGetWalletTransferStatusUseCase.invoke(),
+      ).thenAnswer((_) => Stream.value(WalletTransferStatus.error).delay(const Duration(milliseconds: 10)));
     },
     act: (bloc) async {
       bloc.add(const WalletTransferAcknowledgeTransferEvent('https://example.org/transfer'));
-      await Future.delayed(const Duration(milliseconds: 10));
+      await Future.delayed(Duration.zero);
       bloc.add(const WalletTransferAgreeEvent());
-      await Future.delayed(const Duration(milliseconds: 10));
+      await Future.delayed(Duration.zero);
       bloc.add(const WalletTransferPinConfirmedEvent());
+      // Wait for (mock) stream to emit
+      await Future.delayed(const Duration(milliseconds: 20));
     },
     expect: () => [
       isA<WalletTransferLoading>(),
@@ -115,6 +122,27 @@ void main() {
       isA<WalletTransferConfirmPin>(),
       isA<WalletTransferTransferring>(),
       isA<WalletTransferFailed>(),
+    ],
+  );
+
+  blocTest(
+    'verify transfer can be cancelled by destination',
+    build: createBloc,
+    setUp: () {
+      when(mockAcknowledgeWalletTransferUseCase.invoke(any)).thenAnswer((_) async => const Result.success(null));
+      when(
+        mockGetWalletTransferStatusUseCase.invoke(),
+      ).thenAnswer((_) => Stream.value(WalletTransferStatus.cancelled).delay(const Duration(milliseconds: 10)));
+    },
+    act: (bloc) async {
+      bloc.add(const WalletTransferAcknowledgeTransferEvent('https://example.org/transfer'));
+      // Wait for (mock) stream to emit
+      await Future.delayed(const Duration(milliseconds: 20));
+    },
+    expect: () => [
+      isA<WalletTransferLoading>(),
+      isA<WalletTransferIntroduction>(),
+      isA<WalletTransferStopped>(),
     ],
   );
 }
