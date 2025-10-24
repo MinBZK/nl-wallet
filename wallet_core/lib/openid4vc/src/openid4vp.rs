@@ -676,6 +676,7 @@ impl VpAuthorizationResponse {
         Ok(jwe)
     }
 
+    #[expect(clippy::too_many_arguments)]
     pub fn decrypt_and_verify(
         jwe: &str,
         private_key: &EcKeyPair,
@@ -715,6 +716,7 @@ impl VpAuthorizationResponse {
         Ok((payload, encryption_nonce))
     }
 
+    #[expect(clippy::too_many_arguments)]
     fn verify(
         self,
         auth_request: &NormalizedVpAuthorizationRequest,

@@ -1681,7 +1681,7 @@ mod tests {
 
         let credential = TestCredential::new_nl_pid_given_name();
         let credentials = TestCredentials::new(vec_nonempty![credential]);
-        let requests = credentials.to_normalized_credential_requests([CredentialFormat::MsoMdoc].into_iter());
+        let requests = credentials.to_normalized_credential_requests([CredentialFormat::MsoMdoc]);
 
         let err = RpInitiatedUseCase::try_new(
             generate_reader_mock_with_registration(&ca, reader_registration.clone()).unwrap(),
@@ -1698,7 +1698,7 @@ mod tests {
         );
 
         // Creating the use case for SD-JWT should succeed
-        let requests = credentials.to_normalized_credential_requests([CredentialFormat::SdJwt].into_iter());
+        let requests = credentials.to_normalized_credential_requests([CredentialFormat::SdJwt]);
         RpInitiatedUseCase::try_new(
             generate_reader_mock_with_registration(&ca, reader_registration.clone()).unwrap(),
             SessionTypeReturnUrl::Neither,
