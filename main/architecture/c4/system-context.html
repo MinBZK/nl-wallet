@@ -173,10 +173,10 @@
              
   <section id="system-context-c4">
 <h1>System Context (C4)<a class="headerlink" href="#system-context-c4" title="Link to this heading"></a></h1>
-<p>This chapter describes the current architecture (‘IST’) of the NL-Wallet system and the context it operates in.</p>
+<p>This chapter describes the current architecture (‘IST’) of the NL Wallet system and the context it operates in.</p>
 <section id="system-context-diagram">
 <h2>System context diagram<a class="headerlink" href="#system-context-diagram" title="Link to this heading"></a></h2>
-<p>This system context diagram shown in  Figure 1 models the context in which the NL-Wallet operates. It describes the system, all users and other systems that interact with it.
+<p>This system context diagram shown in  Figure 1 models the context in which the NL Wallet operates. It describes the system, all users and other systems that interact with it.
 <img alt="Context diagram" src="../../_images/AD1NL-Wallet.png" /></p>
 <p><img alt="c4_legend" src="../../_images/AD1NL-Wallet-key.png" /></p>
 </section>
@@ -184,7 +184,7 @@
 <h2>Users<a class="headerlink" href="#users" title="Link to this heading"></a></h2>
 <ol class="arabic simple">
 <li><p>End-user
-User that has installed the NL-Wallet app on his mobile device.</p></li>
+User that has installed the NL Wallet app on his mobile device.</p></li>
 <li><p>Wallet Technical Support
 Actor that performs technical administrative tasks on behalf of the support organization.</p></li>
 <li><p>Wallet User Support
@@ -198,15 +198,15 @@ User that performs support tasks for the end-user on behalf of the support organ
 <p>The official PID Issuer of the Netherlands is the National Office for Identity Data (or ‘Rijksdienst voor Identiteitsgegevens’, RvIG). They issue Personal Identification Data (PID) of Dutch citizens to the NL Wallet, and revoke their status when necessary.</p>
 <p>Relations:</p>
 <ul class="simple">
-<li><p>Issues PID-credential (including PID metadata) to NL-Wallet (authentication token is exchanged here) (OpenID4VCI)</p></li>
-<li><p>[E-102] Queries Wallet Unit Attestation (WUA) Status from NL-Wallet. (TSL)</p></li>
-<li><p>[E-103] Host Status List for issued credentials, consumed by NL-Wallet</p></li>
-<li><p>[E-104] Uses authentication token from Authentication session to retrieve authenticated user information from DigiD (⚠️ not in scope for NL-Wallet, this interaction is between DigiD and PID-issuer) (OIDC)</p></li>
+<li><p>Issues PID-credential (including PID metadata) to NL Wallet (authentication token is exchanged here) (OpenID4VCI)</p></li>
+<li><p>[E-102] Queries Wallet Unit Attestation (WUA) Status from NL Wallet. (TSL)</p></li>
+<li><p>[E-103] Host Status List for issued credentials, consumed by NL Wallet</p></li>
+<li><p>[E-104] Uses authentication token from Authentication session to retrieve authenticated user information from DigiD (⚠️ not in scope for NL Wallet, this interaction is between DigiD and PID-issuer) (OIDC)</p></li>
 </ul>
 </section>
 <section id="digid">
 <h3>2. DigiD<a class="headerlink" href="#digid" title="Link to this heading"></a></h3>
-<p>DigiD is the public eID means of the Netherlands (see digid.nl), operated by Logius (logius.nl). The NL Wallet relies on it to authenticate users at Leval of Assurance High, during onboarding and recovery. NL-Wallet relies on a OIDC/SAML proxy for DigiD connectivity.</p>
+<p>DigiD is the public eID means of the Netherlands (see digid.nl), operated by Logius (logius.nl). The NL Wallet relies on it to authenticate users at Leval of Assurance High, during onboarding and recovery. NL Wallet relies on a OIDC/SAML proxy for DigiD connectivity.</p>
 <p>Relations:</p>
 <ul class="simple">
 <li><p>[E-201] Start authentication session of the user during onboarding and recovery scenarios (OIDC)</p></li>
@@ -215,11 +215,11 @@ User that performs support tasks for the end-user on behalf of the support organ
 </section>
 <section id="pub-q-eaa-issuer">
 <h3>3. (Pub/Q)EAA Issuer<a class="headerlink" href="#pub-q-eaa-issuer" title="Link to this heading"></a></h3>
-<p>Any issuer of electronic attestations of attributes (EAA) with the appropriate certificates may interact with the NL-wallet to issue EAA, when the user requests it.</p>
+<p>Any issuer of electronic attestations of attributes (EAA) with the appropriate certificates may interact with the NL Wallet to issue EAA, when the user requests it.</p>
 <p>Relations:</p>
 <ul class="simple">
-<li><p>[E-301] Issues Credentials (including Credential Metadata) to NL-Wallet. (OpenID4VCI)</p></li>
-<li><p>[E-302] Host Status List for issued credentials, consumed by NL-Wallet</p></li>
+<li><p>[E-301] Issues Credentials (including Credential Metadata) to NL Wallet. (OpenID4VCI)</p></li>
+<li><p>[E-302] Host Status List for issued credentials, consumed by NL Wallet</p></li>
 </ul>
 </section>
 <section id="verifier">
@@ -227,7 +227,7 @@ User that performs support tasks for the end-user on behalf of the support organ
 <p>Relying Parties receive credentials from digital wallets to provide services to the end-user. Within a wallet context, a Relying Party is called a Verifier.</p>
 <p>Relations:</p>
 <ul class="simple">
-<li><p>[E-401] Interacts with NL-Wallet to receive and validate presented data from the user. (OpenID4VP)</p></li>
+<li><p>[E-401] Interacts with NL Wallet to receive and validate presented data from the user. (OpenID4VP)</p></li>
 </ul>
 </section>
 <section id="apple-app-attest-google-play-integrity">
@@ -235,7 +235,7 @@ User that performs support tasks for the end-user on behalf of the support organ
 <p>Online services that provide security features for iOS and Android. App Attest and Play Integrity are used to prove that an app instance is genuine and to prove that the Wallet-App private keys are stored securely.
 Relations:</p>
 <ul class="simple">
-<li><p>[E-501] Used by NL-Wallet for attestations that assure app and key security (using App-attest and Play-Integrity)</p></li>
+<li><p>[E-501] Used by NL Wallet for attestations that assure app and key security (using App-attest and Play-Integrity)</p></li>
 </ul>
 </section>
 </section>

@@ -173,18 +173,18 @@
   <section id="create-a-verifier">
 <h1>Create a Verifier<a class="headerlink" href="#create-a-verifier" title="Link to this heading"></a></h1>
 <p>You want to verify certain attributes of a natural person which can be disclosed
-to you by the NL-Wallet.</p>
+to you by the NL Wallet.</p>
 <p>A verifier (also known as a “relying party” or an “ontvangde voorziening”,
 essentially an entity that wants to verify attestations presented by the
-NL-Wallet) will want to have a global idea of what they needs to do when
-integrating their application with the NL-Wallet environment.</p>
+NL Wallet) will want to have a global idea of what they needs to do when
+integrating their application with the NL Wallet environment.</p>
 <p>This document provides a global outline of components used, the necessary
 decisions, data, and certificate(s), and guides the setup of a so-called
 verifier/relying-party/ontvangende-voorziening plus integration thereof with
 their own frontend and backend.</p>
 <div class="admonition note">
 <p class="admonition-title">Open-source software</p>
-<p>Did you know that the NL-Wallet platform is fully open-source? You can find
+<p>Did you know that the NL Wallet platform is fully open-source? You can find
 <a class="reference external" href="https://github.com/MinBZK/nl-wallet">the project on GitHub</a>.</p>
 </div>
 <nav class="contents local" id="contents">
@@ -296,37 +296,37 @@ attested attributes;</p></li>
 <li><p>Relying Party Application: An app running on-premises or in-cloud of the
 verifier that needs to do something with the result of a verification of
 attributes;</p></li>
-<li><p><a class="reference external" href="https://github.com/MinBZK/nl-wallet/tree/main/wallet_app">Wallet App</a>: The NL-Wallet app running on a mobile device;</p></li>
+<li><p><a class="reference external" href="https://github.com/MinBZK/nl-wallet/tree/main/wallet_app">Wallet App</a>: The NL Wallet app running on a mobile device;</p></li>
 </ul>
 <p>Missing from the above diagram, but worth mentioning:</p>
 <ul class="simple">
 <li><p><a class="reference external" href="https://github.com/MinBZK/nl-wallet/tree/main/wallet_web">Wallet Web</a> The frontend helper JavaScript/TypeScript library which helps
-verifiers integrate their application with the NL-Wallet platform.</p></li>
+verifiers integrate their application with the NL Wallet platform.</p></li>
 </ul>
 <div class="admonition seealso">
 <p class="admonition-title">Architecture documentation</p>
 <p>This document is about setting up a verifier. To have a broader view of the
-NL-Wallet platform as a whole, you can have a look at the <a class="reference external" href="https://edi.pleio.nl/news/view/93f40956-3671-49c9-9c82-2dab636b59bf/psasad-documenten-nl-wallet">Architecture
+NL Wallet platform as a whole, you can have a look at the <a class="reference external" href="https://edi.pleio.nl/news/view/93f40956-3671-49c9-9c82-2dab636b59bf/psasad-documenten-nl-wallet">Architecture
 Documents</a>.</p>
 </div>
 <section id="plaform-components-overview">
 <h3>Plaform components overview<a class="headerlink" href="#plaform-components-overview" title="Link to this heading"></a></h3>
-<p>The NL-Wallet platform consists of:</p>
+<p>The NL Wallet platform consists of:</p>
 <ul class="simple">
 <li><p><strong>Issuers</strong>: (also known as Verstrekkende Voorzieningen), which can issue
 attested attributes;</p></li>
 <li><p><strong>Verifiers</strong>: (also known as Ontvangende Voorzieningen or Relying Parties),
 which can verify attested attributes they are interested in, and which this
 document is mainly about;</p></li>
-<li><p><strong>Backend</strong>: services that run in the NL-Wallet datacenter(s) or cloud that
+<li><p><strong>Backend</strong>: services that run in the NL Wallet datacenter(s) or cloud that
 facilitate various functions for the mobile app (usually not interacted with
 directly, by either Issuers or Verifiers);</p></li>
-<li><p><strong>App</strong>: the NL-Wallet mobile app, which contains attested attributes,
+<li><p><strong>App</strong>: the NL Wallet mobile app, which contains attested attributes,
 received from Issuers, and which it can disclose to Verifiers.</p></li>
 </ul>
 <p>Verifiers configure and maintain a <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> on their own premises
 or cloud environments, which they integrate with their own application, and which
-interacts with the NL-Wallet app, in order to verify attested attributes.</p>
+interacts with the NL Wallet app, in order to verify attested attributes.</p>
 </section>
 </section>
 <section id="creating-a-reader-authentication-document">
@@ -343,7 +343,7 @@ the app.</p>
 <p class="admonition-title">Onboarding optional</p>
 <p>Do note that onboarding is not strictly necessary - you <em>can</em> follow all steps
 in this guide and observe things working in a local development environment -
-but when you want to test your verifier with the NL-Wallet platform (i.e., our
+but when you want to test your verifier with the NL Wallet platform (i.e., our
 backend and mobile apps in our acceptance and pre-production environments), you
 do need to be onboarded to get access to those environments.</p>
 </div>
@@ -352,7 +352,7 @@ do need to be onboarded to get access to those environments.</p>
 <p>A reader certificate contains a bunch of metadata, which we store as a part
 of the certificate in a so-called X.509v3 extension. We use this data to know
 which attested attribute you want to verify, and to present a view of you, the
-verifier in the NL-Wallet app GUI.</p>
+verifier in the NL Wallet app GUI.</p>
 <p><strong>REQUIRED_DATA</strong></p>
 <table class="docutils align-default">
 <thead>
@@ -533,14 +533,14 @@ sections, we’re going to need it.</p>
 <p>The data from <code class="docutils literal notranslate"><span class="pre">reader_auth.json</span></code> is used in various parts of the app. For
 illustrative purposes, see below a screenshot of a screen showing details
 about the municipality of Amsterdam:</p>
-<a class="reference internal image-reference" href="../_images/reader_auth_json_in_use.gif"><img alt="A screenshot showing reader_auth.json data used within the NL-Wallet app." src="../_images/reader_auth_json_in_use.gif" style="width: 300px;" />
+<a class="reference internal image-reference" href="../_images/reader_auth_json_in_use.gif"><img alt="A screenshot showing reader_auth.json data used within the NL Wallet app." src="../_images/reader_auth_json_in_use.gif" style="width: 300px;" />
 </a>
 </div>
 </section>
 </section>
 <section id="creating-a-reader-certificate">
 <h2>Creating a reader certificate<a class="headerlink" href="#creating-a-reader-certificate" title="Link to this heading"></a></h2>
-<p>Let’s create the reader certificate. We’re going to clone the NL-Wallet
+<p>Let’s create the reader certificate. We’re going to clone the NL Wallet
 repository, enter its directory, set a target directory and specify an
 identifier (this identifies your organization, and should be in lowercase
 characters a-z, can end with numbers but may not begin with them).</p>
@@ -566,14 +566,14 @@ the <a class="reference internal" href="#creating-the-json-document">previous se
 <code class="docutils literal notranslate"><span class="pre">setup-devenv.sh</span></code> script will have created these for you. You can also opt to
 create your own custom self-signed CA certificate and key, which is documented
 in the <a class="reference internal" href="../community/create-a-ca.html"><span class="doc std std-doc">Create a CA</span></a> document, and which is required if you need to
-participate in the NL-Wallet community platform.</p>
+participate in the NL Wallet community platform.</p>
 </div>
 <div class="admonition caution">
-<p class="admonition-title">Do you intend to test your verifier on the NL-Wallet platform?</p>
+<p class="admonition-title">Do you intend to test your verifier on the NL Wallet platform?</p>
 <p>You can test your verifier locally (more or less exactly like we do with our
 <code class="docutils literal notranslate"><span class="pre">mock-relying-party</span></code> app) for which you don’t need anything except the code in
-our git repository. But if you want to test your verifier with the NL-Wallet
-platform (i.e., the NL-Wallet apps on our Test Flight and Play Store Beta
+our git repository. But if you want to test your verifier with the NL Wallet
+platform (i.e., the NL Wallet apps on our Test Flight and Play Store Beta
 environments plus backends), you will need to have succesfully completed the
 <a class="reference internal" href="../community/onboarding.html"><span class="doc std std-doc">onboarding</span></a> process.</p>
 </div>
@@ -607,17 +607,17 @@ openssl<span class="w"> </span>pkcs8<span class="w"> </span>-topk8<span class="w
 </div>
 <p>The used CA public certificate (referenced in the previous <code class="docutils literal notranslate"><span class="pre">wallet_ca</span></code> command)
 needs to be in the list of various so-called trust anchors. Specifically,
-issuers and the NL-Wallet app itself need to know if this CA is a trusted CA,
+issuers and the NL Wallet app itself need to know if this CA is a trusted CA,
 and our software “knows” that by checking its trust anchors.</p>
 <p>When you run locally, when using <code class="docutils literal notranslate"><span class="pre">setup-devenv.sh</span></code> and <code class="docutils literal notranslate"><span class="pre">start-devenv.sh</span></code>, the
 generated CA certificate is automatically added to the trust anchors within the
-configuration files of pid_issuer, demo_issuer, and the NL-Wallet app config.</p>
+configuration files of pid_issuer, demo_issuer, and the NL Wallet app config.</p>
 <p>When you <a class="reference internal" href="../community/create-a-ca.html"><span class="doc std std-doc">create your own CA</span></a>, you need to make sure the public key of your
 CA is in the relevant trust anchor configuration settings. When you are a
-member of the <a class="reference internal" href="../community/onboarding.html"><span class="doc std std-doc">NL-Wallet community</span></a>, and so using NL-Wallet managed backend
+member of the <a class="reference internal" href="../community/onboarding.html"><span class="doc std std-doc">NL Wallet community</span></a>, and so using NL Wallet managed backend
 services and mobile apps, this is done for you (i.e., you just need to sign
 your reader certificate with your CA, which the <code class="docutils literal notranslate"><span class="pre">wallet_ca</span></code> utility invocation
-above did for you, and during the NL-Wallet community <a class="reference internal" href="../community/onboarding.html"><span class="doc std std-doc">onboarding</span></a> process
+above did for you, and during the NL Wallet community <a class="reference internal" href="../community/onboarding.html"><span class="doc std std-doc">onboarding</span></a> process
 you shared your CA certificate with the operations team who ensure your CA is
 in the various trust anchor lists).</p>
 <p>When you run locally, but with a manually created CA, you need to add the CA
@@ -786,7 +786,7 @@ cat<span class="w"> </span><span class="s">&lt;&lt;EOF &gt; &quot;$TARGET_DIR/pa
 </div>
 <div class="admonition note">
 <p class="admonition-title">Optional runtime logging using env_logger</p>
-<p>In addition to the above, the NL-Wallet uses <a class="reference external" href="https://docs.rs/env_logger/latest/env_logger/#enabling-logging">env_logger</a>, which means you
+<p>In addition to the above, the NL Wallet uses <a class="reference external" href="https://docs.rs/env_logger/latest/env_logger/#enabling-logging">env_logger</a>, which means you
 can use the <code class="docutils literal notranslate"><span class="pre">RUST_LOG</span></code> environment variable when running <code class="docutils literal notranslate"><span class="pre">verification_server</span></code>
 later on. For example, to run with debug log output, you can prefix the command
 with the <code class="docutils literal notranslate"><span class="pre">RUST_LOG</span></code> environment variable: <code class="docutils literal notranslate"><span class="pre">RUST_LOG=debug</span> <span class="pre">./verification_server</span></code></p>
@@ -855,7 +855,7 @@ cat<span class="w"> </span><span class="s">&lt;&lt;EOF &gt; &quot;$TARGET_DIR/pa
 </section>
 <section id="determine-public-url">
 <h4>Determine public URL<a class="headerlink" href="#determine-public-url" title="Link to this heading"></a></h4>
-<p>The <code class="docutils literal notranslate"><span class="pre">public_url</span></code> is the URL that is used by the NL-wallet app to reach the
+<p>The <code class="docutils literal notranslate"><span class="pre">public_url</span></code> is the URL that is used by the NL Wallet app to reach the
 public address and port of the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code>:</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">TARGET_DIR</span><span class="o">=</span>target/vs-config<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>mkdir<span class="w"> </span>-p<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$TARGET_DIR</span><span class="s2">/parts&quot;</span>
 cat<span class="w"> </span><span class="s">&lt;&lt;EOF &gt; &quot;$TARGET_DIR/parts/04-public-url.toml&quot;</span>
@@ -867,7 +867,7 @@ cat<span class="w"> </span><span class="s">&lt;&lt;EOF &gt; &quot;$TARGET_DIR/pa
 <p class="admonition-title">Use a valid domain name here</p>
 <p>In the above, we use <code class="docutils literal notranslate"><span class="pre">verify.example.com</span></code> as the fully-qualified domain name.
 Technically, this domain needs not be world-reachable, but it does need to DNS
-resolve for the NL-wallet app and the verification server. Make sure you use a
+resolve for the NL Wallet app and the verification server. Make sure you use a
 domain that is yours and that you control.</p>
 </div>
 <div class="admonition warning">
@@ -883,11 +883,11 @@ means you would <em>need</em> to specify an <code class="docutils literal notran
 correct environment-specific universal link. A universal link is used to to
 associate a specific domain name and/or part of an URL with a specific app on
 the mobile device. In our case, it results in the link provided by the
-<code class="docutils literal notranslate"><span class="pre">verification_server</span></code> being handled by the NL-Wallet app when a user clicks
+<code class="docutils literal notranslate"><span class="pre">verification_server</span></code> being handled by the NL Wallet app when a user clicks
 on the link or scans the QR code.</p>
 <p>A universal link base URL is usually associated with a specific backend
 environment like pre-production or testing. When you’re integrating with the
-NL-Wallet platform, you would use a universal link base URL that was provided
+NL Wallet platform, you would use a universal link base URL that was provided
 to you as part of our community <a class="reference internal" href="../community/onboarding.html"><span class="doc std std-doc">onboarding</span></a> process.</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>nl-wallet
 <span class="nb">export</span><span class="w"> </span><span class="nv">TARGET_DIR</span><span class="o">=</span>target/vs-config<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>mkdir<span class="w"> </span>-p<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$TARGET_DIR</span><span class="s2">/parts&quot;</span>
@@ -922,7 +922,7 @@ section for more information about configuring listeners.</p>
 settings.</p>
 <section id="configuring-allowed-client-ids">
 <h5>Configuring allowed client IDs<a class="headerlink" href="#configuring-allowed-client-ids" title="Link to this heading"></a></h5>
-<p>You can restrict which NL-Wallet apps are accepted by the verification server
+<p>You can restrict which NL Wallet apps are accepted by the verification server
 by configuring a <code class="docutils literal notranslate"><span class="pre">wallet_client_ids</span></code> array. The entries of this array would
 contain the <code class="docutils literal notranslate"><span class="pre">client_id</span></code> value of a wallet implementation. This allows you to
 allow-list groups of wallet apps based on their <code class="docutils literal notranslate"><span class="pre">client_id</span></code> value. For example,
@@ -975,7 +975,7 @@ cat<span class="w"> </span><span class="s">&lt;&lt;EOF &gt; &quot;$TARGET_DIR/pa
 a separate private (requester) and public (wallet) IP address and port. The
 private address can be internal and should be reachable to the application that
 integrates with the verifier. The public address needs to be reachable by apps
-like the NL-Wallet mobile app.</p>
+like the NL Wallet mobile app.</p>
 <p>In our case, we’ll configure separate addresses and ports for the private and
 public interfaces:</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>nl-wallet
@@ -1175,11 +1175,11 @@ use these.</p>
 </section>
 <section id="how-disclosure-sessions-work">
 <h2>How disclosure sessions work<a class="headerlink" href="#how-disclosure-sessions-work" title="Link to this heading"></a></h2>
-<p>Now that you can interact with the NL-Wallet platform, you are ready to start
+<p>Now that you can interact with the NL Wallet platform, you are ready to start
 working on integrating your own application.</p>
 <p>The previously configured <code class="docutils literal notranslate"><span class="pre">verification_server</span></code>, is a software component
-developed by the NL-Wallet team which you as a verifier run on-premises or
-within your cloud environment in order to interact with the NL-Wallet platform.</p>
+developed by the NL Wallet team which you as a verifier run on-premises or
+within your cloud environment in order to interact with the NL Wallet platform.</p>
 <p>In the following subsections we’ll give you a high-level overview of what a
 verifier looks like, how to integrate it with your application and some
 directions with regards to API specifications.</p>
@@ -1201,7 +1201,7 @@ VV/OV SAD and our <a class="reference internal" href="../architecture/use-cases/
 <p>Note the “actors/components” we distinguish between:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">user</span></code>: <em>user of the app, initiating an attribute disclosure session</em></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">wallet_app</span></code>: <em>the NL-Wallet app, running on a users’ mobile phone</em></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">wallet_app</span></code>: <em>the NL Wallet app, running on a users’ mobile phone</em></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">verification_server</span></code>: <em>the verification_server component of the OV</em></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">rp_frontend</span></code>: <em>the (JavaScript/HTML/CSS) frontend of the verifier app</em>
 <em>can be-or-use previously mentioned <code class="docutils literal notranslate"><span class="pre">wallet_web</span></code> JavaScript helper library</em></p></li>
@@ -1281,11 +1281,11 @@ Same-device flow, the resulting Universal link can be directly opened by the
 </section>
 <section id="requirements-applicable-to-your-application">
 <h2>Requirements applicable to your application<a class="headerlink" href="#requirements-applicable-to-your-application" title="Link to this heading"></a></h2>
-<p>Below you’ll find a list of things to know about the NL-Wallet platform and more
+<p>Below you’ll find a list of things to know about the NL Wallet platform and more
 specifically, what you need to keep in mind when you integrate the usage of the
 app for identification or verification of attributes with your application:</p>
 <ul class="simple">
-<li><p>The NL-Wallet app presents attestations using the <a class="reference external" href="https://openid.net/specs/openid-4-verifiable-presentations-1_0.html">OpenID4VP</a> protocol
+<li><p>The NL Wallet app presents attestations using the <a class="reference external" href="https://openid.net/specs/openid-4-verifiable-presentations-1_0.html">OpenID4VP</a> protocol
 standard using either the <a class="reference external" href="https://datatracker.ietf.org/doc/draft-ietf-oauth-selective-disclosure-jwt/">SD-JWT</a> or the <a class="reference external" href="https://www.iso.org/standard/69084.html">ISO/IEC 18013-5:2021 MDOC</a>
 credential format;</p></li>
 <li><p>Any disclosure session initiation request must include the reason why the
@@ -1298,8 +1298,8 @@ verifier is requesting the attributes;</p></li>
 <li><p>The standard buttons for login and sharing should be used, but one can use
 custom button text (within reason);</p></li>
 <li><p>Button styling and call-to-action can be customized by verifier;</p></li>
-<li><p>The text “NL-Wallet” should always be visible in the call-to-action;</p></li>
-<li><p>Logo of “NL-Wallet” should be visible next to the call-to-action.</p></li>
+<li><p>The text “NL Wallet” should always be visible in the call-to-action;</p></li>
+<li><p>Logo of “NL Wallet” should be visible next to the call-to-action.</p></li>
 </ul>
 </section>
 <section id="integrating-your-app-with-your-verification-server">
@@ -1328,7 +1328,7 @@ disclosed_attributes.</p></li>
 </ul>
 <p>The above is described in more detail in the previous section
 <a class="reference internal" href="#what-a-disclosure-session-looks-like">detailing an example disclosure flow</a>.</p>
-<p>It’s worth noting that the NL-Wallet team has developed a JavaScript library
+<p>It’s worth noting that the NL Wallet team has developed a JavaScript library
 (called <code class="docutils literal notranslate"><span class="pre">wallet_web</span></code>) that handles the status check loop and status return for
 you.</p>
 </section>

@@ -183,8 +183,9 @@ window.addEventListener("load", () => mermaid.run());
 <h1>Issuance with OpenID4VCI<a class="headerlink" href="#issuance-with-openid4vci" title="Link to this heading"></a></h1>
 <section id="pid-issuance">
 <h2>PID issuance<a class="headerlink" href="#pid-issuance" title="Link to this heading"></a></h2>
-<p>This diagram shows how we use OpenID4VCI in the pre-authorized code flow to issue the PID.</p>
-<p>In this protocol, the wallet starts a normal OpenID Connect session at the AuthServer (DigiD/<code class="docutils literal notranslate"><span class="pre">nl-rdo-max</span></code>), obtaining an authorization code. Next, the wallet uses this code to start the OpenID4VCI issuance protocol in the pre-authorized code flow with the Wallet Server. The Wallet Server finishes the OpenID Connect session with the AuthServer to discover the identity of the wallet user, allowing it to finish issuance.</p>
+<p>This diagram shows how we use <a class="reference external" href="https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-final.html">OpenID4VCI</a> in the <a class="reference external" href="https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-final.html#name-pre-authorized-code-flow">Pre-Authorized Code Flow</a> to issue the <a class="reference external" href="https://eu-digital-identity-wallet.github.io/eudi-doc-architecture-and-reference-framework/latest/annexes/annex-3/annex-3.01-pid-rulebook">PID</a>.</p>
+<p>Using this protocol, the wallet starts a normal OpenID Connect session at the AuthServer (which in our case usually usually is <a class="reference external" href="https://www.logius.nl/onze-dienstverlening/toegang/digid">DigiD</a> through <a class="reference external" href="https://github.com/minvws/nl-rdo-max">nl-rdo-max</a>), from which it obtains an authorization code.</p>
+<p>Next, the wallet uses this code to start the OpenID4VCI issuance protocol in the pre-authorized code flow with the Wallet Server. The Wallet Server finishes the OpenID Connect session with the AuthServer to discover the identity of the wallet user, allowing it to finish issuance.</p>
 <p>In the diagram below we introduce an actor called the PidAttributeService, whose responsibility it is to produce the attributes to be issued given the pre-authorized code. In the case of PID issuance it can do this by finishing the OpenID session at the AuthServer that the wallet started. (This actor is a library part of the WalletServer, as opposed to a separate HTTP server; we include it as separate actor here to separate responsibilities.)</p>
 <p>In more detail, the protocol works as follows.</p>
 <ul class="simple">
@@ -283,6 +284,12 @@ window.addEventListener("load", () => mermaid.run());
         WalletServer-&gt;&gt;-Wallet: attestations
     deactivate Wallet
     </pre></section>
+<section id="references">
+<h2>References<a class="headerlink" href="#references" title="Link to this heading"></a></h2>
+<p>Below you’ll find a collection of links which we reference to through the
+entire text. Note that they don’t display when rendered within a website, you
+need to read the text in a regular text editor or pager to see them.</p>
+</section>
 </section>
 
 

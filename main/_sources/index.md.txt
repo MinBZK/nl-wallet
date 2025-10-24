@@ -1,7 +1,7 @@
 # Index
 
-This is the documentation index of the NL-Wallet. Here you can find information
-related to various aspects of the NL-Wallet ecosystem, like how to get started,
+This is the documentation index of the NL Wallet. Here you can find information
+related to various aspects of the NL Wallet ecosystem, like how to get started,
 architecture documentation, notes on various development-related subjects, our
 community effort, our way of working, and an overview of our release versions.
 

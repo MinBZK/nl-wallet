@@ -189,7 +189,7 @@ In between the two screens, the issuer receives the disclosed attributes, and ca
 <p>Technically, disclosure based issuance is achieved as follows:</p>
 <ol class="arabic simple">
 <li><p>At the end of the disclosure session, the <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> sends the disclosed attributes to a preconfigured HTTP endpoint, at which the issuer must run an HTTP server that must respond with the attestations to be issued. This server is called the <em>attestation server</em>.</p></li>
-<li><p>The <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> starts an OpenID4VCI session in the <a class="reference external" href="https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#name-pre-authorized-code-flow">Pre-Authorized Code Flow</a>, puts the Pre-Authorized Code into an <a class="reference external" href="https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#name-credential-offer">OpenID4VCI Credential Offer</a>, and URL-encodes that into the <code class="docutils literal notranslate"><span class="pre">redirect_uri</span></code> that gets sent to the wallet.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> starts an OpenID4VCI session in the <a class="reference external" href="https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-final.html#name-pre-authorized-code-flow">Pre-Authorized Code Flow</a>, puts the Pre-Authorized Code into an <a class="reference external" href="https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-final.html#name-credential-offer">OpenID4VCI Credential Offer</a>, and URL-encodes that into the <code class="docutils literal notranslate"><span class="pre">redirect_uri</span></code> that gets sent to the wallet.</p></li>
 <li><p>Using the Credential Offer with the Pre-Authorized Code within it, the wallet performs the OpenID4VCI session with the <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code>.</p></li>
 </ol>
 <section id="api">
@@ -197,7 +197,7 @@ In between the two screens, the issuer receives the disclosed attributes, and ca
 <section id="attestation-server">
 <h3>Attestation server<a class="headerlink" href="#attestation-server" title="Link to this heading"></a></h3>
 <p>The attestation server exchanges disclosed attributes for attestations to be issued. It is contacted by the <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> during a disclosure based issuance session to do this. Note that this server does not need to be reachable by the wallet, and it probably should not be directly connected to the internet.</p>
-<p>The attestation server receives an HTTP <code class="docutils literal notranslate"><span class="pre">POST</span></code> by the <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> containing a JSON structure of the same form as the <code class="docutils literal notranslate"><span class="pre">/disclosed_attributes</span></code> endpoint of the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> returns, as documented in the <a class="reference internal" href="../../get-started/create-a-verifier.html#verifier-api-specifications"><span class="std std-ref">verifier API documentation</span></a>. More specifically, this is a JSON-serialized <code class="docutils literal notranslate"><span class="pre">IndexMap&lt;String,</span> <span class="pre">DocumentDisclosedAttributes&gt;</span></code>. For example:</p>
+<p>The attestation server receives an HTTP <code class="docutils literal notranslate"><span class="pre">POST</span></code> by the <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> containing a JSON structure of the same form as the <code class="docutils literal notranslate"><span class="pre">/disclosed_attributes</span></code> endpoint of the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> returns (see our <a class="reference internal" href="../../development/openapi-specifications.html"><span class="doc std std-doc">openapi specifications</span></a>). More specifically, this is a JSON-serialized <code class="docutils literal notranslate"><span class="pre">IndexMap&lt;String,</span> <span class="pre">DocumentDisclosedAttributes&gt;</span></code>. For example:</p>
 <div class="highlight-http notranslate"><div class="highlight"><pre><span></span><span class="nf">POST</span> <span class="nn">/</span> <span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span>
 <span class="na">Content-Type</span><span class="o">:</span> <span class="l">application/json</span>
 <span class="na">Accept</span><span class="o">:</span> <span class="l">*/*</span>
@@ -249,72 +249,6 @@ In between the two screens, the issuer receives the disclosed attributes, and ca
 </div>
 <p>The JSON array may be empty (i.e. <code class="docutils literal notranslate"><span class="pre">[]</span></code>) to indicate that no attestations to be issued were found. In that case, the wallet will present a screen to the user explaining that there were no attestations found that can be issued.</p>
 </section>
-<section id="issuance-server-configuration">
-<h3><code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> configuration<a class="headerlink" href="#issuance-server-configuration" title="Link to this heading"></a></h3>
-<p>For each attestation server, a configuration block like the following must be put in the configuration file of the <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code>.</p>
-<div class="highlight-toml notranslate"><div class="highlight"><pre><span></span><span class="k">[disclosure_settings.degree]</span>
-<span class="c1"># Either &quot;hsm&quot; or &quot;software&quot;</span>
-<span class="n">private_key_type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;hsm&quot;</span>
-
-<span class="c1"># In case of &quot;hsm&quot;: label for the private key in the HSM</span>
-<span class="c1"># In case of &quot;software&quot;: a DER-serialized private key</span>
-<span class="n">private_key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;my_issuer_key&quot;</span>
-
-<span class="c1"># RP certificate</span>
-<span class="n">certificate</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;MIJ...&quot;</span>
-
-<span class="c1"># Attributes that have to be disclosed for `degree` in DCQL format</span>
-<span class="k">[[disclosure_settings.degree.dcql_query.credentials]]</span>
-<span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;my_credential&quot;</span>
-<span class="n">format</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;mso_mdoc&quot;</span>
-<span class="n">meta</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">doctype_value</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s2">&quot;com.example.pid&quot;</span><span class="w"> </span><span class="p">}</span>
-<span class="n">claims</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span>
-<span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="n">path</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;com.example.pid&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;bsn&quot;</span><span class="p">],</span><span class="w"> </span><span class="n">intent_to_retain</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="kc">true</span><span class="w"> </span><span class="p">}</span>
-<span class="p">]</span>
-
-<span class="k">[disclosure_settings.degree.attestation_url_config]</span>
-<span class="c1"># URL to the attestation server</span>
-<span class="n">base_url</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;https://attestation_server.example.com&quot;</span>
-<span class="n">trust_anchors</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;MIJ...&quot;</span><span class="p">]</span>
-
-<span class="c1"># A block like this has to be present for each attestation type that gets issued</span>
-<span class="k">[attestation_settings.</span><span class="s2">&quot;com.example.degree&quot;</span><span class="k">]</span>
-<span class="n">valid_days</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">365</span>
-<span class="n">copy_count</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">4</span>
-<span class="n">private_key_type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;software&quot;</span><span class="w"> </span><span class="c1"># or &quot;hsm&quot;, see above</span>
-<span class="n">private_key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;MIG...&quot;</span><span class="w">        </span><span class="c1"># DER-encoded private key, in case of &quot;software&quot;</span>
-<span class="n">certificate</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;MIJ...&quot;</span><span class="w">        </span><span class="c1"># Issuer certificate</span>
-
-<span class="c1"># Files containing SD-JWT Type Metadata documents for each attestation that will be issued</span>
-<span class="n">metadata</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;com.example.degree.json&quot;</span><span class="p">]</span>
-</pre></div>
-</div>
-<p>Here, <code class="docutils literal notranslate"><span class="pre">degree</span></code> is an example of a freely choosable identifier that has to be present in the QR/UL that starts the session.</p>
-<p>For the rest of the configuration parameters of the <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code>, see the <a class="reference download internal" download="" href="../../_downloads/cfd0fc70893e7a8e15b716697ef14c54/issuance_server.example.toml"><span class="xref download myst"><code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> example configuration file</span></a> and the <a class="reference internal" href="../../get-started/create-a-verifier.html#verifier-api-specifications"><span class="std std-ref">verifier api specifications</span></a>.</p>
-</section>
-<section id="qr-ul">
-<h3>QR/UL<a class="headerlink" href="#qr-ul" title="Link to this heading"></a></h3>
-<p>The wallet starts disclosure based issuance if it encounters a UL (or a QR with a UL within it) of a specific format. To create this UL, proceed as follows.</p>
-<ol class="arabic">
-<li><p>If your <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> is reachable on the internet by the wallet at <code class="docutils literal notranslate"><span class="pre">https://issuer.example.com</span></code>, create a URL of the following form:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>https://issuer.example.com/disclosure/degree/request_uri?session_type=same_device
-</pre></div>
-</div>
-<p>In which <code class="docutils literal notranslate"><span class="pre">degree</span></code> has to be the identifier mentioned above.</p>
-</li>
-<li><p>URL-encode the above URL.</p></li>
-<li><p>Create the UL as follows (newlines only for readability purposes):</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>https://app.test.voorbeeldwallet.nl/deeplink/disclosure_based_issuance
-  ?request_uri_method=post
-  &amp;client_id=disclosure_based_issuance.example.com
-  &amp;request_uri=https%3A%2F%2Fissuer.example.com...
-</pre></div>
-</div>
-<p>In which the <code class="docutils literal notranslate"><span class="pre">client_id</span></code> has to be the SAN DNS name from the RP <code class="docutils literal notranslate"><span class="pre">certificate</span></code>, and the <code class="docutils literal notranslate"><span class="pre">request_uri</span></code> is the URL-encoded URL from the previous step.</p>
-</li>
-</ol>
-<p>Next, place this UL on your website (within in a QR code in case of cross device flows).</p>
-</section>
 </section>
 <section id="sequence-diagram">
 <h2>Sequence diagram<a class="headerlink" href="#sequence-diagram" title="Link to this heading"></a></h2>
@@ -359,6 +293,12 @@ In between the two screens, the issuer receives the disclosed attributes, and ca
     Issuer-&gt;&gt;-App: Attestations [OpenID4VCI]
     deactivate App
     </pre></section>
+<section id="references">
+<h2>References<a class="headerlink" href="#references" title="Link to this heading"></a></h2>
+<p>Below you’ll find a collection of links which we reference to through the
+entire text. Note that they don’t display when rendered within a website, you
+need to read the text in a regular text editor or pager to see them.</p>
+</section>
 </section>
 
 
