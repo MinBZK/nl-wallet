@@ -151,9 +151,6 @@ pub enum CertificateError {
     IncorrectEku(String),
     #[error("PEM decoding error: {0}")]
     Pem(#[from] nom::Err<PEMError>),
-    #[error("unexpected PEM header: found {found}, expected {expected}")]
-    #[category(critical)]
-    UnexpectedPemHeader { found: String, expected: String },
     #[error("DER coding error: {0}")]
     DerEncodingError(#[from] p256::pkcs8::der::Error),
     #[error("JSON coding error: {0}")]
@@ -164,8 +161,6 @@ pub enum CertificateError {
     KeyMismatch,
     #[error("failed to get public key from private key: {0}")]
     PublicKeyFromPrivate(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
-    #[error("missing Common Name")]
-    MissingCommonName,
     #[error("missing SAN extension")]
     MissingSan,
     #[error("missing SAN DNS name or URI, found: {0:?}")]
