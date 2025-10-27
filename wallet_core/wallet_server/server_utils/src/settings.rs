@@ -204,26 +204,15 @@ pub fn verify_key_pairs(
     for (key_pair_id, key_pair) in key_pairs {
         tracing::debug!("verifying certificate of {key_pair_id}");
 
-        if !trust_anchors.is_empty() {
-            key_pair
-                .certificate
-                .verify(usage, &[], time, trust_anchors)
-                .map_err(|e| CertificateVerificationError::InvalidCertificate(e, key_pair_id.to_string()))?;
+        key_pair
+            .certificate
+            .verify(usage, &[], time, trust_anchors)
+            .map_err(|e| CertificateVerificationError::InvalidCertificate(e, key_pair_id.to_string()))?;
+
+        if CertificateType::has_certificate_type(usage) {
+            CertificateType::from_certificate(&key_pair.certificate)
+                .map_err(|e| CertificateVerificationError::NoCertificateType(e, key_pair_id.to_string()))?;
         }
-
-        if !CertificateType::has_certificate_type(usage) {
-            continue;
-        }
-
-        let certificate_type = CertificateType::from_certificate(&key_pair.certificate)
-            .map_err(|e| CertificateVerificationError::NoCertificateType(e, key_pair_id.to_string()))?;
-
-        // This should be verified before
-        let derived_usage = CertificateUsage::from(&certificate_type);
-        assert_eq!(
-            derived_usage, usage,
-            "Usage derived from CertificateType does not match verified usage"
-        );
     }
 
     Ok(())
