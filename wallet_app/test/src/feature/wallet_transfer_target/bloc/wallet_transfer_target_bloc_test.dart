@@ -5,6 +5,7 @@ import 'package:wallet/src/domain/model/result/application_error.dart';
 import 'package:wallet/src/domain/model/result/result.dart';
 import 'package:wallet/src/domain/model/transfer/wallet_transfer_status.dart';
 import 'package:wallet/src/feature/wallet_transfer_target/bloc/wallet_transfer_target_bloc.dart';
+import 'package:wallet/src/wallet_core/error/core_error.dart';
 
 import '../../../mocks/wallet_mocks.dart';
 
@@ -124,6 +125,25 @@ void main() {
         const WalletTransferLoadingQrData(),
         const WalletTransferAwaitingQrScan(qrData),
         isA<WalletTransferGenericError>().having((e) => e.error.sourceError, 'sourceError', isA<Exception>()),
+      ],
+    );
+
+    blocTest<WalletTransferTargetBloc, WalletTransferTargetState>(
+      'when status stream throws NetworkError emit WalletTransferNetworkError',
+      build: createBloc,
+      setUp: () {
+        when(mockInitWalletTransferUseCase.invoke()).thenAnswer((_) async => const Result.success(qrData));
+        when(
+          mockGetWalletTransferStatusUseCase.invoke(),
+        ).thenAnswer(
+          (_) => Stream.error(const NetworkError(hasInternet: false, sourceError: CoreNetworkError('network error'))),
+        );
+      },
+      act: (bloc) => bloc.add(const WalletTransferOptInEvent()),
+      expect: () => [
+        const WalletTransferLoadingQrData(),
+        const WalletTransferAwaitingQrScan(qrData),
+        isA<WalletTransferNetworkError>(),
       ],
     );
   });

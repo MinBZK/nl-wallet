@@ -151,6 +151,38 @@ void main() {
   );
 
   blocTest(
+    'verify bloc emits WalletTransferNetworkError when the get status throws a NetworkError',
+    build: createBloc,
+    setUp: () {
+      when(mockAcknowledgeWalletTransferUseCase.invoke(any)).thenAnswer((_) async => const Result.success(null));
+      when(
+        mockGetWalletTransferStatusUseCase.invoke(),
+      ).thenAnswer(
+        (_) async* {
+          await Future.delayed(const Duration(milliseconds: 10));
+          throw const NetworkError(hasInternet: false, sourceError: 'network_error');
+        },
+      );
+    },
+    act: (bloc) async {
+      bloc.add(const WalletTransferAcknowledgeTransferEvent('https://example.org/transfer'));
+      await Future.delayed(Duration.zero);
+      bloc.add(const WalletTransferAgreeEvent());
+      await Future.delayed(Duration.zero);
+      bloc.add(const WalletTransferPinConfirmedEvent());
+      // Wait for (mock) stream to emit
+      await Future.delayed(const Duration(milliseconds: 20));
+    },
+    expect: () => [
+      isA<WalletTransferLoading>(),
+      isA<WalletTransferIntroduction>(),
+      isA<WalletTransferConfirmPin>(),
+      isA<WalletTransferTransferring>(),
+      isA<WalletTransferNetworkError>(),
+    ],
+  );
+
+  blocTest(
     'verify autolock is re-enabled when bloc is closed',
     setUp: () => reset(mockAutoLockService),
     build: createBloc,

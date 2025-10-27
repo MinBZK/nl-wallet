@@ -31,3 +31,13 @@ class WalletTransferStopRequestedEvent extends WalletTransferTargetEvent {
 class WalletTransferBackPressedEvent extends WalletTransferTargetEvent {
   const WalletTransferBackPressedEvent();
 }
+
+/// Event used internally by the [WalletTransferTargetBloc] to update the state
+class WalletTransferUpdateStateEvent extends WalletTransferTargetEvent {
+  final WalletTransferTargetState state;
+
+  const WalletTransferUpdateStateEvent(this.state);
+
+  @override
+  List<Object?> get props => [state];
+}

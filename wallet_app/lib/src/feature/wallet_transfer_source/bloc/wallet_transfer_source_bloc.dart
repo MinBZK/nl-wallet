@@ -13,6 +13,7 @@ import '../../../domain/model/transfer/wallet_transfer_status.dart';
 import '../../../domain/usecase/transfer/acknowledge_wallet_transfer_usecase.dart';
 import '../../../domain/usecase/transfer/cancel_wallet_transfer_usecase.dart';
 import '../../../domain/usecase/transfer/get_wallet_transfer_status_usecase.dart';
+import '../../../util/cast_util.dart';
 
 part 'wallet_transfer_source_event.dart';
 part 'wallet_transfer_source_state.dart';
@@ -145,7 +146,9 @@ class WalletTransferSourceBloc extends Bloc<WalletTransferSourceEvent, WalletTra
             add(const WalletTransferUpdateStateEvent(WalletTransferStopped()));
         }
       },
-      onError: (ex) => _handleError(GenericError('transfer_status_stream_error', sourceError: ex)),
+      onError: (ex) => _handleError(
+        tryCast<ApplicationError>(ex) ?? GenericError('transfer_status_stream_error', sourceError: ex),
+      ),
     );
   }
 
