@@ -135,7 +135,7 @@ class WalletTransferSourceBloc extends Bloc<WalletTransferSourceEvent, WalletTra
         switch (status) {
           case WalletTransferStatus.waitingForScan:
           case WalletTransferStatus.waitingForApprovalAndUpload:
-          case WalletTransferStatus.transferring:
+          case WalletTransferStatus.readyForDownload:
             break;
           case WalletTransferStatus.error:
             final walletTransferFailed = WalletTransferFailed(GenericError('transfer_error', sourceError: status));

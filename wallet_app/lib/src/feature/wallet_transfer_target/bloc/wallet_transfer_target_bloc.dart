@@ -13,6 +13,7 @@ import '../../../domain/model/transfer/wallet_transfer_status.dart';
 import '../../../domain/usecase/transfer/cancel_wallet_transfer_usecase.dart';
 import '../../../domain/usecase/transfer/get_wallet_transfer_status_usecase.dart';
 import '../../../domain/usecase/transfer/init_wallet_transfer_usecase.dart';
+import '../../../domain/usecase/transfer/receive_wallet_transfer_usecase.dart';
 import '../../../domain/usecase/transfer/skip_wallet_transfer_usecase.dart';
 import '../../../util/cast_util.dart';
 
@@ -24,6 +25,7 @@ class WalletTransferTargetBloc extends Bloc<WalletTransferTargetEvent, WalletTra
   final GetWalletTransferStatusUseCase _getWalletTransferStatusUseCase;
   final CancelWalletTransferUseCase _cancelWalletTransferUsecase;
   final SkipWalletTransferUseCase _skipWalletTransferUseCase;
+  final ReceiveWalletTransferUseCase _receiveWalletTransferUseCase;
   final AutoLockService _autoLockProvider;
 
   StreamSubscription? _statusSubscription;
@@ -33,6 +35,7 @@ class WalletTransferTargetBloc extends Bloc<WalletTransferTargetEvent, WalletTra
     this._getWalletTransferStatusUseCase,
     this._cancelWalletTransferUsecase,
     this._skipWalletTransferUseCase,
+    this._receiveWalletTransferUseCase,
     this._autoLockProvider,
   ) : super(const WalletTransferIntroduction()) {
     on<WalletTransferRestartEvent>(_onUserRestart);
@@ -98,8 +101,8 @@ class WalletTransferTargetBloc extends Bloc<WalletTransferTargetEvent, WalletTra
             add(WalletTransferUpdateStateEvent(WalletTransferAwaitingQrScan(qrData)));
           case WalletTransferStatus.waitingForApprovalAndUpload:
             add(const WalletTransferUpdateStateEvent(WalletTransferAwaitingConfirmation()));
-          case WalletTransferStatus.transferring:
-            add(const WalletTransferUpdateStateEvent(WalletTransferTransferring()));
+          case WalletTransferStatus.readyForDownload:
+            _startReceiving();
           case WalletTransferStatus.error:
             final error = GenericError('transfer_error', sourceError: status);
             add(WalletTransferUpdateStateEvent(WalletTransferFailed(error)));
@@ -154,6 +157,23 @@ class WalletTransferTargetBloc extends Bloc<WalletTransferTargetEvent, WalletTra
       default:
         add(WalletTransferUpdateStateEvent(WalletTransferGenericError(error)));
     }
+  }
+
+  Future<void> _startReceiving() async {
+    final isTransferring = state is WalletTransferTransferring;
+    assert(!isTransferring, 'Wallet already in transferring state, should never attempt to receive twice!');
+    if (isTransferring) return;
+
+    // Stop polling for transfer status
+    await _statusSubscription?.cancel();
+    // Move to WalletTransferTransferring state
+    add(const WalletTransferUpdateStateEvent(WalletTransferTransferring()));
+    // Start receiving and emit result
+    final result = await _receiveWalletTransferUseCase.invoke();
+    await result.process(
+      onSuccess: (_) => add(const WalletTransferUpdateStateEvent(WalletTransferSuccess())),
+      onError: _handleError,
+    );
   }
 
   @override

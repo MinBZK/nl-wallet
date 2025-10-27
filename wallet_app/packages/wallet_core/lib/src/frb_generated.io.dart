@@ -2188,6 +2188,21 @@ class WalletCoreWire implements BaseWire {
   late final _wire__crate__api__full__lock_wallet = _wire__crate__api__full__lock_walletPtr
       .asFunction<void Function(int)>();
 
+  void wire__crate__api__full__receive_wallet_transfer(
+    int port_,
+  ) {
+    return _wire__crate__api__full__receive_wallet_transfer(
+      port_,
+    );
+  }
+
+  late final _wire__crate__api__full__receive_wallet_transferPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
+        'frbgen_wallet_core_wire__crate__api__full__receive_wallet_transfer',
+      );
+  late final _wire__crate__api__full__receive_wallet_transfer = _wire__crate__api__full__receive_wallet_transferPtr
+      .asFunction<void Function(int)>();
+
   void wire__crate__api__full__register(
     int port_,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> pin,

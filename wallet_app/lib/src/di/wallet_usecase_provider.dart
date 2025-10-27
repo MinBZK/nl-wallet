@@ -96,9 +96,11 @@ import '../domain/usecase/transfer/impl/acknowledge_wallet_transfer_usecase_impl
 import '../domain/usecase/transfer/impl/cancel_wallet_transfer_usecase_impl.dart';
 import '../domain/usecase/transfer/impl/get_wallet_transfer_status_usecase_impl.dart';
 import '../domain/usecase/transfer/impl/init_wallet_transfer_usecase_impl.dart';
+import '../domain/usecase/transfer/impl/receive_wallet_transfer_usecase_impl.dart';
 import '../domain/usecase/transfer/impl/skip_wallet_transfer_usecase_impl.dart';
 import '../domain/usecase/transfer/impl/start_wallet_transfer_usecase_impl.dart';
 import '../domain/usecase/transfer/init_wallet_transfer_usecase.dart';
+import '../domain/usecase/transfer/receive_wallet_transfer_usecase.dart';
 import '../domain/usecase/transfer/skip_wallet_transfer_usecase.dart';
 import '../domain/usecase/transfer/start_wallet_transfer_usecase.dart';
 import '../domain/usecase/update/impl/observe_version_state_usecase_impl.dart';
@@ -349,6 +351,9 @@ class WalletUseCaseProvider extends StatelessWidget {
         ),
         RepositoryProvider<GetWalletStateUseCase>(
           create: (context) => GetWalletStateUseCaseImpl(context.read()),
+        ),
+        RepositoryProvider<ReceiveWalletTransferUseCase>(
+          create: (context) => ReceiveWalletTransferUseCaseImpl(context.read()),
         ),
       ],
       child: child,

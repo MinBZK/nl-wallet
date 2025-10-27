@@ -333,4 +333,7 @@ class WalletCoreMock implements WalletCoreApi {
 
   @override
   Future<WalletState> crateApiFullGetWalletState() async => const WalletState.ready();
+
+  @override
+  Future<void> crateApiFullReceiveWalletTransfer() => Future.delayed(const Duration(seconds: 2));
 }
