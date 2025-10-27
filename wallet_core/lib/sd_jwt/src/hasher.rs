@@ -4,13 +4,8 @@ use crypto::utils::sha256;
 
 use crate::sd_alg::SdAlg;
 
-/// Used to implement hash functions to be used for encoding/decoding.
-///
-/// ## Note
-///
-/// Implementations of this trait are expected only for algorithms listed in
-/// the IANA "Named Information Hash Algorithm" registry.
-/// See [Hash Function Claim](https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-07.html#name-hash-function-claim)
+/// Hashing interface used by the SD-JWT encoder/decoder to compute disclosure digests. Currently only `sha-256` is
+/// supported.
 pub trait Hasher {
     /// Digests input to produce unique fixed-size hash value in bytes.
     fn digest(&self, input: &[u8]) -> Vec<u8>;
@@ -25,7 +20,6 @@ pub trait Hasher {
     }
 }
 
-/// An implementation of [`Hasher`] that uses the `sha-256` hash function.
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Sha256Hasher;
 

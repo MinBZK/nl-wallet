@@ -1,3 +1,8 @@
+//! This module contains the decoder for claim tree types. It reconstructs the selectively disclosable claims by
+//! consuming a set of Disclosures and returns a version of the claims where placeholders are replaced by original
+//! values. Non-matching digests are removed from the disclosures map.
+//!
+//! See the encoder [`SdObjectEncoder`] on how to create selectively disclosable claims.
 use indexmap::IndexMap;
 use itertools::Itertools;
 

@@ -1,3 +1,7 @@
+//! This module provides the encoder half of the selective-disclosure pipeline. It encodes a claims object by
+//! substituting selected claim values with digests derived from   disclosures.
+//!
+//! See the decoder [`SdObjectDecoder`] on how to reconstruct original values given the disclosures.
 use base64::prelude::*;
 use rand::Rng;
 use serde_json::Value;
