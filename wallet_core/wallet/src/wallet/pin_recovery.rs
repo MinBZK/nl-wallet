@@ -798,6 +798,29 @@ mod tests {
             .unwrap();
     }
 
+    #[tokio::test]
+    async fn cancel_pin_recovery() {
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        wallet
+            .mut_storage()
+            .expect_fetch_data::<PinRecoveryData>()
+            .once()
+            .returning(move || Ok(None));
+
+        setup_issuance_session(&mut wallet);
+
+        assert_matches!(
+            &wallet.session,
+            Some(Session::PinRecovery(PinRecoverySession::Issuance(..)))
+        );
+
+        wallet.cancel_pin_recovery().await.unwrap();
+
+        // Cancelling clears the session state.
+        assert_matches!(wallet.session, None);
+    }
+
     // Failing unit tests for create_pin_recovery_redirect_uri()
 
     #[tokio::test]
@@ -1166,6 +1189,21 @@ mod tests {
         );
 
         wallet.session = Some(Session::PinRecovery(PinRecoverySession::Issuance(pid_issuer)));
+    }
+
+    #[tokio::test]
+    async fn cancel_pin_recovery_wrong_state() {
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        wallet
+            .mut_storage()
+            .expect_fetch_data::<PinRecoveryData>()
+            .once()
+            .returning(move || Ok(Some(PinRecoveryData)));
+
+        let err = wallet.cancel_pin_recovery().await.unwrap_err();
+
+        assert_matches!(err, PinRecoveryError::CommittedToPinRecovery);
     }
 
     struct MockPinWscd;
