@@ -78,7 +78,7 @@ class WalletCore extends BaseEntrypoint<WalletCoreApi, WalletCoreApiImpl, Wallet
   String get codegenVersion => '2.11.1';
 
   @override
-  int get rustContentHash => -677141531;
+  int get rustContentHash => -1208216043;
 
   static const kDefaultExternalLibraryLoaderConfig = ExternalLibraryLoaderConfig(
     stem: 'wallet_core',
@@ -169,6 +169,8 @@ abstract class WalletCoreApi extends BaseApi {
   Future<PinValidationResult> crateApiFullIsValidPin({required String pin});
 
   Future<void> crateApiFullLockWallet();
+
+  Future<void> crateApiFullReceiveWalletTransfer();
 
   Future<void> crateApiFullRegister({required String pin});
 
@@ -1099,6 +1101,29 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
 
   TaskConstMeta get kCrateApiFullLockWalletConstMeta => const TaskConstMeta(
     debugName: "lock_wallet",
+    argNames: [],
+  );
+
+  @override
+  Future<void> crateApiFullReceiveWalletTransfer() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          return wire.wire__crate__api__full__receive_wallet_transfer(port_);
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_unit,
+          decodeErrorData: dco_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiFullReceiveWalletTransferConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiFullReceiveWalletTransferConstMeta => const TaskConstMeta(
+    debugName: "receive_wallet_transfer",
     argNames: [],
   );
 

@@ -52,7 +52,7 @@ void main() {
       when(mockGetWalletTransferStatusUseCase.invoke()).thenAnswer(
         (_) => Stream.fromIterable([
           WalletTransferStatus.waitingForApprovalAndUpload,
-          WalletTransferStatus.transferring,
+          WalletTransferStatus.readyForDownload,
           WalletTransferStatus.success,
         ]).delay(const Duration(milliseconds: 10)),
       );

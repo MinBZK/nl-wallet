@@ -14,6 +14,7 @@ void main() {
   late MockGetWalletTransferStatusUseCase mockGetWalletTransferStatusUseCase;
   late MockCancelWalletTransferUseCase mockCancelWalletTransferUseCase;
   late MockSkipWalletTransferUseCase mockSkipWalletTransferUseCase;
+  late MockReceiveWalletTransferUseCase mockReceiveWalletTransferUseCase;
   late MockAutoLockService mockAutoLockService;
 
   setUp(() {
@@ -21,6 +22,7 @@ void main() {
     mockGetWalletTransferStatusUseCase = MockGetWalletTransferStatusUseCase();
     mockCancelWalletTransferUseCase = MockCancelWalletTransferUseCase();
     mockSkipWalletTransferUseCase = MockSkipWalletTransferUseCase();
+    mockReceiveWalletTransferUseCase = MockReceiveWalletTransferUseCase();
     mockAutoLockService = MockAutoLockService();
   });
 
@@ -29,6 +31,7 @@ void main() {
     mockGetWalletTransferStatusUseCase,
     mockCancelWalletTransferUseCase,
     mockSkipWalletTransferUseCase,
+    mockReceiveWalletTransferUseCase,
     mockAutoLockService,
   );
 
@@ -50,7 +53,7 @@ void main() {
           (_) => Stream.fromIterable([
             WalletTransferStatus.waitingForScan,
             WalletTransferStatus.waitingForApprovalAndUpload,
-            WalletTransferStatus.transferring,
+            WalletTransferStatus.readyForDownload,
             WalletTransferStatus.success,
           ]),
         );
@@ -227,21 +230,29 @@ void main() {
         when(mockGetWalletTransferStatusUseCase.invoke()).thenAnswer(
           (_) => Stream.fromIterable([
             WalletTransferStatus.waitingForScan,
-            WalletTransferStatus.transferring,
+            WalletTransferStatus.readyForDownload,
           ]).asBroadcastStream(),
         );
+        when(
+          mockReceiveWalletTransferUseCase.invoke(),
+        ).thenAnswer((_) async {
+          await Future.delayed(const Duration(milliseconds: 5));
+          return const Result.success(null);
+        });
       },
       act: (bloc) async {
         bloc.add(const WalletTransferOptInEvent());
         await untilCalled(mockGetWalletTransferStatusUseCase.invoke());
-        await Future.delayed(const Duration(milliseconds: 50)); // ensure transferring state is reached
+        await Future.delayed(Duration.zero); // ensure transferring state is reached
         bloc.add(const WalletTransferBackPressedEvent());
+        await Future.delayed(const Duration(milliseconds: 5)); // ensure success state is reached
       },
       expect: () => [
         // only initial opt-in states, no change from back press
         const WalletTransferLoadingQrData(),
         const WalletTransferAwaitingQrScan(qrData),
         const WalletTransferTransferring(),
+        const WalletTransferSuccess(),
       ],
     );
   });

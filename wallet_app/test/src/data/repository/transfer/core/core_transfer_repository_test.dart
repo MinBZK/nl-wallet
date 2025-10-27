@@ -80,7 +80,7 @@ void main() {
       test('should return WalletTransferStatus.transferring when walletCore returns ReadyForDownload', () async {
         when(mockWalletCore.getWalletTransferState()).thenAnswer((_) async => TransferSessionState.ReadyForDownload);
         final result = await transferRepository.getWalletTransferState();
-        expect(result, WalletTransferStatus.transferring);
+        expect(result, WalletTransferStatus.readyForDownload);
       });
 
       test('should return WalletTransferStatus.success when walletCore returns Success', () async {

@@ -621,6 +621,7 @@ WidgetBuilder _createWalletTransferTargetRoute(RouteSettings settings) {
           context.read(),
           context.read(),
           context.read(),
+          context.read(),
         );
       },
       child: const WalletTransferTargetScreen(),
