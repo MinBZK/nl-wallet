@@ -311,7 +311,7 @@ where
     }
 
     #[instrument(skip_all)]
-    pub(super) async fn pin_recovery_start_issuance(
+    async fn pin_recovery_start_issuance(
         &mut self,
         token_request: TokenRequest,
         config: &WalletConfiguration,
