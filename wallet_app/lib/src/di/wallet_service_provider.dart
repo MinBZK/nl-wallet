@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../data/service/app_lifecycle_service.dart';
+import '../data/service/auto_lock_service.dart';
 import '../data/service/country_code_service.dart';
 import '../data/service/deeplink_service.dart';
 import '../data/service/event/app_event_coordinator.dart';
@@ -35,6 +36,9 @@ class WalletServiceProvider extends StatelessWidget {
         RepositoryProvider<CountryCodeService>(
           create: (context) => CountryCodeService(context.read()),
           lazy: false,
+        ),
+        RepositoryProvider<AutoLockService>(
+          create: (context) => AutoLockService(),
         ),
         RepositoryProvider<NavigationService>(
           create: (context) => NavigationService(

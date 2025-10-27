@@ -13,12 +13,14 @@ void main() {
   late MockGetWalletTransferStatusUseCase mockGetWalletTransferStatusUseCase;
   late MockCancelWalletTransferUseCase mockCancelWalletTransferUseCase;
   late MockSkipWalletTransferUseCase mockSkipWalletTransferUseCase;
+  late MockAutoLockService mockAutoLockService;
 
   setUp(() {
     mockInitWalletTransferUseCase = MockInitWalletTransferUseCase();
     mockGetWalletTransferStatusUseCase = MockGetWalletTransferStatusUseCase();
     mockCancelWalletTransferUseCase = MockCancelWalletTransferUseCase();
     mockSkipWalletTransferUseCase = MockSkipWalletTransferUseCase();
+    mockAutoLockService = MockAutoLockService();
   });
 
   WalletTransferTargetBloc createBloc() => WalletTransferTargetBloc(
@@ -26,6 +28,7 @@ void main() {
     mockGetWalletTransferStatusUseCase,
     mockCancelWalletTransferUseCase,
     mockSkipWalletTransferUseCase,
+    mockAutoLockService,
   );
 
   blocTest<WalletTransferTargetBloc, WalletTransferTargetState>(
@@ -222,4 +225,14 @@ void main() {
       ],
     );
   });
+
+  blocTest(
+    'verify autolock is re-enabled when bloc is closed',
+    setUp: () => reset(mockAutoLockService),
+    build: createBloc,
+    verify: (bloc) {
+      expect(bloc.isClosed, isTrue, reason: 'BLoC should (automatically) be closed');
+      verify(mockAutoLockService.setAutoLock(enabled: true)).called(1);
+    },
+  );
 }

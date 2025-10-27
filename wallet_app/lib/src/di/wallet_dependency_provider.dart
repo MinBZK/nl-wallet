@@ -10,13 +10,13 @@ import 'wallet_usecase_provider.dart';
 
 /// Widget that provides all the Dependencies, i.e.
 /// DataSources, Repositories, UseCases, Services and BLoCs
-/// to the provided [child].
+/// to the provided [builder].
 class WalletDependencyProvider extends StatelessWidget {
-  final Widget child;
+  final WidgetBuilder builder;
   final GlobalKey<NavigatorState> navigatorKey;
 
   const WalletDependencyProvider({
-    required this.child,
+    required this.builder,
     required this.navigatorKey,
     super.key,
   });
@@ -31,7 +31,11 @@ class WalletDependencyProvider extends StatelessWidget {
           child: WalletUseCaseProvider(
             child: WalletServiceProvider(
               navigatorKey: navigatorKey,
-              child: WalletBlocProvider(child: child),
+              child: WalletBlocProvider(
+                child: Builder(
+                  builder: builder,
+                ),
+              ),
             ),
           ),
         ),

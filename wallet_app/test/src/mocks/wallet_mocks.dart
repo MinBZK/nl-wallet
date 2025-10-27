@@ -19,6 +19,7 @@ import 'package:wallet/src/data/repository/transfer/transfer_repository.dart';
 import 'package:wallet/src/data/repository/version/version_state_repository.dart';
 import 'package:wallet/src/data/repository/wallet/wallet_repository.dart';
 import 'package:wallet/src/data/service/app_lifecycle_service.dart';
+import 'package:wallet/src/data/service/auto_lock_service.dart';
 import 'package:wallet/src/data/service/event/app_event_coordinator.dart';
 import 'package:wallet/src/data/service/navigation_service.dart';
 import 'package:wallet/src/data/service/semantics_event_service.dart';
@@ -136,6 +137,7 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<SemanticsEventService>()])
 @GenerateNiceMocks([MockSpec<AppEventCoordinator>()])
 @GenerateNiceMocks([MockSpec<AppEventListener>()])
+@GenerateNiceMocks([MockSpec<AutoLockService>()])
 /// Mock use cases
 @GenerateNiceMocks([MockSpec<DecodeUriUseCase>()])
 @GenerateNiceMocks([MockSpec<IsWalletInitializedUseCase>()])

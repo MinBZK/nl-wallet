@@ -77,9 +77,10 @@ void mainImpl() async {
     RootChecker(
       child: WalletDependencyProvider(
         navigatorKey: _navigatorKey,
-        child: FlutterAppConfigurationProvider(
+        builder: (context) => FlutterAppConfigurationProvider(
           builder: (config) => AutoLockObserver(
             configuration: config,
+            autoLockService: context.read(),
             child: UpdateChecker(
               child: PrivacyCover(
                 child: WalletApp(
