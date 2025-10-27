@@ -163,6 +163,12 @@ pub trait WalletUserRepository {
         destination_wallet_user_id: Uuid,
     ) -> Result<()>;
 
+    async fn prepare_send_wallet_transfer(
+        &self,
+        transaction: &Self::TransactionType,
+        transfer_session_id: Uuid,
+    ) -> Result<()>;
+
     async fn store_wallet_transfer_data(
         &self,
         transaction: &Self::TransactionType,
@@ -389,6 +395,14 @@ pub mod mock {
             _transfer_session_id: Uuid,
             _source_wallet_user_id: Option<Uuid>,
             _destination_wallet_user_id: Uuid,
+        ) -> Result<()> {
+            Ok(())
+        }
+
+        async fn prepare_send_wallet_transfer(
+            &self,
+            _transaction: &Self::TransactionType,
+            _transfer_session_id: Uuid,
         ) -> Result<()> {
             Ok(())
         }

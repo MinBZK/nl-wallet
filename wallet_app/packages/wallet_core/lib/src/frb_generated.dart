@@ -78,7 +78,7 @@ class WalletCore extends BaseEntrypoint<WalletCoreApi, WalletCoreApiImpl, Wallet
   String get codegenVersion => '2.11.1';
 
   @override
-  int get rustContentHash => -677141531;
+  int get rustContentHash => -1173504453;
 
   static const kDefaultExternalLibraryLoaderConfig = ExternalLibraryLoaderConfig(
     stem: 'wallet_core',
@@ -170,6 +170,8 @@ abstract class WalletCoreApi extends BaseApi {
 
   Future<void> crateApiFullLockWallet();
 
+  Future<WalletInstructionResult> crateApiFullPrepareTransferWallet({required String pin});
+
   Future<void> crateApiFullRegister({required String pin});
 
   Future<void> crateApiFullResetWallet();
@@ -190,7 +192,7 @@ abstract class WalletCoreApi extends BaseApi {
 
   Future<StartDisclosureResult> crateApiFullStartDisclosure({required String uri, required bool isQrCode});
 
-  Future<WalletInstructionResult> crateApiFullTransferWallet({required String pin});
+  Future<void> crateApiFullTransferWallet();
 
   Future<WalletInstructionResult> crateApiFullUnlockWallet({required String pin});
 
@@ -1103,6 +1105,30 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   );
 
   @override
+  Future<WalletInstructionResult> crateApiFullPrepareTransferWallet({required String pin}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          var arg0 = cst_encode_String(pin);
+          return wire.wire__crate__api__full__prepare_transfer_wallet(port_, arg0);
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_wallet_instruction_result,
+          decodeErrorData: dco_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiFullPrepareTransferWalletConstMeta,
+        argValues: [pin],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiFullPrepareTransferWalletConstMeta => const TaskConstMeta(
+    debugName: "prepare_transfer_wallet",
+    argNames: ["pin"],
+  );
+
+  @override
   Future<void> crateApiFullRegister({required String pin}) {
     return handler.executeNormal(
       NormalTask(
@@ -1362,19 +1388,18 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   );
 
   @override
-  Future<WalletInstructionResult> crateApiFullTransferWallet({required String pin}) {
+  Future<void> crateApiFullTransferWallet() {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
-          var arg0 = cst_encode_String(pin);
-          return wire.wire__crate__api__full__transfer_wallet(port_, arg0);
+          return wire.wire__crate__api__full__transfer_wallet(port_);
         },
         codec: DcoCodec(
-          decodeSuccessData: dco_decode_wallet_instruction_result,
+          decodeSuccessData: dco_decode_unit,
           decodeErrorData: dco_decode_AnyhowException,
         ),
         constMeta: kCrateApiFullTransferWalletConstMeta,
-        argValues: [pin],
+        argValues: [],
         apiImpl: this,
       ),
     );
@@ -1382,7 +1407,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
 
   TaskConstMeta get kCrateApiFullTransferWalletConstMeta => const TaskConstMeta(
     debugName: "transfer_wallet",
-    argNames: ["pin"],
+    argNames: [],
   );
 
   @override

@@ -41,6 +41,7 @@ use wallet_account::messages::instructions::InstructionChallengeRequest;
 use wallet_account::messages::instructions::InstructionResultMessage;
 use wallet_account::messages::instructions::PerformIssuance;
 use wallet_account::messages::instructions::PerformIssuanceWithWua;
+use wallet_account::messages::instructions::PrepareSendWalletPayload;
 use wallet_account::messages::instructions::ReceiveWalletPayload;
 use wallet_account::messages::instructions::ResetTransfer;
 use wallet_account::messages::instructions::SendWalletPayload;
@@ -107,6 +108,11 @@ where
                     post(handle_hw_signed_instruction::<GetTransferStatus, _, _, _>),
                 )
                 .route(
+                    &format!("/instructions/hw_signed/{}", SendWalletPayload::NAME),
+                    post(handle_hw_signed_instruction::<SendWalletPayload, _, _, _>)
+                        .layer(DefaultBodyLimit::max(state.max_transfer_upload_size_in_bytes)),
+                )
+                .route(
                     &format!("/instructions/hw_signed/{}", ReceiveWalletPayload::NAME),
                     post(handle_hw_signed_instruction::<ReceiveWalletPayload, _, _, _>),
                 )
@@ -155,9 +161,8 @@ where
                     post(handle_instruction::<DiscloseRecoveryCodePinRecovery, _, _, _>),
                 )
                 .route(
-                    &format!("/instructions/{}", SendWalletPayload::NAME),
-                    post(handle_instruction::<SendWalletPayload, _, _, _>)
-                        .layer(DefaultBodyLimit::max(state.max_transfer_upload_size_in_bytes)),
+                    &format!("/instructions/{}", PrepareSendWalletPayload::NAME),
+                    post(handle_instruction::<PrepareSendWalletPayload, _, _, _>),
                 )
                 .layer(RequestDecompressionLayer::new().zstd(true))
                 .layer(TraceLayer::new_for_http())

@@ -131,7 +131,19 @@ async fn test_wallet_transfer() {
         ChangePinError::Instruction(InstructionError::InstructionValidation)
     );
 
-    source.send_wallet_payload(source_wallet_pin.clone()).await.unwrap();
+    source
+        .prepare_send_wallet_payload(source_wallet_pin.clone())
+        .await
+        .unwrap();
+
+    assert_states(
+        TransferSessionState::ReadyForTransferConfirmed,
+        &mut destination,
+        &mut source,
+    )
+    .await;
+
+    source.send_wallet_payload().await.unwrap();
 
     assert_state(TransferSessionState::ReadyForDownload, &mut source).await;
     assert_state(TransferSessionState::Success, &mut destination).await;
@@ -193,7 +205,19 @@ async fn test_wallet_transfer_canceled_from_destination() {
 
     assert_states(TransferSessionState::ReadyForTransfer, &mut destination, &mut source).await;
 
-    source.send_wallet_payload(source_wallet_pin.clone()).await.unwrap();
+    source
+        .prepare_send_wallet_payload(source_wallet_pin.clone())
+        .await
+        .unwrap();
+
+    assert_states(
+        TransferSessionState::ReadyForTransferConfirmed,
+        &mut destination,
+        &mut source,
+    )
+    .await;
+
+    source.send_wallet_payload().await.unwrap();
 
     assert_state(TransferSessionState::ReadyForDownload, &mut source).await;
 

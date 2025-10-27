@@ -2934,23 +2934,34 @@ class MockTypedWalletCore extends _i1.Mock implements _i42.TypedWalletCore {
           as _i10.Future<void>);
 
   @override
-  _i10.Future<_i26.WalletInstructionResult> transferWallet(String? pin) =>
+  _i10.Future<_i26.WalletInstructionResult> prepareTransferWallet(
+    String? pin,
+  ) =>
       (super.noSuchMethod(
-            Invocation.method(#transferWallet, [pin]),
+            Invocation.method(#prepareTransferWallet, [pin]),
             returnValue: _i10.Future<_i26.WalletInstructionResult>.value(
               _i14.dummyValue<_i26.WalletInstructionResult>(
                 this,
-                Invocation.method(#transferWallet, [pin]),
+                Invocation.method(#prepareTransferWallet, [pin]),
               ),
             ),
             returnValueForMissingStub: _i10.Future<_i26.WalletInstructionResult>.value(
               _i14.dummyValue<_i26.WalletInstructionResult>(
                 this,
-                Invocation.method(#transferWallet, [pin]),
+                Invocation.method(#prepareTransferWallet, [pin]),
               ),
             ),
           )
           as _i10.Future<_i26.WalletInstructionResult>);
+
+  @override
+  _i10.Future<void> transferWallet() =>
+      (super.noSuchMethod(
+            Invocation.method(#transferWallet, []),
+            returnValue: _i10.Future<void>.value(),
+            returnValueForMissingStub: _i10.Future<void>.value(),
+          )
+          as _i10.Future<void>);
 
   @override
   _i10.Future<void> cancelWalletTransfer() =>
@@ -6637,6 +6648,33 @@ class MockWalletCoreApi extends _i1.Mock implements _i26.WalletCoreApi {
           as _i10.Future<void>);
 
   @override
+  _i10.Future<_i26.WalletInstructionResult> crateApiFullPrepareTransferWallet({
+    required String? pin,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#crateApiFullPrepareTransferWallet, [], {
+              #pin: pin,
+            }),
+            returnValue: _i10.Future<_i26.WalletInstructionResult>.value(
+              _i14.dummyValue<_i26.WalletInstructionResult>(
+                this,
+                Invocation.method(#crateApiFullPrepareTransferWallet, [], {
+                  #pin: pin,
+                }),
+              ),
+            ),
+            returnValueForMissingStub: _i10.Future<_i26.WalletInstructionResult>.value(
+              _i14.dummyValue<_i26.WalletInstructionResult>(
+                this,
+                Invocation.method(#crateApiFullPrepareTransferWallet, [], {
+                  #pin: pin,
+                }),
+              ),
+            ),
+          )
+          as _i10.Future<_i26.WalletInstructionResult>);
+
+  @override
   _i10.Future<void> crateApiFullRegister({required String? pin}) =>
       (super.noSuchMethod(
             Invocation.method(#crateApiFullRegister, [], {#pin: pin}),
@@ -6751,27 +6789,13 @@ class MockWalletCoreApi extends _i1.Mock implements _i26.WalletCoreApi {
           as _i10.Future<_i26.StartDisclosureResult>);
 
   @override
-  _i10.Future<_i26.WalletInstructionResult> crateApiFullTransferWallet({
-    required String? pin,
-  }) =>
+  _i10.Future<void> crateApiFullTransferWallet() =>
       (super.noSuchMethod(
-            Invocation.method(#crateApiFullTransferWallet, [], {#pin: pin}),
-            returnValue: _i10.Future<_i26.WalletInstructionResult>.value(
-              _i14.dummyValue<_i26.WalletInstructionResult>(
-                this,
-                Invocation.method(#crateApiFullTransferWallet, [], {#pin: pin}),
-              ),
-            ),
-            returnValueForMissingStub: _i10.Future<_i26.WalletInstructionResult>.value(
-              _i14.dummyValue<_i26.WalletInstructionResult>(
-                this,
-                Invocation.method(#crateApiFullTransferWallet, [], {
-                  #pin: pin,
-                }),
-              ),
-            ),
+            Invocation.method(#crateApiFullTransferWallet, []),
+            returnValue: _i10.Future<void>.value(),
+            returnValueForMissingStub: _i10.Future<void>.value(),
           )
-          as _i10.Future<_i26.WalletInstructionResult>);
+          as _i10.Future<void>);
 
   @override
   _i10.Future<_i26.WalletInstructionResult> crateApiFullUnlockWallet({

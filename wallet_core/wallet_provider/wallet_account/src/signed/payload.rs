@@ -465,6 +465,13 @@ pub mod server {
 
             Ok(challenge_response)
         }
+
+        pub fn dangerous_parse_unverified(&self) -> Result<ChallengeResponsePayload<T>, DecodeError>
+        where
+            T: DeserializeOwned,
+        {
+            self.0.dangerous_parse_unverified()
+        }
     }
 }
 

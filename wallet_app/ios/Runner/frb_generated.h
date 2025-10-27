@@ -508,6 +508,9 @@ void frbgen_wallet_core_wire__crate__api__full__is_valid_pin(int64_t port_,
 
 void frbgen_wallet_core_wire__crate__api__full__lock_wallet(int64_t port_);
 
+void frbgen_wallet_core_wire__crate__api__full__prepare_transfer_wallet(int64_t port_,
+                                                                        struct wire_cst_list_prim_u_8_strict *pin);
+
 void frbgen_wallet_core_wire__crate__api__full__register(int64_t port_,
                                                          struct wire_cst_list_prim_u_8_strict *pin);
 
@@ -536,8 +539,7 @@ void frbgen_wallet_core_wire__crate__api__full__start_disclosure(int64_t port_,
                                                                  struct wire_cst_list_prim_u_8_strict *uri,
                                                                  bool is_qr_code);
 
-void frbgen_wallet_core_wire__crate__api__full__transfer_wallet(int64_t port_,
-                                                                struct wire_cst_list_prim_u_8_strict *pin);
+void frbgen_wallet_core_wire__crate__api__full__transfer_wallet(int64_t port_);
 
 void frbgen_wallet_core_wire__crate__api__full__unlock_wallet(int64_t port_,
                                                               struct wire_cst_list_prim_u_8_strict *pin);
@@ -646,6 +648,7 @@ static int64_t dummy_method_to_enforce_bundling(void) {
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__is_initialized);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__is_valid_pin);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__lock_wallet);
+    dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__prepare_transfer_wallet);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__register);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__reset_wallet);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__set_attestations_stream);

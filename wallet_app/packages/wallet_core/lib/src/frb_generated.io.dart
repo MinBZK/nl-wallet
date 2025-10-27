@@ -2188,6 +2188,23 @@ class WalletCoreWire implements BaseWire {
   late final _wire__crate__api__full__lock_wallet = _wire__crate__api__full__lock_walletPtr
       .asFunction<void Function(int)>();
 
+  void wire__crate__api__full__prepare_transfer_wallet(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> pin,
+  ) {
+    return _wire__crate__api__full__prepare_transfer_wallet(
+      port_,
+      pin,
+    );
+  }
+
+  late final _wire__crate__api__full__prepare_transfer_walletPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>>(
+        'frbgen_wallet_core_wire__crate__api__full__prepare_transfer_wallet',
+      );
+  late final _wire__crate__api__full__prepare_transfer_wallet = _wire__crate__api__full__prepare_transfer_walletPtr
+      .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
+
   void wire__crate__api__full__register(
     int port_,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> pin,
@@ -2357,20 +2374,17 @@ class WalletCoreWire implements BaseWire {
 
   void wire__crate__api__full__transfer_wallet(
     int port_,
-    ffi.Pointer<wire_cst_list_prim_u_8_strict> pin,
   ) {
     return _wire__crate__api__full__transfer_wallet(
       port_,
-      pin,
     );
   }
 
-  late final _wire__crate__api__full__transfer_walletPtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>>(
-        'frbgen_wallet_core_wire__crate__api__full__transfer_wallet',
-      );
+  late final _wire__crate__api__full__transfer_walletPtr = _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
+    'frbgen_wallet_core_wire__crate__api__full__transfer_wallet',
+  );
   late final _wire__crate__api__full__transfer_wallet = _wire__crate__api__full__transfer_walletPtr
-      .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
+      .asFunction<void Function(int)>();
 
   void wire__crate__api__full__unlock_wallet(
     int port_,

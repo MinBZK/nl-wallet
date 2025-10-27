@@ -319,6 +319,19 @@ impl InstructionAndResult for GetTransferStatus {
     type Result = TransferSessionState;
 }
 
+// PrepareSendWalletPayload instruction.
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PrepareSendWalletPayload {
+    pub transfer_session_id: Uuid,
+}
+
+impl InstructionAndResult for PrepareSendWalletPayload {
+    const NAME: &'static str = "prepare_send_wallet_payload";
+
+    type Result = ();
+}
+
 // SendWalletPayload instruction.
 
 #[derive(Debug, Serialize, Deserialize)]

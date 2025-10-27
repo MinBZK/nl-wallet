@@ -422,12 +422,21 @@ pub async fn acknowledge_wallet_transfer(uri: String) -> anyhow::Result<()> {
 }
 
 #[flutter_api_error]
-pub async fn transfer_wallet(pin: String) -> anyhow::Result<WalletInstructionResult> {
+pub async fn prepare_transfer_wallet(pin: String) -> anyhow::Result<WalletInstructionResult> {
     let mut wallet = wallet().write().await;
 
-    let result = wallet.send_wallet_payload(pin).await.try_into()?;
+    let result = wallet.prepare_send_wallet_payload(pin).await.try_into()?;
 
     Ok(result)
+}
+
+#[flutter_api_error]
+pub async fn transfer_wallet() -> anyhow::Result<()> {
+    let mut wallet = wallet().write().await;
+
+    wallet.send_wallet_payload().await?;
+
+    Ok(())
 }
 
 #[flutter_api_error]
