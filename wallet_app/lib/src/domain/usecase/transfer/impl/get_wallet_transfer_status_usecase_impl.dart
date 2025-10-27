@@ -1,7 +1,6 @@
-import 'package:fimber/fimber.dart';
-
 import '../../../../data/repository/transfer/transfer_repository.dart';
 import '../../../model/transfer/wallet_transfer_status.dart';
+import '../../wallet_usecase.dart';
 import '../get_wallet_transfer_status_usecase.dart';
 
 /// Use case for observing the status of a wallet transfer.
@@ -20,17 +19,14 @@ class GetWalletTransferStatusUseCaseImpl extends GetWalletTransferStatusUseCase 
   GetWalletTransferStatusUseCaseImpl(this._transferRepository);
 
   @override
-  Stream<WalletTransferStatus> invoke() async* {
+  Stream<WalletTransferStatus> invoke() => observeWalletStatus().handleAppError('Failed to get transfer status');
+
+  Stream<WalletTransferStatus> observeWalletStatus() async* {
     while (true) {
-      try {
-        final status = await _transferRepository.getWalletTransferState();
-        yield status;
-        if (_terminalStates.contains(status)) return;
-        await Future.delayed(const Duration(seconds: 3));
-      } catch (ex) {
-        Fimber.e('Failed to get transfer status', ex: ex);
-        return;
-      }
+      final status = await _transferRepository.getWalletTransferState();
+      yield status;
+      if (_terminalStates.contains(status)) return;
+      await Future.delayed(const Duration(seconds: 3));
     }
   }
 }
