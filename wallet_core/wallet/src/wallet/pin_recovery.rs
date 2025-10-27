@@ -622,13 +622,9 @@ mod tests {
             .return_once(|_| Ok(true));
 
         wallet
-            .mut_storage()
-            .expect_upsert_data::<PinRecoveryData>()
-            .return_once(|_| Ok(()));
-
-        wallet
             .digid_client
             .expect_start_session()
+            .once()
             .return_once(|_digid_config, _http_config, _redirect_uri| {
                 let mut session = MockDigidSession::new();
 
@@ -640,7 +636,8 @@ mod tests {
                 Ok(session)
             });
 
-        wallet.create_pin_recovery_redirect_uri().await.unwrap();
+        let redirect_uri = wallet.create_pin_recovery_redirect_uri().await.unwrap();
+        assert_eq!(&redirect_uri.to_string(), AUTH_URL);
     }
 
     #[tokio::test]
@@ -657,6 +654,7 @@ mod tests {
         let mut session = MockDigidSession::new();
         session
             .expect_into_token_request()
+            .once()
             .return_once(|_http_config, _redirect_uri| {
                 let token_request = TokenRequest {
                     grant_type: TokenRequestGrantType::PreAuthorizedCode {
@@ -678,6 +676,7 @@ mod tests {
 
             client
                 .expect_normalized_credential_previews()
+                .once()
                 .return_const(vec![create_example_preview_data(
                     &MockTimeGenerator::default(),
                     Format::SdJwt,
@@ -730,7 +729,11 @@ mod tests {
             .mut_storage()
             .expect_upsert_data()
             .once()
-            .returning(|_: &RegistrationData| Ok(()));
+            .returning(|registration_data: &RegistrationData| {
+                assert_eq!(registration_data.pin_salt, vec![1, 2, 3]);
+                assert_eq!(registration_data.wallet_certificate.serialization(), "a.b.c");
+                Ok(())
+            });
         wallet
             .mut_storage()
             .expect_fetch_data::<InstructionData>()
@@ -752,10 +755,27 @@ mod tests {
             .expect_instruction_challenge()
             .once()
             .returning(|_, _| Ok(crypto::utils::random_bytes(32)));
-        account_provider_client
-            .expect_instruction()
-            .once()
-            .return_once(move |_, _: Instruction<DiscloseRecoveryCodePinRecovery>| Ok(create_wp_result(())));
+        account_provider_client.expect_instruction().once().return_once(
+            move |_, instruction: Instruction<DiscloseRecoveryCodePinRecovery>| {
+                assert_eq!(instruction.certificate.serialization(), "a.b.c"); // The wallet uses the new certificate
+
+                // PIN recovery disclosure has one disclosure, so two tildes, so three parts
+                assert_eq!(
+                    instruction
+                        .instruction
+                        .dangerous_parse_unverified()
+                        .unwrap()
+                        .payload
+                        .recovery_code_disclosure
+                        .to_string()
+                        .split('~')
+                        .count(),
+                    3
+                );
+
+                Ok(create_wp_result(()))
+            },
+        );
 
         // Finally, complete_pin_recovery() deletes the PIN recovery data.
         wallet
@@ -789,11 +809,6 @@ mod tests {
             .expect_has_any_attestations_with_types()
             .once()
             .return_once(|_| Ok(false));
-
-        wallet
-            .mut_storage()
-            .expect_upsert_data::<PinRecoveryData>()
-            .return_once(|_| Ok(()));
 
         let err = wallet.create_pin_recovery_redirect_uri().await.unwrap_err();
 
@@ -898,6 +913,7 @@ mod tests {
         let mut session = MockDigidSession::new();
         session
             .expect_into_token_request()
+            .once()
             .return_once(|_http_config, _redirect_uri| {
                 let token_request = TokenRequest {
                     grant_type: TokenRequestGrantType::PreAuthorizedCode {
@@ -914,7 +930,7 @@ mod tests {
 
         // Set up the `MockIssuanceSession` to return one `CredentialPreviewState`.
         let start_context = MockIssuanceSession::start_context();
-        start_context.expect().return_once(|| {
+        start_context.expect().once().return_once(|| {
             let mut client = MockIssuanceSession::new();
 
             // Remove the recovery code attribute from the preview
@@ -927,6 +943,7 @@ mod tests {
 
             client
                 .expect_normalized_credential_previews()
+                .once()
                 .return_const(vec![preview]);
 
             client.expect_issuer().return_const(IssuerRegistration::new_mock());
@@ -956,6 +973,7 @@ mod tests {
         let mut session = MockDigidSession::new();
         session
             .expect_into_token_request()
+            .once()
             .return_once(|_http_config, _redirect_uri| {
                 let token_request = TokenRequest {
                     grant_type: TokenRequestGrantType::PreAuthorizedCode {
@@ -973,7 +991,7 @@ mod tests {
         // Set up the `MockIssuanceSession` to return one `CredentialPreviewState`.
         let config = wallet.config_repository.get();
         let start_context = MockIssuanceSession::start_context();
-        start_context.expect().return_once(move || {
+        start_context.expect().once().return_once(move || {
             let mut client = MockIssuanceSession::new();
 
             // Change the recovery code attribute from the preview
@@ -993,9 +1011,8 @@ mod tests {
 
             client
                 .expect_normalized_credential_previews()
+                .once()
                 .return_const(vec![preview]);
-
-            client.expect_issuer().return_const(IssuerRegistration::new_mock());
 
             Ok(client)
         });
