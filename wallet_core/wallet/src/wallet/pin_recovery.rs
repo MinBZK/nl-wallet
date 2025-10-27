@@ -600,13 +600,14 @@ mod tests {
     use crate::storage::StoredAttestationCopy;
     use crate::wallet::PinRecoverySession;
     use crate::wallet::Session;
-    use crate::wallet::pin_recovery::PinRecoveryError;
     use crate::wallet::test::TestWalletMockStorage;
     use crate::wallet::test::WalletDeviceVendor;
     use crate::wallet::test::create_example_pid_sd_jwt;
     use crate::wallet::test::create_example_preview_data;
     use crate::wallet::test::create_wp_result;
     use crate::wallet::test::mock_issuance_session;
+
+    use super::PinRecoveryError;
 
     const AUTH_URL: &str = "http://example.com/auth";
 
