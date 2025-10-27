@@ -147,10 +147,10 @@ pub enum DisclosureError {
 }
 
 impl DisclosureError {
-    fn with_organization(error: VpSessionError, organization: Organization) -> Self {
+    fn with_organization(error: VpSessionError, organization: Box<Organization>) -> Self {
         match error {
             VpSessionError::Verifier(error) => Self::VpVerifierServer {
-                organization: Some(Box::new(organization)),
+                organization: Some(organization),
                 error,
             },
             error => error.into(),

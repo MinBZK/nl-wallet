@@ -38,7 +38,7 @@ pub struct ReaderRegistration {
     pub retention_policy: RetentionPolicy,
     pub sharing_policy: SharingPolicy,
     pub deletion_policy: DeletionPolicy,
-    pub organization: Organization,
+    pub organization: Box<Organization>,
     /// Origin base url, for visual user inspection
     pub request_origin_base_url: Url,
     pub authorized_attributes: HashMap<String, Vec<VecNonEmpty<ClaimPath>>>,
@@ -97,7 +97,7 @@ impl TryFrom<ReaderRegistration> for Vec<rcgen::CustomExtension> {
 
 impl From<ReaderRegistration> for CertificateType {
     fn from(source: ReaderRegistration) -> Self {
-        CertificateType::ReaderAuth(Box::new(source))
+        CertificateType::ReaderAuth(source)
     }
 }
 

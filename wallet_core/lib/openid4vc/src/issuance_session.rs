@@ -512,7 +512,7 @@ struct IssuanceState {
     c_nonce: String,
     normalized_credential_previews: VecNonEmpty<NormalizedCredentialPreview>,
     credential_request_types: VecNonEmpty<CredentialRequestType>,
-    issuer_registration: Box<IssuerRegistration>,
+    issuer_registration: IssuerRegistration,
     issuer_url: BaseUrl,
     #[debug(skip)]
     dpop_private_key: SigningKey,
@@ -1296,7 +1296,7 @@ mod tests {
             c_nonce: "c_nonce".to_string(),
             normalized_credential_previews,
             credential_request_types,
-            issuer_registration: IssuerRegistration::new_mock().into(),
+            issuer_registration: IssuerRegistration::new_mock(),
             issuer_url: "https://issuer.example.com".parse().unwrap(),
             dpop_private_key: SigningKey::random(&mut OsRng),
             dpop_nonce: Some("dpop_nonce".to_string()),

@@ -316,10 +316,7 @@ where
                 .protocol_state
                 .reject_issuance()
                 .await
-                .map_err(|error| IssuanceError::IssuerServer {
-                    organization: Box::new(organization),
-                    error,
-                })?;
+                .map_err(|error| IssuanceError::IssuerServer { organization, error })?;
         };
 
         // In the DigiD stage of PID issuance we don't have to do anything with the DigiD session state,
@@ -436,7 +433,7 @@ where
                     &wallet_config.pid_attributes,
                 )
                 .map_err(|error| IssuanceError::Attestation {
-                    organization: Box::new(organization.clone()),
+                    organization: organization.clone(),
                     error,
                 })?;
 
@@ -530,10 +527,7 @@ where
                             RemoteEcdsaKeyError::MissingSignature => IssuanceError::MissingSignature,
                         }
                     }
-                    _ => IssuanceError::IssuerServer {
-                        organization: Box::new(organization),
-                        error,
-                    },
+                    _ => IssuanceError::IssuerServer { organization, error },
                 }
             });
 

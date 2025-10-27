@@ -111,12 +111,10 @@ where
 
             Ok(Some(redirect_uri)) => Err(DisclosureBasedIssuanceError::UnexpectedScheme(
                 redirect_uri.scheme().to_string(),
-                Box::new(organization.clone()),
+                organization.clone(),
             ))?,
 
-            Ok(None) => Err(DisclosureBasedIssuanceError::MissingRedirectUri(Box::new(
-                organization.clone(),
-            )))?,
+            Ok(None) => Err(DisclosureBasedIssuanceError::MissingRedirectUri(organization.clone()))?,
 
             // If the issuer has no attestations to issue, return an empty Vec.
             Err(DisclosureError::VpClient(VpClientError::Request(VpMessageClientError::AuthPostResponse(err))))
@@ -130,24 +128,20 @@ where
 
         let query = redirect_uri
             .query()
-            .ok_or(DisclosureBasedIssuanceError::MissingRedirectUriQuery(Box::new(
+            .ok_or(DisclosureBasedIssuanceError::MissingRedirectUriQuery(
                 organization.clone(),
-            )))?;
+            ))?;
 
         let CredentialOfferContainer { credential_offer } = serde_urlencoded::from_str(query)
-            .map_err(|e| DisclosureBasedIssuanceError::UrlDecoding(e, Box::new(organization.clone())))?;
+            .map_err(|e| DisclosureBasedIssuanceError::UrlDecoding(e, organization.clone()))?;
 
         let token_request = TokenRequest {
             grant_type: TokenRequestGrantType::PreAuthorizedCode {
                 pre_authorized_code: credential_offer
                     .grants
-                    .ok_or(DisclosureBasedIssuanceError::MissingGrants(Box::new(
-                        organization.clone(),
-                    )))?
+                    .ok_or(DisclosureBasedIssuanceError::MissingGrants(organization.clone()))?
                     .authorization_code()
-                    .ok_or(DisclosureBasedIssuanceError::MissingAuthorizationCode(Box::new(
-                        organization.clone(),
-                    )))?,
+                    .ok_or(DisclosureBasedIssuanceError::MissingAuthorizationCode(organization))?,
             },
             code_verifier: None,
             client_id: Some(NL_WALLET_CLIENT_ID.to_string()),

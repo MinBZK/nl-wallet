@@ -6,7 +6,7 @@ use crypto::x509::BorrowingCertificate;
 #[derive(Debug, Clone)]
 pub struct VerifierCertificate {
     certificate: BorrowingCertificate,
-    registration: Box<ReaderRegistration>,
+    registration: ReaderRegistration,
 }
 
 impl VerifierCertificate {
@@ -30,7 +30,7 @@ impl VerifierCertificate {
         &self.registration
     }
 
-    pub fn into_certificate_and_registration(self) -> (BorrowingCertificate, Box<ReaderRegistration>) {
+    pub fn into_certificate_and_registration(self) -> (BorrowingCertificate, ReaderRegistration) {
         (self.certificate, self.registration)
     }
 }

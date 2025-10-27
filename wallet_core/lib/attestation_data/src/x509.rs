@@ -11,9 +11,10 @@ use crate::auth::reader_auth::ReaderRegistration;
 
 /// Acts as configuration for the [Certificate::new] function.
 #[derive(Debug, Clone, PartialEq)]
+#[expect(clippy::large_enum_variant)] // CertificateType is only used as a temporary result
 pub enum CertificateType {
-    Mdl(Box<IssuerRegistration>),
-    ReaderAuth(Box<ReaderRegistration>),
+    Mdl(IssuerRegistration),
+    ReaderAuth(ReaderRegistration),
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
@@ -47,13 +48,13 @@ impl CertificateType {
                 let Some(registration) = IssuerRegistration::from_certificate(cert)? else {
                     return Err(CertificateTypeError::IssuerRegistrationNotFound);
                 };
-                CertificateType::Mdl(registration.into())
+                CertificateType::Mdl(registration)
             }
             CertificateUsage::ReaderAuth => {
                 let Some(registration) = ReaderRegistration::from_certificate(cert)? else {
                     return Err(CertificateTypeError::ReaderRegistrationNotFound);
                 };
-                CertificateType::ReaderAuth(registration.into())
+                CertificateType::ReaderAuth(registration)
             }
             _ => return Err(CertificateTypeError::UnknownUsage(usage)),
         };
@@ -114,7 +115,7 @@ pub mod generate {
         ) -> Result<KeyPair, CertificateError> {
             ca.generate_key_pair(
                 ISSUANCE_CERT_CN,
-                CertificateType::Mdl(issuer_registration.into()),
+                CertificateType::Mdl(issuer_registration),
                 Default::default(),
             )
         }
@@ -125,7 +126,7 @@ pub mod generate {
         ) -> Result<KeyPair, CertificateError> {
             ca.generate_key_pair(
                 PID_ISSUER_CERT_CN,
-                CertificateType::Mdl(issuer_registration.into()),
+                CertificateType::Mdl(issuer_registration),
                 Default::default(),
             )
         }
@@ -136,7 +137,7 @@ pub mod generate {
         ) -> Result<KeyPair, CertificateError> {
             ca.generate_key_pair(
                 RP_CERT_CN,
-                CertificateType::ReaderAuth(reader_registration.into()),
+                CertificateType::ReaderAuth(reader_registration),
                 Default::default(),
             )
         }
