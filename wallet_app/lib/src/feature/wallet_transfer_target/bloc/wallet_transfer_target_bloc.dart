@@ -4,6 +4,7 @@ import 'package:equatable/equatable.dart';
 import 'package:fimber/fimber.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../data/service/auto_lock_service.dart';
 import '../../../domain/model/bloc/error_state.dart';
 import '../../../domain/model/bloc/network_error_state.dart';
 import '../../../domain/model/flow_progress.dart';
@@ -23,6 +24,7 @@ class WalletTransferTargetBloc extends Bloc<WalletTransferTargetEvent, WalletTra
   final GetWalletTransferStatusUseCase _getWalletTransferStatusUseCase;
   final CancelWalletTransferUseCase _cancelWalletTransferUsecase;
   final SkipWalletTransferUseCase _skipWalletTransferUseCase;
+  final AutoLockService _autoLockProvider;
 
   StreamSubscription? _statusSubscription;
 
@@ -31,12 +33,33 @@ class WalletTransferTargetBloc extends Bloc<WalletTransferTargetEvent, WalletTra
     this._getWalletTransferStatusUseCase,
     this._cancelWalletTransferUsecase,
     this._skipWalletTransferUseCase,
+    this._autoLockProvider,
   ) : super(const WalletTransferIntroduction()) {
     on<WalletTransferRestartEvent>(_onUserRestart);
     on<WalletTransferOptInEvent>(_onUserOptIn);
     on<WalletTransferOptOutEvent>(_onUserOptOut);
     on<WalletTransferStopRequestedEvent>(_onStopRequested);
     on<WalletTransferBackPressedEvent>(_onBackPressed);
+  }
+
+  @override
+  void onChange(Change<WalletTransferTargetState> change) {
+    super.onChange(change);
+    switch (change.nextState) {
+      case WalletTransferLoadingQrData():
+      case WalletTransferAwaitingQrScan():
+      case WalletTransferAwaitingConfirmation():
+      case WalletTransferTransferring():
+        _autoLockProvider.setAutoLock(enabled: false);
+      case WalletTransferIntroduction():
+      case WalletTransferSuccess():
+      case WalletTransferStopped():
+      case WalletTransferGenericError():
+      case WalletTransferNetworkError():
+      case WalletTransferSessionExpired():
+      case WalletTransferFailed():
+        _autoLockProvider.setAutoLock(enabled: true);
+    }
   }
 
   FutureOr<void> _onUserRestart(WalletTransferRestartEvent event, Emitter<WalletTransferTargetState> emit) {
@@ -136,6 +159,7 @@ class WalletTransferTargetBloc extends Bloc<WalletTransferTargetEvent, WalletTra
 
   @override
   Future<void> close() async {
+    _autoLockProvider.setAutoLock(enabled: true); // Always re-enable lock onClose
     await _statusSubscription?.cancel();
     return super.close();
   }

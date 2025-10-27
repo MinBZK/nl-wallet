@@ -4,6 +4,7 @@ import 'package:equatable/equatable.dart';
 import 'package:fimber/fimber.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../data/service/auto_lock_service.dart';
 import '../../../domain/model/bloc/error_state.dart';
 import '../../../domain/model/bloc/network_error_state.dart';
 import '../../../domain/model/flow_progress.dart';
@@ -20,6 +21,7 @@ class WalletTransferSourceBloc extends Bloc<WalletTransferSourceEvent, WalletTra
   final AcknowledgeWalletTransferUseCase _ackWalletTransferUseCase;
   final GetWalletTransferStatusUseCase _getWalletTransferStatusUseCase;
   final CancelWalletTransferUseCase _cancelWalletTransferUsecase;
+  final AutoLockService _autoLockService;
 
   StreamSubscription? _statusSubscription;
 
@@ -27,6 +29,7 @@ class WalletTransferSourceBloc extends Bloc<WalletTransferSourceEvent, WalletTra
     this._ackWalletTransferUseCase,
     this._getWalletTransferStatusUseCase,
     this._cancelWalletTransferUsecase,
+    this._autoLockService,
   ) : super(const WalletTransferInitial()) {
     on<WalletTransferAcknowledgeTransferEvent>(_onAcknowledgeTransfer);
     on<WalletTransferAgreeEvent>(_onTermsAccepted);
@@ -35,6 +38,26 @@ class WalletTransferSourceBloc extends Bloc<WalletTransferSourceEvent, WalletTra
     on<WalletTransferBackPressedEvent>(_onBackPressed);
     on<WalletTransferPinConfirmationFailed>(_onPinConfirmationFailed);
     on<WalletTransferUpdateStateEvent>((event, emit) => emit(event.state));
+  }
+
+  @override
+  void onChange(Change<WalletTransferSourceState> change) {
+    super.onChange(change);
+    switch (change.nextState) {
+      case WalletTransferConfirmPin():
+      case WalletTransferTransferring():
+      case WalletTransferSuccess():
+        _autoLockService.setAutoLock(enabled: false);
+      case WalletTransferInitial():
+      case WalletTransferLoading():
+      case WalletTransferIntroduction():
+      case WalletTransferStopped():
+      case WalletTransferGenericError():
+      case WalletTransferNetworkError():
+      case WalletTransferSessionExpired():
+      case WalletTransferFailed():
+        _autoLockService.setAutoLock(enabled: true);
+    }
   }
 
   Future<void> _onAcknowledgeTransfer(
@@ -133,6 +156,7 @@ class WalletTransferSourceBloc extends Bloc<WalletTransferSourceEvent, WalletTra
 
   @override
   Future<void> close() async {
+    _autoLockService.setAutoLock(enabled: true);
     _stopObservingTransferStatus();
     return super.close();
   }

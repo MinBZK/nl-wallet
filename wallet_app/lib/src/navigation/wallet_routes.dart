@@ -594,7 +594,12 @@ WidgetBuilder _createWalletTransferSourceRoute(RouteSettings settings) {
       providers: [
         BlocProvider<WalletTransferSourceBloc>(
           create: (BuildContext context) {
-            final bloc = WalletTransferSourceBloc(context.read(), context.read(), context.read());
+            final bloc = WalletTransferSourceBloc(
+              context.read(),
+              context.read(),
+              context.read(),
+              context.read(),
+            );
             if (argument.peek() != null) bloc.add(WalletTransferAcknowledgeTransferEvent(argument.value!));
             return bloc;
           },
@@ -611,6 +616,7 @@ WidgetBuilder _createWalletTransferTargetRoute(RouteSettings settings) {
     return BlocProvider<WalletTransferTargetBloc>(
       create: (BuildContext context) {
         return WalletTransferTargetBloc(
+          context.read(),
           context.read(),
           context.read(),
           context.read(),
