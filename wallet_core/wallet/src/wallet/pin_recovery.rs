@@ -2,6 +2,7 @@ use std::hash::Hash;
 use std::sync::Arc;
 
 use itertools::Itertools;
+use p256::ecdsa::VerifyingKey;
 use tracing::info;
 use tracing::instrument;
 use url::Url;
@@ -363,24 +364,31 @@ where
         let config = self.config_repository.get();
 
         let new_pin_salt = new_pin_salt();
-        let wscd = self
-            .pin_recovery_wscd(new_pin.clone(), new_pin_salt.clone(), &config)
-            .await?;
 
-        self.complete_pin_recovery_with_wscd(wscd, new_pin, new_pin_salt, &config)
-            .await
+        self.complete_pin_recovery_with_wscd(
+            |instruction_client, pin_pubkey| PinRecoveryRemoteEcdsaWscd::new(instruction_client, pin_pubkey),
+            new_pin,
+            new_pin_salt,
+            &config,
+        )
+        .await
     }
 
     #[instrument(skip_all)]
-    async fn complete_pin_recovery_with_wscd<P: PinRecoveryWscd>(
+    async fn complete_pin_recovery_with_wscd<P, F>(
         &mut self,
-        pin_recovery_wscd: P,
+        pin_recovery_wscd_factory: F,
         new_pin: String,
         new_pin_salt: Vec<u8>,
         config: &WalletConfiguration,
     ) -> Result<(), PinRecoveryError>
     where
+        P: PinRecoveryWscd,
         <P as DisclosureWscd>::Key: Eq + Hash,
+        F: FnOnce(
+            InstructionClient<S, <AKH as AttestedKeyHolder>::AppleKey, <AKH as AttestedKeyHolder>::GoogleKey, APC>,
+            VerifyingKey,
+        ) -> P,
     {
         info!("Checking if blocked");
         if self.is_blocked() {
@@ -404,10 +412,28 @@ where
 
         validate_pin(&new_pin)?;
 
+        let pin_pubkey = PinKey {
+            pin: &new_pin,
+            salt: &new_pin_salt,
+        }
+        .verifying_key()?;
+
+        let instruction_client = self
+            .new_instruction_client(
+                new_pin.clone(),
+                Arc::clone(attested_key),
+                registration_data.clone(),
+                config.account_server.http_config.clone(),
+                config.account_server.instruction_result_public_key.as_inner().into(),
+            )
+            .await
+            .map_err(IssuanceError::from)?;
+
+        let pin_recovery_wscd = pin_recovery_wscd_factory(instruction_client, pin_pubkey);
+
         // Accept issuance to obtain the PID. This sends the `StartPinRecovery` instruction to the WP.
         // `accept_issuance()` below is the point of no return. If the app is killed between there and completion,
         // PIN recovery will have to start again from the start.
-
         self.storage.write().await.upsert_data(&PinRecoveryData).await?;
 
         let issuance_result = issuance_session
@@ -506,48 +532,6 @@ where
 
         Ok(())
     }
-
-    #[instrument(skip_all)]
-    async fn pin_recovery_wscd(
-        &self,
-        new_pin: String,
-        new_pin_salt: Vec<u8>,
-        config: &WalletConfiguration,
-    ) -> Result<
-        PinRecoveryRemoteEcdsaWscd<S, <AKH as AttestedKeyHolder>::AppleKey, <AKH as AttestedKeyHolder>::GoogleKey, APC>,
-        PinRecoveryError,
-    > {
-        let (attested_key, registration_data) = self
-            .registration
-            .as_key_and_registration_data()
-            .ok_or(PinRecoveryError::NotRegistered)?;
-
-        let pin_pubkey = PinKey {
-            pin: &new_pin,
-            salt: &new_pin_salt,
-        }
-        .verifying_key()?;
-
-        let registration_data = RegistrationData {
-            pin_salt: new_pin_salt,
-            ..registration_data.clone()
-        };
-
-        let instruction_client = self
-            .new_instruction_client(
-                new_pin,
-                Arc::clone(attested_key),
-                registration_data.clone(),
-                config.account_server.http_config.clone(),
-                config.account_server.instruction_result_public_key.as_inner().into(),
-            )
-            .await
-            .map_err(IssuanceError::from)?;
-
-        let pin_recovery_wscd = PinRecoveryRemoteEcdsaWscd::new(instruction_client, pin_pubkey);
-
-        Ok(pin_recovery_wscd)
-    }
 }
 
 #[cfg(test)]
@@ -593,6 +577,7 @@ mod tests {
     use crate::errors::PinValidationError;
     use crate::instruction::PinRecoveryWscd;
     use crate::repository::Repository;
+    use crate::storage::ChangePinData;
     use crate::storage::InstructionData;
     use crate::storage::PinRecoveryData;
     use crate::storage::RegistrationData;
@@ -724,6 +709,13 @@ mod tests {
             .once()
             .returning(|_: &PinRecoveryData| Ok(()));
 
+        // Constructing an instruction client check if the PIN is being changed.
+        wallet
+            .mut_storage()
+            .expect_fetch_data::<ChangePinData>()
+            .once()
+            .returning(|| Ok(None));
+
         // General expectations for sending instructions.
         wallet
             .mut_storage()
@@ -789,7 +781,7 @@ mod tests {
 
         wallet
             .complete_pin_recovery_with_wscd(
-                MockPinWscd,
+                |_, _| MockPinWscd,
                 "112233".to_string(),
                 vec![1, 2, 3],
                 &wallet.config_repository.get(),
@@ -1081,7 +1073,7 @@ mod tests {
 
         let err = wallet
             .complete_pin_recovery_with_wscd(
-                MockPinWscd,
+                |_, _| MockPinWscd,
                 "112233".to_string(),
                 vec![1, 2, 3],
                 &wallet.config_repository.get(),
@@ -1104,7 +1096,7 @@ mod tests {
 
         let err = wallet
             .complete_pin_recovery_with_wscd(
-                MockPinWscd,
+                |_, _| MockPinWscd,
                 "112233".to_string(),
                 vec![1, 2, 3],
                 &wallet.config_repository.get(),
@@ -1127,7 +1119,7 @@ mod tests {
 
         let err = wallet
             .complete_pin_recovery_with_wscd(
-                MockPinWscd,
+                |_, _| MockPinWscd,
                 "112233".to_string(),
                 vec![1, 2, 3],
                 &wallet.config_repository.get(),
@@ -1155,7 +1147,7 @@ mod tests {
 
         let err = wallet
             .complete_pin_recovery_with_wscd(
-                MockPinWscd,
+                |_, _| MockPinWscd,
                 "111111".to_string(),
                 vec![1, 2, 3],
                 &wallet.config_repository.get(),
