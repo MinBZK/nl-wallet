@@ -25,7 +25,7 @@ class DemoScreen extends StatelessWidget {
       child: Scaffold(
         appBar: WalletAppBar(
           title: TitleText(context.l10n.demoScreenTitle),
-          actions: [const HelpIconButton()],
+          actions: const [HelpIconButton()],
         ),
         body: SafeArea(
           child: LayoutBuilder(
