@@ -37,7 +37,6 @@ const ISSUANCE_BASE_PATH: &str = "return-from-digid";
 const DISCLOSURE_BASE_PATH: &str = "disclosure";
 const DISCLOSURE_BASED_ISSUANCE_BASE_PATH: &str = "disclosure_based_issuance";
 const TRANSFER_BASE_PATH: &str = "transfer";
-const PIN_RECOVERY_BASE_PATH: &str = "return-from-digid-pin-recovery";
 
 #[inline]
 pub fn issuance_base_uri(universal_link_base: &BaseUrl) -> BaseUrl {
@@ -57,11 +56,6 @@ pub fn disclosure_based_issuance_base_uri(universal_link_base: &BaseUrl) -> Base
 #[inline]
 pub fn transfer_base_uri(universal_link_base: &BaseUrl) -> BaseUrl {
     universal_link_base.join_base_url(TRANSFER_BASE_PATH)
-}
-
-#[inline]
-pub fn pin_recovery_base_uri(universal_link_base: &BaseUrl) -> BaseUrl {
-    universal_link_base.join_base_url(PIN_RECOVERY_BASE_PATH)
 }
 
 #[nutype(validate(predicate = |s| s.parse::<Url>().is_ok_and(|u| u.scheme() == "https")), derive(Debug, Clone, TryFrom, FromStr, Into, Display, PartialEq, Eq, Serialize, Deserialize))]

@@ -212,9 +212,7 @@ where
             .start_session(
                 config.pid_issuance.digid.clone(),
                 config.pid_issuance.digid_http_config.clone(),
-                urls::pin_recovery_base_uri(&UNIVERSAL_LINK_BASE_URL)
-                    .as_ref()
-                    .to_owned(),
+                urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().to_owned(),
             )
             .await
             .map_err(IssuanceError::DigidSessionStart)?;
