@@ -332,7 +332,11 @@ pub mod generate {
             }
 
             pub fn generate_status_list_mock(&self) -> Result<KeyPair, CertificateError> {
-                self.generate_key_pair(RP_CERT_CN, CertificateUsage::OAuthStatusSigning, Default::default())
+                self.generate_key_pair(
+                    ISSUANCE_CERT_CN,
+                    CertificateUsage::OAuthStatusSigning,
+                    Default::default(),
+                )
             }
         }
     }
