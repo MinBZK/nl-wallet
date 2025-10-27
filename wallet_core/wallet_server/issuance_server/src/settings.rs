@@ -27,6 +27,7 @@ use server_utils::settings::verify_key_pairs;
 use status_lists::settings::StatusListsSettings;
 use utils::generator::TimeGenerator;
 use utils::path::prefix_local_path;
+use utils::vec_at_least::VecNonEmpty;
 
 #[serde_as]
 #[derive(Clone, Deserialize)]
@@ -51,6 +52,7 @@ pub struct AttestationSettings {
     #[serde(flatten)]
     pub key_pair: KeyPair,
     pub dcql_query: Query,
+    pub additional_accepted_attestation_types: Option<VecNonEmpty<String>>,
 
     /// Endpoint to which the disclosed attributes get sent and which has to respond with the attestations to be issued
     /// (or an empty JSON array if none).

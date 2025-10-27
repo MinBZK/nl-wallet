@@ -935,6 +935,7 @@ fn setup_wallet_initiated_usecase_verifier() -> (
             SessionTypeReturnUrl::SameDevice,
             dcql_query.try_into().unwrap(),
             "https://example.com/redirect_uri".parse().unwrap(),
+            None,
         )
         .unwrap(),
     )]);

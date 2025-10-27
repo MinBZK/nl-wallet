@@ -84,6 +84,7 @@ where
                 SessionTypeReturnUrl::Both,
                 s.dcql_query.try_into()?,
                 format!("{OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME}://").parse().unwrap(),
+                s.additional_accepted_attestation_types,
             )?,
         ))
     }))

@@ -583,15 +583,10 @@ impl<K> RpInitiatedUseCase<K> {
         let client_id = client_id_from_key_pair(&key_pair)?;
 
         // Additional accepted attestation types can only be configured for the SD-JWT format.
-        if let Some(requests) = &credential_requests
-            && additional_accepted_attestation_types.is_some()
-            && requests
-                .as_ref()
-                .iter()
-                .any(|request| request.format() == CredentialFormat::MsoMdoc)
-        {
-            return Err(NewDisclosureUseCaseError::WrongFormatForAdditionalAcceptedAttestationTypes);
-        }
+        verify_additional_accepted_attestation_types_for_sd_jwt(
+            credential_requests.as_ref(),
+            additional_accepted_attestation_types.as_ref(),
+        )?;
 
         let use_case = Self {
             data: UseCaseData {
@@ -766,14 +761,22 @@ impl<K> WalletInitiatedUseCase<K> {
         session_type_return_url: SessionTypeReturnUrl,
         credential_requests: NormalizedCredentialRequests,
         return_url_template: ReturnUrlTemplate,
-    ) -> Result<Self, UseCaseCertificateError> {
+        additional_accepted_attestation_types: Option<VecNonEmpty<String>>,
+    ) -> Result<Self, NewDisclosureUseCaseError> {
         let client_id = client_id_from_key_pair(&key_pair)?;
+
+        // Additional accepted attestation types can only be configured for the SD-JWT format.
+        verify_additional_accepted_attestation_types_for_sd_jwt(
+            Some(&credential_requests),
+            additional_accepted_attestation_types.as_ref(),
+        )?;
+
         let use_case = Self {
             data: UseCaseData {
                 key_pair,
                 client_id,
                 session_type_return_url,
-                additional_accepted_attestation_types: None,
+                additional_accepted_attestation_types,
             },
             credential_requests,
             return_url_template,
@@ -800,7 +803,7 @@ impl<K: EcdsaKeySend> UseCase for WalletInitiatedUseCase<K> {
             self.credential_requests.clone(),
             id,
             self.data.client_id.clone(),
-            None,
+            self.data.additional_accepted_attestation_types.clone(),
             Some(RedirectUriTemplate {
                 template: self.return_url_template.clone(),
                 share_on_error: false,
@@ -850,6 +853,24 @@ fn client_id_from_key_pair<K>(key_pair: &KeyPair<K>) -> Result<String, UseCaseCe
             .san_dns_name()?
             .ok_or(UseCaseCertificateError::MissingSAN)?,
     ))
+}
+
+fn verify_additional_accepted_attestation_types_for_sd_jwt(
+    credential_requests: Option<&NormalizedCredentialRequests>,
+    additional_accepted_attestation_types: Option<&VecNonEmpty<String>>,
+) -> Result<(), NewDisclosureUseCaseError> {
+    // Additional accepted attestation types can only be configured for the SD-JWT format.
+    if let Some(requests) = &credential_requests
+        && additional_accepted_attestation_types.is_some()
+        && requests
+            .as_ref()
+            .iter()
+            .any(|request| request.format() == CredentialFormat::MsoMdoc)
+    {
+        return Err(NewDisclosureUseCaseError::WrongFormatForAdditionalAcceptedAttestationTypes);
+    }
+
+    Ok(())
 }
 
 pub trait ToPostAuthResponseErrorCode: Error {
