@@ -211,7 +211,7 @@ pub fn verify_key_pairs(
                 .map_err(|e| CertificateVerificationError::InvalidCertificate(e, key_pair_id.to_string()))?;
         }
 
-        if !CertificateType::has_type(usage) {
+        if !CertificateType::has_certificate_type(usage) {
             continue;
         }
 

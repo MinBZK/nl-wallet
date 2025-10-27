@@ -36,7 +36,7 @@ pub enum CertificateTypeError {
 }
 
 impl CertificateType {
-    pub fn has_type(usage: CertificateUsage) -> bool {
+    pub fn has_certificate_type(usage: CertificateUsage) -> bool {
         matches!(usage, CertificateUsage::Mdl | CertificateUsage::ReaderAuth)
     }
 
