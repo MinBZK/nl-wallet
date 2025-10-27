@@ -1,8 +1,5 @@
-import 'dart:io';
-
 import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../domain/model/bloc/error_state.dart';
@@ -228,7 +225,7 @@ class _WalletTransferSourceScreenState extends State<WalletTransferSourceScreen>
       case WalletTransferConfirmPin():
         context.bloc.add(const WalletTransferBackPressedEvent());
       case WalletTransferSuccess():
-        if (Platform.isAndroid) SystemNavigator.pop();
+        _navigateToSplashScreen(context);
       default:
         Fimber.d('Unhandled onPopInvoked for state: $state');
     }
