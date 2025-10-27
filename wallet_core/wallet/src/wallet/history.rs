@@ -250,8 +250,7 @@ mod tests {
         let mut wallet = TestWalletInMemoryStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         let reader_ca = Ca::generate_reader_mock_ca().unwrap();
-        let reader_key =
-            generate_reader_mock_with_registration(&reader_ca, ReaderRegistration::new_mock().into()).unwrap();
+        let reader_key = generate_reader_mock_with_registration(&reader_ca, ReaderRegistration::new_mock()).unwrap();
 
         // history should be empty
         let history = wallet.get_history().await.unwrap();

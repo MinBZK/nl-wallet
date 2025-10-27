@@ -65,7 +65,7 @@ type MockIssuer = Issuer<MockAttributeService, SigningKey, MemorySessionStore<Is
 
 fn setup_mock_issuer(attestation_count: NonZeroUsize) -> (MockIssuer, TrustAnchor<'static>, BaseUrl, SigningKey) {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
-    let issuance_keypair = generate_issuer_mock_with_registration(&ca, IssuerRegistration::new_mock().into()).unwrap();
+    let issuance_keypair = generate_issuer_mock_with_registration(&ca, IssuerRegistration::new_mock()).unwrap();
 
     setup(
         MockAttributeService {

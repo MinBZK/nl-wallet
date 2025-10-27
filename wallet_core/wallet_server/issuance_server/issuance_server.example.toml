@@ -63,6 +63,11 @@ trust_anchors = ["MIJ..."]
 [attestation_settings."com.example.address"]
 valid_days = 365
 copies_per_format = { "mso_mdoc" = 4, "dc+sd-jwt" = 4 }
+private_key_type = "software" # or "hsm"
+private_key = "MIG..."        # DER-encoded private key, in case of "software"
+certificate = "MIJ..."
+
+[attestation_settings."com.example.address".status_list]
 base_url = "https://cdn.example.com/tsl"
 private_key_type = "software" # or "hsm"
 private_key = "MIG..."        # DER-encoded private key, in case of "software"

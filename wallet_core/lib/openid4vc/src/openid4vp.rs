@@ -891,12 +891,13 @@ mod tests {
     use attestation_data::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_data::test_credential::nl_pid_address_minimal_address;
     use attestation_data::test_credential::nl_pid_credentials_full_name;
-    use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
+
     use attestation_types::claim_path::ClaimPath;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
     use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
+    use crypto::server_keys::generate::mock::PID_ISSUER_CERT_CN;
     use crypto::x509::CertificateUsage;
     use dcql::CredentialFormat;
     use dcql::CredentialQueryIdentifier;
@@ -962,7 +963,7 @@ mod tests {
     ) {
         let ca = Ca::generate("myca", Default::default()).unwrap();
         let trust_anchor = ca.to_trust_anchor().to_owned();
-        let rp_keypair = generate_reader_mock_with_registration(&ca, None).unwrap();
+        let rp_keypair = ca.generate_reader_mock().unwrap();
 
         let encryption_privkey = EcKeyPair::generate(EcCurve::P256).unwrap();
 
@@ -1619,7 +1620,7 @@ mod tests {
         let (_, _, _, auth_request) = setup_with_credential_requests(credential_requests);
 
         let issuer_keypair = ca
-            .generate_key_pair(ISSUANCE_CERT_CN, CertificateUsage::Mdl, Default::default())
+            .generate_key_pair(PID_ISSUER_CERT_CN, CertificateUsage::Mdl, Default::default())
             .unwrap();
         let wscd = MockRemoteWscd::default();
 

@@ -36,8 +36,6 @@ max_session_lifetime_in_sec = 900
 [attestation_settings."urn:eudi:pid:nl:1"]
 valid_days = 365
 copies_per_format = { "mso_mdoc" = 4, "dc+sd-jwt" = 4 }
-# TODO add correct path in PVW-4558
-status_list_base_url = "https://${SERVICES_HOST}:${CONFIG_SERVER_PORT}/"
 attestation_qualification = "QEAA"
 private_key_type = "hsm"
 private_key = "${PID_ISSUER_KEY}"
@@ -46,8 +44,20 @@ certificate = "${PID_ISSUER_CRT}"
 [attestation_settings."urn:eudi:pid-address:nl:1"]
 valid_days = 365
 copies_per_format = { "mso_mdoc" = 4, "dc+sd-jwt" = 4 }
-# TODO add correct path in PVW-4558
-status_list_base_url = "https://${SERVICES_HOST}:${CONFIG_SERVER_PORT}/"
 private_key_type = "hsm"
 private_key = "${PID_ISSUER_KEY}"
 certificate = "${PID_ISSUER_CRT}"
+
+[attestation_settings."urn:eudi:pid:nl:1".status_list]
+# TODO add correct path in PVW-4558
+base_url = "https://${SERVICES_HOST}:${CONFIG_SERVER_PORT}/"
+private_key_type = "software"
+private_key = "${PID_ISSUER_TSL_KEY}"
+certificate = "${PID_ISSUER_TSL_CRT}"
+
+[attestation_settings."urn:eudi:pid-address:nl:1".status_list]
+# TODO add correct path in PVW-4558
+base_url = "https://${SERVICES_HOST}:${CONFIG_SERVER_PORT}/"
+private_key_type = "software"
+private_key = "${PID_ISSUER_TSL_KEY}"
+certificate = "${PID_ISSUER_TSL_CRT}"

@@ -230,7 +230,7 @@ mod tests {
     ) -> WalletDisclosureSession<MockDisclosureSession> {
         let reader_ca = Ca::generate_reader_mock_ca().unwrap();
         let reader_key_pair =
-            generate_reader_mock_with_registration(&reader_ca, Some(ReaderRegistration::new_mock())).unwrap();
+            generate_reader_mock_with_registration(&reader_ca, ReaderRegistration::new_mock()).unwrap();
         let verifier_certificate = VerifierCertificate::try_new(reader_key_pair.into()).unwrap().unwrap();
 
         let mut disclosure_session = MockDisclosureSession::new();
