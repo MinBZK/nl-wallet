@@ -191,8 +191,8 @@ impl PreviewableCredentialPayload {
         let claims = sd_jwt.into_claims();
 
         Ok(PreviewableCredentialPayload {
-            attestation_type: claims.vct.clone(),
-            issuer: claims.iss.clone(),
+            attestation_type: claims.vct,
+            issuer: claims.iss,
             expires: claims.exp,
             not_before: claims.nbf,
             attestation_qualification: claims
