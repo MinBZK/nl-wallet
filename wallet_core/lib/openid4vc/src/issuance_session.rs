@@ -512,7 +512,7 @@ struct IssuanceState {
     c_nonce: String,
     normalized_credential_previews: VecNonEmpty<NormalizedCredentialPreview>,
     credential_request_types: VecNonEmpty<CredentialRequestType>,
-    issuer_registration: IssuerRegistration,
+    issuer_registration: Box<IssuerRegistration>,
     issuer_url: BaseUrl,
     #[debug(skip)]
     dpop_private_key: SigningKey,
@@ -1041,7 +1041,7 @@ mod tests {
     use attestation_data::auth::LocalizedStrings;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::pid_constants::PID_ATTESTATION_TYPE;
-    use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
+    use attestation_data::x509::generate::mock::generate_pid_issuer_mock_with_registration;
     use attestation_types::qualification::AttestationQualification;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::KeyPair;
@@ -1083,7 +1083,7 @@ mod tests {
         type_metadata: TypeMetadata,
         formats: Vec<Format>,
     ) -> Result<HttpIssuanceSession<MockVcMessageClient>, IssuanceSessionError> {
-        let issuance_key = generate_issuer_mock_with_registration(ca, IssuerRegistration::new_mock().into()).unwrap();
+        let issuance_key = generate_pid_issuer_mock_with_registration(ca, IssuerRegistration::new_mock()).unwrap();
 
         let mut mock_msg_client = mock_openid_message_client();
         mock_msg_client
@@ -1229,10 +1229,10 @@ mod tests {
     fn test_start_issuance_error_different_issuer_registrations() {
         let ca = Ca::generate_issuer_mock_ca().unwrap();
 
-        let issuance_key = generate_issuer_mock_with_registration(&ca, IssuerRegistration::new_mock().into()).unwrap();
+        let issuance_key = generate_pid_issuer_mock_with_registration(&ca, IssuerRegistration::new_mock()).unwrap();
         let mut different_org = IssuerRegistration::new_mock();
         different_org.organization.display_name = LocalizedStrings::from(vec![("en", "different org name")]);
-        let different_issuance_key = generate_issuer_mock_with_registration(&ca, different_org.into()).unwrap();
+        let different_issuance_key = generate_pid_issuer_mock_with_registration(&ca, different_org).unwrap();
 
         let preview_payload =
             PreviewableCredentialPayload::example_empty(PID_ATTESTATION_TYPE, &MockTimeGenerator::default());
@@ -1296,7 +1296,7 @@ mod tests {
             c_nonce: "c_nonce".to_string(),
             normalized_credential_previews,
             credential_request_types,
-            issuer_registration: IssuerRegistration::new_mock(),
+            issuer_registration: IssuerRegistration::new_mock().into(),
             issuer_url: "https://issuer.example.com".parse().unwrap(),
             dpop_private_key: SigningKey::random(&mut OsRng),
             dpop_nonce: Some("dpop_nonce".to_string()),
@@ -1332,7 +1332,7 @@ mod tests {
             let trust_anchor = ca.to_trust_anchor().to_owned();
 
             let issuer_registration = IssuerRegistration::new_mock();
-            let issuer_key = generate_issuer_mock_with_registration(&ca, Some(issuer_registration.clone())).unwrap();
+            let issuer_key = generate_pid_issuer_mock_with_registration(&ca, issuer_registration.clone()).unwrap();
             let issuer_certificate = issuer_key.certificate().clone();
 
             let (attestation_type, metadata_integrity, metadata_documents) =
@@ -1687,7 +1687,7 @@ mod tests {
         // public key in the preview than is contained within the response should fail.
         let other_ca = Ca::generate_issuer_mock_ca().unwrap();
         let other_issuance_key =
-            generate_issuer_mock_with_registration(&other_ca, IssuerRegistration::new_mock().into()).unwrap();
+            generate_pid_issuer_mock_with_registration(&other_ca, IssuerRegistration::new_mock()).unwrap();
         let preview_data = NormalizedCredentialPreview {
             content: CredentialPreviewContent {
                 issuer_certificate: other_issuance_key.certificate().clone(),

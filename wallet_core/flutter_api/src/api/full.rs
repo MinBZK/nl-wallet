@@ -440,6 +440,15 @@ pub async fn transfer_wallet() -> anyhow::Result<()> {
 }
 
 #[flutter_api_error]
+pub async fn receive_wallet_transfer() -> anyhow::Result<()> {
+    let mut wallet = wallet().write().await;
+
+    wallet.receive_wallet_payload().await?;
+
+    Ok(())
+}
+
+#[flutter_api_error]
 pub async fn cancel_wallet_transfer() -> anyhow::Result<()> {
     let mut wallet = wallet().write().await;
 

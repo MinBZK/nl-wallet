@@ -145,8 +145,10 @@ async fn test_wallet_transfer() {
 
     source.send_wallet_payload().await.unwrap();
 
-    assert_state(TransferSessionState::ReadyForDownload, &mut source).await;
-    assert_state(TransferSessionState::Success, &mut destination).await;
+    assert_states(TransferSessionState::ReadyForDownload, &mut destination, &mut source).await;
+
+    destination.receive_wallet_payload().await.unwrap();
+
     assert_state(TransferSessionState::Success, &mut source).await;
 
     // Check if the content of the destination wallet

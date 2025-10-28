@@ -3,6 +3,8 @@
 
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
+import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
+
 import '../frb_generated.dart';
 import '../models/attestation.dart';
 import '../models/config.dart';
@@ -16,7 +18,6 @@ import '../models/uri.dart';
 import '../models/version_state.dart';
 import '../models/wallet_event.dart';
 import '../models/wallet_state.dart';
-import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 // These functions are ignored because they are not marked as `pub`: `create_wallet`, `wallet`
 
@@ -125,6 +126,8 @@ Future<WalletInstructionResult> prepareTransferWallet({required String pin}) =>
     WalletCore.instance.api.crateApiFullPrepareTransferWallet(pin: pin);
 
 Future<void> transferWallet() => WalletCore.instance.api.crateApiFullTransferWallet();
+
+Future<void> receiveWalletTransfer() => WalletCore.instance.api.crateApiFullReceiveWalletTransfer();
 
 Future<void> cancelWalletTransfer() => WalletCore.instance.api.crateApiFullCancelWalletTransfer();
 

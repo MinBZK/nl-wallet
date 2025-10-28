@@ -379,7 +379,7 @@ mod tests {
         let wallet_config = default_wallet_config();
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let issuer_registration = IssuerRegistration::new_mock();
-        let issuer_keypair = generate_issuer_mock_with_registration(&ca, issuer_registration.clone().into()).unwrap();
+        let issuer_keypair = generate_issuer_mock_with_registration(&ca, issuer_registration.clone()).unwrap();
 
         let (full_presentations, disclosable_presentations): (Vec<_>, Vec<_>) = [
             mdoc_stored_attestation_copy(&issuer_keypair),

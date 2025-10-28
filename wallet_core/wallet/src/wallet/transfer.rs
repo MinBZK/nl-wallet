@@ -231,10 +231,6 @@ where
             .await?;
 
         match (&transfer_data.key_data, status) {
-            (Some(TransferKeyData::Destination { .. }), TransferSessionState::ReadyForDownload) => {
-                self.receive_wallet_payload(transfer_data).await?;
-                return Ok(TransferSessionState::Success);
-            }
             (Some(TransferKeyData::Source { .. }), TransferSessionState::Success) => {
                 self.clean_after_transfer().await?;
             }
@@ -318,7 +314,11 @@ where
 
     #[instrument(skip_all)]
     #[sentry_capture_error]
-    pub async fn receive_wallet_payload(&mut self, transfer_data: TransferData) -> Result<(), TransferError> {
+    pub async fn receive_wallet_payload(&mut self) -> Result<(), TransferError> {
+        let Some(transfer_data) = self.storage.read().await.fetch_data::<TransferData>().await? else {
+            return Err(TransferError::MissingTransferSessionId);
+        };
+
         let Some(TransferKeyData::Destination { private_key }) = transfer_data.key_data else {
             return Err(TransferError::IllegalWalletState);
         };
@@ -1055,6 +1055,22 @@ mod tests {
             .expect("Wallet send payload should have succeeded");
 
         // Receive payload on the destination
+        destination_wallet.mut_storage().checkpoint();
+
+        let private_key = private_key_param.lock().as_ref().unwrap().clone();
+
+        destination_wallet
+            .mut_storage()
+            .expect_fetch_data::<TransferData>()
+            .returning(move || {
+                Ok(Some(TransferData {
+                    transfer_session_id: transfer_session_id.into(),
+                    key_data: Some(TransferKeyData::Destination {
+                        private_key: private_key.clone(),
+                    }),
+                }))
+            });
+
         destination_wallet
             .mut_storage()
             .expect_fetch_data::<InstructionData>()
@@ -1142,12 +1158,8 @@ mod tests {
             .expect_delete_data::<TransferData>()
             .returning(|| Ok(()));
 
-        let private_key = private_key_param.lock().as_ref().unwrap().clone();
         destination_wallet
-            .receive_wallet_payload(TransferData {
-                transfer_session_id: transfer_session_id.into(),
-                key_data: Some(TransferKeyData::Destination { private_key }),
-            })
+            .receive_wallet_payload()
             .await
             .expect("Wallet receive payload should have succeeded");
 
@@ -1192,6 +1204,28 @@ mod tests {
             .expect("Wallet init transfer should have succeeded");
 
         // Receive payload
+        destination_wallet.mut_storage().checkpoint();
+
+        let key_pair = EcKeyPair::generate(EcCurve::P256).unwrap();
+        let database_export_bytes = random_bytes(256);
+        let database_export_key = SqlCipherKey::new_random_with_salt();
+        let database_export = DatabaseExport::new(database_export_key, database_export_bytes.clone());
+        let database_payload = WalletDatabasePayload::new(database_export);
+        let payload = database_payload.encrypt(&key_pair.to_jwk_public_key()).unwrap();
+        let private_key = key_pair.to_jwk_private_key();
+
+        destination_wallet
+            .mut_storage()
+            .expect_fetch_data::<TransferData>()
+            .returning(move || {
+                Ok(Some(TransferData {
+                    transfer_session_id: transfer_session_id.into(),
+                    key_data: Some(TransferKeyData::Destination {
+                        private_key: private_key.clone(),
+                    }),
+                }))
+            });
+
         destination_wallet
             .mut_storage()
             .expect_fetch_data::<InstructionData>()
@@ -1211,13 +1245,6 @@ mod tests {
             .expect_instruction_challenge()
             .once()
             .returning(|_, _| Ok(random_bytes(32)));
-
-        let key_pair = EcKeyPair::generate(EcCurve::P256).unwrap();
-        let database_export_bytes = random_bytes(256);
-        let database_export_key = SqlCipherKey::new_random_with_salt();
-        let database_export = DatabaseExport::new(database_export_key, database_export_bytes.clone());
-        let database_payload = WalletDatabasePayload::new(database_export);
-        let payload = database_payload.encrypt(&key_pair.to_jwk_public_key()).unwrap();
 
         Arc::get_mut(&mut destination_wallet.account_provider_client)
             .unwrap()
@@ -1267,12 +1294,8 @@ mod tests {
 
         destination_wallet.mut_storage().expect_commit_import().never();
 
-        let private_key = key_pair.to_jwk_private_key();
         destination_wallet
-            .receive_wallet_payload(TransferData {
-                transfer_session_id: transfer_session_id.into(),
-                key_data: Some(TransferKeyData::Destination { private_key }),
-            })
+            .receive_wallet_payload()
             .await
             .expect_err("Wallet receive payload should have failed");
     }

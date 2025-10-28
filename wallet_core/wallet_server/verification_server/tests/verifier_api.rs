@@ -29,7 +29,7 @@ use attestation_data::auth::reader_auth::ReaderRegistration;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::disclosure::DisclosedAttestations;
 use attestation_data::disclosure::DisclosedAttributes;
-use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
+use attestation_data::x509::generate::mock::generate_pid_issuer_mock_with_registration;
 use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::qualification::AttestationQualification;
@@ -102,7 +102,7 @@ fn memory_storage_settings() -> Storage {
 }
 
 async fn request_server_settings_and_listener() -> (RequesterAuth, Option<TcpListener>) {
-    let listener = tokio::net::TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
+    let listener = TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
     let addr = listener.local_addr().unwrap();
     (
         RequesterAuth::InternalEndpoint(Server {
@@ -118,7 +118,7 @@ async fn wallet_server_settings_and_listener(
     request: &StartDisclosureRequest,
 ) -> (VerifierSettings, TcpListener, Ca, TrustAnchor<'static>) {
     // Set up the listener.
-    let listener = tokio::net::TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
+    let listener = TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
     let addr = listener.local_addr().unwrap();
     let server = Server {
         ip: addr.ip(),
@@ -134,10 +134,7 @@ async fn wallet_server_settings_and_listener(
     let rp_ca = Ca::generate_reader_mock_ca().unwrap();
     let reader_trust_anchors = vec![rp_ca.as_borrowing_trust_anchor().clone()];
     let rp_trust_anchor = rp_ca.to_trust_anchor().to_owned();
-    let reader_registration = request
-        .dcql_query
-        .as_ref()
-        .map(ReaderRegistration::mock_from_dcql_query);
+    let reader_registration = ReaderRegistration::mock_from_dcql_query(request.dcql_query.as_ref().unwrap());
 
     // Set up the use case, based on RP CA and reader registration.
     let usecase_keypair = generate_reader_mock_with_registration(&rp_ca, reader_registration).unwrap();
@@ -916,8 +913,7 @@ fn pid_start_disclosure_request(format: CredentialFormat) -> StartDisclosureRequ
 fn prepare_example_mdoc_mock(issuer_ca: &Ca, wscd: &MockRemoteWscd) -> Mdoc {
     let payload_preview = PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default());
 
-    let issuer_keypair =
-        generate_issuer_mock_with_registration(issuer_ca, Some(IssuerRegistration::new_mock())).unwrap();
+    let issuer_keypair = generate_pid_issuer_mock_with_registration(issuer_ca, IssuerRegistration::new_mock()).unwrap();
 
     // Generate a new private key and use that and the issuer key to sign the Mdoc.
     let mdoc_private_key = wscd.create_random_key();
@@ -939,8 +935,7 @@ fn prepare_example_sd_jwt_mock(issuer_ca: &Ca, wscd: &MockRemoteWscd) -> (Signed
     let payload_preview = PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default());
     let metadata = NormalizedTypeMetadata::nl_pid_example();
 
-    let issuer_keypair =
-        generate_issuer_mock_with_registration(issuer_ca, Some(IssuerRegistration::new_mock())).unwrap();
+    let issuer_keypair = generate_pid_issuer_mock_with_registration(issuer_ca, IssuerRegistration::new_mock()).unwrap();
 
     // Generate a new private key and use that and the issuer key to sign the SD-JWT.
     let sd_jwt_private_key = wscd.create_random_key();
@@ -1143,7 +1138,7 @@ async fn test_disclosed_attributes_with_nonce(
     // Check if the disclosed attributes endpoint returns a 200 for the session,
     // with the attributes, when we include the nonce from the return URL.
     let nonce = return_url
-        .expect("a same-device disclosure session should procude a return URL")
+        .expect("a same-device disclosure session should produce a return URL")
         .into_inner()
         .query_pairs()
         .find_map(|(key, value)| (key == "nonce").then_some(value.into_owned()))

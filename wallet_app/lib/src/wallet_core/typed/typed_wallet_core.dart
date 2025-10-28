@@ -160,6 +160,8 @@ class TypedWalletCore {
 
   Future<void> transferWallet() => call(core.transferWallet);
 
+  Future<void> receiveWalletTransfer() => call(core.receiveWalletTransfer);
+
   Future<void> cancelWalletTransfer() => call(core.cancelWalletTransfer);
 
   Future<core.TransferSessionState> getWalletTransferState() => call(core.getWalletTransferState);

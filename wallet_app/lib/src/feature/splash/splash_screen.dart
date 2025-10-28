@@ -6,6 +6,7 @@ import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/helper/setup_helper.dart';
 import '../../wallet_assets.dart';
+import '../common/widget/government_logo.dart';
 import '../common/widget/utility/do_on_init.dart';
 import '../common/widget/wallet_logo.dart';
 import 'bloc/splash_bloc.dart';
@@ -42,22 +43,34 @@ class SplashScreen extends StatelessWidget {
 
   /// Build the visual part of the SplashScreen
   Widget _buildContent(BuildContext context) {
-    return Scaffold(
-      key: const Key('splashScreen'),
-      body: Center(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const WalletLogo(size: 100),
-            const SizedBox(height: 16),
-            Text(
-              context.l10n.appTitle,
-              style: context.textTheme.titleMedium,
+    return Stack(
+      children: [
+        Scaffold(
+          key: const Key('splashScreen'),
+          body: Center(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const WalletLogo(size: 100),
+                const SizedBox(height: 16),
+                Text(
+                  context.l10n.appTitle,
+                  style: context.textTheme.titleMedium,
+                ),
+              ],
             ),
-          ],
+          ),
         ),
-      ),
+        const Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          child: ExcludeSemantics(
+            child: GovernmentLogo(),
+          ),
+        ),
+      ],
     );
   }
 }

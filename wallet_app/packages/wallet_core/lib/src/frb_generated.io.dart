@@ -3,10 +3,13 @@
 
 // ignore_for_file: unused_import, unused_element, unnecessary_import, duplicate_ignore, invalid_use_of_internal_member, annotate_overrides, non_constant_identifier_names, curly_braces_in_flow_control_structures, prefer_const_literals_to_create_immutables, unused_field
 
-import 'api/full.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:ffi' as ffi;
+
+import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
+
+import 'api/full.dart';
 import 'frb_generated.dart';
 import 'models/attestation.dart';
 import 'models/config.dart';
@@ -20,7 +23,6 @@ import 'models/uri.dart';
 import 'models/version_state.dart';
 import 'models/wallet_event.dart';
 import 'models/wallet_state.dart';
-import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   WalletCoreApiImplPlatform({
@@ -2188,22 +2190,20 @@ class WalletCoreWire implements BaseWire {
   late final _wire__crate__api__full__lock_wallet = _wire__crate__api__full__lock_walletPtr
       .asFunction<void Function(int)>();
 
-  void wire__crate__api__full__prepare_transfer_wallet(
+  void wire__crate__api__full__receive_wallet_transfer(
     int port_,
-    ffi.Pointer<wire_cst_list_prim_u_8_strict> pin,
   ) {
-    return _wire__crate__api__full__prepare_transfer_wallet(
+    return _wire__crate__api__full__receive_wallet_transfer(
       port_,
-      pin,
     );
   }
 
-  late final _wire__crate__api__full__prepare_transfer_walletPtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>>(
-        'frbgen_wallet_core_wire__crate__api__full__prepare_transfer_wallet',
+  late final _wire__crate__api__full__receive_wallet_transferPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
+        'frbgen_wallet_core_wire__crate__api__full__receive_wallet_transfer',
       );
-  late final _wire__crate__api__full__prepare_transfer_wallet = _wire__crate__api__full__prepare_transfer_walletPtr
-      .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
+  late final _wire__crate__api__full__receive_wallet_transfer = _wire__crate__api__full__receive_wallet_transferPtr
+      .asFunction<void Function(int)>();
 
   void wire__crate__api__full__register(
     int port_,
@@ -2374,17 +2374,20 @@ class WalletCoreWire implements BaseWire {
 
   void wire__crate__api__full__transfer_wallet(
     int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> pin,
   ) {
     return _wire__crate__api__full__transfer_wallet(
       port_,
+      pin,
     );
   }
 
-  late final _wire__crate__api__full__transfer_walletPtr = _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
-    'frbgen_wallet_core_wire__crate__api__full__transfer_wallet',
-  );
+  late final _wire__crate__api__full__transfer_walletPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>>(
+        'frbgen_wallet_core_wire__crate__api__full__transfer_wallet',
+      );
   late final _wire__crate__api__full__transfer_wallet = _wire__crate__api__full__transfer_walletPtr
-      .asFunction<void Function(int)>();
+      .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
 
   void wire__crate__api__full__unlock_wallet(
     int port_,

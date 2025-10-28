@@ -161,7 +161,7 @@ mod tests {
     #[tokio::test]
     async fn it_works() {
         let ca = Ca::generate_issuer_mock_ca().unwrap();
-        let issuance_key = ca.generate_issuer_mock().unwrap();
+        let issuance_key = ca.generate_pid_issuer_mock().unwrap();
         let trust_anchors = &[ca.to_trust_anchor()];
 
         let payload_preview = PreviewableCredentialPayload::example_with_attributes(

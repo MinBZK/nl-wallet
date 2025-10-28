@@ -26,7 +26,7 @@ class GetWalletTransferStatusUseCaseImpl extends GetWalletTransferStatusUseCase 
       final status = await _transferRepository.getWalletTransferState();
       yield status;
       if (_terminalStates.contains(status)) return;
-      await Future.delayed(const Duration(seconds: 3));
+      await Future.delayed(const Duration(seconds: 2));
     }
   }
 }

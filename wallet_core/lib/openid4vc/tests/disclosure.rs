@@ -38,6 +38,7 @@ use crypto::mock_remote::MockRemoteWscdError;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
+use crypto::server_keys::generate::mock::PID_ISSUER_CERT_CN;
 use crypto::server_keys::generate::mock::RP_CERT_CN;
 use crypto::wscd::DisclosureResult;
 use crypto::wscd::DisclosureWscd;
@@ -146,7 +147,7 @@ fn assert_disclosed_attestations_mdoc_pid(disclosed_attestations: &UniqueIdVec<D
 #[test]
 fn disclosure_direct() {
     let ca = Ca::generate("myca", Default::default()).unwrap();
-    let auth_keypair = generate_reader_mock_with_registration(&ca, None).unwrap();
+    let auth_keypair = ca.generate_reader_mock().unwrap();
 
     // RP assembles the Authorization Request and signs it into a JWS.
     let nonce = "nonce".to_string();
@@ -241,15 +242,13 @@ async fn disclosure_using_message_client(
     let ca = Ca::generate("myca", Default::default()).unwrap();
     let rp_keypair = generate_reader_mock_with_registration(
         &ca,
-        Some(ReaderRegistration::mock_from_dcql_query(
-            &test_credentials.to_dcql_query(formats.iter().copied()),
-        )),
+        ReaderRegistration::mock_from_dcql_query(&test_credentials.to_dcql_query(formats.iter().copied())),
     )
     .unwrap();
 
     let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
     let issuer_keypair = issuer_ca
-        .generate_key_pair(ISSUANCE_CERT_CN, CertificateUsage::Mdl, Default::default())
+        .generate_key_pair(PID_ISSUER_CERT_CN, CertificateUsage::Mdl, Default::default())
         .unwrap();
 
     // Initialize the "wallet"
@@ -925,7 +924,7 @@ fn setup_wallet_initiated_usecase_verifier() -> (
     // Initialize the verifier
     let test_credentials = nl_pid_credentials_full_name();
     let dcql_query = test_credentials.to_dcql_query([CredentialFormat::SdJwt]);
-    let reader_registration = Some(ReaderRegistration::mock_from_dcql_query(&dcql_query));
+    let reader_registration = ReaderRegistration::mock_from_dcql_query(&dcql_query);
     let usecases = HashMap::from([(
         WALLET_INITIATED_RETURN_URL_USE_CASE.to_string(),
         WalletInitiatedUseCase::try_new(
@@ -962,11 +961,11 @@ fn setup_verifier(
     let rp_ca = Ca::generate_reader_mock_ca().unwrap();
 
     let issuer_keypair = issuer_ca
-        .generate_key_pair(ISSUANCE_CERT_CN, CertificateUsage::Mdl, Default::default())
+        .generate_key_pair(PID_ISSUER_CERT_CN, CertificateUsage::Mdl, Default::default())
         .unwrap();
 
     // Initialize the verifier
-    let reader_registration = Some(ReaderRegistration::mock_from_dcql_query(dcql_query));
+    let reader_registration = ReaderRegistration::mock_from_dcql_query(dcql_query);
     let usecases = HashMap::from([
         (
             NO_RETURN_URL_USE_CASE.to_string(),

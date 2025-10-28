@@ -9,6 +9,8 @@ abstract class TransferRepository {
 
   Future<WalletInstructionResult> transferWallet(String pin);
 
+  Future<void> receiveWalletTransfer();
+
   Future<void> cancelWalletTransfer();
 
   Future<WalletTransferStatus> getWalletTransferState();

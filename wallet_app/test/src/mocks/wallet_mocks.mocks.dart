@@ -111,6 +111,7 @@ import 'package:wallet/src/domain/usecase/transfer/acknowledge_wallet_transfer_u
 import 'package:wallet/src/domain/usecase/transfer/cancel_wallet_transfer_usecase.dart' as _i115;
 import 'package:wallet/src/domain/usecase/transfer/get_wallet_transfer_status_usecase.dart' as _i117;
 import 'package:wallet/src/domain/usecase/transfer/init_wallet_transfer_usecase.dart' as _i118;
+import 'package:wallet/src/domain/usecase/transfer/receive_wallet_transfer_usecase.dart' as _i125;
 import 'package:wallet/src/domain/usecase/transfer/skip_wallet_transfer_usecase.dart' as _i119;
 import 'package:wallet/src/domain/usecase/transfer/start_wallet_transfer_usecase.dart' as _i114;
 import 'package:wallet/src/domain/usecase/update/observe_version_state_usecase.dart' as _i105;
@@ -2355,6 +2356,15 @@ class MockTransferRepository extends _i1.Mock implements _i40.TransferRepository
           as _i10.Future<_i26.WalletInstructionResult>);
 
   @override
+  _i10.Future<void> receiveWalletTransfer() =>
+      (super.noSuchMethod(
+            Invocation.method(#receiveWalletTransfer, []),
+            returnValue: _i10.Future<void>.value(),
+            returnValueForMissingStub: _i10.Future<void>.value(),
+          )
+          as _i10.Future<void>);
+
+  @override
   _i10.Future<void> cancelWalletTransfer() =>
       (super.noSuchMethod(
             Invocation.method(#cancelWalletTransfer, []),
@@ -2958,6 +2968,15 @@ class MockTypedWalletCore extends _i1.Mock implements _i42.TypedWalletCore {
   _i10.Future<void> transferWallet() =>
       (super.noSuchMethod(
             Invocation.method(#transferWallet, []),
+            returnValue: _i10.Future<void>.value(),
+            returnValueForMissingStub: _i10.Future<void>.value(),
+          )
+          as _i10.Future<void>);
+
+  @override
+  _i10.Future<void> receiveWalletTransfer() =>
+      (super.noSuchMethod(
+            Invocation.method(#receiveWalletTransfer, []),
             returnValue: _i10.Future<void>.value(),
             returnValueForMissingStub: _i10.Future<void>.value(),
           )
@@ -6048,6 +6067,52 @@ class MockGetWalletStateUseCase extends _i1.Mock implements _i124.GetWalletState
           as _i10.Future<_i57.Result<T>>);
 }
 
+/// A class which mocks [ReceiveWalletTransferUseCase].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockReceiveWalletTransferUseCase extends _i1.Mock implements _i125.ReceiveWalletTransferUseCase {
+  @override
+  _i10.Future<_i57.Result<void>> invoke() =>
+      (super.noSuchMethod(
+            Invocation.method(#invoke, []),
+            returnValue: _i10.Future<_i57.Result<void>>.value(
+              _i14.dummyValue<_i57.Result<void>>(
+                this,
+                Invocation.method(#invoke, []),
+              ),
+            ),
+            returnValueForMissingStub: _i10.Future<_i57.Result<void>>.value(
+              _i14.dummyValue<_i57.Result<void>>(
+                this,
+                Invocation.method(#invoke, []),
+              ),
+            ),
+          )
+          as _i10.Future<_i57.Result<void>>);
+
+  @override
+  _i10.Future<_i57.Result<T>> tryCatch<T>(
+    _i10.Future<T> Function()? future,
+    String? errorDescription,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#tryCatch, [future, errorDescription]),
+            returnValue: _i10.Future<_i57.Result<T>>.value(
+              _i14.dummyValue<_i57.Result<T>>(
+                this,
+                Invocation.method(#tryCatch, [future, errorDescription]),
+              ),
+            ),
+            returnValueForMissingStub: _i10.Future<_i57.Result<T>>.value(
+              _i14.dummyValue<_i57.Result<T>>(
+                this,
+                Invocation.method(#tryCatch, [future, errorDescription]),
+              ),
+            ),
+          )
+          as _i10.Future<_i57.Result<T>>);
+}
+
 /// A class which mocks [WalletCoreApi].
 ///
 /// See the documentation for Mockito's code generation for more information.
@@ -6673,6 +6738,15 @@ class MockWalletCoreApi extends _i1.Mock implements _i26.WalletCoreApi {
             ),
           )
           as _i10.Future<_i26.WalletInstructionResult>);
+
+  @override
+  _i10.Future<void> crateApiFullReceiveWalletTransfer() =>
+      (super.noSuchMethod(
+            Invocation.method(#crateApiFullReceiveWalletTransfer, []),
+            returnValue: _i10.Future<void>.value(),
+            returnValueForMissingStub: _i10.Future<void>.value(),
+          )
+          as _i10.Future<void>);
 
   @override
   _i10.Future<void> crateApiFullRegister({required String? pin}) =>

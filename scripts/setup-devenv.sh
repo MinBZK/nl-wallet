@@ -266,11 +266,17 @@ export WP_WUA_PUBLIC_KEY
 
 # Generate pid issuer key and cert
 generate_pid_issuer_key_pair
+generate_pid_issuer_tsl_key_pair
 
 PID_ISSUER_KEY=pid_issuer_key
 export PID_ISSUER_KEY
 PID_ISSUER_CRT=$(< "${TARGET_DIR}/pid_issuer/issuer.crt.der" ${BASE64})
 export PID_ISSUER_CRT
+
+PID_ISSUER_TSL_KEY=$(< "${TARGET_DIR}/pid_issuer/tsl.key.der" ${BASE64})
+export PID_ISSUER_TSL_KEY
+PID_ISSUER_TSL_CRT=$(< "${TARGET_DIR}/pid_issuer/tsl.crt.der" ${BASE64})
+export PID_ISSUER_TSL_CRT
 
 # Generate root CA for reader
 if [ ! -f "${TARGET_DIR}/ca.reader.key.pem" ]; then
@@ -331,6 +337,10 @@ DEMO_ISSUER_KEY_UNIVERSITY_ISSUER=$(< "${TARGET_DIR}/demo_issuer/university.issu
 export DEMO_ISSUER_KEY_UNIVERSITY_ISSUER
 DEMO_ISSUER_CRT_UNIVERSITY_ISSUER=$(< "${TARGET_DIR}/demo_issuer/university.issuer.crt.der" ${BASE64})
 export DEMO_ISSUER_CRT_UNIVERSITY_ISSUER
+DEMO_ISSUER_KEY_UNIVERSITY_TSL=$(< "${TARGET_DIR}/demo_issuer/university.tsl.key.der" ${BASE64})
+export DEMO_ISSUER_KEY_UNIVERSITY_TSL
+DEMO_ISSUER_CRT_UNIVERSITY_TSL=$(< "${TARGET_DIR}/demo_issuer/university.tsl.crt.der" ${BASE64})
+export DEMO_ISSUER_CRT_UNIVERSITY_TSL
 
 generate_demo_issuer_key_pairs insurance
 DEMO_ISSUER_KEY_INSURANCE_READER=$(< "${TARGET_DIR}/demo_issuer/insurance.reader.key.der" ${BASE64})
@@ -341,6 +351,10 @@ DEMO_ISSUER_KEY_INSURANCE_ISSUER=$(< "${TARGET_DIR}/demo_issuer/insurance.issuer
 export DEMO_ISSUER_KEY_INSURANCE_ISSUER
 DEMO_ISSUER_CRT_INSURANCE_ISSUER=$(< "${TARGET_DIR}/demo_issuer/insurance.issuer.crt.der" ${BASE64})
 export DEMO_ISSUER_CRT_INSURANCE_ISSUER
+DEMO_ISSUER_KEY_INSURANCE_TSL=$(< "${TARGET_DIR}/demo_issuer/insurance.tsl.key.der" ${BASE64})
+export DEMO_ISSUER_KEY_INSURANCE_TSL
+DEMO_ISSUER_CRT_INSURANCE_TSL=$(< "${TARGET_DIR}/demo_issuer/insurance.tsl.crt.der" ${BASE64})
+export DEMO_ISSUER_CRT_INSURANCE_TSL
 
 render_template "${DEVENV}/demo_issuer.json.template" "${DEMO_ISSUER_DIR}/demo_issuer.json"
 
