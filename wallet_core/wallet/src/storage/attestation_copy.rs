@@ -163,6 +163,26 @@ impl StoredAttestationCopy {
         }
     }
 
+    pub fn attestation_type(&self) -> &str {
+        self.normalized_metadata.vct()
+    }
+
+    pub fn into_attributes(self) -> Attributes {
+        match self.attestation {
+            StoredAttestation::MsoMdoc { mdoc } => Attributes::from_mdoc_attributes(
+                &self.normalized_metadata,
+                mdoc.into_issuer_signed().into_entries_by_namespace(),
+            )
+            .expect("a stored mdoc attestation should convert to Attributes without errors"),
+            StoredAttestation::SdJwt { sd_jwt, .. } => Attributes::try_from(
+                sd_jwt
+                    .decoded_claims()
+                    .expect("a stored SD-JWT attestation should decode to its claims without errors"),
+            )
+            .expect("a stored SD-JWT attestation should convert to Attributes without errors"),
+        }
+    }
+
     /// Convert the stored attestation into a [`CredentialPayload`], skipping JSON schema validation.
     pub fn into_credential_payload(self) -> CredentialPayload {
         match self.attestation {

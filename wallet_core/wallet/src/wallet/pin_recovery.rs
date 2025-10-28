@@ -266,7 +266,7 @@ where
         let pid_attestation_types = config.pid_attributes.pid_attestation_types();
         let pid_attestation_types = pid_attestation_types.iter().map(String::as_str).collect();
 
-        let stored_pid_credential_payload = self
+        let stored_pid_copy = self
             .storage
             .read()
             .await
@@ -274,16 +274,12 @@ where
             .await
             .map_err(IssuanceError::AttestationQuery)?
             .pop()
-            .expect("no PID found in registered wallet")
-            .into_credential_payload();
+            .expect("no PID found in registered wallet");
 
-        let stored_recovery_code = stored_pid_credential_payload
-            .previewable_payload
-            .attributes
-            .get(&Self::recovery_code_path(
-                &config.pid_attributes,
-                &stored_pid_credential_payload.previewable_payload.attestation_type,
-            ))
+        let attestation_type = stored_pid_copy.attestation_type().to_string();
+        let attributes = stored_pid_copy.into_attributes();
+        let stored_recovery_code = attributes
+            .get(&Self::recovery_code_path(&config.pid_attributes, &attestation_type))
             .expect("failed to retrieve recovery code from PID")
             .expect("no recovery code found in PID");
 
