@@ -18,7 +18,7 @@ android {
     ndkVersion = "28.1.13356709"
 
     defaultConfig {
-        minSdk = 24
+        minSdk = 29
         lint { targetSdk = 36 }
         testOptions { targetSdk = 36 }
 
