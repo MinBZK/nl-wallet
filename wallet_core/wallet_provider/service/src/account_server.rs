@@ -3118,7 +3118,7 @@ mod tests {
         let instruction_error = account_server
             .handle_instruction(
                 hw_privkey
-                    .sign_instruction(CheckPin, challenge.clone(), 48, &setup.pin_privkey, new_cert)
+                    .sign_instruction(CheckPin, challenge, 48, &setup.pin_privkey, new_cert)
                     .await,
                 &instruction_result_signing_key,
                 &MockGenerators,
