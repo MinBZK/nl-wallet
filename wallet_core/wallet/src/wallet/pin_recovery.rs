@@ -363,7 +363,7 @@ where
 
         let new_pin_salt = new_pin_salt();
 
-        self.complete_pin_recovery_with_wscd(
+        self.complete_pin_recovery_internal(
             |instruction_client, pin_pubkey| PinRecoveryRemoteEcdsaWscd::new(instruction_client, pin_pubkey),
             new_pin,
             new_pin_salt,
@@ -373,7 +373,7 @@ where
     }
 
     #[instrument(skip_all)]
-    async fn complete_pin_recovery_with_wscd<P, F>(
+    async fn complete_pin_recovery_internal<P, F>(
         &mut self,
         pin_recovery_wscd_factory: F,
         new_pin: String,
@@ -410,11 +410,18 @@ where
 
         validate_pin(&new_pin)?;
 
+        // All sanity checks are done, we proceed with recovery.
+
         let pin_pubkey = PinKey {
             pin: &new_pin,
             salt: &new_pin_salt,
         }
         .verifying_key()?;
+
+        let registration_data = RegistrationData {
+            pin_salt: new_pin_salt.clone(),
+            ..registration_data.clone()
+        };
 
         let instruction_client = self
             .new_instruction_client(
@@ -778,7 +785,7 @@ mod tests {
         setup_issuance_session(&mut wallet);
 
         wallet
-            .complete_pin_recovery_with_wscd(
+            .complete_pin_recovery_internal(
                 |_, _| MockPinWscd,
                 "112233".to_string(),
                 vec![1, 2, 3],
@@ -1070,7 +1077,7 @@ mod tests {
         setup_issuance_session(&mut wallet);
 
         let err = wallet
-            .complete_pin_recovery_with_wscd(
+            .complete_pin_recovery_internal(
                 |_, _| MockPinWscd,
                 "112233".to_string(),
                 vec![1, 2, 3],
@@ -1093,7 +1100,7 @@ mod tests {
             .returning(move || Ok(None));
 
         let err = wallet
-            .complete_pin_recovery_with_wscd(
+            .complete_pin_recovery_internal(
                 |_, _| MockPinWscd,
                 "112233".to_string(),
                 vec![1, 2, 3],
@@ -1116,7 +1123,7 @@ mod tests {
             .returning(move || Ok(None));
 
         let err = wallet
-            .complete_pin_recovery_with_wscd(
+            .complete_pin_recovery_internal(
                 |_, _| MockPinWscd,
                 "112233".to_string(),
                 vec![1, 2, 3],
@@ -1144,7 +1151,7 @@ mod tests {
         setup_issuance_session(&mut wallet);
 
         let err = wallet
-            .complete_pin_recovery_with_wscd(
+            .complete_pin_recovery_internal(
                 |_, _| MockPinWscd,
                 "111111".to_string(),
                 vec![1, 2, 3],
