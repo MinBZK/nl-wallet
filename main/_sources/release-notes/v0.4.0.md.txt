@@ -53,6 +53,10 @@
 - The `typ` field of JWTs is now consistently verified across the codebase.
   Previously, the Wallet configuration was erroneously set to `"JOSE+JSON"`,
   which should be changed to `"jwt"`.
+- The minimum supported iOS version has been upgraded to iOS 15.0 (from iOS 
+  14.0).
+- The minimum supported Android version has been upgraded to Android 10.0 - API
+  29 (from Android 7.0 - API 24).
 
 ## New features
 
