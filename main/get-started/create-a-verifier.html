@@ -192,14 +192,14 @@ their own frontend and backend.</p>
 <li><p><a class="reference internal" href="#what-we-re-going-to-cover" id="id1">What we’re going to cover</a></p></li>
 <li><p><a class="reference internal" href="#architecture-overview" id="id2">Architecture overview</a></p>
 <ul>
-<li><p><a class="reference internal" href="#plaform-components-overview" id="id3">Plaform components overview</a></p></li>
+<li><p><a class="reference internal" href="#platform-components-overview" id="id3">Platform components overview</a></p></li>
 </ul>
 </li>
 <li><p><a class="reference internal" href="#creating-a-reader-authentication-document" id="id4">Creating a reader authentication document</a></p>
 <ul>
-<li><p><a class="reference internal" href="#decide-on-required-metadata" id="id5">Decide on required metadata</a></p></li>
+<li><p><a class="reference internal" href="#decide-on-required-metadata-for-your-reader-auth" id="id5">Decide on required metadata for your reader_auth</a></p></li>
 <li><p><a class="reference internal" href="#decide-on-attributes-you-want-to-verify" id="id6">Decide on attributes you want to verify</a></p></li>
-<li><p><a class="reference internal" href="#creating-the-json-document" id="id7">Creating the JSON document</a></p></li>
+<li><p><a class="reference internal" href="#creating-the-reader-auth-json-document" id="id7">Creating the reader_auth JSON document</a></p></li>
 </ul>
 </li>
 <li><p><a class="reference internal" href="#creating-a-reader-certificate" id="id8">Creating a reader certificate</a></p></li>
@@ -244,14 +244,14 @@ their own frontend and backend.</p>
 </ul>
 </li>
 <li><p><a class="reference internal" href="#verifier-api-specifications" id="id34">Verifier API specifications</a></p></li>
-<li><p><a class="reference internal" href="#how-disclosure-sessions-work" id="id35">How disclosure sessions work</a></p>
+<li><p><a class="reference internal" href="#integrating-your-app-with-your-verification-server" id="id35">Integrating your app with your verification server</a></p></li>
+<li><p><a class="reference internal" href="#addendum" id="id36">Addendum</a></p>
 <ul>
-<li><p><a class="reference internal" href="#what-a-disclosure-session-looks-like" id="id36">What a disclosure session looks Like</a></p></li>
-<li><p><a class="reference internal" href="#cross-device-vs-same-device-flows" id="id37">Cross device vs. same device flows</a></p></li>
+<li><p><a class="reference internal" href="#what-a-disclosure-session-looks-like" id="id37">What a disclosure session looks Like</a></p></li>
+<li><p><a class="reference internal" href="#cross-device-vs-same-device-flows" id="id38">Cross device vs. same device flows</a></p></li>
+<li><p><a class="reference internal" href="#requirements-applicable-to-your-application" id="id39">Requirements applicable to your application</a></p></li>
 </ul>
 </li>
-<li><p><a class="reference internal" href="#requirements-applicable-to-your-application" id="id38">Requirements applicable to your application</a></p></li>
-<li><p><a class="reference internal" href="#integrating-your-app-with-your-verification-server" id="id39">Integrating your app with your verification server</a></p></li>
 <li><p><a class="reference internal" href="#references" id="id40">References</a></p></li>
 </ul>
 </nav>
@@ -309,8 +309,8 @@ verifiers integrate their application with the NL Wallet platform.</p></li>
 NL Wallet platform as a whole, you can have a look at the <a class="reference external" href="https://edi.pleio.nl/news/view/93f40956-3671-49c9-9c82-2dab636b59bf/psasad-documenten-nl-wallet">Architecture
 Documents</a>.</p>
 </div>
-<section id="plaform-components-overview">
-<h3>Plaform components overview<a class="headerlink" href="#plaform-components-overview" title="Link to this heading"></a></h3>
+<section id="platform-components-overview">
+<h3>Platform components overview<a class="headerlink" href="#platform-components-overview" title="Link to this heading"></a></h3>
 <p>The NL Wallet platform consists of:</p>
 <ul class="simple">
 <li><p><strong>Issuers</strong>: (also known as Verstrekkende Voorzieningen), which can issue
@@ -325,16 +325,17 @@ directly, by either Issuers or Verifiers);</p></li>
 received from Issuers, and which it can disclose to Verifiers.</p></li>
 </ul>
 <p>Verifiers configure and maintain a <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> on their own premises
-or cloud environments, which they integrate with their own application, and which
-interacts with the NL Wallet app, in order to verify attested attributes.</p>
+or cloud environments, which they integrate with their own application, and
+which interacts with the NL Wallet app, in order to verify attested attributes.</p>
 </section>
 </section>
 <section id="creating-a-reader-authentication-document">
 <h2>Creating a reader authentication document<a class="headerlink" href="#creating-a-reader-authentication-document" title="Link to this heading"></a></h2>
+<p>We’re going to create a so-called <code class="docutils literal notranslate"><span class="pre">reader_auth</span></code> document.</p>
 <p>The subsections below describe the decisions you need to make as a verifier with
 regards to attributes you want to verify, what data we require from you, how to
 create a reader certificate for your usecase (which is configured for usage
-within the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code>).</p>
+within the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> configuration).</p>
 <p>In this guide, we assume you have <a class="reference internal" href="../community/onboarding.html"><span class="doc std std-doc">onboarded succesfully</span></a> - i.e., you are
 running your own CA and the public key of that CA has been shared with the
 operations team who will need to add your CA public key to the trust anchors of
@@ -347,13 +348,21 @@ but when you want to test your verifier with the NL Wallet platform (i.e., our
 backend and mobile apps in our acceptance and pre-production environments), you
 do need to be onboarded to get access to those environments.</p>
 </div>
-<section id="decide-on-required-metadata">
-<h3>Decide on required metadata<a class="headerlink" href="#decide-on-required-metadata" title="Link to this heading"></a></h3>
+<div class="admonition note">
+<p class="admonition-title">This chapter is also a part of creating an issuer</p>
+<p>Note that when you’ve also <a class="reference internal" href="create-an-issuer.html"><span class="doc std std-doc">created an issuer</span></a>, this section will look
+familiar to you; that is because an issuer also needs a reader authentication
+document. This is because of how disclosure-based-issuance works: with
+disclosure-based-issuance, an issuer is essentially also a verifier (i.e., you
+disclose some attributes in order to obtain some new ones).</p>
+</div>
+<section id="decide-on-required-metadata-for-your-reader-auth">
+<h3>Decide on required metadata for your reader_auth<a class="headerlink" href="#decide-on-required-metadata-for-your-reader-auth" title="Link to this heading"></a></h3>
 <p>A reader certificate contains a bunch of metadata, which we store as a part
 of the certificate in a so-called X.509v3 extension. We use this data to know
 which attested attribute you want to verify, and to present a view of you, the
-verifier in the NL Wallet app GUI.</p>
-<p><strong>REQUIRED_DATA</strong></p>
+verifier, in the NL Wallet app GUI.</p>
+<p><strong>ROOT</strong></p>
 <table class="docutils align-default">
 <thead>
 <tr class="row-odd"><th class="head"><p>Key</p></th>
@@ -429,7 +438,7 @@ verifier in the NL Wallet app GUI.</p>
 </tbody>
 </table>
 <p>Note: In the <code class="docutils literal notranslate"><span class="pre">Languages</span></code> column where it says <code class="docutils literal notranslate"><span class="pre">nl+en</span></code> for example, please
-provide both a dutch and an english answer.</p>
+provide both Dutch and English values.</p>
 </section>
 <section id="decide-on-attributes-you-want-to-verify">
 <h3>Decide on attributes you want to verify<a class="headerlink" href="#decide-on-attributes-you-want-to-verify" title="Link to this heading"></a></h3>
@@ -440,7 +449,7 @@ given <code class="docutils literal notranslate"><span class="pre">vct</span></c
 <p>For our own issuer(s), you can use the <code class="docutils literal notranslate"><span class="pre">jq</span></code> utility to query our supported
 attribute names:</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/MinBZK/nl-wallet
-<span class="nb">cd</span><span class="w"> </span>nl-wallet/wallet_core/lib/sd_jwt_vc_metadata/example
+<span class="nb">cd</span><span class="w"> </span>nl-wallet/wallet_core/lib/sd_jwt_vc_metadata/examples
 jq<span class="w"> </span>-r<span class="w"> </span><span class="s1">&#39;(select(.vct | startswith(&quot;urn:&quot;)) | .vct) + &quot;: &quot; + (.claims[].path | join(&quot;.&quot;))&#39;</span><span class="w"> </span>*.json<span class="w"> </span><span class="p">|</span><span class="w"> </span>sort<span class="w"> </span>-u
 </pre></div>
 </div>
@@ -467,11 +476,10 @@ multiple <code class="docutils literal notranslate"><span class="pre">usecases</
 certificates for different <code class="docutils literal notranslate"><span class="pre">usecases</span></code>.</p>
 </div>
 </section>
-<section id="creating-the-json-document">
-<h3>Creating the JSON document<a class="headerlink" href="#creating-the-json-document" title="Link to this heading"></a></h3>
+<section id="creating-the-reader-auth-json-document">
+<h3>Creating the reader_auth JSON document<a class="headerlink" href="#creating-the-reader-auth-json-document" title="Link to this heading"></a></h3>
 <p>When you’ve collected all the required metadata, you are ready to create the
-<code class="docutils literal notranslate"><span class="pre">reader_auth.json</span></code> file. For illustrative purposes, here is an example for the
-municipality of Amsterdam:</p>
+<code class="docutils literal notranslate"><span class="pre">reader_auth.json</span></code> file. Here is an example for the municipality of Amsterdam:</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
 <span class="w">    </span><span class="nt">&quot;purposeStatement&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">        </span><span class="nt">&quot;nl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Inloggen&quot;</span><span class="p">,</span>
@@ -519,15 +527,23 @@ municipality of Amsterdam:</p>
 <span class="w">    </span><span class="p">},</span>
 <span class="w">    </span><span class="nt">&quot;requestOriginBaseUrl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://www.amsterdam.nl&quot;</span><span class="p">,</span>
 <span class="w">    </span><span class="nt">&quot;authorizedAttributes&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;urn:eudi:pid:nl:1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[[</span><span class="s2">&quot;urn:eudi:pid:nl:1&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;bsn&quot;</span><span class="p">]]</span>
+<span class="w">        </span><span class="nt">&quot;urn:eudi:pid:nl:1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">            </span><span class="p">[</span><span class="s2">&quot;urn:eudi:pid:nl:1&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;bsn&quot;</span><span class="p">],</span>
+<span class="w">            </span><span class="p">[</span><span class="s2">&quot;bsn&quot;</span><span class="p">]</span>
+<span class="w">        </span><span class="p">]</span>
 <span class="w">    </span><span class="p">}</span>
 <span class="p">}</span>
 </pre></div>
 </div>
 <p>Take the above example, make sure you’ve read the previous sections which
-explain what the different key/values mean, and construct your own
-<code class="docutils literal notranslate"><span class="pre">reader_auth.json</span></code> file. When we’re creating the reader certificate in the next
-sections, we’re going to need it.</p>
+explain what the different key/values mean, and (optionally) construct your
+own <code class="docutils literal notranslate"><span class="pre">reader_auth.json</span></code> file (or copy it verbatim if you’re just testing). When
+we are going to creating the reader certificate in the next sections, we are
+going to need it at a specific location, so save it (inside the <code class="docutils literal notranslate"><span class="pre">nl-wallet</span></code>
+git directory):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">target</span><span class="o">/</span><span class="n">vs</span><span class="o">-</span><span class="n">config</span><span class="o">/</span><span class="n">reader_auth</span><span class="o">.</span><span class="n">json</span>
+</pre></div>
+</div>
 <div class="admonition note">
 <p class="admonition-title">Screenshot showing how reader_auth.json data is displayed</p>
 <p>The data from <code class="docutils literal notranslate"><span class="pre">reader_auth.json</span></code> is used in various parts of the app. For
@@ -558,7 +574,7 @@ installed and working.</p>
 <div class="admonition caution">
 <p class="admonition-title">Did you create a reader_auth.json?</p>
 <p>You need a valid <code class="docutils literal notranslate"><span class="pre">reader_auth.json</span></code>, which you can base on the example shown in
-the <a class="reference internal" href="#creating-the-json-document">previous section</a>.</p>
+the <a class="reference internal" href="#creating-the-reader-auth-json-document">previous section</a>.</p>
 </div>
 <div class="admonition caution">
 <p class="admonition-title">Did you create your own CA?</p>
@@ -582,16 +598,17 @@ git<span class="w"> </span>clone<span class="w"> </span>https://github.com/MinBZ
 <span class="nb">cd</span><span class="w"> </span>nl-wallet
 
 <span class="c1"># Set and create target directory, identifier for your certificates.</span>
-<span class="nb">export</span><span class="w"> </span><span class="nv">TARGET_DIR</span><span class="o">=</span>target/ca-cert
+<span class="nb">export</span><span class="w"> </span><span class="nv">CA_DIR</span><span class="o">=</span>target/ca-cert
+<span class="nb">export</span><span class="w"> </span><span class="nv">TARGET_DIR</span><span class="o">=</span>target/vs-config
 <span class="nb">export</span><span class="w"> </span><span class="nv">IDENTIFIER</span><span class="o">=</span>foocorp
-mkdir<span class="w"> </span>-p<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">&quot;</span>
+mkdir<span class="w"> </span>-p<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CA_DIR</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">&quot;</span>
 
 <span class="c1"># Create the reader certificate using wallet_ca.</span>
 cargo<span class="w"> </span>run<span class="w"> </span>--manifest-path<span class="w"> </span><span class="s2">&quot;wallet_core/Cargo.toml&quot;</span><span class="w"> </span>--bin<span class="w"> </span><span class="s2">&quot;wallet_ca&quot;</span><span class="w"> </span>reader<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--ca-key-file<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">/ca.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">.key.pem&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--ca-crt-file<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">/ca.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">.crt.pem&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--ca-key-file<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CA_DIR</span><span class="si">}</span><span class="s2">/ca.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">.key.pem&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--ca-crt-file<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CA_DIR</span><span class="si">}</span><span class="s2">/ca.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">.crt.pem&quot;</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--common-name<span class="w"> </span><span class="s2">&quot;reader.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--reader-auth-file<span class="w"> </span><span class="s2">&quot;reader_auth.json&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--reader-auth-file<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">/reader_auth.json&quot;</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--file-prefix<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">/reader.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">&quot;</span>
 
 <span class="c1"># Convert certificate PEM to DER.</span>
@@ -607,11 +624,12 @@ openssl<span class="w"> </span>pkcs8<span class="w"> </span>-topk8<span class="w
 </div>
 <p>The used CA public certificate (referenced in the previous <code class="docutils literal notranslate"><span class="pre">wallet_ca</span></code> command)
 needs to be in the list of various so-called trust anchors. Specifically,
-issuers and the NL Wallet app itself need to know if this CA is a trusted CA,
-and our software “knows” that by checking its trust anchors.</p>
+issuers and verifiers, and the NL Wallet app itself need to know if this CA is
+a trusted CA, and our software “knows” that by checking its trust anchors.</p>
 <p>When you run locally, when using <code class="docutils literal notranslate"><span class="pre">setup-devenv.sh</span></code> and <code class="docutils literal notranslate"><span class="pre">start-devenv.sh</span></code>, the
 generated CA certificate is automatically added to the trust anchors within the
-configuration files of pid_issuer, demo_issuer, and the NL Wallet app config.</p>
+configuration files of <code class="docutils literal notranslate"><span class="pre">pid_issuer</span></code>, <code class="docutils literal notranslate"><span class="pre">demo_issuer</span></code>, <code class="docutils literal notranslate"><span class="pre">verification_server</span></code>,
+<code class="docutils literal notranslate"><span class="pre">issuance_server</span></code>, <code class="docutils literal notranslate"><span class="pre">demo_relying_party</span></code> and the NL Wallet app config.</p>
 <p>When you <a class="reference internal" href="../community/create-a-ca.html"><span class="doc std std-doc">create your own CA</span></a>, you need to make sure the public key of your
 CA is in the relevant trust anchor configuration settings. When you are a
 member of the <a class="reference internal" href="../community/onboarding.html"><span class="doc std std-doc">NL Wallet community</span></a>, and so using NL Wallet managed backend
@@ -621,8 +639,10 @@ above did for you, and during the NL Wallet community <a class="reference intern
 you shared your CA certificate with the operations team who ensure your CA is
 in the various trust anchor lists).</p>
 <p>When you run locally, but with a manually created CA, you need to add the CA
-public certificate to your services and wallet app config yourself. We will
-cover how to do that in this guide.</p>
+public certificate to your services and wallet app config yourself. When we
+generate the configuration later in this guide, we will do this automatically,
+provided you used the naming conventions we used in the previous <code class="docutils literal notranslate"><span class="pre">wallet_ca</span></code>
+invocations.</p>
 </section>
 <section id="verification-server-setup">
 <h2>Verification server setup<a class="headerlink" href="#verification-server-setup" title="Link to this heading"></a></h2>
@@ -643,15 +663,19 @@ cargo<span class="w"> </span>build<span class="w"> </span><span class="se">\</sp
 </pre></div>
 </div>
 <p>The above command creates <code class="docutils literal notranslate"><span class="pre">wallet_core/target/release/verification_server</span></code>,
-which is a release binary for the platform you’re running on.</p>
+which is a release binary for the platform you’re running on. Let’s copy that
+binary to our target config directory for usage later:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>mkdir<span class="w"> </span>-p<span class="w"> </span>target/vs-config
+cp<span class="w"> </span>wallet_core/target/release/verification_server<span class="w"> </span>target/vs-config
+</pre></div>
+</div>
 <div class="admonition note">
 <p class="admonition-title">About default feature flags</p>
 <p>Note that since we don’t specify a <code class="docutils literal notranslate"><span class="pre">--features</span></code> argument in the above <code class="docutils literal notranslate"><span class="pre">cargo</span></code>
 command, the default feature flags apply. For <code class="docutils literal notranslate"><span class="pre">verification_server</span></code>, this
 happens to be just <code class="docutils literal notranslate"><span class="pre">postgres</span></code>. When you build for local development, the build
 script enables another feature flag called <code class="docutils literal notranslate"><span class="pre">allow_insecure_url</span></code>, which would
-allow a <code class="docutils literal notranslate"><span class="pre">verification_server</span></code>’s <code class="docutils literal notranslate"><span class="pre">request_uri</span></code> field to contain an
-(insecure) <code class="docutils literal notranslate"><span class="pre">http://</span></code> URL in addition to a <code class="docutils literal notranslate"><span class="pre">https://</span></code> URL.</p>
+allow you to talk to a <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> using an (insecure) <code class="docutils literal notranslate"><span class="pre">http://</span></code> URL.</p>
 </div>
 <div class="admonition danger">
 <p class="admonition-title">Don’t allow insecure URLs on production-like environments</p>
@@ -717,6 +741,8 @@ docker<span class="w"> </span>run<span class="w"> </span>--name<span class="w"> 
 --rm<span class="w">  </span>--detach<span class="w"> </span>--publish<span class="w"> </span><span class="nv">$PGPORT</span>:5432<span class="w"> </span>--env<span class="w"> </span><span class="nv">POSTGRES_PASSWORD</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$PGPASSWORD</span><span class="s2">&quot;</span><span class="w"> </span>postgres
 </pre></div>
 </div>
+<p>The next sections will use the environment variables declared previously (and
+whichever database they point to).</p>
 </section>
 <section id="create-user-and-database">
 <h4>Create user and database<a class="headerlink" href="#create-user-and-database" title="Link to this heading"></a></h4>
@@ -745,6 +771,7 @@ are non-changing, and hence, <code class="docutils literal notranslate"><span cl
 <span class="nv">DATABASE_URL</span><span class="o">=</span><span class="s2">&quot;postgres://</span><span class="nv">$DB_USERNAME</span><span class="s2">:</span><span class="nv">$DB_PASSWORD</span><span class="s2">@</span><span class="nv">$PGHOST</span><span class="s2">:</span><span class="nv">$PGPORT</span><span class="s2">/</span><span class="nv">$DB_NAME</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
 cargo<span class="w"> </span>run<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--manifest-path<span class="w"> </span>wallet_core/wallet_server/server_utils/migrations/Cargo.toml<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--package<span class="w"> </span>verification_server_migrations<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--bin<span class="w"> </span>verification_server_migrations<span class="w"> </span>--<span class="w"> </span>fresh
 </pre></div>
 </div>
@@ -810,7 +837,7 @@ cat<span class="w"> </span><span class="s">&lt;&lt;EOF &gt; &quot;$TARGET_DIR/pa
 signed that certificate using a CA, either generated by the development setup
 script or specifically <a class="reference internal" href="../community/create-a-ca.html"><span class="doc std std-doc">created by you</span></a> as part of the (optional)
 <a class="reference internal" href="../community/onboarding.html"><span class="doc std std-doc">community onboarding process</span></a>.</p>
-<p>The verification server distinguishes two kinds of trust anchors:</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> distinguishes two kinds of trust anchors:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">issuer_trust_anchors</span></code> - a string array of CA certificates which are
 considered trusted to sign issuer certificates, in DER format, base64
@@ -819,15 +846,15 @@ encoded;</p></li>
 considered trusted to sign reader certificates, in DER format, base64
 encoded;</p></li>
 </ul>
-<p>The trust anchor arrays tell the verification server which certificates it can
-trust. If a verification server is presented with certificates signed by a CA
+<p>The trust anchor arrays tell the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> which certificates it can
+trust. If a <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> is presented with certificates signed by a CA
 that is not in its trust anchor arrays, operations will fail (by design).</p>
 <p>We need to trust our own CA, whether it is created by the development setup
 scripts or explicitly by you. The development scripts create a separate CA for
 issuers and readers (usually at <code class="docutils literal notranslate"><span class="pre">scripts/devenv/target/ca.issuer.crt.der</span></code> and
 <code class="docutils literal notranslate"><span class="pre">scripts/devenv/target/ca.reader.crt.der</span></code>). When you create and use your own
 CA for community development purposes as <a class="reference internal" href="../community/create-a-ca.html"><span class="doc std std-doc">documented here</span></a>, you can use that
-CA generally for signing both issueance and reader certificates, and hence, add
+CA generally for signing both issuance and reader certificates, and hence, add
 it to both the issuer and reader trust anchors.</p>
 <p>The below code block will initialize the issuer and reader trust anchor
 environment variables with the CA certificates it can find, both generated by
@@ -867,14 +894,14 @@ cat<span class="w"> </span><span class="s">&lt;&lt;EOF &gt; &quot;$TARGET_DIR/pa
 <p class="admonition-title">Use a valid domain name here</p>
 <p>In the above, we use <code class="docutils literal notranslate"><span class="pre">verify.example.com</span></code> as the fully-qualified domain name.
 Technically, this domain needs not be world-reachable, but it does need to DNS
-resolve for the NL Wallet app and the verification server. Make sure you use a
-domain that is yours and that you control.</p>
+resolve for the NL Wallet app and the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code>. Make sure you use
+a domain that is yours and that you control.</p>
 </div>
 <div class="admonition warning">
 <p class="admonition-title">A note about allowed public URL schemes</p>
-<p>When you <a class="reference internal" href="#obtaining-the-software">built or otherwise obtained</a> the verification
-server software, you did not specify the <code class="docutils literal notranslate"><span class="pre">allow_insecure_url</span></code> feature flag. This
-means you would <em>need</em> to specify an <code class="docutils literal notranslate"><span class="pre">https://</span></code> url here.</p>
+<p>When you <a class="reference internal" href="#obtaining-the-software">built or otherwise obtained</a> the software,
+you did <strong>not</strong> specify the <code class="docutils literal notranslate"><span class="pre">allow_insecure_url</span></code> feature flag. This means you
+cannot specify an <code class="docutils literal notranslate"><span class="pre">http://</span></code> URL here, and <em>need</em> to specify an <code class="docutils literal notranslate"><span class="pre">https://</span></code> URL.</p>
 </div>
 </section>
 <section id="universal-link-base-url">
@@ -922,7 +949,7 @@ section for more information about configuring listeners.</p>
 settings.</p>
 <section id="configuring-allowed-client-ids">
 <h5>Configuring allowed client IDs<a class="headerlink" href="#configuring-allowed-client-ids" title="Link to this heading"></a></h5>
-<p>You can restrict which NL Wallet apps are accepted by the verification server
+<p>You can restrict which NL Wallet apps are accepted by the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code>
 by configuring a <code class="docutils literal notranslate"><span class="pre">wallet_client_ids</span></code> array. The entries of this array would
 contain the <code class="docutils literal notranslate"><span class="pre">client_id</span></code> value of a wallet implementation. This allows you to
 allow-list groups of wallet apps based on their <code class="docutils literal notranslate"><span class="pre">client_id</span></code> value. For example,
@@ -1084,7 +1111,7 @@ environment).</p>
 <p>When using a hardware security module, the <code class="docutils literal notranslate"><span class="pre">private_key</span></code> field of the use
 case needs to be the HSM key label.</p>
 <p>It is possible to use <em>both</em> hardware <em>and</em> software private keys in the same
-verification server instance. Simply make sure you set <code class="docutils literal notranslate"><span class="pre">private_key_type</span></code> to
+<code class="docutils literal notranslate"><span class="pre">verification_server</span></code> instance. Simply make sure you set <code class="docutils literal notranslate"><span class="pre">private_key_type</span></code> to
 <code class="docutils literal notranslate"><span class="pre">hsm</span></code> for HSM managed keys and to <code class="docutils literal notranslate"><span class="pre">software</span></code> when using base64 encoded DER
 strings in the <code class="docutils literal notranslate"><span class="pre">private_key</span></code> field.</p>
 </div>
@@ -1133,10 +1160,12 @@ looks like you’d expect.</p>
 <h3>Running the server for the first time<a class="headerlink" href="#running-the-server-for-the-first-time" title="Link to this heading"></a></h3>
 <p>In section <a class="reference internal" href="#obtaining-the-software">Obtaining the software</a> we have described
 how you can obtain the software. In this section, we assume you have a Linux
-AMD64 static executable called <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> that you can run. Make sure
-the configuration file <code class="docutils literal notranslate"><span class="pre">verification_server.toml</span></code> is in the same directory as
-the binary and run it in the foreground as follows:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>./verification_server
+AMD64 static executable called <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> that you can run. We’re
+going to <code class="docutils literal notranslate"><span class="pre">cd</span></code> into the <code class="docutils literal notranslate"><span class="pre">target/vs-config</span></code> directory, and we assume the binary
+exists there (it does if you <a class="reference internal" href="#obtaining-the-software">followed along</a>
+previously):</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>nl-wallet/target/vs-config
+./verification_server
 </pre></div>
 </div>
 <p>If all went well, the server is now running and ready to serve requests. To test
@@ -1173,8 +1202,38 @@ an error and abort. For more insights into this process,
 <p>Have a look at the <a class="reference internal" href="../development/openapi-specifications.html"><span class="doc std std-doc">OpenAPI Specifications</span></a> section to learn how to open and
 use these.</p>
 </section>
-<section id="how-disclosure-sessions-work">
-<h2>How disclosure sessions work<a class="headerlink" href="#how-disclosure-sessions-work" title="Link to this heading"></a></h2>
+<section id="integrating-your-app-with-your-verification-server">
+<h2>Integrating your app with your verification server<a class="headerlink" href="#integrating-your-app-with-your-verification-server" title="Link to this heading"></a></h2>
+<p>If you look at the previous disclosure flow diagram, on the left side, you see
+the “Relying Party Application”, which is an application you probably already
+have that you want to integrate with functionality the app provides (i.e., the
+verification of identity and/or certain specific attributes, in order to allow
+or disallow usage of (a part of) said application).</p>
+<p>To integrate with the verifier, you modify your frontend and backend app, using
+the <code class="docutils literal notranslate"><span class="pre">wallet_web</span></code> frontend library, integrating with your previously configured
+<code class="docutils literal notranslate"><span class="pre">verification_server</span></code>.</p>
+<p>In the disclosure flow diagram, on the right, where the “Relying Party
+Application” is shown, you see a four integration/call points: “Configure
+Verifier”, “Initiate Disclosure Session”, “Start Result Poll Loop” and “Retrieve
+OV Result”:</p>
+<ul class="simple">
+<li><p>Configuration of the verifier, executed manually by you, a one-time initial
+setup which is documented in this guide;</p></li>
+<li><p>Initiation of a disclosure session, executed by your backend application;</p></li>
+<li><p>The status check loop, executed by your frontend application, where we check
+for a status result, which indicates success or failure of the session.</p></li>
+<li><p>Result retrieval, executed by your backend, which is a final conditional step
+dependent on a succesful completion status, which contains the
+disclosed_attributes.</p></li>
+</ul>
+<p>The above is described in more detail in the previous section
+<a class="reference internal" href="#what-a-disclosure-session-looks-like">detailing an example disclosure flow</a>.</p>
+<p>It’s worth noting that the NL Wallet team has developed a JavaScript library
+(called <code class="docutils literal notranslate"><span class="pre">wallet_web</span></code>) that handles the status check loop and status return for
+you.</p>
+</section>
+<section id="addendum">
+<h2>Addendum<a class="headerlink" href="#addendum" title="Link to this heading"></a></h2>
 <p>Now that you can interact with the NL Wallet platform, you are ready to start
 working on integrating your own application.</p>
 <p>The previously configured <code class="docutils literal notranslate"><span class="pre">verification_server</span></code>, is a software component
@@ -1278,9 +1337,8 @@ Same-device flow, the resulting Universal link can be directly opened by the
 <code class="docutils literal notranslate"><span class="pre">wallet_app</span></code> on the same device, which then starts device engagement towards the
 <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> (see step 7 above).</p>
 </section>
-</section>
 <section id="requirements-applicable-to-your-application">
-<h2>Requirements applicable to your application<a class="headerlink" href="#requirements-applicable-to-your-application" title="Link to this heading"></a></h2>
+<h3>Requirements applicable to your application<a class="headerlink" href="#requirements-applicable-to-your-application" title="Link to this heading"></a></h3>
 <p>Below you’ll find a list of things to know about the NL Wallet platform and more
 specifically, what you need to keep in mind when you integrate the usage of the
 app for identification or verification of attributes with your application:</p>
@@ -1302,35 +1360,6 @@ custom button text (within reason);</p></li>
 <li><p>Logo of “NL Wallet” should be visible next to the call-to-action.</p></li>
 </ul>
 </section>
-<section id="integrating-your-app-with-your-verification-server">
-<h2>Integrating your app with your verification server<a class="headerlink" href="#integrating-your-app-with-your-verification-server" title="Link to this heading"></a></h2>
-<p>If you look at the previous disclosure flow diagram, on the left side, you see
-the “Relying Party Application”, which is an application you probably already
-have that you want to integrate with functionality the app provides (i.e., the
-verification of identity and/or certain specific attributes, in order to allow
-or disallow usage of (a part of) said application).</p>
-<p>To integrate with the verifier, you modify your frontend and backend app, using
-the <code class="docutils literal notranslate"><span class="pre">wallet_web</span></code> frontend library, integrating with your previously configured
-<code class="docutils literal notranslate"><span class="pre">verification_server</span></code>.</p>
-<p>In the disclosure flow diagram, on the right, where the “Relying Party
-Application” is shown, you see a four integration/call points: “Configure
-Verifier”, “Initiate Disclosure Session”, “Start Result Poll Loop” and “Retrieve
-OV Result”:</p>
-<ul class="simple">
-<li><p>Configuration of the verifier, executed manually by you, a one-time initial
-setup which is documented in this guide;</p></li>
-<li><p>Initiation of a disclosure session, executed by your backend application;</p></li>
-<li><p>The status check loop, executed by your frontend application, where we check
-for a status result, which indicates success or failure of the session.</p></li>
-<li><p>Result retrieval, executed by your backend, which is a final conditional step
-dependent on a succesful completion status, which contains the
-disclosed_attributes.</p></li>
-</ul>
-<p>The above is described in more detail in the previous section
-<a class="reference internal" href="#what-a-disclosure-session-looks-like">detailing an example disclosure flow</a>.</p>
-<p>It’s worth noting that the NL Wallet team has developed a JavaScript library
-(called <code class="docutils literal notranslate"><span class="pre">wallet_web</span></code>) that handles the status check loop and status return for
-you.</p>
 </section>
 <section id="references">
 <h2>References<a class="headerlink" href="#references" title="Link to this heading"></a></h2>

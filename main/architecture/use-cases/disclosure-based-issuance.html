@@ -181,23 +181,42 @@ window.addEventListener("load", () => mermaid.run());
              
   <section id="disclosure-based-issuance">
 <h1>Disclosure-based Issuance<a class="headerlink" href="#disclosure-based-issuance" title="Link to this heading"></a></h1>
-<p>Disclosure based issuance allows an attestation issuer to issue attestations to a wallet based on the contents of attributes disclosed by that same wallet.</p>
-<p>The flow starts when the user scans a QR code, or taps on a UL, that starts the disclosure based issuance flow.
-The wallet then presents a disclosure screen to the user, which upon user consent is followed immediately by an issuance screen presenting the new attestations.
-In between the two screens, the issuer receives the disclosed attributes, and can use those to determine the contents of the attestation(s) to be issued.</p>
-<p>The issuer side of this functionality is implemented by the <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> binary under <code class="docutils literal notranslate"><span class="pre">wallet_core/wallet_server</span></code>.</p>
-<p>Technically, disclosure based issuance is achieved as follows:</p>
+<p>Disclosure-based issuance allows an attestation issuer to issue attestations to
+a wallet based on the contents of attributes disclosed by that same wallet.</p>
+<p>The flow starts when the user scans a QR code, or taps on a UL, that starts the
+disclosure-based issuance flow.</p>
+<p>The wallet presents a disclosure screen to the user, which upon user consent is
+followed immediately by an issuance screen presenting the new attestations. In
+between the two screens, the issuer receives the disclosed attributes, and can
+use those to determine the contents of the attestation(s) to be issued.</p>
+<p>The issuer side of this functionality is implemented by the <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code>
+binary, which is a part of the <code class="docutils literal notranslate"><span class="pre">wallet_server</span></code> crate (see also
+<a class="reference internal" href="issuance-with-openid4vci.html#generic-issuance"><span class="std std-ref">issuance with openid4vci</span></a>).</p>
+<p>Technically, disclosure-based issuance works like this:</p>
 <ol class="arabic simple">
-<li><p>At the end of the disclosure session, the <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> sends the disclosed attributes to a preconfigured HTTP endpoint, at which the issuer must run an HTTP server that must respond with the attestations to be issued. This server is called the <em>attestation server</em>.</p></li>
-<li><p>The <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> starts an OpenID4VCI session in the <a class="reference external" href="https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-final.html#name-pre-authorized-code-flow">Pre-Authorized Code Flow</a>, puts the Pre-Authorized Code into an <a class="reference external" href="https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-final.html#name-credential-offer">OpenID4VCI Credential Offer</a>, and URL-encodes that into the <code class="docutils literal notranslate"><span class="pre">redirect_uri</span></code> that gets sent to the wallet.</p></li>
-<li><p>Using the Credential Offer with the Pre-Authorized Code within it, the wallet performs the OpenID4VCI session with the <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code>.</p></li>
+<li><p>At the end of the disclosure session, the <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> sends the
+disclosed attributes to a preconfigured HTTP endpoint, at which the issuer
+must run an HTTP server that must respond with the attestations to be
+issued. This server is called the <em>attestation server</em>.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> starts an OpenID4VCI session in the <a class="reference external" href="https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-final.html#name-pre-authorized-code-flow">Pre-Authorized
+Code Flow</a>, puts the Pre-Authorized Code into an <a class="reference external" href="https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-final.html#name-credential-offer">OpenID4VCI Credential
+Offer</a>, and URL-encodes that into the <code class="docutils literal notranslate"><span class="pre">redirect_uri</span></code> that gets sent to
+the wallet.</p></li>
+<li><p>Using the Credential Offer with the Pre-Authorized Code within it, the
+wallet performs the OpenID4VCI session with the <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code>.</p></li>
 </ol>
-<section id="api">
-<h2>API<a class="headerlink" href="#api" title="Link to this heading"></a></h2>
 <section id="attestation-server">
-<h3>Attestation server<a class="headerlink" href="#attestation-server" title="Link to this heading"></a></h3>
-<p>The attestation server exchanges disclosed attributes for attestations to be issued. It is contacted by the <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> during a disclosure based issuance session to do this. Note that this server does not need to be reachable by the wallet, and it probably should not be directly connected to the internet.</p>
-<p>The attestation server receives an HTTP <code class="docutils literal notranslate"><span class="pre">POST</span></code> by the <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> containing a JSON structure of the same form as the <code class="docutils literal notranslate"><span class="pre">/disclosed_attributes</span></code> endpoint of the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> returns (see our <a class="reference internal" href="../../development/openapi-specifications.html"><span class="doc std std-doc">openapi specifications</span></a>). More specifically, this is a JSON-serialized <code class="docutils literal notranslate"><span class="pre">IndexMap&lt;String,</span> <span class="pre">DocumentDisclosedAttributes&gt;</span></code>. For example:</p>
+<h2>Attestation server<a class="headerlink" href="#attestation-server" title="Link to this heading"></a></h2>
+<p>The <em>attestation server</em> exchanges disclosed attributes for attestations to be
+issued. It is contacted by the <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> during a disclosure-based
+issuance session to do this. Note that this server does not need to be reachable
+by the wallet, and it should probably not be connected to the internet directly.</p>
+<p>The <em>attestation server</em> receives an HTTP <code class="docutils literal notranslate"><span class="pre">POST</span></code> by the <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code>,
+containing a JSON structure of the same type as the <code class="docutils literal notranslate"><span class="pre">/disclosed_attributes</span></code>
+endpoint of the <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> (you can have a look at our
+<a class="reference internal" href="../../development/openapi-specifications.html"><span class="doc std std-doc">openapi specifications</span></a> too).</p>
+<p>Here’s an example of the JSON structure, which in Rust is an
+<code class="docutils literal notranslate"><span class="pre">Vec&lt;DisclosedAttestations&gt;</span></code>. For example:</p>
 <div class="highlight-http notranslate"><div class="highlight"><pre><span></span><span class="nf">POST</span> <span class="nn">/</span> <span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span>
 <span class="na">Content-Type</span><span class="o">:</span> <span class="l">application/json</span>
 <span class="na">Accept</span><span class="o">:</span> <span class="l">*/*</span>
@@ -229,12 +248,14 @@ In between the two screens, the issuer receives the disclosed attributes, and ca
 <span class="p">]</span>
 </pre></div>
 </div>
-<p>The <code class="docutils literal notranslate"><span class="pre">attestation_server</span></code> must respond with a JSON-serialized <code class="docutils literal notranslate"><span class="pre">Vec&lt;IssuableDocument&gt;</span></code>. For example:</p>
+<p>The <em>attestation server</em> must respond with a JSON-serialized
+<code class="docutils literal notranslate"><span class="pre">Vec&lt;IssuableDocument&gt;</span></code>. For example:</p>
 <div class="highlight-http notranslate"><div class="highlight"><pre><span></span><span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span> <span class="m">200</span> <span class="ne">OK</span>
 <span class="na">Content-Type</span><span class="o">:</span> <span class="l">application/json</span>
 
 <span class="p">[</span>
 <span class="w">  </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;550e8400-e29b-41d4-a716-446655440000&quot;</span><span class="p">,</span>
 <span class="w">    </span><span class="nt">&quot;attestation_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;com.example.degree&quot;</span><span class="p">,</span>
 <span class="w">    </span><span class="nt">&quot;attributes&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">      </span><span class="nt">&quot;university&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Example university&quot;</span><span class="p">,</span>
@@ -247,23 +268,46 @@ In between the two screens, the issuer receives the disclosed attributes, and ca
 <span class="p">]</span>
 </pre></div>
 </div>
-<p>The JSON array may be empty (i.e. <code class="docutils literal notranslate"><span class="pre">[]</span></code>) to indicate that no attestations to be issued were found. In that case, the wallet will present a screen to the user explaining that there were no attestations found that can be issued.</p>
-</section>
+<p>The JSON array may be empty (i.e. <code class="docutils literal notranslate"><span class="pre">[]</span></code>), to indicate that no attestations to be
+issued were found. In that case, the wallet will present a screen to the user
+explaining that there were no attestations found that can be issued.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">id</span></code> of the attestation is used to internally link the status claims of one
+or more status list to the attestation that will be issued. This <code class="docutils literal notranslate"><span class="pre">id</span></code> will not
+be included in the attestation. It can be used to revoke the attestation later.</p>
 </section>
 <section id="sequence-diagram">
 <h2>Sequence diagram<a class="headerlink" href="#sequence-diagram" title="Link to this heading"></a></h2>
-<p>This diagram shows how we compose OpenID4VP with OpenID4VCI in the pre-authorized code flow to issue attestations based on the contents of other attestations.</p>
-<p>The flow starts with the user scanning a QR code or tapping a UL that contains the URL to the disclosure based issuer. When the wallet contacts the issuer using this URL, it starts a disclosure session requesting some preconfigured set of attributes that will allow it to determine the attributes that it wants to issue. For example, suppose the issuer wishes to issue academic degrees based on the user’s BSN, then it would preconfigure an Authorization Request that requests the BSN from the PID.</p>
-<p>After the user has disclosed the requested attributes, the issuer sends those to an internal endpoint that responds with the attestations to be issued. In the earlier mentioned example, this would be a database containing academic degrees indexed by BSNs.</p>
-<p>Finally, the issuer issues the attestations using OpenID4VCI in the pre-authorized code flow.</p>
-<p>During OpenID4VCI, the issuer requires the wallet to include the keys of the attestations that it disclosed earlier in its Proof of Association (PoA) when it sends its Proofs of Possession (PoPs) for the keys of the attestation (copies). This enforces that the newly issued attestations are bound to the same WSCD as the one that disclosed the attestations in the first part of the protocol.</p>
+<p>This diagram shows how we compose OpenID4VP with OpenID4VCI in a pre-authorized
+code flow to issue attestations based on the contents of other attestations.</p>
+<p>The flow starts with the user scanning a QR code or tapping a UL that contains
+the URL to the disclosure-based issuer. When the wallet contacts the issuer
+using this URL, it starts a disclosure session requesting some preconfigured
+set of attributes that will allow it to determine the attributes that it wants
+to issue.</p>
+<p>For example, suppose the issuer wishes to issue academic degrees based on the
+user’s BSN; then it would preconfigure an Authorization Request that requests
+the BSN from the PID.</p>
+<p>After the user has disclosed the requested attributes, the issuer sends those to
+an internal endpoint that responds with the attestations to be issued. In the
+earlier mentioned example, this would be a database containing academic degrees
+indexed by BSNs.</p>
+<p>Finally, the issuer issues the attestations using OpenID4VCI in a pre-authorized
+code flow.</p>
+<p>During OpenID4VCI, the issuer requires the wallet to include the keys of the
+attestations that it disclosed earlier in its Proof of Association (PoA) when
+it sends its Proofs of Possession (PoPs) for the keys of the attestation
+(copies).</p>
+<p>This enforces that the newly issued attestations are bound to the same Wallet
+Secure Cryptographic Device (WSCD, see <a class="reference external" href="https://eu-digital-identity-wallet.github.io/eudi-doc-architecture-and-reference-framework/latest/architecture-and-reference-framework-main/#43-reference-architecture">section 4.3.2, Components of a Wallet
+Unit</a>) as the one that disclosed the attestations in the first part of the
+protocol.</p>
 <pre  class="mermaid">
         sequenceDiagram
     autonumber
     actor User
     participant App as Wallet
-    participant Issuer as Disclosure based issuer
-    participant IssuerDataProvider as Data Provider
+    participant Issuer as Disclosure-based issuer
+    participant IssuerDataProvider as Data provider
 
     User-&gt;&gt;+App: Invoke UL (https://wallet_ul/disclosure_based_issuance)
     App-&gt;&gt;+Issuer: POST to request URI [OpenID4VP]
