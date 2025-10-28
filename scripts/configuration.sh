@@ -76,13 +76,15 @@ export DB_PASSWORD="${DB_PASSWORD:-postgres}"
 export PGADMIN_DEFAULT_PASSWORD="${PGADMIN_DEFAULT_PASSWORD:-admin}"
 
 # HSM properties, with defaults
-export HSM_LIBRARY_PATH="${HSM_LIBRARY_PATH:-$(detect_softhsm)}"
+HSM_LIBRARY_PATH="${HSM_LIBRARY_PATH:-$(detect_softhsm)}"
+export HSM_LIBRARY_PATH
 export HSM_SO_PIN=${HSM_SO_PIN:-12345678}
 export HSM_USER_PIN=${HSM_USER_PIN:-12345678}
 export DEFAULT_HSM_TOKEN_DIR="${HOME}/.softhsm2/tokens"
 export HSM_TOKEN_DIR=${HSM_TOKEN_DIR:-$DEFAULT_HSM_TOKEN_DIR}
 
-# export WALLET_CLIENT_ID=$(uuidgen)
+# WALLET_CLIENT_ID=$(uuidgen)
+# export WALLET_CLIENT_ID
 export WALLET_CLIENT_ID=3e58016e-bc2e-40d5-b4b1-a3e25f6193b9
 
 export SENTRY_ENVIRONMENT=${SENTRY_ENVIRONMENT:-local}
