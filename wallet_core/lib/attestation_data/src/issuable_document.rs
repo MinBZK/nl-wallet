@@ -18,13 +18,11 @@ use crate::credential_payload::PreviewableCredentialPayload;
 /// should be convertable into all documents that are actually issued to the wallet, i.e. mdoc and sd-jwt.
 /// ```json
 /// {
-///     "document" {
-///         "attestation_type": "com.example.pid",
-///         "attributes": {
-///             "name": "John",
-///             "lastname": "Doe"
-///         },
-///         "id": "550e8400-e29b-41d4-a716-446655440000",
+///     "id": "550e8400-e29b-41d4-a716-446655440000",
+///     "attestation_type": "com.example.pid",
+///     "attributes": {
+///         "name": "John",
+///         "lastname": "Doe"
 ///     }
 /// }
 pub struct IssuableDocument {

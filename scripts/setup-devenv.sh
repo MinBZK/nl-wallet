@@ -184,8 +184,7 @@ if [[ -z "${SKIP_WALLET_WEB:-}" ]]; then
 
     cd "${WALLET_WEB_DIR}"
 
-    VITE_HELP_BASE_URL=${VITE_HELP_BASE_URL:-http://$SERVICES_HOST}
-    export VITE_HELP_BASE_URL
+    export VITE_HELP_BASE_URL=${VITE_HELP_BASE_URL:-http://$SERVICES_HOST}
     npm ci && npm run build
 
     cp dist/nl-wallet-web.iife.js ../wallet_core/demo/demo_utils/assets/
@@ -238,15 +237,12 @@ generate_ssl_key_pair_with_san "${TARGET_DIR}/demo_issuer" demo_issuer "${TARGET
 ln -sf "${TARGET_DIR}/demo_issuer/ca.crt.der" "${BASE_DIR}/wallet_core/tests_integration/di.ca.crt.der"
 DEMO_ISSUER_ATTESTATION_SERVER_CA_CRT=$(< "${TARGET_DIR}/demo_issuer/ca.crt.der" ${BASE64})
 export DEMO_ISSUER_ATTESTATION_SERVER_CA_CRT
-
 ln -sf "${TARGET_DIR}/demo_issuer/demo_issuer.crt.der" "${BASE_DIR}/wallet_core/tests_integration/di.crt.der"
 DEMO_ISSUER_ATTESTATION_SERVER_CERT=$(< "${TARGET_DIR}/demo_issuer/demo_issuer.crt.der" ${BASE64})
 export DEMO_ISSUER_ATTESTATION_SERVER_CERT
-
 ln -sf "${TARGET_DIR}/demo_issuer/demo_issuer.key.der" "${BASE_DIR}/wallet_core/tests_integration/di.key.der"
 DEMO_ISSUER_ATTESTATION_SERVER_KEY=$(< "${TARGET_DIR}/demo_issuer/demo_issuer.key.der" ${BASE64})
 export DEMO_ISSUER_ATTESTATION_SERVER_KEY
-
 
 # Generate root CA for issuer
 if [ ! -f "${TARGET_DIR}/ca.issuer.key.pem" ]; then
@@ -259,8 +255,7 @@ export ISSUER_CA_CRT
 
 # Generate key for WUA signing
 generate_wp_signing_key wua_signing
-WP_WUA_SIGNING_KEY_PATH="${TARGET_DIR}/wallet_provider/wua_signing.pem"
-export WP_WUA_SIGNING_KEY_PATH
+export WP_WUA_SIGNING_KEY_PATH="${TARGET_DIR}/wallet_provider/wua_signing.pem"
 WP_WUA_PUBLIC_KEY=$(< "${TARGET_DIR}/wallet_provider/wua_signing.pub.der" ${BASE64})
 export WP_WUA_PUBLIC_KEY
 
@@ -268,8 +263,7 @@ export WP_WUA_PUBLIC_KEY
 generate_pid_issuer_key_pair
 generate_pid_issuer_tsl_key_pair
 
-PID_ISSUER_KEY=pid_issuer_key
-export PID_ISSUER_KEY
+export PID_ISSUER_KEY=pid_issuer_key
 PID_ISSUER_CRT=$(< "${TARGET_DIR}/pid_issuer/issuer.crt.der" ${BASE64})
 export PID_ISSUER_CRT
 
@@ -291,8 +285,7 @@ export READER_CA_CRT
 
 # Generate relying party key and cert
 generate_relying_party_hsm_key_pair mijn_amsterdam demo_relying_party
-DEMO_RELYING_PARTY_KEY_MIJN_AMSTERDAM=mijn_amsterdam_key
-export DEMO_RELYING_PARTY_KEY_MIJN_AMSTERDAM
+export DEMO_RELYING_PARTY_KEY_MIJN_AMSTERDAM=mijn_amsterdam_key
 DEMO_RELYING_PARTY_CRT_MIJN_AMSTERDAM=$(< "${TARGET_DIR}/demo_relying_party/mijn_amsterdam.crt.der" ${BASE64})
 export DEMO_RELYING_PARTY_CRT_MIJN_AMSTERDAM
 
@@ -370,18 +363,12 @@ render_template "${DEVENV}/demo_index.toml.template" "${DEMO_INDEX_DIR}/demo_ind
 cp "${DEVENV}/eudi:pid:1.json" "${DEVENV}/eudi:pid:nl:1.json" "${DEVENV}/eudi:pid-address:1.json" "${DEVENV}/eudi:pid-address:nl:1.json" "${PID_ISSUER_DIR}"
 cp "${DEVENV}/eudi:pid:1.json" "${DEVENV}/eudi:pid:nl:1.json" "${DEVENV}/eudi:pid-address:1.json" "${DEVENV}/eudi:pid-address:nl:1.json" "${DEVENV}/com.example.degree.json" "${DEVENV}/com.example.insurance.json" "${BASE_DIR}/wallet_core/tests_integration"
 cp "${DEVENV}/com.example.degree.json" "${DEVENV}/com.example.insurance.json" "${ISSUANCE_SERVER_DIR}"
-ISSUER_METADATA_PID_PATH="eudi:pid:1.json"
-export ISSUER_METADATA_PID_PATH
-ISSUER_METADATA_PID_NL_PATH="eudi:pid:nl:1.json"
-export ISSUER_METADATA_PID_NL_PATH
-ISSUER_METADATA_ADDRESS_PATH="eudi:pid-address:1.json"
-export ISSUER_METADATA_ADDRESS_PATH
-ISSUER_METADATA_ADDRESS_NL_PATH="eudi:pid-address:nl:1.json"
-export ISSUER_METADATA_ADDRESS_NL_PATH
-ISSUER_METADATA_DEGREE_PATH="com.example.degree.json"
-export ISSUER_METADATA_DEGREE_PATH
-ISSUER_METADATA_INSURANCE_PATH="com.example.insurance.json"
-export ISSUER_METADATA_INSURANCE_PATH
+export ISSUER_METADATA_PID_PATH="eudi:pid:1.json"
+export ISSUER_METADATA_PID_NL_PATH="eudi:pid:nl:1.json"
+export ISSUER_METADATA_ADDRESS_PATH="eudi:pid-address:1.json"
+export ISSUER_METADATA_ADDRESS_NL_PATH="eudi:pid-address:nl:1.json"
+export ISSUER_METADATA_DEGREE_PATH="com.example.degree.json"
+export ISSUER_METADATA_INSURANCE_PATH="com.example.insurance.json"
 
 # And the demo RP's verification_server config
 render_template "${DEVENV}/demo_rp_verification_server.toml.template" "${VERIFICATION_SERVER_DIR}/verification_server.toml"
@@ -421,13 +408,10 @@ ln -sf "${TARGET_DIR}/update_policy_server/ca.crt.pem" "${BASE_DIR}/wallet_core/
 ln -sf "${TARGET_DIR}/update_policy_server/ca.crt.der" "${BASE_DIR}/wallet_core/tests_integration/ups.ca.crt.der"
 UPDATE_POLICY_SERVER_CA_CRT=$(< "${TARGET_DIR}/update_policy_server/ca.crt.der" ${BASE64})
 export UPDATE_POLICY_SERVER_CA_CRT
-
 UPDATE_POLICY_SERVER_CERT=$(< "${TARGET_DIR}/update_policy_server/update_policy_server.crt.der" ${BASE64})
 export UPDATE_POLICY_SERVER_CERT
-
 UPDATE_POLICY_SERVER_KEY=$(< "${TARGET_DIR}/update_policy_server/update_policy_server.key.der" ${BASE64})
 export UPDATE_POLICY_SERVER_KEY
-
 UPDATE_POLICY_SERVER_TRUST_ANCHORS=$(IFS="|" ; echo "${UPDATE_POLICY_SERVER_CERT[*]}")
 export UPDATE_POLICY_SERVER_TRUST_ANCHORS
 
@@ -449,33 +433,26 @@ generate_ssl_key_pair_with_san "${TARGET_DIR}/wallet_provider" wallet_provider "
 ln -sf "${TARGET_DIR}/wallet_provider/ca.crt.der" "${BASE_DIR}/wallet_core/tests_integration/wp.ca.crt.der"
 WALLET_PROVIDER_SERVER_CA_CRT=$(< "${TARGET_DIR}/wallet_provider/ca.crt.der" ${BASE64})
 export WALLET_PROVIDER_SERVER_CA_CRT
-
 WALLET_PROVIDER_SERVER_CERT=$(< "${TARGET_DIR}/wallet_provider/wallet_provider.crt.der" ${BASE64})
 export WALLET_PROVIDER_SERVER_CERT
-
 WALLET_PROVIDER_SERVER_KEY=$(< "${TARGET_DIR}/wallet_provider/wallet_provider.key.der" ${BASE64})
 export WALLET_PROVIDER_SERVER_KEY
 
-
 generate_wp_signing_key certificate_signing
-WP_CERTIFICATE_SIGNING_KEY_PATH="${TARGET_DIR}/wallet_provider/certificate_signing.pem"
-export WP_CERTIFICATE_SIGNING_KEY_PATH
+export WP_CERTIFICATE_SIGNING_KEY_PATH="${TARGET_DIR}/wallet_provider/certificate_signing.pem"
 WP_CERTIFICATE_PUBLIC_KEY=$(< "${TARGET_DIR}/wallet_provider/certificate_signing.pub.der" ${BASE64})
 export WP_CERTIFICATE_PUBLIC_KEY
 
 generate_wp_signing_key instruction_result_signing
-WP_INSTRUCTION_RESULT_SIGNING_KEY_PATH="${TARGET_DIR}/wallet_provider/instruction_result_signing.pem"
-export WP_INSTRUCTION_RESULT_SIGNING_KEY_PATH
+export WP_INSTRUCTION_RESULT_SIGNING_KEY_PATH="${TARGET_DIR}/wallet_provider/instruction_result_signing.pem"
 WP_INSTRUCTION_RESULT_PUBLIC_KEY=$(< "${TARGET_DIR}/wallet_provider/instruction_result_signing.pub.der" ${BASE64})
 export WP_INSTRUCTION_RESULT_PUBLIC_KEY
 
 generate_wp_random_key attestation_wrapping
-WP_ATTESTATION_WRAPPING_KEY_PATH="${TARGET_DIR}/wallet_provider/attestation_wrapping.key"
-export WP_ATTESTATION_WRAPPING_KEY_PATH
+export WP_ATTESTATION_WRAPPING_KEY_PATH="${TARGET_DIR}/wallet_provider/attestation_wrapping.key"
 
 generate_wp_random_key pin_pubkey_encryption
-WP_PIN_PUBKEY_ENCRYPTION_KEY_PATH="${TARGET_DIR}/wallet_provider/pin_pubkey_encryption.key"
-export WP_PIN_PUBKEY_ENCRYPTION_KEY_PATH
+export WP_PIN_PUBKEY_ENCRYPTION_KEY_PATH="${TARGET_DIR}/wallet_provider/pin_pubkey_encryption.key"
 
 APPLE_ROOT_CA=$(openssl x509 -in "${SCRIPTS_DIR}/../wallet_core/lib/apple_app_attest/assets/Apple_App_Attestation_Root_CA.pem" -outform DER | ${BASE64})
 export APPLE_ROOT_CA
@@ -534,13 +511,10 @@ generate_ssl_key_pair_with_san "${TARGET_DIR}/configuration_server" config_serve
 ln -sf "${TARGET_DIR}/configuration_server/ca.crt.der" "${BASE_DIR}/wallet_core/tests_integration/cs.ca.crt.der"
 CONFIG_SERVER_CA_CRT=$(< "${TARGET_DIR}/configuration_server/ca.crt.der" ${BASE64})
 export CONFIG_SERVER_CA_CRT
-
 CONFIG_SERVER_CERT=$(< "${TARGET_DIR}/configuration_server/config_server.crt.der" ${BASE64})
 export CONFIG_SERVER_CERT
-
 CONFIG_SERVER_KEY=$(< "${TARGET_DIR}/configuration_server/config_server.key.der" ${BASE64})
 export CONFIG_SERVER_KEY
-
 
 generate_wp_signing_key config_signing
 CONFIG_SIGNING_PUBLIC_KEY=$(< "${TARGET_DIR}/wallet_provider/config_signing.pub.der" ${BASE64})
@@ -562,6 +536,7 @@ cp "${TARGET_DIR}/wallet_provider/config_signing.pem" "${BASE_DIR}/wallet_core/t
 
 WALLET_CONFIG_JWT=$(< "${TARGET_DIR}/wallet-config-jws-compact.txt")
 export WALLET_CONFIG_JWT
+
 render_template "${DEVENV}/config_server.toml.template" "${CS_DIR}/config_server.toml"
 cp "${CS_DIR}/config_server.toml" "${BASE_DIR}/wallet_core/tests_integration/config_server.toml"
 
