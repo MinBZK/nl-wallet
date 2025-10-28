@@ -61,6 +61,7 @@ test = [
     "dep:serde_urlencoded",
     "dep:ssri",
     "dep:url",
+    "dep:token_status_list",
     "dep:wscd",
 ]
 # Enable integration tests
@@ -110,4 +111,5 @@ attestation_types = { path = "../../lib/attestation_types", optional = true }
 mdoc = { path = "../../lib/mdoc", optional = true, features = ["mock_example_constructors"] }
 sd_jwt = { path = "../../lib/sd_jwt", optional = true }
 sd_jwt_vc_metadata = { path = "../../lib/sd_jwt_vc_metadata", optional = true }
+token_status_list = { path = "../../lib/token_status_list", optional = true, features = ["mock"] }
 wscd = { path = "../../lib/wscd", optional = true, features = ["mock", "examples"] }

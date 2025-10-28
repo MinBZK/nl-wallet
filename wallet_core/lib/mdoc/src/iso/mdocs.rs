@@ -26,6 +26,7 @@ use ssri::Integrity;
 use attestation_types::qualification::AttestationQualification;
 use crypto::utils::random_bytes;
 use http_utils::urls::HttpsUri;
+use token_status_list::status_claim::StatusClaim;
 use utils::date_time_seconds::DateTimeSeconds;
 
 use crate::utils::cose::CoseKey;
@@ -184,6 +185,9 @@ pub struct MobileSecurityObject {
 
     /// Optional because it is not in the spec.
     pub attestation_qualification: Option<AttestationQualification>,
+
+    /// Optional because it is not in the spec.
+    pub status: Option<StatusClaim>,
 
     /// This value is optional, as it is not part of the spec.
     pub type_metadata_integrity: Option<Integrity>,

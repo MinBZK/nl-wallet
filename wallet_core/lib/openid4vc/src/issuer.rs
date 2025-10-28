@@ -1281,7 +1281,7 @@ impl CredentialResponse {
         issued_at: DateTime<Utc>,
         holder_pubkey: &VerifyingKey,
         attestation_config: &AttestationTypeConfig<impl EcdsaKeySend>,
-        _status_claim: StatusClaim,
+        status_claim: StatusClaim,
     ) -> Result<CredentialResponse, CredentialRequestError> {
         let payload = CredentialPayload::from_previewable_credential_payload(
             preview_credential_payload,
@@ -1289,6 +1289,7 @@ impl CredentialResponse {
             holder_pubkey,
             &attestation_config.metadata,
             attestation_config.first_metadata_integrity.clone(),
+            status_claim,
         )?;
 
         match credential_format {
