@@ -13,7 +13,6 @@ use rand_core::OsRng;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use ssri::Integrity;
-use uuid::Uuid;
 
 use apple_app_attest::AppIdentifier;
 use apple_app_attest::AttestationEnvironment;
@@ -23,11 +22,9 @@ use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::credential_payload::CredentialPayload;
 use attestation_data::credential_payload::IntoCredentialPayload;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
-use attestation_data::disclosure_type::DisclosureType;
 use attestation_data::pid_constants::PID_ATTESTATION_TYPE;
 use attestation_data::pid_constants::PID_RECOVERY_CODE;
 use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
-use crypto::mock_remote::MockRemoteEcdsaKey;
 use crypto::p256_der::DerVerifyingKey;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
@@ -38,7 +35,6 @@ use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
 use mdoc::holder::Mdoc;
 use openid4vc::Format;
-use openid4vc::disclosure_session::VerifierCertificate;
 use openid4vc::disclosure_session::mock::MockDisclosureClient;
 use openid4vc::issuance_session::CredentialWithMetadata;
 use openid4vc::issuance_session::IssuedCredential;
@@ -67,7 +63,6 @@ use wallet_account::messages::registration::WalletCertificateClaims;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::AttestationIdentity;
-use crate::DisclosureStatus;
 use crate::account_provider::MockAccountProviderClient;
 use crate::attestation::AttestationPresentation;
 use crate::attestation::mock::EmptyPresentationConfig;
@@ -146,7 +141,7 @@ pub static ACCOUNT_SERVER_KEYS: LazyLock<AccountServerKeys> = LazyLock::new(|| A
 /// The issuer key material, generated once for testing.
 pub static ISSUER_KEY: LazyLock<IssuerKey> = LazyLock::new(|| {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
-    let issuance_key = generate_issuer_mock_with_registration(&ca, IssuerRegistration::new_mock().into()).unwrap();
+    let issuance_key = generate_issuer_mock_with_registration(&ca, IssuerRegistration::new_mock()).unwrap();
     let trust_anchor = ca.as_borrowing_trust_anchor().clone();
 
     IssuerKey {
@@ -217,34 +212,44 @@ pub fn create_example_pid_sd_jwt() -> (VerifiedSdJwt, NormalizedTypeMetadata) {
     let credential_payload = CredentialPayload::nl_pid_example(&MockTimeGenerator::default());
     let metadata = NormalizedTypeMetadata::nl_pid_example();
 
+    let verified_sd_jwt =
+        verified_sd_jwt_from_credential_payload(credential_payload, &metadata, &ISSUER_KEY.issuance_key);
+
+    (verified_sd_jwt, metadata)
+}
+
+pub fn verified_sd_jwt_from_credential_payload(
+    credential_payload: CredentialPayload,
+    metadata: &NormalizedTypeMetadata,
+    issuer_keypair: &KeyPair,
+) -> VerifiedSdJwt {
     let sd_jwt = credential_payload
-        .into_sd_jwt(&metadata, &ISSUER_KEY.issuance_key)
+        .into_sd_jwt(metadata, issuer_keypair)
         .now_or_never()
         .unwrap()
         .unwrap();
 
-    (sd_jwt.into_verified(), metadata)
+    sd_jwt.into_verified()
 }
 
 /// Generates a valid [`Mdoc`] that contains a full mdoc PID.
 pub fn create_example_pid_mdoc() -> Mdoc {
     let preview_payload = PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default());
 
-    mdoc_from_unsigned(preview_payload, &ISSUER_KEY)
+    mdoc_from_credential_payload(preview_payload, &ISSUER_KEY.issuance_key)
 }
 
 /// Generates a valid [`Mdoc`], based on an [`PreviewableCredentialPayload`] and issuer key.
-fn mdoc_from_unsigned(preview_payload: PreviewableCredentialPayload, issuer_key: &IssuerKey) -> Mdoc {
+pub fn mdoc_from_credential_payload(preview_payload: PreviewableCredentialPayload, issuer_keypair: &KeyPair) -> Mdoc {
     let private_key_id = crypto::utils::random_string(16);
-    let mdoc_remote_key = MockRemoteEcdsaKey::new_random(private_key_id.clone());
-    let mdoc_public_key = mdoc_remote_key.verifying_key();
+    let holder_privkey = SigningKey::random(&mut OsRng);
 
     preview_payload
         .into_signed_mdoc_unverified(
             Integrity::from(""),
             private_key_id,
-            mdoc_public_key,
-            &issuer_key.issuance_key,
+            holder_privkey.verifying_key(),
+            issuer_keypair,
         )
         .now_or_never()
         .unwrap()
@@ -477,23 +482,6 @@ where
     match result {
         Ok(_) => Ok(events),
         Err(e) => Err((events, e)),
-    }
-}
-
-pub fn create_disclosure_event(
-    attestations: Vec<AttestationPresentation>,
-    verifier_certificate: VerifierCertificate,
-    status: DisclosureStatus,
-) -> WalletEvent {
-    let (reader_certificate, reader_registration) = verifier_certificate.into_certificate_and_registration();
-    WalletEvent::Disclosure {
-        id: Uuid::new_v4(),
-        attestations,
-        timestamp: Utc::now(),
-        reader_certificate: Box::new(reader_certificate),
-        reader_registration: Box::new(reader_registration),
-        status,
-        r#type: DisclosureType::Regular,
     }
 }
 

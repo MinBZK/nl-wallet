@@ -28,9 +28,7 @@ import '../domain/usecase/card/impl/observe_wallet_cards_usecase_impl.dart';
 import '../domain/usecase/card/observe_wallet_card_detail_usecase.dart';
 import '../domain/usecase/card/observe_wallet_card_usecase.dart';
 import '../domain/usecase/card/observe_wallet_cards_usecase.dart';
-import '../domain/usecase/disclosure/accept_disclosure_usecase.dart';
 import '../domain/usecase/disclosure/cancel_disclosure_usecase.dart';
-import '../domain/usecase/disclosure/impl/accept_disclosure_usecase_impl.dart';
 import '../domain/usecase/disclosure/impl/cancel_disclosure_usecase_impl.dart';
 import '../domain/usecase/disclosure/impl/start_disclosure_usecase_impl.dart';
 import '../domain/usecase/disclosure/start_disclosure_usecase.dart';
@@ -68,7 +66,6 @@ import '../domain/usecase/pin/check_is_valid_pin_usecase.dart';
 import '../domain/usecase/pin/complete_pin_recovery_usecase.dart';
 import '../domain/usecase/pin/continue_pin_recovery_usecase.dart';
 import '../domain/usecase/pin/create_pin_recovery_url_usecase.dart';
-import '../domain/usecase/pin/disclose_for_issuance_usecase.dart';
 import '../domain/usecase/pin/impl/cancel_pin_recovery_usecase_impl.dart';
 import '../domain/usecase/pin/impl/change_pin_usecase_impl.dart';
 import '../domain/usecase/pin/impl/check_is_valid_pin_usecase_impl.dart';
@@ -76,7 +73,6 @@ import '../domain/usecase/pin/impl/check_pin_usecase_impl.dart';
 import '../domain/usecase/pin/impl/complete_pin_recovery_usecase_impl.dart';
 import '../domain/usecase/pin/impl/continue_pin_recovery_usecase_impl.dart';
 import '../domain/usecase/pin/impl/create_pin_recovery_url_usecase_impl.dart';
-import '../domain/usecase/pin/impl/disclose_for_issuance_usecase_impl.dart';
 import '../domain/usecase/pin/impl/unlock_wallet_with_pin_usecase_impl.dart';
 import '../domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
 import '../domain/usecase/qr/decode_qr_usecase.dart';
@@ -100,9 +96,11 @@ import '../domain/usecase/transfer/impl/acknowledge_wallet_transfer_usecase_impl
 import '../domain/usecase/transfer/impl/cancel_wallet_transfer_usecase_impl.dart';
 import '../domain/usecase/transfer/impl/get_wallet_transfer_status_usecase_impl.dart';
 import '../domain/usecase/transfer/impl/init_wallet_transfer_usecase_impl.dart';
+import '../domain/usecase/transfer/impl/receive_wallet_transfer_usecase_impl.dart';
 import '../domain/usecase/transfer/impl/skip_wallet_transfer_usecase_impl.dart';
 import '../domain/usecase/transfer/impl/start_wallet_transfer_usecase_impl.dart';
 import '../domain/usecase/transfer/init_wallet_transfer_usecase.dart';
+import '../domain/usecase/transfer/receive_wallet_transfer_usecase.dart';
 import '../domain/usecase/transfer/skip_wallet_transfer_usecase.dart';
 import '../domain/usecase/transfer/start_wallet_transfer_usecase.dart';
 import '../domain/usecase/update/impl/observe_version_state_usecase_impl.dart';
@@ -229,17 +227,11 @@ class WalletUseCaseProvider extends StatelessWidget {
         RepositoryProvider<StartDisclosureUseCase>(
           create: (context) => StartDisclosureUseCaseImpl(context.read()),
         ),
-        RepositoryProvider<AcceptDisclosureUseCase>(
-          create: (context) => AcceptDisclosureUseCaseImpl(context.read()),
-        ),
         RepositoryProvider<CancelDisclosureUseCase>(
           create: (context) => CancelDisclosureUseCaseImpl(context.read()),
         ),
         RepositoryProvider<StartIssuanceUseCase>(
           create: (context) => StartIssuanceUseCaseImpl(context.read()),
-        ),
-        RepositoryProvider<DiscloseForIssuanceUseCase>(
-          create: (context) => DiscloseForIssuanceUseCaseImpl(context.read()),
         ),
         RepositoryProvider<CancelIssuanceUseCase>(
           create: (context) => CancelIssuanceUseCaseImpl(context.read()),
@@ -359,6 +351,9 @@ class WalletUseCaseProvider extends StatelessWidget {
         ),
         RepositoryProvider<GetWalletStateUseCase>(
           create: (context) => GetWalletStateUseCaseImpl(context.read()),
+        ),
+        RepositoryProvider<ReceiveWalletTransferUseCase>(
+          create: (context) => ReceiveWalletTransferUseCaseImpl(context.read()),
         ),
       ],
       child: child,

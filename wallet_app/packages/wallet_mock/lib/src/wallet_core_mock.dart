@@ -52,7 +52,10 @@ class WalletCoreMock implements WalletCoreApi {
   }
 
   @override
-  Future<AcceptDisclosureResult> crateApiFullAcceptDisclosure({required String pin}) async {
+  Future<AcceptDisclosureResult> crateApiFullAcceptDisclosure({
+    required List<int> selectedIndices,
+    required String pin,
+  }) async {
     return _disclosureManager.acceptDisclosure(pin);
   }
 
@@ -231,7 +234,10 @@ class WalletCoreMock implements WalletCoreApi {
   Future<bool> crateApiFullHasActiveIssuanceSession() async => _issuanceManager.hasActiveIssuanceSession;
 
   @override
-  Future<DisclosureBasedIssuanceResult> crateApiFullContinueDisclosureBasedIssuance({required String pin}) async {
+  Future<DisclosureBasedIssuanceResult> crateApiFullContinueDisclosureBasedIssuance({
+    required List<int> selectedIndices,
+    required String pin,
+  }) async {
     assert(_issuanceManager.hasActiveIssuanceSession, 'invalid state');
     final attestations = await _issuanceManager.discloseForIssuance(pin);
     try {
@@ -327,4 +333,7 @@ class WalletCoreMock implements WalletCoreApi {
 
   @override
   Future<WalletState> crateApiFullGetWalletState() async => const WalletState.ready();
+
+  @override
+  Future<void> crateApiFullReceiveWalletTransfer() => Future.delayed(const Duration(seconds: 2));
 }

@@ -26,7 +26,7 @@ impl BorrowingCertificateExtension for IssuerRegistration {
 
 impl From<IssuerRegistration> for CertificateType {
     fn from(source: IssuerRegistration) -> Self {
-        CertificateType::Mdl(Box::new(source).into())
+        CertificateType::Mdl(Box::new(source))
     }
 }
 

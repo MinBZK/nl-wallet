@@ -24,6 +24,22 @@ sealed class AcceptDisclosureResult with _$AcceptDisclosureResult {
   }) = AcceptDisclosureResult_InstructionError;
 }
 
+class DisclosureOptions {
+  final List<AttestationPresentation> field0;
+
+  const DisclosureOptions({
+    required this.field0,
+  });
+
+  @override
+  int get hashCode => field0.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is DisclosureOptions && runtimeType == other.runtimeType && field0 == other.field0;
+}
+
 enum DisclosureSessionType {
   SameDevice,
   CrossDevice,
@@ -146,7 +162,7 @@ sealed class StartDisclosureResult with _$StartDisclosureResult {
   const factory StartDisclosureResult.request({
     required Organization relyingParty,
     required RequestPolicy policy,
-    required List<AttestationPresentation> requestedAttestations,
+    required List<DisclosureOptions> disclosureOptions,
     required bool sharedDataWithRelyingPartyBefore,
     required DisclosureSessionType sessionType,
     required List<LocalizedString> requestPurpose,

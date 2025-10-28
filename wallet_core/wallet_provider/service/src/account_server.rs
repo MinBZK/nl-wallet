@@ -1802,8 +1802,7 @@ pub mod mock {
     }
 
     pub fn recovery_code_sd_jwt(issuer_ca: &Ca) -> (SigningKey, UnverifiedSdJwt) {
-        let issuer_key =
-            generate_issuer_mock_with_registration(issuer_ca, IssuerRegistration::new_mock().into()).unwrap();
+        let issuer_key = generate_issuer_mock_with_registration(issuer_ca, IssuerRegistration::new_mock()).unwrap();
         let holder_key = SigningKey::random(&mut OsRng);
         let sd_jwt = SignedSdJwt::pid_example(&issuer_key, holder_key.verifying_key()).into_verified();
 

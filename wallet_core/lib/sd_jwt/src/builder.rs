@@ -131,6 +131,7 @@ impl<H: Hasher> SdJwtBuilder<H> {
     ///     },
     ///     "claim2": ["val_1", "val_2"]
     /// });
+    /// #[cfg(feature = "examples")]
     /// let builder = SdJwtBuilder::new(SdJwtVcClaims::example_from_json(
     ///         SigningKey::random(&mut OsRng).verifying_key(),
     ///         obj,

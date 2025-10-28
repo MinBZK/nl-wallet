@@ -86,6 +86,7 @@ where
     #[sentry_capture_error]
     pub async fn continue_disclosure_based_issuance(
         &mut self,
+        selected_indices: &[usize],
         pin: String,
     ) -> Result<Vec<AttestationPresentation>, DisclosureBasedIssuanceError> {
         let config = self.config_repository.get();
@@ -103,7 +104,7 @@ where
             .clone();
 
         let redirect_uri = match self
-            .perform_disclosure(pin, RedirectUriPurpose::Issuance, config.as_ref())
+            .perform_disclosure(selected_indices, pin, RedirectUriPurpose::Issuance, config.as_ref())
             .await
         {
             Ok(Some(redirect_uri)) if redirect_uri.scheme() == OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME => redirect_uri,
@@ -174,6 +175,7 @@ mod tests {
     use rand_core::OsRng;
     use rstest::rstest;
     use serial_test::serial;
+    use utils::vec_nonempty;
     use uuid::Uuid;
 
     use attestation_data::auth::issuer_auth::IssuerRegistration;
@@ -229,7 +231,7 @@ mod tests {
     ) -> WalletDisclosureSession<MockDisclosureSession> {
         let reader_ca = Ca::generate_reader_mock_ca().unwrap();
         let reader_key_pair =
-            generate_reader_mock_with_registration(&reader_ca, Some(ReaderRegistration::new_mock())).unwrap();
+            generate_reader_mock_with_registration(&reader_ca, ReaderRegistration::new_mock()).unwrap();
         let verifier_certificate = VerifierCertificate::try_new(reader_key_pair.into()).unwrap().unwrap();
 
         let mut disclosure_session = MockDisclosureSession::new();
@@ -267,7 +269,7 @@ mod tests {
         WalletDisclosureSession::new_proposal(
             RedirectUriPurpose::Issuance,
             DisclosureType::Regular,
-            IndexMap::from([("id".try_into().unwrap(), disclosable_attestation)]),
+            IndexMap::from([("id".try_into().unwrap(), vec_nonempty![disclosable_attestation])]),
             disclosure_session,
         )
     }
@@ -357,7 +359,7 @@ mod tests {
 
         // Accept disclosure based issuance
         let previews = wallet
-            .continue_disclosure_based_issuance(PIN.to_owned())
+            .continue_disclosure_based_issuance(&[0], PIN.to_owned())
             .await
             .expect("Accepting disclosure based issuance should not have resulted in an error");
 
@@ -424,7 +426,7 @@ mod tests {
             .returning(move || Ok(vec![]));
 
         let previews = wallet
-            .continue_disclosure_based_issuance(PIN.to_owned())
+            .continue_disclosure_based_issuance(&[0], PIN.to_owned())
             .await
             .expect("Accepting disclosure based issuance should not have resulted in an error");
 
@@ -442,7 +444,7 @@ mod tests {
         wallet.session = Some(Session::Disclosure(disclosure_session));
 
         let error = wallet
-            .continue_disclosure_based_issuance(PIN.to_owned())
+            .continue_disclosure_based_issuance(&[0], PIN.to_owned())
             .await
             .expect_err("Accepting disclosure based issuance should have resulted in an error");
 

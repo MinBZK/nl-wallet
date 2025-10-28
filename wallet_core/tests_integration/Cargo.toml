@@ -25,6 +25,11 @@ path = "tests/digid_issuance.rs"
 required-features = ["digid_test"]
 
 [[test]]
+name = "disclosure_based_issuance"
+path = "tests/disclosure_based_issuance.rs"
+required-features = ["integration_test"]
+
+[[test]]
 name = "disclosure"
 path = "tests/disclosure.rs"
 required-features = ["integration_test"]
@@ -254,6 +259,10 @@ wallet_provider_service = { path = "../wallet_provider/service", optional = true
 dotenvy = { workspace = true, optional = true }
 
 [dev-dependencies]
+itertools.workspace = true
+
+attestation_types.path = "../lib/attestation_types"
+
 # This enables the automatic running of unit and integration tests for these crates when tests
 # are run from the workspace. The following features are not included in this:
 # * hsm_test
@@ -263,7 +272,6 @@ issuance_server = { path = "../wallet_server/issuance_server" }
 openid4vc = { path = "../lib/openid4vc", features = ["integration"] }
 pid_issuer = { path = "../wallet_server/pid_issuer" }
 platform_support = { path = "../wallet/platform_support", features = ["persistent_mock_attested_key"] }
-sd_jwt = { path = "../lib/sd_jwt", features = ["examples", "test"] }
 server_utils = { path = "../wallet_server/server_utils", features = ["parsed_key_pair_conversion"] }
 token_status_list = { path = "../lib/token_status_list", features = ["axum"] }
 verification_server = { path = "../wallet_server/verification_server", features = ["test"] }

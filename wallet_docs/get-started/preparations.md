@@ -1,7 +1,7 @@
 # Preparations
 
 There are a few things to do and consider before you can start developing for
-the NL-Wallet. This short preparations note points you in the right directions
+the NL Wallet. This short preparations note points you in the right directions
 to make sure that everything works for local development, and mentions the
 option of community onboarding for organizations.
 
@@ -24,9 +24,9 @@ offered here.
 
 ## Community onboarding (optional)
 
-Organizations that have a need for a closer partnering with the NL-Wallet
+Organizations that have a need for a closer partnering with the NL Wallet
 eco-system, and that want to test integrations of their software with the
-official NL-Wallet backend and mobile apps, can opt to become a community
+official NL Wallet backend and mobile apps, can opt to become a community
 member.
 
 Please see our [community onboarding documentation](/community/onboarding)

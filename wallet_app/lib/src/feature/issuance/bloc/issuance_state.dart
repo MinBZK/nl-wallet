@@ -104,13 +104,18 @@ class IssuanceMissingAttributes extends IssuanceState {
 }
 
 class IssuanceProvidePinForDisclosure extends IssuanceState {
-  const IssuanceProvidePinForDisclosure();
+  final List<int> selectedIndices;
+
+  const IssuanceProvidePinForDisclosure({required this.selectedIndices});
 
   @override
   bool get canGoBack => true;
 
   @override
   FlowProgress get stepperProgress => const FlowProgress(currentStep: 2, totalSteps: kIssuanceSteps);
+
+  @override
+  List<Object?> get props => [selectedIndices, ...super.props];
 }
 
 class IssuanceReviewCards extends IssuanceState {

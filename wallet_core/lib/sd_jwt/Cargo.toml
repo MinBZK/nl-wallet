@@ -15,7 +15,6 @@ required-features = ["examples"]
 [features]
 examples = ["futures", "rand_core", "utils/mock_time"]
 mock = []
-test = []
 
 [dependencies]
 anyhow.workspace = true

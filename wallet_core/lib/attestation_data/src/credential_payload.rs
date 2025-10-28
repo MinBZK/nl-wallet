@@ -400,6 +400,7 @@ mod examples {
 
     use crate::attributes::AttributeValue;
     use crate::attributes::Attributes;
+    use crate::pid_constants::ADDRESS_ATTESTATION_TYPE;
     use crate::pid_constants::PID_ATTESTATION_TYPE;
 
     use super::CredentialPayload;
@@ -441,9 +442,15 @@ mod examples {
         pub fn example_empty(attestation_type: &str, time_generator: &impl Generator<DateTime<Utc>>) -> Self {
             let time = time_generator.generate();
 
+            let issuer = match attestation_type {
+                PID_ATTESTATION_TYPE | ADDRESS_ATTESTATION_TYPE => "https://pid.example.com",
+                _ => "https://cert.issuer.example.com",
+            }
+            .parse()
+            .unwrap();
             Self {
                 attestation_type: attestation_type.to_string(),
-                issuer: "https://cert.issuer.example.com".parse().unwrap(),
+                issuer,
                 expires: Some((time + Duration::days(365)).into()),
                 not_before: Some((time - Duration::days(1)).into()),
                 attestation_qualification: Default::default(),
@@ -491,6 +498,16 @@ mod mock {
     impl CredentialPayload {
         pub fn nl_pid_example(time_generator: &impl Generator<DateTime<Utc>>) -> Self {
             let previewable_payload = PreviewableCredentialPayload::nl_pid_example(time_generator);
+
+            Self::example_with_preview(
+                previewable_payload,
+                SigningKey::random(&mut OsRng).verifying_key(),
+                time_generator,
+            )
+        }
+
+        pub fn nl_pid_address_example(time_generator: &impl Generator<DateTime<Utc>>) -> Self {
+            let previewable_payload = PreviewableCredentialPayload::nl_pid_address_example(time_generator);
 
             Self::example_with_preview(
                 previewable_payload,

@@ -185,7 +185,7 @@ impl<C: SdJwtClaims, H> UnverifiedSdJwt<C, H> {
         let disclosures: IndexMap<String, Disclosure> = disclosures
             .iter()
             .map(|disclosure| {
-                let hash = hasher.encoded_digest(disclosure);
+                let digest = hasher.encoded_digest(disclosure);
                 let disclosure = disclosure.parse::<Disclosure>()?;
 
                 for (digest, claim_type) in disclosure.digests() {
@@ -196,7 +196,7 @@ impl<C: SdJwtClaims, H> UnverifiedSdJwt<C, H> {
                     }
                 }
 
-                Result::Ok((hash, disclosure))
+                Result::Ok((digest, disclosure))
             })
             .try_collect()?;
 
@@ -700,7 +700,7 @@ where
     }
 }
 
-#[cfg(feature = "examples")]
+#[cfg(any(test, feature = "examples"))]
 mod examples {
     use std::time::Duration;
 
@@ -1377,7 +1377,7 @@ mod test {
                         }
                         _ => {}
                     },
-                    ArrayClaim::Hash(_) => {}
+                    ArrayClaim::Hash { .. } => {}
                 },
             }
         }
@@ -1766,17 +1766,17 @@ mod test {
                             _sd: None,
                             claims: IndexMap::from([(
                                 "array".parse().unwrap(),
-                                ClaimValue::Array(vec![ArrayClaim::Hash(
-                                    "pFndjkZ_VCzmyTa6UjlZo3dh-ko8aIKQc9DlGzhaVYo".to_string(),
-                                )]),
+                                ClaimValue::Array(vec![ArrayClaim::Hash {
+                                    digest: "pFndjkZ_VCzmyTa6UjlZo3dh-ko8aIKQc9DlGzhaVYo".to_string(),
+                                }]),
                             )]),
                         }),
                     ),
                     (
                         "array_of_digests".parse().unwrap(),
-                        ClaimValue::Array(vec![ArrayClaim::Hash(
-                            "pFndjkZ_VCzmyTa6UjlZo3dh-ko8aIKQc9DlGzhaVYo".to_string(),
-                        )]),
+                        ClaimValue::Array(vec![ArrayClaim::Hash {
+                            digest: "pFndjkZ_VCzmyTa6UjlZo3dh-ko8aIKQc9DlGzhaVYo".to_string(),
+                        }]),
                     ),
                     (
                         "array_of_object_with_digests".parse().unwrap(),
@@ -1789,7 +1789,9 @@ mod test {
                                 ),
                                 claims: IndexMap::new(),
                             })),
-                            ArrayClaim::Hash("7Cf6JkPudry3lcbwHgeZ8khAv1U1OSlerP0VkBJrWZ0".to_string()),
+                            ArrayClaim::Hash {
+                                digest: "7Cf6JkPudry3lcbwHgeZ8khAv1U1OSlerP0VkBJrWZ0".to_string(),
+                            },
                         ]),
                     ),
                 ]),

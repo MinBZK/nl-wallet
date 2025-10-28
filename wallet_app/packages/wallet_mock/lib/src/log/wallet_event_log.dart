@@ -39,7 +39,9 @@ class WalletEventLog {
 
   void logDisclosure(StartDisclosureResult disclosure, DisclosureStatus status) {
     final List<AttestationPresentation> sharedAttestations = switch (disclosure) {
-      StartDisclosureResult_Request(:final requestedAttestations) => requestedAttestations,
+      /* Simply log the first element, since the mock does not support selective disclosure */
+      StartDisclosureResult_Request(:final disclosureOptions) =>
+        disclosureOptions.map((it) => it.field0.first).toList(),
       StartDisclosureResult_RequestAttributesMissing() => [],
     };
     final RequestPolicy policy = switch (disclosure) {

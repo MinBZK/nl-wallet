@@ -148,10 +148,10 @@ where
     pub async fn emit_recent_history(&mut self) -> Result<(), StorageError> {
         info!("Emit recent history from storage");
 
-        let storage = self.storage.read().await;
-        let events = storage.fetch_recent_wallet_events().await?;
+        if let Some(recent_history_callback) = &mut self.recent_history_callback {
+            let storage = self.storage.read().await;
+            let events = storage.fetch_recent_wallet_events().await?;
 
-        if let Some(ref mut recent_history_callback) = self.recent_history_callback {
             recent_history_callback(events);
         }
 
@@ -250,8 +250,7 @@ mod tests {
         let mut wallet = TestWalletInMemoryStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         let reader_ca = Ca::generate_reader_mock_ca().unwrap();
-        let reader_key =
-            generate_reader_mock_with_registration(&reader_ca, ReaderRegistration::new_mock().into()).unwrap();
+        let reader_key = generate_reader_mock_with_registration(&reader_ca, ReaderRegistration::new_mock()).unwrap();
 
         // history should be empty
         let history = wallet.get_history().await.unwrap();

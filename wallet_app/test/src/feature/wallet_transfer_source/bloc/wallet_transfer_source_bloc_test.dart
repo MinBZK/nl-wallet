@@ -1,6 +1,7 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
+import 'package:rxdart/rxdart.dart';
 import 'package:wallet/src/domain/model/result/application_error.dart';
 import 'package:wallet/src/domain/model/result/result.dart';
 import 'package:wallet/src/domain/model/transfer/wallet_transfer_status.dart';
@@ -13,12 +14,16 @@ void main() {
       MockAcknowledgeWalletTransferUseCase();
   final MockGetWalletTransferStatusUseCase mockGetWalletTransferStatusUseCase = MockGetWalletTransferStatusUseCase();
   final MockCancelWalletTransferUseCase mockCancelWalletTransferUseCase = MockCancelWalletTransferUseCase();
+  final mockAutoLockService = MockAutoLockService();
 
-  WalletTransferSourceBloc createBloc() => WalletTransferSourceBloc(
-    mockAcknowledgeWalletTransferUseCase,
-    mockGetWalletTransferStatusUseCase,
-    mockCancelWalletTransferUseCase,
-  );
+  WalletTransferSourceBloc createBloc() {
+    return WalletTransferSourceBloc(
+      mockAcknowledgeWalletTransferUseCase,
+      mockGetWalletTransferStatusUseCase,
+      mockCancelWalletTransferUseCase,
+      mockAutoLockService,
+    );
+  }
 
   blocTest(
     'verify initial state',
@@ -47,17 +52,19 @@ void main() {
       when(mockGetWalletTransferStatusUseCase.invoke()).thenAnswer(
         (_) => Stream.fromIterable([
           WalletTransferStatus.waitingForApprovalAndUpload,
-          WalletTransferStatus.transferring,
+          WalletTransferStatus.readyForDownload,
           WalletTransferStatus.success,
-        ]),
+        ]).delay(const Duration(milliseconds: 10)),
       );
     },
     act: (bloc) async {
       bloc.add(const WalletTransferAcknowledgeTransferEvent('https://example.org/transfer'));
-      await Future.delayed(const Duration(milliseconds: 10));
+      await Future.delayed(Duration.zero);
       bloc.add(const WalletTransferAgreeEvent());
-      await Future.delayed(const Duration(milliseconds: 10));
+      await Future.delayed(Duration.zero);
       bloc.add(const WalletTransferPinConfirmedEvent());
+      // Wait for (mock) stream to emit
+      await Future.delayed(const Duration(milliseconds: 20));
     },
     expect: () => [
       isA<WalletTransferLoading>(),
@@ -82,9 +89,9 @@ void main() {
     build: createBloc,
     act: (bloc) async {
       bloc.add(const WalletTransferAcknowledgeTransferEvent('https://example.org/transfer'));
-      await Future.delayed(const Duration(milliseconds: 10));
+      await Future.delayed(Duration.zero);
       bloc.add(const WalletTransferAgreeEvent());
-      await Future.delayed(const Duration(milliseconds: 10));
+      await Future.delayed(Duration.zero);
       bloc.add(const WalletTransferBackPressedEvent());
     },
     expect: () => [
@@ -100,14 +107,18 @@ void main() {
     build: createBloc,
     setUp: () {
       when(mockAcknowledgeWalletTransferUseCase.invoke(any)).thenAnswer((_) async => const Result.success(null));
-      when(mockGetWalletTransferStatusUseCase.invoke()).thenAnswer((_) => Stream.value(WalletTransferStatus.error));
+      when(
+        mockGetWalletTransferStatusUseCase.invoke(),
+      ).thenAnswer((_) => Stream.value(WalletTransferStatus.error).delay(const Duration(milliseconds: 10)));
     },
     act: (bloc) async {
       bloc.add(const WalletTransferAcknowledgeTransferEvent('https://example.org/transfer'));
-      await Future.delayed(const Duration(milliseconds: 10));
+      await Future.delayed(Duration.zero);
       bloc.add(const WalletTransferAgreeEvent());
-      await Future.delayed(const Duration(milliseconds: 10));
+      await Future.delayed(Duration.zero);
       bloc.add(const WalletTransferPinConfirmedEvent());
+      // Wait for (mock) stream to emit
+      await Future.delayed(const Duration(milliseconds: 20));
     },
     expect: () => [
       isA<WalletTransferLoading>(),
@@ -116,5 +127,68 @@ void main() {
       isA<WalletTransferTransferring>(),
       isA<WalletTransferFailed>(),
     ],
+  );
+
+  blocTest(
+    'verify transfer can be cancelled by destination',
+    build: createBloc,
+    setUp: () {
+      when(mockAcknowledgeWalletTransferUseCase.invoke(any)).thenAnswer((_) async => const Result.success(null));
+      when(
+        mockGetWalletTransferStatusUseCase.invoke(),
+      ).thenAnswer((_) => Stream.value(WalletTransferStatus.cancelled).delay(const Duration(milliseconds: 10)));
+    },
+    act: (bloc) async {
+      bloc.add(const WalletTransferAcknowledgeTransferEvent('https://example.org/transfer'));
+      // Wait for (mock) stream to emit
+      await Future.delayed(const Duration(milliseconds: 20));
+    },
+    expect: () => [
+      isA<WalletTransferLoading>(),
+      isA<WalletTransferIntroduction>(),
+      isA<WalletTransferStopped>(),
+    ],
+  );
+
+  blocTest(
+    'verify bloc emits WalletTransferNetworkError when the get status throws a NetworkError',
+    build: createBloc,
+    setUp: () {
+      when(mockAcknowledgeWalletTransferUseCase.invoke(any)).thenAnswer((_) async => const Result.success(null));
+      when(
+        mockGetWalletTransferStatusUseCase.invoke(),
+      ).thenAnswer(
+        (_) async* {
+          await Future.delayed(const Duration(milliseconds: 10));
+          throw const NetworkError(hasInternet: false, sourceError: 'network_error');
+        },
+      );
+    },
+    act: (bloc) async {
+      bloc.add(const WalletTransferAcknowledgeTransferEvent('https://example.org/transfer'));
+      await Future.delayed(Duration.zero);
+      bloc.add(const WalletTransferAgreeEvent());
+      await Future.delayed(Duration.zero);
+      bloc.add(const WalletTransferPinConfirmedEvent());
+      // Wait for (mock) stream to emit
+      await Future.delayed(const Duration(milliseconds: 20));
+    },
+    expect: () => [
+      isA<WalletTransferLoading>(),
+      isA<WalletTransferIntroduction>(),
+      isA<WalletTransferConfirmPin>(),
+      isA<WalletTransferTransferring>(),
+      isA<WalletTransferNetworkError>(),
+    ],
+  );
+
+  blocTest(
+    'verify autolock is re-enabled when bloc is closed',
+    setUp: () => reset(mockAutoLockService),
+    build: createBloc,
+    verify: (bloc) {
+      expect(bloc.isClosed, isTrue, reason: 'BLoC should (automatically) be closed');
+      verify(mockAutoLockService.setAutoLock(enabled: true)).called(1);
+    },
   );
 }

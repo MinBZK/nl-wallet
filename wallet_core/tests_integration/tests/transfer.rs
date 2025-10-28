@@ -60,7 +60,7 @@ async fn init_wallets() -> (WalletData, WalletData) {
         .await
         .unwrap();
     source
-        .continue_disclosure_based_issuance(String::from(source_wallet_pin))
+        .continue_disclosure_based_issuance(&[0], String::from(source_wallet_pin))
         .await
         .unwrap();
     source.accept_issuance(String::from(source_wallet_pin)).await.unwrap();
@@ -133,13 +133,15 @@ async fn test_wallet_transfer() {
 
     source.send_wallet_payload(source_wallet_pin.clone()).await.unwrap();
 
-    assert_state(TransferSessionState::ReadyForDownload, &mut source).await;
-    assert_state(TransferSessionState::Success, &mut destination).await;
+    assert_states(TransferSessionState::ReadyForDownload, &mut destination, &mut source).await;
+
+    destination.receive_wallet_payload().await.unwrap();
+
     assert_state(TransferSessionState::Success, &mut source).await;
 
     // Check if the content of the destination wallet
     let attestations = wallet_attestations(&mut destination).await;
-    assert_eq!(3, attestations.len());
+    assert_eq!(4, attestations.len());
 
     // Check that the source wallet is empty
     let attestations = wallet_attestations(&mut source).await;

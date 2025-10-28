@@ -45,7 +45,7 @@ class IssuanceManager {
       return StartDisclosureResult_Request(
         relyingParty: response.relyingParty,
         policy: response.policy,
-        requestedAttestations: _requestedAttestationsForActiveRequest,
+        disclosureOptions: _requestedAttestationsForActiveRequest.map((it) => DisclosureOptions(field0: [it])).toList(),
         sharedDataWithRelyingPartyBefore: _eventLog.includesInteractionWith(response.relyingParty),
         sessionType: DisclosureSessionType.CrossDevice,
         requestOriginBaseUrl: response.relyingParty.webUrl ?? 'https://origin.org',

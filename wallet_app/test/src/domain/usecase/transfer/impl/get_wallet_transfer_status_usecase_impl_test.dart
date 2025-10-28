@@ -39,7 +39,7 @@ void main() {
       when(mockTransferRepository.getWalletTransferState()).thenAnswer((_) async {
         final first = firstCall;
         firstCall = false;
-        return first ? WalletTransferStatus.transferring : WalletTransferStatus.success;
+        return first ? WalletTransferStatus.readyForDownload : WalletTransferStatus.success;
       });
 
       // Act
@@ -49,7 +49,7 @@ void main() {
       await expectLater(
         stream,
         emitsInOrder([
-          WalletTransferStatus.transferring,
+          WalletTransferStatus.readyForDownload,
           WalletTransferStatus.success,
           emitsDone,
         ]),

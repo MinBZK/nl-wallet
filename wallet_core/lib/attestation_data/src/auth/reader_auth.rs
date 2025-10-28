@@ -97,7 +97,7 @@ impl TryFrom<ReaderRegistration> for Vec<rcgen::CustomExtension> {
 
 impl From<ReaderRegistration> for CertificateType {
     fn from(source: ReaderRegistration) -> Self {
-        CertificateType::ReaderAuth(Box::new(source).into())
+        CertificateType::ReaderAuth(Box::new(source))
     }
 }
 

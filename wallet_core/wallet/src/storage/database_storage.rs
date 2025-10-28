@@ -1058,13 +1058,13 @@ pub(crate) mod tests {
     static ISSUER_KEY: LazyLock<KeyPair> = LazyLock::new(|| {
         let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
 
-        generate_issuer_mock_with_registration(&issuer_ca, IssuerRegistration::new_mock().into()).unwrap()
+        generate_issuer_mock_with_registration(&issuer_ca, IssuerRegistration::new_mock()).unwrap()
     });
 
     static READER_KEY: LazyLock<KeyPair> = LazyLock::new(|| {
         let reader_ca = Ca::generate_reader_mock_ca().unwrap();
 
-        generate_reader_mock_with_registration(&reader_ca, ReaderRegistration::new_mock().into()).unwrap()
+        generate_reader_mock_with_registration(&reader_ca, ReaderRegistration::new_mock()).unwrap()
     });
 
     #[test]

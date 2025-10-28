@@ -5,6 +5,7 @@ import 'package:wallet/src/domain/model/result/application_error.dart';
 import 'package:wallet/src/domain/model/result/result.dart';
 import 'package:wallet/src/domain/model/transfer/wallet_transfer_status.dart';
 import 'package:wallet/src/feature/wallet_transfer_target/bloc/wallet_transfer_target_bloc.dart';
+import 'package:wallet/src/wallet_core/error/core_error.dart';
 
 import '../../../mocks/wallet_mocks.dart';
 
@@ -13,12 +14,16 @@ void main() {
   late MockGetWalletTransferStatusUseCase mockGetWalletTransferStatusUseCase;
   late MockCancelWalletTransferUseCase mockCancelWalletTransferUseCase;
   late MockSkipWalletTransferUseCase mockSkipWalletTransferUseCase;
+  late MockReceiveWalletTransferUseCase mockReceiveWalletTransferUseCase;
+  late MockAutoLockService mockAutoLockService;
 
   setUp(() {
     mockInitWalletTransferUseCase = MockInitWalletTransferUseCase();
     mockGetWalletTransferStatusUseCase = MockGetWalletTransferStatusUseCase();
     mockCancelWalletTransferUseCase = MockCancelWalletTransferUseCase();
     mockSkipWalletTransferUseCase = MockSkipWalletTransferUseCase();
+    mockReceiveWalletTransferUseCase = MockReceiveWalletTransferUseCase();
+    mockAutoLockService = MockAutoLockService();
   });
 
   WalletTransferTargetBloc createBloc() => WalletTransferTargetBloc(
@@ -26,6 +31,8 @@ void main() {
     mockGetWalletTransferStatusUseCase,
     mockCancelWalletTransferUseCase,
     mockSkipWalletTransferUseCase,
+    mockReceiveWalletTransferUseCase,
+    mockAutoLockService,
   );
 
   blocTest<WalletTransferTargetBloc, WalletTransferTargetState>(
@@ -46,7 +53,7 @@ void main() {
           (_) => Stream.fromIterable([
             WalletTransferStatus.waitingForScan,
             WalletTransferStatus.waitingForApprovalAndUpload,
-            WalletTransferStatus.transferring,
+            WalletTransferStatus.readyForDownload,
             WalletTransferStatus.success,
           ]),
         );
@@ -121,6 +128,25 @@ void main() {
         const WalletTransferLoadingQrData(),
         const WalletTransferAwaitingQrScan(qrData),
         isA<WalletTransferGenericError>().having((e) => e.error.sourceError, 'sourceError', isA<Exception>()),
+      ],
+    );
+
+    blocTest<WalletTransferTargetBloc, WalletTransferTargetState>(
+      'when status stream throws NetworkError emit WalletTransferNetworkError',
+      build: createBloc,
+      setUp: () {
+        when(mockInitWalletTransferUseCase.invoke()).thenAnswer((_) async => const Result.success(qrData));
+        when(
+          mockGetWalletTransferStatusUseCase.invoke(),
+        ).thenAnswer(
+          (_) => Stream.error(const NetworkError(hasInternet: false, sourceError: CoreNetworkError('network error'))),
+        );
+      },
+      act: (bloc) => bloc.add(const WalletTransferOptInEvent()),
+      expect: () => [
+        const WalletTransferLoadingQrData(),
+        const WalletTransferAwaitingQrScan(qrData),
+        isA<WalletTransferNetworkError>(),
       ],
     );
   });
@@ -204,22 +230,40 @@ void main() {
         when(mockGetWalletTransferStatusUseCase.invoke()).thenAnswer(
           (_) => Stream.fromIterable([
             WalletTransferStatus.waitingForScan,
-            WalletTransferStatus.transferring,
+            WalletTransferStatus.readyForDownload,
           ]).asBroadcastStream(),
         );
+        when(
+          mockReceiveWalletTransferUseCase.invoke(),
+        ).thenAnswer((_) async {
+          await Future.delayed(const Duration(milliseconds: 5));
+          return const Result.success(null);
+        });
       },
       act: (bloc) async {
         bloc.add(const WalletTransferOptInEvent());
         await untilCalled(mockGetWalletTransferStatusUseCase.invoke());
-        await Future.delayed(const Duration(milliseconds: 50)); // ensure transferring state is reached
+        await Future.delayed(Duration.zero); // ensure transferring state is reached
         bloc.add(const WalletTransferBackPressedEvent());
+        await Future.delayed(const Duration(milliseconds: 5)); // ensure success state is reached
       },
       expect: () => [
         // only initial opt-in states, no change from back press
         const WalletTransferLoadingQrData(),
         const WalletTransferAwaitingQrScan(qrData),
         const WalletTransferTransferring(),
+        const WalletTransferSuccess(),
       ],
     );
   });
+
+  blocTest(
+    'verify autolock is re-enabled when bloc is closed',
+    setUp: () => reset(mockAutoLockService),
+    build: createBloc,
+    verify: (bloc) {
+      expect(bloc.isClosed, isTrue, reason: 'BLoC should (automatically) be closed');
+      verify(mockAutoLockService.setAutoLock(enabled: true)).called(1);
+    },
+  );
 }

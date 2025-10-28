@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../domain/usecase/transfer/cancel_wallet_transfer_usecase.dart';
 import '../../../domain/usecase/transfer/start_wallet_transfer_usecase.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../common/widget/pin_header.dart';
@@ -26,12 +27,18 @@ class WalletTransferSourceConfirmPinPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider<PinBloc>(
-      create: (BuildContext context) => bloc ?? PinBloc(context.read<StartWalletTransferUseCase>()),
+      create: (BuildContext context) =>
+          bloc ?? context.read<PinBloc?>() ?? PinBloc(context.read<StartWalletTransferUseCase>()),
       child: PinPage(
         headerBuilder: (context, attempts, isFinalRound) =>
             PinHeader(title: context.l10n.walletTransferSourceConfirmPinPageTitle),
         onPinValidated: onPinConfirmed,
         onPinError: onPinConfirmationFailed,
+        onStateChanged: (context, state) {
+          if (state is PinValidateTimeout) context.read<CancelWalletTransferUseCase>().invoke();
+          if (state is PinValidateBlocked) context.read<CancelWalletTransferUseCase>().invoke();
+          return false;
+        },
       ),
     );
   }

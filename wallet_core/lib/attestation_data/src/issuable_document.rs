@@ -104,7 +104,7 @@ pub mod mock {
     use crate::attributes::AttributeValue;
 
     impl IssuableDocument {
-        pub fn new_mock() -> Self {
+        pub fn new_mock_degree(education: String) -> Self {
             IssuableDocument::try_new_with_random_id(
                 "com.example.degree".to_string(),
                 IndexMap::from([
@@ -114,7 +114,7 @@ pub mod mock {
                     ),
                     (
                         "education".to_string(),
-                        Attribute::Single(AttributeValue::Text("Example education".to_string())),
+                        Attribute::Single(AttributeValue::Text(education)),
                     ),
                     (
                         "graduation_date".to_string(),

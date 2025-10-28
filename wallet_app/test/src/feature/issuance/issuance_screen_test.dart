@@ -145,10 +145,10 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
           MockIssuanceBloc(),
-          const IssuanceProvidePinForDisclosure(),
+          const IssuanceProvidePinForDisclosure(selectedIndices: [0]),
         ),
         providers: [
-          RepositoryProvider<DiscloseForIssuanceUseCase>(create: (c) => MockDiscloseForIssuanceUseCase()),
+          RepositoryProvider<IssuanceRepository>(create: (c) => MockIssuanceRepository()),
         ],
       );
       await screenMatchesGolden('provide_pin.disclosure.light');
@@ -158,12 +158,12 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
           MockIssuanceBloc(),
-          const IssuanceProvidePinForDisclosure(),
+          const IssuanceProvidePinForDisclosure(selectedIndices: [0]),
         ),
         brightness: Brightness.dark,
         surfaceSize: iphoneXSizeLandscape,
         providers: [
-          RepositoryProvider<DiscloseForIssuanceUseCase>(create: (c) => MockDiscloseForIssuanceUseCase()),
+          RepositoryProvider<IssuanceRepository>(create: (c) => MockIssuanceRepository()),
         ],
       );
       await screenMatchesGolden('provide_pin.disclosure.dark.landscape');

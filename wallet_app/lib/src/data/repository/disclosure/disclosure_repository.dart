@@ -9,5 +9,5 @@ abstract class DisclosureRepository {
 
   Future<bool> hasActiveDisclosureSession();
 
-  Future<String?> acceptDisclosure(String pin);
+  Future<String?> acceptDisclosure(String pin, List<int> selectedIndices);
 }

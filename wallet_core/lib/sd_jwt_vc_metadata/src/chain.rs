@@ -408,6 +408,14 @@ mod example_constructors {
                     .unwrap(),
             )
         }
+
+        pub fn nl_address_example() -> Self {
+            Self(
+                vec![NL_ADDRESS_METADATA_BYTES.to_vec(), EUDI_ADDRESS_METADATA_BYTES.to_vec()]
+                    .try_into()
+                    .unwrap(),
+            )
+        }
     }
 
     impl From<TypeMetadataDocuments> for VerifiedTypeMetadataDocuments {

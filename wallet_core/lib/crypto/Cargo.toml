@@ -24,7 +24,7 @@ mock_secure_keys = []
 aes-gcm = { workspace = true, features = ["std"] }
 base64.workspace = true
 chrono = { workspace = true, features = ["std", "clock"] }
-derive_more = { workspace = true, features = ["debug", "as_ref", "from", "into"] }
+derive_more = { workspace = true, features = ["debug", "as_ref", "from", "into", "display"] }
 indexmap = { workspace = true, features = ["serde"] }
 p256 = { workspace = true, features = ["std", "ecdsa", "pem"] }
 rustls-pki-types.workspace = true

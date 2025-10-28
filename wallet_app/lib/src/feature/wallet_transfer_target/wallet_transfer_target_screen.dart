@@ -6,10 +6,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../data/service/navigation_service.dart';
+import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/string_extension.dart';
 import '../../util/helper/dialog_helper.dart';
 import '../../wallet_assets.dart';
+import '../common/mixin/lock_state_mixin.dart';
 import '../common/page/generic_loading_page.dart';
 import '../common/page/terminal_page.dart';
 import '../common/sheet/error_details_sheet.dart';
@@ -38,7 +40,7 @@ class WalletTransferTargetScreen extends StatefulWidget {
 }
 
 class _WalletTransferTargetScreenState extends State<WalletTransferTargetScreen>
-    with AfterLayoutMixin<WalletTransferTargetScreen> {
+    with AfterLayoutMixin<WalletTransferTargetScreen>, LockStateMixin {
   @override
   FutureOr<void> afterFirstLayout(BuildContext context) {
     final showTransferStoppedDialog = ModalRoute.of(context)?.settings.arguments == true;
@@ -238,9 +240,24 @@ class _WalletTransferTargetScreenState extends State<WalletTransferTargetScreen>
 
     if (skip && context.mounted) {
       context.bloc.add(const WalletTransferOptOutEvent());
-      Navigator.pop(context);
+      await Navigator.pushNamedAndRemoveUntil(
+        context,
+        WalletRoutes.walletPersonalizeRoute,
+        ModalRoute.withName(WalletRoutes.splashRoute),
+      );
     }
   }
+
+  @override
+  FutureOr<void> onLock() {
+    if (context.mounted && context.bloc.state is WalletTransferSuccess) {
+      Fimber.d('Locking app after completing transfer, navigating to dashboard while locking');
+      DashboardScreen.show(context); // PVW-5086
+    }
+  }
+
+  @override
+  FutureOr<void> onUnlock() {}
 }
 
 extension _WalletTransferTargetScreenExtension on BuildContext {

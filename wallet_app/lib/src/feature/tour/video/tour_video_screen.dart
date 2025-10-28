@@ -5,13 +5,14 @@ import 'dart:io';
 import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
 import 'package:video_player/video_player.dart';
 
+import '../../../data/service/auto_lock_service.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/utility/do_on_init.dart';
 import '../../error/error_screen.dart';
-import '../../lock/auto_lock_provider.dart';
 import 'argument/tour_video_screen_argument.dart';
 import 'widget/video_overlay.dart';
 
@@ -74,7 +75,7 @@ class _TourVideoScreenState extends State<TourVideoScreen> {
   }
 
   /// Avoids showing [IdleWarningDialog] while video is playing
-  void _onTick() => AutoLockProvider.of(context)?.resetIdleTimeout();
+  void _onTick() => context.read<AutoLockService>().resetIdleTimeout();
 
   @override
   void dispose() {

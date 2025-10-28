@@ -96,10 +96,10 @@ impl ClaimValue {
 impl ArrayClaim {
     pub fn decode(&self, disclosures: &mut IndexMap<String, Disclosure>) -> Result<Option<Self>, ClaimError> {
         let decoded_claim = match self {
-            ArrayClaim::Hash(digest) => match disclosures.shift_remove(digest) {
+            ArrayClaim::Hash { digest } => match disclosures.shift_remove(digest) {
                 Some(disclosure) => {
                     // Verify that the matching disclosure discloses an array element
-                    let (_, array_claim) = disclosure.content.try_as_array_element(digest)?;
+                    let (_, array_claim) = disclosure.content.try_as_array_element(digest.as_ref())?;
                     array_claim.decode(disclosures)?
                 }
                 None => None,
@@ -110,11 +110,6 @@ impl ArrayClaim {
     }
 }
 
-// TODO: [PVW-4138] Add tests for:
-// - encoding and then decoding an input object results in the same input object, also when the object contains
-//   (recursively) conceiled claims,
-// - it uses a more complicated test object than the one below, to hit more features of the encoding/decoding,
-// - no _sd or ... are left in the decoded object in cases where they are not expected.
 #[cfg(test)]
 mod test {
     use indexmap::IndexMap;
@@ -151,6 +146,7 @@ mod test {
             .decode(&mut IndexMap::from_iter([(disclosure_hash, disclosure)]))
             .unwrap();
 
+        // This also tests that the `unused_hash` and in fact the whole `_sd` claim is removed
         assert_eq!(decoded, expected);
     }
 
@@ -173,6 +169,7 @@ mod test {
             .decode(&mut IndexMap::from_iter([(disclosure_hash, disclosure)]))
             .unwrap();
 
+        // This also tests that the `unused_hash` is removed
         assert_eq!(decoded, expected);
     }
 
