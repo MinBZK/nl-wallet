@@ -1050,7 +1050,7 @@ pub(crate) mod tests {
 
     use test_storage::MockHardwareDatabaseStorage;
 
-    use crate::attestation::EmptyPresentationConfig;
+    use crate::attestation::mock::EmptyPresentationConfig;
     use crate::storage::data::RegistrationData;
 
     use super::*;

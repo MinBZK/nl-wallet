@@ -212,7 +212,7 @@ pub mod test {
     use super::super::AttestationIdentity;
     use super::super::AttestationPresentation;
     use super::super::AttributesError;
-    use super::super::EmptyPresentationConfig;
+    use super::super::mock::EmptyPresentationConfig;
 
     fn claim_metadata(keys: &[&str]) -> ClaimMetadata {
         ClaimMetadata {
