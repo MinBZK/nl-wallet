@@ -3326,7 +3326,7 @@ mod tests {
             .returning(|_, _| Ok(()));
         repositories
             .expect_reset_unsuccessful_pin_entries()
-            .times(1)
+            .times(2)
             .returning(|_, _| Ok(()));
         repositories
             .expect_update_instruction_sequence_number()
