@@ -86,7 +86,7 @@ fn attestation_presentation_from_issuer_signed(
     issuer_signed: IssuerSigned,
     attestation_id: Uuid,
     normalized_metadata: NormalizedTypeMetadata,
-    issuer_organization: Organization,
+    issuer_organization: Box<Organization>,
     config: &impl AttestationPresentationConfig,
 ) -> AttestationPresentation {
     AttestationPresentation::create_from_mdoc(
@@ -103,7 +103,7 @@ fn attestation_presentation_from_sd_jwt(
     sd_jwt: &VerifiedSdJwt,
     attestation_id: Uuid,
     normalized_metadata: NormalizedTypeMetadata,
-    issuer_organization: Organization,
+    issuer_organization: Box<Organization>,
     config: &impl AttestationPresentationConfig,
 ) -> AttestationPresentation {
     AttestationPresentation::create_from_sd_jwt_claims(
