@@ -404,8 +404,15 @@ where
         self.check_recovery_state().await?;
 
         info!("Checking if there is an active issuance session");
-        let Some(Session::PinRecovery(PinRecoverySession::Issuance(issuance_session))) = &self.session else {
+        if !matches!(
+            self.session,
+            Some(Session::PinRecovery(PinRecoverySession::Issuance(..)))
+        ) {
             return Err(PinRecoveryError::SessionState);
+        }
+
+        let Some(Session::PinRecovery(PinRecoverySession::Issuance(issuance_session))) = &self.session.take() else {
+            unreachable!("session contained no PIN recovery issuance session"); // we just checked this above
         };
 
         validate_pin(&new_pin)?;
@@ -548,6 +555,7 @@ mod tests {
 
     use assert_matches::assert_matches;
     use p256::ecdsa::VerifyingKey;
+    use rstest::rstest;
     use serial_test::serial;
     use url::Url;
     use uuid::Uuid;
@@ -601,9 +609,19 @@ mod tests {
 
     const AUTH_URL: &str = "http://example.com/auth";
 
+    #[rstest]
     #[tokio::test]
-    pub async fn create_pin_recovery_redirect_uri() {
+    pub async fn create_pin_recovery_redirect_uri(
+        #[values(None, Some(PinRecoveryData))] pin_recovery_data: Option<PinRecoveryData>,
+    ) {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        // create_pin_recovery_redirect_uri() is allowed regardless of whether the wallet
+        // was already recovering the PIN.
+        wallet
+            .mut_storage()
+            .expect_fetch_data()
+            .return_once(|| Ok(pin_recovery_data));
 
         wallet
             .mut_storage()
