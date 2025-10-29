@@ -109,25 +109,24 @@ impl From<SignedSdJwt> for VerifiedSdJwt {
 /// let holder_key = SigningKey::random(&mut OsRng);
 /// let claims = SdJwtVcClaims {
 ///     _sd_alg: None,
-///     cnf: RequiredKeyBinding::Jwk(jwk_from_p256(&holder_key.verifying_key()).unwrap()),
+///     cnf: RequiredKeyBinding::Jwk(jwk_from_p256(&holder_key.verifying_key())?),
 ///     vct: "urn:example:vct".into(),
 ///     vct_integrity: None,
-///     iss: "https://issuer.example.com".parse().unwrap(),
+///     iss: "https://issuer.example.com".parse()?,
 ///     iat: DateTimeSeconds::from(Utc::now()),
 ///     exp: None,
 ///     nbf: None,
 ///     attestation_qualification: None,
 ///     claims: serde_json::from_value(serde_json::json!({
 ///         "name": "alice"
-///     })).unwrap(),
+///     }))?,
 /// };
 /// let builder = SdJwtBuilder::new(claims)
-///     .make_concealable(vec![ClaimPath::SelectByKey("name".into())].try_into().unwrap())
-///     .unwrap();
+///     .make_concealable(vec![ClaimPath::SelectByKey("name".into())].try_into()?)?;
 ///
-/// let ca = Ca::generate_issuer_mock_ca().unwrap();
-/// let issuer_keypair = ca.generate_issuer_mock().unwrap();
-/// let signed = builder.finish(&issuer_keypair).await.unwrap();
+/// let ca = Ca::generate_issuer_mock_ca()?;
+/// let issuer_keypair = ca.generate_issuer_mock()?;
+/// let signed = builder.finish(&issuer_keypair).await?;
 /// # Ok::<(), Box<dyn std::error::Error>>(())
 /// # });
 /// ```
@@ -176,39 +175,40 @@ impl<H: Hasher> SdJwtBuilder<H> {
     /// # use rand_core::OsRng;
     ///
     /// let builder = SdJwtBuilder::new(SdJwtVcClaims {
-    ///         _sd_alg: None,
-    ///         cnf: RequiredKeyBinding::Jwk(jwk_from_p256(&SigningKey::random(&mut OsRng).verifying_key()).unwrap()),
-    ///         vct: "com:example:vct".into(),
-    ///         vct_integrity: None,
-    ///         iss: "https://issuer.example.com".parse().unwrap()  ,
-    ///         iat: DateTimeSeconds::from(Utc::now()),
-    ///         exp: None,
-    ///         nbf: None,
-    ///         attestation_qualification: None,
-    ///         claims: serde_json::from_value(serde_json::json!({
-    ///             "name": "alice",
-    ///             "address": {
-    ///                 "house_number": 1
-    ///             },
-    ///             "nationalities": ["Dutch", "Belgian"]
-    ///         })).unwrap(),
-    ///     })
-    ///     // conceals "name": "alice"
-    ///     .make_concealable(VecNonEmpty::try_from(vec![ClaimPath::SelectByKey(String::from("name"))]).unwrap()).unwrap()
-    ///     // "house_number": 1
-    ///     .make_concealable(VecNonEmpty::try_from(
-    ///         vec![
-    ///            ClaimPath::SelectByKey(String::from("address")),
-    ///            ClaimPath::SelectByKey(String::from("house_number"))
-    ///         ]
-    ///     ).unwrap()).unwrap()
-    ///     // conceals "Dutch"
-    ///     .make_concealable(VecNonEmpty::try_from(
-    ///         vec![
-    ///            ClaimPath::SelectByKey(String::from("nationalities")),
-    ///            ClaimPath::SelectByIndex(0)
-    ///         ]
-    ///     ).unwrap()).unwrap();
+    ///     _sd_alg: None,
+    ///     cnf: RequiredKeyBinding::Jwk(jwk_from_p256(&SigningKey::random(&mut OsRng).verifying_key())?),
+    ///     vct: "com:example:vct".into(),
+    ///     vct_integrity: None,
+    ///     iss: "https://issuer.example.com".parse()?  ,
+    ///     iat: DateTimeSeconds::from(Utc::now()),
+    ///     exp: None,
+    ///     nbf: None,
+    ///     attestation_qualification: None,
+    ///     claims: serde_json::from_value(serde_json::json!({
+    ///         "name": "alice",
+    ///         "address": {
+    ///             "house_number": 1
+    ///         },
+    ///         "nationalities": ["Dutch", "Belgian"]
+    ///     }))?,
+    /// })
+    /// // conceals "name": "alice"
+    /// .make_concealable(VecNonEmpty::try_from(vec![ClaimPath::SelectByKey(String::from("name"))])?)?
+    /// // "house_number": 1
+    /// .make_concealable(VecNonEmpty::try_from(
+    ///     vec![
+    ///        ClaimPath::SelectByKey(String::from("address")),
+    ///        ClaimPath::SelectByKey(String::from("house_number"))
+    ///     ]
+    /// )?)?
+    /// // conceals "Dutch"
+    /// .make_concealable(VecNonEmpty::try_from(
+    ///     vec![
+    ///        ClaimPath::SelectByKey(String::from("nationalities")),
+    ///        ClaimPath::SelectByIndex(0)
+    ///     ]
+    /// )?)?;
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     pub fn make_concealable(mut self, path: VecNonEmpty<ClaimPath>) -> Result<Self, EncoderError> {
         let disclosure = self.encoder.conceal(path)?;
