@@ -163,7 +163,7 @@ impl StoredAttestationCopy {
         }
     }
 
-    /// Convert the stored attestation into a [`PreivewableCredentialPayload`], to be able to compare it with a received
+    /// Convert the stored attestation into a [`PreivewableCredentialPayload`], to be able to compare it to a received
     /// preview.
     pub fn into_previewable_credential_payload(self) -> PreviewableCredentialPayload {
         match self.attestation {
